@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:dart_frog/dart_frog.dart';
 import 'package:openci_server/database.dart';
+import 'package:openci_server/request/error_handler.dart';
 import 'package:openci_server/request/request_extension.dart';
 
 FutureOr<Response> onRequest(RequestContext context, String id) {
@@ -135,14 +136,7 @@ Future<Response> _patch(RequestContext context, String id) async {
       body: {'success': true},
     );
   } catch (e, s) {
-    stderr.writeln('Failed to update team $id: $e\n$s');
-    return Response.json(
-      statusCode: HttpStatus.internalServerError,
-      body: {
-        'success': false,
-        'error': 'Internal server error',
-      },
-    );
+    return handleRouteException(e, s, logMessage: 'Failed to update team $id');
   }
 }
 
@@ -181,13 +175,6 @@ Future<Response> _delete(RequestContext context, String id) async {
       body: {'success': true},
     );
   } catch (e, s) {
-    stderr.writeln('Failed to delete team $id: $e\n$s');
-    return Response.json(
-      statusCode: HttpStatus.internalServerError,
-      body: {
-        'success': false,
-        'error': 'Internal server error',
-      },
-    );
+    return handleRouteException(e, s, logMessage: 'Failed to delete team $id');
   }
 }

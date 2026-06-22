@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:dart_frog/dart_frog.dart';
 import 'package:openci_server/build_job/build_job_mapper.dart';
 import 'package:openci_server/database.dart';
+import 'package:openci_server/request/error_handler.dart';
 import 'package:openci_server/request/request_extension.dart';
 import 'package:openci_shared/openci_shared.dart';
 
@@ -79,14 +80,7 @@ Future<Response> _get(RequestContext context) async {
     final jobs = driftJobs.map((j) => j.toShared().toJson()).toList();
     return Response.json(body: {'success': true, 'buildJobs': jobs});
   } catch (e, s) {
-    stderr.writeln('Failed to get build jobs: $e\n$s');
-    return Response.json(
-      statusCode: HttpStatus.internalServerError,
-      body: {
-        'success': false,
-        'error': 'Internal server error',
-      },
-    );
+    return handleRouteException(e, s, logMessage: 'Failed to get build jobs');
   }
 }
 
@@ -155,13 +149,6 @@ Future<Response> _post(RequestContext context) async {
       body: {'success': true, 'id': job.id},
     );
   } catch (e, s) {
-    stderr.writeln('Failed to insert build job: $e\n$s');
-    return Response.json(
-      statusCode: HttpStatus.internalServerError,
-      body: {
-        'success': false,
-        'error': 'Internal server error',
-      },
-    );
+    return handleRouteException(e, s, logMessage: 'Failed to insert build job');
   }
 }

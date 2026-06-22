@@ -5,6 +5,7 @@ import 'package:dart_frog/dart_frog.dart';
 import 'package:drift/drift.dart' show Value;
 import 'package:openci_server/database.dart';
 import 'package:openci_server/github/github_service.dart';
+import 'package:openci_server/request/error_handler.dart';
 import 'package:openci_server/request/request_extension.dart';
 import 'package:openci_shared/openci_shared.dart';
 
@@ -162,33 +163,32 @@ Future<Response> _post(RequestContext context, String id) async {
       }
     }
 
-    await resolveDependencies(driftJob, completedStatus);
+    try {
+      await resolveDependencies(driftJob, completedStatus);
+    } on TypeError catch (e) {
+      return Response.json(
+        statusCode: HttpStatus.badRequest,
+        body: {
+          'success': false,
+          'error': 'Invalid payload structure: $e',
+        },
+      );
+    } on ArgumentError catch (e) {
+      return Response.json(
+        statusCode: HttpStatus.badRequest,
+        body: {
+          'success': false,
+          'error': 'Invalid status: $e',
+        },
+      );
+    }
 
     return Response.json(body: {'success': true});
-  } on TypeError catch (e) {
-    return Response.json(
-      statusCode: HttpStatus.badRequest,
-      body: {
-        'success': false,
-        'error': 'Invalid payload structure: $e',
-      },
-    );
-  } on ArgumentError catch (e) {
-    return Response.json(
-      statusCode: HttpStatus.badRequest,
-      body: {
-        'success': false,
-        'error': 'Invalid status: $e',
-      },
-    );
   } catch (e, s) {
-    stderr.writeln('Failed to process status change for job $id: $e\n$s');
-    return Response.json(
-      statusCode: HttpStatus.internalServerError,
-      body: {
-        'success': false,
-        'error': 'Internal server error',
-      },
+    return handleRouteException(
+      e,
+      s,
+      logMessage: 'Failed to process status change for job $id',
     );
   }
 }

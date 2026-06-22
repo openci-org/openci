@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:dart_frog/dart_frog.dart';
 import 'package:openci_server/database.dart';
+import 'package:openci_server/request/error_handler.dart';
 import 'package:openci_server/request/request_extension.dart';
 import 'package:openci_server/team/team_mapper.dart';
 import 'package:openci_shared/openci_shared.dart';
@@ -17,8 +18,8 @@ FutureOr<Response> onRequest(RequestContext context) {
 }
 
 Future<Response> _get(RequestContext context) async {
-  String? uid;
   try {
+    String? uid;
     final db = context.read<AppDatabase>();
     uid = context.read<String?>();
     if (uid == null) {
@@ -43,14 +44,7 @@ Future<Response> _get(RequestContext context) async {
       body: teams.map((t) => t.toJson()).toList(),
     );
   } catch (e, s) {
-    stderr.writeln('Failed to get teams for user $uid: $e\n$s');
-    return Response.json(
-      statusCode: HttpStatus.internalServerError,
-      body: {
-        'success': false,
-        'error': 'Internal server error',
-      },
-    );
+    return handleRouteException(e, s, logMessage: 'Failed to get teams');
   }
 }
 
@@ -114,13 +108,6 @@ Future<Response> _post(RequestContext context) async {
       body: {'success': true, 'id': teamId},
     );
   } catch (e, s) {
-    stderr.writeln('Failed to create team: $e\n$s');
-    return Response.json(
-      statusCode: HttpStatus.internalServerError,
-      body: {
-        'success': false,
-        'error': 'Internal server error',
-      },
-    );
+    return handleRouteException(e, s, logMessage: 'Failed to create team');
   }
 }

@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:drift/drift.dart';
 import 'package:openci_server/database.dart';
 import 'package:openci_server/webhook_task/webhook_task_processor.dart';
+import 'package:sentry/sentry.dart';
 
 final webhookTaskController = StreamController<void>.broadcast();
 
@@ -61,6 +62,7 @@ void _triggerWorker(AppDatabase db) {
         await db.webhookTaskDao.updateWebhookTask(completedTask);
       } catch (e, stack) {
         stderr.writeln('Webhook task processing failed: $e\n$stack');
+        await Sentry.captureException(e, stackTrace: stack);
 
         final failedTask = task.copyWith(
           status: 'failed',
