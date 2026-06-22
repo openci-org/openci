@@ -1,8 +1,11 @@
+import 'dart:convert';
+
+import 'package:dashboard/auth/auth_provider.dart';
 import 'package:dashboard/firebase/firestore.dart';
-import 'package:dashboard/firebase/functions.dart';
 import 'package:dashboard/github/repository_aliases.dart';
 import 'package:dashboard/users/user_provider.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:http/http.dart' as http;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'workflow_file_provider.freezed.dart';
@@ -31,6 +34,12 @@ Stream<List<WorkflowFile>> workflowFiles(Ref ref) async* {
   }
   final teamId = user.selectedTeamId;
 
+  final token = await ref.watch(firebaseIdTokenProvider.future);
+  if (token == null) {
+    yield const [];
+    return;
+  }
+
   final workspaceSnapshots = firestore.doc('workspaces/$teamId').snapshots();
 
   await for (final snapshot in workspaceSnapshots) {
@@ -45,6 +54,7 @@ Stream<List<WorkflowFile>> workflowFiles(Ref ref) async* {
     yield await _loadWorkflowFilesForSelections(
       teamId: teamId,
       selections: selections,
+      token: token,
     );
   }
 }
@@ -88,6 +98,7 @@ List<_WorkflowRepositorySelection> _workflowRepositorySelectionsFromWorkspace(
 Future<List<WorkflowFile>> _loadWorkflowFilesForSelections({
   required String teamId,
   required List<_WorkflowRepositorySelection> selections,
+  required String token,
 }) async {
   final allFiles = <WorkflowFile>[];
 
@@ -96,6 +107,7 @@ Future<List<WorkflowFile>> _loadWorkflowFilesForSelections({
       teamId: teamId,
       repository: selection.repository,
       branch: selection.branch,
+      token: token,
     );
     allFiles.addAll(githubFiles);
   }
@@ -133,6 +145,7 @@ Future<List<WorkflowFile>> _listWorkflowFilesFromGitHubWithFallback({
   required String teamId,
   required String repository,
   required String branch,
+  required String token,
 }) async {
   final branches = <String>[
     branch,
@@ -148,6 +161,7 @@ Future<List<WorkflowFile>> _listWorkflowFilesFromGitHubWithFallback({
         teamId: teamId,
         repository: repository,
         branch: candidateBranch,
+        token: token,
       );
       if (files.isNotEmpty) return files;
     } catch (error) {
@@ -163,15 +177,35 @@ Future<List<WorkflowFile>> _listWorkflowFilesFromGitHub({
   required String teamId,
   required String repository,
   required String branch,
+  required String token,
 }) async {
-  final result = await firebaseFunctions
-      .httpsCallable('listWorkflowFiles')
-      .call({
-        'teamId': teamId,
-        'repository': repository,
-        'branch': branch,
-      });
-  final data = result.data as Map<String, dynamic>;
+  const serverUrl = String.fromEnvironment('OPENCI_SERVER_URL');
+  if (serverUrl.isEmpty) {
+    throw UnimplementedError('OPENCI_SERVER_URL is not set');
+  }
+
+  final encodedRepo = Uri.encodeComponent(repository);
+  final encodedBranch = Uri.encodeComponent(branch);
+  final url = Uri.parse(
+    '$serverUrl/teams/$teamId/workflows?repository=$encodedRepo&branch=$encodedBranch',
+  );
+
+  final response = await http
+      .get(
+        url,
+        headers: {
+          'Authorization': 'Bearer $token',
+        },
+      )
+      .timeout(const Duration(seconds: 15));
+
+  if (response.statusCode != 200) {
+    throw StateError(
+      'Failed to load workflows: ${response.statusCode} ${response.body}',
+    );
+  }
+
+  final data = jsonDecode(response.body) as Map<String, dynamic>;
   final files = (data['files'] as List<dynamic>).map((entry) {
     final file = Map<String, dynamic>.from(entry as Map);
     return WorkflowFile(
