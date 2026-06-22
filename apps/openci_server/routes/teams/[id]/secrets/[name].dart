@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:dart_frog/dart_frog.dart';
 import 'package:openci_server/auth/worker_auth.dart';
 import 'package:openci_server/database.dart';
+import 'package:openci_server/request/error_handler.dart';
 import 'package:openci_server/secret/secret_crypter.dart';
 
 FutureOr<Response> onRequest(RequestContext context, String id, String name) {
@@ -90,10 +91,10 @@ Future<Response> _get(
       },
     );
   } catch (e, s) {
-    stderr.writeln('Failed to get secret $name for team $teamId: $e\n$s');
-    return Response.json(
-      statusCode: HttpStatus.internalServerError,
-      body: {'success': false, 'error': 'Internal server error'},
+    return handleRouteException(
+      e,
+      s,
+      logMessage: 'Failed to get secret $name for team $teamId',
     );
   }
 }
@@ -134,10 +135,10 @@ Future<Response> _delete(
       body: {'success': true},
     );
   } catch (e, s) {
-    stderr.writeln('Failed to delete secret $name for team $teamId: $e\n$s');
-    return Response.json(
-      statusCode: HttpStatus.internalServerError,
-      body: {'success': false, 'error': 'Internal server error'},
+    return handleRouteException(
+      e,
+      s,
+      logMessage: 'Failed to delete secret $name for team $teamId',
     );
   }
 }

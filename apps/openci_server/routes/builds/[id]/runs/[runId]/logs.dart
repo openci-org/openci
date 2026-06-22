@@ -1,9 +1,9 @@
 import 'dart:async';
-
 import 'dart:io';
 
 import 'package:dart_frog/dart_frog.dart';
 import 'package:openci_server/database.dart';
+import 'package:openci_server/request/error_handler.dart';
 import 'package:openci_server/request/request_extension.dart';
 
 FutureOr<Response> onRequest(
@@ -43,13 +43,10 @@ Future<Response> _get(
       },
     );
   } catch (e, s) {
-    stderr.writeln('Failed to read logs for run $runId: $e\n$s');
-    return Response.json(
-      statusCode: HttpStatus.internalServerError,
-      body: {
-        'success': false,
-        'error': 'Internal server error',
-      },
+    return handleRouteException(
+      e,
+      s,
+      logMessage: 'Failed to read logs for run $runId',
     );
   }
 }
@@ -96,13 +93,10 @@ Future<Response> _post(
 
     return Response.json(body: {'success': true});
   } catch (e, s) {
-    stderr.writeln('Failed to append logs for run $runId: $e\n$s');
-    return Response.json(
-      statusCode: HttpStatus.internalServerError,
-      body: {
-        'success': false,
-        'error': 'Internal server error',
-      },
+    return handleRouteException(
+      e,
+      s,
+      logMessage: 'Failed to append logs for run $runId',
     );
   }
 }

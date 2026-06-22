@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:dart_frog/dart_frog.dart';
 import 'package:openci_server/auth/worker_auth.dart';
 import 'package:openci_server/database.dart';
+import 'package:openci_server/request/error_handler.dart';
 import 'package:openci_server/request/request_extension.dart';
 import 'package:openci_server/secret/secret_crypter.dart';
 import 'package:openci_server/secret/secret_table.dart';
@@ -45,10 +46,10 @@ Future<Response> _get(RequestContext context, String teamId) async {
       body: {'success': true, 'secrets': jsonList},
     );
   } catch (e, s) {
-    stderr.writeln('Failed to get secrets for team $teamId: $e\n$s');
-    return Response.json(
-      statusCode: HttpStatus.internalServerError,
-      body: {'success': false, 'error': 'Internal server error'},
+    return handleRouteException(
+      e,
+      s,
+      logMessage: 'Failed to get secrets for team $teamId',
     );
   }
 }
@@ -149,10 +150,10 @@ Future<Response> _post(RequestContext context, String teamId) async {
       body: {'success': true},
     );
   } catch (e, s) {
-    stderr.writeln('Failed to create secret for team $teamId: $e\n$s');
-    return Response.json(
-      statusCode: HttpStatus.internalServerError,
-      body: {'success': false, 'error': 'Internal server error'},
+    return handleRouteException(
+      e,
+      s,
+      logMessage: 'Failed to create secret for team $teamId',
     );
   }
 }

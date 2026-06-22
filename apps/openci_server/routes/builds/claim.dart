@@ -5,6 +5,7 @@ import 'package:dart_frog/dart_frog.dart';
 import 'package:openci_server/auth/worker_auth.dart';
 import 'package:openci_server/build_job/build_job_mapper.dart';
 import 'package:openci_server/database.dart';
+import 'package:openci_server/request/error_handler.dart';
 import 'package:openci_server/request/request_extension.dart';
 
 FutureOr<Response> onRequest(RequestContext context) {
@@ -49,10 +50,6 @@ Future<Response> _post(RequestContext context) async {
 
     return Response.json(body: {'job': driftJob.toShared().toJson()});
   } catch (e, s) {
-    stderr.writeln('Failed to claim next job: $e\n$s');
-    return Response.json(
-      statusCode: HttpStatus.internalServerError,
-      body: {'success': false, 'error': 'Internal server error'},
-    );
+    return handleRouteException(e, s, logMessage: 'Failed to claim next job');
   }
 }

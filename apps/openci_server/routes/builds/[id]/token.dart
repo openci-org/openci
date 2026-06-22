@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:dart_frog/dart_frog.dart';
 import 'package:openci_server/database.dart';
 import 'package:openci_server/github/github_service.dart';
+import 'package:openci_server/request/error_handler.dart';
 
 FutureOr<Response> onRequest(RequestContext context, String id) {
   return switch (context.request.method) {
@@ -29,21 +30,11 @@ Future<Response> _get(RequestContext context, String id) async {
     );
 
     return Response.json(body: {'token': token});
-  } on StateError catch (e) {
-    return Response.json(
-      statusCode: HttpStatus.internalServerError,
-      body: {'success': false, 'error': e.message},
-    );
-  } on HttpException catch (e) {
-    return Response.json(
-      statusCode: HttpStatus.internalServerError,
-      body: {'success': false, 'error': e.message},
-    );
   } catch (e, s) {
-    stderr.writeln('Failed to resolve token for job $id: $e\n$s');
-    return Response.json(
-      statusCode: HttpStatus.internalServerError,
-      body: {'success': false, 'error': 'Internal server error'},
+    return handleRouteException(
+      e,
+      s,
+      logMessage: 'Failed to resolve token for job $id',
     );
   }
 }

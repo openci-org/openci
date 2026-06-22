@@ -6,7 +6,7 @@ import 'package:dart_frog/dart_frog.dart';
 import 'package:http/http.dart' as http;
 import 'package:openci_server/database.dart';
 import 'package:openci_server/github/github_service.dart';
-import 'package:sentry/sentry.dart';
+import 'package:openci_server/request/error_handler.dart';
 
 FutureOr<Response> onRequest(RequestContext context, String id) {
   return switch (context.request.method) {
@@ -217,19 +217,14 @@ Future<Response> _get(RequestContext context, String teamId) async {
       );
     }
 
-    return Response.json(
-      body: {
-        'success': true,
-        'files': files,
-      },
-    );
+  return Response.json(
+    body: {
+      'success': true,
+      'files': files,
+    },
+  );
   } catch (e, s) {
-    stderr.writeln('Failed to list workflows: $e\n$s');
-    await Sentry.captureException(e, stackTrace: s);
-    return Response.json(
-      statusCode: HttpStatus.internalServerError,
-      body: {'success': false, 'error': 'Internal server error'},
-    );
+    return handleRouteException(e, s, logMessage: 'Failed to list workflows');
   }
 }
 

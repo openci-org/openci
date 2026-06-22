@@ -1,9 +1,9 @@
 import 'dart:async';
-
 import 'dart:io';
 
 import 'package:dart_frog/dart_frog.dart';
 import 'package:openci_server/database.dart';
+import 'package:openci_server/request/error_handler.dart';
 import 'package:openci_server/request/request_extension.dart';
 
 FutureOr<Response> onRequest(RequestContext context, String id) {
@@ -33,13 +33,10 @@ Future<Response> _get(RequestContext context, String id) async {
 
     return Response.json(body: responseBody);
   } catch (e, s) {
-    stderr.writeln('Failed to get build runs for job $id: $e\n$s');
-    return Response.json(
-      statusCode: HttpStatus.internalServerError,
-      body: {
-        'success': false,
-        'error': 'Internal server error',
-      },
+    return handleRouteException(
+      e,
+      s,
+      logMessage: 'Failed to get build runs for job $id',
     );
   }
 }
@@ -94,40 +91,40 @@ Future<Response> _post(RequestContext context, String id) async {
       updatedAt: now,
     );
 
-    await db.transaction(() async {
-      await db.buildRunDao.insertBuildRun(driftRun);
-      await db.buildJobDao.incrementRunCount(
-        id: id,
-        latestRunId: runId,
-        updatedAt: now,
-      );
-    });
+    try {
+      await db.transaction(() async {
+        await db.buildRunDao.insertBuildRun(driftRun);
+        await db.buildJobDao.incrementRunCount(
+          id: id,
+          latestRunId: runId,
+          updatedAt: now,
+        );
+      });
+    } catch (e) {
+      final errStr = e.toString();
+      final isUniqueViolation =
+          errStr.contains('UNIQUE constraint failed') ||
+          errStr.contains('duplicate key value violates unique constraint') ||
+          errStr.contains('23505');
+
+      if (isUniqueViolation) {
+        return Response.json(
+          statusCode: HttpStatus.conflict,
+          body: {
+            'success': false,
+            'error': 'Run ID already exists',
+          },
+        );
+      }
+      rethrow;
+    }
 
     return Response.json(body: {'success': true});
   } catch (e, s) {
-    final errStr = e.toString();
-    final isUniqueViolation =
-        errStr.contains('UNIQUE constraint failed') ||
-        errStr.contains('duplicate key value violates unique constraint') ||
-        errStr.contains('23505');
-
-    if (isUniqueViolation) {
-      return Response.json(
-        statusCode: HttpStatus.conflict,
-        body: {
-          'success': false,
-          'error': 'Run ID already exists',
-        },
-      );
-    }
-
-    stderr.writeln('Failed to create build run for job $id: $e\n$s');
-    return Response.json(
-      statusCode: HttpStatus.internalServerError,
-      body: {
-        'success': false,
-        'error': 'Internal server error',
-      },
+    return handleRouteException(
+      e,
+      s,
+      logMessage: 'Failed to create build run for job $id',
     );
   }
 }

@@ -44,13 +44,20 @@ Middleware sentryMiddleware() {
         _initSentry();
         return await handler(context);
       } catch (exception, stackTrace) {
+        stderr.writeln('Unhandled exception: $exception\n$stackTrace');
         if (_sentryInitialized) {
           await Sentry.captureException(
             exception,
             stackTrace: stackTrace,
           );
         }
-        rethrow;
+        return Response.json(
+          statusCode: HttpStatus.internalServerError,
+          body: {
+            'success': false,
+            'error': 'Internal server error',
+          },
+        );
       }
     };
   };
