@@ -51,6 +51,7 @@ if (platformCreds.length === 0) {
 const projectId = process.env.OPENCI_PROJECT_ID;
 const apiKey = process.env.OPENCI_API_KEY;
 const serverUrl = process.env.OPENCI_SERVER_URL;
+const sentryDsn = process.env.SENTRY_DSN;
 
 if (!projectId || !apiKey || !serverUrl) {
   console.error('Error: OPENCI_PROJECT_ID, OPENCI_API_KEY, and OPENCI_SERVER_URL environment variables must be set.');
@@ -80,7 +81,11 @@ platformCreds.forEach((cred, index) => {
     }
   }
 
-  const cmd = \`OPENCI_PROJECT_ID=\"\${projectId}\" OPENCI_API_KEY=\"\${apiKey}\" OPENCI_SERVER_URL=\"\${serverUrl}\" OPENCI_EMAIL=\"\${email}\" OPENCI_PASSWORD=\"\${password}\" '\${binaryPath}' --supervised\`;
+  let cmd = \`OPENCI_PROJECT_ID=\"\${projectId}\" OPENCI_API_KEY=\"\${apiKey}\" OPENCI_SERVER_URL=\"\${serverUrl}\" OPENCI_EMAIL=\"\${email}\" OPENCI_PASSWORD=\"\${password}\" \`;
+  if (sentryDsn) {
+    cmd += \`SENTRY_DSN=\"\${sentryDsn}\" \`;
+  }
+  cmd += \`'\${binaryPath}' --supervised\`;
 
   if (index === 0) {
     execSync(\`tmux new-session -d -s \${sessionName} \"\${cmd}\"\`);
