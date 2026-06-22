@@ -31,6 +31,7 @@ services:
       - GITHUB_PRIVATE_KEY_PATH=/app/credentials/github-private-key.pem
       - ALLOWED_WORKER_UIDS=${ALLOWED_WORKER_UIDS}
       - SECRET_ENCRYPTION_KEY=${SECRET_ENCRYPTION_KEY}
+      - SENTRY_DSN=${SENTRY_DSN}
     volumes:
       - ./firebase-service-account.json:/app/credentials/firebase-service-account.json:ro
       - ./github-private-key.pem:/app/credentials/github-private-key.pem:ro
