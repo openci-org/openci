@@ -255,10 +255,27 @@ class ApiClient {
 
   /// Retrieves secrets associated with the team.
   Future<List<Map<String, dynamic>>> getSecrets(String teamId) async {
-    final response = await callApi('get-secrets', {'teamId': teamId});
-    final list = response['secrets'] as List<dynamic>?;
-    if (list == null) return [];
-    return list.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+    if (serverUrl == null || serverUrl!.isEmpty) {
+      throw StateError(
+        'OPENCI_SERVER_URL must be configured to retrieve secrets.',
+      );
+    }
+
+    final url = Uri.parse('$serverUrl/teams/$teamId/secrets');
+    final idToken = await authManager.getIdToken();
+    final response = await http.get(
+      url,
+      headers: {'Authorization': 'Bearer $idToken'},
+    );
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      final list = data['secrets'] as List<dynamic>?;
+      if (list == null) return [];
+      return list.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+    }
+    throw HttpException(
+      'Failed to get secrets from server: ${response.statusCode} ${response.body}',
+    );
   }
 
   /// Updates GitHub Check Run status.
@@ -349,10 +366,24 @@ class ApiClient {
 
   /// Fetches a Secret Value via Firebase Functions.
   Future<String> getSecretValue(String teamId, String name) async {
-    final response = await callApi('get-secret-value', {
-      'teamId': teamId,
-      'name': name,
-    });
-    return response['value'] as String? ?? '';
+    if (serverUrl == null || serverUrl!.isEmpty) {
+      throw StateError(
+        'OPENCI_SERVER_URL must be configured to retrieve secrets.',
+      );
+    }
+
+    final url = Uri.parse('$serverUrl/teams/$teamId/secrets/$name');
+    final idToken = await authManager.getIdToken();
+    final response = await http.get(
+      url,
+      headers: {'Authorization': 'Bearer $idToken'},
+    );
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      return data['value'] as String? ?? '';
+    }
+    throw HttpException(
+      'Failed to get secret value from server: ${response.statusCode} ${response.body}',
+    );
   }
 }
