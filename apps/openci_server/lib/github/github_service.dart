@@ -104,7 +104,8 @@ class GitHubService {
 
     final patchBody = <String, dynamic>{
       'status': runStatus,
-      'conclusion': conclusion,
+      if (runStatus == 'completed' && conclusion != null)
+        'conclusion': conclusion,
       if (runStatus == 'completed')
         'completed_at': DateTime.now().toUtc().toIso8601String(),
     };

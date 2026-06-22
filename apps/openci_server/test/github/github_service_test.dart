@@ -232,7 +232,7 @@ void main() {
 
             final body = jsonDecode(request.body) as Map<String, dynamic>;
             expect(body['status'], equals('in_progress'));
-            expect(body['conclusion'], isNull);
+            expect(body.containsKey('conclusion'), isFalse);
             expect(body.containsKey('completed_at'), isFalse);
 
             return http.Response(jsonEncode({'id': 99999}), 200);
