@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.10.43
+
+- Feature: Retrieve secrets exclusively from `openci_server`, removing Firebase Cloud Functions fallback.
+
 ## 0.10.42
 
 - Fix: Prevent `PathExistsException` (errno = 17) during auto-update by pre-deleting the existing execution symlink/binary before running `dart install`.

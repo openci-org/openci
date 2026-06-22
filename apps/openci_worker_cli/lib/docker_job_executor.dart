@@ -1,11 +1,12 @@
 import 'dart:async';
 
 import 'package:openci_shared/openci_shared.dart';
+import 'package:openci_worker_cli/build_job_logger.dart';
 import 'package:openci_worker_cli/cloud_function_caller.dart';
 import 'package:openci_worker_cli/constants.dart';
 import 'package:openci_worker_cli/docker_runner.dart';
+import 'package:openci_worker_cli/get_secret_service.dart';
 import 'package:openci_worker_cli/job_executor.dart';
-import 'package:openci_worker_cli/build_job_logger.dart';
 import 'package:uuid/uuid.dart';
 
 const _uuid = Uuid();
