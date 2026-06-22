@@ -217,12 +217,12 @@ Future<Response> _get(RequestContext context, String teamId) async {
       );
     }
 
-  return Response.json(
-    body: {
-      'success': true,
-      'files': files,
-    },
-  );
+    return Response.json(
+      body: {
+        'success': true,
+        'files': files,
+      },
+    );
   } catch (e, s) {
     return handleRouteException(e, s, logMessage: 'Failed to list workflows');
   }

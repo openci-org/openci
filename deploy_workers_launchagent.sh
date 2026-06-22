@@ -110,6 +110,8 @@ install_agent() {
     <string>${OPENCI_API_KEY}</string>
     <key>OPENCI_SERVER_URL</key>
     <string>${OPENCI_SERVER_URL}</string>
+    <key>SENTRY_DSN</key>
+    <string>${SENTRY_DSN}</string>
   </dict>
   <key>RunAtLoad</key>
   <true/>

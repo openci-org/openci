@@ -68,7 +68,8 @@ Future<Response> _patch(RequestContext context, String id) async {
         failureSummaryStatus: payload.containsKey('failureSummaryStatus')
             ? payload['failureSummaryStatus'] as String?
             : job.failureSummaryStatus,
-        failureSummaryDurationMs: payload.containsKey('failureSummaryDurationMs')
+        failureSummaryDurationMs:
+            payload.containsKey('failureSummaryDurationMs')
             ? payload['failureSummaryDurationMs'] as int?
             : job.failureSummaryDurationMs,
         ipaUrl: payload.containsKey('ipaUrl')
