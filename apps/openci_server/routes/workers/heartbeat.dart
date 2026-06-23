@@ -42,13 +42,6 @@ Future<Response> _post(RequestContext context) async {
       );
     }
 
-    if (uid != workerId) {
-      return Response.json(
-        statusCode: HttpStatus.forbidden,
-        body: {'success': false, 'error': 'Forbidden: workerId mismatch'},
-      );
-    }
-
     final now = DateTime.now().toUtc();
     final driftHeartbeat = DriftWorkerHeartbeat(
       id: workerId,

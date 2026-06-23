@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.10.44
+
+- Feature: Migrate worker heartbeat to PostgreSQL (`openci_server`), removing Firestore and Firebase Cloud Functions dependencies, and streamlining tracked fields.
+
 ## 0.10.43
 
 - Feature: Retrieve secrets exclusively from `openci_server`, removing Firebase Cloud Functions fallback.
