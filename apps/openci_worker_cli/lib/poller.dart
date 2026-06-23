@@ -6,6 +6,7 @@ import 'package:openci_worker_cli/auto_updater.dart';
 import 'package:openci_worker_cli/cloud_function_caller.dart';
 import 'package:openci_worker_cli/constants.dart';
 import 'package:openci_worker_cli/docker_job_executor.dart';
+import 'package:openci_worker_cli/heartbeat.dart';
 import 'package:openci_worker_cli/job_executor.dart';
 import 'package:sentry/sentry.dart';
 
@@ -18,10 +19,6 @@ const _heartbeatInterval = Duration(seconds: 30);
 
 class WorkerState {
   String status = 'starting';
-  String? currentBuildJobId;
-  String? currentRunId;
-  int consecutiveFailures = 0;
-  String? lastError;
 }
 
 Future<void> _sendHeartbeat(
@@ -30,18 +27,12 @@ Future<void> _sendHeartbeat(
   WorkerState state,
 ) async {
   try {
-    await apiClient.updateWorkerHeartbeat({
-      'workerId': workerId,
-      'version': version,
-      'platform': Platform.operatingSystem,
-      'hostname': Platform.localHostname,
-      'pid': pid,
-      'status': state.status,
-      'currentBuildJobId': state.currentBuildJobId,
-      'currentRunId': state.currentRunId,
-      'consecutiveFailures': state.consecutiveFailures,
-      'lastError': state.lastError,
-    });
+    await sendHeartbeat(
+      apiClient: apiClient,
+      workerId: workerId,
+      version: version,
+      status: state.status,
+    );
   } catch (e) {
     _log.warning('Failed to update worker heartbeat: $e');
   }
@@ -131,8 +122,6 @@ Future<void> pollForJobs({
         if (jobFound) {
           _log.info('Job completed, checking for next...');
           state.status = 'idle';
-          state.consecutiveFailures = 0;
-          state.lastError = null;
           await _sendHeartbeat(apiClient, workerId, state);
           await tryAutoUpdate();
         } else {
@@ -148,8 +137,6 @@ Future<void> pollForJobs({
         stopSpinner();
         _log.severe('Error in poll loop: $e');
         state.status = 'error';
-        state.consecutiveFailures++;
-        state.lastError = e.toString();
         await _sendHeartbeat(apiClient, workerId, state);
         await Sentry.captureException(e, stackTrace: s);
         await Future.delayed(const Duration(seconds: 10));

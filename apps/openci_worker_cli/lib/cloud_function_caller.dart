@@ -207,11 +207,6 @@ class ApiClient {
     });
   }
 
-  /// Sends worker heartbeat signal to monitor worker status.
-  Future<void> updateWorkerHeartbeat(Map<String, dynamic> heartbeat) async {
-    await callApi('update-worker-heartbeat', heartbeat);
-  }
-
   /// Checks if a job has been cancelled in Firestore.
   Future<bool> isJobCancelled(String buildJobId) async {
     if (serverUrl != null && serverUrl!.isNotEmpty) {

@@ -13,6 +13,8 @@ import 'package:openci_server/team/team_dao.dart';
 import 'package:openci_server/team/team_table.dart';
 import 'package:openci_server/webhook_task/webhook_task_dao.dart';
 import 'package:openci_server/webhook_task/webhook_task_table.dart';
+import 'package:openci_server/worker_heartbeat/worker_heartbeat_dao.dart';
+import 'package:openci_server/worker_heartbeat/worker_heartbeat_table.dart';
 import 'package:openci_shared/openci_shared.dart';
 import 'package:postgres/postgres.dart' as pg;
 
@@ -28,14 +30,22 @@ part 'database.g.dart';
     Secrets,
     ProcessedWebhooks,
     WebhookTasks,
+    WorkerHeartbeats,
   ],
-  daos: [BuildJobDao, BuildRunDao, TeamDao, WebhookTaskDao, SecretDao],
+  daos: [
+    BuildJobDao,
+    BuildRunDao,
+    TeamDao,
+    WebhookTaskDao,
+    SecretDao,
+    WorkerHeartbeatDao,
+  ],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 11;
+  int get schemaVersion => 12;
 
   @override
   MigrationStrategy get migration {
@@ -44,42 +54,14 @@ class AppDatabase extends _$AppDatabase {
         await m.createAll();
       },
       onUpgrade: (Migrator m, int from, int to) async {
-        if (from < 2) {
-          await m.createTable(buildJobs);
-        }
-        if (from < 3) {
-          await m.createTable(buildJobLogs);
-        }
-        if (from < 4) {
-          await m.createTable(teams);
-          await m.createTable(teamMembers);
-        }
-        if (from < 5) {
-          await m.createTable(buildRuns);
-        }
-        if (from < 6) {
-          await m.createTable(secrets);
-        }
-        if (from >= 2 && from < 7) {
-          await m.addColumn(buildJobs, buildJobs.installationId);
-          await m.addColumn(buildJobs, buildJobs.checkRunId);
-        }
-        if (from < 8) {
-          await m.createTable(processedWebhooks);
-        }
-        if (from < 9) {
-          await m.addColumn(buildJobs, buildJobs.runsOn);
-        }
-        if (from < 10) {
-          await m.createTable(webhookTasks);
-        }
         if (from < 11) {
-          await m.database.customStatement(
-            'ALTER TABLE build_jobs DROP COLUMN IF EXISTS github_api_base_url;',
+          throw StateError(
+            'Migrations from schema version $from are no longer supported. '
+            'Please recreate the database or manually upgrade to version 11 first.',
           );
-          await m.database.customStatement(
-            'ALTER TABLE teams DROP COLUMN IF EXISTS github_api_base_url;',
-          );
+        }
+        if (from < 12) {
+          await m.createTable(workerHeartbeats);
         }
       },
     );

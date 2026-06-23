@@ -4608,6 +4608,375 @@ class WebhookTasksCompanion extends UpdateCompanion<DriftWebhookTask> {
   }
 }
 
+class $WorkerHeartbeatsTable extends WorkerHeartbeats
+    with TableInfo<$WorkerHeartbeatsTable, DriftWorkerHeartbeat> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $WorkerHeartbeatsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _versionMeta = const VerificationMeta(
+    'version',
+  );
+  @override
+  late final GeneratedColumn<String> version = GeneratedColumn<String>(
+    'version',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _platformMeta = const VerificationMeta(
+    'platform',
+  );
+  @override
+  late final GeneratedColumn<String> platform = GeneratedColumn<String>(
+    'platform',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _statusMeta = const VerificationMeta('status');
+  @override
+  late final GeneratedColumn<String> status = GeneratedColumn<String>(
+    'status',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _lastSeenAtMeta = const VerificationMeta(
+    'lastSeenAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> lastSeenAt = GeneratedColumn<DateTime>(
+    'last_seen_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    version,
+    platform,
+    status,
+    lastSeenAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'worker_heartbeats';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<DriftWorkerHeartbeat> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('version')) {
+      context.handle(
+        _versionMeta,
+        version.isAcceptableOrUnknown(data['version']!, _versionMeta),
+      );
+    }
+    if (data.containsKey('platform')) {
+      context.handle(
+        _platformMeta,
+        platform.isAcceptableOrUnknown(data['platform']!, _platformMeta),
+      );
+    }
+    if (data.containsKey('status')) {
+      context.handle(
+        _statusMeta,
+        status.isAcceptableOrUnknown(data['status']!, _statusMeta),
+      );
+    }
+    if (data.containsKey('last_seen_at')) {
+      context.handle(
+        _lastSeenAtMeta,
+        lastSeenAt.isAcceptableOrUnknown(
+          data['last_seen_at']!,
+          _lastSeenAtMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_lastSeenAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  DriftWorkerHeartbeat map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return DriftWorkerHeartbeat(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      version: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}version'],
+      ),
+      platform: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}platform'],
+      ),
+      status: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}status'],
+      ),
+      lastSeenAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}last_seen_at'],
+      )!,
+    );
+  }
+
+  @override
+  $WorkerHeartbeatsTable createAlias(String alias) {
+    return $WorkerHeartbeatsTable(attachedDatabase, alias);
+  }
+}
+
+class DriftWorkerHeartbeat extends DataClass
+    implements Insertable<DriftWorkerHeartbeat> {
+  final String id;
+  final String? version;
+  final String? platform;
+  final String? status;
+  final DateTime lastSeenAt;
+  const DriftWorkerHeartbeat({
+    required this.id,
+    this.version,
+    this.platform,
+    this.status,
+    required this.lastSeenAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    if (!nullToAbsent || version != null) {
+      map['version'] = Variable<String>(version);
+    }
+    if (!nullToAbsent || platform != null) {
+      map['platform'] = Variable<String>(platform);
+    }
+    if (!nullToAbsent || status != null) {
+      map['status'] = Variable<String>(status);
+    }
+    map['last_seen_at'] = Variable<DateTime>(lastSeenAt);
+    return map;
+  }
+
+  WorkerHeartbeatsCompanion toCompanion(bool nullToAbsent) {
+    return WorkerHeartbeatsCompanion(
+      id: Value(id),
+      version: version == null && nullToAbsent
+          ? const Value.absent()
+          : Value(version),
+      platform: platform == null && nullToAbsent
+          ? const Value.absent()
+          : Value(platform),
+      status: status == null && nullToAbsent
+          ? const Value.absent()
+          : Value(status),
+      lastSeenAt: Value(lastSeenAt),
+    );
+  }
+
+  factory DriftWorkerHeartbeat.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return DriftWorkerHeartbeat(
+      id: serializer.fromJson<String>(json['id']),
+      version: serializer.fromJson<String?>(json['version']),
+      platform: serializer.fromJson<String?>(json['platform']),
+      status: serializer.fromJson<String?>(json['status']),
+      lastSeenAt: serializer.fromJson<DateTime>(json['lastSeenAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'version': serializer.toJson<String?>(version),
+      'platform': serializer.toJson<String?>(platform),
+      'status': serializer.toJson<String?>(status),
+      'lastSeenAt': serializer.toJson<DateTime>(lastSeenAt),
+    };
+  }
+
+  DriftWorkerHeartbeat copyWith({
+    String? id,
+    Value<String?> version = const Value.absent(),
+    Value<String?> platform = const Value.absent(),
+    Value<String?> status = const Value.absent(),
+    DateTime? lastSeenAt,
+  }) => DriftWorkerHeartbeat(
+    id: id ?? this.id,
+    version: version.present ? version.value : this.version,
+    platform: platform.present ? platform.value : this.platform,
+    status: status.present ? status.value : this.status,
+    lastSeenAt: lastSeenAt ?? this.lastSeenAt,
+  );
+  DriftWorkerHeartbeat copyWithCompanion(WorkerHeartbeatsCompanion data) {
+    return DriftWorkerHeartbeat(
+      id: data.id.present ? data.id.value : this.id,
+      version: data.version.present ? data.version.value : this.version,
+      platform: data.platform.present ? data.platform.value : this.platform,
+      status: data.status.present ? data.status.value : this.status,
+      lastSeenAt: data.lastSeenAt.present
+          ? data.lastSeenAt.value
+          : this.lastSeenAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('DriftWorkerHeartbeat(')
+          ..write('id: $id, ')
+          ..write('version: $version, ')
+          ..write('platform: $platform, ')
+          ..write('status: $status, ')
+          ..write('lastSeenAt: $lastSeenAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, version, platform, status, lastSeenAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is DriftWorkerHeartbeat &&
+          other.id == this.id &&
+          other.version == this.version &&
+          other.platform == this.platform &&
+          other.status == this.status &&
+          other.lastSeenAt == this.lastSeenAt);
+}
+
+class WorkerHeartbeatsCompanion extends UpdateCompanion<DriftWorkerHeartbeat> {
+  final Value<String> id;
+  final Value<String?> version;
+  final Value<String?> platform;
+  final Value<String?> status;
+  final Value<DateTime> lastSeenAt;
+  final Value<int> rowid;
+  const WorkerHeartbeatsCompanion({
+    this.id = const Value.absent(),
+    this.version = const Value.absent(),
+    this.platform = const Value.absent(),
+    this.status = const Value.absent(),
+    this.lastSeenAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  WorkerHeartbeatsCompanion.insert({
+    required String id,
+    this.version = const Value.absent(),
+    this.platform = const Value.absent(),
+    this.status = const Value.absent(),
+    required DateTime lastSeenAt,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       lastSeenAt = Value(lastSeenAt);
+  static Insertable<DriftWorkerHeartbeat> custom({
+    Expression<String>? id,
+    Expression<String>? version,
+    Expression<String>? platform,
+    Expression<String>? status,
+    Expression<DateTime>? lastSeenAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (version != null) 'version': version,
+      if (platform != null) 'platform': platform,
+      if (status != null) 'status': status,
+      if (lastSeenAt != null) 'last_seen_at': lastSeenAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  WorkerHeartbeatsCompanion copyWith({
+    Value<String>? id,
+    Value<String?>? version,
+    Value<String?>? platform,
+    Value<String?>? status,
+    Value<DateTime>? lastSeenAt,
+    Value<int>? rowid,
+  }) {
+    return WorkerHeartbeatsCompanion(
+      id: id ?? this.id,
+      version: version ?? this.version,
+      platform: platform ?? this.platform,
+      status: status ?? this.status,
+      lastSeenAt: lastSeenAt ?? this.lastSeenAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (version.present) {
+      map['version'] = Variable<String>(version.value);
+    }
+    if (platform.present) {
+      map['platform'] = Variable<String>(platform.value);
+    }
+    if (status.present) {
+      map['status'] = Variable<String>(status.value);
+    }
+    if (lastSeenAt.present) {
+      map['last_seen_at'] = Variable<DateTime>(lastSeenAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('WorkerHeartbeatsCompanion(')
+          ..write('id: $id, ')
+          ..write('version: $version, ')
+          ..write('platform: $platform, ')
+          ..write('status: $status, ')
+          ..write('lastSeenAt: $lastSeenAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -4620,6 +4989,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $ProcessedWebhooksTable processedWebhooks =
       $ProcessedWebhooksTable(this);
   late final $WebhookTasksTable webhookTasks = $WebhookTasksTable(this);
+  late final $WorkerHeartbeatsTable workerHeartbeats = $WorkerHeartbeatsTable(
+    this,
+  );
   late final BuildJobDao buildJobDao = BuildJobDao(this as AppDatabase);
   late final BuildRunDao buildRunDao = BuildRunDao(this as AppDatabase);
   late final TeamDao teamDao = TeamDao(this as AppDatabase);
@@ -4627,6 +4999,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     this as AppDatabase,
   );
   late final SecretDao secretDao = SecretDao(this as AppDatabase);
+  late final WorkerHeartbeatDao workerHeartbeatDao = WorkerHeartbeatDao(
+    this as AppDatabase,
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -4640,6 +5015,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     secrets,
     processedWebhooks,
     webhookTasks,
+    workerHeartbeats,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -7623,6 +7999,218 @@ typedef $$WebhookTasksTableProcessedTableManager =
       DriftWebhookTask,
       PrefetchHooks Function()
     >;
+typedef $$WorkerHeartbeatsTableCreateCompanionBuilder =
+    WorkerHeartbeatsCompanion Function({
+      required String id,
+      Value<String?> version,
+      Value<String?> platform,
+      Value<String?> status,
+      required DateTime lastSeenAt,
+      Value<int> rowid,
+    });
+typedef $$WorkerHeartbeatsTableUpdateCompanionBuilder =
+    WorkerHeartbeatsCompanion Function({
+      Value<String> id,
+      Value<String?> version,
+      Value<String?> platform,
+      Value<String?> status,
+      Value<DateTime> lastSeenAt,
+      Value<int> rowid,
+    });
+
+class $$WorkerHeartbeatsTableFilterComposer
+    extends Composer<_$AppDatabase, $WorkerHeartbeatsTable> {
+  $$WorkerHeartbeatsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get version => $composableBuilder(
+    column: $table.version,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get platform => $composableBuilder(
+    column: $table.platform,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get lastSeenAt => $composableBuilder(
+    column: $table.lastSeenAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$WorkerHeartbeatsTableOrderingComposer
+    extends Composer<_$AppDatabase, $WorkerHeartbeatsTable> {
+  $$WorkerHeartbeatsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get version => $composableBuilder(
+    column: $table.version,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get platform => $composableBuilder(
+    column: $table.platform,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get lastSeenAt => $composableBuilder(
+    column: $table.lastSeenAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$WorkerHeartbeatsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $WorkerHeartbeatsTable> {
+  $$WorkerHeartbeatsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get version =>
+      $composableBuilder(column: $table.version, builder: (column) => column);
+
+  GeneratedColumn<String> get platform =>
+      $composableBuilder(column: $table.platform, builder: (column) => column);
+
+  GeneratedColumn<String> get status =>
+      $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get lastSeenAt => $composableBuilder(
+    column: $table.lastSeenAt,
+    builder: (column) => column,
+  );
+}
+
+class $$WorkerHeartbeatsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $WorkerHeartbeatsTable,
+          DriftWorkerHeartbeat,
+          $$WorkerHeartbeatsTableFilterComposer,
+          $$WorkerHeartbeatsTableOrderingComposer,
+          $$WorkerHeartbeatsTableAnnotationComposer,
+          $$WorkerHeartbeatsTableCreateCompanionBuilder,
+          $$WorkerHeartbeatsTableUpdateCompanionBuilder,
+          (
+            DriftWorkerHeartbeat,
+            BaseReferences<
+              _$AppDatabase,
+              $WorkerHeartbeatsTable,
+              DriftWorkerHeartbeat
+            >,
+          ),
+          DriftWorkerHeartbeat,
+          PrefetchHooks Function()
+        > {
+  $$WorkerHeartbeatsTableTableManager(
+    _$AppDatabase db,
+    $WorkerHeartbeatsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$WorkerHeartbeatsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$WorkerHeartbeatsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$WorkerHeartbeatsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String?> version = const Value.absent(),
+                Value<String?> platform = const Value.absent(),
+                Value<String?> status = const Value.absent(),
+                Value<DateTime> lastSeenAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => WorkerHeartbeatsCompanion(
+                id: id,
+                version: version,
+                platform: platform,
+                status: status,
+                lastSeenAt: lastSeenAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                Value<String?> version = const Value.absent(),
+                Value<String?> platform = const Value.absent(),
+                Value<String?> status = const Value.absent(),
+                required DateTime lastSeenAt,
+                Value<int> rowid = const Value.absent(),
+              }) => WorkerHeartbeatsCompanion.insert(
+                id: id,
+                version: version,
+                platform: platform,
+                status: status,
+                lastSeenAt: lastSeenAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$WorkerHeartbeatsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $WorkerHeartbeatsTable,
+      DriftWorkerHeartbeat,
+      $$WorkerHeartbeatsTableFilterComposer,
+      $$WorkerHeartbeatsTableOrderingComposer,
+      $$WorkerHeartbeatsTableAnnotationComposer,
+      $$WorkerHeartbeatsTableCreateCompanionBuilder,
+      $$WorkerHeartbeatsTableUpdateCompanionBuilder,
+      (
+        DriftWorkerHeartbeat,
+        BaseReferences<
+          _$AppDatabase,
+          $WorkerHeartbeatsTable,
+          DriftWorkerHeartbeat
+        >,
+      ),
+      DriftWorkerHeartbeat,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -7643,4 +8231,6 @@ class $AppDatabaseManager {
       $$ProcessedWebhooksTableTableManager(_db, _db.processedWebhooks);
   $$WebhookTasksTableTableManager get webhookTasks =>
       $$WebhookTasksTableTableManager(_db, _db.webhookTasks);
+  $$WorkerHeartbeatsTableTableManager get workerHeartbeats =>
+      $$WorkerHeartbeatsTableTableManager(_db, _db.workerHeartbeats);
 }
