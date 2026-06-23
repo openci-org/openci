@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.10.45
+
+- Fix: Reset worker status to 'idle' when recovering from polling errors, preventing status from getting stuck in 'error' after temporary API offline periods.
+
 ## 0.10.44
 
 - Feature: Migrate worker heartbeat to PostgreSQL (`openci_server`), removing Firestore and Firebase Cloud Functions dependencies, and streamlining tracked fields.

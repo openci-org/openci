@@ -90,7 +90,7 @@ Middleware authProvider(FirebaseApp? firebaseApp, {bool allowTestUid = false}) {
       try {
         final decodedToken = await firebaseApp.auth().verifyIdToken(
           token,
-          checkRevoked: true,
+          checkRevoked: false,
         );
         return handler(context.provide<String?>(() => decodedToken.uid));
       } catch (e) {

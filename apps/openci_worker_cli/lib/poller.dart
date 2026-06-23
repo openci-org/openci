@@ -125,6 +125,10 @@ Future<void> pollForJobs({
           await _sendHeartbeat(apiClient, workerId, state);
           await tryAutoUpdate();
         } else {
+          if (state.status == 'error') {
+            state.status = 'idle';
+            await _sendHeartbeat(apiClient, workerId, state);
+          }
           final now = DateTime.now();
           if (now.difference(lastUpdateCheck) >= _updateCheckInterval) {
             stopSpinner();
