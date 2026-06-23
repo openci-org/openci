@@ -18,25 +18,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Restore Flutter pub cache
-        uses: ./actions/flutter-pub-cache
-        with:
-          action: restore
-          service-account: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-          storage-bucket: openci-b1b91.firebasestorage.app
-          working-directory: packages/app_minimizer_plus
-
       - name: Analyze
         run: flutter analyze
-
-      - name: Save Flutter pub cache
-        if: always()
-        uses: ./actions/flutter-pub-cache
-        with:
-          action: save
-          service-account: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-          storage-bucket: openci-b1b91.firebasestorage.app
-          working-directory: packages/app_minimizer_plus
 
   ci_example:
     runs-on: ubuntu-latest
@@ -46,25 +29,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Restore Flutter pub cache
-        uses: ./actions/flutter-pub-cache
-        with:
-          action: restore
-          service-account: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-          storage-bucket: openci-b1b91.firebasestorage.app
-          working-directory: packages/app_minimizer_plus/example
-
       - name: Analyze
         run: flutter analyze
-
-      - name: Save Flutter pub cache
-        if: always()
-        uses: ./actions/flutter-pub-cache
-        with:
-          action: save
-          service-account: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-          storage-bucket: openci-b1b91.firebasestorage.app
-          working-directory: packages/app_minimizer_plus/example
 
   e2e:
     runs-on: macos-latest
@@ -73,14 +39,6 @@ jobs:
         working-directory: packages/app_minimizer_plus/example
     steps:
       - uses: actions/checkout@v4
-
-      - name: Restore Flutter pub cache
-        uses: ./actions/flutter-pub-cache
-        with:
-          action: restore
-          service-account: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-          storage-bucket: openci-b1b91.firebasestorage.app
-          working-directory: packages/app_minimizer_plus/example
 
       - name: Install dependencies
         run: flutter pub get
@@ -104,12 +62,3 @@ jobs:
         run: |
           export PATH="$PATH":"$HOME/.pub-cache/bin"
           patrol test --target patrol_test/minimize_app_test.dart
-
-      - name: Save Flutter pub cache
-        if: always()
-        uses: ./actions/flutter-pub-cache
-        with:
-          action: save
-          service-account: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-          storage-bucket: openci-b1b91.firebasestorage.app
-          working-directory: packages/app_minimizer_plus/example
