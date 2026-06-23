@@ -303,8 +303,6 @@ class _WorkerCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = AppColors.of(context);
     final statusColor = _workerStatusColor(context, worker);
-    final currentJob = worker.currentBuildJobId;
-    final lastError = worker.lastError;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
@@ -332,7 +330,7 @@ class _WorkerCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      worker.workerId,
+                      worker.id,
                       style: TextStyle(
                         color: colors.textPrimary,
                         fontSize: 14,
@@ -346,10 +344,6 @@ class _WorkerCard extends StatelessWidget {
                       children: [
                         _MetaText(text: _workerStatusLabel(worker)),
                         _MetaText(text: 'version ${worker.version}'),
-                        if (worker.hostname.isNotEmpty)
-                          _MetaText(text: worker.hostname),
-                        if (worker.pid != null)
-                          _MetaText(text: 'pid ${worker.pid}'),
                       ],
                     ),
                   ],
@@ -365,23 +359,6 @@ class _WorkerCard extends StatelessWidget {
               ),
             ],
           ),
-          if (currentJob != null && currentJob.isNotEmpty) ...[
-            const SizedBox(height: 10),
-            _WorkerDetailLine(
-              icon: Icons.play_circle_outline_rounded,
-              text: worker.currentRunId == null
-                  ? 'Current job: $currentJob'
-                  : 'Current job: $currentJob / run ${worker.currentRunId}',
-            ),
-          ],
-          if (lastError != null && lastError.isNotEmpty) ...[
-            const SizedBox(height: 10),
-            _WorkerDetailLine(
-              icon: Icons.error_outline_rounded,
-              text: lastError,
-              color: colors.error,
-            ),
-          ],
         ],
       ),
     );
@@ -401,40 +378,6 @@ class _MetaText extends StatelessWidget {
         color: AppColors.of(context).textSecondary,
         fontSize: 12,
       ),
-    );
-  }
-}
-
-class _WorkerDetailLine extends StatelessWidget {
-  const _WorkerDetailLine({
-    required this.icon,
-    required this.text,
-    this.color,
-  });
-
-  final IconData icon;
-  final String text;
-  final Color? color;
-
-  @override
-  Widget build(BuildContext context) {
-    final effectiveColor = color ?? AppColors.of(context).textSecondary;
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Icon(icon, size: 16, color: effectiveColor),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Text(
-            text,
-            style: TextStyle(
-              color: effectiveColor,
-              fontSize: 12,
-              height: 1.4,
-            ),
-          ),
-        ),
-      ],
     );
   }
 }

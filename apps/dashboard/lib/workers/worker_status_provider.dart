@@ -1,29 +1,76 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:dashboard/firebase/firestore.dart';
+import 'dart:async';
+import 'dart:convert';
+
+import 'package:dashboard/auth/auth_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:http/http.dart' as http;
 
 final workerInstancesProvider =
     StreamProvider.autoDispose<List<WorkerInstance>>(
       (ref) {
-        return firestore
-            .collection(workerInstancesCollection)
-            .orderBy('lastSeenAt', descending: true)
-            .snapshots()
-            .map((snapshot) {
-              final workers = snapshot.docs
-                  .map(_workerInstanceFromDoc)
-                  .toList();
-              workers.sort((a, b) {
-                final platformCompare = a.platformGroup.index.compareTo(
-                  b.platformGroup.index,
-                );
-                if (platformCompare != 0) return platformCompare;
-                return a.workerId.toLowerCase().compareTo(
-                  b.workerId.toLowerCase(),
-                );
-              });
-              return workers;
+        const serverUrl = String.fromEnvironment('OPENCI_SERVER_URL');
+        if (serverUrl.isEmpty) {
+          throw UnimplementedError('OPENCI_SERVER_URL is not set');
+        }
+
+        Future<List<WorkerInstance>> fetchWorkers() async {
+          try {
+            final token = await ref.watch(firebaseIdTokenProvider.future);
+            if (token == null) return const <WorkerInstance>[];
+
+            final url = Uri.parse('$serverUrl/workers');
+            final response = await http
+                .get(
+                  url,
+                  headers: {
+                    'Authorization': 'Bearer $token',
+                  },
+                )
+                .timeout(const Duration(seconds: 5));
+
+            if (response.statusCode != 200) return const <WorkerInstance>[];
+
+            final data = jsonDecode(response.body) as Map<String, dynamic>;
+            final list = data['workers'] as List<dynamic>;
+
+            final workers = list.map((item) {
+              final map = Map<String, dynamic>.from(item as Map);
+              return WorkerInstance(
+                id: map['id'] as String,
+                version: map['version'] as String? ?? 'unknown',
+                platform: map['platform'] as String? ?? 'unknown',
+                status: _workerStatusFromFirestore(map['status']),
+                lastSeenAt: DateTime.parse(
+                  map['lastSeenAt'] as String,
+                ).toLocal(),
+              );
+            }).toList();
+
+            workers.sort((a, b) {
+              final platformCompare = a.platformGroup.index.compareTo(
+                b.platformGroup.index,
+              );
+              if (platformCompare != 0) return platformCompare;
+              return a.id.toLowerCase().compareTo(
+                b.id.toLowerCase(),
+              );
             });
+
+            return workers;
+          } catch (e) {
+            return const <WorkerInstance>[];
+          }
+        }
+
+        // async* ジェネレータを使用して、初回呼び出しと10秒周期の定期取得を実現
+        Stream<List<WorkerInstance>> pollStream() async* {
+          yield await fetchWorkers();
+          await for (final _ in Stream.periodic(const Duration(seconds: 10))) {
+            yield await fetchWorkers();
+          }
+        }
+
+        return pollStream();
       },
     );
 
@@ -45,37 +92,19 @@ enum WorkerPlatformGroup {
 class WorkerInstance {
   const WorkerInstance({
     required this.id,
-    required this.workerId,
     required this.version,
     required this.platform,
-    required this.hostname,
-    required this.pid,
     required this.status,
     required this.lastSeenAt,
-    required this.updatedAt,
-    this.startedAt,
-    this.currentBuildJobId,
-    this.currentRunId,
-    this.consecutiveFailures = 0,
-    this.lastError,
   });
 
   static const offlineAfter = Duration(minutes: 2);
 
   final String id;
-  final String workerId;
   final String version;
   final String platform;
-  final String hostname;
-  final int? pid;
   final WorkerStatus status;
-  final DateTime? startedAt;
   final DateTime lastSeenAt;
-  final DateTime updatedAt;
-  final String? currentBuildJobId;
-  final String? currentRunId;
-  final int consecutiveFailures;
-  final String? lastError;
 
   WorkerPlatformGroup get platformGroup {
     final normalized = platform.toLowerCase();
@@ -92,33 +121,7 @@ class WorkerInstance {
 
   bool get isBusy => isOnline && status == WorkerStatus.busy;
 
-  bool get hasError => status == WorkerStatus.error || consecutiveFailures > 0;
-}
-
-WorkerInstance _workerInstanceFromDoc(
-  QueryDocumentSnapshot<Map<String, dynamic>> doc,
-) {
-  final data = doc.data();
-  return WorkerInstance(
-    id: doc.id,
-    workerId: data['workerId'] as String? ?? doc.id,
-    version: data['version'] as String? ?? 'unknown',
-    platform: data['platform'] as String? ?? 'unknown',
-    hostname: data['hostname'] as String? ?? '',
-    pid: data['pid'] is int ? data['pid'] as int : null,
-    status: _workerStatusFromFirestore(data['status']),
-    startedAt: data['startedAt'] == null
-        ? null
-        : dateTimeFromFirestore(data['startedAt']),
-    lastSeenAt: dateTimeFromFirestore(data['lastSeenAt']),
-    updatedAt: dateTimeFromFirestore(data['updatedAt']),
-    currentBuildJobId: data['currentBuildJobId'] as String?,
-    currentRunId: data['currentRunId'] as String?,
-    consecutiveFailures: data['consecutiveFailures'] is int
-        ? data['consecutiveFailures'] as int
-        : 0,
-    lastError: data['lastError'] as String?,
-  );
+  bool get hasError => status == WorkerStatus.error;
 }
 
 WorkerStatus _workerStatusFromFirestore(Object? value) {

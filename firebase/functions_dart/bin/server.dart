@@ -6,15 +6,14 @@ import 'claim_next_job.dart';
 import 'complete_build_job.dart';
 import 'create_build_run.dart';
 import 'get_environment_variables.dart';
+import 'get_secret_value.dart';
 import 'get_secrets.dart';
 import 'handle_build_job_status_change.dart';
 import 'is_job_cancelled.dart';
+import 'resolve_installation_token.dart';
 import 'update_build_run_status.dart';
 import 'update_check_run.dart';
 import 'update_environment_variable.dart';
-import 'update_worker_heartbeat.dart';
-import 'resolve_installation_token.dart';
-import 'get_secret_value.dart';
 import 'worker_api_common.dart';
 
 void main(List<String> args) {
@@ -57,12 +56,6 @@ void main(List<String> args) {
       name: 'completeBuildJob',
       options: workerOptions,
       (request) => completeBuildJob(request, firebase),
-    );
-
-    firebase.https.onRequest(
-      name: 'updateWorkerHeartbeat',
-      options: workerOptions,
-      (request) => updateWorkerHeartbeat(request, firebase),
     );
 
     firebase.https.onRequest(
