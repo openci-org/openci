@@ -3,7 +3,7 @@
 // ignore_for_file: type=lint
 // ignore_for_file: unused_element, deprecated_member_use, deprecated_member_use_from_same_package, use_function_type_syntax_for_parameters, unnecessary_const, avoid_init_to_null, invalid_override_different_default_values_named, prefer_expression_function_bodies, annotate_overrides, invalid_annotation_target, unnecessary_question_mark
 
-part of 'build_logs_provider.dart';
+part of 'build_job_logs_provider.dart';
 
 // **************************************************************************
 // FreezedGenerator
@@ -13,7 +13,7 @@ part of 'build_logs_provider.dart';
 T _$identity<T>(T value) => value;
 
 /// @nodoc
-mixin _$BuildLog implements DiagnosticableTreeMixin {
+mixin _$BuildLog {
 
  String get message; String get level;@DateTimeConverter() DateTime? get timestamp;
 /// Create a copy of BuildLog
@@ -25,12 +25,6 @@ $BuildLogCopyWith<BuildLog> get copyWith => _$BuildLogCopyWithImpl<BuildLog>(thi
   /// Serializes this BuildLog to a JSON map.
   Map<String, dynamic> toJson();
 
-@override
-void debugFillProperties(DiagnosticPropertiesBuilder properties) {
-  properties
-    ..add(DiagnosticsProperty('type', 'BuildLog'))
-    ..add(DiagnosticsProperty('message', message))..add(DiagnosticsProperty('level', level))..add(DiagnosticsProperty('timestamp', timestamp));
-}
 
 @override
 bool operator ==(Object other) {
@@ -42,7 +36,7 @@ bool operator ==(Object other) {
 int get hashCode => Object.hash(runtimeType,message,level,timestamp);
 
 @override
-String toString({ DiagnosticLevel minLevel = DiagnosticLevel.info }) {
+String toString() {
   return 'BuildLog(message: $message, level: $level, timestamp: $timestamp)';
 }
 
@@ -216,7 +210,7 @@ return $default(_that.message,_that.level,_that.timestamp);case _:
 /// @nodoc
 @JsonSerializable()
 
-class _BuildLog with DiagnosticableTreeMixin implements BuildLog {
+class _BuildLog implements BuildLog {
   const _BuildLog({required this.message, required this.level, @DateTimeConverter() this.timestamp});
   factory _BuildLog.fromJson(Map<String, dynamic> json) => _$BuildLogFromJson(json);
 
@@ -234,12 +228,6 @@ _$BuildLogCopyWith<_BuildLog> get copyWith => __$BuildLogCopyWithImpl<_BuildLog>
 Map<String, dynamic> toJson() {
   return _$BuildLogToJson(this, );
 }
-@override
-void debugFillProperties(DiagnosticPropertiesBuilder properties) {
-  properties
-    ..add(DiagnosticsProperty('type', 'BuildLog'))
-    ..add(DiagnosticsProperty('message', message))..add(DiagnosticsProperty('level', level))..add(DiagnosticsProperty('timestamp', timestamp));
-}
 
 @override
 bool operator ==(Object other) {
@@ -251,7 +239,7 @@ bool operator ==(Object other) {
 int get hashCode => Object.hash(runtimeType,message,level,timestamp);
 
 @override
-String toString({ DiagnosticLevel minLevel = DiagnosticLevel.info }) {
+String toString() {
   return 'BuildLog(message: $message, level: $level, timestamp: $timestamp)';
 }
 

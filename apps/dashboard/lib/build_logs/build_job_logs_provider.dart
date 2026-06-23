@@ -1,12 +1,26 @@
 import 'dart:async';
 
 import 'package:dashboard/auth/auth_provider.dart';
-import 'package:dashboard/build_logs/build_logs_provider.dart';
+import 'package:dashboard/firebase/firestore.dart';
+import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:http/http.dart' as http;
 import 'package:openci_shared/openci_shared.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+part 'build_job_logs_provider.freezed.dart';
 part 'build_job_logs_provider.g.dart';
+
+@freezed
+abstract class BuildLog with _$BuildLog {
+  const factory BuildLog({
+    required String message,
+    required String level,
+    @DateTimeConverter() DateTime? timestamp,
+  }) = _BuildLog;
+
+  factory BuildLog.fromJson(Map<String, Object?> json) =>
+      _$BuildLogFromJson(json);
+}
 
 @riverpod
 Future<List<BuildLog>> buildJobLogs(
@@ -18,6 +32,20 @@ Future<List<BuildLog>> buildJobLogs(
   const serverUrl = String.fromEnvironment('OPENCI_SERVER_URL');
   if (serverUrl.isEmpty) {
     throw UnimplementedError('OPENCI_SERVER_URL is not set');
+  }
+
+  final isRunning =
+      buildStatus == BuildJobStatus.IN_PROGRESS ||
+      buildStatus == BuildJobStatus.QUEUED ||
+      buildStatus == BuildJobStatus.WAITING;
+
+  if (isRunning) {
+    final timer = Timer(const Duration(seconds: 2), () {
+      ref.invalidateSelf();
+    });
+    ref.onDispose(() {
+      timer.cancel();
+    });
   }
 
   final url = Uri.parse('$serverUrl/builds/$buildJobId/runs/$runId/logs');
@@ -41,7 +69,7 @@ Future<List<BuildLog>> buildJobLogs(
   }
 
   if (response.body.isEmpty) {
-    throw Exception('No logs found for build job $buildJobId and run $runId');
+    return const [];
   }
 
   final logs = <BuildLog>[];

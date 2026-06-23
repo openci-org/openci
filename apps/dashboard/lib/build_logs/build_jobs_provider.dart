@@ -16,7 +16,7 @@ part 'build_jobs_provider.g.dart';
 
 const _buildJobsHistoryLimit = 100;
 
-@riverpod
+@Riverpod(keepAlive: true)
 class BuildJobs extends _$BuildJobs {
   @override
   Stream<List<BuildJob>> build() async* {
@@ -229,7 +229,7 @@ class BuildJobs extends _$BuildJobs {
   }
 }
 
-@riverpod
+@Riverpod(keepAlive: true)
 class OtaBuildJobs extends _$OtaBuildJobs {
   @override
   Stream<List<BuildJob>> build() async* {

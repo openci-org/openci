@@ -44,7 +44,7 @@ abstract class OpenCIUser with _$OpenCIUser {
       _$OpenCIUserFromJson(json);
 }
 
-@riverpod
+@Riverpod(keepAlive: true)
 class User extends _$User {
   @override
   Stream<OpenCIUser> build() async* {
