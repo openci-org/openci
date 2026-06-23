@@ -19,14 +19,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Restore Flutter pub cache
-        uses: ./actions/flutter-pub-cache
-        with:
-          action: restore
-          service-account: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-          storage-bucket: openci-b1b91.firebasestorage.app
-          working-directory: packages/macos_updater
-
       - name: Install dependencies
         run: flutter pub get
 
@@ -35,12 +27,3 @@ jobs:
 
       - name: Test
         run: flutter test
-
-      - name: Save Flutter pub cache
-        if: always()
-        uses: ./actions/flutter-pub-cache
-        with:
-          action: save
-          service-account: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-          storage-bucket: openci-b1b91.firebasestorage.app
-          working-directory: packages/macos_updater

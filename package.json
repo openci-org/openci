@@ -3,10 +3,8 @@
   "private": true,
   "workspaces": [
     "actions/flutter-cd",
-    "actions/flutter-pub-cache",
     "actions/save-secret-file",
     "apps/landing_page",
-    "apps/worker_cli_node",
     "firebase/functions"
   ],
   "scripts": {
@@ -14,7 +12,7 @@
     "check": "vp run -r check",
     "fmt": "vp run -r fmt",
     "fmt:check": "vp run -r fmt:check",
-    "test": "vp run --filter ./actions/flutter-cd test && vp run --filter ./actions/flutter-pub-cache test && vp run --filter ./actions/save-secret-file test && vp run --filter ./apps/worker_cli_node test && vp run --filter ./firebase/functions test:unit",
+    "test": "vp run --filter ./actions/flutter-cd test && vp run --filter ./actions/save-secret-file test && vp run --filter ./firebase/functions test:unit",
     "test:all": "vp run -r --filter '!landing-page' test"
   },
   "devDependencies": {

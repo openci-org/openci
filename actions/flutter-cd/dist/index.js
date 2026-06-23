@@ -200339,7 +200339,6 @@ const plist = __importStar(__nccwpck_require__(36656));
 const asc_1 = __nccwpck_require__(91851);
 const flutter_1 = __nccwpck_require__(97192);
 const helpers_1 = __nccwpck_require__(21979);
-const xcode_1 = __nccwpck_require__(68807);
 const KEYCHAIN_NAME = "openci-build.keychain";
 const KEYCHAIN_PASSWORD = "openci_temp_password";
 const APPLE_WWDR_CERTIFICATE_URLS = [
@@ -200484,10 +200483,7 @@ async function buildAndSignIos() {
         fs.mkdirSync(privateKeysDir, { recursive: true });
         const apiKeyDest = path.join(privateKeysDir, `AuthKey_${ascKeyId}.p8`);
         fs.copyFileSync(ascKeyPath, apiKeyDest);
-        const compilationCacheXcconfigPath = (0, xcode_1.prepareXcodeCompilationCacheXcconfig)(tmpDir);
-        console.log("  Xcode compilation cache: enabled");
-        await (0, helpers_1.exec)(`XCODE_XCCONFIG_FILE=${shellQuote(compilationCacheXcconfigPath)} flutter build ipa ${noPubArg} --release --export-options-plist="${exportOptionsPath}" ${buildNumberArg} ${buildArgs}`.trim(), { cwd: workingDirectory });
-        await (0, xcode_1.reportXcodeCompilationCache)();
+        await (0, helpers_1.exec)(`flutter build ipa ${noPubArg} --release --export-options-plist="${exportOptionsPath}" ${buildNumberArg} ${buildArgs}`.trim(), { cwd: workingDirectory });
         // Verify IPA was actually created
         const ipaDir = path.join(workingDirectory, "build", "ios", "ipa");
         const ipaFiles = fs.existsSync(ipaDir)
@@ -200990,7 +200986,6 @@ const path = __importStar(__nccwpck_require__(16928));
 const asc_1 = __nccwpck_require__(91851);
 const helpers_1 = __nccwpck_require__(21979);
 const flutter_1 = __nccwpck_require__(97192);
-const xcode_1 = __nccwpck_require__(68807);
 const KEYCHAIN_NAME = "openci-macos-build.keychain";
 const KEYCHAIN_PASSWORD = "openci_temp_password";
 const DEVELOPER_ID_G2_CA_URL = "https://www.apple.com/certificateauthority/DeveloperIDG2CA.cer";
@@ -201058,9 +201053,7 @@ async function buildSignAndNotarizeMacos() {
         const noPubArg = (0, flutter_1.buildNoPubArg)(pubGetAlreadyRan, buildArgs);
         const noSignXcconfigPath = prepareUnsignedMacosBuild(workingDirectory, tmpDir);
         const buildNumberArg = buildNumberInput ? `--build-number=${shellQuote(buildNumberInput)}` : "";
-        console.log("  Xcode compilation cache: enabled");
         await (0, helpers_1.exec)(`XCODE_XCCONFIG_FILE=${shellQuote(noSignXcconfigPath)} flutter build macos ${noPubArg} --release ${buildNumberArg} ${buildArgs}`.trim(), { cwd: workingDirectory });
-        await (0, xcode_1.reportXcodeCompilationCache)();
         const appPath = appPathInput
             ? path.resolve(workingDirectory, appPathInput)
             : path.resolve(findBuiltAppPath(workingDirectory));
@@ -201171,7 +201164,6 @@ function prepareUnsignedMacosBuild(workingDirectory, tmpDir) {
         "EXPANDED_CODE_SIGN_IDENTITY =",
         "",
     ].join("\n"));
-    (0, xcode_1.appendXcodeCompilationCacheSettings)(noSignXcconfigPath);
     const projectPath = path.join(workingDirectory, "macos", "Runner.xcodeproj", "project.pbxproj");
     if (!fs.existsSync(projectPath)) {
         console.log(`  macOS Xcode project not found, using unsigned build xcconfig only: ${projectPath}`);
@@ -201461,91 +201453,6 @@ async function getShortSha() {
     catch {
         return `preview-${Date.now()}`;
     }
-}
-
-
-/***/ }),
-
-/***/ 68807:
-/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
-
-"use strict";
-
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-            return ar;
-        };
-        return ownKeys(o);
-    };
-    return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-        __setModuleDefault(result, mod);
-        return result;
-    };
-})();
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.prepareXcodeCompilationCacheXcconfig = prepareXcodeCompilationCacheXcconfig;
-exports.appendXcodeCompilationCacheSettings = appendXcodeCompilationCacheSettings;
-exports.reportXcodeCompilationCache = reportXcodeCompilationCache;
-const fs = __importStar(__nccwpck_require__(79896));
-const os = __importStar(__nccwpck_require__(70857));
-const path = __importStar(__nccwpck_require__(16928));
-const helpers_1 = __nccwpck_require__(21979);
-const COMPILATION_CACHE_SETTINGS = ["COMPILATION_CACHE_ENABLE_CACHING = True", ""];
-function prepareXcodeCompilationCacheXcconfig(tmpDir) {
-    const xcconfigPath = path.join(tmpDir, "openci-xcode-compilation-cache.xcconfig");
-    fs.writeFileSync(xcconfigPath, COMPILATION_CACHE_SETTINGS.join("\n"));
-    return xcconfigPath;
-}
-function appendXcodeCompilationCacheSettings(xcconfigPath) {
-    fs.appendFileSync(xcconfigPath, COMPILATION_CACHE_SETTINGS.join("\n"));
-}
-async function reportXcodeCompilationCache() {
-    const derivedDataDir = path.join(os.homedir(), "Library", "Developer", "Xcode", "DerivedData");
-    const cacheDir = path.join(derivedDataDir, "CompilationCache.noindex");
-    console.log("  Xcode compilation cache:");
-    if (!fs.existsSync(cacheDir)) {
-        console.log(`  Not found: ${cacheDir}`);
-        return;
-    }
-    await (0, helpers_1.exec)(`du -sh ${shellQuote(cacheDir)} || true`);
-    await (0, helpers_1.exec)(`find ${shellQuote(cacheDir)} -type f | wc -l | awk '{ print "  File count: " $1 }' || true`);
-    console.log("  Recent CompilationCacheMetrics:");
-    await (0, helpers_1.exec)([
-        "find",
-        shellQuote(derivedDataDir),
-        "-path '*/Logs/Build/*.xcactivitylog'",
-        "-type f",
-        "-mtime -1",
-        "-print0",
-        "| xargs -0 zgrep -a -h 'CompilationCacheMetrics' 2>/dev/null",
-        "| tail -n 20",
-        "|| true",
-    ].join(" "));
-}
-function shellQuote(value) {
-    return `'${value.replace(/'/g, "'\\''")}'`;
 }
 
 
