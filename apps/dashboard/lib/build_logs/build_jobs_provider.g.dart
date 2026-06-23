@@ -20,7 +20,7 @@ final class BuildJobsProvider
         argument: null,
         retry: null,
         name: r'buildJobsProvider',
-        isAutoDispose: true,
+        isAutoDispose: false,
         dependencies: null,
         $allTransitiveDependencies: null,
       );
@@ -33,7 +33,7 @@ final class BuildJobsProvider
   BuildJobs create() => BuildJobs();
 }
 
-String _$buildJobsHash() => r'800e66539f2d96f85d8c0a32f554ddde55132a07';
+String _$buildJobsHash() => r'd1d38f95d8a1226b6d5cd0b333567710b935f175';
 
 abstract class _$BuildJobs extends $StreamNotifier<List<BuildJob>> {
   Stream<List<BuildJob>> build();
@@ -64,7 +64,7 @@ final class OtaBuildJobsProvider
         argument: null,
         retry: null,
         name: r'otaBuildJobsProvider',
-        isAutoDispose: true,
+        isAutoDispose: false,
         dependencies: null,
         $allTransitiveDependencies: null,
       );
@@ -77,7 +77,7 @@ final class OtaBuildJobsProvider
   OtaBuildJobs create() => OtaBuildJobs();
 }
 
-String _$otaBuildJobsHash() => r'a57525e69d2400ee46f0c886a829ba8e547db116';
+String _$otaBuildJobsHash() => r'a8cc6a3d7ddfb50d7018d02a57d25cfb9ca07e1e';
 
 abstract class _$OtaBuildJobs extends $StreamNotifier<List<BuildJob>> {
   Stream<List<BuildJob>> build();
