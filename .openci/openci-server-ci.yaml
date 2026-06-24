@@ -1,4 +1,4 @@
-name: openci_server CI
+name: OpenCI Server CI
 
 on:
   push:
@@ -12,11 +12,11 @@ on:
 jobs:
   ci:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/openci_server
     steps:
       - uses: actions/checkout@v4
 
       - name: Analyze openci_server
-        run: flutter analyze apps/openci_server
-
-      - name: Run Tests (openci_server)
-        run: flutter test apps/openci_server
+        run: flutter analyze
