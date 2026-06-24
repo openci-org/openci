@@ -17,3 +17,6 @@ create_workers.js
 .env
 firebase-service-account.json
 build_machine_ip_list.json
+
+# Dart Frog
+**/.dart_frog/
