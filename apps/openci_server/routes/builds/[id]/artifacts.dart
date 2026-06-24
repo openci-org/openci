@@ -8,8 +8,8 @@ import 'package:openci_server/storage.dart';
 
 Future<Response> onRequest(RequestContext context, String id) async {
   return switch (context.request.method) {
-    HttpMethod.post => _post(context, id),
     HttpMethod.get => _get(context, id),
+    HttpMethod.post => _post(context, id),
     _ => Response(statusCode: HttpStatus.methodNotAllowed),
   };
 }
