@@ -39,23 +39,13 @@ jobs:
           secret: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST_IOS }}
           path: "apps/dashboard/ios/Runner/GoogleService-Info.plist"
 
-      - name: Prepare stable iOS build workspace
-        run: |
-          set -euo pipefail
-
-          stable_workspace="/Users/admin/openci-workspaces/openci-org-openci-ios"
-          rm -rf "$stable_workspace"
-          mkdir -p "$(dirname "$stable_workspace")"
-          rsync -a --delete --exclude ".git" "${GITHUB_WORKSPACE}/" "$stable_workspace/"
-          echo "Stable iOS build workspace: $stable_workspace"
-
       - name: Build iOS IPA for OpenCI OTA
         if: github.event_name == 'pull_request'
         uses: ./actions/flutter-cd
         id: ios-build-ota
         with:
           platform: "ios"
-          working-directory: "/Users/admin/openci-workspaces/openci-org-openci-ios/apps/dashboard"
+          working-directory: "apps/dashboard"
           swift-package-manager: "enabled"
           patch-flutter-ios-distribution-signing: "false"
           build-number: ${{ env.OPENCI_RUN_NUMBER }}
@@ -79,7 +69,7 @@ jobs:
         uses: ./actions/flutter-cd
         with:
           platform: "ios"
-          working-directory: "/Users/admin/openci-workspaces/openci-org-openci-ios/apps/dashboard"
+          working-directory: "apps/dashboard"
           swift-package-manager: "enabled"
           patch-flutter-ios-distribution-signing: "false"
           build-number: ${{ env.OPENCI_RUN_NUMBER }}
@@ -129,21 +119,11 @@ jobs:
             echo "SPARKLE_PUBLIC_ED_KEY = ${OPENCI_SPARKLE_PUBLIC_ED_KEY}"
           } >> apps/dashboard/macos/Runner/Configs/AppInfo.xcconfig
 
-      - name: Prepare stable macOS build workspace
-        run: |
-          set -euo pipefail
-
-          stable_workspace="/Users/admin/openci-workspaces/openci-org-openci-macos"
-          rm -rf "$stable_workspace"
-          mkdir -p "$(dirname "$stable_workspace")"
-          rsync -a --delete --exclude ".git" "${GITHUB_WORKSPACE}/" "$stable_workspace/"
-          echo "Stable macOS build workspace: $stable_workspace"
-
       - id: build_macos
         uses: ./actions/flutter-cd
         with:
           platform: "macos"
-          working-directory: "/Users/admin/openci-workspaces/openci-org-openci-macos/apps/dashboard"
+          working-directory: "apps/dashboard"
           swift-package-manager: "enabled"
           build-number: ${{ env.OPENCI_RUN_NUMBER }}
           build-args: >-
