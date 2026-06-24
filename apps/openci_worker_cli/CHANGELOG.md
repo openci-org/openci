@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.10.47
+
+- Fix: Inject `OPENCI_BUILD_JOB_ID` and `OPENCI_SERVER_URL` into the build execution environment variables map, resolving OTA distribution issues.
+
 ## 0.10.46
 
 - Feature: Inject the worker's Firebase ID Token as `OPENCI_ID_TOKEN` into the build job environment, enabling secure API interactions without exposing Firebase service accounts.

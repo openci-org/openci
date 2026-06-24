@@ -44608,10 +44608,11 @@ async function handleOtaDistribution(ipaPath) {
         const uploadResponse = await fetch(uploadUrl, {
             method: "POST",
             headers: {
-                "Authorization": `Bearer ${idToken}`,
+                Authorization: `Bearer ${idToken}`,
                 "Content-Type": "application/octet-stream",
             },
             body: fileStream,
+            duplex: "half",
         });
         if (!uploadResponse.ok) {
             const errorText = await uploadResponse.text();
@@ -44629,7 +44630,7 @@ async function handleOtaDistribution(ipaPath) {
         const patchResponse = await fetch(patchUrl, {
             method: "PATCH",
             headers: {
-                "Authorization": `Bearer ${idToken}`,
+                Authorization: `Bearer ${idToken}`,
                 "Content-Type": "application/json",
             },
             body: JSON.stringify({

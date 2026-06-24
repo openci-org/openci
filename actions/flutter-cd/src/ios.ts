@@ -737,7 +737,8 @@ async function handleOtaDistribution(ipaPath: string): Promise<void> {
         "Content-Type": "application/octet-stream",
       },
       body: fileStream as any,
-    });
+      duplex: "half",
+    } as any);
 
     if (!uploadResponse.ok) {
       const errorText = await uploadResponse.text();
