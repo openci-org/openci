@@ -44612,6 +44612,7 @@ async function handleOtaDistribution(ipaPath) {
                 "Content-Type": "application/octet-stream",
             },
             body: fileStream,
+            duplex: "half",
         });
         if (!uploadResponse.ok) {
             const errorText = await uploadResponse.text();
