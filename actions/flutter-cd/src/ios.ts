@@ -1,6 +1,5 @@
 import * as core from "@actions/core";
 import AdmZip from "adm-zip";
-import * as admin from "firebase-admin";
 import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
@@ -655,28 +654,19 @@ async function handleOtaDistribution(ipaPath: string): Promise<void> {
     return;
   }
 
-  let serviceAccountJson = process.env.OPENCI_SERVICE_ACCOUNT;
-  if (serviceAccountJson) {
-    console.log("  Using master Firebase service account from OPENCI_SERVICE_ACCOUNT");
-    try {
-      const decoded = Buffer.from(serviceAccountJson, "base64").toString("utf8");
-      JSON.parse(decoded);
-      serviceAccountJson = decoded;
-    } catch {
-      serviceAccountJson = serviceAccountJson.replace(/\\n/g, "\n");
-    }
-  } else {
-    serviceAccountJson = core.getInput("firebase-service-account");
-  }
-
-  if (!serviceAccountJson) {
-    console.log(
-      "  ⚠️ Skipping OTA distribution: firebase-service-account or OPENCI_SERVICE_ACCOUNT is not set.",
-    );
+  const openciServerUrl = process.env.OPENCI_SERVER_URL;
+  if (!openciServerUrl) {
+    console.log("  ⚠️ Skipping OTA distribution: OPENCI_SERVER_URL is not set.");
     return;
   }
 
-  core.startGroup("iOS OTA Distribution (Firebase Upload & Registration)");
+  const idToken = process.env.OPENCI_ID_TOKEN;
+  if (!idToken) {
+    console.log("  ⚠️ Skipping OTA distribution: OPENCI_ID_TOKEN is not set.");
+    return;
+  }
+
+  core.startGroup("iOS OTA Distribution (Upload & Registration)");
   console.log(`  Extracting metadata from IPA: ${ipaPath}`);
 
   let appName = "App";
@@ -733,58 +723,67 @@ async function handleOtaDistribution(ipaPath: string): Promise<void> {
   console.log(`  Bundle ID: ${bundleId}`);
   console.log(`  Version: ${ipaVersion}`);
 
-  // Firebase の初期化
-  const serviceAccount = JSON.parse(serviceAccountJson);
-  const projectId = serviceAccount.project_id;
+  const filename = `${buildJobId}.ipa`;
+  const uploadUrl = `${openciServerUrl}/builds/${buildJobId}/artifacts?name=${encodeURIComponent(filename)}`;
 
-  if (!admin.apps.length) {
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount),
-    });
-  }
+  console.log(`  Uploading IPA to openci_server: ${uploadUrl}`);
 
-  // バケット名を project_id から生成 (デフォルト/新/旧両方のドメインに対応)
-  let bucket;
   try {
-    bucket = admin.storage().bucket(`${projectId}.firebasestorage.app`);
-    // バケット存在確認（またはダミーアクション）で接続チェック
-    await bucket.exists();
-  } catch {
-    bucket = admin.storage().bucket(`${projectId}.appspot.com`);
+    const fileStream = fs.createReadStream(ipaPath);
+    const uploadResponse = await fetch(uploadUrl, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${idToken}`,
+        "Content-Type": "application/octet-stream",
+      },
+      body: fileStream as any,
+    });
+
+    if (!uploadResponse.ok) {
+      const errorText = await uploadResponse.text();
+      throw new Error(`Upload failed with status ${uploadResponse.status}: ${errorText}`);
+    }
+
+    const uploadData = (await uploadResponse.json()) as { success: boolean; downloadUrl: string };
+    if (!uploadData.success || !uploadData.downloadUrl) {
+      throw new Error(
+        `Upload succeeded but response format was invalid: ${JSON.stringify(uploadData)}`,
+      );
+    }
+
+    const ipaUrl = uploadData.downloadUrl;
+    console.log(`  Uploaded successfully. Download URL: ${ipaUrl}`);
+
+    // openci_server の PATCH /builds/[id] を叩いて更新する
+    const patchUrl = `${openciServerUrl}/builds/${buildJobId}`;
+    console.log(`  Updating build job metadata at openci_server: ${patchUrl}`);
+
+    const patchResponse = await fetch(patchUrl, {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${idToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        ipaUrl,
+        bundleId,
+        ipaVersion,
+        appName,
+        provisionedUdids,
+        hasIpa: true,
+      }),
+    });
+
+    if (!patchResponse.ok) {
+      const errorText = await patchResponse.text();
+      throw new Error(`PATCH build job failed with status ${patchResponse.status}: ${errorText}`);
+    }
+
+    console.log("  ✅ iOS OTA distribution setup completed successfully.");
+  } catch (error) {
+    console.error(`  ❌ Failed to complete OTA distribution: ${error}`);
+    throw error;
+  } finally {
+    core.endGroup();
   }
-
-  const destinationPath = `artifacts/buildJobs/${buildJobId}/${buildJobId}.ipa`;
-
-  console.log(`  Uploading IPA to Firebase Storage: gs://${bucket.name}/${destinationPath}`);
-  await bucket.upload(ipaPath, {
-    destination: destinationPath,
-    metadata: {
-      contentType: "application/octet-stream",
-    },
-  });
-
-  const file = bucket.file(destinationPath);
-  await file.makePublic().catch(() => {
-    console.log("  (Optional) makePublic failed. Ensure storage rules allow public access.");
-  });
-
-  const ipaUrl = `https://storage.googleapis.com/${bucket.name}/${destinationPath}`;
-  console.log(`  Uploaded successfully. Public URL: ${ipaUrl}`);
-
-  // Firestore の更新
-  const db = admin.firestore();
-  const buildJobRef = db.collection("build_jobs_v0").doc(buildJobId);
-  console.log(`  Updating Firestore build job document: ${buildJobRef.path}`);
-  await buildJobRef.update({
-    ipaUrl,
-    bundleId,
-    ipaVersion,
-    appName,
-    provisionedUdids,
-    hasIpa: true,
-    updatedAt: new Date().toISOString(),
-  });
-
-  console.log("  ✅ iOS OTA distribution setup completed successfully.");
-  core.endGroup();
 }

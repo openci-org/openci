@@ -72,6 +72,11 @@ Future<Response> _patch(RequestContext context, String id) async {
             payload.containsKey('failureSummaryDurationMs')
             ? payload['failureSummaryDurationMs'] as int?
             : job.failureSummaryDurationMs,
+        provisionedUdids: payload.containsKey('provisionedUdids')
+            ? (payload['provisionedUdids'] as List<dynamic>?)
+                  ?.map((e) => e as String)
+                  .toList()
+            : job.provisionedUdids,
         ipaUrl: payload.containsKey('ipaUrl')
             ? payload['ipaUrl'] as String?
             : job.ipaUrl,
