@@ -3,6 +3,8 @@ import 'dart:io';
 import 'package:dart_frog/dart_frog.dart';
 import 'package:firebase_admin_sdk/firebase_admin_sdk.dart';
 import 'package:openci_server/database.dart';
+import 'package:openci_server/settings/storage_settings.dart';
+import 'package:openci_server/storage.dart';
 import 'package:openci_server/webhook_task/webhook_task_worker.dart';
 import 'package:sentry/sentry.dart';
 
@@ -12,6 +14,15 @@ final _db = () {
   return db;
 }();
 final FirebaseApp _firebaseApp = FirebaseApp.initializeApp();
+
+final _storage = () {
+  final settings = loadStorageSettings();
+  final storage = StorageManager(settings);
+  storage.initialize().catchError((Object e) {
+    stderr.writeln('StorageManager initialization failed: $e');
+  });
+  return storage;
+}();
 
 bool _sentryInitialized = false;
 
@@ -32,6 +43,7 @@ Handler middleware(Handler handler) {
   return handler
       .use(sentryMiddleware())
       .use(databaseProvider(_db))
+      .use(storageProvider(_storage))
       .use(authProvider(_firebaseApp))
       .use(corsMiddleware())
       .use(requestLogger());
@@ -65,6 +77,10 @@ Middleware sentryMiddleware() {
 
 Middleware databaseProvider(AppDatabase db) {
   return provider<AppDatabase>((context) => db);
+}
+
+Middleware storageProvider(StorageManager storage) {
+  return provider<StorageManager>((context) => storage);
 }
 
 Middleware authProvider(FirebaseApp? firebaseApp, {bool allowTestUid = false}) {
