@@ -209,12 +209,10 @@ jobs:
 
           codesign --verify --deep --strict --verbose=2 "$app_path"
 
-      - name: Upload macOS artifact to Firebase Storage
+      - name: Upload macOS artifact to OpenCI Server
         env:
-          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           OPENCI_SPARKLE_PRIVATE_ED_KEY: ${{ secrets.OPENCI_SPARKLE_PRIVATE_ED_KEY }}
           RELEASE_EVENT_NAME: ${{ github.event_name }}
-          RELEASE_PR_NUMBER: ${{ github.event.pull_request.number }}
           RELEASE_REF: ${{ github.ref }}
         run: |
           set -euo pipefail
@@ -225,95 +223,20 @@ jobs:
             exit 1
           fi
 
-          service_account_file="$(mktemp)"
-          private_key_file="$(mktemp)"
-          signing_input_file="$(mktemp)"
-          printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$service_account_file"
-
-          bucket="$(sed -n "s/.*storageBucket: '\([^']*\)'.*/\1/p" apps/dashboard/lib/firebase_options.dart | head -n 1)"
-          if [ -z "$bucket" ]; then
-            echo "Could not read storageBucket from firebase_options.dart" >&2
-            exit 1
+          if [ -z "${OPENCI_SERVER_URL:-}" ] || [ -z "${OPENCI_ID_TOKEN:-}" ] || [ -z "${OPENCI_BUILD_JOB_ID:-}" ]; then
+            echo "⚠️ Skipping upload: OpenCI environment variables are not set."
+            exit 0
           fi
 
-          object_names=()
-          if [ "${RELEASE_EVENT_NAME}" = "pull_request" ]; then
-            object_names+=("artifacts/openci-dashboard/macos/pr/${RELEASE_PR_NUMBER}/${OPENCI_RUN_NUMBER}/OpenCI-dashboard-macos.zip")
-          elif [ "${RELEASE_EVENT_NAME}" = "push" ] && [ "${RELEASE_REF}" = "refs/heads/develop" ]; then
-            object_names+=("artifacts/openci-dashboard/macos/develop/${OPENCI_RUN_NUMBER}/OpenCI-dashboard-macos.zip")
-            object_names+=("artifacts/openci-dashboard/macos/develop/latest/OpenCI-dashboard-macos.zip")
-          else
-            object_names+=("artifacts/openci-dashboard/macos/${RELEASE_EVENT_NAME}/${OPENCI_RUN_NUMBER}/OpenCI-dashboard-macos.zip")
-          fi
+          filename="OpenCI-dashboard-macos.zip"
+          echo "Uploading macOS zip to OpenCI Server..."
+          curl -fsS -X POST \
+            -H "Authorization: Bearer ${OPENCI_ID_TOKEN}" \
+            -H "Content-Type: application/zip" \
+            --data-binary "@${artifact_path}" \
+            "${OPENCI_SERVER_URL}/builds/${OPENCI_BUILD_JOB_ID}/artifacts?name=${filename}"
 
-          client_email="$(python3 -c 'import json, sys; print(json.load(open(sys.argv[1]))["client_email"])' "$service_account_file")"
-          python3 -c 'import json, sys; open(sys.argv[2], "w").write(json.load(open(sys.argv[1]))["private_key"])' "$service_account_file" "$private_key_file"
-
-          jwt_header="$(python3 -c 'import base64, json; print(base64.urlsafe_b64encode(json.dumps({"alg":"RS256","typ":"JWT"}, separators=(",", ":")).encode()).decode().rstrip("="))')"
-          jwt_payload="$(python3 - "$client_email" <<'PY'
-          import base64
-          import json
-          import sys
-          import time
-
-          now = int(time.time())
-          payload = {
-              "iss": sys.argv[1],
-              "scope": "https://www.googleapis.com/auth/devstorage.full_control",
-              "aud": "https://oauth2.googleapis.com/token",
-              "iat": now,
-              "exp": now + 3600,
-          }
-          print(base64.urlsafe_b64encode(json.dumps(payload, separators=(",", ":")).encode()).decode().rstrip("="))
-          PY
-          )"
-          printf '%s.%s' "$jwt_header" "$jwt_payload" > "$signing_input_file"
-          jwt_signature="$(openssl dgst -sha256 -sign "$private_key_file" "$signing_input_file" | python3 -c 'import base64, sys; print(base64.urlsafe_b64encode(sys.stdin.buffer.read()).decode().rstrip("="))')"
-          jwt_assertion="${jwt_header}.${jwt_payload}.${jwt_signature}"
-
-          access_token="$(curl -fsS -X POST "https://oauth2.googleapis.com/token" \
-            -H "Content-Type: application/x-www-form-urlencoded" \
-            --data-urlencode "grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer" \
-            --data-urlencode "assertion=${jwt_assertion}" \
-            | python3 -c 'import json, sys; print(json.load(sys.stdin)["access_token"])')"
-
-          upload_object() {
-            local object_name="$1"
-            local encoded_object_name
-            encoded_object_name="$(python3 - "$object_name" <<'PY'
-          import sys
-          import urllib.parse
-
-          print(urllib.parse.quote(sys.argv[1], safe=""))
-          PY
-            )"
-
-            curl -fsS -X POST \
-              -H "Authorization: Bearer ${access_token}" \
-              -H "Content-Type: application/zip" \
-              --data-binary "@${artifact_path}" \
-              "https://storage.googleapis.com/upload/storage/v1/b/${bucket}/o?uploadType=media&name=${encoded_object_name}" \
-              > /dev/null
-
-            if [ "$object_name" = "artifacts/openci-dashboard/macos/develop/latest/OpenCI-dashboard-macos.zip" ]; then
-              download_token="4b4e0ed8-e11c-46b8-9d10-cf1f3c8b926c"
-            else
-              download_token="$(uuidgen)"
-            fi
-            curl -fsS -X PATCH \
-              -H "Authorization: Bearer ${access_token}" \
-              -H "Content-Type: application/json" \
-              --data "{\"metadata\":{\"firebaseStorageDownloadTokens\":\"${download_token}\"},\"contentType\":\"application/zip\"}" \
-              "https://storage.googleapis.com/storage/v1/b/${bucket}/o/${encoded_object_name}" \
-              > /dev/null
-
-            echo "Uploaded macOS artifact: gs://${bucket}/${object_name}"
-            echo "Download URL: https://firebasestorage.googleapis.com/v0/b/${bucket}/o/${encoded_object_name}?alt=media&token=${download_token}"
-          }
-
-          for object_name in "${object_names[@]}"; do
-            upload_object "$object_name"
-          done
+          echo "Uploaded macOS artifact to OpenCI Server."
 
           if [ "${RELEASE_EVENT_NAME}" = "push" ] && [ "${RELEASE_REF}" = "refs/heads/develop" ]; then
             if [ -z "${OPENCI_SPARKLE_PRIVATE_ED_KEY:-}" ]; then
@@ -333,17 +256,7 @@ jobs:
               exit 1
             fi
 
-            latest_zip_object_name="artifacts/openci-dashboard/macos/develop/latest/OpenCI-dashboard-macos.zip"
-            latest_zip_encoded_object_name="$(python3 - "$latest_zip_object_name" <<'PY'
-          import sys
-          import urllib.parse
-
-          print(urllib.parse.quote(sys.argv[1], safe=""))
-          PY
-            )"
-            latest_zip_url="https://firebasestorage.googleapis.com/v0/b/${bucket}/o/${latest_zip_encoded_object_name}?alt=media&token=4b4e0ed8-e11c-46b8-9d10-cf1f3c8b926c"
-            appcast_token="adfb1bbd-98ac-4d7d-8bfe-df57403ce6b0"
-            appcast_object_name="artifacts/openci-dashboard/macos/develop/latest/appcast.xml"
+            latest_zip_url="${OPENCI_SERVER_URL}/builds/${OPENCI_BUILD_JOB_ID}/artifacts?name=${filename}"
             appcast_path="$(mktemp)"
             signature_attributes="$(printf '%s' "${OPENCI_SPARKLE_PRIVATE_ED_KEY}" | "${sign_update}" --ed-key-file - "${artifact_path}")"
             short_version="$(python3 - <<'PY'
@@ -381,32 +294,16 @@ jobs:
               f.write(xml)
           PY
 
-            appcast_encoded_object_name="$(python3 - "$appcast_object_name" <<'PY'
-          import sys
-          import urllib.parse
-
-          print(urllib.parse.quote(sys.argv[1], safe=""))
-          PY
-            )"
+            echo "Uploading macOS appcast to OpenCI Server..."
             curl -fsS -X POST \
-              -H "Authorization: Bearer ${access_token}" \
+              -H "Authorization: Bearer ${OPENCI_ID_TOKEN}" \
               -H "Content-Type: application/rss+xml" \
               --data-binary "@${appcast_path}" \
-              "https://storage.googleapis.com/upload/storage/v1/b/${bucket}/o?uploadType=media&name=${appcast_encoded_object_name}" \
-              > /dev/null
-            curl -fsS -X PATCH \
-              -H "Authorization: Bearer ${access_token}" \
-              -H "Content-Type: application/json" \
-              --data "{\"metadata\":{\"firebaseStorageDownloadTokens\":\"${appcast_token}\"},\"contentType\":\"application/rss+xml\"}" \
-              "https://storage.googleapis.com/storage/v1/b/${bucket}/o/${appcast_encoded_object_name}" \
-              > /dev/null
+              "${OPENCI_SERVER_URL}/builds/${OPENCI_BUILD_JOB_ID}/artifacts?name=appcast.xml"
 
-            echo "Uploaded macOS appcast: gs://${bucket}/${appcast_object_name}"
-            echo "Appcast URL: https://firebasestorage.googleapis.com/v0/b/${bucket}/o/${appcast_encoded_object_name}?alt=media&token=${appcast_token}"
+            echo "Uploaded macOS appcast to OpenCI Server."
             rm -rf "${sparkle_tmp_dir}" "${appcast_path}"
           fi
-
-          rm -f "$service_account_file" "$private_key_file" "$signing_input_file"
 
   deploy-web:
     needs: [ci]

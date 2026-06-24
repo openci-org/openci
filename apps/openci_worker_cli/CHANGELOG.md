@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.10.46
+
+- Feature: Inject the worker's Firebase ID Token as `OPENCI_ID_TOKEN` into the build job environment, enabling secure API interactions without exposing Firebase service accounts.
+
 ## 0.10.45
 
 - Fix: Reset worker status to 'idle' when recovering from polling errors, preventing status from getting stuck in 'error' after temporary API offline periods.
