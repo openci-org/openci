@@ -28,10 +28,10 @@ Future<Response> _get(RequestContext context, String id) async {
     }
 
     final objectName = 'artifacts/buildJobs/$id/$name';
-    final presignStr = queryParams['presign'];
-    final isPresign = presignStr == 'true';
+    final presignedStr = queryParams['presigned'];
+    final isPresigned = presignedStr == 'true';
 
-    if (isPresign) {
+    if (isPresigned) {
       final url = await storage.getPresignedUrl(
         objectName,
         expires: const Duration(minutes: 15),

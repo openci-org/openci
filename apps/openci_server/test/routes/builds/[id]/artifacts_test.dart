@@ -116,32 +116,35 @@ void main() {
       },
     );
 
-    test('responds with 200 OK and presigned url when presign=true', () async {
-      when(
-        () => storage.getPresignedUrl(any(), expires: any(named: 'expires')),
-      ).thenAnswer((_) async => 'https://signed-url.example.com');
+    test(
+      'responds with 200 OK and presigned url when presigned=true',
+      () async {
+        when(
+          () => storage.getPresignedUrl(any(), expires: any(named: 'expires')),
+        ).thenAnswer((_) async => 'https://signed-url.example.com');
 
-      final context = TestRequestContext(
-        path: '/builds/job-123/artifacts?name=app.ipa&presign=true',
-        method: HttpMethod.get,
-      );
-      context.provide<StorageManager>(storage);
+        final context = TestRequestContext(
+          path: '/builds/job-123/artifacts?name=app.ipa&presigned=true',
+          method: HttpMethod.get,
+        );
+        context.provide<StorageManager>(storage);
 
-      final response = await route.onRequest(context.context, 'job-123');
+        final response = await route.onRequest(context.context, 'job-123');
 
-      expect(response.statusCode, equals(HttpStatus.ok));
+        expect(response.statusCode, equals(HttpStatus.ok));
 
-      final body = await response.json() as Map<String, dynamic>;
-      expect(body['success'], isTrue);
-      expect(body['url'], equals('https://signed-url.example.com'));
+        final body = await response.json() as Map<String, dynamic>;
+        expect(body['success'], isTrue);
+        expect(body['url'], equals('https://signed-url.example.com'));
 
-      verify(
-        () => storage.getPresignedUrl(
-          'artifacts/buildJobs/job-123/app.ipa',
-          expires: const Duration(minutes: 15),
-        ),
-      ).called(1);
-    });
+        verify(
+          () => storage.getPresignedUrl(
+            'artifacts/buildJobs/job-123/app.ipa',
+            expires: const Duration(minutes: 15),
+          ),
+        ).called(1);
+      },
+    );
 
     test(
       'responds with 400 Bad Request when name query parameter is missing',
