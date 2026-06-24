@@ -19,8 +19,5 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install dependencies
-        run: flutter pub get
-
       - name: Analyze
         run: flutter analyze
