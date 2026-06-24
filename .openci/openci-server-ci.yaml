@@ -1,0 +1,22 @@
+name: OpenCI Server CI
+
+on:
+  push:
+    branches:
+      - develop
+
+  pull_request:
+    branches:
+      - develop
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/openci_server
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Analyze openci_server
+        run: flutter analyze
