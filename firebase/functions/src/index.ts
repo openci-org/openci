@@ -1,12 +1,5 @@
 import "./globalOptions.js";
 
-export {
-  commitCiCdFix,
-  createCiCdFixPullRequest,
-  generateCiCdFixOnRequest,
-  reviseCiCdFix,
-  startCiCdFix,
-} from "./ai/cicdFixRequests.js";
 export { suggestWorkflowTemplates } from "./ai/suggestWorkflowTemplates.js";
 export {
   ascListApps,

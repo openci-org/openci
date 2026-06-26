@@ -316,11 +316,6 @@ service cloud.firestore {
             }
         }
 
-        match /ci_cd_fix_requests_v0/{requestId} {
-            allow read: if isTeamMember(resource.data.teamId);
-            allow write: if false;
-        }
-
         function isValidUdidRequest(data) {
             return data.keys().hasOnly(['id', 'userId', 'udid', 'deviceProduct', 'deviceOsVersion', 'teamId', 'buildJobId', 'createdAt', 'status'])
                 && data.keys().hasAll(['id', 'userId', 'udid', 'teamId', 'buildJobId', 'createdAt', 'status'])
