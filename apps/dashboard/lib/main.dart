@@ -3,12 +3,14 @@ import 'package:dashboard/firebase_options.dart';
 import 'package:dashboard/macos_updater_initializer.dart';
 import 'package:dashboard/revenue_cat/revenue_cat.dart';
 import 'package:dashboard/root.dart';
+import 'package:dashboard/shared_preferences_provider.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_web_plugins/url_strategy.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 Future<void> main() async {
   try {
@@ -42,7 +44,14 @@ Future<void> main() async {
 
     await initializeMacosUpdater();
 
-    final app = ProviderScope(child: Root());
+    final sharedPreferences = await SharedPreferences.getInstance();
+
+    final app = ProviderScope(
+      overrides: [
+        sharedPreferencesProvider.overrideWithValue(sharedPreferences),
+      ],
+      child: Root(),
+    );
 
     if (kDebugMode) {
       runApp(app);
