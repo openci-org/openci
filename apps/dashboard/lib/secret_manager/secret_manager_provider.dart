@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:dashboard/auth/auth_provider.dart';
 import 'package:dashboard/firebase/firestore.dart';
 import 'package:dashboard/firebase/functions.dart';
+import 'package:dashboard/openci_server_url_provider.dart';
 import 'package:dashboard/team/team_provider.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:http/http.dart' as http;
@@ -15,10 +16,7 @@ part 'secret_manager_provider.g.dart';
 class SecretManager extends _$SecretManager {
   @override
   Stream<List<Secret>> build() async* {
-    const serverUrl = String.fromEnvironment('OPENCI_SERVER_URL');
-    if (serverUrl.isEmpty) {
-      throw UnimplementedError('OPENCI_SERVER_URL is not set');
-    }
+    final serverUrl = ref.watch(openciServerUrlProvider);
 
     final teamId = ref.watch(teamStateProvider).value?.id;
     if (teamId == null) {
@@ -70,8 +68,7 @@ class SecretManager extends _$SecretManager {
   }
 
   Future<void> addSecret(String name, String value) async {
-    const serverUrl = String.fromEnvironment('OPENCI_SERVER_URL');
-    if (serverUrl.isEmpty) throw StateError('OPENCI_SERVER_URL is not set');
+    final serverUrl = ref.read(openciServerUrlProvider);
 
     final teamId = ref.read(teamStateProvider).value?.id;
     if (teamId == null) throw StateError('team is not loaded yet');
@@ -126,8 +123,7 @@ class SecretManager extends _$SecretManager {
   }
 
   Future<String> readSecret({required String documentId}) async {
-    const serverUrl = String.fromEnvironment('OPENCI_SERVER_URL');
-    if (serverUrl.isEmpty) throw StateError('OPENCI_SERVER_URL is not set');
+    final serverUrl = ref.read(openciServerUrlProvider);
 
     final teamId = ref.read(teamStateProvider).value?.id;
     if (teamId == null) throw StateError('team is not loaded yet');
@@ -156,8 +152,7 @@ class SecretManager extends _$SecretManager {
   }
 
   Future<void> deleteSecret({required String documentId}) async {
-    const serverUrl = String.fromEnvironment('OPENCI_SERVER_URL');
-    if (serverUrl.isEmpty) throw StateError('OPENCI_SERVER_URL is not set');
+    final serverUrl = ref.read(openciServerUrlProvider);
 
     final teamId = ref.read(teamStateProvider).value?.id;
     if (teamId == null) throw StateError('team is not loaded yet');

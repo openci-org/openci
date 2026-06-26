@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:dashboard/auth/auth_provider.dart';
 import 'package:dashboard/firebase/firestore.dart';
 import 'package:dashboard/github/repository_aliases.dart';
+import 'package:dashboard/openci_server_url_provider.dart';
 import 'package:dashboard/users/user_provider.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:http/http.dart' as http;
@@ -27,6 +28,7 @@ abstract class WorkflowFile with _$WorkflowFile {
 
 @riverpod
 Stream<List<WorkflowFile>> workflowFiles(Ref ref) async* {
+  final serverUrl = ref.watch(openciServerUrlProvider);
   final user = ref.watch(userProvider).value;
   if (user == null) {
     yield const [];
@@ -55,6 +57,7 @@ Stream<List<WorkflowFile>> workflowFiles(Ref ref) async* {
       teamId: teamId,
       selections: selections,
       token: token,
+      serverUrl: serverUrl,
     );
   }
 }
@@ -99,6 +102,7 @@ Future<List<WorkflowFile>> _loadWorkflowFilesForSelections({
   required String teamId,
   required List<_WorkflowRepositorySelection> selections,
   required String token,
+  required String serverUrl,
 }) async {
   final allFiles = <WorkflowFile>[];
 
@@ -108,6 +112,7 @@ Future<List<WorkflowFile>> _loadWorkflowFilesForSelections({
       repository: selection.repository,
       branch: selection.branch,
       token: token,
+      serverUrl: serverUrl,
     );
     allFiles.addAll(githubFiles);
   }
@@ -146,6 +151,7 @@ Future<List<WorkflowFile>> _listWorkflowFilesFromGitHubWithFallback({
   required String repository,
   required String branch,
   required String token,
+  required String serverUrl,
 }) async {
   final branches = <String>[
     branch,
@@ -162,6 +168,7 @@ Future<List<WorkflowFile>> _listWorkflowFilesFromGitHubWithFallback({
         repository: repository,
         branch: candidateBranch,
         token: token,
+        serverUrl: serverUrl,
       );
       if (files.isNotEmpty) return files;
     } catch (error) {
@@ -178,12 +185,8 @@ Future<List<WorkflowFile>> _listWorkflowFilesFromGitHub({
   required String repository,
   required String branch,
   required String token,
+  required String serverUrl,
 }) async {
-  const serverUrl = String.fromEnvironment('OPENCI_SERVER_URL');
-  if (serverUrl.isEmpty) {
-    throw UnimplementedError('OPENCI_SERVER_URL is not set');
-  }
-
   final encodedRepo = Uri.encodeComponent(repository);
   final encodedBranch = Uri.encodeComponent(branch);
   final url = Uri.parse(

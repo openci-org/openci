@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:dashboard/auth/auth_provider.dart';
 import 'package:dashboard/firebase/firestore.dart';
 import 'package:dashboard/firebase/functions.dart';
+import 'package:dashboard/openci_server_url_provider.dart';
 import 'package:dashboard/users/user_provider.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
@@ -26,10 +27,7 @@ class BuildJobs extends _$BuildJobs {
       return;
     }
 
-    const serverUrl = String.fromEnvironment('OPENCI_SERVER_URL');
-    if (serverUrl.isEmpty) {
-      throw UnimplementedError('OPENCI_SERVER_URL is not set');
-    }
+    final serverUrl = ref.watch(openciServerUrlProvider);
 
     yield await _fetchBuildJobs(serverUrl, teamId);
 
@@ -239,10 +237,7 @@ class OtaBuildJobs extends _$OtaBuildJobs {
       return;
     }
 
-    const serverUrl = String.fromEnvironment('OPENCI_SERVER_URL');
-    if (serverUrl.isEmpty) {
-      throw UnimplementedError('OPENCI_SERVER_URL is not set');
-    }
+    final serverUrl = ref.watch(openciServerUrlProvider);
 
     yield await _fetchOtaBuildJobs(serverUrl, teamId);
 
@@ -295,10 +290,7 @@ Stream<BuildJob?> buildJobById(Ref ref, String buildJobId) async* {
     return;
   }
 
-  const serverUrl = String.fromEnvironment('OPENCI_SERVER_URL');
-  if (serverUrl.isEmpty) {
-    throw UnimplementedError('OPENCI_SERVER_URL is not set');
-  }
+  final serverUrl = ref.watch(openciServerUrlProvider);
 
   Future<BuildJob?> fetchJob() async {
     try {

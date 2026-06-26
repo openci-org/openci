@@ -2,16 +2,14 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:dashboard/auth/auth_provider.dart';
+import 'package:dashboard/openci_server_url_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 
 final workerInstancesProvider =
     StreamProvider.autoDispose<List<WorkerInstance>>(
       (ref) {
-        const serverUrl = String.fromEnvironment('OPENCI_SERVER_URL');
-        if (serverUrl.isEmpty) {
-          throw UnimplementedError('OPENCI_SERVER_URL is not set');
-        }
+        final serverUrl = ref.watch(openciServerUrlProvider);
 
         Future<List<WorkerInstance>> fetchWorkers() async {
           try {
