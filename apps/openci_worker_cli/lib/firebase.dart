@@ -68,7 +68,7 @@ class AuthManager {
   }
 
   /// Returns the current ID token, refreshing it if it's expired or close to expiry.
-  Future<String> getIdToken() async {
+  Future<String> getIdToken({bool forceRefresh = false}) async {
     // If not signed in yet, sign in first.
     if (_idToken == null || _refreshToken == null || _tokenExpiry == null) {
       await signIn();
@@ -81,8 +81,9 @@ class AuthManager {
       return 'emulator-token';
     }
 
-    // Refresh if within 5 minutes of expiry
-    if (DateTime.now().add(const Duration(minutes: 5)).isAfter(_tokenExpiry!)) {
+    // Refresh if forced, or within 5 minutes of expiry
+    if (forceRefresh ||
+        DateTime.now().add(const Duration(minutes: 5)).isAfter(_tokenExpiry!)) {
       await _refreshTokenValue();
     }
 

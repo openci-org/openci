@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.10.48
+
+- Fix: Force Firebase ID Token refresh before long build executions, preventing 401 Unauthorized errors during artifact uploads inside VMs.
+
 ## 0.10.47
 
 - Fix: Inject `OPENCI_BUILD_JOB_ID` and `OPENCI_SERVER_URL` into the build execution environment variables map, resolving OTA distribution issues.
