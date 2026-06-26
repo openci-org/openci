@@ -1,6 +1,6 @@
 import { SecretManagerServiceClient } from "@google-cloud/secret-manager";
 import { getFirestore } from "firebase-admin/firestore";
-import { getMessaging } from "firebase-admin/messaging";
+
 import { generateGeminiContent } from "../ai/gemini.js";
 import {
   BuildJobStatus,
@@ -8,11 +8,9 @@ import {
   getBuildJob,
   getTeamById,
   listLatestBuildLogs,
-  listTeamNotificationUsers,
   listWaitingBuildJobs,
   updateBuildJobFailureSummary,
   updateBuildJobStatus,
-  updateUserFcmTokens,
 } from "../firestoreData.js";
 import { defaultGitHubBaseUrl, getConfiguredGitHubApiBaseUrl } from "../github/githubUrls.js";
 
@@ -248,74 +246,6 @@ async function failureLogLine(buildJobId: string, latestRunId?: string | null): 
   return logs.data.buildLogs[1]?.message ?? "Unknown error";
 }
 
-async function sendBuildNotifications(
-  buildJob: BuildJob,
-  status: typeof BuildJobStatus.SUCCESS | typeof BuildJobStatus.FAILURE,
-): Promise<void> {
-  if (!buildJob.teamId) return;
-  const users = await listTeamNotificationUsers({ teamId: buildJob.teamId });
-  if (users.data.teamMembers.length === 0) return;
-
-  const isSuccess = status === BuildJobStatus.SUCCESS;
-  const title = isSuccess ? "✅ Build Succeeded" : "❌ Build Failed";
-  const duration = formatDuration(buildJob.createdAt, buildJob.completedAt);
-  const bodyLines = [
-    ...(buildJob.workflowName ? [buildJob.workflowName] : []),
-    `${buildJob.repo}${buildJob.branch ? ` (${buildJob.branch})` : ""}`,
-    ...(duration ? [`⏱ ${duration}`] : []),
-    ...(!isSuccess ? [await failureLogLine(buildJob.id, buildJob.latestRunId)] : []),
-  ];
-
-  const invalidTokens = new Set<string>();
-  for (const member of users.data.teamMembers) {
-    const preference = member.user.notificationPreference ?? "all";
-    if (
-      preference === "none" ||
-      (preference === "successOnly" && !isSuccess) ||
-      (preference === "failureOnly" && isSuccess)
-    ) {
-      continue;
-    }
-    for (const token of member.user.fcmTokens ?? []) {
-      try {
-        await getMessaging().send({
-          token,
-          notification: { title, body: bodyLines.join("\n") },
-          data: {
-            buildJobId: buildJob.id,
-            status,
-            owner: buildJob.owner,
-            repo: buildJob.repo,
-            ...(buildJob.branch ? { branch: buildJob.branch } : {}),
-            ...(buildJob.workflowName ? { workflowName: buildJob.workflowName } : {}),
-            ...(duration ? { duration } : {}),
-          },
-          apns: { payload: { aps: { sound: "default", badge: 1 } } },
-        });
-      } catch (error) {
-        const message = String(error);
-        if (
-          message.includes("registration-token-not-registered") ||
-          message.includes("invalid-argument")
-        ) {
-          invalidTokens.add(token);
-        }
-      }
-    }
-  }
-
-  if (invalidTokens.size > 0) {
-    for (const member of users.data.teamMembers) {
-      const validTokens = (member.user.fcmTokens ?? []).filter(
-        (token: string) => !invalidTokens.has(token),
-      );
-      if (validTokens.length !== (member.user.fcmTokens ?? []).length) {
-        await updateUserFcmTokens({ id: member.user.id, fcmTokens: validTokens });
-      }
-    }
-  }
-}
-
 export async function handleBuildJobStatusChange(
   buildJob: BuildJob,
   status: BuildJobStatusValue,
@@ -330,9 +260,6 @@ export async function handleBuildJobStatusChange(
   if (terminalStatuses.includes(status as TerminalBuildJobStatus)) {
     await cancelFailFastMatrixSiblings(buildJob, status);
     await resolveDependencies(buildJob, status);
-  }
-  if (status === BuildJobStatus.SUCCESS || status === BuildJobStatus.FAILURE) {
-    await sendBuildNotifications(buildJob, status);
   }
 }
 

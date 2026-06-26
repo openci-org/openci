@@ -9,15 +9,6 @@ part of 'user_provider.dart';
 _OpenCIUser _$OpenCIUserFromJson(Map<String, dynamic> json) => _OpenCIUser(
   id: json['id'] as String,
   selectedTeamId: json['selectedTeamId'] as String,
-  notificationPreference:
-      $enumDecodeNullable(
-        _$NotificationPreferenceEnumMap,
-        json['notificationPreference'],
-      ) ??
-      NotificationPreference.all,
-  fcmTokens:
-      (json['fcmTokens'] as List<dynamic>?)?.map((e) => e as String).toList() ??
-      const [],
   selectedRepository: json['selectedRepository'] as String?,
   selectedBranch: json['selectedBranch'] as String?,
   teamUdids:
@@ -41,22 +32,12 @@ Map<String, dynamic> _$OpenCIUserToJson(_OpenCIUser instance) =>
     <String, dynamic>{
       'id': instance.id,
       'selectedTeamId': instance.selectedTeamId,
-      'notificationPreference':
-          _$NotificationPreferenceEnumMap[instance.notificationPreference]!,
-      'fcmTokens': instance.fcmTokens,
       'selectedRepository': instance.selectedRepository,
       'selectedBranch': instance.selectedBranch,
       'teamUdids': instance.teamUdids,
       'teamDeviceProducts': instance.teamDeviceProducts,
       'teamDeviceOsVersions': instance.teamDeviceOsVersions,
     };
-
-const _$NotificationPreferenceEnumMap = {
-  NotificationPreference.all: 'all',
-  NotificationPreference.successOnly: 'successOnly',
-  NotificationPreference.failureOnly: 'failureOnly',
-  NotificationPreference.none: 'none',
-};
 
 // **************************************************************************
 // RiverpodGenerator
@@ -88,7 +69,7 @@ final class UserProvider extends $StreamNotifierProvider<User, OpenCIUser> {
   User create() => User();
 }
 
-String _$userHash() => r'2ddfbb4e8ddf880f60575e0658788c6abc9e2c3d';
+String _$userHash() => r'73bcd21f20c0bd8342027ddbae1ca17c96ea1ede';
 
 abstract class _$User extends $StreamNotifier<OpenCIUser> {
   Stream<OpenCIUser> build();

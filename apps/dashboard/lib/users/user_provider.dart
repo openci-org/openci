@@ -11,21 +11,11 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 part 'user_provider.freezed.dart';
 part 'user_provider.g.dart';
 
-enum NotificationPreference {
-  all,
-  successOnly,
-  failureOnly,
-  none,
-}
-
 @freezed
 abstract class OpenCIUser with _$OpenCIUser {
   const factory OpenCIUser({
     required String id,
     required String selectedTeamId,
-    @Default(NotificationPreference.all)
-    NotificationPreference notificationPreference,
-    @Default([]) List<String> fcmTokens,
     String? selectedRepository,
     String? selectedBranch,
     @Default({}) Map<String, String> teamUdids,
@@ -97,26 +87,6 @@ class User extends _$User {
     }, SetOptions(merge: true));
   }
 
-  Future<void> updateNotificationPreference(
-    NotificationPreference preference,
-  ) async {
-    final currentUserId = ref.watch(nonNullCurrentUserIdProvider);
-    await firestore.collection(usersCollection).doc(currentUserId).set({
-      'id': currentUserId,
-      'notificationPreference': preference.name,
-      'updatedAt': FieldValue.serverTimestamp(),
-    }, SetOptions(merge: true));
-  }
-
-  Future<void> addFcmToken(String token) async {
-    final currentUserId = ref.watch(nonNullCurrentUserIdProvider);
-    await firestore.collection(usersCollection).doc(currentUserId).set({
-      'id': currentUserId,
-      'fcmTokens': FieldValue.arrayUnion([token]),
-      'updatedAt': FieldValue.serverTimestamp(),
-    }, SetOptions(merge: true));
-  }
-
   Future<void> updateSelectedRepository({
     required String repository,
     required String defaultBranch,
@@ -157,12 +127,7 @@ OpenCIUser _openCIUserFromSnapshot(
   return OpenCIUser(
     id: snapshot.id,
     selectedTeamId: selectedTeamId,
-    notificationPreference: NotificationPreference.values.byName(
-      data['notificationPreference'] as String? ??
-          NotificationPreference.all.name,
-    ),
-    fcmTokens:
-        (data['fcmTokens'] as List?)?.whereType<String>().toList() ?? const [],
+
     selectedRepository: switch (data['selectedRepository']) {
       final String repository => canonicalRepositoryFullName(repository),
       _ => null,

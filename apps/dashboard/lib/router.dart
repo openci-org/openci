@@ -7,7 +7,6 @@ import 'package:dashboard/build_logs/build_jobs_provider.dart';
 import 'package:dashboard/build_logs/build_logs_detail_page.dart';
 import 'package:dashboard/build_logs/build_logs_page.dart';
 import 'package:dashboard/firebase/firebase_config_provider.dart';
-import 'package:dashboard/notifications/notification_provider.dart';
 import 'package:dashboard/settings/settings_page.dart';
 import 'package:dashboard/store_release/store_release_page.dart';
 import 'package:dashboard/team/accept_invitation_page.dart';
@@ -18,7 +17,6 @@ import 'package:dashboard/workflow/list/workflow_list_page.dart';
 import 'package:dashboard/workflow/list/workflows_page.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
@@ -199,25 +197,13 @@ Page<void> _responsivePage({
   return MaterialPage<void>(key: key, child: child);
 }
 
-class WorkspaceRoutePage extends HookConsumerWidget {
+class WorkspaceRoutePage extends ConsumerWidget {
   const WorkspaceRoutePage({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authStateChangesProvider);
-    final user = authState.asData?.value;
     final configAsync = ref.watch(selfHostedConfigProvider);
-    final configReadyForData = configAsync.maybeWhen(
-      data: (_) => true,
-      orElse: () => false,
-    );
-
-    useEffect(() {
-      if (user != null && configReadyForData) {
-        ref.read(notificationServiceProvider);
-      }
-      return null;
-    }, [user?.uid, configReadyForData]);
 
     return authState.when(
       data: (user) {

@@ -1,12 +1,6 @@
-import { getMessaging } from "firebase-admin/messaging";
 import { logger } from "firebase-functions/v2";
 
-import {
-  findTeamByInstallation,
-  listTeamNotificationUsers,
-  tryMarkCiNotificationSent,
-  updateUserFcmTokens,
-} from "../firestoreData.js";
+import { findTeamByInstallation, tryMarkCiNotificationSent } from "../firestoreData.js";
 import { getInstallationToken, githubGraphql } from "./githubApp.js";
 import { getApiBaseUrlFromTeamData } from "./githubUrls.js";
 
@@ -168,78 +162,6 @@ async function fetchCommitCiState({
   };
 }
 
-async function sendPullRequestCiPassedNotification({
-  teamId,
-  owner,
-  repo,
-  pullRequestNumber,
-  headSha,
-  headRefName,
-  checkCount,
-}: {
-  teamId: string;
-  owner: string;
-  repo: string;
-  pullRequestNumber: number;
-  headSha: string;
-  headRefName?: string | null;
-  checkCount: number;
-}): Promise<void> {
-  const users = await listTeamNotificationUsers({ teamId });
-  if (users.data.teamMembers.length === 0) return;
-
-  const title = "✅ All CI Passed";
-  const bodyLines = [
-    `${owner}/${repo} #${pullRequestNumber}`,
-    ...(headRefName ? [headRefName] : []),
-    `${checkCount} checks passed`,
-  ];
-  const invalidTokens = new Set<string>();
-
-  for (const member of users.data.teamMembers) {
-    const preference = member.user.notificationPreference ?? "all";
-    if (preference === "none" || preference === "failureOnly") continue;
-
-    for (const token of member.user.fcmTokens ?? []) {
-      try {
-        await getMessaging().send({
-          token,
-          notification: { title, body: bodyLines.join("\n") },
-          data: {
-            status: "SUCCESS",
-            kind: "pull_request_ci_passed",
-            owner,
-            repo,
-            pullRequestNumber: String(pullRequestNumber),
-            headSha,
-            ...(headRefName ? { branch: headRefName } : {}),
-          },
-          apns: { payload: { aps: { sound: "default", badge: 1 } } },
-        });
-      } catch (error) {
-        const message = String(error);
-        if (
-          message.includes("registration-token-not-registered") ||
-          message.includes("invalid-argument")
-        ) {
-          invalidTokens.add(token);
-        }
-      }
-    }
-  }
-
-  if (invalidTokens.size > 0) {
-    for (const member of users.data.teamMembers) {
-      const validTokens = (member.user.fcmTokens ?? []).filter(
-        (token: string) => !invalidTokens.has(token),
-      );
-      if (validTokens.length !== (member.user.fcmTokens ?? []).length) {
-        await updateUserFcmTokens({ id: member.user.id, fcmTokens: validTokens });
-      }
-    }
-  }
-}
-
 export async function notifyPullRequestCiPassedIfReady({
   installationId,
   owner,
@@ -267,7 +189,6 @@ export async function notifyPullRequestCiPassedIfReady({
   const pullRequest = resolvePullRequest(state, headSha, pullRequestNumber);
   const resolvedPullRequestNumber = pullRequest?.number;
   if (resolvedPullRequestNumber === undefined || resolvedPullRequestNumber === null) return;
-  const headRefName = pullRequest?.headRefName;
   if (state.contexts.length === 0) return;
   if (!state.contexts.every(isSuccessfulContext)) return;
 
@@ -287,14 +208,4 @@ export async function notifyPullRequestCiPassedIfReady({
     kind: "pull_request_ci_passed",
   });
   if (!marker.data.inserted) return;
-
-  await sendPullRequestCiPassedNotification({
-    teamId: team.id,
-    owner,
-    repo,
-    pullRequestNumber: resolvedPullRequestNumber,
-    headSha,
-    headRefName,
-    checkCount: state.contexts.length,
-  });
 }
