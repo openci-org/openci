@@ -4,24 +4,11 @@ import 'package:dashboard/macos_updater_initializer.dart';
 import 'package:dashboard/revenue_cat/revenue_cat.dart';
 import 'package:dashboard/root.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_web_plugins/url_strategy.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
-
-@pragma('vm:entry-point')
-Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  final selfHosted = await loadSelfHostedConfig();
-  if (selfHosted != null) {
-    await Firebase.initializeApp(options: selfHosted.toFirebaseOptions());
-  } else {
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
-    );
-  }
-}
 
 Future<void> main() async {
   try {
@@ -55,7 +42,6 @@ Future<void> main() async {
 
     await initializeMacosUpdater();
 
-    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
     final app = ProviderScope(child: Root());
 
     if (kDebugMode) {

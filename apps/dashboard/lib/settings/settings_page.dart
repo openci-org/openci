@@ -4,8 +4,6 @@ import 'package:dashboard/app_strings.dart';
 import 'package:dashboard/build_info.dart';
 import 'package:dashboard/firebase/firebase_config_provider.dart';
 import 'package:dashboard/macos_updater_initializer.dart';
-import 'package:dashboard/notifications/notification_provider.dart';
-import 'package:dashboard/notifications/notification_settings_page.dart';
 import 'package:dashboard/revenue_cat/revenue_cat.dart';
 import 'package:dashboard/revenue_cat/subscription_page.dart';
 import 'package:dashboard/team/team_provider.dart';
@@ -44,17 +42,6 @@ class SettingsPage extends HookConsumerWidget {
                   _SectionHeader(label: settingsT.general),
                   _SettingsGroup(
                     children: [
-                      _SettingsItem(
-                        icon: Symbols.notifications_rounded,
-                        title: settingsT.buildNotifications,
-                        subtitle: settingsT.configureNotifications,
-                        onTap: () => Navigator.of(context).push(
-                          SwipeablePageRoute(
-                            builder: (_) => const NotificationSettingsPage(),
-                          ),
-                        ),
-                      ),
-                      const _GroupDivider(),
                       const _AiFeaturesTile(),
                     ],
                   ),
@@ -170,7 +157,7 @@ Future<void> _signOut(BuildContext context, WidgetRef ref) async {
   try {
     await logoutRevenueCat();
     await FirebaseAuth.instance.signOut();
-    ref.invalidate(notificationServiceProvider);
+
     if (!context.mounted) return;
     context.showSnackBarMessage(settingsT.logoutSuccess);
   } catch (e, s) {
