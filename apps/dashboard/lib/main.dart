@@ -4,6 +4,7 @@ import 'package:dashboard/macos_updater_initializer.dart';
 import 'package:dashboard/revenue_cat/revenue_cat.dart';
 import 'package:dashboard/root.dart';
 import 'package:dashboard/shared_preferences_provider.dart';
+import 'package:dashboard/utilities/sentry_provider_observer.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -47,6 +48,9 @@ Future<void> main() async {
     final sharedPreferences = await SharedPreferences.getInstance();
 
     final app = ProviderScope(
+      observers: [
+        SentryProviderObserver(),
+      ],
       overrides: [
         sharedPreferencesProvider.overrideWithValue(sharedPreferences),
       ],
