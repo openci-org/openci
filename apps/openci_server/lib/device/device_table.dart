@@ -8,13 +8,18 @@ class UserDevices extends Table {
   TextColumn get teamId =>
       text().references(Teams, #id, onDelete: KeyAction.cascade)();
   TextColumn get udid => text().withLength(min: 25, max: 40)();
-  TextColumn get deviceProduct => text().nullable()();
-  TextColumn get deviceOsVersion => text().nullable()();
+  TextColumn get deviceProduct => text()();
+  TextColumn get deviceOsVersion => text()();
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime()();
 
   @override
   Set<Column> get primaryKey => {id};
+
+  @override
+  List<Set<Column>> get uniqueKeys => [
+    {userId, teamId, udid},
+  ];
 }
 
 class DriftUserDevice implements Insertable<DriftUserDevice> {
@@ -22,8 +27,8 @@ class DriftUserDevice implements Insertable<DriftUserDevice> {
   final String userId;
   final String teamId;
   final String udid;
-  final String? deviceProduct;
-  final String? deviceOsVersion;
+  final String deviceProduct;
+  final String deviceOsVersion;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -32,8 +37,8 @@ class DriftUserDevice implements Insertable<DriftUserDevice> {
     required this.userId,
     required this.teamId,
     required this.udid,
-    this.deviceProduct,
-    this.deviceOsVersion,
+    required this.deviceProduct,
+    required this.deviceOsVersion,
     required this.createdAt,
     required this.updatedAt,
   });

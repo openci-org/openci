@@ -49,7 +49,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 13;
+  int get schemaVersion => 15;
 
   @override
   MigrationStrategy get migration {
@@ -69,6 +69,25 @@ class AppDatabase extends _$AppDatabase {
         }
         if (from < 13) {
           await m.createTable(userDevices);
+        }
+        if (from < 14) {
+          await customStatement(
+            "UPDATE user_devices SET device_product = 'Unknown' WHERE device_product IS NULL;",
+          );
+          await customStatement(
+            "UPDATE user_devices SET device_os_version = 'Unknown' WHERE device_os_version IS NULL;",
+          );
+          await customStatement(
+            "ALTER TABLE user_devices ALTER COLUMN device_product SET NOT NULL;",
+          );
+          await customStatement(
+            "ALTER TABLE user_devices ALTER COLUMN device_os_version SET NOT NULL;",
+          );
+        }
+        if (from < 15) {
+          await customStatement(
+            'CREATE UNIQUE INDEX IF NOT EXISTS user_devices_user_id_team_id_udid_idx ON user_devices (user_id, team_id, udid);',
+          );
         }
       },
     );
