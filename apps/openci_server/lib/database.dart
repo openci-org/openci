@@ -6,6 +6,7 @@ import 'package:openci_server/build_job/build_job.dart';
 import 'package:openci_server/build_job/build_job_dao.dart';
 import 'package:openci_server/build_run/build_run.dart';
 import 'package:openci_server/build_run/build_run_dao.dart';
+import 'package:openci_server/device/device_dao.dart';
 import 'package:openci_server/device/device_table.dart';
 import 'package:openci_server/processed_webhook/processed_webhook_table.dart';
 import 'package:openci_server/secret/secret_dao.dart';
@@ -41,6 +42,7 @@ part 'database.g.dart';
     WebhookTaskDao,
     SecretDao,
     WorkerHeartbeatDao,
+    DeviceDao,
   ],
 )
 class AppDatabase extends _$AppDatabase {
