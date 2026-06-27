@@ -50,6 +50,73 @@ final class FirebaseAuthProvider
 
 String _$firebaseAuthHash() => r'8f84097cccd00af817397c1715c5f537399ba780';
 
+@ProviderFor(firebaseIdToken)
+final firebaseIdTokenProvider = FirebaseIdTokenProvider._();
+
+final class FirebaseIdTokenProvider
+    extends $FunctionalProvider<AsyncValue<String?>, String?, FutureOr<String?>>
+    with $FutureModifier<String?>, $FutureProvider<String?> {
+  FirebaseIdTokenProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'firebaseIdTokenProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$firebaseIdTokenHash();
+
+  @$internal
+  @override
+  $FutureProviderElement<String?> $createElement($ProviderPointer pointer) =>
+      $FutureProviderElement(pointer);
+
+  @override
+  FutureOr<String?> create(Ref ref) {
+    return firebaseIdToken(ref);
+  }
+}
+
+String _$firebaseIdTokenHash() => r'cf77d8a27ebab615772f9f67bfeafb88bdd0f873';
+
+@ProviderFor(authedFirebaseIdToken)
+final authedFirebaseIdTokenProvider = AuthedFirebaseIdTokenProvider._();
+
+final class AuthedFirebaseIdTokenProvider
+    extends $FunctionalProvider<AsyncValue<String>, String, FutureOr<String>>
+    with $FutureModifier<String>, $FutureProvider<String> {
+  AuthedFirebaseIdTokenProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'authedFirebaseIdTokenProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$authedFirebaseIdTokenHash();
+
+  @$internal
+  @override
+  $FutureProviderElement<String> $createElement($ProviderPointer pointer) =>
+      $FutureProviderElement(pointer);
+
+  @override
+  FutureOr<String> create(Ref ref) {
+    return authedFirebaseIdToken(ref);
+  }
+}
+
+String _$authedFirebaseIdTokenHash() =>
+    r'cfb1fae9fd23c0a4eb3941e0ca95dda07eb3f623';
+
 @ProviderFor(authStateChanges)
 final authStateChangesProvider = AuthStateChangesProvider._();
 
@@ -82,6 +149,46 @@ final class AuthStateChangesProvider
 }
 
 String _$authStateChangesHash() => r'ed73bb63cae92e791c80e19c01a8eb421d09a663';
+
+@ProviderFor(currentUser)
+final currentUserProvider = CurrentUserProvider._();
+
+final class CurrentUserProvider extends $FunctionalProvider<User?, User?, User?>
+    with $Provider<User?> {
+  CurrentUserProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'currentUserProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$currentUserHash();
+
+  @$internal
+  @override
+  $ProviderElement<User?> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  User? create(Ref ref) {
+    return currentUser(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(User? value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<User?>(value),
+    );
+  }
+}
+
+String _$currentUserHash() => r'a5bcb438e190bbc8fe821cc39d43e5c28ad9997c';
 
 @ProviderFor(currentUserEmail)
 final currentUserEmailProvider = CurrentUserEmailProvider._();
@@ -122,7 +229,7 @@ final class CurrentUserEmailProvider
   }
 }
 
-String _$currentUserEmailHash() => r'938a39e8f1c06d968ca0f47a3369800cc03b427e';
+String _$currentUserEmailHash() => r'eff4523829003dfe02feefab3a0b12624e175f68';
 
 @ProviderFor(currentUserId)
 final currentUserIdProvider = CurrentUserIdProvider._();
@@ -163,7 +270,7 @@ final class CurrentUserIdProvider
   }
 }
 
-String _$currentUserIdHash() => r'9369809ee4ecbd50d33913ce5916f8ed03c6273d';
+String _$currentUserIdHash() => r'4173c6d82d4354012bae7868e0778e83f6502ecb';
 
 @ProviderFor(nonNullCurrentUserId)
 final nonNullCurrentUserIdProvider = NonNullCurrentUserIdProvider._();
@@ -206,36 +313,3 @@ final class NonNullCurrentUserIdProvider
 
 String _$nonNullCurrentUserIdHash() =>
     r'1a39f6dc8b12e282ff7eae3ba134af3cc60e6e99';
-
-@ProviderFor(firebaseIdToken)
-final firebaseIdTokenProvider = FirebaseIdTokenProvider._();
-
-final class FirebaseIdTokenProvider
-    extends $FunctionalProvider<AsyncValue<String?>, String?, Stream<String?>>
-    with $FutureModifier<String?>, $StreamProvider<String?> {
-  FirebaseIdTokenProvider._()
-    : super(
-        from: null,
-        argument: null,
-        retry: null,
-        name: r'firebaseIdTokenProvider',
-        isAutoDispose: true,
-        dependencies: null,
-        $allTransitiveDependencies: null,
-      );
-
-  @override
-  String debugGetCreateSourceHash() => _$firebaseIdTokenHash();
-
-  @$internal
-  @override
-  $StreamProviderElement<String?> $createElement($ProviderPointer pointer) =>
-      $StreamProviderElement(pointer);
-
-  @override
-  Stream<String?> create(Ref ref) {
-    return firebaseIdToken(ref);
-  }
-}
-
-String _$firebaseIdTokenHash() => r'adf9d88aa85b3601536e72cb21bb9b42315237dd';

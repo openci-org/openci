@@ -48,10 +48,7 @@ Future<List<BuildLog>> buildJobLogs(
 
   final url = Uri.parse('$serverUrl/builds/$buildJobId/runs/$runId/logs');
 
-  final token = await ref.watch(firebaseIdTokenProvider.future);
-  if (token == null) {
-    throw Exception('Unauthorized: No user is currently signed in');
-  }
+  final token = await ref.watch(authedFirebaseIdTokenProvider.future);
 
   final response = await http
       .get(

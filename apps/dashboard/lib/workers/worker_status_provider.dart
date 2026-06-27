@@ -10,11 +10,7 @@ final workerInstancesProvider =
     StreamProvider.autoDispose<List<WorkerInstance>>(
       (ref) async* {
         final serverUrl = ref.watch(openciServerUrlProvider);
-        final token = await ref.watch(firebaseIdTokenProvider.future);
-        if (token == null) {
-          yield const <WorkerInstance>[];
-          return;
-        }
+        final token = await ref.watch(authedFirebaseIdTokenProvider.future);
 
         Future<List<WorkerInstance>> fetchWorkers(String token) async {
           try {
