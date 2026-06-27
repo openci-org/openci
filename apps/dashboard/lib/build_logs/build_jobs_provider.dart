@@ -28,11 +28,7 @@ class BuildJobs extends _$BuildJobs {
     }
 
     final serverUrl = ref.watch(openciServerUrlProvider);
-    final token = await ref.watch(firebaseIdTokenProvider.future);
-    if (token == null) {
-      yield const [];
-      return;
-    }
+    final token = await ref.watch(authedFirebaseIdTokenProvider.future);
 
     yield await _fetchBuildJobs(serverUrl, teamId, token);
 
@@ -242,11 +238,7 @@ class OtaBuildJobs extends _$OtaBuildJobs {
     }
 
     final serverUrl = ref.watch(openciServerUrlProvider);
-    final token = await ref.watch(firebaseIdTokenProvider.future);
-    if (token == null) {
-      yield const [];
-      return;
-    }
+    final token = await ref.watch(authedFirebaseIdTokenProvider.future);
 
     yield await _fetchOtaBuildJobs(serverUrl, teamId, token);
 
@@ -299,11 +291,7 @@ Stream<BuildJob?> buildJobById(Ref ref, String buildJobId) async* {
   }
 
   final serverUrl = ref.watch(openciServerUrlProvider);
-  final token = await ref.watch(firebaseIdTokenProvider.future);
-  if (token == null) {
-    yield null;
-    return;
-  }
+  final token = await ref.watch(authedFirebaseIdTokenProvider.future);
 
   Future<BuildJob?> fetchJob(String token) async {
     try {

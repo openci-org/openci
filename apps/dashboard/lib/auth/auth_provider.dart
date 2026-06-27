@@ -7,16 +7,34 @@ part 'auth_provider.g.dart';
 FirebaseAuth firebaseAuth(Ref ref) => FirebaseAuth.instance;
 
 @riverpod
+Future<String?> firebaseIdToken(Ref ref) async =>
+    ref.watch(firebaseAuthProvider).currentUser?.getIdToken();
+
+@riverpod
+Future<String> authedFirebaseIdToken(Ref ref) async {
+  final user = ref.watch(firebaseAuthProvider).currentUser;
+  if (user == null) {
+    throw StateError('User is not authenticated');
+  }
+  final token = await user.getIdToken(true);
+  if (token == null) {
+    throw StateError('Could not get Firebase ID token');
+  }
+  return token;
+}
+
+@riverpod
 Stream<User?> authStateChanges(Ref ref) =>
     ref.watch(firebaseAuthProvider).authStateChanges();
 
 @riverpod
-String? currentUserEmail(Ref ref) =>
-    ref.watch(authStateChangesProvider).value?.email;
+User? currentUser(Ref ref) => ref.watch(firebaseAuthProvider).currentUser;
 
 @riverpod
-String? currentUserId(Ref ref) =>
-    ref.watch(authStateChangesProvider).value?.uid;
+String? currentUserEmail(Ref ref) => ref.watch(currentUserProvider)?.email;
+
+@riverpod
+String? currentUserId(Ref ref) => ref.watch(currentUserProvider)?.uid;
 
 @riverpod
 String nonNullCurrentUserId(Ref ref) {
@@ -25,16 +43,4 @@ String nonNullCurrentUserId(Ref ref) {
     throw StateError('User is not authenticated');
   }
   return id;
-}
-
-@riverpod
-Stream<String?> firebaseIdToken(Ref ref) {
-  return ref.watch(firebaseAuthProvider).idTokenChanges().asyncMap((
-    user,
-  ) async {
-    if (user == null) {
-      return null;
-    }
-    return await user.getIdToken();
-  });
 }

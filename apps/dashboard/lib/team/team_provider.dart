@@ -74,10 +74,7 @@ class TeamList extends _$TeamList {
 
   Future<List<Team>> fetchTeamList() async {
     final serverUrl = ref.watch(openciServerUrlProvider);
-    final token = await ref.watch(firebaseIdTokenProvider.future);
-    if (token == null) {
-      return const [];
-    }
+    final token = await ref.watch(authedFirebaseIdTokenProvider.future);
 
     final url = Uri.parse('$serverUrl/teams');
     final response = await http

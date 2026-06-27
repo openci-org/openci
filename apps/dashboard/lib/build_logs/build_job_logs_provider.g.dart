@@ -96,7 +96,7 @@ final class BuildJobLogsProvider
   }
 }
 
-String _$buildJobLogsHash() => r'87e05c6cd6efb14d53f3ade089b5be4e6a860039';
+String _$buildJobLogsHash() => r'55f32c53a16928f6e89016b6074faa2f87ca6d53';
 
 final class BuildJobLogsFamily extends $Family
     with

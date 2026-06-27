@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:dashboard/auth/auth_provider.dart';
@@ -24,11 +25,7 @@ class SecretManager extends _$SecretManager {
       return;
     }
 
-    final token = await ref.watch(firebaseIdTokenProvider.future);
-    if (token == null) {
-      yield const [];
-      return;
-    }
+    final token = await ref.watch(authedFirebaseIdTokenProvider.future);
 
     yield await _fetchSecrets(serverUrl, teamId, token);
 
@@ -82,8 +79,7 @@ class SecretManager extends _$SecretManager {
     if (teamId == null) throw StateError('team is not loaded yet');
 
     final url = Uri.parse('$serverUrl/teams/$teamId/secrets');
-    final token = await ref.read(firebaseIdTokenProvider.future);
-    if (token == null) throw StateError('User is not authenticated');
+    final token = await ref.read(authedFirebaseIdTokenProvider.future);
 
     final response = await http
         .post(
@@ -137,8 +133,7 @@ class SecretManager extends _$SecretManager {
     if (teamId == null) throw StateError('team is not loaded yet');
 
     final url = Uri.parse('$serverUrl/teams/$teamId/secrets/$documentId');
-    final token = await ref.read(firebaseIdTokenProvider.future);
-    if (token == null) throw StateError('User is not authenticated');
+    final token = await ref.read(authedFirebaseIdTokenProvider.future);
 
     final response = await http
         .get(
@@ -166,8 +161,7 @@ class SecretManager extends _$SecretManager {
     if (teamId == null) throw StateError('team is not loaded yet');
 
     final url = Uri.parse('$serverUrl/teams/$teamId/secrets/$documentId');
-    final token = await ref.read(firebaseIdTokenProvider.future);
-    if (token == null) throw StateError('User is not authenticated');
+    final token = await ref.read(authedFirebaseIdTokenProvider.future);
 
     final response = await http
         .delete(

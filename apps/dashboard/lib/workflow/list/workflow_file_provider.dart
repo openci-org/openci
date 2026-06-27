@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:dashboard/auth/auth_provider.dart';
@@ -35,11 +36,7 @@ Stream<List<WorkflowFile>> workflowFiles(Ref ref) async* {
     return;
   }
 
-  final token = await ref.watch(firebaseIdTokenProvider.future);
-  if (token == null) {
-    yield const [];
-    return;
-  }
+  final token = await ref.watch(authedFirebaseIdTokenProvider.future);
 
   final workspaceSnapshots = firestore.doc('workspaces/$teamId').snapshots();
 
