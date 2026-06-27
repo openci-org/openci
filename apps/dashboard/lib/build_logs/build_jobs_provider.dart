@@ -5,7 +5,7 @@ import 'package:dashboard/auth/auth_provider.dart';
 import 'package:dashboard/firebase/firestore.dart';
 import 'package:dashboard/firebase/functions.dart';
 import 'package:dashboard/openci_server_url_provider.dart';
-import 'package:dashboard/users/user_provider.dart';
+import 'package:dashboard/team/selected_team_provider.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -21,7 +21,7 @@ const _buildJobsHistoryLimit = 100;
 class BuildJobs extends _$BuildJobs {
   @override
   Stream<List<BuildJob>> build() async* {
-    final teamId = ref.watch(userProvider).value?.selectedTeamId;
+    final teamId = ref.watch(selectedTeamIdProvider).value;
     if (teamId == null) {
       yield const [];
       return;
@@ -235,7 +235,7 @@ class BuildJobs extends _$BuildJobs {
 class OtaBuildJobs extends _$OtaBuildJobs {
   @override
   Stream<List<BuildJob>> build() async* {
-    final teamId = ref.watch(userProvider).value?.selectedTeamId;
+    final teamId = ref.watch(selectedTeamIdProvider).value;
     if (teamId == null) {
       yield const [];
       return;
@@ -323,14 +323,16 @@ Stream<BuildJob?> buildJobById(Ref ref, String buildJobId) async* {
       final data = jsonDecode(response.body) as Map<String, dynamic>;
       final job = BuildJob.fromJson(data);
       if (job.teamId != null) {
-        final userAsync = ref.read(userProvider);
-        userAsync.whenData((user) {
-          if (user.selectedTeamId != job.teamId) {
+        final selectedTeamId = ref.read(selectedTeamIdProvider).value;
+        if (selectedTeamId != job.teamId) {
+          unawaited(
             Future.microtask(() {
-              ref.read(userProvider.notifier).updateSelectedTeamId(job.teamId!);
-            });
-          }
-        });
+              ref
+                  .read(selectedTeamIdProvider.notifier)
+                  .saveSelectedTeamId(job.teamId!);
+            }),
+          );
+        }
       }
       return job;
     } catch (e, s) {

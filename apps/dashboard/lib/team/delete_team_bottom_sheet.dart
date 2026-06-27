@@ -1,7 +1,7 @@
 import 'package:dashboard/app_strings.dart';
+import 'package:dashboard/team/selected_team_provider.dart';
 import 'package:dashboard/team/team_provider.dart';
 import 'package:dashboard/theme/app_colors.dart';
-import 'package:dashboard/users/user_provider.dart';
 import 'package:dashboard/utilities/async_error_widget.dart';
 import 'package:dashboard/utilities/snack_bar_extension.dart';
 import 'package:flutter/material.dart';
@@ -191,8 +191,8 @@ class DeleteTeamBottomSheet extends HookConsumerWidget {
                                 (t) => t.id != teamIdToDelete,
                               );
                               await ref
-                                  .read(userProvider.notifier)
-                                  .updateSelectedTeamId(otherTeam.id);
+                                  .read(selectedTeamIdProvider.notifier)
+                                  .saveSelectedTeamId(otherTeam.id);
 
                               await ref
                                   .read(teamListProvider.notifier)

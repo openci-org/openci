@@ -3,11 +3,11 @@ import 'package:dashboard/team/create_team_bottom_sheet.dart';
 import 'package:dashboard/team/delete_team_bottom_sheet.dart';
 import 'package:dashboard/team/edit_team_bottom_sheet.dart';
 import 'package:dashboard/team/invite_team_member_bottom_sheet.dart';
+import 'package:dashboard/team/selected_team_provider.dart';
 import 'package:dashboard/team/team_members_bottom_sheet.dart';
+import 'package:dashboard/team/team_provider.dart';
 import 'package:dashboard/theme/app_colors.dart';
 import 'package:dashboard/utilities/adaptive_modal.dart';
-import 'package:dashboard/team/team_provider.dart';
-import 'package:dashboard/users/user_provider.dart';
 import 'package:dashboard/utilities/async_error_widget.dart';
 import 'package:dashboard/utilities/snack_bar_extension.dart';
 import 'package:flutter/material.dart';
@@ -77,8 +77,8 @@ class SwitchTeamBottomSheet extends HookConsumerWidget {
                                 : () async {
                                     try {
                                       await ref
-                                          .read(userProvider.notifier)
-                                          .updateSelectedTeamId(teams[i].id);
+                                          .read(selectedTeamIdProvider.notifier)
+                                          .saveSelectedTeamId(teams[i].id);
                                       if (!context.mounted) return;
                                       context.showSnackBarMessage(
                                         teamT.selectedSuccess,

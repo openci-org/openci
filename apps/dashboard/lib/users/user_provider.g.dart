@@ -8,7 +8,6 @@ part of 'user_provider.dart';
 
 _OpenCIUser _$OpenCIUserFromJson(Map<String, dynamic> json) => _OpenCIUser(
   id: json['id'] as String,
-  selectedTeamId: json['selectedTeamId'] as String,
   selectedRepository: json['selectedRepository'] as String?,
   selectedBranch: json['selectedBranch'] as String?,
   teamUdids:
@@ -31,7 +30,6 @@ _OpenCIUser _$OpenCIUserFromJson(Map<String, dynamic> json) => _OpenCIUser(
 Map<String, dynamic> _$OpenCIUserToJson(_OpenCIUser instance) =>
     <String, dynamic>{
       'id': instance.id,
-      'selectedTeamId': instance.selectedTeamId,
       'selectedRepository': instance.selectedRepository,
       'selectedBranch': instance.selectedBranch,
       'teamUdids': instance.teamUdids,
@@ -69,7 +67,7 @@ final class UserProvider extends $StreamNotifierProvider<User, OpenCIUser> {
   User create() => User();
 }
 
-String _$userHash() => r'73bcd21f20c0bd8342027ddbae1ca17c96ea1ede';
+String _$userHash() => r'e46b85fc2e2911b1a721f72a8db93ee8929c4876';
 
 abstract class _$User extends $StreamNotifier<OpenCIUser> {
   Stream<OpenCIUser> build();

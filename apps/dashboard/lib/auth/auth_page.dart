@@ -9,6 +9,7 @@ import 'package:dashboard/firebase/firebase_config_provider.dart';
 import 'package:dashboard/firebase/firestore.dart';
 import 'package:dashboard/firebase/functions.dart';
 import 'package:dashboard/firebase/plist_parser.dart';
+import 'package:dashboard/team/selected_team_provider.dart';
 import 'package:dashboard/theme/app_colors.dart';
 import 'package:dashboard/utilities/function_error_message.dart';
 import 'package:dashboard/utilities/snack_bar_extension.dart';
@@ -363,13 +364,18 @@ class AuthPage extends HookConsumerWidget {
                                                             .user!
                                                             .email ??
                                                         emailController.text,
-                                                    'selectedTeamId': teamId,
                                                     'createdAt': timestamp,
                                                     'updatedAt': timestamp,
                                                   },
                                                   SetOptions(merge: true),
                                                 );
                                                 await batch.commit();
+                                                await ref
+                                                    .read(
+                                                      selectedTeamIdProvider
+                                                          .notifier,
+                                                    )
+                                                    .saveSelectedTeamId(teamId);
                                                 _processInvitations();
                                               } catch (e) {
                                                 if (!context.mounted) {

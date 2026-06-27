@@ -1,6 +1,7 @@
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:dashboard/app_strings.dart';
 import 'package:dashboard/firebase/functions.dart';
+import 'package:dashboard/team/selected_team_provider.dart';
 import 'package:dashboard/team/team_provider.dart';
 import 'package:dashboard/theme/app_colors.dart';
 import 'package:dashboard/utilities/function_error_message.dart';
@@ -21,7 +22,10 @@ class InviteTeamMemberBottomSheet extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final emailController = useTextEditingController();
     final teamListAsync = ref.watch(teamListProvider);
-    final selectedTeamId = useState<String?>(initialTeamId);
+    final currentSelectedTeamId = ref.watch(selectedTeamIdProvider).value;
+    final selectedTeamId = useState<String?>(
+      initialTeamId ?? currentSelectedTeamId,
+    );
     final formKey = useMemoized(() => GlobalKey<FormState>());
     final isLoading = useState(false);
     final teamT = t.team;

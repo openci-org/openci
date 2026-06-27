@@ -15,7 +15,6 @@ part 'user_provider.g.dart';
 abstract class OpenCIUser with _$OpenCIUser {
   const factory OpenCIUser({
     required String id,
-    required String selectedTeamId,
     String? selectedRepository,
     String? selectedBranch,
     @Default({}) Map<String, String> teamUdids,
@@ -25,10 +24,12 @@ abstract class OpenCIUser with _$OpenCIUser {
 
   const OpenCIUser._();
 
-  String? get currentTeamUdid => teamUdids[selectedTeamId];
-  String? get currentTeamDeviceProduct => teamDeviceProducts[selectedTeamId];
-  String? get currentTeamDeviceOsVersion =>
-      teamDeviceOsVersions[selectedTeamId];
+  String? currentTeamUdid(String? selectedTeamId) =>
+      selectedTeamId != null ? teamUdids[selectedTeamId] : null;
+  String? currentTeamDeviceProduct(String? selectedTeamId) =>
+      selectedTeamId != null ? teamDeviceProducts[selectedTeamId] : null;
+  String? currentTeamDeviceOsVersion(String? selectedTeamId) =>
+      selectedTeamId != null ? teamDeviceOsVersions[selectedTeamId] : null;
 
   factory OpenCIUser.fromJson(Map<String, Object?> json) =>
       _$OpenCIUserFromJson(json);
@@ -54,9 +55,7 @@ class User extends _$User {
         .collection(usersCollection)
         .doc(currentUserId)
         .get();
-    final data = snapshot.data();
-    final selectedTeamId = data?['selectedTeamId'] as String?;
-    if (!snapshot.exists || selectedTeamId == null || selectedTeamId.isEmpty) {
+    if (!snapshot.exists) {
       await _ensureDefaultUserProfile();
       snapshot = await firestore
           .collection(usersCollection)
@@ -74,17 +73,6 @@ class User extends _$User {
         .doc(currentUserId)
         .snapshots()
         .map(_openCIUserFromSnapshot);
-  }
-
-  Future<void> updateSelectedTeamId(String teamId) async {
-    final currentUserId = ref.watch(nonNullCurrentUserIdProvider);
-    await firestore.collection(usersCollection).doc(currentUserId).set({
-      'id': currentUserId,
-      'selectedTeamId': teamId,
-      'selectedRepository': null,
-      'selectedBranch': null,
-      'updatedAt': FieldValue.serverTimestamp(),
-    }, SetOptions(merge: true));
   }
 
   Future<void> updateSelectedRepository({
@@ -120,13 +108,8 @@ OpenCIUser _openCIUserFromSnapshot(
 ) {
   final data = snapshot.data();
   if (data == null) throw Exception('User profile not found');
-  final selectedTeamId = data['selectedTeamId'] as String?;
-  if (selectedTeamId == null || selectedTeamId.isEmpty) {
-    throw Exception('Selected team is not configured');
-  }
   return OpenCIUser(
     id: snapshot.id,
-    selectedTeamId: selectedTeamId,
 
     selectedRepository: switch (data['selectedRepository']) {
       final String repository => canonicalRepositoryFullName(repository),
