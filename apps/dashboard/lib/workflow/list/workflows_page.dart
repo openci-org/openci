@@ -10,6 +10,8 @@ import 'package:dashboard/utilities/breakpoint.dart';
 import 'package:dashboard/utilities/snack_bar_extension.dart';
 import 'package:dashboard/workflow/list/create_workflow_page.dart';
 import 'package:dashboard/workflow/list/github_repository_provider.dart';
+import 'package:dashboard/workflow/list/selected_branch_provider.dart';
+import 'package:dashboard/workflow/list/selected_repository_provider.dart';
 import 'package:dashboard/workflow/list/workflow_file_provider.dart';
 import 'package:dashboard/workflow/list/workflow_suggestions_provider.dart';
 import 'package:flutter/material.dart';
@@ -115,8 +117,11 @@ class WorkflowsBody extends ConsumerWidget {
           _workflowTargetsProvider(selectedTeamId),
         );
         final repositoriesAsync = ref.watch(gitHubRepositoriesProvider);
+        final selectedRepository = ref.watch(selectedRepositoryProvider);
+        final selectedBranch = ref.watch(selectedBranchProvider);
         final workflowTarget = _preferredWorkflowTarget(
-          user,
+          selectedRepository,
+          selectedBranch,
           workflowTargetsAsync.value,
           repositoriesAsync.value,
         );
@@ -350,16 +355,16 @@ class _WorkflowTarget {
 }
 
 _WorkflowTarget? _preferredWorkflowTarget(
-  OpenCIUser user,
+  String? selectedRepository,
+  String? selectedBranch,
   List<_WorkflowTarget>? targets,
   List<GitHubRepo>? repositories,
 ) {
-  final selectedRepository = user.selectedRepository;
   if (selectedRepository != null && selectedRepository.isNotEmpty) {
     final repository = _matchingRepository(repositories, selectedRepository);
     return _WorkflowTarget(
       repository: repository?.fullName ?? selectedRepository,
-      branch: _effectiveWorkflowBranch(user.selectedBranch, repository),
+      branch: _effectiveWorkflowBranch(selectedBranch, repository),
     );
   }
 
@@ -468,9 +473,12 @@ Future<void> _openWorkflowEditorWithTargetPicker(
     ref.read(_workflowTargetsProvider(selectedTeamId)).value,
     ref.read(gitHubRepositoriesProvider).value,
   );
+  final selectedRepository = ref.read(selectedRepositoryProvider);
+  final selectedBranch = ref.read(selectedBranchProvider);
   final preferredTarget =
       _preferredWorkflowTarget(
-        user,
+        selectedRepository,
+        selectedBranch,
         ref.read(_workflowTargetsProvider(selectedTeamId)).value,
         ref.read(gitHubRepositoriesProvider).value,
       ) ??
@@ -484,6 +492,13 @@ Future<void> _openWorkflowEditorWithTargetPicker(
         )
       : preferredTarget;
   if (!context.mounted || target == null) return;
+
+  unawaited(
+    ref.read(selectedRepositoryProvider.notifier).save(target.repository),
+  );
+  if (target.branch != null) {
+    unawaited(ref.read(selectedBranchProvider.notifier).save(target.branch!));
+  }
 
   _openWorkflowEditor(
     context,
@@ -504,17 +519,21 @@ void _openWorkflowEditor(
 }) {
   final user = ref.read(userProvider).value;
   final selectedTeamId = ref.read(selectedTeamIdProvider).value;
+  final selectedRepository = ref.read(selectedRepositoryProvider);
+  final selectedBranch = ref.read(selectedBranchProvider);
   final repository =
-      existingFile?.repository ??
-      repositoryOverride ??
-      user?.selectedRepository;
+      existingFile?.repository ?? repositoryOverride ?? selectedRepository;
   final branch =
-      existingFile?.branch ?? branchOverride ?? user?.selectedBranch ?? 'main';
+      existingFile?.branch ?? branchOverride ?? selectedBranch ?? 'main';
 
   if (user == null || repository == null || selectedTeamId == null) {
     context.showSnackBarMessage('Repository と branch を選択してください');
     return;
   }
+
+  // 開いたリポジトリとブランチをSharedPreferencesに保存
+  unawaited(ref.read(selectedRepositoryProvider.notifier).save(repository));
+  unawaited(ref.read(selectedBranchProvider.notifier).save(branch));
 
   Navigator.of(context).push(
     MaterialPageRoute(
