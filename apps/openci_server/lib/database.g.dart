@@ -5033,9 +5033,9 @@ class $UserDevicesTable extends UserDevices
   late final GeneratedColumn<String> deviceProduct = GeneratedColumn<String>(
     'device_product',
     aliasedName,
-    true,
+    false,
     type: DriftSqlType.string,
-    requiredDuringInsert: false,
+    requiredDuringInsert: true,
   );
   static const VerificationMeta _deviceOsVersionMeta = const VerificationMeta(
     'deviceOsVersion',
@@ -5044,9 +5044,9 @@ class $UserDevicesTable extends UserDevices
   late final GeneratedColumn<String> deviceOsVersion = GeneratedColumn<String>(
     'device_os_version',
     aliasedName,
-    true,
+    false,
     type: DriftSqlType.string,
-    requiredDuringInsert: false,
+    requiredDuringInsert: true,
   );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
@@ -5130,6 +5130,8 @@ class $UserDevicesTable extends UserDevices
           _deviceProductMeta,
         ),
       );
+    } else if (isInserting) {
+      context.missing(_deviceProductMeta);
     }
     if (data.containsKey('device_os_version')) {
       context.handle(
@@ -5139,6 +5141,8 @@ class $UserDevicesTable extends UserDevices
           _deviceOsVersionMeta,
         ),
       );
+    } else if (isInserting) {
+      context.missing(_deviceOsVersionMeta);
     }
     if (data.containsKey('created_at')) {
       context.handle(
@@ -5184,11 +5188,11 @@ class $UserDevicesTable extends UserDevices
       deviceProduct: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}device_product'],
-      ),
+      )!,
       deviceOsVersion: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}device_os_version'],
-      ),
+      )!,
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
@@ -5211,8 +5215,8 @@ class UserDevicesCompanion extends UpdateCompanion<DriftUserDevice> {
   final Value<String> userId;
   final Value<String> teamId;
   final Value<String> udid;
-  final Value<String?> deviceProduct;
-  final Value<String?> deviceOsVersion;
+  final Value<String> deviceProduct;
+  final Value<String> deviceOsVersion;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
   final Value<int> rowid;
@@ -5232,8 +5236,8 @@ class UserDevicesCompanion extends UpdateCompanion<DriftUserDevice> {
     required String userId,
     required String teamId,
     required String udid,
-    this.deviceProduct = const Value.absent(),
-    this.deviceOsVersion = const Value.absent(),
+    required String deviceProduct,
+    required String deviceOsVersion,
     required DateTime createdAt,
     required DateTime updatedAt,
     this.rowid = const Value.absent(),
@@ -5241,6 +5245,8 @@ class UserDevicesCompanion extends UpdateCompanion<DriftUserDevice> {
        userId = Value(userId),
        teamId = Value(teamId),
        udid = Value(udid),
+       deviceProduct = Value(deviceProduct),
+       deviceOsVersion = Value(deviceOsVersion),
        createdAt = Value(createdAt),
        updatedAt = Value(updatedAt);
   static Insertable<DriftUserDevice> custom({
@@ -5272,8 +5278,8 @@ class UserDevicesCompanion extends UpdateCompanion<DriftUserDevice> {
     Value<String>? userId,
     Value<String>? teamId,
     Value<String>? udid,
-    Value<String?>? deviceProduct,
-    Value<String?>? deviceOsVersion,
+    Value<String>? deviceProduct,
+    Value<String>? deviceOsVersion,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
     Value<int>? rowid,
@@ -8693,8 +8699,8 @@ typedef $$UserDevicesTableCreateCompanionBuilder =
       required String userId,
       required String teamId,
       required String udid,
-      Value<String?> deviceProduct,
-      Value<String?> deviceOsVersion,
+      required String deviceProduct,
+      required String deviceOsVersion,
       required DateTime createdAt,
       required DateTime updatedAt,
       Value<int> rowid,
@@ -8705,8 +8711,8 @@ typedef $$UserDevicesTableUpdateCompanionBuilder =
       Value<String> userId,
       Value<String> teamId,
       Value<String> udid,
-      Value<String?> deviceProduct,
-      Value<String?> deviceOsVersion,
+      Value<String> deviceProduct,
+      Value<String> deviceOsVersion,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
       Value<int> rowid,
@@ -8961,8 +8967,8 @@ class $$UserDevicesTableTableManager
                 Value<String> userId = const Value.absent(),
                 Value<String> teamId = const Value.absent(),
                 Value<String> udid = const Value.absent(),
-                Value<String?> deviceProduct = const Value.absent(),
-                Value<String?> deviceOsVersion = const Value.absent(),
+                Value<String> deviceProduct = const Value.absent(),
+                Value<String> deviceOsVersion = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
@@ -8983,8 +8989,8 @@ class $$UserDevicesTableTableManager
                 required String userId,
                 required String teamId,
                 required String udid,
-                Value<String?> deviceProduct = const Value.absent(),
-                Value<String?> deviceOsVersion = const Value.absent(),
+                required String deviceProduct,
+                required String deviceOsVersion,
                 required DateTime createdAt,
                 required DateTime updatedAt,
                 Value<int> rowid = const Value.absent(),
