@@ -333,6 +333,32 @@ void main() {
         expect(found!.deviceProduct, equals('iPhone 15 Pro'));
         expect(found.deviceOsVersion, equals('17.4'));
       });
+
+      test(
+        'throws StateError when trying to update a non-existent device',
+        () async {
+          final now = DateTime.now().toUtc();
+          final nonExistent = DriftUserDevice(
+            id: 'non-existent-id',
+            userId: 'user-123',
+            teamId: 'team-123',
+            udid: '00008101-000A12345678901E',
+            deviceProduct: 'iPhone 14',
+            deviceOsVersion: '16.5',
+            createdAt: now,
+            updatedAt: now,
+          );
+
+          expect(
+            () => db.deviceDao.updateDevice(
+              existing: nonExistent,
+              deviceProduct: 'iPhone 15 Pro',
+              deviceOsVersion: '17.4',
+            ),
+            throwsA(isA<StateError>()),
+          );
+        },
+      );
     });
   });
 }

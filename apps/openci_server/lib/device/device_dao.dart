@@ -82,7 +82,12 @@ class DeviceDao extends DatabaseAccessor<AppDatabase> with _$DeviceDaoMixin {
       createdAt: existing.createdAt,
       updatedAt: now,
     );
-    await update(userDevices).replace(updated);
+    final success = await update(userDevices).replace(updated);
+    if (!success) {
+      throw StateError(
+        'Failed to update device: device with id ${existing.id} not found.',
+      );
+    }
     return updated;
   }
 }
