@@ -117,8 +117,8 @@ class WorkflowsBody extends ConsumerWidget {
           _workflowTargetsProvider(selectedTeamId),
         );
         final repositoriesAsync = ref.watch(gitHubRepositoriesProvider);
-        final selectedRepository = ref.watch(selectedRepositoryProvider);
-        final selectedBranch = ref.watch(selectedBranchProvider);
+        final selectedRepository = ref.watch(selectedRepositoryProvider).value;
+        final selectedBranch = ref.watch(selectedBranchProvider).value;
         final workflowTarget = _preferredWorkflowTarget(
           selectedRepository,
           selectedBranch,
@@ -473,8 +473,8 @@ Future<void> _openWorkflowEditorWithTargetPicker(
     ref.read(_workflowTargetsProvider(selectedTeamId)).value,
     ref.read(gitHubRepositoriesProvider).value,
   );
-  final selectedRepository = ref.read(selectedRepositoryProvider);
-  final selectedBranch = ref.read(selectedBranchProvider);
+  final selectedRepository = ref.read(selectedRepositoryProvider).value;
+  final selectedBranch = ref.read(selectedBranchProvider).value;
   final preferredTarget =
       _preferredWorkflowTarget(
         selectedRepository,
@@ -519,8 +519,8 @@ void _openWorkflowEditor(
 }) {
   final user = ref.read(userProvider).value;
   final selectedTeamId = ref.read(selectedTeamIdProvider).value;
-  final selectedRepository = ref.read(selectedRepositoryProvider);
-  final selectedBranch = ref.read(selectedBranchProvider);
+  final selectedRepository = ref.read(selectedRepositoryProvider).value;
+  final selectedBranch = ref.read(selectedBranchProvider).value;
   final repository =
       existingFile?.repository ?? repositoryOverride ?? selectedRepository;
   final branch =

@@ -13,7 +13,7 @@ part of 'selected_branch_provider.dart';
 final selectedBranchProvider = SelectedBranchProvider._();
 
 final class SelectedBranchProvider
-    extends $NotifierProvider<SelectedBranch, String?> {
+    extends $AsyncNotifierProvider<SelectedBranch, String?> {
   SelectedBranchProvider._()
     : super(
         from: null,
@@ -31,29 +31,21 @@ final class SelectedBranchProvider
   @$internal
   @override
   SelectedBranch create() => SelectedBranch();
-
-  /// {@macro riverpod.override_with_value}
-  Override overrideWithValue(String? value) {
-    return $ProviderOverride(
-      origin: this,
-      providerOverride: $SyncValueProvider<String?>(value),
-    );
-  }
 }
 
-String _$selectedBranchHash() => r'd9b23dfd8252de0b5e38e9f5dd311e78c7596d7b';
+String _$selectedBranchHash() => r'7cd970fbb2ab80425bdbc65f0960dcd05c755797';
 
-abstract class _$SelectedBranch extends $Notifier<String?> {
-  String? build();
+abstract class _$SelectedBranch extends $AsyncNotifier<String?> {
+  FutureOr<String?> build();
   @$mustCallSuper
   @override
   void runBuild() {
-    final ref = this.ref as $Ref<String?, String?>;
+    final ref = this.ref as $Ref<AsyncValue<String?>, String?>;
     final element =
         ref.element
             as $ClassProviderElement<
-              AnyNotifier<String?, String?>,
-              String?,
+              AnyNotifier<AsyncValue<String?>, String?>,
+              AsyncValue<String?>,
               Object?,
               Object?
             >;

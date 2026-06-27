@@ -13,7 +13,7 @@ part of 'selected_repository_provider.dart';
 final selectedRepositoryProvider = SelectedRepositoryProvider._();
 
 final class SelectedRepositoryProvider
-    extends $NotifierProvider<SelectedRepository, String?> {
+    extends $AsyncNotifierProvider<SelectedRepository, String?> {
   SelectedRepositoryProvider._()
     : super(
         from: null,
@@ -31,30 +31,22 @@ final class SelectedRepositoryProvider
   @$internal
   @override
   SelectedRepository create() => SelectedRepository();
-
-  /// {@macro riverpod.override_with_value}
-  Override overrideWithValue(String? value) {
-    return $ProviderOverride(
-      origin: this,
-      providerOverride: $SyncValueProvider<String?>(value),
-    );
-  }
 }
 
 String _$selectedRepositoryHash() =>
-    r'cac373aef72a6aaad56e841a664306de4300bd9e';
+    r'c87535c025638ddd956692b5541d41172d799c70';
 
-abstract class _$SelectedRepository extends $Notifier<String?> {
-  String? build();
+abstract class _$SelectedRepository extends $AsyncNotifier<String?> {
+  FutureOr<String?> build();
   @$mustCallSuper
   @override
   void runBuild() {
-    final ref = this.ref as $Ref<String?, String?>;
+    final ref = this.ref as $Ref<AsyncValue<String?>, String?>;
     final element =
         ref.element
             as $ClassProviderElement<
-              AnyNotifier<String?, String?>,
-              String?,
+              AnyNotifier<AsyncValue<String?>, String?>,
+              AsyncValue<String?>,
               Object?,
               Object?
             >;

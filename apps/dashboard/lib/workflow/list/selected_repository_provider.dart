@@ -7,20 +7,16 @@ part 'selected_repository_provider.g.dart';
 @riverpod
 class SelectedRepository extends _$SelectedRepository {
   @override
-  String? build() {
-    final teamId = ref.watch(selectedTeamIdProvider).value;
-    if (teamId == null) return null;
-
+  Future<String?> build() async {
+    final teamId = await ref.watch(selectedTeamIdProvider.future);
     final prefs = ref.watch(sharedPreferencesProvider);
     return prefs.getString('selected_repository_$teamId');
   }
 
   Future<void> save(String repository) async {
-    final teamId = ref.read(selectedTeamIdProvider).value;
-    if (teamId == null) return;
-
+    final teamId = await ref.read(selectedTeamIdProvider.future);
     final prefs = ref.read(sharedPreferencesProvider);
     await prefs.setString('selected_repository_$teamId', repository);
-    state = repository;
+    state = AsyncData(repository);
   }
 }
