@@ -15,6 +15,11 @@ class UserDevices extends Table {
 
   @override
   Set<Column> get primaryKey => {id};
+
+  @override
+  List<Set<Column>> get uniqueKeys => [
+    {userId, teamId, udid},
+  ];
 }
 
 class DriftUserDevice implements Insertable<DriftUserDevice> {

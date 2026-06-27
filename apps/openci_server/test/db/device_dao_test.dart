@@ -1,5 +1,6 @@
 import 'package:drift/native.dart';
 import 'package:openci_server/database.dart';
+import 'package:openci_server/device/device_dao.dart';
 import 'package:openci_server/device/device_table.dart';
 import 'package:test/test.dart';
 
@@ -248,6 +249,54 @@ void main() {
         expect(found, isNotNull);
         expect(found!.id, equals(device.id));
       });
+
+      test(
+        'throws DeviceAlreadyExistsException when registering a device with same userId, teamId, and udid',
+        () async {
+          await db.deviceDao.createDevice(
+            userId: 'user-123',
+            teamId: 'team-123',
+            udid: '00008101-000A12345678901E',
+            deviceProduct: 'iPhone 15 Pro',
+            deviceOsVersion: '17.4',
+          );
+
+          expect(
+            () => db.deviceDao.createDevice(
+              userId: 'user-123',
+              teamId: 'team-123',
+              udid: '00008101-000A12345678901E',
+              deviceProduct: 'iPhone 15 Pro',
+              deviceOsVersion: '17.4',
+            ),
+            throwsA(isA<DeviceAlreadyExistsException>()),
+          );
+        },
+      );
+
+      test(
+        'throws DeviceAlreadyExistsException when registering a device with same userId, teamId, and udid but different OS version',
+        () async {
+          await db.deviceDao.createDevice(
+            userId: 'user-123',
+            teamId: 'team-123',
+            udid: '00008101-000A12345678901E',
+            deviceProduct: 'iPhone 15 Pro',
+            deviceOsVersion: '17.4',
+          );
+
+          expect(
+            () => db.deviceDao.createDevice(
+              userId: 'user-123',
+              teamId: 'team-123',
+              udid: '00008101-000A12345678901E',
+              deviceProduct: 'iPhone 15 Pro',
+              deviceOsVersion: '18.0',
+            ),
+            throwsA(isA<DeviceAlreadyExistsException>()),
+          );
+        },
+      );
     });
 
     group('updateDevice', () {

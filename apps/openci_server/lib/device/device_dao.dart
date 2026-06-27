@@ -40,6 +40,17 @@ class DeviceDao extends DatabaseAccessor<AppDatabase> with _$DeviceDaoMixin {
     required String deviceProduct,
     required String deviceOsVersion,
   }) async {
+    final existing = await findDevice(
+      userId: userId,
+      teamId: teamId,
+      udid: udid,
+    );
+    if (existing != null) {
+      throw DeviceAlreadyExistsException(
+        'Device with UDID $udid is already registered for this user and team.',
+      );
+    }
+
     final now = DateTime.now().toUtc();
     final newDevice = DriftUserDevice(
       id: const Uuid().v4(),
@@ -74,4 +85,12 @@ class DeviceDao extends DatabaseAccessor<AppDatabase> with _$DeviceDaoMixin {
     await update(userDevices).replace(updated);
     return updated;
   }
+}
+
+class DeviceAlreadyExistsException implements Exception {
+  final String message;
+  DeviceAlreadyExistsException(this.message);
+
+  @override
+  String toString() => 'DeviceAlreadyExistsException: $message';
 }
