@@ -84,6 +84,8 @@ void main() {
           userId: 'user-other',
           teamId: 'team-123',
           udid: '00008101-000A12345678901E',
+          deviceProduct: 'iPhone 15 Pro',
+          deviceOsVersion: '17.4',
           createdAt: now,
           updatedAt: now,
         );
@@ -128,6 +130,8 @@ void main() {
           userId: 'user-123',
           teamId: 'team-123',
           udid: '00008101-000A12345678901E',
+          deviceProduct: 'iPhone 15 Pro',
+          deviceOsVersion: '17.4',
           createdAt: now,
           updatedAt: now,
         );
