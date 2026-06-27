@@ -211,8 +211,8 @@ String _$nonNullCurrentUserIdHash() =>
 final firebaseIdTokenProvider = FirebaseIdTokenProvider._();
 
 final class FirebaseIdTokenProvider
-    extends $FunctionalProvider<AsyncValue<String?>, String?, FutureOr<String?>>
-    with $FutureModifier<String?>, $FutureProvider<String?> {
+    extends $FunctionalProvider<AsyncValue<String?>, String?, Stream<String?>>
+    with $FutureModifier<String?>, $StreamProvider<String?> {
   FirebaseIdTokenProvider._()
     : super(
         from: null,
@@ -229,13 +229,13 @@ final class FirebaseIdTokenProvider
 
   @$internal
   @override
-  $FutureProviderElement<String?> $createElement($ProviderPointer pointer) =>
-      $FutureProviderElement(pointer);
+  $StreamProviderElement<String?> $createElement($ProviderPointer pointer) =>
+      $StreamProviderElement(pointer);
 
   @override
-  FutureOr<String?> create(Ref ref) {
+  Stream<String?> create(Ref ref) {
     return firebaseIdToken(ref);
   }
 }
 
-String _$firebaseIdTokenHash() => r'80c18000e6e73fbeff832f7328305b6596b3940a';
+String _$firebaseIdTokenHash() => r'adf9d88aa85b3601536e72cb21bb9b42315237dd';
