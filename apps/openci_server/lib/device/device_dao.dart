@@ -11,4 +11,10 @@ class DeviceDao extends DatabaseAccessor<AppDatabase> with _$DeviceDaoMixin {
   Future<List<DriftUserDevice>> getDevicesByUserId(String uid) {
     return (select(userDevices)..where((d) => d.userId.equals(uid))).get();
   }
+
+  Future<int> deleteDevice(String id, String userId) {
+    return (delete(
+      userDevices,
+    )..where((d) => d.id.equals(id) & d.userId.equals(userId))).go();
+  }
 }
