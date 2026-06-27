@@ -6,6 +6,7 @@ import 'package:openci_server/build_job/build_job.dart';
 import 'package:openci_server/build_job/build_job_dao.dart';
 import 'package:openci_server/build_run/build_run.dart';
 import 'package:openci_server/build_run/build_run_dao.dart';
+import 'package:openci_server/device/device_table.dart';
 import 'package:openci_server/processed_webhook/processed_webhook_table.dart';
 import 'package:openci_server/secret/secret_dao.dart';
 import 'package:openci_server/secret/secret_table.dart';
@@ -31,6 +32,7 @@ part 'database.g.dart';
     ProcessedWebhooks,
     WebhookTasks,
     WorkerHeartbeats,
+    UserDevices,
   ],
   daos: [
     BuildJobDao,
@@ -45,7 +47,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 12;
+  int get schemaVersion => 13;
 
   @override
   MigrationStrategy get migration {
@@ -62,6 +64,9 @@ class AppDatabase extends _$AppDatabase {
         }
         if (from < 12) {
           await m.createTable(workerHeartbeats);
+        }
+        if (from < 13) {
+          await m.createTable(userDevices);
         }
       },
     );
