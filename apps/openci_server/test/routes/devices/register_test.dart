@@ -82,6 +82,50 @@ void main() {
     );
 
     test(
+      'responds with 400 Bad Request when JSON is malformed',
+      () async {
+        final context = TestRequestContext(
+          path: '/devices/register',
+          method: HttpMethod.post,
+          body: '{"teamId": "team-123", ',
+        );
+
+        context.provide<AppDatabase>(db);
+        context.provide<String?>('user-123');
+
+        final response = await route.onRequest(context.context);
+
+        expect(response.statusCode, equals(HttpStatus.badRequest));
+
+        final body = await response.json() as Map<String, dynamic>;
+        expect(body['success'], isFalse);
+        expect(body['error'], equals('Malformed JSON body'));
+      },
+    );
+
+    test(
+      'responds with 400 Bad Request when request body is not a JSON object',
+      () async {
+        final context = TestRequestContext(
+          path: '/devices/register',
+          method: HttpMethod.post,
+          body: '["not", "an", "object"]',
+        );
+
+        context.provide<AppDatabase>(db);
+        context.provide<String?>('user-123');
+
+        final response = await route.onRequest(context.context);
+
+        expect(response.statusCode, equals(HttpStatus.badRequest));
+
+        final body = await response.json() as Map<String, dynamic>;
+        expect(body['success'], isFalse);
+        expect(body['error'], equals('Request body must be a JSON object'));
+      },
+    );
+
+    test(
       'responds with 200 and registers a new device successfully',
       () async {
         final context = TestRequestContext(

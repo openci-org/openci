@@ -24,20 +24,42 @@ Future<Response> _post(RequestContext context) async {
       );
     }
 
-    final body = await context.request.json() as Map<String, dynamic>;
-    final teamId = body['teamId'] as String?;
-    final udid = body['udid'] as String?;
-    final deviceProduct = body['deviceProduct'] as String?;
-    final deviceOsVersion = body['deviceOsVersion'] as String?;
+    late final Map<String, dynamic> body;
+    try {
+      final raw = await context.request.json();
+      if (raw is! Map<String, dynamic>) {
+        return Response.json(
+          statusCode: HttpStatus.badRequest,
+          body: {
+            'success': false,
+            'error': 'Request body must be a JSON object',
+          },
+        );
+      }
+      body = raw;
+    } on FormatException {
+      return Response.json(
+        statusCode: HttpStatus.badRequest,
+        body: {
+          'success': false,
+          'error': 'Malformed JSON body',
+        },
+      );
+    }
 
-    if (teamId == null ||
-        teamId.isEmpty ||
-        udid == null ||
-        udid.isEmpty ||
-        deviceProduct == null ||
-        deviceProduct.isEmpty ||
-        deviceOsVersion == null ||
-        deviceOsVersion.isEmpty) {
+    final teamId = body['teamId'];
+    final udid = body['udid'];
+    final deviceProduct = body['deviceProduct'];
+    final deviceOsVersion = body['deviceOsVersion'];
+
+    if (teamId is! String ||
+        udid is! String ||
+        deviceProduct is! String ||
+        deviceOsVersion is! String ||
+        teamId.trim().isEmpty ||
+        udid.trim().isEmpty ||
+        deviceProduct.trim().isEmpty ||
+        deviceOsVersion.trim().isEmpty) {
       return Response.json(
         statusCode: HttpStatus.badRequest,
         body: {
