@@ -1,9 +1,13 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dashboard/auth/auth_provider.dart';
 import 'package:dashboard/firebase/firestore.dart';
-import 'package:dashboard/users/user_provider.dart';
+import 'package:dashboard/openci_server_url_provider.dart';
+import 'package:dashboard/team/selected_team_provider.dart';
+import 'package:flutter/foundation.dart';
+import 'package:http/http.dart' as http;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:uuid/uuid.dart';
 
@@ -32,17 +36,15 @@ final teamList = [
 class TeamState extends _$TeamState {
   @override
   Stream<Team> build() {
-    final user = ref.watch(userProvider).value;
-    final teamList = ref.watch(teamListProvider).value;
-    if (user == null || teamList == null) {
-      return const Stream.empty();
-    }
+    final selectedTeamId = ref.watch(selectedTeamIdProvider);
+    final teamList = ref.watch(teamListProvider).value ?? [];
     if (teamList.isEmpty) {
       return const Stream.empty();
     }
+    final targetId = selectedTeamId.value;
     return Stream.value(
       teamList.firstWhere(
-        (team) => team.id == user.selectedTeamId,
+        (team) => team.id == targetId,
         orElse: () => teamList.first,
       ),
     );
@@ -56,30 +58,47 @@ class TeamList extends _$TeamList {
     yield await fetchTeamList().timeout(
       const Duration(seconds: 8),
       onTimeout: () => throw TimeoutException(
-        'Timed out while loading teams from Firestore',
+        'Timed out while loading teams from openci_server',
       ),
     );
 
-    yield* watchTeamList();
+    yield* Stream.periodic(const Duration(seconds: 15)).asyncMap((_) async {
+      try {
+        return await fetchTeamList();
+      } catch (e) {
+        debugPrint('Failed to poll teams: $e');
+        return state.value ?? const [];
+      }
+    });
   }
 
   Future<List<Team>> fetchTeamList() async {
-    final currentUserId = ref.watch(nonNullCurrentUserIdProvider);
-    final snapshot = await firestore
-        .collection(teamsCollection)
-        .where('members', arrayContains: currentUserId)
-        .get();
-    return _teamsFromDocs(snapshot.docs);
-  }
+    final serverUrl = ref.watch(openciServerUrlProvider);
+    final token = await ref.watch(firebaseIdTokenProvider.future);
+    if (token == null) {
+      return const [];
+    }
 
-  Stream<List<Team>> watchTeamList() {
-    final currentUserId = ref.watch(currentUserIdProvider);
-    if (currentUserId == null) return Stream.value([]);
-    return firestore
-        .collection(teamsCollection)
-        .where('members', arrayContains: currentUserId)
-        .snapshots()
-        .map((snapshot) => _teamsFromDocs(snapshot.docs));
+    final url = Uri.parse('$serverUrl/teams');
+    final response = await http
+        .get(
+          url,
+          headers: {
+            'Authorization': 'Bearer $token',
+          },
+        )
+        .timeout(const Duration(seconds: 8));
+
+    if (response.statusCode != 200) {
+      throw StateError(
+        'Failed to fetch teams: ${response.statusCode} ${response.body}',
+      );
+    }
+
+    final List<dynamic> data = jsonDecode(response.body);
+    return data
+        .map((json) => Team.fromJson(Map<String, dynamic>.from(json as Map)))
+        .toList();
   }
 
   Future<void> createTeam(String teamName) async {
@@ -104,12 +123,12 @@ class TeamList extends _$TeamList {
       {
         'id': currentUserId,
         'email': ref.watch(currentUserEmailProvider),
-        'selectedTeamId': teamId,
         'updatedAt': timestamp,
       },
       SetOptions(merge: true),
     );
     await batch.commit();
+    await ref.read(selectedTeamIdProvider.notifier).saveSelectedTeamId(teamId);
   }
 
   Future<void> updateTeamName(String teamId, String newName) async {
@@ -146,25 +165,4 @@ class TeamList extends _$TeamList {
 String? _emptyToNull(String? value) {
   final trimmed = value?.trim();
   return trimmed == null || trimmed.isEmpty ? null : trimmed;
-}
-
-List<Team> _teamsFromDocs(
-  List<QueryDocumentSnapshot<Map<String, dynamic>>> docs,
-) {
-  return docs.map((doc) {
-    final data = doc.data();
-    return Team(
-      id: doc.id,
-      name: data['name'] as String? ?? 'Untitled Team',
-      members:
-          (data['members'] as List?)?.whereType<String>().toList() ?? const [],
-      installationIds:
-          (data['installationIds'] as List?)?.whereType<int>().toList() ??
-          const [],
-      aiEnabled: data['aiEnabled'] as bool? ?? true,
-      githubBaseUrl: data['githubBaseUrl'] as String?,
-      createdAt: dateTimeFromFirestore(data['createdAt']),
-      updatedAt: dateTimeFromFirestore(data['updatedAt']),
-    );
-  }).toList();
 }

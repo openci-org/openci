@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:dashboard/firebase/firestore.dart';
 import 'package:dashboard/github/repository_aliases.dart';
+import 'package:dashboard/team/selected_team_provider.dart';
 import 'package:dashboard/theme/app_colors.dart';
 import 'package:dashboard/users/user_provider.dart';
 import 'package:dashboard/utilities/async_error_widget.dart';
@@ -101,13 +102,17 @@ class WorkflowsBody extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final userAsync = ref.watch(userProvider);
     final workflowFilesAsync = ref.watch(workflowFilesProvider);
+    final selectedTeamId = ref.watch(selectedTeamIdProvider).value;
 
     return userAsync.when(
       loading: () => const _WorkflowPageLoadingView(),
       error: asyncErrorWidget,
       data: (user) {
+        if (selectedTeamId == null) {
+          return const _WorkflowPageLoadingView();
+        }
         final workflowTargetsAsync = ref.watch(
-          _workflowTargetsProvider(user.selectedTeamId),
+          _workflowTargetsProvider(selectedTeamId),
         );
         final repositoriesAsync = ref.watch(gitHubRepositoriesProvider);
         final workflowTarget = _preferredWorkflowTarget(
@@ -125,7 +130,7 @@ class WorkflowsBody extends ConsumerWidget {
           data: (files) {
             if (files.isEmpty) {
               return _EmptyWorkflowsView(
-                teamId: user.selectedTeamId,
+                teamId: selectedTeamId,
                 initialTarget: workflowTarget,
                 targets: workflowTargets,
                 onCreateTemplate: (template, target) => _openWorkflowEditor(
@@ -453,19 +458,20 @@ Future<void> _openWorkflowEditorWithTargetPicker(
   WidgetRef ref,
 ) async {
   final user = ref.read(userProvider).value;
-  if (user == null) {
+  final selectedTeamId = ref.read(selectedTeamIdProvider).value;
+  if (user == null || selectedTeamId == null) {
     context.showSnackBarMessage('Repository と branch を選択してください');
     return;
   }
 
   final targets = _workflowTargetOptions(
-    ref.read(_workflowTargetsProvider(user.selectedTeamId)).value,
+    ref.read(_workflowTargetsProvider(selectedTeamId)).value,
     ref.read(gitHubRepositoriesProvider).value,
   );
   final preferredTarget =
       _preferredWorkflowTarget(
         user,
-        ref.read(_workflowTargetsProvider(user.selectedTeamId)).value,
+        ref.read(_workflowTargetsProvider(selectedTeamId)).value,
         ref.read(gitHubRepositoriesProvider).value,
       ) ??
       targets.firstOrNull;
@@ -497,6 +503,7 @@ void _openWorkflowEditor(
   String? initialFileName,
 }) {
   final user = ref.read(userProvider).value;
+  final selectedTeamId = ref.read(selectedTeamIdProvider).value;
   final repository =
       existingFile?.repository ??
       repositoryOverride ??
@@ -504,7 +511,7 @@ void _openWorkflowEditor(
   final branch =
       existingFile?.branch ?? branchOverride ?? user?.selectedBranch ?? 'main';
 
-  if (user == null || repository == null) {
+  if (user == null || repository == null || selectedTeamId == null) {
     context.showSnackBarMessage('Repository と branch を選択してください');
     return;
   }
@@ -514,7 +521,7 @@ void _openWorkflowEditor(
       builder: (_) => CreateWorkflowPage(
         repository: repository,
         branch: branch,
-        teamId: user.selectedTeamId,
+        teamId: selectedTeamId,
         existingFile: existingFile,
         initialYaml: initialYaml,
         initialFileName: initialFileName,

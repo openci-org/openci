@@ -2,6 +2,7 @@ import 'package:app_minimizer_plus/app_minimizer_plus.dart';
 import 'package:dashboard/app_strings.dart';
 import 'package:dashboard/build_logs/build_jobs_provider.dart';
 import 'package:dashboard/firebase/firestore.dart';
+import 'package:dashboard/team/selected_team_provider.dart';
 import 'package:dashboard/theme/app_colors.dart';
 import 'package:dashboard/users/user_provider.dart';
 import 'package:flutter/foundation.dart';
@@ -203,7 +204,7 @@ String _maskUdid(String udid) {
   return '${udid.substring(0, 4)}••••${udid.substring(udid.length - 4)}';
 }
 
-class _DeviceEnrollmentHeader extends HookWidget {
+class _DeviceEnrollmentHeader extends HookConsumerWidget {
   const _DeviceEnrollmentHeader({
     required this.user,
     required this.colors,
@@ -213,9 +214,10 @@ class _DeviceEnrollmentHeader extends HookWidget {
   final AppColors colors;
 
   @override
-  Widget build(BuildContext context) {
-    final hasUdid =
-        user.currentTeamUdid != null && user.currentTeamUdid!.isNotEmpty;
+  Widget build(BuildContext context, WidgetRef ref) {
+    final selectedTeamId = ref.watch(selectedTeamIdProvider).value;
+    final userUdid = user.currentTeamUdid(selectedTeamId);
+    final hasUdid = userUdid != null && userUdid.isNotEmpty;
     final isUdidVisible = useState(false);
 
     return Card(
@@ -252,8 +254,8 @@ class _DeviceEnrollmentHeader extends HookWidget {
                         child: Text(
                           hasUdid
                               ? (isUdidVisible.value
-                                    ? 'UDID: ${user.currentTeamUdid}'
-                                    : 'UDID: ${_maskUdid(user.currentTeamUdid!)}')
+                                    ? 'UDID: $userUdid'
+                                    : 'UDID: ${_maskUdid(userUdid)}')
                               : 'iOSアプリをインストールするには、この端末のUDID登録が必要です。',
                           style: TextStyle(
                             fontSize: 12,
@@ -298,7 +300,7 @@ class _DeviceEnrollmentHeader extends HookWidget {
                     ? Uri.base.origin
                     : 'https://dashboard.openci.org';
                 final enrollUrl =
-                    '$origin/enroll-udid?userId=${user.id}&teamId=${user.selectedTeamId}';
+                    '$origin/enroll-udid?userId=${user.id}&teamId=${selectedTeamId ?? ''}';
                 final uri = Uri.parse(enrollUrl);
                 try {
                   await launchUrl(uri, mode: LaunchMode.externalApplication);
@@ -394,7 +396,7 @@ class _UdidBadge extends StatelessWidget {
   }
 }
 
-class _BuildListItem extends HookWidget {
+class _BuildListItem extends HookConsumerWidget {
   const _BuildListItem({
     required this.buildJob,
     required this.user,
@@ -404,7 +406,7 @@ class _BuildListItem extends HookWidget {
   final OpenCIUser user;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final colors = AppColors.of(context);
     final isRequested = useState(false);
     final isUdidVisible = useState(false);
@@ -420,7 +422,8 @@ class _BuildListItem extends HookWidget {
     final dateText =
         '${buildJob.createdAt.toLocal().year}/${buildJob.createdAt.toLocal().month.toString().padLeft(2, '0')}/${buildJob.createdAt.toLocal().day.toString().padLeft(2, '0')} ${buildJob.createdAt.toLocal().hour.toString().padLeft(2, '0')}:${buildJob.createdAt.toLocal().minute.toString().padLeft(2, '0')}';
 
-    final userUdid = user.currentTeamUdid;
+    final selectedTeamId = ref.watch(selectedTeamIdProvider).value;
+    final userUdid = user.currentTeamUdid(selectedTeamId);
     final isUdidProvisioned =
         userUdid != null &&
         buildJob.provisionedUdids != null &&
@@ -691,10 +694,10 @@ class _BuildListItem extends HookWidget {
                                   .set({
                                     'id': requestId,
                                     'userId': user.id,
-                                    'udid': user.currentTeamUdid,
+                                    'udid': userUdid,
                                     'deviceProduct': 'Unknown',
                                     'deviceOsVersion': 'Unknown',
-                                    'teamId': user.selectedTeamId,
+                                    'teamId': selectedTeamId,
                                     'buildJobId': buildJob.id,
                                     'createdAt': nowStr,
                                     'status': 'pending',

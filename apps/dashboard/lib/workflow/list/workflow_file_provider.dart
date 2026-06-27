@@ -4,7 +4,7 @@ import 'package:dashboard/auth/auth_provider.dart';
 import 'package:dashboard/firebase/firestore.dart';
 import 'package:dashboard/github/repository_aliases.dart';
 import 'package:dashboard/openci_server_url_provider.dart';
-import 'package:dashboard/users/user_provider.dart';
+import 'package:dashboard/team/selected_team_provider.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:http/http.dart' as http;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -29,12 +29,11 @@ abstract class WorkflowFile with _$WorkflowFile {
 @riverpod
 Stream<List<WorkflowFile>> workflowFiles(Ref ref) async* {
   final serverUrl = ref.watch(openciServerUrlProvider);
-  final user = ref.watch(userProvider).value;
-  if (user == null) {
+  final teamId = ref.watch(selectedTeamIdProvider).value;
+  if (teamId == null) {
     yield const [];
     return;
   }
-  final teamId = user.selectedTeamId;
 
   final token = await ref.watch(firebaseIdTokenProvider.future);
   if (token == null) {
