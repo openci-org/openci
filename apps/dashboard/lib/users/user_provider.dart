@@ -4,7 +4,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dashboard/auth/auth_provider.dart';
 import 'package:dashboard/firebase/firestore.dart';
 import 'package:dashboard/firebase/functions.dart';
-import 'package:dashboard/github/repository_aliases.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -15,8 +14,6 @@ part 'user_provider.g.dart';
 abstract class OpenCIUser with _$OpenCIUser {
   const factory OpenCIUser({
     required String id,
-    String? selectedRepository,
-    String? selectedBranch,
     @Default({}) Map<String, String> teamUdids,
     @Default({}) Map<String, String> teamDeviceProducts,
     @Default({}) Map<String, String> teamDeviceOsVersions,
@@ -75,29 +72,6 @@ class User extends _$User {
         .map(_openCIUserFromSnapshot);
   }
 
-  Future<void> updateSelectedRepository({
-    required String repository,
-    required String defaultBranch,
-  }) async {
-    final currentUserId = ref.watch(nonNullCurrentUserIdProvider);
-    final canonicalRepository = canonicalRepositoryFullName(repository);
-    await firestore.collection(usersCollection).doc(currentUserId).set({
-      'id': currentUserId,
-      'selectedRepository': canonicalRepository,
-      'selectedBranch': defaultBranch,
-      'updatedAt': FieldValue.serverTimestamp(),
-    }, SetOptions(merge: true));
-  }
-
-  Future<void> updateSelectedBranch(String branch) async {
-    final currentUserId = ref.watch(nonNullCurrentUserIdProvider);
-    await firestore.collection(usersCollection).doc(currentUserId).set({
-      'id': currentUserId,
-      'selectedBranch': branch,
-      'updatedAt': FieldValue.serverTimestamp(),
-    }, SetOptions(merge: true));
-  }
-
   Future<void> _ensureDefaultUserProfile() async {
     await firebaseFunctions.httpsCallable('ensureUserProfile').call<void>();
   }
@@ -110,12 +84,6 @@ OpenCIUser _openCIUserFromSnapshot(
   if (data == null) throw Exception('User profile not found');
   return OpenCIUser(
     id: snapshot.id,
-
-    selectedRepository: switch (data['selectedRepository']) {
-      final String repository => canonicalRepositoryFullName(repository),
-      _ => null,
-    },
-    selectedBranch: data['selectedBranch'] as String?,
     teamUdids: Map<String, String>.from(data['teamUdids'] as Map? ?? {}),
     teamDeviceProducts: Map<String, String>.from(
       data['teamDeviceProducts'] as Map? ?? {},
