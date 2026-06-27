@@ -1,6 +1,6 @@
 name: openci_worker_cli
 description: OpenCI Worker CLI - A CI/CD worker for OpenCI
-version: 0.10.48
+version: 0.10.49
 repository: https://github.com/openci-org/openci
 false_secrets:
   - lib/firebase.dart
@@ -20,6 +20,7 @@ dependencies:
   openci_shared: ^1.0.1
   process_run: ^1.2.4
   pubspec_version_hook: ^0.1.0
+  retry: ^3.1.2
   sentry: ^9.14.0
   uuid: ^4.0.0
   yaml: ^3.1.2

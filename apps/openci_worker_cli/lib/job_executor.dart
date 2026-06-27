@@ -8,6 +8,7 @@ import 'package:openci_worker_cli/cloud_function_caller.dart';
 import 'package:openci_worker_cli/constants.dart';
 import 'package:openci_worker_cli/get_secret_service.dart';
 import 'package:openci_worker_cli/vm.dart';
+import 'package:retry/retry.dart';
 import 'package:uuid/uuid.dart';
 import 'package:yaml/yaml.dart';
 import 'package:yaml_edit/yaml_edit.dart';
@@ -238,27 +239,57 @@ Future<bool> processJob(
     final cloneUrl =
         'https://x-access-token:$token@$githubHost/$owner/$repo.git';
 
-    await execCommand('git clone --depth 1 --no-checkout $cloneUrl');
+    var cloneAttempt = 0;
+    await retry(
+      () => execCommand('git clone --depth 1 --no-checkout $cloneUrl'),
+      delayFactor: const Duration(seconds: 5),
+      randomizationFactor: 0,
+      maxAttempts: 3,
+      onRetry: (e) {
+        cloneAttempt++;
+        logInfo(
+          buildJobId,
+          runId,
+          'git clone failed (attempt $cloneAttempt/3). Retrying...',
+        );
+      },
+    );
 
     final pullRequestNumber = buildJob.pullRequestNumber;
 
     await logInfo(buildJobId, runId, 'Fetching commit $commitSha...');
-    try {
-      await execCommand('git -C $repo fetch --depth 1 origin $commitSha');
-    } catch (_) {
-      if (pullRequestNumber != null) {
-        await logInfo(
+    var fetchAttempt = 0;
+    await retry(
+      () async {
+        try {
+          await execCommand('git -C $repo fetch --depth 1 origin $commitSha');
+        } catch (_) {
+          if (pullRequestNumber != null) {
+            await logInfo(
+              buildJobId,
+              runId,
+              'Direct fetch failed, trying PR ref pull/$pullRequestNumber/head...',
+            );
+            await execCommand(
+              'git -C $repo fetch --depth 1 origin pull/$pullRequestNumber/head',
+            );
+          } else {
+            rethrow;
+          }
+        }
+      },
+      delayFactor: const Duration(seconds: 5),
+      randomizationFactor: 0,
+      maxAttempts: 3,
+      onRetry: (e) {
+        fetchAttempt++;
+        logInfo(
           buildJobId,
           runId,
-          'Direct fetch failed, trying PR ref pull/$pullRequestNumber/head...',
+          'git fetch failed (attempt $fetchAttempt/3). Retrying...',
         );
-        await execCommand(
-          'git -C $repo fetch --depth 1 origin pull/$pullRequestNumber/head',
-        );
-      } else {
-        rethrow;
-      }
-    }
+      },
+    );
 
     await logInfo(buildJobId, runId, 'Checking out commit $commitSha...');
     await execCommand('git -C $repo checkout $commitSha');
