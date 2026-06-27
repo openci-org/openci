@@ -462,7 +462,9 @@ Future<Map<String, String>> buildEnvVars({
     if (tagName != null && tagName.isNotEmpty) 'OPENCI_TAG': tagName,
     'OPENCI_TAG_VERSION': tagVersion ?? '',
     'OPENCI_TEAM_ID': teamId ?? '',
-    'OPENCI_ID_TOKEN': await apiClient.authManager.getIdToken(),
+    'OPENCI_ID_TOKEN': await apiClient.authManager.getIdToken(
+      forceRefresh: true,
+    ),
   };
 
   if (teamId != null) {
