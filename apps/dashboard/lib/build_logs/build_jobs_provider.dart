@@ -28,24 +28,28 @@ class BuildJobs extends _$BuildJobs {
     }
 
     final serverUrl = ref.watch(openciServerUrlProvider);
+    final token = ref.watch(firebaseIdTokenProvider).value;
+    if (token == null) {
+      yield const [];
+      return;
+    }
 
-    yield await _fetchBuildJobs(serverUrl, teamId);
+    yield await _fetchBuildJobs(serverUrl, teamId, token);
 
     yield* Stream.periodic(const Duration(seconds: 5)).asyncMap((_) async {
-      return _fetchBuildJobs(serverUrl, teamId);
+      return _fetchBuildJobs(serverUrl, teamId, token);
     });
   }
 
   Future<List<BuildJob>> _fetchBuildJobs(
     String serverUrl,
     String teamId,
+    String token,
   ) async {
     try {
       final url = Uri.parse(
         '$serverUrl/builds?teamId=$teamId&limit=$_buildJobsHistoryLimit',
       );
-      final token = await ref.watch(firebaseIdTokenProvider.future);
-      if (token == null) return const [];
 
       final response = await http
           .get(
@@ -238,24 +242,28 @@ class OtaBuildJobs extends _$OtaBuildJobs {
     }
 
     final serverUrl = ref.watch(openciServerUrlProvider);
+    final token = ref.watch(firebaseIdTokenProvider).value;
+    if (token == null) {
+      yield const [];
+      return;
+    }
 
-    yield await _fetchOtaBuildJobs(serverUrl, teamId);
+    yield await _fetchOtaBuildJobs(serverUrl, teamId, token);
 
     yield* Stream.periodic(const Duration(seconds: 5)).asyncMap((_) async {
-      return _fetchOtaBuildJobs(serverUrl, teamId);
+      return _fetchOtaBuildJobs(serverUrl, teamId, token);
     });
   }
 
   Future<List<BuildJob>> _fetchOtaBuildJobs(
     String serverUrl,
     String teamId,
+    String token,
   ) async {
     try {
       final url = Uri.parse(
         '$serverUrl/builds?teamId=$teamId&hasIpa=true&limit=100',
       );
-      final token = await ref.watch(firebaseIdTokenProvider.future);
-      if (token == null) return const [];
 
       final response = await http
           .get(
@@ -291,12 +299,15 @@ Stream<BuildJob?> buildJobById(Ref ref, String buildJobId) async* {
   }
 
   final serverUrl = ref.watch(openciServerUrlProvider);
+  final token = ref.watch(firebaseIdTokenProvider).value;
+  if (token == null) {
+    yield null;
+    return;
+  }
 
-  Future<BuildJob?> fetchJob() async {
+  Future<BuildJob?> fetchJob(String token) async {
     try {
       final url = Uri.parse('$serverUrl/builds/$buildJobId');
-      final token = await ref.watch(firebaseIdTokenProvider.future);
-      if (token == null) return null;
 
       final response = await http
           .get(
@@ -328,10 +339,10 @@ Stream<BuildJob?> buildJobById(Ref ref, String buildJobId) async* {
     }
   }
 
-  yield await fetchJob();
+  yield await fetchJob(token);
 
   yield* Stream.periodic(const Duration(seconds: 5)).asyncMap((_) async {
-    return fetchJob();
+    return fetchJob(token);
   });
 }
 

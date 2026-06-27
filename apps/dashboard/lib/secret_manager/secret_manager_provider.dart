@@ -24,18 +24,26 @@ class SecretManager extends _$SecretManager {
       return;
     }
 
-    yield await _fetchSecrets(serverUrl, teamId);
+    final token = ref.watch(firebaseIdTokenProvider).value;
+    if (token == null) {
+      yield const [];
+      return;
+    }
+
+    yield await _fetchSecrets(serverUrl, teamId, token);
 
     yield* Stream.periodic(const Duration(seconds: 5)).asyncMap((_) async {
-      return _fetchSecrets(serverUrl, teamId);
+      return _fetchSecrets(serverUrl, teamId, token);
     });
   }
 
-  Future<List<Secret>> _fetchSecrets(String serverUrl, String teamId) async {
+  Future<List<Secret>> _fetchSecrets(
+    String serverUrl,
+    String teamId,
+    String token,
+  ) async {
     try {
       final url = Uri.parse('$serverUrl/teams/$teamId/secrets');
-      final token = await ref.watch(firebaseIdTokenProvider.future);
-      if (token == null) return const [];
 
       final response = await http
           .get(

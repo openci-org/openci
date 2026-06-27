@@ -10,12 +10,10 @@ final workerInstancesProvider =
     StreamProvider.autoDispose<List<WorkerInstance>>(
       (ref) {
         final serverUrl = ref.watch(openciServerUrlProvider);
+        final token = ref.watch(firebaseIdTokenProvider).value;
 
-        Future<List<WorkerInstance>> fetchWorkers() async {
+        Future<List<WorkerInstance>> fetchWorkers(String token) async {
           try {
-            final token = await ref.watch(firebaseIdTokenProvider.future);
-            if (token == null) return const <WorkerInstance>[];
-
             final url = Uri.parse('$serverUrl/workers');
             final response = await http
                 .get(
@@ -61,14 +59,17 @@ final workerInstancesProvider =
         }
 
         // async* ジェネレータを使用して、初回呼び出しと10秒周期の定期取得を実現
-        Stream<List<WorkerInstance>> pollStream() async* {
-          yield await fetchWorkers();
+        Stream<List<WorkerInstance>> pollStream(String token) async* {
+          yield await fetchWorkers(token);
           await for (final _ in Stream.periodic(const Duration(seconds: 10))) {
-            yield await fetchWorkers();
+            yield await fetchWorkers(token);
           }
         }
 
-        return pollStream();
+        if (token == null) {
+          return Stream.value(const <WorkerInstance>[]);
+        }
+        return pollStream(token);
       },
     );
 
