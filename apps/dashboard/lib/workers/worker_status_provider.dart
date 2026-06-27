@@ -8,9 +8,13 @@ import 'package:http/http.dart' as http;
 
 final workerInstancesProvider =
     StreamProvider.autoDispose<List<WorkerInstance>>(
-      (ref) {
+      (ref) async* {
         final serverUrl = ref.watch(openciServerUrlProvider);
-        final token = ref.watch(firebaseIdTokenProvider).value;
+        final token = await ref.watch(firebaseIdTokenProvider.future);
+        if (token == null) {
+          yield const <WorkerInstance>[];
+          return;
+        }
 
         Future<List<WorkerInstance>> fetchWorkers(String token) async {
           try {
@@ -58,18 +62,10 @@ final workerInstancesProvider =
           }
         }
 
-        // async* ジェネレータを使用して、初回呼び出しと10秒周期の定期取得を実現
-        Stream<List<WorkerInstance>> pollStream(String token) async* {
+        yield await fetchWorkers(token);
+        await for (final _ in Stream.periodic(const Duration(seconds: 10))) {
           yield await fetchWorkers(token);
-          await for (final _ in Stream.periodic(const Duration(seconds: 10))) {
-            yield await fetchWorkers(token);
-          }
         }
-
-        if (token == null) {
-          return Stream.value(const <WorkerInstance>[]);
-        }
-        return pollStream(token);
       },
     );
 

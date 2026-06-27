@@ -36,7 +36,7 @@ Stream<List<WorkflowFile>> workflowFiles(Ref ref) async* {
   }
   final teamId = user.selectedTeamId;
 
-  final token = ref.watch(firebaseIdTokenProvider).value;
+  final token = await ref.watch(firebaseIdTokenProvider.future);
   if (token == null) {
     yield const [];
     return;
