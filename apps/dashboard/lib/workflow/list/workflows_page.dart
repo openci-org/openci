@@ -531,7 +531,6 @@ void _openWorkflowEditor(
     return;
   }
 
-  // 開いたリポジトリとブランチをSharedPreferencesに保存
   unawaited(ref.read(selectedRepositoryProvider.notifier).save(repository));
   unawaited(ref.read(selectedBranchProvider.notifier).save(branch));
 
