@@ -4977,6 +4977,370 @@ class WorkerHeartbeatsCompanion extends UpdateCompanion<DriftWorkerHeartbeat> {
   }
 }
 
+class $UserDevicesTable extends UserDevices
+    with TableInfo<$UserDevicesTable, DriftUserDevice> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $UserDevicesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _userIdMeta = const VerificationMeta('userId');
+  @override
+  late final GeneratedColumn<String> userId = GeneratedColumn<String>(
+    'user_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _teamIdMeta = const VerificationMeta('teamId');
+  @override
+  late final GeneratedColumn<String> teamId = GeneratedColumn<String>(
+    'team_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES teams (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _udidMeta = const VerificationMeta('udid');
+  @override
+  late final GeneratedColumn<String> udid = GeneratedColumn<String>(
+    'udid',
+    aliasedName,
+    false,
+    additionalChecks: GeneratedColumn.checkTextLength(
+      minTextLength: 25,
+      maxTextLength: 40,
+    ),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _deviceProductMeta = const VerificationMeta(
+    'deviceProduct',
+  );
+  @override
+  late final GeneratedColumn<String> deviceProduct = GeneratedColumn<String>(
+    'device_product',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _deviceOsVersionMeta = const VerificationMeta(
+    'deviceOsVersion',
+  );
+  @override
+  late final GeneratedColumn<String> deviceOsVersion = GeneratedColumn<String>(
+    'device_os_version',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    userId,
+    teamId,
+    udid,
+    deviceProduct,
+    deviceOsVersion,
+    createdAt,
+    updatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'user_devices';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<DriftUserDevice> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('user_id')) {
+      context.handle(
+        _userIdMeta,
+        userId.isAcceptableOrUnknown(data['user_id']!, _userIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_userIdMeta);
+    }
+    if (data.containsKey('team_id')) {
+      context.handle(
+        _teamIdMeta,
+        teamId.isAcceptableOrUnknown(data['team_id']!, _teamIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_teamIdMeta);
+    }
+    if (data.containsKey('udid')) {
+      context.handle(
+        _udidMeta,
+        udid.isAcceptableOrUnknown(data['udid']!, _udidMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_udidMeta);
+    }
+    if (data.containsKey('device_product')) {
+      context.handle(
+        _deviceProductMeta,
+        deviceProduct.isAcceptableOrUnknown(
+          data['device_product']!,
+          _deviceProductMeta,
+        ),
+      );
+    }
+    if (data.containsKey('device_os_version')) {
+      context.handle(
+        _deviceOsVersionMeta,
+        deviceOsVersion.isAcceptableOrUnknown(
+          data['device_os_version']!,
+          _deviceOsVersionMeta,
+        ),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  DriftUserDevice map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return DriftUserDevice(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      userId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}user_id'],
+      )!,
+      teamId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}team_id'],
+      )!,
+      udid: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}udid'],
+      )!,
+      deviceProduct: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}device_product'],
+      ),
+      deviceOsVersion: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}device_os_version'],
+      ),
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $UserDevicesTable createAlias(String alias) {
+    return $UserDevicesTable(attachedDatabase, alias);
+  }
+}
+
+class UserDevicesCompanion extends UpdateCompanion<DriftUserDevice> {
+  final Value<String> id;
+  final Value<String> userId;
+  final Value<String> teamId;
+  final Value<String> udid;
+  final Value<String?> deviceProduct;
+  final Value<String?> deviceOsVersion;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<int> rowid;
+  const UserDevicesCompanion({
+    this.id = const Value.absent(),
+    this.userId = const Value.absent(),
+    this.teamId = const Value.absent(),
+    this.udid = const Value.absent(),
+    this.deviceProduct = const Value.absent(),
+    this.deviceOsVersion = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  UserDevicesCompanion.insert({
+    required String id,
+    required String userId,
+    required String teamId,
+    required String udid,
+    this.deviceProduct = const Value.absent(),
+    this.deviceOsVersion = const Value.absent(),
+    required DateTime createdAt,
+    required DateTime updatedAt,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       userId = Value(userId),
+       teamId = Value(teamId),
+       udid = Value(udid),
+       createdAt = Value(createdAt),
+       updatedAt = Value(updatedAt);
+  static Insertable<DriftUserDevice> custom({
+    Expression<String>? id,
+    Expression<String>? userId,
+    Expression<String>? teamId,
+    Expression<String>? udid,
+    Expression<String>? deviceProduct,
+    Expression<String>? deviceOsVersion,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (userId != null) 'user_id': userId,
+      if (teamId != null) 'team_id': teamId,
+      if (udid != null) 'udid': udid,
+      if (deviceProduct != null) 'device_product': deviceProduct,
+      if (deviceOsVersion != null) 'device_os_version': deviceOsVersion,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  UserDevicesCompanion copyWith({
+    Value<String>? id,
+    Value<String>? userId,
+    Value<String>? teamId,
+    Value<String>? udid,
+    Value<String?>? deviceProduct,
+    Value<String?>? deviceOsVersion,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+    Value<int>? rowid,
+  }) {
+    return UserDevicesCompanion(
+      id: id ?? this.id,
+      userId: userId ?? this.userId,
+      teamId: teamId ?? this.teamId,
+      udid: udid ?? this.udid,
+      deviceProduct: deviceProduct ?? this.deviceProduct,
+      deviceOsVersion: deviceOsVersion ?? this.deviceOsVersion,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (userId.present) {
+      map['user_id'] = Variable<String>(userId.value);
+    }
+    if (teamId.present) {
+      map['team_id'] = Variable<String>(teamId.value);
+    }
+    if (udid.present) {
+      map['udid'] = Variable<String>(udid.value);
+    }
+    if (deviceProduct.present) {
+      map['device_product'] = Variable<String>(deviceProduct.value);
+    }
+    if (deviceOsVersion.present) {
+      map['device_os_version'] = Variable<String>(deviceOsVersion.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('UserDevicesCompanion(')
+          ..write('id: $id, ')
+          ..write('userId: $userId, ')
+          ..write('teamId: $teamId, ')
+          ..write('udid: $udid, ')
+          ..write('deviceProduct: $deviceProduct, ')
+          ..write('deviceOsVersion: $deviceOsVersion, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -4992,6 +5356,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $WorkerHeartbeatsTable workerHeartbeats = $WorkerHeartbeatsTable(
     this,
   );
+  late final $UserDevicesTable userDevices = $UserDevicesTable(this);
   late final BuildJobDao buildJobDao = BuildJobDao(this as AppDatabase);
   late final BuildRunDao buildRunDao = BuildRunDao(this as AppDatabase);
   late final TeamDao teamDao = TeamDao(this as AppDatabase);
@@ -5016,6 +5381,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     processedWebhooks,
     webhookTasks,
     workerHeartbeats,
+    userDevices,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -5039,6 +5405,13 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         limitUpdateKind: UpdateKind.delete,
       ),
       result: [TableUpdate('secrets', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'teams',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('user_devices', kind: UpdateKind.delete)],
     ),
   ]);
 }
@@ -6578,6 +6951,24 @@ final class $$TeamsTableReferences
       manager.$state.copyWith(prefetchedData: cache),
     );
   }
+
+  static MultiTypedResultKey<$UserDevicesTable, List<DriftUserDevice>>
+  _userDevicesRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.userDevices,
+    aliasName: $_aliasNameGenerator(db.teams.id, db.userDevices.teamId),
+  );
+
+  $$UserDevicesTableProcessedTableManager get userDevicesRefs {
+    final manager = $$UserDevicesTableTableManager(
+      $_db,
+      $_db.userDevices,
+    ).filter((f) => f.teamId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_userDevicesRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
 }
 
 class $$TeamsTableFilterComposer extends Composer<_$AppDatabase, $TeamsTable> {
@@ -6670,6 +7061,31 @@ class $$TeamsTableFilterComposer extends Composer<_$AppDatabase, $TeamsTable> {
           }) => $$SecretsTableFilterComposer(
             $db: $db,
             $table: $db.secrets,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> userDevicesRefs(
+    Expression<bool> Function($$UserDevicesTableFilterComposer f) f,
+  ) {
+    final $$UserDevicesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.userDevices,
+      getReferencedColumn: (t) => t.teamId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$UserDevicesTableFilterComposer(
+            $db: $db,
+            $table: $db.userDevices,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -6817,6 +7233,31 @@ class $$TeamsTableAnnotationComposer
     );
     return f(composer);
   }
+
+  Expression<T> userDevicesRefs<T extends Object>(
+    Expression<T> Function($$UserDevicesTableAnnotationComposer a) f,
+  ) {
+    final $$UserDevicesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.userDevices,
+      getReferencedColumn: (t) => t.teamId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$UserDevicesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.userDevices,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$TeamsTableTableManager
@@ -6832,7 +7273,11 @@ class $$TeamsTableTableManager
           $$TeamsTableUpdateCompanionBuilder,
           (DriftTeam, $$TeamsTableReferences),
           DriftTeam,
-          PrefetchHooks Function({bool teamMembersRefs, bool secretsRefs})
+          PrefetchHooks Function({
+            bool teamMembersRefs,
+            bool secretsRefs,
+            bool userDevicesRefs,
+          })
         > {
   $$TeamsTableTableManager(_$AppDatabase db, $TeamsTable table)
     : super(
@@ -6896,12 +7341,17 @@ class $$TeamsTableTableManager
               )
               .toList(),
           prefetchHooksCallback:
-              ({teamMembersRefs = false, secretsRefs = false}) {
+              ({
+                teamMembersRefs = false,
+                secretsRefs = false,
+                userDevicesRefs = false,
+              }) {
                 return PrefetchHooks(
                   db: db,
                   explicitlyWatchedTables: [
                     if (teamMembersRefs) db.teamMembers,
                     if (secretsRefs) db.secrets,
+                    if (userDevicesRefs) db.userDevices,
                   ],
                   addJoins: null,
                   getPrefetchedDataCallback: (items) async {
@@ -6944,6 +7394,27 @@ class $$TeamsTableTableManager
                               ),
                           typedResults: items,
                         ),
+                      if (userDevicesRefs)
+                        await $_getPrefetchedData<
+                          DriftTeam,
+                          $TeamsTable,
+                          DriftUserDevice
+                        >(
+                          currentTable: table,
+                          referencedTable: $$TeamsTableReferences
+                              ._userDevicesRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$TeamsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).userDevicesRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.teamId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
                     ];
                   },
                 );
@@ -6964,7 +7435,11 @@ typedef $$TeamsTableProcessedTableManager =
       $$TeamsTableUpdateCompanionBuilder,
       (DriftTeam, $$TeamsTableReferences),
       DriftTeam,
-      PrefetchHooks Function({bool teamMembersRefs, bool secretsRefs})
+      PrefetchHooks Function({
+        bool teamMembersRefs,
+        bool secretsRefs,
+        bool userDevicesRefs,
+      })
     >;
 typedef $$TeamMembersTableCreateCompanionBuilder =
     TeamMembersCompanion Function({
@@ -8211,6 +8686,385 @@ typedef $$WorkerHeartbeatsTableProcessedTableManager =
       DriftWorkerHeartbeat,
       PrefetchHooks Function()
     >;
+typedef $$UserDevicesTableCreateCompanionBuilder =
+    UserDevicesCompanion Function({
+      required String id,
+      required String userId,
+      required String teamId,
+      required String udid,
+      Value<String?> deviceProduct,
+      Value<String?> deviceOsVersion,
+      required DateTime createdAt,
+      required DateTime updatedAt,
+      Value<int> rowid,
+    });
+typedef $$UserDevicesTableUpdateCompanionBuilder =
+    UserDevicesCompanion Function({
+      Value<String> id,
+      Value<String> userId,
+      Value<String> teamId,
+      Value<String> udid,
+      Value<String?> deviceProduct,
+      Value<String?> deviceOsVersion,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<int> rowid,
+    });
+
+final class $$UserDevicesTableReferences
+    extends BaseReferences<_$AppDatabase, $UserDevicesTable, DriftUserDevice> {
+  $$UserDevicesTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $TeamsTable _teamIdTable(_$AppDatabase db) => db.teams.createAlias(
+    $_aliasNameGenerator(db.userDevices.teamId, db.teams.id),
+  );
+
+  $$TeamsTableProcessedTableManager get teamId {
+    final $_column = $_itemColumn<String>('team_id')!;
+
+    final manager = $$TeamsTableTableManager(
+      $_db,
+      $_db.teams,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_teamIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$UserDevicesTableFilterComposer
+    extends Composer<_$AppDatabase, $UserDevicesTable> {
+  $$UserDevicesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get userId => $composableBuilder(
+    column: $table.userId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get udid => $composableBuilder(
+    column: $table.udid,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get deviceProduct => $composableBuilder(
+    column: $table.deviceProduct,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get deviceOsVersion => $composableBuilder(
+    column: $table.deviceOsVersion,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$TeamsTableFilterComposer get teamId {
+    final $$TeamsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.teamId,
+      referencedTable: $db.teams,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TeamsTableFilterComposer(
+            $db: $db,
+            $table: $db.teams,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$UserDevicesTableOrderingComposer
+    extends Composer<_$AppDatabase, $UserDevicesTable> {
+  $$UserDevicesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get userId => $composableBuilder(
+    column: $table.userId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get udid => $composableBuilder(
+    column: $table.udid,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get deviceProduct => $composableBuilder(
+    column: $table.deviceProduct,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get deviceOsVersion => $composableBuilder(
+    column: $table.deviceOsVersion,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$TeamsTableOrderingComposer get teamId {
+    final $$TeamsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.teamId,
+      referencedTable: $db.teams,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TeamsTableOrderingComposer(
+            $db: $db,
+            $table: $db.teams,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$UserDevicesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $UserDevicesTable> {
+  $$UserDevicesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get userId =>
+      $composableBuilder(column: $table.userId, builder: (column) => column);
+
+  GeneratedColumn<String> get udid =>
+      $composableBuilder(column: $table.udid, builder: (column) => column);
+
+  GeneratedColumn<String> get deviceProduct => $composableBuilder(
+    column: $table.deviceProduct,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get deviceOsVersion => $composableBuilder(
+    column: $table.deviceOsVersion,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  $$TeamsTableAnnotationComposer get teamId {
+    final $$TeamsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.teamId,
+      referencedTable: $db.teams,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TeamsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.teams,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$UserDevicesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $UserDevicesTable,
+          DriftUserDevice,
+          $$UserDevicesTableFilterComposer,
+          $$UserDevicesTableOrderingComposer,
+          $$UserDevicesTableAnnotationComposer,
+          $$UserDevicesTableCreateCompanionBuilder,
+          $$UserDevicesTableUpdateCompanionBuilder,
+          (DriftUserDevice, $$UserDevicesTableReferences),
+          DriftUserDevice,
+          PrefetchHooks Function({bool teamId})
+        > {
+  $$UserDevicesTableTableManager(_$AppDatabase db, $UserDevicesTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$UserDevicesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$UserDevicesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$UserDevicesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> userId = const Value.absent(),
+                Value<String> teamId = const Value.absent(),
+                Value<String> udid = const Value.absent(),
+                Value<String?> deviceProduct = const Value.absent(),
+                Value<String?> deviceOsVersion = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => UserDevicesCompanion(
+                id: id,
+                userId: userId,
+                teamId: teamId,
+                udid: udid,
+                deviceProduct: deviceProduct,
+                deviceOsVersion: deviceOsVersion,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String userId,
+                required String teamId,
+                required String udid,
+                Value<String?> deviceProduct = const Value.absent(),
+                Value<String?> deviceOsVersion = const Value.absent(),
+                required DateTime createdAt,
+                required DateTime updatedAt,
+                Value<int> rowid = const Value.absent(),
+              }) => UserDevicesCompanion.insert(
+                id: id,
+                userId: userId,
+                teamId: teamId,
+                udid: udid,
+                deviceProduct: deviceProduct,
+                deviceOsVersion: deviceOsVersion,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$UserDevicesTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({teamId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (teamId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.teamId,
+                                referencedTable: $$UserDevicesTableReferences
+                                    ._teamIdTable(db),
+                                referencedColumn: $$UserDevicesTableReferences
+                                    ._teamIdTable(db)
+                                    .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$UserDevicesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $UserDevicesTable,
+      DriftUserDevice,
+      $$UserDevicesTableFilterComposer,
+      $$UserDevicesTableOrderingComposer,
+      $$UserDevicesTableAnnotationComposer,
+      $$UserDevicesTableCreateCompanionBuilder,
+      $$UserDevicesTableUpdateCompanionBuilder,
+      (DriftUserDevice, $$UserDevicesTableReferences),
+      DriftUserDevice,
+      PrefetchHooks Function({bool teamId})
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -8233,4 +9087,6 @@ class $AppDatabaseManager {
       $$WebhookTasksTableTableManager(_db, _db.webhookTasks);
   $$WorkerHeartbeatsTableTableManager get workerHeartbeats =>
       $$WorkerHeartbeatsTableTableManager(_db, _db.workerHeartbeats);
+  $$UserDevicesTableTableManager get userDevices =>
+      $$UserDevicesTableTableManager(_db, _db.userDevices);
 }
