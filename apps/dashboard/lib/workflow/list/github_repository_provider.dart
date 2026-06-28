@@ -1,8 +1,6 @@
 import 'dart:convert';
 
 import 'package:dashboard/auth/auth_provider.dart';
-import 'package:dashboard/firebase/firestore.dart';
-import 'package:dashboard/firebase/functions.dart';
 import 'package:dashboard/openci_server_url_provider.dart';
 import 'package:dashboard/team/team_provider.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
@@ -61,36 +59,51 @@ Future<List<GitHubRepo>> gitHubRepositories(Ref ref) async {
 }
 
 @riverpod
-Stream<List<String>> gitHubBranches(Ref ref, String repoFullName) {
+Stream<List<String>> gitHubBranches(Ref ref, String repoFullName) async* {
   final team = ref.watch(teamStateProvider).value;
-  if (team == null) return Stream.value(const []);
+  if (team == null) {
+    yield const [];
+    return;
+  }
 
-  final repositoryId = repoFullName.replaceAll('/', ':');
-  final docRef = firestore
-      .collection(teamsCollection)
-      .doc(team.id)
-      .collection('repositories_v0')
-      .doc(repositoryId);
+  final serverUrl = ref.watch(openciServerUrlProvider);
+  final token = await ref.watch(authedFirebaseIdTokenProvider.future);
 
-  return docRef.snapshots().asyncMap((snapshot) async {
-    if (!snapshot.exists) {
-      final functions = firebaseFunctions;
-      try {
-        await functions.httpsCallable('listBranches').call({
-          'teamId': team.id,
-          'repository': repoFullName,
-        });
-      } catch (_) {
-        // Ignore initialization error since it will be retried or shown as error
-      }
+  Future<List<String>> fetch(String tkn) async {
+    try {
+      final parts = repoFullName.split('/');
+      if (parts.length != 2) return const [];
+      final owner = parts[0];
+      final repo = parts[1];
+
+      final url = Uri.parse(
+        '$serverUrl/teams/${team.id}/github/repositories/$owner/$repo/branches',
+      );
+      final response = await http
+          .get(
+            url,
+            headers: {
+              'Authorization': 'Bearer $tkn',
+            },
+          )
+          .timeout(const Duration(seconds: 10));
+
+      if (response.statusCode != 200) return const [];
+
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      final branches = (data['branches'] as List<dynamic>?)
+          ?.map((e) => e.toString())
+          .toList();
+      return branches ?? const [];
+    } catch (e) {
       return const [];
     }
+  }
 
-    final data = snapshot.data();
-    if (data == null) return const [];
-    final branches = (data['branches'] as List<dynamic>?)
-        ?.map((e) => e.toString())
-        .toList();
-    return branches ?? const [];
+  yield await fetch(token);
+
+  yield* Stream.periodic(const Duration(seconds: 15)).asyncMap((_) async {
+    final tkn = await ref.read(authedFirebaseIdTokenProvider.future);
+    return fetch(tkn);
   });
 }
