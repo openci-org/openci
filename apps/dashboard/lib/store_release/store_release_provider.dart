@@ -1,11 +1,14 @@
+import 'dart:convert';
+
+import 'package:dashboard/auth/auth_provider.dart';
 import 'package:dashboard/firebase/firestore.dart';
 import 'package:dashboard/firebase/functions.dart';
+import 'package:dashboard/openci_server_url_provider.dart';
 import 'package:dashboard/team/team_provider.dart';
+import 'package:http/http.dart' as http;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'store_release_provider.g.dart';
-
-// ── Models ──
 
 class AscApp {
   final String id;
@@ -77,15 +80,12 @@ class AscBuild {
   );
 }
 
-// ── Providers ──
-
 String _requireTeamId(dynamic ref) {
   final teamId = ref.read(teamStateProvider).value?.id as String?;
   if (teamId == null) throw StateError('team is not loaded yet');
   return teamId;
 }
 
-/// Whether ASC API credentials are configured for the current team.
 @riverpod
 class IsAscConfigured extends _$IsAscConfigured {
   @override
@@ -107,27 +107,40 @@ class IsAscConfigured extends _$IsAscConfigured {
   }
 }
 
-/// Fetch the list of apps from App Store Connect.
 @riverpod
 class AscApps extends _$AscApps {
   @override
   Future<List<AscApp>> build() async {
-    final functions = firebaseFunctions;
+    final serverUrl = ref.watch(openciServerUrlProvider);
     final teamId = _requireTeamId(ref);
+    final token = await ref.watch(authedFirebaseIdTokenProvider.future);
 
-    final result = await functions.httpsCallable('ascListApps').call({
-      'teamId': teamId,
-    });
+    final url = Uri.parse('$serverUrl/teams/$teamId/asc/apps');
+    final response = await http
+        .get(
+          url,
+          headers: {
+            'Authorization': 'Bearer $token',
+          },
+        )
+        .timeout(const Duration(seconds: 15));
 
-    final data = result.data as Map<String, dynamic>;
-    final apps = (data['apps'] as List<dynamic>)
+    if (response.statusCode != 200) {
+      throw StateError(
+        'Failed to fetch ASC apps: ${response.statusCode} ${response.body}',
+      );
+    }
+
+    final body = jsonDecode(response.body) as Map<String, dynamic>;
+    final dataList = body['apps'] as List<dynamic>? ?? [];
+
+    final apps = dataList
         .map((e) => AscApp.fromMap(Map<String, dynamic>.from(e as Map)))
         .toList();
     return apps;
   }
 }
 
-/// Fetch builds for a specific app.
 @riverpod
 class AscBuilds extends _$AscBuilds {
   @override
@@ -148,7 +161,6 @@ class AscBuilds extends _$AscBuilds {
   }
 }
 
-/// Submit a build to TestFlight (external beta testing).
 @riverpod
 class SubmitToTestFlight extends _$SubmitToTestFlight {
   @override
@@ -168,7 +180,6 @@ class SubmitToTestFlight extends _$SubmitToTestFlight {
   }
 }
 
-/// Submit a build for App Store Review.
 @riverpod
 class SubmitForReview extends _$SubmitForReview {
   @override
@@ -195,7 +206,6 @@ class SubmitForReview extends _$SubmitForReview {
   }
 }
 
-/// Setup ASC API credentials.
 @riverpod
 class SetupAscCredentials extends _$SetupAscCredentials {
   @override
