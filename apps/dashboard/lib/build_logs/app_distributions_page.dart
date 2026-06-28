@@ -2,6 +2,7 @@ import 'package:app_minimizer_plus/app_minimizer_plus.dart';
 import 'package:dashboard/app_strings.dart';
 import 'package:dashboard/build_logs/build_jobs_provider.dart';
 import 'package:dashboard/firebase/firestore.dart';
+import 'package:dashboard/openci_server_url_provider.dart';
 import 'package:dashboard/team/selected_team_provider.dart';
 import 'package:dashboard/theme/app_colors.dart';
 import 'package:dashboard/users/user_provider.dart';
@@ -215,6 +216,7 @@ class _DeviceEnrollmentHeader extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final serverUrl = ref.watch(openciServerUrlProvider);
     final selectedTeamId = ref.watch(selectedTeamIdProvider).value;
     final userUdid = user.currentTeamUdid(selectedTeamId);
     final hasUdid = userUdid != null && userUdid.isNotEmpty;
@@ -300,7 +302,7 @@ class _DeviceEnrollmentHeader extends HookConsumerWidget {
                     ? Uri.base.origin
                     : 'https://dashboard.openci.org';
                 final enrollUrl =
-                    '$origin/enroll-udid?userId=${user.id}&teamId=${selectedTeamId ?? ''}';
+                    '$serverUrl/devices/mobile-config?userId=${user.id}&teamId=$selectedTeamId&redirectOrigin=${Uri.encodeComponent(origin)}';
                 final uri = Uri.parse(enrollUrl);
                 try {
                   await launchUrl(uri, mode: LaunchMode.externalApplication);
