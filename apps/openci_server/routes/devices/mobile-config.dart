@@ -219,7 +219,7 @@ Future<Response> _post(RequestContext context) async {
         .toString();
 
     return Response(
-      statusCode: HttpStatus.movedPermanently,
+      statusCode: HttpStatus.seeOther,
       headers: {
         'Location': redirectUrl,
         'Content-Length': '0',

@@ -158,7 +158,7 @@ void main() {
 
       final response = await route.onRequest(context.context);
 
-      expect(response.statusCode, equals(HttpStatus.movedPermanently));
+      expect(response.statusCode, equals(HttpStatus.seeOther));
       expect(
         response.headers['Location'],
         equals(
@@ -209,7 +209,7 @@ void main() {
 
         final response = await route.onRequest(context.context);
 
-        expect(response.statusCode, equals(HttpStatus.movedPermanently));
+        expect(response.statusCode, equals(HttpStatus.seeOther));
 
         final device = await db.deviceDao.findDevice(
           userId: 'user-123',
