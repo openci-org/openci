@@ -239,6 +239,7 @@ class AscService {
 
     return builds;
   }
+
   Future<List<AscApp>> listApps(
     AppDatabase db,
     String teamId,
