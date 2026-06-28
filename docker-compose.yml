@@ -2,6 +2,7 @@ services:
   db:
     image: postgres:16-alpine
     container_name: openci-db
+    restart: unless-stopped
     environment:
       POSTGRES_DB: openci
       POSTGRES_USER: postgres
@@ -16,6 +17,7 @@ services:
       context: .
       dockerfile: apps/openci_server/Dockerfile
     container_name: openci-server
+    restart: unless-stopped
     environment:
       - HOST=any
       - PORT=8080
@@ -45,6 +47,7 @@ services:
   caddy:
     image: caddy:2-alpine
     container_name: openci-caddy
+    restart: unless-stopped
     ports:
       - "80:80"
       - "443:443"
@@ -58,6 +61,7 @@ services:
   seaweedfs:
     image: chrislusf/seaweedfs:3.59
     container_name: openci-seaweedfs
+    restart: unless-stopped
     ports:
       - "18333:8333" # Filer port
       - "19333:9333" # Master port
