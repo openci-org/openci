@@ -189,4 +189,53 @@ class GitHubService {
       };
     }).toList();
   }
+
+  static Future<List<String>> listBranches({
+    required String owner,
+    required String repo,
+    required String installationIdStr,
+    Map<String, String>? environment,
+    http.Client? client,
+  }) async {
+    final token = await getInstallationToken(
+      installationIdStr: installationIdStr,
+      environment: environment,
+      client: client,
+    );
+
+    final env = environment ?? Platform.environment;
+    final githubApiBaseUrlStr = env['GITHUB_API_BASE_URL'];
+    if (githubApiBaseUrlStr == null || githubApiBaseUrlStr.isEmpty) {
+      throw StateError(
+        'GITHUB_API_BASE_URL environment variable is not configured',
+      );
+    }
+
+    final url = '$githubApiBaseUrlStr/repos/$owner/$repo/branches';
+    final headers = {
+      'Authorization': 'Bearer $token',
+      'Accept': 'application/vnd.github+json',
+      'X-GitHub-Api-Version': '2022-11-28',
+      'User-Agent': 'OpenCI-Server',
+    };
+
+    final response = client != null
+        ? await client.get(Uri.parse(url), headers: headers)
+        : await http.get(Uri.parse(url), headers: headers);
+
+    if (response.statusCode >= 300) {
+      throw HttpException(
+        'Failed to list branches from GitHub: ${response.statusCode} ${response.body}',
+      );
+    }
+
+    final data = jsonDecode(response.body) as List<dynamic>;
+    return data
+        .map((item) {
+          final map = item as Map<String, dynamic>;
+          return map['name'] as String? ?? '';
+        })
+        .where((name) => name.isNotEmpty)
+        .toList();
+  }
 }

@@ -125,7 +125,7 @@ final class GitHubBranchesProvider
   }
 }
 
-String _$gitHubBranchesHash() => r'791cc84409e0f7abfc230f9702ed230626fa3940';
+String _$gitHubBranchesHash() => r'39f0c2f140be1ceab2f658e8dae4dddf3f473c14';
 
 final class GitHubBranchesFamily extends $Family
     with $FunctionalFamilyOverride<Stream<List<String>>, String> {
