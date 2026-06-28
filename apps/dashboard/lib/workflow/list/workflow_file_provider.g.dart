@@ -39,11 +39,11 @@ final class WorkflowFilesProvider
         $FunctionalProvider<
           AsyncValue<List<WorkflowFile>>,
           List<WorkflowFile>,
-          Stream<List<WorkflowFile>>
+          FutureOr<List<WorkflowFile>>
         >
     with
         $FutureModifier<List<WorkflowFile>>,
-        $StreamProvider<List<WorkflowFile>> {
+        $FutureProvider<List<WorkflowFile>> {
   WorkflowFilesProvider._()
     : super(
         from: null,
@@ -60,14 +60,14 @@ final class WorkflowFilesProvider
 
   @$internal
   @override
-  $StreamProviderElement<List<WorkflowFile>> $createElement(
+  $FutureProviderElement<List<WorkflowFile>> $createElement(
     $ProviderPointer pointer,
-  ) => $StreamProviderElement(pointer);
+  ) => $FutureProviderElement(pointer);
 
   @override
-  Stream<List<WorkflowFile>> create(Ref ref) {
+  FutureOr<List<WorkflowFile>> create(Ref ref) {
     return workflowFiles(ref);
   }
 }
 
-String _$workflowFilesHash() => r'd7349d5baea08b9b53d5548b13fcc8d1a501cb58';
+String _$workflowFilesHash() => r'8dd3aef625e9f0d04543c94387e7b95b0c0bd08b';
