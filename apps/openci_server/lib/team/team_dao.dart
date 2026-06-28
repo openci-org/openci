@@ -54,4 +54,8 @@ class TeamDao extends DatabaseAccessor<AppDatabase> with _$TeamDaoMixin {
     }
     return null;
   }
+
+  Future<DriftTeam?> getTeam(String teamId) {
+    return (select(teams)..where((t) => t.id.equals(teamId))).getSingleOrNull();
+  }
 }
