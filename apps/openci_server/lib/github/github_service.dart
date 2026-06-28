@@ -136,4 +136,57 @@ class GitHubService {
       );
     }
   }
+
+  static Future<List<Map<String, dynamic>>> listRepositories({
+    required String installationIdStr,
+    Map<String, String>? environment,
+    http.Client? client,
+  }) async {
+    final token = await getInstallationToken(
+      installationIdStr: installationIdStr,
+      environment: environment,
+      client: client,
+    );
+
+    final env = environment ?? Platform.environment;
+    final githubApiBaseUrlStr = env['GITHUB_API_BASE_URL'];
+    if (githubApiBaseUrlStr == null || githubApiBaseUrlStr.isEmpty) {
+      throw StateError(
+        'GITHUB_API_BASE_URL environment variable is not configured',
+      );
+    }
+
+    final url = '$githubApiBaseUrlStr/installation/repositories';
+    final headers = {
+      'Authorization': 'Bearer $token',
+      'Accept': 'application/vnd.github+json',
+      'X-GitHub-Api-Version': '2022-11-28',
+      'User-Agent': 'OpenCI-Server',
+    };
+
+    final response = client != null
+        ? await client.get(Uri.parse(url), headers: headers)
+        : await http.get(Uri.parse(url), headers: headers);
+
+    if (response.statusCode >= 300) {
+      throw HttpException(
+        'Failed to list repositories from GitHub: ${response.statusCode} ${response.body}',
+      );
+    }
+
+    final data = jsonDecode(response.body) as Map<String, dynamic>;
+    final repositories = data['repositories'] as List<dynamic>? ?? [];
+
+    return repositories.map((item) {
+      final map = item as Map<String, dynamic>;
+      final owner = map['owner'] as Map<String, dynamic>?;
+      return {
+        'fullName': map['full_name'] as String? ?? '',
+        'name': map['name'] as String? ?? '',
+        'owner': owner?['login'] as String? ?? '',
+        'private': map['private'] as bool? ?? false,
+        'defaultBranch': map['default_branch'] as String? ?? 'main',
+      };
+    }).toList();
+  }
 }

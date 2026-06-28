@@ -68,7 +68,7 @@ final class GitHubRepositoriesProvider
 }
 
 String _$gitHubRepositoriesHash() =>
-    r'ec53b08bebccb3f6e5c5f0df4a944478d6d7efa5';
+    r'fff01951fede874be84259811f98fd366e31acbb';
 
 @ProviderFor(gitHubBranches)
 final gitHubBranchesProvider = GitHubBranchesFamily._();
