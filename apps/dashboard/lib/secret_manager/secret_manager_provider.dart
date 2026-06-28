@@ -200,6 +200,7 @@ class SecretManager extends _$SecretManager {
         'Failed to generate certificate key: ${response.statusCode} ${response.body}',
       );
     }
+    ref.invalidateSelf();
   }
 }
 
