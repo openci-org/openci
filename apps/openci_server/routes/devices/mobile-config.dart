@@ -198,27 +198,13 @@ Future<Response> _post(RequestContext context) async {
     final deviceOsVersion = extractOsVersion(bodyStr);
 
     final db = context.read<AppDatabase>();
-    final existing = await db.deviceDao.findDevice(
+    await db.deviceDao.upsertDevice(
       userId: userId,
       teamId: teamId,
       udid: udid,
+      deviceProduct: deviceProduct,
+      deviceOsVersion: deviceOsVersion,
     );
-
-    if (existing != null) {
-      await db.deviceDao.updateDevice(
-        existing: existing,
-        deviceProduct: deviceProduct,
-        deviceOsVersion: deviceOsVersion,
-      );
-    } else {
-      await db.deviceDao.createDevice(
-        userId: userId,
-        teamId: teamId,
-        udid: udid,
-        deviceProduct: deviceProduct,
-        deviceOsVersion: deviceOsVersion,
-      );
-    }
 
     final redirectUrl = redirectUri
         .replace(

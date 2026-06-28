@@ -90,6 +90,49 @@ class DeviceDao extends DatabaseAccessor<AppDatabase> with _$DeviceDaoMixin {
     }
     return updated;
   }
+
+  Future<DriftUserDevice> upsertDevice({
+    required String userId,
+    required String teamId,
+    required String udid,
+    required String deviceProduct,
+    required String deviceOsVersion,
+  }) async {
+    final now = DateTime.now().toUtc();
+    final id = const Uuid().v4();
+    final device = DriftUserDevice(
+      id: id,
+      userId: userId,
+      teamId: teamId,
+      udid: udid,
+      deviceProduct: deviceProduct,
+      deviceOsVersion: deviceOsVersion,
+      createdAt: now,
+      updatedAt: now,
+    );
+
+    await into(userDevices).insert(
+      device,
+      onConflict: DoUpdate(
+        (old) => UserDevicesCompanion(
+          deviceProduct: Value(deviceProduct),
+          deviceOsVersion: Value(deviceOsVersion),
+          updatedAt: Value(now),
+        ),
+        target: [userDevices.userId, userDevices.teamId, userDevices.udid],
+      ),
+    );
+
+    final resolved = await findDevice(
+      userId: userId,
+      teamId: teamId,
+      udid: udid,
+    );
+    if (resolved == null) {
+      throw StateError('Failed to retrieve upserted device');
+    }
+    return resolved;
+  }
 }
 
 class DeviceAlreadyExistsException implements Exception {

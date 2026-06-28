@@ -177,6 +177,52 @@ void main() {
     });
 
     test(
+      'successfully updates an existing device on conflict (upsert)',
+      () async {
+        await db.deviceDao.createDevice(
+          userId: 'user-123',
+          teamId: 'team-123',
+          udid: 'test-udid-456-longer-than-25-chars',
+          deviceProduct: 'iPhone14,2',
+          deviceOsVersion: '16.5',
+        );
+
+        final context = TestRequestContext(
+          path:
+              '/devices/mobile-config?userId=user-123&teamId=team-123&redirectOrigin=https://dashboard.openci.org',
+          method: HttpMethod.post,
+          body: '''
+<?xml version="1.0" encoding="UTF-8"?>
+<plist>
+<dict>
+  <key>UDID</key>
+  <string>test-udid-456-longer-than-25-chars</string>
+  <key>PRODUCT</key>
+  <string>iPhone15,3</string>
+  <key>VERSION</key>
+  <string>17.0</string>
+</dict>
+</plist>
+''',
+        );
+        context.provide<AppDatabase>(db);
+
+        final response = await route.onRequest(context.context);
+
+        expect(response.statusCode, equals(HttpStatus.movedPermanently));
+
+        final device = await db.deviceDao.findDevice(
+          userId: 'user-123',
+          teamId: 'team-123',
+          udid: 'test-udid-456-longer-than-25-chars',
+        );
+        expect(device, isNotNull);
+        expect(device!.deviceProduct, equals('iPhone15,3'));
+        expect(device.deviceOsVersion, equals('17.0'));
+      },
+    );
+
+    test(
       'returns 400 Bad Request when userId or teamId query parameter is missing',
       () async {
         final context = TestRequestContext(
