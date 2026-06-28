@@ -12,34 +12,66 @@ FutureOr<Response> onRequest(RequestContext context) {
   };
 }
 
+Set<String> allowedRedirectOrigins = () {
+  final origins = Platform.environment['ALLOWED_ORIGINS'];
+  if (origins == null || origins.trim().isEmpty) {
+    throw StateError('ALLOWED_ORIGINS environment variable is not set');
+  }
+  final list = origins
+      .split(',')
+      .map((o) => o.trim().replaceAll(RegExp(r'/$'), ''))
+      .where((o) => o.isNotEmpty)
+      .toList();
+  return {
+    ...list,
+  };
+}();
+
 Future<Response> _get(RequestContext context) async {
   try {
     final queryParams = context.request.uri.queryParameters;
     final userId = queryParams['userId'];
     final teamId = queryParams['teamId'];
     final redirectOrigin = queryParams['redirectOrigin'];
+    final redirectUri = redirectOrigin == null
+        ? null
+        : Uri.tryParse(redirectOrigin);
 
-    if (userId == null ||
-        userId.isEmpty ||
-        teamId == null ||
-        teamId.isEmpty ||
-        redirectOrigin == null ||
-        redirectOrigin.isEmpty) {
+    if (userId == null || userId.isEmpty || teamId == null || teamId.isEmpty) {
       return Response.json(
         statusCode: HttpStatus.badRequest,
         body: {
           'success': false,
-          'error':
-              'Missing required parameters: userId, teamId, redirectOrigin',
+          'error': 'Missing required parameters: userId, teamId',
         },
       );
     }
 
-    final callbackUrl =
-        '$redirectOrigin/register-device'
-        '?userId=${Uri.encodeComponent(userId)}'
-        '&teamId=${Uri.encodeComponent(teamId)}'
-        '&redirectOrigin=${Uri.encodeComponent(redirectOrigin)}';
+    if (redirectOrigin == null ||
+        redirectOrigin.isEmpty ||
+        redirectUri == null ||
+        redirectUri.scheme != 'https' ||
+        redirectUri.host.isEmpty ||
+        !allowedRedirectOrigins.contains(redirectUri.origin)) {
+      return Response.json(
+        statusCode: HttpStatus.badRequest,
+        body: {
+          'success': false,
+          'error': 'Invalid redirectOrigin',
+        },
+      );
+    }
+
+    final callbackUrl = redirectUri
+        .resolve('/register-device')
+        .replace(
+          queryParameters: {
+            'userId': userId,
+            'teamId': teamId,
+            'redirectOrigin': redirectUri.origin,
+          },
+        )
+        .toString();
 
     final profileUuid = const Uuid().v4();
 

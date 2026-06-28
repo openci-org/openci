@@ -7,6 +7,10 @@ import 'package:test/test.dart';
 import '../../../routes/devices/mobile-config.dart' as route;
 
 void main() {
+  setUp(() {
+    route.allowedRedirectOrigins = {'https://dashboard.openci.org'};
+  });
+
   group('GET /devices/mobile-config', () {
     test('returns 400 Bad Request when userId or teamId is missing', () async {
       final context = TestRequestContext(
@@ -68,7 +72,22 @@ void main() {
       expect(response.statusCode, equals(HttpStatus.badRequest));
       final body = await response.json() as Map<String, dynamic>;
       expect(body['success'], isFalse);
-      expect(body['error'], contains('Missing required parameters'));
+      expect(body['error'], contains('Invalid redirectOrigin'));
+    });
+
+    test('returns 400 Bad Request when redirectOrigin is not allowed', () async {
+      final context = TestRequestContext(
+        path:
+            '/devices/mobile-config?userId=user-123&teamId=team-123&redirectOrigin=https://malicious.com',
+        method: HttpMethod.get,
+      );
+
+      final response = await route.onRequest(context.context);
+
+      expect(response.statusCode, equals(HttpStatus.badRequest));
+      final body = await response.json() as Map<String, dynamic>;
+      expect(body['success'], isFalse);
+      expect(body['error'], contains('Invalid redirectOrigin'));
     });
   });
 
