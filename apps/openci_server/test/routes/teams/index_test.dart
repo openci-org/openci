@@ -309,6 +309,70 @@ void main() {
     );
 
     test(
+      'responds with 200 OK and custom team ID when id is provided',
+      () async {
+        final context = TestRequestContext(
+          path: '/teams',
+          method: HttpMethod.post,
+          body: jsonEncode({'id': 'custom-team-id', 'name': 'Custom Team'}),
+        );
+
+        context.provide<AppDatabase>(db);
+        context.provide<String?>('user-1');
+
+        final response = await route.onRequest(context.context);
+
+        expect(response.statusCode, equals(HttpStatus.ok));
+
+        final body = await response.json() as Map<String, dynamic>;
+        expect(body['success'], isTrue);
+        expect(body['id'], equals('custom-team-id'));
+
+        final team = await (db.select(
+          db.teams,
+        )..where((t) => t.id.equals('custom-team-id'))).getSingleOrNull();
+        expect(team, isNotNull);
+        expect(team!.name, equals('Custom Team'));
+      },
+    );
+
+    test(
+      'responds with 409 Conflict when team with same ID already exists',
+      () async {
+        await db
+            .into(db.teams)
+            .insert(
+              DriftTeam(
+                id: 'existing-id',
+                name: 'Old Team',
+                installationIds: const [],
+                runNumber: 1,
+                aiEnabled: true,
+                createdAt: DateTime.now().toUtc(),
+                updatedAt: DateTime.now().toUtc(),
+              ),
+            );
+
+        final context = TestRequestContext(
+          path: '/teams',
+          method: HttpMethod.post,
+          body: jsonEncode({'id': 'existing-id', 'name': 'Duplicate Team'}),
+        );
+
+        context.provide<AppDatabase>(db);
+        context.provide<String?>('user-1');
+
+        final response = await route.onRequest(context.context);
+
+        expect(response.statusCode, equals(HttpStatus.conflict));
+
+        final body = await response.json() as Map<String, dynamic>;
+        expect(body['success'], isFalse);
+        expect(body['error'], contains('already exists'));
+      },
+    );
+
+    test(
       'responds with 500 Internal Server Error when database fails',
       () async {
         final mockDb = MockAppDatabase();

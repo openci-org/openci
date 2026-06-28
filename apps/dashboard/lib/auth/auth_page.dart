@@ -2,13 +2,12 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:dashboard/app_strings.dart';
 import 'package:dashboard/firebase/firebase_config_provider.dart';
-import 'package:dashboard/firebase/firestore.dart';
 import 'package:dashboard/firebase/functions.dart';
 import 'package:dashboard/firebase/plist_parser.dart';
+import 'package:dashboard/openci_server_url_provider.dart';
 import 'package:dashboard/team/selected_team_provider.dart';
 import 'package:dashboard/theme/app_colors.dart';
 import 'package:dashboard/utilities/function_error_message.dart';
@@ -21,6 +20,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
 
 void _processInvitations() {
@@ -332,26 +332,41 @@ class AuthPage extends HookConsumerWidget {
                                                 final userId =
                                                     credential.user!.uid;
                                                 final teamId = userId;
-                                                final timestamp =
-                                                    FieldValue.serverTimestamp();
-                                                final batch = firestore.batch();
-                                                batch.set(
-                                                  firestore
-                                                      .collection(
-                                                        teamsCollection,
-                                                      )
-                                                      .doc(teamId),
-                                                  {
-                                                    'id': teamId,
-                                                    'name': teamId,
-                                                    'members': [userId],
-                                                    'installationIds': <int>[],
-                                                    'aiEnabled': true,
-                                                    'createdAt': timestamp,
-                                                    'updatedAt': timestamp,
-                                                  },
+                                                final idToken = await credential
+                                                    .user!
+                                                    .getIdToken();
+                                                final serverUrl = ref.read(
+                                                  openciServerUrlProvider,
                                                 );
-                                                await batch.commit();
+
+                                                final response = await http
+                                                    .post(
+                                                      Uri.parse(
+                                                        '$serverUrl/teams',
+                                                      ),
+                                                      headers: {
+                                                        'Authorization':
+                                                            'Bearer $idToken',
+                                                        'Content-Type':
+                                                            'application/json',
+                                                      },
+                                                      body: jsonEncode({
+                                                        'id': teamId,
+                                                        'name': teamId,
+                                                      }),
+                                                    )
+                                                    .timeout(
+                                                      const Duration(
+                                                        seconds: 10,
+                                                      ),
+                                                    );
+
+                                                if (response.statusCode !=
+                                                    200) {
+                                                  throw StateError(
+                                                    'Failed to initialize team on the server: ${response.body}',
+                                                  );
+                                                }
                                                 await ref
                                                     .read(
                                                       selectedTeamIdProvider

@@ -88,7 +88,39 @@ Future<Response> _post(RequestContext context) async {
       );
     }
 
-    final teamId = const Uuid().v4();
+    if (payload.containsKey('id') && payload['id'] is! String) {
+      return Response.json(
+        statusCode: HttpStatus.badRequest,
+        body: {
+          'success': false,
+          'error': 'id must be a string',
+        },
+      );
+    }
+
+    final payloadId = payload['id'] as String?;
+    final trimmedPayloadId = payloadId?.trim();
+    if (trimmedPayloadId != null && trimmedPayloadId.isEmpty) {
+      return Response.json(
+        statusCode: HttpStatus.badRequest,
+        body: {'success': false, 'error': 'id cannot be empty'},
+      );
+    }
+
+    if (trimmedPayloadId != null) {
+      final existingTeam = await db.teamDao.getTeam(trimmedPayloadId);
+      if (existingTeam != null) {
+        return Response.json(
+          statusCode: HttpStatus.conflict,
+          body: {
+            'success': false,
+            'error': 'Team with ID $trimmedPayloadId already exists',
+          },
+        );
+      }
+    }
+
+    final teamId = trimmedPayloadId ?? const Uuid().v4();
     final now = DateTime.now().toUtc();
 
     final driftTeam = DriftTeam(
