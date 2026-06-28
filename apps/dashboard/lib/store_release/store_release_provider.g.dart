@@ -211,7 +211,7 @@ final class SubmitToTestFlightProvider
 }
 
 String _$submitToTestFlightHash() =>
-    r'da24b1a41f6cbdc3c128341714ce7a513726c647';
+    r'018a921a24ff1072993ecb7ad0ddd9683fc4d471';
 
 abstract class _$SubmitToTestFlight extends $AsyncNotifier<void> {
   FutureOr<void> build();
@@ -255,7 +255,7 @@ final class SubmitForReviewProvider
   SubmitForReview create() => SubmitForReview();
 }
 
-String _$submitForReviewHash() => r'f2f68931158d36aff51409f96ae774a7e5c6b58e';
+String _$submitForReviewHash() => r'1e08bd9cff659f50413187b2a2d5275339171dd9';
 
 abstract class _$SubmitForReview extends $AsyncNotifier<void> {
   FutureOr<void> build();
