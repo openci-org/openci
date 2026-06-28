@@ -8,7 +8,6 @@ import 'package:dashboard/utilities/adaptive_modal.dart';
 import 'package:dashboard/utilities/breakpoint.dart';
 import 'package:dashboard/utilities/function_error_message.dart';
 import 'package:dashboard/utilities/snack_bar_extension.dart';
-import 'package:dashboard/workflow/list/workflow_file_provider.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -16,61 +15,10 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:intl/intl.dart';
 
-/// Extract secret names referenced in workflow YAML content.
-Set<String> _extractSecretNames(String content) {
-  final regex = RegExp(r'secrets\.([A-Za-z_][A-Za-z0-9_]*)');
-  return regex.allMatches(content).map((m) => m.group(1)!).toSet();
-}
-
 const _secretManagerContentMaxWidth = 540.0;
 
 String _formatSecretUpdatedAt(DateTime value) {
   return DateFormat('yyyy/MM/dd HH:mm').format(value.toLocal());
-}
-
-/// Group secrets by workflow usage.
-/// Returns a map: workflow name -> list of secrets used in that workflow.
-/// Also returns an "unused" group for secrets not in any workflow.
-({
-  List<({String workflowName, List<Secret> secrets})> groups,
-  List<Secret> unused,
-})
-_groupSecretsByWorkflow(
-  List<Secret> secrets,
-  List<WorkflowFile> workflowFiles,
-) {
-  // Build mapping: workflow name -> set of secret names
-  final workflowSecrets = <String, Set<String>>{};
-  for (final wf in workflowFiles) {
-    workflowSecrets[wf.name] = _extractSecretNames(wf.content);
-  }
-
-  // Track which secrets are used in at least one workflow
-  final usedSecretNames = <String>{};
-  for (final names in workflowSecrets.values) {
-    usedSecretNames.addAll(names);
-  }
-
-  // Build groups
-  final groups = <({String workflowName, List<Secret> secrets})>[];
-  for (final entry in workflowSecrets.entries) {
-    final matchedSecrets = secrets
-        .where((s) => entry.value.contains(s.name))
-        .toList();
-    if (matchedSecrets.isNotEmpty) {
-      groups.add((workflowName: entry.key, secrets: matchedSecrets));
-    }
-  }
-
-  // Sort groups by workflow name
-  groups.sort((a, b) => a.workflowName.compareTo(b.workflowName));
-
-  // Unused secrets
-  final unused = secrets
-      .where((s) => !usedSecretNames.contains(s.name))
-      .toList();
-
-  return (groups: groups, unused: unused);
 }
 
 class SecretManagerTab extends HookConsumerWidget {
@@ -80,7 +28,6 @@ class SecretManagerTab extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final colors = AppColors.of(context);
     final state = ref.watch(secretManagerProvider);
-    final workflowFilesAsync = ref.watch(workflowFilesProvider);
     final secretsT = t.secrets;
     final isDesktop =
         Breakpoint.fromWidth(MediaQuery.sizeOf(context).width) ==
@@ -173,81 +120,35 @@ class SecretManagerTab extends HookConsumerWidget {
             );
           }
 
-          return workflowFilesAsync.when(
-            loading: () => _SecretListSkeleton(
-              setupCards: setupCards,
-              showAddAction: isDesktop,
-              onAddSecret: () => _showAddSecretSheet(context),
-            ),
-            error: (error, stack) => Center(
-              child: Text(
-                t.common.error(error: error.toString()),
-                style: TextStyle(color: colors.error),
-              ),
-            ),
-            data: (workflowFiles) {
-              final grouped = _groupSecretsByWorkflow(secrets, workflowFiles);
-
-              return ListView(
-                padding: const EdgeInsets.only(top: 12, bottom: 80),
-                children: [
-                  if (isDesktop)
-                    _SecretManagerDesktopAction(
-                      onPressed: () => _showAddSecretSheet(context),
+          return ListView(
+            padding: const EdgeInsets.only(top: 12, bottom: 80),
+            children: [
+              if (isDesktop)
+                _SecretManagerDesktopAction(
+                  onPressed: () => _showAddSecretSheet(context),
+                ),
+              // Setup cards
+              ...setupCards.map(
+                (card) => Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(
+                      maxWidth: _secretManagerContentMaxWidth,
                     ),
-                  // Setup cards
-                  ...setupCards.map(
-                    (card) => Center(
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(
-                          maxWidth: _secretManagerContentMaxWidth,
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 4,
-                          ),
-                          child: card,
-                        ),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 4,
                       ),
+                      child: card,
                     ),
                   ),
-                  // Grouped sections
-                  for (final group in grouped.groups) ...[
-                    _SectionHeader(
-                      icon: Icons.description_outlined,
-                      title: group.workflowName,
-                      count: group.secrets.length,
-                    ),
-                    ...group.secrets.map(
-                      (secret) => _SecretListTile(secret: secret),
-                    ),
-                  ],
-                  // Unused section
-                  if (workflowFiles.isNotEmpty &&
-                      grouped.unused.isNotEmpty) ...[
-                    _SectionHeader(
-                      icon: Icons.warning_amber_rounded,
-                      title: secretsT.unusedSecrets,
-                      count: grouped.unused.length,
-                      isWarning: true,
-                    ),
-                    ...grouped.unused.map(
-                      (secret) => _SecretListTile(
-                        secret: secret,
-                        isUnused: true,
-                      ),
-                    ),
-                  ],
-                  // If no workflows exist, show flat list without marking all as unused.
-                  if (workflowFiles.isEmpty && grouped.groups.isEmpty) ...[
-                    ...secrets.map(
-                      (secret) => _SecretListTile(secret: secret),
-                    ),
-                  ],
-                ],
-              );
-            },
+                ),
+              ),
+              // Flat list of secrets
+              ...secrets.map(
+                (secret) => _SecretListTile(secret: secret),
+              ),
+            ],
           );
         },
         loading: () => const _SecretManagerLoadingState(),
@@ -265,51 +166,6 @@ class SecretManagerTab extends HookConsumerWidget {
     showAdaptiveFormModal(
       context: context,
       builder: (context) => const _AddSecretBottomSheet(),
-    );
-  }
-}
-
-class _SecretListSkeleton extends StatelessWidget {
-  const _SecretListSkeleton({
-    required this.setupCards,
-    required this.showAddAction,
-    required this.onAddSecret,
-  });
-
-  final List<Widget> setupCards;
-  final bool showAddAction;
-  final VoidCallback onAddSecret;
-
-  @override
-  Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.only(top: 12, bottom: 80),
-      children: [
-        if (showAddAction)
-          _SecretManagerDesktopAction(
-            onPressed: onAddSecret,
-          ),
-        ...setupCards.map(
-          (card) => Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(
-                maxWidth: _secretManagerContentMaxWidth,
-              ),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 4,
-                ),
-                child: card,
-              ),
-            ),
-          ),
-        ),
-        const _SecretLoadingContent(
-          message: 'ワークフローでの利用状況を読み込み中',
-          topPadding: 12,
-        ),
-      ],
     );
   }
 }
@@ -568,89 +424,12 @@ class _SecretLoadingBlock extends StatelessWidget {
   }
 }
 
-class _SectionHeader extends StatelessWidget {
-  const _SectionHeader({
-    required this.icon,
-    required this.title,
-    required this.count,
-    this.isWarning = false,
-  });
-
-  final IconData icon;
-  final String title;
-  final int count;
-  final bool isWarning;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = AppColors.of(context);
-    final color = isWarning ? colors.warning : colors.accent;
-
-    return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(
-          maxWidth: _secretManagerContentMaxWidth,
-        ),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
-          child: Row(
-            children: [
-              Container(
-                width: 28,
-                height: 28,
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(7),
-                ),
-                child: Icon(icon, size: 14, color: color),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: colors.textSecondary,
-                    letterSpacing: 0,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 8,
-                  vertical: 3,
-                ),
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Text(
-                  '$count',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: color,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 class _SecretListTile extends ConsumerWidget {
   const _SecretListTile({
     required this.secret,
-    this.isUnused = false,
   });
 
   final Secret secret;
-  final bool isUnused;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -669,9 +448,7 @@ class _SecretListTile extends ConsumerWidget {
               color: colors.surface,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: isUnused
-                    ? colors.warning.withValues(alpha: 0.2)
-                    : colors.border,
+                color: colors.border,
               ),
             ),
             child: Padding(
@@ -686,15 +463,13 @@ class _SecretListTile extends ConsumerWidget {
                     width: 32,
                     height: 32,
                     decoration: BoxDecoration(
-                      color: isUnused
-                          ? colors.warning.withValues(alpha: 0.1)
-                          : colors.accent.withValues(alpha: 0.1),
+                      color: colors.accent.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Icon(
                       Icons.key_rounded,
                       size: 16,
-                      color: isUnused ? colors.warning : colors.accent,
+                      color: colors.accent,
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -708,12 +483,7 @@ class _SecretListTile extends ConsumerWidget {
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
                             fontFamily: 'monospace',
-                            color: isUnused
-                                ? colors.textTertiary
-                                : colors.textPrimary,
-                            decoration: isUnused
-                                ? TextDecoration.lineThrough
-                                : null,
+                            color: colors.textPrimary,
                           ),
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -727,12 +497,6 @@ class _SecretListTile extends ConsumerWidget {
                               label:
                                   '${secretsT.lastUpdated} ${_formatSecretUpdatedAt(secret.updatedAt)}',
                             ),
-                            if (isUnused)
-                              _SecretMetaChip(
-                                icon: Icons.warning_amber_rounded,
-                                label: secretsT.notUsedInWorkflows,
-                                color: colors.warning,
-                              ),
                           ],
                         ),
                       ],
@@ -857,17 +621,15 @@ class _SecretMetaChip extends StatelessWidget {
   const _SecretMetaChip({
     required this.icon,
     required this.label,
-    this.color,
   });
 
   final IconData icon;
   final String label;
-  final Color? color;
 
   @override
   Widget build(BuildContext context) {
     final colors = AppColors.of(context);
-    final effectiveColor = color ?? colors.textTertiary;
+    final effectiveColor = colors.textTertiary;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
