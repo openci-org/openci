@@ -8,15 +8,12 @@ part of 'store_release_provider.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
-/// Whether ASC API credentials are configured for the current team.
 
 @ProviderFor(IsAscConfigured)
 final isAscConfiguredProvider = IsAscConfiguredProvider._();
 
-/// Whether ASC API credentials are configured for the current team.
 final class IsAscConfiguredProvider
     extends $StreamNotifierProvider<IsAscConfigured, bool> {
-  /// Whether ASC API credentials are configured for the current team.
   IsAscConfiguredProvider._()
     : super(
         from: null,
@@ -38,8 +35,6 @@ final class IsAscConfiguredProvider
 
 String _$isAscConfiguredHash() => r'2fb815f059cbbc9b7b49503b70483ed44e83bf0d';
 
-/// Whether ASC API credentials are configured for the current team.
-
 abstract class _$IsAscConfigured extends $StreamNotifier<bool> {
   Stream<bool> build();
   @$mustCallSuper
@@ -58,15 +53,11 @@ abstract class _$IsAscConfigured extends $StreamNotifier<bool> {
   }
 }
 
-/// Fetch the list of apps from App Store Connect.
-
 @ProviderFor(AscApps)
 final ascAppsProvider = AscAppsProvider._();
 
-/// Fetch the list of apps from App Store Connect.
 final class AscAppsProvider
     extends $AsyncNotifierProvider<AscApps, List<AscApp>> {
-  /// Fetch the list of apps from App Store Connect.
   AscAppsProvider._()
     : super(
         from: null,
@@ -86,9 +77,7 @@ final class AscAppsProvider
   AscApps create() => AscApps();
 }
 
-String _$ascAppsHash() => r'ee0d153df209a5cd6040e78697057bb9cc00398c';
-
-/// Fetch the list of apps from App Store Connect.
+String _$ascAppsHash() => r'f19795fc4f56cd92919f68bf52870fb806eca54f';
 
 abstract class _$AscApps extends $AsyncNotifier<List<AscApp>> {
   FutureOr<List<AscApp>> build();
@@ -108,15 +97,11 @@ abstract class _$AscApps extends $AsyncNotifier<List<AscApp>> {
   }
 }
 
-/// Fetch builds for a specific app.
-
 @ProviderFor(AscBuilds)
 final ascBuildsProvider = AscBuildsFamily._();
 
-/// Fetch builds for a specific app.
 final class AscBuildsProvider
     extends $AsyncNotifierProvider<AscBuilds, List<AscBuild>> {
-  /// Fetch builds for a specific app.
   AscBuildsProvider._({
     required AscBuildsFamily super.from,
     required String super.argument,
@@ -155,8 +140,6 @@ final class AscBuildsProvider
 
 String _$ascBuildsHash() => r'd84a480db2d9575d2c8ce8f9c67f479aaea9b615';
 
-/// Fetch builds for a specific app.
-
 final class AscBuildsFamily extends $Family
     with
         $ClassFamilyOverride<
@@ -175,16 +158,12 @@ final class AscBuildsFamily extends $Family
         isAutoDispose: true,
       );
 
-  /// Fetch builds for a specific app.
-
   AscBuildsProvider call(String appId) =>
       AscBuildsProvider._(argument: appId, from: this);
 
   @override
   String toString() => r'ascBuildsProvider';
 }
-
-/// Fetch builds for a specific app.
 
 abstract class _$AscBuilds extends $AsyncNotifier<List<AscBuild>> {
   late final _$args = ref.$arg as String;
@@ -207,15 +186,11 @@ abstract class _$AscBuilds extends $AsyncNotifier<List<AscBuild>> {
   }
 }
 
-/// Submit a build to TestFlight (external beta testing).
-
 @ProviderFor(SubmitToTestFlight)
 final submitToTestFlightProvider = SubmitToTestFlightProvider._();
 
-/// Submit a build to TestFlight (external beta testing).
 final class SubmitToTestFlightProvider
     extends $AsyncNotifierProvider<SubmitToTestFlight, void> {
-  /// Submit a build to TestFlight (external beta testing).
   SubmitToTestFlightProvider._()
     : super(
         from: null,
@@ -238,8 +213,6 @@ final class SubmitToTestFlightProvider
 String _$submitToTestFlightHash() =>
     r'da24b1a41f6cbdc3c128341714ce7a513726c647';
 
-/// Submit a build to TestFlight (external beta testing).
-
 abstract class _$SubmitToTestFlight extends $AsyncNotifier<void> {
   FutureOr<void> build();
   @$mustCallSuper
@@ -258,15 +231,11 @@ abstract class _$SubmitToTestFlight extends $AsyncNotifier<void> {
   }
 }
 
-/// Submit a build for App Store Review.
-
 @ProviderFor(SubmitForReview)
 final submitForReviewProvider = SubmitForReviewProvider._();
 
-/// Submit a build for App Store Review.
 final class SubmitForReviewProvider
     extends $AsyncNotifierProvider<SubmitForReview, void> {
-  /// Submit a build for App Store Review.
   SubmitForReviewProvider._()
     : super(
         from: null,
@@ -288,8 +257,6 @@ final class SubmitForReviewProvider
 
 String _$submitForReviewHash() => r'f2f68931158d36aff51409f96ae774a7e5c6b58e';
 
-/// Submit a build for App Store Review.
-
 abstract class _$SubmitForReview extends $AsyncNotifier<void> {
   FutureOr<void> build();
   @$mustCallSuper
@@ -308,15 +275,11 @@ abstract class _$SubmitForReview extends $AsyncNotifier<void> {
   }
 }
 
-/// Setup ASC API credentials.
-
 @ProviderFor(SetupAscCredentials)
 final setupAscCredentialsProvider = SetupAscCredentialsProvider._();
 
-/// Setup ASC API credentials.
 final class SetupAscCredentialsProvider
     extends $AsyncNotifierProvider<SetupAscCredentials, void> {
-  /// Setup ASC API credentials.
   SetupAscCredentialsProvider._()
     : super(
         from: null,
@@ -338,8 +301,6 @@ final class SetupAscCredentialsProvider
 
 String _$setupAscCredentialsHash() =>
     r'3ea372cae78329dfe685587ff010a6999a8fa5b8';
-
-/// Setup ASC API credentials.
 
 abstract class _$SetupAscCredentials extends $AsyncNotifier<void> {
   FutureOr<void> build();
