@@ -2,7 +2,6 @@ import 'dart:convert';
 
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:dashboard/app_strings.dart';
-import 'package:dashboard/environment_variables/environment_variables_page.dart';
 import 'package:dashboard/secret_manager/secret_manager_provider.dart';
 import 'package:dashboard/theme/app_colors.dart';
 import 'package:dashboard/utilities/adaptive_modal.dart';
@@ -166,9 +165,7 @@ class SecretManagerTab extends HookConsumerWidget {
                           ],
                         ),
                       ),
-                      const SizedBox(height: 14),
                       ...setupCards,
-                      const EnvironmentVariablesInlineSection(topPadding: 22),
                     ],
                   ),
                 ),
@@ -248,7 +245,6 @@ class SecretManagerTab extends HookConsumerWidget {
                       (secret) => _SecretListTile(secret: secret),
                     ),
                   ],
-                  const EnvironmentVariablesInlineSection(),
                 ],
               );
             },

@@ -231,21 +231,31 @@ class ApiClient {
     return response['cancelled'] as bool? ?? false;
   }
 
-  /// Retrieves environment variables associated with the team.
-  Future<List<Map<String, dynamic>>> getEnvironmentVariables(
-    String teamId,
-  ) async {
-    final response = await callApi('get-environment-variables', {
-      'teamId': teamId,
-    });
-    final list = response['environmentVariables'] as List<dynamic>?;
-    if (list == null) return [];
-    return list.map((e) => Map<String, dynamic>.from(e as Map)).toList();
-  }
+  /// Saves or updates a secret value associated with the team.
+  Future<void> saveSecret({
+    required String teamId,
+    required String name,
+    required String value,
+  }) async {
+    if (serverUrl == null || serverUrl!.isEmpty) {
+      throw StateError('OPENCI_SERVER_URL must be configured to save secrets.');
+    }
 
-  /// Increments or updates environment variable value.
-  Future<void> updateEnvironmentVariable(String id, String value) async {
-    await callApi('update-environment-variable', {'id': id, 'value': value});
+    final url = Uri.parse('$serverUrl/teams/$teamId/secrets');
+    final idToken = await authManager.getIdToken();
+    final response = await http.post(
+      url,
+      headers: {
+        'Authorization': 'Bearer $idToken',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({'name': name, 'value': value}),
+    );
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw HttpException(
+        'Failed to save secret: ${response.statusCode} ${response.body}',
+      );
+    }
   }
 
   /// Retrieves secrets associated with the team.

@@ -499,38 +499,42 @@ Future<Map<String, String>> buildEnvVars({
   };
 
   if (teamId != null) {
-    final variables = await apiClient.getEnvironmentVariables(teamId);
+    try {
+      final secretMetadataList = await apiClient.getSecrets(teamId);
+      final hasBuildNumber = secretMetadataList.any(
+        (meta) => meta['name'] == 'OPENCI_BUILD_NUMBER',
+      );
 
-    for (final envVarData in variables) {
-      final key = envVarData['key'] as String;
-      var value = envVarData['value'] as String;
-      final autoIncrement = envVarData['autoIncrement'] as bool? ?? false;
-
-      if (autoIncrement) {
-        final numValue = int.tryParse(value);
-        if (numValue != null) {
-          final nextVal = '${numValue + 1}';
-          await apiClient.updateEnvironmentVariable(
-            envVarData['id'] as String,
-            nextVal,
-          );
-          await logInfo(
-            buildJobId,
-            runId,
-            'Auto-incremented $key: $value → $nextVal',
-          );
-          value = nextVal;
+      if (hasBuildNumber) {
+        final value = await apiClient.getSecretValue(
+          teamId,
+          'OPENCI_BUILD_NUMBER',
+        );
+        if (value.isNotEmpty) {
+          final numValue = int.tryParse(value);
+          if (numValue != null) {
+            final nextVal = '${numValue + 1}';
+            await apiClient.saveSecret(
+              teamId: teamId,
+              name: 'OPENCI_BUILD_NUMBER',
+              value: nextVal,
+            );
+            await logInfo(
+              buildJobId,
+              runId,
+              'Auto-incremented OPENCI_BUILD_NUMBER: $value → $nextVal',
+            );
+            envVars['OPENCI_BUILD_NUMBER'] = nextVal;
+          } else {
+            envVars['OPENCI_BUILD_NUMBER'] = value;
+          }
         }
       }
-
-      envVars[key] = value;
-    }
-
-    if (variables.isNotEmpty) {
-      await logInfo(
+    } catch (e) {
+      await logWarning(
         buildJobId,
         runId,
-        'Loaded ${variables.length} environment variable(s)',
+        'Failed to load or auto-increment OPENCI_BUILD_NUMBER: $e',
       );
     }
   }
