@@ -17,6 +17,7 @@ dependencies:
   firebase_admin_sdk: ^0.5.3
   github: ^9.25.1
   http: ^1.6.0
+  meta: ^1.17.0
   minio: ^3.5.8
   openci_shared: ^1.0.1
   postgres: ^3.5.11
