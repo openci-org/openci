@@ -351,24 +351,6 @@ class AuthPage extends HookConsumerWidget {
                                                     'updatedAt': timestamp,
                                                   },
                                                 );
-                                                batch.set(
-                                                  firestore
-                                                      .collection(
-                                                        usersCollection,
-                                                      )
-                                                      .doc(userId),
-                                                  {
-                                                    'id': userId,
-                                                    'email':
-                                                        credential
-                                                            .user!
-                                                            .email ??
-                                                        emailController.text,
-                                                    'createdAt': timestamp,
-                                                    'updatedAt': timestamp,
-                                                  },
-                                                  SetOptions(merge: true),
-                                                );
                                                 await batch.commit();
                                                 await ref
                                                     .read(

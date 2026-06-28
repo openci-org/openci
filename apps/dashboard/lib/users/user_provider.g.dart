@@ -6,32 +6,11 @@ part of 'user_provider.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-_OpenCIUser _$OpenCIUserFromJson(Map<String, dynamic> json) => _OpenCIUser(
-  id: json['id'] as String,
-  teamUdids:
-      (json['teamUdids'] as Map<String, dynamic>?)?.map(
-        (k, e) => MapEntry(k, e as String),
-      ) ??
-      const {},
-  teamDeviceProducts:
-      (json['teamDeviceProducts'] as Map<String, dynamic>?)?.map(
-        (k, e) => MapEntry(k, e as String),
-      ) ??
-      const {},
-  teamDeviceOsVersions:
-      (json['teamDeviceOsVersions'] as Map<String, dynamic>?)?.map(
-        (k, e) => MapEntry(k, e as String),
-      ) ??
-      const {},
-);
+_OpenCIUser _$OpenCIUserFromJson(Map<String, dynamic> json) =>
+    _OpenCIUser(id: json['id'] as String);
 
 Map<String, dynamic> _$OpenCIUserToJson(_OpenCIUser instance) =>
-    <String, dynamic>{
-      'id': instance.id,
-      'teamUdids': instance.teamUdids,
-      'teamDeviceProducts': instance.teamDeviceProducts,
-      'teamDeviceOsVersions': instance.teamDeviceOsVersions,
-    };
+    <String, dynamic>{'id': instance.id};
 
 // **************************************************************************
 // RiverpodGenerator
@@ -63,7 +42,7 @@ final class UserProvider extends $StreamNotifierProvider<User, OpenCIUser> {
   User create() => User();
 }
 
-String _$userHash() => r'25608f4b8df64b9822b2eb9b5d4d3f6087c6c8bf';
+String _$userHash() => r'8077201c08ee9c11c1ddd681725e2e354e5fdabf';
 
 abstract class _$User extends $StreamNotifier<OpenCIUser> {
   Stream<OpenCIUser> build();
@@ -76,6 +55,51 @@ abstract class _$User extends $StreamNotifier<OpenCIUser> {
             as $ClassProviderElement<
               AnyNotifier<AsyncValue<OpenCIUser>, OpenCIUser>,
               AsyncValue<OpenCIUser>,
+              Object?,
+              Object?
+            >;
+    element.handleCreate(ref, build);
+  }
+}
+
+@ProviderFor(UserDevices)
+final userDevicesProvider = UserDevicesProvider._();
+
+final class UserDevicesProvider
+    extends $StreamNotifierProvider<UserDevices, List<UserDevice>> {
+  UserDevicesProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'userDevicesProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$userDevicesHash();
+
+  @$internal
+  @override
+  UserDevices create() => UserDevices();
+}
+
+String _$userDevicesHash() => r'12cf9fc6eb9a6131fa3a8b53b8c0bc406d04d6b8';
+
+abstract class _$UserDevices extends $StreamNotifier<List<UserDevice>> {
+  Stream<List<UserDevice>> build();
+  @$mustCallSuper
+  @override
+  void runBuild() {
+    final ref =
+        this.ref as $Ref<AsyncValue<List<UserDevice>>, List<UserDevice>>;
+    final element =
+        ref.element
+            as $ClassProviderElement<
+              AnyNotifier<AsyncValue<List<UserDevice>>, List<UserDevice>>,
+              AsyncValue<List<UserDevice>>,
               Object?,
               Object?
             >;

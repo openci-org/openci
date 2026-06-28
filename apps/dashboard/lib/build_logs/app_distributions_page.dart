@@ -218,7 +218,17 @@ class _DeviceEnrollmentHeader extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final serverUrl = ref.watch(openciServerUrlProvider);
     final selectedTeamId = ref.watch(selectedTeamIdProvider).value;
-    final userUdid = user.currentTeamUdid(selectedTeamId);
+    final devicesAsync = ref.watch(userDevicesProvider);
+
+    String? userUdid;
+    if (devicesAsync.value != null && selectedTeamId != null) {
+      for (final d in devicesAsync.value!) {
+        if (d.teamId == selectedTeamId) {
+          userUdid = d.udid;
+          break;
+        }
+      }
+    }
     final hasUdid = userUdid != null && userUdid.isNotEmpty;
     final isUdidVisible = useState(false);
 
@@ -425,7 +435,16 @@ class _BuildListItem extends HookConsumerWidget {
         '${buildJob.createdAt.toLocal().year}/${buildJob.createdAt.toLocal().month.toString().padLeft(2, '0')}/${buildJob.createdAt.toLocal().day.toString().padLeft(2, '0')} ${buildJob.createdAt.toLocal().hour.toString().padLeft(2, '0')}:${buildJob.createdAt.toLocal().minute.toString().padLeft(2, '0')}';
 
     final selectedTeamId = ref.watch(selectedTeamIdProvider).value;
-    final userUdid = user.currentTeamUdid(selectedTeamId);
+    final devicesAsync = ref.watch(userDevicesProvider);
+    String? userUdid;
+    if (devicesAsync.value != null && selectedTeamId != null) {
+      for (final d in devicesAsync.value!) {
+        if (d.teamId == selectedTeamId) {
+          userUdid = d.udid;
+          break;
+        }
+      }
+    }
     final isUdidProvisioned =
         userUdid != null &&
         buildJob.provisionedUdids != null &&
@@ -688,7 +707,7 @@ class _BuildListItem extends HookConsumerWidget {
                                   .toUtc()
                                   .toIso8601String();
                               await Clipboard.setData(
-                                ClipboardData(text: userUdid),
+                                ClipboardData(text: userUdid!),
                               );
                               await firestore
                                   .collection(udidRequestsCollection)

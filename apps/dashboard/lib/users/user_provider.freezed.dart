@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$OpenCIUser {
 
- String get id; Map<String, String> get teamUdids; Map<String, String> get teamDeviceProducts; Map<String, String> get teamDeviceOsVersions;
+ String get id;
 /// Create a copy of OpenCIUser
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +28,16 @@ $OpenCIUserCopyWith<OpenCIUser> get copyWith => _$OpenCIUserCopyWithImpl<OpenCIU
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is OpenCIUser&&(identical(other.id, id) || other.id == id)&&const DeepCollectionEquality().equals(other.teamUdids, teamUdids)&&const DeepCollectionEquality().equals(other.teamDeviceProducts, teamDeviceProducts)&&const DeepCollectionEquality().equals(other.teamDeviceOsVersions, teamDeviceOsVersions));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is OpenCIUser&&(identical(other.id, id) || other.id == id));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,const DeepCollectionEquality().hash(teamUdids),const DeepCollectionEquality().hash(teamDeviceProducts),const DeepCollectionEquality().hash(teamDeviceOsVersions));
+int get hashCode => Object.hash(runtimeType,id);
 
 @override
 String toString() {
-  return 'OpenCIUser(id: $id, teamUdids: $teamUdids, teamDeviceProducts: $teamDeviceProducts, teamDeviceOsVersions: $teamDeviceOsVersions)';
+  return 'OpenCIUser(id: $id)';
 }
 
 
@@ -48,7 +48,7 @@ abstract mixin class $OpenCIUserCopyWith<$Res>  {
   factory $OpenCIUserCopyWith(OpenCIUser value, $Res Function(OpenCIUser) _then) = _$OpenCIUserCopyWithImpl;
 @useResult
 $Res call({
- String id, Map<String, String> teamUdids, Map<String, String> teamDeviceProducts, Map<String, String> teamDeviceOsVersions
+ String id
 });
 
 
@@ -65,13 +65,10 @@ class _$OpenCIUserCopyWithImpl<$Res>
 
 /// Create a copy of OpenCIUser
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? teamUdids = null,Object? teamDeviceProducts = null,Object? teamDeviceOsVersions = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
-as String,teamUdids: null == teamUdids ? _self.teamUdids : teamUdids // ignore: cast_nullable_to_non_nullable
-as Map<String, String>,teamDeviceProducts: null == teamDeviceProducts ? _self.teamDeviceProducts : teamDeviceProducts // ignore: cast_nullable_to_non_nullable
-as Map<String, String>,teamDeviceOsVersions: null == teamDeviceOsVersions ? _self.teamDeviceOsVersions : teamDeviceOsVersions // ignore: cast_nullable_to_non_nullable
-as Map<String, String>,
+as String,
   ));
 }
 
@@ -156,10 +153,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  Map<String, String> teamUdids,  Map<String, String> teamDeviceProducts,  Map<String, String> teamDeviceOsVersions)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _OpenCIUser() when $default != null:
-return $default(_that.id,_that.teamUdids,_that.teamDeviceProducts,_that.teamDeviceOsVersions);case _:
+return $default(_that.id);case _:
   return orElse();
 
 }
@@ -177,10 +174,10 @@ return $default(_that.id,_that.teamUdids,_that.teamDeviceProducts,_that.teamDevi
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  Map<String, String> teamUdids,  Map<String, String> teamDeviceProducts,  Map<String, String> teamDeviceOsVersions)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id)  $default,) {final _that = this;
 switch (_that) {
 case _OpenCIUser():
-return $default(_that.id,_that.teamUdids,_that.teamDeviceProducts,_that.teamDeviceOsVersions);case _:
+return $default(_that.id);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -197,10 +194,10 @@ return $default(_that.id,_that.teamUdids,_that.teamDeviceProducts,_that.teamDevi
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  Map<String, String> teamUdids,  Map<String, String> teamDeviceProducts,  Map<String, String> teamDeviceOsVersions)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id)?  $default,) {final _that = this;
 switch (_that) {
 case _OpenCIUser() when $default != null:
-return $default(_that.id,_that.teamUdids,_that.teamDeviceProducts,_that.teamDeviceOsVersions);case _:
+return $default(_that.id);case _:
   return null;
 
 }
@@ -212,31 +209,10 @@ return $default(_that.id,_that.teamUdids,_that.teamDeviceProducts,_that.teamDevi
 @JsonSerializable()
 
 class _OpenCIUser extends OpenCIUser {
-  const _OpenCIUser({required this.id, final  Map<String, String> teamUdids = const {}, final  Map<String, String> teamDeviceProducts = const {}, final  Map<String, String> teamDeviceOsVersions = const {}}): _teamUdids = teamUdids,_teamDeviceProducts = teamDeviceProducts,_teamDeviceOsVersions = teamDeviceOsVersions,super._();
+  const _OpenCIUser({required this.id}): super._();
   factory _OpenCIUser.fromJson(Map<String, dynamic> json) => _$OpenCIUserFromJson(json);
 
 @override final  String id;
- final  Map<String, String> _teamUdids;
-@override@JsonKey() Map<String, String> get teamUdids {
-  if (_teamUdids is EqualUnmodifiableMapView) return _teamUdids;
-  // ignore: implicit_dynamic_type
-  return EqualUnmodifiableMapView(_teamUdids);
-}
-
- final  Map<String, String> _teamDeviceProducts;
-@override@JsonKey() Map<String, String> get teamDeviceProducts {
-  if (_teamDeviceProducts is EqualUnmodifiableMapView) return _teamDeviceProducts;
-  // ignore: implicit_dynamic_type
-  return EqualUnmodifiableMapView(_teamDeviceProducts);
-}
-
- final  Map<String, String> _teamDeviceOsVersions;
-@override@JsonKey() Map<String, String> get teamDeviceOsVersions {
-  if (_teamDeviceOsVersions is EqualUnmodifiableMapView) return _teamDeviceOsVersions;
-  // ignore: implicit_dynamic_type
-  return EqualUnmodifiableMapView(_teamDeviceOsVersions);
-}
-
 
 /// Create a copy of OpenCIUser
 /// with the given fields replaced by the non-null parameter values.
@@ -251,16 +227,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _OpenCIUser&&(identical(other.id, id) || other.id == id)&&const DeepCollectionEquality().equals(other._teamUdids, _teamUdids)&&const DeepCollectionEquality().equals(other._teamDeviceProducts, _teamDeviceProducts)&&const DeepCollectionEquality().equals(other._teamDeviceOsVersions, _teamDeviceOsVersions));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _OpenCIUser&&(identical(other.id, id) || other.id == id));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,const DeepCollectionEquality().hash(_teamUdids),const DeepCollectionEquality().hash(_teamDeviceProducts),const DeepCollectionEquality().hash(_teamDeviceOsVersions));
+int get hashCode => Object.hash(runtimeType,id);
 
 @override
 String toString() {
-  return 'OpenCIUser(id: $id, teamUdids: $teamUdids, teamDeviceProducts: $teamDeviceProducts, teamDeviceOsVersions: $teamDeviceOsVersions)';
+  return 'OpenCIUser(id: $id)';
 }
 
 
@@ -271,7 +247,7 @@ abstract mixin class _$OpenCIUserCopyWith<$Res> implements $OpenCIUserCopyWith<$
   factory _$OpenCIUserCopyWith(_OpenCIUser value, $Res Function(_OpenCIUser) _then) = __$OpenCIUserCopyWithImpl;
 @override @useResult
 $Res call({
- String id, Map<String, String> teamUdids, Map<String, String> teamDeviceProducts, Map<String, String> teamDeviceOsVersions
+ String id
 });
 
 
@@ -288,13 +264,10 @@ class __$OpenCIUserCopyWithImpl<$Res>
 
 /// Create a copy of OpenCIUser
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? teamUdids = null,Object? teamDeviceProducts = null,Object? teamDeviceOsVersions = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,}) {
   return _then(_OpenCIUser(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
-as String,teamUdids: null == teamUdids ? _self._teamUdids : teamUdids // ignore: cast_nullable_to_non_nullable
-as Map<String, String>,teamDeviceProducts: null == teamDeviceProducts ? _self._teamDeviceProducts : teamDeviceProducts // ignore: cast_nullable_to_non_nullable
-as Map<String, String>,teamDeviceOsVersions: null == teamDeviceOsVersions ? _self._teamDeviceOsVersions : teamDeviceOsVersions // ignore: cast_nullable_to_non_nullable
-as Map<String, String>,
+as String,
   ));
 }
 
