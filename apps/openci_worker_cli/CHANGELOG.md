@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.10.49
+
+- Fix: Implement retry logic with exponential backoff delay for `git clone` and `git fetch` operations in both VM and Docker executors, addressing transient network connection issues during environment initialization.
+
 ## 0.10.48
 
 - Fix: Force Firebase ID Token refresh before long build executions, preventing 401 Unauthorized errors during artifact uploads inside VMs.
