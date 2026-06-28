@@ -3,7 +3,6 @@ import 'dart:convert';
 
 import 'package:dashboard/auth/auth_provider.dart';
 import 'package:dashboard/firebase/firestore.dart';
-import 'package:dashboard/firebase/functions.dart';
 import 'package:dashboard/openci_server_url_provider.dart';
 import 'package:dashboard/team/team_provider.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
@@ -180,53 +179,27 @@ class SecretManager extends _$SecretManager {
   }
 
   Future<void> generateCertificateKey() async {
-    final functions = firebaseFunctions;
+    final serverUrl = ref.read(openciServerUrlProvider);
     final teamId = ref.read(teamStateProvider).value?.id;
     if (teamId == null) throw StateError('team is not loaded yet');
-    await functions.httpsCallable('generateCertificateKeyV1').call({
-      'teamId': teamId,
-    });
-  }
 
-  Future<void> setupAscApiKey({
-    required String issuerId,
-    required String keyId,
-    required String privateKey,
-  }) async {
-    final functions = firebaseFunctions;
-    final teamId = ref.read(teamStateProvider).value?.id;
-    if (teamId == null) throw StateError('team is not loaded yet');
-    await functions.httpsCallable('setupAscApiKeyV1').call({
-      'teamId': teamId,
-      'issuerId': issuerId,
-      'keyId': keyId,
-      'privateKey': privateKey,
-    });
-  }
+    final url = Uri.parse('$serverUrl/teams/$teamId/ios-signing/generate-key');
+    final token = await ref.read(authedFirebaseIdTokenProvider.future);
 
-  Future<String> generateDeveloperIdCsr() async {
-    final functions = firebaseFunctions;
-    final teamId = ref.read(teamStateProvider).value?.id;
-    if (teamId == null) throw StateError('team is not loaded yet');
-    final result = await functions
-        .httpsCallable('generateDeveloperIdCsrV1')
-        .call({
-          'teamId': teamId,
-        });
-    final data = Map<String, dynamic>.from(result.data as Map);
-    return data['csrPem'] as String? ?? '';
-  }
+    final response = await http
+        .post(
+          url,
+          headers: {
+            'Authorization': 'Bearer $token',
+          },
+        )
+        .timeout(const Duration(seconds: 15));
 
-  Future<void> registerDeveloperIdCertificate({
-    required String certificateBase64,
-  }) async {
-    final functions = firebaseFunctions;
-    final teamId = ref.read(teamStateProvider).value?.id;
-    if (teamId == null) throw StateError('team is not loaded yet');
-    await functions.httpsCallable('registerDeveloperIdCertificateV1').call({
-      'teamId': teamId,
-      'certificateBase64': certificateBase64,
-    });
+    if (response.statusCode != 200) {
+      throw StateError(
+        'Failed to generate certificate key: ${response.statusCode} ${response.body}',
+      );
+    }
   }
 }
 
