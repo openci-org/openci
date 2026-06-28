@@ -54,8 +54,8 @@ void main() {
           contains(
             'https://dashboard.openci.org/register-device'
             '?userId=user-123'
-            '&teamId=team-123'
-            '&redirectOrigin=https%3A%2F%2Fdashboard.openci.org',
+            '&amp;teamId=team-123'
+            '&amp;redirectOrigin=https%3A%2F%2Fdashboard.openci.org',
           ),
         );
       },
@@ -113,6 +113,23 @@ void main() {
       final response = await route.onRequest(context.context);
 
       expect(response.statusCode, equals(HttpStatus.methodNotAllowed));
+    });
+  });
+
+  group('escapeXml', () {
+    test('escapes XML special characters correctly', () {
+      expect(route.escapeXml('hello & world'), equals('hello &amp; world'));
+      expect(route.escapeXml('a < b > c'), equals('a &lt; b &gt; c'));
+      expect(route.escapeXml('say "hello"'), equals('say &quot;hello&quot;'));
+      expect(route.escapeXml("it's test"), equals('it&apos;s test'));
+      expect(
+        route.escapeXml('nested & "special" <chars>'),
+        equals('nested &amp; &quot;special&quot; &lt;chars&gt;'),
+      );
+    });
+
+    test('returns the same string when there are no special characters', () {
+      expect(route.escapeXml('hello world 123'), equals('hello world 123'));
     });
   });
 }

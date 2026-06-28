@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:dart_frog/dart_frog.dart';
+import 'package:meta/meta.dart';
 import 'package:openci_server/request/error_handler.dart';
 import 'package:uuid/uuid.dart';
 
@@ -74,6 +75,7 @@ Future<Response> _get(RequestContext context) async {
         .toString();
 
     final profileUuid = const Uuid().v4();
+    final escapedCallbackUrl = escapeXml(callbackUrl);
 
     final configXml =
         '''
@@ -84,7 +86,7 @@ Future<Response> _get(RequestContext context) async {
   <key>PayloadContent</key>
   <dict>
     <key>URL</key>
-    <string>$callbackUrl</string>
+    <string>$escapedCallbackUrl</string>
     <key>DeviceAttributes</key>
     <array>
       <string>UDID</string>
@@ -126,4 +128,14 @@ Future<Response> _get(RequestContext context) async {
       logMessage: 'Failed to generate mobileconfig',
     );
   }
+}
+
+@visibleForTesting
+String escapeXml(String input) {
+  return input
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&apos;');
 }
