@@ -115,15 +115,6 @@ class TeamList extends _$TeamList {
       'createdAt': timestamp,
       'updatedAt': timestamp,
     });
-    batch.set(
-      firestore.collection(usersCollection).doc(currentUserId),
-      {
-        'id': currentUserId,
-        'email': ref.watch(currentUserEmailProvider),
-        'updatedAt': timestamp,
-      },
-      SetOptions(merge: true),
-    );
     await batch.commit();
     await ref.read(selectedTeamIdProvider.notifier).saveSelectedTeamId(teamId);
   }

@@ -1,10 +1,11 @@
 import 'dart:async';
+import 'dart:convert';
 
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dashboard/auth/auth_provider.dart';
-import 'package:dashboard/firebase/firestore.dart';
-import 'package:dashboard/firebase/functions.dart';
+import 'package:dashboard/openci_server_url_provider.dart';
+import 'package:dashboard/users/user_device.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:http/http.dart' as http;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'user_provider.freezed.dart';
@@ -14,19 +15,9 @@ part 'user_provider.g.dart';
 abstract class OpenCIUser with _$OpenCIUser {
   const factory OpenCIUser({
     required String id,
-    @Default({}) Map<String, String> teamUdids,
-    @Default({}) Map<String, String> teamDeviceProducts,
-    @Default({}) Map<String, String> teamDeviceOsVersions,
   }) = _OpenCIUser;
 
   const OpenCIUser._();
-
-  String? currentTeamUdid(String? selectedTeamId) =>
-      selectedTeamId != null ? teamUdids[selectedTeamId] : null;
-  String? currentTeamDeviceProduct(String? selectedTeamId) =>
-      selectedTeamId != null ? teamDeviceProducts[selectedTeamId] : null;
-  String? currentTeamDeviceOsVersion(String? selectedTeamId) =>
-      selectedTeamId != null ? teamDeviceOsVersions[selectedTeamId] : null;
 
   factory OpenCIUser.fromJson(Map<String, Object?> json) =>
       _$OpenCIUserFromJson(json);
@@ -36,60 +27,59 @@ abstract class OpenCIUser with _$OpenCIUser {
 class User extends _$User {
   @override
   Stream<OpenCIUser> build() async* {
-    yield await fetchUser().timeout(
-      const Duration(seconds: 20),
-      onTimeout: () => throw TimeoutException(
-        'Timed out while loading user from Firestore',
-      ),
-    );
-
-    yield* watchUser();
-  }
-
-  Future<OpenCIUser> fetchUser() async {
-    final currentUserId = ref.watch(nonNullCurrentUserIdProvider);
-    var snapshot = await firestore
-        .collection(usersCollection)
-        .doc(currentUserId)
-        .get();
-    if (!snapshot.exists) {
-      await _ensureDefaultUserProfile();
-      snapshot = await firestore
-          .collection(usersCollection)
-          .doc(currentUserId)
-          .get();
-    }
-    return _openCIUserFromSnapshot(snapshot);
-  }
-
-  Stream<OpenCIUser> watchUser() {
     final currentUserId = ref.watch(currentUserIdProvider);
-    if (currentUserId == null) return const Stream.empty();
-    return firestore
-        .collection(usersCollection)
-        .doc(currentUserId)
-        .snapshots()
-        .map(_openCIUserFromSnapshot);
-  }
+    if (currentUserId == null) return;
 
-  Future<void> _ensureDefaultUserProfile() async {
-    await firebaseFunctions.httpsCallable('ensureUserProfile').call<void>();
+    yield OpenCIUser(id: currentUserId);
   }
 }
 
-OpenCIUser _openCIUserFromSnapshot(
-  DocumentSnapshot<Map<String, dynamic>> snapshot,
-) {
-  final data = snapshot.data();
-  if (data == null) throw Exception('User profile not found');
-  return OpenCIUser(
-    id: snapshot.id,
-    teamUdids: Map<String, String>.from(data['teamUdids'] as Map? ?? {}),
-    teamDeviceProducts: Map<String, String>.from(
-      data['teamDeviceProducts'] as Map? ?? {},
-    ),
-    teamDeviceOsVersions: Map<String, String>.from(
-      data['teamDeviceOsVersions'] as Map? ?? {},
-    ),
-  );
+@riverpod
+class UserDevices extends _$UserDevices {
+  @override
+  Stream<List<UserDevice>> build() async* {
+    final serverUrl = ref.watch(openciServerUrlProvider);
+    final userId = ref.watch(currentUserIdProvider);
+    if (userId == null) {
+      yield const [];
+      return;
+    }
+
+    final token = await ref.watch(authedFirebaseIdTokenProvider.future);
+
+    yield await _fetchDevices(serverUrl, token);
+
+    yield* Stream.periodic(const Duration(seconds: 5)).asyncMap((_) async {
+      final token = await ref.read(authedFirebaseIdTokenProvider.future);
+      return _fetchDevices(serverUrl, token);
+    });
+  }
+
+  Future<List<UserDevice>> _fetchDevices(
+    String serverUrl,
+    String token,
+  ) async {
+    try {
+      final url = Uri.parse('$serverUrl/devices');
+
+      final response = await http
+          .get(
+            url,
+            headers: {
+              'Authorization': 'Bearer $token',
+            },
+          )
+          .timeout(const Duration(seconds: 5));
+
+      if (response.statusCode != 200) return const [];
+
+      final list = jsonDecode(response.body) as List<dynamic>;
+
+      return list.map((item) {
+        return UserDevice.fromJson(Map<String, dynamic>.from(item as Map));
+      }).toList();
+    } catch (e) {
+      return const [];
+    }
+  }
 }
