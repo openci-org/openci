@@ -145,16 +145,30 @@ class AscApps extends _$AscApps {
 class AscBuilds extends _$AscBuilds {
   @override
   Future<List<AscBuild>> build(String appId) async {
-    final functions = firebaseFunctions;
+    final serverUrl = ref.watch(openciServerUrlProvider);
     final teamId = _requireTeamId(ref);
+    final token = await ref.watch(authedFirebaseIdTokenProvider.future);
 
-    final result = await functions.httpsCallable('ascListBuilds').call({
-      'teamId': teamId,
-      'appId': appId,
-    });
+    final url = Uri.parse('$serverUrl/teams/$teamId/asc/apps/$appId/builds');
+    final response = await http
+        .get(
+          url,
+          headers: {
+            'Authorization': 'Bearer $token',
+          },
+        )
+        .timeout(const Duration(seconds: 15));
 
-    final data = result.data as Map<String, dynamic>;
-    final builds = (data['builds'] as List<dynamic>)
+    if (response.statusCode != 200) {
+      throw StateError(
+        'Failed to fetch ASC builds: ${response.statusCode} ${response.body}',
+      );
+    }
+
+    final body = jsonDecode(response.body) as Map<String, dynamic>;
+    final dataList = body['builds'] as List<dynamic>? ?? [];
+
+    final builds = dataList
         .map((e) => AscBuild.fromMap(Map<String, dynamic>.from(e as Map)))
         .toList();
     return builds;
