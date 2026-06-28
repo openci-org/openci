@@ -181,16 +181,30 @@ class SubmitToTestFlight extends _$SubmitToTestFlight {
   FutureOr<void> build() {}
 
   Future<String> submit(String buildId) async {
-    final functions = firebaseFunctions;
+    final serverUrl = ref.watch(openciServerUrlProvider);
     final teamId = _requireTeamId(ref);
+    final token = await ref.watch(authedFirebaseIdTokenProvider.future);
 
-    final result = await functions.httpsCallable('ascSubmitToTestFlight').call({
-      'teamId': teamId,
-      'buildId': buildId,
-    });
+    final url = Uri.parse(
+      '$serverUrl/teams/$teamId/asc/builds/$buildId/submit-testflight',
+    );
+    final response = await http
+        .post(
+          url,
+          headers: {
+            'Authorization': 'Bearer $token',
+          },
+        )
+        .timeout(const Duration(seconds: 15));
 
-    final data = result.data as Map<String, dynamic>;
-    return data['betaGroupName'] as String? ?? 'External Testers';
+    if (response.statusCode != 200) {
+      throw StateError(
+        'Failed to submit build to TestFlight: ${response.statusCode} ${response.body}',
+      );
+    }
+
+    final body = jsonDecode(response.body) as Map<String, dynamic>;
+    return body['betaGroupName'] as String? ?? 'External Testers';
   }
 }
 
@@ -206,17 +220,33 @@ class SubmitForReview extends _$SubmitForReview {
     required String whatsNew,
     String platform = 'IOS',
   }) async {
-    final functions = firebaseFunctions;
+    final serverUrl = ref.watch(openciServerUrlProvider);
     final teamId = _requireTeamId(ref);
+    final token = await ref.watch(authedFirebaseIdTokenProvider.future);
 
-    await functions.httpsCallable('ascSubmitForReview').call({
-      'teamId': teamId,
-      'appId': appId,
-      'buildId': buildId,
-      'versionString': versionString,
-      'whatsNew': whatsNew,
-      'platform': platform,
-    });
+    final url = Uri.parse('$serverUrl/teams/$teamId/asc/builds/submit-review');
+    final response = await http
+        .post(
+          url,
+          headers: {
+            'Authorization': 'Bearer $token',
+            'Content-Type': 'application/json',
+          },
+          body: jsonEncode({
+            'appId': appId,
+            'buildId': buildId,
+            'versionString': versionString,
+            'whatsNew': whatsNew,
+            'platform': platform,
+          }),
+        )
+        .timeout(const Duration(seconds: 25));
+
+    if (response.statusCode != 200) {
+      throw StateError(
+        'Failed to submit build for review: ${response.statusCode} ${response.body}',
+      );
+    }
   }
 }
 
