@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.10.50
+
+- Feature: Migrate environment variables to secrets (`OPENCI_BUILD_NUMBER`), removing old Firestore/Functions environment variables API.
+
 ## 0.10.49
 
 - Fix: Implement retry logic with exponential backoff delay for `git clone` and `git fetch` operations in both VM and Docker executors, addressing transient network connection issues during environment initialization.
