@@ -138,7 +138,7 @@ final class AscBuildsProvider
   }
 }
 
-String _$ascBuildsHash() => r'd84a480db2d9575d2c8ce8f9c67f479aaea9b615';
+String _$ascBuildsHash() => r'7251893b1bfde48ab4c0d25729a688029a47f44a';
 
 final class AscBuildsFamily extends $Family
     with
