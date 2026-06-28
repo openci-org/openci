@@ -1,15 +1,13 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dashboard/auth/auth_provider.dart';
-import 'package:dashboard/firebase/firestore.dart';
 import 'package:dashboard/openci_server_url_provider.dart';
 import 'package:dashboard/team/selected_team_provider.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:openci_shared/openci_shared.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:uuid/uuid.dart';
 
 export 'package:openci_shared/openci_shared.dart' show Team;
 
@@ -99,38 +97,61 @@ class TeamList extends _$TeamList {
   }
 
   Future<void> createTeam(String teamName) async {
-    final currentUserId = ref.watch(currentUserIdProvider);
-    if (currentUserId == null) {
-      throw Exception('User is not authenticated');
+    final serverUrl = ref.read(openciServerUrlProvider);
+    final token = await ref.read(authedFirebaseIdTokenProvider.future);
+
+    final url = Uri.parse('$serverUrl/teams');
+    final response = await http
+        .post(
+          url,
+          headers: {
+            'Authorization': 'Bearer $token',
+            'Content-Type': 'application/json',
+          },
+          body: jsonEncode({
+            'name': teamName,
+          }),
+        )
+        .timeout(const Duration(seconds: 10));
+
+    if (response.statusCode != 200) {
+      throw StateError(
+        'Failed to create team: ${response.statusCode} ${response.body}',
+      );
     }
-    final teamId = const Uuid().v4();
-    final timestamp = FieldValue.serverTimestamp();
-    final batch = firestore.batch();
-    batch.set(firestore.collection(teamsCollection).doc(teamId), {
-      'id': teamId,
-      'name': teamName,
-      'members': [currentUserId],
-      'installationIds': <int>[],
-      'aiEnabled': true,
-      'createdAt': timestamp,
-      'updatedAt': timestamp,
-    });
-    await batch.commit();
+
+    final data = jsonDecode(response.body) as Map<String, dynamic>;
+    final teamId = data['id'] as String;
+
+    ref.invalidateSelf();
     await ref.read(selectedTeamIdProvider.notifier).saveSelectedTeamId(teamId);
   }
 
   Future<void> updateTeamName(String teamId, String newName) async {
-    await firestore.collection(teamsCollection).doc(teamId).update({
-      'name': newName,
-      'updatedAt': FieldValue.serverTimestamp(),
-    });
-  }
+    final serverUrl = ref.read(openciServerUrlProvider);
+    final token = await ref.read(authedFirebaseIdTokenProvider.future);
 
-  Future<void> updateAiEnabled(String teamId, bool enabled) async {
-    await firestore.collection(teamsCollection).doc(teamId).update({
-      'aiEnabled': enabled,
-      'updatedAt': FieldValue.serverTimestamp(),
-    });
+    final url = Uri.parse('$serverUrl/teams/$teamId');
+    final response = await http
+        .patch(
+          url,
+          headers: {
+            'Authorization': 'Bearer $token',
+            'Content-Type': 'application/json',
+          },
+          body: jsonEncode({
+            'name': newName,
+          }),
+        )
+        .timeout(const Duration(seconds: 10));
+
+    if (response.statusCode != 200) {
+      throw StateError(
+        'Failed to update team name: ${response.statusCode} ${response.body}',
+      );
+    }
+
+    ref.invalidateSelf();
   }
 
   Future<void> updateGitHubSettings({
@@ -138,15 +159,54 @@ class TeamList extends _$TeamList {
     String? githubBaseUrl,
     required List<int> installationIds,
   }) async {
-    await firestore.collection(teamsCollection).doc(teamId).update({
-      'githubBaseUrl': _emptyToNull(githubBaseUrl),
-      'installationIds': installationIds,
-      'updatedAt': FieldValue.serverTimestamp(),
-    });
+    final serverUrl = ref.read(openciServerUrlProvider);
+    final token = await ref.read(authedFirebaseIdTokenProvider.future);
+
+    final url = Uri.parse('$serverUrl/teams/$teamId');
+    final response = await http
+        .patch(
+          url,
+          headers: {
+            'Authorization': 'Bearer $token',
+            'Content-Type': 'application/json',
+          },
+          body: jsonEncode({
+            'githubBaseUrl': _emptyToNull(githubBaseUrl),
+            'installationIds': installationIds,
+          }),
+        )
+        .timeout(const Duration(seconds: 10));
+
+    if (response.statusCode != 200) {
+      throw StateError(
+        'Failed to update GitHub settings: ${response.statusCode} ${response.body}',
+      );
+    }
+
+    ref.invalidateSelf();
   }
 
   Future<void> deleteTeam(String teamId) async {
-    await firestore.collection(teamsCollection).doc(teamId).delete();
+    final serverUrl = ref.read(openciServerUrlProvider);
+    final token = await ref.read(authedFirebaseIdTokenProvider.future);
+
+    final url = Uri.parse('$serverUrl/teams/$teamId');
+    final response = await http
+        .delete(
+          url,
+          headers: {
+            'Authorization': 'Bearer $token',
+          },
+        )
+        .timeout(const Duration(seconds: 10));
+
+    if (response.statusCode != 200) {
+      throw StateError(
+        'Failed to delete team: ${response.statusCode} ${response.body}',
+      );
+    }
+
+    ref.invalidateSelf();
   }
 }
 
