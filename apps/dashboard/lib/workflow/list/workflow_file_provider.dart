@@ -2,10 +2,10 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:dashboard/auth/auth_provider.dart';
-import 'package:dashboard/firebase/firestore.dart';
 import 'package:dashboard/github/repository_aliases.dart';
 import 'package:dashboard/openci_server_url_provider.dart';
 import 'package:dashboard/team/selected_team_provider.dart';
+import 'package:dashboard/workflow/list/github_repository_provider.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:http/http.dart' as http;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -28,34 +28,34 @@ abstract class WorkflowFile with _$WorkflowFile {
 }
 
 @riverpod
-Stream<List<WorkflowFile>> workflowFiles(Ref ref) async* {
+Future<List<WorkflowFile>> workflowFiles(Ref ref) async {
   final serverUrl = ref.watch(openciServerUrlProvider);
   final teamId = ref.watch(selectedTeamIdProvider).value;
   if (teamId == null) {
-    yield const [];
-    return;
+    return const [];
   }
 
   final token = await ref.watch(authedFirebaseIdTokenProvider.future);
 
-  final workspaceSnapshots = firestore.doc('workspaces/$teamId').snapshots();
-
-  await for (final snapshot in workspaceSnapshots) {
-    final selections = _workflowRepositorySelectionsFromWorkspace(
-      snapshot.data(),
-    );
-    if (selections.isEmpty) {
-      yield const [];
-      continue;
-    }
-
-    yield await _loadWorkflowFilesForSelections(
-      teamId: teamId,
-      selections: selections,
-      token: token,
-      serverUrl: serverUrl,
-    );
+  final reposAsync = ref.watch(gitHubRepositoriesProvider);
+  final repos = reposAsync.value ?? const [];
+  if (repos.isEmpty) {
+    return const [];
   }
+
+  final selections = repos.map((repo) {
+    return _WorkflowRepositorySelection(
+      repository: canonicalRepositoryFullName(repo.fullName),
+      branch: 'HEAD',
+    );
+  }).toList();
+
+  return _loadWorkflowFilesForSelections(
+    teamId: teamId,
+    selections: selections,
+    token: token,
+    serverUrl: serverUrl,
+  );
 }
 
 class _WorkflowRepositorySelection {
@@ -66,32 +66,6 @@ class _WorkflowRepositorySelection {
 
   final String repository;
   final String branch;
-}
-
-List<_WorkflowRepositorySelection> _workflowRepositorySelectionsFromWorkspace(
-  Map<String, dynamic>? data,
-) {
-  final selections = <_WorkflowRepositorySelection>[];
-  final seen = <String>{};
-  final repositories = data?['syncedGitHubRepoFullNames'];
-  if (repositories is! List) {
-    return selections;
-  }
-
-  for (final value in repositories) {
-    final repository = canonicalRepositoryFullName(
-      value is String ? value : '',
-    );
-    if (repository.isEmpty) continue;
-    const branch = 'HEAD';
-    final key = '$repository@$branch';
-    if (!seen.add(key)) continue;
-    selections.add(
-      _WorkflowRepositorySelection(repository: repository, branch: branch),
-    );
-  }
-  selections.sort((a, b) => a.repository.compareTo(b.repository));
-  return selections;
 }
 
 Future<List<WorkflowFile>> _loadWorkflowFilesForSelections({

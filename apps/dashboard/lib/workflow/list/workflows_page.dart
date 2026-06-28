@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:dashboard/firebase/firestore.dart';
 import 'package:dashboard/github/repository_aliases.dart';
 import 'package:dashboard/team/selected_team_provider.dart';
 import 'package:dashboard/theme/app_colors.dart';
@@ -316,32 +315,29 @@ class _WorkflowLoadingStatusCard extends StatelessWidget {
   }
 }
 
-final _workflowTargetsProvider = StreamProvider.autoDispose
+final _workflowTargetsProvider = FutureProvider.autoDispose
     .family<List<_WorkflowTarget>, String>((
       ref,
       teamId,
-    ) {
-      return firestore.doc('workspaces/$teamId').snapshots().map((snapshot) {
-        final data = snapshot.data();
-        final repositories = data?['syncedGitHubRepoFullNames'];
-        if (repositories is! List) return const <_WorkflowTarget>[];
+    ) async {
+      final reposAsync = ref.watch(gitHubRepositoriesProvider);
+      final repos = reposAsync.value ?? const [];
+      if (repos.isEmpty) return const <_WorkflowTarget>[];
 
-        final seen = <String>{};
-        final targets = <_WorkflowTarget>[];
-        for (final value in repositories) {
-          final repository = canonicalRepositoryFullName(
-            value is String ? value : '',
-          );
-          if (repository.isEmpty || !seen.add(repository)) continue;
-          targets.add(
-            _WorkflowTarget(
-              repository: repository,
-            ),
-          );
-        }
-        targets.sort((a, b) => a.repository.compareTo(b.repository));
-        return targets;
-      });
+      final seen = <String>{};
+      final targets = <_WorkflowTarget>[];
+      for (final repo in repos) {
+        final repository = canonicalRepositoryFullName(repo.fullName);
+        if (repository.isEmpty || !seen.add(repository)) continue;
+        targets.add(
+          _WorkflowTarget(
+            repository: repository,
+            branch: repo.defaultBranch,
+          ),
+        );
+      }
+      targets.sort((a, b) => a.repository.compareTo(b.repository));
+      return targets;
     });
 
 class _WorkflowTarget {
