@@ -104,8 +104,12 @@ class SecretManagerTab extends HookConsumerWidget {
           final hasCertKey = secrets.any(
             (s) => s.name == 'OPENCI_IOS_CERTIFICATE_PRIVATE_KEY',
           );
+          final hasAscApiKey = secrets.any(
+            (s) => s.name == 'OPENCI_ASC_ISSUER_ID',
+          );
           final setupCards = <Widget>[
             if (!hasCertKey) _GenerateCertificateKeyButton(),
+            if (!hasAscApiKey) _SetupAscApiKeyButton(),
           ];
 
           if (secrets.isEmpty) {
@@ -2268,6 +2272,313 @@ class _GenerateCertificateKeyButton extends HookConsumerWidget {
                 ),
               ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SetupAscApiKeyButton extends HookConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final colors = AppColors.of(context);
+    final isLoading = useState(false);
+    final isExpanded = useState(false);
+    final issuerIdController = useTextEditingController();
+    final keyIdController = useTextEditingController();
+    final privateKeyContent = useState<String?>(null);
+    final p8FileName = useState<String?>(null);
+    final formKey = useMemoized(() => GlobalKey<FormState>());
+
+    return Container(
+      decoration: BoxDecoration(
+        color: colors.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: colors.border),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            InkWell(
+              borderRadius: BorderRadius.circular(8),
+              onTap: () => isExpanded.value = !isExpanded.value,
+              child: Row(
+                children: [
+                  Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: Colors.purple.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(
+                      Icons.apple,
+                      size: 16,
+                      color: Colors.purple,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'App Store Connect API Key',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: colors.textPrimary,
+                      ),
+                    ),
+                  ),
+                  AnimatedRotation(
+                    turns: isExpanded.value ? 0.5 : 0,
+                    duration: const Duration(milliseconds: 200),
+                    child: Icon(
+                      Icons.expand_more,
+                      size: 20,
+                      color: colors.textTertiary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              'Required for iOS code signing and TestFlight deployment.',
+              style: TextStyle(
+                fontSize: 12,
+                color: colors.textSecondary,
+                height: 1.4,
+              ),
+            ),
+            if (isExpanded.value) ...[
+              const SizedBox(height: 16),
+              Form(
+                key: formKey,
+                child: Column(
+                  children: [
+                    // Issuer ID
+                    Container(
+                      decoration: BoxDecoration(
+                        color: colors.surfaceTertiary,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: colors.border),
+                      ),
+                      child: TextFormField(
+                        controller: issuerIdController,
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: colors.textPrimary,
+                          fontFamily: 'monospace',
+                        ),
+                        decoration: InputDecoration(
+                          hintText: 'Issuer ID (e.g. 69a6d…)',
+                          hintStyle: TextStyle(
+                            color: colors.textTertiary,
+                            fontSize: 13,
+                            fontFamily: 'monospace',
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 14,
+                          ),
+                          border: InputBorder.none,
+                        ),
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Enter Issuer ID';
+                          }
+                          return null;
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    // Key ID
+                    Container(
+                      decoration: BoxDecoration(
+                        color: colors.surfaceTertiary,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: colors.border),
+                      ),
+                      child: TextFormField(
+                        controller: keyIdController,
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: colors.textPrimary,
+                          fontFamily: 'monospace',
+                        ),
+                        decoration: InputDecoration(
+                          hintText: 'Key ID (e.g. ABC123DEFG)',
+                          hintStyle: TextStyle(
+                            color: colors.textTertiary,
+                            fontSize: 13,
+                            fontFamily: 'monospace',
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 14,
+                          ),
+                          border: InputBorder.none,
+                        ),
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Enter Key ID';
+                          }
+                          return null;
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    // .p8 file upload
+                    SizedBox(
+                      width: double.infinity,
+                      child: TextButton(
+                        style: TextButton.styleFrom(
+                          foregroundColor: p8FileName.value != null
+                              ? Colors.green
+                              : colors.textSecondary,
+                          backgroundColor: p8FileName.value != null
+                              ? Colors.green.withValues(alpha: 0.08)
+                              : colors.surfaceTertiary,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            side: BorderSide(
+                              color: p8FileName.value != null
+                                  ? Colors.green.withValues(alpha: 0.3)
+                                  : colors.border,
+                            ),
+                          ),
+                        ),
+                        onPressed: () async {
+                          final result = await FilePicker.pickFiles(
+                            type: FileType.custom,
+                            allowedExtensions: ['p8'],
+                            withData: true,
+                          );
+                          if (result == null || result.files.isEmpty) return;
+                          final file = result.files.first;
+                          final bytes = file.bytes;
+                          if (bytes == null) return;
+                          privateKeyContent.value = utf8.decode(bytes);
+                          p8FileName.value = file.name;
+
+                          final match = RegExp(
+                            r'AuthKey_([A-Z0-9]{10})\.p8$',
+                            caseSensitive: false,
+                          ).firstMatch(file.name);
+                          if (match != null) {
+                            keyIdController.text = match.group(1)!;
+                          }
+                        },
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              p8FileName.value != null
+                                  ? Icons.check_circle
+                                  : Icons.upload_file,
+                              size: 16,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              p8FileName.value ?? 'Upload .p8 file',
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    if (privateKeyContent.value == null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 6, left: 4),
+                        child: Text(
+                          'Download the .p8 file from App Store Connect',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: colors.textTertiary,
+                          ),
+                        ),
+                      ),
+                    const SizedBox(height: 16),
+                    // Save button
+                    SizedBox(
+                      width: double.infinity,
+                      child: TextButton(
+                        style: TextButton.styleFrom(
+                          foregroundColor: Colors.white,
+                          backgroundColor: colors.accent,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        onPressed: isLoading.value
+                            ? null
+                            : () async {
+                                if (!formKey.currentState!.validate()) return;
+                                if (privateKeyContent.value == null) {
+                                  context.showSnackBarMessage(
+                                    'Please upload the .p8 file',
+                                  );
+                                  return;
+                                }
+                                isLoading.value = true;
+                                try {
+                                  await ref
+                                      .read(secretManagerProvider.notifier)
+                                      .setupAscApiKey(
+                                        issuerId: issuerIdController.text
+                                            .trim(),
+                                        keyId: keyIdController.text.trim(),
+                                        privateKey: privateKeyContent.value!,
+                                      );
+                                  if (!context.mounted) return;
+                                  context.showSnackBarMessage(
+                                    'ASC API Key configured successfully',
+                                  );
+                                } catch (e) {
+                                  if (!context.mounted) return;
+                                  context.showSnackBarMessage('$e');
+                                } finally {
+                                  if (context.mounted) isLoading.value = false;
+                                }
+                              },
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            if (isLoading.value)
+                              const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            else ...[
+                              const Icon(Icons.save, size: 16),
+                              const SizedBox(width: 8),
+                              const Text(
+                                'Save API Key',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ],
         ),
       ),

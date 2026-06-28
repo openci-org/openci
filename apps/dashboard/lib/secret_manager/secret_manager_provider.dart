@@ -202,6 +202,41 @@ class SecretManager extends _$SecretManager {
     }
     ref.invalidateSelf();
   }
+
+  Future<void> setupAscApiKey({
+    required String issuerId,
+    required String keyId,
+    required String privateKey,
+  }) async {
+    final serverUrl = ref.read(openciServerUrlProvider);
+    final teamId = ref.read(teamStateProvider).value?.id;
+    if (teamId == null) throw StateError('team is not loaded yet');
+
+    final url = Uri.parse('$serverUrl/teams/$teamId/ios-signing/setup-asc-key');
+    final token = await ref.read(authedFirebaseIdTokenProvider.future);
+
+    final response = await http
+        .post(
+          url,
+          headers: {
+            'Authorization': 'Bearer $token',
+            'Content-Type': 'application/json',
+          },
+          body: jsonEncode({
+            'issuerId': issuerId,
+            'keyId': keyId,
+            'privateKey': privateKey,
+          }),
+        )
+        .timeout(const Duration(seconds: 10));
+
+    if (response.statusCode != 200) {
+      throw StateError(
+        'Failed to setup App Store Connect API Key: ${response.statusCode} ${response.body}',
+      );
+    }
+    ref.invalidateSelf();
+  }
 }
 
 @freezed
