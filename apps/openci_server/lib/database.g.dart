@@ -5672,7 +5672,7 @@ class $InvitationsTable extends Invitations
     type: DriftSqlType.string,
     requiredDuringInsert: true,
     defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'REFERENCES teams (id)',
+      'REFERENCES teams (id) ON DELETE CASCADE',
     ),
   );
   static const VerificationMeta _tokenMeta = const VerificationMeta('token');
@@ -6240,6 +6240,13 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         limitUpdateKind: UpdateKind.delete,
       ),
       result: [TableUpdate('udid_requests', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'teams',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('invitations', kind: UpdateKind.delete)],
     ),
   ]);
 }
