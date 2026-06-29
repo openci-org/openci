@@ -803,4 +803,102 @@ class AscService {
 
     return appStoreVersionId;
   }
+
+  Future<void> registerDevice(
+    AppDatabase db,
+    String teamId,
+    String udid,
+    SecretCrypter crypter, {
+    http.Client? client,
+  }) async {
+    final issuerSecret = await db.secretDao.getSecret(
+      teamId,
+      'OPENCI_ASC_ISSUER_ID',
+    );
+    final keyIdSecret = await db.secretDao.getSecret(
+      teamId,
+      'OPENCI_ASC_KEY_ID',
+    );
+    final privateKeySecret = await db.secretDao.getSecret(
+      teamId,
+      'OPENCI_ASC_PRIVATE_KEY',
+    );
+
+    if (issuerSecret == null ||
+        keyIdSecret == null ||
+        privateKeySecret == null) {
+      throw StateError(
+        'App Store Connect API credentials are not configured for team $teamId',
+      );
+    }
+
+    final issuerId = await crypter.decrypt(issuerSecret.encryptedValue);
+    final keyId = await crypter.decrypt(keyIdSecret.encryptedValue);
+    final privateKey = await crypter.decrypt(privateKeySecret.encryptedValue);
+
+    if (issuerId.isEmpty || keyId.isEmpty || privateKey.isEmpty) {
+      throw StateError('ASC API credentials are empty or invalid.');
+    }
+
+    final jwt = JWT(
+      {
+        'iss': issuerId,
+        'exp':
+            DateTime.now()
+                .add(const Duration(minutes: 20))
+                .millisecondsSinceEpoch ~/
+            1000,
+        'aud': 'appstoreconnect-v1',
+      },
+      header: {
+        'alg': 'ES256',
+        'kid': keyId,
+        'typ': 'JWT',
+      },
+    );
+
+    final token = jwt.sign(
+      ECPrivateKey(privateKey),
+      algorithm: JWTAlgorithm.ES256,
+    );
+
+    final url = Uri.parse('https://api.appstoreconnect.apple.com/v1/devices');
+    final httpClient = client ?? http.Client();
+    final response = await httpClient.post(
+      url,
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({
+        'data': {
+          'type': 'devices',
+          'attributes': {
+            'name': 'OpenCI Registered Device',
+            'platform': 'IOS',
+            'udid': udid,
+          },
+        },
+      }),
+    );
+
+    if (response.statusCode != 201) {
+      if (response.statusCode == 409) {
+        throw AlreadyRegisteredException(
+          'Device is already registered on App Store Connect.',
+        );
+      }
+      throw HttpException(
+        'App Store Connect API error registering device (${response.statusCode}): ${response.body}',
+      );
+    }
+  }
+}
+
+class AlreadyRegisteredException implements Exception {
+  final String message;
+  const AlreadyRegisteredException(this.message);
+
+  @override
+  String toString() => 'AlreadyRegisteredException: $message';
 }
