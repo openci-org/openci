@@ -9,11 +9,12 @@ part of 'store_release_provider.dart';
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
 
-@ProviderFor(IsAscConfigured)
+@ProviderFor(isAscConfigured)
 final isAscConfiguredProvider = IsAscConfiguredProvider._();
 
 final class IsAscConfiguredProvider
-    extends $StreamNotifierProvider<IsAscConfigured, bool> {
+    extends $FunctionalProvider<AsyncValue<bool>, bool, FutureOr<bool>>
+    with $FutureModifier<bool>, $FutureProvider<bool> {
   IsAscConfiguredProvider._()
     : super(
         from: null,
@@ -30,28 +31,16 @@ final class IsAscConfiguredProvider
 
   @$internal
   @override
-  IsAscConfigured create() => IsAscConfigured();
-}
+  $FutureProviderElement<bool> $createElement($ProviderPointer pointer) =>
+      $FutureProviderElement(pointer);
 
-String _$isAscConfiguredHash() => r'2fb815f059cbbc9b7b49503b70483ed44e83bf0d';
-
-abstract class _$IsAscConfigured extends $StreamNotifier<bool> {
-  Stream<bool> build();
-  @$mustCallSuper
   @override
-  void runBuild() {
-    final ref = this.ref as $Ref<AsyncValue<bool>, bool>;
-    final element =
-        ref.element
-            as $ClassProviderElement<
-              AnyNotifier<AsyncValue<bool>, bool>,
-              AsyncValue<bool>,
-              Object?,
-              Object?
-            >;
-    element.handleCreate(ref, build);
+  FutureOr<bool> create(Ref ref) {
+    return isAscConfigured(ref);
   }
 }
+
+String _$isAscConfiguredHash() => r'64b17d0b15b9ba0fcde0df4aec09730fd321e8f3';
 
 @ProviderFor(AscApps)
 final ascAppsProvider = AscAppsProvider._();
