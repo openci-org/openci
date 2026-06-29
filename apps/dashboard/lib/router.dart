@@ -9,7 +9,6 @@ import 'package:dashboard/build_logs/build_logs_page.dart';
 import 'package:dashboard/firebase/firebase_config_provider.dart';
 import 'package:dashboard/settings/settings_page.dart';
 import 'package:dashboard/store_release/store_release_page.dart';
-import 'package:dashboard/team/accept_invitation_page.dart';
 import 'package:dashboard/utilities/async_error_widget.dart';
 import 'package:dashboard/variables/variables_page.dart';
 import 'package:dashboard/workers/worker_status_page.dart';
@@ -117,16 +116,6 @@ final routerProvider = Provider<GoRouter>((ref) {
                 child: SettingsPage(),
               ),
             ),
-          ),
-          GoRoute(
-            path: 'invite/:token',
-            pageBuilder: (context, state) {
-              final token = state.pathParameters['token']!;
-              return _responsivePage(
-                key: state.pageKey,
-                child: AcceptInvitationPage(token: token),
-              );
-            },
           ),
         ],
       ),
