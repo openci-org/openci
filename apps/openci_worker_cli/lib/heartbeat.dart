@@ -12,7 +12,7 @@ Future<void> sendHeartbeat({
   required String status,
 }) async {
   final serverUrl = apiClient.serverUrl;
-  if (serverUrl == null || serverUrl.isEmpty) {
+  if (serverUrl.isEmpty) {
     throw StateError(
       'OPENCI_SERVER_URL must be configured to update worker heartbeat.',
     );

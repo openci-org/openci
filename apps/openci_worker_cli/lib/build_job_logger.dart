@@ -91,60 +91,31 @@ Future<void> _sendLogsWithRetry(
     }
   }
 
-  Future<void> sendToServer() async {
-    for (var attempt = 1; attempt <= _maxWriteAttempts; attempt++) {
-      try {
-        final response = await _httpClient
-            .post(
-              url,
-              headers: {
-                'Content-Type': 'application/json',
-                if (idToken != null) 'Authorization': 'Bearer $idToken',
-              },
-              body: body,
-            )
-            .timeout(const Duration(seconds: 10));
-        if (response.statusCode >= 200 && response.statusCode < 300) {
-          return;
-        }
-        throw HttpException('HTTP ${response.statusCode}: ${response.body}');
-      } catch (e) {
-        if (attempt == _maxWriteAttempts) {
-          _log.warning('[BuildLog] Failed to send logs to server: $e');
-          return;
-        }
-        final delay = _initialRetryDelay * (1 << (attempt - 1));
-        await Future.delayed(delay);
-      }
-    }
-  }
-
-  // 2. Firebase Cloud Functions (Firestore) への送信
-  Future<void> sendToFirebase() async {
-    final client = _apiClient;
-    if (client == null) return;
-
-    for (var attempt = 1; attempt <= _maxWriteAttempts; attempt++) {
-      try {
-        await client.appendBuildLogs(
-          buildJobId: buildJobId,
-          runId: runId,
-          logs: payloadLogs,
-        );
+  for (var attempt = 1; attempt <= _maxWriteAttempts; attempt++) {
+    try {
+      final response = await _httpClient
+          .post(
+            url,
+            headers: {
+              'Content-Type': 'application/json',
+              if (idToken != null) 'Authorization': 'Bearer $idToken',
+            },
+            body: body,
+          )
+          .timeout(const Duration(seconds: 10));
+      if (response.statusCode >= 200 && response.statusCode < 300) {
         return;
-      } catch (e) {
-        if (attempt == _maxWriteAttempts) {
-          _log.warning('[BuildLog] Failed to send logs to Firebase: $e');
-          return;
-        }
-        final delay = _initialRetryDelay * (1 << (attempt - 1));
-        await Future.delayed(delay);
       }
+      throw HttpException('HTTP ${response.statusCode}: ${response.body}');
+    } catch (e) {
+      if (attempt == _maxWriteAttempts) {
+        _log.warning('[BuildLog] Failed to send logs to server: $e');
+        return;
+      }
+      final delay = _initialRetryDelay * (1 << (attempt - 1));
+      await Future.delayed(delay);
     }
   }
-
-  // 両方の送信を並行して実行
-  await Future.wait([sendToServer(), sendToFirebase()]);
 }
 
 void _triggerFlush(_BufferGroup group) {
