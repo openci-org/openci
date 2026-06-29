@@ -1,33 +1,20 @@
 import 'dart:async';
-import 'dart:convert';
 
-import 'package:dashboard/auth/auth_provider.dart';
-import 'package:dashboard/openci_server_url_provider.dart';
+import 'package:dashboard/api/openci_api_client.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:http/http.dart' as http;
 
 final workerInstancesProvider =
     StreamProvider.autoDispose<List<WorkerInstance>>(
       (ref) async* {
-        final serverUrl = ref.watch(openciServerUrlProvider);
-        final token = await ref.watch(authedFirebaseIdTokenProvider.future);
-
-        Future<List<WorkerInstance>> fetchWorkers(String token) async {
+        Future<List<WorkerInstance>> fetchWorkers() async {
           try {
-            final url = Uri.parse('$serverUrl/workers');
-            final response = await http
-                .get(
-                  url,
-                  headers: {
-                    'Authorization': 'Bearer $token',
-                  },
-                )
-                .timeout(const Duration(seconds: 5));
+            final apiService = ref.read(openciApiServiceProvider);
+            final response = await apiService.getWorkers();
 
-            if (response.statusCode != 200) return const <WorkerInstance>[];
+            if (!response.isSuccessful) return const <WorkerInstance>[];
 
-            final data = jsonDecode(response.body) as Map<String, dynamic>;
-            final list = data['workers'] as List<dynamic>;
+            final data = response.body ?? <String, dynamic>{};
+            final list = data['workers'] as List<dynamic>? ?? [];
 
             final workers = list.map((item) {
               final map = Map<String, dynamic>.from(item as Map);
@@ -58,9 +45,9 @@ final workerInstancesProvider =
           }
         }
 
-        yield await fetchWorkers(token);
+        yield await fetchWorkers();
         await for (final _ in Stream.periodic(const Duration(seconds: 10))) {
-          yield await fetchWorkers(token);
+          yield await fetchWorkers();
         }
       },
     );

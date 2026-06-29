@@ -1,11 +1,9 @@
 import 'dart:async';
-import 'dart:convert';
 
+import 'package:dashboard/api/openci_api_client.dart';
 import 'package:dashboard/auth/auth_provider.dart';
-import 'package:dashboard/openci_server_url_provider.dart';
-import 'package:dashboard/users/user_device.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
-import 'package:http/http.dart' as http;
+import 'package:openci_shared/openci_shared.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'user_provider.freezed.dart';
@@ -38,46 +36,27 @@ class User extends _$User {
 class UserDevices extends _$UserDevices {
   @override
   Stream<List<UserDevice>> build() async* {
-    final serverUrl = ref.watch(openciServerUrlProvider);
     final userId = ref.watch(currentUserIdProvider);
     if (userId == null) {
       yield const [];
       return;
     }
 
-    final token = await ref.watch(authedFirebaseIdTokenProvider.future);
-
-    yield await _fetchDevices(serverUrl, token);
+    yield await _fetchDevices();
 
     yield* Stream.periodic(const Duration(seconds: 5)).asyncMap((_) async {
-      final token = await ref.read(authedFirebaseIdTokenProvider.future);
-      return _fetchDevices(serverUrl, token);
+      return _fetchDevices();
     });
   }
 
-  Future<List<UserDevice>> _fetchDevices(
-    String serverUrl,
-    String token,
-  ) async {
+  Future<List<UserDevice>> _fetchDevices() async {
     try {
-      final url = Uri.parse('$serverUrl/devices');
+      final apiService = ref.read(openciApiServiceProvider);
+      final response = await apiService.getDevices();
 
-      final response = await http
-          .get(
-            url,
-            headers: {
-              'Authorization': 'Bearer $token',
-            },
-          )
-          .timeout(const Duration(seconds: 5));
+      if (!response.isSuccessful) return const [];
 
-      if (response.statusCode != 200) return const [];
-
-      final list = jsonDecode(response.body) as List<dynamic>;
-
-      return list.map((item) {
-        return UserDevice.fromJson(Map<String, dynamic>.from(item as Map));
-      }).toList();
+      return response.body ?? const [];
     } catch (e) {
       return const [];
     }

@@ -86,7 +86,7 @@ final class UserDevicesProvider
   UserDevices create() => UserDevices();
 }
 
-String _$userDevicesHash() => r'12cf9fc6eb9a6131fa3a8b53b8c0bc406d04d6b8';
+String _$userDevicesHash() => r'a7751bf2e131080ddbc4e1122b8a2e3a73adbe3c';
 
 abstract class _$UserDevices extends $StreamNotifier<List<UserDevice>> {
   Stream<List<UserDevice>> build();

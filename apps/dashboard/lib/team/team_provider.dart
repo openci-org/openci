@@ -1,11 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:dashboard/auth/auth_provider.dart';
-import 'package:dashboard/openci_server_url_provider.dart';
+import 'package:dashboard/api/openci_api_client.dart';
 import 'package:dashboard/team/selected_team_provider.dart';
 import 'package:flutter/foundation.dart';
-import 'package:http/http.dart' as http;
 import 'package:openci_shared/openci_shared.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -71,56 +69,31 @@ class TeamList extends _$TeamList {
   }
 
   Future<List<Team>> fetchTeamList() async {
-    final serverUrl = ref.watch(openciServerUrlProvider);
-    final token = await ref.watch(authedFirebaseIdTokenProvider.future);
+    final apiService = ref.watch(openciApiServiceProvider);
+    final response = await apiService.getTeams();
 
-    final url = Uri.parse('$serverUrl/teams');
-    final response = await http
-        .get(
-          url,
-          headers: {
-            'Authorization': 'Bearer $token',
-          },
-        )
-        .timeout(const Duration(seconds: 8));
-
-    if (response.statusCode != 200) {
+    if (!response.isSuccessful) {
       throw StateError(
-        'Failed to fetch teams: ${response.statusCode} ${response.body}',
+        'Failed to fetch teams: ${response.statusCode} ${response.error}',
       );
     }
 
-    final List<dynamic> data = jsonDecode(response.body);
-    return data
-        .map((json) => Team.fromJson(Map<String, dynamic>.from(json as Map)))
-        .toList();
+    return response.body ?? const [];
   }
 
   Future<void> createTeam(String teamName) async {
-    final serverUrl = ref.read(openciServerUrlProvider);
-    final token = await ref.read(authedFirebaseIdTokenProvider.future);
+    final apiService = ref.read(openciApiServiceProvider);
+    final response = await apiService.createTeam({
+      'name': teamName,
+    });
 
-    final url = Uri.parse('$serverUrl/teams');
-    final response = await http
-        .post(
-          url,
-          headers: {
-            'Authorization': 'Bearer $token',
-            'Content-Type': 'application/json',
-          },
-          body: jsonEncode({
-            'name': teamName,
-          }),
-        )
-        .timeout(const Duration(seconds: 10));
-
-    if (response.statusCode != 200) {
+    if (!response.isSuccessful) {
       throw StateError(
-        'Failed to create team: ${response.statusCode} ${response.body}',
+        'Failed to create team: ${response.statusCode} ${response.error}',
       );
     }
 
-    final data = jsonDecode(response.body) as Map<String, dynamic>;
+    final data = response.body ?? <String, dynamic>{};
     final teamId = data['id'] as String;
 
     ref.invalidateSelf();
@@ -128,26 +101,14 @@ class TeamList extends _$TeamList {
   }
 
   Future<void> updateTeamName(String teamId, String newName) async {
-    final serverUrl = ref.read(openciServerUrlProvider);
-    final token = await ref.read(authedFirebaseIdTokenProvider.future);
+    final apiService = ref.read(openciApiServiceProvider);
+    final response = await apiService.updateTeam(teamId, {
+      'name': newName,
+    });
 
-    final url = Uri.parse('$serverUrl/teams/$teamId');
-    final response = await http
-        .patch(
-          url,
-          headers: {
-            'Authorization': 'Bearer $token',
-            'Content-Type': 'application/json',
-          },
-          body: jsonEncode({
-            'name': newName,
-          }),
-        )
-        .timeout(const Duration(seconds: 10));
-
-    if (response.statusCode != 200) {
+    if (!response.isSuccessful) {
       throw StateError(
-        'Failed to update team name: ${response.statusCode} ${response.body}',
+        'Failed to update team name: ${response.statusCode} ${response.error}',
       );
     }
 
@@ -159,27 +120,15 @@ class TeamList extends _$TeamList {
     String? githubBaseUrl,
     required List<int> installationIds,
   }) async {
-    final serverUrl = ref.read(openciServerUrlProvider);
-    final token = await ref.read(authedFirebaseIdTokenProvider.future);
+    final apiService = ref.read(openciApiServiceProvider);
+    final response = await apiService.updateTeam(teamId, {
+      'githubBaseUrl': _emptyToNull(githubBaseUrl),
+      'installationIds': installationIds,
+    });
 
-    final url = Uri.parse('$serverUrl/teams/$teamId');
-    final response = await http
-        .patch(
-          url,
-          headers: {
-            'Authorization': 'Bearer $token',
-            'Content-Type': 'application/json',
-          },
-          body: jsonEncode({
-            'githubBaseUrl': _emptyToNull(githubBaseUrl),
-            'installationIds': installationIds,
-          }),
-        )
-        .timeout(const Duration(seconds: 10));
-
-    if (response.statusCode != 200) {
+    if (!response.isSuccessful) {
       throw StateError(
-        'Failed to update GitHub settings: ${response.statusCode} ${response.body}',
+        'Failed to update GitHub settings: ${response.statusCode} ${response.error}',
       );
     }
 
@@ -187,22 +136,12 @@ class TeamList extends _$TeamList {
   }
 
   Future<void> deleteTeam(String teamId) async {
-    final serverUrl = ref.read(openciServerUrlProvider);
-    final token = await ref.read(authedFirebaseIdTokenProvider.future);
+    final apiService = ref.read(openciApiServiceProvider);
+    final response = await apiService.deleteTeam(teamId);
 
-    final url = Uri.parse('$serverUrl/teams/$teamId');
-    final response = await http
-        .delete(
-          url,
-          headers: {
-            'Authorization': 'Bearer $token',
-          },
-        )
-        .timeout(const Duration(seconds: 10));
-
-    if (response.statusCode != 200) {
+    if (!response.isSuccessful) {
       throw StateError(
-        'Failed to delete team: ${response.statusCode} ${response.body}',
+        'Failed to delete team: ${response.statusCode} ${response.error}',
       );
     }
 
@@ -210,29 +149,25 @@ class TeamList extends _$TeamList {
   }
 
   Future<void> inviteMember(String teamId, String email) async {
-    final serverUrl = ref.read(openciServerUrlProvider);
-    final token = await ref.read(authedFirebaseIdTokenProvider.future);
+    final apiService = ref.read(openciApiServiceProvider);
+    final response = await apiService.inviteMember(teamId, {
+      'email': email,
+    });
 
-    final url = Uri.parse('$serverUrl/teams/$teamId/members');
-    final response = await http
-        .post(
-          url,
-          headers: {
-            'Authorization': 'Bearer $token',
-            'Content-Type': 'application/json',
-          },
-          body: jsonEncode({
-            'email': email,
-          }),
-        )
-        .timeout(const Duration(seconds: 10));
-
-    if (response.statusCode != 200) {
+    if (!response.isSuccessful) {
       String errorMessage = 'Failed to invite member';
       try {
-        final errorBody = jsonDecode(response.body) as Map<String, dynamic>;
-        errorMessage = errorBody['error'] as String? ?? errorMessage;
-      } catch (_) {}
+        final errorBody = response.error as Map<String, dynamic>?;
+        errorMessage = errorBody?['error'] as String? ?? errorMessage;
+      } catch (_) {
+        final errString = response.error?.toString();
+        if (errString != null && errString.isNotEmpty) {
+          try {
+            final parsed = jsonDecode(errString) as Map<String, dynamic>;
+            errorMessage = parsed['error'] as String? ?? errorMessage;
+          } catch (_) {}
+        }
+      }
       throw StateError(errorMessage);
     }
   }
