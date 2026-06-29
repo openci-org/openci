@@ -1,5 +1,5 @@
-import 'package:dashboard/firebase/firestore.dart' show BuildJobStatus;
 import 'package:flutter/material.dart';
+import 'package:openci_shared/openci_shared.dart' show BuildJobStatus;
 
 class JobCard extends StatefulWidget {
   const JobCard({

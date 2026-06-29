@@ -241,30 +241,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.1.2"
-  cloud_firestore:
-    dependency: transitive
-    description:
-      name: cloud_firestore
-      sha256: "3ac242332166ae5037bd87bc343744bb96d88d7b13f791492b00958ce5cc6c63"
-      url: "https://pub.dev"
-    source: hosted
-    version: "6.3.0"
-  cloud_firestore_platform_interface:
-    dependency: transitive
-    description:
-      name: cloud_firestore_platform_interface
-      sha256: "1bd08b736e1015e8bf5448f5ef67b2087a2380c2c1c7972f8403c1c7b41f5359"
-      url: "https://pub.dev"
-    source: hosted
-    version: "7.2.0"
-  cloud_firestore_web:
-    dependency: transitive
-    description:
-      name: cloud_firestore_web
-      sha256: "18617275ffa2331d3ea058c515ef218bcce2ae13a14bee922563ca6ae2507c26"
-      url: "https://pub.dev"
-    source: hosted
-    version: "5.3.0"
   cloud_functions:
     dependency: transitive
     description:

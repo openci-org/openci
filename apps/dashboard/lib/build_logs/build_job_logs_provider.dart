@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:dashboard/auth/auth_provider.dart';
-import 'package:dashboard/firebase/firestore.dart';
 import 'package:dashboard/openci_server_url_provider.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:http/http.dart' as http;
