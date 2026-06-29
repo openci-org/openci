@@ -13,13 +13,13 @@ import 'package:openci_server/device/udid_request_table.dart';
 import 'package:openci_server/processed_webhook/processed_webhook_table.dart';
 import 'package:openci_server/secret/secret_dao.dart';
 import 'package:openci_server/secret/secret_table.dart';
+import 'package:openci_server/team/invitation_table.dart';
 import 'package:openci_server/team/team_dao.dart';
 import 'package:openci_server/team/team_table.dart';
 import 'package:openci_server/webhook_task/webhook_task_dao.dart';
 import 'package:openci_server/webhook_task/webhook_task_table.dart';
 import 'package:openci_server/worker_heartbeat/worker_heartbeat_dao.dart';
 import 'package:openci_server/worker_heartbeat/worker_heartbeat_table.dart';
-import 'package:openci_shared/openci_shared.dart';
 import 'package:postgres/postgres.dart' as pg;
 
 part 'database.g.dart';
@@ -37,6 +37,7 @@ part 'database.g.dart';
     WorkerHeartbeats,
     UserDevices,
     UdidRequests,
+    Invitations,
   ],
   daos: [
     BuildJobDao,
@@ -53,7 +54,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 16;
+  int get schemaVersion => 17;
 
   @override
   MigrationStrategy get migration {
@@ -62,39 +63,8 @@ class AppDatabase extends _$AppDatabase {
         await m.createAll();
       },
       onUpgrade: (Migrator m, int from, int to) async {
-        if (from < 11) {
-          throw StateError(
-            'Migrations from schema version $from are no longer supported. '
-            'Please recreate the database or manually upgrade to version 11 first.',
-          );
-        }
-        if (from < 12) {
-          await m.createTable(workerHeartbeats);
-        }
-        if (from < 13) {
-          await m.createTable(userDevices);
-        }
-        if (from < 14) {
-          await customStatement(
-            "UPDATE user_devices SET device_product = 'Unknown' WHERE device_product IS NULL;",
-          );
-          await customStatement(
-            "UPDATE user_devices SET device_os_version = 'Unknown' WHERE device_os_version IS NULL;",
-          );
-          await customStatement(
-            "ALTER TABLE user_devices ALTER COLUMN device_product SET NOT NULL;",
-          );
-          await customStatement(
-            "ALTER TABLE user_devices ALTER COLUMN device_os_version SET NOT NULL;",
-          );
-        }
-        if (from < 15) {
-          await customStatement(
-            'CREATE UNIQUE INDEX IF NOT EXISTS user_devices_user_id_team_id_udid_idx ON user_devices (user_id, team_id, udid);',
-          );
-        }
-        if (from < 16) {
-          await m.createTable(udidRequests);
+        if (from < 17) {
+          await m.createTable(invitations);
         }
       },
     );
