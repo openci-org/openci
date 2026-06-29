@@ -13,8 +13,7 @@ import 'package:dashboard/team/accept_invitation_page.dart';
 import 'package:dashboard/utilities/async_error_widget.dart';
 import 'package:dashboard/variables/variables_page.dart';
 import 'package:dashboard/workers/worker_status_page.dart';
-import 'package:dashboard/workflow/list/workflow_list_page.dart';
-import 'package:dashboard/workflow/list/workflows_page.dart';
+import 'package:dashboard/workspace/workspace_page.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -68,13 +67,7 @@ final routerProvider = Provider<GoRouter>((ref) {
               );
             },
           ),
-          GoRoute(
-            path: 'workflows',
-            pageBuilder: (context, state) => _responsivePage(
-              key: state.pageKey,
-              child: const WorkflowsPage(),
-            ),
-          ),
+
           GoRoute(
             path: 'variables',
             pageBuilder: (context, state) => _responsivePage(
