@@ -96,7 +96,7 @@ final class BuildJobLogsProvider
   }
 }
 
-String _$buildJobLogsHash() => r'de97f98f666e94a0ca8b50b5b5ffaacba58b0b4b';
+String _$buildJobLogsHash() => r'55ef4107c1cf0b2911e006e1663d34a2bff3486c';
 
 final class BuildJobLogsFamily extends $Family
     with $FunctionalFamilyOverride<Stream<List<BuildLog>>, (String, String)> {
