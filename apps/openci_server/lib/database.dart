@@ -20,6 +20,7 @@ import 'package:openci_server/webhook_task/webhook_task_dao.dart';
 import 'package:openci_server/webhook_task/webhook_task_table.dart';
 import 'package:openci_server/worker_heartbeat/worker_heartbeat_dao.dart';
 import 'package:openci_server/worker_heartbeat/worker_heartbeat_table.dart';
+import 'package:openci_shared/openci_shared.dart';
 import 'package:postgres/postgres.dart' as pg;
 
 part 'database.g.dart';
