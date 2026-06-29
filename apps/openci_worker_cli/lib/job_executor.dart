@@ -489,7 +489,7 @@ Future<Map<String, String>> buildEnvVars({
     'LANG': 'en_US.UTF-8',
     'OPENCI_PROJECT_ID': projectId,
     'OPENCI_BUILD_JOB_ID': buildJobId,
-    if (apiClient.serverUrl != null) 'OPENCI_SERVER_URL': apiClient.serverUrl!,
+    'OPENCI_SERVER_URL': apiClient.serverUrl,
     if (tagName != null && tagName.isNotEmpty) 'OPENCI_TAG': tagName,
     'OPENCI_TAG_VERSION': tagVersion ?? '',
     'OPENCI_TEAM_ID': teamId ?? '',
