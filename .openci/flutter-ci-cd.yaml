@@ -52,7 +52,6 @@ jobs:
           build-args: >-
             --dart-define=REVENUE_CAT_API_KEY=${{ secrets.REVENUE_CAT_API_KEY }}
             --dart-define=SENTRY_DSN=${{ secrets.SENTRY_DSN }}
-            --dart-define=FUNCTIONS_PROJECT_NUMBER=${{ secrets.FUNCTIONS_PROJECT_NUMBER }}
             --dart-define=OPENCI_SERVER_URL=${{ secrets.OPENCI_SERVER_URL }}
           distribution-method: "ad-hoc"
           upload-to-app-store-connect: "false"
@@ -76,7 +75,6 @@ jobs:
           build-args: >-
             --dart-define=REVENUE_CAT_API_KEY=${{ secrets.REVENUE_CAT_API_KEY }}
             --dart-define=SENTRY_DSN=${{ secrets.SENTRY_DSN }}
-            --dart-define=FUNCTIONS_PROJECT_NUMBER=${{ secrets.FUNCTIONS_PROJECT_NUMBER }}
             --dart-define=OPENCI_SERVER_URL=${{ secrets.OPENCI_SERVER_URL }}
           distribution-method: "app-store"
           upload-to-app-store-connect: "true"
@@ -129,7 +127,6 @@ jobs:
           build-args: >-
             --dart-define=REVENUE_CAT_API_KEY=${{ secrets.REVENUE_CAT_API_KEY }}
             --dart-define=SENTRY_DSN=${{ secrets.SENTRY_DSN }}
-            --dart-define=FUNCTIONS_PROJECT_NUMBER=${{ secrets.FUNCTIONS_PROJECT_NUMBER }}
             --dart-define=OPENCI_SERVER_URL=${{ secrets.OPENCI_SERVER_URL }}
           asc-key-id: ${{ secrets.OPENCI_ASC_KEY_ID }}
           asc-issuer-id: ${{ secrets.OPENCI_ASC_ISSUER_ID }}
@@ -302,7 +299,6 @@ jobs:
           REVENUE_CAT_API_KEY: ${{ secrets.REVENUE_CAT_API_KEY }}
           REVENUE_CAT_WEB_API_KEY: ${{ secrets.REVENUE_CAT_WEB_API_KEY }}
           SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
-          FUNCTIONS_PROJECT_NUMBER: ${{ secrets.FUNCTIONS_PROJECT_NUMBER }}
           OPENCI_SERVER_URL: ${{ secrets.OPENCI_SERVER_URL }}
         run: |
           BUILD_UPDATED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
@@ -313,7 +309,6 @@ jobs:
             --dart-define=REVENUE_CAT_API_KEY="$REVENUE_CAT_API_KEY" \
             --dart-define=REVENUE_CAT_WEB_API_KEY="$REVENUE_CAT_WEB_API_KEY" \
             --dart-define=SENTRY_DSN="$SENTRY_DSN" \
-            --dart-define=FUNCTIONS_PROJECT_NUMBER="$FUNCTIONS_PROJECT_NUMBER" \
             --dart-define=OPENCI_BUILD_UPDATED_AT="$BUILD_UPDATED_AT" \
             --dart-define=OPENCI_BUILD_SHA="$BUILD_SHA" \
             --dart-define=OPENCI_SERVER_URL="$OPENCI_SERVER_URL"
