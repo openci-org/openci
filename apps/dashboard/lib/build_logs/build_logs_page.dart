@@ -12,7 +12,6 @@ import 'package:dashboard/build_logs/synced_spinner.dart';
 import 'package:dashboard/extensions/date_time_extensions.dart';
 import 'package:dashboard/theme/app_colors.dart';
 import 'package:dashboard/utilities/async_error_widget.dart';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:go_router/go_router.dart';
@@ -77,8 +76,6 @@ String _workflowRunGroupKey(BuildJob job) {
   if (runId == null || runId.isEmpty) return job.id;
   return '$runId:${job.workflowFileName ?? ''}';
 }
-
-
 
 class LogsBody extends HookConsumerWidget {
   const LogsBody({super.key, this.initialBuildJobId});

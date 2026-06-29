@@ -11,7 +11,7 @@ dependencies:
   app_links: ^7.0.0
   app_minimizer_plus:
     path: ../../packages/app_minimizer_plus
-  cloud_firestore: ^6.3.0
+
   cloud_functions: ^6.2.0
   cupertino_icons: ^1.0.9
   file_picker: ^12.0.0-beta.1

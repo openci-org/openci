@@ -35,7 +35,7 @@ final workerInstancesProvider =
                 id: map['id'] as String,
                 version: map['version'] as String? ?? 'unknown',
                 platform: map['platform'] as String? ?? 'unknown',
-                status: _workerStatusFromFirestore(map['status']),
+                status: _workerStatusFromString(map['status']),
                 lastSeenAt: DateTime.parse(
                   map['lastSeenAt'] as String,
                 ).toLocal(),
@@ -115,7 +115,7 @@ class WorkerInstance {
   bool get hasError => status == WorkerStatus.error;
 }
 
-WorkerStatus _workerStatusFromFirestore(Object? value) {
+WorkerStatus _workerStatusFromString(Object? value) {
   final normalized = value is String ? value.toLowerCase() : '';
   return WorkerStatus.values.firstWhere(
     (status) => status.name == normalized,
