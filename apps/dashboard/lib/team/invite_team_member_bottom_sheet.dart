@@ -1,10 +1,8 @@
-import 'package:cloud_functions/cloud_functions.dart';
 import 'package:dashboard/app_strings.dart';
-import 'package:dashboard/firebase/functions.dart';
 import 'package:dashboard/team/selected_team_provider.dart';
+import 'package:dashboard/team/team_members_bottom_sheet.dart';
 import 'package:dashboard/team/team_provider.dart';
 import 'package:dashboard/theme/app_colors.dart';
-import 'package:dashboard/utilities/function_error_message.dart';
 import 'package:dashboard/utilities/snack_bar_extension.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
@@ -247,36 +245,18 @@ class InviteTeamMemberBottomSheet extends HookConsumerWidget {
                         if (!formKey.currentState!.validate()) return;
                         isLoading.value = true;
                         try {
-                          final result = await firebaseFunctions
-                              .httpsCallable('inviteTeamMember')
-                              .call({
-                                'email': emailController.text.trim(),
-                                'teamId': selectedTeamId.value,
-                              });
-                          if (!context.mounted) return;
-                          final status =
-                              (result.data as Map)['status'] as String?;
-                          if (status == 'added') {
-                            context.showSnackBarMessage(
-                              teamT.addedSuccess,
-                            );
-                          } else {
-                            context.showSnackBarMessage(
-                              teamT.invitationSent,
-                            );
-                          }
-                          Navigator.of(context).pop();
-                        } on FirebaseFunctionsException catch (e, s) {
-                          final errorMessage =
-                              await FunctionErrorMessage.capture(
-                                e,
-                                stackTrace: s,
+                          await ref
+                              .read(teamListProvider.notifier)
+                              .inviteMember(
+                                selectedTeamId.value!,
+                                emailController.text.trim(),
                               );
-                          isLoading.value = false;
                           if (!context.mounted) return;
+                          ref.invalidate(teamMembersProvider);
                           context.showSnackBarMessage(
-                            errorMessage.message,
+                            teamT.addedSuccess,
                           );
+                          Navigator.of(context).pop();
                         } catch (e, s) {
                           debugPrint(e.toString());
                           debugPrint(s.toString());
