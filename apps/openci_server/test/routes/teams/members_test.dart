@@ -123,7 +123,6 @@ void main() {
       test(
         'adds team member directly when user exists in Firebase Auth',
         () async {
-          // 呼び出し元のユーザーをあらかじめ追加しておく
           await db
               .into(db.teamMembers)
               .insert(
@@ -188,19 +187,22 @@ void main() {
       });
 
       test('returns 400 when user is already a member of the team', () async {
-        // 追加対象のユーザーをすでに追加しておく
-        await db.into(db.teamMembers).insert(
-          TeamMembersCompanion.insert(
-            teamId: 'team-123',
-            userId: 'member-1', // 呼び出し元
-          ),
-        );
-        await db.into(db.teamMembers).insert(
-          TeamMembersCompanion.insert(
-            teamId: 'team-123',
-            userId: 'existing-member-uid', // すでにメンバー
-          ),
-        );
+        await db
+            .into(db.teamMembers)
+            .insert(
+              TeamMembersCompanion.insert(
+                teamId: 'team-123',
+                userId: 'member-1',
+              ),
+            );
+        await db
+            .into(db.teamMembers)
+            .insert(
+              TeamMembersCompanion.insert(
+                teamId: 'team-123',
+                userId: 'existing-member-uid',
+              ),
+            );
 
         final mockUserRecord = MockUserRecord();
         when(() => mockUserRecord.uid).thenReturn('existing-member-uid');
