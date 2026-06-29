@@ -77,8 +77,11 @@ Future<Response> _post(RequestContext context, String teamId) async {
       },
     );
   } catch (e, s) {
-    return handleRouteException(e, s,
-        logMessage: 'Failed to create UDID request');
+    return handleRouteException(
+      e,
+      s,
+      logMessage: 'Failed to create UDID request',
+    );
   }
 }
 
@@ -110,7 +113,10 @@ Future<Response> _get(RequestContext context, String teamId) async {
       },
     );
   } catch (e, s) {
-    return handleRouteException(e, s,
-        logMessage: 'Failed to get UDID requests');
+    return handleRouteException(
+      e,
+      s,
+      logMessage: 'Failed to get UDID requests',
+    );
   }
 }
