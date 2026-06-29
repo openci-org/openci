@@ -12,6 +12,7 @@ dependencies:
   app_minimizer_plus:
     path: ../../packages/app_minimizer_plus
 
+  chopper: ^8.6.0
   cupertino_icons: ^1.0.9
   file_picker: ^12.0.0-beta.1
   firebase_auth: ^6.4.0

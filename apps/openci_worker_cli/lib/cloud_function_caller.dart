@@ -1,21 +1,28 @@
-import 'dart:convert';
 import 'dart:io';
 
-import 'package:http/http.dart' as http;
+import 'package:chopper/chopper.dart';
 import 'package:openci_shared/openci_shared.dart';
 
+import 'api/openci_api_client.dart';
 import 'firebase.dart';
 
 class ApiClient {
   final AuthManager authManager;
   final String serverUrl;
   final String projectId;
+  late final ChopperClient _chopperClient;
+  late final OpenCiApiService _apiService;
 
   ApiClient({required this.authManager, required this.projectId})
     : serverUrl = Platform.environment['OPENCI_SERVER_URL'] ?? '' {
     if (serverUrl.isEmpty) {
       throw StateError('OPENCI_SERVER_URL environment variable is required.');
     }
+    _chopperClient = createChopperClient(
+      baseUrl: serverUrl,
+      authManager: authManager,
+    );
+    _apiService = _chopperClient.getService<OpenCiApiService>();
   }
 
   /// Claims the next queued build job for this platform.
@@ -23,67 +30,44 @@ class ApiClient {
     final runsOnPattern =
         customPattern ?? (Platform.isLinux ? '%ubuntu%' : '%macos%');
 
-    final url = Uri.parse('$serverUrl/builds/claim');
-    final idToken = await authManager.getIdToken();
-    final response = await http.post(
-      url,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $idToken',
-      },
-      body: jsonEncode({'runsOnPattern': runsOnPattern}),
-    );
-    if (response.statusCode >= 200 && response.statusCode < 300) {
-      final data = jsonDecode(response.body) as Map<String, dynamic>;
+    final response = await _apiService.claimNextJob({
+      'runsOnPattern': runsOnPattern,
+    });
+
+    if (response.isSuccessful) {
+      final data = response.body;
+      if (data == null) return null;
       final jobJson = data['job'] as Map<String, dynamic>?;
       if (jobJson == null) return null;
       return BuildJob.fromJson(jobJson);
     }
     throw HttpException(
-      'Failed to claim job from server: ${response.statusCode} ${response.body}',
+      'Failed to claim job from server: ${response.statusCode} ${response.error}',
     );
   }
 
   /// Creates a build run record in Firestore.
   Future<void> createRun(String buildJobId, String runId) async {
-    final url = Uri.parse('$serverUrl/builds/$buildJobId/runs');
-    final idToken = await authManager.getIdToken();
-    final response = await http.post(
-      url,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $idToken',
-      },
-      body: jsonEncode({'id': runId}),
-    );
-    if (response.statusCode >= 200 && response.statusCode < 300) {
+    final response = await _apiService.createRun(buildJobId, {'id': runId});
+    if (response.isSuccessful) {
       return;
     }
     throw HttpException(
-      'Failed to create run on server: ${response.statusCode} ${response.body}',
+      'Failed to create run on server: ${response.statusCode} ${response.error}',
     );
   }
 
   /// Completes a build job.
   Future<void> completeJob(String id, String status) async {
-    final url = Uri.parse('$serverUrl/builds/$id');
-    final idToken = await authManager.getIdToken();
-    final response = await http.patch(
-      url,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $idToken',
-      },
-      body: jsonEncode({
-        'status': status,
-        'completedAt': DateTime.now().toUtc().toIso8601String(),
-      }),
-    );
-    if (response.statusCode >= 200 && response.statusCode < 300) {
+    final response = await _apiService.completeJob(id, {
+      'status': status,
+      'completedAt': DateTime.now().toUtc().toIso8601String(),
+    });
+    if (response.isSuccessful) {
       return;
     }
     throw HttpException(
-      'Failed to complete job on server: ${response.statusCode} ${response.body}',
+      'Failed to complete job on server: ${response.statusCode} ${response.error}',
     );
   }
 
@@ -94,38 +78,28 @@ class ApiClient {
     required String status,
     String? conclusion,
   }) async {
-    final url = Uri.parse('$serverUrl/builds/$buildJobId/runs/$runId');
-    final idToken = await authManager.getIdToken();
-    final response = await http.patch(
-      url,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $idToken',
-      },
-      body: jsonEncode({'status': status, 'conclusion': ?conclusion}),
-    );
-    if (response.statusCode >= 200 && response.statusCode < 300) {
+    final response = await _apiService.updateRunStatus(buildJobId, runId, {
+      'status': status,
+      'conclusion': conclusion,
+    });
+    if (response.isSuccessful) {
       return;
     }
     throw HttpException(
-      'Failed to update run status on server: ${response.statusCode} ${response.body}',
+      'Failed to update run status on server: ${response.statusCode} ${response.error}',
     );
   }
 
   /// Checks if a job has been cancelled in Firestore.
   Future<bool> isJobCancelled(String buildJobId) async {
-    final url = Uri.parse('$serverUrl/builds/$buildJobId');
-    final idToken = await authManager.getIdToken();
-    final response = await http.get(
-      url,
-      headers: {'Authorization': 'Bearer $idToken'},
-    );
-    if (response.statusCode >= 200 && response.statusCode < 300) {
-      final job = jsonDecode(response.body) as Map<String, dynamic>;
+    final response = await _apiService.getBuildJob(buildJobId);
+    if (response.isSuccessful) {
+      final job = response.body;
+      if (job == null) return false;
       return job['status'] == 'CANCELLED';
     }
     throw HttpException(
-      'Failed to check job cancellation on server: ${response.statusCode} ${response.body}',
+      'Failed to check job cancellation on server: ${response.statusCode} ${response.error}',
     );
   }
 
@@ -135,39 +109,29 @@ class ApiClient {
     required String name,
     required String value,
   }) async {
-    final url = Uri.parse('$serverUrl/teams/$teamId/secrets');
-    final idToken = await authManager.getIdToken();
-    final response = await http.post(
-      url,
-      headers: {
-        'Authorization': 'Bearer $idToken',
-        'Content-Type': 'application/json',
-      },
-      body: jsonEncode({'name': name, 'value': value}),
-    );
-    if (response.statusCode < 200 || response.statusCode >= 300) {
+    final response = await _apiService.saveSecret(teamId, {
+      'name': name,
+      'value': value,
+    });
+    if (!response.isSuccessful) {
       throw HttpException(
-        'Failed to save secret: ${response.statusCode} ${response.body}',
+        'Failed to save secret: ${response.statusCode} ${response.error}',
       );
     }
   }
 
   /// Retrieves secrets associated with the team.
   Future<List<Map<String, dynamic>>> getSecrets(String teamId) async {
-    final url = Uri.parse('$serverUrl/teams/$teamId/secrets');
-    final idToken = await authManager.getIdToken();
-    final response = await http.get(
-      url,
-      headers: {'Authorization': 'Bearer $idToken'},
-    );
-    if (response.statusCode >= 200 && response.statusCode < 300) {
-      final data = jsonDecode(response.body) as Map<String, dynamic>;
+    final response = await _apiService.getSecrets(teamId);
+    if (response.isSuccessful) {
+      final data = response.body;
+      if (data == null) return [];
       final list = data['secrets'] as List<dynamic>?;
       if (list == null) return [];
       return list.map((e) => Map<String, dynamic>.from(e as Map)).toList();
     }
     throw HttpException(
-      'Failed to get secrets from server: ${response.statusCode} ${response.body}',
+      'Failed to get secrets from server: ${response.statusCode} ${response.error}',
     );
   }
 
@@ -177,21 +141,15 @@ class ApiClient {
     String runStatus, {
     String? conclusion,
   }) async {
-    final url = Uri.parse('$serverUrl/builds/${buildJob.id}/check-run');
-    final idToken = await authManager.getIdToken();
-    final response = await http.post(
-      url,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $idToken',
-      },
-      body: jsonEncode({'runStatus': runStatus, 'conclusion': ?conclusion}),
-    );
-    if (response.statusCode >= 200 && response.statusCode < 300) {
+    final response = await _apiService.updateCheckRun(buildJob.id, {
+      'runStatus': runStatus,
+      'conclusion': conclusion,
+    });
+    if (response.isSuccessful) {
       return;
     }
     throw HttpException(
-      'Failed to update check run on server: ${response.statusCode} ${response.body}',
+      'Failed to update check run on server: ${response.statusCode} ${response.error}',
     );
   }
 
@@ -200,21 +158,14 @@ class ApiClient {
     BuildJob buildJob,
     String status,
   ) async {
-    final url = Uri.parse('$serverUrl/builds/${buildJob.id}/status-change');
-    final idToken = await authManager.getIdToken();
-    final response = await http.post(
-      url,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $idToken',
-      },
-      body: jsonEncode({'status': status}),
-    );
-    if (response.statusCode >= 200 && response.statusCode < 300) {
+    final response = await _apiService.handleBuildJobStatusChange(buildJob.id, {
+      'status': status,
+    });
+    if (response.isSuccessful) {
       return;
     }
     throw HttpException(
-      'Failed to process status change on server: ${response.statusCode} ${response.body}',
+      'Failed to process status change on server: ${response.statusCode} ${response.error}',
     );
   }
 
@@ -222,34 +173,44 @@ class ApiClient {
   Future<Map<String, dynamic>> resolveInstallationToken(
     String buildJobId,
   ) async {
-    final url = Uri.parse('$serverUrl/builds/$buildJobId/token');
-    final idToken = await authManager.getIdToken();
-    final response = await http.get(
-      url,
-      headers: {'Authorization': 'Bearer $idToken'},
-    );
-    if (response.statusCode >= 200 && response.statusCode < 300) {
-      return jsonDecode(response.body) as Map<String, dynamic>;
+    final response = await _apiService.resolveInstallationToken(buildJobId);
+    if (response.isSuccessful) {
+      return response.body ?? const {};
     }
     throw HttpException(
-      'Failed to resolve token on server: ${response.statusCode} ${response.body}',
+      'Failed to resolve token on server: ${response.statusCode} ${response.error}',
     );
   }
 
   /// Fetches a Secret Value via Firebase Functions.
   Future<String> getSecretValue(String teamId, String name) async {
-    final url = Uri.parse('$serverUrl/teams/$teamId/secrets/$name');
-    final idToken = await authManager.getIdToken();
-    final response = await http.get(
-      url,
-      headers: {'Authorization': 'Bearer $idToken'},
-    );
-    if (response.statusCode >= 200 && response.statusCode < 300) {
-      final data = jsonDecode(response.body) as Map<String, dynamic>;
+    final response = await _apiService.getSecretValue(teamId, name);
+    if (response.isSuccessful) {
+      final data = response.body;
+      if (data == null) return '';
       return data['value'] as String? ?? '';
     }
     throw HttpException(
-      'Failed to get secret value from server: ${response.statusCode} ${response.body}',
+      'Failed to get secret value from server: ${response.statusCode} ${response.error}',
     );
+  }
+
+  /// Sends the worker heartbeat status.
+  Future<void> sendHeartbeat({
+    required String workerId,
+    required String version,
+    required String status,
+  }) async {
+    final response = await _apiService.sendHeartbeat({
+      'workerId': workerId,
+      'version': version,
+      'platform': Platform.operatingSystem,
+      'status': status,
+    });
+    if (!response.isSuccessful) {
+      throw HttpException(
+        'Failed to update worker heartbeat on server: ${response.statusCode} ${response.error}',
+      );
+    }
   }
 }
