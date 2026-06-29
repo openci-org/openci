@@ -3,9 +3,12 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:dart_frog/dart_frog.dart';
+import 'package:http/http.dart' as http;
+import 'package:openci_server/asc/asc_service.dart';
 import 'package:openci_server/database.dart';
 import 'package:openci_server/device/udid_request_table.dart';
 import 'package:openci_server/request/error_handler.dart';
+import 'package:openci_server/secret/secret_crypter.dart';
 import 'package:uuid/uuid.dart';
 
 FutureOr<Response> onRequest(RequestContext context, String id) {
@@ -69,11 +72,67 @@ Future<Response> _post(RequestContext context, String teamId) async {
 
     await db.udidRequestDao.createRequest(driftRequest);
 
+    bool autoRegistered = false;
+    bool alreadyRegistered = false;
+    try {
+      final issuerSecret = await db.secretDao.getSecret(
+        teamId,
+        'OPENCI_ASC_ISSUER_ID',
+      );
+      final keyIdSecret = await db.secretDao.getSecret(
+        teamId,
+        'OPENCI_ASC_KEY_ID',
+      );
+      final privateKeySecret = await db.secretDao.getSecret(
+        teamId,
+        'OPENCI_ASC_PRIVATE_KEY',
+      );
+
+      if (issuerSecret != null &&
+          keyIdSecret != null &&
+          privateKeySecret != null) {
+        Map<String, String> env;
+        try {
+          env = context.read<Map<String, String>>();
+        } catch (_) {
+          env = Platform.environment;
+        }
+
+        http.Client httpClient;
+        try {
+          httpClient = context.read<http.Client>();
+        } catch (_) {
+          httpClient = http.Client();
+        }
+
+        final encryptionKey = env['SECRET_ENCRYPTION_KEY'];
+        if (encryptionKey != null && encryptionKey.trim().isNotEmpty) {
+          final crypter = SecretCrypter(encryptionKey);
+          await const AscService().registerDevice(
+            db,
+            teamId,
+            udid.trim(),
+            crypter,
+            client: httpClient,
+          );
+          autoRegistered = true;
+        }
+      }
+    } on AlreadyRegisteredException {
+      alreadyRegistered = true;
+    } catch (e, s) {
+      stderr.writeln(
+        'Failed to auto-register UDID to App Store Connect: $e\n$s',
+      );
+    }
+
     return Response.json(
       statusCode: HttpStatus.created,
       body: {
         'success': true,
         'request': driftRequest.toJson(),
+        'autoRegistered': autoRegistered,
+        'alreadyRegistered': alreadyRegistered,
       },
     );
   } catch (e, s) {
