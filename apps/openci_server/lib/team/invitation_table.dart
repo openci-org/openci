@@ -10,7 +10,8 @@ enum InvitationStatus {
 class Invitations extends Table {
   TextColumn get id => text()();
   TextColumn get email => text()();
-  TextColumn get teamId => text().references(Teams, #id)();
+  TextColumn get teamId =>
+      text().references(Teams, #id, onDelete: KeyAction.cascade)();
   TextColumn get token => text().unique()();
   TextColumn get status => textEnum<InvitationStatus>()();
   DateTimeColumn get expiresAt => dateTime()();
