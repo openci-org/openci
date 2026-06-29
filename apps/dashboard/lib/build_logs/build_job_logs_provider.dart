@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:dashboard/auth/auth_provider.dart';
 import 'package:dashboard/openci_server_url_provider.dart';
@@ -23,62 +24,48 @@ abstract class BuildLog with _$BuildLog {
 }
 
 @riverpod
-Future<List<BuildLog>> buildJobLogs(
+Stream<List<BuildLog>> buildJobLogs(
   Ref ref,
   String buildJobId,
   String runId,
-  BuildJobStatus buildStatus,
-) async {
+) async* {
   final serverUrl = ref.watch(openciServerUrlProvider);
-
-  final isRunning =
-      buildStatus == BuildJobStatus.IN_PROGRESS ||
-      buildStatus == BuildJobStatus.QUEUED ||
-      buildStatus == BuildJobStatus.WAITING;
-
-  if (isRunning) {
-    final timer = Timer(const Duration(seconds: 2), () {
-      ref.invalidateSelf();
-    });
-    ref.onDispose(() {
-      timer.cancel();
-    });
-  }
-
-  final url = Uri.parse('$serverUrl/builds/$buildJobId/runs/$runId/logs');
-
+  final url = Uri.parse('$serverUrl/builds/$buildJobId/runs/$runId/stream');
   final token = await ref.watch(authedFirebaseIdTokenProvider.future);
 
-  final response = await http
-      .get(
-        url,
-        headers: {
-          'Authorization': 'Bearer $token',
-        },
-      )
-      .timeout(const Duration(seconds: 10));
+  final client = http.Client();
+  final request = http.Request('GET', url);
+  request.headers['Authorization'] = 'Bearer $token';
+  request.headers['Accept'] = 'text/event-stream';
+  request.headers['Cache-Control'] = 'no-cache';
+
+  ref.onDispose(() {
+    client.close();
+  });
+
+  final response = await client.send(request);
 
   if (response.statusCode != 200) {
-    throw Exception('Failed to fetch logs: ${response.statusCode}');
+    throw Exception('Failed to connect to log stream: ${response.statusCode}');
   }
 
-  if (response.body.isEmpty) {
-    return const [];
-  }
+  final accumulatedLogs = <BuildLog>[];
+  yield const [];
 
-  final logs = <BuildLog>[];
-  final logText = response.body;
-
-  final lines = logText.split('\n');
-  for (final line in lines) {
-    if (line.isEmpty) continue;
-    logs.add(
-      BuildLog(
-        message: line,
-        level: 'info',
-        timestamp: DateTime.now(),
-      ),
-    );
+  await for (final line
+      in response.stream
+          .transform(utf8.decoder)
+          .transform(const LineSplitter())) {
+    if (line.startsWith('data:')) {
+      final message = line.substring(5).trim();
+      accumulatedLogs.add(
+        BuildLog(
+          message: message,
+          level: 'info',
+          timestamp: DateTime.now(),
+        ),
+      );
+      yield List<BuildLog>.from(accumulatedLogs);
+    }
   }
-  return logs;
 }
