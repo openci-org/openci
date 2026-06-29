@@ -1,9 +1,9 @@
 import 'dart:convert';
 
 import 'package:dashboard/auth/auth_provider.dart';
-import 'package:dashboard/firebase/firestore.dart';
 import 'package:dashboard/firebase/functions.dart';
 import 'package:dashboard/openci_server_url_provider.dart';
+import 'package:dashboard/secret_manager/secret_manager_provider.dart';
 import 'package:dashboard/team/team_provider.dart';
 import 'package:http/http.dart' as http;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -87,24 +87,16 @@ String _requireTeamId(dynamic ref) {
 }
 
 @riverpod
-class IsAscConfigured extends _$IsAscConfigured {
-  @override
-  Stream<bool> build() {
-    final teamId = ref.watch(teamStateProvider).value?.id;
-    if (teamId == null) return Stream.value(false);
-
-    return _isAscConfigured(teamId);
-  }
-
-  Stream<bool> _isAscConfigured(String teamId) async* {
-    yield* firestore
-        .collection(secretsCollection)
-        .where('teamId', isEqualTo: teamId)
-        .where('name', isEqualTo: 'OPENCI_ASC_ISSUER_ID')
-        .limit(1)
-        .snapshots()
-        .map((result) => result.docs.isNotEmpty);
-  }
+Future<bool> isAscConfigured(Ref ref) async {
+  final secrets = await ref.watch(secretManagerProvider.future);
+  final requiredKeys = {
+    'OPENCI_ASC_ISSUER_ID',
+    'OPENCI_ASC_KEY_ID',
+    'OPENCI_ASC_PRIVATE_KEY',
+    'OPENCI_IOS_CERTIFICATE_PRIVATE_KEY',
+  };
+  final existingKeys = secrets.map((s) => s.name).toSet();
+  return requiredKeys.every(existingKeys.contains);
 }
 
 @riverpod
