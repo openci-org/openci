@@ -45,6 +45,7 @@ Handler middleware(Handler handler) {
       .use(databaseProvider(_db))
       .use(storageProvider(_storage))
       .use(authProvider(_firebaseApp))
+      .use(provider<FirebaseApp>((context) => _firebaseApp))
       .use(corsMiddleware())
       .use(requestLogger());
 }
