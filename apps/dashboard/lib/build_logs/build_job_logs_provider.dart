@@ -39,33 +39,44 @@ Stream<List<BuildLog>> buildJobLogs(
   request.headers['Accept'] = 'text/event-stream';
   request.headers['Cache-Control'] = 'no-cache';
 
+  var isDisposed = false;
   ref.onDispose(() {
+    isDisposed = true;
     client.close();
   });
 
-  final response = await client.send(request);
+  try {
+    final response = await client.send(request);
 
-  if (response.statusCode != 200) {
-    throw Exception('Failed to connect to log stream: ${response.statusCode}');
-  }
-
-  final accumulatedLogs = <BuildLog>[];
-  yield const [];
-
-  await for (final line
-      in response.stream
-          .transform(utf8.decoder)
-          .transform(const LineSplitter())) {
-    if (line.startsWith('data:')) {
-      final message = line.substring(5).trim();
-      accumulatedLogs.add(
-        BuildLog(
-          message: message,
-          level: 'info',
-          timestamp: DateTime.now(),
-        ),
+    if (response.statusCode != 200) {
+      throw Exception(
+        'Failed to connect to log stream: ${response.statusCode}',
       );
-      yield List<BuildLog>.from(accumulatedLogs);
     }
+
+    final accumulatedLogs = <BuildLog>[];
+    yield const [];
+
+    await for (final line
+        in response.stream
+            .transform(utf8.decoder)
+            .transform(const LineSplitter())) {
+      if (line.startsWith('data:')) {
+        final message = line.substring(5).trim();
+        accumulatedLogs.add(
+          BuildLog(
+            message: message,
+            level: 'info',
+            timestamp: DateTime.now(),
+          ),
+        );
+        yield List<BuildLog>.from(accumulatedLogs);
+      }
+    }
+  } catch (e) {
+    if (isDisposed) {
+      return;
+    }
+    rethrow;
   }
 }
