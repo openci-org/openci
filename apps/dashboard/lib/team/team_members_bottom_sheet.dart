@@ -1,10 +1,13 @@
+import 'dart:convert';
+
 import 'package:dashboard/app_strings.dart';
 import 'package:dashboard/auth/auth_provider.dart';
-import 'package:dashboard/firebase/functions.dart';
+import 'package:dashboard/openci_server_url_provider.dart';
 import 'package:dashboard/team/team_provider.dart';
 import 'package:dashboard/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:http/http.dart' as http;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
@@ -39,12 +42,27 @@ Future<List<TeamMember>> teamMembers(Ref ref) async {
   final team = ref.watch(teamStateProvider).value;
   if (team == null) return [];
 
-  final functions = firebaseFunctions;
-  final result = await functions
-      .httpsCallable('getTeamMembers')
-      .call<Map<String, dynamic>>({'teamId': team.id});
+  final serverUrl = ref.watch(openciServerUrlProvider);
+  final token = await ref.watch(authedFirebaseIdTokenProvider.future);
 
-  final data = result.data;
+  final url = Uri.parse('$serverUrl/teams/${team.id}/members');
+  final response = await http
+      .get(
+        url,
+        headers: {
+          'Authorization': 'Bearer $token',
+        },
+      )
+      .timeout(const Duration(seconds: 8));
+
+  if (response.statusCode != 200) {
+    throw StateError(
+      'Failed to fetch team members: ${response.statusCode} ${response.body}',
+    );
+  }
+
+  final Map<String, dynamic> data =
+      jsonDecode(response.body) as Map<String, dynamic>;
   final membersList = (data['members'] as List<dynamic>?) ?? [];
 
   return membersList

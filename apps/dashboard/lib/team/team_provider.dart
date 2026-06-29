@@ -208,6 +208,34 @@ class TeamList extends _$TeamList {
 
     ref.invalidateSelf();
   }
+
+  Future<void> inviteMember(String teamId, String email) async {
+    final serverUrl = ref.read(openciServerUrlProvider);
+    final token = await ref.read(authedFirebaseIdTokenProvider.future);
+
+    final url = Uri.parse('$serverUrl/teams/$teamId/members');
+    final response = await http
+        .post(
+          url,
+          headers: {
+            'Authorization': 'Bearer $token',
+            'Content-Type': 'application/json',
+          },
+          body: jsonEncode({
+            'email': email,
+          }),
+        )
+        .timeout(const Duration(seconds: 10));
+
+    if (response.statusCode != 200) {
+      String errorMessage = 'Failed to invite member';
+      try {
+        final errorBody = jsonDecode(response.body) as Map<String, dynamic>;
+        errorMessage = errorBody['error'] as String? ?? errorMessage;
+      } catch (_) {}
+      throw StateError(errorMessage);
+    }
+  }
 }
 
 String? _emptyToNull(String? value) {
