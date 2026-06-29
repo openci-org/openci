@@ -8,6 +8,8 @@ import 'package:openci_server/build_run/build_run.dart';
 import 'package:openci_server/build_run/build_run_dao.dart';
 import 'package:openci_server/device/device_dao.dart';
 import 'package:openci_server/device/device_table.dart';
+import 'package:openci_server/device/udid_request_dao.dart';
+import 'package:openci_server/device/udid_request_table.dart';
 import 'package:openci_server/processed_webhook/processed_webhook_table.dart';
 import 'package:openci_server/secret/secret_dao.dart';
 import 'package:openci_server/secret/secret_table.dart';
@@ -34,6 +36,7 @@ part 'database.g.dart';
     WebhookTasks,
     WorkerHeartbeats,
     UserDevices,
+    UdidRequests,
   ],
   daos: [
     BuildJobDao,
@@ -43,13 +46,14 @@ part 'database.g.dart';
     SecretDao,
     WorkerHeartbeatDao,
     DeviceDao,
+    UdidRequestDao,
   ],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 15;
+  int get schemaVersion => 16;
 
   @override
   MigrationStrategy get migration {
@@ -88,6 +92,9 @@ class AppDatabase extends _$AppDatabase {
           await customStatement(
             'CREATE UNIQUE INDEX IF NOT EXISTS user_devices_user_id_team_id_udid_idx ON user_devices (user_id, team_id, udid);',
           );
+        }
+        if (from < 16) {
+          await m.createTable(udidRequests);
         }
       },
     );
