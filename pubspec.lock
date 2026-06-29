@@ -513,14 +513,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.6.0"
-  firebase_functions:
-    dependency: transitive
-    description:
-      name: firebase_functions
-      sha256: "1aabfa549089585614edeb46e3f6f0d1fa50435256d2fad08028cd290e451037"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.6.0"
   fixnum:
     dependency: transitive
     description:
@@ -1253,14 +1245,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.1.1"
-  protobuf:
-    dependency: transitive
-    description:
-      name: protobuf
-      sha256: "75ec242d22e950bdcc79ee38dd520ce4ee0bc491d7fadc4ea47694604d22bf06"
-      url: "https://pub.dev"
-    source: hosted
-    version: "6.0.0"
   pub_semver:
     dependency: transitive
     description:

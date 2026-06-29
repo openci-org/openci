@@ -9,7 +9,6 @@ workspace:
   - apps/dashboard
   - apps/openci_server
   - apps/openci_worker_cli
-  - firebase/functions_dart
   - packages/app_minimizer_plus
   - packages/app_minimizer_plus/example
   - packages/avf_dart

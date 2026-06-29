@@ -1,33 +1,5 @@
 {
-  "functions": [
-    {
-      "codebase": "default",
-      "source": "functions",
-      "runtime": "nodejs22",
-      "predeploy": [
-        "npm --prefix \"$RESOURCE_DIR\" install",
-        "npm --prefix \"$RESOURCE_DIR\" run build"
-      ],
-      "ignore": ["node_modules", ".git", "firebase-debug.log", "firebase-debug.*.log", "*.local"]
-    },
-    {
-      "codebase": "dart",
-      "source": "functions_dart",
-      "ignore": [".git", "pubspec.lock", ".dart_tool"]
-    }
-  ],
-  "firestore": {
-    "database": "(default)",
-    "rules": "firestore.rules",
-    "indexes": "firestore.indexes.json"
-  },
   "emulators": {
-    "functions": {
-      "port": 5001
-    },
-    "firestore": {
-      "port": 8080
-    },
     "auth": {
       "port": 9099
     },
@@ -119,26 +91,6 @@
         }
       ],
       "rewrites": [
-        {
-          "source": "/iosManifest",
-          "function": "iosManifest",
-          "region": "asia-northeast1"
-        },
-        {
-          "source": "/install-ota",
-          "function": "installOta",
-          "region": "asia-northeast1"
-        },
-        {
-          "source": "/enroll-udid",
-          "function": "getMobileconfig",
-          "region": "asia-northeast1"
-        },
-        {
-          "source": "/register-device",
-          "function": "registerDevice",
-          "region": "asia-northeast1"
-        },
         {
           "source": "**",
           "destination": "/index.html"
