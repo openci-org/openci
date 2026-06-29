@@ -1,7 +1,6 @@
 import 'dart:convert';
 
 import 'package:dashboard/auth/auth_provider.dart';
-import 'package:dashboard/firebase/functions.dart';
 import 'package:dashboard/openci_server_url_provider.dart';
 import 'package:dashboard/secret_manager/secret_manager_provider.dart';
 import 'package:dashboard/team/team_provider.dart';
@@ -252,14 +251,30 @@ class SetupAscCredentials extends _$SetupAscCredentials {
     required String keyId,
     required String privateKey,
   }) async {
-    final functions = firebaseFunctions;
+    final serverUrl = ref.read(openciServerUrlProvider);
     final teamId = _requireTeamId(ref);
+    final token = await ref.read(authedFirebaseIdTokenProvider.future);
 
-    await functions.httpsCallable('setupAscApiKeyV1').call({
-      'teamId': teamId,
-      'issuerId': issuerId,
-      'keyId': keyId,
-      'privateKey': privateKey,
-    });
+    final url = Uri.parse('$serverUrl/teams/$teamId/ios-signing/setup-asc-key');
+    final response = await http
+        .post(
+          url,
+          headers: {
+            'Authorization': 'Bearer $token',
+            'Content-Type': 'application/json',
+          },
+          body: jsonEncode({
+            'issuerId': issuerId,
+            'keyId': keyId,
+            'privateKey': privateKey,
+          }),
+        )
+        .timeout(const Duration(seconds: 10));
+
+    if (response.statusCode != 200) {
+      throw StateError(
+        'Failed to setup App Store Connect API Key: ${response.statusCode} ${response.body}',
+      );
+    }
   }
 }
