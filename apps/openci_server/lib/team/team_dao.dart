@@ -58,4 +58,13 @@ class TeamDao extends DatabaseAccessor<AppDatabase> with _$TeamDaoMixin {
   Future<DriftTeam?> getTeam(String teamId) {
     return (select(teams)..where((t) => t.id.equals(teamId))).getSingleOrNull();
   }
+
+  Future<void> addTeamMember(String teamId, String userId) async {
+    await into(teamMembers).insert(
+      TeamMembersCompanion.insert(
+        teamId: teamId,
+        userId: userId,
+      ),
+    );
+  }
 }
