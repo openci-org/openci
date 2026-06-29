@@ -2,14 +2,12 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:dashboard/auth/auth_provider.dart';
-import 'package:dashboard/firebase/firestore.dart';
-import 'package:dashboard/firebase/functions.dart';
 import 'package:dashboard/openci_server_url_provider.dart';
 import 'package:dashboard/team/selected_team_provider.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:openci_shared/openci_shared.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:uuid/uuid.dart';
 
 export 'package:openci_shared/openci_shared.dart';
 
@@ -68,161 +66,6 @@ class BuildJobs extends _$BuildJobs {
     } catch (e, s) {
       debugPrint('Error fetching build jobs: $e\n$s');
       return const [];
-    }
-  }
-
-  Future<void> retryBuildJob(String buildJobId) async {
-    final currentJobs = state.value;
-    if (currentJobs == null) {
-      throw StateError('Build jobs are not loaded yet');
-    }
-    final originalJob = currentJobs.firstWhere((j) => j.id == buildJobId);
-
-    final newBuildJobId = const Uuid().v4();
-    final now = DateTime.now().toUtc();
-
-    final newJob = originalJob.copyWith(
-      id: newBuildJobId,
-      status: BuildJobStatus.QUEUED,
-      runCount: 0,
-      latestRunId: null,
-      createdAt: now,
-      updatedAt: now,
-      completedAt: null,
-      failureSummary: null,
-      failureSummaryModel: null,
-      failureSummaryStatus: null,
-      failureSummaryDurationMs: null,
-    );
-
-    try {
-      // 1. Firestore にプレースホルダーを即座に作成
-      await firestore
-          .collection(buildJobsCollection)
-          .doc(newBuildJobId)
-          .set(newJob.toJson());
-
-      // 2. Functions を呼び出す
-      final functions = firebaseFunctions;
-      await functions.httpsCallable('retryBuildJob').call(
-        {
-          'buildJobId': buildJobId,
-          'newBuildJobId': newBuildJobId,
-        },
-      );
-      ref.invalidateSelf();
-    } catch (e, s) {
-      debugPrint('Error in retryBuildJob: $e\n$s');
-      // エラー時はロールバック
-      try {
-        await firestore
-            .collection(buildJobsCollection)
-            .doc(newBuildJobId)
-            .delete();
-      } catch (deleteError) {
-        debugPrint('Failed to delete placeholder job: $deleteError');
-      }
-      rethrow;
-    }
-  }
-
-  Future<void> cancelBuildJob(String buildJobId) async {
-    await getCancelBuildJobCallable().call({
-      'buildJobId': buildJobId,
-    });
-    ref.invalidateSelf();
-  }
-
-  Future<void> retryWorkflowRun(
-    String workflowRunId, {
-    String? workflowFileName,
-  }) async {
-    final currentJobs = state.value;
-    if (currentJobs == null) {
-      throw StateError('Build jobs are not loaded yet');
-    }
-    var originalJobs = currentJobs
-        .where((j) => j.workflowRunId == workflowRunId)
-        .toList();
-    if (workflowFileName != null) {
-      originalJobs = originalJobs
-          .where((j) => j.workflowFileName == workflowFileName)
-          .toList();
-    }
-
-    if (originalJobs.isEmpty) return;
-
-    final newWorkflowRunId = const Uuid().v4();
-    final newJobDocIds = <String, String>{};
-    for (final job in originalJobs) {
-      if (job.jobKey != null) {
-        newJobDocIds[job.jobKey!] = const Uuid().v4();
-      }
-    }
-
-    final now = DateTime.now().toUtc();
-    final batch = firestore.batch();
-    final List<String> createdDocIds = [];
-
-    try {
-      for (final originalJob in originalJobs) {
-        final jobKey = originalJob.jobKey;
-        final newDocumentId = (jobKey != null)
-            ? newJobDocIds[jobKey]!
-            : const Uuid().v4();
-        createdDocIds.add(newDocumentId);
-
-        final originalNeeds = originalJob.needs;
-        final hasNeeds = originalNeeds != null && originalNeeds.isNotEmpty;
-
-        final newJob = originalJob.copyWith(
-          id: newDocumentId,
-          status: hasNeeds ? BuildJobStatus.WAITING : BuildJobStatus.QUEUED,
-          workflowRunId: newWorkflowRunId,
-          runCount: 0,
-          latestRunId: null,
-          createdAt: now,
-          updatedAt: now,
-          completedAt: null,
-          failureSummary: null,
-          failureSummaryModel: null,
-          failureSummaryStatus: null,
-          failureSummaryDurationMs: null,
-        );
-
-        batch.set(
-          firestore.collection(buildJobsCollection).doc(newDocumentId),
-          newJob.toJson(),
-        );
-      }
-
-      // 1. Firestore に一括プレースホルダー作成
-      await batch.commit();
-
-      // 2. Functions を呼び出す
-      final functions = firebaseFunctions;
-      await functions.httpsCallable('retryWorkflowRun').call({
-        'workflowRunId': workflowRunId,
-        'newWorkflowRunId': newWorkflowRunId,
-        'newJobDocIds': newJobDocIds,
-        'workflowFileName': ?workflowFileName,
-      });
-      ref.invalidateSelf();
-    } catch (e, s) {
-      debugPrint('Error in retryWorkflowRun: $e\n$s');
-      // エラー時は一括ロールバック
-      try {
-        final deleteBatch = firestore.batch();
-        for (final docId in createdDocIds) {
-          deleteBatch.delete(
-            firestore.collection(buildJobsCollection).doc(docId),
-          );
-        }
-        await deleteBatch.commit();
-      } catch (deleteError) {
-        debugPrint('Failed to delete placeholder workflow jobs: $deleteError');
-      }
-      rethrow;
     }
   }
 }

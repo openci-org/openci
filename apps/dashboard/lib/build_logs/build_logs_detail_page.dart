@@ -1,11 +1,9 @@
-import 'package:cloud_functions/cloud_functions.dart';
 import 'package:dashboard/app_strings.dart';
 import 'package:dashboard/build_logs/build_job_logs_provider.dart';
 import 'package:dashboard/build_logs/build_jobs_provider.dart';
 import 'package:dashboard/build_logs/synced_spinner.dart';
 import 'package:dashboard/team/team_provider.dart';
 import 'package:dashboard/theme/app_colors.dart';
-import 'package:dashboard/utilities/function_error_message.dart';
 import 'package:dashboard/utilities/snack_bar_extension.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -14,15 +12,6 @@ import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-
-enum _ActionState { idle, loading, done }
-
-void _showMaterialDefaultSnackBar(BuildContext context, String message) {
-  showResponsiveSnackBar(
-    context,
-    content: Text(message),
-  );
-}
 
 class BuildLogsDetailPage extends HookConsumerWidget {
   const BuildLogsDetailPage({
@@ -43,7 +32,6 @@ class BuildLogsDetailPage extends HookConsumerWidget {
         : buildJob.jobKey;
     final matrixLabel = buildJob.matrixLabel;
     final detailT = t.buildLogs.detail;
-    final retryState = useState(_ActionState.idle);
 
     final statusColor = switch (buildJob.status) {
       BuildJobStatus.SUCCESS => const Color(0xFF3FB950),
@@ -77,10 +65,6 @@ class BuildLogsDetailPage extends HookConsumerWidget {
       BuildJobStatus.SKIPPED => 'Skipped',
       BuildJobStatus.TIMED_OUT => 'Timed out',
     };
-
-    final canCancel =
-        buildJob.status == BuildJobStatus.QUEUED ||
-        buildJob.status == BuildJobStatus.IN_PROGRESS;
 
     return SyncedSpinnerScope(
       child: Scaffold(
@@ -139,166 +123,7 @@ class BuildLogsDetailPage extends HookConsumerWidget {
                 ),
             ],
           ),
-          actions: [
-            if (canCancel)
-              IconButton(
-                onPressed: () async {
-                  final confirmed = await showDialog<bool>(
-                    context: context,
-                    builder: (context) => AlertDialog(
-                      backgroundColor: AppColors.of(context).surfaceHover,
-                      surfaceTintColor: Colors.transparent,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        side: BorderSide(
-                          color: AppColors.of(context).border,
-                        ),
-                      ),
-                      title: Text(
-                        detailT.cancelBuild,
-                        style: TextStyle(
-                          color: AppColors.of(context).textPrimary,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      content: Text(
-                        detailT.cancelConfirm,
-                        style: TextStyle(
-                          color: AppColors.of(context).textSecondary,
-                          fontSize: 14,
-                        ),
-                      ),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(context, false),
-                          child: Text(
-                            detailT.cancelNo,
-                            style: TextStyle(
-                              color: AppColors.of(context).textSecondary,
-                            ),
-                          ),
-                        ),
-                        TextButton(
-                          onPressed: () => Navigator.pop(context, true),
-                          style: TextButton.styleFrom(
-                            foregroundColor: const Color(0xFFF85149),
-                          ),
-                          child: Text(detailT.cancelBuild),
-                        ),
-                      ],
-                    ),
-                  );
-                  if (confirmed != true) return;
-                  try {
-                    if (!context.mounted) return;
-                    context.showSnackBarMessage(detailT.cancelling);
-                    await ref
-                        .read(buildJobsProvider.notifier)
-                        .cancelBuildJob(buildJob.id);
-                    if (context.mounted) {
-                      context.showSnackBarMessage(detailT.buildCancelled);
-                    }
-                  } on FirebaseFunctionsException catch (e, s) {
-                    final errorMessage = await FunctionErrorMessage.capture(
-                      e,
-                      stackTrace: s,
-                    );
-                    if (context.mounted) {
-                      context.showSnackBarMessage(errorMessage.message);
-                    }
-                  } catch (e) {
-                    if (context.mounted) {
-                      context.showSnackBarMessage(
-                        detailT.failedToCancel(error: e.toString()),
-                      );
-                    }
-                  }
-                },
-                icon: Icon(
-                  Icons.cancel_outlined,
-                  size: 18,
-                  color: const Color(0xFFD29922).withValues(alpha: 0.7),
-                ),
-                tooltip: t.common.cancel,
-              ),
-            IconButton(
-              onPressed: retryState.value != _ActionState.idle
-                  ? null
-                  : () async {
-                      retryState.value = _ActionState.loading;
-                      try {
-                        if (context.mounted) {
-                          _showMaterialDefaultSnackBar(
-                            context,
-                            detailT.retrySuccess,
-                          );
-                        }
-                        await ref
-                            .read(buildJobsProvider.notifier)
-                            .retryBuildJob(buildJob.id);
-                        retryState.value = _ActionState.done;
-                        Future.delayed(const Duration(milliseconds: 1500), () {
-                          if (context.mounted) {
-                            retryState.value = _ActionState.idle;
-                          }
-                        });
-                      } on FirebaseFunctionsException catch (e, s) {
-                        final errorMessage = await FunctionErrorMessage.capture(
-                          e,
-                          stackTrace: s,
-                        );
-                        if (context.mounted) {
-                          retryState.value = _ActionState.idle;
-                        }
-                        if (context.mounted) {
-                          _showMaterialDefaultSnackBar(
-                            context,
-                            errorMessage.message,
-                          );
-                        }
-                      } catch (e) {
-                        if (context.mounted) {
-                          retryState.value = _ActionState.idle;
-                        }
-                        if (context.mounted) {
-                          _showMaterialDefaultSnackBar(
-                            context,
-                            detailT.failedToRetry(error: e.toString()),
-                          );
-                        }
-                      }
-                    },
-              icon: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 200),
-                child: switch (retryState.value) {
-                  _ActionState.loading => SizedBox(
-                    key: const ValueKey('retry-loading'),
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 1.5,
-                      color: AppColors.of(context).textTertiary,
-                    ),
-                  ),
-                  _ActionState.done => const Icon(
-                    Icons.check_rounded,
-                    key: ValueKey('retry-check'),
-                    size: 18,
-                    color: Color(0xFF3FB950),
-                  ),
-                  _ActionState.idle => Icon(
-                    Icons.replay_rounded,
-                    key: const ValueKey('retry-icon'),
-                    size: 18,
-                    color: AppColors.of(context).textSecondary,
-                  ),
-                },
-              ),
-              tooltip: '再実行',
-            ),
-            const SizedBox(width: 8),
-          ],
+
           bottom: PreferredSize(
             preferredSize: const Size.fromHeight(1),
             child: Container(

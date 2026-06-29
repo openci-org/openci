@@ -1,4 +1,3 @@
-import 'package:cloud_functions/cloud_functions.dart';
 import 'package:dashboard/app_strings.dart';
 import 'package:dashboard/build_logs/branch_job_row.dart';
 import 'package:dashboard/build_logs/branch_matrix_variant_row.dart';
@@ -13,8 +12,7 @@ import 'package:dashboard/build_logs/synced_spinner.dart';
 import 'package:dashboard/extensions/date_time_extensions.dart';
 import 'package:dashboard/theme/app_colors.dart';
 import 'package:dashboard/utilities/async_error_widget.dart';
-import 'package:dashboard/utilities/function_error_message.dart';
-import 'package:dashboard/utilities/snack_bar_extension.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:go_router/go_router.dart';
@@ -80,12 +78,7 @@ String _workflowRunGroupKey(BuildJob job) {
   return '$runId:${job.workflowFileName ?? ''}';
 }
 
-void _showMaterialDefaultSnackBar(BuildContext context, String message) {
-  showResponsiveSnackBar(
-    context,
-    content: Text(message),
-  );
-}
+
 
 class LogsBody extends HookConsumerWidget {
   const LogsBody({super.key, this.initialBuildJobId});
@@ -517,8 +510,6 @@ class BuildJobCard extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isRunning = _isRunningStatus(buildJob.status);
-
     return JobCard(
       onTap: () {
         final onOpen = onOpenBuildJob;
@@ -558,121 +549,6 @@ class BuildJobCard extends HookConsumerWidget {
                     return;
                   }
                   onOpen(buildJob);
-                case 'retry':
-                  try {
-                    if (context.mounted) {
-                      _showMaterialDefaultSnackBar(
-                        context,
-                        t.buildLogs.detail.retrySuccess,
-                      );
-                    }
-                    await ref
-                        .read(buildJobsProvider.notifier)
-                        .retryBuildJob(buildJob.id);
-                  } on FirebaseFunctionsException catch (e, s) {
-                    final errorMessage = await FunctionErrorMessage.capture(
-                      e,
-                      stackTrace: s,
-                    );
-                    if (context.mounted) {
-                      _showMaterialDefaultSnackBar(
-                        context,
-                        errorMessage.message,
-                      );
-                    }
-                  } catch (e) {
-                    if (context.mounted) {
-                      debugPrint('failed to retry: $e');
-                      _showMaterialDefaultSnackBar(
-                        context,
-                        t.buildLogs.detail.failedToRetry(
-                          error: e.toString(),
-                        ),
-                      );
-                    }
-                  }
-                case 'cancel':
-                  final confirmed = await showDialog<bool>(
-                    context: context,
-                    builder: (_) => AlertDialog(
-                      backgroundColor: AppColors.of(context).surfaceHover,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        side: BorderSide(
-                          color: AppColors.of(context).border,
-                        ),
-                      ),
-                      title: Text(
-                        t.buildLogs.detail.cancelBuild,
-                        style: TextStyle(
-                          color: AppColors.of(context).textPrimary,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      content: Text(
-                        t.buildLogs.detail.cancelConfirm,
-                        style: TextStyle(
-                          color: AppColors.of(context).textSecondary,
-                          fontSize: 14,
-                        ),
-                      ),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(context, false),
-                          child: Text(
-                            t.buildLogs.detail.cancelNo,
-                            style: TextStyle(
-                              color: AppColors.of(context).textSecondary,
-                            ),
-                          ),
-                        ),
-                        TextButton(
-                          onPressed: () => Navigator.pop(context, true),
-                          style: TextButton.styleFrom(
-                            foregroundColor: const Color(0xFFEF4444),
-                          ),
-                          child: Text(t.buildLogs.detail.cancelBuild),
-                        ),
-                      ],
-                    ),
-                  );
-                  if (confirmed != true) return;
-                  try {
-                    await ref
-                        .read(buildJobsProvider.notifier)
-                        .cancelBuildJob(buildJob.id);
-                    if (context.mounted) {
-                      showResponsiveSnackBar(
-                        context,
-                        content: Text(
-                          t.buildLogs.detail.buildCancelled,
-                        ),
-                      );
-                    }
-                  } on FirebaseFunctionsException catch (e, s) {
-                    final errorMessage = await FunctionErrorMessage.capture(
-                      e,
-                      stackTrace: s,
-                    );
-                    if (context.mounted) {
-                      showResponsiveSnackBar(
-                        context,
-                        content: Text(errorMessage.message),
-                      );
-                    }
-                  } catch (e) {
-                    if (context.mounted) {
-                      showResponsiveSnackBar(
-                        context,
-                        content: Text(
-                          t.buildLogs.detail.failedToCancel(
-                            error: e.toString(),
-                          ),
-                        ),
-                      );
-                    }
-                  }
               }
             },
             items: [
@@ -681,18 +557,6 @@ class BuildJobCard extends HookConsumerWidget {
                 icon: Icons.arrow_outward_rounded,
                 label: t.buildLogs.detail.viewDetails,
               ),
-              _MenuItemData(
-                value: 'retry',
-                icon: Icons.refresh_rounded,
-                label: t.buildLogs.detail.retry,
-              ),
-              if (isRunning)
-                _MenuItemData(
-                  value: 'cancel',
-                  icon: Icons.stop_circle_outlined,
-                  label: t.common.cancel,
-                  isDestructive: true,
-                ),
             ],
           ),
         ],
@@ -783,12 +647,6 @@ class WorkflowRunCard extends HookConsumerWidget {
                 isExpanded: isExpanded.value,
                 jobs: jobChips,
               ),
-            ),
-            const SizedBox(width: 8),
-            _WorkflowMoreMenu(
-              mainJob: mainJob,
-              overallStatus: overallStatus,
-              ref: ref,
             ),
           ],
         ),
@@ -978,12 +836,6 @@ class WorkflowRunCard extends HookConsumerWidget {
                 needs: needWidgets,
               ),
             ),
-            const SizedBox(width: 8),
-            _WorkflowMoreMenu(
-              mainJob: mainJob,
-              overallStatus: overallStatus,
-              ref: ref,
-            ),
           ],
         ),
       );
@@ -991,68 +843,7 @@ class WorkflowRunCard extends HookConsumerWidget {
   }
 }
 
-class _WorkflowMoreMenu extends StatelessWidget {
-  const _WorkflowMoreMenu({
-    required this.mainJob,
-    required this.overallStatus,
-    required this.ref,
-  });
-
-  final BuildJob mainJob;
-  final BuildJobStatus overallStatus;
-  final WidgetRef ref;
-
-  @override
-  Widget build(BuildContext context) {
-    return _MoreMenuButton(
-      onSelected: (value) async {
-        if (value == 'retry_all') {
-          try {
-            if (context.mounted) {
-              _showMaterialDefaultSnackBar(
-                context,
-                t.buildLogs.detail.retrySuccess,
-              );
-            }
-            await ref
-                .read(buildJobsProvider.notifier)
-                .retryWorkflowRun(
-                  mainJob.workflowRunId!,
-                  workflowFileName: mainJob.workflowFileName,
-                );
-          } on FirebaseFunctionsException catch (e, s) {
-            final errorMessage = await FunctionErrorMessage.capture(
-              e,
-              stackTrace: s,
-            );
-            if (context.mounted) {
-              _showMaterialDefaultSnackBar(
-                context,
-                errorMessage.message,
-              );
-            }
-          } catch (e) {
-            if (context.mounted) {
-              _showMaterialDefaultSnackBar(
-                context,
-                t.buildLogs.detail.failedToRetry(
-                  error: e.toString(),
-                ),
-              );
-            }
-          }
-        }
-      },
-      items: [
-        _MenuItemData(
-          value: 'retry_all',
-          icon: Icons.refresh_rounded,
-          label: t.buildLogs.detail.retry,
-        ),
-      ],
-    );
-  }
-}
+// _WorkflowMoreMenu was removed since retry/cancel build features are deprecated
 
 // ── Status pill badge ────────────────────────────────────────────────────────
 
@@ -1433,13 +1224,11 @@ class _MenuItemData {
     required this.value,
     required this.icon,
     required this.label,
-    this.isDestructive = false,
   });
 
   final String value;
   final IconData icon;
   final String label;
-  final bool isDestructive;
 }
 
 class _MoreMenuButton extends StatelessWidget {
@@ -1475,9 +1264,7 @@ class _MoreMenuButton extends StatelessWidget {
       ),
       onSelected: onSelected,
       itemBuilder: (_) => items.map((item) {
-        final color = item.isDestructive
-            ? const Color(0xFFEF4444)
-            : AppColors.of(context).textPrimary;
+        final color = AppColors.of(context).textPrimary;
         return PopupMenuItem<String>(
           value: item.value,
           height: 36,
