@@ -1,11 +1,12 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:dashboard/auth/auth_provider.dart';
 import 'package:dashboard/openci_server_url_provider.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
-import 'package:http/http.dart' as http;
 import 'package:openci_shared/openci_shared.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:web_socket_channel/web_socket_channel.dart';
 
 part 'build_job_logs_provider.freezed.dart';
 part 'build_job_logs_provider.g.dart';
@@ -23,62 +24,64 @@ abstract class BuildLog with _$BuildLog {
 }
 
 @riverpod
-Future<List<BuildLog>> buildJobLogs(
+Stream<List<BuildLog>> buildJobLogs(
   Ref ref,
   String buildJobId,
   String runId,
-  BuildJobStatus buildStatus,
-) async {
+) async* {
   final serverUrl = ref.watch(openciServerUrlProvider);
-
-  final isRunning =
-      buildStatus == BuildJobStatus.IN_PROGRESS ||
-      buildStatus == BuildJobStatus.QUEUED ||
-      buildStatus == BuildJobStatus.WAITING;
-
-  if (isRunning) {
-    final timer = Timer(const Duration(seconds: 2), () {
-      ref.invalidateSelf();
-    });
-    ref.onDispose(() {
-      timer.cancel();
-    });
-  }
-
-  final url = Uri.parse('$serverUrl/builds/$buildJobId/runs/$runId/logs');
-
+  final wsUrl = serverUrl
+      .replaceAll('https://', 'wss://')
+      .replaceAll('http://', 'ws://');
+  final url = Uri.parse('$wsUrl/builds/$buildJobId/runs/$runId/ws');
   final token = await ref.watch(authedFirebaseIdTokenProvider.future);
 
-  final response = await http
-      .get(
-        url,
-        headers: {
-          'Authorization': 'Bearer $token',
-        },
-      )
-      .timeout(const Duration(seconds: 10));
+  final channel = WebSocketChannel.connect(url);
 
-  if (response.statusCode != 200) {
-    throw Exception('Failed to fetch logs: ${response.statusCode}');
+  var isDisposed = false;
+  ref.onDispose(() {
+    isDisposed = true;
+    channel.sink.close();
+  });
+
+  // 1. 接続後に認証メッセージを送信
+  channel.sink.add(
+    jsonEncode({
+      'type': 'auth',
+      'token': token,
+    }),
+  );
+
+  final accumulatedLogs = <BuildLog>[];
+  yield const [];
+
+  try {
+    await for (final message in channel.stream) {
+      final data = jsonDecode(message as String) as Map<String, dynamic>;
+
+      if (data['type'] == 'log') {
+        final content = data['content'] as String;
+        // ログコンテンツを改行でスプリットし、1行ずつ追加する
+        final lines = content.split('\n');
+        for (final line in lines) {
+          if (line.isEmpty && line == lines.last) continue;
+          accumulatedLogs.add(
+            BuildLog(
+              message: line,
+              level: 'info',
+              timestamp: DateTime.now(),
+            ),
+          );
+        }
+        yield List<BuildLog>.from(accumulatedLogs);
+      } else if (data['type'] == 'error') {
+        throw Exception(data['message']);
+      }
+    }
+  } catch (e) {
+    if (isDisposed) {
+      return;
+    }
+    rethrow;
   }
-
-  if (response.body.isEmpty) {
-    return const [];
-  }
-
-  final logs = <BuildLog>[];
-  final logText = response.body;
-
-  final lines = logText.split('\n');
-  for (final line in lines) {
-    if (line.isEmpty) continue;
-    logs.add(
-      BuildLog(
-        message: line,
-        level: 'info',
-        timestamp: DateTime.now(),
-      ),
-    );
-  }
-  return logs;
 }

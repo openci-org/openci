@@ -9,14 +9,9 @@ Handler middleware(Handler handler) {
     final db = context.read<AppDatabase>();
     final uid = context.read<String?>();
 
-    if (uid == null) {
-      return Response.json(
-        statusCode: HttpStatus.unauthorized,
-        body: {'success': false, 'error': 'Authentication required'},
-      );
-    }
-
     final segments = context.request.uri.pathSegments;
+    final isWebSocket = segments.isNotEmpty && segments.last == 'ws';
+
     if (segments.length < 2 || segments[0] != 'builds') {
       return Response.json(
         statusCode: HttpStatus.badRequest,
@@ -30,6 +25,20 @@ Handler middleware(Handler handler) {
       return Response.json(
         statusCode: HttpStatus.notFound,
         body: {'success': false, 'error': 'Build job not found'},
+      );
+    }
+
+    if (isWebSocket) {
+      // WebSocket接続時は、トークン検証をハンドラ内で自前で行うため、
+      // ミドルウェアでの認証・認可チェックをスキップし、driftJob を provide して通す。
+      return handler(context.provide<DriftBuildJob>(() => driftJob));
+    }
+
+    // 通常のリクエストに対する認証・認可チェック
+    if (uid == null) {
+      return Response.json(
+        statusCode: HttpStatus.unauthorized,
+        body: {'success': false, 'error': 'Authentication required'},
       );
     }
 

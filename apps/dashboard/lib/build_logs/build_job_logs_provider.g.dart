@@ -49,12 +49,12 @@ final class BuildJobLogsProvider
         $FunctionalProvider<
           AsyncValue<List<BuildLog>>,
           List<BuildLog>,
-          FutureOr<List<BuildLog>>
+          Stream<List<BuildLog>>
         >
-    with $FutureModifier<List<BuildLog>>, $FutureProvider<List<BuildLog>> {
+    with $FutureModifier<List<BuildLog>>, $StreamProvider<List<BuildLog>> {
   BuildJobLogsProvider._({
     required BuildJobLogsFamily super.from,
-    required (String, String, BuildJobStatus) super.argument,
+    required (String, String) super.argument,
   }) : super(
          retry: null,
          name: r'buildJobLogsProvider',
@@ -75,14 +75,14 @@ final class BuildJobLogsProvider
 
   @$internal
   @override
-  $FutureProviderElement<List<BuildLog>> $createElement(
+  $StreamProviderElement<List<BuildLog>> $createElement(
     $ProviderPointer pointer,
-  ) => $FutureProviderElement(pointer);
+  ) => $StreamProviderElement(pointer);
 
   @override
-  FutureOr<List<BuildLog>> create(Ref ref) {
-    final argument = this.argument as (String, String, BuildJobStatus);
-    return buildJobLogs(ref, argument.$1, argument.$2, argument.$3);
+  Stream<List<BuildLog>> create(Ref ref) {
+    final argument = this.argument as (String, String);
+    return buildJobLogs(ref, argument.$1, argument.$2);
   }
 
   @override
@@ -96,14 +96,10 @@ final class BuildJobLogsProvider
   }
 }
 
-String _$buildJobLogsHash() => r'55f32c53a16928f6e89016b6074faa2f87ca6d53';
+String _$buildJobLogsHash() => r'92e0a11aa5b0aa72eac5023f0d112995805b3107';
 
 final class BuildJobLogsFamily extends $Family
-    with
-        $FunctionalFamilyOverride<
-          FutureOr<List<BuildLog>>,
-          (String, String, BuildJobStatus)
-        > {
+    with $FunctionalFamilyOverride<Stream<List<BuildLog>>, (String, String)> {
   BuildJobLogsFamily._()
     : super(
         retry: null,
@@ -113,14 +109,8 @@ final class BuildJobLogsFamily extends $Family
         isAutoDispose: true,
       );
 
-  BuildJobLogsProvider call(
-    String buildJobId,
-    String runId,
-    BuildJobStatus buildStatus,
-  ) => BuildJobLogsProvider._(
-    argument: (buildJobId, runId, buildStatus),
-    from: this,
-  );
+  BuildJobLogsProvider call(String buildJobId, String runId) =>
+      BuildJobLogsProvider._(argument: (buildJobId, runId), from: this);
 
   @override
   String toString() => r'buildJobLogsProvider';

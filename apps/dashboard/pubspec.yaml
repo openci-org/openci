@@ -52,6 +52,7 @@ dependencies:
   url_launcher: ^6.3.2
   uuid: ^4.5.3
   wolt_modal_sheet: ^0.11.0
+  web_socket_channel: ^3.0.1
   xml: ^6.6.1
   yaml: ^3.1.3
 
