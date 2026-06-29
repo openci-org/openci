@@ -38,6 +38,7 @@ Stream<List<BuildLog>> buildJobLogs(
   request.headers['Authorization'] = 'Bearer $token';
   request.headers['Accept'] = 'text/event-stream';
   request.headers['Cache-Control'] = 'no-cache';
+  request.headers['Accept-Encoding'] = 'identity';
 
   var isDisposed = false;
   ref.onDispose(() {
@@ -46,9 +47,7 @@ Stream<List<BuildLog>> buildJobLogs(
   });
 
   try {
-    print('[SSE Client] Connecting to: $url');
     final response = await client.send(request);
-    print('[SSE Client] Status code: ${response.statusCode}');
 
     if (response.statusCode != 200) {
       throw Exception(
@@ -59,12 +58,10 @@ Stream<List<BuildLog>> buildJobLogs(
     final accumulatedLogs = <BuildLog>[];
     yield const [];
 
-    print('[SSE Client] Starting to listen response stream...');
     await for (final line
         in response.stream
             .transform(utf8.decoder)
             .transform(const LineSplitter())) {
-      print('[SSE Client] Received line: "$line"');
       if (line.startsWith('data:')) {
         final message = line.substring(5).trim();
         accumulatedLogs.add(
@@ -77,9 +74,7 @@ Stream<List<BuildLog>> buildJobLogs(
         yield List<BuildLog>.from(accumulatedLogs);
       }
     }
-    print('[SSE Client] Response stream finished.');
-  } catch (e, s) {
-    print('[SSE Client] Error: $e\n$s');
+  } catch (e) {
     if (isDisposed) {
       return;
     }
