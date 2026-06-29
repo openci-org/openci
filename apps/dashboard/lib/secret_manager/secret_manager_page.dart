@@ -1,12 +1,10 @@
 import 'dart:convert';
 
-import 'package:cloud_functions/cloud_functions.dart';
 import 'package:dashboard/app_strings.dart';
 import 'package:dashboard/secret_manager/secret_manager_provider.dart';
 import 'package:dashboard/theme/app_colors.dart';
 import 'package:dashboard/utilities/adaptive_modal.dart';
 import 'package:dashboard/utilities/breakpoint.dart';
-import 'package:dashboard/utilities/function_error_message.dart';
 import 'package:dashboard/utilities/snack_bar_extension.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -603,13 +601,6 @@ class _SecretListTile extends ConsumerWidget {
           .deleteSecret(documentId: secret.id);
       if (!context.mounted) return;
       context.showSnackBarMessage(secretsT.deletedSuccess);
-    } on FirebaseFunctionsException catch (e, s) {
-      final errorMessage = await FunctionErrorMessage.capture(
-        e,
-        stackTrace: s,
-      );
-      if (!context.mounted) return;
-      context.showSnackBarMessage(errorMessage.message);
     } catch (e) {
       if (!context.mounted) return;
       context.showSnackBarMessage('$e');
@@ -1334,17 +1325,6 @@ class _AddSecretBottomSheet extends HookConsumerWidget {
                           content: Text(secretsT.addedSuccess),
                         );
                         Navigator.of(context).pop();
-                      } on FirebaseFunctionsException catch (e, s) {
-                        final errorMessage = await FunctionErrorMessage.capture(
-                          e,
-                          stackTrace: s,
-                        );
-                        if (!context.mounted) return;
-                        isSubmitting.value = false;
-                        showResponsiveSnackBar(
-                          context,
-                          content: Text(errorMessage.message),
-                        );
                       } catch (e) {
                         if (!context.mounted) return;
                         isSubmitting.value = false;
@@ -1867,17 +1847,6 @@ class _EditSecretBottomSheet extends HookConsumerWidget {
                             secretsT.updatedSuccess,
                           );
                           Navigator.of(context).pop();
-                        } on FirebaseFunctionsException catch (e, s) {
-                          final errorMessage =
-                              await FunctionErrorMessage.capture(
-                                e,
-                                stackTrace: s,
-                              );
-                          isLoading.value = false;
-                          if (!context.mounted) return;
-                          context.showSnackBarMessage(
-                            errorMessage.message,
-                          );
                         } catch (e) {
                           isLoading.value = false;
                           if (!context.mounted) return;
@@ -1988,14 +1957,6 @@ class _GenerateCertificateKeyButton extends HookConsumerWidget {
                           context.showSnackBarMessage(
                             'Certificate key generated successfully',
                           );
-                        } on FirebaseFunctionsException catch (e, s) {
-                          final errorMessage =
-                              await FunctionErrorMessage.capture(
-                                e,
-                                stackTrace: s,
-                              );
-                          if (!context.mounted) return;
-                          context.showSnackBarMessage(errorMessage.message);
                         } catch (e) {
                           if (!context.mounted) return;
                           context.showSnackBarMessage('$e');

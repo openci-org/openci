@@ -2,15 +2,12 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:cloud_functions/cloud_functions.dart';
 import 'package:dashboard/app_strings.dart';
 import 'package:dashboard/firebase/firebase_config_provider.dart';
-import 'package:dashboard/firebase/functions.dart';
 import 'package:dashboard/firebase/plist_parser.dart';
 import 'package:dashboard/openci_server_url_provider.dart';
 import 'package:dashboard/team/selected_team_provider.dart';
 import 'package:dashboard/theme/app_colors.dart';
-import 'package:dashboard/utilities/function_error_message.dart';
 import 'package:dashboard/utilities/snack_bar_extension.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -22,24 +19,6 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
-
-void _processInvitations() {
-  unawaited(_processInvitationsAsync());
-}
-
-Future<void> _processInvitationsAsync() async {
-  try {
-    await firebaseFunctions.httpsCallable('acceptInvitations').call<void>();
-  } on FirebaseFunctionsException catch (e, s) {
-    final errorMessage = await FunctionErrorMessage.capture(
-      e,
-      stackTrace: s,
-    );
-    debugPrint('acceptInvitations failed: ${errorMessage.message}');
-  } catch (e) {
-    debugPrint('acceptInvitations failed: $e');
-  }
-}
 
 class AuthPage extends HookConsumerWidget {
   const AuthPage({super.key});
@@ -289,7 +268,6 @@ class AuthPage extends HookConsumerWidget {
                                                               .text,
                                                     );
                                                 TextInput.finishAutofillContext();
-                                                _processInvitations();
                                               } catch (e) {
                                                 if (!context.mounted) {
                                                   return;
@@ -373,7 +351,6 @@ class AuthPage extends HookConsumerWidget {
                                                           .notifier,
                                                     )
                                                     .saveSelectedTeamId(teamId);
-                                                _processInvitations();
                                               } catch (e) {
                                                 if (!context.mounted) {
                                                   return;
