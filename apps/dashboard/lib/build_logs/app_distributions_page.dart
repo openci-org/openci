@@ -1,7 +1,9 @@
+import 'dart:convert';
+
 import 'package:app_minimizer_plus/app_minimizer_plus.dart';
 import 'package:dashboard/app_strings.dart';
+import 'package:dashboard/auth/auth_provider.dart';
 import 'package:dashboard/build_logs/build_jobs_provider.dart';
-import 'package:dashboard/firebase/firestore.dart';
 import 'package:dashboard/openci_server_url_provider.dart';
 import 'package:dashboard/team/selected_team_provider.dart';
 import 'package:dashboard/theme/app_colors.dart';
@@ -11,9 +13,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:http/http.dart' as http;
 import 'package:qr/qr.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:uuid/uuid.dart';
 
 class AppDistributionsBody extends HookConsumerWidget {
   const AppDistributionsBody({super.key});
@@ -420,6 +422,7 @@ class _BuildListItem extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final colors = AppColors.of(context);
+    final serverUrl = ref.watch(openciServerUrlProvider);
     final isRequested = useState(false);
     final isUdidVisible = useState(false);
 
@@ -702,27 +705,30 @@ class _BuildListItem extends HookConsumerWidget {
                         ? null
                         : () async {
                             try {
-                              final requestId = const Uuid().v4();
-                              final nowStr = DateTime.now()
-                                  .toUtc()
-                                  .toIso8601String();
                               await Clipboard.setData(
                                 ClipboardData(text: userUdid!),
                               );
-                              await firestore
-                                  .collection(udidRequestsCollection)
-                                  .doc(requestId)
-                                  .set({
-                                    'id': requestId,
-                                    'userId': user.id,
-                                    'udid': userUdid,
-                                    'deviceProduct': 'Unknown',
-                                    'deviceOsVersion': 'Unknown',
-                                    'teamId': selectedTeamId,
-                                    'buildJobId': buildJob.id,
-                                    'createdAt': nowStr,
-                                    'status': 'pending',
-                                  });
+                              final url = Uri.parse(
+                                '$serverUrl/teams/$selectedTeamId/udid-requests',
+                              );
+                              final token = await ref.read(
+                                authedFirebaseIdTokenProvider.future,
+                              );
+                              final response = await http.post(
+                                url,
+                                headers: {
+                                  'Authorization': 'Bearer $token',
+                                  'Content-Type': 'application/json',
+                                },
+                                body: jsonEncode({
+                                  'udid': userUdid,
+                                }),
+                              );
+                              if (response.statusCode != 201) {
+                                throw StateError(
+                                  'Failed to register UDID: ${response.statusCode} ${response.body}',
+                                );
+                              }
                               isRequested.value = true;
                               if (context.mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
