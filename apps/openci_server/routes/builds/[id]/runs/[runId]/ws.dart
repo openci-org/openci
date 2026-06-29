@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+
 import 'package:dart_frog/dart_frog.dart';
 import 'package:dart_frog_web_socket/dart_frog_web_socket.dart';
 import 'package:firebase_admin_sdk/firebase_admin_sdk.dart';
@@ -36,44 +37,48 @@ Future<Response> onRequest(
               isAuthenticated = true;
               final db = context.read<AppDatabase>();
 
-              // ログ送信用のポーリングループを開始
+              Future<void> sendNewLogs() async {
+                try {
+                  final logs = await db.buildJobDao.getBuildJobLogs(runId);
+                  final newLogs = logs.where((l) => l.id > lastSentId).toList();
+
+                  if (newLogs.isNotEmpty) {
+                    for (final log in newLogs) {
+                      lastSentId = log.id;
+                      channel.sink.add(
+                        jsonEncode({
+                          'type': 'log',
+                          'content': log.logContent,
+                        }),
+                      );
+                    }
+                  }
+
+                  // 完了チェック
+                  final currentRun = await db.buildRunDao.getBuildRun(
+                    id,
+                    runId,
+                  );
+                  if (_isRunCompleted(currentRun?.status)) {
+                    // クライアント側がデータを受け取るのを少し待つためのディレイを入れてから閉じる
+                    await Future<void>.delayed(
+                      const Duration(milliseconds: 500),
+                    );
+                    await channel.sink.close();
+                  }
+                } catch (e) {
+                  await channel.sink.close();
+                }
+              }
+
+              // 1. 初回ログを即時に送信
+              await sendNewLogs();
+
+              // 2. 以降、ログ送信用のポーリングループを開始
               logSubscription = Stream.periodic(const Duration(seconds: 1))
                   .listen((_) async {
                     if (!isAuthenticated) return;
-
-                    try {
-                      final logs = await db.buildJobDao.getBuildJobLogs(runId);
-                      final newLogs = logs
-                          .where((l) => l.id > lastSentId)
-                          .toList();
-
-                      if (newLogs.isNotEmpty) {
-                        for (final log in newLogs) {
-                          lastSentId = log.id;
-                          channel.sink.add(
-                            jsonEncode({
-                              'type': 'log',
-                              'content': log.logContent,
-                            }),
-                          );
-                        }
-                      }
-
-                      // 完了チェック
-                      final currentRun = await db.buildRunDao.getBuildRun(
-                        id,
-                        runId,
-                      );
-                      if (_isRunCompleted(currentRun?.status)) {
-                        // クライアント側がデータを受け取るのを少し待つためのディレイを入れてから閉じる
-                        await Future<void>.delayed(
-                          const Duration(milliseconds: 500),
-                        );
-                        await channel.sink.close();
-                      }
-                    } catch (e) {
-                      await channel.sink.close();
-                    }
+                    await sendNewLogs();
                   });
             }
           } catch (e) {
