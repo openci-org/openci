@@ -4,7 +4,6 @@ import 'package:dashboard/settings/settings_page.dart';
 import 'package:dashboard/store_release/store_release_page.dart';
 import 'package:dashboard/variables/variables_page.dart';
 import 'package:dashboard/workers/worker_status_page.dart';
-import 'package:dashboard/workflow/list/workflows_page.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -14,7 +13,6 @@ const compactBoardBreakpoint = 640.0;
 enum CompactBoardDestination {
   runs,
   workers,
-  workflows,
   variables,
   storeRelease,
   distributions,
@@ -24,7 +22,6 @@ enum CompactBoardDestination {
 const boardNavigationDestinations = [
   CompactBoardDestination.runs,
   CompactBoardDestination.workers,
-  CompactBoardDestination.workflows,
   CompactBoardDestination.variables,
   CompactBoardDestination.storeRelease,
   CompactBoardDestination.distributions,
@@ -35,7 +32,6 @@ extension CompactBoardDestinationLabel on CompactBoardDestination {
   String get label => switch (this) {
     CompactBoardDestination.runs => 'CI/CDログ',
     CompactBoardDestination.workers => 'ワーカー',
-    CompactBoardDestination.workflows => 'CI/CD設定',
     CompactBoardDestination.variables => 'シークレット',
     CompactBoardDestination.storeRelease => 'ストアリリース',
     CompactBoardDestination.distributions => 'アプリ配信',
@@ -45,7 +41,6 @@ extension CompactBoardDestinationLabel on CompactBoardDestination {
   IconData get icon => switch (this) {
     CompactBoardDestination.runs => Icons.history_rounded,
     CompactBoardDestination.workers => Icons.dns_outlined,
-    CompactBoardDestination.workflows => Icons.schema_rounded,
     CompactBoardDestination.variables => Icons.key_rounded,
     CompactBoardDestination.storeRelease => Icons.rocket_launch_outlined,
     CompactBoardDestination.distributions => Icons.install_mobile_rounded,
@@ -55,7 +50,6 @@ extension CompactBoardDestinationLabel on CompactBoardDestination {
   IconData get selectedIcon => switch (this) {
     CompactBoardDestination.runs => Icons.history_rounded,
     CompactBoardDestination.workers => Icons.dns_rounded,
-    CompactBoardDestination.workflows => Icons.schema_rounded,
     CompactBoardDestination.variables => Icons.key_rounded,
     CompactBoardDestination.storeRelease => Icons.rocket_launch_rounded,
     CompactBoardDestination.distributions => Icons.install_mobile_rounded,
@@ -78,7 +72,6 @@ class CompactDestinationBody extends StatelessWidget {
     return switch (destination) {
       CompactBoardDestination.runs => const LogsBody(),
       CompactBoardDestination.workers => const WorkerStatusBody(),
-      CompactBoardDestination.workflows => const WorkflowsBody(),
       CompactBoardDestination.variables => const VariablesBody(),
       CompactBoardDestination.storeRelease => const StoreReleaseBody(),
       CompactBoardDestination.distributions => const AppDistributionsBody(),
@@ -125,8 +118,6 @@ class _DashboardShellState extends State<DashboardShell> {
     void onRunsTap() => _selectCompactDestination(CompactBoardDestination.runs);
     void onWorkersTap() =>
         _selectCompactDestination(CompactBoardDestination.workers);
-    void onWorkflowsTap() =>
-        _selectCompactDestination(CompactBoardDestination.workflows);
     void onVariablesTap() =>
         _selectCompactDestination(CompactBoardDestination.variables);
     void onStoreReleaseTap() =>
@@ -174,7 +165,6 @@ class _DashboardShellState extends State<DashboardShell> {
                 selectedDestination: _compactDestination,
                 onRunsTap: onRunsTap,
                 onWorkersTap: onWorkersTap,
-                onWorkflowsTap: onWorkflowsTap,
                 onVariablesTap: onVariablesTap,
                 onStoreReleaseTap: onStoreReleaseTap,
                 onDistributionsTap: onDistributionsTap,
@@ -349,7 +339,6 @@ class DashboardDrawer extends StatelessWidget {
     required this.selectedDestination,
     required this.onRunsTap,
     required this.onWorkersTap,
-    required this.onWorkflowsTap,
     required this.onVariablesTap,
     required this.onStoreReleaseTap,
     required this.onDistributionsTap,
@@ -360,7 +349,6 @@ class DashboardDrawer extends StatelessWidget {
   final CompactBoardDestination selectedDestination;
   final VoidCallback onRunsTap;
   final VoidCallback onWorkersTap;
-  final VoidCallback onWorkflowsTap;
   final VoidCallback onVariablesTap;
   final VoidCallback onStoreReleaseTap;
   final VoidCallback onDistributionsTap;
@@ -429,13 +417,6 @@ class DashboardDrawer extends StatelessWidget {
               label: 'ワーカー',
               selected: selectedDestination == CompactBoardDestination.workers,
               onTap: () => runAfterClose(onWorkersTap),
-            ),
-            _CompactDrawerTile(
-              icon: Icons.schema_rounded,
-              label: 'CI/CD設定',
-              selected:
-                  selectedDestination == CompactBoardDestination.workflows,
-              onTap: () => runAfterClose(onWorkflowsTap),
             ),
             _CompactDrawerTile(
               icon: Icons.key_rounded,
@@ -547,14 +528,12 @@ class _DashboardShortcutsState extends State<_DashboardShortcuts> {
       const SingleActivator(LogicalKeyboardKey.digit2, meta: true): () =>
           widget.onDestinationSelected(CompactBoardDestination.workers),
       const SingleActivator(LogicalKeyboardKey.digit3, meta: true): () =>
-          widget.onDestinationSelected(CompactBoardDestination.workflows),
-      const SingleActivator(LogicalKeyboardKey.digit4, meta: true): () =>
           widget.onDestinationSelected(CompactBoardDestination.variables),
-      const SingleActivator(LogicalKeyboardKey.digit5, meta: true): () =>
+      const SingleActivator(LogicalKeyboardKey.digit4, meta: true): () =>
           widget.onDestinationSelected(CompactBoardDestination.storeRelease),
-      const SingleActivator(LogicalKeyboardKey.digit6, meta: true): () =>
+      const SingleActivator(LogicalKeyboardKey.digit5, meta: true): () =>
           widget.onDestinationSelected(CompactBoardDestination.distributions),
-      const SingleActivator(LogicalKeyboardKey.digit7, meta: true): () =>
+      const SingleActivator(LogicalKeyboardKey.digit6, meta: true): () =>
           widget.onDestinationSelected(CompactBoardDestination.settings),
     };
 
