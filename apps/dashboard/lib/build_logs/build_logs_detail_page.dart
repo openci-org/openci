@@ -520,22 +520,24 @@ class _DetailLogsView extends HookConsumerWidget {
                 ),
                 // ── Log list ─────────────────────────────────────────
                 Expanded(
-                  child: Scrollbar(
-                    controller: scrollController,
-                    child: ListView.builder(
+                  child: SelectionArea(
+                    child: Scrollbar(
                       controller: scrollController,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 0,
-                        vertical: 8,
+                      child: ListView.builder(
+                        controller: scrollController,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 0,
+                          vertical: 8,
+                        ),
+                        itemCount: logs.length,
+                        itemBuilder: (context, index) {
+                          final log = logs[index];
+                          return _DetailLogLine(
+                            log: log,
+                            lineNumber: index + 1,
+                          );
+                        },
                       ),
-                      itemCount: logs.length,
-                      itemBuilder: (context, index) {
-                        final log = logs[index];
-                        return _DetailLogLine(
-                          log: log,
-                          lineNumber: index + 1,
-                        );
-                      },
                     ),
                   ),
                 ),
@@ -680,12 +682,16 @@ class _DetailLogLine extends HookWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _lineNumberWidget(context),
+              SelectionContainer.disabled(
+                child: _lineNumberWidget(context),
+              ),
               const SizedBox(width: 12),
-              _levelIconWidget(levelIcon, levelColor),
+              SelectionContainer.disabled(
+                child: _levelIconWidget(levelIcon, levelColor),
+              ),
               const SizedBox(width: 8),
               Expanded(
-                child: _HorizontalLogSelectableText(
+                child: _HorizontalLogText(
                   text: log.message,
                   style: TextStyle(
                     fontSize: 13,
@@ -730,9 +736,13 @@ class _DetailLogLine extends HookWidget {
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _lineNumberWidget(context),
+                      SelectionContainer.disabled(
+                        child: _lineNumberWidget(context),
+                      ),
                       const SizedBox(width: 12),
-                      _levelIconWidget(levelIcon, levelColor),
+                      SelectionContainer.disabled(
+                        child: _levelIconWidget(levelIcon, levelColor),
+                      ),
                       const SizedBox(width: 8),
                       Expanded(
                         child: _HorizontalLogText(
@@ -746,41 +756,43 @@ class _DetailLogLine extends HookWidget {
                         ),
                       ),
                       const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 3,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppColors.of(context).divider,
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(
-                            color: AppColors.of(context).border,
+                      SelectionContainer.disabled(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 3,
                           ),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              isExpanded.value
-                                  ? Icons.unfold_less_rounded
-                                  : Icons.unfold_more_rounded,
-                              size: 13,
-                              color: AppColors.of(context).textTertiary,
+                          decoration: BoxDecoration(
+                            color: AppColors.of(context).divider,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: AppColors.of(context).border,
                             ),
-                            const SizedBox(width: 4),
-                            Text(
-                              t.buildLogs.detail.lines(
-                                count: lines.length.toString(),
-                              ),
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontFamily: 'monospace',
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                isExpanded.value
+                                    ? Icons.unfold_less_rounded
+                                    : Icons.unfold_more_rounded,
+                                size: 13,
                                 color: AppColors.of(context).textTertiary,
-                                fontWeight: FontWeight.w500,
                               ),
-                            ),
-                          ],
+                              const SizedBox(width: 4),
+                              Text(
+                                t.buildLogs.detail.lines(
+                                  count: lines.length.toString(),
+                                ),
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontFamily: 'monospace',
+                                  color: AppColors.of(context).textTertiary,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ],
@@ -805,7 +817,7 @@ class _DetailLogLine extends HookWidget {
                   ),
                 ),
                 padding: const EdgeInsets.all(14),
-                child: _HorizontalLogSelectableText(
+                child: _HorizontalLogText(
                   text: log.message,
                   style: TextStyle(
                     fontSize: 13,
@@ -878,28 +890,6 @@ class _HorizontalLogText extends StatelessWidget {
       child: Text(
         text,
         softWrap: false,
-        style: style,
-      ),
-    );
-  }
-}
-
-class _HorizontalLogSelectableText extends StatelessWidget {
-  const _HorizontalLogSelectableText({
-    required this.text,
-    required this.style,
-  });
-
-  final String text;
-  final TextStyle style;
-
-  @override
-  Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: SelectableText(
-        text,
-        maxLines: null,
         style: style,
       ),
     );
