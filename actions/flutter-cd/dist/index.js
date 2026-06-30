@@ -44108,6 +44108,9 @@ async function buildAndSignIos() {
         ? uploadToAppStoreConnectInput === "true"
         : distributionMethod === "app-store";
     const sentryAuthToken = core.getInput("sentry-auth-token") || "";
+    const shorebirdEnabled = parseBooleanInput("shorebird", core.getInput("shorebird") || "", false);
+    const shorebirdToken = core.getInput("shorebird-token") || "";
+    const flutterVersionInput = core.getInput("flutter-version") || "";
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "openci-ios-"));
     try {
         console.log("🚀 OpenCI iOS Sign & Build");
@@ -44116,6 +44119,7 @@ async function buildAndSignIos() {
         console.log(`   Distribution: ${distributionMethod}`);
         console.log(`   Swift Package Manager: ${swiftPackageManagerMode}`);
         console.log(`   Patch Flutter iOS Distribution signing: ${patchFlutterDistributionSigning ? "enabled" : "disabled"}`);
+        console.log(`   Shorebird release: ${shorebirdEnabled ? "enabled" : "disabled"}`);
         console.log("");
         // ── Step 1: Configure Flutter dependency manager ────────
         core.startGroup("Step 1: Configuring Flutter dependency manager");
@@ -44196,8 +44200,29 @@ async function buildAndSignIos() {
         generateExportOptions(exportOptionsPath, appleTeamId, bundleId, profile.name, distributionMethod);
         console.log("  ✅ ExportOptions.plist generated");
         core.endGroup();
+        // ── Step 11.5: Setup Shorebird (Optional) ───────────────
+        if (shorebirdEnabled) {
+            core.startGroup("Step 11.5: Setting up Shorebird");
+            if (shorebirdToken) {
+                process.env.SHOREBIRD_TOKEN = shorebirdToken;
+                console.log("  ✅ SHOREBIRD_TOKEN environment variable set");
+            }
+            try {
+                await (0, helpers_1.exec)("which shorebird", { silent: true });
+                console.log("  ✅ Shorebird CLI is already installed");
+            }
+            catch {
+                console.log("  ⏳ Shorebird CLI not found. Installing...");
+                await (0, helpers_1.exec)("curl --proto '=https' --tlsv1.2 https://raw.githubusercontent.com/shorebirdtech/install/main/install.sh -sSf | bash");
+                const shorebirdBinPath = path.join(os.homedir(), ".shorebird", "bin");
+                core.addPath(shorebirdBinPath);
+                process.env.PATH = `${shorebirdBinPath}${path.delimiter}${process.env.PATH}`;
+                console.log("  ✅ Shorebird CLI installed and added to PATH");
+            }
+            core.endGroup();
+        }
         // ── Step 12: Flutter build IPA ──────────────────────────
-        core.startGroup("Step 12: Building IPA");
+        core.startGroup(shorebirdEnabled ? "Step 12: Building IPA with Shorebird" : "Step 12: Building IPA");
         console.log("  ⏳ This may take several minutes...");
         const buildNumberArg = buildNumberInput ? `--build-number=${buildNumber}` : "";
         const noPubArg = (0, flutter_1.buildNoPubArg)(pubGetAlreadyRan, buildArgs);
@@ -44205,7 +44230,23 @@ async function buildAndSignIos() {
         fs.mkdirSync(privateKeysDir, { recursive: true });
         const apiKeyDest = path.join(privateKeysDir, `AuthKey_${ascKeyId}.p8`);
         fs.copyFileSync(ascKeyPath, apiKeyDest);
-        await (0, helpers_1.exec)(`flutter build ipa ${noPubArg} --release --export-options-plist="${exportOptionsPath}" ${buildNumberArg} ${buildArgs}`.trim(), { cwd: workingDirectory });
+        if (shorebirdEnabled) {
+            let flutterVersion = flutterVersionInput;
+            if (!flutterVersion) {
+                flutterVersion = (await detectFlutterVersion()) || "";
+                if (flutterVersion) {
+                    console.log(`  🐦 Shorebird release: auto-detected Flutter version ${flutterVersion} from host`);
+                }
+            }
+            else {
+                console.log(`  🐦 Shorebird release: using Flutter version ${flutterVersion} from input`);
+            }
+            const versionArg = flutterVersion ? `--flutter-version=${flutterVersion}` : "";
+            await (0, helpers_1.exec)(`shorebird release ios --export-options-plist="${exportOptionsPath}" ${versionArg} ${buildNumberArg} ${buildArgs}`.trim(), { cwd: workingDirectory });
+        }
+        else {
+            await (0, helpers_1.exec)(`flutter build ipa ${noPubArg} --release --export-options-plist="${exportOptionsPath}" ${buildNumberArg} ${buildArgs}`.trim(), { cwd: workingDirectory });
+        }
         // Verify IPA was actually created
         const ipaDir = path.join(workingDirectory, "build", "ios", "ipa");
         const ipaFiles = fs.existsSync(ipaDir)
@@ -44655,6 +44696,19 @@ async function handleOtaDistribution(ipaPath) {
     finally {
         core.endGroup();
     }
+}
+async function detectFlutterVersion() {
+    try {
+        const output = await (0, helpers_1.execAndCapture)("flutter --version");
+        const match = output.match(/Flutter\s+(\d+\.\d+\.\d+)/);
+        if (match) {
+            return match[1];
+        }
+    }
+    catch (error) {
+        console.log(`  ⚠️ Failed to detect Flutter version: ${error}`);
+    }
+    return undefined;
 }
 
 

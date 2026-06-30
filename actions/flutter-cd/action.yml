@@ -97,6 +97,18 @@ inputs:
     description: "Sentry Auth Token for uploading debug symbols and source maps. (ios, macos)"
     required: false
     default: ""
+  shorebird:
+    description: "Enable Shorebird release build. If true, uses shorebird release ios instead of flutter build ipa. (ios)"
+    required: false
+    default: "false"
+  shorebird-token:
+    description: "Shorebird token to authenticate with. If provided, sets SHOREBIRD_TOKEN env var. (ios)"
+    required: false
+    default: ""
+  flutter-version:
+    description: "Flutter version to use for Shorebird builds. If omitted, falls back to auto-detecting from the host. (ios)"
+    required: false
+    default: ""
 
 outputs:
   ipa-path:

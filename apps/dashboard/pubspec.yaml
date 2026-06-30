@@ -68,6 +68,8 @@ dev_dependencies:
   sentry_dart_plugin: ^3.3.0
 
 flutter:
+  assets:
+    - shorebird.yaml
   uses-material-design: true
 
 sentry:
