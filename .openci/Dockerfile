@@ -25,7 +25,6 @@ RUN npm install -g firebase-tools@latest \
     && firebase --version \
     && npm cache clean --force
 
-# 4. Flutter SDK (3.41.7) のインストール
 RUN git clone --depth 1 --branch 3.41.7 https://github.com/flutter/flutter.git /opt/flutter
 ENV PATH="/opt/flutter/bin:${PATH}"
 RUN flutter doctor
