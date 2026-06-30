@@ -33,13 +33,36 @@ Future<Response> _get(
       );
     }
 
+    final queryParams = context.request.uri.queryParameters;
+    final limit = int.tryParse(queryParams['limit'] ?? '') ?? 1000;
+    final offset = int.tryParse(queryParams['offset'] ?? '') ?? 0;
+
     final logs = await db.buildJobDao.getBuildJobLogs(runId);
-    final logText = logs.map((l) => l.logContent).join('');
+    final rawText = logs.map((l) => l.logContent).join('');
+    final allLines = rawText
+        .split('\n')
+        .where((line) => line.isNotEmpty)
+        .toList();
+
+    final start = offset;
+    final end = start + limit;
+
+    final slicedLines = allLines.sublist(
+      start.clamp(0, allLines.length),
+      end.clamp(0, allLines.length),
+    );
+
+    var logText = slicedLines.join('\n');
+    if (slicedLines.isNotEmpty) {
+      logText += '\n';
+    }
 
     return Response(
       body: logText,
       headers: {
         'content-type': 'text/plain; charset=utf-8',
+        'x-total-lines': allLines.length.toString(),
+        'x-has-more': (end < allLines.length).toString(),
       },
     );
   } catch (e, s) {
