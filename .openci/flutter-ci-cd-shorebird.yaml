@@ -62,6 +62,8 @@ jobs:
           sentry-auth-token: ${{ secrets.SENTRY_AUTH_TOKEN }}
           ota-distribution: "true"
           firebase-service-account: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          shorebird: "true"
+          shorebird-token: ${{ secrets.SHOREBIRD_TOKEN }}
 
       - name: Build and upload iOS IPA to TestFlight
         if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
