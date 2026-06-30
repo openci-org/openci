@@ -79,11 +79,7 @@ export async function buildAndSignIos(): Promise<void> {
     ? uploadToAppStoreConnectInput === "true"
     : distributionMethod === "app-store";
   const sentryAuthToken = core.getInput("sentry-auth-token") || "";
-  const shorebirdEnabled = parseBooleanInput(
-    "shorebird",
-    core.getInput("shorebird") || "",
-    false,
-  );
+  const shorebirdEnabled = parseBooleanInput("shorebird", core.getInput("shorebird") || "", false);
   const shorebirdToken = core.getInput("shorebird-token") || "";
 
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "openci-ios-"));
@@ -228,7 +224,9 @@ export async function buildAndSignIos(): Promise<void> {
     }
 
     // ── Step 12: Flutter build IPA ──────────────────────────
-    core.startGroup(shorebirdEnabled ? "Step 12: Building IPA with Shorebird" : "Step 12: Building IPA");
+    core.startGroup(
+      shorebirdEnabled ? "Step 12: Building IPA with Shorebird" : "Step 12: Building IPA",
+    );
     console.log("  ⏳ This may take several minutes...");
     const buildNumberArg = buildNumberInput ? `--build-number=${buildNumber}` : "";
     const noPubArg = buildNoPubArg(pubGetAlreadyRan, buildArgs);
