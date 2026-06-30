@@ -7,6 +7,7 @@ import 'package:openci_server/settings/storage_settings.dart';
 import 'package:openci_server/storage.dart';
 import 'package:openci_server/webhook_task/webhook_task_worker.dart';
 import 'package:sentry/sentry.dart';
+import 'package:shelf/shelf.dart' show HijackException;
 
 final _db = () {
   final db = AppDatabase();
@@ -57,6 +58,9 @@ Middleware sentryMiddleware() {
         _initSentry();
         return await handler(context);
       } catch (exception, stackTrace) {
+        if (exception is HijackException) {
+          rethrow;
+        }
         stderr.writeln('Unhandled exception: $exception\n$stackTrace');
         if (_sentryInitialized) {
           await Sentry.captureException(
