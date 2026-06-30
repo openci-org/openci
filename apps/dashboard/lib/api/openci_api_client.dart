@@ -16,11 +16,7 @@ ChopperClient openciApiClient(Ref ref) {
     tokenProvider: () async {
       final user = auth.currentUser;
       if (user == null) return null;
-      try {
-        return await user.getIdToken();
-      } catch (_) {
-        return null;
-      }
+      return await user.getIdToken();
     },
   );
 }

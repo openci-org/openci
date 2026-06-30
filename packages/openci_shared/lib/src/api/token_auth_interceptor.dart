@@ -13,20 +13,16 @@ class TokenAuthInterceptor implements Interceptor {
   FutureOr<Response<BodyType>> intercept<BodyType>(
     Chain<BodyType> chain,
   ) async {
-    try {
-      final token = await tokenProvider();
-      if (token == null || token.isEmpty) {
-        return chain.proceed(chain.request);
-      }
-      final request = applyHeader(
-        chain.request,
-        'Authorization',
-        'Bearer $token',
-      );
-      return chain.proceed(request);
-    } catch (_) {
+    final token = await tokenProvider();
+    if (token == null || token.isEmpty) {
       return chain.proceed(chain.request);
     }
+    final request = applyHeader(
+      chain.request,
+      'Authorization',
+      'Bearer $token',
+    );
+    return chain.proceed(request);
   }
 }
 
