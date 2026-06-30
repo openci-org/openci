@@ -9,10 +9,19 @@ part 'openci_api_client.g.dart';
 @riverpod
 ChopperClient openciApiClient(Ref ref) {
   final baseUrl = ref.watch(openciServerUrlProvider);
+  final auth = ref.watch(firebaseAuthProvider);
 
   return createOpenCiChopperClient(
     baseUrl: baseUrl,
-    tokenProvider: () => ref.read(authedFirebaseIdTokenProvider.future),
+    tokenProvider: () async {
+      final user = auth.currentUser;
+      if (user == null) return null;
+      try {
+        return await user.getIdToken();
+      } catch (_) {
+        return null;
+      }
+    },
   );
 }
 

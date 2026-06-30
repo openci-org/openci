@@ -12,7 +12,7 @@ resolution: workspace
 
 dependencies:
   args: ^2.7.0
-  avf_dart: ^0.1.26
+  avf_dart: ^0.1.27
   chopper: ^8.6.0
   dio: ^5.8.0+1
   hooks: ^2.0.0
