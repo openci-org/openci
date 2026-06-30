@@ -44110,6 +44110,7 @@ async function buildAndSignIos() {
     const sentryAuthToken = core.getInput("sentry-auth-token") || "";
     const shorebirdEnabled = parseBooleanInput("shorebird", core.getInput("shorebird") || "", false);
     const shorebirdToken = core.getInput("shorebird-token") || "";
+    const flutterVersionInput = core.getInput("flutter-version") || "";
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "openci-ios-"));
     try {
         console.log("🚀 OpenCI iOS Sign & Build");
@@ -44230,7 +44231,18 @@ async function buildAndSignIos() {
         const apiKeyDest = path.join(privateKeysDir, `AuthKey_${ascKeyId}.p8`);
         fs.copyFileSync(ascKeyPath, apiKeyDest);
         if (shorebirdEnabled) {
-            await (0, helpers_1.exec)(`shorebird release ios --export-options-plist="${exportOptionsPath}" ${buildNumberArg} ${buildArgs}`.trim(), { cwd: workingDirectory });
+            let flutterVersion = flutterVersionInput;
+            if (!flutterVersion) {
+                flutterVersion = (await detectFlutterVersion()) || "";
+                if (flutterVersion) {
+                    console.log(`  🐦 Shorebird release: auto-detected Flutter version ${flutterVersion} from host`);
+                }
+            }
+            else {
+                console.log(`  🐦 Shorebird release: using Flutter version ${flutterVersion} from input`);
+            }
+            const versionArg = flutterVersion ? `--flutter-version=${flutterVersion}` : "";
+            await (0, helpers_1.exec)(`shorebird release ios --export-options-plist="${exportOptionsPath}" ${versionArg} ${buildNumberArg} ${buildArgs}`.trim(), { cwd: workingDirectory });
         }
         else {
             await (0, helpers_1.exec)(`flutter build ipa ${noPubArg} --release --export-options-plist="${exportOptionsPath}" ${buildNumberArg} ${buildArgs}`.trim(), { cwd: workingDirectory });
@@ -44684,6 +44696,19 @@ async function handleOtaDistribution(ipaPath) {
     finally {
         core.endGroup();
     }
+}
+async function detectFlutterVersion() {
+    try {
+        const output = await (0, helpers_1.execAndCapture)("flutter --version");
+        const match = output.match(/Flutter\s+(\d+\.\d+\.\d+)/);
+        if (match) {
+            return match[1];
+        }
+    }
+    catch (error) {
+        console.log(`  ⚠️ Failed to detect Flutter version: ${error}`);
+    }
+    return undefined;
 }
 
 

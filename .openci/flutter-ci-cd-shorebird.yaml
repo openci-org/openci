@@ -64,6 +64,7 @@ jobs:
           firebase-service-account: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           shorebird: "true"
           shorebird-token: ${{ secrets.SHOREBIRD_TOKEN }}
+          flutter-version: "3.41.9"
 
       - name: Build and upload iOS IPA to TestFlight
         if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
@@ -87,6 +88,7 @@ jobs:
           sentry-auth-token: ${{ secrets.SENTRY_AUTH_TOKEN }}
           shorebird: "true"
           shorebird-token: ${{ secrets.SHOREBIRD_TOKEN }}
+          flutter-version: "3.41.9"
 
   deploy-macos:
     needs: [ci]
