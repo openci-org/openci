@@ -47,7 +47,8 @@ RUN yes | sdkmanager --licenses --sdk_root=${ANDROID_HOME}
 RUN sdkmanager --sdk_root=${ANDROID_HOME} "platform-tools" "platforms;android-34" "build-tools;34.0.0"
 
 # 6. act のインストール
-RUN curl -s https://raw.githubusercontent.com/nektos/act/master/install.sh | bash \
+RUN cd /tmp \
+    && curl -s https://raw.githubusercontent.com/nektos/act/master/install.sh | bash \
     && mv bin/act /usr/local/bin/act \
     && rm -rf bin
 
