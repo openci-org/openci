@@ -3,7 +3,7 @@ description: Build and deploy a Flutter application
 
 inputs:
   platform:
-    description: Target platform (web, ios, macos)
+    description: Target platform (web, ios, macos, android)
     required: true
   working-directory:
     description: Flutter project directory
@@ -109,6 +109,34 @@ inputs:
     description: "Flutter version to use for Shorebird builds. If omitted, falls back to auto-detecting from the host. (ios)"
     required: false
     default: ""
+  android-keystore-base64:
+    description: "Base64 encoded Android keystore file. (android)"
+    required: false
+    default: ""
+  android-keystore-password:
+    description: "Android keystore password. (android)"
+    required: false
+    default: ""
+  android-key-alias:
+    description: "Android signing key alias. (android)"
+    required: false
+    default: ""
+  android-key-password:
+    description: "Android signing key password. (android)"
+    required: false
+    default: ""
+  google-play-service-account-json:
+    description: "Google Play service account JSON key for uploading. (android)"
+    required: false
+    default: ""
+  google-play-track:
+    description: "Google Play track to upload the app bundle to (internal, alpha, beta, production). (android)"
+    required: false
+    default: "internal"
+  android-package-name:
+    description: "Android application package name. If omitted, will be extracted from AndroidManifest.xml. (android)"
+    required: false
+    default: ""
 
 outputs:
   ipa-path:
@@ -119,6 +147,8 @@ outputs:
     description: "The iOS distribution method used to export the IPA. (ios)"
   artifact-path:
     description: "Path to the generated macOS artifact zip. (macos)"
+  aab-path:
+    description: "Path to the generated Android App Bundle (.aab). (android)"
 
 runs:
   using: node20

@@ -386,3 +386,21 @@ jobs:
               printf '%s\n' "$preview_urls"
             } | tee -a "${GITHUB_STEP_SUMMARY:-/dev/null}"
           fi
+
+  deploy-android:
+    needs: [ci]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build and deploy Android App Bundle to Google Play
+        uses: ./actions/flutter-cd
+        with:
+          platform: "android"
+          working-directory: "apps/dashboard"
+          android-keystore-base64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          android-keystore-password: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          android-key-alias: ${{ secrets.ANDROID_KEY_ALIAS }}
+          android-key-password: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          google-play-service-account-json: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+          google-play-track: "internal"
