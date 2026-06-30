@@ -15,9 +15,9 @@ class SelectedTeamId extends _$SelectedTeamId {
       return selectedId;
     }
 
-    final teams = ref.watch(teamListProvider).value;
-    if (teams == null) {
-      throw Exception("error loading teams");
+    final teams = await ref.watch(teamListProvider.future);
+    if (teams.isEmpty) {
+      throw StateError("No teams available");
     }
 
     final firstTeamId = teams.first.id;

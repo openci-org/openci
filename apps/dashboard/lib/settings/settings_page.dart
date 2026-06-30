@@ -17,6 +17,7 @@ import 'package:intl/intl.dart';
 import 'package:macos_updater/macos_updater.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:swipeable_page_route/swipeable_page_route.dart';
 
 class SettingsPage extends HookConsumerWidget {
@@ -392,11 +393,17 @@ class _TeamSettingsTile extends ConsumerWidget {
         title: 'チーム',
         subtitle: '読み込み中...',
       ),
-      error: (_, _) => const _SettingsInfoItem(
-        icon: Icons.groups_2_outlined,
-        title: 'チーム',
-        subtitle: 'チーム情報を読み込めませんでした',
-      ),
+      error: (error, stackTrace) {
+        debugPrint('error: $error, stackTrace: $stackTrace');
+        unawaited(
+          Sentry.captureException(error, stackTrace: stackTrace),
+        );
+        return _SettingsInfoItem(
+          icon: Icons.groups_2_outlined,
+          title: 'チーム',
+          subtitle: 'チーム情報を読み込めませんでした',
+        );
+      },
     );
   }
 }

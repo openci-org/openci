@@ -27,7 +27,7 @@ class JsonToTypeConverter extends JsonConverter {
     if (json == null) return null;
 
     if (json is List) {
-      return json.map((item) => _convertToType<T>(item)).toList();
+      return List<T>.from(json.map((item) => _convertToType<T>(item)));
     }
 
     if (T == Team) {
