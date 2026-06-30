@@ -12,7 +12,7 @@ part of 'team_provider.dart';
 @ProviderFor(TeamState)
 final teamStateProvider = TeamStateProvider._();
 
-final class TeamStateProvider extends $StreamNotifierProvider<TeamState, Team> {
+final class TeamStateProvider extends $AsyncNotifierProvider<TeamState, Team> {
   TeamStateProvider._()
     : super(
         from: null,
@@ -32,10 +32,10 @@ final class TeamStateProvider extends $StreamNotifierProvider<TeamState, Team> {
   TeamState create() => TeamState();
 }
 
-String _$teamStateHash() => r'cb89fa7e22f8e2268f64d2469c18ee52c5bf0477';
+String _$teamStateHash() => r'5539f6264c66208af7662c236106b915cd84ecce';
 
-abstract class _$TeamState extends $StreamNotifier<Team> {
-  Stream<Team> build();
+abstract class _$TeamState extends $AsyncNotifier<Team> {
+  FutureOr<Team> build();
   @$mustCallSuper
   @override
   void runBuild() {

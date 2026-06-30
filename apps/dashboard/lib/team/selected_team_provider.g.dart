@@ -33,7 +33,7 @@ final class SelectedTeamIdProvider
   SelectedTeamId create() => SelectedTeamId();
 }
 
-String _$selectedTeamIdHash() => r'bf6039e44756e1741abe45cbe7888422c1028856';
+String _$selectedTeamIdHash() => r'4c0ec8e558139478f5ba4f87715764587c331d0d';
 
 abstract class _$SelectedTeamId extends $AsyncNotifier<String> {
   FutureOr<String> build();

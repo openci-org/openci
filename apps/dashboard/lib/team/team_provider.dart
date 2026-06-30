@@ -31,18 +31,15 @@ final teamList = [
 @riverpod
 class TeamState extends _$TeamState {
   @override
-  Stream<Team> build() {
-    final selectedTeamId = ref.watch(selectedTeamIdProvider);
-    final teamList = ref.watch(teamListProvider).value ?? [];
+  FutureOr<Team> build() async {
+    final teamList = await ref.watch(teamListProvider.future);
     if (teamList.isEmpty) {
-      return const Stream.empty();
+      throw StateError('No teams available');
     }
-    final targetId = selectedTeamId.value;
-    return Stream.value(
-      teamList.firstWhere(
-        (team) => team.id == targetId,
-        orElse: () => teamList.first,
-      ),
+    final selectedTeamId = await ref.watch(selectedTeamIdProvider.future);
+    return teamList.firstWhere(
+      (team) => team.id == selectedTeamId,
+      orElse: () => teamList.first,
     );
   }
 }
