@@ -393,7 +393,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build and deploy Android App Bundle to Google Play (internal-testing)
+      - name: Build and deploy Android App Bundle to Google Play
         uses: ./actions/flutter-cd
         with:
           platform: "android"
