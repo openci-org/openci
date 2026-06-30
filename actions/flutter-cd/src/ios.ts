@@ -79,6 +79,12 @@ export async function buildAndSignIos(): Promise<void> {
     ? uploadToAppStoreConnectInput === "true"
     : distributionMethod === "app-store";
   const sentryAuthToken = core.getInput("sentry-auth-token") || "";
+  const shorebirdEnabled = parseBooleanInput(
+    "shorebird",
+    core.getInput("shorebird") || "",
+    false,
+  );
+  const shorebirdToken = core.getInput("shorebird-token") || "";
 
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "openci-ios-"));
 
@@ -91,6 +97,7 @@ export async function buildAndSignIos(): Promise<void> {
     console.log(
       `   Patch Flutter iOS Distribution signing: ${patchFlutterDistributionSigning ? "enabled" : "disabled"}`,
     );
+    console.log(`   Shorebird release: ${shorebirdEnabled ? "enabled" : "disabled"}`);
     console.log("");
 
     // ── Step 1: Configure Flutter dependency manager ────────
@@ -197,8 +204,31 @@ export async function buildAndSignIos(): Promise<void> {
     console.log("  ✅ ExportOptions.plist generated");
     core.endGroup();
 
+    // ── Step 11.5: Setup Shorebird (Optional) ───────────────
+    if (shorebirdEnabled) {
+      core.startGroup("Step 11.5: Setting up Shorebird");
+      if (shorebirdToken) {
+        process.env.SHOREBIRD_TOKEN = shorebirdToken;
+        console.log("  ✅ SHOREBIRD_TOKEN environment variable set");
+      }
+      try {
+        await exec("which shorebird", { silent: true });
+        console.log("  ✅ Shorebird CLI is already installed");
+      } catch {
+        console.log("  ⏳ Shorebird CLI not found. Installing...");
+        await exec(
+          "curl --proto '=https' --tlsv1.2 https://raw.githubusercontent.com/shorebirdtech/install/main/install.sh -sSf | bash",
+        );
+        const shorebirdBinPath = path.join(os.homedir(), ".shorebird", "bin");
+        core.addPath(shorebirdBinPath);
+        process.env.PATH = `${shorebirdBinPath}${path.delimiter}${process.env.PATH}`;
+        console.log("  ✅ Shorebird CLI installed and added to PATH");
+      }
+      core.endGroup();
+    }
+
     // ── Step 12: Flutter build IPA ──────────────────────────
-    core.startGroup("Step 12: Building IPA");
+    core.startGroup(shorebirdEnabled ? "Step 12: Building IPA with Shorebird" : "Step 12: Building IPA");
     console.log("  ⏳ This may take several minutes...");
     const buildNumberArg = buildNumberInput ? `--build-number=${buildNumber}` : "";
     const noPubArg = buildNoPubArg(pubGetAlreadyRan, buildArgs);
@@ -207,10 +237,17 @@ export async function buildAndSignIos(): Promise<void> {
     const apiKeyDest = path.join(privateKeysDir, `AuthKey_${ascKeyId}.p8`);
     fs.copyFileSync(ascKeyPath, apiKeyDest);
 
-    await exec(
-      `flutter build ipa ${noPubArg} --release --export-options-plist="${exportOptionsPath}" ${buildNumberArg} ${buildArgs}`.trim(),
-      { cwd: workingDirectory },
-    );
+    if (shorebirdEnabled) {
+      await exec(
+        `shorebird release ios --export-options-plist="${exportOptionsPath}" ${buildNumberArg} ${buildArgs}`.trim(),
+        { cwd: workingDirectory },
+      );
+    } else {
+      await exec(
+        `flutter build ipa ${noPubArg} --release --export-options-plist="${exportOptionsPath}" ${buildNumberArg} ${buildArgs}`.trim(),
+        { cwd: workingDirectory },
+      );
+    }
 
     // Verify IPA was actually created
     const ipaDir = path.join(workingDirectory, "build", "ios", "ipa");
