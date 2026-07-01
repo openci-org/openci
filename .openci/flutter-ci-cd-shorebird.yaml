@@ -438,6 +438,7 @@ jobs:
         with:
           platform: "android"
           working-directory: "apps/dashboard"
+          build-number: ${{ env.OPENCI_RUN_NUMBER }}
           android-keystore-base64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           android-keystore-password: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           android-key-alias: ${{ secrets.ANDROID_KEY_ALIAS }}
