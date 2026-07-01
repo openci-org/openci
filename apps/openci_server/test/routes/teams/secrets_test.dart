@@ -121,6 +121,36 @@ void main() {
           expect(retrieved!.encryptedValue, isNot(equals('my-value')));
         },
       );
+
+      test(
+        'responds with 200 OK and encrypts and stores secret for authorized worker',
+        () async {
+          final context = TestRequestContext(
+            path: '/teams/team-123/secrets',
+            method: HttpMethod.post,
+            body: jsonEncode({'name': 'WORKER_SECRET', 'value': 'worker-val'}),
+          );
+          context.provide<AppDatabase>(db);
+          context.provide<String?>('worker-1');
+          context.provide<Map<String, String>>(env);
+
+          final response = await index_route.onRequest(
+            context.context,
+            'team-123',
+          );
+          expect(response.statusCode, equals(HttpStatus.ok));
+
+          final body = await response.json() as Map<String, dynamic>;
+          expect(body['success'], isTrue);
+
+          final retrieved = await db.secretDao.getSecret(
+            'team-123',
+            'WORKER_SECRET',
+          );
+          expect(retrieved, isNotNull);
+          expect(retrieved!.encryptedValue, isNot(equals('worker-val')));
+        },
+      );
     });
 
     group('GET /teams/<id>/secrets', () {

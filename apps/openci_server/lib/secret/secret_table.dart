@@ -50,8 +50,8 @@ class DriftSecret implements Insertable<DriftSecret> {
       'name': name,
       'teamId': teamId,
       'encryptedValue': '[REDACTED]',
-      'createdAt': createdAt.toIso8601String(),
-      'updatedAt': updatedAt.toIso8601String(),
+      'createdAt': createdAt.toUtc().toIso8601String(),
+      'updatedAt': updatedAt.toUtc().toIso8601String(),
     };
   }
 }

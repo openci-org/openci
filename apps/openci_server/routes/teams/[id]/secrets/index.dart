@@ -67,10 +67,13 @@ Future<Response> _post(RequestContext context, String teamId) async {
 
     final isMember = await db.teamDao.isTeamMember(uid, teamId);
     if (!isMember) {
-      return Response.json(
-        statusCode: HttpStatus.forbidden,
-        body: {'success': false, 'error': 'Forbidden'},
-      );
+      final workerAuthError = verifyWorkerAuth(context, uid);
+      if (workerAuthError != null) {
+        return Response.json(
+          statusCode: HttpStatus.forbidden,
+          body: {'success': false, 'error': 'Forbidden'},
+        );
+      }
     }
 
     final Map<String, dynamic> payload;
