@@ -28,12 +28,12 @@ describe("dist action smoke", () => {
     const result = await run(process.execPath, [distEntry], {
       cwd: actionDir,
       env: actionEnv({
-        INPUT_PLATFORM: "android",
+        INPUT_PLATFORM: "windows",
       }),
     });
 
     expect(result.code).toBe(1);
-    expect(result.stdout + result.stderr).toContain("Unsupported platform: android");
+    expect(result.stdout + result.stderr).toContain("Unsupported platform: windows");
   });
 
   it("builds web and skips deploy when firebase-service-account is missing", async () => {
