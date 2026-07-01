@@ -48,7 +48,7 @@ jobs:
           working-directory: "apps/dashboard"
           swift-package-manager: "enabled"
           patch-flutter-ios-distribution-signing: "false"
-          build-number: ${{ env.OPENCI_RUN_NUMBER }}
+          build-number: ${{ secrets.OPENCI_RUN_NUMBER }}
           build-args: >-
             --dart-define=REVENUE_CAT_API_KEY=${{ secrets.REVENUE_CAT_API_KEY }}
             --dart-define=SENTRY_DSN=${{ secrets.SENTRY_DSN }}
@@ -74,7 +74,7 @@ jobs:
           working-directory: "apps/dashboard"
           swift-package-manager: "enabled"
           patch-flutter-ios-distribution-signing: "false"
-          build-number: ${{ env.OPENCI_RUN_NUMBER }}
+          build-number: ${{ secrets.OPENCI_RUN_NUMBER }}
           build-args: >-
             --dart-define=REVENUE_CAT_API_KEY=${{ secrets.REVENUE_CAT_API_KEY }}
             --dart-define=SENTRY_DSN=${{ secrets.SENTRY_DSN }}
@@ -90,205 +90,7 @@ jobs:
           shorebird-token: ${{ secrets.SHOREBIRD_TOKEN }}
           flutter-version: "3.41.9"
 
-  deploy-macos:
-    needs: [ci]
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: ./actions/save-secret-file
-        with:
-          secret: ${{ secrets.FIREBASE_OPTIONS }}
-          path: "apps/dashboard/lib/firebase_options.dart"
-
-      - name: Configure Sparkle update settings
-        env:
-          OPENCI_SPARKLE_PUBLIC_ED_KEY: ${{ secrets.OPENCI_SPARKLE_PUBLIC_ED_KEY }}
-          RELEASE_EVENT_NAME: ${{ github.event_name }}
-          RELEASE_REF: ${{ github.ref }}
-        run: |
-          set -euo pipefail
-
-          if [ -z "${OPENCI_SPARKLE_PUBLIC_ED_KEY:-}" ]; then
-            if [ "${RELEASE_EVENT_NAME}" = "push" ] && [ "${RELEASE_REF}" = "refs/heads/develop" ]; then
-              echo "OPENCI_SPARKLE_PUBLIC_ED_KEY is required for develop macOS builds" >&2
-              exit 1
-            fi
-            echo "OPENCI_SPARKLE_PUBLIC_ED_KEY is not set; macOS updater will be inert for this build"
-            exit 0
-          fi
-
-          {
-            echo ""
-            echo "SPARKLE_PUBLIC_ED_KEY = ${OPENCI_SPARKLE_PUBLIC_ED_KEY}"
-          } >> apps/dashboard/macos/Runner/Configs/AppInfo.xcconfig
-
-      - id: build_macos
-        uses: ./actions/flutter-cd
-        with:
-          platform: "macos"
-          working-directory: "apps/dashboard"
-          swift-package-manager: "enabled"
-          build-number: ${{ env.OPENCI_RUN_NUMBER }}
-          build-args: >-
-            --dart-define=REVENUE_CAT_API_KEY=${{ secrets.REVENUE_CAT_API_KEY }}
-            --dart-define=SENTRY_DSN=${{ secrets.SENTRY_DSN }}
-            --dart-define=OPENCI_SERVER_URL=${{ secrets.OPENCI_SERVER_URL }}
-          asc-key-id: ${{ secrets.OPENCI_ASC_KEY_ID }}
-          asc-issuer-id: ${{ secrets.OPENCI_ASC_ISSUER_ID }}
-          asc-private-key: ${{ secrets.OPENCI_ASC_PRIVATE_KEY }}
-          developer-id-certificate-p12: ${{ secrets.OPENCI_DEVELOPER_ID_CERTIFICATE_P12 }}
-          developer-id-certificate-password: ${{ secrets.OPENCI_DEVELOPER_ID_CERTIFICATE_PASSWORD }}
-          macos-entitlements-path: "macos/Runner/DeveloperId.entitlements"
-          macos-provisioning-profile: "true"
-          artifact-name: "OpenCI-dashboard-macos"
-          sentry-auth-token: ${{ secrets.SENTRY_AUTH_TOKEN }}
-
-      - name: Verify Sparkle helper signatures
-        run: |
-          set -euo pipefail
-
-          artifact_path="${{ steps.build_macos.outputs['artifact-path'] }}"
-          verify_dir="$(mktemp -d)"
-          entitlements_path="$(mktemp)"
-          trap 'rm -rf "$verify_dir" "$entitlements_path"' EXIT
-
-          ditto -x -k "$artifact_path" "$verify_dir"
-          app_path="$(find "$verify_dir" -maxdepth 2 -type d -name "*.app" | head -n 1)"
-          if [ -z "$app_path" ]; then
-            echo "Could not find a macOS .app inside ${artifact_path}" >&2
-            exit 1
-          fi
-
-          sparkle_root="${app_path}/Contents/Frameworks/Sparkle.framework/Versions/Current"
-          if [ ! -e "$sparkle_root" ]; then
-            echo "Sparkle.framework was not found in ${app_path}" >&2
-            exit 1
-          fi
-
-          helpers=(
-            "${sparkle_root}/Autoupdate"
-            "${sparkle_root}/Updater.app"
-            "${sparkle_root}/XPCServices/Installer.xpc"
-            "${sparkle_root}/XPCServices/Downloader.xpc"
-          )
-
-          restricted_entitlement_pattern='<key>(com.apple.application-identifier|com.apple.developer.aps-environment|com.apple.developer.associated-domains|keychain-access-groups)</key>'
-          for helper in "${helpers[@]}"; do
-            if [ ! -e "$helper" ]; then
-              echo "Sparkle helper was not found: ${helper}" >&2
-              exit 1
-            fi
-
-            codesign --verify --strict --verbose=2 "$helper"
-            if codesign -d --entitlements :- "$helper" > "$entitlements_path" 2>/dev/null; then
-              if grep -Eq "$restricted_entitlement_pattern" "$entitlements_path"; then
-                echo "Sparkle helper has app/provisioning entitlements and will fail to launch: ${helper}" >&2
-                cat "$entitlements_path" >&2
-                exit 1
-              fi
-            fi
-          done
-
-          codesign --verify --deep --strict --verbose=2 "$app_path"
-
-      - name: Upload macOS artifact to OpenCI Server
-        env:
-          OPENCI_SPARKLE_PRIVATE_ED_KEY: ${{ secrets.OPENCI_SPARKLE_PRIVATE_ED_KEY }}
-          RELEASE_EVENT_NAME: ${{ github.event_name }}
-          RELEASE_REF: ${{ github.ref }}
-        run: |
-          set -euo pipefail
-
-          artifact_path="${{ steps.build_macos.outputs['artifact-path'] }}"
-          if [ ! -f "$artifact_path" ]; then
-            echo "Artifact not found: $artifact_path" >&2
-            exit 1
-          fi
-
-          if [ -z "${OPENCI_SERVER_URL:-}" ] || [ -z "${OPENCI_ID_TOKEN:-}" ] || [ -z "${OPENCI_BUILD_JOB_ID:-}" ]; then
-            echo "⚠️ Skipping upload: OpenCI environment variables are not set."
-            exit 0
-          fi
-
-          filename="OpenCI-dashboard-macos.zip"
-          echo "Uploading macOS zip to OpenCI Server..."
-          curl -fsS -X POST \
-            -H "Authorization: Bearer ${OPENCI_ID_TOKEN}" \
-            -H "Content-Type: application/zip" \
-            --data-binary "@${artifact_path}" \
-            "${OPENCI_SERVER_URL}/builds/${OPENCI_BUILD_JOB_ID}/artifacts?name=${filename}"
-
-          echo "Uploaded macOS artifact to OpenCI Server."
-
-          if [ "${RELEASE_EVENT_NAME}" = "push" ] && [ "${RELEASE_REF}" = "refs/heads/develop" ]; then
-            if [ -z "${OPENCI_SPARKLE_PRIVATE_ED_KEY:-}" ]; then
-              echo "OPENCI_SPARKLE_PRIVATE_ED_KEY is required to generate the macOS appcast" >&2
-              exit 1
-            fi
-
-            sparkle_tmp_dir="$(mktemp -d)"
-            sparkle_version="${OPENCI_SPARKLE_VERSION:-2.9.1}"
-            curl -fsSL \
-              "https://github.com/sparkle-project/Sparkle/releases/download/${sparkle_version}/Sparkle-${sparkle_version}.tar.xz" \
-              -o "${sparkle_tmp_dir}/sparkle.tar.xz"
-            tar -xJf "${sparkle_tmp_dir}/sparkle.tar.xz" -C "${sparkle_tmp_dir}"
-            sign_update="$(find "${sparkle_tmp_dir}" -path "*/bin/sign_update" -type f | head -n 1)"
-            if [ -z "${sign_update}" ]; then
-              echo "Sparkle sign_update tool was not found" >&2
-              exit 1
-            fi
-
-            latest_zip_url="${OPENCI_SERVER_URL}/builds/${OPENCI_BUILD_JOB_ID}/artifacts?name=${filename}"
-            appcast_path="$(mktemp)"
-            signature_attributes="$(printf '%s' "${OPENCI_SPARKLE_PRIVATE_ED_KEY}" | "${sign_update}" --ed-key-file - "${artifact_path}")"
-            short_version="$(python3 - <<'PY'
-          import re
-
-          with open("apps/dashboard/pubspec.yaml", encoding="utf-8") as f:
-              match = re.search(r"^version:\s*([^+\s]+)", f.read(), re.MULTILINE)
-          print(match.group(1) if match else "1.0.0")
-          PY
-            )"
-            published_at="$(date -u +"%a, %d %b %Y %H:%M:%S %z")"
-
-            python3 - "$appcast_path" "$latest_zip_url" "$signature_attributes" "$OPENCI_RUN_NUMBER" "$short_version" "$published_at" <<'PY'
-          import html
-          import sys
-
-          output_path, zip_url, signature_attributes, version, short_version, published_at = sys.argv[1:]
-          xml = f'''<?xml version="1.0" encoding="utf-8"?>
-          <rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle">
-            <channel>
-              <title>OpenCI macOS updates</title>
-              <description>OpenCI dashboard macOS updates</description>
-              <language>ja</language>
-              <item>
-                <title>OpenCI {html.escape(short_version)} ({html.escape(version)})</title>
-                <pubDate>{html.escape(published_at)}</pubDate>
-                <sparkle:version>{html.escape(version)}</sparkle:version>
-                <sparkle:shortVersionString>{html.escape(short_version)}</sparkle:shortVersionString>
-                <enclosure url="{html.escape(zip_url)}" {signature_attributes} type="application/zip"/>
-              </item>
-            </channel>
-          </rss>
-          '''
-          with open(output_path, "w", encoding="utf-8") as f:
-              f.write(xml)
-          PY
-
-            echo "Uploading macOS appcast to OpenCI Server..."
-            curl -fsS -X POST \
-              -H "Authorization: Bearer ${OPENCI_ID_TOKEN}" \
-              -H "Content-Type: application/rss+xml" \
-              --data-binary "@${appcast_path}" \
-              "${OPENCI_SERVER_URL}/builds/${OPENCI_BUILD_JOB_ID}/artifacts?name=appcast.xml"
-
-            echo "Uploaded macOS appcast to OpenCI Server."
-            rm -rf "${sparkle_tmp_dir}" "${appcast_path}"
-          fi
-
-  deploy-web:
+  deploy-android:
     needs: [ci]
     runs-on: ubuntu-latest
     steps:
@@ -299,90 +101,50 @@ jobs:
           secret: ${{ secrets.FIREBASE_OPTIONS }}
           path: "apps/dashboard/lib/firebase_options.dart"
 
-      - name: Build Flutter web
-        working-directory: apps/dashboard
-        env:
-          REVENUE_CAT_API_KEY: ${{ secrets.REVENUE_CAT_API_KEY }}
-          REVENUE_CAT_WEB_API_KEY: ${{ secrets.REVENUE_CAT_WEB_API_KEY }}
-          SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
-          OPENCI_SERVER_URL: ${{ secrets.OPENCI_SERVER_URL }}
+      - name: Create dummy google-services.json for build validation
         run: |
-          BUILD_UPDATED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-          BUILD_SHA="$(git rev-parse --short HEAD)"
+          mkdir -p apps/dashboard/android/app
+          cat << 'EOF' > apps/dashboard/android/app/google-services.json
+          {
+            "project_info": {
+              "project_number": "123456789012",
+              "project_id": "openci-b1b91",
+              "storage_bucket": "openci-b1b91.appspot.com"
+            },
+            "client": [
+              {
+                "client_info": {
+                  "mobilesdk_app_id": "1:123456789012:android:abcdef1234567890",
+                  "android_client_info": {
+                    "package_name": "org.openci.dashboard.prod"
+                  }
+                },
+                "oauth_client": [],
+                "api_key": [
+                  {
+                    "current_key": "dummy-api-key"
+                  }
+                ],
+                "services": {
+                  "appinvite_service": {
+                    "other_platform_oauth_client": []
+                  }
+                }
+              }
+            ],
+            "configuration_version": "1"
+          }
+          EOF
 
-          flutter build web \
-            --no-wasm-dry-run \
-            --dart-define=REVENUE_CAT_API_KEY="$REVENUE_CAT_API_KEY" \
-            --dart-define=REVENUE_CAT_WEB_API_KEY="$REVENUE_CAT_WEB_API_KEY" \
-            --dart-define=SENTRY_DSN="$SENTRY_DSN" \
-            --dart-define=OPENCI_BUILD_UPDATED_AT="$BUILD_UPDATED_AT" \
-            --dart-define=OPENCI_BUILD_SHA="$BUILD_SHA" \
-            --dart-define=OPENCI_SERVER_URL="$OPENCI_SERVER_URL"
-
-      - name: Deploy to Firebase Hosting (production)
-        if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
-        working-directory: apps/dashboard
-        env:
-          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-        run: |
-          set -euo pipefail
-
-          service_account_file="$(mktemp)"
-          trap 'rm -f "$service_account_file"' EXIT
-          printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$service_account_file"
-          export GOOGLE_APPLICATION_CREDENTIALS="$service_account_file"
-
-          firebase deploy \
-            --only hosting \
-            --project openci-b1b91 \
-            --non-interactive
-
-      - name: Deploy to Firebase Hosting (preview)
-        if: github.event_name == 'pull_request'
-        working-directory: apps/dashboard
-        env:
-          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-          RELEASE_PR_NUMBER: ${{ github.event.pull_request.number }}
-          RELEASE_HEAD_REF: ${{ github.head_ref }}
-        run: |
-          set -euo pipefail
-
-          service_account_file="$(mktemp)"
-          trap 'rm -f "$service_account_file"' EXIT
-          printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$service_account_file"
-          export GOOGLE_APPLICATION_CREDENTIALS="$service_account_file"
-
-          raw_channel_id="pr${RELEASE_PR_NUMBER:-${OPENCI_RUN_NUMBER:-preview}}-${RELEASE_HEAD_REF:-preview}"
-          channel_id="$(printf '%s' "$raw_channel_id" \
-            | tr '[:upper:]' '[:lower:]' \
-            | sed -E 's/[^a-z0-9-]+/-/g; s/^-+//; s/-+$//; s/-+/-/g' \
-            | cut -c 1-40 \
-            | sed -E 's/^-+//; s/-+$//')"
-          channel_id="${channel_id:-preview-${OPENCI_RUN_NUMBER:-local}}"
-
-          deploy_output="$(firebase hosting:channel:deploy "$channel_id" \
-            --expires 3h \
-            --project openci-b1b91 \
-            --json \
-            --non-interactive)"
-          printf '%s\n' "$deploy_output"
-
-          preview_urls="$(printf '%s' "$deploy_output" | python3 -c '
-          import json
-          import sys
-
-          data = json.load(sys.stdin)
-          result = data.get("result") or {}
-          urls = [
-              value.get("url")
-              for value in result.values()
-              if isinstance(value, dict) and value.get("url")
-          ]
-          print("\n".join(urls))
-          ')"
-          if [ -n "$preview_urls" ]; then
-            {
-              echo "Firebase Hosting preview:"
-              printf '%s\n' "$preview_urls"
-            } | tee -a "${GITHUB_STEP_SUMMARY:-/dev/null}"
-          fi
+      - name: Build and deploy Android App Bundle to Google Play
+        uses: ./actions/flutter-cd
+        with:
+          platform: "android"
+          working-directory: "apps/dashboard"
+          build-number: ${{ secrets.OPENCI_RUN_NUMBER }}
+          android-keystore-base64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          android-keystore-password: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          android-key-alias: ${{ secrets.ANDROID_KEY_ALIAS }}
+          android-key-password: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          google-play-service-account-json: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+          google-play-track: "internal"

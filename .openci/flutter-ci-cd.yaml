@@ -48,7 +48,7 @@ jobs:
           working-directory: "apps/dashboard"
           swift-package-manager: "enabled"
           patch-flutter-ios-distribution-signing: "false"
-          build-number: ${{ env.OPENCI_RUN_NUMBER }}
+          build-number: ${{ secrets.OPENCI_RUN_NUMBER }}
           build-args: >-
             --dart-define=REVENUE_CAT_API_KEY=${{ secrets.REVENUE_CAT_API_KEY }}
             --dart-define=SENTRY_DSN=${{ secrets.SENTRY_DSN }}
@@ -71,7 +71,7 @@ jobs:
           working-directory: "apps/dashboard"
           swift-package-manager: "enabled"
           patch-flutter-ios-distribution-signing: "false"
-          build-number: ${{ env.OPENCI_RUN_NUMBER }}
+          build-number: ${{ secrets.OPENCI_RUN_NUMBER }}
           build-args: >-
             --dart-define=REVENUE_CAT_API_KEY=${{ secrets.REVENUE_CAT_API_KEY }}
             --dart-define=SENTRY_DSN=${{ secrets.SENTRY_DSN }}
@@ -123,7 +123,7 @@ jobs:
           platform: "macos"
           working-directory: "apps/dashboard"
           swift-package-manager: "enabled"
-          build-number: ${{ env.OPENCI_RUN_NUMBER }}
+          build-number: ${{ secrets.OPENCI_RUN_NUMBER }}
           build-args: >-
             --dart-define=REVENUE_CAT_API_KEY=${{ secrets.REVENUE_CAT_API_KEY }}
             --dart-define=SENTRY_DSN=${{ secrets.SENTRY_DSN }}
@@ -380,3 +380,62 @@ jobs:
               printf '%s\n' "$preview_urls"
             } | tee -a "${GITHUB_STEP_SUMMARY:-/dev/null}"
           fi
+
+  # deploy-android:
+  #   needs: [ci]
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v4
+
+  #     - uses: ./actions/save-secret-file
+  #       with:
+  #         secret: ${{ secrets.FIREBASE_OPTIONS }}
+  #         path: "apps/dashboard/lib/firebase_options.dart"
+
+  #     - name: Create dummy google-services.json for build validation
+  #       run: |
+  #         mkdir -p apps/dashboard/android/app
+  #         cat << 'EOF' > apps/dashboard/android/app/google-services.json
+  #         {
+  #           "project_info": {
+  #             "project_number": "123456789012",
+  #             "project_id": "openci-b1b91",
+  #             "storage_bucket": "openci-b1b91.appspot.com"
+  #           },
+  #           "client": [
+  #             {
+  #               "client_info": {
+  #                 "mobilesdk_app_id": "1:123456789012:android:abcdef1234567890",
+  #                 "android_client_info": {
+  #                   "package_name": "org.openci.dashboard.prod"
+  #                 }
+  #               },
+  #               "oauth_client": [],
+  #               "api_key": [
+  #                 {
+  #                   "current_key": "dummy-api-key"
+  #                 }
+  #               ],
+  #               "services": {
+  #                 "appinvite_service": {
+  #                   "other_platform_oauth_client": []
+  #                 }
+  #               }
+  #             }
+  #           ],
+  #           "configuration_version": "1"
+  #         }
+  #         EOF
+
+  #     - name: Build and deploy Android App Bundle to Google Play
+  #       uses: ./actions/flutter-cd
+  #       with:
+  #         platform: "android"
+  #         working-directory: "apps/dashboard"
+  #         build-number: ${{ secrets.OPENCI_RUN_NUMBER }}
+  #         android-keystore-base64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+  #         android-keystore-password: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+  #         android-key-alias: ${{ secrets.ANDROID_KEY_ALIAS }}
+  #         android-key-password: ${{ secrets.ANDROID_KEY_PASSWORD }}
+  #         google-play-service-account-json: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+  #         google-play-track: "internal"
