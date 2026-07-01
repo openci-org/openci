@@ -398,6 +398,41 @@ jobs:
           secret: ${{ secrets.FIREBASE_OPTIONS }}
           path: "apps/dashboard/lib/firebase_options.dart"
 
+      - name: Create dummy google-services.json for build validation
+        run: |
+          mkdir -p apps/dashboard/android/app
+          cat << 'EOF' > apps/dashboard/android/app/google-services.json
+          {
+            "project_info": {
+              "project_number": "123456789012",
+              "project_id": "openci-b1b91",
+              "storage_bucket": "openci-b1b91.appspot.com"
+            },
+            "client": [
+              {
+                "client_info": {
+                  "mobilesdk_app_id": "1:123456789012:android:abcdef1234567890",
+                  "android_client_info": {
+                    "package_name": "com.example.dashboard"
+                  }
+                },
+                "oauth_client": [],
+                "api_key": [
+                  {
+                    "current_key": "dummy-api-key"
+                  }
+                ],
+                "services": {
+                  "appinvite_service": {
+                    "other_platform_oauth_client": []
+                  }
+                }
+              }
+            ],
+            "configuration_version": "1"
+          }
+          EOF
+
       - name: Build and deploy Android App Bundle to Google Play
         uses: ./actions/flutter-cd
         with:
