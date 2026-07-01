@@ -17,10 +17,13 @@ const _buildJobsHistoryLimit = 100;
 
 @Riverpod(keepAlive: true)
 class BuildJobs extends _$BuildJobs {
+  List<BuildJob>? _cache;
+
   @override
   Stream<List<BuildJob>> build() async* {
     final teamId = ref.watch(selectedTeamIdProvider).value;
     if (teamId == null) {
+      _cache = null;
       yield const [];
       return;
     }
@@ -28,14 +31,24 @@ class BuildJobs extends _$BuildJobs {
     final serverUrl = ref.watch(openciServerUrlProvider);
     final token = await ref.watch(authedFirebaseIdTokenProvider.future);
 
-    yield await _fetchBuildJobs(serverUrl, teamId, token);
+    final initialJobs = await _fetchBuildJobs(serverUrl, teamId, token);
+    if (initialJobs != null) {
+      _cache = initialJobs;
+      yield initialJobs;
+    } else {
+      yield _cache ?? const [];
+    }
 
     yield* Stream.periodic(const Duration(seconds: 5)).asyncMap((_) async {
-      return _fetchBuildJobs(serverUrl, teamId, token);
+      final jobs = await _fetchBuildJobs(serverUrl, teamId, token);
+      if (jobs != null) {
+        _cache = jobs;
+      }
+      return _cache ?? const [];
     });
   }
 
-  Future<List<BuildJob>> _fetchBuildJobs(
+  Future<List<BuildJob>?> _fetchBuildJobs(
     String serverUrl,
     String teamId,
     String token,
@@ -54,7 +67,12 @@ class BuildJobs extends _$BuildJobs {
           )
           .timeout(const Duration(seconds: 5));
 
-      if (response.statusCode != 200) return const [];
+      if (response.statusCode != 200) {
+        debugPrint(
+          'Fetch build jobs failed with status: ${response.statusCode}',
+        );
+        return null;
+      }
 
       final data = jsonDecode(response.body) as Map<String, dynamic>;
       final items = data['buildJobs'] as List<dynamic>;
@@ -65,17 +83,20 @@ class BuildJobs extends _$BuildJobs {
           .toList();
     } catch (e, s) {
       debugPrint('Error fetching build jobs: $e\n$s');
-      return const [];
+      return null;
     }
   }
 }
 
 @Riverpod(keepAlive: true)
 class OtaBuildJobs extends _$OtaBuildJobs {
+  List<BuildJob>? _cache;
+
   @override
   Stream<List<BuildJob>> build() async* {
     final teamId = ref.watch(selectedTeamIdProvider).value;
     if (teamId == null) {
+      _cache = null;
       yield const [];
       return;
     }
@@ -83,14 +104,24 @@ class OtaBuildJobs extends _$OtaBuildJobs {
     final serverUrl = ref.watch(openciServerUrlProvider);
     final token = await ref.watch(authedFirebaseIdTokenProvider.future);
 
-    yield await _fetchOtaBuildJobs(serverUrl, teamId, token);
+    final initialJobs = await _fetchOtaBuildJobs(serverUrl, teamId, token);
+    if (initialJobs != null) {
+      _cache = initialJobs;
+      yield initialJobs;
+    } else {
+      yield _cache ?? const [];
+    }
 
     yield* Stream.periodic(const Duration(seconds: 5)).asyncMap((_) async {
-      return _fetchOtaBuildJobs(serverUrl, teamId, token);
+      final jobs = await _fetchOtaBuildJobs(serverUrl, teamId, token);
+      if (jobs != null) {
+        _cache = jobs;
+      }
+      return _cache ?? const [];
     });
   }
 
-  Future<List<BuildJob>> _fetchOtaBuildJobs(
+  Future<List<BuildJob>?> _fetchOtaBuildJobs(
     String serverUrl,
     String teamId,
     String token,
@@ -109,7 +140,12 @@ class OtaBuildJobs extends _$OtaBuildJobs {
           )
           .timeout(const Duration(seconds: 5));
 
-      if (response.statusCode != 200) return const [];
+      if (response.statusCode != 200) {
+        debugPrint(
+          'Fetch ota build jobs failed with status: ${response.statusCode}',
+        );
+        return null;
+      }
 
       final data = jsonDecode(response.body) as Map<String, dynamic>;
       final items = data['buildJobs'] as List<dynamic>;
@@ -120,7 +156,7 @@ class OtaBuildJobs extends _$OtaBuildJobs {
           .toList();
     } catch (e, s) {
       debugPrint('Error fetching ota build jobs: $e\n$s');
-      return const [];
+      return null;
     }
   }
 }
@@ -136,6 +172,8 @@ Stream<BuildJob?> buildJobById(Ref ref, String buildJobId) async* {
   final serverUrl = ref.watch(openciServerUrlProvider);
   final token = await ref.watch(authedFirebaseIdTokenProvider.future);
 
+  BuildJob? cache;
+
   Future<BuildJob?> fetchJob(String token) async {
     try {
       final url = Uri.parse('$serverUrl/builds/$buildJobId');
@@ -149,7 +187,12 @@ Stream<BuildJob?> buildJobById(Ref ref, String buildJobId) async* {
           )
           .timeout(const Duration(seconds: 5));
 
-      if (response.statusCode != 200) return null;
+      if (response.statusCode != 200) {
+        debugPrint(
+          'Fetch build job by id failed with status: ${response.statusCode}',
+        );
+        return cache;
+      }
 
       final data = jsonDecode(response.body) as Map<String, dynamic>;
       final job = BuildJob.fromJson(data);
@@ -165,14 +208,16 @@ Stream<BuildJob?> buildJobById(Ref ref, String buildJobId) async* {
           );
         }
       }
+      cache = job;
       return job;
     } catch (e, s) {
       debugPrint('Error fetching build job by id: $e\n$s');
-      return null;
+      return cache;
     }
   }
 
-  yield await fetchJob(token);
+  final initialJob = await fetchJob(token);
+  yield initialJob;
 
   yield* Stream.periodic(const Duration(seconds: 5)).asyncMap((_) async {
     return fetchJob(token);
