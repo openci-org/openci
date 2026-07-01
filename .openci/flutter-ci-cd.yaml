@@ -48,7 +48,7 @@ jobs:
           working-directory: "apps/dashboard"
           swift-package-manager: "enabled"
           patch-flutter-ios-distribution-signing: "false"
-          build-number: ${{ env.OPENCI_RUN_NUMBER }}
+          build-number: ${{ secrets.OPENCI_RUN_NUMBER }}
           build-args: >-
             --dart-define=REVENUE_CAT_API_KEY=${{ secrets.REVENUE_CAT_API_KEY }}
             --dart-define=SENTRY_DSN=${{ secrets.SENTRY_DSN }}
@@ -71,7 +71,7 @@ jobs:
           working-directory: "apps/dashboard"
           swift-package-manager: "enabled"
           patch-flutter-ios-distribution-signing: "false"
-          build-number: ${{ env.OPENCI_RUN_NUMBER }}
+          build-number: ${{ secrets.OPENCI_RUN_NUMBER }}
           build-args: >-
             --dart-define=REVENUE_CAT_API_KEY=${{ secrets.REVENUE_CAT_API_KEY }}
             --dart-define=SENTRY_DSN=${{ secrets.SENTRY_DSN }}
@@ -123,7 +123,7 @@ jobs:
           platform: "macos"
           working-directory: "apps/dashboard"
           swift-package-manager: "enabled"
-          build-number: ${{ env.OPENCI_RUN_NUMBER }}
+          build-number: ${{ secrets.OPENCI_RUN_NUMBER }}
           build-args: >-
             --dart-define=REVENUE_CAT_API_KEY=${{ secrets.REVENUE_CAT_API_KEY }}
             --dart-define=SENTRY_DSN=${{ secrets.SENTRY_DSN }}
@@ -432,7 +432,7 @@ jobs:
         with:
           platform: "android"
           working-directory: "apps/dashboard"
-          build-number: ${{ env.OPENCI_RUN_NUMBER }}
+          build-number: ${{ secrets.OPENCI_RUN_NUMBER }}
           android-keystore-base64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           android-keystore-password: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           android-key-alias: ${{ secrets.ANDROID_KEY_ALIAS }}
