@@ -56,6 +56,7 @@ bool _isNewerVersion(String remote, String current) {
 Future<bool> _installUpdate(String latestVersion) async {
   _log.info('Installing update via dart install...');
 
+  String? parentDir;
   try {
     final home =
         Platform.environment['HOME'] ?? Platform.environment['USERPROFILE'];
@@ -87,6 +88,9 @@ Future<bool> _installUpdate(String latestVersion) async {
       }
 
       if (binaryPath != null) {
+        parentDir = Directory(binaryPath).parent.path;
+        Directory(parentDir).createSync(recursive: true);
+
         final fileType = FileSystemEntity.typeSync(binaryPath);
         if (fileType != FileSystemEntityType.notFound) {
           _log.info(
@@ -104,12 +108,20 @@ Future<bool> _installUpdate(String latestVersion) async {
     _log.warning('Failed to pre-delete existing link/binary: $e');
   }
 
+  final env = Map<String, String>.from(Platform.environment);
+  if (parentDir != null) {
+    final currentPath = env['PATH'] ?? '';
+    final separator = Platform.isWindows ? ';' : ':';
+    env['PATH'] =
+        parentDir + (currentPath.isNotEmpty ? (separator + currentPath) : '');
+  }
+
   final result = await Process.run('dart', [
     'install',
     'openci_worker_cli',
     latestVersion,
     '--overwrite',
-  ]);
+  ], environment: env);
 
   if (result.exitCode != 0) {
     _log.warning('Update failed: ${result.stderr}');

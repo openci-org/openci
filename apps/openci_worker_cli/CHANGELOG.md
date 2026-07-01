@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.0.3
+
+- Fix dependency issues with openci_shared.
+
+## 2.0.2
+
+- Fix auto_updater
+
 ## 2.0.1
 
 - Auto increment `OPENCI_RUN_NUMBER`
