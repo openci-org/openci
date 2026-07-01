@@ -413,7 +413,7 @@ jobs:
                 "client_info": {
                   "mobilesdk_app_id": "1:123456789012:android:abcdef1234567890",
                   "android_client_info": {
-                    "package_name": "com.example.dashboard"
+                    "package_name": "org.openci.dashboard.prod"
                   }
                 },
                 "oauth_client": [],
