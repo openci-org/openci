@@ -5,6 +5,19 @@ import * as os from "os";
 import * as path from "path";
 import { exec } from "./helpers";
 
+function parseBooleanInput(inputName: string, value: string, defaultValue: boolean): boolean {
+  if (!value) {
+    return defaultValue;
+  }
+  if (value.toLowerCase() === "true") {
+    return true;
+  }
+  if (value.toLowerCase() === "false") {
+    return false;
+  }
+  throw new Error(`Input ${inputName} must be 'true' or 'false'`);
+}
+
 export async function deployAndroid(): Promise<void> {
   const workingDirectory = core.getInput("working-directory") || ".";
   const buildArgs = core.getInput("build-args") || "";
@@ -19,6 +32,11 @@ export async function deployAndroid(): Promise<void> {
   const serviceAccountJson = core.getInput("google-play-service-account-json") || "";
   const track = core.getInput("google-play-track") || "internal";
   const explicitPackageName = core.getInput("android-package-name") || "";
+
+  const shorebirdEnabled = parseBooleanInput("shorebird", core.getInput("shorebird") || "", false);
+  const shorebirdToken = core.getInput("shorebird-token") || "";
+  const flutterVersion = core.getInput("flutter-version") || "";
+  const otaEnabled = core.getInput("ota-distribution") === "true";
 
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "openci-android-"));
   const keystorePath = path.join(tempDir, "keystore.jks");
@@ -48,30 +66,110 @@ export async function deployAndroid(): Promise<void> {
     }
     core.endGroup();
 
-    core.startGroup("Step 2: Build App Bundle (AAB)");
-    const buildNumberArg = buildNumber !== null ? `--build-number=${buildNumber}` : "";
-    await exec(`flutter build appbundle --release ${buildNumberArg} ${buildArgs}`.trim(), {
-      cwd: workingDirectory,
-    });
-
-    const aabPath = path.join(
-      workingDirectory,
-      "build",
-      "app",
-      "outputs",
-      "bundle",
-      "release",
-      "app-release.aab",
-    );
-
-    if (!fs.existsSync(aabPath)) {
-      throw new Error(`AAB file not found at ${aabPath}`);
+    // ── Step 1.5: Setup Shorebird (Optional) ───────────────
+    if (shorebirdEnabled) {
+      core.startGroup("Step 1.5: Setting up Shorebird");
+      if (shorebirdToken) {
+        process.env.SHOREBIRD_TOKEN = shorebirdToken;
+        console.log("  ✅ SHOREBIRD_TOKEN environment variable set");
+      }
+      try {
+        await exec("which shorebird", { silent: true });
+        console.log("  ✅ Shorebird CLI is already installed");
+      } catch {
+        console.log("  ⏳ Shorebird CLI not found. Installing...");
+        await exec(
+          "curl --proto '=https' --tlsv1.2 https://raw.githubusercontent.com/shorebirdtech/install/main/install.sh -sSf | bash",
+        );
+        const shorebirdBinPath = path.join(os.homedir(), ".shorebird", "bin");
+        core.addPath(shorebirdBinPath);
+        process.env.PATH = `${shorebirdBinPath}${path.delimiter}${process.env.PATH}`;
+        console.log("  ✅ Shorebird CLI installed and added to PATH");
+      }
+      core.endGroup();
     }
-    console.log(`  ✅ AAB built successfully at ${aabPath}`);
-    core.setOutput("aab-path", aabPath);
-    core.endGroup();
 
-    if (serviceAccountJson) {
+    // ── Step 2: Build Artifacts (AAB & APK) ─────────────────
+    let aabPath = "";
+    let apkPath = "";
+
+    const buildNumberArg = buildNumber !== null ? `--build-number=${buildNumber}` : "";
+
+    // 1. Build AAB (if Play Store deployment or explicit release is expected)
+    if (serviceAccountJson || !otaEnabled) {
+      core.startGroup(
+        shorebirdEnabled ? "Step 2.1: Building AAB with Shorebird" : "Step 2.1: Building AAB",
+      );
+      if (shorebirdEnabled) {
+        const flutterVersionArg = flutterVersion ? `--flutter-version=${flutterVersion}` : "";
+        console.log(`  🐦 Running shorebird release android...`);
+        await exec(
+          `shorebird release android ${flutterVersionArg} ${buildNumberArg} -- ${buildArgs}`.trim(),
+          { cwd: workingDirectory },
+        );
+      } else {
+        await exec(`flutter build appbundle --release ${buildNumberArg} ${buildArgs}`.trim(), {
+          cwd: workingDirectory,
+        });
+      }
+
+      aabPath = path.join(
+        workingDirectory,
+        "build",
+        "app",
+        "outputs",
+        "bundle",
+        "release",
+        "app-release.aab",
+      );
+
+      if (!fs.existsSync(aabPath)) {
+        throw new Error(`AAB file not found at ${aabPath}`);
+      }
+      console.log(`  ✅ AAB built successfully at ${aabPath}`);
+      core.setOutput("aab-path", aabPath);
+      core.endGroup();
+    }
+
+    // 2. Build APK (for OTA distribution)
+    if (otaEnabled) {
+      core.startGroup(
+        shorebirdEnabled
+          ? "Step 2.2: Building APK with Shorebird for OTA"
+          : "Step 2.2: Building APK for OTA",
+      );
+      if (shorebirdEnabled) {
+        const flutterVersionArg = flutterVersion ? `--flutter-version=${flutterVersion}` : "";
+        console.log(`  🐦 Running shorebird build apk...`);
+        await exec(
+          `shorebird build apk --release ${flutterVersionArg} ${buildNumberArg} -- ${buildArgs}`.trim(),
+          { cwd: workingDirectory },
+        );
+      } else {
+        await exec(`flutter build apk --release ${buildNumberArg} ${buildArgs}`.trim(), {
+          cwd: workingDirectory,
+        });
+      }
+
+      apkPath = path.join(
+        workingDirectory,
+        "build",
+        "app",
+        "outputs",
+        "flutter-apk",
+        "app-release.apk",
+      );
+
+      if (!fs.existsSync(apkPath)) {
+        throw new Error(`APK file not found at ${apkPath}`);
+      }
+      console.log(`  ✅ APK built successfully at ${apkPath}`);
+      core.setOutput("apk-path", apkPath);
+      core.endGroup();
+    }
+
+    // ── Step 3: Google Play Console Distribution ───────────
+    if (serviceAccountJson && aabPath) {
       core.startGroup("Step 3: Uploading AAB to Google Play Console");
       const packageName = explicitPackageName || detectPackageName(workingDirectory);
       console.log(`  Package name: ${packageName}`);
@@ -138,6 +236,11 @@ export async function deployAndroid(): Promise<void> {
     } else {
       console.log("  Google Play credentials not provided; skipping AAB upload");
     }
+
+    // ── Step 4: OTA Distribution ─────────────────────────────
+    if (otaEnabled && apkPath) {
+      await handleAndroidOtaDistribution(workingDirectory, apkPath);
+    }
   } catch (error) {
     console.error(`  ❌ Android deployment failed: ${error}`);
     throw error;
@@ -153,6 +256,120 @@ export async function deployAndroid(): Promise<void> {
       fs.rmSync(tempDir, { recursive: true, force: true });
       console.log("  Cleaned up temporary keystore directories");
     }
+    core.endGroup();
+  }
+}
+
+async function handleAndroidOtaDistribution(
+  workingDirectory: string,
+  apkPath: string,
+): Promise<void> {
+  const buildJobId = process.env.OPENCI_BUILD_JOB_ID;
+  if (!buildJobId) {
+    console.log("  ⚠️ Skipping OTA distribution: OPENCI_BUILD_JOB_ID is not set.");
+    return;
+  }
+
+  const openciServerUrl = process.env.OPENCI_SERVER_URL;
+  if (!openciServerUrl) {
+    console.log("  ⚠️ Skipping OTA distribution: OPENCI_SERVER_URL is not set.");
+    return;
+  }
+
+  const idToken = process.env.OPENCI_ID_TOKEN;
+  if (!idToken) {
+    console.log("  ⚠️ Skipping OTA distribution: OPENCI_ID_TOKEN is not set.");
+    return;
+  }
+
+  core.startGroup("Android OTA Distribution (Upload & Registration)");
+
+  let appName = "App";
+  let packageName = "";
+  let apkVersion = "1.0.0";
+
+  try {
+    packageName = detectPackageName(workingDirectory);
+    const pubspecPath = path.join(workingDirectory, "pubspec.yaml");
+    if (fs.existsSync(pubspecPath)) {
+      const pubspecContent = fs.readFileSync(pubspecPath, "utf8");
+      const nameMatch = pubspecContent.match(/^name:\s*(.+)$/m);
+      if (nameMatch) {
+        appName = nameMatch[1].trim();
+      }
+      const versionMatch = pubspecContent.match(/^version:\s*(.+)$/m);
+      if (versionMatch) {
+        apkVersion = versionMatch[1].trim();
+      }
+    }
+  } catch (error) {
+    console.error(`  ⚠️ Failed to parse Android metadata: ${error}`);
+  }
+
+  console.log(`  App Name: ${appName}`);
+  console.log(`  Package Name: ${packageName}`);
+  console.log(`  Version: ${apkVersion}`);
+
+  const filename = `${buildJobId}.apk`;
+  const uploadUrl = `${openciServerUrl}/builds/${buildJobId}/artifacts?name=${encodeURIComponent(filename)}`;
+
+  console.log(`  Uploading APK to openci_server: ${uploadUrl}`);
+
+  try {
+    const fileStream = fs.createReadStream(apkPath);
+    const uploadResponse = await fetch(uploadUrl, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${idToken}`,
+        "Content-Type": "application/octet-stream",
+      },
+      body: fileStream as any,
+      duplex: "half",
+    } as any);
+
+    if (!uploadResponse.ok) {
+      const errorText = await uploadResponse.text();
+      throw new Error(`Upload failed with status ${uploadResponse.status}: ${errorText}`);
+    }
+
+    const uploadData = (await uploadResponse.json()) as { success: boolean; downloadUrl: string };
+    if (!uploadData.success || !uploadData.downloadUrl) {
+      throw new Error(
+        `Upload succeeded but response format was invalid: ${JSON.stringify(uploadData)}`,
+      );
+    }
+
+    const apkUrl = uploadData.downloadUrl;
+    console.log(`  Uploaded successfully. Download URL: ${apkUrl}`);
+
+    const patchUrl = `${openciServerUrl}/builds/${buildJobId}`;
+    console.log(`  Updating build job metadata at openci_server: ${patchUrl}`);
+
+    const patchResponse = await fetch(patchUrl, {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${idToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        ipaUrl: apkUrl,
+        bundleId: packageName,
+        ipaVersion: apkVersion,
+        appName,
+        hasIpa: true,
+      }),
+    });
+
+    if (!patchResponse.ok) {
+      const errorText = await patchResponse.text();
+      throw new Error(`PATCH build job failed with status ${patchResponse.status}: ${errorText}`);
+    }
+
+    console.log("  ✅ Android OTA distribution setup completed successfully.");
+  } catch (error) {
+    console.error(`  ❌ Failed to complete OTA distribution: ${error}`);
+    throw error;
+  } finally {
     core.endGroup();
   }
 }

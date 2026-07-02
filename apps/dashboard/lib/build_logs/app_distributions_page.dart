@@ -426,6 +426,9 @@ class _BuildListItem extends HookConsumerWidget {
     final isRequested = useState(false);
     final isUdidVisible = useState(false);
 
+    final isAndroid =
+        buildJob.ipaUrl != null && buildJob.ipaUrl!.endsWith('.apk');
+
     final appName = buildJob.appName ?? 'OpenCI App';
     final runCount = buildJob.runCount ?? 1;
     final commitShaShort =
@@ -449,9 +452,10 @@ class _BuildListItem extends HookConsumerWidget {
       }
     }
     final isUdidProvisioned =
-        userUdid != null &&
-        buildJob.provisionedUdids != null &&
-        buildJob.provisionedUdids!.contains(userUdid);
+        isAndroid ||
+        (userUdid != null &&
+            buildJob.provisionedUdids != null &&
+            buildJob.provisionedUdids!.contains(userUdid));
 
     final isDesktopOrWeb =
         kIsWeb ||
@@ -497,11 +501,13 @@ class _BuildListItem extends HookConsumerWidget {
                 ),
               ),
               const SizedBox(width: 6),
-              _PlatformBadge(colors: colors),
+              _PlatformBadge(isAndroid: isAndroid, colors: colors),
               const SizedBox(width: 6),
               // UDID適合性バッジ
-              _UdidBadge(status: udidStatus, colors: colors),
-              const SizedBox(width: 8),
+              if (!isAndroid) ...[
+                _UdidBadge(status: udidStatus, colors: colors),
+                const SizedBox(width: 8),
+              ],
               // アプリ名
               Expanded(
                 child: Text(
@@ -537,18 +543,30 @@ class _BuildListItem extends HookConsumerWidget {
                   ),
                   onPressed: (isUdidProvisioned || isDesktopOrWeb)
                       ? () {
-                          showDialog<void>(
-                            context: context,
-                            builder: (context) =>
-                                _IosDistributionQrDialog(buildJob: buildJob),
-                          );
+                          if (isAndroid) {
+                            showDialog<void>(
+                              context: context,
+                              builder: (context) =>
+                                  _AndroidDistributionQrDialog(
+                                    buildJob: buildJob,
+                                  ),
+                            );
+                          } else {
+                            showDialog<void>(
+                              context: context,
+                              builder: (context) =>
+                                  _IosDistributionQrDialog(buildJob: buildJob),
+                            );
+                          }
                         }
                       : null,
                   icon: const Icon(Icons.install_mobile_rounded, size: 12),
                   label: Text(
-                    isUdidProvisioned
-                        ? 'インストール'
-                        : (isDesktopOrWeb ? 'インストール (QR)' : 'インストール不可'),
+                    isAndroid
+                        ? (isDesktopOrWeb ? 'インストール (QR)' : 'ダウンロード')
+                        : (isUdidProvisioned
+                              ? 'インストール'
+                              : (isDesktopOrWeb ? 'インストール (QR)' : 'インストール不可')),
                     style: const TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.bold,
@@ -856,36 +874,40 @@ class _BuildListItem extends HookConsumerWidget {
 }
 
 class _PlatformBadge extends StatelessWidget {
-  const _PlatformBadge({required this.colors});
+  const _PlatformBadge({required this.isAndroid, required this.colors});
 
+  final bool isAndroid;
   final AppColors colors;
 
   @override
   Widget build(BuildContext context) {
+    final badgeColor = isAndroid
+        ? const Color(0xFF3DDC84)
+        : const Color(0xFF007AFF);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
       decoration: BoxDecoration(
-        color: const Color(0xFF007AFF).withValues(alpha: 0.1),
+        color: badgeColor.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(4),
         border: Border.all(
-          color: const Color(0xFF007AFF).withValues(alpha: 0.2),
+          color: badgeColor.withValues(alpha: 0.2),
         ),
       ),
-      child: const Row(
+      child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(
-            Icons.apple,
+            isAndroid ? Icons.android : Icons.apple,
             size: 9,
-            color: Color(0xFF007AFF),
+            color: badgeColor,
           ),
-          SizedBox(width: 2),
+          const SizedBox(width: 2),
           Text(
-            'iOS',
+            isAndroid ? 'Android' : 'iOS',
             style: TextStyle(
               fontSize: 8,
               fontWeight: FontWeight.bold,
-              color: Color(0xFF007AFF),
+              color: badgeColor,
             ),
           ),
         ],
@@ -1214,6 +1236,172 @@ class _IosDistributionQrDialog extends HookWidget {
                   },
                   icon: const Icon(Icons.download_rounded, size: 16),
                   label: const Text('このデバイスに直接インストール'),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text(
+            t.common.close,
+            style: TextStyle(color: colors.textSecondary),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _AndroidDistributionQrDialog extends HookWidget {
+  const _AndroidDistributionQrDialog({required this.buildJob});
+
+  final BuildJob buildJob;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
+    final isCopied = useState(false);
+
+    final downloadUrl = buildJob.ipaUrl ?? '';
+
+    return AlertDialog(
+      backgroundColor: colors.surfaceHover,
+      surfaceTintColor: Colors.transparent,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: colors.border),
+      ),
+      title: Row(
+        children: [
+          Icon(Icons.install_mobile_rounded, color: colors.success, size: 22),
+          const SizedBox(width: 8),
+          Text(
+            'Android アプリのインストール',
+            style: TextStyle(
+              color: colors.textPrimary,
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '実機のカメラ等で以下のQRコードを読み取るか、直接ダウンロードボタンを押してインストールしてください。',
+              style: TextStyle(
+                color: colors.textSecondary,
+                fontSize: 13,
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 18),
+            // QR Code Container
+            if (downloadUrl.isNotEmpty)
+              Align(
+                alignment: Alignment.center,
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: colors.border),
+                  ),
+                  child: QrCodeWidget(
+                    data: downloadUrl,
+                    size: 160,
+                    color: Colors.black,
+                  ),
+                ),
+              ),
+            if (defaultTargetPlatform != TargetPlatform.android) ...[
+              const SizedBox(height: 14),
+              Text(
+                'ダウンロード用URL:',
+                style: TextStyle(
+                  color: colors.textTertiary,
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Row(
+                children: [
+                  Expanded(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: colors.scaffold,
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(color: colors.border),
+                      ),
+                      child: Text(
+                        downloadUrl,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontFamily: 'monospace',
+                          fontSize: 10,
+                          color: colors.textSecondary,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  IconButton(
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                    icon: Icon(
+                      isCopied.value ? Icons.check_rounded : Icons.copy_rounded,
+                      size: 16,
+                      color: isCopied.value
+                          ? colors.success
+                          : colors.textSecondary,
+                    ),
+                    onPressed: () {
+                      Clipboard.setData(ClipboardData(text: downloadUrl));
+                      isCopied.value = true;
+                      Future.delayed(const Duration(seconds: 2), () {
+                        isCopied.value = false;
+                      });
+                    },
+                  ),
+                ],
+              ),
+            ],
+            if (defaultTargetPlatform == TargetPlatform.android || kIsWeb) ...[
+              const SizedBox(height: 14),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: colors.success,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  onPressed: () async {
+                    if (downloadUrl.isNotEmpty) {
+                      try {
+                        await launchUrl(Uri.parse(downloadUrl));
+                      } catch (e) {
+                        debugPrint('Error launching url: $e');
+                      }
+                    }
+                  },
+                  icon: const Icon(Icons.download_rounded, size: 16),
+                  label: const Text('このデバイスに直接ダウンロード'),
                 ),
               ),
             ],
