@@ -95,25 +95,18 @@ export async function deployAndroid(): Promise<void> {
 
     const buildNumberArg = buildNumber !== null ? `--build-number=${buildNumber}` : "";
 
-    // 1. Build AAB (if Play Store deployment or explicit release is expected)
-    if (serviceAccountJson || !otaEnabled) {
-      core.startGroup(
-        shorebirdEnabled ? "Step 2.1: Building AAB with Shorebird" : "Step 2.1: Building AAB",
+    if (shorebirdEnabled) {
+      core.startGroup("Step 2: Building with Shorebird");
+      const flutterVersionArg = flutterVersion ? `--flutter-version=${flutterVersion}` : "";
+      const artifactArg = otaEnabled ? "--artifact apk" : "";
+      const flutterArgs = `${buildNumberArg} ${buildArgs}`.trim();
+      const separator = flutterArgs ? "--" : "";
+
+      console.log(`  🐦 Running shorebird release android...`);
+      await exec(
+        `shorebird release android ${flutterVersionArg} ${artifactArg} ${separator} ${flutterArgs}`.trim(),
+        { cwd: workingDirectory },
       );
-      if (shorebirdEnabled) {
-        const flutterVersionArg = flutterVersion ? `--flutter-version=${flutterVersion}` : "";
-        const flutterArgs = `${buildNumberArg} ${buildArgs}`.trim();
-        const separator = flutterArgs ? "--" : "";
-        console.log(`  🐦 Running shorebird release android...`);
-        await exec(
-          `shorebird release android ${flutterVersionArg} ${separator} ${flutterArgs}`.trim(),
-          { cwd: workingDirectory },
-        );
-      } else {
-        await exec(`flutter build appbundle --release ${buildNumberArg} ${buildArgs}`.trim(), {
-          cwd: workingDirectory,
-        });
-      }
 
       aabPath = path.join(
         workingDirectory,
@@ -124,36 +117,6 @@ export async function deployAndroid(): Promise<void> {
         "release",
         "app-release.aab",
       );
-
-      if (!fs.existsSync(aabPath)) {
-        throw new Error(`AAB file not found at ${aabPath}`);
-      }
-      console.log(`  ✅ AAB built successfully at ${aabPath}`);
-      core.setOutput("aab-path", aabPath);
-      core.endGroup();
-    }
-
-    // 2. Build APK (for OTA distribution)
-    if (otaEnabled) {
-      core.startGroup(
-        shorebirdEnabled
-          ? "Step 2.2: Building APK with Shorebird for OTA"
-          : "Step 2.2: Building APK for OTA",
-      );
-      if (shorebirdEnabled) {
-        const flutterVersionArg = flutterVersion ? `--flutter-version=${flutterVersion}` : "";
-        const flutterArgs = `${buildNumberArg} ${buildArgs}`.trim();
-        const separator = flutterArgs ? "--" : "";
-        console.log(`  🐦 Running shorebird build apk...`);
-        await exec(`shorebird build apk ${flutterVersionArg} ${separator} ${flutterArgs}`.trim(), {
-          cwd: workingDirectory,
-        });
-      } else {
-        await exec(`flutter build apk --release ${buildNumberArg} ${buildArgs}`.trim(), {
-          cwd: workingDirectory,
-        });
-      }
-
       apkPath = path.join(
         workingDirectory,
         "build",
@@ -163,12 +126,71 @@ export async function deployAndroid(): Promise<void> {
         "app-release.apk",
       );
 
-      if (!fs.existsSync(apkPath)) {
+      if (otaEnabled && !fs.existsSync(apkPath)) {
         throw new Error(`APK file not found at ${apkPath}`);
       }
-      console.log(`  ✅ APK built successfully at ${apkPath}`);
-      core.setOutput("apk-path", apkPath);
+      if ((serviceAccountJson || !otaEnabled) && !fs.existsSync(aabPath)) {
+        throw new Error(`AAB file not found at ${aabPath}`);
+      }
+
+      if (otaEnabled) {
+        console.log(`  ✅ APK built successfully at ${apkPath}`);
+        core.setOutput("apk-path", apkPath);
+      }
+      if (serviceAccountJson || !otaEnabled) {
+        console.log(`  ✅ AAB built successfully at ${aabPath}`);
+        core.setOutput("aab-path", aabPath);
+      }
       core.endGroup();
+    } else {
+      // 1. Build AAB (if Play Store deployment or explicit release is expected)
+      if (serviceAccountJson || !otaEnabled) {
+        core.startGroup("Step 2.1: Building AAB");
+        await exec(`flutter build appbundle --release ${buildNumberArg} ${buildArgs}`.trim(), {
+          cwd: workingDirectory,
+        });
+
+        aabPath = path.join(
+          workingDirectory,
+          "build",
+          "app",
+          "outputs",
+          "bundle",
+          "release",
+          "app-release.aab",
+        );
+
+        if (!fs.existsSync(aabPath)) {
+          throw new Error(`AAB file not found at ${aabPath}`);
+        }
+        console.log(`  ✅ AAB built successfully at ${aabPath}`);
+        core.setOutput("aab-path", aabPath);
+        core.endGroup();
+      }
+
+      // 2. Build APK (for OTA distribution)
+      if (otaEnabled) {
+        core.startGroup("Step 2.2: Building APK for OTA");
+        await exec(`flutter build apk --release ${buildNumberArg} ${buildArgs}`.trim(), {
+          cwd: workingDirectory,
+        });
+
+        apkPath = path.join(
+          workingDirectory,
+          "build",
+          "app",
+          "outputs",
+          "flutter-apk",
+          "app-release.apk",
+        );
+
+        if (!fs.existsSync(apkPath)) {
+          throw new Error(`APK file not found at ${apkPath}`);
+        }
+        console.log(`  ✅ APK built successfully at ${apkPath}`);
+        core.setOutput("apk-path", apkPath);
+        core.endGroup();
+      }
     }
 
     // ── Step 3: Google Play Console Distribution ───────────
