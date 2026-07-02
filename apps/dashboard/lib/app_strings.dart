@@ -632,6 +632,8 @@ class AppStringsBuildLogsDetail {
   // Translations
   String get viewDetails => '詳細を表示';
   String get retry => '再実行';
+  String get retryConfirm => '本当にこのビルドジョブを再実行しますか？';
+  String get retryNo => 'いいえ';
   String get cancelBuild => 'ビルドをキャンセル';
   String get cancelConfirm => '本当にこのビルドをキャンセルしますか？';
   String get cancelNo => 'いいえ';

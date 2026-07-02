@@ -256,10 +256,28 @@ Future<void> cancelBuildJob(
   String buildJobId,
 ) async {
   final response = await apiService.completeJob(buildJobId, {
-    'status': 'CANCELLED',
+    'status': BuildJobStatus.CANCELLED.name,
   });
 
   if (!response.isSuccessful) {
     throw Exception('Failed to cancel build job: ${response.error}');
+  }
+}
+
+Future<void> retryBuildJob(
+  OpenCiApiService apiService,
+  String buildJobId,
+) async {
+  final response = await apiService.completeJob(buildJobId, {
+    'status': BuildJobStatus.QUEUED.name,
+    'failureSummary': null,
+    'failureSummaryModel': null,
+    'failureSummaryStatus': null,
+    'failureSummaryDurationMs': null,
+    'completedAt': null,
+  });
+
+  if (!response.isSuccessful) {
+    throw Exception('Failed to retry build job: ${response.error}');
   }
 }
