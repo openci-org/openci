@@ -409,6 +409,32 @@ Future<bool> processJob(
         conclusion: 'success',
       );
       await apiClient.handleBuildJobStatusChange(completedJob, 'SUCCESS');
+    } on TimeoutException catch (timeoutError) {
+      await logError(
+        buildJobId,
+        runId,
+        'Job execution timed out: $timeoutError',
+      );
+      await apiClient.updateRunStatus(
+        buildJobId: buildJobId,
+        runId: runId,
+        status: 'completed',
+        conclusion: 'timed_out',
+      );
+      await apiClient.completeJob(buildJobId, 'TIMED_OUT');
+
+      final timedOutJob = buildJob.copyWith(
+        status: BuildJobStatus.TIMED_OUT,
+        latestRunId: runId,
+        completedAt: DateTime.now(),
+      );
+      await apiClient.updateCheckRun(
+        timedOutJob,
+        'completed',
+        conclusion: 'timed_out',
+      );
+      await apiClient.handleBuildJobStatusChange(timedOutJob, 'TIMED_OUT');
+      return true;
     } catch (actError) {
       await logWarning(buildJobId, runId, 'Act build failed: $actError');
       await apiClient.updateRunStatus(
@@ -432,6 +458,33 @@ Future<bool> processJob(
       await apiClient.handleBuildJobStatusChange(failedJob, 'FAILURE');
       return true;
     }
+  } on TimeoutException catch (e, s) {
+    await logError(
+      buildJobId,
+      runId,
+      'Job timed out: $e',
+      stackTrace: s.toString(),
+    );
+    await apiClient.updateRunStatus(
+      buildJobId: buildJobId,
+      runId: runId,
+      status: 'completed',
+      conclusion: 'timed_out',
+    );
+    await apiClient.completeJob(buildJobId, 'TIMED_OUT');
+
+    final timedOutJob = buildJob.copyWith(
+      status: BuildJobStatus.TIMED_OUT,
+      latestRunId: runId,
+      completedAt: DateTime.now(),
+    );
+    await apiClient.updateCheckRun(
+      timedOutJob,
+      'completed',
+      conclusion: 'timed_out',
+    );
+    await apiClient.handleBuildJobStatusChange(timedOutJob, 'TIMED_OUT');
+    return true;
   } catch (e, s) {
     await logError(
       buildJobId,

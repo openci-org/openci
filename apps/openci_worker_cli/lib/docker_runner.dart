@@ -3,8 +3,8 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:logging/logging.dart';
-import 'package:openci_worker_cli/constants.dart';
 import 'package:openci_worker_cli/build_job_logger.dart';
+import 'package:openci_worker_cli/constants.dart';
 import 'package:sentry/sentry.dart';
 import 'package:uuid/uuid.dart';
 
@@ -131,6 +131,7 @@ Future<void> execStreamingInContainer(
   String runId,
   String token, {
   required Future<bool> Function() isCancelled,
+  Duration timeout = maxJobTimeout,
 }) async {
   final process = await Process.start('docker', ['exec', name, ...command]);
 
@@ -175,7 +176,15 @@ Future<void> execStreamingInContainer(
     }
   }, onDone: () => stderrCompleter.complete());
 
+  final startTime = DateTime.now();
+  var isTimedOut = false;
+
   final cancelTimer = Timer.periodic(const Duration(seconds: 5), (_) async {
+    if (DateTime.now().difference(startTime) > timeout) {
+      isTimedOut = true;
+      process.kill(ProcessSignal.sigterm);
+      return;
+    }
     if (await isCancelled()) {
       process.kill(ProcessSignal.sigterm);
     }
@@ -185,6 +194,12 @@ Future<void> execStreamingInContainer(
   cancelTimer.cancel();
   await stdoutCompleter.future;
   await stderrCompleter.future;
+
+  if (isTimedOut) {
+    throw TimeoutException(
+      'Job execution exceeded timeout of ${timeout.inMinutes} minutes.',
+    );
+  }
 
   if (exitCode != 0) {
     throw Exception('act exited with code $exitCode');
