@@ -638,7 +638,7 @@ function parsePbxproj(
 
   // 2. Parse configurations
   const blocks = section.split("isa = XCBuildConfiguration;");
-  const configs: { name: string; bundleId?: string; teamId?: string }[] = [];
+  const configs: { name: string; bundleId?: string; teamId?: string; isTestTarget?: boolean }[] = [];
   for (let i = 1; i < blocks.length; i++) {
     const block = blocks[i];
     const nameMatch = block.match(/name\s*=\s*(?:"([^"]+)"|([^;\s]+))\s*;/);
@@ -648,28 +648,33 @@ function parsePbxproj(
     const bundleMatch = block.match(/PRODUCT_BUNDLE_IDENTIFIER\s*=\s*([^;\s]+)\s*;/);
     const teamMatch = block.match(/DEVELOPMENT_TEAM\s*=\s*([^;\s]+)\s*;/);
 
+    const testHostMatch = block.match(/TEST_HOST\s*=/);
+    const bundleLoaderMatch = block.match(/BUNDLE_LOADER\s*=/);
+    const isTestTarget = !!(testHostMatch || bundleLoaderMatch);
+
     configs.push({
       name: configName,
       bundleId: bundleMatch ? bundleMatch[1].replace(/"|;/g, "").trim() : undefined,
       teamId: teamMatch ? teamMatch[1].replace(/"|;/g, "").trim() : undefined,
+      isTestTarget,
     });
   }
 
   // 3. Find target configuration matching the flavor
-  let targetConfig: { name: string; bundleId?: string; teamId?: string } | undefined;
+  let targetConfig: { name: string; bundleId?: string; teamId?: string; isTestTarget?: boolean } | undefined;
   if (flavor) {
     const lowerFlavor = flavor.toLowerCase();
-    targetConfig = configs.find((c) => c.name.toLowerCase() === `release-${lowerFlavor}`);
+    targetConfig = configs.find((c) => !c.isTestTarget && c.name.toLowerCase() === `release-${lowerFlavor}`);
     if (!targetConfig)
-      targetConfig = configs.find((c) => c.name.toLowerCase() === `profile-${lowerFlavor}`);
+      targetConfig = configs.find((c) => !c.isTestTarget && c.name.toLowerCase() === `profile-${lowerFlavor}`);
     if (!targetConfig)
-      targetConfig = configs.find((c) => c.name.toLowerCase() === `debug-${lowerFlavor}`);
+      targetConfig = configs.find((c) => !c.isTestTarget && c.name.toLowerCase() === `debug-${lowerFlavor}`);
     if (!targetConfig)
-      targetConfig = configs.find((c) => c.name.toLowerCase().includes(lowerFlavor));
+      targetConfig = configs.find((c) => !c.isTestTarget && c.name.toLowerCase().includes(lowerFlavor));
   } else {
-    targetConfig = configs.find((c) => c.name.toLowerCase() === "release");
-    if (!targetConfig) targetConfig = configs.find((c) => c.name.toLowerCase() === "profile");
-    if (!targetConfig) targetConfig = configs.find((c) => c.name.toLowerCase() === "debug");
+    targetConfig = configs.find((c) => !c.isTestTarget && c.name.toLowerCase() === "release");
+    if (!targetConfig) targetConfig = configs.find((c) => !c.isTestTarget && c.name.toLowerCase() === "profile");
+    if (!targetConfig) targetConfig = configs.find((c) => !c.isTestTarget && c.name.toLowerCase() === "debug");
   }
 
   // 4. Extract bundle ID and team ID
