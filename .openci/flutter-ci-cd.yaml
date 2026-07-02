@@ -40,7 +40,7 @@ jobs:
           path: "apps/dashboard/ios/Runner/GoogleService-Info.plist"
 
       - name: Build iOS IPA for OpenCI OTA
-        if: false
+        if: github.event_name == 'pull_request'
         uses: ./actions/flutter-cd
         id: ios-build-ota
         with:
@@ -64,7 +64,7 @@ jobs:
           firebase-service-account: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
  
       - name: Build and upload iOS IPA to TestFlight
-        if: (github.event_name == 'push' && github.ref == 'refs/heads/develop') || github.event_name == 'pull_request'
+        if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
         uses: ./actions/flutter-cd
         with:
           platform: "ios"
