@@ -144,6 +144,24 @@ class BuildLogsDetailPage extends HookConsumerWidget {
                   ),
                 ),
               ),
+            if (buildJob.status == BuildJobStatus.SUCCESS ||
+                buildJob.status == BuildJobStatus.FAILURE ||
+                buildJob.status == BuildJobStatus.CANCELLED ||
+                buildJob.status == BuildJobStatus.SKIPPED ||
+                buildJob.status == BuildJobStatus.TIMED_OUT)
+              Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: TextButton.icon(
+                  onPressed: () => _showRetryConfirmationDialog(
+                    context,
+                    ref,
+                    buildJob.id,
+                    detailT,
+                  ),
+                  icon: const Icon(Icons.refresh, size: 18),
+                  label: Text(detailT.retry),
+                ),
+              ),
           ],
           bottom: PreferredSize(
             preferredSize: const Size.fromHeight(1),
@@ -1257,6 +1275,48 @@ Future<void> _showCancelConfirmationDialog(
     } catch (e) {
       if (context.mounted) {
         context.showSnackBarMessage(detailT.failedToCancel(error: e));
+      }
+    }
+  }
+}
+
+Future<void> _showRetryConfirmationDialog(
+  BuildContext context,
+  WidgetRef ref,
+  String buildJobId,
+  AppStringsBuildLogsDetail detailT,
+) async {
+  final confirmed = await showDialog<bool>(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: Text(detailT.retry),
+      content: Text(detailT.retryConfirm),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(false),
+          child: Text(detailT.retryNo),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(context).pop(true),
+          child: Text(detailT.retry),
+        ),
+      ],
+    ),
+  );
+
+  if (confirmed == true && context.mounted) {
+    try {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(detailT.retrying)),
+      );
+      final apiService = ref.read(openciApiServiceProvider);
+      await retryBuildJob(apiService, buildJobId);
+      if (context.mounted) {
+        context.showSnackBarMessage(detailT.retrySuccess);
+      }
+    } catch (e) {
+      if (context.mounted) {
+        context.showSnackBarMessage(detailT.failedToRetry(error: e));
       }
     }
   }
