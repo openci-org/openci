@@ -390,72 +390,36 @@ Future<bool> processJob(
       await Future.delayed(const Duration(seconds: 5));
 
       await logInfo(buildJobId, runId, 'Build completed successfully');
-      await apiClient.updateRunStatus(
-        buildJobId: buildJobId,
+      await updateJobFinalStatus(
+        apiClient: apiClient,
+        buildJob: buildJob,
         runId: runId,
-        status: 'completed',
-        conclusion: 'success',
-      );
-      await apiClient.completeJob(buildJobId, 'SUCCESS');
-
-      final completedJob = buildJob.copyWith(
         status: BuildJobStatus.SUCCESS,
-        latestRunId: runId,
-        completedAt: DateTime.now(),
-      );
-      await apiClient.updateCheckRun(
-        completedJob,
-        'completed',
         conclusion: 'success',
       );
-      await apiClient.handleBuildJobStatusChange(completedJob, 'SUCCESS');
     } on TimeoutException catch (timeoutError) {
       await logError(
         buildJobId,
         runId,
         'Job execution timed out: $timeoutError',
       );
-      await apiClient.updateRunStatus(
-        buildJobId: buildJobId,
+      await updateJobFinalStatus(
+        apiClient: apiClient,
+        buildJob: buildJob,
         runId: runId,
-        status: 'completed',
-        conclusion: 'timed_out',
-      );
-      await apiClient.completeJob(buildJobId, 'TIMED_OUT');
-
-      final timedOutJob = buildJob.copyWith(
         status: BuildJobStatus.TIMED_OUT,
-        latestRunId: runId,
-        completedAt: DateTime.now(),
-      );
-      await apiClient.updateCheckRun(
-        timedOutJob,
-        'completed',
         conclusion: 'timed_out',
       );
-      await apiClient.handleBuildJobStatusChange(timedOutJob, 'TIMED_OUT');
       return true;
     } catch (actError) {
       await logWarning(buildJobId, runId, 'Act build failed: $actError');
-      await apiClient.updateRunStatus(
-        buildJobId: buildJobId,
+      await updateJobFinalStatus(
+        apiClient: apiClient,
+        buildJob: buildJob,
         runId: runId,
-        status: 'completed',
-        conclusion: 'failure',
-      );
-      await apiClient.completeJob(buildJobId, 'FAILURE');
-
-      final failedJob = buildJob.copyWith(
         status: BuildJobStatus.FAILURE,
-        latestRunId: runId,
-        completedAt: DateTime.now(),
-      );
-      await apiClient.updateCheckRun(
-        failedJob,
-        'completed',
         conclusion: 'failure',
       );
-      await apiClient.handleBuildJobStatusChange(failedJob, 'FAILURE');
       return true;
     }
   } on TimeoutException catch (e, s) {
@@ -465,25 +429,13 @@ Future<bool> processJob(
       'Job timed out: $e',
       stackTrace: s.toString(),
     );
-    await apiClient.updateRunStatus(
-      buildJobId: buildJobId,
+    await updateJobFinalStatus(
+      apiClient: apiClient,
+      buildJob: buildJob,
       runId: runId,
-      status: 'completed',
-      conclusion: 'timed_out',
-    );
-    await apiClient.completeJob(buildJobId, 'TIMED_OUT');
-
-    final timedOutJob = buildJob.copyWith(
       status: BuildJobStatus.TIMED_OUT,
-      latestRunId: runId,
-      completedAt: DateTime.now(),
-    );
-    await apiClient.updateCheckRun(
-      timedOutJob,
-      'completed',
       conclusion: 'timed_out',
     );
-    await apiClient.handleBuildJobStatusChange(timedOutJob, 'TIMED_OUT');
     return true;
   } catch (e, s) {
     await logError(
@@ -492,25 +444,13 @@ Future<bool> processJob(
       'Job failed: $e',
       stackTrace: s.toString(),
     );
-    await apiClient.updateRunStatus(
-      buildJobId: buildJobId,
+    await updateJobFinalStatus(
+      apiClient: apiClient,
+      buildJob: buildJob,
       runId: runId,
-      status: 'completed',
-      conclusion: 'failure',
-    );
-    await apiClient.completeJob(buildJobId, 'FAILURE');
-
-    final failedJob = buildJob.copyWith(
       status: BuildJobStatus.FAILURE,
-      latestRunId: runId,
-      completedAt: DateTime.now(),
-    );
-    await apiClient.updateCheckRun(
-      failedJob,
-      'completed',
       conclusion: 'failure',
     );
-    await apiClient.handleBuildJobStatusChange(failedJob, 'FAILURE');
     rethrow;
   } finally {
     await flushRemainingLogs(runId: runId);
@@ -700,4 +640,33 @@ String buildEventPayload(BuildJob buildJob) {
     'pusher': {'name': owner},
     'sender': {'login': owner},
   });
+}
+
+Future<void> updateJobFinalStatus({
+  required ApiClient apiClient,
+  required BuildJob buildJob,
+  required String runId,
+  required BuildJobStatus status,
+  required String conclusion,
+}) async {
+  final buildJobId = buildJob.id;
+  await apiClient.updateRunStatus(
+    buildJobId: buildJobId,
+    runId: runId,
+    status: 'completed',
+    conclusion: conclusion,
+  );
+  await apiClient.completeJob(buildJobId, status.name);
+
+  final updatedJob = buildJob.copyWith(
+    status: status,
+    latestRunId: runId,
+    completedAt: DateTime.now(),
+  );
+  await apiClient.updateCheckRun(
+    updatedJob,
+    'completed',
+    conclusion: conclusion,
+  );
+  await apiClient.handleBuildJobStatusChange(updatedJob, status.name);
 }
