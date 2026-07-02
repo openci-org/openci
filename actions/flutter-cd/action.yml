@@ -137,6 +137,18 @@ inputs:
     description: "Android application package name. If omitted, will be extracted from AndroidManifest.xml. (android)"
     required: false
     default: ""
+  testflight-beta-group-names:
+    description: "Comma-separated list of TestFlight beta group names to distribute the build to. (ios)"
+    required: false
+    default: ""
+  testflight-max-wait-minutes:
+    description: "Maximum number of minutes to wait for the build to finish processing before distributing to beta groups. Set to 0 to skip waiting and distribution. (ios)"
+    required: false
+    default: "20"
+  testflight-internal-testing:
+    description: "Whether this build is for TestFlight internal testing. If true, uploads to App Store Connect and skips waiting for processing. (ios)"
+    required: false
+    default: "false"
 
 outputs:
   ipa-path:

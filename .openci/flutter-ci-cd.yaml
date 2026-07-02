@@ -40,7 +40,7 @@ jobs:
           path: "apps/dashboard/ios/Runner/GoogleService-Info.plist"
 
       - name: Build iOS IPA for OpenCI OTA
-        if: github.event_name == 'pull_request'
+        if: false
         uses: ./actions/flutter-cd
         id: ios-build-ota
         with:
@@ -62,9 +62,9 @@ jobs:
           sentry-auth-token: ${{ secrets.SENTRY_AUTH_TOKEN }}
           ota-distribution: "true"
           firebase-service-account: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-
+ 
       - name: Build and upload iOS IPA to TestFlight
-        if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+        if: (github.event_name == 'push' && github.ref == 'refs/heads/develop') || github.event_name == 'pull_request'
         uses: ./actions/flutter-cd
         with:
           platform: "ios"
@@ -83,6 +83,7 @@ jobs:
           asc-issuer-id: ${{ secrets.OPENCI_ASC_ISSUER_ID }}
           asc-private-key: ${{ secrets.OPENCI_ASC_PRIVATE_KEY }}
           sentry-auth-token: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          testflight-internal-testing: "true"
 
   deploy-macos:
     needs: [ci]
