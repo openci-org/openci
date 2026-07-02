@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.2.0
+
+- Feature: Support build cancellation
+
 ## 2.1.0
 
 - Add: One hour timeout

@@ -1,3 +1,4 @@
+import 'package:dashboard/api/openci_api_client.dart';
 import 'package:dashboard/app_strings.dart';
 import 'package:dashboard/build_logs/build_job_logs_provider.dart';
 import 'package:dashboard/build_logs/build_jobs_provider.dart';
@@ -123,7 +124,27 @@ class BuildLogsDetailPage extends HookConsumerWidget {
                 ),
             ],
           ),
-
+          actions: [
+            if (buildJob.status == BuildJobStatus.IN_PROGRESS ||
+                buildJob.status == BuildJobStatus.QUEUED ||
+                buildJob.status == BuildJobStatus.WAITING)
+              Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: TextButton.icon(
+                  onPressed: () => _showCancelConfirmationDialog(
+                    context,
+                    ref,
+                    buildJob.id,
+                    detailT,
+                  ),
+                  icon: const Icon(Icons.cancel_outlined, size: 18),
+                  label: Text(detailT.cancelBuild),
+                  style: TextButton.styleFrom(
+                    foregroundColor: Theme.of(context).colorScheme.error,
+                  ),
+                ),
+              ),
+          ],
           bottom: PreferredSize(
             preferredSize: const Size.fromHeight(1),
             child: Container(
@@ -1192,5 +1213,51 @@ class _FailureSummaryCard extends HookWidget {
         ],
       ),
     );
+  }
+}
+
+Future<void> _showCancelConfirmationDialog(
+  BuildContext context,
+  WidgetRef ref,
+  String buildJobId,
+  AppStringsBuildLogsDetail detailT,
+) async {
+  final confirmed = await showDialog<bool>(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: Text(detailT.cancelBuild),
+      content: Text(detailT.cancelConfirm),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(false),
+          child: Text(detailT.cancelNo),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(context).pop(true),
+          style: FilledButton.styleFrom(
+            backgroundColor: Theme.of(context).colorScheme.error,
+            foregroundColor: Theme.of(context).colorScheme.onError,
+          ),
+          child: Text(detailT.cancelBuild),
+        ),
+      ],
+    ),
+  );
+
+  if (confirmed == true && context.mounted) {
+    try {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(detailT.cancelling)),
+      );
+      final apiService = ref.read(openciApiServiceProvider);
+      await cancelBuildJob(apiService, buildJobId);
+      if (context.mounted) {
+        context.showSnackBarMessage(detailT.buildCancelled);
+      }
+    } catch (e) {
+      if (context.mounted) {
+        context.showSnackBarMessage(detailT.failedToCancel(error: e));
+      }
+    }
   }
 }
