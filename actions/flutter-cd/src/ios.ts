@@ -9,7 +9,7 @@ import {
   createProvisioningProfile,
   generateAscJwt,
   getAppIdByBundleId,
-  getBetaGroupIdByName,
+  getBetaGroupInfoByName,
   getOrCreateCertificate,
   listEnabledDeviceIds,
   pollBuildProcessing,
@@ -338,9 +338,15 @@ export async function buildAndSignIos(): Promise<void> {
             for (const groupName of groupNames) {
               console.log(`  Distributing build to group: ${groupName}...`);
               try {
-                const groupId = await getBetaGroupIdByName(jwt, appId, groupName);
-                await addBuildToBetaGroup(jwt, buildId, groupId);
-                console.log(`  ✅ Successfully distributed to ${groupName}`);
+                const groupInfo = await getBetaGroupInfoByName(jwt, appId, groupName);
+                if (groupInfo.isInternal) {
+                  console.log(
+                    `  ℹ️  ${groupName} is an internal beta group. Apple distributes builds to internal groups automatically. Skipping API association.`,
+                  );
+                } else {
+                  await addBuildToBetaGroup(jwt, buildId, groupInfo.id);
+                  console.log(`  ✅ Successfully distributed to ${groupName}`);
+                }
               } catch (err) {
                 console.log(`  ❌ Failed to distribute to ${groupName}: ${String(err)}`);
                 throw err;

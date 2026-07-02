@@ -708,11 +708,16 @@ export async function getAppIdByBundleId(jwt: string, bundleId: string): Promise
   return apps[0].id as string;
 }
 
-export async function getBetaGroupIdByName(
+export interface BetaGroupInfo {
+  id: string;
+  isInternal: boolean;
+}
+
+export async function getBetaGroupInfoByName(
   jwt: string,
   appId: string,
   groupName: string,
-): Promise<string> {
+): Promise<BetaGroupInfo> {
   const endpoint = `/apps/${appId}/betaGroups?limit=200`;
   const response = await ascApi(jwt, endpoint);
   const groups = response?.data ?? [];
@@ -720,7 +725,10 @@ export async function getBetaGroupIdByName(
   if (!group) {
     throw new Error(`Beta group not found with name: ${groupName}`);
   }
-  return group.id as string;
+  return {
+    id: group.id as string,
+    isInternal: !!group.attributes?.isInternalGroup,
+  };
 }
 
 export async function getBuildInfo(
