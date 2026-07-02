@@ -436,6 +436,7 @@ Future<void> execCommandStreaming(
   String runId,
   String token, {
   required Future<bool> Function() isCancelled,
+  Duration timeout = maxJobTimeout,
 }) async {
   if (vmIp == null) {
     throw StateError('Cannot stream SSH command: VM IP is null.');
@@ -503,7 +504,15 @@ Future<void> execCommandStreaming(
     }
   }, onDone: () => stderrCompleter.complete());
 
+  final startTime = DateTime.now();
+  var isTimedOut = false;
+
   final cancelTimer = Timer.periodic(const Duration(seconds: 5), (_) async {
+    if (DateTime.now().difference(startTime) > timeout) {
+      isTimedOut = true;
+      process.kill(ProcessSignal.sigterm);
+      return;
+    }
     if (await isCancelled()) {
       process.kill(ProcessSignal.sigterm);
     }
@@ -513,6 +522,12 @@ Future<void> execCommandStreaming(
   cancelTimer.cancel();
   await stdoutCompleter.future;
   await stderrCompleter.future;
+
+  if (isTimedOut) {
+    throw TimeoutException(
+      'Job execution exceeded timeout of ${timeout.inMinutes} minutes.',
+    );
+  }
 
   if (exitCode != 0) {
     throw Exception('act exited with code $exitCode');

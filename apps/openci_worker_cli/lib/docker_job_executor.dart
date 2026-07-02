@@ -263,48 +263,53 @@ Future<bool> processDockerJob(
       await Future.delayed(const Duration(seconds: 5));
 
       await logInfo(buildJobId, runId, 'Build completed successfully');
-      await apiClient.updateRunStatus(
-        buildJobId: buildJobId,
+      await updateJobFinalStatus(
+        apiClient: apiClient,
+        buildJob: buildJob,
         runId: runId,
-        status: 'completed',
-        conclusion: 'success',
-      );
-      await apiClient.completeJob(buildJobId, 'SUCCESS');
-
-      final completedJob = buildJob.copyWith(
         status: BuildJobStatus.SUCCESS,
-        latestRunId: runId,
-        completedAt: DateTime.now(),
-      );
-      await apiClient.updateCheckRun(
-        completedJob,
-        'completed',
         conclusion: 'success',
       );
-      await apiClient.handleBuildJobStatusChange(completedJob, 'SUCCESS');
+    } on TimeoutException catch (timeoutError) {
+      await logError(
+        buildJobId,
+        runId,
+        'Job execution timed out: $timeoutError',
+      );
+      await updateJobFinalStatus(
+        apiClient: apiClient,
+        buildJob: buildJob,
+        runId: runId,
+        status: BuildJobStatus.TIMED_OUT,
+        conclusion: 'timed_out',
+      );
+      return true;
     } catch (actError) {
       await logWarning(buildJobId, runId, 'Act build failed: $actError');
-      await apiClient.updateRunStatus(
-        buildJobId: buildJobId,
+      await updateJobFinalStatus(
+        apiClient: apiClient,
+        buildJob: buildJob,
         runId: runId,
-        status: 'completed',
-        conclusion: 'failure',
-      );
-      await apiClient.completeJob(buildJobId, 'FAILURE');
-
-      final failedJob = buildJob.copyWith(
         status: BuildJobStatus.FAILURE,
-        latestRunId: runId,
-        completedAt: DateTime.now(),
-      );
-      await apiClient.updateCheckRun(
-        failedJob,
-        'completed',
         conclusion: 'failure',
       );
-      await apiClient.handleBuildJobStatusChange(failedJob, 'FAILURE');
       return true;
     }
+  } on TimeoutException catch (e, s) {
+    await logError(
+      buildJobId,
+      runId,
+      'Job timed out: $e',
+      stackTrace: s.toString(),
+    );
+    await updateJobFinalStatus(
+      apiClient: apiClient,
+      buildJob: buildJob,
+      runId: runId,
+      status: BuildJobStatus.TIMED_OUT,
+      conclusion: 'timed_out',
+    );
+    return true;
   } catch (e, s) {
     await logError(
       buildJobId,
@@ -312,25 +317,13 @@ Future<bool> processDockerJob(
       'Job failed: $e',
       stackTrace: s.toString(),
     );
-    await apiClient.updateRunStatus(
-      buildJobId: buildJobId,
+    await updateJobFinalStatus(
+      apiClient: apiClient,
+      buildJob: buildJob,
       runId: runId,
-      status: 'completed',
-      conclusion: 'failure',
-    );
-    await apiClient.completeJob(buildJobId, 'FAILURE');
-
-    final failedJob = buildJob.copyWith(
       status: BuildJobStatus.FAILURE,
-      latestRunId: runId,
-      completedAt: DateTime.now(),
-    );
-    await apiClient.updateCheckRun(
-      failedJob,
-      'completed',
       conclusion: 'failure',
     );
-    await apiClient.handleBuildJobStatusChange(failedJob, 'FAILURE');
     rethrow;
   } finally {
     await flushRemainingLogs(runId: runId);
