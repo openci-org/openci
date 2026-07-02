@@ -694,3 +694,111 @@ function normalizeBase64(value: string): string {
 function shellQuote(value: string): string {
   return `'${value.replace(/'/g, "'\\''")}'`;
 }
+
+// ══════════════════════════════════════════════════════════════
+// TestFlight Beta Distribution
+// ══════════════════════════════════════════════════════════════
+
+export async function getAppIdByBundleId(jwt: string, bundleId: string): Promise<string> {
+  const appsResponse = await ascApi(jwt, `/apps?filter[bundleId]=${bundleId}`);
+  const apps = appsResponse?.data ?? [];
+  if (apps.length === 0) {
+    throw new Error(`App not found in App Store Connect for bundle ID: ${bundleId}`);
+  }
+  return apps[0].id as string;
+}
+
+export async function getBetaGroupIdByName(
+  jwt: string,
+  appId: string,
+  groupName: string,
+): Promise<string> {
+  const endpoint = `/apps/${appId}/betaGroups?filter[name]=${encodeURIComponent(groupName)}`;
+  const response = await ascApi(jwt, endpoint);
+  const groups = response?.data ?? [];
+  if (groups.length === 0) {
+    throw new Error(`Beta group not found with name: ${groupName}`);
+  }
+  return groups[0].id as string;
+}
+
+export async function getBuildInfo(
+  jwt: string,
+  appId: string,
+  version: string,
+  buildNumber: string,
+): Promise<{ id: string; processingState: string } | null> {
+  const endpoint = `/builds?filter[app]=${appId}&filter[version]=${buildNumber}&filter[preReleaseVersion.version]=${version}&limit=1`;
+  const response = await ascApi(jwt, endpoint);
+  const builds = response?.data ?? [];
+  if (builds.length === 0) {
+    return null;
+  }
+  const build = builds[0];
+  return {
+    id: build.id as string,
+    processingState: (build.attributes?.processingState as string) || "UNKNOWN",
+  };
+}
+
+export async function pollBuildProcessing(
+  jwt: string,
+  appId: string,
+  version: string,
+  buildNumber: string,
+  maxWaitMinutes: number,
+): Promise<string> {
+  console.log(
+    `  Waiting for build ${version}+${buildNumber} to finish processing (max ${maxWaitMinutes} minutes)...`,
+  );
+  const start = Date.now();
+  const intervalMs = 30000; // 30 seconds
+  const maxWaitMs = maxWaitMinutes * 60 * 1000;
+
+  while (Date.now() - start < maxWaitMs) {
+    try {
+      const buildInfo = await getBuildInfo(jwt, appId, version, buildNumber);
+      if (buildInfo) {
+        const state = buildInfo.processingState;
+        console.log(`    Build processing state: ${state}`);
+        if (state === "VALID") {
+          console.log("  ✅ Build is processed and valid");
+          return buildInfo.id;
+        }
+        if (state === "INVALID" || state === "FAILED") {
+          throw new Error(`Build processing failed with state: ${state}`);
+        }
+      } else {
+        console.log("    Build not visible in ASC API yet, retrying...");
+      }
+    } catch (e) {
+      const msg = String(e);
+      if (msg.includes("failed with state")) {
+        throw e;
+      }
+      console.log(`    Error fetching build info: ${msg}. Retrying...`);
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, intervalMs));
+  }
+
+  throw new Error(
+    `Timed out waiting for build ${version}+${buildNumber} to process after ${maxWaitMinutes} minutes.`,
+  );
+}
+
+export async function addBuildToBetaGroup(
+  jwt: string,
+  buildId: string,
+  betaGroupId: string,
+): Promise<void> {
+  const endpoint = `/builds/${buildId}/relationships/betaGroups`;
+  await ascApi(jwt, endpoint, "POST", {
+    data: [
+      {
+        type: "betaGroups",
+        id: betaGroupId,
+      },
+    ],
+  });
+}

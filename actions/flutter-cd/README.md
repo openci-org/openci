@@ -39,7 +39,7 @@ OpenCI commit SHA:
     preview: "true"
 ```
 
-### iOS — Build & Upload to TestFlight
+### iOS — Build & Upload to TestFlight with Beta Distribution
 
 ```yaml
 - uses: ./actions/flutter-cd
@@ -51,6 +51,8 @@ OpenCI commit SHA:
     asc-key-id: ${{ secrets.ASC_KEY_ID }}
     asc-issuer-id: ${{ secrets.ASC_ISSUER_ID }}
     asc-private-key: ${{ secrets.ASC_PRIVATE_KEY }}
+    testflight-beta-group-names: "App Store Connect ユーザ"
+    testflight-max-wait-minutes: "20"
 ```
 
 ### iOS — Build for Firebase App Distribution
@@ -109,6 +111,8 @@ OpenCI commit SHA:
 | `build-number`                           | Override the build number from pubspec.yaml (ios, macos)                                                                                                                                                            | No       | `""`                                |
 | `distribution-method`                    | iOS export method (`app-store`, `ad-hoc`)                                                                                                                                                                           | No       | `"app-store"`                       |
 | `upload-to-app-store-connect`            | Upload the generated iOS IPA to App Store Connect; defaults to true for `app-store` and false for `ad-hoc`                                                                                                          | No       | `""`                                |
+| `testflight-beta-group-names`            | Comma-separated list of TestFlight beta group names to distribute the build to (ios)                                                                                                                                | No       | `""`                                |
+| `testflight-max-wait-minutes`            | Maximum number of minutes to wait for the build to finish processing before distributing to beta groups. Set to 0 to skip waiting and distribution. (ios)                                                         | No       | `"20"`                              |
 | `macos-app-path`                         | Path to the built `.app`, relative to `working-directory`; auto-detected when omitted (macos)                                                                                                                       | No       | `""`                                |
 | `macos-entitlements-path`                | Path to the macOS entitlements plist, relative to `working-directory` (macos)                                                                                                                                       | No       | `macos/Runner/Release.entitlements` |
 | `macos-provisioning-profile`             | Create and embed a `MAC_APP_DIRECT` provisioning profile and sign with profile-derived entitlements. Use this for Developer ID apps that need capabilities such as Keychain Sharing (macos)                         | No       | `"false"`                           |

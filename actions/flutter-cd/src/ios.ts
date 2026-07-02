@@ -5,10 +5,14 @@ import * as os from "os";
 import * as path from "path";
 import * as plist from "plist";
 import {
+  addBuildToBetaGroup,
   createProvisioningProfile,
   generateAscJwt,
+  getAppIdByBundleId,
+  getBetaGroupIdByName,
   getOrCreateCertificate,
   listEnabledDeviceIds,
+  pollBuildProcessing,
   preflightCheck,
   type ProfileResult,
 } from "./asc";
@@ -82,6 +86,9 @@ export async function buildAndSignIos(): Promise<void> {
   const shorebirdEnabled = parseBooleanInput("shorebird", core.getInput("shorebird") || "", false);
   const shorebirdToken = core.getInput("shorebird-token") || "";
   const flutterVersionInput = core.getInput("flutter-version") || "";
+  const testflightBetaGroupNamesInput = core.getInput("testflight-beta-group-names") || "";
+  const testflightMaxWaitMinutesInput = core.getInput("testflight-max-wait-minutes") || "20";
+  const testflightMaxWaitMinutes = parseInt(testflightMaxWaitMinutesInput, 10);
 
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "openci-ios-"));
 
@@ -300,6 +307,51 @@ export async function buildAndSignIos(): Promise<void> {
       }
       console.log("  ✅ IPA uploaded to App Store Connect");
       core.endGroup();
+
+      // ── Step 13.5: Distribute to TestFlight Beta Groups ─────
+      if (testflightBetaGroupNamesInput.trim()) {
+        core.startGroup("Step 13.5: Distributing to TestFlight Beta Groups");
+        if (Number.isNaN(testflightMaxWaitMinutes) || testflightMaxWaitMinutes <= 0) {
+          console.log(
+            "  ⚠️ Distribution was requested, but testflight-max-wait-minutes is 0. Skipping automatic distribution.",
+          );
+        } else {
+          try {
+            const groupNames = testflightBetaGroupNamesInput
+              .split(",")
+              .map((n) => n.trim())
+              .filter(Boolean);
+
+            console.log(`  Target beta groups: ${groupNames.join(", ")}`);
+            const appId = await getAppIdByBundleId(jwt, bundleId);
+
+            // Wait for Apple to process the build
+            const buildId = await pollBuildProcessing(
+              jwt,
+              appId,
+              version,
+              buildNumber,
+              testflightMaxWaitMinutes,
+            );
+
+            // Add the build to each beta group
+            for (const groupName of groupNames) {
+              console.log(`  Distributing build to group: ${groupName}...`);
+              try {
+                const groupId = await getBetaGroupIdByName(jwt, appId, groupName);
+                await addBuildToBetaGroup(jwt, buildId, groupId);
+                console.log(`  ✅ Successfully distributed to ${groupName}`);
+              } catch (err) {
+                console.log(`  ❌ Failed to distribute to ${groupName}: ${String(err)}`);
+                throw err;
+              }
+            }
+          } catch (e) {
+            throw new Error(`TestFlight Beta distribution failed: ${String(e)}`);
+          }
+        }
+        core.endGroup();
+      }
     } else {
       console.log("  Skipping App Store Connect upload");
     }
