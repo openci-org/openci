@@ -90,7 +90,7 @@ inputs:
     required: false
     default: "build/openci-artifacts"
   ota-distribution:
-    description: "Enable iOS OTA distribution by uploading IPA to Firebase Storage and registering metadata to Firestore (ios)"
+    description: "Enable iOS/Android OTA distribution by uploading IPA/APK to openci_server storage and registering metadata. (ios, android)"
     required: false
     default: "false"
   sentry-auth-token:
@@ -98,15 +98,15 @@ inputs:
     required: false
     default: ""
   shorebird:
-    description: "Enable Shorebird release build. If true, uses shorebird release ios instead of flutter build ipa. (ios)"
+    description: "Enable Shorebird release build. If true, uses shorebird release instead of flutter build. (ios, android)"
     required: false
     default: "false"
   shorebird-token:
-    description: "Shorebird token to authenticate with. If provided, sets SHOREBIRD_TOKEN env var. (ios)"
+    description: "Shorebird token to authenticate with. If provided, sets SHOREBIRD_TOKEN env var. (ios, android)"
     required: false
     default: ""
   flutter-version:
-    description: "Flutter version to use for Shorebird builds. If omitted, falls back to auto-detecting from the host. (ios)"
+    description: "Flutter version to use for Shorebird builds. If omitted, falls back to auto-detecting from the host. (ios, android)"
     required: false
     default: ""
   android-keystore-base64:

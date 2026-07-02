@@ -89,6 +89,7 @@ jobs:
           shorebird: "true"
           shorebird-token: ${{ secrets.SHOREBIRD_TOKEN }}
           flutter-version: "3.41.9"
+          testflight-internal-testing: "true"
 
   deploy-android:
     needs: [ci]
@@ -136,7 +137,24 @@ jobs:
           }
           EOF
 
+      - name: Build Android APK for OpenCI OTA
+        if: github.event_name == 'pull_request'
+        uses: ./actions/flutter-cd
+        with:
+          platform: "android"
+          working-directory: "apps/dashboard"
+          build-number: ${{ secrets.OPENCI_RUN_NUMBER }}
+          android-keystore-base64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          android-keystore-password: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          android-key-alias: ${{ secrets.ANDROID_KEY_ALIAS }}
+          android-key-password: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          ota-distribution: "true"
+          shorebird: "true"
+          shorebird-token: ${{ secrets.SHOREBIRD_TOKEN }}
+          flutter-version: "3.41.9"
+
       - name: Build and deploy Android App Bundle to Google Play
+        if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
         uses: ./actions/flutter-cd
         with:
           platform: "android"
@@ -148,3 +166,6 @@ jobs:
           android-key-password: ${{ secrets.ANDROID_KEY_PASSWORD }}
           google-play-service-account-json: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
           google-play-track: "internal"
+          shorebird: "true"
+          shorebird-token: ${{ secrets.SHOREBIRD_TOKEN }}
+          flutter-version: "3.41.9"
