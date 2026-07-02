@@ -251,7 +251,10 @@ Duration? _positiveDuration(DateTime startedAt, DateTime completedAt) {
   return duration;
 }
 
-Future<void> cancelBuildJob(OpenCiApiService apiService, String buildJobId) async {
+Future<void> cancelBuildJob(
+  OpenCiApiService apiService,
+  String buildJobId,
+) async {
   final response = await apiService.completeJob(buildJobId, {
     'status': 'CANCELLED',
   });
