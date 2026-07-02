@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.0.3
+
+- Fix dependency issues with openci_shared.
+
+## 2.0.2
+
+- Fix auto_updater
+
+## 2.0.1
+
+- Auto increment `OPENCI_RUN_NUMBER`
+
 ## 0.10.50
 
 - Feature: Migrate environment variables to secrets (`OPENCI_BUILD_NUMBER`), removing old Firestore/Functions environment variables API.

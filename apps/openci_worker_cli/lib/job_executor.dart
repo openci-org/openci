@@ -501,40 +501,91 @@ Future<Map<String, String>> buildEnvVars({
   if (teamId != null) {
     try {
       final secretMetadataList = await apiClient.getSecrets(teamId);
+
       final hasBuildNumber = secretMetadataList.any(
         (meta) => meta['name'] == 'OPENCI_BUILD_NUMBER',
       );
-
       if (hasBuildNumber) {
-        final value = await apiClient.getSecretValue(
-          teamId,
-          'OPENCI_BUILD_NUMBER',
-        );
-        if (value.isNotEmpty) {
-          final numValue = int.tryParse(value);
-          if (numValue != null) {
-            final nextVal = '${numValue + 1}';
-            await apiClient.saveSecret(
-              teamId: teamId,
-              name: 'OPENCI_BUILD_NUMBER',
-              value: nextVal,
-            );
-            await logInfo(
-              buildJobId,
-              runId,
-              'Auto-incremented OPENCI_BUILD_NUMBER: $value → $nextVal',
-            );
-            envVars['OPENCI_BUILD_NUMBER'] = nextVal;
-          } else {
-            envVars['OPENCI_BUILD_NUMBER'] = value;
+        try {
+          final value = await apiClient.getSecretValue(
+            teamId,
+            'OPENCI_BUILD_NUMBER',
+          );
+          if (value.isNotEmpty) {
+            final numValue = int.tryParse(value);
+            if (numValue != null) {
+              final nextVal = '${numValue + 1}';
+              await apiClient.saveSecret(
+                teamId: teamId,
+                name: 'OPENCI_BUILD_NUMBER',
+                value: nextVal,
+              );
+              await logInfo(
+                buildJobId,
+                runId,
+                'Auto-incremented OPENCI_BUILD_NUMBER: $value → $nextVal',
+              );
+              envVars['OPENCI_BUILD_NUMBER'] = nextVal;
+            } else {
+              envVars['OPENCI_BUILD_NUMBER'] = value;
+            }
           }
+        } catch (e) {
+          await logWarning(
+            buildJobId,
+            runId,
+            'Failed to load or auto-increment OPENCI_BUILD_NUMBER: $e',
+          );
         }
+      }
+
+      final hasRunNumber = secretMetadataList.any(
+        (meta) => meta['name'] == 'OPENCI_RUN_NUMBER',
+      );
+      try {
+        if (hasRunNumber) {
+          final value = await apiClient.getSecretValue(
+            teamId,
+            'OPENCI_RUN_NUMBER',
+          );
+          final numValue = int.tryParse(value) ?? 0;
+          final nextVal = '${numValue + 1}';
+          await apiClient.saveSecret(
+            teamId: teamId,
+            name: 'OPENCI_RUN_NUMBER',
+            value: nextVal,
+          );
+          await logInfo(
+            buildJobId,
+            runId,
+            'Auto-incremented OPENCI_RUN_NUMBER: $value → $nextVal',
+          );
+          envVars['OPENCI_RUN_NUMBER'] = nextVal;
+        } else {
+          await apiClient.saveSecret(
+            teamId: teamId,
+            name: 'OPENCI_RUN_NUMBER',
+            value: '1',
+          );
+          await logInfo(
+            buildJobId,
+            runId,
+            'Initialized OPENCI_RUN_NUMBER to 1 in Secrets',
+          );
+          envVars['OPENCI_RUN_NUMBER'] = '1';
+        }
+      } catch (e) {
+        await logWarning(
+          buildJobId,
+          runId,
+          'Failed to load or auto-increment OPENCI_RUN_NUMBER: $e',
+        );
       }
     } catch (e) {
       await logWarning(
         buildJobId,
         runId,
-        'Failed to load or auto-increment OPENCI_BUILD_NUMBER: $e',
+        'Failed to fetch secrets list for team $teamId: $e',
       );
     }
   }
