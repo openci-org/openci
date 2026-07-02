@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.1.0
+
+- Add: One hour timeout
+
 ## 2.0.3
 
 - Fix dependency issues with openci_shared.
