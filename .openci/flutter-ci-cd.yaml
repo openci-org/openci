@@ -83,8 +83,7 @@ jobs:
           asc-issuer-id: ${{ secrets.OPENCI_ASC_ISSUER_ID }}
           asc-private-key: ${{ secrets.OPENCI_ASC_PRIVATE_KEY }}
           sentry-auth-token: ${{ secrets.SENTRY_AUTH_TOKEN }}
-          testflight-beta-group-names: "dev"
-          testflight-max-wait-minutes: "20"
+          testflight-internal-testing: "true"
 
   deploy-macos:
     needs: [ci]

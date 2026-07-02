@@ -79,9 +79,6 @@ export async function buildAndSignIos(): Promise<void> {
     core.getInput("distribution-method") || "app-store",
   );
   const uploadToAppStoreConnectInput = core.getInput("upload-to-app-store-connect") || "";
-  const uploadToAppStoreConnect = uploadToAppStoreConnectInput
-    ? uploadToAppStoreConnectInput === "true"
-    : distributionMethod === "app-store";
   const sentryAuthToken = core.getInput("sentry-auth-token") || "";
   const shorebirdEnabled = parseBooleanInput("shorebird", core.getInput("shorebird") || "", false);
   const shorebirdToken = core.getInput("shorebird-token") || "";
@@ -89,6 +86,15 @@ export async function buildAndSignIos(): Promise<void> {
   const testflightBetaGroupNamesInput = core.getInput("testflight-beta-group-names") || "";
   const testflightMaxWaitMinutesInput = core.getInput("testflight-max-wait-minutes") || "20";
   const testflightMaxWaitMinutes = parseInt(testflightMaxWaitMinutesInput, 10);
+  const testflightInternalTestingInput = core.getInput("testflight-internal-testing") || "false";
+  const testflightInternalTesting = parseBooleanInput(
+    "testflight-internal-testing",
+    testflightInternalTestingInput,
+    false,
+  );
+  const uploadToAppStoreConnect = uploadToAppStoreConnectInput
+    ? uploadToAppStoreConnectInput === "true"
+    : testflightInternalTesting;
 
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "openci-ios-"));
 
@@ -309,7 +315,11 @@ export async function buildAndSignIos(): Promise<void> {
       core.endGroup();
 
       // ── Step 13.5: Distribute to TestFlight Beta Groups ─────
-      if (testflightBetaGroupNamesInput.trim()) {
+      if (testflightInternalTesting) {
+        console.log(
+          "  ℹ️  This build is configured for TestFlight internal testing. Apple distributes builds to internal groups automatically once processed. Skipping wait and association.",
+        );
+      } else if (testflightBetaGroupNamesInput.trim()) {
         core.startGroup("Step 13.5: Distributing to TestFlight Beta Groups");
         if (Number.isNaN(testflightMaxWaitMinutes) || testflightMaxWaitMinutes <= 0) {
           console.log(
