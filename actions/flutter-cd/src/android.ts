@@ -102,9 +102,11 @@ export async function deployAndroid(): Promise<void> {
       );
       if (shorebirdEnabled) {
         const flutterVersionArg = flutterVersion ? `--flutter-version=${flutterVersion}` : "";
+        const flutterArgs = `${buildNumberArg} ${buildArgs}`.trim();
+        const separator = flutterArgs ? "--" : "";
         console.log(`  🐦 Running shorebird release android...`);
         await exec(
-          `shorebird release android ${flutterVersionArg} ${buildNumberArg} -- ${buildArgs}`.trim(),
+          `shorebird release android ${flutterVersionArg} ${separator} ${flutterArgs}`.trim(),
           { cwd: workingDirectory },
         );
       } else {
@@ -140,11 +142,12 @@ export async function deployAndroid(): Promise<void> {
       );
       if (shorebirdEnabled) {
         const flutterVersionArg = flutterVersion ? `--flutter-version=${flutterVersion}` : "";
+        const flutterArgs = `${buildNumberArg} ${buildArgs}`.trim();
+        const separator = flutterArgs ? "--" : "";
         console.log(`  🐦 Running shorebird build apk...`);
-        await exec(
-          `shorebird build apk --release ${flutterVersionArg} ${buildNumberArg} -- ${buildArgs}`.trim(),
-          { cwd: workingDirectory },
-        );
+        await exec(`shorebird build apk ${flutterVersionArg} ${separator} ${flutterArgs}`.trim(), {
+          cwd: workingDirectory,
+        });
       } else {
         await exec(`flutter build apk --release ${buildNumberArg} ${buildArgs}`.trim(), {
           cwd: workingDirectory,
