@@ -412,6 +412,17 @@ Future<bool> processJob(
       );
       return true;
     } catch (actError) {
+      if (await isCancelled()) {
+        await logInfo(buildJobId, runId, 'Build was cancelled by user');
+        await updateJobFinalStatus(
+          apiClient: apiClient,
+          buildJob: buildJob,
+          runId: runId,
+          status: BuildJobStatus.CANCELLED,
+          conclusion: 'cancelled',
+        );
+        return true;
+      }
       await logWarning(buildJobId, runId, 'Act build failed: $actError');
       await updateJobFinalStatus(
         apiClient: apiClient,
