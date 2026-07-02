@@ -713,13 +713,14 @@ export async function getBetaGroupIdByName(
   appId: string,
   groupName: string,
 ): Promise<string> {
-  const endpoint = `/apps/${appId}/betaGroups?filter[name]=${encodeURIComponent(groupName)}`;
+  const endpoint = `/apps/${appId}/betaGroups?limit=200`;
   const response = await ascApi(jwt, endpoint);
   const groups = response?.data ?? [];
-  if (groups.length === 0) {
+  const group = groups.find((g: any) => g.attributes?.name === groupName);
+  if (!group) {
     throw new Error(`Beta group not found with name: ${groupName}`);
   }
-  return groups[0].id as string;
+  return group.id as string;
 }
 
 export async function getBuildInfo(
