@@ -1,11 +1,18 @@
 import 'package:flutter/foundation.dart';
 import 'package:macos_updater/macos_updater.dart';
 
-const _macosUpdateFeedUrl = String.fromEnvironment(
-  'OPENCI_MACOS_UPDATE_FEED_URL',
-  defaultValue:
-      'https://firebasestorage.googleapis.com/v0/b/openci-b1b91.firebasestorage.app/o/artifacts%2Fopenci-dashboard%2Fmacos%2Fdevelop%2Flatest%2Fappcast.xml?alt=media&token=adfb1bbd-98ac-4d7d-8bfe-df57403ce6b0',
-);
+const _openciServerUrl = String.fromEnvironment('OPENCI_SERVER_URL');
+
+String? get _macosUpdateFeedUrl {
+  const customFeedUrl = String.fromEnvironment('OPENCI_MACOS_UPDATE_FEED_URL');
+  if (customFeedUrl.isNotEmpty) {
+    return customFeedUrl;
+  }
+  if (_openciServerUrl.isNotEmpty) {
+    return '$_openciServerUrl/updates/openci-org/openci/macos/appcast.xml';
+  }
+  return null;
+}
 
 const _macosUpdateCheckIntervalHours = int.fromEnvironment(
   'OPENCI_MACOS_UPDATE_CHECK_INTERVAL_HOURS',
@@ -25,8 +32,16 @@ Future<void> initializeMacosUpdater() async {
     return;
   }
 
+  final feedUrl = _macosUpdateFeedUrl;
+  if (feedUrl == null) {
+    debugPrint(
+      '[OpenCI] macOS updater feed URL is not configured. Skipping initialization.',
+    );
+    return;
+  }
+
   try {
-    await _configureMacosUpdater(MacosUpdater());
+    await _configureMacosUpdater(MacosUpdater(), feedUrl);
   } catch (error, stackTrace) {
     debugPrint('[OpenCI] Failed to initialize macOS updater: $error');
     debugPrintStack(stackTrace: stackTrace);
@@ -40,8 +55,16 @@ Future<MacosUpdaterCheckResult> checkForMacosUpdates() async {
     );
   }
 
+  final feedUrl = _macosUpdateFeedUrl;
+  if (feedUrl == null) {
+    return const MacosUpdaterCheckResult(
+      type: MacosUpdaterCheckResultType.failed,
+      message: 'macOS updater feed URL is not configured.',
+    );
+  }
+
   final updater = MacosUpdater();
-  await _configureMacosUpdater(updater);
+  await _configureMacosUpdater(updater, feedUrl);
   final result = updater.checkResults.first.timeout(
     const Duration(seconds: 45),
     onTimeout: () => const MacosUpdaterCheckResult(
@@ -53,8 +76,11 @@ Future<MacosUpdaterCheckResult> checkForMacosUpdates() async {
   return result;
 }
 
-Future<void> _configureMacosUpdater(MacosUpdater updater) async {
-  await updater.setFeedUrl(_macosUpdateFeedUrl);
+Future<void> _configureMacosUpdater(
+  MacosUpdater updater,
+  String feedUrl,
+) async {
+  await updater.setFeedUrl(feedUrl);
   await updater.setScheduledCheckInterval(
     const Duration(hours: _macosUpdateCheckIntervalHours),
   );
