@@ -308,7 +308,8 @@ export async function buildAndSignIos(): Promise<void> {
       const uploadOutput = await execAndCapture(
         `xcrun altool --upload-app --type ios -f "${ipaPath}" --apiKey "${ascKeyId}" --apiIssuer "${ascIssuerId}" 2>&1`,
       );
-      if (uploadOutput.includes("ERROR")) {
+      const isSuccess = uploadOutput.includes("UPLOAD SUCCEEDED") || (!uploadOutput.includes("ERROR") && !uploadOutput.includes("Error:"));
+      if (!isSuccess) {
         throw new Error(`Upload to App Store Connect failed:\n${uploadOutput.trim()}`);
       }
       console.log("  ✅ IPA uploaded to App Store Connect");
