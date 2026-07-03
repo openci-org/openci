@@ -308,7 +308,9 @@ export async function buildAndSignIos(): Promise<void> {
       const uploadOutput = await execAndCapture(
         `xcrun altool --upload-app --type ios -f "${ipaPath}" --apiKey "${ascKeyId}" --apiIssuer "${ascIssuerId}" 2>&1`,
       );
-      const isSuccess = uploadOutput.includes("UPLOAD SUCCEEDED") || (!uploadOutput.includes("ERROR") && !uploadOutput.includes("Error:"));
+      const isSuccess =
+        uploadOutput.includes("UPLOAD SUCCEEDED") ||
+        (!uploadOutput.includes("ERROR") && !uploadOutput.includes("Error:"));
       if (!isSuccess) {
         throw new Error(`Upload to App Store Connect failed:\n${uploadOutput.trim()}`);
       }
@@ -639,7 +641,8 @@ function parsePbxproj(
 
   // 2. Parse configurations
   const blocks = section.split("isa = XCBuildConfiguration;");
-  const configs: { name: string; bundleId?: string; teamId?: string; isTestTarget?: boolean }[] = [];
+  const configs: { name: string; bundleId?: string; teamId?: string; isTestTarget?: boolean }[] =
+    [];
   for (let i = 1; i < blocks.length; i++) {
     const block = blocks[i];
     const nameMatch = block.match(/name\s*=\s*(?:"([^"]+)"|([^;\s]+))\s*;/);
@@ -662,20 +665,32 @@ function parsePbxproj(
   }
 
   // 3. Find target configuration matching the flavor
-  let targetConfig: { name: string; bundleId?: string; teamId?: string; isTestTarget?: boolean } | undefined;
+  let targetConfig:
+    | { name: string; bundleId?: string; teamId?: string; isTestTarget?: boolean }
+    | undefined;
   if (flavor) {
     const lowerFlavor = flavor.toLowerCase();
-    targetConfig = configs.find((c) => !c.isTestTarget && c.name.toLowerCase() === `release-${lowerFlavor}`);
+    targetConfig = configs.find(
+      (c) => !c.isTestTarget && c.name.toLowerCase() === `release-${lowerFlavor}`,
+    );
     if (!targetConfig)
-      targetConfig = configs.find((c) => !c.isTestTarget && c.name.toLowerCase() === `profile-${lowerFlavor}`);
+      targetConfig = configs.find(
+        (c) => !c.isTestTarget && c.name.toLowerCase() === `profile-${lowerFlavor}`,
+      );
     if (!targetConfig)
-      targetConfig = configs.find((c) => !c.isTestTarget && c.name.toLowerCase() === `debug-${lowerFlavor}`);
+      targetConfig = configs.find(
+        (c) => !c.isTestTarget && c.name.toLowerCase() === `debug-${lowerFlavor}`,
+      );
     if (!targetConfig)
-      targetConfig = configs.find((c) => !c.isTestTarget && c.name.toLowerCase().includes(lowerFlavor));
+      targetConfig = configs.find(
+        (c) => !c.isTestTarget && c.name.toLowerCase().includes(lowerFlavor),
+      );
   } else {
     targetConfig = configs.find((c) => !c.isTestTarget && c.name.toLowerCase() === "release");
-    if (!targetConfig) targetConfig = configs.find((c) => !c.isTestTarget && c.name.toLowerCase() === "profile");
-    if (!targetConfig) targetConfig = configs.find((c) => !c.isTestTarget && c.name.toLowerCase() === "debug");
+    if (!targetConfig)
+      targetConfig = configs.find((c) => !c.isTestTarget && c.name.toLowerCase() === "profile");
+    if (!targetConfig)
+      targetConfig = configs.find((c) => !c.isTestTarget && c.name.toLowerCase() === "debug");
   }
 
   // 4. Extract bundle ID and team ID

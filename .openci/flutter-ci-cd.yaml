@@ -99,6 +99,7 @@ jobs:
       - name: Configure Sparkle update settings
         env:
           OPENCI_SPARKLE_PUBLIC_ED_KEY: ${{ secrets.OPENCI_SPARKLE_PUBLIC_ED_KEY }}
+          OPENCI_SERVER_URL: ${{ secrets.OPENCI_SERVER_URL }}
           RELEASE_EVENT_NAME: ${{ github.event_name }}
           RELEASE_REF: ${{ github.ref }}
         run: |
@@ -113,9 +114,15 @@ jobs:
             exit 0
           fi
 
+          if [ -z "${OPENCI_SERVER_URL:-}" ]; then
+            echo "OPENCI_SERVER_URL is required to configure the macOS appcast feed URL" >&2
+            exit 1
+          fi
+
           {
             echo ""
             echo "SPARKLE_PUBLIC_ED_KEY = ${OPENCI_SPARKLE_PUBLIC_ED_KEY}"
+            echo "SPARKLE_FEED_URL = ${OPENCI_SERVER_URL}/updates/openci-org/openci/macos/appcast.xml"
           } >> apps/dashboard/macos/Runner/Configs/AppInfo.xcconfig
 
       - id: build_macos
