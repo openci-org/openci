@@ -216,7 +216,8 @@ class VirtualMachine {
 
     // Phase 2: Ping succeeded, now wait for SSH port 22 to open.
     if (showLogs) {
-      print('Debug: Guest network is up. Waiting for SSH port 22 to open on $ip...');
+      print(
+          'Debug: Guest network is up. Waiting for SSH port 22 to open on $ip...');
     }
 
     while (DateTime.now().isBefore(stopTime)) {
