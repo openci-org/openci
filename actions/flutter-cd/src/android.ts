@@ -23,6 +23,7 @@ export async function deployAndroid(): Promise<void> {
   const buildArgs = core.getInput("build-args") || "";
   const buildNumberInput = core.getInput("build-number") || "";
   const buildNumber = buildNumberInput ? parseInt(buildNumberInput, 10) : null;
+  const flavor = parseFlavor(buildArgs);
 
   const keystoreBase64 = core.getInput("android-keystore-base64") || "";
   const keystorePassword = core.getInput("android-keystore-password") || "";
@@ -108,23 +109,12 @@ export async function deployAndroid(): Promise<void> {
         { cwd: workingDirectory },
       );
 
-      aabPath = path.join(
-        workingDirectory,
-        "build",
-        "app",
-        "outputs",
-        "bundle",
-        "release",
-        "app-release.aab",
-      );
-      apkPath = path.join(
-        workingDirectory,
-        "build",
-        "app",
-        "outputs",
-        "flutter-apk",
-        "app-release.apk",
-      );
+      aabPath = flavor
+        ? path.join(workingDirectory, "build", "app", "outputs", "bundle", `${flavor}Release`, `app-${flavor}-release.aab`)
+        : path.join(workingDirectory, "build", "app", "outputs", "bundle", "release", "app-release.aab");
+      apkPath = flavor
+        ? path.join(workingDirectory, "build", "app", "outputs", "flutter-apk", `app-${flavor}-release.apk`)
+        : path.join(workingDirectory, "build", "app", "outputs", "flutter-apk", "app-release.apk");
 
       if (otaEnabled && !fs.existsSync(apkPath)) {
         throw new Error(`APK file not found at ${apkPath}`);
@@ -150,15 +140,9 @@ export async function deployAndroid(): Promise<void> {
           cwd: workingDirectory,
         });
 
-        aabPath = path.join(
-          workingDirectory,
-          "build",
-          "app",
-          "outputs",
-          "bundle",
-          "release",
-          "app-release.aab",
-        );
+        aabPath = flavor
+          ? path.join(workingDirectory, "build", "app", "outputs", "bundle", `${flavor}Release`, `app-${flavor}-release.aab`)
+          : path.join(workingDirectory, "build", "app", "outputs", "bundle", "release", "app-release.aab");
 
         if (!fs.existsSync(aabPath)) {
           throw new Error(`AAB file not found at ${aabPath}`);
@@ -175,14 +159,9 @@ export async function deployAndroid(): Promise<void> {
           cwd: workingDirectory,
         });
 
-        apkPath = path.join(
-          workingDirectory,
-          "build",
-          "app",
-          "outputs",
-          "flutter-apk",
-          "app-release.apk",
-        );
+        apkPath = flavor
+          ? path.join(workingDirectory, "build", "app", "outputs", "flutter-apk", `app-${flavor}-release.apk`)
+          : path.join(workingDirectory, "build", "app", "outputs", "flutter-apk", "app-release.apk");
 
         if (!fs.existsSync(apkPath)) {
           throw new Error(`APK file not found at ${apkPath}`);
@@ -422,4 +401,9 @@ function detectPackageName(workingDirectory: string): string {
   throw new Error(
     "Unable to parse applicationId from gradle configuration. Please specify 'android-package-name' input.",
   );
+}
+
+function parseFlavor(buildArgs: string): string | undefined {
+  const match = buildArgs.match(/--flavor\s+(\S+)|--flavor=(\S+)/);
+  return match ? (match[1] || match[2]) : undefined;
 }
