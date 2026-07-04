@@ -167,7 +167,7 @@ export async function deployAndroid(): Promise<void> {
     // ── Step 3: Google Play Console Distribution ───────────
     if (serviceAccountJson && aabPath) {
       core.startGroup("Step 3: Uploading AAB to Google Play Console");
-      const packageName = explicitPackageName || detectPackageName(workingDirectory);
+      const packageName = explicitPackageName || detectPackageName(workingDirectory, flavor);
       console.log(`  Package name: ${packageName}`);
       console.log(`  Target Track: ${track}`);
 
@@ -235,7 +235,7 @@ export async function deployAndroid(): Promise<void> {
 
     // ── Step 4: OTA Distribution ─────────────────────────────
     if (otaEnabled && apkPath) {
-      await handleAndroidOtaDistribution(workingDirectory, apkPath);
+      await handleAndroidOtaDistribution(workingDirectory, apkPath, flavor);
     }
   } catch (error) {
     console.error(`  ❌ Android deployment failed: ${error}`);
@@ -259,6 +259,7 @@ export async function deployAndroid(): Promise<void> {
 async function handleAndroidOtaDistribution(
   workingDirectory: string,
   apkPath: string,
+  flavor?: string,
 ): Promise<void> {
   const buildJobId = process.env.OPENCI_BUILD_JOB_ID;
   if (!buildJobId) {
@@ -285,7 +286,7 @@ async function handleAndroidOtaDistribution(
   let apkVersion = "1.0.0";
 
   try {
-    packageName = detectPackageName(workingDirectory);
+    packageName = detectPackageName(workingDirectory, flavor);
     const pubspecPath = path.join(workingDirectory, "pubspec.yaml");
     if (fs.existsSync(pubspecPath)) {
       const pubspecContent = fs.readFileSync(pubspecPath, "utf8");
@@ -370,7 +371,7 @@ async function handleAndroidOtaDistribution(
   }
 }
 
-function detectPackageName(workingDirectory: string): string {
+function detectPackageName(workingDirectory: string, flavor?: string): string {
   const gradlePath = path.join(workingDirectory, "android", "app", "build.gradle.kts");
   const gradlePathGroovy = path.join(workingDirectory, "android", "app", "build.gradle");
 
@@ -383,6 +384,19 @@ function detectPackageName(workingDirectory: string): string {
     throw new Error(
       "Gradle build file not found. Could not auto-detect package name. Please specify 'android-package-name' input.",
     );
+  }
+
+  if (flavor) {
+    const flavorRegex = new RegExp(flavor + '\\\\s*\\\\{[^}]*applicationId\\\\s*=?\\\\s*[\'"]([^\'"]+)[\'"]');
+    const flavorMatch = content.match(flavorRegex);
+    if (flavorMatch) {
+      return flavorMatch[1];
+    }
+  }
+
+  const defaultConfigMatch = content.match(/defaultConfig\s*\\{[^}]*applicationId\\s*=?\s*['"]([^'"]+)['"]/);
+  if (defaultConfigMatch) {
+    return defaultConfigMatch[1];
   }
 
   const match = content.match(/applicationId\s*=?\s*['"]([^'"]+)['"]/);
