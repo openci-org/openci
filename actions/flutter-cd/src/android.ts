@@ -109,12 +109,8 @@ export async function deployAndroid(): Promise<void> {
         { cwd: workingDirectory },
       );
 
-      aabPath = flavor
-        ? path.join(workingDirectory, "build", "app", "outputs", "bundle", `${flavor}Release`, `app-${flavor}-release.aab`)
-        : path.join(workingDirectory, "build", "app", "outputs", "bundle", "release", "app-release.aab");
-      apkPath = flavor
-        ? path.join(workingDirectory, "build", "app", "outputs", "flutter-apk", `app-${flavor}-release.apk`)
-        : path.join(workingDirectory, "build", "app", "outputs", "flutter-apk", "app-release.apk");
+      aabPath = findFile(path.join(workingDirectory, "build", "app", "outputs"), ".aab", flavor) || "";
+      apkPath = findFile(path.join(workingDirectory, "build", "app", "outputs"), ".apk", flavor) || "";
 
       if (otaEnabled && !fs.existsSync(apkPath)) {
         throw new Error(`APK file not found at ${apkPath}`);
@@ -140,9 +136,7 @@ export async function deployAndroid(): Promise<void> {
           cwd: workingDirectory,
         });
 
-        aabPath = flavor
-          ? path.join(workingDirectory, "build", "app", "outputs", "bundle", `${flavor}Release`, `app-${flavor}-release.aab`)
-          : path.join(workingDirectory, "build", "app", "outputs", "bundle", "release", "app-release.aab");
+        aabPath = findFile(path.join(workingDirectory, "build", "app", "outputs"), ".aab", flavor) || "";
 
         if (!fs.existsSync(aabPath)) {
           throw new Error(`AAB file not found at ${aabPath}`);
@@ -159,9 +153,7 @@ export async function deployAndroid(): Promise<void> {
           cwd: workingDirectory,
         });
 
-        apkPath = flavor
-          ? path.join(workingDirectory, "build", "app", "outputs", "flutter-apk", `app-${flavor}-release.apk`)
-          : path.join(workingDirectory, "build", "app", "outputs", "flutter-apk", "app-release.apk");
+        apkPath = findFile(path.join(workingDirectory, "build", "app", "outputs"), ".apk", flavor) || "";
 
         if (!fs.existsSync(apkPath)) {
           throw new Error(`APK file not found at ${apkPath}`);
@@ -406,4 +398,36 @@ function detectPackageName(workingDirectory: string): string {
 function parseFlavor(buildArgs: string): string | undefined {
   const match = buildArgs.match(/--flavor\s+(\S+)|--flavor=(\S+)/);
   return match ? (match[1] || match[2]) : undefined;
+}
+
+function findFile(dir: string, extension: string, flavor?: string): string | undefined {
+  if (!fs.existsSync(dir)) {
+    return undefined;
+  }
+  const files = fs.readdirSync(dir);
+  let fallback: string | undefined;
+
+  for (const file of files) {
+    const filePath = path.join(dir, file);
+    const stat = fs.statSync(filePath);
+    if (stat.isDirectory()) {
+      const found = findFile(filePath, extension, flavor);
+      if (found) {
+        if (flavor && found.toLowerCase().includes(flavor.toLowerCase())) {
+          return found;
+        }
+        if (!fallback) {
+          fallback = found;
+        }
+      }
+    } else if (file.endsWith(extension)) {
+      if (flavor && file.toLowerCase().includes(flavor.toLowerCase())) {
+        return filePath;
+      }
+      if (!fallback) {
+        fallback = filePath;
+      }
+    }
+  }
+  return fallback;
 }
