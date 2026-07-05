@@ -387,7 +387,7 @@ function detectPackageName(workingDirectory: string, flavor?: string): string {
   }
 
   if (flavor) {
-    const flavorRegex = new RegExp(flavor + '\\\\s*\\\\{[^}]*applicationId\\\\s*=?\\\\s*[\'"]([^\'"]+)[\'"]');
+    const flavorRegex = new RegExp(flavor + '\\s*\\{[^}]*applicationId\\s*=?\\s*[\'"]([^\'"]+)[\'"]');
     const flavorMatch = content.match(flavorRegex);
     if (flavorMatch) {
       return flavorMatch[1];
