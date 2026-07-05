@@ -1,0 +1,26 @@
+name: lume_dart CI
+
+on:
+  push:
+    branches:
+      - develop
+
+  pull_request:
+    branches:
+      - develop
+
+defaults:
+  run:
+    working-directory: packages/lume_dart
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Test (Unit Only)
+        run: flutter test
