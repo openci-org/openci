@@ -5,10 +5,11 @@ repository: https://github.com/openci-org/openci/tree/develop/packages/lume_dart
 resolution: workspace
 
 environment:
-  sdk: ">=3.6.0 <4.0.0"
+  sdk: 3.11.5
 
 dependencies:
 
 dev_dependencies:
   lints: ^6.0.0
+  mocktail: ^1.0.4
   test: ^1.24.0

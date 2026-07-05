@@ -50,7 +50,9 @@ void main() {
         ),
       );
       expect(
-          logs, contains('Cloning macOS VM "src-vm" to "dest-vm" via Lume...'));
+        logs,
+        contains('Cloning macOS VM "src-vm" to "dest-vm" via Lume...'),
+      );
       expect(logs, contains('VM cloned successfully: "src-vm" -> "dest-vm"'));
     });
 
