@@ -109,8 +109,10 @@ export async function deployAndroid(): Promise<void> {
         { cwd: workingDirectory },
       );
 
-      aabPath = findFile(path.join(workingDirectory, "build", "app", "outputs"), ".aab", flavor) || "";
-      apkPath = findFile(path.join(workingDirectory, "build", "app", "outputs"), ".apk", flavor) || "";
+      aabPath =
+        findFile(path.join(workingDirectory, "build", "app", "outputs"), ".aab", flavor) || "";
+      apkPath =
+        findFile(path.join(workingDirectory, "build", "app", "outputs"), ".apk", flavor) || "";
 
       if (otaEnabled && !fs.existsSync(apkPath)) {
         throw new Error(`APK file not found at ${apkPath}`);
@@ -136,7 +138,8 @@ export async function deployAndroid(): Promise<void> {
           cwd: workingDirectory,
         });
 
-        aabPath = findFile(path.join(workingDirectory, "build", "app", "outputs"), ".aab", flavor) || "";
+        aabPath =
+          findFile(path.join(workingDirectory, "build", "app", "outputs"), ".aab", flavor) || "";
 
         if (!fs.existsSync(aabPath)) {
           throw new Error(`AAB file not found at ${aabPath}`);
@@ -153,7 +156,8 @@ export async function deployAndroid(): Promise<void> {
           cwd: workingDirectory,
         });
 
-        apkPath = findFile(path.join(workingDirectory, "build", "app", "outputs"), ".apk", flavor) || "";
+        apkPath =
+          findFile(path.join(workingDirectory, "build", "app", "outputs"), ".apk", flavor) || "";
 
         if (!fs.existsSync(apkPath)) {
           throw new Error(`APK file not found at ${apkPath}`);
@@ -387,14 +391,18 @@ function detectPackageName(workingDirectory: string, flavor?: string): string {
   }
 
   if (flavor) {
-    const flavorRegex = new RegExp(flavor + '\\s*\\{[^}]*applicationId\\s*=?\\s*[\'"]([^\'"]+)[\'"]');
+    const flavorRegex = new RegExp(
+      flavor + "\\s*\\{[^}]*applicationId\\s*=?\\s*['\"]([^'\"]+)['\"]",
+    );
     const flavorMatch = content.match(flavorRegex);
     if (flavorMatch) {
       return flavorMatch[1];
     }
   }
 
-  const defaultConfigMatch = content.match(/defaultConfig\s*\\{[^}]*applicationId\\s*=?\s*['"]([^'"]+)['"]/);
+  const defaultConfigMatch = content.match(
+    /defaultConfig\s*\\{[^}]*applicationId\\s*=?\s*['"]([^'"]+)['"]/,
+  );
   if (defaultConfigMatch) {
     return defaultConfigMatch[1];
   }
@@ -411,7 +419,7 @@ function detectPackageName(workingDirectory: string, flavor?: string): string {
 
 function parseFlavor(buildArgs: string): string | undefined {
   const match = buildArgs.match(/--flavor\s+(\S+)|--flavor=(\S+)/);
-  return match ? (match[1] || match[2]) : undefined;
+  return match ? match[1] || match[2] : undefined;
 }
 
 function findFile(dir: string, extension: string, flavor?: string): string | undefined {
