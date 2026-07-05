@@ -26,23 +26,25 @@ void main() {
       expect(capturedArgs, equals(['run', '--no-display', 'test-vm']));
     });
 
-    test('run passes correct arguments to lume when noDisplay is false',
-        () async {
-      final capturedArgs = <String>[];
-      final mockProcess = MockProcess();
+    test(
+      'run passes correct arguments to lume when noDisplay is false',
+      () async {
+        final capturedArgs = <String>[];
+        final mockProcess = MockProcess();
 
-      await run(
-        name: 'test-vm',
-        noDisplay: false,
-        showLogs: false,
-        startProcess: (executable, args) async {
-          capturedArgs.addAll(args);
-          return mockProcess;
-        },
-      );
+        await run(
+          name: 'test-vm',
+          noDisplay: false,
+          showLogs: false,
+          startProcess: (executable, args) async {
+            capturedArgs.addAll(args);
+            return mockProcess;
+          },
+        );
 
-      expect(capturedArgs, equals(['run', 'test-vm']));
-    });
+        expect(capturedArgs, equals(['run', 'test-vm']));
+      },
+    );
 
     test('run throws StateError when process fails to start', () async {
       expect(
