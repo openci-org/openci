@@ -1,11 +1,12 @@
 import 'dart:io';
 
-Future<ProcessResult> Function(String, List<String>) runProcess = Process.run;
+import 'process.dart';
 
 Future<void> clone({
   required String sourceName,
   required String targetName,
   bool showLogs = true,
+  ProcessRunner runProcess = Process.run,
 }) async {
   if (showLogs) {
     print('Cloning macOS VM "$sourceName" to "$targetName" via Lume...');

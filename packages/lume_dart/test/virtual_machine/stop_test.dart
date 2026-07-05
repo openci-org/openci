@@ -1,30 +1,28 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:lume_dart/src/virtual_machine/clone.dart';
+import 'package:lume_dart/src/virtual_machine/stop.dart';
 import 'package:test/test.dart';
 
 void main() {
-  group('lume clone unit tests', () {
-    test('clone passes correct arguments to lume', () async {
+  group('lume stop unit tests', () {
+    test('stop passes correct arguments to lume', () async {
       final capturedArgs = <String>[];
-      await clone(
-        sourceName: 'src-vm',
-        targetName: 'dest-vm',
+      await stop(
+        name: 'test-vm',
         showLogs: false,
         runProcess: (executable, args) async {
           capturedArgs.addAll(args);
           return ProcessResult(0, 0, '', '');
         },
       );
-      expect(capturedArgs, equals(['clone', 'src-vm', 'dest-vm']));
+      expect(capturedArgs, equals(['stop', 'test-vm']));
     });
 
-    test('clone throws StateError when process fails', () async {
+    test('stop throws StateError when process fails', () async {
       expect(
-        () => clone(
-          sourceName: 'src-vm',
-          targetName: 'dest-vm',
+        () => stop(
+          name: 'test-vm',
           showLogs: false,
           runProcess: (executable, args) async {
             return ProcessResult(0, 1, '', 'lume: command not found');
@@ -34,12 +32,11 @@ void main() {
       );
     });
 
-    test('clone prints logs when showLogs is true', () async {
+    test('stop prints logs when showLogs is true', () async {
       final logs = <String>[];
       await runZoned(
-        () => clone(
-          sourceName: 'src-vm',
-          targetName: 'dest-vm',
+        () => stop(
+          name: 'test-vm',
           showLogs: true,
           runProcess: (executable, args) async => ProcessResult(0, 0, '', ''),
         ),
@@ -49,17 +46,15 @@ void main() {
           },
         ),
       );
-      expect(
-          logs, contains('Cloning macOS VM "src-vm" to "dest-vm" via Lume...'));
-      expect(logs, contains('VM cloned successfully: "src-vm" -> "dest-vm"'));
+      expect(logs, contains('Stopping macOS VM "test-vm" via Lume...'));
+      expect(logs, contains('VM stopped successfully: "test-vm"'));
     });
 
-    test('clone does not print logs when showLogs is false', () async {
+    test('stop does not print logs when showLogs is false', () async {
       final logs = <String>[];
       await runZoned(
-        () => clone(
-          sourceName: 'src-vm',
-          targetName: 'dest-vm',
+        () => stop(
+          name: 'test-vm',
           showLogs: false,
           runProcess: (executable, args) async => ProcessResult(0, 0, '', ''),
         ),
