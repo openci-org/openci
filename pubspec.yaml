@@ -5,7 +5,6 @@ environment:
   sdk: 3.11.5
 
 workspace:
-  - apps/avf_cli
   - apps/dashboard
   - apps/openci_server
   - apps/openci_worker_cli
