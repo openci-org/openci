@@ -11,6 +11,7 @@ workspace:
   - packages/app_minimizer_plus
   - packages/app_minimizer_plus/example
   - packages/avf_dart
+  - packages/lume_dart
   - packages/gcp_secret_manager
   - packages/macos_updater
   - packages/openci_shared
