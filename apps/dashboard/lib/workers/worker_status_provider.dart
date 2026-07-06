@@ -34,9 +34,7 @@ final workerInstancesProvider =
                 b.platformGroup.index,
               );
               if (platformCompare != 0) return platformCompare;
-              return a.id.toLowerCase().compareTo(
-                b.id.toLowerCase(),
-              );
+              return _compareWorkerIds(a.id, b.id);
             });
 
             return workers;
@@ -108,4 +106,25 @@ WorkerStatus _workerStatusFromString(Object? value) {
     (status) => status.name == normalized,
     orElse: () => WorkerStatus.unknown,
   );
+}
+
+int _compareWorkerIds(String a, String b) {
+  final regExp = RegExp(r'^(.*)-(\d+)$');
+  final matchA = regExp.firstMatch(a);
+  final matchB = regExp.firstMatch(b);
+
+  if (matchA != null && matchB != null) {
+    final prefixA = matchA.group(1)!;
+    final prefixB = matchB.group(1)!;
+    final prefixCompare = prefixA.toLowerCase().compareTo(
+      prefixB.toLowerCase(),
+    );
+    if (prefixCompare != 0) return prefixCompare;
+
+    final numA = int.parse(matchA.group(2)!);
+    final numB = int.parse(matchB.group(2)!);
+    return numA.compareTo(numB);
+  }
+
+  return a.toLowerCase().compareTo(b.toLowerCase());
 }
