@@ -252,6 +252,25 @@ Future<void> setupDirectSsh(VirtualMachine vm) async {
   _log.info('SSH key installed on VM');
 }
 
+Future<void> _stopAndDeleteVm(
+  lume.LumeVM vm, {
+  required String label,
+  String logPrefix = '',
+}) async {
+  if (vm.status == 'running') {
+    try {
+      await lume.stop(name: vm.name, showLogs: false);
+    } catch (e) {
+      _log.warning('${logPrefix}Failed to stop $label VM ${vm.name}: $e');
+    }
+  }
+  try {
+    await lume.delete(name: vm.name, showLogs: false);
+  } catch (e) {
+    _log.warning('${logPrefix}Failed to delete $label VM ${vm.name}: $e');
+  }
+}
+
 Future<void> cleanupOrphanedVms(String workerId) async {
   try {
     _log.info('Cleaning orphaned VMs for worker $workerId...');
@@ -262,18 +281,7 @@ Future<void> cleanupOrphanedVms(String workerId) async {
 
     for (final vm in workerVms) {
       _log.info('Cleaning up orphaned VM: ${vm.name} (status: ${vm.status})');
-      if (vm.status == 'running') {
-        try {
-          await lume.stop(name: vm.name, showLogs: false);
-        } catch (e) {
-          _log.warning('Failed to stop orphaned VM ${vm.name}: $e');
-        }
-      }
-      try {
-        await lume.delete(name: vm.name, showLogs: false);
-      } catch (e) {
-        _log.warning('Failed to delete orphaned VM ${vm.name}: $e');
-      }
+      await _stopAndDeleteVm(vm, label: 'orphaned');
     }
   } catch (e, s) {
     _log.severe('Error cleaning up orphaned VMs: $e');
@@ -299,18 +307,7 @@ Future<void> pruneStaleVms(
       _log.info(
         '[$runId] Deleting stale VM: ${vm.name} (status: ${vm.status})',
       );
-      if (vm.status == 'running') {
-        try {
-          await lume.stop(name: vm.name, showLogs: false);
-        } catch (e) {
-          _log.warning('[$runId] Failed to stop stale VM ${vm.name}: $e');
-        }
-      }
-      try {
-        await lume.delete(name: vm.name, showLogs: false);
-      } catch (e) {
-        _log.warning('[$runId] Failed to delete stale VM ${vm.name}: $e');
-      }
+      await _stopAndDeleteVm(vm, label: 'stale', logPrefix: '[$runId] ');
     }
   } catch (e) {
     _log.warning('[$runId] Error pruning stale VMs: $e');
