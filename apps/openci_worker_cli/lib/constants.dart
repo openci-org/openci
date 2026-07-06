@@ -2,7 +2,7 @@ import 'package:openci_worker_cli/src/version.dart';
 
 const version = packageVersion;
 
-const baseVmName = 'tahoe-base_v1.1.1';
+const baseVmName = 'tahoe-base_v1.2.3';
 const sshUser = 'admin';
 const sshPassword = 'admin';
 

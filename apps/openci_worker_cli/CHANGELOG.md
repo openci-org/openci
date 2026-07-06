@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.3.3
+
+- Fix: Update default base VM name to tahoe-base_v1.2.3 to match the current setup script image version, resolving clone VM failures.
+
 ## 2.3.2
 
 - Fix: Bump lume_dart to 1.0.1 to address strict SDK constraint issues, resolving the auto-update failures on build machines.
