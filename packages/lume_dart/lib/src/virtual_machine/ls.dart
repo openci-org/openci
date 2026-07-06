@@ -11,7 +11,7 @@ Future<List<LumeVM>> ls({
     print('Listing macOS VMs via Lume...');
   }
 
-  final result = await runProcess('lume', ['ls', '--format', 'json']);
+  final result = await runProcess(resolveLumeExecutable(), ['ls', '--format', 'json']);
   if (result.exitCode != 0) {
     throw StateError('Failed to list VMs via Lume: ${result.stderr}');
   }

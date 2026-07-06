@@ -19,7 +19,7 @@ Future<Process> run({
   args.add(name);
 
   try {
-    return await startProcess('lume', ['run', ...args]);
+    return await startProcess(resolveLumeExecutable(), ['run', ...args]);
   } catch (e) {
     throw StateError('Failed to start VM via Lume: $e');
   }

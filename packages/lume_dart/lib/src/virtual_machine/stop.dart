@@ -11,7 +11,7 @@ Future<void> stop({
     print('Stopping macOS VM "$name" via Lume...');
   }
 
-  final result = await runProcess('lume', ['stop', name]);
+  final result = await runProcess(resolveLumeExecutable(), ['stop', name]);
   if (result.exitCode != 0) {
     throw StateError('Failed to stop VM via Lume: ${result.stderr}');
   }

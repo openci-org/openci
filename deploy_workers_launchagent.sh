@@ -99,7 +99,7 @@ install_agent() {
   <key>EnvironmentVariables</key>
   <dict>
     <key>PATH</key>
-    <string>/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+    <string>/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/admin/.local/bin</string>
     <key>OPENCI_EMAIL</key>
     <string>${email}</string>
     <key>OPENCI_PASSWORD</key>

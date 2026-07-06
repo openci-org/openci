@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.3.6
+
+- Fix: Bump lume_dart to 1.0.2 to support automatic path resolution for the `lume` executable, addressing `ProcessException: No such file or directory` on launchd/cron-started workers.
+- Fix: Add Lume bin path to deploy LaunchAgent environment PATH.
+
 ## 2.3.5
 
 - Fix: Change default Docker container CPU limit to 2 (down from 4) to prevent CPU starvation when all 8 workers run concurrently on a 16 vCPU host.
