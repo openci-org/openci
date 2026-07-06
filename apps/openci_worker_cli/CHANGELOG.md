@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.3.0
+
+- Feature: Migrate VM execution and lifecycle management from avf_dart to lume_dart (Lume CLI).
+- Feature: Replace OS-level process killing with safe zombie VM detection, stopping, and deleting using lume.ls.
+
 ## 2.2.0
 
 - Feature: Support build cancellation
