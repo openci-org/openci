@@ -1,5 +1,18 @@
 # Changelog
 
+## 2.3.6
+
+- Fix: Bump lume_dart to 1.0.2 to support automatic path resolution for the `lume` executable, addressing `ProcessException: No such file or directory` on launchd/cron-started workers.
+- Fix: Add Lume bin path to deploy LaunchAgent environment PATH.
+
+## 2.3.5
+
+- Fix: Change default Docker container CPU limit to 2 (down from 4) to prevent CPU starvation when all 8 workers run concurrently on a 16 vCPU host.
+
+## 2.3.4
+
+- Feature: Configure Docker container CPU (default: 4) and Memory (default: 4g) limits via env (OPENCI_DOCKER_CPUS / OPENCI_DOCKER_MEMORY) to prevent host OOM crashes.
+
 ## 2.3.3
 
 - Fix: Update default base VM name to tahoe-base_v1.2.3 to match the current setup script image version, resolving clone VM failures.

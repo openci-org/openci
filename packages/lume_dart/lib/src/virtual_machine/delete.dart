@@ -11,7 +11,11 @@ Future<void> delete({
     print('Deleting macOS VM "$name" via Lume...');
   }
 
-  final result = await runProcess('lume', ['delete', name, '--force']);
+  final result = await runProcess(resolveLumeExecutable(), [
+    'delete',
+    name,
+    '--force',
+  ]);
   if (result.exitCode != 0) {
     throw StateError('Failed to delete VM via Lume: ${result.stderr}');
   }
