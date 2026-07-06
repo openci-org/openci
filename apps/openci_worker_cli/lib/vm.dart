@@ -12,6 +12,9 @@ import 'package:uuid/uuid.dart';
 
 final _log = Logger('VM');
 
+final defaultLumeVmsDir =
+    '${Platform.environment['HOME'] ?? Directory.systemTemp.path}/.lume';
+
 Future<void> cloneVm({
   required String baseVmName,
   required String vmName,
@@ -20,7 +23,7 @@ Future<void> cloneVm({
   required String workerId,
 }) async {
   await logInfo(buildJobId, runId, 'Cloning VM $baseVmName to $vmName...');
-  await VirtualMachine.clone(sourceName: baseVmName, targetName: vmName);
+  await lume.clone(sourceName: baseVmName, targetName: vmName, showLogs: false);
 
   // Give each worker's VM a distinct, stable MAC address so that multiple
   // workers on the same physical host (one VM each) don't collide on the
@@ -28,9 +31,7 @@ Future<void> cloneVm({
   // tolerates a changed MAC (it re-runs DHCP on boot); we keep the validated
   // da:d7:a6:2d:e9 prefix and vary only the last octet by the worker number.
   final mac = macForWorker(workerId);
-  final configFile = File(
-    '${VirtualMachine.defaultVmsDir}/$vmName/config.json',
-  );
+  final configFile = File('$defaultLumeVmsDir/$vmName/config.json');
   if (configFile.existsSync()) {
     try {
       final config =
