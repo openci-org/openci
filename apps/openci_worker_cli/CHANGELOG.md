@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.3.5
+
+- Fix: Change default Docker container CPU limit to 2 (down from 4) to prevent CPU starvation when all 8 workers run concurrently on a 16 vCPU host.
+
 ## 2.3.4
 
 - Feature: Configure Docker container CPU (default: 4) and Memory (default: 4g) limits via env (OPENCI_DOCKER_CPUS / OPENCI_DOCKER_MEMORY) to prevent host OOM crashes.
