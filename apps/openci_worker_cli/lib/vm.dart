@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:avf_dart/avf_dart.dart';
 import 'package:logging/logging.dart';
+import 'package:lume_dart/lume_dart.dart' as lume;
 import 'package:openci_worker_cli/build_job_logger.dart';
 import 'package:openci_worker_cli/constants.dart';
 import 'package:sentry/sentry.dart';
@@ -251,110 +252,40 @@ Future<void> setupDirectSsh(VirtualMachine vm) async {
   _log.info('SSH key installed on VM');
 }
 
+Future<void> _stopAndDeleteVm(
+  lume.LumeVM vm, {
+  required String label,
+  String logPrefix = '',
+}) async {
+  if (vm.status == 'running') {
+    try {
+      await lume.stop(name: vm.name, showLogs: false);
+    } catch (e) {
+      _log.warning('${logPrefix}Failed to stop $label VM ${vm.name}: $e');
+    }
+  }
+  try {
+    await lume.delete(name: vm.name, showLogs: false);
+  } catch (e) {
+    _log.warning('${logPrefix}Failed to delete $label VM ${vm.name}: $e');
+  }
+}
+
 Future<void> cleanupOrphanedVms(String workerId) async {
   try {
     _log.info('Cleaning orphaned VMs for worker $workerId...');
     final prefix = 'openci-vm-$workerId-';
 
-    // 1. Kill zombie processes to release file locks first
-    await _killZombieAvfProcesses(workerId);
-    await _killZombieVirtualizationProcesses(workerId);
-
-    // 2. Clean up filesystem-based VMs for this worker
-    final vms = await VirtualMachine.list();
+    final vms = await lume.ls(showLogs: false);
     final workerVms = vms.where((vm) => vm.name.startsWith(prefix)).toList();
 
     for (final vm in workerVms) {
-      _log.info('Deleting orphaned VM: ${vm.name}');
-      await VirtualMachine.delete(vm.name);
+      _log.info('Cleaning up orphaned VM: ${vm.name} (status: ${vm.status})');
+      await _stopAndDeleteVm(vm, label: 'orphaned');
     }
   } catch (e, s) {
     _log.severe('Error cleaning up orphaned VMs: $e');
     await Sentry.captureException(e, stackTrace: s);
-  }
-}
-
-Future<void> _killZombieAvfProcesses(String workerId) async {
-  try {
-    final psResult = await Process.run('ps', ['aux']);
-    if (psResult.exitCode != 0) return;
-
-    final vmsDir = VirtualMachine.defaultVmsDir;
-    // Only ever consider THIS worker's own VMs. With multiple workers per host
-    // each worker owns a distinct `openci-vm-<workerId>-<id>` namespace; never
-    // touch a sibling worker's running VM. (The VM directory path also contains
-    // a space — "Application Support" — so we match the VM-name token rather
-    // than trying to parse the full path argument.)
-    final namePattern = RegExp(
-      'openci-vm-${RegExp.escape(workerId)}-[0-9a-fA-F]+',
-    );
-    final pidPattern = RegExp(r'^\S+\s+(\d+)\s');
-    final zombiePids = <int>[];
-
-    for (final line in LineSplitter.split(psResult.stdout.toString())) {
-      if (!line.contains('avf_helper') || !line.contains(' boot ')) continue;
-      final nameMatch = namePattern.firstMatch(line);
-      if (nameMatch == null) continue;
-      final vmName = nameMatch.group(0)!;
-      final pid = int.tryParse(pidPattern.firstMatch(line)?.group(1) ?? '');
-      if (pid == null) continue;
-
-      // Only kill if the VM directory no longer exists (genuinely orphaned).
-      if (!Directory('$vmsDir/$vmName').existsSync()) {
-        _log.warning(
-          'Found zombie AVF process: PID=$pid VM=$vmName. Killing...',
-        );
-        zombiePids.add(pid);
-      }
-    }
-
-    for (final pid in zombiePids) {
-      Process.killPid(pid);
-    }
-  } catch (e) {
-    _log.warning('Error killing zombie AVF processes: $e');
-  }
-}
-
-Future<void> _killZombieVirtualizationProcesses(String workerId) async {
-  try {
-    if (!Platform.isMacOS) return;
-
-    // Use lsof to find com.apple.Virtualization.VirtualMachine processes holding nvram.bin or disk.img
-    final lsofResult = await Process.run('lsof', [
-      '-c',
-      'com.apple.Virtualization.VirtualMachine',
-      '-F',
-      'pn',
-    ]);
-    if (lsofResult.exitCode != 0) return;
-
-    final prefix = 'openci-vm-$workerId-';
-    final lines = LineSplitter.split(lsofResult.stdout.toString());
-
-    int? currentPid;
-    final pidsToKill = <int>{};
-
-    for (final line in lines) {
-      if (line.startsWith('p')) {
-        currentPid = int.tryParse(line.substring(1));
-      } else if (line.startsWith('n') && currentPid != null) {
-        final filePath = line.substring(1);
-        if (filePath.contains(prefix) &&
-            (filePath.endsWith('nvram.bin') || filePath.endsWith('disk.img'))) {
-          _log.warning(
-            'Found zombie Virtualization XPC process: PID=$currentPid holding $filePath. Killing...',
-          );
-          pidsToKill.add(currentPid);
-        }
-      }
-    }
-
-    for (final pid in pidsToKill) {
-      Process.killPid(pid);
-    }
-  } catch (e) {
-    _log.warning('Error killing zombie Virtualization XPC processes: $e');
   }
 }
 
@@ -364,20 +295,19 @@ Future<void> pruneStaleVms(
   required String workerId,
 }) async {
   try {
-    // Kill zombie processes first to release file locks and free memory
-    await _killZombieVirtualizationProcesses(workerId);
-
     final prefix = 'openci-vm-$workerId-';
     final currentVm = currentVmName(workerId: workerId, buildJobId: buildJobId);
 
-    final vms = await VirtualMachine.list();
+    final vms = await lume.ls(showLogs: false);
     final staleVms = vms
         .where((vm) => vm.name.startsWith(prefix) && vm.name != currentVm)
         .toList();
 
     for (final vm in staleVms) {
-      _log.info('[$runId] Deleting stale VM: ${vm.name}');
-      await VirtualMachine.delete(vm.name);
+      _log.info(
+        '[$runId] Deleting stale VM: ${vm.name} (status: ${vm.status})',
+      );
+      await _stopAndDeleteVm(vm, label: 'stale', logPrefix: '[$runId] ');
     }
   } catch (e) {
     _log.warning('[$runId] Error pruning stale VMs: $e');
