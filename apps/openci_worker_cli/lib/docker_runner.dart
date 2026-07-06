@@ -19,14 +19,22 @@ String containerName({required String workerId, required String buildJobId}) {
 
 Future<void> createContainer(String name) async {
   _log.info('Creating container $name from $dockerImage...');
-  final result = await Process.run('docker', [
-    'create',
-    '--name',
-    name,
-    '-v',
-    '/var/run/docker.sock:/var/run/docker.sock',
-    dockerImage,
-  ]);
+
+  final dockerCpus = Platform.environment['OPENCI_DOCKER_CPUS'] ?? '4';
+  final dockerMemory = Platform.environment['OPENCI_DOCKER_MEMORY'] ?? '4g';
+
+  final args = ['create', '--name', name];
+
+  if (dockerCpus.isNotEmpty) {
+    args.addAll(['--cpus', dockerCpus]);
+  }
+  if (dockerMemory.isNotEmpty) {
+    args.addAll(['--memory', dockerMemory]);
+  }
+
+  args.addAll(['-v', '/var/run/docker.sock:/var/run/docker.sock', dockerImage]);
+
+  final result = await Process.run('docker', args);
   if (result.exitCode != 0) {
     throw Exception('Failed to create container $name: ${result.stderr}');
   }

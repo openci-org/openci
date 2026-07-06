@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.3.4
+
+- Feature: Configure Docker container CPU (default: 4) and Memory (default: 4g) limits via env (OPENCI_DOCKER_CPUS / OPENCI_DOCKER_MEMORY) to prevent host OOM crashes.
+
 ## 2.3.3
 
 - Fix: Update default base VM name to tahoe-base_v1.2.3 to match the current setup script image version, resolving clone VM failures.
