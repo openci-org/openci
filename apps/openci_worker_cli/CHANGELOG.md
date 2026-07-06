@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.3.2
+
+- Fix: Bump lume_dart to 1.0.1 to address strict SDK constraint issues, resolving the auto-update failures on build machines.
+
 ## 2.3.1
 
 - Fix: Relax Dart SDK version constraints to allow newer Dart SDK versions (e.g. 3.12.x), resolving auto-update failures on build machines.
