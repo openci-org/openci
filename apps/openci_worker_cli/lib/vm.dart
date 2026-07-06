@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:avf_dart/avf_dart.dart';
 import 'package:logging/logging.dart';
 import 'package:lume_dart/lume_dart.dart' as lume;
 import 'package:openci_worker_cli/build_job_logger.dart';
@@ -136,7 +135,7 @@ Future<void> stopVm(lume.LumeVM? vm) async {
 
 Future<void> deleteVm(String vmName) async {
   try {
-    await VirtualMachine.delete(vmName);
+    await lume.delete(name: vmName, showLogs: false);
   } catch (_) {}
 }
 
