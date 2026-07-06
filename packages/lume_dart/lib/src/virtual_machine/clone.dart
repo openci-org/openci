@@ -12,7 +12,11 @@ Future<void> clone({
     print('Cloning macOS VM "$sourceName" to "$targetName" via Lume...');
   }
 
-  final result = await runProcess(resolveLumeExecutable(), ['clone', sourceName, targetName]);
+  final result = await runProcess(resolveLumeExecutable(), [
+    'clone',
+    sourceName,
+    targetName,
+  ]);
   if (result.exitCode != 0) {
     throw StateError('Failed to clone VM via Lume: ${result.stderr}');
   }
