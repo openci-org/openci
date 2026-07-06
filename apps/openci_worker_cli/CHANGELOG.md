@@ -1,5 +1,22 @@
 # Changelog
 
+## 2.3.3
+
+- Fix: Update default base VM name to tahoe-base_v1.2.3 to match the current setup script image version, resolving clone VM failures.
+
+## 2.3.2
+
+- Fix: Bump lume_dart to 1.0.1 to address strict SDK constraint issues, resolving the auto-update failures on build machines.
+
+## 2.3.1
+
+- Fix: Relax Dart SDK version constraints to allow newer Dart SDK versions (e.g. 3.12.x), resolving auto-update failures on build machines.
+
+## 2.3.0
+
+- Feature: Migrate VM execution and lifecycle management from avf_dart to lume_dart (Lume CLI).
+- Feature: Replace OS-level process killing with safe zombie VM detection, stopping, and deleting using lume.ls.
+
 ## 2.2.0
 
 - Feature: Support build cancellation
