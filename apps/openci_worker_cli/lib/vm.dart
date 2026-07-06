@@ -96,14 +96,41 @@ Future<void> execVmCommand({
   }
 }
 
-Future<VirtualMachine> runVm(String vmName) async {
-  return await VirtualMachine.boot(name: vmName);
+Future<lume.LumeVM> runVm(String vmName) async {
+  final process = await lume.run(
+    name: vmName,
+    noDisplay: true,
+    showLogs: false,
+  );
+
+  const timeout = Duration(minutes: 5);
+  final stopTime = DateTime.now().add(timeout);
+
+  while (DateTime.now().isBefore(stopTime)) {
+    try {
+      final vms = await lume.ls(showLogs: false);
+      final vm = vms.firstWhere((v) => v.name == vmName);
+      if (vm.status == 'running' &&
+          vm.ipAddress != null &&
+          vm.sshAvailable == true) {
+        return vm;
+      }
+    } catch (_) {
+      // Ignore transient errors while VM is booting
+    }
+    await Future<void>.delayed(const Duration(seconds: 2));
+  }
+
+  process.kill();
+  throw TimeoutException(
+    'Timeout waiting for Lume VM "$vmName" to boot and become SSH available.',
+  );
 }
 
-Future<void> stopVm(VirtualMachine? vm) async {
+Future<void> stopVm(lume.LumeVM? vm) async {
   if (vm == null) return;
   try {
-    await vm.stop();
+    await lume.stop(name: vm.name, showLogs: false);
   } catch (_) {}
 }
 
@@ -171,7 +198,7 @@ Future<int> _sshKeyExecStream(
   return exitCode;
 }
 
-Future<void> setupDirectSsh(VirtualMachine vm) async {
+Future<void> setupDirectSsh(lume.LumeVM vm) async {
   final keyFile = File(_sshKeyPath);
   if (!keyFile.existsSync()) {
     await Process.run('ssh-keygen', [

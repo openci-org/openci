@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:avf_dart/avf_dart.dart';
+import 'package:lume_dart/lume_dart.dart' as lume;
 import 'package:openci_shared/openci_shared.dart';
 import 'package:openci_worker_cli/build_job_logger.dart';
 import 'package:openci_worker_cli/cloud_function_caller.dart';
@@ -189,7 +189,7 @@ Future<bool> processJob(
   final commitSha = buildJob.commitSha ?? '';
 
   final vmName = currentVmName(workerId: workerId, buildJobId: buildJobId);
-  VirtualMachine? vm;
+  lume.LumeVM? vm;
 
   Future<void> execCommand(String command) => execVmCommand(
     vmName: vmName,
@@ -224,7 +224,7 @@ Future<bool> processJob(
       workerId: workerId,
     );
 
-    await logInfo(buildJobId, runId, 'Booting macOS VM via avf_dart...');
+    await logInfo(buildJobId, runId, 'Booting macOS VM via Lume...');
     vm = await runVm(vmName);
     await logInfo(buildJobId, runId, 'VM booted successfully!');
 
