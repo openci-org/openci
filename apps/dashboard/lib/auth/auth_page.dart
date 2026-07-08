@@ -36,6 +36,9 @@ class AuthPage extends HookConsumerWidget {
     final authT = t.auth;
     final colorScheme = Theme.of(context).colorScheme;
 
+    final customServerUrl = ref.watch(customServerUrlProvider);
+    final hasCustomUrl = customServerUrl != null && customServerUrl.isNotEmpty;
+
     // Check if a self-hosted Firebase config is active
     final configReloadKey = useState(0);
     final configFuture = useMemoized(
@@ -451,7 +454,8 @@ class AuthPage extends HookConsumerWidget {
                                     configReloadKey.value++;
                                   },
                                 ),
-                                if (configSnapshot.data != null) ...[
+                                if (configSnapshot.data != null ||
+                                    hasCustomUrl) ...[
                                   const SizedBox(height: 8),
                                   OutlinedButton.icon(
                                     style: OutlinedButton.styleFrom(
@@ -480,6 +484,11 @@ class AuthPage extends HookConsumerWidget {
                                     ),
                                     onPressed: () async {
                                       await clearSelfHostedConfig();
+                                      await ref
+                                          .read(
+                                            customServerUrlProvider.notifier,
+                                          )
+                                          .clearUrl();
                                       ref.invalidate(selfHostedConfigProvider);
                                       configReloadKey.value++;
                                       if (!context.mounted) return;
@@ -525,10 +534,17 @@ class FirebaseFormSheet extends HookConsumerWidget {
     final messagingSenderIdController = useTextEditingController();
     final projectIdController = useTextEditingController();
     final storageBucketController = useTextEditingController();
+    final customServerUrlController = useTextEditingController();
     final isSaving = useState(false);
     final formT = t.auth.firebaseForm;
     final colorScheme = Theme.of(context).colorScheme;
     final configReloadKey = useState(0);
+
+    final initialCustomUrl = ref.watch(customServerUrlProvider);
+    useEffect(() {
+      customServerUrlController.text = initialCustomUrl ?? '';
+      return null;
+    }, [initialCustomUrl]);
 
     // Check if config is already saved
     final configFuture = useMemoized(
@@ -860,32 +876,29 @@ class FirebaseFormSheet extends HookConsumerWidget {
                   ),
                   const SizedBox(height: 16),
                   TextField(
+                    controller: customServerUrlController,
+                    decoration: const InputDecoration(
+                      labelText: 'API Server URL',
+                      hintText: 'https://api.openci.org (Default)',
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
                     controller: apiKeyController,
                     decoration: InputDecoration(labelText: formT.apiKey),
                   ),
                   const SizedBox(height: 8),
                   TextField(
                     controller: appIdController,
-                    decoration: InputDecoration(labelText: formT.appId),
-                  ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: messagingSenderIdController,
                     decoration: InputDecoration(
-                      labelText: formT.messagingSenderId,
+                      labelText: formT.appId,
+                      hintText: kIsWeb ? '1:xxxx:web:xxxx' : '1:xxxx:ios:xxxx',
                     ),
                   ),
                   const SizedBox(height: 8),
                   TextField(
                     controller: projectIdController,
                     decoration: InputDecoration(labelText: formT.projectId),
-                  ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: storageBucketController,
-                    decoration: InputDecoration(
-                      labelText: formT.storageBucket,
-                    ),
                   ),
                 ],
               ),
@@ -897,18 +910,80 @@ class FirebaseFormSheet extends HookConsumerWidget {
                 onPressed: isSaving.value
                     ? null
                     : () async {
+                        final hasFirebaseConfig =
+                            apiKeyController.text.isNotEmpty ||
+                            appIdController.text.isNotEmpty ||
+                            projectIdController.text.isNotEmpty;
+
+                        if (!hasFirebaseConfig) {
+                          if (customServerUrlController.text.isNotEmpty) {
+                            isSaving.value = true;
+                            try {
+                              await ref
+                                  .read(customServerUrlProvider.notifier)
+                                  .setUrl(customServerUrlController.text);
+                              if (!context.mounted) return;
+                              Navigator.pop(context);
+                              context.showSnackBarMessage(formT.configSaved);
+                            } catch (e) {
+                              if (!context.mounted) return;
+                              context.showSnackBarMessage(
+                                t.common.error(error: e.toString()),
+                              );
+                            } finally {
+                              isSaving.value = false;
+                            }
+                            return;
+                          }
+                          context.showSnackBarMessage(
+                            t.common.error(
+                              error:
+                                  'API Server URL or Firebase configuration is required',
+                            ),
+                          );
+                          return;
+                        }
+
                         if (apiKeyController.text.isEmpty ||
                             appIdController.text.isEmpty ||
                             projectIdController.text.isEmpty) {
                           context.showSnackBarMessage(
                             t.common.error(
-                              error: 'API Key, App ID, Project ID are required',
+                              error:
+                                  'API Key, App ID, Project ID are required for Firebase configuration',
                             ),
                           );
                           return;
                         }
+
+                        final isWeb = kIsWeb;
+                        final isWebId = appIdController.text.contains(':web:');
+
+                        if (!isWeb && isWebId) {
+                          context.showSnackBarMessage(
+                            t.common.error(
+                              error:
+                                  'macOS アプリでは iOS/macOS 用の App ID（:ios: を含むもの）を入力してください。Web用（:web:）は使用できません。',
+                            ),
+                          );
+                          return;
+                        }
+
+                        if (isWeb && !isWebId) {
+                          context.showSnackBarMessage(
+                            t.common.error(
+                              error:
+                                  'Webアプリでは Web 用の App ID（:web: を含むもの）を入力してください。',
+                            ),
+                          );
+                          return;
+                        }
+
                         isSaving.value = true;
                         try {
+                          await ref
+                              .read(customServerUrlProvider.notifier)
+                              .setUrl(customServerUrlController.text);
                           final config = SelfHostedConfig(
                             apiKey: apiKeyController.text,
                             appId: appIdController.text,

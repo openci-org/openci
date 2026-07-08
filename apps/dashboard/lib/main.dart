@@ -20,10 +20,22 @@ Future<void> main() async {
       usePathUrlStrategy();
     }
 
-    final selfHosted = await loadSelfHostedConfig();
+    var selfHosted = await loadSelfHostedConfig();
+    if (!kIsWeb && selfHosted != null && selfHosted.appId.contains(':web:')) {
+      selfHosted = selfHosted.copyWith(appId: '1:dummy:ios:dummy');
+      await saveSelfHostedConfig(selfHosted);
+    }
+
+    final isConfigValid =
+        selfHosted != null &&
+        selfHosted.apiKey.isNotEmpty &&
+        selfHosted.appId.isNotEmpty &&
+        selfHosted.projectId.isNotEmpty &&
+        !selfHosted.appId.contains('dummy') &&
+        (kIsWeb || !selfHosted.appId.contains(':web:'));
 
     try {
-      if (selfHosted != null) {
+      if (isConfigValid) {
         debugPrint(
           '[OpenCI] Using self-hosted Firebase: ${selfHosted.projectId}',
         );
