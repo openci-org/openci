@@ -48,6 +48,8 @@ services:
     image: caddy:2-alpine
     container_name: openci-caddy
     restart: unless-stopped
+    environment:
+      - OPENCI_DOMAIN=${OPENCI_DOMAIN:-localhost}
     ports:
       - "80:80"
       - "443:443"
