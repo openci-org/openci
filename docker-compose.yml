@@ -49,7 +49,7 @@ services:
     container_name: openci-caddy
     restart: unless-stopped
     environment:
-      - OPENCI_DOMAIN=${OPENCI_DOMAIN:-localhost}
+      - OPENCI_DOMAIN=${OPENCI_DOMAIN:?OPENCI_DOMAIN environment variable is required}
     ports:
       - "80:80"
       - "443:443"
