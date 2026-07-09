@@ -8,7 +8,7 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
@@ -65,9 +65,9 @@ services:
     container_name: openci-seaweedfs
     restart: unless-stopped
     ports:
-      - "18333:8333" # Filer port
-      - "19333:9333" # Master port
-      - "18000:8000" # S3 API port
+      - "127.0.0.1:18333:8333" # Filer port
+      - "127.0.0.1:19333:9333" # Master port
+      - "127.0.0.1:18000:8000" # S3 API port
     volumes:
       - seaweedfs_data:/data
     command: 'server -dir=/data -s3 -s3.port=8000 -ip=seaweedfs'
