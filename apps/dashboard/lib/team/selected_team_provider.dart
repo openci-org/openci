@@ -10,14 +10,14 @@ class SelectedTeamId extends _$SelectedTeamId {
 
   @override
   Future<String> build() async {
-    final selectedId = fetchSelectedId();
-    if (selectedId != null) {
-      return selectedId;
-    }
-
     final teams = await ref.watch(teamListProvider.future);
     if (teams.isEmpty) {
       throw StateError("No teams available");
+    }
+
+    final selectedId = fetchSelectedId();
+    if (selectedId != null && teams.any((t) => t.id == selectedId)) {
+      return selectedId;
     }
 
     final firstTeamId = teams.first.id;
