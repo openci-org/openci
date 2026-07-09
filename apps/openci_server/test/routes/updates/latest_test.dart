@@ -86,7 +86,7 @@ void main() {
         expect(response.statusCode, equals(HttpStatus.notFound));
         final body = await response.json() as Map<String, dynamic>;
         expect(body['success'], isFalse);
-        expect(body['error'], contains('Artifact not found for build'));
+        expect(body['error'], contains('No macOS build artifact found'));
       },
     );
 

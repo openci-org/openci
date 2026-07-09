@@ -18,12 +18,13 @@ Future<Response> onRequest(
     final db = context.read<AppDatabase>();
     final storage = context.read<StorageManager>();
 
-    final job = await db.buildJobDao.getLatestSuccessfulMacosJob(
+    final jobs = await db.buildJobDao.getRecentSuccessfulMacosJobs(
       owner: owner,
       repo: repo,
+      limit: 10,
     );
 
-    if (job == null) {
+    if (jobs.isEmpty) {
       return Response.json(
         statusCode: HttpStatus.notFound,
         body: {
@@ -34,29 +35,38 @@ Future<Response> onRequest(
     }
 
     const filename = 'OpenCI-dashboard-macos.zip';
-    final objectName = 'artifacts/buildJobs/${job.id}/$filename';
 
-    try {
-      final stream = await storage.downloadObject(objectName);
-      return Response.stream(
-        body: stream,
-        headers: {
-          HttpHeaders.contentTypeHeader: 'application/zip',
-          'content-disposition': 'attachment; filename="$filename"',
-        },
-      );
-    } catch (e) {
-      if (e.toString().contains('NoSuchKey') || e.toString().contains('404')) {
-        return Response.json(
-          statusCode: HttpStatus.notFound,
-          body: {
-            'success': false,
-            'error': 'Artifact not found for build ${job.id}',
+    for (final job in jobs) {
+      final objectName = 'artifacts/buildJobs/${job.id}/$filename';
+      try {
+        final stream = await storage.downloadObject(objectName);
+        return Response.stream(
+          body: stream,
+          headers: {
+            HttpHeaders.contentTypeHeader: 'application/zip',
+            'content-disposition': 'attachment; filename="$filename"',
           },
         );
+      } catch (e) {
+        if (e.toString().contains('NoSuchKey') ||
+            e.toString().contains('404') ||
+            e.toString().contains('does not exist') ||
+            e.toString().contains('MinioError')) {
+          // Fallback to the next successful job if this artifact is missing
+          continue;
+        }
+        rethrow;
       }
-      rethrow;
     }
+
+    return Response.json(
+      statusCode: HttpStatus.notFound,
+      body: {
+        'success': false,
+        'error':
+            'No macOS build artifact found for recent successful jobs in $owner/$repo',
+      },
+    );
   } catch (e, s) {
     return handleRouteException(
       e,

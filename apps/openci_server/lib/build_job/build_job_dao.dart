@@ -63,6 +63,22 @@ class BuildJobDao extends DatabaseAccessor<AppDatabase>
         .getSingleOrNull();
   }
 
+  Future<List<DriftBuildJob>> getRecentSuccessfulMacosJobs({
+    required String owner,
+    required String repo,
+    int limit = 10,
+  }) async {
+    return (select(buildJobs)
+          ..where((t) => t.owner.equals(owner))
+          ..where((t) => t.repo.equals(repo))
+          ..where((t) => t.status.equals(BuildJobStatus.SUCCESS.name))
+          ..where((t) => t.runsOn.like('%macos%'))
+          ..where((t) => t.branch.equals('develop'))
+          ..orderBy([(t) => OrderingTerm.desc(t.completedAt)])
+          ..limit(limit))
+        .get();
+  }
+
   Future<DriftBuildJob?> getBuildJob(String id) =>
       (select(buildJobs)..where((t) => t.id.equals(id))).getSingleOrNull();
 
