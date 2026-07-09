@@ -16,7 +16,7 @@ Future<String> authedFirebaseIdToken(Ref ref) async {
   if (user == null) {
     throw StateError('User is not authenticated');
   }
-  final token = await user.getIdToken(true);
+  final token = await user.getIdToken();
   if (token == null) {
     throw StateError('Could not get Firebase ID token');
   }
