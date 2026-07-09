@@ -7,18 +7,20 @@ part 'auth_provider.g.dart';
 FirebaseAuth firebaseAuth(Ref ref) => FirebaseAuth.instance;
 
 @riverpod
-Future<String?> firebaseIdToken(Ref ref) async =>
-    ref.watch(firebaseAuthProvider).currentUser?.getIdToken();
+Stream<String?> firebaseIdToken(Ref ref) {
+  return ref.watch(firebaseAuthProvider).idTokenChanges().asyncMap((
+    user,
+  ) async {
+    if (user == null) return null;
+    return user.getIdToken();
+  });
+}
 
 @riverpod
 Future<String> authedFirebaseIdToken(Ref ref) async {
-  final user = ref.watch(firebaseAuthProvider).currentUser;
-  if (user == null) {
-    throw StateError('User is not authenticated');
-  }
-  final token = await user.getIdToken();
+  final token = await ref.watch(firebaseIdTokenProvider.future);
   if (token == null) {
-    throw StateError('Could not get Firebase ID token');
+    throw StateError('User is not authenticated');
   }
   return token;
 }

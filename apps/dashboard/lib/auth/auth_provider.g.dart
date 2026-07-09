@@ -54,8 +54,8 @@ String _$firebaseAuthHash() => r'8f84097cccd00af817397c1715c5f537399ba780';
 final firebaseIdTokenProvider = FirebaseIdTokenProvider._();
 
 final class FirebaseIdTokenProvider
-    extends $FunctionalProvider<AsyncValue<String?>, String?, FutureOr<String?>>
-    with $FutureModifier<String?>, $FutureProvider<String?> {
+    extends $FunctionalProvider<AsyncValue<String?>, String?, Stream<String?>>
+    with $FutureModifier<String?>, $StreamProvider<String?> {
   FirebaseIdTokenProvider._()
     : super(
         from: null,
@@ -72,16 +72,16 @@ final class FirebaseIdTokenProvider
 
   @$internal
   @override
-  $FutureProviderElement<String?> $createElement($ProviderPointer pointer) =>
-      $FutureProviderElement(pointer);
+  $StreamProviderElement<String?> $createElement($ProviderPointer pointer) =>
+      $StreamProviderElement(pointer);
 
   @override
-  FutureOr<String?> create(Ref ref) {
+  Stream<String?> create(Ref ref) {
     return firebaseIdToken(ref);
   }
 }
 
-String _$firebaseIdTokenHash() => r'cf77d8a27ebab615772f9f67bfeafb88bdd0f873';
+String _$firebaseIdTokenHash() => r'926f513aeb68ccbd6962ae80549ebc4da446b377';
 
 @ProviderFor(authedFirebaseIdToken)
 final authedFirebaseIdTokenProvider = AuthedFirebaseIdTokenProvider._();
@@ -115,7 +115,7 @@ final class AuthedFirebaseIdTokenProvider
 }
 
 String _$authedFirebaseIdTokenHash() =>
-    r'cfb1fae9fd23c0a4eb3941e0ca95dda07eb3f623';
+    r'12a0d09fec8d3d38fe430f221af9c6e2d0288c96';
 
 @ProviderFor(authStateChanges)
 final authStateChangesProvider = AuthStateChangesProvider._();
