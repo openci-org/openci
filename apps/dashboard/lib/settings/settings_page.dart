@@ -4,8 +4,10 @@ import 'package:dashboard/app_strings.dart';
 import 'package:dashboard/build_info.dart';
 import 'package:dashboard/firebase/firebase_config_provider.dart';
 import 'package:dashboard/macos_updater_initializer.dart';
+import 'package:dashboard/openci_server_url_provider.dart';
 import 'package:dashboard/revenue_cat/revenue_cat.dart';
 import 'package:dashboard/revenue_cat/subscription_page.dart';
+import 'package:dashboard/team/selected_team_provider.dart';
 import 'package:dashboard/team/team_provider.dart';
 import 'package:dashboard/theme/app_colors.dart';
 import 'package:dashboard/utilities/snack_bar_extension.dart';
@@ -498,11 +500,11 @@ String? _formatBuildUpdatedText() {
   return '最終更新: $formattedDate$shaSuffix';
 }
 
-class _SelfHostedIndicator extends StatelessWidget {
+class _SelfHostedIndicator extends ConsumerWidget {
   const _SelfHostedIndicator();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final settingsT = t.settings;
 
     return FutureBuilder<SelfHostedConfig?>(
@@ -587,6 +589,9 @@ class _SelfHostedIndicator extends StatelessWidget {
                     ),
                     onPressed: () async {
                       await clearSelfHostedConfig();
+                      ref.invalidate(selfHostedConfigProvider);
+                      ref.invalidate(openciServerUrlProvider);
+                      ref.invalidate(selectedTeamIdProvider);
                       if (!context.mounted) return;
                       context.showSnackBarMessage(
                         settingsT.resetToCloudSuccess,
