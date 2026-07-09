@@ -137,6 +137,8 @@ Future<void> clearSelfHostedConfig() async {
   final prefs = await SharedPreferences.getInstance();
   await prefs.remove(_prefKey);
   await prefs.remove(_activeProjectIdPrefKey);
+  await prefs.remove('custom_openci_server_url');
+  await prefs.remove('selected_team_id');
 }
 
 /// Riverpod provider to expose the self-hosted config to UI widgets.

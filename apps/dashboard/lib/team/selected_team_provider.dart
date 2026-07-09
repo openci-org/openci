@@ -9,10 +9,10 @@ class SelectedTeamId extends _$SelectedTeamId {
   static const _key = 'selected_team_id';
 
   @override
-  Future<String> build() async {
+  Future<String?> build() async {
     final teams = await ref.watch(teamListProvider.future);
     if (teams.isEmpty) {
-      throw StateError("No teams available");
+      return null;
     }
 
     final selectedId = fetchSelectedId();

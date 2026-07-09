@@ -13,7 +13,7 @@ part of 'selected_team_provider.dart';
 final selectedTeamIdProvider = SelectedTeamIdProvider._();
 
 final class SelectedTeamIdProvider
-    extends $AsyncNotifierProvider<SelectedTeamId, String> {
+    extends $AsyncNotifierProvider<SelectedTeamId, String?> {
   SelectedTeamIdProvider._()
     : super(
         from: null,
@@ -33,19 +33,19 @@ final class SelectedTeamIdProvider
   SelectedTeamId create() => SelectedTeamId();
 }
 
-String _$selectedTeamIdHash() => r'4c0ec8e558139478f5ba4f87715764587c331d0d';
+String _$selectedTeamIdHash() => r'68ef31ba55d8216a2af573a1f80b62b8147a4b91';
 
-abstract class _$SelectedTeamId extends $AsyncNotifier<String> {
-  FutureOr<String> build();
+abstract class _$SelectedTeamId extends $AsyncNotifier<String?> {
+  FutureOr<String?> build();
   @$mustCallSuper
   @override
   void runBuild() {
-    final ref = this.ref as $Ref<AsyncValue<String>, String>;
+    final ref = this.ref as $Ref<AsyncValue<String?>, String?>;
     final element =
         ref.element
             as $ClassProviderElement<
-              AnyNotifier<AsyncValue<String>, String>,
-              AsyncValue<String>,
+              AnyNotifier<AsyncValue<String?>, String?>,
+              AsyncValue<String?>,
               Object?,
               Object?
             >;
