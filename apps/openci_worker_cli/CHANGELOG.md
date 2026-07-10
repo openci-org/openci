@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.3.8
+
+- Fix: Force-kill zombie Lume processes and confirm-blocked VM deletions on pre-job cleanup to prevent host resource starvation and VM boot timeouts.
+- Fix: Report Lume pkill exceptions to Sentry during cleanup.
+
 ## 2.3.7
 
 - Fix: Use dynamic, worker-specific SSH key and askpass file paths to prevent auth collisions in multi-worker environments on the same host.

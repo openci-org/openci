@@ -309,6 +309,13 @@ Future<void> cleanupOrphanedVms(String workerId) async {
     _log.info('Cleaning orphaned VMs for worker $workerId...');
     final prefix = 'openci-vm-$workerId-';
 
+    try {
+      await Process.run('pkill', ['-9', '-f', 'lume .*$prefix']);
+    } catch (e, s) {
+      _log.warning('Failed to pkill orphaned Lume runners: $e');
+      await Sentry.captureException(e, stackTrace: s);
+    }
+
     final vms = await lume.ls(showLogs: false);
     final workerVms = vms.where((vm) => vm.name.startsWith(prefix)).toList();
 
