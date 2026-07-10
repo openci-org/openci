@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.3.10
+
+- Fix: Check if the latest CLI version is already installed on the host before running `dart install` to prevent race conditions and process crashes in multi-worker environments sharing the same host.
+- Fix: Catch ProcessException during worker process startup in supervisor and report it to Sentry to prevent supervisor crashes.
+
 ## 2.3.9
 
 - Fix: Robustly parse JSON array from Lume CLI stdout, ignoring any unstructured log messages to prevent FormatExceptions on `lume ls` calls.

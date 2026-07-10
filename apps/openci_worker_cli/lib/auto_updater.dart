@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:logging/logging.dart';
 import 'package:openci_worker_cli/constants.dart';
+import 'package:sentry/sentry.dart';
 
 final _log = Logger('AutoUpdater');
 
@@ -91,6 +92,15 @@ Future<bool> _installUpdate(String latestVersion) async {
         parentDir = Directory(binaryPath).parent.path;
         Directory(parentDir).createSync(recursive: true);
 
+        final installedVer = getInstalledVersion(binaryPath);
+        if (installedVer == latestVersion) {
+          _log.info(
+            'Version $latestVersion is already installed by another worker. '
+            'Skipping installation.',
+          );
+          return true;
+        }
+
         final fileType = FileSystemEntity.typeSync(binaryPath);
         if (fileType != FileSystemEntityType.notFound) {
           _log.info(
@@ -150,4 +160,21 @@ Future<String?> _fetchLatestVersion() async {
   if (latest == null) return null;
 
   return latest['version'] as String?;
+}
+
+String? getInstalledVersion(String binaryPath) {
+  try {
+    final fileType = FileSystemEntity.typeSync(binaryPath, followLinks: false);
+    if (fileType == FileSystemEntityType.link) {
+      final target = Link(binaryPath).targetSync();
+      final match = RegExp(
+        r'hosted[/\\]([^/\\]+)[/\\]bundle',
+      ).firstMatch(target);
+      return match?.group(1);
+    }
+  } catch (e, s) {
+    _log.warning('Failed to get installed version: $e');
+    Sentry.captureException(e, stackTrace: s);
+  }
+  return null;
 }

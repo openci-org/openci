@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:logging/logging.dart';
 import 'package:openci_worker_cli/constants.dart';
+import 'package:sentry/sentry.dart';
 
 final _log = Logger('Supervisor');
 
@@ -17,7 +18,22 @@ final _log = Logger('Supervisor');
 /// With pub.dev-based updates, `dart pub global activate` is already
 /// executed by the auto_updater before exiting with code 42.
 /// The supervisor only needs to restart the process.
-Future<void> runSupervised(List<String> arguments) async {
+typedef ProcessStarter =
+    Future<Process> Function(
+      String executable,
+      List<String> arguments, {
+      String? workingDirectory,
+      Map<String, String>? environment,
+      bool includeParentEnvironment,
+      bool runInShell,
+      ProcessStartMode mode,
+    });
+
+Future<void> runSupervised(
+  List<String> arguments, {
+  ProcessStarter processStart = Process.start,
+  Duration crashRestartDelay = const Duration(seconds: 10),
+}) async {
   final workerArgs = arguments.where((a) => a != '--supervised').toList();
 
   // Detect if running via pub global (Platform.resolvedExecutable points to
@@ -53,11 +69,20 @@ Future<void> runSupervised(List<String> arguments) async {
       processArgs = workerArgs;
     }
 
-    final process = await Process.start(
-      executable,
-      processArgs,
-      mode: ProcessStartMode.inheritStdio,
-    );
+    final Process process;
+    try {
+      process = await processStart(
+        executable,
+        processArgs,
+        mode: ProcessStartMode.inheritStdio,
+      );
+    } on ProcessException catch (e, s) {
+      _log.severe('Failed to start worker process: $e');
+      await Sentry.captureException(e, stackTrace: s);
+      _log.warning('Restarting in ${crashRestartDelay.inSeconds} seconds...');
+      await Future<void>.delayed(crashRestartDelay);
+      continue;
+    }
 
     // Forward system signals (SIGTERM / SIGINT) to child process to ensure graceful shutdown
     // and prevent child process from becoming a zombie when supervisor is terminated.
@@ -90,9 +115,9 @@ Future<void> runSupervised(List<String> arguments) async {
 
       default:
         _log.warning(
-          'Worker crashed (exit code $exitCode). Restarting in 10 seconds...',
+          'Worker crashed (exit code $exitCode). Restarting in ${crashRestartDelay.inSeconds} seconds...',
         );
-        await Future<void>.delayed(const Duration(seconds: 10));
+        await Future<void>.delayed(crashRestartDelay);
     }
   }
 }
