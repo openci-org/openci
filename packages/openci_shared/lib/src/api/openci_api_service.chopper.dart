@@ -610,4 +610,39 @@ final class _$OpenCiApiService extends OpenCiApiService {
         )
         .whenComplete($timeout.cancel);
   }
+
+  @override
+  Future<Response<String>> getBuildJobLogs(
+    String buildJobId,
+    String runId,
+    String? limit,
+  ) {
+    final Uri $url = Uri.parse('/builds/${buildJobId}/runs/${runId}/logs');
+    final Map<String, dynamic> $params = <String, dynamic>{'limit': limit};
+    final ChopperCompleter $abortTrigger = ChopperCompleter<void>();
+    final ChopperTimer $timeout = ChopperTimer(
+      const Duration(microseconds: 10000000),
+      () {
+        if (!$abortTrigger.isCompleted) $abortTrigger.complete();
+      },
+    );
+    final Request $request = Request(
+      'GET',
+      $url,
+      client.baseUrl,
+      parameters: $params,
+      abortTrigger: $abortTrigger.future,
+    );
+    return client
+        .send<String, String>($request)
+        .catchError(
+          (_) => Future<Response<String>>.error(
+            ChopperTimeoutException('Request timed out after 10 seconds'),
+          ),
+          test: (Object err) =>
+              err is ChopperRequestAbortedException &&
+              $abortTrigger.isCompleted,
+        )
+        .whenComplete($timeout.cancel);
+  }
 }

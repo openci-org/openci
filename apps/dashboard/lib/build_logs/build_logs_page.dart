@@ -520,7 +520,7 @@ class BuildJobCard extends HookConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(
-            child: BuildJobLog(
+            child: BuildJobLogCard(
               buildJob: buildJob,
               title: buildJob.workflowName,
               durationWidget: _LiveDurationBadge(buildJob: buildJob),
@@ -634,7 +634,7 @@ class WorkflowRunCard extends HookConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(
-              child: BuildJobLog(
+              child: BuildJobLogCard(
                 buildJob: mainJob,
                 title: mainJob.workflowName,
                 durationWidget: _WorkflowDurationBadge(
@@ -821,7 +821,7 @@ class WorkflowRunCard extends HookConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(
-              child: BuildJobLog(
+              child: BuildJobLogCard(
                 buildJob: representativeJob,
                 title: representativeJob.workflowName,
                 durationWidget: _WorkflowDurationBadge(

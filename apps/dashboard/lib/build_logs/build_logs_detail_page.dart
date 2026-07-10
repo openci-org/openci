@@ -690,7 +690,7 @@ class _ToolbarButton extends StatelessWidget {
 
 class _DetailLogLine extends HookWidget {
   const _DetailLogLine({required this.log, required this.lineNumber});
-  final BuildLog log;
+  final BuildJobLog log;
   final int lineNumber;
 
   @override

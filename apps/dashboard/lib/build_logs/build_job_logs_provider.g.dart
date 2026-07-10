@@ -6,7 +6,7 @@ part of 'build_job_logs_provider.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-_BuildLog _$BuildLogFromJson(Map<String, dynamic> json) => _BuildLog(
+_BuildJobLog _$BuildJobLogFromJson(Map<String, dynamic> json) => _BuildJobLog(
   message: json['message'] as String,
   level: json['level'] as String,
   timestamp: _$JsonConverterFromJson<Object, DateTime>(
@@ -15,14 +15,15 @@ _BuildLog _$BuildLogFromJson(Map<String, dynamic> json) => _BuildLog(
   ),
 );
 
-Map<String, dynamic> _$BuildLogToJson(_BuildLog instance) => <String, dynamic>{
-  'message': instance.message,
-  'level': instance.level,
-  'timestamp': _$JsonConverterToJson<Object, DateTime>(
-    instance.timestamp,
-    const DateTimeConverter().toJson,
-  ),
-};
+Map<String, dynamic> _$BuildJobLogToJson(_BuildJobLog instance) =>
+    <String, dynamic>{
+      'message': instance.message,
+      'level': instance.level,
+      'timestamp': _$JsonConverterToJson<Object, DateTime>(
+        instance.timestamp,
+        const DateTimeConverter().toJson,
+      ),
+    };
 
 Value? _$JsonConverterFromJson<Json, Value>(
   Object? json,
@@ -47,11 +48,13 @@ final buildJobLogsProvider = BuildJobLogsFamily._();
 final class BuildJobLogsProvider
     extends
         $FunctionalProvider<
-          AsyncValue<List<BuildLog>>,
-          List<BuildLog>,
-          FutureOr<List<BuildLog>>
+          AsyncValue<List<BuildJobLog>>,
+          List<BuildJobLog>,
+          FutureOr<List<BuildJobLog>>
         >
-    with $FutureModifier<List<BuildLog>>, $FutureProvider<List<BuildLog>> {
+    with
+        $FutureModifier<List<BuildJobLog>>,
+        $FutureProvider<List<BuildJobLog>> {
   BuildJobLogsProvider._({
     required BuildJobLogsFamily super.from,
     required (String, String, BuildJobStatus) super.argument,
@@ -75,12 +78,12 @@ final class BuildJobLogsProvider
 
   @$internal
   @override
-  $FutureProviderElement<List<BuildLog>> $createElement(
+  $FutureProviderElement<List<BuildJobLog>> $createElement(
     $ProviderPointer pointer,
   ) => $FutureProviderElement(pointer);
 
   @override
-  FutureOr<List<BuildLog>> create(Ref ref) {
+  FutureOr<List<BuildJobLog>> create(Ref ref) {
     final argument = this.argument as (String, String, BuildJobStatus);
     return buildJobLogs(ref, argument.$1, argument.$2, argument.$3);
   }
@@ -96,12 +99,12 @@ final class BuildJobLogsProvider
   }
 }
 
-String _$buildJobLogsHash() => r'55f32c53a16928f6e89016b6074faa2f87ca6d53';
+String _$buildJobLogsHash() => r'6cdf221b0d06db23dd44ae336c413660644d198d';
 
 final class BuildJobLogsFamily extends $Family
     with
         $FunctionalFamilyOverride<
-          FutureOr<List<BuildLog>>,
+          FutureOr<List<BuildJobLog>>,
           (String, String, BuildJobStatus)
         > {
   BuildJobLogsFamily._()

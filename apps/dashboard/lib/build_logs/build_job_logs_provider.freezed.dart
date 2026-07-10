@@ -13,22 +13,22 @@ part of 'build_job_logs_provider.dart';
 T _$identity<T>(T value) => value;
 
 /// @nodoc
-mixin _$BuildLog {
+mixin _$BuildJobLog {
 
  String get message; String get level;@DateTimeConverter() DateTime? get timestamp;
-/// Create a copy of BuildLog
+/// Create a copy of BuildJobLog
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
 @pragma('vm:prefer-inline')
-$BuildLogCopyWith<BuildLog> get copyWith => _$BuildLogCopyWithImpl<BuildLog>(this as BuildLog, _$identity);
+$BuildJobLogCopyWith<BuildJobLog> get copyWith => _$BuildJobLogCopyWithImpl<BuildJobLog>(this as BuildJobLog, _$identity);
 
-  /// Serializes this BuildLog to a JSON map.
+  /// Serializes this BuildJobLog to a JSON map.
   Map<String, dynamic> toJson();
 
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is BuildLog&&(identical(other.message, message) || other.message == message)&&(identical(other.level, level) || other.level == level)&&(identical(other.timestamp, timestamp) || other.timestamp == timestamp));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is BuildJobLog&&(identical(other.message, message) || other.message == message)&&(identical(other.level, level) || other.level == level)&&(identical(other.timestamp, timestamp) || other.timestamp == timestamp));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -37,15 +37,15 @@ int get hashCode => Object.hash(runtimeType,message,level,timestamp);
 
 @override
 String toString() {
-  return 'BuildLog(message: $message, level: $level, timestamp: $timestamp)';
+  return 'BuildJobLog(message: $message, level: $level, timestamp: $timestamp)';
 }
 
 
 }
 
 /// @nodoc
-abstract mixin class $BuildLogCopyWith<$Res>  {
-  factory $BuildLogCopyWith(BuildLog value, $Res Function(BuildLog) _then) = _$BuildLogCopyWithImpl;
+abstract mixin class $BuildJobLogCopyWith<$Res>  {
+  factory $BuildJobLogCopyWith(BuildJobLog value, $Res Function(BuildJobLog) _then) = _$BuildJobLogCopyWithImpl;
 @useResult
 $Res call({
  String message, String level,@DateTimeConverter() DateTime? timestamp
@@ -56,14 +56,14 @@ $Res call({
 
 }
 /// @nodoc
-class _$BuildLogCopyWithImpl<$Res>
-    implements $BuildLogCopyWith<$Res> {
-  _$BuildLogCopyWithImpl(this._self, this._then);
+class _$BuildJobLogCopyWithImpl<$Res>
+    implements $BuildJobLogCopyWith<$Res> {
+  _$BuildJobLogCopyWithImpl(this._self, this._then);
 
-  final BuildLog _self;
-  final $Res Function(BuildLog) _then;
+  final BuildJobLog _self;
+  final $Res Function(BuildJobLog) _then;
 
-/// Create a copy of BuildLog
+/// Create a copy of BuildJobLog
 /// with the given fields replaced by the non-null parameter values.
 @pragma('vm:prefer-inline') @override $Res call({Object? message = null,Object? level = null,Object? timestamp = freezed,}) {
   return _then(_self.copyWith(
@@ -77,8 +77,8 @@ as DateTime?,
 }
 
 
-/// Adds pattern-matching-related methods to [BuildLog].
-extension BuildLogPatterns on BuildLog {
+/// Adds pattern-matching-related methods to [BuildJobLog].
+extension BuildJobLogPatterns on BuildJobLog {
 /// A variant of `map` that fallback to returning `orElse`.
 ///
 /// It is equivalent to doing:
@@ -91,10 +91,10 @@ extension BuildLogPatterns on BuildLog {
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _BuildLog value)?  $default,{required TResult orElse(),}){
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _BuildJobLog value)?  $default,{required TResult orElse(),}){
 final _that = this;
 switch (_that) {
-case _BuildLog() when $default != null:
+case _BuildJobLog() when $default != null:
 return $default(_that);case _:
   return orElse();
 
@@ -113,10 +113,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _BuildLog value)  $default,){
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _BuildJobLog value)  $default,){
 final _that = this;
 switch (_that) {
-case _BuildLog():
+case _BuildJobLog():
 return $default(_that);case _:
   throw StateError('Unexpected subclass');
 
@@ -134,10 +134,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _BuildLog value)?  $default,){
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _BuildJobLog value)?  $default,){
 final _that = this;
 switch (_that) {
-case _BuildLog() when $default != null:
+case _BuildJobLog() when $default != null:
 return $default(_that);case _:
   return null;
 
@@ -157,7 +157,7 @@ return $default(_that);case _:
 
 @optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String message,  String level, @DateTimeConverter()  DateTime? timestamp)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
-case _BuildLog() when $default != null:
+case _BuildJobLog() when $default != null:
 return $default(_that.message,_that.level,_that.timestamp);case _:
   return orElse();
 
@@ -178,7 +178,7 @@ return $default(_that.message,_that.level,_that.timestamp);case _:
 
 @optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String message,  String level, @DateTimeConverter()  DateTime? timestamp)  $default,) {final _that = this;
 switch (_that) {
-case _BuildLog():
+case _BuildJobLog():
 return $default(_that.message,_that.level,_that.timestamp);case _:
   throw StateError('Unexpected subclass');
 
@@ -198,7 +198,7 @@ return $default(_that.message,_that.level,_that.timestamp);case _:
 
 @optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String message,  String level, @DateTimeConverter()  DateTime? timestamp)?  $default,) {final _that = this;
 switch (_that) {
-case _BuildLog() when $default != null:
+case _BuildJobLog() when $default != null:
 return $default(_that.message,_that.level,_that.timestamp);case _:
   return null;
 
@@ -210,28 +210,28 @@ return $default(_that.message,_that.level,_that.timestamp);case _:
 /// @nodoc
 @JsonSerializable()
 
-class _BuildLog implements BuildLog {
-  const _BuildLog({required this.message, required this.level, @DateTimeConverter() this.timestamp});
-  factory _BuildLog.fromJson(Map<String, dynamic> json) => _$BuildLogFromJson(json);
+class _BuildJobLog implements BuildJobLog {
+  const _BuildJobLog({required this.message, required this.level, @DateTimeConverter() this.timestamp});
+  factory _BuildJobLog.fromJson(Map<String, dynamic> json) => _$BuildJobLogFromJson(json);
 
 @override final  String message;
 @override final  String level;
 @override@DateTimeConverter() final  DateTime? timestamp;
 
-/// Create a copy of BuildLog
+/// Create a copy of BuildJobLog
 /// with the given fields replaced by the non-null parameter values.
 @override @JsonKey(includeFromJson: false, includeToJson: false)
 @pragma('vm:prefer-inline')
-_$BuildLogCopyWith<_BuildLog> get copyWith => __$BuildLogCopyWithImpl<_BuildLog>(this, _$identity);
+_$BuildJobLogCopyWith<_BuildJobLog> get copyWith => __$BuildJobLogCopyWithImpl<_BuildJobLog>(this, _$identity);
 
 @override
 Map<String, dynamic> toJson() {
-  return _$BuildLogToJson(this, );
+  return _$BuildJobLogToJson(this, );
 }
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _BuildLog&&(identical(other.message, message) || other.message == message)&&(identical(other.level, level) || other.level == level)&&(identical(other.timestamp, timestamp) || other.timestamp == timestamp));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _BuildJobLog&&(identical(other.message, message) || other.message == message)&&(identical(other.level, level) || other.level == level)&&(identical(other.timestamp, timestamp) || other.timestamp == timestamp));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -240,15 +240,15 @@ int get hashCode => Object.hash(runtimeType,message,level,timestamp);
 
 @override
 String toString() {
-  return 'BuildLog(message: $message, level: $level, timestamp: $timestamp)';
+  return 'BuildJobLog(message: $message, level: $level, timestamp: $timestamp)';
 }
 
 
 }
 
 /// @nodoc
-abstract mixin class _$BuildLogCopyWith<$Res> implements $BuildLogCopyWith<$Res> {
-  factory _$BuildLogCopyWith(_BuildLog value, $Res Function(_BuildLog) _then) = __$BuildLogCopyWithImpl;
+abstract mixin class _$BuildJobLogCopyWith<$Res> implements $BuildJobLogCopyWith<$Res> {
+  factory _$BuildJobLogCopyWith(_BuildJobLog value, $Res Function(_BuildJobLog) _then) = __$BuildJobLogCopyWithImpl;
 @override @useResult
 $Res call({
  String message, String level,@DateTimeConverter() DateTime? timestamp
@@ -259,17 +259,17 @@ $Res call({
 
 }
 /// @nodoc
-class __$BuildLogCopyWithImpl<$Res>
-    implements _$BuildLogCopyWith<$Res> {
-  __$BuildLogCopyWithImpl(this._self, this._then);
+class __$BuildJobLogCopyWithImpl<$Res>
+    implements _$BuildJobLogCopyWith<$Res> {
+  __$BuildJobLogCopyWithImpl(this._self, this._then);
 
-  final _BuildLog _self;
-  final $Res Function(_BuildLog) _then;
+  final _BuildJobLog _self;
+  final $Res Function(_BuildJobLog) _then;
 
-/// Create a copy of BuildLog
+/// Create a copy of BuildJobLog
 /// with the given fields replaced by the non-null parameter values.
 @override @pragma('vm:prefer-inline') $Res call({Object? message = null,Object? level = null,Object? timestamp = freezed,}) {
-  return _then(_BuildLog(
+  return _then(_BuildJobLog(
 message: null == message ? _self.message : message // ignore: cast_nullable_to_non_nullable
 as String,level: null == level ? _self.level : level // ignore: cast_nullable_to_non_nullable
 as String,timestamp: freezed == timestamp ? _self.timestamp : timestamp // ignore: cast_nullable_to_non_nullable
