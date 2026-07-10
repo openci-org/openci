@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.3.7
+
+- Fix: Use dynamic, worker-specific SSH key and askpass file paths to prevent auth collisions in multi-worker environments on the same host.
+
 ## 2.3.6
 
 - Fix: Bump lume_dart to 1.0.2 to support automatic path resolution for the `lume` executable, addressing `ProcessException: No such file or directory` on launchd/cron-started workers.
