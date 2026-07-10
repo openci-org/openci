@@ -2,8 +2,8 @@ import 'package:dashboard/build_logs/build_jobs_provider.dart';
 import 'package:dashboard/extensions/date_time_extensions.dart';
 import 'package:flutter/material.dart';
 
-class BuildJobLog extends StatelessWidget {
-  const BuildJobLog({
+class BuildJobLogCard extends StatelessWidget {
+  const BuildJobLogCard({
     super.key,
     required this.buildJob,
     this.child,

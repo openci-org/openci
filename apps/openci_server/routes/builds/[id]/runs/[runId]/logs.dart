@@ -34,7 +34,8 @@ Future<Response> _get(
     }
 
     final queryParams = context.request.uri.queryParameters;
-    final limit = int.tryParse(queryParams['limit'] ?? '') ?? 1000;
+    final limitStr = queryParams['limit'] ?? '';
+    final limit = int.tryParse(limitStr) ?? 10000;
     final offset = int.tryParse(queryParams['offset'] ?? '') ?? 0;
 
     final logs = await db.buildJobDao.getBuildJobLogs(runId);
@@ -45,12 +46,19 @@ Future<Response> _get(
         .toList();
 
     final start = offset;
-    final end = start + limit;
-
-    final slicedLines = allLines.sublist(
-      start.clamp(0, allLines.length),
-      end.clamp(0, allLines.length),
-    );
+    final bool hasMore;
+    final List<String> slicedLines;
+    if (limitStr == 'all' || limit <= 0) {
+      slicedLines = allLines.sublist(start.clamp(0, allLines.length));
+      hasMore = false;
+    } else {
+      final end = start + limit;
+      slicedLines = allLines.sublist(
+        start.clamp(0, allLines.length),
+        end.clamp(0, allLines.length),
+      );
+      hasMore = end < allLines.length;
+    }
 
     var logText = slicedLines.join('\n');
     if (slicedLines.isNotEmpty) {
@@ -62,7 +70,7 @@ Future<Response> _get(
       headers: {
         'content-type': 'text/plain; charset=utf-8',
         'x-total-lines': allLines.length.toString(),
-        'x-has-more': (end < allLines.length).toString(),
+        'x-has-more': hasMore.toString(),
       },
     );
   } catch (e, s) {
