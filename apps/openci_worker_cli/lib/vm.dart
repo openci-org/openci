@@ -139,8 +139,14 @@ Future<void> deleteVm(String vmName) async {
   } catch (_) {}
 }
 
-const _sshKeyPath = '/tmp/openci-ssh-key';
-const _askPassPath = '/tmp/openci-askpass.sh';
+String _workerId = 'default';
+
+void initVmConfig(String workerId) {
+  _workerId = workerId;
+}
+
+String get _sshKeyPath => '/tmp/openci-ssh-key-$_workerId';
+String get _askPassPath => '/tmp/openci-askpass-$_workerId.sh';
 
 /// Shared options for the system `ssh`/`scp` binaries.
 const List<String> _sshBaseOpts = [
