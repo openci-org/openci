@@ -106,5 +106,57 @@ void main() {
       );
       expect(logs, isEmpty);
     });
+
+    group('parseLumeVms tests', () {
+      test('successfully parses JSON even with surrounding log messages', () {
+        const outputWithLogs = '''
+[2026-07-10T07:04:45Z] INFO: Cleaned up stale session file name=openci-vm-worker
+[2026-07-10T07:04:46Z] WARN: Some warning message
+[
+  {
+    "sshAvailable" : true,
+    "downloadProgress" : null,
+    "status" : "running",
+    "cpuCount" : 4,
+    "ipAddress" : "192.168.64.10",
+    "diskSize" : {
+      "allocated" : 78601256960,
+      "total" : 128849018880
+    },
+    "provisioningOperation" : null,
+    "os" : "macOS",
+    "memorySize" : 8589934592,
+    "display" : "1024x768",
+    "networkMode" : "nat",
+    "locationName" : "home",
+    "name" : "test-vm",
+    "vncUrl" : "vnc://admin:pass@127.0.0.1:5900",
+    "sharedDirectories" : null
+  }
+]
+[2026-07-10T07:04:47Z] INFO: Post-run log message
+''';
+
+        final result = parseLumeVms(outputWithLogs);
+        expect(result.length, equals(1));
+        expect(result.first.name, equals('test-vm'));
+      });
+
+      test('throws FormatException when no JSON array is found', () {
+        const invalidOutput = 'Some log message without any JSON';
+        expect(
+          () => parseLumeVms(invalidOutput),
+          throwsA(isA<FormatException>()),
+        );
+      });
+
+      test('throws FormatException when JSON array is incomplete', () {
+        const incompleteOutput = '[ {"name": "test-vm"';
+        expect(
+          () => parseLumeVms(incompleteOutput),
+          throwsA(isA<FormatException>()),
+        );
+      });
+    });
   });
 }
