@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.3.9
+
+- Fix: Robustly parse JSON array from Lume CLI stdout, ignoring any unstructured log messages to prevent FormatExceptions on `lume ls` calls.
+
 ## 2.3.8
 
 - Fix: Force-kill zombie Lume processes and confirm-blocked VM deletions on pre-job cleanup to prevent host resource starvation and VM boot timeouts.
