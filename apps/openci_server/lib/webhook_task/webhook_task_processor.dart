@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:dart_jsonwebtoken/dart_jsonwebtoken.dart';
 import 'package:github/hooks.dart';
+import 'package:glob/glob.dart';
 import 'package:http/http.dart' as http;
 import 'package:openci_server/build_job/build_job_mapper.dart';
 import 'package:openci_server/database.dart';
@@ -117,6 +118,7 @@ Future<void> processWebhookTask(
     final String? triggerBranch;
     final int? pullRequestNumber;
     final String triggerType;
+    final List<String> changedFiles;
 
     if (eventType == 'pull_request') {
       final event = PullRequestEvent.fromJson(payload);
@@ -134,6 +136,15 @@ Future<void> processWebhookTask(
       triggerBranch = pr.base?.ref;
       pullRequestNumber = event.number;
       triggerType = 'pull_request';
+
+      changedFiles = await fetchPullRequestFiles(
+        githubApiBaseUrl: githubApiBaseUrl,
+        owner: owner,
+        repo: repo,
+        pullRequestNumber: pullRequestNumber!,
+        installationToken: installationToken,
+        httpClient: httpClient,
+      );
     } else {
       // push event
       if (payload['deleted'] == true) {
@@ -152,6 +163,8 @@ Future<void> processWebhookTask(
       triggerBranch = branch;
       pullRequestNumber = null;
       triggerType = 'push';
+
+      changedFiles = extractPushEventFiles(payload);
     }
 
     // Fetch YAML files from .openci directory
@@ -221,6 +234,7 @@ Future<void> processWebhookTask(
       files: fetchedFiles,
       triggerType: triggerType,
       triggerBranch: triggerBranch,
+      changedFiles: changedFiles,
     );
 
     if (extractedJobs.isEmpty) {
@@ -450,6 +464,7 @@ List<ExtractedJob> parseWorkflowJobs({
   required List<FetchedWorkflowFile> files,
   required String triggerType,
   required String? triggerBranch,
+  required List<String> changedFiles,
 }) {
   final extractedJobs = <ExtractedJob>[];
   for (final file in files) {
@@ -463,7 +478,7 @@ List<ExtractedJob> parseWorkflowJobs({
       final workflowName = parsed['name'] is String
           ? parsed['name'] as String
           : file.name.replaceAll(RegExp(r'\.(yaml|yml)$'), '');
-      if (!matchesTrigger(parsed, triggerType, triggerBranch)) {
+      if (!matchesTrigger(parsed, triggerType, triggerBranch, changedFiles)) {
         continue;
       }
 
@@ -686,6 +701,7 @@ bool matchesTrigger(
   Map<dynamic, dynamic> parsed,
   String triggerType,
   String? triggerBranch,
+  List<String> changedFiles,
 ) {
   final on = parsed['on'];
   if (on == null) return false;
@@ -705,15 +721,114 @@ bool matchesTrigger(
     if (config is! Map) return true;
 
     final branches = config['branches'];
-    if (branches == null || triggerBranch == null) return true;
+    if (branches != null && triggerBranch != null) {
+      final branchList = branches is List
+          ? branches.map((e) => e.toString()).toList()
+          : [branches.toString()];
+      if (!branchList.contains(triggerBranch)) {
+        return false;
+      }
+    }
 
-    final branchList = branches is List
-        ? branches.map((e) => e.toString()).toList()
-        : [branches.toString()];
-    return branchList.contains(triggerBranch);
+    final paths = config['paths'];
+    if (paths != null && changedFiles.isNotEmpty) {
+      final matchPatterns = paths is List
+          ? paths.map((e) => e.toString()).toList()
+          : [paths.toString()];
+
+      final anyMatched = changedFiles.any((file) {
+        return matchPatterns.any((pattern) => Glob(pattern).matches(file));
+      });
+      if (!anyMatched) {
+        return false;
+      }
+    }
+
+    return true;
   }
 
   return false;
+}
+
+Future<List<String>> fetchPullRequestFiles({
+  required String githubApiBaseUrl,
+  required String owner,
+  required String repo,
+  required int pullRequestNumber,
+  required String installationToken,
+  required http.Client httpClient,
+}) async {
+  final files = <String>[];
+  var page = 1;
+  while (true) {
+    final url =
+        '$githubApiBaseUrl/repos/$owner/$repo/pulls/$pullRequestNumber/files?per_page=100&page=$page';
+    final http.Response response;
+    try {
+      response = await httpClient
+          .get(
+            Uri.parse(url),
+            headers: {
+              'Authorization': 'token $installationToken',
+              'Accept': 'application/vnd.github+json',
+              'User-Agent': 'OpenCI-Server',
+            },
+          )
+          .timeout(const Duration(seconds: 15));
+    } catch (e) {
+      stderr.writeln('Warning: Failed to fetch PR files due to error: $e');
+      break;
+    }
+
+    if (response.statusCode != 200) {
+      stderr.writeln(
+        'Warning: Failed to fetch PR files: ${response.statusCode} ${response.body}',
+      );
+      break;
+    }
+
+    final dynamic data;
+    try {
+      data = jsonDecode(response.body);
+    } catch (e) {
+      stderr.writeln('Warning: Failed to decode PR files response: $e');
+      break;
+    }
+
+    if (data is! List || data.isEmpty) {
+      break;
+    }
+
+    for (final item in data) {
+      if (item is Map && item['filename'] is String) {
+        files.add(item['filename'] as String);
+      }
+    }
+
+    if (data.length < 100) {
+      break;
+    }
+    page++;
+  }
+  return files;
+}
+
+List<String> extractPushEventFiles(Map<String, dynamic> payload) {
+  final files = <String>{};
+  final commits = payload['commits'] as List?;
+  if (commits != null) {
+    for (final commit in commits) {
+      if (commit is Map) {
+        final added = commit['added'] as List?;
+        if (added != null) files.addAll(added.cast<String>());
+        final removed = commit['removed'] as List?;
+        if (removed != null) files.addAll(removed.cast<String>());
+        final modified = commit['modified'] as List?;
+        if (modified != null) files.addAll(modified.cast<String>());
+      }
+    }
+  }
+  return files.toList();
 }
 
 extension FlatMap<T> on Iterable<T> {

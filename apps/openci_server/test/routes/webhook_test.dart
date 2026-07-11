@@ -8,12 +8,12 @@ import 'package:drift/native.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:openci_server/database.dart';
+import 'package:openci_server/webhook_task/webhook_task_processor.dart';
 import 'package:openci_shared/openci_shared.dart';
 import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 
 import '../../routes/webhook.dart' as route;
-import 'package:openci_server/webhook_task/webhook_task_processor.dart';
 
 const testRsaPrivateKey = '''
 -----BEGIN PRIVATE KEY-----
@@ -274,6 +274,14 @@ void main() {
                   'path': '.openci/build.yaml',
                   'type': 'file',
                 },
+              ]),
+              200,
+            );
+          }
+          if (request.url.path.endsWith('/pulls/42/files')) {
+            return http.Response(
+              jsonEncode([
+                {'filename': 'lib/main.dart'},
               ]),
               200,
             );
@@ -559,6 +567,14 @@ jobs:
               200,
             );
           }
+          if (request.url.path.endsWith('/pulls/42/files')) {
+            return http.Response(
+              jsonEncode([
+                {'filename': 'lib/main.dart'},
+              ]),
+              200,
+            );
+          }
           if (request.url.path.endsWith('/contents/.openci/build.yaml')) {
             return http.Response(
               '''
@@ -663,6 +679,231 @@ jobs:
         // DB job count should still be 1 (no duplicate creation)
         final jobsAfter = await db.select(db.buildJobs).get();
         expect(jobsAfter, hasLength(1));
+      },
+    );
+
+    test(
+      'filters pull_request webhook based on paths configuration',
+      () async {
+        final prBody = jsonEncode({
+          'action': 'opened',
+          'number': 43,
+          'pull_request': {
+            'number': 43,
+            'id': 1000,
+            'head': {
+              'sha': 'commit-sha-456',
+              'ref': 'feature-branch',
+            },
+            'base': {
+              'ref': 'main',
+            },
+          },
+          'repository': {
+            'id': 12345,
+            'name': 'openci-repo',
+            'owner': {
+              'id': 12345,
+              'login': 'openci-owner',
+              'avatar_url': 'https://github.com/avatar',
+              'html_url': 'https://github.com/openci-owner',
+            },
+          },
+          'installation': {
+            'id': 98765,
+          },
+        });
+
+        // 1. Matching file change case (lib/main.dart)
+        var changedFiles = ['lib/main.dart'];
+        final mockClientMatch = MockClient((request) async {
+          if (request.url.path.contains('/access_tokens')) {
+            return http.Response(
+              jsonEncode({
+                'token': 'mock-access-token-999',
+                'expires_at': '2026-06-19T20:00:00Z',
+              }),
+              200,
+            );
+          }
+          if (request.url.path.endsWith('/contents/.openci')) {
+            return http.Response(
+              jsonEncode([
+                {
+                  'name': 'build.yaml',
+                  'path': '.openci/build.yaml',
+                  'type': 'file',
+                },
+              ]),
+              200,
+            );
+          }
+          if (request.url.path.endsWith('/pulls/43/files')) {
+            return http.Response(
+              jsonEncode(changedFiles.map((f) => {'filename': f}).toList()),
+              200,
+            );
+          }
+          if (request.url.path.endsWith('/contents/.openci/build.yaml')) {
+            return http.Response(
+              '''
+name: CI Build
+on:
+  pull_request:
+    branches: [main]
+    paths: ['lib/**']
+jobs:
+  test_job:
+    runs-on: macos-13
+    steps:
+      - run: echo "Hello"
+''',
+              200,
+            );
+          }
+          if (request.url.path.endsWith('/check-runs')) {
+            return http.Response(
+              jsonEncode({'id': 111}),
+              201,
+            );
+          }
+          return http.Response('Not Found', 404);
+        });
+
+        final signature1 = computeSignature(prBody, testSecret);
+        final context1 = TestRequestContext(
+          path: '/webhook',
+          method: HttpMethod.post,
+          body: prBody,
+          headers: {
+            'x-hub-signature-256': signature1,
+            'x-github-event': 'pull_request',
+            'x-github-delivery': 'test-delivery-id-match',
+          },
+        );
+        context1.provide<Map<String, String>>({
+          'GITHUB_WEBHOOK_SECRET': testSecret,
+          'GITHUB_APP_ID': '12345',
+          'GITHUB_PRIVATE_KEY_PATH': tempPrivateKeyFile.path,
+          'GITHUB_API_BASE_URL': 'https://api.github.com',
+        });
+        context1.provide<AppDatabase>(db);
+        context1.provide<http.Client>(mockClientMatch);
+
+        final response1 = await route.onRequest(context1.context);
+        expect(response1.statusCode, equals(HttpStatus.ok));
+
+        final task1 = await db.webhookTaskDao.claimNextWebhookTask();
+        expect(task1, isNotNull);
+        await processWebhookTask(
+          db,
+          task1!,
+          environment: {
+            'GITHUB_WEBHOOK_SECRET': testSecret,
+            'GITHUB_APP_ID': '12345',
+            'GITHUB_PRIVATE_KEY_PATH': tempPrivateKeyFile.path,
+            'GITHUB_API_BASE_URL': 'https://api.github.com',
+          },
+          client: mockClientMatch,
+        );
+
+        // Job should be created
+        final jobs1 = await db.select(db.buildJobs).get();
+        expect(jobs1.any((j) => j.jobKey == 'test_job'), isTrue);
+
+        // Clear DB
+        await db.delete(db.buildJobs).go();
+        await db.delete(db.webhookTasks).go();
+
+        // 2. Non-matching file change case (docs/readme.md)
+        changedFiles = ['docs/readme.md'];
+        final mockClientSkip = MockClient((request) async {
+          if (request.url.path.contains('/access_tokens')) {
+            return http.Response(
+              jsonEncode({
+                'token': 'mock-access-token-999',
+                'expires_at': '2026-06-19T20:00:00Z',
+              }),
+              200,
+            );
+          }
+          if (request.url.path.endsWith('/contents/.openci')) {
+            return http.Response(
+              jsonEncode([
+                {
+                  'name': 'build.yaml',
+                  'path': '.openci/build.yaml',
+                  'type': 'file',
+                },
+              ]),
+              200,
+            );
+          }
+          if (request.url.path.endsWith('/pulls/43/files')) {
+            return http.Response(
+              jsonEncode(changedFiles.map((f) => {'filename': f}).toList()),
+              200,
+            );
+          }
+          if (request.url.path.endsWith('/contents/.openci/build.yaml')) {
+            return http.Response(
+              '''
+name: CI Build
+on:
+  pull_request:
+    branches: [main]
+    paths: ['lib/**']
+jobs:
+  test_job:
+    runs-on: macos-13
+    steps:
+      - run: echo "Hello"
+''',
+              200,
+            );
+          }
+          return http.Response('Not Found', 404);
+        });
+
+        final context2 = TestRequestContext(
+          path: '/webhook',
+          method: HttpMethod.post,
+          body: prBody,
+          headers: {
+            'x-hub-signature-256': signature1,
+            'x-github-event': 'pull_request',
+            'x-github-delivery': 'test-delivery-id-skip',
+          },
+        );
+        context2.provide<Map<String, String>>({
+          'GITHUB_WEBHOOK_SECRET': testSecret,
+          'GITHUB_APP_ID': '12345',
+          'GITHUB_PRIVATE_KEY_PATH': tempPrivateKeyFile.path,
+          'GITHUB_API_BASE_URL': 'https://api.github.com',
+        });
+        context2.provide<AppDatabase>(db);
+        context2.provide<http.Client>(mockClientSkip);
+
+        final response2 = await route.onRequest(context2.context);
+        expect(response2.statusCode, equals(HttpStatus.ok));
+
+        final task2 = await db.webhookTaskDao.claimNextWebhookTask();
+        expect(task2, isNotNull);
+        await processWebhookTask(
+          db,
+          task2!,
+          environment: {
+            'GITHUB_WEBHOOK_SECRET': testSecret,
+            'GITHUB_APP_ID': '12345',
+            'GITHUB_PRIVATE_KEY_PATH': tempPrivateKeyFile.path,
+            'GITHUB_API_BASE_URL': 'https://api.github.com',
+          },
+          client: mockClientSkip,
+        );
+
+        // Job should be filtered out and NOT created
+        final jobs2 = await db.select(db.buildJobs).get();
+        expect(jobs2.any((j) => j.jobKey == 'test_job'), isFalse);
       },
     );
   });
