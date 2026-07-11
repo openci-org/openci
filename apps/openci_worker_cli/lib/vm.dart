@@ -78,7 +78,12 @@ Future<lume.LumeVM> runVm(String vmName) async {
 
   while (DateTime.now().isBefore(stopTime)) {
     try {
-      final vms = await lume.ls(showLogs: false);
+      final vms = await lume
+          .ls(showLogs: false)
+          .timeout(
+            const Duration(seconds: 15),
+            onTimeout: () => throw TimeoutException('lume ls timed out'),
+          );
       final vm = vms.firstWhere((v) => v.name == vmName);
       if (vm.status == 'running' &&
           vm.ipAddress != null &&

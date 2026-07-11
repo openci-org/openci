@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.3.14
+
+- Fix: Add 15-second timeout to `lume ls` calls inside the VM boot loop, preventing worker processes from getting stuck and freezing indefinitely when Lume CLI or Virtualization locks hang.
+
 ## 2.3.13
 
 - Fix: Increase default Lume VM boot and SSH timeout to 10 minutes (up from 5) and make it configurable via the `OPENCI_VM_BOOT_TIMEOUT_MINS` environment variable to prevent VM boot timeouts on heavily-loaded macOS hosts.
