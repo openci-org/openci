@@ -2,7 +2,7 @@
 
 ## 2.3.17
 
-- Fix: Update `lume_dart` dependency to `1.0.6` to include the unit test fix.
+- Fix: Update `lume_dart` dependency to `1.0.8` to resolve timing issue with stream listeners.
 - Debug: Print exceptions and stack traces in the VM boot loop to diagnose Lume listing FormatExceptions.
 
 ## 2.3.16

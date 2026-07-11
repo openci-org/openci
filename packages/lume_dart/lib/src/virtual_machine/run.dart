@@ -19,18 +19,20 @@ Future<Process> run({
   args.add(name);
 
   try {
-    final process = await startProcess(resolveLumeExecutable(), [
+    final processFuture = startProcess(resolveLumeExecutable(), [
       'run',
       ...args,
     ]);
-    if (showLogs) {
-      process.stdout.listen((data) => stdout.add(data));
-      process.stderr.listen((data) => stderr.add(data));
-    } else {
-      process.stdout.listen((_) {});
-      process.stderr.listen((_) {});
-    }
-    return process;
+    processFuture.then((process) {
+      if (showLogs) {
+        process.stdout.listen((data) => stdout.add(data));
+        process.stderr.listen((data) => stderr.add(data));
+      } else {
+        process.stdout.listen((_) {});
+        process.stderr.listen((_) {});
+      }
+    });
+    return await processFuture;
   } catch (e) {
     throw StateError('Failed to start VM via Lume: $e');
   }

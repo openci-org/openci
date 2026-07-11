@@ -1,3 +1,11 @@
+## 1.0.8
+
+- Fix: Register stream listeners immediately using `Future.then` to avoid microtask execution delay that can cause pipe buffer hangs on startup.
+
+## 1.0.7
+
+- Fix: Correct formatting of `run_test.dart` to satisfy monorepo lint rules.
+
 ## 1.0.6
 
 - Fix: Mock process stdout and stderr streams in unit tests to prevent Null subtype errors on VM execution.
