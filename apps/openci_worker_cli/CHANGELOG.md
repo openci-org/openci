@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.3.11
+
+- Fix: Prevent supervisor process crash on ProcessException during auto-update, and report the exception to Sentry.
+
 ## 2.3.9
 
 - Fix: Robustly parse JSON array from Lume CLI stdout, ignoring any unstructured log messages to prevent FormatExceptions on `lume ls` calls.

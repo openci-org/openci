@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:logging/logging.dart';
 import 'package:openci_worker_cli/constants.dart';
+import 'package:sentry/sentry.dart';
 
 final _log = Logger('Supervisor');
 
@@ -53,27 +54,41 @@ Future<void> runSupervised(List<String> arguments) async {
       processArgs = workerArgs;
     }
 
-    final process = await Process.start(
-      executable,
-      processArgs,
-      mode: ProcessStartMode.inheritStdio,
-    );
-
-    // Forward system signals (SIGTERM / SIGINT) to child process to ensure graceful shutdown
-    // and prevent child process from becoming a zombie when supervisor is terminated.
+    Process process;
     StreamSubscription? sigtermSub;
     StreamSubscription? sigintSub;
-    if (!Platform.isWindows) {
-      sigtermSub = ProcessSignal.sigterm.watch().listen((sig) {
-        _log.info(
-          'Supervisor received SIGTERM. Forwarding to child process...',
-        );
-        process.kill(ProcessSignal.sigterm);
-      });
-      sigintSub = ProcessSignal.sigint.watch().listen((sig) {
-        _log.info('Supervisor received SIGINT. Forwarding to child process...');
-        process.kill(ProcessSignal.sigint);
-      });
+
+    try {
+      process = await Process.start(
+        executable,
+        processArgs,
+        mode: ProcessStartMode.inheritStdio,
+      );
+
+      // Forward system signals (SIGTERM / SIGINT) to child process to ensure graceful shutdown
+      // and prevent child process from becoming a zombie when supervisor is terminated.
+      if (!Platform.isWindows) {
+        sigtermSub = ProcessSignal.sigterm.watch().listen((sig) {
+          _log.info(
+            'Supervisor received SIGTERM. Forwarding to child process...',
+          );
+          process.kill(ProcessSignal.sigterm);
+        });
+        sigintSub = ProcessSignal.sigint.watch().listen((sig) {
+          _log.info(
+            'Supervisor received SIGINT. Forwarding to child process...',
+          );
+          process.kill(ProcessSignal.sigint);
+        });
+      }
+    } on ProcessException catch (e, s) {
+      _log.warning(
+        'Failed to start worker process (binary may be temporarily missing or locked): $e. '
+        'Restarting in 10 seconds...',
+      );
+      await Sentry.captureException(e, stackTrace: s);
+      await Future<void>.delayed(const Duration(seconds: 10));
+      continue;
     }
 
     final exitCode = await process.exitCode;
