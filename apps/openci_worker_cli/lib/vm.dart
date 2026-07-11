@@ -23,39 +23,6 @@ Future<void> cloneVm({
 }) async {
   await logInfo(buildJobId, runId, 'Cloning VM $baseVmName to $vmName...');
   await lume.clone(sourceName: baseVmName, targetName: vmName, showLogs: false);
-
-  // Give each worker's VM a distinct, stable MAC address so that multiple
-  // workers on the same physical host (one VM each) don't collide on the
-  // shared vmnet bridge (same MAC -> same DHCP IP/ARP entry). The base image
-  // tolerates a changed MAC (it re-runs DHCP on boot); we keep the validated
-  // da:d7:a6:2d:e9 prefix and vary only the last octet by the worker number.
-  final mac = macForWorker(workerId);
-  final configFile = File('$defaultLumeVmsDir/$vmName/config.json');
-  if (configFile.existsSync()) {
-    try {
-      final config =
-          jsonDecode(configFile.readAsStringSync()) as Map<String, dynamic>;
-      if (config['macAddress'] != mac) {
-        config['macAddress'] = mac;
-        configFile.writeAsStringSync(
-          const JsonEncoder.withIndent('  ').convert(config),
-        );
-        await logInfo(buildJobId, runId, 'Assigned VM MAC $mac for $workerId');
-      }
-    } catch (e) {
-      await logWarning(buildJobId, runId, 'Failed to set VM MAC: $e');
-    }
-  }
-}
-
-/// Deterministic, locally-administered unicast MAC unique per worker.
-/// worker-mac-1 -> da:d7:a6:2d:e9:c6 (the original base MAC), -2 -> ...c7, etc.
-String macForWorker(String workerId) {
-  final match = RegExp(r'(\d+)$').firstMatch(workerId);
-  final n = match != null ? int.parse(match.group(1)!) : 1;
-  final lastOctet = (0xc6 + n - 1) & 0xff;
-  final hex = lastOctet.toRadixString(16).padLeft(2, '0');
-  return 'da:d7:a6:2d:e9:$hex';
 }
 
 String currentVmName({required String workerId, required String buildJobId}) {
