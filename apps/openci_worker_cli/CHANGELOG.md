@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.3.12
+
+- Fix: Upgrade default Docker container resource limits to 4 CPUs (up from 2) and 8GB RAM (up from 4g) to prevent resource starvation during Flutter analysis.
+
 ## 2.3.11
 
 - Fix: Prevent supervisor process crash on ProcessException during auto-update, and report the exception to Sentry.
