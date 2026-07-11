@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.3.16
+
+- Fix: Update `lume_dart` dependency to `1.0.5` to delegate process stream-draining logic inside the package.
+
+## 2.3.15
+
+- Fix: Drain stdout/stderr streams of the `lume run` process, preventing VM boot operations from hanging due to pipe buffer overflow.
+
 ## 2.3.14
 
 - Fix: Add 15-second timeout to `lume ls` calls inside the VM boot loop, preventing worker processes from getting stuck and freezing indefinitely when Lume CLI or Virtualization locks hang.

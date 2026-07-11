@@ -1,3 +1,11 @@
+## 1.0.5
+
+- Docs: Translate README.md to English and add comprehensive usage examples.
+
+## 1.0.4
+
+- Fix: Automatically consume or forward stdout/stderr streams of the run process to prevent pipe buffer hangs.
+
 ## 1.0.3
 
 - Fix: Extract only the JSON array substring from Lume output before decoding, filtering out any log messages.
