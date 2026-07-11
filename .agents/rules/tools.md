@@ -7,3 +7,5 @@ trigger: always_on
 - コードのコメントアウトは不要
 
 - コード生成は、dart run build_runner build でok。-dやflutter pub runを使う必要なし。
+
+- openci_worker_cliなど、pub.devに公開しているパッケージのコードを更新した際は、pubspec.yamlのversionをあげて、差分をCHANGELOGにかいて。

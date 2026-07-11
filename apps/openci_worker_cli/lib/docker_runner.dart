@@ -20,8 +20,8 @@ String containerName({required String workerId, required String buildJobId}) {
 Future<void> createContainer(String name) async {
   _log.info('Creating container $name from $dockerImage...');
 
-  final dockerCpus = Platform.environment['OPENCI_DOCKER_CPUS'] ?? '2';
-  final dockerMemory = Platform.environment['OPENCI_DOCKER_MEMORY'] ?? '4g';
+  final dockerCpus = Platform.environment['OPENCI_DOCKER_CPUS'] ?? '4';
+  final dockerMemory = Platform.environment['OPENCI_DOCKER_MEMORY'] ?? '8g';
 
   final args = ['create', '--name', name];
 

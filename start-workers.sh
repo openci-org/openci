@@ -58,7 +58,7 @@ if (!projectId || !apiKey || !serverUrl) {
   process.exit(1);
 }
 
-platformCreds.forEach((cred, index) => {
+platformCreds.slice(0, 3).forEach((cred, index) => {
   const email = cred.email;
   const password = cred.password;
   
