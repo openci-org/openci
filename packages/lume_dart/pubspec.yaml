@@ -1,6 +1,6 @@
 name: lume_dart
 description: Dart bindings for Lume CLI macOS VMs.
-version: 1.0.5
+version: 1.0.6
 repository: https://github.com/openci-org/openci/tree/develop/packages/lume_dart
 resolution: workspace
 

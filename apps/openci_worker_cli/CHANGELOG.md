@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.3.17
+
+- Fix: Update `lume_dart` dependency to `1.0.6` to include the unit test fix.
+- Debug: Print exceptions and stack traces in the VM boot loop to diagnose Lume listing FormatExceptions.
+
 ## 2.3.16
 
 - Fix: Update `lume_dart` dependency to `1.0.5` to delegate process stream-draining logic inside the package.

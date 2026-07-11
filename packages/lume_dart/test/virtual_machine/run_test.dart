@@ -12,6 +12,8 @@ void main() {
     test('run passes correct arguments to lume with defaults', () async {
       final capturedArgs = <String>[];
       final mockProcess = MockProcess();
+      when(() => mockProcess.stdout).thenAnswer((_) => const Stream<List<int>>.empty());
+      when(() => mockProcess.stderr).thenAnswer((_) => const Stream<List<int>>.empty());
 
       final resultProcess = await run(
         name: 'test-vm',
@@ -31,6 +33,8 @@ void main() {
       () async {
         final capturedArgs = <String>[];
         final mockProcess = MockProcess();
+        when(() => mockProcess.stdout).thenAnswer((_) => const Stream<List<int>>.empty());
+        when(() => mockProcess.stderr).thenAnswer((_) => const Stream<List<int>>.empty());
 
         await run(
           name: 'test-vm',
@@ -62,6 +66,8 @@ void main() {
     test('run prints logs when showLogs is true', () async {
       final logs = <String>[];
       final mockProcess = MockProcess();
+      when(() => mockProcess.stdout).thenAnswer((_) => const Stream<List<int>>.empty());
+      when(() => mockProcess.stderr).thenAnswer((_) => const Stream<List<int>>.empty());
 
       await runZoned(
         () => run(
@@ -81,6 +87,8 @@ void main() {
     test('run does not print logs when showLogs is false', () async {
       final logs = <String>[];
       final mockProcess = MockProcess();
+      when(() => mockProcess.stdout).thenAnswer((_) => const Stream<List<int>>.empty());
+      when(() => mockProcess.stderr).thenAnswer((_) => const Stream<List<int>>.empty());
 
       await runZoned(
         () => run(

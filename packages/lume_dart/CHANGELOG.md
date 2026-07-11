@@ -1,3 +1,7 @@
+## 1.0.6
+
+- Fix: Mock process stdout and stderr streams in unit tests to prevent Null subtype errors on VM execution.
+
 ## 1.0.5
 
 - Docs: Translate README.md to English and add comprehensive usage examples.
