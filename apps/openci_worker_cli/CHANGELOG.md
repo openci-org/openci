@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.3.13
+
+- Fix: Increase default Lume VM boot and SSH timeout to 10 minutes (up from 5) and make it configurable via the `OPENCI_VM_BOOT_TIMEOUT_MINS` environment variable to prevent VM boot timeouts on heavily-loaded macOS hosts.
+
 ## 2.3.12
 
 - Fix: Upgrade default Docker container resource limits to 4 CPUs (up from 2) and 8GB RAM (up from 4g) to prevent resource starvation during Flutter analysis.

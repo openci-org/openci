@@ -69,7 +69,11 @@ Future<lume.LumeVM> runVm(String vmName) async {
     showLogs: false,
   );
 
-  const timeout = Duration(minutes: 5);
+  final timeoutMinsEnv = Platform.environment['OPENCI_VM_BOOT_TIMEOUT_MINS'];
+  final timeoutMins = timeoutMinsEnv != null
+      ? int.tryParse(timeoutMinsEnv) ?? 10
+      : 10;
+  final timeout = Duration(minutes: timeoutMins);
   final stopTime = DateTime.now().add(timeout);
 
   while (DateTime.now().isBefore(stopTime)) {
