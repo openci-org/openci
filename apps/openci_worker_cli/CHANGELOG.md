@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.3.20
+
+- Fix: Implement custom SSH port (22) socket connectivity check as a fallback to bypass Lume's `sshAvailable` delay in background LaunchAgent contexts.
+
+## 2.3.19
+
+- Debug: Restore printing exceptions in the VM boot loop to diagnose Lume listing FormatExceptions.
+
 ## 2.3.18
 
 - Fix: Update `lume_dart` dependency to `1.0.9` to resolve unhandled async errors in tests when VM startup fails.

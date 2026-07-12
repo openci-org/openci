@@ -85,13 +85,23 @@ Future<lume.LumeVM> runVm(String vmName) async {
             onTimeout: () => throw TimeoutException('lume ls timed out'),
           );
       final vm = vms.firstWhere((v) => v.name == vmName);
-      if (vm.status == 'running' &&
-          vm.ipAddress != null &&
-          vm.sshAvailable == true) {
-        return vm;
+      if (vm.status == 'running' && vm.ipAddress != null) {
+        try {
+          final socket = await Socket.connect(
+            vm.ipAddress!,
+            22,
+            timeout: const Duration(seconds: 2),
+          );
+          await socket.close();
+          return vm;
+        } catch (_) {
+          if (vm.sshAvailable == true) {
+            return vm;
+          }
+        }
       }
-    } catch (_) {
-      // Ignore transient errors while VM is booting
+    } catch (e, stack) {
+      print('DEBUG: Error in runVm loop: $e\n$stack');
     }
     await Future<void>.delayed(const Duration(seconds: 2));
   }
