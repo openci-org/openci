@@ -6,6 +6,7 @@ environment:
 
 workspace:
   - apps/dashboard
+  - apps/openci_build_job_processor
   - apps/openci_server
   - apps/openci_worker_cli
   - packages/app_minimizer_plus
