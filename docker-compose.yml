@@ -52,9 +52,9 @@ services:
     restart: unless-stopped
     environment:
       - OPENCI_SERVER_URL=http://server:8080
-      - OPENCI_RUNS_ON_PATTERN=${OPENCI_RUNS_ON_PATTERN}
-      - LUME_BASE_VM_NAME=${LUME_BASE_VM_NAME}
-      - LUME_SERVER_URLS=${LUME_SERVER_URLS}
+      - OPENCI_RUNS_ON_PATTERN=${OPENCI_RUNS_ON_PATTERN:?OPENCI_RUNS_ON_PATTERN environment variable is required}
+      - LUME_BASE_VM_NAME=${LUME_BASE_VM_NAME:?LUME_BASE_VM_NAME environment variable is required}
+      - LUME_SERVER_URLS=${LUME_SERVER_URLS:?LUME_SERVER_URLS environment variable is required}
     depends_on:
       - server
 
