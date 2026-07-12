@@ -44,6 +44,20 @@ services:
       - db
       - seaweedfs
 
+  job-processor:
+    build:
+      context: .
+      dockerfile: apps/openci_build_job_processor/Dockerfile
+    container_name: openci-job-processor
+    restart: unless-stopped
+    environment:
+      - OPENCI_SERVER_URL=http://server:8080
+      - OPENCI_RUNS_ON_PATTERN=${OPENCI_RUNS_ON_PATTERN:?OPENCI_RUNS_ON_PATTERN environment variable is required}
+      - LUME_BASE_VM_NAME=${LUME_BASE_VM_NAME:?LUME_BASE_VM_NAME environment variable is required}
+      - LUME_SERVER_URLS=${LUME_SERVER_URLS:?LUME_SERVER_URLS environment variable is required}
+    depends_on:
+      - server
+
   caddy:
     image: caddy:2-alpine
     container_name: openci-caddy

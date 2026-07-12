@@ -1,0 +1,25 @@
+name: GoodCI Build Job Processor CI
+
+on:
+  push:
+    branches:
+      - develop
+
+  pull_request:
+    branches:
+      - develop
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/openci_build_job_processor
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run Flutter Analyze
+        run: flutter analyze
+
+      - name: Run Flutter Test
+        run: flutter test
