@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.3.18
+
+- Fix: Update `lume_dart` dependency to `1.0.9` to resolve unhandled async errors in tests when VM startup fails.
+
 ## 2.3.17
 
 - Fix: Update `lume_dart` dependency to `1.0.8` to resolve timing issue with stream listeners.

@@ -23,7 +23,7 @@ Future<Process> run({
       'run',
       ...args,
     ]);
-    processFuture.then((process) {
+    return await processFuture.then((process) {
       if (showLogs) {
         process.stdout.listen((data) => stdout.add(data));
         process.stderr.listen((data) => stderr.add(data));
@@ -31,8 +31,8 @@ Future<Process> run({
         process.stdout.listen((_) {});
         process.stderr.listen((_) {});
       }
+      return process;
     });
-    return await processFuture;
   } catch (e) {
     throw StateError('Failed to start VM via Lume: $e');
   }

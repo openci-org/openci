@@ -1,3 +1,7 @@
+## 1.0.9
+
+- Fix: Await the `Future.then` chain instead of the original process future to prevent unhandled async errors in tests when startup fails.
+
 ## 1.0.8
 
 - Fix: Register stream listeners immediately using `Future.then` to avoid microtask execution delay that can cause pipe buffer hangs on startup.
