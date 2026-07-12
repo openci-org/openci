@@ -3,7 +3,7 @@ import 'package:test/test.dart';
 
 void main() {
   group('parseLumeServerUrls', () {
-    test('正常系: カンマ区切りのURLが正しくパースされ、トリムされること', () {
+    test('should parse comma-separated URLs and trim them', () {
       const input =
           'http://localhost:8080, http://localhost:8081 ,http://localhost:8082';
       final result = parseLumeServerUrls(input);
@@ -14,25 +14,28 @@ void main() {
       ]);
     });
 
-    test('正常系: 空の要素が除外されること', () {
+    test('should exclude empty elements', () {
       const input = 'http://localhost:8080,, http://localhost:8081, ';
       final result = parseLumeServerUrls(input);
       expect(result, ['http://localhost:8080', 'http://localhost:8081']);
     });
 
-    test('準正常系: null の場合は空のリストを返すこと', () {
+    test('should return an empty list when input is null', () {
       final result = parseLumeServerUrls(null);
       expect(result, isEmpty);
     });
 
-    test('準正常系: 空文字列の場合は空のリストを返すこと', () {
+    test('should return an empty list when input is an empty string', () {
       final result = parseLumeServerUrls('');
       expect(result, isEmpty);
     });
 
-    test('準正常系: カンマのみの場合は空のリストを返すこと', () {
-      final result = parseLumeServerUrls('  ,  ');
-      expect(result, isEmpty);
-    });
+    test(
+      'should return an empty list when input contains only commas and spaces',
+      () {
+        final result = parseLumeServerUrls('  ,  ');
+        expect(result, isEmpty);
+      },
+    );
   });
 }
