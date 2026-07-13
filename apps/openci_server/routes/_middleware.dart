@@ -91,6 +91,26 @@ Middleware authProvider(FirebaseApp? firebaseApp, {bool allowTestUid = false}) {
         return handler(context.provide<String?>(() => null));
       }
 
+      Map<String, String> env;
+      try {
+        env = context.read<Map<String, String>>();
+      } catch (_) {
+        env = Platform.environment;
+      }
+      final internalApiKey = env['INTERNAL_API_KEY'];
+
+      final authHeader = context.request.headers['Authorization'];
+      if (authHeader != null && authHeader.startsWith('Bearer ')) {
+        final token = authHeader.substring(7);
+        if (internalApiKey != null &&
+            internalApiKey.isNotEmpty &&
+            token == internalApiKey) {
+          return handler(
+            context.provide<String?>(() => 'system-job-processor'),
+          );
+        }
+      }
+
       if (firebaseApp == null && allowTestUid) {
         return handler(context.provide<String?>(() => 'test-uid'));
       }
@@ -98,7 +118,6 @@ Middleware authProvider(FirebaseApp? firebaseApp, {bool allowTestUid = false}) {
         return handler(context.provide<String?>(() => null));
       }
 
-      final authHeader = context.request.headers['Authorization'];
       if (authHeader == null || !authHeader.startsWith('Bearer ')) {
         return handler(context.provide<String?>(() => null));
       }
