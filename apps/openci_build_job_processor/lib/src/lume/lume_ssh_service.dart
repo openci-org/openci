@@ -203,6 +203,45 @@ class LumeSshService {
     }
   }
 
+  Future<void> writeFileToVm({
+    required String ip,
+    required String runId,
+    required String remotePath,
+    required String content,
+  }) async {
+    final sshKeyPath = getSshKeyPath(runId);
+    final localFile = File(
+      '/tmp/openci-upload-${DateTime.now().millisecondsSinceEpoch}',
+    );
+    localFile.writeAsStringSync(content);
+
+    try {
+      final processResult = await Process.run('/usr/bin/scp', [
+        ..._sshBaseOpts,
+        '-o',
+        'BatchMode=yes',
+        '-i',
+        sshKeyPath,
+        localFile.path,
+        '$_sshUser@$ip:$remotePath',
+      ]).timeout(sshTimeout);
+
+      if (processResult.exitCode != 0) {
+        throw Exception(
+          'Failed to scp file to $remotePath: ${processResult.stderr}',
+        );
+      }
+    } finally {
+      try {
+        if (localFile.existsSync()) {
+          localFile.deleteSync();
+        }
+      } catch (e, s) {
+        unawaited(Sentry.captureException(e, stackTrace: s));
+      }
+    }
+  }
+
   void cleanupTempSshKeys(String runId) {
     try {
       final sshKeyPath = getSshKeyPath(runId);

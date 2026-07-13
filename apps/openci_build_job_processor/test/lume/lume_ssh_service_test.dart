@@ -34,6 +34,7 @@ Future<bool> _hasCommand(String command) async {
 void main() async {
   final hasSshKeygen = await _hasCommand('ssh-keygen');
   final hasSsh = File('/usr/bin/ssh').existsSync() || await _hasCommand('ssh');
+  final hasScp = File('/usr/bin/scp').existsSync() || await _hasCommand('scp');
 
   group('LumeSshService', () {
     late LumeSshService sshService;
@@ -296,6 +297,22 @@ void main() async {
         expect(exitCode, equals(-1));
       },
       skip: hasSsh ? null : 'ssh command not available',
+    );
+
+    test(
+      'writeFileToVm throws exception on scp failure',
+      () async {
+        expect(
+          () async => await sshService.writeFileToVm(
+            ip: '127.0.0.1',
+            runId: testRunId,
+            remotePath: '/tmp/dummy',
+            content: 'dummy-content',
+          ),
+          throwsA(isA<Exception>()),
+        );
+      },
+      skip: hasScp ? null : 'scp command not available',
     );
   });
 }
