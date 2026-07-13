@@ -24,4 +24,35 @@ final class _$LumeApiService extends LumeApiService {
     final Request $request = Request('GET', $url, client.baseUrl);
     return client.send<List<LumeVM>, LumeVM>($request);
   }
+
+  @override
+  Future<Response<dynamic>> cloneVm(String fullUrl, Map<String, dynamic> body) {
+    final Uri $url = Uri.parse('${fullUrl}');
+    final $body = body;
+    final Request $request = Request('POST', $url, client.baseUrl, body: $body);
+    return client.send<dynamic, dynamic>($request);
+  }
+
+  @override
+  Future<Response<dynamic>> runVm(String fullUrl, Map<String, dynamic> body) {
+    final Uri $url = Uri.parse('${fullUrl}');
+    final $body = body;
+    final Request $request = Request('POST', $url, client.baseUrl, body: $body);
+    return client.send<dynamic, dynamic>($request);
+  }
+
+  @override
+  Future<Response<dynamic>> stopVm(String fullUrl, Map<String, dynamic> body) {
+    final Uri $url = Uri.parse('${fullUrl}');
+    final $body = body;
+    final Request $request = Request('POST', $url, client.baseUrl, body: $body);
+    return client.send<dynamic, dynamic>($request);
+  }
+
+  @override
+  Future<Response<dynamic>> deleteVm(String fullUrl) {
+    final Uri $url = Uri.parse('${fullUrl}');
+    final Request $request = Request('DELETE', $url, client.baseUrl);
+    return client.send<dynamic, dynamic>($request);
+  }
 }
