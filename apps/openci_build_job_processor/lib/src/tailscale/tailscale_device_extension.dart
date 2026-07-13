@@ -1,7 +1,8 @@
 import 'tailscale_models.dart';
 
 extension TailscaleDeviceExtension on TailscaleDevice {
-  bool get isActiveMacOs => os?.toLowerCase() == 'macos' && (online ?? false);
+  bool get isActiveMacOs =>
+      os?.toLowerCase() == 'macos' && (connectedToControl ?? false);
 
   String? get ipv4Address {
     final addresses = this.addresses;

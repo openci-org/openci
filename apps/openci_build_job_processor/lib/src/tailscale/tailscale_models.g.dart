@@ -9,7 +9,7 @@ part of 'tailscale_models.dart';
 _TailscaleDevice _$TailscaleDeviceFromJson(Map<String, dynamic> json) =>
     _TailscaleDevice(
       os: json['os'] as String?,
-      online: json['online'] as bool?,
+      connectedToControl: json['connectedToControl'] as bool?,
       addresses: (json['addresses'] as List<dynamic>?)
           ?.map((e) => e as String)
           .toList(),
@@ -18,7 +18,7 @@ _TailscaleDevice _$TailscaleDeviceFromJson(Map<String, dynamic> json) =>
 Map<String, dynamic> _$TailscaleDeviceToJson(_TailscaleDevice instance) =>
     <String, dynamic>{
       'os': instance.os,
-      'online': instance.online,
+      'connectedToControl': instance.connectedToControl,
       'addresses': instance.addresses,
     };
 

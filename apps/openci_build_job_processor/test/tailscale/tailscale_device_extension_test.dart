@@ -8,7 +8,7 @@ void main() {
       test('should return true for online macOS devices', () {
         const device = TailscaleDevice(
           os: 'macos',
-          online: true,
+          connectedToControl: true,
           addresses: [],
         );
         expect(device.isActiveMacOs, isTrue);
@@ -17,7 +17,7 @@ void main() {
       test('should handle uppercase OS names correctly', () {
         const device = TailscaleDevice(
           os: 'MacOS',
-          online: true,
+          connectedToControl: true,
           addresses: [],
         );
         expect(device.isActiveMacOs, isTrue);
@@ -26,7 +26,7 @@ void main() {
       test('should return false for offline macOS devices', () {
         const device = TailscaleDevice(
           os: 'macos',
-          online: false,
+          connectedToControl: false,
           addresses: [],
         );
         expect(device.isActiveMacOs, isFalse);
@@ -35,14 +35,18 @@ void main() {
       test('should return false for other OS even if online', () {
         const device = TailscaleDevice(
           os: 'linux',
-          online: true,
+          connectedToControl: true,
           addresses: [],
         );
         expect(device.isActiveMacOs, isFalse);
       });
 
       test('should handle null values safely', () {
-        const device = TailscaleDevice(os: null, online: null, addresses: null);
+        const device = TailscaleDevice(
+          os: null,
+          connectedToControl: null,
+          addresses: null,
+        );
         expect(device.isActiveMacOs, isFalse);
       });
     });
@@ -51,7 +55,7 @@ void main() {
       test('should return the first IPv4 address (no colon)', () {
         const device = TailscaleDevice(
           os: 'macos',
-          online: true,
+          connectedToControl: true,
           addresses: ['fd7a:115c:a1e0::8b39:c25', '100.66.12.37'],
         );
         expect(device.ipv4Address, '100.66.12.37');
@@ -60,7 +64,7 @@ void main() {
       test('should return null if there is no IPv4 address', () {
         const device = TailscaleDevice(
           os: 'macos',
-          online: true,
+          connectedToControl: true,
           addresses: ['fd7a:115c:a1e0::8b39:c25'],
         );
         expect(device.ipv4Address, isNull);
@@ -69,7 +73,7 @@ void main() {
       test('should return null if addresses list is empty', () {
         const device = TailscaleDevice(
           os: 'macos',
-          online: true,
+          connectedToControl: true,
           addresses: [],
         );
         expect(device.ipv4Address, isNull);
@@ -78,7 +82,7 @@ void main() {
       test('should return null if addresses is null', () {
         const device = TailscaleDevice(
           os: 'macos',
-          online: true,
+          connectedToControl: true,
           addresses: null,
         );
         expect(device.ipv4Address, isNull);
@@ -93,17 +97,17 @@ void main() {
           devices: [
             TailscaleDevice(
               os: 'macos',
-              online: true,
+              connectedToControl: true,
               addresses: ['100.66.12.37', 'fd7a:115c:a1e0::8b39:c25'],
             ),
             TailscaleDevice(
               os: 'macos',
-              online: false,
+              connectedToControl: false,
               addresses: ['100.112.30.120'],
             ),
             TailscaleDevice(
               os: 'linux',
-              online: true,
+              connectedToControl: true,
               addresses: ['100.83.142.124'],
             ),
           ],

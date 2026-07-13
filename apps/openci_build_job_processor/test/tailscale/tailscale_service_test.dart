@@ -22,17 +22,17 @@ void main() {
           'devices': [
             {
               'os': 'macos',
-              'online': true,
+              'connectedToControl': true,
               'addresses': ['100.66.12.37', 'fd7a:115c:a1e0::8b39:c25'],
             },
             {
               'os': 'macos',
-              'online': false,
+              'connectedToControl': false,
               'addresses': ['100.112.30.120'],
             },
             {
               'os': 'linux',
-              'online': true,
+              'connectedToControl': true,
               'addresses': ['100.83.142.124'],
             },
           ],

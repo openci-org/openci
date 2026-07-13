@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$TailscaleDevice {
 
- String? get os; bool? get online; List<String>? get addresses;
+ String? get os; bool? get connectedToControl; List<String>? get addresses;
 /// Create a copy of TailscaleDevice
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +28,16 @@ $TailscaleDeviceCopyWith<TailscaleDevice> get copyWith => _$TailscaleDeviceCopyW
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is TailscaleDevice&&(identical(other.os, os) || other.os == os)&&(identical(other.online, online) || other.online == online)&&const DeepCollectionEquality().equals(other.addresses, addresses));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is TailscaleDevice&&(identical(other.os, os) || other.os == os)&&(identical(other.connectedToControl, connectedToControl) || other.connectedToControl == connectedToControl)&&const DeepCollectionEquality().equals(other.addresses, addresses));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,os,online,const DeepCollectionEquality().hash(addresses));
+int get hashCode => Object.hash(runtimeType,os,connectedToControl,const DeepCollectionEquality().hash(addresses));
 
 @override
 String toString() {
-  return 'TailscaleDevice(os: $os, online: $online, addresses: $addresses)';
+  return 'TailscaleDevice(os: $os, connectedToControl: $connectedToControl, addresses: $addresses)';
 }
 
 
@@ -48,7 +48,7 @@ abstract mixin class $TailscaleDeviceCopyWith<$Res>  {
   factory $TailscaleDeviceCopyWith(TailscaleDevice value, $Res Function(TailscaleDevice) _then) = _$TailscaleDeviceCopyWithImpl;
 @useResult
 $Res call({
- String? os, bool? online, List<String>? addresses
+ String? os, bool? connectedToControl, List<String>? addresses
 });
 
 
@@ -65,10 +65,10 @@ class _$TailscaleDeviceCopyWithImpl<$Res>
 
 /// Create a copy of TailscaleDevice
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? os = freezed,Object? online = freezed,Object? addresses = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? os = freezed,Object? connectedToControl = freezed,Object? addresses = freezed,}) {
   return _then(_self.copyWith(
 os: freezed == os ? _self.os : os // ignore: cast_nullable_to_non_nullable
-as String?,online: freezed == online ? _self.online : online // ignore: cast_nullable_to_non_nullable
+as String?,connectedToControl: freezed == connectedToControl ? _self.connectedToControl : connectedToControl // ignore: cast_nullable_to_non_nullable
 as bool?,addresses: freezed == addresses ? _self.addresses : addresses // ignore: cast_nullable_to_non_nullable
 as List<String>?,
   ));
@@ -155,10 +155,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String? os,  bool? online,  List<String>? addresses)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String? os,  bool? connectedToControl,  List<String>? addresses)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _TailscaleDevice() when $default != null:
-return $default(_that.os,_that.online,_that.addresses);case _:
+return $default(_that.os,_that.connectedToControl,_that.addresses);case _:
   return orElse();
 
 }
@@ -176,10 +176,10 @@ return $default(_that.os,_that.online,_that.addresses);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String? os,  bool? online,  List<String>? addresses)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String? os,  bool? connectedToControl,  List<String>? addresses)  $default,) {final _that = this;
 switch (_that) {
 case _TailscaleDevice():
-return $default(_that.os,_that.online,_that.addresses);case _:
+return $default(_that.os,_that.connectedToControl,_that.addresses);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -196,10 +196,10 @@ return $default(_that.os,_that.online,_that.addresses);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String? os,  bool? online,  List<String>? addresses)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String? os,  bool? connectedToControl,  List<String>? addresses)?  $default,) {final _that = this;
 switch (_that) {
 case _TailscaleDevice() when $default != null:
-return $default(_that.os,_that.online,_that.addresses);case _:
+return $default(_that.os,_that.connectedToControl,_that.addresses);case _:
   return null;
 
 }
@@ -211,11 +211,11 @@ return $default(_that.os,_that.online,_that.addresses);case _:
 @JsonSerializable()
 
 class _TailscaleDevice implements TailscaleDevice {
-  const _TailscaleDevice({required this.os, required this.online, required final  List<String>? addresses}): _addresses = addresses;
+  const _TailscaleDevice({required this.os, required this.connectedToControl, required final  List<String>? addresses}): _addresses = addresses;
   factory _TailscaleDevice.fromJson(Map<String, dynamic> json) => _$TailscaleDeviceFromJson(json);
 
 @override final  String? os;
-@override final  bool? online;
+@override final  bool? connectedToControl;
  final  List<String>? _addresses;
 @override List<String>? get addresses {
   final value = _addresses;
@@ -239,16 +239,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _TailscaleDevice&&(identical(other.os, os) || other.os == os)&&(identical(other.online, online) || other.online == online)&&const DeepCollectionEquality().equals(other._addresses, _addresses));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _TailscaleDevice&&(identical(other.os, os) || other.os == os)&&(identical(other.connectedToControl, connectedToControl) || other.connectedToControl == connectedToControl)&&const DeepCollectionEquality().equals(other._addresses, _addresses));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,os,online,const DeepCollectionEquality().hash(_addresses));
+int get hashCode => Object.hash(runtimeType,os,connectedToControl,const DeepCollectionEquality().hash(_addresses));
 
 @override
 String toString() {
-  return 'TailscaleDevice(os: $os, online: $online, addresses: $addresses)';
+  return 'TailscaleDevice(os: $os, connectedToControl: $connectedToControl, addresses: $addresses)';
 }
 
 
@@ -259,7 +259,7 @@ abstract mixin class _$TailscaleDeviceCopyWith<$Res> implements $TailscaleDevice
   factory _$TailscaleDeviceCopyWith(_TailscaleDevice value, $Res Function(_TailscaleDevice) _then) = __$TailscaleDeviceCopyWithImpl;
 @override @useResult
 $Res call({
- String? os, bool? online, List<String>? addresses
+ String? os, bool? connectedToControl, List<String>? addresses
 });
 
 
@@ -276,10 +276,10 @@ class __$TailscaleDeviceCopyWithImpl<$Res>
 
 /// Create a copy of TailscaleDevice
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? os = freezed,Object? online = freezed,Object? addresses = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? os = freezed,Object? connectedToControl = freezed,Object? addresses = freezed,}) {
   return _then(_TailscaleDevice(
 os: freezed == os ? _self.os : os // ignore: cast_nullable_to_non_nullable
-as String?,online: freezed == online ? _self.online : online // ignore: cast_nullable_to_non_nullable
+as String?,connectedToControl: freezed == connectedToControl ? _self.connectedToControl : connectedToControl // ignore: cast_nullable_to_non_nullable
 as bool?,addresses: freezed == addresses ? _self._addresses : addresses // ignore: cast_nullable_to_non_nullable
 as List<String>?,
   ));

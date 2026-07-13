@@ -9,7 +9,7 @@ part 'tailscale_models.g.dart';
 abstract class TailscaleDevice with _$TailscaleDevice {
   const factory TailscaleDevice({
     required String? os,
-    required bool? online,
+    required bool? connectedToControl,
     required List<String>? addresses,
   }) = _TailscaleDevice;
 
