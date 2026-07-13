@@ -35,10 +35,10 @@ Future<void> main() async {
   );
   final lumeService = LumeService();
 
-  final jobProcessor = JobProcessor(
+  final jobPoller = JobPoller(
     apiService: apiService,
     tailscaleService: tailscaleService,
     lumeService: lumeService,
   );
-  await jobProcessor.startPolling(runsOnPattern);
+  await jobPoller.startPolling(runsOnPattern);
 }
