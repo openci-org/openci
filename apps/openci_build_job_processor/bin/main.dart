@@ -24,11 +24,12 @@ Future<void> main() async {
     apiKey: tailscaleApiKey,
     tailnet: tailscaleTailnet,
   );
-  final ips = await tailscaleService.getActiveMacOsIps();
+  final lumeService = LumeService();
 
-  final lumeServerUrlList = ips.map((ip) => 'http://$ip:7777').toList();
-
-  if (lumeServerUrlList.isEmpty) {
-    throw StateError('No Lume Server URLs available.');
-  }
+  final jobProcessor = JobProcessor(
+    apiService: apiService,
+    tailscaleService: tailscaleService,
+    lumeService: lumeService,
+  );
+  await jobProcessor.startPolling(runsOnPattern);
 }
