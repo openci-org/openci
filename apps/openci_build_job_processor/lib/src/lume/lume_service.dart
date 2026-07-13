@@ -35,9 +35,11 @@ class LumeService {
     return null;
   }
 
+  static const _defaultTimeout = Duration(seconds: 30);
+
   Future<int> _getRunningVmCount(String lumeUrl) async {
     final url = '$lumeUrl/lume/vms';
-    final response = await _api.getVms(url);
+    final response = await _api.getVms(url).timeout(_defaultTimeout);
 
     if (!response.isSuccessful) {
       throw StateError(
@@ -59,10 +61,9 @@ class LumeService {
     String targetName,
   ) async {
     final url = '$lumeUrl/lume/vms/clone';
-    final response = await _api.cloneVm(url, {
-      'name': sourceName,
-      'newName': targetName,
-    });
+    final response = await _api
+        .cloneVm(url, {'name': sourceName, 'newName': targetName})
+        .timeout(_defaultTimeout);
 
     if (!response.isSuccessful) {
       throw StateError(
@@ -73,7 +74,9 @@ class LumeService {
 
   Future<void> runVm(String lumeUrl, String vmName) async {
     final url = '$lumeUrl/lume/vms/$vmName/run';
-    final response = await _api.runVm(url, {'noDisplay': true});
+    final response = await _api
+        .runVm(url, {'noDisplay': true})
+        .timeout(_defaultTimeout);
 
     if (!response.isSuccessful) {
       throw StateError(
@@ -84,7 +87,7 @@ class LumeService {
 
   Future<void> stopVm(String lumeUrl, String vmName) async {
     final url = '$lumeUrl/lume/vms/$vmName/stop';
-    final response = await _api.stopVm(url, {});
+    final response = await _api.stopVm(url, {}).timeout(_defaultTimeout);
 
     if (!response.isSuccessful) {
       throw StateError(
@@ -95,7 +98,7 @@ class LumeService {
 
   Future<void> deleteVm(String lumeUrl, String vmName) async {
     final url = '$lumeUrl/lume/vms/$vmName';
-    final response = await _api.deleteVm(url);
+    final response = await _api.deleteVm(url).timeout(_defaultTimeout);
 
     if (!response.isSuccessful) {
       throw StateError(
@@ -114,7 +117,7 @@ class LumeService {
 
     while (DateTime.now().isBefore(stopTime)) {
       try {
-        final response = await _api.getVms(url);
+        final response = await _api.getVms(url).timeout(_defaultTimeout);
         if (response.isSuccessful && response.body != null) {
           final vms = response.body!;
           final index = vms.indexWhere((v) => v.name == vmName);
