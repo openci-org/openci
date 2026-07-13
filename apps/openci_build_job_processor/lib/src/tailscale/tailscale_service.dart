@@ -3,10 +3,10 @@ import 'dart:io';
 
 import 'package:chopper/chopper.dart';
 import 'package:http/http.dart' as http;
+import 'package:openci_build_job_processor/src/tailscale/tailscale_json_converter.dart';
 
 import 'tailscale_api.dart';
 import 'tailscale_device_extension.dart';
-import 'tailscale_models.dart';
 
 class TailscaleService {
   final String apiKey;
