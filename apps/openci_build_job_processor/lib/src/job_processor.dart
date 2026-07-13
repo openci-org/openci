@@ -4,6 +4,7 @@ import 'dart:math';
 
 import 'package:openci_build_job_processor/openci_build_job_processor.dart';
 import 'package:openci_shared/openci_shared.dart';
+import 'package:sentry/sentry.dart';
 
 class JobProcessor {
   JobProcessor({
@@ -35,7 +36,8 @@ class JobProcessor {
         }
 
         unawaited(_processJob(job, availableLumeUrl));
-      } catch (e) {
+      } catch (e, s) {
+        await Sentry.captureException(e, stackTrace: s);
         await Future<void>.delayed(const Duration(seconds: 10));
       }
     }
@@ -43,63 +45,31 @@ class JobProcessor {
 
   Future<void> _processJob(BuildJob job, String lumeUrl) async {
     final runId = _generateRunId();
-
-    try {
-      final createRunRes = await _apiService.createRun(job.id, {'id': runId});
-      if (!createRunRes.isSuccessful) {
-        return;
-      }
-    } catch (e) {
-      return;
-    }
-
-    bool isSuccess = false;
     final vmName = 'openci-vm-${job.id}';
-    final baseVmName =
-        Platform.environment['LUME_BASE_VM_NAME'] ?? 'tahoe-base_v1.2.3';
+    final baseVmName = Platform.environment['LUME_BASE_VM_NAME']!;
+    bool isSuccess = false;
+    bool vmCreated = false;
 
     try {
-      await _lumeService.cloneVm(lumeUrl, baseVmName, vmName);
-      await _lumeService.runVm(lumeUrl, vmName);
-      await _lumeService.waitForVmToBeReady(lumeUrl, vmName);
+      await _createRun(job.id, runId);
 
-      await Future<void>.delayed(const Duration(seconds: 5));
+      await _prepareVm(
+        lumeUrl: lumeUrl,
+        baseVmName: baseVmName,
+        vmName: vmName,
+        onVmCreated: () => vmCreated = true,
+      );
+
       isSuccess = true;
-    } catch (e) {
-      // Error ignored or handled silently
+    } catch (e, s) {
+      await Sentry.captureException(e, stackTrace: s);
     } finally {
-      try {
-        await _lumeService.stopVm(lumeUrl, vmName);
-      } catch (e) {
-        // Error ignored
-      }
-
-      try {
-        await _lumeService.deleteVm(lumeUrl, vmName);
-      } catch (e) {
-        // Error ignored
+      if (vmCreated) {
+        await _cleanupVm(lumeUrl, vmName);
       }
     }
 
-    try {
-      await _apiService.updateRunStatus(job.id, runId, {
-        'status': 'completed',
-        'conclusion': isSuccess ? 'success' : 'failure',
-      });
-    } catch (e) {
-      // Error ignored
-    }
-
-    try {
-      await _apiService.completeJob(job.id, {
-        'status': isSuccess
-            ? BuildJobStatus.SUCCESS.name
-            : BuildJobStatus.FAILURE.name,
-        'completedAt': DateTime.now().toUtc().toIso8601String(),
-      });
-    } catch (e) {
-      // Error ignored
-    }
+    await _completeJob(job.id, runId, isSuccess);
   }
 
   Future<String?> _findAvailableLumeUrl() async {
@@ -135,6 +105,64 @@ class JobProcessor {
     }
 
     return BuildJob.fromJson(jobMap);
+  }
+
+  Future<void> _cleanupVm(String lumeUrl, String vmName) async {
+    try {
+      await _lumeService.stopVm(lumeUrl, vmName);
+    } catch (e, s) {
+      await Sentry.captureException(e, stackTrace: s);
+    }
+
+    try {
+      await _lumeService.deleteVm(lumeUrl, vmName);
+    } catch (e, s) {
+      await Sentry.captureException(e, stackTrace: s);
+    }
+  }
+
+  Future<void> _completeJob(String jobId, String runId, bool isSuccess) async {
+    try {
+      await _apiService.updateRunStatus(jobId, runId, {
+        'status': 'completed',
+        'conclusion': isSuccess ? 'success' : 'failure',
+      });
+    } catch (e, s) {
+      await Sentry.captureException(e, stackTrace: s);
+    }
+
+    try {
+      await _apiService.completeJob(jobId, {
+        'status': isSuccess
+            ? BuildJobStatus.SUCCESS.name
+            : BuildJobStatus.FAILURE.name,
+        'completedAt': DateTime.now().toUtc().toIso8601String(),
+      });
+    } catch (e, s) {
+      await Sentry.captureException(e, stackTrace: s);
+    }
+  }
+
+  Future<void> _prepareVm({
+    required String lumeUrl,
+    required String baseVmName,
+    required String vmName,
+    required void Function() onVmCreated,
+  }) async {
+    await _lumeService.cloneVm(lumeUrl, baseVmName, vmName);
+    onVmCreated();
+
+    await _lumeService.runVm(lumeUrl, vmName);
+    await _lumeService.waitForVmToBeReady(lumeUrl, vmName);
+  }
+
+  Future<void> _createRun(String jobId, String runId) async {
+    final createRunRes = await _apiService.createRun(jobId, {'id': runId});
+    if (!createRunRes.isSuccessful) {
+      throw Exception(
+        'Failed to create run: ${createRunRes.statusCode} - ${createRunRes.error}',
+      );
+    }
   }
 
   String _generateRunId() {
