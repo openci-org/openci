@@ -21,8 +21,8 @@ class StorageSettings {
 StorageSettings loadStorageSettings({Map<String, String>? environment}) {
   final env = environment ?? Platform.environment;
   final endpointEnv = env['S3_ENDPOINT'] ?? 'http://localhost:18000';
-  final accessKeyEnv = env['S3_ACCESS_KEY'] ?? 'dummy_access_key';
-  final secretKeyEnv = env['S3_SECRET_KEY'] ?? 'dummy_secret_key';
+  final accessKeyEnv = env['S3_ACCESS_KEY']!;
+  final secretKeyEnv = env['S3_SECRET_KEY']!;
   final bucketEnv = env['S3_BUCKET'] ?? 'openci';
 
   final trimmedEndpoint = endpointEnv.trim();

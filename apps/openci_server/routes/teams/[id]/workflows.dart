@@ -87,8 +87,7 @@ Future<Response> _get(RequestContext context, String teamId) async {
       env = Platform.environment;
     }
 
-    final defaultApiBaseUrl =
-        env['GITHUB_API_BASE_URL'] ?? 'https://api.github.com';
+    final defaultApiBaseUrl = env['GITHUB_API_BASE_URL']!;
     final String apiBaseUrl;
     if (driftTeam.githubBaseUrl != null &&
         driftTeam.githubBaseUrl!.isNotEmpty) {

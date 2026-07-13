@@ -19,14 +19,7 @@ Future<Response> onRequest(RequestContext context) async {
     env = Platform.environment;
   }
 
-  final secret = env['GITHUB_WEBHOOK_SECRET'];
-  if (secret == null || secret.isEmpty) {
-    stderr.writeln('Warning: GITHUB_WEBHOOK_SECRET is not configured.');
-    return Response.json(
-      statusCode: HttpStatus.internalServerError,
-      body: {'success': false, 'error': 'Server configuration error'},
-    );
-  }
+  final secret = env['GITHUB_WEBHOOK_SECRET']!;
 
   final signatureHeader = context.request.headers['x-hub-signature-256'];
   if (signatureHeader == null || !signatureHeader.startsWith('sha256=')) {
