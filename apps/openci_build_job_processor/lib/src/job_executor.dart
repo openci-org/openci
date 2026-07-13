@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io';
 import 'dart:math';
 
 import 'package:openci_build_job_processor/openci_build_job_processor.dart';
@@ -10,17 +9,19 @@ class JobExecutor {
   JobExecutor({
     required OpenCiApiService apiService,
     required LumeService lumeService,
+    required String baseVmName,
   }) : _apiService = apiService,
-       _lumeService = lumeService;
+       _lumeService = lumeService,
+       _baseVmName = baseVmName;
 
   final OpenCiApiService _apiService;
   final LumeService _lumeService;
+  final String _baseVmName;
   final _random = Random();
 
   Future<void> execute(BuildJob job, String lumeUrl) async {
     final runId = _generateRunId();
     final vmName = 'openci-vm-${job.id}';
-    final baseVmName = Platform.environment['LUME_BASE_VM_NAME']!;
     bool isSuccess = false;
     bool vmCreated = false;
 
@@ -29,7 +30,7 @@ class JobExecutor {
 
       await _prepareVm(
         lumeUrl: lumeUrl,
-        baseVmName: baseVmName,
+        baseVmName: _baseVmName,
         vmName: vmName,
         onVmCreated: () => vmCreated = true,
       );

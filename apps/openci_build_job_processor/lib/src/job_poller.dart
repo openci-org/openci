@@ -6,16 +6,30 @@ import 'package:sentry/sentry.dart';
 
 class JobPoller {
   JobPoller({
-    required OpenCiApiService apiService,
-    required TailscaleService tailscaleService,
-    required LumeService lumeService,
-  }) : _apiService = apiService,
-       _tailscaleService = tailscaleService,
-       _lumeService = lumeService;
+    required ProcessorConfig config,
+    OpenCiApiService? apiService,
+    TailscaleService? tailscaleService,
+    LumeService? lumeService,
+  }) : _apiService =
+           apiService ??
+           createOpenCiChopperClient(
+             baseUrl: config.serverUrl,
+             tokenProvider: () => config.internalApiKey,
+             services: [OpenCiApiService.create()],
+           ).getService<OpenCiApiService>(),
+       _tailscaleService =
+           tailscaleService ??
+           TailscaleService(
+             apiKey: config.tailscaleApiKey,
+             tailnet: config.tailscaleTailnet,
+           ),
+       _lumeService = lumeService ?? LumeService(),
+       _baseVmName = config.baseVmName;
 
   final OpenCiApiService _apiService;
   final TailscaleService _tailscaleService;
   final LumeService _lumeService;
+  final String _baseVmName;
 
   Future<void> startPolling(String runsOnPattern) async {
     while (true) {
@@ -35,6 +49,7 @@ class JobPoller {
         final executor = JobExecutor(
           apiService: _apiService,
           lumeService: _lumeService,
+          baseVmName: _baseVmName,
         );
         unawaited(executor.execute(job, availableLumeUrl));
       } catch (e, s) {
