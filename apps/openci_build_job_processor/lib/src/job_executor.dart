@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'dart:math';
 
+import 'package:lume_dart/lume_dart.dart';
 import 'package:openci_build_job_processor/openci_build_job_processor.dart';
+import 'package:openci_build_job_processor/src/lume/lume_ssh_service.dart';
 import 'package:openci_shared/openci_shared.dart';
 import 'package:sentry/sentry.dart';
 
@@ -10,13 +12,16 @@ class JobExecutor {
     required OpenCiApiService apiService,
     required LumeService lumeService,
     required String baseVmName,
+    LumeSshService? sshService,
   }) : _apiService = apiService,
        _lumeService = lumeService,
-       _baseVmName = baseVmName;
+       _baseVmName = baseVmName,
+       _sshService = sshService ?? LumeSshService();
 
   final OpenCiApiService _apiService;
   final LumeService _lumeService;
   final String _baseVmName;
+  final LumeSshService _sshService;
   final _random = Random();
 
   Future<void> execute(BuildJob job, String lumeUrl) async {
@@ -24,6 +29,7 @@ class JobExecutor {
     final vmName = 'openci-vm-${job.id}';
     bool isSuccess = false;
     bool vmCreated = false;
+    LumeVM? vm;
 
     try {
       await _createRun(job.id, runId);
@@ -35,13 +41,18 @@ class JobExecutor {
         onVmCreated: () => vmCreated = true,
       );
 
+      vm = await _lumeService.waitForVmToBeReady(lumeUrl, vmName);
+      await _sshService.setupDirectSsh(vm, runId);
+
       isSuccess = true;
+      // start processing build job
     } catch (e, s) {
       await Sentry.captureException(e, stackTrace: s);
     } finally {
       if (vmCreated) {
         await _cleanupVm(lumeUrl, vmName);
       }
+      _sshService.cleanupTempSshKeys(runId);
     }
 
     await _completeJob(job.id, runId, isSuccess);
@@ -93,7 +104,6 @@ class JobExecutor {
     onVmCreated();
 
     await _lumeService.runVm(lumeUrl, vmName);
-    await _lumeService.waitForVmToBeReady(lumeUrl, vmName);
   }
 
   Future<void> _createRun(String jobId, String runId) async {
