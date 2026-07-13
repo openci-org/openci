@@ -25,6 +25,7 @@ class LumeSshService {
 
   // Visible for testing to speed up test execution
   Duration retryDelay = const Duration(seconds: 5);
+  Duration sshTimeout = const Duration(seconds: 45);
 
   String getSshKeyPath(String runId) => '/tmp/openci-ssh-key-$runId';
   String getAskPassPath(String runId) => '/tmp/openci-askpass-$runId.sh';
@@ -161,10 +162,18 @@ class LumeSshService {
         'DISPLAY': ':0',
       },
     );
-    await process.stdin.close();
-    await process.stdout.drain<void>();
-    await process.stderr.drain<void>();
-    return process.exitCode;
+
+    try {
+      return await () async {
+        await process.stdin.close();
+        await process.stdout.drain<void>();
+        await process.stderr.drain<void>();
+        return await process.exitCode;
+      }().timeout(sshTimeout);
+    } on TimeoutException {
+      process.kill();
+      return -1;
+    }
   }
 
   void cleanupTempSshKeys(String runId) {

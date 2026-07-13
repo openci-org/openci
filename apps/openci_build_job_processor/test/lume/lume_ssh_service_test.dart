@@ -233,5 +233,17 @@ void main() {
         expect(mockService.runCount, equals(5));
       },
     );
+
+    test('runPasswordSsh returns -1 and kills process on timeout', () async {
+      sshService.sshTimeout = const Duration(milliseconds: 1);
+
+      final exitCode = await sshService.runPasswordSsh(
+        ip: '127.0.0.1',
+        command: 'sleep 10',
+        askPassPath: '/tmp/non-existent-askpass-path',
+      );
+
+      expect(exitCode, equals(-1));
+    });
   });
 }
