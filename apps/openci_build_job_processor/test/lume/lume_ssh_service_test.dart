@@ -3,6 +3,23 @@ import 'dart:io';
 import 'package:openci_build_job_processor/src/lume/lume_ssh_service.dart';
 import 'package:test/test.dart';
 
+class MockLumeSshService extends LumeSshService {
+  int mockExitCode = 0;
+  int runCount = 0;
+  List<String> executedCommands = [];
+
+  @override
+  Future<int> runPasswordSsh({
+    required String ip,
+    required String command,
+    required String askPassPath,
+  }) async {
+    runCount++;
+    executedCommands.add(command);
+    return mockExitCode;
+  }
+}
+
 void main() {
   group('LumeSshService', () {
     late LumeSshService sshService;
@@ -43,6 +60,13 @@ void main() {
       expect(File(pubKeyPath).existsSync(), isFalse);
       expect(File(askPassPath).existsSync(), isFalse);
     });
+
+    test(
+      'cleanupTempSshKeys completes without exception when files do not exist',
+      () {
+        expect(() => sshService.cleanupTempSshKeys(testRunId), returnsNormally);
+      },
+    );
 
     test('generateSshKey generates valid SSH key pair files', () async {
       final keyPath = sshService.getSshKeyPath(testRunId);
@@ -107,6 +131,106 @@ void main() {
         } finally {
           sshService.cleanupTempSshKeys(testRunId);
         }
+      },
+    );
+
+    test(
+      'prepareAskPassFile creates askpass file with executable permissions and correct password',
+      () async {
+        final askPassPath = sshService.getAskPassPath(testRunId);
+
+        if (File(askPassPath).existsSync()) File(askPassPath).deleteSync();
+
+        try {
+          await sshService.prepareAskPassFile(askPassPath);
+
+          final file = File(askPassPath);
+          expect(file.existsSync(), isTrue);
+
+          // Verify content contains password
+          final content = file.readAsStringSync();
+          expect(content, contains('admin'));
+          expect(content, startsWith('#!/bin/sh'));
+
+          // Verify executable permission (non-Windows check)
+          if (!Platform.isWindows) {
+            final result = await Process.run('test', ['-x', askPassPath]);
+            expect(
+              result.exitCode,
+              equals(0),
+              reason: 'File should be executable',
+            );
+          }
+        } finally {
+          sshService.cleanupTempSshKeys(testRunId);
+        }
+      },
+    );
+
+    test('deleteAskPassFile deletes the file successfully', () {
+      final askPassPath = sshService.getAskPassPath(testRunId);
+      final file = File(askPassPath);
+
+      file.writeAsStringSync('dummy-askpass-content');
+      expect(file.existsSync(), isTrue);
+
+      sshService.deleteAskPassFile(askPassPath);
+      expect(file.existsSync(), isFalse);
+    });
+
+    test(
+      'deleteAskPassFile completes without exception when file does not exist',
+      () {
+        final askPassPath = sshService.getAskPassPath(testRunId);
+        final file = File(askPassPath);
+        if (file.existsSync()) file.deleteSync();
+
+        expect(
+          () => sshService.deleteAskPassFile(askPassPath),
+          returnsNormally,
+        );
+      },
+    );
+
+    test(
+      'installKeyViaPasswordSsh completes successfully on first attempt when exitCode is 0',
+      () async {
+        final mockService = MockLumeSshService();
+        mockService.mockExitCode = 0;
+        mockService.retryDelay = Duration.zero;
+
+        await mockService.installKeyViaPasswordSsh(
+          ip: '127.0.0.1',
+          pubKey: 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAA...',
+          askPassPath: '/tmp/dummy-askpass',
+        );
+
+        expect(mockService.runCount, equals(1));
+        expect(mockService.executedCommands.first, contains('authorized_keys'));
+      },
+    );
+
+    test(
+      'installKeyViaPasswordSsh retries and throws exception when all attempts fail',
+      () async {
+        final mockService = MockLumeSshService();
+        mockService.mockExitCode = 1; // Always fail
+        mockService.retryDelay = Duration.zero; // Speed up test
+
+        var threw = false;
+        try {
+          await mockService.installKeyViaPasswordSsh(
+            ip: '127.0.0.1',
+            pubKey: 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAA...',
+            askPassPath: '/tmp/dummy-askpass',
+          );
+        } catch (e) {
+          threw = true;
+          expect(e, isA<Exception>());
+        }
+
+        expect(threw, isTrue);
+        expect(mockService.runCount, equals(5));
       },
     );
   });

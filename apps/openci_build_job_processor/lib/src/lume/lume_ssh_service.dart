@@ -23,6 +23,9 @@ class LumeSshService {
     'ServerAliveCountMax=5',
   ];
 
+  // Visible for testing to speed up test execution
+  Duration retryDelay = const Duration(seconds: 5);
+
   String getSshKeyPath(String runId) => '/tmp/openci-ssh-key-$runId';
   String getAskPassPath(String runId) => '/tmp/openci-askpass-$runId.sh';
 
@@ -58,16 +61,59 @@ class LumeSshService {
 
     await generateSshKey(sshKeyPath);
 
-    final pubKey = File('$sshKeyPath.pub').readAsStringSync().trim();
     final ip = vm.ipAddress;
     if (ip == null) {
       throw StateError('VM IP is null; cannot install SSH key.');
     }
 
-    final askpass = File(askPassPath);
-    askpass.writeAsStringSync("#!/bin/sh\nprintf '%s' '$_sshPassword'\n");
-    await Process.run('chmod', ['+x', askPassPath]);
+    final pubKey = File('$sshKeyPath.pub').readAsStringSync().trim();
+    await installPublicKeyToVm(
+      ip: ip,
+      pubKey: pubKey,
+      askPassPath: askPassPath,
+    );
+  }
 
+  Future<void> installPublicKeyToVm({
+    required String ip,
+    required String pubKey,
+    required String askPassPath,
+  }) async {
+    await prepareAskPassFile(askPassPath);
+
+    try {
+      await installKeyViaPasswordSsh(
+        ip: ip,
+        pubKey: pubKey,
+        askPassPath: askPassPath,
+      );
+    } finally {
+      deleteAskPassFile(askPassPath);
+    }
+  }
+
+  Future<void> prepareAskPassFile(String path) async {
+    final askpass = File(path);
+    askpass.writeAsStringSync("#!/bin/sh\nprintf '%s' '$_sshPassword'\n");
+    await Process.run('chmod', ['+x', path]);
+  }
+
+  void deleteAskPassFile(String path) {
+    try {
+      final askpass = File(path);
+      if (askpass.existsSync()) {
+        askpass.deleteSync();
+      }
+    } catch (e, s) {
+      unawaited(Sentry.captureException(e, stackTrace: s));
+    }
+  }
+
+  Future<void> installKeyViaPasswordSsh({
+    required String ip,
+    required String pubKey,
+    required String askPassPath,
+  }) async {
     const installCmd =
         'mkdir -p ~/.ssh && touch ~/.ssh/authorized_keys && chmod 700 ~/.ssh && chmod 600 ~/.ssh/authorized_keys';
 
@@ -77,19 +123,13 @@ class LumeSshService {
 
     var exitCode = -1;
     for (var attempt = 1; attempt <= 5; attempt++) {
-      exitCode = await _runPasswordSsh(
+      exitCode = await runPasswordSsh(
         ip: ip,
         command: '$installCmd && $appendCmd',
         askPassPath: askPassPath,
       );
       if (exitCode == 0) break;
-      await Future<void>.delayed(const Duration(seconds: 5));
-    }
-
-    try {
-      askpass.deleteSync();
-    } catch (e, s) {
-      unawaited(Sentry.captureException(e, stackTrace: s));
+      await Future<void>.delayed(retryDelay);
     }
 
     if (exitCode != 0) {
@@ -97,7 +137,7 @@ class LumeSshService {
     }
   }
 
-  Future<int> _runPasswordSsh({
+  Future<int> runPasswordSsh({
     required String ip,
     required String command,
     required String askPassPath,
