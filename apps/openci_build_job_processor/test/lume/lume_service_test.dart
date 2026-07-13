@@ -6,15 +6,71 @@ import 'package:openci_build_job_processor/src/lume/lume_api_service.dart';
 import 'package:test/test.dart';
 
 class FakeLumeApiService extends LumeApiService {
-  FakeLumeApiService(this.getVmsMock);
+  FakeLumeApiService(
+    this.getVmsMock, {
+    this.cloneVmMock,
+    this.runVmMock,
+    this.stopVmMock,
+    this.deleteVmMock,
+  });
 
   final Future<Response<List<LumeVM>>> Function(String url) getVmsMock;
+  final Future<Response<dynamic>> Function(
+    String url,
+    Map<String, dynamic> body,
+  )?
+  cloneVmMock;
+  final Future<Response<dynamic>> Function(
+    String url,
+    Map<String, dynamic> body,
+  )?
+  runVmMock;
+  final Future<Response<dynamic>> Function(
+    String url,
+    Map<String, dynamic> body,
+  )?
+  stopVmMock;
+  final Future<Response<dynamic>> Function(String url)? deleteVmMock;
 
   @override
   Type get definitionType => LumeApiService;
 
   @override
   Future<Response<List<LumeVM>>> getVms(String url) => getVmsMock(url);
+
+  @override
+  Future<Response<dynamic>> cloneVm(
+    String url,
+    Map<String, dynamic> body,
+  ) async {
+    return cloneVmMock != null
+        ? await cloneVmMock!(url, body)
+        : Response(http.Response('{}', 200), null);
+  }
+
+  @override
+  Future<Response<dynamic>> runVm(String url, Map<String, dynamic> body) async {
+    return runVmMock != null
+        ? await runVmMock!(url, body)
+        : Response(http.Response('{}', 202), null);
+  }
+
+  @override
+  Future<Response<dynamic>> stopVm(
+    String url,
+    Map<String, dynamic> body,
+  ) async {
+    return stopVmMock != null
+        ? await stopVmMock!(url, body)
+        : Response(http.Response('{}', 200), null);
+  }
+
+  @override
+  Future<Response<dynamic>> deleteVm(String url) async {
+    return deleteVmMock != null
+        ? await deleteVmMock!(url)
+        : Response(http.Response('{}', 200), null);
+  }
 }
 
 void main() {

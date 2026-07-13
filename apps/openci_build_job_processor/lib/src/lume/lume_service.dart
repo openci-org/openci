@@ -3,6 +3,7 @@
 import 'dart:async';
 
 import 'package:chopper/chopper.dart';
+import 'package:lume_dart/lume_dart.dart';
 import 'package:openci_build_job_processor/src/lume/lume_api_service.dart';
 import 'package:openci_build_job_processor/src/lume/lume_json_converter.dart';
 
@@ -50,5 +51,91 @@ class LumeService {
     }
 
     return vms.where((vm) => vm.status.toLowerCase() == 'running').length;
+  }
+
+  Future<void> cloneVm(
+    String lumeUrl,
+    String sourceName,
+    String targetName,
+  ) async {
+    final url = '$lumeUrl/lume/vms/clone';
+    final response = await _api.cloneVm(url, {
+      'name': sourceName,
+      'newName': targetName,
+    });
+
+    if (!response.isSuccessful) {
+      throw StateError(
+        'Failed to clone VM on $lumeUrl: ${response.statusCode} - ${response.error}',
+      );
+    }
+  }
+
+  Future<void> runVm(String lumeUrl, String vmName) async {
+    final url = '$lumeUrl/lume/vms/$vmName/run';
+    final response = await _api.runVm(url, {'noDisplay': true});
+
+    if (!response.isSuccessful) {
+      throw StateError(
+        'Failed to run VM on $lumeUrl: ${response.statusCode} - ${response.error}',
+      );
+    }
+  }
+
+  Future<void> stopVm(String lumeUrl, String vmName) async {
+    final url = '$lumeUrl/lume/vms/$vmName/stop';
+    final response = await _api.stopVm(url, {});
+
+    if (!response.isSuccessful) {
+      throw StateError(
+        'Failed to stop VM on $lumeUrl: ${response.statusCode} - ${response.error}',
+      );
+    }
+  }
+
+  Future<void> deleteVm(String lumeUrl, String vmName) async {
+    final url = '$lumeUrl/lume/vms/$vmName';
+    final response = await _api.deleteVm(url);
+
+    if (!response.isSuccessful) {
+      throw StateError(
+        'Failed to delete VM on $lumeUrl: ${response.statusCode} - ${response.error}',
+      );
+    }
+  }
+
+  Future<LumeVM> waitForVmToBeReady(
+    String lumeUrl,
+    String vmName, {
+    Duration timeout = const Duration(minutes: 5),
+  }) async {
+    final url = '$lumeUrl/lume/vms';
+    final stopTime = DateTime.now().add(timeout);
+
+    while (DateTime.now().isBefore(stopTime)) {
+      try {
+        final response = await _api.getVms(url);
+        if (response.isSuccessful && response.body != null) {
+          final vms = response.body!;
+          final index = vms.indexWhere((v) => v.name == vmName);
+          if (index != -1) {
+            final vm = vms[index];
+            if (vm.status.toLowerCase() == 'running' &&
+                vm.ipAddress != null &&
+                vm.sshAvailable == true) {
+              return vm;
+            }
+          }
+        }
+      } catch (e) {
+        // Ignore transient API or connection errors while booting
+        print('Warning while waiting for VM: $e');
+      }
+      await Future<void>.delayed(const Duration(seconds: 2));
+    }
+
+    throw TimeoutException(
+      'Timeout waiting for Lume VM "$vmName" to boot and become SSH available on $lumeUrl.',
+    );
   }
 }

@@ -1,6 +1,7 @@
 // ignore_for_file: avoid_print
 
 import 'dart:async';
+import 'dart:io';
 import 'dart:math';
 
 import 'package:openci_build_job_processor/openci_build_job_processor.dart';
@@ -93,12 +94,41 @@ class JobProcessor {
     }
 
     bool isSuccess = false;
+    final vmName = 'openci-vm-${job.id}';
+    final baseVmName =
+        Platform.environment['LUME_BASE_VM_NAME'] ?? 'tahoe-base_v1.2.3';
+
     try {
-      print('Executing job steps on $lumeUrl...');
+      print('Cloning VM from $baseVmName to $vmName on Lume host $lumeUrl...');
+      await _lumeService.cloneVm(lumeUrl, baseVmName, vmName);
+
+      print('Starting VM $vmName on Lume host $lumeUrl...');
+      await _lumeService.runVm(lumeUrl, vmName);
+
+      print('Waiting for VM $vmName to be ready...');
+      final vm = await _lumeService.waitForVmToBeReady(lumeUrl, vmName);
+      print(
+        'VM $vmName is ready on IP ${vm.ipAddress}. Executing job steps...',
+      );
+
       await Future<void>.delayed(const Duration(seconds: 5));
       isSuccess = true;
     } catch (e) {
-      print('Exception during job execution: $e');
+      print('Exception during VM operation or job execution: $e');
+    } finally {
+      try {
+        print('Stopping VM $vmName on Lume host $lumeUrl...');
+        await _lumeService.stopVm(lumeUrl, vmName);
+      } catch (e) {
+        print('Failed to stop VM $vmName: $e');
+      }
+
+      try {
+        print('Deleting VM $vmName on Lume host $lumeUrl...');
+        await _lumeService.deleteVm(lumeUrl, vmName);
+      } catch (e) {
+        print('Failed to delete VM $vmName: $e');
+      }
     }
 
     try {
