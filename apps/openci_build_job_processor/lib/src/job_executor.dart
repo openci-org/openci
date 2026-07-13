@@ -34,6 +34,9 @@ class JobExecutor {
     try {
       await _createRun(job.id, runId);
 
+      // ignore: unused_local_variable
+      final token = await resolveGitHubInstallationToken(job.id);
+
       await _prepareVm(
         lumeUrl: lumeUrl,
         baseVmName: _baseVmName,
@@ -113,6 +116,20 @@ class JobExecutor {
         'Failed to create run: ${createRunRes.statusCode} - ${createRunRes.error}',
       );
     }
+  }
+
+  Future<String> resolveGitHubInstallationToken(String jobId) async {
+    final tokenRes = await _apiService.resolveInstallationToken(jobId);
+    if (!tokenRes.isSuccessful) {
+      throw Exception(
+        'Failed to resolve GitHub App Installation Token: ${tokenRes.statusCode} - ${tokenRes.error}',
+      );
+    }
+    final token = tokenRes.body?['token'] as String?;
+    if (token == null || token.isEmpty) {
+      throw Exception('GitHub Installation Token is null or empty.');
+    }
+    return token;
   }
 
   String _generateRunId() {
