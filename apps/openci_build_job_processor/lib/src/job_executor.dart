@@ -13,6 +13,8 @@ class JobExecutor {
     required OpenCiApiService apiService,
     required LumeService lumeService,
     required String baseVmName,
+    required String serverUrl,
+    required String internalApiKey,
     LumeSshService? sshService,
   }) : _apiService = apiService,
        _lumeService = lumeService,
