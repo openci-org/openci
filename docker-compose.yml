@@ -55,6 +55,9 @@ services:
       - OPENCI_RUNS_ON_PATTERN=${OPENCI_RUNS_ON_PATTERN:?OPENCI_RUNS_ON_PATTERN environment variable is required}
       - LUME_BASE_VM_NAME=${LUME_BASE_VM_NAME:?LUME_BASE_VM_NAME environment variable is required}
       - LUME_SERVER_URLS=${LUME_SERVER_URLS:?LUME_SERVER_URLS environment variable is required}
+      - TAILSCALE_API_KEY=${TAILSCALE_API_KEY:?TAILSCALE_API_KEY environment variable is required}
+      - TAILSCALE_TAILNET=${TAILSCALE_TAILNET:?TAILSCALE_TAILNET environment variable is required}
+
     depends_on:
       - server
 
