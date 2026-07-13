@@ -1,6 +1,6 @@
 name: openci_shared
 description: Shared constants and utility models for OpenCI organization.
-version: 1.0.3
+version: 1.0.4
 repository: https://github.com/openci-org/openci/tree/main/packages/openci_shared
 resolution: workspace
 
@@ -17,3 +17,5 @@ dev_dependencies:
   chopper_generator: ^8.6.2
   freezed: ^3.2.5
   json_serializable: ^6.13.0
+  test: ^1.24.0
+

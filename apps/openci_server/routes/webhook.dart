@@ -5,6 +5,7 @@ import 'package:crypto/crypto.dart';
 import 'package:dart_frog/dart_frog.dart';
 import 'package:openci_server/database.dart';
 import 'package:openci_server/webhook_task/webhook_task_worker.dart';
+import 'package:openci_shared/openci_shared.dart';
 import 'package:uuid/uuid.dart';
 
 Future<Response> onRequest(RequestContext context) async {
@@ -146,18 +147,6 @@ Future<Response> onRequest(RequestContext context) async {
       'message': 'Webhook received and queued.',
     },
   );
-}
-
-bool constantTimeCompare(List<int> a, List<int> b) {
-  if (a.length != b.length) {
-    return false;
-  }
-
-  var result = 0;
-  for (var i = 0; i < a.length; i++) {
-    result |= a[i] ^ b[i];
-  }
-  return result == 0;
 }
 
 bool verifyWebhookSignature({
