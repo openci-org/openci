@@ -20,7 +20,21 @@ class MockLumeSshService extends LumeSshService {
   }
 }
 
-void main() {
+Future<bool> _hasCommand(String command) async {
+  try {
+    final result = Platform.isWindows
+        ? await Process.run('where', [command])
+        : await Process.run('which', [command]);
+    return result.exitCode == 0;
+  } catch (_) {
+    return false;
+  }
+}
+
+void main() async {
+  final hasSshKeygen = await _hasCommand('ssh-keygen');
+  final hasSsh = File('/usr/bin/ssh').existsSync() || await _hasCommand('ssh');
+
   group('LumeSshService', () {
     late LumeSshService sshService;
     const testRunId = 'test-run-123';
@@ -68,32 +82,36 @@ void main() {
       },
     );
 
-    test('generateSshKey generates valid SSH key pair files', () async {
-      final keyPath = sshService.getSshKeyPath(testRunId);
-      final pubKeyPath = '$keyPath.pub';
+    test(
+      'generateSshKey generates valid SSH key pair files',
+      () async {
+        final keyPath = sshService.getSshKeyPath(testRunId);
+        final pubKeyPath = '$keyPath.pub';
 
-      // Ensure files do not exist beforehand
-      if (File(keyPath).existsSync()) File(keyPath).deleteSync();
-      if (File(pubKeyPath).existsSync()) File(pubKeyPath).deleteSync();
+        // Ensure files do not exist beforehand
+        if (File(keyPath).existsSync()) File(keyPath).deleteSync();
+        if (File(pubKeyPath).existsSync()) File(pubKeyPath).deleteSync();
 
-      try {
-        await sshService.generateSshKey(keyPath);
+        try {
+          await sshService.generateSshKey(keyPath);
 
-        expect(File(keyPath).existsSync(), isTrue);
-        expect(File(pubKeyPath).existsSync(), isTrue);
+          expect(File(keyPath).existsSync(), isTrue);
+          expect(File(pubKeyPath).existsSync(), isTrue);
 
-        // Verify the private key content starts with the standard header
-        final privateKeyContent = File(keyPath).readAsStringSync();
-        expect(privateKeyContent, contains('BEGIN OPENSSH PRIVATE KEY'));
+          // Verify the private key content starts with the standard header
+          final privateKeyContent = File(keyPath).readAsStringSync();
+          expect(privateKeyContent, contains('BEGIN OPENSSH PRIVATE KEY'));
 
-        // Verify public key starts with key type
-        final publicKeyContent = File(pubKeyPath).readAsStringSync();
-        expect(publicKeyContent, startsWith('ssh-ed25519'));
-      } finally {
-        // Cleanup after test
-        sshService.cleanupTempSshKeys(testRunId);
-      }
-    });
+          // Verify public key starts with key type
+          final publicKeyContent = File(pubKeyPath).readAsStringSync();
+          expect(publicKeyContent, startsWith('ssh-ed25519'));
+        } finally {
+          // Cleanup after test
+          sshService.cleanupTempSshKeys(testRunId);
+        }
+      },
+      skip: hasSshKeygen ? null : 'ssh-keygen command not available',
+    );
 
     test(
       'generateSshKey deletes existing keys and generates a new pair',
@@ -132,6 +150,7 @@ void main() {
           sshService.cleanupTempSshKeys(testRunId);
         }
       },
+      skip: hasSshKeygen ? null : 'ssh-keygen command not available',
     );
 
     test(
@@ -234,16 +253,20 @@ void main() {
       },
     );
 
-    test('runPasswordSsh returns -1 and kills process on timeout', () async {
-      sshService.sshTimeout = const Duration(milliseconds: 1);
+    test(
+      'runPasswordSsh returns -1 and kills process on timeout',
+      () async {
+        sshService.sshTimeout = const Duration(milliseconds: 1);
 
-      final exitCode = await sshService.runPasswordSsh(
-        ip: '127.0.0.1',
-        command: 'sleep 10',
-        askPassPath: '/tmp/non-existent-askpass-path',
-      );
+        final exitCode = await sshService.runPasswordSsh(
+          ip: '127.0.0.1',
+          command: 'sleep 10',
+          askPassPath: '/tmp/non-existent-askpass-path',
+        );
 
-      expect(exitCode, equals(-1));
-    });
+        expect(exitCode, equals(-1));
+      },
+      skip: hasSsh ? null : 'ssh command not available',
+    );
   });
 }
