@@ -31,14 +31,30 @@ final class _$TailscaleApi extends TailscaleApi {
       'Authorization': authorization,
       'Accept': accept,
     };
+    final ChopperCompleter $abortTrigger = ChopperCompleter<void>();
+    final ChopperTimer $timeout = ChopperTimer(
+      const Duration(microseconds: 10000000),
+      () {
+        if (!$abortTrigger.isCompleted) $abortTrigger.complete();
+      },
+    );
     final Request $request = Request(
       'GET',
       $url,
       client.baseUrl,
       headers: $headers,
+      abortTrigger: $abortTrigger.future,
     );
-    return client.send<TailscaleDevicesResponse, TailscaleDevicesResponse>(
-      $request,
-    );
+    return client
+        .send<TailscaleDevicesResponse, TailscaleDevicesResponse>($request)
+        .catchError(
+          (_) => Future<Response<TailscaleDevicesResponse>>.error(
+            ChopperTimeoutException('Request timed out after 10 seconds'),
+          ),
+          test: (Object err) =>
+              err is ChopperRequestAbortedException &&
+              $abortTrigger.isCompleted,
+        )
+        .whenComplete($timeout.cancel);
   }
 }

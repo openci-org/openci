@@ -8,7 +8,9 @@ part 'tailscale_api.chopper.dart';
 abstract class TailscaleApi extends ChopperService {
   static TailscaleApi create([ChopperClient? client]) => _$TailscaleApi(client);
 
-  @GET(path: '/tailnet/{tailnet}/devices')
+  static const _timeout = Duration(seconds: 10);
+
+  @GET(path: '/tailnet/{tailnet}/devices', timeout: _timeout)
   Future<Response<TailscaleDevicesResponse>> getDevices({
     @Path('tailnet') required String tailnet,
     @Header('Authorization') required String authorization,
