@@ -84,6 +84,15 @@ Middleware storageProvider(StorageManager storage) {
   return provider<StorageManager>((context) => storage);
 }
 
+bool _constantTimeEquals(String a, String b) {
+  if (a.length != b.length) return false;
+  var result = 0;
+  for (var i = 0; i < a.length; i++) {
+    result |= a.codeUnitAt(i) ^ b.codeUnitAt(i);
+  }
+  return result == 0;
+}
+
 Middleware authProvider(FirebaseApp? firebaseApp, {bool allowTestUid = false}) {
   return (handler) {
     return (context) async {
@@ -97,16 +106,6 @@ Middleware authProvider(FirebaseApp? firebaseApp, {bool allowTestUid = false}) {
       } catch (_) {
         env = Platform.environment;
       }
-bool _constantTimeEquals(String a, String b) {
-  if (a.length != b.length) return false;
-  var result = 0;
-  for (var i = 0; i < a.length; i++) {
-    result |= a.codeUnitAt(i) ^ b.codeUnitAt(i);
-  }
-  return result == 0;
-}
-
-Middleware authProvider(FirebaseApp? firebaseApp, {bool allowTestUid = false}) {
       final internalApiKey = env['INTERNAL_API_KEY'];
 
       final authHeader = context.request.headers['Authorization'];
