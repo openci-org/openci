@@ -176,6 +176,33 @@ class LumeSshService {
     }
   }
 
+  Future<int> executeSshCommand({
+    required String ip,
+    required String runId,
+    required String command,
+  }) async {
+    final sshKeyPath = getSshKeyPath(runId);
+    final process = await Process.start('/usr/bin/ssh', [
+      ..._sshBaseOpts,
+      '-i',
+      sshKeyPath,
+      '$_sshUser@$ip',
+      command,
+    ]);
+
+    try {
+      return await () async {
+        await process.stdin.close();
+        await process.stdout.drain<void>();
+        await process.stderr.drain<void>();
+        return await process.exitCode;
+      }().timeout(sshTimeout);
+    } on TimeoutException {
+      process.kill();
+      return -1;
+    }
+  }
+
   void cleanupTempSshKeys(String runId) {
     try {
       final sshKeyPath = getSshKeyPath(runId);

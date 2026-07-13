@@ -268,5 +268,34 @@ void main() async {
       },
       skip: hasSsh ? null : 'ssh command not available',
     );
+
+    test(
+      'executeSshCommand returns non-zero on connection failure',
+      () async {
+        final exitCode = await sshService.executeSshCommand(
+          ip: '127.0.0.1',
+          runId: testRunId,
+          command: 'echo hello',
+        );
+        expect(exitCode, isNot(equals(0)));
+      },
+      skip: hasSsh ? null : 'ssh command not available',
+    );
+
+    test(
+      'executeSshCommand returns -1 and kills process on timeout',
+      () async {
+        sshService.sshTimeout = const Duration(milliseconds: 1);
+
+        final exitCode = await sshService.executeSshCommand(
+          ip: '127.0.0.1',
+          runId: testRunId,
+          command: 'sleep 10',
+        );
+
+        expect(exitCode, equals(-1));
+      },
+      skip: hasSsh ? null : 'ssh command not available',
+    );
   });
 }

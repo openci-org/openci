@@ -16,6 +16,7 @@ dependencies:
   lume_dart:
     path: ../../packages/lume_dart
   openci_shared: ^1.0.1
+  retry: ^3.1.2
   sentry: ^9.22.0
 
 dev_dependencies:
