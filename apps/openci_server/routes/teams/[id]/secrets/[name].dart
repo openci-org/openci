@@ -56,17 +56,7 @@ Future<Response> _get(
       env = Platform.environment;
     }
 
-    final encryptionKey = env['SECRET_ENCRYPTION_KEY'];
-    if (encryptionKey == null || encryptionKey.trim().isEmpty) {
-      stderr.writeln('SECRET_ENCRYPTION_KEY environment variable is not set');
-      return Response.json(
-        statusCode: HttpStatus.internalServerError,
-        body: {
-          'success': false,
-          'error': 'Encryption key is not configured on the server',
-        },
-      );
-    }
+    final encryptionKey = env['SECRET_ENCRYPTION_KEY']!;
 
     final SecretCrypter crypter;
     try {

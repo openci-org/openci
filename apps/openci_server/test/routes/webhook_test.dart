@@ -53,26 +53,6 @@ void main() {
       },
     );
 
-    test(
-      'responds with 500 when GITHUB_WEBHOOK_SECRET is not configured',
-      () async {
-        final context = TestRequestContext(
-          path: '/webhook',
-          method: HttpMethod.post,
-          body: testBody,
-        );
-
-        context.provide<Map<String, String>>({});
-
-        final response = await route.onRequest(context.context);
-
-        expect(response.statusCode, equals(HttpStatus.internalServerError));
-        final body = await response.json() as Map<String, dynamic>;
-        expect(body['success'], isFalse);
-        expect(body['error'], equals('Server configuration error'));
-      },
-    );
-
     test('responds with 401 when signature header is missing', () async {
       final context = TestRequestContext(
         path: '/webhook',

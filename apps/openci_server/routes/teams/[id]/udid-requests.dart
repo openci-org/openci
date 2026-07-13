@@ -105,18 +105,16 @@ Future<Response> _post(RequestContext context, String teamId) async {
           httpClient = http.Client();
         }
 
-        final encryptionKey = env['SECRET_ENCRYPTION_KEY'];
-        if (encryptionKey != null && encryptionKey.trim().isNotEmpty) {
-          final crypter = SecretCrypter(encryptionKey);
-          await const AscService().registerDevice(
-            db,
-            teamId,
-            udid.trim(),
-            crypter,
-            client: httpClient,
-          );
-          autoRegistered = true;
-        }
+        final encryptionKey = env['SECRET_ENCRYPTION_KEY']!;
+        final crypter = SecretCrypter(encryptionKey);
+        await const AscService().registerDevice(
+          db,
+          teamId,
+          udid.trim(),
+          crypter,
+          client: httpClient,
+        );
+        autoRegistered = true;
       }
     } on AlreadyRegisteredException {
       alreadyRegistered = true;
