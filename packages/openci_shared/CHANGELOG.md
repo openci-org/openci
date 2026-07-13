@@ -1,6 +1,11 @@
 # Changelog
 
+## 1.0.4
+
+- Add constant-time comparison utilities (`constantTimeCompare`, `constantTimeCompareString`).
+
 ## 1.0.3
+
 
 - Add Chopper API service and client utilities.
 
