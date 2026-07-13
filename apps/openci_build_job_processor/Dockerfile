@@ -16,6 +16,10 @@ RUN dart compile exe bin/main.dart -o processor
 
 FROM debian:bookworm-slim
 
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends openssh-client sshpass && \
+    rm -rf /var/lib/apt/lists/*
+
 RUN groupadd -g 10001 appgroup && \
     useradd -u 10001 -g appgroup -m -s /bin/bash appuser
 
