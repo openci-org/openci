@@ -84,11 +84,40 @@ Middleware storageProvider(StorageManager storage) {
   return provider<StorageManager>((context) => storage);
 }
 
+bool _constantTimeEquals(String a, String b) {
+  if (a.length != b.length) return false;
+  var result = 0;
+  for (var i = 0; i < a.length; i++) {
+    result |= a.codeUnitAt(i) ^ b.codeUnitAt(i);
+  }
+  return result == 0;
+}
+
 Middleware authProvider(FirebaseApp? firebaseApp, {bool allowTestUid = false}) {
   return (handler) {
     return (context) async {
       if (context.request.uri.path == '/') {
         return handler(context.provide<String?>(() => null));
+      }
+
+      Map<String, String> env;
+      try {
+        env = context.read<Map<String, String>>();
+      } catch (_) {
+        env = Platform.environment;
+      }
+      final internalApiKey = env['INTERNAL_API_KEY'];
+
+      final authHeader = context.request.headers['Authorization'];
+      if (authHeader != null && authHeader.startsWith('Bearer ')) {
+        final token = authHeader.substring(7);
+        if (internalApiKey != null &&
+            internalApiKey.isNotEmpty &&
+            _constantTimeEquals(token, internalApiKey)) {
+          return handler(
+            context.provide<String?>(() => 'system-job-processor'),
+          );
+        }
       }
 
       if (firebaseApp == null && allowTestUid) {
@@ -98,7 +127,6 @@ Middleware authProvider(FirebaseApp? firebaseApp, {bool allowTestUid = false}) {
         return handler(context.provide<String?>(() => null));
       }
 
-      final authHeader = context.request.headers['Authorization'];
       if (authHeader == null || !authHeader.startsWith('Bearer ')) {
         return handler(context.provide<String?>(() => null));
       }

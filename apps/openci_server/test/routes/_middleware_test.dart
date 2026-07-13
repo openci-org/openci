@@ -113,6 +113,7 @@ void main() {
       mockToken = MockDecodedIdToken();
 
       when(() => mockContext.request).thenReturn(mockRequest);
+      when(() => mockRequest.headers).thenReturn({});
       when(() => mockContext.provide<String?>(any())).thenReturn(mockContext);
     });
 
@@ -290,5 +291,71 @@ void main() {
               as String? Function();
       expect(captured(), isNull);
     });
+
+    test(
+      'provides system-job-processor when Authorization header matches INTERNAL_API_KEY',
+      () async {
+        final middleware = authProvider(null);
+
+        when(
+          () => mockRequest.uri,
+        ).thenReturn(Uri.parse('http://localhost/teams'));
+        when(() => mockRequest.headers).thenReturn({
+          'Authorization': 'Bearer my-internal-key',
+        });
+        when(
+          () => mockContext.read<Map<String, String>>(),
+        ).thenReturn({'INTERNAL_API_KEY': 'my-internal-key'});
+
+        var handlerCalled = false;
+        final handler = middleware((context) {
+          handlerCalled = true;
+          return Response();
+        });
+
+        await handler(mockContext);
+        expect(handlerCalled, isTrue);
+
+        final captured =
+            verify(
+                  () => mockContext.provide<String?>(captureAny()),
+                ).captured.single
+                as String? Function();
+        expect(captured(), equals('system-job-processor'));
+      },
+    );
+
+    test(
+      'provides null when Authorization header does not match INTERNAL_API_KEY',
+      () async {
+        final middleware = authProvider(null);
+
+        when(
+          () => mockRequest.uri,
+        ).thenReturn(Uri.parse('http://localhost/teams'));
+        when(() => mockRequest.headers).thenReturn({
+          'Authorization': 'Bearer wrong-internal-key',
+        });
+        when(
+          () => mockContext.read<Map<String, String>>(),
+        ).thenReturn({'INTERNAL_API_KEY': 'my-internal-key'});
+
+        var handlerCalled = false;
+        final handler = middleware((context) {
+          handlerCalled = true;
+          return Response();
+        });
+
+        await handler(mockContext);
+        expect(handlerCalled, isTrue);
+
+        final captured =
+            verify(
+                  () => mockContext.provide<String?>(captureAny()),
+                ).captured.single
+                as String? Function();
+        expect(captured(), isNull);
+      },
+    );
   });
 }

@@ -35,6 +35,7 @@ services:
       - ALLOWED_WORKER_UIDS=${ALLOWED_WORKER_UIDS}
       - SECRET_ENCRYPTION_KEY=${SECRET_ENCRYPTION_KEY}
       - SENTRY_DSN=${SENTRY_DSN}
+      - INTERNAL_API_KEY=${INTERNAL_API_KEY:?INTERNAL_API_KEY environment variable is required}
     volumes:
       - ./firebase-service-account.json:/app/credentials/firebase-service-account.json:ro
       - ./github-private-key.pem:/app/credentials/github-private-key.pem:ro
@@ -56,6 +57,7 @@ services:
       - LUME_BASE_VM_NAME=${LUME_BASE_VM_NAME:?LUME_BASE_VM_NAME environment variable is required}
       - TAILSCALE_API_KEY=${TAILSCALE_API_KEY:?TAILSCALE_API_KEY environment variable is required}
       - TAILSCALE_TAILNET=${TAILSCALE_TAILNET:?TAILSCALE_TAILNET environment variable is required}
+      - INTERNAL_API_KEY=${INTERNAL_API_KEY:?INTERNAL_API_KEY environment variable is required}
 
     depends_on:
       - server

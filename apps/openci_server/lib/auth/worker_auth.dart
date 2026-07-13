@@ -10,6 +10,10 @@ Response? verifyWorkerAuth(RequestContext context, String? uid) {
     );
   }
 
+  if (uid == 'system-job-processor') {
+    return null;
+  }
+
   Map<String, String> env;
   try {
     env = context.read<Map<String, String>>();
