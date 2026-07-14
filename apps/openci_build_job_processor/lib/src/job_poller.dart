@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:openci_build_job_processor/openci_build_job_processor.dart';
+import 'package:openci_build_job_processor/src/logging/build_job_logger.dart';
 import 'package:openci_shared/openci_shared.dart';
 import 'package:sentry/sentry.dart';
 
@@ -24,7 +25,12 @@ class JobPoller {
              tailnet: config.tailscaleTailnet,
            ),
        _lumeService = lumeService ?? LumeService(),
-       _baseVmName = config.baseVmName;
+       _baseVmName = config.baseVmName {
+    setupBuildJobLogger(
+      serverUrl: config.serverUrl,
+      internalApiKey: config.internalApiKey,
+    );
+  }
 
   final OpenCiApiService _apiService;
   final TailscaleService _tailscaleService;
