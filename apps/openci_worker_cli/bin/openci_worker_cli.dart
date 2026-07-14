@@ -9,7 +9,6 @@ import 'package:openci_worker_cli/firebase.dart';
 import 'package:openci_worker_cli/log.dart';
 import 'package:openci_worker_cli/poller.dart';
 import 'package:openci_worker_cli/supervisor.dart';
-import 'package:openci_worker_cli/vm.dart';
 import 'package:openci_worker_cli/worker_config.dart';
 import 'package:sentry/sentry.dart';
 
@@ -43,22 +42,20 @@ Future<void> main(List<String> arguments) async {
     final workerId = localPart.contains('+')
         ? localPart.split('+').last
         : localPart;
-    initVmConfig(workerId);
+    if (!Platform.isLinux) {
+      throw UnsupportedError(
+        'This worker only supports Linux/Docker environments.',
+      );
+    }
     _log.info('Worker started. Worker ID: $workerId (v$version)');
-    _log.info(
-      'Platform: ${Platform.isLinux ? 'Linux (Docker)' : 'macOS (AVF)'}',
-    );
+    _log.info('Platform: Linux (Docker)');
     _log.info(
       'Host: ${Platform.localHostname} | '
       '${Platform.operatingSystemVersion} | '
       '${Platform.numberOfProcessors} cores',
     );
 
-    if (Platform.isLinux) {
-      await cleanupOrphanedContainers(workerId);
-    } else {
-      await cleanupOrphanedVms(workerId);
-    }
+    await cleanupOrphanedContainers(workerId);
 
     await pollForJobs(apiClient: apiClient, workerId: workerId);
   } on FormatException catch (e) {

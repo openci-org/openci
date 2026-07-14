@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.3.13
+
+- Cleanup: Remove macOS VM execution codes and `lume_dart` dependency. This worker now exclusively runs in Linux/Docker environments.
+
 ## 2.3.12
 
 - Fix: Upgrade default Docker container resource limits to 4 CPUs (up from 2) and 8GB RAM (up from 4g) to prevent resource starvation during Flutter analysis.

@@ -7,7 +7,6 @@ import 'package:openci_worker_cli/cloud_function_caller.dart';
 import 'package:openci_worker_cli/constants.dart';
 import 'package:openci_worker_cli/docker_job_executor.dart';
 import 'package:openci_worker_cli/heartbeat.dart';
-import 'package:openci_worker_cli/job_executor.dart';
 import 'package:sentry/sentry.dart';
 
 final _log = Logger('Poller');
@@ -96,28 +95,21 @@ Future<void> pollForJobs({
   try {
     while (true) {
       try {
-        final bool jobFound;
-        if (Platform.isLinux) {
-          jobFound = await processDockerJob(
-            apiClient,
-            workerId,
-            onJobFound: () {
-              stopSpinner();
-              state.status = 'busy';
-              _sendHeartbeat(apiClient, workerId, state);
-            },
-          );
-        } else {
-          jobFound = await processJob(
-            apiClient,
-            workerId,
-            onJobFound: () {
-              stopSpinner();
-              state.status = 'busy';
-              _sendHeartbeat(apiClient, workerId, state);
-            },
+        if (!Platform.isLinux) {
+          throw UnsupportedError(
+            'This worker only supports Linux/Docker environments.',
           );
         }
+
+        final jobFound = await processDockerJob(
+          apiClient,
+          workerId,
+          onJobFound: () {
+            stopSpinner();
+            state.status = 'busy';
+            _sendHeartbeat(apiClient, workerId, state);
+          },
+        );
 
         if (jobFound) {
           _log.info('Job completed, checking for next...');
