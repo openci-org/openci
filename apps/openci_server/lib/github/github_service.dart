@@ -238,4 +238,63 @@ class GitHubService {
         .where((name) => name.isNotEmpty)
         .toList();
   }
+
+  static Future<String> fetchWorkflowContent({
+    required String owner,
+    required String repo,
+    required String workflowFileName,
+    required String installationIdStr,
+    String? commitSha,
+    String? branch,
+    Map<String, String>? environment,
+    http.Client? client,
+  }) async {
+    final token = await getInstallationToken(
+      installationIdStr: installationIdStr,
+      environment: environment,
+      client: client,
+    );
+
+    final env = environment ?? Platform.environment;
+    final githubApiBaseUrlStr =
+        env['GITHUB_API_BASE_URL'] ?? 'https://api.github.com';
+
+    final ref = commitSha ?? branch;
+    final query = ref != null && ref.isNotEmpty
+        ? '?ref=${Uri.encodeComponent(ref)}'
+        : '';
+    final url =
+        '$githubApiBaseUrlStr/repos/$owner/$repo/contents/.openci/$workflowFileName$query';
+
+    final headers = {
+      'Authorization': 'Bearer $token',
+      'Accept': 'application/vnd.github+json',
+      'X-GitHub-Api-Version': '2022-11-28',
+      'User-Agent': 'OpenCI-Server',
+    };
+
+    final response = client != null
+        ? await client.get(Uri.parse(url), headers: headers)
+        : await http.get(Uri.parse(url), headers: headers);
+
+    if (response.statusCode != 200) {
+      throw HttpException(
+        'Failed to fetch workflow content: ${response.statusCode} ${response.body}',
+      );
+    }
+
+    final data = jsonDecode(response.body) as Map<String, dynamic>;
+    final content = data['content'] as String?;
+    if (content == null) {
+      throw StateError('No content in GitHub response');
+    }
+
+    final encoding = data['encoding'] as String? ?? 'base64';
+    if (encoding == 'base64') {
+      final cleaned = content.replaceAll(RegExp(r'\s+'), '');
+      return utf8.decode(base64.decode(cleaned));
+    }
+
+    return content;
+  }
 }

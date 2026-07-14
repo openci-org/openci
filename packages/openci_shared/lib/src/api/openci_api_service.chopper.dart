@@ -489,6 +489,35 @@ final class _$OpenCiApiService extends OpenCiApiService {
   }
 
   @override
+  Future<Response<Map<String, dynamic>>> getJobSecrets(String buildJobId) {
+    final Uri $url = Uri.parse('/builds/${buildJobId}/secrets');
+    final ChopperCompleter $abortTrigger = ChopperCompleter<void>();
+    final ChopperTimer $timeout = ChopperTimer(
+      const Duration(microseconds: 10000000),
+      () {
+        if (!$abortTrigger.isCompleted) $abortTrigger.complete();
+      },
+    );
+    final Request $request = Request(
+      'GET',
+      $url,
+      client.baseUrl,
+      abortTrigger: $abortTrigger.future,
+    );
+    return client
+        .send<Map<String, dynamic>, Map<String, dynamic>>($request)
+        .catchError(
+          (_) => Future<Response<Map<String, dynamic>>>.error(
+            ChopperTimeoutException('Request timed out after 10 seconds'),
+          ),
+          test: (Object err) =>
+              err is ChopperRequestAbortedException &&
+              $abortTrigger.isCompleted,
+        )
+        .whenComplete($timeout.cancel);
+  }
+
+  @override
   Future<Response<void>> saveSecret(String teamId, Map<String, dynamic> body) {
     final Uri $url = Uri.parse('/teams/${teamId}/secrets');
     final $body = body;
