@@ -49,11 +49,26 @@ services:
       - db
       - seaweedfs
 
+  tailscale:
+    image: tailscale/tailscale:latest
+    container_name: openci-tailscale
+    volumes:
+      - tailscale_data:/var/lib/tailscale
+      - /dev/net/tun:/dev/net/tun
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    environment:
+      - TS_AUTHKEY=${TAILSCALE_AUTHKEY:?TAILSCALE_AUTHKEY environment variable is required}
+      - TS_STATE_DIR=/var/lib/tailscale
+    restart: unless-stopped
+
   job-processor:
     build:
       context: .
       dockerfile: apps/openci_build_job_processor/Dockerfile
     container_name: openci-job-processor
+    network_mode: "service:tailscale"
     restart: unless-stopped
     environment:
       - OPENCI_SERVER_URL=http://server:8080
@@ -63,8 +78,8 @@ services:
       - TAILSCALE_TAILNET=${TAILSCALE_TAILNET:?TAILSCALE_TAILNET environment variable is required}
       - INTERNAL_API_KEY=${INTERNAL_API_KEY:?INTERNAL_API_KEY environment variable is required}
       - SENTRY_DSN=${SENTRY_DSN}
-
     depends_on:
+      - tailscale
       - server
 
   caddy:
@@ -100,3 +115,4 @@ volumes:
   caddy_data:
   caddy_config:
   seaweedfs_data:
+  tailscale_data:
