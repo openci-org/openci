@@ -62,6 +62,7 @@ services:
     environment:
       - TS_AUTHKEY=${TAILSCALE_AUTHKEY:?TAILSCALE_AUTHKEY environment variable is required}
       - TS_STATE_DIR=/var/lib/tailscale
+      - TS_USERSPACE=false
     restart: unless-stopped
 
   job-processor:
