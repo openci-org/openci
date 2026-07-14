@@ -1,1 +1,1 @@
-This package will be deprecated.
+This package will be unavailable.
