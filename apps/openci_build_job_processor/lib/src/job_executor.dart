@@ -13,8 +13,6 @@ class JobExecutor {
     required OpenCiApiService apiService,
     required LumeService lumeService,
     required String baseVmName,
-    required String serverUrl,
-    required String internalApiKey,
     LumeSshService? sshService,
   }) : _apiService = apiService,
        _lumeService = lumeService,
@@ -64,6 +62,15 @@ class JobExecutor {
         token: token,
         githubBaseUrl: job.githubBaseUrl,
         pullRequestNumber: job.pullRequestNumber,
+      );
+
+      final secretFileContent = await resolveReferencedSecrets(job.id);
+
+      await _sshService.writeFileToVm(
+        ip: ip,
+        runId: runId,
+        remotePath: '/tmp/openci-secrets',
+        content: secretFileContent,
       );
 
       isSuccess = true;
@@ -218,5 +225,19 @@ class JobExecutor {
     if (exitCode != 0) {
       throw Exception('Failed to checkout commit. Exit code: $exitCode');
     }
+  }
+
+  Future<String> resolveReferencedSecrets(String buildJobId) async {
+    final response = await _apiService.getJobSecrets(buildJobId);
+    if (!response.isSuccessful) {
+      throw Exception(
+        'Failed to get job secrets: ${response.statusCode} - ${response.error}',
+      );
+    }
+
+    final body = response.body;
+    if (body == null) return '';
+
+    return body['secretsContent'] as String? ?? '';
   }
 }

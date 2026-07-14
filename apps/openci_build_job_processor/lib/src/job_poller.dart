@@ -24,16 +24,12 @@ class JobPoller {
              tailnet: config.tailscaleTailnet,
            ),
        _lumeService = lumeService ?? LumeService(),
-       _baseVmName = config.baseVmName,
-       _serverUrl = config.serverUrl,
-       _internalApiKey = config.internalApiKey;
+       _baseVmName = config.baseVmName;
 
   final OpenCiApiService _apiService;
   final TailscaleService _tailscaleService;
   final LumeService _lumeService;
   final String _baseVmName;
-  final String _serverUrl;
-  final String _internalApiKey;
 
   Future<void> startPolling(String runsOnPattern) async {
     while (true) {
@@ -54,8 +50,6 @@ class JobPoller {
           apiService: _apiService,
           lumeService: _lumeService,
           baseVmName: _baseVmName,
-          serverUrl: _serverUrl,
-          internalApiKey: _internalApiKey,
         );
         unawaited(executor.execute(job, availableLumeUrl));
       } catch (e, s) {
