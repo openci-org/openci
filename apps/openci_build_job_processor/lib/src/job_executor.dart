@@ -134,6 +134,9 @@ class JobExecutor {
         buildJob: job,
       );
     } catch (e, s) {
+      print('=== JOB EXECUTOR ERROR ===');
+      print(e);
+      print(s);
       await Sentry.captureException(e, stackTrace: s);
       await _updateJobFinalStatus(
         jobId: job.id,
