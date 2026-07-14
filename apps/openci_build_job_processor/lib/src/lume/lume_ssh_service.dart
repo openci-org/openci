@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:lume_dart/lume_dart.dart';
+import 'package:openci_build_job_processor/src/logging/build_job_logger.dart';
 import 'package:sentry/sentry.dart';
 
 class LumeSshService {
@@ -265,6 +266,125 @@ class LumeSshService {
       }
     } catch (e, s) {
       unawaited(Sentry.captureException(e, stackTrace: s));
+    }
+  }
+
+  Future<void> execCommandStreaming({
+    required List<String> command,
+    required String ip,
+    required String buildJobId,
+    required String runId,
+    required String token,
+    required Future<bool> Function() isCancelled,
+    Duration timeout = const Duration(minutes: 60),
+  }) async {
+    final sshKeyPath = getSshKeyPath(runId);
+
+    final process = await Process.start('/usr/bin/ssh', [
+      ..._sshBaseOpts,
+      '-o',
+      'RequestTTY=no',
+      '-o',
+      'BatchMode=yes',
+      '-i',
+      sshKeyPath,
+      '$_sshUser@$ip',
+      ...command,
+    ]);
+
+    await process.stdin.close();
+
+    final stdoutCompleter = Completer<void>();
+    final stderrCompleter = Completer<void>();
+    final outputErrors = <String>[];
+    var hasSuccessfulStep = false;
+
+    final gitProgressPattern = RegExp(
+      r'^(Receiving objects|Resolving deltas|Updating files|'
+      r'Comparing stages|Indexing objects|Writing objects):\s*\d+',
+    );
+
+    bool isNoisyLine(String line) {
+      if (gitProgressPattern.hasMatch(line)) return true;
+      if (line.startsWith('remote: Enumerating objects:')) return true;
+      if (line.contains('NIO SSH connection failed')) return true;
+      return false;
+    }
+
+    bool isActError(String line) {
+      return line.startsWith('  ❌  ') || line.startsWith('  ❌ ');
+    }
+
+    void processLine(String line) {
+      final trimmed = line.trim();
+      if (trimmed.isEmpty || isNoisyLine(trimmed)) return;
+
+      if (trimmed.contains('✅') || trimmed.contains('Job succeeded')) {
+        hasSuccessfulStep = true;
+      }
+
+      if (isActError(trimmed)) {
+        outputErrors.add(trimmed);
+      }
+
+      final cleanLine = stripActPrefix(trimmed);
+      logInfo(buildJobId, runId, cleanLine);
+    }
+
+    process.stdout.transform(utf8.decoder).listen((data) {
+      final masked = data.replaceAll(token, '***').trim();
+      if (masked.isNotEmpty) {
+        for (final line in LineSplitter.split(masked)) {
+          processLine(line);
+        }
+      }
+    }, onDone: () => stdoutCompleter.complete());
+
+    process.stderr.transform(utf8.decoder).listen((data) {
+      final masked = data.replaceAll(token, '***').trim();
+      if (masked.isNotEmpty) {
+        for (final line in LineSplitter.split(masked)) {
+          processLine(line);
+        }
+      }
+    }, onDone: () => stderrCompleter.complete());
+
+    final startTime = DateTime.now();
+    var isTimedOut = false;
+
+    final cancelTimer = Timer.periodic(const Duration(seconds: 5), (_) async {
+      if (DateTime.now().difference(startTime) > timeout) {
+        isTimedOut = true;
+        process.kill(ProcessSignal.sigterm);
+      } else if (await isCancelled()) {
+        process.kill(ProcessSignal.sigterm);
+      }
+    });
+
+    await Future.wait([stdoutCompleter.future, stderrCompleter.future]);
+    cancelTimer.cancel();
+
+    final exitCode = await process.exitCode;
+
+    if (isTimedOut) {
+      throw TimeoutException(
+        'act timed out after ${timeout.inMinutes} minutes',
+      );
+    }
+
+    if (exitCode != 0) {
+      throw Exception('act exited with code $exitCode');
+    }
+
+    if (outputErrors.isNotEmpty) {
+      throw Exception('act reported errors:\n${outputErrors.join('\n')}');
+    }
+
+    if (!hasSuccessfulStep) {
+      throw Exception(
+        'act exited with code 0 but no steps were executed. '
+        'Ensure the workflow file is correct and your workflow/job triggers match.',
+      );
     }
   }
 }

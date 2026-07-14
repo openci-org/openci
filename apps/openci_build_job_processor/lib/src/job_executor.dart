@@ -3,6 +3,7 @@ import 'dart:math';
 
 import 'package:lume_dart/lume_dart.dart';
 import 'package:openci_build_job_processor/openci_build_job_processor.dart';
+import 'package:openci_build_job_processor/src/logging/build_job_logger.dart';
 import 'package:openci_build_job_processor/src/lume/lume_ssh_service.dart';
 import 'package:openci_shared/openci_shared.dart';
 import 'package:retry/retry.dart';
@@ -29,7 +30,6 @@ class JobExecutor {
   Future<void> execute(BuildJob job, String lumeUrl) async {
     final runId = _generateRunId();
     final vmName = 'openci-vm-${job.id}';
-    bool isSuccess = false;
     bool vmCreated = false;
     LumeVM? vm;
 
@@ -64,7 +64,7 @@ class JobExecutor {
         pullRequestNumber: job.pullRequestNumber,
       );
 
-      final secretFileContent = await resolveReferencedSecrets(job.id);
+      final secretFileContent = await fetchReferencedSecrets(job.id);
 
       await _sshService.writeFileToVm(
         ip: ip,
@@ -73,18 +73,82 @@ class JobExecutor {
         content: secretFileContent,
       );
 
-      isSuccess = true;
-      // start processing build job
+      final eventFileContent = await resolveEventPayload(job.id);
+      await _sshService.writeFileToVm(
+        ip: ip,
+        runId: runId,
+        remotePath: '/tmp/openci-event.json',
+        content: eventFileContent,
+      );
+
+      final actScript = await fetchBuildScript(job.id);
+
+      await _sshService.writeFileToVm(
+        ip: ip,
+        runId: runId,
+        remotePath: '/tmp/openci-act.sh',
+        content: actScript,
+      );
+
+      final exitCode = await _sshService.executeSshCommand(
+        ip: ip,
+        runId: runId,
+        command: 'chmod +x /tmp/openci-act.sh',
+      );
+      if (exitCode != 0) {
+        throw Exception('Failed to chmod act script. Exit code: $exitCode');
+      }
+
+      await logInfo(job.id, runId, 'Running workflow with act...');
+
+      BuildJobStatus finalStatus = BuildJobStatus.SUCCESS;
+
+      try {
+        await _sshService.execCommandStreaming(
+          command: ['/bin/zsh', '-l', '/tmp/openci-act.sh'],
+          ip: ip,
+          buildJobId: job.id,
+          runId: runId,
+          token: token,
+          isCancelled: () => _isCancelled(job.id),
+        );
+        await logInfo(job.id, runId, 'Build completed successfully');
+      } on TimeoutException catch (timeoutError) {
+        await logError(job.id, runId, 'Job execution timed out: $timeoutError');
+        finalStatus = BuildJobStatus.TIMED_OUT;
+      } catch (actError) {
+        if (await _isCancelled(job.id)) {
+          await logInfo(job.id, runId, 'Build was cancelled by user');
+          finalStatus = BuildJobStatus.CANCELLED;
+        } else {
+          await logWarning(job.id, runId, 'Act build failed: $actError');
+          finalStatus = BuildJobStatus.FAILURE;
+        }
+      }
+
+      await _updateJobFinalStatus(
+        jobId: job.id,
+        runId: runId,
+        status: finalStatus,
+        conclusion: finalStatus.name.toLowerCase(),
+        buildJob: job,
+      );
     } catch (e, s) {
       await Sentry.captureException(e, stackTrace: s);
+      await _updateJobFinalStatus(
+        jobId: job.id,
+        runId: runId,
+        status: BuildJobStatus.FAILURE,
+        conclusion: BuildJobStatus.FAILURE.name.toLowerCase(),
+        buildJob: job,
+      );
     } finally {
       if (vmCreated) {
         await _cleanupVm(lumeUrl, vmName);
       }
       _sshService.cleanupTempSshKeys(runId);
+      await flushRemainingLogs(runId: runId);
     }
-
-    await _completeJob(job.id, runId, isSuccess);
   }
 
   Future<void> _cleanupVm(String lumeUrl, String vmName) async {
@@ -101,11 +165,17 @@ class JobExecutor {
     }
   }
 
-  Future<void> _completeJob(String jobId, String runId, bool isSuccess) async {
+  Future<void> _updateJobFinalStatus({
+    required String jobId,
+    required String runId,
+    required BuildJobStatus status,
+    required String conclusion,
+    required BuildJob buildJob,
+  }) async {
     try {
       await _apiService.updateRunStatus(jobId, runId, {
         'status': 'completed',
-        'conclusion': isSuccess ? 'success' : 'failure',
+        'conclusion': conclusion,
       });
     } catch (e, s) {
       await Sentry.captureException(e, stackTrace: s);
@@ -113,10 +183,21 @@ class JobExecutor {
 
     try {
       await _apiService.completeJob(jobId, {
-        'status': isSuccess
-            ? BuildJobStatus.SUCCESS.name
-            : BuildJobStatus.FAILURE.name,
+        'status': status.name,
         'completedAt': DateTime.now().toUtc().toIso8601String(),
+      });
+    } catch (e, s) {
+      await Sentry.captureException(e, stackTrace: s);
+    }
+
+    try {
+      await _apiService.updateCheckRun(jobId, {
+        'status': 'completed',
+        'conclusion': conclusion,
+        'completedAt': DateTime.now().toUtc().toIso8601String(),
+      });
+      await _apiService.handleBuildJobStatusChange(jobId, {
+        'status': status.name,
       });
     } catch (e, s) {
       await Sentry.captureException(e, stackTrace: s);
@@ -227,7 +308,7 @@ class JobExecutor {
     }
   }
 
-  Future<String> resolveReferencedSecrets(String buildJobId) async {
+  Future<String> fetchReferencedSecrets(String buildJobId) async {
     final response = await _apiService.getJobSecrets(buildJobId);
     if (!response.isSuccessful) {
       throw Exception(
@@ -239,5 +320,47 @@ class JobExecutor {
     if (body == null) return '';
 
     return body['secretsContent'] as String? ?? '';
+  }
+
+  Future<String> resolveEventPayload(String buildJobId) async {
+    final response = await _apiService.getJobEventPayload(buildJobId);
+    if (!response.isSuccessful) {
+      throw Exception(
+        'Failed to get job event payload: ${response.statusCode} - ${response.error}',
+      );
+    }
+
+    final body = response.body;
+    if (body == null) return '';
+
+    return body['eventPayload'] as String? ?? '';
+  }
+
+  Future<String> fetchBuildScript(String buildJobId) async {
+    final response = await _apiService.getJobBuildScript(buildJobId);
+    if (!response.isSuccessful) {
+      throw Exception(
+        'Failed to get job build script: ${response.statusCode} - ${response.error}',
+      );
+    }
+
+    final body = response.body;
+    if (body == null) return '';
+
+    return body['script'] as String? ?? '';
+  }
+
+  Future<bool> _isCancelled(String jobId) async {
+    try {
+      final res = await _apiService.getBuildJob(jobId);
+      if (res.isSuccessful) {
+        final updatedJob = res.body;
+        return updatedJob?['status'] == BuildJobStatus.CANCELLED.name ||
+            updatedJob?['status'] == 'CANCELLING';
+      }
+    } catch (e, s) {
+      await Sentry.captureException(e, stackTrace: s);
+    }
+    return false;
   }
 }
