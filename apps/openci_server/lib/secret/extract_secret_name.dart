@@ -1,13 +1,7 @@
 Set<String> extractSecretNames(String content) {
   final secretNames = <String>{};
   final regex = RegExp(
-    r'secrets(?:\.([a-zA-Z0-9_-]+)|\[\s*(?:"([^"]+)"|'
-    "'"
-    '([^'
-    "'"
-    ']+)'
-    "'"
-    ')s*])',
+    r'''secrets(?:\.([a-zA-Z0-9_-]+)|\[\s*(?:"([^"]+)"|'([^']+)')\s*\])''',
     caseSensitive: false,
   );
 

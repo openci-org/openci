@@ -56,5 +56,14 @@ void main() {
       final result = extractSecretNames(content);
       expect(result, equals({'aws_key'}));
     });
+
+    test(
+      'extracts secrets using bracket notation with whitespace before closing bracket',
+      () {
+        final content = "run: echo \${{ secrets['WHITESPACE_KEY'  ] }}";
+        final result = extractSecretNames(content);
+        expect(result, equals({'WHITESPACE_KEY'}));
+      },
+    );
   });
 }
