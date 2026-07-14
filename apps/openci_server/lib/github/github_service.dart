@@ -244,16 +244,19 @@ class GitHubService {
     required String repo,
     required String workflowFileName,
     required String installationIdStr,
+    String? token,
     String? commitSha,
     String? branch,
     Map<String, String>? environment,
     http.Client? client,
   }) async {
-    final token = await getInstallationToken(
-      installationIdStr: installationIdStr,
-      environment: environment,
-      client: client,
-    );
+    final actualToken =
+        token ??
+        await getInstallationToken(
+          installationIdStr: installationIdStr,
+          environment: environment,
+          client: client,
+        );
 
     final env = environment ?? Platform.environment;
     final githubApiBaseUrlStr =
@@ -267,7 +270,7 @@ class GitHubService {
         '$githubApiBaseUrlStr/repos/$owner/$repo/contents/.openci/$workflowFileName$query';
 
     final headers = {
-      'Authorization': 'Bearer $token',
+      'Authorization': 'Bearer $actualToken',
       'Accept': 'application/vnd.github+json',
       'X-GitHub-Api-Version': '2022-11-28',
       'User-Agent': 'OpenCI-Server',

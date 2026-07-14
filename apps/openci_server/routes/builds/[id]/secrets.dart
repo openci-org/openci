@@ -39,11 +39,16 @@ Future<Response> _get(RequestContext context, String id) async {
       );
     }
 
+    final token = await GitHubService.getInstallationToken(
+      installationIdStr: installationIdStr,
+    );
+
     final workflowContent = await GitHubService.fetchWorkflowContent(
       owner: driftJob.owner,
       repo: driftJob.repo,
       workflowFileName: workflowFileName,
       installationIdStr: installationIdStr,
+      token: token,
       commitSha: driftJob.commitSha,
       branch: driftJob.branch,
     );
@@ -60,9 +65,6 @@ Future<Response> _get(RequestContext context, String id) async {
     }
 
     final resolvedSecrets = <String, String>{};
-    final token = await GitHubService.getInstallationToken(
-      installationIdStr: installationIdStr,
-    );
     resolvedSecrets['GITHUB_TOKEN'] = token;
 
     if (targetSecrets.isEmpty) {
