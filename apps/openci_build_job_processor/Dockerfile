@@ -3,6 +3,7 @@ FROM dart:3.11.5 AS build
 WORKDIR /app
 
 COPY packages/openci_shared/ ./packages/openci_shared/
+COPY packages/lume_dart/ ./packages/lume_dart/
 COPY apps/openci_build_job_processor/ ./apps/openci_build_job_processor/
 
 WORKDIR /app/apps/openci_build_job_processor
