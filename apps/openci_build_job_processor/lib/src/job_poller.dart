@@ -1,3 +1,5 @@
+// ignore_for_file: avoid_print
+
 import 'dart:async';
 
 import 'package:openci_build_job_processor/openci_build_job_processor.dart';
@@ -79,6 +81,7 @@ class JobPoller {
 
   Future<String?> _findAvailableLumeUrl() async {
     final ips = await _tailscaleService.getActiveMacOsIps();
+    print('DEBUG: Active macOS IPs found: $ips');
     final lumeServerUrls = ips.map((ip) => 'http://$ip:7777').toList();
 
     if (lumeServerUrls.isEmpty) {
