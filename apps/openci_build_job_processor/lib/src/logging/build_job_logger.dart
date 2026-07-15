@@ -67,6 +67,12 @@ void setupBuildJobLogger({
     stdout.writeln(
       '${record.time} [${record.loggerName}] ${record.level.name}: ${record.message}',
     );
+    if (record.error != null) {
+      stdout.writeln('Error: ${record.error}');
+    }
+    if (record.stackTrace != null) {
+      stdout.writeln('StackTrace:\n${record.stackTrace}');
+    }
     stdout.flush();
   });
 }
