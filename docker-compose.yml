@@ -71,6 +71,7 @@ services:
       dockerfile: apps/openci_build_job_processor/Dockerfile
     container_name: openci-job-processor
     network_mode: "service:tailscale"
+    user: "root"
     restart: unless-stopped
     environment:
       - OPENCI_SERVER_URL=http://server:8080
@@ -80,6 +81,8 @@ services:
       - TAILSCALE_TAILNET=${TAILSCALE_TAILNET:?TAILSCALE_TAILNET environment variable is required}
       - INTERNAL_API_KEY=${INTERNAL_API_KEY:?INTERNAL_API_KEY environment variable is required}
       - SENTRY_DSN=${SENTRY_DSN_JOB_PROCESSOR:-}
+    volumes:
+      - /root/.ssh/id_ed25519:/root/.ssh/id_ed25519:ro
     depends_on:
       - tailscale
       - server
