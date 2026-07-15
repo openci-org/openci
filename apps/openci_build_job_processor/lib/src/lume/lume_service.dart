@@ -24,7 +24,7 @@ class LumeService {
   Future<String?> findAvailableLumeUrl(List<String> lumeServerUrls) async {
     for (final url in lumeServerUrls) {
       try {
-        final runningVmCount = await _getRunningVmCount(url);
+        final runningVmCount = await getRunningVmCount(url);
         if (runningVmCount < 2) {
           return url;
         }
@@ -37,7 +37,7 @@ class LumeService {
 
   static const _defaultTimeout = Duration(seconds: 30);
 
-  Future<int> _getRunningVmCount(String lumeUrl) async {
+  Future<int> getRunningVmCount(String lumeUrl) async {
     final url = '$lumeUrl/lume/vms';
     final response = await _api.getVms(url).timeout(_defaultTimeout);
 

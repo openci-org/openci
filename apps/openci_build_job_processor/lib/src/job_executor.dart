@@ -29,8 +29,12 @@ class JobExecutor {
   final _log = Logger('JobExecutor');
   Duration retryDelay = const Duration(seconds: 5);
 
-  Future<void> execute(BuildJob job, String lumeUrl) async {
-    final runId = _generateRunId();
+  Future<void> execute(
+    BuildJob job,
+    String lumeUrl,
+    String runId, {
+    required FutureOr<void> Function(LumeVM vm) onVmReady,
+  }) async {
     final vmName = 'openci-vm-${job.id}';
     final jumpHost = Uri.parse(lumeUrl).host;
     bool vmCreated = false;
@@ -49,6 +53,8 @@ class JobExecutor {
       );
 
       vm = await _lumeService.waitForVmToBeReady(lumeUrl, vmName);
+      await onVmReady(vm);
+
       await _sshService.setupDirectSsh(vm, runId, jumpHost: jumpHost);
 
       final ip = vm.ipAddress;
@@ -256,7 +262,7 @@ class JobExecutor {
     return token;
   }
 
-  String _generateRunId() {
+  String generateRunId() {
     final part1 = DateTime.now().millisecondsSinceEpoch;
     final part2 = _random.nextInt(1000000);
     return 'run-$part1-$part2';

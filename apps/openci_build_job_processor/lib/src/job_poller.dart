@@ -2,6 +2,7 @@
 
 import 'dart:async';
 
+import 'package:lume_dart/lume_dart.dart';
 import 'package:openci_build_job_processor/openci_build_job_processor.dart';
 import 'package:openci_build_job_processor/src/logging/build_job_logger.dart';
 import 'package:openci_shared/openci_shared.dart';
@@ -66,12 +67,37 @@ class JobPoller {
           lumeService: _lumeService,
           baseVmName: _baseVmName,
         );
+
+        final runId = executor.generateRunId();
+        final vmReadyCompleter = Completer<LumeVM>();
+
         _activeJobsCount++;
-        unawaited(
-          executor.execute(job, availableLumeUrl).whenComplete(() {
+        unawaited(() async {
+          try {
+            await executor.execute(
+              job,
+              availableLumeUrl,
+              runId,
+              onVmReady: (vm) {
+                vmReadyCompleter.complete(vm);
+              },
+            );
+          } catch (e) {
+            if (!vmReadyCompleter.isCompleted) {
+              vmReadyCompleter.completeError(e);
+            }
+          } finally {
             _activeJobsCount--;
-          }),
-        );
+          }
+        }());
+
+        // VMが起動完了するまで同期的に待つ（同じホストへの同時アサイン競合を防ぐ）
+        try {
+          await vmReadyCompleter.future;
+        } catch (_) {
+          // VM起動エラーの場合は、そのジョブの終了を待ちつつ次のループへ進む
+          continue;
+        }
       } catch (e, s) {
         await Sentry.captureException(e, stackTrace: s);
         await Future<void>.delayed(const Duration(seconds: 10));
