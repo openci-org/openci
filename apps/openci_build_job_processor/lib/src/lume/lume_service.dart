@@ -123,9 +123,7 @@ class LumeService {
           final index = vms.indexWhere((v) => v.name == vmName);
           if (index != -1) {
             final vm = vms[index];
-            if (vm.status.toLowerCase() == 'running' &&
-                vm.ipAddress != null &&
-                vm.sshAvailable == true) {
+            if (vm.status.toLowerCase() == 'running' && vm.ipAddress != null) {
               return vm;
             }
           }
@@ -138,7 +136,7 @@ class LumeService {
     }
 
     throw TimeoutException(
-      'Timeout waiting for Lume VM "$vmName" to boot and become SSH available on $lumeUrl.',
+      'Timeout waiting for Lume VM "$vmName" to boot and become running on $lumeUrl.',
     );
   }
 }

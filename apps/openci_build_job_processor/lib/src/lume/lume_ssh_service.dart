@@ -132,7 +132,7 @@ class LumeSshService {
         'printf %s \'$pubKeyB64\' | base64 -D >> ~/.ssh/authorized_keys';
 
     var exitCode = -1;
-    for (var attempt = 1; attempt <= 5; attempt++) {
+    for (var attempt = 1; attempt <= 30; attempt++) {
       exitCode = await runPasswordSsh(
         ip: ip,
         command: '$installCmd && $appendCmd',

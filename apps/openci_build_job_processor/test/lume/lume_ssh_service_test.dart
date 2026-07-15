@@ -251,7 +251,7 @@ void main() async {
         }
 
         expect(threw, isTrue);
-        expect(mockService.runCount, equals(5));
+        expect(mockService.runCount, equals(30));
       },
     );
 
