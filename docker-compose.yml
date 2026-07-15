@@ -79,7 +79,7 @@ services:
       - TAILSCALE_API_KEY=${TAILSCALE_API_KEY:?TAILSCALE_API_KEY environment variable is required}
       - TAILSCALE_TAILNET=${TAILSCALE_TAILNET:?TAILSCALE_TAILNET environment variable is required}
       - INTERNAL_API_KEY=${INTERNAL_API_KEY:?INTERNAL_API_KEY environment variable is required}
-      - SENTRY_DSN=${SENTRY_DSN}
+      - SENTRY_DSN=${SENTRY_DSN_JOB_PROCESSOR:-}
     depends_on:
       - tailscale
       - server
