@@ -22,10 +22,7 @@ class LumeSshService {
     'ServerAliveInterval=30',
     '-o',
     'ServerAliveCountMax=5',
-    if (File('/run/secrets/jump_host_key').existsSync()) ...[
-      '-o',
-      'IdentityFile=/run/secrets/jump_host_key',
-    ] else if (File('/tmp/jump_host_key').existsSync()) ...[
+    if (File('/tmp/jump_host_key').existsSync()) ...[
       '-o',
       'IdentityFile=/tmp/jump_host_key',
     ],
