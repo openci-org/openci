@@ -30,6 +30,7 @@ class JobExecutor {
   Future<void> execute(BuildJob job, String lumeUrl) async {
     final runId = _generateRunId();
     final vmName = 'openci-vm-${job.id}';
+    final jumpHost = Uri.parse(lumeUrl).host;
     bool vmCreated = false;
     LumeVM? vm;
 
@@ -46,7 +47,7 @@ class JobExecutor {
       );
 
       vm = await _lumeService.waitForVmToBeReady(lumeUrl, vmName);
-      await _sshService.setupDirectSsh(vm, runId);
+      await _sshService.setupDirectSsh(vm, runId, jumpHost: jumpHost);
 
       final ip = vm.ipAddress;
       if (ip == null) {
@@ -62,6 +63,7 @@ class JobExecutor {
         token: token,
         githubBaseUrl: job.githubBaseUrl,
         pullRequestNumber: job.pullRequestNumber,
+        jumpHost: jumpHost,
       );
 
       final secretFileContent = await fetchReferencedSecrets(job.id);
@@ -71,6 +73,7 @@ class JobExecutor {
         runId: runId,
         remotePath: '/tmp/openci-secrets',
         content: secretFileContent,
+        jumpHost: jumpHost,
       );
 
       final eventFileContent = await resolveEventPayload(job.id);
@@ -79,6 +82,7 @@ class JobExecutor {
         runId: runId,
         remotePath: '/tmp/openci-event.json',
         content: eventFileContent,
+        jumpHost: jumpHost,
       );
 
       final actScript = await fetchBuildScript(job.id);
@@ -88,12 +92,14 @@ class JobExecutor {
         runId: runId,
         remotePath: '/tmp/openci-act.sh',
         content: actScript,
+        jumpHost: jumpHost,
       );
 
       final exitCode = await _sshService.executeSshCommand(
         ip: ip,
         runId: runId,
         command: 'chmod +x /tmp/openci-act.sh',
+        jumpHost: jumpHost,
       );
       if (exitCode != 0) {
         throw Exception('Failed to chmod act script. Exit code: $exitCode');
@@ -111,6 +117,7 @@ class JobExecutor {
           runId: runId,
           token: token,
           isCancelled: () => _isCancelled(job.id),
+          jumpHost: jumpHost,
         );
         await logInfo(job.id, runId, 'Build completed successfully');
       } on TimeoutException catch (timeoutError) {
@@ -254,6 +261,7 @@ class JobExecutor {
     required String token,
     required String? githubBaseUrl,
     required int? pullRequestNumber,
+    required String jumpHost,
   }) async {
     final githubHost = githubBaseUrl != null
         ? Uri.parse(githubBaseUrl).host
@@ -267,6 +275,7 @@ class JobExecutor {
           ip: ip,
           runId: runId,
           command: 'git clone --depth 1 --no-checkout $cloneUrl',
+          jumpHost: jumpHost,
         );
         if (exitCode != 0) {
           throw Exception('Failed to clone repository. Exit code: $exitCode');
@@ -283,6 +292,7 @@ class JobExecutor {
       ip: ip,
       runId: runId,
       command: fetchCommand,
+      jumpHost: jumpHost,
     );
 
     if (exitCode != 0 && pullRequestNumber != null) {
@@ -292,6 +302,7 @@ class JobExecutor {
         ip: ip,
         runId: runId,
         command: fetchCommand,
+        jumpHost: jumpHost,
       );
     }
     if (exitCode != 0) {
@@ -302,6 +313,7 @@ class JobExecutor {
       ip: ip,
       runId: runId,
       command: 'git -C $repo checkout $commitSha',
+      jumpHost: jumpHost,
     );
     if (exitCode != 0) {
       throw Exception('Failed to checkout commit. Exit code: $exitCode');

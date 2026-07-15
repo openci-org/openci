@@ -57,7 +57,11 @@ class LumeSshService {
     ]);
   }
 
-  Future<void> setupDirectSsh(LumeVM vm, String runId) async {
+  Future<void> setupDirectSsh(
+    LumeVM vm,
+    String runId, {
+    String? jumpHost,
+  }) async {
     final sshKeyPath = getSshKeyPath(runId);
     final askPassPath = getAskPassPath(runId);
 
@@ -73,6 +77,7 @@ class LumeSshService {
       ip: ip,
       pubKey: pubKey,
       askPassPath: askPassPath,
+      jumpHost: jumpHost,
     );
   }
 
@@ -80,6 +85,7 @@ class LumeSshService {
     required String ip,
     required String pubKey,
     required String askPassPath,
+    String? jumpHost,
   }) async {
     await prepareAskPassFile(askPassPath);
 
@@ -88,6 +94,7 @@ class LumeSshService {
         ip: ip,
         pubKey: pubKey,
         askPassPath: askPassPath,
+        jumpHost: jumpHost,
       );
     } finally {
       deleteAskPassFile(askPassPath);
@@ -115,6 +122,7 @@ class LumeSshService {
     required String ip,
     required String pubKey,
     required String askPassPath,
+    String? jumpHost,
   }) async {
     const installCmd =
         'mkdir -p ~/.ssh && touch ~/.ssh/authorized_keys && chmod 700 ~/.ssh && chmod 600 ~/.ssh/authorized_keys';
@@ -129,6 +137,7 @@ class LumeSshService {
         ip: ip,
         command: '$installCmd && $appendCmd',
         askPassPath: askPassPath,
+        jumpHost: jumpHost,
       );
       if (exitCode == 0) break;
       await Future<void>.delayed(retryDelay);
@@ -143,11 +152,16 @@ class LumeSshService {
     required String ip,
     required String command,
     required String askPassPath,
+    String? jumpHost,
   }) async {
+    final jumpOpts = jumpHost != null
+        ? ['-J', '$_sshUser@$jumpHost']
+        : <String>[];
     final process = await Process.start(
       '/usr/bin/ssh',
       [
         ..._sshBaseOpts,
+        ...jumpOpts,
         '-o',
         'PubkeyAuthentication=no',
         '-o',
@@ -181,10 +195,15 @@ class LumeSshService {
     required String ip,
     required String runId,
     required String command,
+    String? jumpHost,
   }) async {
     final sshKeyPath = getSshKeyPath(runId);
+    final jumpOpts = jumpHost != null
+        ? ['-J', '$_sshUser@$jumpHost']
+        : <String>[];
     final process = await Process.start('/usr/bin/ssh', [
       ..._sshBaseOpts,
+      ...jumpOpts,
       '-i',
       sshKeyPath,
       '$_sshUser@$ip',
@@ -209,6 +228,7 @@ class LumeSshService {
     required String runId,
     required String remotePath,
     required String content,
+    String? jumpHost,
   }) async {
     final sshKeyPath = getSshKeyPath(runId);
     final localFile = File(
@@ -217,8 +237,12 @@ class LumeSshService {
     localFile.writeAsStringSync(content);
 
     try {
+      final jumpOpts = jumpHost != null
+          ? ['-J', '$_sshUser@$jumpHost']
+          : <String>[];
       final processResult = await Process.run('/usr/bin/scp', [
         ..._sshBaseOpts,
+        ...jumpOpts,
         '-o',
         'BatchMode=yes',
         '-i',
@@ -276,12 +300,17 @@ class LumeSshService {
     required String runId,
     required String token,
     required Future<bool> Function() isCancelled,
+    String? jumpHost,
     Duration timeout = const Duration(minutes: 60),
   }) async {
     final sshKeyPath = getSshKeyPath(runId);
+    final jumpOpts = jumpHost != null
+        ? ['-J', '$_sshUser@$jumpHost']
+        : <String>[];
 
     final process = await Process.start('/usr/bin/ssh', [
       ..._sshBaseOpts,
+      ...jumpOpts,
       '-o',
       'RequestTTY=no',
       '-o',
