@@ -80,8 +80,8 @@ services:
       - TAILSCALE_TAILNET=${TAILSCALE_TAILNET:?TAILSCALE_TAILNET environment variable is required}
       - INTERNAL_API_KEY=${INTERNAL_API_KEY:?INTERNAL_API_KEY environment variable is required}
       - SENTRY_DSN=${SENTRY_DSN}
-    secrets:
-      - jump_host_key
+    volumes:
+      - /root/.ssh/id_ed25519:/tmp/jump_host_key_raw:ro
     depends_on:
       - tailscale
       - server
@@ -121,6 +121,4 @@ volumes:
   seaweedfs_data:
   tailscale_data:
 
-secrets:
-  jump_host_key:
-    file: /root/.ssh/id_ed25519
+
