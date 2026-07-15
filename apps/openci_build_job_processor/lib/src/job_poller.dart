@@ -38,20 +38,36 @@ class JobPoller {
   final String _baseVmName;
 
   Future<void> startPolling(String runsOnPattern) async {
+    // ignore: avoid_print
+    print('JobPoller started polling for pattern: $runsOnPattern');
+    var lastStatusPrint = DateTime.fromMillisecondsSinceEpoch(0);
+
     while (true) {
       try {
         final availableLumeUrl = await _findAvailableLumeUrl();
         if (availableLumeUrl == null) {
+          if (DateTime.now().difference(lastStatusPrint) > const Duration(minutes: 5)) {
+            // ignore: avoid_print
+            print('No available Lume VM servers found. Still polling...');
+            lastStatusPrint = DateTime.now();
+          }
           await Future<void>.delayed(const Duration(seconds: 10));
           continue;
         }
 
         final job = await _claimNextJob(runsOnPattern);
         if (job == null) {
+          if (DateTime.now().difference(lastStatusPrint) > const Duration(minutes: 5)) {
+            // ignore: avoid_print
+            print('Polling for jobs (runsOn: $runsOnPattern). Lume available at: $availableLumeUrl');
+            lastStatusPrint = DateTime.now();
+          }
           await Future<void>.delayed(const Duration(seconds: 10));
           continue;
         }
 
+        // ignore: avoid_print
+        print('Claimed job: ${job.id} for platform: ${job.runsOn}. Executing...');
         final executor = JobExecutor(
           apiService: _apiService,
           lumeService: _lumeService,
@@ -59,6 +75,8 @@ class JobPoller {
         );
         unawaited(executor.execute(job, availableLumeUrl));
       } catch (e, s) {
+        // ignore: avoid_print
+        print('Error in polling loop: $e');
         await Sentry.captureException(e, stackTrace: s);
         await Future<void>.delayed(const Duration(seconds: 10));
       }

@@ -1,7 +1,17 @@
+import 'dart:io';
 import 'package:openci_build_job_processor/openci_build_job_processor.dart';
 
 Future<void> main() async {
   final config = ProcessorConfig.fromEnvironment();
+
+  final jumpKey = Platform.environment['JUMP_HOST_PRIVATE_KEY'];
+  if (jumpKey != null && jumpKey.isNotEmpty) {
+    try {
+      final file = File('/tmp/jump_host_key');
+      file.writeAsStringSync('${jumpKey.trim()}\n');
+      Process.runSync('chmod', ['600', '/tmp/jump_host_key']);
+    } catch (_) {}
+  }
 
   await initializeSentry(config.sentryDsn);
 

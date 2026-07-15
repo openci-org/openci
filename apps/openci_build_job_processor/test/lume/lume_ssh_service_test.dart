@@ -13,6 +13,7 @@ class MockLumeSshService extends LumeSshService {
     required String ip,
     required String command,
     required String askPassPath,
+    String? jumpHost,
   }) async {
     runCount++;
     executedCommands.add(command);

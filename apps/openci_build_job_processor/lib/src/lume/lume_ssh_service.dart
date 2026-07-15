@@ -9,7 +9,7 @@ import 'package:sentry/sentry.dart';
 class LumeSshService {
   static const _sshUser = 'admin';
   static const _sshPassword = 'admin';
-  static const List<String> _sshBaseOpts = [
+  static final List<String> _sshBaseOpts = [
     '-o',
     'StrictHostKeyChecking=no',
     '-o',
@@ -22,6 +22,13 @@ class LumeSshService {
     'ServerAliveInterval=30',
     '-o',
     'ServerAliveCountMax=5',
+    if (File('/run/secrets/jump_host_key').existsSync()) ...[
+      '-o',
+      'IdentityFile=/run/secrets/jump_host_key',
+    ] else if (File('/tmp/jump_host_key').existsSync()) ...[
+      '-o',
+      'IdentityFile=/tmp/jump_host_key',
+    ],
   ];
 
   // Visible for testing to speed up test execution
@@ -57,7 +64,7 @@ class LumeSshService {
     ]);
   }
 
-  Future<void> setupDirectSsh(LumeVM vm, String runId) async {
+  Future<void> setupDirectSsh(LumeVM vm, String runId, String? jumpHost) async {
     final sshKeyPath = getSshKeyPath(runId);
     final askPassPath = getAskPassPath(runId);
 
@@ -73,6 +80,7 @@ class LumeSshService {
       ip: ip,
       pubKey: pubKey,
       askPassPath: askPassPath,
+      jumpHost: jumpHost,
     );
   }
 
@@ -80,6 +88,7 @@ class LumeSshService {
     required String ip,
     required String pubKey,
     required String askPassPath,
+    String? jumpHost,
   }) async {
     await prepareAskPassFile(askPassPath);
 
@@ -88,6 +97,7 @@ class LumeSshService {
         ip: ip,
         pubKey: pubKey,
         askPassPath: askPassPath,
+        jumpHost: jumpHost,
       );
     } finally {
       deleteAskPassFile(askPassPath);
@@ -115,6 +125,7 @@ class LumeSshService {
     required String ip,
     required String pubKey,
     required String askPassPath,
+    String? jumpHost,
   }) async {
     const installCmd =
         'mkdir -p ~/.ssh && touch ~/.ssh/authorized_keys && chmod 700 ~/.ssh && chmod 600 ~/.ssh/authorized_keys';
@@ -129,6 +140,7 @@ class LumeSshService {
         ip: ip,
         command: '$installCmd && $appendCmd',
         askPassPath: askPassPath,
+        jumpHost: jumpHost,
       );
       if (exitCode == 0) break;
       await Future<void>.delayed(retryDelay);
@@ -143,11 +155,16 @@ class LumeSshService {
     required String ip,
     required String command,
     required String askPassPath,
+    String? jumpHost,
   }) async {
     final process = await Process.start(
       '/usr/bin/ssh',
       [
         ..._sshBaseOpts,
+        if (jumpHost != null && jumpHost.isNotEmpty) ...[
+          '-J',
+          '$_sshUser@$jumpHost',
+        ],
         '-o',
         'PubkeyAuthentication=no',
         '-o',
@@ -181,10 +198,15 @@ class LumeSshService {
     required String ip,
     required String runId,
     required String command,
+    String? jumpHost,
   }) async {
     final sshKeyPath = getSshKeyPath(runId);
     final process = await Process.start('/usr/bin/ssh', [
       ..._sshBaseOpts,
+      if (jumpHost != null && jumpHost.isNotEmpty) ...[
+        '-J',
+        '$_sshUser@$jumpHost',
+      ],
       '-i',
       sshKeyPath,
       '$_sshUser@$ip',
@@ -209,6 +231,7 @@ class LumeSshService {
     required String runId,
     required String remotePath,
     required String content,
+    String? jumpHost,
   }) async {
     final sshKeyPath = getSshKeyPath(runId);
     final localFile = File(
@@ -219,6 +242,10 @@ class LumeSshService {
     try {
       final processResult = await Process.run('/usr/bin/scp', [
         ..._sshBaseOpts,
+        if (jumpHost != null && jumpHost.isNotEmpty) ...[
+          '-J',
+          '$_sshUser@$jumpHost',
+        ],
         '-o',
         'BatchMode=yes',
         '-i',
@@ -277,11 +304,16 @@ class LumeSshService {
     required String token,
     required Future<bool> Function() isCancelled,
     Duration timeout = const Duration(minutes: 60),
+    String? jumpHost,
   }) async {
     final sshKeyPath = getSshKeyPath(runId);
 
     final process = await Process.start('/usr/bin/ssh', [
       ..._sshBaseOpts,
+      if (jumpHost != null && jumpHost.isNotEmpty) ...[
+        '-J',
+        '$_sshUser@$jumpHost',
+      ],
       '-o',
       'RequestTTY=no',
       '-o',
