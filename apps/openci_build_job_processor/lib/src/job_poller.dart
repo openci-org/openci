@@ -36,10 +36,17 @@ class JobPoller {
   final TailscaleService _tailscaleService;
   final LumeService _lumeService;
   final String _baseVmName;
+  int _activeJobsCount = 0;
+  static const _maxConcurrentJobs = 3;
 
   Future<void> startPolling(String runsOnPattern) async {
     while (true) {
       try {
+        if (_activeJobsCount >= _maxConcurrentJobs) {
+          await Future<void>.delayed(const Duration(seconds: 5));
+          continue;
+        }
+
         final availableLumeUrl = await _findAvailableLumeUrl();
         if (availableLumeUrl == null) {
           await Future<void>.delayed(const Duration(seconds: 10));
@@ -57,7 +64,12 @@ class JobPoller {
           lumeService: _lumeService,
           baseVmName: _baseVmName,
         );
-        unawaited(executor.execute(job, availableLumeUrl));
+        _activeJobsCount++;
+        unawaited(
+          executor.execute(job, availableLumeUrl).whenComplete(() {
+            _activeJobsCount--;
+          }),
+        );
       } catch (e, s) {
         await Sentry.captureException(e, stackTrace: s);
         await Future<void>.delayed(const Duration(seconds: 10));

@@ -220,6 +220,13 @@ class JobExecutor {
     required String vmName,
     required void Function() onVmCreated,
   }) async {
+    try {
+      await _lumeService.stopVm(lumeUrl, vmName);
+    } catch (_) {}
+    try {
+      await _lumeService.deleteVm(lumeUrl, vmName);
+    } catch (_) {}
+
     await _lumeService.cloneVm(lumeUrl, baseVmName, vmName);
     onVmCreated();
 
