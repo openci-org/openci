@@ -1,5 +1,5 @@
 New registration is closed.
 
-See: https://openci.org
+https://openci.org
 
 Docs: WIP
