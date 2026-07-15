@@ -22,7 +22,12 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 RUN groupadd -g 10001 appgroup && \
-    useradd -u 10001 -g appgroup -m -s /bin/bash appuser
+    useradd -u 10001 -g appgroup -m -s /bin/bash appuser && \
+    mkdir -p /home/appuser/.ssh && \
+    echo "Host 100.*\n    StrictHostKeyChecking no\n    UserKnownHostsFile /dev/null" > /home/appuser/.ssh/config && \
+    chmod 700 /home/appuser/.ssh && \
+    chmod 600 /home/appuser/.ssh/config && \
+    chown -R appuser:appgroup /home/appuser/.ssh
 
 WORKDIR /app
 

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math';
 
+import 'package:logging/logging.dart';
 import 'package:lume_dart/lume_dart.dart';
 import 'package:openci_build_job_processor/openci_build_job_processor.dart';
 import 'package:openci_build_job_processor/src/logging/build_job_logger.dart';
@@ -25,6 +26,7 @@ class JobExecutor {
   final String _baseVmName;
   final LumeSshService _sshService;
   final _random = Random();
+  final _log = Logger('JobExecutor');
   Duration retryDelay = const Duration(seconds: 5);
 
   Future<void> execute(BuildJob job, String lumeUrl) async {
@@ -141,6 +143,7 @@ class JobExecutor {
         buildJob: job,
       );
     } catch (e, s) {
+      _log.severe('CRITICAL EXCEPTION IN JOB EXECUTOR', e, s);
       await Sentry.captureException(e, stackTrace: s);
       await _updateJobFinalStatus(
         jobId: job.id,
