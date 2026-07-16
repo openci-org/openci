@@ -135,13 +135,16 @@ class JobPoller {
 
   Future<String?> _findAvailableLumeUrl() async {
     final ips = await _tailscaleService.getActiveMacOsIps();
+    _log.info('Detected Tailscale macOS IPs: $ips');
     final lumeServerUrls = ips.map((ip) => 'http://$ip:7777').toList();
 
     if (lumeServerUrls.isEmpty) {
       return null;
     }
 
-    return _lumeService.findAvailableLumeUrl(lumeServerUrls);
+    final selectedUrl = await _lumeService.findAvailableLumeUrl(lumeServerUrls);
+    _log.info('Selected Lume host: $selectedUrl');
+    return selectedUrl;
   }
 
   Future<BuildJob?> _claimNextJob(String runsOnPattern) async {
