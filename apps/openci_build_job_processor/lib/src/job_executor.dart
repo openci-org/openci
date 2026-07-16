@@ -210,32 +210,38 @@ class JobExecutor {
     required BuildJob buildJob,
   }) async {
     try {
-      await _apiService.updateRunStatus(jobId, runId, {
-        'status': 'completed',
-        'conclusion': conclusion,
-      });
+      await _apiService
+          .updateRunStatus(jobId, runId, {
+            'status': 'completed',
+            'conclusion': conclusion,
+          })
+          .timeout(const Duration(seconds: 10));
     } catch (e, s) {
       unawaited(Sentry.captureException(e, stackTrace: s));
     }
 
     try {
-      await _apiService.completeJob(jobId, {
-        'status': status.name,
-        'completedAt': DateTime.now().toUtc().toIso8601String(),
-      });
+      await _apiService
+          .completeJob(jobId, {
+            'status': status.name,
+            'completedAt': DateTime.now().toUtc().toIso8601String(),
+          })
+          .timeout(const Duration(seconds: 10));
     } catch (e, s) {
       unawaited(Sentry.captureException(e, stackTrace: s));
     }
 
     try {
-      await _apiService.updateCheckRun(jobId, {
-        'status': 'completed',
-        'conclusion': conclusion,
-        'completedAt': DateTime.now().toUtc().toIso8601String(),
-      });
-      await _apiService.handleBuildJobStatusChange(jobId, {
-        'status': status.name,
-      });
+      await _apiService
+          .updateCheckRun(jobId, {
+            'status': 'completed',
+            'conclusion': conclusion,
+            'completedAt': DateTime.now().toUtc().toIso8601String(),
+          })
+          .timeout(const Duration(seconds: 10));
+      await _apiService
+          .handleBuildJobStatusChange(jobId, {'status': status.name})
+          .timeout(const Duration(seconds: 10));
     } catch (e, s) {
       unawaited(Sentry.captureException(e, stackTrace: s));
     }
@@ -261,7 +267,9 @@ class JobExecutor {
   }
 
   Future<void> _createRun(String jobId, String runId) async {
-    final createRunRes = await _apiService.createRun(jobId, {'id': runId});
+    final createRunRes = await _apiService
+        .createRun(jobId, {'id': runId})
+        .timeout(const Duration(seconds: 10));
     if (!createRunRes.isSuccessful) {
       throw Exception(
         'Failed to create run: ${createRunRes.statusCode} - ${createRunRes.error}',
@@ -270,7 +278,9 @@ class JobExecutor {
   }
 
   Future<String> resolveGitHubInstallationToken(String jobId) async {
-    final tokenRes = await _apiService.resolveInstallationToken(jobId);
+    final tokenRes = await _apiService
+        .resolveInstallationToken(jobId)
+        .timeout(const Duration(seconds: 10));
     if (!tokenRes.isSuccessful) {
       throw Exception(
         'Failed to resolve GitHub App Installation Token: ${tokenRes.statusCode} - ${tokenRes.error}',
@@ -401,7 +411,9 @@ class JobExecutor {
 
   Future<bool> _isCancelled(String jobId) async {
     try {
-      final res = await _apiService.getBuildJob(jobId);
+      final res = await _apiService
+          .getBuildJob(jobId)
+          .timeout(const Duration(seconds: 10));
       if (res.isSuccessful) {
         final updatedJob = res.body;
         return updatedJob?['status'] == BuildJobStatus.CANCELLED.name ||
