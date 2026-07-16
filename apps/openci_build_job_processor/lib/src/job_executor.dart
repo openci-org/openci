@@ -35,7 +35,8 @@ class JobExecutor {
     String runId, {
     required FutureOr<void> Function(LumeVM vm) onVmReady,
   }) async {
-    final vmName = 'openci-vm-${job.id}';
+    final shortId = job.id.length > 8 ? job.id.substring(0, 8) : job.id;
+    final vmName = 'openci-vm-$shortId';
     final jumpHost = Uri.parse(lumeUrl).host;
     bool vmCreated = false;
     LumeVM? vm;
