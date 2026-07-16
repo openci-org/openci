@@ -37,6 +37,19 @@ class LumeService {
 
   static const _defaultTimeout = Duration(seconds: 30);
 
+  Future<List<LumeVM>> getVms(String lumeUrl) async {
+    final url = '$lumeUrl/lume/vms';
+    final response = await _api.getVms(url).timeout(_defaultTimeout);
+
+    if (!response.isSuccessful) {
+      throw StateError(
+        'Lume serve returned status ${response.statusCode} for $lumeUrl',
+      );
+    }
+
+    return response.body ?? <LumeVM>[];
+  }
+
   Future<int> getRunningVmCount(String lumeUrl) async {
     final url = '$lumeUrl/lume/vms';
     final response = await _api.getVms(url).timeout(_defaultTimeout);

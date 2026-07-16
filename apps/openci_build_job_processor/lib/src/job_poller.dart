@@ -49,6 +49,12 @@ class JobPoller {
   Future<void> startPolling(String runsOnPattern) async {
     _log.info('JobPoller started polling for pattern: $runsOnPattern');
 
+    try {
+      await pruneZombieVms();
+    } catch (e) {
+      _log.warning('Failed to complete VM pruning initialization: $e');
+    }
+
     Timer.periodic(const Duration(seconds: 30), (_) => _logActiveJobs());
 
     while (true) {
@@ -187,5 +193,30 @@ class JobPoller {
     });
     buffer.write('\n===========================');
     _log.info(buffer.toString());
+  }
+
+  Future<void> pruneZombieVms() async {
+    _log.info('Initializing: Pruning any zombie build VMs on macOS hosts...');
+    final ips = await _tailscaleService.getActiveMacOsIps();
+    for (final ip in ips) {
+      final lumeUrl = 'http://$ip:7777';
+      try {
+        final vms = await _lumeService.getVms(lumeUrl);
+        for (final vm in vms) {
+          if (vm.name.startsWith('openci-vm-') && vm.name != _baseVmName) {
+            _log.info('Pruning zombie VM: ${vm.name} on $lumeUrl');
+            try {
+              await _lumeService.stopVm(lumeUrl, vm.name);
+            } catch (_) {}
+            try {
+              await _lumeService.deleteVm(lumeUrl, vm.name);
+            } catch (_) {}
+          }
+        }
+      } catch (e) {
+        _log.warning('Failed to prune VMs on $lumeUrl: $e');
+      }
+    }
+    _log.info('Initialization complete: Zombie VMs pruned.');
   }
 }
