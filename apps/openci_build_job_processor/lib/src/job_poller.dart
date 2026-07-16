@@ -110,13 +110,14 @@ class JobPoller {
         // VMが起動完了するまで同期的に待つ（同じホストへの同時アサイン競合を防ぐ）
         try {
           await vmReadyCompleter.future;
-        } catch (_) {
+        } catch (e, s) {
+          unawaited(Sentry.captureException(e, stackTrace: s));
           // VM起動エラーの場合は、そのジョブの終了を待ちつつ次のループへ進む
           continue;
         }
       } catch (e, s) {
         _log.severe('Error in polling loop: $e', e, s);
-        await Sentry.captureException(e, stackTrace: s);
+        unawaited(Sentry.captureException(e, stackTrace: s));
         await Future<void>.delayed(const Duration(seconds: 10));
       }
     }

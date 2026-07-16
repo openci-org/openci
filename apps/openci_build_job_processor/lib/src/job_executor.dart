@@ -41,10 +41,13 @@ class JobExecutor {
     LumeVM? vm;
 
     try {
+      _log.info('[$vmName] Starting execute flow. Creating run record...');
       await _createRun(job.id, runId);
 
+      _log.info('[$vmName] Resolving GitHub installation token...');
       final token = await resolveGitHubInstallationToken(job.id);
 
+      _log.info('[$vmName] Preparing VM (cloning & starting)...');
       await _prepareVm(
         lumeUrl: lumeUrl,
         baseVmName: _baseVmName,
@@ -52,9 +55,16 @@ class JobExecutor {
         onVmCreated: () => vmCreated = true,
       );
 
+      _log.info(
+        '[$vmName] VM clone/run command sent. Waiting for VM to boot and acquire IP...',
+      );
       vm = await _lumeService.waitForVmToBeReady(lumeUrl, vmName);
+      _log.info(
+        '[$vmName] VM is ready. IP: ${vm.ipAddress}. Triggering onVmReady...',
+      );
       await onVmReady(vm);
 
+      _log.info('[$vmName] Setting up direct SSH keys on VM...');
       await _sshService.setupDirectSsh(vm, runId, jumpHost: jumpHost);
 
       final ip = vm.ipAddress;
@@ -62,6 +72,9 @@ class JobExecutor {
         throw StateError('VM IP is null; cannot checkout repository.');
       }
 
+      _log.info(
+        '[$vmName] Checking out repository ${job.owner}/${job.repo}@${job.commitSha}...',
+      );
       await _checkoutRepository(
         ip: ip,
         runId: runId,
@@ -74,8 +87,10 @@ class JobExecutor {
         jumpHost: jumpHost,
       );
 
+      _log.info('[$vmName] Fetching secrets...');
       final secretFileContent = await fetchReferencedSecrets(job.id);
 
+      _log.info('[$vmName] Writing secrets to VM...');
       await _sshService.writeFileToVm(
         ip: ip,
         runId: runId,
@@ -84,7 +99,10 @@ class JobExecutor {
         jumpHost: jumpHost,
       );
 
+      _log.info('[$vmName] Fetching event payload...');
       final eventFileContent = await resolveEventPayload(job.id);
+
+      _log.info('[$vmName] Writing event payload to VM...');
       await _sshService.writeFileToVm(
         ip: ip,
         runId: runId,
@@ -93,8 +111,10 @@ class JobExecutor {
         jumpHost: jumpHost,
       );
 
+      _log.info('[$vmName] Fetching build script...');
       final actScript = await fetchBuildScript(job.id);
 
+      _log.info('[$vmName] Writing build script to VM...');
       await _sshService.writeFileToVm(
         ip: ip,
         runId: runId,
@@ -103,6 +123,7 @@ class JobExecutor {
         jumpHost: jumpHost,
       );
 
+      _log.info('[$vmName] Making build script executable...');
       final exitCode = await _sshService.executeSshCommand(
         ip: ip,
         runId: runId,
@@ -150,7 +171,7 @@ class JobExecutor {
       );
     } catch (e, s) {
       _log.severe('CRITICAL EXCEPTION IN JOB EXECUTOR', e, s);
-      await Sentry.captureException(e, stackTrace: s);
+      unawaited(Sentry.captureException(e, stackTrace: s));
       await _updateJobFinalStatus(
         jobId: job.id,
         runId: runId,
@@ -171,13 +192,13 @@ class JobExecutor {
     try {
       await _lumeService.stopVm(lumeUrl, vmName);
     } catch (e, s) {
-      await Sentry.captureException(e, stackTrace: s);
+      unawaited(Sentry.captureException(e, stackTrace: s));
     }
 
     try {
       await _lumeService.deleteVm(lumeUrl, vmName);
     } catch (e, s) {
-      await Sentry.captureException(e, stackTrace: s);
+      unawaited(Sentry.captureException(e, stackTrace: s));
     }
   }
 
@@ -194,7 +215,7 @@ class JobExecutor {
         'conclusion': conclusion,
       });
     } catch (e, s) {
-      await Sentry.captureException(e, stackTrace: s);
+      unawaited(Sentry.captureException(e, stackTrace: s));
     }
 
     try {
@@ -203,7 +224,7 @@ class JobExecutor {
         'completedAt': DateTime.now().toUtc().toIso8601String(),
       });
     } catch (e, s) {
-      await Sentry.captureException(e, stackTrace: s);
+      unawaited(Sentry.captureException(e, stackTrace: s));
     }
 
     try {
@@ -216,7 +237,7 @@ class JobExecutor {
         'status': status.name,
       });
     } catch (e, s) {
-      await Sentry.captureException(e, stackTrace: s);
+      unawaited(Sentry.captureException(e, stackTrace: s));
     }
   }
 
@@ -387,7 +408,7 @@ class JobExecutor {
             updatedJob?['status'] == 'CANCELLING';
       }
     } catch (e, s) {
-      await Sentry.captureException(e, stackTrace: s);
+      unawaited(Sentry.captureException(e, stackTrace: s));
     }
     return false;
   }
