@@ -158,7 +158,10 @@ class LumeSshService {
     String? jumpHost,
   }) async {
     final jumpOpts = jumpHost != null
-        ? ['-J', '$_sshUser@$jumpHost']
+        ? [
+            '-o',
+            'ProxyCommand=ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -W %h:%p $_sshUser@$jumpHost',
+          ]
         : <String>[];
     final process = await Process.start(
       '/usr/bin/ssh',
@@ -202,7 +205,10 @@ class LumeSshService {
   }) async {
     final sshKeyPath = getSshKeyPath(runId);
     final jumpOpts = jumpHost != null
-        ? ['-J', '$_sshUser@$jumpHost']
+        ? [
+            '-o',
+            'ProxyCommand=ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -W %h:%p $_sshUser@$jumpHost',
+          ]
         : <String>[];
     final process = await Process.start('/usr/bin/ssh', [
       ..._sshBaseOpts,
@@ -241,7 +247,10 @@ class LumeSshService {
 
     try {
       final jumpOpts = jumpHost != null
-          ? ['-J', '$_sshUser@$jumpHost']
+          ? [
+              '-o',
+              'ProxyCommand=ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -W %h:%p $_sshUser@$jumpHost',
+            ]
           : <String>[];
       final processResult = await Process.run('/usr/bin/scp', [
         ..._sshBaseOpts,
@@ -308,7 +317,10 @@ class LumeSshService {
   }) async {
     final sshKeyPath = getSshKeyPath(runId);
     final jumpOpts = jumpHost != null
-        ? ['-J', '$_sshUser@$jumpHost']
+        ? [
+            '-o',
+            'ProxyCommand=ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -W %h:%p $_sshUser@$jumpHost',
+          ]
         : <String>[];
 
     final process = await Process.start('/usr/bin/ssh', [
