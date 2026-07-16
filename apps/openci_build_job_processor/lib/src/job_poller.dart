@@ -44,9 +44,13 @@ class JobPoller {
   final String _baseVmName;
   int _activeJobsCount = 0;
   final int _maxConcurrentJobs;
+  final _activeJobs = <String, DateTime>{};
 
   Future<void> startPolling(String runsOnPattern) async {
     _log.info('JobPoller started polling for pattern: $runsOnPattern');
+
+    Timer.periodic(const Duration(seconds: 30), (_) => _logActiveJobs());
+
     while (true) {
       try {
         if (_activeJobsCount >= _maxConcurrentJobs) {
@@ -87,8 +91,12 @@ class JobPoller {
 
         final runId = executor.generateRunId();
         final vmReadyCompleter = Completer<LumeVM>();
+        final shortId = job.id.length > 8 ? job.id.substring(0, 8) : job.id;
+        final vmName = 'openci-vm-$shortId';
 
+        _activeJobs[vmName] = DateTime.now();
         _activeJobsCount++;
+
         unawaited(() async {
           try {
             await executor.execute(
@@ -104,6 +112,7 @@ class JobPoller {
               vmReadyCompleter.completeError(e);
             }
           } finally {
+            _activeJobs.remove(vmName);
             _activeJobsCount--;
           }
         }());
@@ -157,5 +166,22 @@ class JobPoller {
     }
 
     return BuildJob.fromJson(jobMap);
+  }
+
+  void _logActiveJobs() {
+    if (_activeJobs.isEmpty) {
+      return;
+    }
+    final buffer = StringBuffer('\n=== Active Jobs Running ===');
+    final now = DateTime.now();
+    _activeJobs.forEach((vmName, startTime) {
+      final diff = now.difference(startTime);
+      final minutes = diff.inMinutes;
+      final seconds = diff.inSeconds % 60;
+      final timeStr = minutes > 0 ? '${minutes}m ${seconds}s' : '${seconds}s';
+      buffer.write('\n  - $vmName: Running for $timeStr');
+    });
+    buffer.write('\n===========================');
+    _log.info(buffer.toString());
   }
 }
