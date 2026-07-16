@@ -170,6 +170,7 @@ class JobPoller {
 
   void _logActiveJobs() {
     if (_activeJobs.isEmpty) {
+      _log.info('Active jobs: 0');
       return;
     }
     final buffer = StringBuffer('\n=== Active Jobs Running ===');
