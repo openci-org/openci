@@ -73,7 +73,6 @@ void setupBuildJobLogger({
     if (record.stackTrace != null) {
       stdout.writeln('StackTrace:\n${record.stackTrace}');
     }
-    stdout.flush();
   });
 }
 
