@@ -10,6 +10,11 @@ class LumeJsonToTypeConverter extends JsonConverter {
   FutureOr<Response<BodyType>> convertResponse<BodyType, InnerType>(
     Response response,
   ) async {
+    final bodyString = response.body as String?;
+    if (bodyString == null || bodyString.trim().isEmpty) {
+      return response.copyWith<BodyType>(body: null);
+    }
+
     final jsonResponse = await super.convertResponse<dynamic, dynamic>(
       response,
     );
