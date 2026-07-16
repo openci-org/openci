@@ -219,15 +219,38 @@ class LumeSshService {
       command,
     ]);
 
+    final stdoutBuffer = <String>[];
+    final stderrBuffer = <String>[];
+
+    final stdoutSub = process.stdout
+        .transform(utf8.decoder)
+        .listen((data) => stdoutBuffer.add(data));
+    final stderrSub = process.stderr
+        .transform(utf8.decoder)
+        .listen((data) => stderrBuffer.add(data));
+
     try {
-      return await () async {
+      final exitCode = await () async {
         await process.stdin.close();
-        await process.stdout.drain<void>();
-        await process.stderr.drain<void>();
         return await process.exitCode;
       }().timeout(sshTimeout);
+
+      await stdoutSub.cancel();
+      await stderrSub.cancel();
+
+      if (exitCode != 0) {
+        final errOut = stderrBuffer.join().trim();
+        _log.warning('SSH command failed (exit: $exitCode). Command: $command');
+        if (errOut.isNotEmpty) {
+          _log.warning('SSH stderr: $errOut');
+        }
+      }
+      return exitCode;
     } on TimeoutException {
+      await stdoutSub.cancel();
+      await stderrSub.cancel();
       process.kill();
+      _log.warning('SSH command timed out. Command: $command');
       return -1;
     }
   }

@@ -30,7 +30,8 @@ class JobPoller {
              excludeIps: config.excludeIps,
            ),
        _lumeService = lumeService ?? LumeService(),
-       _baseVmName = config.baseVmName {
+       _baseVmName = config.baseVmName,
+       _maxConcurrentJobs = config.maxConcurrentJobs {
     setupBuildJobLogger(
       serverUrl: config.serverUrl,
       internalApiKey: config.internalApiKey,
@@ -42,7 +43,7 @@ class JobPoller {
   final LumeService _lumeService;
   final String _baseVmName;
   int _activeJobsCount = 0;
-  static const _maxConcurrentJobs = 3;
+  final int _maxConcurrentJobs;
 
   Future<void> startPolling(String runsOnPattern) async {
     _log.info('JobPoller started polling for pattern: $runsOnPattern');

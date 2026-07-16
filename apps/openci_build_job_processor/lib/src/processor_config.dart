@@ -10,6 +10,7 @@ class ProcessorConfig {
     required this.internalApiKey,
     this.excludeIps = const [],
     this.sentryDsn,
+    this.maxConcurrentJobs = 3,
   });
 
   final String serverUrl;
@@ -20,6 +21,7 @@ class ProcessorConfig {
   final String internalApiKey;
   final List<String> excludeIps;
   final String? sentryDsn;
+  final int maxConcurrentJobs;
 
   factory ProcessorConfig.fromEnvironment() {
     String getRequired(String key) {
@@ -35,6 +37,10 @@ class ProcessorConfig {
         ? excludeIpsStr.split(',').map((ip) => ip.trim()).toList()
         : <String>[];
 
+    final maxConcurrentJobsStr =
+        Platform.environment['OPENCI_MAX_CONCURRENT_JOBS'] ?? '3';
+    final maxConcurrentJobs = int.tryParse(maxConcurrentJobsStr) ?? 3;
+
     return ProcessorConfig(
       serverUrl: getRequired('OPENCI_SERVER_URL'),
       runsOnPattern: getRequired('OPENCI_RUNS_ON_PATTERN'),
@@ -44,6 +50,7 @@ class ProcessorConfig {
       internalApiKey: getRequired('INTERNAL_API_KEY'),
       excludeIps: excludeIpsList,
       sentryDsn: Platform.environment['SENTRY_DSN'],
+      maxConcurrentJobs: maxConcurrentJobs,
     );
   }
 }
