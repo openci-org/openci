@@ -24,6 +24,7 @@ class JobPoller {
            TailscaleService(
              apiKey: config.tailscaleApiKey,
              tailnet: config.tailscaleTailnet,
+             excludeIps: config.excludeIps,
            ),
        _lumeService = lumeService ?? LumeService(),
        _baseVmName = config.baseVmName {

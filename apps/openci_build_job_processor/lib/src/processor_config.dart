@@ -8,6 +8,7 @@ class ProcessorConfig {
     required this.tailscaleApiKey,
     required this.tailscaleTailnet,
     required this.internalApiKey,
+    this.excludeIps = const [],
     this.sentryDsn,
   });
 
@@ -17,6 +18,7 @@ class ProcessorConfig {
   final String tailscaleApiKey;
   final String tailscaleTailnet;
   final String internalApiKey;
+  final List<String> excludeIps;
   final String? sentryDsn;
 
   factory ProcessorConfig.fromEnvironment() {
@@ -28,6 +30,11 @@ class ProcessorConfig {
       return value;
     }
 
+    final excludeIpsStr = Platform.environment['OPENCI_EXCLUDE_IPS'] ?? '';
+    final excludeIpsList = excludeIpsStr.isNotEmpty
+        ? excludeIpsStr.split(',').map((ip) => ip.trim()).toList()
+        : <String>[];
+
     return ProcessorConfig(
       serverUrl: getRequired('OPENCI_SERVER_URL'),
       runsOnPattern: getRequired('OPENCI_RUNS_ON_PATTERN'),
@@ -35,6 +42,7 @@ class ProcessorConfig {
       tailscaleApiKey: getRequired('TAILSCALE_API_KEY'),
       tailscaleTailnet: getRequired('TAILSCALE_TAILNET'),
       internalApiKey: getRequired('INTERNAL_API_KEY'),
+      excludeIps: excludeIpsList,
       sentryDsn: Platform.environment['SENTRY_DSN'],
     );
   }

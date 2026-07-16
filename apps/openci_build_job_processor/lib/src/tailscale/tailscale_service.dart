@@ -11,11 +11,13 @@ import 'tailscale_device_extension.dart';
 class TailscaleService {
   final String apiKey;
   final String tailnet;
+  final List<String> excludeIps;
   final TailscaleApi _api;
 
   TailscaleService({
     required this.apiKey,
     required this.tailnet,
+    this.excludeIps = const [],
     http.Client? client,
   }) : _api = TailscaleApi.create(
          ChopperClient(
@@ -43,6 +45,7 @@ class TailscaleService {
       return [];
     }
 
-    return data.getActiveMacOsIps();
+    final ips = data.getActiveMacOsIps();
+    return ips.where((ip) => !excludeIps.contains(ip)).toList();
   }
 }
