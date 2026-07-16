@@ -115,6 +115,7 @@ class JobPoller {
           continue;
         }
       } catch (e, s) {
+        _log.severe('Error in polling loop: $e', e, s);
         await Sentry.captureException(e, stackTrace: s);
         await Future<void>.delayed(const Duration(seconds: 10));
       }
