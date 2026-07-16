@@ -1,10 +1,13 @@
 import 'dart:async';
 
+import 'package:logging/logging.dart';
 import 'package:lume_dart/lume_dart.dart';
 import 'package:openci_build_job_processor/openci_build_job_processor.dart';
 import 'package:openci_build_job_processor/src/logging/build_job_logger.dart';
 import 'package:openci_shared/openci_shared.dart';
 import 'package:sentry/sentry.dart';
+
+final _log = Logger('JobPoller');
 
 class JobPoller {
   JobPoller({
@@ -42,24 +45,38 @@ class JobPoller {
   static const _maxConcurrentJobs = 3;
 
   Future<void> startPolling(String runsOnPattern) async {
+    _log.info('JobPoller started polling for pattern: $runsOnPattern');
     while (true) {
       try {
         if (_activeJobsCount >= _maxConcurrentJobs) {
+          _log.info(
+            'Active jobs $_activeJobsCount >= max $_maxConcurrentJobs. Waiting...',
+          );
           await Future<void>.delayed(const Duration(seconds: 5));
           continue;
         }
 
+        _log.info('Checking for available Lume hosts...');
         final availableLumeUrl = await _findAvailableLumeUrl();
         if (availableLumeUrl == null) {
+          _log.info('No available Lume hosts found. Retrying in 10 seconds...');
           await Future<void>.delayed(const Duration(seconds: 10));
           continue;
         }
 
+        _log.info(
+          'Available Lume host found: $availableLumeUrl. Claiming next job for pattern: $runsOnPattern...',
+        );
         final job = await _claimNextJob(runsOnPattern);
         if (job == null) {
+          _log.info(
+            'No queued jobs found for pattern: $runsOnPattern. Retrying in 10 seconds...',
+          );
           await Future<void>.delayed(const Duration(seconds: 10));
           continue;
         }
+
+        _log.info('Job claimed: ${job.id}. Starting build execution...');
 
         final executor = JobExecutor(
           apiService: _apiService,
