@@ -181,10 +181,21 @@ class JobExecutor {
       );
     } finally {
       if (vmCreated) {
-        await _cleanupVm(lumeUrl, vmName);
+        _log.info('[$vmName] Triggering background VM cleanup...');
+        unawaited(() async {
+          try {
+            await _cleanupVm(lumeUrl, vmName);
+            _log.info('[$vmName] Background VM cleanup completed.');
+          } catch (e) {
+            _log.warning('[$vmName] Failed to cleanup VM in background: $e');
+          }
+        }());
       }
+      _log.info('[$vmName] Cleaning up temporary SSH keys...');
       _sshService.cleanupTempSshKeys(runId);
+      _log.info('[$vmName] Flushing remaining logs...');
       await flushRemainingLogs(runId: runId);
+      _log.info('[$vmName] Execute flow fully completed.');
     }
   }
 

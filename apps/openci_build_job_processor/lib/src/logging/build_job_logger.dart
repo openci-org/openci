@@ -63,8 +63,9 @@ void setupBuildJobLogger({
 
   dart_logging.Logger.root.level = dart_logging.Level.ALL;
   dart_logging.Logger.root.onRecord.listen((record) {
+    final jstTime = record.time.toUtc().add(const Duration(hours: 9));
     stdout.writeln(
-      '${record.time} [${record.loggerName}] ${record.level.name}: ${record.message}',
+      '$jstTime [${record.loggerName}] ${record.level.name}: ${record.message}',
     );
     if (record.error != null) {
       stdout.writeln('Error: ${record.error}');
