@@ -2,9 +2,12 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:logging/logging.dart';
 import 'package:lume_dart/lume_dart.dart';
 import 'package:openci_build_job_processor/src/logging/build_job_logger.dart';
 import 'package:sentry/sentry.dart';
+
+final _log = Logger('LumeSshService');
 
 class LumeSshService {
   static const _sshUser = 'admin';
@@ -321,7 +324,10 @@ class LumeSshService {
       ...command,
     ]);
 
+    _log.info('SSH process started. PID: ${process.pid}, Command: $command');
+
     await process.stdin.close();
+    _log.info('Closed stdin stream.');
 
     final stdoutCompleter = Completer<void>();
     final stderrCompleter = Completer<void>();
@@ -390,10 +396,25 @@ class LumeSshService {
       }
     });
 
-    await Future.wait([stdoutCompleter.future, stderrCompleter.future]);
+    _log.info('Waiting for SSH output or process exit...');
+    final exitCodeFuture = process.exitCode;
+    await Future.any<dynamic>([
+      Future.wait([stdoutCompleter.future, stderrCompleter.future]),
+      exitCodeFuture,
+    ]);
     cancelTimer.cancel();
+    _log.info('Future.any resolved (process exit or stream end).');
 
-    final exitCode = await process.exitCode;
+    // プロセス終了で抜けた場合に備え、最後のエラーログの読みこぼしを防ぐため、
+    // 最大200ミリ秒だけログの読み切り（ストリーム of stdout/stderr のクローズ）を待ちます。
+    await Future.wait([
+      stdoutCompleter.future,
+      stderrCompleter.future,
+    ]).timeout(const Duration(milliseconds: 200), onTimeout: () => []);
+    _log.info('Drained streams with 200ms grace period.');
+
+    final exitCode = await exitCodeFuture;
+    _log.info('SSH execution completed. Exit code: $exitCode');
 
     if (isTimedOut) {
       throw TimeoutException(
