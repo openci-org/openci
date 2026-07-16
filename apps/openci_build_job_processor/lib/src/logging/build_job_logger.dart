@@ -48,7 +48,6 @@ String? _serverUrl;
 String? _internalApiKey;
 final _bufferGroups = <String, _BufferGroup>{};
 final _activeWrites = <Future<void>>[];
-final http.Client _httpClient = http.Client();
 
 const _maxBufferCount = 50;
 const _flushInterval = Duration(seconds: 1);
@@ -95,31 +94,36 @@ Future<void> _sendLogsWithRetry(
   final url = Uri.parse('$baseServerUrl/builds/$buildJobId/runs/$runId/logs');
   final body = jsonEncode({'logs': payloadLogs});
 
-  for (var attempt = 1; attempt <= _maxWriteAttempts; attempt++) {
-    try {
-      final response = await _httpClient
-          .post(
-            url,
-            headers: {
-              'Content-Type': 'application/json',
-              if (_internalApiKey != null)
-                'Authorization': 'Bearer $_internalApiKey',
-            },
-            body: body,
-          )
-          .timeout(const Duration(seconds: 10));
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        return;
+  final client = http.Client();
+  try {
+    for (var attempt = 1; attempt <= _maxWriteAttempts; attempt++) {
+      try {
+        final response = await client
+            .post(
+              url,
+              headers: {
+                'Content-Type': 'application/json',
+                if (_internalApiKey != null)
+                  'Authorization': 'Bearer $_internalApiKey',
+              },
+              body: body,
+            )
+            .timeout(const Duration(seconds: 10));
+        if (response.statusCode >= 200 && response.statusCode < 300) {
+          return;
+        }
+        throw HttpException('HTTP ${response.statusCode}: ${response.body}');
+      } catch (e) {
+        if (attempt == _maxWriteAttempts) {
+          _log.warning('[BuildLog] Failed to send logs to server: $e');
+          return;
+        }
+        final delay = _initialRetryDelay * (1 << (attempt - 1));
+        await Future.delayed(delay);
       }
-      throw HttpException('HTTP ${response.statusCode}: ${response.body}');
-    } catch (e) {
-      if (attempt == _maxWriteAttempts) {
-        _log.warning('[BuildLog] Failed to send logs to server: $e');
-        return;
-      }
-      final delay = _initialRetryDelay * (1 << (attempt - 1));
-      await Future.delayed(delay);
     }
+  } finally {
+    client.close();
   }
 }
 
@@ -177,9 +181,12 @@ Future<void> flushRemainingLogs({String? runId}) async {
     }
   }
 
-  while (_activeWrites.isNotEmpty) {
-    await Future.wait(_activeWrites);
-  }
+  // ログ書き出しの完了を待ちますが、ネットワーク詰まり等による無限ハングを防ぐため、
+  // 最大5秒で強制的に切り上げます。
+  try {
+    await Future.wait(_activeWrites).timeout(const Duration(seconds: 5));
+  } catch (_) {}
+  _activeWrites.clear();
 }
 
 Future<void> logInfo(String buildJobId, String runId, String message) async {
