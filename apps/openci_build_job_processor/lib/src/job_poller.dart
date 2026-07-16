@@ -179,10 +179,12 @@ class JobPoller {
 
   void _logActiveJobs() {
     if (_activeJobs.isEmpty) {
-      _log.info('Active jobs: 0');
+      _log.info('Active jobs: 0 / $_maxConcurrentJobs');
       return;
     }
-    final buffer = StringBuffer('\n=== Active Jobs Running ===');
+    final buffer = StringBuffer(
+      '\n=== Active Jobs Running: ${_activeJobs.length} / $_maxConcurrentJobs ===',
+    );
     final now = DateTime.now();
     _activeJobs.forEach((vmName, startTime) {
       final diff = now.difference(startTime);
