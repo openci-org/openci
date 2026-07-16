@@ -263,12 +263,12 @@ export async function buildAndSignIos(): Promise<void> {
       }
       const versionArg = flutterVersion ? `--flutter-version=${flutterVersion}` : "";
       await exec(
-        `shorebird release ios --export-options-plist="${exportOptionsPath}" ${versionArg} ${buildNumberArg} ${buildArgs}`.trim(),
+        `shorebird release ios --verbose --export-options-plist="${exportOptionsPath}" ${versionArg} ${buildNumberArg} ${buildArgs}`.trim(),
         { cwd: workingDirectory },
       );
     } else {
       await exec(
-        `flutter build ipa ${noPubArg} --release --export-options-plist="${exportOptionsPath}" ${buildNumberArg} ${buildArgs}`.trim(),
+        `flutter build ipa ${noPubArg} --release --verbose --export-options-plist="${exportOptionsPath}" ${buildNumberArg} ${buildArgs}`.trim(),
         { cwd: workingDirectory },
       );
     }

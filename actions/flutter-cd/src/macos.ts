@@ -116,7 +116,7 @@ export async function buildSignAndNotarizeMacos(): Promise<void> {
     const noSignXcconfigPath = prepareUnsignedMacosBuild(workingDirectory, tmpDir);
     const buildNumberArg = buildNumberInput ? `--build-number=${shellQuote(buildNumberInput)}` : "";
     await exec(
-      `XCODE_XCCONFIG_FILE=${shellQuote(noSignXcconfigPath)} flutter build macos ${noPubArg} --release ${buildNumberArg} ${buildArgs}`.trim(),
+      `XCODE_XCCONFIG_FILE=${shellQuote(noSignXcconfigPath)} flutter build macos ${noPubArg} --release --verbose ${buildNumberArg} ${buildArgs}`.trim(),
       { cwd: workingDirectory },
     );
     const appPath = appPathInput

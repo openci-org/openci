@@ -11,7 +11,7 @@ export async function deployWeb(): Promise<void> {
 
   // Build
   core.startGroup("Build web");
-  await exec(`flutter build web ${buildArgs}`.trim(), { cwd: workingDirectory });
+  await exec(`flutter build web --verbose ${buildArgs}`.trim(), { cwd: workingDirectory });
   core.endGroup();
 
   if (!saJson) {

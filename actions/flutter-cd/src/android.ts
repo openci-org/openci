@@ -105,7 +105,7 @@ export async function deployAndroid(): Promise<void> {
 
       console.log(`  🐦 Running shorebird release android...`);
       await exec(
-        `shorebird release android ${flutterVersionArg} ${artifactArg} ${separator} ${flutterArgs}`.trim(),
+        `shorebird release android --verbose ${flutterVersionArg} ${artifactArg} ${separator} ${flutterArgs}`.trim(),
         { cwd: workingDirectory },
       );
 
@@ -134,7 +134,7 @@ export async function deployAndroid(): Promise<void> {
       // 1. Build AAB (if Play Store deployment or explicit release is expected)
       if (serviceAccountJson || !otaEnabled) {
         core.startGroup("Step 2.1: Building AAB");
-        await exec(`flutter build appbundle --release ${buildNumberArg} ${buildArgs}`.trim(), {
+        await exec(`flutter build appbundle --release --verbose ${buildNumberArg} ${buildArgs}`.trim(), {
           cwd: workingDirectory,
         });
 
@@ -152,7 +152,7 @@ export async function deployAndroid(): Promise<void> {
       // 2. Build APK (for OTA distribution)
       if (otaEnabled) {
         core.startGroup("Step 2.2: Building APK for OTA");
-        await exec(`flutter build apk --release ${buildNumberArg} ${buildArgs}`.trim(), {
+        await exec(`flutter build apk --release --verbose ${buildNumberArg} ${buildArgs}`.trim(), {
           cwd: workingDirectory,
         });
 
