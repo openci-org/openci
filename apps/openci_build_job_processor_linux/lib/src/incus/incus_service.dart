@@ -223,6 +223,7 @@ class IncusService {
       'wait-for-variables': false,
       'record-output': false,
       'interactive': false,
+      'wait-for-websocket': true,
     });
 
     _log.info('Executing command in $containerName: $command');
