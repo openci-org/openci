@@ -80,6 +80,8 @@ class LumeSshService {
       ip: ip,
       pubKey: pubKey,
       askPassPath: askPassPath,
+      vmName: vm.name,
+      runId: runId,
       jumpHost: jumpHost,
     );
   }
@@ -88,6 +90,8 @@ class LumeSshService {
     required String ip,
     required String pubKey,
     required String askPassPath,
+    required String vmName,
+    required String runId,
     String? jumpHost,
   }) async {
     await prepareAskPassFile(askPassPath);
@@ -97,6 +101,8 @@ class LumeSshService {
         ip: ip,
         pubKey: pubKey,
         askPassPath: askPassPath,
+        vmName: vmName,
+        runId: runId,
         jumpHost: jumpHost,
       );
     } finally {
@@ -125,6 +131,8 @@ class LumeSshService {
     required String ip,
     required String pubKey,
     required String askPassPath,
+    required String vmName,
+    required String runId,
     String? jumpHost,
   }) async {
     const installCmd =
@@ -135,23 +143,32 @@ class LumeSshService {
         'printf %s \'$pubKeyB64\' | base64 -D >> ~/.ssh/authorized_keys';
 
     var exitCode = -1;
+    String lastStderr = '';
     for (var attempt = 1; attempt <= 30; attempt++) {
-      exitCode = await runPasswordSsh(
+      final result = await runPasswordSsh(
         ip: ip,
         command: '$installCmd && $appendCmd',
         askPassPath: askPassPath,
         jumpHost: jumpHost,
       );
+      exitCode = result.exitCode;
+      lastStderr = result.stderr;
       if (exitCode == 0) break;
       await Future<void>.delayed(retryDelay);
     }
 
     if (exitCode != 0) {
-      throw Exception('Failed to install SSH key on VM. Exit code: $exitCode');
+      throw Exception(
+        'Failed to install SSH key on VM. '
+        'VM: $vmName ($ip), Run ID: $runId, '
+        'Worker Host: ${Platform.localHostname}, '
+        'Exit code: $exitCode, '
+        'Error: ${lastStderr.trim()}',
+      );
     }
   }
 
-  Future<int> runPasswordSsh({
+  Future<SshResult> runPasswordSsh({
     required String ip,
     required String command,
     required String askPassPath,
@@ -184,16 +201,39 @@ class LumeSshService {
       },
     );
 
+    final stdoutBuffer = <String>[];
+    final stderrBuffer = <String>[];
+
+    final stdoutSub = process.stdout
+        .transform(utf8.decoder)
+        .listen((data) => stdoutBuffer.add(data));
+    final stderrSub = process.stderr
+        .transform(utf8.decoder)
+        .listen((data) => stderrBuffer.add(data));
+
     try {
-      return await () async {
+      final exitCode = await () async {
         await process.stdin.close();
-        await process.stdout.drain<void>();
-        await process.stderr.drain<void>();
         return await process.exitCode;
       }().timeout(sshTimeout);
+
+      await stdoutSub.cancel();
+      await stderrSub.cancel();
+
+      return SshResult(
+        exitCode: exitCode,
+        stdout: stdoutBuffer.join(),
+        stderr: stderrBuffer.join(),
+      );
     } on TimeoutException {
+      await stdoutSub.cancel();
+      await stderrSub.cancel();
       process.kill();
-      return -1;
+      return SshResult(
+        exitCode: -1,
+        stdout: stdoutBuffer.join(),
+        stderr: 'SSH connection timed out.',
+      );
     }
   }
 
@@ -472,4 +512,16 @@ class LumeSshService {
       );
     }
   }
+}
+
+class SshResult {
+  final int exitCode;
+  final String stdout;
+  final String stderr;
+
+  SshResult({
+    required this.exitCode,
+    required this.stdout,
+    required this.stderr,
+  });
 }

@@ -9,7 +9,7 @@ class MockLumeSshService extends LumeSshService {
   List<String> executedCommands = [];
 
   @override
-  Future<int> runPasswordSsh({
+  Future<SshResult> runPasswordSsh({
     required String ip,
     required String command,
     required String askPassPath,
@@ -17,7 +17,11 @@ class MockLumeSshService extends LumeSshService {
   }) async {
     runCount++;
     executedCommands.add(command);
-    return mockExitCode;
+    return SshResult(
+      exitCode: mockExitCode,
+      stdout: '',
+      stderr: mockExitCode != 0 ? 'Mock SSH failure details' : '',
+    );
   }
 }
 
@@ -224,6 +228,8 @@ void main() async {
           ip: '127.0.0.1',
           pubKey: 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAA...',
           askPassPath: '/tmp/dummy-askpass',
+          vmName: 'test-vm',
+          runId: 'test-run',
         );
 
         expect(mockService.runCount, equals(1));
@@ -244,10 +250,18 @@ void main() async {
             ip: '127.0.0.1',
             pubKey: 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAA...',
             askPassPath: '/tmp/dummy-askpass',
+            vmName: 'test-vm',
+            runId: 'test-run',
           );
         } catch (e) {
           threw = true;
           expect(e, isA<Exception>());
+          final msg = e.toString();
+          expect(msg, contains('VM: test-vm (127.0.0.1)'));
+          expect(msg, contains('Run ID: test-run'));
+          expect(msg, contains('Worker Host:'));
+          expect(msg, contains('Exit code: 1'));
+          expect(msg, contains('Error: Mock SSH failure details'));
         }
 
         expect(threw, isTrue);
@@ -260,13 +274,14 @@ void main() async {
       () async {
         sshService.sshTimeout = const Duration(milliseconds: 1);
 
-        final exitCode = await sshService.runPasswordSsh(
+        final result = await sshService.runPasswordSsh(
           ip: '127.0.0.1',
           command: 'sleep 10',
           askPassPath: '/tmp/non-existent-askpass-path',
         );
 
-        expect(exitCode, equals(-1));
+        expect(result.exitCode, equals(-1));
+        expect(result.stderr, contains('timed out'));
       },
       skip: hasSsh ? null : 'ssh command not available',
     );
