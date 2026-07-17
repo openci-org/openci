@@ -1,9 +1,24 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:openci_build_job_processor_linux/openci_build_job_processor_linux.dart';
+import 'package:sentry/sentry.dart';
+
 Future<void> main() async {
-  stderr.writeln('openci_build_job_processor_linux started (mock entrypoint)');
-  while (true) {
-    await Future.delayed(const Duration(seconds: 60));
-  }
+  await runZonedGuarded(
+    () async {
+      final config = ProcessorConfig.fromEnvironment();
+
+      await initializeSentry(config.sentryDsn);
+
+      final jobPoller = JobPoller(config: config);
+      await jobPoller.startPolling(config.runsOnPattern);
+    },
+    (error, stackTrace) async {
+      stderr.writeln('FATAL UNCAUGHT ERROR: $error');
+      stderr.writeln(stackTrace);
+      await Sentry.captureException(error, stackTrace: stackTrace);
+      exit(1);
+    },
+  );
 }
