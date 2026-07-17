@@ -252,7 +252,9 @@ class IncusService {
     final opMetadata = metadata['metadata'] as Map<String, dynamic>?;
     final fds = opMetadata?['fds'] as Map<String, dynamic>?;
     if (fds == null) {
-      throw Exception('No file descriptors (fds) returned from exec request');
+      throw Exception(
+        'No file descriptors (fds) returned from exec request. Raw response: $resBody',
+      );
     }
 
     final stdoutSecret = fds['1'] as String?;
