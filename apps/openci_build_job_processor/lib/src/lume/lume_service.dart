@@ -152,4 +152,39 @@ class LumeService {
       'Timeout waiting for Lume VM "$vmName" to boot and become running on $lumeUrl.',
     );
   }
+
+  Future<void> waitForVmToBeStopped(
+    String lumeUrl,
+    String vmName, {
+    Duration timeout = const Duration(minutes: 2),
+  }) async {
+    final url = '$lumeUrl/lume/vms';
+    final stopTime = DateTime.now().add(timeout);
+
+    while (DateTime.now().isBefore(stopTime)) {
+      try {
+        final response = await _api.getVms(url).timeout(_defaultTimeout);
+        if (response.isSuccessful && response.body != null) {
+          final vms = response.body!;
+          final index = vms.indexWhere((v) => v.name == vmName);
+          if (index == -1) {
+            // Already deleted or not found
+            return;
+          }
+          final vm = vms[index];
+          if (vm.status.toLowerCase() == 'stopped') {
+            return;
+          }
+        }
+      } catch (e) {
+        // Ignore transient API or connection errors while shutting down
+        print('Warning while waiting for VM to stop: $e');
+      }
+      await Future<void>.delayed(const Duration(seconds: 2));
+    }
+
+    throw TimeoutException(
+      'Timeout waiting for Lume VM "$vmName" to stop on $lumeUrl.',
+    );
+  }
 }
