@@ -44,7 +44,7 @@ class JobPoller {
   final String _baseVmName;
   int _activeJobsCount = 0;
   final int _maxConcurrentJobs;
-  final _activeJobs = <String, DateTime>{};
+  final _activeJobs = <String, ({DateTime startTime, String host})>{};
 
   Future<void> startPolling(String runsOnPattern) async {
     _log.info('JobPoller started polling for pattern: $runsOnPattern');
@@ -100,7 +100,8 @@ class JobPoller {
         final shortId = job.id.length > 8 ? job.id.substring(0, 8) : job.id;
         final vmName = 'openci-vm-$shortId';
 
-        _activeJobs[vmName] = DateTime.now();
+        final hostIp = Uri.parse(availableLumeUrl).host;
+        _activeJobs[vmName] = (startTime: DateTime.now(), host: hostIp);
         _activeJobsCount++;
 
         unawaited(() async {
@@ -186,12 +187,12 @@ class JobPoller {
       '\n=== Active Jobs Running: ${_activeJobs.length} / $_maxConcurrentJobs ===',
     );
     final now = DateTime.now();
-    _activeJobs.forEach((vmName, startTime) {
-      final diff = now.difference(startTime);
+    _activeJobs.forEach((vmName, info) {
+      final diff = now.difference(info.startTime);
       final minutes = diff.inMinutes;
       final seconds = diff.inSeconds % 60;
       final timeStr = minutes > 0 ? '${minutes}m ${seconds}s' : '${seconds}s';
-      buffer.write('\n  - $vmName: Running for $timeStr');
+      buffer.write('\n  - $vmName (on ${info.host}): Running for $timeStr');
     });
     buffer.write('\n===========================');
     _log.info(buffer.toString());
