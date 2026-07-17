@@ -206,17 +206,25 @@ class JobPoller {
         final vms = await _lumeService.getVms(lumeUrl);
         for (final vm in vms) {
           if (vm.name.startsWith('openci-vm-') && vm.name != _baseVmName) {
-            _log.info('Pruning zombie VM: ${vm.name} on $lumeUrl');
+            _log.info(
+              'Pruning zombie VM: ${vm.name} (status: ${vm.status}) on $lumeUrl',
+            );
             try {
-              await _lumeService.stopVm(lumeUrl, vm.name);
-            } catch (_) {}
-            try {
+              if (vm.status.toLowerCase() == 'running') {
+                await _lumeService.stopVm(lumeUrl, vm.name);
+                await _lumeService.waitForVmToBeStopped(lumeUrl, vm.name);
+              }
               await _lumeService.deleteVm(lumeUrl, vm.name);
-            } catch (_) {}
+              _log.info('Successfully pruned zombie VM: ${vm.name}');
+            } catch (e, s) {
+              _log.warning('Failed to prune zombie VM ${vm.name}', e, s);
+              unawaited(Sentry.captureException(e, stackTrace: s));
+            }
           }
         }
-      } catch (e) {
-        _log.warning('Failed to prune VMs on $lumeUrl: $e');
+      } catch (e, s) {
+        _log.warning('Failed to prune VMs on $lumeUrl', e, s);
+        unawaited(Sentry.captureException(e, stackTrace: s));
       }
     }
     _log.info('Initialization complete: Zombie VMs pruned.');
