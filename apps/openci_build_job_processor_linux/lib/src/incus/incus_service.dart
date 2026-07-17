@@ -249,7 +249,8 @@ class IncusService {
       throw Exception('No metadata returned from exec request');
     }
 
-    final fds = metadata['fds'] as Map<String, dynamic>?;
+    final opMetadata = metadata['metadata'] as Map<String, dynamic>?;
+    final fds = opMetadata?['fds'] as Map<String, dynamic>?;
     if (fds == null) {
       throw Exception('No file descriptors (fds) returned from exec request');
     }
