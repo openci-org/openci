@@ -184,7 +184,7 @@ class JobExecutor {
       if (vmCreated) {
         _log.info('[$vmName] Triggering VM cleanup...');
         try {
-          await _cleanupVm(lumeUrl, vmName);
+          await _cleanupVm(lumeUrl, vmName, runId);
           _log.info('[$vmName] VM cleanup completed.');
         } catch (e) {
           _log.warning('[$vmName] Failed to cleanup VM: $e');
@@ -198,7 +198,7 @@ class JobExecutor {
     }
   }
 
-  Future<void> _cleanupVm(String lumeUrl, String vmName) async {
+  Future<void> _cleanupVm(String lumeUrl, String vmName, String runId) async {
     try {
       await _lumeService.stopVm(lumeUrl, vmName);
       await _lumeService.waitForVmToBeStopped(lumeUrl, vmName);
@@ -208,6 +208,13 @@ class JobExecutor {
 
     try {
       await _lumeService.deleteVm(lumeUrl, vmName);
+    } catch (e, s) {
+      unawaited(Sentry.captureException(e, stackTrace: s));
+    }
+
+    try {
+      final jumpHost = Uri.parse(lumeUrl).host;
+      await _sshService.clearArpCache(jumpHost: jumpHost, runId: runId);
     } catch (e, s) {
       unawaited(Sentry.captureException(e, stackTrace: s));
     }

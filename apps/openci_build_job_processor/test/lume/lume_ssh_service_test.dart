@@ -330,5 +330,24 @@ void main() async {
       },
       skip: hasScp ? null : 'scp command not available',
     );
+
+    test(
+      'clearArpCache executes sudo arp -d -a command on Lume host',
+      () async {
+        final mockService = MockLumeSshService();
+        mockService.mockExitCode = 0;
+
+        await mockService.clearArpCache(
+          jumpHost: '100.112.30.120',
+          runId: 'test-run',
+        );
+
+        expect(mockService.runCount, equals(1));
+        expect(
+          mockService.executedCommands.first,
+          contains('sudo -S arp -d -a'),
+        );
+      },
+    );
   });
 }

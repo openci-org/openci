@@ -4,6 +4,7 @@ import 'package:logging/logging.dart';
 import 'package:lume_dart/lume_dart.dart';
 import 'package:openci_build_job_processor/openci_build_job_processor.dart';
 import 'package:openci_build_job_processor/src/logging/build_job_logger.dart';
+import 'package:openci_build_job_processor/src/lume/lume_ssh_service.dart';
 import 'package:openci_shared/openci_shared.dart';
 import 'package:sentry/sentry.dart';
 
@@ -15,6 +16,7 @@ class JobPoller {
     OpenCiApiService? apiService,
     TailscaleService? tailscaleService,
     LumeService? lumeService,
+    LumeSshService? sshService,
   }) : _apiService =
            apiService ??
            createOpenCiChopperClient(
@@ -30,6 +32,7 @@ class JobPoller {
              excludeIps: config.excludeIps,
            ),
        _lumeService = lumeService ?? LumeService(),
+       _sshService = sshService ?? LumeSshService(),
        _baseVmName = config.baseVmName,
        _maxConcurrentJobs = config.maxConcurrentJobs {
     setupBuildJobLogger(
@@ -41,6 +44,7 @@ class JobPoller {
   final OpenCiApiService _apiService;
   final TailscaleService _tailscaleService;
   final LumeService _lumeService;
+  final LumeSshService _sshService;
   final String _baseVmName;
   int _activeJobsCount = 0;
   final int _maxConcurrentJobs;
@@ -205,6 +209,7 @@ class JobPoller {
       final lumeUrl = 'http://$ip:7777';
       try {
         final vms = await _lumeService.getVms(lumeUrl);
+        bool didPrune = false;
         for (final vm in vms) {
           if (vm.name.startsWith('openci-vm-') && vm.name != _baseVmName) {
             _log.info(
@@ -217,11 +222,16 @@ class JobPoller {
               }
               await _lumeService.deleteVm(lumeUrl, vm.name);
               _log.info('Successfully pruned zombie VM: ${vm.name}');
+              didPrune = true;
             } catch (e, s) {
               _log.warning('Failed to prune zombie VM ${vm.name}', e, s);
               unawaited(Sentry.captureException(e, stackTrace: s));
             }
           }
+        }
+        if (didPrune) {
+          final runId = 'prune-${DateTime.now().millisecondsSinceEpoch}';
+          await _sshService.clearArpCache(jumpHost: ip, runId: runId);
         }
       } catch (e, s) {
         _log.warning('Failed to prune VMs on $lumeUrl', e, s);

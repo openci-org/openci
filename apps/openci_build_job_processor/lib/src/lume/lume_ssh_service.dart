@@ -237,6 +237,39 @@ class LumeSshService {
     }
   }
 
+  Future<void> clearArpCache({
+    required String jumpHost,
+    required String runId,
+  }) async {
+    final askPassPath = getAskPassPath(runId);
+    try {
+      await prepareAskPassFile(askPassPath);
+      _log.info('Clearing ARP cache on Lume host: $jumpHost');
+      final result = await runPasswordSsh(
+        ip: jumpHost,
+        command: 'echo $_sshPassword | sudo -S arp -d -a',
+        askPassPath: askPassPath,
+      );
+      if (result.exitCode != 0) {
+        _log.warning(
+          'Failed to clear ARP cache on Lume host: $jumpHost. '
+          'Exit code: ${result.exitCode}, Error: ${result.stderr.trim()}',
+        );
+      } else {
+        _log.info('Successfully cleared ARP cache on Lume host: $jumpHost');
+      }
+    } catch (e, s) {
+      _log.warning(
+        'Error while clearing ARP cache on Lume host $jumpHost',
+        e,
+        s,
+      );
+      unawaited(Sentry.captureException(e, stackTrace: s));
+    } finally {
+      deleteAskPassFile(askPassPath);
+    }
+  }
+
   Future<int> executeSshCommand({
     required String ip,
     required String runId,
