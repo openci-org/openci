@@ -56,7 +56,7 @@ jobs:
 
       - name: Install Patrol CLI
         run: |
-          dart pub global activate patrol_cli
+          dart pub global activate patrol_cli 4.4.0
 
       - name: Run Patrol E2E Tests
         run: |

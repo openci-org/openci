@@ -134,9 +134,12 @@ export async function deployAndroid(): Promise<void> {
       // 1. Build AAB (if Play Store deployment or explicit release is expected)
       if (serviceAccountJson || !otaEnabled) {
         core.startGroup("Step 2.1: Building AAB");
-        await exec(`flutter build appbundle --release --verbose ${buildNumberArg} ${buildArgs}`.trim(), {
-          cwd: workingDirectory,
-        });
+        await exec(
+          `flutter build appbundle --release --verbose ${buildNumberArg} ${buildArgs}`.trim(),
+          {
+            cwd: workingDirectory,
+          },
+        );
 
         aabPath =
           findFile(path.join(workingDirectory, "build", "app", "outputs"), ".aab", flavor) || "";

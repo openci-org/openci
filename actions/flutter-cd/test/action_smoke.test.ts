@@ -67,7 +67,7 @@ exit 42
 
     expect(result.code, result.stderr || result.stdout).toBe(0);
     expect(result.stdout).toContain("No firebase-service-account provided, skipping deploy.");
-    await expect(readFile(flutterLog, "utf8")).resolves.toBe("build web\n");
+    await expect(readFile(flutterLog, "utf8")).resolves.toBe("build web --verbose\n");
   });
 });
 
