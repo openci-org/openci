@@ -48,27 +48,67 @@ class JobExecutor {
       _log.info('[$vmName] Resolving GitHub installation token...');
       final token = await resolveGitHubInstallationToken(job.id);
 
-      _log.info('[$vmName] Preparing VM (cloning & starting)...');
-      await _prepareVm(
-        lumeUrl: lumeUrl,
-        baseVmName: _baseVmName,
-        vmName: vmName,
-        onVmCreated: () => vmCreated = true,
+      const retryOptions = RetryOptions(
+        maxAttempts: 2,
+        delayFactor: Duration(seconds: 5),
       );
 
-      _log.info(
-        '[$vmName] VM clone/run command sent. Waiting for VM to boot and acquire IP...',
-      );
-      vm = await _lumeService.waitForVmToBeReady(lumeUrl, vmName);
-      _log.info(
-        '[$vmName] VM is ready. IP: ${vm.ipAddress}. Triggering onVmReady...',
-      );
-      await onVmReady(vm);
+      await retryOptions.retry(
+        () async {
+          _log.info('[$vmName] Preparing VM (cloning & starting)...');
+          await _prepareVm(
+            lumeUrl: lumeUrl,
+            baseVmName: _baseVmName,
+            vmName: vmName,
+            onVmCreated: () => vmCreated = true,
+          );
 
-      _log.info('[$vmName] Setting up direct SSH keys on VM...');
-      await _sshService.setupDirectSsh(vm, runId, jumpHost: jumpHost);
+          _log.info(
+            '[$vmName] VM clone/run command sent. Waiting for VM to boot and acquire IP...',
+          );
+          final currentVm = await _lumeService.waitForVmToBeReady(
+            lumeUrl,
+            vmName,
+          );
+          vm = currentVm;
 
-      final ip = vm.ipAddress;
+          _log.info(
+            '[$vmName] VM is ready. IP: ${currentVm.ipAddress}. Triggering onVmReady...',
+          );
+          await onVmReady(currentVm);
+
+          _log.info('[$vmName] Setting up direct SSH keys on VM...');
+          await _sshService.setupDirectSsh(
+            currentVm,
+            runId,
+            jumpHost: jumpHost,
+          );
+        },
+        onRetry: (e) async {
+          _log.warning(
+            '[$vmName] VM preparation failed: $e. '
+            'Cleaning up failed VM before retry...',
+          );
+          try {
+            await _cleanupVm(lumeUrl, vmName, runId);
+            vmCreated = false;
+            vm = null;
+          } catch (cleanupErr, cleanupStack) {
+            _log.warning(
+              '[$vmName] Cleanup failed during retry prep: $cleanupErr',
+            );
+            unawaited(
+              Sentry.captureException(cleanupErr, stackTrace: cleanupStack),
+            );
+          }
+        },
+      );
+
+      final finalVm = vm;
+      if (finalVm == null) {
+        throw StateError('VM was not successfully created or initialized.');
+      }
+      final ip = finalVm.ipAddress;
       if (ip == null) {
         throw StateError('VM IP is null; cannot checkout repository.');
       }
