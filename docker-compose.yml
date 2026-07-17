@@ -89,6 +89,26 @@ services:
       - tailscale
       - server
 
+  job-processor-linux:
+    build:
+      context: .
+      dockerfile: apps/openci_build_job_processor_linux/Dockerfile
+    container_name: openci-job-processor-linux
+    network_mode: "service:tailscale"
+    user: "root"
+    restart: unless-stopped
+    environment:
+      - OPENCI_SERVER_URL=http://server:8080
+      - OPENCI_RUNS_ON_PATTERN=${OPENCI_RUNS_ON_PATTERN_LINUX:?OPENCI_RUNS_ON_PATTERN_LINUX environment variable is required}
+      - INCUS_BASE_INSTANCE=${INCUS_BASE_INSTANCE:?INCUS_BASE_INSTANCE environment variable is required}
+      - INCUS_API_URL=${INCUS_API_URL:?INCUS_API_URL environment variable is required}
+      - INTERNAL_API_KEY=${INTERNAL_API_KEY:?INTERNAL_API_KEY environment variable is required}
+      - SENTRY_DSN=${SENTRY_DSN_JOB_PROCESSOR_LINUX:-}
+      - OPENCI_MAX_CONCURRENT_JOBS=${OPENCI_MAX_CONCURRENT_JOBS_LINUX:-3}
+    depends_on:
+      - tailscale
+      - server
+
   caddy:
     image: caddy:2-alpine
     container_name: openci-caddy
