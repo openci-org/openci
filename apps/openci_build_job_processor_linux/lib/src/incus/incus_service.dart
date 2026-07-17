@@ -333,7 +333,7 @@ class IncusService {
     WebSocket? ws;
     try {
       _log.fine('Connecting to WebSocket: $wsUrl');
-      ws = await WebSocket.connect(wsUrl).timeout(const Duration(seconds: 10));
+      ws = await WebSocket.connect(wsUrl).timeout(const Duration(seconds: 2));
 
       final subscription = ws.listen(
         (data) {
