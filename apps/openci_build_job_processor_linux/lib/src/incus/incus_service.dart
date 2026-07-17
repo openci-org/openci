@@ -48,7 +48,7 @@ class IncusService {
           body['err'] as String? ??
           metadata?['err'] as String? ??
           'Unknown error';
-      throw Exception('Operation $operationPath failed: $err');
+      throw Exception('Operation $operationPath failed: $err. Raw body: $body');
     }
   }
 
