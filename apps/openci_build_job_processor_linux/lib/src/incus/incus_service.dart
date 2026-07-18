@@ -188,13 +188,15 @@ class IncusService {
     String content, {
     String mode = '0600',
   }) async {
-    final url = Uri.parse('$apiUrl/1.0/instances/$containerName/files');
+    final encodedPath = Uri.encodeComponent(remotePath);
+    final url = Uri.parse(
+      '$apiUrl/1.0/instances/$containerName/files?path=$encodedPath',
+    );
 
     _log.info('Writing file to $containerName:$remotePath...');
     final response = await _client.post(
       url,
       headers: {
-        'X-Incus-path': remotePath,
         'X-Incus-mode': mode,
         'Content-Type': 'application/octet-stream',
       },
