@@ -40,7 +40,6 @@ class IncusService {
     final metadata = body['metadata'] as Map<String, dynamic>?;
     final statusCode = body['status_code'] as int? ?? 0;
 
-    // LXD/Incus Operation Status Code 200: Success
     if (statusCode == 200) {
       return metadata ?? {};
     } else {
