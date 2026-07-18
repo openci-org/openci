@@ -258,6 +258,7 @@ class IncusService {
       );
     }
 
+    final stdinSecret = fds['0'] as String?;
     final stdoutSecret = fds['1'] as String?;
     final stderrSecret = fds['2'] as String?;
 
@@ -268,8 +269,19 @@ class IncusService {
     final wsBaseUrl = apiUrl.replaceFirst(RegExp(r'^http'), 'ws');
 
     final futures = <Future<void>>[];
+    final stdinCompleter = Completer<void>();
     final stdoutCompleter = Completer<void>();
     final stderrCompleter = Completer<void>();
+
+    if (stdinSecret != null) {
+      final stdinWsUrl =
+          '$wsBaseUrl$operationPath/websocket?secret=$stdinSecret';
+      futures.add(
+        _connectAndStream(stdinWsUrl, (_) {}, stdinCompleter, isCancelled),
+      );
+    } else {
+      stdinCompleter.complete();
+    }
 
     final stdoutWsUrl =
         '$wsBaseUrl$operationPath/websocket?secret=$stdoutSecret';
@@ -333,7 +345,7 @@ class IncusService {
     WebSocket? ws;
     try {
       _log.fine('Connecting to WebSocket: $wsUrl');
-      ws = await WebSocket.connect(wsUrl).timeout(const Duration(seconds: 2));
+      ws = await WebSocket.connect(wsUrl).timeout(const Duration(seconds: 10));
 
       final subscription = ws.listen(
         (data) {
