@@ -122,7 +122,7 @@ class AppColors extends ThemeExtension<AppColors> {
 
   /// Convenience accessor from BuildContext.
   static AppColors of(BuildContext context) {
-    return Theme.of(context).extension<AppColors>()!;
+    return Theme.of(context).extension<AppColors>() ?? AppColors.light;
   }
 
   // ═══════════════════════════════════════════════════════════════════
