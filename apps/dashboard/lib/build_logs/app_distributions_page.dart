@@ -1188,7 +1188,9 @@ class _IosDistributionQrDialog extends HookWidget {
                     final confirm = await showDialog<bool>(
                       context: context,
                       builder: (context) => AlertDialog(
-                        backgroundColor: colors.onSurface.withValues(alpha: 0.08),
+                        backgroundColor: colors.onSurface.withValues(
+                          alpha: 0.08,
+                        ),
                         surfaceTintColor: Colors.transparent,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),
