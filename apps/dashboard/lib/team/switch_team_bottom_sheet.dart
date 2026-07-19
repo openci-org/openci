@@ -6,7 +6,6 @@ import 'package:dashboard/team/invite_team_member_bottom_sheet.dart';
 import 'package:dashboard/team/selected_team_provider.dart';
 import 'package:dashboard/team/team_members_bottom_sheet.dart';
 import 'package:dashboard/team/team_provider.dart';
-import 'package:dashboard/theme/app_colors.dart';
 import 'package:dashboard/utilities/adaptive_modal.dart';
 import 'package:dashboard/utilities/async_error_widget.dart';
 import 'package:dashboard/utilities/snack_bar_extension.dart';
@@ -37,6 +36,7 @@ class SwitchTeamBottomSheet extends HookConsumerWidget {
     final currentTeam = ref.watch(teamStateProvider).value;
     final teamT = t.team;
     final isMembersLoading = useState(false);
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -52,10 +52,10 @@ class SwitchTeamBottomSheet extends HookConsumerWidget {
                 children: [
                   Container(
                     decoration: BoxDecoration(
-                      color: AppColors.of(context).surface,
+                      color: colorScheme.surface,
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: AppColors.of(context).border,
+                        color: colorScheme.outlineVariant,
                       ),
                     ),
                     clipBehavior: Clip.antiAlias,
@@ -67,7 +67,7 @@ class SwitchTeamBottomSheet extends HookConsumerWidget {
                             Divider(
                               height: 1,
                               thickness: 1,
-                              color: AppColors.of(context).divider,
+                              color: Theme.of(context).dividerColor,
                             ),
                           _TeamItem(
                             name: teams[i].name,
@@ -143,19 +143,18 @@ Future<void> showTeamFlowModal(BuildContext context) {
     context: context,
     pageIndexNotifier: pageIndexNotifier,
     pageListBuilder: (modalSheetContext) {
-      final colors = AppColors.of(modalSheetContext);
+      final scaffoldBg = Theme.of(modalSheetContext).scaffoldBackgroundColor;
       return [
         // Page 0: チーム選択
         WoltModalSheetPage(
-          backgroundColor: colors.scaffold,
+          backgroundColor: scaffoldBg,
           pageTitle: Padding(
             padding: const EdgeInsets.only(left: 16, right: 16, top: 12),
             child: Text(
               teamT.selectTeam,
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
-                color: colors.textPrimary,
               ),
             ),
           ),
@@ -169,7 +168,7 @@ Future<void> showTeamFlowModal(BuildContext context) {
         ),
         // Page 1: メンバー一覧
         WoltModalSheetPage(
-          backgroundColor: colors.scaffold,
+          backgroundColor: scaffoldBg,
           leadingNavBarWidget: BackButton(
             onPressed: () => pageIndexNotifier.value = 0,
           ),
@@ -177,10 +176,9 @@ Future<void> showTeamFlowModal(BuildContext context) {
             padding: const EdgeInsets.only(left: 16, right: 16, top: 12),
             child: Text(
               teamT.members,
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
-                color: colors.textPrimary,
               ),
             ),
           ),
@@ -188,7 +186,7 @@ Future<void> showTeamFlowModal(BuildContext context) {
         ),
         // Page 2: メンバー招待
         WoltModalSheetPage(
-          backgroundColor: colors.scaffold,
+          backgroundColor: scaffoldBg,
           leadingNavBarWidget: BackButton(
             onPressed: () => pageIndexNotifier.value = 0,
           ),
@@ -196,10 +194,9 @@ Future<void> showTeamFlowModal(BuildContext context) {
             padding: const EdgeInsets.only(left: 16, right: 16, top: 12),
             child: Text(
               teamT.inviteTitle,
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
-                color: colors.textPrimary,
               ),
             ),
           ),
@@ -207,7 +204,7 @@ Future<void> showTeamFlowModal(BuildContext context) {
         ),
         // Page 3: チーム新規作成
         WoltModalSheetPage(
-          backgroundColor: colors.scaffold,
+          backgroundColor: scaffoldBg,
           leadingNavBarWidget: BackButton(
             onPressed: () => pageIndexNotifier.value = 0,
           ),
@@ -215,10 +212,9 @@ Future<void> showTeamFlowModal(BuildContext context) {
             padding: const EdgeInsets.only(left: 16, right: 16, top: 12),
             child: Text(
               teamT.createTeam,
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
-                color: colors.textPrimary,
               ),
             ),
           ),
@@ -226,7 +222,7 @@ Future<void> showTeamFlowModal(BuildContext context) {
         ),
         // Page 4: チーム編集
         WoltModalSheetPage(
-          backgroundColor: colors.scaffold,
+          backgroundColor: scaffoldBg,
           leadingNavBarWidget: BackButton(
             onPressed: () => pageIndexNotifier.value = 0,
           ),
@@ -234,10 +230,9 @@ Future<void> showTeamFlowModal(BuildContext context) {
             padding: const EdgeInsets.only(left: 16, right: 16, top: 12),
             child: Text(
               teamT.editTeam,
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
-                color: colors.textPrimary,
               ),
             ),
           ),
@@ -245,7 +240,7 @@ Future<void> showTeamFlowModal(BuildContext context) {
         ),
         // Page 5: チーム削除
         WoltModalSheetPage(
-          backgroundColor: colors.scaffold,
+          backgroundColor: scaffoldBg,
           leadingNavBarWidget: BackButton(
             onPressed: () => pageIndexNotifier.value = 0,
           ),
@@ -253,10 +248,9 @@ Future<void> showTeamFlowModal(BuildContext context) {
             padding: const EdgeInsets.only(left: 16, right: 16, top: 12),
             child: Text(
               teamT.deleteTeam,
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
-                color: colors.textPrimary,
               ),
             ),
           ),
@@ -293,13 +287,14 @@ class _TeamActions extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final teamT = t.team;
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.of(context).surface,
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: AppColors.of(context).border,
+          color: colorScheme.outlineVariant,
         ),
       ),
       clipBehavior: Clip.antiAlias,
@@ -329,7 +324,7 @@ class _TeamActions extends StatelessWidget {
           Divider(
             height: 1,
             thickness: 1,
-            color: AppColors.of(context).divider,
+            color: Theme.of(context).dividerColor,
           ),
           Row(
             children: [
@@ -382,18 +377,19 @@ class _TeamActionItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     final foreground = isDestructive
-        ? AppColors.of(context).error
-        : AppColors.of(context).textSecondary;
+        ? colorScheme.error
+        : colorScheme.onSurfaceVariant;
 
     return InkWell(
       onTap: onTap,
       hoverColor: onTap == null
           ? Colors.transparent
-          : AppColors.of(context).borderSubtle,
+          : colorScheme.outlineVariant.withValues(alpha: 0.5),
       splashColor: onTap == null
           ? Colors.transparent
-          : AppColors.of(context).borderSubtle,
+          : colorScheme.outlineVariant.withValues(alpha: 0.5),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 13),
         child: Column(
@@ -442,7 +438,7 @@ class _VerticalDivider extends StatelessWidget {
       child: VerticalDivider(
         width: 1,
         thickness: 1,
-        color: AppColors.of(context).divider,
+        color: Theme.of(context).dividerColor,
       ),
     );
   }
@@ -461,10 +457,12 @@ class _TeamItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return InkWell(
       onTap: onTap,
-      hoverColor: AppColors.of(context).borderSubtle,
-      splashColor: AppColors.of(context).borderSubtle,
+      hoverColor: colorScheme.outlineVariant.withValues(alpha: 0.5),
+      splashColor: colorScheme.outlineVariant.withValues(alpha: 0.5),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
         child: Row(
@@ -474,8 +472,8 @@ class _TeamItem extends StatelessWidget {
               height: 32,
               decoration: BoxDecoration(
                 color: isSelected
-                    ? AppColors.of(context).accent.withValues(alpha: 0.15)
-                    : AppColors.of(context).surfaceTertiary,
+                    ? colorScheme.primary.withValues(alpha: 0.15)
+                    : colorScheme.surfaceContainerHighest,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Center(
@@ -485,8 +483,8 @@ class _TeamItem extends StatelessWidget {
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
                     color: isSelected
-                        ? AppColors.of(context).accent
-                        : AppColors.of(context).textSecondary,
+                        ? colorScheme.primary
+                        : colorScheme.onSurfaceVariant,
                   ),
                 ),
               ),
@@ -498,9 +496,7 @@ class _TeamItem extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                  color: isSelected
-                      ? AppColors.of(context).accent
-                      : AppColors.of(context).textPrimary,
+                  color: isSelected ? colorScheme.primary : null,
                 ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
@@ -510,7 +506,7 @@ class _TeamItem extends StatelessWidget {
               Icon(
                 Icons.check_rounded,
                 size: 18,
-                color: AppColors.of(context).accent,
+                color: colorScheme.primary,
               ),
           ],
         ),

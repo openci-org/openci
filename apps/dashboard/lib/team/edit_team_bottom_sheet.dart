@@ -1,6 +1,5 @@
 import 'package:dashboard/app_strings.dart';
 import 'package:dashboard/team/team_provider.dart';
-import 'package:dashboard/theme/app_colors.dart';
 import 'package:dashboard/utilities/async_error_widget.dart';
 import 'package:dashboard/utilities/snack_bar_extension.dart';
 import 'package:flutter/material.dart';
@@ -20,6 +19,8 @@ class EditTeamBottomSheet extends HookConsumerWidget {
     final selectedTeamId = useState<String?>(null);
     final isLoading = useState(false);
     final teamT = t.team;
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
       child: teamListStream.when(
@@ -32,10 +33,10 @@ class EditTeamBottomSheet extends HookConsumerWidget {
               // ── Team selector ──
               Container(
                 decoration: BoxDecoration(
-                  color: AppColors.of(context).surface,
+                  color: colorScheme.surface,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: AppColors.of(context).border,
+                    color: colorScheme.outlineVariant,
                   ),
                 ),
                 clipBehavior: Clip.antiAlias,
@@ -44,10 +45,9 @@ class EditTeamBottomSheet extends HookConsumerWidget {
                   physics: const NeverScrollableScrollPhysics(),
                   padding: EdgeInsets.zero,
                   itemCount: teams.length,
-                  separatorBuilder: (context, index) => Divider(
+                  separatorBuilder: (context, index) => const Divider(
                     height: 1,
                     thickness: 1,
-                    color: AppColors.of(context).divider,
                   ),
                   itemBuilder: (context, index) {
                     final team = teams[index];
@@ -62,8 +62,12 @@ class EditTeamBottomSheet extends HookConsumerWidget {
                             .map((id) => id.toString())
                             .join(', ');
                       },
-                      hoverColor: AppColors.of(context).borderSubtle,
-                      splashColor: AppColors.of(context).borderSubtle,
+                      hoverColor: colorScheme.outlineVariant.withValues(
+                        alpha: 0.5,
+                      ),
+                      splashColor: colorScheme.outlineVariant.withValues(
+                        alpha: 0.5,
+                      ),
                       child: Padding(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 16,
@@ -76,12 +80,10 @@ class EditTeamBottomSheet extends HookConsumerWidget {
                               height: 32,
                               decoration: BoxDecoration(
                                 color: isSelected
-                                    ? AppColors.of(
-                                        context,
-                                      ).accent.withValues(alpha: 0.15)
-                                    : AppColors.of(
-                                        context,
-                                      ).surfaceTertiary,
+                                    ? colorScheme.primary.withValues(
+                                        alpha: 0.15,
+                                      )
+                                    : colorScheme.surfaceContainerHighest,
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Center(
@@ -93,10 +95,8 @@ class EditTeamBottomSheet extends HookConsumerWidget {
                                     fontSize: 13,
                                     fontWeight: FontWeight.w600,
                                     color: isSelected
-                                        ? AppColors.of(context).accent
-                                        : AppColors.of(
-                                            context,
-                                          ).textPrimary.withValues(
+                                        ? colorScheme.primary
+                                        : colorScheme.onSurface.withValues(
                                             alpha: 0.6,
                                           ),
                                   ),
@@ -113,8 +113,8 @@ class EditTeamBottomSheet extends HookConsumerWidget {
                                       ? FontWeight.w600
                                       : FontWeight.w500,
                                   color: isSelected
-                                      ? AppColors.of(context).accent
-                                      : AppColors.of(context).textPrimary,
+                                      ? colorScheme.primary
+                                      : null,
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
@@ -124,7 +124,7 @@ class EditTeamBottomSheet extends HookConsumerWidget {
                               Icon(
                                 Icons.check_rounded,
                                 size: 18,
-                                color: AppColors.of(context).accent,
+                                color: colorScheme.primary,
                               ),
                           ],
                         ),
@@ -140,22 +140,21 @@ class EditTeamBottomSheet extends HookConsumerWidget {
                   key: formKey,
                   child: Container(
                     decoration: BoxDecoration(
-                      color: AppColors.of(context).surface,
+                      color: colorScheme.surface,
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: AppColors.of(context).border,
+                        color: colorScheme.outlineVariant,
                       ),
                     ),
                     child: TextFormField(
                       controller: teamNameController,
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 14,
-                        color: AppColors.of(context).textPrimary,
                       ),
                       decoration: InputDecoration(
                         hintText: teamT.newTeamName,
                         hintStyle: TextStyle(
-                          color: AppColors.of(context).textTertiary,
+                          color: colorScheme.outline,
                           fontSize: 14,
                         ),
                         contentPadding: const EdgeInsets.symmetric(
@@ -171,7 +170,7 @@ class EditTeamBottomSheet extends HookConsumerWidget {
                           child: Icon(
                             Icons.edit_outlined,
                             size: 18,
-                            color: AppColors.of(context).textTertiary,
+                            color: colorScheme.outline,
                           ),
                         ),
                         prefixIconConstraints: const BoxConstraints(
@@ -213,8 +212,8 @@ class EditTeamBottomSheet extends HookConsumerWidget {
                   width: double.infinity,
                   child: TextButton(
                     style: TextButton.styleFrom(
-                      foregroundColor: AppColors.of(context).accentOnAccent,
-                      backgroundColor: AppColors.of(context).accent,
+                      foregroundColor: colorScheme.onPrimary,
+                      backgroundColor: colorScheme.primary,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10),
@@ -258,7 +257,7 @@ class EditTeamBottomSheet extends HookConsumerWidget {
                             height: 20,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              color: AppColors.of(context).accentOnAccent,
+                              color: colorScheme.onPrimary,
                             ),
                           )
                         : Text(
@@ -298,26 +297,26 @@ class _EnterpriseTextField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.of(context).surface,
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: AppColors.of(context).border,
+          color: colorScheme.outlineVariant,
         ),
       ),
       child: TextFormField(
         controller: controller,
         validator: validator,
-        style: TextStyle(
+        style: const TextStyle(
           fontSize: 14,
-          color: AppColors.of(context).textPrimary,
         ),
         decoration: InputDecoration(
           labelText: label,
           hintText: hintText,
           hintStyle: TextStyle(
-            color: AppColors.of(context).textTertiary,
+            color: colorScheme.outline,
             fontSize: 14,
           ),
           contentPadding: const EdgeInsets.symmetric(

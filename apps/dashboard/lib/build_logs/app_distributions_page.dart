@@ -6,7 +6,6 @@ import 'package:dashboard/auth/auth_provider.dart';
 import 'package:dashboard/build_logs/build_jobs_provider.dart';
 import 'package:dashboard/openci_server_url_provider.dart';
 import 'package:dashboard/team/selected_team_provider.dart';
-import 'package:dashboard/theme/app_colors.dart';
 import 'package:dashboard/users/user_provider.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -22,7 +21,8 @@ class AppDistributionsBody extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final colors = AppColors.of(context);
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
     final buildJobsAsync = ref.watch(otaBuildJobsProvider);
     final userAsync = ref.watch(userProvider);
 
@@ -78,7 +78,7 @@ class AppDistributionsBody extends HookConsumerWidget {
                             Icon(
                               Icons.install_mobile_rounded,
                               size: 64,
-                              color: colors.textTertiary,
+                              color: colors.outline,
                             ),
                             const SizedBox(height: 16),
                             Text(
@@ -86,7 +86,7 @@ class AppDistributionsBody extends HookConsumerWidget {
                               style: TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.w600,
-                                color: colors.textPrimary,
+                                color: colors.onSurface,
                               ),
                             ),
                             const SizedBox(height: 8),
@@ -95,7 +95,7 @@ class AppDistributionsBody extends HookConsumerWidget {
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                 fontSize: 13,
-                                color: colors.textSecondary,
+                                color: colors.onSurfaceVariant,
                               ),
                             ),
                           ],
@@ -157,21 +157,21 @@ class AppDistributionsBody extends HookConsumerWidget {
                                 initiallyExpanded: index == 0,
                                 leading: Icon(
                                   Icons.inventory_2_outlined,
-                                  color: colors.accent,
+                                  color: colors.primary,
                                 ),
                                 title: Text(
                                   'バージョン $version',
                                   style: TextStyle(
                                     fontSize: 15,
                                     fontWeight: FontWeight.bold,
-                                    color: colors.textPrimary,
+                                    color: colors.onSurface,
                                   ),
                                 ),
                                 subtitle: Text(
                                   '最終ビルド: $latestDateText  (${versionJobs.length} 個のビルド)',
                                   style: TextStyle(
                                     fontSize: 12,
-                                    color: colors.textSecondary,
+                                    color: colors.onSurfaceVariant,
                                   ),
                                 ),
                                 children: [
@@ -214,7 +214,7 @@ class _DeviceEnrollmentHeader extends HookConsumerWidget {
   });
 
   final OpenCIUser user;
-  final AppColors colors;
+  final ColorScheme colors;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -235,7 +235,7 @@ class _DeviceEnrollmentHeader extends HookConsumerWidget {
     final isUdidVisible = useState(false);
 
     return Card(
-      color: colors.surfaceHover,
+      color: colors.onSurface.withValues(alpha: 0.08),
       margin: const EdgeInsets.fromLTRB(16, 16, 16, 8),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -245,7 +245,7 @@ class _DeviceEnrollmentHeader extends HookConsumerWidget {
               hasUdid
                   ? Icons.check_circle_outline_rounded
                   : Icons.warning_amber_rounded,
-              color: hasUdid ? colors.success : colors.warning,
+              color: hasUdid ? Colors.green : Colors.orange,
               size: 24,
             ),
             const SizedBox(width: 16),
@@ -258,7 +258,7 @@ class _DeviceEnrollmentHeader extends HookConsumerWidget {
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
-                      color: colors.textPrimary,
+                      color: colors.onSurface,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -273,7 +273,7 @@ class _DeviceEnrollmentHeader extends HookConsumerWidget {
                               : 'iOSアプリをインストールするには、この端末のUDID登録が必要です。',
                           style: TextStyle(
                             fontSize: 12,
-                            color: colors.textSecondary,
+                            color: colors.onSurfaceVariant,
                           ),
                         ),
                       ),
@@ -285,7 +285,7 @@ class _DeviceEnrollmentHeader extends HookConsumerWidget {
                                 ? Icons.visibility_off_rounded
                                 : Icons.visibility_rounded,
                             size: 16,
-                            color: colors.textSecondary,
+                            color: colors.onSurfaceVariant,
                           ),
                           constraints: const BoxConstraints(),
                           padding: EdgeInsets.zero,
@@ -302,9 +302,11 @@ class _DeviceEnrollmentHeader extends HookConsumerWidget {
             const SizedBox(width: 8),
             FilledButton.icon(
               style: FilledButton.styleFrom(
-                backgroundColor: hasUdid ? colors.scaffold : colors.accent,
-                foregroundColor: hasUdid ? colors.textPrimary : Colors.white,
-                side: hasUdid ? BorderSide(color: colors.border) : null,
+                backgroundColor: hasUdid
+                    ? Theme.of(context).scaffoldBackgroundColor
+                    : colors.primary,
+                foregroundColor: hasUdid ? colors.onSurface : Colors.white,
+                side: hasUdid ? BorderSide(color: colors.outlineVariant) : null,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
@@ -354,7 +356,7 @@ class _UdidBadge extends StatelessWidget {
   });
 
   final _UdidStatus status;
-  final AppColors colors;
+  final ColorScheme colors;
 
   @override
   Widget build(BuildContext context) {
@@ -364,7 +366,7 @@ class _UdidBadge extends StatelessWidget {
 
     switch (status) {
       case _UdidStatus.provisioned:
-        badgeColor = colors.success;
+        badgeColor = Colors.green;
         text = '登録済み';
         icon = Icons.check_circle_outline_rounded;
         break;
@@ -374,7 +376,7 @@ class _UdidBadge extends StatelessWidget {
         icon = Icons.cancel_outlined;
         break;
       case _UdidStatus.unregistered:
-        badgeColor = colors.textTertiary;
+        badgeColor = colors.outline;
         text = 'UDID未登録';
         icon = Icons.info_outline_rounded;
         break;
@@ -421,7 +423,8 @@ class _BuildListItem extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final colors = AppColors.of(context);
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
     final serverUrl = ref.watch(openciServerUrlProvider);
     final isRequested = useState(false);
     final isUdidVisible = useState(false);
@@ -474,7 +477,7 @@ class _BuildListItem extends HookConsumerWidget {
     return Container(
       decoration: BoxDecoration(
         border: Border(
-          bottom: BorderSide(color: colors.divider),
+          bottom: BorderSide(color: theme.dividerColor),
         ),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -488,7 +491,7 @@ class _BuildListItem extends HookConsumerWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
-                  color: colors.accent.withValues(alpha: 0.1),
+                  color: colors.primary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
@@ -496,7 +499,7 @@ class _BuildListItem extends HookConsumerWidget {
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w800,
-                    color: colors.accent,
+                    color: colors.primary,
                   ),
                 ),
               ),
@@ -517,7 +520,7 @@ class _BuildListItem extends HookConsumerWidget {
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    color: colors.textPrimary,
+                    color: colors.onSurface,
                   ),
                 ),
               ),
@@ -529,11 +532,11 @@ class _BuildListItem extends HookConsumerWidget {
                   style: OutlinedButton.styleFrom(
                     foregroundColor: (isUdidProvisioned || isDesktopOrWeb)
                         ? const Color(0xFF3FB950)
-                        : colors.textTertiary,
+                        : colors.outline,
                     side: BorderSide(
                       color: (isUdidProvisioned || isDesktopOrWeb)
                           ? const Color(0xFF3FB950)
-                          : colors.border,
+                          : colors.outlineVariant,
                       width: 1.5,
                     ),
                     padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -617,9 +620,9 @@ class _BuildListItem extends HookConsumerWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
-                  color: colors.scaffold,
+                  color: Theme.of(context).scaffoldBackgroundColor,
                   borderRadius: BorderRadius.circular(6),
-                  border: Border.all(color: colors.border),
+                  border: Border.all(color: colors.outlineVariant),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -627,7 +630,7 @@ class _BuildListItem extends HookConsumerWidget {
                     Icon(
                       Icons.commit_rounded,
                       size: 11,
-                      color: colors.textTertiary,
+                      color: colors.outline,
                     ),
                     const SizedBox(width: 3),
                     Text(
@@ -636,7 +639,7 @@ class _BuildListItem extends HookConsumerWidget {
                         fontSize: 10,
                         fontFamily: 'monospace',
                         fontWeight: FontWeight.w500,
-                        color: colors.textSecondary,
+                        color: colors.onSurfaceVariant,
                       ),
                     ),
                   ],
@@ -650,14 +653,14 @@ class _BuildListItem extends HookConsumerWidget {
                   Icon(
                     Icons.access_time_rounded,
                     size: 12,
-                    color: colors.textTertiary,
+                    color: colors.outline,
                   ),
                   const SizedBox(width: 4),
                   Text(
                     dateText,
                     style: TextStyle(
                       fontSize: 10.5,
-                      color: colors.textSecondary,
+                      color: colors.onSurfaceVariant,
                     ),
                   ),
                 ],
@@ -775,9 +778,7 @@ class _BuildListItem extends HookConsumerWidget {
                           ? Icons.check_rounded
                           : Icons.send_rounded,
                       size: 12,
-                      color: isRequested.value
-                          ? colors.textTertiary
-                          : colors.error,
+                      color: isRequested.value ? colors.outline : colors.error,
                     ),
                     label: Text(
                       isRequested.value ? '申請済み' : 'UDIDを申請',
@@ -785,7 +786,7 @@ class _BuildListItem extends HookConsumerWidget {
                         fontSize: 10.5,
                         fontWeight: FontWeight.bold,
                         color: isRequested.value
-                            ? colors.textTertiary
+                            ? colors.outline
                             : colors.error,
                       ),
                     ),
@@ -798,17 +799,17 @@ class _BuildListItem extends HookConsumerWidget {
               margin: const EdgeInsets.only(bottom: 10),
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
-                color: colors.textTertiary.withValues(alpha: 0.05),
+                color: colors.outline.withValues(alpha: 0.05),
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
-                  color: colors.textTertiary.withValues(alpha: 0.15),
+                  color: colors.outline.withValues(alpha: 0.15),
                 ),
               ),
               child: Row(
                 children: [
                   Icon(
                     Icons.info_outline_rounded,
-                    color: colors.textTertiary,
+                    color: colors.outline,
                     size: 16,
                   ),
                   const SizedBox(width: 8),
@@ -817,7 +818,7 @@ class _BuildListItem extends HookConsumerWidget {
                       'この端末のUDIDが登録されていません。上のヘッダーからデバイス登録を行ってください。',
                       style: TextStyle(
                         fontSize: 11,
-                        color: colors.textSecondary,
+                        color: colors.onSurfaceVariant,
                       ),
                     ),
                   ),
@@ -830,9 +831,9 @@ class _BuildListItem extends HookConsumerWidget {
             width: double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             decoration: BoxDecoration(
-              color: colors.scaffold,
+              color: Theme.of(context).scaffoldBackgroundColor,
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: colors.border),
+              border: Border.all(color: colors.outlineVariant),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -842,7 +843,7 @@ class _BuildListItem extends HookConsumerWidget {
                     Icon(
                       Icons.description_outlined,
                       size: 11,
-                      color: colors.textTertiary,
+                      color: colors.outline,
                     ),
                     const SizedBox(width: 4),
                     Text(
@@ -850,7 +851,7 @@ class _BuildListItem extends HookConsumerWidget {
                       style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.bold,
-                        color: colors.textTertiary,
+                        color: colors.outline,
                       ),
                     ),
                   ],
@@ -860,7 +861,7 @@ class _BuildListItem extends HookConsumerWidget {
                   changelog,
                   style: TextStyle(
                     fontSize: 11.5,
-                    color: colors.textSecondary,
+                    color: colors.onSurfaceVariant,
                     height: 1.45,
                   ),
                 ),
@@ -877,7 +878,7 @@ class _PlatformBadge extends StatelessWidget {
   const _PlatformBadge({required this.isAndroid, required this.colors});
 
   final bool isAndroid;
-  final AppColors colors;
+  final ColorScheme colors;
 
   @override
   Widget build(BuildContext context) {
@@ -1002,7 +1003,8 @@ class _IosDistributionQrDialog extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = AppColors.of(context);
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
     final isCopied = useState(false);
 
     final origin = kIsWeb ? Uri.base.origin : 'https://dashboard.openci.org';
@@ -1012,20 +1014,20 @@ class _IosDistributionQrDialog extends HookWidget {
     final installPageUrl = '$origin/install-ota?buildJobId=${buildJob.id}';
 
     return AlertDialog(
-      backgroundColor: colors.surfaceHover,
+      backgroundColor: colors.onSurface.withValues(alpha: 0.08),
       surfaceTintColor: Colors.transparent,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: colors.border),
+        side: BorderSide(color: colors.outlineVariant),
       ),
       title: Row(
         children: [
-          Icon(Icons.install_mobile_rounded, color: colors.success, size: 22),
+          Icon(Icons.install_mobile_rounded, color: Colors.green, size: 22),
           const SizedBox(width: 8),
           Text(
             'iOS アプリのインストール',
             style: TextStyle(
-              color: colors.textPrimary,
+              color: colors.onSurface,
               fontSize: 16,
               fontWeight: FontWeight.w600,
             ),
@@ -1040,7 +1042,7 @@ class _IosDistributionQrDialog extends HookWidget {
             Text(
               '実機のカメラ等で以下のQRコードを読み取るか、直接インストールボタンを押してください。',
               style: TextStyle(
-                color: colors.textSecondary,
+                color: colors.onSurfaceVariant,
                 fontSize: 13,
                 height: 1.4,
               ),
@@ -1054,7 +1056,7 @@ class _IosDistributionQrDialog extends HookWidget {
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: colors.border),
+                  border: Border.all(color: colors.outlineVariant),
                 ),
                 child: QrCodeWidget(
                   data: installPageUrl,
@@ -1068,7 +1070,7 @@ class _IosDistributionQrDialog extends HookWidget {
               Text(
                 'インストール用URL:',
                 style: TextStyle(
-                  color: colors.textTertiary,
+                  color: colors.outline,
                   fontSize: 11,
                   fontWeight: FontWeight.bold,
                 ),
@@ -1083,9 +1085,9 @@ class _IosDistributionQrDialog extends HookWidget {
                         vertical: 6,
                       ),
                       decoration: BoxDecoration(
-                        color: colors.scaffold,
+                        color: Theme.of(context).scaffoldBackgroundColor,
                         borderRadius: BorderRadius.circular(6),
-                        border: Border.all(color: colors.border),
+                        border: Border.all(color: colors.outlineVariant),
                       ),
                       child: Text(
                         installPageUrl,
@@ -1094,7 +1096,7 @@ class _IosDistributionQrDialog extends HookWidget {
                         style: TextStyle(
                           fontFamily: 'monospace',
                           fontSize: 10,
-                          color: colors.textSecondary,
+                          color: colors.onSurfaceVariant,
                         ),
                       ),
                     ),
@@ -1107,8 +1109,8 @@ class _IosDistributionQrDialog extends HookWidget {
                       isCopied.value ? Icons.check_rounded : Icons.copy_rounded,
                       size: 16,
                       color: isCopied.value
-                          ? colors.success
-                          : colors.textSecondary,
+                          ? Colors.green
+                          : colors.onSurfaceVariant,
                     ),
                     onPressed: () {
                       Clipboard.setData(ClipboardData(text: installPageUrl));
@@ -1126,8 +1128,8 @@ class _IosDistributionQrDialog extends HookWidget {
                 width: double.infinity,
                 child: OutlinedButton.icon(
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: colors.textPrimary,
-                    side: BorderSide(color: colors.border),
+                    foregroundColor: colors.onSurface,
+                    side: BorderSide(color: colors.outlineVariant),
                     padding: const EdgeInsets.symmetric(vertical: 10),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
@@ -1149,7 +1151,7 @@ class _IosDistributionQrDialog extends HookWidget {
                   icon: Icon(
                     isCopied.value ? Icons.check_rounded : Icons.copy_rounded,
                     size: 14,
-                    color: isCopied.value ? colors.success : colors.textPrimary,
+                    color: isCopied.value ? Colors.green : colors.onSurface,
                   ),
                   label: Text(
                     isCopied.value ? 'コピー完了！Safariに貼り付け' : 'Safari用にURLをコピー',
@@ -1164,7 +1166,7 @@ class _IosDistributionQrDialog extends HookWidget {
               Text(
                 '※ BraveやChromeなどのサードパーティ製ブラウザや、LINE/Slack等のアプリ内ブラウザをお使いの場合は、上のボタンでURLをコピーしてSafariに貼り付けて開いてください。',
                 style: TextStyle(
-                  color: colors.textTertiary,
+                  color: colors.outline,
                   fontSize: 10,
                   height: 1.4,
                 ),
@@ -1175,7 +1177,7 @@ class _IosDistributionQrDialog extends HookWidget {
                 width: double.infinity,
                 child: FilledButton.icon(
                   style: FilledButton.styleFrom(
-                    backgroundColor: colors.success,
+                    backgroundColor: Colors.green,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     shape: RoundedRectangleBorder(
@@ -1186,11 +1188,13 @@ class _IosDistributionQrDialog extends HookWidget {
                     final confirm = await showDialog<bool>(
                       context: context,
                       builder: (context) => AlertDialog(
-                        backgroundColor: colors.surfaceHover,
+                        backgroundColor: colors.onSurface.withValues(
+                          alpha: 0.08,
+                        ),
                         surfaceTintColor: Colors.transparent,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),
-                          side: BorderSide(color: colors.border),
+                          side: BorderSide(color: colors.outlineVariant),
                         ),
                         title: const Text('インストールの開始'),
                         content: const Text(
@@ -1202,12 +1206,12 @@ class _IosDistributionQrDialog extends HookWidget {
                             onPressed: () => Navigator.pop(context, false),
                             child: Text(
                               'キャンセル',
-                              style: TextStyle(color: colors.textSecondary),
+                              style: TextStyle(color: colors.onSurfaceVariant),
                             ),
                           ),
                           FilledButton(
                             style: FilledButton.styleFrom(
-                              backgroundColor: colors.success,
+                              backgroundColor: Colors.green,
                               foregroundColor: Colors.white,
                             ),
                             onPressed: () => Navigator.pop(context, true),
@@ -1247,7 +1251,7 @@ class _IosDistributionQrDialog extends HookWidget {
           onPressed: () => Navigator.pop(context),
           child: Text(
             t.common.close,
-            style: TextStyle(color: colors.textSecondary),
+            style: TextStyle(color: colors.onSurfaceVariant),
           ),
         ),
       ],
@@ -1262,26 +1266,27 @@ class _AndroidDistributionQrDialog extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = AppColors.of(context);
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
     final isCopied = useState(false);
 
     final downloadUrl = buildJob.ipaUrl ?? '';
 
     return AlertDialog(
-      backgroundColor: colors.surfaceHover,
+      backgroundColor: colors.onSurface.withValues(alpha: 0.08),
       surfaceTintColor: Colors.transparent,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: colors.border),
+        side: BorderSide(color: colors.outlineVariant),
       ),
       title: Row(
         children: [
-          Icon(Icons.install_mobile_rounded, color: colors.success, size: 22),
+          Icon(Icons.install_mobile_rounded, color: Colors.green, size: 22),
           const SizedBox(width: 8),
           Text(
             'Android アプリのインストール',
             style: TextStyle(
-              color: colors.textPrimary,
+              color: colors.onSurface,
               fontSize: 16,
               fontWeight: FontWeight.w600,
             ),
@@ -1296,7 +1301,7 @@ class _AndroidDistributionQrDialog extends HookWidget {
             Text(
               '実機のカメラ等で以下のQRコードを読み取るか、直接ダウンロードボタンを押してインストールしてください。',
               style: TextStyle(
-                color: colors.textSecondary,
+                color: colors.onSurfaceVariant,
                 fontSize: 13,
                 height: 1.4,
               ),
@@ -1311,7 +1316,7 @@ class _AndroidDistributionQrDialog extends HookWidget {
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: colors.border),
+                    border: Border.all(color: colors.outlineVariant),
                   ),
                   child: QrCodeWidget(
                     data: downloadUrl,
@@ -1325,7 +1330,7 @@ class _AndroidDistributionQrDialog extends HookWidget {
               Text(
                 'ダウンロード用URL:',
                 style: TextStyle(
-                  color: colors.textTertiary,
+                  color: colors.outline,
                   fontSize: 11,
                   fontWeight: FontWeight.bold,
                 ),
@@ -1340,9 +1345,9 @@ class _AndroidDistributionQrDialog extends HookWidget {
                         vertical: 6,
                       ),
                       decoration: BoxDecoration(
-                        color: colors.scaffold,
+                        color: Theme.of(context).scaffoldBackgroundColor,
                         borderRadius: BorderRadius.circular(6),
-                        border: Border.all(color: colors.border),
+                        border: Border.all(color: colors.outlineVariant),
                       ),
                       child: Text(
                         downloadUrl,
@@ -1351,7 +1356,7 @@ class _AndroidDistributionQrDialog extends HookWidget {
                         style: TextStyle(
                           fontFamily: 'monospace',
                           fontSize: 10,
-                          color: colors.textSecondary,
+                          color: colors.onSurfaceVariant,
                         ),
                       ),
                     ),
@@ -1364,8 +1369,8 @@ class _AndroidDistributionQrDialog extends HookWidget {
                       isCopied.value ? Icons.check_rounded : Icons.copy_rounded,
                       size: 16,
                       color: isCopied.value
-                          ? colors.success
-                          : colors.textSecondary,
+                          ? Colors.green
+                          : colors.onSurfaceVariant,
                     ),
                     onPressed: () {
                       Clipboard.setData(ClipboardData(text: downloadUrl));
@@ -1384,7 +1389,7 @@ class _AndroidDistributionQrDialog extends HookWidget {
                 width: double.infinity,
                 child: FilledButton.icon(
                   style: FilledButton.styleFrom(
-                    backgroundColor: colors.success,
+                    backgroundColor: Colors.green,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     shape: RoundedRectangleBorder(
@@ -1413,7 +1418,7 @@ class _AndroidDistributionQrDialog extends HookWidget {
           onPressed: () => Navigator.pop(context),
           child: Text(
             t.common.close,
-            style: TextStyle(color: colors.textSecondary),
+            style: TextStyle(color: colors.onSurfaceVariant),
           ),
         ),
       ],
