@@ -5,6 +5,15 @@ class CicdLogsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Text("CI/CD ログページ");
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text(
+          'CI/CDログ',
+        ),
+      ),
+      body: const Center(
+        child: Text("CI/CD ログページ"),
+      ),
+    );
   }
 }

@@ -2,15 +2,10 @@ import 'dart:async';
 
 import 'package:dashboard/auth/auth_page.dart';
 import 'package:dashboard/auth/auth_provider.dart';
-import 'package:dashboard/build_logs/app_distributions_page.dart';
 import 'package:dashboard/build_logs/build_jobs_provider.dart';
 import 'package:dashboard/build_logs/build_logs_detail_page.dart';
-import 'package:dashboard/cicd_log/cicd_logs_page.dart';
 import 'package:dashboard/root/dashboard_root.dart';
-import 'package:dashboard/settings/settings_page.dart';
-import 'package:dashboard/store_release/store_release_page.dart';
 import 'package:dashboard/utilities/async_error_widget.dart';
-import 'package:dashboard/variables/variables_page.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -32,51 +27,13 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/',
         builder: (context, state) => const DashboardRouteGateway(),
-        routes: [
-          GoRoute(
-            path: 'runs',
-            builder: (context, state) => const AuthenticatedScaffoldRoutePage(
-              title: 'CI/CDログ',
-              child: CicdLogsPage(),
-            ),
-          ),
-          GoRoute(
-            path: 'runs/:buildJobId',
-            builder: (context, state) {
-              final buildJobId = state.pathParameters['buildJobId']!;
-              return BuildLogsDetailRoutePage(buildJobId: buildJobId);
-            },
-          ),
-
-          GoRoute(
-            path: 'variables',
-            builder: (context, state) => const AuthenticatedScaffoldRoutePage(
-              title: 'シークレット',
-              child: VariablesBody(),
-            ),
-          ),
-          GoRoute(
-            path: 'store-release',
-            builder: (context, state) => const AuthenticatedScaffoldRoutePage(
-              title: 'Store Release',
-              child: StoreReleaseBody(),
-            ),
-          ),
-          GoRoute(
-            path: 'distributions',
-            builder: (context, state) => const AuthenticatedScaffoldRoutePage(
-              title: 'アプリ配信',
-              child: AppDistributionsBody(),
-            ),
-          ),
-          GoRoute(
-            path: 'settings',
-            builder: (context, state) => const AuthenticatedScaffoldRoutePage(
-              title: '設定',
-              child: SettingsPage(),
-            ),
-          ),
-        ],
+      ),
+      GoRoute(
+        path: '/runs/:buildJobId',
+        builder: (context, state) {
+          final buildJobId = state.pathParameters['buildJobId']!;
+          return BuildLogsDetailRoutePage(buildJobId: buildJobId);
+        },
       ),
     ],
     redirect: (context, state) {
@@ -99,45 +56,6 @@ final routerProvider = Provider<GoRouter>((ref) {
     },
   );
 });
-
-class AuthenticatedScaffoldRoutePage extends ConsumerWidget {
-  const AuthenticatedScaffoldRoutePage({
-    super.key,
-    required this.title,
-    required this.child,
-  });
-
-  final String title;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final authState = ref.watch(authStateChangesProvider);
-
-    return authState.when(
-      loading: () => const Scaffold(
-        body: Center(child: CircularProgressIndicator.adaptive()),
-      ),
-      error: asyncErrorWidget,
-      data: (user) {
-        if (user == null) {
-          return const AuthPage();
-        }
-        return Scaffold(
-          appBar: AppBar(
-            title: Text(title),
-            leading: IconButton(
-              tooltip: 'ダッシュボードに戻る',
-              icon: const Icon(Icons.arrow_back_rounded),
-              onPressed: () => context.go('/'),
-            ),
-          ),
-          body: child,
-        );
-      },
-    );
-  }
-}
 
 class BuildLogsDetailRoutePage extends ConsumerWidget {
   const BuildLogsDetailRoutePage({
