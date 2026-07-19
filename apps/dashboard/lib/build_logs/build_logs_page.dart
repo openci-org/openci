@@ -9,7 +9,6 @@ import 'package:dashboard/build_logs/chips/job_status.dart';
 import 'package:dashboard/build_logs/chips/matrix_job_chip.dart';
 import 'package:dashboard/build_logs/job_card.dart';
 import 'package:dashboard/build_logs/synced_spinner.dart';
-import 'package:dashboard/extensions/date_time_extensions.dart';
 import 'package:dashboard/theme/app_colors.dart';
 import 'package:dashboard/utilities/async_error_widget.dart';
 import 'package:flutter/material.dart';
@@ -272,188 +271,21 @@ class _BuildLogsList extends StatelessWidget {
             horizontalPadding,
             24,
           ),
-          itemCount: orderedDisplayList.length + 1,
+          itemCount: orderedDisplayList.length,
           itemBuilder: (_, index) {
             return Center(
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 640),
-                child: index == 0
-                    ? Padding(
-                        padding: const EdgeInsets.only(bottom: 16),
-                        child: _BuildLogsOverview(
-                          runCount: recentRunCount,
-                          successCount: successCount,
-                          runningCount: runningCount,
-                          failedCount: failedCount,
-                          latestRunAt: latestRunAt,
-                        ),
-                      )
-                    : _BuildRunCard(
-                        jobs: orderedDisplayList[index - 1],
-                        selectedBuildJobId: selectedBuildJobId,
-                        onOpenBuildJob: onOpenBuildJob,
-                      ),
+                child: _BuildRunCard(
+                  jobs: orderedDisplayList[index],
+                  selectedBuildJobId: selectedBuildJobId,
+                  onOpenBuildJob: onOpenBuildJob,
+                ),
               ),
             );
           },
         );
       },
-    );
-  }
-}
-
-class _BuildLogsOverview extends StatelessWidget {
-  const _BuildLogsOverview({
-    required this.runCount,
-    required this.successCount,
-    required this.runningCount,
-    required this.failedCount,
-    required this.latestRunAt,
-  });
-
-  final int runCount;
-  final int successCount;
-  final int runningCount;
-  final int failedCount;
-  final DateTime latestRunAt;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = AppColors.of(context);
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 2),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 34,
-                height: 34,
-                decoration: BoxDecoration(
-                  color: colors.accentSubtle,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(
-                  Icons.history_rounded,
-                  color: colors.accent,
-                  size: 19,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      t.buildLogs.overviewTitle,
-                      style: TextStyle(
-                        color: colors.textPrimary,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      t.buildLogs.latestRun(time: latestRunAt.toTimeAgo()),
-                      style: TextStyle(
-                        color: colors.textTertiary,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              _BuildLogSummaryPill(
-                icon: Icons.format_list_bulleted_rounded,
-                label: t.buildLogs.summaryRuns,
-                value: runCount.toString(),
-                color: colors.textSecondary,
-              ),
-              _BuildLogSummaryPill(
-                icon: Icons.check_circle_outline_rounded,
-                label: t.buildLogs.summarySuccess,
-                value: successCount.toString(),
-                color: colors.success,
-              ),
-              _BuildLogSummaryPill(
-                icon: Icons.play_circle_outline_rounded,
-                label: t.buildLogs.summaryRunning,
-                value: runningCount.toString(),
-                color: colors.accent,
-              ),
-              _BuildLogSummaryPill(
-                icon: Icons.error_outline_rounded,
-                label: t.buildLogs.summaryFailed,
-                value: failedCount.toString(),
-                color: colors.error,
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _BuildLogSummaryPill extends StatelessWidget {
-  const _BuildLogSummaryPill({
-    required this.icon,
-    required this.label,
-    required this.value,
-    required this.color,
-  });
-
-  final IconData icon;
-  final String label;
-  final String value;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = AppColors.of(context);
-
-    return Container(
-      constraints: const BoxConstraints(minWidth: 112),
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withValues(alpha: 0.16)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 16, color: color),
-          const SizedBox(width: 8),
-          Text(
-            value,
-            style: TextStyle(
-              color: color,
-              fontSize: 14,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(width: 6),
-          Text(
-            label,
-            style: TextStyle(
-              color: colors.textSecondary,
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-      ),
     );
   }
 }
