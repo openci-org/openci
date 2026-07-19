@@ -7,7 +7,6 @@ import 'package:dashboard/firebase/firebase_config_provider.dart';
 import 'package:dashboard/firebase/plist_parser.dart';
 import 'package:dashboard/openci_server_url_provider.dart';
 import 'package:dashboard/team/selected_team_provider.dart';
-import 'package:dashboard/theme/app_colors.dart';
 import 'package:dashboard/utilities/snack_bar_extension.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -48,7 +47,6 @@ class AuthPage extends HookConsumerWidget {
     final configSnapshot = useFuture(configFuture);
 
     return Scaffold(
-      backgroundColor: AppColors.of(context).scaffold,
       body: Stack(
         children: [
           Center(
@@ -68,7 +66,6 @@ class AuthPage extends HookConsumerWidget {
                             style: Theme.of(context).textTheme.headlineSmall
                                 ?.copyWith(
                                   fontWeight: FontWeight.w600,
-                                  color: AppColors.of(context).textPrimary,
                                   letterSpacing: -0.5,
                                 ),
                           ),
@@ -77,7 +74,7 @@ class AuthPage extends HookConsumerWidget {
                             authT.signInSubtitle,
                             style: Theme.of(context).textTheme.bodyMedium
                                 ?.copyWith(
-                                  color: AppColors.of(context).textSecondary,
+                                  color: colorScheme.onSurfaceVariant,
                                 ),
                           ),
 
@@ -126,10 +123,10 @@ class AuthPage extends HookConsumerWidget {
                           Container(
                             padding: const EdgeInsets.all(24),
                             decoration: BoxDecoration(
-                              color: AppColors.of(context).surface,
+                              color: colorScheme.surface,
                               borderRadius: BorderRadius.circular(16),
                               border: Border.all(
-                                color: AppColors.of(context).border,
+                                color: colorScheme.outlineVariant,
                               ),
                             ),
                             child: AutofillGroup(
@@ -145,9 +142,7 @@ class AuthPage extends HookConsumerWidget {
                                       prefixIcon: Icon(
                                         Icons.email_outlined,
                                         size: 18,
-                                        color: AppColors.of(
-                                          context,
-                                        ).textTertiary,
+                                        color: colorScheme.outline,
                                       ),
                                     ),
                                     keyboardType: TextInputType.emailAddress,
@@ -170,9 +165,7 @@ class AuthPage extends HookConsumerWidget {
                                       prefixIcon: Icon(
                                         Icons.lock_outline,
                                         size: 18,
-                                        color: AppColors.of(
-                                          context,
-                                        ).textTertiary,
+                                        color: colorScheme.outline,
                                       ),
                                       suffixIcon: IconButton(
                                         icon: Icon(
@@ -180,9 +173,8 @@ class AuthPage extends HookConsumerWidget {
                                               ? Icons.visibility_off_outlined
                                               : Icons.visibility_outlined,
                                           size: 18,
-                                          color: AppColors.of(
-                                            context,
-                                          ).textPrimary.withValues(alpha: 0.4),
+                                          color: colorScheme.onSurface
+                                              .withValues(alpha: 0.4),
                                         ),
                                         onPressed: () {
                                           obscurePassword.value =
@@ -221,8 +213,7 @@ class AuthPage extends HookConsumerWidget {
                                                 .textTheme
                                                 .bodySmall
                                                 ?.copyWith(
-                                                  color: AppColors.of(context)
-                                                      .textPrimary
+                                                  color: colorScheme.onSurface
                                                       .withValues(alpha: 0.5),
                                                 ),
                                             children: [
@@ -680,9 +671,7 @@ class FirebaseFormSheet extends HookConsumerWidget {
                     Expanded(
                       child: Text(
                         formT.configActive,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: colorScheme.onSurface,
-                        ),
+                        style: Theme.of(context).textTheme.bodySmall,
                       ),
                     ),
                   ],

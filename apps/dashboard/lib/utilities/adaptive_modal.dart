@@ -1,4 +1,3 @@
-import 'package:dashboard/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 
 Future<T?> showAdaptiveFormModal<T>({
@@ -7,13 +6,11 @@ Future<T?> showAdaptiveFormModal<T>({
   double? maxWidth,
   double? maxHeight,
 }) {
-  final colors = AppColors.of(context);
-
   return showModalBottomSheet<T>(
     showDragHandle: true,
     context: context,
     isScrollControlled: true,
-    backgroundColor: colors.scaffold,
+    backgroundColor: Theme.of(context).scaffoldBackgroundColor,
     builder: builder,
   );
 }

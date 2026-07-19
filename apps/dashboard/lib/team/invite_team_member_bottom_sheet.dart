@@ -2,7 +2,6 @@ import 'package:dashboard/app_strings.dart';
 import 'package:dashboard/team/selected_team_provider.dart';
 import 'package:dashboard/team/team_members_bottom_sheet.dart';
 import 'package:dashboard/team/team_provider.dart';
-import 'package:dashboard/theme/app_colors.dart';
 import 'package:dashboard/utilities/snack_bar_extension.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
@@ -27,6 +26,7 @@ class InviteTeamMemberBottomSheet extends HookConsumerWidget {
     final formKey = useMemoized(() => GlobalKey<FormState>());
     final isLoading = useState(false);
     final teamT = t.team;
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
@@ -42,10 +42,10 @@ class InviteTeamMemberBottomSheet extends HookConsumerWidget {
               data: (teams) {
                 return Container(
                   decoration: BoxDecoration(
-                    color: AppColors.of(context).surface,
+                    color: colorScheme.surface,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: AppColors.of(context).border,
+                      color: colorScheme.outlineVariant,
                     ),
                   ),
                   clipBehavior: Clip.antiAlias,
@@ -60,7 +60,7 @@ class InviteTeamMemberBottomSheet extends HookConsumerWidget {
                           style: TextStyle(
                             fontSize: 10,
                             fontWeight: FontWeight.w600,
-                            color: AppColors.of(context).textTertiary,
+                            color: colorScheme.outline,
                             letterSpacing: 0.8,
                           ),
                         ),
@@ -70,14 +70,18 @@ class InviteTeamMemberBottomSheet extends HookConsumerWidget {
                           Divider(
                             height: 1,
                             thickness: 1,
-                            color: AppColors.of(context).divider,
+                            color: Theme.of(context).dividerColor,
                           ),
                         InkWell(
                           onTap: () {
                             selectedTeamId.value = teams[i].id;
                           },
-                          hoverColor: AppColors.of(context).borderSubtle,
-                          splashColor: AppColors.of(context).borderSubtle,
+                          hoverColor: colorScheme.outlineVariant.withValues(
+                            alpha: 0.5,
+                          ),
+                          splashColor: colorScheme.outlineVariant.withValues(
+                            alpha: 0.5,
+                          ),
                           child: Padding(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 16,
@@ -90,12 +94,10 @@ class InviteTeamMemberBottomSheet extends HookConsumerWidget {
                                   height: 28,
                                   decoration: BoxDecoration(
                                     color: selectedTeamId.value == teams[i].id
-                                        ? AppColors.of(
-                                            context,
-                                          ).accent.withValues(alpha: 0.15)
-                                        : AppColors.of(
-                                            context,
-                                          ).surfaceTertiary,
+                                        ? colorScheme.primary.withValues(
+                                            alpha: 0.15,
+                                          )
+                                        : colorScheme.surfaceContainerHighest,
                                     borderRadius: BorderRadius.circular(7),
                                   ),
                                   child: Center(
@@ -108,10 +110,8 @@ class InviteTeamMemberBottomSheet extends HookConsumerWidget {
                                         fontWeight: FontWeight.w600,
                                         color:
                                             selectedTeamId.value == teams[i].id
-                                            ? AppColors.of(context).accent
-                                            : AppColors.of(
-                                                context,
-                                              ).textPrimary.withValues(
+                                            ? colorScheme.primary
+                                            : colorScheme.onSurface.withValues(
                                                 alpha: 0.6,
                                               ),
                                       ),
@@ -129,10 +129,8 @@ class InviteTeamMemberBottomSheet extends HookConsumerWidget {
                                           ? FontWeight.w600
                                           : FontWeight.w500,
                                       color: selectedTeamId.value == teams[i].id
-                                          ? AppColors.of(context).accent
-                                          : AppColors.of(
-                                              context,
-                                            ).textPrimary,
+                                          ? colorScheme.primary
+                                          : null,
                                     ),
                                   ),
                                 ),
@@ -140,7 +138,7 @@ class InviteTeamMemberBottomSheet extends HookConsumerWidget {
                                   Icon(
                                     Icons.check_rounded,
                                     size: 16,
-                                    color: AppColors.of(context).accent,
+                                    color: colorScheme.primary,
                                   ),
                               ],
                             ),
@@ -172,23 +170,22 @@ class InviteTeamMemberBottomSheet extends HookConsumerWidget {
             // ── Email input ──
             Container(
               decoration: BoxDecoration(
-                color: AppColors.of(context).surface,
+                color: colorScheme.surface,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: AppColors.of(context).border,
+                  color: colorScheme.outlineVariant,
                 ),
               ),
               child: TextFormField(
                 controller: emailController,
                 keyboardType: TextInputType.emailAddress,
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 14,
-                  color: AppColors.of(context).textPrimary,
                 ),
                 decoration: InputDecoration(
                   hintText: teamT.inviteEmail,
                   hintStyle: TextStyle(
-                    color: AppColors.of(context).textTertiary,
+                    color: colorScheme.outline,
                     fontSize: 14,
                   ),
                   contentPadding: const EdgeInsets.symmetric(
@@ -201,7 +198,7 @@ class InviteTeamMemberBottomSheet extends HookConsumerWidget {
                     child: Icon(
                       Icons.email_outlined,
                       size: 18,
-                      color: AppColors.of(context).textTertiary,
+                      color: colorScheme.outline,
                     ),
                   ),
                   prefixIconConstraints: const BoxConstraints(
@@ -224,17 +221,17 @@ class InviteTeamMemberBottomSheet extends HookConsumerWidget {
               child: TextButton(
                 style: TextButton.styleFrom(
                   foregroundColor: selectedTeamId.value != null
-                      ? AppColors.of(context).accentOnAccent
-                      : AppColors.of(context).textTertiary,
+                      ? colorScheme.onPrimary
+                      : colorScheme.outline,
                   backgroundColor: selectedTeamId.value != null
-                      ? AppColors.of(context).accent
-                      : AppColors.of(context).divider,
+                      ? colorScheme.primary
+                      : Theme.of(context).dividerColor,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10),
                     side: selectedTeamId.value == null
                         ? BorderSide(
-                            color: AppColors.of(context).border,
+                            color: colorScheme.outlineVariant,
                           )
                         : BorderSide.none,
                   ),
@@ -271,7 +268,7 @@ class InviteTeamMemberBottomSheet extends HookConsumerWidget {
                         height: 20,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          color: AppColors.of(context).accentOnAccent,
+                          color: colorScheme.onPrimary,
                         ),
                       )
                     : Text(
@@ -280,8 +277,8 @@ class InviteTeamMemberBottomSheet extends HookConsumerWidget {
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
                           color: selectedTeamId.value != null
-                              ? AppColors.of(context).accentOnAccent
-                              : AppColors.of(context).textTertiary,
+                              ? colorScheme.onPrimary
+                              : colorScheme.outline,
                         ),
                       ),
               ),

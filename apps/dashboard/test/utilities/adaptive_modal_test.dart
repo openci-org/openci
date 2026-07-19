@@ -1,5 +1,4 @@
 import 'package:checks/checks.dart';
-import 'package:dashboard/theme/app_colors.dart';
 import 'package:dashboard/utilities/adaptive_modal.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -18,9 +17,7 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
-        theme: ThemeData(
-          extensions: const [AppColors.light],
-        ),
+        theme: ThemeData(),
         home: Builder(
           builder: (context) {
             return Scaffold(

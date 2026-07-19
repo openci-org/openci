@@ -9,7 +9,6 @@ import 'package:dashboard/build_logs/chips/job_status.dart';
 import 'package:dashboard/build_logs/chips/matrix_job_chip.dart';
 import 'package:dashboard/build_logs/job_card.dart';
 import 'package:dashboard/build_logs/synced_spinner.dart';
-import 'package:dashboard/theme/app_colors.dart';
 import 'package:dashboard/utilities/async_error_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
@@ -81,6 +80,7 @@ class LogsBody extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(buildJobsProvider);
+    final colorScheme = Theme.of(context).colorScheme;
     return state.when(
       data: (buildJobs) {
         if (buildJobs.isEmpty) {
@@ -92,16 +92,16 @@ class LogsBody extends HookConsumerWidget {
                   width: 72,
                   height: 72,
                   decoration: BoxDecoration(
-                    color: AppColors.of(context).borderSubtle,
+                    color: colorScheme.outlineVariant.withValues(alpha: 0.5),
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                      color: AppColors.of(context).divider,
+                      color: Theme.of(context).dividerColor,
                     ),
                   ),
                   child: Icon(
                     Icons.inbox_outlined,
                     size: 32,
-                    color: AppColors.of(context).textTertiary,
+                    color: colorScheme.outline,
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -110,7 +110,7 @@ class LogsBody extends HookConsumerWidget {
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
-                    color: AppColors.of(context).textSecondary,
+                    color: colorScheme.onSurfaceVariant,
                   ),
                 ),
               ],
@@ -1012,29 +1012,30 @@ class _MoreMenuButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return PopupMenuButton<String>(
       icon: Icon(
         Icons.more_horiz_rounded,
         size: 20,
-        color: AppColors.of(context).textTertiary,
+        color: colorScheme.outline,
       ),
       padding: EdgeInsets.zero,
       constraints: const BoxConstraints(),
       style: IconButton.styleFrom(
         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
       ),
-      color: AppColors.of(context).surfaceHover,
+      color: colorScheme.onSurface.withValues(alpha: 0.08),
       surfaceTintColor: Colors.transparent,
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(10),
         side: BorderSide(
-          color: AppColors.of(context).border,
+          color: colorScheme.outlineVariant,
         ),
       ),
       onSelected: onSelected,
       itemBuilder: (_) => items.map((item) {
-        final color = AppColors.of(context).textPrimary;
+        final color = colorScheme.onSurface;
         return PopupMenuItem<String>(
           value: item.value,
           height: 36,

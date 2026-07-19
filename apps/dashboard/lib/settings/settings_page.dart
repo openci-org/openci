@@ -9,7 +9,6 @@ import 'package:dashboard/revenue_cat/revenue_cat.dart';
 import 'package:dashboard/revenue_cat/subscription_page.dart';
 import 'package:dashboard/team/selected_team_provider.dart';
 import 'package:dashboard/team/team_provider.dart';
-import 'package:dashboard/theme/app_colors.dart';
 import 'package:dashboard/utilities/snack_bar_extension.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -179,7 +178,7 @@ class _SectionHeader extends StatelessWidget {
         style: TextStyle(
           fontSize: 11,
           fontWeight: FontWeight.w600,
-          color: AppColors.of(context).textTertiary,
+          color: Theme.of(context).colorScheme.outline,
           letterSpacing: 0.8,
         ),
       ),
@@ -195,10 +194,10 @@ class _SettingsGroup extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.of(context).surface,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: AppColors.of(context).border,
+          color: Theme.of(context).colorScheme.outlineVariant,
         ),
       ),
       clipBehavior: Clip.antiAlias,
@@ -218,7 +217,7 @@ class _GroupDivider extends StatelessWidget {
     return Divider(
       height: 1,
       thickness: 1,
-      color: AppColors.of(context).divider,
+      color: Theme.of(context).dividerColor,
     );
   }
 }
@@ -240,10 +239,11 @@ class _SettingsItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return InkWell(
       onTap: onTap,
-      hoverColor: AppColors.of(context).borderSubtle,
-      splashColor: AppColors.of(context).borderSubtle,
+      hoverColor: colorScheme.outlineVariant.withValues(alpha: 0.5),
+      splashColor: colorScheme.outlineVariant.withValues(alpha: 0.5),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         child: Row(
@@ -252,14 +252,14 @@ class _SettingsItem extends StatelessWidget {
               width: 34,
               height: 34,
               decoration: BoxDecoration(
-                color: AppColors.of(context).divider,
+                color: Theme.of(context).dividerColor,
                 borderRadius: BorderRadius.circular(9),
               ),
               child: Center(
                 child: Icon(
                   icon,
                   size: 18,
-                  color: AppColors.of(context).textSecondary,
+                  color: colorScheme.onSurfaceVariant,
                 ),
               ),
             ),
@@ -270,10 +270,9 @@ class _SettingsItem extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
-                      color: AppColors.of(context).textPrimary,
                     ),
                   ),
                   const SizedBox(height: 2),
@@ -281,7 +280,7 @@ class _SettingsItem extends StatelessWidget {
                     subtitle,
                     style: TextStyle(
                       fontSize: 12,
-                      color: AppColors.of(context).textTertiary,
+                      color: colorScheme.outline,
                     ),
                   ),
                 ],
@@ -291,7 +290,7 @@ class _SettingsItem extends StatelessWidget {
               Icon(
                 trailingIcon,
                 size: 18,
-                color: AppColors.of(context).textTertiary,
+                color: colorScheme.outline,
               ),
           ],
         ),
@@ -313,6 +312,7 @@ class _SettingsInfoItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       child: Row(
@@ -321,14 +321,14 @@ class _SettingsInfoItem extends StatelessWidget {
             width: 34,
             height: 34,
             decoration: BoxDecoration(
-              color: AppColors.of(context).divider,
+              color: Theme.of(context).dividerColor,
               borderRadius: BorderRadius.circular(9),
             ),
             child: Center(
               child: Icon(
                 icon,
                 size: 18,
-                color: AppColors.of(context).textSecondary,
+                color: colorScheme.onSurfaceVariant,
               ),
             ),
           ),
@@ -339,10 +339,9 @@ class _SettingsInfoItem extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
-                    color: AppColors.of(context).textPrimary,
                   ),
                 ),
                 const SizedBox(height: 2),
@@ -350,7 +349,7 @@ class _SettingsInfoItem extends StatelessWidget {
                   subtitle,
                   style: TextStyle(
                     fontSize: 12,
-                    color: AppColors.of(context).textTertiary,
+                    color: colorScheme.outline,
                   ),
                 ),
               ],
@@ -424,6 +423,8 @@ class _AppVersionTile extends HookWidget {
         ? 'v${info.version} (${info.buildNumber})'
         : '...';
 
+    final colorScheme = Theme.of(context).colorScheme;
+
     return InkWell(
       onTap: null,
       child: Padding(
@@ -434,14 +435,14 @@ class _AppVersionTile extends HookWidget {
               width: 34,
               height: 34,
               decoration: BoxDecoration(
-                color: AppColors.of(context).divider,
+                color: Theme.of(context).dividerColor,
                 borderRadius: BorderRadius.circular(9),
               ),
               child: Center(
                 child: Icon(
                   Symbols.info_rounded,
                   size: 18,
-                  color: AppColors.of(context).textSecondary,
+                  color: colorScheme.onSurfaceVariant,
                 ),
               ),
             ),
@@ -452,10 +453,9 @@ class _AppVersionTile extends HookWidget {
                 children: [
                   Text(
                     t.settings.appVersion,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
-                      color: AppColors.of(context).textPrimary,
                     ),
                   ),
                   const SizedBox(height: 2),
@@ -463,7 +463,7 @@ class _AppVersionTile extends HookWidget {
                     versionText,
                     style: TextStyle(
                       fontSize: 12,
-                      color: AppColors.of(context).textTertiary,
+                      color: colorScheme.outline,
                     ),
                   ),
                 ],
@@ -551,10 +551,9 @@ class _SelfHostedIndicator extends ConsumerWidget {
                         children: [
                           Text(
                             settingsT.selfHostedActive,
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w600,
-                              color: AppColors.of(context).textPrimary,
                             ),
                           ),
                           const SizedBox(height: 2),
@@ -564,7 +563,9 @@ class _SelfHostedIndicator extends ConsumerWidget {
                             ),
                             style: TextStyle(
                               fontSize: 12,
-                              color: AppColors.of(context).textSecondary,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurfaceVariant,
                             ),
                           ),
                         ],
@@ -618,7 +619,7 @@ class _SelfHostedIndicator extends ConsumerWidget {
             ),
             style: TextStyle(
               fontSize: 12,
-              color: AppColors.of(context).textTertiary,
+              color: Theme.of(context).colorScheme.outline,
             ),
           ),
         );

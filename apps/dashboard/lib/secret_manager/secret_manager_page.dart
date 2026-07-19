@@ -2,7 +2,6 @@ import 'dart:convert';
 
 import 'package:dashboard/app_strings.dart';
 import 'package:dashboard/secret_manager/secret_manager_provider.dart';
-import 'package:dashboard/theme/app_colors.dart';
 import 'package:dashboard/utilities/adaptive_modal.dart';
 
 import 'package:dashboard/utilities/snack_bar_extension.dart';
@@ -24,14 +23,15 @@ class SecretManagerTab extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final colors = AppColors.of(context);
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
     final state = ref.watch(secretManagerProvider);
     final secretsT = t.secrets;
 
     return Scaffold(
       backgroundColor: Colors.transparent,
       floatingActionButton: FloatingActionButton(
-        backgroundColor: colors.accent,
+        backgroundColor: colors.primary,
         foregroundColor: Colors.white,
         elevation: 0,
         tooltip: secretsT.addSecret,
@@ -74,16 +74,18 @@ class SecretManagerTab extends HookConsumerWidget {
                               width: 72,
                               height: 72,
                               decoration: BoxDecoration(
-                                color: colors.borderSubtle,
+                                color: colors.outlineVariant.withValues(
+                                  alpha: 0.5,
+                                ),
                                 borderRadius: BorderRadius.circular(16),
                                 border: Border.all(
-                                  color: colors.divider,
+                                  color: theme.dividerColor,
                                 ),
                               ),
                               child: Icon(
                                 Icons.key_rounded,
                                 size: 32,
-                                color: colors.textTertiary,
+                                color: colors.outline,
                               ),
                             ),
                             const SizedBox(height: 16),
@@ -92,7 +94,7 @@ class SecretManagerTab extends HookConsumerWidget {
                               style: TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w500,
-                                color: colors.textSecondary,
+                                color: colors.onSurfaceVariant,
                               ),
                             ),
                           ],
@@ -213,14 +215,15 @@ class _SecretLoadingNotice extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = AppColors.of(context);
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
         color: colors.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: colors.border),
+        border: Border.all(color: colors.outlineVariant),
       ),
       child: Row(
         children: [
@@ -229,7 +232,7 @@ class _SecretLoadingNotice extends StatelessWidget {
             height: 16,
             child: CircularProgressIndicator(
               strokeWidth: 2,
-              color: colors.accent,
+              color: colors.primary,
             ),
           ),
           const SizedBox(width: 10),
@@ -237,7 +240,7 @@ class _SecretLoadingNotice extends StatelessWidget {
             child: Text(
               message,
               style: TextStyle(
-                color: colors.textSecondary,
+                color: colors.onSurfaceVariant,
                 fontSize: 13,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 0,
@@ -292,7 +295,8 @@ class _SecretLoadingRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = AppColors.of(context);
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
@@ -301,7 +305,9 @@ class _SecretLoadingRow extends StatelessWidget {
         decoration: BoxDecoration(
           color: colors.surface,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: colors.borderSubtle),
+          border: Border.all(
+            color: colors.outlineVariant.withValues(alpha: 0.5),
+          ),
         ),
         child: Row(
           children: [
@@ -344,13 +350,14 @@ class _SecretLoadingBlock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = AppColors.of(context);
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
 
     return Container(
       width: width,
       height: height,
       decoration: BoxDecoration(
-        color: colors.shimmer,
+        color: colors.surfaceContainerHighest,
         borderRadius: borderRadius ?? BorderRadius.circular(999),
       ),
     );
@@ -366,7 +373,8 @@ class _SecretListTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final colors = AppColors.of(context);
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
     final secretsT = t.secrets;
 
     return Center(
@@ -381,7 +389,7 @@ class _SecretListTile extends ConsumerWidget {
               color: colors.surface,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: colors.border,
+                color: colors.outlineVariant,
               ),
             ),
             child: Padding(
@@ -396,13 +404,13 @@ class _SecretListTile extends ConsumerWidget {
                     width: 32,
                     height: 32,
                     decoration: BoxDecoration(
-                      color: colors.accent.withValues(alpha: 0.1),
+                      color: colors.primary.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Icon(
                       Icons.key_rounded,
                       size: 16,
-                      color: colors.accent,
+                      color: colors.primary,
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -416,7 +424,7 @@ class _SecretListTile extends ConsumerWidget {
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
                             fontFamily: 'monospace',
-                            color: colors.textPrimary,
+                            color: colors.onSurface,
                           ),
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -440,14 +448,14 @@ class _SecretListTile extends ConsumerWidget {
                     children: [
                       _ActionIconButton(
                         icon: Icons.visibility_outlined,
-                        color: colors.textTertiary,
+                        color: colors.outline,
                         tooltip: secretsT.viewSecretValue,
                         onPressed: () => _showSecretValueDialog(context, ref),
                       ),
                       const SizedBox(width: 4),
                       _ActionIconButton(
                         icon: Icons.edit_outlined,
-                        color: colors.textTertiary,
+                        color: colors.outline,
                         tooltip: secretsT.editSecret,
                         onPressed: () {
                           showAdaptiveFormModal(
@@ -495,7 +503,8 @@ class _SecretListTile extends ConsumerWidget {
     WidgetRef ref,
     dynamic secretsT,
   ) async {
-    final colors = AppColors.of(context);
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -505,18 +514,18 @@ class _SecretListTile extends ConsumerWidget {
         ),
         title: Text(
           t.common.delete,
-          style: TextStyle(color: colors.textPrimary),
+          style: TextStyle(color: colors.onSurface),
         ),
         content: Text(
           secretsT.deleteConfirm,
-          style: TextStyle(color: colors.textSecondary),
+          style: TextStyle(color: colors.onSurfaceVariant),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
             child: Text(
               t.common.cancel,
-              style: TextStyle(color: colors.textTertiary),
+              style: TextStyle(color: colors.outline),
             ),
           ),
           FilledButton(
@@ -554,8 +563,9 @@ class _SecretMetaChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = AppColors.of(context);
-    final effectiveColor = colors.textTertiary;
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final effectiveColor = colors.outline;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
@@ -594,7 +604,8 @@ class _SecretValueDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = AppColors.of(context);
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
     final secretsT = t.secrets;
 
     return Dialog(
@@ -617,13 +628,13 @@ class _SecretValueDialog extends StatelessWidget {
                       width: 34,
                       height: 34,
                       decoration: BoxDecoration(
-                        color: colors.accent.withValues(alpha: 0.1),
+                        color: colors.primary.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(9),
                       ),
                       child: Icon(
                         Icons.visibility_outlined,
                         size: 17,
-                        color: colors.accent,
+                        color: colors.primary,
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -634,7 +645,7 @@ class _SecretValueDialog extends StatelessWidget {
                           Text(
                             secretsT.secretValueTitle,
                             style: TextStyle(
-                              color: colors.textPrimary,
+                              color: colors.onSurface,
                               fontSize: 15,
                               fontWeight: FontWeight.w700,
                               letterSpacing: 0,
@@ -646,7 +657,7 @@ class _SecretValueDialog extends StatelessWidget {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
-                              color: colors.textTertiary,
+                              color: colors.outline,
                               fontSize: 11,
                               fontWeight: FontWeight.w700,
                               fontFamily: 'monospace',
@@ -662,13 +673,13 @@ class _SecretValueDialog extends StatelessWidget {
                       icon: Icon(
                         Icons.close_rounded,
                         size: 18,
-                        color: colors.textTertiary,
+                        color: colors.outline,
                       ),
                     ),
                   ],
                 ),
               ),
-              Divider(height: 1, color: colors.border),
+              Divider(height: 1, color: colors.outlineVariant),
               Flexible(
                 child: FutureBuilder<String>(
                   future: valueFuture,
@@ -683,14 +694,14 @@ class _SecretValueDialog extends StatelessWidget {
                               height: 16,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                color: colors.accent,
+                                color: colors.primary,
                               ),
                             ),
                             const SizedBox(width: 10),
                             Text(
                               secretsT.secretValueLoading,
                               style: TextStyle(
-                                color: colors.textSecondary,
+                                color: colors.onSurfaceVariant,
                                 fontSize: 13,
                                 fontWeight: FontWeight.w700,
                                 letterSpacing: 0,
@@ -730,15 +741,17 @@ class _SecretValueDialog extends StatelessWidget {
                               width: double.infinity,
                               padding: const EdgeInsets.all(14),
                               decoration: BoxDecoration(
-                                color: colors.scaffold,
+                                color: theme.scaffoldBackgroundColor,
                                 borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: colors.border),
+                                border: Border.all(
+                                  color: colors.outlineVariant,
+                                ),
                               ),
                               child: SingleChildScrollView(
                                 child: SelectableText(
                                   value,
                                   style: TextStyle(
-                                    color: colors.textPrimary,
+                                    color: colors.onSurface,
                                     fontSize: 12,
                                     height: 1.45,
                                     fontFamily: 'monospace',
@@ -754,7 +767,7 @@ class _SecretValueDialog extends StatelessWidget {
                               TextButton(
                                 onPressed: () => Navigator.of(context).pop(),
                                 style: TextButton.styleFrom(
-                                  foregroundColor: colors.textSecondary,
+                                  foregroundColor: colors.onSurfaceVariant,
                                   minimumSize: const Size(0, 40),
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: 14,
@@ -786,8 +799,8 @@ class _SecretValueDialog extends StatelessWidget {
                                 icon: const Icon(Icons.copy_rounded, size: 16),
                                 label: Text(secretsT.copySecretValue),
                                 style: FilledButton.styleFrom(
-                                  backgroundColor: colors.accent,
-                                  foregroundColor: colors.accentOnAccent,
+                                  backgroundColor: colors.primary,
+                                  foregroundColor: colors.onPrimary,
                                   minimumSize: const Size(0, 40),
                                   padding: const EdgeInsets.only(
                                     left: 12,
@@ -869,7 +882,8 @@ class _SecretFormFrame extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = AppColors.of(context);
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
     final isSheet = usesBottomSheetFormModal(context);
     final maxHeight =
         MediaQuery.sizeOf(context).height * (isSheet ? 0.82 : 0.9);
@@ -895,13 +909,13 @@ class _SecretFormFrame extends StatelessWidget {
                         width: 34,
                         height: 34,
                         decoration: BoxDecoration(
-                          color: colors.accent.withValues(alpha: 0.1),
+                          color: colors.primary.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(9),
                         ),
                         child: Icon(
                           Icons.key_rounded,
                           size: 17,
-                          color: colors.accent,
+                          color: colors.primary,
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -911,7 +925,7 @@ class _SecretFormFrame extends StatelessWidget {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
-                            color: colors.textPrimary,
+                            color: colors.onSurface,
                             fontSize: 15,
                             fontWeight: FontWeight.w700,
                             letterSpacing: 0,
@@ -924,13 +938,13 @@ class _SecretFormFrame extends StatelessWidget {
                         icon: Icon(
                           Icons.close_rounded,
                           size: 18,
-                          color: colors.textTertiary,
+                          color: colors.outline,
                         ),
                       ),
                     ],
                   ),
                 ),
-                Divider(height: 1, color: colors.border),
+                Divider(height: 1, color: colors.outlineVariant),
                 Flexible(
                   child: SingleChildScrollView(
                     padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
@@ -951,6 +965,8 @@ class _AddSecretBottomSheet extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
     final secretNameController = useTextEditingController();
     final secretValueController = useTextEditingController();
     final formKey = useMemoized(() => GlobalKey<FormState>());
@@ -971,23 +987,23 @@ class _AddSecretBottomSheet extends HookConsumerWidget {
             // ── Secret Name ──
             Container(
               decoration: BoxDecoration(
-                color: AppColors.of(context).surface,
+                color: colors.surface,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: AppColors.of(context).border,
+                  color: colors.outlineVariant,
                 ),
               ),
               child: TextFormField(
                 controller: secretNameController,
                 style: TextStyle(
                   fontSize: 14,
-                  color: AppColors.of(context).textPrimary,
+                  color: colors.onSurface,
                   fontFamily: 'monospace',
                 ),
                 decoration: InputDecoration(
                   hintText: secretsT.secretName,
                   hintStyle: TextStyle(
-                    color: AppColors.of(context).textTertiary,
+                    color: colors.outline,
                     fontSize: 14,
                     fontFamily: 'monospace',
                   ),
@@ -1001,7 +1017,7 @@ class _AddSecretBottomSheet extends HookConsumerWidget {
                     child: Icon(
                       Icons.key_outlined,
                       size: 18,
-                      color: AppColors.of(context).textTertiary,
+                      color: colors.outline,
                     ),
                   ),
                   prefixIconConstraints: const BoxConstraints(
@@ -1022,10 +1038,10 @@ class _AddSecretBottomSheet extends HookConsumerWidget {
             // ── Input Mode Toggle ──
             Container(
               decoration: BoxDecoration(
-                color: AppColors.of(context).surface,
+                color: colors.surface,
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(
-                  color: AppColors.of(context).border,
+                  color: colors.outlineVariant,
                 ),
               ),
               padding: const EdgeInsets.all(4),
@@ -1064,23 +1080,23 @@ class _AddSecretBottomSheet extends HookConsumerWidget {
             if (inputMode.value == _InputMode.text)
               Container(
                 decoration: BoxDecoration(
-                  color: AppColors.of(context).surface,
+                  color: colors.surface,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: AppColors.of(context).border,
+                    color: colors.outlineVariant,
                   ),
                 ),
                 child: TextFormField(
                   controller: secretValueController,
                   style: TextStyle(
                     fontSize: 14,
-                    color: AppColors.of(context).textPrimary,
+                    color: colors.onSurface,
                   ),
                   obscureText: true,
                   decoration: InputDecoration(
                     hintText: secretsT.secretValue,
                     hintStyle: TextStyle(
-                      color: AppColors.of(context).textTertiary,
+                      color: colors.outline,
                       fontSize: 14,
                     ),
                     contentPadding: const EdgeInsets.symmetric(
@@ -1093,7 +1109,7 @@ class _AddSecretBottomSheet extends HookConsumerWidget {
                       child: Icon(
                         Icons.lock_outline,
                         size: 18,
-                        color: AppColors.of(context).textTertiary,
+                        color: colors.outline,
                       ),
                     ),
                     prefixIconConstraints: const BoxConstraints(
@@ -1133,14 +1149,12 @@ class _AddSecretBottomSheet extends HookConsumerWidget {
                     horizontal: 16,
                   ),
                   decoration: BoxDecoration(
-                    color: AppColors.of(context).surface,
+                    color: colors.surface,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
                       color: selectedFileName.value != null
-                          ? AppColors.of(
-                              context,
-                            ).accent.withValues(alpha: 0.4)
-                          : AppColors.of(context).border,
+                          ? colors.primary.withValues(alpha: 0.4)
+                          : colors.outlineVariant,
                       width: selectedFileName.value != null ? 1.5 : 1,
                     ),
                   ),
@@ -1154,7 +1168,7 @@ class _AddSecretBottomSheet extends HookConsumerWidget {
                               ? const Color(
                                   0xFF3B82F6,
                                 ).withValues(alpha: 0.15)
-                              : AppColors.of(context).divider,
+                              : theme.dividerColor,
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: Icon(
@@ -1163,8 +1177,8 @@ class _AddSecretBottomSheet extends HookConsumerWidget {
                               : Icons.cloud_upload_outlined,
                           size: 20,
                           color: selectedFileName.value != null
-                              ? AppColors.of(context).accent
-                              : AppColors.of(context).textTertiary,
+                              ? colors.primary
+                              : colors.outline,
                         ),
                       ),
                       const SizedBox(height: 10),
@@ -1174,7 +1188,7 @@ class _AddSecretBottomSheet extends HookConsumerWidget {
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
-                            color: AppColors.of(context).textPrimary,
+                            color: colors.onSurface,
                           ),
                           textAlign: TextAlign.center,
                         ),
@@ -1195,7 +1209,7 @@ class _AddSecretBottomSheet extends HookConsumerWidget {
                             style: TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.w500,
-                              color: AppColors.of(context).accent,
+                              color: colors.primary,
                               fontFamily: 'monospace',
                             ),
                           ),
@@ -1206,7 +1220,7 @@ class _AddSecretBottomSheet extends HookConsumerWidget {
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w500,
-                            color: AppColors.of(context).textPrimary,
+                            color: colors.onSurface,
                           ),
                         ),
                         const SizedBox(height: 4),
@@ -1214,7 +1228,7 @@ class _AddSecretBottomSheet extends HookConsumerWidget {
                           secretsT.orUploadFile,
                           style: TextStyle(
                             fontSize: 11,
-                            color: AppColors.of(context).textTertiary,
+                            color: colors.outline,
                           ),
                           textAlign: TextAlign.center,
                         ),
@@ -1297,12 +1311,13 @@ class _SecretFormActionBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = AppColors.of(context);
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
 
     return DecoratedBox(
       decoration: BoxDecoration(
         border: Border(
-          top: BorderSide(color: colors.borderSubtle),
+          top: BorderSide(color: colors.outlineVariant.withValues(alpha: 0.5)),
         ),
       ),
       child: Padding(
@@ -1312,8 +1327,8 @@ class _SecretFormActionBar extends StatelessWidget {
             TextButton(
               onPressed: isSubmitting ? null : onCancel,
               style: TextButton.styleFrom(
-                foregroundColor: colors.textSecondary,
-                disabledForegroundColor: colors.textTertiary,
+                foregroundColor: colors.onSurfaceVariant,
+                disabledForegroundColor: colors.outline,
                 minimumSize: const Size(0, 44),
                 padding: const EdgeInsets.symmetric(horizontal: 14),
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -1333,12 +1348,12 @@ class _SecretFormActionBar extends StatelessWidget {
               child: FilledButton(
                 onPressed: onSubmit,
                 style: FilledButton.styleFrom(
-                  backgroundColor: colors.accent,
-                  foregroundColor: colors.accentOnAccent,
-                  disabledBackgroundColor: colors.accent.withValues(
+                  backgroundColor: colors.primary,
+                  foregroundColor: colors.onPrimary,
+                  disabledBackgroundColor: colors.primary.withValues(
                     alpha: 0.48,
                   ),
-                  disabledForegroundColor: colors.accentOnAccent.withValues(
+                  disabledForegroundColor: colors.onPrimary.withValues(
                     alpha: 0.82,
                   ),
                   minimumSize: const Size(0, 44),
@@ -1366,7 +1381,7 @@ class _SecretFormActionBar extends StatelessWidget {
                               height: 16,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                color: colors.accentOnAccent,
+                                color: colors.onPrimary,
                               ),
                             ),
                             const SizedBox(width: 8),
@@ -1419,13 +1434,14 @@ class _ModeTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.of(context).border : Colors.transparent,
+          color: isSelected ? colors.outlineVariant : Colors.transparent,
           borderRadius: BorderRadius.circular(8),
         ),
         child: Row(
@@ -1434,9 +1450,7 @@ class _ModeTab extends StatelessWidget {
             Icon(
               icon,
               size: 15,
-              color: isSelected
-                  ? AppColors.of(context).textPrimary
-                  : AppColors.of(context).textTertiary,
+              color: isSelected ? colors.onSurface : colors.outline,
             ),
             const SizedBox(width: 6),
             Text(
@@ -1444,9 +1458,7 @@ class _ModeTab extends StatelessWidget {
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                color: isSelected
-                    ? AppColors.of(context).textPrimary
-                    : AppColors.of(context).textTertiary,
+                color: isSelected ? colors.onSurface : colors.outline,
               ),
             ),
           ],
@@ -1463,7 +1475,8 @@ class _EditSecretBottomSheet extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final colors = AppColors.of(context);
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
     final nameController = useTextEditingController(text: secret.name);
     final valueController = useTextEditingController();
     final formKey = useMemoized(() => GlobalKey<FormState>());
@@ -1486,19 +1499,19 @@ class _EditSecretBottomSheet extends HookConsumerWidget {
               decoration: BoxDecoration(
                 color: colors.surface,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: colors.border),
+                border: Border.all(color: colors.outlineVariant),
               ),
               child: TextFormField(
                 controller: nameController,
                 style: TextStyle(
                   fontSize: 14,
-                  color: colors.textPrimary,
+                  color: colors.onSurface,
                   fontFamily: 'monospace',
                 ),
                 decoration: InputDecoration(
                   hintText: secretsT.secretName,
                   hintStyle: TextStyle(
-                    color: colors.textTertiary,
+                    color: colors.outline,
                     fontSize: 14,
                     fontFamily: 'monospace',
                   ),
@@ -1512,7 +1525,7 @@ class _EditSecretBottomSheet extends HookConsumerWidget {
                     child: Icon(
                       Icons.key_outlined,
                       size: 18,
-                      color: colors.textTertiary,
+                      color: colors.outline,
                     ),
                   ),
                   prefixIconConstraints: const BoxConstraints(
@@ -1535,7 +1548,7 @@ class _EditSecretBottomSheet extends HookConsumerWidget {
               decoration: BoxDecoration(
                 color: colors.surface,
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: colors.border),
+                border: Border.all(color: colors.outlineVariant),
               ),
               padding: const EdgeInsets.all(4),
               child: Row(
@@ -1578,19 +1591,19 @@ class _EditSecretBottomSheet extends HookConsumerWidget {
                     decoration: BoxDecoration(
                       color: colors.surface,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: colors.border),
+                      border: Border.all(color: colors.outlineVariant),
                     ),
                     child: TextFormField(
                       controller: valueController,
                       style: TextStyle(
                         fontSize: 14,
-                        color: colors.textPrimary,
+                        color: colors.onSurface,
                       ),
                       obscureText: true,
                       decoration: InputDecoration(
                         hintText: secretsT.newSecretValue,
                         hintStyle: TextStyle(
-                          color: colors.textTertiary,
+                          color: colors.outline,
                           fontSize: 14,
                         ),
                         contentPadding: const EdgeInsets.symmetric(
@@ -1606,7 +1619,7 @@ class _EditSecretBottomSheet extends HookConsumerWidget {
                           child: Icon(
                             Icons.lock_outline,
                             size: 18,
-                            color: colors.textTertiary,
+                            color: colors.outline,
                           ),
                         ),
                         prefixIconConstraints: const BoxConstraints(
@@ -1623,7 +1636,7 @@ class _EditSecretBottomSheet extends HookConsumerWidget {
                       'Leave value empty to keep current secret',
                       style: TextStyle(
                         fontSize: 11,
-                        color: colors.textTertiary,
+                        color: colors.outline,
                       ),
                     ),
                   ),
@@ -1656,8 +1669,8 @@ class _EditSecretBottomSheet extends HookConsumerWidget {
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
                       color: selectedFileName.value != null
-                          ? colors.accent.withValues(alpha: 0.4)
-                          : colors.border,
+                          ? colors.primary.withValues(alpha: 0.4)
+                          : colors.outlineVariant,
                       width: selectedFileName.value != null ? 1.5 : 1,
                     ),
                   ),
@@ -1671,7 +1684,7 @@ class _EditSecretBottomSheet extends HookConsumerWidget {
                               ? const Color(
                                   0xFF3B82F6,
                                 ).withValues(alpha: 0.15)
-                              : colors.divider,
+                              : theme.dividerColor,
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: Icon(
@@ -1680,8 +1693,8 @@ class _EditSecretBottomSheet extends HookConsumerWidget {
                               : Icons.cloud_upload_outlined,
                           size: 20,
                           color: selectedFileName.value != null
-                              ? colors.accent
-                              : colors.textTertiary,
+                              ? colors.primary
+                              : colors.outline,
                         ),
                       ),
                       const SizedBox(height: 10),
@@ -1691,7 +1704,7 @@ class _EditSecretBottomSheet extends HookConsumerWidget {
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
-                            color: colors.textPrimary,
+                            color: colors.onSurface,
                           ),
                           textAlign: TextAlign.center,
                         ),
@@ -1712,7 +1725,7 @@ class _EditSecretBottomSheet extends HookConsumerWidget {
                             style: TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.w500,
-                              color: colors.accent,
+                              color: colors.primary,
                               fontFamily: 'monospace',
                             ),
                           ),
@@ -1723,7 +1736,7 @@ class _EditSecretBottomSheet extends HookConsumerWidget {
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w500,
-                            color: colors.textPrimary,
+                            color: colors.onSurface,
                           ),
                         ),
                         const SizedBox(height: 4),
@@ -1731,7 +1744,7 @@ class _EditSecretBottomSheet extends HookConsumerWidget {
                           secretsT.orUploadFile,
                           style: TextStyle(
                             fontSize: 11,
-                            color: colors.textTertiary,
+                            color: colors.outline,
                           ),
                           textAlign: TextAlign.center,
                         ),
@@ -1749,7 +1762,7 @@ class _EditSecretBottomSheet extends HookConsumerWidget {
               child: TextButton(
                 style: TextButton.styleFrom(
                   foregroundColor: Colors.white,
-                  backgroundColor: colors.accent,
+                  backgroundColor: colors.primary,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10),
@@ -1817,14 +1830,15 @@ class _EditSecretBottomSheet extends HookConsumerWidget {
 class _GenerateCertificateKeyButton extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final colors = AppColors.of(context);
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
     final isLoading = useState(false);
 
     return Container(
       decoration: BoxDecoration(
         color: colors.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: colors.border),
+        border: Border.all(color: colors.outlineVariant),
       ),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -1837,13 +1851,13 @@ class _GenerateCertificateKeyButton extends HookConsumerWidget {
                   width: 32,
                   height: 32,
                   decoration: BoxDecoration(
-                    color: colors.accent.withValues(alpha: 0.1),
+                    color: colors.primary.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(
                     Icons.key,
                     size: 16,
-                    color: colors.accent,
+                    color: colors.primary,
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -1853,7 +1867,7 @@ class _GenerateCertificateKeyButton extends HookConsumerWidget {
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
-                      color: colors.textPrimary,
+                      color: colors.onSurface,
                     ),
                   ),
                 ),
@@ -1864,7 +1878,7 @@ class _GenerateCertificateKeyButton extends HookConsumerWidget {
               'Generate a certificate private key for iOS builds. This is required for automatic code signing.',
               style: TextStyle(
                 fontSize: 12,
-                color: colors.textSecondary,
+                color: colors.onSurfaceVariant,
                 height: 1.4,
               ),
             ),
@@ -1874,7 +1888,7 @@ class _GenerateCertificateKeyButton extends HookConsumerWidget {
               child: TextButton(
                 style: TextButton.styleFrom(
                   foregroundColor: Colors.white,
-                  backgroundColor: colors.accent,
+                  backgroundColor: colors.primary,
                   padding: const EdgeInsets.symmetric(vertical: 12),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10),
@@ -1936,7 +1950,8 @@ class _GenerateCertificateKeyButton extends HookConsumerWidget {
 class _SetupAscApiKeyButton extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final colors = AppColors.of(context);
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
     final isLoading = useState(false);
     final isExpanded = useState(false);
     final issuerIdController = useTextEditingController();
@@ -1949,7 +1964,7 @@ class _SetupAscApiKeyButton extends HookConsumerWidget {
       decoration: BoxDecoration(
         color: colors.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: colors.border),
+        border: Border.all(color: colors.outlineVariant),
       ),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -1981,7 +1996,7 @@ class _SetupAscApiKeyButton extends HookConsumerWidget {
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
-                        color: colors.textPrimary,
+                        color: colors.onSurface,
                       ),
                     ),
                   ),
@@ -1991,7 +2006,7 @@ class _SetupAscApiKeyButton extends HookConsumerWidget {
                     child: Icon(
                       Icons.expand_more,
                       size: 20,
-                      color: colors.textTertiary,
+                      color: colors.outline,
                     ),
                   ),
                 ],
@@ -2002,7 +2017,7 @@ class _SetupAscApiKeyButton extends HookConsumerWidget {
               'Required for iOS code signing and TestFlight deployment.',
               style: TextStyle(
                 fontSize: 12,
-                color: colors.textSecondary,
+                color: colors.onSurfaceVariant,
                 height: 1.4,
               ),
             ),
@@ -2015,21 +2030,21 @@ class _SetupAscApiKeyButton extends HookConsumerWidget {
                     // Issuer ID
                     Container(
                       decoration: BoxDecoration(
-                        color: colors.surfaceTertiary,
+                        color: colors.surfaceContainerHighest,
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: colors.border),
+                        border: Border.all(color: colors.outlineVariant),
                       ),
                       child: TextFormField(
                         controller: issuerIdController,
                         style: TextStyle(
                           fontSize: 14,
-                          color: colors.textPrimary,
+                          color: colors.onSurface,
                           fontFamily: 'monospace',
                         ),
                         decoration: InputDecoration(
                           hintText: 'Issuer ID (e.g. 69a6d…)',
                           hintStyle: TextStyle(
-                            color: colors.textTertiary,
+                            color: colors.outline,
                             fontSize: 13,
                             fontFamily: 'monospace',
                           ),
@@ -2051,21 +2066,21 @@ class _SetupAscApiKeyButton extends HookConsumerWidget {
                     // Key ID
                     Container(
                       decoration: BoxDecoration(
-                        color: colors.surfaceTertiary,
+                        color: colors.surfaceContainerHighest,
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: colors.border),
+                        border: Border.all(color: colors.outlineVariant),
                       ),
                       child: TextFormField(
                         controller: keyIdController,
                         style: TextStyle(
                           fontSize: 14,
-                          color: colors.textPrimary,
+                          color: colors.onSurface,
                           fontFamily: 'monospace',
                         ),
                         decoration: InputDecoration(
                           hintText: 'Key ID (e.g. ABC123DEFG)',
                           hintStyle: TextStyle(
-                            color: colors.textTertiary,
+                            color: colors.outline,
                             fontSize: 13,
                             fontFamily: 'monospace',
                           ),
@@ -2091,17 +2106,17 @@ class _SetupAscApiKeyButton extends HookConsumerWidget {
                         style: TextButton.styleFrom(
                           foregroundColor: p8FileName.value != null
                               ? Colors.green
-                              : colors.textSecondary,
+                              : colors.onSurfaceVariant,
                           backgroundColor: p8FileName.value != null
                               ? Colors.green.withValues(alpha: 0.08)
-                              : colors.surfaceTertiary,
+                              : colors.surfaceContainerHighest,
                           padding: const EdgeInsets.symmetric(vertical: 12),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10),
                             side: BorderSide(
                               color: p8FileName.value != null
                                   ? Colors.green.withValues(alpha: 0.3)
-                                  : colors.border,
+                                  : colors.outlineVariant,
                             ),
                           ),
                         ),
@@ -2154,7 +2169,7 @@ class _SetupAscApiKeyButton extends HookConsumerWidget {
                           'Download the .p8 file from App Store Connect',
                           style: TextStyle(
                             fontSize: 11,
-                            color: colors.textTertiary,
+                            color: colors.outline,
                           ),
                         ),
                       ),
@@ -2165,7 +2180,7 @@ class _SetupAscApiKeyButton extends HookConsumerWidget {
                       child: TextButton(
                         style: TextButton.styleFrom(
                           foregroundColor: Colors.white,
-                          backgroundColor: colors.accent,
+                          backgroundColor: colors.primary,
                           padding: const EdgeInsets.symmetric(vertical: 12),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10),
