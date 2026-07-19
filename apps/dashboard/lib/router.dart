@@ -11,7 +11,6 @@ import 'package:dashboard/settings/settings_page.dart';
 import 'package:dashboard/store_release/store_release_page.dart';
 import 'package:dashboard/utilities/async_error_widget.dart';
 import 'package:dashboard/variables/variables_page.dart';
-import 'package:dashboard/workers/worker_status_page.dart';
 import 'package:dashboard/workspace/workspace_page.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -94,16 +93,6 @@ final routerProvider = Provider<GoRouter>((ref) {
               child: const AuthenticatedScaffoldRoutePage(
                 title: 'アプリ配信',
                 child: AppDistributionsBody(),
-              ),
-            ),
-          ),
-          GoRoute(
-            path: 'workers',
-            pageBuilder: (context, state) => _responsivePage(
-              key: state.pageKey,
-              child: const AuthenticatedScaffoldRoutePage(
-                title: 'Workers',
-                child: WorkerStatusBody(),
               ),
             ),
           ),

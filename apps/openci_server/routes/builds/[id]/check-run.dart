@@ -28,11 +28,11 @@ Future<Response> _post(RequestContext context, String id) async {
       );
     }
 
-    final runStatus = payload['runStatus'] as String?;
+    final runStatus = payload['status'] as String?;
     if (runStatus == null || runStatus.isEmpty) {
       return Response.json(
         statusCode: HttpStatus.badRequest,
-        body: {'success': false, 'error': 'runStatus is required'},
+        body: {'success': false, 'error': 'status is required'},
       );
     }
 
