@@ -5,7 +5,7 @@ import 'package:dashboard/auth/auth_provider.dart';
 import 'package:dashboard/build_logs/app_distributions_page.dart';
 import 'package:dashboard/build_logs/build_jobs_provider.dart';
 import 'package:dashboard/build_logs/build_logs_detail_page.dart';
-import 'package:dashboard/build_logs/build_logs_page.dart';
+import 'package:dashboard/cicd_log/cicd_logs_page.dart';
 import 'package:dashboard/firebase/firebase_config_provider.dart';
 import 'package:dashboard/settings/settings_page.dart';
 import 'package:dashboard/store_release/store_release_page.dart';
@@ -28,10 +28,7 @@ final routerProvider = Provider<GoRouter>((ref) {
     routes: [
       GoRoute(
         path: '/auth',
-        pageBuilder: (context, state) => _responsivePage(
-          key: state.pageKey,
-          child: const AuthPage(),
-        ),
+        builder: (context, state) => const AuthPage(),
       ),
       GoRoute(
         path: '/',
@@ -40,70 +37,49 @@ final routerProvider = Provider<GoRouter>((ref) {
         routes: [
           GoRoute(
             path: 'workspace',
-            pageBuilder: (context, state) => _responsivePage(
-              key: state.pageKey,
-              child: const WorkspaceRoutePage(),
-            ),
+            builder: (context, state) => const WorkspaceRoutePage(),
           ),
           GoRoute(
             path: 'runs',
-            pageBuilder: (context, state) => _responsivePage(
-              key: state.pageKey,
-              child: const AuthenticatedScaffoldRoutePage(
-                title: 'CI/CDログ',
-                child: LogsBody(),
-              ),
+            builder: (context, state) => const AuthenticatedScaffoldRoutePage(
+              title: 'CI/CDログ',
+              child: CicdLogsPage(),
             ),
           ),
           GoRoute(
             path: 'runs/:buildJobId',
-            pageBuilder: (context, state) {
+            builder: (context, state) {
               final buildJobId = state.pathParameters['buildJobId']!;
-              return _responsivePage(
-                key: state.pageKey,
-                child: BuildLogsDetailRoutePage(buildJobId: buildJobId),
-              );
+              return BuildLogsDetailRoutePage(buildJobId: buildJobId);
             },
           ),
 
           GoRoute(
             path: 'variables',
-            pageBuilder: (context, state) => _responsivePage(
-              key: state.pageKey,
-              child: const AuthenticatedScaffoldRoutePage(
-                title: 'シークレット',
-                child: VariablesBody(),
-              ),
+            builder: (context, state) => const AuthenticatedScaffoldRoutePage(
+              title: 'シークレット',
+              child: VariablesBody(),
             ),
           ),
           GoRoute(
             path: 'store-release',
-            pageBuilder: (context, state) => _responsivePage(
-              key: state.pageKey,
-              child: const AuthenticatedScaffoldRoutePage(
-                title: 'Store Release',
-                child: StoreReleaseBody(),
-              ),
+            builder: (context, state) => const AuthenticatedScaffoldRoutePage(
+              title: 'Store Release',
+              child: StoreReleaseBody(),
             ),
           ),
           GoRoute(
             path: 'distributions',
-            pageBuilder: (context, state) => _responsivePage(
-              key: state.pageKey,
-              child: const AuthenticatedScaffoldRoutePage(
-                title: 'アプリ配信',
-                child: AppDistributionsBody(),
-              ),
+            builder: (context, state) => const AuthenticatedScaffoldRoutePage(
+              title: 'アプリ配信',
+              child: AppDistributionsBody(),
             ),
           ),
           GoRoute(
             path: 'settings',
-            pageBuilder: (context, state) => _responsivePage(
-              key: state.pageKey,
-              child: const AuthenticatedScaffoldRoutePage(
-                title: '設定',
-                child: SettingsPage(),
-              ),
+            builder: (context, state) => const AuthenticatedScaffoldRoutePage(
+              title: '設定',
+              child: SettingsPage(),
             ),
           ),
         ],
@@ -129,13 +105,6 @@ final routerProvider = Provider<GoRouter>((ref) {
     },
   );
 });
-
-Page<void> _responsivePage({
-  required LocalKey key,
-  required Widget child,
-}) {
-  return MaterialPage<void>(key: key, child: child);
-}
 
 class WorkspaceRoutePage extends ConsumerWidget {
   const WorkspaceRoutePage({super.key});

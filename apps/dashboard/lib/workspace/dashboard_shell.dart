@@ -1,5 +1,5 @@
 import 'package:dashboard/build_logs/app_distributions_page.dart';
-import 'package:dashboard/build_logs/build_logs_page.dart';
+import 'package:dashboard/cicd_log/cicd_logs_page.dart';
 import 'package:dashboard/settings/settings_page.dart';
 import 'package:dashboard/store_release/store_release_page.dart';
 import 'package:dashboard/variables/variables_page.dart';
@@ -61,7 +61,7 @@ class CompactDestinationBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return switch (destination) {
-      CompactBoardDestination.runs => const LogsBody(),
+      CompactBoardDestination.runs => const CicdLogsPage(),
       CompactBoardDestination.variables => const VariablesBody(),
       CompactBoardDestination.storeRelease => const StoreReleaseBody(),
       CompactBoardDestination.distributions => const AppDistributionsBody(),

@@ -3,7 +3,6 @@ import 'package:dashboard/build_logs/branch_job_row.dart';
 import 'package:dashboard/build_logs/branch_matrix_variant_row.dart';
 import 'package:dashboard/build_logs/build_job_log.dart';
 import 'package:dashboard/build_logs/build_jobs_provider.dart';
-
 import 'package:dashboard/build_logs/chips/job_chip.dart';
 import 'package:dashboard/build_logs/chips/job_status.dart';
 import 'package:dashboard/build_logs/chips/matrix_job_chip.dart';
