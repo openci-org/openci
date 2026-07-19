@@ -1,9 +1,12 @@
 import 'package:dashboard/api/openci_api_client.dart';
 import 'package:dashboard/app_strings.dart';
+import 'package:dashboard/auth/auth_page.dart';
+import 'package:dashboard/auth/auth_provider.dart';
 import 'package:dashboard/build_logs/build_job_logs_provider.dart';
 import 'package:dashboard/build_logs/build_jobs_provider.dart';
 import 'package:dashboard/build_logs/synced_spinner.dart';
 import 'package:dashboard/team/team_provider.dart';
+import 'package:dashboard/utilities/async_error_widget.dart';
 import 'package:dashboard/utilities/snack_bar_extension.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -12,6 +15,51 @@ import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+
+class BuildLogsDetailRoutePage extends ConsumerWidget {
+  const BuildLogsDetailRoutePage({
+    super.key,
+    required this.buildJobId,
+  });
+
+  final String buildJobId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final authState = ref.watch(authStateChangesProvider);
+
+    return authState.when(
+      loading: () => const Scaffold(
+        body: Center(child: CircularProgressIndicator.adaptive()),
+      ),
+      error: asyncErrorWidget,
+      data: (user) {
+        if (user == null) {
+          return const AuthPage();
+        }
+
+        final buildJobAsync = ref.watch(buildJobByIdProvider(buildJobId));
+        return buildJobAsync.when(
+          loading: () => const Scaffold(
+            body: Center(child: CircularProgressIndicator.adaptive()),
+          ),
+          error: asyncErrorWidget,
+          data: (buildJob) {
+            if (buildJob == null) {
+              return const Scaffold(
+                body: Center(
+                  child: Text('ビルドジョブが見つかりません'),
+                ),
+              );
+            }
+
+            return BuildLogsDetailPage(buildJob: buildJob);
+          },
+        );
+      },
+    );
+  }
+}
 
 class BuildLogsDetailPage extends HookConsumerWidget {
   const BuildLogsDetailPage({
