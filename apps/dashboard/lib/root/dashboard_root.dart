@@ -1,10 +1,20 @@
+import 'package:dashboard/auth/auth_page.dart';
+import 'package:dashboard/auth/auth_provider.dart';
 import 'package:dashboard/build_logs/app_distributions_page.dart';
 import 'package:dashboard/cicd_log/cicd_logs_page.dart';
+import 'package:dashboard/extensions/async_value_extensions.dart';
+import 'package:dashboard/extensions/circular_progress_indicator_extensions.dart';
+import 'package:dashboard/firebase/firebase_config_provider.dart';
 import 'package:dashboard/settings/settings_page.dart';
 import 'package:dashboard/store_release/store_release_page.dart';
+import 'package:dashboard/team/selected_team_provider.dart';
+import 'package:dashboard/team/switch_team_bottom_sheet.dart';
+import 'package:dashboard/team/team_provider.dart';
+import 'package:dashboard/utilities/async_error_widget.dart';
 import 'package:dashboard/variables/variables_page.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 enum CompactBoardDestination {
   runs,
@@ -72,8 +82,51 @@ class CompactDestinationBody extends StatelessWidget {
   }
 }
 
-class DashboardShell extends StatefulWidget {
-  const DashboardShell({
+class DashboardRouteGateway extends ConsumerWidget {
+  const DashboardRouteGateway({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final authState = ref.watch(authStateChangesProvider);
+
+    return authState.when(
+      loading: () =>
+          const CircularProgressIndicator.adaptive().withScaffoldCenter(),
+      error: asyncErrorWidget,
+      data: (user) {
+        if (user == null) {
+          return const AuthPage();
+        }
+
+        final configAsync = ref.watch(selfHostedConfigProvider);
+        final selectedTeamIdAsync = ref.watch(selectedTeamIdProvider);
+        final teamAsync = ref.watch(teamStateProvider);
+
+        return (configAsync, selectedTeamIdAsync, teamAsync).when(
+          loading: () =>
+              const CircularProgressIndicator.adaptive().withScaffoldCenter(),
+          error: asyncErrorWidget,
+          data: (_, selectedTeamId, team) {
+            if (selectedTeamId == null) {
+              FirebaseAuth.instance.signOut();
+              throw Exception("No team selected");
+            }
+
+            return DashboardRoot(
+              key: ValueKey(selectedTeamId),
+              workspaceId: selectedTeamId,
+              workspaceName: team.name,
+              onSwitchTeam: () => showTeamFlowModal(context),
+            );
+          },
+        );
+      },
+    );
+  }
+}
+
+class DashboardRoot extends StatefulWidget {
+  const DashboardRoot({
     super.key,
     this.workspaceId = '',
     this.workspaceName = 'OpenCI team',
@@ -85,10 +138,10 @@ class DashboardShell extends StatefulWidget {
   final VoidCallback? onSwitchTeam;
 
   @override
-  State<DashboardShell> createState() => _DashboardShellState();
+  State<DashboardRoot> createState() => _DashboardRootState();
 }
 
-class _DashboardShellState extends State<DashboardShell> {
+class _DashboardRootState extends State<DashboardRoot> {
   final _scaffoldKey = GlobalKey<ScaffoldState>();
   CompactBoardDestination _compactDestination = CompactBoardDestination.runs;
 
@@ -118,32 +171,24 @@ class _DashboardShellState extends State<DashboardShell> {
       ),
     );
 
-    return _DashboardShortcuts(
-      onDestinationSelected: _selectCompactDestination,
-      child: Scaffold(
-        key: _scaffoldKey,
-        backgroundColor: const Color(0xFFF4F7FB),
-        appBar: AppBar(
-          title: Text(
-            _compactDestination.label,
-            style: const TextStyle(fontWeight: FontWeight.w900),
-          ),
-          backgroundColor: const Color(0xFFF4F7FB),
-          foregroundColor: const Color(0xFF0F172A),
-          elevation: 0,
-          scrolledUnderElevation: 0,
+    return Scaffold(
+      key: _scaffoldKey,
+      appBar: AppBar(
+        title: Text(
+          _compactDestination.label,
+          style: const TextStyle(fontWeight: FontWeight.w900),
         ),
-        drawer: DashboardDrawer(
-          workspaceName: widget.workspaceName,
-          selectedDestination: _compactDestination,
-          onRunsTap: onRunsTap,
-          onVariablesTap: onVariablesTap,
-          onStoreReleaseTap: onStoreReleaseTap,
-          onDistributionsTap: onDistributionsTap,
-          onSettingsTap: onSettingsTap,
-        ),
-        body: content,
       ),
+      drawer: DashboardDrawer(
+        workspaceName: widget.workspaceName,
+        selectedDestination: _compactDestination,
+        onRunsTap: onRunsTap,
+        onVariablesTap: onVariablesTap,
+        onStoreReleaseTap: onStoreReleaseTap,
+        onDistributionsTap: onDistributionsTap,
+        onSettingsTap: onSettingsTap,
+      ),
+      body: content,
     );
   }
 }
@@ -295,76 +340,5 @@ class _CompactDrawerTile extends StatelessWidget {
         onTap: onTap,
       ),
     );
-  }
-}
-
-class _DashboardShortcuts extends StatefulWidget {
-  const _DashboardShortcuts({
-    required this.onDestinationSelected,
-    required this.child,
-  });
-
-  final ValueChanged<CompactBoardDestination> onDestinationSelected;
-  final Widget child;
-
-  @override
-  State<_DashboardShortcuts> createState() => _DashboardShortcutsState();
-}
-
-class _DashboardShortcutsState extends State<_DashboardShortcuts> {
-  late final FocusNode _focusNode;
-
-  @override
-  void initState() {
-    super.initState();
-    _focusNode = FocusNode();
-  }
-
-  @override
-  void dispose() {
-    _focusNode.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final bindings = <ShortcutActivator, VoidCallback>{
-      const SingleActivator(LogicalKeyboardKey.digit1, meta: true): () =>
-          widget.onDestinationSelected(CompactBoardDestination.runs),
-      const SingleActivator(LogicalKeyboardKey.digit2, meta: true): () =>
-          widget.onDestinationSelected(CompactBoardDestination.variables),
-      const SingleActivator(LogicalKeyboardKey.digit3, meta: true): () =>
-          widget.onDestinationSelected(CompactBoardDestination.storeRelease),
-      const SingleActivator(LogicalKeyboardKey.digit4, meta: true): () =>
-          widget.onDestinationSelected(CompactBoardDestination.distributions),
-      const SingleActivator(LogicalKeyboardKey.digit5, meta: true): () =>
-          widget.onDestinationSelected(CompactBoardDestination.settings),
-    };
-
-    return CallbackShortcuts(
-      bindings: bindings,
-      child: Focus(
-        focusNode: _focusNode,
-        autofocus: true,
-        child: GestureDetector(
-          behavior: HitTestBehavior.translucent,
-          onTap: () {
-            if (_hasTextInputFocus()) {
-              _focusNode.requestFocus();
-            }
-          },
-          child: widget.child,
-        ),
-      ),
-    );
-  }
-
-  bool _hasTextInputFocus() {
-    final context = FocusManager.instance.primaryFocus?.context;
-    if (context == null) {
-      return false;
-    }
-    return context.widget is EditableText ||
-        context.findAncestorWidgetOfExactType<EditableText>() != null;
   }
 }

@@ -84,7 +84,7 @@ class BuildLogsDetailPage extends HookConsumerWidget {
                     if (context.canPop()) {
                       context.pop();
                     } else {
-                      context.go('/workspace');
+                      context.go('/');
                     }
                   },
                 )
