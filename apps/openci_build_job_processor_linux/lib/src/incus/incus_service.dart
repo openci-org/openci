@@ -322,7 +322,8 @@ class IncusService {
         final results = await Future.wait([...futures, execResultFuture]);
 
         final execMetadata = results.last as Map<String, dynamic>;
-        final returnCode = execMetadata['return'] as int? ?? 0;
+        final innerMetadata = execMetadata['metadata'] as Map<String, dynamic>?;
+        final returnCode = innerMetadata?['return'] as int? ?? 0;
 
         if (!completer.isCompleted) {
           completer.complete(returnCode);
