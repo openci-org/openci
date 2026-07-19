@@ -3,7 +3,7 @@ import 'package:dashboard/build_logs/branch_job_row.dart';
 import 'package:dashboard/build_logs/branch_matrix_variant_row.dart';
 import 'package:dashboard/build_logs/build_job_log.dart';
 import 'package:dashboard/build_logs/build_jobs_provider.dart';
-import 'package:dashboard/build_logs/build_logs_detail_page.dart';
+
 import 'package:dashboard/build_logs/chips/job_chip.dart';
 import 'package:dashboard/build_logs/chips/job_status.dart';
 import 'package:dashboard/build_logs/chips/matrix_job_chip.dart';
@@ -17,7 +17,6 @@ import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 const _recentBuildLogWindow = Duration(hours: 24);
-const buildLogsSplitViewBreakpoint = 1040.0;
 
 ChipStatus _toChipStatus(BuildJobStatus status) => switch (status) {
   BuildJobStatus.SUCCESS => ChipStatus.success,
@@ -77,13 +76,10 @@ String _workflowRunGroupKey(BuildJob job) {
 }
 
 class LogsBody extends HookConsumerWidget {
-  const LogsBody({super.key, this.initialBuildJobId});
-
-  final String? initialBuildJobId;
+  const LogsBody({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final selectedBuildJobId = useState<String?>(null);
     final state = ref.watch(buildJobsProvider);
     return state.when(
       data: (buildJobs) {
@@ -161,59 +157,16 @@ class LogsBody extends HookConsumerWidget {
             .length;
 
         return SyncedSpinnerScope(
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final usesSplitView =
-                  constraints.maxWidth >= buildLogsSplitViewBreakpoint;
-              final currentSelectedId =
-                  selectedBuildJobId.value ?? initialBuildJobId;
-              final selectedBuildJob =
-                  _selectedBuildJob(buildJobs, currentSelectedId) ??
-                  buildJobs.first;
-
-              void openBuildJob(BuildJob buildJob) {
-                if (usesSplitView) {
-                  selectedBuildJobId.value = buildJob.id;
-                  return;
-                }
-
-                context.push('/runs/${Uri.encodeComponent(buildJob.id)}');
-              }
-
-              final list = _BuildLogsList(
-                orderedDisplayList: orderedDisplayList,
-                recentRunCount: recentDisplayList.length,
-                successCount: successCount,
-                runningCount: runningCount,
-                failedCount: failedCount,
-                latestRunAt: buildJobs.first.createdAt,
-                selectedBuildJobId: usesSplitView ? selectedBuildJob.id : null,
-                onOpenBuildJob: openBuildJob,
-              );
-
-              if (!usesSplitView) {
-                return list;
-              }
-
-              final listWidth = constraints.maxWidth < 1180 ? 400.0 : 440.0;
-              return Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  SizedBox(width: listWidth, child: list),
-                  VerticalDivider(
-                    width: 1,
-                    thickness: 1,
-                    color: AppColors.of(context).divider,
-                  ),
-                  Expanded(
-                    child: BuildLogsDetailPage(
-                      key: ValueKey(selectedBuildJob.id),
-                      buildJob: selectedBuildJob,
-                      showBackButton: false,
-                    ),
-                  ),
-                ],
-              );
+          child: _BuildLogsList(
+            orderedDisplayList: orderedDisplayList,
+            recentRunCount: recentDisplayList.length,
+            successCount: successCount,
+            runningCount: runningCount,
+            failedCount: failedCount,
+            latestRunAt: buildJobs.first.createdAt,
+            selectedBuildJobId: null,
+            onOpenBuildJob: (buildJob) {
+              context.push('/runs/${Uri.encodeComponent(buildJob.id)}');
             },
           ),
         );
@@ -222,18 +175,6 @@ class LogsBody extends HookConsumerWidget {
       error: asyncErrorWidget,
     );
   }
-}
-
-BuildJob? _selectedBuildJob(List<BuildJob> buildJobs, String? buildJobId) {
-  if (buildJobId == null || buildJobId.isEmpty) {
-    return null;
-  }
-  for (final buildJob in buildJobs) {
-    if (buildJob.id == buildJobId) {
-      return buildJob;
-    }
-  }
-  return null;
 }
 
 class _BuildLogsList extends StatelessWidget {

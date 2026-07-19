@@ -3,11 +3,8 @@ import 'package:dashboard/build_logs/build_logs_page.dart';
 import 'package:dashboard/settings/settings_page.dart';
 import 'package:dashboard/store_release/store_release_page.dart';
 import 'package:dashboard/variables/variables_page.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-
-const compactBoardBreakpoint = 640.0;
 
 enum CompactBoardDestination {
   runs,
@@ -94,7 +91,6 @@ class DashboardShell extends StatefulWidget {
 class _DashboardShellState extends State<DashboardShell> {
   final _scaffoldKey = GlobalKey<ScaffoldState>();
   CompactBoardDestination _compactDestination = CompactBoardDestination.runs;
-  bool _isDesktopRailCollapsed = false;
 
   void _selectCompactDestination(CompactBoardDestination destination) {
     if (_compactDestination == destination) {
@@ -105,9 +101,6 @@ class _DashboardShellState extends State<DashboardShell> {
 
   @override
   Widget build(BuildContext context) {
-    final isCompactLayout =
-        MediaQuery.sizeOf(context).width < compactBoardBreakpoint;
-
     void onRunsTap() => _selectCompactDestination(CompactBoardDestination.runs);
     void onVariablesTap() =>
         _selectCompactDestination(CompactBoardDestination.variables);
@@ -126,198 +119,31 @@ class _DashboardShellState extends State<DashboardShell> {
     );
 
     return _DashboardShortcuts(
-      onToggleNavigation: () {
-        if (isCompactLayout) {
-          return;
-        }
-        setState(
-          () => _isDesktopRailCollapsed = !_isDesktopRailCollapsed,
-        );
-      },
       onDestinationSelected: _selectCompactDestination,
       child: Scaffold(
         key: _scaffoldKey,
         backgroundColor: const Color(0xFFF4F7FB),
-        appBar: isCompactLayout
-            ? AppBar(
-                title: Text(
-                  _compactDestination.label,
-                  style: const TextStyle(fontWeight: FontWeight.w900),
-                ),
-                backgroundColor: const Color(0xFFF4F7FB),
-                foregroundColor: const Color(0xFF0F172A),
-                elevation: 0,
-                scrolledUnderElevation: 0,
-              )
-            : null,
-        drawer: isCompactLayout
-            ? DashboardDrawer(
-                workspaceName: widget.workspaceName,
-                selectedDestination: _compactDestination,
-                onRunsTap: onRunsTap,
-                onVariablesTap: onVariablesTap,
-                onStoreReleaseTap: onStoreReleaseTap,
-                onDistributionsTap: onDistributionsTap,
-                onSettingsTap: onSettingsTap,
-              )
-            : null,
-        body: LayoutBuilder(
-          builder: (context, constraints) {
-            if (isCompactLayout) {
-              return content;
-            }
-
-            return Row(
-              children: [
-                DesktopBoardNavigationRail(
-                  selectedDestination: _compactDestination,
-                  extended:
-                      constraints.maxWidth >= 960 && !_isDesktopRailCollapsed,
-                  onCollapsedChanged: (collapsed) =>
-                      setState(() => _isDesktopRailCollapsed = collapsed),
-                  onDestinationSelected: _selectCompactDestination,
-                ),
-                const VerticalDivider(width: 1, color: Color(0xFFE2E8F0)),
-                Expanded(child: content),
-              ],
-            );
-          },
-        ),
-      ),
-    );
-  }
-}
-
-class DesktopBoardNavigationRail extends StatelessWidget {
-  const DesktopBoardNavigationRail({
-    super.key,
-    required this.selectedDestination,
-    required this.extended,
-    required this.onCollapsedChanged,
-    required this.onDestinationSelected,
-  });
-
-  final CompactBoardDestination selectedDestination;
-  final bool extended;
-  final ValueChanged<bool> onCollapsedChanged;
-  final ValueChanged<CompactBoardDestination> onDestinationSelected;
-
-  @override
-  Widget build(BuildContext context) {
-    final selectedIndex = boardNavigationDestinations.indexOf(
-      selectedDestination,
-    );
-
-    return SizedBox(
-      width: extended ? 216 : 80,
-      child: NavigationRail(
-        backgroundColor: const Color(0xFFF8FAFC),
-        extended: extended,
-        minWidth: extended ? 80 : 72,
-        minExtendedWidth: 216,
-        groupAlignment: -1,
-        selectedIndex: selectedIndex < 0 ? 0 : selectedIndex,
-        labelType: extended ? null : NavigationRailLabelType.none,
-        leading: _DesktopRailHeader(
-          extended: extended,
-          onCollapsedChanged: onCollapsedChanged,
-        ),
-        destinations: [
-          for (final destination in boardNavigationDestinations)
-            NavigationRailDestination(
-              icon: _RailIcon(
-                icon: destination.icon,
-                tooltip: destination.label,
-              ),
-              selectedIcon: _RailIcon(
-                icon: destination.selectedIcon,
-                tooltip: destination.label,
-              ),
-              label: Text(
-                destination.label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-        ],
-        onDestinationSelected: (index) {
-          onDestinationSelected(boardNavigationDestinations[index]);
-        },
-      ),
-    );
-  }
-}
-
-class _DesktopRailHeader extends StatelessWidget {
-  const _DesktopRailHeader({
-    required this.extended,
-    required this.onCollapsedChanged,
-  });
-
-  final bool extended;
-  final ValueChanged<bool> onCollapsedChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    if (!extended) {
-      return Padding(
-        padding: const EdgeInsets.fromLTRB(8, 16, 8, 20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            IconButton.filledTonal(
-              tooltip: 'ナビゲーションを展開',
-              onPressed: () => onCollapsedChanged(false),
-              icon: const Icon(Icons.chevron_right_rounded),
-            ),
-          ],
-        ),
-      );
-    }
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 16, 12, 20),
-      child: Row(
-        children: [
-          const Expanded(
-            child: Text(
-              'OpenCI',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: Color(0xFF0F172A),
-                fontSize: 18,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
+        appBar: AppBar(
+          title: Text(
+            _compactDestination.label,
+            style: const TextStyle(fontWeight: FontWeight.w900),
           ),
-          const SizedBox(width: 4),
-          IconButton(
-            tooltip: 'ナビゲーションを折りたたむ',
-            onPressed: () => onCollapsedChanged(true),
-            icon: const Icon(Icons.chevron_left_rounded),
-          ),
-        ],
+          backgroundColor: const Color(0xFFF4F7FB),
+          foregroundColor: const Color(0xFF0F172A),
+          elevation: 0,
+          scrolledUnderElevation: 0,
+        ),
+        drawer: DashboardDrawer(
+          workspaceName: widget.workspaceName,
+          selectedDestination: _compactDestination,
+          onRunsTap: onRunsTap,
+          onVariablesTap: onVariablesTap,
+          onStoreReleaseTap: onStoreReleaseTap,
+          onDistributionsTap: onDistributionsTap,
+          onSettingsTap: onSettingsTap,
+        ),
+        body: content,
       ),
-    );
-  }
-}
-
-class _RailIcon extends StatelessWidget {
-  const _RailIcon({
-    required this.icon,
-    required this.tooltip,
-  });
-
-  final IconData icon;
-  final String tooltip;
-
-  @override
-  Widget build(BuildContext context) {
-    return Tooltip(
-      message: tooltip,
-      waitDuration: const Duration(milliseconds: 500),
-      child: Icon(icon),
     );
   }
 }
@@ -474,12 +300,10 @@ class _CompactDrawerTile extends StatelessWidget {
 
 class _DashboardShortcuts extends StatefulWidget {
   const _DashboardShortcuts({
-    required this.onToggleNavigation,
     required this.onDestinationSelected,
     required this.child,
   });
 
-  final VoidCallback onToggleNavigation;
   final ValueChanged<CompactBoardDestination> onDestinationSelected;
   final Widget child;
 
@@ -516,13 +340,6 @@ class _DashboardShortcutsState extends State<_DashboardShortcuts> {
       const SingleActivator(LogicalKeyboardKey.digit5, meta: true): () =>
           widget.onDestinationSelected(CompactBoardDestination.settings),
     };
-
-    if (!kIsWeb) {
-      bindings.addAll({
-        const SingleActivator(LogicalKeyboardKey.keyS, meta: true):
-            widget.onToggleNavigation,
-      });
-    }
 
     return CallbackShortcuts(
       bindings: bindings,

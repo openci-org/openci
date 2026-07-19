@@ -130,41 +130,10 @@ final routerProvider = Provider<GoRouter>((ref) {
   );
 });
 
-/// デスクトップ幅（>800px）ではフェードアニメーション、
-/// モバイル幅ではMaterialの標準ページ遷移を使用する
 Page<void> _responsivePage({
   required LocalKey key,
   required Widget child,
 }) {
-  // WidgetsBindingで画面幅を取得（BuildContext外で判定するため）
-  final width =
-      WidgetsBinding
-          .instance
-          .platformDispatcher
-          .views
-          .first
-          .physicalSize
-          .width /
-      WidgetsBinding.instance.platformDispatcher.views.first.devicePixelRatio;
-
-  if (width > 800) {
-    return CustomTransitionPage<void>(
-      key: key,
-      child: child,
-      transitionDuration: const Duration(milliseconds: 200),
-      reverseTransitionDuration: const Duration(milliseconds: 150),
-      transitionsBuilder: (context, animation, secondaryAnimation, child) {
-        return FadeTransition(
-          opacity: CurvedAnimation(
-            parent: animation,
-            curve: Curves.easeOut,
-          ),
-          child: child,
-        );
-      },
-    );
-  }
-
   return MaterialPage<void>(key: key, child: child);
 }
 
@@ -272,21 +241,6 @@ class BuildLogsDetailRoutePage extends ConsumerWidget {
                 body: Center(
                   child: Text('ビルドジョブが見つかりません'),
                 ),
-              );
-            }
-
-            if (MediaQuery.sizeOf(context).width >=
-                buildLogsSplitViewBreakpoint) {
-              return Scaffold(
-                appBar: AppBar(
-                  title: const Text('CI/CDログ'),
-                  leading: IconButton(
-                    tooltip: 'ダッシュボードに戻る',
-                    icon: const Icon(Icons.arrow_back_rounded),
-                    onPressed: () => context.go('/workspace'),
-                  ),
-                ),
-                body: LogsBody(initialBuildJobId: buildJobId),
               );
             }
 
