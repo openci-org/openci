@@ -275,15 +275,6 @@ ThemeData _buildTheme() {
         borderRadius: BorderRadius.circular(4),
       ),
     ),
-    pageTransitionsTheme: const PageTransitionsTheme(
-      builders: {
-        TargetPlatform.android: ResponsivePageTransitionsBuilder(),
-        TargetPlatform.iOS: ResponsivePageTransitionsBuilder(),
-        TargetPlatform.macOS: ResponsivePageTransitionsBuilder(),
-        TargetPlatform.windows: ResponsivePageTransitionsBuilder(),
-        TargetPlatform.linux: ResponsivePageTransitionsBuilder(),
-      },
-    ),
   );
 }
 
@@ -313,35 +304,4 @@ TextStyle? _scaledTextStyle(TextStyle? style) {
     return style;
   }
   return style.copyWith(fontSize: fontSize * _compactTextScale);
-}
-
-class ResponsivePageTransitionsBuilder extends PageTransitionsBuilder {
-  const ResponsivePageTransitionsBuilder();
-
-  @override
-  Widget buildTransitions<T>(
-    PageRoute<T> route,
-    BuildContext context,
-    Animation<double> animation,
-    Animation<double> secondaryAnimation,
-    Widget child,
-  ) {
-    final platform = Theme.of(context).platform;
-    if (platform == TargetPlatform.iOS || platform == TargetPlatform.macOS) {
-      return const CupertinoPageTransitionsBuilder().buildTransitions(
-        route,
-        context,
-        animation,
-        secondaryAnimation,
-        child,
-      );
-    }
-    return const ZoomPageTransitionsBuilder().buildTransitions(
-      route,
-      context,
-      animation,
-      secondaryAnimation,
-      child,
-    );
-  }
 }
