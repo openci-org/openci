@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'package:dashboard/app_strings.dart';
 import 'package:dashboard/secret_manager/secret_manager_provider.dart';
 import 'package:dashboard/utilities/adaptive_modal.dart';
-
 import 'package:dashboard/utilities/snack_bar_extension.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -18,8 +17,8 @@ String _formatSecretUpdatedAt(DateTime value) {
   return DateFormat('yyyy/MM/dd HH:mm').format(value.toLocal());
 }
 
-class SecretManagerTab extends HookConsumerWidget {
-  const SecretManagerTab({super.key});
+class SecretManagerPage extends HookConsumerWidget {
+  const SecretManagerPage({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

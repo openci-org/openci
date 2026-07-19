@@ -6,6 +6,7 @@ import 'package:dashboard/auth/auth_provider.dart';
 import 'package:dashboard/build_logs/build_jobs_provider.dart';
 import 'package:dashboard/openci_server_url_provider.dart';
 import 'package:dashboard/team/selected_team_provider.dart';
+import 'package:dashboard/team/team_switch_button.dart';
 import 'package:dashboard/users/user_provider.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -16,8 +17,8 @@ import 'package:http/http.dart' as http;
 import 'package:qr/qr.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-class AppDistributionsBody extends HookConsumerWidget {
-  const AppDistributionsBody({super.key});
+class AppDistributionsPage extends HookConsumerWidget {
+  const AppDistributionsPage({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -26,176 +27,188 @@ class AppDistributionsBody extends HookConsumerWidget {
     final buildJobsAsync = ref.watch(otaBuildJobsProvider);
     final userAsync = ref.watch(userProvider);
 
-    return userAsync.when(
-      loading: () => const Center(
-        child: CircularProgressIndicator.adaptive(),
-      ),
-      error: (error, stackTrace) => Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Text(
-            t.common.error(error: error.toString()),
-            style: TextStyle(color: colors.error),
-          ),
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text(
+          'アプリ配信',
         ),
+        actions: const [
+          TeamSwitchButton(),
+          SizedBox(width: 8),
+        ],
       ),
-      data: (user) {
-        return buildJobsAsync.when(
-          loading: () => const Center(
-            child: CircularProgressIndicator.adaptive(),
-          ),
-          error: (error, stackTrace) => Center(
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Text(
-                t.common.error(error: error.toString()),
-                style: TextStyle(color: colors.error),
-              ),
+      body: userAsync.when(
+        loading: () => const Center(
+          child: CircularProgressIndicator.adaptive(),
+        ),
+        error: (error, stackTrace) => Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Text(
+              t.common.error(error: error.toString()),
+              style: TextStyle(color: colors.error),
             ),
           ),
-          data: (jobs) {
-            // 本物の成功ビルド＆ipaが存在するもののみ表示
-            final otaJobs = jobs
-                .where(
-                  (job) =>
-                      job.status == BuildJobStatus.SUCCESS &&
-                      job.ipaUrl != null &&
-                      job.ipaUrl!.isNotEmpty,
-                )
-                .toList();
+        ),
+        data: (user) {
+          return buildJobsAsync.when(
+            loading: () => const Center(
+              child: CircularProgressIndicator.adaptive(),
+            ),
+            error: (error, stackTrace) => Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Text(
+                  t.common.error(error: error.toString()),
+                  style: TextStyle(color: colors.error),
+                ),
+              ),
+            ),
+            data: (jobs) {
+              // 本物の成功ビルド＆ipaが存在するもののみ表示
+              final otaJobs = jobs
+                  .where(
+                    (job) =>
+                        job.status == BuildJobStatus.SUCCESS &&
+                        job.ipaUrl != null &&
+                        job.ipaUrl!.isNotEmpty,
+                  )
+                  .toList();
 
-            if (otaJobs.isEmpty) {
-              return Column(
-                children: [
-                  _DeviceEnrollmentHeader(user: user, colors: colors),
-                  Expanded(
-                    child: Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(40),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.install_mobile_rounded,
-                              size: 64,
-                              color: colors.outline,
-                            ),
-                            const SizedBox(height: 16),
-                            Text(
-                              '配信可能なビルドがありません',
-                              style: TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w600,
-                                color: colors.onSurface,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'iOS OTA配信可能なビルドが成功すると、ここにインストール用ビルドが並びます。',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: colors.onSurfaceVariant,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              );
-            }
-
-            // バージョンごとにグループ化
-            final groupedJobs = <String, List<BuildJob>>{};
-            for (final job in otaJobs) {
-              final version = job.ipaVersion ?? '1.0.0';
-              groupedJobs.putIfAbsent(version, () => []).add(job);
-            }
-
-            // 各バージョンの最新ジョブの createdAt に基づいてバージョンをソート
-            final sortedVersions = groupedJobs.keys.toList()
-              ..sort((a, b) {
-                final aLatest = groupedJobs[a]!
-                    .map((j) => j.createdAt)
-                    .reduce((x, y) => x.isAfter(y) ? x : y);
-                final bLatest = groupedJobs[b]!
-                    .map((j) => j.createdAt)
-                    .reduce((x, y) => x.isAfter(y) ? x : y);
-                return bLatest.compareTo(aLatest);
-              });
-
-            return Center(
-              child: Container(
-                constraints: const BoxConstraints(maxWidth: 800),
-                child: Column(
+              if (otaJobs.isEmpty) {
+                return Column(
                   children: [
                     _DeviceEnrollmentHeader(user: user, colors: colors),
                     Expanded(
-                      child: ListView.builder(
-                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-                        itemCount: sortedVersions.length,
-                        itemBuilder: (context, index) {
-                          final version = sortedVersions[index];
-                          final versionJobs = groupedJobs[version]!;
-
-                          final latestJob = versionJobs.reduce(
-                            (x, y) => x.createdAt.isAfter(y.createdAt) ? x : y,
-                          );
-                          final latestDateText =
-                              '${latestJob.createdAt.toLocal().year}/${latestJob.createdAt.toLocal().month.toString().padLeft(2, '0')}/${latestJob.createdAt.toLocal().day.toString().padLeft(2, '0')} ${latestJob.createdAt.toLocal().hour.toString().padLeft(2, '0')}:${latestJob.createdAt.toLocal().minute.toString().padLeft(2, '0')}';
-
-                          return Card(
-                            margin: const EdgeInsets.only(bottom: 16),
-                            clipBehavior: Clip.antiAlias,
-                            child: Theme(
-                              data: Theme.of(context).copyWith(
-                                dividerColor: Colors.transparent,
+                      child: Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(40),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.install_mobile_rounded,
+                                size: 64,
+                                color: colors.outline,
                               ),
-                              child: ExpansionTile(
-                                initiallyExpanded: index == 0,
-                                leading: Icon(
-                                  Icons.inventory_2_outlined,
-                                  color: colors.primary,
+                              const SizedBox(height: 16),
+                              Text(
+                                '配信可能なビルドがありません',
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                  color: colors.onSurface,
                                 ),
-                                title: Text(
-                                  'バージョン $version',
-                                  style: TextStyle(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.bold,
-                                    color: colors.onSurface,
-                                  ),
-                                ),
-                                subtitle: Text(
-                                  '最終ビルド: $latestDateText  (${versionJobs.length} 個のビルド)',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: colors.onSurfaceVariant,
-                                  ),
-                                ),
-                                children: [
-                                  const Divider(height: 1),
-                                  ...versionJobs.map(
-                                    (job) => _BuildListItem(
-                                      buildJob: job,
-                                      user: user,
-                                    ),
-                                  ),
-                                ],
                               ),
-                            ),
-                          );
-                        },
+                              const SizedBox(height: 8),
+                              Text(
+                                'iOS OTA配信可能なビルドが成功すると、ここにインストール用ビルドが並びます。',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: colors.onSurfaceVariant,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
                     ),
                   ],
+                );
+              }
+
+              // バージョンごとにグループ化
+              final groupedJobs = <String, List<BuildJob>>{};
+              for (final job in otaJobs) {
+                final version = job.ipaVersion ?? '1.0.0';
+                groupedJobs.putIfAbsent(version, () => []).add(job);
+              }
+
+              // 各バージョンの最新ジョブの createdAt に基づいてバージョンをソート
+              final sortedVersions = groupedJobs.keys.toList()
+                ..sort((a, b) {
+                  final aLatest = groupedJobs[a]!
+                      .map((j) => j.createdAt)
+                      .reduce((x, y) => x.isAfter(y) ? x : y);
+                  final bLatest = groupedJobs[b]!
+                      .map((j) => j.createdAt)
+                      .reduce((x, y) => x.isAfter(y) ? x : y);
+                  return bLatest.compareTo(aLatest);
+                });
+
+              return Center(
+                child: Container(
+                  constraints: const BoxConstraints(maxWidth: 800),
+                  child: Column(
+                    children: [
+                      _DeviceEnrollmentHeader(user: user, colors: colors),
+                      Expanded(
+                        child: ListView.builder(
+                          padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                          itemCount: sortedVersions.length,
+                          itemBuilder: (context, index) {
+                            final version = sortedVersions[index];
+                            final versionJobs = groupedJobs[version]!;
+
+                            final latestJob = versionJobs.reduce(
+                              (x, y) =>
+                                  x.createdAt.isAfter(y.createdAt) ? x : y,
+                            );
+                            final latestDateText =
+                                '${latestJob.createdAt.toLocal().year}/${latestJob.createdAt.toLocal().month.toString().padLeft(2, '0')}/${latestJob.createdAt.toLocal().day.toString().padLeft(2, '0')} ${latestJob.createdAt.toLocal().hour.toString().padLeft(2, '0')}:${latestJob.createdAt.toLocal().minute.toString().padLeft(2, '0')}';
+
+                            return Card(
+                              margin: const EdgeInsets.only(bottom: 16),
+                              clipBehavior: Clip.antiAlias,
+                              child: Theme(
+                                data: Theme.of(context).copyWith(
+                                  dividerColor: Colors.transparent,
+                                ),
+                                child: ExpansionTile(
+                                  initiallyExpanded: index == 0,
+                                  leading: Icon(
+                                    Icons.inventory_2_outlined,
+                                    color: colors.primary,
+                                  ),
+                                  title: Text(
+                                    'バージョン $version',
+                                    style: TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.bold,
+                                      color: colors.onSurface,
+                                    ),
+                                  ),
+                                  subtitle: Text(
+                                    '最終ビルド: $latestDateText  (${versionJobs.length} 個のビルド)',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: colors.onSurfaceVariant,
+                                    ),
+                                  ),
+                                  children: [
+                                    const Divider(height: 1),
+                                    ...versionJobs.map(
+                                      (job) => _BuildListItem(
+                                        buildJob: job,
+                                        user: user,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            );
-          },
-        );
-      },
+              );
+            },
+          );
+        },
+      ),
     );
   }
 }

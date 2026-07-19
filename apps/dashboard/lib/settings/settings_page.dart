@@ -33,6 +33,11 @@ class SettingsPage extends HookConsumerWidget {
 
     return Scaffold(
       backgroundColor: Colors.transparent,
+      appBar: AppBar(
+        title: Text(
+          settingsT.title,
+        ),
+      ),
       body: Stack(
         children: [
           Center(

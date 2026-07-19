@@ -8,51 +8,56 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
-// Design Tokens (ui.sh)
-
-class StoreReleaseBody extends HookConsumerWidget {
-  const StoreReleaseBody({super.key});
+class StoreReleasePage extends HookConsumerWidget {
+  const StoreReleasePage({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isConfiguredAsync = ref.watch(isAscConfiguredProvider);
 
-    return isConfiguredAsync.when(
-      data: (isConfigured) {
-        if (!isConfigured) {
-          return _AscSetupView();
-        }
-        return _AppSelectionView(
-          onAppSelected: (app) {
-            showModalBottomSheet(
-              context: context,
-              isScrollControlled: true,
-              useSafeArea: true,
-              backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-              shape: const RoundedRectangleBorder(
-                borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-              ),
-              builder: (context) {
-                return FractionallySizedBox(
-                  heightFactor: 0.9,
-                  child: _SubmissionWizardPage(
-                    app: app,
-                    onBack: () => Navigator.of(context).pop(),
-                  ),
-                );
-              },
-            );
-          },
-        );
-      },
-      loading: () => Center(
-        child: CircularProgressIndicator.adaptive(
-          valueColor: AlwaysStoppedAnimation(
-            Theme.of(context).colorScheme.primary,
-          ),
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(
+          t.storeRelease.title,
         ),
       ),
-      error: asyncErrorWidget,
+      body: isConfiguredAsync.when(
+        data: (isConfigured) {
+          if (!isConfigured) {
+            return _AscSetupView();
+          }
+          return _AppSelectionView(
+            onAppSelected: (app) {
+              showModalBottomSheet(
+                context: context,
+                isScrollControlled: true,
+                useSafeArea: true,
+                backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+                shape: const RoundedRectangleBorder(
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                ),
+                builder: (context) {
+                  return FractionallySizedBox(
+                    heightFactor: 0.9,
+                    child: _SubmissionWizardPage(
+                      app: app,
+                      onBack: () => Navigator.of(context).pop(),
+                    ),
+                  );
+                },
+              );
+            },
+          );
+        },
+        loading: () => Center(
+          child: CircularProgressIndicator.adaptive(
+            valueColor: AlwaysStoppedAnimation(
+              Theme.of(context).colorScheme.primary,
+            ),
+          ),
+        ),
+        error: asyncErrorWidget,
+      ),
     );
   }
 }
