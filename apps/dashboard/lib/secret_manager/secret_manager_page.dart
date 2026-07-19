@@ -4,7 +4,7 @@ import 'package:dashboard/app_strings.dart';
 import 'package:dashboard/secret_manager/secret_manager_provider.dart';
 import 'package:dashboard/theme/app_colors.dart';
 import 'package:dashboard/utilities/adaptive_modal.dart';
-import 'package:dashboard/utilities/breakpoint.dart';
+
 import 'package:dashboard/utilities/snack_bar_extension.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -27,22 +27,17 @@ class SecretManagerTab extends HookConsumerWidget {
     final colors = AppColors.of(context);
     final state = ref.watch(secretManagerProvider);
     final secretsT = t.secrets;
-    final isDesktop =
-        Breakpoint.fromWidth(MediaQuery.sizeOf(context).width) ==
-        Breakpoint.desktop;
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      floatingActionButton: isDesktop
-          ? null
-          : FloatingActionButton(
-              backgroundColor: colors.accent,
-              foregroundColor: Colors.white,
-              elevation: 0,
-              tooltip: secretsT.addSecret,
-              onPressed: () => _showAddSecretSheet(context),
-              child: const Icon(Icons.add),
-            ),
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: colors.accent,
+        foregroundColor: Colors.white,
+        elevation: 0,
+        tooltip: secretsT.addSecret,
+        onPressed: () => _showAddSecretSheet(context),
+        child: const Icon(Icons.add),
+      ),
       body: state.when(
         data: (secrets) {
           final hasCertKey = secrets.any(
@@ -58,54 +53,47 @@ class SecretManagerTab extends HookConsumerWidget {
 
           if (secrets.isEmpty) {
             return SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(16, 40, 16, 88),
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(
-                    maxWidth: _secretManagerContentMaxWidth,
-                  ),
+              physics: const AlwaysScrollableScrollPhysics(),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  minHeight:
+                      MediaQuery.sizeOf(context).height -
+                      AppBar().preferredSize.height -
+                      MediaQuery.paddingOf(context).top -
+                      80,
+                ),
+                child: Center(
                   child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(22),
-                        decoration: BoxDecoration(
-                          color: colors.surface,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: colors.border),
-                        ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
                         child: Column(
-                          mainAxisSize: MainAxisSize.min,
                           children: [
                             Container(
-                              width: 52,
-                              height: 52,
+                              width: 72,
+                              height: 72,
                               decoration: BoxDecoration(
-                                color: colors.accent.withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(13),
+                                color: colors.borderSubtle,
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(
+                                  color: colors.divider,
+                                ),
                               ),
                               child: Icon(
                                 Icons.key_rounded,
-                                size: 24,
-                                color: colors.accent,
+                                size: 32,
+                                color: colors.textTertiary,
                               ),
                             ),
-                            const SizedBox(height: 14),
+                            const SizedBox(height: 16),
                             Text(
                               secretsT.noSecrets,
                               style: TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w700,
-                                color: colors.textPrimary,
-                                letterSpacing: 0,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                                color: colors.textSecondary,
                               ),
-                              textAlign: TextAlign.center,
-                            ),
-                            const SizedBox(height: 18),
-                            FilledButton.icon(
-                              onPressed: () => _showAddSecretSheet(context),
-                              icon: const Icon(Icons.add_rounded),
-                              label: Text(secretsT.addSecret),
                             ),
                           ],
                         ),
@@ -121,10 +109,6 @@ class SecretManagerTab extends HookConsumerWidget {
           return ListView(
             padding: const EdgeInsets.only(top: 12, bottom: 80),
             children: [
-              if (isDesktop)
-                _SecretManagerDesktopAction(
-                  onPressed: () => _showAddSecretSheet(context),
-                ),
               // Setup cards
               ...setupCards.map(
                 (card) => Center(
@@ -164,55 +148,6 @@ class SecretManagerTab extends HookConsumerWidget {
     showAdaptiveFormModal(
       context: context,
       builder: (context) => const _AddSecretBottomSheet(),
-    );
-  }
-}
-
-class _SecretManagerDesktopAction extends StatelessWidget {
-  const _SecretManagerDesktopAction({required this.onPressed});
-
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = AppColors.of(context);
-    final secretsT = t.secrets;
-
-    return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(
-          maxWidth: _secretManagerContentMaxWidth,
-        ),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              FilledButton.icon(
-                onPressed: onPressed,
-                icon: const Icon(Icons.add_rounded, size: 17),
-                label: Text(secretsT.addSecret),
-                style: FilledButton.styleFrom(
-                  backgroundColor: colors.accent,
-                  foregroundColor: colors.accentOnAccent,
-                  minimumSize: const Size(0, 34),
-                  padding: const EdgeInsets.only(left: 10, right: 12),
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  visualDensity: VisualDensity.compact,
-                  textStyle: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(9),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 }

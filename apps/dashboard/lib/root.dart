@@ -326,16 +326,6 @@ class ResponsivePageTransitionsBuilder extends PageTransitionsBuilder {
     Animation<double> secondaryAnimation,
     Widget child,
   ) {
-    if (MediaQuery.sizeOf(context).width > 800) {
-      return FadeTransition(
-        opacity: CurvedAnimation(
-          parent: animation,
-          curve: const Interval(0.0, 0.33, curve: Curves.easeOut),
-        ),
-        child: child,
-      );
-    }
-
     final platform = Theme.of(context).platform;
     if (platform == TargetPlatform.iOS || platform == TargetPlatform.macOS) {
       return const CupertinoPageTransitionsBuilder().buildTransitions(
