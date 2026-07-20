@@ -38,6 +38,7 @@ abstract class BuildJob with _$BuildJob {
     String? workflowId,
     String? workflowFileName,
     String? commitSha,
+    String? commitMessage,
     int? pullRequestNumber,
     int? runCount,
     String? latestRunId,

@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.6
+
+- Add `commitMessage` field to `BuildJob` model.
+
 ## 1.0.5
 
 - Add `CicdCommitGroup`, `CicdWorkflowGroup`, and `CicdJobGroup` models for CI/CD log visualization.

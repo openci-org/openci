@@ -98,6 +98,17 @@ class $BuildJobsTable extends BuildJobs
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _commitMessageMeta = const VerificationMeta(
+    'commitMessage',
+  );
+  @override
+  late final GeneratedColumn<String> commitMessage = GeneratedColumn<String>(
+    'commit_message',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _pullRequestNumberMeta = const VerificationMeta(
     'pullRequestNumber',
   );
@@ -401,6 +412,7 @@ class $BuildJobsTable extends BuildJobs
     workflowId,
     workflowFileName,
     commitSha,
+    commitMessage,
     pullRequestNumber,
     runCount,
     latestRunId,
@@ -499,6 +511,15 @@ class $BuildJobsTable extends BuildJobs
       context.handle(
         _commitShaMeta,
         commitSha.isAcceptableOrUnknown(data['commit_sha']!, _commitShaMeta),
+      );
+    }
+    if (data.containsKey('commit_message')) {
+      context.handle(
+        _commitMessageMeta,
+        commitMessage.isAcceptableOrUnknown(
+          data['commit_message']!,
+          _commitMessageMeta,
+        ),
       );
     }
     if (data.containsKey('pull_request_number')) {
@@ -741,6 +762,10 @@ class $BuildJobsTable extends BuildJobs
         DriftSqlType.string,
         data['${effectivePrefix}commit_sha'],
       ),
+      commitMessage: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}commit_message'],
+      ),
       pullRequestNumber: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}pull_request_number'],
@@ -893,6 +918,7 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
   final String? workflowId;
   final String? workflowFileName;
   final String? commitSha;
+  final String? commitMessage;
   final int? pullRequestNumber;
   final int? runCount;
   final String? latestRunId;
@@ -931,6 +957,7 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
     this.workflowId,
     this.workflowFileName,
     this.commitSha,
+    this.commitMessage,
     this.pullRequestNumber,
     this.runCount,
     this.latestRunId,
@@ -983,6 +1010,9 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
     }
     if (!nullToAbsent || commitSha != null) {
       map['commit_sha'] = Variable<String>(commitSha);
+    }
+    if (!nullToAbsent || commitMessage != null) {
+      map['commit_message'] = Variable<String>(commitMessage);
     }
     if (!nullToAbsent || pullRequestNumber != null) {
       map['pull_request_number'] = Variable<int>(pullRequestNumber);
@@ -1094,6 +1124,9 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
       commitSha: commitSha == null && nullToAbsent
           ? const Value.absent()
           : Value(commitSha),
+      commitMessage: commitMessage == null && nullToAbsent
+          ? const Value.absent()
+          : Value(commitMessage),
       pullRequestNumber: pullRequestNumber == null && nullToAbsent
           ? const Value.absent()
           : Value(pullRequestNumber),
@@ -1194,6 +1227,7 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
       workflowId: serializer.fromJson<String?>(json['workflowId']),
       workflowFileName: serializer.fromJson<String?>(json['workflowFileName']),
       commitSha: serializer.fromJson<String?>(json['commitSha']),
+      commitMessage: serializer.fromJson<String?>(json['commitMessage']),
       pullRequestNumber: serializer.fromJson<int?>(json['pullRequestNumber']),
       runCount: serializer.fromJson<int?>(json['runCount']),
       latestRunId: serializer.fromJson<String?>(json['latestRunId']),
@@ -1247,6 +1281,7 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
       'workflowId': serializer.toJson<String?>(workflowId),
       'workflowFileName': serializer.toJson<String?>(workflowFileName),
       'commitSha': serializer.toJson<String?>(commitSha),
+      'commitMessage': serializer.toJson<String?>(commitMessage),
       'pullRequestNumber': serializer.toJson<int?>(pullRequestNumber),
       'runCount': serializer.toJson<int?>(runCount),
       'latestRunId': serializer.toJson<String?>(latestRunId),
@@ -1290,6 +1325,7 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
     Value<String?> workflowId = const Value.absent(),
     Value<String?> workflowFileName = const Value.absent(),
     Value<String?> commitSha = const Value.absent(),
+    Value<String?> commitMessage = const Value.absent(),
     Value<int?> pullRequestNumber = const Value.absent(),
     Value<int?> runCount = const Value.absent(),
     Value<String?> latestRunId = const Value.absent(),
@@ -1330,6 +1366,9 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
         ? workflowFileName.value
         : this.workflowFileName,
     commitSha: commitSha.present ? commitSha.value : this.commitSha,
+    commitMessage: commitMessage.present
+        ? commitMessage.value
+        : this.commitMessage,
     pullRequestNumber: pullRequestNumber.present
         ? pullRequestNumber.value
         : this.pullRequestNumber,
@@ -1396,6 +1435,9 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
           ? data.workflowFileName.value
           : this.workflowFileName,
       commitSha: data.commitSha.present ? data.commitSha.value : this.commitSha,
+      commitMessage: data.commitMessage.present
+          ? data.commitMessage.value
+          : this.commitMessage,
       pullRequestNumber: data.pullRequestNumber.present
           ? data.pullRequestNumber.value
           : this.pullRequestNumber,
@@ -1469,6 +1511,7 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
           ..write('workflowId: $workflowId, ')
           ..write('workflowFileName: $workflowFileName, ')
           ..write('commitSha: $commitSha, ')
+          ..write('commitMessage: $commitMessage, ')
           ..write('pullRequestNumber: $pullRequestNumber, ')
           ..write('runCount: $runCount, ')
           ..write('latestRunId: $latestRunId, ')
@@ -1512,6 +1555,7 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
     workflowId,
     workflowFileName,
     commitSha,
+    commitMessage,
     pullRequestNumber,
     runCount,
     latestRunId,
@@ -1554,6 +1598,7 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
           other.workflowId == this.workflowId &&
           other.workflowFileName == this.workflowFileName &&
           other.commitSha == this.commitSha &&
+          other.commitMessage == this.commitMessage &&
           other.pullRequestNumber == this.pullRequestNumber &&
           other.runCount == this.runCount &&
           other.latestRunId == this.latestRunId &&
@@ -1594,6 +1639,7 @@ class BuildJobsCompanion extends UpdateCompanion<DriftBuildJob> {
   final Value<String?> workflowId;
   final Value<String?> workflowFileName;
   final Value<String?> commitSha;
+  final Value<String?> commitMessage;
   final Value<int?> pullRequestNumber;
   final Value<int?> runCount;
   final Value<String?> latestRunId;
@@ -1633,6 +1679,7 @@ class BuildJobsCompanion extends UpdateCompanion<DriftBuildJob> {
     this.workflowId = const Value.absent(),
     this.workflowFileName = const Value.absent(),
     this.commitSha = const Value.absent(),
+    this.commitMessage = const Value.absent(),
     this.pullRequestNumber = const Value.absent(),
     this.runCount = const Value.absent(),
     this.latestRunId = const Value.absent(),
@@ -1673,6 +1720,7 @@ class BuildJobsCompanion extends UpdateCompanion<DriftBuildJob> {
     this.workflowId = const Value.absent(),
     this.workflowFileName = const Value.absent(),
     this.commitSha = const Value.absent(),
+    this.commitMessage = const Value.absent(),
     this.pullRequestNumber = const Value.absent(),
     this.runCount = const Value.absent(),
     this.latestRunId = const Value.absent(),
@@ -1719,6 +1767,7 @@ class BuildJobsCompanion extends UpdateCompanion<DriftBuildJob> {
     Expression<String>? workflowId,
     Expression<String>? workflowFileName,
     Expression<String>? commitSha,
+    Expression<String>? commitMessage,
     Expression<int>? pullRequestNumber,
     Expression<int>? runCount,
     Expression<String>? latestRunId,
@@ -1759,6 +1808,7 @@ class BuildJobsCompanion extends UpdateCompanion<DriftBuildJob> {
       if (workflowId != null) 'workflow_id': workflowId,
       if (workflowFileName != null) 'workflow_file_name': workflowFileName,
       if (commitSha != null) 'commit_sha': commitSha,
+      if (commitMessage != null) 'commit_message': commitMessage,
       if (pullRequestNumber != null) 'pull_request_number': pullRequestNumber,
       if (runCount != null) 'run_count': runCount,
       if (latestRunId != null) 'latest_run_id': latestRunId,
@@ -1804,6 +1854,7 @@ class BuildJobsCompanion extends UpdateCompanion<DriftBuildJob> {
     Value<String?>? workflowId,
     Value<String?>? workflowFileName,
     Value<String?>? commitSha,
+    Value<String?>? commitMessage,
     Value<int?>? pullRequestNumber,
     Value<int?>? runCount,
     Value<String?>? latestRunId,
@@ -1844,6 +1895,7 @@ class BuildJobsCompanion extends UpdateCompanion<DriftBuildJob> {
       workflowId: workflowId ?? this.workflowId,
       workflowFileName: workflowFileName ?? this.workflowFileName,
       commitSha: commitSha ?? this.commitSha,
+      commitMessage: commitMessage ?? this.commitMessage,
       pullRequestNumber: pullRequestNumber ?? this.pullRequestNumber,
       runCount: runCount ?? this.runCount,
       latestRunId: latestRunId ?? this.latestRunId,
@@ -1908,6 +1960,9 @@ class BuildJobsCompanion extends UpdateCompanion<DriftBuildJob> {
     }
     if (commitSha.present) {
       map['commit_sha'] = Variable<String>(commitSha.value);
+    }
+    if (commitMessage.present) {
+      map['commit_message'] = Variable<String>(commitMessage.value);
     }
     if (pullRequestNumber.present) {
       map['pull_request_number'] = Variable<int>(pullRequestNumber.value);
@@ -2025,6 +2080,7 @@ class BuildJobsCompanion extends UpdateCompanion<DriftBuildJob> {
           ..write('workflowId: $workflowId, ')
           ..write('workflowFileName: $workflowFileName, ')
           ..write('commitSha: $commitSha, ')
+          ..write('commitMessage: $commitMessage, ')
           ..write('pullRequestNumber: $pullRequestNumber, ')
           ..write('runCount: $runCount, ')
           ..write('latestRunId: $latestRunId, ')
@@ -6262,6 +6318,7 @@ typedef $$BuildJobsTableCreateCompanionBuilder =
       Value<String?> workflowId,
       Value<String?> workflowFileName,
       Value<String?> commitSha,
+      Value<String?> commitMessage,
       Value<int?> pullRequestNumber,
       Value<int?> runCount,
       Value<String?> latestRunId,
@@ -6303,6 +6360,7 @@ typedef $$BuildJobsTableUpdateCompanionBuilder =
       Value<String?> workflowId,
       Value<String?> workflowFileName,
       Value<String?> commitSha,
+      Value<String?> commitMessage,
       Value<int?> pullRequestNumber,
       Value<int?> runCount,
       Value<String?> latestRunId,
@@ -6409,6 +6467,11 @@ class $$BuildJobsTableFilterComposer
 
   ColumnFilters<String> get commitSha => $composableBuilder(
     column: $table.commitSha,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get commitMessage => $composableBuilder(
+    column: $table.commitMessage,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -6639,6 +6702,11 @@ class $$BuildJobsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get commitMessage => $composableBuilder(
+    column: $table.commitMessage,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get pullRequestNumber => $composableBuilder(
     column: $table.pullRequestNumber,
     builder: (column) => ColumnOrderings(column),
@@ -6822,6 +6890,11 @@ class $$BuildJobsTableAnnotationComposer
   GeneratedColumn<String> get commitSha =>
       $composableBuilder(column: $table.commitSha, builder: (column) => column);
 
+  GeneratedColumn<String> get commitMessage => $composableBuilder(
+    column: $table.commitMessage,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<int> get pullRequestNumber => $composableBuilder(
     column: $table.pullRequestNumber,
     builder: (column) => column,
@@ -7000,6 +7073,7 @@ class $$BuildJobsTableTableManager
                 Value<String?> workflowId = const Value.absent(),
                 Value<String?> workflowFileName = const Value.absent(),
                 Value<String?> commitSha = const Value.absent(),
+                Value<String?> commitMessage = const Value.absent(),
                 Value<int?> pullRequestNumber = const Value.absent(),
                 Value<int?> runCount = const Value.absent(),
                 Value<String?> latestRunId = const Value.absent(),
@@ -7039,6 +7113,7 @@ class $$BuildJobsTableTableManager
                 workflowId: workflowId,
                 workflowFileName: workflowFileName,
                 commitSha: commitSha,
+                commitMessage: commitMessage,
                 pullRequestNumber: pullRequestNumber,
                 runCount: runCount,
                 latestRunId: latestRunId,
@@ -7080,6 +7155,7 @@ class $$BuildJobsTableTableManager
                 Value<String?> workflowId = const Value.absent(),
                 Value<String?> workflowFileName = const Value.absent(),
                 Value<String?> commitSha = const Value.absent(),
+                Value<String?> commitMessage = const Value.absent(),
                 Value<int?> pullRequestNumber = const Value.absent(),
                 Value<int?> runCount = const Value.absent(),
                 Value<String?> latestRunId = const Value.absent(),
@@ -7119,6 +7195,7 @@ class $$BuildJobsTableTableManager
                 workflowId: workflowId,
                 workflowFileName: workflowFileName,
                 commitSha: commitSha,
+                commitMessage: commitMessage,
                 pullRequestNumber: pullRequestNumber,
                 runCount: runCount,
                 latestRunId: latestRunId,
