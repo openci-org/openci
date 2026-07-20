@@ -25,6 +25,10 @@ Handler middleware(Handler handler) {
     }
     final id = segments[1];
 
+    if (id == 'commits') {
+      return handler(context);
+    }
+
     final driftJob = await db.buildJobDao.getBuildJob(id);
     if (driftJob == null) {
       return Response.json(

@@ -27,8 +27,14 @@ Stream<List<CicdCommitGroup>> cicdCommitGroups(Ref ref) async* {
       if (response.isSuccessful) {
         return response.body ?? const [];
       }
+      // ignore: avoid_print
+      print('API Error: ${response.statusCode} - ${response.error}');
       return const [];
-    } catch (_) {
+    } catch (e, s) {
+      // ignore: avoid_print
+      print('Fetch Error: $e');
+      // ignore: avoid_print
+      print(s);
       return const [];
     }
   }
