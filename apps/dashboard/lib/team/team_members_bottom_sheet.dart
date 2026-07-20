@@ -38,7 +38,7 @@ class TeamMember {
 @riverpod
 Future<List<TeamMember>> teamMembers(Ref ref) async {
   ref.keepAlive();
-  final team = ref.watch(teamStateProvider).value;
+  final team = ref.watch(selectedTeamProvider).value;
   if (team == null) return [];
 
   final serverUrl = ref.watch(openciServerUrlProvider);

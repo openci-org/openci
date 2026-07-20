@@ -33,7 +33,7 @@ class SwitchTeamBottomSheet extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final teamListStream = ref.watch(teamListProvider);
-    final currentTeam = ref.watch(teamStateProvider).value;
+    final currentTeam = ref.watch(selectedTeamProvider).value;
     final teamT = t.team;
     final isMembersLoading = useState(false);
     final colorScheme = Theme.of(context).colorScheme;

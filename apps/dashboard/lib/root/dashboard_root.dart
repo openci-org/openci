@@ -34,7 +34,7 @@ class DashboardRouteGateway extends ConsumerWidget {
 
         final configAsync = ref.watch(selfHostedConfigProvider);
         final selectedTeamIdAsync = ref.watch(selectedTeamIdProvider);
-        final teamAsync = ref.watch(teamStateProvider);
+        final teamAsync = ref.watch(selectedTeamProvider);
 
         return (configAsync, selectedTeamIdAsync, teamAsync).when(
           loading: () =>

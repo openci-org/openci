@@ -3,7 +3,6 @@ import 'dart:convert';
 
 import 'package:dashboard/api/openci_api_client.dart';
 import 'package:dashboard/team/selected_team_provider.dart';
-import 'package:flutter/foundation.dart';
 import 'package:openci_shared/openci_shared.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -11,75 +10,42 @@ export 'package:openci_shared/openci_shared.dart' show Team;
 
 part 'team_provider.g.dart';
 
-final teamList = [
-  Team(
-    id: '1',
-    name: 'Team A',
-    members: ['1'],
-    createdAt: DateTime.now(),
-    updatedAt: DateTime.now(),
-  ),
-  Team(
-    id: '2',
-    name: 'Team B',
-    members: ['2'],
-    createdAt: DateTime.now(),
-    updatedAt: DateTime.now(),
-  ),
-];
-
 @riverpod
-class TeamState extends _$TeamState {
-  @override
-  FutureOr<Team> build() async {
-    final teamList = await ref.watch(teamListProvider.future);
-    if (teamList.isEmpty) {
-      throw StateError('No teams available');
-    }
-    final selectedTeamId = await ref.watch(selectedTeamIdProvider.future);
-    return teamList.firstWhere(
-      (team) => team.id == selectedTeamId,
-      orElse: () => teamList.first,
-    );
+Future<Team> selectedTeam(Ref ref) async {
+  final teamList = await ref.watch(teamListProvider.future);
+  if (teamList.isEmpty) {
+    throw StateError('No teams available');
   }
+  final selectedTeamId = await ref.watch(selectedTeamIdProvider.future);
+  return teamList.firstWhere(
+    (team) => team.id == selectedTeamId,
+    orElse: () => teamList.first,
+  );
 }
 
 @riverpod
-class TeamList extends _$TeamList {
-  @override
-  Stream<List<Team>> build() async* {
-    yield await fetchTeamList().timeout(
-      const Duration(seconds: 8),
-      onTimeout: () => throw TimeoutException(
-        'Timed out while loading teams from openci_server',
-      ),
+Future<List<Team>> teamList(Ref ref) async {
+  final apiService = ref.watch(openciApiServiceProvider);
+  final response = await apiService.getTeams();
+
+  if (!response.isSuccessful) {
+    throw StateError(
+      'Failed to fetch teams: ${response.statusCode} ${response.error}',
     );
-
-    yield* Stream.periodic(const Duration(seconds: 15)).asyncMap((_) async {
-      try {
-        return await fetchTeamList();
-      } catch (e) {
-        debugPrint('Failed to poll teams: $e');
-        return state.value ?? const [];
-      }
-    });
   }
 
-  Future<List<Team>> fetchTeamList() async {
-    final apiService = ref.watch(openciApiServiceProvider);
-    final response = await apiService.getTeams();
+  return response.body ?? const [];
+}
 
-    if (!response.isSuccessful) {
-      throw StateError(
-        'Failed to fetch teams: ${response.statusCode} ${response.error}',
-      );
-    }
+@riverpod
+TeamService teamService(Ref ref) => TeamService(ref);
 
-    return response.body ?? const [];
-  }
+class TeamService {
+  final Ref _ref;
+  TeamService(this._ref);
 
   Future<void> createTeam(String teamName) async {
-    final apiService = ref.read(openciApiServiceProvider);
+    final apiService = _ref.read(openciApiServiceProvider);
     final response = await apiService.createTeam({
       'name': teamName,
     });
@@ -93,12 +59,12 @@ class TeamList extends _$TeamList {
     final data = response.body ?? <String, dynamic>{};
     final teamId = data['id'] as String;
 
-    ref.invalidateSelf();
-    await ref.read(selectedTeamIdProvider.notifier).saveSelectedTeamId(teamId);
+    _ref.invalidate(teamListProvider);
+    await _ref.read(selectedTeamIdProvider.notifier).saveSelectedTeamId(teamId);
   }
 
   Future<void> updateTeamName(String teamId, String newName) async {
-    final apiService = ref.read(openciApiServiceProvider);
+    final apiService = _ref.read(openciApiServiceProvider);
     final response = await apiService.updateTeam(teamId, {
       'name': newName,
     });
@@ -109,7 +75,7 @@ class TeamList extends _$TeamList {
       );
     }
 
-    ref.invalidateSelf();
+    _ref.invalidate(teamListProvider);
   }
 
   Future<void> updateGitHubSettings({
@@ -117,7 +83,7 @@ class TeamList extends _$TeamList {
     String? githubBaseUrl,
     required List<int> installationIds,
   }) async {
-    final apiService = ref.read(openciApiServiceProvider);
+    final apiService = _ref.read(openciApiServiceProvider);
     final response = await apiService.updateTeam(teamId, {
       'githubBaseUrl': _emptyToNull(githubBaseUrl),
       'installationIds': installationIds,
@@ -129,11 +95,11 @@ class TeamList extends _$TeamList {
       );
     }
 
-    ref.invalidateSelf();
+    _ref.invalidate(teamListProvider);
   }
 
   Future<void> deleteTeam(String teamId) async {
-    final apiService = ref.read(openciApiServiceProvider);
+    final apiService = _ref.read(openciApiServiceProvider);
     final response = await apiService.deleteTeam(teamId);
 
     if (!response.isSuccessful) {
@@ -142,11 +108,11 @@ class TeamList extends _$TeamList {
       );
     }
 
-    ref.invalidateSelf();
+    _ref.invalidate(teamListProvider);
   }
 
   Future<void> inviteMember(String teamId, String email) async {
-    final apiService = ref.read(openciApiServiceProvider);
+    final apiService = _ref.read(openciApiServiceProvider);
     final response = await apiService.inviteMember(teamId, {
       'email': email,
     });
