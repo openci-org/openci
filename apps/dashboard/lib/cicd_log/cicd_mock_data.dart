@@ -1,176 +1,167 @@
 import 'package:dashboard/build_logs/chips/job_status.dart';
+import 'package:openci_shared/openci_shared.dart';
 
 final mockCommits = [
-  MockCommitData(
+  CicdCommitGroup(
     branch: 'main',
     commitSha: 'a1c3e4f',
     commitMessage: 'feat: add apple sign-in support to iOS app',
-    status: MockStatus.success,
-    timeAgo: '10分前',
-    triggerType: 'push',
+    status: BuildJobStatus.SUCCESS,
+    createdAt: DateTime.now().subtract(const Duration(minutes: 10)),
     workflows: [
-      MockWorkflowData(
+      CicdWorkflowGroup(
         fileName: 'ios.yaml',
-        status: MockStatus.success,
-        duration: '4分20秒',
-        dependencies: [
-          MockJobGroup(
-            label: 'checkout-and-setup',
-            status: MockStatus.success,
-          ),
-        ],
-        leafJobs: [
-          MockJobGroup(label: 'build-ipa', status: MockStatus.success),
-          MockJobGroup(
-            label: 'deploy-testflight',
-            status: MockStatus.success,
-          ),
+        status: BuildJobStatus.SUCCESS,
+        duration: const Duration(minutes: 4, seconds: 20),
+        stages: [
+          [
+            CicdJobGroup(
+              id: 'job-1',
+              label: 'checkout-and-setup',
+              status: BuildJobStatus.SUCCESS,
+            ),
+          ],
+          [
+            CicdJobGroup(
+              id: 'job-2',
+              label: 'build-ipa',
+              status: BuildJobStatus.SUCCESS,
+            ),
+            CicdJobGroup(
+              id: 'job-3',
+              label: 'deploy-testflight',
+              status: BuildJobStatus.SUCCESS,
+            ),
+          ],
         ],
       ),
-      MockWorkflowData(
+      CicdWorkflowGroup(
         fileName: 'android.yaml',
-        status: MockStatus.success,
-        duration: '3分15秒',
-        dependencies: [],
-        leafJobs: [
-          MockJobGroup(label: 'build-apk', status: MockStatus.success),
+        status: BuildJobStatus.SUCCESS,
+        duration: const Duration(minutes: 3, seconds: 15),
+        stages: [
+          [
+            CicdJobGroup(
+              id: 'job-4',
+              label: 'build-apk',
+              status: BuildJobStatus.SUCCESS,
+            ),
+          ],
         ],
       ),
     ],
   ),
-  MockCommitData(
+  CicdCommitGroup(
     branch: 'feat/google-login',
     commitSha: '8d2f91a',
     commitMessage: 'fix(android): resolve build crash on Android 14',
-    status: MockStatus.failure,
-    timeAgo: '1時間前',
-    triggerType: 'pull_request',
-    prNumber: 42,
+    status: BuildJobStatus.FAILURE,
+    createdAt: DateTime.now().subtract(const Duration(hours: 1)),
     workflows: [
-      MockWorkflowData(
+      CicdWorkflowGroup(
         fileName: 'ios.yaml',
-        status: MockStatus.success,
-        duration: '4分10秒',
-        dependencies: [],
-        leafJobs: [
-          MockJobGroup(label: 'build-ipa', status: MockStatus.success),
+        status: BuildJobStatus.SUCCESS,
+        duration: const Duration(minutes: 4, seconds: 10),
+        stages: [
+          [
+            CicdJobGroup(
+              id: 'job-5',
+              label: 'build-ipa',
+              status: BuildJobStatus.SUCCESS,
+            ),
+          ],
         ],
       ),
-      MockWorkflowData(
+      CicdWorkflowGroup(
         fileName: 'android.yaml',
-        status: MockStatus.failure,
-        duration: '2分30秒',
-        dependencies: [
-          MockJobGroup(label: 'setup-env', status: MockStatus.success),
-        ],
-        leafJobs: [
-          MockJobGroup(
-            label: 'e2e-pixel-7 (Android 14)',
-            status: MockStatus.success,
-          ),
-          MockJobGroup(
-            label: 'e2e-galaxy-s23 (Android 13)',
-            status: MockStatus.success,
-          ),
-          MockJobGroup(
-            label: 'e2e-nexus-5x (Android 8.1)',
-            status: MockStatus.failure,
-          ),
+        status: BuildJobStatus.FAILURE,
+        duration: const Duration(minutes: 2, seconds: 30),
+        stages: [
+          [
+            CicdJobGroup(
+              id: 'job-6',
+              label: 'setup-env',
+              status: BuildJobStatus.SUCCESS,
+            ),
+          ],
+          [
+            CicdJobGroup(
+              id: 'job-7',
+              label: 'e2e-pixel-7 (Android 14)',
+              status: BuildJobStatus.SUCCESS,
+            ),
+            CicdJobGroup(
+              id: 'job-8',
+              label: 'e2e-galaxy-s23 (Android 13)',
+              status: BuildJobStatus.SUCCESS,
+            ),
+            CicdJobGroup(
+              id: 'job-9',
+              label: 'e2e-nexus-5x (Android 8.1)',
+              status: BuildJobStatus.FAILURE,
+            ),
+          ],
         ],
       ),
     ],
   ),
-  MockCommitData(
+  CicdCommitGroup(
     branch: 'fix/typo',
     commitSha: '3c8e7b2',
     commitMessage: 'docs: update README.md instruction details',
-    status: MockStatus.inProgress,
-    timeAgo: '実行中',
-    triggerType: 'push',
+    status: BuildJobStatus.IN_PROGRESS,
+    createdAt: DateTime.now().subtract(const Duration(minutes: 5)),
     workflows: [
-      MockWorkflowData(
+      CicdWorkflowGroup(
         fileName: 'static-analysis.yaml',
-        status: MockStatus.success,
-        duration: '45秒',
-        dependencies: [],
-        leafJobs: [
-          MockJobGroup(label: 'linter', status: MockStatus.success),
-          MockJobGroup(
-            label: 'formatter-check',
-            status: MockStatus.success,
-          ),
+        status: BuildJobStatus.SUCCESS,
+        duration: const Duration(seconds: 45),
+        stages: [
+          [
+            CicdJobGroup(
+              id: 'job-10',
+              label: 'linter',
+              status: BuildJobStatus.SUCCESS,
+            ),
+            CicdJobGroup(
+              id: 'job-11',
+              label: 'formatter-check',
+              status: BuildJobStatus.SUCCESS,
+            ),
+          ],
         ],
       ),
-      MockWorkflowData(
+      CicdWorkflowGroup(
         fileName: 'ios.yaml',
-        status: MockStatus.inProgress,
-        duration: '2分経過',
-        dependencies: [
-          MockJobGroup(
-            label: 'npm-dependency-cache',
-            status: MockStatus.success,
-          ),
-        ],
-        leafJobs: [
-          MockJobGroup(label: 'build-ipa', status: MockStatus.inProgress),
+        status: BuildJobStatus.IN_PROGRESS,
+        duration: const Duration(minutes: 2),
+        stages: [
+          [
+            CicdJobGroup(
+              id: 'job-12',
+              label: 'npm-dependency-cache',
+              status: BuildJobStatus.SUCCESS,
+            ),
+          ],
+          [
+            CicdJobGroup(
+              id: 'job-13',
+              label: 'build-ipa',
+              status: BuildJobStatus.IN_PROGRESS,
+            ),
+          ],
         ],
       ),
     ],
   ),
 ];
 
-enum MockStatus { success, failure, inProgress }
-
-ChipStatus toChipStatus(MockStatus status) => switch (status) {
-  MockStatus.success => ChipStatus.success,
-  MockStatus.failure => ChipStatus.fail,
-  MockStatus.inProgress => ChipStatus.inProgress,
+ChipStatus toChipStatus(BuildJobStatus status) => switch (status) {
+  BuildJobStatus.SUCCESS => ChipStatus.success,
+  BuildJobStatus.FAILURE ||
+  BuildJobStatus.CANCELLED ||
+  BuildJobStatus.TIMED_OUT => ChipStatus.fail,
+  BuildJobStatus.IN_PROGRESS => ChipStatus.inProgress,
+  BuildJobStatus.QUEUED || BuildJobStatus.WAITING => ChipStatus.queued,
+  BuildJobStatus.SKIPPED => ChipStatus.skipped,
 };
-
-class MockCommitData {
-  final String branch;
-  final String commitSha;
-  final String commitMessage;
-  final MockStatus status;
-  final String timeAgo;
-  final String triggerType; // 'push' or 'pull_request'
-  final int? prNumber;
-  final List<MockWorkflowData> workflows;
-
-  MockCommitData({
-    required this.branch,
-    required this.commitSha,
-    required this.commitMessage,
-    required this.status,
-    required this.timeAgo,
-    required this.triggerType,
-    this.prNumber,
-    required this.workflows,
-  });
-}
-
-class MockWorkflowData {
-  final String fileName;
-  final MockStatus status;
-  final String duration;
-  final List<MockJobGroup> dependencies;
-  final List<MockJobGroup> leafJobs;
-
-  MockWorkflowData({
-    required this.fileName,
-    required this.status,
-    required this.duration,
-    required this.dependencies,
-    required this.leafJobs,
-  });
-}
-
-class MockJobGroup {
-  final String label;
-  final MockStatus status;
-
-  MockJobGroup({
-    required this.label,
-    required this.status,
-  });
-}

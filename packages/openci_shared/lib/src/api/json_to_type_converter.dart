@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:chopper/chopper.dart';
 
 import '../models/build_job.dart';
+import '../models/cicd_commit_group.dart';
 import '../models/team.dart';
 import '../models/user_device.dart';
 
@@ -35,6 +36,9 @@ class JsonToTypeConverter extends JsonConverter {
     }
     if (T == BuildJob) {
       return BuildJob.fromJson(Map<String, dynamic>.from(json as Map));
+    }
+    if (T == CicdCommitGroup) {
+      return CicdCommitGroup.fromJson(Map<String, dynamic>.from(json as Map));
     }
     if (T == UserDevice) {
       return UserDevice.fromJson(Map<String, dynamic>.from(json as Map));

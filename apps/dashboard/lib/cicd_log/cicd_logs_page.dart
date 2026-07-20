@@ -1,6 +1,7 @@
 import 'package:dashboard/cicd_log/cicd_mock_data.dart';
 import 'package:dashboard/cicd_log/workflow_overview.dart';
 import 'package:flutter/material.dart';
+import 'package:openci_shared/openci_shared.dart';
 
 class CicdLogsPage extends StatelessWidget {
   const CicdLogsPage({super.key});
@@ -19,7 +20,10 @@ class CicdLogsPage extends StatelessWidget {
         itemCount: mockCommits.length,
         itemBuilder: (context, index) {
           final commit = mockCommits[index];
-          return _Card(commit: commit);
+          return _Card(
+            key: ValueKey(commit.commitSha),
+            commit: commit,
+          );
         },
       ),
     );
@@ -27,9 +31,9 @@ class CicdLogsPage extends StatelessWidget {
 }
 
 class _Card extends StatelessWidget {
-  final MockCommitData commit;
+  final CicdCommitGroup commit;
 
-  const _Card({required this.commit});
+  const _Card({super.key, required this.commit});
 
   @override
   Widget build(BuildContext context) {
@@ -38,13 +42,19 @@ class _Card extends StatelessWidget {
     const desktopMaxWidth = 640.0;
 
     final statusWidget = switch (commit.status) {
-      MockStatus.success => Icon(Icons.check, color: Colors.green, size: 20),
-      MockStatus.failure => Icon(
+      BuildJobStatus.SUCCESS => Icon(
+        Icons.check,
+        color: Colors.green,
+        size: 20,
+      ),
+      BuildJobStatus.FAILURE ||
+      BuildJobStatus.CANCELLED ||
+      BuildJobStatus.TIMED_OUT => Icon(
         Icons.close,
         color: Colors.red,
         size: 20,
       ),
-      MockStatus.inProgress => Transform.scale(
+      _ => Transform.scale(
         scale: 0.8,
         child: CircularProgressIndicator.adaptive(),
       ),
@@ -94,7 +104,7 @@ class _Subtitle extends StatelessWidget {
     required this.commit,
   });
 
-  final MockCommitData commit;
+  final CicdCommitGroup commit;
 
   @override
   Widget build(BuildContext context) {
@@ -102,7 +112,7 @@ class _Subtitle extends StatelessWidget {
       spacing: 8.0,
       children: [
         Icon(
-          commit.triggerType == 'push' ? Icons.arrow_upward : Icons.merge,
+          Icons.arrow_upward,
           color: Colors.black54,
           size: 16,
         ),
@@ -110,7 +120,6 @@ class _Subtitle extends StatelessWidget {
           commit.branch,
           style: TextStyle(
             color: Colors.black54,
-
             fontSize: 14,
           ),
         ),

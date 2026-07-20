@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.5
+
+- Add `CicdCommitGroup`, `CicdWorkflowGroup`, and `CicdJobGroup` models for CI/CD log visualization.
+
 ## 1.0.4
 
 - Add constant-time comparison utilities (`constantTimeCompare`, `constantTimeCompareString`).
