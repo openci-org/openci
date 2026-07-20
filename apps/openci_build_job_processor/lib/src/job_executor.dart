@@ -52,57 +52,98 @@ class JobExecutor {
         maxAttempts: 2,
         delayFactor: Duration(seconds: 5),
       );
-
-      await retryOptions.retry(
-        () async {
-          _log.info('[$vmName] Preparing VM (cloning & starting)...');
-          await _prepareVm(
-            lumeUrl: lumeUrl,
-            baseVmName: _baseVmName,
-            vmName: vmName,
-            onVmCreated: () => vmCreated = true,
-          );
-
-          _log.info(
-            '[$vmName] VM clone/run command sent. Waiting for VM to boot and acquire IP...',
-          );
-          final currentVm = await _lumeService.waitForVmToBeReady(
-            lumeUrl,
-            vmName,
-          );
-          vm = currentVm;
-
-          _log.info(
-            '[$vmName] VM is ready. IP: ${currentVm.ipAddress}. Triggering onVmReady...',
-          );
-          await onVmReady(currentVm);
-
-          _log.info('[$vmName] Setting up direct SSH keys on VM...');
-          await _sshService.setupDirectSsh(
-            currentVm,
-            runId,
-            jumpHost: jumpHost,
-          );
-        },
-        onRetry: (e) async {
-          _log.warning(
-            '[$vmName] VM preparation failed: $e. '
-            'Cleaning up failed VM before retry...',
-          );
-          try {
-            await _cleanupVm(lumeUrl, vmName, runId);
-            vmCreated = false;
-            vm = null;
-          } catch (cleanupErr, cleanupStack) {
-            _log.warning(
-              '[$vmName] Cleanup failed during retry prep: $cleanupErr',
-            );
-            unawaited(
-              Sentry.captureException(cleanupErr, stackTrace: cleanupStack),
-            );
-          }
-        },
+      final prepareVmStart = DateTime.now().toUtc();
+      await sendStepStatusUpdate(
+        buildJobId: job.id,
+        runId: runId,
+        stepId: 'prepare_vm',
+        name: 'Prepare VM',
+        status: BuildJobStatus.IN_PROGRESS.name,
+        durationMs: 0,
+        stepOrder: 1,
+        createdAt: prepareVmStart.toIso8601String(),
+        updatedAt: prepareVmStart.toIso8601String(),
       );
+
+      try {
+        await retryOptions.retry(
+          () async {
+            _log.info('[$vmName] Preparing VM (cloning & starting)...');
+            await _prepareVm(
+              lumeUrl: lumeUrl,
+              baseVmName: _baseVmName,
+              vmName: vmName,
+              onVmCreated: () => vmCreated = true,
+            );
+
+            _log.info(
+              '[$vmName] VM clone/run command sent. Waiting for VM to boot and acquire IP...',
+            );
+            final currentVm = await _lumeService.waitForVmToBeReady(
+              lumeUrl,
+              vmName,
+            );
+            vm = currentVm;
+
+            _log.info(
+              '[$vmName] VM is ready. IP: ${currentVm.ipAddress}. Triggering onVmReady...',
+            );
+            await onVmReady(currentVm);
+
+            _log.info('[$vmName] Setting up direct SSH keys on VM...');
+            await _sshService.setupDirectSsh(
+              currentVm,
+              runId,
+              jumpHost: jumpHost,
+            );
+          },
+          onRetry: (e) async {
+            _log.warning(
+              '[$vmName] VM preparation failed: $e. '
+              'Cleaning up failed VM before retry...',
+            );
+            try {
+              await _cleanupVm(lumeUrl, vmName, runId);
+              vmCreated = false;
+              vm = null;
+            } catch (cleanupErr, cleanupStack) {
+              _log.warning(
+                '[$vmName] Cleanup failed during retry prep: $cleanupErr',
+              );
+              unawaited(
+                Sentry.captureException(cleanupErr, stackTrace: cleanupStack),
+              );
+            }
+          },
+        );
+
+        final prepareVmEnd = DateTime.now().toUtc();
+        await sendStepStatusUpdate(
+          buildJobId: job.id,
+          runId: runId,
+          stepId: 'prepare_vm',
+          name: 'Prepare VM',
+          status: BuildJobStatus.SUCCESS.name,
+          durationMs: prepareVmEnd.difference(prepareVmStart).inMilliseconds,
+          stepOrder: 1,
+          createdAt: prepareVmStart.toIso8601String(),
+          updatedAt: prepareVmEnd.toIso8601String(),
+        );
+      } catch (e) {
+        final prepareVmEnd = DateTime.now().toUtc();
+        await sendStepStatusUpdate(
+          buildJobId: job.id,
+          runId: runId,
+          stepId: 'prepare_vm',
+          name: 'Prepare VM',
+          status: BuildJobStatus.FAILURE.name,
+          durationMs: prepareVmEnd.difference(prepareVmStart).inMilliseconds,
+          stepOrder: 1,
+          createdAt: prepareVmStart.toIso8601String(),
+          updatedAt: prepareVmEnd.toIso8601String(),
+        );
+        rethrow;
+      }
 
       final finalVm = vm;
       if (finalVm == null) {
@@ -113,66 +154,150 @@ class JobExecutor {
         throw StateError('VM IP is null; cannot checkout repository.');
       }
 
-      _log.info(
-        '[$vmName] Checking out repository ${job.owner}/${job.repo}@${job.commitSha}...',
-      );
-      await _checkoutRepository(
-        ip: ip,
+      final checkoutStart = DateTime.now().toUtc();
+      await sendStepStatusUpdate(
+        buildJobId: job.id,
         runId: runId,
-        owner: job.owner,
-        repo: job.repo,
-        commitSha: job.commitSha ?? '',
-        token: token,
-        githubBaseUrl: job.githubBaseUrl,
-        pullRequestNumber: job.pullRequestNumber,
-        jumpHost: jumpHost,
+        stepId: 'checkout',
+        name: 'Checkout repository',
+        status: BuildJobStatus.IN_PROGRESS.name,
+        durationMs: 0,
+        stepOrder: 2,
+        createdAt: checkoutStart.toIso8601String(),
+        updatedAt: checkoutStart.toIso8601String(),
       );
 
-      _log.info('[$vmName] Fetching secrets...');
-      final secretFileContent = await fetchReferencedSecrets(job.id);
+      try {
+        _log.info(
+          '[$vmName] Checking out repository ${job.owner}/${job.repo}@${job.commitSha}...',
+        );
+        await _checkoutRepository(
+          ip: ip,
+          runId: runId,
+          owner: job.owner,
+          repo: job.repo,
+          commitSha: job.commitSha ?? '',
+          token: token,
+          githubBaseUrl: job.githubBaseUrl,
+          pullRequestNumber: job.pullRequestNumber,
+          jumpHost: jumpHost,
+        );
 
-      _log.info('[$vmName] Writing secrets to VM...');
-      await _sshService.writeFileToVm(
-        ip: ip,
+        final checkoutEnd = DateTime.now().toUtc();
+        await sendStepStatusUpdate(
+          buildJobId: job.id,
+          runId: runId,
+          stepId: 'checkout',
+          name: 'Checkout repository',
+          status: BuildJobStatus.SUCCESS.name,
+          durationMs: checkoutEnd.difference(checkoutStart).inMilliseconds,
+          stepOrder: 2,
+          createdAt: checkoutStart.toIso8601String(),
+          updatedAt: checkoutEnd.toIso8601String(),
+        );
+      } catch (e) {
+        final checkoutEnd = DateTime.now().toUtc();
+        await sendStepStatusUpdate(
+          buildJobId: job.id,
+          runId: runId,
+          stepId: 'checkout',
+          name: 'Checkout repository',
+          status: BuildJobStatus.FAILURE.name,
+          durationMs: checkoutEnd.difference(checkoutStart).inMilliseconds,
+          stepOrder: 2,
+          createdAt: checkoutStart.toIso8601String(),
+          updatedAt: checkoutEnd.toIso8601String(),
+        );
+        rethrow;
+      }
+
+      final secretsStart = DateTime.now().toUtc();
+      await sendStepStatusUpdate(
+        buildJobId: job.id,
         runId: runId,
-        remotePath: '/tmp/openci-secrets',
-        content: secretFileContent,
-        jumpHost: jumpHost,
+        stepId: 'configure_secrets',
+        name: 'Configure secrets and script',
+        status: BuildJobStatus.IN_PROGRESS.name,
+        durationMs: 0,
+        stepOrder: 3,
+        createdAt: secretsStart.toIso8601String(),
+        updatedAt: secretsStart.toIso8601String(),
       );
 
-      _log.info('[$vmName] Fetching event payload...');
-      final eventFileContent = await resolveEventPayload(job.id);
+      try {
+        _log.info('[$vmName] Fetching secrets...');
+        final secretFileContent = await fetchReferencedSecrets(job.id);
 
-      _log.info('[$vmName] Writing event payload to VM...');
-      await _sshService.writeFileToVm(
-        ip: ip,
-        runId: runId,
-        remotePath: '/tmp/openci-event.json',
-        content: eventFileContent,
-        jumpHost: jumpHost,
-      );
+        _log.info('[$vmName] Writing secrets to VM...');
+        await _sshService.writeFileToVm(
+          ip: ip,
+          runId: runId,
+          remotePath: '/tmp/openci-secrets',
+          content: secretFileContent,
+          jumpHost: jumpHost,
+        );
 
-      _log.info('[$vmName] Fetching build script...');
-      final actScript = await fetchBuildScript(job.id);
+        _log.info('[$vmName] Fetching event payload...');
+        final eventFileContent = await resolveEventPayload(job.id);
 
-      _log.info('[$vmName] Writing build script to VM...');
-      await _sshService.writeFileToVm(
-        ip: ip,
-        runId: runId,
-        remotePath: '/tmp/openci-act.sh',
-        content: actScript,
-        jumpHost: jumpHost,
-      );
+        _log.info('[$vmName] Writing event payload to VM...');
+        await _sshService.writeFileToVm(
+          ip: ip,
+          runId: runId,
+          remotePath: '/tmp/openci-event.json',
+          content: eventFileContent,
+          jumpHost: jumpHost,
+        );
 
-      _log.info('[$vmName] Making build script executable...');
-      final exitCode = await _sshService.executeSshCommand(
-        ip: ip,
-        runId: runId,
-        command: 'chmod +x /tmp/openci-act.sh',
-        jumpHost: jumpHost,
-      );
-      if (exitCode != 0) {
-        throw Exception('Failed to chmod act script. Exit code: $exitCode');
+        _log.info('[$vmName] Fetching build script...');
+        final actScript = await fetchBuildScript(job.id);
+
+        _log.info('[$vmName] Writing build script to VM...');
+        await _sshService.writeFileToVm(
+          ip: ip,
+          runId: runId,
+          remotePath: '/tmp/openci-act.sh',
+          content: actScript,
+          jumpHost: jumpHost,
+        );
+
+        _log.info('[$vmName] Making build script executable...');
+        final exitCode = await _sshService.executeSshCommand(
+          ip: ip,
+          runId: runId,
+          command: 'chmod +x /tmp/openci-act.sh',
+          jumpHost: jumpHost,
+        );
+        if (exitCode != 0) {
+          throw Exception('Failed to chmod act script. Exit code: $exitCode');
+        }
+
+        final secretsEnd = DateTime.now().toUtc();
+        await sendStepStatusUpdate(
+          buildJobId: job.id,
+          runId: runId,
+          stepId: 'configure_secrets',
+          name: 'Configure secrets and script',
+          status: BuildJobStatus.SUCCESS.name,
+          durationMs: secretsEnd.difference(secretsStart).inMilliseconds,
+          stepOrder: 3,
+          createdAt: secretsStart.toIso8601String(),
+          updatedAt: secretsEnd.toIso8601String(),
+        );
+      } catch (e) {
+        final secretsEnd = DateTime.now().toUtc();
+        await sendStepStatusUpdate(
+          buildJobId: job.id,
+          runId: runId,
+          stepId: 'configure_secrets',
+          name: 'Configure secrets and script',
+          status: BuildJobStatus.FAILURE.name,
+          durationMs: secretsEnd.difference(secretsStart).inMilliseconds,
+          stepOrder: 3,
+          createdAt: secretsStart.toIso8601String(),
+          updatedAt: secretsEnd.toIso8601String(),
+        );
+        rethrow;
       }
 
       await logInfo(job.id, runId, 'Running workflow with act...');

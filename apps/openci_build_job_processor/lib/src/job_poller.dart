@@ -39,6 +39,10 @@ class JobPoller {
       serverUrl: config.serverUrl,
       internalApiKey: config.internalApiKey,
     );
+    setupBuildStepLogger(
+      serverUrl: config.serverUrl,
+      internalApiKey: config.internalApiKey,
+    );
   }
 
   final OpenCiApiService _apiService;

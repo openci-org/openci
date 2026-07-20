@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:logging/logging.dart';
 import 'package:lume_dart/lume_dart.dart';
+import 'package:openci_build_job_processor/openci_build_job_processor.dart';
 import 'package:openci_build_job_processor/src/logging/build_job_logger.dart';
 import 'package:sentry/sentry.dart';
 
@@ -458,6 +459,30 @@ class LumeSshService {
       return line.startsWith('  ❌  ') || line.startsWith('  ❌ ');
     }
 
+    String? currentStepId;
+    String? currentStepName;
+    var stepOrder = 10;
+    var stepStartTime = DateTime.now().toUtc();
+    final runPattern = RegExp(r'^  ⭐  Run (.*)$');
+
+    Future<void> closeCurrentStep({required String status}) async {
+      if (currentStepId != null && currentStepName != null) {
+        final now = DateTime.now().toUtc();
+        final duration = now.difference(stepStartTime).inMilliseconds;
+        await sendStepStatusUpdate(
+          buildJobId: buildJobId,
+          runId: runId,
+          stepId: currentStepId!,
+          name: currentStepName!,
+          status: status,
+          durationMs: duration,
+          stepOrder: stepOrder++,
+          createdAt: stepStartTime.toIso8601String(),
+          updatedAt: now.toIso8601String(),
+        );
+      }
+    }
+
     void processLine(String line) {
       final trimmed = line.trim();
       if (trimmed.isEmpty || isNoisyLine(trimmed)) return;
@@ -471,6 +496,48 @@ class LumeSshService {
       }
 
       final cleanLine = stripActPrefix(trimmed);
+
+      // ⭐ Run <Step Name> の検知 (act の出力パース)
+      if (cleanLine.contains('⭐') && cleanLine.contains('Run ')) {
+        final runMatch = runPattern.firstMatch(
+          cleanLine.replaceAll(RegExp(r'^\[[^\]]+\]\s*'), ''),
+        );
+        final stepName = runMatch?.group(1)?.trim() ?? 'Run Step';
+
+        unawaited(() async {
+          await closeCurrentStep(status: 'SUCCESS');
+          currentStepName = stepName;
+          currentStepId =
+              'step_${stepName.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '_')}';
+          stepStartTime = DateTime.now().toUtc();
+          await sendStepStatusUpdate(
+            buildJobId: buildJobId,
+            runId: runId,
+            stepId: currentStepId!,
+            name: currentStepName!,
+            status: 'IN_PROGRESS',
+            durationMs: 0,
+            stepOrder: stepOrder++,
+            createdAt: stepStartTime.toIso8601String(),
+            updatedAt: stepStartTime.toIso8601String(),
+          );
+        }());
+      } else if (cleanLine.contains('✅') && cleanLine.contains('Success - ')) {
+        unawaited(closeCurrentStep(status: 'SUCCESS'));
+        currentStepId = null;
+        currentStepName = null;
+      } else if (cleanLine.contains('❌') && cleanLine.contains('Failure - ')) {
+        unawaited(closeCurrentStep(status: 'FAILURE'));
+        currentStepId = null;
+        currentStepName = null;
+      }
+
+      if (currentStepId != null) {
+        writeBuildStepLog(buildJobId, runId, currentStepId!, cleanLine);
+      } else {
+        writeBuildStepLog(buildJobId, runId, 'pre_build_setup', cleanLine);
+      }
+
       logInfo(buildJobId, runId, cleanLine);
     }
 
@@ -525,25 +592,36 @@ class LumeSshService {
     _log.info('SSH execution completed. Exit code: $exitCode');
 
     if (isTimedOut) {
+      await closeCurrentStep(status: 'FAILURE');
+      await flushRemainingStepLogs(runId: runId);
       throw TimeoutException(
         'act timed out after ${timeout.inMinutes} minutes',
       );
     }
 
     if (exitCode != 0) {
+      await closeCurrentStep(status: 'FAILURE');
+      await flushRemainingStepLogs(runId: runId);
       throw Exception('act exited with code $exitCode');
     }
 
     if (outputErrors.isNotEmpty) {
+      await closeCurrentStep(status: 'FAILURE');
+      await flushRemainingStepLogs(runId: runId);
       throw Exception('act reported errors:\n${outputErrors.join('\n')}');
     }
 
     if (!hasSuccessfulStep) {
+      await closeCurrentStep(status: 'FAILURE');
+      await flushRemainingStepLogs(runId: runId);
       throw Exception(
         'act exited with code 0 but no steps were executed. '
         'Ensure the workflow file is correct and your workflow/job triggers match.',
       );
     }
+
+    await closeCurrentStep(status: 'SUCCESS');
+    await flushRemainingStepLogs(runId: runId);
   }
 }
 

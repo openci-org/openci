@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:dart_frog/dart_frog.dart';
 import 'package:openci_server/database.dart';
 import 'package:openci_server/request/error_handler.dart';
+import 'package:openci_server/request/request_extension.dart';
 import 'package:openci_shared/openci_shared.dart';
 
 FutureOr<Response> onRequest(
@@ -13,6 +14,7 @@ FutureOr<Response> onRequest(
 ) {
   return switch (context.request.method) {
     HttpMethod.get => _get(context, id, runId),
+    HttpMethod.post => _post(context, id, runId),
     _ => Response(statusCode: HttpStatus.methodNotAllowed),
   };
 }
@@ -45,6 +47,39 @@ Future<Response> _get(
       e,
       s,
       logMessage: 'Failed to read steps for run $runId',
+    );
+  }
+}
+
+Future<Response> _post(
+  RequestContext context,
+  String id,
+  String runId,
+) async {
+  try {
+    final db = context.read<AppDatabase>();
+    final payload = await context.jsonBody();
+
+    final step = BuildStep.fromJson(payload);
+
+    final driftStep = DriftBuildStep(
+      id: step.id,
+      runId: step.runId,
+      name: step.name,
+      status: step.status,
+      durationMs: step.durationMs,
+      stepOrder: step.stepOrder,
+      createdAt: step.createdAt,
+      updatedAt: step.updatedAt,
+    );
+
+    await db.buildJobDao.insertBuildStep(driftStep);
+    return Response.json(body: {'success': true});
+  } catch (e, s) {
+    return handleRouteException(
+      e,
+      s,
+      logMessage: 'Failed to create/update step for run $runId',
     );
   }
 }

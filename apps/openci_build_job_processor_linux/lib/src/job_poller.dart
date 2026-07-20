@@ -4,6 +4,7 @@ import 'package:logging/logging.dart';
 import 'package:openci_build_job_processor_linux/src/incus/incus_service.dart';
 import 'package:openci_build_job_processor_linux/src/job_executor.dart';
 import 'package:openci_build_job_processor_linux/src/logging/build_job_logger.dart';
+import 'package:openci_build_job_processor_linux/src/logging/build_step_logger.dart';
 import 'package:openci_build_job_processor_linux/src/processor_config.dart';
 import 'package:openci_shared/openci_shared.dart';
 import 'package:sentry/sentry.dart';
@@ -26,6 +27,10 @@ class JobPoller {
        _baseInstanceName = config.baseInstanceName,
        _maxConcurrentJobs = config.maxConcurrentJobs {
     setupBuildJobLogger(
+      serverUrl: config.serverUrl,
+      internalApiKey: config.internalApiKey,
+    );
+    setupBuildStepLogger(
       serverUrl: config.serverUrl,
       internalApiKey: config.internalApiKey,
     );
