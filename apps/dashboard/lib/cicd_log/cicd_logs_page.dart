@@ -132,26 +132,34 @@ class _Subtitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final shortSha = commit.commitSha.length > 7
+        ? commit.commitSha.substring(0, 7)
+        : commit.commitSha;
+
     return Row(
       spacing: 8.0,
       children: [
-        Icon(
+        const Icon(
           Icons.arrow_upward,
           color: Colors.black54,
           size: 16,
         ),
-        Text(
-          commit.branch,
-          style: TextStyle(
-            color: Colors.black54,
-            fontSize: 14,
+        Flexible(
+          child: Text(
+            commit.branch,
+            style: const TextStyle(
+              color: Colors.black54,
+              fontSize: 14,
+            ),
+            overflow: TextOverflow.ellipsis,
           ),
         ),
         Text(
-          commit.commitSha,
-          style: TextStyle(
+          shortSha,
+          style: const TextStyle(
             color: Colors.black54,
             fontSize: 14,
+            fontFamily: 'monospace',
           ),
         ),
       ],
