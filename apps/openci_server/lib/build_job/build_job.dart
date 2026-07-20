@@ -40,6 +40,7 @@ class BuildJobs extends Table {
   TextColumn get workflowId => text().nullable()();
   TextColumn get workflowFileName => text().nullable()();
   TextColumn get commitSha => text().nullable()();
+  TextColumn get commitMessage => text().nullable()();
   IntColumn get pullRequestNumber => integer().nullable()();
   IntColumn get runCount => integer().nullable()();
   TextColumn get latestRunId => text().nullable()();

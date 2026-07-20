@@ -6,6 +6,7 @@ import 'package:github/hooks.dart';
 import 'package:http/http.dart' as http;
 import 'package:openci_server/build_job/build_job_mapper.dart';
 import 'package:openci_server/database.dart';
+import 'package:openci_server/webhook_task/extract_commit_message_from_push_event.dart';
 import 'package:openci_shared/openci_shared.dart';
 import 'package:uuid/uuid.dart';
 import 'package:yaml/yaml.dart';
@@ -117,6 +118,7 @@ Future<void> processWebhookTask(
     final String? triggerBranch;
     final int? pullRequestNumber;
     final String triggerType;
+    final String? commitMessage;
 
     if (eventType == 'pull_request') {
       final event = PullRequestEvent.fromJson(payload);
@@ -134,6 +136,7 @@ Future<void> processWebhookTask(
       triggerBranch = pr.base?.ref;
       pullRequestNumber = event.number;
       triggerType = 'pull_request';
+      commitMessage = pr.title;
     } else {
       // push event
       if (payload['deleted'] == true) {
@@ -152,6 +155,8 @@ Future<void> processWebhookTask(
       triggerBranch = branch;
       pullRequestNumber = null;
       triggerType = 'push';
+
+      commitMessage = extractCommitMessageFromPushEvent(payload);
     }
 
     // Fetch YAML files from .openci directory
@@ -338,6 +343,7 @@ Future<void> processWebhookTask(
         teamId: team.id,
         workflowFileName: job.workflowFileName,
         commitSha: commitSha,
+        commitMessage: commitMessage,
         pullRequestNumber: pullRequestNumber,
         runCount: 0,
         tagName: null,
