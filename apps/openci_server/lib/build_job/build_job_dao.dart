@@ -5,7 +5,7 @@ import 'package:openci_shared/openci_shared.dart';
 
 part 'build_job_dao.g.dart';
 
-@DriftAccessor(tables: [BuildJobs, BuildJobLogs])
+@DriftAccessor(tables: [BuildJobs, BuildJobLogs, BuildSteps, BuildStepLogs])
 class BuildJobDao extends DatabaseAccessor<AppDatabase>
     with _$BuildJobDaoMixin {
   BuildJobDao(super.attachedDatabase);
@@ -148,4 +148,31 @@ class BuildJobDao extends DatabaseAccessor<AppDatabase>
             ..where((t) => t.runId.equals(runId))
             ..orderBy([(t) => OrderingTerm.asc(t.id)]))
           .watch();
+
+  Future<void> insertBuildStep(DriftBuildStep step) =>
+      into(buildSteps).insert(step, mode: InsertMode.insertOrReplace);
+
+  Future<void> updateBuildStep(DriftBuildStep step) =>
+      update(buildSteps).replace(step);
+
+  Future<List<DriftBuildStep>> getBuildSteps(String runId) =>
+      (select(buildSteps)
+            ..where((t) => t.runId.equals(runId))
+            ..orderBy([(t) => OrderingTerm.asc(t.stepOrder)]))
+          .get();
+
+  Future<void> insertBuildStepLog(String stepId, String content) =>
+      into(buildStepLogs).insert(
+        BuildStepLogsCompanion.insert(
+          stepId: stepId,
+          logContent: content,
+          createdAt: DateTime.now().toUtc(),
+        ),
+      );
+
+  Future<List<DriftBuildStepLog>> getBuildStepLogs(String stepId) =>
+      (select(buildStepLogs)
+            ..where((t) => t.stepId.equals(stepId))
+            ..orderBy([(t) => OrderingTerm.asc(t.id)]))
+          .get();
 }

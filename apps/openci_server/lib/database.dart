@@ -29,6 +29,8 @@ part 'database.g.dart';
   tables: [
     BuildJobs,
     BuildJobLogs,
+    BuildSteps,
+    BuildStepLogs,
     BuildRuns,
     Teams,
     TeamMembers,
@@ -55,7 +57,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 19;
+  int get schemaVersion => 20;
 
   @override
   MigrationStrategy get migration {
@@ -72,6 +74,10 @@ class AppDatabase extends _$AppDatabase {
         }
         if (from < 19) {
           await m.addColumn(buildJobs, buildJobs.commitMessage);
+        }
+        if (from < 20) {
+          await m.createTable(buildSteps);
+          await m.createTable(buildStepLogs);
         }
       },
     );

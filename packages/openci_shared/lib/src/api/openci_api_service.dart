@@ -1,5 +1,6 @@
 import 'package:chopper/chopper.dart';
 
+import '../models/build_step.dart';
 import '../models/cicd_commit_group.dart';
 import '../models/team.dart';
 import '../models/user_device.dart';
@@ -133,6 +134,22 @@ abstract class OpenCiApiService extends ChopperService {
     @Path('id') String buildJobId,
     @Path('runId') String runId,
     @Query('limit') String? limit,
+  );
+
+  @GET(path: '/builds/{id}/runs/{runId}/steps', timeout: _timeout)
+  Future<Response<List<BuildStep>>> getBuildSteps(
+    @Path('id') String buildJobId,
+    @Path('runId') String runId,
+  );
+
+  @GET(
+    path: '/builds/{id}/runs/{runId}/steps/{stepId}/logs',
+    timeout: _timeout,
+  )
+  Future<Response<List<String>>> getBuildStepLogs(
+    @Path('id') String buildJobId,
+    @Path('runId') String runId,
+    @Path('stepId') String stepId,
   );
 
   @GET(path: '/builds/commits', timeout: _timeout)

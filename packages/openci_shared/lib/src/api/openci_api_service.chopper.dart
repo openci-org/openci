@@ -734,6 +734,73 @@ final class _$OpenCiApiService extends OpenCiApiService {
   }
 
   @override
+  Future<Response<List<BuildStep>>> getBuildSteps(
+    String buildJobId,
+    String runId,
+  ) {
+    final Uri $url = Uri.parse('/builds/${buildJobId}/runs/${runId}/steps');
+    final ChopperCompleter $abortTrigger = ChopperCompleter<void>();
+    final ChopperTimer $timeout = ChopperTimer(
+      const Duration(microseconds: 10000000),
+      () {
+        if (!$abortTrigger.isCompleted) $abortTrigger.complete();
+      },
+    );
+    final Request $request = Request(
+      'GET',
+      $url,
+      client.baseUrl,
+      abortTrigger: $abortTrigger.future,
+    );
+    return client
+        .send<List<BuildStep>, BuildStep>($request)
+        .catchError(
+          (_) => Future<Response<List<BuildStep>>>.error(
+            ChopperTimeoutException('Request timed out after 10 seconds'),
+          ),
+          test: (Object err) =>
+              err is ChopperRequestAbortedException &&
+              $abortTrigger.isCompleted,
+        )
+        .whenComplete($timeout.cancel);
+  }
+
+  @override
+  Future<Response<List<String>>> getBuildStepLogs(
+    String buildJobId,
+    String runId,
+    String stepId,
+  ) {
+    final Uri $url = Uri.parse(
+      '/builds/${buildJobId}/runs/${runId}/steps/${stepId}/logs',
+    );
+    final ChopperCompleter $abortTrigger = ChopperCompleter<void>();
+    final ChopperTimer $timeout = ChopperTimer(
+      const Duration(microseconds: 10000000),
+      () {
+        if (!$abortTrigger.isCompleted) $abortTrigger.complete();
+      },
+    );
+    final Request $request = Request(
+      'GET',
+      $url,
+      client.baseUrl,
+      abortTrigger: $abortTrigger.future,
+    );
+    return client
+        .send<List<String>, String>($request)
+        .catchError(
+          (_) => Future<Response<List<String>>>.error(
+            ChopperTimeoutException('Request timed out after 10 seconds'),
+          ),
+          test: (Object err) =>
+              err is ChopperRequestAbortedException &&
+              $abortTrigger.isCompleted,
+        )
+        .whenComplete($timeout.cancel);
+  }
+
+  @override
   Future<Response<List<CicdCommitGroup>>> getCommitGroups(
     String teamId,
     int? limit,
