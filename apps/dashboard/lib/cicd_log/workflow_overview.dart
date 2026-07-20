@@ -1,52 +1,60 @@
 import 'package:dashboard/build_logs/chips/job_chip.dart';
 import 'package:dashboard/cicd_log/cicd_mock_data.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:openci_shared/openci_shared.dart';
 
 class WorkflowOverview extends StatelessWidget {
-  final MockWorkflowData workflow;
+  final CicdWorkflowGroup workflow;
 
   const WorkflowOverview({super.key, required this.workflow});
+
+  String _formatDuration(Duration d) {
+    final minutes = d.inMinutes;
+    final seconds = d.inSeconds % 60;
+    if (minutes > 0) {
+      return '$minutes分$seconds秒';
+    }
+    return '$seconds秒';
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
     final (statusColor, statusIcon) = switch (workflow.status) {
-      MockStatus.success => (Colors.green, Icons.check_rounded),
-      MockStatus.failure => (Colors.red, Icons.close_rounded),
-      MockStatus.inProgress => (
+      BuildJobStatus.SUCCESS => (Colors.green, Icons.check_rounded),
+      BuildJobStatus.FAILURE ||
+      BuildJobStatus.CANCELLED ||
+      BuildJobStatus.TIMED_OUT => (Colors.red, Icons.close_rounded),
+      _ => (
         Colors.blue,
         Icons.hourglass_empty_rounded,
       ),
     };
 
-    final dependencyWidgets = <Widget>[];
-    for (final dep in workflow.dependencies) {
-      dependencyWidgets.add(
-        JobChip(
-          label: dep.label,
-          status: toChipStatus(dep.status),
-        ),
-      );
-    }
-
-    final leafWidgets = <Widget>[];
-    for (final leaf in workflow.leafJobs) {
-      leafWidgets.add(
-        InkWell(
-          borderRadius: BorderRadius.circular(6),
-          onTap: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('ジョブ "${leaf.label}" の詳細ログへ遷移します'),
-                duration: const Duration(seconds: 1),
-              ),
-            );
-          },
-          child: JobChip(
-            label: leaf.label,
-            status: toChipStatus(leaf.status),
+    final List<Widget> stageWidgets = [];
+    for (var i = 0; i < workflow.stages.length; i++) {
+      if (i > 0) {
+        stageWidgets.add(
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 10.0),
+            child: Icon(
+              Icons.chevron_right_rounded,
+              size: 20,
+              color: Color(0xFFB8C0CC),
+            ),
           ),
+        );
+      }
+
+      final stageJobs = workflow.stages[i];
+      stageWidgets.add(
+        _Jobs(
+          jobs: stageJobs,
+          onJobTap: (jobId) {
+            context.push('/runs/$jobId');
+          },
         ),
       );
     }
@@ -77,7 +85,7 @@ class WorkflowOverview extends StatelessWidget {
               ),
               const Spacer(),
               Text(
-                workflow.duration,
+                _formatDuration(workflow.duration),
                 style: TextStyle(
                   fontSize: 12,
                   color: theme.colorScheme.outline,
@@ -90,22 +98,7 @@ class WorkflowOverview extends StatelessWidget {
             scrollDirection: Axis.horizontal,
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                if (dependencyWidgets.isNotEmpty) ...[
-                  _Jobs(dependencyWidgets),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 10.0),
-                    child: Icon(
-                      Icons.chevron_right_rounded,
-                      size: 20,
-                      color: Color(0xFFB8C0CC),
-                    ),
-                  ),
-                ],
-                if (leafWidgets.isNotEmpty) ...[
-                  _Jobs(leafWidgets),
-                ],
-              ],
+              children: stageWidgets,
             ),
           ),
         ],
@@ -115,9 +108,13 @@ class WorkflowOverview extends StatelessWidget {
 }
 
 class _Jobs extends StatelessWidget {
-  const _Jobs(this.dependencyWidgets);
+  const _Jobs({
+    required this.jobs,
+    required this.onJobTap,
+  });
 
-  final List<Widget> dependencyWidgets;
+  final List<CicdJobGroup> jobs;
+  final ValueChanged<String> onJobTap;
 
   @override
   Widget build(BuildContext context) {
@@ -125,9 +122,16 @@ class _Jobs extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        for (var i = 0; i < dependencyWidgets.length; i++) ...[
+        for (var i = 0; i < jobs.length; i++) ...[
           if (i > 0) const SizedBox(height: 6),
-          dependencyWidgets[i],
+          InkWell(
+            borderRadius: BorderRadius.circular(6),
+            onTap: () => onJobTap(jobs[i].id),
+            child: JobChip(
+              label: jobs[i].label,
+              status: toChipStatus(jobs[i].status),
+            ),
+          ),
         ],
       ],
     );
