@@ -2,6 +2,7 @@ import 'package:dashboard/build_logs/build_jobs_provider.dart';
 import 'package:dashboard/cicd_log/cicd_logs_page.dart';
 import 'package:dashboard/cicd_log/detail/build_step_providers.dart';
 import 'package:dashboard/cicd_log/detail/job_status_icon.dart';
+import 'package:dashboard/extensions/circular_progress_indicator_extensions.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
@@ -19,9 +20,7 @@ class CicdLogDetailRoutePage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final buildJobAsync = ref.watch(buildJobByIdProvider(buildJobId));
     return buildJobAsync.when(
-      loading: () => const Scaffold(
-        body: Center(child: CircularProgressIndicator.adaptive()),
-      ),
+      loading: () => CircularProgressIndicator.adaptive().withScaffoldCenter(),
       error: (err, _) => Scaffold(body: Center(child: Text('エラー: $err'))),
       data: (buildJob) {
         if (buildJob == null) {
@@ -90,9 +89,7 @@ class CicdLogDetailPage extends ConsumerWidget {
             ),
           );
         },
-        loading: () => const Center(
-          child: CircularProgressIndicator.adaptive(),
-        ),
+        loading: () => CircularProgressIndicator.adaptive().withCenter(),
         error: (err, _) => Center(
           child: Text(
             'ログの取得中にエラーが発生しました: $err',
