@@ -323,7 +323,7 @@ class BuildLogsDetailPage extends HookConsumerWidget {
             Consumer(
               builder: (context, ref, _) {
                 final aiEnabled =
-                    ref.watch(teamStateProvider).value?.aiEnabled ?? true;
+                    ref.watch(selectedTeamProvider).value?.aiEnabled ?? true;
                 if (!aiEnabled) return const SizedBox.shrink();
                 if (buildJob.status != BuildJobStatus.FAILURE ||
                     buildJob.failureSummaryStatus == null) {

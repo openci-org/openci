@@ -243,7 +243,7 @@ class InviteTeamMemberBottomSheet extends HookConsumerWidget {
                         isLoading.value = true;
                         try {
                           await ref
-                              .read(teamListProvider.notifier)
+                              .read(teamServiceProvider)
                               .inviteMember(
                                 selectedTeamId.value!,
                                 emailController.text.trim(),

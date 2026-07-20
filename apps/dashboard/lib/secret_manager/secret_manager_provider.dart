@@ -18,7 +18,7 @@ class SecretManager extends _$SecretManager {
   Stream<List<Secret>> build() async* {
     final serverUrl = ref.watch(openciServerUrlProvider);
 
-    final teamId = ref.watch(teamStateProvider).value?.id;
+    final teamId = ref.watch(selectedTeamProvider).value?.id;
     if (teamId == null) {
       yield const [];
       return;
@@ -74,7 +74,7 @@ class SecretManager extends _$SecretManager {
   Future<void> addSecret(String name, String value) async {
     final serverUrl = ref.read(openciServerUrlProvider);
 
-    final teamId = ref.read(teamStateProvider).value?.id;
+    final teamId = ref.read(selectedTeamProvider).value?.id;
     if (teamId == null) throw StateError('team is not loaded yet');
 
     final url = Uri.parse('$serverUrl/teams/$teamId/secrets');
@@ -128,7 +128,7 @@ class SecretManager extends _$SecretManager {
   Future<String> readSecret({required String documentId}) async {
     final serverUrl = ref.read(openciServerUrlProvider);
 
-    final teamId = ref.read(teamStateProvider).value?.id;
+    final teamId = ref.read(selectedTeamProvider).value?.id;
     if (teamId == null) throw StateError('team is not loaded yet');
 
     final url = Uri.parse('$serverUrl/teams/$teamId/secrets/$documentId');
@@ -156,7 +156,7 @@ class SecretManager extends _$SecretManager {
   Future<void> deleteSecret({required String documentId}) async {
     final serverUrl = ref.read(openciServerUrlProvider);
 
-    final teamId = ref.read(teamStateProvider).value?.id;
+    final teamId = ref.read(selectedTeamProvider).value?.id;
     if (teamId == null) throw StateError('team is not loaded yet');
 
     final url = Uri.parse('$serverUrl/teams/$teamId/secrets/$documentId');
@@ -180,7 +180,7 @@ class SecretManager extends _$SecretManager {
 
   Future<void> generateCertificateKey() async {
     final serverUrl = ref.read(openciServerUrlProvider);
-    final teamId = ref.read(teamStateProvider).value?.id;
+    final teamId = ref.read(selectedTeamProvider).value?.id;
     if (teamId == null) throw StateError('team is not loaded yet');
 
     final url = Uri.parse('$serverUrl/teams/$teamId/ios-signing/generate-key');
@@ -209,7 +209,7 @@ class SecretManager extends _$SecretManager {
     required String privateKey,
   }) async {
     final serverUrl = ref.read(openciServerUrlProvider);
-    final teamId = ref.read(teamStateProvider).value?.id;
+    final teamId = ref.read(selectedTeamProvider).value?.id;
     if (teamId == null) throw StateError('team is not loaded yet');
 
     final url = Uri.parse('$serverUrl/teams/$teamId/ios-signing/setup-asc-key');

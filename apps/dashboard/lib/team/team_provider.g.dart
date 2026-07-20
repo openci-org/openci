@@ -9,54 +9,50 @@ part of 'team_provider.dart';
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
 
-@ProviderFor(TeamState)
-final teamStateProvider = TeamStateProvider._();
+@ProviderFor(selectedTeam)
+final selectedTeamProvider = SelectedTeamProvider._();
 
-final class TeamStateProvider extends $AsyncNotifierProvider<TeamState, Team> {
-  TeamStateProvider._()
+final class SelectedTeamProvider
+    extends $FunctionalProvider<AsyncValue<Team>, Team, FutureOr<Team>>
+    with $FutureModifier<Team>, $FutureProvider<Team> {
+  SelectedTeamProvider._()
     : super(
         from: null,
         argument: null,
         retry: null,
-        name: r'teamStateProvider',
+        name: r'selectedTeamProvider',
         isAutoDispose: true,
         dependencies: null,
         $allTransitiveDependencies: null,
       );
 
   @override
-  String debugGetCreateSourceHash() => _$teamStateHash();
+  String debugGetCreateSourceHash() => _$selectedTeamHash();
 
   @$internal
   @override
-  TeamState create() => TeamState();
-}
+  $FutureProviderElement<Team> $createElement($ProviderPointer pointer) =>
+      $FutureProviderElement(pointer);
 
-String _$teamStateHash() => r'5539f6264c66208af7662c236106b915cd84ecce';
-
-abstract class _$TeamState extends $AsyncNotifier<Team> {
-  FutureOr<Team> build();
-  @$mustCallSuper
   @override
-  void runBuild() {
-    final ref = this.ref as $Ref<AsyncValue<Team>, Team>;
-    final element =
-        ref.element
-            as $ClassProviderElement<
-              AnyNotifier<AsyncValue<Team>, Team>,
-              AsyncValue<Team>,
-              Object?,
-              Object?
-            >;
-    element.handleCreate(ref, build);
+  FutureOr<Team> create(Ref ref) {
+    return selectedTeam(ref);
   }
 }
 
-@ProviderFor(TeamList)
+String _$selectedTeamHash() => r'd4dac19c287248adf4836bc1ff536af33c1f5849';
+
+@ProviderFor(teamList)
 final teamListProvider = TeamListProvider._();
 
 final class TeamListProvider
-    extends $StreamNotifierProvider<TeamList, List<Team>> {
+    extends
+        $FunctionalProvider<
+          AsyncValue<List<Team>>,
+          List<Team>,
+          FutureOr<List<Team>>
+        >
+    with $FutureModifier<List<Team>>, $FutureProvider<List<Team>> {
   TeamListProvider._()
     : super(
         from: null,
@@ -73,25 +69,54 @@ final class TeamListProvider
 
   @$internal
   @override
-  TeamList create() => TeamList();
-}
+  $FutureProviderElement<List<Team>> $createElement($ProviderPointer pointer) =>
+      $FutureProviderElement(pointer);
 
-String _$teamListHash() => r'f8cd3c24137e564cd232e0d0e2009614a360422d';
-
-abstract class _$TeamList extends $StreamNotifier<List<Team>> {
-  Stream<List<Team>> build();
-  @$mustCallSuper
   @override
-  void runBuild() {
-    final ref = this.ref as $Ref<AsyncValue<List<Team>>, List<Team>>;
-    final element =
-        ref.element
-            as $ClassProviderElement<
-              AnyNotifier<AsyncValue<List<Team>>, List<Team>>,
-              AsyncValue<List<Team>>,
-              Object?,
-              Object?
-            >;
-    element.handleCreate(ref, build);
+  FutureOr<List<Team>> create(Ref ref) {
+    return teamList(ref);
   }
 }
+
+String _$teamListHash() => r'0cce5ff0dd3b0b799e2d4ad521a1b55fbd2691af';
+
+@ProviderFor(teamService)
+final teamServiceProvider = TeamServiceProvider._();
+
+final class TeamServiceProvider
+    extends $FunctionalProvider<TeamService, TeamService, TeamService>
+    with $Provider<TeamService> {
+  TeamServiceProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'teamServiceProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$teamServiceHash();
+
+  @$internal
+  @override
+  $ProviderElement<TeamService> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  TeamService create(Ref ref) {
+    return teamService(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(TeamService value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<TeamService>(value),
+    );
+  }
+}
+
+String _$teamServiceHash() => r'c7af76967284024376f59e5774e81dcb21801bf8';

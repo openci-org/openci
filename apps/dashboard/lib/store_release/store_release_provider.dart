@@ -79,8 +79,8 @@ class AscBuild {
   );
 }
 
-String _requireTeamId(dynamic ref) {
-  final teamId = ref.read(teamStateProvider).value?.id as String?;
+String _requireTeamId(Ref ref) {
+  final teamId = ref.read(selectedTeamProvider).value?.id;
   if (teamId == null) throw StateError('team is not loaded yet');
   return teamId;
 }

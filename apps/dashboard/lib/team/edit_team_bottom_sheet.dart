@@ -226,13 +226,13 @@ class EditTeamBottomSheet extends HookConsumerWidget {
                             isLoading.value = true;
                             try {
                               await ref
-                                  .read(teamListProvider.notifier)
+                                  .read(teamServiceProvider)
                                   .updateTeamName(
                                     selectedTeamId.value!,
                                     teamNameController.text,
                                   );
                               await ref
-                                  .read(teamListProvider.notifier)
+                                  .read(teamServiceProvider)
                                   .updateGitHubSettings(
                                     teamId: selectedTeamId.value!,
                                     githubBaseUrl: githubBaseUrlController.text,

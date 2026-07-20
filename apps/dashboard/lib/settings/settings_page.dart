@@ -373,7 +373,7 @@ class _TeamSettingsTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final teamAsync = ref.watch(teamStateProvider);
+    final teamAsync = ref.watch(selectedTeamProvider);
 
     return teamAsync.when(
       data: (team) {

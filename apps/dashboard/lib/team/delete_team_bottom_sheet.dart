@@ -197,7 +197,7 @@ class DeleteTeamBottomSheet extends HookConsumerWidget {
                                   .saveSelectedTeamId(otherTeam.id);
 
                               await ref
-                                  .read(teamListProvider.notifier)
+                                  .read(teamServiceProvider)
                                   .deleteTeam(teamIdToDelete);
 
                               if (!context.mounted) return;

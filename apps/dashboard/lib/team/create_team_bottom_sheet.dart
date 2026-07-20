@@ -90,7 +90,7 @@ class CreateTeamBottomSheet extends HookConsumerWidget {
                       isLoading.value = true;
                       try {
                         await ref
-                            .read(teamListProvider.notifier)
+                            .read(teamServiceProvider)
                             .createTeam(teamNameController.text);
                         if (!context.mounted) return;
                         context.showSnackBarMessage(teamT.createdSuccess);
