@@ -7,6 +7,7 @@ final mockCommits = [
     commitMessage: 'feat: add apple sign-in support to iOS app',
     status: MockStatus.success,
     timeAgo: '10分前',
+    triggerType: 'push',
     workflows: [
       MockWorkflowData(
         fileName: 'ios.yaml',
@@ -43,6 +44,8 @@ final mockCommits = [
     commitMessage: 'fix(android): resolve build crash on Android 14',
     status: MockStatus.failure,
     timeAgo: '1時間前',
+    triggerType: 'pull_request',
+    prNumber: 42,
     workflows: [
       MockWorkflowData(
         fileName: 'ios.yaml',
@@ -83,6 +86,7 @@ final mockCommits = [
     commitMessage: 'docs: update README.md instruction details',
     status: MockStatus.inProgress,
     timeAgo: '実行中',
+    triggerType: 'push',
     workflows: [
       MockWorkflowData(
         fileName: 'static-analysis.yaml',
@@ -129,6 +133,8 @@ class MockCommitData {
   final String commitMessage;
   final MockStatus status;
   final String timeAgo;
+  final String triggerType; // 'push' or 'pull_request'
+  final int? prNumber;
   final List<MockWorkflowData> workflows;
 
   MockCommitData({
@@ -137,6 +143,8 @@ class MockCommitData {
     required this.commitMessage,
     required this.status,
     required this.timeAgo,
+    required this.triggerType,
+    this.prNumber,
     required this.workflows,
   });
 }

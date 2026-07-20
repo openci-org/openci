@@ -12,7 +12,7 @@ class WorkflowOverview extends StatelessWidget {
     final theme = Theme.of(context);
 
     final (statusColor, statusIcon) = switch (workflow.status) {
-      MockStatus.success => (const Color(0xFF3FB950), Icons.check_rounded),
+      MockStatus.success => (Colors.green, Icons.check_rounded),
       MockStatus.failure => (Colors.red, Icons.close_rounded),
       MockStatus.inProgress => (
         Colors.blue,

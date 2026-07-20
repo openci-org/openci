@@ -59,7 +59,7 @@ class _Card extends StatelessWidget {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
             side: BorderSide(
-              color: theme.colorScheme.outlineVariant.withValues(alpha: 0.8),
+              color: Colors.grey.shade400,
             ),
           ),
           clipBehavior: Clip.antiAlias,
@@ -69,49 +69,12 @@ class _Card extends StatelessWidget {
               collapsedBackgroundColor: theme.colorScheme.surface,
               backgroundColor: theme.colorScheme.surfaceContainerLow,
               leading: statusWidget,
-              title: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 6,
-                      vertical: 2,
-                    ),
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.primaryContainer,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(
-                      commit.branch,
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: theme.colorScheme.onPrimaryContainer,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    commit.commitSha,
-                    style: TextStyle(
-                      fontSize: 12,
-                    ),
-                  ),
-                ],
+              title: Text(
+                commit.commitMessage,
               ),
-              subtitle: Padding(
-                padding: const EdgeInsets.only(top: 4.0),
-                child: Text(
-                  commit.commitMessage,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: theme.colorScheme.onSurface,
-                  ),
-                ),
-              ),
+              subtitle: _Subtitle(commit: commit),
               childrenPadding: const EdgeInsets.only(
-                bottom: 12,
+                bottom: 6,
                 left: 12,
                 right: 12,
               ),
@@ -122,6 +85,43 @@ class _Card extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _Subtitle extends StatelessWidget {
+  const _Subtitle({
+    required this.commit,
+  });
+
+  final MockCommitData commit;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      spacing: 8.0,
+      children: [
+        Icon(
+          commit.triggerType == 'push' ? Icons.arrow_upward : Icons.merge,
+          color: Colors.black54,
+          size: 16,
+        ),
+        Text(
+          commit.branch,
+          style: TextStyle(
+            color: Colors.black54,
+
+            fontSize: 14,
+          ),
+        ),
+        Text(
+          commit.commitSha,
+          style: TextStyle(
+            color: Colors.black54,
+            fontSize: 14,
+          ),
+        ),
+      ],
     );
   }
 }
