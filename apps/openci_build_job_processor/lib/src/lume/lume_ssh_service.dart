@@ -474,26 +474,28 @@ class LumeSshService {
 
     Future<void> closeJobCurrentStep(String jobName, {required String status}) async {
       final state = getJobState(jobName);
-      final currentStepId = state['currentStepId'] as String?;
-      final currentStepName = state['currentStepName'] as String?;
-      final stepStartTime = state['stepStartTime'] as DateTime;
-      final stepOrder = state['stepOrder'] as int;
+      final prevStepId = state['currentStepId'] as String?;
+      final prevStepName = state['currentStepName'] as String?;
+      final prevStepStartTime = state['stepStartTime'] as DateTime;
+      final prevStepOrder = state['stepOrder'] as int;
 
-      if (currentStepId != null && currentStepName != null) {
+      state['currentStepId'] = null;
+      state['currentStepName'] = null;
+
+      if (prevStepId != null && prevStepName != null) {
         final now = DateTime.now().toUtc();
-        final duration = now.difference(stepStartTime).inMilliseconds;
+        final duration = now.difference(prevStepStartTime).inMilliseconds;
         await sendStepStatusUpdate(
           buildJobId: buildJobId,
           runId: runId,
-          stepId: currentStepId,
-          name: '[$jobName] $currentStepName',
+          stepId: prevStepId,
+          name: '[$jobName] $prevStepName',
           status: status,
           durationMs: duration,
-          stepOrder: stepOrder,
-          createdAt: stepStartTime.toIso8601String(),
+          stepOrder: prevStepOrder,
+          createdAt: prevStepStartTime.toIso8601String(),
           updatedAt: now.toIso8601String(),
         );
-        state['stepOrder'] = stepOrder + 1;
       }
     }
 
@@ -533,17 +535,38 @@ class LumeSshService {
         final runMatch = runPattern.firstMatch(cleanRunLine);
         final stepName = runMatch?.group(1)?.trim() ?? 'Run Step';
 
+        final state = getJobState(jobName);
+        final prevStepId = state['currentStepId'] as String?;
+        final prevStepName = state['currentStepName'] as String?;
+        final prevStepStartTime = state['stepStartTime'] as DateTime;
+        final prevStepOrder = state['stepOrder'] as int;
+
+        state['currentStepName'] = stepName;
+        final sanitizedJobName = jobName.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '_');
+        final sanitizedStepName = stepName.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '_');
+        final stepId = 'step_${sanitizedJobName}_$sanitizedStepName';
+        state['currentStepId'] = stepId;
+        final startTime = DateTime.now().toUtc();
+        state['stepStartTime'] = startTime;
+        final currentStepOrder = prevStepId != null ? prevStepOrder + 1 : prevStepOrder;
+        state['stepOrder'] = currentStepOrder + 1;
+
         unawaited(() async {
-          await closeJobCurrentStep(jobName, status: 'SUCCESS');
-          final state = getJobState(jobName);
-          state['currentStepName'] = stepName;
-          final sanitizedJobName = jobName.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '_');
-          final sanitizedStepName = stepName.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '_');
-          final stepId = 'step_${sanitizedJobName}_$sanitizedStepName';
-          state['currentStepId'] = stepId;
-          final startTime = DateTime.now().toUtc();
-          state['stepStartTime'] = startTime;
-          final stepOrder = state['stepOrder'] as int;
+          if (prevStepId != null && prevStepName != null) {
+            final now = DateTime.now().toUtc();
+            final duration = now.difference(prevStepStartTime).inMilliseconds;
+            await sendStepStatusUpdate(
+              buildJobId: buildJobId,
+              runId: runId,
+              stepId: prevStepId,
+              name: '[$jobName] $prevStepName',
+              status: 'SUCCESS',
+              durationMs: duration,
+              stepOrder: prevStepOrder,
+              createdAt: prevStepStartTime.toIso8601String(),
+              updatedAt: now.toIso8601String(),
+            );
+          }
           await sendStepStatusUpdate(
             buildJobId: buildJobId,
             runId: runId,
@@ -551,22 +574,15 @@ class LumeSshService {
             name: '[$jobName] $stepName',
             status: 'IN_PROGRESS',
             durationMs: 0,
-            stepOrder: stepOrder,
+            stepOrder: currentStepOrder,
             createdAt: startTime.toIso8601String(),
             updatedAt: startTime.toIso8601String(),
           );
-          state['stepOrder'] = stepOrder + 1;
         }());
       } else if (cleanLine.contains('✅') && cleanLine.contains('Success - ')) {
         unawaited(closeJobCurrentStep(jobName, status: 'SUCCESS'));
-        final state = getJobState(jobName);
-        state['currentStepId'] = null;
-        state['currentStepName'] = null;
       } else if (cleanLine.contains('❌') && cleanLine.contains('Failure - ')) {
         unawaited(closeJobCurrentStep(jobName, status: 'FAILURE'));
-        final state = getJobState(jobName);
-        state['currentStepId'] = null;
-        state['currentStepName'] = null;
       }
 
       final state = getJobState(jobName);
