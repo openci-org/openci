@@ -250,27 +250,47 @@ class JobExecutor {
 
       BuildJobStatus finalStatus = BuildJobStatus.SUCCESS;
 
-      String? currentStepId;
-      String? currentStepName;
-      var stepOrder = 10;
-      var stepStartTime = DateTime.now().toUtc();
-      final runPattern = RegExp(r'^  ⭐  Run (.*)$');
+      final jobStates = <String, Map<String, dynamic>>{};
+      final actJobPattern = RegExp(r'^\[([^\]]+)\]\s*(.*)$');
+      final runPattern = RegExp(r'^⭐\s*Run (.*)$');
 
-      Future<void> closeCurrentStep({required String status}) async {
+      Map<String, dynamic> getJobState(String jobName) {
+        return jobStates.putIfAbsent(jobName, () => {
+          'currentStepId': null,
+          'currentStepName': null,
+          'stepOrder': 10,
+          'stepStartTime': DateTime.now().toUtc(),
+        });
+      }
+
+      Future<void> closeJobCurrentStep(String jobName, {required String status}) async {
+        final state = getJobState(jobName);
+        final currentStepId = state['currentStepId'] as String?;
+        final currentStepName = state['currentStepName'] as String?;
+        final stepStartTime = state['stepStartTime'] as DateTime;
+        final stepOrder = state['stepOrder'] as int;
+
         if (currentStepId != null && currentStepName != null) {
           final now = DateTime.now().toUtc();
           final duration = now.difference(stepStartTime).inMilliseconds;
           await sendStepStatusUpdate(
             buildJobId: job.id,
             runId: runId,
-            stepId: currentStepId!,
-            name: currentStepName!,
+            stepId: currentStepId,
+            name: '[$jobName] $currentStepName',
             status: status,
             durationMs: duration,
-            stepOrder: stepOrder++,
+            stepOrder: stepOrder,
             createdAt: stepStartTime.toIso8601String(),
             updatedAt: now.toIso8601String(),
           );
+          state['stepOrder'] = stepOrder + 1;
+        }
+      }
+
+      Future<void> closeAllJobs({required String status}) async {
+        for (final jName in jobStates.keys) {
+          await closeJobCurrentStep(jName, status: status);
         }
       }
 
@@ -282,52 +302,75 @@ class JobExecutor {
             final trimmed = line.trim();
             if (trimmed.isEmpty) return;
 
-            final cleanLine = stripActPrefix(trimmed);
+            final match = actJobPattern.firstMatch(trimmed);
+            String jobName = 'global';
+            String cleanLine = trimmed;
+
+            if (match != null) {
+              final prefixContent = match.group(1) ?? '';
+              final msg = match.group(2) ?? '';
+
+              final slashIndex = prefixContent.lastIndexOf('/');
+              jobName = slashIndex != -1
+                  ? prefixContent.substring(slashIndex + 1).trim()
+                  : prefixContent.trim();
+
+              cleanLine = msg.replaceFirst(RegExp(r'^\|\s*'), '').trim();
+            }
+
+            if (cleanLine.isEmpty) return;
 
             // ⭐ Run <Step Name> の検知 (act の出力パース)
             if (cleanLine.contains('⭐') && cleanLine.contains('Run ')) {
-              final runMatch = runPattern.firstMatch(
-                cleanLine.replaceAll(RegExp(r'^\[[^\]]+\]\s*'), ''),
-              );
+              final cleanRunLine = cleanLine.replaceAll(RegExp(r'^\[[^\]]+\]\s*'), '').trim();
+              final runMatch = runPattern.firstMatch(cleanRunLine);
               final stepName = runMatch?.group(1)?.trim() ?? 'Run Step';
 
               unawaited(() async {
-                await closeCurrentStep(status: 'SUCCESS');
-                currentStepName = stepName;
-                currentStepId =
-                    'step_${stepName.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '_')}';
-                stepStartTime = DateTime.now().toUtc();
+                await closeJobCurrentStep(jobName, status: 'SUCCESS');
+                final state = getJobState(jobName);
+                state['currentStepName'] = stepName;
+                final sanitizedJobName = jobName.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '_');
+                final sanitizedStepName = stepName.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '_');
+                final stepId = 'step_${sanitizedJobName}_$sanitizedStepName';
+                state['currentStepId'] = stepId;
+                final startTime = DateTime.now().toUtc();
+                state['stepStartTime'] = startTime;
+                final stepOrder = state['stepOrder'] as int;
                 await sendStepStatusUpdate(
                   buildJobId: job.id,
                   runId: runId,
-                  stepId: currentStepId!,
-                  name: currentStepName!,
+                  stepId: stepId,
+                  name: '[$jobName] $stepName',
                   status: 'IN_PROGRESS',
                   durationMs: 0,
-                  stepOrder: stepOrder++,
-                  createdAt: stepStartTime.toIso8601String(),
-                  updatedAt: stepStartTime.toIso8601String(),
+                  stepOrder: stepOrder,
+                  createdAt: startTime.toIso8601String(),
+                  updatedAt: startTime.toIso8601String(),
                 );
+                state['stepOrder'] = stepOrder + 1;
               }());
-            } else if (cleanLine.contains('✅') &&
-                cleanLine.contains('Success - ')) {
-              unawaited(closeCurrentStep(status: 'SUCCESS'));
-              currentStepId = null;
-              currentStepName = null;
-            } else if (cleanLine.contains('❌') &&
-                cleanLine.contains('Failure - ')) {
-              unawaited(closeCurrentStep(status: 'FAILURE'));
-              currentStepId = null;
-              currentStepName = null;
+            } else if (cleanLine.contains('✅') && cleanLine.contains('Success - ')) {
+              unawaited(closeJobCurrentStep(jobName, status: 'SUCCESS'));
+              final state = getJobState(jobName);
+              state['currentStepId'] = null;
+              state['currentStepName'] = null;
+            } else if (cleanLine.contains('❌') && cleanLine.contains('Failure - ')) {
+              unawaited(closeJobCurrentStep(jobName, status: 'FAILURE'));
+              final state = getJobState(jobName);
+              state['currentStepId'] = null;
+              state['currentStepName'] = null;
             }
 
+            final state = getJobState(jobName);
+            final currentStepId = state['currentStepId'] as String?;
             if (currentStepId != null) {
-              writeBuildStepLog(job.id, runId, currentStepId!, cleanLine);
+              writeBuildStepLog(job.id, runId, currentStepId, cleanLine);
             } else {
               writeBuildStepLog(job.id, runId, 'pre_build_setup', cleanLine);
             }
 
-            writeBuildLog(job.id, runId, LogLevel.info, cleanLine);
+            writeBuildLog(job.id, runId, LogLevel.info, '[$jobName] $cleanLine');
           },
           isCancelled: () => _isCancelled(job.id),
         );
@@ -337,12 +380,12 @@ class JobExecutor {
         }
         await logInfo(job.id, runId, 'Build completed successfully');
       } on TimeoutException catch (timeoutError) {
-        await closeCurrentStep(status: 'FAILURE');
+        await closeAllJobs(status: 'FAILURE');
         await flushRemainingStepLogs(runId: runId);
         await logError(job.id, runId, 'Job execution timed out: $timeoutError');
         finalStatus = BuildJobStatus.TIMED_OUT;
       } catch (actError) {
-        await closeCurrentStep(status: 'FAILURE');
+        await closeAllJobs(status: 'FAILURE');
         await flushRemainingStepLogs(runId: runId);
         if (await _isCancelled(job.id)) {
           await logInfo(job.id, runId, 'Build was cancelled by user');
@@ -352,9 +395,7 @@ class JobExecutor {
           finalStatus = BuildJobStatus.FAILURE;
         }
       } finally {
-        await closeCurrentStep(
-          status: finalStatus == BuildJobStatus.SUCCESS ? 'SUCCESS' : 'FAILURE',
-        );
+        await closeAllJobs(status: finalStatus == BuildJobStatus.SUCCESS ? 'SUCCESS' : 'FAILURE');
         await flushRemainingStepLogs(runId: runId);
       }
 
