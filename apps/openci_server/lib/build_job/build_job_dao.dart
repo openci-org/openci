@@ -150,7 +150,7 @@ class BuildJobDao extends DatabaseAccessor<AppDatabase>
           .watch();
 
   Future<void> insertBuildStep(DriftBuildStep step) =>
-      into(buildSteps).insert(step, mode: InsertMode.insertOrReplace);
+      into(buildSteps).insertOnConflictUpdate(step);
 
   Future<void> updateBuildStep(DriftBuildStep step) =>
       update(buildSteps).replace(step);

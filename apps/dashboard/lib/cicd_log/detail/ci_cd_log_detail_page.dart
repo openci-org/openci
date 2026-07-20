@@ -3,6 +3,7 @@ import 'package:dashboard/cicd_log/cicd_logs_page.dart';
 import 'package:dashboard/cicd_log/detail/build_step_providers.dart';
 import 'package:dashboard/cicd_log/detail/job_status_icon.dart';
 import 'package:dashboard/extensions/circular_progress_indicator_extensions.dart';
+import 'package:dashboard/utilities/async_error_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
@@ -90,12 +91,7 @@ class CicdLogDetailPage extends ConsumerWidget {
           );
         },
         loading: () => CircularProgressIndicator.adaptive().withCenter(),
-        error: (err, _) => Center(
-          child: Text(
-            'ログの取得中にエラーが発生しました: $err',
-            style: const TextStyle(color: Colors.red),
-          ),
-        ),
+        error: asyncErrorWidget,
       ),
     );
   }
