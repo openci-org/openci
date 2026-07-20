@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:dashboard/auth/auth_page.dart';
-import 'package:dashboard/build_logs/build_logs_detail_page.dart';
+import 'package:dashboard/cicd_log/detail/ci_cd_log_detail_page.dart';
 import 'package:dashboard/root/dashboard_root.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -27,9 +27,13 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/runs/:buildJobId',
-        builder: (context, state) {
+        pageBuilder: (context, state) {
           final buildJobId = state.pathParameters['buildJobId']!;
-          return BuildLogsDetailRoutePage(buildJobId: buildJobId);
+          return MaterialPage(
+            key: state.pageKey,
+            fullscreenDialog: true,
+            child: CicdLogDetailRoutePage(buildJobId: buildJobId),
+          );
         },
       ),
     ],
