@@ -1,5 +1,6 @@
 import 'package:chopper/chopper.dart';
 
+import '../models/cicd_commit_group.dart';
 import '../models/team.dart';
 import '../models/user_device.dart';
 
@@ -132,5 +133,11 @@ abstract class OpenCiApiService extends ChopperService {
     @Path('id') String buildJobId,
     @Path('runId') String runId,
     @Query('limit') String? limit,
+  );
+
+  @GET(path: '/builds/commits', timeout: _timeout)
+  Future<Response<List<CicdCommitGroup>>> getCommitGroups(
+    @Query('teamId') String teamId,
+    @Query('limit') int? limit,
   );
 }
