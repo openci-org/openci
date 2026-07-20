@@ -1,30 +1,54 @@
-import 'package:dashboard/cicd_log/cicd_mock_data.dart';
+import 'package:dashboard/cicd_log/cicd_log_providers.dart';
 import 'package:dashboard/cicd_log/workflow_overview.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:openci_shared/openci_shared.dart';
 
-class CicdLogsPage extends StatelessWidget {
+class CicdLogsPage extends ConsumerWidget {
   const CicdLogsPage({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final commitGroupsAsync = ref.watch(cicdCommitGroupsProvider);
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
         title: const Text(
-          'CI/CDログ (プレビュー)',
+          'CI/CDログ',
         ),
       ),
-      body: ListView.builder(
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        itemCount: mockCommits.length,
-        itemBuilder: (context, index) {
-          final commit = mockCommits[index];
-          return _Card(
-            key: ValueKey(commit.commitSha),
-            commit: commit,
+      body: commitGroupsAsync.when(
+        data: (groups) {
+          if (groups.isEmpty) {
+            return const Center(
+              child: Text(
+                'アクティブなCI/CDログはありません',
+                style: TextStyle(color: Colors.black54),
+              ),
+            );
+          }
+          return ListView.builder(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            itemCount: groups.length,
+            itemBuilder: (context, index) {
+              final commit = groups[index];
+              return _Card(
+                key: ValueKey(commit.commitSha),
+                commit: commit,
+              );
+            },
           );
         },
+        loading: () => const Center(
+          child: CircularProgressIndicator.adaptive(),
+        ),
+        error: (err, stack) => Center(
+          child: Text(
+            'ログの取得中にエラーが発生しました: $err',
+            style: const TextStyle(color: Colors.red),
+          ),
+        ),
       ),
     );
   }

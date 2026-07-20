@@ -732,4 +732,41 @@ final class _$OpenCiApiService extends OpenCiApiService {
         )
         .whenComplete($timeout.cancel);
   }
+
+  @override
+  Future<Response<List<CicdCommitGroup>>> getCommitGroups(
+    String teamId,
+    int? limit,
+  ) {
+    final Uri $url = Uri.parse('/builds/commits');
+    final Map<String, dynamic> $params = <String, dynamic>{
+      'teamId': teamId,
+      'limit': limit,
+    };
+    final ChopperCompleter $abortTrigger = ChopperCompleter<void>();
+    final ChopperTimer $timeout = ChopperTimer(
+      const Duration(microseconds: 10000000),
+      () {
+        if (!$abortTrigger.isCompleted) $abortTrigger.complete();
+      },
+    );
+    final Request $request = Request(
+      'GET',
+      $url,
+      client.baseUrl,
+      parameters: $params,
+      abortTrigger: $abortTrigger.future,
+    );
+    return client
+        .send<List<CicdCommitGroup>, CicdCommitGroup>($request)
+        .catchError(
+          (_) => Future<Response<List<CicdCommitGroup>>>.error(
+            ChopperTimeoutException('Request timed out after 10 seconds'),
+          ),
+          test: (Object err) =>
+              err is ChopperRequestAbortedException &&
+              $abortTrigger.isCompleted,
+        )
+        .whenComplete($timeout.cancel);
+  }
 }
