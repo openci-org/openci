@@ -20,7 +20,6 @@ class WorkflowOverview extends StatelessWidget {
       ),
     };
 
-    // 1. 前段ステージのジョブチップ (フラットに並べるだけ)
     final dependencyWidgets = <Widget>[];
     for (final dep in workflow.dependencies) {
       dependencyWidgets.add(
@@ -31,7 +30,6 @@ class WorkflowOverview extends StatelessWidget {
       );
     }
 
-    // 2. 後段ステージのジョブチップ (フラットに並べるだけ)
     final leafWidgets = <Widget>[];
     for (final leaf in workflow.leafJobs) {
       leafWidgets.add(
@@ -88,25 +86,13 @@ class WorkflowOverview extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          // ステージ列レイアウト (前段 ➔ 後段)
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                // 前段ステージ
                 if (dependencyWidgets.isNotEmpty) ...[
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      for (var i = 0; i < dependencyWidgets.length; i++) ...[
-                        if (i > 0) const SizedBox(height: 6),
-                        dependencyWidgets[i],
-                      ],
-                    ],
-                  ),
-                  // ステージ間の右矢印アイコン
+                  _Jobs(dependencyWidgets),
                   const Padding(
                     padding: EdgeInsets.symmetric(horizontal: 10.0),
                     child: Icon(
@@ -116,24 +102,34 @@ class WorkflowOverview extends StatelessWidget {
                     ),
                   ),
                 ],
-                // 後段ステージ
                 if (leafWidgets.isNotEmpty) ...[
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      for (var i = 0; i < leafWidgets.length; i++) ...[
-                        if (i > 0) const SizedBox(height: 6),
-                        leafWidgets[i],
-                      ],
-                    ],
-                  ),
+                  _Jobs(leafWidgets),
                 ],
               ],
             ),
           ),
         ],
       ),
+    );
+  }
+}
+
+class _Jobs extends StatelessWidget {
+  const _Jobs(this.dependencyWidgets);
+
+  final List<Widget> dependencyWidgets;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (var i = 0; i < dependencyWidgets.length; i++) ...[
+          if (i > 0) const SizedBox(height: 6),
+          dependencyWidgets[i],
+        ],
+      ],
     );
   }
 }
