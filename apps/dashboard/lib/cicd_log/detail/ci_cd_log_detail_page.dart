@@ -1,6 +1,5 @@
 import 'package:dashboard/build_logs/build_jobs_provider.dart';
 import 'package:dashboard/cicd_log/cicd_logs_page.dart';
-import 'package:dashboard/cicd_log/detail/build_step_mock_data.dart';
 import 'package:dashboard/cicd_log/detail/build_step_providers.dart';
 import 'package:dashboard/cicd_log/detail/job_status_icon.dart';
 import 'package:flutter/material.dart';
@@ -33,7 +32,10 @@ class CicdLogDetailRoutePage extends ConsumerWidget {
           );
         }
 
-        return CicdLogDetailPage(buildJobId: buildJobId);
+        return CicdLogDetailPage(
+          buildJobId: buildJobId,
+          runId: buildJob.latestRunId ?? '',
+        );
       },
     );
   }
@@ -43,13 +45,20 @@ class CicdLogDetailPage extends ConsumerWidget {
   const CicdLogDetailPage({
     super.key,
     required this.buildJobId,
+    required this.runId,
   });
 
   final String buildJobId;
+  final String runId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final stepsAsync = ref.watch(buildStepSummariesProvider(buildJobId));
+    final stepsAsync = ref.watch(
+      buildStepSummariesProvider(
+        buildJobId: buildJobId,
+        runId: runId,
+      ),
+    );
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -72,7 +81,10 @@ class CicdLogDetailPage extends ConsumerWidget {
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 itemCount: steps.length,
                 itemBuilder: (context, index) {
-                  return _StepAccordion(step: steps[index]);
+                  return _StepAccordion(
+                    step: steps[index],
+                    buildJobId: buildJobId,
+                  );
                 },
               ),
             ),
@@ -95,18 +107,20 @@ class CicdLogDetailPage extends ConsumerWidget {
 class _StepAccordion extends HookConsumerWidget {
   const _StepAccordion({
     required this.step,
+    required this.buildJobId,
   });
 
-  final BuildStepSummary step;
+  final BuildStep step;
+  final String buildJobId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isExpanded = useState(false);
     final theme = Theme.of(context);
 
-    final durationText = step.duration == Duration.zero
+    final durationText = step.durationMs == 0
         ? ''
-        : '${step.duration.inSeconds}s';
+        : '${(step.durationMs / 1000).round()}s';
 
     return Container(
       decoration: BoxDecoration(
@@ -152,7 +166,12 @@ class _StepAccordion extends HookConsumerWidget {
             isExpanded.value = expanded;
           },
           children: [
-            if (isExpanded.value) _StepLogsContent(stepId: step.id),
+            if (isExpanded.value)
+              _StepLogsContent(
+                buildJobId: buildJobId,
+                runId: step.runId,
+                stepId: step.id,
+              ),
           ],
         ),
       ),
@@ -162,14 +181,24 @@ class _StepAccordion extends HookConsumerWidget {
 
 class _StepLogsContent extends ConsumerWidget {
   const _StepLogsContent({
+    required this.buildJobId,
+    required this.runId,
     required this.stepId,
   });
 
+  final String buildJobId;
+  final String runId;
   final String stepId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final detailAsync = ref.watch(buildStepLogDetailProvider(stepId));
+    final detailAsync = ref.watch(
+      buildStepLogDetailProvider(
+        buildJobId: buildJobId,
+        runId: runId,
+        stepId: stepId,
+      ),
+    );
 
     return detailAsync.when(
       data: (logs) {

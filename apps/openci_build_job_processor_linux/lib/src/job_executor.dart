@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:logging/logging.dart';
 import 'package:openci_build_job_processor_linux/src/incus/incus_service.dart';
 import 'package:openci_build_job_processor_linux/src/logging/build_job_logger.dart';
+import 'package:openci_build_job_processor_linux/src/logging/build_step_logger.dart';
 import 'package:openci_shared/openci_shared.dart';
 import 'package:retry/retry.dart';
 import 'package:sentry/sentry.dart';
@@ -43,93 +44,290 @@ class JobExecutor {
         delayFactor: Duration(seconds: 5),
       );
 
-      await retryOptions.retry(
-        () async {
-          _log.info(
-            '[$containerName] Preparing container (cloning & starting)...',
-          );
-          await _prepareContainer(
-            baseInstanceName: _baseInstanceName,
-            containerName: containerName,
-            onCreated: () => containerCreated = true,
-          );
-        },
-        onRetry: (e) async {
-          _log.warning(
-            '[$containerName] Container preparation failed: $e. '
-            'Cleaning up failed container before retry...',
-          );
-          try {
-            await _cleanupContainer(containerName);
-            containerCreated = false;
-          } catch (cleanupErr, cleanupStack) {
-            _log.warning(
-              '[$containerName] Cleanup failed during retry prep: $cleanupErr',
-            );
-            unawaited(
-              Sentry.captureException(cleanupErr, stackTrace: cleanupStack),
-            );
-          }
-        },
-      );
-
-      _log.info(
-        '[$containerName] Checking out repository ${job.owner}/${job.repo}@${job.commitSha}...',
-      );
-      await _checkoutRepository(
-        containerName: containerName,
+      final prepareVmStart = DateTime.now().toUtc();
+      await sendStepStatusUpdate(
         buildJobId: job.id,
         runId: runId,
-        owner: job.owner,
-        repo: job.repo,
-        commitSha: job.commitSha ?? '',
-        token: token,
-        githubBaseUrl: job.githubBaseUrl,
-        pullRequestNumber: job.pullRequestNumber,
+        stepId: 'prepare_vm',
+        name: 'Prepare VM',
+        status: BuildJobStatus.IN_PROGRESS.name,
+        durationMs: 0,
+        stepOrder: 1,
+        createdAt: prepareVmStart.toIso8601String(),
+        updatedAt: prepareVmStart.toIso8601String(),
       );
 
-      _log.info('[$containerName] Fetching secrets...');
-      final secretFileContent = await fetchReferencedSecrets(job.id);
+      try {
+        await retryOptions.retry(
+          () async {
+            _log.info(
+              '[$containerName] Preparing container (cloning & starting)...',
+            );
+            await _prepareContainer(
+              baseInstanceName: _baseInstanceName,
+              containerName: containerName,
+              onCreated: () => containerCreated = true,
+            );
+          },
+          onRetry: (e) async {
+            _log.warning(
+              '[$containerName] Container preparation failed: $e. '
+              'Cleaning up failed container before retry...',
+            );
+            try {
+              await _cleanupContainer(containerName);
+              containerCreated = false;
+            } catch (cleanupErr, cleanupStack) {
+              _log.warning(
+                '[$containerName] Cleanup failed during retry prep: $cleanupErr',
+              );
+              unawaited(
+                Sentry.captureException(cleanupErr, stackTrace: cleanupStack),
+              );
+            }
+          },
+        );
 
-      _log.info('[$containerName] Writing secrets to container...');
-      await _incusService.writeFile(
-        containerName,
-        '/tmp/openci-secrets',
-        secretFileContent,
+        final prepareVmEnd = DateTime.now().toUtc();
+        await sendStepStatusUpdate(
+          buildJobId: job.id,
+          runId: runId,
+          stepId: 'prepare_vm',
+          name: 'Prepare VM',
+          status: BuildJobStatus.SUCCESS.name,
+          durationMs: prepareVmEnd.difference(prepareVmStart).inMilliseconds,
+          stepOrder: 1,
+          createdAt: prepareVmStart.toIso8601String(),
+          updatedAt: prepareVmEnd.toIso8601String(),
+        );
+      } catch (e) {
+        final prepareVmEnd = DateTime.now().toUtc();
+        await sendStepStatusUpdate(
+          buildJobId: job.id,
+          runId: runId,
+          stepId: 'prepare_vm',
+          name: 'Prepare VM',
+          status: BuildJobStatus.FAILURE.name,
+          durationMs: prepareVmEnd.difference(prepareVmStart).inMilliseconds,
+          stepOrder: 1,
+          createdAt: prepareVmStart.toIso8601String(),
+          updatedAt: prepareVmEnd.toIso8601String(),
+        );
+        rethrow;
+      }
+
+      final checkoutStart = DateTime.now().toUtc();
+      await sendStepStatusUpdate(
+        buildJobId: job.id,
+        runId: runId,
+        stepId: 'checkout',
+        name: 'Checkout repository',
+        status: BuildJobStatus.IN_PROGRESS.name,
+        durationMs: 0,
+        stepOrder: 2,
+        createdAt: checkoutStart.toIso8601String(),
+        updatedAt: checkoutStart.toIso8601String(),
       );
 
-      _log.info('[$containerName] Fetching event payload...');
-      final eventFileContent = await resolveEventPayload(job.id);
+      try {
+        _log.info(
+          '[$containerName] Checking out repository ${job.owner}/${job.repo}@${job.commitSha}...',
+        );
+        await _checkoutRepository(
+          containerName: containerName,
+          buildJobId: job.id,
+          runId: runId,
+          owner: job.owner,
+          repo: job.repo,
+          commitSha: job.commitSha ?? '',
+          token: token,
+          githubBaseUrl: job.githubBaseUrl,
+          pullRequestNumber: job.pullRequestNumber,
+        );
 
-      _log.info('[$containerName] Writing event payload to container...');
-      await _incusService.writeFile(
-        containerName,
-        '/tmp/openci-event.json',
-        eventFileContent,
+        final checkoutEnd = DateTime.now().toUtc();
+        await sendStepStatusUpdate(
+          buildJobId: job.id,
+          runId: runId,
+          stepId: 'checkout',
+          name: 'Checkout repository',
+          status: BuildJobStatus.SUCCESS.name,
+          durationMs: checkoutEnd.difference(checkoutStart).inMilliseconds,
+          stepOrder: 2,
+          createdAt: checkoutStart.toIso8601String(),
+          updatedAt: checkoutEnd.toIso8601String(),
+        );
+      } catch (e) {
+        final checkoutEnd = DateTime.now().toUtc();
+        await sendStepStatusUpdate(
+          buildJobId: job.id,
+          runId: runId,
+          stepId: 'checkout',
+          name: 'Checkout repository',
+          status: BuildJobStatus.FAILURE.name,
+          durationMs: checkoutEnd.difference(checkoutStart).inMilliseconds,
+          stepOrder: 2,
+          createdAt: checkoutStart.toIso8601String(),
+          updatedAt: checkoutEnd.toIso8601String(),
+        );
+        rethrow;
+      }
+
+      final secretsStart = DateTime.now().toUtc();
+      await sendStepStatusUpdate(
+        buildJobId: job.id,
+        runId: runId,
+        stepId: 'configure_secrets',
+        name: 'Configure secrets and script',
+        status: BuildJobStatus.IN_PROGRESS.name,
+        durationMs: 0,
+        stepOrder: 3,
+        createdAt: secretsStart.toIso8601String(),
+        updatedAt: secretsStart.toIso8601String(),
       );
 
-      _log.info('[$containerName] Fetching build script...');
-      final actScript = await fetchBuildScript(job.id);
+      try {
+        _log.info('[$containerName] Fetching secrets...');
+        final secretFileContent = await fetchReferencedSecrets(job.id);
 
-      _log.info('[$containerName] Writing build script to container...');
-      await _incusService.writeFile(
-        containerName,
-        '/tmp/openci-act.sh',
-        actScript,
-        mode: '0755',
-      );
+        _log.info('[$containerName] Writing secrets to container...');
+        await _incusService.writeFile(
+          containerName,
+          '/tmp/openci-secrets',
+          secretFileContent,
+        );
+
+        _log.info('[$containerName] Fetching event payload...');
+        final eventFileContent = await resolveEventPayload(job.id);
+
+        _log.info('[$containerName] Writing event payload to container...');
+        await _incusService.writeFile(
+          containerName,
+          '/tmp/openci-event.json',
+          eventFileContent,
+        );
+
+        _log.info('[$containerName] Fetching build script...');
+        final actScript = await fetchBuildScript(job.id);
+
+        _log.info('[$containerName] Writing build script to container...');
+        await _incusService.writeFile(
+          containerName,
+          '/tmp/openci-act.sh',
+          actScript,
+          mode: '0755',
+        );
+
+        final secretsEnd = DateTime.now().toUtc();
+        await sendStepStatusUpdate(
+          buildJobId: job.id,
+          runId: runId,
+          stepId: 'configure_secrets',
+          name: 'Configure secrets and script',
+          status: BuildJobStatus.SUCCESS.name,
+          durationMs: secretsEnd.difference(secretsStart).inMilliseconds,
+          stepOrder: 3,
+          createdAt: secretsStart.toIso8601String(),
+          updatedAt: secretsEnd.toIso8601String(),
+        );
+      } catch (e) {
+        final secretsEnd = DateTime.now().toUtc();
+        await sendStepStatusUpdate(
+          buildJobId: job.id,
+          runId: runId,
+          stepId: 'configure_secrets',
+          name: 'Configure secrets and script',
+          status: BuildJobStatus.FAILURE.name,
+          durationMs: secretsEnd.difference(secretsStart).inMilliseconds,
+          stepOrder: 3,
+          createdAt: secretsStart.toIso8601String(),
+          updatedAt: secretsEnd.toIso8601String(),
+        );
+        rethrow;
+      }
 
       await logInfo(job.id, runId, 'Running workflow with act...');
 
       BuildJobStatus finalStatus = BuildJobStatus.SUCCESS;
+
+      String? currentStepId;
+      String? currentStepName;
+      var stepOrder = 10;
+      var stepStartTime = DateTime.now().toUtc();
+      final runPattern = RegExp(r'^  ⭐  Run (.*)$');
+
+      Future<void> closeCurrentStep({required String status}) async {
+        if (currentStepId != null && currentStepName != null) {
+          final now = DateTime.now().toUtc();
+          final duration = now.difference(stepStartTime).inMilliseconds;
+          await sendStepStatusUpdate(
+            buildJobId: job.id,
+            runId: runId,
+            stepId: currentStepId!,
+            name: currentStepName!,
+            status: status,
+            durationMs: duration,
+            stepOrder: stepOrder++,
+            createdAt: stepStartTime.toIso8601String(),
+            updatedAt: now.toIso8601String(),
+          );
+        }
+      }
 
       try {
         final exitCode = await _incusService.executeCommandStreaming(
           containerName: containerName,
           command: ['/bin/bash', '-l', '/tmp/openci-act.sh'],
           onLog: (line) {
-            final stripped = stripActPrefix(line);
-            writeBuildLog(job.id, runId, LogLevel.info, stripped);
+            final trimmed = line.trim();
+            if (trimmed.isEmpty) return;
+
+            final cleanLine = stripActPrefix(trimmed);
+
+            // ⭐ Run <Step Name> の検知 (act の出力パース)
+            if (cleanLine.contains('⭐') && cleanLine.contains('Run ')) {
+              final runMatch = runPattern.firstMatch(
+                cleanLine.replaceAll(RegExp(r'^\[[^\]]+\]\s*'), ''),
+              );
+              final stepName = runMatch?.group(1)?.trim() ?? 'Run Step';
+
+              unawaited(() async {
+                await closeCurrentStep(status: 'SUCCESS');
+                currentStepName = stepName;
+                currentStepId =
+                    'step_${stepName.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '_')}';
+                stepStartTime = DateTime.now().toUtc();
+                await sendStepStatusUpdate(
+                  buildJobId: job.id,
+                  runId: runId,
+                  stepId: currentStepId!,
+                  name: currentStepName!,
+                  status: 'IN_PROGRESS',
+                  durationMs: 0,
+                  stepOrder: stepOrder++,
+                  createdAt: stepStartTime.toIso8601String(),
+                  updatedAt: stepStartTime.toIso8601String(),
+                );
+              }());
+            } else if (cleanLine.contains('✅') &&
+                cleanLine.contains('Success - ')) {
+              unawaited(closeCurrentStep(status: 'SUCCESS'));
+              currentStepId = null;
+              currentStepName = null;
+            } else if (cleanLine.contains('❌') &&
+                cleanLine.contains('Failure - ')) {
+              unawaited(closeCurrentStep(status: 'FAILURE'));
+              currentStepId = null;
+              currentStepName = null;
+            }
+
+            if (currentStepId != null) {
+              writeBuildStepLog(job.id, runId, currentStepId!, cleanLine);
+            } else {
+              writeBuildStepLog(job.id, runId, 'pre_build_setup', cleanLine);
+            }
+
+            writeBuildLog(job.id, runId, LogLevel.info, cleanLine);
           },
           isCancelled: () => _isCancelled(job.id),
         );
@@ -139,9 +337,13 @@ class JobExecutor {
         }
         await logInfo(job.id, runId, 'Build completed successfully');
       } on TimeoutException catch (timeoutError) {
+        await closeCurrentStep(status: 'FAILURE');
+        await flushRemainingStepLogs(runId: runId);
         await logError(job.id, runId, 'Job execution timed out: $timeoutError');
         finalStatus = BuildJobStatus.TIMED_OUT;
       } catch (actError) {
+        await closeCurrentStep(status: 'FAILURE');
+        await flushRemainingStepLogs(runId: runId);
         if (await _isCancelled(job.id)) {
           await logInfo(job.id, runId, 'Build was cancelled by user');
           finalStatus = BuildJobStatus.CANCELLED;
@@ -149,6 +351,11 @@ class JobExecutor {
           await logWarning(job.id, runId, 'Act build failed: $actError');
           finalStatus = BuildJobStatus.FAILURE;
         }
+      } finally {
+        await closeCurrentStep(
+          status: finalStatus == BuildJobStatus.SUCCESS ? 'SUCCESS' : 'FAILURE',
+        );
+        await flushRemainingStepLogs(runId: runId);
       }
 
       await _updateJobFinalStatus(
