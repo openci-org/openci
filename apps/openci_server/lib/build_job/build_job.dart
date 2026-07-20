@@ -87,3 +87,27 @@ class BuildJobLogs extends Table {
   TextColumn get logContent => text()();
   DateTimeColumn get createdAt => dateTime()();
 }
+
+@DataClassName('DriftBuildStep')
+class BuildSteps extends Table {
+  TextColumn get id => text()();
+  TextColumn get runId => text()();
+  TextColumn get name => text()();
+  TextColumn get status => textEnum<BuildJobStatus>()();
+  IntColumn get durationMs => integer()();
+  IntColumn get stepOrder => integer()();
+
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+@DataClassName('DriftBuildStepLog')
+class BuildStepLogs extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get stepId => text()();
+  TextColumn get logContent => text()();
+  DateTimeColumn get createdAt => dateTime()();
+}
