@@ -54,6 +54,8 @@ class CicdLogsPage extends ConsumerWidget {
   }
 }
 
+const desktopMaxWidth = 640.0;
+
 class _Card extends StatelessWidget {
   final CicdCommitGroup commit;
 
@@ -62,8 +64,6 @@ class _Card extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-
-    const desktopMaxWidth = 640.0;
 
     final statusWidget = switch (commit.status) {
       BuildJobStatus.SUCCESS => Icon(
