@@ -1,0 +1,191 @@
+// GENERATED CODE - DO NOT MODIFY BY HAND
+
+part of 'build_step_providers.dart';
+
+// **************************************************************************
+// RiverpodGenerator
+// **************************************************************************
+
+// GENERATED CODE - DO NOT MODIFY BY HAND
+// ignore_for_file: type=lint, type=warning
+
+@ProviderFor(buildStepSummaries)
+final buildStepSummariesProvider = BuildStepSummariesFamily._();
+
+final class BuildStepSummariesProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<List<BuildStep>>,
+          List<BuildStep>,
+          FutureOr<List<BuildStep>>
+        >
+    with $FutureModifier<List<BuildStep>>, $FutureProvider<List<BuildStep>> {
+  BuildStepSummariesProvider._({
+    required BuildStepSummariesFamily super.from,
+    required ({String buildJobId, String runId}) super.argument,
+  }) : super(
+         retry: null,
+         name: r'buildStepSummariesProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
+
+  @override
+  String debugGetCreateSourceHash() => _$buildStepSummariesHash();
+
+  @override
+  String toString() {
+    return r'buildStepSummariesProvider'
+        ''
+        '$argument';
+  }
+
+  @$internal
+  @override
+  $FutureProviderElement<List<BuildStep>> $createElement(
+    $ProviderPointer pointer,
+  ) => $FutureProviderElement(pointer);
+
+  @override
+  FutureOr<List<BuildStep>> create(Ref ref) {
+    final argument = this.argument as ({String buildJobId, String runId});
+    return buildStepSummaries(
+      ref,
+      buildJobId: argument.buildJobId,
+      runId: argument.runId,
+    );
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is BuildStepSummariesProvider && other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$buildStepSummariesHash() =>
+    r'c4a7d30ee0173eb6584bb56d2de0dcd8281f0435';
+
+final class BuildStepSummariesFamily extends $Family
+    with
+        $FunctionalFamilyOverride<
+          FutureOr<List<BuildStep>>,
+          ({String buildJobId, String runId})
+        > {
+  BuildStepSummariesFamily._()
+    : super(
+        retry: null,
+        name: r'buildStepSummariesProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  BuildStepSummariesProvider call({
+    required String buildJobId,
+    required String runId,
+  }) => BuildStepSummariesProvider._(
+    argument: (buildJobId: buildJobId, runId: runId),
+    from: this,
+  );
+
+  @override
+  String toString() => r'buildStepSummariesProvider';
+}
+
+@ProviderFor(buildStepLogDetail)
+final buildStepLogDetailProvider = BuildStepLogDetailFamily._();
+
+final class BuildStepLogDetailProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<List<String>>,
+          List<String>,
+          FutureOr<List<String>>
+        >
+    with $FutureModifier<List<String>>, $FutureProvider<List<String>> {
+  BuildStepLogDetailProvider._({
+    required BuildStepLogDetailFamily super.from,
+    required ({String buildJobId, String runId, String stepId}) super.argument,
+  }) : super(
+         retry: null,
+         name: r'buildStepLogDetailProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
+
+  @override
+  String debugGetCreateSourceHash() => _$buildStepLogDetailHash();
+
+  @override
+  String toString() {
+    return r'buildStepLogDetailProvider'
+        ''
+        '$argument';
+  }
+
+  @$internal
+  @override
+  $FutureProviderElement<List<String>> $createElement(
+    $ProviderPointer pointer,
+  ) => $FutureProviderElement(pointer);
+
+  @override
+  FutureOr<List<String>> create(Ref ref) {
+    final argument =
+        this.argument as ({String buildJobId, String runId, String stepId});
+    return buildStepLogDetail(
+      ref,
+      buildJobId: argument.buildJobId,
+      runId: argument.runId,
+      stepId: argument.stepId,
+    );
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is BuildStepLogDetailProvider && other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$buildStepLogDetailHash() =>
+    r'165a7571b581f753f5dd332cb3b09f45182e1571';
+
+final class BuildStepLogDetailFamily extends $Family
+    with
+        $FunctionalFamilyOverride<
+          FutureOr<List<String>>,
+          ({String buildJobId, String runId, String stepId})
+        > {
+  BuildStepLogDetailFamily._()
+    : super(
+        retry: null,
+        name: r'buildStepLogDetailProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  BuildStepLogDetailProvider call({
+    required String buildJobId,
+    required String runId,
+    required String stepId,
+  }) => BuildStepLogDetailProvider._(
+    argument: (buildJobId: buildJobId, runId: runId, stepId: stepId),
+    from: this,
+  );
+
+  @override
+  String toString() => r'buildStepLogDetailProvider';
+}
