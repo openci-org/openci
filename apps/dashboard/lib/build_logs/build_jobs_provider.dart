@@ -39,13 +39,14 @@ class BuildJobs extends _$BuildJobs {
       yield _cache ?? const [];
     }
 
-    yield* Stream.periodic(const Duration(seconds: 5)).asyncMap((_) async {
+    while (true) {
+      await Future<void>.delayed(const Duration(seconds: 5));
       final jobs = await _fetchBuildJobs(serverUrl, teamId, token);
       if (jobs != null) {
         _cache = jobs;
+        yield jobs;
       }
-      return _cache ?? const [];
-    });
+    }
   }
 
   Future<List<BuildJob>?> _fetchBuildJobs(
@@ -65,7 +66,7 @@ class BuildJobs extends _$BuildJobs {
               'Authorization': 'Bearer $token',
             },
           )
-          .timeout(const Duration(seconds: 5));
+          .timeout(const Duration(seconds: 15));
 
       if (response.statusCode != 200) {
         debugPrint(
@@ -112,13 +113,14 @@ class OtaBuildJobs extends _$OtaBuildJobs {
       yield _cache ?? const [];
     }
 
-    yield* Stream.periodic(const Duration(seconds: 5)).asyncMap((_) async {
+    while (true) {
+      await Future<void>.delayed(const Duration(seconds: 5));
       final jobs = await _fetchOtaBuildJobs(serverUrl, teamId, token);
       if (jobs != null) {
         _cache = jobs;
+        yield jobs;
       }
-      return _cache ?? const [];
-    });
+    }
   }
 
   Future<List<BuildJob>?> _fetchOtaBuildJobs(
@@ -138,7 +140,7 @@ class OtaBuildJobs extends _$OtaBuildJobs {
               'Authorization': 'Bearer $token',
             },
           )
-          .timeout(const Duration(seconds: 5));
+          .timeout(const Duration(seconds: 15));
 
       if (response.statusCode != 200) {
         debugPrint(
