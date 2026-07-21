@@ -543,9 +543,15 @@ class LumeSshService {
 
         final stepName = jsonLog['step'] as String?;
         final message = (jsonLog['msg'] ?? jsonLog['message']) as String?;
-        final status = jsonLog['status'] as String?;
+        final status = jsonLog['status']?.toString();
 
-        if (status == 'success' || status == 'failure') {
+        if (status == 'success' ||
+            status == '0' ||
+            (message != null &&
+                (message.contains('✅') ||
+                    message.contains('Success') ||
+                    message.contains('Job succeeded') ||
+                    message.contains('🏁')))) {
           hasSuccessfulStep = true;
         }
 
