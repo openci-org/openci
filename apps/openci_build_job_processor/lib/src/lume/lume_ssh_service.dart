@@ -466,8 +466,13 @@ class LumeSshService {
     Map<String, dynamic> getJobState(String jobName) {
       return jobStates.putIfAbsent(jobName, () {
         final startTime = DateTime.now().toUtc();
+        final sanitizedJobName = jobName.toLowerCase().replaceAll(
+          RegExp(r'[^a-z0-9]'),
+          '_',
+        );
+        final preBuildStepId = 'pre_build_setup_$sanitizedJobName';
         final state = <String, dynamic>{
-          'currentStepId': 'pre_build_setup',
+          'currentStepId': preBuildStepId,
           'currentStepName': 'Pre-build setup',
           'stepOrder': 4,
           'stepStartTime': startTime,
@@ -476,7 +481,7 @@ class LumeSshService {
           sendStepStatusUpdate(
             buildJobId: buildJobId,
             runId: runId,
-            stepId: 'pre_build_setup',
+            stepId: preBuildStepId,
             name: '[$jobName] Pre-build setup',
             status: 'IN_PROGRESS',
             durationMs: 0,
@@ -620,7 +625,16 @@ class LumeSshService {
       if (currentStepId != null) {
         writeBuildStepLog(buildJobId, runId, currentStepId, cleanLine);
       } else {
-        writeBuildStepLog(buildJobId, runId, 'pre_build_setup', cleanLine);
+        final sanitizedJobName = jobName.toLowerCase().replaceAll(
+          RegExp(r'[^a-z0-9]'),
+          '_',
+        );
+        writeBuildStepLog(
+          buildJobId,
+          runId,
+          'pre_build_setup_$sanitizedJobName',
+          cleanLine,
+        );
       }
 
       logInfo(buildJobId, runId, '[$jobName] $cleanLine');

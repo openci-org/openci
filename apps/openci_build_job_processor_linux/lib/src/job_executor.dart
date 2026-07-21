@@ -298,8 +298,13 @@ class JobExecutor {
       Map<String, dynamic> getJobState(String jobName) {
         return jobStates.putIfAbsent(jobName, () {
           final startTime = DateTime.now().toUtc();
+          final sanitizedJobName = jobName.toLowerCase().replaceAll(
+            RegExp(r'[^a-z0-9]'),
+            '_',
+          );
+          final preBuildStepId = 'pre_build_setup_$sanitizedJobName';
           final state = <String, dynamic>{
-            'currentStepId': 'pre_build_setup',
+            'currentStepId': preBuildStepId,
             'currentStepName': 'Pre-build setup',
             'stepOrder': 4,
             'stepStartTime': startTime,
@@ -308,7 +313,7 @@ class JobExecutor {
             sendStepStatusUpdate(
               buildJobId: job.id,
               runId: runId,
-              stepId: 'pre_build_setup',
+              stepId: preBuildStepId,
               name: '[$jobName] Pre-build setup',
               status: 'IN_PROGRESS',
               durationMs: 0,
@@ -458,7 +463,16 @@ class JobExecutor {
             if (currentStepId != null) {
               writeBuildStepLog(job.id, runId, currentStepId, cleanLine);
             } else {
-              writeBuildStepLog(job.id, runId, 'pre_build_setup', cleanLine);
+              final sanitizedJobName = jobName.toLowerCase().replaceAll(
+                RegExp(r'[^a-z0-9]'),
+                '_',
+              );
+              writeBuildStepLog(
+                job.id,
+                runId,
+                'pre_build_setup_$sanitizedJobName',
+                cleanLine,
+              );
             }
 
             writeBuildLog(
