@@ -485,10 +485,14 @@ class JobExecutor {
   }) async {
     try {
       await _lumeService.stopVm(lumeUrl, vmName);
-    } catch (_) {}
+    } catch (e, s) {
+      unawaited(Sentry.captureException(e, stackTrace: s));
+    }
     try {
       await _lumeService.deleteVm(lumeUrl, vmName);
-    } catch (_) {}
+    } catch (e, s) {
+      unawaited(Sentry.captureException(e, stackTrace: s));
+    }
 
     await _lumeService.cloneVm(lumeUrl, baseVmName, vmName);
     onVmCreated();

@@ -537,10 +537,14 @@ class JobExecutor {
   }) async {
     try {
       await _incusService.stopContainer(containerName);
-    } catch (_) {}
+    } catch (e, s) {
+      unawaited(Sentry.captureException(e, stackTrace: s));
+    }
     try {
       await _incusService.deleteContainer(containerName);
-    } catch (_) {}
+    } catch (e, s) {
+      unawaited(Sentry.captureException(e, stackTrace: s));
+    }
 
     await _incusService.cloneContainer(baseInstanceName, containerName);
     onCreated();
