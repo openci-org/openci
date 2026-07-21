@@ -679,8 +679,6 @@ class LumeSshService {
     cancelTimer.cancel();
     _log.info('Future.any resolved (process exit or stream end).');
 
-    // プロセス終了で抜けた場合に備え、最後のエラーログの読みこぼしを防ぐため、
-    // 最大200ミリ秒だけログの読み切り（ストリーム of stdout/stderr のクローズ）を待ちます。
     await Future.wait([
       stdoutCompleter.future,
       stderrCompleter.future,
