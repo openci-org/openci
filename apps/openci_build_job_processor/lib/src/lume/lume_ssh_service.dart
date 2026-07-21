@@ -639,7 +639,6 @@ class LumeSshService {
         return;
       }
 
-      // Fallback for non-JSON lines
       if (trimmed.contains('✅') || trimmed.contains('Job succeeded')) {
         hasSuccessfulStep = true;
       }
