@@ -464,15 +464,21 @@ class LumeSshService {
     final runPattern = RegExp(r'^⭐\s*Run (.*)$');
 
     Map<String, dynamic> getJobState(String jobName) {
-      return jobStates.putIfAbsent(jobName, () => {
-        'currentStepId': null,
-        'currentStepName': null,
-        'stepOrder': 10,
-        'stepStartTime': DateTime.now().toUtc(),
-      });
+      return jobStates.putIfAbsent(
+        jobName,
+        () => {
+          'currentStepId': null,
+          'currentStepName': null,
+          'stepOrder': 10,
+          'stepStartTime': DateTime.now().toUtc(),
+        },
+      );
     }
 
-    Future<void> closeJobCurrentStep(String jobName, {required String status}) async {
+    Future<void> closeJobCurrentStep(
+      String jobName, {
+      required String status,
+    }) async {
       final state = getJobState(jobName);
       final prevStepId = state['currentStepId'] as String?;
       final prevStepName = state['currentStepName'] as String?;
@@ -531,7 +537,9 @@ class LumeSshService {
 
       // ⭐ Run <Step Name> の検知 (act の出力パース)
       if (cleanLine.contains('⭐') && cleanLine.contains('Run ')) {
-        final cleanRunLine = cleanLine.replaceAll(RegExp(r'^\[[^\]]+\]\s*'), '').trim();
+        final cleanRunLine = cleanLine
+            .replaceAll(RegExp(r'^\[[^\]]+\]\s*'), '')
+            .trim();
         final runMatch = runPattern.firstMatch(cleanRunLine);
         final stepName = runMatch?.group(1)?.trim() ?? 'Run Step';
 
@@ -542,13 +550,21 @@ class LumeSshService {
         final prevStepOrder = state['stepOrder'] as int;
 
         state['currentStepName'] = stepName;
-        final sanitizedJobName = jobName.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '_');
-        final sanitizedStepName = stepName.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '_');
+        final sanitizedJobName = jobName.toLowerCase().replaceAll(
+          RegExp(r'[^a-z0-9]'),
+          '_',
+        );
+        final sanitizedStepName = stepName.toLowerCase().replaceAll(
+          RegExp(r'[^a-z0-9]'),
+          '_',
+        );
         final stepId = 'step_${sanitizedJobName}_$sanitizedStepName';
         state['currentStepId'] = stepId;
         final startTime = DateTime.now().toUtc();
         state['stepStartTime'] = startTime;
-        final currentStepOrder = prevStepId != null ? prevStepOrder + 1 : prevStepOrder;
+        final currentStepOrder = prevStepId != null
+            ? prevStepOrder + 1
+            : prevStepOrder;
         state['stepOrder'] = currentStepOrder + 1;
 
         unawaited(() async {
