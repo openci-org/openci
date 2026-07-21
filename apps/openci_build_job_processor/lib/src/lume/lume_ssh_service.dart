@@ -466,7 +466,7 @@ class LumeSshService {
     Map<String, dynamic> getJobState(String jobName) {
       return jobStates.putIfAbsent(jobName, () {
         final startTime = DateTime.now().toUtc();
-        final state = {
+        final state = <String, dynamic>{
           'currentStepId': 'pre_build_setup',
           'currentStepName': 'Pre-build setup',
           'stepOrder': 4,
