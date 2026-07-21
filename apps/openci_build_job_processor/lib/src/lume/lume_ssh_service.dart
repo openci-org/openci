@@ -461,7 +461,6 @@ class LumeSshService {
 
     final jobStates = <String, Map<String, dynamic>>{};
     final actJobPattern = RegExp(r'^\[([^\]]+)\]\s*(.*)$');
-    final runPattern = RegExp(r'^⭐\s*Run (.*)$');
 
     Map<String, dynamic> getJobState(String jobName) {
       return jobStates.putIfAbsent(jobName, () {
@@ -528,6 +527,113 @@ class LumeSshService {
       final trimmed = line.trim();
       if (trimmed.isEmpty || isNoisyLine(trimmed)) return;
 
+      Map<String, dynamic>? jsonLog;
+      try {
+        if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+          jsonLog = jsonDecode(trimmed) as Map<String, dynamic>?;
+        }
+      } catch (_) {}
+
+      if (jsonLog != null) {
+        final rawJobName = jsonLog['job'] as String? ?? 'global';
+        final slashIndex = rawJobName.lastIndexOf('/');
+        final jobName = slashIndex != -1
+            ? rawJobName.substring(slashIndex + 1).trim()
+            : rawJobName.trim();
+
+        final stepName = jsonLog['step'] as String?;
+        final message = (jsonLog['msg'] ?? jsonLog['message']) as String?;
+        final status = jsonLog['status'] as String?;
+
+        if (status == 'success' || status == 'failure') {
+          hasSuccessfulStep = true;
+        }
+
+        if (stepName != null && stepName.isNotEmpty) {
+          final state = getJobState(jobName);
+          final prevStepName = state['currentStepName'] as String?;
+          final prevStepId = state['currentStepId'] as String?;
+          final prevStepStartTime = state['stepStartTime'] as DateTime;
+          final prevStepOrder = state['stepOrder'] as int;
+
+          if (prevStepName != stepName) {
+            final sanitizedJobName = jobName.toLowerCase().replaceAll(
+              RegExp(r'[^a-z0-9]'),
+              '_',
+            );
+            final sanitizedStepName = stepName.toLowerCase().replaceAll(
+              RegExp(r'[^a-z0-9]'),
+              '_',
+            );
+            final currentStepOrder = prevStepId != null
+                ? prevStepOrder + 1
+                : prevStepOrder;
+            final stepId =
+                'step_${sanitizedJobName}_${currentStepOrder}_$sanitizedStepName';
+
+            state['currentStepName'] = stepName;
+            state['currentStepId'] = stepId;
+            final startTime = DateTime.now().toUtc();
+            state['stepStartTime'] = startTime;
+            state['stepOrder'] = currentStepOrder + 1;
+
+            unawaited(() async {
+              if (prevStepId != null && prevStepName != null) {
+                final now = DateTime.now().toUtc();
+                final duration = now
+                    .difference(prevStepStartTime)
+                    .inMilliseconds;
+                await sendStepStatusUpdate(
+                  buildJobId: buildJobId,
+                  runId: runId,
+                  stepId: prevStepId,
+                  name: '[$jobName] $prevStepName',
+                  status: 'SUCCESS',
+                  durationMs: duration,
+                  stepOrder: prevStepOrder,
+                  createdAt: prevStepStartTime.toIso8601String(),
+                  updatedAt: now.toIso8601String(),
+                );
+              }
+              await sendStepStatusUpdate(
+                buildJobId: buildJobId,
+                runId: runId,
+                stepId: stepId,
+                name: '[$jobName] $stepName',
+                status: 'IN_PROGRESS',
+                durationMs: 0,
+                stepOrder: currentStepOrder,
+                createdAt: startTime.toIso8601String(),
+                updatedAt: startTime.toIso8601String(),
+              );
+            }());
+          }
+        }
+
+        final state = getJobState(jobName);
+        final currentStepId = state['currentStepId'] as String?;
+
+        if (message != null && message.isNotEmpty) {
+          if (currentStepId != null) {
+            writeBuildStepLog(buildJobId, runId, currentStepId, message);
+          } else {
+            final sanitizedJobName = jobName.toLowerCase().replaceAll(
+              RegExp(r'[^a-z0-9]'),
+              '_',
+            );
+            writeBuildStepLog(
+              buildJobId,
+              runId,
+              'pre_build_setup_$sanitizedJobName',
+              message,
+            );
+          }
+          logInfo(buildJobId, runId, '[$jobName] $message');
+        }
+        return;
+      }
+
+      // Fallback for non-JSON lines
       if (trimmed.contains('✅') || trimmed.contains('Job succeeded')) {
         hasSuccessfulStep = true;
       }
@@ -543,82 +649,14 @@ class LumeSshService {
       if (match != null) {
         final prefixContent = match.group(1) ?? '';
         final msg = match.group(2) ?? '';
-
         final slashIndex = prefixContent.lastIndexOf('/');
         jobName = slashIndex != -1
             ? prefixContent.substring(slashIndex + 1).trim()
             : prefixContent.trim();
-
         cleanLine = msg.replaceFirst(RegExp(r'^\|\s*'), '').trim();
       }
 
       if (cleanLine.isEmpty) return;
-
-      // ⭐ Run <Step Name> の検知 (act の出力パース)
-      if (cleanLine.contains('⭐') && cleanLine.contains('Run ')) {
-        final cleanRunLine = cleanLine
-            .replaceAll(RegExp(r'^\[[^\]]+\]\s*'), '')
-            .trim();
-        final runMatch = runPattern.firstMatch(cleanRunLine);
-        final stepName = runMatch?.group(1)?.trim() ?? 'Run Step';
-
-        final state = getJobState(jobName);
-        final prevStepId = state['currentStepId'] as String?;
-        final prevStepName = state['currentStepName'] as String?;
-        final prevStepStartTime = state['stepStartTime'] as DateTime;
-        final prevStepOrder = state['stepOrder'] as int;
-
-        state['currentStepName'] = stepName;
-        final sanitizedJobName = jobName.toLowerCase().replaceAll(
-          RegExp(r'[^a-z0-9]'),
-          '_',
-        );
-        final sanitizedStepName = stepName.toLowerCase().replaceAll(
-          RegExp(r'[^a-z0-9]'),
-          '_',
-        );
-        final stepId = 'step_${sanitizedJobName}_$sanitizedStepName';
-        state['currentStepId'] = stepId;
-        final startTime = DateTime.now().toUtc();
-        state['stepStartTime'] = startTime;
-        final currentStepOrder = prevStepId != null
-            ? prevStepOrder + 1
-            : prevStepOrder;
-        state['stepOrder'] = currentStepOrder + 1;
-
-        unawaited(() async {
-          if (prevStepId != null && prevStepName != null) {
-            final now = DateTime.now().toUtc();
-            final duration = now.difference(prevStepStartTime).inMilliseconds;
-            await sendStepStatusUpdate(
-              buildJobId: buildJobId,
-              runId: runId,
-              stepId: prevStepId,
-              name: '[$jobName] $prevStepName',
-              status: 'SUCCESS',
-              durationMs: duration,
-              stepOrder: prevStepOrder,
-              createdAt: prevStepStartTime.toIso8601String(),
-              updatedAt: now.toIso8601String(),
-            );
-          }
-          await sendStepStatusUpdate(
-            buildJobId: buildJobId,
-            runId: runId,
-            stepId: stepId,
-            name: '[$jobName] $stepName',
-            status: 'IN_PROGRESS',
-            durationMs: 0,
-            stepOrder: currentStepOrder,
-            createdAt: startTime.toIso8601String(),
-            updatedAt: startTime.toIso8601String(),
-          );
-        }());
-      } else if (cleanLine.contains('✅') && cleanLine.contains('Success - ')) {
-        unawaited(closeJobCurrentStep(jobName, status: 'SUCCESS'));
-      } else if (cleanLine.contains('❌') && cleanLine.contains('Failure - ')) {
-        unawaited(closeJobCurrentStep(jobName, status: 'FAILURE'));
-      }
 
       final state = getJobState(jobName);
       final currentStepId = state['currentStepId'] as String?;
@@ -636,27 +674,28 @@ class LumeSshService {
           cleanLine,
         );
       }
-
       logInfo(buildJobId, runId, '[$jobName] $cleanLine');
     }
 
-    process.stdout.transform(utf8.decoder).listen((data) {
-      final masked = data.replaceAll(token, '***').trim();
-      if (masked.isNotEmpty) {
-        for (final line in LineSplitter.split(masked)) {
-          processLine(line);
-        }
-      }
-    }, onDone: () => stdoutCompleter.complete());
+    process.stdout
+        .transform(utf8.decoder)
+        .transform(const LineSplitter())
+        .listen((line) {
+          final masked = line.replaceAll(token, '***').trim();
+          if (masked.isNotEmpty) {
+            processLine(masked);
+          }
+        }, onDone: () => stdoutCompleter.complete());
 
-    process.stderr.transform(utf8.decoder).listen((data) {
-      final masked = data.replaceAll(token, '***').trim();
-      if (masked.isNotEmpty) {
-        for (final line in LineSplitter.split(masked)) {
-          processLine(line);
-        }
-      }
-    }, onDone: () => stderrCompleter.complete());
+    process.stderr
+        .transform(utf8.decoder)
+        .transform(const LineSplitter())
+        .listen((line) {
+          final masked = line.replaceAll(token, '***').trim();
+          if (masked.isNotEmpty) {
+            processLine(masked);
+          }
+        }, onDone: () => stderrCompleter.complete());
 
     final startTime = DateTime.now();
     var isTimedOut = false;

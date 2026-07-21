@@ -59,6 +59,7 @@ String _buildBuildScript(DriftBuildJob buildJob) {
     'act $eventType -W .openci/$workflowFileName '
         '$jobFlag'
         '$matrixFlag'
+        '--json '
         '-P macos-latest=-self-hosted '
         '-P macos-14=-self-hosted '
         '-P macos-15=-self-hosted '

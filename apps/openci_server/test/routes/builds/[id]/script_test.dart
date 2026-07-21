@@ -62,6 +62,7 @@ void main() {
         expect(script, contains('-j build_job'));
         expect(script, contains('--matrix "node:18"'));
         expect(script, contains('--matrix "os:macos"'));
+        expect(script, contains('--json'));
       },
     );
 
