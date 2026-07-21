@@ -184,9 +184,6 @@ Future<void> flushRemainingLogs({String? runId}) async {
       _bufferGroups.remove(key);
     }
   }
-
-  // ログ書き出しの完了を待ちますが、ネットワーク詰まり等による無限ハングを防ぐため、
-  // 最大5秒で強制的に切り上げます。
   try {
     await Future.wait(_activeWrites).timeout(const Duration(seconds: 5));
   } catch (_) {}
