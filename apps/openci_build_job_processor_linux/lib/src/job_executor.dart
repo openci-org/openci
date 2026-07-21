@@ -60,9 +60,10 @@ class JobExecutor {
       try {
         await retryOptions.retry(
           () async {
-            _log.info(
-              '[$containerName] Preparing container (cloning & starting)...',
-            );
+            final msg1 =
+                '[$containerName] Preparing container (cloning & starting)...';
+            _log.info(msg1);
+            writeBuildStepLog(job.id, runId, 'prepare_vm', msg1);
             await _prepareContainer(
               baseInstanceName: _baseInstanceName,
               containerName: containerName,
@@ -70,17 +71,19 @@ class JobExecutor {
             );
           },
           onRetry: (e) async {
-            _log.warning(
-              '[$containerName] Container preparation failed: $e. '
-              'Cleaning up failed container before retry...',
-            );
+            final warnMsg =
+                '[$containerName] Container preparation failed: $e. '
+                'Cleaning up failed container before retry...';
+            _log.warning(warnMsg);
+            writeBuildStepLog(job.id, runId, 'prepare_vm', warnMsg);
             try {
               await _cleanupContainer(containerName);
               containerCreated = false;
             } catch (cleanupErr, cleanupStack) {
-              _log.warning(
-                '[$containerName] Cleanup failed during retry prep: $cleanupErr',
-              );
+              final errLog =
+                  '[$containerName] Cleanup failed during retry prep: $cleanupErr';
+              _log.warning(errLog);
+              writeBuildStepLog(job.id, runId, 'prepare_vm', errLog);
               unawaited(
                 Sentry.captureException(cleanupErr, stackTrace: cleanupStack),
               );
@@ -100,8 +103,15 @@ class JobExecutor {
           createdAt: prepareVmStart.toIso8601String(),
           updatedAt: prepareVmEnd.toIso8601String(),
         );
+        await flushRemainingStepLogs(runId: runId);
       } catch (e) {
         final prepareVmEnd = DateTime.now().toUtc();
+        writeBuildStepLog(
+          job.id,
+          runId,
+          'prepare_vm',
+          '[$containerName] Prepare VM failed: $e',
+        );
         await sendStepStatusUpdate(
           buildJobId: job.id,
           runId: runId,
@@ -113,6 +123,7 @@ class JobExecutor {
           createdAt: prepareVmStart.toIso8601String(),
           updatedAt: prepareVmEnd.toIso8601String(),
         );
+        await flushRemainingStepLogs(runId: runId);
         rethrow;
       }
 
@@ -130,9 +141,10 @@ class JobExecutor {
       );
 
       try {
-        _log.info(
-          '[$containerName] Checking out repository ${job.owner}/${job.repo}@${job.commitSha}...',
-        );
+        final checkoutMsg =
+            '[$containerName] Checking out repository ${job.owner}/${job.repo}@${job.commitSha}...';
+        _log.info(checkoutMsg);
+        writeBuildStepLog(job.id, runId, 'checkout', checkoutMsg);
         await _checkoutRepository(
           containerName: containerName,
           buildJobId: job.id,
@@ -157,8 +169,15 @@ class JobExecutor {
           createdAt: checkoutStart.toIso8601String(),
           updatedAt: checkoutEnd.toIso8601String(),
         );
+        await flushRemainingStepLogs(runId: runId);
       } catch (e) {
         final checkoutEnd = DateTime.now().toUtc();
+        writeBuildStepLog(
+          job.id,
+          runId,
+          'checkout',
+          '[$containerName] Checkout repository failed: $e',
+        );
         await sendStepStatusUpdate(
           buildJobId: job.id,
           runId: runId,
@@ -170,6 +189,7 @@ class JobExecutor {
           createdAt: checkoutStart.toIso8601String(),
           updatedAt: checkoutEnd.toIso8601String(),
         );
+        await flushRemainingStepLogs(runId: runId);
         rethrow;
       }
 
@@ -187,30 +207,43 @@ class JobExecutor {
       );
 
       try {
-        _log.info('[$containerName] Fetching secrets...');
+        final secMsg1 = '[$containerName] Fetching secrets...';
+        _log.info(secMsg1);
+        writeBuildStepLog(job.id, runId, 'configure_secrets', secMsg1);
         final secretFileContent = await fetchReferencedSecrets(job.id);
 
-        _log.info('[$containerName] Writing secrets to container...');
+        final secMsg2 = '[$containerName] Writing secrets to container...';
+        _log.info(secMsg2);
+        writeBuildStepLog(job.id, runId, 'configure_secrets', secMsg2);
         await _incusService.writeFile(
           containerName,
           '/tmp/openci-secrets',
           secretFileContent,
         );
 
-        _log.info('[$containerName] Fetching event payload...');
+        final secMsg3 = '[$containerName] Fetching event payload...';
+        _log.info(secMsg3);
+        writeBuildStepLog(job.id, runId, 'configure_secrets', secMsg3);
         final eventFileContent = await resolveEventPayload(job.id);
 
-        _log.info('[$containerName] Writing event payload to container...');
+        final secMsg4 =
+            '[$containerName] Writing event payload to container...';
+        _log.info(secMsg4);
+        writeBuildStepLog(job.id, runId, 'configure_secrets', secMsg4);
         await _incusService.writeFile(
           containerName,
           '/tmp/openci-event.json',
           eventFileContent,
         );
 
-        _log.info('[$containerName] Fetching build script...');
+        final secMsg5 = '[$containerName] Fetching build script...';
+        _log.info(secMsg5);
+        writeBuildStepLog(job.id, runId, 'configure_secrets', secMsg5);
         final actScript = await fetchBuildScript(job.id);
 
-        _log.info('[$containerName] Writing build script to container...');
+        final secMsg6 = '[$containerName] Writing build script to container...';
+        _log.info(secMsg6);
+        writeBuildStepLog(job.id, runId, 'configure_secrets', secMsg6);
         await _incusService.writeFile(
           containerName,
           '/tmp/openci-act.sh',
@@ -230,8 +263,15 @@ class JobExecutor {
           createdAt: secretsStart.toIso8601String(),
           updatedAt: secretsEnd.toIso8601String(),
         );
+        await flushRemainingStepLogs(runId: runId);
       } catch (e) {
         final secretsEnd = DateTime.now().toUtc();
+        writeBuildStepLog(
+          job.id,
+          runId,
+          'configure_secrets',
+          '[$containerName] Configure secrets and script failed: $e',
+        );
         await sendStepStatusUpdate(
           buildJobId: job.id,
           runId: runId,
@@ -243,6 +283,7 @@ class JobExecutor {
           createdAt: secretsStart.toIso8601String(),
           updatedAt: secretsEnd.toIso8601String(),
         );
+        await flushRemainingStepLogs(runId: runId);
         rethrow;
       }
 
@@ -255,15 +296,35 @@ class JobExecutor {
       final runPattern = RegExp(r'^⭐\s*Run (.*)$');
 
       Map<String, dynamic> getJobState(String jobName) {
-        return jobStates.putIfAbsent(jobName, () => {
-          'currentStepId': null,
-          'currentStepName': null,
-          'stepOrder': 10,
-          'stepStartTime': DateTime.now().toUtc(),
+        return jobStates.putIfAbsent(jobName, () {
+          final startTime = DateTime.now().toUtc();
+          final state = {
+            'currentStepId': 'pre_build_setup',
+            'currentStepName': 'Pre-build setup',
+            'stepOrder': 4,
+            'stepStartTime': startTime,
+          };
+          unawaited(
+            sendStepStatusUpdate(
+              buildJobId: job.id,
+              runId: runId,
+              stepId: 'pre_build_setup',
+              name: '[$jobName] Pre-build setup',
+              status: 'IN_PROGRESS',
+              durationMs: 0,
+              stepOrder: 4,
+              createdAt: startTime.toIso8601String(),
+              updatedAt: startTime.toIso8601String(),
+            ),
+          );
+          return state;
         });
       }
 
-      Future<void> closeJobCurrentStep(String jobName, {required String status}) async {
+      Future<void> closeJobCurrentStep(
+        String jobName, {
+        required String status,
+      }) async {
         final state = getJobState(jobName);
         final prevStepId = state['currentStepId'] as String?;
         final prevStepName = state['currentStepName'] as String?;
@@ -324,7 +385,9 @@ class JobExecutor {
 
             // ⭐ Run <Step Name> の検知 (act の出力パース)
             if (cleanLine.contains('⭐') && cleanLine.contains('Run ')) {
-              final cleanRunLine = cleanLine.replaceAll(RegExp(r'^\[[^\]]+\]\s*'), '').trim();
+              final cleanRunLine = cleanLine
+                  .replaceAll(RegExp(r'^\[[^\]]+\]\s*'), '')
+                  .trim();
               final runMatch = runPattern.firstMatch(cleanRunLine);
               final stepName = runMatch?.group(1)?.trim() ?? 'Run Step';
 
@@ -335,19 +398,29 @@ class JobExecutor {
               final prevStepOrder = state['stepOrder'] as int;
 
               state['currentStepName'] = stepName;
-              final sanitizedJobName = jobName.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '_');
-              final sanitizedStepName = stepName.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '_');
+              final sanitizedJobName = jobName.toLowerCase().replaceAll(
+                RegExp(r'[^a-z0-9]'),
+                '_',
+              );
+              final sanitizedStepName = stepName.toLowerCase().replaceAll(
+                RegExp(r'[^a-z0-9]'),
+                '_',
+              );
               final stepId = 'step_${sanitizedJobName}_$sanitizedStepName';
               state['currentStepId'] = stepId;
               final startTime = DateTime.now().toUtc();
               state['stepStartTime'] = startTime;
-              final currentStepOrder = prevStepId != null ? prevStepOrder + 1 : prevStepOrder;
+              final currentStepOrder = prevStepId != null
+                  ? prevStepOrder + 1
+                  : prevStepOrder;
               state['stepOrder'] = currentStepOrder + 1;
 
               unawaited(() async {
                 if (prevStepId != null && prevStepName != null) {
                   final now = DateTime.now().toUtc();
-                  final duration = now.difference(prevStepStartTime).inMilliseconds;
+                  final duration = now
+                      .difference(prevStepStartTime)
+                      .inMilliseconds;
                   await sendStepStatusUpdate(
                     buildJobId: job.id,
                     runId: runId,
@@ -372,9 +445,11 @@ class JobExecutor {
                   updatedAt: startTime.toIso8601String(),
                 );
               }());
-            } else if (cleanLine.contains('✅') && cleanLine.contains('Success - ')) {
+            } else if (cleanLine.contains('✅') &&
+                cleanLine.contains('Success - ')) {
               unawaited(closeJobCurrentStep(jobName, status: 'SUCCESS'));
-            } else if (cleanLine.contains('❌') && cleanLine.contains('Failure - ')) {
+            } else if (cleanLine.contains('❌') &&
+                cleanLine.contains('Failure - ')) {
               unawaited(closeJobCurrentStep(jobName, status: 'FAILURE'));
             }
 
@@ -386,7 +461,12 @@ class JobExecutor {
               writeBuildStepLog(job.id, runId, 'pre_build_setup', cleanLine);
             }
 
-            writeBuildLog(job.id, runId, LogLevel.info, '[$jobName] $cleanLine');
+            writeBuildLog(
+              job.id,
+              runId,
+              LogLevel.info,
+              '[$jobName] $cleanLine',
+            );
           },
           isCancelled: () => _isCancelled(job.id),
         );
@@ -411,7 +491,9 @@ class JobExecutor {
           finalStatus = BuildJobStatus.FAILURE;
         }
       } finally {
-        await closeAllJobs(status: finalStatus == BuildJobStatus.SUCCESS ? 'SUCCESS' : 'FAILURE');
+        await closeAllJobs(
+          status: finalStatus == BuildJobStatus.SUCCESS ? 'SUCCESS' : 'FAILURE',
+        );
         await flushRemainingStepLogs(runId: runId);
       }
 

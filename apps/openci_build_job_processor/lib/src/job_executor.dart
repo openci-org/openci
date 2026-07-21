@@ -68,7 +68,9 @@ class JobExecutor {
       try {
         await retryOptions.retry(
           () async {
-            _log.info('[$vmName] Preparing VM (cloning & starting)...');
+            final msg1 = '[$vmName] Preparing VM (cloning & starting)...';
+            _log.info(msg1);
+            writeBuildStepLog(job.id, runId, 'prepare_vm', msg1);
             await _prepareVm(
               lumeUrl: lumeUrl,
               baseVmName: _baseVmName,
@@ -76,21 +78,25 @@ class JobExecutor {
               onVmCreated: () => vmCreated = true,
             );
 
-            _log.info(
-              '[$vmName] VM clone/run command sent. Waiting for VM to boot and acquire IP...',
-            );
+            final msg2 =
+                '[$vmName] VM clone/run command sent. Waiting for VM to boot and acquire IP...';
+            _log.info(msg2);
+            writeBuildStepLog(job.id, runId, 'prepare_vm', msg2);
             final currentVm = await _lumeService.waitForVmToBeReady(
               lumeUrl,
               vmName,
             );
             vm = currentVm;
 
-            _log.info(
-              '[$vmName] VM is ready. IP: ${currentVm.ipAddress}. Triggering onVmReady...',
-            );
+            final msg3 =
+                '[$vmName] VM is ready. IP: ${currentVm.ipAddress}. Triggering onVmReady...';
+            _log.info(msg3);
+            writeBuildStepLog(job.id, runId, 'prepare_vm', msg3);
             await onVmReady(currentVm);
 
-            _log.info('[$vmName] Setting up direct SSH keys on VM...');
+            final msg4 = '[$vmName] Setting up direct SSH keys on VM...';
+            _log.info(msg4);
+            writeBuildStepLog(job.id, runId, 'prepare_vm', msg4);
             await _sshService.setupDirectSsh(
               currentVm,
               runId,
@@ -98,18 +104,20 @@ class JobExecutor {
             );
           },
           onRetry: (e) async {
-            _log.warning(
-              '[$vmName] VM preparation failed: $e. '
-              'Cleaning up failed VM before retry...',
-            );
+            final warnMsg =
+                '[$vmName] VM preparation failed: $e. '
+                'Cleaning up failed VM before retry...';
+            _log.warning(warnMsg);
+            writeBuildStepLog(job.id, runId, 'prepare_vm', warnMsg);
             try {
               await _cleanupVm(lumeUrl, vmName, runId);
               vmCreated = false;
               vm = null;
             } catch (cleanupErr, cleanupStack) {
-              _log.warning(
-                '[$vmName] Cleanup failed during retry prep: $cleanupErr',
-              );
+              final errLog =
+                  '[$vmName] Cleanup failed during retry prep: $cleanupErr';
+              _log.warning(errLog);
+              writeBuildStepLog(job.id, runId, 'prepare_vm', errLog);
               unawaited(
                 Sentry.captureException(cleanupErr, stackTrace: cleanupStack),
               );
@@ -129,8 +137,15 @@ class JobExecutor {
           createdAt: prepareVmStart.toIso8601String(),
           updatedAt: prepareVmEnd.toIso8601String(),
         );
+        await flushRemainingStepLogs(runId: runId);
       } catch (e) {
         final prepareVmEnd = DateTime.now().toUtc();
+        writeBuildStepLog(
+          job.id,
+          runId,
+          'prepare_vm',
+          '[$vmName] Prepare VM failed: $e',
+        );
         await sendStepStatusUpdate(
           buildJobId: job.id,
           runId: runId,
@@ -142,6 +157,7 @@ class JobExecutor {
           createdAt: prepareVmStart.toIso8601String(),
           updatedAt: prepareVmEnd.toIso8601String(),
         );
+        await flushRemainingStepLogs(runId: runId);
         rethrow;
       }
 
@@ -168,9 +184,10 @@ class JobExecutor {
       );
 
       try {
-        _log.info(
-          '[$vmName] Checking out repository ${job.owner}/${job.repo}@${job.commitSha}...',
-        );
+        final checkoutMsg =
+            '[$vmName] Checking out repository ${job.owner}/${job.repo}@${job.commitSha}...';
+        _log.info(checkoutMsg);
+        writeBuildStepLog(job.id, runId, 'checkout', checkoutMsg);
         await _checkoutRepository(
           ip: ip,
           runId: runId,
@@ -195,8 +212,15 @@ class JobExecutor {
           createdAt: checkoutStart.toIso8601String(),
           updatedAt: checkoutEnd.toIso8601String(),
         );
+        await flushRemainingStepLogs(runId: runId);
       } catch (e) {
         final checkoutEnd = DateTime.now().toUtc();
+        writeBuildStepLog(
+          job.id,
+          runId,
+          'checkout',
+          '[$vmName] Checkout repository failed: $e',
+        );
         await sendStepStatusUpdate(
           buildJobId: job.id,
           runId: runId,
@@ -208,6 +232,7 @@ class JobExecutor {
           createdAt: checkoutStart.toIso8601String(),
           updatedAt: checkoutEnd.toIso8601String(),
         );
+        await flushRemainingStepLogs(runId: runId);
         rethrow;
       }
 
@@ -225,10 +250,14 @@ class JobExecutor {
       );
 
       try {
-        _log.info('[$vmName] Fetching secrets...');
+        final secMsg1 = '[$vmName] Fetching secrets...';
+        _log.info(secMsg1);
+        writeBuildStepLog(job.id, runId, 'configure_secrets', secMsg1);
         final secretFileContent = await fetchReferencedSecrets(job.id);
 
-        _log.info('[$vmName] Writing secrets to VM...');
+        final secMsg2 = '[$vmName] Writing secrets to VM...';
+        _log.info(secMsg2);
+        writeBuildStepLog(job.id, runId, 'configure_secrets', secMsg2);
         await _sshService.writeFileToVm(
           ip: ip,
           runId: runId,
@@ -237,10 +266,14 @@ class JobExecutor {
           jumpHost: jumpHost,
         );
 
-        _log.info('[$vmName] Fetching event payload...');
+        final secMsg3 = '[$vmName] Fetching event payload...';
+        _log.info(secMsg3);
+        writeBuildStepLog(job.id, runId, 'configure_secrets', secMsg3);
         final eventFileContent = await resolveEventPayload(job.id);
 
-        _log.info('[$vmName] Writing event payload to VM...');
+        final secMsg4 = '[$vmName] Writing event payload to VM...';
+        _log.info(secMsg4);
+        writeBuildStepLog(job.id, runId, 'configure_secrets', secMsg4);
         await _sshService.writeFileToVm(
           ip: ip,
           runId: runId,
@@ -249,10 +282,14 @@ class JobExecutor {
           jumpHost: jumpHost,
         );
 
-        _log.info('[$vmName] Fetching build script...');
+        final secMsg5 = '[$vmName] Fetching build script...';
+        _log.info(secMsg5);
+        writeBuildStepLog(job.id, runId, 'configure_secrets', secMsg5);
         final actScript = await fetchBuildScript(job.id);
 
-        _log.info('[$vmName] Writing build script to VM...');
+        final secMsg6 = '[$vmName] Writing build script to VM...';
+        _log.info(secMsg6);
+        writeBuildStepLog(job.id, runId, 'configure_secrets', secMsg6);
         await _sshService.writeFileToVm(
           ip: ip,
           runId: runId,
@@ -261,7 +298,9 @@ class JobExecutor {
           jumpHost: jumpHost,
         );
 
-        _log.info('[$vmName] Making build script executable...');
+        final secMsg7 = '[$vmName] Making build script executable...';
+        _log.info(secMsg7);
+        writeBuildStepLog(job.id, runId, 'configure_secrets', secMsg7);
         final exitCode = await _sshService.executeSshCommand(
           ip: ip,
           runId: runId,
@@ -284,8 +323,15 @@ class JobExecutor {
           createdAt: secretsStart.toIso8601String(),
           updatedAt: secretsEnd.toIso8601String(),
         );
+        await flushRemainingStepLogs(runId: runId);
       } catch (e) {
         final secretsEnd = DateTime.now().toUtc();
+        writeBuildStepLog(
+          job.id,
+          runId,
+          'configure_secrets',
+          '[$vmName] Configure secrets and script failed: $e',
+        );
         await sendStepStatusUpdate(
           buildJobId: job.id,
           runId: runId,
@@ -297,6 +343,7 @@ class JobExecutor {
           createdAt: secretsStart.toIso8601String(),
           updatedAt: secretsEnd.toIso8601String(),
         );
+        await flushRemainingStepLogs(runId: runId);
         rethrow;
       }
 
