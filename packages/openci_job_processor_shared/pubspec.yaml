@@ -1,0 +1,14 @@
+name: openci_job_processor_shared
+description: Shared abstraction layers and utilities for OpenCI build job processors.
+version: 0.1.0
+publish_to: "none"
+resolution: workspace
+
+environment:
+  sdk: 3.11.5
+
+dependencies:
+  openci_shared:
+
+dev_dependencies:
+  test:
