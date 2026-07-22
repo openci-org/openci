@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$ActJsonLog {
 
- String? get job;@JsonKey(name: 'jobID') String? get jobId; String? get step; String? get msg; String? get level;@DateTimeConverter() DateTime? get time; String? get stepResult; String? get jobResult; bool? get dryrun;@JsonKey(name: 'raw_output') bool? get rawOutput; String? get stage;@JsonKey(name: 'stepID') List<String>? get stepId; Map<String, Object?>? get matrix;@NanosecondsDurationConverter() Duration? get executionTime;
+ String? get job;@JsonKey(name: 'jobID') String? get jobId; String? get step; String? get msg; String? get level; DateTime? get time; String? get stepResult; String? get jobResult; bool? get dryrun;@JsonKey(name: 'raw_output') bool? get rawOutput; String? get stage;@JsonKey(name: 'stepID') List<String>? get stepId; Map<String, Object?>? get matrix;@NanosecondsDurationConverter() Duration? get executionTime;
 /// Create a copy of ActJsonLog
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -48,7 +48,7 @@ abstract mixin class $ActJsonLogCopyWith<$Res>  {
   factory $ActJsonLogCopyWith(ActJsonLog value, $Res Function(ActJsonLog) _then) = _$ActJsonLogCopyWithImpl;
 @useResult
 $Res call({
- String? job,@JsonKey(name: 'jobID') String? jobId, String? step, String? msg, String? level,@DateTimeConverter() DateTime? time, String? stepResult, String? jobResult, bool? dryrun,@JsonKey(name: 'raw_output') bool? rawOutput, String? stage,@JsonKey(name: 'stepID') List<String>? stepId, Map<String, Object?>? matrix,@NanosecondsDurationConverter() Duration? executionTime
+ String? job,@JsonKey(name: 'jobID') String? jobId, String? step, String? msg, String? level, DateTime? time, String? stepResult, String? jobResult, bool? dryrun,@JsonKey(name: 'raw_output') bool? rawOutput, String? stage,@JsonKey(name: 'stepID') List<String>? stepId, Map<String, Object?>? matrix,@NanosecondsDurationConverter() Duration? executionTime
 });
 
 
@@ -166,7 +166,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String? job, @JsonKey(name: 'jobID')  String? jobId,  String? step,  String? msg,  String? level, @DateTimeConverter()  DateTime? time,  String? stepResult,  String? jobResult,  bool? dryrun, @JsonKey(name: 'raw_output')  bool? rawOutput,  String? stage, @JsonKey(name: 'stepID')  List<String>? stepId,  Map<String, Object?>? matrix, @NanosecondsDurationConverter()  Duration? executionTime)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String? job, @JsonKey(name: 'jobID')  String? jobId,  String? step,  String? msg,  String? level,  DateTime? time,  String? stepResult,  String? jobResult,  bool? dryrun, @JsonKey(name: 'raw_output')  bool? rawOutput,  String? stage, @JsonKey(name: 'stepID')  List<String>? stepId,  Map<String, Object?>? matrix, @NanosecondsDurationConverter()  Duration? executionTime)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ActJsonLog() when $default != null:
 return $default(_that.job,_that.jobId,_that.step,_that.msg,_that.level,_that.time,_that.stepResult,_that.jobResult,_that.dryrun,_that.rawOutput,_that.stage,_that.stepId,_that.matrix,_that.executionTime);case _:
@@ -187,7 +187,7 @@ return $default(_that.job,_that.jobId,_that.step,_that.msg,_that.level,_that.tim
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String? job, @JsonKey(name: 'jobID')  String? jobId,  String? step,  String? msg,  String? level, @DateTimeConverter()  DateTime? time,  String? stepResult,  String? jobResult,  bool? dryrun, @JsonKey(name: 'raw_output')  bool? rawOutput,  String? stage, @JsonKey(name: 'stepID')  List<String>? stepId,  Map<String, Object?>? matrix, @NanosecondsDurationConverter()  Duration? executionTime)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String? job, @JsonKey(name: 'jobID')  String? jobId,  String? step,  String? msg,  String? level,  DateTime? time,  String? stepResult,  String? jobResult,  bool? dryrun, @JsonKey(name: 'raw_output')  bool? rawOutput,  String? stage, @JsonKey(name: 'stepID')  List<String>? stepId,  Map<String, Object?>? matrix, @NanosecondsDurationConverter()  Duration? executionTime)  $default,) {final _that = this;
 switch (_that) {
 case _ActJsonLog():
 return $default(_that.job,_that.jobId,_that.step,_that.msg,_that.level,_that.time,_that.stepResult,_that.jobResult,_that.dryrun,_that.rawOutput,_that.stage,_that.stepId,_that.matrix,_that.executionTime);case _:
@@ -207,7 +207,7 @@ return $default(_that.job,_that.jobId,_that.step,_that.msg,_that.level,_that.tim
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String? job, @JsonKey(name: 'jobID')  String? jobId,  String? step,  String? msg,  String? level, @DateTimeConverter()  DateTime? time,  String? stepResult,  String? jobResult,  bool? dryrun, @JsonKey(name: 'raw_output')  bool? rawOutput,  String? stage, @JsonKey(name: 'stepID')  List<String>? stepId,  Map<String, Object?>? matrix, @NanosecondsDurationConverter()  Duration? executionTime)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String? job, @JsonKey(name: 'jobID')  String? jobId,  String? step,  String? msg,  String? level,  DateTime? time,  String? stepResult,  String? jobResult,  bool? dryrun, @JsonKey(name: 'raw_output')  bool? rawOutput,  String? stage, @JsonKey(name: 'stepID')  List<String>? stepId,  Map<String, Object?>? matrix, @NanosecondsDurationConverter()  Duration? executionTime)?  $default,) {final _that = this;
 switch (_that) {
 case _ActJsonLog() when $default != null:
 return $default(_that.job,_that.jobId,_that.step,_that.msg,_that.level,_that.time,_that.stepResult,_that.jobResult,_that.dryrun,_that.rawOutput,_that.stage,_that.stepId,_that.matrix,_that.executionTime);case _:
@@ -222,7 +222,7 @@ return $default(_that.job,_that.jobId,_that.step,_that.msg,_that.level,_that.tim
 @JsonSerializable()
 
 class _ActJsonLog implements ActJsonLog {
-  const _ActJsonLog({this.job, @JsonKey(name: 'jobID') this.jobId, this.step, this.msg, this.level, @DateTimeConverter() this.time, this.stepResult, this.jobResult, this.dryrun, @JsonKey(name: 'raw_output') this.rawOutput, this.stage, @JsonKey(name: 'stepID') final  List<String>? stepId, final  Map<String, Object?>? matrix, @NanosecondsDurationConverter() this.executionTime}): _stepId = stepId,_matrix = matrix;
+  const _ActJsonLog({this.job, @JsonKey(name: 'jobID') this.jobId, this.step, this.msg, this.level, this.time, this.stepResult, this.jobResult, this.dryrun, @JsonKey(name: 'raw_output') this.rawOutput, this.stage, @JsonKey(name: 'stepID') final  List<String>? stepId, final  Map<String, Object?>? matrix, @NanosecondsDurationConverter() this.executionTime}): _stepId = stepId,_matrix = matrix;
   factory _ActJsonLog.fromJson(Map<String, dynamic> json) => _$ActJsonLogFromJson(json);
 
 @override final  String? job;
@@ -230,7 +230,7 @@ class _ActJsonLog implements ActJsonLog {
 @override final  String? step;
 @override final  String? msg;
 @override final  String? level;
-@override@DateTimeConverter() final  DateTime? time;
+@override final  DateTime? time;
 @override final  String? stepResult;
 @override final  String? jobResult;
 @override final  bool? dryrun;
@@ -289,7 +289,7 @@ abstract mixin class _$ActJsonLogCopyWith<$Res> implements $ActJsonLogCopyWith<$
   factory _$ActJsonLogCopyWith(_ActJsonLog value, $Res Function(_ActJsonLog) _then) = __$ActJsonLogCopyWithImpl;
 @override @useResult
 $Res call({
- String? job,@JsonKey(name: 'jobID') String? jobId, String? step, String? msg, String? level,@DateTimeConverter() DateTime? time, String? stepResult, String? jobResult, bool? dryrun,@JsonKey(name: 'raw_output') bool? rawOutput, String? stage,@JsonKey(name: 'stepID') List<String>? stepId, Map<String, Object?>? matrix,@NanosecondsDurationConverter() Duration? executionTime
+ String? job,@JsonKey(name: 'jobID') String? jobId, String? step, String? msg, String? level, DateTime? time, String? stepResult, String? jobResult, bool? dryrun,@JsonKey(name: 'raw_output') bool? rawOutput, String? stage,@JsonKey(name: 'stepID') List<String>? stepId, Map<String, Object?>? matrix,@NanosecondsDurationConverter() Duration? executionTime
 });
 
 

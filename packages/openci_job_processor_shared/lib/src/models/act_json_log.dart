@@ -1,6 +1,5 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
-import '../utilities/date_time_converter.dart';
 import '../utilities/nanoseconds_duration_converter.dart';
 
 part 'act_json_log.freezed.dart';
@@ -14,7 +13,7 @@ abstract class ActJsonLog with _$ActJsonLog {
     String? step,
     String? msg,
     String? level,
-    @DateTimeConverter() DateTime? time,
+    DateTime? time,
     String? stepResult,
     String? jobResult,
     bool? dryrun,
