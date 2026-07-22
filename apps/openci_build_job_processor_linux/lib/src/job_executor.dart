@@ -74,9 +74,13 @@ class JobExecutor {
             );
           },
           onRetry: (e) async {
-            _log.warning(
-              '[$containerName] Container preparation failed: $e. '
-              'Cleaning up failed container before retry...',
+            await _logAndSend(
+              jobId: job.id,
+              runId: runId,
+              containerName: containerName,
+              message:
+                  'Container preparation failed: $e. Cleaning up failed container before retry...',
+              level: LogLevel.warning,
             );
             try {
               await _vmService.cleanup(containerName);
@@ -134,8 +138,12 @@ class JobExecutor {
       );
 
       try {
-        _log.info(
-          '[$containerName] Checking out repository ${job.owner}/${job.repo}@${job.commitSha}...',
+        await _logAndSend(
+          jobId: job.id,
+          runId: runId,
+          containerName: containerName,
+          message:
+              'Checking out repository ${job.owner}/${job.repo}@${job.commitSha}...',
         );
         await _checkoutRepository(
           containerName: containerName,
@@ -191,30 +199,60 @@ class JobExecutor {
       );
 
       try {
-        _log.info('[$containerName] Fetching secrets...');
+        await _logAndSend(
+          jobId: job.id,
+          runId: runId,
+          containerName: containerName,
+          message: 'Fetching secrets...',
+        );
         final secretFileContent = await fetchReferencedSecrets(job.id);
 
-        _log.info('[$containerName] Writing secrets to container...');
+        await _logAndSend(
+          jobId: job.id,
+          runId: runId,
+          containerName: containerName,
+          message: 'Writing secrets to container...',
+        );
         await _incusService.writeFile(
           containerName,
           '/tmp/openci-secrets',
           secretFileContent,
         );
 
-        _log.info('[$containerName] Fetching event payload...');
+        await _logAndSend(
+          jobId: job.id,
+          runId: runId,
+          containerName: containerName,
+          message: 'Fetching event payload...',
+        );
         final eventFileContent = await resolveEventPayload(job.id);
 
-        _log.info('[$containerName] Writing event payload to container...');
+        await _logAndSend(
+          jobId: job.id,
+          runId: runId,
+          containerName: containerName,
+          message: 'Writing event payload to container...',
+        );
         await _incusService.writeFile(
           containerName,
           '/tmp/openci-event.json',
           eventFileContent,
         );
 
-        _log.info('[$containerName] Fetching build script...');
+        await _logAndSend(
+          jobId: job.id,
+          runId: runId,
+          containerName: containerName,
+          message: 'Fetching build script...',
+        );
         final actScript = await fetchBuildScript(job.id);
 
-        _log.info('[$containerName] Writing build script to container...');
+        await _logAndSend(
+          jobId: job.id,
+          runId: runId,
+          containerName: containerName,
+          message: 'Writing build script to container...',
+        );
         await _incusService.writeFile(
           containerName,
           '/tmp/openci-act.sh',
@@ -693,5 +731,23 @@ class JobExecutor {
       unawaited(Sentry.captureException(e, stackTrace: s));
     }
     return false;
+  }
+
+  Future<void> _logAndSend({
+    required String jobId,
+    required String runId,
+    required String containerName,
+    required String message,
+    LogLevel level = LogLevel.info,
+  }) async {
+    switch (level) {
+      case LogLevel.warning:
+        _log.warning('[$containerName] $message');
+      case LogLevel.error:
+        _log.severe('[$containerName] $message');
+      case LogLevel.info:
+        _log.info('[$containerName] $message');
+    }
+    await writeBuildLog(jobId, runId, level, message);
   }
 }
