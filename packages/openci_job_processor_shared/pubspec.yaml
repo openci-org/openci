@@ -11,6 +11,7 @@ dependencies:
   freezed_annotation: ^3.1.0
   json_annotation: ^4.11.0
   openci_shared:
+  string_validator: ^1.1.0
 
 dev_dependencies:
   build_runner: ^2.15.0

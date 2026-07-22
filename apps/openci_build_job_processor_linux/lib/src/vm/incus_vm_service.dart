@@ -11,6 +11,15 @@ class IncusVmService implements VmService {
   final IncusService _incusService;
 
   @override
+  String generateVmName(String jobId) {
+    if (!isUUID(jobId)) {
+      throw ArgumentError('jobId must be a valid UUID format: $jobId');
+    }
+    final shortId = jobId.substring(0, 8);
+    return 'openci-vm-$shortId';
+  }
+
+  @override
   Future<void> prepare({
     required String baseInstanceName,
     required String containerName,

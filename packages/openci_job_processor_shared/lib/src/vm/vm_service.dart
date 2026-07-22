@@ -1,6 +1,8 @@
 import 'dart:async';
 
 abstract class VmService {
+  String generateVmName(String jobId);
+
   Future<void> prepare({
     required String baseInstanceName,
     required String containerName,

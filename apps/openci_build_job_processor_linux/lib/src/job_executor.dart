@@ -31,8 +31,7 @@ class JobExecutor {
   Duration retryDelay = const Duration(seconds: 5);
 
   Future<void> execute(BuildJob job, String runId) async {
-    final shortId = job.id.length > 8 ? job.id.substring(0, 8) : job.id;
-    final containerName = 'openci-vm-$shortId';
+    final containerName = _vmService.generateVmName(job.id);
     bool containerCreated = false;
 
     try {
