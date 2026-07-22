@@ -15,6 +15,7 @@ workspace:
   - packages/lume_dart
   - packages/macos_updater
   - packages/openci_shared
+  - packages/openci_job_processor_shared
   - packages/pubspec_version_hook
 
 dependency_overrides:
