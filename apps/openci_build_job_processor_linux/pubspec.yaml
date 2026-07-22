@@ -1,5 +1,5 @@
 name: openci_build_job_processor_linux
-description: OpenCIのLinuxビルドジョブをIncusで処理するDartプログラムです。
+description: OpenCI Build Job Processor for Linux
 version: 1.0.0
 publish_to: none
 
