@@ -6,6 +6,7 @@ import 'package:logging/logging.dart';
 import 'package:lume_dart/lume_dart.dart';
 import 'package:openci_build_job_processor/openci_build_job_processor.dart';
 import 'package:openci_build_job_processor/src/logging/build_job_logger.dart';
+import 'package:retry/retry.dart';
 import 'package:sentry/sentry.dart';
 
 final _log = Logger('LumeSshService');
@@ -145,20 +146,37 @@ class LumeSshService {
 
     var exitCode = -1;
     String lastStderr = '';
-    for (var attempt = 1; attempt <= 30; attempt++) {
-      final result = await runPasswordSsh(
-        ip: ip,
-        command: '$installCmd && $appendCmd',
-        askPassPath: askPassPath,
-        jumpHost: jumpHost,
-      );
-      exitCode = result.exitCode;
-      lastStderr = result.stderr;
-      if (exitCode == 0) break;
-      await Future<void>.delayed(retryDelay);
-    }
+    await Future<void>.delayed(const Duration(seconds: 3));
 
-    if (exitCode != 0) {
+    final retryOptions = RetryOptions(
+      maxAttempts: 30,
+      delayFactor: retryDelay,
+      randomizationFactor: 0,
+    );
+
+    try {
+      await retryOptions.retry(
+        () async {
+          final result = await runPasswordSsh(
+            ip: ip,
+            command: '$installCmd && $appendCmd',
+            askPassPath: askPassPath,
+            jumpHost: jumpHost,
+          );
+          exitCode = result.exitCode;
+          lastStderr = result.stderr;
+          if (exitCode != 0) {
+            throw Exception('Exit code $exitCode');
+          }
+        },
+        retryIf: (_) => true,
+        onRetry: (e) {
+          _log.warning(
+            '[$vmName] SSH key install attempt failed (${lastStderr.trim()}). Retrying...',
+          );
+        },
+      );
+    } catch (_) {
       throw Exception(
         'Failed to install SSH key on VM. '
         'VM: $vmName ($ip), Run ID: $runId, '

@@ -119,7 +119,9 @@ class JobPoller {
               availableLumeUrl,
               runId,
               onVmReady: (vm) {
-                vmReadyCompleter.complete(vm);
+                if (!vmReadyCompleter.isCompleted) {
+                  vmReadyCompleter.complete(vm);
+                }
               },
             );
           } catch (e) {
