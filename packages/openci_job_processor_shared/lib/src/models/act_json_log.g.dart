@@ -12,10 +12,7 @@ _ActJsonLog _$ActJsonLogFromJson(Map<String, dynamic> json) => _ActJsonLog(
   step: json['step'] as String?,
   msg: json['msg'] as String?,
   level: json['level'] as String?,
-  time: _$JsonConverterFromJson<Object, DateTime>(
-    json['time'],
-    const DateTimeConverter().fromJson,
-  ),
+  time: json['time'] == null ? null : DateTime.parse(json['time'] as String),
   stepResult: json['stepResult'] as String?,
   jobResult: json['jobResult'] as String?,
   dryrun: json['dryrun'] as bool?,
@@ -35,10 +32,7 @@ Map<String, dynamic> _$ActJsonLogToJson(_ActJsonLog instance) =>
       'step': instance.step,
       'msg': instance.msg,
       'level': instance.level,
-      'time': _$JsonConverterToJson<Object, DateTime>(
-        instance.time,
-        const DateTimeConverter().toJson,
-      ),
+      'time': instance.time?.toIso8601String(),
       'stepResult': instance.stepResult,
       'jobResult': instance.jobResult,
       'dryrun': instance.dryrun,
@@ -50,13 +44,3 @@ Map<String, dynamic> _$ActJsonLogToJson(_ActJsonLog instance) =>
         instance.executionTime,
       ),
     };
-
-Value? _$JsonConverterFromJson<Json, Value>(
-  Object? json,
-  Value? Function(Json json) fromJson,
-) => json == null ? null : fromJson(json as Json);
-
-Json? _$JsonConverterToJson<Json, Value>(
-  Value? value,
-  Json? Function(Value value) toJson,
-) => value == null ? null : toJson(value);
