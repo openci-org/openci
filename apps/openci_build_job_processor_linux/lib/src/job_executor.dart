@@ -5,6 +5,8 @@ import 'package:logging/logging.dart';
 import 'package:openci_build_job_processor_linux/src/incus/incus_service.dart';
 import 'package:openci_build_job_processor_linux/src/logging/build_job_logger.dart';
 import 'package:openci_build_job_processor_linux/src/logging/build_step_logger.dart';
+import 'package:openci_build_job_processor_linux/src/vm/incus_vm_service.dart';
+import 'package:openci_job_processor_shared/openci_job_processor_shared.dart';
 import 'package:openci_shared/openci_shared.dart';
 import 'package:retry/retry.dart';
 import 'package:sentry/sentry.dart';
@@ -14,13 +16,16 @@ class JobExecutor {
     required OpenCiApiService apiService,
     required IncusService incusService,
     required String baseInstanceName,
+    VmService? vmService,
   }) : _apiService = apiService,
        _incusService = incusService,
-       _baseInstanceName = baseInstanceName;
+       _baseInstanceName = baseInstanceName,
+       _vmService = vmService ?? IncusVmService(incusService: incusService);
 
   final OpenCiApiService _apiService;
   final IncusService _incusService;
   final String _baseInstanceName;
+  final VmService _vmService;
   final _random = Random();
   final _log = Logger('JobExecutor');
   Duration retryDelay = const Duration(seconds: 5);
@@ -63,7 +68,7 @@ class JobExecutor {
             _log.info(
               '[$containerName] Preparing container (cloning & starting)...',
             );
-            await _prepareContainer(
+            await _vmService.prepare(
               baseInstanceName: _baseInstanceName,
               containerName: containerName,
               onCreated: () => containerCreated = true,
@@ -75,7 +80,7 @@ class JobExecutor {
               'Cleaning up failed container before retry...',
             );
             try {
-              await _cleanupContainer(containerName);
+              await _vmService.cleanup(containerName);
               containerCreated = false;
             } catch (cleanupErr, cleanupStack) {
               _log.warning(
@@ -463,7 +468,7 @@ class JobExecutor {
       if (containerCreated) {
         _log.info('[$containerName] Triggering container cleanup...');
         try {
-          await _cleanupContainer(containerName);
+          await _vmService.cleanup(containerName);
           _log.info('[$containerName] Container cleanup completed.');
         } catch (e) {
           _log.warning('[$containerName] Failed to cleanup container: $e');
@@ -472,38 +477,6 @@ class JobExecutor {
       _log.info('[$containerName] Flushing remaining logs...');
       await flushRemainingLogs(runId: runId);
       _log.info('[$containerName] Execute flow fully completed.');
-    }
-  }
-
-  Future<void> _prepareContainer({
-    required String baseInstanceName,
-    required String containerName,
-    required void Function() onCreated,
-  }) async {
-    try {
-      await _incusService.stopContainer(containerName);
-    } catch (_) {}
-    try {
-      await _incusService.deleteContainer(containerName);
-    } catch (_) {}
-
-    await _incusService.cloneContainer(baseInstanceName, containerName);
-    onCreated();
-
-    await _incusService.startContainer(containerName);
-  }
-
-  Future<void> _cleanupContainer(String containerName) async {
-    try {
-      await _incusService.stopContainer(containerName);
-    } catch (e, s) {
-      unawaited(Sentry.captureException(e, stackTrace: s));
-    }
-
-    try {
-      await _incusService.deleteContainer(containerName);
-    } catch (e, s) {
-      unawaited(Sentry.captureException(e, stackTrace: s));
     }
   }
 
