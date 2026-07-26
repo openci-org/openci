@@ -1,88 +1,86 @@
+import 'dart:convert';
 import 'dart:io';
 
-import 'package:postgres/postgres.dart';
+import 'package:crypto/crypto.dart';
+import 'package:http/http.dart' as http;
 
 void main() async {
-  final databaseUrl =
-      Platform.environment['DATABASE_URL'] ??
-      'postgres://postgres:your-secure-password-here@localhost:5432/openci?sslmode=disable';
+  final serverUrl =
+      Platform.environment['OPENCI_SERVER_URL'] ?? 'http://localhost:8080';
+  final webhookSecret =
+      Platform.environment['GITHUB_WEBHOOK_SECRET'] ??
+      'your-github-webhook-secret-here';
 
-  print('🌱 Connecting to database at $databaseUrl...');
-
-  final conn = await Connection.open(
-    Endpoint(
-      host: 'localhost',
-      port: 5432,
-      database: 'openci',
-      username: 'postgres',
-      password: 'your-secure-password-here',
-    ),
-    settings: const ConnectionSettings(
-      sslMode: SslMode.disable,
-    ),
-  );
-
-  print('🌱 Database connected. Seeding test data...');
-
-  final nowEpoch = DateTime.now().millisecondsSinceEpoch ~/ 1000;
-  final jobId = 'job-local-${DateTime.now().millisecondsSinceEpoch}';
+  print('🌱 Step 1: Ensuring test team via API ($serverUrl/internal/seed)...');
 
   try {
-    // 1. Insert dummy team if not exists
-    await conn.execute(
-      Sql.named('''
-        INSERT INTO teams (id, name, installation_ids, ai_enabled, run_number, created_at, updated_at)
-        VALUES ('test-team', 'Test Team', '[]', true, 1, @now, @now)
-        ON CONFLICT (id) DO NOTHING;
-      '''),
-      parameters: {'now': nowEpoch},
+    final seedResponse = await http.post(
+      Uri.parse('$serverUrl/internal/seed'),
     );
 
-    // 2. Insert dummy pending build job
-    await conn.execute(
-      Sql.named('''
-        INSERT INTO build_jobs (
-          id,
-          team_id,
-          status,
-          owner,
-          repo,
-          workflow_name,
-          workflow_file_name,
-          installation_id,
-          runs_on,
-          commit_sha,
-          commit_message,
-          created_at,
-          updated_at
-        ) VALUES (
-          @id,
-          'test-team',
-          'QUEUED',
-          'openci-org',
-          'openci',
-          'Hello World Pipeline',
-          'build.yml',
-          '12345678',
-          'macos-latest',
-          'main',
-          'feat: 🎉 Hello World from OpenCI Local Orchard!',
-          @now,
-          @now
-        );
-      '''),
-      parameters: {
-        'id': jobId,
-        'now': nowEpoch,
-      },
-    );
-
-    print('✅ Seed completed successfully!');
-    print('   Created Pending BuildJob: $jobId');
+    if (seedResponse.statusCode >= 200 && seedResponse.statusCode < 300) {
+      print('✅ Test team configured successfully via API.');
+    } else {
+      print('❌ Failed to configure test team via API!');
+      print('   Status: ${seedResponse.statusCode}');
+      print('   Body: ${seedResponse.body}');
+      exit(1);
+    }
   } catch (e, st) {
-    print('❌ Error seeding data: $e');
+    print('❌ Error connecting to openci-server API: $e');
     print(st);
-  } finally {
-    await conn.close();
+    exit(1);
+  }
+
+  print(
+    '\n🌱 Step 2: Dispatching GitHub Push Webhook to $serverUrl/webhook...',
+  );
+
+  final deliveryId = 'delivery-${DateTime.now().millisecondsSinceEpoch}';
+  final payload = {
+    'ref': 'refs/heads/main',
+    'repository': {
+      'name': 'openci',
+      'owner': {'login': 'openci-org'},
+    },
+    'installation': {'id': 12345678},
+    'head_commit': {
+      'id': 'main',
+      'message': 'feat: 🎉 Hello World from OpenCI Local Orchard via API!',
+    },
+  };
+
+  final rawBody = jsonEncode(payload);
+
+  // Calculate HMAC SHA-256 signature
+  final hmac = Hmac(sha256, utf8.encode(webhookSecret));
+  final digest = hmac.convert(utf8.encode(rawBody));
+  final signature = 'sha256=$digest';
+
+  try {
+    final response = await http.post(
+      Uri.parse('$serverUrl/webhook'),
+      headers: {
+        'Content-Type': 'application/json',
+        'X-GitHub-Event': 'push',
+        'X-GitHub-Delivery': deliveryId,
+        'X-Hub-Signature-256': signature,
+      },
+      body: rawBody,
+    );
+
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      print('✅ Webhook dispatched successfully!');
+      print('   Status: ${response.statusCode}');
+      print('   Body: ${response.body}');
+      print('   Delivery ID: $deliveryId');
+    } else {
+      print('❌ Failed to dispatch webhook!');
+      print('   Status: ${response.statusCode}');
+      print('   Body: ${response.body}');
+    }
+  } catch (e, st) {
+    print('❌ Error sending webhook HTTP request: $e');
+    print(st);
   }
 }
