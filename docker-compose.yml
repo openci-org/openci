@@ -40,6 +40,10 @@ services:
       - ALLOWED_WORKER_UIDS=${ALLOWED_WORKER_UIDS}
       - SENTRY_DSN=${SENTRY_DSN}
       - INTERNAL_API_KEY=${INTERNAL_API_KEY:?INTERNAL_API_KEY environment variable is required}
+
+      - ORCHARD_API_URL=${ORCHARD_API_URL:?ORCHARD_API_URL environment variable is required}
+      - ORCHARD_SERVICE_ACCOUNT_NAME=${ORCHARD_SERVICE_ACCOUNT_NAME:?ORCHARD_SERVICE_ACCOUNT_NAME environment variable is required}
+      - ORCHARD_SERVICE_ACCOUNT_TOKEN=${ORCHARD_SERVICE_ACCOUNT_TOKEN:?ORCHARD_SERVICE_ACCOUNT_TOKEN environment variable is required}
     volumes:
       - ./firebase-service-account.json:/app/credentials/firebase-service-account.json:ro
       - ./github-private-key.pem:/app/credentials/github-private-key.pem:ro
@@ -137,9 +141,20 @@ services:
       - seaweedfs_data:/data
     command: 'server -dir=/data -s3 -s3.port=8000 -ip=seaweedfs'
 
+  orchard-controller:
+    image: ghcr.io/cirruslabs/orchard:latest
+    container_name: openci-orchard-controller
+    restart: unless-stopped
+    command: ["controller"]
+    ports:
+      - "127.0.0.1:6120:6120"
+    volumes:
+      - orchard_data:/root/.orchard
+
 volumes:
   postgres_data:
   caddy_data:
   caddy_config:
   seaweedfs_data:
   tailscale_data:
+  orchard_data:
