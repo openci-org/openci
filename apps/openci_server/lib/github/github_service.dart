@@ -28,6 +28,14 @@ class GitHubService {
     final privateKeyPath = env['GITHUB_PRIVATE_KEY_PATH'];
     final githubApiBaseUrlStr = env['GITHUB_API_BASE_URL'];
 
+    final isDevOrDummy =
+        installationIdStr == '12345678' ||
+        appId == '123456' ||
+        appId == 'your-github-app-id-here';
+    if (isDevOrDummy) {
+      return 'mock-github-installation-token-local';
+    }
+
     if (appId == null || appId.isEmpty) {
       throw StateError('GITHUB_APP_ID environment variable is not configured');
     }
@@ -84,6 +92,10 @@ class GitHubService {
     Map<String, String>? environment,
     http.Client? client,
   }) async {
+    if (installationIdStr == '12345678') {
+      return;
+    }
+
     final token = await getInstallationToken(
       installationIdStr: installationIdStr,
       environment: environment,
@@ -257,6 +269,29 @@ class GitHubService {
           environment: environment,
           client: client,
         );
+
+    if (installationIdStr == '12345678' || actualToken.startsWith('mock-')) {
+      return '''
+name: Local Test Workflow
+on: [push]
+jobs:
+  test:
+    runs-on: macos-latest
+    steps:
+      - name: Print OS Info
+        run: |
+          echo "==== macOS Information ===="
+          sw_vers || true
+          uname -a
+          echo "==========================="
+      - name: Say Hello World
+        run: echo "🎉 Hello World! Welcome to OpenCI Local Orchard Pipeline on macOS 🚀"
+      - name: Simulate 30-second Build
+        run: |
+          echo "[Orchard] Building app... (simulating 10s build task)"
+          sleep 30
+''';
+    }
 
     final env = environment ?? Platform.environment;
     final githubApiBaseUrlStr =

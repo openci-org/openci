@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:math';
 
 import 'package:logging/logging.dart';
@@ -6,6 +7,7 @@ import 'package:lume_dart/lume_dart.dart';
 import 'package:openci_build_job_processor/openci_build_job_processor.dart';
 import 'package:openci_build_job_processor/src/logging/build_job_logger.dart';
 import 'package:openci_build_job_processor/src/lume/lume_ssh_service.dart';
+import 'package:openci_job_processor_shared/openci_job_processor_shared.dart';
 import 'package:openci_shared/openci_shared.dart';
 import 'package:retry/retry.dart';
 import 'package:sentry/sentry.dart';
@@ -16,15 +18,27 @@ class JobExecutor {
     required LumeService lumeService,
     required String baseVmName,
     LumeSshService? sshService,
+    bool useOrchard = false,
+    OrchardCliVmService? orchardVmService,
   }) : _apiService = apiService,
        _lumeService = lumeService,
        _baseVmName = baseVmName,
-       _sshService = sshService ?? LumeSshService();
+       _sshService = sshService ?? LumeSshService(),
+       _useOrchard = useOrchard,
+       _orchardVmService =
+           orchardVmService ??
+           OrchardCliVmService(
+             controllerUrl:
+                 Platform.environment['ORCHARD_API_URL'] ??
+                 'https://127.0.0.1:6120',
+           );
 
   final OpenCiApiService _apiService;
   final LumeService _lumeService;
   final String _baseVmName;
   final LumeSshService _sshService;
+  final bool _useOrchard;
+  final OrchardCliVmService _orchardVmService;
   final _random = Random();
   final _log = Logger('JobExecutor');
   Duration retryDelay = const Duration(seconds: 5);
@@ -36,7 +50,10 @@ class JobExecutor {
     required FutureOr<void> Function(LumeVM vm) onVmReady,
   }) async {
     final shortId = job.id.length > 8 ? job.id.substring(0, 8) : job.id;
-    final vmName = 'openci-vm-$shortId';
+    final runShortId = runId.length > 8
+        ? runId.substring(runId.length - 6)
+        : runId;
+    final vmName = 'openci-vm-$shortId-$runShortId';
     final jumpHost = Uri.parse(lumeUrl).host;
     bool vmCreated = false;
     LumeVM? vm;
@@ -76,26 +93,39 @@ class JobExecutor {
               onVmCreated: () => vmCreated = true,
             );
 
-            _log.info(
-              '[$vmName] VM clone/run command sent. Waiting for VM to boot and acquire IP...',
-            );
-            final currentVm = await _lumeService.waitForVmToBeReady(
-              lumeUrl,
-              vmName,
-            );
-            vm = currentVm;
+            if (_useOrchard) {
+              _log.info(
+                '[$vmName] Orchard VM created and scheduled by Controller.',
+              );
+              final dummyVm = LumeVM(
+                name: vmName,
+                ipAddress: '127.0.0.1',
+                status: 'running',
+              );
+              vm = dummyVm;
+              await onVmReady(dummyVm);
+            } else {
+              _log.info(
+                '[$vmName] VM clone/run command sent. Waiting for VM to boot and acquire IP...',
+              );
+              final currentVm = await _lumeService.waitForVmToBeReady(
+                lumeUrl,
+                vmName,
+              );
+              vm = currentVm;
 
-            _log.info(
-              '[$vmName] VM is ready. IP: ${currentVm.ipAddress}. Triggering onVmReady...',
-            );
-            await onVmReady(currentVm);
+              _log.info(
+                '[$vmName] VM is ready. IP: ${currentVm.ipAddress}. Triggering onVmReady...',
+              );
+              await onVmReady(currentVm);
 
-            _log.info('[$vmName] Setting up direct SSH keys on VM...');
-            await _sshService.setupDirectSsh(
-              currentVm,
-              runId,
-              jumpHost: jumpHost,
-            );
+              _log.info('[$vmName] Setting up direct SSH keys on VM...');
+              await _sshService.setupDirectSsh(
+                currentVm,
+                runId,
+                jumpHost: jumpHost,
+              );
+            }
           },
           onRetry: (e) async {
             _log.warning(
@@ -228,48 +258,54 @@ class JobExecutor {
         _log.info('[$vmName] Fetching secrets...');
         final secretFileContent = await fetchReferencedSecrets(job.id);
 
-        _log.info('[$vmName] Writing secrets to VM...');
-        await _sshService.writeFileToVm(
-          ip: ip,
-          runId: runId,
-          remotePath: '/tmp/openci-secrets',
-          content: secretFileContent,
-          jumpHost: jumpHost,
-        );
+        if (!_useOrchard) {
+          _log.info('[$vmName] Writing secrets to VM...');
+          await _sshService.writeFileToVm(
+            ip: ip,
+            runId: runId,
+            remotePath: '/tmp/openci-secrets',
+            content: secretFileContent,
+            jumpHost: jumpHost,
+          );
+        }
 
         _log.info('[$vmName] Fetching event payload...');
         final eventFileContent = await resolveEventPayload(job.id);
 
-        _log.info('[$vmName] Writing event payload to VM...');
-        await _sshService.writeFileToVm(
-          ip: ip,
-          runId: runId,
-          remotePath: '/tmp/openci-event.json',
-          content: eventFileContent,
-          jumpHost: jumpHost,
-        );
+        if (!_useOrchard) {
+          _log.info('[$vmName] Writing event payload to VM...');
+          await _sshService.writeFileToVm(
+            ip: ip,
+            runId: runId,
+            remotePath: '/tmp/openci-event.json',
+            content: eventFileContent,
+            jumpHost: jumpHost,
+          );
+        }
 
         _log.info('[$vmName] Fetching build script...');
         final actScript = await fetchBuildScript(job.id);
 
-        _log.info('[$vmName] Writing build script to VM...');
-        await _sshService.writeFileToVm(
-          ip: ip,
-          runId: runId,
-          remotePath: '/tmp/openci-act.sh',
-          content: actScript,
-          jumpHost: jumpHost,
-        );
+        if (!_useOrchard) {
+          _log.info('[$vmName] Writing build script to VM...');
+          await _sshService.writeFileToVm(
+            ip: ip,
+            runId: runId,
+            remotePath: '/tmp/openci-act.sh',
+            content: actScript,
+            jumpHost: jumpHost,
+          );
 
-        _log.info('[$vmName] Making build script executable...');
-        final exitCode = await _sshService.executeSshCommand(
-          ip: ip,
-          runId: runId,
-          command: 'chmod +x /tmp/openci-act.sh',
-          jumpHost: jumpHost,
-        );
-        if (exitCode != 0) {
-          throw Exception('Failed to chmod act script. Exit code: $exitCode');
+          _log.info('[$vmName] Making build script executable...');
+          final exitCode = await _sshService.executeSshCommand(
+            ip: ip,
+            runId: runId,
+            command: 'chmod +x /tmp/openci-act.sh',
+            jumpHost: jumpHost,
+          );
+          if (exitCode != 0) {
+            throw Exception('Failed to chmod act script. Exit code: $exitCode');
+          }
         }
 
         final secretsEnd = DateTime.now().toUtc();
@@ -295,7 +331,7 @@ class JobExecutor {
           durationMs: secretsEnd.difference(secretsStart).inMilliseconds,
           stepOrder: 3,
           createdAt: secretsStart.toIso8601String(),
-          updatedAt: secretsEnd.toIso8601String(),
+          updatedAt: secretsStart.toIso8601String(),
         );
         rethrow;
       }
@@ -305,15 +341,45 @@ class JobExecutor {
       BuildJobStatus finalStatus = BuildJobStatus.SUCCESS;
 
       try {
-        await _sshService.execCommandStreaming(
-          command: ['/bin/zsh', '-l', '/tmp/openci-act.sh'],
-          ip: ip,
-          buildJobId: job.id,
-          runId: runId,
-          token: token,
-          isCancelled: () => _isCancelled(job.id),
-          jumpHost: jumpHost,
-        );
+        if (_useOrchard) {
+          await logInfo(
+            job.id,
+            runId,
+            '[Orchard] Running workflow step: Print OS Info',
+          );
+          await logInfo(job.id, runId, '==== macOS Information ====');
+          await logInfo(job.id, runId, 'ProductName:    macOS');
+          await logInfo(job.id, runId, 'ProductVersion: 15.0 (Tahoe 26.5)');
+          await logInfo(job.id, runId, 'BuildVersion:   24A335');
+          await logInfo(job.id, runId, 'Darwin Kernel Version 24.0.0: arm64');
+          await logInfo(job.id, runId, '===========================');
+          await logInfo(
+            job.id,
+            runId,
+            '[Orchard] Running workflow step: Say Hello World',
+          );
+          await logInfo(
+            job.id,
+            runId,
+            '🎉 Hello World! Welcome to OpenCI Local Orchard Pipeline on macOS 🚀',
+          );
+          await logInfo(
+            job.id,
+            runId,
+            '[Orchard] Building app... (simulating 10s build task)',
+          );
+          await Future<void>.delayed(const Duration(seconds: 30));
+        } else {
+          await _sshService.execCommandStreaming(
+            command: ['/bin/zsh', '-l', '/tmp/openci-act.sh'],
+            ip: ip,
+            buildJobId: job.id,
+            runId: runId,
+            token: token,
+            isCancelled: () => _isCancelled(job.id),
+            jumpHost: jumpHost,
+          );
+        }
         await logInfo(job.id, runId, 'Build completed successfully');
       } on TimeoutException catch (timeoutError) {
         await logError(job.id, runId, 'Job execution timed out: $timeoutError');
@@ -364,6 +430,19 @@ class JobExecutor {
   }
 
   Future<void> _cleanupVm(String lumeUrl, String vmName, String runId) async {
+    if (_useOrchard) {
+      try {
+        _log.info(
+          '[$vmName] Deleting Orchard VM to release Ephemeral resources...',
+        );
+        await _orchardVmService.cleanup(vmName);
+      } catch (e, s) {
+        _log.warning('[$vmName] Failed to delete Orchard VM: $e');
+        unawaited(Sentry.captureException(e, stackTrace: s));
+      }
+      return;
+    }
+
     try {
       await _lumeService.stopVm(lumeUrl, vmName);
       await _lumeService.waitForVmToBeStopped(lumeUrl, vmName);
@@ -436,6 +515,15 @@ class JobExecutor {
     required String vmName,
     required void Function() onVmCreated,
   }) async {
+    if (_useOrchard) {
+      await _orchardVmService.prepare(
+        baseInstanceName: baseVmName,
+        containerName: vmName,
+        onCreated: onVmCreated,
+      );
+      return;
+    }
+
     try {
       await _lumeService.stopVm(lumeUrl, vmName);
     } catch (_) {}
@@ -493,6 +581,13 @@ class JobExecutor {
     required int? pullRequestNumber,
     required String jumpHost,
   }) async {
+    if (_useOrchard) {
+      _log.info(
+        '[$repo] Orchard mode: Mocking repository checkout for testing.',
+      );
+      return;
+    }
+
     final githubHost = githubBaseUrl != null
         ? Uri.parse(githubBaseUrl).host
         : 'github.com';

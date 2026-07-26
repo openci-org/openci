@@ -34,7 +34,8 @@ class JobPoller {
        _lumeService = lumeService ?? LumeService(),
        _sshService = sshService ?? LumeSshService(),
        _baseVmName = config.baseVmName,
-       _maxConcurrentJobs = config.maxConcurrentJobs {
+       _maxConcurrentJobs = config.maxConcurrentJobs,
+       _useOrchard = config.useOrchard {
     setupBuildJobLogger(
       serverUrl: config.serverUrl,
       internalApiKey: config.internalApiKey,
@@ -50,17 +51,22 @@ class JobPoller {
   final LumeService _lumeService;
   final LumeSshService _sshService;
   final String _baseVmName;
+  final bool _useOrchard;
   int _activeJobsCount = 0;
   final int _maxConcurrentJobs;
   final _activeJobs = <String, ({DateTime startTime, String host})>{};
 
   Future<void> startPolling(String runsOnPattern) async {
-    _log.info('JobPoller started polling for pattern: $runsOnPattern');
+    _log.info(
+      'JobPoller started polling for pattern: $runsOnPattern (useOrchard: $_useOrchard)',
+    );
 
-    try {
-      await pruneZombieVms();
-    } catch (e) {
-      _log.warning('Failed to complete VM pruning initialization: $e');
+    if (!_useOrchard) {
+      try {
+        await pruneZombieVms();
+      } catch (e) {
+        _log.warning('Failed to complete VM pruning initialization: $e');
+      }
     }
 
     Timer.periodic(const Duration(seconds: 30), (_) => _logActiveJobs());
@@ -101,6 +107,7 @@ class JobPoller {
           apiService: _apiService,
           lumeService: _lumeService,
           baseVmName: _baseVmName,
+          useOrchard: _useOrchard,
         );
 
         final runId = executor.generateRunId();
@@ -129,6 +136,11 @@ class JobPoller {
               vmReadyCompleter.completeError(e);
             }
           } finally {
+            if (!vmReadyCompleter.isCompleted) {
+              vmReadyCompleter.completeError(
+                StateError('Job execution ended before VM became ready.'),
+              );
+            }
             _activeJobs.remove(vmName);
             _activeJobsCount--;
           }
@@ -151,6 +163,9 @@ class JobPoller {
   }
 
   Future<String?> _findAvailableLumeUrl() async {
+    if (_useOrchard) {
+      return 'http://127.0.0.1:6120';
+    }
     final ips = await _tailscaleService.getActiveMacOsIps();
     _log.info('Detected Tailscale macOS IPs: $ips');
     final lumeServerUrls = ips.map((ip) => 'http://$ip:7777').toList();

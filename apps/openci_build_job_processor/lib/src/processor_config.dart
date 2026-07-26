@@ -11,6 +11,7 @@ class ProcessorConfig {
     this.excludeIps = const [],
     this.sentryDsn,
     this.maxConcurrentJobs = 3,
+    this.useOrchard = false,
   });
 
   final String serverUrl;
@@ -41,16 +42,30 @@ class ProcessorConfig {
         Platform.environment['OPENCI_MAX_CONCURRENT_JOBS'] ?? '3';
     final maxConcurrentJobs = int.tryParse(maxConcurrentJobsStr) ?? 3;
 
+    final useOrchard =
+        (Platform.environment['USE_ORCHARD'] ?? '').toLowerCase() == 'true' ||
+        Platform.environment.containsKey('ORCHARD_API_URL');
+
+    final tailscaleApiKey = useOrchard
+        ? (Platform.environment['TAILSCALE_API_KEY'] ?? '')
+        : getRequired('TAILSCALE_API_KEY');
+    final tailscaleTailnet = useOrchard
+        ? (Platform.environment['TAILSCALE_TAILNET'] ?? '')
+        : getRequired('TAILSCALE_TAILNET');
+
     return ProcessorConfig(
       serverUrl: getRequired('OPENCI_SERVER_URL'),
       runsOnPattern: getRequired('OPENCI_RUNS_ON_PATTERN'),
       baseVmName: getRequired('LUME_BASE_VM_NAME'),
-      tailscaleApiKey: getRequired('TAILSCALE_API_KEY'),
-      tailscaleTailnet: getRequired('TAILSCALE_TAILNET'),
+      tailscaleApiKey: tailscaleApiKey,
+      tailscaleTailnet: tailscaleTailnet,
       internalApiKey: getRequired('INTERNAL_API_KEY'),
       excludeIps: excludeIpsList,
       sentryDsn: Platform.environment['SENTRY_DSN'],
       maxConcurrentJobs: maxConcurrentJobs,
+      useOrchard: useOrchard,
     );
   }
+
+  final bool useOrchard;
 }

@@ -47,6 +47,8 @@ services:
     volumes:
       - ./firebase-service-account.json:/app/credentials/firebase-service-account.json:ro
       - ./github-private-key.pem:/app/credentials/github-private-key.pem:ro
+    ports:
+      - "127.0.0.1:8080:8080"
     expose:
       - "8080"
     depends_on:
@@ -145,7 +147,7 @@ services:
     image: ghcr.io/cirruslabs/orchard:latest
     container_name: openci-orchard-controller
     restart: unless-stopped
-    command: ["controller"]
+    command: ["controller", "run"]
     ports:
       - "127.0.0.1:6120:6120"
     volumes:

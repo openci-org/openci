@@ -9,7 +9,9 @@ environment:
 
 dependencies:
   freezed_annotation: ^3.1.0
+  http: ^1.2.0
   json_annotation: ^4.11.0
+  logging: ^1.3.0
   openci_shared:
   string_validator: ^1.1.0
 
