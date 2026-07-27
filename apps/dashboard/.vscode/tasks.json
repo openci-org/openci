@@ -1,0 +1,45 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Flutter: build_runner watch",
+      "type": "shell",
+      "command": "dart run build_runner watch",
+      "problemMatcher": [],
+      "group": "build",
+      "isBackground": true
+    },
+    {
+      "label": "Flutter: clean",
+      "type": "shell",
+      "command": "flutter clean && flutter pub get"
+    },
+    {
+      "label": "Flutter: Build .ipa",
+      "type": "shell",
+      "command": "flutter build ipa --dart-define-from-file=.env.local",
+      "dependsOn": [
+        "Flutter: clean"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "Flutter Web: Build (Prod)",
+      "type": "shell",
+      "command": "flutter build web --release --dart-define-from-file=.env.local",
+      "dependsOn": [
+        "Flutter: clean"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "Flutter Web: (Prod) Deploy to Firebase Hosting",
+      "type": "shell",
+      "command": "bash scripts/deploy_web_to_hosting.sh",
+      "dependsOn": [
+        "Flutter Web: Build (Prod)"
+      ],
+      "problemMatcher": []
+    }
+  ]
+}
