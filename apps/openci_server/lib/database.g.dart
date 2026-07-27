@@ -231,6 +231,17 @@ class $BuildJobsTable extends BuildJobs
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _customScriptMeta = const VerificationMeta(
+    'customScript',
+  );
+  @override
+  late final GeneratedColumn<String> customScript = GeneratedColumn<String>(
+    'custom_script',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _failureSummaryMeta = const VerificationMeta(
     'failureSummary',
   );
@@ -425,6 +436,7 @@ class $BuildJobsTable extends BuildJobs
     workflowRunId,
     needs,
     runsOn,
+    customScript,
     failureSummary,
     failureSummaryModel,
     failureSummaryStatus,
@@ -595,6 +607,15 @@ class $BuildJobsTable extends BuildJobs
       context.handle(
         _runsOnMeta,
         runsOn.isAcceptableOrUnknown(data['runs_on']!, _runsOnMeta),
+      );
+    }
+    if (data.containsKey('custom_script')) {
+      context.handle(
+        _customScriptMeta,
+        customScript.isAcceptableOrUnknown(
+          data['custom_script']!,
+          _customScriptMeta,
+        ),
       );
     }
     if (data.containsKey('failure_summary')) {
@@ -818,6 +839,10 @@ class $BuildJobsTable extends BuildJobs
         DriftSqlType.string,
         data['${effectivePrefix}runs_on'],
       ),
+      customScript: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}custom_script'],
+      ),
       failureSummary: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}failure_summary'],
@@ -931,6 +956,7 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
   final String? workflowRunId;
   final List<String>? needs;
   final String? runsOn;
+  final String? customScript;
   final String? failureSummary;
   final String? failureSummaryModel;
   final String? failureSummaryStatus;
@@ -970,6 +996,7 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
     this.workflowRunId,
     this.needs,
     this.runsOn,
+    this.customScript,
     this.failureSummary,
     this.failureSummaryModel,
     this.failureSummaryStatus,
@@ -1053,6 +1080,9 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
     }
     if (!nullToAbsent || runsOn != null) {
       map['runs_on'] = Variable<String>(runsOn);
+    }
+    if (!nullToAbsent || customScript != null) {
+      map['custom_script'] = Variable<String>(customScript);
     }
     if (!nullToAbsent || failureSummary != null) {
       map['failure_summary'] = Variable<String>(failureSummary);
@@ -1163,6 +1193,9 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
       runsOn: runsOn == null && nullToAbsent
           ? const Value.absent()
           : Value(runsOn),
+      customScript: customScript == null && nullToAbsent
+          ? const Value.absent()
+          : Value(customScript),
       failureSummary: failureSummary == null && nullToAbsent
           ? const Value.absent()
           : Value(failureSummary),
@@ -1240,6 +1273,7 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
       workflowRunId: serializer.fromJson<String?>(json['workflowRunId']),
       needs: serializer.fromJson<List<String>?>(json['needs']),
       runsOn: serializer.fromJson<String?>(json['runsOn']),
+      customScript: serializer.fromJson<String?>(json['customScript']),
       failureSummary: serializer.fromJson<String?>(json['failureSummary']),
       failureSummaryModel: serializer.fromJson<String?>(
         json['failureSummaryModel'],
@@ -1294,6 +1328,7 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
       'workflowRunId': serializer.toJson<String?>(workflowRunId),
       'needs': serializer.toJson<List<String>?>(needs),
       'runsOn': serializer.toJson<String?>(runsOn),
+      'customScript': serializer.toJson<String?>(customScript),
       'failureSummary': serializer.toJson<String?>(failureSummary),
       'failureSummaryModel': serializer.toJson<String?>(failureSummaryModel),
       'failureSummaryStatus': serializer.toJson<String?>(failureSummaryStatus),
@@ -1338,6 +1373,7 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
     Value<String?> workflowRunId = const Value.absent(),
     Value<List<String>?> needs = const Value.absent(),
     Value<String?> runsOn = const Value.absent(),
+    Value<String?> customScript = const Value.absent(),
     Value<String?> failureSummary = const Value.absent(),
     Value<String?> failureSummaryModel = const Value.absent(),
     Value<String?> failureSummaryStatus = const Value.absent(),
@@ -1387,6 +1423,7 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
         : this.workflowRunId,
     needs: needs.present ? needs.value : this.needs,
     runsOn: runsOn.present ? runsOn.value : this.runsOn,
+    customScript: customScript.present ? customScript.value : this.customScript,
     failureSummary: failureSummary.present
         ? failureSummary.value
         : this.failureSummary,
@@ -1460,6 +1497,9 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
           : this.workflowRunId,
       needs: data.needs.present ? data.needs.value : this.needs,
       runsOn: data.runsOn.present ? data.runsOn.value : this.runsOn,
+      customScript: data.customScript.present
+          ? data.customScript.value
+          : this.customScript,
       failureSummary: data.failureSummary.present
           ? data.failureSummary.value
           : this.failureSummary,
@@ -1524,6 +1564,7 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
           ..write('workflowRunId: $workflowRunId, ')
           ..write('needs: $needs, ')
           ..write('runsOn: $runsOn, ')
+          ..write('customScript: $customScript, ')
           ..write('failureSummary: $failureSummary, ')
           ..write('failureSummaryModel: $failureSummaryModel, ')
           ..write('failureSummaryStatus: $failureSummaryStatus, ')
@@ -1568,6 +1609,7 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
     workflowRunId,
     needs,
     runsOn,
+    customScript,
     failureSummary,
     failureSummaryModel,
     failureSummaryStatus,
@@ -1611,6 +1653,7 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
           other.workflowRunId == this.workflowRunId &&
           other.needs == this.needs &&
           other.runsOn == this.runsOn &&
+          other.customScript == this.customScript &&
           other.failureSummary == this.failureSummary &&
           other.failureSummaryModel == this.failureSummaryModel &&
           other.failureSummaryStatus == this.failureSummaryStatus &&
@@ -1652,6 +1695,7 @@ class BuildJobsCompanion extends UpdateCompanion<DriftBuildJob> {
   final Value<String?> workflowRunId;
   final Value<List<String>?> needs;
   final Value<String?> runsOn;
+  final Value<String?> customScript;
   final Value<String?> failureSummary;
   final Value<String?> failureSummaryModel;
   final Value<String?> failureSummaryStatus;
@@ -1692,6 +1736,7 @@ class BuildJobsCompanion extends UpdateCompanion<DriftBuildJob> {
     this.workflowRunId = const Value.absent(),
     this.needs = const Value.absent(),
     this.runsOn = const Value.absent(),
+    this.customScript = const Value.absent(),
     this.failureSummary = const Value.absent(),
     this.failureSummaryModel = const Value.absent(),
     this.failureSummaryStatus = const Value.absent(),
@@ -1733,6 +1778,7 @@ class BuildJobsCompanion extends UpdateCompanion<DriftBuildJob> {
     this.workflowRunId = const Value.absent(),
     this.needs = const Value.absent(),
     this.runsOn = const Value.absent(),
+    this.customScript = const Value.absent(),
     this.failureSummary = const Value.absent(),
     this.failureSummaryModel = const Value.absent(),
     this.failureSummaryStatus = const Value.absent(),
@@ -1780,6 +1826,7 @@ class BuildJobsCompanion extends UpdateCompanion<DriftBuildJob> {
     Expression<String>? workflowRunId,
     Expression<String>? needs,
     Expression<String>? runsOn,
+    Expression<String>? customScript,
     Expression<String>? failureSummary,
     Expression<String>? failureSummaryModel,
     Expression<String>? failureSummaryStatus,
@@ -1821,6 +1868,7 @@ class BuildJobsCompanion extends UpdateCompanion<DriftBuildJob> {
       if (workflowRunId != null) 'workflow_run_id': workflowRunId,
       if (needs != null) 'needs': needs,
       if (runsOn != null) 'runs_on': runsOn,
+      if (customScript != null) 'custom_script': customScript,
       if (failureSummary != null) 'failure_summary': failureSummary,
       if (failureSummaryModel != null)
         'failure_summary_model': failureSummaryModel,
@@ -1867,6 +1915,7 @@ class BuildJobsCompanion extends UpdateCompanion<DriftBuildJob> {
     Value<String?>? workflowRunId,
     Value<List<String>?>? needs,
     Value<String?>? runsOn,
+    Value<String?>? customScript,
     Value<String?>? failureSummary,
     Value<String?>? failureSummaryModel,
     Value<String?>? failureSummaryStatus,
@@ -1908,6 +1957,7 @@ class BuildJobsCompanion extends UpdateCompanion<DriftBuildJob> {
       workflowRunId: workflowRunId ?? this.workflowRunId,
       needs: needs ?? this.needs,
       runsOn: runsOn ?? this.runsOn,
+      customScript: customScript ?? this.customScript,
       failureSummary: failureSummary ?? this.failureSummary,
       failureSummaryModel: failureSummaryModel ?? this.failureSummaryModel,
       failureSummaryStatus: failureSummaryStatus ?? this.failureSummaryStatus,
@@ -2004,6 +2054,9 @@ class BuildJobsCompanion extends UpdateCompanion<DriftBuildJob> {
     if (runsOn.present) {
       map['runs_on'] = Variable<String>(runsOn.value);
     }
+    if (customScript.present) {
+      map['custom_script'] = Variable<String>(customScript.value);
+    }
     if (failureSummary.present) {
       map['failure_summary'] = Variable<String>(failureSummary.value);
     }
@@ -2093,6 +2146,7 @@ class BuildJobsCompanion extends UpdateCompanion<DriftBuildJob> {
           ..write('workflowRunId: $workflowRunId, ')
           ..write('needs: $needs, ')
           ..write('runsOn: $runsOn, ')
+          ..write('customScript: $customScript, ')
           ..write('failureSummary: $failureSummary, ')
           ..write('failureSummaryModel: $failureSummaryModel, ')
           ..write('failureSummaryStatus: $failureSummaryStatus, ')
@@ -7152,6 +7206,7 @@ typedef $$BuildJobsTableCreateCompanionBuilder =
       Value<String?> workflowRunId,
       Value<List<String>?> needs,
       Value<String?> runsOn,
+      Value<String?> customScript,
       Value<String?> failureSummary,
       Value<String?> failureSummaryModel,
       Value<String?> failureSummaryStatus,
@@ -7194,6 +7249,7 @@ typedef $$BuildJobsTableUpdateCompanionBuilder =
       Value<String?> workflowRunId,
       Value<List<String>?> needs,
       Value<String?> runsOn,
+      Value<String?> customScript,
       Value<String?> failureSummary,
       Value<String?> failureSummaryModel,
       Value<String?> failureSummaryStatus,
@@ -7359,6 +7415,11 @@ class $$BuildJobsTableFilterComposer
 
   ColumnFilters<String> get runsOn => $composableBuilder(
     column: $table.runsOn,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get customScript => $composableBuilder(
+    column: $table.customScript,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -7588,6 +7649,11 @@ class $$BuildJobsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get customScript => $composableBuilder(
+    column: $table.customScript,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get failureSummary => $composableBuilder(
     column: $table.failureSummary,
     builder: (column) => ColumnOrderings(column),
@@ -7762,6 +7828,11 @@ class $$BuildJobsTableAnnotationComposer
   GeneratedColumn<String> get runsOn =>
       $composableBuilder(column: $table.runsOn, builder: (column) => column);
 
+  GeneratedColumn<String> get customScript => $composableBuilder(
+    column: $table.customScript,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<String> get failureSummary => $composableBuilder(
     column: $table.failureSummary,
     builder: (column) => column,
@@ -7907,6 +7978,7 @@ class $$BuildJobsTableTableManager
                 Value<String?> workflowRunId = const Value.absent(),
                 Value<List<String>?> needs = const Value.absent(),
                 Value<String?> runsOn = const Value.absent(),
+                Value<String?> customScript = const Value.absent(),
                 Value<String?> failureSummary = const Value.absent(),
                 Value<String?> failureSummaryModel = const Value.absent(),
                 Value<String?> failureSummaryStatus = const Value.absent(),
@@ -7947,6 +8019,7 @@ class $$BuildJobsTableTableManager
                 workflowRunId: workflowRunId,
                 needs: needs,
                 runsOn: runsOn,
+                customScript: customScript,
                 failureSummary: failureSummary,
                 failureSummaryModel: failureSummaryModel,
                 failureSummaryStatus: failureSummaryStatus,
@@ -7989,6 +8062,7 @@ class $$BuildJobsTableTableManager
                 Value<String?> workflowRunId = const Value.absent(),
                 Value<List<String>?> needs = const Value.absent(),
                 Value<String?> runsOn = const Value.absent(),
+                Value<String?> customScript = const Value.absent(),
                 Value<String?> failureSummary = const Value.absent(),
                 Value<String?> failureSummaryModel = const Value.absent(),
                 Value<String?> failureSummaryStatus = const Value.absent(),
@@ -8029,6 +8103,7 @@ class $$BuildJobsTableTableManager
                 workflowRunId: workflowRunId,
                 needs: needs,
                 runsOn: runsOn,
+                customScript: customScript,
                 failureSummary: failureSummary,
                 failureSummaryModel: failureSummaryModel,
                 failureSummaryStatus: failureSummaryStatus,

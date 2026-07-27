@@ -4,18 +4,28 @@ import 'dart:io';
 import 'package:crypto/crypto.dart';
 import 'package:http/http.dart' as http;
 
-void main() async {
+void main(List<String> args) async {
   final serverUrl =
       Platform.environment['OPENCI_SERVER_URL'] ?? 'http://localhost:8080';
   final webhookSecret =
       Platform.environment['GITHUB_WEBHOOK_SECRET'] ??
       'your-github-webhook-secret-here';
+  final customScript =
+      Platform.environment['CUSTOM_SCRIPT'] ??
+      (args.isNotEmpty ? args.join(' ') : null);
 
   print('🌱 Step 1: Ensuring test team via API ($serverUrl/internal/seed)...');
 
   try {
+    final seedPayload = <String, dynamic>{
+      if (customScript != null && customScript.isNotEmpty)
+        'customScript': customScript,
+    };
+
     final seedResponse = await http.post(
       Uri.parse('$serverUrl/internal/seed'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode(seedPayload),
     );
 
     if (seedResponse.statusCode >= 200 && seedResponse.statusCode < 300) {

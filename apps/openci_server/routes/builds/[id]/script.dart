@@ -31,6 +31,11 @@ Future<Response> _get(RequestContext context, String id) async {
 }
 
 String _buildBuildScript(DriftBuildJob buildJob) {
+  final customScript = buildJob.customScript;
+  if (customScript != null && customScript.isNotEmpty) {
+    return customScript;
+  }
+
   final eventType = buildJob.pullRequestNumber != null
       ? 'pull_request'
       : 'push';

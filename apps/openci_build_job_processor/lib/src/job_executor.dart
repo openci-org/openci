@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 
@@ -249,6 +250,7 @@ class JobExecutor {
       }
 
       final secretsStart = DateTime.now().toUtc();
+      var actScript = '';
       await sendStepStatusUpdate(
         buildJobId: job.id,
         runId: runId,
@@ -291,7 +293,7 @@ class JobExecutor {
         }
 
         _log.info('[$vmName] Fetching build script...');
-        final actScript = await fetchBuildScript(job.id);
+        actScript = await fetchBuildScript(job.id);
 
         if (!_useOrchard) {
           _log.info('[$vmName] Writing build script to VM...');
@@ -349,33 +351,44 @@ class JobExecutor {
 
       try {
         if (_useOrchard) {
+          if (actScript.isNotEmpty) {
+            await logInfo(
+              job.id,
+              runId,
+              '[Orchard] Executing build script: $actScript',
+            );
+
+            try {
+              final process = await Process.start('/bin/sh', ['-c', actScript]);
+              process.stdout
+                  .transform(utf8.decoder)
+                  .transform(const LineSplitter())
+                  .listen((line) {
+                    logInfo(job.id, runId, line);
+                  });
+              process.stderr
+                  .transform(utf8.decoder)
+                  .transform(const LineSplitter())
+                  .listen((line) {
+                    logInfo(job.id, runId, line);
+                  });
+              final exitCode = await process.exitCode;
+              if (exitCode != 0) {
+                finalStatus = BuildJobStatus.FAILURE;
+              }
+            } catch (e) {
+              await logInfo(
+                job.id,
+                runId,
+                '[Orchard] Script execution error: $e',
+              );
+            }
+          }
           await logInfo(
             job.id,
             runId,
-            '[Orchard] Running workflow step: Print OS Info',
+            '[Orchard] Job executed successfully via Orchard Controller.',
           );
-          await logInfo(job.id, runId, '==== macOS Information ====');
-          await logInfo(job.id, runId, 'ProductName:    macOS');
-          await logInfo(job.id, runId, 'ProductVersion: 15.0 (Tahoe 26.5)');
-          await logInfo(job.id, runId, 'BuildVersion:   24A335');
-          await logInfo(job.id, runId, 'Darwin Kernel Version 24.0.0: arm64');
-          await logInfo(job.id, runId, '===========================');
-          await logInfo(
-            job.id,
-            runId,
-            '[Orchard] Running workflow step: Say Hello World',
-          );
-          await logInfo(
-            job.id,
-            runId,
-            '🎉 Hello World! Welcome to OpenCI Local Orchard Pipeline on macOS 🚀',
-          );
-          await logInfo(
-            job.id,
-            runId,
-            '[Orchard] Building app... (simulating 10s build task)',
-          );
-          await Future<void>.delayed(const Duration(seconds: 30));
         } else {
           await _sshService.execCommandStreaming(
             command: ['/bin/zsh', '-l', '/tmp/openci-act.sh'],

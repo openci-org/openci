@@ -55,6 +55,16 @@ class SeedDao extends DatabaseAccessor<AppDatabase> with _$SeedDaoMixin {
 
   Future<DriftBuildJob> createTestBuildJob({
     String runsOn = 'macos-latest',
+    String owner = 'openci-org',
+    String repo = 'openci',
+    String workflowName = 'Test Workflow',
+    String workflowFileName = 'ci.yml',
+    String teamId = 'test-team',
+    String installationId = '12345678',
+    String commitSha = 'main',
+    String commitMessage = 'feat: Test build job created by seed',
+    String branch = 'main',
+    String? customScript,
   }) async {
     await ensureTestTeam();
     final now = DateTime.now().toUtc();
@@ -63,16 +73,17 @@ class SeedDao extends DatabaseAccessor<AppDatabase> with _$SeedDaoMixin {
     final job = DriftBuildJob(
       id: id,
       status: BuildJobStatus.QUEUED,
-      owner: 'openci-org',
-      repo: 'openci',
-      workflowName: 'Test Workflow',
-      workflowFileName: 'ci.yml',
-      teamId: 'test-team',
-      installationId: '12345678',
-      commitSha: 'main',
-      commitMessage: 'feat: Test build job created by seed',
-      branch: 'main',
+      owner: owner,
+      repo: repo,
+      workflowName: workflowName,
+      workflowFileName: workflowFileName,
+      teamId: teamId,
+      installationId: installationId,
+      commitSha: commitSha,
+      commitMessage: commitMessage,
+      branch: branch,
       runsOn: runsOn,
+      customScript: customScript,
       createdAt: now,
       updatedAt: now,
     );

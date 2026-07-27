@@ -54,6 +54,7 @@ class BuildJobs extends Table {
   TextColumn get workflowRunId => text().nullable()();
   TextColumn get needs => text().map(const StringListConverter()).nullable()();
   TextColumn get runsOn => text().nullable()();
+  TextColumn get customScript => text().nullable()();
 
   TextColumn get failureSummary => text().nullable()();
   TextColumn get failureSummaryModel => text().nullable()();
