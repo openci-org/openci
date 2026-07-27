@@ -11,11 +11,14 @@ Future<Response> onRequest(RequestContext context) async {
   final db = context.read<AppDatabase>();
   try {
     await db.seedDao.ensureTestTeam();
+    final job = await db.seedDao.createTestBuildJob();
 
     return Response.json(
       body: {
         'success': true,
-        'message': 'Test team ensured successfully',
+        'message': 'Test team and build job seeded successfully',
+        'jobId': job.id,
+        'runsOn': job.runsOn,
       },
     );
   } catch (e) {

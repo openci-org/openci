@@ -23,8 +23,12 @@ fi
 
 # 2. Start Docker Compose core services
 echo ""
-echo "🐳 Step 2: Starting Docker containers (openci-db, seaweedfs, orchard, server)..."
-docker compose up -d --build db seaweedfs orchard-controller server
+echo "🐳 Step 2: Starting Docker containers (db, seaweedfs, orchard, server, job-processor)..."
+OPENCI_RUNS_ON_PATTERN="${OPENCI_RUNS_ON_PATTERN:-macos-latest}" \
+LUME_BASE_VM_NAME="${LUME_BASE_VM_NAME:-base-macos}" \
+INTERNAL_API_KEY="${INTERNAL_API_KEY:-your-internal-api-key-here}" \
+ORCHARD_API_URL="https://orchard-controller:6120" \
+docker compose up -d --build db seaweedfs orchard-controller server job-processor
 
 # 3. Wait for Orchard Controller to be ready
 echo ""
@@ -37,6 +41,14 @@ if [ -n "$TOKEN" ]; then
   orchard context create https://127.0.0.1:6120 --bootstrap-token "$TOKEN" --no-pki --force >/dev/null 2>&1
   orchard context default default >/dev/null 2>&1
   echo "✅ Orchard CLI context authenticated."
+  
+  CONTEXT_TOKEN=$(grep "serviceAccountToken:" ~/.orchard/orchard.yml | head -n 1 | awk '{print $2}')
+  echo "🔄 Updating job-processor with Orchard credentials..."
+  export ORCHARD_SERVICE_ACCOUNT_NAME="bootstrap-admin"
+  export ORCHARD_SERVICE_ACCOUNT_TOKEN="$CONTEXT_TOKEN"
+  export OPENCI_RUNS_ON_PATTERN="${OPENCI_RUNS_ON_PATTERN:-macos-latest}"
+  docker compose up -d --force-recreate job-processor >/dev/null 2>&1
+  echo "✅ job-processor authenticated with Orchard Controller."
 else
   echo "⚠️ Could not auto-fetch Orchard bootstrap token. Context registration skipped."
 fi
@@ -51,12 +63,6 @@ echo "=================================================="
 echo "🎉 OpenCI Local Environment is Fully Ready!"
 echo "=================================================="
 echo ""
-echo "To start the JobProcessor worker in Orchard mode, run:"
-echo ""
-echo "USE_ORCHARD=true \\"
-echo "OPENCI_SERVER_URL=http://localhost:8080 \\"
-echo "INTERNAL_API_KEY=your-internal-api-key-here \\"
-echo "OPENCI_RUNS_ON_PATTERN=macos-latest \\"
-echo "LUME_BASE_VM_NAME=base-macos \\"
-echo "dart run apps/openci_build_job_processor/bin/main.dart"
+echo "All components (Server, DB, Orchard, JobProcessor) are running in Docker Compose!"
+echo "JobProcessor worker is automatically polling for queued jobs."
 echo ""

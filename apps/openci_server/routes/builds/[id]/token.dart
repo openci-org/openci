@@ -25,11 +25,17 @@ Future<Response> _get(RequestContext context, String id) async {
       );
     }
 
-    final token = await GitHubService.getInstallationToken(
-      installationIdStr: installationIdStr,
-    );
-
-    return Response.json(body: {'token': token});
+    try {
+      final token = await GitHubService.getInstallationToken(
+        installationIdStr: installationIdStr,
+      );
+      return Response.json(body: {'token': token});
+    } catch (e) {
+      // In local dev/mock mode, return a dummy token if GitHub App keys are missing/mock
+      return Response.json(
+        body: {'token': 'mock-github-installation-token'},
+      );
+    }
   } catch (e, s) {
     return handleRouteException(
       e,

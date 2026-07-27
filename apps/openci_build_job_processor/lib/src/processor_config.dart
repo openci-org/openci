@@ -12,6 +12,9 @@ class ProcessorConfig {
     this.sentryDsn,
     this.maxConcurrentJobs = 3,
     this.useOrchard = false,
+    this.orchardApiUrl = 'http://127.0.0.1:6120',
+    this.orchardServiceAccountName = 'openci',
+    this.orchardServiceAccountToken = '',
   });
 
   final String serverUrl;
@@ -53,6 +56,35 @@ class ProcessorConfig {
         ? (Platform.environment['TAILSCALE_TAILNET'] ?? '')
         : getRequired('TAILSCALE_TAILNET');
 
+    final orchardApiUrl =
+        Platform.environment['ORCHARD_API_URL'] ??
+        'https://orchard-controller:6120';
+    var orchardServiceAccountName =
+        Platform.environment['ORCHARD_SERVICE_ACCOUNT_NAME'] ?? 'openci';
+    var orchardServiceAccountToken =
+        Platform.environment['ORCHARD_SERVICE_ACCOUNT_TOKEN'] ?? '';
+
+    if (orchardServiceAccountToken.isEmpty ||
+        orchardServiceAccountToken.contains('10nv')) {
+      final homeDir = Platform.environment['HOME'] ?? '';
+      final orchardConfigFile = File('$homeDir/.orchard/orchard.yml');
+      if (orchardConfigFile.existsSync()) {
+        final content = orchardConfigFile.readAsStringSync();
+        final nameMatch = RegExp(
+          r'serviceAccountName:\s*(.+)',
+        ).firstMatch(content);
+        if (nameMatch != null) {
+          orchardServiceAccountName = nameMatch.group(1)!.trim();
+        }
+        final tokenMatch = RegExp(
+          r'serviceAccountToken:\s*(.+)',
+        ).firstMatch(content);
+        if (tokenMatch != null) {
+          orchardServiceAccountToken = tokenMatch.group(1)!.trim();
+        }
+      }
+    }
+
     return ProcessorConfig(
       serverUrl: getRequired('OPENCI_SERVER_URL'),
       runsOnPattern: getRequired('OPENCI_RUNS_ON_PATTERN'),
@@ -64,8 +96,14 @@ class ProcessorConfig {
       sentryDsn: Platform.environment['SENTRY_DSN'],
       maxConcurrentJobs: maxConcurrentJobs,
       useOrchard: useOrchard,
+      orchardApiUrl: orchardApiUrl,
+      orchardServiceAccountName: orchardServiceAccountName,
+      orchardServiceAccountToken: orchardServiceAccountToken,
     );
   }
 
   final bool useOrchard;
+  final String orchardApiUrl;
+  final String orchardServiceAccountName;
+  final String orchardServiceAccountToken;
 }

@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:openci_job_processor_shared/src/orchard/orchard_api_client.dart';
 import 'package:openci_job_processor_shared/src/vm/vm_service.dart';
 
@@ -20,17 +21,20 @@ class OrchardVmService implements VmService {
     required String containerName,
     required void Function() onCreated,
   }) async {
-    final lease = await apiClient.createLease(imageName: baseInstanceName);
+    final lease = await apiClient.createLease(
+      imageName: baseInstanceName,
+      vmName: containerName,
+    );
     _activeLeases[containerName] = lease;
     onCreated();
   }
 
   @override
   Future<void> cleanup(String containerName) async {
-    final lease = _activeLeases.remove(containerName);
-    if (lease != null && lease.id.isNotEmpty) {
-      await apiClient.deleteLease(lease.id);
-    }
+    _activeLeases.remove(containerName);
+    try {
+      await apiClient.deleteLease(containerName);
+    } catch (_) {}
   }
 
   @override

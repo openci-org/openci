@@ -1,5 +1,8 @@
 import 'dart:convert';
+import 'dart:io';
+
 import 'package:http/http.dart' as http;
+import 'package:http/io_client.dart';
 
 class OrchardLease {
   final String id;
@@ -38,7 +41,13 @@ class OrchardApiClient {
     required this.serviceAccountName,
     required this.serviceAccountToken,
     http.Client? httpClient,
-  }) : _httpClient = httpClient ?? http.Client();
+  }) : _httpClient = httpClient ?? _createHttpClient();
+
+  static http.Client _createHttpClient() {
+    final ioClient = HttpClient()
+      ..badCertificateCallback = (cert, host, port) => true;
+    return IOClient(ioClient);
+  }
 
   Map<String, String> get _headers {
     final credentials = '$serviceAccountName:$serviceAccountToken';
@@ -64,13 +73,16 @@ class OrchardApiClient {
 
   Future<OrchardLease> createLease({
     required String imageName,
+    String? vmName,
     int? cpuCount,
     int? memoryGb,
   }) async {
-    final uri = Uri.parse('$baseUrl/v1/leases');
-    final payload = <String, dynamic>{'image': imageName};
-    if (cpuCount != null) payload['cpus'] = cpuCount;
-    if (memoryGb != null) payload['memory_gb'] = memoryGb;
+    final targetName =
+        vmName ?? 'openci-vm-${DateTime.now().millisecondsSinceEpoch}';
+    final uri = Uri.parse('$baseUrl/v1/vms');
+    final payload = <String, dynamic>{'name': targetName, 'image': imageName};
+    if (cpuCount != null) payload['cpu'] = cpuCount;
+    if (memoryGb != null) payload['memory'] = memoryGb * 1024;
 
     final response = await _httpClient.post(
       uri,
@@ -83,13 +95,13 @@ class OrchardApiClient {
       return OrchardLease.fromJson(json);
     } else {
       throw Exception(
-        'Failed to create Orchard lease: ${response.statusCode} ${response.body}',
+        'Failed to create Orchard VM: ${response.statusCode} ${response.body}',
       );
     }
   }
 
   Future<OrchardLease> getLease(String leaseId) async {
-    final uri = Uri.parse('$baseUrl/v1/leases/$leaseId');
+    final uri = Uri.parse('$baseUrl/v1/vms/$leaseId');
     final response = await _httpClient.get(uri, headers: _headers);
 
     if (response.statusCode >= 200 && response.statusCode < 300) {
@@ -97,18 +109,18 @@ class OrchardApiClient {
       return OrchardLease.fromJson(json);
     } else {
       throw Exception(
-        'Failed to get Orchard lease ($leaseId): ${response.statusCode} ${response.body}',
+        'Failed to get Orchard VM ($leaseId): ${response.statusCode} ${response.body}',
       );
     }
   }
 
   Future<void> deleteLease(String leaseId) async {
-    final uri = Uri.parse('$baseUrl/v1/leases/$leaseId');
+    final uri = Uri.parse('$baseUrl/v1/vms/$leaseId');
     final response = await _httpClient.delete(uri, headers: _headers);
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw Exception(
-        'Failed to delete Orchard lease ($leaseId): ${response.statusCode} ${response.body}',
+        'Failed to delete Orchard VM ($leaseId): ${response.statusCode} ${response.body}',
       );
     }
   }

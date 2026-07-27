@@ -5,6 +5,7 @@ part of 'seed_dao.dart';
 // ignore_for_file: type=lint
 mixin _$SeedDaoMixin on DatabaseAccessor<AppDatabase> {
   $TeamsTable get teams => attachedDatabase.teams;
+  $BuildJobsTable get buildJobs => attachedDatabase.buildJobs;
   SeedDaoManager get managers => SeedDaoManager(this);
 }
 
@@ -13,4 +14,6 @@ class SeedDaoManager {
   SeedDaoManager(this._db);
   $$TeamsTableTableManager get teams =>
       $$TeamsTableTableManager(_db.attachedDatabase, _db.teams);
+  $$BuildJobsTableTableManager get buildJobs =>
+      $$BuildJobsTableTableManager(_db.attachedDatabase, _db.buildJobs);
 }

@@ -5,6 +5,7 @@ import 'package:lume_dart/lume_dart.dart';
 import 'package:openci_build_job_processor/openci_build_job_processor.dart';
 import 'package:openci_build_job_processor/src/logging/build_job_logger.dart';
 import 'package:openci_build_job_processor/src/lume/lume_ssh_service.dart';
+import 'package:openci_job_processor_shared/openci_job_processor_shared.dart';
 import 'package:openci_shared/openci_shared.dart';
 import 'package:sentry/sentry.dart';
 
@@ -35,7 +36,16 @@ class JobPoller {
        _sshService = sshService ?? LumeSshService(),
        _baseVmName = config.baseVmName,
        _maxConcurrentJobs = config.maxConcurrentJobs,
-       _useOrchard = config.useOrchard {
+       _useOrchard = config.useOrchard,
+       _orchardVmService = config.useOrchard
+           ? OrchardVmService(
+               apiClient: OrchardApiClient(
+                 baseUrl: config.orchardApiUrl,
+                 serviceAccountName: config.orchardServiceAccountName,
+                 serviceAccountToken: config.orchardServiceAccountToken,
+               ),
+             )
+           : null {
     setupBuildJobLogger(
       serverUrl: config.serverUrl,
       internalApiKey: config.internalApiKey,
@@ -52,6 +62,7 @@ class JobPoller {
   final LumeSshService _sshService;
   final String _baseVmName;
   final bool _useOrchard;
+  final VmService? _orchardVmService;
   int _activeJobsCount = 0;
   final int _maxConcurrentJobs;
   final _activeJobs = <String, ({DateTime startTime, String host})>{};
@@ -108,6 +119,7 @@ class JobPoller {
           lumeService: _lumeService,
           baseVmName: _baseVmName,
           useOrchard: _useOrchard,
+          orchardVmService: _orchardVmService,
         );
 
         final runId = executor.generateRunId();
@@ -164,7 +176,7 @@ class JobPoller {
 
   Future<String?> _findAvailableLumeUrl() async {
     if (_useOrchard) {
-      return 'http://127.0.0.1:6120';
+      return _orchardVmService != null ? 'orchard' : 'http://127.0.0.1:6120';
     }
     final ips = await _tailscaleService.getActiveMacOsIps();
     _log.info('Detected Tailscale macOS IPs: $ips');
