@@ -9,15 +9,8 @@ Future<Response> onRequest(RequestContext context) async {
   }
 
   final db = context.read<AppDatabase>();
-  final nowEpoch = DateTime.now().millisecondsSinceEpoch ~/ 1000;
-
   try {
-    // Ensure test-team with installation_id 12345678 exists
-    await db.customStatement('''
-      INSERT INTO teams (id, name, installation_ids, ai_enabled, run_number, created_at, updated_at)
-      VALUES ('test-team', 'Test Team', '[12345678]', true, 1, $nowEpoch, $nowEpoch)
-      ON CONFLICT (id) DO NOTHING;
-    ''');
+    await db.seedDao.ensureTestTeam();
 
     return Response.json(
       body: {

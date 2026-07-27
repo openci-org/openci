@@ -7060,6 +7060,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final UdidRequestDao udidRequestDao = UdidRequestDao(
     this as AppDatabase,
   );
+  late final SeedDao seedDao = SeedDao(this as AppDatabase);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();

@@ -13,6 +13,7 @@ import 'package:openci_server/device/udid_request_table.dart';
 import 'package:openci_server/processed_webhook/processed_webhook_table.dart';
 import 'package:openci_server/secret/secret_dao.dart';
 import 'package:openci_server/secret/secret_table.dart';
+import 'package:openci_server/seed/seed_dao.dart';
 import 'package:openci_server/team/invitation_table.dart';
 import 'package:openci_server/team/team_dao.dart';
 import 'package:openci_server/team/team_table.dart';
@@ -51,6 +52,7 @@ part 'database.g.dart';
     WorkerHeartbeatDao,
     DeviceDao,
     UdidRequestDao,
+    SeedDao,
   ],
 )
 class AppDatabase extends _$AppDatabase {
