@@ -9,7 +9,6 @@ workspace:
   - apps/openci_build_job_processor
   - apps/openci_build_job_processor_linux
   - apps/openci_server
-  - apps/openci_worker_cli
   - packages/app_minimizer_plus
   - packages/app_minimizer_plus/example
   - packages/lume_dart

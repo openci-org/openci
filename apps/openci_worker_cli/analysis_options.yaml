@@ -1,7 +1,0 @@
-include: package:lints/recommended.yaml
-
-linter:
-  rules:
-    omit_local_variable_types: true
-    require_trailing_commas: true
-    unawaited_futures: true
