@@ -4,11 +4,39 @@ import 'package:dart_frog/dart_frog.dart';
 import 'package:openci_server/database.dart';
 
 Future<Response> onRequest(RequestContext context) async {
+  final db = context.read<AppDatabase>();
+
+  if (context.request.method == HttpMethod.delete) {
+    try {
+      final teamId = context.request.uri.queryParameters['teamId'];
+      if (teamId != null && teamId.isNotEmpty) {
+        await (db.delete(
+          db.buildJobs,
+        )..where((j) => j.teamId.equals(teamId))).go();
+      } else {
+        await db.delete(db.buildJobs).go();
+      }
+      return Response.json(
+        body: {
+          'success': true,
+          'message': 'Build jobs cleared successfully',
+        },
+      );
+    } catch (e) {
+      return Response.json(
+        statusCode: HttpStatus.internalServerError,
+        body: {
+          'success': false,
+          'error': 'Failed to clear build jobs: $e',
+        },
+      );
+    }
+  }
+
   if (context.request.method != HttpMethod.post) {
     return Response(statusCode: HttpStatus.methodNotAllowed);
   }
 
-  final db = context.read<AppDatabase>();
   try {
     Map<String, dynamic> bodyJson = {};
     try {
