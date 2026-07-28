@@ -55,6 +55,7 @@ Future<Response> onRequest(RequestContext context) async {
     );
 
     final customScript = bodyJson['customScript'] as String?;
+    final workflowYaml = bodyJson['workflowYaml'] as String?;
 
     final job = await db.seedDao.createTestBuildJob(
       runsOn: bodyJson['runsOn'] as String? ?? 'macos-latest',
@@ -83,6 +84,7 @@ Future<Response> onRequest(RequestContext context) async {
         'repo': job.repo,
         'branch': job.branch,
         'workflowFileName': job.workflowFileName,
+        'workflowYaml': ?workflowYaml,
       },
     );
   } catch (e) {

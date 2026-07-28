@@ -553,7 +553,6 @@ class JobExecutor {
 
     await _lumeService.cloneVm(lumeUrl, baseVmName, vmName);
     onVmCreated();
-
     await _lumeService.runVm(lumeUrl, vmName);
   }
 

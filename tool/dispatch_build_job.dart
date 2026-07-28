@@ -26,22 +26,60 @@ void main(List<String> args) async {
           .replaceFirst('--team-id=', '')
           .trim();
   final teamId = parsedTeamId.isNotEmpty ? parsedTeamId : 'test-team';
+  final customScriptArg = args
+      .firstWhere((arg) => arg.startsWith('--script='), orElse: () => '')
+      .replaceFirst('--script=', '')
+      .trim();
+
   final customScript =
       Platform.environment['CUSTOM_SCRIPT'] ??
-      (args
-              .where(
-                (a) =>
-                    !a.startsWith('--user-id=') && !a.startsWith('--team-id='),
-              )
-              .isNotEmpty
-          ? args
-                .where(
-                  (a) =>
-                      !a.startsWith('--user-id=') &&
-                      !a.startsWith('--team-id='),
-                )
-                .join(' ')
-          : null);
+      (customScriptArg.isNotEmpty
+          ? customScriptArg
+          : (args
+                    .where(
+                      (a) =>
+                          !a.startsWith('--user-id=') &&
+                          !a.startsWith('--team-id=') &&
+                          !a.startsWith('--script='),
+                    )
+                    .isNotEmpty
+                ? args
+                      .where(
+                        (a) =>
+                            !a.startsWith('--user-id=') &&
+                            !a.startsWith('--team-id=') &&
+                            !a.startsWith('--script='),
+                      )
+                      .join(' ')
+                : 'echo "🎉 Executing OpenCI Local Test Build..." && sleep 2 && echo "✅ Build Completed Successfully!"'));
+
+  final yamlArg = args
+      .firstWhere((arg) => arg.startsWith('--yaml='), orElse: () => '')
+      .replaceFirst('--yaml=', '')
+      .trim();
+
+  final workflowYaml =
+      Platform.environment['WORKFLOW_YAML'] ??
+      (yamlArg.isNotEmpty
+          ? yamlArg
+          : '''
+name: Test Workflow
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build:
+    name: Build & Test
+    runs-on: macos-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run OpenCI Test Script
+        run: |
+          ${customScript.replaceAll('\n', '\n          ')}
+''');
 
   final timestamp = DateTime.now().millisecondsSinceEpoch;
   final commitSha = 'sha-${timestamp.toString().substring(5)}';
@@ -54,8 +92,8 @@ void main(List<String> args) async {
 
   try {
     final payload = <String, dynamic>{
-      if (customScript != null && customScript.isNotEmpty)
-        'customScript': customScript,
+      if (customScript.isNotEmpty) 'customScript': customScript,
+      'workflowYaml': workflowYaml,
       'userId': userId,
       if (teamId.isNotEmpty) 'teamId': teamId,
       'commitSha': commitSha,
