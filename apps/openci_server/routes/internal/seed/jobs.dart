@@ -17,6 +17,15 @@ Future<Response> onRequest(RequestContext context) async {
       // Body is optional
     }
 
+    final userId =
+        bodyJson['userId'] as String? ?? bodyJson['userUid'] as String?;
+    final teamId = bodyJson['teamId'] as String? ?? 'test-team';
+
+    await db.seedDao.ensureTestTeam(
+      teamId: teamId,
+      userId: userId,
+    );
+
     final customScript = bodyJson['customScript'] as String?;
 
     final job = await db.seedDao.createTestBuildJob(
@@ -25,7 +34,7 @@ Future<Response> onRequest(RequestContext context) async {
       repo: bodyJson['repo'] as String? ?? 'openci',
       workflowName: bodyJson['workflowName'] as String? ?? 'Test Workflow',
       workflowFileName: bodyJson['workflowFileName'] as String? ?? 'ci.yml',
-      teamId: bodyJson['teamId'] as String? ?? 'test-team',
+      teamId: teamId,
       installationId: bodyJson['installationId'] as String? ?? '12345678',
       commitSha: bodyJson['commitSha'] as String? ?? 'main',
       commitMessage:

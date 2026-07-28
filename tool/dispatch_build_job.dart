@@ -10,9 +10,43 @@ void main(List<String> args) async {
   final webhookSecret =
       Platform.environment['GITHUB_WEBHOOK_SECRET'] ??
       'your-github-webhook-secret-here';
+  final parsedUserId =
+      Platform.environment['USER_ID'] ??
+      Platform.environment['USER_UID'] ??
+      args
+          .firstWhere((arg) => arg.startsWith('--user-id='), orElse: () => '')
+          .replaceFirst('--user-id=', '')
+          .trim();
+  final userId = parsedUserId.isNotEmpty ? parsedUserId : 'test-uid';
+
+  final parsedTeamId =
+      Platform.environment['TEAM_ID'] ??
+      args
+          .firstWhere((arg) => arg.startsWith('--team-id='), orElse: () => '')
+          .replaceFirst('--team-id=', '')
+          .trim();
+  final teamId = parsedTeamId.isNotEmpty ? parsedTeamId : 'test-team';
   final customScript =
       Platform.environment['CUSTOM_SCRIPT'] ??
-      (args.isNotEmpty ? args.join(' ') : null);
+      (args
+              .where(
+                (a) =>
+                    !a.startsWith('--user-id=') && !a.startsWith('--team-id='),
+              )
+              .isNotEmpty
+          ? args
+                .where(
+                  (a) =>
+                      !a.startsWith('--user-id=') &&
+                      !a.startsWith('--team-id='),
+                )
+                .join(' ')
+          : null);
+
+  final timestamp = DateTime.now().millisecondsSinceEpoch;
+  final commitSha = 'sha-${timestamp.toString().substring(5)}';
+  final commitMessage =
+      'feat: 🎉 Build job dispatched at ${DateTime.now().toIso8601String().substring(11, 19)}';
 
   print(
     '🚀 Step 1: Creating test build job via API ($serverUrl/internal/seed/jobs)...',
@@ -22,6 +56,10 @@ void main(List<String> args) async {
     final payload = <String, dynamic>{
       if (customScript != null && customScript.isNotEmpty)
         'customScript': customScript,
+      'userId': userId,
+      if (teamId.isNotEmpty) 'teamId': teamId,
+      'commitSha': commitSha,
+      'commitMessage': commitMessage,
     };
 
     final response = await http.post(
@@ -47,7 +85,7 @@ void main(List<String> args) async {
     '\n🚀 Step 2: Dispatching GitHub Push Webhook to $serverUrl/webhook...',
   );
 
-  final deliveryId = 'delivery-${DateTime.now().millisecondsSinceEpoch}';
+  final deliveryId = 'delivery-$timestamp';
   final payload = {
     'ref': 'refs/heads/main',
     'repository': {
@@ -56,8 +94,8 @@ void main(List<String> args) async {
     },
     'installation': {'id': 12345678},
     'head_commit': {
-      'id': 'main',
-      'message': 'feat: 🎉 Hello World from OpenCI Local Orchard via API!',
+      'id': commitSha,
+      'message': commitMessage,
     },
   };
 

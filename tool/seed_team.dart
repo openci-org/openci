@@ -6,25 +6,27 @@ import 'package:http/http.dart' as http;
 void main(List<String> args) async {
   final serverUrl =
       Platform.environment['OPENCI_SERVER_URL'] ?? 'http://localhost:8080';
-  final userId =
+  final parsedUserId =
       Platform.environment['USER_ID'] ??
       Platform.environment['USER_UID'] ??
       args
           .firstWhere((arg) => arg.startsWith('--user-id='), orElse: () => '')
           .replaceFirst('--user-id=', '')
           .trim();
-  final teamId =
+  final userId = parsedUserId.isNotEmpty ? parsedUserId : 'test-uid';
+  final parsedTeamId =
       Platform.environment['TEAM_ID'] ??
       args
           .firstWhere((arg) => arg.startsWith('--team-id='), orElse: () => '')
           .replaceFirst('--team-id=', '')
           .trim();
+  final teamId = parsedTeamId.isNotEmpty ? parsedTeamId : 'test-team';
 
   print('🌱 Ensuring test team via API ($serverUrl/internal/seed/teams)...');
 
   try {
     final payload = <String, dynamic>{
-      if (userId.isNotEmpty) 'userId': userId,
+      'userId': userId,
       if (teamId.isNotEmpty) 'teamId': teamId,
     };
 
