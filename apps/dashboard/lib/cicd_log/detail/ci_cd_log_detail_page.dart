@@ -68,6 +68,52 @@ class CicdLogDetailPage extends ConsumerWidget {
           icon: const Icon(Icons.close_rounded),
           onPressed: () => Navigator.pop(context),
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.copy_all_rounded),
+            tooltip: '全体のログをコピー',
+            onPressed: () async {
+              try {
+                final allLogs = await ref.read(
+                  allBuildStepLogsProvider(
+                    buildJobId: buildJobId,
+                    runId: runId,
+                  ).future,
+                );
+                if (allLogs.isEmpty) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('コピーするログがありません'),
+                        duration: Duration(seconds: 2),
+                      ),
+                    );
+                  }
+                  return;
+                }
+                await Clipboard.setData(ClipboardData(text: allLogs));
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('全体のログをクリップボードにコピーしました'),
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('ログのコピーに失敗しました: $e'),
+                      duration: const Duration(seconds: 2),
+                    ),
+                  );
+                }
+              }
+            },
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
       body: stepsAsync.when(
         data: (steps) {

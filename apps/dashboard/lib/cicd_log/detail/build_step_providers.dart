@@ -38,3 +38,18 @@ Future<List<String>> buildStepLogDetail(
   }
   return response.body!;
 }
+
+@riverpod
+Future<String> allBuildStepLogs(
+  Ref ref, {
+  required String buildJobId,
+  required String runId,
+}) async {
+  if (runId.isEmpty) return '';
+  final api = ref.watch(openciApiServiceProvider);
+  final response = await api.getAllBuildRunLogs(buildJobId, runId);
+  if (!response.isSuccessful || response.body == null) {
+    throw Exception('Failed to load all logs: ${response.error}');
+  }
+  return response.body!.join('\n');
+}

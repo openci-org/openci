@@ -31,28 +31,6 @@ void main(List<String> args) async {
       .replaceFirst('--script=', '')
       .trim();
 
-  final customScript =
-      Platform.environment['CUSTOM_SCRIPT'] ??
-      (customScriptArg.isNotEmpty
-          ? customScriptArg
-          : (args
-                    .where(
-                      (a) =>
-                          !a.startsWith('--user-id=') &&
-                          !a.startsWith('--team-id=') &&
-                          !a.startsWith('--script='),
-                    )
-                    .isNotEmpty
-                ? args
-                      .where(
-                        (a) =>
-                            !a.startsWith('--user-id=') &&
-                            !a.startsWith('--team-id=') &&
-                            !a.startsWith('--script='),
-                      )
-                      .join(' ')
-                : 'echo "🎉 Executing OpenCI Local Test Build..." && sleep 2 && echo "✅ Build Completed Successfully!"'));
-
   final yamlArg = args
       .firstWhere((arg) => arg.startsWith('--yaml='), orElse: () => '')
       .replaceFirst('--yaml=', '')
@@ -78,8 +56,13 @@ jobs:
 
       - name: Run OpenCI Test Script
         run: |
-          ${customScript.replaceAll('\n', '\n          ')}
+          echo "🎉 Step 1: OpenCI Test"
+          sleep 3
+          echo "💥 Step 2: Simulating Build Failure..."
+          exit 1
 ''');
+
+  final customScript = Platform.environment['CUSTOM_SCRIPT'] ?? customScriptArg;
 
   final timestamp = DateTime.now().millisecondsSinceEpoch;
   final commitSha = 'sha-${timestamp.toString().substring(5)}';

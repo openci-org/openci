@@ -189,3 +189,85 @@ final class BuildStepLogDetailFamily extends $Family
   @override
   String toString() => r'buildStepLogDetailProvider';
 }
+
+@ProviderFor(allBuildStepLogs)
+final allBuildStepLogsProvider = AllBuildStepLogsFamily._();
+
+final class AllBuildStepLogsProvider
+    extends $FunctionalProvider<AsyncValue<String>, String, FutureOr<String>>
+    with $FutureModifier<String>, $FutureProvider<String> {
+  AllBuildStepLogsProvider._({
+    required AllBuildStepLogsFamily super.from,
+    required ({String buildJobId, String runId}) super.argument,
+  }) : super(
+         retry: null,
+         name: r'allBuildStepLogsProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
+
+  @override
+  String debugGetCreateSourceHash() => _$allBuildStepLogsHash();
+
+  @override
+  String toString() {
+    return r'allBuildStepLogsProvider'
+        ''
+        '$argument';
+  }
+
+  @$internal
+  @override
+  $FutureProviderElement<String> $createElement($ProviderPointer pointer) =>
+      $FutureProviderElement(pointer);
+
+  @override
+  FutureOr<String> create(Ref ref) {
+    final argument = this.argument as ({String buildJobId, String runId});
+    return allBuildStepLogs(
+      ref,
+      buildJobId: argument.buildJobId,
+      runId: argument.runId,
+    );
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is AllBuildStepLogsProvider && other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$allBuildStepLogsHash() => r'4c876c582c0ba0d1652eb426565362c450ee4998';
+
+final class AllBuildStepLogsFamily extends $Family
+    with
+        $FunctionalFamilyOverride<
+          FutureOr<String>,
+          ({String buildJobId, String runId})
+        > {
+  AllBuildStepLogsFamily._()
+    : super(
+        retry: null,
+        name: r'allBuildStepLogsProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  AllBuildStepLogsProvider call({
+    required String buildJobId,
+    required String runId,
+  }) => AllBuildStepLogsProvider._(
+    argument: (buildJobId: buildJobId, runId: runId),
+    from: this,
+  );
+
+  @override
+  String toString() => r'allBuildStepLogsProvider';
+}

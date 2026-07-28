@@ -130,10 +130,9 @@ abstract class OpenCiApiService extends ChopperService {
   );
 
   @GET(path: '/builds/{id}/runs/{runId}/logs', timeout: _timeout)
-  Future<Response<String>> getBuildJobLogs(
+  Future<Response<List<String>>> getAllBuildRunLogs(
     @Path('id') String buildJobId,
     @Path('runId') String runId,
-    @Query('limit') String? limit,
   );
 
   @GET(path: '/builds/{id}/runs/{runId}/steps', timeout: _timeout)

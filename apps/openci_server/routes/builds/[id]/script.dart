@@ -31,6 +31,23 @@ Future<Response> _get(RequestContext context, String id) async {
 }
 
 String _buildBuildScript(DriftBuildJob buildJob) {
+  final workflowYaml = buildJob.workflowYaml;
+  if (workflowYaml != null && workflowYaml.isNotEmpty) {
+    final runs = <String>[];
+    final runMatches = RegExp(
+      r'run:\s*\|?\s*\n?([^\n]+(?:\n[ \t]+[^\n]+)*)',
+    ).allMatches(workflowYaml);
+    for (final match in runMatches) {
+      final scriptStr = match.group(1)?.trim();
+      if (scriptStr != null && scriptStr.isNotEmpty) {
+        runs.add(scriptStr);
+      }
+    }
+    if (runs.isNotEmpty) {
+      return runs.join('\n\n');
+    }
+  }
+
   final customScript = buildJob.customScript;
   if (customScript != null && customScript.isNotEmpty) {
     return customScript;

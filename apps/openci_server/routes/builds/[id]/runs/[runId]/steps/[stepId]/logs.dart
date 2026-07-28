@@ -27,9 +27,9 @@ Future<Response> _get(
 ) async {
   try {
     final db = context.read<AppDatabase>();
-    final driftLogs = await db.buildJobDao.getBuildStepLogs(stepId);
-
-    final rawText = driftLogs.map((l) => l.logContent).join('');
+    final dbKey = stepId.startsWith(runId) ? stepId : '${runId}_$stepId';
+    final stepLogs = await db.buildJobDao.getBuildStepLogs(dbKey);
+    final rawText = stepLogs.map((l) => l.logContent).join('');
     final List<String> lines = rawText
         .split('\n')
         .where((line) => line.isNotEmpty)
@@ -67,7 +67,8 @@ Future<Response> _post(
     }
 
     if (logBuffer.isNotEmpty) {
-      await db.buildJobDao.insertBuildStepLog(stepId, logBuffer.toString());
+      final dbKey = stepId.startsWith(runId) ? stepId : '${runId}_$stepId';
+      await db.buildJobDao.insertBuildStepLog(dbKey, logBuffer.toString());
     }
 
     return Response.json(body: {'success': true});

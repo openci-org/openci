@@ -83,6 +83,7 @@ class SeedDao extends DatabaseAccessor<AppDatabase> with _$SeedDaoMixin {
     String commitMessage = 'feat: Test build job created by seed',
     String branch = 'main',
     String? customScript,
+    String? workflowYaml,
   }) async {
     await ensureTestTeam();
     final now = DateTime.now().toUtc();
@@ -102,6 +103,7 @@ class SeedDao extends DatabaseAccessor<AppDatabase> with _$SeedDaoMixin {
       branch: branch,
       runsOn: runsOn,
       customScript: customScript,
+      workflowYaml: workflowYaml,
       createdAt: now,
       updatedAt: now,
     );

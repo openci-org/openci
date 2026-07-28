@@ -64,6 +64,13 @@ class AppDatabase extends _$AppDatabase {
   @override
   MigrationStrategy get migration {
     return MigrationStrategy(
+      beforeOpen: (details) async {
+        try {
+          await customStatement(
+            'ALTER TABLE build_jobs ADD COLUMN IF NOT EXISTS workflow_yaml TEXT;',
+          );
+        } catch (_) {}
+      },
       onCreate: (Migrator m) async {
         await m.createAll();
       },

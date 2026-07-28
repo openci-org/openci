@@ -93,7 +93,12 @@ class JobExecutor {
       try {
         await retryOptions.retry(
           () async {
-            _log.info('[$vmName] Preparing VM (cloning & starting)...');
+            await logInfo(
+              job.id,
+              runId,
+              'Preparing VM (cloning & starting)...',
+              stepId: 'prepare_vm',
+            );
             await _prepareVm(
               lumeUrl: lumeUrl,
               baseVmName: _baseVmName,
@@ -102,8 +107,11 @@ class JobExecutor {
             );
 
             if (_useOrchard) {
-              _log.info(
-                '[$vmName] Orchard VM created and scheduled by Controller.',
+              await logInfo(
+                job.id,
+                runId,
+                'Orchard VM created and scheduled by Controller.',
+                stepId: 'prepare_vm',
               );
               final dummyVm = LumeVM(
                 name: vmName,
@@ -206,8 +214,11 @@ class JobExecutor {
       );
 
       try {
-        _log.info(
-          '[$vmName] Checking out repository ${job.owner}/${job.repo}@${job.commitSha}...',
+        await logInfo(
+          job.id,
+          runId,
+          'Checking out repository ${job.owner}/${job.repo}@${job.commitSha}...',
+          stepId: 'checkout',
         );
         await _checkoutRepository(
           ip: ip,
@@ -219,6 +230,12 @@ class JobExecutor {
           githubBaseUrl: job.githubBaseUrl,
           pullRequestNumber: job.pullRequestNumber,
           jumpHost: jumpHost,
+        );
+        await logInfo(
+          job.id,
+          runId,
+          'Repository checkout completed successfully.',
+          stepId: 'checkout',
         );
 
         final checkoutEnd = DateTime.now().toUtc();
@@ -249,22 +266,9 @@ class JobExecutor {
         rethrow;
       }
 
-      final secretsStart = DateTime.now().toUtc();
       var actScript = '';
-      await sendStepStatusUpdate(
-        buildJobId: job.id,
-        runId: runId,
-        stepId: 'configure_secrets',
-        name: 'Configure secrets and script',
-        status: BuildJobStatus.IN_PROGRESS.name,
-        durationMs: 0,
-        stepOrder: 3,
-        createdAt: secretsStart.toIso8601String(),
-        updatedAt: secretsStart.toIso8601String(),
-      );
-
       try {
-        _log.info('[$vmName] Fetching secrets...');
+        _log.info('[$vmName] Fetching secrets and build configurations...');
         final secretFileContent = await fetchReferencedSecrets(job.id);
 
         if (!_useOrchard) {
@@ -316,36 +320,31 @@ class JobExecutor {
             throw Exception('Failed to chmod act script. Exit code: $exitCode');
           }
         }
-
-        final secretsEnd = DateTime.now().toUtc();
-        await sendStepStatusUpdate(
-          buildJobId: job.id,
-          runId: runId,
-          stepId: 'configure_secrets',
-          name: 'Configure secrets and script',
-          status: BuildJobStatus.SUCCESS.name,
-          durationMs: secretsEnd.difference(secretsStart).inMilliseconds,
-          stepOrder: 3,
-          createdAt: secretsStart.toIso8601String(),
-          updatedAt: secretsEnd.toIso8601String(),
-        );
       } catch (e) {
-        final secretsEnd = DateTime.now().toUtc();
-        await sendStepStatusUpdate(
-          buildJobId: job.id,
-          runId: runId,
-          stepId: 'configure_secrets',
-          name: 'Configure secrets and script',
-          status: BuildJobStatus.FAILURE.name,
-          durationMs: secretsEnd.difference(secretsStart).inMilliseconds,
-          stepOrder: 3,
-          createdAt: secretsStart.toIso8601String(),
-          updatedAt: secretsStart.toIso8601String(),
-        );
+        _log.warning('[$vmName] Failed to prepare secrets/script: $e');
         rethrow;
       }
 
-      await logInfo(job.id, runId, 'Running workflow with act...');
+      final workflowStart = DateTime.now().toUtc();
+      const stepName = 'Run OpenCI Test Script';
+      await sendStepStatusUpdate(
+        buildJobId: job.id,
+        runId: runId,
+        stepId: 'run_workflow',
+        name: stepName,
+        status: BuildJobStatus.IN_PROGRESS.name,
+        durationMs: 0,
+        stepOrder: 3,
+        createdAt: workflowStart.toIso8601String(),
+        updatedAt: workflowStart.toIso8601String(),
+      );
+
+      await logInfo(
+        job.id,
+        runId,
+        'Executing $stepName...',
+        stepId: 'run_workflow',
+      );
 
       BuildJobStatus finalStatus = BuildJobStatus.SUCCESS;
 
@@ -356,6 +355,7 @@ class JobExecutor {
               job.id,
               runId,
               '[Orchard] Executing build script: $actScript',
+              stepId: 'run_workflow',
             );
 
             try {
@@ -364,26 +364,42 @@ class JobExecutor {
                   .transform(utf8.decoder)
                   .transform(const LineSplitter())
                   .listen((line) {
-                    logInfo(job.id, runId, line);
+                    logInfo(job.id, runId, line, stepId: 'run_workflow');
                   });
               process.stderr
                   .transform(utf8.decoder)
                   .transform(const LineSplitter())
                   .listen((line) {
-                    logInfo(job.id, runId, line);
+                    logInfo(job.id, runId, line, stepId: 'run_workflow');
                   });
               final exitCode = await process.exitCode;
               if (exitCode != 0) {
                 finalStatus = BuildJobStatus.FAILURE;
               }
             } catch (e) {
+              finalStatus = BuildJobStatus.FAILURE;
               await logInfo(
                 job.id,
                 runId,
-                '[Orchard] Script execution error: $e',
+                'Failed to execute script: $e',
+                stepId: 'run_workflow',
               );
             }
           }
+
+          final workflowEnd = DateTime.now().toUtc();
+          await sendStepStatusUpdate(
+            buildJobId: job.id,
+            runId: runId,
+            stepId: 'run_workflow',
+            name: stepName,
+            status: finalStatus.name,
+            durationMs: workflowEnd.difference(workflowStart).inMilliseconds,
+            stepOrder: 3,
+            createdAt: workflowStart.toIso8601String(),
+            updatedAt: workflowEnd.toIso8601String(),
+          );
+
           await logInfo(
             job.id,
             runId,

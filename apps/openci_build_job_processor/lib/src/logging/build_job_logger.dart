@@ -38,10 +38,11 @@ class LogEntry {
 class _BufferGroup {
   final String buildJobId;
   final String runId;
+  final String? stepId;
   List<LogEntry> entries = [];
   Timer? timer;
 
-  _BufferGroup({required this.buildJobId, required this.runId});
+  _BufferGroup({required this.buildJobId, required this.runId, this.stepId});
 }
 
 String? _serverUrl;
@@ -79,51 +80,67 @@ void setupBuildJobLogger({
   });
 }
 
-_BufferGroup _getBufferGroup(String buildJobId, String runId) {
-  final key = '$buildJobId:$runId';
+_BufferGroup _getBufferGroup(
+  String buildJobId,
+  String runId, {
+  String? stepId,
+}) {
+  final key = '$buildJobId:$runId:${stepId ?? ''}';
   return _bufferGroups.putIfAbsent(
     key,
-    () => _BufferGroup(buildJobId: buildJobId, runId: runId),
+    () => _BufferGroup(buildJobId: buildJobId, runId: runId, stepId: stepId),
   );
 }
 
 Future<void> _sendLogsWithRetry(
   String buildJobId,
   String runId,
+  String? stepId,
   List<LogEntry> logs,
 ) async {
   final payloadLogs = logs.map((e) => e.toJson()).toList();
 
   final baseServerUrl = _serverUrl ?? 'http://localhost:8080';
-  final url = Uri.parse('$baseServerUrl/builds/$buildJobId/runs/$runId/logs');
+  final runLogsUrl = Uri.parse(
+    '$baseServerUrl/builds/$buildJobId/runs/$runId/logs',
+  );
+  final stepLogsUrl = stepId != null && stepId.isNotEmpty
+      ? Uri.parse(
+          '$baseServerUrl/builds/$buildJobId/runs/$runId/steps/$stepId/logs',
+        )
+      : null;
   final body = jsonEncode({'logs': payloadLogs});
 
   final client = http.Client();
   try {
-    for (var attempt = 1; attempt <= _maxWriteAttempts; attempt++) {
-      try {
-        final response = await client
-            .post(
-              url,
-              headers: {
-                'Content-Type': 'application/json',
-                if (_internalApiKey != null)
-                  'Authorization': 'Bearer $_internalApiKey',
-              },
-              body: body,
-            )
-            .timeout(const Duration(seconds: 10));
-        if (response.statusCode >= 200 && response.statusCode < 300) {
-          return;
+    final targets = [runLogsUrl, ?stepLogsUrl];
+
+    for (final targetUrl in targets) {
+      for (var attempt = 1; attempt <= _maxWriteAttempts; attempt++) {
+        try {
+          final response = await client
+              .post(
+                targetUrl,
+                headers: {
+                  'Content-Type': 'application/json',
+                  if (_internalApiKey != null)
+                    'Authorization': 'Bearer $_internalApiKey',
+                },
+                body: body,
+              )
+              .timeout(const Duration(seconds: 10));
+          if (response.statusCode >= 200 && response.statusCode < 300) {
+            break;
+          }
+          throw HttpException('HTTP ${response.statusCode}: ${response.body}');
+        } catch (e) {
+          if (attempt == _maxWriteAttempts) {
+            _log.warning('[BuildLog] Failed to send logs to $targetUrl: $e');
+          } else {
+            final delay = _initialRetryDelay * (1 << (attempt - 1));
+            await Future.delayed(delay);
+          }
         }
-        throw HttpException('HTTP ${response.statusCode}: ${response.body}');
-      } catch (e) {
-        if (attempt == _maxWriteAttempts) {
-          _log.warning('[BuildLog] Failed to send logs to server: $e');
-          return;
-        }
-        final delay = _initialRetryDelay * (1 << (attempt - 1));
-        await Future.delayed(delay);
       }
     }
   } finally {
@@ -143,6 +160,7 @@ void _triggerFlush(_BufferGroup group) {
   final writeFuture = _sendLogsWithRetry(
     group.buildJobId,
     group.runId,
+    group.stepId,
     logsToSend,
   );
   _activeWrites.add(writeFuture);
@@ -156,9 +174,10 @@ Future<void> writeBuildLog(
   String runId,
   LogLevel level,
   String message, {
+  String? stepId,
   String? stackTrace,
 }) async {
-  final group = _getBufferGroup(buildJobId, runId);
+  final group = _getBufferGroup(buildJobId, runId, stepId: stepId);
   group.entries.add(
     LogEntry(
       id: _uuid.v4(),
@@ -193,20 +212,43 @@ Future<void> flushRemainingLogs({String? runId}) async {
   _activeWrites.clear();
 }
 
-Future<void> logInfo(String buildJobId, String runId, String message) async {
+Future<void> logInfo(
+  String buildJobId,
+  String runId,
+  String message, {
+  String? stepId,
+}) async {
   _log.info(message);
-  await writeBuildLog(buildJobId, runId, LogLevel.info, message);
+  await writeBuildLog(
+    buildJobId,
+    runId,
+    LogLevel.info,
+    message,
+    stepId: stepId,
+  );
 }
 
-Future<void> logWarning(String buildJobId, String runId, String message) async {
+Future<void> logWarning(
+  String buildJobId,
+  String runId,
+  String message, {
+  String? stepId,
+}) async {
   _log.warning(message);
-  await writeBuildLog(buildJobId, runId, LogLevel.warning, message);
+  await writeBuildLog(
+    buildJobId,
+    runId,
+    LogLevel.warning,
+    message,
+    stepId: stepId,
+  );
 }
 
 Future<void> logError(
   String buildJobId,
   String runId,
   String message, {
+  String? stepId,
   String? stackTrace,
 }) async {
   _log.severe(message);
@@ -218,6 +260,7 @@ Future<void> logError(
     runId,
     LogLevel.error,
     message,
+    stepId: stepId,
     stackTrace: stackTrace,
   );
 }

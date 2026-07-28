@@ -71,6 +71,7 @@ Future<Response> onRequest(RequestContext context) async {
           'feat: Test build job created by seed',
       branch: bodyJson['branch'] as String? ?? 'main',
       customScript: customScript,
+      workflowYaml: workflowYaml,
     );
 
     return Response.json(
