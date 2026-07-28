@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:dashboard/auth/auth_page.dart';
 import 'package:dashboard/cicd_log/detail/ci_cd_log_detail_page.dart';
 import 'package:dashboard/root/dashboard_root.dart';
+import 'package:dashboard/router/custom_transitions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -29,9 +30,8 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/runs/:buildJobId',
         pageBuilder: (context, state) {
           final buildJobId = state.pathParameters['buildJobId']!;
-          return MaterialPage(
+          return FastBottomSheetPage(
             key: state.pageKey,
-            fullscreenDialog: true,
             child: CicdLogDetailRoutePage(buildJobId: buildJobId),
           );
         },
