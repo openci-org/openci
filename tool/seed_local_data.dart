@@ -10,9 +10,18 @@ void main(List<String> args) async {
   final webhookSecret =
       Platform.environment['GITHUB_WEBHOOK_SECRET'] ??
       'your-github-webhook-secret-here';
+  final userId =
+      Platform.environment['USER_ID'] ??
+      Platform.environment['USER_UID'] ??
+      args
+          .firstWhere((arg) => arg.startsWith('--user-id='), orElse: () => '')
+          .replaceFirst('--user-id=', '')
+          .trim();
   final customScript =
       Platform.environment['CUSTOM_SCRIPT'] ??
-      (args.isNotEmpty ? args.join(' ') : null);
+      (args.where((a) => !a.startsWith('--user-id=')).isNotEmpty
+          ? args.where((a) => !a.startsWith('--user-id=')).join(' ')
+          : null);
 
   print('🌱 Step 1: Ensuring test team via API ($serverUrl/internal/seed)...');
 
@@ -20,6 +29,7 @@ void main(List<String> args) async {
     final seedPayload = <String, dynamic>{
       if (customScript != null && customScript.isNotEmpty)
         'customScript': customScript,
+      if (userId.isNotEmpty) 'userId': userId,
     };
 
     final seedResponse = await http.post(

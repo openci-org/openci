@@ -10,14 +10,16 @@ Future<Response> onRequest(RequestContext context) async {
 
   final db = context.read<AppDatabase>();
   try {
-    await db.seedDao.ensureTestTeam();
-
     Map<String, dynamic> bodyJson = {};
     try {
       bodyJson = (await context.request.json()) as Map<String, dynamic>;
     } catch (_) {
       // Body is optional
     }
+
+    final userId =
+        bodyJson['userId'] as String? ?? bodyJson['userUid'] as String?;
+    await db.seedDao.ensureTestTeam(userId: userId);
 
     final customScript = bodyJson['customScript'] as String?;
 

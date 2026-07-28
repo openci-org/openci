@@ -6,7 +6,7 @@ import 'package:openci_shared/openci_shared.dart';
 
 part 'seed_dao.g.dart';
 
-@DriftAccessor(tables: [Teams, BuildJobs])
+@DriftAccessor(tables: [Teams, BuildJobs, TeamMembers])
 class SeedDao extends DatabaseAccessor<AppDatabase> with _$SeedDaoMixin {
   SeedDao(super.attachedDatabase);
 
@@ -14,13 +14,30 @@ class SeedDao extends DatabaseAccessor<AppDatabase> with _$SeedDaoMixin {
     String teamId = 'test-team',
     String name = 'Test Team',
     int installationId = 12345678,
+    String? userId,
   }) async {
     final existing = await (select(
       teams,
     )..where((t) => t.id.equals(teamId))).getSingleOrNull();
     final now = DateTime.now().toUtc();
 
-    if (existing != null) {
+    if (existing == null) {
+      try {
+        await into(teams).insert(
+          DriftTeam(
+            id: teamId,
+            name: name,
+            installationIds: [installationId],
+            aiEnabled: true,
+            runNumber: 1,
+            createdAt: now,
+            updatedAt: now,
+          ),
+        );
+      } catch (_) {
+        // Ignore duplicate key errors
+      }
+    } else {
       if (!existing.installationIds.contains(installationId)) {
         final newInstallationIds = [
           ...existing.installationIds,
@@ -33,23 +50,24 @@ class SeedDao extends DatabaseAccessor<AppDatabase> with _$SeedDaoMixin {
           ),
         );
       }
-      return;
     }
 
-    try {
-      await into(teams).insert(
-        DriftTeam(
-          id: teamId,
-          name: name,
-          installationIds: [installationId],
-          aiEnabled: true,
-          runNumber: 1,
-          createdAt: now,
-          updatedAt: now,
-        ),
-      );
-    } catch (_) {
-      // Ignore duplicate key errors if created concurrently or already exists
+    if (userId != null && userId.isNotEmpty) {
+      final existingMember =
+          await (select(teamMembers)..where(
+                (t) => t.teamId.equals(teamId) & t.userId.equals(userId),
+              ))
+              .getSingleOrNull();
+      if (existingMember == null) {
+        try {
+          await into(teamMembers).insert(
+            TeamMembersCompanion.insert(
+              teamId: teamId,
+              userId: userId,
+            ),
+          );
+        } catch (_) {}
+      }
     }
   }
 

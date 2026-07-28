@@ -6,9 +6,15 @@
       "request": "launch",
       "type": "dart",
       "program": "lib/main.dart",
-      "toolArgs": [
-        "--dart-define-from-file=.env.local"
-      ]
+      "toolArgs": ["--dart-define-from-file=.env.local"]
+    },
+    {
+      "name": "dashboard (Local Docker)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "toolArgs": ["--dart-define-from-file=.env.docker.local"],
+      "preLaunchTask": "Docker Compose: Up (Detached)"
     }
   ]
 }

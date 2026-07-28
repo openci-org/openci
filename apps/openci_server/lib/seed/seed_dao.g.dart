@@ -6,6 +6,7 @@ part of 'seed_dao.dart';
 mixin _$SeedDaoMixin on DatabaseAccessor<AppDatabase> {
   $TeamsTable get teams => attachedDatabase.teams;
   $BuildJobsTable get buildJobs => attachedDatabase.buildJobs;
+  $TeamMembersTable get teamMembers => attachedDatabase.teamMembers;
   SeedDaoManager get managers => SeedDaoManager(this);
 }
 
@@ -16,4 +17,6 @@ class SeedDaoManager {
       $$TeamsTableTableManager(_db.attachedDatabase, _db.teams);
   $$BuildJobsTableTableManager get buildJobs =>
       $$BuildJobsTableTableManager(_db.attachedDatabase, _db.buildJobs);
+  $$TeamMembersTableTableManager get teamMembers =>
+      $$TeamMembersTableTableManager(_db.attachedDatabase, _db.teamMembers);
 }
