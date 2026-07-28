@@ -17,17 +17,6 @@ Future<Response> onRequest(RequestContext context) async {
       // Body is optional
     }
 
-    final userId =
-        bodyJson['userId'] as String? ?? bodyJson['userUid'] as String?;
-    final teamId = bodyJson['teamId'] as String? ?? 'test-team';
-    final teamName = bodyJson['name'] as String? ?? 'Test Team';
-
-    await db.seedDao.ensureTestTeam(
-      teamId: teamId,
-      name: teamName,
-      userId: userId,
-    );
-
     final customScript = bodyJson['customScript'] as String?;
 
     final job = await db.seedDao.createTestBuildJob(
@@ -36,7 +25,7 @@ Future<Response> onRequest(RequestContext context) async {
       repo: bodyJson['repo'] as String? ?? 'openci',
       workflowName: bodyJson['workflowName'] as String? ?? 'Test Workflow',
       workflowFileName: bodyJson['workflowFileName'] as String? ?? 'ci.yml',
-      teamId: teamId,
+      teamId: bodyJson['teamId'] as String? ?? 'test-team',
       installationId: bodyJson['installationId'] as String? ?? '12345678',
       commitSha: bodyJson['commitSha'] as String? ?? 'main',
       commitMessage:
@@ -49,9 +38,9 @@ Future<Response> onRequest(RequestContext context) async {
     return Response.json(
       body: {
         'success': true,
-        'message': 'Test team and build job seeded successfully',
+        'message': 'Test build job created successfully',
         'jobId': job.id,
-        'teamId': teamId,
+        'teamId': job.teamId,
         'runsOn': job.runsOn,
         'owner': job.owner,
         'repo': job.repo,
@@ -64,7 +53,7 @@ Future<Response> onRequest(RequestContext context) async {
       statusCode: HttpStatus.internalServerError,
       body: {
         'success': false,
-        'error': 'Failed to seed test team and build job: $e',
+        'error': 'Failed to create test build job: $e',
       },
     );
   }
