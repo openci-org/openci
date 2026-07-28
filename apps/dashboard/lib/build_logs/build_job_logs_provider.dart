@@ -42,21 +42,20 @@ Future<List<BuildJobLog>> buildJobLogs(
   }
 
   final apiService = ref.watch(openciApiServiceProvider);
-  final response = await apiService.getBuildJobLogs(buildJobId, runId, 'all');
+  final response = await apiService.getAllBuildRunLogs(buildJobId, runId);
 
   if (!response.isSuccessful) {
     throw Exception('Failed to fetch logs: ${response.statusCode}');
   }
 
-  final logText = response.body;
-  if (logText == null || logText.isEmpty) {
+  final logLines = response.body;
+  if (logLines == null || logLines.isEmpty) {
     return const [];
   }
 
   final logs = <BuildJobLog>[];
 
-  final lines = logText.split('\n');
-  for (final line in lines) {
+  for (final line in logLines) {
     if (line.isEmpty) continue;
     logs.add(
       BuildJobLog(
