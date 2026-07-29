@@ -25,6 +25,10 @@ RUN dart build cli -o /app/apps/openci_server/build_out
 
 FROM debian:bookworm-slim
 
+RUN apt-get update && \
+    apt-get install -y curl ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
+
 RUN groupadd -g 10001 appgroup && \
     useradd -u 10001 -g appgroup -m -s /bin/bash appuser
 

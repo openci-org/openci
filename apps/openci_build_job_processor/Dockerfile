@@ -4,7 +4,6 @@ WORKDIR /app
 
 COPY packages/openci_shared/ ./packages/openci_shared/
 COPY packages/openci_job_processor_shared/ ./packages/openci_job_processor_shared/
-COPY packages/lume_dart/ ./packages/lume_dart/
 COPY apps/openci_build_job_processor/ ./apps/openci_build_job_processor/
 
 RUN sed -i '/resolution: workspace/d' packages/openci_job_processor_shared/pubspec.yaml && \

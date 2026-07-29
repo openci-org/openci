@@ -11,8 +11,7 @@ class ProcessorConfig {
     this.excludeIps = const [],
     this.sentryDsn,
     this.maxConcurrentJobs = 3,
-    this.useOrchard = false,
-    this.orchardApiUrl = 'http://127.0.0.1:6120',
+    this.orchardApiUrl = 'https://orchard-controller:6120',
     this.orchardServiceAccountName = 'openci',
     this.orchardServiceAccountToken = '',
   });
@@ -26,6 +25,10 @@ class ProcessorConfig {
   final List<String> excludeIps;
   final String? sentryDsn;
   final int maxConcurrentJobs;
+
+  final String orchardApiUrl;
+  final String orchardServiceAccountName;
+  final String orchardServiceAccountToken;
 
   factory ProcessorConfig.fromEnvironment() {
     String getRequired(String key) {
@@ -44,17 +47,6 @@ class ProcessorConfig {
     final maxConcurrentJobsStr =
         Platform.environment['OPENCI_MAX_CONCURRENT_JOBS'] ?? '3';
     final maxConcurrentJobs = int.tryParse(maxConcurrentJobsStr) ?? 3;
-
-    final useOrchard =
-        (Platform.environment['USE_ORCHARD'] ?? '').toLowerCase() == 'true' ||
-        Platform.environment.containsKey('ORCHARD_API_URL');
-
-    final tailscaleApiKey = useOrchard
-        ? (Platform.environment['TAILSCALE_API_KEY'] ?? '')
-        : getRequired('TAILSCALE_API_KEY');
-    final tailscaleTailnet = useOrchard
-        ? (Platform.environment['TAILSCALE_TAILNET'] ?? '')
-        : getRequired('TAILSCALE_TAILNET');
 
     final orchardApiUrl =
         Platform.environment['ORCHARD_API_URL'] ??
@@ -88,22 +80,16 @@ class ProcessorConfig {
     return ProcessorConfig(
       serverUrl: getRequired('OPENCI_SERVER_URL'),
       runsOnPattern: getRequired('OPENCI_RUNS_ON_PATTERN'),
-      baseVmName: getRequired('LUME_BASE_VM_NAME'),
-      tailscaleApiKey: tailscaleApiKey,
-      tailscaleTailnet: tailscaleTailnet,
+      baseVmName: Platform.environment['LUME_BASE_VM_NAME'] ?? 'tahoe-base',
+      tailscaleApiKey: Platform.environment['TAILSCALE_API_KEY'] ?? '',
+      tailscaleTailnet: Platform.environment['TAILSCALE_TAILNET'] ?? '',
       internalApiKey: getRequired('INTERNAL_API_KEY'),
       excludeIps: excludeIpsList,
       sentryDsn: Platform.environment['SENTRY_DSN'],
       maxConcurrentJobs: maxConcurrentJobs,
-      useOrchard: useOrchard,
       orchardApiUrl: orchardApiUrl,
       orchardServiceAccountName: orchardServiceAccountName,
       orchardServiceAccountToken: orchardServiceAccountToken,
     );
   }
-
-  final bool useOrchard;
-  final String orchardApiUrl;
-  final String orchardServiceAccountName;
-  final String orchardServiceAccountToken;
 }

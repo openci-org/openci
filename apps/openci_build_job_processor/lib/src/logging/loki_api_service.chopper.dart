@@ -1,7 +1,7 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // dart format width=80
 
-part of 'tailscale_api.dart';
+part of 'loki_api_service.dart';
 
 // **************************************************************************
 // ChopperGenerator
@@ -9,47 +9,38 @@ part of 'tailscale_api.dart';
 
 // coverage:ignore-file
 // ignore_for_file: type=lint
-final class _$TailscaleApi extends TailscaleApi {
-  _$TailscaleApi([ChopperClient? client]) {
+final class _$LokiApiService extends LokiApiService {
+  _$LokiApiService([ChopperClient? client]) {
     if (client == null) return;
     this.client = client;
   }
 
   @override
-  final Type definitionType = TailscaleApi;
+  final Type definitionType = LokiApiService;
 
   @override
-  Future<Response<TailscaleDevicesResponse>> getDevices({
-    required String tailnet,
-    required String authorization,
-    String accept = 'application/json',
-  }) {
-    final Uri $url = Uri.parse(
-      'https://api.tailscale.com/api/v2/tailnet/${tailnet}/devices',
-    );
-    final Map<String, String> $headers = {
-      'Authorization': authorization,
-      'Accept': accept,
-    };
+  Future<Response<void>> pushLogs(Map<String, dynamic> body) {
+    final Uri $url = Uri.parse('/loki/api/v1/push');
+    final $body = body;
     final ChopperCompleter $abortTrigger = ChopperCompleter<void>();
     final ChopperTimer $timeout = ChopperTimer(
-      const Duration(microseconds: 10000000),
+      const Duration(microseconds: 5000000),
       () {
         if (!$abortTrigger.isCompleted) $abortTrigger.complete();
       },
     );
     final Request $request = Request(
-      'GET',
+      'POST',
       $url,
       client.baseUrl,
-      headers: $headers,
+      body: $body,
       abortTrigger: $abortTrigger.future,
     );
     return client
-        .send<TailscaleDevicesResponse, TailscaleDevicesResponse>($request)
+        .send<void, void>($request)
         .catchError(
-          (_) => Future<Response<TailscaleDevicesResponse>>.error(
-            ChopperTimeoutException('Request timed out after 10 seconds'),
+          (_) => Future<Response<void>>.error(
+            ChopperTimeoutException('Request timed out after 5 seconds'),
           ),
           test: (Object err) =>
               err is ChopperRequestAbortedException &&

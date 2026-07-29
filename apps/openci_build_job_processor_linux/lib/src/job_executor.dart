@@ -464,12 +464,10 @@ class JobExecutor {
         await logInfo(job.id, runId, 'Build completed successfully');
       } on TimeoutException catch (timeoutError) {
         await closeAllJobs(status: 'FAILURE');
-        await flushRemainingStepLogs(runId: runId);
         await logError(job.id, runId, 'Job execution timed out: $timeoutError');
         finalStatus = BuildJobStatus.TIMED_OUT;
       } catch (actError) {
         await closeAllJobs(status: 'FAILURE');
-        await flushRemainingStepLogs(runId: runId);
         if (await _isCancelled(job.id)) {
           await logInfo(job.id, runId, 'Build was cancelled by user');
           finalStatus = BuildJobStatus.CANCELLED;
@@ -481,7 +479,6 @@ class JobExecutor {
         await closeAllJobs(
           status: finalStatus == BuildJobStatus.SUCCESS ? 'SUCCESS' : 'FAILURE',
         );
-        await flushRemainingStepLogs(runId: runId);
       }
 
       await _updateJobFinalStatus(
@@ -511,8 +508,6 @@ class JobExecutor {
           _log.warning('[$containerName] Failed to cleanup container: $e');
         }
       }
-      _log.info('[$containerName] Flushing remaining logs...');
-      await flushRemainingLogs(runId: runId);
       _log.info('[$containerName] Execute flow fully completed.');
     }
   }

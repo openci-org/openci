@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:dart_frog/dart_frog.dart';
 import 'package:openci_server/database.dart';
+import 'package:openci_server/logging/loki_service.dart';
 import 'package:openci_server/request/error_handler.dart';
 
 FutureOr<Response> onRequest(
@@ -22,6 +23,12 @@ Future<Response> _get(
   String runId,
 ) async {
   try {
+    final lokiService = LokiService();
+    final lokiLogs = await lokiService.getLogsForRun(runId: runId);
+    if (lokiLogs.isNotEmpty) {
+      return Response.json(body: lokiLogs);
+    }
+
     final db = context.read<AppDatabase>();
     final steps = await db.buildJobDao.getBuildSteps(runId);
 

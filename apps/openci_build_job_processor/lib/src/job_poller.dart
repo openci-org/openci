@@ -1,10 +1,8 @@
 import 'dart:async';
 
 import 'package:logging/logging.dart';
-import 'package:lume_dart/lume_dart.dart';
 import 'package:openci_build_job_processor/openci_build_job_processor.dart';
 import 'package:openci_build_job_processor/src/logging/build_job_logger.dart';
-import 'package:openci_build_job_processor/src/lume/lume_ssh_service.dart';
 import 'package:openci_job_processor_shared/openci_job_processor_shared.dart';
 import 'package:openci_shared/openci_shared.dart';
 import 'package:sentry/sentry.dart';
@@ -15,9 +13,7 @@ class JobPoller {
   JobPoller({
     required ProcessorConfig config,
     OpenCiApiService? apiService,
-    TailscaleService? tailscaleService,
-    LumeService? lumeService,
-    LumeSshService? sshService,
+    VmService? orchardVmService,
   }) : _apiService =
            apiService ??
            createOpenCiChopperClient(
@@ -25,27 +21,17 @@ class JobPoller {
              tokenProvider: () => config.internalApiKey,
              services: [OpenCiApiService.create()],
            ).getService<OpenCiApiService>(),
-       _tailscaleService =
-           tailscaleService ??
-           TailscaleService(
-             apiKey: config.tailscaleApiKey,
-             tailnet: config.tailscaleTailnet,
-             excludeIps: config.excludeIps,
-           ),
-       _lumeService = lumeService ?? LumeService(),
-       _sshService = sshService ?? LumeSshService(),
        _baseVmName = config.baseVmName,
        _maxConcurrentJobs = config.maxConcurrentJobs,
-       _useOrchard = config.useOrchard,
-       _orchardVmService = config.useOrchard
-           ? OrchardVmService(
-               apiClient: OrchardApiClient(
-                 baseUrl: config.orchardApiUrl,
-                 serviceAccountName: config.orchardServiceAccountName,
-                 serviceAccountToken: config.orchardServiceAccountToken,
-               ),
-             )
-           : null {
+       _orchardVmService =
+           orchardVmService ??
+           OrchardVmService(
+             apiClient: OrchardApiClient(
+               baseUrl: config.orchardApiUrl,
+               serviceAccountName: config.orchardServiceAccountName,
+               serviceAccountToken: config.orchardServiceAccountToken,
+             ),
+           ) {
     setupBuildJobLogger(
       serverUrl: config.serverUrl,
       internalApiKey: config.internalApiKey,
@@ -57,28 +43,16 @@ class JobPoller {
   }
 
   final OpenCiApiService _apiService;
-  final TailscaleService _tailscaleService;
-  final LumeService _lumeService;
-  final LumeSshService _sshService;
   final String _baseVmName;
-  final bool _useOrchard;
-  final VmService? _orchardVmService;
+  final VmService _orchardVmService;
   int _activeJobsCount = 0;
   final int _maxConcurrentJobs;
   final _activeJobs = <String, ({DateTime startTime, String host})>{};
 
   Future<void> startPolling(String runsOnPattern) async {
     _log.info(
-      'JobPoller started polling for pattern: $runsOnPattern (useOrchard: $_useOrchard)',
+      'JobPoller started polling for pattern: $runsOnPattern (Orchard Mode)',
     );
-
-    if (!_useOrchard) {
-      try {
-        await pruneZombieVms();
-      } catch (e) {
-        _log.warning('Failed to complete VM pruning initialization: $e');
-      }
-    }
 
     Timer.periodic(const Duration(seconds: 30), (_) => _logActiveJobs());
 
@@ -92,22 +66,8 @@ class JobPoller {
           continue;
         }
 
-        _log.info('Checking for available Lume hosts...');
-        final availableLumeUrl = await _findAvailableLumeUrl();
-        if (availableLumeUrl == null) {
-          _log.info('No available Lume hosts found. Retrying in 10 seconds...');
-          await Future<void>.delayed(const Duration(seconds: 10));
-          continue;
-        }
-
-        _log.info(
-          'Available Lume host found: $availableLumeUrl. Claiming next job for pattern: $runsOnPattern...',
-        );
         final job = await _claimNextJob(runsOnPattern);
         if (job == null) {
-          _log.info(
-            'No queued jobs found for pattern: $runsOnPattern. Retrying in 10 seconds...',
-          );
           await Future<void>.delayed(const Duration(seconds: 10));
           continue;
         }
@@ -116,79 +76,34 @@ class JobPoller {
 
         final executor = JobExecutor(
           apiService: _apiService,
-          lumeService: _lumeService,
           baseVmName: _baseVmName,
-          useOrchard: _useOrchard,
           orchardVmService: _orchardVmService,
         );
 
         final runId = executor.generateRunId();
-        final vmReadyCompleter = Completer<LumeVM>();
         final shortId = job.id.length > 8 ? job.id.substring(0, 8) : job.id;
         final vmName = 'openci-vm-$shortId';
 
-        final hostIp = Uri.parse(availableLumeUrl).host;
-        _activeJobs[vmName] = (startTime: DateTime.now(), host: hostIp);
+        _activeJobs[vmName] = (startTime: DateTime.now(), host: 'orchard');
         _activeJobsCount++;
 
         unawaited(() async {
           try {
-            await executor.execute(
-              job,
-              availableLumeUrl,
-              runId,
-              onVmReady: (vm) {
-                if (!vmReadyCompleter.isCompleted) {
-                  vmReadyCompleter.complete(vm);
-                }
-              },
-            );
-          } catch (e) {
-            if (!vmReadyCompleter.isCompleted) {
-              vmReadyCompleter.completeError(e);
-            }
+            await executor.execute(job, 'orchard', runId);
+          } catch (e, s) {
+            _log.severe('Error executing job ${job.id}: $e', e, s);
+            unawaited(Sentry.captureException(e, stackTrace: s));
           } finally {
-            if (!vmReadyCompleter.isCompleted) {
-              vmReadyCompleter.completeError(
-                StateError('Job execution ended before VM became ready.'),
-              );
-            }
             _activeJobs.remove(vmName);
             _activeJobsCount--;
           }
         }());
-
-        // VMが起動完了するまで同期的に待つ（同じホストへの同時アサイン競合を防ぐ）
-        try {
-          await vmReadyCompleter.future;
-        } catch (e, s) {
-          unawaited(Sentry.captureException(e, stackTrace: s));
-          // VM起動エラーの場合は、そのジョブの終了を待ちつつ次のループへ進む
-          continue;
-        }
       } catch (e, s) {
         _log.severe('Error in polling loop: $e', e, s);
         unawaited(Sentry.captureException(e, stackTrace: s));
         await Future<void>.delayed(const Duration(seconds: 10));
       }
     }
-  }
-
-  Future<String?> _findAvailableLumeUrl() async {
-    if (_useOrchard) {
-      return _orchardVmService != null ? 'orchard' : 'http://127.0.0.1:6120';
-    }
-    final ips = await _tailscaleService.getActiveMacOsIps();
-    _log.info('Detected Tailscale macOS IPs: $ips');
-    final lumeServerUrls = ips.map((ip) => 'http://$ip:7777').toList();
-
-    if (lumeServerUrls.isEmpty) {
-      return null;
-    }
-
-    final selectedUrl = await _lumeService.findAvailableLumeUrl(lumeServerUrls);
-    _log.info('Selected Lume host: $selectedUrl');
-    return selectedUrl;
   }
 
   Future<BuildJob?> _claimNextJob(String runsOnPattern) async {
@@ -233,44 +148,5 @@ class JobPoller {
     });
     buffer.write('\n===========================');
     _log.info(buffer.toString());
-  }
-
-  Future<void> pruneZombieVms() async {
-    _log.info('Initializing: Pruning any zombie build VMs on macOS hosts...');
-    final ips = await _tailscaleService.getActiveMacOsIps();
-    for (final ip in ips) {
-      final lumeUrl = 'http://$ip:7777';
-      try {
-        final vms = await _lumeService.getVms(lumeUrl);
-        bool didPrune = false;
-        for (final vm in vms) {
-          if (vm.name.startsWith('openci-vm-') && vm.name != _baseVmName) {
-            _log.info(
-              'Pruning zombie VM: ${vm.name} (status: ${vm.status}) on $lumeUrl',
-            );
-            try {
-              if (vm.status.toLowerCase() == 'running') {
-                await _lumeService.stopVm(lumeUrl, vm.name);
-                await _lumeService.waitForVmToBeStopped(lumeUrl, vm.name);
-              }
-              await _lumeService.deleteVm(lumeUrl, vm.name);
-              _log.info('Successfully pruned zombie VM: ${vm.name}');
-              didPrune = true;
-            } catch (e, s) {
-              _log.warning('Failed to prune zombie VM ${vm.name}', e, s);
-              unawaited(Sentry.captureException(e, stackTrace: s));
-            }
-          }
-        }
-        if (didPrune) {
-          final runId = 'prune-${DateTime.now().millisecondsSinceEpoch}';
-          await _sshService.clearArpCache(jumpHost: ip, runId: runId);
-        }
-      } catch (e, s) {
-        _log.warning('Failed to prune VMs on $lumeUrl', e, s);
-        unawaited(Sentry.captureException(e, stackTrace: s));
-      }
-    }
-    _log.info('Initialization complete: Zombie VMs pruned.');
   }
 }

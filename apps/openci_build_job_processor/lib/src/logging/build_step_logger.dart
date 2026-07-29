@@ -2,179 +2,72 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:chopper/chopper.dart';
 import 'package:http/http.dart' as http;
 import 'package:logging/logging.dart' as dart_logging;
-import 'package:uuid/uuid.dart';
+import 'package:openci_build_job_processor/src/logging/loki_api_service.dart';
 
 final _log = dart_logging.Logger('BuildStepLog');
-const _uuid = Uuid();
 
-class StepLogEntry {
-  final String id;
-  final String message;
-  final String timestamp;
-
-  StepLogEntry({
-    required this.id,
-    required this.message,
-    required this.timestamp,
-  });
-
-  Map<String, dynamic> toJson() => {
-    'id': id,
-    'message': message,
-    'timestamp': timestamp,
-  };
-}
-
-class _StepBufferGroup {
-  final String buildJobId;
-  final String runId;
-  final String stepId;
-  List<StepLogEntry> entries = [];
-  Timer? timer;
-
-  _StepBufferGroup({
-    required this.buildJobId,
-    required this.runId,
-    required this.stepId,
-  });
-}
-
+String? _lokiUrl;
 String? _serverUrl;
 String? _internalApiKey;
-final _stepBufferGroups = <String, _StepBufferGroup>{};
-final _activeWrites = <Future<void>>[];
-
-const _maxBufferCount = 50;
-const _flushInterval = Duration(seconds: 1);
-const _maxWriteAttempts = 5;
-const _initialRetryDelay = Duration(milliseconds: 500);
+LokiApiService? _lokiApiService;
 
 void setupBuildStepLogger({
-  required String serverUrl,
-  required String internalApiKey,
+  String? serverUrl,
+  String? internalApiKey,
+  String? lokiUrl,
 }) {
   _serverUrl = serverUrl;
   _internalApiKey = internalApiKey;
-}
+  _lokiUrl =
+      lokiUrl ?? Platform.environment['LOKI_URL'] ?? 'http://localhost:3100';
 
-_StepBufferGroup _getBufferGroup(
-  String buildJobId,
-  String runId,
-  String stepId,
-) {
-  final key = '$buildJobId:$runId:$stepId';
-  return _stepBufferGroups.putIfAbsent(
-    key,
-    () =>
-        _StepBufferGroup(buildJobId: buildJobId, runId: runId, stepId: stepId),
+  final chopperClient = ChopperClient(
+    baseUrl: Uri.parse(_lokiUrl!),
+    services: [LokiApiService.create()],
+    converter: const JsonConverter(),
   );
+  _lokiApiService = chopperClient.getService<LokiApiService>();
 }
 
-Future<void> _sendStepLogsWithRetry(
-  String buildJobId,
-  String runId,
-  String stepId,
-  List<StepLogEntry> logs,
-) async {
-  final payloadLogs = logs.map((e) => e.toJson()).toList();
-
-  final baseServerUrl = _serverUrl ?? 'http://localhost:8080';
-  final url = Uri.parse(
-    '$baseServerUrl/builds/$buildJobId/runs/$runId/steps/$stepId/logs',
+LokiApiService _getLokiService() {
+  if (_lokiApiService != null) return _lokiApiService!;
+  final baseUrl =
+      _lokiUrl ?? Platform.environment['LOKI_URL'] ?? 'http://localhost:3100';
+  final chopperClient = ChopperClient(
+    baseUrl: Uri.parse(baseUrl),
+    services: [LokiApiService.create()],
+    converter: const JsonConverter(),
   );
-  final body = jsonEncode({'logs': payloadLogs});
-
-  final client = http.Client();
-  try {
-    for (var attempt = 1; attempt <= _maxWriteAttempts; attempt++) {
-      try {
-        final response = await client
-            .post(
-              url,
-              headers: {
-                'Content-Type': 'application/json',
-                if (_internalApiKey != null)
-                  'Authorization': 'Bearer $_internalApiKey',
-              },
-              body: body,
-            )
-            .timeout(const Duration(seconds: 10));
-        if (response.statusCode >= 200 && response.statusCode < 300) {
-          return;
-        }
-        throw HttpException('HTTP ${response.statusCode}: ${response.body}');
-      } catch (e) {
-        if (attempt == _maxWriteAttempts) {
-          _log.warning('[BuildStepLog] Failed to send step logs to server: $e');
-          return;
-        }
-        final delay = _initialRetryDelay * (1 << (attempt - 1));
-        await Future.delayed(delay);
-      }
-    }
-  } finally {
-    client.close();
-  }
+  _lokiApiService = chopperClient.getService<LokiApiService>();
+  return _lokiApiService!;
 }
 
-void _triggerFlush(_StepBufferGroup group) {
-  group.timer?.cancel();
-  group.timer = null;
-
-  if (group.entries.isEmpty) return;
-
-  final logsToSend = List<StepLogEntry>.from(group.entries);
-  group.entries.clear();
-
-  final writeFuture = _sendStepLogsWithRetry(
-    group.buildJobId,
-    group.runId,
-    group.stepId,
-    logsToSend,
-  );
-  _activeWrites.add(writeFuture);
-  writeFuture.whenComplete(() {
-    _activeWrites.remove(writeFuture);
-  });
-}
-
+/// ログ発生時にダイレクトに Loki へ Chopper 経由で Push 送信 (Direct Push)
 Future<void> writeBuildStepLog(
   String buildJobId,
   String runId,
   String stepId,
   String message,
 ) async {
-  final group = _getBufferGroup(buildJobId, runId, stepId);
-  group.entries.add(
-    StepLogEntry(
-      id: _uuid.v4(),
-      message: message,
-      timestamp: DateTime.now().toUtc().toIso8601String(),
-    ),
+  if (message.isEmpty) return;
+
+  final payload = createLokiPayload(
+    labels: {'build_job_id': buildJobId, 'run_id': runId, 'step_id': stepId},
+    message: message,
   );
 
-  if (group.entries.length >= _maxBufferCount) {
-    _triggerFlush(group);
-  } else {
-    group.timer ??= Timer(_flushInterval, () => _triggerFlush(group));
-  }
-}
-
-Future<void> flushRemainingStepLogs({String? runId}) async {
-  for (final key in _stepBufferGroups.keys.toList()) {
-    final group = _stepBufferGroups[key]!;
-    if (runId == null || group.runId == runId) {
-      _triggerFlush(group);
-      _stepBufferGroups.remove(key);
-    }
-  }
-
   try {
-    await Future.wait(_activeWrites).timeout(const Duration(seconds: 5));
-  } catch (_) {}
-  _activeWrites.clear();
+    final response = await _getLokiService().pushLogs(payload);
+
+    if (!response.isSuccessful) {
+      _log.warning('Failed to push log to Loki: HTTP ${response.statusCode}');
+    }
+  } catch (e) {
+    _log.warning('Error pushing log to Loki: $e');
+  }
 }
 
 Future<void> sendStepStatusUpdate({

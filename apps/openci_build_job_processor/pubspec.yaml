@@ -14,8 +14,6 @@ dependencies:
   http: ^1.2.0
   json_annotation: ^4.11.0
   logging: ^1.2.0
-  lume_dart:
-    path: ../../packages/lume_dart
   openci_job_processor_shared:
     path: ../../packages/openci_job_processor_shared
   openci_shared: ^1.0.1

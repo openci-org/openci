@@ -4,62 +4,21 @@ import 'dart:io';
 
 import 'package:http/http.dart' as http;
 import 'package:logging/logging.dart' as dart_logging;
-import 'package:uuid/uuid.dart';
 
 final _log = dart_logging.Logger('BuildLog');
-const _uuid = Uuid();
 
 enum LogLevel { info, warning, error }
 
-class LogEntry {
-  final String id;
-  final String message;
-  final LogLevel level;
-  final String timestamp;
-  final String? stackTrace;
-
-  LogEntry({
-    required this.id,
-    required this.message,
-    required this.level,
-    required this.timestamp,
-    this.stackTrace,
-  });
-
-  Map<String, dynamic> toJson() => {
-    'id': id,
-    'message': message,
-    'level': level.name,
-    'timestamp': timestamp,
-    if (stackTrace != null) 'stackTrace': stackTrace,
-  };
-}
-
-class _BufferGroup {
-  final String buildJobId;
-  final String runId;
-  List<LogEntry> entries = [];
-  Timer? timer;
-
-  _BufferGroup({required this.buildJobId, required this.runId});
-}
-
-String? _serverUrl;
-String? _internalApiKey;
-final _bufferGroups = <String, _BufferGroup>{};
-final _activeWrites = <Future<void>>[];
-
-const _maxBufferCount = 50;
-const _flushInterval = Duration(seconds: 1);
-const _maxWriteAttempts = 5;
-const _initialRetryDelay = Duration(milliseconds: 500);
+String? _lokiUrl;
+final http.Client _client = http.Client();
 
 void setupBuildJobLogger({
-  required String serverUrl,
-  required String internalApiKey,
+  String? serverUrl,
+  String? internalApiKey,
+  String? lokiUrl,
 }) {
-  _serverUrl = serverUrl;
-  _internalApiKey = internalApiKey;
+  _lokiUrl =
+      lokiUrl ?? Platform.environment['LOKI_URL'] ?? 'http://localhost:3100';
 
   dart_logging.Logger.root.level = dart_logging.Level.ALL;
   dart_logging.Logger.root.onRecord.listen((record) {
@@ -79,78 +38,6 @@ void setupBuildJobLogger({
   });
 }
 
-_BufferGroup _getBufferGroup(String buildJobId, String runId) {
-  final key = '$buildJobId:$runId';
-  return _bufferGroups.putIfAbsent(
-    key,
-    () => _BufferGroup(buildJobId: buildJobId, runId: runId),
-  );
-}
-
-Future<void> _sendLogsWithRetry(
-  String buildJobId,
-  String runId,
-  List<LogEntry> logs,
-) async {
-  final payloadLogs = logs.map((e) => e.toJson()).toList();
-
-  final baseServerUrl = _serverUrl ?? 'http://localhost:8080';
-  final url = Uri.parse('$baseServerUrl/builds/$buildJobId/runs/$runId/logs');
-  final body = jsonEncode({'logs': payloadLogs});
-
-  final client = http.Client();
-  try {
-    for (var attempt = 1; attempt <= _maxWriteAttempts; attempt++) {
-      try {
-        final response = await client
-            .post(
-              url,
-              headers: {
-                'Content-Type': 'application/json',
-                if (_internalApiKey != null)
-                  'Authorization': 'Bearer $_internalApiKey',
-              },
-              body: body,
-            )
-            .timeout(const Duration(seconds: 10));
-        if (response.statusCode >= 200 && response.statusCode < 300) {
-          return;
-        }
-        throw HttpException('HTTP ${response.statusCode}: ${response.body}');
-      } catch (e) {
-        if (attempt == _maxWriteAttempts) {
-          _log.warning('[BuildLog] Failed to send logs to server: $e');
-          return;
-        }
-        final delay = _initialRetryDelay * (1 << (attempt - 1));
-        await Future.delayed(delay);
-      }
-    }
-  } finally {
-    client.close();
-  }
-}
-
-void _triggerFlush(_BufferGroup group) {
-  group.timer?.cancel();
-  group.timer = null;
-
-  if (group.entries.isEmpty) return;
-
-  final logsToSend = List<LogEntry>.from(group.entries);
-  group.entries.clear();
-
-  final writeFuture = _sendLogsWithRetry(
-    group.buildJobId,
-    group.runId,
-    logsToSend,
-  );
-  _activeWrites.add(writeFuture);
-  writeFuture.whenComplete(() {
-    _activeWrites.remove(writeFuture);
-  });
-}
-
 Future<void> writeBuildLog(
   String buildJobId,
   String runId,
@@ -158,37 +45,40 @@ Future<void> writeBuildLog(
   String message, {
   String? stackTrace,
 }) async {
-  final group = _getBufferGroup(buildJobId, runId);
-  group.entries.add(
-    LogEntry(
-      id: _uuid.v4(),
-      message: message,
-      level: level,
-      timestamp: DateTime.now().toUtc().toIso8601String(),
-      stackTrace: stackTrace,
-    ),
-  );
+  if (message.isEmpty) return;
 
-  if (group.entries.length >= _maxBufferCount) {
-    _triggerFlush(group);
-  } else {
-    group.timer ??= Timer(_flushInterval, () => _triggerFlush(group));
-  }
-}
+  final lokiBaseUrl = _lokiUrl ?? 'http://localhost:3100';
+  final nowNanos = (DateTime.now().toUtc().microsecondsSinceEpoch * 1000)
+      .toString();
 
-Future<void> flushRemainingLogs({String? runId}) async {
-  for (final key in _bufferGroups.keys.toList()) {
-    final group = _bufferGroups[key]!;
-    if (runId == null || group.runId == runId) {
-      _triggerFlush(group);
-      _bufferGroups.remove(key);
-    }
-  }
+  final formattedMsg = stackTrace != null ? '$message\n$stackTrace' : message;
+
+  final payload = {
+    'streams': [
+      {
+        'stream': {'build_job_id': buildJobId, 'run_id': runId},
+        'values': [
+          [nowNanos, formattedMsg],
+        ],
+      },
+    ],
+  };
 
   try {
-    await Future.wait(_activeWrites).timeout(const Duration(seconds: 5));
-  } catch (_) {}
-  _activeWrites.clear();
+    final response = await _client
+        .post(
+          Uri.parse('$lokiBaseUrl/loki/api/v1/push'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode(payload),
+        )
+        .timeout(const Duration(seconds: 5));
+
+    if (response.statusCode >= 300) {
+      _log.warning('Failed to push log to Loki: HTTP ${response.statusCode}');
+    }
+  } catch (e) {
+    _log.warning('Error pushing log to Loki: $e');
+  }
 }
 
 Future<void> logInfo(String buildJobId, String runId, String message) async {
