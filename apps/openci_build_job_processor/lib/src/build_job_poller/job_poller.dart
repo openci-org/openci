@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:logging/logging.dart';
 import 'package:openci_build_job_processor/openci_build_job_processor.dart';
 import 'package:openci_build_job_processor/src/build_job_poller/claim_next_job.dart';
-import 'package:openci_build_job_processor/src/build_job_poller/wait_for_available_slot.dart';
 import 'package:openci_build_job_processor/src/logging/build_job_logger.dart';
 import 'package:openci_job_processor_shared/openci_job_processor_shared.dart';
 import 'package:openci_shared/openci_shared.dart';
@@ -47,31 +46,20 @@ class JobPoller {
   final OpenCiApiService _apiService;
   final String _baseVmName;
   final VmService _orchardVmService;
-  int _activeJobsCount = 0;
   final int _maxConcurrentJobs;
-  final _activeJobs = <String, ({DateTime startTime, String host})>{};
 
   Future<void> startPolling(String runsOnPattern) async {
     _log.info(
       'JobPoller started polling for pattern: $runsOnPattern (Orchard Mode)',
     );
 
-    Timer.periodic(const Duration(seconds: 30), (_) => _logActiveJobs());
-
     while (true) {
       try {
-        await waitForAvailableSlot(
-          getActiveJobsCount: () => _activeJobsCount,
-          maxConcurrentJobs: _maxConcurrentJobs,
-          log: _log,
-        );
-
-        _log.info(
-          'Started to claim next build job. runsOnPattern: $runsOnPattern',
-        );
         final job = await claimNextJob(
           apiService: _apiService,
           runsOnPattern: runsOnPattern,
+          workerHost: 'orchard',
+          maxConcurrentJobs: _maxConcurrentJobs,
         );
         if (job == null) {
           await Future<void>.delayed(const Duration(seconds: 10));
@@ -87,11 +75,6 @@ class JobPoller {
         );
 
         final runId = executor.generateRunId();
-        final shortId = job.id.length > 8 ? job.id.substring(0, 8) : job.id;
-        final vmName = 'openci-vm-$shortId';
-
-        _activeJobs[vmName] = (startTime: DateTime.now(), host: 'orchard');
-        _activeJobsCount++;
 
         unawaited(() async {
           try {
@@ -99,9 +82,6 @@ class JobPoller {
           } catch (e, s) {
             _log.severe('Error executing job ${job.id}: $e', e, s);
             unawaited(Sentry.captureException(e, stackTrace: s));
-          } finally {
-            _activeJobs.remove(vmName);
-            _activeJobsCount--;
           }
         }());
       } catch (e, s) {
@@ -110,25 +90,5 @@ class JobPoller {
         await Future<void>.delayed(const Duration(seconds: 10));
       }
     }
-  }
-
-  void _logActiveJobs() {
-    if (_activeJobs.isEmpty) {
-      _log.info('Active jobs: 0 / $_maxConcurrentJobs');
-      return;
-    }
-    final buffer = StringBuffer(
-      '\n=== Active Jobs Running: ${_activeJobs.length} / $_maxConcurrentJobs ===',
-    );
-    final now = DateTime.now();
-    _activeJobs.forEach((vmName, info) {
-      final diff = now.difference(info.startTime);
-      final minutes = diff.inMinutes;
-      final seconds = diff.inSeconds % 60;
-      final timeStr = minutes > 0 ? '${minutes}m ${seconds}s' : '${seconds}s';
-      buffer.write('\n  - $vmName (on ${info.host}): Running for $timeStr');
-    });
-    buffer.write('\n===========================');
-    _log.info(buffer.toString());
   }
 }

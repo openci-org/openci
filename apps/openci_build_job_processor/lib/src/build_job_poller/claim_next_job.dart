@@ -3,10 +3,18 @@ import 'package:openci_shared/openci_shared.dart';
 Future<BuildJob?> claimNextJob({
   required OpenCiApiService apiService,
   required String runsOnPattern,
+  String? vmName,
+  String? workerHost,
+  int? maxConcurrentJobs,
 }) async {
-  final response = await apiService.claimNextJob({
-    'runsOnPattern': runsOnPattern,
-  });
+  final request = ClaimJobRequest(
+    runsOnPattern: runsOnPattern,
+    vmName: vmName,
+    workerHost: workerHost,
+    maxConcurrentJobs: maxConcurrentJobs,
+  );
+
+  final response = await apiService.claimNextJob(request.toJson());
 
   if (!response.isSuccessful) {
     throw Exception(

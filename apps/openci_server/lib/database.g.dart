@@ -368,6 +368,26 @@ class $BuildJobsTable extends BuildJobs
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _vmNameMeta = const VerificationMeta('vmName');
+  @override
+  late final GeneratedColumn<String> vmName = GeneratedColumn<String>(
+    'vm_name',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _workerHostMeta = const VerificationMeta(
+    'workerHost',
+  );
+  @override
+  late final GeneratedColumn<String> workerHost = GeneratedColumn<String>(
+    'worker_host',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _installationIdMeta = const VerificationMeta(
     'installationId',
   );
@@ -460,6 +480,8 @@ class $BuildJobsTable extends BuildJobs
     ipaVersion,
     appName,
     githubBaseUrl,
+    vmName,
+    workerHost,
     installationId,
     checkRunId,
     createdAt,
@@ -714,6 +736,18 @@ class $BuildJobsTable extends BuildJobs
         ),
       );
     }
+    if (data.containsKey('vm_name')) {
+      context.handle(
+        _vmNameMeta,
+        vmName.isAcceptableOrUnknown(data['vm_name']!, _vmNameMeta),
+      );
+    }
+    if (data.containsKey('worker_host')) {
+      context.handle(
+        _workerHostMeta,
+        workerHost.isAcceptableOrUnknown(data['worker_host']!, _workerHostMeta),
+      );
+    }
     if (data.containsKey('installation_id')) {
       context.handle(
         _installationIdMeta,
@@ -914,6 +948,14 @@ class $BuildJobsTable extends BuildJobs
         DriftSqlType.string,
         data['${effectivePrefix}github_base_url'],
       ),
+      vmName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}vm_name'],
+      ),
+      workerHost: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}worker_host'],
+      ),
       installationId: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}installation_id'],
@@ -994,6 +1036,8 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
   final String? ipaVersion;
   final String? appName;
   final String? githubBaseUrl;
+  final String? vmName;
+  final String? workerHost;
   final String? installationId;
   final String? checkRunId;
   final DateTime createdAt;
@@ -1035,6 +1079,8 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
     this.ipaVersion,
     this.appName,
     this.githubBaseUrl,
+    this.vmName,
+    this.workerHost,
     this.installationId,
     this.checkRunId,
     required this.createdAt,
@@ -1151,6 +1197,12 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
     if (!nullToAbsent || githubBaseUrl != null) {
       map['github_base_url'] = Variable<String>(githubBaseUrl);
     }
+    if (!nullToAbsent || vmName != null) {
+      map['vm_name'] = Variable<String>(vmName);
+    }
+    if (!nullToAbsent || workerHost != null) {
+      map['worker_host'] = Variable<String>(workerHost);
+    }
     if (!nullToAbsent || installationId != null) {
       map['installation_id'] = Variable<String>(installationId);
     }
@@ -1262,6 +1314,12 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
       githubBaseUrl: githubBaseUrl == null && nullToAbsent
           ? const Value.absent()
           : Value(githubBaseUrl),
+      vmName: vmName == null && nullToAbsent
+          ? const Value.absent()
+          : Value(vmName),
+      workerHost: workerHost == null && nullToAbsent
+          ? const Value.absent()
+          : Value(workerHost),
       installationId: installationId == null && nullToAbsent
           ? const Value.absent()
           : Value(installationId),
@@ -1327,6 +1385,8 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
       ipaVersion: serializer.fromJson<String?>(json['ipaVersion']),
       appName: serializer.fromJson<String?>(json['appName']),
       githubBaseUrl: serializer.fromJson<String?>(json['githubBaseUrl']),
+      vmName: serializer.fromJson<String?>(json['vmName']),
+      workerHost: serializer.fromJson<String?>(json['workerHost']),
       installationId: serializer.fromJson<String?>(json['installationId']),
       checkRunId: serializer.fromJson<String?>(json['checkRunId']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
@@ -1377,6 +1437,8 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
       'ipaVersion': serializer.toJson<String?>(ipaVersion),
       'appName': serializer.toJson<String?>(appName),
       'githubBaseUrl': serializer.toJson<String?>(githubBaseUrl),
+      'vmName': serializer.toJson<String?>(vmName),
+      'workerHost': serializer.toJson<String?>(workerHost),
       'installationId': serializer.toJson<String?>(installationId),
       'checkRunId': serializer.toJson<String?>(checkRunId),
       'createdAt': serializer.toJson<DateTime>(createdAt),
@@ -1421,6 +1483,8 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
     Value<String?> ipaVersion = const Value.absent(),
     Value<String?> appName = const Value.absent(),
     Value<String?> githubBaseUrl = const Value.absent(),
+    Value<String?> vmName = const Value.absent(),
+    Value<String?> workerHost = const Value.absent(),
     Value<String?> installationId = const Value.absent(),
     Value<String?> checkRunId = const Value.absent(),
     DateTime? createdAt,
@@ -1484,6 +1548,8 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
     githubBaseUrl: githubBaseUrl.present
         ? githubBaseUrl.value
         : this.githubBaseUrl,
+    vmName: vmName.present ? vmName.value : this.vmName,
+    workerHost: workerHost.present ? workerHost.value : this.workerHost,
     installationId: installationId.present
         ? installationId.value
         : this.installationId,
@@ -1565,6 +1631,10 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
       githubBaseUrl: data.githubBaseUrl.present
           ? data.githubBaseUrl.value
           : this.githubBaseUrl,
+      vmName: data.vmName.present ? data.vmName.value : this.vmName,
+      workerHost: data.workerHost.present
+          ? data.workerHost.value
+          : this.workerHost,
       installationId: data.installationId.present
           ? data.installationId.value
           : this.installationId,
@@ -1617,6 +1687,8 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
           ..write('ipaVersion: $ipaVersion, ')
           ..write('appName: $appName, ')
           ..write('githubBaseUrl: $githubBaseUrl, ')
+          ..write('vmName: $vmName, ')
+          ..write('workerHost: $workerHost, ')
           ..write('installationId: $installationId, ')
           ..write('checkRunId: $checkRunId, ')
           ..write('createdAt: $createdAt, ')
@@ -1663,6 +1735,8 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
     ipaVersion,
     appName,
     githubBaseUrl,
+    vmName,
+    workerHost,
     installationId,
     checkRunId,
     createdAt,
@@ -1708,6 +1782,8 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
           other.ipaVersion == this.ipaVersion &&
           other.appName == this.appName &&
           other.githubBaseUrl == this.githubBaseUrl &&
+          other.vmName == this.vmName &&
+          other.workerHost == this.workerHost &&
           other.installationId == this.installationId &&
           other.checkRunId == this.checkRunId &&
           other.createdAt == this.createdAt &&
@@ -1751,6 +1827,8 @@ class BuildJobsCompanion extends UpdateCompanion<DriftBuildJob> {
   final Value<String?> ipaVersion;
   final Value<String?> appName;
   final Value<String?> githubBaseUrl;
+  final Value<String?> vmName;
+  final Value<String?> workerHost;
   final Value<String?> installationId;
   final Value<String?> checkRunId;
   final Value<DateTime> createdAt;
@@ -1793,6 +1871,8 @@ class BuildJobsCompanion extends UpdateCompanion<DriftBuildJob> {
     this.ipaVersion = const Value.absent(),
     this.appName = const Value.absent(),
     this.githubBaseUrl = const Value.absent(),
+    this.vmName = const Value.absent(),
+    this.workerHost = const Value.absent(),
     this.installationId = const Value.absent(),
     this.checkRunId = const Value.absent(),
     this.createdAt = const Value.absent(),
@@ -1836,6 +1916,8 @@ class BuildJobsCompanion extends UpdateCompanion<DriftBuildJob> {
     this.ipaVersion = const Value.absent(),
     this.appName = const Value.absent(),
     this.githubBaseUrl = const Value.absent(),
+    this.vmName = const Value.absent(),
+    this.workerHost = const Value.absent(),
     this.installationId = const Value.absent(),
     this.checkRunId = const Value.absent(),
     required DateTime createdAt,
@@ -1885,6 +1967,8 @@ class BuildJobsCompanion extends UpdateCompanion<DriftBuildJob> {
     Expression<String>? ipaVersion,
     Expression<String>? appName,
     Expression<String>? githubBaseUrl,
+    Expression<String>? vmName,
+    Expression<String>? workerHost,
     Expression<String>? installationId,
     Expression<String>? checkRunId,
     Expression<DateTime>? createdAt,
@@ -1931,6 +2015,8 @@ class BuildJobsCompanion extends UpdateCompanion<DriftBuildJob> {
       if (ipaVersion != null) 'ipa_version': ipaVersion,
       if (appName != null) 'app_name': appName,
       if (githubBaseUrl != null) 'github_base_url': githubBaseUrl,
+      if (vmName != null) 'vm_name': vmName,
+      if (workerHost != null) 'worker_host': workerHost,
       if (installationId != null) 'installation_id': installationId,
       if (checkRunId != null) 'check_run_id': checkRunId,
       if (createdAt != null) 'created_at': createdAt,
@@ -1976,6 +2062,8 @@ class BuildJobsCompanion extends UpdateCompanion<DriftBuildJob> {
     Value<String?>? ipaVersion,
     Value<String?>? appName,
     Value<String?>? githubBaseUrl,
+    Value<String?>? vmName,
+    Value<String?>? workerHost,
     Value<String?>? installationId,
     Value<String?>? checkRunId,
     Value<DateTime>? createdAt,
@@ -2020,6 +2108,8 @@ class BuildJobsCompanion extends UpdateCompanion<DriftBuildJob> {
       ipaVersion: ipaVersion ?? this.ipaVersion,
       appName: appName ?? this.appName,
       githubBaseUrl: githubBaseUrl ?? this.githubBaseUrl,
+      vmName: vmName ?? this.vmName,
+      workerHost: workerHost ?? this.workerHost,
       installationId: installationId ?? this.installationId,
       checkRunId: checkRunId ?? this.checkRunId,
       createdAt: createdAt ?? this.createdAt,
@@ -2153,6 +2243,12 @@ class BuildJobsCompanion extends UpdateCompanion<DriftBuildJob> {
     if (githubBaseUrl.present) {
       map['github_base_url'] = Variable<String>(githubBaseUrl.value);
     }
+    if (vmName.present) {
+      map['vm_name'] = Variable<String>(vmName.value);
+    }
+    if (workerHost.present) {
+      map['worker_host'] = Variable<String>(workerHost.value);
+    }
     if (installationId.present) {
       map['installation_id'] = Variable<String>(installationId.value);
     }
@@ -2212,6 +2308,8 @@ class BuildJobsCompanion extends UpdateCompanion<DriftBuildJob> {
           ..write('ipaVersion: $ipaVersion, ')
           ..write('appName: $appName, ')
           ..write('githubBaseUrl: $githubBaseUrl, ')
+          ..write('vmName: $vmName, ')
+          ..write('workerHost: $workerHost, ')
           ..write('installationId: $installationId, ')
           ..write('checkRunId: $checkRunId, ')
           ..write('createdAt: $createdAt, ')
@@ -7273,6 +7371,8 @@ typedef $$BuildJobsTableCreateCompanionBuilder =
       Value<String?> ipaVersion,
       Value<String?> appName,
       Value<String?> githubBaseUrl,
+      Value<String?> vmName,
+      Value<String?> workerHost,
       Value<String?> installationId,
       Value<String?> checkRunId,
       required DateTime createdAt,
@@ -7317,6 +7417,8 @@ typedef $$BuildJobsTableUpdateCompanionBuilder =
       Value<String?> ipaVersion,
       Value<String?> appName,
       Value<String?> githubBaseUrl,
+      Value<String?> vmName,
+      Value<String?> workerHost,
       Value<String?> installationId,
       Value<String?> checkRunId,
       Value<DateTime> createdAt,
@@ -7537,6 +7639,16 @@ class $$BuildJobsTableFilterComposer
 
   ColumnFilters<String> get githubBaseUrl => $composableBuilder(
     column: $table.githubBaseUrl,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get vmName => $composableBuilder(
+    column: $table.vmName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get workerHost => $composableBuilder(
+    column: $table.workerHost,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -7775,6 +7887,16 @@ class $$BuildJobsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get vmName => $composableBuilder(
+    column: $table.vmName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get workerHost => $composableBuilder(
+    column: $table.workerHost,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get installationId => $composableBuilder(
     column: $table.installationId,
     builder: (column) => ColumnOrderings(column),
@@ -7952,6 +8074,14 @@ class $$BuildJobsTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<String> get vmName =>
+      $composableBuilder(column: $table.vmName, builder: (column) => column);
+
+  GeneratedColumn<String> get workerHost => $composableBuilder(
+    column: $table.workerHost,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<String> get installationId => $composableBuilder(
     column: $table.installationId,
     builder: (column) => column,
@@ -8062,6 +8192,8 @@ class $$BuildJobsTableTableManager
                 Value<String?> ipaVersion = const Value.absent(),
                 Value<String?> appName = const Value.absent(),
                 Value<String?> githubBaseUrl = const Value.absent(),
+                Value<String?> vmName = const Value.absent(),
+                Value<String?> workerHost = const Value.absent(),
                 Value<String?> installationId = const Value.absent(),
                 Value<String?> checkRunId = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
@@ -8104,6 +8236,8 @@ class $$BuildJobsTableTableManager
                 ipaVersion: ipaVersion,
                 appName: appName,
                 githubBaseUrl: githubBaseUrl,
+                vmName: vmName,
+                workerHost: workerHost,
                 installationId: installationId,
                 checkRunId: checkRunId,
                 createdAt: createdAt,
@@ -8148,6 +8282,8 @@ class $$BuildJobsTableTableManager
                 Value<String?> ipaVersion = const Value.absent(),
                 Value<String?> appName = const Value.absent(),
                 Value<String?> githubBaseUrl = const Value.absent(),
+                Value<String?> vmName = const Value.absent(),
+                Value<String?> workerHost = const Value.absent(),
                 Value<String?> installationId = const Value.absent(),
                 Value<String?> checkRunId = const Value.absent(),
                 required DateTime createdAt,
@@ -8190,6 +8326,8 @@ class $$BuildJobsTableTableManager
                 ipaVersion: ipaVersion,
                 appName: appName,
                 githubBaseUrl: githubBaseUrl,
+                vmName: vmName,
+                workerHost: workerHost,
                 installationId: installationId,
                 checkRunId: checkRunId,
                 createdAt: createdAt,

@@ -10,8 +10,26 @@ class BuildJobDao extends DatabaseAccessor<AppDatabase>
     with _$BuildJobDaoMixin {
   BuildJobDao(super.attachedDatabase);
 
-  Future<DriftBuildJob?> claimNextJob(String runsOnPattern) async {
+  Future<DriftBuildJob?> claimNextJob(
+    String runsOnPattern, {
+    String? vmName,
+    String? workerHost,
+    int? maxConcurrentJobs,
+  }) async {
     return db.transaction(() async {
+      if (maxConcurrentJobs != null && workerHost != null) {
+        final activeJobsResult = await db
+            .customSelect(
+              "SELECT COUNT(*) AS active_count FROM build_jobs WHERE status = 'IN_PROGRESS' AND worker_host = ?",
+              variables: [Variable.withString(workerHost)],
+            )
+            .getSingle();
+        final activeCount = activeJobsResult.read<int>('active_count');
+        if (activeCount >= maxConcurrentJobs) {
+          return null;
+        }
+      }
+
       final String runsOnCondition;
       if (runsOnPattern.toLowerCase().contains('macos')) {
         runsOnCondition = "LOWER(runs_on) LIKE '%macos%'";
@@ -38,6 +56,8 @@ class BuildJobDao extends DatabaseAccessor<AppDatabase>
 
       final updated = job.copyWith(
         status: BuildJobStatus.IN_PROGRESS,
+        vmName: Value(vmName),
+        workerHost: Value(workerHost),
         updatedAt: DateTime.now().toUtc(),
       );
       await updateBuildJob(updated);

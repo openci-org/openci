@@ -6,11 +6,13 @@ import 'package:test/test.dart';
 
 class FakeOpenCiApiService implements OpenCiApiService {
   Response<Map<String, dynamic>>? responseToReturn;
+  Map<String, dynamic>? lastClaimedBody;
 
   @override
   Future<Response<Map<String, dynamic>>> claimNextJob(
     Map<String, dynamic> body,
   ) async {
+    lastClaimedBody = body;
     return responseToReturn!;
   }
 
@@ -26,33 +28,53 @@ void main() {
   });
 
   group('claimNextJob tests', () {
-    test('returns BuildJob when job data is returned from API', () async {
-      final now = DateTime.now().toIso8601String();
-      final dummyJobMap = {
-        'id': 'job-123',
-        'buildRunId': 'run-456',
-        'status': 'QUEUED',
-        'owner': 'openci-org',
-        'repo': 'openci',
-        'workflowName': 'CI Workflow',
-        'createdAt': now,
-        'updatedAt': now,
-        'steps': <dynamic>[],
-      };
+    test(
+      'returns BuildJob when job data is returned from API and sends payload parameters',
+      () async {
+        final now = DateTime.now().toIso8601String();
+        final dummyJobMap = {
+          'id': 'job-123',
+          'buildRunId': 'run-456',
+          'status': 'QUEUED',
+          'owner': 'openci-org',
+          'repo': 'openci',
+          'workflowName': 'CI Workflow',
+          'vmName': 'openci-vm-job-123',
+          'workerHost': 'orchard',
+          'createdAt': now,
+          'updatedAt': now,
+          'steps': <dynamic>[],
+        };
 
-      apiService.responseToReturn = Response(
-        http.Response('{}', 200),
-        <String, dynamic>{'job': dummyJobMap},
-      );
+        apiService.responseToReturn = Response(
+          http.Response('{}', 200),
+          <String, dynamic>{'job': dummyJobMap},
+        );
 
-      final result = await claimNextJob(
-        apiService: apiService,
-        runsOnPattern: 'macos-*',
-      );
+        final result = await claimNextJob(
+          apiService: apiService,
+          runsOnPattern: 'macos-*',
+          vmName: 'openci-vm-job-123',
+          workerHost: 'orchard',
+          maxConcurrentJobs: 3,
+        );
 
-      expect(result, isNotNull);
-      expect(result?.id, equals('job-123'));
-    });
+        expect(result, isNotNull);
+        expect(result?.id, equals('job-123'));
+        expect(result?.vmName, equals('openci-vm-job-123'));
+        expect(result?.workerHost, equals('orchard'));
+
+        expect(
+          apiService.lastClaimedBody,
+          equals({
+            'runsOnPattern': 'macos-*',
+            'vmName': 'openci-vm-job-123',
+            'workerHost': 'orchard',
+            'maxConcurrentJobs': 3,
+          }),
+        );
+      },
+    );
 
     test('returns null when job in response body is null', () async {
       apiService.responseToReturn = Response(

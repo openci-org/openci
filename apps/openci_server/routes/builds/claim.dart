@@ -8,6 +8,8 @@ import 'package:openci_server/database.dart';
 import 'package:openci_server/request/error_handler.dart';
 import 'package:openci_server/request/request_extension.dart';
 
+import 'package:openci_shared/openci_shared.dart';
+
 FutureOr<Response> onRequest(RequestContext context) {
   return switch (context.request.method) {
     HttpMethod.post => _post(context),
@@ -35,15 +37,20 @@ Future<Response> _post(RequestContext context) async {
       );
     }
 
-    final runsOnPattern = payload['runsOnPattern'] as String?;
-    if (runsOnPattern == null || runsOnPattern.isEmpty) {
+    final claimRequest = ClaimJobRequest.fromJson(payload);
+    if (claimRequest.runsOnPattern.isEmpty) {
       return Response.json(
         statusCode: HttpStatus.badRequest,
         body: {'success': false, 'error': 'runsOnPattern is required'},
       );
     }
 
-    final driftJob = await db.buildJobDao.claimNextJob(runsOnPattern);
+    final driftJob = await db.buildJobDao.claimNextJob(
+      claimRequest.runsOnPattern,
+      vmName: claimRequest.vmName,
+      workerHost: claimRequest.workerHost,
+      maxConcurrentJobs: claimRequest.maxConcurrentJobs,
+    );
     if (driftJob == null) {
       return Response.json(body: {'job': null});
     }
