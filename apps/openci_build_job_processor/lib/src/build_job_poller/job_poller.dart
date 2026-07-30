@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:logging/logging.dart';
 import 'package:openci_build_job_processor/openci_build_job_processor.dart';
+import 'package:openci_build_job_processor/src/build_job_poller/wait_for_available_slot.dart';
 import 'package:openci_build_job_processor/src/logging/build_job_logger.dart';
 import 'package:openci_job_processor_shared/openci_job_processor_shared.dart';
 import 'package:openci_shared/openci_shared.dart';
@@ -58,13 +59,11 @@ class JobPoller {
 
     while (true) {
       try {
-        if (_activeJobsCount >= _maxConcurrentJobs) {
-          _log.info(
-            'Active jobs $_activeJobsCount >= max $_maxConcurrentJobs. Waiting...',
-          );
-          await Future<void>.delayed(const Duration(seconds: 5));
-          continue;
-        }
+        await waitForAvailableSlot(
+          getActiveJobsCount: () => _activeJobsCount,
+          maxConcurrentJobs: _maxConcurrentJobs,
+          log: _log,
+        );
 
         final job = await _claimNextJob(runsOnPattern);
         if (job == null) {
