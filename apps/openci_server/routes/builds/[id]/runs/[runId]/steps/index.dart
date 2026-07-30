@@ -2,10 +2,8 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:dart_frog/dart_frog.dart';
-import 'package:openci_server/database.dart';
+import 'package:openci_server/logging/loki_service.dart';
 import 'package:openci_server/request/error_handler.dart';
-import 'package:openci_server/request/request_extension.dart';
-import 'package:openci_shared/openci_shared.dart';
 
 FutureOr<Response> onRequest(
   RequestContext context,
@@ -25,23 +23,10 @@ Future<Response> _get(
   String runId,
 ) async {
   try {
-    final db = context.read<AppDatabase>();
-    final driftSteps = await db.buildJobDao.getBuildSteps(runId);
+    final lokiService = LokiService();
+    final steps = await lokiService.getStepSummariesForRun(runId: runId);
 
-    final steps = driftSteps.map((s) {
-      return BuildStep(
-        id: s.id,
-        runId: s.runId,
-        name: s.name,
-        status: s.status,
-        durationMs: s.durationMs,
-        stepOrder: s.stepOrder,
-        createdAt: s.createdAt,
-        updatedAt: s.updatedAt,
-      );
-    }).toList();
-
-    return Response.json(body: steps.map((s) => s.toJson()).toList());
+    return Response.json(body: steps);
   } catch (e, s) {
     return handleRouteException(
       e,
@@ -56,30 +41,5 @@ Future<Response> _post(
   String id,
   String runId,
 ) async {
-  try {
-    final db = context.read<AppDatabase>();
-    final payload = await context.jsonBody();
-
-    final step = BuildStep.fromJson(payload);
-
-    final driftStep = DriftBuildStep(
-      id: step.id,
-      runId: step.runId,
-      name: step.name,
-      status: step.status,
-      durationMs: step.durationMs,
-      stepOrder: step.stepOrder,
-      createdAt: step.createdAt,
-      updatedAt: step.updatedAt,
-    );
-
-    await db.buildJobDao.insertBuildStep(driftStep);
-    return Response.json(body: {'success': true});
-  } catch (e, s) {
-    return handleRouteException(
-      e,
-      s,
-      logMessage: 'Failed to create/update step for run $runId',
-    );
-  }
+  return Response.json(body: {'success': true, 'deprecated': true});
 }

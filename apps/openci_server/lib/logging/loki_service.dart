@@ -82,4 +82,76 @@ class LokiService {
       return [];
     }
   }
+
+  /// Loki から指定した runId のステップイベント (type="step_event") を取得し、最新状態のステップリストを組み立てます
+  Future<List<Map<String, dynamic>>> getStepSummariesForRun({
+    required String runId,
+  }) async {
+    final querySelector = '{run_id="$runId", type="step_event"}';
+
+    final uri = Uri.parse('$lokiUrl/loki/api/v1/query_range').replace(
+      queryParameters: {
+        'query': querySelector,
+        'limit': '1000',
+        'direction': 'FORWARD',
+      },
+    );
+
+    try {
+      final response = await _client
+          .get(uri)
+          .timeout(const Duration(seconds: 10));
+
+      if (response.statusCode != 200) {
+        stderr.writeln(
+          '[LokiService] Loki step query failed with status ${response.statusCode}: ${response.body}',
+        );
+        return [];
+      }
+
+      final json = jsonDecode(response.body) as Map<String, dynamic>;
+      final status = json['status'] as String?;
+      if (status != 'success') return [];
+
+      final data = json['data'] as Map<String, dynamic>?;
+      final result = data?['result'] as List<dynamic>?;
+      if (result == null || result.isEmpty) return [];
+
+      final Map<String, Map<String, dynamic>> stepsById = {};
+
+      for (final streamItem in result) {
+        if (streamItem is! Map<String, dynamic>) continue;
+        final values = streamItem['values'] as List<dynamic>?;
+        if (values == null) continue;
+
+        for (final entry in values) {
+          if (entry is List && entry.length >= 2) {
+            final rawJson = entry[1].toString();
+            try {
+              final stepData = jsonDecode(rawJson) as Map<String, dynamic>;
+              final id = stepData['id'] as String?;
+              if (id != null && id.isNotEmpty) {
+                // 最新のステータス情報で上書き更新
+                stepsById[id] = stepData;
+              }
+            } catch (_) {}
+          }
+        }
+      }
+
+      final stepList = stepsById.values.toList();
+      stepList.sort((a, b) {
+        final orderA = (a['stepOrder'] as num?)?.toInt() ?? 0;
+        final orderB = (b['stepOrder'] as num?)?.toInt() ?? 0;
+        return orderA.compareTo(orderB);
+      });
+
+      return stepList;
+    } catch (e, s) {
+      stderr.writeln(
+        '[LokiService] Error querying Loki step summaries for runId $runId: $e\n$s',
+      );
+      return [];
+    }
+  }
 }

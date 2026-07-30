@@ -3,15 +3,12 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:chopper/chopper.dart';
-import 'package:http/http.dart' as http;
 import 'package:logging/logging.dart' as dart_logging;
 import 'package:openci_build_job_processor/src/logging/loki_api_service.dart';
 
 final _log = dart_logging.Logger('BuildStepLog');
 
 String? _lokiUrl;
-String? _serverUrl;
-String? _internalApiKey;
 LokiApiService? _lokiApiService;
 
 void setupBuildStepLogger({
@@ -19,8 +16,6 @@ void setupBuildStepLogger({
   String? internalApiKey,
   String? lokiUrl,
 }) {
-  _serverUrl = serverUrl;
-  _internalApiKey = internalApiKey;
   _lokiUrl =
       lokiUrl ?? Platform.environment['LOKI_URL'] ?? 'http://localhost:3100';
 
@@ -55,7 +50,12 @@ Future<void> writeBuildStepLog(
   if (message.isEmpty) return;
 
   final payload = createLokiPayload(
-    labels: {'build_job_id': buildJobId, 'run_id': runId, 'step_id': stepId},
+    labels: {
+      'build_job_id': buildJobId,
+      'run_id': runId,
+      'step_id': stepId,
+      'type': 'step_log',
+    },
     message: message,
   );
 
@@ -70,6 +70,7 @@ Future<void> writeBuildStepLog(
   }
 }
 
+/// ステップのステータス変更イベントを Loki へ Push 送信
 Future<void> sendStepStatusUpdate({
   required String buildJobId,
   required String runId,
@@ -81,10 +82,7 @@ Future<void> sendStepStatusUpdate({
   required String createdAt,
   required String updatedAt,
 }) async {
-  final baseServerUrl = _serverUrl ?? 'http://localhost:8080';
-  final url = Uri.parse('$baseServerUrl/builds/$buildJobId/runs/$runId/steps');
-
-  final body = jsonEncode({
+  final eventMessage = jsonEncode({
     'id': stepId,
     'runId': runId,
     'name': name,
@@ -95,25 +93,24 @@ Future<void> sendStepStatusUpdate({
     'updatedAt': updatedAt,
   });
 
-  final client = http.Client();
+  final payload = createLokiPayload(
+    labels: {
+      'build_job_id': buildJobId,
+      'run_id': runId,
+      'step_id': stepId,
+      'type': 'step_event',
+    },
+    message: eventMessage,
+  );
+
   try {
-    final response = await client
-        .post(
-          url,
-          headers: {
-            'Content-Type': 'application/json',
-            if (_internalApiKey != null)
-              'Authorization': 'Bearer $_internalApiKey',
-          },
-          body: body,
-        )
-        .timeout(const Duration(seconds: 10));
-    if (response.statusCode < 200 || response.statusCode >= 300) {
-      _log.warning('Failed to send step status update: ${response.statusCode}');
+    final response = await _getLokiService().pushLogs(payload);
+    if (!response.isSuccessful) {
+      _log.warning(
+        'Failed to push step status update to Loki: HTTP ${response.statusCode}',
+      );
     }
   } catch (e) {
-    _log.warning('Failed to send step status update: $e');
-  } finally {
-    client.close();
+    _log.warning('Error pushing step status update to Loki: $e');
   }
 }
