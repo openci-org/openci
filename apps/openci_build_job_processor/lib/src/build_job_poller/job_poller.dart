@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:logging/logging.dart';
 import 'package:openci_build_job_processor/openci_build_job_processor.dart';
+import 'package:openci_build_job_processor/src/build_job_poller/claim_next_job.dart';
 import 'package:openci_build_job_processor/src/build_job_poller/wait_for_available_slot.dart';
 import 'package:openci_build_job_processor/src/logging/build_job_logger.dart';
 import 'package:openci_job_processor_shared/openci_job_processor_shared.dart';
@@ -65,7 +66,13 @@ class JobPoller {
           log: _log,
         );
 
-        final job = await _claimNextJob(runsOnPattern);
+        _log.info(
+          'Started to claim next build job. runsOnPattern: $runsOnPattern',
+        );
+        final job = await claimNextJob(
+          apiService: _apiService,
+          runsOnPattern: runsOnPattern,
+        );
         if (job == null) {
           await Future<void>.delayed(const Duration(seconds: 10));
           continue;
@@ -103,30 +110,6 @@ class JobPoller {
         await Future<void>.delayed(const Duration(seconds: 10));
       }
     }
-  }
-
-  Future<BuildJob?> _claimNextJob(String runsOnPattern) async {
-    final response = await _apiService.claimNextJob({
-      'runsOnPattern': runsOnPattern,
-    });
-
-    if (!response.isSuccessful) {
-      throw Exception(
-        'Failed to claim next job: ${response.statusCode} - ${response.error}',
-      );
-    }
-
-    final body = response.body;
-    if (body == null) {
-      throw Exception('Failed to claim next job: Response body is null');
-    }
-
-    final jobMap = body['job'] as Map<String, dynamic>?;
-    if (jobMap == null) {
-      return null;
-    }
-
-    return BuildJob.fromJson(jobMap);
   }
 
   void _logActiveJobs() {
