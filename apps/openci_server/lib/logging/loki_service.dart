@@ -23,14 +23,24 @@ class LokiService {
     int limit = 5000,
   }) async {
     final querySelector = stepId != null && stepId.isNotEmpty
-        ? '{run_id="$runId", step_id="$stepId"}'
-        : '{run_id="$runId"}';
+        ? '{run_id="$runId", step_id="$stepId", type!="step_event"}'
+        : '{run_id="$runId", type!="step_event"}';
+
+    final sevenDaysAgoNano =
+        BigInt.from(
+          DateTime.now()
+              .toUtc()
+              .subtract(const Duration(days: 7))
+              .microsecondsSinceEpoch,
+        ) *
+        BigInt.from(1000);
 
     final uri = Uri.parse('$lokiUrl/loki/api/v1/query_range').replace(
       queryParameters: {
         'query': querySelector,
         'limit': limit.toString(),
         'direction': 'FORWARD',
+        'start': sevenDaysAgoNano.toString(),
       },
     );
 
@@ -65,6 +75,10 @@ class LokiService {
           if (entry is List && entry.length >= 2) {
             final nanoStr = entry[0].toString();
             final message = entry[1].toString();
+            if (message.trim().startsWith('{') &&
+                (message.contains('"runId"') || message.contains('"status"'))) {
+              continue;
+            }
             final timestamp = int.tryParse(nanoStr) ?? 0;
             timedLines.add(MapEntry(timestamp, message));
           }
@@ -89,18 +103,33 @@ class LokiService {
   }) async {
     final querySelector = '{run_id="$runId", type="step_event"}';
 
+    final sevenDaysAgoNano =
+        BigInt.from(
+          DateTime.now()
+              .toUtc()
+              .subtract(const Duration(days: 7))
+              .microsecondsSinceEpoch,
+        ) *
+        BigInt.from(1000);
+
     final uri = Uri.parse('$lokiUrl/loki/api/v1/query_range').replace(
       queryParameters: {
         'query': querySelector,
         'limit': '1000',
         'direction': 'FORWARD',
+        'start': sevenDaysAgoNano.toString(),
       },
     );
 
     try {
+      stderr.writeln('[LokiService] Querying Loki URL: $uri');
       final response = await _client
           .get(uri)
           .timeout(const Duration(seconds: 10));
+
+      stderr.writeln(
+        '[LokiService] Loki response status: ${response.statusCode}, body: ${response.body}',
+      );
 
       if (response.statusCode != 200) {
         stderr.writeln(

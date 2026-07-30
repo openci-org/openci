@@ -266,10 +266,16 @@ class JobExecutor {
             final exitCode = await process.exitCode;
             if (exitCode != 0) {
               finalStatus = BuildJobStatus.FAILURE;
+              await logError(
+                job.id,
+                runId,
+                'Build script failed with exit code $exitCode',
+                stepId: 'run_workflow',
+              );
             }
           } catch (e) {
             finalStatus = BuildJobStatus.FAILURE;
-            await logInfo(
+            await logError(
               job.id,
               runId,
               'Failed to execute script: $e',
@@ -291,12 +297,22 @@ class JobExecutor {
           updatedAt: workflowEnd.toIso8601String(),
         );
 
-        await logInfo(
-          job.id,
-          runId,
-          '[Orchard] Job executed successfully via Orchard Controller.',
-        );
-        await logInfo(job.id, runId, 'Build completed successfully');
+        if (finalStatus == BuildJobStatus.SUCCESS) {
+          await logInfo(
+            job.id,
+            runId,
+            '[Orchard] Job executed successfully via Orchard Controller.',
+            stepId: 'run_workflow',
+          );
+          await logInfo(
+            job.id,
+            runId,
+            'Build completed successfully',
+            stepId: 'run_workflow',
+          );
+        } else {
+          await logError(job.id, runId, 'Build failed', stepId: 'run_workflow');
+        }
       } on TimeoutException catch (timeoutError) {
         await logError(job.id, runId, 'Job execution timed out: $timeoutError');
         finalStatus = BuildJobStatus.TIMED_OUT;

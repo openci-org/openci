@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:dart_frog/dart_frog.dart';
 import 'package:openci_server/database.dart';
+import 'package:openci_server/logging/loki_service.dart';
 import 'package:openci_server/request/error_handler.dart';
 import 'package:openci_server/request/request_extension.dart';
 
@@ -26,16 +27,12 @@ Future<Response> _get(
   String stepId,
 ) async {
   try {
-    final db = context.read<AppDatabase>();
-    final dbKey = stepId.startsWith(runId) ? stepId : '${runId}_$stepId';
-    final stepLogs = await db.buildJobDao.getBuildStepLogs(dbKey);
-    final rawText = stepLogs.map((l) => l.logContent).join('');
-    final List<String> lines = rawText
-        .split('\n')
-        .where((line) => line.isNotEmpty)
-        .toList();
-
-    return Response.json(body: lines);
+    final lokiService = LokiService();
+    final logs = await lokiService.getLogsForRun(
+      runId: runId,
+      stepId: stepId,
+    );
+    return Response.json(body: logs);
   } catch (e, s) {
     return handleRouteException(
       e,

@@ -20,7 +20,7 @@ class BuildJobDao extends DatabaseAccessor<AppDatabase>
       if (maxConcurrentJobs != null && workerHost != null) {
         final activeJobsResult = await db
             .customSelect(
-              "SELECT COUNT(*) AS active_count FROM build_jobs WHERE status = 'IN_PROGRESS' AND worker_host = ?",
+              "SELECT COUNT(*) AS active_count FROM build_jobs WHERE status = 'IN_PROGRESS' AND worker_host = \$1",
               variables: [Variable.withString(workerHost)],
             )
             .getSingle();

@@ -11,6 +11,20 @@ final _log = dart_logging.Logger('BuildStepLog');
 String? _lokiUrl;
 LokiApiService? _lokiApiService;
 
+class LokiJsonConverter extends JsonConverter {
+  const LokiJsonConverter();
+
+  @override
+  FutureOr<Response<BodyType>> convertResponse<BodyType, InnerType>(
+    Response response,
+  ) {
+    if (response.bodyString.isEmpty) {
+      return response.copyWith<BodyType>(body: null);
+    }
+    return super.convertResponse<BodyType, InnerType>(response);
+  }
+}
+
 void setupBuildStepLogger({
   String? serverUrl,
   String? internalApiKey,
@@ -22,7 +36,7 @@ void setupBuildStepLogger({
   final chopperClient = ChopperClient(
     baseUrl: Uri.parse(_lokiUrl!),
     services: [LokiApiService.create()],
-    converter: const JsonConverter(),
+    converter: const LokiJsonConverter(),
   );
   _lokiApiService = chopperClient.getService<LokiApiService>();
 }
@@ -34,7 +48,7 @@ LokiApiService _getLokiService() {
   final chopperClient = ChopperClient(
     baseUrl: Uri.parse(baseUrl),
     services: [LokiApiService.create()],
-    converter: const JsonConverter(),
+    converter: const LokiJsonConverter(),
   );
   _lokiApiService = chopperClient.getService<LokiApiService>();
   return _lokiApiService!;

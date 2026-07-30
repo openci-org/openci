@@ -47,6 +47,30 @@ if [ -n "$TOKEN" ]; then
   export ORCHARD_SERVICE_ACCOUNT_NAME="bootstrap-admin"
   export ORCHARD_SERVICE_ACCOUNT_TOKEN="$CONTEXT_TOKEN"
   export OPENCI_RUNS_ON_PATTERN="${OPENCI_RUNS_ON_PATTERN:-macos-latest}"
+
+  if [ -f "$ROOT_DIR/.env" ]; then
+    ENV_PATH="$ROOT_DIR/.env" CONTEXT_TOKEN="$CONTEXT_TOKEN" python3 -c "
+import os
+path = os.environ['ENV_PATH']
+token = os.environ['CONTEXT_TOKEN']
+if os.path.exists(path):
+    with open(path, 'r') as f:
+        lines = f.readlines()
+    updated = False
+    new_lines = []
+    for line in lines:
+        if line.startswith('ORCHARD_SERVICE_ACCOUNT_TOKEN='):
+            new_lines.append(f'ORCHARD_SERVICE_ACCOUNT_TOKEN={token}\n')
+            updated = True
+        else:
+            new_lines.append(line)
+    if not updated:
+        new_lines.append(f'ORCHARD_SERVICE_ACCOUNT_TOKEN={token}\n')
+    with open(path, 'w') as f:
+        f.writelines(new_lines)
+"
+  fi
+
   docker compose up -d --force-recreate job-processor >/dev/null 2>&1
   echo "✅ job-processor authenticated with Orchard Controller."
 else

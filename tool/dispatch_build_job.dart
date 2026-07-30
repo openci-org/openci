@@ -91,11 +91,11 @@ jobs:
 
     if (response.statusCode >= 200 && response.statusCode < 300) {
       print('✅ Test build job created successfully via API.');
-      print('   Body: ${response.body}');
+      print('   Body:\n${_formatJson(response.body)}');
     } else {
       print('❌ Failed to create test build job via API!');
       print('   Status: ${response.statusCode}');
-      print('   Body: ${response.body}');
+      print('   Body:\n${_formatJson(response.body)}');
     }
   } catch (e, st) {
     print('❌ Error connecting to openci-server API: $e');
@@ -142,15 +142,25 @@ jobs:
     if (response.statusCode >= 200 && response.statusCode < 300) {
       print('✅ Webhook dispatched successfully!');
       print('   Status: ${response.statusCode}');
-      print('   Body: ${response.body}');
+      print('   Body:\n${_formatJson(response.body)}');
       print('   Delivery ID: $deliveryId');
     } else {
       print('❌ Failed to dispatch webhook!');
       print('   Status: ${response.statusCode}');
-      print('   Body: ${response.body}');
+      print('   Body:\n${_formatJson(response.body)}');
     }
   } catch (e, st) {
     print('❌ Error sending webhook HTTP request: $e');
     print(st);
+  }
+}
+
+String _formatJson(String rawJson) {
+  try {
+    final parsed = jsonDecode(rawJson);
+    const encoder = JsonEncoder.withIndent('  ');
+    return encoder.convert(parsed);
+  } catch (_) {
+    return rawJson;
   }
 }

@@ -33,6 +33,7 @@ services:
       - GOOGLE_APPLICATION_CREDENTIALS=/app/credentials/firebase-service-account.json
 
       - GITHUB_WEBHOOK_SECRET=${GITHUB_WEBHOOK_SECRET:?GITHUB_WEBHOOK_SECRET environment variable is required}
+      - LOKI_URL=${LOKI_URL:-http://loki:3100}
       - GITHUB_APP_ID=${GITHUB_APP_ID:?GITHUB_APP_ID environment variable is required}
       - GITHUB_PRIVATE_KEY_PATH=/app/credentials/github-private-key.pem
       - GITHUB_API_BASE_URL=${GITHUB_API_BASE_URL:?GITHUB_API_BASE_URL environment variable is required}
@@ -79,6 +80,7 @@ services:
     restart: unless-stopped
     environment:
       - OPENCI_SERVER_URL=http://server:8080
+      - LOKI_URL=http://loki:3100
       - OPENCI_RUNS_ON_PATTERN=macos-latest
       - LUME_BASE_VM_NAME=${LUME_BASE_VM_NAME:?LUME_BASE_VM_NAME environment variable is required}
       - INTERNAL_API_KEY=${INTERNAL_API_KEY:?INTERNAL_API_KEY environment variable is required}
@@ -104,6 +106,7 @@ services:
     restart: unless-stopped
     environment:
       - OPENCI_SERVER_URL=http://server:8080
+      - LOKI_URL=http://loki:3100
       - OPENCI_RUNS_ON_PATTERN=${OPENCI_RUNS_ON_PATTERN_LINUX:?OPENCI_RUNS_ON_PATTERN_LINUX environment variable is required}
       - INCUS_BASE_INSTANCE=${INCUS_BASE_INSTANCE:?INCUS_BASE_INSTANCE environment variable is required}
       - INCUS_API_URL=${INCUS_API_URL:?INCUS_API_URL environment variable is required}
@@ -149,6 +152,8 @@ services:
     command: ["controller", "run"]
     expose:
       - "6120"
+    ports:
+      - "6120:6120"
     volumes:
       - orchard_data:/root/.orchard
 

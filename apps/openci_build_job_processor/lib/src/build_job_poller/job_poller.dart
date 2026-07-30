@@ -66,8 +66,6 @@ class JobPoller {
           continue;
         }
 
-        _log.info('Job claimed: ${job.id}. Starting build execution...');
-
         final executor = JobExecutor(
           apiService: _apiService,
           baseVmName: _baseVmName,
@@ -75,6 +73,13 @@ class JobPoller {
         );
 
         final runId = executor.generateRunId();
+
+        await logInfo(
+          job.id,
+          runId,
+          'Job claimed: ${job.id}. Starting build execution...',
+          stepId: 'prepare_vm',
+        );
 
         unawaited(() async {
           try {
