@@ -53,6 +53,37 @@ class CicdLogDetailPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    ref.listen(
+      realtimeRunLogsStreamProvider(
+        buildJobId: buildJobId,
+        runId: runId,
+      ),
+      (previous, next) {
+        next.whenData((event) {
+          final isStepEvent = event['isStepEvent'] as bool? ?? false;
+          final stepId = event['stepId'] as String?;
+
+          if (isStepEvent) {
+            ref.invalidate(
+              buildStepSummariesProvider(
+                buildJobId: buildJobId,
+                runId: runId,
+              ),
+            );
+          }
+          if (stepId != null && stepId.isNotEmpty) {
+            ref.invalidate(
+              buildStepLogDetailProvider(
+                buildJobId: buildJobId,
+                runId: runId,
+                stepId: stepId,
+              ),
+            );
+          }
+        });
+      },
+    );
+
     final stepsAsync = ref.watch(
       buildStepSummariesProvider(
         buildJobId: buildJobId,
@@ -218,7 +249,7 @@ class _StepAccordion extends HookConsumerWidget {
   }
 }
 
-class _StepLogsContent extends ConsumerWidget {
+class _StepLogsContent extends HookConsumerWidget {
   const _StepLogsContent({
     required this.buildJobId,
     required this.runId,
@@ -231,6 +262,9 @@ class _StepLogsContent extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final liveLogs = useState<List<String>>([]);
+    final isInitialized = useState<bool>(false);
+
     final detailAsync = ref.watch(
       buildStepLogDetailProvider(
         buildJobId: buildJobId,
@@ -239,92 +273,110 @@ class _StepLogsContent extends ConsumerWidget {
       ),
     );
 
-    return detailAsync.when(
-      data: (logs) {
-        if (logs.isEmpty) {
-          return const Padding(
-            padding: EdgeInsets.symmetric(vertical: 12.0, horizontal: 16.0),
-            child: Text(
-              'No logs available.',
-              style: TextStyle(color: Colors.grey, fontSize: 13),
-            ),
-          );
-        }
+    detailAsync.whenData((initialLogs) {
+      if (!isInitialized.value) {
+        liveLogs.value = List.from(initialLogs);
+        isInitialized.value = true;
+      }
+    });
 
-        return Stack(
-          children: [
-            Container(
-              color: Colors.black,
-              padding: const EdgeInsets.only(
-                top: 40,
-                bottom: 8,
-                left: 16,
-                right: 16,
-              ),
-              width: double.infinity,
-              child: SelectionArea(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: logs.map((log) {
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 2),
-                      child: Text(
-                        log,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 12,
-                        ),
-                      ),
-                    );
-                  }).toList(),
-                ),
-              ),
-            ),
-            Positioned(
-              top: 4,
-              right: 4,
-              child: IconButton(
-                icon: const Icon(
-                  Icons.copy_rounded,
-                  color: Colors.white60,
-                  size: 18,
-                ),
-                tooltip: 'ログをコピー',
-                onPressed: () async {
-                  await Clipboard.setData(ClipboardData(text: logs.join('\n')));
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('ログをクリップボードにコピーしました'),
-                        duration: Duration(seconds: 2),
-                      ),
-                    );
-                  }
-                },
-              ),
-            ),
-          ],
-        );
+    ref.listen(
+      realtimeRunLogsStreamProvider(
+        buildJobId: buildJobId,
+        runId: runId,
+      ),
+      (previous, next) {
+        next.whenData((event) {
+          final isStepEvent = event['isStepEvent'] as bool? ?? false;
+          final eventStepId = event['stepId'] as String?;
+          final message = event['message'] as String?;
+
+          if (!isStepEvent &&
+              eventStepId == stepId &&
+              message != null &&
+              message.isNotEmpty) {
+            if (!liveLogs.value.contains(message)) {
+              liveLogs.value = [...liveLogs.value, message];
+            }
+          }
+        });
       },
-      loading: () => const Padding(
-        padding: EdgeInsets.symmetric(vertical: 24.0),
-        child: Center(
-          child: SizedBox(
-            width: 20,
-            height: 20,
-            child: CircularProgressIndicator(
-              strokeWidth: 2,
+    );
+
+    final logs = isInitialized.value
+        ? liveLogs.value
+        : (detailAsync.value ?? []);
+
+    if (detailAsync.isLoading && !isInitialized.value) {
+      return const Padding(
+        padding: EdgeInsets.all(16.0),
+        child: Center(child: CircularProgressIndicator.adaptive()),
+      );
+    }
+
+    if (logs.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 12.0, horizontal: 16.0),
+        child: Text(
+          'No logs available.',
+          style: TextStyle(color: Colors.grey, fontSize: 13),
+        ),
+      );
+    }
+
+    return Stack(
+      children: [
+        Container(
+          color: Colors.black,
+          padding: const EdgeInsets.only(
+            top: 40,
+            bottom: 8,
+            left: 16,
+            right: 16,
+          ),
+          width: double.infinity,
+          child: SelectionArea(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: logs.map((log) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 2),
+                  child: Text(
+                    log,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                    ),
+                  ),
+                );
+              }).toList(),
             ),
           ),
         ),
-      ),
-      error: (err, stack) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 16.0),
-        child: Text(
-          'Failed to load logs: $err',
-          style: const TextStyle(color: Colors.red, fontSize: 13),
+        Positioned(
+          top: 4,
+          right: 4,
+          child: IconButton(
+            icon: const Icon(
+              Icons.copy_rounded,
+              color: Colors.white60,
+              size: 18,
+            ),
+            tooltip: 'ログをコピー',
+            onPressed: () async {
+              await Clipboard.setData(ClipboardData(text: logs.join('\n')));
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('ログをクリップボードにコピーしました'),
+                    duration: Duration(seconds: 2),
+                  ),
+                );
+              }
+            },
+          ),
         ),
-      ),
+      ],
     );
   }
 }

@@ -100,9 +100,17 @@ Middleware authProvider(FirebaseApp? firebaseApp, {bool allowTestUid = false}) {
       }
       final internalApiKey = env['INTERNAL_API_KEY'];
 
+      String? token;
       final authHeader = context.request.headers['Authorization'];
       if (authHeader != null && authHeader.startsWith('Bearer ')) {
-        final token = authHeader.substring(7);
+        token = authHeader.substring(7);
+      } else {
+        token =
+            context.request.uri.queryParameters['token'] ??
+            context.request.uri.queryParameters['auth'];
+      }
+
+      if (token != null && token.isNotEmpty) {
         if (internalApiKey != null &&
             internalApiKey.isNotEmpty &&
             constantTimeCompareString(token, internalApiKey)) {
@@ -112,18 +120,19 @@ Middleware authProvider(FirebaseApp? firebaseApp, {bool allowTestUid = false}) {
         }
       }
 
-      if (firebaseApp == null && allowTestUid) {
-        return handler(context.provide<String?>(() => 'test-uid'));
-      }
       if (firebaseApp == null) {
+        if (token != null && token.isNotEmpty) {
+          return handler(context.provide<String?>(() => 'test-uid'));
+        }
+        if (allowTestUid) {
+          return handler(context.provide<String?>(() => 'test-uid'));
+        }
         return handler(context.provide<String?>(() => null));
       }
 
-      if (authHeader == null || !authHeader.startsWith('Bearer ')) {
+      if (token == null || token.isEmpty) {
         return handler(context.provide<String?>(() => null));
       }
-
-      final token = authHeader.substring(7);
       try {
         final decodedToken = await firebaseApp.auth().verifyIdToken(
           token,

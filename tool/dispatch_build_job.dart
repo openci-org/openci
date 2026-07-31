@@ -54,11 +54,28 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Run OpenCI Test Script
+      - name: Run Long OpenCI Streaming Test Script
         run: |
-          echo "🎉 Step 1: OpenCI Test"
+          echo "🚀 Step 1: Initializing environment & dependencies..."
+          for i in 1 2 3 4 5; do
+            echo "   [Dep Check \$i/5] Installing package dependencies..."
+            sleep 2
+          done
+
+          echo "📦 Step 2: Compiling Application..."
+          for i in 1 2 3 4; do
+            echo "   [Build Task \$i/4] Building target release bundle..."
+            sleep 2
+          done
+
+          echo "🧪 Step 3: Executing Test Suites..."
+          echo "   Running unit tests (128 tests total)..."
           sleep 3
-          echo "💥 Step 2: Simulating Build Failure..."
+          echo "   ✅ Unit tests passed (128/128)"
+
+          echo "💥 Step 4: Simulating Final Build Failure..."
+          sleep 2
+          echo "❌ Build failed due to simulated error"
           exit 1
 ''');
 

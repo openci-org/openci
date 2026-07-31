@@ -7,7 +7,7 @@ import 'package:openci_server/database.dart';
 import 'package:openci_shared/openci_shared.dart';
 import 'package:test/test.dart';
 
-import '../../../../../routes/builds/[id]/runs/[runId].dart' as route;
+import '../../../../../routes/builds/[id]/runs/[runId]/index.dart' as route;
 
 DateTime _getNormalizedNow() {
   final now = DateTime.now().toUtc();

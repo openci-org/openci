@@ -178,9 +178,39 @@ class LokiService {
       return stepList;
     } catch (e, s) {
       stderr.writeln(
-        '[LokiService] Error querying Loki step summaries for runId $runId: $e\n$s',
+        '[LokiService] Error querying step summaries for runId $runId: $e\n$s',
       );
       return [];
     }
+  }
+
+  /// Loki Tail API (WebSocket) から受信したフレームメッセージをパースし、
+  /// (streamLabels, logLines) のリストを返します。
+  static List<MapEntry<Map<String, String>, String>> parseTailFrame(
+    String frameJsonStr,
+  ) {
+    final List<MapEntry<Map<String, String>, String>> results = [];
+    try {
+      final json = jsonDecode(frameJsonStr) as Map<String, dynamic>;
+      final streams = json['streams'] as List<dynamic>?;
+      if (streams == null) return results;
+
+      for (final streamItem in streams) {
+        if (streamItem is! Map<String, dynamic>) continue;
+        final rawStream = streamItem['stream'] as Map<String, dynamic>? ?? {};
+        final labels = rawStream.map((k, v) => MapEntry(k, v.toString()));
+
+        final values = streamItem['values'] as List<dynamic>?;
+        if (values == null) continue;
+
+        for (final entry in values) {
+          if (entry is List && entry.length >= 2) {
+            final message = entry[1].toString();
+            results.add(MapEntry(labels, message));
+          }
+        }
+      }
+    } catch (_) {}
+    return results;
   }
 }
