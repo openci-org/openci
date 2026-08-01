@@ -1,9 +1,9 @@
 import 'package:dashboard/firebase/firebase_config_provider.dart';
 import 'package:dashboard/firebase_options.dart';
-import 'package:dashboard/macos_updater_initializer.dart';
+import 'package:dashboard/utilities/macos_updater_initializer.dart';
 import 'package:dashboard/revenue_cat/revenue_cat.dart';
 import 'package:dashboard/root.dart';
-import 'package:dashboard/shared_preferences_provider.dart';
+import 'package:dashboard/utilities/shared_preferences_provider.dart';
 import 'package:dashboard/utilities/sentry_provider_observer.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';

@@ -33,7 +33,7 @@ final class CicdCommitGroupsProvider
   CicdCommitGroups create() => CicdCommitGroups();
 }
 
-String _$cicdCommitGroupsHash() => r'827069803b7cb8edbe6fd6af17c4c145ceb13bdc';
+String _$cicdCommitGroupsHash() => r'33b600f54d3b2f52c74bd3ec2c6c277a98392c99';
 
 abstract class _$CicdCommitGroups
     extends $StreamNotifier<List<CicdCommitGroup>> {

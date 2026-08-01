@@ -1,7 +1,7 @@
 import 'dart:convert';
 
 import 'package:dashboard/auth/auth_provider.dart';
-import 'package:dashboard/openci_server_url_provider.dart';
+import 'package:dashboard/utilities/openci_server_url_provider.dart';
 import 'package:dashboard/secret_manager/secret_manager_provider.dart';
 import 'package:dashboard/team/team_provider.dart';
 import 'package:http/http.dart' as http;

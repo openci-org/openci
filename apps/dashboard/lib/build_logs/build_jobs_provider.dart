@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:dashboard/auth/auth_provider.dart';
-import 'package:dashboard/openci_server_url_provider.dart';
+import 'package:dashboard/utilities/openci_server_url_provider.dart';
 import 'package:dashboard/team/selected_team_provider.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;

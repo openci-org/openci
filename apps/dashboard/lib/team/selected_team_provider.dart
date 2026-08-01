@@ -1,4 +1,4 @@
-import 'package:dashboard/shared_preferences_provider.dart';
+import 'package:dashboard/utilities/shared_preferences_provider.dart';
 import 'package:dashboard/team/team_provider.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 

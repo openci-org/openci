@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:dashboard/app_strings.dart';
 import 'package:dashboard/auth/auth_provider.dart';
-import 'package:dashboard/openci_server_url_provider.dart';
+import 'package:dashboard/utilities/openci_server_url_provider.dart';
 import 'package:dashboard/team/team_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';

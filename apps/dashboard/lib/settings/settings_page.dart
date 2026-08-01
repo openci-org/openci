@@ -1,20 +1,18 @@
 import 'dart:async';
 
 import 'package:dashboard/app_strings.dart';
-import 'package:dashboard/build_info.dart';
 import 'package:dashboard/firebase/firebase_config_provider.dart';
-import 'package:dashboard/macos_updater_initializer.dart';
-import 'package:dashboard/openci_server_url_provider.dart';
 import 'package:dashboard/revenue_cat/revenue_cat.dart';
 import 'package:dashboard/revenue_cat/subscription_page.dart';
 import 'package:dashboard/team/selected_team_provider.dart';
 import 'package:dashboard/team/team_provider.dart';
+import 'package:dashboard/utilities/macos_updater_initializer.dart';
+import 'package:dashboard/utilities/openci_server_url_provider.dart';
 import 'package:dashboard/utilities/snack_bar_extension.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:intl/intl.dart';
 import 'package:macos_updater/macos_updater.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -67,7 +65,6 @@ class SettingsPage extends HookConsumerWidget {
                     children: [
                       const _AppVersionTile(),
                       const _GroupDivider(),
-                      const _BuildUpdatedTile(),
                       if (isMacosUpdaterSupportedPlatform) ...[
                         const _GroupDivider(),
                         _SettingsItem(
@@ -479,30 +476,6 @@ class _AppVersionTile extends HookWidget {
       ),
     );
   }
-}
-
-class _BuildUpdatedTile extends StatelessWidget {
-  const _BuildUpdatedTile();
-
-  @override
-  Widget build(BuildContext context) {
-    return _SettingsInfoItem(
-      icon: Icons.update_rounded,
-      title: '最終更新',
-      subtitle: _formatBuildUpdatedText() ?? 'ビルド情報がありません',
-    );
-  }
-}
-
-String? _formatBuildUpdatedText() {
-  final updatedAt = BuildInfo.updatedAt;
-  if (updatedAt == null) {
-    return null;
-  }
-
-  final formattedDate = DateFormat('yyyy/MM/dd HH:mm').format(updatedAt);
-  final shaSuffix = BuildInfo.sha.isEmpty ? '' : ' (${BuildInfo.sha})';
-  return '最終更新: $formattedDate$shaSuffix';
 }
 
 class _SelfHostedIndicator extends ConsumerWidget {

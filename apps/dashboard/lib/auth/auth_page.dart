@@ -5,7 +5,7 @@ import 'dart:io';
 import 'package:dashboard/app_strings.dart';
 import 'package:dashboard/firebase/firebase_config_provider.dart';
 import 'package:dashboard/firebase/plist_parser.dart';
-import 'package:dashboard/openci_server_url_provider.dart';
+import 'package:dashboard/utilities/openci_server_url_provider.dart';
 import 'package:dashboard/team/selected_team_provider.dart';
 import 'package:dashboard/utilities/snack_bar_extension.dart';
 import 'package:file_picker/file_picker.dart';
