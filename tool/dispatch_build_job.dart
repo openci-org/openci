@@ -54,13 +54,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Run Long OpenCI Streaming Test Script
+      - name: Check macOS Version
         run: |
-          echo "🚀 Step 1: Initializing environment & dependencies..."
-          for i in 1 2 3 4 5 6; do
-            echo "   [Dep Check \$i/6] Installing package dependencies..."
-            sleep 10
-          done
+          echo "🍏 Checking macOS Version:"
+          sw_vers
 ''');
 
   final customScript = Platform.environment['CUSTOM_SCRIPT'] ?? customScriptArg;
