@@ -95,6 +95,7 @@ class JobExecutor {
               baseVmName: _baseVmName,
               vmName: vmName,
               onVmCreated: () => vmCreated = true,
+              runsOn: job.runsOn,
             );
 
             await logInfo(
@@ -435,11 +436,20 @@ class JobExecutor {
     required String baseVmName,
     required String vmName,
     required void Function() onVmCreated,
+    String? runsOn,
   }) async {
+    final os =
+        (runsOn != null &&
+            (runsOn.toLowerCase().contains('ubuntu') ||
+                runsOn.toLowerCase().contains('linux')))
+        ? 'linux'
+        : 'darwin';
+
     await _orchardVmService.prepare(
       baseInstanceName: baseVmName,
       containerName: vmName,
       onCreated: onVmCreated,
+      os: os,
     );
   }
 

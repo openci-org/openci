@@ -21,10 +21,12 @@ class OrchardVmService implements VmService {
     required String baseInstanceName,
     required String containerName,
     required void Function() onCreated,
+    String? os,
   }) async {
     final lease = await apiClient.createLease(
       imageName: baseInstanceName,
       vmName: containerName,
+      os: os ?? 'darwin',
     );
     _activeLeases[containerName] = lease;
 

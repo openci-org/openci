@@ -7,6 +7,7 @@ abstract class VmService {
     required String baseInstanceName,
     required String containerName,
     required void Function() onCreated,
+    String? os,
   });
 
   Future<void> cleanup(String containerName);

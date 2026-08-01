@@ -78,6 +78,7 @@ class OrchardApiClient {
     int? cpuCount,
     int? memoryGb,
     bool headless = true,
+    String os = 'darwin',
   }) async {
     final targetName =
         vmName ?? 'openci-vm-${DateTime.now().millisecondsSinceEpoch}';
@@ -86,6 +87,7 @@ class OrchardApiClient {
       'name': targetName,
       'image': imageName,
       'headless': headless,
+      'os': os,
     };
     final cpu = cpuCount ?? 4;
     final memMib = (memoryGb ?? 8) * 1024;

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+
 import 'package:logging/logging.dart';
 import 'package:openci_job_processor_shared/src/vm/vm_service.dart';
 
@@ -38,6 +39,7 @@ class OrchardCliVmService implements VmService {
     required String baseInstanceName,
     required String containerName,
     required void Function() onCreated,
+    String? os,
   }) async {
     _log.info(
       'Creating Orchard VM: $containerName with image $baseInstanceName',
