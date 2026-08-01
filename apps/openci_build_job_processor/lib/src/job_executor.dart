@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 
@@ -267,20 +266,21 @@ class JobExecutor {
           );
 
           try {
-            final process = await Process.start('/bin/sh', ['-c', actScript]);
-            process.stdout
-                .transform(utf8.decoder)
-                .transform(const LineSplitter())
-                .listen((line) {
-                  logInfo(job.id, runId, line, stepId: 'run_workflow');
-                });
-            process.stderr
-                .transform(utf8.decoder)
-                .transform(const LineSplitter())
-                .listen((line) {
-                  logInfo(job.id, runId, line, stepId: 'run_workflow');
-                });
-            final exitCode = await process.exitCode;
+            await logInfo(
+              job.id,
+              runId,
+              '[Orchard] Dispatching command execution to remote macOS VM ($vmName)...',
+              stepId: 'run_workflow',
+            );
+            final exitCode = await _orchardVmService.executeCommandStreaming(
+              containerName: vmName,
+              command: ['/bin/sh', '-c', actScript],
+              onLog: (line) {
+                logInfo(job.id, runId, line, stepId: 'run_workflow');
+              },
+              isCancelled: () async => false,
+            );
+
             if (exitCode != 0) {
               finalStatus = BuildJobStatus.FAILURE;
               await logError(
