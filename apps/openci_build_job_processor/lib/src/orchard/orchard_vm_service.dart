@@ -1,22 +1,19 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:openci_job_processor_shared/src/orchard/orchard_api_client.dart';
-import 'package:openci_job_processor_shared/src/vm/vm_service.dart';
+import 'package:openci_build_job_processor/src/orchard/orchard_api_client.dart';
 
-class OrchardVmService implements VmService {
+class OrchardVmService {
   final OrchardApiClient apiClient;
 
   final Map<String, OrchardLease> _activeLeases = {};
 
   OrchardVmService({required this.apiClient});
 
-  @override
   String generateVmName(String jobId) {
     return 'orchard-vm-$jobId';
   }
 
-  @override
   Future<void> prepare({
     required String baseInstanceName,
     required String containerName,
@@ -40,7 +37,6 @@ class OrchardVmService implements VmService {
     onCreated();
   }
 
-  @override
   Future<void> cleanup(String containerName) async {
     final lease = _activeLeases.remove(containerName);
     final targetId = lease?.id.isNotEmpty == true ? lease!.id : containerName;
@@ -49,7 +45,6 @@ class OrchardVmService implements VmService {
     } catch (_) {}
   }
 
-  @override
   Future<int> executeCommandStreaming({
     required String containerName,
     required List<String> command,
@@ -72,7 +67,6 @@ class OrchardVmService implements VmService {
     );
   }
 
-  @override
   Future<void> writeFile(
     String containerName,
     String filePath,

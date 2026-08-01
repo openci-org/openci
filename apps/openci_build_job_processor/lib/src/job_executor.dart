@@ -3,9 +3,10 @@ import 'dart:io';
 import 'dart:math';
 
 import 'package:logging/logging.dart';
-import 'package:openci_build_job_processor/openci_build_job_processor.dart';
 import 'package:openci_build_job_processor/src/logging/build_job_logger.dart';
-import 'package:openci_job_processor_shared/openci_job_processor_shared.dart';
+import 'package:openci_build_job_processor/src/logging/build_step_logger.dart';
+import 'package:openci_build_job_processor/src/orchard/orchard_api_client.dart';
+import 'package:openci_build_job_processor/src/orchard/orchard_vm_service.dart';
 import 'package:openci_shared/openci_shared.dart';
 import 'package:retry/retry.dart';
 import 'package:sentry/sentry.dart';
@@ -14,7 +15,7 @@ class JobExecutor {
   JobExecutor({
     required OpenCiApiService apiService,
     required String baseVmName,
-    VmService? orchardVmService,
+    OrchardVmService? orchardVmService,
   }) : _apiService = apiService,
        _baseVmName = baseVmName,
        _orchardVmService =
@@ -34,7 +35,7 @@ class JobExecutor {
 
   final OpenCiApiService _apiService;
   final String _baseVmName;
-  final VmService _orchardVmService;
+  final OrchardVmService _orchardVmService;
   final _random = Random();
   final _log = Logger('JobExecutor');
   Duration retryDelay = const Duration(seconds: 5);

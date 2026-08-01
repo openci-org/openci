@@ -10,7 +10,6 @@ workspace:
   - apps/openci_server
   - packages/lume_dart
   - packages/macos_updater
-  - packages/openci_job_processor_shared
   - packages/openci_shared
   - packages/pubspec_version_hook
 
