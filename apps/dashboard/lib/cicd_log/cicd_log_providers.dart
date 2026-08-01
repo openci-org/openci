@@ -2,82 +2,62 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:dashboard/api/openci_api_client.dart';
-import 'package:dashboard/auth/auth_provider.dart';
+import 'package:dashboard/api/ws_uri_builder.dart';
 import 'package:dashboard/team/selected_team_provider.dart';
 import 'package:openci_shared/openci_shared.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:web_socket_channel/web_socket_channel.dart';
+import 'package:web_socket/web_socket.dart';
 
 part 'cicd_log_providers.g.dart';
 
 @riverpod
-Stream<List<CicdCommitGroup>> cicdCommitGroups(Ref ref) async* {
-  final teamId = ref.watch(selectedTeamIdProvider).value;
-  if (teamId == null || teamId.isEmpty) {
-    yield const [];
-    return;
-  }
+class CicdCommitGroups extends _$CicdCommitGroups {
+  @override
+  Stream<List<CicdCommitGroup>> build() async* {
+    final teamId = ref.watch(selectedTeamIdProvider).value;
+    if (teamId == null || teamId.isEmpty) {
+      throw StateError('Selected team ID is missing or empty.');
+    }
 
-  final api = ref.watch(openciApiServiceProvider);
-  final auth = ref.watch(firebaseAuthProvider);
-  final token = await auth.currentUser?.getIdToken();
+    final initialData = await _fetchGroups(teamId);
+    yield initialData;
 
-  Future<List<CicdCommitGroup>> fetchGroups() async {
-    try {
-      final response = await api.getCommitGroups(teamId, 100);
-      if (response.isSuccessful) {
-        return response.body ?? const [];
+    final wsUri = await buildWebSocketUri(
+      ref,
+      '/builds/commits/stream',
+      queryParameters: {'teamId': teamId},
+    );
+
+    final socket = await WebSocket.connect(wsUri);
+    ref.onDispose(socket.close);
+
+    await for (final event in socket.events) {
+      switch (event) {
+        case TextDataReceived(:final text):
+          final rawList = jsonDecode(text) as List<dynamic>;
+          final groups = rawList
+              .map(
+                (item) =>
+                    CicdCommitGroup.fromJson(item as Map<String, dynamic>),
+              )
+              .toList();
+          yield groups;
+        case CloseReceived():
+        case BinaryDataReceived():
+          break;
       }
-      return const [];
-    } catch (_) {
-      return const [];
     }
   }
 
-  final initial = await fetchGroups();
-  yield initial;
-
-  final baseUrl = api.client.baseUrl.toString();
-  final wsScheme = baseUrl.startsWith('https') ? 'wss' : 'ws';
-  final host = baseUrl
-      .replaceFirst(RegExp(r'^https?://'), '')
-      .replaceAll('/', '');
-
-  final queryParams = <String, String>{
-    'teamId': teamId,
-    if (token != null && token.isNotEmpty) 'token': token,
-  };
-
-  final wsUri = Uri(
-    scheme: wsScheme,
-    host: host.contains(':') ? host.split(':').first : host,
-    port: host.contains(':') ? int.tryParse(host.split(':').last) : null,
-    path: '/builds/commits/stream',
-    queryParameters: queryParams,
-  );
-
-  WebSocketChannel? channel;
-
-  try {
-    channel = WebSocketChannel.connect(wsUri);
-    await channel.ready;
-    await for (final rawMessage in channel.stream) {
-      try {
-        final messageStr = rawMessage.toString();
-        final rawList = jsonDecode(messageStr) as List<dynamic>;
-        final groups = rawList
-            .map(
-              (item) => CicdCommitGroup.fromJson(item as Map<String, dynamic>),
-            )
-            .toList();
-        yield groups;
-      } catch (_) {}
+  Future<List<CicdCommitGroup>> _fetchGroups(String teamId) async {
+    final api = ref.read(openciApiServiceProvider);
+    const limit = 100;
+    final response = await api.getCommitGroups(teamId, limit);
+    if (!response.isSuccessful || response.body == null) {
+      throw Exception(
+        'Failed to fetch commit groups: ${response.statusCode} - ${response.error}',
+      );
     }
-  } catch (_) {
-    // WebSocket 接続エラー時は初回データを維持し、未捕捉例外を出さない
-  } finally {
-    try {
-      await channel?.sink.close();
-    } catch (_) {}
+    return response.body!;
   }
 }

@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:dashboard/api/openci_api_client.dart';
-import 'package:dashboard/auth/auth_provider.dart';
+import 'package:dashboard/api/ws_uri_builder.dart';
 import 'package:dashboard/build_logs/build_jobs_provider.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
@@ -65,26 +65,9 @@ Stream<Map<String, dynamic>> realtimeRunLogsStream(
 }) async* {
   if (runId.isEmpty) return;
 
-  final api = ref.watch(openciApiServiceProvider);
-  final auth = ref.watch(firebaseAuthProvider);
-  final token = await auth.currentUser?.getIdToken();
-
-  final baseUrl = api.client.baseUrl.toString();
-  final wsScheme = baseUrl.startsWith('https') ? 'wss' : 'ws';
-  final host = baseUrl
-      .replaceFirst(RegExp(r'^https?://'), '')
-      .replaceAll('/', '');
-
-  final queryParams = <String, String>{
-    if (token != null && token.isNotEmpty) 'token': token,
-  };
-
-  final wsUri = Uri(
-    scheme: wsScheme,
-    host: host.contains(':') ? host.split(':').first : host,
-    port: host.contains(':') ? int.tryParse(host.split(':').last) : null,
-    path: '/builds/$buildJobId/runs/$runId/stream',
-    queryParameters: queryParams.isNotEmpty ? queryParams : null,
+  final wsUri = await buildWebSocketUri(
+    ref,
+    '/builds/$buildJobId/runs/$runId/stream',
   );
 
   WebSocketChannel? channel;
