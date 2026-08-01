@@ -55,9 +55,20 @@ class JobExecutor {
       _log.info('[$vmName] Resolving GitHub installation token...');
       final token = await resolveGitHubInstallationToken(job.id);
 
-      const retryOptions = RetryOptions(
-        maxAttempts: 2,
-        delayFactor: Duration(seconds: 5),
+      final vmPrepareTimeoutMinutes =
+          int.tryParse(
+            Platform.environment['OPENCI_VM_PREPARE_TIMEOUT_MINUTES'] ?? '15',
+          ) ??
+          15;
+      final maxAttempts = (vmPrepareTimeoutMinutes * 60 / 15).round().clamp(
+        5,
+        240,
+      );
+
+      final retryOptions = RetryOptions(
+        maxAttempts: maxAttempts,
+        delayFactor: const Duration(seconds: 15),
+        randomizationFactor: 0.2,
       );
       final prepareVmStart = DateTime.now().toUtc();
       await sendStepStatusUpdate(
@@ -98,6 +109,12 @@ class JobExecutor {
             _log.warning(
               '[$vmName] VM preparation failed: $e. '
               'Cleaning up failed VM before retry...',
+            );
+            await logInfo(
+              job.id,
+              runId,
+              '[Orchard] Waiting for available VM capacity (retrying in 15s)...',
+              stepId: 'prepare_vm',
             );
             try {
               await _cleanupVm(vmName, runId);

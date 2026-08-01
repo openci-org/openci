@@ -14,6 +14,7 @@ class ProcessorConfig {
     this.orchardApiUrl = 'https://orchard-controller:6120',
     this.orchardServiceAccountName = 'openci',
     this.orchardServiceAccountToken = '',
+    this.vmPrepareTimeoutMinutes = 15,
   });
 
   final String serverUrl;
@@ -29,6 +30,7 @@ class ProcessorConfig {
   final String orchardApiUrl;
   final String orchardServiceAccountName;
   final String orchardServiceAccountToken;
+  final int vmPrepareTimeoutMinutes;
 
   factory ProcessorConfig.fromEnvironment() {
     String getRequired(String key) {
@@ -47,6 +49,10 @@ class ProcessorConfig {
     final maxConcurrentJobsStr =
         Platform.environment['OPENCI_MAX_CONCURRENT_JOBS'] ?? '3';
     final maxConcurrentJobs = int.tryParse(maxConcurrentJobsStr) ?? 3;
+
+    final vmPrepareTimeoutStr =
+        Platform.environment['OPENCI_VM_PREPARE_TIMEOUT_MINUTES'] ?? '15';
+    final vmPrepareTimeoutMinutes = int.tryParse(vmPrepareTimeoutStr) ?? 15;
 
     final orchardApiUrl =
         Platform.environment['ORCHARD_API_URL'] ??
@@ -90,6 +96,7 @@ class ProcessorConfig {
       orchardApiUrl: orchardApiUrl,
       orchardServiceAccountName: orchardServiceAccountName,
       orchardServiceAccountToken: orchardServiceAccountToken,
+      vmPrepareTimeoutMinutes: vmPrepareTimeoutMinutes,
     );
   }
 }
