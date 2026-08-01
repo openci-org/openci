@@ -8,7 +8,7 @@ import 'package:openci_server/database.dart';
 import 'package:openci_shared/openci_shared.dart';
 import 'package:test/test.dart';
 
-import '../../../routes/builds/commits.dart' as route;
+import '../../../routes/builds/commits/index.dart' as route;
 
 void main() {
   late AppDatabase db;

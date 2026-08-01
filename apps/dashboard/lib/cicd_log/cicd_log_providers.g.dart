@@ -48,4 +48,4 @@ final class CicdCommitGroupsProvider
   }
 }
 
-String _$cicdCommitGroupsHash() => r'f54057d35dbb3fbe607c486700b242e3f9b10a53';
+String _$cicdCommitGroupsHash() => r'5618092edfbfe9598c60ed156a03513f2a9cbf5b';

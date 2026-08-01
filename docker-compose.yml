@@ -56,22 +56,6 @@ services:
       - db
       - seaweedfs
 
-  tailscale:
-    image: tailscale/tailscale:latest
-    container_name: openci-tailscale
-    devices:
-      - /dev/net/tun:/dev/net/tun
-    volumes:
-      - tailscale_data:/var/lib/tailscale
-    cap_add:
-      - NET_ADMIN
-      - SYS_MODULE
-    environment:
-      - TS_AUTHKEY=${TAILSCALE_AUTHKEY:?TAILSCALE_AUTHKEY environment variable is required}
-      - TS_STATE_DIR=/var/lib/tailscale
-      - TS_USERSPACE=false
-    restart: unless-stopped
-
   job-processor:
     build:
       context: .
@@ -95,27 +79,6 @@ services:
     depends_on:
       - server
       - orchard-controller
-
-  job-processor-linux:
-    build:
-      context: .
-      dockerfile: apps/openci_build_job_processor_linux/Dockerfile
-    container_name: openci-job-processor-linux
-    network_mode: "service:tailscale"
-    user: "root"
-    restart: unless-stopped
-    environment:
-      - OPENCI_SERVER_URL=http://server:8080
-      - LOKI_URL=http://loki:3100
-      - OPENCI_RUNS_ON_PATTERN=${OPENCI_RUNS_ON_PATTERN_LINUX:?OPENCI_RUNS_ON_PATTERN_LINUX environment variable is required}
-      - INCUS_BASE_INSTANCE=${INCUS_BASE_INSTANCE:?INCUS_BASE_INSTANCE environment variable is required}
-      - INCUS_API_URL=${INCUS_API_URL:?INCUS_API_URL environment variable is required}
-      - INTERNAL_API_KEY=${INTERNAL_API_KEY:?INTERNAL_API_KEY environment variable is required}
-      - SENTRY_DSN=${SENTRY_DSN_JOB_PROCESSOR_LINUX:-}
-      - OPENCI_MAX_CONCURRENT_JOBS=${OPENCI_MAX_CONCURRENT_JOBS_LINUX:-3}
-    depends_on:
-      - tailscale
-      - server
 
   caddy:
     image: caddy:2-alpine
@@ -172,7 +135,7 @@ volumes:
   caddy_data:
   caddy_config:
   seaweedfs_data:
-  tailscale_data:
   orchard_data:
   loki_data:
+
 

@@ -119,6 +119,23 @@ class BuildJobDao extends DatabaseAccessor<AppDatabase>
     return query.get();
   }
 
+  Stream<List<DriftBuildJob>> watchBuildJobsForTeam({
+    required String teamId,
+    bool? hasIpa,
+    int limit = 100,
+  }) {
+    final query = select(buildJobs)
+      ..where((t) => t.teamId.equals(teamId))
+      ..orderBy([(t) => OrderingTerm.desc(t.createdAt)])
+      ..limit(limit);
+
+    if (hasIpa != null) {
+      query.where((t) => t.hasIpa.equals(hasIpa));
+    }
+
+    return query.watch();
+  }
+
   Stream<DriftBuildJob?> watchBuildJob(String id) =>
       (select(buildJobs)..where((t) => t.id.equals(id))).watchSingleOrNull();
 
