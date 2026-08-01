@@ -11,3 +11,4 @@ export 'src/models/team.dart';
 export 'src/models/user_device.dart';
 export 'src/utilities/constant_time_compare.dart';
 export 'src/utilities/date_time_converter.dart';
+export 'src/utilities/ws_uri.dart';

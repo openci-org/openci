@@ -4,35 +4,23 @@ import 'package:logging/logging.dart';
 import 'package:openci_build_job_processor/openci_build_job_processor.dart';
 import 'package:openci_build_job_processor/src/build_job_poller/claim_next_job.dart';
 import 'package:openci_build_job_processor/src/logging/build_job_logger.dart';
-import 'package:openci_job_processor_shared/openci_job_processor_shared.dart';
 import 'package:openci_shared/openci_shared.dart';
 import 'package:sentry/sentry.dart';
+import 'package:web_socket/web_socket.dart';
 
 final _log = Logger('JobPoller');
 
 class JobPoller {
-  JobPoller({
-    required ProcessorConfig config,
-    OpenCiApiService? apiService,
-    VmService? orchardVmService,
-  }) : _apiService =
-           apiService ??
-           createOpenCiChopperClient(
-             baseUrl: config.serverUrl,
-             tokenProvider: () => config.internalApiKey,
-             services: [OpenCiApiService.create()],
-           ).getService<OpenCiApiService>(),
-       _baseVmName = config.baseVmName,
-       _maxConcurrentJobs = config.maxConcurrentJobs,
-       _orchardVmService =
-           orchardVmService ??
-           OrchardVmService(
-             apiClient: OrchardApiClient(
-               baseUrl: config.orchardApiUrl,
-               serviceAccountName: config.orchardServiceAccountName,
-               serviceAccountToken: config.orchardServiceAccountToken,
-             ),
-           ) {
+  JobPoller({required ProcessorConfig config, OpenCiApiService? apiService})
+    : _serverUrl = config.serverUrl,
+      _apiService =
+          apiService ??
+          createOpenCiChopperClient(
+            baseUrl: config.serverUrl,
+            tokenProvider: () => config.internalApiKey,
+            services: [OpenCiApiService.create()],
+          ).getService<OpenCiApiService>(),
+      _maxConcurrentJobs = config.maxConcurrentJobs {
     setupBuildJobLogger(
       serverUrl: config.serverUrl,
       internalApiKey: config.internalApiKey,
@@ -43,16 +31,40 @@ class JobPoller {
     );
   }
 
+  final String _serverUrl;
   final OpenCiApiService _apiService;
-  final String _baseVmName;
-  final VmService _orchardVmService;
   final int _maxConcurrentJobs;
 
-  Future<void> startPolling(String runsOnPattern) async {
+  Stream<BuildJob> watchClaimedJobs(String runsOnPattern) async* {
     _log.info(
-      'JobPoller started polling for pattern: $runsOnPattern (Orchard Mode)',
+      'JobPoller watching jobs stream (pattern: $runsOnPattern, maxConcurrent: $_maxConcurrentJobs)',
     );
 
+    final wsUri = buildWebSocketUri(_serverUrl, '/worker/jobs/stream');
+
+    while (true) {
+      try {
+        _log.info('Connecting to openci-server WebSocket stream at $wsUri ...');
+        final socket = await WebSocket.connect(wsUri);
+        _log.info('✅ WebSocket stream connected to openci-server');
+
+        yield* _drainAvailableJobsStream(runsOnPattern);
+
+        await for (final event in socket.events) {
+          if (event is TextDataReceived) {
+            yield* _drainAvailableJobsStream(runsOnPattern);
+          }
+        }
+      } catch (e, s) {
+        _log.warning('WebSocket connection lost: $e. Reconnecting in 5s...');
+        unawaited(Sentry.captureException(e, stackTrace: s));
+      }
+
+      await Future<void>.delayed(const Duration(seconds: 5));
+    }
+  }
+
+  Stream<BuildJob> _drainAvailableJobsStream(String runsOnPattern) async* {
     while (true) {
       try {
         final job = await claimNextJob(
@@ -61,38 +73,16 @@ class JobPoller {
           workerHost: 'orchard',
           maxConcurrentJobs: _maxConcurrentJobs,
         );
+
         if (job == null) {
-          await Future<void>.delayed(const Duration(seconds: 10));
-          continue;
+          break;
         }
 
-        final executor = JobExecutor(
-          apiService: _apiService,
-          baseVmName: _baseVmName,
-          orchardVmService: _orchardVmService,
-        );
-
-        final runId = executor.generateRunId();
-
-        await logInfo(
-          job.id,
-          runId,
-          'Job claimed: ${job.id}. Starting build execution...',
-          stepId: 'prepare_vm',
-        );
-
-        unawaited(() async {
-          try {
-            await executor.execute(job, 'orchard', runId);
-          } catch (e, s) {
-            _log.severe('Error executing job ${job.id}: $e', e, s);
-            unawaited(Sentry.captureException(e, stackTrace: s));
-          }
-        }());
+        yield job;
       } catch (e, s) {
-        _log.severe('Error in polling loop: $e', e, s);
+        _log.severe('Error claiming job: $e', e, s);
         unawaited(Sentry.captureException(e, stackTrace: s));
-        await Future<void>.delayed(const Duration(seconds: 10));
+        break;
       }
     }
   }

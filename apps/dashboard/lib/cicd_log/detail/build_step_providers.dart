@@ -65,7 +65,7 @@ Stream<Map<String, dynamic>> realtimeRunLogsStream(
 }) async* {
   if (runId.isEmpty) return;
 
-  final wsUri = await buildWebSocketUri(
+  final wsUri = await buildAuthedWebSocketUri(
     ref,
     '/builds/$buildJobId/runs/$runId/stream',
   );

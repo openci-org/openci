@@ -139,6 +139,18 @@ class BuildJobDao extends DatabaseAccessor<AppDatabase>
   Stream<DriftBuildJob?> watchBuildJob(String id) =>
       (select(buildJobs)..where((t) => t.id.equals(id))).watchSingleOrNull();
 
+  Stream<List<DriftBuildJob>> watchQueuedJobs() {
+    final query = select(buildJobs)
+      ..where((t) => t.status.equals(BuildJobStatus.QUEUED.name));
+    return query.watch();
+  }
+
+  Future<List<DriftBuildJob>> getQueuedJobs() {
+    final query = select(buildJobs)
+      ..where((t) => t.status.equals(BuildJobStatus.QUEUED.name));
+    return query.get();
+  }
+
   Future<void> updateBuildJob(DriftBuildJob job) =>
       update(buildJobs).replace(job);
 

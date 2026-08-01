@@ -22,7 +22,7 @@ class CicdCommitGroups extends _$CicdCommitGroups {
     final initialData = await _fetchGroups(teamId);
     yield initialData;
 
-    final wsUri = await buildWebSocketUri(
+    final wsUri = await buildAuthedWebSocketUri(
       ref,
       '/builds/commits/stream',
       queryParameters: {'teamId': teamId},
