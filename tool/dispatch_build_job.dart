@@ -99,6 +99,7 @@ jobs:
       'commitSha': commitSha,
       'commitMessage': commitMessage,
     };
+    print('   Request Payload:\n${_formatJson(jsonEncode(payload))}');
 
     final response = await http.post(
       Uri.parse('$serverUrl/internal/seed/jobs'),
@@ -108,11 +109,11 @@ jobs:
 
     if (response.statusCode >= 200 && response.statusCode < 300) {
       print('✅ Test build job created successfully via API.');
-      print('   Body:\n${_formatJson(response.body)}');
+      print('   Response Body:\n${_formatJson(response.body)}');
     } else {
       print('❌ Failed to create test build job via API!');
       print('   Status: ${response.statusCode}');
-      print('   Body:\n${_formatJson(response.body)}');
+      print('   Response Body:\n${_formatJson(response.body)}');
     }
   } catch (e, st) {
     print('❌ Error connecting to openci-server API: $e');
@@ -144,6 +145,8 @@ jobs:
   final digest = hmac.convert(utf8.encode(rawBody));
   final signature = 'sha256=$digest';
 
+  print('   Request Payload:\n${_formatJson(rawBody)}');
+
   try {
     final response = await http.post(
       Uri.parse('$serverUrl/webhook'),
@@ -159,12 +162,12 @@ jobs:
     if (response.statusCode >= 200 && response.statusCode < 300) {
       print('✅ Webhook dispatched successfully!');
       print('   Status: ${response.statusCode}');
-      print('   Body:\n${_formatJson(response.body)}');
+      print('   Response Body:\n${_formatJson(response.body)}');
       print('   Delivery ID: $deliveryId');
     } else {
       print('❌ Failed to dispatch webhook!');
       print('   Status: ${response.statusCode}');
-      print('   Body:\n${_formatJson(response.body)}');
+      print('   Response Body:\n${_formatJson(response.body)}');
     }
   } catch (e, st) {
     print('❌ Error sending webhook HTTP request: $e');

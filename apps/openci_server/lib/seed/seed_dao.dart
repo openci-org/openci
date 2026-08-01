@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:drift/drift.dart';
 import 'package:openci_server/build_job/build_job.dart';
 import 'package:openci_server/database.dart';
@@ -85,9 +87,10 @@ class SeedDao extends DatabaseAccessor<AppDatabase> with _$SeedDaoMixin {
     String? customScript,
     String? workflowYaml,
   }) async {
-    await ensureTestTeam();
     final now = DateTime.now().toUtc();
-    final id = 'test-job-${now.millisecondsSinceEpoch}';
+    final uniqueSuffix =
+        '${now.microsecondsSinceEpoch}_${Random().nextInt(10000)}';
+    final id = 'test-job-$uniqueSuffix';
 
     final job = DriftBuildJob(
       id: id,
