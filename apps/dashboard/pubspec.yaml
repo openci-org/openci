@@ -9,8 +9,6 @@ resolution: workspace
 
 dependencies:
   app_links: ^7.0.0
-  app_minimizer_plus:
-    path: ../../packages/app_minimizer_plus
 
   chopper: ^8.6.0
   collection: ^1.18.0
@@ -42,7 +40,6 @@ dependencies:
     path: ../../packages/openci_shared
   package_info_plus: ^10.1.0
   purchases_flutter: ^10.0.2
-  qr: ^3.0.2
   re_editor: ^0.8.0
   re_highlight: ^0.0.3
   riverpod_annotation: ^4.0.2

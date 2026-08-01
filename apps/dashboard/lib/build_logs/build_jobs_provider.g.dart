@@ -53,50 +53,6 @@ abstract class _$BuildJobs extends $StreamNotifier<List<BuildJob>> {
   }
 }
 
-@ProviderFor(OtaBuildJobs)
-final otaBuildJobsProvider = OtaBuildJobsProvider._();
-
-final class OtaBuildJobsProvider
-    extends $StreamNotifierProvider<OtaBuildJobs, List<BuildJob>> {
-  OtaBuildJobsProvider._()
-    : super(
-        from: null,
-        argument: null,
-        retry: null,
-        name: r'otaBuildJobsProvider',
-        isAutoDispose: false,
-        dependencies: null,
-        $allTransitiveDependencies: null,
-      );
-
-  @override
-  String debugGetCreateSourceHash() => _$otaBuildJobsHash();
-
-  @$internal
-  @override
-  OtaBuildJobs create() => OtaBuildJobs();
-}
-
-String _$otaBuildJobsHash() => r'6bebf6558e2a7afc49768b9dd0d6fe7304b03313';
-
-abstract class _$OtaBuildJobs extends $StreamNotifier<List<BuildJob>> {
-  Stream<List<BuildJob>> build();
-  @$mustCallSuper
-  @override
-  void runBuild() {
-    final ref = this.ref as $Ref<AsyncValue<List<BuildJob>>, List<BuildJob>>;
-    final element =
-        ref.element
-            as $ClassProviderElement<
-              AnyNotifier<AsyncValue<List<BuildJob>>, List<BuildJob>>,
-              AsyncValue<List<BuildJob>>,
-              Object?,
-              Object?
-            >;
-    element.handleCreate(ref, build);
-  }
-}
-
 @ProviderFor(buildJobById)
 final buildJobByIdProvider = BuildJobByIdFamily._();
 

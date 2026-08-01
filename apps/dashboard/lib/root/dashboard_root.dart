@@ -1,6 +1,5 @@
 import 'package:dashboard/auth/auth_page.dart';
 import 'package:dashboard/auth/auth_provider.dart';
-import 'package:dashboard/build_logs/app_distributions_page.dart';
 import 'package:dashboard/cicd_log/cicd_logs_page.dart';
 import 'package:dashboard/extensions/async_value_extensions.dart';
 import 'package:dashboard/extensions/circular_progress_indicator_extensions.dart';
@@ -105,11 +104,6 @@ class _DashboardRootState extends State<DashboardRoot> {
             label: 'ストアリリース',
           ),
           NavigationDestination(
-            icon: Icon(Icons.install_mobile_outlined),
-            selectedIcon: Icon(Icons.install_mobile_rounded),
-            label: 'アプリ配信',
-          ),
-          NavigationDestination(
             icon: Icon(Icons.settings_outlined),
             selectedIcon: Icon(Icons.settings_rounded),
             label: '設定',
@@ -123,7 +117,6 @@ class _DashboardRootState extends State<DashboardRoot> {
             CicdLogsPage(),
             SecretManagerPage(),
             StoreReleasePage(),
-            AppDistributionsPage(),
             SettingsPage(),
           ],
         ),
