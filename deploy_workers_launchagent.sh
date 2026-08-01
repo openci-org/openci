@@ -26,8 +26,6 @@ fi
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-AVF_DART_VER="0.1.16"
-HELPER_BIN="${SCRIPT_DIR}/packages/avf_dart/.dart_tool/avf_dart/avf_helper"
 WORKER_BIN="${SCRIPT_DIR}/apps/openci_worker_cli/build/cli/macos_arm64/bundle/bin/openci_worker_cli"
 LABEL_PREFIX="org.openci.worker"
 
@@ -37,7 +35,6 @@ LABEL_PREFIX="org.openci.worker"
 CREDENTIALS_FILE="${SCRIPT_DIR}/worker_credentials.json"
 
 echo "=== Local check ==="
-[ -f "$HELPER_BIN" ] || { echo "Error: $HELPER_BIN not found"; exit 1; }
 [ -f "$WORKER_BIN" ] || { echo "Error: $WORKER_BIN not found"; exit 1; }
 [ -f "$CREDENTIALS_FILE" ] || { echo "Error: $CREDENTIALS_FILE not found"; exit 1; }
 
@@ -55,19 +52,13 @@ prep_host() {
   local host=$1
   echo "=== Preparing $host (binaries + stop old workers) ==="
 
-  remote "$host" "mkdir -p '/Users/admin/.pub-cache/hosted/pub.dev/avf_dart-${AVF_DART_VER}/.dart_tool/avf_dart'"
-  sshpass -p admin scp "${SSH_OPTS[@]}" "$HELPER_BIN" \
-    "admin@$host:/Users/admin/.pub-cache/hosted/pub.dev/avf_dart-${AVF_DART_VER}/.dart_tool/avf_dart/avf_helper"
-  remote "$host" "chmod +x '/Users/admin/.pub-cache/hosted/pub.dev/avf_dart-${AVF_DART_VER}/.dart_tool/avf_dart/avf_helper'"
-
   echo "Stopping previous workers on $host..."
   remote "$host" "for L in ${LABEL_PREFIX} ${LABEL_PREFIX}.1 ${LABEL_PREFIX}.2; do \
       launchctl bootout gui/\$(id -u admin)/\$L 2>/dev/null; \
       echo admin | sudo -S launchctl bootout system/\$L 2>/dev/null; \
       echo admin | sudo -S rm -f /Library/LaunchDaemons/\$L.plist /Library/LaunchAgents/\$L.plist; \
     done; \
-    echo admin | sudo -S pkill -9 -f openci_worker 2>/dev/null; \
-    echo admin | sudo -S pkill -9 -f avf_helper 2>/dev/null; true"
+    echo admin | sudo -S pkill -9 -f openci_worker 2>/dev/null; true"
 
   sshpass -p admin scp "${SSH_OPTS[@]}" "$WORKER_BIN" \
     "admin@$host:/Users/admin/Library/Application Support/Dart/install/bin/openci_worker"
