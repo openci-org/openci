@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:dart_frog/dart_frog.dart';
-import 'package:openci_server/auth/worker_auth.dart';
 import 'package:openci_server/database.dart';
 import 'package:openci_server/request/error_handler.dart';
 import 'package:openci_server/request/request_extension.dart';
@@ -19,9 +18,11 @@ Future<Response> _post(RequestContext context) async {
     final db = context.read<AppDatabase>();
     final uid = context.read<String?>();
 
-    final workerAuthError = verifyWorkerAuth(context, uid);
-    if (workerAuthError != null) {
-      return workerAuthError;
+    if (uid == null) {
+      return Response.json(
+        statusCode: HttpStatus.unauthorized,
+        body: {'success': false, 'error': 'Authentication required'},
+      );
     }
 
     final Map<String, dynamic> payload;

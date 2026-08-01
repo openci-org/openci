@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:dart_frog/dart_frog.dart';
-import 'package:openci_server/auth/worker_auth.dart';
 import 'package:openci_server/database.dart';
 import 'package:openci_server/request/error_handler.dart';
 import 'package:openci_server/request/request_extension.dart';
@@ -28,10 +27,9 @@ Future<Response> _get(RequestContext context, String teamId) async {
       );
     }
 
-    final isMember = await db.teamDao.isTeamMember(uid, teamId);
-    if (!isMember) {
-      final workerAuthError = verifyWorkerAuth(context, uid);
-      if (workerAuthError != null) {
+    if (uid != 'system-job-processor') {
+      final isMember = await db.teamDao.isTeamMember(uid, teamId);
+      if (!isMember) {
         return Response.json(
           statusCode: HttpStatus.forbidden,
           body: {'success': false, 'error': 'Forbidden'},
@@ -65,10 +63,9 @@ Future<Response> _post(RequestContext context, String teamId) async {
       );
     }
 
-    final isMember = await db.teamDao.isTeamMember(uid, teamId);
-    if (!isMember) {
-      final workerAuthError = verifyWorkerAuth(context, uid);
-      if (workerAuthError != null) {
+    if (uid != 'system-job-processor') {
+      final isMember = await db.teamDao.isTeamMember(uid, teamId);
+      if (!isMember) {
         return Response.json(
           statusCode: HttpStatus.forbidden,
           body: {'success': false, 'error': 'Forbidden'},

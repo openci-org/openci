@@ -45,7 +45,7 @@ void main() {
     await db.close();
   });
 
-  test('throws StateError when ALLOWED_WORKER_UIDS is missing', () async {
+  test('allows request when ALLOWED_WORKER_UIDS is missing', () async {
     final now = DateTime.now().toUtc();
     final job = DriftBuildJob(
       id: 'job-123',
@@ -59,14 +59,16 @@ void main() {
     );
     await db.buildJobDao.insertBuildJob(job);
 
-    when(() => context.read<String?>()).thenReturn('user-123');
+    when(() => context.read<String?>()).thenReturn('system-job-processor');
     when(
       () => request.uri,
     ).thenReturn(Uri.parse('http://localhost/builds/job-123'));
     when(() => context.read<Map<String, String>>()).thenReturn({});
+    when(() => context.provide<DriftBuildJob>(any())).thenReturn(context);
 
     final handler = middleware((_) => Response());
-    expect(handler(context), throwsStateError);
+    final response = await handler(context);
+    expect(response.statusCode, equals(HttpStatus.ok));
   });
 
   test('returns 401 Unauthorized when uid is null', () async {

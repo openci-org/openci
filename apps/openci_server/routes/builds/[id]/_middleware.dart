@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'package:dart_frog/dart_frog.dart';
-import 'package:openci_server/auth/worker_auth.dart';
 import 'package:openci_server/database.dart';
 
 Handler middleware(Handler handler) {
@@ -45,8 +44,7 @@ Handler middleware(Handler handler) {
       );
     }
 
-    final workerAuthError = verifyWorkerAuth(context, uid);
-    if (workerAuthError != null) {
+    if (uid != 'system-job-processor') {
       final isMember = await db.teamDao.isTeamMember(uid, teamId);
       if (!isMember) {
         return Response.json(

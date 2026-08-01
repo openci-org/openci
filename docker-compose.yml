@@ -19,32 +19,31 @@ services:
     container_name: openci-server
     restart: unless-stopped
     environment:
-      - HOST=any
-      - PORT=8080
-      - APP_ENV=${APP_ENV:-development}
+      HOST: any
+      PORT: 8080
+      APP_ENV: ${APP_ENV:-development}
+      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL environment variable is required}
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY:?INTERNAL_API_KEY environment variable is required}
+      SECRET_ENCRYPTION_KEY: ${SECRET_ENCRYPTION_KEY:?SECRET_ENCRYPTION_KEY environment variable is required}
 
-      - DATABASE_URL=${DATABASE_URL:?DATABASE_URL environment variable is required}
-      - SECRET_ENCRYPTION_KEY=${SECRET_ENCRYPTION_KEY:?SECRET_ENCRYPTION_KEY environment variable is required}
+      S3_ENDPOINT: http://seaweedfs:8000
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:?S3_ACCESS_KEY environment variable is required}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:?S3_SECRET_KEY environment variable is required}
 
-      - S3_ENDPOINT=http://seaweedfs:8000
-      - S3_ACCESS_KEY=${S3_ACCESS_KEY:?S3_ACCESS_KEY environment variable is required}
-      - S3_SECRET_KEY=${S3_SECRET_KEY:?S3_SECRET_KEY environment variable is required}
+      GOOGLE_APPLICATION_CREDENTIALS: /app/credentials/firebase-service-account.json
+      
+      GITHUB_API_BASE_URL: ${GITHUB_API_BASE_URL:?GITHUB_API_BASE_URL environment variable is required}
+      GITHUB_APP_ID: ${GITHUB_APP_ID:?GITHUB_APP_ID environment variable is required}
+      GITHUB_PRIVATE_KEY_PATH: /app/credentials/github-private-key.pem
+      GITHUB_WEBHOOK_SECRET: ${GITHUB_WEBHOOK_SECRET:?GITHUB_WEBHOOK_SECRET environment variable is required}
 
-      - GOOGLE_APPLICATION_CREDENTIALS=/app/credentials/firebase-service-account.json
+      LOKI_URL: ${LOKI_URL:-http://loki:3100}
 
-      - GITHUB_WEBHOOK_SECRET=${GITHUB_WEBHOOK_SECRET:?GITHUB_WEBHOOK_SECRET environment variable is required}
-      - LOKI_URL=${LOKI_URL:-http://loki:3100}
-      - GITHUB_APP_ID=${GITHUB_APP_ID:?GITHUB_APP_ID environment variable is required}
-      - GITHUB_PRIVATE_KEY_PATH=/app/credentials/github-private-key.pem
-      - GITHUB_API_BASE_URL=${GITHUB_API_BASE_URL:?GITHUB_API_BASE_URL environment variable is required}
+      ORCHARD_API_URL: ${ORCHARD_API_URL:?ORCHARD_API_URL environment variable is required}
+      ORCHARD_SERVICE_ACCOUNT_NAME: ${ORCHARD_SERVICE_ACCOUNT_NAME:?ORCHARD_SERVICE_ACCOUNT_NAME environment variable is required}
+      ORCHARD_SERVICE_ACCOUNT_TOKEN: ${ORCHARD_SERVICE_ACCOUNT_TOKEN:?ORCHARD_SERVICE_ACCOUNT_TOKEN environment variable is required}
 
-      - ALLOWED_WORKER_UIDS=${ALLOWED_WORKER_UIDS}
-      - SENTRY_DSN=${SENTRY_DSN}
-      - INTERNAL_API_KEY=${INTERNAL_API_KEY:?INTERNAL_API_KEY environment variable is required}
-
-      - ORCHARD_API_URL=${ORCHARD_API_URL:?ORCHARD_API_URL environment variable is required}
-      - ORCHARD_SERVICE_ACCOUNT_NAME=${ORCHARD_SERVICE_ACCOUNT_NAME:?ORCHARD_SERVICE_ACCOUNT_NAME environment variable is required}
-      - ORCHARD_SERVICE_ACCOUNT_TOKEN=${ORCHARD_SERVICE_ACCOUNT_TOKEN:?ORCHARD_SERVICE_ACCOUNT_TOKEN environment variable is required}
+      SENTRY_DSN: ${SENTRY_DSN}
     volumes:
       - ./firebase-service-account.json:/app/credentials/firebase-service-account.json:ro
       - ./github-private-key.pem:/app/credentials/github-private-key.pem:ro
@@ -56,36 +55,12 @@ services:
       - db
       - seaweedfs
 
-  job-processor:
-    build:
-      context: .
-      dockerfile: apps/openci_build_job_processor/Dockerfile
-    container_name: openci-job-processor
-    restart: unless-stopped
-    environment:
-      - OPENCI_SERVER_URL=http://server:8080
-      - LOKI_URL=http://loki:3100
-      - OPENCI_RUNS_ON_PATTERN=macos-latest
-      - BASE_VM_NAME=${BASE_VM_NAME:-tahoe-base}
-      - INTERNAL_API_KEY=${INTERNAL_API_KEY:?INTERNAL_API_KEY environment variable is required}
-      - SENTRY_DSN=${SENTRY_DSN_JOB_PROCESSOR:-}
-      - OPENCI_MAX_CONCURRENT_JOBS=${OPENCI_MAX_CONCURRENT_JOBS:-3}
-      - USE_ORCHARD=${USE_ORCHARD:-true}
-      - ORCHARD_API_URL=https://orchard-controller:6120
-      - ORCHARD_SERVICE_ACCOUNT_NAME=${ORCHARD_SERVICE_ACCOUNT_NAME:-bootstrap-admin}
-      - ORCHARD_SERVICE_ACCOUNT_TOKEN=${ORCHARD_SERVICE_ACCOUNT_TOKEN}
-    volumes:
-      - ~/.orchard:/home/appuser/.orchard:ro
-    depends_on:
-      - server
-      - orchard-controller
-
   caddy:
     image: caddy:2-alpine
     container_name: openci-caddy
     restart: unless-stopped
     environment:
-      - OPENCI_DOMAIN=${OPENCI_DOMAIN:?OPENCI_DOMAIN environment variable is required}
+      OPENCI_DOMAIN: ${OPENCI_DOMAIN:?OPENCI_DOMAIN environment variable is required}
     ports:
       - "80:80"
       - "443:443"
@@ -107,6 +82,33 @@ services:
     volumes:
       - seaweedfs_data:/data
     command: 'server -dir=/data -s3 -s3.port=8000 -ip=seaweedfs'
+
+  job-processor:
+    build:
+      context: .
+      dockerfile: apps/openci_build_job_processor/Dockerfile
+    container_name: openci-job-processor
+    restart: unless-stopped
+    environment:
+      OPENCI_SERVER_URL: http://server:8080
+      OPENCI_RUNS_ON_PATTERN: macos-latest
+      OPENCI_MAX_CONCURRENT_JOBS: ${OPENCI_MAX_CONCURRENT_JOBS:-3}
+
+      ORCHARD_API_URL: https://orchard-controller:6120
+      ORCHARD_SERVICE_ACCOUNT_NAME: ${ORCHARD_SERVICE_ACCOUNT_NAME:-bootstrap-admin}
+      ORCHARD_SERVICE_ACCOUNT_TOKEN: ${ORCHARD_SERVICE_ACCOUNT_TOKEN}
+      BASE_VM_NAME: ${BASE_VM_NAME:-tahoe-base}
+
+      LOKI_URL: http://loki:3100
+
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY:?INTERNAL_API_KEY environment variable is required}
+
+      SENTRY_DSN: ${SENTRY_DSN_JOB_PROCESSOR:-}
+    volumes:
+      - ~/.orchard:/home/appuser/.orchard:ro
+    depends_on:
+      - server
+      - orchard-controller
 
   orchard-controller:
     image: ghcr.io/cirruslabs/orchard:latest
@@ -137,5 +139,3 @@ volumes:
   seaweedfs_data:
   orchard_data:
   loki_data:
-
-
