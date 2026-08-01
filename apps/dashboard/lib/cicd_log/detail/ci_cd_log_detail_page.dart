@@ -1,8 +1,8 @@
 import 'package:dashboard/build_logs/build_jobs_provider.dart';
-import 'package:dashboard/cicd_log/cicd_logs_page.dart';
 import 'package:dashboard/cicd_log/detail/build_step_providers.dart';
 import 'package:dashboard/cicd_log/detail/job_status_icon.dart';
 import 'package:dashboard/extensions/circular_progress_indicator_extensions.dart';
+import 'package:dashboard/responsive/desktop_max_width.dart';
 import 'package:dashboard/utilities/async_error_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';

@@ -1,5 +1,5 @@
 import 'package:dashboard/build_logs/chips/job_chip.dart';
-import 'package:dashboard/cicd_log/cicd_mock_data.dart';
+import 'package:dashboard/cicd_log/widgets/build_job_status_to_chip_status.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:openci_shared/openci_shared.dart';
