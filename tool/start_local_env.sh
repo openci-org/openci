@@ -25,7 +25,7 @@ fi
 echo ""
 echo "🐳 Step 2: Starting Docker containers (db, seaweedfs, orchard, server, job-processor)..."
 OPENCI_RUNS_ON_PATTERN="${OPENCI_RUNS_ON_PATTERN:-macos-latest}" \
-LUME_BASE_VM_NAME="${LUME_BASE_VM_NAME:-base-macos}" \
+BASE_VM_NAME="${BASE_VM_NAME:-base-macos}" \
 INTERNAL_API_KEY="${INTERNAL_API_KEY:-your-internal-api-key-here}" \
 ORCHARD_API_URL="https://orchard-controller:6120" \
 docker compose up -d --build db seaweedfs orchard-controller server job-processor

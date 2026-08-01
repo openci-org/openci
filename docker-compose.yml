@@ -66,7 +66,7 @@ services:
       - OPENCI_SERVER_URL=http://server:8080
       - LOKI_URL=http://loki:3100
       - OPENCI_RUNS_ON_PATTERN=macos-latest
-      - LUME_BASE_VM_NAME=${LUME_BASE_VM_NAME:?LUME_BASE_VM_NAME environment variable is required}
+      - BASE_VM_NAME=${BASE_VM_NAME:-tahoe-base}
       - INTERNAL_API_KEY=${INTERNAL_API_KEY:?INTERNAL_API_KEY environment variable is required}
       - SENTRY_DSN=${SENTRY_DSN_JOB_PROCESSOR:-}
       - OPENCI_MAX_CONCURRENT_JOBS=${OPENCI_MAX_CONCURRENT_JOBS:-3}

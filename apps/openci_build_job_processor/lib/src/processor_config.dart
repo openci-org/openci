@@ -86,7 +86,10 @@ class ProcessorConfig {
     return ProcessorConfig(
       serverUrl: getRequired('OPENCI_SERVER_URL'),
       runsOnPattern: getRequired('OPENCI_RUNS_ON_PATTERN'),
-      baseVmName: Platform.environment['LUME_BASE_VM_NAME'] ?? 'tahoe-base',
+      baseVmName:
+          Platform.environment['BASE_VM_NAME'] ??
+          Platform.environment['OPENCI_BASE_VM_NAME'] ??
+          'tahoe-base',
       tailscaleApiKey: Platform.environment['TAILSCALE_API_KEY'] ?? '',
       tailscaleTailnet: Platform.environment['TAILSCALE_TAILNET'] ?? '',
       internalApiKey: getRequired('INTERNAL_API_KEY'),
