@@ -89,8 +89,12 @@ class OrchardApiClient {
       'headless': headless,
       'os': os,
     };
-    final cpu = cpuCount ?? 4;
-    final memMib = (memoryGb ?? 8) * 1024;
+    final defaultCpu =
+        int.tryParse(Platform.environment['ORCHARD_VM_CPU'] ?? '2') ?? 2;
+    final defaultMemoryGb =
+        int.tryParse(Platform.environment['ORCHARD_VM_MEMORY_GB'] ?? '4') ?? 4;
+    final cpu = cpuCount ?? defaultCpu;
+    final memMib = (memoryGb ?? defaultMemoryGb) * 1024;
     payload['cpu'] = cpu;
     payload['memory'] = memMib;
     payload['resources'] = {

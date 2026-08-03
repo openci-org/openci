@@ -47,8 +47,8 @@ class ProcessorConfig {
         : <String>[];
 
     final maxConcurrentJobsStr =
-        Platform.environment['OPENCI_MAX_CONCURRENT_JOBS'] ?? '3';
-    final maxConcurrentJobs = int.tryParse(maxConcurrentJobsStr) ?? 3;
+        Platform.environment['OPENCI_MAX_CONCURRENT_JOBS'] ?? '2';
+    final maxConcurrentJobs = int.tryParse(maxConcurrentJobsStr) ?? 2;
 
     final vmPrepareTimeoutStr =
         Platform.environment['OPENCI_VM_PREPARE_TIMEOUT_MINUTES'] ?? '15';

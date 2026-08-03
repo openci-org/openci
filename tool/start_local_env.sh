@@ -90,3 +90,6 @@ echo ""
 echo "All components (Server, DB, Orchard, JobProcessor) are running in Docker Compose!"
 echo "JobProcessor worker is automatically polling for queued jobs."
 echo ""
+echo "💡 To run local Orchard worker with multi-VM concurrency, execute:"
+echo 'TOKEN=$(docker exec openci-orchard-controller orchard get bootstrap-token bootstrap-admin) && orchard worker run https://127.0.0.1:6120 --bootstrap-token "$TOKEN" --no-pki --default-cpu 2 --default-memory 4096 --resources org.cirruslabs.tart-vms=2'
+echo ""
