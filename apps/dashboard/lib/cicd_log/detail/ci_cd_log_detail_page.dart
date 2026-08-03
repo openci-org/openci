@@ -25,7 +25,13 @@ class CicdLogDetailRoutePage extends ConsumerWidget {
       error: (err, _) => Scaffold(body: Center(child: Text('エラー: $err'))),
       data: (buildJob) {
         if (buildJob == null) {
-          return const Scaffold(
+          return Scaffold(
+            appBar: AppBar(
+              leading: IconButton(
+                icon: const Icon(Icons.close_rounded),
+                onPressed: () => Navigator.pop(context),
+              ),
+            ),
             body: Center(
               child: Text('ビルドジョブが見つかりません'),
             ),

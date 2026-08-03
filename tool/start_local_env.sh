@@ -52,7 +52,7 @@ if [ -n "$TOKEN" ]; then
     ENV_PATH="$ROOT_DIR/.env" CONTEXT_TOKEN="$CONTEXT_TOKEN" python3 -c "
 import os
 path = os.environ['ENV_PATH']
-token = os.environ['CONTEXT_TOKEN']
+token = os.environ['CONTEXT_TOKEN'].strip().strip("'\"")
 if os.path.exists(path):
     with open(path, 'r') as f:
         lines = f.readlines()
