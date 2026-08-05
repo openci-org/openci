@@ -55,21 +55,6 @@ services:
       - db
       - seaweedfs
 
-  caddy:
-    image: caddy:2-alpine
-    container_name: openci-caddy
-    restart: unless-stopped
-    environment:
-      OPENCI_DOMAIN: ${OPENCI_DOMAIN:?OPENCI_DOMAIN environment variable is required}
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy_data:/data
-      - caddy_config:/config
-    depends_on:
-      - server
 
   seaweedfs:
     image: chrislusf/seaweedfs:3.59
@@ -134,8 +119,6 @@ services:
 
 volumes:
   postgres_data:
-  caddy_data:
-  caddy_config:
   seaweedfs_data:
   orchard_data:
   loki_data:
