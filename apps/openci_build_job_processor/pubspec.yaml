@@ -4,7 +4,7 @@ version: 1.0.0
 publish_to: none
 
 environment:
-  sdk: ^3.11.5
+  sdk: 3.11.5
 
 resolution: workspace
 
@@ -19,7 +19,6 @@ dependencies:
   sentry: ^9.22.0
   uuid: ^4.3.3
   web_socket: ^1.0.1
-
 
 dev_dependencies:
   build_runner: ^2.15.0
