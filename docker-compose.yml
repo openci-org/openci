@@ -26,10 +26,6 @@ services:
       INTERNAL_API_KEY: ${INTERNAL_API_KEY:?INTERNAL_API_KEY environment variable is required}
       SECRET_ENCRYPTION_KEY: ${SECRET_ENCRYPTION_KEY:?SECRET_ENCRYPTION_KEY environment variable is required}
 
-      S3_ENDPOINT: http://seaweedfs:8000
-      S3_ACCESS_KEY: ${S3_ACCESS_KEY:?S3_ACCESS_KEY environment variable is required}
-      S3_SECRET_KEY: ${S3_SECRET_KEY:?S3_SECRET_KEY environment variable is required}
-
       GOOGLE_APPLICATION_CREDENTIALS: /app/credentials/firebase-service-account.json
       
       GITHUB_API_BASE_URL: ${GITHUB_API_BASE_URL:?GITHUB_API_BASE_URL environment variable is required}
@@ -53,20 +49,6 @@ services:
       - "8080"
     depends_on:
       - db
-      - seaweedfs
-
-
-  seaweedfs:
-    image: chrislusf/seaweedfs:3.59
-    container_name: openci-seaweedfs
-    restart: unless-stopped
-    expose:
-      - "8333" # Filer port
-      - "9333" # Master port
-      - "8000" # S3 API port
-    volumes:
-      - seaweedfs_data:/data
-    command: 'server -dir=/data -s3 -s3.port=8000 -ip=seaweedfs'
 
   job-processor:
     build:
@@ -119,6 +101,5 @@ services:
 
 volumes:
   postgres_data:
-  seaweedfs_data:
   orchard_data:
   loki_data:

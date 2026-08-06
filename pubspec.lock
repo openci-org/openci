@@ -981,14 +981,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.0.0"
-  minio:
-    dependency: transitive
-    description:
-      name: minio
-      sha256: ee2ce47766e46c7d164f960f2f5ed6a9a82844d877f6b82574f6876ec50c56d1
-      url: "https://pub.dev"
-    source: hosted
-    version: "3.5.8"
   mockito:
     dependency: transitive
     description:
