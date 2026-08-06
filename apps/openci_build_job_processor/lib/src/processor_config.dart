@@ -8,7 +8,6 @@ class ProcessorConfig {
     required this.tailscaleApiKey,
     required this.tailscaleTailnet,
     required this.internalApiKey,
-    this.excludeIps = const [],
     this.sentryDsn,
     this.maxConcurrentJobs = 3,
     this.orchardApiUrl = 'https://orchard-controller:6120',
@@ -23,7 +22,6 @@ class ProcessorConfig {
   final String tailscaleApiKey;
   final String tailscaleTailnet;
   final String internalApiKey;
-  final List<String> excludeIps;
   final String? sentryDsn;
   final int maxConcurrentJobs;
 
@@ -40,11 +38,6 @@ class ProcessorConfig {
       }
       return value;
     }
-
-    final excludeIpsStr = Platform.environment['OPENCI_EXCLUDE_IPS'] ?? '';
-    final excludeIpsList = excludeIpsStr.isNotEmpty
-        ? excludeIpsStr.split(',').map((ip) => ip.trim()).toList()
-        : <String>[];
 
     final maxConcurrentJobsStr =
         Platform.environment['OPENCI_MAX_CONCURRENT_JOBS'] ?? '2';
@@ -93,7 +86,6 @@ class ProcessorConfig {
       tailscaleApiKey: Platform.environment['TAILSCALE_API_KEY'] ?? '',
       tailscaleTailnet: Platform.environment['TAILSCALE_TAILNET'] ?? '',
       internalApiKey: getRequired('INTERNAL_API_KEY'),
-      excludeIps: excludeIpsList,
       sentryDsn: Platform.environment['SENTRY_DSN'],
       maxConcurrentJobs: maxConcurrentJobs,
       orchardApiUrl: orchardApiUrl,

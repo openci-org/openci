@@ -21,7 +21,6 @@ services:
     environment:
       HOST: any
       PORT: 8080
-      APP_ENV: ${APP_ENV:-development}
       DATABASE_URL: ${DATABASE_URL:?DATABASE_URL environment variable is required}
       INTERNAL_API_KEY: ${INTERNAL_API_KEY:?INTERNAL_API_KEY environment variable is required}
       SECRET_ENCRYPTION_KEY: ${SECRET_ENCRYPTION_KEY:?SECRET_ENCRYPTION_KEY environment variable is required}
@@ -39,7 +38,7 @@ services:
       ORCHARD_SERVICE_ACCOUNT_NAME: ${ORCHARD_SERVICE_ACCOUNT_NAME:?ORCHARD_SERVICE_ACCOUNT_NAME environment variable is required}
       ORCHARD_SERVICE_ACCOUNT_TOKEN: ${ORCHARD_SERVICE_ACCOUNT_TOKEN:?ORCHARD_SERVICE_ACCOUNT_TOKEN environment variable is required}
 
-      SENTRY_DSN: ${SENTRY_DSN}
+      SENTRY_DSN_SERVER: ${SENTRY_DSN_SERVER:-}
     volumes:
       - ./firebase-service-account.json:/app/credentials/firebase-service-account.json:ro
       - ./github-private-key.pem:/app/credentials/github-private-key.pem:ro

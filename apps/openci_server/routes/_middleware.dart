@@ -18,7 +18,7 @@ bool _sentryInitialized = false;
 
 void _initSentry() {
   if (_sentryInitialized) return;
-  final sentryDsn = Platform.environment['SENTRY_DSN'];
+  final sentryDsn = Platform.environment['SENTRY_DSN_SERVER'];
   if (sentryDsn != null && sentryDsn.isNotEmpty) {
     Sentry.init((options) {
       options.dsn = sentryDsn;
