@@ -35,9 +35,9 @@ class JobPoller {
   final OpenCiApiService _apiService;
   final int _maxConcurrentJobs;
 
-  Stream<BuildJob> watchClaimedJobs(String runsOnPattern) async* {
+  Stream<BuildJob> watchClaimedJobs() async* {
     _log.info(
-      'JobPoller watching jobs stream (pattern: $runsOnPattern, maxConcurrent: $_maxConcurrentJobs)',
+      'JobPoller watching jobs stream (maxConcurrent: $_maxConcurrentJobs)',
     );
 
     final wsUri = buildWebSocketUri(_serverUrl, '/worker/jobs/stream');
@@ -48,11 +48,11 @@ class JobPoller {
         final socket = await WebSocket.connect(wsUri);
         _log.info('✅ WebSocket stream connected to openci-server');
 
-        yield* _drainAvailableJobsStream(runsOnPattern);
+        yield* _drainAvailableJobsStream();
 
         await for (final event in socket.events) {
           if (event is TextDataReceived) {
-            yield* _drainAvailableJobsStream(runsOnPattern);
+            yield* _drainAvailableJobsStream();
           }
         }
       } catch (e, s) {
@@ -64,12 +64,11 @@ class JobPoller {
     }
   }
 
-  Stream<BuildJob> _drainAvailableJobsStream(String runsOnPattern) async* {
+  Stream<BuildJob> _drainAvailableJobsStream() async* {
     while (true) {
       try {
         final job = await claimNextJob(
           apiService: _apiService,
-          runsOnPattern: runsOnPattern,
           workerHost: 'orchard',
           maxConcurrentJobs: _maxConcurrentJobs,
         );

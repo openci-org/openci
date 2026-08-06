@@ -24,7 +24,6 @@ fi
 # 2. Start Docker Compose core services
 echo ""
 echo "🐳 Step 2: Starting Docker containers (db, orchard, server, job-processor)..."
-OPENCI_RUNS_ON_PATTERN="${OPENCI_RUNS_ON_PATTERN:-macos-latest}" \
 BASE_VM_NAME="${BASE_VM_NAME:-base-macos}" \
 INTERNAL_API_KEY="${INTERNAL_API_KEY:-your-internal-api-key-here}" \
 ORCHARD_API_URL="https://orchard-controller:6120" \
@@ -46,7 +45,6 @@ if [ -n "$TOKEN" ]; then
   echo "🔄 Updating job-processor with Orchard credentials..."
   export ORCHARD_SERVICE_ACCOUNT_NAME="bootstrap-admin"
   export ORCHARD_SERVICE_ACCOUNT_TOKEN="$CONTEXT_TOKEN"
-  export OPENCI_RUNS_ON_PATTERN="${OPENCI_RUNS_ON_PATTERN:-macos-latest}"
 
   if [ -f "$ROOT_DIR/.env" ]; then
     ENV_PATH="$ROOT_DIR/.env" CONTEXT_TOKEN="$CONTEXT_TOKEN" python3 -c "

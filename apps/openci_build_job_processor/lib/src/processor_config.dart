@@ -3,7 +3,6 @@ import 'dart:io';
 class ProcessorConfig {
   ProcessorConfig({
     required this.serverUrl,
-    required this.runsOnPattern,
     required this.baseVmName,
     required this.internalApiKey,
     this.sentryDsn,
@@ -15,7 +14,6 @@ class ProcessorConfig {
   });
 
   final String serverUrl;
-  final String runsOnPattern;
   final String baseVmName;
   final String internalApiKey;
   final String? sentryDsn;
@@ -74,7 +72,6 @@ class ProcessorConfig {
 
     return ProcessorConfig(
       serverUrl: getRequired('OPENCI_SERVER_URL'),
-      runsOnPattern: getRequired('OPENCI_RUNS_ON_PATTERN'),
       baseVmName:
           Platform.environment['BASE_VM_NAME'] ??
           Platform.environment['OPENCI_BASE_VM_NAME'] ??

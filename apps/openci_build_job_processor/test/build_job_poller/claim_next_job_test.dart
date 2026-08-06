@@ -53,7 +53,6 @@ void main() {
 
         final result = await claimNextJob(
           apiService: apiService,
-          runsOnPattern: 'macos-*',
           vmName: 'openci-vm-job-123',
           workerHost: 'orchard',
           maxConcurrentJobs: 3,
@@ -67,7 +66,6 @@ void main() {
         expect(
           apiService.lastClaimedBody,
           equals({
-            'runsOnPattern': 'macos-*',
             'vmName': 'openci-vm-job-123',
             'workerHost': 'orchard',
             'maxConcurrentJobs': 3,
@@ -82,10 +80,7 @@ void main() {
         <String, dynamic>{'job': null},
       );
 
-      final result = await claimNextJob(
-        apiService: apiService,
-        runsOnPattern: 'macos-*',
-      );
+      final result = await claimNextJob(apiService: apiService);
 
       expect(result, isNull);
     });
@@ -97,7 +92,7 @@ void main() {
       );
 
       expect(
-        () => claimNextJob(apiService: apiService, runsOnPattern: 'macos-*'),
+        () => claimNextJob(apiService: apiService),
         throwsA(isA<Exception>()),
       );
     });
@@ -106,7 +101,7 @@ void main() {
       apiService.responseToReturn = Response(http.Response('', 200), null);
 
       expect(
-        () => claimNextJob(apiService: apiService, runsOnPattern: 'macos-*'),
+        () => claimNextJob(apiService: apiService),
         throwsA(isA<Exception>()),
       );
     });

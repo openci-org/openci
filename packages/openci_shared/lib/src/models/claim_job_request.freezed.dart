@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$ClaimJobRequest {
 
- String get runsOnPattern; String? get vmName; String? get workerHost; int? get maxConcurrentJobs;
+ String? get vmName; String? get workerHost; int? get maxConcurrentJobs;
 /// Create a copy of ClaimJobRequest
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +28,16 @@ $ClaimJobRequestCopyWith<ClaimJobRequest> get copyWith => _$ClaimJobRequestCopyW
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ClaimJobRequest&&(identical(other.runsOnPattern, runsOnPattern) || other.runsOnPattern == runsOnPattern)&&(identical(other.vmName, vmName) || other.vmName == vmName)&&(identical(other.workerHost, workerHost) || other.workerHost == workerHost)&&(identical(other.maxConcurrentJobs, maxConcurrentJobs) || other.maxConcurrentJobs == maxConcurrentJobs));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ClaimJobRequest&&(identical(other.vmName, vmName) || other.vmName == vmName)&&(identical(other.workerHost, workerHost) || other.workerHost == workerHost)&&(identical(other.maxConcurrentJobs, maxConcurrentJobs) || other.maxConcurrentJobs == maxConcurrentJobs));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,runsOnPattern,vmName,workerHost,maxConcurrentJobs);
+int get hashCode => Object.hash(runtimeType,vmName,workerHost,maxConcurrentJobs);
 
 @override
 String toString() {
-  return 'ClaimJobRequest(runsOnPattern: $runsOnPattern, vmName: $vmName, workerHost: $workerHost, maxConcurrentJobs: $maxConcurrentJobs)';
+  return 'ClaimJobRequest(vmName: $vmName, workerHost: $workerHost, maxConcurrentJobs: $maxConcurrentJobs)';
 }
 
 
@@ -48,7 +48,7 @@ abstract mixin class $ClaimJobRequestCopyWith<$Res>  {
   factory $ClaimJobRequestCopyWith(ClaimJobRequest value, $Res Function(ClaimJobRequest) _then) = _$ClaimJobRequestCopyWithImpl;
 @useResult
 $Res call({
- String runsOnPattern, String? vmName, String? workerHost, int? maxConcurrentJobs
+ String? vmName, String? workerHost, int? maxConcurrentJobs
 });
 
 
@@ -65,10 +65,9 @@ class _$ClaimJobRequestCopyWithImpl<$Res>
 
 /// Create a copy of ClaimJobRequest
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? runsOnPattern = null,Object? vmName = freezed,Object? workerHost = freezed,Object? maxConcurrentJobs = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? vmName = freezed,Object? workerHost = freezed,Object? maxConcurrentJobs = freezed,}) {
   return _then(_self.copyWith(
-runsOnPattern: null == runsOnPattern ? _self.runsOnPattern : runsOnPattern // ignore: cast_nullable_to_non_nullable
-as String,vmName: freezed == vmName ? _self.vmName : vmName // ignore: cast_nullable_to_non_nullable
+vmName: freezed == vmName ? _self.vmName : vmName // ignore: cast_nullable_to_non_nullable
 as String?,workerHost: freezed == workerHost ? _self.workerHost : workerHost // ignore: cast_nullable_to_non_nullable
 as String?,maxConcurrentJobs: freezed == maxConcurrentJobs ? _self.maxConcurrentJobs : maxConcurrentJobs // ignore: cast_nullable_to_non_nullable
 as int?,
@@ -156,10 +155,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String runsOnPattern,  String? vmName,  String? workerHost,  int? maxConcurrentJobs)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String? vmName,  String? workerHost,  int? maxConcurrentJobs)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ClaimJobRequest() when $default != null:
-return $default(_that.runsOnPattern,_that.vmName,_that.workerHost,_that.maxConcurrentJobs);case _:
+return $default(_that.vmName,_that.workerHost,_that.maxConcurrentJobs);case _:
   return orElse();
 
 }
@@ -177,10 +176,10 @@ return $default(_that.runsOnPattern,_that.vmName,_that.workerHost,_that.maxConcu
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String runsOnPattern,  String? vmName,  String? workerHost,  int? maxConcurrentJobs)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String? vmName,  String? workerHost,  int? maxConcurrentJobs)  $default,) {final _that = this;
 switch (_that) {
 case _ClaimJobRequest():
-return $default(_that.runsOnPattern,_that.vmName,_that.workerHost,_that.maxConcurrentJobs);case _:
+return $default(_that.vmName,_that.workerHost,_that.maxConcurrentJobs);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -197,10 +196,10 @@ return $default(_that.runsOnPattern,_that.vmName,_that.workerHost,_that.maxConcu
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String runsOnPattern,  String? vmName,  String? workerHost,  int? maxConcurrentJobs)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String? vmName,  String? workerHost,  int? maxConcurrentJobs)?  $default,) {final _that = this;
 switch (_that) {
 case _ClaimJobRequest() when $default != null:
-return $default(_that.runsOnPattern,_that.vmName,_that.workerHost,_that.maxConcurrentJobs);case _:
+return $default(_that.vmName,_that.workerHost,_that.maxConcurrentJobs);case _:
   return null;
 
 }
@@ -212,10 +211,9 @@ return $default(_that.runsOnPattern,_that.vmName,_that.workerHost,_that.maxConcu
 @JsonSerializable()
 
 class _ClaimJobRequest implements ClaimJobRequest {
-  const _ClaimJobRequest({required this.runsOnPattern, this.vmName, this.workerHost, this.maxConcurrentJobs});
+  const _ClaimJobRequest({this.vmName, this.workerHost, this.maxConcurrentJobs});
   factory _ClaimJobRequest.fromJson(Map<String, dynamic> json) => _$ClaimJobRequestFromJson(json);
 
-@override final  String runsOnPattern;
 @override final  String? vmName;
 @override final  String? workerHost;
 @override final  int? maxConcurrentJobs;
@@ -233,16 +231,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ClaimJobRequest&&(identical(other.runsOnPattern, runsOnPattern) || other.runsOnPattern == runsOnPattern)&&(identical(other.vmName, vmName) || other.vmName == vmName)&&(identical(other.workerHost, workerHost) || other.workerHost == workerHost)&&(identical(other.maxConcurrentJobs, maxConcurrentJobs) || other.maxConcurrentJobs == maxConcurrentJobs));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ClaimJobRequest&&(identical(other.vmName, vmName) || other.vmName == vmName)&&(identical(other.workerHost, workerHost) || other.workerHost == workerHost)&&(identical(other.maxConcurrentJobs, maxConcurrentJobs) || other.maxConcurrentJobs == maxConcurrentJobs));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,runsOnPattern,vmName,workerHost,maxConcurrentJobs);
+int get hashCode => Object.hash(runtimeType,vmName,workerHost,maxConcurrentJobs);
 
 @override
 String toString() {
-  return 'ClaimJobRequest(runsOnPattern: $runsOnPattern, vmName: $vmName, workerHost: $workerHost, maxConcurrentJobs: $maxConcurrentJobs)';
+  return 'ClaimJobRequest(vmName: $vmName, workerHost: $workerHost, maxConcurrentJobs: $maxConcurrentJobs)';
 }
 
 
@@ -253,7 +251,7 @@ abstract mixin class _$ClaimJobRequestCopyWith<$Res> implements $ClaimJobRequest
   factory _$ClaimJobRequestCopyWith(_ClaimJobRequest value, $Res Function(_ClaimJobRequest) _then) = __$ClaimJobRequestCopyWithImpl;
 @override @useResult
 $Res call({
- String runsOnPattern, String? vmName, String? workerHost, int? maxConcurrentJobs
+ String? vmName, String? workerHost, int? maxConcurrentJobs
 });
 
 
@@ -270,10 +268,9 @@ class __$ClaimJobRequestCopyWithImpl<$Res>
 
 /// Create a copy of ClaimJobRequest
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? runsOnPattern = null,Object? vmName = freezed,Object? workerHost = freezed,Object? maxConcurrentJobs = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? vmName = freezed,Object? workerHost = freezed,Object? maxConcurrentJobs = freezed,}) {
   return _then(_ClaimJobRequest(
-runsOnPattern: null == runsOnPattern ? _self.runsOnPattern : runsOnPattern // ignore: cast_nullable_to_non_nullable
-as String,vmName: freezed == vmName ? _self.vmName : vmName // ignore: cast_nullable_to_non_nullable
+vmName: freezed == vmName ? _self.vmName : vmName // ignore: cast_nullable_to_non_nullable
 as String?,workerHost: freezed == workerHost ? _self.workerHost : workerHost // ignore: cast_nullable_to_non_nullable
 as String?,maxConcurrentJobs: freezed == maxConcurrentJobs ? _self.maxConcurrentJobs : maxConcurrentJobs // ignore: cast_nullable_to_non_nullable
 as int?,

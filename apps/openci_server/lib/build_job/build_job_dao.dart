@@ -10,8 +10,7 @@ class BuildJobDao extends DatabaseAccessor<AppDatabase>
     with _$BuildJobDaoMixin {
   BuildJobDao(super.attachedDatabase);
 
-  Future<DriftBuildJob?> claimNextJob(
-    String runsOnPattern, {
+  Future<DriftBuildJob?> claimNextJob({
     String? vmName,
     String? workerHost,
     int? maxConcurrentJobs,
@@ -30,18 +29,9 @@ class BuildJobDao extends DatabaseAccessor<AppDatabase>
         }
       }
 
-      final String runsOnCondition;
-      if (runsOnPattern.toLowerCase().contains('macos')) {
-        runsOnCondition = "LOWER(runs_on) LIKE '%macos%'";
-      } else {
-        runsOnCondition =
-            "LOWER(runs_on) LIKE '%ubuntu%' OR runs_on IS NULL OR runs_on = ''";
-      }
-
-      final sql =
-          '''
+      final sql = '''
         SELECT * FROM build_jobs 
-        WHERE status = 'QUEUED' AND ($runsOnCondition) 
+        WHERE status = 'QUEUED' 
         ORDER BY created_at ASC 
         LIMIT 1 
         FOR UPDATE SKIP LOCKED

@@ -39,15 +39,8 @@ Future<Response> _post(RequestContext context) async {
     }
 
     final claimRequest = ClaimJobRequest.fromJson(payload);
-    if (claimRequest.runsOnPattern.isEmpty) {
-      return Response.json(
-        statusCode: HttpStatus.badRequest,
-        body: {'success': false, 'error': 'runsOnPattern is required'},
-      );
-    }
 
     final driftJob = await db.buildJobDao.claimNextJob(
-      claimRequest.runsOnPattern,
       vmName: claimRequest.vmName,
       workerHost: claimRequest.workerHost,
       maxConcurrentJobs: claimRequest.maxConcurrentJobs,

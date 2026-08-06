@@ -28,37 +28,33 @@ Future<void> main() async {
         baseVmName: config.baseVmName,
       );
 
-      _log.info(
-        'Starting Job Processor listening on Stream for pattern: ${config.runsOnPattern}',
+      _log.info('Starting Job Processor listening on Stream for queued jobs');
+
+      jobPoller.watchClaimedJobs().listen(
+        (job) {
+          unawaited(() async {
+            final runId = executor.generateRunId();
+
+            await logInfo(
+              job.id,
+              runId,
+              'Job claimed: ${job.id}. Starting build execution...',
+              stepId: 'prepare_vm',
+            );
+
+            try {
+              await executor.execute(job, 'orchard', runId);
+            } catch (e, s) {
+              _log.severe('Error executing job ${job.id}: $e', e, s);
+              unawaited(Sentry.captureException(e, stackTrace: s));
+            }
+          }());
+        },
+        onError: (Object error, StackTrace stackTrace) async {
+          _log.severe('Error in job stream: $error', error, stackTrace);
+          unawaited(Sentry.captureException(error, stackTrace: stackTrace));
+        },
       );
-
-      jobPoller
-          .watchClaimedJobs(config.runsOnPattern)
-          .listen(
-            (job) {
-              unawaited(() async {
-                final runId = executor.generateRunId();
-
-                await logInfo(
-                  job.id,
-                  runId,
-                  'Job claimed: ${job.id}. Starting build execution...',
-                  stepId: 'prepare_vm',
-                );
-
-                try {
-                  await executor.execute(job, 'orchard', runId);
-                } catch (e, s) {
-                  _log.severe('Error executing job ${job.id}: $e', e, s);
-                  unawaited(Sentry.captureException(e, stackTrace: s));
-                }
-              }());
-            },
-            onError: (Object error, StackTrace stackTrace) async {
-              _log.severe('Error in job stream: $error', error, stackTrace);
-              unawaited(Sentry.captureException(error, stackTrace: stackTrace));
-            },
-          );
 
       _log.info('Job Processor is running. Press Ctrl+C to terminate.');
       await ProcessSignal.sigint.watch().first;

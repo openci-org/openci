@@ -6,7 +6,6 @@ part 'claim_job_request.g.dart';
 @freezed
 abstract class ClaimJobRequest with _$ClaimJobRequest {
   const factory ClaimJobRequest({
-    required String runsOnPattern,
     String? vmName,
     String? workerHost,
     int? maxConcurrentJobs,
