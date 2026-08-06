@@ -5,8 +5,6 @@ class ProcessorConfig {
     required this.serverUrl,
     required this.runsOnPattern,
     required this.baseVmName,
-    required this.tailscaleApiKey,
-    required this.tailscaleTailnet,
     required this.internalApiKey,
     this.sentryDsn,
     this.maxConcurrentJobs = 3,
@@ -19,8 +17,6 @@ class ProcessorConfig {
   final String serverUrl;
   final String runsOnPattern;
   final String baseVmName;
-  final String tailscaleApiKey;
-  final String tailscaleTailnet;
   final String internalApiKey;
   final String? sentryDsn;
   final int maxConcurrentJobs;
@@ -83,8 +79,6 @@ class ProcessorConfig {
           Platform.environment['BASE_VM_NAME'] ??
           Platform.environment['OPENCI_BASE_VM_NAME'] ??
           'tahoe-base',
-      tailscaleApiKey: Platform.environment['TAILSCALE_API_KEY'] ?? '',
-      tailscaleTailnet: Platform.environment['TAILSCALE_TAILNET'] ?? '',
       internalApiKey: getRequired('INTERNAL_API_KEY'),
       sentryDsn: Platform.environment['SENTRY_DSN'],
       maxConcurrentJobs: maxConcurrentJobs,
