@@ -46,6 +46,9 @@ Middleware sentryMiddleware() {
         _initSentry();
         return await handler(context);
       } catch (exception, stackTrace) {
+        if (exception.toString().contains('hijack')) {
+          rethrow;
+        }
         stderr.writeln('Unhandled exception: $exception\n$stackTrace');
         if (_sentryInitialized) {
           await Sentry.captureException(

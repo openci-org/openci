@@ -375,11 +375,17 @@ Future<void> processWebhookTask(
 }
 
 String generateGitHubAppJwt(String appId, String privateKeyPem) {
+  final parsedAppId = int.tryParse(appId.trim());
+  if (parsedAppId == null) {
+    throw FormatException(
+      'Invalid GitHub App ID: "$appId". GitHub App ID must be a valid integer.',
+    );
+  }
   final nowSeconds = DateTime.now().millisecondsSinceEpoch ~/ 1000;
   final jwt = JWT({
     'iat': nowSeconds - 60,
     'exp': nowSeconds + 540,
-    'iss': appId.trim(),
+    'iss': parsedAppId,
   });
   return jwt.sign(
     RSAPrivateKey(privateKeyPem),

@@ -17,13 +17,17 @@ class BuildJobDao extends DatabaseAccessor<AppDatabase>
   }) async {
     return db.transaction(() async {
       if (maxConcurrentJobs != null && workerHost != null) {
-        final activeJobsResult = await db
-            .customSelect(
-              "SELECT COUNT(*) AS active_count FROM build_jobs WHERE status = 'IN_PROGRESS' AND worker_host = \$1",
-              variables: [Variable.withString(workerHost)],
-            )
-            .getSingle();
-        final activeCount = activeJobsResult.read<int>('active_count');
+        final countExpr = buildJobs.id.count();
+        final activeCount =
+            await (selectOnly(buildJobs)
+                  ..addColumns([countExpr])
+                  ..where(
+                    buildJobs.status.equalsValue(BuildJobStatus.IN_PROGRESS) &
+                        buildJobs.workerHost.equals(workerHost),
+                  ))
+                .map((row) => row.read(countExpr) ?? 0)
+                .getSingle();
+
         if (activeCount >= maxConcurrentJobs) {
           return null;
         }
@@ -131,13 +135,13 @@ class BuildJobDao extends DatabaseAccessor<AppDatabase>
 
   Stream<List<DriftBuildJob>> watchQueuedJobs() {
     final query = select(buildJobs)
-      ..where((t) => t.status.equals(BuildJobStatus.QUEUED.name));
+      ..where((t) => t.status.equalsValue(BuildJobStatus.QUEUED));
     return query.watch();
   }
 
   Future<List<DriftBuildJob>> getQueuedJobs() {
     final query = select(buildJobs)
-      ..where((t) => t.status.equals(BuildJobStatus.QUEUED.name));
+      ..where((t) => t.status.equalsValue(BuildJobStatus.QUEUED));
     return query.get();
   }
 
