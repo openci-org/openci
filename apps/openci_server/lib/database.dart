@@ -110,5 +110,11 @@ String loadDatabaseUrl({Map<String, String>? environment}) {
     );
   }
 
-  return databaseUrlEnv;
+  final url = databaseUrlEnv.trim();
+  if (!url.contains('sslmode=')) {
+    final separator = url.contains('?') ? '&' : '?';
+    return '$url${separator}sslmode=disable';
+  }
+
+  return url;
 }
