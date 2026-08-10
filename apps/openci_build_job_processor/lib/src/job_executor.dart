@@ -40,12 +40,26 @@ class JobExecutor {
   final _log = Logger('JobExecutor');
   Duration retryDelay = const Duration(seconds: 5);
 
-  Future<void> execute(BuildJob job, String hostUrl, String runId) async {
-    final shortId = job.id.length > 8 ? job.id.substring(0, 8) : job.id;
-    final runShortId = runId.length > 8
-        ? runId.substring(runId.length - 6)
-        : runId;
-    final vmName = 'openci-vm-$shortId-$runShortId';
+  String getVmName({required String jobId, required String runId}) {
+    final shortJobId = jobId.substring(0, 8);
+    final shortRunId = runId.substring(runId.length - 6);
+    const baseName = 'openci-vm';
+    return '$baseName-$shortJobId-$shortRunId';
+  }
+
+  Future<void> execute(BuildJob job) async {
+    final runId = generateRunId();
+
+    await logInfo(
+      job.id,
+      runId,
+      'Job claimed: ${job.id}. Starting build execution...',
+      stepId: 'prepare_vm',
+    );
+
+    final vmName = getVmName(jobId: job.id, runId: runId);
+    _log.info('VMName is $vmName');
+
     bool vmCreated = false;
 
     try {

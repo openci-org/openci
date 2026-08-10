@@ -3,7 +3,6 @@ import 'dart:io';
 
 import 'package:logging/logging.dart';
 import 'package:openci_build_job_processor/openci_build_job_processor.dart';
-import 'package:openci_build_job_processor/src/logging/build_job_logger.dart';
 import 'package:openci_shared/openci_shared.dart';
 import 'package:sentry/sentry.dart';
 
@@ -33,17 +32,8 @@ Future<void> main() async {
       jobPoller.watchClaimedJobs().listen(
         (job) {
           unawaited(() async {
-            final runId = executor.generateRunId();
-
-            await logInfo(
-              job.id,
-              runId,
-              'Job claimed: ${job.id}. Starting build execution...',
-              stepId: 'prepare_vm',
-            );
-
             try {
-              await executor.execute(job, 'orchard', runId);
+              await executor.execute(job);
             } catch (e, s) {
               _log.severe('Error executing job ${job.id}: $e', e, s);
               unawaited(Sentry.captureException(e, stackTrace: s));
