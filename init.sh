@@ -1,5 +1,11 @@
 #!/usr/bin/env bash
-set -euo pipefail
+if [ -z "${BASH_VERSION:-}" ] && command -v bash > /dev/null 2>&1; then
+  exec bash "$0" "$@"
+fi
+set -eu
+if [ -n "${BASH_VERSION:-}" ]; then
+  set -o pipefail
+fi
 
 # Check if openssl is installed
 if ! command -v openssl > /dev/null 2>&1; then
@@ -32,7 +38,7 @@ if ! command -v openssl > /dev/null 2>&1; then
   fi
 fi
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ENV_FILE="${SCRIPT_DIR}/.env"
 BACKUP_FILE="${SCRIPT_DIR}/.env.bak"
 
