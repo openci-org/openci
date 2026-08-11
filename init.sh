@@ -9,33 +9,8 @@ fi
 
 # Check if openssl is installed
 if ! command -v openssl > /dev/null 2>&1; then
-  echo "openssl is required but not installed."
-  if command -v apt-get > /dev/null 2>&1; then
-    printf "Would you like to install openssl using apt-get? [y/N]: "
-    REPLY=""
-    if [ -t 0 ]; then
-      read -r REPLY || true
-    elif [ -e /dev/tty ]; then
-      read -r REPLY < /dev/tty || true
-    fi
-    case "$REPLY" in
-      [yY][eE][sS]|[yY])
-        echo "Installing openssl..."
-        if [ "$(id -u)" -ne 0 ] && command -v sudo > /dev/null 2>&1; then
-          sudo apt-get update && sudo apt-get install -y openssl
-        else
-          apt-get update && apt-get install -y openssl
-        fi
-        ;;
-      *)
-        echo "Error: openssl installation aborted." >&2
-        exit 1
-        ;;
-    esac
-  else
-    echo "Error: openssl is required but not installed." >&2
-    exit 1
-  fi
+  echo "Error: openssl is required but not installed." >&2
+  exit 1
 fi
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
