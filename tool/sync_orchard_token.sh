@@ -20,16 +20,20 @@ if [ -z "$TOKEN" ] || [[ "$TOKEN" == *"failed"* ]] || [[ "$TOKEN" == *"exec"* ]]
   TOKEN=$(openssl rand -hex 32)
 fi
 
-echo "🔑 Orchard コントローラーにサービスアカウント '$SERVICE_ACCOUNT_NAME' を作成・権限付与しています..."
+echo "🔑 Orchard コントローラーでサービスアカウント '$SERVICE_ACCOUNT_NAME' を確実・最新化しています..."
+# 既存の同名サービスアカウントを削除してトークンの不一致（409 Conflict）を防ぐ
+docker exec openci-orchard-controller orchard delete service-account "$SERVICE_ACCOUNT_NAME" >/dev/null 2>&1 || true
+
+# 権限(roles)付きでサービスアカウントとトークンを作成
 docker exec openci-orchard-controller orchard create service-account "$SERVICE_ACCOUNT_NAME" \
   --roles compute:read \
   --roles compute:write \
   --roles compute:connect \
   --roles admin:read \
   --roles admin:write \
-  --token "$TOKEN" >/dev/null 2>&1 || true
+  --token "$TOKEN" >/dev/null
 
-echo "✅ サービスアカウント '$SERVICE_ACCOUNT_NAME' の権限が準備できました。"
+echo "✅ サービスアカウント '$SERVICE_ACCOUNT_NAME' (トークン一致済み) を作成・権限付与しました。"
 
 if [ -f "$ENV_FILE" ]; then
   echo "📝 .env ファイルの Orchard 認証情報を更新中..."
@@ -63,4 +67,4 @@ fi
 echo "🔄 job-processor イメージをビルド＆再作成して反映しています..."
 docker compose up -d --build --force-recreate job-processor
 
-echo "🎉 Orchard Service Account の作成と同期が完了しました"
+echo "🎉 Orchard Service Account の同期が完全に成功しました！"
