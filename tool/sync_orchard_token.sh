@@ -67,4 +67,4 @@ fi
 echo "🔄 job-processor イメージをビルド＆再作成して反映しています..."
 docker compose up -d --build --force-recreate job-processor
 
-echo "🎉 Orchard Service Account の同期が完全に成功しました！"
+echo "🎉 Orchard Service Account の同期が完全に成功しました"
