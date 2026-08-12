@@ -18,7 +18,18 @@ fi
 echo "✅ トークンを取得しました (${TOKEN:0:8}...)"
 
 if [ -f "$ROOT_DIR/.env" ]; then
-  echo "📝 .env ファイルの ORCHARD_SERVICE_ACCOUNT_TOKEN を更新中..."
+  echo "📝 .env ファイルの Orchard 認証情報を更新中..."
+  
+  if grep -q "^ORCHARD_SERVICE_ACCOUNT_NAME=" "$ROOT_DIR/.env"; then
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+      sed -i '' "s/^ORCHARD_SERVICE_ACCOUNT_NAME=.*/ORCHARD_SERVICE_ACCOUNT_NAME=bootstrap-admin/" "$ROOT_DIR/.env"
+    else
+      sed -i "s/^ORCHARD_SERVICE_ACCOUNT_NAME=.*/ORCHARD_SERVICE_ACCOUNT_NAME=bootstrap-admin/" "$ROOT_DIR/.env"
+    fi
+  else
+    echo "ORCHARD_SERVICE_ACCOUNT_NAME=bootstrap-admin" >> "$ROOT_DIR/.env"
+  fi
+
   if grep -q "^ORCHARD_SERVICE_ACCOUNT_TOKEN=" "$ROOT_DIR/.env"; then
     if [[ "$OSTYPE" == "darwin"* ]]; then
       sed -i '' "s/^ORCHARD_SERVICE_ACCOUNT_TOKEN=.*/ORCHARD_SERVICE_ACCOUNT_TOKEN=$TOKEN/" "$ROOT_DIR/.env"
@@ -31,10 +42,11 @@ if [ -f "$ROOT_DIR/.env" ]; then
   echo "✅ .env の更新が完了しました。"
 else
   echo "⚠️ .env ファイルが見つからないため作成します。"
-  echo "ORCHARD_SERVICE_ACCOUNT_TOKEN=$TOKEN" > "$ROOT_DIR/.env"
+  echo "ORCHARD_SERVICE_ACCOUNT_NAME=bootstrap-admin" > "$ROOT_DIR/.env"
+  echo "ORCHARD_SERVICE_ACCOUNT_TOKEN=$TOKEN" >> "$ROOT_DIR/.env"
 fi
 
-echo "🔄 job-processor を再起動しています..."
-docker compose restart job-processor
+echo "🔄 job-processor コンテナを再作成して環境変数を反映しています..."
+docker compose up -d --force-recreate job-processor
 
-echo "🎉 完了しました!!"
+echo "🎉 同期とコンテナの再反映が完了しました！"
