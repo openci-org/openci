@@ -1,11 +1,8 @@
 import 'dart:async';
-import 'dart:convert';
 
-import 'package:dashboard/auth/auth_provider.dart';
-import 'package:dashboard/utilities/openci_server_url_provider.dart';
+import 'package:dashboard/api/openci_api_client.dart';
 import 'package:dashboard/team/team_provider.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
-import 'package:http/http.dart' as http;
 import 'package:openci_shared/openci_shared.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -16,44 +13,28 @@ part 'secret_manager_provider.g.dart';
 class SecretManager extends _$SecretManager {
   @override
   Stream<List<Secret>> build() async* {
-    final serverUrl = ref.watch(openciServerUrlProvider);
-
     final teamId = ref.watch(selectedTeamProvider).value?.id;
     if (teamId == null) {
       yield const [];
       return;
     }
 
-    final token = await ref.watch(authedFirebaseIdTokenProvider.future);
-
-    yield await _fetchSecrets(serverUrl, teamId, token);
+    yield await _fetchSecrets(teamId);
 
     yield* Stream.periodic(const Duration(seconds: 5)).asyncMap((_) async {
-      return _fetchSecrets(serverUrl, teamId, token);
+      return _fetchSecrets(teamId);
     });
   }
 
-  Future<List<Secret>> _fetchSecrets(
-    String serverUrl,
-    String teamId,
-    String token,
-  ) async {
+  Future<List<Secret>> _fetchSecrets(String teamId) async {
     try {
-      final url = Uri.parse('$serverUrl/teams/$teamId/secrets');
+      final api = ref.read(openciApiServiceProvider);
+      final response = await api.getSecrets(teamId);
 
-      final response = await http
-          .get(
-            url,
-            headers: {
-              'Authorization': 'Bearer $token',
-            },
-          )
-          .timeout(const Duration(seconds: 5));
+      if (!response.isSuccessful || response.body == null) return const [];
 
-      if (response.statusCode != 200) return const [];
-
-      final data = jsonDecode(response.body) as Map<String, dynamic>;
-      final list = data['secrets'] as List<dynamic>;
+      final data = response.body!;
+      final list = data['secrets'] as List<dynamic>? ?? [];
 
       return list.map((item) {
         final map = Map<String, dynamic>.from(item as Map);
@@ -66,37 +47,24 @@ class SecretManager extends _$SecretManager {
           updatedAt: DateTime.parse(map['updatedAt'] as String).toLocal(),
         );
       }).toList();
-    } catch (e) {
+    } catch (_) {
       return const [];
     }
   }
 
   Future<void> addSecret(String name, String value) async {
-    final serverUrl = ref.read(openciServerUrlProvider);
-
     final teamId = ref.read(selectedTeamProvider).value?.id;
     if (teamId == null) throw StateError('team is not loaded yet');
 
-    final url = Uri.parse('$serverUrl/teams/$teamId/secrets');
-    final token = await ref.read(authedFirebaseIdTokenProvider.future);
+    final api = ref.read(openciApiServiceProvider);
+    final response = await api.saveSecret(teamId, {
+      'name': name,
+      'value': value,
+    });
 
-    final response = await http
-        .post(
-          url,
-          headers: {
-            'Authorization': 'Bearer $token',
-            'Content-Type': 'application/json',
-          },
-          body: jsonEncode({
-            'name': name,
-            'value': value,
-          }),
-        )
-        .timeout(const Duration(seconds: 5));
-
-    if (response.statusCode != 200) {
+    if (!response.isSuccessful) {
       throw StateError(
-        'Failed to add secret: ${response.statusCode} ${response.body}',
+        'Failed to add secret: ${response.statusCode} ${response.error}',
       );
     }
   }
@@ -126,78 +94,45 @@ class SecretManager extends _$SecretManager {
   }
 
   Future<String> readSecret({required String documentId}) async {
-    final serverUrl = ref.read(openciServerUrlProvider);
-
     final teamId = ref.read(selectedTeamProvider).value?.id;
     if (teamId == null) throw StateError('team is not loaded yet');
 
-    final url = Uri.parse('$serverUrl/teams/$teamId/secrets/$documentId');
-    final token = await ref.read(authedFirebaseIdTokenProvider.future);
+    final api = ref.read(openciApiServiceProvider);
+    final response = await api.getSecretValue(teamId, documentId);
 
-    final response = await http
-        .get(
-          url,
-          headers: {
-            'Authorization': 'Bearer $token',
-          },
-        )
-        .timeout(const Duration(seconds: 5));
-
-    if (response.statusCode != 200) {
+    if (!response.isSuccessful || response.body == null) {
       throw StateError(
-        'Failed to read secret: ${response.statusCode} ${response.body}',
+        'Failed to read secret: ${response.statusCode} ${response.error}',
       );
     }
 
-    final data = jsonDecode(response.body) as Map<String, dynamic>;
-    return data['value'] as String? ?? '';
+    return response.body!['value'] as String? ?? '';
   }
 
   Future<void> deleteSecret({required String documentId}) async {
-    final serverUrl = ref.read(openciServerUrlProvider);
-
     final teamId = ref.read(selectedTeamProvider).value?.id;
     if (teamId == null) throw StateError('team is not loaded yet');
 
-    final url = Uri.parse('$serverUrl/teams/$teamId/secrets/$documentId');
-    final token = await ref.read(authedFirebaseIdTokenProvider.future);
+    final api = ref.read(openciApiServiceProvider);
+    final response = await api.deleteSecret(teamId, documentId);
 
-    final response = await http
-        .delete(
-          url,
-          headers: {
-            'Authorization': 'Bearer $token',
-          },
-        )
-        .timeout(const Duration(seconds: 5));
-
-    if (response.statusCode != 200) {
+    if (!response.isSuccessful) {
       throw StateError(
-        'Failed to delete secret: ${response.statusCode} ${response.body}',
+        'Failed to delete secret: ${response.statusCode} ${response.error}',
       );
     }
   }
 
   Future<void> generateCertificateKey() async {
-    final serverUrl = ref.read(openciServerUrlProvider);
     final teamId = ref.read(selectedTeamProvider).value?.id;
     if (teamId == null) throw StateError('team is not loaded yet');
 
-    final url = Uri.parse('$serverUrl/teams/$teamId/ios-signing/generate-key');
-    final token = await ref.read(authedFirebaseIdTokenProvider.future);
+    final api = ref.read(openciApiServiceProvider);
+    final response = await api.generateCertificateKey(teamId);
 
-    final response = await http
-        .post(
-          url,
-          headers: {
-            'Authorization': 'Bearer $token',
-          },
-        )
-        .timeout(const Duration(seconds: 15));
-
-    if (response.statusCode != 200) {
+    if (!response.isSuccessful) {
       throw StateError(
-        'Failed to generate certificate key: ${response.statusCode} ${response.body}',
+        'Failed to generate certificate key: ${response.statusCode} ${response.error}',
       );
     }
     ref.invalidateSelf();
@@ -208,31 +143,19 @@ class SecretManager extends _$SecretManager {
     required String keyId,
     required String privateKey,
   }) async {
-    final serverUrl = ref.read(openciServerUrlProvider);
     final teamId = ref.read(selectedTeamProvider).value?.id;
     if (teamId == null) throw StateError('team is not loaded yet');
 
-    final url = Uri.parse('$serverUrl/teams/$teamId/ios-signing/setup-asc-key');
-    final token = await ref.read(authedFirebaseIdTokenProvider.future);
+    final api = ref.read(openciApiServiceProvider);
+    final response = await api.setupAscApiKey(teamId, {
+      'issuerId': issuerId,
+      'keyId': keyId,
+      'privateKey': privateKey,
+    });
 
-    final response = await http
-        .post(
-          url,
-          headers: {
-            'Authorization': 'Bearer $token',
-            'Content-Type': 'application/json',
-          },
-          body: jsonEncode({
-            'issuerId': issuerId,
-            'keyId': keyId,
-            'privateKey': privateKey,
-          }),
-        )
-        .timeout(const Duration(seconds: 10));
-
-    if (response.statusCode != 200) {
+    if (!response.isSuccessful) {
       throw StateError(
-        'Failed to setup App Store Connect API Key: ${response.statusCode} ${response.body}',
+        'Failed to setup App Store Connect API Key: ${response.statusCode} ${response.error}',
       );
     }
     ref.invalidateSelf();

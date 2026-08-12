@@ -681,7 +681,6 @@ class AppStringsSettingsAiFeatures {
 
   final AppStrings _root; // ignore: unused_field
 
-  // Translations
   String get title => 'AI機能';
   String get subtitle => '失敗要約などのAI機能を有効にする';
   String get enabled => 'AI機能が有効です';
@@ -689,13 +688,11 @@ class AppStringsSettingsAiFeatures {
   String get updated => 'AI機能の設定が更新されました';
 }
 
-// Path: settings.language
 class AppStringsSettingsLanguage {
   AppStringsSettingsLanguage._(this._root);
 
   final AppStrings _root; // ignore: unused_field
 
-  // Translations
   String get title => '言語';
   String get subtitle => '表示言語を変更';
   String get system => 'システムのデフォルト';
@@ -703,9 +700,3 @@ class AppStringsSettingsLanguage {
   String get japanese => '日本語';
   String get spanish => 'Español';
 }
-
-/// The flat map containing all translations for locale <ja>.
-/// Only for edge cases! For simple maps, use the map function of this library.
-///
-/// The Dart AOT compiler has issues with very large switch statements,
-/// so the map is split into smaller functions (512 entries each).

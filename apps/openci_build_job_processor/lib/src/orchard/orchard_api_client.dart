@@ -179,9 +179,7 @@ class OrchardApiClient {
       '$wsScheme://${httpUri.host}:${httpUri.port}/v1/vms/$vmName/exec?command=$encodedCommand&wait=$waitSeconds',
     );
 
-    final credentials = '$serviceAccountName:$serviceAccountToken';
-    final encodedAuth = base64Encode(utf8.encode(credentials));
-    final headers = <String, String>{'Authorization': 'Basic $encodedAuth'};
+    final headers = _headers;
 
     final customClient = HttpClient()
       ..badCertificateCallback = (cert, host, port) => true;

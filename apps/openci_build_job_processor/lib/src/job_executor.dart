@@ -7,6 +7,7 @@ import 'package:openci_build_job_processor/src/logging/build_job_logger.dart';
 import 'package:openci_build_job_processor/src/logging/build_step_logger.dart';
 import 'package:openci_build_job_processor/src/orchard/orchard_api_client.dart';
 import 'package:openci_build_job_processor/src/orchard/orchard_vm_service.dart';
+import 'package:openci_build_job_processor/src/processor_config.dart';
 import 'package:openci_shared/openci_shared.dart';
 import 'package:retry/retry.dart';
 import 'package:sentry/sentry.dart';
@@ -16,6 +17,7 @@ class JobExecutor {
     required OpenCiApiService apiService,
     required String baseVmName,
     OrchardVmService? orchardVmService,
+    ProcessorConfig? config,
   }) : _apiService = apiService,
        _baseVmName = baseVmName,
        _orchardVmService =
@@ -23,13 +25,17 @@ class JobExecutor {
            OrchardVmService(
              apiClient: OrchardApiClient(
                baseUrl:
+                   config?.orchardApiUrl ??
                    Platform.environment['ORCHARD_API_URL'] ??
                    'https://orchard-controller:6120',
                serviceAccountName:
+                   config?.orchardServiceAccountName ??
                    Platform.environment['ORCHARD_SERVICE_ACCOUNT_NAME'] ??
-                   'openci',
+                   'bootstrap-admin',
                serviceAccountToken:
-                   Platform.environment['ORCHARD_SERVICE_ACCOUNT_TOKEN'] ?? '',
+                   config?.orchardServiceAccountToken ??
+                   Platform.environment['ORCHARD_SERVICE_ACCOUNT_TOKEN'] ??
+                   '',
              ),
            );
 
@@ -40,12 +46,26 @@ class JobExecutor {
   final _log = Logger('JobExecutor');
   Duration retryDelay = const Duration(seconds: 5);
 
-  Future<void> execute(BuildJob job, String hostUrl, String runId) async {
-    final shortId = job.id.length > 8 ? job.id.substring(0, 8) : job.id;
-    final runShortId = runId.length > 8
-        ? runId.substring(runId.length - 6)
-        : runId;
-    final vmName = 'openci-vm-$shortId-$runShortId';
+  String getVmName({required String jobId, required String runId}) {
+    final shortJobId = jobId.substring(0, 8);
+    final shortRunId = runId.substring(runId.length - 6);
+    const baseName = 'openci-vm';
+    return '$baseName-$shortJobId-$shortRunId';
+  }
+
+  Future<void> execute(BuildJob job) async {
+    final runId = generateRunId();
+
+    await logInfo(
+      job.id,
+      runId,
+      'Job claimed: ${job.id}. Starting build execution...',
+      stepId: 'prepare_vm',
+    );
+
+    final vmName = getVmName(jobId: job.id, runId: runId);
+    _log.info('VMName is $vmName');
+
     bool vmCreated = false;
 
     try {

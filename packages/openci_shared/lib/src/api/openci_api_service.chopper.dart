@@ -668,6 +668,98 @@ final class _$OpenCiApiService extends OpenCiApiService {
   }
 
   @override
+  Future<Response<void>> deleteSecret(String teamId, String name) {
+    final Uri $url = Uri.parse('/teams/${teamId}/secrets/${name}');
+    final ChopperCompleter $abortTrigger = ChopperCompleter<void>();
+    final ChopperTimer $timeout = ChopperTimer(
+      const Duration(microseconds: 10000000),
+      () {
+        if (!$abortTrigger.isCompleted) $abortTrigger.complete();
+      },
+    );
+    final Request $request = Request(
+      'DELETE',
+      $url,
+      client.baseUrl,
+      abortTrigger: $abortTrigger.future,
+    );
+    return client
+        .send<void, void>($request)
+        .catchError(
+          (_) => Future<Response<void>>.error(
+            ChopperTimeoutException('Request timed out after 10 seconds'),
+          ),
+          test: (Object err) =>
+              err is ChopperRequestAbortedException &&
+              $abortTrigger.isCompleted,
+        )
+        .whenComplete($timeout.cancel);
+  }
+
+  @override
+  Future<Response<void>> generateCertificateKey(String teamId) {
+    final Uri $url = Uri.parse('/teams/${teamId}/ios-signing/generate-key');
+    final ChopperCompleter $abortTrigger = ChopperCompleter<void>();
+    final ChopperTimer $timeout = ChopperTimer(
+      const Duration(microseconds: 15000000),
+      () {
+        if (!$abortTrigger.isCompleted) $abortTrigger.complete();
+      },
+    );
+    final Request $request = Request(
+      'POST',
+      $url,
+      client.baseUrl,
+      abortTrigger: $abortTrigger.future,
+    );
+    return client
+        .send<void, void>($request)
+        .catchError(
+          (_) => Future<Response<void>>.error(
+            ChopperTimeoutException('Request timed out after 15 seconds'),
+          ),
+          test: (Object err) =>
+              err is ChopperRequestAbortedException &&
+              $abortTrigger.isCompleted,
+        )
+        .whenComplete($timeout.cancel);
+  }
+
+  @override
+  Future<Response<void>> setupAscApiKey(
+    String teamId,
+    Map<String, dynamic> body,
+  ) {
+    final Uri $url = Uri.parse('/teams/${teamId}/ios-signing/setup-asc-key');
+    final $body = body;
+    final ChopperCompleter $abortTrigger = ChopperCompleter<void>();
+    final ChopperTimer $timeout = ChopperTimer(
+      const Duration(microseconds: 10000000),
+      () {
+        if (!$abortTrigger.isCompleted) $abortTrigger.complete();
+      },
+    );
+    final Request $request = Request(
+      'POST',
+      $url,
+      client.baseUrl,
+      body: $body,
+      abortTrigger: $abortTrigger.future,
+    );
+    return client
+        .send<void, void>($request)
+        .catchError(
+          (_) => Future<Response<void>>.error(
+            ChopperTimeoutException('Request timed out after 10 seconds'),
+          ),
+          test: (Object err) =>
+              err is ChopperRequestAbortedException &&
+              $abortTrigger.isCompleted,
+        )
+        .whenComplete($timeout.cancel);
+  }
+
+  @override
   Future<Response<void>> sendHeartbeat(Map<String, dynamic> body) {
     final Uri $url = Uri.parse('/workers/heartbeat');
     final $body = body;

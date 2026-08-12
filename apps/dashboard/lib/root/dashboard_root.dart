@@ -13,6 +13,7 @@ import 'package:dashboard/team/team_provider.dart';
 import 'package:dashboard/utilities/async_error_widget.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 class DashboardRouteGateway extends ConsumerWidget {
@@ -58,7 +59,7 @@ class DashboardRouteGateway extends ConsumerWidget {
   }
 }
 
-class DashboardRoot extends StatefulWidget {
+class DashboardRoot extends HookWidget {
   const DashboardRoot({
     super.key,
     this.workspaceId = '',
@@ -71,21 +72,13 @@ class DashboardRoot extends StatefulWidget {
   final VoidCallback? onSwitchTeam;
 
   @override
-  State<DashboardRoot> createState() => _DashboardRootState();
-}
-
-class _DashboardRootState extends State<DashboardRoot> {
-  int _selectedIndex = 0;
-
-  @override
   Widget build(BuildContext context) {
+    final selectedIndex = useState(0);
     return Scaffold(
       bottomNavigationBar: NavigationBar(
-        selectedIndex: _selectedIndex,
+        selectedIndex: selectedIndex.value,
         onDestinationSelected: (index) {
-          setState(() {
-            _selectedIndex = index;
-          });
+          selectedIndex.value = index;
         },
         destinations: const [
           NavigationDestination(
@@ -112,12 +105,12 @@ class _DashboardRootState extends State<DashboardRoot> {
       ),
       body: SafeArea(
         child: IndexedStack(
-          index: _selectedIndex,
-          children: const [
-            CicdLogsPage(),
-            SecretManagerPage(),
-            StoreReleasePage(),
-            SettingsPage(),
+          index: selectedIndex.value,
+          children: [
+            const CicdLogsPage(),
+            const SecretManagerPage(),
+            const StoreReleasePage(),
+            SettingsPage(onSwitchTeam: onSwitchTeam),
           ],
         ),
       ),

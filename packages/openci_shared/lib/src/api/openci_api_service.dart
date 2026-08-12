@@ -124,6 +124,26 @@ abstract class OpenCiApiService extends ChopperService {
     @Path('name') String name,
   );
 
+  @DELETE(path: '/teams/{teamId}/secrets/{name}', timeout: _timeout)
+  Future<Response<void>> deleteSecret(
+    @Path('teamId') String teamId,
+    @Path('name') String name,
+  );
+
+  @POST(
+    path: '/teams/{teamId}/ios-signing/generate-key',
+    timeout: Duration(seconds: 15),
+  )
+  Future<Response<void>> generateCertificateKey(
+    @Path('teamId') String teamId,
+  );
+
+  @POST(path: '/teams/{teamId}/ios-signing/setup-asc-key', timeout: _timeout)
+  Future<Response<void>> setupAscApiKey(
+    @Path('teamId') String teamId,
+    @Body() Map<String, dynamic> body,
+  );
+
   @POST(path: '/workers/heartbeat', timeout: _timeout)
   Future<Response<void>> sendHeartbeat(
     @Body() Map<String, dynamic> body,

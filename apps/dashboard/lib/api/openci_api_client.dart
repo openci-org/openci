@@ -13,10 +13,10 @@ ChopperClient openciApiClient(Ref ref) {
 
   return createOpenCiChopperClient(
     baseUrl: baseUrl,
-    tokenProvider: () async {
+    tokenProvider: () {
       final user = auth.currentUser;
       if (user == null) return null;
-      return await user.getIdToken();
+      return user.getIdToken();
     },
   );
 }
