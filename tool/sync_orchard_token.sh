@@ -37,4 +37,4 @@ fi
 echo "🔄 job-processor を再起動しています..."
 docker compose restart job-processor
 
-echo "🎉 完了しました！"
+echo "🎉 完了しました!!"
