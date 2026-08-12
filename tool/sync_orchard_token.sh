@@ -69,4 +69,4 @@ fi
 echo "🔄 job-processor イメージをビルド＆再作成して環境変数と最新コードを反映しています..."
 docker compose up -d --build --force-recreate job-processor
 
-echo "🎉 同期とコンテナの再生成が完了しました！"
+echo "🎉 Orchard Tokenの同期とコンテナの再生成が完了しました!"
