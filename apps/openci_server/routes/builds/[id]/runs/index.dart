@@ -3,7 +3,6 @@ import 'dart:io';
 
 import 'package:dart_frog/dart_frog.dart';
 import 'package:openci_server/database.dart';
-import 'package:openci_server/github/github_service.dart';
 import 'package:openci_server/request/error_handler.dart';
 import 'package:openci_server/request/request_extension.dart';
 
@@ -118,23 +117,6 @@ Future<Response> _post(RequestContext context, String id) async {
         );
       }
       rethrow;
-    }
-
-    final driftJob = context.read<DriftBuildJob>();
-    if (driftJob.checkRunId != null && driftJob.installationId != null) {
-      try {
-        await GitHubService.updateGitHubCheckRun(
-          owner: driftJob.owner,
-          repo: driftJob.repo,
-          checkRunIdStr: driftJob.checkRunId!,
-          installationIdStr: driftJob.installationId!,
-          runStatus: 'in_progress',
-        );
-      } catch (e) {
-        stderr.writeln(
-          'Failed to update check run to in_progress for job ${driftJob.id}: $e',
-        );
-      }
     }
 
     return Response.json(body: {'success': true});

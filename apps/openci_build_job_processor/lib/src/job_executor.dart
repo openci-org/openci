@@ -151,6 +151,8 @@ class JobExecutor {
           },
         );
 
+        await _markJobInProgress(job.id);
+
         final prepareVmEnd = DateTime.now().toUtc();
         await sendStepStatusUpdate(
           buildJobId: job.id,
@@ -404,6 +406,26 @@ class JobExecutor {
       await _orchardVmService.cleanup(vmName);
     } catch (e, s) {
       _log.warning('[$vmName] Failed to delete Orchard VM: $e');
+      unawaited(Sentry.captureException(e, stackTrace: s));
+    }
+  }
+
+  Future<void> _markJobInProgress(String jobId) async {
+    final statusRes = await _apiService
+        .completeJob(jobId, {'status': BuildJobStatus.IN_PROGRESS.name})
+        .timeout(const Duration(seconds: 10));
+    if (!statusRes.isSuccessful) {
+      throw Exception(
+        'Failed to mark job in progress: ${statusRes.statusCode} - ${statusRes.error}',
+      );
+    }
+
+    try {
+      await _apiService
+          .updateCheckRun(jobId, {'status': 'in_progress'})
+          .timeout(const Duration(seconds: 10));
+    } catch (e, s) {
+      _log.warning('Failed to update GitHub check run to in_progress: $e');
       unawaited(Sentry.captureException(e, stackTrace: s));
     }
   }

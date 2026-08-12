@@ -22,8 +22,13 @@ class BuildJobDao extends DatabaseAccessor<AppDatabase>
             await (selectOnly(buildJobs)
                   ..addColumns([countExpr])
                   ..where(
-                    buildJobs.status.equalsValue(BuildJobStatus.IN_PROGRESS) &
-                        buildJobs.workerHost.equals(workerHost),
+                    buildJobs.workerHost.equals(workerHost) &
+                        (buildJobs.status.equalsValue(
+                              BuildJobStatus.IN_PROGRESS,
+                            ) |
+                            buildJobs.status.equalsValue(
+                              BuildJobStatus.QUEUED,
+                            )),
                   ))
                 .map((row) => row.read(countExpr) ?? 0)
                 .getSingle();
@@ -33,12 +38,16 @@ class BuildJobDao extends DatabaseAccessor<AppDatabase>
         }
       }
 
-      final sql = '''
+      final isPostgres =
+          db.attachedDatabase.executor.dialect == SqlDialect.postgres;
+      final sql =
+          '''
         SELECT * FROM build_jobs 
         WHERE status = 'QUEUED' 
+        AND worker_host IS NULL
         ORDER BY created_at ASC 
         LIMIT 1 
-        FOR UPDATE SKIP LOCKED
+        ${isPostgres ? 'FOR UPDATE SKIP LOCKED' : ''}
       ''';
 
       final results = await db.customSelect(sql).get();
@@ -49,7 +58,6 @@ class BuildJobDao extends DatabaseAccessor<AppDatabase>
       final job = buildJobs.map(row.data);
 
       final updated = job.copyWith(
-        status: BuildJobStatus.IN_PROGRESS,
         vmName: Value(vmName),
         workerHost: Value(workerHost),
         updatedAt: DateTime.now().toUtc(),
