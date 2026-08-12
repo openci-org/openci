@@ -14,8 +14,9 @@ if ! command -v openssl > /dev/null 2>&1; then
 fi
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-ENV_FILE="${SCRIPT_DIR}/.env"
-BACKUP_FILE="${SCRIPT_DIR}/.env.bak"
+ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+ENV_FILE="${ROOT_DIR}/.env"
+BACKUP_FILE="${ROOT_DIR}/.env.bak"
 
 if [ -f "${ENV_FILE}" ]; then
   echo "Existing .env file found. Backing up to .env.bak..."
