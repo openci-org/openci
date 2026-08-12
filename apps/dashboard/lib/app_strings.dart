@@ -689,7 +689,6 @@ class AppStringsSettingsAiFeatures {
   String get updated => 'AI機能の設定が更新されました';
 }
 
-// Path: settings.language
 class AppStringsSettingsLanguage {
   AppStringsSettingsLanguage._(this._root);
 
