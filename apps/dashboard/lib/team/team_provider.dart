@@ -37,7 +37,7 @@ Future<List<Team>> teamList(Ref ref) async {
   return response.body ?? const [];
 }
 
-@riverpod
+@Riverpod(keepAlive: true)
 TeamService teamService(Ref ref) => TeamService(ref);
 
 class TeamService {
@@ -59,8 +59,12 @@ class TeamService {
     final data = response.body ?? <String, dynamic>{};
     final teamId = data['id'] as String;
 
-    _ref.invalidate(teamListProvider);
-    await _ref.read(selectedTeamIdProvider.notifier).saveSelectedTeamId(teamId);
+    if (_ref.mounted) {
+      _ref.invalidate(teamListProvider);
+      await _ref
+          .read(selectedTeamIdProvider.notifier)
+          .saveSelectedTeamId(teamId);
+    }
   }
 
   Future<void> updateTeamName(String teamId, String newName) async {
@@ -75,7 +79,9 @@ class TeamService {
       );
     }
 
-    _ref.invalidate(teamListProvider);
+    if (_ref.mounted) {
+      _ref.invalidate(teamListProvider);
+    }
   }
 
   Future<void> updateGitHubSettings({
@@ -95,7 +101,9 @@ class TeamService {
       );
     }
 
-    _ref.invalidate(teamListProvider);
+    if (_ref.mounted) {
+      _ref.invalidate(teamListProvider);
+    }
   }
 
   Future<void> deleteTeam(String teamId) async {
@@ -108,7 +116,9 @@ class TeamService {
       );
     }
 
-    _ref.invalidate(teamListProvider);
+    if (_ref.mounted) {
+      _ref.invalidate(teamListProvider);
+    }
   }
 
   Future<void> inviteMember(String teamId, String email) async {

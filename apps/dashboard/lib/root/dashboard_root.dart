@@ -106,11 +106,11 @@ class DashboardRoot extends HookWidget {
       body: SafeArea(
         child: IndexedStack(
           index: selectedIndex.value,
-          children: const [
-            CicdLogsPage(),
-            SecretManagerPage(),
-            StoreReleasePage(),
-            SettingsPage(),
+          children: [
+            const CicdLogsPage(),
+            const SecretManagerPage(),
+            const StoreReleasePage(),
+            SettingsPage(onSwitchTeam: onSwitchTeam),
           ],
         ),
       ),

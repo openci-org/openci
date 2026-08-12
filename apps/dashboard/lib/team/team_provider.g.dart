@@ -92,7 +92,7 @@ final class TeamServiceProvider
         argument: null,
         retry: null,
         name: r'teamServiceProvider',
-        isAutoDispose: true,
+        isAutoDispose: false,
         dependencies: null,
         $allTransitiveDependencies: null,
       );
@@ -119,4 +119,4 @@ final class TeamServiceProvider
   }
 }
 
-String _$teamServiceHash() => r'c7af76967284024376f59e5774e81dcb21801bf8';
+String _$teamServiceHash() => r'74f6f70f83ba4a2d67c5b3f93518b0f00b464b7c';
