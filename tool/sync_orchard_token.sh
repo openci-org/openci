@@ -9,18 +9,10 @@ cd "$ROOT_DIR"
 SERVICE_ACCOUNT_NAME="openci-api"
 ENV_FILE="$ROOT_DIR/.env"
 
-# .env から既存のトークンを取得、無ければ新規生成
-TOKEN=""
-if [ -f "$ENV_FILE" ]; then
-  TOKEN=$(grep "^ORCHARD_SERVICE_ACCOUNT_TOKEN=" "$ENV_FILE" | cut -d'=' -f2- | tr -d '\r\n"' || true)
-fi
+echo "🎲 新しい Service Account Token を生成しています..."
+TOKEN=$(openssl rand -hex 32)
 
-if [ -z "$TOKEN" ] || [[ "$TOKEN" == *"failed"* ]] || [[ "$TOKEN" == *"exec"* ]] || [[ "$TOKEN" == *"orchard-bootstrap-token"* ]]; then
-  echo "🎲 新しい Service Account Token を生成しています..."
-  TOKEN=$(openssl rand -hex 32)
-fi
-
-echo "🔑 Orchard コントローラーでサービスアカウント '$SERVICE_ACCOUNT_NAME' を確実・最新化しています..."
+echo "🔑 Orchard コントローラーでサービスアカウント '$SERVICE_ACCOUNT_NAME' を作成中..."
 # 既存の同名サービスアカウントを削除してトークンの不一致（409 Conflict）を防ぐ
 docker exec openci-orchard-controller orchard delete service-account "$SERVICE_ACCOUNT_NAME" >/dev/null 2>&1 || true
 
@@ -33,38 +25,35 @@ docker exec openci-orchard-controller orchard create service-account "$SERVICE_A
   --roles admin:write \
   --token "$TOKEN" >/dev/null
 
-echo "✅ サービスアカウント '$SERVICE_ACCOUNT_NAME' (トークン一致済み) を作成・権限付与しました。"
-
+echo "📝 .env ファイルの Orchard 認証情報を更新中..."
 if [ -f "$ENV_FILE" ]; then
-  echo "📝 .env ファイルの Orchard 認証情報を更新中..."
-  
-  if grep -q "^ORCHARD_SERVICE_ACCOUNT_NAME=" "$ENV_FILE"; then
-    if [[ "$OSTYPE" == "darwin"* ]]; then
-      sed -i '' "s|^ORCHARD_SERVICE_ACCOUNT_NAME=.*|ORCHARD_SERVICE_ACCOUNT_NAME=$SERVICE_ACCOUNT_NAME|" "$ENV_FILE"
-    else
-      sed -i "s|^ORCHARD_SERVICE_ACCOUNT_NAME=.*|ORCHARD_SERVICE_ACCOUNT_NAME=$SERVICE_ACCOUNT_NAME|" "$ENV_FILE"
-    fi
-  else
-    echo "ORCHARD_SERVICE_ACCOUNT_NAME=$SERVICE_ACCOUNT_NAME" >> "$ENV_FILE"
-  fi
+  ENV_PATH="$ENV_FILE" ACCOUNT_NAME="$SERVICE_ACCOUNT_NAME" ACCOUNT_TOKEN="$TOKEN" python3 -c '
+import os, re
+path = os.environ["ENV_PATH"]
+name = os.environ["ACCOUNT_NAME"]
+token = os.environ["ACCOUNT_TOKEN"]
+with open(path, "r") as f:
+    content = f.read()
 
-  if grep -q "^ORCHARD_SERVICE_ACCOUNT_TOKEN=" "$ENV_FILE"; then
-    if [[ "$OSTYPE" == "darwin"* ]]; then
-      sed -i '' "s|^ORCHARD_SERVICE_ACCOUNT_TOKEN=.*|ORCHARD_SERVICE_ACCOUNT_TOKEN=$TOKEN|" "$ENV_FILE"
-    else
-      sed -i "s|^ORCHARD_SERVICE_ACCOUNT_TOKEN=.*|ORCHARD_SERVICE_ACCOUNT_TOKEN=$TOKEN|" "$ENV_FILE"
-    fi
-  else
-    echo "ORCHARD_SERVICE_ACCOUNT_TOKEN=$TOKEN" >> "$ENV_FILE"
-  fi
-  echo "✅ .env の更新が完了しました。"
+if "ORCHARD_SERVICE_ACCOUNT_NAME=" in content:
+    content = re.sub(r"^ORCHARD_SERVICE_ACCOUNT_NAME=.*$", f"ORCHARD_SERVICE_ACCOUNT_NAME={name}", content, flags=re.M)
+else:
+    content += f"\nORCHARD_SERVICE_ACCOUNT_NAME={name}"
+
+if "ORCHARD_SERVICE_ACCOUNT_TOKEN=" in content:
+    content = re.sub(r"^ORCHARD_SERVICE_ACCOUNT_TOKEN=.*$", f"ORCHARD_SERVICE_ACCOUNT_TOKEN={token}", content, flags=re.M)
+else:
+    content += f"\nORCHARD_SERVICE_ACCOUNT_TOKEN={token}"
+
+with open(path, "w") as f:
+    f.write(content.strip() + "\n")
+'
 else
-  echo "⚠️ .env ファイルが見つからないため作成します。"
   echo "ORCHARD_SERVICE_ACCOUNT_NAME=$SERVICE_ACCOUNT_NAME" > "$ENV_FILE"
   echo "ORCHARD_SERVICE_ACCOUNT_TOKEN=$TOKEN" >> "$ENV_FILE"
 fi
 
-echo "🔄 job-processor イメージをビルド＆再作成して反映しています..."
+echo "🔄 job-processor コンテナを再構築して反映中..."
 docker compose up -d --build --force-recreate job-processor
 
-echo "🎉 Orchard Service Account の同期が完全に成功しました"
+echo "🎉 Orchard Service Account の同期が完了しました"
