@@ -66,7 +66,7 @@ else
   echo "ORCHARD_SERVICE_ACCOUNT_TOKEN=$FINAL_TOKEN" >> "$ROOT_DIR/.env"
 fi
 
-echo "🔄 job-processor コンテナを再作成して環境変数を反映しています..."
-docker compose up -d --force-recreate job-processor
+echo "🔄 job-processor イメージをビルド＆再作成して環境変数と最新コードを反映しています..."
+docker compose up -d --build --force-recreate job-processor
 
-echo "🎉 同期とコンテナの再反映が完了しました！!"
+echo "🎉 同期とコンテナの再生成が完了しました！"

@@ -28,6 +28,9 @@ Future<void> main() async {
         config: config,
       );
 
+      _log.info(
+        'Orchard Config: name=${config.orchardServiceAccountName}, tokenLength=${config.orchardServiceAccountToken.length}, url=${config.orchardApiUrl}',
+      );
       _log.info('Starting Job Processor listening on Stream for queued jobs');
 
       jobPoller.watchClaimedJobs().listen(
