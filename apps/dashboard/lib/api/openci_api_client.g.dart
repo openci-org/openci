@@ -48,7 +48,7 @@ final class OpenciApiClientProvider
   }
 }
 
-String _$openciApiClientHash() => r'f395a6d64008ad2beadb8bab4484a5ef0a4fae13';
+String _$openciApiClientHash() => r'181fdabf46ae6fb21ae2fb4a47068c38ec67facf';
 
 @ProviderFor(openciApiService)
 final openciApiServiceProvider = OpenciApiServiceProvider._();
