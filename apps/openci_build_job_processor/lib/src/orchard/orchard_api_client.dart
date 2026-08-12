@@ -50,11 +50,22 @@ class OrchardApiClient {
     return IOClient(ioClient);
   }
 
-  Map<String, String> get _headers {
+  String get _authHeaderValue {
+    if (serviceAccountToken.startsWith('Bearer ') ||
+        serviceAccountToken.startsWith('Basic ')) {
+      return serviceAccountToken;
+    }
+    if (serviceAccountToken.contains('.') || serviceAccountToken.length > 50) {
+      return 'Bearer $serviceAccountToken';
+    }
     final credentials = '$serviceAccountName:$serviceAccountToken';
     final encoded = base64Encode(utf8.encode(credentials));
+    return 'Basic $encoded';
+  }
+
+  Map<String, String> get _headers {
     return {
-      'Authorization': 'Basic $encoded',
+      'Authorization': _authHeaderValue,
       'Content-Type': 'application/json',
     };
   }
@@ -179,9 +190,7 @@ class OrchardApiClient {
       '$wsScheme://${httpUri.host}:${httpUri.port}/v1/vms/$vmName/exec?command=$encodedCommand&wait=$waitSeconds',
     );
 
-    final credentials = '$serviceAccountName:$serviceAccountToken';
-    final encodedAuth = base64Encode(utf8.encode(credentials));
-    final headers = <String, String>{'Authorization': 'Basic $encodedAuth'};
+    final headers = <String, String>{'Authorization': _authHeaderValue};
 
     final customClient = HttpClient()
       ..badCertificateCallback = (cert, host, port) => true;
