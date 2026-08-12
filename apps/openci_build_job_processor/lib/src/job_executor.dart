@@ -7,6 +7,7 @@ import 'package:openci_build_job_processor/src/logging/build_job_logger.dart';
 import 'package:openci_build_job_processor/src/logging/build_step_logger.dart';
 import 'package:openci_build_job_processor/src/orchard/orchard_api_client.dart';
 import 'package:openci_build_job_processor/src/orchard/orchard_vm_service.dart';
+import 'package:openci_build_job_processor/src/processor_config.dart';
 import 'package:openci_shared/openci_shared.dart';
 import 'package:retry/retry.dart';
 import 'package:sentry/sentry.dart';
@@ -16,6 +17,7 @@ class JobExecutor {
     required OpenCiApiService apiService,
     required String baseVmName,
     OrchardVmService? orchardVmService,
+    ProcessorConfig? config,
   }) : _apiService = apiService,
        _baseVmName = baseVmName,
        _orchardVmService =
@@ -23,13 +25,17 @@ class JobExecutor {
            OrchardVmService(
              apiClient: OrchardApiClient(
                baseUrl:
+                   config?.orchardApiUrl ??
                    Platform.environment['ORCHARD_API_URL'] ??
                    'https://orchard-controller:6120',
                serviceAccountName:
+                   config?.orchardServiceAccountName ??
                    Platform.environment['ORCHARD_SERVICE_ACCOUNT_NAME'] ??
-                   'openci',
+                   'bootstrap-admin',
                serviceAccountToken:
-                   Platform.environment['ORCHARD_SERVICE_ACCOUNT_TOKEN'] ?? '',
+                   config?.orchardServiceAccountToken ??
+                   Platform.environment['ORCHARD_SERVICE_ACCOUNT_TOKEN'] ??
+                   '',
              ),
            );
 
