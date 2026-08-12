@@ -693,7 +693,6 @@ class AppStringsSettingsLanguage {
 
   final AppStrings _root; // ignore: unused_field
 
-  // Translations
   String get title => '言語';
   String get subtitle => '表示言語を変更';
   String get system => 'システムのデフォルト';
