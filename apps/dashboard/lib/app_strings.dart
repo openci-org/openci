@@ -681,7 +681,6 @@ class AppStringsSettingsAiFeatures {
 
   final AppStrings _root; // ignore: unused_field
 
-  // Translations
   String get title => 'AI機能';
   String get subtitle => '失敗要約などのAI機能を有効にする';
   String get enabled => 'AI機能が有効です';
