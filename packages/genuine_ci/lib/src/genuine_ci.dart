@@ -64,8 +64,18 @@ class GenuineCI {
   }
 
   Future<void> _cloneRepository() async {
+    const space = ' ';
+    final command = [
+      'git clone',
+      '--branch $triggerBranch',
+      '--single-branch',
+      '--progress',
+      githubRepositoryUrl,
+      '.',
+    ].join(space);
+
     await runCommand(
-      'git clone --branch $triggerBranch --single-branch --progress $githubRepositoryUrl .',
+      command,
       workingDirectory: workspacePath,
     );
   }
