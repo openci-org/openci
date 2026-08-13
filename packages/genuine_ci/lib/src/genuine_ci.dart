@@ -84,17 +84,16 @@ class GenuineCI {
     String command, {
     String? workingDirectory,
   }) async {
-    await runCommand(
-      command,
-      workingDirectory: resolveWorkingDirectory(
-        workingDirectory ?? currentWorkingDirectory,
-      ),
+    final cwd = resolveWorkingDirectory(
+      workingDirectory ?? currentWorkingDirectory,
     );
+    await runCommand(command, workingDirectory: cwd);
   }
 
   @visibleForTesting
   static Future<String> createWorkspace() async {
-    final directory = await Directory.systemTemp.createTemp('genuine_ci_');
+    const dirPrefix = 'genuine_ci_';
+    final directory = await Directory.systemTemp.createTemp(dirPrefix);
     return directory.path;
   }
 
