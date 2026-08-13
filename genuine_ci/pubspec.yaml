@@ -1,0 +1,12 @@
+name: genuine_ci_workflows
+description: OpenCI workflow scripts.
+publish_to: none
+resolution: workspace
+
+environment:
+  sdk: 3.11.5
+
+dependencies:
+  genuine_ci: ^0.1.0
+dev_dependencies:
+  coverage: ^1.15.1

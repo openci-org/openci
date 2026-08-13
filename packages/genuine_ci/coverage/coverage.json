@@ -1,0 +1,41 @@
+{
+  "type": "CodeCoverage",
+  "coverage": [
+    {
+      "source": "package:genuine_ci/src/command_runner.dart",
+      "script": {
+        "type": "@Script",
+        "fixedId": true,
+        "id": "libraries/1/scripts/package%3Agenuine_ci%2Fsrc%2Fcommand_runner.dart",
+        "uri": "package:genuine_ci/src/command_runner.dart",
+        "_kind": "library"
+      },
+      "hits": [
+        4, 0, 8, 0, 10, 0, 14, 0, 15, 0, 16, 0, 17, 0, 18, 0, 22, 0, 23, 0, 24, 0, 25, 0, 26, 0, 30,
+        0, 32, 0, 34, 0, 35, 0, 38, 0, 39, 0, 41, 0, 19, 0, 27, 0
+      ]
+    },
+    {
+      "source": "package:genuine_ci/src/genuine_ci.dart",
+      "script": {
+        "type": "@Script",
+        "fixedId": true,
+        "id": "libraries/1/scripts/package%3Agenuine_ci%2Fsrc%2Fgenuine_ci.dart",
+        "uri": "package:genuine_ci/src/genuine_ci.dart",
+        "_kind": "library"
+      },
+      "hits": [5, 0, 25, 0, 34, 0, 35, 0, 46, 0, 54, 0, 58, 0, 60, 0, 61, 0]
+    },
+    {
+      "source": "package:genuine_ci/src/workspace.dart",
+      "script": {
+        "type": "@Script",
+        "fixedId": true,
+        "id": "libraries/1/scripts/package%3Agenuine_ci%2Fsrc%2Fworkspace.dart",
+        "uri": "package:genuine_ci/src/workspace.dart",
+        "_kind": "library"
+      },
+      "hits": [6, 1, 10, 1, 11, 2, 12, 2, 15, 0, 19, 0, 20, 0, 21, 0, 22, 0, 26, 1, 27, 2, 28, 3]
+    }
+  ]
+}

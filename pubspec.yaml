@@ -8,6 +8,8 @@ workspace:
   - apps/dashboard
   - apps/openci_build_job_processor
   - apps/openci_server
+  - genuine_ci
+  - packages/genuine_ci
   - packages/macos_updater
   - packages/openci_shared
   - packages/pubspec_version_hook
