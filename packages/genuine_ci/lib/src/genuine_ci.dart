@@ -1,5 +1,8 @@
+import 'dart:io';
+
+import 'package:meta/meta.dart';
+
 import 'command_runner.dart';
-import 'workspace.dart';
 
 class GenuineCI {
   GenuineCI._({
@@ -10,8 +13,19 @@ class GenuineCI {
     required this.machine,
     this.currentWorkingDirectory,
     required this.githubRepositoryUrl,
-    required Workspace workspace,
-  }) : _workspace = workspace;
+    required this.workspacePath,
+  });
+
+  @visibleForTesting
+  GenuineCI.forTesting({
+    required this.workspacePath,
+    this.currentWorkingDirectory,
+  }) : workflowName = 'test',
+       triggerBranch = 'test',
+       push = false,
+       pullRequest = false,
+       machine = 'test',
+       githubRepositoryUrl = 'https://example.com/test.git';
 
   final String workflowName;
   final String triggerBranch;
@@ -20,7 +34,7 @@ class GenuineCI {
   final String machine;
   final String? currentWorkingDirectory;
   final String githubRepositoryUrl;
-  final Workspace _workspace;
+  final String workspacePath;
 
   static Future<GenuineCI> init({
     required String workflowName,
@@ -31,7 +45,8 @@ class GenuineCI {
     String? currentWorkingDirectory,
     required String githubRepositoryUrl,
   }) async {
-    final workspace = await Workspace.create();
+    final workspacePath = await createWorkspace();
+
     final instance = GenuineCI._(
       workflowName: workflowName,
       triggerBranch: triggerBranch,
@@ -40,15 +55,19 @@ class GenuineCI {
       machine: machine,
       currentWorkingDirectory: currentWorkingDirectory,
       githubRepositoryUrl: githubRepositoryUrl,
-      workspace: workspace,
+      workspacePath: workspacePath,
     );
 
-    await workspace.checkout(
-      url: githubRepositoryUrl,
-      branch: triggerBranch,
-    );
+    await instance._cloneRepository();
 
     return instance;
+  }
+
+  Future<void> _cloneRepository() async {
+    await runCommand(
+      'git clone --branch $triggerBranch --single-branch --progress $githubRepositoryUrl .',
+      workingDirectory: workspacePath,
+    );
   }
 
   Future<void> run(
@@ -57,9 +76,21 @@ class GenuineCI {
   }) async {
     await runCommand(
       command,
-      workingDirectory: _workspace.resolve(
+      workingDirectory: resolveWorkingDirectory(
         workingDirectory ?? currentWorkingDirectory,
       ),
     );
+  }
+
+  @visibleForTesting
+  static Future<String> createWorkspace() async {
+    final directory = await Directory.systemTemp.createTemp('genuine_ci_');
+    return directory.path;
+  }
+
+  @visibleForTesting
+  String resolveWorkingDirectory([String? relativeCwd]) {
+    if (relativeCwd == null || relativeCwd.isEmpty) return workspacePath;
+    return '$workspacePath${Platform.pathSeparator}$relativeCwd';
   }
 }
