@@ -4,9 +4,6 @@ Future<void> main() async {
   final genuineCI = await GenuineCI.init(
     workflowName: 'Dashboard CI',
     triggerBranch: 'develop',
-    push: true,
-    pullRequest: true,
-    machine: MachineType.macOsLatest,
     githubRepositoryUrl: 'https://github.com/openci-org/openci.git',
     gitClone: false,
   );

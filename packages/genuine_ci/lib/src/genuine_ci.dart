@@ -40,8 +40,8 @@ class GenuineCI {
   static Future<GenuineCI> init({
     required String workflowName,
     required String triggerBranch,
-    required bool push,
-    required bool pullRequest,
+    bool push = true,
+    bool pullRequest = true,
     MachineType machine = MachineType.macOsLatest,
     String? currentWorkingDirectory,
     required String githubRepositoryUrl,
