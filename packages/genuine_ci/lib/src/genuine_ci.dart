@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:genuine_ci/src/machine_type.dart';
 import 'package:meta/meta.dart';
 
 import 'command_runner.dart';
@@ -24,14 +25,14 @@ class GenuineCI {
        triggerBranch = 'test',
        push = false,
        pullRequest = false,
-       machine = 'test',
+       machine = MachineType.macOsLatest,
        githubRepositoryUrl = 'https://example.com/test.git';
 
   final String workflowName;
   final String triggerBranch;
   final bool push;
   final bool pullRequest;
-  final String machine;
+  final MachineType machine;
   final String? currentWorkingDirectory;
   final String githubRepositoryUrl;
   final String workspacePath;
@@ -41,9 +42,10 @@ class GenuineCI {
     required String triggerBranch,
     required bool push,
     required bool pullRequest,
-    required String machine,
+    MachineType machine = MachineType.macOsLatest,
     String? currentWorkingDirectory,
     required String githubRepositoryUrl,
+    bool gitClone = true,
   }) async {
     final workspacePath = await createWorkspace();
 
@@ -57,8 +59,9 @@ class GenuineCI {
       githubRepositoryUrl: githubRepositoryUrl,
       workspacePath: workspacePath,
     );
-
-    await instance._cloneRepository();
+    if (gitClone) {
+      await instance._cloneRepository();
+    }
 
     return instance;
   }

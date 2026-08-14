@@ -6,11 +6,10 @@ Future<void> main() async {
     triggerBranch: 'develop',
     push: true,
     pullRequest: true,
-    machine: 'macos-latest',
+    machine: MachineType.macOsLatest,
     githubRepositoryUrl: 'https://github.com/openci-org/openci.git',
+    gitClone: false,
   );
 
-  await genuineCI.run('pwd');
-  await genuineCI.run('git log -1 --oneline');
-  await genuineCI.run('ls', workingDirectory: 'apps/dashboard');
+  await genuineCI.run('echo "Hello World"');
 }
