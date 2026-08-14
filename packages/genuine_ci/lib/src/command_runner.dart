@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:meta/meta.dart';
+
 Future<void> runCommand(
   String command, {
   required String workingDirectory,
@@ -11,16 +13,7 @@ Future<void> runCommand(
     workingDirectory: workingDirectory,
   );
 
-  final stdoutDone = _pipeLines(
-    process.stdout,
-    (line) => stdout.writeln('[STDOUT] $line'),
-  );
-  final stderrDone = _pipeLines(
-    process.stderr,
-    (line) => stderr.writeln('[STDERR] $line'),
-  );
-
-  await Future.wait([stdoutDone, stderrDone]);
+  await _printProcessLogs(process);
 
   final exitCode = await process.exitCode;
 
@@ -34,13 +27,17 @@ Future<void> runCommand(
   exit(exitCode);
 }
 
-Future<void> _pipeLines(
-  Stream<List<int>> stream,
-  void Function(String line) onLine,
-) {
-  return stream
-      .transform(utf8.decoder)
-      .map((chunk) => chunk.replaceAll('\r', '\n'))
-      .transform(const LineSplitter())
-      .forEach(onLine);
+Future<void> _printProcessLogs(Process process) async {
+  final stdoutDone = byteStreamToLines(process.stdout).forEach(
+    (line) => stdout.writeln('[STDOUT] $line'),
+  );
+  final stderrDone = byteStreamToLines(process.stderr).forEach(
+    (line) => stderr.writeln('[STDERR] $line'),
+  );
+
+  await Future.wait([stdoutDone, stderrDone]);
 }
+
+@visibleForTesting
+Stream<String> byteStreamToLines(Stream<List<int>> stream) =>
+    stream.transform(utf8.decoder).transform(const LineSplitter());
