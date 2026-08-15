@@ -1,16 +1,15 @@
 import 'dart:io';
 
-import 'package:genuine_ci/src/machine_type.dart';
 import 'package:meta/meta.dart';
 
+import 'ci_trigger.dart';
 import 'command_runner.dart';
+import 'machine_type.dart';
 
 class GenuineCI {
   GenuineCI._({
     required this.workflowName,
-    required this.triggerBranch,
-    required this.push,
-    required this.pullRequest,
+    required this.ciTrigger,
     required this.machine,
     this.currentWorkingDirectory,
     required this.githubRepositoryUrl,
@@ -22,16 +21,12 @@ class GenuineCI {
     required this.workspacePath,
     this.currentWorkingDirectory,
   }) : workflowName = 'test',
-       triggerBranch = 'test',
-       push = false,
-       pullRequest = false,
+       ciTrigger = const CiTrigger.push(branch: 'test'),
        machine = MachineType.macOsLatest,
        githubRepositoryUrl = 'https://example.com/test.git';
 
   final String workflowName;
-  final String triggerBranch;
-  final bool push;
-  final bool pullRequest;
+  final CiTrigger ciTrigger;
   final MachineType machine;
   final String? currentWorkingDirectory;
   final String githubRepositoryUrl;
@@ -39,9 +34,7 @@ class GenuineCI {
 
   static Future<GenuineCI> init({
     required String workflowName,
-    required String triggerBranch,
-    bool push = true,
-    bool pullRequest = true,
+    required CiTrigger ciTrigger,
     MachineType machine = MachineType.macOsLatest,
     String? currentWorkingDirectory,
     required String githubRepositoryUrl,
@@ -51,9 +44,7 @@ class GenuineCI {
 
     final instance = GenuineCI._(
       workflowName: workflowName,
-      triggerBranch: triggerBranch,
-      push: push,
-      pullRequest: pullRequest,
+      ciTrigger: ciTrigger,
       machine: machine,
       currentWorkingDirectory: currentWorkingDirectory,
       githubRepositoryUrl: githubRepositoryUrl,
@@ -70,7 +61,7 @@ class GenuineCI {
     const space = ' ';
     final command = [
       'git clone',
-      '--branch $triggerBranch',
+      '--branch ${ciTrigger.branch}',
       '--single-branch',
       '--progress',
       githubRepositoryUrl,
