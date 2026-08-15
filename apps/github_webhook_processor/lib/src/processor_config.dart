@@ -39,15 +39,12 @@ class ProcessorConfig {
       );
     }
 
-    final pollIntervalMs = int.tryParse(env['POLL_INTERVAL_MS'] ?? '1000') ?? 1000;
-
     return ProcessorConfig(
       databaseUrl: databaseUrl,
       githubApiBaseUrl: githubApiBaseUrl,
       githubAppId: githubAppId,
       githubPrivateKeyPath: githubPrivateKeyPath,
       sentryDsn: env['SENTRY_DSN'],
-      pollInterval: Duration(milliseconds: pollIntervalMs),
     );
   }
 

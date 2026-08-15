@@ -11,7 +11,6 @@ void main() {
           'GITHUB_APP_ID': '12345',
           'GITHUB_PRIVATE_KEY_PATH': '/path/to/key.pem',
           'SENTRY_DSN': 'https://key@sentry.io/123',
-          'POLL_INTERVAL_MS': '500',
         },
       );
 
@@ -20,7 +19,7 @@ void main() {
       expect(config.githubAppId, '12345');
       expect(config.githubPrivateKeyPath, '/path/to/key.pem');
       expect(config.sentryDsn, 'https://key@sentry.io/123');
-      expect(config.pollInterval, const Duration(milliseconds: 500));
+      expect(config.pollInterval, const Duration(seconds: 1));
     });
 
     test('throws StateError when required env vars are missing', () {
