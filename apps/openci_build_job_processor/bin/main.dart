@@ -24,7 +24,6 @@ Future<void> main() async {
 
       final executor = JobExecutor(
         apiService: apiService,
-        baseVmName: config.baseVmName,
         config: config,
       );
 

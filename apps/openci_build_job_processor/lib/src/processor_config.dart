@@ -81,10 +81,6 @@ class ProcessorConfig {
 
     final baseVmName = Platform.environment['BASE_VM_NAME'] ?? 'tahoe-base';
 
-    final orchardApiUrl =
-        Platform.environment['ORCHARD_API_URL'] ??
-        'https://orchard-controller:6120';
-
     final orchardCredentials = _loadOrchardCredentials();
 
     return ProcessorConfig(
@@ -93,7 +89,6 @@ class ProcessorConfig {
       internalApiKey: _getRequired('INTERNAL_API_KEY'),
       sentryDsn: Platform.environment['SENTRY_DSN'],
       maxConcurrentJobs: maxConcurrentJobs,
-      orchardApiUrl: orchardApiUrl,
       orchardServiceAccountName: orchardCredentials.name,
       orchardServiceAccountToken: orchardCredentials.token,
       vmPrepareTimeoutMinutes: vmPrepareTimeoutMinutes,

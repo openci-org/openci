@@ -15,27 +15,17 @@ import 'package:sentry/sentry.dart';
 class JobExecutor {
   JobExecutor({
     required OpenCiApiService apiService,
-    required String baseVmName,
+    required ProcessorConfig config,
     OrchardVmService? orchardVmService,
-    ProcessorConfig? config,
   }) : _apiService = apiService,
-       _baseVmName = baseVmName,
+       _baseVmName = config.baseVmName,
        _orchardVmService =
            orchardVmService ??
            OrchardVmService(
              apiClient: OrchardApiClient(
-               baseUrl:
-                   config?.orchardApiUrl ??
-                   Platform.environment['ORCHARD_API_URL'] ??
-                   'https://orchard-controller:6120',
-               serviceAccountName:
-                   config?.orchardServiceAccountName ??
-                   Platform.environment['ORCHARD_SERVICE_ACCOUNT_NAME'] ??
-                   'bootstrap-admin',
-               serviceAccountToken:
-                   config?.orchardServiceAccountToken ??
-                   Platform.environment['ORCHARD_SERVICE_ACCOUNT_TOKEN'] ??
-                   '',
+               baseUrl: config.orchardApiUrl,
+               serviceAccountName: config.orchardServiceAccountName,
+               serviceAccountToken: config.orchardServiceAccountToken,
              ),
            );
 
