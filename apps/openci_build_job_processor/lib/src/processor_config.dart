@@ -24,15 +24,15 @@ class ProcessorConfig {
   final String orchardServiceAccountToken;
   final int vmPrepareTimeoutMinutes;
 
-  factory ProcessorConfig.fromEnvironment() {
-    String getRequired(String key) {
-      final value = Platform.environment[key];
-      if (value == null || value.isEmpty) {
-        throw StateError('必要な環境変数 $key が設定されていません。');
-      }
-      return value;
+  static String _getRequired(String key) {
+    final value = Platform.environment[key];
+    if (value == null || value.isEmpty) {
+      throw StateError('Required environment variable $key is not set.');
     }
+    return value;
+  }
 
+  factory ProcessorConfig.fromEnvironment() {
     final maxConcurrentJobsStr =
         Platform.environment['OPENCI_MAX_CONCURRENT_JOBS'] ?? '2';
     final maxConcurrentJobs = int.tryParse(maxConcurrentJobsStr) ?? 2;
@@ -71,12 +71,12 @@ class ProcessorConfig {
     }
 
     return ProcessorConfig(
-      serverUrl: getRequired('OPENCI_SERVER_URL'),
+      serverUrl: _getRequired('OPENCI_SERVER_URL'),
       baseVmName:
           Platform.environment['BASE_VM_NAME'] ??
           Platform.environment['OPENCI_BASE_VM_NAME'] ??
           'tahoe-base',
-      internalApiKey: getRequired('INTERNAL_API_KEY'),
+      internalApiKey: _getRequired('INTERNAL_API_KEY'),
       sentryDsn: Platform.environment['SENTRY_DSN'],
       maxConcurrentJobs: maxConcurrentJobs,
       orchardApiUrl: orchardApiUrl,
