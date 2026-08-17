@@ -24,17 +24,26 @@ void main() {
     });
   });
 
-  group('GenuineCI.createWorkspace', () {
-    test('creates a temporary directory', () async {
-      final path = await GenuineCI.createWorkspace();
-      addTearDown(() async {
-        final directory = Directory(path);
-        if (await directory.exists()) {
-          await directory.delete(recursive: true);
-        }
-      });
+  group('GenuineCI.init', () {
+    test('initializes with default current directory as workspace', () async {
+      final ci = await GenuineCI.init(
+        workflowName: 'Test Workflow',
+        ciTrigger: const CiTrigger.push(branch: 'main'),
+      );
 
-      expect(Directory(path).existsSync(), isTrue);
+      expect(ci.workflowName, 'Test Workflow');
+      expect(ci.workspacePath, Directory.current.path);
+    });
+
+    test('initializes with custom workspace path', () async {
+      final customPath = '${Directory.systemTemp.path}/custom_workspace';
+      final ci = await GenuineCI.init(
+        workflowName: 'Test Workflow',
+        ciTrigger: const CiTrigger.push(branch: 'main'),
+        workspacePath: customPath,
+      );
+
+      expect(ci.workspacePath, customPath);
     });
   });
 }

@@ -50,6 +50,9 @@ class JobExecutor {
       _log.info('[$vmName] Creating run record...');
       await _createRun(job.id, runId);
 
+      _log.info('[$vmName] Resolving GitHub installation token...');
+      final token = await _resolveGitHubInstallationToken(job.id);
+
       final maxAttempts = (_config.vmPrepareTimeoutMinutes * 60 / 15)
           .round()
           .clamp(5, 240);
@@ -87,6 +90,13 @@ class JobExecutor {
         },
       );
 
+      _log.info('[$vmName] Checking out repository ${job.owner}/${job.repo}...');
+      await _checkoutRepository(
+        vmName: vmName,
+        job: job,
+        token: token,
+      );
+
       final buildScript = await fetchBuildScript(job.id);
       BuildJobStatus finalStatus = BuildJobStatus.SUCCESS;
 
@@ -95,7 +105,7 @@ class JobExecutor {
         try {
           final exitCode = await _orchardVmService.executeCommandStreaming(
             containerName: vmName,
-            command: ['/bin/sh', '-c', buildScript],
+            command: ['/bin/sh', '-c', 'cd /tmp/workspace && $buildScript'],
             onLog: (line) => _log.fine('[$vmName] $line'),
             isCancelled: () async => _isCancelled(job.id),
           );
@@ -237,6 +247,65 @@ class JobExecutor {
           'echo "OpenCI Orchard Build Job Succeeded"';
     } catch (e) {
       return 'echo "OpenCI Orchard Build Job Succeeded"';
+    }
+  }
+
+  Future<String> _resolveGitHubInstallationToken(String jobId) async {
+    final tokenRes = await _apiService
+        .resolveInstallationToken(jobId)
+        .timeout(const Duration(seconds: 10));
+    if (!tokenRes.isSuccessful) {
+      throw Exception(
+        'Failed to resolve GitHub App Installation Token: ${tokenRes.statusCode} - ${tokenRes.error}',
+      );
+    }
+    final token = tokenRes.body?['token'] as String?;
+    if (token == null || token.isEmpty) {
+      throw Exception('GitHub Installation Token is null or empty.');
+    }
+    return token;
+  }
+
+  Future<void> _checkoutRepository({
+    required String vmName,
+    required BuildJob job,
+    required String token,
+  }) async {
+    final baseUrl = job.githubBaseUrl ?? 'https://github.com';
+    final repoHost = baseUrl.replaceFirst(RegExp(r'^https?://'), '');
+    final repoUrl =
+        'https://x-access-token:$token@$repoHost/${job.owner}/${job.repo}.git';
+
+    final String fetchTarget;
+    if (job.pullRequestNumber != null) {
+      fetchTarget = 'pull/${job.pullRequestNumber}/head';
+    } else if (job.commitSha != null && job.commitSha!.isNotEmpty) {
+      fetchTarget = job.commitSha!;
+    } else {
+      fetchTarget = 'HEAD';
+    }
+
+    final checkoutScript = '''
+set -e
+mkdir -p /tmp/workspace
+cd /tmp/workspace
+if [ ! -d ".git" ]; then
+  git init
+  git remote add origin "$repoUrl"
+fi
+git fetch --depth=1 origin $fetchTarget
+git checkout FETCH_HEAD
+''';
+
+    final exitCode = await _orchardVmService.executeCommandStreaming(
+      containerName: vmName,
+      command: ['/bin/sh', '-c', checkoutScript],
+      onLog: (line) => _log.fine('[$vmName][checkout] $line'),
+      isCancelled: () async => _isCancelled(job.id),
+    );
+
+    if (exitCode != 0) {
+      throw StateError('Git checkout failed with exit code $exitCode');
     }
   }
 

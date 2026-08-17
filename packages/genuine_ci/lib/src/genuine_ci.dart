@@ -12,7 +12,6 @@ class GenuineCI {
     required this.ciTrigger,
     required this.machine,
     this.currentWorkingDirectory,
-    required this.githubRepositoryUrl,
     required this.workspacePath,
   });
 
@@ -22,14 +21,12 @@ class GenuineCI {
     this.currentWorkingDirectory,
   }) : workflowName = 'test',
        ciTrigger = const CiTrigger.push(branch: 'test'),
-       machine = MachineType.macOsLatest,
-       githubRepositoryUrl = 'https://example.com/test.git';
+       machine = MachineType.macOsLatest;
 
   final String workflowName;
   final CiTrigger ciTrigger;
   final MachineType machine;
   final String? currentWorkingDirectory;
-  final String githubRepositoryUrl;
   final String workspacePath;
 
   static Future<GenuineCI> init({
@@ -37,40 +34,16 @@ class GenuineCI {
     required CiTrigger ciTrigger,
     MachineType machine = MachineType.macOsLatest,
     String? currentWorkingDirectory,
-    required String githubRepositoryUrl,
-    bool gitClone = true,
+    String? workspacePath,
   }) async {
-    final workspacePath = await createWorkspace();
+    final workspace = workspacePath ?? Directory.current.path;
 
-    final instance = GenuineCI._(
+    return GenuineCI._(
       workflowName: workflowName,
       ciTrigger: ciTrigger,
       machine: machine,
       currentWorkingDirectory: currentWorkingDirectory,
-      githubRepositoryUrl: githubRepositoryUrl,
-      workspacePath: workspacePath,
-    );
-    if (gitClone) {
-      await instance._cloneRepository();
-    }
-
-    return instance;
-  }
-
-  Future<void> _cloneRepository() async {
-    const space = ' ';
-    final command = [
-      'git clone',
-      '--branch ${ciTrigger.branch}',
-      '--single-branch',
-      '--progress',
-      githubRepositoryUrl,
-      '.',
-    ].join(space);
-
-    await runCommand(
-      command,
-      workingDirectory: workspacePath,
+      workspacePath: workspace,
     );
   }
 
@@ -82,13 +55,6 @@ class GenuineCI {
       workingDirectory ?? currentWorkingDirectory,
     );
     await runCommand(command, workingDirectory: cwd);
-  }
-
-  @visibleForTesting
-  static Future<String> createWorkspace() async {
-    const dirPrefix = 'genuine_ci_';
-    final directory = await Directory.systemTemp.createTemp(dirPrefix);
-    return directory.path;
   }
 
   @visibleForTesting
