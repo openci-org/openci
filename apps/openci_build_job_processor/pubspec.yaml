@@ -19,6 +19,7 @@ dependencies:
   sentry: ^9.22.0
   uuid: ^4.3.3
   web_socket: ^1.0.1
+  yaml: ^3.1.2
 
 dev_dependencies:
   build_runner: ^2.15.0
