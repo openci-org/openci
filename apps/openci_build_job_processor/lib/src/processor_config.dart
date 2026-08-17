@@ -43,7 +43,7 @@ class ProcessorConfig {
       );
     }
 
-    final dynamic yamlData = loadYaml(orchardConfigFile.readAsStringSync());
+    final yamlData = loadYaml(orchardConfigFile.readAsStringSync());
     if (yamlData is! Map) {
       throw StateError('Invalid YAML content in ${orchardConfigFile.path}.');
     }
