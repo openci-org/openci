@@ -7,11 +7,11 @@ class ProcessorConfig {
     required this.serverUrl,
     required this.baseVmName,
     required this.internalApiKey,
+    required this.orchardServiceAccountName,
+    required this.orchardServiceAccountToken,
+    this.orchardApiUrl = 'https://orchard-controller:6120',
     this.sentryDsn,
     this.maxConcurrentJobs = 3,
-    this.orchardApiUrl = 'https://orchard-controller:6120',
-    this.orchardServiceAccountName = 'openci',
-    this.orchardServiceAccountToken = '',
     this.vmPrepareTimeoutMinutes = 15,
   });
 
