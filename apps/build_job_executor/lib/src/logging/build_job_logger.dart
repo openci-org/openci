@@ -3,7 +3,7 @@ import 'dart:io';
 
 import 'package:chopper/chopper.dart';
 import 'package:logging/logging.dart' as dart_logging;
-import 'package:openci_build_job_processor/src/logging/loki_api_service.dart';
+import 'package:build_job_executor/src/logging/loki_api_service.dart';
 
 final _log = dart_logging.Logger('BuildLog');
 

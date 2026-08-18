@@ -1,5 +1,5 @@
-name: openci_build_job_processor
-description: OpenCIのビルドジョブを処理するDartプログラムです。
+name: build_job_executor
+description: OpenCIのビルドジョブを実行するプログラム。
 version: 1.0.0
 publish_to: none
 

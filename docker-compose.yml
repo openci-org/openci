@@ -52,7 +52,7 @@ services:
   job-processor:
     build:
       context: .
-      dockerfile: apps/openci_build_job_processor/Dockerfile
+      dockerfile: apps/build_job_executor/Dockerfile
     restart: unless-stopped
     environment:
       OPENCI_SERVER_URL: http://server:8080

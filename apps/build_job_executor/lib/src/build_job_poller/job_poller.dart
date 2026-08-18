@@ -1,9 +1,9 @@
 import 'dart:async';
 
 import 'package:logging/logging.dart';
-import 'package:openci_build_job_processor/openci_build_job_processor.dart';
-import 'package:openci_build_job_processor/src/build_job_poller/claim_next_job.dart';
-import 'package:openci_build_job_processor/src/logging/build_job_logger.dart';
+import 'package:build_job_executor/build_job_executor.dart';
+import 'package:build_job_executor/src/build_job_poller/claim_next_job.dart';
+import 'package:build_job_executor/src/logging/build_job_logger.dart';
 import 'package:openci_shared/openci_shared.dart';
 import 'package:sentry/sentry.dart';
 import 'package:web_socket/web_socket.dart';

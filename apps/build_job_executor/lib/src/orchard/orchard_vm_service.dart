@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:openci_build_job_processor/src/orchard/orchard_api_client.dart';
+import 'package:build_job_executor/src/orchard/orchard_api_client.dart';
 
 class OrchardVmService {
   final OrchardApiClient apiClient;

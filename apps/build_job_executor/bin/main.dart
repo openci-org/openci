@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:build_job_executor/build_job_executor.dart';
 import 'package:logging/logging.dart';
-import 'package:openci_build_job_processor/openci_build_job_processor.dart';
 import 'package:openci_shared/openci_shared.dart';
 import 'package:sentry/sentry.dart';
 

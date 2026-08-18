@@ -1,6 +1,6 @@
 import 'package:mocktail/mocktail.dart';
-import 'package:openci_build_job_processor/src/build_job/run_build_job.dart';
-import 'package:openci_build_job_processor/src/orchard/orchard_vm_service.dart';
+import 'package:build_job_executor/src/build_job/run_build_job.dart';
+import 'package:build_job_executor/src/orchard/orchard_vm_service.dart';
 import 'package:openci_shared/openci_shared.dart';
 import 'package:test/test.dart';
 

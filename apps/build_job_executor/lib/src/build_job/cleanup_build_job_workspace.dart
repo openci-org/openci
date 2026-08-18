@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:logging/logging.dart';
-import 'package:openci_build_job_processor/src/orchard/orchard_vm_service.dart';
+import 'package:build_job_executor/src/orchard/orchard_vm_service.dart';
 import 'package:openci_shared/openci_shared.dart';
 import 'package:sentry/sentry.dart';
 

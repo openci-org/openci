@@ -1,6 +1,6 @@
 import 'package:chopper/chopper.dart';
 import 'package:http/http.dart' as http;
-import 'package:openci_build_job_processor/src/build_job_poller/claim_next_job.dart';
+import 'package:build_job_executor/src/build_job_poller/claim_next_job.dart';
 import 'package:openci_shared/openci_shared.dart';
 import 'package:test/test.dart';
 

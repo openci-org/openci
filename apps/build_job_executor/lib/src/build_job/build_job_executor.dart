@@ -2,12 +2,12 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:logging/logging.dart';
-import 'package:openci_build_job_processor/src/build_job/cleanup_build_job_workspace.dart';
-import 'package:openci_build_job_processor/src/build_job/prepare_build_job_workspace.dart';
-import 'package:openci_build_job_processor/src/build_job/run_build_job.dart';
-import 'package:openci_build_job_processor/src/orchard/orchard_api_client.dart';
-import 'package:openci_build_job_processor/src/orchard/orchard_vm_service.dart';
-import 'package:openci_build_job_processor/src/processor_config.dart';
+import 'package:build_job_executor/src/build_job/cleanup_build_job_workspace.dart';
+import 'package:build_job_executor/src/build_job/prepare_build_job_workspace.dart';
+import 'package:build_job_executor/src/build_job/run_build_job.dart';
+import 'package:build_job_executor/src/orchard/orchard_api_client.dart';
+import 'package:build_job_executor/src/orchard/orchard_vm_service.dart';
+import 'package:build_job_executor/src/processor_config.dart';
 import 'package:openci_shared/openci_shared.dart';
 import 'package:sentry/sentry.dart';
 

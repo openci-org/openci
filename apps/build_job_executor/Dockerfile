@@ -3,9 +3,9 @@ FROM dart:3.11.5 AS build
 WORKDIR /app
 
 COPY packages/openci_shared/ ./packages/openci_shared/
-COPY apps/openci_build_job_processor/ ./apps/openci_build_job_processor/
+COPY apps/build_job_executor/ ./apps/build_job_executor/
 
-WORKDIR /app/apps/openci_build_job_processor
+WORKDIR /app/apps/build_job_executor
 
 # Remove workspace resolution so that dart pub get works successfully
 RUN sed -i '/resolution: workspace/d' pubspec.yaml && \
@@ -31,7 +31,7 @@ RUN groupadd -g 10001 appgroup && \
 
 WORKDIR /app
 
-COPY --from=build --chown=appuser:appgroup /app/apps/openci_build_job_processor/processor /app/processor
+COPY --from=build --chown=appuser:appgroup /app/apps/build_job_executor/processor /app/processor
 
 USER appuser
 
