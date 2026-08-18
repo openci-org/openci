@@ -23,45 +23,54 @@ void main() {
   });
 
   group('RunBuildJob', () {
-    test('executes dart run genuine_ci/<workflowFileName> with exit code 0 and returns SUCCESS', () async {
-      final now = DateTime.now();
-      final job = BuildJob(
-        id: 'job-123',
-        status: BuildJobStatus.QUEUED,
-        owner: 'openci-org',
-        repo: 'openci',
-        workflowName: 'Dashboard CI',
-        workflowFileName: 'dashboard_ci.dart',
-        createdAt: now,
-        updatedAt: now,
-      );
+    test(
+      'executes dart run genuine_ci/<workflowFileName> with exit code 0 and returns SUCCESS',
+      () async {
+        final now = DateTime.now();
+        final job = BuildJob(
+          id: 'job-123',
+          status: BuildJobStatus.QUEUED,
+          owner: 'openci-org',
+          repo: 'openci',
+          workflowName: 'Dashboard CI',
+          workflowFileName: 'dashboard_ci.dart',
+          createdAt: now,
+          updatedAt: now,
+        );
 
-      String? executedCommand;
+        String? executedCommand;
 
-      when(
-        () => mockOrchardVmService.executeCommandStreaming(
-          containerName: 'openci-vm-123',
-          command: any(named: 'command'),
-          onLog: any(named: 'onLog'),
-          isCancelled: any(named: 'isCancelled'),
-        ),
-      ).thenAnswer((invocation) async {
-        final cmdList = invocation.namedArguments[#command] as List<String>;
-        executedCommand = cmdList.last;
-        return 0;
-      });
+        when(
+          () => mockOrchardVmService.executeCommandStreaming(
+            containerName: 'openci-vm-123',
+            command: any(named: 'command'),
+            onLog: any(named: 'onLog'),
+            isCancelled: any(named: 'isCancelled'),
+          ),
+        ).thenAnswer((invocation) async {
+          final cmdList = invocation.namedArguments[#command] as List<String>;
+          executedCommand = cmdList.last;
+          return 0;
+        });
 
-      final result = await runner(
-        job: job,
-        vmName: 'openci-vm-123',
-        runId: 'run-456',
-      );
+        final result = await runner(
+          job: job,
+          vmName: 'openci-vm-123',
+          runId: 'run-456',
+        );
 
-      expect(result, equals(BuildJobStatus.SUCCESS));
-      expect(executedCommand, contains('export GENUINE_CI_RUN_ID="run-456"'));
-      expect(executedCommand, contains('export GENUINE_CI_BUILD_JOB_ID="job-123"'));
-      expect(executedCommand, contains('dart run genuine_ci/dashboard_ci.dart'));
-    });
+        expect(result, equals(BuildJobStatus.SUCCESS));
+        expect(executedCommand, contains('export GENUINE_CI_RUN_ID="run-456"'));
+        expect(
+          executedCommand,
+          contains('export GENUINE_CI_BUILD_JOB_ID="job-123"'),
+        );
+        expect(
+          executedCommand,
+          contains('dart run genuine_ci/dashboard_ci.dart'),
+        );
+      },
+    );
 
     test('returns FAILURE when exit code is non-zero', () async {
       final now = DateTime.now();
@@ -85,10 +94,7 @@ void main() {
         ),
       ).thenAnswer((_) async => 1);
 
-      final result = await runner(
-        job: job,
-        vmName: 'openci-vm-123',
-      );
+      final result = await runner(job: job, vmName: 'openci-vm-123');
 
       expect(result, equals(BuildJobStatus.FAILURE));
     });
