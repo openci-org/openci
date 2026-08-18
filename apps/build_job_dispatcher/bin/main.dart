@@ -6,4 +6,8 @@ Future<void> main() async => genuineCiRunZonedGuarded(() async {
   final config = Config.fromEnvironment();
 
   await initializeSentry(config.sentryDsn);
+
+  // DBとの接続
+  // jobを取得し、dockerコンテナを起動
+  // 終了し、次のjobを取得、コンテナを起動
 });

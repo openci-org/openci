@@ -8,6 +8,7 @@ class Config {
     required this.serverUrl,
     required this.baseVmName,
     required this.internalApiKey,
+    required this.buildJobId,
     required this.orchardServiceAccountName,
     required this.orchardServiceAccountToken,
     this.orchardApiUrl = 'https://orchard-controller:6120',
@@ -17,6 +18,7 @@ class Config {
   final String serverUrl;
   final String baseVmName;
   final String internalApiKey;
+  final String buildJobId;
   final String? sentryDsn;
 
   final String orchardApiUrl;
@@ -68,6 +70,7 @@ class Config {
       serverUrl: getRequiredEnv('OPENCI_SERVER_URL'),
       baseVmName: baseVmName,
       internalApiKey: getRequiredEnv('INTERNAL_API_KEY'),
+      buildJobId: getRequiredEnv('BUILD_JOB_ID'),
       sentryDsn: Platform.environment['SENTRY_DSN'],
       orchardServiceAccountName: orchardCredentials.name,
       orchardServiceAccountToken: orchardCredentials.token,
