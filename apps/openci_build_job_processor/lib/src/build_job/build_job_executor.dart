@@ -4,7 +4,7 @@ import 'dart:math';
 import 'package:logging/logging.dart';
 import 'package:openci_build_job_processor/src/build_job/cleanup_build_job_workspace.dart';
 import 'package:openci_build_job_processor/src/build_job/prepare_build_job_workspace.dart';
-import 'package:openci_build_job_processor/src/build_job/run_build_job_script.dart';
+import 'package:openci_build_job_processor/src/build_job/run_build_job.dart';
 import 'package:openci_build_job_processor/src/orchard/orchard_api_client.dart';
 import 'package:openci_build_job_processor/src/orchard/orchard_vm_service.dart';
 import 'package:openci_build_job_processor/src/processor_config.dart';
@@ -14,10 +14,10 @@ import 'package:sentry/sentry.dart';
 class BuildJobExecutor {
   BuildJobExecutor({
     required PrepareBuildJobWorkspace prepareWorkspace,
-    required RunBuildJobScript runScript,
+    required RunBuildJob runBuildJob,
     required CleanupBuildJobWorkspace cleanupWorkspace,
   }) : _prepareWorkspace = prepareWorkspace,
-       _runScript = runScript,
+       _runBuildJob = runBuildJob,
        _cleanupWorkspace = cleanupWorkspace;
 
   factory BuildJobExecutor.create({
@@ -41,7 +41,7 @@ class BuildJobExecutor {
         orchardVmService: vmService,
         config: config,
       ),
-      runScript: RunBuildJobScript(
+      runBuildJob: RunBuildJob(
         apiService: apiService,
         orchardVmService: vmService,
       ),
@@ -53,7 +53,7 @@ class BuildJobExecutor {
   }
 
   final PrepareBuildJobWorkspace _prepareWorkspace;
-  final RunBuildJobScript _runScript;
+  final RunBuildJob _runBuildJob;
   final CleanupBuildJobWorkspace _cleanupWorkspace;
   final _random = Random();
   final _log = Logger('BuildJobExecutor');
@@ -87,7 +87,11 @@ class BuildJobExecutor {
         onVmCreated: () => vmCreated = true,
       );
 
-      finalStatus = await _runScript(job: job, vmName: vmName);
+      finalStatus = await _runBuildJob(
+        job: job,
+        vmName: vmName,
+        runId: runId,
+      );
     } catch (e, s) {
       _log.severe('[$vmName] Critical exception during execution: $e', e, s);
       unawaited(Sentry.captureException(e, stackTrace: s));

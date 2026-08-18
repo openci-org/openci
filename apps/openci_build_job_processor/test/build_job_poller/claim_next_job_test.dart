@@ -39,6 +39,7 @@ void main() {
           'owner': 'openci-org',
           'repo': 'openci',
           'workflowName': 'CI Workflow',
+          'workflowFileName': 'ci.dart',
           'vmName': 'openci-vm-job-123',
           'workerHost': 'orchard',
           'createdAt': now,

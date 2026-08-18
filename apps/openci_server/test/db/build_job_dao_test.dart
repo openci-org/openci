@@ -28,6 +28,7 @@ void main() {
         owner: 'openci-org',
         repo: 'openci',
         workflowName: 'CI',
+        workflowFileName: 'ci.yml',
         createdAt: now,
         updatedAt: now,
       );
@@ -54,6 +55,7 @@ void main() {
         owner: 'openci-org',
         repo: 'openci',
         workflowName: 'CI',
+        workflowFileName: 'ci.yml',
         createdAt: now,
         updatedAt: now,
       );
@@ -132,6 +134,7 @@ void main() {
           owner: 'openci-org',
           repo: 'openci',
           workflowName: 'CI',
+          workflowFileName: 'ci.yml',
           runCount: 2,
           createdAt: now,
           updatedAt: now,

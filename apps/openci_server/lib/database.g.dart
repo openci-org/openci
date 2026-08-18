@@ -83,9 +83,9 @@ class $BuildJobsTable extends BuildJobs
   late final GeneratedColumn<String> workflowFileName = GeneratedColumn<String>(
     'workflow_file_name',
     aliasedName,
-    true,
+    false,
     type: DriftSqlType.string,
-    requiredDuringInsert: false,
+    requiredDuringInsert: true,
   );
   static const VerificationMeta _commitShaMeta = const VerificationMeta(
     'commitSha',
@@ -528,6 +528,8 @@ class $BuildJobsTable extends BuildJobs
           _workflowFileNameMeta,
         ),
       );
+    } else if (isInserting) {
+      context.missing(_workflowFileNameMeta);
     }
     if (data.containsKey('commit_sha')) {
       context.handle(
@@ -791,7 +793,7 @@ class $BuildJobsTable extends BuildJobs
       workflowFileName: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}workflow_file_name'],
-      ),
+      )!,
       commitSha: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}commit_sha'],
@@ -958,7 +960,7 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
   final String workflowName;
   final String? teamId;
   final String? workflowId;
-  final String? workflowFileName;
+  final String workflowFileName;
   final String? commitSha;
   final String? commitMessage;
   final int? pullRequestNumber;
@@ -999,7 +1001,7 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
     required this.workflowName,
     this.teamId,
     this.workflowId,
-    this.workflowFileName,
+    required this.workflowFileName,
     this.commitSha,
     this.commitMessage,
     this.pullRequestNumber,
@@ -1051,9 +1053,7 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
     if (!nullToAbsent || workflowId != null) {
       map['workflow_id'] = Variable<String>(workflowId);
     }
-    if (!nullToAbsent || workflowFileName != null) {
-      map['workflow_file_name'] = Variable<String>(workflowFileName);
-    }
+    map['workflow_file_name'] = Variable<String>(workflowFileName);
     if (!nullToAbsent || commitSha != null) {
       map['commit_sha'] = Variable<String>(commitSha);
     }
@@ -1170,9 +1170,7 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
       workflowId: workflowId == null && nullToAbsent
           ? const Value.absent()
           : Value(workflowId),
-      workflowFileName: workflowFileName == null && nullToAbsent
-          ? const Value.absent()
-          : Value(workflowFileName),
+      workflowFileName: Value(workflowFileName),
       commitSha: commitSha == null && nullToAbsent
           ? const Value.absent()
           : Value(commitSha),
@@ -1283,7 +1281,7 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
       workflowName: serializer.fromJson<String>(json['workflowName']),
       teamId: serializer.fromJson<String?>(json['teamId']),
       workflowId: serializer.fromJson<String?>(json['workflowId']),
-      workflowFileName: serializer.fromJson<String?>(json['workflowFileName']),
+      workflowFileName: serializer.fromJson<String>(json['workflowFileName']),
       commitSha: serializer.fromJson<String?>(json['commitSha']),
       commitMessage: serializer.fromJson<String?>(json['commitMessage']),
       pullRequestNumber: serializer.fromJson<int?>(json['pullRequestNumber']),
@@ -1339,7 +1337,7 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
       'workflowName': serializer.toJson<String>(workflowName),
       'teamId': serializer.toJson<String?>(teamId),
       'workflowId': serializer.toJson<String?>(workflowId),
-      'workflowFileName': serializer.toJson<String?>(workflowFileName),
+      'workflowFileName': serializer.toJson<String>(workflowFileName),
       'commitSha': serializer.toJson<String?>(commitSha),
       'commitMessage': serializer.toJson<String?>(commitMessage),
       'pullRequestNumber': serializer.toJson<int?>(pullRequestNumber),
@@ -1385,7 +1383,7 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
     String? workflowName,
     Value<String?> teamId = const Value.absent(),
     Value<String?> workflowId = const Value.absent(),
-    Value<String?> workflowFileName = const Value.absent(),
+    String? workflowFileName,
     Value<String?> commitSha = const Value.absent(),
     Value<String?> commitMessage = const Value.absent(),
     Value<int?> pullRequestNumber = const Value.absent(),
@@ -1426,9 +1424,7 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
     workflowName: workflowName ?? this.workflowName,
     teamId: teamId.present ? teamId.value : this.teamId,
     workflowId: workflowId.present ? workflowId.value : this.workflowId,
-    workflowFileName: workflowFileName.present
-        ? workflowFileName.value
-        : this.workflowFileName,
+    workflowFileName: workflowFileName ?? this.workflowFileName,
     commitSha: commitSha.present ? commitSha.value : this.commitSha,
     commitMessage: commitMessage.present
         ? commitMessage.value
@@ -1713,7 +1709,7 @@ class BuildJobsCompanion extends UpdateCompanion<DriftBuildJob> {
   final Value<String> workflowName;
   final Value<String?> teamId;
   final Value<String?> workflowId;
-  final Value<String?> workflowFileName;
+  final Value<String> workflowFileName;
   final Value<String?> commitSha;
   final Value<String?> commitMessage;
   final Value<int?> pullRequestNumber;
@@ -1798,7 +1794,7 @@ class BuildJobsCompanion extends UpdateCompanion<DriftBuildJob> {
     required String workflowName,
     this.teamId = const Value.absent(),
     this.workflowId = const Value.absent(),
-    this.workflowFileName = const Value.absent(),
+    required String workflowFileName,
     this.commitSha = const Value.absent(),
     this.commitMessage = const Value.absent(),
     this.pullRequestNumber = const Value.absent(),
@@ -1837,6 +1833,7 @@ class BuildJobsCompanion extends UpdateCompanion<DriftBuildJob> {
        owner = Value(owner),
        repo = Value(repo),
        workflowName = Value(workflowName),
+       workflowFileName = Value(workflowFileName),
        createdAt = Value(createdAt),
        updatedAt = Value(updatedAt);
   static Insertable<DriftBuildJob> custom({
@@ -1938,7 +1935,7 @@ class BuildJobsCompanion extends UpdateCompanion<DriftBuildJob> {
     Value<String>? workflowName,
     Value<String?>? teamId,
     Value<String?>? workflowId,
-    Value<String?>? workflowFileName,
+    Value<String>? workflowFileName,
     Value<String?>? commitSha,
     Value<String?>? commitMessage,
     Value<int?>? pullRequestNumber,
@@ -7235,7 +7232,7 @@ typedef $$BuildJobsTableCreateCompanionBuilder =
       required String workflowName,
       Value<String?> teamId,
       Value<String?> workflowId,
-      Value<String?> workflowFileName,
+      required String workflowFileName,
       Value<String?> commitSha,
       Value<String?> commitMessage,
       Value<int?> pullRequestNumber,
@@ -7279,7 +7276,7 @@ typedef $$BuildJobsTableUpdateCompanionBuilder =
       Value<String> workflowName,
       Value<String?> teamId,
       Value<String?> workflowId,
-      Value<String?> workflowFileName,
+      Value<String> workflowFileName,
       Value<String?> commitSha,
       Value<String?> commitMessage,
       Value<int?> pullRequestNumber,
@@ -8022,7 +8019,7 @@ class $$BuildJobsTableTableManager
                 Value<String> workflowName = const Value.absent(),
                 Value<String?> teamId = const Value.absent(),
                 Value<String?> workflowId = const Value.absent(),
-                Value<String?> workflowFileName = const Value.absent(),
+                Value<String> workflowFileName = const Value.absent(),
                 Value<String?> commitSha = const Value.absent(),
                 Value<String?> commitMessage = const Value.absent(),
                 Value<int?> pullRequestNumber = const Value.absent(),
@@ -8108,7 +8105,7 @@ class $$BuildJobsTableTableManager
                 required String workflowName,
                 Value<String?> teamId = const Value.absent(),
                 Value<String?> workflowId = const Value.absent(),
-                Value<String?> workflowFileName = const Value.absent(),
+                required String workflowFileName,
                 Value<String?> commitSha = const Value.absent(),
                 Value<String?> commitMessage = const Value.absent(),
                 Value<int?> pullRequestNumber = const Value.absent(),

@@ -102,11 +102,6 @@ abstract class OpenCiApiService extends ChopperService {
     @Path('id') String buildJobId,
   );
 
-  @GET(path: '/builds/{id}/script', timeout: _timeout)
-  Future<Response<Map<String, dynamic>>> getJobBuildScript(
-    @Path('id') String buildJobId,
-  );
-
   @POST(path: '/teams/{teamId}/secrets', timeout: _timeout)
   Future<Response<void>> saveSecret(
     @Path('teamId') String teamId,

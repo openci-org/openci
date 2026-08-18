@@ -5,8 +5,8 @@ import 'package:openci_build_job_processor/src/orchard/orchard_vm_service.dart';
 import 'package:openci_shared/openci_shared.dart';
 import 'package:sentry/sentry.dart';
 
-class RunBuildJobScript {
-  RunBuildJobScript({
+class RunBuildJob {
+  RunBuildJob({
     required OpenCiApiService apiService,
     required OrchardVmService orchardVmService,
   }) : _apiService = apiService,
@@ -14,47 +14,45 @@ class RunBuildJobScript {
 
   final OpenCiApiService _apiService;
   final OrchardVmService _orchardVmService;
-  final _log = Logger('RunBuildJobScript');
+  final _log = Logger('RunBuildJob');
 
   Future<BuildJobStatus> call({
     required BuildJob job,
     required String vmName,
+    String? runId,
   }) async {
-    _log.info('[$vmName] Fetching build script for job ${job.id}...');
-    final buildScript = await fetchBuildScript(job.id);
+    final targetScript = 'genuine_ci/${job.workflowFileName}';
 
-    _log.info('[$vmName] Dispatching command execution to VM: $buildScript');
+    _log.info('[$vmName] Running Dart CI workflow: $targetScript');
+
+    final commandScript = [
+      'set -e',
+      'export HOME=/Users/admin',
+      'export PATH="/Users/admin/flutter/bin:/opt/homebrew/bin:\$PATH"',
+      if (runId != null && runId.isNotEmpty) 'export GENUINE_CI_RUN_ID="$runId"',
+      'export GENUINE_CI_BUILD_JOB_ID="${job.id}"',
+      'cd /tmp/workspace',
+      'dart run $targetScript',
+    ].join('\n');
+
     try {
       final exitCode = await _orchardVmService.executeCommandStreaming(
         containerName: vmName,
-        command: ['/bin/sh', '-c', 'cd /tmp/workspace && $buildScript'],
+        command: ['/bin/sh', '-c', commandScript],
         onLog: (line) => _log.fine('[$vmName] $line'),
         isCancelled: () async => _isCancelled(job.id),
       );
 
       if (exitCode != 0) {
-        _log.warning('[$vmName] Build script exited with code $exitCode');
+        _log.warning('[$vmName] Build workflow exited with code $exitCode');
         return BuildJobStatus.FAILURE;
       }
       return BuildJobStatus.SUCCESS;
-    } catch (e) {
-      _log.severe('[$vmName] Failed to execute script: $e');
+    } catch (e, s) {
+      _log.severe('[$vmName] Failed to execute build workflow: $e', e, s);
+      unawaited(Sentry.captureException(e, stackTrace: s));
       return BuildJobStatus.FAILURE;
     }
-  }
-
-  Future<String> fetchBuildScript(String buildJobId) async {
-    final response = await _apiService.getJobBuildScript(buildJobId);
-    if (!response.isSuccessful) {
-      throw StateError(
-        'Failed to fetch build script for job $buildJobId: ${response.statusCode} - ${response.error}',
-      );
-    }
-    final script = response.body?['script'] as String?;
-    if (script == null || script.trim().isEmpty) {
-      throw StateError('Build script is empty for job $buildJobId');
-    }
-    return script.trim();
   }
 
   Future<bool> _isCancelled(String jobId) async {
