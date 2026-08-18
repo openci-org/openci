@@ -99,7 +99,8 @@ class PrepareBuildJobWorkspace {
       fetchTarget = 'HEAD';
     }
 
-    final checkoutScript = '''
+    final checkoutScript =
+        '''
 set -e
 mkdir -p /tmp/workspace
 cd /tmp/workspace

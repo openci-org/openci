@@ -29,7 +29,8 @@ class RunBuildJob {
       'set -e',
       'export HOME=/Users/admin',
       'export PATH="/Users/admin/flutter/bin:/opt/homebrew/bin:\$PATH"',
-      if (runId != null && runId.isNotEmpty) 'export GENUINE_CI_RUN_ID="$runId"',
+      if (runId != null && runId.isNotEmpty)
+        'export GENUINE_CI_RUN_ID="$runId"',
       'export GENUINE_CI_BUILD_JOB_ID="${job.id}"',
       'cd /tmp/workspace',
       'dart run $targetScript',

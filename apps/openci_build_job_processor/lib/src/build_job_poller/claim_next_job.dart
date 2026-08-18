@@ -5,10 +5,7 @@ Future<BuildJob?> claimNextJob({
   String? vmName,
   String? workerHost,
 }) async {
-  final request = ClaimJobRequest(
-    vmName: vmName,
-    workerHost: workerHost,
-  );
+  final request = ClaimJobRequest(vmName: vmName, workerHost: workerHost);
 
   final response = await apiService.claimNextJob(request.toJson());
 

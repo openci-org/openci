@@ -87,11 +87,7 @@ class BuildJobExecutor {
         onVmCreated: () => vmCreated = true,
       );
 
-      finalStatus = await _runBuildJob(
-        job: job,
-        vmName: vmName,
-        runId: runId,
-      );
+      finalStatus = await _runBuildJob(job: job, vmName: vmName, runId: runId);
     } catch (e, s) {
       _log.severe('[$vmName] Critical exception during execution: $e', e, s);
       unawaited(Sentry.captureException(e, stackTrace: s));
