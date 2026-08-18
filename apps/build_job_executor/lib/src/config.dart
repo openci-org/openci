@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:openci_shared/openci_shared.dart';
 import 'package:yaml/yaml.dart';
 
 class Config {
@@ -21,14 +22,6 @@ class Config {
   final String orchardApiUrl;
   final String orchardServiceAccountName;
   final String orchardServiceAccountToken;
-
-  static String _getRequired(String key) {
-    final value = Platform.environment[key];
-    if (value == null || value.isEmpty) {
-      throw StateError('Required environment variable $key is not set.');
-    }
-    return value;
-  }
 
   static ({String name, String token}) _loadOrchardCredentials() {
     final homeDir = Platform.environment['HOME'] ?? '';
@@ -72,9 +65,9 @@ class Config {
     final orchardCredentials = _loadOrchardCredentials();
 
     return Config(
-      serverUrl: _getRequired('OPENCI_SERVER_URL'),
+      serverUrl: getRequiredEnv('OPENCI_SERVER_URL'),
       baseVmName: baseVmName,
-      internalApiKey: _getRequired('INTERNAL_API_KEY'),
+      internalApiKey: getRequiredEnv('INTERNAL_API_KEY'),
       sentryDsn: Platform.environment['SENTRY_DSN'],
       orchardServiceAccountName: orchardCredentials.name,
       orchardServiceAccountToken: orchardCredentials.token,

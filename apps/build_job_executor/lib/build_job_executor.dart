@@ -9,4 +9,3 @@ export 'src/config.dart';
 export 'src/logging/build_step_logger.dart';
 export 'src/orchard/orchard_api_client.dart';
 export 'src/orchard/orchard_vm_service.dart';
-export 'src/sentry.dart';

@@ -11,5 +11,6 @@ export 'src/models/team.dart';
 export 'src/models/user_device.dart';
 export 'src/utilities/constant_time_compare.dart';
 export 'src/utilities/date_time_converter.dart';
+export 'src/utilities/get_required_env.dart';
 export 'src/utilities/run_zoned_guarded.dart';
 export 'src/utilities/ws_uri.dart';
