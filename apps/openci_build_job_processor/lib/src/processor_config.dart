@@ -11,20 +11,16 @@ class ProcessorConfig {
     required this.orchardServiceAccountToken,
     this.orchardApiUrl = 'https://orchard-controller:6120',
     this.sentryDsn,
-    this.maxConcurrentJobs = 3,
-    this.vmPrepareTimeoutMinutes = 15,
   });
 
   final String serverUrl;
   final String baseVmName;
   final String internalApiKey;
   final String? sentryDsn;
-  final int maxConcurrentJobs;
 
   final String orchardApiUrl;
   final String orchardServiceAccountName;
   final String orchardServiceAccountToken;
-  final int vmPrepareTimeoutMinutes;
 
   static String _getRequired(String key) {
     final value = Platform.environment[key];
@@ -71,14 +67,6 @@ class ProcessorConfig {
   }
 
   factory ProcessorConfig.fromEnvironment() {
-    final maxConcurrentJobsStr =
-        Platform.environment['OPENCI_MAX_CONCURRENT_JOBS'] ?? '2';
-    final maxConcurrentJobs = int.tryParse(maxConcurrentJobsStr) ?? 2;
-
-    final vmPrepareTimeoutStr =
-        Platform.environment['OPENCI_VM_PREPARE_TIMEOUT_MINUTES'] ?? '15';
-    final vmPrepareTimeoutMinutes = int.tryParse(vmPrepareTimeoutStr) ?? 15;
-
     final baseVmName = Platform.environment['BASE_VM_NAME'] ?? 'tahoe-base';
 
     final orchardCredentials = _loadOrchardCredentials();
@@ -88,10 +76,8 @@ class ProcessorConfig {
       baseVmName: baseVmName,
       internalApiKey: _getRequired('INTERNAL_API_KEY'),
       sentryDsn: Platform.environment['SENTRY_DSN'],
-      maxConcurrentJobs: maxConcurrentJobs,
       orchardServiceAccountName: orchardCredentials.name,
       orchardServiceAccountToken: orchardCredentials.token,
-      vmPrepareTimeoutMinutes: vmPrepareTimeoutMinutes,
     );
   }
 }

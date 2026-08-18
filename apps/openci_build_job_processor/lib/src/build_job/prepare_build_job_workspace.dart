@@ -1,0 +1,152 @@
+import 'dart:async';
+
+import 'package:logging/logging.dart';
+import 'package:openci_build_job_processor/src/orchard/orchard_vm_service.dart';
+import 'package:openci_build_job_processor/src/processor_config.dart';
+import 'package:openci_shared/openci_shared.dart';
+import 'package:retry/retry.dart';
+import 'package:sentry/sentry.dart';
+
+class PrepareBuildJobWorkspace {
+  PrepareBuildJobWorkspace({
+    required OpenCiApiService apiService,
+    required OrchardVmService orchardVmService,
+    required ProcessorConfig config,
+  }) : _apiService = apiService,
+       _orchardVmService = orchardVmService,
+       _config = config;
+
+  final OpenCiApiService _apiService;
+  final OrchardVmService _orchardVmService;
+  final ProcessorConfig _config;
+  final _log = Logger('PrepareBuildJobWorkspace');
+
+  Future<void> call({
+    required BuildJob job,
+    required String runId,
+    required String vmName,
+    required void Function() onVmCreated,
+  }) async {
+    _log.info('[$vmName] Creating run record...');
+    await _createRun(job.id, runId);
+
+    _log.info('[$vmName] Resolving GitHub installation token...');
+    final token = await _resolveGitHubInstallationToken(job.id);
+
+    const retryOptions = RetryOptions(
+      maxAttempts: 60,
+      delayFactor: Duration(seconds: 15),
+      randomizationFactor: 0.2,
+    );
+
+    _log.info('[$vmName] Preparing VM via Orchard...');
+    await retryOptions.retry(
+      () async {
+        await _prepareVm(
+          baseVmName: _config.baseVmName,
+          vmName: vmName,
+          onVmCreated: onVmCreated,
+        );
+      },
+      onRetry: (e) async {
+        _log.warning('[$vmName] VM preparation failed: $e. Retrying in 15s...');
+        try {
+          await _orchardVmService.cleanup(vmName);
+        } catch (cleanupErr, cleanupStack) {
+          _log.warning(
+            '[$vmName] Cleanup failed during retry prep: $cleanupErr',
+          );
+          unawaited(
+            Sentry.captureException(cleanupErr, stackTrace: cleanupStack),
+          );
+        }
+      },
+    );
+
+    _log.info('[$vmName] Checking out repository ${job.owner}/${job.repo}...');
+    await _checkoutRepository(vmName: vmName, job: job, token: token);
+  }
+
+  Future<void> _prepareVm({
+    required String baseVmName,
+    required String vmName,
+    required void Function() onVmCreated,
+  }) async {
+    await _orchardVmService.prepare(
+      baseInstanceName: baseVmName,
+      containerName: vmName,
+      onCreated: onVmCreated,
+      os: 'darwin',
+    );
+  }
+
+  Future<void> _checkoutRepository({
+    required String vmName,
+    required BuildJob job,
+    required String token,
+  }) async {
+    final baseUrl = job.githubBaseUrl ?? 'https://github.com';
+    final repoHost = baseUrl.replaceFirst(RegExp(r'^https?://'), '');
+    final repoUrl =
+        'https://x-access-token:$token@$repoHost/${job.owner}/${job.repo}.git';
+
+    final String fetchTarget;
+    if (job.pullRequestNumber != null) {
+      fetchTarget = 'pull/${job.pullRequestNumber}/head';
+    } else if (job.commitSha != null && job.commitSha!.isNotEmpty) {
+      fetchTarget = job.commitSha!;
+    } else {
+      fetchTarget = 'HEAD';
+    }
+
+    final checkoutScript = '''
+set -e
+mkdir -p /tmp/workspace
+cd /tmp/workspace
+if [ ! -d ".git" ]; then
+  git init
+  git remote add origin "$repoUrl"
+fi
+git fetch --depth=1 origin $fetchTarget
+git checkout FETCH_HEAD
+''';
+
+    final exitCode = await _orchardVmService.executeCommandStreaming(
+      containerName: vmName,
+      command: ['/bin/sh', '-c', checkoutScript],
+      onLog: (line) => _log.fine('[$vmName][checkout] $line'),
+      isCancelled: () async => false,
+    );
+
+    if (exitCode != 0) {
+      throw StateError('Git checkout failed with exit code $exitCode');
+    }
+  }
+
+  Future<void> _createRun(String jobId, String runId) async {
+    final createRunRes = await _apiService
+        .createRun(jobId, {'id': runId})
+        .timeout(const Duration(seconds: 10));
+    if (!createRunRes.isSuccessful) {
+      throw Exception(
+        'Failed to create run: ${createRunRes.statusCode} - ${createRunRes.error}',
+      );
+    }
+  }
+
+  Future<String> _resolveGitHubInstallationToken(String jobId) async {
+    final tokenRes = await _apiService
+        .resolveInstallationToken(jobId)
+        .timeout(const Duration(seconds: 10));
+    if (!tokenRes.isSuccessful) {
+      throw Exception(
+        'Failed to resolve GitHub App Installation Token: ${tokenRes.statusCode} - ${tokenRes.error}',
+      );
+    }
+    final token = tokenRes.body?['token'] as String?;
+    if (token == null || token.isEmpty) {
+      throw Exception('GitHub Installation Token is null or empty.');
+    }
+    return token;
+  }
+}

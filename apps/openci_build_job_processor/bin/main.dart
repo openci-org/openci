@@ -22,7 +22,7 @@ Future<void> main() async {
         services: [OpenCiApiService.create()],
       ).getService<OpenCiApiService>();
 
-      final executor = JobExecutor(
+      final executor = BuildJobExecutor.create(
         apiService: apiService,
         config: config,
       );
@@ -32,25 +32,14 @@ Future<void> main() async {
       );
       _log.info('Starting Job Processor listening on Stream for queued jobs');
 
-      jobPoller.watchClaimedJobs().listen(
-        (job) {
-          unawaited(() async {
-            try {
-              await executor.execute(job);
-            } catch (e, s) {
-              _log.severe('Error executing job ${job.id}: $e', e, s);
-              unawaited(Sentry.captureException(e, stackTrace: s));
-            }
-          }());
-        },
-        onError: (Object error, StackTrace stackTrace) async {
-          _log.severe('Error in job stream: $error', error, stackTrace);
-          unawaited(Sentry.captureException(error, stackTrace: stackTrace));
-        },
-      );
-
-      _log.info('Job Processor is running. Press Ctrl+C to terminate.');
-      await ProcessSignal.sigint.watch().first;
+      await for (final job in jobPoller.watchClaimedJobs()) {
+        try {
+          await executor.execute(job);
+        } catch (e, s) {
+          _log.severe('Error executing job ${job.id}: $e', e, s);
+          unawaited(Sentry.captureException(e, stackTrace: s));
+        }
+      }
     },
 
     (error, stackTrace) async {

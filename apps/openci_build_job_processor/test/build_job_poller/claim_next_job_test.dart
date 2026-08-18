@@ -55,7 +55,6 @@ void main() {
           apiService: apiService,
           vmName: 'openci-vm-job-123',
           workerHost: 'orchard',
-          maxConcurrentJobs: 3,
         );
 
         expect(result, isNotNull);
@@ -68,7 +67,7 @@ void main() {
           equals({
             'vmName': 'openci-vm-job-123',
             'workerHost': 'orchard',
-            'maxConcurrentJobs': 3,
+            'maxConcurrentJobs': null,
           }),
         );
       },

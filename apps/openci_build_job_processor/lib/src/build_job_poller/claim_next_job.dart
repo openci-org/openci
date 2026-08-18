@@ -4,12 +4,10 @@ Future<BuildJob?> claimNextJob({
   required OpenCiApiService apiService,
   String? vmName,
   String? workerHost,
-  int? maxConcurrentJobs,
 }) async {
   final request = ClaimJobRequest(
     vmName: vmName,
     workerHost: workerHost,
-    maxConcurrentJobs: maxConcurrentJobs,
   );
 
   final response = await apiService.claimNextJob(request.toJson());

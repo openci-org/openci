@@ -17,18 +17,11 @@ void main(List<String> args) async {
           .firstWhere((arg) => arg.startsWith('--user-id='), orElse: () => '')
           .replaceFirst('--user-id=', '')
           .trim();
-  final customScript =
-      Platform.environment['CUSTOM_SCRIPT'] ??
-      (args.where((a) => !a.startsWith('--user-id=')).isNotEmpty
-          ? args.where((a) => !a.startsWith('--user-id=')).join(' ')
-          : null);
 
   print('🌱 Step 1: Ensuring test team via API ($serverUrl/internal/seed)...');
 
   try {
     final seedPayload = <String, dynamic>{
-      if (customScript != null && customScript.isNotEmpty)
-        'customScript': customScript,
       if (userId.isNotEmpty) 'userId': userId,
     };
 

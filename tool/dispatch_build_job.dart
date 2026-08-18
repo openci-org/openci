@@ -26,41 +26,6 @@ void main(List<String> args) async {
           .replaceFirst('--team-id=', '')
           .trim();
   final teamId = parsedTeamId.isNotEmpty ? parsedTeamId : 'test-team';
-  final customScriptArg = args
-      .firstWhere((arg) => arg.startsWith('--script='), orElse: () => '')
-      .replaceFirst('--script=', '')
-      .trim();
-
-  final yamlArg = args
-      .firstWhere((arg) => arg.startsWith('--yaml='), orElse: () => '')
-      .replaceFirst('--yaml=', '')
-      .trim();
-
-  final workflowYaml =
-      Platform.environment['WORKFLOW_YAML'] ??
-      (yamlArg.isNotEmpty
-          ? yamlArg
-          : '''
-name: Test Workflow
-on:
-  push:
-    branches: [ main ]
-
-jobs:
-  build:
-    name: Build & Test
-    runs-on: macos-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Check macOS Version
-        run: |
-          echo "🍏 Checking macOS Version:"
-          sw_vers
-''');
-
-  final customScript = Platform.environment['CUSTOM_SCRIPT'] ?? customScriptArg;
 
   final timestamp = DateTime.now().millisecondsSinceEpoch;
   final commitSha = 'sha-${timestamp.toString().substring(5)}';
@@ -73,8 +38,6 @@ jobs:
 
   try {
     final payload = <String, dynamic>{
-      if (customScript.isNotEmpty) 'customScript': customScript,
-      'workflowYaml': workflowYaml,
       'userId': userId,
       if (teamId.isNotEmpty) 'teamId': teamId,
       'commitSha': commitSha,

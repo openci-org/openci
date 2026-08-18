@@ -19,8 +19,7 @@ class JobPoller {
             baseUrl: config.serverUrl,
             tokenProvider: () => config.internalApiKey,
             services: [OpenCiApiService.create()],
-          ).getService<OpenCiApiService>(),
-      _maxConcurrentJobs = config.maxConcurrentJobs {
+          ).getService<OpenCiApiService>() {
     setupBuildJobLogger(
       serverUrl: config.serverUrl,
       internalApiKey: config.internalApiKey,
@@ -33,12 +32,9 @@ class JobPoller {
 
   final String _serverUrl;
   final OpenCiApiService _apiService;
-  final int _maxConcurrentJobs;
 
   Stream<BuildJob> watchClaimedJobs() async* {
-    _log.info(
-      'JobPoller watching jobs stream (maxConcurrent: $_maxConcurrentJobs)',
-    );
+    _log.info('JobPoller watching jobs stream');
 
     final wsUri = buildWebSocketUri(_serverUrl, '/worker/jobs/stream');
 
@@ -70,7 +66,6 @@ class JobPoller {
         final job = await claimNextJob(
           apiService: _apiService,
           workerHost: 'orchard',
-          maxConcurrentJobs: _maxConcurrentJobs,
         );
 
         if (job == null) {
