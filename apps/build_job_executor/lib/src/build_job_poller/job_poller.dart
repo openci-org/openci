@@ -11,7 +11,7 @@ import 'package:web_socket/web_socket.dart';
 final _log = Logger('JobPoller');
 
 class JobPoller {
-  JobPoller({required ProcessorConfig config, OpenCiApiService? apiService})
+  JobPoller({required Config config, OpenCiApiService? apiService})
     : _serverUrl = config.serverUrl,
       _apiService =
           apiService ??

@@ -2,8 +2,8 @@ import 'dart:io';
 
 import 'package:yaml/yaml.dart';
 
-class ProcessorConfig {
-  ProcessorConfig({
+class Config {
+  Config({
     required this.serverUrl,
     required this.baseVmName,
     required this.internalApiKey,
@@ -66,12 +66,12 @@ class ProcessorConfig {
     return (name: name, token: token);
   }
 
-  factory ProcessorConfig.fromEnvironment() {
+  factory Config.fromEnvironment() {
     final baseVmName = Platform.environment['BASE_VM_NAME'] ?? 'tahoe-base';
 
     final orchardCredentials = _loadOrchardCredentials();
 
-    return ProcessorConfig(
+    return Config(
       serverUrl: _getRequired('OPENCI_SERVER_URL'),
       baseVmName: baseVmName,
       internalApiKey: _getRequired('INTERNAL_API_KEY'),

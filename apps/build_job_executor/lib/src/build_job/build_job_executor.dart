@@ -7,7 +7,7 @@ import 'package:build_job_executor/src/build_job/prepare_build_job_workspace.dar
 import 'package:build_job_executor/src/build_job/run_build_job.dart';
 import 'package:build_job_executor/src/orchard/orchard_api_client.dart';
 import 'package:build_job_executor/src/orchard/orchard_vm_service.dart';
-import 'package:build_job_executor/src/processor_config.dart';
+import 'package:build_job_executor/src/config.dart';
 import 'package:openci_shared/openci_shared.dart';
 import 'package:sentry/sentry.dart';
 
@@ -22,7 +22,7 @@ class BuildJobExecutor {
 
   factory BuildJobExecutor.create({
     required OpenCiApiService apiService,
-    required ProcessorConfig config,
+    required Config config,
     OrchardVmService? orchardVmService,
   }) {
     final vmService =

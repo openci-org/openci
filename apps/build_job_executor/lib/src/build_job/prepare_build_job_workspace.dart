@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:logging/logging.dart';
 import 'package:build_job_executor/src/orchard/orchard_vm_service.dart';
-import 'package:build_job_executor/src/processor_config.dart';
+import 'package:build_job_executor/src/config.dart';
 import 'package:openci_shared/openci_shared.dart';
 import 'package:retry/retry.dart';
 import 'package:sentry/sentry.dart';
@@ -11,14 +11,14 @@ class PrepareBuildJobWorkspace {
   PrepareBuildJobWorkspace({
     required OpenCiApiService apiService,
     required OrchardVmService orchardVmService,
-    required ProcessorConfig config,
+    required Config config,
   }) : _apiService = apiService,
        _orchardVmService = orchardVmService,
        _config = config;
 
   final OpenCiApiService _apiService;
   final OrchardVmService _orchardVmService;
-  final ProcessorConfig _config;
+  final Config _config;
   final _log = Logger('PrepareBuildJobWorkspace');
 
   Future<void> call({
