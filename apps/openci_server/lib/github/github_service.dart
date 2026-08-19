@@ -2,7 +2,9 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:dart_jsonwebtoken/dart_jsonwebtoken.dart';
+import 'package:github/github.dart';
 import 'package:http/http.dart' as http;
+import 'package:openci_shared/openci_shared.dart';
 
 class GitHubService {
   static String generateJwt(String appId, String privateKeyPem) {
@@ -29,9 +31,8 @@ class GitHubService {
     final githubApiBaseUrlStr = env['GITHUB_API_BASE_URL'];
 
     final isDevOrDummy =
-        installationIdStr == '12345678' ||
-        appId == '123456' ||
-        appId == 'your-github-app-id-here';
+        environment == null &&
+        (installationIdStr == '12345678' || appId == 'your-github-app-id-here');
     if (isDevOrDummy) {
       return 'mock-github-installation-token-local';
     }
@@ -334,5 +335,86 @@ jobs:
     }
 
     return content;
+  }
+
+  static Future<List<GenuineCiFile>> fetchGenuineCiFiles({
+    required String owner,
+    required String repo,
+    required String commitSha,
+    required String installationIdStr,
+    Map<String, String>? environment,
+    http.Client? client,
+  }) async {
+    final token = await getInstallationToken(
+      installationIdStr: installationIdStr,
+      environment: environment,
+      client: client,
+    );
+
+    if (token == 'mock-github-installation-token' ||
+        token == 'mock-github-installation-token-local') {
+      return [
+        const GenuineCiFile(
+          name: 'dashboard_ci.dart',
+          path: 'genuine_ci/dashboard_ci.dart',
+          content: '''
+import 'package:genuine_ci/genuine_ci.dart';
+
+Future<void> main() async {
+  final genuineCI = await GenuineCI.init(
+    workflowName: 'Dashboard CI',
+    ciTrigger: CiTrigger.push(branch: '*'),
+  );
+}
+''',
+        ),
+      ];
+    }
+
+    final env = environment ?? Platform.environment;
+    final githubApiBaseUrl =
+        env['GITHUB_API_BASE_URL'] ?? 'https://api.github.com';
+
+    final github = GitHub(
+      auth: Authentication.withToken(token),
+      endpoint: githubApiBaseUrl,
+      client: client,
+    );
+    final slug = RepositorySlug(owner, repo);
+
+    try {
+      final contents = await github.repositories.getContents(
+        slug,
+        'genuine_ci',
+        ref: commitSha,
+      );
+
+      final files = <GenuineCiFile>[];
+      if (contents.isDirectory && contents.tree != null) {
+        for (final item in contents.tree!) {
+          final fileName = item.name;
+          final filePath = item.path;
+
+          if (fileName != null &&
+              filePath != null &&
+              fileName.endsWith('.dart')) {
+            final fileContents = await github.repositories.getContents(
+              slug,
+              filePath,
+              ref: commitSha,
+            );
+            final text = fileContents.file?.text;
+            if (text != null) {
+              files.add(
+                GenuineCiFile(name: fileName, path: filePath, content: text),
+              );
+            }
+          }
+        }
+      }
+      return files;
+    } on NotFound {
+      return const [];
+    }
   }
 }

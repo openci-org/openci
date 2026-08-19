@@ -17,6 +17,11 @@ abstract class OpenCiApiService extends ChopperService {
   @GET(path: '/teams', timeout: _timeout)
   Future<Response<List<Team>>> getTeams();
 
+  @GET(path: '/teams/by-installation/{installationId}', timeout: _timeout)
+  Future<Response<Team>> getTeamByInstallationId(
+    @Path('installationId') int installationId,
+  );
+
   @POST(path: '/teams', timeout: _timeout)
   Future<Response<Map<String, dynamic>>> createTeam(
     @Body() Map<String, dynamic> body,
@@ -37,6 +42,16 @@ abstract class OpenCiApiService extends ChopperService {
     @Body() Map<String, dynamic> body,
   );
 
+  @GET(
+    path: '/teams/{teamId}/repositories/{repo}/genuine-ci-files',
+    timeout: _timeout,
+  )
+  Future<Response<List<Map<String, dynamic>>>> fetchGenuineCiFiles(
+    @Path('teamId') String teamId,
+    @Path('repo') String repo,
+    @Query('ref') String ref,
+  );
+
   @GET(path: '/devices', timeout: _timeout)
   Future<Response<List<UserDevice>>> getDevices();
 
@@ -50,6 +65,11 @@ abstract class OpenCiApiService extends ChopperService {
   Future<Response<void>> updateWebhookTaskStatus(
     @Path('id') String id,
     @Body() Map<String, dynamic> body,
+  );
+
+  @POST(path: '/webhooks/tasks/{id}/process', timeout: _timeout)
+  Future<Response<Map<String, dynamic>>> processWebhookTask(
+    @Path('id') String id,
   );
 
   @POST(path: '/builds', timeout: _timeout)
@@ -104,6 +124,11 @@ abstract class OpenCiApiService extends ChopperService {
   @GET(path: '/builds/{id}/token', timeout: _timeout)
   Future<Response<Map<String, dynamic>>> resolveInstallationToken(
     @Path('id') String buildJobId,
+  );
+
+  @GET(path: '/installations/{id}/token', timeout: _timeout)
+  Future<Response<Map<String, dynamic>>> getInstallationToken(
+    @Path('id') int installationId,
   );
 
   @GET(path: '/builds/{id}/secrets', timeout: _timeout)
