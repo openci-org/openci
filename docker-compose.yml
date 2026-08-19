@@ -49,11 +49,28 @@ services:
     depends_on:
       - db
 
+  job-dispatcher:
+    build:
+      context: .
+      dockerfile: apps/build_job_dispatcher/Dockerfile
+    container_name: openci-job-dispatcher
+    restart: unless-stopped
+    environment:
+      OPENCI_SERVER_URL: http://server:8080
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY:?INTERNAL_API_KEY environment variable is required}
+      SENTRY_DSN: ${SENTRY_DSN_JOB_DISPATCHER:-}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./docker-compose.yml:/app/docker-compose.yml:ro
+    depends_on:
+      - server
+
   job-processor:
     build:
       context: .
       dockerfile: apps/build_job_executor/Dockerfile
-    restart: unless-stopped
+    profiles:
+      - donotstart
     environment:
       OPENCI_SERVER_URL: http://server:8080
       BASE_VM_NAME: ${BASE_VM_NAME:-tahoe-base}
