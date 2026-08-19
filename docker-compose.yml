@@ -49,6 +49,19 @@ services:
     depends_on:
       - db
 
+  github-webhook-processor:
+    build:
+      context: .
+      dockerfile: apps/github_webhook_processor/Dockerfile
+    container_name: openci-github-webhook-processor
+    restart: unless-stopped
+    environment:
+      OPENCI_SERVER_URL: http://server:8080
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY:?INTERNAL_API_KEY environment variable is required}
+      SENTRY_DSN: ${SENTRY_DSN_GITHUB_WEBHOOK_PROCESSOR:-}
+    depends_on:
+      - server
+
   job-dispatcher:
     build:
       context: .
