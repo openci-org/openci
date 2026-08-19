@@ -49,8 +49,7 @@ Future<void> dispatchBuildJob(Config config) async {
         'Claimed build job: ${buildJob.id} (Workflow: ${buildJob.workflowName})',
       );
 
-      // TODO: ここで docker コンテナを起動・実行
-      // await _launchExecutorContainer(buildJob, config);
+      await launchExecutorContainer(buildJob);
     } catch (e, s) {
       _log.severe('Error claiming/dispatching job: $e', e, s);
       unawaited(Sentry.captureException(e, stackTrace: s));
