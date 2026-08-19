@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:build_job_executor/build_job_executor.dart';
 import 'package:logging/logging.dart';
+import 'package:openci_shared/initialize_logging.dart';
 import 'package:openci_shared/initialize_sentry.dart';
 import 'package:openci_shared/openci_shared.dart';
 import 'package:sentry/sentry.dart';
