@@ -9,6 +9,7 @@ export 'src/models/cicd_commit_group.dart';
 export 'src/models/claim_job_request.dart';
 export 'src/models/team.dart';
 export 'src/models/user_device.dart';
+export 'src/models/webhook_task.dart';
 export 'src/utilities/constant_time_compare.dart';
 export 'src/utilities/date_time_converter.dart';
 export 'src/utilities/get_required_env.dart';

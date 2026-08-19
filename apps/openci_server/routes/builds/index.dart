@@ -125,20 +125,13 @@ Future<Response> _post(RequestContext context) async {
         body: {'success': false, 'error': 'Invalid payload: $e'},
       );
     }
-
-    final teamId = job.teamId;
-    if (teamId == null) {
+    if (uid != 'system-job-processor') {
       return Response.json(
         statusCode: HttpStatus.forbidden,
-        body: {'success': false, 'error': 'Forbidden'},
-      );
-    }
-
-    final isMember = await db.teamDao.isTeamMember(uid, teamId);
-    if (!isMember) {
-      return Response.json(
-        statusCode: HttpStatus.forbidden,
-        body: {'success': false, 'error': 'Forbidden'},
+        body: {
+          'success': false,
+          'error': 'Forbidden: Internal API key required',
+        },
       );
     }
 
