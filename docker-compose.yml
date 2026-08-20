@@ -11,6 +11,11 @@ services:
       - "5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d openci"]
+      interval: 2s
+      timeout: 2s
+      retries: 10
 
   server:
     build:
@@ -47,7 +52,14 @@ services:
     expose:
       - "8080"
     depends_on:
-      - db
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/"]
+      interval: 2s
+      timeout: 2s
+      retries: 10
+      start_period: 2s
 
   github-webhook-processor:
     build:
@@ -60,7 +72,8 @@ services:
       INTERNAL_API_KEY: ${INTERNAL_API_KEY:?INTERNAL_API_KEY environment variable is required}
       SENTRY_DSN: ${SENTRY_DSN_GITHUB_WEBHOOK_PROCESSOR:-}
     depends_on:
-      - server
+      server:
+        condition: service_healthy
 
   job-dispatcher:
     build:
@@ -75,8 +88,10 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./docker-compose.yml:/app/docker-compose.yml:ro
+      - ./.env:/app/.env:ro
     depends_on:
-      - server
+      server:
+        condition: service_healthy
 
   job-processor:
     build:
