@@ -1,9 +1,9 @@
 import 'dart:async';
 
-import 'package:logging/logging.dart';
+import 'package:build_job_executor/src/config.dart';
 import 'package:build_job_executor/src/loki/loki_logger.dart';
 import 'package:build_job_executor/src/orchard/orchard_vm_service.dart';
-import 'package:build_job_executor/src/config.dart';
+import 'package:logging/logging.dart';
 import 'package:openci_shared/openci_shared.dart';
 import 'package:retry/retry.dart';
 import 'package:sentry/sentry.dart';
@@ -69,7 +69,9 @@ class PrepareBuildJobWorkspace {
           );
         },
         onRetry: (e) async {
-          _log.warning('[$vmName] VM preparation failed: $e. Retrying in 15s...');
+          _log.warning(
+            '[$vmName] VM preparation failed: $e. Retrying in 15s...',
+          );
           await _lokiLogger.pushLog(
             runId: runId,
             jobId: job.id,
@@ -187,8 +189,10 @@ class PrepareBuildJobWorkspace {
     } else if (job.commitSha != null && job.commitSha!.isNotEmpty) {
       fetchTarget = job.commitSha!;
     } else {
-      fetchTarget = 'HEAD';
+      fetchTarget = job.branch ?? 'develop';
     }
+
+    final fallbackTarget = job.commitSha ?? job.branch ?? 'develop';
 
     final checkoutScript =
         '''
@@ -199,22 +203,37 @@ if [ ! -d ".git" ]; then
   git init
   git remote add origin "$repoUrl"
 fi
-git fetch --depth=1 origin $fetchTarget
-git checkout FETCH_HEAD
+if git fetch --depth=1 origin $fetchTarget; then
+  git checkout FETCH_HEAD
+elif git fetch --depth=1 origin $fallbackTarget; then
+  git checkout FETCH_HEAD
+else
+  git fetch --depth=1 origin HEAD
+  git checkout FETCH_HEAD
+fi
 ''';
+
+    await _orchardVmService.writeFile(
+      vmName,
+      '/tmp/checkout.sh',
+      checkoutScript,
+      mode: '+x',
+    );
 
     final exitCode = await _orchardVmService.executeCommandStreaming(
       containerName: vmName,
-      command: ['/bin/sh', '-c', checkoutScript],
+      command: ['/bin/sh', '/tmp/checkout.sh'],
       onLog: (line) {
         _log.fine('[$vmName][checkout] $line');
-        _lokiLogger.pushLog(
-          runId: runId,
-          jobId: job.id,
-          message: line,
-          stepId: 'checkout',
-          command: 'git checkout',
-        );
+        if (!_isNoiseLine(line)) {
+          _lokiLogger.pushLog(
+            runId: runId,
+            jobId: job.id,
+            message: line,
+            stepId: 'checkout',
+            command: 'git checkout',
+          );
+        }
       },
       isCancelled: () async => false,
     );
@@ -258,3 +277,38 @@ git checkout FETCH_HEAD
     return token;
   }
 }
+
+bool _isNoiseLine(String line) {
+  final trimmed = line.trim();
+  if (trimmed.isEmpty) return true;
+  const prefixes = [
+    'BASH',
+    'DIRSTACK=',
+    'EUID=',
+    'GROUPS=',
+    'HOSTNAME=',
+    'HOSTTYPE=',
+    'IFS=',
+    'MACHTYPE=',
+    'OPTERR=',
+    'OPTIND=',
+    'OSTYPE=',
+    'POSIXLY_CORRECT=',
+    'PPID=',
+    'PS4=',
+    'PWD=',
+    'SHELL=',
+    'SHELLOPTS=',
+    'SHLVL=',
+    'SSH_CLIENT=',
+    'SSH_CONNECTION=',
+    'TERM=',
+    'TMPDIR=',
+    'UID=',
+    'USER=',
+    '_=',
+    'mount_authenticator_shm=',
+  ];
+  return prefixes.any(trimmed.startsWith);
+}
+
