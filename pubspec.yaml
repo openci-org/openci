@@ -9,6 +9,7 @@ workspace:
   - apps/github_webhook_processor
   - apps/build_job_dispatcher
   - apps/build_job_executor
+  - apps/genuine_ci_cli
   - apps/openci_server
   - genuine_ci
   - packages/genuine_ci
