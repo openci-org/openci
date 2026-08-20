@@ -18,7 +18,7 @@ EVENT_TYPE="pull_request"
 
 OWNER="openci-org"
 REPO="openci"
-INSTALLATION_ID="12345678"
+INSTALLATION_ID="153083749"
 
 PR_NUMBER=1
 BASE_BRANCH="develop"

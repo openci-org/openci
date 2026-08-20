@@ -2,10 +2,13 @@
 set -e
 
 SERVER_URL="http://localhost:8080"
+INSTALLATION_ID="${INSTALLATION_ID:-153083749}"
 
-echo "🌱 Seeding test team to $SERVER_URL/internal/seed/teams..."
+echo "🌱 Seeding test team to $SERVER_URL/internal/seed/teams (Installation ID: $INSTALLATION_ID)..."
 
-RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "$SERVER_URL/internal/seed/teams")
+RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "$SERVER_URL/internal/seed/teams" \
+  -H "Content-Type: application/json" \
+  -d "{\"installationId\": $INSTALLATION_ID}")
 
 HTTP_BODY=$(echo "$RESPONSE" | sed '$d')
 HTTP_CODE=$(echo "$RESPONSE" | tail -n1)

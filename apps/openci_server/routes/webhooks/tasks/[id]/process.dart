@@ -231,6 +231,19 @@ Future<Response> _post(RequestContext context, String taskId) async {
       },
     );
   } catch (e, s) {
+    try {
+      final db = context.read<AppDatabase>();
+      await (db.update(
+        db.webhookTasks,
+      )..where((tbl) => tbl.id.equals(taskId))).write(
+        WebhookTasksCompanion(
+          status: const Value('failed'),
+          errorMessage: Value('$e\n$s'),
+          updatedAt: Value(DateTime.now().toUtc()),
+        ),
+      );
+    } catch (_) {}
+
     return handleRouteException(
       e,
       s,

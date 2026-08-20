@@ -51,7 +51,7 @@ Future<void> processGitHubWebhook(Config config) async {
     } catch (e, s) {
       _log.severe('Error processing webhook task: $e', e, s);
       unawaited(Sentry.captureException(e, stackTrace: s));
-      rethrow;
+      await Future<void>.delayed(const Duration(seconds: 3));
     }
   }
 }
