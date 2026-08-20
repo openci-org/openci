@@ -57,13 +57,14 @@ Future<Response> _post(RequestContext context, String taskId) async {
     );
 
     if (event.isDeleted) {
-      await (db.update(db.webhookTasks)..where((tbl) => tbl.id.equals(taskId)))
-          .write(
-            WebhookTasksCompanion(
-              status: const Value('completed'),
-              updatedAt: Value(DateTime.now().toUtc()),
-            ),
-          );
+      await (db.update(
+        db.webhookTasks,
+      )..where((tbl) => tbl.id.equals(taskId))).write(
+        WebhookTasksCompanion(
+          status: const Value('completed'),
+          updatedAt: Value(DateTime.now().toUtc()),
+        ),
+      );
       return Response.json(
         body: {
           'success': true,
@@ -85,13 +86,14 @@ Future<Response> _post(RequestContext context, String taskId) async {
     }
 
     if (targetTeam == null) {
-      await (db.update(db.webhookTasks)..where((tbl) => tbl.id.equals(taskId)))
-          .write(
-            WebhookTasksCompanion(
-              status: const Value('completed'),
-              updatedAt: Value(DateTime.now().toUtc()),
-            ),
-          );
+      await (db.update(
+        db.webhookTasks,
+      )..where((tbl) => tbl.id.equals(taskId))).write(
+        WebhookTasksCompanion(
+          status: const Value('completed'),
+          updatedAt: Value(DateTime.now().toUtc()),
+        ),
+      );
       return Response.json(
         body: {
           'success': true,
@@ -127,13 +129,14 @@ Future<Response> _post(RequestContext context, String taskId) async {
     );
 
     if (files.isEmpty) {
-      await (db.update(db.webhookTasks)..where((tbl) => tbl.id.equals(taskId)))
-          .write(
-            WebhookTasksCompanion(
-              status: const Value('completed'),
-              updatedAt: Value(DateTime.now().toUtc()),
-            ),
-          );
+      await (db.update(
+        db.webhookTasks,
+      )..where((tbl) => tbl.id.equals(taskId))).write(
+        WebhookTasksCompanion(
+          status: const Value('completed'),
+          updatedAt: Value(DateTime.now().toUtc()),
+        ),
+      );
       return Response.json(
         body: {
           'success': true,
@@ -159,13 +162,14 @@ Future<Response> _post(RequestContext context, String taskId) async {
     }
 
     if (matchingWorkflows.isEmpty) {
-      await (db.update(db.webhookTasks)..where((tbl) => tbl.id.equals(taskId)))
-          .write(
-            WebhookTasksCompanion(
-              status: const Value('completed'),
-              updatedAt: Value(DateTime.now().toUtc()),
-            ),
-          );
+      await (db.update(
+        db.webhookTasks,
+      )..where((tbl) => tbl.id.equals(taskId))).write(
+        WebhookTasksCompanion(
+          status: const Value('completed'),
+          updatedAt: Value(DateTime.now().toUtc()),
+        ),
+      );
       return Response.json(
         body: {
           'success': true,
@@ -210,13 +214,14 @@ Future<Response> _post(RequestContext context, String taskId) async {
     }
 
     // 6. Mark task as completed
-    await (db.update(db.webhookTasks)..where((tbl) => tbl.id.equals(taskId)))
-        .write(
-          WebhookTasksCompanion(
-            status: const Value('completed'),
-            updatedAt: Value(DateTime.now().toUtc()),
-          ),
-        );
+    await (db.update(
+      db.webhookTasks,
+    )..where((tbl) => tbl.id.equals(taskId))).write(
+      WebhookTasksCompanion(
+        status: const Value('completed'),
+        updatedAt: Value(DateTime.now().toUtc()),
+      ),
+    );
 
     return Response.json(
       body: {
