@@ -1,0 +1,1 @@
+enum MachineType { macOsLatest }

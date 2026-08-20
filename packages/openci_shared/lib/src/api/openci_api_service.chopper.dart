@@ -48,6 +48,35 @@ final class _$OpenCiApiService extends OpenCiApiService {
   }
 
   @override
+  Future<Response<Team>> getTeamByInstallationId(int installationId) {
+    final Uri $url = Uri.parse('/teams/by-installation/${installationId}');
+    final ChopperCompleter $abortTrigger = ChopperCompleter<void>();
+    final ChopperTimer $timeout = ChopperTimer(
+      const Duration(microseconds: 10000000),
+      () {
+        if (!$abortTrigger.isCompleted) $abortTrigger.complete();
+      },
+    );
+    final Request $request = Request(
+      'GET',
+      $url,
+      client.baseUrl,
+      abortTrigger: $abortTrigger.future,
+    );
+    return client
+        .send<Team, Team>($request)
+        .catchError(
+          (_) => Future<Response<Team>>.error(
+            ChopperTimeoutException('Request timed out after 10 seconds'),
+          ),
+          test: (Object err) =>
+              err is ChopperRequestAbortedException &&
+              $abortTrigger.isCompleted,
+        )
+        .whenComplete($timeout.cancel);
+  }
+
+  @override
   Future<Response<Map<String, dynamic>>> createTeam(Map<String, dynamic> body) {
     final Uri $url = Uri.parse('/teams');
     final $body = body;
@@ -170,6 +199,43 @@ final class _$OpenCiApiService extends OpenCiApiService {
   }
 
   @override
+  Future<Response<List<Map<String, dynamic>>>> fetchGenuineCiFiles(
+    String teamId,
+    String repo,
+    String ref,
+  ) {
+    final Uri $url = Uri.parse(
+      '/teams/${teamId}/repositories/${repo}/genuine-ci-files',
+    );
+    final Map<String, dynamic> $params = <String, dynamic>{'ref': ref};
+    final ChopperCompleter $abortTrigger = ChopperCompleter<void>();
+    final ChopperTimer $timeout = ChopperTimer(
+      const Duration(microseconds: 10000000),
+      () {
+        if (!$abortTrigger.isCompleted) $abortTrigger.complete();
+      },
+    );
+    final Request $request = Request(
+      'GET',
+      $url,
+      client.baseUrl,
+      parameters: $params,
+      abortTrigger: $abortTrigger.future,
+    );
+    return client
+        .send<List<Map<String, dynamic>>, Map<String, dynamic>>($request)
+        .catchError(
+          (_) => Future<Response<List<Map<String, dynamic>>>>.error(
+            ChopperTimeoutException('Request timed out after 10 seconds'),
+          ),
+          test: (Object err) =>
+              err is ChopperRequestAbortedException &&
+              $abortTrigger.isCompleted,
+        )
+        .whenComplete($timeout.cancel);
+  }
+
+  @override
   Future<Response<List<UserDevice>>> getDevices() {
     final Uri $url = Uri.parse('/devices');
     final ChopperCompleter $abortTrigger = ChopperCompleter<void>();
@@ -212,6 +278,131 @@ final class _$OpenCiApiService extends OpenCiApiService {
       'GET',
       $url,
       client.baseUrl,
+      abortTrigger: $abortTrigger.future,
+    );
+    return client
+        .send<Map<String, dynamic>, Map<String, dynamic>>($request)
+        .catchError(
+          (_) => Future<Response<Map<String, dynamic>>>.error(
+            ChopperTimeoutException('Request timed out after 10 seconds'),
+          ),
+          test: (Object err) =>
+              err is ChopperRequestAbortedException &&
+              $abortTrigger.isCompleted,
+        )
+        .whenComplete($timeout.cancel);
+  }
+
+  @override
+  Future<Response<Map<String, dynamic>>> claimNextWebhookTask() {
+    final Uri $url = Uri.parse('/webhooks/claim');
+    final ChopperCompleter $abortTrigger = ChopperCompleter<void>();
+    final ChopperTimer $timeout = ChopperTimer(
+      const Duration(microseconds: 10000000),
+      () {
+        if (!$abortTrigger.isCompleted) $abortTrigger.complete();
+      },
+    );
+    final Request $request = Request(
+      'POST',
+      $url,
+      client.baseUrl,
+      abortTrigger: $abortTrigger.future,
+    );
+    return client
+        .send<Map<String, dynamic>, Map<String, dynamic>>($request)
+        .catchError(
+          (_) => Future<Response<Map<String, dynamic>>>.error(
+            ChopperTimeoutException('Request timed out after 10 seconds'),
+          ),
+          test: (Object err) =>
+              err is ChopperRequestAbortedException &&
+              $abortTrigger.isCompleted,
+        )
+        .whenComplete($timeout.cancel);
+  }
+
+  @override
+  Future<Response<void>> updateWebhookTaskStatus(
+    String id,
+    Map<String, dynamic> body,
+  ) {
+    final Uri $url = Uri.parse('/webhooks/tasks/${id}');
+    final $body = body;
+    final ChopperCompleter $abortTrigger = ChopperCompleter<void>();
+    final ChopperTimer $timeout = ChopperTimer(
+      const Duration(microseconds: 10000000),
+      () {
+        if (!$abortTrigger.isCompleted) $abortTrigger.complete();
+      },
+    );
+    final Request $request = Request(
+      'PATCH',
+      $url,
+      client.baseUrl,
+      body: $body,
+      abortTrigger: $abortTrigger.future,
+    );
+    return client
+        .send<void, void>($request)
+        .catchError(
+          (_) => Future<Response<void>>.error(
+            ChopperTimeoutException('Request timed out after 10 seconds'),
+          ),
+          test: (Object err) =>
+              err is ChopperRequestAbortedException &&
+              $abortTrigger.isCompleted,
+        )
+        .whenComplete($timeout.cancel);
+  }
+
+  @override
+  Future<Response<Map<String, dynamic>>> processWebhookTask(String id) {
+    final Uri $url = Uri.parse('/webhooks/tasks/${id}/process');
+    final ChopperCompleter $abortTrigger = ChopperCompleter<void>();
+    final ChopperTimer $timeout = ChopperTimer(
+      const Duration(microseconds: 10000000),
+      () {
+        if (!$abortTrigger.isCompleted) $abortTrigger.complete();
+      },
+    );
+    final Request $request = Request(
+      'POST',
+      $url,
+      client.baseUrl,
+      abortTrigger: $abortTrigger.future,
+    );
+    return client
+        .send<Map<String, dynamic>, Map<String, dynamic>>($request)
+        .catchError(
+          (_) => Future<Response<Map<String, dynamic>>>.error(
+            ChopperTimeoutException('Request timed out after 10 seconds'),
+          ),
+          test: (Object err) =>
+              err is ChopperRequestAbortedException &&
+              $abortTrigger.isCompleted,
+        )
+        .whenComplete($timeout.cancel);
+  }
+
+  @override
+  Future<Response<Map<String, dynamic>>> createBuildJob(
+    Map<String, dynamic> body,
+  ) {
+    final Uri $url = Uri.parse('/builds');
+    final $body = body;
+    final ChopperCompleter $abortTrigger = ChopperCompleter<void>();
+    final ChopperTimer $timeout = ChopperTimer(
+      const Duration(microseconds: 10000000),
+      () {
+        if (!$abortTrigger.isCompleted) $abortTrigger.complete();
+      },
+    );
+    final Request $request = Request(
+      'POST',
+      $url,
+      client.baseUrl,
+      body: $body,
       abortTrigger: $abortTrigger.future,
     );
     return client
@@ -489,6 +680,37 @@ final class _$OpenCiApiService extends OpenCiApiService {
   }
 
   @override
+  Future<Response<Map<String, dynamic>>> getInstallationToken(
+    int installationId,
+  ) {
+    final Uri $url = Uri.parse('/installations/${installationId}/token');
+    final ChopperCompleter $abortTrigger = ChopperCompleter<void>();
+    final ChopperTimer $timeout = ChopperTimer(
+      const Duration(microseconds: 10000000),
+      () {
+        if (!$abortTrigger.isCompleted) $abortTrigger.complete();
+      },
+    );
+    final Request $request = Request(
+      'GET',
+      $url,
+      client.baseUrl,
+      abortTrigger: $abortTrigger.future,
+    );
+    return client
+        .send<Map<String, dynamic>, Map<String, dynamic>>($request)
+        .catchError(
+          (_) => Future<Response<Map<String, dynamic>>>.error(
+            ChopperTimeoutException('Request timed out after 10 seconds'),
+          ),
+          test: (Object err) =>
+              err is ChopperRequestAbortedException &&
+              $abortTrigger.isCompleted,
+        )
+        .whenComplete($timeout.cancel);
+  }
+
+  @override
   Future<Response<Map<String, dynamic>>> getJobSecrets(String buildJobId) {
     final Uri $url = Uri.parse('/builds/${buildJobId}/secrets');
     final ChopperCompleter $abortTrigger = ChopperCompleter<void>();
@@ -520,35 +742,6 @@ final class _$OpenCiApiService extends OpenCiApiService {
   @override
   Future<Response<Map<String, dynamic>>> getJobEventPayload(String buildJobId) {
     final Uri $url = Uri.parse('/builds/${buildJobId}/event');
-    final ChopperCompleter $abortTrigger = ChopperCompleter<void>();
-    final ChopperTimer $timeout = ChopperTimer(
-      const Duration(microseconds: 10000000),
-      () {
-        if (!$abortTrigger.isCompleted) $abortTrigger.complete();
-      },
-    );
-    final Request $request = Request(
-      'GET',
-      $url,
-      client.baseUrl,
-      abortTrigger: $abortTrigger.future,
-    );
-    return client
-        .send<Map<String, dynamic>, Map<String, dynamic>>($request)
-        .catchError(
-          (_) => Future<Response<Map<String, dynamic>>>.error(
-            ChopperTimeoutException('Request timed out after 10 seconds'),
-          ),
-          test: (Object err) =>
-              err is ChopperRequestAbortedException &&
-              $abortTrigger.isCompleted,
-        )
-        .whenComplete($timeout.cancel);
-  }
-
-  @override
-  Future<Response<Map<String, dynamic>>> getJobBuildScript(String buildJobId) {
-    final Uri $url = Uri.parse('/builds/${buildJobId}/script');
     final ChopperCompleter $abortTrigger = ChopperCompleter<void>();
     final ChopperTimer $timeout = ChopperTimer(
       const Duration(microseconds: 10000000),

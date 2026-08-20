@@ -11,6 +11,11 @@ services:
       - "5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d openci"]
+      interval: 2s
+      timeout: 2s
+      retries: 10
 
   server:
     build:
@@ -47,21 +52,55 @@ services:
     expose:
       - "8080"
     depends_on:
-      - db
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/"]
+      interval: 2s
+      timeout: 2s
+      retries: 10
+      start_period: 2s
+
+  github-webhook-processor:
+    build:
+      context: .
+      dockerfile: apps/github_webhook_processor/Dockerfile
+    container_name: openci-github-webhook-processor
+    restart: unless-stopped
+    environment:
+      OPENCI_SERVER_URL: http://server:8080
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY:?INTERNAL_API_KEY environment variable is required}
+      SENTRY_DSN: ${SENTRY_DSN_GITHUB_WEBHOOK_PROCESSOR:-}
+    depends_on:
+      server:
+        condition: service_healthy
+
+  job-dispatcher:
+    build:
+      context: .
+      dockerfile: apps/build_job_dispatcher/Dockerfile
+    container_name: openci-job-dispatcher
+    restart: unless-stopped
+    environment:
+      OPENCI_SERVER_URL: http://server:8080
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY:?INTERNAL_API_KEY environment variable is required}
+      SENTRY_DSN: ${SENTRY_DSN_JOB_DISPATCHER:-}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./docker-compose.yml:/app/docker-compose.yml:ro
+      - ./.env:/app/.env:ro
+    depends_on:
+      server:
+        condition: service_healthy
 
   job-processor:
     build:
       context: .
-      dockerfile: apps/openci_build_job_processor/Dockerfile
-    container_name: openci-job-processor
-    restart: unless-stopped
+      dockerfile: apps/build_job_executor/Dockerfile
+    profiles:
+      - donotstart
     environment:
       OPENCI_SERVER_URL: http://server:8080
-      OPENCI_MAX_CONCURRENT_JOBS: ${OPENCI_MAX_CONCURRENT_JOBS:-3}
-
-      ORCHARD_API_URL: https://orchard-controller:6120
-      ORCHARD_SERVICE_ACCOUNT_NAME: ${ORCHARD_SERVICE_ACCOUNT_NAME:-bootstrap-admin}
-      ORCHARD_SERVICE_ACCOUNT_TOKEN: ${ORCHARD_SERVICE_ACCOUNT_TOKEN}
       BASE_VM_NAME: ${BASE_VM_NAME:-tahoe-base}
 
       LOKI_URL: http://loki:3100

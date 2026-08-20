@@ -1,0 +1,14 @@
+name: build_job_dispatcher
+description: ビルドjobを実行するコンテナを起動するサービス
+version: 1.0.0
+publish_to: none
+
+environment:
+  sdk: 3.11.5
+
+resolution: workspace
+
+dependencies:
+  logging: ^1.3.0
+  openci_shared: ^1.0.1
+  sentry: ^9.27.0

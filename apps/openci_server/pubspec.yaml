@@ -8,6 +8,7 @@ environment:
 resolution: workspace
 
 dependencies:
+  analyzer: ^10.0.1
   crypto: ^3.0.3
   cryptography: ^2.9.0
   dart_frog: ^1.2.6

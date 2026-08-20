@@ -31,6 +31,7 @@ void main() {
       owner: 'openci-org',
       repo: 'openci',
       workflowName: 'CI Workflow',
+      workflowFileName: 'ci.yml',
       createdAt: now,
       updatedAt: now,
     );

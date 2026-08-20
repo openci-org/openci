@@ -32,7 +32,7 @@ Future<Response> _get(RequestContext context, String id) async {
     }
 
     final workflowFileName = driftJob.workflowFileName;
-    if (workflowFileName == null || workflowFileName.isEmpty) {
+    if (workflowFileName.isEmpty) {
       return Response.json(
         statusCode: HttpStatus.badRequest,
         body: {'success': false, 'error': 'No workflowFileName found for job'},

@@ -28,8 +28,6 @@ Future<Response> onRequest(RequestContext context) async {
       userId: userId,
     );
 
-    final customScript = bodyJson['customScript'] as String?;
-
     final job = await db.seedDao.createTestBuildJob(
       runsOn: bodyJson['runsOn'] as String? ?? 'macos-latest',
       owner: bodyJson['owner'] as String? ?? 'openci-org',
@@ -43,7 +41,6 @@ Future<Response> onRequest(RequestContext context) async {
           bodyJson['commitMessage'] as String? ??
           'feat: Test build job created by seed',
       branch: bodyJson['branch'] as String? ?? 'main',
-      customScript: customScript,
     );
 
     return Response.json(

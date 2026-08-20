@@ -3,15 +3,10 @@ import 'dart:io';
 import 'package:dart_frog/dart_frog.dart';
 import 'package:firebase_admin_sdk/firebase_admin_sdk.dart';
 import 'package:openci_server/database.dart';
-import 'package:openci_server/webhook_task/webhook_task_worker.dart';
 import 'package:openci_shared/openci_shared.dart';
 import 'package:sentry/sentry.dart';
 
-final _db = () {
-  final db = AppDatabase();
-  startWebhookTaskWorker(db);
-  return db;
-}();
+final _db = AppDatabase();
 final FirebaseApp _firebaseApp = FirebaseApp.initializeApp();
 
 bool _sentryInitialized = false;

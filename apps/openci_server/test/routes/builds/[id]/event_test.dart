@@ -40,6 +40,7 @@ void main() {
         branch: 'main',
         status: BuildJobStatus.QUEUED,
         workflowName: 'workflow',
+        workflowFileName: 'ci.yml',
         createdAt: now,
         updatedAt: now,
       );
@@ -81,6 +82,7 @@ void main() {
           branch: 'main',
           status: BuildJobStatus.QUEUED,
           workflowName: 'workflow',
+          workflowFileName: 'ci.yml',
           createdAt: now,
           updatedAt: now,
           pullRequestNumber: 42,

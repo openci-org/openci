@@ -1,5 +1,5 @@
 import 'package:dart_frog/dart_frog.dart';
 
 Response onRequest(RequestContext context) {
-  return Response(body: 'OpenCI Server is running!');
+  return Response(body: 'GenuineCI Server is running!');
 }

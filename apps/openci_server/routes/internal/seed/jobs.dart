@@ -54,9 +54,6 @@ Future<Response> onRequest(RequestContext context) async {
       userId: userId,
     );
 
-    final customScript = bodyJson['customScript'] as String?;
-    final workflowYaml = bodyJson['workflowYaml'] as String?;
-
     final job = await db.seedDao.createTestBuildJob(
       runsOn: bodyJson['runsOn'] as String? ?? 'macos-latest',
       owner: bodyJson['owner'] as String? ?? 'openci-org',
@@ -70,8 +67,6 @@ Future<Response> onRequest(RequestContext context) async {
           bodyJson['commitMessage'] as String? ??
           'feat: Test build job created by seed',
       branch: bodyJson['branch'] as String? ?? 'main',
-      customScript: customScript,
-      workflowYaml: workflowYaml,
     );
 
     return Response.json(
@@ -85,7 +80,6 @@ Future<Response> onRequest(RequestContext context) async {
         'repo': job.repo,
         'branch': job.branch,
         'workflowFileName': job.workflowFileName,
-        'workflowYaml': ?workflowYaml,
       },
     );
   } catch (e) {

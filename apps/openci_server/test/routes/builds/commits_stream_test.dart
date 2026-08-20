@@ -34,6 +34,7 @@ void main() {
               owner: 'openci',
               repo: 'app',
               workflowName: 'CI',
+              workflowFileName: 'ci.yml',
               teamId: const Value('team-1'),
               createdAt: DateTime.now().toUtc(),
               updatedAt: DateTime.now().toUtc(),

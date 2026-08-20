@@ -83,9 +83,9 @@ class $BuildJobsTable extends BuildJobs
   late final GeneratedColumn<String> workflowFileName = GeneratedColumn<String>(
     'workflow_file_name',
     aliasedName,
-    true,
+    false,
     type: DriftSqlType.string,
-    requiredDuringInsert: false,
+    requiredDuringInsert: true,
   );
   static const VerificationMeta _commitShaMeta = const VerificationMeta(
     'commitSha',
@@ -226,28 +226,6 @@ class $BuildJobsTable extends BuildJobs
   @override
   late final GeneratedColumn<String> runsOn = GeneratedColumn<String>(
     'runs_on',
-    aliasedName,
-    true,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-  );
-  static const VerificationMeta _customScriptMeta = const VerificationMeta(
-    'customScript',
-  );
-  @override
-  late final GeneratedColumn<String> customScript = GeneratedColumn<String>(
-    'custom_script',
-    aliasedName,
-    true,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-  );
-  static const VerificationMeta _workflowYamlMeta = const VerificationMeta(
-    'workflowYaml',
-  );
-  @override
-  late final GeneratedColumn<String> workflowYaml = GeneratedColumn<String>(
-    'workflow_yaml',
     aliasedName,
     true,
     type: DriftSqlType.string,
@@ -467,8 +445,6 @@ class $BuildJobsTable extends BuildJobs
     workflowRunId,
     needs,
     runsOn,
-    customScript,
-    workflowYaml,
     failureSummary,
     failureSummaryModel,
     failureSummaryStatus,
@@ -552,6 +528,8 @@ class $BuildJobsTable extends BuildJobs
           _workflowFileNameMeta,
         ),
       );
+    } else if (isInserting) {
+      context.missing(_workflowFileNameMeta);
     }
     if (data.containsKey('commit_sha')) {
       context.handle(
@@ -641,24 +619,6 @@ class $BuildJobsTable extends BuildJobs
       context.handle(
         _runsOnMeta,
         runsOn.isAcceptableOrUnknown(data['runs_on']!, _runsOnMeta),
-      );
-    }
-    if (data.containsKey('custom_script')) {
-      context.handle(
-        _customScriptMeta,
-        customScript.isAcceptableOrUnknown(
-          data['custom_script']!,
-          _customScriptMeta,
-        ),
-      );
-    }
-    if (data.containsKey('workflow_yaml')) {
-      context.handle(
-        _workflowYamlMeta,
-        workflowYaml.isAcceptableOrUnknown(
-          data['workflow_yaml']!,
-          _workflowYamlMeta,
-        ),
       );
     }
     if (data.containsKey('failure_summary')) {
@@ -833,7 +793,7 @@ class $BuildJobsTable extends BuildJobs
       workflowFileName: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}workflow_file_name'],
-      ),
+      )!,
       commitSha: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}commit_sha'],
@@ -893,14 +853,6 @@ class $BuildJobsTable extends BuildJobs
       runsOn: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}runs_on'],
-      ),
-      customScript: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}custom_script'],
-      ),
-      workflowYaml: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}workflow_yaml'],
       ),
       failureSummary: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
@@ -1008,7 +960,7 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
   final String workflowName;
   final String? teamId;
   final String? workflowId;
-  final String? workflowFileName;
+  final String workflowFileName;
   final String? commitSha;
   final String? commitMessage;
   final int? pullRequestNumber;
@@ -1023,8 +975,6 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
   final String? workflowRunId;
   final List<String>? needs;
   final String? runsOn;
-  final String? customScript;
-  final String? workflowYaml;
   final String? failureSummary;
   final String? failureSummaryModel;
   final String? failureSummaryStatus;
@@ -1051,7 +1001,7 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
     required this.workflowName,
     this.teamId,
     this.workflowId,
-    this.workflowFileName,
+    required this.workflowFileName,
     this.commitSha,
     this.commitMessage,
     this.pullRequestNumber,
@@ -1066,8 +1016,6 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
     this.workflowRunId,
     this.needs,
     this.runsOn,
-    this.customScript,
-    this.workflowYaml,
     this.failureSummary,
     this.failureSummaryModel,
     this.failureSummaryStatus,
@@ -1105,9 +1053,7 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
     if (!nullToAbsent || workflowId != null) {
       map['workflow_id'] = Variable<String>(workflowId);
     }
-    if (!nullToAbsent || workflowFileName != null) {
-      map['workflow_file_name'] = Variable<String>(workflowFileName);
-    }
+    map['workflow_file_name'] = Variable<String>(workflowFileName);
     if (!nullToAbsent || commitSha != null) {
       map['commit_sha'] = Variable<String>(commitSha);
     }
@@ -1153,12 +1099,6 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
     }
     if (!nullToAbsent || runsOn != null) {
       map['runs_on'] = Variable<String>(runsOn);
-    }
-    if (!nullToAbsent || customScript != null) {
-      map['custom_script'] = Variable<String>(customScript);
-    }
-    if (!nullToAbsent || workflowYaml != null) {
-      map['workflow_yaml'] = Variable<String>(workflowYaml);
     }
     if (!nullToAbsent || failureSummary != null) {
       map['failure_summary'] = Variable<String>(failureSummary);
@@ -1230,9 +1170,7 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
       workflowId: workflowId == null && nullToAbsent
           ? const Value.absent()
           : Value(workflowId),
-      workflowFileName: workflowFileName == null && nullToAbsent
-          ? const Value.absent()
-          : Value(workflowFileName),
+      workflowFileName: Value(workflowFileName),
       commitSha: commitSha == null && nullToAbsent
           ? const Value.absent()
           : Value(commitSha),
@@ -1275,12 +1213,6 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
       runsOn: runsOn == null && nullToAbsent
           ? const Value.absent()
           : Value(runsOn),
-      customScript: customScript == null && nullToAbsent
-          ? const Value.absent()
-          : Value(customScript),
-      workflowYaml: workflowYaml == null && nullToAbsent
-          ? const Value.absent()
-          : Value(workflowYaml),
       failureSummary: failureSummary == null && nullToAbsent
           ? const Value.absent()
           : Value(failureSummary),
@@ -1349,7 +1281,7 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
       workflowName: serializer.fromJson<String>(json['workflowName']),
       teamId: serializer.fromJson<String?>(json['teamId']),
       workflowId: serializer.fromJson<String?>(json['workflowId']),
-      workflowFileName: serializer.fromJson<String?>(json['workflowFileName']),
+      workflowFileName: serializer.fromJson<String>(json['workflowFileName']),
       commitSha: serializer.fromJson<String?>(json['commitSha']),
       commitMessage: serializer.fromJson<String?>(json['commitMessage']),
       pullRequestNumber: serializer.fromJson<int?>(json['pullRequestNumber']),
@@ -1364,8 +1296,6 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
       workflowRunId: serializer.fromJson<String?>(json['workflowRunId']),
       needs: serializer.fromJson<List<String>?>(json['needs']),
       runsOn: serializer.fromJson<String?>(json['runsOn']),
-      customScript: serializer.fromJson<String?>(json['customScript']),
-      workflowYaml: serializer.fromJson<String?>(json['workflowYaml']),
       failureSummary: serializer.fromJson<String?>(json['failureSummary']),
       failureSummaryModel: serializer.fromJson<String?>(
         json['failureSummaryModel'],
@@ -1407,7 +1337,7 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
       'workflowName': serializer.toJson<String>(workflowName),
       'teamId': serializer.toJson<String?>(teamId),
       'workflowId': serializer.toJson<String?>(workflowId),
-      'workflowFileName': serializer.toJson<String?>(workflowFileName),
+      'workflowFileName': serializer.toJson<String>(workflowFileName),
       'commitSha': serializer.toJson<String?>(commitSha),
       'commitMessage': serializer.toJson<String?>(commitMessage),
       'pullRequestNumber': serializer.toJson<int?>(pullRequestNumber),
@@ -1422,8 +1352,6 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
       'workflowRunId': serializer.toJson<String?>(workflowRunId),
       'needs': serializer.toJson<List<String>?>(needs),
       'runsOn': serializer.toJson<String?>(runsOn),
-      'customScript': serializer.toJson<String?>(customScript),
-      'workflowYaml': serializer.toJson<String?>(workflowYaml),
       'failureSummary': serializer.toJson<String?>(failureSummary),
       'failureSummaryModel': serializer.toJson<String?>(failureSummaryModel),
       'failureSummaryStatus': serializer.toJson<String?>(failureSummaryStatus),
@@ -1455,7 +1383,7 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
     String? workflowName,
     Value<String?> teamId = const Value.absent(),
     Value<String?> workflowId = const Value.absent(),
-    Value<String?> workflowFileName = const Value.absent(),
+    String? workflowFileName,
     Value<String?> commitSha = const Value.absent(),
     Value<String?> commitMessage = const Value.absent(),
     Value<int?> pullRequestNumber = const Value.absent(),
@@ -1470,8 +1398,6 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
     Value<String?> workflowRunId = const Value.absent(),
     Value<List<String>?> needs = const Value.absent(),
     Value<String?> runsOn = const Value.absent(),
-    Value<String?> customScript = const Value.absent(),
-    Value<String?> workflowYaml = const Value.absent(),
     Value<String?> failureSummary = const Value.absent(),
     Value<String?> failureSummaryModel = const Value.absent(),
     Value<String?> failureSummaryStatus = const Value.absent(),
@@ -1498,9 +1424,7 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
     workflowName: workflowName ?? this.workflowName,
     teamId: teamId.present ? teamId.value : this.teamId,
     workflowId: workflowId.present ? workflowId.value : this.workflowId,
-    workflowFileName: workflowFileName.present
-        ? workflowFileName.value
-        : this.workflowFileName,
+    workflowFileName: workflowFileName ?? this.workflowFileName,
     commitSha: commitSha.present ? commitSha.value : this.commitSha,
     commitMessage: commitMessage.present
         ? commitMessage.value
@@ -1523,8 +1447,6 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
         : this.workflowRunId,
     needs: needs.present ? needs.value : this.needs,
     runsOn: runsOn.present ? runsOn.value : this.runsOn,
-    customScript: customScript.present ? customScript.value : this.customScript,
-    workflowYaml: workflowYaml.present ? workflowYaml.value : this.workflowYaml,
     failureSummary: failureSummary.present
         ? failureSummary.value
         : this.failureSummary,
@@ -1600,12 +1522,6 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
           : this.workflowRunId,
       needs: data.needs.present ? data.needs.value : this.needs,
       runsOn: data.runsOn.present ? data.runsOn.value : this.runsOn,
-      customScript: data.customScript.present
-          ? data.customScript.value
-          : this.customScript,
-      workflowYaml: data.workflowYaml.present
-          ? data.workflowYaml.value
-          : this.workflowYaml,
       failureSummary: data.failureSummary.present
           ? data.failureSummary.value
           : this.failureSummary,
@@ -1674,8 +1590,6 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
           ..write('workflowRunId: $workflowRunId, ')
           ..write('needs: $needs, ')
           ..write('runsOn: $runsOn, ')
-          ..write('customScript: $customScript, ')
-          ..write('workflowYaml: $workflowYaml, ')
           ..write('failureSummary: $failureSummary, ')
           ..write('failureSummaryModel: $failureSummaryModel, ')
           ..write('failureSummaryStatus: $failureSummaryStatus, ')
@@ -1722,8 +1636,6 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
     workflowRunId,
     needs,
     runsOn,
-    customScript,
-    workflowYaml,
     failureSummary,
     failureSummaryModel,
     failureSummaryStatus,
@@ -1769,8 +1681,6 @@ class DriftBuildJob extends DataClass implements Insertable<DriftBuildJob> {
           other.workflowRunId == this.workflowRunId &&
           other.needs == this.needs &&
           other.runsOn == this.runsOn &&
-          other.customScript == this.customScript &&
-          other.workflowYaml == this.workflowYaml &&
           other.failureSummary == this.failureSummary &&
           other.failureSummaryModel == this.failureSummaryModel &&
           other.failureSummaryStatus == this.failureSummaryStatus &&
@@ -1799,7 +1709,7 @@ class BuildJobsCompanion extends UpdateCompanion<DriftBuildJob> {
   final Value<String> workflowName;
   final Value<String?> teamId;
   final Value<String?> workflowId;
-  final Value<String?> workflowFileName;
+  final Value<String> workflowFileName;
   final Value<String?> commitSha;
   final Value<String?> commitMessage;
   final Value<int?> pullRequestNumber;
@@ -1814,8 +1724,6 @@ class BuildJobsCompanion extends UpdateCompanion<DriftBuildJob> {
   final Value<String?> workflowRunId;
   final Value<List<String>?> needs;
   final Value<String?> runsOn;
-  final Value<String?> customScript;
-  final Value<String?> workflowYaml;
   final Value<String?> failureSummary;
   final Value<String?> failureSummaryModel;
   final Value<String?> failureSummaryStatus;
@@ -1858,8 +1766,6 @@ class BuildJobsCompanion extends UpdateCompanion<DriftBuildJob> {
     this.workflowRunId = const Value.absent(),
     this.needs = const Value.absent(),
     this.runsOn = const Value.absent(),
-    this.customScript = const Value.absent(),
-    this.workflowYaml = const Value.absent(),
     this.failureSummary = const Value.absent(),
     this.failureSummaryModel = const Value.absent(),
     this.failureSummaryStatus = const Value.absent(),
@@ -1888,7 +1794,7 @@ class BuildJobsCompanion extends UpdateCompanion<DriftBuildJob> {
     required String workflowName,
     this.teamId = const Value.absent(),
     this.workflowId = const Value.absent(),
-    this.workflowFileName = const Value.absent(),
+    required String workflowFileName,
     this.commitSha = const Value.absent(),
     this.commitMessage = const Value.absent(),
     this.pullRequestNumber = const Value.absent(),
@@ -1903,8 +1809,6 @@ class BuildJobsCompanion extends UpdateCompanion<DriftBuildJob> {
     this.workflowRunId = const Value.absent(),
     this.needs = const Value.absent(),
     this.runsOn = const Value.absent(),
-    this.customScript = const Value.absent(),
-    this.workflowYaml = const Value.absent(),
     this.failureSummary = const Value.absent(),
     this.failureSummaryModel = const Value.absent(),
     this.failureSummaryStatus = const Value.absent(),
@@ -1929,6 +1833,7 @@ class BuildJobsCompanion extends UpdateCompanion<DriftBuildJob> {
        owner = Value(owner),
        repo = Value(repo),
        workflowName = Value(workflowName),
+       workflowFileName = Value(workflowFileName),
        createdAt = Value(createdAt),
        updatedAt = Value(updatedAt);
   static Insertable<DriftBuildJob> custom({
@@ -1954,8 +1859,6 @@ class BuildJobsCompanion extends UpdateCompanion<DriftBuildJob> {
     Expression<String>? workflowRunId,
     Expression<String>? needs,
     Expression<String>? runsOn,
-    Expression<String>? customScript,
-    Expression<String>? workflowYaml,
     Expression<String>? failureSummary,
     Expression<String>? failureSummaryModel,
     Expression<String>? failureSummaryStatus,
@@ -1999,8 +1902,6 @@ class BuildJobsCompanion extends UpdateCompanion<DriftBuildJob> {
       if (workflowRunId != null) 'workflow_run_id': workflowRunId,
       if (needs != null) 'needs': needs,
       if (runsOn != null) 'runs_on': runsOn,
-      if (customScript != null) 'custom_script': customScript,
-      if (workflowYaml != null) 'workflow_yaml': workflowYaml,
       if (failureSummary != null) 'failure_summary': failureSummary,
       if (failureSummaryModel != null)
         'failure_summary_model': failureSummaryModel,
@@ -2034,7 +1935,7 @@ class BuildJobsCompanion extends UpdateCompanion<DriftBuildJob> {
     Value<String>? workflowName,
     Value<String?>? teamId,
     Value<String?>? workflowId,
-    Value<String?>? workflowFileName,
+    Value<String>? workflowFileName,
     Value<String?>? commitSha,
     Value<String?>? commitMessage,
     Value<int?>? pullRequestNumber,
@@ -2049,8 +1950,6 @@ class BuildJobsCompanion extends UpdateCompanion<DriftBuildJob> {
     Value<String?>? workflowRunId,
     Value<List<String>?>? needs,
     Value<String?>? runsOn,
-    Value<String?>? customScript,
-    Value<String?>? workflowYaml,
     Value<String?>? failureSummary,
     Value<String?>? failureSummaryModel,
     Value<String?>? failureSummaryStatus,
@@ -2094,8 +1993,6 @@ class BuildJobsCompanion extends UpdateCompanion<DriftBuildJob> {
       workflowRunId: workflowRunId ?? this.workflowRunId,
       needs: needs ?? this.needs,
       runsOn: runsOn ?? this.runsOn,
-      customScript: customScript ?? this.customScript,
-      workflowYaml: workflowYaml ?? this.workflowYaml,
       failureSummary: failureSummary ?? this.failureSummary,
       failureSummaryModel: failureSummaryModel ?? this.failureSummaryModel,
       failureSummaryStatus: failureSummaryStatus ?? this.failureSummaryStatus,
@@ -2194,12 +2091,6 @@ class BuildJobsCompanion extends UpdateCompanion<DriftBuildJob> {
     if (runsOn.present) {
       map['runs_on'] = Variable<String>(runsOn.value);
     }
-    if (customScript.present) {
-      map['custom_script'] = Variable<String>(customScript.value);
-    }
-    if (workflowYaml.present) {
-      map['workflow_yaml'] = Variable<String>(workflowYaml.value);
-    }
     if (failureSummary.present) {
       map['failure_summary'] = Variable<String>(failureSummary.value);
     }
@@ -2295,8 +2186,6 @@ class BuildJobsCompanion extends UpdateCompanion<DriftBuildJob> {
           ..write('workflowRunId: $workflowRunId, ')
           ..write('needs: $needs, ')
           ..write('runsOn: $runsOn, ')
-          ..write('customScript: $customScript, ')
-          ..write('workflowYaml: $workflowYaml, ')
           ..write('failureSummary: $failureSummary, ')
           ..write('failureSummaryModel: $failureSummaryModel, ')
           ..write('failureSummaryStatus: $failureSummaryStatus, ')
@@ -7343,7 +7232,7 @@ typedef $$BuildJobsTableCreateCompanionBuilder =
       required String workflowName,
       Value<String?> teamId,
       Value<String?> workflowId,
-      Value<String?> workflowFileName,
+      required String workflowFileName,
       Value<String?> commitSha,
       Value<String?> commitMessage,
       Value<int?> pullRequestNumber,
@@ -7358,8 +7247,6 @@ typedef $$BuildJobsTableCreateCompanionBuilder =
       Value<String?> workflowRunId,
       Value<List<String>?> needs,
       Value<String?> runsOn,
-      Value<String?> customScript,
-      Value<String?> workflowYaml,
       Value<String?> failureSummary,
       Value<String?> failureSummaryModel,
       Value<String?> failureSummaryStatus,
@@ -7389,7 +7276,7 @@ typedef $$BuildJobsTableUpdateCompanionBuilder =
       Value<String> workflowName,
       Value<String?> teamId,
       Value<String?> workflowId,
-      Value<String?> workflowFileName,
+      Value<String> workflowFileName,
       Value<String?> commitSha,
       Value<String?> commitMessage,
       Value<int?> pullRequestNumber,
@@ -7404,8 +7291,6 @@ typedef $$BuildJobsTableUpdateCompanionBuilder =
       Value<String?> workflowRunId,
       Value<List<String>?> needs,
       Value<String?> runsOn,
-      Value<String?> customScript,
-      Value<String?> workflowYaml,
       Value<String?> failureSummary,
       Value<String?> failureSummaryModel,
       Value<String?> failureSummaryStatus,
@@ -7573,16 +7458,6 @@ class $$BuildJobsTableFilterComposer
 
   ColumnFilters<String> get runsOn => $composableBuilder(
     column: $table.runsOn,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get customScript => $composableBuilder(
-    column: $table.customScript,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get workflowYaml => $composableBuilder(
-    column: $table.workflowYaml,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -7822,16 +7697,6 @@ class $$BuildJobsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<String> get customScript => $composableBuilder(
-    column: $table.customScript,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get workflowYaml => $composableBuilder(
-    column: $table.workflowYaml,
-    builder: (column) => ColumnOrderings(column),
-  );
-
   ColumnOrderings<String> get failureSummary => $composableBuilder(
     column: $table.failureSummary,
     builder: (column) => ColumnOrderings(column),
@@ -8016,16 +7881,6 @@ class $$BuildJobsTableAnnotationComposer
   GeneratedColumn<String> get runsOn =>
       $composableBuilder(column: $table.runsOn, builder: (column) => column);
 
-  GeneratedColumn<String> get customScript => $composableBuilder(
-    column: $table.customScript,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<String> get workflowYaml => $composableBuilder(
-    column: $table.workflowYaml,
-    builder: (column) => column,
-  );
-
   GeneratedColumn<String> get failureSummary => $composableBuilder(
     column: $table.failureSummary,
     builder: (column) => column,
@@ -8164,7 +8019,7 @@ class $$BuildJobsTableTableManager
                 Value<String> workflowName = const Value.absent(),
                 Value<String?> teamId = const Value.absent(),
                 Value<String?> workflowId = const Value.absent(),
-                Value<String?> workflowFileName = const Value.absent(),
+                Value<String> workflowFileName = const Value.absent(),
                 Value<String?> commitSha = const Value.absent(),
                 Value<String?> commitMessage = const Value.absent(),
                 Value<int?> pullRequestNumber = const Value.absent(),
@@ -8179,8 +8034,6 @@ class $$BuildJobsTableTableManager
                 Value<String?> workflowRunId = const Value.absent(),
                 Value<List<String>?> needs = const Value.absent(),
                 Value<String?> runsOn = const Value.absent(),
-                Value<String?> customScript = const Value.absent(),
-                Value<String?> workflowYaml = const Value.absent(),
                 Value<String?> failureSummary = const Value.absent(),
                 Value<String?> failureSummaryModel = const Value.absent(),
                 Value<String?> failureSummaryStatus = const Value.absent(),
@@ -8223,8 +8076,6 @@ class $$BuildJobsTableTableManager
                 workflowRunId: workflowRunId,
                 needs: needs,
                 runsOn: runsOn,
-                customScript: customScript,
-                workflowYaml: workflowYaml,
                 failureSummary: failureSummary,
                 failureSummaryModel: failureSummaryModel,
                 failureSummaryStatus: failureSummaryStatus,
@@ -8254,7 +8105,7 @@ class $$BuildJobsTableTableManager
                 required String workflowName,
                 Value<String?> teamId = const Value.absent(),
                 Value<String?> workflowId = const Value.absent(),
-                Value<String?> workflowFileName = const Value.absent(),
+                required String workflowFileName,
                 Value<String?> commitSha = const Value.absent(),
                 Value<String?> commitMessage = const Value.absent(),
                 Value<int?> pullRequestNumber = const Value.absent(),
@@ -8269,8 +8120,6 @@ class $$BuildJobsTableTableManager
                 Value<String?> workflowRunId = const Value.absent(),
                 Value<List<String>?> needs = const Value.absent(),
                 Value<String?> runsOn = const Value.absent(),
-                Value<String?> customScript = const Value.absent(),
-                Value<String?> workflowYaml = const Value.absent(),
                 Value<String?> failureSummary = const Value.absent(),
                 Value<String?> failureSummaryModel = const Value.absent(),
                 Value<String?> failureSummaryStatus = const Value.absent(),
@@ -8313,8 +8162,6 @@ class $$BuildJobsTableTableManager
                 workflowRunId: workflowRunId,
                 needs: needs,
                 runsOn: runsOn,
-                customScript: customScript,
-                workflowYaml: workflowYaml,
                 failureSummary: failureSummary,
                 failureSummaryModel: failureSummaryModel,
                 failureSummaryStatus: failureSummaryStatus,

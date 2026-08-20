@@ -38,7 +38,7 @@ class BuildJobs extends Table {
   TextColumn get workflowName => text()();
   TextColumn get teamId => text().nullable()();
   TextColumn get workflowId => text().nullable()();
-  TextColumn get workflowFileName => text().nullable()();
+  TextColumn get workflowFileName => text()();
   TextColumn get commitSha => text().nullable()();
   TextColumn get commitMessage => text().nullable()();
   IntColumn get pullRequestNumber => integer().nullable()();
@@ -54,8 +54,6 @@ class BuildJobs extends Table {
   TextColumn get workflowRunId => text().nullable()();
   TextColumn get needs => text().map(const StringListConverter()).nullable()();
   TextColumn get runsOn => text().nullable()();
-  TextColumn get customScript => text().nullable()();
-  TextColumn get workflowYaml => text().nullable()();
 
   TextColumn get failureSummary => text().nullable()();
   TextColumn get failureSummaryModel => text().nullable()();

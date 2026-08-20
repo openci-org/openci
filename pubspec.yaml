@@ -6,8 +6,12 @@ environment:
 
 workspace:
   - apps/dashboard
-  - apps/openci_build_job_processor
+  - apps/github_webhook_processor
+  - apps/build_job_dispatcher
+  - apps/build_job_executor
   - apps/openci_server
+  - genuine_ci
+  - packages/genuine_ci
   - packages/macos_updater
   - packages/openci_shared
   - packages/pubspec_version_hook

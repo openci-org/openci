@@ -18,14 +18,21 @@ Future<Response> onRequest(RequestContext context) async {
     }
 
     final userId =
-        bodyJson['userId'] as String? ?? bodyJson['userUid'] as String?;
+        bodyJson['userId'] as String? ??
+        bodyJson['userUid'] as String? ??
+        'test-user-id';
     final teamId = bodyJson['teamId'] as String? ?? 'test-team';
     final teamName = bodyJson['name'] as String? ?? 'Test Team';
+    final rawInstallationId = bodyJson['installationId'];
+    final installationId = rawInstallationId is int
+        ? rawInstallationId
+        : int.tryParse(rawInstallationId?.toString() ?? '') ?? 12345678;
 
     await db.seedDao.ensureTestTeam(
       teamId: teamId,
       name: teamName,
       userId: userId,
+      installationId: installationId,
     );
 
     return Response.json(
@@ -34,7 +41,8 @@ Future<Response> onRequest(RequestContext context) async {
         'message': 'Test team seeded successfully',
         'teamId': teamId,
         'name': teamName,
-        if (userId != null) 'userId': userId,
+        'userId': userId,
+        'installationId': installationId,
       },
     );
   } catch (e) {

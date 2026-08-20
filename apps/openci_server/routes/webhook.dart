@@ -4,7 +4,6 @@ import 'dart:io';
 import 'package:crypto/crypto.dart';
 import 'package:dart_frog/dart_frog.dart';
 import 'package:openci_server/database.dart';
-import 'package:openci_server/webhook_task/webhook_task_worker.dart';
 import 'package:openci_shared/openci_shared.dart';
 import 'package:uuid/uuid.dart';
 
@@ -130,9 +129,6 @@ Future<Response> onRequest(RequestContext context) async {
       },
     );
   }
-
-  // 3. Ping the background worker stream
-  webhookTaskController.add(null);
 
   return Response.json(
     body: {

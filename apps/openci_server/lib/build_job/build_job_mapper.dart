@@ -133,7 +133,7 @@ List<CicdCommitGroup> groupBuildJobsToCommitGroups(List<BuildJob> jobs) {
 
     final jobsByWorkflow = <String, List<BuildJob>>{};
     for (final job in commitJobs) {
-      final wfName = job.workflowFileName ?? job.workflowName;
+      final wfName = job.workflowFileName;
       jobsByWorkflow.putIfAbsent(wfName, () => []).add(job);
     }
 
