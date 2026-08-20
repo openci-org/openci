@@ -47,13 +47,15 @@ class RunBuildJob {
     final commandScript = [
       'set -e',
       'export HOME=/Users/admin',
-      'export PATH="/Users/admin/flutter/bin:/opt/homebrew/bin:\$PATH"',
+      'export FLUTTER_ROOT="/Users/admin/fvm/default"',
+      'export PATH="/Users/admin/fvm/default/bin:/Users/admin/.pub-cache/bin:/opt/homebrew/bin:/usr/local/bin:\$PATH"',
       if (runId != null && runId.isNotEmpty)
         'export GENUINE_CI_RUN_ID="$runId"',
       'export GENUINE_CI_BUILD_JOB_ID="${job.id}"',
       'export LOKI_URL="$lokiUrl"',
       'cd /tmp/workspace',
-      'dart run $targetScript',
+      'flutter pub get',
+      'flutter pub run $targetScript',
     ].join('\n');
 
     try {
