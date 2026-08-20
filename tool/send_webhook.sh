@@ -23,7 +23,7 @@ INSTALLATION_ID="153083749"
 PR_NUMBER=1
 BASE_BRANCH="develop"
 HEAD_BRANCH="feature/awesome-feature"
-COMMIT_SHA="main"
+COMMIT_SHA="develop"
 PR_TITLE="feat: simulate GitHub PR opened event from local"
 
 DELIVERY_ID="delivery-$(date +%s)"
