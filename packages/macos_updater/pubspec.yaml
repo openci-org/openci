@@ -4,7 +4,7 @@ version: 0.0.1
 homepage: https://github.com/openci-org/openci
 
 environment:
-  sdk: 3.11.5
+  sdk: ^3.11.5
   flutter: ">=3.41.0"
 
 resolution: workspace
