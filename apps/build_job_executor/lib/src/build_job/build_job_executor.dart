@@ -44,6 +44,7 @@ class BuildJobExecutor {
       runBuildJob: RunBuildJob(
         apiService: apiService,
         orchardVmService: vmService,
+        lokiUrl: config.lokiUrl,
       ),
       cleanupWorkspace: CleanupBuildJobWorkspace(
         apiService: apiService,

@@ -160,6 +160,11 @@ class LokiService {
               final stepData = jsonDecode(rawJson) as Map<String, dynamic>;
               final id = stepData['id'] as String?;
               if (id != null && id.isNotEmpty) {
+                // Normalize status if needed (e.g. RUNNING -> IN_PROGRESS)
+                final rawStatus = stepData['status']?.toString().toUpperCase();
+                if (rawStatus == 'RUNNING') {
+                  stepData['status'] = 'IN_PROGRESS';
+                }
                 // 最新のステータス情報で上書き更新
                 stepsById[id] = stepData;
               }

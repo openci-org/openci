@@ -9,11 +9,13 @@ class RunBuildJob {
   RunBuildJob({
     required OpenCiApiService apiService,
     required OrchardVmService orchardVmService,
+    this.lokiUrl = 'http://192.168.64.1:3100',
   }) : _apiService = apiService,
        _orchardVmService = orchardVmService;
 
   final OpenCiApiService _apiService;
   final OrchardVmService _orchardVmService;
+  final String lokiUrl;
   final _log = Logger('RunBuildJob');
 
   Future<BuildJobStatus> call({
@@ -32,6 +34,7 @@ class RunBuildJob {
       if (runId != null && runId.isNotEmpty)
         'export GENUINE_CI_RUN_ID="$runId"',
       'export GENUINE_CI_BUILD_JOB_ID="${job.id}"',
+      'export LOKI_URL="$lokiUrl"',
       'cd /tmp/workspace',
       'dart run $targetScript',
     ].join('\n');

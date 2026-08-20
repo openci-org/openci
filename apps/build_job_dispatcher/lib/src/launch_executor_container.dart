@@ -7,13 +7,16 @@ final _log = Logger('LaunchExecutorContainer');
 
 Future<void> launchExecutorContainer(
   BuildJob buildJob, {
-  String serviceName = 'job-processor',
+  String serviceName = 'build-job-executor',
 }) async {
-  final containerName = 'openci-executor-${buildJob.id}';
+  final containerName = 'openci-build-job-executor-${buildJob.id}';
 
   final args = <String>[
     'compose',
+    '-p',
+    'openci',
     'run',
+    '--no-deps',
     '-d',
     '--rm',
     '--name',

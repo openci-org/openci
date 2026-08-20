@@ -53,7 +53,7 @@ Future<void> dispatchBuildJob(Config config) async {
     } catch (e, s) {
       _log.severe('Error claiming/dispatching job: $e', e, s);
       unawaited(Sentry.captureException(e, stackTrace: s));
-      rethrow;
+      await Future<void>.delayed(const Duration(seconds: 5));
     }
   }
 }

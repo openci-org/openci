@@ -75,16 +75,18 @@ services:
       server:
         condition: service_healthy
 
-  job-dispatcher:
+  build-job-dispatcher:
     build:
       context: .
       dockerfile: apps/build_job_dispatcher/Dockerfile
-    container_name: openci-job-dispatcher
+    container_name: openci-build-job-dispatcher
+    image: openci-build-job-dispatcher
     restart: unless-stopped
     environment:
       OPENCI_SERVER_URL: http://server:8080
       INTERNAL_API_KEY: ${INTERNAL_API_KEY:?INTERNAL_API_KEY environment variable is required}
-      SENTRY_DSN: ${SENTRY_DSN_JOB_DISPATCHER:-}
+      SENTRY_DSN: ${SENTRY_DSN_BUILD_JOB_DISPATCHER:-}
+      HOST_HOME: ${HOME}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./docker-compose.yml:/app/docker-compose.yml:ro
@@ -93,23 +95,26 @@ services:
       server:
         condition: service_healthy
 
-  job-processor:
+  build-job-executor:
     build:
       context: .
       dockerfile: apps/build_job_executor/Dockerfile
+    image: openci-build-job-executor
     profiles:
       - donotstart
     environment:
       OPENCI_SERVER_URL: http://server:8080
-      BASE_VM_NAME: ${BASE_VM_NAME:-tahoe-base}
+      BASE_VM_NAME: ${BASE_VM_NAME:-base-macos}
 
       LOKI_URL: http://loki:3100
 
       INTERNAL_API_KEY: ${INTERNAL_API_KEY:?INTERNAL_API_KEY environment variable is required}
 
-      SENTRY_DSN: ${SENTRY_DSN_JOB_PROCESSOR:-}
+      ORCHARD_API_URL: ${ORCHARD_API_URL:-https://orchard-controller:6120}
+
+      SENTRY_DSN: ${SENTRY_DSN_BUILD_JOB_EXECUTOR:-}
     volumes:
-      - ~/.orchard:/home/appuser/.orchard:ro
+      - ${HOST_HOME:-~}/.orchard:/home/appuser/.orchard:ro
     depends_on:
       - server
       - orchard-controller
@@ -132,6 +137,8 @@ services:
     restart: unless-stopped
     expose:
       - "3100"
+    ports:
+      - "3100:3100"
     command: -config.file=/etc/loki/local-config.yaml
     volumes:
       - loki_data:/tmp/loki

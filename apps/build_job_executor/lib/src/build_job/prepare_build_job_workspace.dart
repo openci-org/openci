@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:logging/logging.dart';
+import 'package:build_job_executor/src/loki/loki_logger.dart';
 import 'package:build_job_executor/src/orchard/orchard_vm_service.dart';
 import 'package:build_job_executor/src/config.dart';
 import 'package:openci_shared/openci_shared.dart';
@@ -12,13 +13,16 @@ class PrepareBuildJobWorkspace {
     required OpenCiApiService apiService,
     required OrchardVmService orchardVmService,
     required Config config,
+    LokiLogger? lokiLogger,
   }) : _apiService = apiService,
        _orchardVmService = orchardVmService,
-       _config = config;
+       _config = config,
+       _lokiLogger = lokiLogger ?? LokiLogger(lokiUrl: config.internalLokiUrl);
 
   final OpenCiApiService _apiService;
   final OrchardVmService _orchardVmService;
   final Config _config;
+  final LokiLogger _lokiLogger;
   final _log = Logger('PrepareBuildJobWorkspace');
 
   Future<void> call({
@@ -39,32 +43,118 @@ class PrepareBuildJobWorkspace {
       randomizationFactor: 0.2,
     );
 
+    final prepareStopwatch = Stopwatch()..start();
     _log.info('[$vmName] Preparing VM via Orchard...');
-    await retryOptions.retry(
-      () async {
-        await _prepareVm(
-          baseVmName: _config.baseVmName,
-          vmName: vmName,
-          onVmCreated: onVmCreated,
-        );
-      },
-      onRetry: (e) async {
-        _log.warning('[$vmName] VM preparation failed: $e. Retrying in 15s...');
-        try {
-          await _orchardVmService.cleanup(vmName);
-        } catch (cleanupErr, cleanupStack) {
-          _log.warning(
-            '[$vmName] Cleanup failed during retry prep: $cleanupErr',
-          );
-          unawaited(
-            Sentry.captureException(cleanupErr, stackTrace: cleanupStack),
-          );
-        }
-      },
+    await _lokiLogger.pushStepEvent(
+      runId: runId,
+      jobId: job.id,
+      stepId: 'prepare_vm',
+      name: 'Set up VM',
+      status: BuildJobStatus.IN_PROGRESS.name,
+      stepOrder: 0,
     );
+    await _lokiLogger.pushLog(
+      runId: runId,
+      jobId: job.id,
+      message: 'Preparing macOS VM via Orchard...',
+      stepId: 'prepare_vm',
+    );
+    try {
+      await retryOptions.retry(
+        () async {
+          await _prepareVm(
+            baseVmName: _config.baseVmName,
+            vmName: vmName,
+            onVmCreated: onVmCreated,
+          );
+        },
+        onRetry: (e) async {
+          _log.warning('[$vmName] VM preparation failed: $e. Retrying in 15s...');
+          await _lokiLogger.pushLog(
+            runId: runId,
+            jobId: job.id,
+            message: 'VM preparation failed: $e. Retrying in 15s...',
+            stepId: 'prepare_vm',
+            stream: 'stderr',
+          );
+          try {
+            await _orchardVmService.cleanup(vmName);
+          } catch (cleanupErr, cleanupStack) {
+            _log.warning(
+              '[$vmName] Cleanup failed during retry prep: $cleanupErr',
+            );
+            unawaited(
+              Sentry.captureException(cleanupErr, stackTrace: cleanupStack),
+            );
+          }
+        },
+      );
+      await _lokiLogger.pushStepEvent(
+        runId: runId,
+        jobId: job.id,
+        stepId: 'prepare_vm',
+        name: 'Set up VM',
+        status: 'SUCCESS',
+        stepOrder: 0,
+        durationMs: prepareStopwatch.elapsedMilliseconds,
+      );
+    } catch (e) {
+      await _lokiLogger.pushStepEvent(
+        runId: runId,
+        jobId: job.id,
+        stepId: 'prepare_vm',
+        name: 'Set up VM',
+        status: 'FAILURE',
+        stepOrder: 0,
+        durationMs: prepareStopwatch.elapsedMilliseconds,
+      );
+      rethrow;
+    }
 
+    final checkoutStopwatch = Stopwatch()..start();
     _log.info('[$vmName] Checking out repository ${job.owner}/${job.repo}...');
-    await _checkoutRepository(vmName: vmName, job: job, token: token);
+    await _lokiLogger.pushStepEvent(
+      runId: runId,
+      jobId: job.id,
+      stepId: 'checkout',
+      name: 'Checkout Repository',
+      status: BuildJobStatus.IN_PROGRESS.name,
+      stepOrder: 1,
+    );
+    await _lokiLogger.pushLog(
+      runId: runId,
+      jobId: job.id,
+      message: 'Checking out repository ${job.owner}/${job.repo}...',
+      stepId: 'checkout',
+    );
+    try {
+      await _checkoutRepository(
+        vmName: vmName,
+        job: job,
+        token: token,
+        runId: runId,
+      );
+      await _lokiLogger.pushStepEvent(
+        runId: runId,
+        jobId: job.id,
+        stepId: 'checkout',
+        name: 'Checkout Repository',
+        status: 'SUCCESS',
+        stepOrder: 1,
+        durationMs: checkoutStopwatch.elapsedMilliseconds,
+      );
+    } catch (e) {
+      await _lokiLogger.pushStepEvent(
+        runId: runId,
+        jobId: job.id,
+        stepId: 'checkout',
+        name: 'Checkout Repository',
+        status: 'FAILURE',
+        stepOrder: 1,
+        durationMs: checkoutStopwatch.elapsedMilliseconds,
+      );
+      rethrow;
+    }
   }
 
   Future<void> _prepareVm({
@@ -84,6 +174,7 @@ class PrepareBuildJobWorkspace {
     required String vmName,
     required BuildJob job,
     required String token,
+    required String runId,
   }) async {
     final baseUrl = job.githubBaseUrl ?? 'https://github.com';
     final repoHost = baseUrl.replaceFirst(RegExp(r'^https?://'), '');
@@ -115,11 +206,27 @@ git checkout FETCH_HEAD
     final exitCode = await _orchardVmService.executeCommandStreaming(
       containerName: vmName,
       command: ['/bin/sh', '-c', checkoutScript],
-      onLog: (line) => _log.fine('[$vmName][checkout] $line'),
+      onLog: (line) {
+        _log.fine('[$vmName][checkout] $line');
+        _lokiLogger.pushLog(
+          runId: runId,
+          jobId: job.id,
+          message: line,
+          stepId: 'checkout',
+          command: 'git checkout',
+        );
+      },
       isCancelled: () async => false,
     );
 
     if (exitCode != 0) {
+      await _lokiLogger.pushLog(
+        runId: runId,
+        jobId: job.id,
+        message: 'Git checkout failed with exit code $exitCode',
+        stepId: 'checkout',
+        stream: 'stderr',
+      );
       throw StateError('Git checkout failed with exit code $exitCode');
     }
   }
