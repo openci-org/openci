@@ -1,7 +1,5 @@
 import 'package:genuine_ci/genuine_ci.dart';
 
-import 'secrets.g.dart';
-
 Future<void> main() async {
   final genuineCI = await GenuineCI.init(
     workflowName: 'Dashboard CI',
@@ -9,6 +7,4 @@ Future<void> main() async {
   );
 
   await FlutterCi.staticAnalysis(genuineCI.workspacePath);
-
-  final ascKey = Secrets.ascKey;
 }
