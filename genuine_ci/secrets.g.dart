@@ -7,9 +7,9 @@ import 'dart:io';
 abstract final class Secrets {
   const Secrets._();
 
-  /// Secret key: `FIREBASE_TOKEN`
-  static String get firebaseToken =>
-      Platform.environment['FIREBASE_TOKEN'] ??
-      (throw StateError('Secret "FIREBASE_TOKEN" is not set in environment.'));
+  /// Secret key: `ASC_KEY`
+  static String get ascKey =>
+      Platform.environment['ASC_KEY'] ??
+      (throw StateError("Secret 'ASC_KEY' is not set in environment."));
 
 }

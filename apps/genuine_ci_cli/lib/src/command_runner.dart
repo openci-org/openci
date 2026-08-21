@@ -1,7 +1,9 @@
 import 'package:args/args.dart';
 import 'package:args/command_runner.dart';
 import 'package:cli_completion/cli_completion.dart';
+import 'package:genuine_ci_cli/src/api/api_service_factory.dart';
 import 'package:genuine_ci_cli/src/commands/commands.dart';
+import 'package:genuine_ci_cli/src/config/config_storage.dart';
 import 'package:genuine_ci_cli/src/version.dart';
 import 'package:mason_logger/mason_logger.dart';
 import 'package:pub_updater/pub_updater.dart';
@@ -19,10 +21,15 @@ const description = 'GenuineCI CLI';
 /// {@endtemplate}
 class GenuineCiCliCommandRunner extends CompletionCommandRunner<int> {
   /// {@macro genuine_ci_cli_command_runner}
-  GenuineCiCliCommandRunner({Logger? logger, PubUpdater? pubUpdater})
-    : _logger = logger ?? Logger(),
-      _pubUpdater = pubUpdater ?? PubUpdater(),
-      super(executableName, description) {
+  GenuineCiCliCommandRunner({
+    Logger? logger,
+    PubUpdater? pubUpdater,
+    ConfigStorage? configStorage,
+    ApiServiceFactory? apiServiceFactory,
+  }) : _logger = logger ?? Logger(),
+       _pubUpdater = pubUpdater ?? PubUpdater(),
+       _configStorage = configStorage ?? ConfigStorage(),
+       super(executableName, description) {
     // Add root options and flags
     argParser
       ..addFlag(
@@ -34,10 +41,36 @@ class GenuineCiCliCommandRunner extends CompletionCommandRunner<int> {
       ..addFlag(
         'verbose',
         help: 'Noisy logging, including all shell commands executed.',
+      )
+      ..addOption(
+        'server-url',
+        help: 'Override OpenCI Server URL',
+      )
+      ..addOption(
+        'token',
+        help: 'Override API Token or Key',
+      )
+      ..addOption(
+        'team-id',
+        help: 'Override Team ID',
       );
 
     // Add sub commands
-    addCommand(SampleCommand(logger: _logger));
+    addCommand(LoginCommand(logger: _logger, configStorage: _configStorage));
+    addCommand(
+      RegisterCommand(
+        logger: _logger,
+        configStorage: _configStorage,
+        apiServiceFactory: apiServiceFactory,
+      ),
+    );
+    addCommand(
+      SyncCommand(
+        logger: _logger,
+        configStorage: _configStorage,
+        apiServiceFactory: apiServiceFactory,
+      ),
+    );
     addCommand(UpdateCommand(logger: _logger, pubUpdater: _pubUpdater));
   }
 
@@ -46,6 +79,7 @@ class GenuineCiCliCommandRunner extends CompletionCommandRunner<int> {
 
   final Logger _logger;
   final PubUpdater _pubUpdater;
+  final ConfigStorage _configStorage;
 
   @override
   Future<int> run(Iterable<String> args) async {

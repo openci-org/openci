@@ -11,8 +11,9 @@ import 'package:pub_updater/pub_updater.dart';
 /// {@endtemplate}
 class UpdateCommand extends Command<int> {
   /// {@macro update_command}
-  UpdateCommand({required this._logger, PubUpdater? pubUpdater})
-    : _pubUpdater = pubUpdater ?? PubUpdater();
+  UpdateCommand({required Logger logger, PubUpdater? pubUpdater})
+      : _logger = logger,
+        _pubUpdater = pubUpdater ?? PubUpdater();
 
   final Logger _logger;
   final PubUpdater _pubUpdater;
