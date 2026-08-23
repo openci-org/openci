@@ -44,6 +44,23 @@ class RunBuildJob {
       );
     }
 
+    try {
+      final secretsRes = await _apiService.getJobSecrets(job.id);
+      if (secretsRes.isSuccessful) {
+        final secretsContent =
+            secretsRes.body?['secretsContent'] as String? ?? '';
+        if (secretsContent.isNotEmpty) {
+          await _orchardVmService.writeFile(
+            vmName,
+            '/tmp/workspace/.env',
+            secretsContent,
+          );
+        }
+      }
+    } catch (e) {
+      _log.warning('[$vmName] Failed to fetch secrets for job: $e');
+    }
+
     final commandScript = [
       'set -e',
       'export HOME=/Users/admin',
@@ -54,6 +71,7 @@ class RunBuildJob {
       'export GENUINE_CI_BUILD_JOB_ID="${job.id}"',
       'export LOKI_URL="$lokiUrl"',
       'cd /tmp/workspace',
+      'if [ -f .env ]; then set -a; . ./.env; set +a; fi',
       'flutter pub get',
       'flutter pub run $targetScript',
     ].join('\n');
