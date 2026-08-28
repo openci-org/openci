@@ -83,7 +83,9 @@ Middleware authProvider(FirebaseApp? firebaseApp, {bool allowTestUid = false}) {
       final internalApiKey = env['INTERNAL_API_KEY'];
 
       String? token;
-      final authHeader = context.request.headers['Authorization'];
+      final authHeader =
+          context.request.headers['authorization'] ??
+          context.request.headers['Authorization'];
       if (authHeader != null && authHeader.startsWith('Bearer ')) {
         token = authHeader.substring(7);
       } else {
@@ -120,7 +122,7 @@ Middleware authProvider(FirebaseApp? firebaseApp, {bool allowTestUid = false}) {
           token,
           checkRevoked: false,
         );
-        return handler(context.provide<String?>(() => decodedToken.uid));
+        return await handler(context.provide<String?>(() => decodedToken.uid));
       } catch (e) {
         stderr.writeln('Token verification failed: $e');
         return handler(context.provide<String?>(() => null));

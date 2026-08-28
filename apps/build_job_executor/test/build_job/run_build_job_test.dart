@@ -16,6 +16,14 @@ void main() {
   setUp(() {
     mockApiService = MockOpenCiApiService();
     mockOrchardVmService = MockOrchardVmService();
+    when(
+      () => mockOrchardVmService.writeFile(
+        any(),
+        any(),
+        any(),
+        mode: any(named: 'mode'),
+      ),
+    ).thenAnswer((_) async {});
     runner = RunBuildJob(
       apiService: mockApiService,
       orchardVmService: mockOrchardVmService,
@@ -24,7 +32,7 @@ void main() {
 
   group('RunBuildJob', () {
     test(
-      'executes dart run genuine_ci/<workflowFileName> with exit code 0 and returns SUCCESS',
+      'executes flutter pub run genuine_ci/<workflowFileName> with exit code 0 and returns SUCCESS',
       () async {
         final now = DateTime.now();
         final job = BuildJob(
@@ -38,7 +46,18 @@ void main() {
           updatedAt: now,
         );
 
-        String? executedCommand;
+        String? writtenScript;
+
+        when(
+          () => mockOrchardVmService.writeFile(
+            'openci-vm-123',
+            '/tmp/run_workflow.sh',
+            any(),
+            mode: '+x',
+          ),
+        ).thenAnswer((invocation) async {
+          writtenScript = invocation.positionalArguments[2] as String;
+        });
 
         when(
           () => mockOrchardVmService.executeCommandStreaming(
@@ -47,11 +66,7 @@ void main() {
             onLog: any(named: 'onLog'),
             isCancelled: any(named: 'isCancelled'),
           ),
-        ).thenAnswer((invocation) async {
-          final cmdList = invocation.namedArguments[#command] as List<String>;
-          executedCommand = cmdList.last;
-          return 0;
-        });
+        ).thenAnswer((_) async => 0);
 
         final result = await runner(
           job: job,
@@ -60,14 +75,26 @@ void main() {
         );
 
         expect(result, equals(BuildJobStatus.SUCCESS));
-        expect(executedCommand, contains('export GENUINE_CI_RUN_ID="run-456"'));
+        expect(writtenScript, contains('export GENUINE_CI_RUN_ID="run-456"'));
         expect(
-          executedCommand,
+          writtenScript,
           contains('export GENUINE_CI_BUILD_JOB_ID="job-123"'),
         );
         expect(
-          executedCommand,
-          contains('dart run genuine_ci/dashboard_ci.dart'),
+          writtenScript,
+          contains('export FLUTTER_ROOT="/Users/admin/fvm/default"'),
+        );
+        expect(
+          writtenScript,
+          contains('export PATH="/Users/admin/fvm/default/bin:'),
+        );
+        expect(
+          writtenScript,
+          contains('flutter pub get'),
+        );
+        expect(
+          writtenScript,
+          contains('flutter pub run genuine_ci/dashboard_ci.dart'),
         );
       },
     );

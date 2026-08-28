@@ -1,0 +1,10 @@
+{
+  "task-notifier": {
+    "Stop": [
+      {
+        "type": "command",
+        "command": "bash ./scripts/notify_completion.sh"
+      }
+    ]
+  }
+}

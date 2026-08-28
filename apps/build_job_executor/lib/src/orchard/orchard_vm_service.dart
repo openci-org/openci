@@ -42,7 +42,7 @@ class OrchardVmService {
     final targetId = lease?.id.isNotEmpty == true ? lease!.id : containerName;
     try {
       await apiClient.deleteLease(targetId);
-    } catch (e, _) {
+    } catch (e) {
       throw Exception('Failed to cleanup VMs: $e');
     }
   }
