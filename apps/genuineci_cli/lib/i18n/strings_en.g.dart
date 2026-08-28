@@ -42,6 +42,7 @@ class Translations with BaseTranslations<AppLocale, Translations> {
 	// Translations
 	late final Translations$cli$en cli = Translations$cli$en._(_root);
 	late final Translations$login$en login = Translations$login$en._(_root);
+	late final Translations$use$en use = Translations$use$en._(_root);
 	late final Translations$common$en common = Translations$common$en._(_root);
 }
 
@@ -80,6 +81,24 @@ class Translations$login$en {
 
 	/// en: 'Successfully saved credentials for profile "${profile}".'
 	String savedSuccess({required Object profile}) => 'Successfully saved credentials for profile "${profile}".';
+}
+
+// Path: use
+class Translations$use$en {
+	Translations$use$en._(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// en: 'Set the default display language (japanese, english).'
+	String get description => 'Set the default display language (japanese, english).';
+
+	/// en: 'Language set to ${language}.'
+	String success({required Object language}) => 'Language set to ${language}.';
+
+	/// en: 'Invalid language "${input}". Supported languages: japanese, english.'
+	String invalidLanguage({required Object input}) => 'Invalid language "${input}". Supported languages: japanese, english.';
 }
 
 // Path: common
@@ -149,6 +168,9 @@ extension on Translations {
 			'login.flags.profile' => 'Profile name to store credentials under.',
 			'login.loggingIn' => 'Logging in to GenuineCI...',
 			'login.savedSuccess' => ({required Object profile}) => 'Successfully saved credentials for profile "${profile}".',
+			'use.description' => 'Set the default display language (japanese, english).',
+			'use.success' => ({required Object language}) => 'Language set to ${language}.',
+			'use.invalidLanguage' => ({required Object input}) => 'Invalid language "${input}". Supported languages: japanese, english.',
 			'common.error' => ({required Object error}) => 'Error: ${error}',
 			_ => null,
 		};

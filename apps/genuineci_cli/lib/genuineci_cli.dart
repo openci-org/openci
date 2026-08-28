@@ -1,5 +1,6 @@
 library;
 
+export 'src/auth/credential_store.dart';
 export 'src/command_runner.dart';
 export 'src/commands/login_command.dart';
 export 'src/commands/use_command.dart';
