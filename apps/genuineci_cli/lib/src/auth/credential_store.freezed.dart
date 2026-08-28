@@ -35,10 +35,6 @@ bool operator ==(Object other) {
 @override
 int get hashCode => Object.hash(runtimeType,serverUrl,token,teamId,authType);
 
-@override
-String toString() {
-  return 'AuthProfile(serverUrl: $serverUrl, token: $token, teamId: $teamId, authType: $authType)';
-}
 
 
 }
@@ -211,8 +207,8 @@ return $default(_that.serverUrl,_that.token,_that.teamId,_that.authType);case _:
 /// @nodoc
 @JsonSerializable()
 
-class _AuthProfile implements AuthProfile {
-  const _AuthProfile({@JsonKey(name: 'server_url') this.serverUrl = 'http://localhost:8080', this.token = '', @JsonKey(name: 'team_id') this.teamId = '', @JsonKey(name: 'auth_type') this.authType = 'api_key'});
+class _AuthProfile extends AuthProfile {
+  const _AuthProfile({@JsonKey(name: 'server_url') this.serverUrl = 'http://localhost:8080', this.token = '', @JsonKey(name: 'team_id') this.teamId = '', @JsonKey(name: 'auth_type') this.authType = 'api_key'}): super._();
   factory _AuthProfile.fromJson(Map<String, dynamic> json) => _$AuthProfileFromJson(json);
 
 @override@JsonKey(name: 'server_url') final  String serverUrl;
@@ -240,10 +236,6 @@ bool operator ==(Object other) {
 @override
 int get hashCode => Object.hash(runtimeType,serverUrl,token,teamId,authType);
 
-@override
-String toString() {
-  return 'AuthProfile(serverUrl: $serverUrl, token: $token, teamId: $teamId, authType: $authType)';
-}
 
 
 }

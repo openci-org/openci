@@ -96,4 +96,30 @@ void main() {
       expect(deleteNonExistent, isFalse);
     },
   );
+
+  test('toString masks token in AuthProfile and CredentialConfig', () {
+    const profile = AuthProfile(
+      serverUrl: 'http://localhost:8080',
+      token: 'super-secret-api-key-12345',
+      teamId: 'team-alpha',
+      authType: 'api_key',
+    );
+
+    final profileStr = profile.toString();
+    expect(profileStr, contains('http://localhost:8080'));
+    expect(profileStr, contains('team-alpha'));
+    expect(profileStr, contains('api_key'));
+    expect(profileStr, contains('token: ***'));
+    expect(profileStr, isNot(contains('super-secret-api-key-12345')));
+
+    const config = CredentialConfig(
+      activeProfile: 'local',
+      profiles: {'local': profile},
+    );
+
+    final configStr = config.toString();
+    expect(configStr, contains('activeProfile: local'));
+    expect(configStr, contains('token: ***'));
+    expect(configStr, isNot(contains('super-secret-api-key-12345')));
+  });
 }

@@ -9,6 +9,8 @@ part 'credential_store.g.dart';
 
 @freezed
 abstract class AuthProfile with _$AuthProfile {
+  const AuthProfile._();
+
   const factory AuthProfile({
     @JsonKey(name: 'server_url')
     @Default('http://localhost:8080')
@@ -20,6 +22,12 @@ abstract class AuthProfile with _$AuthProfile {
 
   factory AuthProfile.fromJson(Map<String, dynamic> json) =>
       _$AuthProfileFromJson(json);
+
+  @override
+  String toString() {
+    final maskedToken = token.isEmpty ? '' : '***';
+    return 'AuthProfile(serverUrl: $serverUrl, token: $maskedToken, teamId: $teamId, authType: $authType)';
+  }
 }
 
 @freezed
