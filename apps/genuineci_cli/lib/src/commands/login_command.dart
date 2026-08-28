@@ -16,11 +16,6 @@ class LoginCommand extends Command<int> {
         help: 'Log in to local Docker environment (http://localhost:8080).',
       )
       ..addOption('server', abbr: 's', help: 'Server base URL.')
-      ..addOption(
-        'api-key',
-        abbr: 'k',
-        help: 'API key / Internal API key for authentication.',
-      )
       ..addOption('team-id', abbr: 't', help: 'Target team ID.')
       ..addOption(
         'profile',
