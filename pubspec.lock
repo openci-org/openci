@@ -149,10 +149,10 @@ packages:
     dependency: transitive
     description:
       name: build_config
-      sha256: "4070d2a59f8eec34c97c86ceb44403834899075f66e8a9d59706f8e7834f6f71"
+      sha256: "94eaf6708fe64408c632ef2689ca3777b112f9421306ccf4f8c84d7c5c9f83f8"
       url: "https://pub.dev"
     source: hosted
-    version: "1.3.0"
+    version: "1.3.2"
   build_daemon:
     dependency: transitive
     description:
@@ -165,10 +165,10 @@ packages:
     dependency: transitive
     description:
       name: build_runner
-      sha256: be46e59dcfefd6c6c7127df9f1be6c1f89219fee22ae02a923463e0f286ce652
+      sha256: "90363d438bd9f84a4d5bbb83352251f57d2d9d771bc95a44e6a33fe25fa52774"
       url: "https://pub.dev"
     source: hosted
-    version: "2.15.2"
+    version: "2.16.0"
   built_collection:
     dependency: transitive
     description:
@@ -941,6 +941,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "7.3.1"
+  mason_logger:
+    dependency: transitive
+    description:
+      name: mason_logger
+      sha256: "4f053e4e7e1716002b72cad133d81612be3550d40ed9d43c1878c9b03ba93069"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.3.4"
   matcher:
     dependency: transitive
     description:
@@ -1317,6 +1325,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "9.27.0"
+  serial_csv:
+    dependency: transitive
+    description:
+      name: serial_csv
+      sha256: "2d62bb70cb3ce7251383fc86ea9aae1298ab1e57af6ef4e93b6a9751c5c268dd"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.5.2"
   shared_preferences:
     dependency: transitive
     description:
@@ -1434,6 +1450,22 @@ packages:
     description: flutter
     source: sdk
     version: "0.0.0"
+  slang:
+    dependency: transitive
+    description:
+      name: slang
+      sha256: "430749837528bb692b5ee03699fadab90d0d4a6dfbf42aab28e81df8da4c2fb8"
+      url: "https://pub.dev"
+    source: hosted
+    version: "4.19.0"
+  slang_build_runner:
+    dependency: transitive
+    description:
+      name: slang_build_runner
+      sha256: f2b6c5fc1f5bc41de80b05e95e7d5d03b5c3041082877ce931fc7ba61cd08afe
+      url: "https://pub.dev"
+    source: hosted
+    version: "4.19.0"
   source_gen:
     dependency: transitive
     description:

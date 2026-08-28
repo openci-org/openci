@@ -1,27 +1,20 @@
 import 'package:args/command_runner.dart';
 
+import '../i18n/i18n.dart';
+
 class LoginCommand extends Command<int> {
   @override
   final String name = 'login';
 
   @override
-  final String description = 'Log in to GenuineCI server (Local or Cloud).';
+  String get description => t.login.description;
 
   LoginCommand() {
     argParser
-      ..addFlag(
-        'local',
-        abbr: 'l',
-        negatable: false,
-        help: 'Log in to local Docker environment (http://localhost:8080).',
-      )
-      ..addOption('server', abbr: 's', help: 'Server base URL.')
-      ..addOption('team-id', abbr: 't', help: 'Target team ID.')
-      ..addOption(
-        'profile',
-        abbr: 'p',
-        help: 'Profile name to store credentials under.',
-      );
+      ..addFlag('local', abbr: 'l', negatable: false, help: t.login.flags.local)
+      ..addOption('server', abbr: 's', help: t.login.flags.server)
+      ..addOption('team-id', abbr: 't', help: t.login.flags.teamId)
+      ..addOption('profile', abbr: 'p', help: t.login.flags.profile);
   }
 
   @override
