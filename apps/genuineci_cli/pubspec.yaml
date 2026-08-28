@@ -1,9 +1,12 @@
 name: genuineci_cli
-description: A sample command-line application with basic argument parsing.
+description: A command-line tool for GenuineCI.
 version: 0.0.1
+publish_to: none
 
 environment:
-  sdk: ^3.12.2
+  sdk: ^3.11.5
+
+resolution: workspace
 
 # Add regular dependencies here.
 dependencies:

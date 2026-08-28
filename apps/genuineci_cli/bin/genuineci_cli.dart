@@ -1,57 +1,22 @@
-import 'package:args/args.dart';
+import 'dart:io';
 
-const String version = '0.0.1';
+import 'package:args/command_runner.dart';
+import 'package:genuineci_cli/genuineci_cli.dart';
 
-ArgParser buildParser() {
-  return ArgParser()
-    ..addFlag(
-      'help',
-      abbr: 'h',
-      negatable: false,
-      help: 'Print this usage information.',
-    )
-    ..addFlag(
-      'verbose',
-      abbr: 'v',
-      negatable: false,
-      help: 'Show additional command output.',
-    )
-    ..addFlag('version', negatable: false, help: 'Print the tool version.');
-}
-
-void printUsage(ArgParser argParser) {
-  print('Usage: dart genuineci_cli.dart <flags> [arguments]');
-  print(argParser.usage);
-}
-
-void main(List<String> arguments) {
-  final ArgParser argParser = buildParser();
+Future<void> main(List<String> arguments) async {
+  final runner = GenuineCiCommandRunner();
   try {
-    final ArgResults results = argParser.parse(arguments);
-    bool verbose = false;
-
-    // Process the parsed arguments.
-    if (results.flag('help')) {
-      printUsage(argParser);
-      return;
+    final exitCode = await runner.run(arguments);
+    if (exitCode != null && exitCode != 0) {
+      exit(exitCode);
     }
-    if (results.flag('version')) {
-      print('genuineci_cli version: $version');
-      return;
-    }
-    if (results.flag('verbose')) {
-      verbose = true;
-    }
-
-    // Act on the arguments provided.
-    print('Positional arguments: ${results.rest}');
-    if (verbose) {
-      print('[VERBOSE] All arguments: ${results.arguments}');
-    }
-  } on FormatException catch (e) {
-    // Print usage information if an invalid argument was provided.
-    print(e.message);
-    print('');
-    printUsage(argParser);
+  } on UsageException catch (e) {
+    stderr.writeln(e.message);
+    stderr.writeln();
+    stderr.writeln(e.usage);
+    exit(64); // EX_USAGE
+  } catch (e) {
+    stderr.writeln('Error: $e');
+    exit(1);
   }
 }
