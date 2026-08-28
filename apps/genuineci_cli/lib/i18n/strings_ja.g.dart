@@ -39,6 +39,7 @@ class TranslationsJa with BaseTranslations<AppLocale, Translations> implements T
 	// Translations
 	@override late final _Translations$cli$ja cli = _Translations$cli$ja._(_root);
 	@override late final _Translations$login$ja login = _Translations$login$ja._(_root);
+	@override late final _Translations$use$ja use = _Translations$use$ja._(_root);
 	@override late final _Translations$common$ja common = _Translations$common$ja._(_root);
 }
 
@@ -65,6 +66,18 @@ class _Translations$login$ja implements Translations$login$en {
 	@override late final _Translations$login$flags$ja flags = _Translations$login$flags$ja._(_root);
 	@override String get loggingIn => 'GenuineCI にログイン中...';
 	@override String savedSuccess({required Object profile}) => 'プロファイル「${profile}」の認証情報を保存しました。';
+}
+
+// Path: use
+class _Translations$use$ja implements Translations$use$en {
+	_Translations$use$ja._(this._root);
+
+	final TranslationsJa _root; // ignore: unused_field
+
+	// Translations
+	@override String get description => '表示言語を設定します（japanese, english）。';
+	@override String success({required Object language}) => '言語を${language}に設定しました。';
+	@override String invalidLanguage({required Object input}) => '無効な言語です: 「${input}」。対応言語: japanese, english';
 }
 
 // Path: common
@@ -120,6 +133,9 @@ extension on TranslationsJa {
 			'login.flags.profile' => '認証情報を保存するプロファイル名。',
 			'login.loggingIn' => 'GenuineCI にログイン中...',
 			'login.savedSuccess' => ({required Object profile}) => 'プロファイル「${profile}」の認証情報を保存しました。',
+			'use.description' => '表示言語を設定します（japanese, english）。',
+			'use.success' => ({required Object language}) => '言語を${language}に設定しました。',
+			'use.invalidLanguage' => ({required Object input}) => '無効な言語です: 「${input}」。対応言語: japanese, english',
 			'common.error' => ({required Object error}) => 'エラー: ${error}',
 			_ => null,
 		};
