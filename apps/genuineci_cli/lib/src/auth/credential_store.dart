@@ -62,16 +62,17 @@ class CredentialStore {
     if (!await file.exists()) {
       return const CredentialConfig();
     }
-    try {
-      final content = await file.readAsString();
-      if (content.trim().isEmpty) {
-        return const CredentialConfig();
-      }
-      final json = jsonDecode(content) as Map<String, dynamic>;
-      return CredentialConfig.fromJson(json);
-    } catch (_) {
-      return const CredentialConfig();
+    final content = await file.readAsString();
+    if (content.trim().isEmpty) {
+      throw FormatException('Credential file at $_filePath is empty.');
     }
+    final json = jsonDecode(content);
+    if (json is! Map<String, dynamic>) {
+      throw FormatException(
+        'Invalid JSON format in credential file at $_filePath.',
+      );
+    }
+    return CredentialConfig.fromJson(json);
   }
 
   Future<void> save(CredentialConfig config) async {
@@ -81,7 +82,22 @@ class CredentialStore {
       await dir.create(recursive: true);
     }
     const encoder = JsonEncoder.withIndent('  ');
-    await file.writeAsString('${encoder.convert(config.toJson())}\n');
+    final content = '${encoder.convert(config.toJson())}\n';
+
+    final tempFile = File(
+      '${file.path}.tmp.${DateTime.now().microsecondsSinceEpoch}',
+    );
+    try {
+      await tempFile.writeAsString(content, flush: true);
+      await tempFile.rename(file.path);
+    } catch (_) {
+      if (await tempFile.exists()) {
+        try {
+          await tempFile.delete();
+        } catch (_) {}
+      }
+      rethrow;
+    }
   }
 
   Future<void> saveProfile(
