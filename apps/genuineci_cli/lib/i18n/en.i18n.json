@@ -1,0 +1,29 @@
+{
+  "cli": {
+    "description": "GenuineCI command-line tool for managing CI/CD and secrets.",
+    "version": "genuineci version: ${version}",
+    "flags": {
+      "version": "Print the current tool version.",
+      "verbose": "Enable verbose logging output."
+    }
+  },
+  "login": {
+    "description": "Log in to GenuineCI server (Local or Cloud).",
+    "flags": {
+      "local": "Log in to local Docker environment (http://localhost:8080).",
+      "server": "Server base URL.",
+      "teamId": "Target team ID.",
+      "profile": "Profile name to store credentials under."
+    },
+    "loggingIn": "Logging in to GenuineCI...",
+    "savedSuccess": "Successfully saved credentials for profile \"${profile}\"."
+  },
+  "use": {
+    "description": "Set the default display language (japanese, english).",
+    "success": "Language set to ${language}.",
+    "invalidLanguage": "Invalid language \"${input}\". Supported languages: japanese, english."
+  },
+  "common": {
+    "error": "Error: ${error}"
+  }
+}

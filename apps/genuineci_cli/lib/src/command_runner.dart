@@ -1,38 +1,36 @@
-import 'dart:io';
-
 import 'package:args/args.dart';
 import 'package:args/command_runner.dart';
+import 'package:mason_logger/mason_logger.dart';
 
 import 'commands/login_command.dart';
+import 'commands/use_command.dart';
+import 'i18n/i18n.dart';
 
 const String genuineCiVersion = '0.0.1';
 
 class GenuineCiCommandRunner extends CommandRunner<int> {
-  GenuineCiCommandRunner()
-    : super(
-        'genuineci',
-        'GenuineCI command-line tool for managing CI/CD and secrets.',
-      ) {
+  final Logger _logger;
+
+  GenuineCiCommandRunner({Logger? logger})
+    : _logger = logger ?? Logger(),
+      super('genuineci', t.cli.description) {
     argParser
       ..addFlag(
         'version',
         abbr: 'v',
         negatable: false,
-        help: 'Print the current tool version.',
+        help: t.cli.flags.version,
       )
-      ..addFlag(
-        'verbose',
-        negatable: false,
-        help: 'Enable verbose logging output.',
-      );
+      ..addFlag('verbose', negatable: false, help: t.cli.flags.verbose);
 
     addCommand(LoginCommand());
+    addCommand(UseCommand(logger: _logger));
   }
 
   @override
   Future<int?> runCommand(ArgResults topLevelResults) async {
     if (topLevelResults['version'] == true) {
-      stdout.writeln('genuineci version: $genuineCiVersion');
+      _logger.info(t.cli.version(version: genuineCiVersion));
       return 0;
     }
     return await super.runCommand(topLevelResults);

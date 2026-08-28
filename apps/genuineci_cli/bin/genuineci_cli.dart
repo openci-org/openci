@@ -4,6 +4,8 @@ import 'package:args/command_runner.dart';
 import 'package:genuineci_cli/genuineci_cli.dart';
 
 Future<void> main(List<String> arguments) async {
+  initI18n();
+
   final runner = GenuineCiCommandRunner();
   try {
     final exitCode = await runner.run(arguments);

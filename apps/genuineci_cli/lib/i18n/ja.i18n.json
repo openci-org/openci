@@ -1,0 +1,29 @@
+{
+  "cli": {
+    "description": "GenuineCI - CI/CD およびシークレット管理コマンドラインツール",
+    "version": "genuineci バージョン: ${version}",
+    "flags": {
+      "version": "ツールのバージョンを表示します。",
+      "verbose": "詳細なログ出力を有効にします。"
+    }
+  },
+  "login": {
+    "description": "GenuineCI サーバー（ローカルまたはクラウド）にログインします。",
+    "flags": {
+      "local": "ローカルDocker環境（http://localhost:8080）に接続します。",
+      "server": "接続先サーバーURL。",
+      "teamId": "対象のチームID。",
+      "profile": "認証情報を保存するプロファイル名。"
+    },
+    "loggingIn": "GenuineCI にログイン中...",
+    "savedSuccess": "プロファイル「${profile}」の認証情報を保存しました。"
+  },
+  "use": {
+    "description": "表示言語を設定します（japanese, english）。",
+    "success": "言語を${language}に設定しました。",
+    "invalidLanguage": "無効な言語です: 「${input}」。対応言語: japanese, english"
+  },
+  "common": {
+    "error": "エラー: ${error}"
+  }
+}
