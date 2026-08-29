@@ -11,8 +11,11 @@ class CliConfig {
     : _filePath = customFilePath ?? _defaultConfigFilePath();
 
   static String _defaultConfigFilePath() {
-    final homeDir = applicationConfigHome('genuineci');
-    final configFilePath = p.join(homeDir, 'config.json');
+    const productName = 'genuineci';
+    const configFileName = 'config.json';
+
+    final homeDir = applicationConfigHome(productName);
+    final configFilePath = p.join(homeDir, configFileName);
     return configFilePath;
   }
 
