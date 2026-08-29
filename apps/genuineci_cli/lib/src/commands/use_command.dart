@@ -1,7 +1,6 @@
 import 'package:args/command_runner.dart';
 import 'package:cli_util/cli_logging.dart';
 
-import '../config/cli_config.dart';
 import '../i18n/i18n.dart';
 
 class UseCommand extends Command<int> {
@@ -11,11 +10,11 @@ class UseCommand extends Command<int> {
   @override
   String get description => t.use.description;
 
-  final CliConfig _config;
+  final EditLanguageConfig _languageConfig;
   final Logger _logger;
 
-  UseCommand({CliConfig? config, Logger? logger})
-    : _config = config ?? CliConfig(),
+  UseCommand({EditLanguageConfig? languageConfig, Logger? logger})
+    : _languageConfig = languageConfig ?? EditLanguageConfig(),
       _logger = logger ?? Logger.standard();
 
   @override
@@ -44,8 +43,7 @@ class UseCommand extends Command<int> {
         return 1;
     }
 
-    _config.setLanguage(targetCode);
-    LocaleSettings.setLocaleSync(AppLocaleUtils.parse(targetCode));
+    _languageConfig.setLanguage(targetCode);
 
     _logger.stdout(t.use.success(language: languageName));
     return 0;

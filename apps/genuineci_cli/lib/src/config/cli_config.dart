@@ -20,7 +20,7 @@ class CliConfig {
     return configFilePath;
   }
 
-  Map<String, dynamic> _readSync() {
+  Map<String, dynamic> readSync() {
     final file = File(_configFilePath);
     if (!file.existsSync()) {
       return {};
@@ -34,7 +34,7 @@ class CliConfig {
     }
   }
 
-  void _writeSync(Map<String, dynamic> data) {
+  void writeSync(Map<String, dynamic> data) {
     final file = File(_configFilePath);
     final dir = file.parent;
     if (!dir.existsSync()) {
@@ -42,18 +42,5 @@ class CliConfig {
     }
     const encoder = JsonEncoder.withIndent('  ');
     file.writeAsStringSync('${encoder.convert(data)}\n');
-  }
-
-  /// Gets the configured language code (e.g. 'ja', 'en') or null.
-  String? getLanguage() {
-    final data = _readSync();
-    return data['language'] as String?;
-  }
-
-  /// Sets and saves the language code.
-  void setLanguage(String languageCode) {
-    final data = _readSync();
-    data['language'] = languageCode;
-    _writeSync(data);
   }
 }
