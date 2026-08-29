@@ -1,20 +1,19 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:cli_util/cli_util.dart';
 import 'package:path/path.dart' as p;
 
 class CliConfig {
   final String _filePath;
 
   CliConfig({String? customFilePath})
-    : _filePath = customFilePath ?? _defaultConfigPath();
+    : _filePath = customFilePath ?? _defaultConfigFilePath();
 
-  static String _defaultConfigPath() {
-    final home =
-        Platform.environment['HOME'] ??
-        Platform.environment['USERPROFILE'] ??
-        Directory.current.path;
-    return p.join(home, '.genuineci', 'config.json');
+  static String _defaultConfigFilePath() {
+    final homeDir = applicationConfigHome('genuineci');
+    final configFilePath = p.join(homeDir, 'config.json');
+    return configFilePath;
   }
 
   Map<String, dynamic> _readSync() {
