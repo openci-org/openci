@@ -2,13 +2,14 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:cli_util/cli_util.dart';
+import 'package:meta/meta.dart';
 import 'package:path/path.dart' as p;
 
 class CliConfig {
-  final String _filePath;
+  final String _configFilePath;
 
-  CliConfig({String? customFilePath})
-    : _filePath = customFilePath ?? _defaultConfigFilePath();
+  CliConfig({@visibleForTesting String? customFilePath})
+    : _configFilePath = customFilePath ?? _defaultConfigFilePath();
 
   static String _defaultConfigFilePath() {
     const productName = 'genuineci';
@@ -20,7 +21,7 @@ class CliConfig {
   }
 
   Map<String, dynamic> _readSync() {
-    final file = File(_filePath);
+    final file = File(_configFilePath);
     if (!file.existsSync()) {
       return {};
     }
@@ -34,7 +35,7 @@ class CliConfig {
   }
 
   void _writeSync(Map<String, dynamic> data) {
-    final file = File(_filePath);
+    final file = File(_configFilePath);
     final dir = file.parent;
     if (!dir.existsSync()) {
       dir.createSync(recursive: true);
