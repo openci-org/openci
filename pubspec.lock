@@ -941,14 +941,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "7.3.1"
-  mason_logger:
-    dependency: transitive
-    description:
-      name: mason_logger
-      sha256: "4f053e4e7e1716002b72cad133d81612be3550d40ed9d43c1878c9b03ba93069"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.3.4"
   matcher:
     dependency: transitive
     description:
