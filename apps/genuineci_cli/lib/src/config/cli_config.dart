@@ -46,7 +46,6 @@ class CliConfig {
     if (!dir.existsSync()) {
       dir.createSync(recursive: true);
     }
-    const encoder = JsonEncoder.withIndent('  ');
-    file.writeAsStringSync('${encoder.convert(data)}\n');
+    file.writeAsStringSync(jsonEncode(data));
   }
 }
