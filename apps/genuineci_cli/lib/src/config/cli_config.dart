@@ -20,21 +20,27 @@ class CliConfig {
     return configFilePath;
   }
 
-  Map<String, dynamic> readSync() {
+  Map<String, dynamic> read() {
     final file = File(_configFilePath);
     if (!file.existsSync()) {
       return {};
     }
-    try {
-      final content = file.readAsStringSync();
-      if (content.trim().isEmpty) return {};
-      return jsonDecode(content) as Map<String, dynamic>;
-    } catch (_) {
-      return {};
+
+    final content = file.readAsStringSync();
+    if (content.trim().isEmpty) {
+      throw FormatException('Config file at $_configFilePath is empty.');
     }
+
+    final json = jsonDecode(content);
+    if (json is! Map<String, dynamic>) {
+      throw FormatException(
+        'Invalid JSON format in config file at $_configFilePath.',
+      );
+    }
+    return json;
   }
 
-  void writeSync(Map<String, dynamic> data) {
+  void write(Map<String, dynamic> data) {
     final file = File(_configFilePath);
     final dir = file.parent;
     if (!dir.existsSync()) {
