@@ -43,7 +43,7 @@ class UseCommand extends Command<int> {
         return 1;
     }
 
-    _languageConfig.setLanguage(targetCode);
+    await _languageConfig.setLanguage(targetCode);
 
     _logger.stdout(t.use.success(language: languageName));
     return 0;

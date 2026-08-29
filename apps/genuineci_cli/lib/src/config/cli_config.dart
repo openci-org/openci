@@ -20,13 +20,13 @@ class CliConfig {
     return configFilePath;
   }
 
-  Map<String, dynamic> read() {
+  Future<Map<String, dynamic>> read() async {
     final file = File(_configFilePath);
-    if (!file.existsSync()) {
+    if (!await file.exists()) {
       return {};
     }
 
-    final content = file.readAsStringSync();
+    final content = await file.readAsString();
     if (content.trim().isEmpty) {
       throw FormatException('Config file at $_configFilePath is empty.');
     }
@@ -40,12 +40,12 @@ class CliConfig {
     return json;
   }
 
-  void write(Map<String, dynamic> data) {
+  Future<void> write(Map<String, dynamic> data) async {
     final file = File(_configFilePath);
     final dir = file.parent;
-    if (!dir.existsSync()) {
-      dir.createSync(recursive: true);
+    if (!await dir.exists()) {
+      await dir.create(recursive: true);
     }
-    file.writeAsStringSync(jsonEncode(data));
+    await file.writeAsString(jsonEncode(data));
   }
 }
