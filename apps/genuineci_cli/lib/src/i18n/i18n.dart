@@ -3,9 +3,9 @@ import '../gen/strings.g.dart';
 
 export '../gen/strings.g.dart';
 
-void initI18n({EditLanguageConfig? languageConfig}) {
+Future<void> initI18n({EditLanguageConfig? languageConfig}) async {
   final langConfig = languageConfig ?? EditLanguageConfig();
-  final configuredLang = langConfig.getLanguage();
+  final configuredLang = await langConfig.getLanguage();
 
   if (configuredLang == 'ja') {
     LocaleSettings.setLocaleSync(AppLocale.ja);
@@ -19,15 +19,15 @@ class EditLanguageConfig {
 
   EditLanguageConfig({CliConfig? config}) : _config = config ?? CliConfig();
 
-  String? getLanguage() {
-    final data = _config.read();
+  Future<String?> getLanguage() async {
+    final data = await _config.read();
     return data['language'] as String?;
   }
 
-  void setLanguage(String languageCode) {
-    final data = _config.read();
+  Future<void> setLanguage(String languageCode) async {
+    final data = await _config.read();
     data['language'] = languageCode;
-    _config.write(data);
+    await _config.write(data);
 
     final locale = AppLocaleUtils.parse(languageCode);
     LocaleSettings.setLocaleSync(locale);
