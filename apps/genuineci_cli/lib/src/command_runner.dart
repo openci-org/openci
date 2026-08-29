@@ -1,6 +1,6 @@
 import 'package:args/args.dart';
 import 'package:args/command_runner.dart';
-import 'package:mason_logger/mason_logger.dart';
+import 'package:cli_util/cli_logging.dart';
 
 import 'commands/login_command.dart';
 import 'commands/use_command.dart';
@@ -12,7 +12,7 @@ class GenuineCiCommandRunner extends CommandRunner<int> {
   final Logger _logger;
 
   GenuineCiCommandRunner({Logger? logger})
-    : _logger = logger ?? Logger(),
+    : _logger = logger ?? Logger.standard(),
       super('genuineci', t.cli.description) {
     argParser
       ..addFlag(
@@ -30,7 +30,7 @@ class GenuineCiCommandRunner extends CommandRunner<int> {
   @override
   Future<int?> runCommand(ArgResults topLevelResults) async {
     if (topLevelResults['version'] == true) {
-      _logger.info(t.cli.version(version: genuineCiVersion));
+      _logger.stdout(t.cli.version(version: genuineCiVersion));
       return 0;
     }
     return await super.runCommand(topLevelResults);
