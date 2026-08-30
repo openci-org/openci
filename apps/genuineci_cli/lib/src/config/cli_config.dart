@@ -5,6 +5,7 @@ import 'package:cli_util/cli_util.dart';
 import 'package:meta/meta.dart';
 import 'package:path/path.dart' as p;
 
+import '../extensions/file_extension.dart';
 import 'cli_config_data.dart';
 
 export 'cli_config_data.dart';
@@ -24,7 +25,7 @@ class CliConfig {
     return configFilePath;
   }
 
-  Future<CliConfigData> read() async {
+  Future<CliConfigData> get() async {
     final file = File(_configFilePath);
     if (!await file.exists()) {
       return const CliConfigData();
@@ -44,12 +45,17 @@ class CliConfig {
     return CliConfigData.fromJson(json);
   }
 
-  Future<void> write(CliConfigData data) async {
+  Future<void> set(CliConfigData data) async {
     final file = File(_configFilePath);
-    final dir = file.parent;
-    if (!await dir.exists()) {
-      await dir.create(recursive: true);
+    await file.writeAsStringAtomic(jsonEncode(data.toJson()));
+  }
+
+  Future<bool> delete() async {
+    final file = File(_configFilePath);
+    if (await file.exists()) {
+      await file.delete();
+      return true;
     }
-    await file.writeAsString(jsonEncode(data.toJson()));
+    return false;
   }
 }

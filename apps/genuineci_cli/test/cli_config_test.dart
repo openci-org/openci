@@ -23,69 +23,78 @@ void main() {
 
   group('CliConfig', () {
     test(
-      'read returns empty CliConfigData when config file does not exist',
+      'get returns default CliConfigData when config file does not exist',
       () async {
-        final data = await config.read();
+        final data = await config.get();
         expect(data, equals(const CliConfigData()));
         expect(data.language, isNull);
       },
     );
 
-    test('write creates file and read loads the written data', () async {
+    test('set creates file and get loads the written data', () async {
       const input = CliConfigData(language: 'ja');
-      await config.write(input);
+      await config.set(input);
 
-      final data = await config.read();
+      final data = await config.get();
       expect(data, equals(input));
       expect(data.language, equals('ja'));
     });
 
-    test(
-      'write automatically creates parent directories if not exist',
-      () async {
-        final nestedPath = p.join(
-          tempDir.path,
-          'nested',
-          'sub',
-          'custom_config.json',
-        );
-        final nestedConfig = CliConfig(customFilePath: nestedPath);
+    test('set automatically creates parent directories if not exist', () async {
+      final nestedPath = p.join(
+        tempDir.path,
+        'nested',
+        'sub',
+        'custom_config.json',
+      );
+      final nestedConfig = CliConfig(customFilePath: nestedPath);
 
-        await nestedConfig.write(const CliConfigData(language: 'en'));
+      await nestedConfig.set(const CliConfigData(language: 'en'));
 
-        expect(await File(nestedPath).exists(), isTrue);
-        final data = await nestedConfig.read();
-        expect(data, equals(const CliConfigData(language: 'en')));
-      },
-    );
+      expect(await File(nestedPath).exists(), isTrue);
+      final data = await nestedConfig.get();
+      expect(data, equals(const CliConfigData(language: 'en')));
+    });
 
-    test('write overwrites existing config data', () async {
-      await config.write(const CliConfigData(language: 'en'));
-      await config.write(const CliConfigData(language: 'ja'));
+    test('set overwrites existing config data', () async {
+      await config.set(const CliConfigData(language: 'en'));
+      await config.set(const CliConfigData(language: 'ja'));
 
-      final data = await config.read();
+      final data = await config.get();
       expect(data, equals(const CliConfigData(language: 'ja')));
     });
 
-    test('read throws FormatException when config file is empty', () async {
+    test('delete removes config file and returns true if existed', () async {
+      await config.set(const CliConfigData(language: 'ja'));
+      expect(await File(customConfigPath).exists(), isTrue);
+
+      final deleted = await config.delete();
+      expect(deleted, isTrue);
+      expect(await File(customConfigPath).exists(), isFalse);
+
+      final deleteAgain = await config.delete();
+      expect(deleteAgain, isFalse);
+    });
+
+    test('get throws FormatException when config file is empty', () async {
       final file = File(customConfigPath);
       await file.writeAsString('   \n');
 
-      expect(() => config.read(), throwsA(isA<FormatException>()));
+      expect(() => config.get(), throwsA(isA<FormatException>()));
     });
 
-    test('read throws FormatException when JSON is malformed', () async {
+    test('get throws FormatException when JSON is malformed', () async {
       final file = File(customConfigPath);
       await file.writeAsString('{ invalid json }');
 
-      expect(() => config.read(), throwsA(isA<FormatException>()));
+      expect(() => config.get(), throwsA(isA<FormatException>()));
     });
 
-    test('read throws FormatException when root JSON is not a Map', () async {
+    test('get throws FormatException when root JSON is not a Map', () async {
       final file = File(customConfigPath);
       await file.writeAsString('["item1", "item2"]');
 
-      expect(() => config.read(), throwsA(isA<FormatException>()));
+      expect(() => config.get(), throwsA(isA<FormatException>()));
     });
   });
 }
