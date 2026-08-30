@@ -25,7 +25,7 @@ void main() {
     test(
       'read returns empty CliConfigData when config file does not exist',
       () async {
-        final data = await config.read();
+        final data = await config.get();
         expect(data, equals(const CliConfigData()));
         expect(data.language, isNull);
       },
@@ -35,7 +35,7 @@ void main() {
       const input = CliConfigData(language: 'ja');
       await config.write(input);
 
-      final data = await config.read();
+      final data = await config.get();
       expect(data, equals(input));
       expect(data.language, equals('ja'));
     });
@@ -54,7 +54,7 @@ void main() {
         await nestedConfig.write(const CliConfigData(language: 'en'));
 
         expect(await File(nestedPath).exists(), isTrue);
-        final data = await nestedConfig.read();
+        final data = await nestedConfig.get();
         expect(data, equals(const CliConfigData(language: 'en')));
       },
     );
@@ -63,7 +63,7 @@ void main() {
       await config.write(const CliConfigData(language: 'en'));
       await config.write(const CliConfigData(language: 'ja'));
 
-      final data = await config.read();
+      final data = await config.get();
       expect(data, equals(const CliConfigData(language: 'ja')));
     });
 
@@ -71,21 +71,21 @@ void main() {
       final file = File(customConfigPath);
       await file.writeAsString('   \n');
 
-      expect(() => config.read(), throwsA(isA<FormatException>()));
+      expect(() => config.get(), throwsA(isA<FormatException>()));
     });
 
     test('read throws FormatException when JSON is malformed', () async {
       final file = File(customConfigPath);
       await file.writeAsString('{ invalid json }');
 
-      expect(() => config.read(), throwsA(isA<FormatException>()));
+      expect(() => config.get(), throwsA(isA<FormatException>()));
     });
 
     test('read throws FormatException when root JSON is not a Map', () async {
       final file = File(customConfigPath);
       await file.writeAsString('["item1", "item2"]');
 
-      expect(() => config.read(), throwsA(isA<FormatException>()));
+      expect(() => config.get(), throwsA(isA<FormatException>()));
     });
   });
 }
