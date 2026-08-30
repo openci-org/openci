@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math';
 
 extension AtomicFileExtension on File {
   Future<void> writeAsStringAtomic(String content) async {
@@ -7,7 +8,20 @@ extension AtomicFileExtension on File {
       await dir.create(recursive: true);
     }
 
-    final tempFile = File('$path.tmp.${DateTime.now().microsecondsSinceEpoch}');
+    final random = Random();
+    File? tempFile;
+    while (tempFile == null) {
+      final candidate = File(
+        '$path.tmp.${DateTime.now().microsecondsSinceEpoch}.${random.nextInt(1 << 32)}',
+      );
+      try {
+        await candidate.create(exclusive: true);
+        tempFile = candidate;
+      } on FileSystemException {
+        // Collision occurred; retry with a new unique path.
+      }
+    }
+
     try {
       await tempFile.writeAsString(content, flush: true);
       await tempFile.rename(path);
