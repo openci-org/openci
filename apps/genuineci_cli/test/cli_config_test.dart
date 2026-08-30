@@ -22,17 +22,22 @@ void main() {
   });
 
   group('CliConfig', () {
-    test('read returns empty Map when config file does not exist', () async {
-      final data = await config.read();
-      expect(data, isEmpty);
-    });
+    test(
+      'read returns empty CliConfigData when config file does not exist',
+      () async {
+        final data = await config.read();
+        expect(data, equals(const CliConfigData()));
+        expect(data.language, isNull);
+      },
+    );
 
     test('write creates file and read loads the written data', () async {
-      final input = {'language': 'ja'};
+      const input = CliConfigData(language: 'ja');
       await config.write(input);
 
       final data = await config.read();
       expect(data, equals(input));
+      expect(data.language, equals('ja'));
     });
 
     test(
@@ -46,20 +51,20 @@ void main() {
         );
         final nestedConfig = CliConfig(customFilePath: nestedPath);
 
-        await nestedConfig.write({'key': 'value'});
+        await nestedConfig.write(const CliConfigData(language: 'en'));
 
         expect(await File(nestedPath).exists(), isTrue);
         final data = await nestedConfig.read();
-        expect(data, equals({'key': 'value'}));
+        expect(data, equals(const CliConfigData(language: 'en')));
       },
     );
 
     test('write overwrites existing config data', () async {
-      await config.write({'language': 'en'});
-      await config.write({'language': 'ja', 'version': 1});
+      await config.write(const CliConfigData(language: 'en'));
+      await config.write(const CliConfigData(language: 'ja'));
 
       final data = await config.read();
-      expect(data, equals({'language': 'ja', 'version': 1}));
+      expect(data, equals(const CliConfigData(language: 'ja')));
     });
 
     test('read throws FormatException when config file is empty', () async {

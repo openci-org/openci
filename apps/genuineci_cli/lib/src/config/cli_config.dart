@@ -5,6 +5,10 @@ import 'package:cli_util/cli_util.dart';
 import 'package:meta/meta.dart';
 import 'package:path/path.dart' as p;
 
+import 'cli_config_data.dart';
+
+export 'cli_config_data.dart';
+
 class CliConfig {
   final String _configFilePath;
 
@@ -20,10 +24,10 @@ class CliConfig {
     return configFilePath;
   }
 
-  Future<Map<String, dynamic>> read() async {
+  Future<CliConfigData> read() async {
     final file = File(_configFilePath);
     if (!await file.exists()) {
-      return {};
+      return const CliConfigData();
     }
 
     final content = await file.readAsString();
@@ -37,15 +41,15 @@ class CliConfig {
         'Invalid JSON format in config file at $_configFilePath.',
       );
     }
-    return json;
+    return CliConfigData.fromJson(json);
   }
 
-  Future<void> write(Map<String, dynamic> data) async {
+  Future<void> write(CliConfigData data) async {
     final file = File(_configFilePath);
     final dir = file.parent;
     if (!await dir.exists()) {
       await dir.create(recursive: true);
     }
-    await file.writeAsString(jsonEncode(data));
+    await file.writeAsString(jsonEncode(data.toJson()));
   }
 }
