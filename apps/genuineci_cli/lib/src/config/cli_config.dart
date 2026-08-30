@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:cli_util/cli_util.dart';
+import 'package:genuineci_cli/src/extensions/file_extension.dart';
 import 'package:meta/meta.dart';
 import 'package:path/path.dart' as p;
 
@@ -44,12 +45,8 @@ class CliConfig {
     return CliConfigData.fromJson(json);
   }
 
-  Future<void> write(CliConfigData data) async {
+  Future<void> set(CliConfigData data) async {
     final file = File(_configFilePath);
-    final dir = file.parent;
-    if (!await dir.exists()) {
-      await dir.create(recursive: true);
-    }
-    await file.writeAsString(jsonEncode(data.toJson()));
+    await file.writeAsStringAtomic(jsonEncode(data.toJson()));
   }
 }
