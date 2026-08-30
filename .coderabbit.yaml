@@ -4,5 +4,5 @@ language: "ja-JP"
 reviews:
   auto_review:
     enabled: true
-    target_branches:
-      - "*"
+    base_branches:
+      - ".*"
