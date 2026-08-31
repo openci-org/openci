@@ -28,7 +28,6 @@ extension AtomicFileExtension on File {
     try {
       await tempFile.writeAsString(content, flush: true);
       if (chmod600 && !Platform.isWindows) {
-        await Process.run('chmod', ['600', tempFile.path]);
         final result = await Process.run('chmod', ['600', tempFile.path]);
         if (result.exitCode != 0) {
           throw ProcessException(
@@ -41,7 +40,6 @@ extension AtomicFileExtension on File {
       }
       await tempFile.rename(path);
       if (chmod600 && !Platform.isWindows) {
-        await Process.run('chmod', ['600', path]);
         final result = await Process.run('chmod', ['600', path]);
         if (result.exitCode != 0) {
           throw ProcessException(
