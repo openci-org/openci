@@ -27,7 +27,7 @@ class EditLanguageConfig {
   Future<void> setLanguage(String languageCode) async {
     final current = await _config.get();
     final updated = current.copyWith(language: languageCode);
-    await _config.write(updated);
+    await _config.set(updated);
 
     final locale = AppLocaleUtils.parse(languageCode);
     LocaleSettings.setLocaleSync(locale);

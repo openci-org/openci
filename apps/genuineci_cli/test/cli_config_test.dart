@@ -31,37 +31,34 @@ void main() {
       },
     );
 
-    test('write creates file and read loads the written data', () async {
+    test('set creates file and read loads the written data', () async {
       const input = CliConfigData(language: 'ja');
-      await config.write(input);
+      await config.set(input);
 
       final data = await config.get();
       expect(data, equals(input));
       expect(data.language, equals('ja'));
     });
 
-    test(
-      'write automatically creates parent directories if not exist',
-      () async {
-        final nestedPath = p.join(
-          tempDir.path,
-          'nested',
-          'sub',
-          'custom_config.json',
-        );
-        final nestedConfig = CliConfig(customFilePath: nestedPath);
+    test('set automatically creates parent directories if not exist', () async {
+      final nestedPath = p.join(
+        tempDir.path,
+        'nested',
+        'sub',
+        'custom_config.json',
+      );
+      final nestedConfig = CliConfig(customFilePath: nestedPath);
 
-        await nestedConfig.write(const CliConfigData(language: 'en'));
+      await nestedConfig.set(const CliConfigData(language: 'en'));
 
-        expect(await File(nestedPath).exists(), isTrue);
-        final data = await nestedConfig.get();
-        expect(data, equals(const CliConfigData(language: 'en')));
-      },
-    );
+      expect(await File(nestedPath).exists(), isTrue);
+      final data = await nestedConfig.get();
+      expect(data, equals(const CliConfigData(language: 'en')));
+    });
 
-    test('write overwrites existing config data', () async {
-      await config.write(const CliConfigData(language: 'en'));
-      await config.write(const CliConfigData(language: 'ja'));
+    test('set overwrites existing config data', () async {
+      await config.set(const CliConfigData(language: 'en'));
+      await config.set(const CliConfigData(language: 'ja'));
 
       final data = await config.get();
       expect(data, equals(const CliConfigData(language: 'ja')));
