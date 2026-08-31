@@ -20,12 +20,12 @@ class EditLanguageConfig {
   EditLanguageConfig({CliConfig? config}) : _config = config ?? CliConfig();
 
   Future<String?> getLanguage() async {
-    final data = await _config.read();
+    final data = await _config.get();
     return data.language;
   }
 
   Future<void> setLanguage(String languageCode) async {
-    final current = await _config.read();
+    final current = await _config.get();
     final updated = current.copyWith(language: languageCode);
     await _config.write(updated);
 

@@ -24,7 +24,7 @@ class CliConfig {
     return configFilePath;
   }
 
-  Future<CliConfigData> read() async {
+  Future<CliConfigData> get() async {
     final file = File(_configFilePath);
     if (!await file.exists()) {
       return const CliConfigData();
