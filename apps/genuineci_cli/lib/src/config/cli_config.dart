@@ -1,52 +1,27 @@
-import 'dart:convert';
-import 'dart:io';
-
-import 'package:cli_util/cli_util.dart';
-import 'package:genuineci_cli/src/extensions/file_extensions.dart';
 import 'package:meta/meta.dart';
-import 'package:path/path.dart' as p;
 
+import '../json_file_store/json_file_store.dart';
 import 'cli_config_data.dart';
 
 export 'cli_config_data.dart';
 
 class CliConfig {
-  final String _configFilePath;
+  final JsonFileStore<CliConfigData> _store;
 
   CliConfig({@visibleForTesting String? customFilePath})
-    : _configFilePath = customFilePath ?? _defaultConfigFilePath();
+    : _store = JsonFileStore<CliConfigData>(
+        filePath: customFilePath ?? JsonFileStore.defaultPath('config.json'),
+        fromJson: CliConfigData.fromJson,
+        toJson: (data) => data.toJson(),
+      );
 
-  static String _defaultConfigFilePath() {
-    const productName = 'genuineci';
-    const configFileName = 'config.json';
-
-    final homeDir = applicationConfigHome(productName);
-    final configFilePath = p.join(homeDir, configFileName);
-    return configFilePath;
-  }
+  String get filePath => _store.filePath;
 
   Future<CliConfigData> get() async {
-    final file = File(_configFilePath);
-    if (!await file.exists()) {
-      return const CliConfigData();
-    }
-
-    final content = await file.readAsString();
-    if (content.trim().isEmpty) {
-      throw FormatException('Config file at $_configFilePath is empty.');
-    }
-
-    final json = jsonDecode(content);
-    if (json is! Map<String, dynamic>) {
-      throw FormatException(
-        'Invalid JSON format in config file at $_configFilePath.',
-      );
-    }
-    return CliConfigData.fromJson(json);
+    return (await _store.get()) ?? const CliConfigData();
   }
 
   Future<void> set(CliConfigData data) async {
-    final file = File(_configFilePath);
-    await file.writeAsStringAtomic(jsonEncode(data.toJson()));
+    await _store.set(data);
   }
 }
