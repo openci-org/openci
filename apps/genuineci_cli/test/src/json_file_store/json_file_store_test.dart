@@ -102,4 +102,19 @@ void main() {
       expect(data, equals((name: 'second', count: 2)));
     });
   });
+
+  group('JsonFileStore defaultPath', () {
+    test('returns path containing productName and fileName', () {
+      final path = JsonFileStore.defaultPath('config.json');
+      expect(path, endsWith(p.join('genuineci', 'config.json')));
+    });
+
+    test('supports custom productName', () {
+      final path = JsonFileStore.defaultPath(
+        'custom.json',
+        productName: 'custom_product',
+      );
+      expect(path, endsWith(p.join('custom_product', 'custom.json')));
+    });
+  });
 }
