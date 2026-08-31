@@ -1,18 +1,29 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:cli_util/cli_util.dart';
+import 'package:path/path.dart' as p;
+
 import '../extensions/file_extensions.dart';
 
 class JsonFileStore<T> {
-  final String filePath;
-  final T Function(Map<String, dynamic> json) fromJson;
-  final Map<String, dynamic> Function(T data) toJson;
-
   const JsonFileStore({
     required this.filePath,
     required this.fromJson,
     required this.toJson,
   });
+
+  static String defaultPath(
+    String fileName, {
+    String productName = 'genuineci',
+  }) {
+    final homeDir = applicationConfigHome(productName);
+    return p.join(homeDir, fileName);
+  }
+
+  final String filePath;
+  final T Function(Map<String, dynamic> json) fromJson;
+  final Map<String, dynamic> Function(T data) toJson;
 
   Future<T?> get() async {
     final file = File(filePath);
@@ -33,6 +44,7 @@ class JsonFileStore<T> {
     return fromJson(json);
   }
 
+  /// Serializes [data] and writes it atomically to the JSON file.
   Future<void> set(T data) async {
     final file = File(filePath);
     await file.writeAsStringAtomic(jsonEncode(toJson(data)));
