@@ -8,4 +8,3 @@ export 'src/config/cli_config.dart';
 export 'src/config/cli_config_data.dart';
 export 'src/i18n/i18n.dart';
 export 'src/json_file_store/json_file_store.dart';
-
