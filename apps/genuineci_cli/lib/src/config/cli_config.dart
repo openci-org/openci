@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:cli_util/cli_util.dart';
-import 'package:genuineci_cli/src/extensions/file_extension.dart';
+import 'package:genuineci_cli/src/extensions/file_extensions.dart';
 import 'package:meta/meta.dart';
 import 'package:path/path.dart' as p;
 
