@@ -53,7 +53,7 @@ void main() {
 
         if (!Platform.isWindows) {
           final stat = await file.stat();
-          expect(stat.modeString(), contains('rw-------'));
+          expect(stat.mode & 0x1ff, equals(0x180));
         }
       },
     );
