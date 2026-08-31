@@ -39,6 +39,7 @@ extension AtomicFileExtension on File {
           );
         }
       }
+      await tempFile.writeAsString(content, flush: true);
       await tempFile.rename(path);
       if (chmod600 && !Platform.isWindows) {
         await Process.run('chmod', ['600', path]);
