@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
 
+import '../extensions/file_extensions.dart';
+
 class JsonFileStore<T> {
   final String filePath;
   final T Function(Map<String, dynamic> json) fromJson;
@@ -29,5 +31,10 @@ class JsonFileStore<T> {
     }
 
     return fromJson(json);
+  }
+
+  Future<void> set(T data) async {
+    final file = File(filePath);
+    await file.writeAsStringAtomic(jsonEncode(toJson(data)));
   }
 }
