@@ -12,10 +12,6 @@ class JsonFileStore<T> {
     required this.toJson,
   });
 
-  /// Reads from the JSON file and deserializes it into [T].
-  ///
-  /// If the file does not exist, returns `null`.
-  /// Throws [FormatException] if the file is empty or contains invalid JSON.
   Future<T?> get() async {
     final file = File(filePath);
     if (!await file.exists()) {

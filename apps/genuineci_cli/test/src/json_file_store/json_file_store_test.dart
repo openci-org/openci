@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'package:genuineci_cli/genuineci_cli.dart';
-import 'package:genuineci_cli/src/config/json_file_store.dart';
 import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 
