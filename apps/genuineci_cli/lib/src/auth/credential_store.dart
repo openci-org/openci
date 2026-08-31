@@ -1,8 +1,6 @@
-import 'dart:convert';
-import 'dart:io';
-
 import 'package:freezed_annotation/freezed_annotation.dart';
-import 'package:path/path.dart' as p;
+
+import '../json_file_store/json_file_store.dart';
 
 part 'credential_store.freezed.dart';
 part 'credential_store.g.dart';
@@ -42,62 +40,24 @@ abstract class CredentialConfig with _$CredentialConfig {
 }
 
 class CredentialStore {
-  final String _filePath;
+  final JsonFileStore<CredentialConfig> _store;
 
   CredentialStore({String? customFilePath})
-    : _filePath = customFilePath ?? _defaultCredentialsPath();
-
-  static String _defaultCredentialsPath() {
-    final home =
-        Platform.environment['HOME'] ??
-        Platform.environment['USERPROFILE'] ??
-        Directory.current.path;
-    return p.join(home, '.genuineci', 'credentials.json');
-  }
-
-  String get filePath => _filePath;
-
-  Future<CredentialConfig> load() async {
-    final file = File(_filePath);
-    if (!await file.exists()) {
-      return const CredentialConfig();
-    }
-    final content = await file.readAsString();
-    if (content.trim().isEmpty) {
-      throw FormatException('Credential file at $_filePath is empty.');
-    }
-    final json = jsonDecode(content);
-    if (json is! Map<String, dynamic>) {
-      throw FormatException(
-        'Invalid JSON format in credential file at $_filePath.',
+    : _store = JsonFileStore<CredentialConfig>(
+        filePath:
+            customFilePath ?? JsonFileStore.defaultPath('credentials.json'),
+        fromJson: CredentialConfig.fromJson,
+        toJson: (config) => config.toJson(),
       );
-    }
-    return CredentialConfig.fromJson(json);
+
+  String get filePath => _store.filePath;
+
+  Future<CredentialConfig> get() async {
+    return (await _store.get()) ?? const CredentialConfig();
   }
 
-  Future<void> save(CredentialConfig config) async {
-    final file = File(_filePath);
-    final dir = file.parent;
-    if (!await dir.exists()) {
-      await dir.create(recursive: true);
-    }
-    const encoder = JsonEncoder.withIndent('  ');
-    final content = '${encoder.convert(config.toJson())}\n';
-
-    final tempFile = File(
-      '${file.path}.tmp.${DateTime.now().microsecondsSinceEpoch}',
-    );
-    try {
-      await tempFile.writeAsString(content, flush: true);
-      await tempFile.rename(file.path);
-    } catch (_) {
-      if (await tempFile.exists()) {
-        try {
-          await tempFile.delete();
-        } catch (_) {}
-      }
-      rethrow;
-    }
+  Future<void> set(CredentialConfig config) async {
+    await _store.set(config, chmod600: true);
   }
 
   Future<void> saveProfile(
@@ -105,7 +65,7 @@ class CredentialStore {
     AuthProfile profile, {
     bool setActive = true,
   }) async {
-    final current = await load();
+    final current = await get();
     final updatedProfiles = Map<String, AuthProfile>.from(current.profiles);
     updatedProfiles[name] = profile;
 
@@ -113,21 +73,21 @@ class CredentialStore {
       activeProfile: setActive ? name : current.activeProfile,
       profiles: updatedProfiles,
     );
-    await save(updated);
+    await set(updated);
   }
 
   Future<AuthProfile?> getActiveProfile() async {
-    final current = await load();
+    final current = await get();
     return current.profiles[current.activeProfile];
   }
 
   Future<AuthProfile?> getProfile(String name) async {
-    final current = await load();
+    final current = await get();
     return current.profiles[name];
   }
 
   Future<bool> deleteProfile(String name) async {
-    final current = await load();
+    final current = await get();
     if (!current.profiles.containsKey(name)) {
       return false;
     }
@@ -137,7 +97,7 @@ class CredentialStore {
         ? (updatedProfiles.keys.firstOrNull ?? 'default')
         : current.activeProfile;
 
-    await save(
+    await set(
       current.copyWith(activeProfile: nextActive, profiles: updatedProfiles),
     );
     return true;
