@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:genuineci_cli/genuineci_cli.dart';
+import 'package:genuineci_cli/src/credential_store/credential_config.dart';
 import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 
