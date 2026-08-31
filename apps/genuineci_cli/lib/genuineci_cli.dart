@@ -6,4 +6,5 @@ export 'src/commands/login_command.dart';
 export 'src/commands/use_command.dart';
 export 'src/config/cli_config.dart';
 export 'src/config/cli_config_data.dart';
+export 'src/config/json_file_store.dart';
 export 'src/i18n/i18n.dart';
