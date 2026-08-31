@@ -2,7 +2,10 @@ import 'dart:io';
 import 'dart:math';
 
 extension AtomicFileExtension on File {
-  Future<void> writeAsStringAtomic(String content) async {
+  Future<void> writeAsStringAtomic(
+    String content, {
+    bool chmod600 = false,
+  }) async {
     final dir = parent;
     if (!await dir.exists()) {
       await dir.create(recursive: true);
@@ -24,7 +27,13 @@ extension AtomicFileExtension on File {
 
     try {
       await tempFile.writeAsString(content, flush: true);
+      if (chmod600 && !Platform.isWindows) {
+        await Process.run('chmod', ['600', tempFile.path]);
+      }
       await tempFile.rename(path);
+      if (chmod600 && !Platform.isWindows) {
+        await Process.run('chmod', ['600', path]);
+      }
     } catch (_) {
       if (await tempFile.exists()) {
         try {

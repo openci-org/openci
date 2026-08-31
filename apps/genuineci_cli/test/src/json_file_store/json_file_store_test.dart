@@ -101,6 +101,19 @@ void main() {
       final data = await store.get();
       expect(data, equals((name: 'second', count: 2)));
     });
+
+    test('sets file permissions to 0600 when chmod600 is true', () async {
+      const sample = (name: 'secret', count: 99);
+      await store.set(sample, chmod600: true);
+
+      final data = await store.get();
+      expect(data, equals(sample));
+
+      if (!Platform.isWindows) {
+        final stat = await File(filePath).stat();
+        expect(stat.modeString(), contains('rw-------'));
+      }
+    });
   });
 
   group('JsonFileStore defaultPath', () {

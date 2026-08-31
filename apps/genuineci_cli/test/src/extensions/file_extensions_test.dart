@@ -41,5 +41,21 @@ void main() {
 
       expect(await file.readAsString(), equals('updated'));
     });
+
+    test(
+      'writeAsStringAtomic sets permissions to 0600 when chmod600 is true',
+      () async {
+        final file = File(p.join(tempDir.path, 'secret.txt'));
+        await file.writeAsStringAtomic('secret content', chmod600: true);
+
+        expect(await file.exists(), isTrue);
+        expect(await file.readAsString(), equals('secret content'));
+
+        if (!Platform.isWindows) {
+          final stat = await file.stat();
+          expect(stat.modeString(), contains('rw-------'));
+        }
+      },
+    );
   });
 }
