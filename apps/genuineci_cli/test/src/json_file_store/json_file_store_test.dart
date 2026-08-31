@@ -65,4 +65,41 @@ void main() {
       expect(() => store.get(), throwsA(isA<FormatException>()));
     });
   });
+
+  group('JsonFileStore set', () {
+    test('creates file and get reads the written data', () async {
+      const sample = (name: 'test', count: 42);
+      await store.set(sample);
+
+      final data = await store.get();
+      expect(data, equals(sample));
+    });
+
+    test('automatically creates parent directories if not exist', () async {
+      final nestedPath = p.join(tempDir.path, 'sub', 'dir', 'sample.json');
+      final nestedStore = JsonFileStore<SampleData>(
+        filePath: nestedPath,
+        fromJson: (json) => (
+          name: json['name'] as String? ?? 'default',
+          count: json['count'] as int? ?? 0,
+        ),
+        toJson: (data) => {'name': data.name, 'count': data.count},
+      );
+
+      const sample = (name: 'nested', count: 1);
+      await nestedStore.set(sample);
+
+      expect(await File(nestedPath).exists(), isTrue);
+      final data = await nestedStore.get();
+      expect(data, equals(sample));
+    });
+
+    test('overwrites existing data', () async {
+      await store.set((name: 'first', count: 1));
+      await store.set((name: 'second', count: 2));
+
+      final data = await store.get();
+      expect(data, equals((name: 'second', count: 2)));
+    });
+  });
 }
