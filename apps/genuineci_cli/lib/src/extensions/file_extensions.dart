@@ -17,7 +17,7 @@ extension AtomicFileExtension on File {
       try {
         await candidate.create(exclusive: true);
         tempFile = candidate;
-      } on FileSystemException {
+      } on PathExistsException {
         // Collision occurred; retry with a new unique path.
       }
     }
