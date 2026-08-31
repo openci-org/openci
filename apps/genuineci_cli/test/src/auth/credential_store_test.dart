@@ -22,14 +22,37 @@ void main() {
   });
 
   test(
-    'load returns empty config when credentials file does not exist',
+    'get returns empty config when credentials file does not exist',
     () async {
-      final config = await store.load();
+      final config = await store.get();
       expect(config.activeProfile, equals('default'));
       expect(config.profiles, isEmpty);
       expect(await store.getActiveProfile(), isNull);
     },
   );
+
+  test('set writes credentials file with 0600 permissions', () async {
+    const config = CredentialConfig(
+      activeProfile: 'prod',
+      profiles: {
+        'prod': AuthProfile(
+          serverUrl: 'https://api.openci.org',
+          token: 'secret-token',
+        ),
+      },
+    );
+
+    await store.set(config);
+
+    final loaded = await store.get();
+    expect(loaded, equals(config));
+
+    if (!Platform.isWindows) {
+      final stat = await File(customConfigPath).stat();
+      // 0600 (octal) = 384 (decimal)
+      expect(stat.mode & 0x1ff, equals(0x180));
+    }
+  });
 
   test(
     'saveProfile persists profile and sets it as active by default',
@@ -43,7 +66,7 @@ void main() {
 
       await store.saveProfile('local', localProfile);
 
-      final loaded = await store.load();
+      final loaded = await store.get();
       expect(loaded.activeProfile, equals('local'));
       expect(loaded.profiles['local'], equals(localProfile));
 
