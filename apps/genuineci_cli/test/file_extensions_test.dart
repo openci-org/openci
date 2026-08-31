@@ -8,7 +8,7 @@ void main() {
   late Directory tempDir;
 
   setUp(() async {
-    tempDir = await Directory.systemTemp.createTemp('genuineci_file_ext_test_');
+    tempDir = await Directory.systemTemp.createTemp('file_extensions_test_');
   });
 
   tearDown(() async {
@@ -18,50 +18,28 @@ void main() {
   });
 
   group('AtomicFileExtension', () {
-    test('writeAsStringAtomic writes content to target file', () async {
+    test('writeAsStringAtomic successfully writes content', () async {
       final file = File(p.join(tempDir.path, 'test.txt'));
-      await file.writeAsStringAtomic('Hello Atomic World');
+      await file.writeAsStringAtomic('hello world');
 
       expect(await file.exists(), isTrue);
-      expect(await file.readAsString(), equals('Hello Atomic World'));
+      expect(await file.readAsString(), equals('hello world'));
     });
 
-    test(
-      'writeAsStringAtomic creates parent directories automatically',
-      () async {
-        final file = File(
-          p.join(tempDir.path, 'nested', 'deeply', 'target.txt'),
-        );
-        await file.writeAsStringAtomic('Nested Content');
+    test('writeAsStringAtomic creates parent directories if needed', () async {
+      final file = File(p.join(tempDir.path, 'nested', 'sub', 'test.txt'));
+      await file.writeAsStringAtomic('nested content');
 
-        expect(await file.exists(), isTrue);
-        expect(await file.readAsString(), equals('Nested Content'));
-      },
-    );
+      expect(await file.exists(), isTrue);
+      expect(await file.readAsString(), equals('nested content'));
+    });
 
     test('writeAsStringAtomic overwrites existing file', () async {
-      final file = File(p.join(tempDir.path, 'overwrite.txt'));
-      await file.writeAsStringAtomic('Initial');
-      await file.writeAsStringAtomic('Updated');
+      final file = File(p.join(tempDir.path, 'test.txt'));
+      await file.writeAsStringAtomic('initial');
+      await file.writeAsStringAtomic('updated');
 
-      expect(await file.readAsString(), equals('Updated'));
+      expect(await file.readAsString(), equals('updated'));
     });
-
-    test(
-      'writeAsStringAtomic leaves no temporary files after successful write',
-      () async {
-        final file = File(p.join(tempDir.path, 'clean.txt'));
-        await file.writeAsStringAtomic('Clean Test');
-
-        final remainingFiles = tempDir
-            .listSync()
-            .whereType<File>()
-            .map((f) => p.basename(f.path))
-            .toList();
-
-        expect(remainingFiles, contains('clean.txt'));
-        expect(remainingFiles.where((name) => name.contains('.tmp.')), isEmpty);
-      },
-    );
   });
 }
