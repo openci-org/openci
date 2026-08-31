@@ -44,9 +44,11 @@ class JsonFileStore<T> {
     return fromJson(json);
   }
 
-  /// Serializes [data] and writes it atomically to the JSON file.
-  Future<void> set(T data) async {
+  Future<void> set(T data, {bool chmod600 = false}) async {
     final file = File(filePath);
-    await file.writeAsStringAtomic(jsonEncode(toJson(data)));
+    await file.writeAsStringAtomic(
+      jsonEncode(toJson(data)),
+      chmod600: chmod600,
+    );
   }
 }
