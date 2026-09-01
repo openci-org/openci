@@ -1,18 +1,7 @@
 name: genuineci_cli CI
 
 on:
-  pull_request:
-    paths:
-      - "apps/genuineci_cli/**"
-      - "packages/openci_shared/**"
-      - "pubspec.yaml"
-      - "pubspec.lock"
-      - ".github/workflows/genuineci-cli-ci.yml"
-
   push:
-    branches:
-      - develop
-      - main
     paths:
       - "apps/genuineci_cli/**"
       - "packages/openci_shared/**"
@@ -27,10 +16,14 @@ concurrency:
 jobs:
   ci:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
