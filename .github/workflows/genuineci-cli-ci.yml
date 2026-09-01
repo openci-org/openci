@@ -1,6 +1,14 @@
 name: genuineci_cli CI
 
 on:
+  pull_request:
+    paths:
+      - "apps/genuineci_cli/**"
+      - "packages/openci_shared/**"
+      - "pubspec.yaml"
+      - "pubspec.lock"
+      - ".github/workflows/genuineci-cli-ci.yml"
+
   push:
     branches:
       - develop
@@ -12,16 +20,9 @@ on:
       - "pubspec.lock"
       - ".github/workflows/genuineci-cli-ci.yml"
 
-  pull_request:
-    branches:
-      - develop
-      - main
-    paths:
-      - "apps/genuineci_cli/**"
-      - "packages/openci_shared/**"
-      - "pubspec.yaml"
-      - "pubspec.lock"
-      - ".github/workflows/genuineci-cli-ci.yml"
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   ci:
