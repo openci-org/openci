@@ -30,7 +30,8 @@
       "starting": "Starting OpenCI Local Development Environment...",
       "stepTart": "Step 1: Checking Tart VM base image...",
       "stepTartNotFound": "Error: Tart VM image \"base-macos\" not found.\nPlease run the following commands to setup the base image:\n  tart pull ghcr.io/cirruslabs/macos-tahoe-vanilla:26.5\n  tart clone ghcr.io/cirruslabs/macos-tahoe-vanilla:26.5 base-macos",
-      "stepTartExists": "Tart VM (base-macos) exists."
+      "stepTartExists": "Tart VM (base-macos) exists.",
+      "projectRootNotFound": "Error: OpenCI project root not found."
     }
   },
   "common": {

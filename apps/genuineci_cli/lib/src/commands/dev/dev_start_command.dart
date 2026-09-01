@@ -3,6 +3,7 @@ import 'package:cli_util/cli_logging.dart';
 
 import '../../i18n/i18n.dart';
 import 'check_tart_base_image.dart';
+import 'find_project_root.dart';
 
 class DevStartCommand extends Command<int> {
   @override
@@ -23,6 +24,13 @@ class DevStartCommand extends Command<int> {
     if (!hasTartImage) {
       return 1;
     }
+
+    final projectRoot = findProjectRoot();
+    if (projectRoot == null) {
+      _logger.stderr(t.dev.start.projectRootNotFound);
+      return 1;
+    }
+
     return 0;
   }
 }
