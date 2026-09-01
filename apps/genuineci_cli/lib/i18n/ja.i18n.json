@@ -23,6 +23,9 @@
     "success": "言語を${language}に設定しました。",
     "invalidLanguage": "無効な言語です: 「${input}」。対応言語: japanese, english"
   },
+  "dev": {
+    "description": "ローカル開発環境（Docker, Tart, DB, サーバー）を管理します。"
+  },
   "common": {
     "error": "エラー: ${error}"
   }

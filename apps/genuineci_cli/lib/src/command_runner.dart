@@ -2,6 +2,7 @@ import 'package:args/args.dart';
 import 'package:args/command_runner.dart';
 import 'package:cli_util/cli_logging.dart';
 
+import 'commands/dev/dev_command.dart';
 import 'commands/login_command.dart';
 import 'commands/use_command.dart';
 import 'i18n/i18n.dart';
@@ -25,6 +26,7 @@ class GenuineCiCommandRunner extends CommandRunner<int> {
 
     addCommand(LoginCommand());
     addCommand(UseCommand(logger: _logger));
+    addCommand(DevCommand(logger: _logger));
   }
 
   @override

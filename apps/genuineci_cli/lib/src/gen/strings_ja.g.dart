@@ -41,6 +41,7 @@ class TranslationsJa extends Translations with BaseTranslations<AppLocale, Trans
 	@override late final _Translations$cli$ja cli = _Translations$cli$ja._(_root);
 	@override late final _Translations$login$ja login = _Translations$login$ja._(_root);
 	@override late final _Translations$use$ja use = _Translations$use$ja._(_root);
+	@override late final _Translations$dev$ja dev = _Translations$dev$ja._(_root);
 	@override late final _Translations$common$ja common = _Translations$common$ja._(_root);
 }
 
@@ -79,6 +80,16 @@ class _Translations$use$ja extends Translations$use$en {
 	@override String get description => '表示言語を設定します（japanese, english）。';
 	@override String success({required Object language}) => '言語を${language}に設定しました。';
 	@override String invalidLanguage({required Object input}) => '無効な言語です: 「${input}」。対応言語: japanese, english';
+}
+
+// Path: dev
+class _Translations$dev$ja extends Translations$dev$en {
+	_Translations$dev$ja._(TranslationsJa root) : this._root = root, super.internal(root);
+
+	final TranslationsJa _root; // ignore: unused_field
+
+	// Translations
+	@override String get description => 'ローカル開発環境（Docker, Tart, DB, サーバー）を管理します。';
 }
 
 // Path: common
@@ -137,6 +148,7 @@ extension on TranslationsJa {
 			'use.description' => '表示言語を設定します（japanese, english）。',
 			'use.success' => ({required Object language}) => '言語を${language}に設定しました。',
 			'use.invalidLanguage' => ({required Object input}) => '無効な言語です: 「${input}」。対応言語: japanese, english',
+			'dev.description' => 'ローカル開発環境（Docker, Tart, DB, サーバー）を管理します。',
 			'common.error' => ({required Object error}) => 'エラー: ${error}',
 			_ => null,
 		};
