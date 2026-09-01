@@ -31,7 +31,7 @@ services:
       SECRET_ENCRYPTION_KEY: ${SECRET_ENCRYPTION_KEY:?SECRET_ENCRYPTION_KEY environment variable is required}
 
       GOOGLE_APPLICATION_CREDENTIALS: /app/credentials/firebase-service-account.json
-      
+
       GITHUB_API_BASE_URL: ${GITHUB_API_BASE_URL:?GITHUB_API_BASE_URL environment variable is required}
       GITHUB_APP_ID: ${GITHUB_APP_ID:?GITHUB_APP_ID environment variable is required}
       GITHUB_PRIVATE_KEY_PATH: /app/credentials/github-private-key.pem
