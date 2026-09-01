@@ -1,0 +1,16 @@
+services:
+  server:
+    environment:
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY:-genuineci-local-dev-key}
+
+  github-webhook-processor:
+    environment:
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY:-genuineci-local-dev-key}
+
+  build-job-dispatcher:
+    environment:
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY:-genuineci-local-dev-key}
+
+  build-job-executor:
+    environment:
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY:-genuineci-local-dev-key}

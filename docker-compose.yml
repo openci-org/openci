@@ -28,6 +28,7 @@ services:
       PORT: 8080
       DATABASE_URL: ${DATABASE_URL:-postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-openci}}
       INTERNAL_API_KEY: ${INTERNAL_API_KEY:?INTERNAL_API_KEY environment variable is required}
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY:-}
       SECRET_ENCRYPTION_KEY: ${SECRET_ENCRYPTION_KEY:?SECRET_ENCRYPTION_KEY environment variable is required}
 
       GOOGLE_APPLICATION_CREDENTIALS: /app/credentials/firebase-service-account.json
@@ -70,6 +71,7 @@ services:
     environment:
       OPENCI_SERVER_URL: http://server:8080
       INTERNAL_API_KEY: ${INTERNAL_API_KEY:?INTERNAL_API_KEY environment variable is required}
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY:-}
       SENTRY_DSN: ${SENTRY_DSN_GITHUB_WEBHOOK_PROCESSOR:-}
     depends_on:
       server:
@@ -85,6 +87,7 @@ services:
     environment:
       OPENCI_SERVER_URL: http://server:8080
       INTERNAL_API_KEY: ${INTERNAL_API_KEY:?INTERNAL_API_KEY environment variable is required}
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY:-}
       SENTRY_DSN: ${SENTRY_DSN_BUILD_JOB_DISPATCHER:-}
       HOST_HOME: ${HOME}
     volumes:
@@ -109,6 +112,7 @@ services:
       LOKI_URL: http://loki:3100
 
       INTERNAL_API_KEY: ${INTERNAL_API_KEY:?INTERNAL_API_KEY environment variable is required}
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY:-}
 
       ORCHARD_API_URL: ${ORCHARD_API_URL:-https://orchard-controller:6120}
 
