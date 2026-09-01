@@ -11,6 +11,6 @@ class DevCommand extends Command<int> {
   String get description => t.dev.description;
 
   DevCommand({Logger? logger}) {
-    // Subcommands can be added here
+    // Add commands
   }
 }
