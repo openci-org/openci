@@ -106,6 +106,8 @@ class Translations$dev$en {
 
 	/// en: 'Manage local development environment (Docker, Tart, DB, Server).'
 	String get description => 'Manage local development environment (Docker, Tart, DB, Server).';
+
+	late final Translations$dev$start$en start = Translations$dev$start$en.internal(_root);
 }
 
 // Path: common
@@ -156,6 +158,30 @@ class Translations$login$flags$en {
 	String get profile => 'Profile name to store credentials under.';
 }
 
+// Path: dev.start
+class Translations$dev$start$en {
+	Translations$dev$start$en.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// en: 'Start local development environment (Docker containers, Tart VM, Orchard).'
+	String get description => 'Start local development environment (Docker containers, Tart VM, Orchard).';
+
+	/// en: 'Starting OpenCI Local Development Environment...'
+	String get starting => 'Starting OpenCI Local Development Environment...';
+
+	/// en: 'Step 1: Checking Tart VM base image...'
+	String get stepTart => 'Step 1: Checking Tart VM base image...';
+
+	/// en: 'Error: Tart VM image "base-macos" not found. Please run the following commands to setup the base image: tart pull ghcr.io/cirruslabs/macos-tahoe-vanilla:26.5 tart clone ghcr.io/cirruslabs/macos-tahoe-vanilla:26.5 base-macos'
+	String get stepTartNotFound => 'Error: Tart VM image "base-macos" not found.\nPlease run the following commands to setup the base image:\n  tart pull ghcr.io/cirruslabs/macos-tahoe-vanilla:26.5\n  tart clone ghcr.io/cirruslabs/macos-tahoe-vanilla:26.5 base-macos';
+
+	/// en: 'Tart VM (base-macos) exists.'
+	String get stepTartExists => 'Tart VM (base-macos) exists.';
+}
+
 /// The flat map containing all translations for locale <en>.
 /// Only for edge cases! For simple maps, use the map function of this library.
 ///
@@ -179,6 +205,11 @@ extension on Translations {
 			'use.success' => ({required Object language}) => 'Language set to ${language}.',
 			'use.invalidLanguage' => ({required Object input}) => 'Invalid language "${input}". Supported languages: japanese, english.',
 			'dev.description' => 'Manage local development environment (Docker, Tart, DB, Server).',
+			'dev.start.description' => 'Start local development environment (Docker containers, Tart VM, Orchard).',
+			'dev.start.starting' => 'Starting OpenCI Local Development Environment...',
+			'dev.start.stepTart' => 'Step 1: Checking Tart VM base image...',
+			'dev.start.stepTartNotFound' => 'Error: Tart VM image "base-macos" not found.\nPlease run the following commands to setup the base image:\n  tart pull ghcr.io/cirruslabs/macos-tahoe-vanilla:26.5\n  tart clone ghcr.io/cirruslabs/macos-tahoe-vanilla:26.5 base-macos',
+			'dev.start.stepTartExists' => 'Tart VM (base-macos) exists.',
 			'common.error' => ({required Object error}) => 'Error: ${error}',
 			_ => null,
 		};

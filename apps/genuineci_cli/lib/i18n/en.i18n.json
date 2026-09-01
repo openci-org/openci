@@ -24,7 +24,14 @@
     "invalidLanguage": "Invalid language \"${input}\". Supported languages: japanese, english."
   },
   "dev": {
-    "description": "Manage local development environment (Docker, Tart, DB, Server)."
+    "description": "Manage local development environment (Docker, Tart, DB, Server).",
+    "start": {
+      "description": "Start local development environment (Docker containers, Tart VM, Orchard).",
+      "starting": "Starting OpenCI Local Development Environment...",
+      "stepTart": "Step 1: Checking Tart VM base image...",
+      "stepTartNotFound": "Error: Tart VM image \"base-macos\" not found.\nPlease run the following commands to setup the base image:\n  tart pull ghcr.io/cirruslabs/macos-tahoe-vanilla:26.5\n  tart clone ghcr.io/cirruslabs/macos-tahoe-vanilla:26.5 base-macos",
+      "stepTartExists": "Tart VM (base-macos) exists."
+    }
   },
   "common": {
     "error": "Error: ${error}"
