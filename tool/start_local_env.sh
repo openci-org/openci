@@ -26,6 +26,7 @@ echo ""
 echo "🐳 Step 2: Starting Docker containers (db, orchard, server, job-processor)..."
 BASE_VM_NAME="${BASE_VM_NAME:-base-macos}" \
 INTERNAL_API_KEY="${INTERNAL_API_KEY:-your-internal-api-key-here}" \
+INTERNAL_API_KEY="${INTERNAL_API_KEY:-genuineci-local-dev-key}" \
 ORCHARD_API_URL="https://orchard-controller:6120" \
 docker compose up -d --build db orchard-controller server job-processor
 
