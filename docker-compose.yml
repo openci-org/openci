@@ -27,12 +27,11 @@ services:
       HOST: any
       PORT: 8080
       DATABASE_URL: ${DATABASE_URL:-postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-openci}}
-      INTERNAL_API_KEY: ${INTERNAL_API_KEY:?INTERNAL_API_KEY environment variable is required}
       INTERNAL_API_KEY: ${INTERNAL_API_KEY:-}
       SECRET_ENCRYPTION_KEY: ${SECRET_ENCRYPTION_KEY:?SECRET_ENCRYPTION_KEY environment variable is required}
 
       GOOGLE_APPLICATION_CREDENTIALS: /app/credentials/firebase-service-account.json
-      
+
       GITHUB_API_BASE_URL: ${GITHUB_API_BASE_URL:?GITHUB_API_BASE_URL environment variable is required}
       GITHUB_APP_ID: ${GITHUB_APP_ID:?GITHUB_APP_ID environment variable is required}
       GITHUB_PRIVATE_KEY_PATH: /app/credentials/github-private-key.pem
@@ -70,7 +69,6 @@ services:
     restart: unless-stopped
     environment:
       OPENCI_SERVER_URL: http://server:8080
-      INTERNAL_API_KEY: ${INTERNAL_API_KEY:?INTERNAL_API_KEY environment variable is required}
       INTERNAL_API_KEY: ${INTERNAL_API_KEY:-}
       SENTRY_DSN: ${SENTRY_DSN_GITHUB_WEBHOOK_PROCESSOR:-}
     depends_on:
@@ -86,7 +84,6 @@ services:
     restart: unless-stopped
     environment:
       OPENCI_SERVER_URL: http://server:8080
-      INTERNAL_API_KEY: ${INTERNAL_API_KEY:?INTERNAL_API_KEY environment variable is required}
       INTERNAL_API_KEY: ${INTERNAL_API_KEY:-}
       SENTRY_DSN: ${SENTRY_DSN_BUILD_JOB_DISPATCHER:-}
       HOST_HOME: ${HOME}
@@ -111,7 +108,6 @@ services:
 
       LOKI_URL: http://loki:3100
 
-      INTERNAL_API_KEY: ${INTERNAL_API_KEY:?INTERNAL_API_KEY environment variable is required}
       INTERNAL_API_KEY: ${INTERNAL_API_KEY:-}
 
       ORCHARD_API_URL: ${ORCHARD_API_URL:-https://orchard-controller:6120}
