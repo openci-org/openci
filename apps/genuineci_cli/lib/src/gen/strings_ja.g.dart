@@ -135,26 +135,10 @@ class _Translations$dev$start$ja extends Translations$dev$start$en {
 
 	// Translations
 	@override String get description => 'ローカル開発環境（Docker コンテナ、Tart VM、Orchard）を起動します。';
-	@override late final _Translations$dev$start$flags$ja flags = _Translations$dev$start$flags$ja._(_root);
 	@override String get starting => 'OpenCI ローカル開発環境を起動しています...';
 	@override String get stepTart => 'Step 1: Tart VM ベースイメージを確認中...';
 	@override String get stepTartNotFound => 'エラー: Tart VM イメージ「base-macos」が見つかりません。\n以下のコマンドを実行してイメージを準備してください:\n  tart pull ghcr.io/cirruslabs/macos-tahoe-vanilla:26.5\n  tart clone ghcr.io/cirruslabs/macos-tahoe-vanilla:26.5 base-macos';
 	@override String get stepTartExists => 'Tart VM (base-macos) を確認しました。';
-	@override String get stepDocker => 'Step 2: Docker コンテナ (db, orchard, server, dispatcher) を起動中...';
-	@override String get stepOrchard => 'Step 3: Orchard Controller の初期化を待機中...';
-	@override String get stepOrchardContext => 'Step 4: Orchard CLI コンテキストを登録中...';
-	@override String get stepSeed => 'Step 5: データベースにテストデータをシード中...';
-	@override String get ready => '🎉 OpenCI ローカル開発環境が正常に起動しました！';
-}
-
-// Path: dev.start.flags
-class _Translations$dev$start$flags$ja extends Translations$dev$start$flags$en {
-	_Translations$dev$start$flags$ja._(TranslationsJa root) : this._root = root, super.internal(root);
-
-	final TranslationsJa _root; // ignore: unused_field
-
-	// Translations
-	@override String get seed => '起動後にテストデータの自動シードを実行します（--no-seed でスキップ）。';
 }
 
 /// The flat map containing all translations for locale <ja>.
@@ -181,16 +165,10 @@ extension on TranslationsJa {
 			'use.invalidLanguage' => ({required Object input}) => '無効な言語です: 「${input}」。対応言語: japanese, english',
 			'dev.description' => 'ローカル開発環境（Docker, Tart, DB, サーバー）を管理します。',
 			'dev.start.description' => 'ローカル開発環境（Docker コンテナ、Tart VM、Orchard）を起動します。',
-			'dev.start.flags.seed' => '起動後にテストデータの自動シードを実行します（--no-seed でスキップ）。',
 			'dev.start.starting' => 'OpenCI ローカル開発環境を起動しています...',
 			'dev.start.stepTart' => 'Step 1: Tart VM ベースイメージを確認中...',
 			'dev.start.stepTartNotFound' => 'エラー: Tart VM イメージ「base-macos」が見つかりません。\n以下のコマンドを実行してイメージを準備してください:\n  tart pull ghcr.io/cirruslabs/macos-tahoe-vanilla:26.5\n  tart clone ghcr.io/cirruslabs/macos-tahoe-vanilla:26.5 base-macos',
 			'dev.start.stepTartExists' => 'Tart VM (base-macos) を確認しました。',
-			'dev.start.stepDocker' => 'Step 2: Docker コンテナ (db, orchard, server, dispatcher) を起動中...',
-			'dev.start.stepOrchard' => 'Step 3: Orchard Controller の初期化を待機中...',
-			'dev.start.stepOrchardContext' => 'Step 4: Orchard CLI コンテキストを登録中...',
-			'dev.start.stepSeed' => 'Step 5: データベースにテストデータをシード中...',
-			'dev.start.ready' => '🎉 OpenCI ローカル開発環境が正常に起動しました！',
 			'common.error' => ({required Object error}) => 'エラー: ${error}',
 			_ => null,
 		};

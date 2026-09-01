@@ -18,13 +18,10 @@ void main() {
     expect(devCommand.description, isNotEmpty);
   });
 
-  test('dev contains start subcommand with seed flag', () {
+  test('dev contains start subcommand', () {
     final startCommand = runner.commands['dev']!.subcommands['start'];
     expect(startCommand, isNotNull);
     expect(startCommand!.name, equals('start'));
     expect(startCommand.description, isNotEmpty);
-    expect(startCommand.argParser.options.containsKey('seed'), isTrue);
-    expect(startCommand.argParser.options['seed']!.defaultsTo, isTrue);
-    expect(startCommand.argParser.options.containsKey('tart'), isFalse);
   });
 }
