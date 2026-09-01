@@ -23,6 +23,9 @@
     "success": "Language set to ${language}.",
     "invalidLanguage": "Invalid language \"${input}\". Supported languages: japanese, english."
   },
+  "dev": {
+    "description": "Manage local development environment (Docker, Tart, DB, Server)."
+  },
   "common": {
     "error": "Error: ${error}"
   }

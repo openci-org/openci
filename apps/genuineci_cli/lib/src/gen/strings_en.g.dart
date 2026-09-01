@@ -37,6 +37,7 @@ class Translations with BaseTranslations<AppLocale, Translations> {
 	late final Translations$cli$en cli = Translations$cli$en.internal(_root);
 	late final Translations$login$en login = Translations$login$en.internal(_root);
 	late final Translations$use$en use = Translations$use$en.internal(_root);
+	late final Translations$dev$en dev = Translations$dev$en.internal(_root);
 	late final Translations$common$en common = Translations$common$en.internal(_root);
 }
 
@@ -93,6 +94,18 @@ class Translations$use$en {
 
 	/// en: 'Invalid language "${input}". Supported languages: japanese, english.'
 	String invalidLanguage({required Object input}) => 'Invalid language "${input}". Supported languages: japanese, english.';
+}
+
+// Path: dev
+class Translations$dev$en {
+	Translations$dev$en.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// en: 'Manage local development environment (Docker, Tart, DB, Server).'
+	String get description => 'Manage local development environment (Docker, Tart, DB, Server).';
 }
 
 // Path: common
@@ -165,6 +178,7 @@ extension on Translations {
 			'use.description' => 'Set the default display language (japanese, english).',
 			'use.success' => ({required Object language}) => 'Language set to ${language}.',
 			'use.invalidLanguage' => ({required Object input}) => 'Invalid language "${input}". Supported languages: japanese, english.',
+			'dev.description' => 'Manage local development environment (Docker, Tart, DB, Server).',
 			'common.error' => ({required Object error}) => 'Error: ${error}',
 			_ => null,
 		};
