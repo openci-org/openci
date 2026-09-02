@@ -4,6 +4,7 @@ import 'package:cli_util/cli_logging.dart';
 import '../../i18n/i18n.dart';
 import 'check_tart_base_image.dart';
 import 'find_project_root.dart';
+import 'setup_orchard_context.dart';
 import 'start_docker_compose.dart';
 
 class DevStartCommand extends Command<int> {
@@ -37,6 +38,11 @@ class DevStartCommand extends Command<int> {
       projectRoot,
     );
     if (!didStartDockerCompose) {
+      return 1;
+    }
+
+    final didSetupOrchardContext = await setupOrchardContext(_logger);
+    if (!didSetupOrchardContext) {
       return 1;
     }
 

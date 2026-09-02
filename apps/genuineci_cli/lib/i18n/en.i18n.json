@@ -34,6 +34,11 @@
       "stepDockerCompose": "Step 2: Starting Docker containers (db, Orchard, server, build-job-dispatcher)...",
       "stepDockerComposeFailed": "Error: Failed to start Docker containers.",
       "stepDockerComposeStarted": "Docker containers started.",
+      "stepOrchardWaiting": "Step 3: Waiting for Orchard Controller to initialize...",
+      "stepOrchardNotReady": "Error: Orchard Controller did not become ready.",
+      "stepOrchardContext": "Step 4: Registering Orchard CLI context...",
+      "stepOrchardContextFailed": "Error: Failed to register Orchard CLI context.",
+      "stepOrchardContextRegistered": "Orchard CLI context authenticated.",
       "projectRootNotFound": "Error: OpenCI project root not found."
     }
   },
