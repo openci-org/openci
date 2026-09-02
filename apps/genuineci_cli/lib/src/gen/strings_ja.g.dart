@@ -139,6 +139,7 @@ class _Translations$dev$start$ja extends Translations$dev$start$en {
 	@override String get stepTart => 'Step 1: Tart VM ベースイメージを確認中...';
 	@override String get stepTartNotFound => 'エラー: Tart VM イメージ「base-macos」が見つかりません。\n以下のコマンドを実行してイメージを準備してください:\n  tart pull ghcr.io/cirruslabs/macos-tahoe-vanilla:26.5\n  tart clone ghcr.io/cirruslabs/macos-tahoe-vanilla:26.5 base-macos';
 	@override String get stepTartExists => 'Tart VM (base-macos) を確認しました。';
+	@override String get projectRootNotFound => 'エラー: OpenCI プロジェクトのルートディレクトリが見つかりません。';
 }
 
 /// The flat map containing all translations for locale <ja>.
@@ -169,6 +170,7 @@ extension on TranslationsJa {
 			'dev.start.stepTart' => 'Step 1: Tart VM ベースイメージを確認中...',
 			'dev.start.stepTartNotFound' => 'エラー: Tart VM イメージ「base-macos」が見つかりません。\n以下のコマンドを実行してイメージを準備してください:\n  tart pull ghcr.io/cirruslabs/macos-tahoe-vanilla:26.5\n  tart clone ghcr.io/cirruslabs/macos-tahoe-vanilla:26.5 base-macos',
 			'dev.start.stepTartExists' => 'Tart VM (base-macos) を確認しました。',
+			'dev.start.projectRootNotFound' => 'エラー: OpenCI プロジェクトのルートディレクトリが見つかりません。',
 			'common.error' => ({required Object error}) => 'エラー: ${error}',
 			_ => null,
 		};

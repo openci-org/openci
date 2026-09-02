@@ -180,6 +180,9 @@ class Translations$dev$start$en {
 
 	/// en: 'Tart VM (base-macos) exists.'
 	String get stepTartExists => 'Tart VM (base-macos) exists.';
+
+	/// en: 'Error: OpenCI project root not found.'
+	String get projectRootNotFound => 'Error: OpenCI project root not found.';
 }
 
 /// The flat map containing all translations for locale <en>.
@@ -210,6 +213,7 @@ extension on Translations {
 			'dev.start.stepTart' => 'Step 1: Checking Tart VM base image...',
 			'dev.start.stepTartNotFound' => 'Error: Tart VM image "base-macos" not found.\nPlease run the following commands to setup the base image:\n  tart pull ghcr.io/cirruslabs/macos-tahoe-vanilla:26.5\n  tart clone ghcr.io/cirruslabs/macos-tahoe-vanilla:26.5 base-macos',
 			'dev.start.stepTartExists' => 'Tart VM (base-macos) exists.',
+			'dev.start.projectRootNotFound' => 'Error: OpenCI project root not found.',
 			'common.error' => ({required Object error}) => 'Error: ${error}',
 			_ => null,
 		};
