@@ -90,6 +90,7 @@ class _Translations$dev$ja extends Translations$dev$en {
 
 	// Translations
 	@override String get description => 'ローカル開発環境（Docker, Tart, DB, サーバー）を管理します。';
+	@override late final _Translations$dev$start$ja start = _Translations$dev$start$ja._(_root);
 }
 
 // Path: common
@@ -126,6 +127,20 @@ class _Translations$login$flags$ja extends Translations$login$flags$en {
 	@override String get profile => '認証情報を保存するプロファイル名。';
 }
 
+// Path: dev.start
+class _Translations$dev$start$ja extends Translations$dev$start$en {
+	_Translations$dev$start$ja._(TranslationsJa root) : this._root = root, super.internal(root);
+
+	final TranslationsJa _root; // ignore: unused_field
+
+	// Translations
+	@override String get description => 'ローカル開発環境（Docker コンテナ、Tart VM、Orchard）を起動します。';
+	@override String get starting => 'OpenCI ローカル開発環境を起動しています...';
+	@override String get stepTart => 'Step 1: Tart VM ベースイメージを確認中...';
+	@override String get stepTartNotFound => 'エラー: Tart VM イメージ「base-macos」が見つかりません。\n以下のコマンドを実行してイメージを準備してください:\n  tart pull ghcr.io/cirruslabs/macos-tahoe-vanilla:26.5\n  tart clone ghcr.io/cirruslabs/macos-tahoe-vanilla:26.5 base-macos';
+	@override String get stepTartExists => 'Tart VM (base-macos) を確認しました。';
+}
+
 /// The flat map containing all translations for locale <ja>.
 /// Only for edge cases! For simple maps, use the map function of this library.
 ///
@@ -149,6 +164,11 @@ extension on TranslationsJa {
 			'use.success' => ({required Object language}) => '言語を${language}に設定しました。',
 			'use.invalidLanguage' => ({required Object input}) => '無効な言語です: 「${input}」。対応言語: japanese, english',
 			'dev.description' => 'ローカル開発環境（Docker, Tart, DB, サーバー）を管理します。',
+			'dev.start.description' => 'ローカル開発環境（Docker コンテナ、Tart VM、Orchard）を起動します。',
+			'dev.start.starting' => 'OpenCI ローカル開発環境を起動しています...',
+			'dev.start.stepTart' => 'Step 1: Tart VM ベースイメージを確認中...',
+			'dev.start.stepTartNotFound' => 'エラー: Tart VM イメージ「base-macos」が見つかりません。\n以下のコマンドを実行してイメージを準備してください:\n  tart pull ghcr.io/cirruslabs/macos-tahoe-vanilla:26.5\n  tart clone ghcr.io/cirruslabs/macos-tahoe-vanilla:26.5 base-macos',
+			'dev.start.stepTartExists' => 'Tart VM (base-macos) を確認しました。',
 			'common.error' => ({required Object error}) => 'エラー: ${error}',
 			_ => null,
 		};
