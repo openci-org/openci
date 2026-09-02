@@ -10,26 +10,15 @@ void main() {
       expect(hasExactVmName('base-macos', 'base-macos'), isTrue);
     });
 
-    test(
-      'returns true when exact VM name is listed among multiple columns and rows',
-      () {
-        const output = '''
-NAME            SOURCE                                          DISK    SIZE
-base-macos      ghcr.io/cirruslabs/macos-tahoe-vanilla:26.5      50GB    15GB
-other-vm        ghcr.io/cirruslabs/macos-runner:latest          50GB    20GB
-''';
-        expect(hasExactVmName(output, 'base-macos'), isTrue);
-      },
-    );
+    test('returns true when exact VM name is listed among multiple rows', () {
+      const output = 'other-vm\nbase-macos\ndevelopment-vm\n';
+      expect(hasExactVmName(output, 'base-macos'), isTrue);
+    });
 
     test(
       'returns false when VM name is only a substring (e.g. base-macos-old)',
       () {
-        const output = '''
-NAME            SOURCE                                          DISK    SIZE
-base-macos-old  ghcr.io/cirruslabs/macos-tahoe-vanilla:26.5      50GB    15GB
-my-base-macos   ghcr.io/cirruslabs/macos-runner:latest          50GB    20GB
-''';
+        const output = 'base-macos-old\nmy-base-macos\n';
         expect(hasExactVmName(output, 'base-macos'), isFalse);
       },
     );
@@ -49,17 +38,19 @@ my-base-macos   ghcr.io/cirruslabs/macos-runner:latest          50GB    20GB
     test(
       'returns true when tart list succeeds (exitCode 0) and contains base-macos',
       () async {
+        late String receivedExecutable;
+        late List<String> receivedArguments;
+        late bool receivedRunInShell;
+
         Future<ProcessResult> mockRunner(
           String executable,
           List<String> arguments, {
           bool runInShell = false,
         }) async {
-          return ProcessResult(
-            0,
-            0,
-            'base-macos   ghcr.io/cirruslabs/macos-tahoe-vanilla:26.5\n',
-            '',
-          );
+          receivedExecutable = executable;
+          receivedArguments = arguments;
+          receivedRunInShell = runInShell;
+          return ProcessResult(0, 0, 'base-macos\n', '');
         }
 
         final result = await checkTartBaseImage(
@@ -67,6 +58,12 @@ my-base-macos   ghcr.io/cirruslabs/macos-runner:latest          50GB    20GB
           processRunner: mockRunner,
         );
         expect(result, isTrue);
+        expect(receivedExecutable, equals('tart'));
+        expect(
+          receivedArguments,
+          equals(['list', '--source', 'local', '--quiet']),
+        );
+        expect(receivedRunInShell, isTrue);
       },
     );
 
@@ -94,12 +91,7 @@ my-base-macos   ghcr.io/cirruslabs/macos-runner:latest          50GB    20GB
           List<String> arguments, {
           bool runInShell = false,
         }) async {
-          return ProcessResult(
-            0,
-            0,
-            'base-macos-old   ghcr.io/cirruslabs/macos-tahoe-vanilla:26.5\n',
-            '',
-          );
+          return ProcessResult(0, 0, 'base-macos-old\n', '');
         }
 
         final result = await checkTartBaseImage(
@@ -109,5 +101,21 @@ my-base-macos   ghcr.io/cirruslabs/macos-runner:latest          50GB    20GB
         expect(result, isFalse);
       },
     );
+
+    test('returns false when tart is unavailable', () async {
+      Future<ProcessResult> mockRunner(
+        String executable,
+        List<String> arguments, {
+        bool runInShell = false,
+      }) async {
+        throw ProcessException(executable, arguments);
+      }
+
+      final result = await checkTartBaseImage(
+        logger,
+        processRunner: mockRunner,
+      );
+      expect(result, isFalse);
+    });
   });
 }
