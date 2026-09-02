@@ -5,18 +5,21 @@ import 'package:meta/meta.dart';
 
 import '../../i18n/i18n.dart';
 
-typedef ProcessRunner = Future<ProcessResult> Function(
-  String executable,
-  List<String> arguments, {
-  bool runInShell,
-});
+typedef ProcessRunner =
+    Future<ProcessResult> Function(
+      String executable,
+      List<String> arguments, {
+      bool runInShell,
+    });
 
 Future<bool> checkTartBaseImage(
   Logger logger, {
   @visibleForTesting ProcessRunner processRunner = Process.run,
 }) async {
   logger.stdout('\n${t.dev.start.stepTart}');
-  final tartListResult = await processRunner('tart', ['list'], runInShell: true);
+  final tartListResult = await processRunner('tart', [
+    'list',
+  ], runInShell: true);
   if (tartListResult.exitCode != 0 ||
       !hasExactVmName(tartListResult.stdout.toString(), 'base-macos')) {
     logger.stderr(t.dev.start.stepTartNotFound);
