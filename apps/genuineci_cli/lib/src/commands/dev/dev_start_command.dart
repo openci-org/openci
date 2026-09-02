@@ -4,6 +4,7 @@ import 'package:cli_util/cli_logging.dart';
 import '../../i18n/i18n.dart';
 import 'check_tart_base_image.dart';
 import 'find_project_root.dart';
+import 'start_docker_compose.dart';
 
 class DevStartCommand extends Command<int> {
   @override
@@ -28,6 +29,14 @@ class DevStartCommand extends Command<int> {
 
     final hasTartImage = await checkTartBaseImage(_logger);
     if (!hasTartImage) {
+      return 1;
+    }
+
+    final didStartDockerCompose = await startDockerCompose(
+      _logger,
+      projectRoot,
+    );
+    if (!didStartDockerCompose) {
       return 1;
     }
 
