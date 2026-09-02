@@ -34,6 +34,11 @@
       "stepDockerCompose": "Step 2: Docker コンテナ（db、Orchard、server、build-job-dispatcher）を起動中...",
       "stepDockerComposeFailed": "エラー: Docker コンテナの起動に失敗しました。",
       "stepDockerComposeStarted": "Docker コンテナを起動しました。",
+      "stepOrchardWaiting": "Step 3: Orchard Controller の起動を待機中...",
+      "stepOrchardNotReady": "エラー: Orchard Controller の起動を確認できませんでした。",
+      "stepOrchardContext": "Step 4: Orchard CLI コンテキストを登録中...",
+      "stepOrchardContextFailed": "エラー: Orchard CLI コンテキストの登録に失敗しました。",
+      "stepOrchardContextRegistered": "Orchard CLI コンテキストを認証しました。",
       "projectRootNotFound": "エラー: OpenCI プロジェクトのルートディレクトリが見つかりません。"
     }
   },

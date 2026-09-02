@@ -190,6 +190,21 @@ class Translations$dev$start$en {
 	/// en: 'Docker containers started.'
 	String get stepDockerComposeStarted => 'Docker containers started.';
 
+	/// en: 'Step 3: Waiting for Orchard Controller to initialize...'
+	String get stepOrchardWaiting => 'Step 3: Waiting for Orchard Controller to initialize...';
+
+	/// en: 'Error: Orchard Controller did not become ready.'
+	String get stepOrchardNotReady => 'Error: Orchard Controller did not become ready.';
+
+	/// en: 'Step 4: Registering Orchard CLI context...'
+	String get stepOrchardContext => 'Step 4: Registering Orchard CLI context...';
+
+	/// en: 'Error: Failed to register Orchard CLI context.'
+	String get stepOrchardContextFailed => 'Error: Failed to register Orchard CLI context.';
+
+	/// en: 'Orchard CLI context authenticated.'
+	String get stepOrchardContextRegistered => 'Orchard CLI context authenticated.';
+
 	/// en: 'Error: OpenCI project root not found.'
 	String get projectRootNotFound => 'Error: OpenCI project root not found.';
 }
@@ -225,6 +240,11 @@ extension on Translations {
 			'dev.start.stepDockerCompose' => 'Step 2: Starting Docker containers (db, Orchard, server, build-job-dispatcher)...',
 			'dev.start.stepDockerComposeFailed' => 'Error: Failed to start Docker containers.',
 			'dev.start.stepDockerComposeStarted' => 'Docker containers started.',
+			'dev.start.stepOrchardWaiting' => 'Step 3: Waiting for Orchard Controller to initialize...',
+			'dev.start.stepOrchardNotReady' => 'Error: Orchard Controller did not become ready.',
+			'dev.start.stepOrchardContext' => 'Step 4: Registering Orchard CLI context...',
+			'dev.start.stepOrchardContextFailed' => 'Error: Failed to register Orchard CLI context.',
+			'dev.start.stepOrchardContextRegistered' => 'Orchard CLI context authenticated.',
 			'dev.start.projectRootNotFound' => 'Error: OpenCI project root not found.',
 			'common.error' => ({required Object error}) => 'Error: ${error}',
 			_ => null,

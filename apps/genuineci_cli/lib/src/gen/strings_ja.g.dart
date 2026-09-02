@@ -142,6 +142,11 @@ class _Translations$dev$start$ja extends Translations$dev$start$en {
 	@override String get stepDockerCompose => 'Step 2: Docker コンテナ（db、Orchard、server、build-job-dispatcher）を起動中...';
 	@override String get stepDockerComposeFailed => 'エラー: Docker コンテナの起動に失敗しました。';
 	@override String get stepDockerComposeStarted => 'Docker コンテナを起動しました。';
+	@override String get stepOrchardWaiting => 'Step 3: Orchard Controller の起動を待機中...';
+	@override String get stepOrchardNotReady => 'エラー: Orchard Controller の起動を確認できませんでした。';
+	@override String get stepOrchardContext => 'Step 4: Orchard CLI コンテキストを登録中...';
+	@override String get stepOrchardContextFailed => 'エラー: Orchard CLI コンテキストの登録に失敗しました。';
+	@override String get stepOrchardContextRegistered => 'Orchard CLI コンテキストを認証しました。';
 	@override String get projectRootNotFound => 'エラー: OpenCI プロジェクトのルートディレクトリが見つかりません。';
 }
 
@@ -176,6 +181,11 @@ extension on TranslationsJa {
 			'dev.start.stepDockerCompose' => 'Step 2: Docker コンテナ（db、Orchard、server、build-job-dispatcher）を起動中...',
 			'dev.start.stepDockerComposeFailed' => 'エラー: Docker コンテナの起動に失敗しました。',
 			'dev.start.stepDockerComposeStarted' => 'Docker コンテナを起動しました。',
+			'dev.start.stepOrchardWaiting' => 'Step 3: Orchard Controller の起動を待機中...',
+			'dev.start.stepOrchardNotReady' => 'エラー: Orchard Controller の起動を確認できませんでした。',
+			'dev.start.stepOrchardContext' => 'Step 4: Orchard CLI コンテキストを登録中...',
+			'dev.start.stepOrchardContextFailed' => 'エラー: Orchard CLI コンテキストの登録に失敗しました。',
+			'dev.start.stepOrchardContextRegistered' => 'Orchard CLI コンテキストを認証しました。',
 			'dev.start.projectRootNotFound' => 'エラー: OpenCI プロジェクトのルートディレクトリが見つかりません。',
 			'common.error' => ({required Object error}) => 'エラー: ${error}',
 			_ => null,
