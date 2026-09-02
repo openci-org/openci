@@ -20,14 +20,14 @@ class DevStartCommand extends Command<int> {
   Future<int> run() async {
     _logger.stdout(t.dev.start.starting);
 
-    final hasTartImage = await checkTartBaseImage(_logger);
-    if (!hasTartImage) {
-      return 1;
-    }
-
     final projectRoot = findProjectRoot();
     if (projectRoot == null) {
       _logger.stderr(t.dev.start.projectRootNotFound);
+      return 1;
+    }
+
+    final hasTartImage = await checkTartBaseImage(_logger);
+    if (!hasTartImage) {
       return 1;
     }
 
