@@ -5,6 +5,9 @@ import 'package:meta/meta.dart';
 
 import '../../i18n/i18n.dart';
 
+const _baseImageName = 'base-macos';
+const _listLocalImagesArguments = ['list', '--source', 'local', '--quiet'];
+
 typedef ProcessRunner =
     Future<ProcessResult> Function(
       String executable,
@@ -17,11 +20,21 @@ Future<bool> checkTartBaseImage(
   @visibleForTesting ProcessRunner processRunner = Process.run,
 }) async {
   logger.stdout('\n${t.dev.start.stepTart}');
-  final tartListResult = await processRunner('tart', [
-    'list',
-  ], runInShell: true);
+
+  late final ProcessResult tartListResult;
+  try {
+    tartListResult = await processRunner(
+      'tart',
+      _listLocalImagesArguments,
+      runInShell: true,
+    );
+  } on ProcessException {
+    logger.stderr(t.dev.start.stepTartNotFound);
+    return false;
+  }
+
   if (tartListResult.exitCode != 0 ||
-      !hasExactVmName(tartListResult.stdout.toString(), 'base-macos')) {
+      !hasExactVmName(tartListResult.stdout.toString(), _baseImageName)) {
     logger.stderr(t.dev.start.stepTartNotFound);
     return false;
   }
@@ -31,14 +44,5 @@ Future<bool> checkTartBaseImage(
 
 @visibleForTesting
 bool hasExactVmName(String output, String targetName) {
-  final lines = output.split('\n');
-  for (final line in lines) {
-    final trimmed = line.trim();
-    if (trimmed.isEmpty) continue;
-    final parts = trimmed.split(RegExp(r'\s+'));
-    if (parts.isNotEmpty && parts.first == targetName) {
-      return true;
-    }
-  }
-  return false;
+  return output.split('\n').map((line) => line.trim()).contains(targetName);
 }
