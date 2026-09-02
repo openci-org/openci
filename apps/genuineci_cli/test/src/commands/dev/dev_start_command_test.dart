@@ -45,4 +45,12 @@ void main() {
     expect(logger.stdoutMessages, equals([t.dev.start.starting]));
     expect(logger.stderrMessages, equals([t.dev.start.projectRootNotFound]));
   });
+
+  test('seed flag is opt-in', () {
+    final command = DevStartCommand(logger: _RecordingLogger());
+
+    expect(command.argParser.parse([]).flag('seed'), isFalse);
+    expect(command.argParser.parse(['--seed']).flag('seed'), isTrue);
+    expect(command.argParser.usage, contains(t.dev.start.flags.seed));
+  });
 }

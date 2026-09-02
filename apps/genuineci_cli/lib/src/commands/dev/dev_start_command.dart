@@ -17,7 +17,9 @@ class DevStartCommand extends Command<int> {
 
   final Logger _logger;
 
-  DevStartCommand({required Logger logger}) : _logger = logger;
+  DevStartCommand({required Logger logger}) : _logger = logger {
+    argParser.addFlag('seed', negatable: false, help: t.dev.start.flags.seed);
+  }
 
   @override
   Future<int> run() async {
@@ -47,9 +49,12 @@ class DevStartCommand extends Command<int> {
       return 1;
     }
 
-    final didSeedLocalData = await seedLocalData(_logger);
-    if (!didSeedLocalData) {
-      return 1;
+    final shouldSeedLocalData = argResults?['seed'] as bool? ?? false;
+    if (shouldSeedLocalData) {
+      final didSeedLocalData = await seedLocalData(_logger);
+      if (!didSeedLocalData) {
+        return 1;
+      }
     }
 
     return 0;
