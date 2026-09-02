@@ -181,6 +181,15 @@ class Translations$dev$start$en {
 	/// en: 'Tart VM (base-macos) exists.'
 	String get stepTartExists => 'Tart VM (base-macos) exists.';
 
+	/// en: 'Step 2: Starting Docker containers (db, Orchard, server, build-job-dispatcher)...'
+	String get stepDockerCompose => 'Step 2: Starting Docker containers (db, Orchard, server, build-job-dispatcher)...';
+
+	/// en: 'Error: Failed to start Docker containers.'
+	String get stepDockerComposeFailed => 'Error: Failed to start Docker containers.';
+
+	/// en: 'Docker containers started.'
+	String get stepDockerComposeStarted => 'Docker containers started.';
+
 	/// en: 'Error: OpenCI project root not found.'
 	String get projectRootNotFound => 'Error: OpenCI project root not found.';
 }
@@ -213,6 +222,9 @@ extension on Translations {
 			'dev.start.stepTart' => 'Step 1: Checking Tart VM base image...',
 			'dev.start.stepTartNotFound' => 'Error: Tart VM image "base-macos" not found.\nPlease run the following commands to setup the base image:\n  tart pull ghcr.io/cirruslabs/macos-tahoe-vanilla:26.5\n  tart clone ghcr.io/cirruslabs/macos-tahoe-vanilla:26.5 base-macos',
 			'dev.start.stepTartExists' => 'Tart VM (base-macos) exists.',
+			'dev.start.stepDockerCompose' => 'Step 2: Starting Docker containers (db, Orchard, server, build-job-dispatcher)...',
+			'dev.start.stepDockerComposeFailed' => 'Error: Failed to start Docker containers.',
+			'dev.start.stepDockerComposeStarted' => 'Docker containers started.',
 			'dev.start.projectRootNotFound' => 'Error: OpenCI project root not found.',
 			'common.error' => ({required Object error}) => 'Error: ${error}',
 			_ => null,
