@@ -39,6 +39,9 @@
       "stepOrchardContext": "Step 4: Registering Orchard CLI context...",
       "stepOrchardContextFailed": "Error: Failed to register Orchard CLI context.",
       "stepOrchardContextRegistered": "Orchard CLI context authenticated.",
+      "stepSeed": "Step 5: Seeding local test data...",
+      "stepSeedFailed": "Error: Failed to seed local test data.",
+      "stepSeedCompleted": "Local test data seeded.",
       "projectRootNotFound": "Error: OpenCI project root not found."
     }
   },

@@ -4,6 +4,7 @@ import 'package:cli_util/cli_logging.dart';
 import '../../i18n/i18n.dart';
 import 'check_tart_base_image.dart';
 import 'find_project_root.dart';
+import 'seed_local_data.dart';
 import 'setup_orchard_context.dart';
 import 'start_docker_compose.dart';
 
@@ -43,6 +44,11 @@ class DevStartCommand extends Command<int> {
 
     final didSetupOrchardContext = await setupOrchardContext(_logger);
     if (!didSetupOrchardContext) {
+      return 1;
+    }
+
+    final didSeedLocalData = await seedLocalData(_logger);
+    if (!didSeedLocalData) {
       return 1;
     }
 

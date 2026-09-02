@@ -169,6 +169,8 @@ class Translations$dev$start$en {
 	/// en: 'Start local development environment (Docker containers, Tart VM, Orchard).'
 	String get description => 'Start local development environment (Docker containers, Tart VM, Orchard).';
 
+	late final Translations$dev$start$flags$en flags = Translations$dev$start$flags$en.internal(_root);
+
 	/// en: 'Starting OpenCI Local Development Environment...'
 	String get starting => 'Starting OpenCI Local Development Environment...';
 
@@ -205,8 +207,29 @@ class Translations$dev$start$en {
 	/// en: 'Orchard CLI context authenticated.'
 	String get stepOrchardContextRegistered => 'Orchard CLI context authenticated.';
 
+	/// en: 'Step 5: Seeding local test data...'
+	String get stepSeed => 'Step 5: Seeding local test data...';
+
+	/// en: 'Error: Failed to seed local test data.'
+	String get stepSeedFailed => 'Error: Failed to seed local test data.';
+
+	/// en: 'Local test data seeded.'
+	String get stepSeedCompleted => 'Local test data seeded.';
+
 	/// en: 'Error: OpenCI project root not found.'
 	String get projectRootNotFound => 'Error: OpenCI project root not found.';
+}
+
+// Path: dev.start.flags
+class Translations$dev$start$flags$en {
+	Translations$dev$start$flags$en.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// en: 'Seed local test data after starting services.'
+	String get seed => 'Seed local test data after starting services.';
 }
 
 /// The flat map containing all translations for locale <en>.
@@ -233,6 +256,7 @@ extension on Translations {
 			'use.invalidLanguage' => ({required Object input}) => 'Invalid language "${input}". Supported languages: japanese, english.',
 			'dev.description' => 'Manage local development environment (Docker, Tart, DB, Server).',
 			'dev.start.description' => 'Start local development environment (Docker containers, Tart VM, Orchard).',
+			'dev.start.flags.seed' => 'Seed local test data after starting services.',
 			'dev.start.starting' => 'Starting OpenCI Local Development Environment...',
 			'dev.start.stepTart' => 'Step 1: Checking Tart VM base image...',
 			'dev.start.stepTartNotFound' => 'Error: Tart VM image "base-macos" not found.\nPlease run the following commands to setup the base image:\n  tart pull ghcr.io/cirruslabs/macos-tahoe-vanilla:26.5\n  tart clone ghcr.io/cirruslabs/macos-tahoe-vanilla:26.5 base-macos',
@@ -245,6 +269,9 @@ extension on Translations {
 			'dev.start.stepOrchardContext' => 'Step 4: Registering Orchard CLI context...',
 			'dev.start.stepOrchardContextFailed' => 'Error: Failed to register Orchard CLI context.',
 			'dev.start.stepOrchardContextRegistered' => 'Orchard CLI context authenticated.',
+			'dev.start.stepSeed' => 'Step 5: Seeding local test data...',
+			'dev.start.stepSeedFailed' => 'Error: Failed to seed local test data.',
+			'dev.start.stepSeedCompleted' => 'Local test data seeded.',
 			'dev.start.projectRootNotFound' => 'Error: OpenCI project root not found.',
 			'common.error' => ({required Object error}) => 'Error: ${error}',
 			_ => null,
