@@ -238,7 +238,7 @@ Future<Response> _processTask({
     method: HttpMethod.post,
   );
   context.provide<AppDatabase>(db);
-  context.provide<String?>('github-webhook-processor');
+  context.provide<String?>('build-job-planner');
   context.provide<Map<String, String>>(environment);
   context.provide<http.Client>(client);
   return route.onRequest(context.context, taskId);

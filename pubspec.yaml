@@ -6,7 +6,7 @@ environment:
 
 workspace:
   - apps/dashboard
-  - apps/github_webhook_processor
+  - apps/build_job_planner
   - apps/build_job_dispatcher
   - apps/build_job_executor
   - apps/genuineci_cli

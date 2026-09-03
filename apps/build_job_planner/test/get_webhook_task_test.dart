@@ -1,4 +1,4 @@
-import 'package:github_webhook_processor/src/get_webhook_task.dart';
+import 'package:build_job_planner/src/get_webhook_task.dart';
 import 'package:logging/logging.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:openci_shared/openci_shared.dart';
@@ -17,9 +17,9 @@ void main() {
     });
 
     test('returns null when task data is null', () async {
-      when(() => api.claimNextWebhookTask()).thenAnswer(
-        (_) async => createMockResponse({'task': null}),
-      );
+      when(
+        () => api.claimNextWebhookTask(),
+      ).thenAnswer((_) async => createMockResponse({'task': null}));
 
       final task = await getWebhookTask(api, log);
 
@@ -38,9 +38,9 @@ void main() {
         'updatedAt': now,
       };
 
-      when(() => api.claimNextWebhookTask()).thenAnswer(
-        (_) async => createMockResponse({'task': taskMap}),
-      );
+      when(
+        () => api.claimNextWebhookTask(),
+      ).thenAnswer((_) async => createMockResponse({'task': taskMap}));
 
       final task = await getWebhookTask(api, log);
 
