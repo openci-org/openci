@@ -10,6 +10,7 @@ class WebhookTasks extends Table {
     const Constant('pending'),
   )();
   DateTimeColumn get leaseUntil => dateTime().nullable()();
+  DateTimeColumn get nextRetryAt => dateTime().nullable()();
   IntColumn get retryCount => integer().withDefault(const Constant(0))();
   TextColumn get errorMessage => text().nullable()();
   DateTimeColumn get createdAt => dateTime()();

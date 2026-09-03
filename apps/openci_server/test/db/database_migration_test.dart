@@ -7,7 +7,7 @@ import 'package:test/test.dart';
 
 void main() {
   test(
-    'migration from schema 20 drops processed_webhooks and adds lease_until',
+    'migration from schema 20 adds webhook task scheduling columns',
     () async {
       final tempDirectory = Directory.systemTemp.createTempSync(
         'openci-database-migration-test-',
@@ -37,6 +37,9 @@ void main() {
           ),
         );
         await database.customStatement(
+          'ALTER TABLE webhook_tasks DROP COLUMN next_retry_at',
+        );
+        await database.customStatement(
           'ALTER TABLE webhook_tasks DROP COLUMN lease_until',
         );
         await database.customStatement('PRAGMA user_version = 20');
@@ -58,6 +61,7 @@ void main() {
         );
         expect(retainedTask, isNotNull);
         expect(retainedTask?.leaseUntil, isNull);
+        expect(retainedTask?.nextRetryAt, isNull);
       } finally {
         await database?.close();
         tempDirectory.deleteSync(recursive: true);

@@ -169,8 +169,10 @@ Future<void> main() async {
         expect(await db.select(db.buildJobs).get(), isEmpty);
 
         final savedTask = await db.webhookTaskDao.getWebhookTask(task.id);
-        expect(savedTask?.status, equals('failed'));
+        expect(savedTask?.status, equals('retry_waiting'));
+        expect(savedTask?.retryCount, equals(1));
         expect(savedTask?.leaseUntil, isNull);
+        expect(savedTask?.nextRetryAt, isNotNull);
       },
     );
 
@@ -212,31 +214,36 @@ Future<void> main() async {
       },
     );
 
-    test('marks the task as failed when GitHub authentication fails', () async {
-      final task = await _insertPushTask(db, id: 'github-failure-task');
-      final client = MockClient((request) async {
-        expect(request.url.path, contains('/access_tokens'));
-        return http.Response('GitHub unavailable', HttpStatus.badGateway);
-      });
+    test(
+      'schedules a retry when GitHub authentication fails',
+      () async {
+        final task = await _insertPushTask(db, id: 'github-failure-task');
+        final client = MockClient((request) async {
+          expect(request.url.path, contains('/access_tokens'));
+          return http.Response('GitHub unavailable', HttpStatus.badGateway);
+        });
 
-      final response = await _processTask(
-        db: db,
-        taskId: task.id,
-        environment: environment,
-        client: client,
-      );
+        final response = await _processTask(
+          db: db,
+          taskId: task.id,
+          environment: environment,
+          client: client,
+        );
 
-      expect(response.statusCode, equals(HttpStatus.internalServerError));
-      final body = await response.json() as Map<String, dynamic>;
-      expect(body['success'], isFalse);
-      expect(body['error'], equals('Internal server error'));
+        expect(response.statusCode, equals(HttpStatus.internalServerError));
+        final body = await response.json() as Map<String, dynamic>;
+        expect(body['success'], isFalse);
+        expect(body['error'], equals('Internal server error'));
 
-      final savedTask = await db.webhookTaskDao.getWebhookTask(task.id);
-      expect(savedTask?.status, equals('failed'));
-      expect(savedTask?.leaseUntil, isNull);
-      expect(savedTask?.errorMessage, contains('GitHub unavailable'));
-      expect(await db.select(db.buildJobs).get(), isEmpty);
-    });
+        final savedTask = await db.webhookTaskDao.getWebhookTask(task.id);
+        expect(savedTask?.status, equals('retry_waiting'));
+        expect(savedTask?.retryCount, equals(1));
+        expect(savedTask?.leaseUntil, isNull);
+        expect(savedTask?.nextRetryAt, isNotNull);
+        expect(savedTask?.errorMessage, contains('GitHub unavailable'));
+        expect(await db.select(db.buildJobs).get(), isEmpty);
+      },
+    );
   });
 }
 

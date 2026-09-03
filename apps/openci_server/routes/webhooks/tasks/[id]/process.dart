@@ -204,15 +204,9 @@ Future<Response> _post(RequestContext context, String taskId) async {
   } catch (e, s) {
     try {
       final db = context.read<AppDatabase>();
-      await (db.update(
-        db.webhookTasks,
-      )..where((tbl) => tbl.id.equals(taskId))).write(
-        WebhookTasksCompanion(
-          status: const Value('failed'),
-          leaseUntil: const Value(null),
-          errorMessage: Value('$e\n$s'),
-          updatedAt: Value(DateTime.now().toUtc()),
-        ),
+      await db.webhookTaskDao.recordWebhookTaskFailure(
+        taskId: taskId,
+        errorMessage: '$e\n$s',
       );
     } catch (_) {}
 
@@ -231,6 +225,8 @@ Future<void> _completeTask(AppDatabase db, String taskId) {
     WebhookTasksCompanion(
       status: const Value('completed'),
       leaseUntil: const Value(null),
+      nextRetryAt: const Value(null),
+      errorMessage: const Value(null),
       updatedAt: Value(DateTime.now().toUtc()),
     ),
   );

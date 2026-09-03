@@ -23,6 +23,7 @@ void main() {
       expect(claimed, isNotNull);
       expect(claimed?.status, equals('processing'));
       expect(claimed?.retryCount, isZero);
+      expect(claimed?.nextRetryAt, isNull);
       expect(
         claimed?.leaseUntil?.isBefore(
           beforeClaim.add(webhookTaskLeaseDuration),
@@ -73,6 +74,114 @@ void main() {
       expect(claimed?.id, equals('task-1'));
       expect(claimed?.leaseUntil, isNotNull);
     });
+
+    test('does not claim a retry before nextRetryAt', () async {
+      await _insertTask(
+        db,
+        status: 'retry_waiting',
+        nextRetryAt: DateTime.now().toUtc().add(const Duration(hours: 1)),
+      );
+
+      final claimed = await db.webhookTaskDao.claimNextWebhookTask();
+
+      expect(claimed, isNull);
+    });
+
+    test('claims a retry after nextRetryAt', () async {
+      await _insertTask(
+        db,
+        status: 'retry_waiting',
+        nextRetryAt: DateTime.now().toUtc().subtract(const Duration(hours: 1)),
+      );
+
+      final claimed = await db.webhookTaskDao.claimNextWebhookTask();
+
+      expect(claimed?.id, equals('task-1'));
+      expect(claimed?.status, equals('processing'));
+      expect(claimed?.nextRetryAt, isNull);
+      expect(claimed?.leaseUntil, isNotNull);
+    });
+  });
+
+  group('WebhookTaskDao.recordWebhookTaskFailure', () {
+    late AppDatabase db;
+
+    setUp(() {
+      db = AppDatabase(NativeDatabase.memory());
+    });
+
+    tearDown(() => db.close());
+
+    for (
+      var retryIndex = 0;
+      retryIndex < webhookTaskRetryDelays.length;
+      retryIndex++
+    ) {
+      final retryCount = retryIndex + 1;
+      final retryDelay = webhookTaskRetryDelays[retryIndex];
+
+      test('schedules retry $retryCount after $retryDelay', () async {
+        await _insertTask(
+          db,
+          status: 'processing',
+          retryCount: retryIndex,
+          leaseUntil: DateTime.now().toUtc().add(const Duration(minutes: 5)),
+        );
+        final beforeFailure = DateTime.now().toUtc();
+
+        final updated = await db.webhookTaskDao.recordWebhookTaskFailure(
+          taskId: 'task-1',
+          errorMessage: 'temporary failure',
+        );
+
+        final afterFailure = DateTime.now().toUtc();
+        expect(updated?.status, equals('retry_waiting'));
+        expect(updated?.retryCount, equals(retryCount));
+        expect(updated?.leaseUntil, isNull);
+        expect(updated?.errorMessage, equals('temporary failure'));
+        expect(
+          updated?.nextRetryAt?.isBefore(beforeFailure.add(retryDelay)),
+          isFalse,
+        );
+        expect(
+          updated?.nextRetryAt?.isAfter(afterFailure.add(retryDelay)),
+          isFalse,
+        );
+      });
+    }
+
+    test('marks the task as failed after all retries are exhausted', () async {
+      await _insertTask(
+        db,
+        status: 'processing',
+        retryCount: webhookTaskRetryDelays.length,
+        leaseUntil: DateTime.now().toUtc().add(const Duration(minutes: 5)),
+      );
+
+      final updated = await db.webhookTaskDao.recordWebhookTaskFailure(
+        taskId: 'task-1',
+        errorMessage: 'permanent failure',
+      );
+
+      expect(updated?.status, equals('failed'));
+      expect(updated?.retryCount, equals(webhookTaskRetryDelays.length + 1));
+      expect(updated?.leaseUntil, isNull);
+      expect(updated?.nextRetryAt, isNull);
+      expect(updated?.errorMessage, equals('permanent failure'));
+    });
+
+    test('does not change a task that is not processing', () async {
+      await _insertTask(db, status: 'completed');
+
+      final updated = await db.webhookTaskDao.recordWebhookTaskFailure(
+        taskId: 'task-1',
+        errorMessage: 'late failure',
+      );
+
+      expect(updated?.status, equals('completed'));
+      expect(updated?.retryCount, isZero);
+      expect(updated?.errorMessage, isNull);
+    });
   });
 }
 
@@ -80,6 +189,8 @@ Future<void> _insertTask(
   AppDatabase db, {
   required String status,
   DateTime? leaseUntil,
+  DateTime? nextRetryAt,
+  int retryCount = 0,
 }) {
   final now = DateTime.now().toUtc();
   return db.webhookTaskDao.insertWebhookTask(
@@ -90,7 +201,8 @@ Future<void> _insertTask(
       payload: '{}',
       status: status,
       leaseUntil: leaseUntil,
-      retryCount: 0,
+      nextRetryAt: nextRetryAt,
+      retryCount: retryCount,
       createdAt: now,
       updatedAt: now,
     ),

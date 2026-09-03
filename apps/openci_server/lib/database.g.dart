@@ -4849,6 +4849,17 @@ class $WebhookTasksTable extends WebhookTasks
     type: DriftSqlType.dateTime,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _nextRetryAtMeta = const VerificationMeta(
+    'nextRetryAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> nextRetryAt = GeneratedColumn<DateTime>(
+    'next_retry_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _retryCountMeta = const VerificationMeta(
     'retryCount',
   );
@@ -4902,6 +4913,7 @@ class $WebhookTasksTable extends WebhookTasks
     payload,
     status,
     leaseUntil,
+    nextRetryAt,
     retryCount,
     errorMessage,
     createdAt,
@@ -4958,6 +4970,15 @@ class $WebhookTasksTable extends WebhookTasks
       context.handle(
         _leaseUntilMeta,
         leaseUntil.isAcceptableOrUnknown(data['lease_until']!, _leaseUntilMeta),
+      );
+    }
+    if (data.containsKey('next_retry_at')) {
+      context.handle(
+        _nextRetryAtMeta,
+        nextRetryAt.isAcceptableOrUnknown(
+          data['next_retry_at']!,
+          _nextRetryAtMeta,
+        ),
       );
     }
     if (data.containsKey('retry_count')) {
@@ -5024,6 +5045,10 @@ class $WebhookTasksTable extends WebhookTasks
         DriftSqlType.dateTime,
         data['${effectivePrefix}lease_until'],
       ),
+      nextRetryAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}next_retry_at'],
+      ),
       retryCount: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}retry_count'],
@@ -5057,6 +5082,7 @@ class DriftWebhookTask extends DataClass
   final String payload;
   final String status;
   final DateTime? leaseUntil;
+  final DateTime? nextRetryAt;
   final int retryCount;
   final String? errorMessage;
   final DateTime createdAt;
@@ -5068,6 +5094,7 @@ class DriftWebhookTask extends DataClass
     required this.payload,
     required this.status,
     this.leaseUntil,
+    this.nextRetryAt,
     required this.retryCount,
     this.errorMessage,
     required this.createdAt,
@@ -5083,6 +5110,9 @@ class DriftWebhookTask extends DataClass
     map['status'] = Variable<String>(status);
     if (!nullToAbsent || leaseUntil != null) {
       map['lease_until'] = Variable<DateTime>(leaseUntil);
+    }
+    if (!nullToAbsent || nextRetryAt != null) {
+      map['next_retry_at'] = Variable<DateTime>(nextRetryAt);
     }
     map['retry_count'] = Variable<int>(retryCount);
     if (!nullToAbsent || errorMessage != null) {
@@ -5103,6 +5133,9 @@ class DriftWebhookTask extends DataClass
       leaseUntil: leaseUntil == null && nullToAbsent
           ? const Value.absent()
           : Value(leaseUntil),
+      nextRetryAt: nextRetryAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(nextRetryAt),
       retryCount: Value(retryCount),
       errorMessage: errorMessage == null && nullToAbsent
           ? const Value.absent()
@@ -5124,6 +5157,7 @@ class DriftWebhookTask extends DataClass
       payload: serializer.fromJson<String>(json['payload']),
       status: serializer.fromJson<String>(json['status']),
       leaseUntil: serializer.fromJson<DateTime?>(json['leaseUntil']),
+      nextRetryAt: serializer.fromJson<DateTime?>(json['nextRetryAt']),
       retryCount: serializer.fromJson<int>(json['retryCount']),
       errorMessage: serializer.fromJson<String?>(json['errorMessage']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
@@ -5140,6 +5174,7 @@ class DriftWebhookTask extends DataClass
       'payload': serializer.toJson<String>(payload),
       'status': serializer.toJson<String>(status),
       'leaseUntil': serializer.toJson<DateTime?>(leaseUntil),
+      'nextRetryAt': serializer.toJson<DateTime?>(nextRetryAt),
       'retryCount': serializer.toJson<int>(retryCount),
       'errorMessage': serializer.toJson<String?>(errorMessage),
       'createdAt': serializer.toJson<DateTime>(createdAt),
@@ -5154,6 +5189,7 @@ class DriftWebhookTask extends DataClass
     String? payload,
     String? status,
     Value<DateTime?> leaseUntil = const Value.absent(),
+    Value<DateTime?> nextRetryAt = const Value.absent(),
     int? retryCount,
     Value<String?> errorMessage = const Value.absent(),
     DateTime? createdAt,
@@ -5165,6 +5201,7 @@ class DriftWebhookTask extends DataClass
     payload: payload ?? this.payload,
     status: status ?? this.status,
     leaseUntil: leaseUntil.present ? leaseUntil.value : this.leaseUntil,
+    nextRetryAt: nextRetryAt.present ? nextRetryAt.value : this.nextRetryAt,
     retryCount: retryCount ?? this.retryCount,
     errorMessage: errorMessage.present ? errorMessage.value : this.errorMessage,
     createdAt: createdAt ?? this.createdAt,
@@ -5182,6 +5219,9 @@ class DriftWebhookTask extends DataClass
       leaseUntil: data.leaseUntil.present
           ? data.leaseUntil.value
           : this.leaseUntil,
+      nextRetryAt: data.nextRetryAt.present
+          ? data.nextRetryAt.value
+          : this.nextRetryAt,
       retryCount: data.retryCount.present
           ? data.retryCount.value
           : this.retryCount,
@@ -5202,6 +5242,7 @@ class DriftWebhookTask extends DataClass
           ..write('payload: $payload, ')
           ..write('status: $status, ')
           ..write('leaseUntil: $leaseUntil, ')
+          ..write('nextRetryAt: $nextRetryAt, ')
           ..write('retryCount: $retryCount, ')
           ..write('errorMessage: $errorMessage, ')
           ..write('createdAt: $createdAt, ')
@@ -5218,6 +5259,7 @@ class DriftWebhookTask extends DataClass
     payload,
     status,
     leaseUntil,
+    nextRetryAt,
     retryCount,
     errorMessage,
     createdAt,
@@ -5233,6 +5275,7 @@ class DriftWebhookTask extends DataClass
           other.payload == this.payload &&
           other.status == this.status &&
           other.leaseUntil == this.leaseUntil &&
+          other.nextRetryAt == this.nextRetryAt &&
           other.retryCount == this.retryCount &&
           other.errorMessage == this.errorMessage &&
           other.createdAt == this.createdAt &&
@@ -5246,6 +5289,7 @@ class WebhookTasksCompanion extends UpdateCompanion<DriftWebhookTask> {
   final Value<String> payload;
   final Value<String> status;
   final Value<DateTime?> leaseUntil;
+  final Value<DateTime?> nextRetryAt;
   final Value<int> retryCount;
   final Value<String?> errorMessage;
   final Value<DateTime> createdAt;
@@ -5258,6 +5302,7 @@ class WebhookTasksCompanion extends UpdateCompanion<DriftWebhookTask> {
     this.payload = const Value.absent(),
     this.status = const Value.absent(),
     this.leaseUntil = const Value.absent(),
+    this.nextRetryAt = const Value.absent(),
     this.retryCount = const Value.absent(),
     this.errorMessage = const Value.absent(),
     this.createdAt = const Value.absent(),
@@ -5271,6 +5316,7 @@ class WebhookTasksCompanion extends UpdateCompanion<DriftWebhookTask> {
     required String payload,
     this.status = const Value.absent(),
     this.leaseUntil = const Value.absent(),
+    this.nextRetryAt = const Value.absent(),
     this.retryCount = const Value.absent(),
     this.errorMessage = const Value.absent(),
     required DateTime createdAt,
@@ -5289,6 +5335,7 @@ class WebhookTasksCompanion extends UpdateCompanion<DriftWebhookTask> {
     Expression<String>? payload,
     Expression<String>? status,
     Expression<DateTime>? leaseUntil,
+    Expression<DateTime>? nextRetryAt,
     Expression<int>? retryCount,
     Expression<String>? errorMessage,
     Expression<DateTime>? createdAt,
@@ -5302,6 +5349,7 @@ class WebhookTasksCompanion extends UpdateCompanion<DriftWebhookTask> {
       if (payload != null) 'payload': payload,
       if (status != null) 'status': status,
       if (leaseUntil != null) 'lease_until': leaseUntil,
+      if (nextRetryAt != null) 'next_retry_at': nextRetryAt,
       if (retryCount != null) 'retry_count': retryCount,
       if (errorMessage != null) 'error_message': errorMessage,
       if (createdAt != null) 'created_at': createdAt,
@@ -5317,6 +5365,7 @@ class WebhookTasksCompanion extends UpdateCompanion<DriftWebhookTask> {
     Value<String>? payload,
     Value<String>? status,
     Value<DateTime?>? leaseUntil,
+    Value<DateTime?>? nextRetryAt,
     Value<int>? retryCount,
     Value<String?>? errorMessage,
     Value<DateTime>? createdAt,
@@ -5330,6 +5379,7 @@ class WebhookTasksCompanion extends UpdateCompanion<DriftWebhookTask> {
       payload: payload ?? this.payload,
       status: status ?? this.status,
       leaseUntil: leaseUntil ?? this.leaseUntil,
+      nextRetryAt: nextRetryAt ?? this.nextRetryAt,
       retryCount: retryCount ?? this.retryCount,
       errorMessage: errorMessage ?? this.errorMessage,
       createdAt: createdAt ?? this.createdAt,
@@ -5359,6 +5409,9 @@ class WebhookTasksCompanion extends UpdateCompanion<DriftWebhookTask> {
     if (leaseUntil.present) {
       map['lease_until'] = Variable<DateTime>(leaseUntil.value);
     }
+    if (nextRetryAt.present) {
+      map['next_retry_at'] = Variable<DateTime>(nextRetryAt.value);
+    }
     if (retryCount.present) {
       map['retry_count'] = Variable<int>(retryCount.value);
     }
@@ -5386,6 +5439,7 @@ class WebhookTasksCompanion extends UpdateCompanion<DriftWebhookTask> {
           ..write('payload: $payload, ')
           ..write('status: $status, ')
           ..write('leaseUntil: $leaseUntil, ')
+          ..write('nextRetryAt: $nextRetryAt, ')
           ..write('retryCount: $retryCount, ')
           ..write('errorMessage: $errorMessage, ')
           ..write('createdAt: $createdAt, ')
@@ -10353,6 +10407,7 @@ typedef $$WebhookTasksTableCreateCompanionBuilder =
       required String payload,
       Value<String> status,
       Value<DateTime?> leaseUntil,
+      Value<DateTime?> nextRetryAt,
       Value<int> retryCount,
       Value<String?> errorMessage,
       required DateTime createdAt,
@@ -10367,6 +10422,7 @@ typedef $$WebhookTasksTableUpdateCompanionBuilder =
       Value<String> payload,
       Value<String> status,
       Value<DateTime?> leaseUntil,
+      Value<DateTime?> nextRetryAt,
       Value<int> retryCount,
       Value<String?> errorMessage,
       Value<DateTime> createdAt,
@@ -10410,6 +10466,11 @@ class $$WebhookTasksTableFilterComposer
 
   ColumnFilters<DateTime> get leaseUntil => $composableBuilder(
     column: $table.leaseUntil,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get nextRetryAt => $composableBuilder(
+    column: $table.nextRetryAt,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -10473,6 +10534,11 @@ class $$WebhookTasksTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<DateTime> get nextRetryAt => $composableBuilder(
+    column: $table.nextRetryAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get retryCount => $composableBuilder(
     column: $table.retryCount,
     builder: (column) => ColumnOrderings(column),
@@ -10522,6 +10588,11 @@ class $$WebhookTasksTableAnnotationComposer
 
   GeneratedColumn<DateTime> get leaseUntil => $composableBuilder(
     column: $table.leaseUntil,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get nextRetryAt => $composableBuilder(
+    column: $table.nextRetryAt,
     builder: (column) => column,
   );
 
@@ -10579,6 +10650,7 @@ class $$WebhookTasksTableTableManager
                 Value<String> payload = const Value.absent(),
                 Value<String> status = const Value.absent(),
                 Value<DateTime?> leaseUntil = const Value.absent(),
+                Value<DateTime?> nextRetryAt = const Value.absent(),
                 Value<int> retryCount = const Value.absent(),
                 Value<String?> errorMessage = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
@@ -10591,6 +10663,7 @@ class $$WebhookTasksTableTableManager
                 payload: payload,
                 status: status,
                 leaseUntil: leaseUntil,
+                nextRetryAt: nextRetryAt,
                 retryCount: retryCount,
                 errorMessage: errorMessage,
                 createdAt: createdAt,
@@ -10605,6 +10678,7 @@ class $$WebhookTasksTableTableManager
                 required String payload,
                 Value<String> status = const Value.absent(),
                 Value<DateTime?> leaseUntil = const Value.absent(),
+                Value<DateTime?> nextRetryAt = const Value.absent(),
                 Value<int> retryCount = const Value.absent(),
                 Value<String?> errorMessage = const Value.absent(),
                 required DateTime createdAt,
@@ -10617,6 +10691,7 @@ class $$WebhookTasksTableTableManager
                 payload: payload,
                 status: status,
                 leaseUntil: leaseUntil,
+                nextRetryAt: nextRetryAt,
                 retryCount: retryCount,
                 errorMessage: errorMessage,
                 createdAt: createdAt,
