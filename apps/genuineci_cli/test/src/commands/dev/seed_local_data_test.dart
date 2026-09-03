@@ -46,7 +46,6 @@ void main() {
         environment: {
           'OPENCI_SERVER_URL': serverUrl,
           'GITHUB_WEBHOOK_SECRET': webhookSecret,
-          'USER_ID': 'user-123',
         },
       );
 
@@ -57,7 +56,7 @@ void main() {
       expect(seedRequest.method, equals('POST'));
       expect(seedRequest.url, equals(Uri.parse('$serverUrl/internal/seed')));
       expect(seedRequest.headers['content-type'], equals('application/json'));
-      expect(jsonDecode(seedRequest.body), equals({'userId': 'user-123'}));
+      expect(jsonDecode(seedRequest.body), equals({}));
 
       final webhookRequest = requests[1];
       expect(webhookRequest.method, equals('POST'));
@@ -84,25 +83,6 @@ void main() {
         '\n${t.dev.start.stepSeed}',
         t.dev.start.stepSeedCompleted,
       ]);
-    });
-
-    test('uses USER_UID when USER_ID is not set', () async {
-      late http.Request seedRequest;
-      final client = MockClient((request) async {
-        if (request.url.path == '/internal/seed') {
-          seedRequest = request;
-        }
-        return http.Response('{}', 200);
-      });
-
-      final result = await seedLocalData(
-        logger,
-        client: client,
-        environment: {'USER_UID': 'legacy-user'},
-      );
-
-      expect(result, isTrue);
-      expect(jsonDecode(seedRequest.body), equals({'userId': 'legacy-user'}));
     });
 
     test('returns false when the seed request fails', () async {

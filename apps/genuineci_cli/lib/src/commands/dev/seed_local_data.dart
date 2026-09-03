@@ -24,14 +24,13 @@ Future<bool> seedLocalData(
   final env = environment ?? Platform.environment;
   final serverUrl = env['OPENCI_SERVER_URL'] ?? _defaultServerUrl;
   final webhookSecret = env['GITHUB_WEBHOOK_SECRET'] ?? _defaultWebhookSecret;
-  final userId = env['USER_ID'] ?? env['USER_UID'] ?? '';
 
   try {
     final seedResponse = await httpClient
         .post(
           Uri.parse('$serverUrl/internal/seed'),
           headers: {'Content-Type': 'application/json'},
-          body: jsonEncode({if (userId.isNotEmpty) 'userId': userId}),
+          body: jsonEncode({}),
         )
         .timeout(timeout);
     if (!_isSuccessful(seedResponse)) {
