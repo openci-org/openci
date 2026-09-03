@@ -82,7 +82,22 @@ class WebhookTaskDao extends DatabaseAccessor<AppDatabase>
         errorMessage: Value(errorMessage),
         updatedAt: now,
       );
-      await updateWebhookTask(updated);
+      final updatedCount =
+          await (update(webhookTasks)..where(
+                (row) =>
+                    row.id.equals(taskId) & row.status.equals('processing'),
+              ))
+              .write(
+                WebhookTasksCompanion(
+                  status: Value(updated.status),
+                  retryCount: Value(updated.retryCount),
+                  leaseUntil: const Value(null),
+                  nextRetryAt: Value(updated.nextRetryAt),
+                  errorMessage: Value(updated.errorMessage),
+                  updatedAt: Value(updated.updatedAt),
+                ),
+              );
+      if (updatedCount == 0) return getWebhookTask(taskId);
       return updated;
     });
   }
