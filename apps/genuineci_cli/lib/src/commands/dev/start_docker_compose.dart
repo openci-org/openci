@@ -13,16 +13,7 @@ typedef DockerComposeProcessRunner =
       required Map<String, String> environment,
     });
 
-const _dockerComposeArguments = [
-  'compose',
-  'up',
-  '-d',
-  '--build',
-  'db',
-  'orchard-controller',
-  'server',
-  'build-job-dispatcher',
-];
+const _dockerComposeArguments = ['compose', 'up', '-d', '--build'];
 
 Future<bool> startDockerCompose(
   Logger logger,
