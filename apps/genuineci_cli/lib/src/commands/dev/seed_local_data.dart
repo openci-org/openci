@@ -10,11 +10,13 @@ import '../../i18n/i18n.dart';
 
 const _defaultServerUrl = 'http://localhost:8080';
 const _defaultWebhookSecret = 'your-github-webhook-secret-here';
+const _defaultTimeout = Duration(seconds: 10);
 
 Future<bool> seedLocalData(
   Logger logger, {
   @visibleForTesting http.Client? client,
   @visibleForTesting Map<String, String>? environment,
+  @visibleForTesting Duration timeout = _defaultTimeout,
 }) async {
   logger.stdout('\n${t.dev.start.stepSeed}');
 
@@ -25,11 +27,13 @@ Future<bool> seedLocalData(
   final userId = env['USER_ID'] ?? env['USER_UID'] ?? '';
 
   try {
-    final seedResponse = await httpClient.post(
-      Uri.parse('$serverUrl/internal/seed'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({if (userId.isNotEmpty) 'userId': userId}),
-    );
+    final seedResponse = await httpClient
+        .post(
+          Uri.parse('$serverUrl/internal/seed'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({if (userId.isNotEmpty) 'userId': userId}),
+        )
+        .timeout(timeout);
     if (!_isSuccessful(seedResponse)) {
       _logFailedResponse(logger, seedResponse);
       return false;
@@ -53,17 +57,19 @@ Future<bool> seedLocalData(
       utf8.encode(webhookSecret),
     ).convert(utf8.encode(rawBody));
 
-    final webhookResponse = await httpClient.post(
-      Uri.parse('$serverUrl/webhook'),
-      headers: {
-        'Content-Type': 'application/json',
-        'X-GitHub-Event': 'push',
-        'X-GitHub-Delivery':
-            'delivery-${DateTime.now().millisecondsSinceEpoch}',
-        'X-Hub-Signature-256': 'sha256=$digest',
-      },
-      body: rawBody,
-    );
+    final webhookResponse = await httpClient
+        .post(
+          Uri.parse('$serverUrl/webhook'),
+          headers: {
+            'Content-Type': 'application/json',
+            'X-GitHub-Event': 'push',
+            'X-GitHub-Delivery':
+                'delivery-${DateTime.now().millisecondsSinceEpoch}',
+            'X-Hub-Signature-256': 'sha256=$digest',
+          },
+          body: rawBody,
+        )
+        .timeout(timeout);
     if (!_isSuccessful(webhookResponse)) {
       _logFailedResponse(logger, webhookResponse);
       return false;

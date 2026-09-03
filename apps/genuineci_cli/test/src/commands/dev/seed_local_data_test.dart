@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:cli_util/cli_logging.dart';
@@ -168,6 +169,48 @@ void main() {
       );
       expect(logger.stderrMessages.single, contains('connection failed'));
       expect(logger.stdoutMessages, ['\n${t.dev.start.stepSeed}']);
+    });
+
+    test('returns false when seed request times out', () async {
+      final client = MockClient((_) => Completer<http.Response>().future);
+
+      final result = await seedLocalData(
+        logger,
+        client: client,
+        environment: const {},
+        timeout: const Duration(milliseconds: 50),
+      );
+
+      expect(result, isFalse);
+      expect(
+        logger.stderrMessages.single,
+        contains(t.dev.start.stepSeedFailed),
+      );
+      expect(logger.stderrMessages.single, contains('TimeoutException'));
+      expect(logger.stdoutMessages, ['\n${t.dev.start.stepSeed}']);
+    });
+
+    test('returns false when webhook request times out', () async {
+      final client = MockClient((request) {
+        if (request.url.path == '/internal/seed') {
+          return Future.value(http.Response('{}', 200));
+        }
+        return Completer<http.Response>().future;
+      });
+
+      final result = await seedLocalData(
+        logger,
+        client: client,
+        environment: const {},
+        timeout: const Duration(milliseconds: 50),
+      );
+
+      expect(result, isFalse);
+      expect(
+        logger.stderrMessages.single,
+        contains(t.dev.start.stepSeedFailed),
+      );
+      expect(logger.stderrMessages.single, contains('TimeoutException'));
     });
   });
 }
