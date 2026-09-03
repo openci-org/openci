@@ -1,5 +1,5 @@
-name: github_webhook_processor
-description: Processor for GitHub webhook events and build job orchestration in OpenCI.
+name: build_job_planner
+description: Planner for build jobs created from GitHub webhook events in OpenCI.
 version: 1.0.0
 publish_to: none
 

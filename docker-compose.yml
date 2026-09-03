@@ -61,16 +61,16 @@ services:
       retries: 10
       start_period: 2s
 
-  github-webhook-processor:
+  build-job-planner:
     build:
       context: .
-      dockerfile: apps/github_webhook_processor/Dockerfile
-    container_name: openci-github-webhook-processor
+      dockerfile: apps/build_job_planner/Dockerfile
+    container_name: openci-build-job-planner
     restart: unless-stopped
     environment:
       OPENCI_SERVER_URL: http://server:8080
       INTERNAL_API_KEY: ${INTERNAL_API_KEY:?INTERNAL_API_KEY environment variable is required}
-      SENTRY_DSN: ${SENTRY_DSN_GITHUB_WEBHOOK_PROCESSOR:-}
+      SENTRY_DSN: ${SENTRY_DSN_BUILD_JOB_PLANNER:-}
     depends_on:
       server:
         condition: service_healthy

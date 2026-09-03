@@ -1,13 +1,13 @@
 import 'dart:async';
 
-import 'package:github_webhook_processor/github_webhook_processor.dart';
+import 'package:build_job_planner/build_job_planner.dart';
 import 'package:logging/logging.dart';
 import 'package:openci_shared/initialize_logging.dart';
 import 'package:openci_shared/initialize_sentry.dart';
 import 'package:openci_shared/openci_shared.dart';
 import 'package:sentry/sentry.dart';
 
-final _log = Logger('GitHubWebhookProcessor');
+final _log = Logger('BuildJobPlanner');
 
 Future<void> main() async => genuineCiRunZonedGuarded(() async {
   initLogging();
@@ -16,17 +16,17 @@ Future<void> main() async => genuineCiRunZonedGuarded(() async {
 
   await initializeSentry(config.sentryDsn);
 
-  await processGitHubWebhook(config);
+  await planBuildJobs(config);
 });
 
-Future<void> processGitHubWebhook(Config config) async {
+Future<void> planBuildJobs(Config config) async {
   final api = createOpenCiChopperClient(
     baseUrl: config.serverUrl,
     tokenProvider: () => config.internalApiKey,
     services: [OpenCiApiService.create()],
   ).getService<OpenCiApiService>();
 
-  _log.info('Starting GitHub webhook processor loop...');
+  _log.info('Starting build job planner loop...');
 
   while (true) {
     try {
