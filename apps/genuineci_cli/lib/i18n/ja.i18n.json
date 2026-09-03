@@ -39,6 +39,9 @@
       "stepOrchardContext": "Step 4: Orchard CLI コンテキストを登録中...",
       "stepOrchardContextFailed": "エラー: Orchard CLI コンテキストの登録に失敗しました。",
       "stepOrchardContextRegistered": "Orchard CLI コンテキストを認証しました。",
+      "stepSeed": "Step 5: ローカルテストデータを投入中...",
+      "stepSeedFailed": "エラー: ローカルテストデータの投入に失敗しました。",
+      "stepSeedCompleted": "ローカルテストデータを投入しました。",
       "projectRootNotFound": "エラー: OpenCI プロジェクトのルートディレクトリが見つかりません。"
     }
   },
