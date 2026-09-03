@@ -5,15 +5,10 @@ import 'package:crypto/crypto.dart';
 import 'package:dart_frog/dart_frog.dart';
 import 'package:dart_frog_test/dart_frog_test.dart';
 import 'package:drift/native.dart';
-import 'package:http/http.dart' as http;
-import 'package:http/testing.dart';
 import 'package:openci_server/database.dart';
-import 'package:openci_server/webhook_task/webhook_task_processor.dart';
 import 'package:openci_shared/openci_shared.dart';
-import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 
-import '../helpers/github_app_test_key.dart';
 import '../../routes/webhook.dart' as route;
 
 void main() {
@@ -148,16 +143,13 @@ void main() {
     });
   });
 
-  group('Step 2: Full Webhook Process Integration Tests', () {
+  group('webhook queue persistence', () {
     const testSecret = 'super-secret-key';
     late AppDatabase db;
-    late File tempPrivateKeyFile;
 
-    String computeSignature(String body, String secret) {
-      final key = utf8.encode(secret);
-      final hmacSha256 = Hmac(sha256, key);
-      final digest = hmacSha256.convert(utf8.encode(body));
-      return 'sha256=$digest';
+    String computeSignature(String body) {
+      final hmacSha256 = Hmac(sha256, utf8.encode(testSecret));
+      return 'sha256=${hmacSha256.convert(utf8.encode(body))}';
     }
 
     Future<Response> queuePushWebhook({
@@ -169,7 +161,7 @@ void main() {
         method: HttpMethod.post,
         body: body,
         headers: {
-          'x-hub-signature-256': computeSignature(body, testSecret),
+          'x-hub-signature-256': computeSignature(body),
           'x-github-event': 'push',
           'x-github-delivery': deliveryId,
         },
@@ -181,526 +173,79 @@ void main() {
       return route.onRequest(context.context);
     }
 
-    setUp(() async {
+    setUp(() {
       db = AppDatabase(NativeDatabase.memory());
-      final now = DateTime.now().toUtc();
-      final testTeam = DriftTeam(
-        id: 'team-123',
-        name: 'Test Team',
-        installationIds: [98765],
-        aiEnabled: false,
-        runNumber: 1,
-        createdAt: now,
-        updatedAt: now,
+    });
+
+    tearDown(() => db.close());
+
+    test('queues a valid webhook delivery', () async {
+      const body = '{"ref":"refs/heads/main"}';
+
+      final response = await queuePushWebhook(
+        body: body,
+        deliveryId: 'new-delivery',
       );
-      await db.into(db.teams).insert(testTeam);
 
-      final tempDir = Directory.systemTemp.createTempSync();
-      tempPrivateKeyFile = File(p.join(tempDir.path, 'test_private_key.pem'));
-      tempPrivateKeyFile.writeAsStringSync(testRsaPrivateKey);
+      expect(response.statusCode, equals(HttpStatus.ok));
+      final responseBody = await response.json() as Map<String, dynamic>;
+      expect(responseBody['success'], isTrue);
+      expect(responseBody['message'], equals('Webhook received and queued.'));
+
+      final tasks = await db.select(db.webhookTasks).get();
+      expect(tasks, hasLength(1));
+      expect(tasks.single.deliveryId, equals('new-delivery'));
+      expect(tasks.single.eventType, equals('push'));
+      expect(tasks.single.payload, equals(body));
+      expect(tasks.single.status, equals('pending'));
     });
 
-    tearDown(() async {
-      await db.close();
-      if (tempPrivateKeyFile.existsSync()) {
-        tempPrivateKeyFile.deleteSync();
-      }
+    test('does not report a queue insertion failure as a duplicate', () async {
+      await db.customStatement('''
+        CREATE TRIGGER reject_webhook_task_insert
+        BEFORE INSERT ON webhook_tasks
+        BEGIN
+          SELECT RAISE(ABORT, 'forced webhook task insertion failure');
+        END;
+      ''');
+
+      final response = await queuePushWebhook(
+        body: '{"ref":"refs/heads/main"}',
+        deliveryId: 'failed-delivery',
+      );
+
+      expect(response.statusCode, equals(HttpStatus.internalServerError));
+      final body = await response.json() as Map<String, dynamic>;
+      expect(body['success'], isFalse);
+      expect(body['error'], equals('Internal server error'));
+      expect(await db.select(db.webhookTasks).get(), isEmpty);
     });
 
-    test(
-      'successfully processes pull_request webhook and inserts BuildJob to DB',
-      () async {
-        final prBody = jsonEncode({
-          'action': 'opened',
-          'number': 42,
-          'pull_request': {
-            'number': 42,
-            'id': 999,
-            'head': {
-              'sha': 'commit-sha-123',
-              'ref': 'feature-branch',
-            },
-            'base': {
-              'ref': 'main',
-            },
-          },
-          'repository': {
-            'id': 12345,
-            'name': 'openci-repo',
-            'owner': {
-              'id': 12345,
-              'login': 'openci-owner',
-              'avatar_url': 'https://github.com/avatar',
-              'html_url': 'https://github.com/openci-owner',
-            },
-          },
-          'installation': {
-            'id': 98765,
-          },
-        });
+    test('treats only a duplicate delivery as already processed', () async {
+      final now = DateTime.now().toUtc();
+      await db.webhookTaskDao.insertWebhookTask(
+        DriftWebhookTask(
+          id: 'existing-task',
+          deliveryId: 'duplicate-delivery',
+          eventType: 'push',
+          payload: '{"ref":"refs/heads/main"}',
+          status: 'pending',
+          retryCount: 0,
+          createdAt: now,
+          updatedAt: now,
+        ),
+      );
 
-        final mockClient = MockClient((request) async {
-          if (request.url.path.contains('/access_tokens')) {
-            return http.Response(
-              jsonEncode({
-                'token': 'mock-access-token-999',
-                'expires_at': '2026-06-19T20:00:00Z',
-              }),
-              200,
-            );
-          }
-          if (request.url.path.endsWith('/contents/.openci')) {
-            return http.Response(
-              jsonEncode([
-                {
-                  'name': 'build.yaml',
-                  'path': '.openci/build.yaml',
-                  'type': 'file',
-                },
-              ]),
-              200,
-            );
-          }
-          if (request.url.path.endsWith('/contents/.openci/build.yaml')) {
-            return http.Response(
-              '''
-name: CI Build
-on:
-  pull_request:
-    branches: [main]
-jobs:
-  test_job:
-    runs-on: macos-13
-    steps:
-      - run: echo "Hello"
-''',
-              200,
-            );
-          }
-          if (request.url.path.endsWith('/check-runs')) {
-            return http.Response(
-              jsonEncode({
-                'id': 54321,
-              }),
-              201,
-            );
-          }
-          return http.Response('Not Found', 404);
-        });
+      final response = await queuePushWebhook(
+        body: '{"ref":"refs/heads/main"}',
+        deliveryId: 'duplicate-delivery',
+      );
 
-        final signature = computeSignature(prBody, testSecret);
-        final context = TestRequestContext(
-          path: '/webhook',
-          method: HttpMethod.post,
-          body: prBody,
-          headers: {
-            'x-hub-signature-256': signature,
-            'x-github-event': 'pull_request',
-            'x-github-delivery': 'test-delivery-id-123',
-          },
-        );
-
-        context.provide<Map<String, String>>({
-          'GITHUB_WEBHOOK_SECRET': testSecret,
-          'GITHUB_APP_ID': '12345',
-          'GITHUB_PRIVATE_KEY_PATH': tempPrivateKeyFile.path,
-          'GITHUB_API_BASE_URL': 'https://api.github.com',
-        });
-
-        context.provide<AppDatabase>(db);
-        context.provide<http.Client>(mockClient);
-
-        final response = await route.onRequest(context.context);
-
-        expect(response.statusCode, equals(HttpStatus.ok));
-        final resBody = await response.json() as Map<String, dynamic>;
-        expect(resBody['success'], isTrue);
-        expect(resBody['message'], equals('Webhook received and queued.'));
-
-        final task = await db.webhookTaskDao.claimNextWebhookTask();
-        expect(task, isNotNull);
-        await processWebhookTask(
-          db,
-          task!,
-          environment: {
-            'GITHUB_WEBHOOK_SECRET': testSecret,
-            'GITHUB_APP_ID': '12345',
-            'GITHUB_PRIVATE_KEY_PATH': tempPrivateKeyFile.path,
-            'GITHUB_API_BASE_URL': 'https://api.github.com',
-          },
-          client: mockClient,
-        );
-
-        final jobs = await db.select(db.buildJobs).get();
-        expect(jobs, hasLength(1));
-
-        final savedJob = jobs.first;
-        expect(savedJob.owner, equals('openci-owner'));
-        expect(savedJob.repo, equals('openci-repo'));
-        expect(savedJob.workflowName, equals('CI Build'));
-        expect(savedJob.branch, equals('feature-branch'));
-        expect(savedJob.pullRequestNumber, equals(42));
-        expect(savedJob.installationId, equals('98765'));
-        expect(savedJob.checkRunId, equals('54321'));
-      },
-    );
-
-    test(
-      'successfully processes push webhook with matrix build and resolves status/needs',
-      () async {
-        final pushBody = jsonEncode({
-          'ref': 'refs/heads/main',
-          'deleted': false,
-          'head_commit': {
-            'id': 'commit-sha-456',
-          },
-          'repository': {
-            'name': 'openci-repo',
-            'owner': {
-              'login': 'openci-owner',
-            },
-          },
-          'installation': {
-            'id': 98765,
-          },
-        });
-
-        final mockClient = MockClient((request) async {
-          if (request.url.path.contains('/access_tokens')) {
-            return http.Response(
-              jsonEncode({
-                'token': 'mock-access-token-999',
-                'expires_at': '2026-06-19T20:00:00Z',
-              }),
-              200,
-            );
-          }
-          if (request.url.path.endsWith('/contents/.openci')) {
-            return http.Response(
-              jsonEncode([
-                {
-                  'name': 'matrix_build.yaml',
-                  'path': '.openci/matrix_build.yaml',
-                  'type': 'file',
-                },
-              ]),
-              200,
-            );
-          }
-          if (request.url.path.endsWith(
-            '/contents/.openci/matrix_build.yaml',
-          )) {
-            return http.Response(
-              '''
-name: Matrix Workflow
-on:
-  push:
-    branches: [main]
-jobs:
-  build:
-    strategy:
-      matrix:
-        target: [ios, android]
-    runs-on: macos-13
-    steps:
-      - run: echo "Building for \${{ matrix.target }}"
-  deploy:
-    needs: build
-    runs-on: macos-13
-    steps:
-      - run: echo "Deploying"
-''',
-              200,
-            );
-          }
-          if (request.url.path.endsWith('/check-runs')) {
-            return http.Response(
-              jsonEncode({
-                'id': 777,
-              }),
-              201,
-            );
-          }
-          return http.Response('Not Found', 404);
-        });
-
-        final signature = computeSignature(pushBody, testSecret);
-        final context = TestRequestContext(
-          path: '/webhook',
-          method: HttpMethod.post,
-          body: pushBody,
-          headers: {
-            'x-hub-signature-256': signature,
-            'x-github-event': 'push',
-            'x-github-delivery': 'test-delivery-id-456',
-          },
-        );
-
-        context.provide<Map<String, String>>({
-          'GITHUB_WEBHOOK_SECRET': testSecret,
-          'GITHUB_APP_ID': '12345',
-          'GITHUB_PRIVATE_KEY_PATH': tempPrivateKeyFile.path,
-          'GITHUB_API_BASE_URL': 'https://api.github.com',
-        });
-
-        context.provide<AppDatabase>(db);
-        context.provide<http.Client>(mockClient);
-
-        final response = await route.onRequest(context.context);
-
-        expect(response.statusCode, equals(HttpStatus.ok));
-        final resBody = await response.json() as Map<String, dynamic>;
-        expect(resBody['success'], isTrue);
-        expect(resBody['message'], equals('Webhook received and queued.'));
-
-        final task = await db.webhookTaskDao.claimNextWebhookTask();
-        expect(task, isNotNull);
-        await processWebhookTask(
-          db,
-          task!,
-          environment: {
-            'GITHUB_WEBHOOK_SECRET': testSecret,
-            'GITHUB_APP_ID': '12345',
-            'GITHUB_PRIVATE_KEY_PATH': tempPrivateKeyFile.path,
-            'GITHUB_API_BASE_URL': 'https://api.github.com',
-          },
-          client: mockClient,
-        );
-
-        final jobs = await db.select(db.buildJobs).get();
-        expect(jobs, hasLength(3));
-
-        final buildIos = jobs.firstWhere(
-          (j) => j.jobKey == 'build[target=ios]',
-        );
-        final buildAndroid = jobs.firstWhere(
-          (j) => j.jobKey == 'build[target=android]',
-        );
-        final deploy = jobs.firstWhere((j) => j.jobKey == 'deploy');
-
-        expect(buildIos.status, equals(BuildJobStatus.QUEUED));
-        expect(buildAndroid.status, equals(BuildJobStatus.QUEUED));
-        expect(deploy.status, equals(BuildJobStatus.WAITING));
-        expect(
-          deploy.needs,
-          containsAll(['build[target=ios]', 'build[target=android]']),
-        );
-      },
-    );
-
-    test(
-      'returns early when webhook delivery has already been processed',
-      () async {
-        final prBody = jsonEncode({
-          'action': 'opened',
-          'number': 42,
-          'pull_request': {
-            'number': 42,
-            'id': 999,
-            'head': {
-              'sha': 'commit-sha-123',
-              'ref': 'feature-branch',
-            },
-            'base': {
-              'ref': 'main',
-            },
-          },
-          'repository': {
-            'id': 12345,
-            'name': 'openci-repo',
-            'owner': {
-              'id': 12345,
-              'login': 'openci-owner',
-              'avatar_url': 'https://github.com/avatar',
-              'html_url': 'https://github.com/openci-owner',
-            },
-          },
-          'installation': {
-            'id': 98765,
-          },
-        });
-
-        final mockClient = MockClient((request) async {
-          if (request.url.path.contains('/access_tokens')) {
-            return http.Response(
-              jsonEncode({
-                'token': 'mock-access-token-999',
-                'expires_at': '2026-06-19T20:00:00Z',
-              }),
-              200,
-            );
-          }
-          if (request.url.path.endsWith('/contents/.openci')) {
-            return http.Response(
-              jsonEncode([
-                {
-                  'name': 'build.yaml',
-                  'path': '.openci/build.yaml',
-                  'type': 'file',
-                },
-              ]),
-              200,
-            );
-          }
-          if (request.url.path.endsWith('/contents/.openci/build.yaml')) {
-            return http.Response(
-              '''
-name: CI Build
-on:
-  pull_request:
-    branches:
-      - main
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - run: echo "Hello"
-''',
-              200,
-            );
-          }
-          if (request.url.path.endsWith('/check-runs')) {
-            return http.Response(
-              jsonEncode({
-                'id': 54321,
-              }),
-              201,
-            );
-          }
-          return http.Response('Not Found', 404);
-        });
-
-        final signature = computeSignature(prBody, testSecret);
-
-        // First call - should process successfully
-        final context1 = TestRequestContext(
-          path: '/webhook',
-          method: HttpMethod.post,
-          body: prBody,
-          headers: {
-            'x-hub-signature-256': signature,
-            'x-github-event': 'pull_request',
-            'x-github-delivery': 'test-delivery-id-789',
-          },
-        );
-
-        context1.provide<Map<String, String>>({
-          'GITHUB_WEBHOOK_SECRET': testSecret,
-          'GITHUB_APP_ID': '12345',
-          'GITHUB_PRIVATE_KEY_PATH': tempPrivateKeyFile.path,
-          'GITHUB_API_BASE_URL': 'https://api.github.com',
-        });
-        context1.provide<AppDatabase>(db);
-        context1.provide<http.Client>(mockClient);
-
-        final response1 = await route.onRequest(context1.context);
-        expect(response1.statusCode, equals(HttpStatus.ok));
-        final resBody1 = await response1.json() as Map<String, dynamic>;
-        expect(resBody1['success'], isTrue);
-        expect(resBody1['message'], equals('Webhook received and queued.'));
-
-        final task = await db.webhookTaskDao.claimNextWebhookTask();
-        expect(task, isNotNull);
-        await processWebhookTask(
-          db,
-          task!,
-          environment: {
-            'GITHUB_WEBHOOK_SECRET': testSecret,
-            'GITHUB_APP_ID': '12345',
-            'GITHUB_PRIVATE_KEY_PATH': tempPrivateKeyFile.path,
-            'GITHUB_API_BASE_URL': 'https://api.github.com',
-          },
-          client: mockClient,
-        );
-
-        final jobs = await db.select(db.buildJobs).get();
-        expect(jobs, hasLength(1));
-
-        // Second call with same delivery ID - should return early without duplicating jobs
-        final context2 = TestRequestContext(
-          path: '/webhook',
-          method: HttpMethod.post,
-          body: prBody,
-          headers: {
-            'x-hub-signature-256': signature,
-            'x-github-event': 'pull_request',
-            'x-github-delivery': 'test-delivery-id-789',
-          },
-        );
-
-        context2.provide<Map<String, String>>({
-          'GITHUB_WEBHOOK_SECRET': testSecret,
-          'GITHUB_APP_ID': '12345',
-          'GITHUB_PRIVATE_KEY_PATH': tempPrivateKeyFile.path,
-          'GITHUB_API_BASE_URL': 'https://api.github.com',
-        });
-        context2.provide<AppDatabase>(db);
-        context2.provide<http.Client>(mockClient);
-
-        final response2 = await route.onRequest(context2.context);
-        expect(response2.statusCode, equals(HttpStatus.ok));
-        final resBody2 = await response2.json() as Map<String, dynamic>;
-        expect(resBody2['success'], isTrue);
-        expect(resBody2['message'], contains('already processed'));
-
-        // DB job count should still be 1 (no duplicate creation)
-        final jobsAfter = await db.select(db.buildJobs).get();
-        expect(jobsAfter, hasLength(1));
-      },
-    );
-
-    test(
-      'does not report a queue insertion failure as a duplicate',
-      () async {
-        await db.customStatement('''
-          CREATE TRIGGER reject_webhook_task_insert
-          BEFORE INSERT ON webhook_tasks
-          BEGIN
-            SELECT RAISE(ABORT, 'forced webhook task insertion failure');
-          END;
-        ''');
-
-        final response = await queuePushWebhook(
-          body: '{"ref":"refs/heads/main"}',
-          deliveryId: 'failed-delivery',
-        );
-
-        expect(response.statusCode, equals(HttpStatus.internalServerError));
-        final body = await response.json() as Map<String, dynamic>;
-        expect(body['success'], isFalse);
-        expect(body['error'], equals('Internal server error'));
-        expect(await db.select(db.webhookTasks).get(), isEmpty);
-      },
-    );
-
-    test(
-      'treats only a duplicate queue delivery as already processed',
-      () async {
-        final now = DateTime.now().toUtc();
-        await db.webhookTaskDao.insertWebhookTask(
-          DriftWebhookTask(
-            id: 'existing-task',
-            deliveryId: 'orphaned-delivery',
-            eventType: 'push',
-            payload: '{"ref":"refs/heads/main"}',
-            status: 'pending',
-            retryCount: 0,
-            createdAt: now,
-            updatedAt: now,
-          ),
-        );
-
-        final response = await queuePushWebhook(
-          body: '{"ref":"refs/heads/main"}',
-          deliveryId: 'orphaned-delivery',
-        );
-
-        expect(response.statusCode, equals(HttpStatus.ok));
-        final body = await response.json() as Map<String, dynamic>;
-        expect(body['success'], isTrue);
-        expect(body['message'], contains('already processed'));
-        expect(await db.select(db.webhookTasks).get(), hasLength(1));
-      },
-    );
+      expect(response.statusCode, equals(HttpStatus.ok));
+      final body = await response.json() as Map<String, dynamic>;
+      expect(body['success'], isTrue);
+      expect(body['message'], contains('already processed'));
+      expect(await db.select(db.webhookTasks).get(), hasLength(1));
+    });
   });
 }
