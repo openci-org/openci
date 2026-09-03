@@ -3,11 +3,11 @@ import 'dart:io';
 
 import 'package:dart_frog/dart_frog.dart';
 import 'package:drift/drift.dart';
-import 'package:openci_server/build_job/build_job_plan.dart';
-import 'package:openci_server/build_job/build_job_mapper.dart';
+import 'package:openci_server/build_job/build_job_plan_mapper.dart';
 import 'package:openci_server/database.dart';
 import 'package:openci_server/request/error_handler.dart';
 import 'package:openci_server/request/request_extension.dart';
+import 'package:openci_shared/openci_shared.dart';
 import 'package:uuid/uuid.dart';
 
 FutureOr<Response> onRequest(RequestContext context, String id) {
@@ -154,9 +154,8 @@ Future<_CompletionResult> _completeTask({
 
     for (final plan in jobs) {
       final id = const Uuid().v4();
-      final job = plan.createBuildJob(id: id, timestamp: now);
       await db.buildJobDao.insertBuildJob(
-        job.toDrift(installationId: plan.installationId),
+        plan.toDriftBuildJob(id: id, timestamp: now),
       );
       createdJobIds.add(id);
     }

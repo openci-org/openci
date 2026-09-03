@@ -1,5 +1,6 @@
 import 'package:chopper/chopper.dart';
 
+import '../models/build_job_plan.dart';
 import '../models/build_step.dart';
 import '../models/cicd_commit_group.dart';
 import '../models/team.dart';
@@ -70,6 +71,31 @@ abstract class OpenCiApiService extends ChopperService {
   @POST(path: '/webhooks/tasks/{id}/process', timeout: _timeout)
   Future<Response<Map<String, dynamic>>> processWebhookTask(
     @Path('id') String id,
+  );
+
+  Future<Response<Map<String, dynamic>>> completeWebhookTask(
+    String id,
+    List<BuildJobPlan> jobs,
+  ) => _completeWebhookTask(
+    id,
+    {'jobs': jobs.map((job) => job.toJson()).toList()},
+  );
+
+  @POST(path: '/webhooks/tasks/{id}/complete', timeout: _timeout)
+  Future<Response<Map<String, dynamic>>> _completeWebhookTask(
+    @Path('id') String id,
+    @Body() Map<String, dynamic> body,
+  );
+
+  Future<Response<Map<String, dynamic>>> failWebhookTask(
+    String id,
+    String errorMessage,
+  ) => _failWebhookTask(id, {'errorMessage': errorMessage});
+
+  @POST(path: '/webhooks/tasks/{id}/fail', timeout: _timeout)
+  Future<Response<Map<String, dynamic>>> _failWebhookTask(
+    @Path('id') String id,
+    @Body() Map<String, dynamic> body,
   );
 
   @POST(path: '/builds', timeout: _timeout)
