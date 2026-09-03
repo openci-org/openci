@@ -10,7 +10,6 @@ import 'package:openci_server/device/device_dao.dart';
 import 'package:openci_server/device/device_table.dart';
 import 'package:openci_server/device/udid_request_dao.dart';
 import 'package:openci_server/device/udid_request_table.dart';
-import 'package:openci_server/processed_webhook/processed_webhook_table.dart';
 import 'package:openci_server/secret/secret_dao.dart';
 import 'package:openci_server/secret/secret_table.dart';
 import 'package:openci_server/seed/seed_dao.dart';
@@ -36,7 +35,6 @@ part 'database.g.dart';
     Teams,
     TeamMembers,
     Secrets,
-    ProcessedWebhooks,
     WebhookTasks,
     WorkerHeartbeats,
     UserDevices,
@@ -59,7 +57,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 20;
+  int get schemaVersion => 21;
 
   @override
   MigrationStrategy get migration {
@@ -81,6 +79,9 @@ class AppDatabase extends _$AppDatabase {
         if (from < 20) {
           await m.createTable(buildSteps);
           await m.createTable(buildStepLogs);
+        }
+        if (from < 21) {
+          await m.deleteTable('processed_webhooks');
         }
       },
     );

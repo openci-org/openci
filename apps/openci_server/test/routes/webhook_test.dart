@@ -160,6 +160,27 @@ void main() {
       return 'sha256=$digest';
     }
 
+    Future<Response> queuePushWebhook({
+      required String body,
+      required String deliveryId,
+    }) {
+      final context = TestRequestContext(
+        path: '/webhook',
+        method: HttpMethod.post,
+        body: body,
+        headers: {
+          'x-hub-signature-256': computeSignature(body, testSecret),
+          'x-github-event': 'push',
+          'x-github-delivery': deliveryId,
+        },
+      );
+      context.provide<Map<String, String>>({
+        'GITHUB_WEBHOOK_SECRET': testSecret,
+      });
+      context.provide<AppDatabase>(db);
+      return route.onRequest(context.context);
+    }
+
     setUp(() async {
       db = AppDatabase(NativeDatabase.memory());
       final now = DateTime.now().toUtc();
@@ -625,6 +646,60 @@ jobs:
         // DB job count should still be 1 (no duplicate creation)
         final jobsAfter = await db.select(db.buildJobs).get();
         expect(jobsAfter, hasLength(1));
+      },
+    );
+
+    test(
+      'does not report a queue insertion failure as a duplicate',
+      () async {
+        await db.customStatement('''
+          CREATE TRIGGER reject_webhook_task_insert
+          BEFORE INSERT ON webhook_tasks
+          BEGIN
+            SELECT RAISE(ABORT, 'forced webhook task insertion failure');
+          END;
+        ''');
+
+        final response = await queuePushWebhook(
+          body: '{"ref":"refs/heads/main"}',
+          deliveryId: 'failed-delivery',
+        );
+
+        expect(response.statusCode, equals(HttpStatus.internalServerError));
+        final body = await response.json() as Map<String, dynamic>;
+        expect(body['success'], isFalse);
+        expect(body['error'], equals('Internal server error'));
+        expect(await db.select(db.webhookTasks).get(), isEmpty);
+      },
+    );
+
+    test(
+      'treats only a duplicate queue delivery as already processed',
+      () async {
+        final now = DateTime.now().toUtc();
+        await db.webhookTaskDao.insertWebhookTask(
+          DriftWebhookTask(
+            id: 'existing-task',
+            deliveryId: 'orphaned-delivery',
+            eventType: 'push',
+            payload: '{"ref":"refs/heads/main"}',
+            status: 'pending',
+            retryCount: 0,
+            createdAt: now,
+            updatedAt: now,
+          ),
+        );
+
+        final response = await queuePushWebhook(
+          body: '{"ref":"refs/heads/main"}',
+          deliveryId: 'orphaned-delivery',
+        );
+
+        expect(response.statusCode, equals(HttpStatus.ok));
+        final body = await response.json() as Map<String, dynamic>;
+        expect(body['success'], isTrue);
+        expect(body['message'], contains('already processed'));
+        expect(await db.select(db.webhookTasks).get(), hasLength(1));
       },
     );
   });

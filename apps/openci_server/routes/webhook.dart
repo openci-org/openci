@@ -4,7 +4,9 @@ import 'dart:io';
 import 'package:crypto/crypto.dart';
 import 'package:dart_frog/dart_frog.dart';
 import 'package:openci_server/database.dart';
+import 'package:openci_server/request/error_handler.dart';
 import 'package:openci_shared/openci_shared.dart';
+import 'package:postgres/postgres.dart' as pg;
 import 'package:uuid/uuid.dart';
 
 Future<Response> onRequest(RequestContext context) async {
@@ -50,18 +52,6 @@ Future<Response> onRequest(RequestContext context) async {
   }
 
   final db = context.read<AppDatabase>();
-  final exists = await (db.select(
-    db.processedWebhooks,
-  )..where((t) => t.deliveryId.equals(deliveryId))).getSingleOrNull();
-  if (exists != null) {
-    return Response.json(
-      body: {
-        'success': true,
-        'message': 'Webhook delivery already processed',
-      },
-    );
-  }
-
   final eventType = context.request.headers['x-github-event'] ?? '';
   if (eventType != 'pull_request' && eventType != 'push') {
     return Response.json(
@@ -95,17 +85,7 @@ Future<Response> onRequest(RequestContext context) async {
     }
   }
 
-  // 1. Record in processed webhooks table (idempotency check)
-  await db
-      .into(db.processedWebhooks)
-      .insert(
-        ProcessedWebhooksCompanion.insert(
-          deliveryId: deliveryId,
-          processedAt: DateTime.now().toUtc(),
-        ),
-      );
-
-  // 2. Insert into the queue table
+  final now = DateTime.now().toUtc();
   final taskId = const Uuid().v4();
   final task = DriftWebhookTask(
     id: taskId,
@@ -114,19 +94,26 @@ Future<Response> onRequest(RequestContext context) async {
     payload: rawBody,
     status: 'pending',
     retryCount: 0,
-    createdAt: DateTime.now().toUtc(),
-    updatedAt: DateTime.now().toUtc(),
+    createdAt: now,
+    updatedAt: now,
   );
 
   try {
     await db.webhookTaskDao.insertWebhookTask(task);
-  } catch (e) {
-    // Unique constraint violation (duplicate webhook task)
-    return Response.json(
-      body: {
-        'success': true,
-        'message': 'Webhook delivery already processed (via task check)',
-      },
+  } catch (error, stackTrace) {
+    if (_isUniqueConstraintViolation(error)) {
+      return Response.json(
+        body: {
+          'success': true,
+          'message': 'Webhook delivery already processed',
+        },
+      );
+    }
+
+    return handleRouteException(
+      error,
+      stackTrace,
+      logMessage: 'Failed to queue webhook delivery $deliveryId',
     );
   }
 
@@ -136,6 +123,18 @@ Future<Response> onRequest(RequestContext context) async {
       'message': 'Webhook received and queued.',
     },
   );
+}
+
+bool _isUniqueConstraintViolation(Object error) {
+  if (error is pg.UniqueViolationException) {
+    return true;
+  }
+  if (error is pg.ServerException && error.code == '23505') {
+    return true;
+  }
+
+  return error.runtimeType.toString() == 'SqliteException' &&
+      error.toString().contains('UNIQUE constraint failed');
 }
 
 bool verifyWebhookSignature({
