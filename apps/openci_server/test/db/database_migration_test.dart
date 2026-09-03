@@ -6,55 +6,62 @@ import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 
 void main() {
-  test('migration from schema 20 drops processed_webhooks', () async {
-    final tempDirectory = Directory.systemTemp.createTempSync(
-      'openci-database-migration-test-',
-    );
-    final databaseFile = File(p.join(tempDirectory.path, 'database.sqlite'));
-    AppDatabase? database;
+  test(
+    'migration from schema 20 drops processed_webhooks and adds lease_until',
+    () async {
+      final tempDirectory = Directory.systemTemp.createTempSync(
+        'openci-database-migration-test-',
+      );
+      final databaseFile = File(p.join(tempDirectory.path, 'database.sqlite'));
+      AppDatabase? database;
 
-    try {
-      database = AppDatabase(NativeDatabase(databaseFile));
-      await database.customStatement('''
+      try {
+        database = AppDatabase(NativeDatabase(databaseFile));
+        await database.customStatement('''
         CREATE TABLE IF NOT EXISTS processed_webhooks (
           delivery_id TEXT NOT NULL PRIMARY KEY,
           processed_at INTEGER NOT NULL
         )
       ''');
-      final now = DateTime.now().toUtc();
-      await database.webhookTaskDao.insertWebhookTask(
-        DriftWebhookTask(
-          id: 'retained-task',
-          deliveryId: 'retained-delivery',
-          eventType: 'push',
-          payload: '{"ref":"refs/heads/main"}',
-          status: 'pending',
-          retryCount: 0,
-          createdAt: now,
-          updatedAt: now,
-        ),
-      );
-      await database.customStatement('PRAGMA user_version = 20');
-      await database.close();
-      database = null;
+        final now = DateTime.now().toUtc();
+        await database.webhookTaskDao.insertWebhookTask(
+          DriftWebhookTask(
+            id: 'retained-task',
+            deliveryId: 'retained-delivery',
+            eventType: 'push',
+            payload: '{"ref":"refs/heads/main"}',
+            status: 'pending',
+            retryCount: 0,
+            createdAt: now,
+            updatedAt: now,
+          ),
+        );
+        await database.customStatement(
+          'ALTER TABLE webhook_tasks DROP COLUMN lease_until',
+        );
+        await database.customStatement('PRAGMA user_version = 20');
+        await database.close();
+        database = null;
 
-      database = AppDatabase(NativeDatabase(databaseFile));
-      final processedWebhookTables = await database.customSelect(
-        '''
+        database = AppDatabase(NativeDatabase(databaseFile));
+        final processedWebhookTables = await database.customSelect(
+          '''
           SELECT name
           FROM sqlite_master
           WHERE type = 'table' AND name = 'processed_webhooks'
         ''',
-      ).get();
+        ).get();
 
-      expect(processedWebhookTables, isEmpty);
-      expect(
-        await database.webhookTaskDao.getWebhookTask('retained-task'),
-        isNotNull,
-      );
-    } finally {
-      await database?.close();
-      tempDirectory.deleteSync(recursive: true);
-    }
-  });
+        expect(processedWebhookTables, isEmpty);
+        final retainedTask = await database.webhookTaskDao.getWebhookTask(
+          'retained-task',
+        );
+        expect(retainedTask, isNotNull);
+        expect(retainedTask?.leaseUntil, isNull);
+      } finally {
+        await database?.close();
+        tempDirectory.deleteSync(recursive: true);
+      }
+    },
+  );
 }

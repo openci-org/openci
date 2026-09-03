@@ -117,6 +117,7 @@ Future<void> main() async {
 
       final savedTask = await db.webhookTaskDao.getWebhookTask(task.id);
       expect(savedTask?.status, equals('completed'));
+      expect(savedTask?.leaseUntil, isNull);
 
       final jobs = await db.select(db.buildJobs).get();
       expect(jobs, hasLength(1));
@@ -131,6 +132,47 @@ Future<void> main() async {
       expect(jobs.single.branch, equals('main'));
       expect(jobs.single.installationId, equals('98765'));
     });
+
+    test(
+      'rolls back BuildJobs when completing the webhook task fails',
+      () async {
+        final task = await _insertPushTask(db, id: 'completion-failure-task');
+        final client = _githubClientWithWorkflow(
+          '''
+import 'package:genuine_ci/genuine_ci.dart';
+
+Future<void> main() async {
+  await GenuineCI.init(
+    workflowName: 'Dashboard CI',
+    ciTrigger: CiTrigger.push(branch: 'main'),
+  );
+}
+''',
+        );
+        await db.customStatement('''
+          CREATE TRIGGER reject_webhook_task_completion
+          BEFORE UPDATE OF status ON webhook_tasks
+          WHEN NEW.status = 'completed'
+          BEGIN
+            SELECT RAISE(ABORT, 'forced webhook task completion failure');
+          END;
+        ''');
+
+        final response = await _processTask(
+          db: db,
+          taskId: task.id,
+          environment: environment,
+          client: client,
+        );
+
+        expect(response.statusCode, equals(HttpStatus.internalServerError));
+        expect(await db.select(db.buildJobs).get(), isEmpty);
+
+        final savedTask = await db.webhookTaskDao.getWebhookTask(task.id);
+        expect(savedTask?.status, equals('failed'));
+        expect(savedTask?.leaseUntil, isNull);
+      },
+    );
 
     test(
       'completes the task without creating a job when no workflow matches',
@@ -165,6 +207,7 @@ Future<void> main() async {
 
         final savedTask = await db.webhookTaskDao.getWebhookTask(task.id);
         expect(savedTask?.status, equals('completed'));
+        expect(savedTask?.leaseUntil, isNull);
         expect(await db.select(db.buildJobs).get(), isEmpty);
       },
     );
@@ -190,6 +233,7 @@ Future<void> main() async {
 
       final savedTask = await db.webhookTaskDao.getWebhookTask(task.id);
       expect(savedTask?.status, equals('failed'));
+      expect(savedTask?.leaseUntil, isNull);
       expect(savedTask?.errorMessage, contains('GitHub unavailable'));
       expect(await db.select(db.buildJobs).get(), isEmpty);
     });
@@ -219,6 +263,7 @@ Future<DriftWebhookTask> _insertPushTask(
       'installation': {'id': 98765},
     }),
     status: 'processing',
+    leaseUntil: now.add(const Duration(minutes: 5)),
     retryCount: 0,
     createdAt: now,
     updatedAt: now,

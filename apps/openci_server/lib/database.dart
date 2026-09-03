@@ -57,7 +57,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 21;
+  int get schemaVersion => 22;
 
   @override
   MigrationStrategy get migration {
@@ -82,6 +82,9 @@ class AppDatabase extends _$AppDatabase {
         }
         if (from < 21) {
           await m.deleteTable('processed_webhooks');
+        }
+        if (from < 22) {
+          await m.addColumn(webhookTasks, webhookTasks.leaseUntil);
         }
       },
     );
