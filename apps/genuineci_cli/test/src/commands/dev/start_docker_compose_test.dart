@@ -29,7 +29,7 @@ void main() {
       projectRoot = Directory('/path/to/openci');
     });
 
-    test('starts the core services from the project root', () async {
+    test('starts all default services from the project root', () async {
       late String executable;
       late List<String> arguments;
       late String capturedWorkingDirectory;
@@ -60,19 +60,7 @@ void main() {
 
       expect(result, isTrue);
       expect(executable, equals('docker'));
-      expect(
-        arguments,
-        equals([
-          'compose',
-          'up',
-          '-d',
-          '--build',
-          'db',
-          'orchard-controller',
-          'server',
-          'build-job-dispatcher',
-        ]),
-      );
+      expect(arguments, equals(['compose', 'up', '-d', '--build']));
       expect(capturedWorkingDirectory, equals(projectRoot.path));
       expect(capturedEnvironment, {
         'PATH': '/usr/local/bin',
