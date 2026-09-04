@@ -37,14 +37,7 @@ Future<void> planBuildJobs(Config config) async {
         continue;
       }
 
-      final response = await api.processWebhookTask(task.id);
-      if (!response.isSuccessful || response.body == null) {
-        throw StateError(
-          'Failed to process webhook task ${task.id}: HTTP ${response.statusCode} - ${response.error}',
-        );
-      }
-
-      final jobsCreated = response.body!['jobs_created'] ?? 0;
+      final jobsCreated = await handleWebhookTask(task: task, api: api);
       _log.info(
         'Completed webhook task: ${task.id} (Jobs created: $jobsCreated)',
       );
