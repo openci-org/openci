@@ -10,6 +10,7 @@ on:
       - "analysis_options.yaml"
       - "pubspec.yaml"
       - "pubspec.lock"
+      - "codecov.yml"
       - ".github/workflows/dart-apps-ci.yml"
 
 concurrency:
@@ -38,11 +39,15 @@ jobs:
               apps/openci_server/lib
               apps/openci_server/routes
               apps/openci_server/test
+          - app: openci_shared
+            path: packages/openci_shared
+            format_paths: packages/openci_shared
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
+          fetch-depth: 2
           persist-credentials: false
 
       - name: Setup Flutter
@@ -62,6 +67,22 @@ jobs:
       - name: Analyze code
         run: flutter analyze --no-pub ${{ matrix.path }}
 
-      - name: Run unit tests
+      - name: Run unit tests with coverage
         working-directory: ${{ matrix.path }}
-        run: flutter test --no-pub
+        run: flutter test --coverage --no-pub
+
+      - name: Normalize coverage paths
+        run: >-
+          sed --in-place
+          's|^SF:|SF:${{ matrix.path }}/|'
+          ${{ matrix.path }}/coverage/lcov.info
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          disable_search: true
+          fail_ci_if_error: true
+          files: ${{ matrix.path }}/coverage/lcov.info
+          flags: ${{ matrix.app }}
+          name: ${{ matrix.app }}
+          token: ${{ secrets.CODECOV_TOKEN }}

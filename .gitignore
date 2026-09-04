@@ -2,6 +2,7 @@
 node_modules/
 **/.dart_tool/
 **/build/
+**/coverage/
 *.tsbuildinfo
 .DS_Store
 
