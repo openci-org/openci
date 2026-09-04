@@ -1,13 +1,15 @@
-name: openci_server CI
+name: Dart apps CI
 
 on:
   push:
     paths:
+      - "apps/genuineci_cli/**"
       - "apps/openci_server/**"
       - "packages/openci_shared/**"
+      - "analysis_options.yaml"
       - "pubspec.yaml"
       - "pubspec.lock"
-      - ".github/workflows/openci-server-ci.yml"
+      - ".github/workflows/dart-apps-ci.yml"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -15,9 +17,23 @@ concurrency:
 
 jobs:
   ci:
+    name: ${{ matrix.app }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - app: genuineci_cli
+            path: apps/genuineci_cli
+            format_paths: apps/genuineci_cli
+          - app: openci_server
+            path: apps/openci_server
+            format_paths: >-
+              apps/openci_server/lib
+              apps/openci_server/routes
+              apps/openci_server/test
 
     steps:
       - name: Checkout repository
@@ -37,13 +53,11 @@ jobs:
       - name: Verify formatting
         run: >-
           dart format --output=none --set-exit-if-changed
-          apps/openci_server/lib
-          apps/openci_server/routes
-          apps/openci_server/test
+          ${{ matrix.format_paths }}
 
       - name: Analyze code
-        run: flutter analyze apps/openci_server
+        run: flutter analyze --no-pub ${{ matrix.path }}
 
       - name: Run unit tests
-        working-directory: apps/openci_server
-        run: flutter test
+        working-directory: ${{ matrix.path }}
+        run: flutter test --no-pub
