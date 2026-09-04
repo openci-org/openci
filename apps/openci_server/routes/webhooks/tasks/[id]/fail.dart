@@ -5,9 +5,8 @@ import 'package:dart_frog/dart_frog.dart';
 import 'package:openci_server/database.dart';
 import 'package:openci_server/request/error_handler.dart';
 import 'package:openci_server/request/request_extension.dart';
-import 'package:openci_server/webhook_task/complete_webhook_task.dart';
+import 'package:openci_server/webhook_task/fail_webhook_task.dart';
 import 'package:openci_server/webhook_task/webhook_task_transition_exception.dart';
-import 'package:openci_shared/openci_shared.dart';
 
 FutureOr<Response> onRequest(RequestContext context, String id) {
   return switch (context.request.method) {
@@ -42,9 +41,9 @@ Future<Response> _post(RequestContext context, String taskId) async {
       );
     }
 
-    final List<BuildJobPlan> jobs;
+    final String errorMessage;
     try {
-      jobs = parseBuildJobPlans(payload);
+      errorMessage = parseWebhookTaskErrorMessage(payload);
     } on FormatException catch (e) {
       return Response.json(
         statusCode: HttpStatus.badRequest,
@@ -53,19 +52,14 @@ Future<Response> _post(RequestContext context, String taskId) async {
     }
 
     final db = context.read<AppDatabase>();
-    final result = await completeWebhookTask(
+    final result = await failWebhookTask(
       db: db,
       taskId: taskId,
-      jobs: jobs,
+      errorMessage: errorMessage,
     );
 
     return Response.json(
-      body: {
-        'success': true,
-        'jobs_created': result.jobIds.length,
-        'job_ids': result.jobIds,
-        'already_completed': result.alreadyCompleted,
-      },
+      body: {'success': true, 'already_failed': result.alreadyFailed},
     );
   } on WebhookTaskNotFoundException {
     return Response.json(
@@ -84,7 +78,7 @@ Future<Response> _post(RequestContext context, String taskId) async {
     return handleRouteException(
       e,
       s,
-      logMessage: 'Failed to complete webhook task $taskId',
+      logMessage: 'Failed to fail webhook task $taskId',
     );
   }
 }

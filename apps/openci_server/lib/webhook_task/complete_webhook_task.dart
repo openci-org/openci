@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart';
 import 'package:openci_server/build_job/build_job_plan_mapper.dart';
 import 'package:openci_server/database.dart';
+import 'package:openci_server/webhook_task/webhook_task_transition_exception.dart';
 import 'package:openci_shared/openci_shared.dart';
 import 'package:uuid/uuid.dart';
 
@@ -82,14 +83,4 @@ class CompleteWebhookTaskResult {
 
   final List<String> jobIds;
   final bool alreadyCompleted;
-}
-
-class WebhookTaskNotFoundException implements Exception {
-  const WebhookTaskNotFoundException();
-}
-
-class InvalidWebhookTaskStatusException implements Exception {
-  const InvalidWebhookTaskStatusException(this.status);
-
-  final String status;
 }

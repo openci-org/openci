@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:drift/native.dart';
 import 'package:openci_server/database.dart';
 import 'package:openci_server/webhook_task/complete_webhook_task.dart';
+import 'package:openci_server/webhook_task/webhook_task_transition_exception.dart';
 import 'package:openci_shared/openci_shared.dart';
 import 'package:test/test.dart';
 
@@ -119,11 +120,7 @@ void main() {
 
     test('throws when the task does not exist', () async {
       await expectLater(
-        completeWebhookTask(
-          db: db,
-          taskId: 'missing-task',
-          jobs: const [],
-        ),
+        completeWebhookTask(db: db, taskId: 'missing-task', jobs: const []),
         throwsA(isA<WebhookTaskNotFoundException>()),
       );
     });
@@ -132,11 +129,7 @@ void main() {
       await _insertTask(db, id: 'task-1', status: 'pending');
 
       await expectLater(
-        completeWebhookTask(
-          db: db,
-          taskId: 'task-1',
-          jobs: const [_plan],
-        ),
+        completeWebhookTask(db: db, taskId: 'task-1', jobs: const [_plan]),
         throwsA(
           isA<InvalidWebhookTaskStatusException>().having(
             (error) => error.status,
@@ -155,11 +148,7 @@ void main() {
 
     test('returns already completed without creating duplicate jobs', () async {
       await _insertTask(db, id: 'task-1', status: 'processing');
-      await completeWebhookTask(
-        db: db,
-        taskId: 'task-1',
-        jobs: const [_plan],
-      );
+      await completeWebhookTask(db: db, taskId: 'task-1', jobs: const [_plan]);
 
       final result = await completeWebhookTask(
         db: db,
@@ -174,16 +163,10 @@ void main() {
 
     test('rolls back the task update when job insertion fails', () async {
       await _insertTask(db, id: 'task-1', status: 'processing');
-      final invalidPlan = _plan.copyWith(
-        matrix: {'invalid': Object()},
-      );
+      final invalidPlan = _plan.copyWith(matrix: {'invalid': Object()});
 
       await expectLater(
-        completeWebhookTask(
-          db: db,
-          taskId: 'task-1',
-          jobs: [invalidPlan],
-        ),
+        completeWebhookTask(db: db, taskId: 'task-1', jobs: [invalidPlan]),
         throwsA(isA<JsonUnsupportedObjectError>()),
       );
 
