@@ -11,10 +11,6 @@ import '../../routes/workers/heartbeat.dart' as heartbeat_route;
 import '../../routes/workers/index.dart' as index_route;
 
 void main() {
-  final env = {
-    'ALLOWED_WORKER_UIDS': 'worker-1,worker-2',
-  };
-
   late AppDatabase db;
 
   setUp(() async {
@@ -40,14 +36,13 @@ void main() {
         );
         context.provide<AppDatabase>(db);
         context.provide<String?>(null);
-        context.provide<Map<String, String>>(env);
 
         final response = await heartbeat_route.onRequest(context.context);
         expect(response.statusCode, equals(HttpStatus.unauthorized));
       });
 
       test(
-        'responds with 403 Forbidden when uid is not in ALLOWED_WORKER_UIDS',
+        'responds with 200 OK for any authenticated uid',
         () async {
           final context = TestRequestContext(
             path: '/workers/heartbeat',
@@ -60,11 +55,10 @@ void main() {
             }),
           );
           context.provide<AppDatabase>(db);
-          context.provide<String?>('unauthorized-worker');
-          context.provide<Map<String, String>>(env);
+          context.provide<String?>('authenticated-user');
 
           final response = await heartbeat_route.onRequest(context.context);
-          expect(response.statusCode, equals(HttpStatus.forbidden));
+          expect(response.statusCode, equals(HttpStatus.ok));
         },
       );
 
@@ -83,7 +77,6 @@ void main() {
           );
           context.provide<AppDatabase>(db);
           context.provide<String?>('worker-1');
-          context.provide<Map<String, String>>(env);
 
           final response = await heartbeat_route.onRequest(context.context);
           expect(response.statusCode, equals(HttpStatus.ok));

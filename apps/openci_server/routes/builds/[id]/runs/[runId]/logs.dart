@@ -23,13 +23,21 @@ Future<Response> _get(
   String runId,
 ) async {
   try {
-    final lokiService = LokiService();
+    final db = context.read<AppDatabase>();
+    final buildRun = await db.buildRunDao.getBuildRun(id, runId);
+    if (buildRun == null) {
+      return Response.json(
+        statusCode: HttpStatus.notFound,
+        body: {'success': false, 'error': 'Build run not found'},
+      );
+    }
+
+    final lokiService = _readLokiService(context);
     final lokiLogs = await lokiService.getLogsForRun(runId: runId);
     if (lokiLogs.isNotEmpty) {
       return Response.json(body: lokiLogs);
     }
 
-    final db = context.read<AppDatabase>();
     final steps = await db.buildJobDao.getBuildSteps(runId);
 
     final List<String> allLines = [];
@@ -59,5 +67,13 @@ Future<Response> _get(
       s,
       logMessage: 'Failed to read all logs for build $id run $runId',
     );
+  }
+}
+
+LokiService _readLokiService(RequestContext context) {
+  try {
+    return context.read<LokiService>();
+  } catch (_) {
+    return LokiService();
   }
 }

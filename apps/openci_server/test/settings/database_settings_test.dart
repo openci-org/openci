@@ -9,7 +9,10 @@ void main() {
           'DATABASE_URL': 'postgres://test-db:5432/test',
         },
       );
-      expect(url, equals('postgres://test-db:5432/test'));
+      expect(
+        url,
+        equals('postgres://test-db:5432/test?sslmode=disable'),
+      );
     });
 
     test('throws StateError if DATABASE_URL is missing', () {

@@ -35,7 +35,9 @@ void main() {
       when(() => context.read<AppDatabase>()).thenReturn(db);
       when(() => db.teamDao).thenReturn(teamDao);
       when(() => request.uri).thenReturn(
-        Uri.parse('http://localhost/teams/team123/repositories/my-repo/genuine-ci-files?ref=main'),
+        Uri.parse(
+          'http://localhost/teams/team123/repositories/my-repo/genuine-ci-files?ref=main',
+        ),
       );
     });
 
@@ -49,8 +51,9 @@ void main() {
 
     test('returns 403 Forbidden when user is not a team member', () async {
       when(() => context.read<String?>()).thenReturn('user-1');
-      when(() => teamDao.isTeamMember('user-1', 'team123'))
-          .thenAnswer((_) async => false);
+      when(
+        () => teamDao.isTeamMember('user-1', 'team123'),
+      ).thenAnswer((_) async => false);
 
       final response = await route.onRequest(context, 'team123', 'my-repo');
 
