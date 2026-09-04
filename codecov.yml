@@ -1,0 +1,33 @@
+coverage:
+  status:
+    project:
+      default:
+        informational: true
+    patch:
+      default:
+        informational: true
+
+comment:
+  layout: "reach, diff, flags, files"
+  behavior: default
+  require_changes: false
+
+ignore:
+  - "**/*.g.dart"
+  - "**/*.freezed.dart"
+  - "**/*.chopper.dart"
+
+flags:
+  genuineci_cli:
+    paths:
+      - apps/genuineci_cli/lib/
+  build_job_planner:
+    paths:
+      - apps/build_job_planner/lib/
+  openci_server:
+    paths:
+      - apps/openci_server/lib/
+      - apps/openci_server/routes/
+  openci_shared:
+    paths:
+      - packages/openci_shared/lib/
