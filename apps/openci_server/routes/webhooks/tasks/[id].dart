@@ -49,7 +49,9 @@ Future<Response> _patch(RequestContext context, String id) async {
 
     final updated = task.copyWith(
       status: status ?? task.status,
-      errorMessage: errorMessage != null ? Value(errorMessage) : Value(task.errorMessage),
+      errorMessage: errorMessage != null
+          ? Value(errorMessage)
+          : Value(task.errorMessage),
       updatedAt: DateTime.now().toUtc(),
     );
 

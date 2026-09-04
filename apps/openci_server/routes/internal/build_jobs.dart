@@ -16,13 +16,13 @@ Future<Response> onRequest(RequestContext context) async {
 
     int deletedCount;
     if (jobId != null && jobId.isNotEmpty) {
-      deletedCount = await (db.delete(db.buildJobs)
-            ..where((tbl) => tbl.id.equals(jobId)))
-          .go();
+      deletedCount = await (db.delete(
+        db.buildJobs,
+      )..where((tbl) => tbl.id.equals(jobId))).go();
     } else if (teamId != null && teamId.isNotEmpty) {
-      deletedCount = await (db.delete(db.buildJobs)
-            ..where((tbl) => tbl.teamId.equals(teamId)))
-          .go();
+      deletedCount = await (db.delete(
+        db.buildJobs,
+      )..where((tbl) => tbl.teamId.equals(teamId))).go();
     } else {
       deletedCount = await db.delete(db.buildJobs).go();
     }

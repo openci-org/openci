@@ -7,7 +7,6 @@ import 'package:drift/native.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:openci_server/build_job/build_job_dao.dart';
 import 'package:openci_server/database.dart';
-import 'package:openci_server/team/team_dao.dart';
 import 'package:openci_shared/openci_shared.dart';
 import 'package:test/test.dart';
 
@@ -16,8 +15,6 @@ import '../../../routes/builds/index.dart' as route;
 class MockAppDatabase extends Mock implements AppDatabase {}
 
 class MockBuildJobDao extends Mock implements BuildJobDao {}
-
-class MockTeamDao extends Mock implements TeamDao {}
 
 void main() {
   late AppDatabase db;
@@ -134,7 +131,7 @@ void main() {
     );
 
     test(
-      'responds with 403 Forbidden when build job teamId is null',
+      'responds with 403 Forbidden when caller is not the internal job processor',
       () async {
         final payload = {
           'id': 'job-123',
@@ -142,6 +139,7 @@ void main() {
           'owner': 'owner',
           'repo': 'repo',
           'workflowName': 'workflow',
+          'workflowFileName': 'ci.yml',
           'teamId': null,
           'createdAt': DateTime.now().toUtc().toIso8601String(),
           'updatedAt': DateTime.now().toUtc().toIso8601String(),
@@ -162,58 +160,12 @@ void main() {
 
         final body = await response.json() as Map<String, dynamic>;
         expect(body['success'], isFalse);
-        expect(body['error'], equals('Forbidden'));
+        expect(body['error'], equals('Forbidden: Internal API key required'));
       },
     );
 
     test(
-      'responds with 403 Forbidden when user is not a member of the team',
-      () async {
-        final team = DriftTeam(
-          id: 'team-xyz',
-          name: 'Team XYZ',
-          githubBaseUrl: null,
-          installationIds: const [],
-          runNumber: 1,
-          aiEnabled: true,
-          createdAt: DateTime.now().toUtc(),
-          updatedAt: DateTime.now().toUtc(),
-        );
-
-        await db.teamDao.createTeamAndMember(team, 'user-abc');
-
-        final payload = {
-          'id': 'job-123',
-          'status': 'QUEUED',
-          'owner': 'owner',
-          'repo': 'repo',
-          'workflowName': 'workflow',
-          'teamId': 'team-xyz',
-          'createdAt': DateTime.now().toUtc().toIso8601String(),
-          'updatedAt': DateTime.now().toUtc().toIso8601String(),
-        };
-
-        final context = TestRequestContext(
-          path: '/builds',
-          method: HttpMethod.post,
-          body: jsonEncode(payload),
-        );
-
-        context.provide<AppDatabase>(db);
-        context.provide<String?>('user-123');
-
-        final response = await route.onRequest(context.context);
-
-        expect(response.statusCode, equals(HttpStatus.forbidden));
-
-        final body = await response.json() as Map<String, dynamic>;
-        expect(body['success'], isFalse);
-        expect(body['error'], equals('Forbidden'));
-      },
-    );
-
-    test(
-      'responds with 200 OK and inserts build job when user is a member of the team',
+      'responds with 403 Forbidden even when caller is a team member',
       () async {
         final team = DriftTeam(
           id: 'team-xyz',
@@ -234,6 +186,7 @@ void main() {
           'owner': 'owner',
           'repo': 'repo',
           'workflowName': 'workflow',
+          'workflowFileName': 'ci.yml',
           'teamId': 'team-xyz',
           'createdAt': DateTime.now().toUtc().toIso8601String(),
           'updatedAt': DateTime.now().toUtc().toIso8601String(),
@@ -247,6 +200,53 @@ void main() {
 
         context.provide<AppDatabase>(db);
         context.provide<String?>('user-123');
+
+        final response = await route.onRequest(context.context);
+
+        expect(response.statusCode, equals(HttpStatus.forbidden));
+
+        final body = await response.json() as Map<String, dynamic>;
+        expect(body['success'], isFalse);
+        expect(body['error'], equals('Forbidden: Internal API key required'));
+      },
+    );
+
+    test(
+      'responds with 200 OK and inserts build job for the internal job processor',
+      () async {
+        final team = DriftTeam(
+          id: 'team-xyz',
+          name: 'Team XYZ',
+          githubBaseUrl: null,
+          installationIds: const [],
+          runNumber: 1,
+          aiEnabled: true,
+          createdAt: DateTime.now().toUtc(),
+          updatedAt: DateTime.now().toUtc(),
+        );
+
+        await db.teamDao.createTeamAndMember(team, 'user-123');
+
+        final payload = {
+          'id': 'job-123',
+          'status': 'QUEUED',
+          'owner': 'owner',
+          'repo': 'repo',
+          'workflowName': 'workflow',
+          'workflowFileName': 'ci.yml',
+          'teamId': 'team-xyz',
+          'createdAt': DateTime.now().toUtc().toIso8601String(),
+          'updatedAt': DateTime.now().toUtc().toIso8601String(),
+        };
+
+        final context = TestRequestContext(
+          path: '/builds',
+          method: HttpMethod.post,
+          body: jsonEncode(payload),
+        );
+
+        context.provide<AppDatabase>(db);
+        context.provide<String?>('system-job-processor');
 
         final response = await route.onRequest(context.context);
 
@@ -274,18 +274,13 @@ void main() {
           () => mockBuildJobDao.insertBuildJob(any()),
         ).thenThrow(Exception('Database failure'));
 
-        final mockTeamDao = MockTeamDao();
-        when(() => mockDb.teamDao).thenReturn(mockTeamDao);
-        when(
-          () => mockTeamDao.isTeamMember('user-123', 'team-xyz'),
-        ).thenAnswer((_) async => true);
-
         final payload = {
           'id': 'job-123',
           'status': 'QUEUED',
           'owner': 'owner',
           'repo': 'repo',
           'workflowName': 'workflow',
+          'workflowFileName': 'ci.yml',
           'teamId': 'team-xyz',
           'createdAt': DateTime.now().toUtc().toIso8601String(),
           'updatedAt': DateTime.now().toUtc().toIso8601String(),
@@ -298,7 +293,7 @@ void main() {
         );
 
         context.provide<AppDatabase>(mockDb);
-        context.provide<String?>('user-123');
+        context.provide<String?>('system-job-processor');
 
         final response = await route.onRequest(context.context);
 

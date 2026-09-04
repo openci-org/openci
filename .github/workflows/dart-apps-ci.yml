@@ -1,0 +1,63 @@
+name: Dart apps CI
+
+on:
+  push:
+    paths:
+      - "apps/genuineci_cli/**"
+      - "apps/openci_server/**"
+      - "packages/openci_shared/**"
+      - "analysis_options.yaml"
+      - "pubspec.yaml"
+      - "pubspec.lock"
+      - ".github/workflows/dart-apps-ci.yml"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    name: ${{ matrix.app }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - app: genuineci_cli
+            path: apps/genuineci_cli
+            format_paths: apps/genuineci_cli
+          - app: openci_server
+            path: apps/openci_server
+            format_paths: >-
+              apps/openci_server/lib
+              apps/openci_server/routes
+              apps/openci_server/test
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: "stable"
+          cache: true
+
+      - name: Install dependencies (Workspace root)
+        run: flutter pub get
+
+      - name: Verify formatting
+        run: >-
+          dart format --output=none --set-exit-if-changed
+          ${{ matrix.format_paths }}
+
+      - name: Analyze code
+        run: flutter analyze --no-pub ${{ matrix.path }}
+
+      - name: Run unit tests
+        working-directory: ${{ matrix.path }}
+        run: flutter test --no-pub

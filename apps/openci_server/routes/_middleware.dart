@@ -105,9 +105,6 @@ Middleware authProvider(FirebaseApp? firebaseApp, {bool allowTestUid = false}) {
       }
 
       if (firebaseApp == null) {
-        if (token != null && token.isNotEmpty) {
-          return handler(context.provide<String?>(() => 'test-uid'));
-        }
         if (allowTestUid) {
           return handler(context.provide<String?>(() => 'test-uid'));
         }
