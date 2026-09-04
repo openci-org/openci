@@ -18,7 +18,6 @@ void main() {
   const encryptionKey = 'A9hs566HtB6B0ZEB2aKkAZpC81VGQxKMlFspt+vA5F4=';
   final env = {
     'SECRET_ENCRYPTION_KEY': encryptionKey,
-    'ALLOWED_WORKER_UIDS': 'worker-1',
   };
 
   late AppDatabase db;
@@ -123,7 +122,7 @@ void main() {
       );
 
       test(
-        'responds with 200 OK and encrypts and stores secret for authorized worker',
+        'responds with 200 OK and stores secret for the internal job processor',
         () async {
           final context = TestRequestContext(
             path: '/teams/team-123/secrets',
@@ -131,7 +130,7 @@ void main() {
             body: jsonEncode({'name': 'WORKER_SECRET', 'value': 'worker-val'}),
           );
           context.provide<AppDatabase>(db);
-          context.provide<String?>('worker-1');
+          context.provide<String?>('system-job-processor');
           context.provide<Map<String, String>>(env);
 
           final response = await index_route.onRequest(
@@ -202,7 +201,7 @@ void main() {
       );
 
       test(
-        'responds with 200 OK and lists redacted secrets for authorized workers',
+        'responds with 200 OK and lists secrets for the internal job processor',
         () async {
           final now = DateTime.now().toUtc();
           await db.secretDao.insertOrUpdateSecret(
@@ -220,7 +219,7 @@ void main() {
             method: HttpMethod.get,
           );
           context.provide<AppDatabase>(db);
-          context.provide<String?>('worker-1');
+          context.provide<String?>('system-job-processor');
           context.provide<Map<String, String>>(env);
 
           final response = await index_route.onRequest(
@@ -234,7 +233,7 @@ void main() {
 
     group('GET /teams/<id>/secrets/<name>', () {
       test(
-        'responds with 200 OK and decrypted value for authorized worker',
+        'responds with 200 OK for the internal job processor',
         () async {
           await db
               .into(db.teamMembers)
@@ -263,7 +262,7 @@ void main() {
             method: HttpMethod.get,
           );
           getContext.provide<AppDatabase>(db);
-          getContext.provide<String?>('worker-1');
+          getContext.provide<String?>('system-job-processor');
           getContext.provide<Map<String, String>>(env);
 
           final response = await name_route.onRequest(
@@ -285,7 +284,7 @@ void main() {
           method: HttpMethod.get,
         );
         getContext.provide<AppDatabase>(db);
-        getContext.provide<String?>('worker-1');
+        getContext.provide<String?>('system-job-processor');
         getContext.provide<Map<String, String>>(env);
 
         final response = await name_route.onRequest(
