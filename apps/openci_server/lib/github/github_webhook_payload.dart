@@ -81,8 +81,9 @@ class GitHubWebhookPayload {
           '';
       final ref = (rawJson['ref'] as String?) ?? '';
       final branch = ref.startsWith('refs/heads/') ? ref.substring(11) : ref;
-      final commitMessage =
-          (rawJson['head_commit']?['message'] as String?)?.split('\n').first;
+      final commitMessage = (rawJson['head_commit']?['message'] as String?)
+          ?.split('\n')
+          .first;
 
       return GitHubWebhookPayload(
         installationId: installationId,

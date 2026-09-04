@@ -1,0 +1,49 @@
+name: openci_server CI
+
+on:
+  push:
+    paths:
+      - "apps/openci_server/**"
+      - "packages/openci_shared/**"
+      - "pubspec.yaml"
+      - "pubspec.lock"
+      - ".github/workflows/openci-server-ci.yml"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: "stable"
+          cache: true
+
+      - name: Install dependencies (Workspace root)
+        run: flutter pub get
+
+      - name: Verify formatting
+        run: >-
+          dart format --output=none --set-exit-if-changed
+          apps/openci_server/lib
+          apps/openci_server/routes
+          apps/openci_server/test
+
+      - name: Analyze code
+        run: flutter analyze apps/openci_server
+
+      - name: Run unit tests
+        working-directory: apps/openci_server
+        run: flutter test
