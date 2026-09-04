@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$BuildJobPlan {
 
- String get owner; String get repo; String get workflowName; String get workflowFileName; String get teamId; String get commitSha; String get branch; String get runsOn; String get githubBaseUrl; String get installationId; String? get workflowId; String? get commitMessage; int? get pullRequestNumber; String? get tagName; String? get jobKey; String? get workflowJobKey; Map<String, Object?>? get matrix; String? get matrixLabel; String? get workflowRunId; List<String>? get needs;
+ String get owner; String get repo; String get workflowName; String get workflowFileName; String get teamId; String get commitSha; String get branch; String get runsOn; String get githubBaseUrl; String get installationId; String? get workflowId; String? get commitMessage; int? get pullRequestNumber; String? get tagName; String? get jobKey; String? get workflowJobKey; Map<String, Object?>? get matrix; String? get matrixLabel; String? get workflowRunId;
 /// Create a copy of BuildJobPlan
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +28,16 @@ $BuildJobPlanCopyWith<BuildJobPlan> get copyWith => _$BuildJobPlanCopyWithImpl<B
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is BuildJobPlan&&(identical(other.owner, owner) || other.owner == owner)&&(identical(other.repo, repo) || other.repo == repo)&&(identical(other.workflowName, workflowName) || other.workflowName == workflowName)&&(identical(other.workflowFileName, workflowFileName) || other.workflowFileName == workflowFileName)&&(identical(other.teamId, teamId) || other.teamId == teamId)&&(identical(other.commitSha, commitSha) || other.commitSha == commitSha)&&(identical(other.branch, branch) || other.branch == branch)&&(identical(other.runsOn, runsOn) || other.runsOn == runsOn)&&(identical(other.githubBaseUrl, githubBaseUrl) || other.githubBaseUrl == githubBaseUrl)&&(identical(other.installationId, installationId) || other.installationId == installationId)&&(identical(other.workflowId, workflowId) || other.workflowId == workflowId)&&(identical(other.commitMessage, commitMessage) || other.commitMessage == commitMessage)&&(identical(other.pullRequestNumber, pullRequestNumber) || other.pullRequestNumber == pullRequestNumber)&&(identical(other.tagName, tagName) || other.tagName == tagName)&&(identical(other.jobKey, jobKey) || other.jobKey == jobKey)&&(identical(other.workflowJobKey, workflowJobKey) || other.workflowJobKey == workflowJobKey)&&const DeepCollectionEquality().equals(other.matrix, matrix)&&(identical(other.matrixLabel, matrixLabel) || other.matrixLabel == matrixLabel)&&(identical(other.workflowRunId, workflowRunId) || other.workflowRunId == workflowRunId)&&const DeepCollectionEquality().equals(other.needs, needs));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is BuildJobPlan&&(identical(other.owner, owner) || other.owner == owner)&&(identical(other.repo, repo) || other.repo == repo)&&(identical(other.workflowName, workflowName) || other.workflowName == workflowName)&&(identical(other.workflowFileName, workflowFileName) || other.workflowFileName == workflowFileName)&&(identical(other.teamId, teamId) || other.teamId == teamId)&&(identical(other.commitSha, commitSha) || other.commitSha == commitSha)&&(identical(other.branch, branch) || other.branch == branch)&&(identical(other.runsOn, runsOn) || other.runsOn == runsOn)&&(identical(other.githubBaseUrl, githubBaseUrl) || other.githubBaseUrl == githubBaseUrl)&&(identical(other.installationId, installationId) || other.installationId == installationId)&&(identical(other.workflowId, workflowId) || other.workflowId == workflowId)&&(identical(other.commitMessage, commitMessage) || other.commitMessage == commitMessage)&&(identical(other.pullRequestNumber, pullRequestNumber) || other.pullRequestNumber == pullRequestNumber)&&(identical(other.tagName, tagName) || other.tagName == tagName)&&(identical(other.jobKey, jobKey) || other.jobKey == jobKey)&&(identical(other.workflowJobKey, workflowJobKey) || other.workflowJobKey == workflowJobKey)&&const DeepCollectionEquality().equals(other.matrix, matrix)&&(identical(other.matrixLabel, matrixLabel) || other.matrixLabel == matrixLabel)&&(identical(other.workflowRunId, workflowRunId) || other.workflowRunId == workflowRunId));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hashAll([runtimeType,owner,repo,workflowName,workflowFileName,teamId,commitSha,branch,runsOn,githubBaseUrl,installationId,workflowId,commitMessage,pullRequestNumber,tagName,jobKey,workflowJobKey,const DeepCollectionEquality().hash(matrix),matrixLabel,workflowRunId,const DeepCollectionEquality().hash(needs)]);
+int get hashCode => Object.hashAll([runtimeType,owner,repo,workflowName,workflowFileName,teamId,commitSha,branch,runsOn,githubBaseUrl,installationId,workflowId,commitMessage,pullRequestNumber,tagName,jobKey,workflowJobKey,const DeepCollectionEquality().hash(matrix),matrixLabel,workflowRunId]);
 
 @override
 String toString() {
-  return 'BuildJobPlan(owner: $owner, repo: $repo, workflowName: $workflowName, workflowFileName: $workflowFileName, teamId: $teamId, commitSha: $commitSha, branch: $branch, runsOn: $runsOn, githubBaseUrl: $githubBaseUrl, installationId: $installationId, workflowId: $workflowId, commitMessage: $commitMessage, pullRequestNumber: $pullRequestNumber, tagName: $tagName, jobKey: $jobKey, workflowJobKey: $workflowJobKey, matrix: $matrix, matrixLabel: $matrixLabel, workflowRunId: $workflowRunId, needs: $needs)';
+  return 'BuildJobPlan(owner: $owner, repo: $repo, workflowName: $workflowName, workflowFileName: $workflowFileName, teamId: $teamId, commitSha: $commitSha, branch: $branch, runsOn: $runsOn, githubBaseUrl: $githubBaseUrl, installationId: $installationId, workflowId: $workflowId, commitMessage: $commitMessage, pullRequestNumber: $pullRequestNumber, tagName: $tagName, jobKey: $jobKey, workflowJobKey: $workflowJobKey, matrix: $matrix, matrixLabel: $matrixLabel, workflowRunId: $workflowRunId)';
 }
 
 
@@ -48,7 +48,7 @@ abstract mixin class $BuildJobPlanCopyWith<$Res>  {
   factory $BuildJobPlanCopyWith(BuildJobPlan value, $Res Function(BuildJobPlan) _then) = _$BuildJobPlanCopyWithImpl;
 @useResult
 $Res call({
- String owner, String repo, String workflowName, String workflowFileName, String teamId, String commitSha, String branch, String runsOn, String githubBaseUrl, String installationId, String? workflowId, String? commitMessage, int? pullRequestNumber, String? tagName, String? jobKey, String? workflowJobKey, Map<String, Object?>? matrix, String? matrixLabel, String? workflowRunId, List<String>? needs
+ String owner, String repo, String workflowName, String workflowFileName, String teamId, String commitSha, String branch, String runsOn, String githubBaseUrl, String installationId, String? workflowId, String? commitMessage, int? pullRequestNumber, String? tagName, String? jobKey, String? workflowJobKey, Map<String, Object?>? matrix, String? matrixLabel, String? workflowRunId
 });
 
 
@@ -65,7 +65,7 @@ class _$BuildJobPlanCopyWithImpl<$Res>
 
 /// Create a copy of BuildJobPlan
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? owner = null,Object? repo = null,Object? workflowName = null,Object? workflowFileName = null,Object? teamId = null,Object? commitSha = null,Object? branch = null,Object? runsOn = null,Object? githubBaseUrl = null,Object? installationId = null,Object? workflowId = freezed,Object? commitMessage = freezed,Object? pullRequestNumber = freezed,Object? tagName = freezed,Object? jobKey = freezed,Object? workflowJobKey = freezed,Object? matrix = freezed,Object? matrixLabel = freezed,Object? workflowRunId = freezed,Object? needs = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? owner = null,Object? repo = null,Object? workflowName = null,Object? workflowFileName = null,Object? teamId = null,Object? commitSha = null,Object? branch = null,Object? runsOn = null,Object? githubBaseUrl = null,Object? installationId = null,Object? workflowId = freezed,Object? commitMessage = freezed,Object? pullRequestNumber = freezed,Object? tagName = freezed,Object? jobKey = freezed,Object? workflowJobKey = freezed,Object? matrix = freezed,Object? matrixLabel = freezed,Object? workflowRunId = freezed,}) {
   return _then(_self.copyWith(
 owner: null == owner ? _self.owner : owner // ignore: cast_nullable_to_non_nullable
 as String,repo: null == repo ? _self.repo : repo // ignore: cast_nullable_to_non_nullable
@@ -86,8 +86,7 @@ as String?,workflowJobKey: freezed == workflowJobKey ? _self.workflowJobKey : wo
 as String?,matrix: freezed == matrix ? _self.matrix : matrix // ignore: cast_nullable_to_non_nullable
 as Map<String, Object?>?,matrixLabel: freezed == matrixLabel ? _self.matrixLabel : matrixLabel // ignore: cast_nullable_to_non_nullable
 as String?,workflowRunId: freezed == workflowRunId ? _self.workflowRunId : workflowRunId // ignore: cast_nullable_to_non_nullable
-as String?,needs: freezed == needs ? _self.needs : needs // ignore: cast_nullable_to_non_nullable
-as List<String>?,
+as String?,
   ));
 }
 
@@ -172,10 +171,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String owner,  String repo,  String workflowName,  String workflowFileName,  String teamId,  String commitSha,  String branch,  String runsOn,  String githubBaseUrl,  String installationId,  String? workflowId,  String? commitMessage,  int? pullRequestNumber,  String? tagName,  String? jobKey,  String? workflowJobKey,  Map<String, Object?>? matrix,  String? matrixLabel,  String? workflowRunId,  List<String>? needs)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String owner,  String repo,  String workflowName,  String workflowFileName,  String teamId,  String commitSha,  String branch,  String runsOn,  String githubBaseUrl,  String installationId,  String? workflowId,  String? commitMessage,  int? pullRequestNumber,  String? tagName,  String? jobKey,  String? workflowJobKey,  Map<String, Object?>? matrix,  String? matrixLabel,  String? workflowRunId)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _BuildJobPlan() when $default != null:
-return $default(_that.owner,_that.repo,_that.workflowName,_that.workflowFileName,_that.teamId,_that.commitSha,_that.branch,_that.runsOn,_that.githubBaseUrl,_that.installationId,_that.workflowId,_that.commitMessage,_that.pullRequestNumber,_that.tagName,_that.jobKey,_that.workflowJobKey,_that.matrix,_that.matrixLabel,_that.workflowRunId,_that.needs);case _:
+return $default(_that.owner,_that.repo,_that.workflowName,_that.workflowFileName,_that.teamId,_that.commitSha,_that.branch,_that.runsOn,_that.githubBaseUrl,_that.installationId,_that.workflowId,_that.commitMessage,_that.pullRequestNumber,_that.tagName,_that.jobKey,_that.workflowJobKey,_that.matrix,_that.matrixLabel,_that.workflowRunId);case _:
   return orElse();
 
 }
@@ -193,10 +192,10 @@ return $default(_that.owner,_that.repo,_that.workflowName,_that.workflowFileName
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String owner,  String repo,  String workflowName,  String workflowFileName,  String teamId,  String commitSha,  String branch,  String runsOn,  String githubBaseUrl,  String installationId,  String? workflowId,  String? commitMessage,  int? pullRequestNumber,  String? tagName,  String? jobKey,  String? workflowJobKey,  Map<String, Object?>? matrix,  String? matrixLabel,  String? workflowRunId,  List<String>? needs)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String owner,  String repo,  String workflowName,  String workflowFileName,  String teamId,  String commitSha,  String branch,  String runsOn,  String githubBaseUrl,  String installationId,  String? workflowId,  String? commitMessage,  int? pullRequestNumber,  String? tagName,  String? jobKey,  String? workflowJobKey,  Map<String, Object?>? matrix,  String? matrixLabel,  String? workflowRunId)  $default,) {final _that = this;
 switch (_that) {
 case _BuildJobPlan():
-return $default(_that.owner,_that.repo,_that.workflowName,_that.workflowFileName,_that.teamId,_that.commitSha,_that.branch,_that.runsOn,_that.githubBaseUrl,_that.installationId,_that.workflowId,_that.commitMessage,_that.pullRequestNumber,_that.tagName,_that.jobKey,_that.workflowJobKey,_that.matrix,_that.matrixLabel,_that.workflowRunId,_that.needs);case _:
+return $default(_that.owner,_that.repo,_that.workflowName,_that.workflowFileName,_that.teamId,_that.commitSha,_that.branch,_that.runsOn,_that.githubBaseUrl,_that.installationId,_that.workflowId,_that.commitMessage,_that.pullRequestNumber,_that.tagName,_that.jobKey,_that.workflowJobKey,_that.matrix,_that.matrixLabel,_that.workflowRunId);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -213,10 +212,10 @@ return $default(_that.owner,_that.repo,_that.workflowName,_that.workflowFileName
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String owner,  String repo,  String workflowName,  String workflowFileName,  String teamId,  String commitSha,  String branch,  String runsOn,  String githubBaseUrl,  String installationId,  String? workflowId,  String? commitMessage,  int? pullRequestNumber,  String? tagName,  String? jobKey,  String? workflowJobKey,  Map<String, Object?>? matrix,  String? matrixLabel,  String? workflowRunId,  List<String>? needs)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String owner,  String repo,  String workflowName,  String workflowFileName,  String teamId,  String commitSha,  String branch,  String runsOn,  String githubBaseUrl,  String installationId,  String? workflowId,  String? commitMessage,  int? pullRequestNumber,  String? tagName,  String? jobKey,  String? workflowJobKey,  Map<String, Object?>? matrix,  String? matrixLabel,  String? workflowRunId)?  $default,) {final _that = this;
 switch (_that) {
 case _BuildJobPlan() when $default != null:
-return $default(_that.owner,_that.repo,_that.workflowName,_that.workflowFileName,_that.teamId,_that.commitSha,_that.branch,_that.runsOn,_that.githubBaseUrl,_that.installationId,_that.workflowId,_that.commitMessage,_that.pullRequestNumber,_that.tagName,_that.jobKey,_that.workflowJobKey,_that.matrix,_that.matrixLabel,_that.workflowRunId,_that.needs);case _:
+return $default(_that.owner,_that.repo,_that.workflowName,_that.workflowFileName,_that.teamId,_that.commitSha,_that.branch,_that.runsOn,_that.githubBaseUrl,_that.installationId,_that.workflowId,_that.commitMessage,_that.pullRequestNumber,_that.tagName,_that.jobKey,_that.workflowJobKey,_that.matrix,_that.matrixLabel,_that.workflowRunId);case _:
   return null;
 
 }
@@ -228,7 +227,7 @@ return $default(_that.owner,_that.repo,_that.workflowName,_that.workflowFileName
 
 @JsonSerializable(disallowUnrecognizedKeys: true, includeIfNull: false)
 class _BuildJobPlan implements BuildJobPlan {
-  const _BuildJobPlan({required this.owner, required this.repo, required this.workflowName, required this.workflowFileName, required this.teamId, required this.commitSha, required this.branch, required this.runsOn, required this.githubBaseUrl, required this.installationId, this.workflowId, this.commitMessage, this.pullRequestNumber, this.tagName, this.jobKey, this.workflowJobKey, final  Map<String, Object?>? matrix, this.matrixLabel, this.workflowRunId, final  List<String>? needs}): _matrix = matrix,_needs = needs;
+  const _BuildJobPlan({required this.owner, required this.repo, required this.workflowName, required this.workflowFileName, required this.teamId, required this.commitSha, required this.branch, required this.runsOn, required this.githubBaseUrl, required this.installationId, this.workflowId, this.commitMessage, this.pullRequestNumber, this.tagName, this.jobKey, this.workflowJobKey, final  Map<String, Object?>? matrix, this.matrixLabel, this.workflowRunId}): _matrix = matrix;
   factory _BuildJobPlan.fromJson(Map<String, dynamic> json) => _$BuildJobPlanFromJson(json);
 
 @override final  String owner;
@@ -258,15 +257,6 @@ class _BuildJobPlan implements BuildJobPlan {
 
 @override final  String? matrixLabel;
 @override final  String? workflowRunId;
- final  List<String>? _needs;
-@override List<String>? get needs {
-  final value = _needs;
-  if (value == null) return null;
-  if (_needs is EqualUnmodifiableListView) return _needs;
-  // ignore: implicit_dynamic_type
-  return EqualUnmodifiableListView(value);
-}
-
 
 /// Create a copy of BuildJobPlan
 /// with the given fields replaced by the non-null parameter values.
@@ -281,16 +271,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _BuildJobPlan&&(identical(other.owner, owner) || other.owner == owner)&&(identical(other.repo, repo) || other.repo == repo)&&(identical(other.workflowName, workflowName) || other.workflowName == workflowName)&&(identical(other.workflowFileName, workflowFileName) || other.workflowFileName == workflowFileName)&&(identical(other.teamId, teamId) || other.teamId == teamId)&&(identical(other.commitSha, commitSha) || other.commitSha == commitSha)&&(identical(other.branch, branch) || other.branch == branch)&&(identical(other.runsOn, runsOn) || other.runsOn == runsOn)&&(identical(other.githubBaseUrl, githubBaseUrl) || other.githubBaseUrl == githubBaseUrl)&&(identical(other.installationId, installationId) || other.installationId == installationId)&&(identical(other.workflowId, workflowId) || other.workflowId == workflowId)&&(identical(other.commitMessage, commitMessage) || other.commitMessage == commitMessage)&&(identical(other.pullRequestNumber, pullRequestNumber) || other.pullRequestNumber == pullRequestNumber)&&(identical(other.tagName, tagName) || other.tagName == tagName)&&(identical(other.jobKey, jobKey) || other.jobKey == jobKey)&&(identical(other.workflowJobKey, workflowJobKey) || other.workflowJobKey == workflowJobKey)&&const DeepCollectionEquality().equals(other._matrix, _matrix)&&(identical(other.matrixLabel, matrixLabel) || other.matrixLabel == matrixLabel)&&(identical(other.workflowRunId, workflowRunId) || other.workflowRunId == workflowRunId)&&const DeepCollectionEquality().equals(other._needs, _needs));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _BuildJobPlan&&(identical(other.owner, owner) || other.owner == owner)&&(identical(other.repo, repo) || other.repo == repo)&&(identical(other.workflowName, workflowName) || other.workflowName == workflowName)&&(identical(other.workflowFileName, workflowFileName) || other.workflowFileName == workflowFileName)&&(identical(other.teamId, teamId) || other.teamId == teamId)&&(identical(other.commitSha, commitSha) || other.commitSha == commitSha)&&(identical(other.branch, branch) || other.branch == branch)&&(identical(other.runsOn, runsOn) || other.runsOn == runsOn)&&(identical(other.githubBaseUrl, githubBaseUrl) || other.githubBaseUrl == githubBaseUrl)&&(identical(other.installationId, installationId) || other.installationId == installationId)&&(identical(other.workflowId, workflowId) || other.workflowId == workflowId)&&(identical(other.commitMessage, commitMessage) || other.commitMessage == commitMessage)&&(identical(other.pullRequestNumber, pullRequestNumber) || other.pullRequestNumber == pullRequestNumber)&&(identical(other.tagName, tagName) || other.tagName == tagName)&&(identical(other.jobKey, jobKey) || other.jobKey == jobKey)&&(identical(other.workflowJobKey, workflowJobKey) || other.workflowJobKey == workflowJobKey)&&const DeepCollectionEquality().equals(other._matrix, _matrix)&&(identical(other.matrixLabel, matrixLabel) || other.matrixLabel == matrixLabel)&&(identical(other.workflowRunId, workflowRunId) || other.workflowRunId == workflowRunId));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hashAll([runtimeType,owner,repo,workflowName,workflowFileName,teamId,commitSha,branch,runsOn,githubBaseUrl,installationId,workflowId,commitMessage,pullRequestNumber,tagName,jobKey,workflowJobKey,const DeepCollectionEquality().hash(_matrix),matrixLabel,workflowRunId,const DeepCollectionEquality().hash(_needs)]);
+int get hashCode => Object.hashAll([runtimeType,owner,repo,workflowName,workflowFileName,teamId,commitSha,branch,runsOn,githubBaseUrl,installationId,workflowId,commitMessage,pullRequestNumber,tagName,jobKey,workflowJobKey,const DeepCollectionEquality().hash(_matrix),matrixLabel,workflowRunId]);
 
 @override
 String toString() {
-  return 'BuildJobPlan(owner: $owner, repo: $repo, workflowName: $workflowName, workflowFileName: $workflowFileName, teamId: $teamId, commitSha: $commitSha, branch: $branch, runsOn: $runsOn, githubBaseUrl: $githubBaseUrl, installationId: $installationId, workflowId: $workflowId, commitMessage: $commitMessage, pullRequestNumber: $pullRequestNumber, tagName: $tagName, jobKey: $jobKey, workflowJobKey: $workflowJobKey, matrix: $matrix, matrixLabel: $matrixLabel, workflowRunId: $workflowRunId, needs: $needs)';
+  return 'BuildJobPlan(owner: $owner, repo: $repo, workflowName: $workflowName, workflowFileName: $workflowFileName, teamId: $teamId, commitSha: $commitSha, branch: $branch, runsOn: $runsOn, githubBaseUrl: $githubBaseUrl, installationId: $installationId, workflowId: $workflowId, commitMessage: $commitMessage, pullRequestNumber: $pullRequestNumber, tagName: $tagName, jobKey: $jobKey, workflowJobKey: $workflowJobKey, matrix: $matrix, matrixLabel: $matrixLabel, workflowRunId: $workflowRunId)';
 }
 
 
@@ -301,7 +291,7 @@ abstract mixin class _$BuildJobPlanCopyWith<$Res> implements $BuildJobPlanCopyWi
   factory _$BuildJobPlanCopyWith(_BuildJobPlan value, $Res Function(_BuildJobPlan) _then) = __$BuildJobPlanCopyWithImpl;
 @override @useResult
 $Res call({
- String owner, String repo, String workflowName, String workflowFileName, String teamId, String commitSha, String branch, String runsOn, String githubBaseUrl, String installationId, String? workflowId, String? commitMessage, int? pullRequestNumber, String? tagName, String? jobKey, String? workflowJobKey, Map<String, Object?>? matrix, String? matrixLabel, String? workflowRunId, List<String>? needs
+ String owner, String repo, String workflowName, String workflowFileName, String teamId, String commitSha, String branch, String runsOn, String githubBaseUrl, String installationId, String? workflowId, String? commitMessage, int? pullRequestNumber, String? tagName, String? jobKey, String? workflowJobKey, Map<String, Object?>? matrix, String? matrixLabel, String? workflowRunId
 });
 
 
@@ -318,7 +308,7 @@ class __$BuildJobPlanCopyWithImpl<$Res>
 
 /// Create a copy of BuildJobPlan
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? owner = null,Object? repo = null,Object? workflowName = null,Object? workflowFileName = null,Object? teamId = null,Object? commitSha = null,Object? branch = null,Object? runsOn = null,Object? githubBaseUrl = null,Object? installationId = null,Object? workflowId = freezed,Object? commitMessage = freezed,Object? pullRequestNumber = freezed,Object? tagName = freezed,Object? jobKey = freezed,Object? workflowJobKey = freezed,Object? matrix = freezed,Object? matrixLabel = freezed,Object? workflowRunId = freezed,Object? needs = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? owner = null,Object? repo = null,Object? workflowName = null,Object? workflowFileName = null,Object? teamId = null,Object? commitSha = null,Object? branch = null,Object? runsOn = null,Object? githubBaseUrl = null,Object? installationId = null,Object? workflowId = freezed,Object? commitMessage = freezed,Object? pullRequestNumber = freezed,Object? tagName = freezed,Object? jobKey = freezed,Object? workflowJobKey = freezed,Object? matrix = freezed,Object? matrixLabel = freezed,Object? workflowRunId = freezed,}) {
   return _then(_BuildJobPlan(
 owner: null == owner ? _self.owner : owner // ignore: cast_nullable_to_non_nullable
 as String,repo: null == repo ? _self.repo : repo // ignore: cast_nullable_to_non_nullable
@@ -339,8 +329,7 @@ as String?,workflowJobKey: freezed == workflowJobKey ? _self.workflowJobKey : wo
 as String?,matrix: freezed == matrix ? _self._matrix : matrix // ignore: cast_nullable_to_non_nullable
 as Map<String, Object?>?,matrixLabel: freezed == matrixLabel ? _self.matrixLabel : matrixLabel // ignore: cast_nullable_to_non_nullable
 as String?,workflowRunId: freezed == workflowRunId ? _self.workflowRunId : workflowRunId // ignore: cast_nullable_to_non_nullable
-as String?,needs: freezed == needs ? _self._needs : needs // ignore: cast_nullable_to_non_nullable
-as List<String>?,
+as String?,
   ));
 }
 

@@ -30,7 +30,6 @@ abstract class BuildJobPlan with _$BuildJobPlan {
     Map<String, Object?>? matrix,
     String? matrixLabel,
     String? workflowRunId,
-    List<String>? needs,
   }) = _BuildJobPlan;
 
   factory BuildJobPlan.fromJson(Map<String, Object?> json) =>
