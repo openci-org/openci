@@ -82,6 +82,48 @@ void main() {
       expect(response.isSuccessful, isTrue);
       expect(response.body?['already_failed'], isFalse);
     });
+
+    test(
+      'fetchGenuineCiFiles sends the exact owner and installation ID',
+      () async {
+        final httpClient = MockClient((request) async {
+          expect(request.method, 'GET');
+          expect(
+            request.url.path,
+            '/teams/team-123/repositories/openci/genuine-ci-files',
+          );
+          expect(request.url.queryParameters, {
+            'ref': 'commit-sha-123',
+            'owner': 'openci-org',
+            'installationId': '998877',
+          });
+
+          return http.Response(
+            '[]',
+            200,
+            headers: {'content-type': 'application/json'},
+          );
+        });
+        final client = _createClient(httpClient);
+        addTearDown(() {
+          client.dispose();
+          httpClient.close();
+        });
+
+        final response = await client
+            .getService<OpenCiApiService>()
+            .fetchGenuineCiFiles(
+              'team-123',
+              'openci',
+              'commit-sha-123',
+              owner: 'openci-org',
+              installationId: 998877,
+            );
+
+        expect(response.isSuccessful, isTrue);
+        expect(response.body, isEmpty);
+      },
+    );
   });
 }
 
