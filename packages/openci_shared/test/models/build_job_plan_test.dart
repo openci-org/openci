@@ -21,7 +21,6 @@ void main() {
         matrix: {'os': 'macos'},
         matrixLabel: 'macos',
         workflowRunId: 'workflow-run-1',
-        needs: ['setup'],
         runsOn: 'macos-latest',
         githubBaseUrl: 'https://github.com',
         installationId: '98765',
@@ -39,6 +38,15 @@ void main() {
 
     test('rejects persistence fields', () {
       final json = _buildJobPlan().toJson()..['id'] = 'planner-owned-id';
+
+      expect(
+        () => BuildJobPlan.fromJson(json),
+        throwsA(isA<UnrecognizedKeysException>()),
+      );
+    });
+
+    test('rejects needs because it is not part of the planner contract', () {
+      final json = _buildJobPlan().toJson()..['needs'] = ['setup'];
 
       expect(
         () => BuildJobPlan.fromJson(json),

@@ -29,7 +29,6 @@ _BuildJobPlan _$BuildJobPlanFromJson(Map<String, dynamic> json) {
       'matrix',
       'matrixLabel',
       'workflowRunId',
-      'needs',
     ],
   );
   return _BuildJobPlan(
@@ -52,7 +51,6 @@ _BuildJobPlan _$BuildJobPlanFromJson(Map<String, dynamic> json) {
     matrix: json['matrix'] as Map<String, dynamic>?,
     matrixLabel: json['matrixLabel'] as String?,
     workflowRunId: json['workflowRunId'] as String?,
-    needs: (json['needs'] as List<dynamic>?)?.map((e) => e as String).toList(),
   );
 }
 
@@ -77,5 +75,4 @@ Map<String, dynamic> _$BuildJobPlanToJson(_BuildJobPlan instance) =>
       'matrix': ?instance.matrix,
       'matrixLabel': ?instance.matrixLabel,
       'workflowRunId': ?instance.workflowRunId,
-      'needs': ?instance.needs,
     };
