@@ -4,6 +4,7 @@ on:
   push:
     paths:
       - "apps/genuineci_cli/**"
+      - "apps/build_job_planner/**"
       - "apps/openci_server/**"
       - "packages/openci_shared/**"
       - "analysis_options.yaml"
@@ -28,6 +29,9 @@ jobs:
           - app: genuineci_cli
             path: apps/genuineci_cli
             format_paths: apps/genuineci_cli
+          - app: build_job_planner
+            path: apps/build_job_planner
+            format_paths: apps/build_job_planner
           - app: openci_server
             path: apps/openci_server
             format_paths: >-
