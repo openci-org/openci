@@ -49,8 +49,10 @@ abstract class OpenCiApiService extends ChopperService {
   Future<Response<List<Map<String, dynamic>>>> fetchGenuineCiFiles(
     @Path('teamId') String teamId,
     @Path('repo') String repo,
-    @Query('ref') String ref,
-  );
+    @Query('ref') String ref, {
+    @Query('owner') required String owner,
+    @Query('installationId') required int installationId,
+  });
 
   @GET(path: '/devices', timeout: _timeout)
   Future<Response<List<UserDevice>>> getDevices();

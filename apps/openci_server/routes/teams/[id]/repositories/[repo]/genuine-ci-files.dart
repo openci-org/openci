@@ -69,6 +69,39 @@ Future<Response> _get(
 
     final queryParams = context.request.uri.queryParameters;
     final ref = queryParams['ref'] ?? 'HEAD';
+    final owner = queryParams['owner']?.trim();
+    if (owner == null || owner.isEmpty) {
+      return Response.json(
+        statusCode: HttpStatus.badRequest,
+        body: {'success': false, 'error': 'owner is required'},
+      );
+    }
+
+    final installationIdParam = queryParams['installationId'];
+    if (installationIdParam == null || installationIdParam.isEmpty) {
+      return Response.json(
+        statusCode: HttpStatus.badRequest,
+        body: {'success': false, 'error': 'installationId is required'},
+      );
+    }
+
+    final installationId = int.tryParse(installationIdParam);
+    if (installationId == null) {
+      return Response.json(
+        statusCode: HttpStatus.badRequest,
+        body: {'success': false, 'error': 'Invalid installationId'},
+      );
+    }
+
+    if (!installationIds.contains(installationId)) {
+      return Response.json(
+        statusCode: HttpStatus.badRequest,
+        body: {
+          'success': false,
+          'error': 'Installation is not associated with this team',
+        },
+      );
+    }
 
     Map<String, String>? env;
     try {
@@ -84,23 +117,11 @@ Future<Response> _get(
       client = null;
     }
 
-    // Determine owner: could be part of repo (e.g. owner/repo) or inferred
-    final String owner;
-    final String actualRepo;
-    if (repo.contains('/')) {
-      final parts = repo.split('/');
-      owner = parts[0];
-      actualRepo = parts[1];
-    } else {
-      owner = driftTeam.name;
-      actualRepo = repo;
-    }
-
     final files = await GitHubService.fetchGenuineCiFiles(
       owner: owner,
-      repo: actualRepo,
+      repo: repo,
       commitSha: ref,
-      installationIdStr: installationIds.first.toString(),
+      installationIdStr: installationId.toString(),
       environment: env,
       client: client,
     );

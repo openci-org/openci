@@ -202,12 +202,18 @@ final class _$OpenCiApiService extends OpenCiApiService {
   Future<Response<List<Map<String, dynamic>>>> fetchGenuineCiFiles(
     String teamId,
     String repo,
-    String ref,
-  ) {
+    String ref, {
+    required String owner,
+    required int installationId,
+  }) {
     final Uri $url = Uri.parse(
       '/teams/${teamId}/repositories/${repo}/genuine-ci-files',
     );
-    final Map<String, dynamic> $params = <String, dynamic>{'ref': ref};
+    final Map<String, dynamic> $params = <String, dynamic>{
+      'ref': ref,
+      'owner': owner,
+      'installationId': installationId,
+    };
     final ChopperCompleter $abortTrigger = ChopperCompleter<void>();
     final ChopperTimer $timeout = ChopperTimer(
       const Duration(microseconds: 10000000),
