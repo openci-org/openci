@@ -29,7 +29,7 @@ OpenCIのビルドjobを実行するDartバックエンドサービス。
 HTTP応答待ちも制限時間に含み、APIエラーは呼び出し元へ返します。
 `prepareVm()`はVMを作成し、標準で最大15分の起動待ちを行ってVM情報を返します。
 起動待ちが失敗した場合は作成済みVMの削除を試み、削除も失敗した場合は両方の原因を返します。
-`execCommandWebSocket()`はVM内でコマンドを実行し、stdout・stderrを行単位で通知して終了コードを返します。
+`execCommandWebSocket()`はVM内でコマンドを実行し、`onLog(line, stream)`にstdout・stderrを行単位で通知して終了コードを返します。
 終了通知前の切断や不正なレスポンスはエラーにし、処理終了時に接続を閉じます。
 VMのCPU数・メモリは`createLease()`の引数、`ORCHARD_VM_CPU`・`ORCHARD_VM_MEMORY_GB`、
 デフォルト値（2コア・4 GiB）の順に決まります。
@@ -39,7 +39,13 @@ VMのCPU数・メモリは`createLease()`の引数、`ORCHARD_VM_CPU`・`ORCHARD
 `pushLogToLoki()`は、`lokiUrl: config.internalLokiUrl`を指定してログを1件ずつHTTP POSTします。
 `run_id`・`build_job_id`などのラベルは既存executorと同じ形式です。
 送信成功（HTTP 204）以外や通信エラーは呼び出し元へ返すため、ジョブ実行側でエラーを処理してください。
-HTTPクライアントは呼び出し元で共有し、使用後に閉じます。WebSocketの`onLog`への接続は今後のジョブ実行処理で行います。
+HTTPクライアントは呼び出し元で共有し、使用後に閉じます。
+
+`executeCommand()`はWebSocketで受け取ったログを、stdout・stderrを区別して受信順にLokiへ送信します。
+`lokiUrl: config.internalLokiUrl`とrun・job・必要に応じてstepのIDを指定します。
+送信エラーは`onLogError`に通知し、後続ログの送信を続けます。このコールバックは例外を投げずにエラーを記録してください。
+1件の送信待ちは標準で最大10秒（`logTimeout`）です。コマンド終了・実行エラーのどちらでも待機中のログを処理してから、終了コードまたは元の実行エラーを返します。
+両クライアントの管理は呼び出し元で行います。起動処理からの呼び出しはまだ行いません。
 
 ## 実行
 

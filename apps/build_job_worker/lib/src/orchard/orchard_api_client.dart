@@ -137,7 +137,7 @@ class OrchardApiClient {
   Future<int> execCommandWebSocket({
     required String vmName,
     required String command,
-    required void Function(String line) onLog,
+    required void Function(String line, String stream) onLog,
     int waitSeconds = 300,
   }) async {
     final vmUri = _vmUri(vmName);
@@ -151,7 +151,9 @@ class OrchardApiClient {
     final outputSinks = {
       for (final type in ['stdout', 'stderr'])
         type: utf8.decoder.startChunkedConversion(
-          const LineSplitter().startChunkedConversion(_LogSink(onLog)),
+          const LineSplitter().startChunkedConversion(
+            _LogSink((line) => onLog(line, type)),
+          ),
         ),
     };
 

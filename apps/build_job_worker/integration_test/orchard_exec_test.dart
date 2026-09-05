@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:build_job_worker/build_job_worker.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -29,7 +31,7 @@ void main() {
 
   group('execCommandWebSocket', () {
     test(
-      'authenticates, streams split output, and closes after exit',
+      'executeCommand authenticates, sends split output to Loki, and closes',
       () async {
         late HttpRequest request;
         final serverDone = _serve(server, (incoming, socket) {
@@ -46,19 +48,49 @@ void main() {
             }),
           );
         });
-        final logs = <String>[];
+        final logs = <(String, String)>[];
+        final lokiClient = MockClient((request) async {
+          expect(request.url.toString(), 'http://loki:3100/loki/api/v1/push');
+          final payload = jsonDecode(request.body) as Map<String, dynamic>;
+          final entry =
+              (payload['streams'] as List<dynamic>).single
+                  as Map<String, dynamic>;
+          final labels = entry['stream'] as Map<String, dynamic>;
+          expect(labels, {
+            'stream': labels['stream'],
+            'type': 'step_log',
+            'run_id': 'run-1',
+            'build_job_id': 'job-1',
+            'step_id': 'step-1',
+          });
+          final value =
+              (entry['values'] as List<dynamic>).single as List<dynamic>;
+          logs.add((value[1] as String, labels['stream'] as String));
+          return http.Response('', 204);
+        });
+        addTearDown(lokiClient.close);
         const command = 'printf "a & b? 日本" | cat';
 
-        final code = await client.execCommandWebSocket(
+        final code = await executeCommand(
+          api: client,
+          lokiClient: lokiClient,
+          lokiUrl: 'http://loki:3100',
           vmName: 'vm /?#1',
           command: command,
-          onLog: logs.add,
+          runId: 'run-1',
+          jobId: 'job-1',
+          stepId: 'step-1',
+          onLogError: (error, _) => fail('Unexpected Loki error: $error'),
           waitSeconds: 42,
         );
         await serverDone;
 
         expect(code, 0);
-        expect(logs, ['warning', 'hello 日本', 'trailing']);
+        expect(logs, [
+          ('warning', 'stderr'),
+          ('hello 日本', 'stdout'),
+          ('trailing', 'stdout'),
+        ]);
         expect(request.uri.pathSegments, [
           'orchard',
           'v1',
@@ -87,7 +119,7 @@ void main() {
       final code = await client.execCommandWebSocket(
         vmName: 'vm-1',
         command: 'false',
-        onLog: (_) {},
+        onLog: (_, _) {},
       );
       await serverDone;
 
@@ -105,7 +137,7 @@ void main() {
         client.execCommandWebSocket(
           vmName: 'vm-1',
           command: 'build',
-          onLog: logs.add,
+          onLog: (line, _) => logs.add(line),
         ),
         throwsA(
           isA<StateError>().having(
@@ -129,7 +161,7 @@ void main() {
         client.execCommandWebSocket(
           vmName: 'vm-1',
           command: 'build',
-          onLog: (_) {},
+          onLog: (_, _) {},
         ),
         throwsA(
           isA<StateError>().having(
@@ -156,7 +188,7 @@ void main() {
           client.execCommandWebSocket(
             vmName: 'vm-1',
             command: 'build',
-            onLog: (_) {},
+            onLog: (_, _) {},
           ),
           throwsFormatException,
         );
@@ -174,7 +206,7 @@ void main() {
         client.execCommandWebSocket(
           vmName: 'vm-1',
           command: 'build',
-          onLog: (_) => throw error,
+          onLog: (_, _) => throw error,
         ),
         throwsA(same(error)),
       );
@@ -191,7 +223,7 @@ void main() {
         client.execCommandWebSocket(
           vmName: 'vm-1',
           command: 'build',
-          onLog: (_) {},
+          onLog: (_, _) {},
         ),
         throwsA(isA<WebSocketException>()),
       );
