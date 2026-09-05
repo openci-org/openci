@@ -1,0 +1,16 @@
+name: build_job_worker
+description: Dart worker for executing OpenCI build jobs.
+version: 0.0.1
+publish_to: none
+
+environment:
+  sdk: ^3.11.5
+
+resolution: workspace
+
+dependencies:
+  openci_shared: ^1.0.1
+
+dev_dependencies:
+  lints: ^6.0.0
+  test: ^1.24.0

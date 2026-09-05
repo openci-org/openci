@@ -5,6 +5,7 @@ on:
     paths:
       - "apps/genuineci_cli/**"
       - "apps/build_job_planner/**"
+      - "apps/build_job_worker/**"
       - "apps/openci_server/**"
       - "packages/openci_shared/**"
       - "analysis_options.yaml"
@@ -33,6 +34,9 @@ jobs:
           - app: build_job_planner
             path: apps/build_job_planner
             format_paths: apps/build_job_planner
+          - app: build_job_worker
+            path: apps/build_job_worker
+            format_paths: apps/build_job_worker
           - app: openci_server
             path: apps/openci_server
             format_paths: >-
@@ -70,6 +74,11 @@ jobs:
       - name: Run unit tests with coverage
         working-directory: ${{ matrix.path }}
         run: flutter test --coverage --no-pub
+
+      - name: Run worker startup tests
+        if: matrix.app == 'build_job_worker'
+        working-directory: ${{ matrix.path }}
+        run: dart test integration_test
 
       - name: Normalize coverage paths
         run: >-
