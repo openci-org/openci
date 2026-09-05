@@ -68,9 +68,11 @@ Activity の単体テストに加えて、Workflow は SDK が起動する一時
 
 ## CI
 
-`.github/workflows/build-job-worker-ci.yml` で、Worker・ルートの npm 依存関係や Vite+ 設定・Temporal Compose・CI 定義を変更した push を検証します。ブランチは限定していないため、作業ブランチへの push と `develop` へのマージの両方が対象です。
+`.github/workflows/build-job-worker-ci.yml` で、Worker・ルートの npm 依存関係や Vite+ 設定・CI 定義を変更した push を検証します。ブランチは限定していないため、作業ブランチへの push と `develop` へのマージの両方が対象です。
 
-Ubuntu / Node.js 22 でフォーマット、静的解析、型チェック、Activity・Workflow のテスト、TypeScript のビルド、Compose 設定の検証、Docker イメージのビルドを実行します。テストは一時的な Temporal サーバーを起動するため、外部の Temporal 環境や追加のシークレットは不要です。デプロイは行いません。
+Ubuntu / Node.js 22 でフォーマット、静的解析、型チェック、Activity・Workflow のテスト、TypeScript のビルド、Docker イメージのビルドを実行します。テストは一時的な Temporal サーバーを起動するため、外部の Temporal 環境や追加のシークレットは不要です。デプロイは行いません。
+
+Compose 設定は `.github/workflows/docker-compose-ci.yml` で別に検証します。`docker-compose.yml` と `docker-compose.temporal.yml` をそれぞれ独立して検証し、`.env.example` のダミー値を使って全 profile に対する `docker compose config --quiet` を実行します。Compose ファイル・`.env.example`・CI 定義の変更が対象で、コンテナの起動や外部サービスへの接続は行いません。
 
 ## ファイル構成
 

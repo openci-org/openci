@@ -7,7 +7,6 @@ on:
       - "package.json"
       - "package-lock.json"
       - "vite.config.mts"
-      - "docker-compose.temporal.yml"
       - ".github/workflows/build-job-worker-ci.yml"
 
 concurrency:
@@ -57,10 +56,6 @@ jobs:
 
       - name: Build worker
         run: vp run build
-
-      - name: Validate Docker Compose configuration
-        working-directory: .
-        run: docker compose -f docker-compose.temporal.yml config --quiet
 
       - name: Build Docker image
         working-directory: .
