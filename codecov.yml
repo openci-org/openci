@@ -24,6 +24,9 @@ flags:
   build_job_planner:
     paths:
       - apps/build_job_planner/lib/
+  build_job_worker:
+    paths:
+      - apps/build_job_worker/lib/
   openci_server:
     paths:
       - apps/openci_server/lib/
