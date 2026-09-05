@@ -4,7 +4,6 @@ const generatedPaths = [
   "**/lib/**",
   "**/node_modules/**",
   "**/out/**",
-  "firebase/functions/src/generated/**",
 ];
 
 export default {
