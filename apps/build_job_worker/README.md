@@ -27,6 +27,8 @@ OpenCIのビルドjobを実行するDartバックエンドサービス。
 `OrchardApiClient(config: config)`でクライアントを作成し、使用後に`close()`を呼び出します。
 `waitForVmRunning()`は標準で3秒間隔・最大5分間、`running`または`active`になるまで待機します。
 HTTP応答待ちも制限時間に含み、APIエラーは呼び出し元へ返します。
+`prepareVm()`はVMを作成し、標準で最大15分の起動待ちを行ってVM情報を返します。
+起動待ちが失敗した場合は作成済みVMの削除を試み、削除も失敗した場合は両方の原因を返します。
 VMのCPU数・メモリは`createLease()`の引数、`ORCHARD_VM_CPU`・`ORCHARD_VM_MEMORY_GB`、
 デフォルト値（2コア・4 GiB）の順に決まります。
 既存executorと同様に、ローカルOrchardの`--no-pki`構成に対応します。
