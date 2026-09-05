@@ -134,6 +134,75 @@ class OrchardApiClient {
     throw timeoutError;
   }
 
+  Future<int> execCommandWebSocket({
+    required String vmName,
+    required String command,
+    required void Function(String line) onLog,
+    int waitSeconds = 300,
+  }) async {
+    final vmUri = _vmUri(vmName);
+    final uri = vmUri.replace(
+      scheme: vmUri.scheme == 'https' ? 'wss' : 'ws',
+      pathSegments: [...vmUri.pathSegments, 'exec'],
+      queryParameters: {'command': command, 'wait': '$waitSeconds'},
+    );
+    final client = _createIoClient(_config.orchardApiUrl);
+    WebSocket? socket;
+    final outputSinks = {
+      for (final type in ['stdout', 'stderr'])
+        type: utf8.decoder.startChunkedConversion(
+          const LineSplitter().startChunkedConversion(_LogSink(onLog)),
+        ),
+    };
+
+    try {
+      socket = await WebSocket.connect(
+        uri.toString(),
+        headers: _headers,
+        customClient: client,
+      );
+      await for (final data in socket) {
+        final message = jsonDecode(
+          data is String ? data : utf8.decode(data as List<int>),
+        );
+        if (message is! Map<String, dynamic>) {
+          throw const FormatException('Invalid Orchard exec message.');
+        }
+        switch (message['type']) {
+          case 'stdout' || 'stderr':
+            final encoded = message['data'];
+            if (encoded is! String) {
+              throw const FormatException('Invalid Orchard exec output.');
+            }
+            outputSinks[message['type']]!.add(base64Decode(encoded));
+          case 'exit':
+            final exit = message['exit'];
+            if (exit is! Map<String, dynamic> || exit['code'] is! int) {
+              throw const FormatException('Invalid Orchard exec exit code.');
+            }
+            return exit['code'] as int;
+          case 'error':
+            throw StateError(
+              'Orchard exec failed ($vmName): ${message['error']}',
+            );
+        }
+      }
+      throw StateError('Orchard exec connection closed before exit ($vmName).');
+    } finally {
+      try {
+        for (final sink in outputSinks.values) {
+          sink.close();
+        }
+      } finally {
+        try {
+          await socket?.close();
+        } finally {
+          client.close(force: true);
+        }
+      }
+    }
+  }
+
   /// Closes the HTTP client, including an injected client.
   void close() => _httpClient.close();
 
@@ -157,12 +226,28 @@ class OrchardApiClient {
     }
   }
 
-  static http.Client _createHttpClient(String baseUrl) {
+  static http.Client _createHttpClient(String baseUrl) =>
+      IOClient(_createIoClient(baseUrl));
+
+  static HttpClient _createIoClient(String baseUrl) {
     final uri = Uri.parse(baseUrl);
     // Local Orchard uses --no-pki; allow its certificate for this endpoint.
-    final client = HttpClient()
+    return HttpClient()
       ..badCertificateCallback = (_, host, port) =>
           host == uri.host && port == uri.port;
-    return IOClient(client);
   }
+}
+
+class _LogSink implements Sink<String> {
+  _LogSink(this.onLog);
+
+  final void Function(String line) onLog;
+
+  @override
+  void add(String line) {
+    if (line.isNotEmpty) onLog(line);
+  }
+
+  @override
+  void close() {}
 }

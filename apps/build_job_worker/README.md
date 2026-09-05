@@ -3,7 +3,7 @@
 OpenCIのビルドjobを実行するDartバックエンドサービス。
 最終的にはComposeから起動する常駐プロセスとして動作させます。
 
-現在は設定の読み込み、jobを1件取得する関数、OrchardのVM作成・状態取得・削除用HTTPクライアントを実装しています。
+現在は設定の読み込み、jobを1件取得する関数、OrchardのVM準備・削除・コマンド実行を実装しています。
 起動すると設定を確認して終了し、job取得関数はまだ起動処理から呼び出しません。
 そのため、起動時の外部API接続・VM操作は行いません。
 既存dispatcher/executorやComposeの起動構成も変更していません。
@@ -29,6 +29,8 @@ OpenCIのビルドjobを実行するDartバックエンドサービス。
 HTTP応答待ちも制限時間に含み、APIエラーは呼び出し元へ返します。
 `prepareVm()`はVMを作成し、標準で最大15分の起動待ちを行ってVM情報を返します。
 起動待ちが失敗した場合は作成済みVMの削除を試み、削除も失敗した場合は両方の原因を返します。
+`execCommandWebSocket()`はVM内でコマンドを実行し、stdout・stderrを行単位で通知して終了コードを返します。
+終了通知前の切断や不正なレスポンスはエラーにし、処理終了時に接続を閉じます。
 VMのCPU数・メモリは`createLease()`の引数、`ORCHARD_VM_CPU`・`ORCHARD_VM_MEMORY_GB`、
 デフォルト値（2コア・4 GiB）の順に決まります。
 既存executorと同様に、ローカルOrchardの`--no-pki`構成に対応します。
@@ -48,7 +50,7 @@ dart run bin/main.dart
 
 ## 検証
 
-このディレクトリで実行します。テストにサーバーやVMの起動は不要です。
+このディレクトリで実行します。WebSocketテストはローカルのテスト用サーバーを自動起動するため、OrchardやVMの起動は不要です。
 
 ```sh
 dart format --output=none --set-exit-if-changed .
