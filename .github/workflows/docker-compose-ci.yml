@@ -1,0 +1,40 @@
+name: Docker Compose CI
+
+on:
+  push:
+    paths:
+      - "docker-compose*.yml"
+      - ".env.example"
+      - ".github/workflows/docker-compose-ci.yml"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: ${{ matrix.compose_file }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        compose_file:
+          - docker-compose.yml
+          - docker-compose.temporal.yml
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Validate all Compose profiles with example environment
+        run: >-
+          docker compose
+          --env-file .env.example
+          --file "${{ matrix.compose_file }}"
+          --profile "*"
+          config --quiet
