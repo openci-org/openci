@@ -2,16 +2,13 @@
   "name": "openci",
   "private": true,
   "workspaces": [
-    "apps/build_job_worker",
     "apps/landing_page"
   ],
   "scripts": {
     "build": "vp run -r build",
     "check": "vp run -r check",
     "fmt": "vp run -r fmt",
-    "fmt:check": "vp run -r fmt:check",
-    "test": "vp run --filter ./apps/build_job_worker test",
-    "test:all": "vp run -r --filter '!landing-page' test"
+    "fmt:check": "vp run -r fmt:check"
   },
   "devDependencies": {
     "vite-plus": "^0.1.21"
