@@ -63,12 +63,6 @@ abstract class OpenCiApiService extends ChopperService {
   @POST(path: '/webhooks/claim', timeout: _timeout)
   Future<Response<Map<String, dynamic>>> claimNextWebhookTask();
 
-  @PATCH(path: '/webhooks/tasks/{id}', timeout: _timeout)
-  Future<Response<void>> updateWebhookTaskStatus(
-    @Path('id') String id,
-    @Body() Map<String, dynamic> body,
-  );
-
   @POST(path: '/webhooks/tasks/{id}/complete', timeout: _timeout)
   Future<Response<Map<String, dynamic>>> completeWebhookTask(
     @Path('id') String id,
