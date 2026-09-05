@@ -146,27 +146,23 @@ void main() {
         expect(requests, 2);
       });
 
-      test(
-        'limits the polling delay to the remaining timeout',
-        () async {
-          const timeout = Duration(milliseconds: 50);
-          final client = _createClient((_) async => _leaseResponse('pending'));
+      test('limits the polling delay to the remaining timeout', () async {
+        const timeout = Duration(milliseconds: 50);
+        final client = _createClient((_) async => _leaseResponse('pending'));
 
-          await expectLater(
-            client.waitForVmRunning('lease-1', timeout: timeout),
-            throwsA(
-              isA<TimeoutException>()
-                  .having((error) => error.duration, 'duration', timeout)
-                  .having(
-                    (error) => error.message,
-                    'message',
-                    contains('lease-1'),
-                  ),
-            ),
-          );
-        },
-        timeout: const Timeout(Duration(seconds: 1)),
-      );
+        await expectLater(
+          client.waitForVmRunning('lease-1', timeout: timeout),
+          throwsA(
+            isA<TimeoutException>()
+                .having((error) => error.duration, 'duration', timeout)
+                .having(
+                  (error) => error.message,
+                  'message',
+                  contains('lease-1'),
+                ),
+          ),
+        );
+      }, timeout: const Timeout(Duration(seconds: 1)));
 
       test(
         'times out a stalled request and stops polling after a late response',
