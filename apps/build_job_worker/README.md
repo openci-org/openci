@@ -3,7 +3,7 @@
 OpenCIのビルドjobを実行するDartバックエンドサービス。
 最終的にはComposeから起動する常駐プロセスとして動作させます。
 
-現在は設定の読み込み、jobを1件取得する関数、OrchardのVM準備・削除・コマンド実行を実装しています。
+現在は設定の読み込み、jobを1件取得する関数、OrchardのVM準備・削除・コマンド実行、Lokiへのログ送信関数を実装しています。
 起動すると設定を確認して終了し、job取得関数はまだ起動処理から呼び出しません。
 そのため、起動時の外部API接続・VM操作は行いません。
 既存dispatcher/executorやComposeの起動構成も変更していません。
@@ -35,6 +35,11 @@ VMのCPU数・メモリは`createLease()`の引数、`ORCHARD_VM_CPU`・`ORCHARD
 デフォルト値（2コア・4 GiB）の順に決まります。
 既存executorと同様に、ローカルOrchardの`--no-pki`構成に対応します。
 証明書の例外許可は設定した接続先のホスト・ポートに限定します。
+
+`pushLogToLoki()`は、`lokiUrl: config.internalLokiUrl`を指定してログを1件ずつHTTP POSTします。
+`run_id`・`build_job_id`などのラベルは既存executorと同じ形式です。
+送信成功（HTTP 204）以外や通信エラーは呼び出し元へ返すため、ジョブ実行側でエラーを処理してください。
+HTTPクライアントは呼び出し元で共有し、使用後に閉じます。WebSocketの`onLog`への接続は今後のジョブ実行処理で行います。
 
 ## 実行
 
