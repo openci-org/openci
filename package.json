@@ -2,22 +2,16 @@
   "name": "openci",
   "private": true,
   "workspaces": [
-    "actions/flutter-cd",
-    "actions/save-secret-file",
     "apps/build_job_worker",
-    "apps/landing_page",
-    "firebase/functions"
+    "apps/landing_page"
   ],
   "scripts": {
     "build": "vp run -r build",
     "check": "vp run -r check",
     "fmt": "vp run -r fmt",
     "fmt:check": "vp run -r fmt:check",
-    "test": "vp run --filter ./actions/flutter-cd test && vp run --filter ./actions/save-secret-file test && vp run --filter ./apps/build_job_worker test && vp run --filter ./firebase/functions test:unit",
+    "test": "vp run --filter ./apps/build_job_worker test",
     "test:all": "vp run -r --filter '!landing-page' test"
-  },
-  "dependencies": {
-    "firebase-admin": "^13.10.0"
   },
   "devDependencies": {
     "vite-plus": "^0.1.21"
