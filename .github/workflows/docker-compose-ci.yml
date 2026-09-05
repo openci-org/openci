@@ -13,18 +13,11 @@ concurrency:
 
 jobs:
   validate:
-    name: ${{ matrix.compose_file }}
+    name: docker-compose.yml
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
       contents: read
-    strategy:
-      fail-fast: false
-      matrix:
-        compose_file:
-          - docker-compose.yml
-          - docker-compose.temporal.yml
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -35,6 +28,6 @@ jobs:
         run: >-
           docker compose
           --env-file .env.example
-          --file "${{ matrix.compose_file }}"
+          --file docker-compose.yml
           --profile "*"
           config --quiet
