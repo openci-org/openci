@@ -1,0 +1,10 @@
+**
+!package.json
+!package-lock.json
+!apps/
+!apps/build_job_worker/
+!apps/build_job_worker/package.json
+!apps/build_job_worker/tsconfig.json
+!apps/build_job_worker/tsconfig.build.json
+!apps/build_job_worker/src/
+!apps/build_job_worker/src/**

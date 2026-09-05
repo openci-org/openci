@@ -1,0 +1,44 @@
+name: openci-temporal-dev
+
+services:
+  temporal:
+    image: temporalio/temporal:1.8.3
+    command:
+      - server
+      - start-dev
+      - --ip
+      - 0.0.0.0
+      - --db-filename
+      - /home/temporal/temporal.db
+    ports:
+      - "127.0.0.1:7233:7233"
+      - "127.0.0.1:8233:8233"
+    volumes:
+      - temporal_data:/home/temporal
+    healthcheck:
+      test:
+        - CMD
+        - temporal
+        - operator
+        - cluster
+        - health
+        - --address
+        - 127.0.0.1:7233
+      interval: 2s
+      timeout: 5s
+      retries: 30
+      start_period: 5s
+
+  build-job-worker:
+    build:
+      context: .
+      dockerfile: apps/build_job_worker/Dockerfile
+    environment:
+      TEMPORAL_ADDRESS: temporal:7233
+    depends_on:
+      temporal:
+        condition: service_healthy
+    stop_grace_period: 15s
+
+volumes:
+  temporal_data:
