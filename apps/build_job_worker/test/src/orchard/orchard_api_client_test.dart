@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:build_job_worker/build_job_worker.dart';
@@ -110,10 +111,100 @@ void main() {
       await client.deleteLease('vm /?#1');
     });
 
+    group('waitForVmRunning', () {
+      for (final status in ['running', 'ACTIVE']) {
+        test('returns immediately when the VM is $status', () async {
+          var requests = 0;
+          final client = _createClient((request) async {
+            requests++;
+            expect(request.method, 'GET');
+            expect(request.url.path, '/v1/vms/lease-1');
+            return _leaseResponse(status);
+          });
+
+          final lease = await client.waitForVmRunning('lease-1');
+
+          expect(lease.id, 'lease-1');
+          expect(lease.status, status);
+          expect(requests, 1);
+        });
+      }
+
+      test('polls until the VM changes from pending to running', () async {
+        var requests = 0;
+        final client = _createClient((_) async {
+          requests++;
+          return _leaseResponse(requests == 1 ? 'pending' : 'running');
+        });
+
+        final lease = await client.waitForVmRunning(
+          'lease-1',
+          pollInterval: Duration.zero,
+        );
+
+        expect(lease.status, 'running');
+        expect(requests, 2);
+      });
+
+      test(
+        'limits the polling delay to the remaining timeout',
+        () async {
+          const timeout = Duration(milliseconds: 50);
+          final client = _createClient((_) async => _leaseResponse('pending'));
+
+          await expectLater(
+            client.waitForVmRunning('lease-1', timeout: timeout),
+            throwsA(
+              isA<TimeoutException>()
+                  .having((error) => error.duration, 'duration', timeout)
+                  .having(
+                    (error) => error.message,
+                    'message',
+                    contains('lease-1'),
+                  ),
+            ),
+          );
+        },
+        timeout: const Timeout(Duration(seconds: 1)),
+      );
+
+      test(
+        'times out a stalled request and stops polling after a late response',
+        () async {
+          final response = Completer<http.Response>();
+          var requests = 0;
+          final client = _createClient((_) {
+            requests++;
+            return response.future;
+          });
+          addTearDown(() {
+            if (!response.isCompleted) {
+              response.complete(_leaseResponse('pending'));
+            }
+          });
+
+          await expectLater(
+            client.waitForVmRunning(
+              'lease-1',
+              timeout: const Duration(milliseconds: 50),
+              pollInterval: Duration.zero,
+            ),
+            throwsA(isA<TimeoutException>()),
+          );
+
+          response.complete(_leaseResponse('pending'));
+          await Future<void>.delayed(Duration.zero);
+          expect(requests, 1);
+        },
+        timeout: const Timeout(Duration(seconds: 1)),
+      );
+    });
+
     final operations = <String, Future<void> Function(OrchardApiClient)>{
       'createLease': (client) => client.createLease(imageName: 'base-macos'),
       'getLease': (client) => client.getLease('lease-1'),
       'deleteLease': (client) => client.deleteLease('lease-1'),
+      'waitForVmRunning': (client) => client.waitForVmRunning('lease-1'),
     };
     for (final operation in operations.entries) {
       test('${operation.key} rejects an HTTP failure', () async {
@@ -139,6 +230,10 @@ void main() {
       final client = _createClient((_) async => throw error);
 
       await expectLater(client.getLease('lease-1'), throwsA(same(error)));
+      await expectLater(
+        client.waitForVmRunning('lease-1'),
+        throwsA(same(error)),
+      );
     });
 
     test('rejects a malformed JSON response', () async {
@@ -157,6 +252,11 @@ void main() {
     });
   });
 }
+
+http.Response _leaseResponse(String status) => http.Response(
+  jsonEncode({'id': 'lease-1', 'vm_name': 'vm-1', 'status': status}),
+  200,
+);
 
 OrchardApiClient _createClient(MockClientHandler handler) {
   final client = OrchardApiClient(

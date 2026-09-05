@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -103,6 +104,34 @@ class OrchardApiClient {
       headers: _headers,
     );
     _checkResponse(response, 'delete Orchard VM ($leaseId)');
+  }
+
+  Future<OrchardLease> waitForVmRunning(
+    String leaseId, {
+    Duration timeout = const Duration(minutes: 5),
+    Duration pollInterval = const Duration(seconds: 3),
+  }) async {
+    final stopwatch = Stopwatch()..start();
+    final timeoutError = TimeoutException(
+      'Timed out waiting for Orchard VM ($leaseId) to reach running status.',
+      timeout,
+    );
+
+    while (stopwatch.elapsed < timeout) {
+      final lease = await getLease(leaseId).timeout(
+        timeout - stopwatch.elapsed,
+        onTimeout: () => throw timeoutError,
+      );
+      final status = lease.status.toLowerCase();
+      if (status == 'running' || status == 'active') return lease;
+
+      final remaining = timeout - stopwatch.elapsed;
+      if (remaining <= Duration.zero) break;
+      await Future<void>.delayed(
+        pollInterval < remaining ? pollInterval : remaining,
+      );
+    }
+    throw timeoutError;
   }
 
   /// Closes the HTTP client, including an injected client.
