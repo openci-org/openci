@@ -15,7 +15,6 @@ FutureOr<Response> onRequest(RequestContext context) {
 
 Future<Response> _post(RequestContext context) async {
   try {
-    final db = context.read<AppDatabase>();
     final uid = context.read<String?>();
 
     if (uid == null) {
@@ -24,7 +23,14 @@ Future<Response> _post(RequestContext context) async {
         body: {'success': false, 'error': 'Authentication required'},
       );
     }
+    if (uid != 'system-job-processor') {
+      return Response.json(
+        statusCode: HttpStatus.forbidden,
+        body: {'success': false, 'error': 'Internal API key required'},
+      );
+    }
 
+    final db = context.read<AppDatabase>();
     final driftTask = await db.webhookTaskDao.claimNextWebhookTask();
     if (driftTask == null) {
       return Response.json(body: {'task': null});
