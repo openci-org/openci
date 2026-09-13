@@ -27,10 +27,10 @@ flags:
   build_job_worker:
     paths:
       - apps/build_job_worker/lib/
-  openci_server:
+  genuineci_server:
     paths:
-      - apps/openci_server/lib/
-      - apps/openci_server/routes/
+      - apps/genuineci_server/lib/
+      - apps/genuineci_server/routes/
   openci_shared:
     paths:
       - packages/openci_shared/lib/
