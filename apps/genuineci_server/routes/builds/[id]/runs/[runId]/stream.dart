@@ -33,22 +33,11 @@ Future<Response> onRequest(
           final parsedEntries = LokiService.parseTailFrame(frameStr);
 
           for (final entry in parsedEntries) {
-            final labels = entry.key;
-            final message = entry.value;
-
-            // step_event またはステップ/全体ログを構造化して送信
-            final isStepEvent =
-                labels['type'] == 'step_event' ||
-                (message.trim().startsWith('{') &&
-                    message.contains('"stepOrder"'));
-
-            final payload = <String, dynamic>{
-              'runId': runId,
-              'stepId': labels['step_id'],
-              'isStepEvent': isStepEvent,
-              'message': message,
-              'timestamp': DateTime.now().toUtc().toIso8601String(),
-            };
+            final payload = buildRunLogPayload(
+              runId: runId,
+              labels: entry.key,
+              message: entry.value,
+            );
 
             channel.sink.add(jsonEncode(payload));
           }
@@ -82,3 +71,15 @@ Future<Response> onRequest(
 
   return handler(context);
 }
+
+Map<String, dynamic> buildRunLogPayload({
+  required String runId,
+  required Map<String, String> labels,
+  required String message,
+}) => {
+  'runId': runId,
+  'stepId': labels['step_id'],
+  'isStepEvent': labels['type'] == 'step_event',
+  'message': message,
+  'timestamp': DateTime.now().toUtc().toIso8601String(),
+};
