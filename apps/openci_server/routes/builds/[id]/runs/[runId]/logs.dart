@@ -38,14 +38,14 @@ Future<Response> _get(
       return Response.json(body: lokiLogs);
     }
 
-    final steps = await db.buildJobDao.getBuildSteps(runId);
+    final steps = await db.buildStepDao.getBuildSteps(runId);
 
     final List<String> allLines = [];
 
     for (final step in steps) {
       allLines.add('=== ${step.name} ===');
       final dbKey = step.id.startsWith(runId) ? step.id : '${runId}_${step.id}';
-      final stepLogs = await db.buildJobDao.getBuildStepLogs(dbKey);
+      final stepLogs = await db.buildStepLogDao.getBuildStepLogs(dbKey);
       final rawText = stepLogs.map((l) => l.logContent).join('');
       final stepLines = rawText
           .split('\n')

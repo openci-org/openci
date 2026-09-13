@@ -98,7 +98,7 @@ void main() {
     test('falls back to build step logs when Loki has no logs', () async {
       await _seedBuildJob(db);
       final now = DateTime.now().toUtc();
-      await db.buildJobDao.upsertBuildStep(
+      await db.buildStepDao.upsertBuildStep(
         BuildStep(
           id: 'checkout',
           runId: 'run-456',
@@ -110,11 +110,11 @@ void main() {
           updatedAt: now,
         ),
       );
-      await db.buildJobDao.insertBuildStepLog(
+      await db.buildStepLogDao.insertBuildStepLog(
         'run-456_checkout',
         'line 1\nline 2\n',
       );
-      await db.buildJobDao.upsertBuildStep(
+      await db.buildStepDao.upsertBuildStep(
         BuildStep(
           id: 'test',
           runId: 'run-456',
