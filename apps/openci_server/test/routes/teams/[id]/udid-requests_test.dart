@@ -7,7 +7,8 @@ import 'package:drift/native.dart';
 import 'package:openci_server/database.dart';
 import 'package:test/test.dart';
 
-import '../../../routes/teams/[id]/udid-requests.dart' as route;
+import '../../../helpers/database_failure_checks.dart';
+import '../../../../routes/teams/[id]/udid-requests.dart' as route;
 
 void main() {
   late AppDatabase db;
@@ -197,4 +198,18 @@ void main() {
       expect(json['requests'][0]['udid'], equals('00008030-000A1D8A2D3C4E5F'));
     });
   });
+
+  testDatabaseFailures([
+    DatabaseFailureEndpoint(
+      '/teams/team-1/udid-requests',
+      HttpMethod.get,
+      (c) => route.onRequest(c, 'team-1'),
+    ),
+    DatabaseFailureEndpoint(
+      '/teams/team-1/udid-requests',
+      HttpMethod.post,
+      (c) => route.onRequest(c, 'team-1'),
+      body: '{"udid":"device-1"}',
+    ),
+  ]);
 }

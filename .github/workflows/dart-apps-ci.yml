@@ -43,7 +43,6 @@ jobs:
               apps/openci_server/lib
               apps/openci_server/routes
               apps/openci_server/test
-              apps/openci_server/integration_test
           - app: openci_shared
             path: packages/openci_shared
             format_paths: packages/openci_shared
@@ -99,7 +98,7 @@ jobs:
         env:
           TEST_DATABASE_URL: postgres://openci_test:openci_test@127.0.0.1:${{ job.services.postgres.ports['5432'] }}/openci_test?sslmode=disable
         run: |
-          dart test test integration_test --coverage=coverage/raw
+          dart test test --coverage=coverage/raw
           dart run coverage:format_coverage --lcov --in=coverage/raw --out=coverage/lcov.info --report-on=lib --report-on=routes --base-directory=.
 
       - name: Normalize coverage paths

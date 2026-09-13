@@ -9,7 +9,7 @@ import 'package:mocktail/mocktail.dart';
 import 'package:openci_server/database.dart';
 import 'package:test/test.dart';
 
-import '../../../routes/teams/[id]/members.dart' as route;
+import '../../../../routes/teams/[id]/members.dart' as route;
 
 class MockFirebaseApp extends Mock implements FirebaseApp {}
 

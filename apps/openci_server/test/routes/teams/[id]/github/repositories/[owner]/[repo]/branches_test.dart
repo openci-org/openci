@@ -11,7 +11,8 @@ import 'package:openci_server/database.dart';
 import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 
-import '../../../routes/teams/[id]/github/repositories/[owner]/[repo]/branches.dart'
+import '../../../../../../../helpers/database_failure_checks.dart';
+import '../../../../../../../../routes/teams/[id]/github/repositories/[owner]/[repo]/branches.dart'
     as branches_route;
 
 const testRsaPrivateKey = '''
@@ -209,4 +210,12 @@ void main() {
       expect(branches, containsAll(['main', 'develop', 'feature/test']));
     });
   });
+
+  testDatabaseFailures([
+    DatabaseFailureEndpoint(
+      '/teams/team-1/github/repositories/owner/repo/branches',
+      HttpMethod.get,
+      (c) => branches_route.onRequest(c, 'team-1', 'owner', 'repo'),
+    ),
+  ]);
 }

@@ -6,10 +6,12 @@ import 'package:dart_frog_test/dart_frog_test.dart';
 import 'package:drift/native.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:openci_server/build_job/build_job_dao.dart';
+import 'package:openci_server/build_job/build_job_mapper.dart';
 import 'package:openci_server/database.dart';
 import 'package:openci_shared/openci_shared.dart';
 import 'package:test/test.dart';
 
+import '../../helpers/database_failure_checks.dart';
 import '../../../routes/builds/index.dart' as route;
 
 class MockAppDatabase extends Mock implements AppDatabase {}
@@ -550,4 +552,19 @@ void main() {
       },
     );
   });
+
+  testDatabaseFailures([
+    DatabaseFailureEndpoint(
+      '/builds?teamId=team-1',
+      HttpMethod.get,
+      route.onRequest,
+    ),
+    DatabaseFailureEndpoint(
+      '/builds',
+      HttpMethod.post,
+      route.onRequest,
+      body: jsonEncode(databaseFailureJob.toShared().toJson()),
+      uid: 'system-job-processor',
+    ),
+  ]);
 }

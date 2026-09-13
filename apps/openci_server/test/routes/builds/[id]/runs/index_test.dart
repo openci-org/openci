@@ -11,8 +11,9 @@ import 'package:openci_server/database.dart';
 import 'package:openci_shared/openci_shared.dart';
 import 'package:test/test.dart';
 
-import '../../../../routes/builds/[id]/runs/index.dart' as route;
-import '../../../helpers/github_app_test_key.dart';
+import '../../../../helpers/database_failure_checks.dart';
+import '../../../../../routes/builds/[id]/runs/index.dart' as route;
+import '../../../../helpers/github_app_test_key.dart';
 
 DateTime _getNormalizedNow() {
   final now = DateTime.now().toUtc();
@@ -612,4 +613,18 @@ void main() {
       },
     );
   });
+
+  testDatabaseFailures([
+    DatabaseFailureEndpoint(
+      '/builds/job-1/runs',
+      HttpMethod.get,
+      (c) => route.onRequest(c, 'job-1'),
+    ),
+    DatabaseFailureEndpoint(
+      '/builds/job-1/runs',
+      HttpMethod.post,
+      (c) => route.onRequest(c, 'job-1'),
+      body: '{"id":"run-1"}',
+    ),
+  ]);
 }

@@ -13,8 +13,9 @@ import 'package:openci_server/team/team_dao.dart';
 import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 
-import '../../helpers/github_app_test_key.dart';
-import '../../../routes/teams/[id]/repositories/[repo]/genuine-ci-files.dart'
+import '../../../../../helpers/database_failure_checks.dart';
+import '../../../../../helpers/github_app_test_key.dart';
+import '../../../../../../routes/teams/[id]/repositories/[repo]/genuine-ci-files.dart'
     as route;
 
 class _MockRequestContext extends Mock implements RequestContext {}
@@ -253,6 +254,14 @@ void main() {
       });
     });
   });
+
+  testDatabaseFailures([
+    DatabaseFailureEndpoint(
+      '/teams/team-1/repositories/repo/genuine-ci-files',
+      HttpMethod.get,
+      (c) => route.onRequest(c, 'team-1', 'repo'),
+    ),
+  ]);
 }
 
 TestRequestContext _requestContext({
