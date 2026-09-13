@@ -95,47 +95,8 @@ void main() {
       expect(lokiService.requestedRunId, equals('run-456'));
     });
 
-    test('returns an empty list when only PG has logs', () async {
+    test('returns an empty list when Loki has no logs', () async {
       await _seedBuildJob(db);
-      final now = DateTime.now().toUtc();
-      await db
-          .into(db.buildSteps)
-          .insert(
-            DriftBuildStep(
-              id: 'checkout',
-              runId: 'run-456',
-              name: 'Checkout',
-              status: BuildJobStatus.SUCCESS,
-              durationMs: 100,
-              stepOrder: 0,
-              createdAt: now,
-              updatedAt: now,
-            ),
-          );
-      await db
-          .into(db.buildStepLogs)
-          .insert(
-            BuildStepLogsCompanion.insert(
-              stepId: 'run-456_checkout',
-              logContent: 'line 1\nline 2\n',
-              createdAt: now,
-            ),
-          );
-      await db
-          .into(db.buildSteps)
-          .insert(
-            DriftBuildStep(
-              id: 'test',
-              runId: 'run-456',
-              name: 'Test',
-              status: BuildJobStatus.SUCCESS,
-              durationMs: 200,
-              stepOrder: 1,
-              createdAt: now,
-              updatedAt: now,
-            ),
-          );
-
       final context = TestRequestContext(
         path: '/builds/job-xyz/runs/run-456/logs',
         method: HttpMethod.get,

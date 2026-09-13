@@ -14,13 +14,85 @@ void main() {
     await db.close();
   });
 
-  test('Database schema migrations run successfully', () async {
+  test('creates the database without legacy log tables', () async {
     final jobs = await db.select(db.buildJobs).get();
     expect(jobs, isEmpty);
 
-    final logs = await db.select(db.buildJobLogs).get();
-    expect(logs, isEmpty);
+    final legacyTables = await db.customSelect('''
+      SELECT name FROM sqlite_master
+      WHERE name IN ('build_steps', 'build_step_logs', 'build_job_logs')
+    ''').get();
+    expect(legacyTables, isEmpty);
   });
+
+  for (final version in [19, 22]) {
+    test('upgrades v$version while preserving jobs and runs', () async {
+      await db.close();
+      db = AppDatabase(
+        NativeDatabase.memory(
+          setup: (database) {
+            // Keep only the legacy columns and constraints needed for the drop.
+            database.execute('''
+              PRAGMA foreign_keys = ON;
+              PRAGMA user_version = $version;
+              CREATE TABLE build_jobs (id TEXT PRIMARY KEY);
+              CREATE TABLE build_runs (
+                id TEXT PRIMARY KEY,
+                build_job_id TEXT REFERENCES build_jobs (id)
+              );
+              CREATE TABLE build_job_logs (
+                id INTEGER PRIMARY KEY,
+                run_id TEXT,
+                log_content TEXT
+              );
+              INSERT INTO build_jobs VALUES ('job-1');
+              INSERT INTO build_runs VALUES ('run-1', 'job-1');
+              INSERT INTO build_job_logs VALUES (1, 'run-1', 'job log');
+            ''');
+            if (version >= 20) {
+              database.execute('''
+                CREATE TABLE build_steps (
+                  id TEXT PRIMARY KEY,
+                  run_id TEXT REFERENCES build_runs (id) ON DELETE CASCADE
+                );
+                CREATE TABLE build_step_logs (
+                  id INTEGER PRIMARY KEY,
+                  step_id TEXT REFERENCES build_steps (id) ON DELETE CASCADE,
+                  log_content TEXT
+                );
+                INSERT INTO build_steps VALUES ('step-1', 'run-1');
+                INSERT INTO build_step_logs VALUES (1, 'step-1', 'step log');
+              ''');
+            }
+          },
+        ),
+      );
+
+      final tables = await db
+          .customSelect(
+            "SELECT name FROM sqlite_master WHERE type = 'table'",
+          )
+          .get();
+      expect(
+        tables.map((row) => row.read<String>('name')),
+        unorderedEquals(['build_jobs', 'build_runs']),
+      );
+      expect(
+        (await db.customSelect('SELECT * FROM build_jobs').get()).single.data,
+        {'id': 'job-1'},
+      );
+      expect(
+        (await db.customSelect('SELECT * FROM build_runs').get()).single.data,
+        {'id': 'run-1', 'build_job_id': 'job-1'},
+      );
+      expect(
+        (await db.customSelect('PRAGMA user_version').getSingle()).read<int>(
+          'user_version',
+        ),
+        23,
+      );
+    });
+  }
 
   test('Can insert and retrieve DriftBuildJob', () async {
     final now = DateTime.now().toUtc();
