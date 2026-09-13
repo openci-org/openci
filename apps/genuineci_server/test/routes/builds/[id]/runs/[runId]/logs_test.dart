@@ -95,7 +95,7 @@ void main() {
       expect(lokiService.requestedRunId, equals('run-456'));
     });
 
-    test('falls back to build step logs when Loki has no logs', () async {
+    test('returns an empty list when only PG has logs', () async {
       await _seedBuildJob(db);
       final now = DateTime.now().toUtc();
       await db.buildStepDao.upsertBuildStep(
@@ -141,18 +141,7 @@ void main() {
       );
 
       expect(response.statusCode, equals(HttpStatus.ok));
-      expect(
-        await response.json(),
-        equals([
-          '=== Checkout ===',
-          'line 1',
-          'line 2',
-          '',
-          '=== Test ===',
-          'No logs available.',
-          '',
-        ]),
-      );
+      expect(await response.json(), equals([]));
     });
 
     test('returns 404 without querying Loki when the run is missing', () async {

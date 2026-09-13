@@ -34,33 +34,7 @@ Future<Response> _get(
 
     final lokiService = _readLokiService(context);
     final lokiLogs = await lokiService.getLogsForRun(runId: runId);
-    if (lokiLogs.isNotEmpty) {
-      return Response.json(body: lokiLogs);
-    }
-
-    final steps = await db.buildStepDao.getBuildSteps(runId);
-
-    final List<String> allLines = [];
-
-    for (final step in steps) {
-      allLines.add('=== ${step.name} ===');
-      final dbKey = step.id.startsWith(runId) ? step.id : '${runId}_${step.id}';
-      final stepLogs = await db.buildStepLogDao.getBuildStepLogs(dbKey);
-      final rawText = stepLogs.map((l) => l.logContent).join('');
-      final stepLines = rawText
-          .split('\n')
-          .where((line) => line.isNotEmpty)
-          .toList();
-
-      if (stepLines.isEmpty) {
-        allLines.add('No logs available.');
-      } else {
-        allLines.addAll(stepLines);
-      }
-      allLines.add('');
-    }
-
-    return Response.json(body: allLines);
+    return Response.json(body: lokiLogs);
   } catch (e, s) {
     return handleRouteException(
       e,
