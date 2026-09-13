@@ -2,8 +2,6 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:build_job_worker/build_job_worker.dart';
-import 'package:http/http.dart' as http;
-import 'package:http/testing.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:openci_shared/openci_shared.dart';
 import 'package:openci_shared/test_helpers.dart';
@@ -13,18 +11,6 @@ class _MockOpenCiApiService extends Mock implements OpenCiApiService {}
 
 class _MockOrchardApiClient extends Mock implements OrchardApiClient {}
 
-class _TrackingClient extends MockClient {
-  _TrackingClient(super.handler);
-
-  var closed = false;
-
-  @override
-  void close() {
-    closed = true;
-    super.close();
-  }
-}
-
 void main() {
   const config = Config(
     serverUrl: 'http://server:8080',
@@ -32,15 +18,12 @@ void main() {
     orchardServiceAccountName: 'test-account',
     orchardServiceAccountToken: 'test-token',
     baseVmName: 'test-macos-image',
-    internalLokiUrl: 'http://worker-loki:3100',
-    lokiUrl: 'http://vm-loki:3100',
   );
   const secretsContent = 'WORKER_TEST_SECRET=test-only-value';
   const token = 'test-only-github-token';
   final sourceStack = StackTrace.fromString('Execution failed here');
   late OpenCiApiService api;
   late OrchardApiClient orchardApi;
-  late _TrackingClient lokiClient;
   late BuildJob job;
   late List<String> events;
   late List<String> runIds;
@@ -50,11 +33,9 @@ void main() {
   late Map<String, String> files;
   late Map<String, Map<String, dynamic>> completions;
   late List<(Object, StackTrace)> errors;
-  late List<http.Request> logRequests;
   late List<String> apiLogs;
   late Map<String, Object> failures;
   late Map<String, Completer<void>> pending;
-  late Future<http.Response> Function(http.Request) respondToLog;
   var leaseId = 'lease-1';
   var workflowExitCode = 0;
 
@@ -72,7 +53,6 @@ void main() {
   }) => executeBuildJob(
     api: api,
     orchardApi: orchardApi,
-    lokiClient: lokiClient,
     config: config,
     job: job,
     finalizationTimeout: finalizationTimeout,
@@ -94,21 +74,6 @@ void main() {
     );
   }
 
-  List<BuildStep> stepEvents(String stepId) => logRequests
-      .map(_lokiStream)
-      .where((stream) {
-        final labels = stream['stream'] as Map<String, dynamic>;
-        return labels['type'] == 'step_event' && labels['step_id'] == stepId;
-      })
-      .map((stream) {
-        final values =
-            (stream['values'] as List<dynamic>).single as List<dynamic>;
-        return BuildStep.fromJson(
-          jsonDecode(values[1] as String) as Map<String, dynamic>,
-        );
-      })
-      .toList();
-
   setUpAll(() {
     registerFallbackValue((String line, String stream) {});
   });
@@ -124,22 +89,11 @@ void main() {
     files = {};
     completions = {};
     errors = [];
-    logRequests = [];
     apiLogs = [];
     failures = {};
     pending = {};
     leaseId = 'lease-1';
     workflowExitCode = 0;
-    respondToLog = (_) async => http.Response('', 204);
-    lokiClient = _TrackingClient((request) {
-      logRequests.add(request);
-      final labels = _lokiStream(request)['stream'] as Map<String, dynamic>;
-      if (labels['type'] == 'step_event') {
-        final stepId = labels['step_id'] as String;
-        events.add('$stepId:${stepEvents(stepId).last.status.name}');
-      }
-      return respondToLog(request);
-    });
     final now = DateTime.utc(2026, 9, 7);
     job = BuildJob(
       id: 'job-1',
@@ -262,8 +216,6 @@ void main() {
     verifyNever(orchardApi.close);
     verifyNever(() => api.claimNextJob(any()));
     verifyNever(() => api.handleBuildJobStatusChange(any(), any()));
-    expect(lokiClient.closed, isFalse);
-    lokiClient.close();
   });
 
   group('executeBuildJob', () {
@@ -275,20 +227,14 @@ void main() {
         expect(events, [
           'createRun',
           'token',
-          'prepare_vm:IN_PROGRESS',
           'createVm',
           'waitVm',
-          'prepare_vm:SUCCESS',
-          'checkout:IN_PROGRESS',
           'writeCheckout',
           'checkout',
-          'checkout:SUCCESS',
           'secrets',
-          'run_workflow:IN_PROGRESS',
           'writeSecrets',
           'writeWorkflow',
           'workflow',
-          'run_workflow:SUCCESS',
           'completeRun',
           'completeJob',
           'completeCheck',
@@ -306,7 +252,6 @@ void main() {
         expect(files['writeWorkflow'], contains(secretsContent));
         expect(files['writeWorkflow'], contains(runIds.single));
         expect(files['writeWorkflow'], contains(job.id));
-        expect(files['writeWorkflow'], contains(config.lokiUrl));
         expect(files['writeWorkflow'], contains('genuine_ci/ci.dart'));
         expectCompletion(BuildJobStatus.SUCCESS);
         verify(
@@ -321,174 +266,12 @@ void main() {
         expect(deletedVms, ['lease-1']);
         expect(errors, isEmpty);
 
-        final steps = stepEvents('prepare_vm');
-        expect(steps.map((step) => step.status), [
-          BuildJobStatus.IN_PROGRESS,
-          BuildJobStatus.SUCCESS,
-        ]);
-        for (final step in steps) {
-          expect(step.id, 'prepare_vm');
-          expect(step.runId, runIds.single);
-          expect(step.name, 'Set up VM');
-          expect(step.stepOrder, 0);
-          expect(step.createdAt.isUtc, isTrue);
-          expect(step.updatedAt.isUtc, isTrue);
-        }
-        expect(steps.first.durationMs, 0);
-        expect(steps.last.durationMs, greaterThanOrEqualTo(0));
-        expect(steps.last.createdAt, steps.first.createdAt);
-        expect(steps.last.updatedAt.isBefore(steps.first.updatedAt), isFalse);
-
         expect(apiLogs, [
           'Creating VM from test-macos-image and waiting for it to start.',
           'VM is ready.',
         ]);
-        expect(logRequests, hasLength(8));
-        for (final (index, step) in [
-          'prepare_vm',
-          'prepare_vm',
-          'checkout',
-          'checkout',
-          'checkout',
-          'run_workflow',
-          'run_workflow',
-          'run_workflow',
-        ].indexed) {
-          final request = logRequests[index];
-          expect(
-            request.url.toString(),
-            '${config.internalLokiUrl}/loki/api/v1/push',
-          );
-          final body = jsonDecode(request.body) as Map<String, dynamic>;
-          final stream =
-              (body['streams'] as List<dynamic>).single as Map<String, dynamic>;
-          expect(stream['stream'], containsPair('run_id', runIds.single));
-          expect(stream['stream'], containsPair('build_job_id', job.id));
-          expect(stream['stream'], containsPair('step_id', step));
-        }
       },
     );
-
-    test(
-      'reports progress during VM preparation and measures its duration',
-      () async {
-        final started = Completer<void>();
-        final finish = Completer<void>();
-        addTearDown(() {
-          if (!finish.isCompleted) finish.complete();
-        });
-        when(
-          () => orchardApi.waitForVmRunning(
-            'lease-1',
-            timeout: const Duration(minutes: 15),
-          ),
-        ).thenAnswer((_) async {
-          started.complete();
-          await finish.future;
-          return OrchardLease(
-            id: leaseId,
-            vmName: vmNames.single,
-            status: 'running',
-          );
-        });
-
-        final result = execute();
-        await started.future;
-        expect(
-          stepEvents('prepare_vm').single.status,
-          BuildJobStatus.IN_PROGRESS,
-        );
-        expect(apiLogs, [
-          'Creating VM from test-macos-image and waiting for it to start.',
-        ]);
-        expect(commands, isEmpty);
-        await Future<void>.delayed(const Duration(milliseconds: 20));
-        finish.complete();
-
-        expect(await result, BuildJobStatus.SUCCESS);
-        expect(stepEvents('prepare_vm').last.status, BuildJobStatus.SUCCESS);
-        expect(
-          stepEvents('prepare_vm').last.durationMs,
-          greaterThanOrEqualTo(10),
-        );
-      },
-    );
-
-    test('reports checkout progress and duration', () async {
-      final started = Completer<void>();
-      final finish = pending['checkout'] = Completer<void>();
-      addTearDown(() {
-        if (!finish.isCompleted) finish.complete();
-      });
-      respondToLog = (request) async {
-        final labels = _lokiStream(request)['stream'] as Map<String, dynamic>;
-        if (labels['type'] == 'step_log' && labels['step_id'] == 'checkout') {
-          started.complete();
-        }
-        return http.Response('', 204);
-      };
-
-      final result = execute();
-      await started.future;
-      final inProgress = stepEvents('checkout').single;
-      expect(inProgress.status, BuildJobStatus.IN_PROGRESS);
-      expect(inProgress.id, 'checkout');
-      expect(inProgress.runId, runIds.single);
-      expect(inProgress.name, 'Checkout Repository');
-      expect(inProgress.stepOrder, 1);
-      expect(inProgress.durationMs, 0);
-      expect(inProgress.createdAt.isUtc, isTrue);
-      expect(inProgress.updatedAt, inProgress.createdAt);
-      expect(events, isNot(contains('workflow')));
-      await Future<void>.delayed(const Duration(milliseconds: 20));
-      finish.complete();
-
-      expect(await result, BuildJobStatus.SUCCESS);
-      final completed = stepEvents('checkout').last;
-      expect(completed.status, BuildJobStatus.SUCCESS);
-      expect(completed.createdAt, inProgress.createdAt);
-      expect(completed.updatedAt.isBefore(inProgress.updatedAt), isFalse);
-      expect(completed.durationMs, greaterThanOrEqualTo(10));
-    });
-
-    test('reports workflow progress and duration', () async {
-      final started = Completer<void>();
-      final finish = pending['workflow'] = Completer<void>();
-      addTearDown(() {
-        if (!finish.isCompleted) finish.complete();
-      });
-      respondToLog = (request) async {
-        final labels = _lokiStream(request)['stream'] as Map<String, dynamic>;
-        if (labels['type'] == 'step_log' &&
-            labels['step_id'] == 'run_workflow') {
-          started.complete();
-        }
-        return http.Response('', 204);
-      };
-
-      final result = execute();
-      await started.future;
-      final inProgress = stepEvents('run_workflow').single;
-      expect(inProgress.status, BuildJobStatus.IN_PROGRESS);
-      expect(inProgress.id, 'run_workflow');
-      expect(inProgress.runId, runIds.single);
-      expect(inProgress.name, 'Run workflow');
-      expect(inProgress.stepOrder, 2);
-      expect(inProgress.durationMs, 0);
-      expect(inProgress.createdAt.isUtc, isTrue);
-      expect(inProgress.updatedAt, inProgress.createdAt);
-      expect(completions, isEmpty);
-      expect(deletedVms, isEmpty);
-      await Future<void>.delayed(const Duration(milliseconds: 20));
-      finish.complete();
-
-      expect(await result, BuildJobStatus.SUCCESS);
-      final completed = stepEvents('run_workflow').last;
-      expect(completed.status, BuildJobStatus.SUCCESS);
-      expect(completed.createdAt, inProgress.createdAt);
-      expect(completed.updatedAt.isBefore(inProgress.updatedAt), isFalse);
-      expect(completed.durationMs, greaterThanOrEqualTo(10));
-    });
 
     test(
       'records a nonzero workflow exit code as failure and cleans up',
@@ -498,11 +281,6 @@ void main() {
         expect(await execute(), BuildJobStatus.FAILURE);
 
         expectCompletion(BuildJobStatus.FAILURE);
-        expect(stepEvents('checkout').last.status, BuildJobStatus.SUCCESS);
-        expect(stepEvents('run_workflow').map((step) => step.status), [
-          BuildJobStatus.IN_PROGRESS,
-          BuildJobStatus.FAILURE,
-        ]);
         expect(deletedVms, ['lease-1']);
         expect(errors, isEmpty);
       },
@@ -526,7 +304,6 @@ void main() {
 
         verifyZeroInteractions(api);
         verifyZeroInteractions(orchardApi);
-        expect(logRequests, isEmpty);
       });
     }
 
@@ -560,43 +337,12 @@ void main() {
         expect(await execute(), BuildJobStatus.FAILURE);
 
         expectCompletion(BuildJobStatus.FAILURE, hasRun: stage != 'createRun');
-        expect(stepEvents('prepare_vm').map((step) => step.status), [
-          if (!['createRun', 'token'].contains(stage)) ...[
-            BuildJobStatus.IN_PROGRESS,
-            ['createVm', 'waitVm'].contains(stage)
-                ? BuildJobStatus.FAILURE
-                : BuildJobStatus.SUCCESS,
-          ],
-        ]);
         expect(apiLogs, [
           if (!['createRun', 'token'].contains(stage)) ...[
             'Creating VM from test-macos-image and waiting for it to start.',
             ['createVm', 'waitVm'].contains(stage)
                 ? 'VM setup failed.'
                 : 'VM is ready.',
-          ],
-        ]);
-        expect(stepEvents('checkout').map((step) => step.status), [
-          if (![
-            'createRun',
-            'token',
-            'createVm',
-            'waitVm',
-          ].contains(stage)) ...[
-            BuildJobStatus.IN_PROGRESS,
-            ['writeCheckout', 'checkout'].contains(stage)
-                ? BuildJobStatus.FAILURE
-                : BuildJobStatus.SUCCESS,
-          ],
-        ]);
-        expect(stepEvents('run_workflow').map((step) => step.status), [
-          if ([
-            'writeSecrets',
-            'writeWorkflow',
-            'workflow',
-          ].contains(stage)) ...[
-            BuildJobStatus.IN_PROGRESS,
-            BuildJobStatus.FAILURE,
           ],
         ]);
         expect(errors, hasLength(1));
@@ -745,144 +491,24 @@ void main() {
       expect(deletedVms, ['lease-1']);
     });
 
-    test('reports Loki failures without failing the workflow', () async {
-      respondToLog = (_) async => http.Response('', 503);
+    test('continues after API log delivery times out', () async {
+      final response = Completer<void>();
+      var calls = 0;
+      when(
+        () => api.appendStepLog(job.id, any(), 'prepare_vm', any()),
+      ).thenAnswer((_) async {
+        if (++calls == 1) await response.future;
+        return createMockResponse<void>(null);
+      });
 
       expect(await execute(), BuildJobStatus.SUCCESS);
-
       expectCompletion(BuildJobStatus.SUCCESS);
-      expect(errors, hasLength(8));
       expect(deletedVms, ['lease-1']);
+      expect(errors.single.$1, isA<TimeoutException>());
+      response.completeError(StateError('Late delivery failure'));
+      await Future<void>.delayed(Duration.zero);
+      expect(errors, hasLength(1));
     });
-
-    test('preserves VM failure when progress delivery also fails', () async {
-      final vmError = failures['waitVm'] = StateError('VM failed');
-      respondToLog = (_) async => http.Response('', 503);
-
-      expect(await execute(), BuildJobStatus.FAILURE);
-
-      expectCompletion(BuildJobStatus.FAILURE);
-      expect(stepEvents('prepare_vm').last.status, BuildJobStatus.FAILURE);
-      expect(errors, hasLength(3));
-      expect(errors.last.$1, same(vmError));
-      expect(errors.last.$2.toString(), sourceStack.toString());
-      expect(deletedVms, ['lease-1']);
-    });
-
-    test('preserves checkout failure when progress delivery fails', () async {
-      final checkoutError = failures['checkout'] = StateError(
-        'Checkout failed',
-      );
-      respondToLog = (request) async {
-        final labels = _lokiStream(request)['stream'] as Map<String, dynamic>;
-        return http.Response(
-          '',
-          labels['type'] == 'step_event' && labels['step_id'] == 'checkout'
-              ? 503
-              : 204,
-        );
-      };
-
-      expect(await execute(), BuildJobStatus.FAILURE);
-
-      expectCompletion(BuildJobStatus.FAILURE);
-      expect(stepEvents('checkout').last.status, BuildJobStatus.FAILURE);
-      expect(events, isNot(contains('workflow')));
-      expect(errors, hasLength(3));
-      expect(errors.last.$1, same(checkoutError));
-      expect(errors.last.$2.toString(), sourceStack.toString());
-      expect(deletedVms, ['lease-1']);
-    });
-
-    test('preserves workflow failure when progress delivery fails', () async {
-      final workflowError = failures['workflow'] = StateError(
-        'Workflow failed',
-      );
-      respondToLog = (request) async {
-        final labels = _lokiStream(request)['stream'] as Map<String, dynamic>;
-        return http.Response(
-          '',
-          labels['type'] == 'step_event' && labels['step_id'] == 'run_workflow'
-              ? 503
-              : 204,
-        );
-      };
-
-      expect(await execute(), BuildJobStatus.FAILURE);
-
-      expectCompletion(BuildJobStatus.FAILURE);
-      expect(stepEvents('run_workflow').last.status, BuildJobStatus.FAILURE);
-      expect(errors, hasLength(3));
-      expect(errors.last.$1, same(workflowError));
-      expect(errors.last.$2.toString(), sourceStack.toString());
-      expect(deletedVms, ['lease-1']);
-    });
-
-    for (final (stepId, type) in [
-      ('prepare_vm', 'step_event'),
-      ('prepare_vm', 'step_log'),
-      ('checkout', 'step_event'),
-      ('run_workflow', 'step_event'),
-    ]) {
-      test('continues after $stepId $type delivery times out', () async {
-        final response = Completer<http.Response>();
-        if (type == 'step_log') {
-          when(
-            () => api.appendStepLog(job.id, any(), stepId, any()),
-          ).thenAnswer((_) async {
-            if (stepEvents(stepId).last.status == BuildJobStatus.IN_PROGRESS) {
-              await response.future;
-            }
-            return createMockResponse<void>(null);
-          });
-        }
-        respondToLog = (request) {
-          final labels = _lokiStream(request)['stream'] as Map<String, dynamic>;
-          if (labels['type'] == type &&
-              labels['step_id'] == stepId &&
-              stepEvents(stepId).last.status == BuildJobStatus.IN_PROGRESS) {
-            return response.future;
-          }
-          return Future.value(http.Response('', 204));
-        };
-
-        expect(await execute(), BuildJobStatus.SUCCESS);
-
-        expectCompletion(BuildJobStatus.SUCCESS);
-        expect(deletedVms, ['lease-1']);
-        expect(errors.single.$1, isA<TimeoutException>());
-        expect(stepEvents(stepId).last.status, BuildJobStatus.SUCCESS);
-        response.completeError(StateError('Late progress failure'));
-        await Future<void>.delayed(Duration.zero);
-        expect(errors, hasLength(1));
-      });
-    }
-
-    test(
-      'waits for workflow log delivery before finalizing and deleting the VM',
-      () async {
-        final started = Completer<void>();
-        final response = Completer<http.Response>();
-        respondToLog = (request) {
-          final labels = _lokiStream(request)['stream'] as Map<String, dynamic>;
-          if (labels['type'] != 'step_log' ||
-              labels['step_id'] != 'run_workflow') {
-            return Future.value(http.Response('', 204));
-          }
-          started.complete();
-          return response.future;
-        };
-
-        final result = execute();
-        await started.future;
-
-        expect(completions, isEmpty);
-        expect(deletedVms, isEmpty);
-        response.complete(http.Response('', 204));
-        expect(await result, BuildJobStatus.SUCCESS);
-        expect(deletedVms, ['lease-1']);
-      },
-    );
 
     test(
       'finishes cleanup before invoking an error reporter that throws',
@@ -900,9 +526,4 @@ void main() {
       },
     );
   });
-}
-
-Map<String, dynamic> _lokiStream(http.Request request) {
-  final body = jsonDecode(request.body) as Map<String, dynamic>;
-  return (body['streams'] as List<dynamic>).single as Map<String, dynamic>;
 }

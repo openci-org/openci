@@ -1,4 +1,3 @@
-import 'package:http/http.dart' as http;
 import 'package:openci_shared/openci_shared.dart';
 
 import 'orchard/execute_command.dart';
@@ -7,14 +6,10 @@ import 'orchard/write_file.dart';
 
 Future<int> runWorkflow({
   required OrchardApiClient api,
-  required http.Client lokiClient,
-  required String lokiUrl,
-  required String vmLokiUrl,
   required String vmName,
   required BuildJob job,
   required String runId,
   required String secretsContent,
-  required void Function(Object error, StackTrace stackTrace) onLogError,
   String workspacePath = '/tmp/workspace',
   String vmHomePath = '/Users/admin',
 }) async {
@@ -40,11 +35,8 @@ Future<int> runWorkflow({
   if ([
     runId,
     job.id,
-    vmLokiUrl,
   ].any((value) => value.isEmpty || value.contains('\u0000'))) {
-    throw ArgumentError(
-      'Run ID, job ID, and VM Loki URL must not be empty or contain NUL.',
-    );
+    throw ArgumentError('Run ID and job ID must not be empty or contain NUL.');
   }
   final assignments = secretsContent
       .replaceAll('\r\n', '\n')
@@ -73,7 +65,6 @@ export FLUTTER_ROOT=${_shellQuote('$vmHome/fvm/default')}
 export PATH="\$FLUTTER_ROOT/bin:\$HOME/.pub-cache/bin:/opt/homebrew/bin:/usr/local/bin:\$PATH"
 export GENUINE_CI_RUN_ID=${_shellQuote(runId)}
 export GENUINE_CI_BUILD_JOB_ID=${_shellQuote(job.id)}
-export LOKI_URL=${_shellQuote(vmLokiUrl)}
 flutter pub get
 flutter pub run ${_shellQuote('genuine_ci/$fileName')}
 ''';
@@ -93,14 +84,8 @@ flutter pub run ${_shellQuote('genuine_ci/$fileName')}
   );
   return executeCommand(
     api: api,
-    lokiClient: lokiClient,
-    lokiUrl: lokiUrl,
     vmName: vmName,
     command: '/bin/sh ${_shellQuote(scriptPath)}',
-    runId: runId,
-    jobId: job.id,
-    stepId: 'run_workflow',
-    onLogError: onLogError,
   );
 }
 

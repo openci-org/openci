@@ -38,8 +38,6 @@ services:
       GITHUB_PRIVATE_KEY_PATH: /app/credentials/github-private-key.pem
       GITHUB_WEBHOOK_SECRET: ${GITHUB_WEBHOOK_SECRET:?GITHUB_WEBHOOK_SECRET environment variable is required}
 
-      LOKI_URL: ${LOKI_URL:-http://loki:3100}
-
       ORCHARD_API_URL: ${ORCHARD_API_URL:?ORCHARD_API_URL environment variable is required}
       ORCHARD_SERVICE_ACCOUNT_NAME: ${ORCHARD_SERVICE_ACCOUNT_NAME:?ORCHARD_SERVICE_ACCOUNT_NAME environment variable is required}
       ORCHARD_SERVICE_ACCOUNT_TOKEN: ${ORCHARD_SERVICE_ACCOUNT_TOKEN:?ORCHARD_SERVICE_ACCOUNT_TOKEN environment variable is required}
@@ -93,15 +91,11 @@ services:
       ORCHARD_SERVICE_ACCOUNT_TOKEN: ${ORCHARD_SERVICE_ACCOUNT_TOKEN:?ORCHARD_SERVICE_ACCOUNT_TOKEN environment variable is required}
       ORCHARD_VM_CPU: ${ORCHARD_VM_CPU:-2}
       ORCHARD_VM_MEMORY_GB: ${ORCHARD_VM_MEMORY_GB:-4}
-      LOKI_URL: http://loki:3100
-      LOKI_URL_FOR_VM: ${LOKI_URL_FOR_VM:-http://192.168.64.1:3100}
       SENTRY_DSN: ${SENTRY_DSN_BUILD_JOB_WORKER:-}
     depends_on:
       server:
         condition: service_healthy
       orchard-controller:
-        condition: service_started
-      loki:
         condition: service_started
 
   orchard-controller:
@@ -116,19 +110,6 @@ services:
     volumes:
       - orchard_data:/root/.orchard
 
-  loki:
-    image: grafana/loki:latest
-    container_name: openci-loki
-    restart: unless-stopped
-    expose:
-      - "3100"
-    ports:
-      - "3100:3100"
-    command: -config.file=/etc/loki/local-config.yaml
-    volumes:
-      - loki_data:/tmp/loki
-
 volumes:
   postgres_data:
   orchard_data:
-  loki_data:

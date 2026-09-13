@@ -3,7 +3,6 @@ import 'dart:io';
 
 import 'package:dart_frog/dart_frog.dart';
 import 'package:openci_server/database.dart';
-import 'package:openci_server/logging/loki_service.dart';
 import 'package:openci_server/request/error_handler.dart';
 import 'package:openci_server/request/request_extension.dart';
 
@@ -26,20 +25,10 @@ Future<Response> _get(
   String runId,
   String stepId,
 ) async {
-  try {
-    final lokiService = LokiService();
-    final logs = await lokiService.getLogsForRun(
-      runId: runId,
-      stepId: stepId,
-    );
-    return Response.json(body: logs);
-  } catch (e, s) {
-    return handleRouteException(
-      e,
-      s,
-      logMessage: 'Failed to read logs for step $stepId',
-    );
-  }
+  return Response.json(
+    statusCode: HttpStatus.notImplemented,
+    body: {'success': false, 'error': 'Step history is not implemented'},
+  );
 }
 
 Future<Response> _post(

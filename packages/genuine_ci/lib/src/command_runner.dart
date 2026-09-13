@@ -3,8 +3,6 @@ import 'dart:io';
 
 import 'package:meta/meta.dart';
 
-import 'loki/push_log.dart';
-
 Future<void> runCommand(
   String command, {
   required String workingDirectory,
@@ -15,7 +13,7 @@ Future<void> runCommand(
     workingDirectory: workingDirectory,
   );
 
-  await _printProcessLogs(process, command: command);
+  await _printProcessLogs(process);
 
   final exitCode = await process.exitCode;
 
@@ -29,53 +27,15 @@ Future<void> runCommand(
   exit(exitCode);
 }
 
-Future<void> _printProcessLogs(
-  Process process, {
-  String? command,
-}) async {
-  final lokiUrl = Platform.environment['LOKI_URL'];
-  final isLoki = lokiUrl != null && lokiUrl.isNotEmpty;
-  final client = isLoki ? HttpClient() : null;
-  final lokiTasks = <Future<void>>[];
-
-  try {
-    final stdoutDone = byteStreamToLines(process.stdout).forEach((line) {
+Future<void> _printProcessLogs(Process process) async {
+  await Future.wait([
+    byteStreamToLines(process.stdout).forEach((line) {
       stdout.writeln('[STDOUT] $line');
-      if (isLoki) {
-        lokiTasks.add(
-          pushLogToLoki(
-            client: client!,
-            lokiUrl: lokiUrl,
-            message: line,
-            stream: 'stdout',
-            command: command,
-          ),
-        );
-      }
-    });
-
-    final stderrDone = byteStreamToLines(process.stderr).forEach((line) {
+    }),
+    byteStreamToLines(process.stderr).forEach((line) {
       stderr.writeln('[STDERR] $line');
-      if (isLoki) {
-        lokiTasks.add(
-          pushLogToLoki(
-            client: client!,
-            lokiUrl: lokiUrl,
-            message: line,
-            stream: 'stderr',
-            command: command,
-          ),
-        );
-      }
-    });
-
-    await Future.wait([stdoutDone, stderrDone]);
-    if (lokiTasks.isNotEmpty) {
-      await Future.wait(lokiTasks);
-    }
-  } finally {
-    client?.close();
-  }
+    }),
+  ]);
 }
 
 @visibleForTesting
