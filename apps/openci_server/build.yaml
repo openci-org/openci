@@ -6,3 +6,4 @@ targets:
           sql:
             dialects:
               - postgres
+              - sqlite

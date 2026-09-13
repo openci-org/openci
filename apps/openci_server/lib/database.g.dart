@@ -301,6 +301,10 @@ class $BuildJobsTable extends BuildJobs
     true,
     type: DriftSqlType.bool,
     requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintsDependsOnDialect({
+      SqlDialect.sqlite: 'CHECK ("has_ipa" IN (0, 1))',
+      SqlDialect.postgres: '',
+    }),
   );
   static const VerificationMeta _bundleIdMeta = const VerificationMeta(
     'bundleId',
@@ -2511,6 +2515,425 @@ class BuildJobLogsCompanion extends UpdateCompanion<DriftBuildJobLog> {
   }
 }
 
+class $BuildRunsTable extends BuildRuns
+    with TableInfo<$BuildRunsTable, DriftBuildRun> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $BuildRunsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _buildJobIdMeta = const VerificationMeta(
+    'buildJobId',
+  );
+  @override
+  late final GeneratedColumn<String> buildJobId = GeneratedColumn<String>(
+    'build_job_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES build_jobs (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _statusMeta = const VerificationMeta('status');
+  @override
+  late final GeneratedColumn<String> status = GeneratedColumn<String>(
+    'status',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _conclusionMeta = const VerificationMeta(
+    'conclusion',
+  );
+  @override
+  late final GeneratedColumn<String> conclusion = GeneratedColumn<String>(
+    'conclusion',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    buildJobId,
+    status,
+    conclusion,
+    createdAt,
+    updatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'build_runs';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<DriftBuildRun> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('build_job_id')) {
+      context.handle(
+        _buildJobIdMeta,
+        buildJobId.isAcceptableOrUnknown(
+          data['build_job_id']!,
+          _buildJobIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_buildJobIdMeta);
+    }
+    if (data.containsKey('status')) {
+      context.handle(
+        _statusMeta,
+        status.isAcceptableOrUnknown(data['status']!, _statusMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_statusMeta);
+    }
+    if (data.containsKey('conclusion')) {
+      context.handle(
+        _conclusionMeta,
+        conclusion.isAcceptableOrUnknown(data['conclusion']!, _conclusionMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  DriftBuildRun map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return DriftBuildRun(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      buildJobId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}build_job_id'],
+      )!,
+      status: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}status'],
+      )!,
+      conclusion: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}conclusion'],
+      ),
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $BuildRunsTable createAlias(String alias) {
+    return $BuildRunsTable(attachedDatabase, alias);
+  }
+}
+
+class DriftBuildRun extends DataClass implements Insertable<DriftBuildRun> {
+  final String id;
+  final String buildJobId;
+  final String status;
+  final String? conclusion;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  const DriftBuildRun({
+    required this.id,
+    required this.buildJobId,
+    required this.status,
+    this.conclusion,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['build_job_id'] = Variable<String>(buildJobId);
+    map['status'] = Variable<String>(status);
+    if (!nullToAbsent || conclusion != null) {
+      map['conclusion'] = Variable<String>(conclusion);
+    }
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  BuildRunsCompanion toCompanion(bool nullToAbsent) {
+    return BuildRunsCompanion(
+      id: Value(id),
+      buildJobId: Value(buildJobId),
+      status: Value(status),
+      conclusion: conclusion == null && nullToAbsent
+          ? const Value.absent()
+          : Value(conclusion),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory DriftBuildRun.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return DriftBuildRun(
+      id: serializer.fromJson<String>(json['id']),
+      buildJobId: serializer.fromJson<String>(json['buildJobId']),
+      status: serializer.fromJson<String>(json['status']),
+      conclusion: serializer.fromJson<String?>(json['conclusion']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'buildJobId': serializer.toJson<String>(buildJobId),
+      'status': serializer.toJson<String>(status),
+      'conclusion': serializer.toJson<String?>(conclusion),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  DriftBuildRun copyWith({
+    String? id,
+    String? buildJobId,
+    String? status,
+    Value<String?> conclusion = const Value.absent(),
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) => DriftBuildRun(
+    id: id ?? this.id,
+    buildJobId: buildJobId ?? this.buildJobId,
+    status: status ?? this.status,
+    conclusion: conclusion.present ? conclusion.value : this.conclusion,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  DriftBuildRun copyWithCompanion(BuildRunsCompanion data) {
+    return DriftBuildRun(
+      id: data.id.present ? data.id.value : this.id,
+      buildJobId: data.buildJobId.present
+          ? data.buildJobId.value
+          : this.buildJobId,
+      status: data.status.present ? data.status.value : this.status,
+      conclusion: data.conclusion.present
+          ? data.conclusion.value
+          : this.conclusion,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('DriftBuildRun(')
+          ..write('id: $id, ')
+          ..write('buildJobId: $buildJobId, ')
+          ..write('status: $status, ')
+          ..write('conclusion: $conclusion, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(id, buildJobId, status, conclusion, createdAt, updatedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is DriftBuildRun &&
+          other.id == this.id &&
+          other.buildJobId == this.buildJobId &&
+          other.status == this.status &&
+          other.conclusion == this.conclusion &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt);
+}
+
+class BuildRunsCompanion extends UpdateCompanion<DriftBuildRun> {
+  final Value<String> id;
+  final Value<String> buildJobId;
+  final Value<String> status;
+  final Value<String?> conclusion;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<int> rowid;
+  const BuildRunsCompanion({
+    this.id = const Value.absent(),
+    this.buildJobId = const Value.absent(),
+    this.status = const Value.absent(),
+    this.conclusion = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  BuildRunsCompanion.insert({
+    required String id,
+    required String buildJobId,
+    required String status,
+    this.conclusion = const Value.absent(),
+    required DateTime createdAt,
+    required DateTime updatedAt,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       buildJobId = Value(buildJobId),
+       status = Value(status),
+       createdAt = Value(createdAt),
+       updatedAt = Value(updatedAt);
+  static Insertable<DriftBuildRun> custom({
+    Expression<String>? id,
+    Expression<String>? buildJobId,
+    Expression<String>? status,
+    Expression<String>? conclusion,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (buildJobId != null) 'build_job_id': buildJobId,
+      if (status != null) 'status': status,
+      if (conclusion != null) 'conclusion': conclusion,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  BuildRunsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? buildJobId,
+    Value<String>? status,
+    Value<String?>? conclusion,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+    Value<int>? rowid,
+  }) {
+    return BuildRunsCompanion(
+      id: id ?? this.id,
+      buildJobId: buildJobId ?? this.buildJobId,
+      status: status ?? this.status,
+      conclusion: conclusion ?? this.conclusion,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (buildJobId.present) {
+      map['build_job_id'] = Variable<String>(buildJobId.value);
+    }
+    if (status.present) {
+      map['status'] = Variable<String>(status.value);
+    }
+    if (conclusion.present) {
+      map['conclusion'] = Variable<String>(conclusion.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('BuildRunsCompanion(')
+          ..write('id: $id, ')
+          ..write('buildJobId: $buildJobId, ')
+          ..write('status: $status, ')
+          ..write('conclusion: $conclusion, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $BuildStepsTable extends BuildSteps
     with TableInfo<$BuildStepsTable, DriftBuildStep> {
   @override
@@ -2534,6 +2957,9 @@ class $BuildStepsTable extends BuildSteps
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES build_runs (id) ON DELETE CASCADE',
+    ),
   );
   static const VerificationMeta _nameMeta = const VerificationMeta('name');
   @override
@@ -3053,6 +3479,9 @@ class $BuildStepLogsTable extends BuildStepLogs
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES build_steps (id) ON DELETE CASCADE',
+    ),
   );
   static const VerificationMeta _logContentMeta = const VerificationMeta(
     'logContent',
@@ -3327,425 +3756,6 @@ class BuildStepLogsCompanion extends UpdateCompanion<DriftBuildStepLog> {
   }
 }
 
-class $BuildRunsTable extends BuildRuns
-    with TableInfo<$BuildRunsTable, DriftBuildRun> {
-  @override
-  final GeneratedDatabase attachedDatabase;
-  final String? _alias;
-  $BuildRunsTable(this.attachedDatabase, [this._alias]);
-  static const VerificationMeta _idMeta = const VerificationMeta('id');
-  @override
-  late final GeneratedColumn<String> id = GeneratedColumn<String>(
-    'id',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _buildJobIdMeta = const VerificationMeta(
-    'buildJobId',
-  );
-  @override
-  late final GeneratedColumn<String> buildJobId = GeneratedColumn<String>(
-    'build_job_id',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'REFERENCES build_jobs (id) ON DELETE CASCADE',
-    ),
-  );
-  static const VerificationMeta _statusMeta = const VerificationMeta('status');
-  @override
-  late final GeneratedColumn<String> status = GeneratedColumn<String>(
-    'status',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _conclusionMeta = const VerificationMeta(
-    'conclusion',
-  );
-  @override
-  late final GeneratedColumn<String> conclusion = GeneratedColumn<String>(
-    'conclusion',
-    aliasedName,
-    true,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-  );
-  static const VerificationMeta _createdAtMeta = const VerificationMeta(
-    'createdAt',
-  );
-  @override
-  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
-    'created_at',
-    aliasedName,
-    false,
-    type: DriftSqlType.dateTime,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
-    'updatedAt',
-  );
-  @override
-  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
-    'updated_at',
-    aliasedName,
-    false,
-    type: DriftSqlType.dateTime,
-    requiredDuringInsert: true,
-  );
-  @override
-  List<GeneratedColumn> get $columns => [
-    id,
-    buildJobId,
-    status,
-    conclusion,
-    createdAt,
-    updatedAt,
-  ];
-  @override
-  String get aliasedName => _alias ?? actualTableName;
-  @override
-  String get actualTableName => $name;
-  static const String $name = 'build_runs';
-  @override
-  VerificationContext validateIntegrity(
-    Insertable<DriftBuildRun> instance, {
-    bool isInserting = false,
-  }) {
-    final context = VerificationContext();
-    final data = instance.toColumns(true);
-    if (data.containsKey('id')) {
-      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
-    } else if (isInserting) {
-      context.missing(_idMeta);
-    }
-    if (data.containsKey('build_job_id')) {
-      context.handle(
-        _buildJobIdMeta,
-        buildJobId.isAcceptableOrUnknown(
-          data['build_job_id']!,
-          _buildJobIdMeta,
-        ),
-      );
-    } else if (isInserting) {
-      context.missing(_buildJobIdMeta);
-    }
-    if (data.containsKey('status')) {
-      context.handle(
-        _statusMeta,
-        status.isAcceptableOrUnknown(data['status']!, _statusMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_statusMeta);
-    }
-    if (data.containsKey('conclusion')) {
-      context.handle(
-        _conclusionMeta,
-        conclusion.isAcceptableOrUnknown(data['conclusion']!, _conclusionMeta),
-      );
-    }
-    if (data.containsKey('created_at')) {
-      context.handle(
-        _createdAtMeta,
-        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_createdAtMeta);
-    }
-    if (data.containsKey('updated_at')) {
-      context.handle(
-        _updatedAtMeta,
-        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_updatedAtMeta);
-    }
-    return context;
-  }
-
-  @override
-  Set<GeneratedColumn> get $primaryKey => {id};
-  @override
-  DriftBuildRun map(Map<String, dynamic> data, {String? tablePrefix}) {
-    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return DriftBuildRun(
-      id: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}id'],
-      )!,
-      buildJobId: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}build_job_id'],
-      )!,
-      status: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}status'],
-      )!,
-      conclusion: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}conclusion'],
-      ),
-      createdAt: attachedDatabase.typeMapping.read(
-        DriftSqlType.dateTime,
-        data['${effectivePrefix}created_at'],
-      )!,
-      updatedAt: attachedDatabase.typeMapping.read(
-        DriftSqlType.dateTime,
-        data['${effectivePrefix}updated_at'],
-      )!,
-    );
-  }
-
-  @override
-  $BuildRunsTable createAlias(String alias) {
-    return $BuildRunsTable(attachedDatabase, alias);
-  }
-}
-
-class DriftBuildRun extends DataClass implements Insertable<DriftBuildRun> {
-  final String id;
-  final String buildJobId;
-  final String status;
-  final String? conclusion;
-  final DateTime createdAt;
-  final DateTime updatedAt;
-  const DriftBuildRun({
-    required this.id,
-    required this.buildJobId,
-    required this.status,
-    this.conclusion,
-    required this.createdAt,
-    required this.updatedAt,
-  });
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    map['id'] = Variable<String>(id);
-    map['build_job_id'] = Variable<String>(buildJobId);
-    map['status'] = Variable<String>(status);
-    if (!nullToAbsent || conclusion != null) {
-      map['conclusion'] = Variable<String>(conclusion);
-    }
-    map['created_at'] = Variable<DateTime>(createdAt);
-    map['updated_at'] = Variable<DateTime>(updatedAt);
-    return map;
-  }
-
-  BuildRunsCompanion toCompanion(bool nullToAbsent) {
-    return BuildRunsCompanion(
-      id: Value(id),
-      buildJobId: Value(buildJobId),
-      status: Value(status),
-      conclusion: conclusion == null && nullToAbsent
-          ? const Value.absent()
-          : Value(conclusion),
-      createdAt: Value(createdAt),
-      updatedAt: Value(updatedAt),
-    );
-  }
-
-  factory DriftBuildRun.fromJson(
-    Map<String, dynamic> json, {
-    ValueSerializer? serializer,
-  }) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return DriftBuildRun(
-      id: serializer.fromJson<String>(json['id']),
-      buildJobId: serializer.fromJson<String>(json['buildJobId']),
-      status: serializer.fromJson<String>(json['status']),
-      conclusion: serializer.fromJson<String?>(json['conclusion']),
-      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
-      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
-    );
-  }
-  @override
-  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return <String, dynamic>{
-      'id': serializer.toJson<String>(id),
-      'buildJobId': serializer.toJson<String>(buildJobId),
-      'status': serializer.toJson<String>(status),
-      'conclusion': serializer.toJson<String?>(conclusion),
-      'createdAt': serializer.toJson<DateTime>(createdAt),
-      'updatedAt': serializer.toJson<DateTime>(updatedAt),
-    };
-  }
-
-  DriftBuildRun copyWith({
-    String? id,
-    String? buildJobId,
-    String? status,
-    Value<String?> conclusion = const Value.absent(),
-    DateTime? createdAt,
-    DateTime? updatedAt,
-  }) => DriftBuildRun(
-    id: id ?? this.id,
-    buildJobId: buildJobId ?? this.buildJobId,
-    status: status ?? this.status,
-    conclusion: conclusion.present ? conclusion.value : this.conclusion,
-    createdAt: createdAt ?? this.createdAt,
-    updatedAt: updatedAt ?? this.updatedAt,
-  );
-  DriftBuildRun copyWithCompanion(BuildRunsCompanion data) {
-    return DriftBuildRun(
-      id: data.id.present ? data.id.value : this.id,
-      buildJobId: data.buildJobId.present
-          ? data.buildJobId.value
-          : this.buildJobId,
-      status: data.status.present ? data.status.value : this.status,
-      conclusion: data.conclusion.present
-          ? data.conclusion.value
-          : this.conclusion,
-      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
-      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
-    );
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('DriftBuildRun(')
-          ..write('id: $id, ')
-          ..write('buildJobId: $buildJobId, ')
-          ..write('status: $status, ')
-          ..write('conclusion: $conclusion, ')
-          ..write('createdAt: $createdAt, ')
-          ..write('updatedAt: $updatedAt')
-          ..write(')'))
-        .toString();
-  }
-
-  @override
-  int get hashCode =>
-      Object.hash(id, buildJobId, status, conclusion, createdAt, updatedAt);
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      (other is DriftBuildRun &&
-          other.id == this.id &&
-          other.buildJobId == this.buildJobId &&
-          other.status == this.status &&
-          other.conclusion == this.conclusion &&
-          other.createdAt == this.createdAt &&
-          other.updatedAt == this.updatedAt);
-}
-
-class BuildRunsCompanion extends UpdateCompanion<DriftBuildRun> {
-  final Value<String> id;
-  final Value<String> buildJobId;
-  final Value<String> status;
-  final Value<String?> conclusion;
-  final Value<DateTime> createdAt;
-  final Value<DateTime> updatedAt;
-  final Value<int> rowid;
-  const BuildRunsCompanion({
-    this.id = const Value.absent(),
-    this.buildJobId = const Value.absent(),
-    this.status = const Value.absent(),
-    this.conclusion = const Value.absent(),
-    this.createdAt = const Value.absent(),
-    this.updatedAt = const Value.absent(),
-    this.rowid = const Value.absent(),
-  });
-  BuildRunsCompanion.insert({
-    required String id,
-    required String buildJobId,
-    required String status,
-    this.conclusion = const Value.absent(),
-    required DateTime createdAt,
-    required DateTime updatedAt,
-    this.rowid = const Value.absent(),
-  }) : id = Value(id),
-       buildJobId = Value(buildJobId),
-       status = Value(status),
-       createdAt = Value(createdAt),
-       updatedAt = Value(updatedAt);
-  static Insertable<DriftBuildRun> custom({
-    Expression<String>? id,
-    Expression<String>? buildJobId,
-    Expression<String>? status,
-    Expression<String>? conclusion,
-    Expression<DateTime>? createdAt,
-    Expression<DateTime>? updatedAt,
-    Expression<int>? rowid,
-  }) {
-    return RawValuesInsertable({
-      if (id != null) 'id': id,
-      if (buildJobId != null) 'build_job_id': buildJobId,
-      if (status != null) 'status': status,
-      if (conclusion != null) 'conclusion': conclusion,
-      if (createdAt != null) 'created_at': createdAt,
-      if (updatedAt != null) 'updated_at': updatedAt,
-      if (rowid != null) 'rowid': rowid,
-    });
-  }
-
-  BuildRunsCompanion copyWith({
-    Value<String>? id,
-    Value<String>? buildJobId,
-    Value<String>? status,
-    Value<String?>? conclusion,
-    Value<DateTime>? createdAt,
-    Value<DateTime>? updatedAt,
-    Value<int>? rowid,
-  }) {
-    return BuildRunsCompanion(
-      id: id ?? this.id,
-      buildJobId: buildJobId ?? this.buildJobId,
-      status: status ?? this.status,
-      conclusion: conclusion ?? this.conclusion,
-      createdAt: createdAt ?? this.createdAt,
-      updatedAt: updatedAt ?? this.updatedAt,
-      rowid: rowid ?? this.rowid,
-    );
-  }
-
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    if (id.present) {
-      map['id'] = Variable<String>(id.value);
-    }
-    if (buildJobId.present) {
-      map['build_job_id'] = Variable<String>(buildJobId.value);
-    }
-    if (status.present) {
-      map['status'] = Variable<String>(status.value);
-    }
-    if (conclusion.present) {
-      map['conclusion'] = Variable<String>(conclusion.value);
-    }
-    if (createdAt.present) {
-      map['created_at'] = Variable<DateTime>(createdAt.value);
-    }
-    if (updatedAt.present) {
-      map['updated_at'] = Variable<DateTime>(updatedAt.value);
-    }
-    if (rowid.present) {
-      map['rowid'] = Variable<int>(rowid.value);
-    }
-    return map;
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('BuildRunsCompanion(')
-          ..write('id: $id, ')
-          ..write('buildJobId: $buildJobId, ')
-          ..write('status: $status, ')
-          ..write('conclusion: $conclusion, ')
-          ..write('createdAt: $createdAt, ')
-          ..write('updatedAt: $updatedAt, ')
-          ..write('rowid: $rowid')
-          ..write(')'))
-        .toString();
-  }
-}
-
 class $TeamsTable extends Teams with TableInfo<$TeamsTable, DriftTeam> {
   @override
   final GeneratedDatabase attachedDatabase;
@@ -3799,6 +3809,10 @@ class $TeamsTable extends Teams with TableInfo<$TeamsTable, DriftTeam> {
     false,
     type: DriftSqlType.bool,
     requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintsDependsOnDialect({
+      SqlDialect.sqlite: 'CHECK ("ai_enabled" IN (0, 1))',
+      SqlDialect.postgres: '',
+    }),
   );
   static const VerificationMeta _runNumberMeta = const VerificationMeta(
     'runNumber',
@@ -6896,9 +6910,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
   late final $BuildJobsTable buildJobs = $BuildJobsTable(this);
   late final $BuildJobLogsTable buildJobLogs = $BuildJobLogsTable(this);
+  late final $BuildRunsTable buildRuns = $BuildRunsTable(this);
   late final $BuildStepsTable buildSteps = $BuildStepsTable(this);
   late final $BuildStepLogsTable buildStepLogs = $BuildStepLogsTable(this);
-  late final $BuildRunsTable buildRuns = $BuildRunsTable(this);
   late final $TeamsTable teams = $TeamsTable(this);
   late final $TeamMembersTable teamMembers = $TeamMembersTable(this);
   late final $SecretsTable secrets = $SecretsTable(this);
@@ -6909,6 +6923,20 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $UserDevicesTable userDevices = $UserDevicesTable(this);
   late final $UdidRequestsTable udidRequests = $UdidRequestsTable(this);
   late final $InvitationsTable invitations = $InvitationsTable(this);
+  late final Index
+  buildStepsRunOrder = Index.byDialect('build_steps_run_order', {
+    SqlDialect.postgres:
+        'CREATE INDEX build_steps_run_order ON build_steps (run_id, step_order)',
+    SqlDialect.sqlite:
+        'CREATE INDEX build_steps_run_order ON build_steps (run_id, step_order)',
+  });
+  late final Index
+  buildStepLogsStepId = Index.byDialect('build_step_logs_step_id', {
+    SqlDialect.postgres:
+        'CREATE INDEX build_step_logs_step_id ON build_step_logs (step_id, id)',
+    SqlDialect.sqlite:
+        'CREATE INDEX build_step_logs_step_id ON build_step_logs (step_id, id)',
+  });
   late final BuildJobDao buildJobDao = BuildJobDao(this as AppDatabase);
   late final BuildRunDao buildRunDao = BuildRunDao(this as AppDatabase);
   late final TeamDao teamDao = TeamDao(this as AppDatabase);
@@ -6931,9 +6959,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   List<DatabaseSchemaEntity> get allSchemaEntities => [
     buildJobs,
     buildJobLogs,
+    buildRuns,
     buildSteps,
     buildStepLogs,
-    buildRuns,
     teams,
     teamMembers,
     secrets,
@@ -6942,6 +6970,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     userDevices,
     udidRequests,
     invitations,
+    buildStepsRunOrder,
+    buildStepLogsStepId,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -6951,6 +6981,20 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         limitUpdateKind: UpdateKind.delete,
       ),
       result: [TableUpdate('build_runs', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'build_runs',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('build_steps', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'build_steps',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('build_step_logs', kind: UpdateKind.delete)],
     ),
     WritePropagation(
       on: TableUpdateQuery.onTableName(
@@ -8182,447 +8226,6 @@ typedef $$BuildJobLogsTableProcessedTableManager =
       DriftBuildJobLog,
       PrefetchHooks Function()
     >;
-typedef $$BuildStepsTableCreateCompanionBuilder =
-    BuildStepsCompanion Function({
-      required String id,
-      required String runId,
-      required String name,
-      required BuildJobStatus status,
-      required int durationMs,
-      required int stepOrder,
-      required DateTime createdAt,
-      required DateTime updatedAt,
-      Value<int> rowid,
-    });
-typedef $$BuildStepsTableUpdateCompanionBuilder =
-    BuildStepsCompanion Function({
-      Value<String> id,
-      Value<String> runId,
-      Value<String> name,
-      Value<BuildJobStatus> status,
-      Value<int> durationMs,
-      Value<int> stepOrder,
-      Value<DateTime> createdAt,
-      Value<DateTime> updatedAt,
-      Value<int> rowid,
-    });
-
-class $$BuildStepsTableFilterComposer
-    extends Composer<_$AppDatabase, $BuildStepsTable> {
-  $$BuildStepsTableFilterComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnFilters<String> get id => $composableBuilder(
-    column: $table.id,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get runId => $composableBuilder(
-    column: $table.runId,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get name => $composableBuilder(
-    column: $table.name,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnWithTypeConverterFilters<BuildJobStatus, BuildJobStatus, String>
-  get status => $composableBuilder(
-    column: $table.status,
-    builder: (column) => ColumnWithTypeConverterFilters(column),
-  );
-
-  ColumnFilters<int> get durationMs => $composableBuilder(
-    column: $table.durationMs,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<int> get stepOrder => $composableBuilder(
-    column: $table.stepOrder,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<DateTime> get createdAt => $composableBuilder(
-    column: $table.createdAt,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
-    column: $table.updatedAt,
-    builder: (column) => ColumnFilters(column),
-  );
-}
-
-class $$BuildStepsTableOrderingComposer
-    extends Composer<_$AppDatabase, $BuildStepsTable> {
-  $$BuildStepsTableOrderingComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnOrderings<String> get id => $composableBuilder(
-    column: $table.id,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get runId => $composableBuilder(
-    column: $table.runId,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get name => $composableBuilder(
-    column: $table.name,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get status => $composableBuilder(
-    column: $table.status,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<int> get durationMs => $composableBuilder(
-    column: $table.durationMs,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<int> get stepOrder => $composableBuilder(
-    column: $table.stepOrder,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
-    column: $table.createdAt,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
-    column: $table.updatedAt,
-    builder: (column) => ColumnOrderings(column),
-  );
-}
-
-class $$BuildStepsTableAnnotationComposer
-    extends Composer<_$AppDatabase, $BuildStepsTable> {
-  $$BuildStepsTableAnnotationComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  GeneratedColumn<String> get id =>
-      $composableBuilder(column: $table.id, builder: (column) => column);
-
-  GeneratedColumn<String> get runId =>
-      $composableBuilder(column: $table.runId, builder: (column) => column);
-
-  GeneratedColumn<String> get name =>
-      $composableBuilder(column: $table.name, builder: (column) => column);
-
-  GeneratedColumnWithTypeConverter<BuildJobStatus, String> get status =>
-      $composableBuilder(column: $table.status, builder: (column) => column);
-
-  GeneratedColumn<int> get durationMs => $composableBuilder(
-    column: $table.durationMs,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<int> get stepOrder =>
-      $composableBuilder(column: $table.stepOrder, builder: (column) => column);
-
-  GeneratedColumn<DateTime> get createdAt =>
-      $composableBuilder(column: $table.createdAt, builder: (column) => column);
-
-  GeneratedColumn<DateTime> get updatedAt =>
-      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
-}
-
-class $$BuildStepsTableTableManager
-    extends
-        RootTableManager<
-          _$AppDatabase,
-          $BuildStepsTable,
-          DriftBuildStep,
-          $$BuildStepsTableFilterComposer,
-          $$BuildStepsTableOrderingComposer,
-          $$BuildStepsTableAnnotationComposer,
-          $$BuildStepsTableCreateCompanionBuilder,
-          $$BuildStepsTableUpdateCompanionBuilder,
-          (
-            DriftBuildStep,
-            BaseReferences<_$AppDatabase, $BuildStepsTable, DriftBuildStep>,
-          ),
-          DriftBuildStep,
-          PrefetchHooks Function()
-        > {
-  $$BuildStepsTableTableManager(_$AppDatabase db, $BuildStepsTable table)
-    : super(
-        TableManagerState(
-          db: db,
-          table: table,
-          createFilteringComposer: () =>
-              $$BuildStepsTableFilterComposer($db: db, $table: table),
-          createOrderingComposer: () =>
-              $$BuildStepsTableOrderingComposer($db: db, $table: table),
-          createComputedFieldComposer: () =>
-              $$BuildStepsTableAnnotationComposer($db: db, $table: table),
-          updateCompanionCallback:
-              ({
-                Value<String> id = const Value.absent(),
-                Value<String> runId = const Value.absent(),
-                Value<String> name = const Value.absent(),
-                Value<BuildJobStatus> status = const Value.absent(),
-                Value<int> durationMs = const Value.absent(),
-                Value<int> stepOrder = const Value.absent(),
-                Value<DateTime> createdAt = const Value.absent(),
-                Value<DateTime> updatedAt = const Value.absent(),
-                Value<int> rowid = const Value.absent(),
-              }) => BuildStepsCompanion(
-                id: id,
-                runId: runId,
-                name: name,
-                status: status,
-                durationMs: durationMs,
-                stepOrder: stepOrder,
-                createdAt: createdAt,
-                updatedAt: updatedAt,
-                rowid: rowid,
-              ),
-          createCompanionCallback:
-              ({
-                required String id,
-                required String runId,
-                required String name,
-                required BuildJobStatus status,
-                required int durationMs,
-                required int stepOrder,
-                required DateTime createdAt,
-                required DateTime updatedAt,
-                Value<int> rowid = const Value.absent(),
-              }) => BuildStepsCompanion.insert(
-                id: id,
-                runId: runId,
-                name: name,
-                status: status,
-                durationMs: durationMs,
-                stepOrder: stepOrder,
-                createdAt: createdAt,
-                updatedAt: updatedAt,
-                rowid: rowid,
-              ),
-          withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
-              .toList(),
-          prefetchHooksCallback: null,
-        ),
-      );
-}
-
-typedef $$BuildStepsTableProcessedTableManager =
-    ProcessedTableManager<
-      _$AppDatabase,
-      $BuildStepsTable,
-      DriftBuildStep,
-      $$BuildStepsTableFilterComposer,
-      $$BuildStepsTableOrderingComposer,
-      $$BuildStepsTableAnnotationComposer,
-      $$BuildStepsTableCreateCompanionBuilder,
-      $$BuildStepsTableUpdateCompanionBuilder,
-      (
-        DriftBuildStep,
-        BaseReferences<_$AppDatabase, $BuildStepsTable, DriftBuildStep>,
-      ),
-      DriftBuildStep,
-      PrefetchHooks Function()
-    >;
-typedef $$BuildStepLogsTableCreateCompanionBuilder =
-    BuildStepLogsCompanion Function({
-      Value<int> id,
-      required String stepId,
-      required String logContent,
-      required DateTime createdAt,
-    });
-typedef $$BuildStepLogsTableUpdateCompanionBuilder =
-    BuildStepLogsCompanion Function({
-      Value<int> id,
-      Value<String> stepId,
-      Value<String> logContent,
-      Value<DateTime> createdAt,
-    });
-
-class $$BuildStepLogsTableFilterComposer
-    extends Composer<_$AppDatabase, $BuildStepLogsTable> {
-  $$BuildStepLogsTableFilterComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnFilters<int> get id => $composableBuilder(
-    column: $table.id,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get stepId => $composableBuilder(
-    column: $table.stepId,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get logContent => $composableBuilder(
-    column: $table.logContent,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<DateTime> get createdAt => $composableBuilder(
-    column: $table.createdAt,
-    builder: (column) => ColumnFilters(column),
-  );
-}
-
-class $$BuildStepLogsTableOrderingComposer
-    extends Composer<_$AppDatabase, $BuildStepLogsTable> {
-  $$BuildStepLogsTableOrderingComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnOrderings<int> get id => $composableBuilder(
-    column: $table.id,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get stepId => $composableBuilder(
-    column: $table.stepId,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get logContent => $composableBuilder(
-    column: $table.logContent,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
-    column: $table.createdAt,
-    builder: (column) => ColumnOrderings(column),
-  );
-}
-
-class $$BuildStepLogsTableAnnotationComposer
-    extends Composer<_$AppDatabase, $BuildStepLogsTable> {
-  $$BuildStepLogsTableAnnotationComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  GeneratedColumn<int> get id =>
-      $composableBuilder(column: $table.id, builder: (column) => column);
-
-  GeneratedColumn<String> get stepId =>
-      $composableBuilder(column: $table.stepId, builder: (column) => column);
-
-  GeneratedColumn<String> get logContent => $composableBuilder(
-    column: $table.logContent,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<DateTime> get createdAt =>
-      $composableBuilder(column: $table.createdAt, builder: (column) => column);
-}
-
-class $$BuildStepLogsTableTableManager
-    extends
-        RootTableManager<
-          _$AppDatabase,
-          $BuildStepLogsTable,
-          DriftBuildStepLog,
-          $$BuildStepLogsTableFilterComposer,
-          $$BuildStepLogsTableOrderingComposer,
-          $$BuildStepLogsTableAnnotationComposer,
-          $$BuildStepLogsTableCreateCompanionBuilder,
-          $$BuildStepLogsTableUpdateCompanionBuilder,
-          (
-            DriftBuildStepLog,
-            BaseReferences<
-              _$AppDatabase,
-              $BuildStepLogsTable,
-              DriftBuildStepLog
-            >,
-          ),
-          DriftBuildStepLog,
-          PrefetchHooks Function()
-        > {
-  $$BuildStepLogsTableTableManager(_$AppDatabase db, $BuildStepLogsTable table)
-    : super(
-        TableManagerState(
-          db: db,
-          table: table,
-          createFilteringComposer: () =>
-              $$BuildStepLogsTableFilterComposer($db: db, $table: table),
-          createOrderingComposer: () =>
-              $$BuildStepLogsTableOrderingComposer($db: db, $table: table),
-          createComputedFieldComposer: () =>
-              $$BuildStepLogsTableAnnotationComposer($db: db, $table: table),
-          updateCompanionCallback:
-              ({
-                Value<int> id = const Value.absent(),
-                Value<String> stepId = const Value.absent(),
-                Value<String> logContent = const Value.absent(),
-                Value<DateTime> createdAt = const Value.absent(),
-              }) => BuildStepLogsCompanion(
-                id: id,
-                stepId: stepId,
-                logContent: logContent,
-                createdAt: createdAt,
-              ),
-          createCompanionCallback:
-              ({
-                Value<int> id = const Value.absent(),
-                required String stepId,
-                required String logContent,
-                required DateTime createdAt,
-              }) => BuildStepLogsCompanion.insert(
-                id: id,
-                stepId: stepId,
-                logContent: logContent,
-                createdAt: createdAt,
-              ),
-          withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
-              .toList(),
-          prefetchHooksCallback: null,
-        ),
-      );
-}
-
-typedef $$BuildStepLogsTableProcessedTableManager =
-    ProcessedTableManager<
-      _$AppDatabase,
-      $BuildStepLogsTable,
-      DriftBuildStepLog,
-      $$BuildStepLogsTableFilterComposer,
-      $$BuildStepLogsTableOrderingComposer,
-      $$BuildStepLogsTableAnnotationComposer,
-      $$BuildStepLogsTableCreateCompanionBuilder,
-      $$BuildStepLogsTableUpdateCompanionBuilder,
-      (
-        DriftBuildStepLog,
-        BaseReferences<_$AppDatabase, $BuildStepLogsTable, DriftBuildStepLog>,
-      ),
-      DriftBuildStepLog,
-      PrefetchHooks Function()
-    >;
 typedef $$BuildRunsTableCreateCompanionBuilder =
     BuildRunsCompanion Function({
       required String id,
@@ -8664,6 +8267,24 @@ final class $$BuildRunsTableReferences
     if (item == null) return manager;
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static MultiTypedResultKey<$BuildStepsTable, List<DriftBuildStep>>
+  _buildStepsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.buildSteps,
+    aliasName: $_aliasNameGenerator(db.buildRuns.id, db.buildSteps.runId),
+  );
+
+  $$BuildStepsTableProcessedTableManager get buildStepsRefs {
+    final manager = $$BuildStepsTableTableManager(
+      $_db,
+      $_db.buildSteps,
+    ).filter((f) => f.runId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_buildStepsRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
     );
   }
 }
@@ -8723,6 +8344,31 @@ class $$BuildRunsTableFilterComposer
           ),
     );
     return composer;
+  }
+
+  Expression<bool> buildStepsRefs(
+    Expression<bool> Function($$BuildStepsTableFilterComposer f) f,
+  ) {
+    final $$BuildStepsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.buildSteps,
+      getReferencedColumn: (t) => t.runId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$BuildStepsTableFilterComposer(
+            $db: $db,
+            $table: $db.buildSteps,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
   }
 }
 
@@ -8832,6 +8478,31 @@ class $$BuildRunsTableAnnotationComposer
     );
     return composer;
   }
+
+  Expression<T> buildStepsRefs<T extends Object>(
+    Expression<T> Function($$BuildStepsTableAnnotationComposer a) f,
+  ) {
+    final $$BuildStepsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.buildSteps,
+      getReferencedColumn: (t) => t.runId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$BuildStepsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.buildSteps,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$BuildRunsTableTableManager
@@ -8847,7 +8518,7 @@ class $$BuildRunsTableTableManager
           $$BuildRunsTableUpdateCompanionBuilder,
           (DriftBuildRun, $$BuildRunsTableReferences),
           DriftBuildRun,
-          PrefetchHooks Function({bool buildJobId})
+          PrefetchHooks Function({bool buildJobId, bool buildStepsRefs})
         > {
   $$BuildRunsTableTableManager(_$AppDatabase db, $BuildRunsTable table)
     : super(
@@ -8904,7 +8575,798 @@ class $$BuildRunsTableTableManager
                 ),
               )
               .toList(),
-          prefetchHooksCallback: ({buildJobId = false}) {
+          prefetchHooksCallback:
+              ({buildJobId = false, buildStepsRefs = false}) {
+                return PrefetchHooks(
+                  db: db,
+                  explicitlyWatchedTables: [if (buildStepsRefs) db.buildSteps],
+                  addJoins:
+                      <
+                        T extends TableManagerState<
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic
+                        >
+                      >(state) {
+                        if (buildJobId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.buildJobId,
+                                    referencedTable: $$BuildRunsTableReferences
+                                        ._buildJobIdTable(db),
+                                    referencedColumn: $$BuildRunsTableReferences
+                                        ._buildJobIdTable(db)
+                                        .id,
+                                  )
+                                  as T;
+                        }
+
+                        return state;
+                      },
+                  getPrefetchedDataCallback: (items) async {
+                    return [
+                      if (buildStepsRefs)
+                        await $_getPrefetchedData<
+                          DriftBuildRun,
+                          $BuildRunsTable,
+                          DriftBuildStep
+                        >(
+                          currentTable: table,
+                          referencedTable: $$BuildRunsTableReferences
+                              ._buildStepsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$BuildRunsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).buildStepsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.runId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                    ];
+                  },
+                );
+              },
+        ),
+      );
+}
+
+typedef $$BuildRunsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $BuildRunsTable,
+      DriftBuildRun,
+      $$BuildRunsTableFilterComposer,
+      $$BuildRunsTableOrderingComposer,
+      $$BuildRunsTableAnnotationComposer,
+      $$BuildRunsTableCreateCompanionBuilder,
+      $$BuildRunsTableUpdateCompanionBuilder,
+      (DriftBuildRun, $$BuildRunsTableReferences),
+      DriftBuildRun,
+      PrefetchHooks Function({bool buildJobId, bool buildStepsRefs})
+    >;
+typedef $$BuildStepsTableCreateCompanionBuilder =
+    BuildStepsCompanion Function({
+      required String id,
+      required String runId,
+      required String name,
+      required BuildJobStatus status,
+      required int durationMs,
+      required int stepOrder,
+      required DateTime createdAt,
+      required DateTime updatedAt,
+      Value<int> rowid,
+    });
+typedef $$BuildStepsTableUpdateCompanionBuilder =
+    BuildStepsCompanion Function({
+      Value<String> id,
+      Value<String> runId,
+      Value<String> name,
+      Value<BuildJobStatus> status,
+      Value<int> durationMs,
+      Value<int> stepOrder,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<int> rowid,
+    });
+
+final class $$BuildStepsTableReferences
+    extends BaseReferences<_$AppDatabase, $BuildStepsTable, DriftBuildStep> {
+  $$BuildStepsTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $BuildRunsTable _runIdTable(_$AppDatabase db) => db.buildRuns
+      .createAlias($_aliasNameGenerator(db.buildSteps.runId, db.buildRuns.id));
+
+  $$BuildRunsTableProcessedTableManager get runId {
+    final $_column = $_itemColumn<String>('run_id')!;
+
+    final manager = $$BuildRunsTableTableManager(
+      $_db,
+      $_db.buildRuns,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_runIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static MultiTypedResultKey<$BuildStepLogsTable, List<DriftBuildStepLog>>
+  _buildStepLogsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.buildStepLogs,
+    aliasName: $_aliasNameGenerator(db.buildSteps.id, db.buildStepLogs.stepId),
+  );
+
+  $$BuildStepLogsTableProcessedTableManager get buildStepLogsRefs {
+    final manager = $$BuildStepLogsTableTableManager(
+      $_db,
+      $_db.buildStepLogs,
+    ).filter((f) => f.stepId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_buildStepLogsRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+}
+
+class $$BuildStepsTableFilterComposer
+    extends Composer<_$AppDatabase, $BuildStepsTable> {
+  $$BuildStepsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<BuildJobStatus, BuildJobStatus, String>
+  get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnFilters<int> get durationMs => $composableBuilder(
+    column: $table.durationMs,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get stepOrder => $composableBuilder(
+    column: $table.stepOrder,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$BuildRunsTableFilterComposer get runId {
+    final $$BuildRunsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.runId,
+      referencedTable: $db.buildRuns,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$BuildRunsTableFilterComposer(
+            $db: $db,
+            $table: $db.buildRuns,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  Expression<bool> buildStepLogsRefs(
+    Expression<bool> Function($$BuildStepLogsTableFilterComposer f) f,
+  ) {
+    final $$BuildStepLogsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.buildStepLogs,
+      getReferencedColumn: (t) => t.stepId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$BuildStepLogsTableFilterComposer(
+            $db: $db,
+            $table: $db.buildStepLogs,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$BuildStepsTableOrderingComposer
+    extends Composer<_$AppDatabase, $BuildStepsTable> {
+  $$BuildStepsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get durationMs => $composableBuilder(
+    column: $table.durationMs,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get stepOrder => $composableBuilder(
+    column: $table.stepOrder,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$BuildRunsTableOrderingComposer get runId {
+    final $$BuildRunsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.runId,
+      referencedTable: $db.buildRuns,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$BuildRunsTableOrderingComposer(
+            $db: $db,
+            $table: $db.buildRuns,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$BuildStepsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $BuildStepsTable> {
+  $$BuildStepsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<BuildJobStatus, String> get status =>
+      $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<int> get durationMs => $composableBuilder(
+    column: $table.durationMs,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get stepOrder =>
+      $composableBuilder(column: $table.stepOrder, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  $$BuildRunsTableAnnotationComposer get runId {
+    final $$BuildRunsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.runId,
+      referencedTable: $db.buildRuns,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$BuildRunsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.buildRuns,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  Expression<T> buildStepLogsRefs<T extends Object>(
+    Expression<T> Function($$BuildStepLogsTableAnnotationComposer a) f,
+  ) {
+    final $$BuildStepLogsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.buildStepLogs,
+      getReferencedColumn: (t) => t.stepId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$BuildStepLogsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.buildStepLogs,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$BuildStepsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $BuildStepsTable,
+          DriftBuildStep,
+          $$BuildStepsTableFilterComposer,
+          $$BuildStepsTableOrderingComposer,
+          $$BuildStepsTableAnnotationComposer,
+          $$BuildStepsTableCreateCompanionBuilder,
+          $$BuildStepsTableUpdateCompanionBuilder,
+          (DriftBuildStep, $$BuildStepsTableReferences),
+          DriftBuildStep,
+          PrefetchHooks Function({bool runId, bool buildStepLogsRefs})
+        > {
+  $$BuildStepsTableTableManager(_$AppDatabase db, $BuildStepsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$BuildStepsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$BuildStepsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$BuildStepsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> runId = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<BuildJobStatus> status = const Value.absent(),
+                Value<int> durationMs = const Value.absent(),
+                Value<int> stepOrder = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => BuildStepsCompanion(
+                id: id,
+                runId: runId,
+                name: name,
+                status: status,
+                durationMs: durationMs,
+                stepOrder: stepOrder,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String runId,
+                required String name,
+                required BuildJobStatus status,
+                required int durationMs,
+                required int stepOrder,
+                required DateTime createdAt,
+                required DateTime updatedAt,
+                Value<int> rowid = const Value.absent(),
+              }) => BuildStepsCompanion.insert(
+                id: id,
+                runId: runId,
+                name: name,
+                status: status,
+                durationMs: durationMs,
+                stepOrder: stepOrder,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$BuildStepsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({runId = false, buildStepLogsRefs = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [
+                if (buildStepLogsRefs) db.buildStepLogs,
+              ],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (runId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.runId,
+                                referencedTable: $$BuildStepsTableReferences
+                                    ._runIdTable(db),
+                                referencedColumn: $$BuildStepsTableReferences
+                                    ._runIdTable(db)
+                                    .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [
+                  if (buildStepLogsRefs)
+                    await $_getPrefetchedData<
+                      DriftBuildStep,
+                      $BuildStepsTable,
+                      DriftBuildStepLog
+                    >(
+                      currentTable: table,
+                      referencedTable: $$BuildStepsTableReferences
+                          ._buildStepLogsRefsTable(db),
+                      managerFromTypedResult: (p0) =>
+                          $$BuildStepsTableReferences(
+                            db,
+                            table,
+                            p0,
+                          ).buildStepLogsRefs,
+                      referencedItemsForCurrentItem: (item, referencedItems) =>
+                          referencedItems.where((e) => e.stepId == item.id),
+                      typedResults: items,
+                    ),
+                ];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$BuildStepsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $BuildStepsTable,
+      DriftBuildStep,
+      $$BuildStepsTableFilterComposer,
+      $$BuildStepsTableOrderingComposer,
+      $$BuildStepsTableAnnotationComposer,
+      $$BuildStepsTableCreateCompanionBuilder,
+      $$BuildStepsTableUpdateCompanionBuilder,
+      (DriftBuildStep, $$BuildStepsTableReferences),
+      DriftBuildStep,
+      PrefetchHooks Function({bool runId, bool buildStepLogsRefs})
+    >;
+typedef $$BuildStepLogsTableCreateCompanionBuilder =
+    BuildStepLogsCompanion Function({
+      Value<int> id,
+      required String stepId,
+      required String logContent,
+      required DateTime createdAt,
+    });
+typedef $$BuildStepLogsTableUpdateCompanionBuilder =
+    BuildStepLogsCompanion Function({
+      Value<int> id,
+      Value<String> stepId,
+      Value<String> logContent,
+      Value<DateTime> createdAt,
+    });
+
+final class $$BuildStepLogsTableReferences
+    extends
+        BaseReferences<_$AppDatabase, $BuildStepLogsTable, DriftBuildStepLog> {
+  $$BuildStepLogsTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $BuildStepsTable _stepIdTable(_$AppDatabase db) =>
+      db.buildSteps.createAlias(
+        $_aliasNameGenerator(db.buildStepLogs.stepId, db.buildSteps.id),
+      );
+
+  $$BuildStepsTableProcessedTableManager get stepId {
+    final $_column = $_itemColumn<String>('step_id')!;
+
+    final manager = $$BuildStepsTableTableManager(
+      $_db,
+      $_db.buildSteps,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_stepIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$BuildStepLogsTableFilterComposer
+    extends Composer<_$AppDatabase, $BuildStepLogsTable> {
+  $$BuildStepLogsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get logContent => $composableBuilder(
+    column: $table.logContent,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$BuildStepsTableFilterComposer get stepId {
+    final $$BuildStepsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.stepId,
+      referencedTable: $db.buildSteps,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$BuildStepsTableFilterComposer(
+            $db: $db,
+            $table: $db.buildSteps,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$BuildStepLogsTableOrderingComposer
+    extends Composer<_$AppDatabase, $BuildStepLogsTable> {
+  $$BuildStepLogsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get logContent => $composableBuilder(
+    column: $table.logContent,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$BuildStepsTableOrderingComposer get stepId {
+    final $$BuildStepsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.stepId,
+      referencedTable: $db.buildSteps,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$BuildStepsTableOrderingComposer(
+            $db: $db,
+            $table: $db.buildSteps,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$BuildStepLogsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $BuildStepLogsTable> {
+  $$BuildStepLogsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get logContent => $composableBuilder(
+    column: $table.logContent,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  $$BuildStepsTableAnnotationComposer get stepId {
+    final $$BuildStepsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.stepId,
+      referencedTable: $db.buildSteps,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$BuildStepsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.buildSteps,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$BuildStepLogsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $BuildStepLogsTable,
+          DriftBuildStepLog,
+          $$BuildStepLogsTableFilterComposer,
+          $$BuildStepLogsTableOrderingComposer,
+          $$BuildStepLogsTableAnnotationComposer,
+          $$BuildStepLogsTableCreateCompanionBuilder,
+          $$BuildStepLogsTableUpdateCompanionBuilder,
+          (DriftBuildStepLog, $$BuildStepLogsTableReferences),
+          DriftBuildStepLog,
+          PrefetchHooks Function({bool stepId})
+        > {
+  $$BuildStepLogsTableTableManager(_$AppDatabase db, $BuildStepLogsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$BuildStepLogsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$BuildStepLogsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$BuildStepLogsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> stepId = const Value.absent(),
+                Value<String> logContent = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+              }) => BuildStepLogsCompanion(
+                id: id,
+                stepId: stepId,
+                logContent: logContent,
+                createdAt: createdAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String stepId,
+                required String logContent,
+                required DateTime createdAt,
+              }) => BuildStepLogsCompanion.insert(
+                id: id,
+                stepId: stepId,
+                logContent: logContent,
+                createdAt: createdAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$BuildStepLogsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({stepId = false}) {
             return PrefetchHooks(
               db: db,
               explicitlyWatchedTables: [],
@@ -8924,15 +9386,15 @@ class $$BuildRunsTableTableManager
                       dynamic
                     >
                   >(state) {
-                    if (buildJobId) {
+                    if (stepId) {
                       state =
                           state.withJoin(
                                 currentTable: table,
-                                currentColumn: table.buildJobId,
-                                referencedTable: $$BuildRunsTableReferences
-                                    ._buildJobIdTable(db),
-                                referencedColumn: $$BuildRunsTableReferences
-                                    ._buildJobIdTable(db)
+                                currentColumn: table.stepId,
+                                referencedTable: $$BuildStepLogsTableReferences
+                                    ._stepIdTable(db),
+                                referencedColumn: $$BuildStepLogsTableReferences
+                                    ._stepIdTable(db)
                                     .id,
                               )
                               as T;
@@ -8949,19 +9411,19 @@ class $$BuildRunsTableTableManager
       );
 }
 
-typedef $$BuildRunsTableProcessedTableManager =
+typedef $$BuildStepLogsTableProcessedTableManager =
     ProcessedTableManager<
       _$AppDatabase,
-      $BuildRunsTable,
-      DriftBuildRun,
-      $$BuildRunsTableFilterComposer,
-      $$BuildRunsTableOrderingComposer,
-      $$BuildRunsTableAnnotationComposer,
-      $$BuildRunsTableCreateCompanionBuilder,
-      $$BuildRunsTableUpdateCompanionBuilder,
-      (DriftBuildRun, $$BuildRunsTableReferences),
-      DriftBuildRun,
-      PrefetchHooks Function({bool buildJobId})
+      $BuildStepLogsTable,
+      DriftBuildStepLog,
+      $$BuildStepLogsTableFilterComposer,
+      $$BuildStepLogsTableOrderingComposer,
+      $$BuildStepLogsTableAnnotationComposer,
+      $$BuildStepLogsTableCreateCompanionBuilder,
+      $$BuildStepLogsTableUpdateCompanionBuilder,
+      (DriftBuildStepLog, $$BuildStepLogsTableReferences),
+      DriftBuildStepLog,
+      PrefetchHooks Function({bool stepId})
     >;
 typedef $$TeamsTableCreateCompanionBuilder =
     TeamsCompanion Function({
@@ -11889,12 +12351,12 @@ class $AppDatabaseManager {
       $$BuildJobsTableTableManager(_db, _db.buildJobs);
   $$BuildJobLogsTableTableManager get buildJobLogs =>
       $$BuildJobLogsTableTableManager(_db, _db.buildJobLogs);
+  $$BuildRunsTableTableManager get buildRuns =>
+      $$BuildRunsTableTableManager(_db, _db.buildRuns);
   $$BuildStepsTableTableManager get buildSteps =>
       $$BuildStepsTableTableManager(_db, _db.buildSteps);
   $$BuildStepLogsTableTableManager get buildStepLogs =>
       $$BuildStepLogsTableTableManager(_db, _db.buildStepLogs);
-  $$BuildRunsTableTableManager get buildRuns =>
-      $$BuildRunsTableTableManager(_db, _db.buildRuns);
   $$TeamsTableTableManager get teams =>
       $$TeamsTableTableManager(_db, _db.teams);
   $$TeamMembersTableTableManager get teamMembers =>
