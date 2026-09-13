@@ -53,7 +53,6 @@ Future<bool> startDockerCompose(
         'server',
         'build-job-planner',
         'build-job-worker',
-        'loki',
       ],
       t.dev.start.stepDockerCompose,
     ),

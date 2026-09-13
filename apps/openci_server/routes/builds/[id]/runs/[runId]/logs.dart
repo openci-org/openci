@@ -3,7 +3,6 @@ import 'dart:io';
 
 import 'package:dart_frog/dart_frog.dart';
 import 'package:openci_server/database.dart';
-import 'package:openci_server/logging/loki_service.dart';
 import 'package:openci_server/request/error_handler.dart';
 
 FutureOr<Response> onRequest(
@@ -30,12 +29,6 @@ Future<Response> _get(
         statusCode: HttpStatus.notFound,
         body: {'success': false, 'error': 'Build run not found'},
       );
-    }
-
-    final lokiService = _readLokiService(context);
-    final lokiLogs = await lokiService.getLogsForRun(runId: runId);
-    if (lokiLogs.isNotEmpty) {
-      return Response.json(body: lokiLogs);
     }
 
     final steps = await db.buildJobDao.getBuildSteps(runId);
@@ -67,13 +60,5 @@ Future<Response> _get(
       s,
       logMessage: 'Failed to read all logs for build $id run $runId',
     );
-  }
-}
-
-LokiService _readLokiService(RequestContext context) {
-  try {
-    return context.read<LokiService>();
-  } catch (_) {
-    return LokiService();
   }
 }

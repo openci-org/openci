@@ -1,8 +1,4 @@
-import 'dart:convert';
-
 import 'package:build_job_worker/build_job_worker.dart';
-import 'package:http/http.dart' as http;
-import 'package:http/testing.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:openci_shared/openci_shared.dart';
 import 'package:test/test.dart';
@@ -11,14 +7,10 @@ class _MockOrchardApiClient extends Mock implements OrchardApiClient {}
 
 void main() {
   late OrchardApiClient api;
-  late http.Client lokiClient;
   late BuildJob job;
   late List<String> commands;
-  late List<http.Request> requests;
-  late List<Object> logErrors;
   int? failedWrite;
   var workflowExitCode = 0;
-  var lokiStatusCode = 204;
   Object? executionError;
 
   Future<int> run({
@@ -28,16 +20,12 @@ void main() {
     String runId = 'run-1',
   }) => runWorkflow(
     api: api,
-    lokiClient: lokiClient,
-    lokiUrl: 'http://loki:3100',
-    vmLokiUrl: 'http://vm-loki:3100',
     vmName: 'vm-1',
     job: job,
     runId: runId,
     secretsContent: secretsContent,
     workspacePath: workspacePath,
     vmHomePath: vmHomePath,
-    onLogError: (error, _) => logErrors.add(error),
   );
 
   setUpAll(() => registerFallbackValue((String line, String stream) {}));
@@ -45,11 +33,8 @@ void main() {
   setUp(() {
     api = _MockOrchardApiClient();
     commands = [];
-    requests = [];
-    logErrors = [];
     failedWrite = null;
     workflowExitCode = 0;
-    lokiStatusCode = 204;
     executionError = null;
     final now = DateTime.utc(2026, 9, 7);
     job = BuildJob(
@@ -62,10 +47,6 @@ void main() {
       createdAt: now,
       updatedAt: now,
     );
-    lokiClient = MockClient((request) async {
-      requests.add(request);
-      return http.Response('', lokiStatusCode);
-    });
     when(
       () => api.execCommandWebSocket(
         vmName: 'vm-1',
@@ -89,45 +70,17 @@ void main() {
 
   tearDown(() {
     verifyNever(api.close);
-    lokiClient.close();
   });
 
   group('runWorkflow', () {
     for (final exitCode in [0, 23]) {
-      test(
-        'returns exit code $exitCode after forwarding workflow logs',
-        () async {
-          workflowExitCode = exitCode;
+      test('returns exit code $exitCode', () async {
+        workflowExitCode = exitCode;
 
-          expect(await run(), exitCode);
+        expect(await run(), exitCode);
 
-          expect(commands, hasLength(3));
-          expect(requests, hasLength(2));
-          for (final (index, stream) in ['stdout', 'stderr'].indexed) {
-            expect(
-              requests[index].url.toString(),
-              'http://loki:3100/loki/api/v1/push',
-            );
-            final body =
-                jsonDecode(requests[index].body) as Map<String, dynamic>;
-            final entry =
-                (body['streams'] as List<dynamic>).single
-                    as Map<String, dynamic>;
-            expect(entry['stream'], {
-              'stream': stream,
-              'type': 'step_log',
-              'run_id': 'run-1',
-              'build_job_id': 'job-1',
-              'step_id': 'run_workflow',
-            });
-          }
-          expect(
-            requests.map((request) => request.body).join(),
-            isNot(contains('test-only-value')),
-          );
-          expect(logErrors, isEmpty);
-        },
-      );
+        expect(commands, hasLength(3));
+      });
     }
 
     for (final writeNumber in [1, 2]) {
@@ -139,27 +92,14 @@ void main() {
           await expectLater(run(), throwsStateError);
 
           expect(commands, hasLength(writeNumber));
-          expect(requests, isEmpty);
         },
       );
     }
 
-    test('propagates execution errors after forwarding pending logs', () async {
+    test('propagates execution errors', () async {
       executionError = StateError('Orchard connection closed before exit');
 
       await expectLater(run(), throwsA(same(executionError)));
-
-      expect(requests, hasLength(2));
-    });
-
-    test('reports Loki errors and preserves the workflow exit code', () async {
-      lokiStatusCode = 500;
-      workflowExitCode = 42;
-
-      expect(await run(), 42);
-
-      expect(logErrors, hasLength(2));
-      expect(requests, hasLength(2));
     });
 
     for (final invalidSecrets in [
