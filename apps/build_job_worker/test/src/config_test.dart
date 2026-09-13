@@ -43,6 +43,8 @@ void main() {
           ...requiredEnvironment,
           'BASE_VM_NAME': 'custom-base',
           'ORCHARD_API_URL': 'https://orchard.example.com:6120',
+          'LOKI_URL': 'http://internal-loki.example.com:3100',
+          'LOKI_URL_FOR_VM': 'http://vm-loki.example.com:3100',
           'SENTRY_DSN': 'https://public@example.com/1',
         },
       );
@@ -53,6 +55,8 @@ void main() {
       expect(config.orchardServiceAccountToken, 'test-orchard-token');
       expect(config.baseVmName, 'custom-base');
       expect(config.orchardApiUrl, 'https://orchard.example.com:6120');
+      expect(config.internalLokiUrl, 'http://internal-loki.example.com:3100');
+      expect(config.lokiUrl, 'http://vm-loki.example.com:3100');
       expect(config.sentryDsn, 'https://public@example.com/1');
     });
 
@@ -63,6 +67,8 @@ void main() {
       expect(config.internalApiKey, 'test-api-key');
       expect(config.baseVmName, 'base-macos');
       expect(config.orchardApiUrl, 'https://orchard-controller:6120');
+      expect(config.internalLokiUrl, 'http://loki:3100');
+      expect(config.lokiUrl, 'http://192.168.64.1:3100');
       expect(config.sentryDsn, isNull);
     });
 

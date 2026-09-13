@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:http/http.dart' as http;
 import 'package:openci_shared/openci_shared.dart';
 
 import 'orchard/execute_command.dart';
@@ -8,9 +9,13 @@ import 'orchard/write_file.dart';
 
 Future<void> checkoutRepository({
   required OrchardApiClient api,
+  required http.Client lokiClient,
+  required String lokiUrl,
   required String vmName,
   required BuildJob job,
   required String token,
+  required String runId,
+  required void Function(Object error, StackTrace stackTrace) onLogError,
   String workspacePath = '/tmp/workspace',
 }) async {
   final baseUrl = Uri.parse(job.githubBaseUrl ?? 'https://github.com');
@@ -78,8 +83,14 @@ git checkout --detach FETCH_HEAD
   );
   final exitCode = await executeCommand(
     api: api,
+    lokiClient: lokiClient,
+    lokiUrl: lokiUrl,
     vmName: vmName,
     command: '/bin/sh ${_shellQuote(scriptPath)}',
+    runId: runId,
+    jobId: job.id,
+    stepId: 'checkout',
+    onLogError: onLogError,
   );
   if (exitCode != 0) {
     throw StateError('Git checkout failed with exit code $exitCode.');

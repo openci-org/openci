@@ -10,6 +10,8 @@ class Config {
     required this.orchardServiceAccountToken,
     this.baseVmName = 'base-macos',
     this.orchardApiUrl = 'https://orchard-controller:6120',
+    this.lokiUrl = 'http://192.168.64.1:3100',
+    this.internalLokiUrl = 'http://loki:3100',
     this.sentryDsn,
   });
 
@@ -30,6 +32,8 @@ class Config {
       baseVmName: env['BASE_VM_NAME'] ?? 'base-macos',
       orchardApiUrl:
           env['ORCHARD_API_URL'] ?? 'https://orchard-controller:6120',
+      lokiUrl: env['LOKI_URL_FOR_VM'] ?? 'http://192.168.64.1:3100',
+      internalLokiUrl: env['LOKI_URL'] ?? 'http://loki:3100',
       sentryDsn: env['SENTRY_DSN'],
     );
   }
@@ -41,4 +45,6 @@ class Config {
   final String orchardApiUrl;
   final String orchardServiceAccountName;
   final String orchardServiceAccountToken;
+  final String lokiUrl;
+  final String internalLokiUrl;
 }

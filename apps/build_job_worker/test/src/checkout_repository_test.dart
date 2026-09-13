@@ -1,4 +1,8 @@
+import 'dart:convert';
+
 import 'package:build_job_worker/build_job_worker.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:openci_shared/openci_shared.dart';
 import 'package:test/test.dart';
@@ -7,8 +11,10 @@ class _MockOrchardApiClient extends Mock implements OrchardApiClient {}
 
 void main() {
   late OrchardApiClient api;
+  late http.Client lokiClient;
   late BuildJob job;
   late List<String> commands;
+  late List<http.Request> requests;
   var writeExitCode = 0;
   var checkoutExitCode = 0;
   Object? checkoutError;
@@ -18,9 +24,13 @@ void main() {
     String workspacePath = '/tmp/workspace',
   }) => checkoutRepository(
     api: api,
+    lokiClient: lokiClient,
+    lokiUrl: 'http://loki:3100',
     vmName: 'vm-1',
     job: job,
     token: token,
+    runId: 'run-1',
+    onLogError: (error, _) => fail('Unexpected Loki error: $error'),
     workspacePath: workspacePath,
   );
 
@@ -29,6 +39,7 @@ void main() {
   setUp(() {
     api = _MockOrchardApiClient();
     commands = [];
+    requests = [];
     writeExitCode = 0;
     checkoutExitCode = 0;
     checkoutError = null;
@@ -44,6 +55,10 @@ void main() {
       createdAt: now,
       updatedAt: now,
     );
+    lokiClient = MockClient((request) async {
+      requests.add(request);
+      return http.Response('', 204);
+    });
     when(
       () => api.execCommandWebSocket(
         vmName: 'vm-1',
@@ -67,12 +82,31 @@ void main() {
 
   tearDown(() {
     verifyNever(api.close);
+    lokiClient.close();
   });
 
   group('checkoutRepository', () {
-    test('executes checkout after writing the script', () async {
+    test('forwards checkout output with run, job, and step labels', () async {
       await checkout();
+
       expect(commands, hasLength(2));
+      expect(requests, hasLength(2));
+      for (final (index, stream) in ['stdout', 'stderr'].indexed) {
+        final body = jsonDecode(requests[index].body) as Map<String, dynamic>;
+        final entry =
+            (body['streams'] as List<dynamic>).single as Map<String, dynamic>;
+        expect(entry['stream'], {
+          'stream': stream,
+          'type': 'step_log',
+          'run_id': 'run-1',
+          'build_job_id': 'job-1',
+          'step_id': 'checkout',
+        });
+      }
+      expect(
+        requests.map((request) => request.body).join(),
+        isNot(contains('private setup output')),
+      );
     });
 
     test('does not execute checkout if script writing fails', () async {
@@ -81,9 +115,10 @@ void main() {
       await expectLater(checkout(), throwsStateError);
 
       expect(commands, hasLength(1));
+      expect(requests, isEmpty);
     });
 
-    test('reports the checkout exit code', () async {
+    test('reports the checkout exit code after forwarding its logs', () async {
       checkoutExitCode = 128;
 
       await expectLater(
@@ -96,12 +131,15 @@ void main() {
           ),
         ),
       );
+      expect(requests, hasLength(2));
     });
 
-    test('propagates execution errors', () async {
+    test('propagates execution errors after forwarding pending logs', () async {
       checkoutError = StateError('Orchard connection closed before exit');
 
       await expectLater(checkout(), throwsA(same(checkoutError)));
+
+      expect(requests, hasLength(2));
     });
 
     test('rejects an empty token before contacting Orchard', () async {

@@ -122,6 +122,7 @@ void main() {
           'server',
           'build-job-planner',
           'build-job-worker',
+          'loki',
         ],
       ]);
       expect(capturedWorkingDirectory, equals(projectRoot.path));
