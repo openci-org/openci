@@ -57,7 +57,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 21;
+  int get schemaVersion => 22;
 
   @override
   MigrationStrategy get migration {
@@ -82,6 +82,32 @@ class AppDatabase extends _$AppDatabase {
         }
         if (from < 21) {
           await m.deleteTable('processed_webhooks');
+        }
+        if (from < 22) {
+          await transaction(() async {
+            // Earlier versions create these tables with the current schema.
+            if (from >= 20) {
+              if (executor.dialect == SqlDialect.postgres) {
+                await customStatement('''
+                  ALTER TABLE build_steps
+                  ADD CONSTRAINT build_steps_run_id_fkey
+                  FOREIGN KEY (run_id) REFERENCES build_runs (id)
+                  ON DELETE CASCADE
+                ''');
+                await customStatement('''
+                  ALTER TABLE build_step_logs
+                  ADD CONSTRAINT build_step_logs_step_id_fkey
+                  FOREIGN KEY (step_id) REFERENCES build_steps (id)
+                  ON DELETE CASCADE
+                ''');
+              } else {
+                await m.alterTable(TableMigration(buildSteps));
+                await m.alterTable(TableMigration(buildStepLogs));
+              }
+            }
+            await m.createIndex(buildStepsRunOrder);
+            await m.createIndex(buildStepLogsStepId);
+          });
         }
       },
     );

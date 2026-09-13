@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:drift/drift.dart';
+import 'package:openci_server/build_run/build_run.dart';
 import 'package:openci_shared/openci_shared.dart';
 
 class MapConverter extends TypeConverter<Map<String, Object?>, String> {
@@ -91,9 +92,11 @@ class BuildJobLogs extends Table {
 }
 
 @DataClassName('DriftBuildStep')
+@TableIndex(name: 'build_steps_run_order', columns: {#runId, #stepOrder})
 class BuildSteps extends Table {
   TextColumn get id => text()();
-  TextColumn get runId => text()();
+  TextColumn get runId =>
+      text().references(BuildRuns, #id, onDelete: KeyAction.cascade)();
   TextColumn get name => text()();
   TextColumn get status => textEnum<BuildJobStatus>()();
   IntColumn get durationMs => integer()();
@@ -107,9 +110,11 @@ class BuildSteps extends Table {
 }
 
 @DataClassName('DriftBuildStepLog')
+@TableIndex(name: 'build_step_logs_step_id', columns: {#stepId, #id})
 class BuildStepLogs extends Table {
   IntColumn get id => integer().autoIncrement()();
-  TextColumn get stepId => text()();
+  TextColumn get stepId =>
+      text().references(BuildSteps, #id, onDelete: KeyAction.cascade)();
   TextColumn get logContent => text()();
   DateTimeColumn get createdAt => dateTime()();
 }
