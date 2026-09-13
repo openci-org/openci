@@ -1,31 +1,20 @@
-import 'dart:convert';
 import 'dart:math';
 
 import 'package:http/http.dart' as http;
 import 'package:openci_shared/openci_shared.dart';
 
-import 'checkout_repository.dart';
-import 'complete_build_job.dart';
-import 'complete_build_run.dart';
-import 'complete_github_check_run.dart';
-import 'config.dart';
-import 'create_build_run.dart';
-import 'fetch_job_secrets.dart';
-import 'loki/push_log_to_loki.dart';
-import 'orchard/orchard_api_client.dart';
-import 'orchard/prepare_vm.dart';
-import 'resolve_github_installation_token.dart';
-import 'run_workflow.dart';
-import 'send_step_log_chunk.dart';
-
-enum _StepEntryType {
-  stepEvent('step_event'),
-  stepLog('step_log');
-
-  const _StepEntryType(this.value);
-
-  final String value;
-}
+import '../checkout_repository.dart';
+import '../complete_build_job.dart';
+import '../complete_build_run.dart';
+import '../complete_github_check_run.dart';
+import '../config.dart';
+import '../create_build_run.dart';
+import '../fetch_job_secrets.dart';
+import '../orchard/orchard_api_client.dart';
+import '../orchard/prepare_vm.dart';
+import 'report_step.dart' as step_reporting;
+import '../resolve_github_installation_token.dart';
+import '../run_workflow.dart';
 
 Future<BuildJobStatus> executeBuildJob({
   required OpenCiApiService api,
@@ -56,36 +45,17 @@ Future<BuildJobStatus> executeBuildJob({
   String? leaseId;
   final errors = <(Object, StackTrace)>[];
 
-  Future<void> reportStep(BuildStep step, {String? logMessage}) async {
-    for (final entry in <_StepEntryType, String>{
-      _StepEntryType.stepEvent: jsonEncode(step.toJson()),
-      _StepEntryType.stepLog: ?logMessage,
-    }.entries) {
-      try {
-        if (entry.key == _StepEntryType.stepLog) {
-          await sendStepLogChunk(
-            api: api,
-            jobId: job.id,
-            runId: runId,
-            stepId: step.id,
-            lines: [entry.value],
-          ).timeout(const Duration(seconds: 10));
-          continue;
-        }
-        await pushLogToLoki(
-          client: lokiClient,
-          lokiUrl: config.internalLokiUrl,
-          runId: runId,
-          jobId: job.id,
-          stepId: step.id,
-          type: entry.key.value,
-          message: entry.value,
-        ).timeout(const Duration(seconds: 10));
-      } catch (error, stackTrace) {
-        errors.add((error, stackTrace));
-      }
-    }
-  }
+  Future<void> reportStep(BuildStep step, {String? logMessage}) =>
+      step_reporting.reportStep(
+        api: api,
+        lokiClient: lokiClient,
+        lokiUrl: config.internalLokiUrl,
+        jobId: job.id,
+        runId: runId,
+        step: step,
+        logMessage: logMessage,
+        onError: (error, stackTrace) => errors.add((error, stackTrace)),
+      );
 
   try {
     await createBuildRun(api: api, jobId: job.id, runId: runId);
