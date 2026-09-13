@@ -60,7 +60,7 @@ void main(List<String> args) async {
       print('   Response Body:\n${_formatJson(response.body)}');
     }
   } catch (e, st) {
-    print('❌ Error connecting to openci-server API: $e');
+    print('❌ Error connecting to genuineci-server API: $e');
     print(st);
   }
 

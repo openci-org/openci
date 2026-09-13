@@ -6,7 +6,7 @@ on:
       - "apps/genuineci_cli/**"
       - "apps/build_job_planner/**"
       - "apps/build_job_worker/**"
-      - "apps/openci_server/**"
+      - "apps/genuineci_server/**"
       - "packages/openci_shared/**"
       - "analysis_options.yaml"
       - "pubspec.yaml"
@@ -37,19 +37,19 @@ jobs:
           - app: build_job_worker
             path: apps/build_job_worker
             format_paths: apps/build_job_worker
-          - app: openci_server
-            path: apps/openci_server
+          - app: genuineci_server
+            path: apps/genuineci_server
             format_paths: >-
-              apps/openci_server/lib
-              apps/openci_server/routes
-              apps/openci_server/test
+              apps/genuineci_server/lib
+              apps/genuineci_server/routes
+              apps/genuineci_server/test
           - app: openci_shared
             path: packages/openci_shared
             format_paths: packages/openci_shared
 
     services:
       postgres:
-        image: ${{ matrix.app == 'openci_server' && 'postgres:16-alpine' || '' }}
+        image: ${{ matrix.app == 'genuineci_server' && 'postgres:16-alpine' || '' }}
         env:
           POSTGRES_DB: openci_test
           POSTGRES_USER: openci_test
@@ -88,12 +88,12 @@ jobs:
         run: flutter analyze --no-pub ${{ matrix.path }}
 
       - name: Run unit tests with coverage
-        if: matrix.app != 'openci_server'
+        if: matrix.app != 'genuineci_server'
         working-directory: ${{ matrix.path }}
         run: flutter test --coverage --no-pub
 
       - name: Run server tests with lib and routes coverage
-        if: matrix.app == 'openci_server'
+        if: matrix.app == 'genuineci_server'
         working-directory: ${{ matrix.path }}
         env:
           TEST_DATABASE_URL: postgres://openci_test:openci_test@127.0.0.1:${{ job.services.postgres.ports['5432'] }}/openci_test?sslmode=disable

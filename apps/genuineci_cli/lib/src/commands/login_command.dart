@@ -59,7 +59,7 @@ class LoginCommand extends Command<int> {
       // Read only the running local server's key; never print Docker output.
       final result = await _processRunner('docker', [
         'exec',
-        'openci-server',
+        'genuineci-server',
         'printenv',
         'INTERNAL_API_KEY',
       ]).timeout(_timeout);

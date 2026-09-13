@@ -36,7 +36,7 @@ After seeding, log in from another terminal:
 genuineci login --local
 ```
 
-This reads the API key from the running `openci-server` container, authenticates
+This reads the API key from the running `genuineci-server` container, authenticates
 with `http://localhost:8080`, and selects `test-team`. After the server confirms
 the team, it saves and activates the `local` credential profile. Failed login
 attempts leave existing credentials unchanged.
