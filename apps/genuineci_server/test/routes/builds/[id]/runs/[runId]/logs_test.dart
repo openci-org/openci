@@ -98,34 +98,43 @@ void main() {
     test('returns an empty list when only PG has logs', () async {
       await _seedBuildJob(db);
       final now = DateTime.now().toUtc();
-      await db.buildStepDao.upsertBuildStep(
-        BuildStep(
-          id: 'checkout',
-          runId: 'run-456',
-          name: 'Checkout',
-          status: BuildJobStatus.SUCCESS,
-          durationMs: 100,
-          stepOrder: 0,
-          createdAt: now,
-          updatedAt: now,
-        ),
-      );
-      await db.buildStepLogDao.insertBuildStepLog(
-        'run-456_checkout',
-        'line 1\nline 2\n',
-      );
-      await db.buildStepDao.upsertBuildStep(
-        BuildStep(
-          id: 'test',
-          runId: 'run-456',
-          name: 'Test',
-          status: BuildJobStatus.SUCCESS,
-          durationMs: 200,
-          stepOrder: 1,
-          createdAt: now,
-          updatedAt: now,
-        ),
-      );
+      await db
+          .into(db.buildSteps)
+          .insert(
+            DriftBuildStep(
+              id: 'checkout',
+              runId: 'run-456',
+              name: 'Checkout',
+              status: BuildJobStatus.SUCCESS,
+              durationMs: 100,
+              stepOrder: 0,
+              createdAt: now,
+              updatedAt: now,
+            ),
+          );
+      await db
+          .into(db.buildStepLogs)
+          .insert(
+            BuildStepLogsCompanion.insert(
+              stepId: 'run-456_checkout',
+              logContent: 'line 1\nline 2\n',
+              createdAt: now,
+            ),
+          );
+      await db
+          .into(db.buildSteps)
+          .insert(
+            DriftBuildStep(
+              id: 'test',
+              runId: 'run-456',
+              name: 'Test',
+              status: BuildJobStatus.SUCCESS,
+              durationMs: 200,
+              stepOrder: 1,
+              createdAt: now,
+              updatedAt: now,
+            ),
+          );
 
       final context = TestRequestContext(
         path: '/builds/job-xyz/runs/run-456/logs',
