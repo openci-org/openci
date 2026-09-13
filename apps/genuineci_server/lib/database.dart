@@ -4,8 +4,6 @@ import 'package:drift/drift.dart';
 import 'package:drift_postgres/drift_postgres.dart';
 import 'package:genuineci_server/build_job/build_job.dart';
 import 'package:genuineci_server/build_job/build_job_dao.dart';
-import 'package:genuineci_server/build_job/build_step_dao.dart';
-import 'package:genuineci_server/build_job/build_step_log_dao.dart';
 import 'package:genuineci_server/build_run/build_run.dart';
 import 'package:genuineci_server/build_run/build_run_dao.dart';
 import 'package:genuineci_server/device/device_dao.dart';
@@ -45,8 +43,6 @@ part 'database.g.dart';
   ],
   daos: [
     BuildJobDao,
-    BuildStepDao,
-    BuildStepLogDao,
     BuildRunDao,
     TeamDao,
     WebhookTaskDao,

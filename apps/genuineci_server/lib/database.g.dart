@@ -6938,10 +6938,6 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         'CREATE INDEX build_step_logs_step_id ON build_step_logs (step_id, id)',
   });
   late final BuildJobDao buildJobDao = BuildJobDao(this as AppDatabase);
-  late final BuildStepDao buildStepDao = BuildStepDao(this as AppDatabase);
-  late final BuildStepLogDao buildStepLogDao = BuildStepLogDao(
-    this as AppDatabase,
-  );
   late final BuildRunDao buildRunDao = BuildRunDao(this as AppDatabase);
   late final TeamDao teamDao = TeamDao(this as AppDatabase);
   late final WebhookTaskDao webhookTaskDao = WebhookTaskDao(
