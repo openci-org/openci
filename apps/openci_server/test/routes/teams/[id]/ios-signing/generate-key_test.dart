@@ -7,7 +7,7 @@ import 'package:openci_server/database.dart';
 import 'package:openci_server/secret/secret_crypter.dart';
 import 'package:test/test.dart';
 
-import '../../../routes/teams/[id]/ios-signing/generate-key.dart'
+import '../../../../../routes/teams/[id]/ios-signing/generate-key.dart'
     as generate_key_route;
 
 void main() {

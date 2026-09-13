@@ -10,7 +10,8 @@ import 'package:openci_server/database.dart';
 import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 
-import '../../../routes/teams/[id]/github/repositories/index.dart'
+import '../../../../../helpers/database_failure_checks.dart';
+import '../../../../../../routes/teams/[id]/github/repositories/index.dart'
     as repositories_route;
 
 const testRsaPrivateKey = '''
@@ -236,4 +237,12 @@ void main() {
       expect(repositories[1]['defaultBranch'], equals('main'));
     });
   });
+
+  testDatabaseFailures([
+    DatabaseFailureEndpoint(
+      '/teams/team-1/github/repositories',
+      HttpMethod.get,
+      (c) => repositories_route.onRequest(c, 'team-1'),
+    ),
+  ]);
 }

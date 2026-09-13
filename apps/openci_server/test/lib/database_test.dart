@@ -45,4 +45,25 @@ void main() {
     expect(retrievedJob.owner, 'openci-org');
     expect(retrievedJob.status, BuildJobStatus.QUEUED);
   });
+
+  group('loadDatabaseUrl Tests', () {
+    test('uses DATABASE_URL environment variable if specified', () {
+      final url = loadDatabaseUrl(
+        environment: {
+          'DATABASE_URL': 'postgres://test-db:5432/test',
+        },
+      );
+      expect(
+        url,
+        equals('postgres://test-db:5432/test?sslmode=disable'),
+      );
+    });
+
+    test('throws StateError if DATABASE_URL is missing', () {
+      expect(
+        () => loadDatabaseUrl(environment: {}),
+        throwsStateError,
+      );
+    });
+  });
 }

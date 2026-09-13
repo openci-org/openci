@@ -213,6 +213,34 @@ void main() {
         );
       },
     );
+
+    test(
+      'BuildJobDao watchBuildJobsForTeam streams updates in real-time',
+      () async {
+        final stream = db.buildJobDao.watchBuildJobsForTeam(teamId: 'team-1');
+
+        expect(
+          stream,
+          emitsThrough(hasLength(1)),
+        );
+
+        await db
+            .into(db.buildJobs)
+            .insert(
+              BuildJobsCompanion.insert(
+                id: 'job-1',
+                status: BuildJobStatus.QUEUED,
+                owner: 'openci',
+                repo: 'app',
+                workflowName: 'CI',
+                workflowFileName: 'ci.yml',
+                teamId: const Value('team-1'),
+                createdAt: DateTime.now().toUtc(),
+                updatedAt: DateTime.now().toUtc(),
+              ),
+            );
+      },
+    );
   });
 }
 

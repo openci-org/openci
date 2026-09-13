@@ -7,6 +7,7 @@ import 'package:openci_server/database.dart';
 import 'package:openci_server/device/device_table.dart';
 import 'package:test/test.dart';
 
+import '../../helpers/database_failure_checks.dart';
 import '../../../routes/devices/index.dart' as route;
 
 void main() {
@@ -141,4 +142,8 @@ void main() {
       },
     );
   });
+
+  testDatabaseFailures([
+    DatabaseFailureEndpoint('/devices', HttpMethod.get, route.onRequest),
+  ]);
 }

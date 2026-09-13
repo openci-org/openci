@@ -9,7 +9,8 @@ import 'package:openci_server/database.dart';
 import 'package:openci_server/team/team_dao.dart';
 import 'package:test/test.dart';
 
-import '../../../routes/teams/[id]/index.dart' as route;
+import '../../../helpers/database_failure_checks.dart';
+import '../../../../routes/teams/[id]/index.dart' as route;
 
 class MockAppDatabase extends Mock implements AppDatabase {}
 
@@ -608,4 +609,17 @@ void main() {
       },
     );
   });
+
+  testDatabaseFailures([
+    DatabaseFailureEndpoint(
+      '/teams/team-1',
+      HttpMethod.patch,
+      (c) => route.onRequest(c, 'team-1'),
+    ),
+    DatabaseFailureEndpoint(
+      '/teams/team-1',
+      HttpMethod.delete,
+      (c) => route.onRequest(c, 'team-1'),
+    ),
+  ]);
 }

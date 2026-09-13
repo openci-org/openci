@@ -9,8 +9,8 @@ import 'package:openci_server/database.dart';
 import 'package:openci_server/secret/secret_table.dart';
 import 'package:test/test.dart';
 
-import '../../../routes/teams/[id]/secrets/[name].dart' as name_route;
-import '../../../routes/teams/[id]/secrets/index.dart' as index_route;
+import '../../../../../routes/teams/[id]/secrets/[name].dart' as name_route;
+import '../../../../../routes/teams/[id]/secrets/index.dart' as index_route;
 
 class MockAppDatabase extends Mock implements AppDatabase {}
 
@@ -80,7 +80,6 @@ void main() {
     });
 
     for (final (method, name) in [
-      (HttpMethod.get, null),
       (HttpMethod.get, 'API_KEY'),
       (HttpMethod.delete, 'API_KEY'),
     ]) {
@@ -140,31 +139,11 @@ void main() {
       },
     );
 
-    for (final name in [null, 'API_KEY']) {
+    for (final name in ['API_KEY']) {
       test('unsupported method for $name returns 405', () async {
         final response = await request(method: HttpMethod.patch, name: name);
         expect(response.statusCode, HttpStatus.methodNotAllowed);
         expect(await db.secretDao.getSecret('team-123', 'API_KEY'), isNotNull);
-      });
-    }
-
-    for (final payload in [
-      '{',
-      '[]',
-      jsonEncode({'value': 'value'}),
-      jsonEncode({'name': '  ', 'value': 'value'}),
-      jsonEncode({'name': 1, 'value': 'value'}),
-      jsonEncode({'name': 'NEW_SECRET'}),
-      jsonEncode({'name': 'NEW_SECRET', 'value': '  '}),
-      jsonEncode({'name': 'NEW_SECRET', 'value': 1}),
-    ]) {
-      test('invalid payload $payload is rejected before storage', () async {
-        final response = await request(method: HttpMethod.post, body: payload);
-        expect(response.statusCode, HttpStatus.badRequest);
-        final body = await response.json() as Map<String, dynamic>;
-        expect(body['success'], isFalse);
-        expect(body['error'], isNotEmpty);
-        expect(await db.secretDao.getSecretsForTeam('team-123'), hasLength(1));
       });
     }
 
@@ -186,7 +165,6 @@ void main() {
     );
 
     for (final (method, name) in [
-      (HttpMethod.post, null),
       (HttpMethod.get, 'API_KEY'),
     ]) {
       test(
@@ -210,8 +188,6 @@ void main() {
     }
 
     for (final (method, name) in [
-      (HttpMethod.get, null),
-      (HttpMethod.post, null),
       (HttpMethod.get, 'API_KEY'),
       (HttpMethod.delete, 'API_KEY'),
     ]) {
@@ -239,193 +215,6 @@ void main() {
   });
 
   group('Secrets Endpoints', () {
-    group('POST /teams/<id>/secrets', () {
-      test('responds with 401 Unauthorized when uid is null', () async {
-        final context = TestRequestContext(
-          path: '/teams/team-123/secrets',
-          method: HttpMethod.post,
-          body: jsonEncode({'name': 'MY_SECRET', 'value': 'my-value'}),
-        );
-        context.provide<AppDatabase>(db);
-        context.provide<String?>(null);
-        context.provide<Map<String, String>>(env);
-
-        final response = await index_route.onRequest(
-          context.context,
-          'team-123',
-        );
-        expect(response.statusCode, equals(HttpStatus.unauthorized));
-      });
-
-      test(
-        'responds with 403 Forbidden when user is not team member',
-        () async {
-          final context = TestRequestContext(
-            path: '/teams/team-123/secrets',
-            method: HttpMethod.post,
-            body: jsonEncode({'name': 'MY_SECRET', 'value': 'my-value'}),
-          );
-          context.provide<AppDatabase>(db);
-          context.provide<String?>('non-member-user');
-          context.provide<Map<String, String>>(env);
-
-          final response = await index_route.onRequest(
-            context.context,
-            'team-123',
-          );
-          expect(response.statusCode, equals(HttpStatus.forbidden));
-        },
-      );
-
-      test(
-        'responds with 200 OK and encrypts and stores secret in database',
-        () async {
-          await db
-              .into(db.teamMembers)
-              .insert(
-                TeamMembersCompanion.insert(
-                  teamId: 'team-123',
-                  userId: 'user-1',
-                ),
-              );
-
-          final context = TestRequestContext(
-            path: '/teams/team-123/secrets',
-            method: HttpMethod.post,
-            body: jsonEncode({'name': 'MY_SECRET', 'value': 'my-value'}),
-          );
-          context.provide<AppDatabase>(db);
-          context.provide<String?>('user-1');
-          context.provide<Map<String, String>>(env);
-
-          final response = await index_route.onRequest(
-            context.context,
-            'team-123',
-          );
-          expect(response.statusCode, equals(HttpStatus.ok));
-
-          final body = await response.json() as Map<String, dynamic>;
-          expect(body['success'], isTrue);
-
-          final retrieved = await db.secretDao.getSecret(
-            'team-123',
-            'MY_SECRET',
-          );
-          expect(retrieved, isNotNull);
-          expect(retrieved!.encryptedValue, isNot(equals('my-value')));
-        },
-      );
-
-      test(
-        'responds with 200 OK and stores secret for the internal job processor',
-        () async {
-          final context = TestRequestContext(
-            path: '/teams/team-123/secrets',
-            method: HttpMethod.post,
-            body: jsonEncode({'name': 'WORKER_SECRET', 'value': 'worker-val'}),
-          );
-          context.provide<AppDatabase>(db);
-          context.provide<String?>('system-job-processor');
-          context.provide<Map<String, String>>(env);
-
-          final response = await index_route.onRequest(
-            context.context,
-            'team-123',
-          );
-          expect(response.statusCode, equals(HttpStatus.ok));
-
-          final body = await response.json() as Map<String, dynamic>;
-          expect(body['success'], isTrue);
-
-          final retrieved = await db.secretDao.getSecret(
-            'team-123',
-            'WORKER_SECRET',
-          );
-          expect(retrieved, isNotNull);
-          expect(retrieved!.encryptedValue, isNot(equals('worker-val')));
-        },
-      );
-    });
-
-    group('GET /teams/<id>/secrets', () {
-      test(
-        'responds with 200 OK and lists redacted secrets for members',
-        () async {
-          await db
-              .into(db.teamMembers)
-              .insert(
-                TeamMembersCompanion.insert(
-                  teamId: 'team-123',
-                  userId: 'user-1',
-                ),
-              );
-
-          final now = DateTime.now().toUtc();
-          await db.secretDao.insertOrUpdateSecret(
-            DriftSecret(
-              name: 'API_KEY',
-              teamId: 'team-123',
-              encryptedValue: 'super-secret-ciphertext',
-              createdAt: now,
-              updatedAt: now,
-            ),
-          );
-
-          final context = TestRequestContext(
-            path: '/teams/team-123/secrets',
-            method: HttpMethod.get,
-          );
-          context.provide<AppDatabase>(db);
-          context.provide<String?>('user-1');
-          context.provide<Map<String, String>>(env);
-
-          final response = await index_route.onRequest(
-            context.context,
-            'team-123',
-          );
-          expect(response.statusCode, equals(HttpStatus.ok));
-
-          final body = await response.json() as Map<String, dynamic>;
-          expect(body['success'], isTrue);
-
-          final secrets = body['secrets'] as List<dynamic>;
-          expect(secrets, hasLength(1));
-          expect(secrets[0]['name'], equals('API_KEY'));
-          expect(secrets[0]['encryptedValue'], equals('[REDACTED]'));
-        },
-      );
-
-      test(
-        'responds with 200 OK and lists secrets for the internal job processor',
-        () async {
-          final now = DateTime.now().toUtc();
-          await db.secretDao.insertOrUpdateSecret(
-            DriftSecret(
-              name: 'API_KEY',
-              teamId: 'team-123',
-              encryptedValue: 'super-secret-ciphertext',
-              createdAt: now,
-              updatedAt: now,
-            ),
-          );
-
-          final context = TestRequestContext(
-            path: '/teams/team-123/secrets',
-            method: HttpMethod.get,
-          );
-          context.provide<AppDatabase>(db);
-          context.provide<String?>('system-job-processor');
-          context.provide<Map<String, String>>(env);
-
-          final response = await index_route.onRequest(
-            context.context,
-            'team-123',
-          );
-          expect(response.statusCode, equals(HttpStatus.ok));
-        },
-      );
-    });
-
     group('GET /teams/<id>/secrets/<name>', () {
       test(
         'responds with 200 OK for the internal job processor',

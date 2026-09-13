@@ -11,7 +11,7 @@ import 'package:openci_server/database.dart';
 import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 
-import '../../../routes/teams/[id]/workflows.dart' as workflows_route;
+import '../../../../routes/teams/[id]/workflows.dart' as workflows_route;
 
 const testRsaPrivateKey = '''
 -----BEGIN PRIVATE KEY-----
