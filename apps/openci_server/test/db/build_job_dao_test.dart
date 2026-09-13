@@ -144,10 +144,12 @@ void main() {
           createdAt: DateTime.utc(2026, 9, 1),
           updatedAt: DateTime.utc(2026, 9, 1),
         );
-        await dao.saveStep(first.copyWith(id: 'second', stepOrder: 1));
-        await dao.saveStep(first.copyWith(id: 'other-run', runId: 'run-b'));
-        await dao.saveStep(first);
-        await dao.saveStep(
+        await dao.upsertBuildStep(first.copyWith(id: 'second', stepOrder: 1));
+        await dao.upsertBuildStep(
+          first.copyWith(id: 'other-run', runId: 'run-b'),
+        );
+        await dao.upsertBuildStep(first);
+        await dao.upsertBuildStep(
           first.copyWith(status: BuildJobStatus.SUCCESS, durationMs: 10),
         );
 

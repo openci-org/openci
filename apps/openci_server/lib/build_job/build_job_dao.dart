@@ -145,7 +145,7 @@ class BuildJobDao extends DatabaseAccessor<AppDatabase>
     }
   }
 
-  Future<void> saveStep(BuildStep step) =>
+  Future<void> upsertBuildStep(BuildStep step) =>
       into(buildSteps).insertOnConflictUpdate(
         DriftBuildStep(
           id: step.id,
