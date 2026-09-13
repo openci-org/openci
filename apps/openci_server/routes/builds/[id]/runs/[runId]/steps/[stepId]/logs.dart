@@ -65,7 +65,7 @@ Future<Response> _post(
 
     if (logBuffer.isNotEmpty) {
       final dbKey = stepId.startsWith(runId) ? stepId : '${runId}_$stepId';
-      await db.buildJobDao.insertBuildStepLog(dbKey, logBuffer.toString());
+      await db.buildStepLogDao.insertBuildStepLog(dbKey, logBuffer.toString());
     }
 
     return Response.json(body: {'success': true});

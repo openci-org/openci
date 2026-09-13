@@ -131,56 +131,6 @@ void main() {
       expect(job.updatedAt.toUtc(), updatedAt);
     });
 
-    test(
-      'steps are ordered within a run and upsert preserves a single row',
-      () async {
-        final first = BuildStep(
-          id: 'first',
-          runId: 'run-a',
-          name: 'Checkout',
-          status: BuildJobStatus.IN_PROGRESS,
-          durationMs: 0,
-          stepOrder: 0,
-          createdAt: DateTime.utc(2026, 9, 1),
-          updatedAt: DateTime.utc(2026, 9, 1),
-        );
-        await dao.upsertBuildStep(first.copyWith(id: 'second', stepOrder: 1));
-        await dao.upsertBuildStep(
-          first.copyWith(id: 'other-run', runId: 'run-b'),
-        );
-        await dao.upsertBuildStep(first);
-        await dao.upsertBuildStep(
-          first.copyWith(status: BuildJobStatus.SUCCESS, durationMs: 10),
-        );
-
-        final steps = await dao.getBuildSteps('run-a');
-        expect(steps.map((step) => step.id), ['first', 'second']);
-        expect(steps.first.runId, first.runId);
-        expect(steps.first.name, first.name);
-        expect(steps.first.status, BuildJobStatus.SUCCESS);
-        expect(steps.first.durationMs, 10);
-        expect(steps.first.stepOrder, first.stepOrder);
-        expect(steps.first.createdAt.toUtc(), first.createdAt);
-        expect(steps.first.updatedAt.toUtc(), first.updatedAt);
-        expect(await dao.getBuildSteps('missing'), isEmpty);
-      },
-    );
-
-    test(
-      'step logs preserve insertion order and stay within their step',
-      () async {
-        await dao.insertBuildStepLog('step-a', 'first');
-        await dao.insertBuildStepLog('step-b', 'unrelated');
-        await dao.insertBuildStepLog('step-a', 'second');
-
-        expect(
-          (await dao.getBuildStepLogs('step-a')).map((log) => log.logContent),
-          ['first', 'second'],
-        );
-        expect(await dao.getBuildStepLogs('missing'), isEmpty);
-      },
-    );
-
     test('Job CRUD Operations', () async {
       final now = DateTime.now().toUtc();
       final job = DriftBuildJob(
