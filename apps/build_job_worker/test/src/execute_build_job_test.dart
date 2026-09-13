@@ -109,6 +109,28 @@ void main() {
       })
       .toList();
 
+  List<Map<String, dynamic>> workerErrorLogs() =>
+      logRequests.map(_lokiStream).where((stream) {
+        final labels = stream['stream'] as Map<String, dynamic>;
+        return labels['type'] == 'step_log' && !labels.containsKey('step_id');
+      }).toList();
+
+  void expectWorkerErrorsInLoki() {
+    final logs = workerErrorLogs();
+    expect(logs, hasLength(errors.length));
+    for (final (index, log) in logs.indexed) {
+      expect(log['stream'], {
+        'stream': 'stderr',
+        'type': 'step_log',
+        'run_id': runIds.single,
+        'build_job_id': job.id,
+      });
+      final values = (log['values'] as List<dynamic>).single as List<dynamic>;
+      final (error, stackTrace) = errors[index];
+      expect(values[1], 'Build job worker error: $error\n$stackTrace');
+    }
+  }
+
   setUpAll(() {
     registerFallbackValue((String line, String stream) {});
   });
@@ -600,6 +622,7 @@ void main() {
         ]);
         expect(errors, hasLength(1));
         expect(errors.single.$2.toString(), sourceStack.toString());
+        expectWorkerErrorsInLoki();
         expect(events.where((event) => event == stage), hasLength(1));
         if (['createRun', 'token', 'createVm'].contains(stage)) {
           expect(deletedVms, isEmpty);
@@ -665,6 +688,7 @@ void main() {
           expect(deletedVms, ['lease-1']);
           expect(errors, hasLength(1));
           expect(errors.single.$2.toString(), sourceStack.toString());
+          expectWorkerErrorsInLoki();
         },
       );
     }
@@ -689,6 +713,7 @@ void main() {
         expect(errors.first.$1, same(failures['workflow']));
         expect(errors.last.$1, same(failures['deleteVm']));
         expect(deletedVms, ['lease-1']);
+        expectWorkerErrorsInLoki();
       },
     );
 
@@ -755,8 +780,61 @@ void main() {
 
       expectCompletion(BuildJobStatus.SUCCESS);
       expect(errors, hasLength(10));
+      expect(workerErrorLogs(), isEmpty);
       expect(deletedVms, ['lease-1']);
     });
+
+    test('reports error-log delivery failure without retrying', () async {
+      final workflowError = failures['workflow'] = StateError(
+        'Workflow failed',
+      );
+      respondToLog = (request) async {
+        final labels = _lokiStream(request)['stream'] as Map<String, dynamic>;
+        return http.Response('', labels.containsKey('step_id') ? 204 : 503);
+      };
+
+      expect(await execute(), BuildJobStatus.FAILURE);
+
+      expectCompletion(BuildJobStatus.FAILURE);
+      expect(deletedVms, ['lease-1']);
+      expect(workerErrorLogs(), hasLength(1));
+      expect(errors, hasLength(2));
+      expect(errors.first.$1.toString(), contains('HTTP 503'));
+      expect(errors.last.$1, same(workflowError));
+      expect(errors.last.$2.toString(), sourceStack.toString());
+    });
+
+    test(
+      'bounds error-log delivery after cleanup and handles late failure',
+      () async {
+        final workflowError = failures['workflow'] = StateError(
+          'Workflow failed',
+        );
+        final response = Completer<http.Response>();
+        respondToLog = (request) {
+          final labels = _lokiStream(request)['stream'] as Map<String, dynamic>;
+          if (labels.containsKey('step_id')) {
+            return Future.value(http.Response('', 204));
+          }
+          expectCompletion(BuildJobStatus.FAILURE);
+          expect(deletedVms, ['lease-1']);
+          return response.future;
+        };
+
+        expect(
+          await execute(finalizationTimeout: const Duration(milliseconds: 20)),
+          BuildJobStatus.FAILURE,
+        );
+
+        expect(workerErrorLogs(), hasLength(1));
+        expect(errors, hasLength(2));
+        expect(errors.first.$1, isA<TimeoutException>());
+        expect(errors.last.$1, same(workflowError));
+        response.completeError(StateError('Late log failure'));
+        await Future<void>.delayed(Duration.zero);
+        expect(errors, hasLength(2));
+      },
+    );
 
     test('preserves VM failure when progress delivery also fails', () async {
       final vmError = failures['waitVm'] = StateError('VM failed');
@@ -766,7 +844,8 @@ void main() {
 
       expectCompletion(BuildJobStatus.FAILURE);
       expect(stepEvents('prepare_vm').last.status, BuildJobStatus.FAILURE);
-      expect(errors, hasLength(5));
+      expect(errors, hasLength(6));
+      expect(workerErrorLogs(), hasLength(1));
       expect(errors.last.$1, same(vmError));
       expect(errors.last.$2.toString(), sourceStack.toString());
       expect(deletedVms, ['lease-1']);
