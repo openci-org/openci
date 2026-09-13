@@ -5,6 +5,8 @@ import 'package:dart_frog_test/dart_frog_test.dart';
 import 'package:drift/native.dart';
 import 'package:genuineci_server/database.dart';
 import 'package:genuineci_server/logging/loki_service.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 import 'package:openci_shared/openci_shared.dart';
 import 'package:test/test.dart';
 
@@ -112,6 +114,32 @@ void main() {
 
       expect(response.statusCode, equals(HttpStatus.ok));
       expect(await response.json(), equals([]));
+    });
+
+    test('returns 500 when the Loki query fails', () async {
+      await _seedBuildJob(db);
+      final client = MockClient((_) async => http.Response('unavailable', 503));
+      addTearDown(client.close);
+      final context = TestRequestContext(
+        path: '/builds/job-xyz/runs/run-456/logs',
+        method: HttpMethod.get,
+      );
+      context.provide<AppDatabase>(db);
+      context.provide<LokiService>(
+        LokiService(lokiUrl: 'http://loki.test:3100', client: client),
+      );
+
+      final response = await route.onRequest(
+        context.context,
+        'job-xyz',
+        'run-456',
+      );
+
+      expect(response.statusCode, HttpStatus.internalServerError);
+      expect(await response.json(), {
+        'success': false,
+        'error': 'Internal server error',
+      });
     });
 
     test('returns 404 without querying Loki when the run is missing', () async {

@@ -178,31 +178,39 @@ void main() {
     'steps': (service) => service.getStepSummariesForRun(runId: 'run-1'),
   };
   for (final query in queries.entries) {
-    group('${query.key} query failures', () {
+    group('${query.key} query responses', () {
       final responses = {
         'HTTP failure': http.Response('unavailable', 503),
         'Loki failure': http.Response('{"status":"error"}', 200),
         'missing data': http.Response('{"status":"success"}', 200),
         'missing results': http.Response('{"status":"success","data":{}}', 200),
-        'empty results': _queryResponse([]),
         'invalid JSON': http.Response('invalid json', 200),
       };
       for (final response in responses.entries) {
-        test('returns no entries for ${response.key}', () async {
+        test('throws for ${response.key}', () async {
           final service = createService(
             MockClient((_) async => response.value),
           );
 
-          expect(await query.value(service), isEmpty);
+          await expectLater(query.value(service), throwsException);
         });
       }
 
-      test('returns no entries when the HTTP request fails', () async {
+      test('returns no entries for a successful empty result', () async {
         final service = createService(
-          MockClient((_) async => throw TimeoutException('Loki unavailable')),
+          MockClient((_) async => _queryResponse([])),
         );
 
         expect(await query.value(service), isEmpty);
+      });
+
+      test('propagates the HTTP request failure', () async {
+        final error = TimeoutException('Loki unavailable');
+        final service = createService(
+          MockClient((_) async => throw error),
+        );
+
+        await expectLater(query.value(service), throwsA(same(error)));
       });
     });
   }
