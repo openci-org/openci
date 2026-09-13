@@ -5,7 +5,7 @@ export 'src/complete_build_run.dart';
 export 'src/complete_github_check_run.dart';
 export 'src/config.dart';
 export 'src/create_build_run.dart';
-export 'src/execute_build_job.dart';
+export 'src/execute_build_job/execute_build_job.dart';
 export 'src/fetch_job_secrets.dart';
 export 'src/loki/push_log_to_loki.dart';
 export 'src/orchard/calculate_max_concurrent_jobs.dart'
