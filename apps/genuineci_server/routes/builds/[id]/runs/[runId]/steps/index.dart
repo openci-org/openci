@@ -12,7 +12,6 @@ FutureOr<Response> onRequest(
 ) {
   return switch (context.request.method) {
     HttpMethod.get => _get(context, id, runId),
-    HttpMethod.post => _post(context, id, runId),
     _ => Response(statusCode: HttpStatus.methodNotAllowed),
   };
 }
@@ -34,12 +33,4 @@ Future<Response> _get(
       logMessage: 'Failed to read steps for run $runId',
     );
   }
-}
-
-Future<Response> _post(
-  RequestContext context,
-  String id,
-  String runId,
-) async {
-  return Response.json(body: {'success': true, 'deprecated': true});
 }
