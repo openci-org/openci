@@ -28,9 +28,6 @@ part 'database.g.dart';
 @DriftDatabase(
   tables: [
     BuildJobs,
-    BuildJobLogs,
-    BuildSteps,
-    BuildStepLogs,
     BuildRuns,
     Teams,
     TeamMembers,
@@ -57,7 +54,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 22;
+  int get schemaVersion => 23;
 
   @override
   MigrationStrategy get migration {
@@ -76,37 +73,14 @@ class AppDatabase extends _$AppDatabase {
         if (from < 19) {
           await m.addColumn(buildJobs, buildJobs.commitMessage);
         }
-        if (from < 20) {
-          await m.createTable(buildSteps);
-          await m.createTable(buildStepLogs);
-        }
         if (from < 21) {
           await m.deleteTable('processed_webhooks');
         }
-        if (from < 22) {
+        if (from < 23) {
           await transaction(() async {
-            // Earlier versions create these tables with the current schema.
-            if (from >= 20) {
-              if (executor.dialect == SqlDialect.postgres) {
-                await customStatement('''
-                  ALTER TABLE build_steps
-                  ADD CONSTRAINT build_steps_run_id_fkey
-                  FOREIGN KEY (run_id) REFERENCES build_runs (id)
-                  ON DELETE CASCADE
-                ''');
-                await customStatement('''
-                  ALTER TABLE build_step_logs
-                  ADD CONSTRAINT build_step_logs_step_id_fkey
-                  FOREIGN KEY (step_id) REFERENCES build_steps (id)
-                  ON DELETE CASCADE
-                ''');
-              } else {
-                await m.alterTable(TableMigration(buildSteps));
-                await m.alterTable(TableMigration(buildStepLogs));
-              }
-            }
-            await m.createIndex(buildStepsRunOrder);
-            await m.createIndex(buildStepLogsStepId);
+            await m.deleteTable('build_step_logs');
+            await m.deleteTable('build_steps');
+            await m.deleteTable('build_job_logs');
           });
         }
       },
