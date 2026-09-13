@@ -10,11 +10,12 @@ import '../complete_github_check_run.dart';
 import '../config.dart';
 import '../create_build_run.dart';
 import '../fetch_job_secrets.dart';
+import '../loki/push_log_to_loki.dart';
 import '../orchard/orchard_api_client.dart';
 import '../orchard/prepare_vm.dart';
-import 'report_step.dart' as step_reporting;
 import '../resolve_github_installation_token.dart';
 import '../run_workflow.dart';
+import 'report_step.dart' as step_reporting;
 
 Future<BuildJobStatus> executeBuildJob({
   required OpenCiApiService api,
@@ -44,6 +45,7 @@ Future<BuildJobStatus> executeBuildJob({
   var runCreated = false;
   String? leaseId;
   final errors = <(Object, StackTrace)>[];
+  final logErrors = <(Object, StackTrace)>[];
 
   Future<void> reportStep(BuildStep step, {String? logMessage}) =>
       step_reporting.reportStep(
@@ -53,7 +55,7 @@ Future<BuildJobStatus> executeBuildJob({
         runId: runId,
         step: step,
         logMessage: logMessage,
-        onError: (error, stackTrace) => errors.add((error, stackTrace)),
+        onError: (error, stackTrace) => logErrors.add((error, stackTrace)),
       );
 
   try {
@@ -203,8 +205,21 @@ Future<BuildJobStatus> executeBuildJob({
     }
   }
 
-  // Error reporting must not interrupt the remaining completion/cleanup steps.
   for (final (error, stackTrace) in errors) {
+    try {
+      await pushLogToLoki(
+        client: lokiClient,
+        lokiUrl: config.internalLokiUrl,
+        jobId: job.id,
+        runId: runId,
+        message: 'Build job worker error: $error\n$stackTrace',
+        stream: 'stderr',
+      ).timeout(finalizationTimeout);
+    } catch (error, stackTrace) {
+      logErrors.add((error, stackTrace));
+    }
+  }
+  for (final (error, stackTrace) in [...logErrors, ...errors]) {
     onError(error, stackTrace);
   }
   return status;
