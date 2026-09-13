@@ -68,7 +68,7 @@ void main() {
       });
     }
 
-    test('merges streams chronologically and excludes step events', () async {
+    test('merges streams chronologically while preserving JSON logs', () async {
       late http.Request request;
       final service = createService(
         MockClient((value) async {
@@ -93,6 +93,8 @@ void main() {
 
       expect(await service.getLogsForRun(runId: 'run-1'), [
         'first',
+        ' {"runId":"run-1"}',
+        '{"status":"SUCCESS"}',
         '{"message":"second"}',
         'third',
       ]);

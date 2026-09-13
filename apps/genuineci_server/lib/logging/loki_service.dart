@@ -75,10 +75,6 @@ class LokiService {
           if (entry is List && entry.length >= 2) {
             final nanoStr = entry[0].toString();
             final message = entry[1].toString();
-            if (message.trim().startsWith('{') &&
-                (message.contains('"runId"') || message.contains('"status"'))) {
-              continue;
-            }
             final timestamp = int.tryParse(nanoStr) ?? 0;
             timedLines.add(MapEntry(timestamp, message));
           }
