@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:build_job_worker/build_job_worker.dart';
+import 'package:http/http.dart' as http;
 import 'package:openci_shared/initialize_sentry.dart';
 import 'package:openci_shared/openci_shared.dart';
 import 'package:sentry/sentry.dart';
@@ -45,10 +46,12 @@ Future<void> _runWorker(Config config) async {
     services: [OpenCiApiService.create()],
   );
   OrchardApiClient? orchardApi;
+  http.Client? lokiClient;
   final signals = <StreamSubscription<ProcessSignal>>[];
 
   try {
     orchardApi = OrchardApiClient(config: config);
+    lokiClient = http.Client();
     final api = apiClient.getService<OpenCiApiService>();
     var stopRequested = false;
 
@@ -72,6 +75,7 @@ Future<void> _runWorker(Config config) async {
       executeJob: (job) => executeBuildJob(
         api: api,
         orchardApi: orchardApi!,
+        lokiClient: lokiClient!,
         config: config,
         job: job,
         onError: _reportError,
@@ -80,6 +84,7 @@ Future<void> _runWorker(Config config) async {
       onError: _reportError,
     );
   } finally {
+    lokiClient?.close();
     orchardApi?.close();
     apiClient.dispose();
     for (final subscription in signals) {
