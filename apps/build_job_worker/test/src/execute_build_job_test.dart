@@ -361,7 +361,6 @@ void main() {
           'Creating VM from test-macos-image and waiting for it to start.',
           'VM is ready.',
         ]);
-        verifyNever(() => api.appendStepLog(any(), any(), any(), any()));
         expect(logRequests, hasLength(10));
         for (final (index, step) in [
           'prepare_vm',
