@@ -204,17 +204,6 @@ abstract class OpenCiApiService extends ChopperService {
     @Path('stepId') String stepId,
   );
 
-  @POST(
-    path: '/builds/{id}/runs/{runId}/steps/{stepId}/logs',
-    timeout: _timeout,
-  )
-  Future<Response<void>> appendStepLog(
-    @Path('id') String buildJobId,
-    @Path('runId') String runId,
-    @Path('stepId') String stepId,
-    @Body() Map<String, dynamic> body,
-  );
-
   @GET(path: '/builds/commits', timeout: _timeout)
   Future<Response<List<CicdCommitGroup>>> getCommitGroups(
     @Query('teamId') String teamId,

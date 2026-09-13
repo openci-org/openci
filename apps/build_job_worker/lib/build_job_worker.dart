@@ -17,4 +17,3 @@ export 'src/orchard/write_file.dart';
 export 'src/resolve_github_installation_token.dart';
 export 'src/run_build_job_worker.dart';
 export 'src/run_workflow.dart';
-export 'src/send_step_log_chunk.dart' show sendStepLogChunk;
