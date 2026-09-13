@@ -50,19 +50,24 @@ class LokiService {
           .timeout(const Duration(seconds: 10));
 
       if (response.statusCode != 200) {
-        stderr.writeln(
-          '[LokiService] Loki query failed with status ${response.statusCode}: ${response.body}',
+        throw HttpException(
+          'Loki query failed with status ${response.statusCode}: ${response.body}',
+          uri: uri,
         );
-        return [];
       }
 
       final json = jsonDecode(response.body) as Map<String, dynamic>;
       final status = json['status'] as String?;
-      if (status != 'success') return [];
+      if (status != 'success') {
+        throw HttpException('Loki query failed: $status', uri: uri);
+      }
 
       final data = json['data'] as Map<String, dynamic>?;
       final result = data?['result'] as List<dynamic>?;
-      if (result == null || result.isEmpty) return [];
+      if (result == null) {
+        throw const FormatException('Missing Loki query results');
+      }
+      if (result.isEmpty) return [];
 
       final List<MapEntry<int, String>> timedLines = [];
 
@@ -89,7 +94,7 @@ class LokiService {
       stderr.writeln(
         '[LokiService] Error querying Loki for runId $runId: $e\n$s',
       );
-      return [];
+      rethrow;
     }
   }
 
@@ -128,19 +133,24 @@ class LokiService {
       );
 
       if (response.statusCode != 200) {
-        stderr.writeln(
-          '[LokiService] Loki step query failed with status ${response.statusCode}: ${response.body}',
+        throw HttpException(
+          'Loki step query failed with status ${response.statusCode}: ${response.body}',
+          uri: uri,
         );
-        return [];
       }
 
       final json = jsonDecode(response.body) as Map<String, dynamic>;
       final status = json['status'] as String?;
-      if (status != 'success') return [];
+      if (status != 'success') {
+        throw HttpException('Loki step query failed: $status', uri: uri);
+      }
 
       final data = json['data'] as Map<String, dynamic>?;
       final result = data?['result'] as List<dynamic>?;
-      if (result == null || result.isEmpty) return [];
+      if (result == null) {
+        throw const FormatException('Missing Loki query results');
+      }
+      if (result.isEmpty) return [];
 
       final Map<String, Map<String, dynamic>> stepsById = {};
 
@@ -181,7 +191,7 @@ class LokiService {
       stderr.writeln(
         '[LokiService] Error querying step summaries for runId $runId: $e\n$s',
       );
-      return [];
+      rethrow;
     }
   }
 
