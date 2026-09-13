@@ -55,8 +55,8 @@ void main() {
     test('returns stored build step logs', () async {
       await _seedBuildJob(db);
       final now = DateTime.now().toUtc();
-      await db.buildJobDao.insertBuildStep(
-        DriftBuildStep(
+      await db.buildJobDao.upsertBuildStep(
+        BuildStep(
           id: 'checkout',
           runId: 'run-456',
           name: 'Checkout',
@@ -71,8 +71,8 @@ void main() {
         'run-456_checkout',
         'line 1\nline 2\n',
       );
-      await db.buildJobDao.insertBuildStep(
-        DriftBuildStep(
+      await db.buildJobDao.upsertBuildStep(
+        BuildStep(
           id: 'test',
           runId: 'run-456',
           name: 'Test',
