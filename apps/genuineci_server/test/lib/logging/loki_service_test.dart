@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:genuineci_server/logging/loki_service.dart';
+import 'package:openci_shared/openci_shared.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -132,6 +133,32 @@ void main() {
 
   group('getStepSummariesForRun', () {
     test('keeps the latest event per step and orders steps', () async {
+      final startedAt = DateTime.utc(2026, 9, 14);
+      final prepare = BuildStep(
+        id: 'prepare',
+        runId: 'run-1',
+        name: 'Prepare VM',
+        status: BuildJobStatus.SUCCESS,
+        durationMs: 100,
+        stepOrder: 0,
+        createdAt: startedAt,
+        updatedAt: startedAt.add(const Duration(milliseconds: 100)),
+      );
+      final setup = prepare.copyWith(
+        id: 'setup',
+        name: 'Setup',
+        status: BuildJobStatus.IN_PROGRESS,
+        durationMs: 0,
+        stepOrder: 1,
+        updatedAt: startedAt,
+      );
+      final build = prepare.copyWith(
+        id: 'build',
+        name: 'ビルド',
+        durationMs: 1200,
+        stepOrder: 2,
+        updatedAt: startedAt.add(const Duration(milliseconds: 1200)),
+      );
       late http.Request request;
       final service = createService(
         MockClient((value) async {
@@ -143,12 +170,23 @@ void main() {
               'values': [
                 [],
                 ['0', 'invalid json'],
-                ['1', '{"id":""}'],
+                ['1', jsonEncode(prepare.copyWith(id: '').toJson())],
                 ['2', '{}'],
-                ['3', '{"id":"build","stepOrder":2,"status":"running"}'],
-                ['4', '{"id":"setup","stepOrder":1,"status":"RUNNING"}'],
-                ['5', '{"id":"build","stepOrder":2,"status":"SUCCESS"}'],
-                ['6', '{"id":"prepare"}'],
+                [
+                  '3',
+                  jsonEncode({
+                    ...build.toJson(),
+                    'status': 'running',
+                    'durationMs': 0,
+                  }),
+                ],
+                [
+                  '4',
+                  jsonEncode({...setup.toJson(), 'status': 'RUNNING'}),
+                ],
+                ['5', jsonEncode(build.toJson())],
+                ['6', jsonEncode(prepare.toJson())],
+                ['7', '{"id":"build","status":"FAILURE"}'],
               ],
             },
           ]);
@@ -156,9 +194,9 @@ void main() {
       );
 
       expect(await service.getStepSummariesForRun(runId: 'run-1'), [
-        {'id': 'prepare'},
-        {'id': 'setup', 'stepOrder': 1, 'status': 'IN_PROGRESS'},
-        {'id': 'build', 'stepOrder': 2, 'status': 'SUCCESS'},
+        prepare,
+        setup,
+        build,
       ]);
       expect(
         request.url.queryParameters['query'],
@@ -266,4 +304,5 @@ http.Response _queryResponse(List<Object?> streams) => http.Response(
     'data': {'result': streams},
   }),
   200,
+  headers: {'content-type': 'application/json'},
 );

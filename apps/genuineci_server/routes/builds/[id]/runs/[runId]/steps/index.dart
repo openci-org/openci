@@ -25,7 +25,7 @@ Future<Response> _get(
     final lokiService = LokiService();
     final steps = await lokiService.getStepSummariesForRun(runId: runId);
 
-    return Response.json(body: steps);
+    return Response.json(body: steps.map((step) => step.toJson()).toList());
   } catch (e, s) {
     return handleRouteException(
       e,
