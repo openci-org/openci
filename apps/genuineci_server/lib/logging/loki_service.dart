@@ -1,7 +1,9 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:chopper/chopper.dart';
 import 'package:http/http.dart' as http;
+import 'package:openci_shared/openci_shared.dart';
 
 class LokiService {
   final String lokiUrl;
@@ -35,28 +37,32 @@ class LokiService {
         ) *
         BigInt.from(1000);
 
-    final uri = Uri.parse('$lokiUrl/loki/api/v1/query_range').replace(
-      queryParameters: {
-        'query': querySelector,
-        'limit': limit.toString(),
-        'direction': 'FORWARD',
-        'start': sevenDaysAgoNano.toString(),
-      },
+    final chopperClient = ChopperClient(
+      baseUrl: Uri.parse(lokiUrl),
+      client: _client,
+      converter: const JsonConverter(),
     );
 
     try {
-      final response = await _client
-          .get(uri)
+      final response = await LokiApiService.create(chopperClient)
+          .queryRange(
+            query: querySelector,
+            start: sevenDaysAgoNano.toString(),
+            limit: limit,
+            direction: 'FORWARD',
+          )
+          .whenComplete(chopperClient.dispose)
           .timeout(const Duration(seconds: 10));
+      final uri = response.base.request?.url;
 
       if (response.statusCode != 200) {
         throw HttpException(
-          'Loki query failed with status ${response.statusCode}: ${response.body}',
+          'Loki query failed with status ${response.statusCode}: ${response.bodyString}',
           uri: uri,
         );
       }
 
-      final json = jsonDecode(response.body) as Map<String, dynamic>;
+      final json = response.body!;
       final status = json['status'] as String?;
       if (status != 'success') {
         throw HttpException('Loki query failed: $status', uri: uri);
@@ -113,33 +119,39 @@ class LokiService {
         ) *
         BigInt.from(1000);
 
-    final uri = Uri.parse('$lokiUrl/loki/api/v1/query_range').replace(
-      queryParameters: {
-        'query': querySelector,
-        'limit': '1000',
-        'direction': 'FORWARD',
-        'start': sevenDaysAgoNano.toString(),
-      },
+    final chopperClient = ChopperClient(
+      baseUrl: Uri.parse(lokiUrl),
+      client: _client,
+      converter: const JsonConverter(),
     );
 
     try {
-      stderr.writeln('[LokiService] Querying Loki URL: $uri');
-      final response = await _client
-          .get(uri)
+      stderr.writeln(
+        '[LokiService] Querying Loki step events for runId $runId',
+      );
+      final response = await LokiApiService.create(chopperClient)
+          .queryRange(
+            query: querySelector,
+            start: sevenDaysAgoNano.toString(),
+            limit: 1000,
+            direction: 'FORWARD',
+          )
+          .whenComplete(chopperClient.dispose)
           .timeout(const Duration(seconds: 10));
+      final uri = response.base.request?.url;
 
       stderr.writeln(
-        '[LokiService] Loki response status: ${response.statusCode}, body: ${response.body}',
+        '[LokiService] Loki response status: ${response.statusCode}, body: ${response.bodyString}',
       );
 
       if (response.statusCode != 200) {
         throw HttpException(
-          'Loki step query failed with status ${response.statusCode}: ${response.body}',
+          'Loki step query failed with status ${response.statusCode}: ${response.bodyString}',
           uri: uri,
         );
       }
 
-      final json = jsonDecode(response.body) as Map<String, dynamic>;
+      final json = response.body!;
       final status = json['status'] as String?;
       if (status != 'success') {
         throw HttpException('Loki step query failed: $status', uri: uri);
