@@ -22,6 +22,11 @@ void main() {
         expect(payload, isNot(contains('step')));
         expect(payload['runId'], 'run-1');
         expect(payload['stepId'], 'step-1');
+
+        final log = StepLog.fromJson(
+          jsonDecode(jsonEncode(payload)) as Map<String, Object?>,
+        );
+        expect(log.message, message);
       });
     }
 
