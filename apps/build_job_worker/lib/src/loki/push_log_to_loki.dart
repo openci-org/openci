@@ -1,6 +1,6 @@
-import 'dart:convert';
-
+import 'package:chopper/chopper.dart';
 import 'package:http/http.dart' as http;
+import 'package:openci_shared/openci_shared.dart';
 
 /// Sends one log entry. The caller owns [client] and handles delivery failures.
 Future<void> pushLogToLoki({
@@ -14,39 +14,33 @@ Future<void> pushLogToLoki({
   String? stepId,
   String? command,
 }) async {
-  final baseUri = Uri.parse(lokiUrl);
-  final uri = baseUri.replace(
-    pathSegments: [
-      ...baseUri.pathSegments.where((segment) => segment.isNotEmpty),
-      'loki',
-      'api',
-      'v1',
-      'push',
-    ],
+  final chopperClient = ChopperClient(
+    baseUrl: Uri.parse(lokiUrl),
+    client: client,
+    converter: const JsonConverter(),
   );
+  final api = LokiApiService.create(chopperClient);
   final timestampNanos = (DateTime.now().toUtc().microsecondsSinceEpoch * 1000)
       .toString();
-  final response = await client.post(
-    uri,
-    headers: {'Content-Type': 'application/json; charset=utf-8'},
-    body: jsonEncode({
-      'streams': [
-        {
-          'stream': {
-            'stream': stream,
-            'type': type,
-            'run_id': runId,
-            'build_job_id': jobId,
-            'step_id': ?stepId,
-            'command': ?command,
+  final response = await api
+      .push({
+        'streams': [
+          {
+            'stream': {
+              'stream': stream,
+              'type': type,
+              'run_id': runId,
+              'build_job_id': jobId,
+              'step_id': ?stepId,
+              'command': ?command,
+            },
+            'values': [
+              [timestampNanos, message],
+            ],
           },
-          'values': [
-            [timestampNanos, message],
-          ],
-        },
-      ],
-    }),
-  );
+        ],
+      })
+      .whenComplete(chopperClient.dispose);
   // Loki acknowledges ingestion with 204; 260 means ingestion is blocked.
   if (response.statusCode != 204) {
     throw StateError(

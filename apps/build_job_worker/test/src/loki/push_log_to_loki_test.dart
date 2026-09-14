@@ -140,14 +140,12 @@ void main() {
       () async {
         final client = _MockHttpClient();
         final uri = Uri.parse('http://loki:3100/loki/api/v1/push');
+        registerFallbackValue(http.Request('POST', uri));
         for (final status in [204, 500]) {
-          when(
-            () => client.post(
-              uri,
-              headers: any(named: 'headers'),
-              body: any(named: 'body'),
-            ),
-          ).thenAnswer((_) async => http.Response('', status));
+          when(() => client.send(any())).thenAnswer(
+            (_) async =>
+                http.StreamedResponse(const Stream<List<int>>.empty(), status),
+          );
 
           final result = pushLogToLoki(
             client: client,
