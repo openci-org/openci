@@ -34,4 +34,30 @@ final class _$LokiApiService extends LokiApiService {
     );
     return client.send<void, void>($request);
   }
+
+  @override
+  Future<Response<Map<String, dynamic>>> queryRange({
+    required String query,
+    required String start,
+    required int limit,
+    required String direction,
+  }) {
+    final Uri $url = Uri.parse('/loki/api/v1/query_range');
+    final Map<String, dynamic> $params = <String, dynamic>{
+      'query': query,
+      'start': start,
+      'limit': limit,
+      'direction': direction,
+    };
+    final Request $request = Request(
+      'GET',
+      $url,
+      client.baseUrl,
+      parameters: $params,
+    );
+    return client.send<Map<String, dynamic>, Map<String, dynamic>>(
+      $request,
+      responseConverter: LokiApiService._decodeQueryRangeResponse,
+    );
+  }
 }

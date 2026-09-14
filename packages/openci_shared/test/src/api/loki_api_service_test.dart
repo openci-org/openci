@@ -55,4 +55,59 @@ void main() {
       });
     }
   });
+
+  group('LokiApiService.queryRange', () {
+    test('encodes query parameters and decodes the Loki response', () async {
+      const query = '{run_id="run-1"} |= "確認中 & build+test"';
+      const start = '1720000000000000123';
+      const body = {
+        'status': 'success',
+        'data': {
+          'resultType': 'streams',
+          'result': [
+            {
+              'stream': {'type': 'step_log', 'run_id': 'run-1'},
+              'values': [
+                [start, '確認中 🚀'],
+              ],
+            },
+          ],
+        },
+      };
+      final httpClient = MockClient((request) async {
+        expect(request.method, 'GET');
+        expect(request.url.origin, 'https://loki.example.com');
+        expect(request.url.path, '/proxy/loki/api/v1/query_range');
+        expect(request.url.queryParameters, {
+          'query': query,
+          'start': start,
+          'limit': '42',
+          'direction': 'FORWARD',
+        });
+        return http.Response(
+          jsonEncode(body),
+          200,
+          headers: {'content-type': 'application/json'},
+        );
+      });
+      addTearDown(httpClient.close);
+      final client = ChopperClient(
+        baseUrl: Uri.parse('https://loki.example.com/proxy/'),
+        client: httpClient,
+        converter: const JsonConverter(),
+        services: [LokiApiService.create()],
+      );
+      addTearDown(client.dispose);
+
+      final response = await client.getService<LokiApiService>().queryRange(
+        query: query,
+        start: start,
+        limit: 42,
+        direction: 'FORWARD',
+      );
+
+      expect(response.statusCode, 200);
+      expect(response.body, body);
+    });
+  });
 }
