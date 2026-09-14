@@ -203,8 +203,6 @@ class LokiService {
     }
   }
 
-  /// Loki Tail API (WebSocket) から受信したフレームメッセージをパースし、
-  /// (streamLabels, logLines) のリストを返します。
   static List<MapEntry<Map<String, String>, String>> parseTailFrame(
     String frameJsonStr,
   ) {
