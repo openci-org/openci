@@ -8,13 +8,15 @@
     }
   },
   "login": {
-    "description": "ローカルのGenuineCIサーバーにログインします。",
+    "description": "ローカルまたはリモートのGenuineCIサーバーにログインします。",
     "flags": {
-      "local": "ローカルDocker環境（http://localhost:8080）に接続します。"
+      "local": "ローカルDocker環境（http://localhost:8080）に接続します。",
+      "server": "リモートのGenuineCIサーバーURL（HTTPS）。",
+      "teamId": "複数チームに所属している場合に選択するチームID。",
+      "firebaseApiKey": "Firebase Web APIキー（独自のFirebaseプロジェクトを使う場合に指定）。"
     },
     "loggingIn": "GenuineCI にログイン中...",
     "savedSuccess": "プロファイル「${profile}」を保存し、有効にしました。",
-    "localOnly": "現在はローカルログインのみ対応しています。genuineci login --local を実行してください。",
     "noArguments": "loginに位置引数は指定できません。",
     "localServerUnavailable": "ローカルサーバーのAPIキーを取得できませんでした。genuineci dev start --seed を実行して再試行してください。",
     "authenticationFailed": "ローカルサーバーの認証に失敗しました。genuineci dev start で起動したサーバーを確認してください。",
@@ -22,7 +24,18 @@
     "seedRequired": "test-teamが見つかりません。genuineci dev start --seed を実行してからログインしてください。",
     "invalidResponse": "サーバーから返されたチーム一覧が不正です。",
     "connectionFailed": "ローカルサーバーに接続できませんでした。genuineci dev start の起動状態を確認してください。",
-    "saveFailed": "認証情報を保存できませんでした。ローカルの認証情報ファイルと権限を確認してください。"
+    "saveFailed": "認証情報を保存できませんでした。ローカルの認証情報ファイルと権限を確認してください。",
+    "localOptionsConflict": "--localとリモートログイン用のオプションは同時に指定できません。",
+    "serverRequired": "--serverには認証情報、クエリ、フラグメントを含まない有効なHTTPSのURLを指定してください。ローカル開発には--localを使ってください。",
+    "emptyOptions": "Firebase APIキーとチームIDには空の値を指定できません。",
+    "emailPrompt": "メールアドレス: ",
+    "passwordPrompt": "パスワード: ",
+    "inputRequired": "対話可能な端末でメールアドレスとパスワードを入力してください。ログインを中止しました。",
+    "firebaseAuthenticationFailed": "Firebaseへのログインに失敗しました。メールアドレス、パスワード、Firebase APIキー、接続状態を確認してください。",
+    "remoteConnectionFailed": "リモートサーバーに接続できませんでした。サーバーURLと接続状態を確認してください。",
+    "noTeams": "所属チームがありません。先にdashboardでチームを作成するか参加してください。",
+    "teamRequired": "複数のチームがあります。上記のIDを--team-idで指定して再度ログインしてください。",
+    "teamNotFound": "指定されたチームに所属していません。"
   },
   "use": {
     "description": "表示言語を設定します（japanese, english）。",
@@ -70,7 +83,7 @@
     "secrets": {
       "description": "現在のチームのシークレット名からgenuine_ci/secrets.g.dartを生成します。",
       "noArguments": "sync secretsに位置引数は指定できません。",
-      "loginRequired": "genuineci login --localを実行してからシークレットを同期してください。",
+      "loginRequired": "genuineci login（ローカルならgenuineci login --local）を実行してからシークレットを同期してください。",
       "workflowDirectoryNotFound": "genuine_ciディレクトリが見つかりません。ワークフローのあるプロジェクト内で実行してください。",
       "requestFailed": "シークレット名を取得できませんでした（HTTP ${status}）。",
       "fetchFailed": "シークレット名を取得できませんでした。サーバーの接続状態とレスポンスを確認してください。",

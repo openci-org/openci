@@ -136,6 +136,70 @@ void main() {
     expect(logger.stderrMessages, [message]);
   }
 
+  test('refreshes a remote session before fetching secret names', () async {
+    await store.saveProfile(
+      'remote',
+      AuthProfile(
+        serverUrl: 'https://ci.example.com',
+        token: 'expired-id-token',
+        teamId: 'remote-team',
+        authType: 'firebase',
+        refreshToken: 'private-refresh-token',
+        firebaseApiKey: 'firebase-api-key',
+        expiresAt: DateTime.now().toUtc().subtract(const Duration(minutes: 1)),
+      ),
+    );
+    final runner = CommandRunner<int>('genuineci sync', 'test')
+      ..addCommand(
+        SyncSecretsCommand(
+          logger: logger,
+          credentialStore: store,
+          workingDirectory: project,
+        ),
+      );
+
+    final result = await http.runWithClient(() => runner.run(['secrets']), () {
+      final client = _TrackingClient((request) async {
+        requests.add(request);
+        if (request.url.host == 'securetoken.googleapis.com') {
+          return http.Response(
+            jsonEncode({
+              'id_token': 'refreshed-id-token',
+              'refresh_token': 'rotated-refresh-token',
+              'expires_in': '3600',
+            }),
+            200,
+          );
+        }
+        expect(
+          request.url.toString(),
+          'https://ci.example.com/teams/remote-team/secrets',
+        );
+        expect(request.headers['authorization'], 'Bearer refreshed-id-token');
+        return namesResponse(['ASC_KEY']);
+      });
+      clients.add(client);
+      return client;
+    });
+
+    expect(result, 0);
+    expect(requests, hasLength(2));
+    expect((await store.getActiveProfile())!.token, 'refreshed-id-token');
+    final source = await output.readAsString();
+    expect(source, contains("Platform.environment['ASC_KEY']"));
+    for (final secret in [
+      'refreshed-id-token',
+      'private-refresh-token',
+      'rotated-refresh-token',
+    ]) {
+      expect(source, isNot(contains(secret)));
+      expect(
+        [...logger.stdoutMessages, ...logger.stderrMessages].join('\n'),
+        isNot(contains(secret)),
+      );
+    }
+  });
+
   test(
     'creates definitions using the active profile and names-only API',
     () async {

@@ -74,14 +74,14 @@ void main() {
     expect(paths!.description, t.sync.paths.description);
   });
 
-  test('login requires --local while cloud login is unavailable', () async {
+  test('login rejects a remote server URL without HTTPS', () async {
     await expectLater(
-      runner.run(['login']),
+      runner.run(['login', '--server', 'http://ci.example.com']),
       throwsA(
         isA<UsageException>().having(
           (error) => error.message,
           'message',
-          t.login.localOnly,
+          t.login.serverRequired,
         ),
       ),
     );

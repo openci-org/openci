@@ -7,9 +7,12 @@ import 'package:cli_util/cli_logging.dart';
 import 'package:http/http.dart' as http;
 import 'package:meta/meta.dart';
 
+import '../auth/firebase_auth_client.dart';
 import '../credential_store/credential_config.dart';
 import '../credential_store/credential_store.dart';
 import '../i18n/i18n.dart';
+import 'login/login_remote.dart';
+import 'login/read_login_credentials.dart';
 
 class LoginCommand extends Command<int> {
   @override
@@ -23,6 +26,7 @@ class LoginCommand extends Command<int> {
   final Future<ProcessResult> Function(String, List<String>) _processRunner;
   final http.Client? _client;
   final Duration _timeout;
+  final Future<LoginCredentials?> Function() _readCredentials;
 
   LoginCommand({
     Logger? logger,
@@ -31,24 +35,74 @@ class LoginCommand extends Command<int> {
     Future<ProcessResult> Function(String, List<String>)? processRunner,
     @visibleForTesting http.Client? client,
     @visibleForTesting Duration timeout = const Duration(seconds: 10),
+    @visibleForTesting
+    Future<LoginCredentials?> Function() readCredentials = readLoginCredentials,
   }) : _logger = logger ?? Logger.standard(),
        _credentialStore = credentialStore ?? CredentialStore(),
        _processRunner = processRunner ?? Process.run,
        _client = client,
-       _timeout = timeout {
+       _timeout = timeout,
+       _readCredentials = readCredentials {
     argParser.addFlag(
       'local',
       abbr: 'l',
       negatable: false,
       help: t.login.flags.local,
     );
+    argParser
+      ..addOption(
+        'server',
+        defaultsTo: 'https://openci-worker-01.tail4beb18.ts.net',
+        help: t.login.flags.server,
+      )
+      ..addOption('team-id', help: t.login.flags.teamId)
+      ..addOption(
+        'firebase-api-key',
+        defaultsTo: defaultFirebaseApiKey,
+        help: t.login.flags.firebaseApiKey,
+      );
   }
 
   @override
   Future<int> run() async {
-    if (!argResults!.flag('local')) usageException(t.login.localOnly);
     if (argResults!.rest.isNotEmpty) usageException(t.login.noArguments);
+    if (argResults!.flag('local')) {
+      if ([
+        'server',
+        'team-id',
+        'firebase-api-key',
+      ].any(argResults!.wasParsed)) {
+        usageException(t.login.localOptionsConflict);
+      }
+      return _loginLocal();
+    }
+    final server = Uri.tryParse(argResults!.option('server')!.trim());
+    if (server == null ||
+        server.scheme != 'https' ||
+        server.host.isEmpty ||
+        server.userInfo.isNotEmpty ||
+        server.hasQuery ||
+        server.hasFragment) {
+      usageException(t.login.serverRequired);
+    }
+    final apiKey = argResults!.option('firebase-api-key')!.trim();
+    final teamId = argResults!.option('team-id')?.trim();
+    if (apiKey.isEmpty || teamId == '') {
+      usageException(t.login.emptyOptions);
+    }
+    return loginRemote(
+      serverUrl: server.toString().replaceFirst(RegExp(r'/+$'), ''),
+      firebaseApiKey: apiKey,
+      teamId: teamId,
+      store: _credentialStore,
+      logger: _logger,
+      readCredentials: _readCredentials,
+      client: _client ?? http.Client(),
+      timeout: _timeout,
+    );
+  }
 
+  Future<int> _loginLocal() async {
     const serverUrl = 'http://localhost:8080';
     const teamId = 'test-team';
     const profileName = 'local';

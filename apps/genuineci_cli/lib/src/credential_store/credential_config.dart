@@ -14,6 +14,9 @@ abstract class AuthProfile with _$AuthProfile {
     @Default('') String token,
     @JsonKey(name: 'team_id') @Default('') String teamId,
     @JsonKey(name: 'auth_type') @Default('api_key') String authType,
+    @JsonKey(name: 'refresh_token') @Default('') String refreshToken,
+    @JsonKey(name: 'firebase_api_key') @Default('') String firebaseApiKey,
+    @JsonKey(name: 'expires_at') DateTime? expiresAt,
   }) = _AuthProfile;
 
   factory AuthProfile.fromJson(Map<String, dynamic> json) =>
