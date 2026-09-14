@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:dart_frog/dart_frog.dart';
 import 'package:dart_frog_web_socket/dart_frog_web_socket.dart';
 import 'package:genuineci_server/logging/loki_service.dart';
+import 'package:openci_shared/openci_shared.dart';
 
 Future<Response> onRequest(
   RequestContext context,
@@ -33,13 +34,20 @@ Future<Response> onRequest(
           final parsedEntries = LokiService.parseTailFrame(frameStr);
 
           for (final entry in parsedEntries) {
-            final payload = buildRunLogPayload(
-              runId: runId,
-              labels: entry.key,
-              message: entry.value,
-            );
+            try {
+              final payload = buildRunLogPayload(
+                runId: runId,
+                labels: entry.key,
+                message: entry.value,
+              );
 
-            channel.sink.add(jsonEncode(payload));
+              channel.sink.add(jsonEncode(payload));
+            } catch (error) {
+              stderr.writeln(
+                '[WebSocket stream.dart] Failed to forward Loki entry '
+                'for run $runId: $error',
+              );
+            }
           }
         },
         onError: (dynamic error) {
@@ -76,10 +84,16 @@ Map<String, dynamic> buildRunLogPayload({
   required String runId,
   required Map<String, String> labels,
   required String message,
-}) => {
-  'runId': runId,
-  'stepId': labels['step_id'],
-  'isStepEvent': labels['type'] == 'step_event',
-  'message': message,
-  'timestamp': DateTime.now().toUtc().toIso8601String(),
-};
+}) {
+  final stepEvent = labels['type'] == 'step_event'
+      ? StepEvent.fromJson({'step': jsonDecode(message)})
+      : null;
+
+  return {
+    'runId': runId,
+    'stepId': labels['step_id'],
+    'isStepEvent': stepEvent != null,
+    if (stepEvent != null) ...stepEvent.toJson() else 'message': message,
+    'timestamp': DateTime.now().toUtc().toIso8601String(),
+  };
+}
