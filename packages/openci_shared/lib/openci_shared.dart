@@ -10,6 +10,7 @@ export 'src/models/cicd_commit_group.dart';
 export 'src/models/claim_job_request.dart';
 export 'src/models/genuine_ci_file.dart';
 export 'src/models/step_event.dart';
+export 'src/models/step_log.dart';
 export 'src/models/team.dart';
 export 'src/models/user_device.dart';
 export 'src/models/webhook_task.dart';

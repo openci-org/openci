@@ -93,7 +93,10 @@ Map<String, dynamic> buildRunLogPayload({
     'runId': runId,
     'stepId': labels['step_id'],
     'isStepEvent': stepEvent != null,
-    if (stepEvent != null) ...stepEvent.toJson() else 'message': message,
+    if (stepEvent != null)
+      ...stepEvent.toJson()
+    else
+      ...StepLog(message: message).toJson(),
     'timestamp': DateTime.now().toUtc().toIso8601String(),
   };
 }
