@@ -105,7 +105,7 @@ class LokiService {
   }
 
   /// Loki から指定した runId のステップイベント (type="step_event") を取得し、最新状態のステップリストを組み立てます
-  Future<List<Map<String, dynamic>>> getStepSummariesForRun({
+  Future<List<BuildStep>> getStepSummariesForRun({
     required String runId,
   }) async {
     final querySelector = '{run_id="$runId", type="step_event"}';
@@ -164,7 +164,7 @@ class LokiService {
       }
       if (result.isEmpty) return [];
 
-      final Map<String, Map<String, dynamic>> stepsById = {};
+      final Map<String, BuildStep> stepsById = {};
 
       for (final streamItem in result) {
         if (streamItem is! Map<String, dynamic>) continue;
@@ -176,15 +176,15 @@ class LokiService {
             final rawJson = entry[1].toString();
             try {
               final stepData = jsonDecode(rawJson) as Map<String, dynamic>;
-              final id = stepData['id'] as String?;
-              if (id != null && id.isNotEmpty) {
-                // Normalize status if needed (e.g. RUNNING -> IN_PROGRESS)
-                final rawStatus = stepData['status']?.toString().toUpperCase();
-                if (rawStatus == 'RUNNING') {
-                  stepData['status'] = 'IN_PROGRESS';
-                }
+              // Normalize status if needed (e.g. RUNNING -> IN_PROGRESS)
+              final rawStatus = stepData['status']?.toString().toUpperCase();
+              if (rawStatus == 'RUNNING') {
+                stepData['status'] = BuildJobStatus.IN_PROGRESS.name;
+              }
+              final step = BuildStep.fromJson(stepData);
+              if (step.id.isNotEmpty) {
                 // 最新のステータス情報で上書き更新
-                stepsById[id] = stepData;
+                stepsById[step.id] = step;
               }
             } catch (_) {}
           }
@@ -192,11 +192,7 @@ class LokiService {
       }
 
       final stepList = stepsById.values.toList();
-      stepList.sort((a, b) {
-        final orderA = (a['stepOrder'] as num?)?.toInt() ?? 0;
-        final orderB = (b['stepOrder'] as num?)?.toInt() ?? 0;
-        return orderA.compareTo(orderB);
-      });
+      stepList.sort((a, b) => a.stepOrder.compareTo(b.stepOrder));
 
       return stepList;
     } catch (e, s) {
