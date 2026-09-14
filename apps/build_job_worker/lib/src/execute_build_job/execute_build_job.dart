@@ -15,7 +15,8 @@ import '../orchard/orchard_api_client.dart';
 import '../orchard/prepare_vm.dart';
 import '../resolve_github_installation_token.dart';
 import '../run_workflow.dart';
-import 'report_step.dart' as step_reporting;
+import 'report_step_event.dart';
+import 'report_step_log.dart';
 
 Future<BuildJobStatus> executeBuildJob({
   required OpenCiApiService api,
@@ -47,16 +48,20 @@ Future<BuildJobStatus> executeBuildJob({
   final errors = <(Object, StackTrace)>[];
   final logErrors = <(Object, StackTrace)>[];
 
-  Future<void> reportStep(BuildStep step, {String? logMessage}) =>
-      step_reporting.reportStep(
-        lokiClient: lokiClient,
-        lokiUrl: config.internalLokiUrl,
-        jobId: job.id,
-        runId: runId,
-        step: step,
-        logMessage: logMessage,
-        onError: (error, stackTrace) => logErrors.add((error, stackTrace)),
-      );
+  final reportStepEvent = ReportStepEvent(
+    lokiClient: lokiClient,
+    lokiUrl: config.internalLokiUrl,
+    jobId: job.id,
+    runId: runId,
+    onError: (error, stackTrace) => logErrors.add((error, stackTrace)),
+  );
+  final reportStepLog = ReportStepLog(
+    lokiClient: lokiClient,
+    lokiUrl: config.internalLokiUrl,
+    jobId: job.id,
+    runId: runId,
+    onError: (error, stackTrace) => logErrors.add((error, stackTrace)),
+  );
 
   try {
     await createBuildRun(api: api, jobId: job.id, runId: runId);
@@ -73,10 +78,13 @@ Future<BuildJobStatus> executeBuildJob({
       createdAt: startedAt,
       updatedAt: startedAt,
     );
-    await reportStep(
-      vmStep,
-      logMessage:
-          'Creating VM from ${config.baseVmName} and waiting for it to start.',
+    await reportStepEvent.send(StepEvent(step: vmStep));
+    await reportStepLog.send(
+      stepId: vmStep.id,
+      log: StepLog(
+        message:
+            'Creating VM from ${config.baseVmName} and waiting for it to start.',
+      ),
     );
     final stopwatch = Stopwatch()..start();
     try {
@@ -88,15 +96,22 @@ Future<BuildJobStatus> executeBuildJob({
       leaseId = lease.id.isNotEmpty ? lease.id : vmName;
     } finally {
       stopwatch.stop();
-      await reportStep(
-        vmStep.copyWith(
-          status: leaseId == null
-              ? BuildJobStatus.FAILURE
-              : BuildJobStatus.SUCCESS,
-          durationMs: stopwatch.elapsedMilliseconds,
-          updatedAt: DateTime.now().toUtc(),
+      await reportStepEvent.send(
+        StepEvent(
+          step: vmStep.copyWith(
+            status: leaseId == null
+                ? BuildJobStatus.FAILURE
+                : BuildJobStatus.SUCCESS,
+            durationMs: stopwatch.elapsedMilliseconds,
+            updatedAt: DateTime.now().toUtc(),
+          ),
         ),
-        logMessage: leaseId == null ? 'VM setup failed.' : 'VM is ready.',
+      );
+      await reportStepLog.send(
+        stepId: vmStep.id,
+        log: StepLog(
+          message: leaseId == null ? 'VM setup failed.' : 'VM is ready.',
+        ),
       );
     }
 
@@ -111,7 +126,7 @@ Future<BuildJobStatus> executeBuildJob({
       createdAt: checkoutStartedAt,
       updatedAt: checkoutStartedAt,
     );
-    await reportStep(checkoutStep);
+    await reportStepEvent.send(StepEvent(step: checkoutStep));
     final checkoutStopwatch = Stopwatch()..start();
     var checkoutSucceeded = false;
     try {
@@ -128,13 +143,15 @@ Future<BuildJobStatus> executeBuildJob({
       checkoutSucceeded = true;
     } finally {
       checkoutStopwatch.stop();
-      await reportStep(
-        checkoutStep.copyWith(
-          status: checkoutSucceeded
-              ? BuildJobStatus.SUCCESS
-              : BuildJobStatus.FAILURE,
-          durationMs: checkoutStopwatch.elapsedMilliseconds,
-          updatedAt: DateTime.now().toUtc(),
+      await reportStepEvent.send(
+        StepEvent(
+          step: checkoutStep.copyWith(
+            status: checkoutSucceeded
+                ? BuildJobStatus.SUCCESS
+                : BuildJobStatus.FAILURE,
+            durationMs: checkoutStopwatch.elapsedMilliseconds,
+            updatedAt: DateTime.now().toUtc(),
+          ),
         ),
       );
     }
@@ -150,7 +167,7 @@ Future<BuildJobStatus> executeBuildJob({
       createdAt: workflowStartedAt,
       updatedAt: workflowStartedAt,
     );
-    await reportStep(workflowStep);
+    await reportStepEvent.send(StepEvent(step: workflowStep));
     final workflowStopwatch = Stopwatch()..start();
     try {
       final exitCode = await runWorkflow(
@@ -167,11 +184,13 @@ Future<BuildJobStatus> executeBuildJob({
       status = exitCode == 0 ? BuildJobStatus.SUCCESS : BuildJobStatus.FAILURE;
     } finally {
       workflowStopwatch.stop();
-      await reportStep(
-        workflowStep.copyWith(
-          status: status,
-          durationMs: workflowStopwatch.elapsedMilliseconds,
-          updatedAt: DateTime.now().toUtc(),
+      await reportStepEvent.send(
+        StepEvent(
+          step: workflowStep.copyWith(
+            status: status,
+            durationMs: workflowStopwatch.elapsedMilliseconds,
+            updatedAt: DateTime.now().toUtc(),
+          ),
         ),
       );
     }
