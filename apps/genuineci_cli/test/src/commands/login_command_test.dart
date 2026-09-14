@@ -120,7 +120,7 @@ void main() {
     );
   }
 
-  test('help explains local login without reading or saving keys', () async {
+  test('help explains login without reading or saving keys', () async {
     final runner = CommandRunner<int>('genuineci', 'test')
       ..addCommand(
         LoginCommand(credentialStore: store, processRunner: processRunner),
@@ -138,8 +138,8 @@ void main() {
     expect(help, contains(t.login.description));
     expect(help, contains('http://localhost:8080'));
     expect(help, contains('--local'));
-    for (final option in ['--server', '--team-id', '--profile']) {
-      expect(help, isNot(contains(option)));
+    for (final option in ['--server', '--team-id', '--firebase-api-key']) {
+      expect(help, contains(option));
     }
     expect(dockerCalls, 0);
     await expectCredentialsUnchanged();

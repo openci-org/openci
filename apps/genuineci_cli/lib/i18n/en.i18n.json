@@ -8,13 +8,15 @@
     }
   },
   "login": {
-    "description": "Log in to the local GenuineCI server.",
+    "description": "Log in to a local or remote GenuineCI server.",
     "flags": {
-      "local": "Log in to local Docker environment (http://localhost:8080)."
+      "local": "Log in to local Docker environment (http://localhost:8080).",
+      "server": "Remote GenuineCI server URL (HTTPS).",
+      "teamId": "Team to select when you belong to more than one team.",
+      "firebaseApiKey": "Firebase Web API key (override for a self-hosted Firebase project)."
     },
     "loggingIn": "Logging in to GenuineCI...",
     "savedSuccess": "Successfully saved and activated profile \"${profile}\".",
-    "localOnly": "Only local login is currently supported. Run genuineci login --local.",
     "noArguments": "Login does not accept positional arguments.",
     "localServerUnavailable": "Could not read the local server's API key. Run genuineci dev start --seed and retry.",
     "authenticationFailed": "Local server authentication failed. Check the server started by genuineci dev start.",
@@ -22,7 +24,18 @@
     "seedRequired": "Team test-team was not found. Run genuineci dev start --seed before logging in.",
     "invalidResponse": "The server returned an invalid team list.",
     "connectionFailed": "Could not connect to the local server. Check that genuineci dev start is running.",
-    "saveFailed": "Could not save credentials. Check the local credentials file and its permissions."
+    "saveFailed": "Could not save credentials. Check the local credentials file and its permissions.",
+    "localOptionsConflict": "--local cannot be combined with remote login options.",
+    "serverRequired": "--server must be a valid HTTPS URL without credentials, a query or a fragment. Use --local for local development.",
+    "emptyOptions": "Firebase API key and team ID must not be empty.",
+    "emailPrompt": "Email: ",
+    "passwordPrompt": "Password: ",
+    "inputRequired": "Login requires an interactive terminal, email and password. Login was cancelled.",
+    "firebaseAuthenticationFailed": "Firebase login failed. Check your email, password, Firebase API key and network connection.",
+    "remoteConnectionFailed": "Could not connect to the remote server. Check the server URL and connection.",
+    "noTeams": "No teams found. Create or join a team in the dashboard first.",
+    "teamRequired": "Multiple teams found. Run login again with --team-id from the list above.",
+    "teamNotFound": "You do not belong to the specified team."
   },
   "use": {
     "description": "Set the default display language (japanese, english).",
@@ -70,7 +83,7 @@
     "secrets": {
       "description": "Generate genuine_ci/secrets.g.dart from the active team's secret names.",
       "noArguments": "sync secrets does not accept positional arguments.",
-      "loginRequired": "Run genuineci login --local before syncing secrets.",
+      "loginRequired": "Run genuineci login (or genuineci login --local) before syncing secrets.",
       "workflowDirectoryNotFound": "No genuine_ci directory found. Run this command from your workflow project.",
       "requestFailed": "Could not fetch secret names (HTTP ${status}).",
       "fetchFailed": "Could not fetch secret names. Check the server connection and response.",

@@ -11,6 +11,11 @@ _AuthProfile _$AuthProfileFromJson(Map<String, dynamic> json) => _AuthProfile(
   token: json['token'] as String? ?? '',
   teamId: json['team_id'] as String? ?? '',
   authType: json['auth_type'] as String? ?? 'api_key',
+  refreshToken: json['refresh_token'] as String? ?? '',
+  firebaseApiKey: json['firebase_api_key'] as String? ?? '',
+  expiresAt: json['expires_at'] == null
+      ? null
+      : DateTime.parse(json['expires_at'] as String),
 );
 
 Map<String, dynamic> _$AuthProfileToJson(_AuthProfile instance) =>
@@ -19,6 +24,9 @@ Map<String, dynamic> _$AuthProfileToJson(_AuthProfile instance) =>
       'token': instance.token,
       'team_id': instance.teamId,
       'auth_type': instance.authType,
+      'refresh_token': instance.refreshToken,
+      'firebase_api_key': instance.firebaseApiKey,
+      'expires_at': instance.expiresAt?.toIso8601String(),
     };
 
 _CredentialConfig _$CredentialConfigFromJson(Map<String, dynamic> json) =>

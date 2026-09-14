@@ -6,6 +6,7 @@ import 'package:openci_shared/openci_shared.dart';
 
 import '../../credential_store/credential_config.dart';
 import '../../credential_store/credential_store.dart';
+import '../../credential_store/read_authenticated_profile.dart';
 import '../../extensions/file_extensions.dart';
 import '../../i18n/i18n.dart';
 import 'fetch_secret_names.dart';
@@ -62,7 +63,7 @@ class SyncSecretsCommand extends Command<int> {
 
   Future<AuthProfile?> _readProfile() async {
     try {
-      final profile = await _credentialStore.getActiveProfile();
+      final profile = await readAuthenticatedProfile(_credentialStore);
       final server = Uri.tryParse(profile?.serverUrl ?? '');
       if (profile != null &&
           profile.token.trim().isNotEmpty &&

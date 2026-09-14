@@ -65,11 +65,10 @@ class _Translations$login$ja extends Translations$login$en {
 	final TranslationsJa _root; // ignore: unused_field
 
 	// Translations
-	@override String get description => 'ローカルのGenuineCIサーバーにログインします。';
+	@override String get description => 'ローカルまたはリモートのGenuineCIサーバーにログインします。';
 	@override late final _Translations$login$flags$ja flags = _Translations$login$flags$ja._(_root);
 	@override String get loggingIn => 'GenuineCI にログイン中...';
 	@override String savedSuccess({required Object profile}) => 'プロファイル「${profile}」を保存し、有効にしました。';
-	@override String get localOnly => '現在はローカルログインのみ対応しています。genuineci login --local を実行してください。';
 	@override String get noArguments => 'loginに位置引数は指定できません。';
 	@override String get localServerUnavailable => 'ローカルサーバーのAPIキーを取得できませんでした。genuineci dev start --seed を実行して再試行してください。';
 	@override String get authenticationFailed => 'ローカルサーバーの認証に失敗しました。genuineci dev start で起動したサーバーを確認してください。';
@@ -78,6 +77,17 @@ class _Translations$login$ja extends Translations$login$en {
 	@override String get invalidResponse => 'サーバーから返されたチーム一覧が不正です。';
 	@override String get connectionFailed => 'ローカルサーバーに接続できませんでした。genuineci dev start の起動状態を確認してください。';
 	@override String get saveFailed => '認証情報を保存できませんでした。ローカルの認証情報ファイルと権限を確認してください。';
+	@override String get localOptionsConflict => '--localとリモートログイン用のオプションは同時に指定できません。';
+	@override String get serverRequired => '--serverには認証情報、クエリ、フラグメントを含まない有効なHTTPSのURLを指定してください。ローカル開発には--localを使ってください。';
+	@override String get emptyOptions => 'Firebase APIキーとチームIDには空の値を指定できません。';
+	@override String get emailPrompt => 'メールアドレス: ';
+	@override String get passwordPrompt => 'パスワード: ';
+	@override String get inputRequired => '対話可能な端末でメールアドレスとパスワードを入力してください。ログインを中止しました。';
+	@override String get firebaseAuthenticationFailed => 'Firebaseへのログインに失敗しました。メールアドレス、パスワード、Firebase APIキー、接続状態を確認してください。';
+	@override String get remoteConnectionFailed => 'リモートサーバーに接続できませんでした。サーバーURLと接続状態を確認してください。';
+	@override String get noTeams => '所属チームがありません。先にdashboardでチームを作成するか参加してください。';
+	@override String get teamRequired => '複数のチームがあります。上記のIDを--team-idで指定して再度ログインしてください。';
+	@override String get teamNotFound => '指定されたチームに所属していません。';
 }
 
 // Path: use
@@ -144,6 +154,9 @@ class _Translations$login$flags$ja extends Translations$login$flags$en {
 
 	// Translations
 	@override String get local => 'ローカルDocker環境（http://localhost:8080）に接続します。';
+	@override String get server => 'リモートのGenuineCIサーバーURL（HTTPS）。';
+	@override String get teamId => '複数チームに所属している場合に選択するチームID。';
+	@override String get firebaseApiKey => 'Firebase Web APIキー（独自のFirebaseプロジェクトを使う場合に指定）。';
 }
 
 // Path: dev.start
@@ -200,7 +213,7 @@ class _Translations$sync$secrets$ja extends Translations$sync$secrets$en {
 	// Translations
 	@override String get description => '現在のチームのシークレット名からgenuine_ci/secrets.g.dartを生成します。';
 	@override String get noArguments => 'sync secretsに位置引数は指定できません。';
-	@override String get loginRequired => 'genuineci login --localを実行してからシークレットを同期してください。';
+	@override String get loginRequired => 'genuineci login（ローカルならgenuineci login --local）を実行してからシークレットを同期してください。';
 	@override String get workflowDirectoryNotFound => 'genuine_ciディレクトリが見つかりません。ワークフローのあるプロジェクト内で実行してください。';
 	@override String requestFailed({required Object status}) => 'シークレット名を取得できませんでした（HTTP ${status}）。';
 	@override String get fetchFailed => 'シークレット名を取得できませんでした。サーバーの接続状態とレスポンスを確認してください。';
@@ -230,11 +243,13 @@ extension on TranslationsJa {
 			'cli.version' => ({required Object version}) => 'genuineci バージョン: ${version}',
 			'cli.flags.version' => 'ツールのバージョンを表示します。',
 			'cli.flags.verbose' => '詳細なログ出力を有効にします。',
-			'login.description' => 'ローカルのGenuineCIサーバーにログインします。',
+			'login.description' => 'ローカルまたはリモートのGenuineCIサーバーにログインします。',
 			'login.flags.local' => 'ローカルDocker環境（http://localhost:8080）に接続します。',
+			'login.flags.server' => 'リモートのGenuineCIサーバーURL（HTTPS）。',
+			'login.flags.teamId' => '複数チームに所属している場合に選択するチームID。',
+			'login.flags.firebaseApiKey' => 'Firebase Web APIキー（独自のFirebaseプロジェクトを使う場合に指定）。',
 			'login.loggingIn' => 'GenuineCI にログイン中...',
 			'login.savedSuccess' => ({required Object profile}) => 'プロファイル「${profile}」を保存し、有効にしました。',
-			'login.localOnly' => '現在はローカルログインのみ対応しています。genuineci login --local を実行してください。',
 			'login.noArguments' => 'loginに位置引数は指定できません。',
 			'login.localServerUnavailable' => 'ローカルサーバーのAPIキーを取得できませんでした。genuineci dev start --seed を実行して再試行してください。',
 			'login.authenticationFailed' => 'ローカルサーバーの認証に失敗しました。genuineci dev start で起動したサーバーを確認してください。',
@@ -243,6 +258,17 @@ extension on TranslationsJa {
 			'login.invalidResponse' => 'サーバーから返されたチーム一覧が不正です。',
 			'login.connectionFailed' => 'ローカルサーバーに接続できませんでした。genuineci dev start の起動状態を確認してください。',
 			'login.saveFailed' => '認証情報を保存できませんでした。ローカルの認証情報ファイルと権限を確認してください。',
+			'login.localOptionsConflict' => '--localとリモートログイン用のオプションは同時に指定できません。',
+			'login.serverRequired' => '--serverには認証情報、クエリ、フラグメントを含まない有効なHTTPSのURLを指定してください。ローカル開発には--localを使ってください。',
+			'login.emptyOptions' => 'Firebase APIキーとチームIDには空の値を指定できません。',
+			'login.emailPrompt' => 'メールアドレス: ',
+			'login.passwordPrompt' => 'パスワード: ',
+			'login.inputRequired' => '対話可能な端末でメールアドレスとパスワードを入力してください。ログインを中止しました。',
+			'login.firebaseAuthenticationFailed' => 'Firebaseへのログインに失敗しました。メールアドレス、パスワード、Firebase APIキー、接続状態を確認してください。',
+			'login.remoteConnectionFailed' => 'リモートサーバーに接続できませんでした。サーバーURLと接続状態を確認してください。',
+			'login.noTeams' => '所属チームがありません。先にdashboardでチームを作成するか参加してください。',
+			'login.teamRequired' => '複数のチームがあります。上記のIDを--team-idで指定して再度ログインしてください。',
+			'login.teamNotFound' => '指定されたチームに所属していません。',
 			'use.description' => '表示言語を設定します（japanese, english）。',
 			'use.success' => ({required Object language}) => '言語を${language}に設定しました。',
 			'use.invalidLanguage' => ({required Object input}) => '無効な言語です: 「${input}」。対応言語: japanese, english',
@@ -277,7 +303,7 @@ extension on TranslationsJa {
 			'sync.paths.saved' => ({required Object path}) => 'ワークスペースのパスを生成しました: ${path}',
 			'sync.secrets.description' => '現在のチームのシークレット名からgenuine_ci/secrets.g.dartを生成します。',
 			'sync.secrets.noArguments' => 'sync secretsに位置引数は指定できません。',
-			'sync.secrets.loginRequired' => 'genuineci login --localを実行してからシークレットを同期してください。',
+			'sync.secrets.loginRequired' => 'genuineci login（ローカルならgenuineci login --local）を実行してからシークレットを同期してください。',
 			'sync.secrets.workflowDirectoryNotFound' => 'genuine_ciディレクトリが見つかりません。ワークフローのあるプロジェクト内で実行してください。',
 			'sync.secrets.requestFailed' => ({required Object status}) => 'シークレット名を取得できませんでした（HTTP ${status}）。',
 			'sync.secrets.fetchFailed' => 'シークレット名を取得できませんでした。サーバーの接続状態とレスポンスを確認してください。',

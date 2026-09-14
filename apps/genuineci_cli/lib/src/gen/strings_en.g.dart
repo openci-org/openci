@@ -67,8 +67,8 @@ class Translations$login$en {
 
 	// Translations
 
-	/// en: 'Log in to the local GenuineCI server.'
-	String get description => 'Log in to the local GenuineCI server.';
+	/// en: 'Log in to a local or remote GenuineCI server.'
+	String get description => 'Log in to a local or remote GenuineCI server.';
 
 	late final Translations$login$flags$en flags = Translations$login$flags$en.internal(_root);
 
@@ -77,9 +77,6 @@ class Translations$login$en {
 
 	/// en: 'Successfully saved and activated profile "${profile}".'
 	String savedSuccess({required Object profile}) => 'Successfully saved and activated profile "${profile}".';
-
-	/// en: 'Only local login is currently supported. Run genuineci login --local.'
-	String get localOnly => 'Only local login is currently supported. Run genuineci login --local.';
 
 	/// en: 'Login does not accept positional arguments.'
 	String get noArguments => 'Login does not accept positional arguments.';
@@ -104,6 +101,39 @@ class Translations$login$en {
 
 	/// en: 'Could not save credentials. Check the local credentials file and its permissions.'
 	String get saveFailed => 'Could not save credentials. Check the local credentials file and its permissions.';
+
+	/// en: '--local cannot be combined with remote login options.'
+	String get localOptionsConflict => '--local cannot be combined with remote login options.';
+
+	/// en: '--server must be a valid HTTPS URL without credentials, a query or a fragment. Use --local for local development.'
+	String get serverRequired => '--server must be a valid HTTPS URL without credentials, a query or a fragment. Use --local for local development.';
+
+	/// en: 'Firebase API key and team ID must not be empty.'
+	String get emptyOptions => 'Firebase API key and team ID must not be empty.';
+
+	/// en: 'Email: '
+	String get emailPrompt => 'Email: ';
+
+	/// en: 'Password: '
+	String get passwordPrompt => 'Password: ';
+
+	/// en: 'Login requires an interactive terminal, email and password. Login was cancelled.'
+	String get inputRequired => 'Login requires an interactive terminal, email and password. Login was cancelled.';
+
+	/// en: 'Firebase login failed. Check your email, password, Firebase API key and network connection.'
+	String get firebaseAuthenticationFailed => 'Firebase login failed. Check your email, password, Firebase API key and network connection.';
+
+	/// en: 'Could not connect to the remote server. Check the server URL and connection.'
+	String get remoteConnectionFailed => 'Could not connect to the remote server. Check the server URL and connection.';
+
+	/// en: 'No teams found. Create or join a team in the dashboard first.'
+	String get noTeams => 'No teams found. Create or join a team in the dashboard first.';
+
+	/// en: 'Multiple teams found. Run login again with --team-id from the list above.'
+	String get teamRequired => 'Multiple teams found. Run login again with --team-id from the list above.';
+
+	/// en: 'You do not belong to the specified team.'
+	String get teamNotFound => 'You do not belong to the specified team.';
 }
 
 // Path: use
@@ -190,6 +220,15 @@ class Translations$login$flags$en {
 
 	/// en: 'Log in to local Docker environment (http://localhost:8080).'
 	String get local => 'Log in to local Docker environment (http://localhost:8080).';
+
+	/// en: 'Remote GenuineCI server URL (HTTPS).'
+	String get server => 'Remote GenuineCI server URL (HTTPS).';
+
+	/// en: 'Team to select when you belong to more than one team.'
+	String get teamId => 'Team to select when you belong to more than one team.';
+
+	/// en: 'Firebase Web API key (override for a self-hosted Firebase project).'
+	String get firebaseApiKey => 'Firebase Web API key (override for a self-hosted Firebase project).';
 }
 
 // Path: dev.start
@@ -304,8 +343,8 @@ class Translations$sync$secrets$en {
 	/// en: 'sync secrets does not accept positional arguments.'
 	String get noArguments => 'sync secrets does not accept positional arguments.';
 
-	/// en: 'Run genuineci login --local before syncing secrets.'
-	String get loginRequired => 'Run genuineci login --local before syncing secrets.';
+	/// en: 'Run genuineci login (or genuineci login --local) before syncing secrets.'
+	String get loginRequired => 'Run genuineci login (or genuineci login --local) before syncing secrets.';
 
 	/// en: 'No genuine_ci directory found. Run this command from your workflow project.'
 	String get workflowDirectoryNotFound => 'No genuine_ci directory found. Run this command from your workflow project.';
@@ -347,11 +386,13 @@ extension on Translations {
 			'cli.version' => ({required Object version}) => 'genuineci version: ${version}',
 			'cli.flags.version' => 'Print the current tool version.',
 			'cli.flags.verbose' => 'Enable verbose logging output.',
-			'login.description' => 'Log in to the local GenuineCI server.',
+			'login.description' => 'Log in to a local or remote GenuineCI server.',
 			'login.flags.local' => 'Log in to local Docker environment (http://localhost:8080).',
+			'login.flags.server' => 'Remote GenuineCI server URL (HTTPS).',
+			'login.flags.teamId' => 'Team to select when you belong to more than one team.',
+			'login.flags.firebaseApiKey' => 'Firebase Web API key (override for a self-hosted Firebase project).',
 			'login.loggingIn' => 'Logging in to GenuineCI...',
 			'login.savedSuccess' => ({required Object profile}) => 'Successfully saved and activated profile "${profile}".',
-			'login.localOnly' => 'Only local login is currently supported. Run genuineci login --local.',
 			'login.noArguments' => 'Login does not accept positional arguments.',
 			'login.localServerUnavailable' => 'Could not read the local server\'s API key. Run genuineci dev start --seed and retry.',
 			'login.authenticationFailed' => 'Local server authentication failed. Check the server started by genuineci dev start.',
@@ -360,6 +401,17 @@ extension on Translations {
 			'login.invalidResponse' => 'The server returned an invalid team list.',
 			'login.connectionFailed' => 'Could not connect to the local server. Check that genuineci dev start is running.',
 			'login.saveFailed' => 'Could not save credentials. Check the local credentials file and its permissions.',
+			'login.localOptionsConflict' => '--local cannot be combined with remote login options.',
+			'login.serverRequired' => '--server must be a valid HTTPS URL without credentials, a query or a fragment. Use --local for local development.',
+			'login.emptyOptions' => 'Firebase API key and team ID must not be empty.',
+			'login.emailPrompt' => 'Email: ',
+			'login.passwordPrompt' => 'Password: ',
+			'login.inputRequired' => 'Login requires an interactive terminal, email and password. Login was cancelled.',
+			'login.firebaseAuthenticationFailed' => 'Firebase login failed. Check your email, password, Firebase API key and network connection.',
+			'login.remoteConnectionFailed' => 'Could not connect to the remote server. Check the server URL and connection.',
+			'login.noTeams' => 'No teams found. Create or join a team in the dashboard first.',
+			'login.teamRequired' => 'Multiple teams found. Run login again with --team-id from the list above.',
+			'login.teamNotFound' => 'You do not belong to the specified team.',
 			'use.description' => 'Set the default display language (japanese, english).',
 			'use.success' => ({required Object language}) => 'Language set to ${language}.',
 			'use.invalidLanguage' => ({required Object input}) => 'Invalid language "${input}". Supported languages: japanese, english.',
@@ -394,7 +446,7 @@ extension on Translations {
 			'sync.paths.saved' => ({required Object path}) => 'Generated workspace paths: ${path}',
 			'sync.secrets.description' => 'Generate genuine_ci/secrets.g.dart from the active team\'s secret names.',
 			'sync.secrets.noArguments' => 'sync secrets does not accept positional arguments.',
-			'sync.secrets.loginRequired' => 'Run genuineci login --local before syncing secrets.',
+			'sync.secrets.loginRequired' => 'Run genuineci login (or genuineci login --local) before syncing secrets.',
 			'sync.secrets.workflowDirectoryNotFound' => 'No genuine_ci directory found. Run this command from your workflow project.',
 			'sync.secrets.requestFailed' => ({required Object status}) => 'Could not fetch secret names (HTTP ${status}).',
 			'sync.secrets.fetchFailed' => 'Could not fetch secret names. Check the server connection and response.',

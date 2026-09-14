@@ -1,5 +1,29 @@
 GenuineCI command-line tools.
 
+Log in to a remote server with the same email and password as the dashboard:
+
+```sh
+genuineci login
+```
+
+The default server is `https://openci-worker-01.tail4beb18.ts.net`.
+To connect to another server, pass the optional `--server <url>` option.
+
+Enter your email and password at the prompts. The password is hidden and is only
+sent to Firebase Authentication; it is never saved. After the server confirms
+your team membership, the CLI saves and activates the `remote` credential
+profile, keeping the `local` profile. Failed login attempts preserve existing
+credentials.
+
+If you belong to multiple teams, specify `--team-id <id>` using the displayed
+list. For a self-hosted Firebase project, also pass its Web API key with
+`--firebase-api-key <key>`; the default is the dashboard's `openci-b1b91` project.
+The remote server URL must use HTTPS.
+
+`genuineci sync secrets` uses this profile and automatically refreshes expiring
+Firebase ID tokens. Credentials, including the refresh token, are stored in the
+existing credentials file with owner-only permissions on macOS/Linux.
+
 Run `genuineci dev start` from the OpenCI checkout to start local services and the
 Mac Orchard worker. The existing Docker Compose credentials and `base-macos` VM
 must be configured first.

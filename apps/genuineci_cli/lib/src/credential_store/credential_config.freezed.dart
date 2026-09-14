@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$AuthProfile {
 
-@JsonKey(name: 'server_url') String get serverUrl; String get token;@JsonKey(name: 'team_id') String get teamId;@JsonKey(name: 'auth_type') String get authType;
+@JsonKey(name: 'server_url') String get serverUrl; String get token;@JsonKey(name: 'team_id') String get teamId;@JsonKey(name: 'auth_type') String get authType;@JsonKey(name: 'refresh_token') String get refreshToken;@JsonKey(name: 'firebase_api_key') String get firebaseApiKey;@JsonKey(name: 'expires_at') DateTime? get expiresAt;
 /// Create a copy of AuthProfile
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,12 +28,12 @@ $AuthProfileCopyWith<AuthProfile> get copyWith => _$AuthProfileCopyWithImpl<Auth
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is AuthProfile&&(identical(other.serverUrl, serverUrl) || other.serverUrl == serverUrl)&&(identical(other.token, token) || other.token == token)&&(identical(other.teamId, teamId) || other.teamId == teamId)&&(identical(other.authType, authType) || other.authType == authType));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is AuthProfile&&(identical(other.serverUrl, serverUrl) || other.serverUrl == serverUrl)&&(identical(other.token, token) || other.token == token)&&(identical(other.teamId, teamId) || other.teamId == teamId)&&(identical(other.authType, authType) || other.authType == authType)&&(identical(other.refreshToken, refreshToken) || other.refreshToken == refreshToken)&&(identical(other.firebaseApiKey, firebaseApiKey) || other.firebaseApiKey == firebaseApiKey)&&(identical(other.expiresAt, expiresAt) || other.expiresAt == expiresAt));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,serverUrl,token,teamId,authType);
+int get hashCode => Object.hash(runtimeType,serverUrl,token,teamId,authType,refreshToken,firebaseApiKey,expiresAt);
 
 
 
@@ -44,7 +44,7 @@ abstract mixin class $AuthProfileCopyWith<$Res>  {
   factory $AuthProfileCopyWith(AuthProfile value, $Res Function(AuthProfile) _then) = _$AuthProfileCopyWithImpl;
 @useResult
 $Res call({
-@JsonKey(name: 'server_url') String serverUrl, String token,@JsonKey(name: 'team_id') String teamId,@JsonKey(name: 'auth_type') String authType
+@JsonKey(name: 'server_url') String serverUrl, String token,@JsonKey(name: 'team_id') String teamId,@JsonKey(name: 'auth_type') String authType,@JsonKey(name: 'refresh_token') String refreshToken,@JsonKey(name: 'firebase_api_key') String firebaseApiKey,@JsonKey(name: 'expires_at') DateTime? expiresAt
 });
 
 
@@ -61,13 +61,16 @@ class _$AuthProfileCopyWithImpl<$Res>
 
 /// Create a copy of AuthProfile
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? serverUrl = null,Object? token = null,Object? teamId = null,Object? authType = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? serverUrl = null,Object? token = null,Object? teamId = null,Object? authType = null,Object? refreshToken = null,Object? firebaseApiKey = null,Object? expiresAt = freezed,}) {
   return _then(_self.copyWith(
 serverUrl: null == serverUrl ? _self.serverUrl : serverUrl // ignore: cast_nullable_to_non_nullable
 as String,token: null == token ? _self.token : token // ignore: cast_nullable_to_non_nullable
 as String,teamId: null == teamId ? _self.teamId : teamId // ignore: cast_nullable_to_non_nullable
 as String,authType: null == authType ? _self.authType : authType // ignore: cast_nullable_to_non_nullable
-as String,
+as String,refreshToken: null == refreshToken ? _self.refreshToken : refreshToken // ignore: cast_nullable_to_non_nullable
+as String,firebaseApiKey: null == firebaseApiKey ? _self.firebaseApiKey : firebaseApiKey // ignore: cast_nullable_to_non_nullable
+as String,expiresAt: freezed == expiresAt ? _self.expiresAt : expiresAt // ignore: cast_nullable_to_non_nullable
+as DateTime?,
   ));
 }
 
@@ -152,10 +155,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'server_url')  String serverUrl,  String token, @JsonKey(name: 'team_id')  String teamId, @JsonKey(name: 'auth_type')  String authType)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'server_url')  String serverUrl,  String token, @JsonKey(name: 'team_id')  String teamId, @JsonKey(name: 'auth_type')  String authType, @JsonKey(name: 'refresh_token')  String refreshToken, @JsonKey(name: 'firebase_api_key')  String firebaseApiKey, @JsonKey(name: 'expires_at')  DateTime? expiresAt)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _AuthProfile() when $default != null:
-return $default(_that.serverUrl,_that.token,_that.teamId,_that.authType);case _:
+return $default(_that.serverUrl,_that.token,_that.teamId,_that.authType,_that.refreshToken,_that.firebaseApiKey,_that.expiresAt);case _:
   return orElse();
 
 }
@@ -173,10 +176,10 @@ return $default(_that.serverUrl,_that.token,_that.teamId,_that.authType);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'server_url')  String serverUrl,  String token, @JsonKey(name: 'team_id')  String teamId, @JsonKey(name: 'auth_type')  String authType)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'server_url')  String serverUrl,  String token, @JsonKey(name: 'team_id')  String teamId, @JsonKey(name: 'auth_type')  String authType, @JsonKey(name: 'refresh_token')  String refreshToken, @JsonKey(name: 'firebase_api_key')  String firebaseApiKey, @JsonKey(name: 'expires_at')  DateTime? expiresAt)  $default,) {final _that = this;
 switch (_that) {
 case _AuthProfile():
-return $default(_that.serverUrl,_that.token,_that.teamId,_that.authType);case _:
+return $default(_that.serverUrl,_that.token,_that.teamId,_that.authType,_that.refreshToken,_that.firebaseApiKey,_that.expiresAt);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -193,10 +196,10 @@ return $default(_that.serverUrl,_that.token,_that.teamId,_that.authType);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'server_url')  String serverUrl,  String token, @JsonKey(name: 'team_id')  String teamId, @JsonKey(name: 'auth_type')  String authType)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'server_url')  String serverUrl,  String token, @JsonKey(name: 'team_id')  String teamId, @JsonKey(name: 'auth_type')  String authType, @JsonKey(name: 'refresh_token')  String refreshToken, @JsonKey(name: 'firebase_api_key')  String firebaseApiKey, @JsonKey(name: 'expires_at')  DateTime? expiresAt)?  $default,) {final _that = this;
 switch (_that) {
 case _AuthProfile() when $default != null:
-return $default(_that.serverUrl,_that.token,_that.teamId,_that.authType);case _:
+return $default(_that.serverUrl,_that.token,_that.teamId,_that.authType,_that.refreshToken,_that.firebaseApiKey,_that.expiresAt);case _:
   return null;
 
 }
@@ -208,13 +211,16 @@ return $default(_that.serverUrl,_that.token,_that.teamId,_that.authType);case _:
 @JsonSerializable()
 
 class _AuthProfile extends AuthProfile {
-  const _AuthProfile({@JsonKey(name: 'server_url') this.serverUrl = 'http://localhost:8080', this.token = '', @JsonKey(name: 'team_id') this.teamId = '', @JsonKey(name: 'auth_type') this.authType = 'api_key'}): super._();
+  const _AuthProfile({@JsonKey(name: 'server_url') this.serverUrl = 'http://localhost:8080', this.token = '', @JsonKey(name: 'team_id') this.teamId = '', @JsonKey(name: 'auth_type') this.authType = 'api_key', @JsonKey(name: 'refresh_token') this.refreshToken = '', @JsonKey(name: 'firebase_api_key') this.firebaseApiKey = '', @JsonKey(name: 'expires_at') this.expiresAt}): super._();
   factory _AuthProfile.fromJson(Map<String, dynamic> json) => _$AuthProfileFromJson(json);
 
 @override@JsonKey(name: 'server_url') final  String serverUrl;
 @override@JsonKey() final  String token;
 @override@JsonKey(name: 'team_id') final  String teamId;
 @override@JsonKey(name: 'auth_type') final  String authType;
+@override@JsonKey(name: 'refresh_token') final  String refreshToken;
+@override@JsonKey(name: 'firebase_api_key') final  String firebaseApiKey;
+@override@JsonKey(name: 'expires_at') final  DateTime? expiresAt;
 
 /// Create a copy of AuthProfile
 /// with the given fields replaced by the non-null parameter values.
@@ -229,12 +235,12 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _AuthProfile&&(identical(other.serverUrl, serverUrl) || other.serverUrl == serverUrl)&&(identical(other.token, token) || other.token == token)&&(identical(other.teamId, teamId) || other.teamId == teamId)&&(identical(other.authType, authType) || other.authType == authType));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _AuthProfile&&(identical(other.serverUrl, serverUrl) || other.serverUrl == serverUrl)&&(identical(other.token, token) || other.token == token)&&(identical(other.teamId, teamId) || other.teamId == teamId)&&(identical(other.authType, authType) || other.authType == authType)&&(identical(other.refreshToken, refreshToken) || other.refreshToken == refreshToken)&&(identical(other.firebaseApiKey, firebaseApiKey) || other.firebaseApiKey == firebaseApiKey)&&(identical(other.expiresAt, expiresAt) || other.expiresAt == expiresAt));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,serverUrl,token,teamId,authType);
+int get hashCode => Object.hash(runtimeType,serverUrl,token,teamId,authType,refreshToken,firebaseApiKey,expiresAt);
 
 
 
@@ -245,7 +251,7 @@ abstract mixin class _$AuthProfileCopyWith<$Res> implements $AuthProfileCopyWith
   factory _$AuthProfileCopyWith(_AuthProfile value, $Res Function(_AuthProfile) _then) = __$AuthProfileCopyWithImpl;
 @override @useResult
 $Res call({
-@JsonKey(name: 'server_url') String serverUrl, String token,@JsonKey(name: 'team_id') String teamId,@JsonKey(name: 'auth_type') String authType
+@JsonKey(name: 'server_url') String serverUrl, String token,@JsonKey(name: 'team_id') String teamId,@JsonKey(name: 'auth_type') String authType,@JsonKey(name: 'refresh_token') String refreshToken,@JsonKey(name: 'firebase_api_key') String firebaseApiKey,@JsonKey(name: 'expires_at') DateTime? expiresAt
 });
 
 
@@ -262,13 +268,16 @@ class __$AuthProfileCopyWithImpl<$Res>
 
 /// Create a copy of AuthProfile
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? serverUrl = null,Object? token = null,Object? teamId = null,Object? authType = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? serverUrl = null,Object? token = null,Object? teamId = null,Object? authType = null,Object? refreshToken = null,Object? firebaseApiKey = null,Object? expiresAt = freezed,}) {
   return _then(_AuthProfile(
 serverUrl: null == serverUrl ? _self.serverUrl : serverUrl // ignore: cast_nullable_to_non_nullable
 as String,token: null == token ? _self.token : token // ignore: cast_nullable_to_non_nullable
 as String,teamId: null == teamId ? _self.teamId : teamId // ignore: cast_nullable_to_non_nullable
 as String,authType: null == authType ? _self.authType : authType // ignore: cast_nullable_to_non_nullable
-as String,
+as String,refreshToken: null == refreshToken ? _self.refreshToken : refreshToken // ignore: cast_nullable_to_non_nullable
+as String,firebaseApiKey: null == firebaseApiKey ? _self.firebaseApiKey : firebaseApiKey // ignore: cast_nullable_to_non_nullable
+as String,expiresAt: freezed == expiresAt ? _self.expiresAt : expiresAt // ignore: cast_nullable_to_non_nullable
+as DateTime?,
   ));
 }
 

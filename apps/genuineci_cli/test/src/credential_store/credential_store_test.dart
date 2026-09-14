@@ -126,6 +126,7 @@ void main() {
       token: 'super-secret-api-key-12345',
       teamId: 'team-alpha',
       authType: 'api_key',
+      refreshToken: 'private-refresh-token',
     );
 
     final profileStr = profile.toString();
@@ -134,6 +135,7 @@ void main() {
     expect(profileStr, contains('api_key'));
     expect(profileStr, contains('token: ***'));
     expect(profileStr, isNot(contains('super-secret-api-key-12345')));
+    expect(profileStr, isNot(contains('private-refresh-token')));
 
     const config = CredentialConfig(
       activeProfile: 'local',
@@ -144,6 +146,7 @@ void main() {
     expect(configStr, contains('activeProfile: local'));
     expect(configStr, contains('token: ***'));
     expect(configStr, isNot(contains('super-secret-api-key-12345')));
+    expect(configStr, isNot(contains('private-refresh-token')));
   });
 
   test(
