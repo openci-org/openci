@@ -1,6 +1,6 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
-import 'build_step.dart';
+import '../build_step.dart';
 
 part 'step_event.freezed.dart';
 part 'step_event.g.dart';
