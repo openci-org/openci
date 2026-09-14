@@ -1,6 +1,7 @@
 import 'package:http/http.dart' as http;
+import 'package:openci_shared/openci_shared.dart';
 
-import '../loki/push_log_to_loki.dart';
+import '../execute_build_job/report_step_log.dart';
 import 'orchard_api_client.dart';
 
 /// Executes a command and waits for its queued Loki deliveries before returning.
@@ -18,6 +19,14 @@ Future<int> executeCommand({
   int waitSeconds = 300,
   Duration logTimeout = const Duration(seconds: 10),
 }) async {
+  final reportStepLog = ReportStepLog(
+    lokiClient: lokiClient,
+    lokiUrl: lokiUrl,
+    jobId: jobId,
+    runId: runId,
+    onError: onLogError,
+    logTimeout: logTimeout,
+  );
   var pendingLogs = Future<void>.value();
 
   try {
@@ -26,21 +35,13 @@ Future<int> executeCommand({
       command: command,
       waitSeconds: waitSeconds,
       onLog: (line, stream) {
-        pendingLogs = pendingLogs.then((_) async {
-          try {
-            await pushLogToLoki(
-              client: lokiClient,
-              lokiUrl: lokiUrl,
-              runId: runId,
-              jobId: jobId,
-              stepId: stepId,
-              message: line,
-              stream: stream,
-            ).timeout(logTimeout);
-          } catch (error, stackTrace) {
-            onLogError(error, stackTrace);
-          }
-        });
+        pendingLogs = pendingLogs.then(
+          (_) => reportStepLog.send(
+            stepId: stepId,
+            log: StepLog(message: line),
+            stream: stream,
+          ),
+        );
       },
     );
   } finally {
