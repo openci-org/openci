@@ -14,6 +14,8 @@ enum _StepEntryType {
   final String value;
 }
 
+//class ReportStep を作成か (// ReportStepEventとReportStepLogに分離 )
+
 Future<void> reportStep({
   required http.Client lokiClient,
   required String lokiUrl,
