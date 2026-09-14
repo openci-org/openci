@@ -9,6 +9,7 @@ environment:
 resolution: workspace
 
 dependencies:
+  chopper: ^8.6.0
   http: ^1.6.0
   meta: ^1.16.0
   openci_shared: ^1.0.1
