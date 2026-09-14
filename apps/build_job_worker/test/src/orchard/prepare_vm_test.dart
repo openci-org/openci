@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:build_job_worker/build_job_worker.dart';
 import 'package:mocktail/mocktail.dart';
@@ -29,10 +30,121 @@ void main() {
     when(
       () => api.waitForVmRunning('lease-1', timeout: startupTimeout),
     ).thenAnswer((_) async => runningLease);
+    when(
+      () => api.execCommandWebSocket(
+        vmName: 'lease-1',
+        command: 'true',
+        onLog: any(named: 'onLog'),
+        waitSeconds: any(named: 'waitSeconds'),
+      ),
+    ).thenAnswer((_) async => 0);
     when(() => api.deleteLease(any())).thenAnswer((_) async {});
   });
 
   group('prepareVm', () {
+    test('does not return a running VM until SSH commands succeed', () async {
+      final sshReady = Completer<int>();
+      when(
+        () => api.execCommandWebSocket(
+          vmName: 'lease-1',
+          command: 'true',
+          onLog: any(named: 'onLog'),
+          waitSeconds: any(named: 'waitSeconds'),
+        ),
+      ).thenAnswer((_) => sshReady.future);
+      var completed = false;
+      final preparing =
+          prepareVm(api: api, baseVmName: 'base-macos', vmName: 'vm-1').then((
+            lease,
+          ) {
+            completed = true;
+            return lease;
+          });
+
+      await Future<void>.delayed(Duration.zero);
+      expect(completed, isFalse);
+      sshReady.complete(0);
+      expect(await preparing, same(runningLease));
+    });
+
+    test('retries an unavailable SSH connection during VM startup', () async {
+      var attempts = 0;
+      when(
+        () => api.execCommandWebSocket(
+          vmName: 'lease-1',
+          command: 'true',
+          onLog: any(named: 'onLog'),
+          waitSeconds: any(named: 'waitSeconds'),
+        ),
+      ).thenAnswer((_) async {
+        if (attempts++ == 0) {
+          throw const WebSocketException('SSH is not ready', 503);
+        }
+        return 0;
+      });
+
+      expect(
+        await prepareVm(api: api, baseVmName: 'base-macos', vmName: 'vm-1'),
+        same(runningLease),
+      );
+      expect(attempts, 2);
+      verifyNever(() => api.deleteLease(any()));
+    });
+
+    test('deletes the VM when SSH never becomes available', () async {
+      const timeout = Duration(milliseconds: 20);
+      when(
+        () => api.waitForVmRunning('lease-1', timeout: timeout),
+      ).thenAnswer((_) async => runningLease);
+      when(
+        () => api.execCommandWebSocket(
+          vmName: 'lease-1',
+          command: 'true',
+          onLog: any(named: 'onLog'),
+          waitSeconds: any(named: 'waitSeconds'),
+        ),
+      ).thenAnswer(
+        (_) async => throw const WebSocketException('SSH is not ready', 503),
+      );
+
+      await expectLater(
+        prepareVm(
+          api: api,
+          baseVmName: 'base-macos',
+          vmName: 'vm-1',
+          startupTimeout: timeout,
+        ),
+        throwsA(isA<TimeoutException>()),
+      );
+      verify(() => api.deleteLease('lease-1')).called(1);
+    });
+
+    test('does not retry an authentication error and deletes the VM', () async {
+      const error = WebSocketException('Unauthorized', 401);
+      when(
+        () => api.execCommandWebSocket(
+          vmName: 'lease-1',
+          command: 'true',
+          onLog: any(named: 'onLog'),
+          waitSeconds: any(named: 'waitSeconds'),
+        ),
+      ).thenAnswer((_) async => throw error);
+
+      await expectLater(
+        prepareVm(api: api, baseVmName: 'base-macos', vmName: 'vm-1'),
+        throwsA(same(error)),
+      );
+      verify(
+        () => api.execCommandWebSocket(
+          vmName: 'lease-1',
+          command: 'true',
+          onLog: any(named: 'onLog'),
+          waitSeconds: any(named: 'waitSeconds'),
+        ),
+      ).called(1);
+      verify(() => api.deleteLease('lease-1')).called(1);
+    });
+
     test('creates a VM and returns its updated running lease', () async {
       final lease = await prepareVm(
         api: api,

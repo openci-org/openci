@@ -241,6 +241,14 @@ void main() {
       await record(stage);
       return stage == 'workflow' ? workflowExitCode : 0;
     });
+    when(
+      () => orchardApi.execCommandWebSocket(
+        vmName: any(named: 'vmName'),
+        command: 'true',
+        onLog: any(named: 'onLog'),
+        waitSeconds: any(named: 'waitSeconds'),
+      ),
+    ).thenAnswer((_) async => 0);
     when(() => api.getJobSecrets(job.id)).thenAnswer((_) async {
       await record('secrets');
       return createMockResponse({

@@ -18,7 +18,6 @@ class LokiService {
            'http://localhost:3100',
        _client = client ?? http.Client();
 
-  /// 指定した runId に関連するログ行を取得します
   Future<List<String>> getLogsForRun({
     required String runId,
     String? stepId,
@@ -92,7 +91,6 @@ class LokiService {
         }
       }
 
-      // ナノ秒タイムスタンプ昇順でソート
       timedLines.sort((a, b) => a.key.compareTo(b.key));
 
       return timedLines.map((e) => e.value).toList();
@@ -104,7 +102,6 @@ class LokiService {
     }
   }
 
-  /// Loki から指定した runId のステップイベント (type="step_event") を取得し、最新状態のステップリストを組み立てます
   Future<List<BuildStep>> getStepSummariesForRun({
     required String runId,
   }) async {
@@ -176,14 +173,12 @@ class LokiService {
             final rawJson = entry[1].toString();
             try {
               final stepData = jsonDecode(rawJson) as Map<String, dynamic>;
-              // Normalize status if needed (e.g. RUNNING -> IN_PROGRESS)
               final rawStatus = stepData['status']?.toString().toUpperCase();
               if (rawStatus == 'RUNNING') {
                 stepData['status'] = BuildJobStatus.IN_PROGRESS.name;
               }
               final step = BuildStep.fromJson(stepData);
               if (step.id.isNotEmpty) {
-                // 最新のステータス情報で上書き更新
                 stepsById[step.id] = step;
               }
             } catch (_) {}
@@ -203,8 +198,6 @@ class LokiService {
     }
   }
 
-  /// Loki Tail API (WebSocket) から受信したフレームメッセージをパースし、
-  /// (streamLabels, logLines) のリストを返します。
   static List<MapEntry<Map<String, String>, String>> parseTailFrame(
     String frameJsonStr,
   ) {
