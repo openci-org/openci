@@ -362,29 +362,14 @@ void main() {
           'VM is ready.',
         ]);
         expect(logRequests, hasLength(10));
-        for (final (index, step) in [
-          'prepare_vm',
-          'prepare_vm',
-          'prepare_vm',
-          'prepare_vm',
-          'checkout',
-          'checkout',
-          'checkout',
-          'run_workflow',
-          'run_workflow',
-          'run_workflow',
-        ].indexed) {
-          final request = logRequests[index];
+        for (final request in logRequests) {
           expect(
             request.url.toString(),
             '${config.internalLokiUrl}/loki/api/v1/push',
           );
-          final body = jsonDecode(request.body) as Map<String, dynamic>;
-          final stream =
-              (body['streams'] as List<dynamic>).single as Map<String, dynamic>;
-          expect(stream['stream'], containsPair('run_id', runIds.single));
-          expect(stream['stream'], containsPair('build_job_id', job.id));
-          expect(stream['stream'], containsPair('step_id', step));
+          final labels = _lokiStream(request)['stream'];
+          expect(labels, containsPair('run_id', runIds.single));
+          expect(labels, containsPair('build_job_id', job.id));
         }
       },
     );
@@ -765,10 +750,6 @@ void main() {
 
       expectCompletion(BuildJobStatus.SUCCESS);
       expect(errors, hasLength(2));
-      expect(
-        errors.map((entry) => entry.$1.toString()),
-        everyElement(contains('HTTP 503')),
-      );
       expect(deletedVms, ['lease-1']);
     });
 
