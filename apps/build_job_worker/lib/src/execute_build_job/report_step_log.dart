@@ -10,19 +10,26 @@ class ReportStepLog {
     required String jobId,
     required String runId,
     required void Function(Object error, StackTrace stackTrace) onError,
+    Duration logTimeout = const Duration(seconds: 10),
   }) : _lokiClient = lokiClient,
        _lokiUrl = lokiUrl,
        _jobId = jobId,
        _runId = runId,
-       _onError = onError;
+       _onError = onError,
+       _logTimeout = logTimeout;
 
   final http.Client _lokiClient;
   final String _lokiUrl;
   final String _jobId;
   final String _runId;
   final void Function(Object error, StackTrace stackTrace) _onError;
+  final Duration _logTimeout;
 
-  Future<void> send({required String stepId, required StepLog log}) async {
+  Future<void> send({
+    required StepLog log,
+    String? stepId,
+    String stream = 'stdout',
+  }) async {
     try {
       await pushLogToLoki(
         client: _lokiClient,
@@ -32,7 +39,8 @@ class ReportStepLog {
         stepId: stepId,
         type: 'step_log',
         message: log.message,
-      ).timeout(const Duration(seconds: 10));
+        stream: stream,
+      ).timeout(_logTimeout);
     } catch (error, stackTrace) {
       _onError(error, stackTrace);
     }

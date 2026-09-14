@@ -173,7 +173,9 @@ void main() {
           : Future.value(http.Response('', 204));
 
       expect(
-        await runCommand(logTimeout: const Duration(milliseconds: 20)),
+        await runCommand(
+          logTimeout: const Duration(milliseconds: 20),
+        ).timeout(const Duration(seconds: 1)),
         23,
       );
       expect(requests, hasLength(2));

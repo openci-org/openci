@@ -32,12 +32,33 @@ void main() {
   });
 
   group('ReportStepLog', () {
-    test('sends the original log text with step_log labels', () async {
-      await reporter.send(stepId: 'step-1', log: log);
+    for (final outputStream in ['stdout', 'stderr']) {
+      test('preserves $outputStream and the original log text', () async {
+        await reporter.send(stepId: 'step-1', log: log, stream: outputStream);
 
-      final request = requests.single;
-      expect(request.url.toString(), 'http://loki:3100/loki/api/v1/push');
-      final body = jsonDecode(request.body) as Map<String, dynamic>;
+        final request = requests.single;
+        expect(request.url.toString(), 'http://loki:3100/loki/api/v1/push');
+        final body = jsonDecode(request.body) as Map<String, dynamic>;
+        final stream =
+            (body['streams'] as List<dynamic>).single as Map<String, dynamic>;
+        expect(stream['stream'], {
+          'stream': outputStream,
+          'type': 'step_log',
+          'run_id': 'run-1',
+          'build_job_id': 'job-1',
+          'step_id': 'step-1',
+        });
+        final value =
+            (stream['values'] as List<dynamic>).single as List<dynamic>;
+        expect(value[1], log.message);
+        expect(errors, isEmpty);
+      });
+    }
+
+    test('uses stdout and omits step_id when they are not specified', () async {
+      await reporter.send(log: log);
+
+      final body = jsonDecode(requests.single.body) as Map<String, dynamic>;
       final stream =
           (body['streams'] as List<dynamic>).single as Map<String, dynamic>;
       expect(stream['stream'], {
@@ -45,10 +66,7 @@ void main() {
         'type': 'step_log',
         'run_id': 'run-1',
         'build_job_id': 'job-1',
-        'step_id': 'step-1',
       });
-      final value = (stream['values'] as List<dynamic>).single as List<dynamic>;
-      expect(value[1], log.message);
       expect(errors, isEmpty);
     });
 
