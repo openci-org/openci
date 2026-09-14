@@ -802,7 +802,9 @@ void main() {
         };
 
         expect(
-          await execute(finalizationTimeout: const Duration(milliseconds: 20)),
+          await execute(
+            finalizationTimeout: const Duration(milliseconds: 20),
+          ).timeout(const Duration(seconds: 1)),
           BuildJobStatus.FAILURE,
         );
 
