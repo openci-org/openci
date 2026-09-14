@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:http/http.dart' as http;
 import 'package:meta/meta.dart';
 
 import 'loki/push_log.dart';
@@ -35,7 +36,7 @@ Future<void> _printProcessLogs(
 }) async {
   final lokiUrl = Platform.environment['LOKI_URL'];
   final isLoki = lokiUrl != null && lokiUrl.isNotEmpty;
-  final client = isLoki ? HttpClient() : null;
+  final client = isLoki ? http.Client() : null;
   final lokiTasks = <Future<void>>[];
 
   try {

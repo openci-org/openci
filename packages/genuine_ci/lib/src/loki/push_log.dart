@@ -1,16 +1,18 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:chopper/chopper.dart';
+import 'package:http/http.dart' as http;
+import 'package:openci_shared/openci_shared.dart';
+
 import 'loki_labels.dart';
 import 'loki_push_payload.dart';
-
-Uri _lokiUri(String lokiUrl) => Uri.parse('$lokiUrl/loki/api/v1/push');
 
 String get _dateTimeNowNano =>
     (DateTime.now().toUtc().microsecondsSinceEpoch * 1000).toString();
 
 Future<void> pushLogToLoki({
-  required HttpClient client,
+  required http.Client client,
   required String lokiUrl,
   required String message,
   required String stream,
@@ -26,30 +28,21 @@ Future<void> pushLogToLoki({
     message: message,
   );
 
-  final uri = _lokiUri(lokiUrl);
-  final response = await _post(
+  final chopperClient = ChopperClient(
+    baseUrl: Uri.parse(lokiUrl),
     client: client,
-    uri: uri,
-    payload: payload,
+    converter: const JsonConverter(),
   );
+  final api = LokiApiService.create(chopperClient);
+  final response = await api
+      .push(payload.toMap())
+      .whenComplete(chopperClient.dispose);
 
   if (response.statusCode < 200 || response.statusCode >= 300) {
-    final responseBody = await response.transform(utf8.decoder).join();
+    final responseBody = utf8.decode(response.bodyBytes);
     throw HttpException(
       'Failed to push log to Loki (HTTP ${response.statusCode}): $responseBody',
-      uri: uri,
+      uri: response.base.request?.url,
     );
   }
-  await response.drain<void>();
-}
-
-Future<HttpClientResponse> _post({
-  required HttpClient client,
-  required Uri uri,
-  required LokiPushPayload payload,
-}) async {
-  final request = await client.postUrl(uri);
-  request.headers.contentType = ContentType.json;
-  request.write(jsonEncode(payload.toMap()));
-  return await request.close();
 }

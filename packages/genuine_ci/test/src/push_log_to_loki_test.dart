@@ -2,30 +2,33 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:genuine_ci/src/loki/push_log.dart';
+import 'package:http/http.dart' as http;
 import 'package:test/test.dart';
 
 void main() {
   group('pushLogToLoki', () {
     late HttpServer server;
-    late HttpClient client;
+    late http.Client client;
 
     setUp(() async {
       server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
-      client = HttpClient();
+      client = http.Client();
     });
 
     tearDown(() async {
       await server.close(force: true);
-      client.close(force: true);
+      client.close();
     });
 
     test('successfully pushes log to mock Loki server', () async {
+      const message = 'ビルド開始 🚀\nnext line';
       Map<String, dynamic>? receivedBody;
 
       server.listen((HttpRequest request) async {
         expect(request.uri.path, '/loki/api/v1/push');
         expect(request.method, 'POST');
         expect(request.headers.contentType?.mimeType, 'application/json');
+        expect(request.headers.contentType?.charset, 'utf-8');
 
         final bodyString = await utf8.decoder.bind(request).join();
         receivedBody = jsonDecode(bodyString) as Map<String, dynamic>;
@@ -37,7 +40,7 @@ void main() {
       await pushLogToLoki(
         client: client,
         lokiUrl: 'http://${server.address.host}:${server.port}',
-        message: 'Test log line',
+        message: message,
         stream: 'stdout',
         command: 'echo test',
       );
@@ -55,25 +58,69 @@ void main() {
       final values = streamEntry['values'] as List;
       expect(values.length, 1);
       final logValue = values[0] as List;
-      expect(logValue[1], 'Test log line');
+      expect(logValue[1], message);
     });
 
     test('throws HttpException when Loki server returns 400', () async {
+      const responseBody = 'ログを保存できません';
       server.listen((HttpRequest request) async {
         request.response.statusCode = HttpStatus.badRequest;
-        request.response.write('Bad Request error message');
+        request.response.headers.contentType = ContentType(
+          'text',
+          'plain',
+          charset: 'utf-8',
+        );
+        request.response.write(responseBody);
         await request.response.close();
       });
 
-      expect(
-        () => pushLogToLoki(
+      await expectLater(
+        pushLogToLoki(
           client: client,
           lokiUrl: 'http://${server.address.host}:${server.port}',
           message: 'Failed log',
           stream: 'stderr',
         ),
-        throwsA(isA<HttpException>()),
+        throwsA(
+          isA<HttpException>()
+              .having(
+                (error) => error.message,
+                'message',
+                'Failed to push log to Loki (HTTP 400): $responseBody',
+              )
+              .having(
+                (error) => error.uri,
+                'uri',
+                Uri.parse(
+                  'http://${server.address.host}:${server.port}/loki/api/v1/push',
+                ),
+              ),
+        ),
       );
+    });
+
+    test('keeps the shared client usable after failure and success', () async {
+      var requestCount = 0;
+      server.listen((request) async {
+        await request.drain<void>();
+        request.response.statusCode = ++requestCount == 1
+            ? HttpStatus.badRequest
+            : HttpStatus.noContent;
+        await request.response.close();
+      });
+
+      Future<void> send() => pushLogToLoki(
+        client: client,
+        lokiUrl: 'http://${server.address.host}:${server.port}',
+        message: 'build output',
+        stream: 'stdout',
+      );
+
+      await expectLater(send(), throwsA(isA<HttpException>()));
+      await send();
+      await send();
+
+      expect(requestCount, 3);
     });
   });
 }
