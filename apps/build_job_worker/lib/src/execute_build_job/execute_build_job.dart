@@ -10,7 +10,6 @@ import '../complete_github_check_run.dart';
 import '../config.dart';
 import '../create_build_run.dart';
 import '../fetch_job_secrets.dart';
-import '../loki/push_log_to_loki.dart';
 import '../orchard/orchard_api_client.dart';
 import '../orchard/prepare_vm.dart';
 import '../resolve_github_installation_token.dart';
@@ -224,19 +223,19 @@ Future<BuildJobStatus> executeBuildJob({
     }
   }
 
+  final reportErrorLog = ReportStepLog(
+    lokiClient: lokiClient,
+    lokiUrl: config.internalLokiUrl,
+    jobId: job.id,
+    runId: runId,
+    onError: (error, stackTrace) => logErrors.add((error, stackTrace)),
+    logTimeout: finalizationTimeout,
+  );
   for (final (error, stackTrace) in errors) {
-    try {
-      await pushLogToLoki(
-        client: lokiClient,
-        lokiUrl: config.internalLokiUrl,
-        jobId: job.id,
-        runId: runId,
-        message: 'Build job worker error: $error\n$stackTrace',
-        stream: 'stderr',
-      ).timeout(finalizationTimeout);
-    } catch (error, stackTrace) {
-      logErrors.add((error, stackTrace));
-    }
+    await reportErrorLog.send(
+      log: StepLog(message: 'Build job worker error: $error\n$stackTrace'),
+      stream: 'stderr',
+    );
   }
   for (final (error, stackTrace) in [...logErrors, ...errors]) {
     onError(error, stackTrace);
