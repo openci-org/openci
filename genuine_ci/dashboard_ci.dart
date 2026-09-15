@@ -19,4 +19,6 @@ Future<void> main() async {
   );
 
   await FlutterCi.staticAnalysis(WorkspacePaths.root.apps.dashboard);
+
+  await FlutterCi.unitTests(WorkspacePaths.root.apps.dashboard);
 }
