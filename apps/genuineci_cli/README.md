@@ -141,14 +141,3 @@ await FlutterCi.staticAnalysis(WorkspacePaths.root.apps.dashboard);
 
 `WorkspacePaths.root` represents `.` and `WorkspacePaths.root.apps` represents
 `apps`. Both can also be passed directly to methods accepting a `String` path.
-
-Run the macOS terminal regression test from this package directory (requires
-`python3`):
-
-```sh
-dart test integration_test/register_secret_file_test.dart
-```
-
-This runs the CLI with the Dart JIT runtime in a pseudo-terminal, checking file
-registration, cancellation, terminal restoration, and normal process exit. It
-uses temporary files and a local test API.
