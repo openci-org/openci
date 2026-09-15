@@ -100,6 +100,7 @@ class _Translations$register$ja extends Translations$register$en {
 	// Translations
 	@override String get description => 'GenuineCIにリソースを登録します。';
 	@override late final _Translations$register$secret$ja secret = _Translations$register$secret$ja._(_root);
+	@override late final _Translations$register$secretFile$ja secretFile = _Translations$register$secretFile$ja._(_root);
 }
 
 // Path: use
@@ -189,6 +190,25 @@ class _Translations$register$secret$ja extends Translations$register$secret$en {
 	@override String requestFailed({required Object status}) => 'シークレットを登録できませんでした（HTTP ${status}）。';
 	@override String get saveFailed => 'シークレットを登録できませんでした。サーバーの接続状態を確認してください。';
 	@override String saved({required Object teamId, required Object name}) => 'チーム${teamId}にシークレット${name}を保存しました。';
+}
+
+// Path: register.secretFile
+class _Translations$register$secretFile$ja extends Translations$register$secretFile$en {
+	_Translations$register$secretFile$ja._(TranslationsJa root) : this._root = root, super.internal(root);
+
+	final TranslationsJa _root; // ignore: unused_field
+
+	// Translations
+	@override String get description => '対話式でファイルを選択し、内容をBase64化して現在のチームのシークレットに登録します。';
+	@override String get noArguments => 'register secretFileに位置引数は指定できません。対話入力でファイルを選択してください。';
+	@override String get filePrompt => 'シークレットに登録するファイルを選択';
+	@override String get controls => '入力で絞込 / Tab・↑↓: 補完 / Enter: 移動・選択 / Esc: 中止';
+	@override String get noMatches => '候補がありません。パスを入力してください。隠しファイルは . で表示できます。';
+	@override String get notFound => 'ファイルが見つかりません。存在するファイルを選択してください。';
+	@override String get cancelled => 'ファイルは登録されませんでした。対話可能な端末でファイルを選択してください。';
+	@override String get inputFailed => 'ファイルを選択できませんでした。対話可能な端末で再試行してください。';
+	@override String get readFailed => '選択したファイルを読み取れませんでした。通常のファイルであることと読み取り権限を確認してください。';
+	@override String get emptyFile => '選択したファイルは空です。シークレットは登録されませんでした。';
 }
 
 // Path: dev.start
@@ -313,6 +333,16 @@ extension on TranslationsJa {
 			'register.secret.requestFailed' => ({required Object status}) => 'シークレットを登録できませんでした（HTTP ${status}）。',
 			'register.secret.saveFailed' => 'シークレットを登録できませんでした。サーバーの接続状態を確認してください。',
 			'register.secret.saved' => ({required Object teamId, required Object name}) => 'チーム${teamId}にシークレット${name}を保存しました。',
+			'register.secretFile.description' => '対話式でファイルを選択し、内容をBase64化して現在のチームのシークレットに登録します。',
+			'register.secretFile.noArguments' => 'register secretFileに位置引数は指定できません。対話入力でファイルを選択してください。',
+			'register.secretFile.filePrompt' => 'シークレットに登録するファイルを選択',
+			'register.secretFile.controls' => '入力で絞込 / Tab・↑↓: 補完 / Enter: 移動・選択 / Esc: 中止',
+			'register.secretFile.noMatches' => '候補がありません。パスを入力してください。隠しファイルは . で表示できます。',
+			'register.secretFile.notFound' => 'ファイルが見つかりません。存在するファイルを選択してください。',
+			'register.secretFile.cancelled' => 'ファイルは登録されませんでした。対話可能な端末でファイルを選択してください。',
+			'register.secretFile.inputFailed' => 'ファイルを選択できませんでした。対話可能な端末で再試行してください。',
+			'register.secretFile.readFailed' => '選択したファイルを読み取れませんでした。通常のファイルであることと読み取り権限を確認してください。',
+			'register.secretFile.emptyFile' => '選択したファイルは空です。シークレットは登録されませんでした。',
 			'use.description' => '表示言語を設定します（japanese, english）。',
 			'use.success' => ({required Object language}) => '言語を${language}に設定しました。',
 			'use.invalidLanguage' => ({required Object input}) => '無効な言語です: 「${input}」。対応言語: japanese, english',
