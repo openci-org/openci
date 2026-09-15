@@ -6,18 +6,13 @@ import 'dart:io';
 
 /// Provides type-safe access to Genuine CI secrets via environment variables.
 abstract final class Secrets {
-  /// Secret key: `ANALYSIS_OPTIONS_YAML_BASE_64`
-  static String get analysisOptionsYamlBase64 =>
-      Platform.environment['ANALYSIS_OPTIONS_YAML_BASE_64'] ??
-      (throw StateError("Secret 'ANALYSIS_OPTIONS_YAML_BASE_64' is not set in environment."));
-
-  /// Secret key: `ASC_KEY`
-  static String get ascKey =>
-      Platform.environment['ASC_KEY'] ??
-      (throw StateError("Secret 'ASC_KEY' is not set in environment."));
-
-  /// Secret key: `FIREBASE_OPTIONS_DART_BASE_64`
+  /// Secret key: `FIREBASE_OPTIONS_DART_BASE64`
   static String get firebaseOptionsDartBase64 =>
-      Platform.environment['FIREBASE_OPTIONS_DART_BASE_64'] ??
-      (throw StateError("Secret 'FIREBASE_OPTIONS_DART_BASE_64' is not set in environment."));
+      Platform.environment['FIREBASE_OPTIONS_DART_BASE64'] ??
+      (throw StateError("Secret 'FIREBASE_OPTIONS_DART_BASE64' is not set in environment."));
+
+  /// Secret key: `TEST`
+  static String get test =>
+      Platform.environment['TEST'] ??
+      (throw StateError("Secret 'TEST' is not set in environment."));
 }
