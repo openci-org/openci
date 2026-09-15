@@ -36,6 +36,7 @@ class Translations with BaseTranslations<AppLocale, Translations> {
 	// Translations
 	late final Translations$cli$en cli = Translations$cli$en.internal(_root);
 	late final Translations$login$en login = Translations$login$en.internal(_root);
+	late final Translations$list$en list = Translations$list$en.internal(_root);
 	late final Translations$register$en register = Translations$register$en.internal(_root);
 	late final Translations$use$en use = Translations$use$en.internal(_root);
 	late final Translations$dev$en dev = Translations$dev$en.internal(_root);
@@ -135,6 +136,20 @@ class Translations$login$en {
 
 	/// en: 'You do not belong to the specified team.'
 	String get teamNotFound => 'You do not belong to the specified team.';
+}
+
+// Path: list
+class Translations$list$en {
+	Translations$list$en.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// en: 'List resources in GenuineCI.'
+	String get description => 'List resources in GenuineCI.';
+
+	late final Translations$list$secrets$en secrets = Translations$list$secrets$en.internal(_root);
 }
 
 // Path: register
@@ -245,6 +260,33 @@ class Translations$login$flags$en {
 
 	/// en: 'Firebase Web API key (override for a self-hosted Firebase project).'
 	String get firebaseApiKey => 'Firebase Web API key (override for a self-hosted Firebase project).';
+}
+
+// Path: list.secrets
+class Translations$list$secrets$en {
+	Translations$list$secrets$en.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// en: 'List the active team's secret names, sorted by name.'
+	String get description => 'List the active team\'s secret names, sorted by name.';
+
+	/// en: 'list secrets does not accept positional arguments.'
+	String get noArguments => 'list secrets does not accept positional arguments.';
+
+	/// en: 'Run genuineci login (or genuineci login --local) before listing secrets.'
+	String get loginRequired => 'Run genuineci login (or genuineci login --local) before listing secrets.';
+
+	/// en: 'Could not fetch secret names (HTTP ${status}).'
+	String requestFailed({required Object status}) => 'Could not fetch secret names (HTTP ${status}).';
+
+	/// en: 'Could not fetch secret names. Check the server connection and response.'
+	String get fetchFailed => 'Could not fetch secret names. Check the server connection and response.';
+
+	/// en: 'No secrets registered for the active team.'
+	String get empty => 'No secrets registered for the active team.';
 }
 
 // Path: register.secret
@@ -509,6 +551,13 @@ extension on Translations {
 			'login.noTeams' => 'No teams found. Create or join a team in the dashboard first.',
 			'login.teamRequired' => 'Multiple teams found. Run login again with --team-id from the list above.',
 			'login.teamNotFound' => 'You do not belong to the specified team.',
+			'list.description' => 'List resources in GenuineCI.',
+			'list.secrets.description' => 'List the active team\'s secret names, sorted by name.',
+			'list.secrets.noArguments' => 'list secrets does not accept positional arguments.',
+			'list.secrets.loginRequired' => 'Run genuineci login (or genuineci login --local) before listing secrets.',
+			'list.secrets.requestFailed' => ({required Object status}) => 'Could not fetch secret names (HTTP ${status}).',
+			'list.secrets.fetchFailed' => 'Could not fetch secret names. Check the server connection and response.',
+			'list.secrets.empty' => 'No secrets registered for the active team.',
 			'register.description' => 'Register resources with GenuineCI.',
 			'register.secret.description' => 'Create or update a secret for the active team. Enter its name, then its value. The value is hidden while typing and shown as ****** after Enter.',
 			'register.secret.noArguments' => 'register secret does not accept positional arguments. Enter the name and value at the prompts.',

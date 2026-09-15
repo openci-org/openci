@@ -9,7 +9,7 @@ import '../../credential_store/credential_store.dart';
 import '../../credential_store/read_authenticated_profile.dart';
 import '../../extensions/file_extensions.dart';
 import '../../i18n/i18n.dart';
-import 'fetch_secret_names.dart';
+import '../../secrets/fetch_secret_names.dart';
 import 'find_workflow_directory.dart';
 import 'generate_secret_definitions.dart';
 

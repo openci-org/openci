@@ -37,6 +37,17 @@
     "teamRequired": "Multiple teams found. Run login again with --team-id from the list above.",
     "teamNotFound": "You do not belong to the specified team."
   },
+  "list": {
+    "description": "List resources in GenuineCI.",
+    "secrets": {
+      "description": "List the active team's secret names, sorted by name.",
+      "noArguments": "list secrets does not accept positional arguments.",
+      "loginRequired": "Run genuineci login (or genuineci login --local) before listing secrets.",
+      "requestFailed": "Could not fetch secret names (HTTP ${status}).",
+      "fetchFailed": "Could not fetch secret names. Check the server connection and response.",
+      "empty": "No secrets registered for the active team."
+    }
+  },
   "register": {
     "description": "Register resources with GenuineCI.",
     "secret": {

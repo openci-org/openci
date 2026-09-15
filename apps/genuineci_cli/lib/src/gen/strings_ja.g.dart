@@ -40,6 +40,7 @@ class TranslationsJa extends Translations with BaseTranslations<AppLocale, Trans
 	// Translations
 	@override late final _Translations$cli$ja cli = _Translations$cli$ja._(_root);
 	@override late final _Translations$login$ja login = _Translations$login$ja._(_root);
+	@override late final _Translations$list$ja list = _Translations$list$ja._(_root);
 	@override late final _Translations$register$ja register = _Translations$register$ja._(_root);
 	@override late final _Translations$use$ja use = _Translations$use$ja._(_root);
 	@override late final _Translations$dev$ja dev = _Translations$dev$ja._(_root);
@@ -89,6 +90,17 @@ class _Translations$login$ja extends Translations$login$en {
 	@override String get noTeams => '所属チームがありません。先にdashboardでチームを作成するか参加してください。';
 	@override String get teamRequired => '複数のチームがあります。上記のIDを--team-idで指定して再度ログインしてください。';
 	@override String get teamNotFound => '指定されたチームに所属していません。';
+}
+
+// Path: list
+class _Translations$list$ja extends Translations$list$en {
+	_Translations$list$ja._(TranslationsJa root) : this._root = root, super.internal(root);
+
+	final TranslationsJa _root; // ignore: unused_field
+
+	// Translations
+	@override String get description => 'GenuineCIのリソースを一覧表示します。';
+	@override late final _Translations$list$secrets$ja secrets = _Translations$list$secrets$ja._(_root);
 }
 
 // Path: register
@@ -170,6 +182,21 @@ class _Translations$login$flags$ja extends Translations$login$flags$en {
 	@override String get server => 'リモートのGenuineCIサーバーURL（HTTPS）。';
 	@override String get teamId => '複数チームに所属している場合に選択するチームID。';
 	@override String get firebaseApiKey => 'Firebase Web APIキー（独自のFirebaseプロジェクトを使う場合に指定）。';
+}
+
+// Path: list.secrets
+class _Translations$list$secrets$ja extends Translations$list$secrets$en {
+	_Translations$list$secrets$ja._(TranslationsJa root) : this._root = root, super.internal(root);
+
+	final TranslationsJa _root; // ignore: unused_field
+
+	// Translations
+	@override String get description => '現在のチームのシークレット名を名前順に一覧表示します。';
+	@override String get noArguments => 'list secretsに位置引数は指定できません。';
+	@override String get loginRequired => 'genuineci login（ローカルならgenuineci login --local）を実行してからシークレットを一覧表示してください。';
+	@override String requestFailed({required Object status}) => 'シークレット名を取得できませんでした（HTTP ${status}）。';
+	@override String get fetchFailed => 'シークレット名を取得できませんでした。サーバーの接続状態とレスポンスを確認してください。';
+	@override String get empty => '現在のチームにはシークレットが登録されていません。';
 }
 
 // Path: register.secret
@@ -321,6 +348,13 @@ extension on TranslationsJa {
 			'login.noTeams' => '所属チームがありません。先にdashboardでチームを作成するか参加してください。',
 			'login.teamRequired' => '複数のチームがあります。上記のIDを--team-idで指定して再度ログインしてください。',
 			'login.teamNotFound' => '指定されたチームに所属していません。',
+			'list.description' => 'GenuineCIのリソースを一覧表示します。',
+			'list.secrets.description' => '現在のチームのシークレット名を名前順に一覧表示します。',
+			'list.secrets.noArguments' => 'list secretsに位置引数は指定できません。',
+			'list.secrets.loginRequired' => 'genuineci login（ローカルならgenuineci login --local）を実行してからシークレットを一覧表示してください。',
+			'list.secrets.requestFailed' => ({required Object status}) => 'シークレット名を取得できませんでした（HTTP ${status}）。',
+			'list.secrets.fetchFailed' => 'シークレット名を取得できませんでした。サーバーの接続状態とレスポンスを確認してください。',
+			'list.secrets.empty' => '現在のチームにはシークレットが登録されていません。',
 			'register.description' => 'GenuineCIにリソースを登録します。',
 			'register.secret.description' => '現在のチームのシークレットを登録・更新します。名前と値を順に入力します。値は入力中は非表示で、Enterで確定すると******と表示します。',
 			'register.secret.noArguments' => 'register secretに位置引数は指定できません。名前と値は対話入力で指定してください。',

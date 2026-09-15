@@ -3,6 +3,8 @@ library;
 export 'src/command_runner.dart';
 export 'src/commands/dev/dev_command.dart';
 export 'src/commands/dev/dev_start_command.dart';
+export 'src/commands/list/list_command.dart';
+export 'src/commands/list/list_secrets_command.dart';
 export 'src/commands/login_command.dart';
 export 'src/commands/register/register_command.dart';
 export 'src/commands/register/register_secret_command.dart';
