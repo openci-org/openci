@@ -37,6 +37,17 @@
     "teamRequired": "複数のチームがあります。上記のIDを--team-idで指定して再度ログインしてください。",
     "teamNotFound": "指定されたチームに所属していません。"
   },
+  "list": {
+    "description": "GenuineCIのリソースを一覧表示します。",
+    "secrets": {
+      "description": "現在のチームのシークレット名を名前順に一覧表示します。",
+      "noArguments": "list secretsに位置引数は指定できません。",
+      "loginRequired": "genuineci login（ローカルならgenuineci login --local）を実行してからシークレットを一覧表示してください。",
+      "requestFailed": "シークレット名を取得できませんでした（HTTP ${status}）。",
+      "fetchFailed": "シークレット名を取得できませんでした。サーバーの接続状態とレスポンスを確認してください。",
+      "empty": "現在のチームにはシークレットが登録されていません。"
+    }
+  },
   "register": {
     "description": "GenuineCIにリソースを登録します。",
     "secret": {

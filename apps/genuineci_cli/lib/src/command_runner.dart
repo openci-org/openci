@@ -3,6 +3,7 @@ import 'package:args/command_runner.dart';
 import 'package:cli_util/cli_logging.dart';
 
 import 'commands/dev/dev_command.dart';
+import 'commands/list/list_command.dart';
 import 'commands/login_command.dart';
 import 'commands/register/register_command.dart';
 import 'commands/sync/sync_command.dart';
@@ -27,6 +28,7 @@ class GenuineCiCommandRunner extends CommandRunner<int> {
       ..addFlag('verbose', negatable: false, help: t.cli.flags.verbose);
 
     addCommand(LoginCommand(logger: _logger));
+    addCommand(ListCommand(logger: _logger));
     addCommand(RegisterCommand(logger: _logger));
     addCommand(UseCommand(logger: _logger));
     addCommand(DevCommand(logger: _logger));

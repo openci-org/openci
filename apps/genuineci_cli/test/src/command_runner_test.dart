@@ -69,6 +69,15 @@ void main() {
     expect(secretFile!.description, t.register.secretFile.description);
   });
 
+  test('registers list secrets with localized descriptions', () {
+    final list = runner.commands['list'];
+    expect(list, isA<ListCommand>());
+    expect(list!.description, t.list.description);
+    final secrets = list.subcommands['secrets'];
+    expect(secrets, isA<ListSecretsCommand>());
+    expect(secrets!.description, t.list.secrets.description);
+  });
+
   test('registers sync secrets with localized descriptions', () {
     final sync = runner.commands['sync'];
     expect(sync, isA<SyncCommand>());

@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:genuineci_cli/src/commands/sync/fetch_secret_names.dart';
+import 'package:genuineci_cli/src/secrets/fetch_secret_names.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:openci_shared/openci_shared.dart';

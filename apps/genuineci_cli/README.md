@@ -20,9 +20,20 @@ list. For a self-hosted Firebase project, also pass its Web API key with
 `--firebase-api-key <key>`; the default is the dashboard's `openci-b1b91` project.
 The remote server URL must use HTTPS.
 
-`genuineci sync secrets` uses this profile and automatically refreshes expiring
-Firebase ID tokens. Credentials, including the refresh token, are stored in the
+Secret commands use this profile and automatically refresh expiring Firebase ID
+tokens. Credentials, including the refresh token, are stored in the
 existing credentials file with owner-only permissions on macOS/Linux.
+
+List secret names for the active profile's team:
+
+```sh
+genuineci list secrets
+```
+
+Names are printed one per line, sorted by name, without secret values. If the
+team has no secrets, the command prints a message and exits successfully. It
+works from any directory, supports redirected output, and does not generate
+workflow files. Control characters in names are displayed as escaped text.
 
 Register a secret for the active profile's team:
 
