@@ -40,6 +40,7 @@ class TranslationsJa extends Translations with BaseTranslations<AppLocale, Trans
 	// Translations
 	@override late final _Translations$cli$ja cli = _Translations$cli$ja._(_root);
 	@override late final _Translations$login$ja login = _Translations$login$ja._(_root);
+	@override late final _Translations$register$ja register = _Translations$register$ja._(_root);
 	@override late final _Translations$use$ja use = _Translations$use$ja._(_root);
 	@override late final _Translations$dev$ja dev = _Translations$dev$ja._(_root);
 	@override late final _Translations$sync$ja sync = _Translations$sync$ja._(_root);
@@ -88,6 +89,17 @@ class _Translations$login$ja extends Translations$login$en {
 	@override String get noTeams => '所属チームがありません。先にdashboardでチームを作成するか参加してください。';
 	@override String get teamRequired => '複数のチームがあります。上記のIDを--team-idで指定して再度ログインしてください。';
 	@override String get teamNotFound => '指定されたチームに所属していません。';
+}
+
+// Path: register
+class _Translations$register$ja extends Translations$register$en {
+	_Translations$register$ja._(TranslationsJa root) : this._root = root, super.internal(root);
+
+	final TranslationsJa _root; // ignore: unused_field
+
+	// Translations
+	@override String get description => 'GenuineCIにリソースを登録します。';
+	@override late final _Translations$register$secret$ja secret = _Translations$register$secret$ja._(_root);
 }
 
 // Path: use
@@ -157,6 +169,26 @@ class _Translations$login$flags$ja extends Translations$login$flags$en {
 	@override String get server => 'リモートのGenuineCIサーバーURL（HTTPS）。';
 	@override String get teamId => '複数チームに所属している場合に選択するチームID。';
 	@override String get firebaseApiKey => 'Firebase Web APIキー（独自のFirebaseプロジェクトを使う場合に指定）。';
+}
+
+// Path: register.secret
+class _Translations$register$secret$ja extends Translations$register$secret$en {
+	_Translations$register$secret$ja._(TranslationsJa root) : this._root = root, super.internal(root);
+
+	final TranslationsJa _root; // ignore: unused_field
+
+	// Translations
+	@override String get description => '現在のチームのシークレットを登録・更新します。名前と値を順に入力します。値は入力中は非表示で、Enterで確定すると******と表示します。';
+	@override String get noArguments => 'register secretに位置引数は指定できません。名前と値は対話入力で指定してください。';
+	@override String get invalidName => 'シークレット名には英数字とアンダースコアを使い、数字で始めないでください。';
+	@override String get loginRequired => 'genuineci login（ローカルならgenuineci login --local）を実行してからシークレットを登録してください。';
+	@override String get namePrompt => 'シークレット名:';
+	@override String get valuePrompt => 'シークレット値:';
+	@override String get inputRequired => 'シークレットは登録されませんでした。対話可能な端末で名前と空でない値を入力してください。';
+	@override String get inputFailed => 'シークレット名または値を読み取れませんでした。対話可能な端末で再試行してください。';
+	@override String requestFailed({required Object status}) => 'シークレットを登録できませんでした（HTTP ${status}）。';
+	@override String get saveFailed => 'シークレットを登録できませんでした。サーバーの接続状態を確認してください。';
+	@override String saved({required Object teamId, required Object name}) => 'チーム${teamId}にシークレット${name}を保存しました。';
 }
 
 // Path: dev.start
@@ -269,6 +301,18 @@ extension on TranslationsJa {
 			'login.noTeams' => '所属チームがありません。先にdashboardでチームを作成するか参加してください。',
 			'login.teamRequired' => '複数のチームがあります。上記のIDを--team-idで指定して再度ログインしてください。',
 			'login.teamNotFound' => '指定されたチームに所属していません。',
+			'register.description' => 'GenuineCIにリソースを登録します。',
+			'register.secret.description' => '現在のチームのシークレットを登録・更新します。名前と値を順に入力します。値は入力中は非表示で、Enterで確定すると******と表示します。',
+			'register.secret.noArguments' => 'register secretに位置引数は指定できません。名前と値は対話入力で指定してください。',
+			'register.secret.invalidName' => 'シークレット名には英数字とアンダースコアを使い、数字で始めないでください。',
+			'register.secret.loginRequired' => 'genuineci login（ローカルならgenuineci login --local）を実行してからシークレットを登録してください。',
+			'register.secret.namePrompt' => 'シークレット名:',
+			'register.secret.valuePrompt' => 'シークレット値:',
+			'register.secret.inputRequired' => 'シークレットは登録されませんでした。対話可能な端末で名前と空でない値を入力してください。',
+			'register.secret.inputFailed' => 'シークレット名または値を読み取れませんでした。対話可能な端末で再試行してください。',
+			'register.secret.requestFailed' => ({required Object status}) => 'シークレットを登録できませんでした（HTTP ${status}）。',
+			'register.secret.saveFailed' => 'シークレットを登録できませんでした。サーバーの接続状態を確認してください。',
+			'register.secret.saved' => ({required Object teamId, required Object name}) => 'チーム${teamId}にシークレット${name}を保存しました。',
 			'use.description' => '表示言語を設定します（japanese, english）。',
 			'use.success' => ({required Object language}) => '言語を${language}に設定しました。',
 			'use.invalidLanguage' => ({required Object input}) => '無効な言語です: 「${input}」。対応言語: japanese, english',
