@@ -5,6 +5,7 @@ import 'package:meta/meta.dart';
 
 import 'ci_trigger.dart';
 import 'command_runner.dart';
+import 'flutter/flutter_ci.dart';
 import 'machine_type.dart';
 import 'workspace_directory.dart';
 
@@ -15,13 +16,17 @@ class GenuineCI {
     required this.machine,
     this.currentWorkingDirectory,
     required this.workspacePath,
-  });
+  }) : _runCommand = runCommand;
 
   @visibleForTesting
   GenuineCI.forTesting({
     required this.workspacePath,
     this.currentWorkingDirectory,
-  }) : workflowName = 'test',
+    Future<void> Function(String command, {required String workingDirectory})
+        commandRunner =
+        runCommand,
+  }) : _runCommand = commandRunner,
+       workflowName = 'test',
        ciTriggers = const [CiTrigger.push(branch: 'test')],
        machine = MachineType.macOsLatest;
 
@@ -32,6 +37,14 @@ class GenuineCI {
   final MachineType machine;
   final String? currentWorkingDirectory;
   final String workspacePath;
+
+  final Future<void> Function(
+    String command, {
+    required String workingDirectory,
+  })
+  _runCommand;
+
+  late final FlutterCi flutter = FlutterCi(run);
 
   static Future<GenuineCI> init({
     required String workflowName,
@@ -58,7 +71,7 @@ class GenuineCI {
     final cwd = resolveWorkingDirectory(
       workingDirectory ?? currentWorkingDirectory,
     );
-    await runCommand(command, workingDirectory: cwd);
+    await _runCommand(command, workingDirectory: cwd);
   }
 
   Future<void> placeFileFromBase64({

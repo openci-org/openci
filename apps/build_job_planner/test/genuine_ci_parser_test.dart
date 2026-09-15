@@ -51,7 +51,7 @@ Future<void> main() async {
     ciTriggers: [CiTrigger.push(branch: 'main')],
   );
 
-  await FlutterCi.unitTest(genuineCI.workspacePath);
+  await genuineCI.flutter.unitTests();
 }
 ''';
 

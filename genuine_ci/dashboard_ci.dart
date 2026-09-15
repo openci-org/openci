@@ -10,6 +10,7 @@ Future<void> main() async {
       CiTrigger.pullRequest(branch: 'develop'),
       CiTrigger.push(branch: 'develop'),
     ],
+    currentWorkingDirectory: WorkspacePaths.root.apps.dashboard,
   );
 
   await genuineCI.placeFileFromBase64(
@@ -18,7 +19,7 @@ Future<void> main() async {
     base64Content: Secrets.firebaseOptionsDartBase64,
   );
 
-  await FlutterCi.staticAnalysis(WorkspacePaths.root.apps.dashboard);
+  await genuineCI.flutter.staticAnalysis();
 
-  await FlutterCi.unitTests(WorkspacePaths.root.apps.dashboard);
+  await genuineCI.flutter.unitTests();
 }

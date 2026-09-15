@@ -145,10 +145,27 @@ Import the generated file in your workflow and run it from the repository root,
 as the worker does, because these paths are relative to that root:
 
 ```dart
+import 'package:genuine_ci/genuine_ci.dart';
+
 import 'paths.g.dart';
 
-await FlutterCi.staticAnalysis(WorkspacePaths.root.apps.dashboard);
+final genuineCI = await GenuineCI.init(
+  workflowName: 'Dashboard CI',
+  ciTriggers: [CiTrigger.push(branch: 'develop')],
+  currentWorkingDirectory: WorkspacePaths.root.apps.dashboard,
+);
+
+await genuineCI.flutter.staticAnalysis();
+await genuineCI.flutter.unitTests();
 ```
+
+`genuineCI.flutter` uses the same working directory as `genuineCI.run()`.
+It resolves `currentWorkingDirectory` relative to the workspace root, or uses
+the workspace root when no directory is configured. Both Flutter methods also
+accept `dir`, for example
+`await genuineCI.flutter.unitTests(dir: WorkspacePaths.root.apps.dashboard);`.
+The override is relative to the workspace root and applies only to that call;
+later calls without `dir` continue to use the configured working directory.
 
 `WorkspacePaths.root` represents `.` and `WorkspacePaths.root.apps` represents
 `apps`. Both can also be passed directly to methods accepting a `String` path.

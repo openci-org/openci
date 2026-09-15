@@ -1,13 +1,11 @@
-import 'package:genuine_ci/genuine_ci.dart';
-
 class FlutterCi {
-  static Future<void> staticAnalysis(String cwd) => runCommand(
-    'flutter analyze',
-    workingDirectory: cwd,
-  );
+  const FlutterCi(this._run);
 
-  static Future<void> unitTests(String cwd) => runCommand(
-    'flutter test',
-    workingDirectory: cwd,
-  );
+  final Future<void> Function(String command, {String? workingDirectory}) _run;
+
+  Future<void> staticAnalysis({String? dir}) =>
+      _run('flutter analyze', workingDirectory: dir);
+
+  Future<void> unitTests({String? dir}) =>
+      _run('flutter test', workingDirectory: dir);
 }
