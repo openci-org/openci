@@ -61,6 +61,34 @@ void main() {
       expect(logValue[1], message);
     });
 
+    test('pushes a batch without changing timestamps or messages', () async {
+      const values = [
+        ['1789430400000000000', 'first'],
+        ['1789430400100000000', 'ビルド 🚀'],
+      ];
+      Map<String, dynamic>? receivedBody;
+      server.listen((request) async {
+        receivedBody =
+            jsonDecode(await utf8.decoder.bind(request).join())
+                as Map<String, dynamic>;
+        request.response.statusCode = HttpStatus.noContent;
+        await request.response.close();
+      });
+
+      await pushLogsToLoki(
+        client: client,
+        lokiUrl: 'http://${server.address.host}:${server.port}',
+        values: values,
+        stream: 'stderr',
+        command: 'flutter test',
+      );
+
+      final stream = (receivedBody!['streams'] as List).single as Map;
+      expect(stream['values'], values);
+      expect(stream['stream'], containsPair('stream', 'stderr'));
+      expect(stream['stream'], containsPair('command', 'flutter test'));
+    });
+
     test('throws HttpException when Loki server returns 400', () async {
       const responseBody = 'ログを保存できません';
       server.listen((HttpRequest request) async {
