@@ -3,12 +3,17 @@ import 'dart:io';
 
 import 'package:dart_frog/dart_frog.dart';
 import 'package:dart_frog_test/dart_frog_test.dart';
+import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:genuineci_server/database.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 import 'package:openci_shared/openci_shared.dart';
 import 'package:test/test.dart';
 
 import '../../../../../routes/webhooks/tasks/[id]/complete.dart' as route;
+import '../../../../../routes/builds/[id]/runs/index.dart' as runs_route;
+import '../../../../helpers/github_app_test_key.dart';
 
 void main() {
   group('POST /webhooks/tasks/[id]/complete', () {
@@ -105,6 +110,85 @@ void main() {
         'completed',
       );
       expect(await db.select(db.buildJobs).get(), isEmpty);
+    });
+
+    test('reuses a queued Check when the first run starts', () async {
+      final directory = await Directory.systemTemp.createTemp(
+        'queued_check_route_',
+      );
+      final keyFile = File.fromUri(directory.uri.resolve('key.pem'));
+      await keyFile.writeAsString(testRsaPrivateKey);
+      addTearDown(() => directory.delete(recursive: true));
+      final environment = {
+        'GITHUB_APP_ID': '123456',
+        'GITHUB_PRIVATE_KEY_PATH': keyFile.path,
+        'GITHUB_API_BASE_URL': 'https://api.github.test',
+      };
+      final checkRequests = <http.Request>[];
+      final client = MockClient((request) async {
+        if (request.url.path.endsWith('/access_tokens')) {
+          return http.Response('{"token":"test-token"}', HttpStatus.created);
+        }
+        checkRequests.add(request);
+        return http.Response(
+          '{"id":99999}',
+          request.method == 'POST' ? HttpStatus.created : HttpStatus.ok,
+        );
+      });
+      addTearDown(client.close);
+      await _insertTask(db, id: 'task-1', status: 'processing');
+
+      final response = await _request(
+        db: db,
+        taskId: 'task-1',
+        jobs: [_plan.toJson()],
+        environment: environment,
+        client: client,
+      );
+
+      expect(response.statusCode, HttpStatus.ok);
+      final job = (await db.select(db.buildJobs).get()).single;
+      expect(job.status, BuildJobStatus.QUEUED);
+      expect(job.checkRunId, '99999');
+      expect(job.runCount, 0);
+      expect(await db.select(db.buildRuns).get(), isEmpty);
+      expect(
+        jsonDecode(checkRequests.single.body),
+        containsPair('status', 'queued'),
+      );
+
+      await (db.update(
+        db.buildJobs,
+      )..where((row) => row.id.equals(job.id))).write(
+        const BuildJobsCompanion(status: Value(BuildJobStatus.IN_PROGRESS)),
+      );
+      final claimed = (await db.buildJobDao.getBuildJob(job.id))!;
+      final runContext = TestRequestContext(
+        path: '/builds/${job.id}/runs',
+        method: HttpMethod.post,
+        body: jsonEncode({'id': 'run-1'}),
+      );
+      runContext.provide<AppDatabase>(db);
+      runContext.provide<DriftBuildJob>(claimed);
+      runContext.provide<Map<String, String>>(environment);
+      runContext.provide<http.Client>(client);
+
+      final runResponse = await runs_route.onRequest(
+        runContext.context,
+        job.id,
+      );
+
+      expect(runResponse.statusCode, HttpStatus.ok);
+      expect(checkRequests.map((request) => request.method), ['POST', 'PATCH']);
+      expect(
+        checkRequests.last.url.path,
+        '/repos/openci-owner/openci-repo/check-runs/99999',
+      );
+      final body = jsonDecode(checkRequests.last.body) as Map<String, dynamic>;
+      expect(DateTime.parse(body.remove('started_at') as String).isUtc, isTrue);
+      expect(body, {'status': 'in_progress'});
+      expect((await db.buildJobDao.getBuildJob(job.id))!.checkRunId, '99999');
+      expect(await db.select(db.buildRuns).get(), hasLength(1));
     });
 
     test('returns 400 when jobs is not a list', () async {
@@ -208,12 +292,16 @@ Future<Response> _request({
   required String taskId,
   required List<Map<String, dynamic>> jobs,
   String? uid = 'system-job-processor',
+  Map<String, String> environment = const {},
+  http.Client? client,
 }) {
   return _requestWithBody(
     db: db,
     taskId: taskId,
     uid: uid,
     body: jsonEncode({'jobs': jobs}),
+    environment: environment,
+    client: client,
   );
 }
 
@@ -222,6 +310,8 @@ Future<Response> _requestWithBody({
   required String taskId,
   required String body,
   String? uid = 'system-job-processor',
+  Map<String, String> environment = const {},
+  http.Client? client,
 }) async {
   final context = TestRequestContext(
     path: '/webhooks/tasks/$taskId/complete',
@@ -230,5 +320,7 @@ Future<Response> _requestWithBody({
   );
   context.provide<AppDatabase>(db);
   context.provide<String?>(uid);
+  context.provide<Map<String, String>>(environment);
+  if (client != null) context.provide<http.Client>(client);
   return await route.onRequest(context.context, taskId);
 }

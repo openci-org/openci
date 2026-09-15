@@ -765,6 +765,7 @@ void main() {
       Future<String> createCheck({
         http.Client? client,
         Map<String, String>? environment,
+        String runStatus = 'in_progress',
       }) => GitHubService.createGitHubCheckRun(
         owner: 'org',
         repo: 'mobile',
@@ -772,6 +773,7 @@ void main() {
         name: 'Flutter CI',
         headSha: 'abc123',
         externalId: 'job-123',
+        runStatus: runStatus,
         environment: environment ?? testEnv,
         client: client,
       );
@@ -801,6 +803,22 @@ void main() {
           'head_sha': 'abc123',
           'external_id': 'job-123',
           'status': 'in_progress',
+        });
+      });
+
+      test('creates a queued check without a start time', () async {
+        final requests = <http.Request>[];
+        final client = apiClient((request) {
+          requests.add(request);
+          return http.Response('{"id": 99999}', HttpStatus.created);
+        });
+
+        expect(await createCheck(client: client, runStatus: 'queued'), '99999');
+        expect(jsonDecode(requests.single.body), {
+          'name': 'Flutter CI',
+          'head_sha': 'abc123',
+          'external_id': 'job-123',
+          'status': 'queued',
         });
       });
 
@@ -947,6 +965,7 @@ void main() {
 
             final body = jsonDecode(request.body) as Map<String, dynamic>;
             expect(body['status'], equals('in_progress'));
+            expect(DateTime.parse(body['started_at'] as String).isUtc, isTrue);
             expect(body.containsKey('conclusion'), isFalse);
             expect(body.containsKey('completed_at'), isFalse);
 
