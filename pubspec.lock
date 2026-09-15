@@ -329,6 +329,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.0.9"
+  dart_console:
+    dependency: transitive
+    description:
+      name: dart_console
+      sha256: "74452ce72bec6c9ad11c1cfcd312c893af19d23ef1ef1ca36e1f7f44cbbe10af"
+      url: "https://pub.dev"
+    source: hosted
+    version: "5.1.0"
   dart_frog:
     dependency: transitive
     description:

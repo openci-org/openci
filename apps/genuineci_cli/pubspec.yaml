@@ -10,7 +10,9 @@ resolution: workspace
 
 dependencies:
   args: ^2.7.0
+  characters: ^1.4.0
   cli_util: ^0.4.2
+  dart_console: ^5.1.0
   freezed_annotation: ^3.1.0
   http: ^1.6.0
   json_annotation: ^4.12.0

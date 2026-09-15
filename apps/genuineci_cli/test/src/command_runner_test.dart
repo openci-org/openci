@@ -64,6 +64,9 @@ void main() {
     final secret = register.subcommands['secret'];
     expect(secret, isA<RegisterSecretCommand>());
     expect(secret!.description, t.register.secret.description);
+    final secretFile = register.subcommands['secretFile'];
+    expect(secretFile, isA<RegisterSecretFileCommand>());
+    expect(secretFile!.description, t.register.secretFile.description);
   });
 
   test('registers sync secrets with localized descriptions', () {

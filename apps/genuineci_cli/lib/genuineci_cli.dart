@@ -6,6 +6,7 @@ export 'src/commands/dev/dev_start_command.dart';
 export 'src/commands/login_command.dart';
 export 'src/commands/register/register_command.dart';
 export 'src/commands/register/register_secret_command.dart';
+export 'src/commands/register/register_secret_file_command.dart';
 export 'src/commands/sync/sync_command.dart';
 export 'src/commands/sync/sync_paths_command.dart';
 export 'src/commands/sync/sync_secrets_command.dart';

@@ -149,6 +149,7 @@ class Translations$register$en {
 	String get description => 'Register resources with GenuineCI.';
 
 	late final Translations$register$secret$en secret = Translations$register$secret$en.internal(_root);
+	late final Translations$register$secretFile$en secretFile = Translations$register$secretFile$en.internal(_root);
 }
 
 // Path: use
@@ -286,6 +287,45 @@ class Translations$register$secret$en {
 
 	/// en: 'Saved secret ${name} for team ${teamId}.'
 	String saved({required Object name, required Object teamId}) => 'Saved secret ${name} for team ${teamId}.';
+}
+
+// Path: register.secretFile
+class Translations$register$secretFile$en {
+	Translations$register$secretFile$en.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// en: 'Choose a file interactively and register its Base64 contents for the active team.'
+	String get description => 'Choose a file interactively and register its Base64 contents for the active team.';
+
+	/// en: 'register secretFile does not accept positional arguments. Choose a file at the prompt.'
+	String get noArguments => 'register secretFile does not accept positional arguments. Choose a file at the prompt.';
+
+	/// en: 'Select a secret file'
+	String get filePrompt => 'Select a secret file';
+
+	/// en: 'Type to filter / Tab, arrows: complete / Enter: open or select / Esc: cancel'
+	String get controls => 'Type to filter / Tab, arrows: complete / Enter: open or select / Esc: cancel';
+
+	/// en: 'No matching files. Enter a path, or type . to show hidden files.'
+	String get noMatches => 'No matching files. Enter a path, or type . to show hidden files.';
+
+	/// en: 'File not found. Choose an existing file.'
+	String get notFound => 'File not found. Choose an existing file.';
+
+	/// en: 'No file was registered. Choose a file in an interactive terminal.'
+	String get cancelled => 'No file was registered. Choose a file in an interactive terminal.';
+
+	/// en: 'Could not select the file. Retry in an interactive terminal.'
+	String get inputFailed => 'Could not select the file. Retry in an interactive terminal.';
+
+	/// en: 'Could not read the selected file. Check that it is a regular file and that you have permission to read it.'
+	String get readFailed => 'Could not read the selected file. Check that it is a regular file and that you have permission to read it.';
+
+	/// en: 'The selected file is empty. No secret was registered.'
+	String get emptyFile => 'The selected file is empty. No secret was registered.';
 }
 
 // Path: dev.start
@@ -481,6 +521,16 @@ extension on Translations {
 			'register.secret.requestFailed' => ({required Object status}) => 'Could not register the secret (HTTP ${status}).',
 			'register.secret.saveFailed' => 'Could not register the secret. Check the server connection.',
 			'register.secret.saved' => ({required Object name, required Object teamId}) => 'Saved secret ${name} for team ${teamId}.',
+			'register.secretFile.description' => 'Choose a file interactively and register its Base64 contents for the active team.',
+			'register.secretFile.noArguments' => 'register secretFile does not accept positional arguments. Choose a file at the prompt.',
+			'register.secretFile.filePrompt' => 'Select a secret file',
+			'register.secretFile.controls' => 'Type to filter / Tab, arrows: complete / Enter: open or select / Esc: cancel',
+			'register.secretFile.noMatches' => 'No matching files. Enter a path, or type . to show hidden files.',
+			'register.secretFile.notFound' => 'File not found. Choose an existing file.',
+			'register.secretFile.cancelled' => 'No file was registered. Choose a file in an interactive terminal.',
+			'register.secretFile.inputFailed' => 'Could not select the file. Retry in an interactive terminal.',
+			'register.secretFile.readFailed' => 'Could not read the selected file. Check that it is a regular file and that you have permission to read it.',
+			'register.secretFile.emptyFile' => 'The selected file is empty. No secret was registered.',
 			'use.description' => 'Set the default display language (japanese, english).',
 			'use.success' => ({required Object language}) => 'Language set to ${language}.',
 			'use.invalidLanguage' => ({required Object input}) => 'Invalid language "${input}". Supported languages: japanese, english.',

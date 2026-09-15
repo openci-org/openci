@@ -40,6 +40,27 @@ are not printed or saved locally. Firebase tokens are refreshed when needed.
 After adding a secret, run `genuineci sync secrets` from your workflow project
 to update its generated secret definitions.
 
+Register a file as a Base64 secret:
+
+```sh
+genuineci register secretFile
+```
+
+Type a file path to filter the displayed candidates. Press Tab or the up/down
+arrow keys to complete a candidate, then Enter to enter a folder or select a
+file. Relative paths, absolute paths, `~/`, spaces, and Unicode filenames are
+supported. Type `.` to include hidden files such as `.env`. Press Esc or Ctrl+C
+to cancel. The picker requires an interactive terminal with ANSI support.
+
+The selected file is read as bytes and Base64-encoded. Its basename, including
+the extension, is uppercased, runs of characters other than letters, digits and
+underscores become `_`, and `_BASE64` is appended. Names beginning with a digit
+are prefixed with `_`. For example, `google-services.json` becomes
+`GOOGLE_SERVICES_JSON_BASE64`. Selecting an existing name updates that secret.
+Empty files are rejected. Neither the file contents nor the encoded value is
+printed or saved locally. Run `genuineci sync secrets` afterwards to update the
+generated definitions.
+
 Run `genuineci dev start` from the OpenCI checkout to start local services and the
 Mac Orchard worker. The existing Docker Compose credentials and `base-macos` VM
 must be configured first.

@@ -51,6 +51,18 @@
       "requestFailed": "Could not register the secret (HTTP ${status}).",
       "saveFailed": "Could not register the secret. Check the server connection.",
       "saved": "Saved secret ${name} for team ${teamId}."
+    },
+    "secretFile": {
+      "description": "Choose a file interactively and register its Base64 contents for the active team.",
+      "noArguments": "register secretFile does not accept positional arguments. Choose a file at the prompt.",
+      "filePrompt": "Select a secret file",
+      "controls": "Type to filter / Tab, arrows: complete / Enter: open or select / Esc: cancel",
+      "noMatches": "No matching files. Enter a path, or type . to show hidden files.",
+      "notFound": "File not found. Choose an existing file.",
+      "cancelled": "No file was registered. Choose a file in an interactive terminal.",
+      "inputFailed": "Could not select the file. Retry in an interactive terminal.",
+      "readFailed": "Could not read the selected file. Check that it is a regular file and that you have permission to read it.",
+      "emptyFile": "The selected file is empty. No secret was registered."
     }
   },
   "use": {
