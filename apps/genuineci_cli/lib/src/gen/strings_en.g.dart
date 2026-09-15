@@ -36,6 +36,7 @@ class Translations with BaseTranslations<AppLocale, Translations> {
 	// Translations
 	late final Translations$cli$en cli = Translations$cli$en.internal(_root);
 	late final Translations$login$en login = Translations$login$en.internal(_root);
+	late final Translations$register$en register = Translations$register$en.internal(_root);
 	late final Translations$use$en use = Translations$use$en.internal(_root);
 	late final Translations$dev$en dev = Translations$dev$en.internal(_root);
 	late final Translations$sync$en sync = Translations$sync$en.internal(_root);
@@ -136,6 +137,20 @@ class Translations$login$en {
 	String get teamNotFound => 'You do not belong to the specified team.';
 }
 
+// Path: register
+class Translations$register$en {
+	Translations$register$en.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// en: 'Register resources with GenuineCI.'
+	String get description => 'Register resources with GenuineCI.';
+
+	late final Translations$register$secret$en secret = Translations$register$secret$en.internal(_root);
+}
+
 // Path: use
 class Translations$use$en {
 	Translations$use$en.internal(this._root);
@@ -229,6 +244,48 @@ class Translations$login$flags$en {
 
 	/// en: 'Firebase Web API key (override for a self-hosted Firebase project).'
 	String get firebaseApiKey => 'Firebase Web API key (override for a self-hosted Firebase project).';
+}
+
+// Path: register.secret
+class Translations$register$secret$en {
+	Translations$register$secret$en.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// en: 'Create or update a secret for the active team. Enter its name, then its value. The value is hidden while typing and shown as ****** after Enter.'
+	String get description => 'Create or update a secret for the active team. Enter its name, then its value. The value is hidden while typing and shown as ****** after Enter.';
+
+	/// en: 'register secret does not accept positional arguments. Enter the name and value at the prompts.'
+	String get noArguments => 'register secret does not accept positional arguments. Enter the name and value at the prompts.';
+
+	/// en: 'Secret names must use letters, digits and underscores, and must not start with a digit.'
+	String get invalidName => 'Secret names must use letters, digits and underscores, and must not start with a digit.';
+
+	/// en: 'Run genuineci login (or genuineci login --local) before registering secrets.'
+	String get loginRequired => 'Run genuineci login (or genuineci login --local) before registering secrets.';
+
+	/// en: 'Secret name:'
+	String get namePrompt => 'Secret name:';
+
+	/// en: 'Secret value:'
+	String get valuePrompt => 'Secret value:';
+
+	/// en: 'No secret was registered. Enter a name and a non-empty value in an interactive terminal.'
+	String get inputRequired => 'No secret was registered. Enter a name and a non-empty value in an interactive terminal.';
+
+	/// en: 'Could not read the secret name or value. Retry in an interactive terminal.'
+	String get inputFailed => 'Could not read the secret name or value. Retry in an interactive terminal.';
+
+	/// en: 'Could not register the secret (HTTP ${status}).'
+	String requestFailed({required Object status}) => 'Could not register the secret (HTTP ${status}).';
+
+	/// en: 'Could not register the secret. Check the server connection.'
+	String get saveFailed => 'Could not register the secret. Check the server connection.';
+
+	/// en: 'Saved secret ${name} for team ${teamId}.'
+	String saved({required Object name, required Object teamId}) => 'Saved secret ${name} for team ${teamId}.';
 }
 
 // Path: dev.start
@@ -412,6 +469,18 @@ extension on Translations {
 			'login.noTeams' => 'No teams found. Create or join a team in the dashboard first.',
 			'login.teamRequired' => 'Multiple teams found. Run login again with --team-id from the list above.',
 			'login.teamNotFound' => 'You do not belong to the specified team.',
+			'register.description' => 'Register resources with GenuineCI.',
+			'register.secret.description' => 'Create or update a secret for the active team. Enter its name, then its value. The value is hidden while typing and shown as ****** after Enter.',
+			'register.secret.noArguments' => 'register secret does not accept positional arguments. Enter the name and value at the prompts.',
+			'register.secret.invalidName' => 'Secret names must use letters, digits and underscores, and must not start with a digit.',
+			'register.secret.loginRequired' => 'Run genuineci login (or genuineci login --local) before registering secrets.',
+			'register.secret.namePrompt' => 'Secret name:',
+			'register.secret.valuePrompt' => 'Secret value:',
+			'register.secret.inputRequired' => 'No secret was registered. Enter a name and a non-empty value in an interactive terminal.',
+			'register.secret.inputFailed' => 'Could not read the secret name or value. Retry in an interactive terminal.',
+			'register.secret.requestFailed' => ({required Object status}) => 'Could not register the secret (HTTP ${status}).',
+			'register.secret.saveFailed' => 'Could not register the secret. Check the server connection.',
+			'register.secret.saved' => ({required Object name, required Object teamId}) => 'Saved secret ${name} for team ${teamId}.',
 			'use.description' => 'Set the default display language (japanese, english).',
 			'use.success' => ({required Object language}) => 'Language set to ${language}.',
 			'use.invalidLanguage' => ({required Object input}) => 'Invalid language "${input}". Supported languages: japanese, english.',

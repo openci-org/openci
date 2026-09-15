@@ -57,6 +57,15 @@ void main() {
     expect(runner.commands['use'], isA<UseCommand>());
   });
 
+  test('registers register secret with localized descriptions', () {
+    final register = runner.commands['register'];
+    expect(register, isA<RegisterCommand>());
+    expect(register!.description, t.register.description);
+    final secret = register.subcommands['secret'];
+    expect(secret, isA<RegisterSecretCommand>());
+    expect(secret!.description, t.register.secret.description);
+  });
+
   test('registers sync secrets with localized descriptions', () {
     final sync = runner.commands['sync'];
     expect(sync, isA<SyncCommand>());

@@ -37,6 +37,22 @@
     "teamRequired": "複数のチームがあります。上記のIDを--team-idで指定して再度ログインしてください。",
     "teamNotFound": "指定されたチームに所属していません。"
   },
+  "register": {
+    "description": "GenuineCIにリソースを登録します。",
+    "secret": {
+      "description": "現在のチームのシークレットを登録・更新します。名前と値を順に入力します。値は入力中は非表示で、Enterで確定すると******と表示します。",
+      "noArguments": "register secretに位置引数は指定できません。名前と値は対話入力で指定してください。",
+      "invalidName": "シークレット名には英数字とアンダースコアを使い、数字で始めないでください。",
+      "loginRequired": "genuineci login（ローカルならgenuineci login --local）を実行してからシークレットを登録してください。",
+      "namePrompt": "シークレット名:",
+      "valuePrompt": "シークレット値:",
+      "inputRequired": "シークレットは登録されませんでした。対話可能な端末で名前と空でない値を入力してください。",
+      "inputFailed": "シークレット名または値を読み取れませんでした。対話可能な端末で再試行してください。",
+      "requestFailed": "シークレットを登録できませんでした（HTTP ${status}）。",
+      "saveFailed": "シークレットを登録できませんでした。サーバーの接続状態を確認してください。",
+      "saved": "チーム${teamId}にシークレット${name}を保存しました。"
+    }
+  },
   "use": {
     "description": "表示言語を設定します（japanese, english）。",
     "success": "言語を${language}に設定しました。",

@@ -24,6 +24,22 @@ The remote server URL must use HTTPS.
 Firebase ID tokens. Credentials, including the refresh token, are stored in the
 existing credentials file with owner-only permissions on macOS/Linux.
 
+Register a secret for the active profile's team:
+
+```sh
+genuineci register secret
+```
+
+Enter the secret name (for example, `API_TOKEN`), then its value in an interactive
+terminal. The value is hidden while typing. After you press Enter, the prompt
+shows `******`, regardless of the value's length.
+
+Registering an existing name updates its value. The CLI uses the dashboard's
+existing API, which trims leading and trailing whitespace from values. Values
+are not printed or saved locally. Firebase tokens are refreshed when needed.
+After adding a secret, run `genuineci sync secrets` from your workflow project
+to update its generated secret definitions.
+
 Run `genuineci dev start` from the OpenCI checkout to start local services and the
 Mac Orchard worker. The existing Docker Compose credentials and `base-macos` VM
 must be configured first.
