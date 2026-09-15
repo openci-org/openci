@@ -1,0 +1,18 @@
+import 'package:genuine_ci/genuine_ci.dart';
+
+import 'paths.g.dart';
+
+Future<void> main() async {
+  final genuineCI = await GenuineCI.init(
+    workflowName: 'GenuineCI Server CI',
+    ciTriggers: [
+      CiTrigger.pullRequest(branch: 'develop'),
+      CiTrigger.push(branch: 'develop'),
+    ],
+    currentWorkingDirectory: WorkspacePaths.root.apps.genuineciServer,
+  );
+
+  await genuineCI.flutter.staticAnalysis();
+
+  await genuineCI.flutter.unitTests();
+}
