@@ -63,7 +63,11 @@ abstract class OpenCiApiService extends ChopperService {
   @POST(path: '/webhooks/claim', timeout: _timeout)
   Future<Response<Map<String, dynamic>>> claimNextWebhookTask();
 
-  @POST(path: '/webhooks/tasks/{id}/complete', timeout: _timeout)
+  // Completion also registers queued GitHub Checks for all planned jobs.
+  @POST(
+    path: '/webhooks/tasks/{id}/complete',
+    timeout: Duration(minutes: 5),
+  )
   Future<Response<Map<String, dynamic>>> completeWebhookTask(
     @Path('id') String id,
     @Body() Map<String, dynamic> body,

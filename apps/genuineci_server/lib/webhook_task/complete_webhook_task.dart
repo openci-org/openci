@@ -1,7 +1,9 @@
 import 'package:drift/drift.dart';
 import 'package:genuineci_server/build_job/build_job_plan_mapper.dart';
+import 'package:genuineci_server/build_job/create_queued_check_run.dart';
 import 'package:genuineci_server/database.dart';
 import 'package:genuineci_server/webhook_task/webhook_task_transition_exception.dart';
+import 'package:http/http.dart' as http;
 import 'package:openci_shared/openci_shared.dart';
 import 'package:uuid/uuid.dart';
 
@@ -29,6 +31,8 @@ Future<CompleteWebhookTaskResult> completeWebhookTask({
   required AppDatabase db,
   required String taskId,
   required List<BuildJobPlan> jobs,
+  Map<String, String>? environment,
+  http.Client? client,
 }) async {
   var alreadyCompleted = false;
   final createdJobIds = <String>[];
@@ -60,12 +64,34 @@ Future<CompleteWebhookTaskResult> completeWebhookTask({
       throw InvalidWebhookTaskStatusException(currentTask.status);
     }
 
+    final createdJobs = <DriftBuildJob>[];
     for (final plan in jobs) {
       final jobId = const Uuid().v4();
-      await db.buildJobDao.insertBuildJob(
-        plan.toDrift(id: jobId, timestamp: now),
-      );
+      final job = plan.toDrift(id: jobId, timestamp: now);
+      await db.buildJobDao.insertBuildJob(job);
+      createdJobs.add(job);
       createdJobIds.add(jobId);
+    }
+
+    const concurrentChecks = 4;
+    for (
+      var offset = 0;
+      offset < createdJobs.length;
+      offset += concurrentChecks
+    ) {
+      await Future.wait(
+        createdJobs
+            .skip(offset)
+            .take(concurrentChecks)
+            .map(
+              (job) => createQueuedCheckRun(
+                db: db,
+                job: job,
+                environment: environment,
+                client: client,
+              ),
+            ),
+      );
     }
   });
 

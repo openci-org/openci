@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:chopper/chopper.dart';
 import 'package:http/http.dart' as http;
@@ -51,6 +52,33 @@ void main() {
 
       expect(response.isSuccessful, isTrue);
       expect(response.body?['jobs_created'], 1);
+    });
+
+    test('waits beyond ten seconds for queued Check registration', () async {
+      final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+      addTearDown(() => server.close(force: true));
+      server.listen((request) async {
+        await request.drain<void>();
+        await Future<void>.delayed(const Duration(seconds: 11));
+        request.response
+          ..headers.contentType = ContentType.json
+          ..write(jsonEncode({'success': true, 'jobs_created': 3}));
+        await request.response.close();
+      });
+      final httpClient = http.Client();
+      addTearDown(httpClient.close);
+      final client = _createClient(
+        httpClient,
+        baseUrl: Uri.parse('http://127.0.0.1:${server.port}'),
+      );
+      addTearDown(client.dispose);
+
+      final response = await client
+          .getService<OpenCiApiService>()
+          .completeWebhookTask('task-123', {'jobs': <Object?>[]});
+
+      expect(response.isSuccessful, isTrue);
+      expect(response.body?['jobs_created'], 3);
     });
 
     test('failWebhookTask sends errorMessage to the fail endpoint', () async {
@@ -127,9 +155,9 @@ void main() {
   });
 }
 
-ChopperClient _createClient(http.Client httpClient) {
+ChopperClient _createClient(http.Client httpClient, {Uri? baseUrl}) {
   return ChopperClient(
-    baseUrl: Uri.parse('https://api.openci.test'),
+    baseUrl: baseUrl ?? Uri.parse('https://api.openci.test'),
     client: httpClient,
     converter: const JsonToTypeConverter(),
     services: [OpenCiApiService.create()],

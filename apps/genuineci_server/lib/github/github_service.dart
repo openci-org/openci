@@ -134,6 +134,7 @@ class GitHubService {
     required String name,
     required String headSha,
     required String externalId,
+    String runStatus = 'in_progress',
     Map<String, String>? environment,
     http.Client? client,
   }) async {
@@ -162,8 +163,9 @@ class GitHubService {
       'name': name,
       'head_sha': headSha,
       'external_id': externalId,
-      'status': 'in_progress',
-      'started_at': DateTime.now().toUtc().toIso8601String(),
+      'status': runStatus,
+      if (runStatus == 'in_progress')
+        'started_at': DateTime.now().toUtc().toIso8601String(),
     });
     final response = client != null
         ? await client.post(url, headers: headers, body: body)
@@ -216,6 +218,8 @@ class GitHubService {
 
     final patchBody = <String, dynamic>{
       'status': runStatus,
+      if (runStatus == 'in_progress')
+        'started_at': DateTime.now().toUtc().toIso8601String(),
       if (runStatus == 'completed' && conclusion != null)
         'conclusion': conclusion,
       if (runStatus == 'completed')

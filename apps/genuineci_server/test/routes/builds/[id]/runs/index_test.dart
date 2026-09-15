@@ -425,7 +425,9 @@ void main() {
       final calls = checkRequests();
       expect(calls.map((request) => request.method), ['POST', 'PATCH']);
       expect(calls.last.url.path, '/repos/org/mobile/check-runs/99999');
-      expect(jsonDecode(calls.last.body), {'status': 'in_progress'});
+      final body = jsonDecode(calls.last.body) as Map<String, dynamic>;
+      expect(DateTime.parse(body.remove('started_at') as String).isUtc, isTrue);
+      expect(body, {'status': 'in_progress'});
       final stored = (await db.buildJobDao.getBuildJob('job-check'))!;
       expect(stored.checkRunId, '99999');
       expect(stored.runCount, 4);

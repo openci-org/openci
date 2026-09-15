@@ -7,6 +7,7 @@ import 'package:genuineci_server/request/error_handler.dart';
 import 'package:genuineci_server/request/request_extension.dart';
 import 'package:genuineci_server/webhook_task/complete_webhook_task.dart';
 import 'package:genuineci_server/webhook_task/webhook_task_transition_exception.dart';
+import 'package:http/http.dart' as http;
 import 'package:openci_shared/openci_shared.dart';
 
 FutureOr<Response> onRequest(RequestContext context, String id) {
@@ -53,10 +54,24 @@ Future<Response> _post(RequestContext context, String taskId) async {
     }
 
     final db = context.read<AppDatabase>();
+    Map<String, String>? environment;
+    http.Client? client;
+    try {
+      environment = context.read<Map<String, String>>();
+    } catch (_) {
+      // Use the process environment when no override is provided.
+    }
+    try {
+      client = context.read<http.Client>();
+    } catch (_) {
+      // Check creation owns its HTTP client when none is provided.
+    }
     final result = await completeWebhookTask(
       db: db,
       taskId: taskId,
       jobs: jobs,
+      environment: environment,
+      client: client,
     );
 
     return Response.json(

@@ -337,7 +337,7 @@ final class _$OpenCiApiService extends OpenCiApiService {
     final $body = body;
     final ChopperCompleter $abortTrigger = ChopperCompleter<void>();
     final ChopperTimer $timeout = ChopperTimer(
-      const Duration(microseconds: 10000000),
+      const Duration(microseconds: 300000000),
       () {
         if (!$abortTrigger.isCompleted) $abortTrigger.complete();
       },
@@ -353,7 +353,7 @@ final class _$OpenCiApiService extends OpenCiApiService {
         .send<Map<String, dynamic>, Map<String, dynamic>>($request)
         .catchError(
           (_) => Future<Response<Map<String, dynamic>>>.error(
-            ChopperTimeoutException('Request timed out after 10 seconds'),
+            ChopperTimeoutException('Request timed out after 5 minutes'),
           ),
           test: (Object err) =>
               err is ChopperRequestAbortedException &&
