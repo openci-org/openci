@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:meta/meta.dart';
 
+import 'loki/log_buffer.dart';
 import 'loki/push_log.dart';
 
 Future<void> runCommand(
@@ -37,43 +38,51 @@ Future<void> _printProcessLogs(
   final lokiUrl = Platform.environment['LOKI_URL'];
   final isLoki = lokiUrl != null && lokiUrl.isNotEmpty;
   final client = isLoki ? http.Client() : null;
-  final lokiTasks = <Future<void>>[];
+  var forwardingFailed = false;
+
+  Future<void> forwardStream(
+    Stream<List<int>> bytes, {
+    required IOSink output,
+    required String stream,
+  }) async {
+    final buffer = isLoki
+        ? LokiLogBuffer(
+            sendBatch: (values) async {
+              if (forwardingFailed) return;
+              await pushLogsToLoki(
+                client: client!,
+                lokiUrl: lokiUrl,
+                values: values,
+                stream: stream,
+                command: command,
+              ).timeout(const Duration(seconds: 10));
+            },
+            onError: (error) {
+              if (forwardingFailed) return;
+              forwardingFailed = true;
+              client!.close();
+              stderr.writeln(
+                '[WARN] Loki log forwarding stopped for this command: $error',
+              );
+            },
+          )
+        : null;
+
+    try {
+      await for (final line in byteStreamToLines(bytes)) {
+        output.writeln('[${stream.toUpperCase()}] $line');
+        if (!forwardingFailed) await buffer?.add(line);
+      }
+    } finally {
+      await buffer?.close();
+    }
+  }
 
   try {
-    final stdoutDone = byteStreamToLines(process.stdout).forEach((line) {
-      stdout.writeln('[STDOUT] $line');
-      if (isLoki) {
-        lokiTasks.add(
-          pushLogToLoki(
-            client: client!,
-            lokiUrl: lokiUrl,
-            message: line,
-            stream: 'stdout',
-            command: command,
-          ),
-        );
-      }
-    });
-
-    final stderrDone = byteStreamToLines(process.stderr).forEach((line) {
-      stderr.writeln('[STDERR] $line');
-      if (isLoki) {
-        lokiTasks.add(
-          pushLogToLoki(
-            client: client!,
-            lokiUrl: lokiUrl,
-            message: line,
-            stream: 'stderr',
-            command: command,
-          ),
-        );
-      }
-    });
-
-    await Future.wait([stdoutDone, stderrDone]);
-    if (lokiTasks.isNotEmpty) {
-      await Future.wait(lokiTasks);
-    }
+    await Future.wait([
+      forwardStream(process.stdout, output: stdout, stream: 'stdout'),
+      forwardStream(process.stderr, output: stderr, stream: 'stderr'),
+    ]);
   } finally {
     client?.close();
   }

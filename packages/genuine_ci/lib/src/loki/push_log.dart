@@ -17,15 +17,29 @@ Future<void> pushLogToLoki({
   required String message,
   required String stream,
   String? command,
+}) => pushLogsToLoki(
+  client: client,
+  lokiUrl: lokiUrl,
+  values: [
+    [_dateTimeNowNano, message],
+  ],
+  stream: stream,
+  command: command,
+);
+
+Future<void> pushLogsToLoki({
+  required http.Client client,
+  required String lokiUrl,
+  required List<List<String>> values,
+  required String stream,
+  String? command,
 }) async {
   final labels = LokiLabels.fromEnvironment(
     stream: stream,
     command: command,
   );
-  final payload = LokiPushPayload.single(
-    labels: labels,
-    timestampNanos: _dateTimeNowNano,
-    message: message,
+  final payload = LokiPushPayload(
+    streams: [LokiStream(labels: labels, values: values)],
   );
 
   final chopperClient = ChopperClient(
