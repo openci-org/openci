@@ -4,12 +4,12 @@ import 'paths.g.dart';
 
 Future<void> main() async {
   final genuineCI = await GenuineCI.init(
-    workflowName: 'Build Job Worker CI',
+    workflowName: 'Build Job Planner CI',
     ciTriggers: [
       CiTrigger.pullRequest(branch: 'develop'),
       CiTrigger.push(branch: 'develop'),
     ],
-    currentWorkingDirectory: WorkspacePaths.root.apps.buildJobWorker,
+    currentWorkingDirectory: WorkspacePaths.root.apps.buildJobPlanner,
   );
 
   await genuineCI.flutter.staticAnalysis();
