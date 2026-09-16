@@ -1,11 +1,9 @@
 import 'dart:async';
-import 'dart:convert';
 
+import 'package:dashboard/api/openci_api_client.dart';
 import 'package:dashboard/auth/auth_provider.dart';
-import 'package:dashboard/utilities/openci_server_url_provider.dart';
 import 'package:dashboard/team/selected_team_provider.dart';
 import 'package:flutter/foundation.dart';
-import 'package:http/http.dart' as http;
 import 'package:openci_shared/openci_shared.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -21,33 +19,22 @@ Stream<BuildJob?> buildJobById(Ref ref, String buildJobId) async* {
     return;
   }
 
-  final serverUrl = ref.watch(openciServerUrlProvider);
-  final token = await ref.watch(authedFirebaseIdTokenProvider.future);
+  final api = ref.watch(openciApiServiceProvider);
 
   BuildJob? cache;
 
-  Future<BuildJob?> fetchJob(String token) async {
+  Future<BuildJob?> fetchJob() async {
     try {
-      final url = Uri.parse('$serverUrl/builds/$buildJobId');
+      final response = await api.getBuildJob(buildJobId);
 
-      final response = await http
-          .get(
-            url,
-            headers: {
-              'Authorization': 'Bearer $token',
-            },
-          )
-          .timeout(const Duration(seconds: 5));
-
-      if (response.statusCode != 200) {
+      if (!response.isSuccessful || response.body == null) {
         debugPrint(
           'Fetch build job by id failed with status: ${response.statusCode}',
         );
         return cache;
       }
 
-      final data = jsonDecode(response.body) as Map<String, dynamic>;
-      final job = BuildJob.fromJson(data);
+      final job = BuildJob.fromJson(response.body!);
       if (job.teamId != null) {
         final selectedTeamId = ref.read(selectedTeamIdProvider).value;
         if (selectedTeamId != job.teamId) {
@@ -68,10 +55,10 @@ Stream<BuildJob?> buildJobById(Ref ref, String buildJobId) async* {
     }
   }
 
-  final initialJob = await fetchJob(token);
+  final initialJob = await fetchJob();
   yield initialJob;
 
   yield* Stream.periodic(const Duration(seconds: 5)).asyncMap((_) async {
-    return fetchJob(token);
+    return fetchJob();
   });
 }
