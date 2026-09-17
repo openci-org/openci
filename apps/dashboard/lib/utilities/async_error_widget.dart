@@ -1,4 +1,4 @@
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:dashboard/auth/auth_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -43,7 +43,7 @@ Widget asyncErrorWidget(Object error, StackTrace stackTrace) {
                     children: [
                       OutlinedButton.icon(
                         onPressed: () async {
-                          await FirebaseAuth.instance.signOut();
+                          await ref.read(firebaseAuthProvider).signOut();
                         },
                         icon: const Icon(Icons.logout_rounded),
                         label: const Text('ログアウトして再ログイン'),

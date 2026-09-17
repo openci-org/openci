@@ -10,7 +10,6 @@ import 'package:dashboard/team/selected_team_provider.dart';
 import 'package:dashboard/team/switch_team_bottom_sheet.dart';
 import 'package:dashboard/team/team_provider.dart';
 import 'package:dashboard/utilities/async_error_widget.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -41,7 +40,7 @@ class DashboardRouteGateway extends ConsumerWidget {
           error: asyncErrorWidget,
           data: (_, selectedTeamId, _) {
             if (selectedTeamId == null) {
-              FirebaseAuth.instance.signOut();
+              ref.read(firebaseAuthProvider).signOut();
               throw Exception("No team selected");
             }
 
