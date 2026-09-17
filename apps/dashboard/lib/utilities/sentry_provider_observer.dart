@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 
@@ -8,14 +9,15 @@ final class SentryProviderObserver extends ProviderObserver {
     Object error,
     StackTrace stackTrace,
   ) {
+    final providerName =
+        context.provider.name ?? context.provider.runtimeType.toString();
+    debugPrint('Provider "$providerName" failed: $error');
+    debugPrintStack(stackTrace: stackTrace);
     Sentry.captureException(
       error,
       stackTrace: stackTrace,
       withScope: (scope) {
-        scope.setTag(
-          'provider',
-          context.provider.name ?? context.provider.runtimeType.toString(),
-        );
+        scope.setTag('provider', providerName);
       },
     );
     super.providerDidFail(context, error, stackTrace);

@@ -1,3 +1,4 @@
+import 'package:dashboard/auth/auth_provider.dart';
 import 'package:dashboard/deep_link/deep_link_listener.dart';
 import 'package:dashboard/router/router.dart';
 import 'package:flutter/foundation.dart';
@@ -11,6 +12,7 @@ class Root extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     ref.watch(deepLinkListenerProvider);
+    final authState = ref.watch(authStateChangesProvider);
 
     return MaterialApp.router(
       debugShowCheckedModeBanner: false,
@@ -21,7 +23,35 @@ class Root extends ConsumerWidget {
       builder: (context, child) {
         final app = TooltipVisibility(
           visible: false,
-          child: child ?? const SizedBox.shrink(),
+          child: authState.when(
+            skipLoadingOnRefresh: false,
+            loading: () => const Scaffold(
+              body: Center(child: CircularProgressIndicator.adaptive()),
+            ),
+            error: (_, _) => Scaffold(
+              body: Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text(
+                        '認証状態を確認できませんでした。',
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 16),
+                      FilledButton(
+                        onPressed: () =>
+                            ref.invalidate(authStateChangesProvider),
+                        child: const Text('再試行'),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            data: (_) => child ?? const SizedBox.shrink(),
+          ),
         );
         if (!kDebugMode) return app;
         return Banner(
