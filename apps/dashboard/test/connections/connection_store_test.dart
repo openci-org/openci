@@ -48,7 +48,7 @@ void main() {
   });
 
   test('Freezed supports value equality and independent profile updates', () {
-    final original = profile('dmis');
+    final original = profile('self-hosted');
     expect(ConnectionProfile.fromJson(original.toJson()), original);
     expect(
       ConnectionProfile.fromJson(original.toJson()).hashCode,
@@ -64,7 +64,7 @@ void main() {
     expect(updated.name, 'Updated');
     expect(updated.apiUrl, 'https://updated.example.com');
     expect(updated.firebase['web']!.projectId, 'updated-project');
-    expect(original.name, 'dmis');
+    expect(original.name, 'self-hosted');
     expect(original.firebase['web'], webConfig);
     expect(updated, isNot(original));
     expect(() => updated.firebase.clear(), throwsUnsupportedError);
@@ -73,20 +73,20 @@ void main() {
   test(
     'snapshots support value equality and selection updates with copyWith',
     () {
-      final dmis = profile('dmis');
+      final selfHosted = profile('self-hosted');
       final snapshot = ConnectionSnapshot(
-        profiles: [cloud, dmis],
+        profiles: [cloud, selfHosted],
         activeId: cloud.id,
       );
       final equal = ConnectionSnapshot(
-        profiles: [cloud, profile('dmis')],
+        profiles: [cloud, profile('self-hosted')],
         activeId: cloud.id,
       );
       expect(snapshot, equal);
       expect(snapshot.hashCode, equal.hashCode);
 
-      final selected = snapshot.copyWith(activeId: dmis.id);
-      expect(selected.activeId, dmis.id);
+      final selected = snapshot.copyWith(activeId: selfHosted.id);
+      expect(selected.activeId, selfHosted.id);
       expect(selected.profiles, snapshot.profiles);
       expect(snapshot.activeId, cloud.id);
       expect(selected, isNot(snapshot));
@@ -124,7 +124,7 @@ void main() {
   test(
     'round trip preserves names, URLs, platform options and selected profile',
     () async {
-      final dmis = profile('dmis', name: 'DMIS');
+      final selfHosted = profile('self-hosted', name: 'Self-hosted');
       final another = ConnectionProfile(
         id: 'another',
         name: 'Another',
@@ -132,14 +132,17 @@ void main() {
         firebase: {'web': webConfig.copyWith(projectId: 'another-project')},
       );
       await store.save(
-        ConnectionSnapshot(profiles: [cloud, dmis, another], activeId: dmis.id),
+        ConnectionSnapshot(
+          profiles: [cloud, selfHosted, another],
+          activeId: selfHosted.id,
+        ),
       );
 
       final restored = ConnectionStore(prefs, cloud).load();
-      expect(restored.activeId, dmis.id);
+      expect(restored.activeId, selfHosted.id);
       expect(restored.profiles.map((p) => p.toJson()).toList(), [
         cloud.toJson(),
-        dmis.toJson(),
+        selfHosted.toJson(),
         another.toJson(),
       ]);
       expect(
@@ -158,18 +161,18 @@ void main() {
     () async {
       await store.save(
         ConnectionSnapshot(
-          profiles: [cloud, profile('dmis')],
-          activeId: 'dmis',
+          profiles: [cloud, profile('self-hosted')],
+          activeId: 'self-hosted',
         ),
       );
       final updated = ConnectionProfile(
-        id: 'dmis',
+        id: 'self-hosted',
         name: 'Renamed',
         apiUrl: 'https://new.example.com',
         firebase: {'web': webConfig.copyWith(projectId: 'new-project')},
       );
       await store.save(
-        ConnectionSnapshot(profiles: [cloud, updated], activeId: 'dmis'),
+        ConnectionSnapshot(profiles: [cloud, updated], activeId: 'self-hosted'),
       );
       final restored = store.load();
       expect(restored.profiles.length, 2);
@@ -182,8 +185,8 @@ void main() {
     () async {
       await store.save(
         ConnectionSnapshot(
-          profiles: [cloud, profile('dmis')],
-          activeId: 'dmis',
+          profiles: [cloud, profile('self-hosted')],
+          activeId: 'self-hosted',
         ),
       );
       await store.save(
@@ -200,14 +203,14 @@ void main() {
     () async {
       await store.save(
         ConnectionSnapshot(
-          profiles: [cloud, profile('dmis')],
+          profiles: [cloud, profile('self-hosted')],
           activeId: cloud.id,
         ),
       );
       final json =
           jsonDecode(prefs.getString(ConnectionStore.storageKey)!)
               as Map<String, dynamic>;
-      expect((json['profiles'] as List).map((p) => p['id']), ['dmis']);
+      expect((json['profiles'] as List).map((p) => p['id']), ['self-hosted']);
       final newCloud = profile(
         'cloud',
         apiUrl: 'https://new-cloud.example.com',
