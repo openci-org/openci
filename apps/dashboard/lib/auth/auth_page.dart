@@ -3,13 +3,13 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:dashboard/app_strings.dart';
+import 'package:dashboard/auth/auth_provider.dart';
 import 'package:dashboard/firebase/firebase_config_provider.dart';
 import 'package:dashboard/firebase/plist_parser.dart';
 import 'package:dashboard/utilities/openci_server_url_provider.dart';
 import 'package:dashboard/team/selected_team_provider.dart';
 import 'package:dashboard/utilities/snack_bar_extension.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -253,7 +253,8 @@ class AuthPage extends HookConsumerWidget {
                                                 .validate()) {
                                               isLoading.value = true;
                                               try {
-                                                await FirebaseAuth.instance
+                                                await ref
+                                                    .read(firebaseAuthProvider)
                                                     .signInWithEmailAndPassword(
                                                       email:
                                                           emailController.text,
@@ -291,15 +292,17 @@ class AuthPage extends HookConsumerWidget {
                                                 .validate()) {
                                               isLoading.value = true;
                                               try {
-                                                final credential =
-                                                    await FirebaseAuth.instance
-                                                        .createUserWithEmailAndPassword(
-                                                          email: emailController
+                                                final credential = await ref
+                                                    .read(
+                                                      firebaseAuthProvider,
+                                                    )
+                                                    .createUserWithEmailAndPassword(
+                                                      email:
+                                                          emailController.text,
+                                                      password:
+                                                          passwordController
                                                               .text,
-                                                          password:
-                                                              passwordController
-                                                                  .text,
-                                                        );
+                                                    );
                                                 TextInput.finishAutofillContext();
                                                 final userId =
                                                     credential.user!.uid;
