@@ -1,6 +1,5 @@
-import 'dart:async';
-
 import 'package:dashboard/auth/auth_page.dart';
+import 'package:dashboard/auth/auth_provider.dart';
 import 'package:dashboard/cicd_log/detail/ci_cd_log_detail_page.dart';
 import 'package:dashboard/root/dashboard_root.dart';
 import 'package:dashboard/router/custom_transitions.dart';
@@ -10,9 +9,10 @@ import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
-  final refreshNotifier = RouterRefreshNotifier(
-    FirebaseAuth.instance.authStateChanges(),
-  );
+  final refreshNotifier = ValueNotifier(0);
+  ref.listen(authStateChangesProvider, (_, _) {
+    refreshNotifier.value++;
+  });
   ref.onDispose(refreshNotifier.dispose);
 
   return GoRouter(
@@ -57,17 +57,3 @@ final routerProvider = Provider<GoRouter>((ref) {
     },
   );
 });
-
-class RouterRefreshNotifier extends ChangeNotifier {
-  RouterRefreshNotifier(Stream<Object?> stream) {
-    _subscription = stream.listen((_) => notifyListeners());
-  }
-
-  late final StreamSubscription<Object?> _subscription;
-
-  @override
-  void dispose() {
-    _subscription.cancel();
-    super.dispose();
-  }
-}
