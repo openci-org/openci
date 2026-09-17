@@ -3,23 +3,43 @@ import 'dart:async';
 import 'package:dashboard/auth/auth_provider.dart';
 import 'package:dashboard/router/router.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  late StreamController<User?> changes;
+  late ProviderContainer container;
+  late GoRouter router;
 
-  test('auth events refresh the existing router', () async {
-    final changes = StreamController<User?>.broadcast();
+  void createRouter() {
+    changes = StreamController<User?>.broadcast();
     addTearDown(changes.close);
-    final container = ProviderContainer.test(
+    container = ProviderContainer.test(
       overrides: [
+        firebaseAuthProvider.overrideWithValue(_Auth()),
         authStateChangesProvider.overrideWith((ref) => changes.stream),
       ],
     );
-    final router = container.listen(routerProvider, (_, _) {}).read();
+    router = container.listen(routerProvider, (_, _) {}).read();
     addTearDown(router.dispose);
+  }
 
+  Future<Uri> resolve(WidgetTester tester, String location) async {
+    final config = router.configuration;
+    final matches = await config.redirect(
+      tester.element(find.byType(SizedBox)),
+      config.findMatch(Uri.parse(location)),
+      redirectHistory: [],
+    );
+    expectSync(matches.error, isNull);
+    return matches.uri;
+  }
+
+  test('auth events refresh the existing router', () async {
+    createRouter();
     var refreshes = 0;
     router.routeInformationProvider.addListener(() {
       refreshes++;
@@ -34,6 +54,56 @@ void main() {
       expect(container.read(routerProvider), same(router));
     }
   });
+
+  testWidgets('waits for authentication before resolving a protected URL', (
+    tester,
+  ) async {
+    createRouter();
+    await tester.pumpWidget(const SizedBox());
+    const location = '/runs/job-123?tab=logs#step-2';
+    var completed = false;
+    final result = resolve(tester, location).then((uri) {
+      completed = true;
+      return uri;
+    });
+
+    await tester.pump();
+    expect(completed, isFalse);
+
+    changes.add(_User());
+    await tester.pump();
+    expect(await result, Uri.parse(location));
+  });
+
+  testWidgets('preserves the requested URL through sign-in and sign-out', (
+    tester,
+  ) async {
+    createRouter();
+    await tester.pumpWidget(const SizedBox());
+    const location = '/runs/job-123?tab=logs#step-2';
+    final result = resolve(tester, location);
+    changes.add(null);
+    await tester.pump();
+
+    final authUri = await result;
+    expect(authUri.path, '/auth');
+    expect(authUri.queryParameters['from'], location);
+    expect(await resolve(tester, authUri.toString()), authUri);
+
+    changes.add(_User());
+    await tester.pump();
+    expect(await resolve(tester, authUri.toString()), Uri.parse(location));
+    expect(await resolve(tester, '/auth'), Uri.parse('/'));
+
+    changes.add(null);
+    await tester.pump();
+    expect(await resolve(tester, location), authUri);
+  });
+}
+
+class _Auth extends Fake implements FirebaseAuth {
+  @override
+  User? get currentUser => null;
 }
 
 class _User extends Fake implements User {}
