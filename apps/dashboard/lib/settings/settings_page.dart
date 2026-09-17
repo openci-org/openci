@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:dashboard/app_strings.dart';
+import 'package:dashboard/auth/auth_provider.dart';
 import 'package:dashboard/firebase/firebase_config_provider.dart';
 import 'package:dashboard/revenue_cat/revenue_cat.dart';
 import 'package:dashboard/revenue_cat/subscription_page.dart';
@@ -152,8 +153,9 @@ String _formatUpdateCheckResult(MacosUpdaterCheckResult result) {
 Future<void> _signOut(BuildContext context, WidgetRef ref) async {
   final settingsT = t.settings;
   try {
+    final auth = ref.read(firebaseAuthProvider);
     await logoutRevenueCat();
-    await FirebaseAuth.instance.signOut();
+    await auth.signOut();
 
     if (!context.mounted) return;
     context.showSnackBarMessage(settingsT.logoutSuccess);
@@ -590,14 +592,16 @@ class _SelfHostedIndicator extends ConsumerWidget {
           );
         }
 
-        return Center(
-          child: Text(
-            settingsT.firebaseAppName(
-              name: FirebaseAuth.instance.app.name,
-            ),
-            style: TextStyle(
-              fontSize: 12,
-              color: Theme.of(context).colorScheme.outline,
+        return Consumer(
+          builder: (context, ref, _) => Center(
+            child: Text(
+              settingsT.firebaseAppName(
+                name: ref.watch(firebaseAuthProvider).app.name,
+              ),
+              style: TextStyle(
+                fontSize: 12,
+                color: Theme.of(context).colorScheme.outline,
+              ),
             ),
           ),
         );
@@ -606,13 +610,13 @@ class _SelfHostedIndicator extends ConsumerWidget {
   }
 }
 
-class _DeleteAccountButton extends StatelessWidget {
+class _DeleteAccountButton extends ConsumerWidget {
   const _DeleteAccountButton({required this.isDeleting});
 
   final ValueNotifier<bool> isDeleting;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final settingsT = t.settings;
     return SizedBox(
       width: double.infinity,
@@ -626,7 +630,7 @@ class _DeleteAccountButton extends StatelessWidget {
         ),
         onPressed: isDeleting.value
             ? null
-            : () => _showDeleteConfirmationDialog(context),
+            : () => _showDeleteConfirmationDialog(context, ref),
         child: Text(
           settingsT.deleteAccount,
           style: const TextStyle(
@@ -638,7 +642,10 @@ class _DeleteAccountButton extends StatelessWidget {
     );
   }
 
-  Future<void> _showDeleteConfirmationDialog(BuildContext context) async {
+  Future<void> _showDeleteConfirmationDialog(
+    BuildContext context,
+    WidgetRef ref,
+  ) async {
     final settingsT = t.settings;
     final confirmed = await showDialog<bool>(
       context: context,
@@ -664,15 +671,15 @@ class _DeleteAccountButton extends StatelessWidget {
     );
 
     if (confirmed == true && context.mounted) {
-      await _deleteAccount(context);
+      await _deleteAccount(context, ref);
     }
   }
 
-  Future<void> _deleteAccount(BuildContext context) async {
+  Future<void> _deleteAccount(BuildContext context, WidgetRef ref) async {
     final settingsT = t.settings;
     isDeleting.value = true;
     try {
-      final user = FirebaseAuth.instance.currentUser;
+      final user = ref.read(firebaseAuthProvider).currentUser;
       if (user == null) {
         throw Exception(settingsT.noUserSignedIn);
       }
