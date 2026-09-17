@@ -50,7 +50,7 @@ class CicdCommitGroups extends _$CicdCommitGroups {
   }
 
   Future<List<CicdCommitGroup>> _fetchGroups(String teamId) async {
-    final api = ref.read(openciApiServiceProvider);
+    final api = await ref.read(openciApiServiceProvider.future);
     const limit = 100;
     final response = await api.getCommitGroups(teamId, limit);
     if (!response.isSuccessful || response.body == null) {

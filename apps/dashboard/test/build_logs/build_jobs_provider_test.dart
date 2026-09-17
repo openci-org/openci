@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:dashboard/api/openci_api_client.dart';
@@ -33,8 +34,9 @@ void main() {
   });
 
   Future<ProviderContainer> createContainer(
-    Future<http.Response> Function(http.Request) respond,
-  ) async {
+    Future<http.Response> Function(http.Request) respond, {
+    Future<void>? apiReady,
+  }) async {
     final httpClient = MockClient((request) async {
       requests.add(request);
       return respond(request);
@@ -46,7 +48,10 @@ void main() {
         openciServerUrlProvider.overrideWithValue('https://api.openci.test'),
         openciApiClientProvider.overrideWith(
           (ref) => http.runWithClient(
-            () => openciApiClient(ref),
+            () async {
+              if (apiReady != null) await apiReady;
+              return openciApiClient(ref);
+            },
             () => httpClient,
           ),
         ),
@@ -64,6 +69,30 @@ void main() {
     200,
     headers: {'content-type': 'application/json'},
   );
+
+  testWidgets('waits for API initialization before fetching the build job', (
+    tester,
+  ) async {
+    final ready = Completer<void>();
+    final container = await createContainer(
+      (_) async => jobResponse(job),
+      apiReady: ready.future,
+    );
+    await tester.pump();
+    expect(container.read(provider).isLoading, isTrue);
+    expect(requests, isEmpty);
+
+    ready.complete();
+    await tester.pump();
+    expect(container.read(provider).requireValue, job);
+    expect(
+      requests.single.url.toString(),
+      'https://api.openci.test/builds/job-1',
+    );
+    expect(requests.single.headers['Authorization'], 'Bearer initial-token');
+    container.dispose();
+    await tester.pump();
+  });
 
   testWidgets('polls with the current token and recovers from HTTP failures', (
     tester,

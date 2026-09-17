@@ -8,7 +8,7 @@ Future<Uri> buildAuthedWebSocketUri(
   String path, {
   Map<String, String>? queryParameters,
 }) async {
-  final api = ref.read(openciApiServiceProvider);
+  final api = await ref.read(openciApiServiceProvider.future);
   final token = await ref.watch(authedFirebaseIdTokenProvider.future);
 
   final baseUrl = api.client.baseUrl.toString();

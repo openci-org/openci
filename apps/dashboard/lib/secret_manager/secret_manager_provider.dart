@@ -28,7 +28,7 @@ class SecretManager extends _$SecretManager {
 
   Future<List<Secret>> _fetchSecrets(String teamId) async {
     try {
-      final api = ref.read(openciApiServiceProvider);
+      final api = await ref.read(openciApiServiceProvider.future);
       final response = await api.getSecrets(teamId);
 
       if (!response.isSuccessful || response.body == null) return const [];
@@ -56,7 +56,7 @@ class SecretManager extends _$SecretManager {
     final teamId = ref.read(selectedTeamProvider).value?.id;
     if (teamId == null) throw StateError('team is not loaded yet');
 
-    final api = ref.read(openciApiServiceProvider);
+    final api = await ref.read(openciApiServiceProvider.future);
     final response = await api.saveSecret(teamId, {
       'name': name,
       'value': value,
@@ -97,7 +97,7 @@ class SecretManager extends _$SecretManager {
     final teamId = ref.read(selectedTeamProvider).value?.id;
     if (teamId == null) throw StateError('team is not loaded yet');
 
-    final api = ref.read(openciApiServiceProvider);
+    final api = await ref.read(openciApiServiceProvider.future);
     final response = await api.getSecretValue(teamId, documentId);
 
     if (!response.isSuccessful || response.body == null) {
@@ -113,7 +113,7 @@ class SecretManager extends _$SecretManager {
     final teamId = ref.read(selectedTeamProvider).value?.id;
     if (teamId == null) throw StateError('team is not loaded yet');
 
-    final api = ref.read(openciApiServiceProvider);
+    final api = await ref.read(openciApiServiceProvider.future);
     final response = await api.deleteSecret(teamId, documentId);
 
     if (!response.isSuccessful) {
@@ -127,7 +127,7 @@ class SecretManager extends _$SecretManager {
     final teamId = ref.read(selectedTeamProvider).value?.id;
     if (teamId == null) throw StateError('team is not loaded yet');
 
-    final api = ref.read(openciApiServiceProvider);
+    final api = await ref.read(openciApiServiceProvider.future);
     final response = await api.generateCertificateKey(teamId);
 
     if (!response.isSuccessful) {

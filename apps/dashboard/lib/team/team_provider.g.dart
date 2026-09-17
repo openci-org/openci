@@ -78,7 +78,7 @@ final class TeamListProvider
   }
 }
 
-String _$teamListHash() => r'0cce5ff0dd3b0b799e2d4ad521a1b55fbd2691af';
+String _$teamListHash() => r'7056500114aaa7433bac45a4f0d219440717303e';
 
 @ProviderFor(teamService)
 final teamServiceProvider = TeamServiceProvider._();

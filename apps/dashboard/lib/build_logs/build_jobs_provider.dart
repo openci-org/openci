@@ -19,7 +19,7 @@ Stream<BuildJob?> buildJobById(Ref ref, String buildJobId) async* {
     return;
   }
 
-  final api = ref.watch(openciApiServiceProvider);
+  final api = await ref.watch(openciApiServiceProvider.future);
 
   BuildJob? cache;
 

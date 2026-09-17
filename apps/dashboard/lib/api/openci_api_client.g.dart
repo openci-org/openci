@@ -13,8 +13,13 @@ part of 'openci_api_client.dart';
 final openciApiClientProvider = OpenciApiClientProvider._();
 
 final class OpenciApiClientProvider
-    extends $FunctionalProvider<ChopperClient, ChopperClient, ChopperClient>
-    with $Provider<ChopperClient> {
+    extends
+        $FunctionalProvider<
+          AsyncValue<ChopperClient>,
+          ChopperClient,
+          FutureOr<ChopperClient>
+        >
+    with $FutureModifier<ChopperClient>, $FutureProvider<ChopperClient> {
   OpenciApiClientProvider._()
     : super(
         from: null,
@@ -31,24 +36,17 @@ final class OpenciApiClientProvider
 
   @$internal
   @override
-  $ProviderElement<ChopperClient> $createElement($ProviderPointer pointer) =>
-      $ProviderElement(pointer);
+  $FutureProviderElement<ChopperClient> $createElement(
+    $ProviderPointer pointer,
+  ) => $FutureProviderElement(pointer);
 
   @override
-  ChopperClient create(Ref ref) {
+  FutureOr<ChopperClient> create(Ref ref) {
     return openciApiClient(ref);
-  }
-
-  /// {@macro riverpod.override_with_value}
-  Override overrideWithValue(ChopperClient value) {
-    return $ProviderOverride(
-      origin: this,
-      providerOverride: $SyncValueProvider<ChopperClient>(value),
-    );
   }
 }
 
-String _$openciApiClientHash() => r'181fdabf46ae6fb21ae2fb4a47068c38ec67facf';
+String _$openciApiClientHash() => r'c3570e5abe685ad2106f0b1486e67002858080ad';
 
 @ProviderFor(openciApiService)
 final openciApiServiceProvider = OpenciApiServiceProvider._();
@@ -56,11 +54,11 @@ final openciApiServiceProvider = OpenciApiServiceProvider._();
 final class OpenciApiServiceProvider
     extends
         $FunctionalProvider<
+          AsyncValue<OpenCiApiService>,
           OpenCiApiService,
-          OpenCiApiService,
-          OpenCiApiService
+          FutureOr<OpenCiApiService>
         >
-    with $Provider<OpenCiApiService> {
+    with $FutureModifier<OpenCiApiService>, $FutureProvider<OpenCiApiService> {
   OpenciApiServiceProvider._()
     : super(
         from: null,
@@ -77,21 +75,14 @@ final class OpenciApiServiceProvider
 
   @$internal
   @override
-  $ProviderElement<OpenCiApiService> $createElement($ProviderPointer pointer) =>
-      $ProviderElement(pointer);
+  $FutureProviderElement<OpenCiApiService> $createElement(
+    $ProviderPointer pointer,
+  ) => $FutureProviderElement(pointer);
 
   @override
-  OpenCiApiService create(Ref ref) {
+  FutureOr<OpenCiApiService> create(Ref ref) {
     return openciApiService(ref);
-  }
-
-  /// {@macro riverpod.override_with_value}
-  Override overrideWithValue(OpenCiApiService value) {
-    return $ProviderOverride(
-      origin: this,
-      providerOverride: $SyncValueProvider<OpenCiApiService>(value),
-    );
   }
 }
 
-String _$openciApiServiceHash() => r'96895aa2b5dbc9cc0859f05f36bd72824c1c257a';
+String _$openciApiServiceHash() => r'530f0392c86729d81b954346c867040f5a3e7586';
