@@ -150,6 +150,10 @@ SelfHostedConfig parsePlist(String plistContent) {
     messagingSenderId: (map['GCM_SENDER_ID'] as String?) ?? '',
     projectId: projectId!,
     storageBucket: (map['STORAGE_BUCKET'] as String?) ?? '',
+    iosBundleId: map['BUNDLE_ID'] as String?,
+    iosClientId: map['CLIENT_ID'] as String?,
+    androidClientId: map['ANDROID_CLIENT_ID'] as String?,
+    databaseURL: map['DATABASE_URL'] as String?,
   );
 }
 

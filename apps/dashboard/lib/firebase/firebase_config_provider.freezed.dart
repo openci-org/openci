@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$SelfHostedConfig {
 
- String get apiKey; String get appId; String get messagingSenderId; String get projectId; String get storageBucket;
+ String get apiKey; String get appId; String get messagingSenderId; String get projectId; String get storageBucket; String? get authDomain; String? get iosBundleId; String? get iosClientId; String? get androidClientId; String? get databaseURL; String? get measurementId;
 /// Create a copy of SelfHostedConfig
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +28,16 @@ $SelfHostedConfigCopyWith<SelfHostedConfig> get copyWith => _$SelfHostedConfigCo
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is SelfHostedConfig&&(identical(other.apiKey, apiKey) || other.apiKey == apiKey)&&(identical(other.appId, appId) || other.appId == appId)&&(identical(other.messagingSenderId, messagingSenderId) || other.messagingSenderId == messagingSenderId)&&(identical(other.projectId, projectId) || other.projectId == projectId)&&(identical(other.storageBucket, storageBucket) || other.storageBucket == storageBucket));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is SelfHostedConfig&&(identical(other.apiKey, apiKey) || other.apiKey == apiKey)&&(identical(other.appId, appId) || other.appId == appId)&&(identical(other.messagingSenderId, messagingSenderId) || other.messagingSenderId == messagingSenderId)&&(identical(other.projectId, projectId) || other.projectId == projectId)&&(identical(other.storageBucket, storageBucket) || other.storageBucket == storageBucket)&&(identical(other.authDomain, authDomain) || other.authDomain == authDomain)&&(identical(other.iosBundleId, iosBundleId) || other.iosBundleId == iosBundleId)&&(identical(other.iosClientId, iosClientId) || other.iosClientId == iosClientId)&&(identical(other.androidClientId, androidClientId) || other.androidClientId == androidClientId)&&(identical(other.databaseURL, databaseURL) || other.databaseURL == databaseURL)&&(identical(other.measurementId, measurementId) || other.measurementId == measurementId));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,apiKey,appId,messagingSenderId,projectId,storageBucket);
+int get hashCode => Object.hash(runtimeType,apiKey,appId,messagingSenderId,projectId,storageBucket,authDomain,iosBundleId,iosClientId,androidClientId,databaseURL,measurementId);
 
 @override
 String toString() {
-  return 'SelfHostedConfig(apiKey: $apiKey, appId: $appId, messagingSenderId: $messagingSenderId, projectId: $projectId, storageBucket: $storageBucket)';
+  return 'SelfHostedConfig(apiKey: $apiKey, appId: $appId, messagingSenderId: $messagingSenderId, projectId: $projectId, storageBucket: $storageBucket, authDomain: $authDomain, iosBundleId: $iosBundleId, iosClientId: $iosClientId, androidClientId: $androidClientId, databaseURL: $databaseURL, measurementId: $measurementId)';
 }
 
 
@@ -48,7 +48,7 @@ abstract mixin class $SelfHostedConfigCopyWith<$Res>  {
   factory $SelfHostedConfigCopyWith(SelfHostedConfig value, $Res Function(SelfHostedConfig) _then) = _$SelfHostedConfigCopyWithImpl;
 @useResult
 $Res call({
- String apiKey, String appId, String messagingSenderId, String projectId, String storageBucket
+ String apiKey, String appId, String messagingSenderId, String projectId, String storageBucket, String? authDomain, String? iosBundleId, String? iosClientId, String? androidClientId, String? databaseURL, String? measurementId
 });
 
 
@@ -65,14 +65,20 @@ class _$SelfHostedConfigCopyWithImpl<$Res>
 
 /// Create a copy of SelfHostedConfig
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? apiKey = null,Object? appId = null,Object? messagingSenderId = null,Object? projectId = null,Object? storageBucket = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? apiKey = null,Object? appId = null,Object? messagingSenderId = null,Object? projectId = null,Object? storageBucket = null,Object? authDomain = freezed,Object? iosBundleId = freezed,Object? iosClientId = freezed,Object? androidClientId = freezed,Object? databaseURL = freezed,Object? measurementId = freezed,}) {
   return _then(_self.copyWith(
 apiKey: null == apiKey ? _self.apiKey : apiKey // ignore: cast_nullable_to_non_nullable
 as String,appId: null == appId ? _self.appId : appId // ignore: cast_nullable_to_non_nullable
 as String,messagingSenderId: null == messagingSenderId ? _self.messagingSenderId : messagingSenderId // ignore: cast_nullable_to_non_nullable
 as String,projectId: null == projectId ? _self.projectId : projectId // ignore: cast_nullable_to_non_nullable
 as String,storageBucket: null == storageBucket ? _self.storageBucket : storageBucket // ignore: cast_nullable_to_non_nullable
-as String,
+as String,authDomain: freezed == authDomain ? _self.authDomain : authDomain // ignore: cast_nullable_to_non_nullable
+as String?,iosBundleId: freezed == iosBundleId ? _self.iosBundleId : iosBundleId // ignore: cast_nullable_to_non_nullable
+as String?,iosClientId: freezed == iosClientId ? _self.iosClientId : iosClientId // ignore: cast_nullable_to_non_nullable
+as String?,androidClientId: freezed == androidClientId ? _self.androidClientId : androidClientId // ignore: cast_nullable_to_non_nullable
+as String?,databaseURL: freezed == databaseURL ? _self.databaseURL : databaseURL // ignore: cast_nullable_to_non_nullable
+as String?,measurementId: freezed == measurementId ? _self.measurementId : measurementId // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 
@@ -157,10 +163,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String apiKey,  String appId,  String messagingSenderId,  String projectId,  String storageBucket)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String apiKey,  String appId,  String messagingSenderId,  String projectId,  String storageBucket,  String? authDomain,  String? iosBundleId,  String? iosClientId,  String? androidClientId,  String? databaseURL,  String? measurementId)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _SelfHostedConfig() when $default != null:
-return $default(_that.apiKey,_that.appId,_that.messagingSenderId,_that.projectId,_that.storageBucket);case _:
+return $default(_that.apiKey,_that.appId,_that.messagingSenderId,_that.projectId,_that.storageBucket,_that.authDomain,_that.iosBundleId,_that.iosClientId,_that.androidClientId,_that.databaseURL,_that.measurementId);case _:
   return orElse();
 
 }
@@ -178,10 +184,10 @@ return $default(_that.apiKey,_that.appId,_that.messagingSenderId,_that.projectId
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String apiKey,  String appId,  String messagingSenderId,  String projectId,  String storageBucket)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String apiKey,  String appId,  String messagingSenderId,  String projectId,  String storageBucket,  String? authDomain,  String? iosBundleId,  String? iosClientId,  String? androidClientId,  String? databaseURL,  String? measurementId)  $default,) {final _that = this;
 switch (_that) {
 case _SelfHostedConfig():
-return $default(_that.apiKey,_that.appId,_that.messagingSenderId,_that.projectId,_that.storageBucket);case _:
+return $default(_that.apiKey,_that.appId,_that.messagingSenderId,_that.projectId,_that.storageBucket,_that.authDomain,_that.iosBundleId,_that.iosClientId,_that.androidClientId,_that.databaseURL,_that.measurementId);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -198,10 +204,10 @@ return $default(_that.apiKey,_that.appId,_that.messagingSenderId,_that.projectId
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String apiKey,  String appId,  String messagingSenderId,  String projectId,  String storageBucket)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String apiKey,  String appId,  String messagingSenderId,  String projectId,  String storageBucket,  String? authDomain,  String? iosBundleId,  String? iosClientId,  String? androidClientId,  String? databaseURL,  String? measurementId)?  $default,) {final _that = this;
 switch (_that) {
 case _SelfHostedConfig() when $default != null:
-return $default(_that.apiKey,_that.appId,_that.messagingSenderId,_that.projectId,_that.storageBucket);case _:
+return $default(_that.apiKey,_that.appId,_that.messagingSenderId,_that.projectId,_that.storageBucket,_that.authDomain,_that.iosBundleId,_that.iosClientId,_that.androidClientId,_that.databaseURL,_that.measurementId);case _:
   return null;
 
 }
@@ -213,7 +219,7 @@ return $default(_that.apiKey,_that.appId,_that.messagingSenderId,_that.projectId
 @JsonSerializable()
 
 class _SelfHostedConfig extends SelfHostedConfig {
-  const _SelfHostedConfig({required this.apiKey, required this.appId, this.messagingSenderId = '', required this.projectId, this.storageBucket = ''}): super._();
+  const _SelfHostedConfig({required this.apiKey, required this.appId, this.messagingSenderId = '', required this.projectId, this.storageBucket = '', this.authDomain, this.iosBundleId, this.iosClientId, this.androidClientId, this.databaseURL, this.measurementId}): super._();
   factory _SelfHostedConfig.fromJson(Map<String, dynamic> json) => _$SelfHostedConfigFromJson(json);
 
 @override final  String apiKey;
@@ -221,6 +227,12 @@ class _SelfHostedConfig extends SelfHostedConfig {
 @override@JsonKey() final  String messagingSenderId;
 @override final  String projectId;
 @override@JsonKey() final  String storageBucket;
+@override final  String? authDomain;
+@override final  String? iosBundleId;
+@override final  String? iosClientId;
+@override final  String? androidClientId;
+@override final  String? databaseURL;
+@override final  String? measurementId;
 
 /// Create a copy of SelfHostedConfig
 /// with the given fields replaced by the non-null parameter values.
@@ -235,16 +247,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _SelfHostedConfig&&(identical(other.apiKey, apiKey) || other.apiKey == apiKey)&&(identical(other.appId, appId) || other.appId == appId)&&(identical(other.messagingSenderId, messagingSenderId) || other.messagingSenderId == messagingSenderId)&&(identical(other.projectId, projectId) || other.projectId == projectId)&&(identical(other.storageBucket, storageBucket) || other.storageBucket == storageBucket));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _SelfHostedConfig&&(identical(other.apiKey, apiKey) || other.apiKey == apiKey)&&(identical(other.appId, appId) || other.appId == appId)&&(identical(other.messagingSenderId, messagingSenderId) || other.messagingSenderId == messagingSenderId)&&(identical(other.projectId, projectId) || other.projectId == projectId)&&(identical(other.storageBucket, storageBucket) || other.storageBucket == storageBucket)&&(identical(other.authDomain, authDomain) || other.authDomain == authDomain)&&(identical(other.iosBundleId, iosBundleId) || other.iosBundleId == iosBundleId)&&(identical(other.iosClientId, iosClientId) || other.iosClientId == iosClientId)&&(identical(other.androidClientId, androidClientId) || other.androidClientId == androidClientId)&&(identical(other.databaseURL, databaseURL) || other.databaseURL == databaseURL)&&(identical(other.measurementId, measurementId) || other.measurementId == measurementId));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,apiKey,appId,messagingSenderId,projectId,storageBucket);
+int get hashCode => Object.hash(runtimeType,apiKey,appId,messagingSenderId,projectId,storageBucket,authDomain,iosBundleId,iosClientId,androidClientId,databaseURL,measurementId);
 
 @override
 String toString() {
-  return 'SelfHostedConfig(apiKey: $apiKey, appId: $appId, messagingSenderId: $messagingSenderId, projectId: $projectId, storageBucket: $storageBucket)';
+  return 'SelfHostedConfig(apiKey: $apiKey, appId: $appId, messagingSenderId: $messagingSenderId, projectId: $projectId, storageBucket: $storageBucket, authDomain: $authDomain, iosBundleId: $iosBundleId, iosClientId: $iosClientId, androidClientId: $androidClientId, databaseURL: $databaseURL, measurementId: $measurementId)';
 }
 
 
@@ -255,7 +267,7 @@ abstract mixin class _$SelfHostedConfigCopyWith<$Res> implements $SelfHostedConf
   factory _$SelfHostedConfigCopyWith(_SelfHostedConfig value, $Res Function(_SelfHostedConfig) _then) = __$SelfHostedConfigCopyWithImpl;
 @override @useResult
 $Res call({
- String apiKey, String appId, String messagingSenderId, String projectId, String storageBucket
+ String apiKey, String appId, String messagingSenderId, String projectId, String storageBucket, String? authDomain, String? iosBundleId, String? iosClientId, String? androidClientId, String? databaseURL, String? measurementId
 });
 
 
@@ -272,14 +284,20 @@ class __$SelfHostedConfigCopyWithImpl<$Res>
 
 /// Create a copy of SelfHostedConfig
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? apiKey = null,Object? appId = null,Object? messagingSenderId = null,Object? projectId = null,Object? storageBucket = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? apiKey = null,Object? appId = null,Object? messagingSenderId = null,Object? projectId = null,Object? storageBucket = null,Object? authDomain = freezed,Object? iosBundleId = freezed,Object? iosClientId = freezed,Object? androidClientId = freezed,Object? databaseURL = freezed,Object? measurementId = freezed,}) {
   return _then(_SelfHostedConfig(
 apiKey: null == apiKey ? _self.apiKey : apiKey // ignore: cast_nullable_to_non_nullable
 as String,appId: null == appId ? _self.appId : appId // ignore: cast_nullable_to_non_nullable
 as String,messagingSenderId: null == messagingSenderId ? _self.messagingSenderId : messagingSenderId // ignore: cast_nullable_to_non_nullable
 as String,projectId: null == projectId ? _self.projectId : projectId // ignore: cast_nullable_to_non_nullable
 as String,storageBucket: null == storageBucket ? _self.storageBucket : storageBucket // ignore: cast_nullable_to_non_nullable
-as String,
+as String,authDomain: freezed == authDomain ? _self.authDomain : authDomain // ignore: cast_nullable_to_non_nullable
+as String?,iosBundleId: freezed == iosBundleId ? _self.iosBundleId : iosBundleId // ignore: cast_nullable_to_non_nullable
+as String?,iosClientId: freezed == iosClientId ? _self.iosClientId : iosClientId // ignore: cast_nullable_to_non_nullable
+as String?,androidClientId: freezed == androidClientId ? _self.androidClientId : androidClientId // ignore: cast_nullable_to_non_nullable
+as String?,databaseURL: freezed == databaseURL ? _self.databaseURL : databaseURL // ignore: cast_nullable_to_non_nullable
+as String?,measurementId: freezed == measurementId ? _self.measurementId : measurementId // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 

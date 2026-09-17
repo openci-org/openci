@@ -22,6 +22,12 @@ abstract class SelfHostedConfig with _$SelfHostedConfig {
     @Default('') String messagingSenderId,
     required String projectId,
     @Default('') String storageBucket,
+    String? authDomain,
+    String? iosBundleId,
+    String? iosClientId,
+    String? androidClientId,
+    String? databaseURL,
+    String? measurementId,
   }) = _SelfHostedConfig;
 
   factory SelfHostedConfig.fromJson(Map<String, dynamic> json) =>
@@ -33,6 +39,12 @@ abstract class SelfHostedConfig with _$SelfHostedConfig {
     messagingSenderId: messagingSenderId,
     projectId: projectId,
     storageBucket: storageBucket,
+    authDomain: authDomain,
+    iosBundleId: iosBundleId,
+    iosClientId: iosClientId,
+    androidClientId: androidClientId,
+    databaseURL: databaseURL,
+    measurementId: measurementId,
   );
 }
 
