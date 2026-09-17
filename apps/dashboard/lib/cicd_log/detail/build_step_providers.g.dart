@@ -69,7 +69,7 @@ final class BuildStepSummariesProvider
 }
 
 String _$buildStepSummariesHash() =>
-    r'c4a7d30ee0173eb6584bb56d2de0dcd8281f0435';
+    r'90011ecfbe6f18ad196f6112b4819c94a5baaa31';
 
 final class BuildStepSummariesFamily extends $Family
     with
@@ -160,7 +160,7 @@ final class BuildStepLogDetailProvider
 }
 
 String _$buildStepLogDetailHash() =>
-    r'165a7571b581f753f5dd332cb3b09f45182e1571';
+    r'998a0756c0e3c1138e767a9ead2c54cbb44a37a2';
 
 final class BuildStepLogDetailFamily extends $Family
     with
@@ -243,7 +243,7 @@ final class AllBuildStepLogsProvider
   }
 }
 
-String _$allBuildStepLogsHash() => r'fad0dab4645f13a0b1d2d91d86fdc0c4ff686ce8';
+String _$allBuildStepLogsHash() => r'a97fba6bbce4cb04ec4baa62995fa75c88e69e81';
 
 final class AllBuildStepLogsFamily extends $Family
     with

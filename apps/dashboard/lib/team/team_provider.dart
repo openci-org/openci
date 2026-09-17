@@ -25,7 +25,7 @@ Future<Team> selectedTeam(Ref ref) async {
 
 @riverpod
 Future<List<Team>> teamList(Ref ref) async {
-  final apiService = ref.watch(openciApiServiceProvider);
+  final apiService = await ref.watch(openciApiServiceProvider.future);
   final response = await apiService.getTeams();
 
   if (!response.isSuccessful) {
@@ -45,7 +45,7 @@ class TeamService {
   TeamService(this._ref);
 
   Future<void> createTeam(String teamName) async {
-    final apiService = _ref.read(openciApiServiceProvider);
+    final apiService = await _ref.read(openciApiServiceProvider.future);
     final response = await apiService.createTeam({
       'name': teamName,
     });
@@ -68,7 +68,7 @@ class TeamService {
   }
 
   Future<void> updateTeamName(String teamId, String newName) async {
-    final apiService = _ref.read(openciApiServiceProvider);
+    final apiService = await _ref.read(openciApiServiceProvider.future);
     final response = await apiService.updateTeam(teamId, {
       'name': newName,
     });
@@ -89,7 +89,7 @@ class TeamService {
     String? githubBaseUrl,
     required List<int> installationIds,
   }) async {
-    final apiService = _ref.read(openciApiServiceProvider);
+    final apiService = await _ref.read(openciApiServiceProvider.future);
     final response = await apiService.updateTeam(teamId, {
       'githubBaseUrl': _emptyToNull(githubBaseUrl),
       'installationIds': installationIds,
@@ -107,7 +107,7 @@ class TeamService {
   }
 
   Future<void> deleteTeam(String teamId) async {
-    final apiService = _ref.read(openciApiServiceProvider);
+    final apiService = await _ref.read(openciApiServiceProvider.future);
     final response = await apiService.deleteTeam(teamId);
 
     if (!response.isSuccessful) {
@@ -122,7 +122,7 @@ class TeamService {
   }
 
   Future<void> inviteMember(String teamId, String email) async {
-    final apiService = _ref.read(openciApiServiceProvider);
+    final apiService = await _ref.read(openciApiServiceProvider.future);
     final response = await apiService.inviteMember(teamId, {
       'email': email,
     });

@@ -7,7 +7,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 part 'openci_api_client.g.dart';
 
 @riverpod
-ChopperClient openciApiClient(Ref ref) {
+Future<ChopperClient> openciApiClient(Ref ref) async {
   final baseUrl = ref.watch(openciServerUrlProvider);
   final auth = ref.watch(firebaseAuthProvider);
 
@@ -22,7 +22,7 @@ ChopperClient openciApiClient(Ref ref) {
 }
 
 @riverpod
-OpenCiApiService openciApiService(Ref ref) {
-  final client = ref.watch(openciApiClientProvider);
+Future<OpenCiApiService> openciApiService(Ref ref) async {
+  final client = await ref.watch(openciApiClientProvider.future);
   return OpenCiApiService.create(client);
 }

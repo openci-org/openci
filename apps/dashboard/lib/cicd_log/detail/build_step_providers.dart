@@ -15,7 +15,7 @@ Future<List<BuildStep>> buildStepSummaries(
   required String buildJobId,
   required String runId,
 }) async {
-  final api = ref.watch(openciApiServiceProvider);
+  final api = await ref.watch(openciApiServiceProvider.future);
   if (runId.isEmpty) {
     return const [];
   }
@@ -34,7 +34,7 @@ Future<List<String>> buildStepLogDetail(
   required String runId,
   required String stepId,
 }) async {
-  final api = ref.watch(openciApiServiceProvider);
+  final api = await ref.watch(openciApiServiceProvider.future);
   final response = await api.getBuildStepLogs(buildJobId, runId, stepId);
   if (!response.isSuccessful || response.body == null) {
     throw Exception('Failed to load step logs: ${response.error}');
@@ -49,7 +49,7 @@ Future<String> allBuildStepLogs(
   required String runId,
 }) async {
   if (runId.isEmpty) return '';
-  final api = ref.watch(openciApiServiceProvider);
+  final api = await ref.watch(openciApiServiceProvider.future);
   final response = await api.getAllBuildRunLogs(buildJobId, runId);
   if (!response.isSuccessful || response.body == null) {
     throw Exception('Failed to load all logs: ${response.error}');

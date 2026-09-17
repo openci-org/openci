@@ -59,7 +59,7 @@ final class BuildJobByIdProvider
   }
 }
 
-String _$buildJobByIdHash() => r'59ac94384ae967630ac7759405dde65c7b019940';
+String _$buildJobByIdHash() => r'113288bf91ee3615504cb9980b8bb1f8a17d0869';
 
 final class BuildJobByIdFamily extends $Family
     with $FunctionalFamilyOverride<Stream<BuildJob?>, String> {
