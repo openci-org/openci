@@ -3,7 +3,6 @@ import 'package:dashboard/auth/auth_provider.dart';
 import 'package:dashboard/cicd_log/detail/ci_cd_log_detail_page.dart';
 import 'package:dashboard/root/dashboard_root.dart';
 import 'package:dashboard/router/custom_transitions.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -38,7 +37,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
     ],
     redirect: (context, state) {
-      final isAuthed = FirebaseAuth.instance.currentUser != null;
+      final isAuthed = ref.read(firebaseAuthProvider).currentUser != null;
       final onAuthRoute = state.matchedLocation == '/auth';
       final requestedLocation = state.uri.toString();
       final redirectTarget = state.uri.queryParameters['from'];
