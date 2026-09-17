@@ -188,7 +188,7 @@ final class CurrentUserProvider extends $FunctionalProvider<User?, User?, User?>
   }
 }
 
-String _$currentUserHash() => r'a5bcb438e190bbc8fe821cc39d43e5c28ad9997c';
+String _$currentUserHash() => r'e44067fade6db72b03a4f3ede4a5de3aef2801a1';
 
 @ProviderFor(currentUserId)
 final currentUserIdProvider = CurrentUserIdProvider._();
