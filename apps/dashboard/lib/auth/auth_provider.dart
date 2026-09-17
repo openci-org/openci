@@ -30,7 +30,7 @@ Stream<User?> authStateChanges(Ref ref) =>
     ref.watch(firebaseAuthProvider).authStateChanges();
 
 @riverpod
-User? currentUser(Ref ref) => ref.watch(firebaseAuthProvider).currentUser;
+User? currentUser(Ref ref) => ref.watch(authStateChangesProvider).asData?.value;
 
 @riverpod
 String? currentUserId(Ref ref) => ref.watch(currentUserProvider)?.uid;
