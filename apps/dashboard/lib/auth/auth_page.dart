@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:dashboard/api/openci_api_client.dart';
 import 'package:dashboard/app_strings.dart';
 import 'package:dashboard/auth/auth_provider.dart';
 import 'package:dashboard/firebase/firebase_config_provider.dart';
@@ -16,7 +17,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
 
 class AuthPage extends HookConsumerWidget {
@@ -307,39 +307,23 @@ class AuthPage extends HookConsumerWidget {
                                                 final userId =
                                                     credential.user!.uid;
                                                 final teamId = userId;
-                                                final idToken = await credential
-                                                    .user!
-                                                    .getIdToken();
-                                                final serverUrl = ref.read(
-                                                  openciServerUrlProvider,
-                                                );
-
-                                                final response = await http
-                                                    .post(
-                                                      Uri.parse(
-                                                        '$serverUrl/teams',
-                                                      ),
-                                                      headers: {
-                                                        'Authorization':
-                                                            'Bearer $idToken',
-                                                        'Content-Type':
-                                                            'application/json',
-                                                      },
-                                                      body: jsonEncode({
+                                                final apiService = await ref
+                                                    .read(
+                                                      openciApiServiceProvider
+                                                          .future,
+                                                    );
+                                                final response =
+                                                    await apiService.createTeam(
+                                                      {
                                                         'id': teamId,
                                                         'name': teamId,
-                                                      }),
-                                                    )
-                                                    .timeout(
-                                                      const Duration(
-                                                        seconds: 10,
-                                                      ),
+                                                      },
                                                     );
 
                                                 if (response.statusCode !=
                                                     200) {
                                                   throw StateError(
-                                                    'Failed to initialize team on the server: ${response.body}',
+                                                    'Failed to initialize team on the server: ${response.bodyString}',
                                                   );
                                                 }
                                                 await ref
