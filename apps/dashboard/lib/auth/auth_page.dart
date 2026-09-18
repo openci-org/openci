@@ -253,8 +253,10 @@ class AuthPage extends HookConsumerWidget {
                                                 .validate()) {
                                               isLoading.value = true;
                                               try {
-                                                await ref
-                                                    .read(firebaseAuthProvider)
+                                                final auth = await ref.read(
+                                                  firebaseAuthProvider.future,
+                                                );
+                                                await auth
                                                     .signInWithEmailAndPassword(
                                                       email:
                                                           emailController.text,
@@ -292,10 +294,10 @@ class AuthPage extends HookConsumerWidget {
                                                 .validate()) {
                                               isLoading.value = true;
                                               try {
-                                                final credential = await ref
-                                                    .read(
-                                                      firebaseAuthProvider,
-                                                    )
+                                                final auth = await ref.read(
+                                                  firebaseAuthProvider.future,
+                                                );
+                                                final credential = await auth
                                                     .createUserWithEmailAndPassword(
                                                       email:
                                                           emailController.text,

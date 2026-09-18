@@ -43,7 +43,10 @@ Widget asyncErrorWidget(Object error, StackTrace stackTrace) {
                     children: [
                       OutlinedButton.icon(
                         onPressed: () async {
-                          await ref.read(firebaseAuthProvider).signOut();
+                          final auth = await ref.read(
+                            firebaseAuthProvider.future,
+                          );
+                          await auth.signOut();
                         },
                         icon: const Icon(Icons.logout_rounded),
                         label: const Text('ログアウトして再ログイン'),

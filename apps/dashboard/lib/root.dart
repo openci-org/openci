@@ -1,4 +1,6 @@
 import 'package:dashboard/auth/auth_provider.dart';
+import 'package:dashboard/connections/active_connection_profile_provider.dart';
+import 'package:dashboard/connections/connection_firebase_auth.dart';
 import 'package:dashboard/deep_link/deep_link_listener.dart';
 import 'package:dashboard/router/router.dart';
 import 'package:flutter/foundation.dart';
@@ -41,8 +43,11 @@ class Root extends ConsumerWidget {
                       ),
                       const SizedBox(height: 16),
                       FilledButton(
-                        onPressed: () =>
-                            ref.invalidate(authStateChangesProvider),
+                        onPressed: () {
+                          ref.invalidate(connectionFirebaseAuthProvider);
+                          ref.invalidate(activeConnectionProfileProvider);
+                          ref.invalidate(authStateChangesProvider);
+                        },
                         child: const Text('再試行'),
                       ),
                     ],

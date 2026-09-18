@@ -1,10 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:dashboard/api/openci_api_client.dart';
 import 'package:dashboard/auth/auth_provider.dart';
 import 'package:dashboard/build_logs/build_jobs_provider.dart';
-import 'package:dashboard/utilities/openci_server_url_provider.dart';
+import 'package:dashboard/connections/active_connection_api_client.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -44,13 +43,17 @@ void main() {
     addTearDown(httpClient.close);
     final container = ProviderContainer(
       overrides: [
-        firebaseAuthProvider.overrideWithValue(auth),
-        openciServerUrlProvider.overrideWithValue('https://api.openci.test'),
-        openciApiClientProvider.overrideWith(
+        firebaseAuthProvider.overrideWith((ref) async => auth),
+        activeConnectionApiClientProvider.overrideWith(
           (ref) => http.runWithClient(
             () async {
               if (apiReady != null) await apiReady;
-              return openciApiClient(ref);
+              final client = createOpenCiChopperClient(
+                baseUrl: 'https://api.openci.test',
+                tokenProvider: () => auth.currentUser.getIdToken(),
+              );
+              ref.onDispose(client.dispose);
+              return client;
             },
             () => httpClient,
           ),

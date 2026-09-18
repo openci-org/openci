@@ -13,8 +13,13 @@ part of 'auth_provider.dart';
 final firebaseAuthProvider = FirebaseAuthProvider._();
 
 final class FirebaseAuthProvider
-    extends $FunctionalProvider<FirebaseAuth, FirebaseAuth, FirebaseAuth>
-    with $Provider<FirebaseAuth> {
+    extends
+        $FunctionalProvider<
+          AsyncValue<FirebaseAuth>,
+          FirebaseAuth,
+          FutureOr<FirebaseAuth>
+        >
+    with $FutureModifier<FirebaseAuth>, $FutureProvider<FirebaseAuth> {
   FirebaseAuthProvider._()
     : super(
         from: null,
@@ -31,24 +36,17 @@ final class FirebaseAuthProvider
 
   @$internal
   @override
-  $ProviderElement<FirebaseAuth> $createElement($ProviderPointer pointer) =>
-      $ProviderElement(pointer);
+  $FutureProviderElement<FirebaseAuth> $createElement(
+    $ProviderPointer pointer,
+  ) => $FutureProviderElement(pointer);
 
   @override
-  FirebaseAuth create(Ref ref) {
+  FutureOr<FirebaseAuth> create(Ref ref) {
     return firebaseAuth(ref);
-  }
-
-  /// {@macro riverpod.override_with_value}
-  Override overrideWithValue(FirebaseAuth value) {
-    return $ProviderOverride(
-      origin: this,
-      providerOverride: $SyncValueProvider<FirebaseAuth>(value),
-    );
   }
 }
 
-String _$firebaseAuthHash() => r'8f84097cccd00af817397c1715c5f537399ba780';
+String _$firebaseAuthHash() => r'ab77b78ea70b3615827fea38c03dd5b7c9956bef';
 
 @ProviderFor(firebaseIdToken)
 final firebaseIdTokenProvider = FirebaseIdTokenProvider._();
@@ -81,7 +79,7 @@ final class FirebaseIdTokenProvider
   }
 }
 
-String _$firebaseIdTokenHash() => r'926f513aeb68ccbd6962ae80549ebc4da446b377';
+String _$firebaseIdTokenHash() => r'49014226ad608c6d9a5b2f2fce7f9341b180f7f3';
 
 @ProviderFor(authedFirebaseIdToken)
 final authedFirebaseIdTokenProvider = AuthedFirebaseIdTokenProvider._();
@@ -148,7 +146,7 @@ final class AuthStateChangesProvider
   }
 }
 
-String _$authStateChangesHash() => r'ed73bb63cae92e791c80e19c01a8eb421d09a663';
+String _$authStateChangesHash() => r'6c9747b6aef0da7b894f3e0063ac53655f9e6ee8';
 
 @ProviderFor(currentUser)
 final currentUserProvider = CurrentUserProvider._();
