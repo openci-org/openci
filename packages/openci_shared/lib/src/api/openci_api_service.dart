@@ -36,6 +36,9 @@ abstract class OpenCiApiService extends ChopperService {
   @DELETE(path: '/teams/{id}', timeout: _timeout)
   Future<Response<void>> deleteTeam(@Path('id') String id);
 
+  @GET(path: '/teams/{id}/members', timeout: Duration(seconds: 8))
+  Future<Response<Map<String, dynamic>>> getTeamMembers(@Path('id') String id);
+
   @POST(path: '/teams/{id}/members', timeout: _timeout)
   Future<Response<void>> inviteMember(
     @Path('id') String id,

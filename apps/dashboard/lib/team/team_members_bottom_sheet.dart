@@ -1,12 +1,9 @@
-import 'dart:convert';
-
+import 'package:dashboard/api/openci_api_client.dart';
 import 'package:dashboard/app_strings.dart';
 import 'package:dashboard/auth/auth_provider.dart';
-import 'package:dashboard/utilities/openci_server_url_provider.dart';
 import 'package:dashboard/team/team_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:http/http.dart' as http;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
@@ -41,27 +38,16 @@ Future<List<TeamMember>> teamMembers(Ref ref) async {
   final team = ref.watch(selectedTeamProvider).value;
   if (team == null) return [];
 
-  final serverUrl = ref.watch(openciServerUrlProvider);
-  final token = await ref.watch(authedFirebaseIdTokenProvider.future);
-
-  final url = Uri.parse('$serverUrl/teams/${team.id}/members');
-  final response = await http
-      .get(
-        url,
-        headers: {
-          'Authorization': 'Bearer $token',
-        },
-      )
-      .timeout(const Duration(seconds: 8));
+  final apiService = await ref.watch(openciApiServiceProvider.future);
+  final response = await apiService.getTeamMembers(team.id);
 
   if (response.statusCode != 200) {
     throw StateError(
-      'Failed to fetch team members: ${response.statusCode} ${response.body}',
+      'Failed to fetch team members: ${response.statusCode} ${response.bodyString}',
     );
   }
 
-  final Map<String, dynamic> data =
-      jsonDecode(response.body) as Map<String, dynamic>;
+  final data = response.body!;
   final membersList = (data['members'] as List<dynamic>?) ?? [];
 
   return membersList
