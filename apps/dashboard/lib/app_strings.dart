@@ -159,6 +159,8 @@ class AppStringsAuthFirebaseForm {
   AppStringsAuthFirebaseForm._();
 
   String get title => '自分のFirebaseを使用';
+  String get profileName => '接続先名';
+  String get profileNameHint => '例：会社用、開発環境、本番環境';
   String get apiKey => 'APIキー';
   String get appId => 'アプリID';
   String get projectId => 'プロジェクトID';
@@ -174,4 +176,29 @@ class AppStringsAuthFirebaseForm {
   String get active => '有効';
   String get useProject => 'このプロジェクトを使用';
   String get editProject => 'プロジェクトを編集';
+
+  String get setupSubtitle => 'APIサーバーとFirebaseプロジェクトを接続します。';
+  String get setupPreview => '入力内容のプレビューです。まだ接続・登録・保存は行いません。';
+  String get apiUrl => 'APIサーバーURL';
+  String get apiUrlHint => '稼働中のセルフホストAPIサーバーのURL';
+  String get invalidApiUrl => '有効なHTTPまたはHTTPSのURLを入力してください。';
+  String get serviceAccount => 'サービスアカウントJSON';
+  String get selectServiceAccount => 'JSONファイルを選択';
+  String get replaceServiceAccount => '別のJSONファイルを選択';
+  String get serviceAccountHint => 'Firebaseの「プロジェクトの設定 → サービスアカウント」から取得できます。';
+  String get serviceAccountRequired => 'サービスアカウントJSONを選択してください。';
+  String get invalidServiceAccount =>
+      'サービスアカウントJSONを読み込めませんでした。google-services.jsonではなく、秘密鍵を含むサービスアカウントのファイルを選択してください。';
+  String get removeServiceAccount => '選択したファイルを解除';
+  String get credentialsNotSaved => 'サービスアカウントの秘密鍵は接続先に保存しません。';
+  String get optionalProfileName => '接続先名（任意）';
+  String get automaticProfileName => '未入力の場合はプロジェクトIDを使用します。';
+  String get reviewSetup => '入力内容を確認';
+  String get reviewTitle => '接続内容の確認';
+  String get editSetup => '入力内容を編集';
+  String get setupPlatforms => 'まとめて設定するプラットフォーム';
+  String get setupExplanation =>
+      '登録済みのアプリを再利用し、不足するアプリを登録して、各プラットフォームの設定を取得します。';
+  String get startSetup => 'Firebase設定を取得して保存';
+  String get manualSetup => '設定ファイルから手動で追加';
 }
