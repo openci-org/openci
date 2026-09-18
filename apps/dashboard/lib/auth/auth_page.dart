@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:dashboard/api/openci_api_client.dart';
 import 'package:dashboard/app_strings.dart';
 import 'package:dashboard/auth/auth_provider.dart';
+import 'package:dashboard/auth/self_hosted_setup_form.dart';
 import 'package:dashboard/firebase/firebase_config_provider.dart';
 import 'package:dashboard/firebase/plist_parser.dart';
 import 'package:dashboard/utilities/openci_server_url_provider.dart';
@@ -424,13 +425,20 @@ class AuthPage extends HookConsumerWidget {
                                     style: const TextStyle(fontSize: 13),
                                   ),
                                   onPressed: () async {
-                                    await showModalBottomSheet(
-                                      isScrollControlled: true,
-                                      context: context,
-                                      builder: (context) {
-                                        return const FirebaseFormSheet();
-                                      },
+                                    final action = await showSelfHostedSetup(
+                                      context,
                                     );
+                                    if (!context.mounted) return;
+                                    if (action ==
+                                        SelfHostedSetupAction.manual) {
+                                      await showModalBottomSheet<void>(
+                                        isScrollControlled: true,
+                                        context: context,
+                                        builder: (_) =>
+                                            const FirebaseFormSheet(),
+                                      );
+                                    }
+                                    if (!context.mounted) return;
                                     configReloadKey.value++;
                                   },
                                 ),
