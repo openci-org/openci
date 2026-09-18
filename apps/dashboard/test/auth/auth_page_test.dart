@@ -22,7 +22,7 @@ void main() {
       tester,
     ) async {
       SharedPreferences.setMockInitialValues({
-        'selected_team_id': 'previous-team',
+        'selected_team_id:cloud': 'previous-team',
       });
       final prefs = await SharedPreferences.getInstance();
       final requests = <http.Request>[];
@@ -82,11 +82,11 @@ void main() {
       expect(request.headers['Authorization'], 'Bearer api-client-token');
       expect(jsonDecode(request.body), {'id': 'new-user', 'name': 'new-user'});
       if (statusCode == 200) {
-        expect(prefs.getString('selected_team_id'), 'new-user');
+        expect(prefs.getString('selected_team_id:cloud'), 'new-user');
         expect(container.read(selectedTeamIdProvider).value, 'new-user');
         expect(find.byType(SnackBar), findsNothing);
       } else {
-        expect(prefs.getString('selected_team_id'), 'previous-team');
+        expect(prefs.getString('selected_team_id:cloud'), 'previous-team');
         expect(find.textContaining('Team creation failed'), findsOneWidget);
       }
       expect(tester.widget<OutlinedButton>(button).onPressed, isNotNull);
