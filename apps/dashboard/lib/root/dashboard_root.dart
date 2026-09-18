@@ -40,7 +40,7 @@ class DashboardRouteGateway extends ConsumerWidget {
           error: asyncErrorWidget,
           data: (_, selectedTeamId, _) {
             if (selectedTeamId == null) {
-              ref.read(firebaseAuthProvider).signOut();
+              ref.read(firebaseAuthProvider).requireValue.signOut();
               throw Exception("No team selected");
             }
 

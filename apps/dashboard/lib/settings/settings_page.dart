@@ -153,7 +153,7 @@ String _formatUpdateCheckResult(MacosUpdaterCheckResult result) {
 Future<void> _signOut(BuildContext context, WidgetRef ref) async {
   final settingsT = t.settings;
   try {
-    final auth = ref.read(firebaseAuthProvider);
+    final auth = await ref.read(firebaseAuthProvider.future);
     await logoutRevenueCat();
     await auth.signOut();
 
@@ -593,17 +593,19 @@ class _SelfHostedIndicator extends ConsumerWidget {
         }
 
         return Consumer(
-          builder: (context, ref, _) => Center(
-            child: Text(
-              settingsT.firebaseAppName(
-                name: ref.watch(firebaseAuthProvider).app.name,
+          builder: (context, ref, _) {
+            final auth = ref.watch(firebaseAuthProvider).asData?.value;
+            if (auth == null) return const SizedBox.shrink();
+            return Center(
+              child: Text(
+                settingsT.firebaseAppName(name: auth.app.name),
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Theme.of(context).colorScheme.outline,
+                ),
               ),
-              style: TextStyle(
-                fontSize: 12,
-                color: Theme.of(context).colorScheme.outline,
-              ),
-            ),
-          ),
+            );
+          },
         );
       },
     );
@@ -679,7 +681,8 @@ class _DeleteAccountButton extends ConsumerWidget {
     final settingsT = t.settings;
     isDeleting.value = true;
     try {
-      final user = ref.read(firebaseAuthProvider).currentUser;
+      final auth = await ref.read(firebaseAuthProvider.future);
+      final user = auth.currentUser;
       if (user == null) {
         throw Exception(settingsT.noUserSignedIn);
       }

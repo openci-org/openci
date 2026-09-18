@@ -48,7 +48,7 @@ void main() {
       final container = ProviderContainer.test(
         overrides: [
           sharedPreferencesProvider.overrideWithValue(prefs),
-          firebaseAuthProvider.overrideWithValue(_Auth()),
+          firebaseAuthProvider.overrideWith((ref) async => _Auth()),
           openciApiServiceProvider.overrideWith(
             (ref) async => OpenCiApiService.create(client),
           ),

@@ -1,6 +1,6 @@
-import 'package:dashboard/api/openci_api_client.dart';
 import 'package:dashboard/api/ws_uri_builder.dart';
 import 'package:dashboard/auth/auth_provider.dart';
+import 'package:dashboard/connections/active_connection_api_client.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:openci_shared/openci_shared.dart';
@@ -10,7 +10,7 @@ void main() {
     var baseUrl = 'https://cloud.example.com';
     final container = ProviderContainer.test(
       overrides: [
-        openciApiClientProvider.overrideWith((ref) async {
+        activeConnectionApiClientProvider.overrideWith((ref) async {
           final client = createOpenCiChopperClient(
             baseUrl: baseUrl,
             tokenProvider: () => 'test-token',
@@ -39,7 +39,7 @@ void main() {
     );
 
     baseUrl = 'http://self-hosted.example.com:8080';
-    container.invalidate(openciApiClientProvider);
+    container.invalidate(activeConnectionApiClientProvider);
 
     expect(
       (await container.read(uriProvider.future)).toString(),

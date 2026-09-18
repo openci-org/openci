@@ -10,7 +10,7 @@ void main() {
     final auth = _Auth();
     addTearDown(auth.changes.close);
     final container = ProviderContainer.test(
-      overrides: [firebaseAuthProvider.overrideWithValue(auth)],
+      overrides: [firebaseAuthProvider.overrideWith((ref) async => auth)],
     );
     container.listen(currentUserIdProvider, (_, _) {});
     container.listen(authStateChangesProvider, (_, _) {});

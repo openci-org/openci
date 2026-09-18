@@ -19,7 +19,7 @@ void main() {
     addTearDown(changes.close);
     container = ProviderContainer.test(
       overrides: [
-        firebaseAuthProvider.overrideWithValue(_Auth()),
+        firebaseAuthProvider.overrideWith((ref) async => _Auth()),
         authStateChangesProvider.overrideWith((ref) => changes.stream),
       ],
     );

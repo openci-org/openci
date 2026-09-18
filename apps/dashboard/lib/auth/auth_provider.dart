@@ -1,14 +1,17 @@
+import 'package:dashboard/connections/active_connection_firebase_auth.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'auth_provider.g.dart';
 
 @riverpod
-FirebaseAuth firebaseAuth(Ref ref) => FirebaseAuth.instance;
+Future<FirebaseAuth> firebaseAuth(Ref ref) =>
+    ref.watch(activeConnectionFirebaseAuthProvider.future);
 
 @riverpod
-Stream<String?> firebaseIdToken(Ref ref) {
-  return ref.watch(firebaseAuthProvider).idTokenChanges().asyncMap((
+Stream<String?> firebaseIdToken(Ref ref) async* {
+  final auth = await ref.watch(firebaseAuthProvider.future);
+  yield* auth.idTokenChanges().asyncMap((
     user,
   ) async {
     if (user == null) return null;
@@ -26,8 +29,10 @@ Future<String> authedFirebaseIdToken(Ref ref) async {
 }
 
 @riverpod
-Stream<User?> authStateChanges(Ref ref) =>
-    ref.watch(firebaseAuthProvider).authStateChanges();
+Stream<User?> authStateChanges(Ref ref) async* {
+  final auth = await ref.watch(firebaseAuthProvider.future);
+  yield* auth.authStateChanges();
+}
 
 @riverpod
 User? currentUser(Ref ref) => ref.watch(authStateChangesProvider).asData?.value;
