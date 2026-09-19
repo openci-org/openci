@@ -47,6 +47,14 @@ GITHUB_APP_ID=your-github-app-id-here
 
 INTERNAL_API_KEY=${INTERNAL_API_KEY}
 
+# Server access policy (configuration only; API enforcement is not enabled yet)
+# Cloud deployments must explicitly use SERVER_ACCESS_MODE=cloud.
+# Comma-separated exact emails. Empty means the policy allows no users.
+# Matching is case-insensitive; dots and + suffixes are preserved.
+# Restart after changes; with Compose, recreate the server container.
+SERVER_ACCESS_MODE=self_hosted
+ALLOWED_USER_EMAILS=
+
 # Secret Encryption Configurations
 SECRET_ENCRYPTION_KEY=${SECRET_ENCRYPTION_KEY}
 
