@@ -9,7 +9,7 @@ import 'package:genuineci_server/database.dart';
 import 'package:openci_shared/openci_shared.dart';
 import 'package:test/test.dart';
 
-import '../../../routes/builds/claim.dart' as route;
+import '../../../../routes/worker/jobs/claim.dart' as route;
 
 class _MockDatabase extends Mock implements AppDatabase {}
 
@@ -31,7 +31,7 @@ void main() {
     String body = '{}',
   }) {
     final context = TestRequestContext(
-      path: '/builds/claim',
+      path: '/worker/jobs/claim',
       method: method,
       body: body,
     );
@@ -40,7 +40,7 @@ void main() {
     return Future.value(route.onRequest(context.context));
   }
 
-  group('POST /builds/claim', () {
+  group('POST /worker/jobs/claim', () {
     test('rejects other methods without claiming a job', () async {
       expect(
         (await request(method: HttpMethod.get)).statusCode,

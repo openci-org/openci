@@ -8,6 +8,73 @@ import 'package:openci_shared/openci_shared.dart';
 import 'package:test/test.dart';
 
 void main() {
+  group('OpenCiApiService worker endpoints', () {
+    test(
+      'claimNextJob sends the payload to the worker claim endpoint',
+      () async {
+        final body = {
+          'vmName': 'worker-vm',
+          'workerHost': 'worker-host',
+          'maxConcurrentJobs': 2,
+        };
+        final httpClient = MockClient((request) async {
+          expect(request.method, 'POST');
+          expect(
+            request.url,
+            Uri.parse('https://api.openci.test/worker/jobs/claim'),
+          );
+          expect(jsonDecode(request.body), body);
+          return http.Response(
+            jsonEncode({'job': null}),
+            200,
+            headers: {'content-type': 'application/json'},
+          );
+        });
+        final client = _createClient(httpClient);
+        addTearDown(client.dispose);
+
+        final response = await client
+            .getService<OpenCiApiService>()
+            .claimNextJob(
+              body,
+            );
+
+        expect(response.isSuccessful, isTrue);
+        expect(response.body, {'job': null});
+      },
+    );
+
+    test(
+      'sendHeartbeat sends the payload to the worker heartbeat endpoint',
+      () async {
+        final body = {
+          'workerId': 'worker-1',
+          'status': 'idle',
+          'version': '1.0.0',
+        };
+        final httpClient = MockClient((request) async {
+          expect(request.method, 'POST');
+          expect(
+            request.url,
+            Uri.parse('https://api.openci.test/worker/heartbeat'),
+          );
+          expect(jsonDecode(request.body), body);
+          return http.Response('', 204);
+        });
+        final client = _createClient(httpClient);
+        addTearDown(client.dispose);
+
+        final response = await client
+            .getService<OpenCiApiService>()
+            .sendHeartbeat(
+              body,
+            );
+
+        expect(response.isSuccessful, isTrue);
+      },
+    );
+  });
+
   group('OpenCiApiService webhook task results', () {
     test('completeWebhookTask sends jobs to the complete endpoint', () async {
       final body = {
