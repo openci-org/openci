@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:dart_frog/dart_frog.dart';
 import 'package:dart_frog_test/dart_frog_test.dart';
+import 'package:genuineci_server/auth/internal_api_key_validator.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:genuineci_server/build_job/build_job_dao.dart';
 import 'package:genuineci_server/database.dart';
@@ -27,17 +28,29 @@ void main() {
 
   Future<Response> request({
     HttpMethod method = HttpMethod.post,
-    String? uid = 'worker',
+    String? uid,
+    String? token = 'test-internal-key',
+    Map<String, String> environment = const {
+      'INTERNAL_API_KEY': 'test-internal-key',
+    },
     String body = '{}',
   }) {
     final context = TestRequestContext(
       path: '/worker/jobs/claim',
       method: method,
+      headers: {
+        if (token != null) 'Authorization': 'Bearer $token',
+      },
       body: body,
     );
     context.provide<AppDatabase>(db);
     context.provide<String?>(uid);
-    return Future.value(route.onRequest(context.context));
+    return Future.value(
+      route.handleRequest(
+        context.context,
+        InternalApiKeyValidator.forTesting(environment: environment),
+      ),
+    );
   }
 
   group('POST /worker/jobs/claim', () {
@@ -49,16 +62,55 @@ void main() {
       verifyZeroInteractions(dao);
     });
 
-    test('requires authentication before claiming a job', () async {
-      final response = await request(uid: null);
+    for (final (name, token, uid) in [
+      ('missing credentials', null, null),
+      ('an empty token', '', null),
+      ('an incorrect key', 'wrong-internal-key', 'system-job-processor'),
+      ('a Firebase user token', 'firebase-id-token', 'user-1'),
+      (
+        'a Firebase token with the reserved UID',
+        'firebase-id-token',
+        'system-job-processor',
+      ),
+    ]) {
+      test('rejects $name before reading the body or database', () async {
+        final response = await request(
+          token: token,
+          uid: uid,
+          body: 'not-json',
+        );
+
+        expect(response.statusCode, HttpStatus.unauthorized);
+        expect(await response.json(), {
+          'success': false,
+          'error': 'Authentication required',
+        });
+        verifyZeroInteractions(db);
+        verifyZeroInteractions(dao);
+      });
+    }
+
+    test('rejects requests when the internal key is not configured', () async {
+      final response = await request(environment: {});
 
       expect(response.statusCode, HttpStatus.unauthorized);
-      expect(await response.json(), {
-        'success': false,
-        'error': 'Authentication required',
-      });
+      verifyZeroInteractions(db);
       verifyZeroInteractions(dao);
     });
+
+    test(
+      'rejects requests when the configured internal key is empty',
+      () async {
+        final response = await request(
+          token: '',
+          environment: {'INTERNAL_API_KEY': ''},
+        );
+
+        expect(response.statusCode, HttpStatus.unauthorized);
+        verifyZeroInteractions(db);
+        verifyZeroInteractions(dao);
+      },
+    );
 
     for (final body in ['not-json', '[]']) {
       test('rejects invalid request body: $body', () async {
@@ -69,15 +121,18 @@ void main() {
       });
     }
 
-    test('returns a null job when nothing can be claimed', () async {
-      when(() => dao.claimNextJob()).thenAnswer((_) async => null);
+    test(
+      'accepts the internal key without a UID and returns an empty queue',
+      () async {
+        when(() => dao.claimNextJob()).thenAnswer((_) async => null);
 
-      final response = await request();
+        final response = await request();
 
-      expect(response.statusCode, HttpStatus.ok);
-      expect(await response.json(), {'job': null});
-      verify(() => dao.claimNextJob()).called(1);
-    });
+        expect(response.statusCode, HttpStatus.ok);
+        expect(await response.json(), {'job': null});
+        verify(() => dao.claimNextJob()).called(1);
+      },
+    );
 
     test(
       'passes worker settings to the DAO and returns the public job',
