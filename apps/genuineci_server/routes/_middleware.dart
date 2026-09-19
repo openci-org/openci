@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:dart_frog/dart_frog.dart';
 import 'package:firebase_admin_sdk/firebase_admin_sdk.dart';
+import 'package:genuineci_server/auth/user_email_info.dart';
 import 'package:genuineci_server/database.dart';
 import 'package:openci_shared/openci_shared.dart';
 import 'package:sentry/sentry.dart';
@@ -85,7 +86,8 @@ Middleware databaseProvider(AppDatabase db) {
 
 Middleware authProvider(FirebaseApp? firebaseApp, {bool allowTestUid = false}) {
   return (handler) {
-    return (context) async {
+    return (requestContext) async {
+      final context = requestContext.provide<UserEmailInfo?>(() => null);
       if (context.request.uri.path == '/') {
         return handler(context.provide<String?>(() => null));
       }
@@ -131,17 +133,26 @@ Middleware authProvider(FirebaseApp? firebaseApp, {bool allowTestUid = false}) {
         return handler(context.provide<String?>(() => null));
       }
       final String uid;
+      final UserEmailInfo emailInfo;
       try {
         final decodedToken = await firebaseApp.auth().verifyIdToken(
           token,
           checkRevoked: false,
         );
         uid = decodedToken.uid;
+        emailInfo = (
+          email: decodedToken.email,
+          emailVerified: decodedToken.emailVerified,
+        );
       } catch (e) {
         stderr.writeln('Token verification failed: $e');
         return handler(context.provide<String?>(() => null));
       }
-      return handler(context.provide<String?>(() => uid));
+      return handler(
+        context
+            .provide<String?>(() => uid)
+            .provide<UserEmailInfo?>(() => emailInfo),
+      );
     };
   };
 }
