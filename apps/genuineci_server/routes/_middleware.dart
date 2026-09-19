@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:dart_frog/dart_frog.dart';
 import 'package:firebase_admin_sdk/firebase_admin_sdk.dart';
+import 'package:genuineci_server/auth/server_access_policy_provider.dart';
 import 'package:genuineci_server/auth/user_email_info.dart';
 import 'package:genuineci_server/database.dart';
 import 'package:openci_shared/openci_shared.dart';
@@ -26,11 +27,13 @@ void _initSentry() {
 }
 
 Handler middleware(Handler handler) {
+  final accessPolicyMiddleware = serverAccessPolicyProvider();
   return handler
       .use(sentryMiddleware())
       .use(databaseProvider(_db))
       .use(authProvider(_firebaseApp))
       .use(provider<FirebaseApp>((context) => _firebaseApp))
+      .use(accessPolicyMiddleware)
       .use(corsMiddleware())
       .use(internalRoutesMiddleware())
       .use(requestLogger());

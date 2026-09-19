@@ -29,6 +29,8 @@ services:
       DATABASE_URL: ${DATABASE_URL:-postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-openci}}
       INTERNAL_API_KEY: ${INTERNAL_API_KEY:?INTERNAL_API_KEY environment variable is required}
       ENABLE_INTERNAL_API: ${ENABLE_INTERNAL_API:-false}
+      SERVER_ACCESS_MODE: ${SERVER_ACCESS_MODE-self_hosted}
+      ALLOWED_USER_EMAILS: ${ALLOWED_USER_EMAILS:-}
       SECRET_ENCRYPTION_KEY: ${SECRET_ENCRYPTION_KEY:?SECRET_ENCRYPTION_KEY environment variable is required}
 
       GOOGLE_APPLICATION_CREDENTIALS: /app/credentials/firebase-service-account.json

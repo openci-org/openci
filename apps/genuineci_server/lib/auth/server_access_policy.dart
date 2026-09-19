@@ -28,12 +28,13 @@ class ServerAccessPolicy {
     if (email == null || !EmailValidator.validate(email)) {
       return ServerAccessDecision.accessDenied;
     }
+    if (!_allowedEmails.contains(email.toLowerCase())) {
+      return ServerAccessDecision.accessDenied;
+    }
     if (emailVerified != true) {
       return ServerAccessDecision.emailVerificationRequired;
     }
-    return _allowedEmails.contains(email.toLowerCase())
-        ? ServerAccessDecision.allowed
-        : ServerAccessDecision.accessDenied;
+    return ServerAccessDecision.allowed;
   }
 }
 

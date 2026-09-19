@@ -10,6 +10,10 @@ void main() {
         policy.evaluate(email: 'alice@example.com', emailVerified: true),
         ServerAccessDecision.accessDenied,
       );
+      expect(
+        policy.evaluate(email: 'alice@example.com', emailVerified: false),
+        ServerAccessDecision.accessDenied,
+      );
     });
 
     for (final value in ['', ' \n ', 'cloud ', 'CLOUD', 'public']) {
@@ -31,6 +35,10 @@ void main() {
         });
         expect(
           policy.evaluate(email: 'alice@example.com', emailVerified: true),
+          ServerAccessDecision.accessDenied,
+        );
+        expect(
+          policy.evaluate(email: 'alice@example.com', emailVerified: false),
           ServerAccessDecision.accessDenied,
         );
       });
@@ -147,6 +155,20 @@ void main() {
     test('denies a verified email outside the allowlist', () {
       expect(
         policy.evaluate(email: 'bob@example.com', emailVerified: true),
+        ServerAccessDecision.accessDenied,
+      );
+    });
+
+    test('denies an unverified email outside the allowlist', () {
+      expect(
+        policy.evaluate(email: 'bob@example.com', emailVerified: false),
+        ServerAccessDecision.accessDenied,
+      );
+    });
+
+    test('denies an unlisted email when verification status is missing', () {
+      expect(
+        policy.evaluate(email: 'bob@example.com'),
         ServerAccessDecision.accessDenied,
       );
     });
