@@ -43,36 +43,6 @@ void main() {
         expect(response.body, {'job': null});
       },
     );
-
-    test(
-      'sendHeartbeat sends the payload to the worker heartbeat endpoint',
-      () async {
-        final body = {
-          'workerId': 'worker-1',
-          'status': 'idle',
-          'version': '1.0.0',
-        };
-        final httpClient = MockClient((request) async {
-          expect(request.method, 'POST');
-          expect(
-            request.url,
-            Uri.parse('https://api.openci.test/worker/heartbeat'),
-          );
-          expect(jsonDecode(request.body), body);
-          return http.Response('', 204);
-        });
-        final client = _createClient(httpClient);
-        addTearDown(client.dispose);
-
-        final response = await client
-            .getService<OpenCiApiService>()
-            .sendHeartbeat(
-              body,
-            );
-
-        expect(response.isSuccessful, isTrue);
-      },
-    );
   });
 
   group('OpenCiApiService webhook task results', () {

@@ -14,18 +14,20 @@ void main() {
     await db.close();
   });
 
-  test('creates the database without legacy log tables', () async {
+  test('creates the database without legacy log or heartbeat tables', () async {
     final jobs = await db.select(db.buildJobs).get();
     expect(jobs, isEmpty);
 
     final legacyTables = await db.customSelect('''
       SELECT name FROM sqlite_master
-      WHERE name IN ('build_steps', 'build_step_logs', 'build_job_logs')
+      WHERE name IN (
+        'build_steps', 'build_step_logs', 'build_job_logs', 'worker_heartbeats'
+      )
     ''').get();
     expect(legacyTables, isEmpty);
   });
 
-  for (final version in [19, 22]) {
+  for (final version in [19, 22, 23]) {
     test('upgrades v$version while preserving jobs and runs', () async {
       await db.close();
       db = AppDatabase(
@@ -40,16 +42,30 @@ void main() {
                 id TEXT PRIMARY KEY,
                 build_job_id TEXT REFERENCES build_jobs (id)
               );
-              CREATE TABLE build_job_logs (
-                id INTEGER PRIMARY KEY,
-                run_id TEXT,
-                log_content TEXT
+              CREATE TABLE worker_heartbeats (
+                id TEXT PRIMARY KEY,
+                version TEXT,
+                platform TEXT,
+                status TEXT,
+                last_seen_at INTEGER NOT NULL
               );
               INSERT INTO build_jobs VALUES ('job-1');
               INSERT INTO build_runs VALUES ('run-1', 'job-1');
-              INSERT INTO build_job_logs VALUES (1, 'run-1', 'job log');
+              INSERT INTO worker_heartbeats VALUES (
+                'worker-1', '1.0.0', 'macos', 'idle', 0
+              );
             ''');
-            if (version >= 20) {
+            if (version < 23) {
+              database.execute('''
+                CREATE TABLE build_job_logs (
+                  id INTEGER PRIMARY KEY,
+                  run_id TEXT,
+                  log_content TEXT
+                );
+                INSERT INTO build_job_logs VALUES (1, 'run-1', 'job log');
+              ''');
+            }
+            if (version >= 20 && version < 23) {
               database.execute('''
                 CREATE TABLE build_steps (
                   id TEXT PRIMARY KEY,
@@ -89,7 +105,7 @@ void main() {
         (await db.customSelect('PRAGMA user_version').getSingle()).read<int>(
           'user_version',
         ),
-        23,
+        24,
       );
     });
   }

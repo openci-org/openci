@@ -60,9 +60,6 @@ abstract class OpenCiApiService extends ChopperService {
   @GET(path: '/devices', timeout: _timeout)
   Future<Response<List<UserDevice>>> getDevices();
 
-  @GET(path: '/workers', timeout: _timeout)
-  Future<Response<Map<String, dynamic>>> getWorkers();
-
   @POST(path: '/webhooks/claim', timeout: _timeout)
   Future<Response<Map<String, dynamic>>> claimNextWebhookTask();
 
@@ -174,11 +171,6 @@ abstract class OpenCiApiService extends ChopperService {
   )
   Future<Response<void>> generateCertificateKey(
     @Path('teamId') String teamId,
-  );
-
-  @POST(path: '/worker/heartbeat', timeout: _timeout)
-  Future<Response<void>> sendHeartbeat(
-    @Body() Map<String, dynamic> body,
   );
 
   @GET(path: '/builds/{id}/runs/{runId}/logs', timeout: _timeout)

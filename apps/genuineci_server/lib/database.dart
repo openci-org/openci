@@ -18,8 +18,6 @@ import 'package:genuineci_server/team/team_dao.dart';
 import 'package:genuineci_server/team/team_table.dart';
 import 'package:genuineci_server/webhook_task/webhook_task_dao.dart';
 import 'package:genuineci_server/webhook_task/webhook_task_table.dart';
-import 'package:genuineci_server/worker_heartbeat/worker_heartbeat_dao.dart';
-import 'package:genuineci_server/worker_heartbeat/worker_heartbeat_table.dart';
 import 'package:openci_shared/openci_shared.dart';
 import 'package:postgres/postgres.dart' as pg;
 
@@ -33,7 +31,6 @@ part 'database.g.dart';
     TeamMembers,
     Secrets,
     WebhookTasks,
-    WorkerHeartbeats,
     UserDevices,
     UdidRequests,
     Invitations,
@@ -44,7 +41,6 @@ part 'database.g.dart';
     TeamDao,
     WebhookTaskDao,
     SecretDao,
-    WorkerHeartbeatDao,
     DeviceDao,
     UdidRequestDao,
     SeedDao,
@@ -54,7 +50,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 23;
+  int get schemaVersion => 24;
 
   @override
   MigrationStrategy get migration {
@@ -82,6 +78,9 @@ class AppDatabase extends _$AppDatabase {
             await m.deleteTable('build_steps');
             await m.deleteTable('build_job_logs');
           });
+        }
+        if (from < 24) {
+          await m.deleteTable('worker_heartbeats');
         }
       },
     );
