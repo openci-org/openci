@@ -462,7 +462,7 @@ final class _$OpenCiApiService extends OpenCiApiService {
   Future<Response<Map<String, dynamic>>> claimNextJob(
     Map<String, dynamic> body,
   ) {
-    final Uri $url = Uri.parse('/builds/claim');
+    final Uri $url = Uri.parse('/worker/jobs/claim');
     final $body = body;
     final ChopperCompleter $abortTrigger = ChopperCompleter<void>();
     final ChopperTimer $timeout = ChopperTimer(
@@ -929,7 +929,7 @@ final class _$OpenCiApiService extends OpenCiApiService {
 
   @override
   Future<Response<void>> sendHeartbeat(Map<String, dynamic> body) {
-    final Uri $url = Uri.parse('/workers/heartbeat');
+    final Uri $url = Uri.parse('/worker/heartbeat');
     final $body = body;
     final ChopperCompleter $abortTrigger = ChopperCompleter<void>();
     final ChopperTimer $timeout = ChopperTimer(

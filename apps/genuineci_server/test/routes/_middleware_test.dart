@@ -665,7 +665,7 @@ void main() {
         '/',
         '/webhook',
         '/webhooks/claim',
-        '/builds/claim',
+        '/worker/jobs/claim',
         '/teams',
         '/internal-other',
       ]) {

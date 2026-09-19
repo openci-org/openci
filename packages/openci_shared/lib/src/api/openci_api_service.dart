@@ -86,7 +86,7 @@ abstract class OpenCiApiService extends ChopperService {
     @Body() Map<String, dynamic> body,
   );
 
-  @POST(path: '/builds/claim', timeout: _timeout)
+  @POST(path: '/worker/jobs/claim', timeout: _timeout)
   Future<Response<Map<String, dynamic>>> claimNextJob(
     @Body() Map<String, dynamic> body,
   );
@@ -176,7 +176,7 @@ abstract class OpenCiApiService extends ChopperService {
     @Path('teamId') String teamId,
   );
 
-  @POST(path: '/workers/heartbeat', timeout: _timeout)
+  @POST(path: '/worker/heartbeat', timeout: _timeout)
   Future<Response<void>> sendHeartbeat(
     @Body() Map<String, dynamic> body,
   );

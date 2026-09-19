@@ -8,7 +8,7 @@ import 'package:genuineci_server/database.dart';
 import 'package:test/test.dart';
 
 import '../../helpers/database_failure_checks.dart';
-import '../../../routes/workers/heartbeat.dart' as heartbeat_route;
+import '../../../routes/worker/heartbeat.dart' as heartbeat_route;
 
 void main() {
   late AppDatabase db;
@@ -22,13 +22,13 @@ void main() {
   });
 
   group('Workers Route Endpoints', () {
-    group('POST /workers/heartbeat', () {
+    group('POST /worker/heartbeat', () {
       for (final payload in ['{', '[]', '{}', '{"workerId":""}']) {
         test(
           'rejects malformed heartbeat $payload without recording a worker',
           () async {
             final context = TestRequestContext(
-              path: '/workers/heartbeat',
+              path: '/worker/heartbeat',
               method: HttpMethod.post,
               body: payload,
             );
@@ -46,7 +46,7 @@ void main() {
 
       test('responds with 401 Unauthorized when uid is null', () async {
         final context = TestRequestContext(
-          path: '/workers/heartbeat',
+          path: '/worker/heartbeat',
           method: HttpMethod.post,
           body: jsonEncode({
             'workerId': 'worker-1',
@@ -66,7 +66,7 @@ void main() {
         'responds with 200 OK for any authenticated uid',
         () async {
           final context = TestRequestContext(
-            path: '/workers/heartbeat',
+            path: '/worker/heartbeat',
             method: HttpMethod.post,
             body: jsonEncode({
               'workerId': 'worker-1',
@@ -87,7 +87,7 @@ void main() {
         'responds with 200 OK and stores heartbeat when worker is authorized',
         () async {
           final context = TestRequestContext(
-            path: '/workers/heartbeat',
+            path: '/worker/heartbeat',
             method: HttpMethod.post,
             body: jsonEncode({
               'workerId': 'worker-1',
@@ -119,7 +119,7 @@ void main() {
 
   testDatabaseFailures([
     DatabaseFailureEndpoint(
-      '/workers/heartbeat',
+      '/worker/heartbeat',
       HttpMethod.post,
       heartbeat_route.onRequest,
       body: '{"workerId":"worker-1"}',
