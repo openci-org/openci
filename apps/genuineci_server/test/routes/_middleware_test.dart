@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:dart_frog/dart_frog.dart';
@@ -5,6 +6,8 @@ import 'package:dart_frog_test/dart_frog_test.dart';
 import 'package:drift/native.dart';
 import 'package:firebase_admin_sdk/auth.dart';
 import 'package:firebase_admin_sdk/firebase_admin_sdk.dart';
+import 'package:genuineci_server/auth/user_email_info.dart';
+import 'package:http/http.dart' as http;
 import 'package:mocktail/mocktail.dart';
 import 'package:genuineci_server/database.dart';
 import 'package:test/test.dart';
@@ -28,6 +31,7 @@ class MockRequest extends Mock implements Request {}
 void main() {
   setUpAll(() {
     registerFallbackValue(() => 'dummy');
+    registerFallbackValue(() => null);
   });
 
   test(
@@ -176,7 +180,111 @@ void main() {
       when(() => mockContext.request).thenReturn(mockRequest);
       when(() => mockRequest.headers).thenReturn({});
       when(() => mockContext.provide<String?>(any())).thenReturn(mockContext);
+      when(
+        () => mockContext.provide<UserEmailInfo?>(any()),
+      ).thenReturn(mockContext);
     });
+
+    Future<Object?> readAuthContext({
+      String path = '/teams',
+      Map<String, String> headers = const {},
+    }) async {
+      final handler =
+          authProvider(mockFirebaseApp)((context) {
+            final info = context.read<UserEmailInfo?>();
+            return Response.json(
+              body: {
+                'uid': context.read<String?>(),
+                'emailInfo': info == null
+                    ? null
+                    : {
+                        'email': info.email,
+                        'emailVerified': info.emailVerified,
+                      },
+              },
+            );
+          }).use(
+            provider<Map<String, String>>(
+              (_) => const {'INTERNAL_API_KEY': 'test-internal-key'},
+            ),
+          );
+      final server = await serve(handler, InternetAddress.loopbackIPv4, 0);
+      addTearDown(() => server.close(force: true));
+      final uri = Uri(
+        scheme: 'http',
+        host: server.address.address,
+        port: server.port,
+      ).resolve(path);
+      final response = await http.get(uri, headers: headers);
+      expect(response.statusCode, HttpStatus.ok);
+      return jsonDecode(response.body);
+    }
+
+    for (final info in <UserEmailInfo>[
+      (email: 'Alice@Example.com', emailVerified: true),
+      (email: 'alice@example.com', emailVerified: false),
+      (email: 'alice@example.com', emailVerified: null),
+      (email: null, emailVerified: null),
+    ]) {
+      for (final (path, headers) in [
+        (
+          '/teams?email=spoof@example.com&emailVerified=true',
+          {
+            'Authorization': 'Bearer valid-token',
+            'email': 'spoof@example.com',
+            'emailVerified': 'true',
+          },
+        ),
+        ('/teams?token=valid-token', <String, String>{}),
+        ('/teams?auth=valid-token', <String, String>{}),
+      ]) {
+        test('passes UID and email information $info via $path', () async {
+          when(() => mockFirebaseApp.auth()).thenReturn(mockAuth);
+          when(
+            () => mockAuth.verifyIdToken('valid-token', checkRevoked: false),
+          ).thenAnswer((_) async => mockToken);
+          when(() => mockToken.uid).thenReturn('user-1');
+          when(() => mockToken.email).thenReturn(info.email);
+          when(() => mockToken.emailVerified).thenReturn(info.emailVerified);
+
+          expect(await readAuthContext(path: path, headers: headers), {
+            'uid': 'user-1',
+            'emailInfo': {
+              'email': info.email,
+              'emailVerified': info.emailVerified,
+            },
+          });
+          verify(
+            () => mockAuth.verifyIdToken('valid-token', checkRevoked: false),
+          ).called(1);
+        });
+      }
+    }
+
+    for (final (token, uid) in [
+      (null, null),
+      ('rejected-token', null),
+      ('test-internal-key', 'system-job-processor'),
+    ]) {
+      test('provides no email information for credential $token', () async {
+        when(() => mockFirebaseApp.auth()).thenReturn(mockAuth);
+        when(
+          () => mockAuth.verifyIdToken('rejected-token', checkRevoked: false),
+        ).thenThrow(Exception('Token invalid'));
+
+        expect(
+          await readAuthContext(
+            path: '/teams?email=spoof@example.com&emailVerified=true',
+            headers: {
+              if (token != null) 'Authorization': 'Bearer $token',
+              'email': 'spoof@example.com',
+              'emailVerified': 'true',
+            },
+          ),
+          {'uid': uid, 'emailInfo': null},
+        );
+      });
+    }
 
     test(
       'provides test-uid when firebaseApp is null and allowTestUid is true',
