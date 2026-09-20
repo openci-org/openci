@@ -5,6 +5,7 @@ import 'package:dart_frog/dart_frog.dart';
 import 'package:dart_frog_test/dart_frog_test.dart';
 import 'package:drift/native.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:genuineci_server/auth/internal_api_key_validator.dart';
 import 'package:genuineci_server/database.dart';
 import 'package:genuineci_server/secret/secret_table.dart';
 import 'package:test/test.dart';
@@ -48,6 +49,7 @@ void main() {
     String? name,
     String? uid = 'user-1',
     String? body,
+    Map<String, String> headers = const {},
     Map<String, String>? environment,
     AppDatabase? database,
   }) async {
@@ -55,10 +57,16 @@ void main() {
       path: '/teams/team-123/secrets${name == null ? '' : '/$name'}',
       method: method,
       body: body,
+      headers: headers,
     );
     context.provide<AppDatabase>(database ?? db);
     context.provide<String?>(uid);
     context.provide<Map<String, String>>(environment ?? env);
+    context.provide<InternalApiKeyValidator>(
+      const InternalApiKeyValidator.forTesting(
+        environment: {'INTERNAL_API_KEY': 'test-internal-key'},
+      ),
+    );
     return name == null
         ? index_route.onRequest(context.context, 'team-123')
         : name_route.onRequest(context.context, 'team-123', name);
@@ -81,18 +89,30 @@ void main() {
 
     for (final (method, name) in [
       (HttpMethod.get, null),
+      (HttpMethod.post, null),
     ]) {
-      for (final (uid, status) in [
-        (null, HttpStatus.unauthorized),
-        ('stranger', HttpStatus.forbidden),
+      for (final (uid, token, status) in [
+        (null, null, HttpStatus.unauthorized),
+        (null, '', HttpStatus.unauthorized),
+        (null, 'incorrect-key', HttpStatus.unauthorized),
+        ('stranger', null, HttpStatus.forbidden),
+        ('system-job-processor', null, HttpStatus.forbidden),
+        ('system-job-processor', 'incorrect-key', HttpStatus.forbidden),
       ]) {
         test(
-          '$method $name rejects $uid without exposing or deleting secrets',
+          '$method rejects uid=$uid token=$token before accessing secrets',
           () async {
+            final authDb = MockAppDatabase();
+            when(() => authDb.teamDao).thenReturn(db.teamDao);
             final response = await request(
               method: method,
               name: name,
               uid: uid,
+              headers: {
+                if (token != null) 'Authorization': 'Bearer $token',
+              },
+              body: 'not-json',
+              database: authDb,
             );
 
             expect(response.statusCode, status);
@@ -100,6 +120,8 @@ void main() {
             expect(body['success'], isFalse);
             expect(body, isNot(contains('value')));
             expect(body, isNot(contains('secrets')));
+            verifyNever(() => authDb.secretDao);
+            if (uid == null) verifyZeroInteractions(authDb);
             expect(
               await db.secretDao.getSecret('team-123', 'API_KEY'),
               isNotNull,
@@ -108,6 +130,28 @@ void main() {
         );
       }
     }
+
+    test('allows the former internal UID as an ordinary team member', () async {
+      await db.teamDao.addTeamMember('team-123', 'system-job-processor');
+
+      final saved = await request(
+        method: HttpMethod.post,
+        uid: 'system-job-processor',
+        body: jsonEncode({'name': 'API_KEY', 'value': 'replacement'}),
+      );
+      expect(saved.statusCode, HttpStatus.ok);
+
+      final listed = await request(
+        method: HttpMethod.get,
+        uid: 'system-job-processor',
+      );
+      expect(listed.statusCode, HttpStatus.ok);
+      final body = await listed.json() as Map<String, dynamic>;
+      final secrets = body['secrets'] as List<dynamic>;
+      expect(secrets, hasLength(1));
+      expect(secrets.single['name'], 'API_KEY');
+      expect(secrets.single['encryptedValue'], '[REDACTED]');
+    });
 
     for (final name in [null]) {
       test('unsupported method for $name returns 405', () async {
@@ -198,6 +242,11 @@ void main() {
         context.provide<AppDatabase>(db);
         context.provide<String?>(null);
         context.provide<Map<String, String>>(env);
+        context.provide<InternalApiKeyValidator>(
+          const InternalApiKeyValidator.forTesting(
+            environment: {'INTERNAL_API_KEY': 'test-internal-key'},
+          ),
+        );
 
         final response = await index_route.onRequest(
           context.context,
@@ -217,6 +266,11 @@ void main() {
           context.provide<AppDatabase>(db);
           context.provide<String?>('non-member-user');
           context.provide<Map<String, String>>(env);
+          context.provide<InternalApiKeyValidator>(
+            const InternalApiKeyValidator.forTesting(
+              environment: {'INTERNAL_API_KEY': 'test-internal-key'},
+            ),
+          );
 
           final response = await index_route.onRequest(
             context.context,
@@ -246,6 +300,11 @@ void main() {
           context.provide<AppDatabase>(db);
           context.provide<String?>('user-1');
           context.provide<Map<String, String>>(env);
+          context.provide<InternalApiKeyValidator>(
+            const InternalApiKeyValidator.forTesting(
+              environment: {'INTERNAL_API_KEY': 'test-internal-key'},
+            ),
+          );
 
           final response = await index_route.onRequest(
             context.context,
@@ -266,16 +325,22 @@ void main() {
       );
 
       test(
-        'responds with 200 OK and stores secret for the internal job processor',
+        'encrypts and stores a secret with an internal key and no UID',
         () async {
           final context = TestRequestContext(
             path: '/teams/team-123/secrets',
             method: HttpMethod.post,
             body: jsonEncode({'name': 'WORKER_SECRET', 'value': 'worker-val'}),
+            headers: {'Authorization': 'Bearer test-internal-key'},
           );
           context.provide<AppDatabase>(db);
-          context.provide<String?>('system-job-processor');
+          context.provide<String?>(null);
           context.provide<Map<String, String>>(env);
+          context.provide<InternalApiKeyValidator>(
+            const InternalApiKeyValidator.forTesting(
+              environment: {'INTERNAL_API_KEY': 'test-internal-key'},
+            ),
+          );
 
           final response = await index_route.onRequest(
             context.context,
@@ -327,6 +392,11 @@ void main() {
           context.provide<AppDatabase>(db);
           context.provide<String?>('user-1');
           context.provide<Map<String, String>>(env);
+          context.provide<InternalApiKeyValidator>(
+            const InternalApiKeyValidator.forTesting(
+              environment: {'INTERNAL_API_KEY': 'test-internal-key'},
+            ),
+          );
 
           final response = await index_route.onRequest(
             context.context,
@@ -345,7 +415,7 @@ void main() {
       );
 
       test(
-        'responds with 200 OK and lists secrets for the internal job processor',
+        'lists redacted secrets with an internal key and no UID',
         () async {
           final now = DateTime.now().toUtc();
           await db.secretDao.insertOrUpdateSecret(
@@ -361,16 +431,27 @@ void main() {
           final context = TestRequestContext(
             path: '/teams/team-123/secrets',
             method: HttpMethod.get,
+            headers: {'Authorization': 'Bearer test-internal-key'},
           );
           context.provide<AppDatabase>(db);
-          context.provide<String?>('system-job-processor');
+          context.provide<String?>(null);
           context.provide<Map<String, String>>(env);
+          context.provide<InternalApiKeyValidator>(
+            const InternalApiKeyValidator.forTesting(
+              environment: {'INTERNAL_API_KEY': 'test-internal-key'},
+            ),
+          );
 
           final response = await index_route.onRequest(
             context.context,
             'team-123',
           );
           expect(response.statusCode, equals(HttpStatus.ok));
+          final body = await response.json() as Map<String, dynamic>;
+          final secrets = body['secrets'] as List<dynamic>;
+          expect(secrets, hasLength(1));
+          expect(secrets.single['name'], 'API_KEY');
+          expect(secrets.single['encryptedValue'], '[REDACTED]');
         },
       );
     });

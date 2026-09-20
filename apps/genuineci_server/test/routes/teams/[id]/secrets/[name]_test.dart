@@ -5,6 +5,7 @@ import 'package:dart_frog/dart_frog.dart';
 import 'package:dart_frog_test/dart_frog_test.dart';
 import 'package:drift/native.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:genuineci_server/auth/internal_api_key_validator.dart';
 import 'package:genuineci_server/database.dart';
 import 'package:genuineci_server/secret/secret_table.dart';
 import 'package:test/test.dart';
@@ -48,6 +49,7 @@ void main() {
     String? name,
     String? uid = 'user-1',
     String? body,
+    Map<String, String> headers = const {},
     Map<String, String>? environment,
     AppDatabase? database,
   }) async {
@@ -55,10 +57,16 @@ void main() {
       path: '/teams/team-123/secrets${name == null ? '' : '/$name'}',
       method: method,
       body: body,
+      headers: headers,
     );
     context.provide<AppDatabase>(database ?? db);
     context.provide<String?>(uid);
     context.provide<Map<String, String>>(environment ?? env);
+    context.provide<InternalApiKeyValidator>(
+      const InternalApiKeyValidator.forTesting(
+        environment: {'INTERNAL_API_KEY': 'test-internal-key'},
+      ),
+    );
     return name == null
         ? index_route.onRequest(context.context, 'team-123')
         : name_route.onRequest(context.context, 'team-123', name);
@@ -83,17 +91,27 @@ void main() {
       (HttpMethod.get, 'API_KEY'),
       (HttpMethod.delete, 'API_KEY'),
     ]) {
-      for (final (uid, status) in [
-        (null, HttpStatus.unauthorized),
-        ('stranger', HttpStatus.forbidden),
+      for (final (uid, token, status) in [
+        (null, null, HttpStatus.unauthorized),
+        (null, '', HttpStatus.unauthorized),
+        (null, 'incorrect-key', HttpStatus.unauthorized),
+        ('stranger', null, HttpStatus.forbidden),
+        ('system-job-processor', null, HttpStatus.forbidden),
+        ('system-job-processor', 'incorrect-key', HttpStatus.forbidden),
       ]) {
         test(
-          '$method $name rejects $uid without exposing or deleting secrets',
+          '$method $name rejects uid=$uid token=$token before accessing secrets',
           () async {
+            final authDb = MockAppDatabase();
+            when(() => authDb.teamDao).thenReturn(db.teamDao);
             final response = await request(
               method: method,
               name: name,
               uid: uid,
+              headers: {
+                if (token != null) 'Authorization': 'Bearer $token',
+              },
+              database: authDb,
             );
 
             expect(response.statusCode, status);
@@ -101,6 +119,8 @@ void main() {
             expect(body['success'], isFalse);
             expect(body, isNot(contains('value')));
             expect(body, isNot(contains('secrets')));
+            verifyNever(() => authDb.secretDao);
+            if (uid == null) verifyZeroInteractions(authDb);
             expect(
               await db.secretDao.getSecret('team-123', 'API_KEY'),
               isNotNull,
@@ -111,17 +131,46 @@ void main() {
     }
 
     test(
-      'internal processor cannot delete a secret without membership',
+      'an internal key cannot delete a secret through the former internal UID',
       () async {
         final response = await request(
           method: HttpMethod.delete,
           name: 'API_KEY',
           uid: 'system-job-processor',
+          headers: {'Authorization': 'Bearer test-internal-key'},
         );
         expect(response.statusCode, HttpStatus.forbidden);
         expect(await db.secretDao.getSecret('team-123', 'API_KEY'), isNotNull);
       },
     );
+
+    test('an internal key without a UID cannot delete a secret', () async {
+      final response = await request(
+        method: HttpMethod.delete,
+        name: 'API_KEY',
+        uid: null,
+        headers: {'Authorization': 'Bearer test-internal-key'},
+      );
+      expect(response.statusCode, HttpStatus.unauthorized);
+      expect(await db.secretDao.getSecret('team-123', 'API_KEY'), isNotNull);
+    });
+
+    test('a member with the former internal UID can read a secret', () async {
+      await db.teamDao.addTeamMember('team-123', 'system-job-processor');
+      final saved = await request(
+        method: HttpMethod.post,
+        body: jsonEncode({'name': 'API_KEY', 'value': 'member-value'}),
+      );
+      expect(saved.statusCode, HttpStatus.ok);
+
+      final response = await request(
+        method: HttpMethod.get,
+        name: 'API_KEY',
+        uid: 'system-job-processor',
+      );
+      expect(response.statusCode, HttpStatus.ok);
+      expect(await response.json(), {'success': true, 'value': 'member-value'});
+    });
 
     test(
       'deleting a missing secret returns 404 and preserves other secrets',
@@ -217,7 +266,7 @@ void main() {
   group('Secrets Endpoints', () {
     group('GET /teams/<id>/secrets/<name>', () {
       test(
-        'responds with 200 OK for the internal job processor',
+        'returns the decrypted secret with an internal key and no UID',
         () async {
           await db
               .into(db.teamMembers)
@@ -239,15 +288,30 @@ void main() {
           postContext.provide<AppDatabase>(db);
           postContext.provide<String?>('user-1');
           postContext.provide<Map<String, String>>(env);
-          await index_route.onRequest(postContext.context, 'team-123');
+          postContext.provide<InternalApiKeyValidator>(
+            const InternalApiKeyValidator.forTesting(
+              environment: {'INTERNAL_API_KEY': 'test-internal-key'},
+            ),
+          );
+          final saved = await index_route.onRequest(
+            postContext.context,
+            'team-123',
+          );
+          expect(saved.statusCode, HttpStatus.ok);
 
           final getContext = TestRequestContext(
             path: '/teams/team-123/secrets/DB_PASSWORD',
             method: HttpMethod.get,
+            headers: {'Authorization': 'Bearer test-internal-key'},
           );
           getContext.provide<AppDatabase>(db);
-          getContext.provide<String?>('system-job-processor');
+          getContext.provide<String?>(null);
           getContext.provide<Map<String, String>>(env);
+          getContext.provide<InternalApiKeyValidator>(
+            const InternalApiKeyValidator.forTesting(
+              environment: {'INTERNAL_API_KEY': 'test-internal-key'},
+            ),
+          );
 
           final response = await name_route.onRequest(
             getContext.context,
@@ -266,10 +330,16 @@ void main() {
         final getContext = TestRequestContext(
           path: '/teams/team-123/secrets/NOT_FOUND',
           method: HttpMethod.get,
+          headers: {'Authorization': 'Bearer test-internal-key'},
         );
         getContext.provide<AppDatabase>(db);
-        getContext.provide<String?>('system-job-processor');
+        getContext.provide<String?>(null);
         getContext.provide<Map<String, String>>(env);
+        getContext.provide<InternalApiKeyValidator>(
+          const InternalApiKeyValidator.forTesting(
+            environment: {'INTERNAL_API_KEY': 'test-internal-key'},
+          ),
+        );
 
         final response = await name_route.onRequest(
           getContext.context,

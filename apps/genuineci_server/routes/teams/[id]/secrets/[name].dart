@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:dart_frog/dart_frog.dart';
+import 'package:genuineci_server/auth/internal_api_key_validator.dart';
 import 'package:genuineci_server/database.dart';
 import 'package:genuineci_server/request/error_handler.dart';
 import 'package:genuineci_server/secret/secret_crypter.dart';
@@ -20,16 +21,18 @@ Future<Response> _get(
   String name,
 ) async {
   try {
-    final db = context.read<AppDatabase>();
     final uid = context.read<String?>();
-    if (uid == null) {
+    final validator = context.read<InternalApiKeyValidator>();
+    final hasValidInternalKey = validator.isValid(context);
+    if (uid == null && !hasValidInternalKey) {
       return Response.json(
         statusCode: HttpStatus.unauthorized,
         body: {'success': false, 'error': 'Authentication required'},
       );
     }
 
-    if (uid != 'system-job-processor') {
+    final db = context.read<AppDatabase>();
+    if (!hasValidInternalKey && uid != null) {
       final isMember = await db.teamDao.isTeamMember(uid, teamId);
       if (!isMember) {
         return Response.json(
