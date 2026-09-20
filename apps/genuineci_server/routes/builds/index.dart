@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:dart_frog/dart_frog.dart';
+import 'package:genuineci_server/auth/internal_api_key_validator.dart';
 import 'package:genuineci_server/build_job/build_job_mapper.dart';
 import 'package:genuineci_server/database.dart';
 import 'package:genuineci_server/request/error_handler.dart';
@@ -86,10 +87,8 @@ Future<Response> _get(RequestContext context) async {
 
 Future<Response> _post(RequestContext context) async {
   try {
-    final db = context.read<AppDatabase>();
-    final uid = context.read<String?>();
-
-    if (uid == null) {
+    final validator = context.read<InternalApiKeyValidator>();
+    if (!validator.isValid(context)) {
       return Response.json(
         statusCode: HttpStatus.unauthorized,
         body: {'success': false, 'error': 'Authentication required'},
@@ -125,16 +124,7 @@ Future<Response> _post(RequestContext context) async {
         body: {'success': false, 'error': 'Invalid payload: $e'},
       );
     }
-    if (uid != 'system-job-processor') {
-      return Response.json(
-        statusCode: HttpStatus.forbidden,
-        body: {
-          'success': false,
-          'error': 'Forbidden: Internal API key required',
-        },
-      );
-    }
-
+    final db = context.read<AppDatabase>();
     final driftJob = job.toDrift();
     await db.buildJobDao.insertBuildJob(driftJob);
 
