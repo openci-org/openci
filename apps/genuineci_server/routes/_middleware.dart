@@ -102,9 +102,7 @@ Middleware authProvider(FirebaseApp? firebaseApp, {bool allowTestUid = false}) {
 
       final validator = context.read<InternalApiKeyValidator>();
       if (validator.isValid(context)) {
-        return handler(
-          context.provide<String?>(() => 'system-job-processor'),
-        );
+        return handler(context.provide<String?>(() => null));
       }
 
       String? token;
