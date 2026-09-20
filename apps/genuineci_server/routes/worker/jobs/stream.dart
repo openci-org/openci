@@ -4,9 +4,25 @@ import 'dart:io';
 
 import 'package:dart_frog/dart_frog.dart';
 import 'package:dart_frog_web_socket/dart_frog_web_socket.dart';
+import 'package:genuineci_server/auth/internal_api_key_validator.dart';
 import 'package:genuineci_server/database.dart';
+import 'package:meta/meta.dart';
 
-Future<Response> onRequest(RequestContext context) async {
+Future<Response> onRequest(RequestContext context) =>
+    handleRequest(context, const InternalApiKeyValidator());
+
+@visibleForTesting
+Future<Response> handleRequest(
+  RequestContext context,
+  InternalApiKeyValidator validator,
+) async {
+  if (validator.isValid(context) == false) {
+    return Response.json(
+      statusCode: HttpStatus.unauthorized,
+      body: {'success': false, 'error': 'Authentication required'},
+    );
+  }
+
   final handler = webSocketHandler((channel, protocol) async {
     final db = context.read<AppDatabase>();
     StreamSubscription<List<DriftBuildJob>>? dbSub;
