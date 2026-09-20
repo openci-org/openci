@@ -4,9 +4,11 @@ import 'dart:io';
 import 'package:dart_frog/dart_frog.dart';
 import 'package:dart_frog_test/dart_frog_test.dart';
 import 'package:drift/native.dart';
+import 'package:genuineci_server/auth/internal_api_key_validator.dart';
 import 'package:genuineci_server/database.dart';
 import 'package:test/test.dart';
 
+import '../../../../../routes/webhooks/_middleware.dart' as webhooks;
 import '../../../../../routes/webhooks/tasks/[id]/fail.dart' as route;
 
 void main() {
@@ -22,40 +24,15 @@ void main() {
     });
 
     test('returns 405 for methods other than POST', () async {
-      final context = TestRequestContext(
-        path: '/webhooks/tasks/task-1/fail',
-        method: HttpMethod.get,
-      );
-
-      final response = await route.onRequest(context.context, 'task-1');
-
-      expect(response.statusCode, HttpStatus.methodNotAllowed);
-    });
-
-    test('returns 401 when unauthenticated', () async {
       final response = await _request(
         db: db,
         taskId: 'task-1',
-        uid: null,
         errorMessage: 'workflow parse failed',
+        method: HttpMethod.get,
       );
 
-      expect(response.statusCode, HttpStatus.unauthorized);
+      expect(response.statusCode, HttpStatus.methodNotAllowed);
     });
-
-    test(
-      'returns 403 when authenticated without the internal API key',
-      () async {
-        final response = await _request(
-          db: db,
-          taskId: 'task-1',
-          uid: 'firebase-user',
-          errorMessage: 'workflow parse failed',
-        );
-
-        expect(response.statusCode, HttpStatus.forbidden);
-      },
-    );
 
     test('returns 400 when the body is invalid JSON', () async {
       final response = await _requestWithBody(
@@ -174,12 +151,12 @@ Future<Response> _request({
   required AppDatabase db,
   required String taskId,
   required String errorMessage,
-  String? uid = 'system-job-processor',
+  HttpMethod method = HttpMethod.post,
 }) {
   return _requestWithBody(
     db: db,
     taskId: taskId,
-    uid: uid,
+    method: method,
     body: jsonEncode({'errorMessage': errorMessage}),
   );
 }
@@ -188,14 +165,21 @@ Future<Response> _requestWithBody({
   required AppDatabase db,
   required String taskId,
   required String body,
-  String? uid = 'system-job-processor',
+  HttpMethod method = HttpMethod.post,
 }) async {
+  const validator = InternalApiKeyValidator.forTesting(
+    environment: {'INTERNAL_API_KEY': 'test-internal-key'},
+  );
   final context = TestRequestContext(
     path: '/webhooks/tasks/$taskId/fail',
-    method: HttpMethod.post,
+    method: method,
+    headers: {'Authorization': 'Bearer test-internal-key'},
     body: body,
   );
   context.provide<AppDatabase>(db);
-  context.provide<String?>(uid);
-  return await route.onRequest(context.context, taskId);
+  context.provide<InternalApiKeyValidator>(validator);
+  final handler = webhooks.middleware(
+    (context) => route.onRequest(context, taskId),
+  );
+  return await handler(context.context);
 }

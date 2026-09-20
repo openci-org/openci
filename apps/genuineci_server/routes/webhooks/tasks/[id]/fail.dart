@@ -17,20 +17,6 @@ FutureOr<Response> onRequest(RequestContext context, String id) {
 
 Future<Response> _post(RequestContext context, String taskId) async {
   try {
-    final uid = context.read<String?>();
-    if (uid == null) {
-      return Response.json(
-        statusCode: HttpStatus.unauthorized,
-        body: {'success': false, 'error': 'Authentication required'},
-      );
-    }
-    if (uid != 'system-job-processor') {
-      return Response.json(
-        statusCode: HttpStatus.forbidden,
-        body: {'success': false, 'error': 'Internal API key required'},
-      );
-    }
-
     final Map<String, dynamic> payload;
     try {
       payload = await context.jsonBody();
