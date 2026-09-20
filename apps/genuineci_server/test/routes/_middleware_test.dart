@@ -6,6 +6,7 @@ import 'package:dart_frog_test/dart_frog_test.dart';
 import 'package:drift/native.dart';
 import 'package:firebase_admin_sdk/auth.dart';
 import 'package:firebase_admin_sdk/firebase_admin_sdk.dart';
+import 'package:genuineci_server/auth/internal_api_key_validator.dart';
 import 'package:genuineci_server/auth/user_email_info.dart';
 import 'package:http/http.dart' as http;
 import 'package:mocktail/mocktail.dart';
@@ -178,6 +179,9 @@ void main() {
       mockToken = MockDecodedIdToken();
 
       when(() => mockContext.request).thenReturn(mockRequest);
+      when(() => mockContext.read<InternalApiKeyValidator>()).thenReturn(
+        const InternalApiKeyValidator.forTesting(environment: {}),
+      );
       when(() => mockRequest.headers).thenReturn({});
       when(() => mockContext.provide<String?>(any())).thenReturn(mockContext);
       when(
@@ -204,8 +208,10 @@ void main() {
               },
             );
           }).use(
-            provider<Map<String, String>>(
-              (_) => const {'INTERNAL_API_KEY': 'test-internal-key'},
+            provider<InternalApiKeyValidator>(
+              (_) => const InternalApiKeyValidator.forTesting(
+                environment: {'INTERNAL_API_KEY': 'test-internal-key'},
+              ),
             ),
           );
       final server = await serve(handler, InternetAddress.loopbackIPv4, 0);
@@ -261,11 +267,7 @@ void main() {
       }
     }
 
-    for (final (token, uid) in [
-      (null, null),
-      ('rejected-token', null),
-      ('test-internal-key', 'system-job-processor'),
-    ]) {
+    for (final token in [null, '', 'rejected-token']) {
       test('provides no email information for credential $token', () async {
         when(() => mockFirebaseApp.auth()).thenReturn(mockAuth);
         when(
@@ -281,10 +283,83 @@ void main() {
               'emailVerified': 'true',
             },
           ),
-          {'uid': uid, 'emailInfo': null},
+          {'uid': null, 'emailInfo': null},
         );
       });
     }
+
+    for (final (name, path, headers) in [
+      (
+        'Bearer header over query credentials',
+        '/teams?token=wrong-key&auth=wrong-key',
+        {'Authorization': 'Bearer test-internal-key'},
+      ),
+      (
+        'token query parameter over auth',
+        '/teams?token=test-internal-key&auth=wrong-key',
+        <String, String>{},
+      ),
+      (
+        'auth query parameter',
+        '/teams?auth=test-internal-key',
+        <String, String>{},
+      ),
+    ]) {
+      test('authenticates the internal key from $name', () async {
+        expect(await readAuthContext(path: path, headers: headers), {
+          'uid': 'system-job-processor',
+          'emailInfo': null,
+        });
+        verifyZeroInteractions(mockFirebaseApp);
+      });
+    }
+
+    test(
+      'prefers a Firebase Bearer token over an internal query key',
+      () async {
+        when(() => mockFirebaseApp.auth()).thenReturn(mockAuth);
+        when(
+          () => mockAuth.verifyIdToken('valid-token', checkRevoked: false),
+        ).thenAnswer((_) async => mockToken);
+        when(() => mockToken.uid).thenReturn('user-1');
+        when(() => mockToken.email).thenReturn('alice@example.com');
+        when(() => mockToken.emailVerified).thenReturn(true);
+
+        expect(
+          await readAuthContext(
+            path: '/teams?token=test-internal-key&auth=test-internal-key',
+            headers: {'Authorization': 'Bearer valid-token'},
+          ),
+          {
+            'uid': 'user-1',
+            'emailInfo': {'email': 'alice@example.com', 'emailVerified': true},
+          },
+        );
+        verify(
+          () => mockAuth.verifyIdToken('valid-token', checkRevoked: false),
+        ).called(1);
+      },
+    );
+
+    test(
+      'does not fall back to auth when the token query is invalid',
+      () async {
+        when(() => mockFirebaseApp.auth()).thenReturn(mockAuth);
+        when(
+          () => mockAuth.verifyIdToken('rejected-token', checkRevoked: false),
+        ).thenThrow(Exception('Token invalid'));
+
+        expect(
+          await readAuthContext(
+            path: '/teams?token=rejected-token&auth=test-internal-key',
+          ),
+          {'uid': null, 'emailInfo': null},
+        );
+        verify(
+          () => mockAuth.verifyIdToken('rejected-token', checkRevoked: false),
+        ).called(1);
+      },
+    );
 
     test(
       'provides test-uid when firebaseApp is null and allowTestUid is true',
@@ -499,11 +574,15 @@ void main() {
           () => mockRequest.uri,
         ).thenReturn(Uri.parse('http://localhost/teams'));
         when(() => mockRequest.headers).thenReturn({
-          'Authorization': 'Bearer my-internal-key',
+          'authorization': 'Bearer my-internal-key',
         });
         when(
-          () => mockContext.read<Map<String, String>>(),
-        ).thenReturn({'INTERNAL_API_KEY': 'my-internal-key'});
+          () => mockContext.read<InternalApiKeyValidator>(),
+        ).thenReturn(
+          const InternalApiKeyValidator.forTesting(
+            environment: {'INTERNAL_API_KEY': 'my-internal-key'},
+          ),
+        );
 
         var handlerCalled = false;
         final handler = middleware((context) {
@@ -532,11 +611,15 @@ void main() {
           () => mockRequest.uri,
         ).thenReturn(Uri.parse('http://localhost/teams'));
         when(() => mockRequest.headers).thenReturn({
-          'Authorization': 'Bearer wrong-internal-key',
+          'authorization': 'Bearer wrong-internal-key',
         });
         when(
-          () => mockContext.read<Map<String, String>>(),
-        ).thenReturn({'INTERNAL_API_KEY': 'my-internal-key'});
+          () => mockContext.read<InternalApiKeyValidator>(),
+        ).thenReturn(
+          const InternalApiKeyValidator.forTesting(
+            environment: {'INTERNAL_API_KEY': 'my-internal-key'},
+          ),
+        );
 
         var handlerCalled = false;
         final handler = middleware((context) {
