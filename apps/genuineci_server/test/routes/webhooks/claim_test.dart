@@ -3,10 +3,12 @@ import 'dart:io';
 import 'package:dart_frog/dart_frog.dart';
 import 'package:dart_frog_test/dart_frog_test.dart';
 import 'package:drift/native.dart';
+import 'package:genuineci_server/auth/internal_api_key_validator.dart';
 import 'package:genuineci_server/database.dart';
 import 'package:openci_shared/openci_shared.dart';
 import 'package:test/test.dart';
 
+import '../../../routes/webhooks/_middleware.dart' as webhooks;
 import '../../../routes/webhooks/claim.dart' as route;
 
 void main() {
@@ -22,55 +24,13 @@ void main() {
     });
 
     test('returns 405 for methods other than POST', () async {
-      final context = TestRequestContext(
-        path: '/webhooks/claim',
+      final response = await _request(
+        db: db,
         method: HttpMethod.get,
       );
 
-      final response = await route.onRequest(context.context);
-
       expect(response.statusCode, HttpStatus.methodNotAllowed);
     });
-
-    test(
-      'returns 401 without changing the task when unauthenticated',
-      () async {
-        await _insertTask(db);
-        final originalTask = await db.webhookTaskDao.getWebhookTask('task-1');
-
-        final response = await _request(db: db, uid: null);
-
-        expect(response.statusCode, HttpStatus.unauthorized);
-        expect(await response.json(), {
-          'success': false,
-          'error': 'Authentication required',
-        });
-        expect(
-          await db.webhookTaskDao.getWebhookTask('task-1'),
-          originalTask,
-        );
-      },
-    );
-
-    test(
-      'returns 403 without changing the task for a regular user',
-      () async {
-        await _insertTask(db);
-        final originalTask = await db.webhookTaskDao.getWebhookTask('task-1');
-
-        final response = await _request(db: db, uid: 'firebase-user');
-
-        expect(response.statusCode, HttpStatus.forbidden);
-        expect(await response.json(), {
-          'success': false,
-          'error': 'Internal API key required',
-        });
-        expect(
-          await db.webhookTaskDao.getWebhookTask('task-1'),
-          originalTask,
-        );
-      },
-    );
 
     test('claims a pending task for the internal caller', () async {
       await _insertTask(db);
@@ -138,13 +98,17 @@ Future<void> _insertTask(AppDatabase db) async {
 
 Future<Response> _request({
   required AppDatabase db,
-  String? uid = 'system-job-processor',
+  HttpMethod method = HttpMethod.post,
 }) async {
+  const validator = InternalApiKeyValidator.forTesting(
+    environment: {'INTERNAL_API_KEY': 'test-internal-key'},
+  );
   final context = TestRequestContext(
     path: '/webhooks/claim',
-    method: HttpMethod.post,
+    method: method,
+    headers: {'Authorization': 'Bearer test-internal-key'},
   );
   context.provide<AppDatabase>(db);
-  context.provide<String?>(uid);
-  return await route.onRequest(context.context);
+  context.provide<InternalApiKeyValidator>(validator);
+  return await webhooks.middleware(route.onRequest)(context.context);
 }

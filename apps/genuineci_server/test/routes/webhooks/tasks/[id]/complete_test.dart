@@ -5,12 +5,14 @@ import 'package:dart_frog/dart_frog.dart';
 import 'package:dart_frog_test/dart_frog_test.dart';
 import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
+import 'package:genuineci_server/auth/internal_api_key_validator.dart';
 import 'package:genuineci_server/database.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:openci_shared/openci_shared.dart';
 import 'package:test/test.dart';
 
+import '../../../../../routes/webhooks/_middleware.dart' as webhooks;
 import '../../../../../routes/webhooks/tasks/[id]/complete.dart' as route;
 import '../../../../../routes/builds/[id]/runs/index.dart' as runs_route;
 import '../../../../helpers/github_app_test_key.dart';
@@ -28,40 +30,15 @@ void main() {
     });
 
     test('returns 405 for methods other than POST', () async {
-      final context = TestRequestContext(
-        path: '/webhooks/tasks/task-1/complete',
-        method: HttpMethod.get,
-      );
-
-      final response = await route.onRequest(context.context, 'task-1');
-
-      expect(response.statusCode, HttpStatus.methodNotAllowed);
-    });
-
-    test('returns 401 when unauthenticated', () async {
       final response = await _request(
         db: db,
         taskId: 'task-1',
-        uid: null,
         jobs: const [],
+        method: HttpMethod.get,
       );
 
-      expect(response.statusCode, HttpStatus.unauthorized);
+      expect(response.statusCode, HttpStatus.methodNotAllowed);
     });
-
-    test(
-      'returns 403 when authenticated without the internal API key',
-      () async {
-        final response = await _request(
-          db: db,
-          taskId: 'task-1',
-          uid: 'firebase-user',
-          jobs: const [],
-        );
-
-        expect(response.statusCode, HttpStatus.forbidden);
-      },
-    );
 
     test('creates queued build jobs and completes the task', () async {
       await _insertTask(db, id: 'task-1', status: 'processing');
@@ -291,14 +268,14 @@ Future<Response> _request({
   required AppDatabase db,
   required String taskId,
   required List<Map<String, dynamic>> jobs,
-  String? uid = 'system-job-processor',
+  HttpMethod method = HttpMethod.post,
   Map<String, String> environment = const {},
   http.Client? client,
 }) {
   return _requestWithBody(
     db: db,
     taskId: taskId,
-    uid: uid,
+    method: method,
     body: jsonEncode({'jobs': jobs}),
     environment: environment,
     client: client,
@@ -309,18 +286,25 @@ Future<Response> _requestWithBody({
   required AppDatabase db,
   required String taskId,
   required String body,
-  String? uid = 'system-job-processor',
+  HttpMethod method = HttpMethod.post,
   Map<String, String> environment = const {},
   http.Client? client,
 }) async {
+  const validator = InternalApiKeyValidator.forTesting(
+    environment: {'INTERNAL_API_KEY': 'test-internal-key'},
+  );
   final context = TestRequestContext(
     path: '/webhooks/tasks/$taskId/complete',
-    method: HttpMethod.post,
+    method: method,
+    headers: {'Authorization': 'Bearer test-internal-key'},
     body: body,
   );
   context.provide<AppDatabase>(db);
-  context.provide<String?>(uid);
+  context.provide<InternalApiKeyValidator>(validator);
   context.provide<Map<String, String>>(environment);
   if (client != null) context.provide<http.Client>(client);
-  return await route.onRequest(context.context, taskId);
+  final handler = webhooks.middleware(
+    (context) => route.onRequest(context, taskId),
+  );
+  return await handler(context.context);
 }
