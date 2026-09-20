@@ -307,12 +307,52 @@ void main() {
     ]) {
       test('authenticates the internal key from $name', () async {
         expect(await readAuthContext(path: path, headers: headers), {
-          'uid': 'system-job-processor',
+          'uid': null,
           'emailInfo': null,
         });
         verifyZeroInteractions(mockFirebaseApp);
       });
     }
+
+    test(
+      'treats the former internal UID as an ordinary Firebase identity',
+      () async {
+        when(() => mockFirebaseApp.auth()).thenReturn(mockAuth);
+        when(
+          () => mockAuth.verifyIdToken('valid-token', checkRevoked: false),
+        ).thenAnswer((_) async => mockToken);
+        when(() => mockToken.uid).thenReturn('system-job-processor');
+        when(() => mockToken.email).thenReturn('alice@example.com');
+        when(() => mockToken.emailVerified).thenReturn(true);
+
+        expect(
+          await readAuthContext(
+            headers: {'Authorization': 'Bearer valid-token'},
+          ),
+          {
+            'uid': 'system-job-processor',
+            'emailInfo': {'email': 'alice@example.com', 'emailVerified': true},
+          },
+        );
+        verify(
+          () => mockAuth.verifyIdToken('valid-token', checkRevoked: false),
+        ).called(1);
+      },
+    );
+
+    test(
+      'keeps the public root anonymous without verifying credentials',
+      () async {
+        expect(
+          await readAuthContext(
+            path: '/',
+            headers: {'Authorization': 'Bearer rejected-token'},
+          ),
+          {'uid': null, 'emailInfo': null},
+        );
+        verifyZeroInteractions(mockFirebaseApp);
+      },
+    );
 
     test(
       'prefers a Firebase Bearer token over an internal query key',
@@ -566,7 +606,7 @@ void main() {
     });
 
     test(
-      'provides system-job-processor when Authorization header matches INTERNAL_API_KEY',
+      'provides no UID when Authorization header matches INTERNAL_API_KEY',
       () async {
         final middleware = authProvider(null);
 
@@ -598,7 +638,7 @@ void main() {
                   () => mockContext.provide<String?>(captureAny()),
                 ).captured.single
                 as String? Function();
-        expect(captured(), equals('system-job-processor'));
+        expect(captured(), isNull);
       },
     );
 
