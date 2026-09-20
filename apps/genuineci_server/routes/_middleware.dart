@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:dart_frog/dart_frog.dart';
 import 'package:firebase_admin_sdk/firebase_admin_sdk.dart';
+import 'package:genuineci_server/auth/internal_api_key_validator.dart';
 import 'package:genuineci_server/auth/server_access_policy_provider.dart';
 import 'package:genuineci_server/auth/user_email_info.dart';
 import 'package:genuineci_server/database.dart';
@@ -32,6 +33,11 @@ Handler middleware(Handler handler) {
       .use(sentryMiddleware())
       .use(databaseProvider(_db))
       .use(authProvider(_firebaseApp))
+      .use(
+        provider<InternalApiKeyValidator>(
+          (_) => const InternalApiKeyValidator(),
+        ),
+      )
       .use(provider<FirebaseApp>((context) => _firebaseApp))
       .use(accessPolicyMiddleware)
       .use(corsMiddleware())

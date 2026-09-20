@@ -10,6 +10,7 @@ import 'package:genuineci_server/database.dart';
 import 'package:openci_shared/openci_shared.dart';
 import 'package:test/test.dart';
 
+import '../../../../routes/worker/_middleware.dart' as worker;
 import '../../../../routes/worker/jobs/claim.dart' as route;
 
 class _MockDatabase extends Mock implements AppDatabase {}
@@ -45,12 +46,10 @@ void main() {
     );
     context.provide<AppDatabase>(db);
     context.provide<String?>(uid);
-    return Future.value(
-      route.handleRequest(
-        context.context,
-        InternalApiKeyValidator.forTesting(environment: environment),
-      ),
+    context.provide<InternalApiKeyValidator>(
+      InternalApiKeyValidator.forTesting(environment: environment),
     );
+    return Future.value(worker.middleware(route.onRequest)(context.context));
   }
 
   group('POST /worker/jobs/claim', () {
