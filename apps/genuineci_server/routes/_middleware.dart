@@ -6,7 +6,6 @@ import 'package:genuineci_server/auth/internal_api_key_validator.dart';
 import 'package:genuineci_server/auth/server_access_policy_provider.dart';
 import 'package:genuineci_server/auth/user_email_info.dart';
 import 'package:genuineci_server/database.dart';
-import 'package:openci_shared/openci_shared.dart';
 import 'package:sentry/sentry.dart';
 
 final _db = AppDatabase();
@@ -101,13 +100,12 @@ Middleware authProvider(FirebaseApp? firebaseApp, {bool allowTestUid = false}) {
         return handler(context.provide<String?>(() => null));
       }
 
-      Map<String, String> env;
-      try {
-        env = context.read<Map<String, String>>();
-      } catch (_) {
-        env = Platform.environment;
+      final validator = context.read<InternalApiKeyValidator>();
+      if (validator.isValid(context)) {
+        return handler(
+          context.provide<String?>(() => 'system-job-processor'),
+        );
       }
-      final internalApiKey = env['INTERNAL_API_KEY'];
 
       String? token;
       final authHeader =
@@ -119,16 +117,6 @@ Middleware authProvider(FirebaseApp? firebaseApp, {bool allowTestUid = false}) {
         token =
             context.request.uri.queryParameters['token'] ??
             context.request.uri.queryParameters['auth'];
-      }
-
-      if (token != null && token.isNotEmpty) {
-        if (internalApiKey != null &&
-            internalApiKey.isNotEmpty &&
-            constantTimeCompareString(token, internalApiKey)) {
-          return handler(
-            context.provide<String?>(() => 'system-job-processor'),
-          );
-        }
       }
 
       if (firebaseApp == null) {
