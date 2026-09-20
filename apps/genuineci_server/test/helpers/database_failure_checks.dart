@@ -24,6 +24,8 @@ class DatabaseFailureEndpoint {
     this.handle, {
     this.body = '{}',
     this.uid = 'user-1',
+    this.headers = const {},
+    this.configure,
   });
 
   final String path;
@@ -31,6 +33,8 @@ class DatabaseFailureEndpoint {
   final FutureOr<Response> Function(RequestContext) handle;
   final String body;
   final String uid;
+  final Map<String, String> headers;
+  final void Function(TestRequestContext)? configure;
 }
 
 final databaseFailureJob = DriftBuildJob(
@@ -56,10 +60,12 @@ void testDatabaseFailures(List<DatabaseFailureEndpoint> endpoints) {
           path: endpoint.path,
           method: endpoint.method,
           body: endpoint.body,
+          headers: endpoint.headers,
         );
         context.provide<AppDatabase>(database);
         context.provide<String?>(endpoint.uid);
         context.provide<DriftBuildJob>(databaseFailureJob);
+        endpoint.configure?.call(context);
 
         final response = await endpoint.handle(context.context);
 

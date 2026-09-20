@@ -5,6 +5,7 @@ import 'package:dart_frog/dart_frog.dart';
 import 'package:dart_frog_test/dart_frog_test.dart';
 import 'package:drift/native.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:genuineci_server/auth/internal_api_key_validator.dart';
 import 'package:genuineci_server/build_job/build_job_dao.dart';
 import 'package:genuineci_server/build_job/build_job_mapper.dart';
 import 'package:genuineci_server/database.dart';
@@ -46,15 +47,22 @@ void main() {
 
   group('POST /builds', () {
     test(
-      'responds with 401 Unauthorized (Authentication required) when uid is null',
+      'rejects a missing key before parsing the body or accessing the database',
       () async {
+        final mockDb = MockAppDatabase();
         final context = TestRequestContext(
           path: '/builds',
           method: HttpMethod.post,
+          body: 'not-a-json',
         );
 
-        context.provide<AppDatabase>(db);
+        context.provide<AppDatabase>(mockDb);
         context.provide<String?>(null);
+        context.provide<InternalApiKeyValidator>(
+          const InternalApiKeyValidator.forTesting(
+            environment: {'INTERNAL_API_KEY': 'test-internal-key'},
+          ),
+        );
 
         final response = await route.onRequest(context.context);
 
@@ -63,6 +71,34 @@ void main() {
         final body = await response.json() as Map<String, dynamic>;
         expect(body['success'], isFalse);
         expect(body['error'], equals('Authentication required'));
+        verifyZeroInteractions(mockDb);
+        verifyNever(() => context.context.read<AppDatabase>());
+      },
+    );
+
+    test(
+      'rejects an incorrect key before parsing the body or accessing the database',
+      () async {
+        final mockDb = MockAppDatabase();
+        final context = TestRequestContext(
+          path: '/builds',
+          method: HttpMethod.post,
+          headers: {'Authorization': 'Bearer incorrect-key'},
+          body: 'not-a-json',
+        );
+        context.provide<AppDatabase>(mockDb);
+        context.provide<String?>('system-job-processor');
+        context.provide<InternalApiKeyValidator>(
+          const InternalApiKeyValidator.forTesting(
+            environment: {'INTERNAL_API_KEY': 'test-internal-key'},
+          ),
+        );
+
+        final response = await route.onRequest(context.context);
+
+        expect(response.statusCode, HttpStatus.unauthorized);
+        verifyZeroInteractions(mockDb);
+        verifyNever(() => context.context.read<AppDatabase>());
       },
     );
 
@@ -73,10 +109,15 @@ void main() {
           path: '/builds',
           method: HttpMethod.post,
           body: 'not-a-json',
+          headers: {'Authorization': 'Bearer test-internal-key'},
         );
 
         context.provide<AppDatabase>(db);
-        context.provide<String?>('user-123');
+        context.provide<InternalApiKeyValidator>(
+          const InternalApiKeyValidator.forTesting(
+            environment: {'INTERNAL_API_KEY': 'test-internal-key'},
+          ),
+        );
 
         final response = await route.onRequest(context.context);
 
@@ -95,10 +136,15 @@ void main() {
           path: '/builds',
           method: HttpMethod.post,
           body: '"just a string"',
+          headers: {'Authorization': 'Bearer test-internal-key'},
         );
 
         context.provide<AppDatabase>(db);
-        context.provide<String?>('user-123');
+        context.provide<InternalApiKeyValidator>(
+          const InternalApiKeyValidator.forTesting(
+            environment: {'INTERNAL_API_KEY': 'test-internal-key'},
+          ),
+        );
 
         final response = await route.onRequest(context.context);
 
@@ -117,10 +163,15 @@ void main() {
           path: '/builds',
           method: HttpMethod.post,
           body: '{"invalid": "field"}',
+          headers: {'Authorization': 'Bearer test-internal-key'},
         );
 
         context.provide<AppDatabase>(db);
-        context.provide<String?>('user-123');
+        context.provide<InternalApiKeyValidator>(
+          const InternalApiKeyValidator.forTesting(
+            environment: {'INTERNAL_API_KEY': 'test-internal-key'},
+          ),
+        );
 
         final response = await route.onRequest(context.context);
 
@@ -133,7 +184,7 @@ void main() {
     );
 
     test(
-      'responds with 403 Forbidden when caller is not the internal job processor',
+      'rejects the former internal UID without a valid key',
       () async {
         final payload = {
           'id': 'job-123',
@@ -154,101 +205,118 @@ void main() {
         );
 
         context.provide<AppDatabase>(db);
-        context.provide<String?>('user-123');
-
-        final response = await route.onRequest(context.context);
-
-        expect(response.statusCode, equals(HttpStatus.forbidden));
-
-        final body = await response.json() as Map<String, dynamic>;
-        expect(body['success'], isFalse);
-        expect(body['error'], equals('Forbidden: Internal API key required'));
-      },
-    );
-
-    test(
-      'responds with 403 Forbidden even when caller is a team member',
-      () async {
-        final team = DriftTeam(
-          id: 'team-xyz',
-          name: 'Team XYZ',
-          githubBaseUrl: null,
-          installationIds: const [],
-          runNumber: 1,
-          aiEnabled: true,
-          createdAt: DateTime.now().toUtc(),
-          updatedAt: DateTime.now().toUtc(),
-        );
-
-        await db.teamDao.createTeamAndMember(team, 'user-123');
-
-        final payload = {
-          'id': 'job-123',
-          'status': 'QUEUED',
-          'owner': 'owner',
-          'repo': 'repo',
-          'workflowName': 'workflow',
-          'workflowFileName': 'ci.yml',
-          'teamId': 'team-xyz',
-          'createdAt': DateTime.now().toUtc().toIso8601String(),
-          'updatedAt': DateTime.now().toUtc().toIso8601String(),
-        };
-
-        final context = TestRequestContext(
-          path: '/builds',
-          method: HttpMethod.post,
-          body: jsonEncode(payload),
-        );
-
-        context.provide<AppDatabase>(db);
-        context.provide<String?>('user-123');
-
-        final response = await route.onRequest(context.context);
-
-        expect(response.statusCode, equals(HttpStatus.forbidden));
-
-        final body = await response.json() as Map<String, dynamic>;
-        expect(body['success'], isFalse);
-        expect(body['error'], equals('Forbidden: Internal API key required'));
-      },
-    );
-
-    test(
-      'responds with 200 OK and inserts build job for the internal job processor',
-      () async {
-        final team = DriftTeam(
-          id: 'team-xyz',
-          name: 'Team XYZ',
-          githubBaseUrl: null,
-          installationIds: const [],
-          runNumber: 1,
-          aiEnabled: true,
-          createdAt: DateTime.now().toUtc(),
-          updatedAt: DateTime.now().toUtc(),
-        );
-
-        await db.teamDao.createTeamAndMember(team, 'user-123');
-
-        final payload = {
-          'id': 'job-123',
-          'status': 'QUEUED',
-          'owner': 'owner',
-          'repo': 'repo',
-          'workflowName': 'workflow',
-          'workflowFileName': 'ci.yml',
-          'teamId': 'team-xyz',
-          'createdAt': DateTime.now().toUtc().toIso8601String(),
-          'updatedAt': DateTime.now().toUtc().toIso8601String(),
-        };
-
-        final context = TestRequestContext(
-          path: '/builds',
-          method: HttpMethod.post,
-          body: jsonEncode(payload),
-        );
-
-        context.provide<AppDatabase>(db);
         context.provide<String?>('system-job-processor');
+        context.provide<InternalApiKeyValidator>(
+          const InternalApiKeyValidator.forTesting(
+            environment: {'INTERNAL_API_KEY': 'test-internal-key'},
+          ),
+        );
+
+        final response = await route.onRequest(context.context);
+
+        expect(response.statusCode, equals(HttpStatus.unauthorized));
+
+        final body = await response.json() as Map<String, dynamic>;
+        expect(body['success'], isFalse);
+        expect(body['error'], equals('Authentication required'));
+        expect(await db.buildJobDao.getBuildJob('job-123'), isNull);
+      },
+    );
+
+    test(
+      'rejects a team member without a valid internal key',
+      () async {
+        final team = DriftTeam(
+          id: 'team-xyz',
+          name: 'Team XYZ',
+          githubBaseUrl: null,
+          installationIds: const [],
+          runNumber: 1,
+          aiEnabled: true,
+          createdAt: DateTime.now().toUtc(),
+          updatedAt: DateTime.now().toUtc(),
+        );
+
+        await db.teamDao.createTeamAndMember(team, 'user-123');
+
+        final payload = {
+          'id': 'job-123',
+          'status': 'QUEUED',
+          'owner': 'owner',
+          'repo': 'repo',
+          'workflowName': 'workflow',
+          'workflowFileName': 'ci.yml',
+          'teamId': 'team-xyz',
+          'createdAt': DateTime.now().toUtc().toIso8601String(),
+          'updatedAt': DateTime.now().toUtc().toIso8601String(),
+        };
+
+        final context = TestRequestContext(
+          path: '/builds',
+          method: HttpMethod.post,
+          body: jsonEncode(payload),
+        );
+
+        context.provide<AppDatabase>(db);
+        context.provide<String?>('user-123');
+        context.provide<InternalApiKeyValidator>(
+          const InternalApiKeyValidator.forTesting(
+            environment: {'INTERNAL_API_KEY': 'test-internal-key'},
+          ),
+        );
+
+        final response = await route.onRequest(context.context);
+
+        expect(response.statusCode, equals(HttpStatus.unauthorized));
+
+        final body = await response.json() as Map<String, dynamic>;
+        expect(body['success'], isFalse);
+        expect(body['error'], equals('Authentication required'));
+        expect(await db.buildJobDao.getBuildJob('job-123'), isNull);
+      },
+    );
+
+    test(
+      'inserts a build job with a valid internal key and no UID',
+      () async {
+        final team = DriftTeam(
+          id: 'team-xyz',
+          name: 'Team XYZ',
+          githubBaseUrl: null,
+          installationIds: const [],
+          runNumber: 1,
+          aiEnabled: true,
+          createdAt: DateTime.now().toUtc(),
+          updatedAt: DateTime.now().toUtc(),
+        );
+
+        await db.teamDao.createTeamAndMember(team, 'user-123');
+
+        final payload = {
+          'id': 'job-123',
+          'status': 'QUEUED',
+          'owner': 'owner',
+          'repo': 'repo',
+          'workflowName': 'workflow',
+          'workflowFileName': 'ci.yml',
+          'teamId': 'team-xyz',
+          'createdAt': DateTime.now().toUtc().toIso8601String(),
+          'updatedAt': DateTime.now().toUtc().toIso8601String(),
+        };
+
+        final context = TestRequestContext(
+          path: '/builds',
+          method: HttpMethod.post,
+          body: jsonEncode(payload),
+          headers: {'Authorization': 'Bearer test-internal-key'},
+        );
+
+        context.provide<AppDatabase>(db);
+        context.provide<InternalApiKeyValidator>(
+          const InternalApiKeyValidator.forTesting(
+            environment: {'INTERNAL_API_KEY': 'test-internal-key'},
+          ),
+        );
 
         final response = await route.onRequest(context.context);
 
@@ -262,6 +330,7 @@ void main() {
         expect(inserted, isNotNull);
         expect(inserted!.id, equals('job-123'));
         expect(inserted.teamId, equals('team-xyz'));
+        verifyNever(() => context.context.read<String?>());
       },
     );
 
@@ -292,10 +361,15 @@ void main() {
           path: '/builds',
           method: HttpMethod.post,
           body: jsonEncode(payload),
+          headers: {'Authorization': 'Bearer test-internal-key'},
         );
 
         context.provide<AppDatabase>(mockDb);
-        context.provide<String?>('system-job-processor');
+        context.provide<InternalApiKeyValidator>(
+          const InternalApiKeyValidator.forTesting(
+            environment: {'INTERNAL_API_KEY': 'test-internal-key'},
+          ),
+        );
 
         final response = await route.onRequest(context.context);
 
@@ -309,6 +383,25 @@ void main() {
   });
 
   group('GET /builds', () {
+    test('requires a Firebase UID even with a valid internal key', () async {
+      final context = TestRequestContext(
+        path: '/builds?teamId=team-xyz',
+        method: HttpMethod.get,
+        headers: {'Authorization': 'Bearer test-internal-key'},
+      );
+      context.provide<AppDatabase>(db);
+      context.provide<String?>(null);
+      context.provide<InternalApiKeyValidator>(
+        const InternalApiKeyValidator.forTesting(
+          environment: {'INTERNAL_API_KEY': 'test-internal-key'},
+        ),
+      );
+
+      final response = await route.onRequest(context.context);
+
+      expect(response.statusCode, HttpStatus.unauthorized);
+    });
+
     test('responds with 401 Unauthorized when uid is null', () async {
       final context = TestRequestContext(
         path: '/builds?teamId=team-xyz',
@@ -564,7 +657,14 @@ void main() {
       HttpMethod.post,
       route.onRequest,
       body: jsonEncode(databaseFailureJob.toShared().toJson()),
-      uid: 'system-job-processor',
+      headers: {'Authorization': 'Bearer test-internal-key'},
+      configure: (context) {
+        context.provide<InternalApiKeyValidator>(
+          const InternalApiKeyValidator.forTesting(
+            environment: {'INTERNAL_API_KEY': 'test-internal-key'},
+          ),
+        );
+      },
     ),
   ]);
 }
