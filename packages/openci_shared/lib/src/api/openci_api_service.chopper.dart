@@ -300,6 +300,39 @@ final class _$OpenCiApiService extends OpenCiApiService {
   }
 
   @override
+  Future<Response<Map<String, dynamic>>> seedLocalData(
+    Map<String, dynamic> body,
+  ) {
+    final Uri $url = Uri.parse('/internal/seed');
+    final $body = body;
+    final ChopperCompleter $abortTrigger = ChopperCompleter<void>();
+    final ChopperTimer $timeout = ChopperTimer(
+      const Duration(microseconds: 10000000),
+      () {
+        if (!$abortTrigger.isCompleted) $abortTrigger.complete();
+      },
+    );
+    final Request $request = Request(
+      'POST',
+      $url,
+      client.baseUrl,
+      body: $body,
+      abortTrigger: $abortTrigger.future,
+    );
+    return client
+        .send<Map<String, dynamic>, Map<String, dynamic>>($request)
+        .catchError(
+          (_) => Future<Response<Map<String, dynamic>>>.error(
+            ChopperTimeoutException('Request timed out after 10 seconds'),
+          ),
+          test: (Object err) =>
+              err is ChopperRequestAbortedException &&
+              $abortTrigger.isCompleted,
+        )
+        .whenComplete($timeout.cancel);
+  }
+
+  @override
   Future<Response<Map<String, dynamic>>> claimNextWebhookTask() {
     final Uri $url = Uri.parse('/webhooks/claim');
     final ChopperCompleter $abortTrigger = ChopperCompleter<void>();

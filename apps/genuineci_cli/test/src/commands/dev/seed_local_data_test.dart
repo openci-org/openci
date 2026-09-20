@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:cli_util/cli_logging.dart';
 import 'package:genuineci_cli/src/commands/dev/seed_local_data.dart';
@@ -39,10 +38,15 @@ void main() {
         return http.Response('{"success":true,"jobId":"job-test"}', 200);
       });
 
-      final result = await seedLocalData(
-        logger,
-        client: client,
-        environment: {'OPENCI_SERVER_URL': serverUrl},
+      final result = await http.runWithClient(
+        () => seedLocalData(
+          logger,
+          environment: {
+            'OPENCI_SERVER_URL': serverUrl,
+            'INTERNAL_API_KEY': 'test-internal-key',
+          },
+        ),
+        () => client,
       );
 
       expect(result, isTrue);
@@ -51,6 +55,7 @@ void main() {
       expect(request.method, 'POST');
       expect(request.url, Uri.parse('$serverUrl/internal/seed'));
       expect(request.headers['content-type'], 'application/json');
+      expect(request.headers['authorization'], 'Bearer test-internal-key');
       expect(jsonDecode(request.body), isEmpty);
       expect(logger.stderrMessages, isEmpty);
       expect(logger.stdoutMessages, [
@@ -59,16 +64,18 @@ void main() {
       ]);
     });
 
-    test('uses the process server URL with the default HTTP client', () async {
-      final serverUrl =
-          Platform.environment['OPENCI_SERVER_URL'] ?? 'http://localhost:8080';
+    test('uses the default server URL and HTTP client', () async {
       var requestCount = 0;
 
       final result = await http.runWithClient(
-        () => seedLocalData(logger),
+        () => seedLocalData(
+          logger,
+          environment: {'INTERNAL_API_KEY': 'test-internal-key'},
+        ),
         () => MockClient((request) async {
           requestCount++;
-          expect(request.url, Uri.parse('$serverUrl/internal/seed'));
+          expect(request.url, Uri.parse('http://localhost:8080/internal/seed'));
+          expect(request.headers['authorization'], 'Bearer test-internal-key');
           return http.Response('{"success":true,"jobId":"job-test"}', 200);
         }),
       );
@@ -85,10 +92,12 @@ void main() {
         return http.Response('seed failed', 500);
       });
 
-      final result = await seedLocalData(
-        logger,
-        client: client,
-        environment: const {},
+      final result = await http.runWithClient(
+        () => seedLocalData(
+          logger,
+          environment: const {'INTERNAL_API_KEY': 'test-internal-key'},
+        ),
+        () => client,
       );
 
       expect(result, isFalse);
@@ -102,15 +111,39 @@ void main() {
       expect(logger.stdoutMessages, ['\n${t.dev.start.stepSeed}']);
     });
 
+    test('reports rejected credentials without logging the key', () async {
+      final client = MockClient((_) async {
+        return http.Response('{"error":"Authentication required"}', 401);
+      });
+
+      final result = await http.runWithClient(
+        () => seedLocalData(
+          logger,
+          environment: {'INTERNAL_API_KEY': 'test-internal-key'},
+        ),
+        () => client,
+      );
+
+      expect(result, isFalse);
+      expect(logger.stderrMessages.single, contains('Status: 401'));
+      expect(
+        logger.stderrMessages.single,
+        isNot(contains('test-internal-key')),
+      );
+      expect(logger.stdoutMessages, ['\n${t.dev.start.stepSeed}']);
+    });
+
     test('returns false when an HTTP request throws', () async {
       final client = MockClient(
         (_) async => throw Exception('connection failed'),
       );
 
-      final result = await seedLocalData(
-        logger,
-        client: client,
-        environment: const {},
+      final result = await http.runWithClient(
+        () => seedLocalData(
+          logger,
+          environment: const {'INTERNAL_API_KEY': 'test-internal-key'},
+        ),
+        () => client,
       );
 
       expect(result, isFalse);
@@ -121,16 +154,52 @@ void main() {
     test('returns false when the seed request times out', () async {
       final client = MockClient((_) => Completer<http.Response>().future);
 
-      final result = await seedLocalData(
-        logger,
-        client: client,
-        environment: const {},
-        timeout: const Duration(milliseconds: 50),
+      final result = await http.runWithClient(
+        () => seedLocalData(
+          logger,
+          environment: const {'INTERNAL_API_KEY': 'test-internal-key'},
+          timeout: const Duration(milliseconds: 50),
+        ),
+        () => client,
       );
 
       expect(result, isFalse);
       expect(logger.stderrMessages.single, contains('TimeoutException'));
       expect(logger.stdoutMessages, ['\n${t.dev.start.stepSeed}']);
+    });
+
+    test('does not send a request when the internal key is unset', () async {
+      var requestCount = 0;
+      final client = MockClient((_) async {
+        requestCount++;
+        return http.Response('', 200);
+      });
+
+      final result = await http.runWithClient(
+        () => seedLocalData(logger, environment: {}),
+        () => client,
+      );
+
+      expect(result, isFalse);
+      expect(requestCount, 0);
+      expect(logger.stderrMessages.single, contains('INTERNAL_API_KEY'));
+    });
+
+    test('does not send a request when the internal key is empty', () async {
+      var requestCount = 0;
+      final client = MockClient((_) async {
+        requestCount++;
+        return http.Response('', 200);
+      });
+
+      final result = await http.runWithClient(
+        () => seedLocalData(logger, environment: {'INTERNAL_API_KEY': ''}),
+        () => client,
+      );
+
+      expect(result, isFalse);
+      expect(requestCount, 0);
+      expect(logger.stderrMessages.single, contains('INTERNAL_API_KEY'));
     });
   });
 }

@@ -60,6 +60,11 @@ abstract class OpenCiApiService extends ChopperService {
   @GET(path: '/devices', timeout: _timeout)
   Future<Response<List<UserDevice>>> getDevices();
 
+  @POST(path: '/internal/seed', timeout: _timeout)
+  Future<Response<Map<String, dynamic>>> seedLocalData(
+    @Body() Map<String, dynamic> body,
+  );
+
   @POST(path: '/webhooks/claim', timeout: _timeout)
   Future<Response<Map<String, dynamic>>> claimNextWebhookTask();
 

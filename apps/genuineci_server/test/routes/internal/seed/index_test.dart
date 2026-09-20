@@ -4,12 +4,14 @@ import 'dart:io';
 import 'package:dart_frog/dart_frog.dart';
 import 'package:dart_frog_test/dart_frog_test.dart';
 import 'package:drift/native.dart';
+import 'package:genuineci_server/auth/internal_api_key_validator.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:genuineci_server/database.dart';
 import 'package:openci_shared/openci_shared.dart';
 import 'package:test/test.dart';
 
+import '../../../../routes/internal/_middleware.dart' as internal;
 import '../../../../routes/internal/seed/index.dart' as route;
 import '../../../helpers/github_app_test_key.dart';
 
@@ -40,12 +42,17 @@ void main() {
     Map<String, Object?> body, {
     int githubStatus = 200,
     bool provideConfiguration = true,
-  }) {
+  }) async {
+    const validator = InternalApiKeyValidator.forTesting(
+      environment: {'INTERNAL_API_KEY': 'test-internal-key'},
+    );
     final context = TestRequestContext(
       path: '/internal/seed',
       method: HttpMethod.post,
+      headers: {'Authorization': 'Bearer test-internal-key'},
       body: jsonEncode(body),
     )..provide<AppDatabase>(db);
+    context.provide<InternalApiKeyValidator>(validator);
     if (provideConfiguration) {
       final client = MockClient((request) async {
         requests.add(request);
@@ -55,7 +62,7 @@ void main() {
       context.provide<Map<String, String>>(environment);
       context.provide<http.Client>(client);
     }
-    return route.onRequest(context.context);
+    return await internal.middleware(route.onRequest)(context.context);
   }
 
   test(

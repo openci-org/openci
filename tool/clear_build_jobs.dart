@@ -15,13 +15,22 @@ void main(List<String> args) async {
   print('🧹 Clearing build jobs via API ($serverUrl/internal/seed/jobs)...');
 
   try {
+    final internalApiKey = Platform.environment['INTERNAL_API_KEY'];
+    if (internalApiKey == null || internalApiKey.isEmpty) {
+      stderr.writeln('INTERNAL_API_KEY environment variable is required.');
+      exitCode = 1;
+      return;
+    }
     final uri = Uri.parse('$serverUrl/internal/seed/jobs').replace(
       queryParameters: {
         if (teamId.isNotEmpty) 'teamId': teamId,
       },
     );
 
-    final response = await http.delete(uri);
+    final response = await http.delete(
+      uri,
+      headers: {'Authorization': 'Bearer $internalApiKey'},
+    );
 
     if (response.statusCode >= 200 && response.statusCode < 300) {
       print('✅ Build jobs cleared successfully.');

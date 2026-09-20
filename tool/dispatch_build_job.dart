@@ -37,6 +37,12 @@ void main(List<String> args) async {
   );
 
   try {
+    final internalApiKey = Platform.environment['INTERNAL_API_KEY'];
+    if (internalApiKey == null || internalApiKey.isEmpty) {
+      stderr.writeln('INTERNAL_API_KEY environment variable is required.');
+      exitCode = 1;
+      return;
+    }
     final payload = <String, dynamic>{
       'userId': userId,
       if (teamId.isNotEmpty) 'teamId': teamId,
@@ -47,7 +53,10 @@ void main(List<String> args) async {
 
     final response = await http.post(
       Uri.parse('$serverUrl/internal/seed/jobs'),
-      headers: {'Content-Type': 'application/json'},
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $internalApiKey',
+      },
       body: jsonEncode(payload),
     );
 
@@ -58,10 +67,14 @@ void main(List<String> args) async {
       print('❌ Failed to create test build job via API!');
       print('   Status: ${response.statusCode}');
       print('   Response Body:\n${_formatJson(response.body)}');
+      exitCode = 1;
+      return;
     }
   } catch (e, st) {
     print('❌ Error connecting to genuineci-server API: $e');
     print(st);
+    exitCode = 1;
+    return;
   }
 
   print(

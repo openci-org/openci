@@ -9,6 +9,7 @@ SERVER_URL="http://localhost:8080"
 echo "🗑️  Deleting build jobs from $SERVER_URL/internal/build_jobs..."
 
 RESPONSE=$(curl -s -w "\n%{http_code}" -X DELETE "$SERVER_URL/internal/build_jobs" \
+  -H "Authorization: Bearer ${INTERNAL_API_KEY:?INTERNAL_API_KEY environment variable is required}" \
   -H "Content-Type: application/json")
 
 HTTP_BODY=$(echo "$RESPONSE" | sed '$d')

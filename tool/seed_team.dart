@@ -25,6 +25,12 @@ void main(List<String> args) async {
   print('🌱 Ensuring test team via API ($serverUrl/internal/seed/teams)...');
 
   try {
+    final internalApiKey = Platform.environment['INTERNAL_API_KEY'];
+    if (internalApiKey == null || internalApiKey.isEmpty) {
+      stderr.writeln('INTERNAL_API_KEY environment variable is required.');
+      exitCode = 1;
+      return;
+    }
     final payload = <String, dynamic>{
       'userId': userId,
       if (teamId.isNotEmpty) 'teamId': teamId,
@@ -32,7 +38,10 @@ void main(List<String> args) async {
 
     final response = await http.post(
       Uri.parse('$serverUrl/internal/seed/teams'),
-      headers: {'Content-Type': 'application/json'},
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $internalApiKey',
+      },
       body: jsonEncode(payload),
     );
 
