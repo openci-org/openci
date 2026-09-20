@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:dart_frog/dart_frog.dart';
 import 'package:http/http.dart' as http;
+import 'package:genuineci_server/auth/internal_api_key_validator.dart';
 import 'package:genuineci_server/database.dart';
 import 'package:genuineci_server/github/github_service.dart';
 import 'package:genuineci_server/request/error_handler.dart';
@@ -24,18 +25,19 @@ Future<Response> _get(
   String repo,
 ) async {
   try {
-    final db = context.read<AppDatabase>();
     final uid = context.read<String?>();
+    final validator = context.read<InternalApiKeyValidator>();
+    final hasValidInternalKey = validator.isValid(context);
 
-    if (uid == null) {
+    if (uid == null && !hasValidInternalKey) {
       return Response.json(
         statusCode: HttpStatus.unauthorized,
         body: {'success': false, 'error': 'Authentication required'},
       );
     }
 
-    final isSystem = uid == 'system-job-processor';
-    if (!isSystem) {
+    final db = context.read<AppDatabase>();
+    if (!hasValidInternalKey && uid != null) {
       final isMember = await db.teamDao.isTeamMember(uid, teamId);
       if (!isMember) {
         return Response.json(
