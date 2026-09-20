@@ -9,6 +9,7 @@ import 'package:genuineci_server/database.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:test/test.dart';
 
+import '../../../../routes/worker/_middleware.dart' as worker;
 import '../../../../routes/worker/jobs/stream.dart' as route;
 
 class _MockDatabase extends Mock implements AppDatabase {}
@@ -31,9 +32,11 @@ void main() {
     InternalApiKeyValidator validator, {
     String? uid,
   }) async {
-    final handler = ((RequestContext context) {
-      return route.handleRequest(context, validator);
-    }).use(provider<AppDatabase>((_) => db)).use(provider<String?>((_) => uid));
+    final handler = worker
+        .middleware(route.onRequest)
+        .use(provider<AppDatabase>((_) => db))
+        .use(provider<String?>((_) => uid))
+        .use(provider<InternalApiKeyValidator>((_) => validator));
     final server = await serve(handler, InternetAddress.loopbackIPv4, 0);
     addTearDown(() => server.close(force: true));
     return Uri(
