@@ -83,6 +83,9 @@ rebuilds and starts the application containers.
 
 The `/internal` seed and cleanup API is disabled by default. `genuineci dev start`
 automatically enables it by passing `ENABLE_INTERNAL_API=true` to Docker Compose.
+Requests also require `INTERNAL_API_KEY`. Export the same key configured for the
+server before using `--seed` or the seed/cleanup scripts in `tool/`; a key stored
+only in Docker Compose's `.env` file is not available to these local processes.
 
 To also queue the default smoke-test build job:
 

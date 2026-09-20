@@ -8,6 +8,35 @@ import 'package:openci_shared/openci_shared.dart';
 import 'package:test/test.dart';
 
 void main() {
+  group('OpenCiApiService internal endpoints', () {
+    test('seedLocalData sends seed options and decodes the result', () async {
+      final body = {'teamId': 'test-team', 'installationId': '42'};
+      final httpClient = MockClient((request) async {
+        expect(request.method, 'POST');
+        expect(request.url, Uri.parse('https://api.openci.test/internal/seed'));
+        expect(request.headers['content-type'], 'application/json');
+        expect(jsonDecode(request.body), body);
+        return http.Response(
+          jsonEncode({'success': true, 'jobId': 'job-test'}),
+          200,
+          headers: {'content-type': 'application/json'},
+        );
+      });
+      final client = _createClient(httpClient);
+      addTearDown(() {
+        client.dispose();
+        httpClient.close();
+      });
+
+      final response = await client
+          .getService<OpenCiApiService>()
+          .seedLocalData(body);
+
+      expect(response.isSuccessful, isTrue);
+      expect(response.body, {'success': true, 'jobId': 'job-test'});
+    });
+  });
+
   group('OpenCiApiService worker endpoints', () {
     test(
       'claimNextJob sends the payload to the worker claim endpoint',
