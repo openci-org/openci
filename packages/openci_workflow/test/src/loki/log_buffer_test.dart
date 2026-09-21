@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:genuine_ci/src/loki/log_buffer.dart';
+import 'package:openci_workflow/src/loki/log_buffer.dart';
 import 'package:test/test.dart';
 
 void main() {

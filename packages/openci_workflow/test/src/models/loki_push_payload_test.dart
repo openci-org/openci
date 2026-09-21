@@ -1,5 +1,5 @@
-import 'package:genuine_ci/src/loki/loki_labels.dart';
-import 'package:genuine_ci/src/loki/loki_push_payload.dart';
+import 'package:openci_workflow/src/loki/loki_labels.dart';
+import 'package:openci_workflow/src/loki/loki_push_payload.dart';
 import 'package:test/test.dart';
 
 void main() {

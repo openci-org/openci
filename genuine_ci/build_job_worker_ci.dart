@@ -1,4 +1,4 @@
-import 'package:genuine_ci/genuine_ci.dart';
+import 'package:openci_workflow/openci_workflow.dart';
 
 import 'paths.g.dart';
 
