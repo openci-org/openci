@@ -464,7 +464,7 @@ jobs:
           name: 'dashboard_ci.dart',
           path: 'genuine_ci/dashboard_ci.dart',
           content: '''
-import 'package:genuine_ci/genuine_ci.dart';
+import 'package:openci_workflow/openci_workflow.dart';
 
 Future<void> main() async {
   final genuineCI = await GenuineCI.init(

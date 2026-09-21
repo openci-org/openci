@@ -1,4 +1,4 @@
-import 'package:genuine_ci/src/loki/loki_labels.dart';
+import 'package:openci_workflow/src/loki/loki_labels.dart';
 import 'package:test/test.dart';
 
 void main() {
