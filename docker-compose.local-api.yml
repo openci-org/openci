@@ -1,0 +1,13 @@
+# Apply after docker-compose.yml and docker-compose.local.yml for local API use.
+services:
+  server:
+    environment:
+      GCLOUD_PROJECT: demo-openci
+      FIREBASE_AUTH_EMULATOR_HOST: firebase-auth:9099
+      GOOGLE_APPLICATION_CREDENTIALS: !reset null
+    # Replace the list to remove the production Firebase service account mount.
+    volumes: !override
+      - ./github-private-key.pem:/app/credentials/github-private-key.pem:ro
+    depends_on:
+      firebase-auth:
+        condition: service_healthy

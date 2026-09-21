@@ -46,8 +46,58 @@ vp run --filter firebase-dev check
 
 This check also runs as part of `vp run -r check` in CI.
 
-Application connections are separate follow-ups: API and `genuineci dev start`
-in [#2866](https://github.com/openci-org/openci/issues/2866), Dashboard in
+## Connect the local API
+
+Use Docker Compose 2.24.4 or later for the `!reset` and `!override` tags in
+`docker-compose.local-api.yml`. Prepare the root `.env` and
+`github-private-key.pem` required by `docker-compose.yml`; the API still needs
+its database and non-Firebase configuration.
+
+From the repository root, combine the base services, emulator, and local API
+override in this order:
+
+```sh
+docker compose \
+  -f docker-compose.yml \
+  -f docker-compose.local.yml \
+  -f docker-compose.local-api.yml \
+  config --quiet
+
+docker compose \
+  -f docker-compose.yml \
+  -f docker-compose.local.yml \
+  -f docker-compose.local-api.yml \
+  up -d --build --wait server
+```
+
+This starts the API after PostgreSQL and the Auth Emulator are healthy. It sets
+`GCLOUD_PROJECT=demo-openci` and
+`FIREBASE_AUTH_EMULATOR_HOST=firebase-auth:9099` on the API container, and removes
+both `GOOGLE_APPLICATION_CREDENTIALS` and the Firebase service account mount.
+No `firebase-service-account.json` is needed. The Admin SDK uses its existing
+emulator support.
+
+| Service       | From the host                | From the API container           |
+| ------------- | ---------------------------- | -------------------------------- |
+| API           | `http://127.0.0.1:8080`      | `http://server:8080`             |
+| Auth Emulator | `http://127.0.0.1:9099`      | `http://firebase-auth:9099`      |
+| Emulator UI   | `http://127.0.0.1:4000/auth` | `http://firebase-auth:4000/auth` |
+
+`FIREBASE_AUTH_EMULATOR_HOST` takes `host:port` without `http://`. The local
+override leaves `SERVER_ACCESS_MODE`, `ALLOWED_USER_EMAILS`, and non-Firebase
+settings unchanged. The base `docker-compose.yml` still uses the configured
+Firebase service account when this override is omitted. Use the override only
+for local development.
+
+To stop the local API and its dependencies, use the same three `-f` options with
+`stop server db firebase-auth`. The standalone emulator commands above remain
+available.
+
+## Follow-up work
+
+Automatic startup through `genuineci dev start` is tracked in
+[#2872](https://github.com/openci-org/openci/issues/2872), token-verification tests
+in [#2873](https://github.com/openci-org/openci/issues/2873), Dashboard in
 [#2867](https://github.com/openci-org/openci/issues/2867), and CLI authentication
 in [#2868](https://github.com/openci-org/openci/issues/2868) and
 [#2869](https://github.com/openci-org/openci/issues/2869). Automatic development
