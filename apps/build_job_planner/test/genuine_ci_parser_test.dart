@@ -43,7 +43,7 @@ void main() {
 
     test('successfully parses GenuineCI.init with push trigger', () {
       const source = '''
-import 'package:genuine_ci/genuine_ci.dart';
+import 'package:openci_workflow/openci_workflow.dart';
 
 Future<void> main() async {
   final genuineCI = await GenuineCI.init(
@@ -66,7 +66,7 @@ Future<void> main() async {
 
     test('successfully parses GenuineCI.init with pullRequest trigger', () {
       const source = '''
-import 'package:genuine_ci/genuine_ci.dart';
+import 'package:openci_workflow/openci_workflow.dart';
 
 Future<void> main() async {
   final genuineCI = await GenuineCI.init(
@@ -148,8 +148,8 @@ void main() {
 
     test('parses constant trigger constructors with an import prefix', () {
       final workflow = parseGenuineCiWorkflow('''
-import 'package:genuine_ci/genuine_ci.dart' show GenuineCI;
-import 'package:genuine_ci/genuine_ci.dart' as ci;
+import 'package:openci_workflow/openci_workflow.dart' show GenuineCI;
+import 'package:openci_workflow/openci_workflow.dart' as ci;
 
 Future<void> main() async {
   await GenuineCI.init(

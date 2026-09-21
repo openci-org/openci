@@ -1,8 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:genuine_ci/src/loki/push_log.dart';
 import 'package:http/http.dart' as http;
+import 'package:openci_workflow/src/loki/push_log.dart';
 import 'package:test/test.dart';
 
 void main() {

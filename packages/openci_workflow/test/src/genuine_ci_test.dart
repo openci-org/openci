@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:genuine_ci/genuine_ci.dart';
+import 'package:openci_workflow/openci_workflow.dart';
 import 'package:test/test.dart';
 
 void main() {

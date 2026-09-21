@@ -1,5 +1,5 @@
-name: genuine_ci
-description: Dart-based CI runner for OpenCI.
+name: openci_workflow
+description: Dart library for writing and running OpenCI workflows.
 publish_to: none
 version: 0.1.0
 resolution: workspace

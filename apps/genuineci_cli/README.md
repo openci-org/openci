@@ -148,7 +148,7 @@ Import the generated file in your workflow and run it from the repository root,
 as the worker does, because these paths are relative to that root:
 
 ```dart
-import 'package:genuine_ci/genuine_ci.dart';
+import 'package:openci_workflow/openci_workflow.dart';
 
 import 'paths.g.dart';
 

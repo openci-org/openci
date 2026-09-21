@@ -61,12 +61,12 @@ workspace:
   - genuine_ci
 ''');
     await addPackage('apps/frontend', 'name: dashboard\n');
-    await addPackage('packages/openci_workflow', "name: 'genuine_ci'\n");
+    await addPackage('packages/openci_workflow', "name: 'openci_workflow'\n");
     await addPackage('genuine_ci', 'name: genuine_ci_workflows\n');
 
     expect(await readWorkspacePackages(root), {
       'dashboard': 'apps/frontend',
-      'genuine_ci': 'packages/openci_workflow',
+      'openci_workflow': 'packages/openci_workflow',
       'genuine_ci_workflows': 'genuine_ci',
     });
   });
