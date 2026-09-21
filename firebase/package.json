@@ -1,0 +1,13 @@
+{
+  "name": "firebase-dev",
+  "private": true,
+  "scripts": {
+    "check": "vp lint --deny-warnings healthcheck.ts && tsc --noEmit",
+    "fmt": "vp fmt",
+    "fmt:check": "vp fmt --check"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.4",
+    "typescript": "^6.0.3"
+  }
+}

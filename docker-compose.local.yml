@@ -1,0 +1,15 @@
+# Standalone Auth Emulator. Run with -f docker-compose.local.yml.
+services:
+  firebase-auth:
+    build: ./firebase
+    ports:
+      - "127.0.0.1:9099:9099"
+      - "127.0.0.1:4000:4000"
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - /emulators/healthcheck.ts
+      interval: 2s
+      timeout: 2s
+      retries: 30

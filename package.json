@@ -2,7 +2,8 @@
   "name": "openci",
   "private": true,
   "workspaces": [
-    "apps/landing_page"
+    "apps/landing_page",
+    "firebase"
   ],
   "scripts": {
     "build": "vp run -r build",
