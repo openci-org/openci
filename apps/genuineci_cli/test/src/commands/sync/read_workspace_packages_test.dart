@@ -57,16 +57,16 @@ void main() {
 name: example
 workspace:
   - apps/frontend # The directory name differs from the package name.
-  - packages/genuine_ci
+  - packages/openci_workflow
   - genuine_ci
 ''');
     await addPackage('apps/frontend', 'name: dashboard\n');
-    await addPackage('packages/genuine_ci', "name: 'genuine_ci'\n");
+    await addPackage('packages/openci_workflow', "name: 'genuine_ci'\n");
     await addPackage('genuine_ci', 'name: genuine_ci_workflows\n');
 
     expect(await readWorkspacePackages(root), {
       'dashboard': 'apps/frontend',
-      'genuine_ci': 'packages/genuine_ci',
+      'genuine_ci': 'packages/openci_workflow',
       'genuine_ci_workflows': 'genuine_ci',
     });
   });

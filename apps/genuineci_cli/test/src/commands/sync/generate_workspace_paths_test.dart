@@ -130,7 +130,7 @@ extension type const WorkspaceRoot$Apps._(String _path) implements WorkspaceDire
       final root = buildWorkspacePathTree([
         'apps/dashboard',
         'apps/build_job_worker',
-        'packages/genuine_ci',
+        'packages/openci_workflow',
         'genuine_ci',
       ]);
 
@@ -142,8 +142,8 @@ extension type const WorkspaceRoot$Apps._(String _path) implements WorkspaceDire
       expect(apps.children['dashboard']!.path, 'apps/dashboard');
       expect(root.children['genuineCi']!.path, 'genuine_ci');
       expect(
-        root.children['packages']!.children['genuineCi']!.path,
-        'packages/genuine_ci',
+        root.children['packages']!.children['openciWorkflow']!.path,
+        'packages/openci_workflow',
       );
     });
 
@@ -178,7 +178,7 @@ extension type const WorkspaceRoot$Apps._(String _path) implements WorkspaceDire
   group('generateWorkspacePaths', () {
     test('normalizes, sorts and deduplicates equivalent workspace paths', () {
       final first = generateWorkspacePaths([
-        './packages/genuine_ci/',
+        './packages/openci_workflow/',
         'apps//dashboard',
         r'apps\dashboard',
         'apps/./dashboard',
@@ -187,7 +187,7 @@ extension type const WorkspaceRoot$Apps._(String _path) implements WorkspaceDire
       ]);
       final second = generateWorkspacePaths([
         'apps/dashboard',
-        'packages/genuine_ci',
+        'packages/openci_workflow',
       ]);
 
       expect(first, second);
@@ -243,7 +243,7 @@ extension type const WorkspaceRoot$Apps._(String _path) implements WorkspaceDire
             'apps',
             'apps/dashboard',
             'apps/build_job_worker',
-            'packages/genuine_ci',
+            'packages/openci_workflow',
             'genuine_ci',
             'foo_bar/package',
             'foo/bar/package',
@@ -264,7 +264,7 @@ void main() {
     acceptPath(WorkspacePaths.root.apps),
     acceptPath(WorkspacePaths.root.apps.dashboard),
     acceptPath(WorkspacePaths.root.apps.buildJobWorker),
-    acceptPath(WorkspacePaths.root.packages.genuineCi),
+    acceptPath(WorkspacePaths.root.packages.openciWorkflow),
     acceptPath(WorkspacePaths.root.genuineCi),
     acceptPath(WorkspacePaths.root.fooBar.package),
     acceptPath(WorkspacePaths.root.foo.bar.package),
@@ -282,7 +282,7 @@ void main() {
           'apps',
           'apps/dashboard',
           'apps/build_job_worker',
-          'packages/genuine_ci',
+          'packages/openci_workflow',
           'genuine_ci',
           'foo_bar/package',
           'foo/bar/package',

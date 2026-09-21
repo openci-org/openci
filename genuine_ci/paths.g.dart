@@ -59,15 +59,10 @@ extension type const WorkspaceRoot$Apps$GenuineciServer._(String _path) implemen
 }
 
 extension type const WorkspaceRoot$Packages._(String _path) implements WorkspaceDirectory {
-  WorkspaceRoot$Packages$GenuineCi get genuineCi => const WorkspaceRoot$Packages$GenuineCi._("packages/genuine_ci");
   WorkspaceRoot$Packages$MacosUpdater get macosUpdater => const WorkspaceRoot$Packages$MacosUpdater._("packages/macos_updater");
   WorkspaceRoot$Packages$OpenciShared get openciShared => const WorkspaceRoot$Packages$OpenciShared._("packages/openci_shared");
+  WorkspaceRoot$Packages$OpenciWorkflow get openciWorkflow => const WorkspaceRoot$Packages$OpenciWorkflow._("packages/openci_workflow");
   WorkspaceRoot$Packages$PubspecVersionHook get pubspecVersionHook => const WorkspaceRoot$Packages$PubspecVersionHook._("packages/pubspec_version_hook");
-}
-
-extension type const WorkspaceRoot$Packages$GenuineCi._(String _path) implements WorkspaceDirectory {
-  WorkspaceDirectory get lib => const WorkspaceDirectory("packages/genuine_ci/lib");
-  WorkspaceDirectory get test => const WorkspaceDirectory("packages/genuine_ci/test");
 }
 
 extension type const WorkspaceRoot$Packages$MacosUpdater._(String _path) implements WorkspaceDirectory {
@@ -81,6 +76,11 @@ extension type const WorkspaceRoot$Packages$MacosUpdater._(String _path) impleme
 extension type const WorkspaceRoot$Packages$OpenciShared._(String _path) implements WorkspaceDirectory {
   WorkspaceDirectory get lib => const WorkspaceDirectory("packages/openci_shared/lib");
   WorkspaceDirectory get test => const WorkspaceDirectory("packages/openci_shared/test");
+}
+
+extension type const WorkspaceRoot$Packages$OpenciWorkflow._(String _path) implements WorkspaceDirectory {
+  WorkspaceDirectory get lib => const WorkspaceDirectory("packages/openci_workflow/lib");
+  WorkspaceDirectory get test => const WorkspaceDirectory("packages/openci_workflow/test");
 }
 
 extension type const WorkspaceRoot$Packages$PubspecVersionHook._(String _path) implements WorkspaceDirectory {

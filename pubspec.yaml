@@ -11,7 +11,7 @@ workspace:
   - apps/genuineci_cli
   - apps/genuineci_server
   - genuine_ci
-  - packages/genuine_ci
+  - packages/openci_workflow
   - packages/macos_updater
   - packages/openci_shared
   - packages/pubspec_version_hook
