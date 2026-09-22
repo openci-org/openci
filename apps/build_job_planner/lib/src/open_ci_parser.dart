@@ -57,10 +57,10 @@ class ParsedCiTrigger {
   }
 }
 
-ParsedWorkflow? parseGenuineCiWorkflow(String source, String fileName) {
+ParsedWorkflow? parseOpenCiWorkflow(String source, String fileName) {
   try {
     final parseResult = parseString(content: source, throwIfDiagnostics: false);
-    final visitor = _GenuineCiInitVisitor(fileName);
+    final visitor = _OpenCiInitVisitor(fileName);
     parseResult.unit.accept(visitor);
     return visitor.workflow;
   } catch (_) {
@@ -68,8 +68,8 @@ ParsedWorkflow? parseGenuineCiWorkflow(String source, String fileName) {
   }
 }
 
-class _GenuineCiInitVisitor extends RecursiveAstVisitor<void> {
-  _GenuineCiInitVisitor(this.fileName);
+class _OpenCiInitVisitor extends RecursiveAstVisitor<void> {
+  _OpenCiInitVisitor(this.fileName);
 
   final String fileName;
   ParsedWorkflow? workflow;
@@ -78,12 +78,12 @@ class _GenuineCiInitVisitor extends RecursiveAstVisitor<void> {
   void visitMethodInvocation(MethodInvocation node) {
     super.visitMethodInvocation(node);
 
-    // Look for GenuineCI.init(...)
+    // Look for OpenCI.init(...)
     final target = node.target;
     final methodName = node.methodName.name;
 
     if (target is SimpleIdentifier &&
-        target.name == 'GenuineCI' &&
+        target.name == 'OpenCI' &&
         methodName == 'init') {
       _extractFromInitArgs(node.argumentList);
     }

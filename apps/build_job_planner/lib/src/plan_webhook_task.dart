@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:openci_shared/openci_shared.dart';
 
-import 'genuine_ci_parser.dart';
+import 'open_ci_parser.dart';
 import 'github_webhook_payload.dart';
 
 Future<List<BuildJobPlan>> planWebhookTask({
@@ -54,7 +54,7 @@ Future<List<BuildJobPlan>> planWebhookTask({
 
   final matchingWorkflows = rawFiles
       .map(GenuineCiFile.fromJson)
-      .map((file) => parseGenuineCiWorkflow(file.content, file.name))
+      .map((file) => parseOpenCiWorkflow(file.content, file.name))
       .whereType<ParsedWorkflow>()
       .where(
         (workflow) => workflow.matches(

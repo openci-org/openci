@@ -152,21 +152,21 @@ import 'package:openci_workflow/openci_workflow.dart';
 
 import 'paths.g.dart';
 
-final genuineCI = await GenuineCI.init(
+final openCI = await OpenCI.init(
   workflowName: 'Dashboard CI',
   ciTriggers: [CiTrigger.push(branch: 'develop')],
   currentWorkingDirectory: WorkspacePaths.root.apps.dashboard,
 );
 
-await genuineCI.flutter.staticAnalysis();
-await genuineCI.flutter.unitTests();
+await openCI.flutter.staticAnalysis();
+await openCI.flutter.unitTests();
 ```
 
-`genuineCI.flutter` uses the same working directory as `genuineCI.run()`.
+`openCI.flutter` uses the same working directory as `openCI.run()`.
 It resolves `currentWorkingDirectory` relative to the workspace root, or uses
 the workspace root when no directory is configured. Both Flutter methods also
 accept `dir`, for example
-`await genuineCI.flutter.unitTests(dir: WorkspacePaths.root.apps.dashboard);`.
+`await openCI.flutter.unitTests(dir: WorkspacePaths.root.apps.dashboard);`.
 The override is relative to the workspace root and applies only to that call;
 later calls without `dir` continue to use the configured working directory.
 

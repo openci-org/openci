@@ -110,7 +110,7 @@ void main() {
       () async {
         _stubWorkflow(api, team, '''
 Future<void> main() async {
-  await GenuineCI.init(
+  await OpenCI.init(
     workflowName: 'CI',
     ciTriggers: [
       CiTrigger.push(branch: '*'),
@@ -304,7 +304,7 @@ WebhookTask _task({required String payload, String eventType = 'push'}) {
 String _workflowSource({required String branch}) =>
     '''
 Future<void> main() async {
-  await GenuineCI.init(
+  await OpenCI.init(
     workflowName: 'CI',
     ciTriggers: [CiTrigger.push(branch: '$branch')],
   );
@@ -313,7 +313,7 @@ Future<void> main() async {
 
 const _multiTriggerWorkflowSource = '''
 Future<void> main() async {
-  await GenuineCI.init(
+  await OpenCI.init(
     workflowName: 'Dashboard CI',
     ciTriggers: [
       CiTrigger.pullRequest(branch: 'develop'),
