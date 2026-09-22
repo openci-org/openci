@@ -2,7 +2,7 @@ import 'package:build_job_planner/build_job_planner.dart';
 import 'package:test/test.dart';
 
 void main() {
-  group('parseGenuineCiWorkflow', () {
+  group('parseOpenCiWorkflow', () {
     for (final args in [
       "workflowName: 'CI'",
       "ciTriggers: [CiTrigger.push(branch: 'main')]",
@@ -21,8 +21,8 @@ void main() {
       r"workflowName: 'CI', ciTriggers: [CiTrigger.push(branch: 'release/$version')]",
     ]) {
       test('does not schedule an incomplete or dynamic definition: $args', () {
-        final workflow = parseGenuineCiWorkflow(
-          'void main() { GenuineCI.init($args); }',
+        final workflow = parseOpenCiWorkflow(
+          'void main() { OpenCI.init($args); }',
           'ci.dart',
         );
 
@@ -31,8 +31,8 @@ void main() {
     }
 
     test('ignores unrelated init calls and workflow text in comments', () {
-      final workflow = parseGenuineCiWorkflow('''
-        // GenuineCI.init(workflowName: 'Comment', ciTriggers: [CiTrigger.push(branch: '*')]);
+      final workflow = parseOpenCiWorkflow('''
+        // OpenCI.init(workflowName: 'Comment', ciTriggers: [CiTrigger.push(branch: '*')]);
         void main() {
           SomethingElse.init(workflowName: 'Other', ciTriggers: [CiTrigger.push(branch: '*')]);
         }
@@ -41,21 +41,21 @@ void main() {
       expect(workflow, isNull);
     });
 
-    test('successfully parses GenuineCI.init with push trigger', () {
+    test('successfully parses OpenCI.init with push trigger', () {
       const source = '''
 import 'package:openci_workflow/openci_workflow.dart';
 
 Future<void> main() async {
-  final genuineCI = await GenuineCI.init(
+  final openCI = await OpenCI.init(
     workflowName: 'Unit Tests',
     ciTriggers: [CiTrigger.push(branch: 'main')],
   );
 
-  await genuineCI.flutter.unitTests();
+  await openCI.flutter.unitTests();
 }
 ''';
 
-      final workflow = parseGenuineCiWorkflow(source, 'unit_test.dart');
+      final workflow = parseOpenCiWorkflow(source, 'unit_test.dart');
 
       expect(workflow, isNotNull);
       expect(workflow!.workflowName, equals('Unit Tests'));
@@ -64,19 +64,19 @@ Future<void> main() async {
       expect(workflow.ciTriggers.single.branch, equals('main'));
     });
 
-    test('successfully parses GenuineCI.init with pullRequest trigger', () {
+    test('successfully parses OpenCI.init with pullRequest trigger', () {
       const source = '''
 import 'package:openci_workflow/openci_workflow.dart';
 
 Future<void> main() async {
-  final genuineCI = await GenuineCI.init(
+  final openCI = await OpenCI.init(
     workflowName: 'PR Check',
     ciTriggers: [CiTrigger.pullRequest(branch: 'feature/*')],
   );
 }
 ''';
 
-      final workflow = parseGenuineCiWorkflow(source, 'pr_check.dart');
+      final workflow = parseOpenCiWorkflow(source, 'pr_check.dart');
 
       expect(workflow, isNotNull);
       expect(workflow!.workflowName, equals('PR Check'));
@@ -86,9 +86,9 @@ Future<void> main() async {
     });
 
     test('matches both pull requests and pushes with multiple triggers', () {
-      final workflow = parseGenuineCiWorkflow('''
+      final workflow = parseOpenCiWorkflow('''
 Future<void> main() async {
-  await GenuineCI.init(
+  await OpenCI.init(
     workflowName: 'Dashboard CI',
     ciTriggers: [
       CiTrigger.pullRequest(branch: 'develop'),
@@ -118,9 +118,9 @@ Future<void> main() async {
       "<CiTrigger>[CiTrigger.push(branch: 'main')]",
     ]) {
       test('parses constant and typed triggers: $triggers', () {
-        final workflow = parseGenuineCiWorkflow('''
+        final workflow = parseOpenCiWorkflow('''
 void main() {
-  GenuineCI.init(workflowName: 'CI', ciTriggers: $triggers);
+  OpenCI.init(workflowName: 'CI', ciTriggers: $triggers);
 }
 ''', 'ci.dart');
 
@@ -131,13 +131,14 @@ void main() {
     }
 
     for (final invocation in [
-      "GenuineCI.init(workflowName: 'CI', ciTrigger: CiTrigger.push(branch: 'main'))",
+      "GenuineCI.init(workflowName: 'CI', ciTriggers: [CiTrigger.push(branch: 'main')])",
+      "OpenCI.init(workflowName: 'CI', ciTrigger: CiTrigger.push(branch: 'main'))",
       "GenuineCi.init(workflowName: 'CI', ciTriggers: [CiTrigger.push(branch: 'main')])",
-      "GenuineCI.init(workflowName: 'CI', ciTriggers: [CITrigger.push(branch: 'main')])",
-      "GenuineCI.init(workflowName: 'CI', ciTriggers: [const CITrigger.push(branch: 'main')])",
+      "OpenCI.init(workflowName: 'CI', ciTriggers: [CITrigger.push(branch: 'main')])",
+      "OpenCI.init(workflowName: 'CI', ciTriggers: [const CITrigger.push(branch: 'main')])",
     ]) {
       test('does not schedule legacy syntax: $invocation', () {
-        final workflow = parseGenuineCiWorkflow(
+        final workflow = parseOpenCiWorkflow(
           'void main() { $invocation; }',
           'ci.dart',
         );
@@ -147,12 +148,12 @@ void main() {
     }
 
     test('parses constant trigger constructors with an import prefix', () {
-      final workflow = parseGenuineCiWorkflow('''
-import 'package:openci_workflow/openci_workflow.dart' show GenuineCI;
+      final workflow = parseOpenCiWorkflow('''
+import 'package:openci_workflow/openci_workflow.dart' show OpenCI;
 import 'package:openci_workflow/openci_workflow.dart' as ci;
 
 Future<void> main() async {
-  await GenuineCI.init(
+  await OpenCI.init(
     workflowName: 'CI',
     ciTriggers: [
       const ci.CiTrigger.pullRequest(branch: 'develop'),
@@ -177,9 +178,9 @@ Future<void> main() async {
     });
 
     test('an empty trigger list never matches an event', () {
-      final workflow = parseGenuineCiWorkflow('''
+      final workflow = parseOpenCiWorkflow('''
 void main() {
-  GenuineCI.init(workflowName: 'CI', ciTriggers: []);
+  OpenCI.init(workflowName: 'CI', ciTriggers: []);
 }
 ''', 'ci.dart');
 

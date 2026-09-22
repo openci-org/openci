@@ -9,8 +9,8 @@ import 'flutter/flutter_ci.dart';
 import 'machine_type.dart';
 import 'workspace_directory.dart';
 
-class GenuineCI {
-  GenuineCI._({
+class OpenCI {
+  OpenCI._({
     required this.workflowName,
     required this.ciTriggers,
     required this.machine,
@@ -19,7 +19,7 @@ class GenuineCI {
   }) : _runCommand = runCommand;
 
   @visibleForTesting
-  GenuineCI.forTesting({
+  OpenCI.forTesting({
     required this.workspacePath,
     this.currentWorkingDirectory,
     Future<void> Function(String command, {required String workingDirectory})
@@ -46,7 +46,7 @@ class GenuineCI {
 
   late final FlutterCi flutter = FlutterCi(run);
 
-  static Future<GenuineCI> init({
+  static Future<OpenCI> init({
     required String workflowName,
     required List<CiTrigger> ciTriggers,
     MachineType machine = MachineType.macOsLatest,
@@ -55,7 +55,7 @@ class GenuineCI {
   }) async {
     final workspace = workspacePath ?? Directory.current.path;
 
-    return GenuineCI._(
+    return OpenCI._(
       workflowName: workflowName,
       ciTriggers: List.unmodifiable(ciTriggers),
       machine: machine,

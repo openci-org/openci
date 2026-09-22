@@ -467,7 +467,7 @@ jobs:
 import 'package:openci_workflow/openci_workflow.dart';
 
 Future<void> main() async {
-  final genuineCI = await GenuineCI.init(
+  final openCI = await OpenCI.init(
     workflowName: 'Dashboard CI',
     ciTriggers: [CiTrigger.push(branch: '*')],
   );

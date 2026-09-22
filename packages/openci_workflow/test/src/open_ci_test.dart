@@ -5,35 +5,35 @@ import 'package:openci_workflow/openci_workflow.dart';
 import 'package:test/test.dart';
 
 void main() {
-  group('GenuineCI.resolveWorkingDirectory', () {
+  group('OpenCI.resolveWorkingDirectory', () {
     const workspacePath = '/tmp/genuine_ci_workspace';
-    final genuineCI = GenuineCI.forTesting(workspacePath: workspacePath);
+    final openCI = OpenCI.forTesting(workspacePath: workspacePath);
 
     test('returns workspace path when relative cwd is omitted', () {
-      expect(genuineCI.resolveWorkingDirectory(), workspacePath);
+      expect(openCI.resolveWorkingDirectory(), workspacePath);
     });
 
     test('returns workspace path when relative cwd is empty', () {
-      expect(genuineCI.resolveWorkingDirectory(''), workspacePath);
+      expect(openCI.resolveWorkingDirectory(''), workspacePath);
     });
 
     test('joins relative cwd onto the workspace path', () {
       expect(
-        genuineCI.resolveWorkingDirectory('apps/dashboard'),
+        openCI.resolveWorkingDirectory('apps/dashboard'),
         '$workspacePath${Platform.pathSeparator}apps/dashboard',
       );
     });
   });
 
-  group('GenuineCI.placeFileFromBase64', () {
+  group('OpenCI.placeFileFromBase64', () {
     late Directory workspace;
-    late GenuineCI ci;
+    late OpenCI ci;
 
     setUp(() async {
       workspace = await Directory.systemTemp.createTemp(
         'genuine-ci-place-file-',
       );
-      ci = GenuineCI.forTesting(
+      ci = OpenCI.forTesting(
         workspacePath: workspace.path,
         currentWorkingDirectory: 'another-directory',
       );
@@ -166,13 +166,13 @@ void main() {
     });
   });
 
-  group('GenuineCI.init', () {
+  group('OpenCI.init', () {
     test('retains all configured triggers as an immutable snapshot', () async {
       final triggers = [
         const CiTrigger.pullRequest(branch: 'develop'),
         const CiTrigger.push(branch: 'develop'),
       ];
-      final ci = await GenuineCI.init(
+      final ci = await OpenCI.init(
         workflowName: 'Dashboard CI',
         ciTriggers: triggers,
       );
@@ -186,7 +186,7 @@ void main() {
     });
 
     test('initializes with default current directory as workspace', () async {
-      final ci = await GenuineCI.init(
+      final ci = await OpenCI.init(
         workflowName: 'Test Workflow',
         ciTriggers: const [CiTrigger.push(branch: 'main')],
       );
@@ -197,7 +197,7 @@ void main() {
 
     test('initializes with custom workspace path', () async {
       final customPath = '${Directory.systemTemp.path}/custom_workspace';
-      final ci = await GenuineCI.init(
+      final ci = await OpenCI.init(
         workflowName: 'Test Workflow',
         ciTriggers: const [CiTrigger.push(branch: 'main')],
         workspacePath: customPath,

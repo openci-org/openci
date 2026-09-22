@@ -230,7 +230,7 @@ WebhookTask _task({String? payload}) {
 
 const _workflowSource = '''
 Future<void> main() async {
-  await GenuineCI.init(
+  await OpenCI.init(
     workflowName: 'CI',
     ciTriggers: [CiTrigger.push(branch: 'main')],
   );

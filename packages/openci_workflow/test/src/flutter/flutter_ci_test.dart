@@ -22,7 +22,7 @@ void main() {
       ]) {
         test('inherits the workflow directory: $directory', () async {
           final calls = <(String, String)>[];
-          final ci = GenuineCI.forTesting(
+          final ci = OpenCI.forTesting(
             workspacePath: workspace,
             currentWorkingDirectory: directory,
             commandRunner: (command, {required workingDirectory}) async {
@@ -46,7 +46,7 @@ void main() {
       ]) {
         test('overrides the directory for only this call: $dir', () async {
           final calls = <(String, String)>[];
-          final ci = GenuineCI.forTesting(
+          final ci = OpenCI.forTesting(
             workspacePath: workspace,
             currentWorkingDirectory: 'apps/dashboard',
             commandRunner: (command, {required workingDirectory}) async {
@@ -69,7 +69,7 @@ void main() {
 
       test('waits for the command to complete', () async {
         final completion = Completer<void>();
-        final ci = GenuineCI.forTesting(
+        final ci = OpenCI.forTesting(
           workspacePath: workspace,
           commandRunner: (_, {required workingDirectory}) => completion.future,
         );
@@ -85,7 +85,7 @@ void main() {
 
       test('propagates command failures', () async {
         final error = StateError('Could not start Flutter');
-        final ci = GenuineCI.forTesting(
+        final ci = OpenCI.forTesting(
           workspacePath: workspace,
           commandRunner: (_, {required workingDirectory}) =>
               Future.error(error),
@@ -105,12 +105,12 @@ void main() {
       directories.add(workingDirectory);
     }
 
-    final dashboard = GenuineCI.forTesting(
+    final dashboard = OpenCI.forTesting(
       workspacePath: workspace,
       currentWorkingDirectory: 'apps/dashboard',
       commandRunner: record,
     );
-    final mobile = GenuineCI.forTesting(
+    final mobile = OpenCI.forTesting(
       workspacePath: workspace,
       currentWorkingDirectory: 'apps/mobile',
       commandRunner: record,
