@@ -333,7 +333,7 @@ void main() {
         expect(files['writeWorkflow'], contains(runIds.single));
         expect(files['writeWorkflow'], contains(job.id));
         expect(files['writeWorkflow'], contains(config.lokiUrl));
-        expect(files['writeWorkflow'], contains('genuine_ci/ci.dart'));
+        expect(files['writeWorkflow'], contains('openci/ci.dart'));
         expectCompletion(BuildJobStatus.SUCCESS);
         verify(
           () => api.updateRunStatus(job.id, runIds.single, any()),

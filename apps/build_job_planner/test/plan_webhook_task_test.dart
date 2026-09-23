@@ -42,12 +42,12 @@ void main() {
         (_) async => createMockResponse([
           {
             'name': 'ci.dart',
-            'path': 'genuine_ci/ci.dart',
+            'path': 'openci/ci.dart',
             'content': _workflowSource(branch: 'main'),
           },
           {
             'name': 'develop.dart',
-            'path': 'genuine_ci/develop.dart',
+            'path': 'openci/develop.dart',
             'content': _workflowSource(branch: 'develop'),
           },
         ]),
@@ -245,7 +245,7 @@ void _stubWorkflow(OpenCIApiService api, Team team, String source) {
     (_) async => createMockResponse([
       {
         'name': 'dashboard_ci.dart',
-        'path': 'genuine_ci/dashboard_ci.dart',
+        'path': 'openci/dashboard_ci.dart',
         'content': source,
       },
     ]),

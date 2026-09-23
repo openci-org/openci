@@ -193,11 +193,7 @@ void _stubPlanning(OpenCIApiService api) {
     ),
   ).thenAnswer(
     (_) async => createMockResponse([
-      {
-        'name': 'ci.dart',
-        'path': 'genuine_ci/ci.dart',
-        'content': _workflowSource,
-      },
+      {'name': 'ci.dart', 'path': 'openci/ci.dart', 'content': _workflowSource},
     ]),
   );
 }

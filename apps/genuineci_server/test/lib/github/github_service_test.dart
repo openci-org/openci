@@ -356,7 +356,7 @@ void main() {
 
     group('fetchWorkflowContent', () {
       test(
-        'fetches Dart from genuine_ci at the commit using an existing token',
+        'fetches Dart from openci at the commit using an existing token',
         () async {
           final requests = <http.Request>[];
           const content = '// 日本語のワークフロー\nvoid main() {}\n';
@@ -386,7 +386,7 @@ void main() {
           expect(requests.single.method, 'GET');
           expect(
             requests.single.url.toString(),
-            'https://api.github.com/repos/org/mobile/contents/genuine_ci/ci.dart?ref=abc123',
+            'https://api.github.com/repos/org/mobile/contents/openci/ci.dart?ref=abc123',
           );
           expect(
             requests.single.headers['authorization'],
@@ -513,24 +513,24 @@ void main() {
         () async {
           final requests = <http.Request>[];
           const sources = {
-            'genuine_ci/ci.dart': '// ビルド\nvoid main() {}\n',
-            'genuine_ci/secrets.g.dart': 'const secretName = "API_TOKEN";\n',
+            'openci/ci.dart': '// ビルド\nvoid main() {}\n',
+            'openci/secrets.g.dart': 'const secretName = "API_TOKEN";\n',
           };
           final client = apiClient((request) {
             requests.add(request);
-            if (request.url.path.endsWith('/contents/genuine_ci')) {
+            if (request.url.path.endsWith('/contents/openci')) {
               return _jsonResponse([
                 for (final path in sources.keys)
                   {'type': 'file', 'name': path.split('/').last, 'path': path},
                 {
                   'type': 'file',
                   'name': 'README.md',
-                  'path': 'genuine_ci/README.md',
+                  'path': 'openci/README.md',
                 },
                 {
                   'type': 'dir',
                   'name': 'helpers',
-                  'path': 'genuine_ci/helpers',
+                  'path': 'openci/helpers',
                 },
               ]);
             }
@@ -553,9 +553,9 @@ void main() {
           expect(files.map((file) => file.name), ['ci.dart', 'secrets.g.dart']);
           expect({for (final file in files) file.path: file.content}, sources);
           expect(requests.map((request) => request.url.path), [
-            '/repos/org/mobile/contents/genuine_ci',
-            '/repos/org/mobile/contents/genuine_ci/ci.dart',
-            '/repos/org/mobile/contents/genuine_ci/secrets.g.dart',
+            '/repos/org/mobile/contents/openci',
+            '/repos/org/mobile/contents/openci/ci.dart',
+            '/repos/org/mobile/contents/openci/secrets.g.dart',
           ]);
           for (final request in requests) {
             expect(request.method, 'GET');
@@ -568,10 +568,12 @@ void main() {
         },
       );
 
-      test('returns no files if genuine_ci does not exist', () async {
-        final client = apiClient(
-          (_) => _jsonResponse({'message': 'Not Found'}, statusCode: 404),
-        );
+      test('returns no files if openci does not exist', () async {
+        final requestedPaths = <String>[];
+        final client = apiClient((request) {
+          requestedPaths.add(request.url.path);
+          return _jsonResponse({'message': 'Not Found'}, statusCode: 404);
+        });
 
         expect(
           await GitHubService.fetchGenuineCIFiles(
@@ -584,6 +586,7 @@ void main() {
           ),
           isEmpty,
         );
+        expect(requestedPaths, ['/repos/org/mobile/contents/openci']);
       });
 
       test(

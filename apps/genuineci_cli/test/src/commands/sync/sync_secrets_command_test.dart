@@ -63,7 +63,7 @@ void main() {
 
   setUp(() async {
     project = await Directory.systemTemp.createTemp('genuineci-sync-test-');
-    workflows = await Directory('${project.path}/genuine_ci').create();
+    workflows = await Directory('${project.path}/openci').create();
     output = File('${workflows.path}/secrets.g.dart');
     await output.writeAsString(previousSource);
     store = CredentialStore(customFilePath: '${project.path}/credentials.json');
