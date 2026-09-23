@@ -10,7 +10,7 @@ Directory? findWorkspaceRoot([Directory? startDirectory]) {
   var directory = (startDirectory ?? Directory.current).absolute;
   while (true) {
     if (File(p.join(directory.path, 'pubspec.yaml')).existsSync() &&
-        Directory(p.join(directory.path, 'genuine_ci')).existsSync()) {
+        Directory(p.join(directory.path, 'openci')).existsSync()) {
       return directory;
     }
     final parent = directory.parent;

@@ -113,17 +113,17 @@
   "sync": {
     "description": "Sync local workflow definitions with GenuineCI.",
     "paths": {
-      "description": "Generate genuine_ci/paths.g.dart from the pubspec.yaml workspace.",
+      "description": "Generate openci/paths.g.dart from the pubspec.yaml workspace.",
       "noArguments": "sync paths does not accept positional arguments.",
-      "projectRootNotFound": "No project containing pubspec.yaml and a genuine_ci directory found. Run this command from your workflow project.",
+      "projectRootNotFound": "No project containing pubspec.yaml and an openci directory found. Run this command from your workflow project.",
       "fileAccessFailed": "Could not read or write ${path}. Check that the file exists and you have permission to access it.",
       "saved": "Generated workspace paths: ${path}"
     },
     "secrets": {
-      "description": "Generate genuine_ci/secrets.g.dart from the active team's secret names.",
+      "description": "Generate openci/secrets.g.dart from the active team's secret names.",
       "noArguments": "sync secrets does not accept positional arguments.",
       "loginRequired": "Run genuineci login (or genuineci login --local) before syncing secrets.",
-      "workflowDirectoryNotFound": "No genuine_ci directory found. Run this command from your workflow project.",
+      "workflowDirectoryNotFound": "No openci directory found. Run this command from your workflow project.",
       "requestFailed": "Could not fetch secret names (HTTP ${status}).",
       "fetchFailed": "Could not fetch secret names. Check the server connection and response.",
       "saveFailed": "Could not save secrets.g.dart. Check the destination and file permissions.",

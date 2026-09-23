@@ -19,17 +19,15 @@ void main() {
 
   group('findWorkspaceRoot', () {
     test(
-      'finds the root from a package with the same name as genuine_ci',
+      'finds the root from a package with the same name as openci',
       () async {
-        final workflows = await Directory(
-          p.join(root.path, 'genuine_ci'),
-        ).create();
+        final workflows = await Directory(p.join(root.path, 'openci')).create();
         final sdk = await Directory(
-          p.join(root.path, 'packages/genuine_ci'),
+          p.join(root.path, 'packages/openci'),
         ).create(recursive: true);
         await File(
           p.join(sdk.path, 'pubspec.yaml'),
-        ).writeAsString('name: genuine_ci');
+        ).writeAsString('name: openci');
 
         for (final start in [root, workflows, sdk, sdk.parent]) {
           expect(findWorkspaceRoot(start)?.path, root.path);
@@ -39,11 +37,19 @@ void main() {
 
     test('requires both a pubspec and a workflow directory', () async {
       expect(findWorkspaceRoot(root), isNull);
-      await Directory(p.join(root.path, 'genuine_ci')).create();
+      await Directory(p.join(root.path, 'openci')).create();
       await pubspec.delete();
 
       expect(findWorkspaceRoot(root), isNull);
     });
+
+    for (final directory in ['genuine_ci', '.openci']) {
+      test('does not accept $directory as the workflow root marker', () async {
+        await Directory(p.join(root.path, directory)).create();
+
+        expect(findWorkspaceRoot(root), isNull);
+      });
+    }
   });
 
   Future<File> addPackage(String path, String content) async {
@@ -58,16 +64,16 @@ name: example
 workspace:
   - apps/frontend # The directory name differs from the package name.
   - packages/openci_workflow
-  - genuine_ci
+  - openci
 ''');
     await addPackage('apps/frontend', 'name: dashboard\n');
     await addPackage('packages/openci_workflow', "name: 'openci_workflow'\n");
-    await addPackage('genuine_ci', 'name: genuine_ci_workflows\n');
+    await addPackage('openci', 'name: openci_workflows\n');
 
     expect(await readWorkspacePackages(root), {
       'dashboard': 'apps/frontend',
       'openci_workflow': 'packages/openci_workflow',
-      'genuine_ci_workflows': 'genuine_ci',
+      'openci_workflows': 'openci',
     });
   });
 

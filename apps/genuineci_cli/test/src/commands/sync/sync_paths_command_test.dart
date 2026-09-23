@@ -31,7 +31,7 @@ void main() {
 
   setUp(() async {
     root = await Directory.systemTemp.createTemp('genuineci-sync-paths-');
-    workflows = await Directory(p.join(root.path, 'genuine_ci')).create();
+    workflows = await Directory(p.join(root.path, 'openci')).create();
     pubspec = File(p.join(root.path, 'pubspec.yaml'));
     await pubspec.writeAsString('workspace: [apps/dashboard]\n');
     final member = File(p.join(root.path, 'apps/dashboard/pubspec.yaml'));
@@ -125,6 +125,27 @@ void main() {
     },
   );
 
+  test(
+    'generates the openci accessor for the workflow workspace package',
+    () async {
+      await pubspec.writeAsString('workspace: [apps/dashboard, openci]\n');
+      await File(
+        p.join(workflows.path, 'pubspec.yaml'),
+      ).writeAsString('name: openci_workflows\n');
+
+      expect(await runSync(workingDirectory: workflows), 0);
+
+      expect(output.path, p.join(root.path, 'openci', 'paths.g.dart'));
+      expect(
+        await output.readAsString(),
+        contains(
+          'WorkspaceDirectory get openci => const WorkspaceDirectory("openci");',
+        ),
+      );
+      expect(logger.stderrMessages, isEmpty);
+    },
+  );
+
   test('removes stale fields for an empty workspace', () async {
     await pubspec.writeAsString('workspace: []\n');
 
@@ -160,11 +181,11 @@ void main() {
 
   test('does not mistake the SDK package for the workflow directory', () async {
     final sdk = await Directory(
-      p.join(root.path, 'packages/genuine_ci'),
+      p.join(root.path, 'packages/openci'),
     ).create(recursive: true);
     await File(
       p.join(sdk.path, 'pubspec.yaml'),
-    ).writeAsString('name: genuine_ci\n');
+    ).writeAsString('name: openci\n');
 
     expect(await runSync(workingDirectory: sdk), 0);
 

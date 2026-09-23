@@ -9,21 +9,18 @@ void main() {
 
   setUp(() async {
     project = await Directory.systemTemp.createTemp('genuineci-workflows-');
-    workflows = Directory('${project.path}/genuine_ci');
+    workflows = Directory('${project.path}/openci');
   });
 
   tearDown(() => project.delete(recursive: true));
 
-  test(
-    'finds genuine_ci without requiring an OpenCI server checkout',
-    () async {
-      await workflows.create();
+  test('finds openci without requiring an OpenCI server checkout', () async {
+    await workflows.create();
 
-      expect(findWorkflowDirectory(project)?.path, workflows.path);
-    },
-  );
+    expect(findWorkflowDirectory(project)?.path, workflows.path);
+  });
 
-  test('finds genuine_ci from a nested application directory', () async {
+  test('finds openci from a nested application directory', () async {
     await workflows.create();
     final nested = await Directory(
       '${project.path}/apps/example/lib',
@@ -32,7 +29,7 @@ void main() {
     expect(findWorkflowDirectory(nested)?.path, workflows.path);
   });
 
-  test('finds genuine_ci when invoked inside the workflow directory', () async {
+  test('finds openci when invoked inside the workflow directory', () async {
     final nested = await Directory(
       '${workflows.path}/helpers',
     ).create(recursive: true);
@@ -41,13 +38,13 @@ void main() {
     expect(findWorkflowDirectory(nested)?.path, workflows.path);
   });
 
-  test('prefers the nearest project with a genuine_ci directory', () async {
+  test('prefers the nearest project with an openci directory', () async {
     await workflows.create();
     final innerProject = await Directory(
       '${project.path}/examples/nested',
     ).create(recursive: true);
     final innerWorkflows = await Directory(
-      '${innerProject.path}/genuine_ci',
+      '${innerProject.path}/openci',
     ).create();
 
     expect(findWorkflowDirectory(innerProject)?.path, innerWorkflows.path);
@@ -57,7 +54,15 @@ void main() {
     expect(findWorkflowDirectory(project), isNull);
   });
 
-  test('does not treat a file named genuine_ci as a directory', () async {
+  for (final directory in ['genuine_ci', '.openci']) {
+    test('does not use $directory as the Dart workflow directory', () async {
+      await Directory('${project.path}/$directory').create();
+
+      expect(findWorkflowDirectory(project), isNull);
+    });
+  }
+
+  test('does not treat a file named openci as a directory', () async {
     await File(workflows.path).writeAsString('not a directory');
 
     expect(findWorkflowDirectory(project), isNull);

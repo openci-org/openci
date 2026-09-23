@@ -1,4 +1,4 @@
-name: genuine_ci_workflows
+name: openci_workflows
 description: OpenCI workflow scripts.
 publish_to: none
 resolution: workspace

@@ -34,7 +34,7 @@ Future<int> runWorkflow({
       fileName.split('/').contains('..') ||
       fileName.contains('\u0000')) {
     throw ArgumentError(
-      'workflowFileName must be a relative path within genuine_ci.',
+      'workflowFileName must be a relative path within openci.',
     );
   }
   if ([
@@ -75,7 +75,7 @@ export GENUINE_CI_RUN_ID=${_shellQuote(runId)}
 export GENUINE_CI_BUILD_JOB_ID=${_shellQuote(job.id)}
 export LOKI_URL=${_shellQuote(vmLokiUrl)}
 flutter pub get
-flutter pub run ${_shellQuote('genuine_ci/$fileName')}
+flutter pub run ${_shellQuote('openci/$fileName')}
 ''';
   await writeFile(
     api: api,
