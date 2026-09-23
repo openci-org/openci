@@ -178,13 +178,13 @@ void main() {
     });
 
     test(
-      'fetchGenuineCIFiles sends the exact owner and installation ID',
+      'fetchOpenCIFiles sends the exact owner and installation ID',
       () async {
         final httpClient = MockClient((request) async {
           expect(request.method, 'GET');
           expect(
             request.url.path,
-            '/teams/team-123/repositories/openci/genuine-ci-files',
+            '/teams/team-123/repositories/openci/openci-files',
           );
           expect(request.url.queryParameters, {
             'ref': 'commit-sha-123',
@@ -206,7 +206,7 @@ void main() {
 
         final response = await client
             .getService<OpenCIApiService>()
-            .fetchGenuineCIFiles(
+            .fetchOpenCIFiles(
               'team-123',
               'openci',
               'commit-sha-123',

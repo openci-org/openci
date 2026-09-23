@@ -46,10 +46,10 @@ abstract class OpenCIApiService extends ChopperService {
   );
 
   @GET(
-    path: '/teams/{teamId}/repositories/{repo}/genuine-ci-files',
+    path: '/teams/{teamId}/repositories/{repo}/openci-files',
     timeout: _timeout,
   )
-  Future<Response<List<Map<String, dynamic>>>> fetchGenuineCIFiles(
+  Future<Response<List<Map<String, dynamic>>>> fetchOpenCIFiles(
     @Path('teamId') String teamId,
     @Path('repo') String repo,
     @Query('ref') String ref, {

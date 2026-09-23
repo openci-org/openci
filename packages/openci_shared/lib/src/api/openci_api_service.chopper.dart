@@ -228,7 +228,7 @@ final class _$OpenCIApiService extends OpenCIApiService {
   }
 
   @override
-  Future<Response<List<Map<String, dynamic>>>> fetchGenuineCIFiles(
+  Future<Response<List<Map<String, dynamic>>>> fetchOpenCIFiles(
     String teamId,
     String repo,
     String ref, {
@@ -236,7 +236,7 @@ final class _$OpenCIApiService extends OpenCIApiService {
     required int installationId,
   }) {
     final Uri $url = Uri.parse(
-      '/teams/${teamId}/repositories/${repo}/genuine-ci-files',
+      '/teams/${teamId}/repositories/${repo}/openci-files',
     );
     final Map<String, dynamic> $params = <String, dynamic>{
       'ref': ref,

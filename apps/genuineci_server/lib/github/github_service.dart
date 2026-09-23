@@ -441,7 +441,7 @@ jobs:
     return content;
   }
 
-  static Future<List<OpenCIFile>> fetchGenuineCIFiles({
+  static Future<List<OpenCIFile>> fetchOpenCIFiles({
     required String owner,
     required String repo,
     required String commitSha,

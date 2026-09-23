@@ -31,7 +31,7 @@ void main() {
         () => api.getTeamByInstallationId(998877),
       ).thenAnswer((_) async => createMockResponse(team));
       when(
-        () => api.fetchGenuineCIFiles(
+        () => api.fetchOpenCIFiles(
           'team-1',
           'openci',
           'abc123',
@@ -152,7 +152,7 @@ Future<void> main() async {
 
       expect(plans, isEmpty);
       verifyNever(
-        () => api.fetchGenuineCIFiles(
+        () => api.fetchOpenCIFiles(
           any(),
           any(),
           any(),
@@ -162,12 +162,12 @@ Future<void> main() async {
       );
     });
 
-    test('returns no plans when no GenuineCI files exist', () async {
+    test('returns no plans when no OpenCI files exist', () async {
       when(
         () => api.getTeamByInstallationId(998877),
       ).thenAnswer((_) async => createMockResponse(team));
       when(
-        () => api.fetchGenuineCIFiles(
+        () => api.fetchOpenCIFiles(
           'team-1',
           'openci',
           'abc123',
@@ -204,12 +204,12 @@ Future<void> main() async {
       );
     });
 
-    test('throws StateError when fetching GenuineCI files fails', () async {
+    test('throws StateError when fetching OpenCI files fails', () async {
       when(
         () => api.getTeamByInstallationId(998877),
       ).thenAnswer((_) async => createMockResponse(team));
       when(
-        () => api.fetchGenuineCIFiles(
+        () => api.fetchOpenCIFiles(
           'team-1',
           'openci',
           'abc123',
@@ -234,7 +234,7 @@ void _stubWorkflow(OpenCIApiService api, Team team, String source) {
     () => api.getTeamByInstallationId(998877),
   ).thenAnswer((_) async => createMockResponse(team));
   when(
-    () => api.fetchGenuineCIFiles(
+    () => api.fetchOpenCIFiles(
       'team-1',
       'openci',
       'abc123',
