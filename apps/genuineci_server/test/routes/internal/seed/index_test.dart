@@ -118,10 +118,10 @@ void main() {
       final job = (await db.buildJobDao.getQueuedJobs()).single;
       expect(job.owner, 'openci-org');
       expect(job.repo, 'openci');
-      expect(job.commitSha, 'b6ab255a62ca0c5216ec67c4b251c7b1732bd290');
+      expect(job.commitSha, '5cb05f76d8941ea1edc3593eb753ce808f0f290e');
       expect(job.workflowName, 'Build job worker smoke');
       expect(job.workflowFileName, 'worker_smoke.dart');
-      expect(job.branch, 'test/build-job-worker-smoke');
+      expect(job.branch, 'test/build-job-worker-smoke-openci');
       expect(job.runsOn, 'macos-latest');
       expect(job.teamId, 'test-team');
       expect(job.installationId, '42');

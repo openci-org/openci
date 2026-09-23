@@ -405,9 +405,7 @@ jobs:
     final query = ref != null && ref.isNotEmpty
         ? '?ref=${Uri.encodeComponent(ref)}'
         : '';
-    final directory = workflowFileName.endsWith('.dart')
-        ? 'genuine_ci'
-        : '.openci';
+    final directory = workflowFileName.endsWith('.dart') ? 'openci' : '.openci';
     final url =
         '$githubApiBaseUrlStr/repos/$owner/$repo/contents/$directory/$workflowFileName$query';
 
@@ -462,7 +460,7 @@ jobs:
       return [
         const GenuineCIFile(
           name: 'dashboard_ci.dart',
-          path: 'genuine_ci/dashboard_ci.dart',
+          path: 'openci/dashboard_ci.dart',
           content: '''
 import 'package:openci_workflow/openci_workflow.dart';
 
@@ -509,7 +507,7 @@ Future<void> main() async {
     }
 
     try {
-      final contents = await getContents('genuine_ci');
+      final contents = await getContents('openci');
 
       final files = <GenuineCIFile>[];
       if (contents.isDirectory && contents.tree != null) {

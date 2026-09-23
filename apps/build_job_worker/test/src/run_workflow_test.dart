@@ -93,6 +93,34 @@ void main() {
   });
 
   group('runWorkflow', () {
+    for (final (name, invocation) in [
+      ('ci.dart', "flutter pub run 'openci/ci.dart'"),
+      (
+        'checks/unit tests.dart',
+        "flutter pub run 'openci/checks/unit tests.dart'",
+      ),
+      (
+        "checks/team's tests.dart",
+        r"flutter pub run 'openci/checks/team'\''s tests.dart'",
+      ),
+    ]) {
+      test(
+        'executes $name from openci relative to the checkout root',
+        () async {
+          job = job.copyWith(workflowFileName: name);
+
+          expect(await run(), 0);
+
+          final encodedScript = RegExp(
+            r"printf %s '([^']*)' \| base64 -d",
+          ).firstMatch(commands[1])!.group(1)!;
+          final script = utf8.decode(base64Decode(encodedScript));
+          expect(script, contains("cd '/tmp/workspace'\n"));
+          expect(script, contains('flutter pub get\n$invocation\n'));
+        },
+      );
+    }
+
     for (final exitCode in [0, 23]) {
       test(
         'returns exit code $exitCode after forwarding workflow logs',
@@ -184,7 +212,13 @@ void main() {
       });
     }
 
-    for (final name in ['', '../ci.dart', '/ci.dart', 'ci\u0000.dart']) {
+    for (final name in [
+      '',
+      '../ci.dart',
+      'checks/../../ci.dart',
+      '/ci.dart',
+      'ci\u0000.dart',
+    ]) {
       test(
         'rejects an invalid workflow path before contacting Orchard',
         () async {

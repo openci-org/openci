@@ -86,7 +86,7 @@ void main() {
     int definitionsStatus = 200,
     HttpMethod method = HttpMethod.get,
   }) async {
-    final directory = fileName.endsWith('.dart') ? 'genuine_ci' : '.openci';
+    final directory = fileName.endsWith('.dart') ? 'openci' : '.openci';
     final client = MockClient((request) async {
       if (request.method == 'POST') {
         expect(
@@ -102,11 +102,11 @@ void main() {
       expect(request.url.path, startsWith(prefix));
       final file = request.url.path.substring(prefix.length);
       requestedFiles.add(file);
-      if (file == 'genuine_ci/secrets.g.dart' && definitionsStatus != 200) {
+      if (file == 'openci/secrets.g.dart' && definitionsStatus != 200) {
         return http.Response('Not found', definitionsStatus);
       }
       final content = switch (file) {
-        'genuine_ci/secrets.g.dart' => definitions,
+        'openci/secrets.g.dart' => definitions,
         _ when file == '$directory/$fileName' => workflow,
         _ => throw StateError('Unexpected GitHub request: $file'),
       };
@@ -206,8 +206,8 @@ void main() {
           'GITHUB_TOKEN=$token\nASC_KEY=test-asc-value',
         );
         expect(requestedFiles, [
-          'genuine_ci/ci.dart',
-          'genuine_ci/secrets.g.dart',
+          'openci/ci.dart',
+          'openci/secrets.g.dart',
         ]);
       });
     }
@@ -222,7 +222,7 @@ void main() {
         expect(response.statusCode, 200);
         final body = await response.json() as Map<String, dynamic>;
         expect(body['secretsContent'], 'GITHUB_TOKEN=$token');
-        expect(requestedFiles, ['genuine_ci/ci.dart']);
+        expect(requestedFiles, ['openci/ci.dart']);
       },
     );
 
@@ -252,8 +252,8 @@ void main() {
 
       expect(response.statusCode, 500);
       expect(requestedFiles, [
-        'genuine_ci/ci.dart',
-        'genuine_ci/secrets.g.dart',
+        'openci/ci.dart',
+        'openci/secrets.g.dart',
       ]);
     });
 
@@ -262,8 +262,8 @@ void main() {
 
       expect(response.statusCode, 500);
       expect(requestedFiles, [
-        'genuine_ci/ci.dart',
-        'genuine_ci/secrets.g.dart',
+        'openci/ci.dart',
+        'openci/secrets.g.dart',
       ]);
     });
 

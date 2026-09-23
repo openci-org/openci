@@ -94,8 +94,9 @@ genuineci dev start --seed
 ```
 
 The server seeds `test-team` and one `macos-latest` job for
-`openci-org/openci`'s `genuine_ci/worker_smoke.dart`, pinned to commit
-`b6ab255a62ca0c5216ec67c4b251c7b1732bd290` on `test/build-job-worker-smoke`.
+`openci-org/openci`'s `openci/worker_smoke.dart`, pinned to commit
+`5cb05f76d8941ea1edc3593eb753ce808f0f290e` on
+`test/build-job-worker-smoke-openci`.
 The workflow checks macOS and Flutter versions and runs the worker's unit tests.
 It uses this fixed fixture, not uncommitted files in your local checkout.
 
@@ -123,8 +124,8 @@ genuineci sync secrets
 ```
 
 The command uses the active credential profile and finds the nearest ancestor
-containing a `genuine_ci` directory, starting from the current directory. It
-replaces `genuine_ci/secrets.g.dart` with getters that read environment variables
+containing an `openci` directory, starting from the current directory. It
+replaces `openci/secrets.g.dart` with getters that read environment variables
 at workflow runtime. Secret values are never downloaded or written to this file.
 Run it again after adding or removing secrets. Fetch or generation failures leave
 the existing file unchanged.
@@ -137,7 +138,7 @@ genuineci sync paths
 
 Run this from your workflow project or one of its subdirectories. The command
 reads the `workspace` list in the root `pubspec.yaml` and each listed package's
-`name`, then writes `genuine_ci/paths.g.dart` following the directory hierarchy.
+`name`, then writes `openci/paths.g.dart` following the directory hierarchy.
 For example, `apps/build_job_worker` becomes
 `WorkspacePaths.root.apps.buildJobWorker`. Directory names determine the getters;
 package names are used to validate the workspace. Run it again after adding,

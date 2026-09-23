@@ -133,8 +133,7 @@ Future<Response> _get(
     return handleRouteException(
       e,
       s,
-      logMessage:
-          'Failed to fetch genuine_ci files for team $teamId, repo $repo',
+      logMessage: 'Failed to fetch openci files for team $teamId, repo $repo',
     );
   }
 }

@@ -5,8 +5,8 @@ import 'package:http/http.dart' as http;
 import 'package:genuineci_server/database.dart';
 import 'package:genuineci_server/github/github_service.dart';
 
-// Pin the smoke-test fixture so local worker verification is reproducible.
-const _smokeCommitSha = 'b6ab255a62ca0c5216ec67c4b251c7b1732bd290';
+// Pin the openci/worker_smoke.dart fixture for reproducible local verification.
+const _smokeCommitSha = '5cb05f76d8941ea1edc3593eb753ce808f0f290e';
 
 Future<Response> onRequest(RequestContext context) async {
   if (context.request.method != HttpMethod.post) {
@@ -78,7 +78,8 @@ Future<Response> onRequest(RequestContext context) async {
       commitMessage:
           bodyJson['commitMessage'] as String? ??
           'feat: Test build job created by seed',
-      branch: bodyJson['branch'] as String? ?? 'test/build-job-worker-smoke',
+      branch:
+          bodyJson['branch'] as String? ?? 'test/build-job-worker-smoke-openci',
     );
 
     return Response.json(

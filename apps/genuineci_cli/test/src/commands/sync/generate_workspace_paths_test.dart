@@ -44,7 +44,7 @@ extension type const WorkspaceRoot$Apps._(String _path) implements WorkspaceDire
     const cases = {
       'dashboard': 'dashboard',
       'build_job_worker': 'buildJobWorker',
-      'genuine_ci': 'genuineCI',
+      'openci': 'openci',
       'flutter_ci': 'flutterCI',
       'OpenCI': 'openCI',
       'CI_tools': 'ciTools',
@@ -138,16 +138,16 @@ extension type const WorkspaceRoot$Apps._(String _path) implements WorkspaceDire
         'apps/dashboard',
         'apps/build_job_worker',
         'packages/openci_workflow',
-        'genuine_ci',
+        'openci',
       ]);
 
       expect(root.path, '.');
-      expect(root.children.keys, ['apps', 'genuineCI', 'packages']);
+      expect(root.children.keys, ['apps', 'openci', 'packages']);
       final apps = root.children['apps']!;
       expect(apps.path, 'apps');
       expect(apps.children.keys, ['buildJobWorker', 'dashboard']);
       expect(apps.children['dashboard']!.path, 'apps/dashboard');
-      expect(root.children['genuineCI']!.path, 'genuine_ci');
+      expect(root.children['openci']!.path, 'openci');
       expect(
         root.children['packages']!.children['openciWorkflow']!.path,
         'packages/openci_workflow',
@@ -251,7 +251,7 @@ extension type const WorkspaceRoot$Apps._(String _path) implements WorkspaceDire
             'apps/dashboard',
             'apps/build_job_worker',
             'packages/openci_workflow',
-            'genuine_ci/workflows',
+            'openci/workflows',
             'ci/tools',
             'ci_tools/scripts',
             'foo_bar/package',
@@ -268,7 +268,7 @@ import 'paths.g.dart';
 String acceptPath(WorkspaceDirectory path) => path;
 
 void main() {
-  final WorkspaceRoot\$GenuineCI genuineCI = WorkspacePaths.root.genuineCI;
+  final WorkspaceRoot\$Openci openci = WorkspacePaths.root.openci;
   final WorkspaceRoot\$CI ci = WorkspacePaths.root.ci;
   final WorkspaceRoot\$CITools ciTools = WorkspacePaths.root.ciTools;
   print(jsonEncode([
@@ -277,8 +277,8 @@ void main() {
     acceptPath(WorkspacePaths.root.apps.dashboard),
     acceptPath(WorkspacePaths.root.apps.buildJobWorker),
     acceptPath(WorkspacePaths.root.packages.openciWorkflow),
-    acceptPath(genuineCI),
-    acceptPath(genuineCI.workflows),
+    acceptPath(openci),
+    acceptPath(openci.workflows),
     acceptPath(ci.tools),
     acceptPath(ciTools.scripts),
     acceptPath(WorkspacePaths.root.fooBar.package),
@@ -298,8 +298,8 @@ void main() {
           'apps/dashboard',
           'apps/build_job_worker',
           'packages/openci_workflow',
-          'genuine_ci',
-          'genuine_ci/workflows',
+          'openci',
+          'openci/workflows',
           'ci/tools',
           'ci_tools/scripts',
           'foo_bar/package',
