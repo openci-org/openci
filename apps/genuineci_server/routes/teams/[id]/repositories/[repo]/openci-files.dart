@@ -119,7 +119,7 @@ Future<Response> _get(
       client = null;
     }
 
-    final files = await GitHubService.fetchGenuineCIFiles(
+    final files = await GitHubService.fetchOpenCIFiles(
       owner: owner,
       repo: repo,
       commitSha: ref,
@@ -133,7 +133,7 @@ Future<Response> _get(
     return handleRouteException(
       e,
       s,
-      logMessage: 'Failed to fetch openci files for team $teamId, repo $repo',
+      logMessage: 'Failed to fetch OpenCI files for team $teamId, repo $repo',
     );
   }
 }

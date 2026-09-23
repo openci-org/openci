@@ -37,7 +37,7 @@ Future<List<BuildJobPlan>> planWebhookTask({
     );
   }
 
-  final filesResponse = await api.fetchGenuineCIFiles(
+  final filesResponse = await api.fetchOpenCIFiles(
     team.id,
     event.repo,
     event.commitSha,
@@ -47,7 +47,7 @@ Future<List<BuildJobPlan>> planWebhookTask({
   final rawFiles = filesResponse.body;
   if (!filesResponse.isSuccessful || rawFiles == null) {
     throw StateError(
-      'Failed to fetch GenuineCI files for ${event.owner}/${event.repo}: '
+      'Failed to fetch OpenCI files for ${event.owner}/${event.repo}: '
       'HTTP ${filesResponse.statusCode} - ${filesResponse.error}',
     );
   }

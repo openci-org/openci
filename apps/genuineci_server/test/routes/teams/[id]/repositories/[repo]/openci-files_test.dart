@@ -16,7 +16,7 @@ import 'package:test/test.dart';
 
 import '../../../../../helpers/database_failure_checks.dart';
 import '../../../../../helpers/github_app_test_key.dart';
-import '../../../../../../routes/teams/[id]/repositories/[repo]/genuine-ci-files.dart'
+import '../../../../../../routes/teams/[id]/repositories/[repo]/openci-files.dart'
     as route;
 
 class _MockRequestContext extends Mock implements RequestContext {}
@@ -28,7 +28,7 @@ class _MockAppDatabase extends Mock implements AppDatabase {}
 class _MockTeamDao extends Mock implements TeamDao {}
 
 void main() {
-  group('GET /teams/[id]/repositories/[repo]/genuine-ci-files', () {
+  group('GET /teams/[id]/repositories/[repo]/openci-files', () {
     late RequestContext context;
     late Request request;
     late AppDatabase db;
@@ -57,7 +57,7 @@ void main() {
       when(() => context.read<http.Client>()).thenReturn(client);
       when(() => request.uri).thenReturn(
         Uri.parse(
-          'http://localhost/teams/team123/repositories/my-repo/genuine-ci-files?ref=main',
+          'http://localhost/teams/team123/repositories/my-repo/openci-files?ref=main',
         ),
       );
     });
@@ -102,7 +102,7 @@ void main() {
     }
   });
 
-  group('GenuineCI file retrieval', () {
+  group('OpenCI file retrieval', () {
     late AppDatabase db;
     late Directory tempDirectory;
     late Map<String, String> environment;
@@ -125,7 +125,7 @@ void main() {
           );
 
       tempDirectory = Directory.systemTemp.createTempSync(
-        'genuine-ci-files-test-',
+        'openci-files-test-',
       );
       final privateKeyFile = File(
         p.join(tempDirectory.path, 'private-key.pem'),
@@ -167,7 +167,7 @@ void main() {
       final context = _requestContext(
         db: db,
         path:
-            '/teams/team-123/repositories/openci/genuine-ci-files'
+            '/teams/team-123/repositories/openci/openci-files'
             '?ref=commit-sha-123&owner=openci-org&installationId=998877',
         environment: environment,
         client: client,
@@ -199,7 +199,7 @@ void main() {
         final context = _requestContext(
           db: db,
           path:
-              '/teams/team-123/repositories/openci/genuine-ci-files'
+              '/teams/team-123/repositories/openci/openci-files'
               '?ref=commit-sha-123&owner=openci-org&installationId=998877',
           environment: environment,
           client: client,
@@ -242,7 +242,7 @@ void main() {
         final context = _requestContext(
           db: db,
           path:
-              '/teams/team-123/repositories/openci/genuine-ci-files?owner=openci-org&installationId=not-a-number',
+              '/teams/team-123/repositories/openci/openci-files?owner=openci-org&installationId=not-a-number',
           environment: environment,
           client: client,
         );
@@ -260,7 +260,7 @@ void main() {
       final context = _requestContext(
         db: db,
         path:
-            '/teams/team-123/repositories/openci/genuine-ci-files'
+            '/teams/team-123/repositories/openci/openci-files'
             '?ref=commit-sha-123&installationId=998877',
         environment: environment,
       );
@@ -282,7 +282,7 @@ void main() {
       final context = _requestContext(
         db: db,
         path:
-            '/teams/team-123/repositories/openci/genuine-ci-files'
+            '/teams/team-123/repositories/openci/openci-files'
             '?ref=commit-sha-123&owner=openci-org',
         environment: environment,
       );
@@ -304,7 +304,7 @@ void main() {
       final context = _requestContext(
         db: db,
         path:
-            '/teams/team-123/repositories/openci/genuine-ci-files'
+            '/teams/team-123/repositories/openci/openci-files'
             '?ref=commit-sha-123&owner=openci-org&installationId=123456',
         environment: environment,
       );
@@ -325,7 +325,7 @@ void main() {
 
   testDatabaseFailures([
     DatabaseFailureEndpoint(
-      '/teams/team-1/repositories/repo/genuine-ci-files',
+      '/teams/team-1/repositories/repo/openci-files',
       HttpMethod.get,
       (c) => route.onRequest(c, 'team-1', 'repo'),
       configure: (context) {

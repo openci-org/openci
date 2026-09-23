@@ -184,7 +184,7 @@ void _stubPlanning(OpenCIApiService api) {
     ),
   );
   when(
-    () => api.fetchGenuineCIFiles(
+    () => api.fetchOpenCIFiles(
       'team-1',
       'openci',
       'abc123',
