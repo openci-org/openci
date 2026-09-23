@@ -3,7 +3,7 @@
 // ignore_for_file: type=lint
 // ignore_for_file: unused_element, deprecated_member_use, deprecated_member_use_from_same_package, use_function_type_syntax_for_parameters, unnecessary_const, avoid_init_to_null, invalid_override_different_default_values_named, prefer_expression_function_bodies, annotate_overrides, invalid_annotation_target, unnecessary_question_mark
 
-part of 'genuine_ci_file.dart';
+part of 'open_ci_file.dart';
 
 // **************************************************************************
 // FreezedGenerator
@@ -13,22 +13,22 @@ part of 'genuine_ci_file.dart';
 T _$identity<T>(T value) => value;
 
 /// @nodoc
-mixin _$GenuineCIFile {
+mixin _$OpenCIFile {
 
  String get name; String get path; String get content;
-/// Create a copy of GenuineCIFile
+/// Create a copy of OpenCIFile
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
 @pragma('vm:prefer-inline')
-$GenuineCIFileCopyWith<GenuineCIFile> get copyWith => _$GenuineCIFileCopyWithImpl<GenuineCIFile>(this as GenuineCIFile, _$identity);
+$OpenCIFileCopyWith<OpenCIFile> get copyWith => _$OpenCIFileCopyWithImpl<OpenCIFile>(this as OpenCIFile, _$identity);
 
-  /// Serializes this GenuineCIFile to a JSON map.
+  /// Serializes this OpenCIFile to a JSON map.
   Map<String, dynamic> toJson();
 
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is GenuineCIFile&&(identical(other.name, name) || other.name == name)&&(identical(other.path, path) || other.path == path)&&(identical(other.content, content) || other.content == content));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is OpenCIFile&&(identical(other.name, name) || other.name == name)&&(identical(other.path, path) || other.path == path)&&(identical(other.content, content) || other.content == content));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -37,15 +37,15 @@ int get hashCode => Object.hash(runtimeType,name,path,content);
 
 @override
 String toString() {
-  return 'GenuineCIFile(name: $name, path: $path, content: $content)';
+  return 'OpenCIFile(name: $name, path: $path, content: $content)';
 }
 
 
 }
 
 /// @nodoc
-abstract mixin class $GenuineCIFileCopyWith<$Res>  {
-  factory $GenuineCIFileCopyWith(GenuineCIFile value, $Res Function(GenuineCIFile) _then) = _$GenuineCIFileCopyWithImpl;
+abstract mixin class $OpenCIFileCopyWith<$Res>  {
+  factory $OpenCIFileCopyWith(OpenCIFile value, $Res Function(OpenCIFile) _then) = _$OpenCIFileCopyWithImpl;
 @useResult
 $Res call({
  String name, String path, String content
@@ -56,14 +56,14 @@ $Res call({
 
 }
 /// @nodoc
-class _$GenuineCIFileCopyWithImpl<$Res>
-    implements $GenuineCIFileCopyWith<$Res> {
-  _$GenuineCIFileCopyWithImpl(this._self, this._then);
+class _$OpenCIFileCopyWithImpl<$Res>
+    implements $OpenCIFileCopyWith<$Res> {
+  _$OpenCIFileCopyWithImpl(this._self, this._then);
 
-  final GenuineCIFile _self;
-  final $Res Function(GenuineCIFile) _then;
+  final OpenCIFile _self;
+  final $Res Function(OpenCIFile) _then;
 
-/// Create a copy of GenuineCIFile
+/// Create a copy of OpenCIFile
 /// with the given fields replaced by the non-null parameter values.
 @pragma('vm:prefer-inline') @override $Res call({Object? name = null,Object? path = null,Object? content = null,}) {
   return _then(_self.copyWith(
@@ -77,8 +77,8 @@ as String,
 }
 
 
-/// Adds pattern-matching-related methods to [GenuineCIFile].
-extension GenuineCIFilePatterns on GenuineCIFile {
+/// Adds pattern-matching-related methods to [OpenCIFile].
+extension OpenCIFilePatterns on OpenCIFile {
 /// A variant of `map` that fallback to returning `orElse`.
 ///
 /// It is equivalent to doing:
@@ -91,10 +91,10 @@ extension GenuineCIFilePatterns on GenuineCIFile {
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _GenuineCIFile value)?  $default,{required TResult orElse(),}){
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _OpenCIFile value)?  $default,{required TResult orElse(),}){
 final _that = this;
 switch (_that) {
-case _GenuineCIFile() when $default != null:
+case _OpenCIFile() when $default != null:
 return $default(_that);case _:
   return orElse();
 
@@ -113,10 +113,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _GenuineCIFile value)  $default,){
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _OpenCIFile value)  $default,){
 final _that = this;
 switch (_that) {
-case _GenuineCIFile():
+case _OpenCIFile():
 return $default(_that);case _:
   throw StateError('Unexpected subclass');
 
@@ -134,10 +134,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _GenuineCIFile value)?  $default,){
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _OpenCIFile value)?  $default,){
 final _that = this;
 switch (_that) {
-case _GenuineCIFile() when $default != null:
+case _OpenCIFile() when $default != null:
 return $default(_that);case _:
   return null;
 
@@ -157,7 +157,7 @@ return $default(_that);case _:
 
 @optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String name,  String path,  String content)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
-case _GenuineCIFile() when $default != null:
+case _OpenCIFile() when $default != null:
 return $default(_that.name,_that.path,_that.content);case _:
   return orElse();
 
@@ -178,7 +178,7 @@ return $default(_that.name,_that.path,_that.content);case _:
 
 @optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String name,  String path,  String content)  $default,) {final _that = this;
 switch (_that) {
-case _GenuineCIFile():
+case _OpenCIFile():
 return $default(_that.name,_that.path,_that.content);case _:
   throw StateError('Unexpected subclass');
 
@@ -198,7 +198,7 @@ return $default(_that.name,_that.path,_that.content);case _:
 
 @optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String name,  String path,  String content)?  $default,) {final _that = this;
 switch (_that) {
-case _GenuineCIFile() when $default != null:
+case _OpenCIFile() when $default != null:
 return $default(_that.name,_that.path,_that.content);case _:
   return null;
 
@@ -210,28 +210,28 @@ return $default(_that.name,_that.path,_that.content);case _:
 /// @nodoc
 @JsonSerializable()
 
-class _GenuineCIFile implements GenuineCIFile {
-  const _GenuineCIFile({required this.name, required this.path, required this.content});
-  factory _GenuineCIFile.fromJson(Map<String, dynamic> json) => _$GenuineCIFileFromJson(json);
+class _OpenCIFile implements OpenCIFile {
+  const _OpenCIFile({required this.name, required this.path, required this.content});
+  factory _OpenCIFile.fromJson(Map<String, dynamic> json) => _$OpenCIFileFromJson(json);
 
 @override final  String name;
 @override final  String path;
 @override final  String content;
 
-/// Create a copy of GenuineCIFile
+/// Create a copy of OpenCIFile
 /// with the given fields replaced by the non-null parameter values.
 @override @JsonKey(includeFromJson: false, includeToJson: false)
 @pragma('vm:prefer-inline')
-_$GenuineCIFileCopyWith<_GenuineCIFile> get copyWith => __$GenuineCIFileCopyWithImpl<_GenuineCIFile>(this, _$identity);
+_$OpenCIFileCopyWith<_OpenCIFile> get copyWith => __$OpenCIFileCopyWithImpl<_OpenCIFile>(this, _$identity);
 
 @override
 Map<String, dynamic> toJson() {
-  return _$GenuineCIFileToJson(this, );
+  return _$OpenCIFileToJson(this, );
 }
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _GenuineCIFile&&(identical(other.name, name) || other.name == name)&&(identical(other.path, path) || other.path == path)&&(identical(other.content, content) || other.content == content));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _OpenCIFile&&(identical(other.name, name) || other.name == name)&&(identical(other.path, path) || other.path == path)&&(identical(other.content, content) || other.content == content));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -240,15 +240,15 @@ int get hashCode => Object.hash(runtimeType,name,path,content);
 
 @override
 String toString() {
-  return 'GenuineCIFile(name: $name, path: $path, content: $content)';
+  return 'OpenCIFile(name: $name, path: $path, content: $content)';
 }
 
 
 }
 
 /// @nodoc
-abstract mixin class _$GenuineCIFileCopyWith<$Res> implements $GenuineCIFileCopyWith<$Res> {
-  factory _$GenuineCIFileCopyWith(_GenuineCIFile value, $Res Function(_GenuineCIFile) _then) = __$GenuineCIFileCopyWithImpl;
+abstract mixin class _$OpenCIFileCopyWith<$Res> implements $OpenCIFileCopyWith<$Res> {
+  factory _$OpenCIFileCopyWith(_OpenCIFile value, $Res Function(_OpenCIFile) _then) = __$OpenCIFileCopyWithImpl;
 @override @useResult
 $Res call({
  String name, String path, String content
@@ -259,17 +259,17 @@ $Res call({
 
 }
 /// @nodoc
-class __$GenuineCIFileCopyWithImpl<$Res>
-    implements _$GenuineCIFileCopyWith<$Res> {
-  __$GenuineCIFileCopyWithImpl(this._self, this._then);
+class __$OpenCIFileCopyWithImpl<$Res>
+    implements _$OpenCIFileCopyWith<$Res> {
+  __$OpenCIFileCopyWithImpl(this._self, this._then);
 
-  final _GenuineCIFile _self;
-  final $Res Function(_GenuineCIFile) _then;
+  final _OpenCIFile _self;
+  final $Res Function(_OpenCIFile) _then;
 
-/// Create a copy of GenuineCIFile
+/// Create a copy of OpenCIFile
 /// with the given fields replaced by the non-null parameter values.
 @override @pragma('vm:prefer-inline') $Res call({Object? name = null,Object? path = null,Object? content = null,}) {
-  return _then(_GenuineCIFile(
+  return _then(_OpenCIFile(
 name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String,path: null == path ? _self.path : path // ignore: cast_nullable_to_non_nullable
 as String,content: null == content ? _self.content : content // ignore: cast_nullable_to_non_nullable

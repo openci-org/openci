@@ -441,7 +441,7 @@ jobs:
     return content;
   }
 
-  static Future<List<GenuineCIFile>> fetchGenuineCIFiles({
+  static Future<List<OpenCIFile>> fetchGenuineCIFiles({
     required String owner,
     required String repo,
     required String commitSha,
@@ -458,7 +458,7 @@ jobs:
     if (token == 'mock-github-installation-token' ||
         token == 'mock-github-installation-token-local') {
       return [
-        const GenuineCIFile(
+        const OpenCIFile(
           name: 'dashboard_ci.dart',
           path: 'openci/dashboard_ci.dart',
           content: '''
@@ -509,7 +509,7 @@ Future<void> main() async {
     try {
       final contents = await getContents('openci');
 
-      final files = <GenuineCIFile>[];
+      final files = <OpenCIFile>[];
       if (contents.isDirectory && contents.tree != null) {
         for (final item in contents.tree!) {
           final fileName = item.name;
@@ -522,7 +522,7 @@ Future<void> main() async {
             final text = fileContents.file?.text;
             if (text != null) {
               files.add(
-                GenuineCIFile(name: fileName, path: filePath, content: text),
+                OpenCIFile(name: fileName, path: filePath, content: text),
               );
             }
           }

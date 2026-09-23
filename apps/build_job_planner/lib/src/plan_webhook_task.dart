@@ -53,7 +53,7 @@ Future<List<BuildJobPlan>> planWebhookTask({
   }
 
   final matchingWorkflows = rawFiles
-      .map(GenuineCIFile.fromJson)
+      .map(OpenCIFile.fromJson)
       .map((file) => parseOpenCIWorkflow(file.content, file.name))
       .whereType<ParsedWorkflow>()
       .where(
