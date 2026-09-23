@@ -9,7 +9,7 @@ export 'src/models/build_job_plan.dart';
 export 'src/models/build_step.dart';
 export 'src/models/cicd_commit_group.dart';
 export 'src/models/claim_job_request.dart';
-export 'src/models/genuine_ci_file.dart';
+export 'src/models/open_ci_file.dart';
 export 'src/models/loki/step_event.dart';
 export 'src/models/loki/step_log.dart';
 export 'src/models/team.dart';

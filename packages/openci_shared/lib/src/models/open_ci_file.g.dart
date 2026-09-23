@@ -1,19 +1,18 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'genuine_ci_file.dart';
+part of 'open_ci_file.dart';
 
 // **************************************************************************
 // JsonSerializableGenerator
 // **************************************************************************
 
-_GenuineCIFile _$GenuineCIFileFromJson(Map<String, dynamic> json) =>
-    _GenuineCIFile(
-      name: json['name'] as String,
-      path: json['path'] as String,
-      content: json['content'] as String,
-    );
+_OpenCIFile _$OpenCIFileFromJson(Map<String, dynamic> json) => _OpenCIFile(
+  name: json['name'] as String,
+  path: json['path'] as String,
+  content: json['content'] as String,
+);
 
-Map<String, dynamic> _$GenuineCIFileToJson(_GenuineCIFile instance) =>
+Map<String, dynamic> _$OpenCIFileToJson(_OpenCIFile instance) =>
     <String, dynamic>{
       'name': instance.name,
       'path': instance.path,
