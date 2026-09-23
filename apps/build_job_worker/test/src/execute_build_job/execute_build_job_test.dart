@@ -9,7 +9,7 @@ import 'package:openci_shared/openci_shared.dart';
 import 'package:openci_shared/test_helpers.dart';
 import 'package:test/test.dart';
 
-class _MockOpenCiApiService extends Mock implements OpenCiApiService {}
+class _MockOpenCIApiService extends Mock implements OpenCIApiService {}
 
 class _MockOrchardApiClient extends Mock implements OrchardApiClient {}
 
@@ -38,7 +38,7 @@ void main() {
   const secretsContent = 'WORKER_TEST_SECRET=test-only-value';
   const token = 'test-only-github-token';
   final sourceStack = StackTrace.fromString('Execution failed here');
-  late OpenCiApiService api;
+  late OpenCIApiService api;
   late OrchardApiClient orchardApi;
   late _TrackingClient lokiClient;
   late BuildJob job;
@@ -136,7 +136,7 @@ void main() {
   });
 
   setUp(() {
-    api = _MockOpenCiApiService();
+    api = _MockOpenCIApiService();
     orchardApi = _MockOrchardApiClient();
     events = [];
     runIds = [];

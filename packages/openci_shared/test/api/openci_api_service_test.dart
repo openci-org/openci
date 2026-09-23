@@ -8,7 +8,7 @@ import 'package:openci_shared/openci_shared.dart';
 import 'package:test/test.dart';
 
 void main() {
-  group('OpenCiApiService internal endpoints', () {
+  group('OpenCIApiService internal endpoints', () {
     test('seedLocalData sends seed options and decodes the result', () async {
       final body = {'teamId': 'test-team', 'installationId': '42'};
       final httpClient = MockClient((request) async {
@@ -29,7 +29,7 @@ void main() {
       });
 
       final response = await client
-          .getService<OpenCiApiService>()
+          .getService<OpenCIApiService>()
           .seedLocalData(body);
 
       expect(response.isSuccessful, isTrue);
@@ -37,7 +37,7 @@ void main() {
     });
   });
 
-  group('OpenCiApiService worker endpoints', () {
+  group('OpenCIApiService worker endpoints', () {
     test(
       'claimNextJob sends the payload to the worker claim endpoint',
       () async {
@@ -63,7 +63,7 @@ void main() {
         addTearDown(client.dispose);
 
         final response = await client
-            .getService<OpenCiApiService>()
+            .getService<OpenCIApiService>()
             .claimNextJob(
               body,
             );
@@ -74,7 +74,7 @@ void main() {
     );
   });
 
-  group('OpenCiApiService webhook task results', () {
+  group('OpenCIApiService webhook task results', () {
     test('completeWebhookTask sends jobs to the complete endpoint', () async {
       final body = {
         'jobs': [
@@ -113,7 +113,7 @@ void main() {
       });
 
       final response = await client
-          .getService<OpenCiApiService>()
+          .getService<OpenCIApiService>()
           .completeWebhookTask('task-123', body);
 
       expect(response.isSuccessful, isTrue);
@@ -140,7 +140,7 @@ void main() {
       addTearDown(client.dispose);
 
       final response = await client
-          .getService<OpenCiApiService>()
+          .getService<OpenCIApiService>()
           .completeWebhookTask('task-123', {'jobs': <Object?>[]});
 
       expect(response.isSuccessful, isTrue);
@@ -170,7 +170,7 @@ void main() {
       });
 
       final response = await client
-          .getService<OpenCiApiService>()
+          .getService<OpenCIApiService>()
           .failWebhookTask('task-123', body);
 
       expect(response.isSuccessful, isTrue);
@@ -178,7 +178,7 @@ void main() {
     });
 
     test(
-      'fetchGenuineCiFiles sends the exact owner and installation ID',
+      'fetchGenuineCIFiles sends the exact owner and installation ID',
       () async {
         final httpClient = MockClient((request) async {
           expect(request.method, 'GET');
@@ -205,8 +205,8 @@ void main() {
         });
 
         final response = await client
-            .getService<OpenCiApiService>()
-            .fetchGenuineCiFiles(
+            .getService<OpenCIApiService>()
+            .fetchGenuineCIFiles(
               'team-123',
               'openci',
               'commit-sha-123',
@@ -226,6 +226,6 @@ ChopperClient _createClient(http.Client httpClient, {Uri? baseUrl}) {
     baseUrl: baseUrl ?? Uri.parse('https://api.openci.test'),
     client: httpClient,
     converter: const JsonToTypeConverter(),
-    services: [OpenCiApiService.create()],
+    services: [OpenCIApiService.create()],
   );
 }

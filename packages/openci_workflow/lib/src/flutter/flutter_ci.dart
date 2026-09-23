@@ -1,5 +1,5 @@
-class FlutterCi {
-  const FlutterCi(this._run);
+class FlutterCI {
+  const FlutterCI(this._run);
 
   final Future<void> Function(String command, {String? workingDirectory}) _run;
 

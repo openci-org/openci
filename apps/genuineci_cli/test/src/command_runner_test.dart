@@ -19,11 +19,11 @@ class _RecordingLogger implements Logger {
 
 void main() {
   late _RecordingLogger logger;
-  late GenuineCiCommandRunner runner;
+  late GenuineCICommandRunner runner;
 
   setUp(() {
     logger = _RecordingLogger();
-    runner = GenuineCiCommandRunner(logger: logger);
+    runner = GenuineCICommandRunner(logger: logger);
   });
 
   group('version', () {
@@ -34,7 +34,7 @@ void main() {
         expect(result, equals(0));
         expect(
           logger.stdoutMessages,
-          equals([t.cli.version(version: genuineCiVersion)]),
+          equals([t.cli.version(version: genuineCIVersion)]),
         );
         expect(logger.stderrMessages, isEmpty);
       });
@@ -46,7 +46,7 @@ void main() {
       expect(result, equals(0));
       expect(
         logger.stdoutMessages,
-        equals([t.cli.version(version: genuineCiVersion)]),
+        equals([t.cli.version(version: genuineCIVersion)]),
       );
       expect(logger.stderrMessages, isEmpty);
     });

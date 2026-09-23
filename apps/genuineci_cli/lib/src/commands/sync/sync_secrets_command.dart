@@ -81,14 +81,14 @@ class SyncSecretsCommand extends Command<int> {
   }
 
   Future<List<String>> _fetchNames(AuthProfile profile) async {
-    final client = createOpenCiChopperClient(
+    final client = createOpenCIChopperClient(
       baseUrl: profile.serverUrl,
       tokenProvider: () => profile.token,
-      services: [OpenCiApiService.create()],
+      services: [OpenCIApiService.create()],
     );
     try {
       return await fetchSecretNames(
-        client.getService<OpenCiApiService>(),
+        client.getService<OpenCIApiService>(),
         profile.teamId,
       );
     } finally {

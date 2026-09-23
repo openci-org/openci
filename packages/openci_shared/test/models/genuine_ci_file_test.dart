@@ -4,7 +4,7 @@ import 'package:openci_shared/openci_shared.dart';
 import 'package:test/test.dart';
 
 void main() {
-  test('GenuineCiFile preserves the workflow path and source text', () {
+  test('GenuineCIFile preserves the workflow path and source text', () {
     const source = 'void main() {\n  print("CI: テスト");\n}\n';
     final json = {
       'name': 'ci.dart',
@@ -12,7 +12,7 @@ void main() {
       'content': source,
     };
 
-    final file = GenuineCiFile.fromJson(json);
+    final file = GenuineCIFile.fromJson(json);
 
     expect(file.name, 'ci.dart');
     expect(file.path, 'genuine_ci/workflows/ci.dart');

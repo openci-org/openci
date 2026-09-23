@@ -15,11 +15,11 @@ final openciApiServiceProvider = OpenciApiServiceProvider._();
 final class OpenciApiServiceProvider
     extends
         $FunctionalProvider<
-          AsyncValue<OpenCiApiService>,
-          OpenCiApiService,
-          FutureOr<OpenCiApiService>
+          AsyncValue<OpenCIApiService>,
+          OpenCIApiService,
+          FutureOr<OpenCIApiService>
         >
-    with $FutureModifier<OpenCiApiService>, $FutureProvider<OpenCiApiService> {
+    with $FutureModifier<OpenCIApiService>, $FutureProvider<OpenCIApiService> {
   OpenciApiServiceProvider._()
     : super(
         from: null,
@@ -36,14 +36,14 @@ final class OpenciApiServiceProvider
 
   @$internal
   @override
-  $FutureProviderElement<OpenCiApiService> $createElement(
+  $FutureProviderElement<OpenCIApiService> $createElement(
     $ProviderPointer pointer,
   ) => $FutureProviderElement(pointer);
 
   @override
-  FutureOr<OpenCiApiService> create(Ref ref) {
+  FutureOr<OpenCIApiService> create(Ref ref) {
     return openciApiService(ref);
   }
 }
 
-String _$openciApiServiceHash() => r'c33cdecc69a20d39d1048823fdee7fde48d7f264';
+String _$openciApiServiceHash() => r'7de91b68d9a5b5f75cbab04f265c2d2275a480cb';

@@ -48,7 +48,7 @@ void main() {
           (ref) => http.runWithClient(
             () async {
               if (apiReady != null) await apiReady;
-              final client = createOpenCiChopperClient(
+              final client = createOpenCIChopperClient(
                 baseUrl: 'https://api.openci.test',
                 tokenProvider: () => auth.currentUser.getIdToken(),
               );

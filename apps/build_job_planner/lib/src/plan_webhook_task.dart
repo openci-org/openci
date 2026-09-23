@@ -7,7 +7,7 @@ import 'github_webhook_payload.dart';
 
 Future<List<BuildJobPlan>> planWebhookTask({
   required WebhookTask task,
-  required OpenCiApiService api,
+  required OpenCIApiService api,
 }) async {
   final Map<String, dynamic> rawJson;
   try {
@@ -37,7 +37,7 @@ Future<List<BuildJobPlan>> planWebhookTask({
     );
   }
 
-  final filesResponse = await api.fetchGenuineCiFiles(
+  final filesResponse = await api.fetchGenuineCIFiles(
     team.id,
     event.repo,
     event.commitSha,
@@ -53,8 +53,8 @@ Future<List<BuildJobPlan>> planWebhookTask({
   }
 
   final matchingWorkflows = rawFiles
-      .map(GenuineCiFile.fromJson)
-      .map((file) => parseOpenCiWorkflow(file.content, file.name))
+      .map(GenuineCIFile.fromJson)
+      .map((file) => parseOpenCIWorkflow(file.content, file.name))
       .whereType<ParsedWorkflow>()
       .where(
         (workflow) => workflow.matches(

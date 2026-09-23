@@ -3,12 +3,12 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 part 'ci_trigger.freezed.dart';
 
 @freezed
-abstract class CiTrigger with _$CiTrigger {
-  const factory CiTrigger.push({
+abstract class CITrigger with _$CITrigger {
+  const factory CITrigger.push({
     required String branch,
-  }) = _PushCiTrigger;
+  }) = _PushCITrigger;
 
-  const factory CiTrigger.pullRequest({
+  const factory CITrigger.pullRequest({
     required String branch,
-  }) = _PullRequestCiTrigger;
+  }) = _PullRequestCITrigger;
 }

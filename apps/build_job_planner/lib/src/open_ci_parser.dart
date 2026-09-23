@@ -11,7 +11,7 @@ class ParsedWorkflow {
 
   final String workflowFileName;
   final String workflowName;
-  final List<ParsedCiTrigger> ciTriggers;
+  final List<ParsedCITrigger> ciTriggers;
 
   bool matches({required String eventType, required String branch}) =>
       ciTriggers.any(
@@ -19,8 +19,8 @@ class ParsedWorkflow {
       );
 }
 
-class ParsedCiTrigger {
-  const ParsedCiTrigger({required this.type, required this.branch});
+class ParsedCITrigger {
+  const ParsedCITrigger({required this.type, required this.branch});
 
   final String type; // 'push' or 'pullRequest'
   final String branch;
@@ -57,10 +57,10 @@ class ParsedCiTrigger {
   }
 }
 
-ParsedWorkflow? parseOpenCiWorkflow(String source, String fileName) {
+ParsedWorkflow? parseOpenCIWorkflow(String source, String fileName) {
   try {
     final parseResult = parseString(content: source, throwIfDiagnostics: false);
-    final visitor = _OpenCiInitVisitor(fileName);
+    final visitor = _OpenCIInitVisitor(fileName);
     parseResult.unit.accept(visitor);
     return visitor.workflow;
   } catch (_) {
@@ -68,8 +68,8 @@ ParsedWorkflow? parseOpenCiWorkflow(String source, String fileName) {
   }
 }
 
-class _OpenCiInitVisitor extends RecursiveAstVisitor<void> {
-  _OpenCiInitVisitor(this.fileName);
+class _OpenCIInitVisitor extends RecursiveAstVisitor<void> {
+  _OpenCIInitVisitor(this.fileName);
 
   final String fileName;
   ParsedWorkflow? workflow;
@@ -91,7 +91,7 @@ class _OpenCiInitVisitor extends RecursiveAstVisitor<void> {
 
   void _extractFromInitArgs(ArgumentList argumentList) {
     String? workflowName;
-    List<ParsedCiTrigger>? ciTriggers;
+    List<ParsedCITrigger>? ciTriggers;
 
     for (final argument in argumentList.arguments) {
       if (argument is NamedExpression) {
@@ -115,10 +115,10 @@ class _OpenCiInitVisitor extends RecursiveAstVisitor<void> {
     }
   }
 
-  List<ParsedCiTrigger>? _extractTriggers(Expression expression) {
+  List<ParsedCITrigger>? _extractTriggers(Expression expression) {
     if (expression is! ListLiteral) return null;
 
-    final triggers = <ParsedCiTrigger>[];
+    final triggers = <ParsedCITrigger>[];
     for (final element in expression.elements) {
       if (element is! Expression) return null;
       final trigger = _extractTrigger(element);
@@ -128,7 +128,7 @@ class _OpenCiInitVisitor extends RecursiveAstVisitor<void> {
     return triggers;
   }
 
-  ParsedCiTrigger? _extractTrigger(Expression expression) {
+  ParsedCITrigger? _extractTrigger(Expression expression) {
     String? className;
     String? triggerType;
     ArgumentList? argumentList;
@@ -137,23 +137,25 @@ class _OpenCiInitVisitor extends RecursiveAstVisitor<void> {
       final target = expression.target;
       if (target is SimpleIdentifier) {
         className = target.name;
-        triggerType = expression.methodName.name;
-        argumentList = expression.argumentList;
+      } else if (target is PrefixedIdentifier) {
+        className = target.identifier.name;
       }
+      triggerType = expression.methodName.name;
+      argumentList = expression.argumentList;
     } else if (expression is InstanceCreationExpression) {
       final constructor = expression.constructorName;
       if (constructor.name != null) {
         className = constructor.type.name.lexeme;
         triggerType = constructor.name!.name;
       } else {
-        // Before resolution, `const CiTrigger.push(...)` is a prefixed type.
+        // Before resolution, `const CITrigger.push(...)` is a prefixed type.
         className = constructor.type.importPrefix?.name.lexeme;
         triggerType = constructor.type.name.lexeme;
       }
       argumentList = expression.argumentList;
     }
 
-    if (className != 'CiTrigger' ||
+    if (className != 'CITrigger' ||
         (triggerType != 'push' && triggerType != 'pullRequest') ||
         argumentList == null) {
       return null;
@@ -163,7 +165,7 @@ class _OpenCiInitVisitor extends RecursiveAstVisitor<void> {
       if (argument is NamedExpression && argument.name.label.name == 'branch') {
         final branch = _extractStringValue(argument.expression);
         if (branch != null) {
-          return ParsedCiTrigger(type: triggerType!, branch: branch);
+          return ParsedCITrigger(type: triggerType!, branch: branch);
         }
       }
     }

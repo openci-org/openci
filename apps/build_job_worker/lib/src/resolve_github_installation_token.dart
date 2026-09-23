@@ -1,7 +1,7 @@
 import 'package:openci_shared/openci_shared.dart';
 
 Future<String> resolveGitHubInstallationToken({
-  required OpenCiApiService api,
+  required OpenCIApiService api,
   required String jobId,
 }) async {
   final bool isSuccessful;

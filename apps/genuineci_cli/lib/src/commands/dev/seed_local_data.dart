@@ -21,14 +21,14 @@ Future<bool> seedLocalData(
 
   try {
     final internalApiKey = getRequiredEnv('INTERNAL_API_KEY', environment: env);
-    final client = createOpenCiChopperClient(
+    final client = createOpenCIChopperClient(
       baseUrl: serverUrl,
       tokenProvider: () => internalApiKey,
-      services: [OpenCiApiService.create()],
+      services: [OpenCIApiService.create()],
     );
     try {
       final response = await client
-          .getService<OpenCiApiService>()
+          .getService<OpenCIApiService>()
           .seedLocalData({})
           .timeout(timeout);
       if (!response.isSuccessful) {

@@ -4,7 +4,7 @@ import 'plan_webhook_task.dart';
 
 Future<int> handleWebhookTask({
   required WebhookTask task,
-  required OpenCiApiService api,
+  required OpenCIApiService api,
 }) async {
   try {
     final plans = await planWebhookTask(task: task, api: api);
@@ -47,7 +47,7 @@ Future<int> handleWebhookTask({
 
 Future<void> _markWebhookTaskFailed({
   required WebhookTask task,
-  required OpenCiApiService api,
+  required OpenCIApiService api,
   required Object error,
 }) async {
   final response = await api.failWebhookTask(task.id, {

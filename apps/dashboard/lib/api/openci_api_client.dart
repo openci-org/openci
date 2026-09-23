@@ -5,7 +5,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 part 'openci_api_client.g.dart';
 
 @riverpod
-Future<OpenCiApiService> openciApiService(Ref ref) async {
+Future<OpenCIApiService> openciApiService(Ref ref) async {
   final client = await ref.watch(activeConnectionApiClientProvider.future);
-  return OpenCiApiService.create(client);
+  return OpenCIApiService.create(client);
 }

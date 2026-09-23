@@ -11,7 +11,7 @@ void main() {
     final container = ProviderContainer.test(
       overrides: [
         activeConnectionApiClientProvider.overrideWith((ref) async {
-          final client = createOpenCiChopperClient(
+          final client = createOpenCIChopperClient(
             baseUrl: baseUrl,
             tokenProvider: () => 'test-token',
           );

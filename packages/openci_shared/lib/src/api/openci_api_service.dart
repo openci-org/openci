@@ -8,9 +8,9 @@ import '../models/user_device.dart';
 part 'openci_api_service.chopper.dart';
 
 @ChopperApi()
-abstract class OpenCiApiService extends ChopperService {
-  static OpenCiApiService create([ChopperClient? client]) =>
-      _$OpenCiApiService(client);
+abstract class OpenCIApiService extends ChopperService {
+  static OpenCIApiService create([ChopperClient? client]) =>
+      _$OpenCIApiService(client);
 
   static const _timeout = Duration(seconds: 10);
 
@@ -49,7 +49,7 @@ abstract class OpenCiApiService extends ChopperService {
     path: '/teams/{teamId}/repositories/{repo}/genuine-ci-files',
     timeout: _timeout,
   )
-  Future<Response<List<Map<String, dynamic>>>> fetchGenuineCiFiles(
+  Future<Response<List<Map<String, dynamic>>>> fetchGenuineCIFiles(
     @Path('teamId') String teamId,
     @Path('repo') String repo,
     @Query('ref') String ref, {

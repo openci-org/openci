@@ -127,18 +127,18 @@ void main() {
   });
 
   group('fetchSecretNames', () {
-    OpenCiApiService createApi(MockClientHandler handler) {
+    OpenCIApiService createApi(MockClientHandler handler) {
       final httpClient = MockClient(handler);
       final client = http.runWithClient(
-        () => createOpenCiChopperClient(
+        () => createOpenCIChopperClient(
           baseUrl: 'http://localhost:8080',
           tokenProvider: () => 'local-test-token',
-          services: [OpenCiApiService.create()],
+          services: [OpenCIApiService.create()],
         ),
         () => httpClient,
       );
       addTearDown(client.dispose);
-      return client.getService<OpenCiApiService>();
+      return client.getService<OpenCIApiService>();
     }
 
     test('fetches names through the shared authenticated API', () async {

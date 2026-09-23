@@ -6,15 +6,15 @@ import 'package:openci_shared/openci_shared.dart';
 import 'package:openci_shared/test_helpers.dart';
 import 'package:test/test.dart';
 
-class _MockOpenCiApiService extends Mock implements OpenCiApiService {}
+class _MockOpenCIApiService extends Mock implements OpenCIApiService {}
 
 void main() {
   group('planWebhookTask', () {
-    late OpenCiApiService api;
+    late OpenCIApiService api;
     late Team team;
 
     setUp(() {
-      api = _MockOpenCiApiService();
+      api = _MockOpenCIApiService();
       team = Team(
         id: 'team-1',
         name: 'OpenCI',
@@ -31,7 +31,7 @@ void main() {
         () => api.getTeamByInstallationId(998877),
       ).thenAnswer((_) async => createMockResponse(team));
       when(
-        () => api.fetchGenuineCiFiles(
+        () => api.fetchGenuineCIFiles(
           'team-1',
           'openci',
           'abc123',
@@ -113,9 +113,9 @@ Future<void> main() async {
   await OpenCI.init(
     workflowName: 'CI',
     ciTriggers: [
-      CiTrigger.push(branch: '*'),
-      CiTrigger.push(branch: 'develop'),
-      CiTrigger.push(branch: 'develop'),
+      CITrigger.push(branch: '*'),
+      CITrigger.push(branch: 'develop'),
+      CITrigger.push(branch: 'develop'),
     ],
   );
 }
@@ -152,7 +152,7 @@ Future<void> main() async {
 
       expect(plans, isEmpty);
       verifyNever(
-        () => api.fetchGenuineCiFiles(
+        () => api.fetchGenuineCIFiles(
           any(),
           any(),
           any(),
@@ -167,7 +167,7 @@ Future<void> main() async {
         () => api.getTeamByInstallationId(998877),
       ).thenAnswer((_) async => createMockResponse(team));
       when(
-        () => api.fetchGenuineCiFiles(
+        () => api.fetchGenuineCIFiles(
           'team-1',
           'openci',
           'abc123',
@@ -209,7 +209,7 @@ Future<void> main() async {
         () => api.getTeamByInstallationId(998877),
       ).thenAnswer((_) async => createMockResponse(team));
       when(
-        () => api.fetchGenuineCiFiles(
+        () => api.fetchGenuineCIFiles(
           'team-1',
           'openci',
           'abc123',
@@ -229,12 +229,12 @@ Future<void> main() async {
   });
 }
 
-void _stubWorkflow(OpenCiApiService api, Team team, String source) {
+void _stubWorkflow(OpenCIApiService api, Team team, String source) {
   when(
     () => api.getTeamByInstallationId(998877),
   ).thenAnswer((_) async => createMockResponse(team));
   when(
-    () => api.fetchGenuineCiFiles(
+    () => api.fetchGenuineCIFiles(
       'team-1',
       'openci',
       'abc123',
@@ -306,7 +306,7 @@ String _workflowSource({required String branch}) =>
 Future<void> main() async {
   await OpenCI.init(
     workflowName: 'CI',
-    ciTriggers: [CiTrigger.push(branch: '$branch')],
+    ciTriggers: [CITrigger.push(branch: '$branch')],
   );
 }
 ''';
@@ -316,8 +316,8 @@ Future<void> main() async {
   await OpenCI.init(
     workflowName: 'Dashboard CI',
     ciTriggers: [
-      CiTrigger.pullRequest(branch: 'develop'),
-      CiTrigger.push(branch: 'develop'),
+      CITrigger.pullRequest(branch: 'develop'),
+      CITrigger.push(branch: 'develop'),
     ],
   );
 }

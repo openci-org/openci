@@ -154,7 +154,7 @@ import 'paths.g.dart';
 
 final openCI = await OpenCI.init(
   workflowName: 'Dashboard CI',
-  ciTriggers: [CiTrigger.push(branch: 'develop')],
+  ciTriggers: [CITrigger.push(branch: 'develop')],
   currentWorkingDirectory: WorkspacePaths.root.apps.dashboard,
 );
 

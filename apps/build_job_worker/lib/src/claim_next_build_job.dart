@@ -1,6 +1,6 @@
 import 'package:openci_shared/openci_shared.dart';
 
-Future<BuildJob?> claimNextBuildJob(OpenCiApiService api) async {
+Future<BuildJob?> claimNextBuildJob(OpenCIApiService api) async {
   final response = await api.claimNextJob(const {});
   if (!response.isSuccessful || response.body == null) {
     throw StateError(

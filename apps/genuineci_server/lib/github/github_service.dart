@@ -443,7 +443,7 @@ jobs:
     return content;
   }
 
-  static Future<List<GenuineCiFile>> fetchGenuineCiFiles({
+  static Future<List<GenuineCIFile>> fetchGenuineCIFiles({
     required String owner,
     required String repo,
     required String commitSha,
@@ -460,7 +460,7 @@ jobs:
     if (token == 'mock-github-installation-token' ||
         token == 'mock-github-installation-token-local') {
       return [
-        const GenuineCiFile(
+        const GenuineCIFile(
           name: 'dashboard_ci.dart',
           path: 'genuine_ci/dashboard_ci.dart',
           content: '''
@@ -469,7 +469,7 @@ import 'package:openci_workflow/openci_workflow.dart';
 Future<void> main() async {
   final openCI = await OpenCI.init(
     workflowName: 'Dashboard CI',
-    ciTriggers: [CiTrigger.push(branch: '*')],
+    ciTriggers: [CITrigger.push(branch: '*')],
   );
 }
 ''',
@@ -511,7 +511,7 @@ Future<void> main() async {
     try {
       final contents = await getContents('genuine_ci');
 
-      final files = <GenuineCiFile>[];
+      final files = <GenuineCIFile>[];
       if (contents.isDirectory && contents.tree != null) {
         for (final item in contents.tree!) {
           final fileName = item.name;
@@ -524,7 +524,7 @@ Future<void> main() async {
             final text = fileContents.file?.text;
             if (text != null) {
               files.add(
-                GenuineCiFile(name: fileName, path: filePath, content: text),
+                GenuineCIFile(name: fileName, path: filePath, content: text),
               );
             }
           }

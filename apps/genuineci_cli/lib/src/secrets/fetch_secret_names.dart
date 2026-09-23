@@ -4,7 +4,7 @@ import 'package:meta/meta.dart';
 import 'package:openci_shared/openci_shared.dart';
 
 Future<List<String>> fetchSecretNames(
-  OpenCiApiService api,
+  OpenCIApiService api,
   String teamId,
 ) async {
   final response = await api.getSecrets(Uri.encodeComponent(teamId));

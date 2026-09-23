@@ -5,15 +5,15 @@ import 'package:openci_shared/openci_shared.dart';
 import 'package:openci_shared/test_helpers.dart';
 import 'package:test/test.dart';
 
-class _MockOpenCiApiService extends Mock implements OpenCiApiService {}
+class _MockOpenCIApiService extends Mock implements OpenCIApiService {}
 
 void main() {
   group('getWebhookTask', () {
-    late OpenCiApiService api;
+    late OpenCIApiService api;
     final log = Logger('GetWebhookTaskTest');
 
     setUp(() {
-      api = _MockOpenCiApiService();
+      api = _MockOpenCIApiService();
     });
 
     for (final status in [401, 409, 503]) {

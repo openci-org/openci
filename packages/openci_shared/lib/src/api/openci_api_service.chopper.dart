@@ -9,14 +9,14 @@ part of 'openci_api_service.dart';
 
 // coverage:ignore-file
 // ignore_for_file: type=lint
-final class _$OpenCiApiService extends OpenCiApiService {
-  _$OpenCiApiService([ChopperClient? client]) {
+final class _$OpenCIApiService extends OpenCIApiService {
+  _$OpenCIApiService([ChopperClient? client]) {
     if (client == null) return;
     this.client = client;
   }
 
   @override
-  final Type definitionType = OpenCiApiService;
+  final Type definitionType = OpenCIApiService;
 
   @override
   Future<Response<List<Team>>> getTeams() {
@@ -228,7 +228,7 @@ final class _$OpenCiApiService extends OpenCiApiService {
   }
 
   @override
-  Future<Response<List<Map<String, dynamic>>>> fetchGenuineCiFiles(
+  Future<Response<List<Map<String, dynamic>>>> fetchGenuineCIFiles(
     String teamId,
     String repo,
     String ref, {
