@@ -2,17 +2,17 @@ import 'package:openci_workflow/openci_workflow.dart';
 import 'package:test/test.dart';
 
 void main() {
-  group('CiTrigger', () {
-    test('CiTrigger.push creates push trigger with branch', () {
-      const trigger = CiTrigger.push(branch: 'develop');
+  group('CITrigger', () {
+    test('CITrigger.push creates push trigger with branch', () {
+      const trigger = CITrigger.push(branch: 'develop');
       expect(trigger.branch, 'develop');
-      expect(trigger, isA<CiTrigger>());
+      expect(trigger, isA<CITrigger>());
     });
 
-    test('CiTrigger.pullRequest creates pullRequest trigger with branch', () {
-      const trigger = CiTrigger.pullRequest(branch: 'main');
+    test('CITrigger.pullRequest creates pullRequest trigger with branch', () {
+      const trigger = CITrigger.pullRequest(branch: 'main');
       expect(trigger.branch, 'main');
-      expect(trigger, isA<CiTrigger>());
+      expect(trigger, isA<CITrigger>());
     });
   });
 }

@@ -17,7 +17,7 @@ ChopperClient connectionApiClient(
   final auth = ref.watch(
     connectionFirebaseAuthProvider(profile.id, config).future,
   );
-  final client = createOpenCiChopperClient(
+  final client = createOpenCIChopperClient(
     baseUrl: profile.apiUrl,
     tokenProvider: () async => (await auth).currentUser?.getIdToken(),
   );

@@ -7,16 +7,16 @@ import 'package:openci_shared/openci_shared.dart';
 import 'package:openci_shared/test_helpers.dart';
 import 'package:test/test.dart';
 
-class _MockOpenCiApiService extends Mock implements OpenCiApiService {}
+class _MockOpenCIApiService extends Mock implements OpenCIApiService {}
 
 void main() {
-  late OpenCiApiService api;
+  late OpenCIApiService api;
   const jobId = 'job-123';
   const secret = 'test-only-secret';
   const successPayload = {'status': 'completed', 'conclusion': 'success'};
 
   setUp(() {
-    api = _MockOpenCiApiService();
+    api = _MockOpenCIApiService();
   });
 
   Future<void> complete(BuildJobStatus status) =>

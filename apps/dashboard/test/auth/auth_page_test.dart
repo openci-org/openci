@@ -27,7 +27,7 @@ void main() {
       final prefs = await SharedPreferences.getInstance();
       final requests = <http.Request>[];
       final client = http.runWithClient(
-        () => createOpenCiChopperClient(
+        () => createOpenCIChopperClient(
           baseUrl: 'https://api.example.com',
           tokenProvider: () => 'api-client-token',
         ),
@@ -50,7 +50,7 @@ void main() {
           sharedPreferencesProvider.overrideWithValue(prefs),
           firebaseAuthProvider.overrideWith((ref) async => _Auth()),
           openciApiServiceProvider.overrideWith(
-            (ref) async => OpenCiApiService.create(client),
+            (ref) async => OpenCIApiService.create(client),
           ),
           teamListProvider.overrideWith((ref) async => []),
         ],

@@ -1,7 +1,7 @@
 import 'package:openci_shared/openci_shared.dart';
 
 Future<void> completeBuildJob({
-  required OpenCiApiService api,
+  required OpenCIApiService api,
   required String jobId,
   required BuildJobStatus status,
   required DateTime completedAt,

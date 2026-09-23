@@ -40,10 +40,10 @@ Future<void> main() async {
 }
 
 Future<void> _runWorker(Config config) async {
-  final apiClient = createOpenCiChopperClient(
+  final apiClient = createOpenCIChopperClient(
     baseUrl: config.serverUrl,
     tokenProvider: () => config.internalApiKey,
-    services: [OpenCiApiService.create()],
+    services: [OpenCIApiService.create()],
   );
   OrchardApiClient? orchardApi;
   http.Client? lokiClient;
@@ -52,7 +52,7 @@ Future<void> _runWorker(Config config) async {
   try {
     orchardApi = OrchardApiClient(config: config);
     lokiClient = http.Client();
-    final api = apiClient.getService<OpenCiApiService>();
+    final api = apiClient.getService<OpenCIApiService>();
     var stopRequested = false;
 
     void requestStop(ProcessSignal signal) {

@@ -6,7 +6,7 @@ import 'package:test/test.dart';
 
 void main() {
   const workspace = '/tmp/genuine-ci-workspace';
-  final commands = <String, Future<void> Function(FlutterCi, {String? dir})>{
+  final commands = <String, Future<void> Function(FlutterCI, {String? dir})>{
     'flutter analyze': (flutter, {dir}) => flutter.staticAnalysis(dir: dir),
     'flutter test': (flutter, {dir}) => flutter.unitTests(dir: dir),
   };

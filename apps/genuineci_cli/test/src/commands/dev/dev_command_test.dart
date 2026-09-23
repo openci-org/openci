@@ -2,10 +2,10 @@ import 'package:genuineci_cli/genuineci_cli.dart';
 import 'package:test/test.dart';
 
 void main() {
-  late GenuineCiCommandRunner runner;
+  late GenuineCICommandRunner runner;
 
   setUp(() {
-    runner = GenuineCiCommandRunner();
+    runner = GenuineCICommandRunner();
   });
 
   test('dev command is registered with name dev and valid description', () {

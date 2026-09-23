@@ -26,7 +26,7 @@ class TokenAuthInterceptor implements Interceptor {
   }
 }
 
-ChopperClient createOpenCiChopperClient({
+ChopperClient createOpenCIChopperClient({
   required String baseUrl,
   required FutureOr<String?> Function() tokenProvider,
   List<ChopperService> services = const [],

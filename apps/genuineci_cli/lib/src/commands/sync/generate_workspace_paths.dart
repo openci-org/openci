@@ -55,7 +55,7 @@ WorkspacePathNode buildWorkspacePathTree(Iterable<String> paths) {
         field,
         () => WorkspacePathNode(
           childPath,
-          '${node.typeName}\$${field[0].toUpperCase()}${field.substring(1)}',
+          '${node.typeName}\$${_capitalizeDirectoryIdentifier(field)}',
         ),
       );
     }
@@ -80,11 +80,7 @@ String workspaceDirectoryNameToField(String name) {
       .toList();
   final field = words.isEmpty
       ? ''
-      : words.first +
-            words
-                .skip(1)
-                .map((word) => word[0].toUpperCase() + word.substring(1))
-                .join();
+      : words.first + words.skip(1).map(_capitalizeDirectoryIdentifier).join();
   if (!RegExp(r'^[a-z]').hasMatch(field) || _reservedFields.contains(field)) {
     throw FormatException(
       'Directory ${jsonEncode(name)} cannot be used as a Dart field. '
@@ -92,6 +88,13 @@ String workspaceDirectoryNameToField(String name) {
     );
   }
   return field;
+}
+
+String _capitalizeDirectoryIdentifier(String identifier) {
+  if (identifier == 'ci' || RegExp(r'^ci[A-Z]').hasMatch(identifier)) {
+    return 'CI${identifier.substring(2)}';
+  }
+  return identifier[0].toUpperCase() + identifier.substring(1);
 }
 
 void validateWorkspacePath(String path) {

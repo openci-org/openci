@@ -18,7 +18,7 @@ import 'report_step_event.dart';
 import 'report_step_log.dart';
 
 Future<BuildJobStatus> executeBuildJob({
-  required OpenCiApiService api,
+  required OpenCIApiService api,
   required OrchardApiClient orchardApi,
   required http.Client lokiClient,
   required Config config,

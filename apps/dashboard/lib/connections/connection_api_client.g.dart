@@ -67,7 +67,7 @@ final class ConnectionApiClientProvider
 }
 
 String _$connectionApiClientHash() =>
-    r'0ffec14480220c8006511ac238f1f64f6df68eea';
+    r'ded431dafc35855d11fbff302d518464266d39c5';
 
 final class ConnectionApiClientFamily extends $Family
     with

@@ -112,8 +112,8 @@ void main() {
     final selfHostedClient = clientFor(selfHosted);
 
     await Future.wait([
-      OpenCiApiService.create(cloudClient).getTeams(),
-      OpenCiApiService.create(selfHostedClient).getTeams(),
+      OpenCIApiService.create(cloudClient).getTeams(),
+      OpenCIApiService.create(selfHostedClient).getTeams(),
     ]);
 
     expect(requests, hasLength(2));
@@ -130,7 +130,7 @@ void main() {
   });
 
   test('reads the current user and token on every request', () async {
-    final api = OpenCiApiService.create(clientFor(selfHosted));
+    final api = OpenCIApiService.create(clientFor(selfHosted));
     await api.getTeams();
 
     (selfHostedAuth.currentUser! as _User).token = 'renewed-token';
@@ -155,8 +155,8 @@ void main() {
     );
 
     expect(updated, isNot(same(original)));
-    await OpenCiApiService.create(original).getTeams();
-    await OpenCiApiService.create(updated).getTeams();
+    await OpenCIApiService.create(original).getTeams();
+    await OpenCIApiService.create(updated).getTeams();
 
     expect(requests.map((request) => request.url.host), [
       'self-hosted.example.com',
@@ -171,7 +171,7 @@ void main() {
   test('waits for profile authentication before sending', () async {
     final ready = Completer<FirebaseAuth>();
     selfHostedAuthResult = ready.future;
-    final api = OpenCiApiService.create(clientFor(selfHosted));
+    final api = OpenCIApiService.create(clientFor(selfHosted));
     final response = api.getTeams();
     await Future<void>.delayed(Duration.zero);
     expect(requests, isEmpty);
@@ -187,7 +187,7 @@ void main() {
   test('token errors prevent the request from being sent', () async {
     final error = StateError('Token refresh failed');
     (selfHostedAuth.currentUser! as _User).error = error;
-    final api = OpenCiApiService.create(clientFor(selfHosted));
+    final api = OpenCIApiService.create(clientFor(selfHosted));
 
     await expectLater(api.getTeams(), throwsA(same(error)));
     expect(requests, isEmpty);

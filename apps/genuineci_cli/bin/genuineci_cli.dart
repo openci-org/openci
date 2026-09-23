@@ -6,7 +6,7 @@ import 'package:genuineci_cli/genuineci_cli.dart';
 Future<void> main(List<String> arguments) async {
   await initI18n();
 
-  final runner = GenuineCiCommandRunner();
+  final runner = GenuineCICommandRunner();
   try {
     final exitCode = await runner.run(arguments);
     if (exitCode != null && exitCode != 0) {

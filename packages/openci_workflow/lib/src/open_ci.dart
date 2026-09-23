@@ -27,13 +27,13 @@ class OpenCI {
         runCommand,
   }) : _runCommand = commandRunner,
        workflowName = 'test',
-       ciTriggers = const [CiTrigger.push(branch: 'test')],
+       ciTriggers = const [CITrigger.push(branch: 'test')],
        machine = MachineType.macOsLatest;
 
   final String workflowName;
 
   /// Events that can start this workflow. Any matching trigger schedules a run.
-  final List<CiTrigger> ciTriggers;
+  final List<CITrigger> ciTriggers;
   final MachineType machine;
   final String? currentWorkingDirectory;
   final String workspacePath;
@@ -44,11 +44,11 @@ class OpenCI {
   })
   _runCommand;
 
-  late final FlutterCi flutter = FlutterCi(run);
+  late final FlutterCI flutter = FlutterCI(run);
 
   static Future<OpenCI> init({
     required String workflowName,
-    required List<CiTrigger> ciTriggers,
+    required List<CITrigger> ciTriggers,
     MachineType machine = MachineType.macOsLatest,
     String? currentWorkingDirectory,
     String? workspacePath,

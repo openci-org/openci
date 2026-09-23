@@ -1,7 +1,7 @@
 import 'package:openci_shared/openci_shared.dart';
 
 Future<void> createBuildRun({
-  required OpenCiApiService api,
+  required OpenCIApiService api,
   required String jobId,
   required String runId,
 }) async {

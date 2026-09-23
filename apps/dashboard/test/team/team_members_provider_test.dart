@@ -27,7 +27,7 @@ void main() {
     requests = [];
     response = jsonResponse({'members': []});
     final client = http.runWithClient(
-      () => createOpenCiChopperClient(
+      () => createOpenCIChopperClient(
         baseUrl: 'https://api.example.com',
         tokenProvider: () => 'api-client-token',
       ),
@@ -42,7 +42,7 @@ void main() {
       overrides: [
         selectedTeamProvider.overrideWith((ref) => selectedTeam.future),
         openciApiServiceProvider.overrideWith(
-          (ref) async => OpenCiApiService.create(client),
+          (ref) async => OpenCIApiService.create(client),
         ),
       ],
     );

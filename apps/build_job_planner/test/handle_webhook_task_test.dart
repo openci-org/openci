@@ -6,14 +6,14 @@ import 'package:openci_shared/openci_shared.dart';
 import 'package:openci_shared/test_helpers.dart';
 import 'package:test/test.dart';
 
-class _MockOpenCiApiService extends Mock implements OpenCiApiService {}
+class _MockOpenCIApiService extends Mock implements OpenCIApiService {}
 
 void main() {
   group('handleWebhookTask', () {
-    late OpenCiApiService api;
+    late OpenCIApiService api;
 
     setUp(() {
-      api = _MockOpenCiApiService();
+      api = _MockOpenCIApiService();
     });
 
     test('completes the task with serialized build job plans', () async {
@@ -170,7 +170,7 @@ void main() {
   });
 }
 
-void _stubPlanning(OpenCiApiService api) {
+void _stubPlanning(OpenCIApiService api) {
   when(() => api.getTeamByInstallationId(998877)).thenAnswer(
     (_) async => createMockResponse(
       Team(
@@ -184,7 +184,7 @@ void _stubPlanning(OpenCiApiService api) {
     ),
   );
   when(
-    () => api.fetchGenuineCiFiles(
+    () => api.fetchGenuineCIFiles(
       'team-1',
       'openci',
       'abc123',
@@ -232,7 +232,7 @@ const _workflowSource = '''
 Future<void> main() async {
   await OpenCI.init(
     workflowName: 'CI',
-    ciTriggers: [CiTrigger.push(branch: 'main')],
+    ciTriggers: [CITrigger.push(branch: 'main')],
   );
 }
 ''';

@@ -32,14 +32,14 @@ class ListSecretsCommand extends Command<int> {
     final profile = await _readProfile();
     if (profile == null) return 1;
 
-    final client = createOpenCiChopperClient(
+    final client = createOpenCIChopperClient(
       baseUrl: profile.serverUrl,
       tokenProvider: () => profile.token,
-      services: [OpenCiApiService.create()],
+      services: [OpenCIApiService.create()],
     );
     try {
       final names = await fetchSecretNames(
-        client.getService<OpenCiApiService>(),
+        client.getService<OpenCIApiService>(),
         profile.teamId,
       );
       names.sort();

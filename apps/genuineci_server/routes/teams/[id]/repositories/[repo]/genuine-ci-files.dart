@@ -119,7 +119,7 @@ Future<Response> _get(
       client = null;
     }
 
-    final files = await GitHubService.fetchGenuineCiFiles(
+    final files = await GitHubService.fetchGenuineCIFiles(
       owner: owner,
       repo: repo,
       commitSha: ref,

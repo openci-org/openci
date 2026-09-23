@@ -1,7 +1,7 @@
 import 'package:logging/logging.dart';
 import 'package:openci_shared/openci_shared.dart';
 
-Future<WebhookTask?> getWebhookTask(OpenCiApiService api, Logger log) async {
+Future<WebhookTask?> getWebhookTask(OpenCIApiService api, Logger log) async {
   final response = await api.claimNextWebhookTask();
   if (!response.isSuccessful || response.body == null) {
     throw StateError(

@@ -507,7 +507,7 @@ void main() {
       );
     });
 
-    group('fetchGenuineCiFiles', () {
+    group('fetchGenuineCIFiles', () {
       test(
         'loads Dart files at the same commit and excludes other entries',
         () async {
@@ -541,7 +541,7 @@ void main() {
             });
           });
 
-          final files = await GitHubService.fetchGenuineCiFiles(
+          final files = await GitHubService.fetchGenuineCIFiles(
             owner: 'org',
             repo: 'mobile',
             commitSha: 'abc123',
@@ -574,7 +574,7 @@ void main() {
         );
 
         expect(
-          await GitHubService.fetchGenuineCiFiles(
+          await GitHubService.fetchGenuineCIFiles(
             owner: 'org',
             repo: 'mobile',
             commitSha: 'abc123',
@@ -594,7 +594,7 @@ void main() {
           );
 
           await expectLater(
-            GitHubService.fetchGenuineCiFiles(
+            GitHubService.fetchGenuineCIFiles(
               owner: 'org',
               repo: 'mobile',
               commitSha: 'abc123',

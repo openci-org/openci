@@ -30,10 +30,10 @@ void main() {
       );
     });
     final client = http.runWithClient(
-      () => createOpenCiChopperClient(
+      () => createOpenCIChopperClient(
         baseUrl: 'https://api.openci.test',
         tokenProvider: tokenProvider,
-        services: [OpenCiApiService.create()],
+        services: [OpenCIApiService.create()],
       ),
       () => httpClient,
     );
@@ -50,7 +50,7 @@ void main() {
         tokenReads++;
         return token;
       });
-      final api = client.getService<OpenCiApiService>();
+      final api = client.getService<OpenCIApiService>();
 
       final firstResponse = await api.getTeams();
       token = 'refreshed-token';
@@ -72,7 +72,7 @@ void main() {
     test('sends no authorization header when token is $token', () async {
       final client = createClient(() => token);
 
-      final response = await client.getService<OpenCiApiService>().getTeams();
+      final response = await client.getService<OpenCIApiService>().getTeams();
 
       expect(response.isSuccessful, isTrue);
       expect(requests.single.headers, isNot(contains('Authorization')));
@@ -83,7 +83,7 @@ void main() {
     final token = Completer<String?>();
     final client = createClient(() => token.future);
 
-    final response = client.getService<OpenCiApiService>().getTeams();
+    final response = client.getService<OpenCIApiService>().getTeams();
     await Future<void>.delayed(Duration.zero);
     expect(requests, isEmpty);
 
@@ -109,7 +109,7 @@ void main() {
     final client = createClient(() async => throw error);
 
     await expectLater(
-      client.getService<OpenCiApiService>().getTeams(),
+      client.getService<OpenCIApiService>().getTeams(),
       throwsA(same(error)),
     );
     expect(requests, isEmpty);

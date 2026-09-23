@@ -3,7 +3,7 @@ import 'package:openci_shared/openci_shared.dart';
 import 'claim_next_build_job.dart';
 
 Future<void> runBuildJobWorker({
-  required OpenCiApiService api,
+  required OpenCIApiService api,
   required Future<int> Function() getMaxConcurrentJobs,
   required Future<BuildJobStatus> Function(BuildJob job) executeJob,
   required bool Function() shouldStop,

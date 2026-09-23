@@ -11,7 +11,7 @@ abstract final class WorkspacePaths {
 
 extension type const WorkspaceRoot._(String _path) implements WorkspaceDirectory {
   WorkspaceRoot$Apps get apps => const WorkspaceRoot$Apps._("apps");
-  WorkspaceDirectory get genuineCi => const WorkspaceDirectory("genuine_ci");
+  WorkspaceDirectory get genuineCI => const WorkspaceDirectory("genuine_ci");
   WorkspaceRoot$Packages get packages => const WorkspaceRoot$Packages._("packages");
 }
 

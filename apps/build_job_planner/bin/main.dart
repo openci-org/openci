@@ -9,7 +9,7 @@ import 'package:sentry/sentry.dart';
 
 final _log = Logger('BuildJobPlanner');
 
-Future<void> main() async => genuineCiRunZonedGuarded(() async {
+Future<void> main() async => genuineCIRunZonedGuarded(() async {
   initLogging();
 
   final config = Config.fromEnvironment();
@@ -20,11 +20,11 @@ Future<void> main() async => genuineCiRunZonedGuarded(() async {
 });
 
 Future<void> planBuildJobs(Config config) async {
-  final api = createOpenCiChopperClient(
+  final api = createOpenCIChopperClient(
     baseUrl: config.serverUrl,
     tokenProvider: () => config.internalApiKey,
-    services: [OpenCiApiService.create()],
-  ).getService<OpenCiApiService>();
+    services: [OpenCIApiService.create()],
+  ).getService<OpenCIApiService>();
 
   _log.info('Starting build job planner loop...');
 

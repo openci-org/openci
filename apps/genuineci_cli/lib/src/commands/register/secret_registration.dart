@@ -39,13 +39,13 @@ class SecretRegistration {
   }
 
   Future<int> save(AuthProfile profile, String name, String value) async {
-    final client = createOpenCiChopperClient(
+    final client = createOpenCIChopperClient(
       baseUrl: profile.serverUrl,
       tokenProvider: () => profile.token,
-      services: [OpenCiApiService.create()],
+      services: [OpenCIApiService.create()],
     );
     try {
-      final response = await client.getService<OpenCiApiService>().saveSecret(
+      final response = await client.getService<OpenCIApiService>().saveSecret(
         Uri.encodeComponent(profile.teamId),
         {'name': name, 'value': value},
       );

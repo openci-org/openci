@@ -6,14 +6,14 @@ part of 'genuine_ci_file.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-_GenuineCiFile _$GenuineCiFileFromJson(Map<String, dynamic> json) =>
-    _GenuineCiFile(
+_GenuineCIFile _$GenuineCIFileFromJson(Map<String, dynamic> json) =>
+    _GenuineCIFile(
       name: json['name'] as String,
       path: json['path'] as String,
       content: json['content'] as String,
     );
 
-Map<String, dynamic> _$GenuineCiFileToJson(_GenuineCiFile instance) =>
+Map<String, dynamic> _$GenuineCIFileToJson(_GenuineCIFile instance) =>
     <String, dynamic>{
       'name': instance.name,
       'path': instance.path,
