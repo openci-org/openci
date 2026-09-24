@@ -18,9 +18,9 @@ ignore:
   - "**/*.chopper.dart"
 
 flags:
-  genuineci_cli:
+  openci_cli:
     paths:
-      - apps/genuineci_cli/lib/
+      - apps/openci_cli/lib/
   build_job_planner:
     paths:
       - apps/build_job_planner/lib/
