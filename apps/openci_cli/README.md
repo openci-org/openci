@@ -74,13 +74,20 @@ printed or saved locally. Run `openci sync secrets` afterwards to update the
 generated definitions.
 
 Run `openci dev start` from the OpenCI checkout to start local services and the
-Mac Orchard worker. The existing Docker Compose credentials and `base-macos` VM
-must be configured first.
+Mac Orchard worker. Prepare the existing non-Firebase Docker Compose credentials
+and `base-macos` VM first. Docker Compose 2.24.4 or later is required for the
+local API override.
 
-The command starts Orchard Controller and the Mac worker first. When restarting,
-it stops the old build-job-worker and waits for all running jobs to finish while
-the server remains available for saving results and deleting their VMs. It then
-rebuilds and starts the application containers.
+The command uses `docker-compose.yml`, `docker-compose.local.yml`, and
+`docker-compose.local-api.yml` together. It starts the Firebase Auth Emulator
+for project `demo-openci` and waits for its health check before starting Orchard
+Controller, the Mac worker, and the local API. No production Firebase service
+account is needed. The Auth endpoint is `http://127.0.0.1:9099` and the Emulator
+UI is `http://127.0.0.1:4000/auth`. When restarting, the command stops the old
+build-job-worker and waits for running jobs to finish while the server remains
+available for saving results and deleting their VMs. It then rebuilds and
+starts the application containers. See [the emulator setup](../../firebase/README.md)
+for standalone start and stop commands.
 
 The `/internal` seed and cleanup API is disabled by default. `openci dev start`
 automatically enables it by passing `ENABLE_INTERNAL_API=true` to Docker Compose.
@@ -107,18 +114,15 @@ Webhook reception and planning are separate from this smoke test.
 
 Press Ctrl+C to stop the Mac Orchard worker. Docker containers keep running.
 
-After seeding, log in from another terminal:
+Local CLI login is not yet connected to the Auth Emulator. The current
+`openci login --local` sends an internal API key to `/teams`, which requires a
+Firebase user token. Emulator-backed CLI sign-in and token refresh are tracked
+in [#2868](https://github.com/openci-org/openci/issues/2868) and
+[#2869](https://github.com/openci-org/openci/issues/2869). The `--seed` flow does
+not require CLI login.
 
-```sh
-openci login --local
-```
-
-This reads the API key from the running `openci-server` container, authenticates
-with `http://localhost:8080`, and selects `test-team`. After the server confirms
-the team, it saves and activates the `local` credential profile. Failed login
-attempts leave existing credentials unchanged.
-
-Then generate typed secret definitions from your workflow project:
+With an authenticated credential profile, generate typed secret definitions
+from your workflow project:
 
 ```sh
 openci sync secrets

@@ -89,15 +89,18 @@ settings unchanged. The base `docker-compose.yml` still uses the configured
 Firebase service account when this override is omitted. Use the override only
 for local development.
 
+`openci dev start` now uses this same three-file configuration for every Compose
+step. It first runs `up -d --build --wait firebase-auth`, so an emulator startup
+or readiness failure stops the command before the API starts. The standalone
+emulator commands above remain available.
+
 To stop the local API and its dependencies, use the same three `-f` options with
-`stop server db firebase-auth`. The standalone emulator commands above remain
-available.
+`stop server db firebase-auth`.
 
 ## Follow-up work
 
-Automatic startup through `openci dev start` is tracked in
-[#2872](https://github.com/openci-org/openci/issues/2872), token-verification tests
-in [#2873](https://github.com/openci-org/openci/issues/2873), Dashboard in
+Token-verification tests are tracked in
+[#2873](https://github.com/openci-org/openci/issues/2873), Dashboard in
 [#2867](https://github.com/openci-org/openci/issues/2867), and CLI authentication
 in [#2868](https://github.com/openci-org/openci/issues/2868) and
 [#2869](https://github.com/openci-org/openci/issues/2869). Automatic development

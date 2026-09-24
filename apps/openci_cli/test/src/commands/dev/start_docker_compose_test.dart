@@ -23,6 +23,14 @@ void main() {
   group('startDockerCompose', () {
     late _RecordingLogger logger;
     late Directory projectRoot;
+    const localComposeFiles = [
+      '-f',
+      'docker-compose.yml',
+      '-f',
+      'docker-compose.local.yml',
+      '-f',
+      'docker-compose.local-api.yml',
+    ];
 
     setUp(() {
       logger = _RecordingLogger();
@@ -31,9 +39,24 @@ void main() {
 
     for (final (step, arguments, message) in [
       (
+        DockerComposeStep.startAuthEmulator,
+        [
+          'compose',
+          ...localComposeFiles,
+          'up',
+          '-d',
+          '--build',
+          '--wait',
+          '--remove-orphans',
+          'firebase-auth',
+        ],
+        t.dev.start.stepAuthEmulator,
+      ),
+      (
         DockerComposeStep.startOrchardController,
         [
           'compose',
+          ...localComposeFiles,
           'up',
           '-d',
           '--no-recreate',
@@ -44,7 +67,7 @@ void main() {
       ),
       (
         DockerComposeStep.stopBuildJobWorker,
-        ['compose', 'stop', 'build-job-worker'],
+        ['compose', ...localComposeFiles, 'stop', 'build-job-worker'],
         t.dev.start.stepBuildJobWorkerWaiting,
       ),
     ]) {
@@ -115,6 +138,7 @@ void main() {
       expect(calls, [
         [
           'compose',
+          ...localComposeFiles,
           'up',
           '-d',
           '--build',
@@ -205,46 +229,56 @@ void main() {
       },
     );
 
-    test('returns false when Docker Compose exits with an error', () async {
-      const dockerComposeFailureExitCode = 17;
+    for (final (step, startMessage, failureMessage) in [
+      (
+        DockerComposeStep.startAuthEmulator,
+        t.dev.start.stepAuthEmulator,
+        t.dev.start.stepAuthEmulatorFailed,
+      ),
+      (
+        DockerComposeStep.startServices,
+        t.dev.start.stepDockerCompose,
+        t.dev.start.stepDockerComposeFailed,
+      ),
+    ]) {
+      test('returns false when $step exits with an error', () async {
+        final result = await startDockerCompose(
+          logger,
+          projectRoot,
+          step: step,
+          environment: const {},
+          processRunner:
+              (_, _, {required workingDirectory, required environment}) async =>
+                  17,
+        );
 
-      final result = await startDockerCompose(
-        logger,
-        projectRoot,
-        environment: const {},
-        processRunner:
-            (_, _, {required workingDirectory, required environment}) async =>
-                dockerComposeFailureExitCode,
-      );
+        expect(result, isFalse);
+        expect(logger.stderrMessages, [failureMessage]);
+        expect(logger.stdoutMessages, ['\n$startMessage']);
+      });
 
-      expect(result, isFalse);
-      expect(logger.stderrMessages, [t.dev.start.stepDockerComposeFailed]);
-      expect(logger.stdoutMessages, ['\n${t.dev.start.stepDockerCompose}']);
-    });
+      test('returns false when Docker cannot start $step', () async {
+        final result = await startDockerCompose(
+          logger,
+          projectRoot,
+          step: step,
+          environment: const {},
+          processRunner:
+              (
+                executable,
+                arguments, {
+                required workingDirectory,
+                required environment,
+              }) async {
+                throw ProcessException(executable, arguments, 'not found');
+              },
+        );
 
-    test('returns false when Docker cannot be started', () async {
-      final result = await startDockerCompose(
-        logger,
-        projectRoot,
-        environment: const {},
-        processRunner:
-            (
-              executable,
-              arguments, {
-              required workingDirectory,
-              required environment,
-            }) async {
-              throw ProcessException(executable, arguments, 'not found');
-            },
-      );
-
-      expect(result, isFalse);
-      expect(logger.stderrMessages, hasLength(1));
-      expect(
-        logger.stderrMessages.single,
-        contains(t.dev.start.stepDockerComposeFailed),
-      );
-      expect(logger.stderrMessages.single, contains('not found'));
-    });
+        expect(result, isFalse);
+        expect(logger.stderrMessages, hasLength(1));
+        expect(logger.stderrMessages.single, contains(failureMessage));
+        expect(logger.stderrMessages.single, contains('not found'));
+      });
+    }
   });
 }

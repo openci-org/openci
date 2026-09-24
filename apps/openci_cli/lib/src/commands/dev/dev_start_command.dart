@@ -76,6 +76,15 @@ class DevStartCommand extends Command<int> {
       return 1;
     }
 
+    final didStartAuthEmulator = await _dockerComposeStarter(
+      _logger,
+      projectRoot,
+      step: DockerComposeStep.startAuthEmulator,
+    );
+    if (!didStartAuthEmulator) {
+      return 1;
+    }
+
     final didStartController = await _dockerComposeStarter(
       _logger,
       projectRoot,

@@ -14,10 +14,20 @@ typedef DockerComposeProcessRunner =
     });
 
 enum DockerComposeStep {
+  startAuthEmulator,
   startOrchardController,
   stopBuildJobWorker,
   startServices,
 }
+
+const _localComposeFiles = [
+  '-f',
+  'docker-compose.yml',
+  '-f',
+  'docker-compose.local.yml',
+  '-f',
+  'docker-compose.local-api.yml',
+];
 
 Future<bool> startDockerCompose(
   Logger logger,
@@ -27,10 +37,25 @@ Future<bool> startDockerCompose(
   DockerComposeProcessRunner processRunner = _runDockerComposeProcess,
   @visibleForTesting Map<String, String>? environment,
 }) async {
-  final (arguments, message) = switch (step) {
+  final (arguments, message, failureMessage) = switch (step) {
+    DockerComposeStep.startAuthEmulator => (
+      [
+        'compose',
+        ..._localComposeFiles,
+        'up',
+        '-d',
+        '--build',
+        '--wait',
+        '--remove-orphans',
+        'firebase-auth',
+      ],
+      t.dev.start.stepAuthEmulator,
+      t.dev.start.stepAuthEmulatorFailed,
+    ),
     DockerComposeStep.startOrchardController => (
       [
         'compose',
+        ..._localComposeFiles,
         'up',
         '-d',
         '--no-recreate',
@@ -38,14 +63,17 @@ Future<bool> startDockerCompose(
         'orchard-controller',
       ],
       t.dev.start.stepOrchardController,
+      t.dev.start.stepDockerComposeFailed,
     ),
     DockerComposeStep.stopBuildJobWorker => (
-      ['compose', 'stop', 'build-job-worker'],
+      ['compose', ..._localComposeFiles, 'stop', 'build-job-worker'],
       t.dev.start.stepBuildJobWorkerWaiting,
+      t.dev.start.stepDockerComposeFailed,
     ),
     DockerComposeStep.startServices => (
       [
         'compose',
+        ..._localComposeFiles,
         'up',
         '-d',
         '--build',
@@ -56,6 +84,7 @@ Future<bool> startDockerCompose(
         'loki',
       ],
       t.dev.start.stepDockerCompose,
+      t.dev.start.stepDockerComposeFailed,
     ),
   };
   logger.stdout('\n$message');
@@ -73,11 +102,11 @@ Future<bool> startDockerCompose(
       environment: composeEnvironment,
     );
     if (exitCode != 0) {
-      logger.stderr(t.dev.start.stepDockerComposeFailed);
+      logger.stderr(failureMessage);
       return false;
     }
   } on ProcessException catch (error) {
-    logger.stderr('${t.dev.start.stepDockerComposeFailed}\n${error.message}');
+    logger.stderr('$failureMessage\n${error.message}');
     return false;
   }
 
