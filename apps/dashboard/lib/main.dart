@@ -1,3 +1,4 @@
+import 'package:dashboard/connections/local_development_connection.dart';
 import 'package:dashboard/firebase/firebase_config_provider.dart';
 import 'package:dashboard/utilities/macos_updater_initializer.dart';
 import 'package:dashboard/revenue_cat/revenue_cat.dart';
@@ -18,9 +19,12 @@ Future<void> main() async {
       usePathUrlStrategy();
     }
 
-    final selfHosted = await loadSelfHostedConfig();
-    if (selfHosted == null) {
-      await initializeRevenueCat();
+    final localDevelopment = LocalDevelopmentConnection.fromEnvironment();
+    if (localDevelopment == null) {
+      final selfHosted = await loadSelfHostedConfig();
+      if (selfHosted == null) {
+        await initializeRevenueCat();
+      }
     }
 
     await initializeMacosUpdater();
@@ -33,6 +37,7 @@ Future<void> main() async {
       ],
       overrides: [
         sharedPreferencesProvider.overrideWithValue(sharedPreferences),
+        localDevelopmentConnectionProvider.overrideWithValue(localDevelopment),
       ],
       child: Root(),
     );

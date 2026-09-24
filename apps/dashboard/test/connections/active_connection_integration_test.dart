@@ -9,6 +9,7 @@ import 'package:dashboard/connections/connection_profile.dart';
 import 'package:dashboard/connections/connection_snapshot.dart';
 import 'package:dashboard/connections/connection_store.dart';
 import 'package:dashboard/connections/connection_store_provider.dart';
+import 'package:dashboard/connections/local_development_connection.dart';
 import 'package:dashboard/deep_link/deep_link_listener.dart';
 import 'package:dashboard/firebase/firebase_config_provider.dart';
 import 'package:dashboard/root.dart';
@@ -40,6 +41,12 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   final cloud = profile('cloud');
   final selfHosted = profile('self-hosted');
+  final local = LocalDevelopmentConnection.parse(
+    mode: 'true',
+    apiUrl: 'http://127.0.0.1:8080',
+    emulatorHost: '127.0.0.1',
+    emulatorPort: '9099',
+  )!;
   final wsUriProvider = FutureProvider<Uri>(
     (ref) => buildAuthedWebSocketUri(ref, '/builds/commits/stream'),
   );
@@ -48,6 +55,7 @@ void main() {
   late Map<String, _Auth> auths;
   late Map<String, FutureOr<FirebaseAuth>> authResults;
   late List<http.Request> requests;
+  LocalDevelopmentConnection? localSettings;
 
   setUp(() async {
     debugDefaultTargetPlatformOverride = TargetPlatform.android;
@@ -56,8 +64,9 @@ void main() {
       'custom_openci_server_url': 'https://legacy.example.com',
     });
     store = ConnectionStore(await SharedPreferences.getInstance(), cloud);
+    localSettings = null;
     auths = {
-      for (final profile in [cloud, selfHosted])
+      for (final profile in [cloud, selfHosted, local.profile])
         profile.id: _Auth(_User(profile.id)),
     };
     for (final auth in auths.values) {
@@ -78,7 +87,8 @@ void main() {
       retry: (_, _) => null,
       overrides: [
         connectionStoreProvider.overrideWithValue(store),
-        for (final profile in [cloud, selfHosted])
+        localDevelopmentConnectionProvider.overrideWith((ref) => localSettings),
+        for (final profile in [cloud, selfHosted, local.profile])
           connectionFirebaseAuthProvider(
             profile.id,
             profile.firebase['android']!,
@@ -167,6 +177,63 @@ void main() {
       await expectConnection(cloud);
     });
   });
+
+  test('local Auth gates API requests and supplies their token', () {
+    return withHttp(() async {
+      await saveProfiles(activeId: selfHosted.id);
+      localSettings = local;
+      final ready = Completer<FirebaseAuth>();
+      authResults[local.profile.id] = ready.future;
+      listenToConnection();
+      final api = await container.read(openciApiServiceProvider.future);
+      final response = api.getTeams();
+      await container.pump();
+
+      expect(container.read(authStateChangesProvider).isLoading, isTrue);
+      expect(requests, isEmpty);
+      ready.complete(auths[local.profile.id]);
+      await response;
+      await expectConnection(local.profile);
+
+      expect(requests, hasLength(2));
+      for (final request in requests) {
+        expect(request.url.toString(), 'http://127.0.0.1:8080/teams');
+        expect(
+          request.headers['Authorization'],
+          'Bearer local-development-token',
+        );
+      }
+      expect(store.load().activeId, selfHosted.id);
+    });
+  });
+
+  test(
+    'failed local Auth blocks API requests without falling back to Cloud',
+    () {
+      return withHttp(() async {
+        await saveProfiles(activeId: selfHosted.id);
+        localSettings = local;
+        final ready = Completer<FirebaseAuth>();
+        authResults[local.profile.id] = ready.future;
+        listenToConnection();
+        final api = await container.read(openciApiServiceProvider.future);
+        final error = StateError('Emulator setup failed');
+        final authFailure = expectLater(
+          container.read(firebaseAuthProvider.future),
+          throwsA(same(error)),
+        );
+        final requestFailure = expectLater(
+          api.getTeams(),
+          throwsA(same(error)),
+        );
+
+        ready.completeError(error);
+        await Future.wait([authFailure, requestFailure]);
+        expect(requests, isEmpty);
+        expect(store.load().activeId, selfHosted.id);
+      });
+    },
+  );
 
   test(
     'a delayed previous initialization does not replace the selected profile',

@@ -52,7 +52,7 @@ final class ActiveConnectionProfileProvider
 }
 
 String _$activeConnectionProfileHash() =>
-    r'62aa43f9633bf2c139840f4c47af21d4078a6a31';
+    r'd52765ffcd07567372d7a8e57ddd06dbb99b04e1';
 
 final class ActiveConnectionProfileFamily extends $Family
     with
