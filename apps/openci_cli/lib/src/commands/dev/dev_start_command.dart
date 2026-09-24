@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:args/command_runner.dart';
@@ -39,6 +40,8 @@ class DevStartCommand extends Command<int> {
   final OrchardContextSetup _orchardContextSetup;
   final LocalDataSeeder _localDataSeeder;
   final OrchardWorkerStarter _orchardWorkerStarter;
+  final Stream<ProcessSignal>? _interruptSignals;
+  final Stream<ProcessSignal>? _terminateSignals;
 
   DevStartCommand({
     required Logger logger,
@@ -52,13 +55,17 @@ class DevStartCommand extends Command<int> {
     @visibleForTesting LocalDataSeeder localDataSeeder = seedLocalData,
     @visibleForTesting
     OrchardWorkerStarter orchardWorkerStarter = startOrchardWorker,
+    @visibleForTesting Stream<ProcessSignal>? interruptSignals,
+    @visibleForTesting Stream<ProcessSignal>? terminateSignals,
   }) : _logger = logger,
        _projectRootFinder = projectRootFinder,
        _tartBaseImageChecker = tartBaseImageChecker,
        _dockerComposeStarter = dockerComposeStarter,
        _orchardContextSetup = orchardContextSetup,
        _localDataSeeder = localDataSeeder,
-       _orchardWorkerStarter = orchardWorkerStarter {
+       _orchardWorkerStarter = orchardWorkerStarter,
+       _interruptSignals = interruptSignals,
+       _terminateSignals = terminateSignals {
     argParser.addFlag('seed', negatable: false, help: t.dev.start.flags.seed);
   }
 
@@ -72,42 +79,44 @@ class DevStartCommand extends Command<int> {
       return 1;
     }
 
-    final hasTartImage = await _tartBaseImageChecker(_logger);
-    if (!hasTartImage) {
-      return 1;
+    final interrupted = Completer<int>();
+    void onSignal(ProcessSignal signal) {
+      if (!interrupted.isCompleted) {
+        interrupted.complete(128 + signal.signalNumber);
+      }
     }
 
-    final didStartAuthEmulator = await _dockerComposeStarter(
-      _logger,
-      projectRoot,
-      step: DockerComposeStep.startAuthEmulator,
-    );
-    if (!didStartAuthEmulator) {
-      return 1;
-    }
+    final subscriptions = [
+      (_interruptSignals ?? ProcessSignal.sigint.watch()).listen(onSignal),
+      if (_terminateSignals != null || !Platform.isWindows)
+        (_terminateSignals ?? ProcessSignal.sigterm.watch()).listen(onSignal),
+    ];
+    OrchardWorker? worker;
+    var composeAttempted = false;
 
-    final didStartController = await _dockerComposeStarter(
-      _logger,
-      projectRoot,
-      step: DockerComposeStep.startOrchardController,
-    );
-    if (!didStartController) {
-      return 1;
-    }
-
-    final didSetupOrchardContext = await _orchardContextSetup(_logger);
-    if (!didSetupOrchardContext) {
-      return 1;
-    }
-
-    final worker = await _orchardWorkerStarter(_logger);
-    if (worker == null) {
-      return 1;
-    }
-
-    try {
+    Future<int> runUntilExit() async {
       final shouldSeedLocalData = argResults?['seed'] as bool? ?? false;
-      for (final start in [
+      final steps = <Future<bool> Function()>[
+        () => _tartBaseImageChecker(_logger),
+        () {
+          // A failed `up` can still leave partially started containers.
+          composeAttempted = true;
+          return _dockerComposeStarter(
+            _logger,
+            projectRoot,
+            step: DockerComposeStep.startAuthEmulator,
+          );
+        },
+        () => _dockerComposeStarter(
+          _logger,
+          projectRoot,
+          step: DockerComposeStep.startOrchardController,
+        ),
+        () => _orchardContextSetup(_logger),
+        () async {
+          worker = await _orchardWorkerStarter(_logger);
+          return worker != null;
+        },
         () => _dockerComposeStarter(
           _logger,
           projectRoot,
@@ -116,19 +125,63 @@ class DevStartCommand extends Command<int> {
         () => _dockerComposeStarter(_logger, projectRoot),
         if (shouldSeedLocalData)
           () => _localDataSeeder(_logger, projectRoot: projectRoot),
-      ]) {
-        if (!worker.isRunning) {
-          final code = await worker.exitCode;
+      ];
+
+      for (final step in steps) {
+        if (interrupted.isCompleted) return interrupted.future;
+        if (worker != null && !worker!.isRunning) {
+          final code = await worker!.exitCode;
           return code == 0 ? 1 : code;
         }
-        if (!await start()) {
-          return 1;
-        }
+        if (!await step()) return 1;
       }
 
-      return await worker.exitCode;
-    } finally {
-      await worker.stop();
+      return Future.any([worker!.exitCode, interrupted.future]);
     }
+
+    Future<bool> cleanup() async {
+      var succeeded = true;
+      // Request the worker stop before bringing the Compose stack down.
+      final workerStopping = worker?.stop().then(
+        (_) => true,
+        onError: (Object error) {
+          _logger.stderr('${t.dev.start.stepOrchardWorkerFailed}\n$error');
+          return false;
+        },
+      );
+      if (composeAttempted) {
+        try {
+          if (!await _dockerComposeStarter(
+            _logger,
+            projectRoot,
+            step: DockerComposeStep.down,
+          )) {
+            succeeded = false;
+          }
+        } catch (error) {
+          _logger.stderr('${t.dev.start.stepDockerComposeDownFailed}\n$error');
+          succeeded = false;
+        }
+      }
+      if (workerStopping != null && !await workerStopping) succeeded = false;
+      return succeeded;
+    }
+
+    late final int result;
+    late final bool cleanedUp;
+    try {
+      result = await runUntilExit();
+    } finally {
+      try {
+        cleanedUp = await cleanup();
+      } finally {
+        for (final subscription in subscriptions) {
+          await subscription.cancel();
+        }
+      }
+    }
+
+    if (!cleanedUp) return 1;
+    return interrupted.isCompleted ? interrupted.future : result;
   }
 }

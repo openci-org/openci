@@ -189,6 +189,7 @@ void main() {
         'stopBuildJobWorker',
         'startServices',
         if (shouldSeed) 'seed',
+        'down',
       ]);
       expect(worker.stopped, isTrue);
     });
@@ -220,34 +221,33 @@ void main() {
         if (failingStep != 'tart') DockerComposeStep.startAuthEmulator,
         if (failingStep == 'context' || failingStep == 'startOrchardController')
           DockerComposeStep.startOrchardController,
+        if (failingStep != 'tart') DockerComposeStep.down,
       ]);
     });
   }
 
-  test(
-    'does not stop app containers when the Mac worker cannot start',
-    () async {
-      final steps = <DockerComposeStep>[];
-      final result = await DevStartCommand(
-        logger: _RecordingLogger(),
-        projectRootFinder: () => tempDirectory,
-        tartBaseImageChecker: (_) async => true,
-        dockerComposeStarter:
-            (_, _, {step = DockerComposeStep.startServices}) async {
-              steps.add(step);
-              return true;
-            },
-        orchardContextSetup: (_) async => true,
-        orchardWorkerStarter: (_) async => null,
-      ).run();
+  test('stops app containers when the Mac worker cannot start', () async {
+    final steps = <DockerComposeStep>[];
+    final result = await DevStartCommand(
+      logger: _RecordingLogger(),
+      projectRootFinder: () => tempDirectory,
+      tartBaseImageChecker: (_) async => true,
+      dockerComposeStarter:
+          (_, _, {step = DockerComposeStep.startServices}) async {
+            steps.add(step);
+            return true;
+          },
+      orchardContextSetup: (_) async => true,
+      orchardWorkerStarter: (_) async => null,
+    ).run();
 
-      expect(result, 1);
-      expect(steps, [
-        DockerComposeStep.startAuthEmulator,
-        DockerComposeStep.startOrchardController,
-      ]);
-    },
-  );
+    expect(result, 1);
+    expect(steps, [
+      DockerComposeStep.startAuthEmulator,
+      DockerComposeStep.startOrchardController,
+      DockerComposeStep.down,
+    ]);
+  });
 
   test(
     'waits for the old job before rebuilding and keeps Orchard alive',
@@ -297,6 +297,117 @@ void main() {
     },
   );
 
+  for (final signal in [ProcessSignal.sigint, ProcessSignal.sigterm]) {
+    test('stops the local stack once on $signal', () async {
+      final interrupts = StreamController<ProcessSignal>(sync: true);
+      final terminations = StreamController<ProcessSignal>(sync: true);
+      addTearDown(interrupts.close);
+      addTearDown(terminations.close);
+      final worker = _OrchardWorker()..exitCode = Completer<int>().future;
+      final servicesStarted = Completer<void>();
+      final downStarted = Completer<void>();
+      final downFinished = Completer<bool>();
+      final steps = <DockerComposeStep>[];
+      final result = DevStartCommand(
+        logger: _RecordingLogger(),
+        projectRootFinder: () => tempDirectory,
+        tartBaseImageChecker: (_) async => true,
+        dockerComposeStarter: (_, _, {step = DockerComposeStep.startServices}) {
+          steps.add(step);
+          if (step == DockerComposeStep.startServices) {
+            servicesStarted.complete();
+          }
+          if (step == DockerComposeStep.down) {
+            downStarted.complete();
+            return downFinished.future;
+          }
+          return Future.value(true);
+        },
+        orchardContextSetup: (_) async => true,
+        orchardWorkerStarter: (_) async => worker,
+        interruptSignals: interrupts.stream,
+        terminateSignals: terminations.stream,
+      ).run();
+
+      await servicesStarted.future;
+      final signals = signal == ProcessSignal.sigint
+          ? interrupts
+          : terminations;
+      signals.add(signal);
+      signals.add(signal);
+      await downStarted.future;
+      signals.add(signal);
+      expect(worker.stopped, isTrue);
+      expect(
+        steps.where((step) => step == DockerComposeStep.down),
+        hasLength(1),
+      );
+      downFinished.complete(true);
+
+      expect(await result, 128 + signal.signalNumber);
+      expect(interrupts.hasListener, isFalse);
+      expect(terminations.hasListener, isFalse);
+    });
+  }
+
+  test('waits for an interrupted startup step before Compose down', () async {
+    final interrupts = StreamController<ProcessSignal>(sync: true);
+    final terminations = StreamController<ProcessSignal>(sync: true);
+    addTearDown(interrupts.close);
+    addTearDown(terminations.close);
+    final authStarted = Completer<void>();
+    final authFinished = Completer<bool>();
+    final steps = <DockerComposeStep>[];
+    final result = DevStartCommand(
+      logger: _RecordingLogger(),
+      projectRootFinder: () => tempDirectory,
+      tartBaseImageChecker: (_) async => true,
+      dockerComposeStarter: (_, _, {step = DockerComposeStep.startServices}) {
+        steps.add(step);
+        if (step == DockerComposeStep.startAuthEmulator) {
+          authStarted.complete();
+          return authFinished.future;
+        }
+        return Future.value(true);
+      },
+      orchardWorkerStarter: (_) async => fail('Worker must not start'),
+      interruptSignals: interrupts.stream,
+      terminateSignals: terminations.stream,
+    ).run();
+
+    await authStarted.future;
+    interrupts.add(ProcessSignal.sigint);
+    expect(steps, [DockerComposeStep.startAuthEmulator]);
+    authFinished.complete(true);
+
+    expect(await result, 130);
+    expect(steps, [
+      DockerComposeStep.startAuthEmulator,
+      DockerComposeStep.down,
+    ]);
+  });
+
+  test('returns 1 when Compose down fails', () async {
+    final worker = _OrchardWorker();
+    final steps = <DockerComposeStep>[];
+    final result = await DevStartCommand(
+      logger: _RecordingLogger(),
+      projectRootFinder: () => tempDirectory,
+      tartBaseImageChecker: (_) async => true,
+      dockerComposeStarter:
+          (_, _, {step = DockerComposeStep.startServices}) async {
+            steps.add(step);
+            return step != DockerComposeStep.down;
+          },
+      orchardContextSetup: (_) async => true,
+      orchardWorkerStarter: (_) async => worker,
+    ).run();
+
+    expect(result, 1);
+    expect(worker.stopped, isTrue);
+    expect(steps.where((step) => step == DockerComposeStep.down), hasLength(1));
+  });
+
   for (final failedStep in [
     DockerComposeStep.stopBuildJobWorker,
     DockerComposeStep.startServices,
@@ -340,6 +451,7 @@ void main() {
             DockerComposeStep.stopBuildJobWorker,
             if (failedStep == DockerComposeStep.startServices)
               DockerComposeStep.startServices,
+            DockerComposeStep.down,
           ]);
           expect(worker.stopped, isTrue);
         },
@@ -374,6 +486,7 @@ void main() {
           DockerComposeStep.startAuthEmulator,
           DockerComposeStep.startOrchardController,
           DockerComposeStep.stopBuildJobWorker,
+          DockerComposeStep.down,
         ]);
         expect(worker.stopped, isTrue);
       },

@@ -182,6 +182,7 @@ void main() {
       });
       await listening.future;
       (signal == ProcessSignal.sigint ? interrupts : terminations).add(signal);
+      (signal == ProcessSignal.sigint ? interrupts : terminations).add(signal);
 
       expect(worker.signals, [ProcessSignal.sigint]);
       expect(result.isRunning, isFalse);
