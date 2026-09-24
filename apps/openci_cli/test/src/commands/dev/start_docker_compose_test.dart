@@ -70,6 +70,11 @@ void main() {
         ['compose', ...localComposeFiles, 'stop', 'build-job-worker'],
         t.dev.start.stepBuildJobWorkerWaiting,
       ),
+      (
+        DockerComposeStep.down,
+        ['compose', ...localComposeFiles, 'down', '--remove-orphans'],
+        t.dev.start.stepDockerComposeDown,
+      ),
     ]) {
       test('$step passes the expected Compose arguments', () async {
         final calls = <List<String>>[];
@@ -242,6 +247,11 @@ void main() {
         DockerComposeStep.startServices,
         t.dev.start.stepDockerCompose,
         t.dev.start.stepDockerComposeFailed,
+      ),
+      (
+        DockerComposeStep.down,
+        t.dev.start.stepDockerComposeDown,
+        t.dev.start.stepDockerComposeDownFailed,
       ),
     ]) {
       test('returns false when $step exits with an error', () async {

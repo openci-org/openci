@@ -97,6 +97,8 @@
       "stepDockerCompose": "Step 5: Starting Docker containers...",
       "stepDockerComposeFailed": "Error: Failed to start Docker containers.",
       "stepDockerComposeStarted": "Docker containers started.",
+      "stepDockerComposeDown": "Stopping and removing local Docker containers (keeping data volumes)...",
+      "stepDockerComposeDownFailed": "Error: Failed to shut down local Docker containers. Run docker compose -f docker-compose.yml -f docker-compose.local.yml -f docker-compose.local-api.yml down --remove-orphans from the checkout to retry.",
       "stepOrchardWaiting": "Step 3: Waiting for Orchard Controller to initialize...",
       "stepOrchardNotReady": "Error: Orchard Controller did not become ready.",
       "stepOrchardContext": "Step 4: Registering Orchard CLI context...",
