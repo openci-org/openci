@@ -4,6 +4,8 @@
 .vscode
 .dart_tool/
 **/build/
+.env*
+**/.env*
 node_modules/
 *.js
 *.sh

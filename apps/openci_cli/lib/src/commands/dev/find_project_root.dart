@@ -18,6 +18,6 @@ Directory? findProjectRoot([Directory? startDir]) {
 @visibleForTesting
 bool isOpenciProjectRoot(Directory dir) {
   final composeFile = File('${dir.path}/docker-compose.yml');
-  final serverDir = Directory('${dir.path}/apps/genuineci_server');
+  final serverDir = Directory('${dir.path}/apps/openci_server');
   return composeFile.existsSync() && serverDir.existsSync();
 }

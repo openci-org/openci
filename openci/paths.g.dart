@@ -19,8 +19,8 @@ extension type const WorkspaceRoot$Apps._(String _path) implements WorkspaceDire
   WorkspaceRoot$Apps$BuildJobPlanner get buildJobPlanner => const WorkspaceRoot$Apps$BuildJobPlanner._("apps/build_job_planner");
   WorkspaceRoot$Apps$BuildJobWorker get buildJobWorker => const WorkspaceRoot$Apps$BuildJobWorker._("apps/build_job_worker");
   WorkspaceRoot$Apps$Dashboard get dashboard => const WorkspaceRoot$Apps$Dashboard._("apps/dashboard");
-  WorkspaceRoot$Apps$GenuineciServer get genuineciServer => const WorkspaceRoot$Apps$GenuineciServer._("apps/genuineci_server");
   WorkspaceRoot$Apps$OpenciCli get openciCli => const WorkspaceRoot$Apps$OpenciCli._("apps/openci_cli");
+  WorkspaceRoot$Apps$OpenciServer get openciServer => const WorkspaceRoot$Apps$OpenciServer._("apps/openci_server");
 }
 
 extension type const WorkspaceRoot$Apps$BuildJobPlanner._(String _path) implements WorkspaceDirectory {
@@ -46,17 +46,16 @@ extension type const WorkspaceRoot$Apps$Dashboard._(String _path) implements Wor
   WorkspaceDirectory get web => const WorkspaceDirectory("apps/dashboard/web");
 }
 
-extension type const WorkspaceRoot$Apps$GenuineciServer._(String _path) implements WorkspaceDirectory {
-  WorkspaceDirectory get integrationTest => const WorkspaceDirectory("apps/genuineci_server/integration_test");
-  WorkspaceDirectory get lib => const WorkspaceDirectory("apps/genuineci_server/lib");
-  WorkspaceDirectory get routes => const WorkspaceDirectory("apps/genuineci_server/routes");
-  WorkspaceDirectory get test => const WorkspaceDirectory("apps/genuineci_server/test");
-}
-
 extension type const WorkspaceRoot$Apps$OpenciCli._(String _path) implements WorkspaceDirectory {
   WorkspaceDirectory get bin => const WorkspaceDirectory("apps/openci_cli/bin");
   WorkspaceDirectory get lib => const WorkspaceDirectory("apps/openci_cli/lib");
   WorkspaceDirectory get test => const WorkspaceDirectory("apps/openci_cli/test");
+}
+
+extension type const WorkspaceRoot$Apps$OpenciServer._(String _path) implements WorkspaceDirectory {
+  WorkspaceDirectory get lib => const WorkspaceDirectory("apps/openci_server/lib");
+  WorkspaceDirectory get routes => const WorkspaceDirectory("apps/openci_server/routes");
+  WorkspaceDirectory get test => const WorkspaceDirectory("apps/openci_server/test");
 }
 
 extension type const WorkspaceRoot$Packages._(String _path) implements WorkspaceDirectory {

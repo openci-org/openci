@@ -78,7 +78,7 @@ void main() {
       expect(executable, 'docker');
       expect(arguments, [
         'exec',
-        'genuineci-server',
+        'openci-server',
         'printenv',
         'INTERNAL_API_KEY',
       ]);

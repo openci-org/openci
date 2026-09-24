@@ -20,8 +20,8 @@ services:
   server:
     build:
       context: .
-      dockerfile: apps/genuineci_server/Dockerfile
-    container_name: genuineci-server
+      dockerfile: apps/openci_server/Dockerfile
+    container_name: openci-server
     restart: unless-stopped
     environment:
       HOST: any
