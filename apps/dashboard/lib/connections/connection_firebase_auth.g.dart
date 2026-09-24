@@ -66,7 +66,7 @@ final class ConnectionFirebaseAuthProvider
 }
 
 String _$connectionFirebaseAuthHash() =>
-    r'cf418c802498e70d7afadc9e8cc03f49de753ad9';
+    r'4d06901fb171b0fbf125fada2bbf52d56aebbb29';
 
 final class ConnectionFirebaseAuthFamily extends $Family
     with

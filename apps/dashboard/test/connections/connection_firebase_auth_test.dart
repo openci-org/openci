@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:dashboard/connections/connection_firebase_auth.dart';
+import 'package:dashboard/connections/local_development_connection.dart';
 import 'package:dashboard/firebase/firebase_config_provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -144,4 +147,116 @@ void main() {
       expect(firebase.initializations, 2);
     },
   );
+
+  group('local connection', () {
+    final local = LocalDevelopmentConnection.parse(
+      mode: 'true',
+      apiUrl: 'http://127.0.0.1:8080',
+      emulatorHost: '127.0.0.1',
+      emulatorPort: '9099',
+    )!;
+    final provider = connectionFirebaseAuthProvider(
+      local.profile.id,
+      local.profile.firebase['web']!,
+    );
+    late List<(FirebaseAuth, String, int)> connections;
+    late Future<void> Function() connect;
+
+    setUp(() {
+      connections = [];
+      connect = () async {};
+      container = ProviderContainer.test(
+        retry: (_, _) => null,
+        overrides: [
+          localDevelopmentConnectionProvider.overrideWithValue(local),
+          authEmulatorConnectorProvider.overrideWithValue((
+            auth,
+            host,
+            port,
+          ) async {
+            connections.add((auth, host, port));
+            await connect();
+          }),
+        ],
+      );
+    });
+
+    test(
+      'waits for emulator setup and shares the named Auth instance',
+      () async {
+        final started = Completer<void>();
+        final ready = Completer<void>();
+        connect = () {
+          started.complete();
+          return ready.future;
+        };
+        final pending = container.read(provider.future);
+        final concurrent = container.read(
+          connectionFirebaseAuthProvider(
+            local.profile.id,
+            local.profile.firebase['web']!.copyWith(),
+          ).future,
+        );
+        await started.future;
+
+        expect(container.read(provider).isLoading, isTrue);
+        expect(connections, hasLength(1));
+        expect(connections.single.$2, '127.0.0.1');
+        expect(connections.single.$3, 9099);
+        expect(connections.single.$1.app.name, 'connection-local-development');
+        expect(connections.single.$1.app.options.projectId, 'demo-openci');
+
+        ready.complete();
+        final auth = await pending;
+        expect(auth, same(connections.single.$1));
+        expect(await concurrent, same(auth));
+        expect(await container.read(provider.future), same(auth));
+        expect(connections, hasLength(1));
+      },
+    );
+
+    test('keeps Cloud and deployed self-hosted Auth separate', () async {
+      final localAuth = await container.read(provider.future);
+      for (final id in ['cloud', profileId]) {
+        final auth = await container.read(
+          connectionFirebaseAuthProvider(id, config).future,
+        );
+        expect(auth, isNot(same(localAuth)));
+      }
+      expect(connections, hasLength(1));
+    });
+
+    test('rejects local Auth when local mode is disabled', () async {
+      final disabled = ProviderContainer.test(retry: (_, _) => null);
+      await expectLater(disabled.read(provider.future), throwsStateError);
+      expect(firebase.initializations, 0);
+    });
+
+    test('rejects non-demo settings before Firebase initialization', () async {
+      await expectLater(
+        container.read(
+          connectionFirebaseAuthProvider(local.profile.id, config).future,
+        ),
+        throwsStateError,
+      );
+      expect(firebase.initializations, 0);
+    });
+
+    test('propagates emulator setup errors and allows retry', () async {
+      final error = StateError('Emulator setup failed');
+      connect = () => Future.error(error);
+      await expectLater(container.read(provider.future), throwsA(same(error)));
+      expect(firebase.apps.map((app) => app.name), [
+        'connection-local-development',
+      ]);
+
+      connect = () async {};
+      expect(
+        await container.refresh(provider.future),
+        same(connections.first.$1),
+      );
+      expect(firebase.initializations, 1);
+      expect(connections, hasLength(2));
+    });
+  });
 }

@@ -4,6 +4,7 @@ import 'package:dashboard/connections/active_connection_profile_provider.dart';
 import 'package:dashboard/connections/connection_profile.dart';
 import 'package:dashboard/connections/connection_snapshot.dart';
 import 'package:dashboard/connections/connection_store.dart';
+import 'package:dashboard/connections/local_development_connection.dart';
 import 'package:dashboard/firebase/firebase_config_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -111,6 +112,42 @@ void main() {
       expect(container.read(provider).requireValue, cloud);
       expect(store.load().activeId, cloud.id);
       expect(store.load().profiles, [cloud, selfHosted]);
+    },
+  );
+
+  test(
+    'local selection preserves storage and rejects profile switching',
+    () async {
+      await saveProfiles(activeId: selfHosted.id);
+      final saved = prefs.getString(ConnectionStore.storageKey);
+      final local = LocalDevelopmentConnection.parse(
+        mode: 'true',
+        apiUrl: 'http://127.0.0.1:8080',
+        emulatorHost: '127.0.0.1',
+        emulatorPort: '9099',
+      )!;
+      final localContainer = ProviderContainer.test(
+        overrides: [
+          localDevelopmentConnectionProvider.overrideWithValue(local),
+        ],
+      );
+      final provider = activeConnectionProfileProvider(store);
+
+      expect(await localContainer.read(provider.future), same(local.profile));
+      await expectLater(
+        localContainer.read(provider.notifier).select(cloud.id),
+        throwsStateError,
+      );
+      expect(localContainer.read(provider).requireValue, same(local.profile));
+      expect(prefs.getString(ConnectionStore.storageKey), saved);
+      expect(await container.read(provider.future), selfHosted);
+
+      // Local selection must not depend on loading the saved profiles at all.
+      await prefs.setString(ConnectionStore.storageKey, 'invalid JSON');
+      expect(
+        await localContainer.refresh(provider.future),
+        same(local.profile),
+      );
     },
   );
 
