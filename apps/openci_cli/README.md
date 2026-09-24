@@ -118,19 +118,32 @@ Press Ctrl+C to stop the Mac Orchard worker and the local Docker Compose stack.
 The same shutdown also runs when the command exits or receives SIGTERM. Named
 volumes and local data are kept.
 
-Local CLI login is not yet connected to the Auth Emulator. The current
-`openci login --local` sends an internal API key to `/teams`, which requires a
-Firebase user token. Emulator-backed sign-in and token refresh are supported
-by the authentication client; connecting `login --local` to it is tracked in
-[#2869](https://github.com/openci-org/openci/issues/2869). The `--seed` flow does
-not require CLI login.
+To log in locally, keep `openci dev start --seed` running and create an
+email/password user in the `demo-openci` project through the
+[Auth Emulator UI](http://127.0.0.1:4000/auth). Then run:
 
-The authentication client accepts an explicit emulator address as `host:port`
-(for example, `127.0.0.1:9099` or `[::1]:9099`), without a scheme or path.
-Firebase profiles can save it as `firebase_auth_emulator_host` so subsequent
-token refreshes use the same emulator. An omitted value keeps the normal
-Firebase endpoints; an empty or invalid address is rejected. Emulator errors
-do not trigger a retry against real Firebase.
+```sh
+openci login --local
+```
+
+Enter that emulator user's email and password. The CLI signs in through the
+fixed address `127.0.0.1:9099`, sends the resulting Firebase ID token to
+`http://localhost:8080/teams`, and selects `test-team` only if the API returns it
+among your memberships. If it is missing, check the team's seed data and your
+user's membership. Automatic development-user and membership seeding is tracked
+in [#2862](https://github.com/openci-org/openci/issues/2862).
+
+Successful login saves and activates the `local` Firebase profile, including
+the refresh credentials and `firebase_auth_emulator_host`. Later token refreshes
+use the same emulator. Failed or cancelled login preserves saved profiles and
+never falls back to real Firebase. To replace an older `local` profile containing
+an internal API key, run `openci login --local` again after preparing the user
+and team; successful login replaces only that profile. The password is never
+saved. The remote `--server`, `--team-id`, and `--firebase-api-key` options cannot
+be combined with `--local`.
+
+Local login does not read Docker's `INTERNAL_API_KEY`. Worker and seed operations
+still use that key, and `--seed` does not require CLI login.
 
 With an authenticated credential profile, generate typed secret definitions
 from your workflow project:
