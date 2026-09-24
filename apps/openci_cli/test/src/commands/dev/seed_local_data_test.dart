@@ -1,11 +1,13 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:cli_util/cli_logging.dart';
 import 'package:openci_cli/src/commands/dev/seed_local_data.dart';
 import 'package:openci_cli/src/i18n/i18n.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 
 class _RecordingLogger implements Logger {
@@ -25,9 +27,20 @@ class _RecordingLogger implements Logger {
 void main() {
   group('seedLocalData', () {
     late _RecordingLogger logger;
+    late Directory projectRoot;
 
-    setUp(() {
+    setUp(() async {
       logger = _RecordingLogger();
+      projectRoot = await Directory.systemTemp.createTemp(
+        'seed_local_data_test_',
+      );
+      await File(
+        p.join(projectRoot.path, '.env'),
+      ).writeAsString('INTERNAL_API_KEY=test-internal-key\n');
+    });
+
+    tearDown(() async {
+      await projectRoot.delete(recursive: true);
     });
 
     test('requests the default seed data exactly once', () async {
@@ -41,10 +54,8 @@ void main() {
       final result = await http.runWithClient(
         () => seedLocalData(
           logger,
-          environment: {
-            'OPENCI_SERVER_URL': serverUrl,
-            'INTERNAL_API_KEY': 'test-internal-key',
-          },
+          projectRoot: projectRoot,
+          environment: {'OPENCI_SERVER_URL': serverUrl},
         ),
         () => client,
       );
@@ -68,10 +79,7 @@ void main() {
       var requestCount = 0;
 
       final result = await http.runWithClient(
-        () => seedLocalData(
-          logger,
-          environment: {'INTERNAL_API_KEY': 'test-internal-key'},
-        ),
+        () => seedLocalData(logger, projectRoot: projectRoot, environment: {}),
         () => MockClient((request) async {
           requestCount++;
           expect(request.url, Uri.parse('http://localhost:8080/internal/seed'));
@@ -82,6 +90,73 @@ void main() {
 
       expect(result, isTrue);
       expect(requestCount, 1);
+    });
+
+    test('reads the internal key from the project .env file', () async {
+      await File(p.join(projectRoot.path, '.env')).writeAsString(
+        '# Local development\nINTERNAL_API_KEY = file-key # comment\n',
+      );
+      var requestCount = 0;
+
+      final result = await http.runWithClient(
+        () => seedLocalData(logger, projectRoot: projectRoot, environment: {}),
+        () => MockClient((request) async {
+          requestCount++;
+          expect(request.headers['authorization'], 'Bearer file-key');
+          return http.Response('{"success":true,"jobId":"job-test"}', 200);
+        }),
+      );
+
+      expect(result, isTrue);
+      expect(requestCount, 1);
+    });
+
+    test('uses the project .env key even when a shell key is set', () async {
+      await File(
+        p.join(projectRoot.path, '.env'),
+      ).writeAsString('INTERNAL_API_KEY=file-key\n');
+
+      final result = await http.runWithClient(
+        () => seedLocalData(
+          logger,
+          projectRoot: projectRoot,
+          environment: {'INTERNAL_API_KEY': 'shell-key'},
+        ),
+        () => MockClient((request) async {
+          expect(request.headers['authorization'], 'Bearer file-key');
+          return http.Response('{"success":true,"jobId":"job-test"}', 200);
+        }),
+      );
+
+      expect(result, isTrue);
+    });
+
+    test('does not send the project key to a remote server', () async {
+      await File(
+        p.join(projectRoot.path, '.env'),
+      ).writeAsString('INTERNAL_API_KEY=file-key\n');
+      var requestCount = 0;
+
+      final result = await http.runWithClient(
+        () => seedLocalData(
+          logger,
+          projectRoot: projectRoot,
+          environment: {
+            'OPENCI_SERVER_URL': 'https://ci.example.com',
+            'INTERNAL_API_KEY': 'shell-key',
+          },
+        ),
+        () => MockClient((_) async {
+          requestCount++;
+          return http.Response('', 200);
+        }),
+      );
+
+      expect(result, isFalse);
+      expect(requestCount, 0);
+      expect(logger.stderrMessages.single, contains('OPENCI_SERVER_URL'));
+      expect(logger.stderrMessages.single, isNot(contains('file-key')));
+      expect(logger.stderrMessages.single, isNot(contains('shell-key')));
     });
 
     test('returns false when the seed request fails', () async {
@@ -95,7 +170,8 @@ void main() {
       final result = await http.runWithClient(
         () => seedLocalData(
           logger,
-          environment: const {'INTERNAL_API_KEY': 'test-internal-key'},
+          projectRoot: projectRoot,
+          environment: const {},
         ),
         () => client,
       );
@@ -117,10 +193,7 @@ void main() {
       });
 
       final result = await http.runWithClient(
-        () => seedLocalData(
-          logger,
-          environment: {'INTERNAL_API_KEY': 'test-internal-key'},
-        ),
+        () => seedLocalData(logger, projectRoot: projectRoot, environment: {}),
         () => client,
       );
 
@@ -141,7 +214,8 @@ void main() {
       final result = await http.runWithClient(
         () => seedLocalData(
           logger,
-          environment: const {'INTERNAL_API_KEY': 'test-internal-key'},
+          projectRoot: projectRoot,
+          environment: const {},
         ),
         () => client,
       );
@@ -157,7 +231,8 @@ void main() {
       final result = await http.runWithClient(
         () => seedLocalData(
           logger,
-          environment: const {'INTERNAL_API_KEY': 'test-internal-key'},
+          projectRoot: projectRoot,
+          environment: const {},
           timeout: const Duration(milliseconds: 50),
         ),
         () => client,
@@ -168,7 +243,8 @@ void main() {
       expect(logger.stdoutMessages, ['\n${t.dev.start.stepSeed}']);
     });
 
-    test('does not send a request when the internal key is unset', () async {
+    test('does not send a request when the project key is unset', () async {
+      await File(p.join(projectRoot.path, '.env')).delete();
       var requestCount = 0;
       final client = MockClient((_) async {
         requestCount++;
@@ -176,7 +252,11 @@ void main() {
       });
 
       final result = await http.runWithClient(
-        () => seedLocalData(logger, environment: {}),
+        () => seedLocalData(
+          logger,
+          projectRoot: projectRoot,
+          environment: {'INTERNAL_API_KEY': 'shell-key'},
+        ),
         () => client,
       );
 
@@ -185,7 +265,10 @@ void main() {
       expect(logger.stderrMessages.single, contains('INTERNAL_API_KEY'));
     });
 
-    test('does not send a request when the internal key is empty', () async {
+    test('does not send a request when the project key is empty', () async {
+      await File(
+        p.join(projectRoot.path, '.env'),
+      ).writeAsString('INTERNAL_API_KEY=\n');
       var requestCount = 0;
       final client = MockClient((_) async {
         requestCount++;
@@ -193,7 +276,11 @@ void main() {
       });
 
       final result = await http.runWithClient(
-        () => seedLocalData(logger, environment: {'INTERNAL_API_KEY': ''}),
+        () => seedLocalData(
+          logger,
+          projectRoot: projectRoot,
+          environment: {'INTERNAL_API_KEY': 'shell-key'},
+        ),
         () => client,
       );
 

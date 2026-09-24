@@ -77,7 +77,10 @@ void main() {
           logger,
           projectRoot,
           step: step,
-          environment: const {'PATH': '/usr/local/bin'},
+          environment: const {
+            'PATH': '/usr/local/bin',
+            'INTERNAL_API_KEY': 'shell-key',
+          },
           processRunner:
               (
                 executable,
@@ -153,7 +156,6 @@ void main() {
       expect(capturedEnvironment, {
         'PATH': '/usr/local/bin',
         'BASE_VM_NAME': 'custom-base',
-        'INTERNAL_API_KEY': 'custom-api-key',
         'ORCHARD_API_URL': 'https://custom-orchard.example.com',
         'ENABLE_INTERNAL_API': 'true',
       });
@@ -214,12 +216,13 @@ void main() {
         expect(result, isTrue);
         expect(
           capturedEnvironment.keys,
-          unorderedEquals({
-            ...Platform.environment.keys,
-            'ENABLE_INTERNAL_API',
-          }),
+          unorderedEquals(
+            {...Platform.environment.keys, 'ENABLE_INTERNAL_API'}
+              ..remove('INTERNAL_API_KEY'),
+          ),
         );
         expect(capturedEnvironment['ENABLE_INTERNAL_API'], 'true');
+        expect(capturedEnvironment.containsKey('INTERNAL_API_KEY'), isFalse);
         expect(
           capturedEnvironment.entries
               .where((entry) => entry.key != 'ENABLE_INTERNAL_API')

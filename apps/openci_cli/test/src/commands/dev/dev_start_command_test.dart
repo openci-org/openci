@@ -69,7 +69,8 @@ void main() {
           dockerComposeStarter:
               (_, _, {step = DockerComposeStep.startServices}) async => true,
           orchardContextSetup: (_) async => true,
-          localDataSeeder: (_) async {
+          localDataSeeder: (_, {required projectRoot}) async {
+            expect(projectRoot, same(tempDirectory));
             onSeed();
             return seedSucceeds;
           },
@@ -168,7 +169,8 @@ void main() {
                   return recordStep(step.name);
                 },
             orchardContextSetup: (_) async => recordStep('context'),
-            localDataSeeder: (_) async => recordStep('seed'),
+            localDataSeeder: (_, {required projectRoot}) async =>
+                recordStep('seed'),
             orchardWorkerStarter: (workerLogger) async {
               expect(workerLogger, same(logger));
               calls.add('worker');
@@ -321,7 +323,7 @@ void main() {
                     },
                 orchardContextSetup: (_) async => true,
                 orchardWorkerStarter: (_) async => worker,
-                localDataSeeder: (_) async =>
+                localDataSeeder: (_, {required projectRoot}) async =>
                     fail('Must not seed after a failure'),
               ),
             );
