@@ -24,9 +24,9 @@ abstract class LokiLabels with _$LokiLabels {
     return LokiLabels(
       stream: stream,
       command: command,
-      runId: Platform.environment['GENUINE_CI_RUN_ID'],
-      buildJobId: Platform.environment['GENUINE_CI_BUILD_JOB_ID'],
-      stepId: Platform.environment['GENUINE_CI_STEP_ID'],
+      runId: Platform.environment['OPENCI_RUN_ID'],
+      buildJobId: Platform.environment['OPENCI_BUILD_JOB_ID'],
+      stepId: Platform.environment['OPENCI_STEP_ID'],
     );
   }
 

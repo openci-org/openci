@@ -5,7 +5,7 @@ import 'package:openci_workflow/openci_workflow.dart';
 import 'package:test/test.dart';
 
 void main() {
-  const workspace = '/tmp/genuine-ci-workspace';
+  const workspace = '/tmp/openci-workspace';
   final commands = <String, Future<void> Function(FlutterCI, {String? dir})>{
     'flutter analyze': (flutter, {dir}) => flutter.staticAnalysis(dir: dir),
     'flutter test': (flutter, {dir}) => flutter.unitTests(dir: dir),

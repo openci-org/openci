@@ -71,8 +71,8 @@ ${assignments.map((line) => 'export ${_shellQuote(line)}').join('\n')}
 export HOME=${_shellQuote(vmHome)}
 export FLUTTER_ROOT=${_shellQuote('$vmHome/fvm/default')}
 export PATH="\$FLUTTER_ROOT/bin:\$HOME/.pub-cache/bin:/opt/homebrew/bin:/usr/local/bin:\$PATH"
-export GENUINE_CI_RUN_ID=${_shellQuote(runId)}
-export GENUINE_CI_BUILD_JOB_ID=${_shellQuote(job.id)}
+export OPENCI_RUN_ID=${_shellQuote(runId)}
+export OPENCI_BUILD_JOB_ID=${_shellQuote(job.id)}
 export LOKI_URL=${_shellQuote(vmLokiUrl)}
 flutter pub get
 flutter pub run ${_shellQuote('openci/$fileName')}

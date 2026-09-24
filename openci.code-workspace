@@ -1,0 +1,18 @@
+{
+  "folders": [
+    { "name": "root", "path": "." },
+    { "name": "dashboard", "path": "apps/dashboard" },
+    { "name": "openci_cli", "path": "apps/openci_cli" },
+    { "name": "openci_server", "path": "apps/openci_server" },
+    { "name": "build_job_planner", "path": "apps/build_job_planner" },
+    { "name": "build_job_worker", "path": "apps/build_job_worker" },
+    { "name": "openci_workflow", "path": "packages/openci_workflow" },
+    { "name": "openci_shared", "path": "packages/openci_shared" },
+    { "name": "macos_updater", "path": "packages/macos_updater" },
+    { "name": "pubspec_version_hook", "path": "packages/pubspec_version_hook" },
+    { "name": "workflows", "path": "openci" },
+    { "name": "ci", "path": ".openci" },
+    { "name": "firebase", "path": "firebase" },
+    { "name": "landing_page", "path": "apps/landing_page" },
+  ],
+}
