@@ -9,10 +9,12 @@ class FirebaseAuthClient {
   FirebaseAuthClient(
     this._client, {
     this.timeout = const Duration(seconds: 10),
-  });
+    String? emulatorHost,
+  }) : _emulatorUri = _parseEmulatorHost(emulatorHost);
 
   final http.Client _client;
   final Duration timeout;
+  final Uri? _emulatorUri;
 
   Future<FirebaseSession> signIn({
     required String apiKey,
@@ -22,10 +24,10 @@ class FirebaseAuthClient {
     final request =
         http.Request(
             'POST',
-            Uri.https(
+            _endpoint(
               'identitytoolkit.googleapis.com',
               '/v1/accounts:signInWithPassword',
-              {'key': apiKey},
+              apiKey,
             ),
           )
           ..headers['Content-Type'] = 'application/json; charset=utf-8'
@@ -44,15 +46,37 @@ class FirebaseAuthClient {
     final request =
         http.Request(
             'POST',
-            Uri.https('securetoken.googleapis.com', '/v1/token', {
-              'key': apiKey,
-            }),
+            _endpoint('securetoken.googleapis.com', '/v1/token', apiKey),
           )
           ..bodyFields = {
             'grant_type': 'refresh_token',
             'refresh_token': refreshToken,
           };
     return _send(request, isRefresh: true);
+  }
+
+  Uri _endpoint(String host, String path, String apiKey) =>
+      _emulatorUri?.replace(
+        path: '/$host$path',
+        queryParameters: {'key': apiKey},
+      ) ??
+      Uri.https(host, path, {'key': apiKey});
+
+  static Uri? _parseEmulatorHost(String? host) {
+    if (host == null) return null;
+    final uri = Uri.tryParse('//$host');
+    if (!RegExp(
+          r'^(?:[a-zA-Z0-9.-]+|\[[0-9a-fA-F:.]+\]):[0-9]+$',
+        ).hasMatch(host) ||
+        uri == null ||
+        !uri.hasPort ||
+        uri.port < 1 ||
+        uri.port > 65535) {
+      throw const FormatException(
+        'Auth Emulator address must be host:port, for example 127.0.0.1:9099.',
+      );
+    }
+    return uri.replace(scheme: 'http');
   }
 
   Future<FirebaseSession> _send(

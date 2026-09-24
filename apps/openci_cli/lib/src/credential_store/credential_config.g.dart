@@ -13,6 +13,7 @@ _AuthProfile _$AuthProfileFromJson(Map<String, dynamic> json) => _AuthProfile(
   authType: json['auth_type'] as String? ?? 'api_key',
   refreshToken: json['refresh_token'] as String? ?? '',
   firebaseApiKey: json['firebase_api_key'] as String? ?? '',
+  firebaseAuthEmulatorHost: json['firebase_auth_emulator_host'] as String?,
   expiresAt: json['expires_at'] == null
       ? null
       : DateTime.parse(json['expires_at'] as String),
@@ -26,6 +27,7 @@ Map<String, dynamic> _$AuthProfileToJson(_AuthProfile instance) =>
       'auth_type': instance.authType,
       'refresh_token': instance.refreshToken,
       'firebase_api_key': instance.firebaseApiKey,
+      'firebase_auth_emulator_host': ?instance.firebaseAuthEmulatorHost,
       'expires_at': instance.expiresAt?.toIso8601String(),
     };
 
