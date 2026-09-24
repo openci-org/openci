@@ -23,15 +23,15 @@ Future<bool> seedLocalData(
 
   try {
     final serverHost = Uri.tryParse(serverUrl)?.host;
-    final key =
-        env['INTERNAL_API_KEY'] ??
-        (const {'localhost', '127.0.0.1', '::1'}.contains(serverHost)
-            ? await _readInternalApiKey(projectRoot)
-            : null);
-    final internalApiKey = getRequiredEnv(
-      'INTERNAL_API_KEY',
-      environment: {'INTERNAL_API_KEY': key ?? ''},
-    );
+    if (!const {'localhost', '127.0.0.1', '::1'}.contains(serverHost)) {
+      throw StateError('Local seed requires a localhost OPENCI_SERVER_URL.');
+    }
+    final internalApiKey = await _readInternalApiKey(projectRoot);
+    if (internalApiKey == null || internalApiKey.isEmpty) {
+      throw StateError(
+        'INTERNAL_API_KEY is not set in ${p.join(projectRoot.path, '.env')}.',
+      );
+    }
     final client = createOpenCIChopperClient(
       baseUrl: serverUrl,
       tokenProvider: () => internalApiKey,

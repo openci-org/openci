@@ -93,6 +93,8 @@ Future<bool> startDockerCompose(
     ...(environment ?? Platform.environment),
     'ENABLE_INTERNAL_API': 'true',
   };
+  // Keep the server and seed request on the same project .env key.
+  composeEnvironment.remove('INTERNAL_API_KEY');
 
   try {
     final exitCode = await processRunner(
