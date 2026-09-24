@@ -95,7 +95,7 @@ available.
 
 ## Follow-up work
 
-Automatic startup through `genuineci dev start` is tracked in
+Automatic startup through `openci dev start` is tracked in
 [#2872](https://github.com/openci-org/openci/issues/2872), token-verification tests
 in [#2873](https://github.com/openci-org/openci/issues/2873), Dashboard in
 [#2867](https://github.com/openci-org/openci/issues/2867), and CLI authentication
