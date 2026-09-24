@@ -88,7 +88,8 @@ class OrchardWorker {
   }
 
   void _handleSignal(ProcessSignal signal) {
-    _stopSignal ??= signal;
+    if (_stopRequested) return;
+    _stopSignal = signal;
     _stopRequested = true;
     _process.kill(ProcessSignal.sigint);
   }

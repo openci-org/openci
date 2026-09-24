@@ -114,7 +114,9 @@ The server resolves the installation ID using the GitHub App already configured
 in Docker Compose. That App must have access to `openci-org/openci`.
 Webhook reception and planning are separate from this smoke test.
 
-Press Ctrl+C to stop the Mac Orchard worker. Docker containers keep running.
+Press Ctrl+C to stop the Mac Orchard worker and the local Docker Compose stack.
+The same shutdown also runs when the command exits or receives SIGTERM. Named
+volumes and local data are kept.
 
 Local CLI login is not yet connected to the Auth Emulator. The current
 `openci login --local` sends an internal API key to `/teams`, which requires a
