@@ -395,6 +395,12 @@ class Translations$dev$start$en {
 	/// en: 'Tart VM (base-macos) exists.'
 	String get stepTartExists => 'Tart VM (base-macos) exists.';
 
+	/// en: 'Starting Firebase Auth Emulator and waiting for readiness...'
+	String get stepAuthEmulator => 'Starting Firebase Auth Emulator and waiting for readiness...';
+
+	/// en: 'Error: Failed to start or verify Firebase Auth Emulator.'
+	String get stepAuthEmulatorFailed => 'Error: Failed to start or verify Firebase Auth Emulator.';
+
 	/// en: 'Step 5: Starting Docker containers...'
 	String get stepDockerCompose => 'Step 5: Starting Docker containers...';
 
@@ -590,6 +596,8 @@ extension on Translations {
 			'dev.start.stepTart' => 'Step 1: Checking Tart VM base image...',
 			'dev.start.stepTartNotFound' => 'Error: Tart VM image "base-macos" not found.\nPlease run the following commands to setup the base image:\n  tart pull ghcr.io/cirruslabs/macos-tahoe-vanilla:26.5\n  tart clone ghcr.io/cirruslabs/macos-tahoe-vanilla:26.5 base-macos',
 			'dev.start.stepTartExists' => 'Tart VM (base-macos) exists.',
+			'dev.start.stepAuthEmulator' => 'Starting Firebase Auth Emulator and waiting for readiness...',
+			'dev.start.stepAuthEmulatorFailed' => 'Error: Failed to start or verify Firebase Auth Emulator.',
 			'dev.start.stepDockerCompose' => 'Step 5: Starting Docker containers...',
 			'dev.start.stepDockerComposeFailed' => 'Error: Failed to start Docker containers.',
 			'dev.start.stepDockerComposeStarted' => 'Docker containers started.',

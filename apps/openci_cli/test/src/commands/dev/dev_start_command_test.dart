@@ -180,6 +180,7 @@ void main() {
       expect(await runner.run(['start', if (shouldSeed) '--seed']), 17);
       expect(calls, [
         'tart',
+        'startAuthEmulator',
         'startOrchardController',
         'context',
         'worker',
@@ -191,20 +192,33 @@ void main() {
     });
   }
 
-  for (final failingStep in ['tart', 'compose', 'context']) {
+  for (final failingStep in [
+    'tart',
+    'startAuthEmulator',
+    'startOrchardController',
+    'context',
+  ]) {
     test('does not start the worker when $failingStep fails', () async {
+      final composeSteps = <DockerComposeStep>[];
       final result = await DevStartCommand(
         logger: _RecordingLogger(),
         projectRootFinder: () => tempDirectory,
         tartBaseImageChecker: (_) async => failingStep != 'tart',
         dockerComposeStarter:
-            (_, _, {step = DockerComposeStep.startServices}) async =>
-                failingStep != 'compose',
+            (_, _, {step = DockerComposeStep.startServices}) async {
+              composeSteps.add(step);
+              return step.name != failingStep;
+            },
         orchardContextSetup: (_) async => failingStep != 'context',
         orchardWorkerStarter: (_) async => fail('Worker must not start'),
       ).run();
 
       expect(result, 1);
+      expect(composeSteps, [
+        if (failingStep != 'tart') DockerComposeStep.startAuthEmulator,
+        if (failingStep == 'context' || failingStep == 'startOrchardController')
+          DockerComposeStep.startOrchardController,
+      ]);
     });
   }
 
@@ -226,7 +240,10 @@ void main() {
       ).run();
 
       expect(result, 1);
-      expect(steps, [DockerComposeStep.startOrchardController]);
+      expect(steps, [
+        DockerComposeStep.startAuthEmulator,
+        DockerComposeStep.startOrchardController,
+      ]);
     },
   );
 
@@ -316,6 +333,7 @@ void main() {
             expect(await result, 1);
           }
           expect(steps, [
+            DockerComposeStep.startAuthEmulator,
             DockerComposeStep.startOrchardController,
             DockerComposeStep.stopBuildJobWorker,
             if (failedStep == DockerComposeStep.startServices)
@@ -351,6 +369,7 @@ void main() {
 
         expect(result, code == 0 ? 1 : code);
         expect(steps, [
+          DockerComposeStep.startAuthEmulator,
           DockerComposeStep.startOrchardController,
           DockerComposeStep.stopBuildJobWorker,
         ]);
