@@ -90,6 +90,102 @@ void main() {
     },
   );
 
+  for (final host in [
+    '127.0.0.1:9099',
+    'localhost:9099',
+    'firebase-auth:9099',
+    '[::1]:9099',
+    'localhost:80',
+    'localhost:65535',
+  ]) {
+    test('uses $host for both sign-in and token refresh', () async {
+      final requests = <http.Request>[];
+      final client = MockClient((request) async {
+        requests.add(request);
+        return http.Response(
+          jsonEncode(
+            requests.length == 1
+                ? signInBody
+                : {
+                    'id_token': 'refreshed-id-token',
+                    'refresh_token': 'rotated-refresh-token',
+                    'expires_in': '3600',
+                  },
+          ),
+          200,
+        );
+      });
+      addTearDown(client.close);
+      final auth = FirebaseAuthClient(client, emulatorHost: host);
+
+      final session = await auth.signIn(
+        apiKey: 'demo-key',
+        email: 'user@example.com',
+        password: password,
+      );
+      final refreshed = await auth.refresh(
+        apiKey: 'demo-key',
+        refreshToken: session.refreshToken,
+      );
+
+      expect(requests.map((request) => request.url), [
+        Uri.parse(
+          'http://$host/identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=demo-key',
+        ),
+        Uri.parse(
+          'http://$host/securetoken.googleapis.com/v1/token?key=demo-key',
+        ),
+      ]);
+      expect(requests.every((request) => !request.followRedirects), isTrue);
+      expect(requests.last.bodyFields['refresh_token'], refreshToken);
+      expect(refreshed.token, 'refreshed-id-token');
+      expect(refreshed.refreshToken, 'rotated-refresh-token');
+    });
+  }
+
+  for (final host in [
+    '',
+    'localhost',
+    'localhost:',
+    ':9099',
+    'localhost:0',
+    'localhost:65536',
+    'localhost:-1',
+    'localhost:port',
+    'http://localhost:9099',
+    'https://localhost:9099',
+    'user:private-password@localhost:9099',
+    '@localhost:9099',
+    'localhost:9099/',
+    'localhost:9099/path',
+    'localhost:9099?key=value',
+    'localhost:9099#fragment',
+    'localhost:9099 ',
+    'localhost:9099\n',
+    'local host:9099',
+    'localhost%2eevil:9099',
+    '::1:9099',
+    '[invalid]:9099',
+  ]) {
+    test('rejects invalid emulator address ${jsonEncode(host)}', () {
+      final client = MockClient(
+        (_) async => throw StateError('Unexpected HTTP'),
+      );
+      addTearDown(client.close);
+
+      expect(
+        () => FirebaseAuthClient(client, emulatorHost: host),
+        throwsA(
+          isA<FormatException>().having(
+            (error) => error.toString(),
+            'message',
+            isNot(contains('private-password')),
+          ),
+        ),
+      );
+    });
+  }
+
   for (final body in [
     password,
     'null',
@@ -126,23 +222,48 @@ void main() {
     ('network error', () async => throw http.ClientException(password)),
     ('timeout', () => Completer<http.Response>().future),
   ]) {
-    test('does not disclose credentials on $label', () async {
-      final client = MockClient((_) => respond());
-      addTearDown(client.close);
+    for (final host in [null, '127.0.0.1:9099']) {
+      for (final refresh in [false, true]) {
+        test('fails on $label: emulator=$host, refresh=$refresh', () async {
+          final requests = <Uri>[];
+          final client = MockClient((request) {
+            requests.add(request.url);
+            return respond();
+          });
+          addTearDown(client.close);
+          final auth = FirebaseAuthClient(
+            client,
+            timeout: const Duration(milliseconds: 20),
+            emulatorHost: host,
+          );
 
-      await expectLater(
-        FirebaseAuthClient(
-          client,
-          timeout: const Duration(milliseconds: 20),
-        ).signIn(apiKey: 'key', email: 'user@example.com', password: password),
-        throwsA(
-          isA<FirebaseAuthException>().having(
-            (error) => error.toString(),
-            'message',
-            isNot(contains(password)),
-          ),
-        ),
-      );
-    });
+          await expectLater(
+            refresh
+                ? auth.refresh(apiKey: 'key', refreshToken: refreshToken)
+                : auth.signIn(
+                    apiKey: 'key',
+                    email: 'user@example.com',
+                    password: password,
+                  ),
+            throwsA(
+              isA<FirebaseAuthException>().having(
+                (error) => error.toString(),
+                'message',
+                isNot(contains(password)),
+              ),
+            ),
+          );
+          expect(requests, hasLength(1));
+          expect(
+            requests.single.host,
+            host != null
+                ? '127.0.0.1'
+                : refresh
+                ? 'securetoken.googleapis.com'
+                : 'identitytoolkit.googleapis.com',
+          );
+        });
+      }
+    }
   }
 }

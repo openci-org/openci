@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:openci_cli/openci_cli.dart';
@@ -96,6 +97,55 @@ void main() {
 
     final prod = await store.getProfile('default');
     expect(prod, equals(prodProfile));
+  });
+
+  test('persists the emulator host only on its matching profile', () async {
+    const remote = AuthProfile(authType: 'firebase', token: 'remote-token');
+    const local = AuthProfile(
+      authType: 'firebase',
+      token: 'local-token',
+      refreshToken: 'local-refresh-token',
+      firebaseApiKey: 'demo-key',
+      firebaseAuthEmulatorHost: 'localhost:9099',
+    );
+    await store.saveProfile('remote', remote);
+    await store.saveProfile('local', local);
+
+    final reloaded = CredentialStore(customFilePath: store.filePath);
+    expect(await reloaded.getProfile('local'), local);
+    expect(await reloaded.getProfile('remote'), remote);
+    final json = jsonDecode(await File(store.filePath).readAsString()) as Map;
+    expect(
+      json['profiles']['local']['firebase_auth_emulator_host'],
+      'localhost:9099',
+    );
+    expect(
+      json['profiles']['remote'],
+      isNot(contains('firebase_auth_emulator_host')),
+    );
+  });
+
+  test('loads existing profiles without emulator settings', () async {
+    await File(store.filePath).writeAsString(
+      jsonEncode({
+        'active_profile': 'remote',
+        'profiles': {
+          'local': {'token': 'api-key'},
+          'remote': {
+            'auth_type': 'firebase',
+            'token': 'id-token',
+            'refresh_token': 'refresh-token',
+            'firebase_api_key': 'firebase-key',
+          },
+        },
+      }),
+    );
+
+    final saved = await store.get();
+    expect(saved.activeProfile, 'remote');
+    expect(saved.profiles['local'], const AuthProfile(token: 'api-key'));
+    expect(saved.profiles['remote']!.firebaseAuthEmulatorHost, isNull);
+    expect(saved.profiles['remote']!.refreshToken, 'refresh-token');
   });
 
   test(

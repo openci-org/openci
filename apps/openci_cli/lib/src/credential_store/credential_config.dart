@@ -16,6 +16,8 @@ abstract class AuthProfile with _$AuthProfile {
     @JsonKey(name: 'auth_type') @Default('api_key') String authType,
     @JsonKey(name: 'refresh_token') @Default('') String refreshToken,
     @JsonKey(name: 'firebase_api_key') @Default('') String firebaseApiKey,
+    @JsonKey(name: 'firebase_auth_emulator_host', includeIfNull: false)
+    String? firebaseAuthEmulatorHost,
     @JsonKey(name: 'expires_at') DateTime? expiresAt,
   }) = _AuthProfile;
 

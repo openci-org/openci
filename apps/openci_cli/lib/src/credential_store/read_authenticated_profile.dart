@@ -23,10 +23,14 @@ Future<AuthProfile?> readAuthenticatedProfile(CredentialStore store) async {
 
   final client = http.Client();
   try {
-    final session = await FirebaseAuthClient(client).refresh(
-      apiKey: profile.firebaseApiKey,
-      refreshToken: profile.refreshToken,
-    );
+    final session =
+        await FirebaseAuthClient(
+          client,
+          emulatorHost: profile.firebaseAuthEmulatorHost,
+        ).refresh(
+          apiKey: profile.firebaseApiKey,
+          refreshToken: profile.refreshToken,
+        );
     final updated = profile.copyWith(
       token: session.token,
       refreshToken: session.refreshToken,

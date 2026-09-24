@@ -120,10 +120,17 @@ volumes and local data are kept.
 
 Local CLI login is not yet connected to the Auth Emulator. The current
 `openci login --local` sends an internal API key to `/teams`, which requires a
-Firebase user token. Emulator-backed CLI sign-in and token refresh are tracked
-in [#2868](https://github.com/openci-org/openci/issues/2868) and
+Firebase user token. Emulator-backed sign-in and token refresh are supported
+by the authentication client; connecting `login --local` to it is tracked in
 [#2869](https://github.com/openci-org/openci/issues/2869). The `--seed` flow does
 not require CLI login.
+
+The authentication client accepts an explicit emulator address as `host:port`
+(for example, `127.0.0.1:9099` or `[::1]:9099`), without a scheme or path.
+Firebase profiles can save it as `firebase_auth_emulator_host` so subsequent
+token refreshes use the same emulator. An omitted value keeps the normal
+Firebase endpoints; an empty or invalid address is rejected. Emulator errors
+do not trigger a retry against real Firebase.
 
 With an authenticated credential profile, generate typed secret definitions
 from your workflow project:

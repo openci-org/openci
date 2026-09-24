@@ -38,11 +38,19 @@ void main() {
         () => MockClient(handler),
       );
 
-  test(
-    'refreshes an expired session and persists rotated credentials',
-    () async {
+  for (final host in [null, '127.0.0.1:9099']) {
+    test('refreshes and persists rotated credentials: emulator=$host', () async {
+      profile = profile.copyWith(firebaseAuthEmulatorHost: host);
+      await store.saveProfile('remote', profile);
       final updated = await readWith((request) async {
-        expect(request.url.host, 'securetoken.googleapis.com');
+        expect(
+          request.url,
+          Uri.parse(
+            host == null
+                ? 'https://securetoken.googleapis.com/v1/token?key=firebase-api-key'
+                : 'http://127.0.0.1:9099/securetoken.googleapis.com/v1/token?key=firebase-api-key',
+          ),
+        );
         expect(request.bodyFields['refresh_token'], 'old-refresh-token');
         return http.Response(
           jsonEncode({
@@ -59,13 +67,14 @@ void main() {
       expect(updated.serverUrl, profile.serverUrl);
       expect(updated.teamId, 'team-1');
       expect(updated.firebaseApiKey, 'firebase-api-key');
+      expect(updated.firebaseAuthEmulatorHost, host);
       expect(updated.expiresAt!.isAfter(DateTime.now().toUtc()), isTrue);
       final saved = await store.get();
       expect(saved.activeProfile, 'remote');
       expect(saved.profiles['remote'], updated);
       expect(saved.profiles['local']!.token, 'local-api-key');
-    },
-  );
+    });
+  }
 
   test(
     'keeps an unexpired Firebase session without a network request',
@@ -105,6 +114,54 @@ void main() {
         ),
         throwsA(isA<FirebaseAuthException>()),
       );
+      expect(await File(store.filePath).readAsBytes(), before);
+    },
+  );
+
+  test(
+    'emulator failure preserves the session without remote fallback',
+    () async {
+      await store.saveProfile(
+        'local',
+        profile.copyWith(firebaseAuthEmulatorHost: 'localhost:9099'),
+      );
+      final before = await File(store.filePath).readAsBytes();
+      final requests = <Uri>[];
+
+      await expectLater(
+        readWith((request) async {
+          requests.add(request.url);
+          throw http.ClientException('Connection refused');
+        }),
+        throwsA(isA<FirebaseAuthException>()),
+      );
+      expect(requests, [
+        Uri.parse(
+          'http://localhost:9099/securetoken.googleapis.com/v1/token?key=firebase-api-key',
+        ),
+      ]);
+      expect(await File(store.filePath).readAsBytes(), before);
+    },
+  );
+
+  test(
+    'rejects an invalid saved emulator host without changing credentials',
+    () async {
+      await store.saveProfile(
+        'local',
+        profile.copyWith(firebaseAuthEmulatorHost: ''),
+      );
+      final before = await File(store.filePath).readAsBytes();
+      var requests = 0;
+
+      await expectLater(
+        readWith((_) async {
+          requests++;
+          throw StateError('Unexpected request');
+        }),
+        throwsA(isA<FormatException>()),
+      );
+      expect(requests, 0);
       expect(await File(store.filePath).readAsBytes(), before);
     },
   );
