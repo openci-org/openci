@@ -6,6 +6,7 @@ import 'package:dashboard/api/openci_api_client.dart';
 import 'package:dashboard/app_strings.dart';
 import 'package:dashboard/auth/auth_provider.dart';
 import 'package:dashboard/auth/self_hosted_setup_form.dart';
+import 'package:dashboard/connections/local_development_connection.dart';
 import 'package:dashboard/firebase/firebase_config_provider.dart';
 import 'package:dashboard/firebase/plist_parser.dart';
 import 'package:dashboard/utilities/openci_server_url_provider.dart';
@@ -38,6 +39,7 @@ class AuthPage extends HookConsumerWidget {
 
     final customServerUrl = ref.watch(customServerUrlProvider);
     final hasCustomUrl = customServerUrl != null && customServerUrl.isNotEmpty;
+    final localDevelopment = ref.watch(localDevelopmentConnectionProvider);
 
     // Check if a self-hosted Firebase config is active
     final configReloadKey = useState(0);
@@ -79,8 +81,16 @@ class AuthPage extends HookConsumerWidget {
                                 ),
                           ),
 
-                          // ── Self-hosted config indicator ──
-                          if (configSnapshot.data != null) ...[
+                          // ── Connection indicator ──
+                          if (localDevelopment != null) ...[
+                            const SizedBox(height: 12),
+                            Text(
+                              'Local Auth Emulator · demo-openci',
+                              textAlign: TextAlign.center,
+                              style: Theme.of(context).textTheme.labelMedium
+                                  ?.copyWith(color: colorScheme.primary),
+                            ),
+                          ] else if (configSnapshot.data != null) ...[
                             const SizedBox(height: 12),
                             Container(
                               padding: const EdgeInsets.symmetric(
@@ -103,13 +113,15 @@ class AuthPage extends HookConsumerWidget {
                                     color: Colors.green.withValues(alpha: 0.8),
                                   ),
                                   const SizedBox(width: 5),
-                                  Text(
-                                    configSnapshot.data!.projectId,
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w500,
-                                      color: Colors.green.withValues(
-                                        alpha: 0.8,
+                                  Flexible(
+                                    child: Text(
+                                      configSnapshot.data!.projectId,
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w500,
+                                        color: Colors.green.withValues(
+                                          alpha: 0.8,
+                                        ),
                                       ),
                                     ),
                                   ),

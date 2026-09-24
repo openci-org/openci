@@ -97,6 +97,46 @@ emulator commands above remain available.
 To stop the local API and its dependencies, use the same three `-f` options with
 `stop server db firebase-auth`.
 
+## Connect the Dashboard
+
+1. Start the local API and Auth Emulator using the Compose command above, or
+   `openci dev start` on a Mac configured for Orchard. Keep `dev start` running
+   while using the Dashboard; Ctrl+C shuts down the local stack.
+2. Open `apps/dashboard` in VS Code, select **dashboard (Local Auth Emulator)**
+   from Run and Debug, select your device, and start debugging.
+3. The authentication page displays **Local Auth Emulator · demo-openci**.
+   Create an email/password user in the [Emulator UI](http://127.0.0.1:4000/auth)
+   to sign in. Automatic development user/team creation is tracked in #2862.
+
+The launch configuration passes `OPENCI_LOCAL_DEV=true`,
+`OPENCI_LOCAL_API_URL`, `OPENCI_AUTH_EMULATOR_HOST`, and
+`OPENCI_AUTH_EMULATOR_PORT` as Dart defines. It starts the Dashboard only;
+Docker must already be running. It does not load `.env.docker.local`.
+
+This connection uses the `demo-openci` project with demo Firebase options and
+a separate named Auth instance. It is active only for that launch; saved
+Cloud/self-hosted connections and their active selection are preserved.
+Invalid or incomplete local settings produce an error instead of selecting
+a saved connection.
+
+Use these host values in `apps/dashboard/.vscode/launch.json`:
+
+| Target                    | `OPENCI_LOCAL_API_URL`  | `OPENCI_AUTH_EMULATOR_HOST` |
+| ------------------------- | ----------------------- | --------------------------- |
+| macOS, web, iOS Simulator | `http://127.0.0.1:8080` | `127.0.0.1`                 |
+| Android Emulator          | `http://10.0.2.2:8080`  | `10.0.2.2`                  |
+
+For Android Emulator, change both values; keep
+`OPENCI_AUTH_EMULATOR_PORT=9099`. Android permits HTTP in debug builds. The
+shared iOS/macOS `Info.plist` files declare `NSAllowsLocalNetworking`, so
+local-network ATS exceptions apply to all build configurations.
+
+On a physical device, `127.0.0.1` refers to that device. The Compose API and
+Emulator ports bind only to the Mac's loopback interface, so physical-device
+testing requires an explicit LAN binding or tunnel, reachable host overrides
+for both services, and any device local-network permissions. The default
+launch values do not support physical devices.
+
 ## Test server authentication
 
 Start the standalone Auth Emulator with the first Compose command above. Then
@@ -122,7 +162,6 @@ same unsigned token is rejected when emulator mode is disabled. The regular
 
 ## Follow-up work
 
-Dashboard is tracked in [#2867](https://github.com/openci-org/openci/issues/2867).
 CLI authentication is tracked in
 [#2868](https://github.com/openci-org/openci/issues/2868) and
 [#2869](https://github.com/openci-org/openci/issues/2869). Automatic development

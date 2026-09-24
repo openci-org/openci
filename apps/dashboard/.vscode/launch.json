@@ -9,12 +9,17 @@
       "toolArgs": ["--dart-define-from-file=.env.local"]
     },
     {
-      "name": "dashboard (Local Docker)",
+      "name": "dashboard (Local Auth Emulator)",
       "request": "launch",
       "type": "dart",
       "program": "lib/main.dart",
-      "toolArgs": ["--dart-define-from-file=.env.docker.local"],
-      "preLaunchTask": "Docker Compose: Up (Detached)"
+      "flutterMode": "debug",
+      "toolArgs": [
+        "--dart-define=OPENCI_LOCAL_DEV=true",
+        "--dart-define=OPENCI_LOCAL_API_URL=http://127.0.0.1:8080",
+        "--dart-define=OPENCI_AUTH_EMULATOR_HOST=127.0.0.1",
+        "--dart-define=OPENCI_AUTH_EMULATOR_PORT=9099"
+      ]
     }
   ]
 }
