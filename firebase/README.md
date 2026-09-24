@@ -97,12 +97,34 @@ emulator commands above remain available.
 To stop the local API and its dependencies, use the same three `-f` options with
 `stop server db firebase-auth`.
 
+## Test server authentication
+
+Start the standalone Auth Emulator with the first Compose command above. Then
+run the server integration test from `apps/openci_server`:
+
+```sh
+cd apps/openci_server
+env -u GOOGLE_APPLICATION_CREDENTIALS \
+  -u GOOGLE_CLOUD_PROJECT \
+  -u FIREBASE_CONFIG \
+  GCLOUD_PROJECT=demo-openci \
+  FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099 \
+  dart test integration_test/auth_emulator_test.dart
+```
+
+The test refuses to run unless the project ID and loopback emulator host match
+the local setup, and it rejects production Firebase credential/configuration
+environment variables. It creates a unique email/password user, checks the
+server's real authentication middleware with ID tokens before and after email
+verification, then deletes only that user. A separate process checks that the
+same unsigned token is rejected when emulator mode is disabled. The regular
+`dart test` server suite does not require a running emulator.
+
 ## Follow-up work
 
-Token-verification tests are tracked in
-[#2873](https://github.com/openci-org/openci/issues/2873), Dashboard in
-[#2867](https://github.com/openci-org/openci/issues/2867), and CLI authentication
-in [#2868](https://github.com/openci-org/openci/issues/2868) and
+Dashboard is tracked in [#2867](https://github.com/openci-org/openci/issues/2867).
+CLI authentication is tracked in
+[#2868](https://github.com/openci-org/openci/issues/2868) and
 [#2869](https://github.com/openci-org/openci/issues/2869). Automatic development
 user and team membership creation is tracked in
 [#2862](https://github.com/openci-org/openci/issues/2862).
