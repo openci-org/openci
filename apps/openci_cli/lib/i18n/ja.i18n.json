@@ -10,7 +10,7 @@
   "login": {
     "description": "ローカルまたはリモートのOpenCIサーバーにログインします。",
     "flags": {
-      "local": "ローカルDocker環境（http://localhost:8080）に接続します。",
+      "local": "Auth Emulator（127.0.0.1:9099）のユーザーのメールアドレスとパスワードでローカルAPI（http://localhost:8080）にログインします。",
       "server": "リモートのOpenCIサーバーURL（HTTPS）。",
       "teamId": "複数チームに所属している場合に選択するチームID。",
       "firebaseApiKey": "Firebase Web APIキー（独自のFirebaseプロジェクトを使う場合に指定）。"
@@ -18,10 +18,9 @@
     "loggingIn": "OpenCI にログイン中...",
     "savedSuccess": "プロファイル「${profile}」を保存し、有効にしました。",
     "noArguments": "loginに位置引数は指定できません。",
-    "localServerUnavailable": "ローカルサーバーのAPIキーを取得できませんでした。openci dev start --seed を実行して再試行してください。",
     "authenticationFailed": "ローカルサーバーの認証に失敗しました。openci dev start で起動したサーバーを確認してください。",
     "requestFailed": "チーム一覧を取得できませんでした（HTTP ${status}）。",
-    "seedRequired": "test-teamが見つかりません。openci dev start --seed を実行してからログインしてください。",
+    "localTeamRequired": "このユーザーはtest-teamを利用できません。チームが初期データとして作成され、このAuth Emulatorユーザーが所属していることを確認してください。",
     "invalidResponse": "サーバーから返されたチーム一覧が不正です。",
     "connectionFailed": "ローカルサーバーに接続できませんでした。openci dev start の起動状態を確認してください。",
     "saveFailed": "認証情報を保存できませんでした。ローカルの認証情報ファイルと権限を確認してください。",
@@ -32,6 +31,7 @@
     "passwordPrompt": "パスワード: ",
     "inputRequired": "対話可能な端末でメールアドレスとパスワードを入力してください。ログインを中止しました。",
     "firebaseAuthenticationFailed": "Firebaseへのログインに失敗しました。メールアドレス、パスワード、Firebase APIキー、接続状態を確認してください。",
+    "emulatorAuthenticationFailed": "Auth Emulatorへのログインに失敗しました。Emulatorが起動していること、demo-openciにユーザーが存在すること、メールアドレスとパスワードが正しいことを確認してください。",
     "remoteConnectionFailed": "リモートサーバーに接続できませんでした。サーバーURLと接続状態を確認してください。",
     "noTeams": "所属チームがありません。先にdashboardでチームを作成するか参加してください。",
     "teamRequired": "複数のチームがあります。上記のIDを--team-idで指定して再度ログインしてください。",

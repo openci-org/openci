@@ -83,17 +83,14 @@ class Translations$login$en {
 	/// en: 'Login does not accept positional arguments.'
 	String get noArguments => 'Login does not accept positional arguments.';
 
-	/// en: 'Could not read the local server's API key. Run openci dev start --seed and retry.'
-	String get localServerUnavailable => 'Could not read the local server\'s API key. Run openci dev start --seed and retry.';
-
 	/// en: 'Local server authentication failed. Check the server started by openci dev start.'
 	String get authenticationFailed => 'Local server authentication failed. Check the server started by openci dev start.';
 
 	/// en: 'Could not fetch teams (HTTP ${status}).'
 	String requestFailed({required Object status}) => 'Could not fetch teams (HTTP ${status}).';
 
-	/// en: 'Team test-team was not found. Run openci dev start --seed before logging in.'
-	String get seedRequired => 'Team test-team was not found. Run openci dev start --seed before logging in.';
+	/// en: 'test-team is not available for this user. Check that the team is seeded and this Auth Emulator user belongs to it.'
+	String get localTeamRequired => 'test-team is not available for this user. Check that the team is seeded and this Auth Emulator user belongs to it.';
 
 	/// en: 'The server returned an invalid team list.'
 	String get invalidResponse => 'The server returned an invalid team list.';
@@ -124,6 +121,9 @@ class Translations$login$en {
 
 	/// en: 'Firebase login failed. Check your email, password, Firebase API key and network connection.'
 	String get firebaseAuthenticationFailed => 'Firebase login failed. Check your email, password, Firebase API key and network connection.';
+
+	/// en: 'Auth Emulator login failed. Check that the emulator is running, the user exists in demo-openci, and the email/password are correct.'
+	String get emulatorAuthenticationFailed => 'Auth Emulator login failed. Check that the emulator is running, the user exists in demo-openci, and the email/password are correct.';
 
 	/// en: 'Could not connect to the remote server. Check the server URL and connection.'
 	String get remoteConnectionFailed => 'Could not connect to the remote server. Check the server URL and connection.';
@@ -249,8 +249,8 @@ class Translations$login$flags$en {
 
 	// Translations
 
-	/// en: 'Log in to local Docker environment (http://localhost:8080).'
-	String get local => 'Log in to local Docker environment (http://localhost:8080).';
+	/// en: 'Log in to the local API (http://localhost:8080) with an Auth Emulator user's email/password (127.0.0.1:9099).'
+	String get local => 'Log in to the local API (http://localhost:8080) with an Auth Emulator user\'s email/password (127.0.0.1:9099).';
 
 	/// en: 'Remote OpenCI server URL (HTTPS).'
 	String get server => 'Remote OpenCI server URL (HTTPS).';
@@ -538,17 +538,16 @@ extension on Translations {
 			'cli.flags.version' => 'Print the current tool version.',
 			'cli.flags.verbose' => 'Enable verbose logging output.',
 			'login.description' => 'Log in to a local or remote OpenCI server.',
-			'login.flags.local' => 'Log in to local Docker environment (http://localhost:8080).',
+			'login.flags.local' => 'Log in to the local API (http://localhost:8080) with an Auth Emulator user\'s email/password (127.0.0.1:9099).',
 			'login.flags.server' => 'Remote OpenCI server URL (HTTPS).',
 			'login.flags.teamId' => 'Team to select when you belong to more than one team.',
 			'login.flags.firebaseApiKey' => 'Firebase Web API key (override for a self-hosted Firebase project).',
 			'login.loggingIn' => 'Logging in to OpenCI...',
 			'login.savedSuccess' => ({required Object profile}) => 'Successfully saved and activated profile "${profile}".',
 			'login.noArguments' => 'Login does not accept positional arguments.',
-			'login.localServerUnavailable' => 'Could not read the local server\'s API key. Run openci dev start --seed and retry.',
 			'login.authenticationFailed' => 'Local server authentication failed. Check the server started by openci dev start.',
 			'login.requestFailed' => ({required Object status}) => 'Could not fetch teams (HTTP ${status}).',
-			'login.seedRequired' => 'Team test-team was not found. Run openci dev start --seed before logging in.',
+			'login.localTeamRequired' => 'test-team is not available for this user. Check that the team is seeded and this Auth Emulator user belongs to it.',
 			'login.invalidResponse' => 'The server returned an invalid team list.',
 			'login.connectionFailed' => 'Could not connect to the local server. Check that openci dev start is running.',
 			'login.saveFailed' => 'Could not save credentials. Check the local credentials file and its permissions.',
@@ -559,6 +558,7 @@ extension on Translations {
 			'login.passwordPrompt' => 'Password: ',
 			'login.inputRequired' => 'Login requires an interactive terminal, email and password. Login was cancelled.',
 			'login.firebaseAuthenticationFailed' => 'Firebase login failed. Check your email, password, Firebase API key and network connection.',
+			'login.emulatorAuthenticationFailed' => 'Auth Emulator login failed. Check that the emulator is running, the user exists in demo-openci, and the email/password are correct.',
 			'login.remoteConnectionFailed' => 'Could not connect to the remote server. Check the server URL and connection.',
 			'login.noTeams' => 'No teams found. Create or join a team in the dashboard first.',
 			'login.teamRequired' => 'Multiple teams found. Run login again with --team-id from the list above.',

@@ -72,10 +72,9 @@ class _Translations$login$ja extends Translations$login$en {
 	@override String get loggingIn => 'OpenCI にログイン中...';
 	@override String savedSuccess({required Object profile}) => 'プロファイル「${profile}」を保存し、有効にしました。';
 	@override String get noArguments => 'loginに位置引数は指定できません。';
-	@override String get localServerUnavailable => 'ローカルサーバーのAPIキーを取得できませんでした。openci dev start --seed を実行して再試行してください。';
 	@override String get authenticationFailed => 'ローカルサーバーの認証に失敗しました。openci dev start で起動したサーバーを確認してください。';
 	@override String requestFailed({required Object status}) => 'チーム一覧を取得できませんでした（HTTP ${status}）。';
-	@override String get seedRequired => 'test-teamが見つかりません。openci dev start --seed を実行してからログインしてください。';
+	@override String get localTeamRequired => 'このユーザーはtest-teamを利用できません。チームが初期データとして作成され、このAuth Emulatorユーザーが所属していることを確認してください。';
 	@override String get invalidResponse => 'サーバーから返されたチーム一覧が不正です。';
 	@override String get connectionFailed => 'ローカルサーバーに接続できませんでした。openci dev start の起動状態を確認してください。';
 	@override String get saveFailed => '認証情報を保存できませんでした。ローカルの認証情報ファイルと権限を確認してください。';
@@ -86,6 +85,7 @@ class _Translations$login$ja extends Translations$login$en {
 	@override String get passwordPrompt => 'パスワード: ';
 	@override String get inputRequired => '対話可能な端末でメールアドレスとパスワードを入力してください。ログインを中止しました。';
 	@override String get firebaseAuthenticationFailed => 'Firebaseへのログインに失敗しました。メールアドレス、パスワード、Firebase APIキー、接続状態を確認してください。';
+	@override String get emulatorAuthenticationFailed => 'Auth Emulatorへのログインに失敗しました。Emulatorが起動していること、demo-openciにユーザーが存在すること、メールアドレスとパスワードが正しいことを確認してください。';
 	@override String get remoteConnectionFailed => 'リモートサーバーに接続できませんでした。サーバーURLと接続状態を確認してください。';
 	@override String get noTeams => '所属チームがありません。先にdashboardでチームを作成するか参加してください。';
 	@override String get teamRequired => '複数のチームがあります。上記のIDを--team-idで指定して再度ログインしてください。';
@@ -178,7 +178,7 @@ class _Translations$login$flags$ja extends Translations$login$flags$en {
 	final TranslationsJa _root; // ignore: unused_field
 
 	// Translations
-	@override String get local => 'ローカルDocker環境（http://localhost:8080）に接続します。';
+	@override String get local => 'Auth Emulator（127.0.0.1:9099）のユーザーのメールアドレスとパスワードでローカルAPI（http://localhost:8080）にログインします。';
 	@override String get server => 'リモートのOpenCIサーバーURL（HTTPS）。';
 	@override String get teamId => '複数チームに所属している場合に選択するチームID。';
 	@override String get firebaseApiKey => 'Firebase Web APIキー（独自のFirebaseプロジェクトを使う場合に指定）。';
@@ -327,17 +327,16 @@ extension on TranslationsJa {
 			'cli.flags.version' => 'ツールのバージョンを表示します。',
 			'cli.flags.verbose' => '詳細なログ出力を有効にします。',
 			'login.description' => 'ローカルまたはリモートのOpenCIサーバーにログインします。',
-			'login.flags.local' => 'ローカルDocker環境（http://localhost:8080）に接続します。',
+			'login.flags.local' => 'Auth Emulator（127.0.0.1:9099）のユーザーのメールアドレスとパスワードでローカルAPI（http://localhost:8080）にログインします。',
 			'login.flags.server' => 'リモートのOpenCIサーバーURL（HTTPS）。',
 			'login.flags.teamId' => '複数チームに所属している場合に選択するチームID。',
 			'login.flags.firebaseApiKey' => 'Firebase Web APIキー（独自のFirebaseプロジェクトを使う場合に指定）。',
 			'login.loggingIn' => 'OpenCI にログイン中...',
 			'login.savedSuccess' => ({required Object profile}) => 'プロファイル「${profile}」を保存し、有効にしました。',
 			'login.noArguments' => 'loginに位置引数は指定できません。',
-			'login.localServerUnavailable' => 'ローカルサーバーのAPIキーを取得できませんでした。openci dev start --seed を実行して再試行してください。',
 			'login.authenticationFailed' => 'ローカルサーバーの認証に失敗しました。openci dev start で起動したサーバーを確認してください。',
 			'login.requestFailed' => ({required Object status}) => 'チーム一覧を取得できませんでした（HTTP ${status}）。',
-			'login.seedRequired' => 'test-teamが見つかりません。openci dev start --seed を実行してからログインしてください。',
+			'login.localTeamRequired' => 'このユーザーはtest-teamを利用できません。チームが初期データとして作成され、このAuth Emulatorユーザーが所属していることを確認してください。',
 			'login.invalidResponse' => 'サーバーから返されたチーム一覧が不正です。',
 			'login.connectionFailed' => 'ローカルサーバーに接続できませんでした。openci dev start の起動状態を確認してください。',
 			'login.saveFailed' => '認証情報を保存できませんでした。ローカルの認証情報ファイルと権限を確認してください。',
@@ -348,6 +347,7 @@ extension on TranslationsJa {
 			'login.passwordPrompt' => 'パスワード: ',
 			'login.inputRequired' => '対話可能な端末でメールアドレスとパスワードを入力してください。ログインを中止しました。',
 			'login.firebaseAuthenticationFailed' => 'Firebaseへのログインに失敗しました。メールアドレス、パスワード、Firebase APIキー、接続状態を確認してください。',
+			'login.emulatorAuthenticationFailed' => 'Auth Emulatorへのログインに失敗しました。Emulatorが起動していること、demo-openciにユーザーが存在すること、メールアドレスとパスワードが正しいことを確認してください。',
 			'login.remoteConnectionFailed' => 'リモートサーバーに接続できませんでした。サーバーURLと接続状態を確認してください。',
 			'login.noTeams' => '所属チームがありません。先にdashboardでチームを作成するか参加してください。',
 			'login.teamRequired' => '複数のチームがあります。上記のIDを--team-idで指定して再度ログインしてください。',

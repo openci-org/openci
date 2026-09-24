@@ -92,8 +92,6 @@ void main() {
         LoginCommand(
           logger: logger,
           credentialStore: store,
-          processRunner: (_, _) async =>
-              throw StateError('Remote login must not use Docker'),
           readCredentials: () async {
             prompts++;
             return credentials;
@@ -112,6 +110,10 @@ void main() {
       expect(client.closeCalls, 1);
       expect(prompts, 1);
       expect(requests, hasLength(2));
+      expect(
+        requests.first.url.origin,
+        'https://identitytoolkit.googleapis.com',
+      );
       expect(requests.first.url.queryParameters['key'], defaultFirebaseApiKey);
       expect(jsonDecode(requests.first.body)['password'], password);
       final teamRequest = requests.last;
@@ -133,6 +135,7 @@ void main() {
       expect(remote.token, token);
       expect(remote.refreshToken, refreshToken);
       expect(remote.firebaseApiKey, defaultFirebaseApiKey);
+      expect(remote.firebaseAuthEmulatorHost, isNull);
       expect(remote.expiresAt!.isAfter(DateTime.now().toUtc()), isTrue);
       expect(
         await File(store.filePath).readAsString(),

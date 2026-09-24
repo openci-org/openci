@@ -10,7 +10,7 @@
   "login": {
     "description": "Log in to a local or remote OpenCI server.",
     "flags": {
-      "local": "Log in to local Docker environment (http://localhost:8080).",
+      "local": "Log in to the local API (http://localhost:8080) with an Auth Emulator user's email/password (127.0.0.1:9099).",
       "server": "Remote OpenCI server URL (HTTPS).",
       "teamId": "Team to select when you belong to more than one team.",
       "firebaseApiKey": "Firebase Web API key (override for a self-hosted Firebase project)."
@@ -18,10 +18,9 @@
     "loggingIn": "Logging in to OpenCI...",
     "savedSuccess": "Successfully saved and activated profile \"${profile}\".",
     "noArguments": "Login does not accept positional arguments.",
-    "localServerUnavailable": "Could not read the local server's API key. Run openci dev start --seed and retry.",
     "authenticationFailed": "Local server authentication failed. Check the server started by openci dev start.",
     "requestFailed": "Could not fetch teams (HTTP ${status}).",
-    "seedRequired": "Team test-team was not found. Run openci dev start --seed before logging in.",
+    "localTeamRequired": "test-team is not available for this user. Check that the team is seeded and this Auth Emulator user belongs to it.",
     "invalidResponse": "The server returned an invalid team list.",
     "connectionFailed": "Could not connect to the local server. Check that openci dev start is running.",
     "saveFailed": "Could not save credentials. Check the local credentials file and its permissions.",
@@ -32,6 +31,7 @@
     "passwordPrompt": "Password: ",
     "inputRequired": "Login requires an interactive terminal, email and password. Login was cancelled.",
     "firebaseAuthenticationFailed": "Firebase login failed. Check your email, password, Firebase API key and network connection.",
+    "emulatorAuthenticationFailed": "Auth Emulator login failed. Check that the emulator is running, the user exists in demo-openci, and the email/password are correct.",
     "remoteConnectionFailed": "Could not connect to the remote server. Check the server URL and connection.",
     "noTeams": "No teams found. Create or join a team in the dashboard first.",
     "teamRequired": "Multiple teams found. Run login again with --team-id from the list above.",
