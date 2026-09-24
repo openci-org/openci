@@ -1,0 +1,138 @@
+import 'dart:async';
+import 'dart:io';
+
+import 'package:dart_frog/dart_frog.dart';
+import 'package:drift/drift.dart';
+import 'package:openci_server/database.dart';
+import 'package:openci_server/request/error_handler.dart';
+import 'package:openci_server/request/request_extension.dart';
+
+FutureOr<Response> onRequest(
+  RequestContext context,
+  String id,
+  String runId,
+) {
+  return switch (context.request.method) {
+    HttpMethod.get => _get(context, id, runId),
+    HttpMethod.patch => _patch(context, id, runId),
+    _ => Response(statusCode: HttpStatus.methodNotAllowed),
+  };
+}
+
+Future<Response> _get(
+  RequestContext context,
+  String id,
+  String runId,
+) async {
+  try {
+    final db = context.read<AppDatabase>();
+    final driftRun = await db.buildRunDao.getBuildRun(id, runId);
+    if (driftRun == null) {
+      return Response.json(
+        statusCode: HttpStatus.notFound,
+        body: {'success': false, 'error': 'Build run not found'},
+      );
+    }
+
+    return Response.json(
+      body: {
+        'id': driftRun.id,
+        'buildJobId': driftRun.buildJobId,
+        'status': driftRun.status,
+        'conclusion': driftRun.conclusion,
+        'createdAt': driftRun.createdAt.toUtc().toIso8601String(),
+        'updatedAt': driftRun.updatedAt.toUtc().toIso8601String(),
+      },
+    );
+  } catch (e, s) {
+    return handleRouteException(
+      e,
+      s,
+      logMessage: 'Failed to get build run $runId for job $id',
+    );
+  }
+}
+
+Future<Response> _patch(
+  RequestContext context,
+  String id,
+  String runId,
+) async {
+  try {
+    final db = context.read<AppDatabase>();
+
+    final Map<String, dynamic> payload;
+    try {
+      payload = await context.jsonBody();
+    } on BadRequestException catch (e) {
+      return Response.json(
+        statusCode: HttpStatus.badRequest,
+        body: {'success': false, 'error': e.message},
+      );
+    }
+
+    final String status;
+    final String? conclusion;
+    try {
+      final rawStatus = payload['status'];
+      if (rawStatus == null) {
+        return Response.json(
+          statusCode: HttpStatus.badRequest,
+          body: {'success': false, 'error': 'status is required'},
+        );
+      }
+      status = rawStatus as String;
+      conclusion = payload['conclusion'] as String?;
+    } on TypeError catch (e) {
+      return Response.json(
+        statusCode: HttpStatus.badRequest,
+        body: {
+          'success': false,
+          'error': 'Invalid payload structure: $e',
+        },
+      );
+    }
+
+    if (status.isEmpty) {
+      return Response.json(
+        statusCode: HttpStatus.badRequest,
+        body: {'success': false, 'error': 'status is required'},
+      );
+    }
+
+    final driftRun = await db.buildRunDao.getBuildRun(id, runId);
+    if (driftRun == null) {
+      return Response.json(
+        statusCode: HttpStatus.notFound,
+        body: {'success': false, 'error': 'Build run not found'},
+      );
+    }
+
+    final updatedRun = driftRun.copyWith(
+      status: status,
+      conclusion: payload.containsKey('conclusion')
+          ? Value(conclusion)
+          : const Value.absent(),
+      updatedAt: DateTime.now().toUtc(),
+    );
+
+    final success = await db.buildRunDao.updateBuildRun(updatedRun);
+    if (!success) {
+      return Response.json(
+        statusCode: HttpStatus.internalServerError,
+        body: {
+          'success': false,
+          'error': 'Failed to update build run',
+        },
+      );
+    }
+
+    return Response.json(body: {'success': true});
+  } catch (e, s) {
+    return handleRouteException(
+      e,
+      s,
+      logMessage: 'Failed to update build run $runId for job $id',
+    );
+  }
+}

@@ -19,13 +19,13 @@ void main() {
 
   group('isOpenciProjectRoot', () {
     test(
-      'returns true when both docker-compose.yml and apps/genuineci_server exist',
+      'returns true when both docker-compose.yml and apps/openci_server exist',
       () async {
         final composeFile = File(p.join(tempDir.path, 'docker-compose.yml'));
         await composeFile.writeAsString('services: {}');
 
         final serverDir = Directory(
-          p.join(tempDir.path, 'apps', 'genuineci_server'),
+          p.join(tempDir.path, 'apps', 'openci_server'),
         );
         await serverDir.create(recursive: true);
 
@@ -40,9 +40,9 @@ void main() {
       expect(isOpenciProjectRoot(tempDir), isFalse);
     });
 
-    test('returns false when only apps/genuineci_server exists', () async {
+    test('returns false when only apps/openci_server exists', () async {
       final serverDir = Directory(
-        p.join(tempDir.path, 'apps', 'genuineci_server'),
+        p.join(tempDir.path, 'apps', 'openci_server'),
       );
       await serverDir.create(recursive: true);
 
@@ -50,7 +50,7 @@ void main() {
     });
 
     test(
-      'returns false when neither docker-compose.yml nor apps/genuineci_server exists',
+      'returns false when neither docker-compose.yml nor apps/openci_server exists',
       () {
         expect(isOpenciProjectRoot(tempDir), isFalse);
       },
@@ -59,7 +59,7 @@ void main() {
 
   group('findProjectRoot', () {
     test(
-      'finds project root from nested subdirectory when both docker-compose.yml and apps/genuineci_server exist',
+      'finds project root from nested subdirectory when both docker-compose.yml and apps/openci_server exist',
       () async {
         final rootComposeFile = File(
           p.join(tempDir.path, 'docker-compose.yml'),
@@ -67,7 +67,7 @@ void main() {
         await rootComposeFile.writeAsString('services: {}');
 
         final serverDir = Directory(
-          p.join(tempDir.path, 'apps', 'genuineci_server'),
+          p.join(tempDir.path, 'apps', 'openci_server'),
         );
         await serverDir.create(recursive: true);
 
@@ -83,7 +83,7 @@ void main() {
     );
 
     test(
-      'ignores unrelated docker-compose.yml if apps/genuineci_server is missing and continues searching parent',
+      'ignores unrelated docker-compose.yml if apps/openci_server is missing and continues searching parent',
       () async {
         // Outer dir: valid OpenCI root
         final openciRoot = Directory(p.join(tempDir.path, 'openci_repo'));
@@ -92,7 +92,7 @@ void main() {
           p.join(openciRoot.path, 'docker-compose.yml'),
         ).writeAsString('services: {}');
         await Directory(
-          p.join(openciRoot.path, 'apps', 'genuineci_server'),
+          p.join(openciRoot.path, 'apps', 'openci_server'),
         ).create(recursive: true);
 
         // Inner dir: unrelated project with only docker-compose.yml
