@@ -21,6 +21,9 @@ flags:
   openci_cli:
     paths:
       - apps/openci_cli/lib/
+  openci_workflow:
+    paths:
+      - packages/openci_workflow/lib/
   build_job_planner:
     paths:
       - apps/build_job_planner/lib/

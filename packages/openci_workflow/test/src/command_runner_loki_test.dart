@@ -154,9 +154,9 @@ Future<ProcessResult> _runCommand(String command, HttpServer server) async {
     ],
     environment: {
       'LOKI_URL': 'http://${server.address.host}:${server.port}',
-      'GENUINE_CI_RUN_ID': 'test-run',
-      'GENUINE_CI_BUILD_JOB_ID': 'test-job',
-      'GENUINE_CI_STEP_ID': 'test-step',
+      'OPENCI_RUN_ID': 'test-run',
+      'OPENCI_BUILD_JOB_ID': 'test-job',
+      'OPENCI_STEP_ID': 'test-step',
     },
   );
   addTearDown(() async {

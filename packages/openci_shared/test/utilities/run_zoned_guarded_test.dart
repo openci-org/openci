@@ -22,7 +22,7 @@ void main() {
     final work = Completer<void>();
     var finished = false;
     final exitCodes = <int>[];
-    final future = genuineCIRunZonedGuarded(() async {
+    final future = openCIRunZonedGuarded(() async {
       await work.future;
       finished = true;
     }, exitProcess: exitCodes.add);
@@ -77,7 +77,7 @@ void main() {
 
       IOOverrides.runZoned(
         () => unawaited(
-          genuineCIRunZonedGuarded(
+          openCIRunZonedGuarded(
             body,
             exitProcess: (code) {
               expect(events, hasLength(1));

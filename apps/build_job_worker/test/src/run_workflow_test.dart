@@ -116,6 +116,8 @@ void main() {
           ).firstMatch(commands[1])!.group(1)!;
           final script = utf8.decode(base64Decode(encodedScript));
           expect(script, contains("cd '/tmp/workspace'\n"));
+          expect(script, contains("export OPENCI_RUN_ID='run-1'\n"));
+          expect(script, contains("export OPENCI_BUILD_JOB_ID='job-1'\n"));
           expect(script, contains('flutter pub get\n$invocation\n'));
         },
       );

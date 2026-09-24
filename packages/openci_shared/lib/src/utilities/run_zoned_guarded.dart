@@ -3,7 +3,7 @@ import 'dart:io';
 
 import 'package:sentry/sentry.dart';
 
-Future<void> genuineCIRunZonedGuarded(
+Future<void> openCIRunZonedGuarded(
   Future<void> Function() body, {
   void Function(int) exitProcess = exit,
 }) async => runZonedGuarded(body, (error, stackTrace) async {

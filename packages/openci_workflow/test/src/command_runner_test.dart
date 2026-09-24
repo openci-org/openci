@@ -61,7 +61,7 @@ void main() {
     });
 
     test('runs the command in workingDirectory', () async {
-      final dir = await Directory.systemTemp.createTemp('genuine_ci_test_');
+      final dir = await Directory.systemTemp.createTemp('openci_test_');
       addTearDown(() async {
         if (await dir.exists()) {
           await dir.delete(recursive: true);

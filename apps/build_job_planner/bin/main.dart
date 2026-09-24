@@ -9,7 +9,7 @@ import 'package:sentry/sentry.dart';
 
 final _log = Logger('BuildJobPlanner');
 
-Future<void> main() async => genuineCIRunZonedGuarded(() async {
+Future<void> main() async => openCIRunZonedGuarded(() async {
   initLogging();
 
   final config = Config.fromEnvironment();
