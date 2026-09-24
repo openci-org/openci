@@ -21,7 +21,8 @@ typedef DockerComposeStarter =
       DockerComposeStep step,
     });
 typedef OrchardContextSetup = Future<bool> Function(Logger logger);
-typedef LocalDataSeeder = Future<bool> Function(Logger logger);
+typedef LocalDataSeeder =
+    Future<bool> Function(Logger logger, {required Directory projectRoot});
 typedef OrchardWorkerStarter = Future<OrchardWorker?> Function(Logger logger);
 
 class DevStartCommand extends Command<int> {
@@ -113,7 +114,8 @@ class DevStartCommand extends Command<int> {
           step: DockerComposeStep.stopBuildJobWorker,
         ),
         () => _dockerComposeStarter(_logger, projectRoot),
-        if (shouldSeedLocalData) () => _localDataSeeder(_logger),
+        if (shouldSeedLocalData)
+          () => _localDataSeeder(_logger, projectRoot: projectRoot),
       ]) {
         if (!worker.isRunning) {
           final code = await worker.exitCode;

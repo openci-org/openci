@@ -91,9 +91,10 @@ for standalone start and stop commands.
 
 The `/internal` seed and cleanup API is disabled by default. `openci dev start`
 automatically enables it by passing `ENABLE_INTERNAL_API=true` to Docker Compose.
-Requests also require `INTERNAL_API_KEY`. Export the same key configured for the
-server before using `--seed` or the seed/cleanup scripts in `tool/`; a key stored
-only in Docker Compose's `.env` file is not available to these local processes.
+Requests also require `INTERNAL_API_KEY`. For `openci dev start --seed`, the CLI
+reads it from the checkout's `.env` file when targeting the local server. An
+exported `INTERNAL_API_KEY` takes precedence. The standalone seed/cleanup
+scripts in `tool/` still require the key to be exported.
 
 To also queue the default smoke-test build job:
 
