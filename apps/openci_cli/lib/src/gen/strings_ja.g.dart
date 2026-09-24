@@ -256,6 +256,8 @@ class _Translations$dev$start$ja extends Translations$dev$start$en {
 	@override String get stepDockerCompose => 'Step 5: Docker コンテナを起動中...';
 	@override String get stepDockerComposeFailed => 'エラー: Docker コンテナの起動に失敗しました。';
 	@override String get stepDockerComposeStarted => 'Docker コンテナを起動しました。';
+	@override String get stepDockerComposeDown => 'ローカルのDockerコンテナを停止・削除しています（データ用ボリュームは保持します）...';
+	@override String get stepDockerComposeDownFailed => 'エラー: ローカルのDockerコンテナの終了に失敗しました。チェックアウトのルートで docker compose -f docker-compose.yml -f docker-compose.local.yml -f docker-compose.local-api.yml down --remove-orphans を実行して再試行してください。';
 	@override String get stepOrchardWaiting => 'Step 3: Orchard Controller の起動を待機中...';
 	@override String get stepOrchardNotReady => 'エラー: Orchard Controller の起動を確認できませんでした。';
 	@override String get stepOrchardContext => 'Step 4: Orchard CLI コンテキストを登録中...';
@@ -394,6 +396,8 @@ extension on TranslationsJa {
 			'dev.start.stepDockerCompose' => 'Step 5: Docker コンテナを起動中...',
 			'dev.start.stepDockerComposeFailed' => 'エラー: Docker コンテナの起動に失敗しました。',
 			'dev.start.stepDockerComposeStarted' => 'Docker コンテナを起動しました。',
+			'dev.start.stepDockerComposeDown' => 'ローカルのDockerコンテナを停止・削除しています（データ用ボリュームは保持します）...',
+			'dev.start.stepDockerComposeDownFailed' => 'エラー: ローカルのDockerコンテナの終了に失敗しました。チェックアウトのルートで docker compose -f docker-compose.yml -f docker-compose.local.yml -f docker-compose.local-api.yml down --remove-orphans を実行して再試行してください。',
 			'dev.start.stepOrchardWaiting' => 'Step 3: Orchard Controller の起動を待機中...',
 			'dev.start.stepOrchardNotReady' => 'エラー: Orchard Controller の起動を確認できませんでした。',
 			'dev.start.stepOrchardContext' => 'Step 4: Orchard CLI コンテキストを登録中...',

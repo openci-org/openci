@@ -18,6 +18,7 @@ enum DockerComposeStep {
   startOrchardController,
   stopBuildJobWorker,
   startServices,
+  down,
 }
 
 const _localComposeFiles = [
@@ -85,6 +86,11 @@ Future<bool> startDockerCompose(
       ],
       t.dev.start.stepDockerCompose,
       t.dev.start.stepDockerComposeFailed,
+    ),
+    DockerComposeStep.down => (
+      ['compose', ..._localComposeFiles, 'down', '--remove-orphans'],
+      t.dev.start.stepDockerComposeDown,
+      t.dev.start.stepDockerComposeDownFailed,
     ),
   };
   logger.stdout('\n$message');

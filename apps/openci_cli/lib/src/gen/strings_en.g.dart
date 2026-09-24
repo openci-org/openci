@@ -410,6 +410,12 @@ class Translations$dev$start$en {
 	/// en: 'Docker containers started.'
 	String get stepDockerComposeStarted => 'Docker containers started.';
 
+	/// en: 'Stopping and removing local Docker containers (keeping data volumes)...'
+	String get stepDockerComposeDown => 'Stopping and removing local Docker containers (keeping data volumes)...';
+
+	/// en: 'Error: Failed to shut down local Docker containers. Run docker compose -f docker-compose.yml -f docker-compose.local.yml -f docker-compose.local-api.yml down --remove-orphans from the checkout to retry.'
+	String get stepDockerComposeDownFailed => 'Error: Failed to shut down local Docker containers. Run docker compose -f docker-compose.yml -f docker-compose.local.yml -f docker-compose.local-api.yml down --remove-orphans from the checkout to retry.';
+
 	/// en: 'Step 3: Waiting for Orchard Controller to initialize...'
 	String get stepOrchardWaiting => 'Step 3: Waiting for Orchard Controller to initialize...';
 
@@ -601,6 +607,8 @@ extension on Translations {
 			'dev.start.stepDockerCompose' => 'Step 5: Starting Docker containers...',
 			'dev.start.stepDockerComposeFailed' => 'Error: Failed to start Docker containers.',
 			'dev.start.stepDockerComposeStarted' => 'Docker containers started.',
+			'dev.start.stepDockerComposeDown' => 'Stopping and removing local Docker containers (keeping data volumes)...',
+			'dev.start.stepDockerComposeDownFailed' => 'Error: Failed to shut down local Docker containers. Run docker compose -f docker-compose.yml -f docker-compose.local.yml -f docker-compose.local-api.yml down --remove-orphans from the checkout to retry.',
 			'dev.start.stepOrchardWaiting' => 'Step 3: Waiting for Orchard Controller to initialize...',
 			'dev.start.stepOrchardNotReady' => 'Error: Orchard Controller did not become ready.',
 			'dev.start.stepOrchardContext' => 'Step 4: Registering Orchard CLI context...',
