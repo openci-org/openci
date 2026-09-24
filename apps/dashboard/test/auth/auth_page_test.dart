@@ -4,6 +4,7 @@ import 'package:dashboard/api/openci_api_client.dart';
 import 'package:dashboard/app_strings.dart';
 import 'package:dashboard/auth/auth_page.dart';
 import 'package:dashboard/auth/auth_provider.dart';
+import 'package:dashboard/connections/local_development_connection.dart';
 import 'package:dashboard/team/selected_team_provider.dart';
 import 'package:dashboard/team/team_provider.dart';
 import 'package:dashboard/utilities/shared_preferences_provider.dart';
@@ -17,6 +18,53 @@ import 'package:openci_shared/openci_shared.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
+  for (final localMode in [false, true]) {
+    testWidgets('shows the active connection indicator: local=$localMode', (
+      tester,
+    ) async {
+      tester.view.devicePixelRatio = 1;
+      tester.view.physicalSize = const Size(320, 700);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      addTearDown(tester.view.resetPhysicalSize);
+      final saved = jsonEncode({
+        'apiKey': 'saved-key',
+        'appId': '1:123:web:saved',
+        'projectId': 'saved-production-project',
+      });
+      SharedPreferences.setMockInitialValues({'sh_firebase_config': saved});
+      final prefs = await SharedPreferences.getInstance();
+      final local = LocalDevelopmentConnection.parse(
+        mode: 'true',
+        apiUrl: 'http://127.0.0.1:8080',
+        emulatorHost: '127.0.0.1',
+        emulatorPort: '9099',
+      );
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            sharedPreferencesProvider.overrideWithValue(prefs),
+            localDevelopmentConnectionProvider.overrideWithValue(
+              localMode ? local : null,
+            ),
+          ],
+          child: const MaterialApp(home: AuthPage()),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('Local Auth Emulator · demo-openci'),
+        localMode ? findsOneWidget : findsNothing,
+      );
+      expect(
+        find.text('saved-production-project'),
+        localMode ? findsNothing : findsOneWidget,
+      );
+      expect(prefs.getString('sh_firebase_config'), saved);
+      expect(tester.takeException(), isNull);
+    });
+  }
+
   for (final statusCode in [200, 500]) {
     testWidgets('creates the signup team through the API: $statusCode', (
       tester,
