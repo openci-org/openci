@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:args/command_runner.dart';
 import 'package:cli_util/cli_logging.dart';
 import 'package:openci_cli/src/auth/firebase_auth_client.dart';
+import 'package:openci_cli/src/commands/login/login_with_firebase.dart';
 import 'package:openci_cli/src/commands/login/read_login_credentials.dart';
 import 'package:openci_cli/src/commands/login_command.dart';
 import 'package:openci_cli/src/credential_store/credential_config.dart';
@@ -23,6 +24,18 @@ class _RecordingLogger implements Logger {
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
+class _TrackingClient extends MockClient {
+  _TrackingClient(super.fn);
+
+  int closeCalls = 0;
+
+  @override
+  void close() {
+    closeCalls++;
+    super.close();
+  }
+}
+
 void main() {
   const password = 'private-password';
   const token = 'private-id-token';
@@ -32,6 +45,7 @@ void main() {
   late _RecordingLogger logger;
   late List<http.Request> requests;
   late MockClientHandler handler;
+  late _TrackingClient client;
   late LoginCredentials? credentials;
   late int prompts;
   late String before;
@@ -59,6 +73,10 @@ void main() {
             200,
           )
         : http.Response('[{"id":"team-1","name":"My team"}]', 200);
+    client = _TrackingClient((request) async {
+      requests.add(request);
+      return handler(request);
+    });
   });
 
   tearDown(() async {
@@ -80,10 +98,7 @@ void main() {
             prompts++;
             return credentials;
           },
-          client: MockClient((request) async {
-            requests.add(request);
-            return handler(request);
-          }),
+          client: client,
         ),
       );
     return runner.run(['login', ...options]);
@@ -94,6 +109,7 @@ void main() {
     () async {
       expect(await runLogin(), 0);
 
+      expect(client.closeCalls, 1);
       expect(prompts, 1);
       expect(requests, hasLength(2));
       expect(requests.first.url.queryParameters['key'], defaultFirebaseApiKey);
@@ -127,6 +143,27 @@ void main() {
       }
     },
   );
+
+  test('shared helper leaves the HTTP client open for its caller', () async {
+    try {
+      expect(
+        await loginWithFirebase(
+          serverUrl: 'https://ci.example.com',
+          firebaseApiKey: defaultFirebaseApiKey,
+          teamId: null,
+          store: store,
+          logger: logger,
+          readCredentials: () async => credentials,
+          client: client,
+          timeout: const Duration(seconds: 10),
+        ),
+        0,
+      );
+      expect(client.closeCalls, 0);
+    } finally {
+      client.close();
+    }
+  });
 
   test(
     'supports a custom server, Firebase project and explicit team',
@@ -204,6 +241,7 @@ void main() {
     handler = (_) async => http.Response(password, 400);
 
     expect(await runLogin(), 1);
+    expect(client.closeCalls, 1);
     expect(requests, hasLength(1));
     expect(logger.messages, contains(t.login.firebaseAuthenticationFailed));
     expect(await File(store.filePath).readAsString(), before);
@@ -220,6 +258,7 @@ void main() {
             : Future.value(http.Response(token, status));
 
         expect(await runLogin(), 1);
+        expect(client.closeCalls, 1);
         expect(
           logger.messages,
           contains(t.login.requestFailed(status: status)),
@@ -234,6 +273,7 @@ void main() {
     () async {
       credentials = null;
       expect(await runLogin(), 1);
+      expect(client.closeCalls, 1);
       expect(requests, isEmpty);
       expect(await File(store.filePath).readAsString(), before);
     },
@@ -242,6 +282,7 @@ void main() {
   test('does not overwrite a malformed credential file', () async {
     await File(store.filePath).writeAsString('existing malformed file');
     expect(await runLogin(), 1);
+    expect(client.closeCalls, 1);
     expect(logger.messages, contains(t.login.saveFailed));
     expect(
       await File(store.filePath).readAsString(),

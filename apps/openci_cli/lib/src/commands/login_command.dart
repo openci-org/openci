@@ -11,7 +11,7 @@ import '../auth/firebase_auth_client.dart';
 import '../credential_store/credential_config.dart';
 import '../credential_store/credential_store.dart';
 import '../i18n/i18n.dart';
-import 'login/login_remote.dart';
+import 'login/login_with_firebase.dart';
 import 'login/read_login_credentials.dart';
 
 class LoginCommand extends Command<int> {
@@ -90,16 +90,21 @@ class LoginCommand extends Command<int> {
     if (apiKey.isEmpty || teamId == '') {
       usageException(t.login.emptyOptions);
     }
-    return loginRemote(
-      serverUrl: server.toString().replaceFirst(RegExp(r'/+$'), ''),
-      firebaseApiKey: apiKey,
-      teamId: teamId,
-      store: _credentialStore,
-      logger: _logger,
-      readCredentials: _readCredentials,
-      client: _client ?? http.Client(),
-      timeout: _timeout,
-    );
+    final client = _client ?? http.Client();
+    try {
+      return await loginWithFirebase(
+        serverUrl: server.toString().replaceFirst(RegExp(r'/+$'), ''),
+        firebaseApiKey: apiKey,
+        teamId: teamId,
+        store: _credentialStore,
+        logger: _logger,
+        readCredentials: _readCredentials,
+        client: client,
+        timeout: _timeout,
+      );
+    } finally {
+      client.close();
+    }
   }
 
   Future<int> _loginLocal() async {

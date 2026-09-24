@@ -9,7 +9,7 @@ import '../../credential_store/credential_store.dart';
 import '../../i18n/i18n.dart';
 import 'read_login_credentials.dart';
 
-Future<int> loginRemote({
+Future<int> loginWithFirebase({
   required String serverUrl,
   required String firebaseApiKey,
   required String? teamId,
@@ -97,7 +97,5 @@ Future<int> loginRemote({
   } catch (_) {
     logger.stderr(t.login.remoteConnectionFailed);
     return 1;
-  } finally {
-    client.close();
   }
 }
