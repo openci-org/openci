@@ -8,6 +8,14 @@ import 'package:openci_server/build_job/build_job_mapper.dart';
 import 'package:openci_server/database.dart';
 
 Future<Response> onRequest(RequestContext context) async {
+  final uid = context.read<String?>();
+  if (uid == null) {
+    return Response.json(
+      statusCode: HttpStatus.unauthorized,
+      body: {'success': false, 'error': 'Authentication required'},
+    );
+  }
+
   final queryParams = context.request.uri.queryParameters;
   final teamId = queryParams['teamId'];
 
@@ -18,18 +26,16 @@ Future<Response> onRequest(RequestContext context) async {
     );
   }
 
+  final db = context.read<AppDatabase>();
+  final isMember = await db.teamDao.isTeamMember(uid, teamId);
+  if (!isMember) {
+    return Response.json(
+      statusCode: HttpStatus.forbidden,
+      body: {'success': false, 'error': 'Forbidden'},
+    );
+  }
+
   final handler = webSocketHandler((channel, protocol) async {
-    final db = context.read<AppDatabase>();
-    final uid = context.read<String?>();
-
-    if (uid != null) {
-      final isMember = await db.teamDao.isTeamMember(uid, teamId);
-      if (!isMember) {
-        await channel.sink.close(WebSocketStatus.normalClosure);
-        return;
-      }
-    }
-
     StreamSubscription<List<DriftBuildJob>>? dbSub;
 
     try {
