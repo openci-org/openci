@@ -87,6 +87,18 @@ void main() {
       expect(await db.teamDao.getTeam('test-team'), isNotNull);
       expect(await db.teamDao.getTeamMembers('test-team'), isEmpty);
     });
+
+    test('concurrent seeding creates one team and membership', () async {
+      await Future.wait([
+        db.seedDao.ensureTestTeam(userId: 'development-user'),
+        db.seedDao.ensureTestTeam(userId: 'development-user'),
+      ]);
+
+      expect(await db.select(db.teams).get(), hasLength(1));
+      final members = await db.teamDao.getTeamMembers('test-team');
+      expect(members, hasLength(1));
+      expect(members.single.userId, 'development-user');
+    });
   });
 
   group('SeedDao.createTestBuildJob', () {
