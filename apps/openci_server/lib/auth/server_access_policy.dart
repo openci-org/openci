@@ -23,12 +23,14 @@ class ServerAccessPolicy {
   final ServerAccessMode mode;
   final Set<String> _allowedEmails;
 
+  bool isEmailAllowed(String? email) {
+    if (email == null || !EmailValidator.validate(email)) return false;
+    return _allowedEmails.contains(email.toLowerCase());
+  }
+
   ServerAccessDecision evaluate({String? email, bool? emailVerified}) {
     if (mode == ServerAccessMode.cloud) return ServerAccessDecision.allowed;
-    if (email == null || !EmailValidator.validate(email)) {
-      return ServerAccessDecision.accessDenied;
-    }
-    if (!_allowedEmails.contains(email.toLowerCase())) {
+    if (!isEmailAllowed(email)) {
       return ServerAccessDecision.accessDenied;
     }
     if (emailVerified != true) {
