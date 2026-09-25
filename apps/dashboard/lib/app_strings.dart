@@ -166,6 +166,10 @@ class AppStringsAuthFirebaseForm {
   String get projectId => 'プロジェクトID';
   String get pickConfig => '設定を保存';
   String get configSaved => '設定を保存しました。アプリを再起動してください。';
+  String get profileSaved => '接続設定を保存しました。';
+  String get requiredProfileFields =>
+      '接続先名、APIサーバーURL、APIキー、アプリID、プロジェクトIDを入力してください。';
+  String get invalidAppId => 'このプラットフォーム用の有効なFirebaseアプリIDを入力してください。';
   String get configActive => 'カスタムFirebaseプロジェクトが設定済みです。再起動で反映されます。';
   String get importFile => 'ファイルから読み込み';
   String get importFileHint =>
