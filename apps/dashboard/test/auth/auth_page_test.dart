@@ -4,6 +4,10 @@ import 'package:dashboard/api/openci_api_client.dart';
 import 'package:dashboard/app_strings.dart';
 import 'package:dashboard/auth/auth_page.dart';
 import 'package:dashboard/auth/auth_provider.dart';
+import 'package:dashboard/connections/connection_profile.dart';
+import 'package:dashboard/connections/connection_snapshot.dart';
+import 'package:dashboard/connections/connection_store.dart';
+import 'package:dashboard/connections/connection_store_provider.dart';
 import 'package:dashboard/connections/local_development_connection.dart';
 import 'package:dashboard/team/selected_team_provider.dart';
 import 'package:dashboard/team/team_provider.dart';
@@ -33,6 +37,25 @@ void main() {
       });
       SharedPreferences.setMockInitialValues({'sh_firebase_config': saved});
       final prefs = await SharedPreferences.getInstance();
+      const cloud = ConnectionProfile(
+        id: 'cloud',
+        name: 'Cloud',
+        apiUrl: 'https://cloud.example.com',
+        firebase: {},
+      );
+      const company = ConnectionProfile(
+        id: 'company',
+        name: 'Company',
+        apiUrl: 'https://company.example.com',
+        firebase: {},
+      );
+      final store = ConnectionStore(prefs, cloud);
+      await store.save(
+        const ConnectionSnapshot(
+          profiles: [cloud, company],
+          activeId: 'company',
+        ),
+      );
       final local = LocalDevelopmentConnection.parse(
         mode: 'true',
         apiUrl: 'http://127.0.0.1:8080',
@@ -43,6 +66,7 @@ void main() {
         ProviderScope(
           overrides: [
             sharedPreferencesProvider.overrideWithValue(prefs),
+            connectionStoreProvider.overrideWithValue(store),
             localDevelopmentConnectionProvider.overrideWithValue(
               localMode ? local : null,
             ),
@@ -57,7 +81,7 @@ void main() {
         localMode ? findsOneWidget : findsNothing,
       );
       expect(
-        find.text('saved-production-project'),
+        find.text('Company'),
         localMode ? findsNothing : findsOneWidget,
       );
       expect(prefs.getString('sh_firebase_config'), saved);

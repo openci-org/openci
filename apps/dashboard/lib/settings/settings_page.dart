@@ -2,13 +2,14 @@ import 'dart:async';
 
 import 'package:dashboard/app_strings.dart';
 import 'package:dashboard/auth/auth_provider.dart';
-import 'package:dashboard/firebase/firebase_config_provider.dart';
+import 'package:dashboard/connections/active_connection_profile_provider.dart';
+import 'package:dashboard/connections/connection_store_provider.dart';
+import 'package:dashboard/connections/local_development_connection.dart';
+import 'package:dashboard/connections/select_connection_profile.dart';
 import 'package:dashboard/revenue_cat/revenue_cat.dart';
 import 'package:dashboard/revenue_cat/subscription_page.dart';
-import 'package:dashboard/team/selected_team_provider.dart';
 import 'package:dashboard/team/team_provider.dart';
 import 'package:dashboard/utilities/macos_updater_initializer.dart';
-import 'package:dashboard/utilities/openci_server_url_provider.dart';
 import 'package:dashboard/utilities/snack_bar_extension.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -119,7 +120,7 @@ class SettingsPage extends HookConsumerWidget {
                     ],
                   ),
                   const SizedBox(height: 24),
-                  const _SelfHostedIndicator(),
+                  const _ConnectionIndicator(),
                   const SizedBox(height: 16),
                   _DeleteAccountButton(isDeleting: isDeleting),
                 ],
@@ -480,134 +481,124 @@ class _AppVersionTile extends HookWidget {
   }
 }
 
-class _SelfHostedIndicator extends ConsumerWidget {
-  const _SelfHostedIndicator();
+class _ConnectionIndicator extends HookConsumerWidget {
+  const _ConnectionIndicator();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final settingsT = t.settings;
+    final isSwitching = useState(false);
+    final store = ref.watch(connectionStoreProvider);
+    final activeProfile = ref.watch(activeConnectionProfileProvider(store));
+    final localDevelopment = ref.watch(localDevelopmentConnectionProvider);
+    final profile = activeProfile.value;
+    if (profile == null) return const SizedBox.shrink();
 
-    return FutureBuilder<SelfHostedConfig?>(
-      future: loadSelfHostedConfig(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const SizedBox.shrink();
-        }
-
-        final config = snapshot.data;
-        if (config != null) {
-          return Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: Colors.amber.withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: Colors.amber.withValues(alpha: 0.2),
-              ),
-            ),
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      width: 34,
-                      height: 34,
-                      decoration: BoxDecoration(
-                        color: Colors.amber.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(9),
-                      ),
-                      child: const Center(
-                        child: Icon(
-                          Icons.cloud_outlined,
-                          size: 18,
-                          color: Colors.amber,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            settingsT.selfHostedActive,
-                            style: const TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            settingsT.selfHostedProject(
-                              projectId: config.projectId,
-                            ),
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.onSurfaceVariant,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.amber.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: Colors.amber.withValues(alpha: 0.2),
+        ),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 34,
+                height: 34,
+                decoration: BoxDecoration(
+                  color: Colors.amber.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(9),
                 ),
-                const SizedBox(height: 12),
-                SizedBox(
-                  width: double.infinity,
-                  child: TextButton(
-                    style: TextButton.styleFrom(
-                      foregroundColor: Colors.amber,
-                      backgroundColor: Colors.amber.withValues(alpha: 0.1),
-                      padding: const EdgeInsets.symmetric(vertical: 10),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        side: BorderSide(
-                          color: Colors.amber.withValues(alpha: 0.2),
-                        ),
-                      ),
-                    ),
-                    onPressed: () async {
-                      await clearSelfHostedConfig();
-                      ref.invalidate(selfHostedConfigProvider);
-                      ref.invalidate(openciServerUrlProvider);
-                      ref.invalidate(selectedTeamIdProvider);
-                      if (!context.mounted) return;
-                      context.showSnackBarMessage(
-                        settingsT.resetToCloudSuccess,
-                      );
-                    },
-                    child: Text(
-                      settingsT.resetToCloud,
+                child: const Center(
+                  child: Icon(
+                    Icons.cloud_outlined,
+                    size: 18,
+                    color: Colors.amber,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      localDevelopment != null
+                          ? 'Local Auth Emulator · demo-openci'
+                          : profile.name,
                       style: const TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                  ),
-                ),
-              ],
-            ),
-          );
-        }
-
-        return Consumer(
-          builder: (context, ref, _) {
-            final auth = ref.watch(firebaseAuthProvider).asData?.value;
-            if (auth == null) return const SizedBox.shrink();
-            return Center(
-              child: Text(
-                settingsT.firebaseAppName(name: auth.app.name),
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Theme.of(context).colorScheme.outline,
+                    const SizedBox(height: 2),
+                    Text(
+                      profile.apiUrl,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            );
-          },
-        );
-      },
+            ],
+          ),
+          if (!profile.isCloud && localDevelopment == null) ...[
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: TextButton(
+                style: TextButton.styleFrom(
+                  foregroundColor: Colors.amber,
+                  backgroundColor: Colors.amber.withValues(alpha: 0.1),
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    side: BorderSide(
+                      color: Colors.amber.withValues(alpha: 0.2),
+                    ),
+                  ),
+                ),
+                onPressed: isSwitching.value || activeProfile.isLoading
+                    ? null
+                    : () async {
+                        if (isSwitching.value) return;
+                        isSwitching.value = true;
+                        try {
+                          await selectConnectionProfile(
+                            context,
+                            ref,
+                            store.cloud,
+                          );
+                        } finally {
+                          if (context.mounted) isSwitching.value = false;
+                        }
+                      },
+                child: isSwitching.value
+                    ? const SizedBox.square(
+                        dimension: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : Text(
+                        settingsT.returnToCloud,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+              ),
+            ),
+          ],
+        ],
+      ),
     );
   }
 }

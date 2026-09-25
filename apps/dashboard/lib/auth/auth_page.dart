@@ -7,14 +7,12 @@ import 'package:dashboard/app_strings.dart';
 import 'package:dashboard/auth/auth_provider.dart';
 import 'package:dashboard/auth/self_hosted_setup_form.dart';
 import 'package:dashboard/connections/active_connection_profile_provider.dart';
-import 'package:dashboard/connections/connection_firebase_auth.dart';
-import 'package:dashboard/connections/connection_firebase_config.dart';
 import 'package:dashboard/connections/connection_profile.dart';
 import 'package:dashboard/connections/connection_store_provider.dart';
 import 'package:dashboard/connections/local_development_connection.dart';
+import 'package:dashboard/connections/select_connection_profile.dart';
 import 'package:dashboard/firebase/firebase_config_provider.dart';
 import 'package:dashboard/firebase/plist_parser.dart';
-import 'package:dashboard/utilities/openci_server_url_provider.dart';
 import 'package:dashboard/team/selected_team_provider.dart';
 import 'package:dashboard/utilities/snack_bar_extension.dart';
 import 'package:file_picker/file_picker.dart';
@@ -23,7 +21,6 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
-import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:uuid/uuid.dart';
@@ -44,17 +41,9 @@ class AuthPage extends HookConsumerWidget {
     final authT = t.auth;
     final colorScheme = Theme.of(context).colorScheme;
 
-    final customServerUrl = ref.watch(customServerUrlProvider);
-    final hasCustomUrl = customServerUrl != null && customServerUrl.isNotEmpty;
+    final store = ref.watch(connectionStoreProvider);
+    final activeProfile = ref.watch(activeConnectionProfileProvider(store));
     final localDevelopment = ref.watch(localDevelopmentConnectionProvider);
-
-    // Check if a self-hosted Firebase config is active
-    final configReloadKey = useState(0);
-    final configFuture = useMemoized(
-      () => loadSelfHostedConfig(),
-      [configReloadKey.value],
-    );
-    final configSnapshot = useFuture(configFuture);
 
     return Scaffold(
       body: Stack(
@@ -97,7 +86,7 @@ class AuthPage extends HookConsumerWidget {
                               style: Theme.of(context).textTheme.labelMedium
                                   ?.copyWith(color: colorScheme.primary),
                             ),
-                          ] else if (configSnapshot.data != null) ...[
+                          ] else if (activeProfile.value != null) ...[
                             const SizedBox(height: 12),
                             Container(
                               padding: const EdgeInsets.symmetric(
@@ -122,7 +111,7 @@ class AuthPage extends HookConsumerWidget {
                                   const SizedBox(width: 5),
                                   Flexible(
                                     child: Text(
-                                      configSnapshot.data!.projectId,
+                                      activeProfile.value!.name,
                                       style: TextStyle(
                                         fontSize: 11,
                                         fontWeight: FontWeight.w500,
@@ -457,12 +446,10 @@ class AuthPage extends HookConsumerWidget {
                                             const FirebaseFormSheet(),
                                       );
                                     }
-                                    if (!context.mounted) return;
-                                    configReloadKey.value++;
                                   },
                                 ),
-                                if (configSnapshot.data != null ||
-                                    hasCustomUrl) ...[
+                                if (localDevelopment == null &&
+                                    activeProfile.value?.isCloud == false) ...[
                                   const SizedBox(height: 8),
                                   OutlinedButton.icon(
                                     style: OutlinedButton.styleFrom(
@@ -482,27 +469,32 @@ class AuthPage extends HookConsumerWidget {
                                       ),
                                     ),
                                     icon: const Icon(
-                                      Icons.cloud_off_outlined,
+                                      Icons.cloud_outlined,
                                       size: 18,
                                     ),
                                     label: Text(
-                                      authT.resetFirebase,
+                                      t.settings.returnToCloud,
                                       style: const TextStyle(fontSize: 13),
                                     ),
-                                    onPressed: () async {
-                                      await clearSelfHostedConfig();
-                                      await ref
-                                          .read(
-                                            customServerUrlProvider.notifier,
-                                          )
-                                          .clearUrl();
-                                      ref.invalidate(selfHostedConfigProvider);
-                                      configReloadKey.value++;
-                                      if (!context.mounted) return;
-                                      context.showSnackBarMessage(
-                                        authT.resetSuccess,
-                                      );
-                                    },
+                                    onPressed:
+                                        isLoading.value ||
+                                            activeProfile.isLoading
+                                        ? null
+                                        : () async {
+                                            if (isLoading.value) return;
+                                            isLoading.value = true;
+                                            try {
+                                              await selectConnectionProfile(
+                                                context,
+                                                ref,
+                                                store.cloud,
+                                              );
+                                            } finally {
+                                              if (context.mounted) {
+                                                isLoading.value = false;
+                                              }
+                                            }
+                                          },
                                   ),
                                 ],
                               ],
@@ -558,39 +550,14 @@ class FirebaseFormSheet extends HookConsumerWidget {
 
     Future<void> selectProfile(ConnectionProfile profile) async {
       if (isSaving.value || switchingProfileId.value != null) return;
-      final selection = ref.read(
-        activeConnectionProfileProvider(store).notifier,
-      );
-      final router = GoRouter.of(context);
-      final messenger = ScaffoldMessenger.of(context);
       switchingProfileId.value = profile.id;
       try {
-        // Initialize authentication before changing the saved selection, so a
-        // configuration error leaves the current connection available.
-        final authProvider = connectionFirebaseAuthProvider(
-          profile.id,
-          firebaseConfigForCurrentPlatform(profile),
+        await selectConnectionProfile(
+          context,
+          ref,
+          profile,
+          closeSheet: true,
         );
-        if (ref.read(authProvider).hasError) ref.invalidate(authProvider);
-        final auth = await ref.read(authProvider.future);
-        final user = await auth.authStateChanges().first;
-        if (!context.mounted) return;
-        await selection.select(profile.id);
-
-        // Root may remove this sheet while the active authentication changes.
-        if (context.mounted) Navigator.pop(context);
-        router.go(user == null ? '/auth' : '/');
-      } catch (error) {
-        if (messenger.mounted) {
-          messenger
-            ..hideCurrentSnackBar()
-            ..showSnackBar(
-              responsiveSnackBar(
-                messenger.context,
-                content: Text(t.common.error(error: error.toString())),
-              ),
-            );
-        }
       } finally {
         if (context.mounted) switchingProfileId.value = null;
       }
