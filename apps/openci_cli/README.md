@@ -94,8 +94,7 @@ automatically enables it by passing `ENABLE_INTERNAL_API=true` to Docker Compose
 Requests also require `INTERNAL_API_KEY`. For `openci dev start --seed`, the CLI
 always reads it from the checkout's `.env` file and only seeds a local server.
 The dev command also excludes a shell-exported `INTERNAL_API_KEY` from Docker
-Compose so the server and seed request use the same key. The standalone
-seed/cleanup scripts in `tool/` still require the key to be exported.
+Compose so the server and seed request use the same key.
 
 To also prepare a development Auth user and queue the default smoke-test build job:
 
