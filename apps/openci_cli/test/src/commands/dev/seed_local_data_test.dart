@@ -17,11 +17,21 @@ final _signUpUri = Uri.parse(
 final _signInUri = _signUpUri.replace(
   path: '/identitytoolkit.googleapis.com/v1/accounts:signInWithPassword',
 );
+final _verificationUri = Uri.parse(
+  'http://127.0.0.1:9099/identitytoolkit.googleapis.com/v1/'
+  'projects/demo-openci/accounts:update',
+);
 
 MockClient _seedClient(Future<http.Response> Function(http.Request) onSeed) =>
     MockClient((request) async {
       if (request.url == _signUpUri) {
         return http.Response('{"localId":"development-user"}', 200);
+      }
+      if (request.url == _verificationUri) {
+        return http.Response(
+          '{"localId":"development-user","emailVerified":true}',
+          200,
+        );
       }
       return onSeed(request);
     });
@@ -70,6 +80,12 @@ void main() {
             200,
           );
         }
+        if (request.url == _verificationUri) {
+          return http.Response(
+            '{"localId":"created-user-uid","emailVerified":true}',
+            200,
+          );
+        }
         return http.Response('{"success":true,"jobId":"job-test"}', 200);
       });
 
@@ -83,7 +99,7 @@ void main() {
       );
 
       expect(result, isTrue);
-      expect(requests, hasLength(2));
+      expect(requests, hasLength(3));
       final authRequest = requests.first;
       expect(authRequest.method, 'POST');
       expect(authRequest.url, _signUpUri);
@@ -125,6 +141,12 @@ void main() {
           expect(request.body, requests.first.body);
           return http.Response('{"localId":"development-user"}', 200);
         }
+        if (request.url == _verificationUri) {
+          return http.Response(
+            '{"localId":"development-user","emailVerified":true}',
+            200,
+          );
+        }
         expect(jsonDecode(request.body), {'userId': 'development-user'});
         return http.Response('{"success":true}', 200);
       });
@@ -145,9 +167,11 @@ void main() {
       final seedUri = Uri.parse('http://localhost:8080/internal/seed');
       expect(requests.map((request) => request.url), [
         _signUpUri,
+        _verificationUri,
         seedUri,
         _signUpUri,
         _signInUri,
+        _verificationUri,
         seedUri,
       ]);
       expect(logger.stderrMessages, isEmpty);
@@ -182,6 +206,128 @@ void main() {
         expect(logger.stdoutMessages, ['\n${t.dev.start.stepSeed}']);
       },
     );
+
+    test(
+      'marks only the development user email as verified before seeding',
+      () async {
+        final requests = <http.Request>[];
+        final result = await http.runWithClient(
+          () =>
+              seedLocalData(logger, projectRoot: projectRoot, environment: {}),
+          () => MockClient((request) async {
+            requests.add(request);
+            if (request.url == _signUpUri) {
+              return http.Response('{"localId":"development-user"}', 200);
+            }
+            if (request.url == _verificationUri) {
+              return http.Response(
+                '{"localId":"development-user","emailVerified":true}',
+                200,
+              );
+            }
+            return http.Response('{"success":true}', 200);
+          }),
+        );
+
+        expect(result, isTrue);
+        final verification = requests[1];
+        expect(verification.url, _verificationUri);
+        expect(verification.followRedirects, isFalse);
+        expect(verification.headers['authorization'], 'Bearer owner');
+        expect(jsonDecode(verification.body), {
+          'localId': 'development-user',
+          'emailVerified': true,
+        });
+        expect(requests.last.url.path, '/internal/seed');
+      },
+    );
+
+    test('does not seed team data when email verification fails', () async {
+      final requests = <Uri>[];
+      final result = await http.runWithClient(
+        () => seedLocalData(logger, projectRoot: projectRoot, environment: {}),
+        () => MockClient((request) async {
+          requests.add(request.url);
+          if (request.url == _signUpUri) {
+            return http.Response('{"localId":"development-user"}', 200);
+          }
+          expect(request.url, _verificationUri);
+          return http.Response('private-verification-response', 500);
+        }),
+      );
+
+      expect(result, isFalse);
+      expect(requests, [_signUpUri, _verificationUri]);
+      expect(
+        logger.stderrMessages.single,
+        isNot(contains('private-verification-response')),
+      );
+    });
+
+    test('rejects a verification response for another user', () async {
+      final requests = <Uri>[];
+      final result = await http.runWithClient(
+        () => seedLocalData(logger, projectRoot: projectRoot, environment: {}),
+        () => MockClient((request) async {
+          requests.add(request.url);
+          if (request.url == _signUpUri) {
+            return http.Response('{"localId":"development-user"}', 200);
+          }
+          expect(request.url, _verificationUri);
+          return http.Response(
+            '{"localId":"another-user","emailVerified":true}',
+            200,
+          );
+        }),
+      );
+
+      expect(result, isFalse);
+      expect(requests, [_signUpUri, _verificationUri]);
+    });
+
+    test('rejects an unverified response before seeding', () async {
+      final requests = <Uri>[];
+      final result = await http.runWithClient(
+        () => seedLocalData(logger, projectRoot: projectRoot, environment: {}),
+        () => MockClient((request) async {
+          requests.add(request.url);
+          if (request.url == _signUpUri) {
+            return http.Response('{"localId":"development-user"}', 200);
+          }
+          expect(request.url, _verificationUri);
+          return http.Response(
+            '{"localId":"development-user","emailVerified":false}',
+            200,
+          );
+        }),
+      );
+
+      expect(result, isFalse);
+      expect(requests, [_signUpUri, _verificationUri]);
+    });
+
+    test('rejects redirects from the email verification endpoint', () async {
+      final requests = <Uri>[];
+      final result = await http.runWithClient(
+        () => seedLocalData(logger, projectRoot: projectRoot, environment: {}),
+        () => MockClient((request) async {
+          requests.add(request.url);
+          if (request.url == _signUpUri) {
+            return http.Response('{"localId":"development-user"}', 200);
+          }
+          expect(request.url, _verificationUri);
+          expect(request.followRedirects, isFalse);
+          return http.Response(
+            '{"localId":"development-user","emailVerified":true}',
+            302,
+            headers: {'location': 'https://identitytoolkit.googleapis.com'},
+          );
+        }),
+      );
+
+      expect(result, isFalse);
+      expect(requests, [_signUpUri, _verificationUri]);
+    });
 
     final authFailures = <String, Future<http.Response> Function()>{
       'rejects signup': () async =>

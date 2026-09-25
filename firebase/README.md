@@ -84,10 +84,12 @@ emulator support.
 | Emulator UI   | `http://127.0.0.1:4000/auth` | `http://firebase-auth:4000/auth` |
 
 `FIREBASE_AUTH_EMULATOR_HOST` takes `host:port` without `http://`. The local
-override leaves `SERVER_ACCESS_MODE`, `ALLOWED_USER_EMAILS`, and non-Firebase
-settings unchanged. The base `docker-compose.yml` still uses the configured
-Firebase service account when this override is omitted. Use the override only
-for local development.
+override sets `ALLOWED_USER_EMAILS` from `LOCAL_ALLOWED_USER_EMAILS`, defaulting
+to `test@openci.org` when the local setting is absent. An explicitly empty local
+value configures an empty allowlist. `SERVER_ACCESS_MODE` and non-Firebase
+settings come from the base configuration. The base `docker-compose.yml` uses
+the configured Firebase service account when this override is omitted. Use the
+override only for local development.
 
 `openci dev start` now uses this same three-file configuration for every Compose
 step. It first runs `up -d --build --wait firebase-auth`, so an emulator startup
@@ -108,8 +110,8 @@ To stop the local API and its dependencies, use the same three `-f` options with
    If you started with `openci dev start --seed`, sign in with `test@openci.org`
    and password `123456`. Otherwise, create an email/password user in the
    [Emulator UI](http://127.0.0.1:4000/auth). These seeded credentials are only
-   for local development. `--seed` also registers this user as a member of
-   `test-team`, so the team is available after sign-in.
+   for local development. `--seed` marks this user's email as verified and
+   registers it as a member of `test-team`, so the team is available after sign-in.
 
 The launch configuration passes `OPENCI_LOCAL_DEV=true`,
 `OPENCI_LOCAL_API_URL`, `OPENCI_AUTH_EMULATOR_HOST`, and

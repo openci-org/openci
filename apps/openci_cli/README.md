@@ -103,17 +103,23 @@ openci dev start --seed
 ```
 
 The CLI first creates an email/password user in the local `demo-openci` Auth
-Emulator:
+Emulator and marks its email as verified:
 
 - Email: `test@openci.org`
 - Password: `123456`
 
 These fixed credentials are only for local development. Repeated seeding reuses
-the same user. If the account already exists with a different password or is
-disabled, seeding fails without changing it. Check the account in the
+the same user and sets `emailVerified=true` without resetting its password.
+If the account already exists with a different password or is disabled, seeding
+fails without changing it. Check the account in the
 [Auth Emulator UI](http://127.0.0.1:4000/auth). An Auth failure stops seeding before
 the team/job request. Emulator users are lost when the emulator restarts;
 `--seed` creates the user again.
+
+The local Compose override configures `test@openci.org` as the allowed email by
+default. Set `LOCAL_ALLOWED_USER_EMAILS` in `.env` to use another comma-separated
+allowlist; an empty value configures a deny-all policy. API enforcement is
+tracked in [#2942](https://github.com/openci-org/openci/issues/2942).
 
 The CLI sends that user's UID to the seed API, which registers it as a member
 of `test-team` before queuing the smoke-test job. Repeated seeding preserves the
