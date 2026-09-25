@@ -1,15 +1,16 @@
 import 'package:checks/checks.dart';
 import 'package:dashboard/app_strings.dart';
 import 'package:dashboard/cicd_log/cicd_log_providers.dart';
-import 'package:dashboard/firebase/firebase_config_provider.dart';
 import 'package:dashboard/root/dashboard_root.dart';
 import 'package:dashboard/secret_manager/secret_manager_provider.dart';
 import 'package:dashboard/team/team_provider.dart';
+import 'package:dashboard/utilities/shared_preferences_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:openci_shared/openci_shared.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../finder_checks.dart';
 
@@ -39,10 +40,13 @@ void main() {
         buildNumber: '1',
         buildSignature: '',
       );
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
 
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
+            sharedPreferencesProvider.overrideWithValue(prefs),
             cicdCommitGroupsProvider.overrideWith(_EmptyCommitGroups.new),
             secretManagerProvider.overrideWith(_EmptySecrets.new),
             selectedTeamProvider.overrideWith(
@@ -52,13 +56,6 @@ void main() {
                 members: const ['user-123'],
                 createdAt: DateTime.utc(2026),
                 updatedAt: DateTime.utc(2026),
-              ),
-            ),
-            selfHostedConfigProvider.overrideWith(
-              (ref) async => const SelfHostedConfig(
-                apiKey: 'test-api-key',
-                appId: 'test-app',
-                projectId: 'test-project',
               ),
             ),
           ],

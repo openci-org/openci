@@ -33,8 +33,6 @@ class AppStringsAuth {
   String get login => 'ログイン';
   String get createAccount => 'アカウント作成';
   String get useYourFirebase => '自分のFirebaseを使用';
-  String get resetFirebase => 'Firebaseをリセット';
-  String get resetSuccess => 'Firebaseがリセットされました。アプリを再起動してください。';
   String get agreePrefix => '利用規約に同意する ';
   String get termsOfService => '利用規約';
   String get enterEmail => 'メールアドレスを入力してください';
@@ -81,11 +79,7 @@ class AppStringsSettings {
       'アップデート確認に失敗: $error';
   String get subscription => 'サブスクリプション';
   String get manageSubscription => 'サブスクリプションプランを管理';
-  String firebaseAppName({required Object name}) => 'Firebaseアプリ名: $name';
-  String get resetToCloud => 'OpenCI Cloudにリセット';
-  String get resetToCloudSuccess => '設定をクリアしました。アプリを再起動してください。';
-  String get selfHostedActive => 'セルフホストFirebase';
-  String selfHostedProject({required Object projectId}) => 'プロジェクト: $projectId';
+  String get returnToCloud => 'OpenCI Cloudに戻す';
   String get appVersion => 'アプリバージョン';
   String get logout => 'ログアウト';
   String get logoutSuccess => 'ログアウトしました';
