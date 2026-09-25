@@ -165,21 +165,18 @@ class AppStringsAuthFirebaseForm {
   String get appId => 'アプリID';
   String get projectId => 'プロジェクトID';
   String get pickConfig => '設定を保存';
-  String get configSaved => '設定を保存しました。アプリを再起動してください。';
   String get profileSaved => '接続設定を保存しました。';
   String get requiredProfileFields =>
       '接続先名、APIサーバーURL、APIキー、アプリID、プロジェクトIDを入力してください。';
   String get invalidAppId => 'このプラットフォーム用の有効なFirebaseアプリIDを入力してください。';
-  String get configActive => 'カスタムFirebaseプロジェクトが設定済みです。再起動で反映されます。';
   String get importFile => 'ファイルから読み込み';
   String get importFileHint =>
       'JSON (google-services.json) または plist (GoogleService-Info.plist)';
   String get invalidFile => '選択されたファイルを解析できませんでした。形式を確認してください。';
   String get fileLoaded => 'ファイルから設定を読み込みました。内容を確認して保存してください。';
-  String get savedProjects => '保存済みプロジェクト';
+  String get savedProjects => '保存済み接続先';
   String get active => '有効';
-  String get useProject => 'このプロジェクトを使用';
-  String get editProject => 'プロジェクトを編集';
+  String get useProject => 'この接続先を使用';
 
   String get setupSubtitle => 'APIサーバーとFirebaseプロジェクトを接続します。';
   String get setupPreview => '入力内容のプレビューです。まだ接続・登録・保存は行いません。';

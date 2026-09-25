@@ -6,6 +6,9 @@ import 'package:dashboard/api/openci_api_client.dart';
 import 'package:dashboard/app_strings.dart';
 import 'package:dashboard/auth/auth_provider.dart';
 import 'package:dashboard/auth/self_hosted_setup_form.dart';
+import 'package:dashboard/connections/active_connection_profile_provider.dart';
+import 'package:dashboard/connections/connection_firebase_auth.dart';
+import 'package:dashboard/connections/connection_firebase_config.dart';
 import 'package:dashboard/connections/connection_profile.dart';
 import 'package:dashboard/connections/connection_store_provider.dart';
 import 'package:dashboard/connections/local_development_connection.dart';
@@ -20,6 +23,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:uuid/uuid.dart';
@@ -541,23 +545,56 @@ class FirebaseFormSheet extends HookConsumerWidget {
     final customServerUrlController = useTextEditingController();
     final importedConfig = useState<SelfHostedConfig?>(null);
     final isSaving = useState(false);
+    final switchingProfileId = useState<String?>(null);
+    final isBusy = isSaving.value || switchingProfileId.value != null;
     final formT = t.auth.firebaseForm;
     final colorScheme = Theme.of(context).colorScheme;
-    final configReloadKey = useState(0);
     final platform = kIsWeb ? 'web' : defaultTargetPlatform.name.toLowerCase();
     final appIdPlatform = platform == 'macos' ? 'ios' : platform;
+    final store = ref.watch(connectionStoreProvider);
+    final profiles = useMemoized(() => store.load().profiles, [store]);
+    final activeProfile = ref.watch(activeConnectionProfileProvider(store));
+    final localDevelopment = ref.watch(localDevelopmentConnectionProvider);
 
-    // Check if config is already saved
-    final configFuture = useMemoized(
-      () => loadSelfHostedConfig(),
-      [configReloadKey.value],
-    );
-    final configSnapshot = useFuture(configFuture);
-    final configsFuture = useMemoized(
-      () => loadSelfHostedConfigs(),
-      [configReloadKey.value],
-    );
-    final configsSnapshot = useFuture(configsFuture);
+    Future<void> selectProfile(ConnectionProfile profile) async {
+      if (isSaving.value || switchingProfileId.value != null) return;
+      final selection = ref.read(
+        activeConnectionProfileProvider(store).notifier,
+      );
+      final router = GoRouter.of(context);
+      final messenger = ScaffoldMessenger.of(context);
+      switchingProfileId.value = profile.id;
+      try {
+        // Initialize authentication before changing the saved selection, so a
+        // configuration error leaves the current connection available.
+        final authProvider = connectionFirebaseAuthProvider(
+          profile.id,
+          firebaseConfigForCurrentPlatform(profile),
+        );
+        if (ref.read(authProvider).hasError) ref.invalidate(authProvider);
+        final auth = await ref.read(authProvider.future);
+        final user = await auth.authStateChanges().first;
+        if (!context.mounted) return;
+        await selection.select(profile.id);
+
+        // Root may remove this sheet while the active authentication changes.
+        if (context.mounted) Navigator.pop(context);
+        router.go(user == null ? '/auth' : '/');
+      } catch (error) {
+        if (messenger.mounted) {
+          messenger
+            ..hideCurrentSnackBar()
+            ..showSnackBar(
+              responsiveSnackBar(
+                messenger.context,
+                content: Text(t.common.error(error: error.toString())),
+              ),
+            );
+        }
+      } finally {
+        if (context.mounted) switchingProfileId.value = null;
+      }
+    }
 
     void applyConfig(SelfHostedConfig config) {
       importedConfig.value = config;
@@ -655,44 +692,10 @@ class FirebaseFormSheet extends HookConsumerWidget {
               ),
             ),
 
-            // Show indicator if config is already saved
-            if (configSnapshot.data != null)
-              Container(
-                width: double.infinity,
-                margin: const EdgeInsets.only(bottom: 12),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 10,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.amber.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: Colors.amber.withValues(alpha: 0.3),
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.info_outline,
-                      size: 18,
-                      color: Colors.amber,
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        formT.configActive,
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
             Expanded(
               child: ListView(
                 children: [
-                  if (configsSnapshot.data?.isNotEmpty == true) ...[
+                  if (profiles.isNotEmpty) ...[
                     Text(
                       formT.savedProjects,
                       style: TextStyle(
@@ -702,8 +705,9 @@ class FirebaseFormSheet extends HookConsumerWidget {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    for (final config in configsSnapshot.data!)
+                    for (final profile in profiles)
                       Container(
+                        key: ValueKey(profile.id),
                         margin: const EdgeInsets.only(bottom: 8),
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
@@ -722,14 +726,13 @@ class FirebaseFormSheet extends HookConsumerWidget {
                               children: [
                                 Expanded(
                                   child: Text(
-                                    config.projectId,
+                                    profile.name,
                                     style: const TextStyle(
                                       fontWeight: FontWeight.w600,
                                     ),
                                   ),
                                 ),
-                                if (configSnapshot.data?.projectId ==
-                                    config.projectId)
+                                if (activeProfile.value?.id == profile.id)
                                   Container(
                                     padding: const EdgeInsets.symmetric(
                                       horizontal: 8,
@@ -754,52 +757,30 @@ class FirebaseFormSheet extends HookConsumerWidget {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              config.appId,
+                              profile.apiUrl,
                               style: TextStyle(
                                 fontSize: 11,
                                 color: colorScheme.onSurfaceVariant,
                               ),
                             ),
                             const SizedBox(height: 8),
-                            Row(
-                              children: [
-                                TextButton(
-                                  onPressed: () async {
-                                    await activateSelfHostedConfig(
-                                      config.projectId,
-                                    );
-                                    ref.invalidate(selfHostedConfigProvider);
-                                    configReloadKey.value++;
-                                    if (context.mounted) {
-                                      context.showSnackBarMessage(
-                                        formT.configSaved,
-                                      );
-                                    }
-                                  },
-                                  child: Text(formT.useProject),
-                                ),
-                                TextButton(
-                                  onPressed: () {
-                                    applyConfig(config);
-                                  },
-                                  child: Text(formT.editProject),
-                                ),
-                                const Spacer(),
-                                IconButton(
-                                  tooltip: t.common.delete,
-                                  onPressed: () async {
-                                    await deleteSelfHostedConfig(
-                                      config.projectId,
-                                    );
-                                    ref.invalidate(selfHostedConfigProvider);
-                                    configReloadKey.value++;
-                                  },
-                                  icon: Icon(
-                                    Icons.delete_outline,
-                                    color: colorScheme.error,
-                                  ),
-                                ),
-                              ],
+                            TextButton(
+                              onPressed:
+                                  isBusy ||
+                                      activeProfile.isLoading ||
+                                      activeProfile.hasError ||
+                                      localDevelopment != null ||
+                                      activeProfile.value?.id == profile.id
+                                  ? null
+                                  : () => selectProfile(profile),
+                              child: switchingProfileId.value == profile.id
+                                  ? const SizedBox.square(
+                                      dimension: 18,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                  : Text(formT.useProject),
                             ),
                           ],
                         ),
@@ -809,7 +790,7 @@ class FirebaseFormSheet extends HookConsumerWidget {
                   // ── Import from file button ──
                   InkWell(
                     borderRadius: BorderRadius.circular(12),
-                    onTap: isSaving.value ? null : pickConfigFile,
+                    onTap: isBusy ? null : pickConfigFile,
                     child: Container(
                       width: double.infinity,
                       padding: const EdgeInsets.symmetric(
@@ -915,10 +896,13 @@ class FirebaseFormSheet extends HookConsumerWidget {
             SizedBox(
               width: double.infinity,
               child: FilledButton(
-                onPressed: isSaving.value
+                onPressed: isBusy
                     ? null
                     : () async {
-                        if (isSaving.value) return;
+                        if (isSaving.value ||
+                            switchingProfileId.value != null) {
+                          return;
+                        }
                         final name = nameController.text.trim();
                         final apiUrl = customServerUrlController.text.trim();
                         final apiKey = apiKeyController.text.trim();
