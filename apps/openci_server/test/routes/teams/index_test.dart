@@ -5,6 +5,8 @@ import 'package:dart_frog/dart_frog.dart';
 import 'package:dart_frog_test/dart_frog_test.dart';
 import 'package:drift/native.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:openci_server/auth/server_access_policy.dart';
+import 'package:openci_server/auth/user_email_info.dart';
 import 'package:openci_server/database.dart';
 import 'package:openci_server/team/team_dao.dart';
 import 'package:test/test.dart';
@@ -131,6 +133,57 @@ void main() {
         expect(returnedTeam['members'], containsAll(['user-1', 'user-2']));
       },
     );
+
+    for (final mode in ['self_hosted', 'cloud']) {
+      for (final (userId, expectedTeamIds) in [
+        ('allowlisted-non-member', <String>[]),
+        ('seeded-user', ['test-team']),
+      ]) {
+        test(
+          '$mode lists teams for $userId without changing membership',
+          () async {
+            await db.seedDao.ensureTestTeam(userId: 'seeded-user');
+            final teamsBefore = await db
+                .select(db.teams)
+                .map((team) => team.toJson())
+                .get();
+            final membersBefore = await db.select(db.teamMembers).get();
+            final context = TestRequestContext(
+              path: '/teams',
+              method: HttpMethod.get,
+            );
+            context.provide<AppDatabase>(db);
+            context.provide<String?>(userId);
+            context.provide<UserEmailInfo>((
+              email: 'allowed@example.com',
+              emailVerified: true,
+            ));
+            context.provide<ServerAccessPolicy>(
+              ServerAccessPolicy.fromEnvironment(
+                {
+                  'SERVER_ACCESS_MODE': mode,
+                  'ALLOWED_USER_EMAILS': 'allowed@example.com',
+                },
+              ),
+            );
+
+            final response = await route.onRequest(context.context);
+
+            expect(response.statusCode, HttpStatus.ok);
+            final body = await response.json() as List<dynamic>;
+            expect(
+              body.map((team) => (team as Map<String, dynamic>)['id']),
+              expectedTeamIds,
+            );
+            expect(
+              await db.select(db.teams).map((team) => team.toJson()).get(),
+              teamsBefore,
+            );
+            expect(await db.select(db.teamMembers).get(), membersBefore);
+          },
+        );
+      }
+    }
 
     test(
       'responds with 500 Internal Server Error when database fails',
