@@ -24,3 +24,14 @@ the workflow SDK also reads `OPENCI_STEP_ID` when a step supplies one.
 
 For workflow authoring and local development commands, see the
 [CLI guide](apps/openci_cli/README.md).
+
+## v2.0.0 device enrollment
+
+Automatic iOS device enrollment is disabled for both Cloud and self-hosted
+deployments. `GET` and `POST /devices/mobile-config` return `410 Gone`, including
+callbacks from previously downloaded profiles. Dashboard Hosting no longer
+forwards `/enroll-udid` or `/register-device` to enrollment functions.
+
+Existing authenticated device listing and deletion remain available. Enrollment
+can be re-enabled after user/team authorization and a server-issued callback
+credential bound to each enrollment are implemented.
