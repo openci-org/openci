@@ -40,12 +40,14 @@ void main() {
 
   test('auth events refresh the existing router', () async {
     createRouter();
+    changes.add(null);
+    await container.read(authStateChangesProvider.future);
     var refreshes = 0;
     router.routeInformationProvider.addListener(() {
       refreshes++;
     });
 
-    for (final user in <User?>[null, _User(), null]) {
+    for (final user in <User?>[_User(), null]) {
       final previous = refreshes;
       changes.add(user);
       await Future<void>.delayed(Duration.zero);
@@ -54,6 +56,34 @@ void main() {
       expect(container.read(routerProvider), same(router));
     }
   });
+
+  testWidgets(
+    'redirects immediately when the sign-in event refreshes the router',
+    (
+      tester,
+    ) async {
+      createRouter();
+      await tester.pumpWidget(const SizedBox());
+      changes.add(null);
+      await tester.pump();
+
+      final context = tester.element(find.byType(SizedBox));
+      final redirected = Completer<Uri>();
+      router.routeInformationProvider.addListener(() async {
+        final matches = await router.configuration.redirect(
+          context,
+          router.configuration.findMatch(Uri.parse('/auth')),
+          redirectHistory: [],
+        );
+        redirected.complete(matches.uri);
+      });
+
+      changes.add(_User());
+      await tester.pump();
+
+      expect(await redirected.future, Uri.parse('/'));
+    },
+  );
 
   testWidgets('waits for authentication before resolving a protected URL', (
     tester,

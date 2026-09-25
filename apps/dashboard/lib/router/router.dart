@@ -9,7 +9,8 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final refreshNotifier = ValueNotifier(0);
-  ref.listen(authStateChangesProvider, (_, _) {
+  // Refresh after the future used by redirect receives the latest auth event.
+  ref.listen(authStateChangesProvider.future, (_, _) {
     refreshNotifier.value++;
   });
   ref.onDispose(refreshNotifier.dispose);
