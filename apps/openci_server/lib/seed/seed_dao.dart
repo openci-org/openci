@@ -24,21 +24,18 @@ class SeedDao extends DatabaseAccessor<AppDatabase> with _$SeedDaoMixin {
     final now = DateTime.now().toUtc();
 
     if (existing == null) {
-      try {
-        await into(teams).insert(
-          DriftTeam(
-            id: teamId,
-            name: name,
-            installationIds: [installationId],
-            aiEnabled: true,
-            runNumber: 1,
-            createdAt: now,
-            updatedAt: now,
-          ),
-        );
-      } catch (_) {
-        // Ignore duplicate key errors
-      }
+      await into(teams).insert(
+        DriftTeam(
+          id: teamId,
+          name: name,
+          installationIds: [installationId],
+          aiEnabled: true,
+          runNumber: 1,
+          createdAt: now,
+          updatedAt: now,
+        ),
+        onConflict: DoNothing(target: [teams.id]),
+      );
     } else {
       if (!existing.installationIds.contains(installationId)) {
         final newInstallationIds = [
@@ -55,21 +52,13 @@ class SeedDao extends DatabaseAccessor<AppDatabase> with _$SeedDaoMixin {
     }
 
     if (userId != null && userId.isNotEmpty) {
-      final existingMember =
-          await (select(teamMembers)..where(
-                (t) => t.teamId.equals(teamId) & t.userId.equals(userId),
-              ))
-              .getSingleOrNull();
-      if (existingMember == null) {
-        try {
-          await into(teamMembers).insert(
-            TeamMembersCompanion.insert(
-              teamId: teamId,
-              userId: userId,
-            ),
-          );
-        } catch (_) {}
-      }
+      await into(teamMembers).insert(
+        TeamMembersCompanion.insert(
+          teamId: teamId,
+          userId: userId,
+        ),
+        onConflict: DoNothing(target: [teamMembers.teamId, teamMembers.userId]),
+      );
     }
   }
 

@@ -110,6 +110,52 @@ void main() {
   });
 
   test(
+    'seeds the supplied UID membership once before any teams request',
+    () async {
+      const userId = 'development-user';
+      final response = await seed({'userId': userId});
+
+      expect(response.statusCode, HttpStatus.ok);
+      final originalMember = (await db.teamDao.getTeamMembers(
+        'test-team',
+      )).single;
+      expect(originalMember.userId, userId);
+      expect(
+        (await db.teamDao.getTeamsForUser(userId)).map((team) => team.id),
+        ['test-team'],
+      );
+      expect(await db.teamDao.getTeamsForUser('another-user'), isEmpty);
+
+      final repeated = await seed({'userId': userId});
+
+      expect(repeated.statusCode, HttpStatus.ok);
+      expect(await db.teamDao.getTeamMembers('test-team'), [originalMember]);
+      expect(await db.buildJobDao.getQueuedJobs(), hasLength(2));
+    },
+  );
+
+  for (final table in ['teams', 'team_members']) {
+    test('reports a $table insert failure without queuing a job', () async {
+      await db.customStatement('''
+        CREATE TRIGGER reject_seed_insert
+        BEFORE INSERT ON $table
+        BEGIN
+          SELECT RAISE(ABORT, 'forced seed insertion failure');
+        END;
+      ''');
+
+      final response = await seed({'userId': 'development-user'});
+
+      expect(response.statusCode, HttpStatus.internalServerError);
+      final body = await response.json() as Map<String, dynamic>;
+      expect(body['success'], isFalse);
+      expect(body['error'], contains('forced seed insertion failure'));
+      expect(await db.teamDao.getTeamMembers('test-team'), isEmpty);
+      expect(await db.buildJobDao.getQueuedJobs(), isEmpty);
+    });
+  }
+
+  test(
     'seeds the fixed smoke job and resolves the installation with an empty body',
     () async {
       final response = await seed({});
@@ -126,6 +172,7 @@ void main() {
       expect(job.teamId, 'test-team');
       expect(job.installationId, '42');
       expect((await db.teamDao.getTeam('test-team'))!.installationIds, [42]);
+      expect(await db.teamDao.getTeamMembers('test-team'), isEmpty);
       expect(requests.single.method, 'GET');
       expect(requests.single.url.path, '/repos/openci-org/openci/installation');
     },

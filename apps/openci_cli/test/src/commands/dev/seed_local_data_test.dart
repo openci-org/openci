@@ -59,14 +59,14 @@ void main() {
       await projectRoot.delete(recursive: true);
     });
 
-    test('creates the Auth user before requesting default seed data', () async {
+    test('sends the created Auth user UID with the seed request', () async {
       const serverUrl = 'http://localhost:9090';
       final requests = <http.Request>[];
       final client = MockClient((request) async {
         requests.add(request);
         if (request.url == _signUpUri) {
           return http.Response(
-            '{"localId":"development-user","idToken":"private-token"}',
+            '{"localId":"created-user-uid","idToken":"private-token"}',
             200,
           );
         }
@@ -100,7 +100,7 @@ void main() {
       expect(request.url, Uri.parse('$serverUrl/internal/seed'));
       expect(request.headers['content-type'], 'application/json');
       expect(request.headers['authorization'], 'Bearer test-internal-key');
-      expect(jsonDecode(request.body), isEmpty);
+      expect(jsonDecode(request.body), {'userId': 'created-user-uid'});
       expect(logger.stderrMessages, isEmpty);
       expect(logger.stdoutMessages, [
         '\n${t.dev.start.stepSeed}',
@@ -108,7 +108,7 @@ void main() {
       ]);
     });
 
-    test('reuses the Auth user on repeated seeding', () async {
+    test('sends the same Auth user UID on repeated seeding', () async {
       final requests = <http.Request>[];
       var created = false;
       final client = MockClient((request) async {
@@ -125,7 +125,7 @@ void main() {
           expect(request.body, requests.first.body);
           return http.Response('{"localId":"development-user"}', 200);
         }
-        expect(jsonDecode(request.body), isEmpty);
+        expect(jsonDecode(request.body), {'userId': 'development-user'});
         return http.Response('{"success":true}', 200);
       });
 

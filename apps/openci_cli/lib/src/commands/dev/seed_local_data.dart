@@ -36,7 +36,7 @@ Future<bool> seedLocalData(
         'INTERNAL_API_KEY is not set in ${p.join(projectRoot.path, '.env')}.',
       );
     }
-    await _seedLocalAuthUser(timeout);
+    final userId = await _seedLocalAuthUser(timeout);
     final client = createOpenCIChopperClient(
       baseUrl: serverUrl,
       tokenProvider: () => internalApiKey,
@@ -45,7 +45,7 @@ Future<bool> seedLocalData(
     try {
       final response = await client
           .getService<OpenCIApiService>()
-          .seedLocalData({})
+          .seedLocalData({'userId': userId})
           .timeout(timeout);
       if (!response.isSuccessful) {
         logger.stderr(

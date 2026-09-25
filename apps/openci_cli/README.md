@@ -116,6 +116,12 @@ disabled, seeding fails without changing it. Check the account in the
 the team/job request. Emulator users are lost when the emulator restarts;
 `--seed` creates the user again.
 
+The CLI sends that user's UID to the seed API, which registers it as a member
+of `test-team` before queuing the smoke-test job. Repeated seeding preserves the
+existing membership. If team or membership creation fails, the seed request
+fails without queuing a job. Direct `/internal/seed` callers can omit `userId`
+to seed only the team and job.
+
 The server seeds `test-team` and one `macos-latest` job for
 `openci-org/openci`'s `openci/worker_smoke.dart`, pinned to commit
 `5cb05f76d8941ea1edc3593eb753ce808f0f290e` on
@@ -141,9 +147,9 @@ Enter `test@openci.org` and `123456`, or the credentials of another user
 you created in the Auth Emulator UI. The CLI signs in through the
 fixed address `127.0.0.1:9099`, sends the resulting Firebase ID token to
 `http://localhost:8080/teams`, and selects `test-team` only if the API returns it
-among your memberships. If it is missing, check the team's seed data and your
-user's membership. Explicit membership seeding for the development user is
-tracked in [#2929](https://github.com/openci-org/openci/issues/2929).
+among your memberships. `--seed` prepares this membership for `test@openci.org`;
+you can use the same account in the local Dashboard. If `test-team` is missing,
+check that seeding completed and that you are using the seeded account.
 
 Successful login saves and activates the `local` Firebase profile, including
 the refresh credentials and `firebase_auth_emulator_host`. Later token refreshes

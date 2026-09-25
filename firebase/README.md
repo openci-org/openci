@@ -108,8 +108,8 @@ To stop the local API and its dependencies, use the same three `-f` options with
    If you started with `openci dev start --seed`, sign in with `test@openci.org`
    and password `123456`. Otherwise, create an email/password user in the
    [Emulator UI](http://127.0.0.1:4000/auth). These seeded credentials are only
-   for local development. Explicit development-user membership seeding is
-   tracked in #2929.
+   for local development. `--seed` also registers this user as a member of
+   `test-team`, so the team is available after sign-in.
 
 The launch configuration passes `OPENCI_LOCAL_DEV=true`,
 `OPENCI_LOCAL_API_URL`, `OPENCI_AUTH_EMULATOR_HOST`, and
