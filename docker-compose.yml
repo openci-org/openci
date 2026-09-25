@@ -116,7 +116,7 @@ services:
     ports:
       - "6120:6120"
     volumes:
-      - orchard_data:/root/.orchard
+      - orchard_data:/data
 
   loki:
     image: grafana/loki:latest
