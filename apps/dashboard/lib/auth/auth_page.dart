@@ -6,6 +6,8 @@ import 'package:dashboard/api/openci_api_client.dart';
 import 'package:dashboard/app_strings.dart';
 import 'package:dashboard/auth/auth_provider.dart';
 import 'package:dashboard/auth/self_hosted_setup_form.dart';
+import 'package:dashboard/connections/connection_profile.dart';
+import 'package:dashboard/connections/connection_store_provider.dart';
 import 'package:dashboard/connections/local_development_connection.dart';
 import 'package:dashboard/firebase/firebase_config_provider.dart';
 import 'package:dashboard/firebase/plist_parser.dart';
@@ -20,6 +22,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:uuid/uuid.dart';
 
 class AuthPage extends HookConsumerWidget {
   const AuthPage({super.key});
@@ -529,22 +532,20 @@ class FirebaseFormSheet extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final nameController = useTextEditingController();
     final apiKeyController = useTextEditingController();
     final appIdController = useTextEditingController();
     final messagingSenderIdController = useTextEditingController();
     final projectIdController = useTextEditingController();
     final storageBucketController = useTextEditingController();
     final customServerUrlController = useTextEditingController();
+    final importedConfig = useState<SelfHostedConfig?>(null);
     final isSaving = useState(false);
     final formT = t.auth.firebaseForm;
     final colorScheme = Theme.of(context).colorScheme;
     final configReloadKey = useState(0);
-
-    final initialCustomUrl = ref.watch(customServerUrlProvider);
-    useEffect(() {
-      customServerUrlController.text = initialCustomUrl ?? '';
-      return null;
-    }, [initialCustomUrl]);
+    final platform = kIsWeb ? 'web' : defaultTargetPlatform.name.toLowerCase();
+    final appIdPlatform = platform == 'macos' ? 'ios' : platform;
 
     // Check if config is already saved
     final configFuture = useMemoized(
@@ -559,6 +560,7 @@ class FirebaseFormSheet extends HookConsumerWidget {
     final configsSnapshot = useFuture(configsFuture);
 
     void applyConfig(SelfHostedConfig config) {
+      importedConfig.value = config;
       apiKeyController.text = config.apiKey;
       appIdController.text = config.appId;
       messagingSenderIdController.text = config.messagingSenderId;
@@ -572,7 +574,7 @@ class FirebaseFormSheet extends HookConsumerWidget {
         allowedExtensions: ['json', 'plist'],
         withData: true,
       );
-      if (result == null || result.files.isEmpty) return;
+      if (!context.mounted || result == null || result.files.isEmpty) return;
 
       final file = result.files.first;
       List<int>? bytes = file.bytes;
@@ -807,7 +809,7 @@ class FirebaseFormSheet extends HookConsumerWidget {
                   // ── Import from file button ──
                   InkWell(
                     borderRadius: BorderRadius.circular(12),
-                    onTap: pickConfigFile,
+                    onTap: isSaving.value ? null : pickConfigFile,
                     child: Container(
                       width: double.infinity,
                       padding: const EdgeInsets.symmetric(
@@ -874,10 +876,18 @@ class FirebaseFormSheet extends HookConsumerWidget {
                   ),
                   const SizedBox(height: 16),
                   TextField(
+                    controller: nameController,
+                    decoration: InputDecoration(
+                      labelText: formT.profileName,
+                      hintText: formT.profileNameHint,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
                     controller: customServerUrlController,
-                    decoration: const InputDecoration(
-                      labelText: 'API Server URL',
-                      hintText: 'https://api.openci.org (Default)',
+                    decoration: InputDecoration(
+                      labelText: formT.apiUrl,
+                      hintText: formT.apiUrlHint,
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -890,7 +900,7 @@ class FirebaseFormSheet extends HookConsumerWidget {
                     controller: appIdController,
                     decoration: InputDecoration(
                       labelText: formT.appId,
-                      hintText: kIsWeb ? '1:xxxx:web:xxxx' : '1:xxxx:ios:xxxx',
+                      hintText: '1:123456789:$appIdPlatform:abcdef',
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -908,99 +918,86 @@ class FirebaseFormSheet extends HookConsumerWidget {
                 onPressed: isSaving.value
                     ? null
                     : () async {
-                        final hasFirebaseConfig =
-                            apiKeyController.text.isNotEmpty ||
-                            appIdController.text.isNotEmpty ||
-                            projectIdController.text.isNotEmpty;
-
-                        if (!hasFirebaseConfig) {
-                          if (customServerUrlController.text.isNotEmpty) {
-                            isSaving.value = true;
-                            try {
-                              await ref
-                                  .read(customServerUrlProvider.notifier)
-                                  .setUrl(customServerUrlController.text);
-                              if (!context.mounted) return;
-                              Navigator.pop(context);
-                              context.showSnackBarMessage(formT.configSaved);
-                            } catch (e) {
-                              if (!context.mounted) return;
-                              context.showSnackBarMessage(
-                                t.common.error(error: e.toString()),
-                              );
-                            } finally {
-                              isSaving.value = false;
-                            }
-                            return;
-                          }
+                        if (isSaving.value) return;
+                        final name = nameController.text.trim();
+                        final apiUrl = customServerUrlController.text.trim();
+                        final apiKey = apiKeyController.text.trim();
+                        final appId = appIdController.text.trim();
+                        final projectId = projectIdController.text.trim();
+                        if (name.isEmpty ||
+                            apiUrl.isEmpty ||
+                            apiKey.isEmpty ||
+                            appId.isEmpty ||
+                            projectId.isEmpty) {
                           context.showSnackBarMessage(
-                            t.common.error(
-                              error:
-                                  'API Server URL or Firebase configuration is required',
-                            ),
+                            formT.requiredProfileFields,
                           );
                           return;
                         }
 
-                        if (apiKeyController.text.isEmpty ||
-                            appIdController.text.isEmpty ||
-                            projectIdController.text.isEmpty) {
-                          context.showSnackBarMessage(
-                            t.common.error(
-                              error:
-                                  'API Key, App ID, Project ID are required for Firebase configuration',
-                            ),
-                          );
+                        final uri = Uri.tryParse(apiUrl);
+                        if (uri == null ||
+                            !['http', 'https'].contains(uri.scheme) ||
+                            uri.host.isEmpty ||
+                            RegExp(r'\s').hasMatch(apiUrl) ||
+                            uri.userInfo.isNotEmpty ||
+                            uri.hasQuery ||
+                            uri.hasFragment ||
+                            uri.port < 1 ||
+                            uri.port > 65535) {
+                          context.showSnackBarMessage(formT.invalidApiUrl);
                           return;
                         }
 
-                        final isWeb = kIsWeb;
-                        final isWebId = appIdController.text.contains(':web:');
-
-                        if (!isWeb && isWebId) {
-                          context.showSnackBarMessage(
-                            t.common.error(
-                              error:
-                                  'macOS アプリでは iOS/macOS 用の App ID（:ios: を含むもの）を入力してください。Web用（:web:）は使用できません。',
-                            ),
-                          );
-                          return;
-                        }
-
-                        if (isWeb && !isWebId) {
-                          context.showSnackBarMessage(
-                            t.common.error(
-                              error:
-                                  'Webアプリでは Web 用の App ID（:web: を含むもの）を入力してください。',
-                            ),
-                          );
+                        if (!RegExp(
+                          '^1:[0-9]+:$appIdPlatform:[a-zA-Z0-9]+\$',
+                        ).hasMatch(appId)) {
+                          context.showSnackBarMessage(formT.invalidAppId);
                           return;
                         }
 
                         isSaving.value = true;
                         try {
-                          await ref
-                              .read(customServerUrlProvider.notifier)
-                              .setUrl(customServerUrlController.text);
+                          final imported = importedConfig.value;
                           final config = SelfHostedConfig(
-                            apiKey: apiKeyController.text,
-                            appId: appIdController.text,
-                            messagingSenderId: messagingSenderIdController.text,
-                            projectId: projectIdController.text,
-                            storageBucket: storageBucketController.text,
+                            apiKey: apiKey,
+                            appId: appId,
+                            messagingSenderId:
+                                messagingSenderIdController.text.trim().isEmpty
+                                ? appId.split(':')[1]
+                                : messagingSenderIdController.text.trim(),
+                            projectId: projectId,
+                            storageBucket: storageBucketController.text.trim(),
+                            authDomain: imported?.authDomain,
+                            iosBundleId: imported?.iosBundleId,
+                            iosClientId: imported?.iosClientId,
+                            androidClientId: imported?.androidClientId,
+                            databaseURL: imported?.databaseURL,
+                            measurementId: imported?.measurementId,
                           );
-                          await saveSelfHostedConfig(config);
-                          ref.invalidate(selfHostedConfigProvider);
+                          final profile = ConnectionProfile(
+                            id: const Uuid().v4(),
+                            name: name,
+                            apiUrl: apiUrl,
+                            firebase: {platform: config},
+                          );
+                          final store = ref.read(connectionStoreProvider);
+                          final snapshot = store.load();
+                          await store.save(
+                            snapshot.copyWith(
+                              profiles: [...snapshot.profiles, profile],
+                            ),
+                          );
                           if (!context.mounted) return;
                           Navigator.pop(context);
-                          context.showSnackBarMessage(formT.configSaved);
+                          context.showSnackBarMessage(formT.profileSaved);
                         } catch (e) {
                           if (!context.mounted) return;
                           context.showSnackBarMessage(
                             t.common.error(error: e.toString()),
                           );
                         } finally {
-                          isSaving.value = false;
+                          if (context.mounted) isSaving.value = false;
                         }
                       },
                 child: Text(formT.pickConfig),
