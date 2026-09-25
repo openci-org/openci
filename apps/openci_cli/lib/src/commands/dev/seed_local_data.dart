@@ -96,7 +96,7 @@ Future<String> _seedLocalAuthUser(Duration timeout) async {
     if (response.statusCode == 400 &&
         error is Map<String, dynamic> &&
         error['message'] == 'EMAIL_EXISTS') {
-      // Reuse the user without resetting their password or other properties.
+      // Check the existing password before preparing this development user.
       response = await post('signInWithPassword');
       body = jsonDecode(response.body);
     }
@@ -105,6 +105,32 @@ Future<String> _seedLocalAuthUser(Duration timeout) async {
     }
     final uid = body['localId'];
     if (uid is! String || uid.trim().isEmpty) {
+      throw const FormatException();
+    }
+    // Prepare this development user through the loopback Emulator admin API.
+    final verificationRequest =
+        http.Request(
+            'POST',
+            Uri.parse(
+              'http://127.0.0.1:9099/identitytoolkit.googleapis.com/v1/'
+              'projects/demo-openci/accounts:update',
+            ),
+          )
+          ..followRedirects = false
+          ..headers.addAll({
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer owner',
+          })
+          ..body = jsonEncode({'localId': uid, 'emailVerified': true});
+    final verifiedResponse = await client
+        .send(verificationRequest)
+        .then(http.Response.fromStream)
+        .timeout(timeout);
+    final verifiedBody = jsonDecode(verifiedResponse.body);
+    if (verifiedResponse.statusCode != 200 ||
+        verifiedBody is! Map<String, dynamic> ||
+        verifiedBody['localId'] != uid ||
+        verifiedBody['emailVerified'] != true) {
       throw const FormatException();
     }
     return uid;
