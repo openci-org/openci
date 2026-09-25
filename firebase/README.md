@@ -105,8 +105,11 @@ To stop the local API and its dependencies, use the same three `-f` options with
 2. Open `apps/dashboard` in VS Code, select **dashboard (Local Auth Emulator)**
    from Run and Debug, select your device, and start debugging.
 3. The authentication page displays **Local Auth Emulator · demo-openci**.
-   Create an email/password user in the [Emulator UI](http://127.0.0.1:4000/auth)
-   to sign in. Automatic development user/team creation is tracked in #2862.
+   If you started with `openci dev start --seed`, sign in with `test@openci.org`
+   and password `123456`. Otherwise, create an email/password user in the
+   [Emulator UI](http://127.0.0.1:4000/auth). These seeded credentials are only
+   for local development. Explicit development-user membership seeding is
+   tracked in #2929.
 
 The launch configuration passes `OPENCI_LOCAL_DEV=true`,
 `OPENCI_LOCAL_API_URL`, `OPENCI_AUTH_EMULATOR_HOST`, and

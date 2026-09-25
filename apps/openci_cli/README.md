@@ -97,11 +97,24 @@ The dev command also excludes a shell-exported `INTERNAL_API_KEY` from Docker
 Compose so the server and seed request use the same key. The standalone
 seed/cleanup scripts in `tool/` still require the key to be exported.
 
-To also queue the default smoke-test build job:
+To also prepare a development Auth user and queue the default smoke-test build job:
 
 ```sh
 openci dev start --seed
 ```
+
+The CLI first creates an email/password user in the local `demo-openci` Auth
+Emulator:
+
+- Email: `test@openci.org`
+- Password: `123456`
+
+These fixed credentials are only for local development. Repeated seeding reuses
+the same user. If the account already exists with a different password or is
+disabled, seeding fails without changing it. Check the account in the
+[Auth Emulator UI](http://127.0.0.1:4000/auth). An Auth failure stops seeding before
+the team/job request. Emulator users are lost when the emulator restarts;
+`--seed` creates the user again.
 
 The server seeds `test-team` and one `macos-latest` job for
 `openci-org/openci`'s `openci/worker_smoke.dart`, pinned to commit
@@ -118,20 +131,19 @@ Press Ctrl+C to stop the Mac Orchard worker and the local Docker Compose stack.
 The same shutdown also runs when the command exits or receives SIGTERM. Named
 volumes and local data are kept.
 
-To log in locally, keep `openci dev start --seed` running and create an
-email/password user in the `demo-openci` project through the
-[Auth Emulator UI](http://127.0.0.1:4000/auth). Then run:
+To log in locally, keep `openci dev start --seed` running, then run:
 
 ```sh
 openci login --local
 ```
 
-Enter that emulator user's email and password. The CLI signs in through the
+Enter `test@openci.org` and `123456`, or the credentials of another user
+you created in the Auth Emulator UI. The CLI signs in through the
 fixed address `127.0.0.1:9099`, sends the resulting Firebase ID token to
 `http://localhost:8080/teams`, and selects `test-team` only if the API returns it
 among your memberships. If it is missing, check the team's seed data and your
-user's membership. Automatic development-user and membership seeding is tracked
-in [#2862](https://github.com/openci-org/openci/issues/2862).
+user's membership. Explicit membership seeding for the development user is
+tracked in [#2929](https://github.com/openci-org/openci/issues/2929).
 
 Successful login saves and activates the `local` Firebase profile, including
 the refresh credentials and `firebase_auth_emulator_host`. Later token refreshes

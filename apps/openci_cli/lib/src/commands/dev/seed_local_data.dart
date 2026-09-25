@@ -1,6 +1,8 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:cli_util/cli_logging.dart';
+import 'package:http/http.dart' as http;
 import 'package:meta/meta.dart';
 import 'package:openci_shared/openci_shared.dart';
 import 'package:path/path.dart' as p;
@@ -9,6 +11,8 @@ import '../../i18n/i18n.dart';
 
 const _defaultServerUrl = 'http://localhost:8080';
 const _defaultTimeout = Duration(seconds: 10);
+const _developmentEmail = 'test@openci.org';
+const _developmentPassword = '123456';
 
 Future<bool> seedLocalData(
   Logger logger, {
@@ -32,6 +36,7 @@ Future<bool> seedLocalData(
         'INTERNAL_API_KEY is not set in ${p.join(projectRoot.path, '.env')}.',
       );
     }
+    await _seedLocalAuthUser(timeout);
     final client = createOpenCIChopperClient(
       baseUrl: serverUrl,
       tokenProvider: () => internalApiKey,
@@ -60,6 +65,58 @@ Future<bool> seedLocalData(
 
   logger.stdout(t.dev.start.stepSeedCompleted);
   return true;
+}
+
+Future<String> _seedLocalAuthUser(Duration timeout) async {
+  final client = http.Client();
+
+  Future<http.Response> post(String action) {
+    final request =
+        http.Request(
+            'POST',
+            Uri.parse(
+              'http://127.0.0.1:9099/identitytoolkit.googleapis.com/v1/'
+              'accounts:$action?key=demo-openci-api-key',
+            ),
+          )
+          ..followRedirects = false
+          ..headers['Content-Type'] = 'application/json'
+          ..body = jsonEncode({
+            'email': _developmentEmail,
+            'password': _developmentPassword,
+            'returnSecureToken': true,
+          });
+    return client.send(request).then(http.Response.fromStream).timeout(timeout);
+  }
+
+  try {
+    var response = await post('signUp');
+    var body = jsonDecode(response.body);
+    final error = body is Map<String, dynamic> ? body['error'] : null;
+    if (response.statusCode == 400 &&
+        error is Map<String, dynamic> &&
+        error['message'] == 'EMAIL_EXISTS') {
+      // Reuse the user without resetting their password or other properties.
+      response = await post('signInWithPassword');
+      body = jsonDecode(response.body);
+    }
+    if (response.statusCode != 200 || body is! Map<String, dynamic>) {
+      throw const FormatException();
+    }
+    final uid = body['localId'];
+    if (uid is! String || uid.trim().isEmpty) {
+      throw const FormatException();
+    }
+    return uid;
+  } catch (_) {
+    // Responses and HTTP exceptions can contain passwords or tokens.
+    throw StateError(
+      'Could not prepare the local Auth user. Check the Auth Emulator at '
+      '127.0.0.1:9099 and the documented credentials for $_developmentEmail.',
+    );
+  } finally {
+    client.close();
+  }
 }
 
 Future<String?> _readInternalApiKey(Directory projectRoot) async {
