@@ -5,12 +5,15 @@ class FlutterCI {
 
   Future<void> staticAnalysis({
     String? dir,
+    // See https://github.com/dart-lang/tools/issues/249
+    bool suppressAnalytics = true,
     bool fatalInfo = false,
     bool noFatalInfos = false,
     bool noFatalWarnings = false,
   }) => _run(
     [
       'flutter analyze',
+      if (suppressAnalytics) '--suppress-analytics',
       if (fatalInfo) '--fatal-infos',
       if (noFatalInfos) '--no-fatal-infos',
       if (noFatalWarnings) '--no-fatal-warnings',
