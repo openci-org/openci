@@ -12,7 +12,7 @@ Future<void> main() async {
     currentWorkingDirectory: WorkspacePaths.root.packages.openciWorkflow,
   );
 
-  await openCI.run('dart --suppress-analytics analyze --fatal-infos');
+  await openCI.flutter.staticAnalysis();
 
-  await openCI.run('dart --suppress-analytics test');
+  await openCI.flutter.unitTests();
 }
