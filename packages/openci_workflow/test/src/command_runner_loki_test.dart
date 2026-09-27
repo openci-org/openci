@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'dart:io';
-import 'dart:isolate';
 
 import 'package:test/test.dart';
 
@@ -144,11 +143,11 @@ echo last
 }
 
 Future<ProcessResult> _runCommand(String command, HttpServer server) async {
-  final packageConfig = (await Isolate.packageConfig)!;
   final process = await Process.start(
     'dart',
     [
-      '--packages=${packageConfig.toFilePath()}',
+      '--suppress-analytics',
+      'run',
       'test/fixtures/run_command.dart',
       command,
     ],
