@@ -8,6 +8,16 @@ void main() {
   const workspace = '/tmp/openci-workspace';
   final commands = <String, Future<void> Function(FlutterCI, {String? dir})>{
     'flutter analyze': (flutter, {dir}) => flutter.staticAnalysis(dir: dir),
+    'flutter analyze --no-fatal-infos': (flutter, {dir}) =>
+        flutter.staticAnalysis(dir: dir, noFatalInfos: true),
+    'flutter analyze --no-fatal-warnings': (flutter, {dir}) =>
+        flutter.staticAnalysis(dir: dir, noFatalWarnings: true),
+    'flutter analyze --no-fatal-infos --no-fatal-warnings': (flutter, {dir}) =>
+        flutter.staticAnalysis(
+          dir: dir,
+          noFatalInfos: true,
+          noFatalWarnings: true,
+        ),
     'flutter test': (flutter, {dir}) => flutter.unitTests(dir: dir),
   };
 
