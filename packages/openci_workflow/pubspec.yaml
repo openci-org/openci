@@ -1,18 +1,17 @@
 name: openci_workflow
-description: Dart library for writing and running OpenCI workflows.
-publish_to: none
+description: Define and run OpenCI workflows in Dart with branch triggers, shell commands, Flutter helpers, and live log streaming.
 version: 0.1.0
+repository: https://github.com/openci-org/openci/tree/develop/packages/openci_workflow
+issue_tracker: https://github.com/openci-org/openci/issues
 resolution: workspace
 
 environment:
   sdk: ^3.11.5
 
 dependencies:
-  chopper: ^8.6.0
   freezed_annotation: ^3.1.0
   http: ^1.6.0
   meta: ^1.17.0
-  openci_shared: ^1.0.6
 
 dev_dependencies:
   build_runner: ^2.15.0

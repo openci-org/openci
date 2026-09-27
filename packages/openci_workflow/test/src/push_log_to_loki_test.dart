@@ -89,6 +89,24 @@ void main() {
       expect(stream['stream'], containsPair('command', 'flutter test'));
     });
 
+    for (final prefix in ['/proxy', '/proxy/', '/proxy///']) {
+      test('preserves the Loki URL path prefix $prefix', () async {
+        server.listen((request) async {
+          expect(request.uri.path, '/proxy/loki/api/v1/push');
+          await request.drain<void>();
+          request.response.statusCode = HttpStatus.noContent;
+          await request.response.close();
+        });
+
+        await pushLogToLoki(
+          client: client,
+          lokiUrl: 'http://${server.address.host}:${server.port}$prefix',
+          message: 'build output',
+          stream: 'stdout',
+        );
+      });
+    }
+
     test('throws HttpException when Loki server returns 400', () async {
       const responseBody = 'ログを保存できません';
       server.listen((HttpRequest request) async {
