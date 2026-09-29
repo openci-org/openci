@@ -23,4 +23,7 @@ class FlutterCI {
 
   Future<void> unitTests({String? dir}) =>
       _run('flutter test', workingDirectory: dir);
+
+  Future<void> buildApk({String? dir}) =>
+      _run('flutter build apk', workingDirectory: dir);
 }
