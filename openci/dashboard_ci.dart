@@ -42,4 +42,6 @@ Future<void> main() async {
   );
 
   await openCI.flutter.buildApk();
+
+  await openCI.flutter.buildAab();
 }

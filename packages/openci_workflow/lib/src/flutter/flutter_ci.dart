@@ -26,4 +26,7 @@ class FlutterCI {
 
   Future<void> buildApk({String? dir}) =>
       _run('flutter build apk', workingDirectory: dir);
+
+  Future<void> buildAab({String? dir}) =>
+      _run('flutter build appbundle', workingDirectory: dir);
 }
