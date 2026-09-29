@@ -35,5 +35,11 @@ Future<void> main() async {
     base64Content: Secrets.keyPropertiesBase64,
   );
 
+  await openCI.placeFileFromBase64(
+    dir: WorkspacePaths.root.apps.dashboard.android.app,
+    fileName: 'upload-keystore.jks',
+    base64Content: Secrets.uploadKeystoreJksBase64,
+  );
+
   await openCI.flutter.buildApk();
 }

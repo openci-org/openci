@@ -20,4 +20,9 @@ abstract final class Secrets {
   static String get keyPropertiesBase64 =>
       Platform.environment['KEY_PROPERTIES_BASE64'] ??
       (throw StateError("Secret 'KEY_PROPERTIES_BASE64' is not set in environment."));
+
+  /// Secret key: `UPLOAD_KEYSTORE_JKS_BASE64`
+  static String get uploadKeystoreJksBase64 =>
+      Platform.environment['UPLOAD_KEYSTORE_JKS_BASE64'] ??
+      (throw StateError("Secret 'UPLOAD_KEYSTORE_JKS_BASE64' is not set in environment."));
 }
