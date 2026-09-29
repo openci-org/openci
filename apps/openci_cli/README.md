@@ -190,12 +190,15 @@ openci sync paths
 
 Run this from your workflow project or one of its subdirectories. The command
 reads the `workspace` list in the root `pubspec.yaml` and each listed package's
-`name`, then writes `openci/paths.g.dart` following the directory hierarchy.
-For example, `apps/build_job_worker` becomes
-`WorkspacePaths.root.apps.buildJobWorker`. Directory names determine the getters;
-package names are used to validate the workspace. Run it again after adding,
-moving or renaming workspace directories. Read or generation failures preserve
-the existing file.
+`name`, recursively collects their subdirectories, then writes
+`openci/paths.g.dart` following the directory hierarchy. For example,
+`apps/dashboard/android/app` becomes
+`WorkspacePaths.root.apps.dashboard.android.app`. Hidden directories, symlinks,
+and generated or dependency directories (`build`, `coverage`, `node_modules`,
+`Pods`, `ephemeral`, and `xcuserdata`) are excluded at every level. Directory
+names determine the getters; package names are used to validate the workspace.
+Run it again after adding, moving or renaming workspace directories. Read or
+generation failures preserve the existing file.
 
 Import the generated file in your workflow and run it from the repository root,
 as the worker does, because these paths are relative to that root:

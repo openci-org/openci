@@ -9,7 +9,7 @@ final _reservedFields =
             'extension external factory false final finally for Function get hide if '
             'implements import in interface is late library mixin native new null of on '
             'operator part required rethrow return sealed set show static super switch '
-            'sync this throw true try type typedef var void when while with yield '
+            'this throw true try type typedef var void when while with yield '
             'hashCode noSuchMethod runtimeType toString')
         .split(' ')
         .toSet();

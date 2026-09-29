@@ -69,6 +69,9 @@ void main() {
     final nested = await Directory(
       p.join(root.path, 'apps/dashboard/lib/src'),
     ).create(recursive: true);
+    await Directory(
+      p.join(root.path, 'apps/dashboard/android/app'),
+    ).create(recursive: true);
     for (final name in ['.dart_tool', 'build']) {
       await Directory(p.join(root.path, 'apps/dashboard', name)).create();
     }
@@ -89,10 +92,30 @@ void main() {
     expect(
       source,
       contains(
-        'WorkspaceDirectory get lib => const WorkspaceDirectory("apps/dashboard/lib");',
+        r'WorkspaceRoot$Apps$Dashboard$Lib get lib => '
+        r'const WorkspaceRoot$Apps$Dashboard$Lib._("apps/dashboard/lib");',
       ),
     );
-    for (final field in ['src', 'dartTool', 'build']) {
+    expect(
+      source,
+      contains(
+        'WorkspaceDirectory get src => const WorkspaceDirectory("apps/dashboard/lib/src");',
+      ),
+    );
+    expect(
+      source,
+      contains(
+        r'WorkspaceRoot$Apps$Dashboard$Android get android => '
+        r'const WorkspaceRoot$Apps$Dashboard$Android._("apps/dashboard/android");',
+      ),
+    );
+    expect(
+      source,
+      contains(
+        'WorkspaceDirectory get app => const WorkspaceDirectory("apps/dashboard/android/app");',
+      ),
+    );
+    for (final field in ['dartTool', 'build']) {
       expect(source, isNot(contains('get $field')));
     }
     expect(source, isNot(contains(root.path)));
