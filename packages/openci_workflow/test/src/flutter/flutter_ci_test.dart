@@ -23,6 +23,7 @@ void main() {
           noFatalWarnings: true,
         ),
     'flutter test': (flutter, {dir}) => flutter.unitTests(dir: dir),
+    'flutter build apk': (flutter, {dir}) => flutter.buildApk(dir: dir),
   };
 
   for (final (command, execute) in commands.entries.map(

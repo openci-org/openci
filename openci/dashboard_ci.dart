@@ -22,4 +22,24 @@ Future<void> main() async {
   await openCI.flutter.staticAnalysis();
 
   await openCI.flutter.unitTests();
+
+  await openCI.placeFileFromBase64(
+    dir: WorkspacePaths.root.apps.dashboard.android.app,
+    fileName: 'google-services.json',
+    base64Content: Secrets.googleServicesJsonBase64,
+  );
+
+  await openCI.placeFileFromBase64(
+    dir: WorkspacePaths.root.apps.dashboard.android,
+    fileName: 'key.properties',
+    base64Content: Secrets.keyPropertiesBase64,
+  );
+
+  await openCI.placeFileFromBase64(
+    dir: WorkspacePaths.root.apps.dashboard.android.app,
+    fileName: 'upload-keystore.jks',
+    base64Content: Secrets.uploadKeystoreJksBase64,
+  );
+
+  await openCI.flutter.buildApk();
 }
