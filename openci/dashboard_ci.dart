@@ -29,5 +29,11 @@ Future<void> main() async {
     base64Content: Secrets.googleServicesJsonBase64,
   );
 
+  await openCI.placeFileFromBase64(
+    dir: WorkspacePaths.root.apps.dashboard.android,
+    fileName: 'key.properties',
+    base64Content: Secrets.keyPropertiesBase64,
+  );
+
   await openCI.flutter.buildApk();
 }

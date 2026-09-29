@@ -15,4 +15,9 @@ abstract final class Secrets {
   static String get googleServicesJsonBase64 =>
       Platform.environment['GOOGLE_SERVICES_JSON_BASE64'] ??
       (throw StateError("Secret 'GOOGLE_SERVICES_JSON_BASE64' is not set in environment."));
+
+  /// Secret key: `KEY_PROPERTIES_BASE64`
+  static String get keyPropertiesBase64 =>
+      Platform.environment['KEY_PROPERTIES_BASE64'] ??
+      (throw StateError("Secret 'KEY_PROPERTIES_BASE64' is not set in environment."));
 }
