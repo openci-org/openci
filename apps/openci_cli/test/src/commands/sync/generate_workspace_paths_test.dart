@@ -59,6 +59,7 @@ extension type const WorkspaceRoot$Apps._(String _path) implements WorkspaceDire
       '.ci': 'ci',
       'APIClient': 'apiClient',
       'alreadyCamelCase': 'alreadyCamelCase',
+      'sync': 'sync',
     };
     for (final entry in cases.entries) {
       test('converts ${entry.key} to ${entry.value}', () {
@@ -249,7 +250,9 @@ extension type const WorkspaceRoot$Apps._(String _path) implements WorkspaceDire
           generateWorkspacePaths([
             'apps',
             'apps/dashboard',
+            'apps/dashboard/android/app/src/main',
             'apps/build_job_worker',
+            'apps/openci_cli/lib/src/commands/sync',
             'packages/openci_workflow',
             'openci/workflows',
             'ci/tools',
@@ -275,7 +278,10 @@ void main() {
     acceptPath(WorkspacePaths.root),
     acceptPath(WorkspacePaths.root.apps),
     acceptPath(WorkspacePaths.root.apps.dashboard),
+    acceptPath(WorkspacePaths.root.apps.dashboard.android.app),
+    acceptPath(WorkspacePaths.root.apps.dashboard.android.app.src.main),
     acceptPath(WorkspacePaths.root.apps.buildJobWorker),
+    acceptPath(WorkspacePaths.root.apps.openciCli.lib.src.commands.sync),
     acceptPath(WorkspacePaths.root.packages.openciWorkflow),
     acceptPath(openci),
     acceptPath(openci.workflows),
@@ -296,7 +302,10 @@ void main() {
           '.',
           'apps',
           'apps/dashboard',
+          'apps/dashboard/android/app',
+          'apps/dashboard/android/app/src/main',
           'apps/build_job_worker',
+          'apps/openci_cli/lib/src/commands/sync',
           'packages/openci_workflow',
           'openci',
           'openci/workflows',
