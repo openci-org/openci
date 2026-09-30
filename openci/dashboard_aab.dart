@@ -5,7 +5,7 @@ import 'secrets.g.dart';
 
 Future<void> main() async {
   final openCI = await OpenCI.init(
-    workflowName: 'Dashboard CI',
+    workflowName: 'Dashboard .aab',
     ciTriggers: [
       CITrigger.pullRequest(branch: 'develop'),
       CITrigger.push(branch: 'develop'),
@@ -40,8 +40,6 @@ Future<void> main() async {
     fileName: 'upload-keystore.jks',
     base64Content: Secrets.uploadKeystoreJksBase64,
   );
-
-  await openCI.flutter.buildApk();
 
   await openCI.flutter.buildAab();
 }
