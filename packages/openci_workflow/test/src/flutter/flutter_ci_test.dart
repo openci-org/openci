@@ -24,7 +24,11 @@ void main() {
         ),
     'flutter test': (flutter, {dir}) => flutter.unitTests(dir: dir),
     'flutter build apk': (flutter, {dir}) => flutter.buildApk(dir: dir),
+    "flutter build apk --flavor 'staging'": (flutter, {dir}) =>
+        flutter.buildApk(dir: dir, flavor: 'staging'),
     'flutter build appbundle': (flutter, {dir}) => flutter.buildAab(dir: dir),
+    "flutter build appbundle --flavor 'production'": (flutter, {dir}) =>
+        flutter.buildAab(dir: dir, flavor: 'production'),
   };
 
   for (final (command, execute) in commands.entries.map(
@@ -109,6 +113,45 @@ void main() {
 
         await expectLater(execute(ci.flutter), throwsA(same(error)));
       });
+    });
+  }
+
+  for (final (target, build)
+      in <(String, Future<void> Function(FlutterCI, String?))>[
+        ('apk', (flutter, flavor) => flutter.buildApk(flavor: flavor)),
+        ('appbundle', (flutter, flavor) => flutter.buildAab(flavor: flavor)),
+      ]) {
+    group('$target flavor arguments', () {
+      for (final flavor in <String?>[
+        null,
+        'production',
+        '',
+        r'''staging' "$OPENCI_TEST_FLAVOR" `printf expanded` $(printf expanded); printf injected''',
+      ]) {
+        test('passes the literal flavor to the command: $flavor', () async {
+          final flutter = FlutterCI((command, {workingDirectory}) async {
+            final result = await Process.run(
+              'sh',
+              [
+                '-c',
+                r'''flutter() { printf '%s\000' "$@"; }'''
+                    '\n$command',
+              ],
+              environment: {'OPENCI_TEST_FLAVOR': 'expanded'},
+            );
+
+            expect(result.exitCode, 0, reason: result.stderr.toString());
+            expect((result.stdout as String).split('\u0000'), [
+              'build',
+              target,
+              if (flavor != null) ...['--flavor', flavor],
+              '',
+            ]);
+          });
+
+          await build(flutter, flavor);
+        });
+      }
     });
   }
 

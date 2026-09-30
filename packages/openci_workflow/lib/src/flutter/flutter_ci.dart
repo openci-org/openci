@@ -24,9 +24,22 @@ class FlutterCI {
   Future<void> unitTests({String? dir}) =>
       _run('flutter test', workingDirectory: dir);
 
-  Future<void> buildApk({String? dir}) =>
-      _run('flutter build apk', workingDirectory: dir);
+  Future<void> buildApk({String? dir, String? flavor}) => _run(
+    [
+      'flutter build apk',
+      if (flavor != null) '--flavor ${_quoteShellArgument(flavor)}',
+    ].join(' '),
+    workingDirectory: dir,
+  );
 
-  Future<void> buildAab({String? dir}) =>
-      _run('flutter build appbundle', workingDirectory: dir);
+  Future<void> buildAab({String? dir, String? flavor}) => _run(
+    [
+      'flutter build appbundle',
+      if (flavor != null) '--flavor ${_quoteShellArgument(flavor)}',
+    ].join(' '),
+    workingDirectory: dir,
+  );
 }
+
+String _quoteShellArgument(String value) =>
+    "'${value.replaceAll("'", r"'\''")}'";

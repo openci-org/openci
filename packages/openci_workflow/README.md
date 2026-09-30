@@ -36,6 +36,15 @@ OpenCI discovers Dart files in `openci/` and matches their declared triggers to 
 
 For Flutter analysis, use `await openCI.flutter.staticAnalysis()` or pass your preferred `flutter analyze` flags to `openCI.run()`.
 
+Build Android APKs and app bundles with an optional product flavor:
+
+```dart
+await openCI.flutter.buildApk(flavor: 'staging');
+await openCI.flutter.buildAab(flavor: 'production');
+```
+
+The `flavor` argument is passed to Flutter's `--flavor` option. Omit it to keep Flutter's default flavor selection. Both methods also accept `dir` to override the workflow's working directory for that call.
+
 ## Run locally
 
 ```sh
