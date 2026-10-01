@@ -52,7 +52,7 @@ String _buildEventPayload(DriftBuildJob buildJob) {
       'number': pullRequestNumber,
       'pull_request': {
         'number': pullRequestNumber,
-        'head': {
+        'head': {fhg
           'ref': branch,
           'sha': commitSha,
           'repo': {'full_name': fullName, 'name': repo},
