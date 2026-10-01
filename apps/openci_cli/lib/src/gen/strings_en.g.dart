@@ -399,6 +399,18 @@ class Translations$switchCommand$team$en {
 	/// en: 'switch team does not accept positional arguments.'
 	String get noArguments => 'switch team does not accept positional arguments.';
 
+	/// en: 'Run openci login (or openci login --local) before switching teams.'
+	String get loginRequired => 'Run openci login (or openci login --local) before switching teams.';
+
+	/// en: 'Could not fetch teams (HTTP ${status}).'
+	String requestFailed({required Object status}) => 'Could not fetch teams (HTTP ${status}).';
+
+	/// en: 'Could not fetch teams. Check the server connection and response.'
+	String get fetchFailed => 'Could not fetch teams. Check the server connection and response.';
+
+	/// en: 'No teams found. Create or join a team in the dashboard first.'
+	String get empty => 'No teams found. Create or join a team in the dashboard first.';
+
 	/// en: 'Team switching is not available yet.'
 	String get unavailable => 'Team switching is not available yet.';
 }
@@ -628,6 +640,10 @@ extension on Translations {
 			'switchCommand.description' => 'Switch the active team in OpenCI.',
 			'switchCommand.team.description' => 'Switch the team used by the active profile.',
 			'switchCommand.team.noArguments' => 'switch team does not accept positional arguments.',
+			'switchCommand.team.loginRequired' => 'Run openci login (or openci login --local) before switching teams.',
+			'switchCommand.team.requestFailed' => ({required Object status}) => 'Could not fetch teams (HTTP ${status}).',
+			'switchCommand.team.fetchFailed' => 'Could not fetch teams. Check the server connection and response.',
+			'switchCommand.team.empty' => 'No teams found. Create or join a team in the dashboard first.',
 			'switchCommand.team.unavailable' => 'Team switching is not available yet.',
 			'use.description' => 'Set the default display language (japanese, english).',
 			'use.success' => ({required Object language}) => 'Language set to ${language}.',

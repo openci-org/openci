@@ -259,6 +259,10 @@ class _Translations$switchCommand$team$ja extends Translations$switchCommand$tea
 	// Translations
 	@override String get description => '現在のプロファイルで使用するチームを切り替えます。';
 	@override String get noArguments => 'switch teamに位置引数は指定できません。';
+	@override String get loginRequired => 'チームを切り替える前に、openci login（またはopenci login --local）を実行してください。';
+	@override String requestFailed({required Object status}) => 'チーム一覧を取得できませんでした（HTTP ${status}）。';
+	@override String get fetchFailed => 'チーム一覧を取得できませんでした。サーバー接続とレスポンスを確認してください。';
+	@override String get empty => '所属するチームがありません。ダッシュボードでチームを作成するか、チームに参加してください。';
 	@override String get unavailable => 'チーム切り替えはまだ利用できません。';
 }
 
@@ -408,6 +412,10 @@ extension on TranslationsJa {
 			'switchCommand.description' => 'OpenCIで使用するチームを切り替えます。',
 			'switchCommand.team.description' => '現在のプロファイルで使用するチームを切り替えます。',
 			'switchCommand.team.noArguments' => 'switch teamに位置引数は指定できません。',
+			'switchCommand.team.loginRequired' => 'チームを切り替える前に、openci login（またはopenci login --local）を実行してください。',
+			'switchCommand.team.requestFailed' => ({required Object status}) => 'チーム一覧を取得できませんでした（HTTP ${status}）。',
+			'switchCommand.team.fetchFailed' => 'チーム一覧を取得できませんでした。サーバー接続とレスポンスを確認してください。',
+			'switchCommand.team.empty' => '所属するチームがありません。ダッシュボードでチームを作成するか、チームに参加してください。',
 			'switchCommand.team.unavailable' => 'チーム切り替えはまだ利用できません。',
 			'use.description' => '表示言語を設定します（japanese, english）。',
 			'use.success' => ({required Object language}) => '言語を${language}に設定しました。',

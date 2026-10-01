@@ -97,12 +97,6 @@ void main() {
           expect(logger.stderrMessages, isEmpty);
         });
       }
-
-      test('reports unavailable functionality with a nonzero result', () async {
-        expect(await runner.run(['switch', 'team']), 1);
-        expect(logger.stdoutMessages, isEmpty);
-        expect(logger.stderrMessages, [t.switchCommand.team.unavailable]);
-      });
     });
   }
 

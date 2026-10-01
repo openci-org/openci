@@ -81,6 +81,10 @@
     "team": {
       "description": "Switch the team used by the active profile.",
       "noArguments": "switch team does not accept positional arguments.",
+      "loginRequired": "Run openci login (or openci login --local) before switching teams.",
+      "requestFailed": "Could not fetch teams (HTTP ${status}).",
+      "fetchFailed": "Could not fetch teams. Check the server connection and response.",
+      "empty": "No teams found. Create or join a team in the dashboard first.",
       "unavailable": "Team switching is not available yet."
     }
   },
