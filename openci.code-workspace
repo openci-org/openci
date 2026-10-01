@@ -14,5 +14,6 @@
     { "name": "ci", "path": ".openci" },
     { "name": "firebase", "path": "firebase" },
     { "name": "landing_page", "path": "apps/landing_page" },
+    { "name": "website", "path": "apps/website" },
   ],
 }

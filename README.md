@@ -25,6 +25,14 @@ the workflow SDK also reads `OPENCI_STEP_ID` when a step supplies one.
 For workflow authoring and local development commands, see the
 [CLI guide](apps/openci_cli/README.md).
 
+## GenuineCI website
+
+The Jaspr landing page and blog live in [`apps/website`](apps/website/README.md).
+They use a separate Dart dependency resolution because the Jaspr builders require
+analyzer 12 while the root workspace pins analyzer 10. Run `dart pub get` from
+`apps/website`; root `flutter pub get` does not install the website dependencies.
+The site is a design preview, with sample articles and indexing disabled.
+
 ## v2.0.0 device enrollment
 
 Automatic iOS device enrollment is disabled for both Cloud and self-hosted
