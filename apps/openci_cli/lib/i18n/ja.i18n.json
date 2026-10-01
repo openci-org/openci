@@ -76,6 +76,14 @@
       "emptyFile": "選択したファイルは空です。シークレットは登録されませんでした。"
     }
   },
+  "switchCommand": {
+    "description": "OpenCIで使用するチームを切り替えます。",
+    "team": {
+      "description": "現在のプロファイルで使用するチームを切り替えます。",
+      "noArguments": "switch teamに位置引数は指定できません。",
+      "unavailable": "チーム切り替えはまだ利用できません。"
+    }
+  },
   "use": {
     "description": "表示言語を設定します（japanese, english）。",
     "success": "言語を${language}に設定しました。",

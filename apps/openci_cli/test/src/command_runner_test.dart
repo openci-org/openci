@@ -78,6 +78,15 @@ void main() {
     expect(secrets!.description, t.list.secrets.description);
   });
 
+  test('registers switch team with localized descriptions', () {
+    final switchCommand = runner.commands['switch'];
+    expect(switchCommand, isA<SwitchCommand>());
+    expect(switchCommand!.description, t.switchCommand.description);
+    final team = switchCommand.subcommands['team'];
+    expect(team, isA<SwitchTeamCommand>());
+    expect(team!.description, t.switchCommand.team.description);
+  });
+
   test('registers sync secrets with localized descriptions', () {
     final sync = runner.commands['sync'];
     expect(sync, isA<SyncCommand>());
