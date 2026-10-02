@@ -51,11 +51,12 @@ void main() {
         final href = anchor.attributes['href']!;
         final uri = Uri.parse('https://website.test${entry.key}').resolve(href);
         if (uri.host != 'website.test') continue;
-        final destination = pages[uri.path];
+        final path = uri.path.endsWith('/') ? uri.path : '${uri.path}/';
+        final destination = pages[path];
         expect(destination, isNotNull, reason: '${entry.key} links to $href');
         if (uri.fragment.isNotEmpty) {
           expect(
-            destination!.getElementById(uri.fragment),
+            destination!.getElementById(Uri.decodeComponent(uri.fragment)),
             isNotNull,
             reason: '${entry.key} links to missing anchor $href',
           );
@@ -70,7 +71,7 @@ void main() {
     );
     expect(titles.toSet(), hasLength(routes.length));
     final code = pages['/blog/v2-1-0/']!.querySelector(
-      '.article-code code',
+      '.article-body .code-block code',
     )!;
     expect(
       const LineSplitter().convert(code.text),
@@ -79,6 +80,51 @@ void main() {
         "await ci.flutter.buildAab(flavor: 'production');",
       ],
     );
+  });
+
+  test('Markdown headings supply the article table of contents', () {
+    final article = pages['/blog/v2-1-0/']!;
+    final headings = article.querySelectorAll('.article-body .content h2');
+    final toc = article.querySelectorAll('.article-sidebar nav a');
+    expect(headings, isNotEmpty);
+    for (final heading in headings) {
+      expect(heading.id, isNotEmpty);
+    }
+    expect(
+      toc.map(
+        (anchor) =>
+            Uri.decodeComponent(Uri.parse(anchor.attributes['href']!).fragment),
+      ),
+      headings.map((heading) => heading.id),
+    );
+    expect(
+      toc.map((anchor) => anchor.text),
+      headings.map((heading) => heading.querySelector('span')!.text),
+    );
+  });
+
+  test('Dart and terminal code blocks retain their copy controls', () {
+    final article = pages['/blog/v2-1-0/']!;
+    final blocks = article.querySelectorAll('.article-body .code-block');
+    expect(blocks, hasLength(3));
+    for (final block in blocks) {
+      expect(block.querySelector('button'), isNotNull);
+    }
+    expect(
+      const LineSplitter().convert(blocks.last.querySelector('code')!.text),
+      ['openci switch team', 'openci list secrets', 'openci sync secrets'],
+    );
+    expect(blocks.first.querySelector('code span'), isNotNull);
+  });
+
+  test('interactive client bundle is generated and included', () {
+    expect(File('build/jaspr/main.client.dart.js').existsSync(), isTrue);
+    for (final page in pages.values) {
+      expect(
+        page.querySelector('script[src="/main.client.dart.js"]'),
+        isNotNull,
+      );
+    }
   });
 
   test('social cards use the public URL and the release banner', () {
@@ -136,7 +182,9 @@ void main() {
     expect(article.querySelector('.article-next'), isNull);
     expect(
       article
-          .querySelectorAll('.article-source-links a')
+          .querySelectorAll(
+            '.article-body .content a[href^="https://github.com/openci-org/openci/"]',
+          )
           .map(
             (anchor) => anchor.attributes['href'],
           ),
