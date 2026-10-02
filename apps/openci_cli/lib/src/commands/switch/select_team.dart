@@ -20,8 +20,10 @@ Future<Team?> selectTeam({
   @visibleForTesting Console? console,
   @visibleForTesting Stream<Key>? keys,
   @visibleForTesting bool? hasTerminal,
-}) {
-  if (teams.isEmpty) return Future.value();
+}) async {
+  if (teams.isEmpty) return null;
+  final interactive = hasTerminal ?? hasInteractiveTerminal;
+  if (!interactive) throw const NonInteractiveTerminalException();
   return withInteractiveConsole(
     (terminal, input) async {
       final picker = _TeamPicker(terminal, teams, currentTeamId);
@@ -45,9 +47,13 @@ Future<Team?> selectTeam({
     },
     console: console,
     keys: keys,
-    hasTerminal: hasTerminal,
+    hasTerminal: interactive,
     hideCursor: true,
   );
+}
+
+class NonInteractiveTerminalException implements Exception {
+  const NonInteractiveTerminalException();
 }
 
 class _TeamPicker {

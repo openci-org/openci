@@ -393,8 +393,8 @@ class Translations$switchCommand$team$en {
 
 	// Translations
 
-	/// en: 'Switch the team used by the active profile.'
-	String get description => 'Switch the team used by the active profile.';
+	/// en: 'Interactively switch the team used by the active profile.'
+	String get description => 'Interactively switch the team used by the active profile.';
 
 	/// en: 'switch team does not accept positional arguments.'
 	String get noArguments => 'switch team does not accept positional arguments.';
@@ -402,11 +402,17 @@ class Translations$switchCommand$team$en {
 	/// en: 'Run openci login (or openci login --local) before switching teams.'
 	String get loginRequired => 'Run openci login (or openci login --local) before switching teams.';
 
+	/// en: 'Authentication failed (HTTP ${status}). Log in again with openci login (or openci login --local) for the active server.'
+	String authenticationFailed({required Object status}) => 'Authentication failed (HTTP ${status}). Log in again with openci login (or openci login --local) for the active server.';
+
 	/// en: 'Could not fetch teams (HTTP ${status}).'
 	String requestFailed({required Object status}) => 'Could not fetch teams (HTTP ${status}).';
 
-	/// en: 'Could not fetch teams. Check the server connection and response.'
-	String get fetchFailed => 'Could not fetch teams. Check the server connection and response.';
+	/// en: 'Could not fetch teams. Check the active profile's server URL and network connection.'
+	String get fetchFailed => 'Could not fetch teams. Check the active profile\'s server URL and network connection.';
+
+	/// en: 'The server returned an invalid team list. Check that the active profile points to a compatible OpenCI server.'
+	String get invalidResponse => 'The server returned an invalid team list. Check that the active profile points to a compatible OpenCI server.';
 
 	/// en: 'No teams found. Create or join a team in the dashboard first.'
 	String get empty => 'No teams found. Create or join a team in the dashboard first.';
@@ -420,8 +426,11 @@ class Translations$switchCommand$team$en {
 	/// en: 'Up/Down: move / Enter: select / Esc, Ctrl+C: cancel'
 	String get controls => 'Up/Down: move / Enter: select / Esc, Ctrl+C: cancel';
 
-	/// en: 'No team was selected. Choose a team in an interactive terminal.'
-	String get cancelled => 'No team was selected. Choose a team in an interactive terminal.';
+	/// en: 'Team switching cancelled. No team was saved.'
+	String get cancelled => 'Team switching cancelled. No team was saved.';
+
+	/// en: 'Team switching requires an interactive terminal with ANSI support. Run openci switch team without piping input or redirecting output.'
+	String get nonInteractive => 'Team switching requires an interactive terminal with ANSI support. Run openci switch team without piping input or redirecting output.';
 
 	/// en: 'Could not select a team. Retry in an interactive terminal.'
 	String get inputFailed => 'Could not select a team. Retry in an interactive terminal.';
@@ -432,11 +441,11 @@ class Translations$switchCommand$team$en {
 	/// en: 'Already using ${team}.'
 	String alreadyCurrent({required Object team}) => 'Already using ${team}.';
 
-	/// en: 'The active profile or its credentials changed. Run openci switch team again.'
-	String get profileChanged => 'The active profile or its credentials changed. Run openci switch team again.';
+	/// en: 'The active profile or its credentials changed during selection. The selected team was not saved. Run openci switch team again.'
+	String get profileChanged => 'The active profile or its credentials changed during selection. The selected team was not saved. Run openci switch team again.';
 
-	/// en: 'Could not save the selected team. Check the credentials file permissions and retry.'
-	String get saveFailed => 'Could not save the selected team. Check the credentials file permissions and retry.';
+	/// en: 'Could not save the selected team. Check the credentials file, its permissions, and available disk space, then retry.'
+	String get saveFailed => 'Could not save the selected team. Check the credentials file, its permissions, and available disk space, then retry.';
 }
 
 // Path: dev.start
@@ -662,21 +671,24 @@ extension on Translations {
 			'register.secretFile.readFailed' => 'Could not read the selected file. Check that it is a regular file and that you have permission to read it.',
 			'register.secretFile.emptyFile' => 'The selected file is empty. No secret was registered.',
 			'switchCommand.description' => 'Switch the active team in OpenCI.',
-			'switchCommand.team.description' => 'Switch the team used by the active profile.',
+			'switchCommand.team.description' => 'Interactively switch the team used by the active profile.',
 			'switchCommand.team.noArguments' => 'switch team does not accept positional arguments.',
 			'switchCommand.team.loginRequired' => 'Run openci login (or openci login --local) before switching teams.',
+			'switchCommand.team.authenticationFailed' => ({required Object status}) => 'Authentication failed (HTTP ${status}). Log in again with openci login (or openci login --local) for the active server.',
 			'switchCommand.team.requestFailed' => ({required Object status}) => 'Could not fetch teams (HTTP ${status}).',
-			'switchCommand.team.fetchFailed' => 'Could not fetch teams. Check the server connection and response.',
+			'switchCommand.team.fetchFailed' => 'Could not fetch teams. Check the active profile\'s server URL and network connection.',
+			'switchCommand.team.invalidResponse' => 'The server returned an invalid team list. Check that the active profile points to a compatible OpenCI server.',
 			'switchCommand.team.empty' => 'No teams found. Create or join a team in the dashboard first.',
 			'switchCommand.team.prompt' => 'Select a team',
 			'switchCommand.team.current' => 'current',
 			'switchCommand.team.controls' => 'Up/Down: move / Enter: select / Esc, Ctrl+C: cancel',
-			'switchCommand.team.cancelled' => 'No team was selected. Choose a team in an interactive terminal.',
+			'switchCommand.team.cancelled' => 'Team switching cancelled. No team was saved.',
+			'switchCommand.team.nonInteractive' => 'Team switching requires an interactive terminal with ANSI support. Run openci switch team without piping input or redirecting output.',
 			'switchCommand.team.inputFailed' => 'Could not select a team. Retry in an interactive terminal.',
 			'switchCommand.team.success' => ({required Object team}) => 'Switched to ${team}.',
 			'switchCommand.team.alreadyCurrent' => ({required Object team}) => 'Already using ${team}.',
-			'switchCommand.team.profileChanged' => 'The active profile or its credentials changed. Run openci switch team again.',
-			'switchCommand.team.saveFailed' => 'Could not save the selected team. Check the credentials file permissions and retry.',
+			'switchCommand.team.profileChanged' => 'The active profile or its credentials changed during selection. The selected team was not saved. Run openci switch team again.',
+			'switchCommand.team.saveFailed' => 'Could not save the selected team. Check the credentials file, its permissions, and available disk space, then retry.',
 			'use.description' => 'Set the default display language (japanese, english).',
 			'use.success' => ({required Object language}) => 'Language set to ${language}.',
 			'use.invalidLanguage' => ({required Object input}) => 'Invalid language "${input}". Supported languages: japanese, english.',

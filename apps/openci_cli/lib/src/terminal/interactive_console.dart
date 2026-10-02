@@ -4,6 +4,9 @@ import 'dart:io';
 import 'package:dart_console/dart_console.dart';
 import 'package:meta/meta.dart';
 
+bool get hasInteractiveTerminal =>
+    stdin.hasTerminal && stdout.hasTerminal && stdout.supportsAnsiEscapes;
+
 Future<T?> withInteractiveConsole<T>(
   Future<T?> Function(Console terminal, Stream<Key> keys) action, {
   Console? console,
@@ -11,10 +14,7 @@ Future<T?> withInteractiveConsole<T>(
   bool? hasTerminal,
   bool hideCursor = false,
 }) async {
-  if (!(hasTerminal ??
-      (stdin.hasTerminal &&
-          stdout.hasTerminal &&
-          stdout.supportsAnsiEscapes))) {
+  if (!(hasTerminal ?? hasInteractiveTerminal)) {
     return null;
   }
   final terminal = console ?? Console();

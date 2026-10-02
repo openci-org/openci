@@ -52,12 +52,18 @@ class SwitchTeamCommand extends Command<int> {
       _logger.stderr(
         error.statusCode == HttpStatus.unauthorized ||
                 error.statusCode == HttpStatus.forbidden
-            ? t.switchCommand.team.loginRequired
+            ? t.switchCommand.team.authenticationFailed(
+                status: error.statusCode,
+              )
             : t.switchCommand.team.requestFailed(status: error.statusCode),
       );
       return 1;
-    } catch (_) {
-      _logger.stderr(t.switchCommand.team.fetchFailed);
+    } catch (error) {
+      _logger.stderr(
+        error is FormatException || error is TypeError
+            ? t.switchCommand.team.invalidResponse
+            : t.switchCommand.team.fetchFailed,
+      );
       return 1;
     } finally {
       client.dispose();
@@ -73,6 +79,9 @@ class SwitchTeamCommand extends Command<int> {
         teams: teams,
         currentTeamId: profile.teamId,
       );
+    } on NonInteractiveTerminalException {
+      _logger.stderr(t.switchCommand.team.nonInteractive);
+      return 1;
     } catch (_) {
       _logger.stderr(t.switchCommand.team.inputFailed);
       return 1;

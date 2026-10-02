@@ -257,21 +257,24 @@ class _Translations$switchCommand$team$ja extends Translations$switchCommand$tea
 	final TranslationsJa _root; // ignore: unused_field
 
 	// Translations
-	@override String get description => '現在のプロファイルで使用するチームを切り替えます。';
+	@override String get description => '現在のプロファイルで使用するチームを対話式で切り替えます。';
 	@override String get noArguments => 'switch teamに位置引数は指定できません。';
 	@override String get loginRequired => 'チームを切り替える前に、openci login（またはopenci login --local）を実行してください。';
+	@override String authenticationFailed({required Object status}) => '認証に失敗しました（HTTP ${status}）。使用中のサーバーにopenci login（またはopenci login --local）で再度ログインしてください。';
 	@override String requestFailed({required Object status}) => 'チーム一覧を取得できませんでした（HTTP ${status}）。';
-	@override String get fetchFailed => 'チーム一覧を取得できませんでした。サーバー接続とレスポンスを確認してください。';
+	@override String get fetchFailed => 'チーム一覧を取得できませんでした。現在のプロファイルのサーバーURLとネットワーク接続を確認してください。';
+	@override String get invalidResponse => 'サーバーから不正なチーム一覧が返されました。現在のプロファイルが対応するOpenCIサーバーを指しているか確認してください。';
 	@override String get empty => '所属するチームがありません。ダッシュボードでチームを作成するか、チームに参加してください。';
 	@override String get prompt => 'チームを選択';
 	@override String get current => '現在のチーム';
 	@override String get controls => '上下キー: 移動 / Enter: 選択 / Esc・Ctrl+C: キャンセル';
-	@override String get cancelled => 'チームは選択されませんでした。対話可能な端末でチームを選択してください。';
+	@override String get cancelled => 'チームの切り替えをキャンセルしました。チームは保存していません。';
+	@override String get nonInteractive => 'チーム切り替えにはANSI対応の対話可能な端末が必要です。入力のパイプや出力のリダイレクトを外してopenci switch teamを実行してください。';
 	@override String get inputFailed => 'チームを選択できませんでした。対話可能な端末で再試行してください。';
 	@override String success({required Object team}) => '${team}に切り替えました。';
 	@override String alreadyCurrent({required Object team}) => '${team}は現在のチームです。';
-	@override String get profileChanged => '選択中に現在のプロファイルまたは認証情報が変更されました。openci switch teamを再実行してください。';
-	@override String get saveFailed => '選択したチームを保存できませんでした。認証情報ファイルの権限を確認して再試行してください。';
+	@override String get profileChanged => '選択中に現在のプロファイルまたは認証情報が変更されました。選択したチームは保存していません。openci switch teamを再実行してください。';
+	@override String get saveFailed => '選択したチームを保存できませんでした。認証情報ファイル、権限、ディスクの空き容量を確認して再試行してください。';
 }
 
 // Path: dev.start
@@ -418,21 +421,24 @@ extension on TranslationsJa {
 			'register.secretFile.readFailed' => '選択したファイルを読み取れませんでした。通常のファイルであることと読み取り権限を確認してください。',
 			'register.secretFile.emptyFile' => '選択したファイルは空です。シークレットは登録されませんでした。',
 			'switchCommand.description' => 'OpenCIで使用するチームを切り替えます。',
-			'switchCommand.team.description' => '現在のプロファイルで使用するチームを切り替えます。',
+			'switchCommand.team.description' => '現在のプロファイルで使用するチームを対話式で切り替えます。',
 			'switchCommand.team.noArguments' => 'switch teamに位置引数は指定できません。',
 			'switchCommand.team.loginRequired' => 'チームを切り替える前に、openci login（またはopenci login --local）を実行してください。',
+			'switchCommand.team.authenticationFailed' => ({required Object status}) => '認証に失敗しました（HTTP ${status}）。使用中のサーバーにopenci login（またはopenci login --local）で再度ログインしてください。',
 			'switchCommand.team.requestFailed' => ({required Object status}) => 'チーム一覧を取得できませんでした（HTTP ${status}）。',
-			'switchCommand.team.fetchFailed' => 'チーム一覧を取得できませんでした。サーバー接続とレスポンスを確認してください。',
+			'switchCommand.team.fetchFailed' => 'チーム一覧を取得できませんでした。現在のプロファイルのサーバーURLとネットワーク接続を確認してください。',
+			'switchCommand.team.invalidResponse' => 'サーバーから不正なチーム一覧が返されました。現在のプロファイルが対応するOpenCIサーバーを指しているか確認してください。',
 			'switchCommand.team.empty' => '所属するチームがありません。ダッシュボードでチームを作成するか、チームに参加してください。',
 			'switchCommand.team.prompt' => 'チームを選択',
 			'switchCommand.team.current' => '現在のチーム',
 			'switchCommand.team.controls' => '上下キー: 移動 / Enter: 選択 / Esc・Ctrl+C: キャンセル',
-			'switchCommand.team.cancelled' => 'チームは選択されませんでした。対話可能な端末でチームを選択してください。',
+			'switchCommand.team.cancelled' => 'チームの切り替えをキャンセルしました。チームは保存していません。',
+			'switchCommand.team.nonInteractive' => 'チーム切り替えにはANSI対応の対話可能な端末が必要です。入力のパイプや出力のリダイレクトを外してopenci switch teamを実行してください。',
 			'switchCommand.team.inputFailed' => 'チームを選択できませんでした。対話可能な端末で再試行してください。',
 			'switchCommand.team.success' => ({required Object team}) => '${team}に切り替えました。',
 			'switchCommand.team.alreadyCurrent' => ({required Object team}) => '${team}は現在のチームです。',
-			'switchCommand.team.profileChanged' => '選択中に現在のプロファイルまたは認証情報が変更されました。openci switch teamを再実行してください。',
-			'switchCommand.team.saveFailed' => '選択したチームを保存できませんでした。認証情報ファイルの権限を確認して再試行してください。',
+			'switchCommand.team.profileChanged' => '選択中に現在のプロファイルまたは認証情報が変更されました。選択したチームは保存していません。openci switch teamを再実行してください。',
+			'switchCommand.team.saveFailed' => '選択したチームを保存できませんでした。認証情報ファイル、権限、ディスクの空き容量を確認して再試行してください。',
 			'use.description' => '表示言語を設定します（japanese, english）。',
 			'use.success' => ({required Object language}) => '言語を${language}に設定しました。',
 			'use.invalidLanguage' => ({required Object input}) => '無効な言語です: 「${input}」。対応言語: japanese, english',

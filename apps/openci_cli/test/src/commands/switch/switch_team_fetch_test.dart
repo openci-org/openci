@@ -105,6 +105,7 @@ void main() {
         logger.errors.any(
           [
             t.switchCommand.team.cancelled,
+            t.switchCommand.team.nonInteractive,
             t.switchCommand.team.inputFailed,
           ].contains,
         );
@@ -311,20 +312,23 @@ void main() {
     );
   }
 
-  test(
-    'reports cancellation when the picker detects a non-interactive terminal',
-    () async {
-      selector = ({required teams, required currentTeamId}) => selectTeam(
-        teams: teams,
-        currentTeamId: currentTeamId,
-        hasTerminal: false,
-      );
+  for (final locale in [AppLocale.en, AppLocale.ja]) {
+    test(
+      'explains non-interactive terminals without reporting cancellation: $locale',
+      () async {
+        LocaleSettings.setLocaleSync(locale);
+        selector = ({required teams, required currentTeamId}) => selectTeam(
+          teams: teams,
+          currentTeamId: currentTeamId,
+          hasTerminal: false,
+        );
 
-      expect(await run(), 1);
-      expect(logger.errors, [t.switchCommand.team.cancelled]);
-      expect(requests.single.method, 'GET');
-    },
-  );
+        expect(await run(), 1);
+        expect(logger.errors, [t.switchCommand.team.nonInteractive]);
+        expect(requests.single.method, 'GET');
+      },
+    );
+  }
 
   for (final emulatorHost in <String?>[null, '127.0.0.1:9099']) {
     for (final expiry in [
@@ -423,13 +427,16 @@ void main() {
     },
   );
 
-  test('requires login when no credentials file exists', () async {
-    await File(store.filePath).delete();
+  for (final locale in [AppLocale.en, AppLocale.ja]) {
+    test('requires login when no credentials file exists: $locale', () async {
+      LocaleSettings.setLocaleSync(locale);
+      await File(store.filePath).delete();
 
-    expect(await run(), 1);
-    expect(clients, isEmpty);
-    expect(logger.errors, [t.switchCommand.team.loginRequired]);
-  });
+      expect(await run(), 1);
+      expect(clients, isEmpty);
+      expect(logger.errors, [t.switchCommand.team.loginRequired]);
+    });
+  }
 
   test('does not use another profile when the active one is missing', () async {
     await store.set(
@@ -529,51 +536,62 @@ void main() {
     );
   }
 
-  for (final status in [401, 403, 500, 503]) {
-    test('handles HTTP $status without exposing the response body', () async {
-      handler = (_) async => http.Response(privateResponse, status);
+  for (final locale in [AppLocale.en, AppLocale.ja]) {
+    for (final status in [401, 403, 500, 503]) {
+      test(
+        'handles HTTP $status without exposing the response body: $locale',
+        () async {
+          LocaleSettings.setLocaleSync(locale);
+          handler = (_) async => http.Response(privateResponse, status);
 
-      expect(await run(), 1);
-      expect(logger.errors, [
-        status == 401 || status == 403
-            ? t.switchCommand.team.loginRequired
-            : t.switchCommand.team.requestFailed(status: status),
-      ]);
-    });
-  }
+          expect(await run(), 1);
+          expect(logger.errors, [
+            status == 401 || status == 403
+                ? t.switchCommand.team.authenticationFailed(status: status)
+                : t.switchCommand.team.requestFailed(status: status),
+          ]);
+        },
+      );
+    }
 
-  for (final body in [
-    'null',
-    '{"teams":[]}',
-    '[{"id":""}]',
-    '[{"id":42}]',
-    '{private-response-body',
-  ]) {
-    test(
-      'handles malformed responses without printing candidates: $body',
-      () async {
-        handler = (_) async => http.Response(
-          body,
-          200,
-          headers: {'content-type': 'application/json'},
-        );
+    for (final body in [
+      'null',
+      '{"teams":[]}',
+      '[{"id":""}]',
+      '[{"id":42}]',
+      '{private-response-body',
+    ]) {
+      test(
+        'handles malformed responses without printing candidates: $locale $body',
+        () async {
+          LocaleSettings.setLocaleSync(locale);
+          handler = (_) async => http.Response(
+            body,
+            200,
+            headers: {'content-type': 'application/json'},
+          );
 
-        expect(await run(), 1);
-        expect(logger.errors, [t.switchCommand.team.fetchFailed]);
-      },
-    );
-  }
+          expect(await run(), 1);
+          expect(logger.errors, [t.switchCommand.team.invalidResponse]);
+        },
+      );
+    }
 
-  for (final error in [
-    http.ClientException(privateResponse),
-    TimeoutException(privateResponse),
-  ]) {
-    test('handles ${error.runtimeType} without changing credentials', () async {
-      handler = (_) async => throw error;
+    for (final error in [
+      http.ClientException(privateResponse),
+      TimeoutException(privateResponse),
+    ]) {
+      test(
+        'handles ${error.runtimeType} without changing credentials: $locale',
+        () async {
+          LocaleSettings.setLocaleSync(locale);
+          handler = (_) async => throw error;
 
-      expect(await run(), 1);
-      expect(logger.errors, [t.switchCommand.team.fetchFailed]);
-    });
+          expect(await run(), 1);
+          expect(logger.errors, [t.switchCommand.team.fetchFailed]);
+        },
+      );
+    }
   }
 
   test('rejects positional arguments before reading credentials', () async {
