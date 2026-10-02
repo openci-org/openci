@@ -9,7 +9,7 @@ environment:
 resolution: workspace
 
 dependencies:
-  analyzer: ^10.0.1
+  analyzer: ^12.1.0
   logging: ^1.2.0
   openci_shared: ^1.0.1
   sentry: ^9.22.0

@@ -6,12 +6,14 @@ Jasprで実装したGenuineCIのLPとブログです。ブランドカラーは 
 
 ## 開発・プレビュー
 
-Dart **3.13.x** を使用してください（CI: 3.13.1、ローカル検証: 3.13.2）。
+Flutter **3.47.x** / Dart **3.13.x** を使用してください。
 `build_web_compilers 4.8.5` はDart 3.13とJasprのanalyzer 12依存に対応するため固定しています。
 
+リポジトリのrootから実行します。
+
 ```sh
+flutter pub get --enforce-lockfile
 cd apps/website
-dart pub get --enforce-lockfile
 dart run jaspr_cli:jaspr serve --port 8081
 ```
 
@@ -23,9 +25,9 @@ dart run jaspr_cli:jaspr serve --port 8081
 - `/blog/workflows/`: 「ワークフローも、Dartで書こう。」
 - `/blog/self-host/`: 「自分のMacで、CIを動かすという選択。」
 
-このアプリはrootのPub workspaceに含めず、独自の `pubspec.lock` を使います。
-Jasprのビルダーが必要とするanalyzer 12と、rootに固定されたanalyzer 10の
-依存解決を分けるためです。rootでの `flutter pub get` とは別に上記の取得が必要です。
+このアプリはrootのPub workspaceに含まれ、rootの `pubspec.lock` を共有します。
+rootでの `flutter pub get` でこのアプリの依存関係も取得できます。
+Jasprと既存のコード生成ツールはanalyzer 12で依存解決します。
 VS Codeの `openci.code-workspace` には登録済みです。
 
 ## 検証・静的ビルド

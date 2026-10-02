@@ -283,3 +283,15 @@ later calls without `dir` continue to use the configured working directory.
 
 `WorkspacePaths.root` represents `.` and `WorkspacePaths.root.apps` represents
 `apps`. Both can also be passed directly to methods accepting a `String` path.
+
+## Code generation
+
+Run these commands from `apps/openci_cli`:
+
+```sh
+dart run slang
+dart run build_runner build
+```
+
+Translations use `slang.yaml` through the Slang CLI. `build_runner` generates
+the Freezed and JSON models.

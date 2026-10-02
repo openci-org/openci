@@ -40,7 +40,7 @@ abstract class _$CicdCommitGroups
   Stream<List<CicdCommitGroup>> build();
   @$mustCallSuper
   @override
-  void runBuild() {
+  WhenComplete runBuild() {
     final ref =
         this.ref
             as $Ref<AsyncValue<List<CicdCommitGroup>>, List<CicdCommitGroup>>;
@@ -55,6 +55,6 @@ abstract class _$CicdCommitGroups
               Object?,
               Object?
             >;
-    element.handleCreate(ref, build);
+    return element.handleCreate(ref, build);
   }
 }

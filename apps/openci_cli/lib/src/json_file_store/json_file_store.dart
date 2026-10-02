@@ -14,7 +14,7 @@ class JsonFileStore<T> {
   });
 
   static String defaultPath(String fileName, {String productName = 'openci'}) {
-    final homeDir = applicationConfigHome(productName);
+    final homeDir = BaseDirectories(productName).configHome;
     return p.join(homeDir, fileName);
   }
 

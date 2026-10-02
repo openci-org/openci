@@ -8,6 +8,20 @@ import 'package:openci_shared/openci_shared.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('method timeout supplies an HTTP abort trigger', () async {
+    final httpClient = _TimeoutInspectingClient();
+    final client = _createClient(httpClient);
+    addTearDown(() {
+      client.dispose();
+      httpClient.close();
+    });
+
+    final response = await client.getService<OpenCIApiService>().getTeams();
+
+    expect(response.isSuccessful, isTrue);
+    expect(response.body, isEmpty);
+  });
+
   group('OpenCIApiService internal endpoints', () {
     test('seedLocalData sends seed options and decodes the result', () async {
       final body = {'teamId': 'test-team', 'installationId': '42'};
@@ -228,4 +242,17 @@ ChopperClient _createClient(http.Client httpClient, {Uri? baseUrl}) {
     converter: const JsonToTypeConverter(),
     services: [OpenCIApiService.create()],
   );
+}
+
+class _TimeoutInspectingClient extends http.BaseClient {
+  @override
+  Future<http.StreamedResponse> send(http.BaseRequest request) async {
+    expect(request, isA<http.AbortableRequest>());
+    expect((request as http.AbortableRequest).abortTrigger, isNotNull);
+    return http.StreamedResponse(
+      Stream.value(utf8.encode('[]')),
+      200,
+      headers: {'content-type': 'application/json'},
+    );
+  }
 }
