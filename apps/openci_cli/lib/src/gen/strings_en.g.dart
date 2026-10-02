@@ -411,6 +411,21 @@ class Translations$switchCommand$team$en {
 	/// en: 'No teams found. Create or join a team in the dashboard first.'
 	String get empty => 'No teams found. Create or join a team in the dashboard first.';
 
+	/// en: 'Select a team'
+	String get prompt => 'Select a team';
+
+	/// en: 'current'
+	String get current => 'current';
+
+	/// en: 'Up/Down: move / Enter: select / Esc, Ctrl+C: cancel'
+	String get controls => 'Up/Down: move / Enter: select / Esc, Ctrl+C: cancel';
+
+	/// en: 'No team was selected. Choose a team in an interactive terminal.'
+	String get cancelled => 'No team was selected. Choose a team in an interactive terminal.';
+
+	/// en: 'Could not select a team. Retry in an interactive terminal.'
+	String get inputFailed => 'Could not select a team. Retry in an interactive terminal.';
+
 	/// en: 'Team switching is not available yet.'
 	String get unavailable => 'Team switching is not available yet.';
 }
@@ -644,6 +659,11 @@ extension on Translations {
 			'switchCommand.team.requestFailed' => ({required Object status}) => 'Could not fetch teams (HTTP ${status}).',
 			'switchCommand.team.fetchFailed' => 'Could not fetch teams. Check the server connection and response.',
 			'switchCommand.team.empty' => 'No teams found. Create or join a team in the dashboard first.',
+			'switchCommand.team.prompt' => 'Select a team',
+			'switchCommand.team.current' => 'current',
+			'switchCommand.team.controls' => 'Up/Down: move / Enter: select / Esc, Ctrl+C: cancel',
+			'switchCommand.team.cancelled' => 'No team was selected. Choose a team in an interactive terminal.',
+			'switchCommand.team.inputFailed' => 'Could not select a team. Retry in an interactive terminal.',
 			'switchCommand.team.unavailable' => 'Team switching is not available yet.',
 			'use.description' => 'Set the default display language (japanese, english).',
 			'use.success' => ({required Object language}) => 'Language set to ${language}.',

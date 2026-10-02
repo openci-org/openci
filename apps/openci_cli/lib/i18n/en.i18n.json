@@ -85,6 +85,11 @@
       "requestFailed": "Could not fetch teams (HTTP ${status}).",
       "fetchFailed": "Could not fetch teams. Check the server connection and response.",
       "empty": "No teams found. Create or join a team in the dashboard first.",
+      "prompt": "Select a team",
+      "current": "current",
+      "controls": "Up/Down: move / Enter: select / Esc, Ctrl+C: cancel",
+      "cancelled": "No team was selected. Choose a team in an interactive terminal.",
+      "inputFailed": "Could not select a team. Retry in an interactive terminal.",
       "unavailable": "Team switching is not available yet."
     }
   },
