@@ -443,6 +443,13 @@
 .article-body .content {
   overflow-wrap: anywhere;
 }
+.article-body .content :not(pre) > code {
+  padding: 0.1em 0.35em;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--soft);
+  font-size: 0.9em;
+}
 .article-body .content :is(h2, h3) {
   scroll-margin-top: 36px;
 }

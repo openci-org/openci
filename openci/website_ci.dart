@@ -15,7 +15,7 @@ Future<void> main() async {
     workingDirectory: '.',
   );
   await openCI.run('dart format --output=none --set-exit-if-changed lib test');
-  await openCI.run('dart analyze --fatal-infos');
   await openCI.run('dart run jaspr_cli:jaspr build --port 62841');
+  await openCI.run('dart analyze --fatal-infos');
   await openCI.run('dart test');
 }

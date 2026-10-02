@@ -51,13 +51,14 @@ Dartのコードフェンスには標準のシンタックスハイライトと�
 
 ```sh
 dart format --output=none --set-exit-if-changed lib test
-dart analyze --fatal-infos
 dart run jaspr_cli:jaspr build --port 62841
+dart analyze --fatal-infos
 dart test
 python3 -m http.server 8081 --bind 127.0.0.1 --directory build/jaspr
 ```
 
 `build/jaspr/` に各ルートの `index.html` と公開アセットが出力されます。
+ビルドで `main.client.options.dart` と `main.server.options.dart` を生成してから静的解析を実行します。
 ビルドには専用ポート62841を使います。使用中の場合は `--port` に別の空きポートを指定してください。
 CSS・操作用JavaScript・faviconはHTMLにも埋め込み、外部フォントは使いません。
 サイト内リンクは `/` から始まるため、上記のHTTPサーバーで確認してください。
