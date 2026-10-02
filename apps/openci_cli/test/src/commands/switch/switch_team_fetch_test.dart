@@ -100,13 +100,14 @@ void main() {
   });
 
   tearDown(() async {
-    final pickerMessage = logger.errors.any(
-      [
-        t.switchCommand.team.unavailable,
-        t.switchCommand.team.cancelled,
-        t.switchCommand.team.inputFailed,
-      ].contains,
-    );
+    final pickerMessage =
+        logger.output.isNotEmpty ||
+        logger.errors.any(
+          [
+            t.switchCommand.team.cancelled,
+            t.switchCommand.team.inputFailed,
+          ].contains,
+        );
     LocaleSettings.setLocaleSync(originalLocale);
     final messages = [...logger.output, ...logger.errors].join('\n');
     for (final secret in [
@@ -119,7 +120,7 @@ void main() {
     ]) {
       expect(messages, isNot(contains(secret)));
     }
-    expect(logger.output, isEmpty);
+    if (logger.errors.isNotEmpty) expect(logger.output, isEmpty);
     expect(clients.every((client) => client.closed), isTrue);
     if (!pickerMessage) expect(selections, isEmpty);
     await root.delete(recursive: true);
@@ -133,6 +134,7 @@ void main() {
   Future<int?> run({
     List<String> arguments = const ['switch', 'team'],
     bool refreshExpected = false,
+    bool teamChangeExpected = false,
   }) async {
     final before = await credentialsBytes();
     final runner = CommandRunner<int>('openci', 'test')
@@ -157,23 +159,28 @@ void main() {
         return client;
       });
     } finally {
-      if (!refreshExpected) expect(await credentialsBytes(), before);
+      if (!refreshExpected && !teamChangeExpected) {
+        expect(await credentialsBytes(), before);
+      }
     }
   }
 
   for (final locale in [AppLocale.en, AppLocale.ja]) {
     test(
-      'fetches and selects candidates before reporting unavailable: $locale',
+      'fetches and selects the current team without writing: $locale',
       () async {
         LocaleSettings.setLocaleSync(locale);
 
-        expect(await run(), 1);
+        expect(await run(), 0);
 
         final request = requests.single;
         expect(request.method, 'GET');
         expect(request.url.toString(), 'https://ci.example.com/proxy/teams');
         expect(request.headers['authorization'], 'Bearer $token');
-        expect(logger.errors, [t.switchCommand.team.unavailable]);
+        expect(logger.errors, isEmpty);
+        expect(logger.output, [
+          t.switchCommand.team.alreadyCurrent(team: 'Available team (team-1)'),
+        ]);
         expect(selections.single.currentTeamId, 'team-1');
         expect(selections.single.teams.single.id, 'team-1');
       },
@@ -204,13 +211,16 @@ void main() {
         ),
       );
 
-      expect(await run(), 1);
+      expect(await run(), 0);
       expect(
         requests.single.url.toString(),
         '${serverUrl.replaceAll(RegExp(r'/$'), '')}/teams',
       );
       expect(requests.single.headers['authorization'], 'Bearer $token');
-      expect(logger.errors, [t.switchCommand.team.unavailable]);
+      expect(logger.errors, isEmpty);
+      expect(logger.output, [
+        t.switchCommand.team.alreadyCurrent(team: 'Available team (team-1)'),
+      ]);
       expect((await store.get()).activeProfile, name);
     });
   }
@@ -219,10 +229,14 @@ void main() {
     test('loads candidates when the saved team ID is "$teamId"', () async {
       await store.saveProfile('selected', profile.copyWith(teamId: teamId));
 
-      expect(await run(), 1);
+      expect(await run(teamChangeExpected: true), 0);
       expect(requests, hasLength(1));
-      expect(logger.errors, [t.switchCommand.team.unavailable]);
+      expect(logger.errors, isEmpty);
+      expect(logger.output, [
+        t.switchCommand.team.success(team: 'Available team (team-1)'),
+      ]);
       expect(selections.single.currentTeamId, teamId);
+      expect(await store.getActiveProfile(), profile);
     });
   }
 
@@ -250,14 +264,21 @@ void main() {
       await store.saveProfile('selected', profile.copyWith(teamId: 'team-z'));
       selector = ({required teams, required currentTeamId}) async => teams[1];
 
-      expect(await run(), 1);
+      expect(await run(teamChangeExpected: true), 0);
       expect(selections.single.teams.map((team) => team.id), [
         'team-1',
         'team-2',
         'team-z',
       ]);
       expect(selections.single.currentTeamId, 'team-z');
-      expect(logger.errors, [t.switchCommand.team.unavailable]);
+      expect(logger.errors, isEmpty);
+      expect(logger.output, [
+        t.switchCommand.team.success(team: 'Alpha (team-2)'),
+      ]);
+      expect(
+        await store.getActiveProfile(),
+        profile.copyWith(teamId: 'team-2'),
+      );
       expect(requests.single.method, 'GET');
     },
   );
@@ -345,9 +366,14 @@ void main() {
             return teamsResponse();
           };
 
-          expect(await run(refreshExpected: true), 1);
+          expect(await run(refreshExpected: true), 0);
           expect(requests.map((request) => request.method), ['POST', 'GET']);
-          expect(logger.errors, [t.switchCommand.team.unavailable]);
+          expect(logger.errors, isEmpty);
+          expect(logger.output, [
+            t.switchCommand.team.alreadyCurrent(
+              team: 'Available team (team-1)',
+            ),
+          ]);
           final saved = await store.get();
           final updated = saved.profiles['selected']!;
           expect(saved.activeProfile, 'selected');

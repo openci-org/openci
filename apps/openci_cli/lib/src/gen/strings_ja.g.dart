@@ -268,7 +268,10 @@ class _Translations$switchCommand$team$ja extends Translations$switchCommand$tea
 	@override String get controls => '上下キー: 移動 / Enter: 選択 / Esc・Ctrl+C: キャンセル';
 	@override String get cancelled => 'チームは選択されませんでした。対話可能な端末でチームを選択してください。';
 	@override String get inputFailed => 'チームを選択できませんでした。対話可能な端末で再試行してください。';
-	@override String get unavailable => 'チーム切り替えはまだ利用できません。';
+	@override String success({required Object team}) => '${team}に切り替えました。';
+	@override String alreadyCurrent({required Object team}) => '${team}は現在のチームです。';
+	@override String get profileChanged => '選択中に現在のプロファイルまたは認証情報が変更されました。openci switch teamを再実行してください。';
+	@override String get saveFailed => '選択したチームを保存できませんでした。認証情報ファイルの権限を確認して再試行してください。';
 }
 
 // Path: dev.start
@@ -426,7 +429,10 @@ extension on TranslationsJa {
 			'switchCommand.team.controls' => '上下キー: 移動 / Enter: 選択 / Esc・Ctrl+C: キャンセル',
 			'switchCommand.team.cancelled' => 'チームは選択されませんでした。対話可能な端末でチームを選択してください。',
 			'switchCommand.team.inputFailed' => 'チームを選択できませんでした。対話可能な端末で再試行してください。',
-			'switchCommand.team.unavailable' => 'チーム切り替えはまだ利用できません。',
+			'switchCommand.team.success' => ({required Object team}) => '${team}に切り替えました。',
+			'switchCommand.team.alreadyCurrent' => ({required Object team}) => '${team}は現在のチームです。',
+			'switchCommand.team.profileChanged' => '選択中に現在のプロファイルまたは認証情報が変更されました。openci switch teamを再実行してください。',
+			'switchCommand.team.saveFailed' => '選択したチームを保存できませんでした。認証情報ファイルの権限を確認して再試行してください。',
 			'use.description' => '表示言語を設定します（japanese, english）。',
 			'use.success' => ({required Object language}) => '言語を${language}に設定しました。',
 			'use.invalidLanguage' => ({required Object input}) => '無効な言語です: 「${input}」。対応言語: japanese, english',

@@ -90,7 +90,10 @@
       "controls": "Up/Down: move / Enter: select / Esc, Ctrl+C: cancel",
       "cancelled": "No team was selected. Choose a team in an interactive terminal.",
       "inputFailed": "Could not select a team. Retry in an interactive terminal.",
-      "unavailable": "Team switching is not available yet."
+      "success": "Switched to ${team}.",
+      "alreadyCurrent": "Already using ${team}.",
+      "profileChanged": "The active profile or its credentials changed. Run openci switch team again.",
+      "saveFailed": "Could not save the selected team. Check the credentials file permissions and retry."
     }
   },
   "use": {
