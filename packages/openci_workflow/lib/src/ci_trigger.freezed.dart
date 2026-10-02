@@ -14,7 +14,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$CITrigger {
 
- String get branch;
+ String get branch; List<String>? get whenChanged;
 /// Create a copy of CITrigger
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -25,16 +25,16 @@ $CITriggerCopyWith<CITrigger> get copyWith => _$CITriggerCopyWithImpl<CITrigger>
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is CITrigger&&(identical(other.branch, branch) || other.branch == branch));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is CITrigger&&(identical(other.branch, branch) || other.branch == branch)&&const DeepCollectionEquality().equals(other.whenChanged, whenChanged));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,branch);
+int get hashCode => Object.hash(runtimeType,branch,const DeepCollectionEquality().hash(whenChanged));
 
 @override
 String toString() {
-  return 'CITrigger(branch: $branch)';
+  return 'CITrigger(branch: $branch, whenChanged: $whenChanged)';
 }
 
 
@@ -45,7 +45,7 @@ abstract mixin class $CITriggerCopyWith<$Res>  {
   factory $CITriggerCopyWith(CITrigger value, $Res Function(CITrigger) _then) = _$CITriggerCopyWithImpl;
 @useResult
 $Res call({
- String branch
+ String branch, List<String>? whenChanged
 });
 
 
@@ -62,10 +62,11 @@ class _$CITriggerCopyWithImpl<$Res>
 
 /// Create a copy of CITrigger
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? branch = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? branch = null,Object? whenChanged = freezed,}) {
   return _then(_self.copyWith(
 branch: null == branch ? _self.branch : branch // ignore: cast_nullable_to_non_nullable
-as String,
+as String,whenChanged: freezed == whenChanged ? _self.whenChanged : whenChanged // ignore: cast_nullable_to_non_nullable
+as List<String>?,
   ));
 }
 
@@ -153,11 +154,11 @@ return pullRequest(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( String branch)?  push,TResult Function( String branch)?  pullRequest,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( String branch,  List<String>? whenChanged)?  push,TResult Function( String branch,  List<String>? whenChanged)?  pullRequest,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _PushCITrigger() when push != null:
-return push(_that.branch);case _PullRequestCITrigger() when pullRequest != null:
-return pullRequest(_that.branch);case _:
+return push(_that.branch,_that.whenChanged);case _PullRequestCITrigger() when pullRequest != null:
+return pullRequest(_that.branch,_that.whenChanged);case _:
   return orElse();
 
 }
@@ -175,11 +176,11 @@ return pullRequest(_that.branch);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( String branch)  push,required TResult Function( String branch)  pullRequest,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( String branch,  List<String>? whenChanged)  push,required TResult Function( String branch,  List<String>? whenChanged)  pullRequest,}) {final _that = this;
 switch (_that) {
 case _PushCITrigger():
-return push(_that.branch);case _PullRequestCITrigger():
-return pullRequest(_that.branch);case _:
+return push(_that.branch,_that.whenChanged);case _PullRequestCITrigger():
+return pullRequest(_that.branch,_that.whenChanged);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -196,11 +197,11 @@ return pullRequest(_that.branch);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( String branch)?  push,TResult? Function( String branch)?  pullRequest,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( String branch,  List<String>? whenChanged)?  push,TResult? Function( String branch,  List<String>? whenChanged)?  pullRequest,}) {final _that = this;
 switch (_that) {
 case _PushCITrigger() when push != null:
-return push(_that.branch);case _PullRequestCITrigger() when pullRequest != null:
-return pullRequest(_that.branch);case _:
+return push(_that.branch,_that.whenChanged);case _PullRequestCITrigger() when pullRequest != null:
+return pullRequest(_that.branch,_that.whenChanged);case _:
   return null;
 
 }
@@ -212,10 +213,19 @@ return pullRequest(_that.branch);case _:
 
 
 class _PushCITrigger implements CITrigger {
-  const _PushCITrigger({required this.branch});
+  const _PushCITrigger({required this.branch, final  List<String>? whenChanged}): _whenChanged = whenChanged;
   
 
 @override final  String branch;
+ final  List<String>? _whenChanged;
+@override List<String>? get whenChanged {
+  final value = _whenChanged;
+  if (value == null) return null;
+  if (_whenChanged is EqualUnmodifiableListView) return _whenChanged;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(value);
+}
+
 
 /// Create a copy of CITrigger
 /// with the given fields replaced by the non-null parameter values.
@@ -227,16 +237,16 @@ _$PushCITriggerCopyWith<_PushCITrigger> get copyWith => __$PushCITriggerCopyWith
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _PushCITrigger&&(identical(other.branch, branch) || other.branch == branch));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _PushCITrigger&&(identical(other.branch, branch) || other.branch == branch)&&const DeepCollectionEquality().equals(other._whenChanged, _whenChanged));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,branch);
+int get hashCode => Object.hash(runtimeType,branch,const DeepCollectionEquality().hash(_whenChanged));
 
 @override
 String toString() {
-  return 'CITrigger.push(branch: $branch)';
+  return 'CITrigger.push(branch: $branch, whenChanged: $whenChanged)';
 }
 
 
@@ -247,7 +257,7 @@ abstract mixin class _$PushCITriggerCopyWith<$Res> implements $CITriggerCopyWith
   factory _$PushCITriggerCopyWith(_PushCITrigger value, $Res Function(_PushCITrigger) _then) = __$PushCITriggerCopyWithImpl;
 @override @useResult
 $Res call({
- String branch
+ String branch, List<String>? whenChanged
 });
 
 
@@ -264,10 +274,11 @@ class __$PushCITriggerCopyWithImpl<$Res>
 
 /// Create a copy of CITrigger
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? branch = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? branch = null,Object? whenChanged = freezed,}) {
   return _then(_PushCITrigger(
 branch: null == branch ? _self.branch : branch // ignore: cast_nullable_to_non_nullable
-as String,
+as String,whenChanged: freezed == whenChanged ? _self._whenChanged : whenChanged // ignore: cast_nullable_to_non_nullable
+as List<String>?,
   ));
 }
 
@@ -278,10 +289,19 @@ as String,
 
 
 class _PullRequestCITrigger implements CITrigger {
-  const _PullRequestCITrigger({required this.branch});
+  const _PullRequestCITrigger({required this.branch, final  List<String>? whenChanged}): _whenChanged = whenChanged;
   
 
 @override final  String branch;
+ final  List<String>? _whenChanged;
+@override List<String>? get whenChanged {
+  final value = _whenChanged;
+  if (value == null) return null;
+  if (_whenChanged is EqualUnmodifiableListView) return _whenChanged;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(value);
+}
+
 
 /// Create a copy of CITrigger
 /// with the given fields replaced by the non-null parameter values.
@@ -293,16 +313,16 @@ _$PullRequestCITriggerCopyWith<_PullRequestCITrigger> get copyWith => __$PullReq
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _PullRequestCITrigger&&(identical(other.branch, branch) || other.branch == branch));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _PullRequestCITrigger&&(identical(other.branch, branch) || other.branch == branch)&&const DeepCollectionEquality().equals(other._whenChanged, _whenChanged));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,branch);
+int get hashCode => Object.hash(runtimeType,branch,const DeepCollectionEquality().hash(_whenChanged));
 
 @override
 String toString() {
-  return 'CITrigger.pullRequest(branch: $branch)';
+  return 'CITrigger.pullRequest(branch: $branch, whenChanged: $whenChanged)';
 }
 
 
@@ -313,7 +333,7 @@ abstract mixin class _$PullRequestCITriggerCopyWith<$Res> implements $CITriggerC
   factory _$PullRequestCITriggerCopyWith(_PullRequestCITrigger value, $Res Function(_PullRequestCITrigger) _then) = __$PullRequestCITriggerCopyWithImpl;
 @override @useResult
 $Res call({
- String branch
+ String branch, List<String>? whenChanged
 });
 
 
@@ -330,10 +350,11 @@ class __$PullRequestCITriggerCopyWithImpl<$Res>
 
 /// Create a copy of CITrigger
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? branch = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? branch = null,Object? whenChanged = freezed,}) {
   return _then(_PullRequestCITrigger(
 branch: null == branch ? _self.branch : branch // ignore: cast_nullable_to_non_nullable
-as String,
+as String,whenChanged: freezed == whenChanged ? _self._whenChanged : whenChanged // ignore: cast_nullable_to_non_nullable
+as List<String>?,
   ));
 }
 
