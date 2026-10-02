@@ -263,6 +263,11 @@ class _Translations$switchCommand$team$ja extends Translations$switchCommand$tea
 	@override String requestFailed({required Object status}) => 'チーム一覧を取得できませんでした（HTTP ${status}）。';
 	@override String get fetchFailed => 'チーム一覧を取得できませんでした。サーバー接続とレスポンスを確認してください。';
 	@override String get empty => '所属するチームがありません。ダッシュボードでチームを作成するか、チームに参加してください。';
+	@override String get prompt => 'チームを選択';
+	@override String get current => '現在のチーム';
+	@override String get controls => '上下キー: 移動 / Enter: 選択 / Esc・Ctrl+C: キャンセル';
+	@override String get cancelled => 'チームは選択されませんでした。対話可能な端末でチームを選択してください。';
+	@override String get inputFailed => 'チームを選択できませんでした。対話可能な端末で再試行してください。';
 	@override String get unavailable => 'チーム切り替えはまだ利用できません。';
 }
 
@@ -416,6 +421,11 @@ extension on TranslationsJa {
 			'switchCommand.team.requestFailed' => ({required Object status}) => 'チーム一覧を取得できませんでした（HTTP ${status}）。',
 			'switchCommand.team.fetchFailed' => 'チーム一覧を取得できませんでした。サーバー接続とレスポンスを確認してください。',
 			'switchCommand.team.empty' => '所属するチームがありません。ダッシュボードでチームを作成するか、チームに参加してください。',
+			'switchCommand.team.prompt' => 'チームを選択',
+			'switchCommand.team.current' => '現在のチーム',
+			'switchCommand.team.controls' => '上下キー: 移動 / Enter: 選択 / Esc・Ctrl+C: キャンセル',
+			'switchCommand.team.cancelled' => 'チームは選択されませんでした。対話可能な端末でチームを選択してください。',
+			'switchCommand.team.inputFailed' => 'チームを選択できませんでした。対話可能な端末で再試行してください。',
 			'switchCommand.team.unavailable' => 'チーム切り替えはまだ利用できません。',
 			'use.description' => '表示言語を設定します（japanese, english）。',
 			'use.success' => ({required Object language}) => '言語を${language}に設定しました。',

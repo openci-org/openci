@@ -7,6 +7,8 @@ import 'package:cli_util/cli_logging.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:openci_cli/openci_cli.dart';
+import 'package:openci_cli/src/commands/switch/select_team.dart';
+import 'package:openci_shared/openci_shared.dart';
 import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 
@@ -49,6 +51,8 @@ void main() {
   late List<http.Request> requests;
   late List<_TrackingClient> clients;
   late MockClientHandler handler;
+  late TeamSelector selector;
+  late List<({List<Team> teams, String currentTeamId})> selections;
 
   http.Response teamsResponse({bool empty = false}) => http.Response(
     jsonEncode([
@@ -91,9 +95,18 @@ void main() {
     requests = [];
     clients = [];
     handler = (_) async => teamsResponse();
+    selections = [];
+    selector = ({required teams, required currentTeamId}) async => teams.first;
   });
 
   tearDown(() async {
+    final pickerMessage = logger.errors.any(
+      [
+        t.switchCommand.team.unavailable,
+        t.switchCommand.team.cancelled,
+        t.switchCommand.team.inputFailed,
+      ].contains,
+    );
     LocaleSettings.setLocaleSync(originalLocale);
     final messages = [...logger.output, ...logger.errors].join('\n');
     for (final secret in [
@@ -108,6 +121,7 @@ void main() {
     }
     expect(logger.output, isEmpty);
     expect(clients.every((client) => client.closed), isTrue);
+    if (!pickerMessage) expect(selections, isEmpty);
     await root.delete(recursive: true);
   });
 
@@ -122,7 +136,17 @@ void main() {
   }) async {
     final before = await credentialsBytes();
     final runner = CommandRunner<int>('openci', 'test')
-      ..addCommand(SwitchCommand(logger: logger, credentialStore: store));
+      ..addCommand(
+        SwitchCommand(
+          logger: logger,
+          credentialStore: store,
+          teamSelector: ({required teams, required currentTeamId}) async {
+            expect(clients.every((client) => client.closed), isTrue);
+            selections.add((teams: teams, currentTeamId: currentTeamId));
+            return selector(teams: teams, currentTeamId: currentTeamId);
+          },
+        ),
+      );
     try {
       return await http.runWithClient(() => runner.run(arguments), () {
         final client = _TrackingClient((request) async {
@@ -138,17 +162,22 @@ void main() {
   }
 
   for (final locale in [AppLocale.en, AppLocale.ja]) {
-    test('fetches candidates before reporting unavailable: $locale', () async {
-      LocaleSettings.setLocaleSync(locale);
+    test(
+      'fetches and selects candidates before reporting unavailable: $locale',
+      () async {
+        LocaleSettings.setLocaleSync(locale);
 
-      expect(await run(), 1);
+        expect(await run(), 1);
 
-      final request = requests.single;
-      expect(request.method, 'GET');
-      expect(request.url.toString(), 'https://ci.example.com/proxy/teams');
-      expect(request.headers['authorization'], 'Bearer $token');
-      expect(logger.errors, [t.switchCommand.team.unavailable]);
-    });
+        final request = requests.single;
+        expect(request.method, 'GET');
+        expect(request.url.toString(), 'https://ci.example.com/proxy/teams');
+        expect(request.headers['authorization'], 'Bearer $token');
+        expect(logger.errors, [t.switchCommand.team.unavailable]);
+        expect(selections.single.currentTeamId, 'team-1');
+        expect(selections.single.teams.single.id, 'team-1');
+      },
+    );
 
     test(
       'handles an empty team list without changing credentials: $locale',
@@ -193,8 +222,88 @@ void main() {
       expect(await run(), 1);
       expect(requests, hasLength(1));
       expect(logger.errors, [t.switchCommand.team.unavailable]);
+      expect(selections.single.currentTeamId, teamId);
     });
   }
+
+  test(
+    'passes sorted candidates and the active profile team to the picker',
+    () async {
+      handler = (_) async => http.Response(
+        jsonEncode([
+          for (final (id, name) in [
+            ('team-z', 'Zulu'),
+            ('team-2', 'Alpha'),
+            ('team-1', 'Alpha'),
+          ])
+            {
+              'id': id,
+              'name': name,
+              'members': ['user-1'],
+              'createdAt': '2026-10-01T00:00:00.000Z',
+              'updatedAt': '2026-10-01T00:00:00.000Z',
+            },
+        ]),
+        200,
+        headers: {'content-type': 'application/json'},
+      );
+      await store.saveProfile('selected', profile.copyWith(teamId: 'team-z'));
+      selector = ({required teams, required currentTeamId}) async => teams[1];
+
+      expect(await run(), 1);
+      expect(selections.single.teams.map((team) => team.id), [
+        'team-1',
+        'team-2',
+        'team-z',
+      ]);
+      expect(selections.single.currentTeamId, 'team-z');
+      expect(logger.errors, [t.switchCommand.team.unavailable]);
+      expect(requests.single.method, 'GET');
+    },
+  );
+
+  for (final locale in [AppLocale.en, AppLocale.ja]) {
+    test(
+      'cancels a single-candidate selection without saving: $locale',
+      () async {
+        LocaleSettings.setLocaleSync(locale);
+        selector = ({required teams, required currentTeamId}) async => null;
+
+        expect(await run(), 1);
+        expect(selections.single.teams, hasLength(1));
+        expect(logger.errors, [t.switchCommand.team.cancelled]);
+        expect(requests.single.method, 'GET');
+      },
+    );
+
+    test(
+      'reports picker failures without exposing their details: $locale',
+      () async {
+        LocaleSettings.setLocaleSync(locale);
+        selector = ({required teams, required currentTeamId}) async =>
+            throw StateError(privateResponse);
+
+        expect(await run(), 1);
+        expect(selections, hasLength(1));
+        expect(logger.errors, [t.switchCommand.team.inputFailed]);
+      },
+    );
+  }
+
+  test(
+    'reports cancellation when the picker detects a non-interactive terminal',
+    () async {
+      selector = ({required teams, required currentTeamId}) => selectTeam(
+        teams: teams,
+        currentTeamId: currentTeamId,
+        hasTerminal: false,
+      );
+
+      expect(await run(), 1);
+      expect(logger.errors, [t.switchCommand.team.cancelled]);
+      expect(requests.single.method, 'GET');
+    },
+  );
 
   for (final emulatorHost in <String?>[null, '127.0.0.1:9099']) {
     for (final expiry in [

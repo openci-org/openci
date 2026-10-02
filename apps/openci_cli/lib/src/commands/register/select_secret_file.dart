@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math' as math;
@@ -9,6 +8,7 @@ import 'package:meta/meta.dart';
 import 'package:path/path.dart' as p;
 
 import '../../i18n/i18n.dart';
+import '../../terminal/interactive_console.dart';
 import 'file_path_completer.dart';
 
 Future<String?> selectSecretFile({
@@ -16,79 +16,22 @@ Future<String?> selectSecretFile({
   @visibleForTesting FilePathCompleter? completer,
   @visibleForTesting Stream<Key>? keys,
   @visibleForTesting bool? hasTerminal,
-}) async {
-  if (!(hasTerminal ??
-      (stdin.hasTerminal &&
-          stdout.hasTerminal &&
-          stdout.supportsAnsiEscapes))) {
-    return null;
-  }
-  final terminal = console ?? _FilePickerConsole();
-  final wasRaw = terminal.rawMode;
-  final picker = _FilePicker(terminal, completer ?? FilePathCompleter());
-  try {
+}) => withInteractiveConsole(
+  (terminal, input) async {
+    final picker = _FilePicker(terminal, completer ?? FilePathCompleter());
     picker.render();
-    await for (final key in keys ?? _readKeys(terminal)) {
-      if (key.controlChar == ControlCharacter.escape ||
-          key.controlChar == ControlCharacter.ctrlC ||
-          key.controlChar == ControlCharacter.ctrlD) {
-        return null;
-      }
+    await for (final key in input) {
+      if (isCancelKey(key)) return null;
       final selected = picker.handle(key);
       if (selected != null) return selected;
       picker.render();
     }
     return null;
-  } finally {
-    terminal.rawMode = wasRaw;
-    terminal.writeLine();
-  }
-}
-
-class _FilePickerConsole extends Console {
-  // dart_console 5.1.0 binds ioctl without VarArgs. Its window-size getters
-  // can corrupt memory on macOS ARM64, with the crash delayed until VM exit.
-  // Use dart:io for dimensions while retaining the library's key handling.
-  @override
-  int get windowWidth => stdout.terminalColumns;
-
-  @override
-  int get windowHeight => stdout.terminalLines;
-}
-
-Stream<Key> _readKeys(Console terminal) {
-  late StreamController<Key> controller;
-  late StreamSubscription<Key> keyboard;
-  final signals = <StreamSubscription<ProcessSignal>>[];
-  controller = StreamController<Key>(
-    onListen: () {
-      keyboard = terminal.readKeys().listen(
-        controller.add,
-        onError: controller.addError,
-        onDone: controller.close,
-      );
-      for (final signal in [
-        ProcessSignal.sigint,
-        if (!Platform.isWindows) ProcessSignal.sigterm,
-      ]) {
-        signals.add(
-          signal.watch().listen((_) {
-            if (!controller.isClosed) {
-              controller.add(Key.control(ControlCharacter.ctrlC));
-            }
-          }),
-        );
-      }
-    },
-    onCancel: () async {
-      await keyboard.cancel();
-      for (final signal in signals) {
-        await signal.cancel();
-      }
-    },
-  );
-  return controller.stream;
-}
+  },
+  console: console,
+  keys: keys,
+  hasTerminal: hasTerminal,
+);
 
 class _FilePicker {
   final Console terminal;

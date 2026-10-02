@@ -9,6 +9,7 @@ import '../../credential_store/credential_store.dart';
 import '../../credential_store/read_authenticated_profile.dart';
 import '../../i18n/i18n.dart';
 import 'fetch_teams.dart';
+import 'select_team.dart';
 
 class SwitchTeamCommand extends Command<int> {
   @override
@@ -19,10 +20,15 @@ class SwitchTeamCommand extends Command<int> {
 
   final Logger _logger;
   final CredentialStore _credentialStore;
+  final TeamSelector _teamSelector;
 
-  SwitchTeamCommand({required Logger logger, CredentialStore? credentialStore})
-    : _logger = logger,
-      _credentialStore = credentialStore ?? CredentialStore();
+  SwitchTeamCommand({
+    required Logger logger,
+    CredentialStore? credentialStore,
+    TeamSelector teamSelector = selectTeam,
+  }) : _logger = logger,
+       _credentialStore = credentialStore ?? CredentialStore(),
+       _teamSelector = teamSelector;
 
   @override
   Future<int> run() async {
@@ -38,14 +44,9 @@ class SwitchTeamCommand extends Command<int> {
       tokenProvider: () => profile.token,
       services: [OpenCIApiService.create()],
     );
+    final List<Team> teams;
     try {
-      final teams = await fetchTeams(client.getService<OpenCIApiService>());
-      if (teams.isEmpty) {
-        _logger.stderr(t.switchCommand.team.empty);
-        return 1;
-      }
-
-      _logger.stderr(t.switchCommand.team.unavailable);
+      teams = await fetchTeams(client.getService<OpenCIApiService>());
     } on TeamsHttpException catch (error) {
       _logger.stderr(
         error.statusCode == HttpStatus.unauthorized ||
@@ -53,11 +54,33 @@ class SwitchTeamCommand extends Command<int> {
             ? t.switchCommand.team.loginRequired
             : t.switchCommand.team.requestFailed(status: error.statusCode),
       );
+      return 1;
     } catch (_) {
       _logger.stderr(t.switchCommand.team.fetchFailed);
+      return 1;
     } finally {
       client.dispose();
     }
+    if (teams.isEmpty) {
+      _logger.stderr(t.switchCommand.team.empty);
+      return 1;
+    }
+
+    final Team? selected;
+    try {
+      selected = await _teamSelector(
+        teams: teams,
+        currentTeamId: profile.teamId,
+      );
+    } catch (_) {
+      _logger.stderr(t.switchCommand.team.inputFailed);
+      return 1;
+    }
+    if (selected == null) {
+      _logger.stderr(t.switchCommand.team.cancelled);
+      return 1;
+    }
+    _logger.stderr(t.switchCommand.team.unavailable);
     return 1;
   }
 
