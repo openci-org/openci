@@ -1,6 +1,7 @@
 import 'package:chopper/chopper.dart';
 
 import '../models/build_step.dart';
+import '../models/changed_files_result.dart';
 import '../models/cicd_commit_group.dart';
 import '../models/team.dart';
 import '../models/user_device.dart';
@@ -67,6 +68,14 @@ abstract class OpenCIApiService extends ChopperService {
 
   @POST(path: '/webhooks/claim', timeout: _timeout)
   Future<Response<Map<String, dynamic>>> claimNextWebhookTask();
+
+  @GET(
+    path: '/webhooks/tasks/{id}/changed-files',
+    timeout: Duration(seconds: 40),
+  )
+  Future<Response<ChangedFilesResult>> getWebhookTaskChangedFiles(
+    @Path('id') String id,
+  );
 
   @POST(
     path: '/webhooks/tasks/{id}/complete',
