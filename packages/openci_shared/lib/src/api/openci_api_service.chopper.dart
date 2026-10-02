@@ -362,6 +362,35 @@ final class _$OpenCIApiService extends OpenCIApiService {
   }
 
   @override
+  Future<Response<ChangedFilesResult>> getWebhookTaskChangedFiles(String id) {
+    final Uri $url = Uri.parse('/webhooks/tasks/${id}/changed-files');
+    final ChopperCompleter $abortTrigger = ChopperCompleter<void>();
+    final ChopperTimer $timeout = ChopperTimer(
+      const Duration(microseconds: 40000000),
+      () {
+        if (!$abortTrigger.isCompleted) $abortTrigger.complete();
+      },
+    );
+    final Request $request = Request(
+      'GET',
+      $url,
+      client.baseUrl,
+      abortTrigger: $abortTrigger.future,
+    );
+    return client
+        .send<ChangedFilesResult, ChangedFilesResult>($request)
+        .catchError(
+          (_) => Future<Response<ChangedFilesResult>>.error(
+            ChopperTimeoutException('Request timed out after 40 seconds'),
+          ),
+          test: (Object err) =>
+              err is ChopperRequestAbortedException &&
+              $abortTrigger.isCompleted,
+        )
+        .whenComplete($timeout.cancel);
+  }
+
+  @override
   Future<Response<Map<String, dynamic>>> completeWebhookTask(
     String id,
     Map<String, dynamic> body,

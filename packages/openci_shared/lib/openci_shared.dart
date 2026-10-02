@@ -7,6 +7,7 @@ export 'src/api/token_auth_interceptor.dart';
 export 'src/models/build_job.dart';
 export 'src/models/build_job_plan.dart';
 export 'src/models/build_step.dart';
+export 'src/models/changed_files_result.dart';
 export 'src/models/cicd_commit_group.dart';
 export 'src/models/claim_job_request.dart';
 export 'src/models/open_ci_file.dart';
