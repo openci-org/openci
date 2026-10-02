@@ -35,14 +35,6 @@
   font: 10px/1.5 var(--mono);
   letter-spacing: 0.06em;
 }
-.sample-badge {
-  border: 1px solid #dcdcd5;
-  border-radius: 3px;
-  padding: 5px 8px;
-  font: 9px/1.3 var(--mono);
-  letter-spacing: 0.04em;
-  color: #777;
-}
 .journal-title-row {
   display: flex;
   justify-content: space-between;
@@ -138,7 +130,7 @@
   width: 18px;
   height: 18px;
 }
-.cover-why {
+.cover-release {
   background: var(--yellow);
   color: #000;
 }
@@ -299,63 +291,6 @@
   font-weight: 500;
   margin-top: auto;
 }
-.cover-workflows {
-  color: #fff;
-  background: #1a1b19;
-}
-.cover-code {
-  font: 14px/1.7 var(--mono);
-  white-space: pre;
-  display: flex;
-  flex-direction: column;
-  margin-block: 20px;
-}
-.cover-code-comment {
-  font-size: 9px;
-  color: #95998f;
-  margin-bottom: 10px;
-}
-.cover-code-yellow {
-  color: var(--yellow);
-}
-.cover-workflows .cover-bottomline {
-  color: #b5b8ac;
-}
-.cover-self-host {
-  background: #eeeeea;
-}
-.chip-art {
-  border: 1px solid #b7b7ad;
-  outline: 1px solid #d2d2c8;
-  outline-offset: 6px;
-  background: linear-gradient(125deg, #fafaf7, #d8d8d0);
-  padding: 17px 13px;
-  text-align: center;
-  width: 72%;
-  margin: 28px auto;
-  display: flex;
-  flex-direction: column;
-  gap: 9px;
-  box-shadow: 6px 6px 0 #00000007;
-}
-.chip-caption {
-  font: 7px var(--mono);
-  letter-spacing: 0.12em;
-}
-.chip-art strong {
-  font-size: clamp(26px, 3vw, 43px);
-  font-weight: 500;
-  letter-spacing: -0.055em;
-}
-.chip-subtitle {
-  font: 5px var(--mono);
-  letter-spacing: 0.04em;
-}
-.journal-sample-note {
-  font-size: 10px;
-  color: #85857d;
-  margin-top: 36px;
-}
 .journal-footer {
   background: var(--yellow);
   padding-top: 56px;
@@ -432,10 +367,6 @@
   font-size: 11px;
   margin-top: 28px;
 }
-.article-byline .sample-badge {
-  margin-left: 12px;
-  font-family: var(--font);
-}
 .author-monogram {
   background: var(--yellow);
   display: grid;
@@ -462,27 +393,6 @@
   gap: 0.2em;
   letter-spacing: -0.065em;
   margin: auto 0;
-}
-.article-cover-wrap .cover-code {
-  font-size: 21px;
-  margin: 16px auto;
-}
-.article-cover-wrap .cover-code-comment {
-  font-size: 12px;
-}
-.article-cover-wrap .chip-art {
-  width: 275px;
-  margin: 20px auto;
-  padding: 15px;
-}
-.article-cover-wrap .chip-art strong {
-  font-size: 51px;
-}
-.article-cover-wrap .chip-caption {
-  font-size: 9px;
-}
-.article-cover-wrap .chip-subtitle {
-  font-size: 7px;
 }
 .article-layout {
   display: grid;
@@ -589,7 +499,11 @@
   line-height: 1;
   margin-bottom: 30px;
 }
-.article-disclaimer {
+.article-source-links {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 14px;
   font-size: 11px;
   color: #999;
   line-height: 1.8;
@@ -653,9 +567,6 @@
   }
   .post-meta > time {
     padding-left: 9px;
-  }
-  .cover-code {
-    font-size: 12px;
   }
   .post-cover {
     padding: 18px;
@@ -755,13 +666,6 @@
   .cover-message {
     font-size: 4.5vw;
   }
-  .cover-code {
-    font-size: 10px;
-    margin-block: 15px;
-  }
-  .cover-code-comment {
-    font-size: 6px;
-  }
   .post-card h3 {
     font-size: 18px;
   }
@@ -770,21 +674,6 @@
   }
   .post-card .post-meta > span:last-child {
     display: none;
-  }
-  .chip-art {
-    padding: 10px 6px;
-    margin: 23px auto;
-    gap: 7px;
-    width: 78%;
-  }
-  .chip-caption {
-    font-size: 6px;
-  }
-  .chip-subtitle {
-    display: none;
-  }
-  .chip-art strong {
-    font-size: 25px;
   }
   .article-masthead h1 {
     font-size: 43px;
@@ -821,12 +710,6 @@
   }
   .article-cover-wrap .post-cover {
     min-height: 280px;
-  }
-  .article-cover-wrap .cover-code {
-    font-size: 17px;
-  }
-  .article-cover-wrap .chip-subtitle {
-    display: block;
   }
   .article-body {
     max-width: 690px;
@@ -875,10 +758,6 @@
   }
   .journal-kicker {
     font-size: 8px;
-  }
-  .sample-badge {
-    font-size: 7px;
-    padding: 4px 6px;
   }
   .journal-title-row {
     gap: 24px;
@@ -998,34 +877,6 @@
   .card-read-link {
     font-size: 12px;
   }
-  .cover-code {
-    font-size: 17px;
-    margin-block: 15px;
-  }
-  .cover-code-comment {
-    font-size: 10px;
-  }
-  .chip-art {
-    width: 60%;
-    gap: 10px;
-    padding: 15px;
-    margin: 25px auto;
-  }
-  .chip-caption {
-    font-size: 8px;
-  }
-  .chip-art strong {
-    font-size: 38px;
-  }
-  .chip-subtitle {
-    display: block;
-    font-size: 6px;
-  }
-  .journal-sample-note {
-    font-size: 9px;
-    line-height: 1.8;
-    margin-top: 29px;
-  }
   .journal-footer {
     padding-top: 42px;
   }
@@ -1079,10 +930,6 @@
     margin-top: 24px;
     gap: 8px;
   }
-  .article-byline .sample-badge {
-    margin-left: auto;
-    font-size: 8px;
-  }
   .article-cover-wrap .post-cover {
     aspect-ratio: 1.45;
     min-height: 240px;
@@ -1092,27 +939,6 @@
     font-size: 14vw;
     flex-direction: column;
     gap: 0;
-  }
-  .article-cover-wrap .cover-code {
-    font-size: 14px;
-    margin: auto 0;
-  }
-  .article-cover-wrap .cover-code-comment {
-    font-size: 9px;
-  }
-  .article-cover-wrap .chip-art {
-    width: 66%;
-    padding: 12px;
-    margin: 20px auto;
-  }
-  .article-cover-wrap .chip-art strong {
-    font-size: 37px;
-  }
-  .article-cover-wrap .chip-caption {
-    font-size: 7px;
-  }
-  .article-cover-wrap .chip-subtitle {
-    font-size: 5px;
   }
   .article-layout {
     padding-top: 31px;
@@ -1153,7 +979,7 @@
     font-size: 10px;
     padding: 13px 15px;
   }
-  .article-disclaimer {
+  .article-source-links {
     font-size: 10px;
   }
   .article-next {
@@ -1232,17 +1058,8 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
-.chip-art strong,
-.chip-subtitle {
-  white-space: nowrap;
-}
 .article-masthead h1,
 .article-body h2,
 .article-next h2 {
   text-wrap: balance;
-}
-@media (max-width: 560px) {
-  .post-card .chip-art {
-    width: 74%;
-  }
 }

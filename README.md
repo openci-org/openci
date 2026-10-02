@@ -31,7 +31,8 @@ The Jaspr landing page and blog live in [`apps/website`](apps/website/README.md)
 They use a separate Dart dependency resolution because the Jaspr builders require
 analyzer 12 while the root workspace pins analyzer 10. Run `dart pub get` from
 `apps/website`; root `flutter pub get` does not install the website dependencies.
-The site is a design preview, with sample articles and indexing disabled.
+The blog includes the v2.1.0 release article. The landing page still uses sample
+build data, and indexing remains disabled.
 
 ## v2.0.0 device enrollment
 

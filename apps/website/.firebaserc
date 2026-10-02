@@ -1,0 +1,12 @@
+{
+  "projects": {
+    "default": "openci-b1b91"
+  },
+  "targets": {
+    "openci-b1b91": {
+      "hosting": {
+        "website": ["genuineci-website"]
+      }
+    }
+  }
+}

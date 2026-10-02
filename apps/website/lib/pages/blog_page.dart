@@ -3,6 +3,7 @@ import 'package:jaspr/server.dart';
 
 import '../components/dart_code.dart';
 import '../components/html.dart';
+import '../components/social_metadata.dart';
 
 class BlogPost {
   const BlogPost(
@@ -10,43 +11,34 @@ class BlogPost {
     this.category,
     this.title,
     this.summary,
+    this.publishedAt,
     this.readTime,
     this.coverLabel,
+    this.coverTitle,
   );
   final String slug;
   final String category;
   final String title;
   final String summary;
+  final String publishedAt;
   final String readTime;
   final String coverLabel;
+  final String coverTitle;
   String get path => '/blog/$slug';
   String get url => '$path/';
+  String get imagePath => '/ogp/$slug.jpg?v=2';
 }
 
 const blogPosts = [
   BlogPost(
-    'why',
-    'プロジェクト',
-    'Flutter & Dartに、\n本物のCIを。',
-    'いつもの言語で書けて、動く仕組みが見えて、自分のマシンでも動かせる。GenuineCIがつくりたい「本物のCI」の話。',
+    'v2-1-0',
+    'リリース',
+    'GenuineCI v2.1.0 を\nリリースしました。',
+    'Android の APK・AAB ビルド、CLI のチーム切替、ワークフロー SDK の改善。v2.0.0 からの変更を紹介します。',
+    '2026-10-02',
     '3 min read',
-    'OUR PHILOSOPHY',
-  ),
-  BlogPost(
-    'workflows',
-    '開発ノート',
-    'ワークフローも、\nDartで書こう。',
-    'アプリも、CIも、同じ言語で。Dartでワークフローを定義するという選択と、その小さなメリット。',
-    '4 min read',
-    'WORKFLOWS IN DART',
-  ),
-  BlogPost(
-    'self-host',
-    'ガイド',
-    '自分のMacで、\nCIを動かすという選択。',
-    'Apple Siliconのマシンを、チームのビルド環境に。セルフホストで考えておきたいことを整理します。',
-    '3 min read',
-    'YOUR MACHINE. YOUR CI.',
+    'RELEASE NOTES',
+    'v2.1.0',
   ),
 ];
 
@@ -119,14 +111,18 @@ Component postMeta(BlogPost post) => el(
   cls: 'post-meta',
   children: [
     el('span', cls: 'post-category', text: post.category),
-    el('time', text: '2026.10.01', attrs: {'datetime': '2026-10-01'}),
+    el(
+      'time',
+      text: post.publishedAt.replaceAll('-', '.'),
+      attrs: {'datetime': post.publishedAt},
+    ),
     el('span', text: post.readTime),
   ],
 );
 
 Component postCover(BlogPost post, {bool featured = false}) => el(
   'div',
-  cls: 'post-cover cover-${post.slug}${featured ? ' cover-featured' : ''}',
+  cls: 'post-cover cover-release${featured ? ' cover-featured' : ''}',
   attrs: {'aria-hidden': 'true'},
   children: [
     el(
@@ -134,68 +130,25 @@ Component postCover(BlogPost post, {bool featured = false}) => el(
       cls: 'cover-topline',
       children: [
         el('span', text: 'GenuineCI'),
-        el('span', text: '0${blogPosts.indexOf(post) + 1}'),
+        el('span', text: post.publishedAt.replaceAll('-', '.')),
       ],
     ),
-    if (post.slug == 'why') ...[
-      el(
-        'div',
-        cls: 'cover-message',
-        children: [
-          el('span', text: 'genuine'),
-          el('span', text: 'by design.'),
-        ],
-      ),
-      el(
-        'div',
-        cls: 'cover-bottomline',
-        children: [
-          el('span', text: post.coverLabel),
-          icon('external'),
-        ],
-      ),
-    ] else if (post.slug == 'workflows') ...[
-      el(
-        'div',
-        cls: 'cover-code',
-        children: [
-          el(
-            'span',
-            cls: 'cover-code-comment',
-            text: '// your workflow, in Dart',
-          ),
-          el('span', text: 'await ci.run('),
-          el('span', cls: 'cover-code-yellow', text: "  'flutter test',"),
-          el('span', text: ');'),
-        ],
-      ),
-      el(
-        'div',
-        cls: 'cover-bottomline',
-        children: [
-          el('span', text: post.coverLabel),
-          el('span', text: '.dart'),
-        ],
-      ),
-    ] else ...[
-      el(
-        'div',
-        cls: 'chip-art',
-        children: [
-          el('span', cls: 'chip-caption', text: 'APPLE SILICON'),
-          el('strong', text: 'M1—M4'),
-          el('span', cls: 'chip-subtitle', text: 'READY FOR YOUR NEXT BUILD'),
-        ],
-      ),
-      el(
-        'div',
-        cls: 'cover-bottomline',
-        children: [
-          el('span', text: post.coverLabel),
-          icon('cpu'),
-        ],
-      ),
-    ],
+    el(
+      'div',
+      cls: 'cover-message',
+      children: [
+        el('span', text: post.coverTitle),
+        el('span', text: 'is here.'),
+      ],
+    ),
+    el(
+      'div',
+      cls: 'cover-bottomline',
+      children: [
+        el('span', text: post.coverLabel),
+        icon('arrow'),
+      ],
+    ),
   ],
 );
 
@@ -207,10 +160,10 @@ class BlogPage extends StatelessComponent {
     'div',
     cls: 'journal-page',
     children: [
-      Document.head(
-        meta: {
-          'description': 'GenuineCIの思想、Dartで書くワークフロー、Apple Siliconとセルフホスト。つくる過程を伝えるブログのデザインモックです。',
-        },
+      socialMetadata(
+        title: 'Journal — GenuineCI Blog',
+        description: 'GenuineCIのリリース情報と開発の記録。Flutter & DartのためのCIの最新情報をお届けします。',
+        path: '/blog/',
       ),
       link('本文へスキップ', '#main', cls: 'skip-link'),
       blogHeader(),
@@ -227,7 +180,6 @@ class BlogPage extends StatelessComponent {
                 cls: 'journal-kicker',
                 children: [
                   el('span', text: 'THE GENUINECI BLOG'),
-                  el('span', cls: 'sample-badge', text: 'DESIGN SAMPLE'),
                 ],
               ),
               el(
@@ -264,7 +216,7 @@ class BlogPage extends StatelessComponent {
                 cls: 'journal-section-label',
                 children: [
                   el('h2', id: 'featured-label', text: 'PICKUP'),
-                  el('span', text: 'まずは、私たちのこと。'),
+                  el('span', text: '最新のリリースをチェック。'),
                 ],
               ),
               el(
@@ -304,7 +256,9 @@ class BlogPage extends StatelessComponent {
                   el(
                     'span',
                     cls: 'article-count',
-                    text: '03 ARTICLES',
+                    text:
+                        '${blogPosts.length.toString().padLeft(2, '0')} '
+                        '${blogPosts.length == 1 ? 'ARTICLE' : 'ARTICLES'}',
                     attrs: {'data-article-count': '', 'aria-live': 'polite'},
                   ),
                 ],
@@ -314,7 +268,10 @@ class BlogPage extends StatelessComponent {
                 cls: 'article-filters',
                 attrs: {'role': 'group', 'aria-label': '記事をカテゴリで絞り込む'},
                 children: [
-                  for (final category in ['すべて', 'プロジェクト', '開発ノート', 'ガイド'])
+                  for (final category in [
+                    'すべて',
+                    ...blogPosts.map((post) => post.category).toSet(),
+                  ])
                     el(
                       'button',
                       cls: 'filter-button',
@@ -368,11 +325,6 @@ class BlogPage extends StatelessComponent {
                     ),
                 ],
               ),
-              el(
-                'p',
-                cls: 'journal-sample-note',
-                text: '掲載内容・日付は、ブログのデザイン確認用サンプルです。',
-              ),
             ],
           ),
         ],
@@ -383,58 +335,65 @@ class BlogPage extends StatelessComponent {
 }
 
 class ArticleSection {
-  const ArticleSection(this.id, this.title, this.paragraphs, {this.code});
+  const ArticleSection(
+    this.id,
+    this.title,
+    this.paragraphs, {
+    this.code,
+    this.codeLabel = 'workflow.dart',
+    this.codeCaption,
+  });
   final String id;
   final String title;
   final List<String> paragraphs;
   final String? code;
+  final String codeLabel;
+  final String? codeCaption;
 }
 
 const articleSections = <String, List<ArticleSection>>{
-  'why': [
-    ArticleSection('genuine', '「本物」という名前に込めたこと。', [
-      'アプリのコードはDartなのに、ビルドのために別の書き方を覚える。失敗したジョブを見つめながら、マシンの中で何が起きているのかを想像する。CIは開発を助けるものなのに、いつの間にかCIそのものに時間を使っている。',
-      'GenuineCIは、その距離を少しずつ縮めるためのプロジェクトです。genuineは「本物の」という意味。日々つくっているものと同じ言語で、仕組みに手が届き、自分たちで使い続けられる。そんなCIをつくることを目指しています。',
-    ]),
-    ArticleSection('dart-first', 'Flutter & Dartに、まっすぐ。', [
-      'GenuineCIはFlutter & Dart専用のCIです。GenuineCI自体もDartで書かれていて、ワークフローもDartで定義します。アプリの外側にあるビルドの手順にも、いつもの言語をそのまま持ち込めます。',
-      '専用だからこそ、FlutterとDartの開発者が毎日使う流れを中心に考える。テスト、静的解析、ビルド。その積み重ねを、自然に扱えるものにしたいと考えています。',
-    ]),
-    ArticleSection('your-ci', '動く場所も、コードも、ひらく。', [
-      '実行マシンは、いまはApple Siliconのみ。M1からM4までを対象にしています。そしてGenuineCIはオープンソース。コードを読み、仕組みを理解し、自分のマシンにセルフホストすることもできます。',
-      'CIを、ただ結果が返ってくる箱で終わらせない。使う人が理解できて、必要なら手を入れられる道具にする。このブログでは、その考え方や開発の過程を少しずつ言葉にしていきます。',
-    ]),
-  ],
-  'workflows': [
-    ArticleSection('same-language', 'アプリとCIの間に、同じ言語を。', [
-      'Flutterのアプリを書き、Dartでテストを書き、その続きとしてワークフローもDartで書く。GenuineCIでは、ビルドの手順をDartのコードとして定義します。',
-      '新しい設定の記法を増やすのではなく、すでに知っている関数、変数、awaitを使う。複数の手順があるときも、上から順番に読める形で書き始められます。',
+  'v2-1-0': [
+    ArticleSection('release', 'v2.1.0 でできるようになったこと。', [
+      '2026年10月2日、GenuineCI v2.1.0 をリリースしました。今回は、Android のビルドをDartから書くためのヘルパーと、CLIで使用するチームを切り替える機能を追加しています。',
+      'v2.0.0 から18コミット、65ファイルの変更です。ワークフロー SDK の独立した利用に向けた整備や、静的解析の設定、ワークスペースのパス生成も改善しました。',
     ]),
     ArticleSection(
-      'workflow-example',
-      'たとえば、解析して、テストする。',
+      'android-builds',
+      'APKもAABも、Dartのワークフローから。',
       [
-        'パッケージを取得したら、静的解析を実行し、ユニットテストに進む。Flutterプロジェクトでおなじみの流れは、次のような処理で表現できます。',
+        'FlutterCI に buildApk() と buildAab() を追加しました。APKとAndroid App Bundleのビルドを、解析やテストと同じようにawaitで並べて書けます。',
+        'flavorでプロダクトフレーバーを指定でき、dirでその処理の作業ディレクトリを変更できます。どちらも省略できるため、まずは引数なしで使い始められます。',
+        'GenuineCI自身のDashboardにも、署名に必要なファイルをシークレットから復元し、APKとAABをビルドするCIワークフローを追加しました。',
       ],
-      code: "await ci.run('flutter pub get');\nawait ci.flutter.staticAnalysis();\nawait ci.flutter.unitTests();",
+      code: "await ci.flutter.buildApk(flavor: 'staging');\nawait ci.flutter.buildAab(flavor: 'production');",
+      codeCaption: 'OpenCI.init()で作成したciを使う処理部分の抜粋です。初期化とimportは省略しています。',
     ),
-    ArticleSection('grow-with-code', 'ワークフローも、育てていくコード。', [
-      '手順が増えてきたら、Dartの関数に分ける。何度も使う値には名前を付ける。アプリのコードと同じように、読みやすく整理しながら育てられるのが、プログラミング言語で定義する良さです。',
-      'GenuineCI自体もDartで書かれたOSSです。ワークフローの裏側が気になったとき、その実装も同じ言語で読むことができます。書くところから、動くところまで。DartでつながるCIを目指しています。',
-    ]),
-  ],
-  'self-host': [
-    ArticleSection('your-machine', 'いつものMacを、ビルドの場所に。', [
-      '開発に使っているのと同じApple Siliconで、CIも動かしたい。GenuineCIはセルフホストが可能なオープンソースのCIです。自分たちで管理するマシンを、ワークフローの実行環境として使うことができます。',
-      '現在対象としているのは、M1からM4までのApple Siliconマシンです。Flutter & Dart専用のCIとして、まずはこの環境に集中しています。',
-    ]),
-    ArticleSection('before-start', '最初に、実行環境を決めておく。', [
-      'セルフホストを考えるときは、マシンを用意することに加えて、いつ稼働させるか、誰が管理するかを決めておくと見通しが良くなります。開発用のMacを使うのか、ビルド専用に一台を用意するのか。チームの使い方に合わせて考えられます。',
-      'FlutterやDart、Xcodeなど、ビルドに必要なツールのバージョンを揃えることも大切です。ワークフローと実行環境をセットで記録しておくと、結果の違いを調べる手掛かりになります。',
-    ]),
-    ArticleSection('ownership', '自分で管理できるということ。', [
-      'マシンの稼働状況、ログ、署名に使う情報。自分で環境を持つ場合は、これらを誰が管理し、どこまでアクセスできるかもチームで決めておきます。運用に必要なことが見える状態をつくるのも、セルフホストの一部です。',
-      'GenuineCIのワークフローはDartで定義します。コードとして変更を記録しながら、自分たちのビルド環境を育てていく。CIの動く場所を自分たちで選べることを、大切にしています。',
+    ArticleSection(
+      'static-analysis',
+      '解析の厳しさを、プロジェクトに合わせる。',
+      [
+        'staticAnalysis() に、fatalInfo・noFatalInfos・noFatalWarningsのオプションを追加しました。infoを失敗として扱うか、infoやwarningでビルドを止めないかを、ワークフローごとに設定できます。',
+        'analyticsはデフォルトで抑制します。必要な場合はsuppressAnalytics: falseを指定でき、従来どおりdirで解析対象の作業ディレクトリも変更できます。',
+      ],
+      code: 'await ci.flutter.staticAnalysis(\n  fatalInfo: true,\n);',
+      codeCaption: 'infoを失敗として扱う設定例です。初期化とimportは省略しています。',
+    ),
+    ArticleSection(
+      'switch-team',
+      'CLIから、使うチームを切り替える。',
+      [
+        'openci switch teamで、ログイン中のプロファイルに所属するチームを取得し、上下キーとEnterで選択できるようになりました。現在のチームを表示し、長い一覧や日本語のチーム名にも対応しています。',
+        '選択したチームは現在のプロファイルに保存され、その後のシークレット操作にも反映されます。トークンやサーバー設定、他のプロファイルは保持し、キャンセル時は元のチームをそのまま使います。',
+        '対話入力の後始末とシグナル処理を共通化し、macOS ARM64で端末終了時にクラッシュする問題への対策も取り込みました。',
+      ],
+      code: 'openci switch team\nopenci list secrets\nopenci sync secrets',
+      codeLabel: 'ターミナル',
+      codeCaption: 'openci loginでログインした後に実行してください。',
+    ),
+    ArticleSection('workflow-sdk', 'SDKとパス生成も、使いやすく。', [
+      'openci_workflowは0.1.1になりました。サーバー側のopenci_sharedやChopperへの依存を外し、単体利用とpub.dev公開に向けて、README・使用例・ライセンス・パッケージ情報を整備しています。',
+      'openci sync pathsはワークスペースの深い階層まで収集するようになりました。たとえばWorkspacePaths.root.apps.dashboard.android.appのように、Androidの設定ファイルを置く場所にも型のあるパスを使えます。ビルド出力や依存、隠しディレクトリは生成対象から除外します。',
+      'あわせてGenuineCIのLPとブログをJasprで追加しました。このブログでも、リリース内容と開発の記録をお届けしていきます。',
     ]),
   ],
 };
@@ -446,13 +405,22 @@ class BlogArticlePage extends StatelessComponent {
   @override
   Component build(BuildContext context) {
     final sections = articleSections[post.slug]!;
-    final nextPost =
-        blogPosts[(blogPosts.indexOf(post) + 1) % blogPosts.length];
+    final nextPost = blogPosts.length > 1
+        ? blogPosts[(blogPosts.indexOf(post) + 1) % blogPosts.length]
+        : null;
     return el(
       'div',
       cls: 'journal-page article-page',
       children: [
-        Document.head(meta: {'description': post.summary}),
+        socialMetadata(
+          title: '${post.title.replaceAll('\n', '')} — GenuineCI Blog',
+          description: post.summary,
+          path: post.url,
+          imagePath: post.imagePath,
+          imageAlt: 'GenuineCI ${post.coverTitle} is here. — 黄色いリリースバナー',
+          type: 'article',
+          section: post.category,
+        ),
         link('本文へスキップ', '#main', cls: 'skip-link'),
         blogHeader(),
         el(
@@ -481,7 +449,6 @@ class BlogArticlePage extends StatelessComponent {
                           attrs: {'aria-hidden': 'true'},
                         ),
                         el('span', text: 'GenuineCI Team'),
-                        el('span', cls: 'sample-badge', text: 'サンプル記事'),
                       ],
                     ),
                   ],
@@ -551,14 +518,15 @@ class BlogArticlePage extends StatelessComponent {
                                       cls: 'article-code-label',
                                       children: [
                                         icon('terminal'),
-                                        el('span', text: 'workflow.dart'),
+                                        el('span', text: section.codeLabel),
                                       ],
                                     ),
                                     el(
                                       'pre',
                                       attrs: {
                                         'tabindex': '0',
-                                        'aria-label': 'Dartワークフローのコード例',
+                                        'aria-label':
+                                            '${section.codeLabel}のコード例',
                                       },
                                       children: [
                                         RawText(
@@ -568,11 +536,12 @@ class BlogArticlePage extends StatelessComponent {
                                     ),
                                   ],
                                 ),
-                                el(
-                                  'p',
-                                  cls: 'code-caption',
-                                  text: '処理部分の抜粋です。初期化・importは省略しています。',
-                                ),
+                                if (section.codeCaption != null)
+                                  el(
+                                    'p',
+                                    cls: 'code-caption',
+                                    text: section.codeCaption,
+                                  ),
                               ],
                             ],
                           ),
@@ -583,9 +552,22 @@ class BlogArticlePage extends StatelessComponent {
                           attrs: {'aria-hidden': 'true'},
                         ),
                         el(
-                          'p',
-                          cls: 'article-disclaimer',
-                          text: 'この記事はデザイン確認用のサンプルです。正式な製品ドキュメントではありません。',
+                          'div',
+                          cls: 'article-source-links',
+                          children: [
+                            link(
+                              'GitHubでv2.1.0のリリースノートを見る',
+                              'https://github.com/openci-org/openci/releases/tag/v2.1.0',
+                              cls: 'text-link',
+                              arrow: 'external',
+                            ),
+                            link(
+                              'v2.0.0からの全差分を見る',
+                              'https://github.com/openci-org/openci/compare/v2.0.0...v2.1.0',
+                              cls: 'text-link',
+                              arrow: 'external',
+                            ),
+                          ],
                         ),
                         link(
                           'GenuineCI を詳しく見る',
@@ -599,23 +581,24 @@ class BlogArticlePage extends StatelessComponent {
                 ),
               ],
             ),
-            el(
-              'section',
-              cls: 'wrap article-next',
-              attrs: {'aria-label': '次の記事'},
-              children: [
-                el('p', cls: 'eyebrow', text: 'READ NEXT'),
-                el(
-                  'a',
-                  attrs: {'href': nextPost.url},
-                  children: [
-                    el('h2', text: nextPost.title.replaceAll('\n', '')),
-                    icon('arrow'),
-                  ],
-                ),
-                link('すべての記事を見る', '/blog/', cls: 'back-to-blog'),
-              ],
-            ),
+            if (nextPost != null)
+              el(
+                'section',
+                cls: 'wrap article-next',
+                attrs: {'aria-label': '次の記事'},
+                children: [
+                  el('p', cls: 'eyebrow', text: 'READ NEXT'),
+                  el(
+                    'a',
+                    attrs: {'href': nextPost.url},
+                    children: [
+                      el('h2', text: nextPost.title.replaceAll('\n', '')),
+                      icon('arrow'),
+                    ],
+                  ),
+                  link('すべての記事を見る', '/blog/', cls: 'back-to-blog'),
+                ],
+              ),
           ],
         ),
         blogFooter(),

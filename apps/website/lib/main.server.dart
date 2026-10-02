@@ -6,6 +6,7 @@ import 'package:jaspr/server.dart';
 import 'package:jaspr_router/jaspr_router.dart';
 
 import 'components/html.dart';
+import 'components/social_metadata.dart';
 import 'pages/blog_page.dart';
 import 'pages/landing_page.dart';
 
@@ -14,11 +15,11 @@ void main() {
   final favicon = base64Encode(File('web/favicon.png').readAsBytesSync());
   runApp(
     Document(
-      title: 'GenuineCI — Flutter & Dartに、本物のCIを。',
+      title: siteTitle,
       lang: 'ja',
       base: null,
       meta: {
-        'description': 'Dartで書かれたFlutter & Dart専用のオープンソースCI。ワークフローもDartで定義。Apple Silicon M1〜M4に対応し、セルフホストも可能です。',
+        'description': siteDescription,
         'theme-color': '#fffb00',
         'robots': 'noindex, nofollow',
       },
@@ -43,6 +44,12 @@ void main() {
       body: el(
         'div',
         children: [
+          const Document.html(
+            attributes: {
+              'prefix':
+                  'og: https://ogp.me/ns# article: https://ogp.me/ns/article#',
+            },
+          ),
           Router(
             routes: [
               Route(

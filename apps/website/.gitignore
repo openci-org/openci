@@ -1,3 +1,5 @@
 .dart_tool/
 build/
 lib/*.options.dart
+.firebase/
+firebase-debug.log*

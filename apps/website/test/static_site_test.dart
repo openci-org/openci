@@ -9,9 +9,7 @@ void main() {
   const routes = [
     '/',
     '/blog/',
-    '/blog/why/',
-    '/blog/workflows/',
-    '/blog/self-host/',
+    '/blog/v2-1-0/',
   ];
   final pages = <String, Document>{};
 
@@ -71,16 +69,88 @@ void main() {
       (page) => page.querySelector('title')!.text,
     );
     expect(titles.toSet(), hasLength(routes.length));
-    final code = pages['/blog/workflows/']!.querySelector(
+    final code = pages['/blog/v2-1-0/']!.querySelector(
       '.article-code code',
     )!;
     expect(
       const LineSplitter().convert(code.text),
       [
-        "await ci.run('flutter pub get');",
-        'await ci.flutter.staticAnalysis();',
-        'await ci.flutter.unitTests();',
+        "await ci.flutter.buildApk(flavor: 'staging');",
+        "await ci.flutter.buildAab(flavor: 'production');",
       ],
     );
+  });
+
+  test('social cards use the public URL and the release banner', () {
+    const imageUrl = 'https://genuineci.com/ogp/v2-1-0.jpg?v=2';
+    for (final entry in pages.entries) {
+      final page = entry.value;
+      String content(String selector) {
+        final elements = page.querySelectorAll(selector);
+        expect(elements, hasLength(1), reason: '${entry.key}: $selector');
+        return elements.single.attributes['content']!;
+      }
+
+      final properties = page
+          .querySelectorAll('meta[property]')
+          .map((element) => element.attributes['property']);
+      expect(properties.toSet(), hasLength(properties.length));
+      final title = page.querySelector('title')!.text;
+      final description = content('meta[name="description"]');
+      final url = 'https://genuineci.com${entry.key}';
+      expect(content('meta[property="og:title"]'), title);
+      expect(content('meta[property="og:description"]'), description);
+      expect(content('meta[property="og:url"]'), url);
+      expect(
+        page.querySelector('link[rel="canonical"]')!.attributes['href'],
+        url,
+      );
+      expect(
+        content('meta[property="og:type"]'),
+        entry.key == '/blog/v2-1-0/' ? 'article' : 'website',
+      );
+      expect(content('meta[property="og:image"]'), imageUrl);
+      expect(content('meta[property="og:image:type"]'), 'image/jpeg');
+      expect(content('meta[property="og:image:width"]'), '1200');
+      expect(content('meta[property="og:image:height"]'), '630');
+      expect(content('meta[property="og:image:alt"]'), contains('v2.1.0'));
+      expect(content('meta[property="og:locale"]'), 'ja_JP');
+      expect(content('meta[name="twitter:card"]'), 'summary_large_image');
+      expect(content('meta[name="twitter:title"]'), title);
+      expect(content('meta[name="twitter:description"]'), description);
+      expect(content('meta[name="twitter:image"]'), imageUrl);
+      expect(content('meta[name="twitter:image:alt"]'), contains('v2.1.0'));
+    }
+    expect(
+      File('build/jaspr/ogp/v2-1-0.jpg').readAsBytesSync(),
+      File('web/ogp/v2-1-0.jpg').readAsBytesSync(),
+    );
+  });
+
+  test('the blog contains the release article without sample content', () {
+    final blog = pages['/blog/']!;
+    final article = pages['/blog/v2-1-0/']!;
+    expect(blog.querySelectorAll('[data-article-category]'), hasLength(1));
+    expect(blog.querySelector('[data-article-count]')!.text, '01 ARTICLE');
+    expect(article.querySelector('time')!.attributes['datetime'], '2026-10-02');
+    expect(article.querySelector('.article-next'), isNull);
+    expect(
+      article
+          .querySelectorAll('.article-source-links a')
+          .map(
+            (anchor) => anchor.attributes['href'],
+          ),
+      [
+        'https://github.com/openci-org/openci/releases/tag/v2.1.0',
+        'https://github.com/openci-org/openci/compare/v2.0.0...v2.1.0',
+      ],
+    );
+    for (final slug in ['why', 'workflows', 'self-host']) {
+      expect(File('build/jaspr/blog/$slug/index.html').existsSync(), isFalse);
+    }
+    for (final page in [blog, article]) {
+      expect(page.body!.text, isNot(contains('サンプル')));
+      expect(page.body!.text, isNot(contains('DESIGN SAMPLE')));
+    }
   });
 }
