@@ -7,11 +7,13 @@ Future<void> main() async {
       CITrigger.pullRequest(branch: 'develop'),
       CITrigger.push(branch: 'develop'),
     ],
-    // This app resolves its Jaspr dependencies outside the root Pub workspace.
     currentWorkingDirectory: 'apps/website',
   );
 
-  await openCI.run('dart pub get --enforce-lockfile');
+  await openCI.run(
+    'flutter pub get --enforce-lockfile',
+    workingDirectory: '.',
+  );
   await openCI.run('dart format --output=none --set-exit-if-changed lib test');
   await openCI.run('dart analyze --fatal-infos');
   await openCI.run('dart run jaspr_cli:jaspr build --port 62841');

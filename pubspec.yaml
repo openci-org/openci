@@ -2,7 +2,7 @@ name: openci
 publish_to: none
 
 environment:
-  sdk: ^3.11.5
+  sdk: ^3.13.0
 
 workspace:
   - apps/dashboard
@@ -10,6 +10,7 @@ workspace:
   - apps/build_job_worker
   - apps/openci_cli
   - apps/openci_server
+  - apps/website
   - openci
   - packages/openci_workflow
   - packages/macos_updater
@@ -17,5 +18,11 @@ workspace:
   - packages/pubspec_version_hook
 
 dependency_overrides:
-  analyzer: 10.0.1
-  dart_style: 3.1.7
+  # drift_dev 2.33.0 requests ^0.4.0; Jaspr CLI needs ^0.5.0.
+  cli_util: ^0.5.0
+  # Preserve generated timeouts on Dart 3.13 until Chopper #729 is released.
+  chopper_generator:
+    git:
+      url: https://github.com/lejard-h/chopper.git
+      ref: 671aaba028ef42a91c7f9dcef64cfb0f2139424b
+      path: chopper_generator

@@ -4,10 +4,12 @@
 
 Open this repository in VS Code with `openci.code-workspace`. The root
 `pubspec.yaml` lists the Dart workspace packages, including the `openci_cli`,
-`openci_server`, and `openci_workflow` packages. Repository workflow definitions
-live in `openci/`; the CLI discovers the same directory in user projects.
+`openci_server`, `openci_workflow`, and `genuineci_website` packages. Repository
+workflow definitions live in `openci/`; the CLI discovers the same directory in
+user projects.
 
-Install dependencies and run the workspace checks from the repository root:
+Use Flutter 3.47.x with Dart 3.13.x. Install dependencies and run the workspace
+checks from the repository root:
 
 ```sh
 flutter pub get
