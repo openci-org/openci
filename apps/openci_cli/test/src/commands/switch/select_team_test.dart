@@ -212,7 +212,7 @@ void main() {
   );
 
   test(
-    'non-interactive and empty inputs do not touch the console or keys',
+    'rejects non-interactive input and ignores empty candidates without touching the console or keys',
     () async {
       var subscribed = false;
       final input = StreamController<Key>.broadcast(
@@ -222,16 +222,21 @@ void main() {
         (teams, false),
         (<Team>[], true),
       ]) {
-        expect(
-          await selectTeam(
-            teams: candidates,
-            currentTeamId: teams.first.id,
-            console: console,
-            keys: input.stream,
-            hasTerminal: hasTerminal,
-          ),
-          isNull,
+        final selection = selectTeam(
+          teams: candidates,
+          currentTeamId: teams.first.id,
+          console: console,
+          keys: input.stream,
+          hasTerminal: hasTerminal,
         );
+        if (hasTerminal) {
+          expect(await selection, isNull);
+        } else {
+          await expectLater(
+            selection,
+            throwsA(isA<NonInteractiveTerminalException>()),
+          );
+        }
       }
       expect(subscribed, isFalse);
       expect(console.output.toString(), isEmpty);

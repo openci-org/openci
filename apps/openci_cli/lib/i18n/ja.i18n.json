@@ -79,21 +79,24 @@
   "switchCommand": {
     "description": "OpenCIで使用するチームを切り替えます。",
     "team": {
-      "description": "現在のプロファイルで使用するチームを切り替えます。",
+      "description": "現在のプロファイルで使用するチームを対話式で切り替えます。",
       "noArguments": "switch teamに位置引数は指定できません。",
       "loginRequired": "チームを切り替える前に、openci login（またはopenci login --local）を実行してください。",
+      "authenticationFailed": "認証に失敗しました（HTTP ${status}）。使用中のサーバーにopenci login（またはopenci login --local）で再度ログインしてください。",
       "requestFailed": "チーム一覧を取得できませんでした（HTTP ${status}）。",
-      "fetchFailed": "チーム一覧を取得できませんでした。サーバー接続とレスポンスを確認してください。",
+      "fetchFailed": "チーム一覧を取得できませんでした。現在のプロファイルのサーバーURLとネットワーク接続を確認してください。",
+      "invalidResponse": "サーバーから不正なチーム一覧が返されました。現在のプロファイルが対応するOpenCIサーバーを指しているか確認してください。",
       "empty": "所属するチームがありません。ダッシュボードでチームを作成するか、チームに参加してください。",
       "prompt": "チームを選択",
       "current": "現在のチーム",
       "controls": "上下キー: 移動 / Enter: 選択 / Esc・Ctrl+C: キャンセル",
-      "cancelled": "チームは選択されませんでした。対話可能な端末でチームを選択してください。",
+      "cancelled": "チームの切り替えをキャンセルしました。チームは保存していません。",
+      "nonInteractive": "チーム切り替えにはANSI対応の対話可能な端末が必要です。入力のパイプや出力のリダイレクトを外してopenci switch teamを実行してください。",
       "inputFailed": "チームを選択できませんでした。対話可能な端末で再試行してください。",
       "success": "${team}に切り替えました。",
       "alreadyCurrent": "${team}は現在のチームです。",
-      "profileChanged": "選択中に現在のプロファイルまたは認証情報が変更されました。openci switch teamを再実行してください。",
-      "saveFailed": "選択したチームを保存できませんでした。認証情報ファイルの権限を確認して再試行してください。"
+      "profileChanged": "選択中に現在のプロファイルまたは認証情報が変更されました。選択したチームは保存していません。openci switch teamを再実行してください。",
+      "saveFailed": "選択したチームを保存できませんでした。認証情報ファイル、権限、ディスクの空き容量を確認して再試行してください。"
     }
   },
   "use": {

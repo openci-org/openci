@@ -79,21 +79,24 @@
   "switchCommand": {
     "description": "Switch the active team in OpenCI.",
     "team": {
-      "description": "Switch the team used by the active profile.",
+      "description": "Interactively switch the team used by the active profile.",
       "noArguments": "switch team does not accept positional arguments.",
       "loginRequired": "Run openci login (or openci login --local) before switching teams.",
+      "authenticationFailed": "Authentication failed (HTTP ${status}). Log in again with openci login (or openci login --local) for the active server.",
       "requestFailed": "Could not fetch teams (HTTP ${status}).",
-      "fetchFailed": "Could not fetch teams. Check the server connection and response.",
+      "fetchFailed": "Could not fetch teams. Check the active profile's server URL and network connection.",
+      "invalidResponse": "The server returned an invalid team list. Check that the active profile points to a compatible OpenCI server.",
       "empty": "No teams found. Create or join a team in the dashboard first.",
       "prompt": "Select a team",
       "current": "current",
       "controls": "Up/Down: move / Enter: select / Esc, Ctrl+C: cancel",
-      "cancelled": "No team was selected. Choose a team in an interactive terminal.",
+      "cancelled": "Team switching cancelled. No team was saved.",
+      "nonInteractive": "Team switching requires an interactive terminal with ANSI support. Run openci switch team without piping input or redirecting output.",
       "inputFailed": "Could not select a team. Retry in an interactive terminal.",
       "success": "Switched to ${team}.",
       "alreadyCurrent": "Already using ${team}.",
-      "profileChanged": "The active profile or its credentials changed. Run openci switch team again.",
-      "saveFailed": "Could not save the selected team. Check the credentials file permissions and retry."
+      "profileChanged": "The active profile or its credentials changed during selection. The selected team was not saved. Run openci switch team again.",
+      "saveFailed": "Could not save the selected team. Check the credentials file, its permissions, and available disk space, then retry."
     }
   },
   "use": {

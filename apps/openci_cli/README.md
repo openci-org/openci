@@ -25,6 +25,61 @@ tokens. Credentials, including the refresh token, are stored in the `openci`
 application config directory with owner-only permissions on macOS/Linux. If you
 previously used `genuineci`, log in again; its credentials are not migrated.
 
+Switch the active profile's team without logging in again:
+
+```sh
+openci switch team
+```
+
+The CLI fetches your team memberships from the server saved in the active
+credential profile. A `remote` profile uses the HTTPS URL saved by `openci login`,
+including any `--server` override. A `local` profile created by
+`openci login --local` uses `http://localhost:8080` and its saved Auth Emulator
+settings. To activate the remote or local profile, run the corresponding login
+command first.
+
+The picker shows each team's name and ID, with `*` marking the saved current
+team and `>` marking the highlighted choice. It starts on the current team if
+that team is still available, otherwise on the first candidate.
+
+- Use the up/down arrow keys to move; navigation wraps at either end.
+- Press Enter to confirm, even if only one team is available.
+- Press Esc or Ctrl+C, or end the input, to cancel.
+
+Confirmation updates only the active profile's `teamId`. The `remote` and
+`local` profiles each keep their own current team; selecting a team updates
+the existing profile. Server and Auth Emulator settings, refreshed tokens, and
+other profiles are preserved. Choosing the current team succeeds without a
+write. Cancellation or a failed save preserves the previous selected team.
+Expiring authentication tokens may still be refreshed before the picker opens.
+If the active profile or its credentials change during selection, the CLI
+refuses to overwrite them and asks you to run `openci switch team` again.
+
+Subsequent `openci list secrets`, `openci register secret`,
+`openci register secretFile`, and `openci sync secrets` commands use the newly
+selected team. Existing `openci/secrets.g.dart` files are updated by running
+`openci sync secrets` in the workflow project.
+
+Team switching requires interactive stdin and stdout with ANSI support. Run it
+directly in a terminal, without piped input or redirected output. Success and
+unchanged-selection messages go to stdout; errors and cancellations go to
+stderr and return a nonzero exit code.
+
+Troubleshooting team selection:
+
+| Condition | What to check |
+| --- | --- |
+| Login required or HTTP 401/403 | Log in again for the intended server with `openci login` or `openci login --local`. |
+| No team memberships | Create or join a team in the dashboard for that server. |
+| Interactive terminal required | Use an ANSI-capable terminal with interactive stdin and stdout; remove pipes and output redirection. |
+| HTTP error or connection failure | Check the active profile's server URL and network connection. For local development, check that `openci dev start` is running. |
+| Invalid team list | Check that the saved server URL points to a compatible OpenCI API. |
+| Changed profile or credentials | Run `openci switch team` again using the current authentication. |
+| Save failure | Check the credentials file, its permissions, and available disk space. |
+
+Choose English or Japanese messages with `openci use english` or
+`openci use japanese`. The language setting is saved for future invocations.
+
 List secret names for the active profile's team:
 
 ```sh
