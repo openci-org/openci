@@ -6,6 +6,7 @@ import 'commands/dev/dev_command.dart';
 import 'commands/list/list_command.dart';
 import 'commands/login_command.dart';
 import 'commands/register/register_command.dart';
+import 'commands/switch/switch_command.dart';
 import 'commands/sync/sync_command.dart';
 import 'commands/use_command.dart';
 import 'i18n/i18n.dart';
@@ -30,6 +31,7 @@ class OpenCICommandRunner extends CommandRunner<int> {
     addCommand(LoginCommand(logger: _logger));
     addCommand(ListCommand(logger: _logger));
     addCommand(RegisterCommand(logger: _logger));
+    addCommand(SwitchCommand(logger: _logger));
     addCommand(UseCommand(logger: _logger));
     addCommand(DevCommand(logger: _logger));
     addCommand(SyncCommand(logger: _logger));

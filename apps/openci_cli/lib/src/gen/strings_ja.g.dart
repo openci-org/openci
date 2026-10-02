@@ -42,6 +42,7 @@ class TranslationsJa extends Translations with BaseTranslations<AppLocale, Trans
 	@override late final _Translations$login$ja login = _Translations$login$ja._(_root);
 	@override late final _Translations$list$ja list = _Translations$list$ja._(_root);
 	@override late final _Translations$register$ja register = _Translations$register$ja._(_root);
+	@override late final _Translations$switchCommand$ja switchCommand = _Translations$switchCommand$ja._(_root);
 	@override late final _Translations$use$ja use = _Translations$use$ja._(_root);
 	@override late final _Translations$dev$ja dev = _Translations$dev$ja._(_root);
 	@override late final _Translations$sync$ja sync = _Translations$sync$ja._(_root);
@@ -113,6 +114,17 @@ class _Translations$register$ja extends Translations$register$en {
 	@override String get description => 'OpenCIにリソースを登録します。';
 	@override late final _Translations$register$secret$ja secret = _Translations$register$secret$ja._(_root);
 	@override late final _Translations$register$secretFile$ja secretFile = _Translations$register$secretFile$ja._(_root);
+}
+
+// Path: switchCommand
+class _Translations$switchCommand$ja extends Translations$switchCommand$en {
+	_Translations$switchCommand$ja._(TranslationsJa root) : this._root = root, super.internal(root);
+
+	final TranslationsJa _root; // ignore: unused_field
+
+	// Translations
+	@override String get description => 'OpenCIで使用するチームを切り替えます。';
+	@override late final _Translations$switchCommand$team$ja team = _Translations$switchCommand$team$ja._(_root);
 }
 
 // Path: use
@@ -236,6 +248,18 @@ class _Translations$register$secretFile$ja extends Translations$register$secretF
 	@override String get inputFailed => 'ファイルを選択できませんでした。対話可能な端末で再試行してください。';
 	@override String get readFailed => '選択したファイルを読み取れませんでした。通常のファイルであることと読み取り権限を確認してください。';
 	@override String get emptyFile => '選択したファイルは空です。シークレットは登録されませんでした。';
+}
+
+// Path: switchCommand.team
+class _Translations$switchCommand$team$ja extends Translations$switchCommand$team$en {
+	_Translations$switchCommand$team$ja._(TranslationsJa root) : this._root = root, super.internal(root);
+
+	final TranslationsJa _root; // ignore: unused_field
+
+	// Translations
+	@override String get description => '現在のプロファイルで使用するチームを切り替えます。';
+	@override String get noArguments => 'switch teamに位置引数は指定できません。';
+	@override String get unavailable => 'チーム切り替えはまだ利用できません。';
 }
 
 // Path: dev.start
@@ -381,6 +405,10 @@ extension on TranslationsJa {
 			'register.secretFile.inputFailed' => 'ファイルを選択できませんでした。対話可能な端末で再試行してください。',
 			'register.secretFile.readFailed' => '選択したファイルを読み取れませんでした。通常のファイルであることと読み取り権限を確認してください。',
 			'register.secretFile.emptyFile' => '選択したファイルは空です。シークレットは登録されませんでした。',
+			'switchCommand.description' => 'OpenCIで使用するチームを切り替えます。',
+			'switchCommand.team.description' => '現在のプロファイルで使用するチームを切り替えます。',
+			'switchCommand.team.noArguments' => 'switch teamに位置引数は指定できません。',
+			'switchCommand.team.unavailable' => 'チーム切り替えはまだ利用できません。',
 			'use.description' => '表示言語を設定します（japanese, english）。',
 			'use.success' => ({required Object language}) => '言語を${language}に設定しました。',
 			'use.invalidLanguage' => ({required Object input}) => '無効な言語です: 「${input}」。対応言語: japanese, english',
