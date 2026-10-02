@@ -30,14 +30,11 @@ For workflow authoring and local development commands, see the
 ## GenuineCI website
 
 The Jaspr landing page and blog live in [`apps/website`](apps/website/README.md).
-They share the root Pub workspace and `pubspec.lock`; root `flutter pub get`
-installs the website dependencies too. The workspace resolves analyzer 12 for
-Jaspr and the other code generators. Freezed is pinned to the analyzer 12
-compatible prerelease `3.2.6-dev.1`. The root overrides pin Chopper's merged
-[timeout compatibility fix](https://github.com/lejard-h/chopper/pull/729) until
-it is published, and use `cli_util` 0.5.x to reconcile Jaspr CLI's requirement
-with Drift's older constraint.
-The site is a design preview, with sample articles and indexing disabled.
+They use a separate Dart dependency resolution because the Jaspr builders require
+analyzer 12 while the root workspace pins analyzer 10. Run `dart pub get` from
+`apps/website`; root `flutter pub get` does not install the website dependencies.
+The blog includes the v2.1.0 release article. The landing page still uses sample
+build data, and indexing remains disabled.
 
 ## v2.0.0 device enrollment
 

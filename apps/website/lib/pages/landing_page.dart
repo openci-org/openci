@@ -3,6 +3,7 @@ import 'package:jaspr/dom.dart' show RawText;
 
 import '../components/dart_code.dart';
 import '../components/html.dart';
+import '../components/social_metadata.dart';
 
 class LandingPage extends StatelessComponent {
   const LandingPage({super.key});
@@ -11,6 +12,7 @@ class LandingPage extends StatelessComponent {
   Component build(BuildContext context) => el(
     'div',
     children: [
+      socialMetadata(title: siteTitle, description: siteDescription, path: '/'),
       link('本文へスキップ', '#main', cls: 'skip-link'),
       el(
         'div',

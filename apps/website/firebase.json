@@ -1,0 +1,34 @@
+{
+  "hosting": {
+    "target": "website",
+    "public": "build/jaspr",
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+    "predeploy": [
+      "cd \"$PROJECT_DIR\" && dart --suppress-analytics pub get --enforce-lockfile",
+      "cd \"$PROJECT_DIR\" && dart --suppress-analytics run jaspr_cli:jaspr build --port 62841",
+      "cd \"$PROJECT_DIR\" && dart --suppress-analytics test"
+    ],
+    "cleanUrls": true,
+    "headers": [
+      {
+        "source": "**",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "public, max-age=0, must-revalidate"
+          }
+        ]
+      }
+    ]
+  },
+  "emulators": {
+    "hosting": {
+      "host": "127.0.0.1",
+      "port": 62843
+    },
+    "ui": {
+      "enabled": false
+    },
+    "singleProjectMode": true
+  }
+}

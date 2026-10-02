@@ -1,8 +1,11 @@
 # GenuineCI website
 
 Jasprで実装したGenuineCIのLPとブログです。ブランドカラーは **#FFFB00** と黒。
-ブログ本文・日付・読了時間、LPのビルド結果はデザイン確認用のサンプルです。
+ブログには2026年10月2日公開のv2.1.0リリース記事を掲載しています。
+LPのビルド結果はデザイン確認用のサンプルです。
 全ページに `noindex, nofollow` を設定しています。
+LP・ブログ一覧・記事にOGPとXの `summary_large_image` を設定しています。
+公開URLは `https://genuineci.com` です。
 
 ## 開発・プレビュー
 
@@ -21,9 +24,7 @@ dart run jaspr_cli:jaspr serve --port 8081
 
 - `/`: LP
 - `/blog/`: ブログ一覧（注目記事・カテゴリ絞り込み）
-- `/blog/why/`: 「Flutter & Dartに、本物のCIを。」
-- `/blog/workflows/`: 「ワークフローも、Dartで書こう。」
-- `/blog/self-host/`: 「自分のMacで、CIを動かすという選択。」
+- `/blog/v2-1-0/`: 「GenuineCI v2.1.0 をリリースしました。」
 
 このアプリはrootのPub workspaceに含まれ、rootの `pubspec.lock` を共有します。
 rootでの `flutter pub get` でこのアプリの依存関係も取得できます。
@@ -48,20 +49,43 @@ CSS・操作用JavaScript・faviconはHTMLにも埋め込み、外部フォン�
 `openci/website_ci.dart` はdevelopへのPRとpushで、依存取得・フォーマット・
 静的解析・静的サイト生成・生成HTMLのテストを実行します。公開先を切り替える処理は含みません。
 
+## Firebase Hosting
+
+`genuineci.com` はFirebaseプロジェクト `openci-b1b91` のHostingサイト
+`genuineci-website` に接続されています。`firebase.json` と `.firebaserc` で
+`website` ターゲットの公開先を指定し、`build/jaspr/` を配信します。
+ブログ一覧と記事は、それぞれの生成HTMLを配信します。
+
+Firebase CLIのGoogleログインとDart 3.13.xが必要です。
+このディレクトリから実行してください。
+
+```sh
+firebase deploy --only hosting:website --project openci-b1b91
+```
+
+デプロイ前に依存取得・静的ビルド・生成HTMLのテストを自動実行し、
+失敗した場合は公開を中止します。
+公開先は `https://genuineci.com/`、Hosting標準URLは
+`https://genuineci-website.web.app/` です。
+
 ## 構成
 
 - `lib/main.server.dart`: ルーティングとHTMLメタ情報
 - `lib/pages/landing_page.dart`: LP
 - `lib/pages/blog_page.dart`: ブログ一覧・記事本文・記事ページ
 - `lib/components/`: HTMLヘルパーとDartコード表示
+- `lib/components/social_metadata.dart`: canonical・OGP・X Cardの共通メタ情報
 - `web/site.css`, `web/blog.css`: 共通・各ページのスタイル
 - `web/site.js`, `web/blog.js`: ワークフロー例切り替え・カテゴリ絞り込み
 - `web/favicon.png`: 提供された `Favicon(1).png` を加工せず使用
+- `web/ogp/v2-1-0.jpg`: 記事の黄色いバナーを書き出した1200×630の共有用画像。共有用の見出しは左余白を120pxに調整し、OGP・Xの画像URLには `?v=2` を付けています。
+- `firebase.json`, `.firebaserc`: `genuineci-website` への公開設定
 
 ## 公開前に確認すること
 
-- サンプル記事、日付、読了時間とビルド画面のサンプル値を公開用に整える。
+- LPのビルド画面のサンプル値を公開用に整える。
 - `noindex, nofollow` を公開方針に合わせて変更する。
+- `https://genuineci.com` の記事URLと `/ogp/v2-1-0.jpg` を外部から取得できることを確認する。
 - `https://github.com/openci-org/openci` と `https://dashboard.openci.org/` の
   導線を正式なGenuineCIのURLに合わせて確認する。
 
