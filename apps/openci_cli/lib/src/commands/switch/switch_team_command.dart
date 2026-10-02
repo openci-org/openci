@@ -36,8 +36,9 @@ class SwitchTeamCommand extends Command<int> {
       usageException(t.switchCommand.team.noArguments);
     }
 
-    final profile = await _readProfile();
-    if (profile == null) return 1;
+    final authenticated = await _readProfile();
+    if (authenticated == null) return 1;
+    final profile = authenticated.profile;
 
     final client = createOpenCIChopperClient(
       baseUrl: profile.serverUrl,
@@ -80,11 +81,49 @@ class SwitchTeamCommand extends Command<int> {
       _logger.stderr(t.switchCommand.team.cancelled);
       return 1;
     }
-    _logger.stderr(t.switchCommand.team.unavailable);
-    return 1;
+    return _saveTeam(authenticated, selected);
   }
 
-  Future<AuthProfile?> _readProfile() async {
+  Future<int> _saveTeam(
+    ({String name, AuthProfile profile}) authenticated,
+    Team selected,
+  ) async {
+    final label = '${selected.name} (${selected.id})'.replaceAllMapped(
+      RegExp(r'[\x00-\x1f\x7f-\x9f]'),
+      (match) =>
+          '\\x${match[0]!.codeUnitAt(0).toRadixString(16).padLeft(2, '0')}',
+    );
+    try {
+      final current = await _credentialStore.get();
+      if (current.activeProfile != authenticated.name ||
+          current.profiles[authenticated.name] != authenticated.profile) {
+        _logger.stderr(t.switchCommand.team.profileChanged);
+        return 1;
+      }
+      if (selected.id == authenticated.profile.teamId) {
+        _logger.stdout(t.switchCommand.team.alreadyCurrent(team: label));
+        return 0;
+      }
+      await _credentialStore.set(
+        current.copyWith(
+          profiles: {
+            ...current.profiles,
+            authenticated.name: authenticated.profile.copyWith(
+              teamId: selected.id,
+            ),
+          },
+        ),
+      );
+    } catch (_) {
+      // File errors can contain credentials; do not print their details.
+      _logger.stderr(t.switchCommand.team.saveFailed);
+      return 1;
+    }
+    _logger.stdout(t.switchCommand.team.success(team: label));
+    return 0;
+  }
+
+  Future<({String name, AuthProfile profile})?> _readProfile() async {
     try {
       final profile = await readAuthenticatedProfile(_credentialStore);
       final server = Uri.tryParse(profile?.serverUrl ?? '');
@@ -97,7 +136,12 @@ class SwitchTeamCommand extends Command<int> {
           server.userInfo.isEmpty &&
           !server.hasQuery &&
           !server.hasFragment) {
-        return profile;
+        final current = await _credentialStore.get();
+        if (current.profiles[current.activeProfile] != profile) {
+          _logger.stderr(t.switchCommand.team.profileChanged);
+          return null;
+        }
+        return (name: current.activeProfile, profile: profile);
       }
     } catch (_) {
       // Credential errors can contain tokens; do not print them.

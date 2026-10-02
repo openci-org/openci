@@ -426,8 +426,17 @@ class Translations$switchCommand$team$en {
 	/// en: 'Could not select a team. Retry in an interactive terminal.'
 	String get inputFailed => 'Could not select a team. Retry in an interactive terminal.';
 
-	/// en: 'Team switching is not available yet.'
-	String get unavailable => 'Team switching is not available yet.';
+	/// en: 'Switched to ${team}.'
+	String success({required Object team}) => 'Switched to ${team}.';
+
+	/// en: 'Already using ${team}.'
+	String alreadyCurrent({required Object team}) => 'Already using ${team}.';
+
+	/// en: 'The active profile or its credentials changed. Run openci switch team again.'
+	String get profileChanged => 'The active profile or its credentials changed. Run openci switch team again.';
+
+	/// en: 'Could not save the selected team. Check the credentials file permissions and retry.'
+	String get saveFailed => 'Could not save the selected team. Check the credentials file permissions and retry.';
 }
 
 // Path: dev.start
@@ -664,7 +673,10 @@ extension on Translations {
 			'switchCommand.team.controls' => 'Up/Down: move / Enter: select / Esc, Ctrl+C: cancel',
 			'switchCommand.team.cancelled' => 'No team was selected. Choose a team in an interactive terminal.',
 			'switchCommand.team.inputFailed' => 'Could not select a team. Retry in an interactive terminal.',
-			'switchCommand.team.unavailable' => 'Team switching is not available yet.',
+			'switchCommand.team.success' => ({required Object team}) => 'Switched to ${team}.',
+			'switchCommand.team.alreadyCurrent' => ({required Object team}) => 'Already using ${team}.',
+			'switchCommand.team.profileChanged' => 'The active profile or its credentials changed. Run openci switch team again.',
+			'switchCommand.team.saveFailed' => 'Could not save the selected team. Check the credentials file permissions and retry.',
 			'use.description' => 'Set the default display language (japanese, english).',
 			'use.success' => ({required Object language}) => 'Language set to ${language}.',
 			'use.invalidLanguage' => ({required Object input}) => 'Invalid language "${input}". Supported languages: japanese, english.',
