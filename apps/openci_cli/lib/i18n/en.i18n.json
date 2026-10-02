@@ -76,6 +76,14 @@
       "emptyFile": "The selected file is empty. No secret was registered."
     }
   },
+  "switchCommand": {
+    "description": "Switch the active team in OpenCI.",
+    "team": {
+      "description": "Switch the team used by the active profile.",
+      "noArguments": "switch team does not accept positional arguments.",
+      "unavailable": "Team switching is not available yet."
+    }
+  },
   "use": {
     "description": "Set the default display language (japanese, english).",
     "success": "Language set to ${language}.",
