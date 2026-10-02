@@ -2,6 +2,7 @@ name: genuineci_website
 description: GenuineCI marketing site and blog, built with Jaspr.
 publish_to: none
 version: 0.1.0
+resolution: workspace
 
 environment:
   sdk: ^3.13.0
@@ -16,7 +17,7 @@ dev_dependencies:
   jaspr_builder: 0.23.4
   jaspr_cli: 0.23.4
   html: ^0.15.6
-  lints: ^5.1.1
+  lints: ^6.0.0
   test: ^1.26.0
 
 jaspr:

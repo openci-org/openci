@@ -4,10 +4,12 @@
 
 Open this repository in VS Code with `openci.code-workspace`. The root
 `pubspec.yaml` lists the Dart workspace packages, including the `openci_cli`,
-`openci_server`, and `openci_workflow` packages. Repository workflow definitions
-live in `openci/`; the CLI discovers the same directory in user projects.
+`openci_server`, `openci_workflow`, and `genuineci_website` packages. Repository
+workflow definitions live in `openci/`; the CLI discovers the same directory in
+user projects.
 
-Install dependencies and run the workspace checks from the repository root:
+Use Flutter 3.47.x with Dart 3.13.x. Install dependencies and run the workspace
+checks from the repository root:
 
 ```sh
 flutter pub get
@@ -28,9 +30,13 @@ For workflow authoring and local development commands, see the
 ## GenuineCI website
 
 The Jaspr landing page and blog live in [`apps/website`](apps/website/README.md).
-They use a separate Dart dependency resolution because the Jaspr builders require
-analyzer 12 while the root workspace pins analyzer 10. Run `dart pub get` from
-`apps/website`; root `flutter pub get` does not install the website dependencies.
+They share the root Pub workspace and `pubspec.lock`; root `flutter pub get`
+installs the website dependencies too. The workspace resolves analyzer 12 for
+Jaspr and the other code generators. Freezed is pinned to the analyzer 12
+compatible prerelease `3.2.6-dev.1`. The root overrides pin Chopper's merged
+[timeout compatibility fix](https://github.com/lejard-h/chopper/pull/729) until
+it is published, and use `cli_util` 0.5.x to reconcile Jaspr CLI's requirement
+with Drift's older constraint.
 The site is a design preview, with sample articles and indexing disabled.
 
 ## v2.0.0 device enrollment

@@ -11,7 +11,7 @@ resolution: workspace
 dependencies:
   args: ^2.7.0
   characters: ^1.4.0
-  cli_util: ^0.4.2
+  cli_util: ^0.5.0
   # Temporary fork until onepub-dev/dart_console#15 is released on pub.dev.
   dart_console:
     git:
@@ -28,12 +28,11 @@ dependencies:
   yaml: ^3.1.3
 
 dev_dependencies:
-  build_runner: ^2.16.0
-  freezed: ^3.2.5
+  build_runner: ^2.15.1
+  freezed: 3.2.6-dev.1
   json_serializable: ^6.14.1
   lints: ^6.0.0
   openci_workflow: ^0.1.0
-  slang_build_runner: ^4.19.0
   test: ^1.25.6
 
 executables:
