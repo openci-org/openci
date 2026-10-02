@@ -6,8 +6,8 @@ Jasprで実装したGenuineCIのLPとブログです。ブランドカラーは 
 
 ## 開発・プレビュー
 
-Dart **3.12.x** を使用してください（動作確認: 3.12.2）。
-`build_web_compilers 4.8.0` の対応範囲に合わせて、SDKの上限を3.13未満にしています。
+Dart **3.13.x** を使用してください（CI: 3.13.1、ローカル検証: 3.13.2）。
+`build_web_compilers 4.8.5` はDart 3.13とJasprのanalyzer 12依存に対応するため固定しています。
 
 ```sh
 cd apps/website

@@ -18,8 +18,7 @@ void main() {
       lang: 'ja',
       base: null,
       meta: {
-        'description':
-            'Dartで書かれたFlutter & Dart専用のオープンソースCI。ワークフローもDartで定義。Apple Silicon M1〜M4に対応し、セルフホストも可能です。',
+        'description': 'Dartで書かれたFlutter & Dart専用のオープンソースCI。ワークフローもDartで定義。Apple Silicon M1〜M4に対応し、セルフホストも可能です。',
         'theme-color': '#fffb00',
         'robots': 'noindex, nofollow',
       },

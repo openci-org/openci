@@ -438,8 +438,7 @@ class Features extends StatelessComponent {
           ),
           el(
             'p',
-            text:
-                'Genuineは「本物」。Flutter & Dartの開発者にとって、本当に使いたいCIをつくる。そのための、オープンソースプロジェクトです。',
+            text: 'Genuineは「本物」。Flutter & Dartの開発者にとって、本当に使いたいCIをつくる。そのための、オープンソースプロジェクトです。',
           ),
         ],
       ),
@@ -535,8 +534,7 @@ class Workflow extends StatelessComponent {
               ),
               el(
                 'p',
-                text:
-                    'ビルドやテストの手順を、Dartのコードで定義。関数、条件分岐、ループ。アプリ開発で使い慣れた書き方を、そのままCIにも。',
+                text: 'ビルドやテストの手順を、Dartのコードで定義。関数、条件分岐、ループ。アプリ開発で使い慣れた書き方を、そのままCIにも。',
               ),
               el(
                 'ul',

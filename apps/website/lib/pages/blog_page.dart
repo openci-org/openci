@@ -209,8 +209,7 @@ class BlogPage extends StatelessComponent {
     children: [
       Document.head(
         meta: {
-          'description':
-              'GenuineCIの思想、Dartで書くワークフロー、Apple Siliconとセルフホスト。つくる過程を伝えるブログのデザインモックです。',
+          'description': 'GenuineCIの思想、Dartで書くワークフロー、Apple Siliconとセルフホスト。つくる過程を伝えるブログのデザインモックです。',
         },
       ),
       link('本文へスキップ', '#main', cls: 'skip-link'),
@@ -417,8 +416,7 @@ const articleSections = <String, List<ArticleSection>>{
       [
         'パッケージを取得したら、静的解析を実行し、ユニットテストに進む。Flutterプロジェクトでおなじみの流れは、次のような処理で表現できます。',
       ],
-      code:
-          "await ci.run('flutter pub get');\nawait ci.flutter.staticAnalysis();\nawait ci.flutter.unitTests();",
+      code: "await ci.run('flutter pub get');\nawait ci.flutter.staticAnalysis();\nawait ci.flutter.unitTests();",
     ),
     ArticleSection('grow-with-code', 'ワークフローも、育てていくコード。', [
       '手順が増えてきたら、Dartの関数に分ける。何度も使う値には名前を付ける。アプリのコードと同じように、読みやすく整理しながら育てられるのが、プログラミング言語で定義する良さです。',
