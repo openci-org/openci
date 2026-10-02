@@ -31,17 +31,34 @@ rootでの `flutter pub get` でこのアプリの依存関係も取得できま
 Jasprと既存のコード生成ツールはanalyzer 12で依存解決します。
 VS Codeの `openci.code-workspace` には登録済みです。
 
+## 記事の編集・追加
+
+ブログは [`jaspr_content`](https://docs.jaspr.site/content/quick_start) で
+`content/blog/` のMarkdownを読み込みます。本文・記事情報・OGPは
+`content/blog/v2-1-0.md` のMarkdownとfrontmatterで編集できます。
+
+新しい記事は `content/blog/<slug>.md` を追加してください。
+`layout: blog-article`、`title`、`description`、`category`、`date`（`"YYYY-MM-DD"`）を
+frontmatterに指定すると、`/blog/<slug>/` のページとブログ一覧へ自動的に反映されます。
+一覧は日付の新しい順です。`author`、`readTime`、`coverLabel`、`coverTitle`、
+`image`、`imageAlt` も指定できます。
+
+本文・見出し・リストはJaspr Contentの標準タイポグラフィを使い、目次を見出しから生成します。
+Dartのコードフェンスには標準のシンタックスハイライトとコピー操作が付きます。
+`bash` などのコードは同じコードブロックで文字列をそのまま表示します。
+
 ## 検証・静的ビルド
 
 ```sh
 dart format --output=none --set-exit-if-changed lib test
-dart analyze --fatal-infos
 dart run jaspr_cli:jaspr build --port 62841
+dart analyze --fatal-infos
 dart test
 python3 -m http.server 8081 --bind 127.0.0.1 --directory build/jaspr
 ```
 
 `build/jaspr/` に各ルートの `index.html` と公開アセットが出力されます。
+ビルドで `main.client.options.dart` と `main.server.options.dart` を生成してから静的解析を実行します。
 ビルドには専用ポート62841を使います。使用中の場合は `--port` に別の空きポートを指定してください。
 CSS・操作用JavaScript・faviconはHTMLにも埋め込み、外部フォントは使いません。
 サイト内リンクは `/` から始まるため、上記のHTTPサーバーで確認してください。
@@ -70,10 +87,14 @@ firebase deploy --only hosting:website --project openci-b1b91
 
 ## 構成
 
-- `lib/main.server.dart`: ルーティングとHTMLメタ情報
+- `lib/main.server.dart`: ContentApp・Markdownの読み込み・LPルート・HTMLメタ情報
+- `lib/main.client.dart`: Jaspr Contentのクライアント初期化（コードコピー）
 - `lib/pages/landing_page.dart`: LP
-- `lib/pages/blog_page.dart`: ブログ一覧・記事本文・記事ページ
-- `lib/components/`: HTMLヘルパーとDartコード表示
+- `lib/pages/blog_page.dart`: 読み込んだ記事から作るブログ一覧・共通ヘッダーとフッター
+- `lib/layouts/blog_layout.dart`: ブログ一覧と記事のPageLayout・目次
+- `lib/models/blog_post.dart`: frontmatterから取得する記事情報・表示順
+- `content/blog/`: ブログ一覧の設定とMarkdown記事
+- `lib/components/`: HTMLヘルパー・LPのDartコード表示・ブログのコード表示
 - `lib/components/social_metadata.dart`: canonical・OGP・X Cardの共通メタ情報
 - `web/site.css`, `web/blog.css`: 共通・各ページのスタイル
 - `web/site.js`, `web/blog.js`: ワークフロー例切り替え・カテゴリ絞り込み

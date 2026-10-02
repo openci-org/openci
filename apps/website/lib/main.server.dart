@@ -1,17 +1,23 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:jaspr/dom.dart' show RawText;
+import 'package:jaspr/dom.dart' show Color, FontFamily, RawText;
 import 'package:jaspr/server.dart';
+import 'package:jaspr_content/components/code_block.dart';
+import 'package:jaspr_content/jaspr_content.dart';
+import 'package:jaspr_content/theme.dart';
 import 'package:jaspr_router/jaspr_router.dart';
 
 import 'components/html.dart';
+import 'components/plain_code_block.dart';
 import 'components/social_metadata.dart';
-import 'pages/blog_page.dart';
+import 'content/heading_ids_extension.dart';
+import 'layouts/blog_layout.dart';
+import 'main.server.options.dart';
 import 'pages/landing_page.dart';
 
 void main() {
-  Jaspr.initializeApp();
+  Jaspr.initializeApp(options: defaultServerOptions, useIsolates: false);
   final favicon = base64Encode(File('web/favicon.png').readAsBytesSync());
   runApp(
     Document(
@@ -50,24 +56,35 @@ void main() {
                   'og: https://ogp.me/ns# article: https://ogp.me/ns/article#',
             },
           ),
-          Router(
-            routes: [
-              Route(
-                path: '/',
-                builder: (context, state) => const LandingPage(),
+          ContentApp.custom(
+            loaders: [FilesystemLoader('content')],
+            eagerlyLoadAllPages: true,
+            configResolver: PageConfig.all(
+              parsers: [const MarkdownParser()],
+              extensions: [
+                const HeadingIdsExtension(),
+                const TableOfContentsExtension(),
+                HeadingAnchorsExtension(),
+              ],
+              components: [const PlainCodeBlock(), CodeBlock()],
+              layouts: [const BlogArticleLayout(), const BlogIndexLayout()],
+              theme: ContentTheme(
+                primary: const Color('#141414'),
+                background: const Color('#ffffff'),
+                text: const Color('#141414'),
+                font: FontFamily.variable('--font'),
+                codeFont: FontFamily.variable('--mono'),
               ),
-              Route(
-                path: '/blog',
-                title: 'Journal — GenuineCI Blog',
-                builder: (context, state) => const BlogPage(),
-              ),
-              for (final post in blogPosts)
+            ),
+            routerBuilder: (routes) => Router(
+              routes: [
                 Route(
-                  path: post.path,
-                  title: '${post.title.replaceAll('\n', '')} — GenuineCI Blog',
-                  builder: (context, state) => BlogArticlePage(post),
+                  path: '/',
+                  builder: (context, state) => const LandingPage(),
                 ),
-            ],
+                for (final loaderRoutes in routes) ...loaderRoutes,
+              ],
+            ),
           ),
           el(
             'script',
