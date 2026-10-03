@@ -1,13 +1,6 @@
 import 'package:analyzer/dart/analysis/utilities.dart';
 import 'package:analyzer/dart/ast/ast.dart';
 import 'package:analyzer/dart/ast/visitor.dart';
-import 'package:glob/glob.dart';
-import 'package:path/path.dart' as p;
-
-/// An invalid workflow trigger configuration.
-class WorkflowConfigurationException extends FormatException {
-  const WorkflowConfigurationException(super.message);
-}
 
 class ParsedWorkflow {
   const ParsedWorkflow({
@@ -27,15 +20,10 @@ class ParsedWorkflow {
 }
 
 class ParsedCITrigger {
-  const ParsedCITrigger({
-    required this.type,
-    required this.branch,
-    this.whenChanged,
-  });
+  const ParsedCITrigger({required this.type, required this.branch});
 
   final String type; // 'push' or 'pullRequest'
   final String branch;
-  final List<String>? whenChanged;
 
   bool matches({
     required String eventType, // 'push' or 'pull_request'
@@ -75,8 +63,6 @@ ParsedWorkflow? parseOpenCIWorkflow(String source, String fileName) {
     final visitor = _OpenCIInitVisitor(fileName);
     parseResult.unit.accept(visitor);
     return visitor.workflow;
-  } on WorkflowConfigurationException {
-    rethrow;
   } catch (_) {
     return null;
   }
@@ -175,59 +161,15 @@ class _OpenCIInitVisitor extends RecursiveAstVisitor<void> {
       return null;
     }
 
-    String? branch;
-    List<String>? whenChanged;
     for (final argument in argumentList.arguments) {
-      if (argument is! NamedExpression) continue;
-      if (argument.name.label.name == 'branch') {
-        branch = _extractStringValue(argument.expression);
-      } else if (argument.name.label.name == 'whenChanged') {
-        whenChanged = _extractWhenChanged(argument.expression, triggerType!);
+      if (argument is NamedExpression && argument.name.label.name == 'branch') {
+        final branch = _extractStringValue(argument.expression);
+        if (branch != null) {
+          return ParsedCITrigger(type: triggerType!, branch: branch);
+        }
       }
     }
-    if (branch == null) return null;
-    return ParsedCITrigger(
-      type: triggerType!,
-      branch: branch,
-      whenChanged: whenChanged,
-    );
-  }
-
-  List<String>? _extractWhenChanged(Expression expression, String triggerType) {
-    Never invalid(String reason) => throw WorkflowConfigurationException(
-      '$fileName: CITrigger.$triggerType.whenChanged $reason',
-    );
-
-    if (expression is NullLiteral) return null;
-    if (expression is! ListLiteral || expression.elements.isEmpty) {
-      invalid('must be a non-empty literal list of strings');
-    }
-
-    final patterns = <String>[];
-    for (final element in expression.elements) {
-      if (element is! Expression) {
-        invalid('must contain only literal strings');
-      }
-      final pattern = _extractStringValue(element);
-      if (pattern == null) {
-        invalid('must contain only literal strings');
-      }
-      if (pattern.trim().isEmpty ||
-          pattern.startsWith('!') ||
-          p.posix.isAbsolute(pattern) ||
-          // Drive and UNC roots are invalid; leading glob escapes are allowed.
-          p.windows.rootPrefix(pattern).length > 1 ||
-          p.posix.split(pattern).contains('..')) {
-        invalid('contains an invalid repository-relative pattern: "$pattern"');
-      }
-      try {
-        Glob(pattern, context: p.posix, caseSensitive: true);
-      } on FormatException catch (error) {
-        invalid('contains an invalid glob "$pattern": ${error.message}');
-      }
-      patterns.add(pattern);
-    }
-    return List.unmodifiable(patterns);
+    return null;
   }
 
   String? _extractStringValue(Expression expression) {

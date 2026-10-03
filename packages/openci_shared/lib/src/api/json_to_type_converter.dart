@@ -4,7 +4,6 @@ import 'package:chopper/chopper.dart';
 
 import '../models/build_job.dart';
 import '../models/build_step.dart';
-import '../models/changed_files_result.dart';
 import '../models/cicd_commit_group.dart';
 import '../models/team.dart';
 import '../models/user_device.dart';
@@ -51,11 +50,6 @@ class JsonToTypeConverter extends JsonConverter {
     }
     if (T == BuildStep) {
       return BuildStep.fromJson(Map<String, dynamic>.from(json as Map));
-    }
-    if (T == ChangedFilesResult) {
-      return ChangedFilesResult.fromJson(
-        Map<String, dynamic>.from(json as Map),
-      );
     }
 
     return json;

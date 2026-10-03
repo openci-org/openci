@@ -55,35 +55,6 @@ void main() {
       verifyNever(() => api.failWebhookTask(any(), any()));
     });
 
-    test('reports invalid whenChanged as a task failure', () async {
-      _stubPlanning(
-        api,
-        workflowSource: _workflowSource.replaceFirst(
-          "branch: 'main'",
-          "branch: 'main', whenChanged: []",
-        ),
-      );
-      when(() => api.failWebhookTask('task-1', any())).thenAnswer(
-        (_) async => createMockResponse(<String, dynamic>{'success': true}),
-      );
-
-      await expectLater(
-        handleWebhookTask(task: _task(), api: api),
-        throwsA(isA<WorkflowConfigurationException>()),
-      );
-
-      final body =
-          verify(
-                () => api.failWebhookTask('task-1', captureAny()),
-              ).captured.single
-              as Map<String, dynamic>;
-      expect(
-        body['errorMessage'],
-        allOf(contains('ci.dart'), contains('CITrigger.push.whenChanged')),
-      );
-      verifyNever(() => api.completeWebhookTask(any(), any()));
-    });
-
     test('marks the task as failed when planning fails', () async {
       when(() => api.failWebhookTask('task-1', any())).thenAnswer(
         (_) async => createMockResponse(<String, dynamic>{
@@ -199,10 +170,7 @@ void main() {
   });
 }
 
-void _stubPlanning(
-  OpenCIApiService api, {
-  String workflowSource = _workflowSource,
-}) {
+void _stubPlanning(OpenCIApiService api) {
   when(() => api.getTeamByInstallationId(998877)).thenAnswer(
     (_) async => createMockResponse(
       Team(
@@ -225,7 +193,7 @@ void _stubPlanning(
     ),
   ).thenAnswer(
     (_) async => createMockResponse([
-      {'name': 'ci.dart', 'path': 'openci/ci.dart', 'content': workflowSource},
+      {'name': 'ci.dart', 'path': 'openci/ci.dart', 'content': _workflowSource},
     ]),
   );
 }

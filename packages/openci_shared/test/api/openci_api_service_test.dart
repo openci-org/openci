@@ -89,47 +89,6 @@ void main() {
   });
 
   group('OpenCIApiService webhook task results', () {
-    for (final complete in [true, false]) {
-      test(
-        'getWebhookTaskChangedFiles decodes a ${complete ? 'complete' : 'indeterminate'} result',
-        () async {
-          final body = {
-            'paths': complete ? ['lib/main.dart', 'lib/old.dart'] : <String>[],
-            'baseSha': 'base-sha',
-            'headSha': 'head-sha',
-            'isComplete': complete,
-            'reason': complete ? null : 'file_limit',
-          };
-          final httpClient = MockClient((request) async {
-            expect(request.method, 'GET');
-            expect(
-              request.url,
-              Uri.parse(
-                'https://api.openci.test/webhooks/tasks/task-123/changed-files',
-              ),
-            );
-            return http.Response(
-              jsonEncode(body),
-              200,
-              headers: {
-                'content-type': 'application/json',
-              },
-            );
-          });
-          final client = _createClient(httpClient);
-          addTearDown(client.dispose);
-
-          final response = await client
-              .getService<OpenCIApiService>()
-              .getWebhookTaskChangedFiles('task-123');
-
-          expect(response.isSuccessful, isTrue);
-          expect(response.body, isA<ChangedFilesResult>());
-          expect(response.body!.toJson(), body);
-        },
-      );
-    }
-
     test('completeWebhookTask sends jobs to the complete endpoint', () async {
       final body = {
         'jobs': [
