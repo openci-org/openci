@@ -2,6 +2,62 @@ import 'package:build_job_planner/build_job_planner.dart';
 import 'package:test/test.dart';
 
 void main() {
+  group('ParsedCITrigger.matchesChangedFiles', () {
+    for (final (pattern, path, matches) in [
+      ('pubspec.yaml', 'pubspec.yaml', true),
+      ('pubspec.yaml', 'app/pubspec.yaml', false),
+      ('lib/*.dart', 'lib/main.dart', true),
+      ('lib/*.dart', 'lib/src/main.dart', false),
+      ('lib/**/*.dart', 'lib/main.dart', true),
+      ('lib/**/*.dart', 'lib/src/main.dart', true),
+      ('lib/**/*.dart', 'lib/src/deep/main.dart', true),
+      ('**/*.dart', 'main.dart', true),
+      ('**/src/**/*.dart', 'src/main.dart', true),
+      ('**/src/**/*.dart', 'app/src/deep/main.dart', true),
+      ('lib/**/**/*.dart', 'lib/main.dart', true),
+      ('lib/{src,test}/**/*.dart', 'lib/src/main.dart', true),
+      ('{lib/**/,test/**/}*.dart', 'lib/main.dart', true),
+      ('{lib/**/,test/**/}*.dart', 'test/main.dart', true),
+      ('{lib/**/,test/**/}*.dart', 'test/deep/main.dart', true),
+      ('lib/[**]/main.dart', 'lib/*/main.dart', true),
+      ('lib/[**]/main.dart', 'lib/main.dart', false),
+      (r'lib/\**/main.dart', 'lib/main.dart', false),
+      (r'lib/\**/main.dart', 'lib/*literal/main.dart', true),
+      ('lib/**', 'other/lib/main.dart', false),
+      ('lib/**', 'Lib/main.dart', false),
+      ('**', '.github/workflows/ci.yml', true),
+      ('lib/main.dart', 'lib/main.dart.bak', false),
+    ]) {
+      test('$pattern matches $path: $matches', () {
+        final trigger = ParsedCITrigger(
+          type: 'push',
+          branch: 'main',
+          whenChanged: [pattern],
+        );
+        expect(trigger.matchesChangedFiles([path]), matches);
+      });
+    }
+
+    test('any pattern and any changed file may satisfy the condition', () {
+      const trigger = ParsedCITrigger(
+        type: 'push',
+        branch: 'main',
+        whenChanged: ['lib/**', 'pubspec.yaml'],
+      );
+      expect(
+        trigger.matchesChangedFiles(['README.md', 'pubspec.yaml']),
+        isTrue,
+      );
+      expect(trigger.matchesChangedFiles(['README.md']), isFalse);
+      expect(trigger.matchesChangedFiles([]), isFalse);
+    });
+
+    test('an unfiltered trigger accepts even an empty diff', () {
+      const trigger = ParsedCITrigger(type: 'push', branch: 'main');
+      expect(trigger.matchesChangedFiles([]), isTrue);
+    });
+  });
+
   group('parseOpenCIWorkflow', () {
     for (final args in [
       "workflowName: 'CI'",

@@ -37,6 +37,55 @@ class ParsedCITrigger {
   final String branch;
   final List<String>? whenChanged;
 
+  bool matchesChangedFiles(List<String> paths) {
+    final patterns = whenChanged;
+    if (patterns == null) return true;
+    return patterns.any((pattern) {
+      final glob = _changedFilesGlob(pattern);
+      return paths.any((path) => glob.matches(p.posix.join('/', path)));
+    });
+  }
+
+  static Glob _changedFilesGlob(String pattern) {
+    // package:glob requires a slash for **/. Make that whole directory optional
+    // so lib/**/*.dart includes lib/main.dart as well as deeper paths.
+    final buffer = StringBuffer();
+    var directoryStart = true;
+    var inRange = false;
+    var optionsDepth = 0;
+    for (var index = 0; index < pattern.length; index++) {
+      final char = pattern[index];
+      if (char == r'\' && index + 1 < pattern.length) {
+        buffer.write(char);
+        buffer.write(pattern[++index]);
+        directoryStart = false;
+        continue;
+      }
+      if (inRange) {
+        buffer.write(char);
+        if (char == ']') inRange = false;
+        continue;
+      }
+      if (directoryStart && pattern.startsWith('**/', index)) {
+        buffer.write('{**/,}');
+        index += 2;
+        continue;
+      }
+      buffer.write(char);
+      if (char == '{') optionsDepth++;
+      if (char == '}') optionsDepth--;
+      if (char == '[') inRange = true;
+      directoryStart =
+          char == '/' || char == '{' || (char == ',' && optionsDepth > 0);
+    }
+    // Anchor both sides at a POSIX repository root, including leading **/.
+    return Glob(
+      p.posix.join('/', buffer.toString()),
+      context: p.posix,
+      caseSensitive: true,
+    );
+  }
+
   bool matches({
     required String eventType, // 'push' or 'pull_request'
     required String branch,
