@@ -326,6 +326,10 @@ reads the `workspace` list in the root `pubspec.yaml` and each listed package's
 and generated or dependency directories (`build`, `coverage`, `node_modules`,
 `Pods`, `ephemeral`, and `xcuserdata`) are excluded at every level. Directory
 names determine the getters; package names are used to validate the workspace.
+Dart keywords and `Object` member names get a trailing underscore: `switch`
+becomes `switch_`, `class` becomes `class_`, and `hash_code` becomes `hashCode_`.
+The directory paths themselves are preserved. Sibling names that map to the same
+getter, such as `switch` and `switch_`, are rejected.
 Run it again after adding, moving or renaming workspace directories. Read or
 generation failures preserve the existing file.
 

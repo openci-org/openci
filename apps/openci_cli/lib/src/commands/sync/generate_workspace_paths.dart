@@ -81,13 +81,13 @@ String workspaceDirectoryNameToField(String name) {
   final field = words.isEmpty
       ? ''
       : words.first + words.skip(1).map(_capitalizeDirectoryIdentifier).join();
-  if (!RegExp(r'^[a-z]').hasMatch(field) || _reservedFields.contains(field)) {
+  if (!RegExp(r'^[a-z]').hasMatch(field)) {
     throw FormatException(
       'Directory ${jsonEncode(name)} cannot be used as a Dart field. '
       'Rename the directory.',
     );
   }
-  return field;
+  return _reservedFields.contains(field) ? '${field}_' : field;
 }
 
 String _capitalizeDirectoryIdentifier(String identifier) {
