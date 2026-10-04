@@ -9,9 +9,19 @@ class _Console implements Console {
   final output = StringBuffer();
   Stream<Key> keyboard = const Stream.empty();
   bool failReading = false;
+  bool inputClosed = false;
+  bool _rawMode = false;
 
   @override
-  bool rawMode = false;
+  bool get rawMode => _rawMode;
+
+  @override
+  set rawMode(bool value) {
+    if (inputClosed) {
+      throw StateError('Cannot change mode after input is closed');
+    }
+    _rawMode = value;
+  }
 
   @override
   Stream<Key> readKeys({
@@ -91,6 +101,37 @@ void main() {
       expect(console.rawMode, isFalse);
     },
   );
+
+  test('keeps the selection when cancelling input restores raw mode', () async {
+    final console = _Console();
+    late StreamController<Key> input;
+    input = StreamController<Key>(
+      onListen: () {
+        console.rawMode = true;
+        input.add(Key.control(ControlCharacter.enter));
+      },
+      onCancel: () {
+        console.rawMode = false;
+        // The real key stream restores the terminal, then closes stdin.
+        console.inputClosed = true;
+      },
+    );
+
+    expect(
+      await withInteractiveConsole(
+        (_, keys) async => (await keys.first).controlChar,
+        console: console,
+        keys: input.stream,
+        hasTerminal: true,
+        hideCursor: true,
+      ),
+      ControlCharacter.enter,
+    );
+    expect(console.inputClosed, isTrue);
+    expect(console.rawMode, isFalse);
+    expect(console.output.toString(), '\x1b[?25l\x1b[?25h\n');
+    await input.close();
+  });
 
   test('still restores terminal state if stream cancellation fails', () async {
     final console = _Console();

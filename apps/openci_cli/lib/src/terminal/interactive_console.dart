@@ -34,7 +34,8 @@ Future<T?> withInteractiveConsole<T>(
       await input?.cancel();
     } finally {
       try {
-        terminal.rawMode = wasRaw;
+        // The key stream may already restore raw mode before closing stdin.
+        if (terminal.rawMode != wasRaw) terminal.rawMode = wasRaw;
       } finally {
         if (hideCursor) terminal.write('\x1b[?25h');
         terminal.writeLine();
