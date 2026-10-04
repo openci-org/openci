@@ -3,6 +3,12 @@
 ## 1.0.6
 
 - Add `commitMessage` field to `BuildJob` model.
+- Publish the current authenticated API clients required by the OpenCI CLI,
+  including team and secret commands.
+- Include build plans, steps, webhook tasks, workflow files, changed-file
+  results, and Loki log models and utilities.
+- Remove obsolete generated `StepEvent` files left behind when the model moved
+  to the `loki` directory.
 
 ## 1.0.5
 
