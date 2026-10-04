@@ -1,3 +1,10 @@
+## 0.1.0
+
+- Extend `genuineci status` to fetch and show the active team's current name,
+  while retaining the saved profile, server, and team ID display.
+- Support English and Japanese status messages, automatic token refresh, and
+  guidance for missing teams, authentication failures, and connection errors.
+
 ## 0.0.3
 
 - Add `genuineci status` to show the saved active profile, server, and selected

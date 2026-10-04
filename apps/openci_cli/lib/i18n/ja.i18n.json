@@ -7,18 +7,6 @@
       "verbose": "詳細なログ出力を有効にします。"
     }
   },
-  "status": {
-    "description": "保存済みの現在のプロファイル、サーバー、選択中のチームIDを表示します。",
-    "noArguments": "statusに位置引数は指定できません。",
-    "profile": "プロファイル: ${value}",
-    "server": "サーバー: ${value}",
-    "team": "選択中のチームID: ${value}",
-    "notSet": "未設定",
-    "noActiveProfile": "プロファイルが未設定です。genuineci login（ローカルなら genuineci login --local）を実行してください。",
-    "profileMissing": "現在のプロファイル「${profile}」が見つかりません。genuineci login（ローカルなら genuineci login --local）を実行してください。",
-    "invalidServer": "不正なサーバーURL",
-    "readFailed": "保存済みのプロファイルを読み取れませんでした。認証情報ファイルの形式と権限を確認してください。"
-  },
   "login": {
     "description": "ローカルまたはリモートのOpenCIサーバーにログインします。",
     "flags": {
@@ -48,6 +36,27 @@
     "noTeams": "所属チームがありません。先にdashboardでチームを作成するか参加してください。",
     "teamRequired": "複数のチームがあります。上記のIDを--team-idで指定して再度ログインしてください。",
     "teamNotFound": "指定されたチームに所属していません。"
+  },
+  "status": {
+    "description": "現在のプロファイル、サーバー、チーム名とIDを表示します。",
+    "noArguments": "statusに位置引数は指定できません。",
+    "profile": "プロファイル: ${value}",
+    "server": "サーバー: ${value}",
+    "team": "選択中のチームID: ${value}",
+    "notSet": "未設定",
+    "noActiveProfile": "プロファイルが未設定です。genuineci login（ローカルなら genuineci login --local）を実行してください。",
+    "profileMissing": "現在のプロファイル「${profile}」が見つかりません。genuineci login（ローカルなら genuineci login --local）を実行してください。",
+    "invalidServer": "不正なサーバーURL",
+    "readFailed": "保存済みのプロファイルを読み取れませんでした。認証情報ファイルの形式と権限を確認してください。",
+    "profileChanged": "確認中に現在のプロファイルまたは選択中のチームが変更されました。genuineci statusを再実行してください。",
+    "loginRequired": "現在のチームを確認するには、genuineci login（またはgenuineci login --local）を実行してください。",
+    "noTeamSelected": "チームが選択されていません。genuineci switch teamでチームを選択してください。",
+    "noTeams": "所属するチームがありません。ダッシュボードでチームを作成するか、チームに参加してください。",
+    "teamNotFound": "選択中のチームは利用できなくなりました。genuineci switch teamで利用可能なチームを選択してください。",
+    "requestFailed": "チーム一覧を取得できませんでした（HTTP ${status}）。",
+    "fetchFailed": "チーム一覧を取得できませんでした。現在のプロファイルのサーバーURLとネットワーク接続を確認してください。",
+    "invalidResponse": "サーバーから不正なチーム一覧が返されました。現在のプロファイルが対応するOpenCIサーバーを指しているか確認してください。",
+    "teamName": "チーム名: ${value}"
   },
   "list": {
     "description": "OpenCIのリソースを一覧表示します。",
