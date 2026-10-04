@@ -3,10 +3,10 @@ import 'dart:io';
 
 import 'package:args/command_runner.dart';
 import 'package:cli_util/cli_logging.dart';
-import 'package:openci_cli/src/commands/dev/dev_start_command.dart';
-import 'package:openci_cli/src/commands/dev/start_docker_compose.dart';
-import 'package:openci_cli/src/commands/dev/start_orchard_worker.dart';
-import 'package:openci_cli/src/i18n/i18n.dart';
+import 'package:genuineci_cli/src/commands/dev/dev_start_command.dart';
+import 'package:genuineci_cli/src/commands/dev/start_docker_compose.dart';
+import 'package:genuineci_cli/src/commands/dev/start_orchard_worker.dart';
+import 'package:genuineci_cli/src/i18n/i18n.dart';
 import 'package:test/test.dart';
 
 class _RecordingLogger implements Logger {
@@ -60,7 +60,7 @@ void main() {
     required void Function() onSeed,
     OrchardWorkerStarter? orchardWorkerStarter,
   }) {
-    final runner = CommandRunner<int>('openci', 'CLI tool')
+    final runner = CommandRunner<int>('genuineci', 'CLI tool')
       ..addCommand(
         DevStartCommand(
           logger: _RecordingLogger(),
@@ -152,7 +152,7 @@ void main() {
 
       final logger = _RecordingLogger();
       final worker = _OrchardWorker()..exitCode = Future.value(17);
-      final runner = CommandRunner<int>('openci', 'CLI tool')
+      final runner = CommandRunner<int>('genuineci', 'CLI tool')
         ..addCommand(
           DevStartCommand(
             logger: logger,
@@ -418,7 +418,7 @@ void main() {
         () async {
           final worker = _OrchardWorker();
           final steps = <DockerComposeStep>[];
-          final runner = CommandRunner<int>('openci', 'CLI tool')
+          final runner = CommandRunner<int>('genuineci', 'CLI tool')
             ..addCommand(
               DevStartCommand(
                 logger: _RecordingLogger(),

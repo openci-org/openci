@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:openci_cli/src/extensions/file_extensions.dart';
+import 'package:genuineci_cli/src/extensions/file_extensions.dart';
 import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 

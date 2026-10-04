@@ -1,8 +1,8 @@
 import 'dart:async';
 
-import 'package:dart_console/dart_console.dart';
-import 'package:openci_cli/src/commands/switch/select_team.dart';
-import 'package:openci_cli/src/i18n/i18n.dart';
+import 'package:genuineci_cli/src/commands/switch/select_team.dart';
+import 'package:genuineci_cli/src/i18n/i18n.dart';
+import 'package:genuineci_cli/src/terminal/console.dart';
 import 'package:openci_shared/openci_shared.dart';
 import 'package:test/test.dart';
 

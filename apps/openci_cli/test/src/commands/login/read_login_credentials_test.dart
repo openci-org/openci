@@ -2,8 +2,8 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:openci_cli/src/commands/login/read_login_credentials.dart';
-import 'package:openci_cli/src/i18n/i18n.dart';
+import 'package:genuineci_cli/src/commands/login/read_login_credentials.dart';
+import 'package:genuineci_cli/src/i18n/i18n.dart';
 import 'package:test/test.dart';
 
 class _Input extends Stream<List<int>> implements Stdin {

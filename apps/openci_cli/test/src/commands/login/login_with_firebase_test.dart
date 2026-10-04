@@ -3,13 +3,13 @@ import 'dart:io';
 
 import 'package:args/command_runner.dart';
 import 'package:cli_util/cli_logging.dart';
-import 'package:openci_cli/src/auth/firebase_auth_client.dart';
-import 'package:openci_cli/src/commands/login/login_with_firebase.dart';
-import 'package:openci_cli/src/commands/login/read_login_credentials.dart';
-import 'package:openci_cli/src/commands/login_command.dart';
-import 'package:openci_cli/src/credential_store/credential_config.dart';
-import 'package:openci_cli/src/credential_store/credential_store.dart';
-import 'package:openci_cli/src/i18n/i18n.dart';
+import 'package:genuineci_cli/src/auth/firebase_auth_client.dart';
+import 'package:genuineci_cli/src/commands/login/login_with_firebase.dart';
+import 'package:genuineci_cli/src/commands/login/read_login_credentials.dart';
+import 'package:genuineci_cli/src/commands/login_command.dart';
+import 'package:genuineci_cli/src/credential_store/credential_config.dart';
+import 'package:genuineci_cli/src/credential_store/credential_store.dart';
+import 'package:genuineci_cli/src/i18n/i18n.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:test/test.dart';
@@ -87,7 +87,7 @@ void main() {
   });
 
   Future<int?> runLogin([List<String> options = const []]) {
-    final runner = CommandRunner<int>('openci', 'test')
+    final runner = CommandRunner<int>('genuineci', 'test')
       ..addCommand(
         LoginCommand(
           logger: logger,

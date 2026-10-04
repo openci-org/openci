@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'package:openci_cli/src/commands/sync/find_workflow_directory.dart';
+import 'package:genuineci_cli/src/commands/sync/find_workflow_directory.dart';
 import 'package:test/test.dart';
 
 void main() {

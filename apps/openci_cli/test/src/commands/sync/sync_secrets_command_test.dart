@@ -4,7 +4,7 @@ import 'dart:io';
 
 import 'package:args/command_runner.dart';
 import 'package:cli_util/cli_logging.dart';
-import 'package:openci_cli/openci_cli.dart';
+import 'package:genuineci_cli/genuineci_cli.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:test/test.dart';
@@ -101,7 +101,7 @@ void main() {
     final previousCredentials = await credentials.exists()
         ? await credentials.readAsBytes()
         : null;
-    final runner = CommandRunner<int>('openci sync', 'test')
+    final runner = CommandRunner<int>('genuineci sync', 'test')
       ..addCommand(
         SyncSecretsCommand(
           logger: logger,
@@ -149,7 +149,7 @@ void main() {
         expiresAt: DateTime.now().toUtc().subtract(const Duration(minutes: 1)),
       ),
     );
-    final runner = CommandRunner<int>('openci sync', 'test')
+    final runner = CommandRunner<int>('genuineci sync', 'test')
       ..addCommand(
         SyncSecretsCommand(
           logger: logger,

@@ -1,7 +1,8 @@
-name: openci_cli
-description: A command-line tool for OpenCI.
-version: 0.0.1
-publish_to: none
+name: genuineci_cli
+description: Command-line tools for OpenCI authentication, team switching, secrets, workflow paths, and local development.
+version: 0.0.2
+repository: https://github.com/openci-org/openci/tree/develop/apps/openci_cli
+issue_tracker: https://github.com/openci-org/openci/issues
 
 environment:
   sdk: ^3.11.5
@@ -12,13 +13,10 @@ dependencies:
   args: ^2.7.0
   characters: ^1.4.0
   cli_util: ^0.5.0
-  # Temporary fork until onepub-dev/dart_console#15 is released on pub.dev.
-  dart_console:
-    git:
-      url: https://github.com/mafreud/dart_console.git
-      ref: 862e0af21ceffeb9939083217eef7f469e18ad52
+  dart_console_plus: ^1.0.0
   freezed_annotation: ^3.1.0
   http: ^1.6.0
+  intl: ^0.20.2
   json_annotation: ^4.12.0
   mason_logger: ^0.3.4
   meta: ^1.16.0
@@ -36,4 +34,8 @@ dev_dependencies:
   test: ^1.25.6
 
 executables:
-  openci: openci_cli
+  genuineci: genuineci_cli
+
+# Firebase client configuration is public and is not an authentication token.
+false_secrets:
+  - /lib/src/auth/firebase_auth_client.dart

@@ -1,11 +1,11 @@
 import 'dart:math' as math;
 
 import 'package:characters/characters.dart';
-import 'package:dart_console/dart_console.dart';
 import 'package:meta/meta.dart';
 import 'package:openci_shared/openci_shared.dart';
 
 import '../../i18n/i18n.dart';
+import '../../terminal/console.dart';
 import '../../terminal/interactive_console.dart';
 
 typedef TeamSelector =

@@ -3,11 +3,11 @@ import 'dart:io';
 import 'dart:math' as math;
 
 import 'package:characters/characters.dart';
-import 'package:dart_console/dart_console.dart';
 import 'package:meta/meta.dart';
 import 'package:path/path.dart' as p;
 
 import '../../i18n/i18n.dart';
+import '../../terminal/console.dart';
 import '../../terminal/interactive_console.dart';
 import 'file_path_completer.dart';
 

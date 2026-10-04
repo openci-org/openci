@@ -1,11 +1,11 @@
-import 'package:openci_cli/openci_cli.dart';
+import 'package:genuineci_cli/genuineci_cli.dart';
 import 'package:test/test.dart';
 
 void main() {
-  late OpenCICommandRunner runner;
+  late GenuineCICommandRunner runner;
 
   setUp(() {
-    runner = OpenCICommandRunner();
+    runner = GenuineCICommandRunner();
   });
 
   test('dev command is registered with name dev and valid description', () {

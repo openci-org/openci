@@ -1,8 +1,9 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:dart_console/dart_console.dart';
 import 'package:meta/meta.dart';
+
+import 'console.dart';
 
 bool get hasInteractiveTerminal =>
     stdin.hasTerminal && stdout.hasTerminal && stdout.supportsAnsiEscapes;

@@ -410,15 +410,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.4.0"
-  dart_console:
+  dart_console_plus:
     dependency: transitive
     description:
-      path: "."
-      ref: "862e0af21ceffeb9939083217eef7f469e18ad52"
-      resolved-ref: "862e0af21ceffeb9939083217eef7f469e18ad52"
-      url: "https://github.com/mafreud/dart_console.git"
-    source: git
-    version: "5.1.0"
+      name: dart_console_plus
+      sha256: f01c225d85d01e666951d1cc2dfff63e6b64674dc45d61adf3d926f8f549fee9
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.0.1"
   dart_data_home:
     dependency: transitive
     description:

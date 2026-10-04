@@ -1,7 +1,7 @@
 {
   "cli": {
-    "description": "OpenCI command-line tool for managing CI/CD and secrets.",
-    "version": "openci version: ${version}",
+    "description": "GenuineCI command-line tool for managing CI/CD and secrets.",
+    "version": "genuineci version: ${version}",
     "flags": {
       "version": "Print the current tool version.",
       "verbose": "Enable verbose logging output."
@@ -18,11 +18,11 @@
     "loggingIn": "Logging in to OpenCI...",
     "savedSuccess": "Successfully saved and activated profile \"${profile}\".",
     "noArguments": "Login does not accept positional arguments.",
-    "authenticationFailed": "Local server authentication failed. Check the server started by openci dev start.",
+    "authenticationFailed": "Local server authentication failed. Check the server started by genuineci dev start.",
     "requestFailed": "Could not fetch teams (HTTP ${status}).",
     "localTeamRequired": "test-team is not available for this user. Check that the team is seeded and this Auth Emulator user belongs to it.",
     "invalidResponse": "The server returned an invalid team list.",
-    "connectionFailed": "Could not connect to the local server. Check that openci dev start is running.",
+    "connectionFailed": "Could not connect to the local server. Check that genuineci dev start is running.",
     "saveFailed": "Could not save credentials. Check the local credentials file and its permissions.",
     "localOptionsConflict": "--local cannot be combined with remote login options.",
     "serverRequired": "--server must be a valid HTTPS URL without credentials, a query or a fragment. Use --local for local development.",
@@ -42,7 +42,7 @@
     "secrets": {
       "description": "List the active team's secret names, sorted by name.",
       "noArguments": "list secrets does not accept positional arguments.",
-      "loginRequired": "Run openci login (or openci login --local) before listing secrets.",
+      "loginRequired": "Run genuineci login (or genuineci login --local) before listing secrets.",
       "requestFailed": "Could not fetch secret names (HTTP ${status}).",
       "fetchFailed": "Could not fetch secret names. Check the server connection and response.",
       "empty": "No secrets registered for the active team."
@@ -54,7 +54,7 @@
       "description": "Create or update a secret for the active team. Enter its name, then its value. The value is hidden while typing and shown as ****** after Enter.",
       "noArguments": "register secret does not accept positional arguments. Enter the name and value at the prompts.",
       "invalidName": "Secret names must use letters, digits and underscores, and must not start with a digit.",
-      "loginRequired": "Run openci login (or openci login --local) before registering secrets.",
+      "loginRequired": "Run genuineci login (or genuineci login --local) before registering secrets.",
       "namePrompt": "Secret name:",
       "valuePrompt": "Secret value:",
       "inputRequired": "No secret was registered. Enter a name and a non-empty value in an interactive terminal.",
@@ -81,8 +81,8 @@
     "team": {
       "description": "Interactively switch the team used by the active profile.",
       "noArguments": "switch team does not accept positional arguments.",
-      "loginRequired": "Run openci login (or openci login --local) before switching teams.",
-      "authenticationFailed": "Authentication failed (HTTP ${status}). Log in again with openci login (or openci login --local) for the active server.",
+      "loginRequired": "Run genuineci login (or genuineci login --local) before switching teams.",
+      "authenticationFailed": "Authentication failed (HTTP ${status}). Log in again with genuineci login (or genuineci login --local) for the active server.",
       "requestFailed": "Could not fetch teams (HTTP ${status}).",
       "fetchFailed": "Could not fetch teams. Check the active profile's server URL and network connection.",
       "invalidResponse": "The server returned an invalid team list. Check that the active profile points to a compatible OpenCI server.",
@@ -91,11 +91,11 @@
       "current": "current",
       "controls": "Up/Down: move / Enter: select / Esc, Ctrl+C: cancel",
       "cancelled": "Team switching cancelled. No team was saved.",
-      "nonInteractive": "Team switching requires an interactive terminal with ANSI support. Run openci switch team without piping input or redirecting output.",
+      "nonInteractive": "Team switching requires an interactive terminal with ANSI support. Run genuineci switch team without piping input or redirecting output.",
       "inputFailed": "Could not select a team. Retry in an interactive terminal.",
       "success": "Switched to ${team}.",
       "alreadyCurrent": "Already using ${team}.",
-      "profileChanged": "The active profile or its credentials changed during selection. The selected team was not saved. Run openci switch team again.",
+      "profileChanged": "The active profile or its credentials changed during selection. The selected team was not saved. Run genuineci switch team again.",
       "saveFailed": "Could not save the selected team. Check the credentials file, its permissions, and available disk space, then retry."
     }
   },
@@ -149,7 +149,7 @@
     "secrets": {
       "description": "Generate openci/secrets.g.dart from the active team's secret names.",
       "noArguments": "sync secrets does not accept positional arguments.",
-      "loginRequired": "Run openci login (or openci login --local) before syncing secrets.",
+      "loginRequired": "Run genuineci login (or genuineci login --local) before syncing secrets.",
       "workflowDirectoryNotFound": "No openci directory found. Run this command from your workflow project.",
       "requestFailed": "Could not fetch secret names (HTTP ${status}).",
       "fetchFailed": "Could not fetch secret names. Check the server connection and response.",
