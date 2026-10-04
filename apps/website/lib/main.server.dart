@@ -9,10 +9,12 @@ import 'package:jaspr_content/theme.dart';
 import 'package:jaspr_router/jaspr_router.dart';
 
 import 'components/html.dart';
+import 'components/docs_code_block.dart';
 import 'components/plain_code_block.dart';
 import 'components/social_metadata.dart';
 import 'content/heading_ids_extension.dart';
 import 'layouts/blog_layout.dart';
+import 'layouts/docs_layout.dart';
 import 'main.server.options.dart';
 import 'pages/landing_page.dart';
 
@@ -42,7 +44,7 @@ void main() {
           'style',
           children: [
             RawText(
-              '${File('web/site.css').readAsStringSync()}\n${File('web/blog.css').readAsStringSync()}',
+              '${File('web/site.css').readAsStringSync()}\n${File('web/blog.css').readAsStringSync()}\n${File('web/docs.css').readAsStringSync()}',
             ),
           ],
         ),
@@ -59,15 +61,21 @@ void main() {
           ContentApp.custom(
             loaders: [FilesystemLoader('content')],
             eagerlyLoadAllPages: true,
-            configResolver: PageConfig.all(
+            configResolver: (source) => PageConfig(
               parsers: [const MarkdownParser()],
               extensions: [
                 const HeadingIdsExtension(),
                 const TableOfContentsExtension(),
                 HeadingAnchorsExtension(),
               ],
-              components: [const PlainCodeBlock(), CodeBlock()],
-              layouts: [const BlogArticleLayout(), const BlogIndexLayout()],
+              components: source.path.startsWith('docs/')
+                  ? [const DocsCodeBlock()]
+                  : [const PlainCodeBlock(), CodeBlock()],
+              layouts: [
+                const BlogArticleLayout(),
+                const BlogIndexLayout(),
+                const GenuineDocsLayout(),
+              ],
               theme: ContentTheme(
                 primary: const Color('#141414'),
                 background: const Color('#ffffff'),
@@ -90,7 +98,7 @@ void main() {
             'script',
             children: [
               RawText(
-                '${File('web/site.js').readAsStringSync()}\n${File('web/blog.js').readAsStringSync()}',
+                '${File('web/site.js').readAsStringSync()}\n${File('web/blog.js').readAsStringSync()}\n${File('web/docs.js').readAsStringSync()}',
               ),
             ],
           ),
