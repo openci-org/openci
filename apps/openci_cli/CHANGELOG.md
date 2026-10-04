@@ -1,4 +1,9 @@
-## Unreleased
+## 0.3.1
+
+- Fix team and secret-file selection failing during terminal cleanup after
+  confirmation or cancellation.
+
+## 0.3.0
 
 - Add `genuineci list teams` to show team names and IDs, mark the selected team,
   and support redirected output with English and Japanese messages.
