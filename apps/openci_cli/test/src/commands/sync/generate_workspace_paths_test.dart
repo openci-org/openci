@@ -60,6 +60,15 @@ extension type const WorkspaceRoot$Apps._(String _path) implements WorkspaceDire
       'APIClient': 'apiClient',
       'alreadyCamelCase': 'alreadyCamelCase',
       'sync': 'sync',
+      'switch': 'switch_',
+      'class': 'class_',
+      'null': 'null_',
+      'async': 'async_',
+      'await': 'await_',
+      'hash_code': 'hashCode_',
+      'to_string': 'toString_',
+      'runtime_type': 'runtimeType_',
+      'no_such_method': 'noSuchMethod_',
     };
     for (final entry in cases.entries) {
       test('converts ${entry.key} to ${entry.value}', () {
@@ -67,17 +76,7 @@ extension type const WorkspaceRoot$Apps._(String _path) implements WorkspaceDire
       });
     }
 
-    for (final name in [
-      '',
-      '___',
-      '2dashboard',
-      'class',
-      'null',
-      'hash_code',
-      'to_string',
-      'runtime_type',
-      'no_such_method',
-    ]) {
+    for (final name in ['', '___', '2dashboard']) {
       test('rejects unusable field name ${jsonEncode(name)}', () {
         expect(
           () => workspaceDirectoryNameToField(name),
@@ -181,6 +180,23 @@ extension type const WorkspaceRoot$Apps._(String _path) implements WorkspaceDire
         'packages/my_app',
       );
     });
+
+    test('rejects sibling collisions after escaping reserved names', () {
+      expect(
+        () => buildWorkspacePathTree(['apps/switch', 'apps/switch_']),
+        throwsA(
+          isA<FormatException>().having(
+            (error) => error.message,
+            'message',
+            allOf(
+              contains('"apps/switch"'),
+              contains('"apps/switch_"'),
+              contains('both map to "switch_"'),
+            ),
+          ),
+        ),
+      );
+    });
   });
 
   group('generateWorkspacePaths', () {
@@ -203,7 +219,7 @@ extension type const WorkspaceRoot$Apps._(String _path) implements WorkspaceDire
 
     test('validates directory names and paths before generating source', () {
       expect(
-        () => generateWorkspacePaths(['apps/class']),
+        () => generateWorkspacePaths(['apps/2dashboard']),
         throwsFormatException,
       );
       expect(
@@ -316,6 +332,42 @@ void main() {
           'length',
           'is_empty',
         ]);
+      },
+    );
+
+    test(
+      'reserved getters compile and preserve their directory paths',
+      () async {
+        const paths = [
+          'switch/team',
+          'class/null',
+          'async/await',
+          'to_string/hash_code',
+          'runtime_type/no_such_method',
+        ];
+        await definitions.writeAsString(generateWorkspacePaths(paths));
+        await probe.writeAsString('''
+import 'dart:convert';
+import 'package:openci_workflow/openci_workflow.dart';
+import 'paths.g.dart';
+
+String acceptPath(WorkspaceDirectory path) => path;
+
+void main() {
+  print(jsonEncode([
+    acceptPath(WorkspacePaths.root.switch_.team),
+    acceptPath(WorkspacePaths.root.class_.null_),
+    acceptPath(WorkspacePaths.root.async_.await_),
+    acceptPath(WorkspacePaths.root.toString_.hashCode_),
+    acceptPath(WorkspacePaths.root.runtimeType_.noSuchMethod_),
+  ]));
+}
+''');
+
+        final result = await runProbe();
+
+        expect(result.exitCode, 0, reason: result.stderr.toString());
+        expect(jsonDecode(result.stdout as String), paths);
       },
     );
 

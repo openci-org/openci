@@ -228,13 +228,60 @@ void main() {
     expect(logger.stderrMessages.single, contains('invalid YAML'));
   });
 
+  test('generates reserved package and subdirectory names', () async {
+    await Directory(
+      p.join(root.path, 'apps/dashboard'),
+    ).rename(p.join(root.path, 'apps/class'));
+    await pubspec.writeAsString('workspace: [apps/class]\n');
+    final nested = await Directory(
+      p.join(root.path, 'apps/class/lib/switch/team'),
+    ).create(recursive: true);
+
+    expect(await runSync(workingDirectory: nested), 0);
+
+    final source = await output.readAsString();
+    expect(
+      source,
+      contains(
+        r'get class_ => const WorkspaceRoot$Apps$Class_._("apps/class");',
+      ),
+    );
+    expect(
+      source,
+      contains(
+        r'get switch_ => const WorkspaceRoot$Apps$Class_$Lib$Switch_._("apps/class/lib/switch");',
+      ),
+    );
+    expect(
+      source,
+      contains(
+        'get team => const WorkspaceDirectory("apps/class/lib/switch/team");',
+      ),
+    );
+    expect(await nested.exists(), isTrue);
+    expect(logger.stderrMessages, isEmpty);
+    expect(await runSync(), 0);
+    expect(await output.readAsString(), source);
+  });
+
+  test('preserves paths when escaped directory names collide', () async {
+    for (final name in ['switch', 'switch_']) {
+      await Directory(p.join(root.path, 'apps/dashboard', name)).create();
+    }
+
+    expect(await runSync(), 1);
+
+    await expectPreserved();
+    expect(logger.stderrMessages.single, contains('both map to "switch_"'));
+  });
+
   test(
     'preserves paths when source generation rejects a directory name',
     () async {
       await Directory(
         p.join(root.path, 'apps/dashboard'),
-      ).rename(p.join(root.path, 'apps/class'));
-      await pubspec.writeAsString('workspace: [apps/class]\n');
+      ).rename(p.join(root.path, 'apps/2dashboard'));
+      await pubspec.writeAsString('workspace: [apps/2dashboard]\n');
 
       expect(await runSync(), 1);
 
@@ -247,14 +294,14 @@ void main() {
   );
 
   test('preserves paths when a package subdirectory name is invalid', () async {
-    await Directory(p.join(root.path, 'apps/dashboard/class')).create();
+    await Directory(p.join(root.path, 'apps/dashboard/___')).create();
 
     expect(await runSync(), 1);
 
     await expectPreserved();
     expect(
       logger.stderrMessages.single,
-      contains('Directory "class" cannot be used as a Dart field'),
+      contains('Directory "___" cannot be used as a Dart field'),
     );
   });
 

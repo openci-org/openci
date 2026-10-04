@@ -1,3 +1,8 @@
+## Unreleased
+
+- Fix `genuineci sync paths` failing on directory names such as `switch` by
+  appending an underscore to reserved getter names while preserving their paths.
+
 ## 0.3.1
 
 - Fix team and secret-file selection failing during terminal cleanup after
