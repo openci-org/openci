@@ -39,6 +39,7 @@ class TranslationsJa extends Translations with BaseTranslations<AppLocale, Trans
 
 	// Translations
 	@override late final _Translations$cli$ja cli = _Translations$cli$ja._(_root);
+	@override late final _Translations$update$ja update = _Translations$update$ja._(_root);
 	@override late final _Translations$login$ja login = _Translations$login$ja._(_root);
 	@override late final _Translations$status$ja status = _Translations$status$ja._(_root);
 	@override late final _Translations$list$ja list = _Translations$list$ja._(_root);
@@ -60,6 +61,26 @@ class _Translations$cli$ja extends Translations$cli$en {
 	@override String get description => 'GenuineCI - CI/CD およびシークレット管理コマンドラインツール';
 	@override String version({required Object version}) => 'genuineci バージョン: ${version}';
 	@override late final _Translations$cli$flags$ja flags = _Translations$cli$flags$ja._(_root);
+}
+
+// Path: update
+class _Translations$update$ja extends Translations$update$en {
+	_Translations$update$ja._(TranslationsJa root) : this._root = root, super.internal(root);
+
+	final TranslationsJa _root; // ignore: unused_field
+
+	// Translations
+	@override String get description => 'GenuineCI CLIをpub.devの最新安定版に更新します。';
+	@override String get noArguments => 'updateに位置引数は指定できません。';
+	@override String available({required Object current, required Object latest}) => 'アップデートがあります！ ${current} → ${latest}';
+	@override String get confirm => '今すぐ更新しますか？';
+	@override String updating({required Object version}) => 'GenuineCI CLIを${version}に更新中...';
+	@override String updated({required Object version}) => 'GenuineCI CLIを${version}に更新しました。';
+	@override String upToDate({required Object version}) => 'GenuineCI CLI ${version}は最新です。';
+	@override String get checkFailed => '更新を確認できませんでした。pub.devへの接続を確認して再実行してください。';
+	@override String get installFailed => 'GenuineCI CLIを更新できませんでした。上記のDartの出力を確認して再実行してください。';
+	@override String get dartUnavailable => 'Dartを起動できませんでした。Dart SDKがインストールされ、dartがPATHに含まれていることを確認してください。';
+	@override String get rerunCommand => '更新したCLIを使うには、元のコマンドを再実行してください。';
 }
 
 // Path: login
@@ -210,6 +231,7 @@ class _Translations$cli$flags$ja extends Translations$cli$flags$en {
 	// Translations
 	@override String get version => 'ツールのバージョンを表示します。';
 	@override String get verbose => '詳細なログ出力を有効にします。';
+	@override String get checkUpdates => '対話可能な端末で更新を確認し、インストールするか選択します。';
 }
 
 // Path: login.flags
@@ -394,6 +416,18 @@ extension on TranslationsJa {
 			'cli.version' => ({required Object version}) => 'genuineci バージョン: ${version}',
 			'cli.flags.version' => 'ツールのバージョンを表示します。',
 			'cli.flags.verbose' => '詳細なログ出力を有効にします。',
+			'cli.flags.checkUpdates' => '対話可能な端末で更新を確認し、インストールするか選択します。',
+			'update.description' => 'GenuineCI CLIをpub.devの最新安定版に更新します。',
+			'update.noArguments' => 'updateに位置引数は指定できません。',
+			'update.available' => ({required Object current, required Object latest}) => 'アップデートがあります！ ${current} → ${latest}',
+			'update.confirm' => '今すぐ更新しますか？',
+			'update.updating' => ({required Object version}) => 'GenuineCI CLIを${version}に更新中...',
+			'update.updated' => ({required Object version}) => 'GenuineCI CLIを${version}に更新しました。',
+			'update.upToDate' => ({required Object version}) => 'GenuineCI CLI ${version}は最新です。',
+			'update.checkFailed' => '更新を確認できませんでした。pub.devへの接続を確認して再実行してください。',
+			'update.installFailed' => 'GenuineCI CLIを更新できませんでした。上記のDartの出力を確認して再実行してください。',
+			'update.dartUnavailable' => 'Dartを起動できませんでした。Dart SDKがインストールされ、dartがPATHに含まれていることを確認してください。',
+			'update.rerunCommand' => '更新したCLIを使うには、元のコマンドを再実行してください。',
 			'login.description' => 'ローカルまたはリモートのOpenCIサーバーにログインします。',
 			'login.flags.local' => 'Auth Emulator（127.0.0.1:9099）のユーザーのメールアドレスとパスワードでローカルAPI（http://localhost:8080）にログインします。',
 			'login.flags.server' => 'リモートのOpenCIサーバーURL（HTTPS）。',

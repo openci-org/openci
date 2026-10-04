@@ -4,8 +4,22 @@
     "version": "genuineci version: ${version}",
     "flags": {
       "version": "Print the current tool version.",
-      "verbose": "Enable verbose logging output."
+      "verbose": "Enable verbose logging output.",
+      "checkUpdates": "Check for updates and offer to install them in interactive terminals."
     }
+  },
+  "update": {
+    "description": "Update GenuineCI CLI to the latest stable version on pub.dev.",
+    "noArguments": "update does not accept positional arguments.",
+    "available": "An update is available! ${current} → ${latest}",
+    "confirm": "Update now?",
+    "updating": "Updating GenuineCI CLI to ${version}...",
+    "updated": "Updated GenuineCI CLI to ${version}.",
+    "upToDate": "GenuineCI CLI ${version} is already up to date.",
+    "checkFailed": "Could not check for updates. Check your connection to pub.dev and try again.",
+    "installFailed": "Could not update GenuineCI CLI. Check the Dart installation output above and try again.",
+    "dartUnavailable": "Could not start Dart. Make sure the Dart SDK is installed and dart is on PATH.",
+    "rerunCommand": "Run your command again to use the updated CLI."
   },
   "login": {
     "description": "Log in to a local or remote OpenCI server.",

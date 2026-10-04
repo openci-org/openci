@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:args/command_runner.dart';
 import 'package:cli_util/cli_logging.dart';
 import 'package:genuineci_cli/genuineci_cli.dart';
+import 'package:genuineci_cli/src/update/cli_updater.dart';
 import 'package:test/test.dart';
 
 class _RecordingLogger implements Logger {
@@ -17,13 +20,58 @@ class _RecordingLogger implements Logger {
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
+class _Updater extends CliUpdater {
+  _Updater() : super(currentVersion: '0.1.0');
+
+  String? version = '0.2.0';
+  Object? checkError;
+  int checks = 0;
+  final installedVersions = <String>[];
+  int installExitCode = 0;
+
+  @override
+  Future<String?> getLatestUpdate({
+    Duration timeout = const Duration(seconds: 2),
+  }) async {
+    checks++;
+    if (checkError != null) throw checkError!;
+    return version;
+  }
+
+  @override
+  Future<int> install(String version, Logger logger) async {
+    installedVersions.add(version);
+    return installExitCode;
+  }
+}
+
+class _ExampleCommand extends Command<int> {
+  _ExampleCommand(this.logger);
+
+  final Logger logger;
+  int runs = 0;
+
+  @override
+  String get name => 'example';
+
+  @override
+  String get description => 'A command with a distinct result.';
+
+  @override
+  int run() {
+    runs++;
+    logger.stdout('command output');
+    return 7;
+  }
+}
+
 void main() {
   late _RecordingLogger logger;
   late GenuineCICommandRunner runner;
 
   setUp(() {
     logger = _RecordingLogger();
-    runner = GenuineCICommandRunner(logger: logger);
+    runner = GenuineCICommandRunner(logger: logger, hasTerminal: false);
   });
 
   group('version', () {
@@ -61,6 +109,11 @@ void main() {
     final status = runner.commands['status'];
     expect(status, isA<StatusCommand>());
     expect(status!.description, t.status.description);
+  });
+
+  test('registers update with a localized description', () {
+    expect(runner.commands['update'], isA<UpdateCommand>());
+    expect(runner.commands['update']!.description, t.update.description);
   });
 
   test('registers register secret with localized descriptions', () {
@@ -132,6 +185,160 @@ void main() {
     expect(
       logger.stderrMessages,
       equals(['Usage: genuineci use <japanese|english>']),
+    );
+  });
+
+  group('interactive update check', () {
+    late _Updater updater;
+    late _ExampleCommand command;
+    var confirmations = 0;
+    var accept = false;
+
+    void createRunner({
+      bool hasTerminal = true,
+      Map<String, String> environment = const {},
+    }) {
+      runner = GenuineCICommandRunner(
+        logger: logger,
+        updater: updater,
+        hasTerminal: hasTerminal,
+        environment: environment,
+        confirmUpdate: () {
+          confirmations++;
+          return accept;
+        },
+      )..addCommand(command);
+    }
+
+    setUp(() {
+      updater = _Updater();
+      command = _ExampleCommand(logger);
+      confirmations = 0;
+      accept = false;
+      createRunner();
+    });
+
+    test('offers a newer version and continues when declined', () async {
+      expect(await runner.run(['example']), 7);
+
+      expect(updater.checks, 1);
+      expect(confirmations, 1);
+      expect(updater.installedVersions, isEmpty);
+      expect(command.runs, 1);
+      expect(logger.stdoutMessages, ['command output']);
+      expect(logger.stderrMessages, [
+        t.update.available(current: updater.currentVersion, latest: '0.2.0'),
+      ]);
+    });
+
+    test(
+      'installs only after yes and asks to rerun with the new CLI',
+      () async {
+        accept = true;
+
+        expect(await runner.run(['example']), 0);
+
+        expect(confirmations, 1);
+        expect(updater.installedVersions, ['0.2.0']);
+        expect(command.runs, 0);
+        expect(logger.stdoutMessages, isEmpty);
+        expect(logger.stderrMessages.last, t.update.rerunCommand);
+      },
+    );
+
+    test(
+      'returns installation failure without executing the command',
+      () async {
+        accept = true;
+        updater.installExitCode = 65;
+
+        expect(await runner.run(['example']), 65);
+
+        expect(command.runs, 0);
+        expect(logger.stderrMessages, isNot(contains(t.update.rerunCommand)));
+      },
+    );
+
+    test('does not prompt when no update is available', () async {
+      updater.version = null;
+
+      expect(await runner.run(['example']), 7);
+
+      expect(confirmations, 0);
+      expect(updater.installedVersions, isEmpty);
+      expect(logger.stdoutMessages, ['command output']);
+      expect(logger.stderrMessages, isEmpty);
+    });
+
+    for (final error in [Exception('offline'), TimeoutException('timed out')]) {
+      test('silently continues after $error', () async {
+        updater.checkError = error;
+
+        expect(await runner.run(['example']), 7);
+
+        expect(confirmations, 0);
+        expect(logger.stdoutMessages, ['command output']);
+        expect(logger.stderrMessages, isEmpty);
+      });
+    }
+
+    test('skips checks when any standard stream is not a terminal', () async {
+      createRunner(hasTerminal: false);
+
+      expect(await runner.run(['example']), 7);
+      expect(updater.checks, 0);
+      expect(confirmations, 0);
+    });
+
+    for (final ciValue in ['', 'true', '1', 'false']) {
+      test('skips checks whenever CI is set to "$ciValue"', () async {
+        createRunner(environment: {'CI': ciValue});
+
+        expect(await runner.run(['example']), 7);
+        expect(updater.checks, 0);
+        expect(confirmations, 0);
+      });
+    }
+
+    test('supports opting out with --no-check-updates', () async {
+      expect(await runner.run(['--no-check-updates', 'example']), 7);
+      expect(updater.checks, 0);
+      expect(confirmations, 0);
+    });
+
+    for (final arguments in [
+      <String>[],
+      ['--version'],
+      ['-v', 'example'],
+      ['--help'],
+      ['help', 'example'],
+      ['example', '--help'],
+      ['switch', 'team', '--help'],
+      ['update', '--help'],
+    ]) {
+      test('skips checks for help/version: $arguments', () async {
+        await runZoned(
+          () => runner.run(arguments),
+          zoneSpecification: ZoneSpecification(print: (_, _, _, _) {}),
+        );
+
+        expect(updater.checks, 0);
+        expect(confirmations, 0);
+        expect(command.runs, 0);
+      });
+    }
+
+    test(
+      'manual update checks once without prompting, including in CI',
+      () async {
+        createRunner(hasTerminal: false, environment: {'CI': 'true'});
+
+        expect(await runner.run(['--no-check-updates', 'update']), 0);
+
+        expect(updater.checks, 1);
+        expect(updater.installedVersions, ['0.2.0']);
+        expect(confirmations, 0);
+      },
     );
   });
 }

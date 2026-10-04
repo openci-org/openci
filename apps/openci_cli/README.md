@@ -13,7 +13,20 @@ genuineci --help
 ```
 
 If `genuineci` is not found, follow the [`dart install` PATH setup](https://dart.dev/tools/dart-install).
-Run the same install command to update to the latest published version.
+Run `genuineci update` to update to the latest stable version on pub.dev.
+
+In an interactive terminal, commands check for a newer stable version and ask
+`Update now? [y/N]`. Enter `y` or `yes` to install it, then rerun your original
+command with the updated CLI. Enter `n`, `no`, or press Enter to continue without
+updating. Updates use `dart install`, so the Dart SDK must be on `PATH`.
+
+Automatic checks time out after two seconds and silently skip network errors.
+They are skipped for help, version, and update commands, when `CI` is set, or
+when stdin, stdout, or stderr is redirected. Use
+`genuineci --no-check-updates <command>` to skip the check explicitly.
+`genuineci update` also works in scripts
+without confirmation and returns a nonzero exit code if checking or installing
+fails.
 
 The remote commands work from any directory. Local development commands require
 an [OpenCI checkout](https://github.com/openci-org/openci) and the services

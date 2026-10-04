@@ -1,3 +1,11 @@
+## 0.2.0
+
+- Check for newer stable releases with `pub_updater` and offer to update with a
+  yes/no prompt in interactive terminals.
+- Add `genuineci update` and `--no-check-updates`, with English and Japanese
+  messages. Skip automatic update prompts in CI, with redirected streams, and
+  when update checks fail.
+
 ## 0.1.0
 
 - Extend `genuineci status` to fetch and show the active team's current name,
