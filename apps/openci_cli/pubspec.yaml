@@ -1,6 +1,6 @@
 name: genuineci_cli
 description: Command-line tools for OpenCI authentication, team switching, secrets, workflow paths, and local development.
-version: 0.1.0
+version: 0.2.0
 repository: https://github.com/openci-org/openci/tree/develop/apps/openci_cli
 issue_tracker: https://github.com/openci-org/openci/issues
 
@@ -22,6 +22,8 @@ dependencies:
   meta: ^1.16.0
   openci_shared: ^1.0.6
   path: ^1.9.0
+  pub_semver: ^2.2.0
+  pub_updater: ^0.5.0
   slang: ^4.19.0
   yaml: ^3.1.3
 

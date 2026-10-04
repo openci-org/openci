@@ -35,6 +35,7 @@ class Translations with BaseTranslations<AppLocale, Translations> {
 
 	// Translations
 	late final Translations$cli$en cli = Translations$cli$en.internal(_root);
+	late final Translations$update$en update = Translations$update$en.internal(_root);
 	late final Translations$login$en login = Translations$login$en.internal(_root);
 	late final Translations$status$en status = Translations$status$en.internal(_root);
 	late final Translations$list$en list = Translations$list$en.internal(_root);
@@ -61,6 +62,48 @@ class Translations$cli$en {
 	String version({required Object version}) => 'genuineci version: ${version}';
 
 	late final Translations$cli$flags$en flags = Translations$cli$flags$en.internal(_root);
+}
+
+// Path: update
+class Translations$update$en {
+	Translations$update$en.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// en: 'Update GenuineCI CLI to the latest stable version on pub.dev.'
+	String get description => 'Update GenuineCI CLI to the latest stable version on pub.dev.';
+
+	/// en: 'update does not accept positional arguments.'
+	String get noArguments => 'update does not accept positional arguments.';
+
+	/// en: 'An update is available! ${current} → ${latest}'
+	String available({required Object current, required Object latest}) => 'An update is available! ${current} → ${latest}';
+
+	/// en: 'Update now?'
+	String get confirm => 'Update now?';
+
+	/// en: 'Updating GenuineCI CLI to ${version}...'
+	String updating({required Object version}) => 'Updating GenuineCI CLI to ${version}...';
+
+	/// en: 'Updated GenuineCI CLI to ${version}.'
+	String updated({required Object version}) => 'Updated GenuineCI CLI to ${version}.';
+
+	/// en: 'GenuineCI CLI ${version} is already up to date.'
+	String upToDate({required Object version}) => 'GenuineCI CLI ${version} is already up to date.';
+
+	/// en: 'Could not check for updates. Check your connection to pub.dev and try again.'
+	String get checkFailed => 'Could not check for updates. Check your connection to pub.dev and try again.';
+
+	/// en: 'Could not update GenuineCI CLI. Check the Dart installation output above and try again.'
+	String get installFailed => 'Could not update GenuineCI CLI. Check the Dart installation output above and try again.';
+
+	/// en: 'Could not start Dart. Make sure the Dart SDK is installed and dart is on PATH.'
+	String get dartUnavailable => 'Could not start Dart. Make sure the Dart SDK is installed and dart is on PATH.';
+
+	/// en: 'Run your command again to use the updated CLI.'
+	String get rerunCommand => 'Run your command again to use the updated CLI.';
 }
 
 // Path: login
@@ -321,6 +364,9 @@ class Translations$cli$flags$en {
 
 	/// en: 'Enable verbose logging output.'
 	String get verbose => 'Enable verbose logging output.';
+
+	/// en: 'Check for updates and offer to install them in interactive terminals.'
+	String get checkUpdates => 'Check for updates and offer to install them in interactive terminals.';
 }
 
 // Path: login.flags
@@ -682,6 +728,18 @@ extension on Translations {
 			'cli.version' => ({required Object version}) => 'genuineci version: ${version}',
 			'cli.flags.version' => 'Print the current tool version.',
 			'cli.flags.verbose' => 'Enable verbose logging output.',
+			'cli.flags.checkUpdates' => 'Check for updates and offer to install them in interactive terminals.',
+			'update.description' => 'Update GenuineCI CLI to the latest stable version on pub.dev.',
+			'update.noArguments' => 'update does not accept positional arguments.',
+			'update.available' => ({required Object current, required Object latest}) => 'An update is available! ${current} → ${latest}',
+			'update.confirm' => 'Update now?',
+			'update.updating' => ({required Object version}) => 'Updating GenuineCI CLI to ${version}...',
+			'update.updated' => ({required Object version}) => 'Updated GenuineCI CLI to ${version}.',
+			'update.upToDate' => ({required Object version}) => 'GenuineCI CLI ${version} is already up to date.',
+			'update.checkFailed' => 'Could not check for updates. Check your connection to pub.dev and try again.',
+			'update.installFailed' => 'Could not update GenuineCI CLI. Check the Dart installation output above and try again.',
+			'update.dartUnavailable' => 'Could not start Dart. Make sure the Dart SDK is installed and dart is on PATH.',
+			'update.rerunCommand' => 'Run your command again to use the updated CLI.',
 			'login.description' => 'Log in to a local or remote OpenCI server.',
 			'login.flags.local' => 'Log in to the local API (http://localhost:8080) with an Auth Emulator user\'s email/password (127.0.0.1:9099).',
 			'login.flags.server' => 'Remote OpenCI server URL (HTTPS).',

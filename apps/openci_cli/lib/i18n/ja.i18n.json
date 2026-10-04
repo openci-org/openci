@@ -4,8 +4,22 @@
     "version": "genuineci バージョン: ${version}",
     "flags": {
       "version": "ツールのバージョンを表示します。",
-      "verbose": "詳細なログ出力を有効にします。"
+      "verbose": "詳細なログ出力を有効にします。",
+      "checkUpdates": "対話可能な端末で更新を確認し、インストールするか選択します。"
     }
+  },
+  "update": {
+    "description": "GenuineCI CLIをpub.devの最新安定版に更新します。",
+    "noArguments": "updateに位置引数は指定できません。",
+    "available": "アップデートがあります！ ${current} → ${latest}",
+    "confirm": "今すぐ更新しますか？",
+    "updating": "GenuineCI CLIを${version}に更新中...",
+    "updated": "GenuineCI CLIを${version}に更新しました。",
+    "upToDate": "GenuineCI CLI ${version}は最新です。",
+    "checkFailed": "更新を確認できませんでした。pub.devへの接続を確認して再実行してください。",
+    "installFailed": "GenuineCI CLIを更新できませんでした。上記のDartの出力を確認して再実行してください。",
+    "dartUnavailable": "Dartを起動できませんでした。Dart SDKがインストールされ、dartがPATHに含まれていることを確認してください。",
+    "rerunCommand": "更新したCLIを使うには、元のコマンドを再実行してください。"
   },
   "login": {
     "description": "ローカルまたはリモートのOpenCIサーバーにログインします。",
