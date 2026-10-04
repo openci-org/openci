@@ -322,10 +322,15 @@ reads the `workspace` list in the root `pubspec.yaml` and each listed package's
 `name`, recursively collects their subdirectories, then writes
 `openci/paths.g.dart` following the directory hierarchy. For example,
 `apps/dashboard/android/app` becomes
-`WorkspacePaths.root.apps.dashboard.android.app`. Hidden directories, symlinks,
-and generated or dependency directories (`build`, `coverage`, `node_modules`,
-`Pods`, `ephemeral`, and `xcuserdata`) are excluded at every level. Directory
-names determine the getters; package names are used to validate the workspace.
+`WorkspacePaths.root.apps.dashboard.android.app`. If `workspace` is absent, the
+command treats the root package as a single-package project and collects its
+subdirectories. For example, `android/app` becomes
+`WorkspacePaths.root.android.app`, and `lib` becomes `WorkspacePaths.root.lib`.
+An explicitly empty `workspace: []` still generates only the root accessor.
+Hidden directories, symlinks, and generated or dependency directories (`build`,
+`coverage`, `node_modules`, `Pods`, `ephemeral`, and `xcuserdata`) are excluded at
+every level. Directory names determine the getters; package names are used to
+validate the workspace.
 Dart keywords and `Object` member names get a trailing underscore: `switch`
 becomes `switch_`, `class` becomes `class_`, and `hash_code` becomes `hashCode_`.
 The directory paths themselves are preserved. Sibling names that map to the same

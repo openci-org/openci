@@ -2,6 +2,8 @@
 
 - Fix `genuineci sync paths` failing on directory names such as `switch` by
   appending an underscore to reserved getter names while preserving their paths.
+- Support `genuineci sync paths` in single-package projects without a `workspace`
+  declaration, generating paths relative to the root package.
 
 ## 0.3.1
 

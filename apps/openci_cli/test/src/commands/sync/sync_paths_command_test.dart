@@ -124,6 +124,73 @@ void main() {
     expect(logger.stderrMessages, isEmpty);
   });
 
+  test('creates single-package paths from a nested directory', () async {
+    const rootPubspec = 'name: example\n';
+    await pubspec.writeAsString(rootPubspec);
+    await Directory(p.join(root.path, 'apps')).delete(recursive: true);
+    final nested = await Directory(
+      p.join(root.path, 'android/app'),
+    ).create(recursive: true);
+    await Directory(p.join(root.path, 'lib/src')).create(recursive: true);
+    for (final name in ['.dart_tool', 'build', 'node_modules']) {
+      await Directory(p.join(root.path, name)).create();
+    }
+
+    expect(await runSync(workingDirectory: nested), 0);
+
+    final source = await output.readAsString();
+    expect(source, contains("static const root = WorkspaceRoot._('.');"));
+    expect(
+      source,
+      contains(r'get android => const WorkspaceRoot$Android._("android");'),
+    );
+    expect(
+      source,
+      contains('get app => const WorkspaceDirectory("android/app");'),
+    );
+    expect(source, contains(r'get lib => const WorkspaceRoot$Lib._("lib");'));
+    expect(source, contains('get src => const WorkspaceDirectory("lib/src");'));
+    expect(
+      source,
+      contains('get openci => const WorkspaceDirectory("openci");'),
+    );
+    for (final field in [
+      'example',
+      'apps',
+      'dartTool',
+      'build',
+      'nodeModules',
+    ]) {
+      expect(source, isNot(contains('get $field =>')));
+    }
+    expect(source, isNot(contains(root.path)));
+    expect(await pubspec.readAsString(), rootPubspec);
+    expect(logger.stderrMessages, isEmpty);
+    expect(await runSync(), 0);
+    expect(await output.readAsString(), source);
+  });
+
+  test('preserves paths when the single-package name is missing', () async {
+    await pubspec.writeAsString('publish_to: none\n');
+
+    expect(await runSync(), 1);
+
+    await expectPreserved();
+    expect(
+      logger.stderrMessages.single,
+      contains('name must be a non-empty string'),
+    );
+  });
+
+  test('preserves paths when an explicit workspace is invalid', () async {
+    await pubspec.writeAsString('name: example\nworkspace: null\n');
+
+    expect(await runSync(), 1);
+
+    await expectPreserved();
+    expect(logger.stderrMessages.single, contains('workspace must be a list'));
+  });
+
   test(
     'updates paths after a package moves and produces stable output',
     () async {
