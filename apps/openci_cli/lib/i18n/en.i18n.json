@@ -74,6 +74,15 @@
   },
   "list": {
     "description": "List resources in OpenCI.",
+    "teams": {
+      "description": "List your teams by name and ID. * marks the current team.",
+      "noArguments": "list teams does not accept positional arguments.",
+      "loginRequired": "Run genuineci login (or genuineci login --local) before listing teams.",
+      "requestFailed": "Could not fetch teams (HTTP ${status}).",
+      "fetchFailed": "Could not fetch teams. Check the active profile's server URL and network connection.",
+      "invalidResponse": "The server returned an invalid team list.",
+      "empty": "No teams found. Create or join a team in the dashboard."
+    },
     "secrets": {
       "description": "List the active team's secret names, sorted by name.",
       "noArguments": "list secrets does not accept positional arguments.",

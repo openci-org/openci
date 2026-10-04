@@ -260,6 +260,7 @@ class Translations$list$en {
 	/// en: 'List resources in OpenCI.'
 	String get description => 'List resources in OpenCI.';
 
+	late final Translations$list$teams$en teams = Translations$list$teams$en.internal(_root);
 	late final Translations$list$secrets$en secrets = Translations$list$secrets$en.internal(_root);
 }
 
@@ -388,6 +389,36 @@ class Translations$login$flags$en {
 
 	/// en: 'Firebase Web API key (override for a self-hosted Firebase project).'
 	String get firebaseApiKey => 'Firebase Web API key (override for a self-hosted Firebase project).';
+}
+
+// Path: list.teams
+class Translations$list$teams$en {
+	Translations$list$teams$en.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// en: 'List your teams by name and ID. * marks the current team.'
+	String get description => 'List your teams by name and ID. * marks the current team.';
+
+	/// en: 'list teams does not accept positional arguments.'
+	String get noArguments => 'list teams does not accept positional arguments.';
+
+	/// en: 'Run genuineci login (or genuineci login --local) before listing teams.'
+	String get loginRequired => 'Run genuineci login (or genuineci login --local) before listing teams.';
+
+	/// en: 'Could not fetch teams (HTTP ${status}).'
+	String requestFailed({required Object status}) => 'Could not fetch teams (HTTP ${status}).';
+
+	/// en: 'Could not fetch teams. Check the active profile's server URL and network connection.'
+	String get fetchFailed => 'Could not fetch teams. Check the active profile\'s server URL and network connection.';
+
+	/// en: 'The server returned an invalid team list.'
+	String get invalidResponse => 'The server returned an invalid team list.';
+
+	/// en: 'No teams found. Create or join a team in the dashboard.'
+	String get empty => 'No teams found. Create or join a team in the dashboard.';
 }
 
 // Path: list.secrets
@@ -786,6 +817,13 @@ extension on Translations {
 			'status.invalidResponse' => 'The server returned an invalid team list. Check that the active profile points to a compatible OpenCI server.',
 			'status.teamName' => ({required Object value}) => 'Team name: ${value}',
 			'list.description' => 'List resources in OpenCI.',
+			'list.teams.description' => 'List your teams by name and ID. * marks the current team.',
+			'list.teams.noArguments' => 'list teams does not accept positional arguments.',
+			'list.teams.loginRequired' => 'Run genuineci login (or genuineci login --local) before listing teams.',
+			'list.teams.requestFailed' => ({required Object status}) => 'Could not fetch teams (HTTP ${status}).',
+			'list.teams.fetchFailed' => 'Could not fetch teams. Check the active profile\'s server URL and network connection.',
+			'list.teams.invalidResponse' => 'The server returned an invalid team list.',
+			'list.teams.empty' => 'No teams found. Create or join a team in the dashboard.',
 			'list.secrets.description' => 'List the active team\'s secret names, sorted by name.',
 			'list.secrets.noArguments' => 'list secrets does not accept positional arguments.',
 			'list.secrets.loginRequired' => 'Run genuineci login (or genuineci login --local) before listing secrets.',
