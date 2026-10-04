@@ -12,7 +12,7 @@ import 'commands/sync/sync_command.dart';
 import 'commands/use_command.dart';
 import 'i18n/i18n.dart';
 
-const String genuineCIVersion = '0.0.3';
+const String genuineCIVersion = '0.1.0';
 
 class GenuineCICommandRunner extends CommandRunner<int> {
   final Logger _logger;
@@ -30,9 +30,9 @@ class GenuineCICommandRunner extends CommandRunner<int> {
       ..addFlag('verbose', negatable: false, help: t.cli.flags.verbose);
 
     addCommand(LoginCommand(logger: _logger));
+    addCommand(StatusCommand(logger: _logger));
     addCommand(ListCommand(logger: _logger));
     addCommand(RegisterCommand(logger: _logger));
-    addCommand(StatusCommand(logger: _logger));
     addCommand(SwitchCommand(logger: _logger));
     addCommand(UseCommand(logger: _logger));
     addCommand(DevCommand(logger: _logger));

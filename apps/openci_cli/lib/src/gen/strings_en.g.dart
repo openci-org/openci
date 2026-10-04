@@ -35,8 +35,8 @@ class Translations with BaseTranslations<AppLocale, Translations> {
 
 	// Translations
 	late final Translations$cli$en cli = Translations$cli$en.internal(_root);
-	late final Translations$status$en status = Translations$status$en.internal(_root);
 	late final Translations$login$en login = Translations$login$en.internal(_root);
+	late final Translations$status$en status = Translations$status$en.internal(_root);
 	late final Translations$list$en list = Translations$list$en.internal(_root);
 	late final Translations$register$en register = Translations$register$en.internal(_root);
 	late final Translations$switchCommand$en switchCommand = Translations$switchCommand$en.internal(_root);
@@ -61,45 +61,6 @@ class Translations$cli$en {
 	String version({required Object version}) => 'genuineci version: ${version}';
 
 	late final Translations$cli$flags$en flags = Translations$cli$flags$en.internal(_root);
-}
-
-// Path: status
-class Translations$status$en {
-	Translations$status$en.internal(this._root);
-
-	final Translations _root; // ignore: unused_field
-
-	// Translations
-
-	/// en: 'Show the saved active profile, server, and selected team ID.'
-	String get description => 'Show the saved active profile, server, and selected team ID.';
-
-	/// en: 'status does not accept positional arguments.'
-	String get noArguments => 'status does not accept positional arguments.';
-
-	/// en: 'Profile: ${value}'
-	String profile({required Object value}) => 'Profile: ${value}';
-
-	/// en: 'Server: ${value}'
-	String server({required Object value}) => 'Server: ${value}';
-
-	/// en: 'Selected team ID: ${value}'
-	String team({required Object value}) => 'Selected team ID: ${value}';
-
-	/// en: 'Not set'
-	String get notSet => 'Not set';
-
-	/// en: 'No profile is configured. Run genuineci login (or genuineci login --local).'
-	String get noActiveProfile => 'No profile is configured. Run genuineci login (or genuineci login --local).';
-
-	/// en: 'Active profile "${profile}" is missing. Run genuineci login (or genuineci login --local).'
-	String profileMissing({required Object profile}) => 'Active profile "${profile}" is missing. Run genuineci login (or genuineci login --local).';
-
-	/// en: 'Invalid server URL'
-	String get invalidServer => 'Invalid server URL';
-
-	/// en: 'Could not read the saved profile. Check the credentials file format and permissions.'
-	String get readFailed => 'Could not read the saved profile. Check the credentials file format and permissions.';
 }
 
 // Path: login
@@ -177,6 +138,72 @@ class Translations$login$en {
 
 	/// en: 'You do not belong to the specified team.'
 	String get teamNotFound => 'You do not belong to the specified team.';
+}
+
+// Path: status
+class Translations$status$en {
+	Translations$status$en.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// en: 'Show the active profile, server, and current team's name and ID.'
+	String get description => 'Show the active profile, server, and current team\'s name and ID.';
+
+	/// en: 'status does not accept positional arguments.'
+	String get noArguments => 'status does not accept positional arguments.';
+
+	/// en: 'Profile: ${value}'
+	String profile({required Object value}) => 'Profile: ${value}';
+
+	/// en: 'Server: ${value}'
+	String server({required Object value}) => 'Server: ${value}';
+
+	/// en: 'Selected team ID: ${value}'
+	String team({required Object value}) => 'Selected team ID: ${value}';
+
+	/// en: 'Not set'
+	String get notSet => 'Not set';
+
+	/// en: 'No profile is configured. Run genuineci login (or genuineci login --local).'
+	String get noActiveProfile => 'No profile is configured. Run genuineci login (or genuineci login --local).';
+
+	/// en: 'Active profile "${profile}" is missing. Run genuineci login (or genuineci login --local).'
+	String profileMissing({required Object profile}) => 'Active profile "${profile}" is missing. Run genuineci login (or genuineci login --local).';
+
+	/// en: 'Invalid server URL'
+	String get invalidServer => 'Invalid server URL';
+
+	/// en: 'Could not read the saved profile. Check the credentials file format and permissions.'
+	String get readFailed => 'Could not read the saved profile. Check the credentials file format and permissions.';
+
+	/// en: 'The active profile or selected team changed while checking status. Run genuineci status again.'
+	String get profileChanged => 'The active profile or selected team changed while checking status. Run genuineci status again.';
+
+	/// en: 'Run genuineci login (or genuineci login --local) to check your current team.'
+	String get loginRequired => 'Run genuineci login (or genuineci login --local) to check your current team.';
+
+	/// en: 'No team is selected. Run genuineci switch team to select a team.'
+	String get noTeamSelected => 'No team is selected. Run genuineci switch team to select a team.';
+
+	/// en: 'No teams found. Create or join a team in the dashboard first.'
+	String get noTeams => 'No teams found. Create or join a team in the dashboard first.';
+
+	/// en: 'The selected team is no longer available. Run genuineci switch team to select an available team.'
+	String get teamNotFound => 'The selected team is no longer available. Run genuineci switch team to select an available team.';
+
+	/// en: 'Could not fetch teams (HTTP ${status}).'
+	String requestFailed({required Object status}) => 'Could not fetch teams (HTTP ${status}).';
+
+	/// en: 'Could not fetch teams. Check the active profile's server URL and network connection.'
+	String get fetchFailed => 'Could not fetch teams. Check the active profile\'s server URL and network connection.';
+
+	/// en: 'The server returned an invalid team list. Check that the active profile points to a compatible OpenCI server.'
+	String get invalidResponse => 'The server returned an invalid team list. Check that the active profile points to a compatible OpenCI server.';
+
+	/// en: 'Team name: ${value}'
+	String teamName({required Object value}) => 'Team name: ${value}';
 }
 
 // Path: list
@@ -655,16 +682,6 @@ extension on Translations {
 			'cli.version' => ({required Object version}) => 'genuineci version: ${version}',
 			'cli.flags.version' => 'Print the current tool version.',
 			'cli.flags.verbose' => 'Enable verbose logging output.',
-			'status.description' => 'Show the saved active profile, server, and selected team ID.',
-			'status.noArguments' => 'status does not accept positional arguments.',
-			'status.profile' => ({required Object value}) => 'Profile: ${value}',
-			'status.server' => ({required Object value}) => 'Server: ${value}',
-			'status.team' => ({required Object value}) => 'Selected team ID: ${value}',
-			'status.notSet' => 'Not set',
-			'status.noActiveProfile' => 'No profile is configured. Run genuineci login (or genuineci login --local).',
-			'status.profileMissing' => ({required Object profile}) => 'Active profile "${profile}" is missing. Run genuineci login (or genuineci login --local).',
-			'status.invalidServer' => 'Invalid server URL',
-			'status.readFailed' => 'Could not read the saved profile. Check the credentials file format and permissions.',
 			'login.description' => 'Log in to a local or remote OpenCI server.',
 			'login.flags.local' => 'Log in to the local API (http://localhost:8080) with an Auth Emulator user\'s email/password (127.0.0.1:9099).',
 			'login.flags.server' => 'Remote OpenCI server URL (HTTPS).',
@@ -691,6 +708,25 @@ extension on Translations {
 			'login.noTeams' => 'No teams found. Create or join a team in the dashboard first.',
 			'login.teamRequired' => 'Multiple teams found. Run login again with --team-id from the list above.',
 			'login.teamNotFound' => 'You do not belong to the specified team.',
+			'status.description' => 'Show the active profile, server, and current team\'s name and ID.',
+			'status.noArguments' => 'status does not accept positional arguments.',
+			'status.profile' => ({required Object value}) => 'Profile: ${value}',
+			'status.server' => ({required Object value}) => 'Server: ${value}',
+			'status.team' => ({required Object value}) => 'Selected team ID: ${value}',
+			'status.notSet' => 'Not set',
+			'status.noActiveProfile' => 'No profile is configured. Run genuineci login (or genuineci login --local).',
+			'status.profileMissing' => ({required Object profile}) => 'Active profile "${profile}" is missing. Run genuineci login (or genuineci login --local).',
+			'status.invalidServer' => 'Invalid server URL',
+			'status.readFailed' => 'Could not read the saved profile. Check the credentials file format and permissions.',
+			'status.profileChanged' => 'The active profile or selected team changed while checking status. Run genuineci status again.',
+			'status.loginRequired' => 'Run genuineci login (or genuineci login --local) to check your current team.',
+			'status.noTeamSelected' => 'No team is selected. Run genuineci switch team to select a team.',
+			'status.noTeams' => 'No teams found. Create or join a team in the dashboard first.',
+			'status.teamNotFound' => 'The selected team is no longer available. Run genuineci switch team to select an available team.',
+			'status.requestFailed' => ({required Object status}) => 'Could not fetch teams (HTTP ${status}).',
+			'status.fetchFailed' => 'Could not fetch teams. Check the active profile\'s server URL and network connection.',
+			'status.invalidResponse' => 'The server returned an invalid team list. Check that the active profile points to a compatible OpenCI server.',
+			'status.teamName' => ({required Object value}) => 'Team name: ${value}',
 			'list.description' => 'List resources in OpenCI.',
 			'list.secrets.description' => 'List the active team\'s secret names, sorted by name.',
 			'list.secrets.noArguments' => 'list secrets does not accept positional arguments.',

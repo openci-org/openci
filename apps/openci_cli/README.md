@@ -21,25 +21,6 @@ described below.
 
 ## Usage
 
-Show the saved active profile, server, and selected team ID:
-
-```sh
-genuineci status
-```
-
-For example:
-
-```text
-Profile: remote
-Server: https://ci.example.com
-Selected team ID: team-123
-```
-
-This reads the local configuration and works offline. It does not refresh tokens
-or verify server access. Team IDs are shown because team names are not stored in
-the profile. A fresh installation shows a login hint. Unreadable credentials or
-a missing active profile return exit code 1.
-
 Log in to a remote server with the same email and password as the dashboard:
 
 ```sh
@@ -65,6 +46,27 @@ tokens. Credentials, including the refresh token, are stored in the `openci`
 application config directory with owner-only permissions on macOS/Linux. If an
 older development build stored your credentials in a `genuineci` configuration
 directory, log in again; those credentials are not migrated.
+
+Check the active profile, server, and current team:
+
+```sh
+genuineci status
+```
+
+```text
+Profile: remote
+Server: https://ci.example.com
+Selected team ID: team-id
+Team name: My team
+```
+
+The command fetches the current team name from the saved server using the active
+profile's team ID. It works from any directory and supports redirected output.
+It preserves the selected team and other profiles; expiring Firebase tokens are
+refreshed automatically. The saved profile, server, and team ID are displayed
+even if the team name cannot be fetched. If the selected team is no longer
+available, run `genuineci switch team`. Errors go to stderr and return a nonzero
+exit code. A fresh installation shows a login hint and exits successfully.
 
 Switch the active profile's team without logging in again:
 
