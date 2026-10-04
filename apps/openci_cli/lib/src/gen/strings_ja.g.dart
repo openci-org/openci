@@ -151,6 +151,7 @@ class _Translations$list$ja extends Translations$list$en {
 
 	// Translations
 	@override String get description => 'OpenCIのリソースを一覧表示します。';
+	@override late final _Translations$list$teams$ja teams = _Translations$list$teams$ja._(_root);
 	@override late final _Translations$list$secrets$ja secrets = _Translations$list$secrets$ja._(_root);
 }
 
@@ -245,6 +246,22 @@ class _Translations$login$flags$ja extends Translations$login$flags$en {
 	@override String get server => 'リモートのOpenCIサーバーURL（HTTPS）。';
 	@override String get teamId => '複数チームに所属している場合に選択するチームID。';
 	@override String get firebaseApiKey => 'Firebase Web APIキー（独自のFirebaseプロジェクトを使う場合に指定）。';
+}
+
+// Path: list.teams
+class _Translations$list$teams$ja extends Translations$list$teams$en {
+	_Translations$list$teams$ja._(TranslationsJa root) : this._root = root, super.internal(root);
+
+	final TranslationsJa _root; // ignore: unused_field
+
+	// Translations
+	@override String get description => '所属チームの名前とIDを一覧表示します。*は現在のチームです。';
+	@override String get noArguments => 'list teamsに位置引数は指定できません。';
+	@override String get loginRequired => 'genuineci login（ローカルならgenuineci login --local）を実行してからチームを一覧表示してください。';
+	@override String requestFailed({required Object status}) => 'チーム一覧を取得できませんでした（HTTP ${status}）。';
+	@override String get fetchFailed => 'チーム一覧を取得できませんでした。現在のプロファイルのサーバーURLとネットワーク接続を確認してください。';
+	@override String get invalidResponse => 'サーバーから返されたチーム一覧が不正です。';
+	@override String get empty => '所属チームがありません。ダッシュボードでチームを作成するか参加してください。';
 }
 
 // Path: list.secrets
@@ -474,6 +491,13 @@ extension on TranslationsJa {
 			'status.invalidResponse' => 'サーバーから不正なチーム一覧が返されました。現在のプロファイルが対応するOpenCIサーバーを指しているか確認してください。',
 			'status.teamName' => ({required Object value}) => 'チーム名: ${value}',
 			'list.description' => 'OpenCIのリソースを一覧表示します。',
+			'list.teams.description' => '所属チームの名前とIDを一覧表示します。*は現在のチームです。',
+			'list.teams.noArguments' => 'list teamsに位置引数は指定できません。',
+			'list.teams.loginRequired' => 'genuineci login（ローカルならgenuineci login --local）を実行してからチームを一覧表示してください。',
+			'list.teams.requestFailed' => ({required Object status}) => 'チーム一覧を取得できませんでした（HTTP ${status}）。',
+			'list.teams.fetchFailed' => 'チーム一覧を取得できませんでした。現在のプロファイルのサーバーURLとネットワーク接続を確認してください。',
+			'list.teams.invalidResponse' => 'サーバーから返されたチーム一覧が不正です。',
+			'list.teams.empty' => '所属チームがありません。ダッシュボードでチームを作成するか参加してください。',
 			'list.secrets.description' => '現在のチームのシークレット名を名前順に一覧表示します。',
 			'list.secrets.noArguments' => 'list secretsに位置引数は指定できません。',
 			'list.secrets.loginRequired' => 'genuineci login（ローカルならgenuineci login --local）を実行してからシークレットを一覧表示してください。',

@@ -74,6 +74,15 @@
   },
   "list": {
     "description": "OpenCIのリソースを一覧表示します。",
+    "teams": {
+      "description": "所属チームの名前とIDを一覧表示します。*は現在のチームです。",
+      "noArguments": "list teamsに位置引数は指定できません。",
+      "loginRequired": "genuineci login（ローカルならgenuineci login --local）を実行してからチームを一覧表示してください。",
+      "requestFailed": "チーム一覧を取得できませんでした（HTTP ${status}）。",
+      "fetchFailed": "チーム一覧を取得できませんでした。現在のプロファイルのサーバーURLとネットワーク接続を確認してください。",
+      "invalidResponse": "サーバーから返されたチーム一覧が不正です。",
+      "empty": "所属チームがありません。ダッシュボードでチームを作成するか参加してください。"
+    },
     "secrets": {
       "description": "現在のチームのシークレット名を名前順に一覧表示します。",
       "noArguments": "list secretsに位置引数は指定できません。",

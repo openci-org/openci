@@ -81,6 +81,24 @@ even if the team name cannot be fetched. If the selected team is no longer
 available, run `genuineci switch team`. Errors go to stderr and return a nonzero
 exit code. A fresh installation shows a login hint and exits successfully.
 
+List all teams available to the active profile:
+
+```sh
+genuineci list teams
+```
+
+```text
+  Alpha (team-a)
+* OpenCI (team-b)
+```
+
+Each line shows a team name and ID, sorted by name and then ID. `*` marks the
+selected team. Listing teams does not change the selected team or active profile;
+expiring Firebase tokens are refreshed automatically. It works with redirected
+output and does not require a selected team. An empty list shows a message and
+exits successfully; authentication, connection, and invalid-response errors go
+to stderr and return a nonzero exit code.
+
 Switch the active profile's team without logging in again:
 
 ```sh

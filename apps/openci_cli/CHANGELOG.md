@@ -1,3 +1,8 @@
+## Unreleased
+
+- Add `genuineci list teams` to show team names and IDs, mark the selected team,
+  and support redirected output with English and Japanese messages.
+
 ## 0.2.0
 
 - Check for newer stable releases with `pub_updater` and offer to update with a

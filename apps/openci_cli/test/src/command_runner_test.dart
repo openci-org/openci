@@ -137,6 +137,12 @@ void main() {
     expect(secrets!.description, t.list.secrets.description);
   });
 
+  test('registers list teams with a localized description', () {
+    final teams = runner.commands['list']!.subcommands['teams'];
+    expect(teams, isA<ListTeamsCommand>());
+    expect(teams!.description, t.list.teams.description);
+  });
+
   test('registers switch team with localized descriptions', () {
     final switchCommand = runner.commands['switch'];
     expect(switchCommand, isA<SwitchCommand>());
