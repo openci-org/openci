@@ -1,12 +1,12 @@
 import 'dart:io';
 
 import 'package:args/command_runner.dart';
-import 'package:openci_cli/openci_cli.dart';
+import 'package:genuineci_cli/genuineci_cli.dart';
 
 Future<void> main(List<String> arguments) async {
   await initI18n();
 
-  final runner = OpenCICommandRunner();
+  final runner = GenuineCICommandRunner();
   try {
     final exitCode = await runner.run(arguments);
     if (exitCode != null && exitCode != 0) {

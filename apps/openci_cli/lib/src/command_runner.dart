@@ -11,14 +11,14 @@ import 'commands/sync/sync_command.dart';
 import 'commands/use_command.dart';
 import 'i18n/i18n.dart';
 
-const String openCIVersion = '0.0.1';
+const String genuineCIVersion = '0.0.2';
 
-class OpenCICommandRunner extends CommandRunner<int> {
+class GenuineCICommandRunner extends CommandRunner<int> {
   final Logger _logger;
 
-  OpenCICommandRunner({Logger? logger})
+  GenuineCICommandRunner({Logger? logger})
     : _logger = logger ?? Logger.standard(),
-      super('openci', t.cli.description) {
+      super('genuineci', t.cli.description) {
     argParser
       ..addFlag(
         'version',
@@ -40,7 +40,7 @@ class OpenCICommandRunner extends CommandRunner<int> {
   @override
   Future<int?> runCommand(ArgResults topLevelResults) async {
     if (topLevelResults['version'] == true) {
-      _logger.stdout(t.cli.version(version: openCIVersion));
+      _logger.stdout(t.cli.version(version: genuineCIVersion));
       return 0;
     }
     return await super.runCommand(topLevelResults);

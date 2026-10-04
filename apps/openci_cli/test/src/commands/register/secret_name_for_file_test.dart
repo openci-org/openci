@@ -1,4 +1,4 @@
-import 'package:openci_cli/src/commands/register/secret_name_for_file.dart';
+import 'package:genuineci_cli/src/commands/register/secret_name_for_file.dart';
 import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 

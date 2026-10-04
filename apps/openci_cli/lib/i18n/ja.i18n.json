@@ -1,7 +1,7 @@
 {
   "cli": {
-    "description": "OpenCI - CI/CD およびシークレット管理コマンドラインツール",
-    "version": "openci バージョン: ${version}",
+    "description": "GenuineCI - CI/CD およびシークレット管理コマンドラインツール",
+    "version": "genuineci バージョン: ${version}",
     "flags": {
       "version": "ツールのバージョンを表示します。",
       "verbose": "詳細なログ出力を有効にします。"
@@ -18,11 +18,11 @@
     "loggingIn": "OpenCI にログイン中...",
     "savedSuccess": "プロファイル「${profile}」を保存し、有効にしました。",
     "noArguments": "loginに位置引数は指定できません。",
-    "authenticationFailed": "ローカルサーバーの認証に失敗しました。openci dev start で起動したサーバーを確認してください。",
+    "authenticationFailed": "ローカルサーバーの認証に失敗しました。genuineci dev start で起動したサーバーを確認してください。",
     "requestFailed": "チーム一覧を取得できませんでした（HTTP ${status}）。",
     "localTeamRequired": "このユーザーはtest-teamを利用できません。チームが初期データとして作成され、このAuth Emulatorユーザーが所属していることを確認してください。",
     "invalidResponse": "サーバーから返されたチーム一覧が不正です。",
-    "connectionFailed": "ローカルサーバーに接続できませんでした。openci dev start の起動状態を確認してください。",
+    "connectionFailed": "ローカルサーバーに接続できませんでした。genuineci dev start の起動状態を確認してください。",
     "saveFailed": "認証情報を保存できませんでした。ローカルの認証情報ファイルと権限を確認してください。",
     "localOptionsConflict": "--localとリモートログイン用のオプションは同時に指定できません。",
     "serverRequired": "--serverには認証情報、クエリ、フラグメントを含まない有効なHTTPSのURLを指定してください。ローカル開発には--localを使ってください。",
@@ -42,7 +42,7 @@
     "secrets": {
       "description": "現在のチームのシークレット名を名前順に一覧表示します。",
       "noArguments": "list secretsに位置引数は指定できません。",
-      "loginRequired": "openci login（ローカルならopenci login --local）を実行してからシークレットを一覧表示してください。",
+      "loginRequired": "genuineci login（ローカルならgenuineci login --local）を実行してからシークレットを一覧表示してください。",
       "requestFailed": "シークレット名を取得できませんでした（HTTP ${status}）。",
       "fetchFailed": "シークレット名を取得できませんでした。サーバーの接続状態とレスポンスを確認してください。",
       "empty": "現在のチームにはシークレットが登録されていません。"
@@ -54,7 +54,7 @@
       "description": "現在のチームのシークレットを登録・更新します。名前と値を順に入力します。値は入力中は非表示で、Enterで確定すると******と表示します。",
       "noArguments": "register secretに位置引数は指定できません。名前と値は対話入力で指定してください。",
       "invalidName": "シークレット名には英数字とアンダースコアを使い、数字で始めないでください。",
-      "loginRequired": "openci login（ローカルならopenci login --local）を実行してからシークレットを登録してください。",
+      "loginRequired": "genuineci login（ローカルならgenuineci login --local）を実行してからシークレットを登録してください。",
       "namePrompt": "シークレット名:",
       "valuePrompt": "シークレット値:",
       "inputRequired": "シークレットは登録されませんでした。対話可能な端末で名前と空でない値を入力してください。",
@@ -81,8 +81,8 @@
     "team": {
       "description": "現在のプロファイルで使用するチームを対話式で切り替えます。",
       "noArguments": "switch teamに位置引数は指定できません。",
-      "loginRequired": "チームを切り替える前に、openci login（またはopenci login --local）を実行してください。",
-      "authenticationFailed": "認証に失敗しました（HTTP ${status}）。使用中のサーバーにopenci login（またはopenci login --local）で再度ログインしてください。",
+      "loginRequired": "チームを切り替える前に、genuineci login（またはgenuineci login --local）を実行してください。",
+      "authenticationFailed": "認証に失敗しました（HTTP ${status}）。使用中のサーバーにgenuineci login（またはgenuineci login --local）で再度ログインしてください。",
       "requestFailed": "チーム一覧を取得できませんでした（HTTP ${status}）。",
       "fetchFailed": "チーム一覧を取得できませんでした。現在のプロファイルのサーバーURLとネットワーク接続を確認してください。",
       "invalidResponse": "サーバーから不正なチーム一覧が返されました。現在のプロファイルが対応するOpenCIサーバーを指しているか確認してください。",
@@ -91,11 +91,11 @@
       "current": "現在のチーム",
       "controls": "上下キー: 移動 / Enter: 選択 / Esc・Ctrl+C: キャンセル",
       "cancelled": "チームの切り替えをキャンセルしました。チームは保存していません。",
-      "nonInteractive": "チーム切り替えにはANSI対応の対話可能な端末が必要です。入力のパイプや出力のリダイレクトを外してopenci switch teamを実行してください。",
+      "nonInteractive": "チーム切り替えにはANSI対応の対話可能な端末が必要です。入力のパイプや出力のリダイレクトを外してgenuineci switch teamを実行してください。",
       "inputFailed": "チームを選択できませんでした。対話可能な端末で再試行してください。",
       "success": "${team}に切り替えました。",
       "alreadyCurrent": "${team}は現在のチームです。",
-      "profileChanged": "選択中に現在のプロファイルまたは認証情報が変更されました。選択したチームは保存していません。openci switch teamを再実行してください。",
+      "profileChanged": "選択中に現在のプロファイルまたは認証情報が変更されました。選択したチームは保存していません。genuineci switch teamを再実行してください。",
       "saveFailed": "選択したチームを保存できませんでした。認証情報ファイル、権限、ディスクの空き容量を確認して再試行してください。"
     }
   },
@@ -149,7 +149,7 @@
     "secrets": {
       "description": "現在のチームのシークレット名からopenci/secrets.g.dartを生成します。",
       "noArguments": "sync secretsに位置引数は指定できません。",
-      "loginRequired": "openci login（ローカルならopenci login --local）を実行してからシークレットを同期してください。",
+      "loginRequired": "genuineci login（ローカルならgenuineci login --local）を実行してからシークレットを同期してください。",
       "workflowDirectoryNotFound": "openciディレクトリが見つかりません。ワークフローのあるプロジェクト内で実行してください。",
       "requestFailed": "シークレット名を取得できませんでした（HTTP ${status}）。",
       "fetchFailed": "シークレット名を取得できませんでした。サーバーの接続状態とレスポンスを確認してください。",

@@ -85,6 +85,7 @@ void main() {
 class _DevStartFixture {
   final Directory directory;
   final Directory packageRoot;
+  Directory get projectRoot => Directory(p.join(directory.path, 'project'));
   final File log;
   final File cliPidFile;
   final File authStarted;
@@ -109,10 +110,10 @@ class _DevStartFixture {
 
   static Future<_DevStartFixture> create() async {
     final packageUri = await Isolate.resolvePackageUri(
-      Uri.parse('package:openci_cli/openci_cli.dart'),
+      Uri.parse('package:genuineci_cli/genuineci_cli.dart'),
     );
     if (packageUri == null) {
-      throw StateError('Cannot find the openci_cli package');
+      throw StateError('Cannot find the genuineci_cli package');
     }
     final directory = await Directory.systemTemp.createTemp(
       'openci_dev_start_process_',
@@ -121,6 +122,12 @@ class _DevStartFixture {
       directory,
       File.fromUri(packageUri).parent.parent,
     );
+    await Directory(
+      p.join(fixture.projectRoot.path, 'apps', 'openci_server'),
+    ).create(recursive: true);
+    await File(
+      p.join(fixture.projectRoot.path, 'docker-compose.yml'),
+    ).writeAsString('services: {}\n');
     final bin = await Directory(p.join(directory.path, 'bin')).create();
     await fixture._writeExecutable(bin, 'tart', r'''#!/bin/bash
 printf 'tart %s\n' "$*" >> "$OPENCI_TEST_LOG"
@@ -199,11 +206,11 @@ exit $?
         launcher,
         'openci-process-test',
         Platform.resolvedExecutable,
-        'bin/openci_cli.dart',
+        p.join(packageRoot.path, 'bin', 'genuineci_cli.dart'),
         'dev',
         'start',
       ],
-      workingDirectory: packageRoot.path,
+      workingDirectory: projectRoot.path,
       environment: {
         ...Platform.environment,
         'HOME': directory.path,

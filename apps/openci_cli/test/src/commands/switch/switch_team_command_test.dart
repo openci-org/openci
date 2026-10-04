@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:args/command_runner.dart';
 import 'package:cli_util/cli_logging.dart';
-import 'package:openci_cli/openci_cli.dart';
+import 'package:genuineci_cli/genuineci_cli.dart';
 import 'package:test/test.dart';
 
 class _RecordingLogger implements Logger {
@@ -22,13 +22,13 @@ class _RecordingLogger implements Logger {
 void main() {
   late AppLocale originalLocale;
   late _RecordingLogger logger;
-  late OpenCICommandRunner runner;
+  late GenuineCICommandRunner runner;
 
   setUp(() {
     originalLocale = LocaleSettings.currentLocale;
     LocaleSettings.setLocaleSync(AppLocale.en);
     logger = _RecordingLogger();
-    runner = OpenCICommandRunner(logger: logger);
+    runner = GenuineCICommandRunner(logger: logger);
   });
 
   tearDown(() => LocaleSettings.setLocaleSync(originalLocale));
@@ -45,7 +45,7 @@ void main() {
         test('shows localized help for $arguments', () async {
           // Construct after choosing the locale so the runner's own description
           // uses the same language as its commands.
-          runner = OpenCICommandRunner(logger: logger);
+          runner = GenuineCICommandRunner(logger: logger);
           final messages = <String>[];
           final result = await runZoned(
             () => runner.run(arguments),
@@ -60,11 +60,11 @@ void main() {
             expect(help, contains(t.switchCommand.description));
             expect(help, matches(RegExp(r'^\s+switch\s+', multiLine: true)));
           } else if (arguments.length == 2) {
-            expect(help, contains('Usage: openci switch'));
+            expect(help, contains('Usage: genuineci switch'));
             expect(help, contains(t.switchCommand.team.description));
             expect(help, matches(RegExp(r'^\s+team\s+', multiLine: true)));
           } else {
-            expect(help, contains('Usage: openci switch team'));
+            expect(help, contains('Usage: genuineci switch team'));
             expect(help, contains(t.switchCommand.team.description));
           }
           expect(logger.stdoutMessages, isEmpty);
@@ -89,7 +89,7 @@ void main() {
                   .having(
                     (error) => error.usage,
                     'usage',
-                    contains('Usage: openci switch team'),
+                    contains('Usage: genuineci switch team'),
                   ),
             ),
           );
@@ -112,7 +112,7 @@ void main() {
           isA<UsageException>().having(
             (error) => error.usage,
             'usage',
-            contains('Usage: openci switch'),
+            contains('Usage: genuineci switch'),
           ),
         ),
       );
@@ -130,7 +130,7 @@ void main() {
             .having(
               (error) => error.usage,
               'usage',
-              contains('Usage: openci switch team'),
+              contains('Usage: genuineci switch team'),
             ),
       ),
     );

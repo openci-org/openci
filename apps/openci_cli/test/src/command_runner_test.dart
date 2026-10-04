@@ -1,6 +1,6 @@
 import 'package:args/command_runner.dart';
 import 'package:cli_util/cli_logging.dart';
-import 'package:openci_cli/openci_cli.dart';
+import 'package:genuineci_cli/genuineci_cli.dart';
 import 'package:test/test.dart';
 
 class _RecordingLogger implements Logger {
@@ -19,11 +19,11 @@ class _RecordingLogger implements Logger {
 
 void main() {
   late _RecordingLogger logger;
-  late OpenCICommandRunner runner;
+  late GenuineCICommandRunner runner;
 
   setUp(() {
     logger = _RecordingLogger();
-    runner = OpenCICommandRunner(logger: logger);
+    runner = GenuineCICommandRunner(logger: logger);
   });
 
   group('version', () {
@@ -34,7 +34,7 @@ void main() {
         expect(result, equals(0));
         expect(
           logger.stdoutMessages,
-          equals([t.cli.version(version: openCIVersion)]),
+          equals([t.cli.version(version: genuineCIVersion)]),
         );
         expect(logger.stderrMessages, isEmpty);
       });
@@ -46,7 +46,7 @@ void main() {
       expect(result, equals(0));
       expect(
         logger.stdoutMessages,
-        equals([t.cli.version(version: openCIVersion)]),
+        equals([t.cli.version(version: genuineCIVersion)]),
       );
       expect(logger.stderrMessages, isEmpty);
     });
@@ -125,7 +125,7 @@ void main() {
     expect(logger.stdoutMessages, isEmpty);
     expect(
       logger.stderrMessages,
-      equals(['Usage: openci use <japanese|english>']),
+      equals(['Usage: genuineci use <japanese|english>']),
     );
   });
 }

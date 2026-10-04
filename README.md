@@ -3,7 +3,7 @@
 [![codecov](https://codecov.io/gh/openci-org/openci/graph/badge.svg?token=RAJBUMJU3O)](https://codecov.io/gh/openci-org/openci)
 
 Open this repository in VS Code with `openci.code-workspace`. The root
-`pubspec.yaml` lists the Dart workspace packages, including the `openci_cli`,
+`pubspec.yaml` lists the Dart workspace packages, including the `genuineci_cli`,
 `openci_server`, `openci_workflow`, and `genuineci_website` packages. Repository
 workflow definitions live in `openci/`; the CLI discovers the same directory in
 user projects.

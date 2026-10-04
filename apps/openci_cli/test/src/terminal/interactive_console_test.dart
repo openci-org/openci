@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:dart_console/dart_console.dart';
-import 'package:openci_cli/src/terminal/interactive_console.dart';
+import 'package:genuineci_cli/src/terminal/console.dart';
+import 'package:genuineci_cli/src/terminal/interactive_console.dart';
 import 'package:test/test.dart';
 
 class _Console implements Console {

@@ -91,7 +91,7 @@ settings come from the base configuration. The base `docker-compose.yml` uses
 the configured Firebase service account when this override is omitted. Use the
 override only for local development.
 
-`openci dev start` now uses this same three-file configuration for every Compose
+`genuineci dev start` now uses this same three-file configuration for every Compose
 step. It first runs `up -d --build --wait firebase-auth`, so an emulator startup
 or readiness failure stops the command before the API starts. The standalone
 emulator commands above remain available.
@@ -102,12 +102,12 @@ To stop the local API and its dependencies, use the same three `-f` options with
 ## Connect the Dashboard
 
 1. Start the local API and Auth Emulator using the Compose command above, or
-   `openci dev start` on a Mac configured for Orchard. Keep `dev start` running
+   `genuineci dev start` on a Mac configured for Orchard. Keep `dev start` running
    while using the Dashboard; Ctrl+C shuts down the local stack.
 2. Open `apps/dashboard` in VS Code, select **dashboard (Local Auth Emulator)**
    from Run and Debug, select your device, and start debugging.
 3. The authentication page displays **Local Auth Emulator · demo-openci**.
-   If you started with `openci dev start --seed`, sign in with `test@openci.org`
+   If you started with `genuineci dev start --seed`, sign in with `test@openci.org`
    and password `123456`. Otherwise, create an email/password user in the
    [Emulator UI](http://127.0.0.1:4000/auth). These seeded credentials are only
    for local development. `--seed` marks this user's email as verified and

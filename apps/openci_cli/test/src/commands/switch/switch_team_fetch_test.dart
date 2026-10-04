@@ -6,8 +6,8 @@ import 'package:args/command_runner.dart';
 import 'package:cli_util/cli_logging.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
-import 'package:openci_cli/openci_cli.dart';
-import 'package:openci_cli/src/commands/switch/select_team.dart';
+import 'package:genuineci_cli/genuineci_cli.dart';
+import 'package:genuineci_cli/src/commands/switch/select_team.dart';
 import 'package:openci_shared/openci_shared.dart';
 import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
@@ -138,7 +138,7 @@ void main() {
     bool teamChangeExpected = false,
   }) async {
     final before = await credentialsBytes();
-    final runner = CommandRunner<int>('openci', 'test')
+    final runner = CommandRunner<int>('genuineci', 'test')
       ..addCommand(
         SwitchCommand(
           logger: logger,

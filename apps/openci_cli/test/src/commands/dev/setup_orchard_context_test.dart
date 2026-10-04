@@ -1,8 +1,8 @@
 import 'dart:io';
 
 import 'package:cli_util/cli_logging.dart';
-import 'package:openci_cli/src/commands/dev/setup_orchard_context.dart';
-import 'package:openci_cli/src/i18n/i18n.dart';
+import 'package:genuineci_cli/src/commands/dev/setup_orchard_context.dart';
+import 'package:genuineci_cli/src/i18n/i18n.dart';
 import 'package:test/test.dart';
 
 class _RecordingLogger implements Logger {

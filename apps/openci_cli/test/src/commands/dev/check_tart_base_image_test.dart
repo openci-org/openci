@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:cli_util/cli_logging.dart';
-import 'package:openci_cli/src/commands/dev/check_tart_base_image.dart';
+import 'package:genuineci_cli/src/commands/dev/check_tart_base_image.dart';
 import 'package:test/test.dart';
 
 void main() {

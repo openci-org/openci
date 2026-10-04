@@ -1,9 +1,30 @@
-OpenCI command-line tools.
+# GenuineCI CLI
+
+Command-line tools for OpenCI authentication, team switching, secrets, workflow
+paths, and local development.
+
+## Install
+
+Install with Dart 3.11.5 or later:
+
+```sh
+dart install genuineci_cli
+genuineci --help
+```
+
+If `genuineci` is not found, follow the [`dart install` PATH setup](https://dart.dev/tools/dart-install).
+Run the same install command to update to the latest published version.
+
+The remote commands work from any directory. Local development commands require
+an [OpenCI checkout](https://github.com/openci-org/openci) and the services
+described below.
+
+## Usage
 
 Log in to a remote server with the same email and password as the dashboard:
 
 ```sh
-openci login
+genuineci login
 ```
 
 The default server is `https://openci-worker-01.tail4beb18.ts.net`.
@@ -22,19 +43,20 @@ The remote server URL must use HTTPS.
 
 Secret commands use this profile and automatically refresh expiring Firebase ID
 tokens. Credentials, including the refresh token, are stored in the `openci`
-application config directory with owner-only permissions on macOS/Linux. If you
-previously used `genuineci`, log in again; its credentials are not migrated.
+application config directory with owner-only permissions on macOS/Linux. If an
+older development build stored your credentials in a `genuineci` configuration
+directory, log in again; those credentials are not migrated.
 
 Switch the active profile's team without logging in again:
 
 ```sh
-openci switch team
+genuineci switch team
 ```
 
 The CLI fetches your team memberships from the server saved in the active
-credential profile. A `remote` profile uses the HTTPS URL saved by `openci login`,
+credential profile. A `remote` profile uses the HTTPS URL saved by `genuineci login`,
 including any `--server` override. A `local` profile created by
-`openci login --local` uses `http://localhost:8080` and its saved Auth Emulator
+`genuineci login --local` uses `http://localhost:8080` and its saved Auth Emulator
 settings. To activate the remote or local profile, run the corresponding login
 command first.
 
@@ -53,12 +75,12 @@ other profiles are preserved. Choosing the current team succeeds without a
 write. Cancellation or a failed save preserves the previous selected team.
 Expiring authentication tokens may still be refreshed before the picker opens.
 If the active profile or its credentials change during selection, the CLI
-refuses to overwrite them and asks you to run `openci switch team` again.
+refuses to overwrite them and asks you to run `genuineci switch team` again.
 
-Subsequent `openci list secrets`, `openci register secret`,
-`openci register secretFile`, and `openci sync secrets` commands use the newly
+Subsequent `genuineci list secrets`, `genuineci register secret`,
+`genuineci register secretFile`, and `genuineci sync secrets` commands use the newly
 selected team. Existing `openci/secrets.g.dart` files are updated by running
-`openci sync secrets` in the workflow project.
+`genuineci sync secrets` in the workflow project.
 
 Team switching requires interactive stdin and stdout with ANSI support. Run it
 directly in a terminal, without piped input or redirected output. Success and
@@ -69,21 +91,21 @@ Troubleshooting team selection:
 
 | Condition | What to check |
 | --- | --- |
-| Login required or HTTP 401/403 | Log in again for the intended server with `openci login` or `openci login --local`. |
+| Login required or HTTP 401/403 | Log in again for the intended server with `genuineci login` or `genuineci login --local`. |
 | No team memberships | Create or join a team in the dashboard for that server. |
 | Interactive terminal required | Use an ANSI-capable terminal with interactive stdin and stdout; remove pipes and output redirection. |
-| HTTP error or connection failure | Check the active profile's server URL and network connection. For local development, check that `openci dev start` is running. |
+| HTTP error or connection failure | Check the active profile's server URL and network connection. For local development, check that `genuineci dev start` is running. |
 | Invalid team list | Check that the saved server URL points to a compatible OpenCI API. |
-| Changed profile or credentials | Run `openci switch team` again using the current authentication. |
+| Changed profile or credentials | Run `genuineci switch team` again using the current authentication. |
 | Save failure | Check the credentials file, its permissions, and available disk space. |
 
-Choose English or Japanese messages with `openci use english` or
-`openci use japanese`. The language setting is saved for future invocations.
+Choose English or Japanese messages with `genuineci use english` or
+`genuineci use japanese`. The language setting is saved for future invocations.
 
 List secret names for the active profile's team:
 
 ```sh
-openci list secrets
+genuineci list secrets
 ```
 
 Names are printed one per line, sorted by name, without secret values. If the
@@ -94,7 +116,7 @@ workflow files. Control characters in names are displayed as escaped text.
 Register a secret for the active profile's team:
 
 ```sh
-openci register secret
+genuineci register secret
 ```
 
 Enter the secret name (for example, `API_TOKEN`), then its value in an interactive
@@ -104,13 +126,13 @@ shows `******`, regardless of the value's length.
 Registering an existing name updates its value. The CLI uses the dashboard's
 existing API, which trims leading and trailing whitespace from values. Values
 are not printed or saved locally. Firebase tokens are refreshed when needed.
-After adding a secret, run `openci sync secrets` from your workflow project
+After adding a secret, run `genuineci sync secrets` from your workflow project
 to update its generated secret definitions.
 
 Register a file as a Base64 secret:
 
 ```sh
-openci register secretFile
+genuineci register secretFile
 ```
 
 Type a file path to filter the displayed candidates. Press Tab or the up/down
@@ -125,10 +147,10 @@ underscores become `_`, and `_BASE64` is appended. Names beginning with a digit
 are prefixed with `_`. For example, `google-services.json` becomes
 `GOOGLE_SERVICES_JSON_BASE64`. Selecting an existing name updates that secret.
 Empty files are rejected. Neither the file contents nor the encoded value is
-printed or saved locally. Run `openci sync secrets` afterwards to update the
+printed or saved locally. Run `genuineci sync secrets` afterwards to update the
 generated definitions.
 
-Run `openci dev start` from the OpenCI checkout to start local services and the
+Run `genuineci dev start` from the OpenCI checkout to start local services and the
 Mac Orchard worker. Prepare the existing non-Firebase Docker Compose credentials
 and `base-macos` VM first. Docker Compose 2.24.4 or later is required for the
 local API override.
@@ -144,9 +166,9 @@ available for saving results and deleting their VMs. It then rebuilds and
 starts the application containers. See [the emulator setup](../../firebase/README.md)
 for standalone start and stop commands.
 
-The `/internal` seed and cleanup API is disabled by default. `openci dev start`
+The `/internal` seed and cleanup API is disabled by default. `genuineci dev start`
 automatically enables it by passing `ENABLE_INTERNAL_API=true` to Docker Compose.
-Requests also require `INTERNAL_API_KEY`. For `openci dev start --seed`, the CLI
+Requests also require `INTERNAL_API_KEY`. For `genuineci dev start --seed`, the CLI
 always reads it from the checkout's `.env` file and only seeds a local server.
 The dev command also excludes a shell-exported `INTERNAL_API_KEY` from Docker
 Compose so the server and seed request use the same key.
@@ -154,7 +176,7 @@ Compose so the server and seed request use the same key.
 To also prepare a development Auth user and queue the default smoke-test build job:
 
 ```sh
-openci dev start --seed
+genuineci dev start --seed
 ```
 
 The CLI first creates an email/password user in the local `demo-openci` Auth
@@ -197,10 +219,10 @@ Press Ctrl+C to stop the Mac Orchard worker and the local Docker Compose stack.
 The same shutdown also runs when the command exits or receives SIGTERM. Named
 volumes and local data are kept.
 
-To log in locally, keep `openci dev start --seed` running, then run:
+To log in locally, keep `genuineci dev start --seed` running, then run:
 
 ```sh
-openci login --local
+genuineci login --local
 ```
 
 Enter `test@openci.org` and `123456`, or the credentials of another user
@@ -215,7 +237,7 @@ Successful login saves and activates the `local` Firebase profile, including
 the refresh credentials and `firebase_auth_emulator_host`. Later token refreshes
 use the same emulator. Failed or cancelled login preserves saved profiles and
 never falls back to real Firebase. To replace an older `local` profile containing
-an internal API key, run `openci login --local` again after preparing the user
+an internal API key, run `genuineci login --local` again after preparing the user
 and team; successful login replaces only that profile. The password is never
 saved. The remote `--server`, `--team-id`, and `--firebase-api-key` options cannot
 be combined with `--local`.
@@ -227,7 +249,7 @@ With an authenticated credential profile, generate typed secret definitions
 from your workflow project:
 
 ```sh
-openci sync secrets
+genuineci sync secrets
 ```
 
 The command uses the active credential profile and finds the nearest ancestor
@@ -240,7 +262,7 @@ the existing file unchanged.
 Generate typed workspace paths without logging in or starting local services:
 
 ```sh
-openci sync paths
+genuineci sync paths
 ```
 
 Run this from your workflow project or one of its subdirectories. The command

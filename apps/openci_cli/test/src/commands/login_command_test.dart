@@ -4,12 +4,12 @@ import 'dart:io';
 
 import 'package:args/command_runner.dart';
 import 'package:cli_util/cli_logging.dart';
-import 'package:openci_cli/src/commands/login/read_login_credentials.dart';
-import 'package:openci_cli/src/commands/login_command.dart';
-import 'package:openci_cli/src/credential_store/credential_config.dart';
-import 'package:openci_cli/src/credential_store/credential_store.dart';
-import 'package:openci_cli/src/credential_store/read_authenticated_profile.dart';
-import 'package:openci_cli/src/i18n/i18n.dart';
+import 'package:genuineci_cli/src/commands/login/read_login_credentials.dart';
+import 'package:genuineci_cli/src/commands/login_command.dart';
+import 'package:genuineci_cli/src/credential_store/credential_config.dart';
+import 'package:genuineci_cli/src/credential_store/credential_store.dart';
+import 'package:genuineci_cli/src/credential_store/read_authenticated_profile.dart';
+import 'package:genuineci_cli/src/i18n/i18n.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:test/test.dart';
@@ -121,7 +121,7 @@ void main() {
     List<String> options = const [],
     Duration timeout = const Duration(seconds: 10),
   ]) {
-    final runner = CommandRunner<int>('openci', 'test')
+    final runner = CommandRunner<int>('genuineci', 'test')
       ..addCommand(
         LoginCommand(
           logger: logger,
@@ -145,7 +145,7 @@ void main() {
   for (final locale in [AppLocale.en, AppLocale.ja]) {
     test('help describes local Auth Emulator login in $locale', () async {
       LocaleSettings.setLocaleSync(locale);
-      final runner = CommandRunner<int>('openci', 'test')
+      final runner = CommandRunner<int>('genuineci', 'test')
         ..addCommand(
           LoginCommand(
             credentialStore: store,
@@ -231,7 +231,7 @@ void main() {
   );
 
   test('supports -l with the default HTTP client', () async {
-    final runner = CommandRunner<int>('openci', 'test')
+    final runner = CommandRunner<int>('genuineci', 'test')
       ..addCommand(
         LoginCommand(
           logger: logger,

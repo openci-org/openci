@@ -21,7 +21,7 @@ class UseCommand extends Command<int> {
   Future<int> run() async {
     final rest = argResults?.rest ?? [];
     if (rest.isEmpty) {
-      _logger.stderr('Usage: openci use <japanese|english>');
+      _logger.stderr('Usage: genuineci use <japanese|english>');
       return 64; // EX_USAGE
     }
 

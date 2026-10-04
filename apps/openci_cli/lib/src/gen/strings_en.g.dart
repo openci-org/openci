@@ -53,11 +53,11 @@ class Translations$cli$en {
 
 	// Translations
 
-	/// en: 'OpenCI command-line tool for managing CI/CD and secrets.'
-	String get description => 'OpenCI command-line tool for managing CI/CD and secrets.';
+	/// en: 'GenuineCI command-line tool for managing CI/CD and secrets.'
+	String get description => 'GenuineCI command-line tool for managing CI/CD and secrets.';
 
-	/// en: 'openci version: ${version}'
-	String version({required Object version}) => 'openci version: ${version}';
+	/// en: 'genuineci version: ${version}'
+	String version({required Object version}) => 'genuineci version: ${version}';
 
 	late final Translations$cli$flags$en flags = Translations$cli$flags$en.internal(_root);
 }
@@ -84,8 +84,8 @@ class Translations$login$en {
 	/// en: 'Login does not accept positional arguments.'
 	String get noArguments => 'Login does not accept positional arguments.';
 
-	/// en: 'Local server authentication failed. Check the server started by openci dev start.'
-	String get authenticationFailed => 'Local server authentication failed. Check the server started by openci dev start.';
+	/// en: 'Local server authentication failed. Check the server started by genuineci dev start.'
+	String get authenticationFailed => 'Local server authentication failed. Check the server started by genuineci dev start.';
 
 	/// en: 'Could not fetch teams (HTTP ${status}).'
 	String requestFailed({required Object status}) => 'Could not fetch teams (HTTP ${status}).';
@@ -96,8 +96,8 @@ class Translations$login$en {
 	/// en: 'The server returned an invalid team list.'
 	String get invalidResponse => 'The server returned an invalid team list.';
 
-	/// en: 'Could not connect to the local server. Check that openci dev start is running.'
-	String get connectionFailed => 'Could not connect to the local server. Check that openci dev start is running.';
+	/// en: 'Could not connect to the local server. Check that genuineci dev start is running.'
+	String get connectionFailed => 'Could not connect to the local server. Check that genuineci dev start is running.';
 
 	/// en: 'Could not save credentials. Check the local credentials file and its permissions.'
 	String get saveFailed => 'Could not save credentials. Check the local credentials file and its permissions.';
@@ -291,8 +291,8 @@ class Translations$list$secrets$en {
 	/// en: 'list secrets does not accept positional arguments.'
 	String get noArguments => 'list secrets does not accept positional arguments.';
 
-	/// en: 'Run openci login (or openci login --local) before listing secrets.'
-	String get loginRequired => 'Run openci login (or openci login --local) before listing secrets.';
+	/// en: 'Run genuineci login (or genuineci login --local) before listing secrets.'
+	String get loginRequired => 'Run genuineci login (or genuineci login --local) before listing secrets.';
 
 	/// en: 'Could not fetch secret names (HTTP ${status}).'
 	String requestFailed({required Object status}) => 'Could not fetch secret names (HTTP ${status}).';
@@ -321,8 +321,8 @@ class Translations$register$secret$en {
 	/// en: 'Secret names must use letters, digits and underscores, and must not start with a digit.'
 	String get invalidName => 'Secret names must use letters, digits and underscores, and must not start with a digit.';
 
-	/// en: 'Run openci login (or openci login --local) before registering secrets.'
-	String get loginRequired => 'Run openci login (or openci login --local) before registering secrets.';
+	/// en: 'Run genuineci login (or genuineci login --local) before registering secrets.'
+	String get loginRequired => 'Run genuineci login (or genuineci login --local) before registering secrets.';
 
 	/// en: 'Secret name:'
 	String get namePrompt => 'Secret name:';
@@ -399,11 +399,11 @@ class Translations$switchCommand$team$en {
 	/// en: 'switch team does not accept positional arguments.'
 	String get noArguments => 'switch team does not accept positional arguments.';
 
-	/// en: 'Run openci login (or openci login --local) before switching teams.'
-	String get loginRequired => 'Run openci login (or openci login --local) before switching teams.';
+	/// en: 'Run genuineci login (or genuineci login --local) before switching teams.'
+	String get loginRequired => 'Run genuineci login (or genuineci login --local) before switching teams.';
 
-	/// en: 'Authentication failed (HTTP ${status}). Log in again with openci login (or openci login --local) for the active server.'
-	String authenticationFailed({required Object status}) => 'Authentication failed (HTTP ${status}). Log in again with openci login (or openci login --local) for the active server.';
+	/// en: 'Authentication failed (HTTP ${status}). Log in again with genuineci login (or genuineci login --local) for the active server.'
+	String authenticationFailed({required Object status}) => 'Authentication failed (HTTP ${status}). Log in again with genuineci login (or genuineci login --local) for the active server.';
 
 	/// en: 'Could not fetch teams (HTTP ${status}).'
 	String requestFailed({required Object status}) => 'Could not fetch teams (HTTP ${status}).';
@@ -429,8 +429,8 @@ class Translations$switchCommand$team$en {
 	/// en: 'Team switching cancelled. No team was saved.'
 	String get cancelled => 'Team switching cancelled. No team was saved.';
 
-	/// en: 'Team switching requires an interactive terminal with ANSI support. Run openci switch team without piping input or redirecting output.'
-	String get nonInteractive => 'Team switching requires an interactive terminal with ANSI support. Run openci switch team without piping input or redirecting output.';
+	/// en: 'Team switching requires an interactive terminal with ANSI support. Run genuineci switch team without piping input or redirecting output.'
+	String get nonInteractive => 'Team switching requires an interactive terminal with ANSI support. Run genuineci switch team without piping input or redirecting output.';
 
 	/// en: 'Could not select a team. Retry in an interactive terminal.'
 	String get inputFailed => 'Could not select a team. Retry in an interactive terminal.';
@@ -441,8 +441,8 @@ class Translations$switchCommand$team$en {
 	/// en: 'Already using ${team}.'
 	String alreadyCurrent({required Object team}) => 'Already using ${team}.';
 
-	/// en: 'The active profile or its credentials changed during selection. The selected team was not saved. Run openci switch team again.'
-	String get profileChanged => 'The active profile or its credentials changed during selection. The selected team was not saved. Run openci switch team again.';
+	/// en: 'The active profile or its credentials changed during selection. The selected team was not saved. Run genuineci switch team again.'
+	String get profileChanged => 'The active profile or its credentials changed during selection. The selected team was not saved. Run genuineci switch team again.';
 
 	/// en: 'Could not save the selected team. Check the credentials file, its permissions, and available disk space, then retry.'
 	String get saveFailed => 'Could not save the selected team. Check the credentials file, its permissions, and available disk space, then retry.';
@@ -572,8 +572,8 @@ class Translations$sync$secrets$en {
 	/// en: 'sync secrets does not accept positional arguments.'
 	String get noArguments => 'sync secrets does not accept positional arguments.';
 
-	/// en: 'Run openci login (or openci login --local) before syncing secrets.'
-	String get loginRequired => 'Run openci login (or openci login --local) before syncing secrets.';
+	/// en: 'Run genuineci login (or genuineci login --local) before syncing secrets.'
+	String get loginRequired => 'Run genuineci login (or genuineci login --local) before syncing secrets.';
 
 	/// en: 'No openci directory found. Run this command from your workflow project.'
 	String get workflowDirectoryNotFound => 'No openci directory found. Run this command from your workflow project.';
@@ -611,8 +611,8 @@ class Translations$dev$start$flags$en {
 extension on Translations {
 	dynamic _flatMapFunction(String path) {
 		return switch (path) {
-			'cli.description' => 'OpenCI command-line tool for managing CI/CD and secrets.',
-			'cli.version' => ({required Object version}) => 'openci version: ${version}',
+			'cli.description' => 'GenuineCI command-line tool for managing CI/CD and secrets.',
+			'cli.version' => ({required Object version}) => 'genuineci version: ${version}',
 			'cli.flags.version' => 'Print the current tool version.',
 			'cli.flags.verbose' => 'Enable verbose logging output.',
 			'login.description' => 'Log in to a local or remote OpenCI server.',
@@ -623,11 +623,11 @@ extension on Translations {
 			'login.loggingIn' => 'Logging in to OpenCI...',
 			'login.savedSuccess' => ({required Object profile}) => 'Successfully saved and activated profile "${profile}".',
 			'login.noArguments' => 'Login does not accept positional arguments.',
-			'login.authenticationFailed' => 'Local server authentication failed. Check the server started by openci dev start.',
+			'login.authenticationFailed' => 'Local server authentication failed. Check the server started by genuineci dev start.',
 			'login.requestFailed' => ({required Object status}) => 'Could not fetch teams (HTTP ${status}).',
 			'login.localTeamRequired' => 'test-team is not available for this user. Check that the team is seeded and this Auth Emulator user belongs to it.',
 			'login.invalidResponse' => 'The server returned an invalid team list.',
-			'login.connectionFailed' => 'Could not connect to the local server. Check that openci dev start is running.',
+			'login.connectionFailed' => 'Could not connect to the local server. Check that genuineci dev start is running.',
 			'login.saveFailed' => 'Could not save credentials. Check the local credentials file and its permissions.',
 			'login.localOptionsConflict' => '--local cannot be combined with remote login options.',
 			'login.serverRequired' => '--server must be a valid HTTPS URL without credentials, a query or a fragment. Use --local for local development.',
@@ -644,7 +644,7 @@ extension on Translations {
 			'list.description' => 'List resources in OpenCI.',
 			'list.secrets.description' => 'List the active team\'s secret names, sorted by name.',
 			'list.secrets.noArguments' => 'list secrets does not accept positional arguments.',
-			'list.secrets.loginRequired' => 'Run openci login (or openci login --local) before listing secrets.',
+			'list.secrets.loginRequired' => 'Run genuineci login (or genuineci login --local) before listing secrets.',
 			'list.secrets.requestFailed' => ({required Object status}) => 'Could not fetch secret names (HTTP ${status}).',
 			'list.secrets.fetchFailed' => 'Could not fetch secret names. Check the server connection and response.',
 			'list.secrets.empty' => 'No secrets registered for the active team.',
@@ -652,7 +652,7 @@ extension on Translations {
 			'register.secret.description' => 'Create or update a secret for the active team. Enter its name, then its value. The value is hidden while typing and shown as ****** after Enter.',
 			'register.secret.noArguments' => 'register secret does not accept positional arguments. Enter the name and value at the prompts.',
 			'register.secret.invalidName' => 'Secret names must use letters, digits and underscores, and must not start with a digit.',
-			'register.secret.loginRequired' => 'Run openci login (or openci login --local) before registering secrets.',
+			'register.secret.loginRequired' => 'Run genuineci login (or genuineci login --local) before registering secrets.',
 			'register.secret.namePrompt' => 'Secret name:',
 			'register.secret.valuePrompt' => 'Secret value:',
 			'register.secret.inputRequired' => 'No secret was registered. Enter a name and a non-empty value in an interactive terminal.',
@@ -673,8 +673,8 @@ extension on Translations {
 			'switchCommand.description' => 'Switch the active team in OpenCI.',
 			'switchCommand.team.description' => 'Interactively switch the team used by the active profile.',
 			'switchCommand.team.noArguments' => 'switch team does not accept positional arguments.',
-			'switchCommand.team.loginRequired' => 'Run openci login (or openci login --local) before switching teams.',
-			'switchCommand.team.authenticationFailed' => ({required Object status}) => 'Authentication failed (HTTP ${status}). Log in again with openci login (or openci login --local) for the active server.',
+			'switchCommand.team.loginRequired' => 'Run genuineci login (or genuineci login --local) before switching teams.',
+			'switchCommand.team.authenticationFailed' => ({required Object status}) => 'Authentication failed (HTTP ${status}). Log in again with genuineci login (or genuineci login --local) for the active server.',
 			'switchCommand.team.requestFailed' => ({required Object status}) => 'Could not fetch teams (HTTP ${status}).',
 			'switchCommand.team.fetchFailed' => 'Could not fetch teams. Check the active profile\'s server URL and network connection.',
 			'switchCommand.team.invalidResponse' => 'The server returned an invalid team list. Check that the active profile points to a compatible OpenCI server.',
@@ -683,11 +683,11 @@ extension on Translations {
 			'switchCommand.team.current' => 'current',
 			'switchCommand.team.controls' => 'Up/Down: move / Enter: select / Esc, Ctrl+C: cancel',
 			'switchCommand.team.cancelled' => 'Team switching cancelled. No team was saved.',
-			'switchCommand.team.nonInteractive' => 'Team switching requires an interactive terminal with ANSI support. Run openci switch team without piping input or redirecting output.',
+			'switchCommand.team.nonInteractive' => 'Team switching requires an interactive terminal with ANSI support. Run genuineci switch team without piping input or redirecting output.',
 			'switchCommand.team.inputFailed' => 'Could not select a team. Retry in an interactive terminal.',
 			'switchCommand.team.success' => ({required Object team}) => 'Switched to ${team}.',
 			'switchCommand.team.alreadyCurrent' => ({required Object team}) => 'Already using ${team}.',
-			'switchCommand.team.profileChanged' => 'The active profile or its credentials changed during selection. The selected team was not saved. Run openci switch team again.',
+			'switchCommand.team.profileChanged' => 'The active profile or its credentials changed during selection. The selected team was not saved. Run genuineci switch team again.',
 			'switchCommand.team.saveFailed' => 'Could not save the selected team. Check the credentials file, its permissions, and available disk space, then retry.',
 			'use.description' => 'Set the default display language (japanese, english).',
 			'use.success' => ({required Object language}) => 'Language set to ${language}.',
@@ -727,7 +727,7 @@ extension on Translations {
 			'sync.paths.saved' => ({required Object path}) => 'Generated workspace paths: ${path}',
 			'sync.secrets.description' => 'Generate openci/secrets.g.dart from the active team\'s secret names.',
 			'sync.secrets.noArguments' => 'sync secrets does not accept positional arguments.',
-			'sync.secrets.loginRequired' => 'Run openci login (or openci login --local) before syncing secrets.',
+			'sync.secrets.loginRequired' => 'Run genuineci login (or genuineci login --local) before syncing secrets.',
 			'sync.secrets.workflowDirectoryNotFound' => 'No openci directory found. Run this command from your workflow project.',
 			'sync.secrets.requestFailed' => ({required Object status}) => 'Could not fetch secret names (HTTP ${status}).',
 			'sync.secrets.fetchFailed' => 'Could not fetch secret names. Check the server connection and response.',

@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:args/command_runner.dart';
 import 'package:cli_util/cli_logging.dart';
-import 'package:openci_cli/openci_cli.dart';
+import 'package:genuineci_cli/genuineci_cli.dart';
 import 'package:test/test.dart';
 
 class _RecordingLogger implements Logger {
@@ -34,7 +34,7 @@ void main() {
     config = CliConfig(customFilePath: '${directory.path}/config.json');
     language = EditLanguageConfig(config: config);
     logger = _RecordingLogger();
-    runner = CommandRunner<int>('openci', 'test')
+    runner = CommandRunner<int>('genuineci', 'test')
       ..addCommand(UseCommand(languageConfig: language, logger: logger));
   });
 
@@ -77,7 +77,7 @@ void main() {
       expect(await File(config.filePath).readAsString(), before);
       expect(LocaleSettings.currentLocale, AppLocale.ja);
       expect(logger.output, isEmpty);
-      expect(logger.errors, ['Usage: openci use <japanese|english>']);
+      expect(logger.errors, ['Usage: genuineci use <japanese|english>']);
     },
   );
 
@@ -144,7 +144,7 @@ void main() {
     () async {
       final help = runner.commands['use']!.usage;
       expect(help, contains(t.use.description));
-      expect(help, contains('openci use'));
+      expect(help, contains('genuineci use'));
       expect(await File(config.filePath).exists(), isFalse);
       expect(LocaleSettings.currentLocale, AppLocale.en);
     },

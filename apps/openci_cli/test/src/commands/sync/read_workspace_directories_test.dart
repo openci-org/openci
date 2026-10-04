@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'package:openci_cli/src/commands/sync/read_workspace_directories.dart';
+import 'package:genuineci_cli/src/commands/sync/read_workspace_directories.dart';
 import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 

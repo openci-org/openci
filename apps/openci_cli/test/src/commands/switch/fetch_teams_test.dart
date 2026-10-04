@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
-import 'package:openci_cli/src/commands/switch/fetch_teams.dart';
+import 'package:genuineci_cli/src/commands/switch/fetch_teams.dart';
 import 'package:openci_shared/openci_shared.dart';
 import 'package:test/test.dart';
 

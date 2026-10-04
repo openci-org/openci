@@ -1,10 +1,10 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:dart_console/dart_console.dart';
-import 'package:openci_cli/src/commands/register/file_path_completer.dart';
-import 'package:openci_cli/src/commands/register/select_secret_file.dart';
-import 'package:openci_cli/src/i18n/i18n.dart';
+import 'package:genuineci_cli/src/commands/register/file_path_completer.dart';
+import 'package:genuineci_cli/src/commands/register/select_secret_file.dart';
+import 'package:genuineci_cli/src/i18n/i18n.dart';
+import 'package:genuineci_cli/src/terminal/console.dart';
 import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 
