@@ -7,6 +7,18 @@
       "verbose": "Enable verbose logging output."
     }
   },
+  "status": {
+    "description": "Show the saved active profile, server, and selected team ID.",
+    "noArguments": "status does not accept positional arguments.",
+    "profile": "Profile: ${value}",
+    "server": "Server: ${value}",
+    "team": "Selected team ID: ${value}",
+    "notSet": "Not set",
+    "noActiveProfile": "No profile is configured. Run genuineci login (or genuineci login --local).",
+    "profileMissing": "Active profile \"${profile}\" is missing. Run genuineci login (or genuineci login --local).",
+    "invalidServer": "Invalid server URL",
+    "readFailed": "Could not read the saved profile. Check the credentials file format and permissions."
+  },
   "login": {
     "description": "Log in to a local or remote OpenCI server.",
     "flags": {

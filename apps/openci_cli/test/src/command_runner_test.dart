@@ -57,6 +57,12 @@ void main() {
     expect(runner.commands['use'], isA<UseCommand>());
   });
 
+  test('registers status with a localized description', () {
+    final status = runner.commands['status'];
+    expect(status, isA<StatusCommand>());
+    expect(status!.description, t.status.description);
+  });
+
   test('registers register secret with localized descriptions', () {
     final register = runner.commands['register'];
     expect(register, isA<RegisterCommand>());
