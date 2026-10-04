@@ -6,11 +6,22 @@ import 'package:html/parser.dart';
 import 'package:test/test.dart';
 
 void main() {
-  const routes = [
+  const marketingRoutes = [
     '/',
     '/blog/',
     '/blog/v2-1-0/',
   ];
+  const docsRoutes = [
+    '/docs/',
+    '/docs/quickstart/',
+    '/docs/workflows/',
+    '/docs/triggers/',
+    '/docs/flutter/',
+    '/docs/secrets/',
+    '/docs/cli/',
+    '/docs/self-hosting/',
+  ];
+  const routes = [...marketingRoutes, ...docsRoutes];
   final pages = <String, Document>{};
 
   setUpAll(() {
@@ -55,9 +66,10 @@ void main() {
         final destination = pages[path];
         expect(destination, isNotNull, reason: '${entry.key} links to $href');
         if (uri.fragment.isNotEmpty) {
+          // Numeric IDs are valid HTML but need escaping in CSS selectors.
           expect(
-            destination!.getElementById(Uri.decodeComponent(uri.fragment)),
-            isNotNull,
+            destination!.querySelectorAll('[id]').map((element) => element.id),
+            contains(Uri.decodeComponent(uri.fragment)),
             reason: '${entry.key} links to missing anchor $href',
           );
         }
@@ -129,11 +141,11 @@ void main() {
 
   test('social cards use the public URL and the release banner', () {
     const imageUrl = 'https://genuineci.com/ogp/v2-1-0.jpg?v=2';
-    for (final entry in pages.entries) {
-      final page = entry.value;
+    for (final route in marketingRoutes) {
+      final page = pages[route]!;
       String content(String selector) {
         final elements = page.querySelectorAll(selector);
-        expect(elements, hasLength(1), reason: '${entry.key}: $selector');
+        expect(elements, hasLength(1), reason: '$route: $selector');
         return elements.single.attributes['content']!;
       }
 
@@ -143,7 +155,7 @@ void main() {
       expect(properties.toSet(), hasLength(properties.length));
       final title = page.querySelector('title')!.text;
       final description = content('meta[name="description"]');
-      final url = 'https://genuineci.com${entry.key}';
+      final url = 'https://genuineci.com$route';
       expect(content('meta[property="og:title"]'), title);
       expect(content('meta[property="og:description"]'), description);
       expect(content('meta[property="og:url"]'), url);
@@ -153,7 +165,7 @@ void main() {
       );
       expect(
         content('meta[property="og:type"]'),
-        entry.key == '/blog/v2-1-0/' ? 'article' : 'website',
+        route == '/blog/v2-1-0/' ? 'article' : 'website',
       );
       expect(content('meta[property="og:image"]'), imageUrl);
       expect(content('meta[property="og:image:type"]'), 'image/jpeg');
@@ -171,6 +183,53 @@ void main() {
       File('build/jaspr/ogp/v2-1-0.jpg').readAsBytesSync(),
       File('web/ogp/v2-1-0.jpg').readAsBytesSync(),
     );
+  });
+
+  test('Docs search indexes every guide and its Markdown content', () {
+    for (final route in docsRoutes) {
+      final page = pages[route]!;
+      final index = jsonDecode(
+        page.getElementById('docs-search-data')!.text,
+      ) as List<dynamic>;
+      expect(
+        index.map((entry) => (entry as Map<String, dynamic>)['url']),
+        unorderedEquals(docsRoutes),
+      );
+      for (final entry in index.cast<Map<String, dynamic>>()) {
+        expect(entry['title'], isNotEmpty);
+        expect(entry['description'], isNotEmpty);
+      }
+      final quickstart = index.cast<Map<String, dynamic>>().singleWhere(
+        (entry) => entry['url'] == '/docs/quickstart/',
+      );
+      expect(quickstart['body'], contains('OpenCI.init'));
+    }
+  });
+
+  test('Docs code blocks offer Light, Dark, and copy controls', () {
+    for (final route in docsRoutes) {
+      final blocks = pages[route]!.querySelectorAll('.d-code-surface');
+      if (route == '/docs/quickstart/' || route == '/docs/') {
+        expect(blocks, isNotEmpty);
+      }
+      for (final block in blocks) {
+        final theme = block.attributes['data-code-theme'];
+        final buttons = block.querySelectorAll('[data-code-theme-choice]');
+        expect(
+          buttons.map((button) => button.attributes['data-code-theme-choice']),
+          ['light', 'dark'],
+        );
+        expect(
+          buttons
+              .where((button) => button.attributes['aria-pressed'] == 'true')
+              .single
+              .attributes['data-code-theme-choice'],
+          theme,
+        );
+        expect(block.querySelector('[aria-label="コードをコピー"]'), isNotNull);
+        expect(block.querySelector('pre code')!.text.trim(), isNotEmpty);
+      }
+    }
   });
 
   test('the blog contains the release article without sample content', () {
