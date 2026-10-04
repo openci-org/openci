@@ -39,6 +39,7 @@ class TranslationsJa extends Translations with BaseTranslations<AppLocale, Trans
 
 	// Translations
 	@override late final _Translations$cli$ja cli = _Translations$cli$ja._(_root);
+	@override late final _Translations$status$ja status = _Translations$status$ja._(_root);
 	@override late final _Translations$login$ja login = _Translations$login$ja._(_root);
 	@override late final _Translations$list$ja list = _Translations$list$ja._(_root);
 	@override late final _Translations$register$ja register = _Translations$register$ja._(_root);
@@ -59,6 +60,25 @@ class _Translations$cli$ja extends Translations$cli$en {
 	@override String get description => 'GenuineCI - CI/CD およびシークレット管理コマンドラインツール';
 	@override String version({required Object version}) => 'genuineci バージョン: ${version}';
 	@override late final _Translations$cli$flags$ja flags = _Translations$cli$flags$ja._(_root);
+}
+
+// Path: status
+class _Translations$status$ja extends Translations$status$en {
+	_Translations$status$ja._(TranslationsJa root) : this._root = root, super.internal(root);
+
+	final TranslationsJa _root; // ignore: unused_field
+
+	// Translations
+	@override String get description => '保存済みの現在のプロファイル、サーバー、選択中のチームIDを表示します。';
+	@override String get noArguments => 'statusに位置引数は指定できません。';
+	@override String profile({required Object value}) => 'プロファイル: ${value}';
+	@override String server({required Object value}) => 'サーバー: ${value}';
+	@override String team({required Object value}) => '選択中のチームID: ${value}';
+	@override String get notSet => '未設定';
+	@override String get noActiveProfile => 'プロファイルが未設定です。genuineci login（ローカルなら genuineci login --local）を実行してください。';
+	@override String profileMissing({required Object profile}) => '現在のプロファイル「${profile}」が見つかりません。genuineci login（ローカルなら genuineci login --local）を実行してください。';
+	@override String get invalidServer => '不正なサーバーURL';
+	@override String get readFailed => '保存済みのプロファイルを読み取れませんでした。認証情報ファイルの形式と権限を確認してください。';
 }
 
 // Path: login
@@ -365,6 +385,16 @@ extension on TranslationsJa {
 			'cli.version' => ({required Object version}) => 'genuineci バージョン: ${version}',
 			'cli.flags.version' => 'ツールのバージョンを表示します。',
 			'cli.flags.verbose' => '詳細なログ出力を有効にします。',
+			'status.description' => '保存済みの現在のプロファイル、サーバー、選択中のチームIDを表示します。',
+			'status.noArguments' => 'statusに位置引数は指定できません。',
+			'status.profile' => ({required Object value}) => 'プロファイル: ${value}',
+			'status.server' => ({required Object value}) => 'サーバー: ${value}',
+			'status.team' => ({required Object value}) => '選択中のチームID: ${value}',
+			'status.notSet' => '未設定',
+			'status.noActiveProfile' => 'プロファイルが未設定です。genuineci login（ローカルなら genuineci login --local）を実行してください。',
+			'status.profileMissing' => ({required Object profile}) => '現在のプロファイル「${profile}」が見つかりません。genuineci login（ローカルなら genuineci login --local）を実行してください。',
+			'status.invalidServer' => '不正なサーバーURL',
+			'status.readFailed' => '保存済みのプロファイルを読み取れませんでした。認証情報ファイルの形式と権限を確認してください。',
 			'login.description' => 'ローカルまたはリモートのOpenCIサーバーにログインします。',
 			'login.flags.local' => 'Auth Emulator（127.0.0.1:9099）のユーザーのメールアドレスとパスワードでローカルAPI（http://localhost:8080）にログインします。',
 			'login.flags.server' => 'リモートのOpenCIサーバーURL（HTTPS）。',

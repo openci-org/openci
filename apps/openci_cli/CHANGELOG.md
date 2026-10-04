@@ -1,3 +1,8 @@
+## 0.0.3
+
+- Add `genuineci status` to show the saved active profile, server, and selected
+  team ID without connecting to the server.
+
 ## 0.0.2
 
 - Use the hosted `dart_console_plus` package for console support.

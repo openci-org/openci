@@ -21,6 +21,25 @@ described below.
 
 ## Usage
 
+Show the saved active profile, server, and selected team ID:
+
+```sh
+genuineci status
+```
+
+For example:
+
+```text
+Profile: remote
+Server: https://ci.example.com
+Selected team ID: team-123
+```
+
+This reads the local configuration and works offline. It does not refresh tokens
+or verify server access. Team IDs are shown because team names are not stored in
+the profile. A fresh installation shows a login hint. Unreadable credentials or
+a missing active profile return exit code 1.
+
 Log in to a remote server with the same email and password as the dashboard:
 
 ```sh
