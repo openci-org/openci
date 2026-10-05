@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:args/args.dart';
-import 'package:args/command_runner.dart';
+import 'package:cli_completion/cli_completion.dart';
 import 'package:cli_util/cli_logging.dart';
 import 'package:meta/meta.dart';
 
@@ -21,7 +21,13 @@ import 'version.dart';
 
 export 'version.dart' show genuineCIVersion;
 
-class GenuineCICommandRunner extends CommandRunner<int> {
+class GenuineCICommandRunner extends CompletionCommandRunner<int> {
+  static const _completionCommands = {
+    HandleCompletionRequestCommand.commandName,
+    InstallCompletionFilesCommand.commandName,
+    UnistallCompletionFilesCommand.commandName,
+  };
+
   final Logger _logger;
   final CliUpdater _updater;
   final bool Function() _confirmUpdate;
@@ -42,6 +48,7 @@ class GenuineCICommandRunner extends CommandRunner<int> {
            (stdin.hasTerminal && stdout.hasTerminal && stderr.hasTerminal),
        _environment = environment ?? Platform.environment,
        super('genuineci', t.cli.description) {
+    environmentOverride = _environment;
     argParser
       ..addFlag(
         'version',
@@ -66,6 +73,10 @@ class GenuineCICommandRunner extends CommandRunner<int> {
     addCommand(SyncCommand(logger: _logger));
     addCommand(UpdateCommand(logger: _logger, updater: _updater));
   }
+
+  @override
+  bool get enableAutoInstall =>
+      _hasTerminal && !_environment.containsKey('CI') && systemShell != null;
 
   @override
   Future<int?> runCommand(ArgResults topLevelResults) async {
@@ -100,7 +111,8 @@ class GenuineCICommandRunner extends CommandRunner<int> {
         results['check-updates'] != true ||
         results.command == null ||
         results.command!.name == 'help' ||
-        results.command!.name == 'update') {
+        results.command!.name == 'update' ||
+        _completionCommands.contains(results.command!.name)) {
       return false;
     }
     for (

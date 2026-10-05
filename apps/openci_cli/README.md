@@ -32,6 +32,26 @@ The remote commands work from any directory. Local development commands require
 an [OpenCI checkout](https://github.com/openci-org/openci) and the services
 described below.
 
+## Shell completion
+
+Bash and Zsh completion is provided by `cli_completion`. Completion scripts are
+installed automatically when running `genuineci --help` or another command in an
+interactive terminal outside CI. Restart your shell afterwards, or install them
+explicitly and follow the printed instructions:
+
+```sh
+genuineci install-completion-files
+```
+
+For Zsh, ensure `autoload -Uz compinit` and `compinit` run in `~/.zshrc` before
+the completion script is sourced. Reload with `source ~/.zshrc`.
+
+Press Tab to complete commands, subcommands, and options, for example
+`genuineci reg<Tab>`, `genuineci register <Tab>`, or
+`genuineci login --ser<Tab>`. Completion requests and completion setup commands
+skip automatic update checks. Use `genuineci uninstall-completion-files` to
+remove the scripts.
+
 ## Usage
 
 Log in to a remote server with the same email and password as the dashboard:

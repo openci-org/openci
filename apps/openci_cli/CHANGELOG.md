@@ -1,3 +1,8 @@
+## Unreleased
+
+- Add Bash and Zsh command and option completion with `cli_completion`, skipping
+  update checks during completion requests and completion setup.
+
 ## 0.3.2
 
 - Fix `genuineci sync paths` failing on directory names such as `switch` by

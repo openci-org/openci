@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:args/command_runner.dart';
+import 'package:cli_completion/parser.dart';
 import 'package:cli_util/cli_logging.dart';
 import 'package:genuineci_cli/genuineci_cli.dart';
 import 'package:genuineci_cli/src/update/cli_updater.dart';
@@ -62,6 +63,22 @@ class _ExampleCommand extends Command<int> {
     runs++;
     logger.stdout('command output');
     return 7;
+  }
+}
+
+class _CompletionRunner extends GenuineCICommandRunner {
+  _CompletionRunner({
+    required super.logger,
+    required super.updater,
+    required super.environment,
+    required super.confirmUpdate,
+  }) : super(hasTerminal: true);
+
+  final suggestions = <String, String?>{};
+
+  @override
+  void renderCompletionResult(CompletionResult result) {
+    suggestions.addAll(result.completions);
   }
 }
 
@@ -192,6 +209,54 @@ void main() {
       logger.stderrMessages,
       equals(['Usage: genuineci use <japanese|english>']),
     );
+  });
+
+  group('shell completion', () {
+    for (final shell in ['bash', 'zsh']) {
+      for (final (line, expected) in [
+        ('genuineci ', ['login', 'register', 'switch', '--version']),
+        ('genuineci reg', ['register']),
+        ('genuineci register ', ['secret', 'secretFile']),
+        ('genuineci switch ', ['team']),
+        ('genuineci login --ser', ['--server']),
+        ('genuineci --no-check', ['--no-check-updates']),
+      ]) {
+        test('$shell completes "$line" without checking for updates', () async {
+          final updater = _Updater();
+          var confirmations = 0;
+          final completionRunner = _CompletionRunner(
+            logger: logger,
+            updater: updater,
+            environment: {
+              'SHELL': '/bin/$shell',
+              'COMP_LINE': line,
+              'COMP_POINT': '${line.length}',
+              'COMP_CWORD': '${line.split(' ').length - 1}',
+            },
+            confirmUpdate: () {
+              confirmations++;
+              return true;
+            },
+          );
+
+          expect(
+            await completionRunner.run([
+              'completion',
+              '--',
+              ...line.split(' '),
+            ]),
+            isNull,
+          );
+          expect(completionRunner.suggestions.keys, containsAll(expected));
+          expect(completionRunner.suggestions, isNot(contains('completion')));
+          expect(updater.checks, 0);
+          expect(updater.installedVersions, isEmpty);
+          expect(confirmations, 0);
+          expect(logger.stdoutMessages, isEmpty);
+          expect(logger.stderrMessages, isEmpty);
+        });
+      }
+    }
   });
 
   group('interactive update check', () {
