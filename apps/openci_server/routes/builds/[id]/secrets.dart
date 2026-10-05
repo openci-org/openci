@@ -74,10 +74,16 @@ Future<Response> _get(RequestContext context, String id) async {
     String? secretDefinitions;
     if (workflowFileName.endsWith('.dart') &&
         RegExp(r'\bSecrets\s*\.').hasMatch(workflowContent)) {
+      final importsGeneratedDefinitions = RegExp(
+        r'''^\s*import\s+['"](?:\.\.?/)*generated/secrets\.g\.dart['"]''',
+        multiLine: true,
+      ).hasMatch(workflowContent);
       secretDefinitions = await GitHubService.fetchWorkflowContent(
         owner: driftJob.owner,
         repo: driftJob.repo,
-        workflowFileName: 'secrets.g.dart',
+        workflowFileName: importsGeneratedDefinitions
+            ? 'generated/secrets.g.dart'
+            : 'secrets.g.dart',
         installationIdStr: installationIdStr,
         token: token,
         commitSha: driftJob.commitSha,

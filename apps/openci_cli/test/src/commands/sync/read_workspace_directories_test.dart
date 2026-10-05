@@ -52,6 +52,19 @@ void main() {
   );
 
   group('readDirectoryPaths', () {
+    test(
+      'excludes workflow output but keeps other generated directories',
+      () async {
+        await addDirectory('openci/generated');
+        await addDirectory('lib/generated');
+
+        expect(
+          await readDirectoryPaths(root, workspaceRoot: root),
+          unorderedEquals(['.', 'openci', 'lib', 'lib/generated']),
+        );
+      },
+    );
+
     test('includes an empty starting directory', () async {
       final directory = await addDirectory('apps/empty');
 

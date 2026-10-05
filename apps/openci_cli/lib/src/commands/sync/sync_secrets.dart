@@ -1,8 +1,8 @@
 import 'dart:io';
 
-import 'package:args/command_runner.dart';
 import 'package:cli_util/cli_logging.dart';
 import 'package:openci_shared/openci_shared.dart';
+import 'package:path/path.dart' as p;
 
 import '../../credential_store/credential_config.dart';
 import '../../credential_store/credential_store.dart';
@@ -13,18 +13,12 @@ import '../../secrets/fetch_secret_names.dart';
 import 'find_workflow_directory.dart';
 import 'generate_secret_definitions.dart';
 
-class SyncSecretsCommand extends Command<int> {
-  @override
-  final String name = 'secrets';
-
-  @override
-  String get description => t.sync.secrets.description;
-
+class SyncSecrets {
   final Logger _logger;
   final CredentialStore _credentialStore;
   final Directory? _workingDirectory;
 
-  SyncSecretsCommand({
+  SyncSecrets({
     required Logger logger,
     CredentialStore? credentialStore,
     Directory? workingDirectory,
@@ -32,11 +26,7 @@ class SyncSecretsCommand extends Command<int> {
        _credentialStore = credentialStore ?? CredentialStore(),
        _workingDirectory = workingDirectory;
 
-  @override
   Future<int> run() async {
-    if (argResults!.rest.isNotEmpty) {
-      usageException(t.sync.secrets.noArguments);
-    }
     final profile = await _readProfile();
     if (profile == null) return 1;
 
@@ -99,7 +89,7 @@ class SyncSecretsCommand extends Command<int> {
   Future<int> _writeDefinitions(Directory directory, List<String> names) async {
     try {
       final source = generateSecretDefinitions(names);
-      final file = File('${directory.path}/secrets.g.dart');
+      final file = File(p.join(directory.path, 'generated', 'secrets.g.dart'));
       await file.writeAsStringAtomic(source);
       _logger.stdout(t.sync.secrets.saved(path: file.path));
       return 0;

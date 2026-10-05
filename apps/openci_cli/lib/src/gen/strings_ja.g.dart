@@ -208,9 +208,10 @@ class _Translations$sync$ja extends Translations$sync$en {
 	final TranslationsJa _root; // ignore: unused_field
 
 	// Translations
-	@override String get description => 'ローカルのワークフロー定義をOpenCIと同期します。';
+	@override String get description => 'シークレット定義とワークスペースパスをopenci/generatedに生成します。';
 	@override late final _Translations$sync$paths$ja paths = _Translations$sync$paths$ja._(_root);
 	@override late final _Translations$sync$secrets$ja secrets = _Translations$sync$secrets$ja._(_root);
+	@override String get noArguments => 'syncに位置引数は指定できません。生成対象を選ぶには--secretsまたは--pathsを指定してください。';
 }
 
 // Path: common
@@ -387,8 +388,7 @@ class _Translations$sync$paths$ja extends Translations$sync$paths$en {
 	final TranslationsJa _root; // ignore: unused_field
 
 	// Translations
-	@override String get description => 'pubspec.yamlのworkspaceからopenci/paths.g.dartを生成します。';
-	@override String get noArguments => 'sync pathsに位置引数は指定できません。';
+	@override String get description => 'pubspec.yamlからopenci/generated/paths.g.dartだけを生成します。';
 	@override String get projectRootNotFound => 'pubspec.yamlとopenciディレクトリのあるプロジェクトが見つかりません。ワークフローのあるプロジェクト内で実行してください。';
 	@override String fileAccessFailed({required Object path}) => '${path}を読み書きできませんでした。ファイルの有無とアクセス権限を確認してください。';
 	@override String saved({required Object path}) => 'ワークスペースのパスを生成しました: ${path}';
@@ -401,8 +401,7 @@ class _Translations$sync$secrets$ja extends Translations$sync$secrets$en {
 	final TranslationsJa _root; // ignore: unused_field
 
 	// Translations
-	@override String get description => '現在のチームのシークレット名からopenci/secrets.g.dartを生成します。';
-	@override String get noArguments => 'sync secretsに位置引数は指定できません。';
+	@override String get description => '現在のチームのシークレット名からopenci/generated/secrets.g.dartだけを生成します。';
 	@override String get loginRequired => 'genuineci login（ローカルならgenuineci login --local）を実行してからシークレットを同期してください。';
 	@override String get workflowDirectoryNotFound => 'openciディレクトリが見つかりません。ワークフローのあるプロジェクト内で実行してください。';
 	@override String requestFailed({required Object status}) => 'シークレット名を取得できませんでした（HTTP ${status}）。';
@@ -575,20 +574,19 @@ extension on TranslationsJa {
 			'dev.start.projectRootNotFound' => 'エラー: OpenCI プロジェクトのルートディレクトリが見つかりません。',
 			'dev.start.stepOrchardController' => 'Step 2: Orchard Controllerを起動中...',
 			'dev.start.stepBuildJobWorkerWaiting' => 'サービスを再起動する前に、実行中のビルドジョブの終了を待っています...',
-			'sync.description' => 'ローカルのワークフロー定義をOpenCIと同期します。',
-			'sync.paths.description' => 'pubspec.yamlのworkspaceからopenci/paths.g.dartを生成します。',
-			'sync.paths.noArguments' => 'sync pathsに位置引数は指定できません。',
+			'sync.description' => 'シークレット定義とワークスペースパスをopenci/generatedに生成します。',
+			'sync.paths.description' => 'pubspec.yamlからopenci/generated/paths.g.dartだけを生成します。',
 			'sync.paths.projectRootNotFound' => 'pubspec.yamlとopenciディレクトリのあるプロジェクトが見つかりません。ワークフローのあるプロジェクト内で実行してください。',
 			'sync.paths.fileAccessFailed' => ({required Object path}) => '${path}を読み書きできませんでした。ファイルの有無とアクセス権限を確認してください。',
 			'sync.paths.saved' => ({required Object path}) => 'ワークスペースのパスを生成しました: ${path}',
-			'sync.secrets.description' => '現在のチームのシークレット名からopenci/secrets.g.dartを生成します。',
-			'sync.secrets.noArguments' => 'sync secretsに位置引数は指定できません。',
+			'sync.secrets.description' => '現在のチームのシークレット名からopenci/generated/secrets.g.dartだけを生成します。',
 			'sync.secrets.loginRequired' => 'genuineci login（ローカルならgenuineci login --local）を実行してからシークレットを同期してください。',
 			'sync.secrets.workflowDirectoryNotFound' => 'openciディレクトリが見つかりません。ワークフローのあるプロジェクト内で実行してください。',
 			'sync.secrets.requestFailed' => ({required Object status}) => 'シークレット名を取得できませんでした（HTTP ${status}）。',
 			'sync.secrets.fetchFailed' => 'シークレット名を取得できませんでした。サーバーの接続状態とレスポンスを確認してください。',
 			'sync.secrets.saveFailed' => 'secrets.g.dartを保存できませんでした。保存先とファイルの権限を確認してください。',
 			'sync.secrets.saved' => ({required Object path}) => 'シークレット定義を生成しました: ${path}',
+			'sync.noArguments' => 'syncに位置引数は指定できません。生成対象を選ぶには--secretsまたは--pathsを指定してください。',
 			'common.error' => ({required Object error}) => 'エラー: ${error}',
 			_ => null,
 		};
