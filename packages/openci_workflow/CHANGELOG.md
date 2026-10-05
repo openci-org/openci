@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.2
+
+- Add optional `tz` and `excludeTags` arguments to `FlutterCI.unitTests()`, preserving existing defaults when omitted.
+- Add the `TimeZone` enum with `asiaTokyo` and `utc` values for typed time zone selection.
+
 ## 0.1.1
 
 - Add `FlutterCI.buildApk()` and `FlutterCI.buildAab()` with optional product flavor and working-directory arguments.

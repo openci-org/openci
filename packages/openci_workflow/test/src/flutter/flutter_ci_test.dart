@@ -23,6 +23,12 @@ void main() {
           noFatalWarnings: true,
         ),
     'flutter test': (flutter, {dir}) => flutter.unitTests(dir: dir),
+    "TZ='Asia/Tokyo' flutter test --exclude-tags 'golden'": (flutter, {dir}) =>
+        flutter.unitTests(
+          dir: dir,
+          tz: TimeZone.asiaTokyo,
+          excludeTags: 'golden',
+        ),
     'flutter build apk': (flutter, {dir}) => flutter.buildApk(dir: dir),
     "flutter build apk --flavor 'staging'": (flutter, {dir}) =>
         flutter.buildApk(dir: dir, flavor: 'staging'),
@@ -115,6 +121,52 @@ void main() {
       });
     });
   }
+
+  group('unit test arguments', () {
+    for (final (tz, expectedTimeZone) in <(TimeZone?, String)>[
+      (null, 'Europe/London'),
+      (TimeZone.utc, 'UTC'),
+      (TimeZone.asiaTokyo, 'Asia/Tokyo'),
+    ]) {
+      for (final excludeTags in <String?>[
+        null,
+        'golden',
+        'golden || slow',
+        '',
+        r'''tag' "$OPENCI_TEST_VALUE" `printf expanded` $(printf expanded); printf injected''',
+      ]) {
+        test(
+          'passes the time zone and literal selector: $tz, $excludeTags',
+          () async {
+            final flutter = FlutterCI((command, {workingDirectory}) async {
+              final result = await Process.run(
+                'sh',
+                [
+                  '-c',
+                  r'''flutter() { sh -c 'printf "%s\000" "$TZ" "$@"' flutter "$@"; }'''
+                      '\n$command',
+                ],
+                environment: {
+                  'TZ': 'Europe/London',
+                  'OPENCI_TEST_VALUE': 'expanded',
+                },
+              );
+
+              expect(result.exitCode, 0, reason: result.stderr.toString());
+              expect((result.stdout as String).split('\u0000'), [
+                expectedTimeZone,
+                'test',
+                if (excludeTags != null) ...['--exclude-tags', excludeTags],
+                '',
+              ]);
+            });
+
+            await flutter.unitTests(tz: tz, excludeTags: excludeTags);
+          },
+        );
+      }
+    }
+  });
 
   for (final (target, build)
       in <(String, Future<void> Function(FlutterCI, String?))>[
