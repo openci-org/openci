@@ -1,4 +1,4 @@
-## Unreleased
+## 0.4.0
 
 - **Breaking:** `genuineci sync` now generates both secrets and workspace paths.
   Use `--secrets` or `--paths` instead of the previous subcommands to generate
