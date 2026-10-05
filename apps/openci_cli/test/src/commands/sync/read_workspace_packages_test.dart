@@ -78,6 +78,8 @@ workspace:
   });
 
   test('allows an empty workspace', () async {
+    await pubspec.writeAsString('name: example\nworkspace: []\n');
+
     expect(await readWorkspacePackages(root), isEmpty);
   });
 
@@ -104,8 +106,10 @@ workspace:
     {},
     [42],
   ]) {
-    test('rejects a missing or invalid workspace: $workspace', () async {
-      await pubspec.writeAsString(jsonEncode({'workspace': workspace}));
+    test('rejects an invalid workspace: $workspace', () async {
+      await pubspec.writeAsString(
+        jsonEncode({'name': 'example', 'workspace': workspace}),
+      );
 
       await expectLater(
         readWorkspacePackages(root),
@@ -120,11 +124,31 @@ workspace:
     });
   }
 
-  test('requires workspace to be declared', () async {
+  test('uses the root package when workspace is not declared', () async {
     await pubspec.writeAsString('name: example\n');
 
-    await expectLater(readWorkspacePackages(root), throwsFormatException);
+    expect(await readWorkspacePackages(root), {'example': '.'});
   });
+
+  for (final content in ['{}', 'name: null', 'name: 42', 'name: ""']) {
+    test('rejects an invalid single-package name: $content', () async {
+      await pubspec.writeAsString(content);
+
+      await expectLater(
+        readWorkspacePackages(root),
+        throwsA(
+          isA<FormatException>().having(
+            (error) => error.message,
+            'message',
+            allOf(
+              contains(pubspec.path),
+              contains('name must be a non-empty string'),
+            ),
+          ),
+        ),
+      );
+    });
+  }
 
   for (final path in ['', '../outside', '/tmp/package', r'C:\package']) {
     test('validates paths before reading package files: $path', () async {

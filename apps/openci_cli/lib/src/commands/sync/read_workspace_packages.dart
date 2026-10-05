@@ -22,7 +22,9 @@ Directory? findWorkspaceRoot([Directory? startDirectory]) {
 Future<Map<String, String>> readWorkspacePackages(Directory root) async {
   final pubspecFile = File(p.join(root.path, 'pubspec.yaml'));
   final pubspec = await _readPubspec(pubspecFile);
-  final workspace = pubspec['workspace'];
+  final workspace = pubspec.containsKey('workspace')
+      ? pubspec['workspace']
+      : const ['.'];
   if (workspace is! List || workspace.any((path) => path is! String)) {
     throw FormatException(
       '${pubspecFile.path}: workspace must be a list of relative package paths.',
@@ -32,8 +34,10 @@ Future<Map<String, String>> readWorkspacePackages(Directory root) async {
   final packages = <String, String>{};
   for (final path in workspace.cast<String>()) {
     validateWorkspacePath(path);
-    final file = File(p.join(root.path, path, 'pubspec.yaml'));
-    final package = await _readPubspec(file);
+    final file = path == '.'
+        ? pubspecFile
+        : File(p.join(root.path, path, 'pubspec.yaml'));
+    final package = path == '.' ? pubspec : await _readPubspec(file);
     final name = package['name'];
     if (name is! String || name.isEmpty) {
       throw FormatException('${file.path}: name must be a non-empty string.');
