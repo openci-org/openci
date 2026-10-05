@@ -1,6 +1,6 @@
 # GenuineCI website
 
-Jasprで実装したGenuineCIのLPとブログです。ブランドカラーは **#FFFB00** と黒。
+Jasprで実装したGenuineCIのLP・ブログ・Docsです。ブランドカラーは **#FFFB00** と黒。
 ブログには2026年10月2日公開のv2.1.0リリース記事を掲載しています。
 LPのビルド結果はデザイン確認用のサンプルです。
 全ページに `noindex, nofollow` を設定しています。
@@ -25,6 +25,10 @@ dart run jaspr_cli:jaspr serve --port 8081
 - `/`: LP
 - `/blog/`: ブログ一覧（注目記事・カテゴリ絞り込み）
 - `/blog/v2-1-0/`: 「GenuineCI v2.1.0 をリリースしました。」
+- `/docs/`: Docsのホーム
+- `/docs/quickstart/`: クイックスタート
+- `/docs/workflows/`、`/docs/triggers/`、`/docs/flutter/`、`/docs/secrets/`: ワークフローのガイド
+- `/docs/cli/`、`/docs/self-hosting/`: CLIとセルフホストのガイド
 
 このアプリはrootのPub workspaceに含まれ、rootの `pubspec.lock` を共有します。
 rootでの `flutter pub get` でこのアプリの依存関係も取得できます。
@@ -46,6 +50,20 @@ frontmatterに指定すると、`/blog/<slug>/` のページとブログ一覧�
 本文・見出し・リストはJaspr Contentの標準タイポグラフィを使い、目次を見出しから生成します。
 Dartのコードフェンスには標準のシンタックスハイライトとコピー操作が付きます。
 `bash` などのコードは同じコードブロックで文字列をそのまま表示します。
+
+## Docsの編集・追加
+
+Docsは `content/docs/` のMarkdownを読み込みます。frontmatterに
+`layout: genuine-docs`、`title`、`description`、`group` を指定すると、
+`/docs/<slug>/` にページを生成します。`eyebrow` と `reading` は任意です。
+`lib/layouts/docs_layout.dart` の `docsNavigation` に追加すると、サイドバーと
+前後のページリンクにも反映されます。ホームの本文は `lib/pages/docs_home.dart` で編集します。
+
+本文の見出しから目次を生成し、全Docsのタイトル・説明・Markdown本文をローカル検索できます。
+検索はヘッダーのボタン、または Cmd/Ctrl+K で開きます。
+コードサンプルにはコピーとLight / Dark切り替えがあり、選択した背景を全ブロックに反映します。
+選択はブラウザーに保存され、ページ移動・再読み込み後も維持されます。
+狭い画面ではサイドバーをメニューに、目次を折りたたみ表示に切り替えます。
 
 ## 検証・静的ビルド
 
@@ -92,12 +110,16 @@ firebase deploy --only hosting:website --project openci-b1b91
 - `lib/pages/landing_page.dart`: LP
 - `lib/pages/blog_page.dart`: 読み込んだ記事から作るブログ一覧・共通ヘッダーとフッター
 - `lib/layouts/blog_layout.dart`: ブログ一覧と記事のPageLayout・目次
+- `lib/layouts/docs_layout.dart`, `lib/pages/docs_home.dart`: Docsのナビゲーション・検索データ・ホーム
 - `lib/models/blog_post.dart`: frontmatterから取得する記事情報・表示順
 - `content/blog/`: ブログ一覧の設定とMarkdown記事
+- `content/docs/`: Docsの設定とMarkdownガイド
 - `lib/components/`: HTMLヘルパー・LPのDartコード表示・ブログのコード表示
 - `lib/components/social_metadata.dart`: canonical・OGP・X Cardの共通メタ情報
+- `lib/components/docs_code_block.dart`, `lib/components/code_theme_toggle.dart`: Docsのコード表示・背景切り替え
 - `web/site.css`, `web/blog.css`: 共通・各ページのスタイル
 - `web/site.js`, `web/blog.js`: ワークフロー例切り替え・カテゴリ絞り込み
+- `web/docs.css`, `web/docs.js`: Docsのスタイル・検索・目次・コードコピーと背景切り替え
 - `web/favicon.png`: 提供された `Favicon(1).png` を加工せず使用
 - `web/ogp/v2-1-0.jpg`: 記事の黄色いバナーを書き出した1200×630の共有用画像。共有用の見出しは左余白を120pxに調整し、OGP・Xの画像URLには `?v=2` を付けています。
 - `firebase.json`, `.firebaserc`: `genuineci-website` への公開設定

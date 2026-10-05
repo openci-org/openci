@@ -16,6 +16,7 @@ Component blogHeader() => el(
       attrs: {'aria-label': 'メインナビゲーション'},
       children: [
         link('プロダクト', '/', cls: 'blog-product-link'),
+        link('Docs', '/docs/'),
         link('ワークフロー', '/#workflow', cls: 'blog-workflow-link'),
         el(
           'a',
