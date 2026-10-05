@@ -1,3 +1,5 @@
+import '../time_zone.dart';
+
 class FlutterCI {
   const FlutterCI(this._run);
 
@@ -21,8 +23,21 @@ class FlutterCI {
     workingDirectory: dir,
   );
 
-  Future<void> unitTests({String? dir}) =>
-      _run('flutter test', workingDirectory: dir);
+  /// Runs Flutter tests with an optional time zone and tag exclusion.
+  ///
+  /// Sets `TZ` to [tz]'s identifier for this command and passes [excludeTags]
+  /// as Flutter's `--exclude-tags` selector when provided. Omitting [tz]
+  /// preserves the inherited time zone.
+  Future<void> unitTests({String? dir, TimeZone? tz, String? excludeTags}) =>
+      _run(
+        [
+          if (tz != null) 'TZ=${_quoteShellArgument(tz.value)}',
+          'flutter test',
+          if (excludeTags != null)
+            '--exclude-tags ${_quoteShellArgument(excludeTags)}',
+        ].join(' '),
+        workingDirectory: dir,
+      );
 
   Future<void> buildApk({String? dir, String? flavor}) => _run(
     [

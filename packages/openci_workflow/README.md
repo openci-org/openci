@@ -36,6 +36,14 @@ OpenCI discovers Dart files in `openci/` and matches their declared triggers to 
 
 For Flutter analysis, use `await openCI.flutter.staticAnalysis()` or pass your preferred `flutter analyze` flags to `openCI.run()`.
 
+Run Flutter tests with an optional time zone and tag exclusion:
+
+```dart
+await openCI.flutter.unitTests(tz: TimeZone.asiaTokyo, excludeTags: 'golden');
+```
+
+The `tz` argument accepts `TimeZone.asiaTokyo` or `TimeZone.utc` and sets the command's `TZ` environment variable. Omitting it preserves the inherited time zone. The `excludeTags` argument is passed as Flutter's `--exclude-tags` selector, including expressions such as `'golden || slow'`. Omit it to run without a tag exclusion. Use `dir` to override the workflow's working directory for that call.
+
 Build Android APKs and app bundles with an optional product flavor:
 
 ```dart
