@@ -790,6 +790,14 @@ function StudioContact() {
               <p>東京都渋谷区道玄坂1丁目10番8号渋谷道玄坂東急ビル2F-C</p>
               <p>法人番号: 8011001159197</p>
               <p>資本金: 100万円</p>
+              <div className="pt-3">
+                <h4 className="font-semibold text-neutral-700">主要取引銀行</h4>
+                <ul role="list" className="mt-1 space-y-1">
+                  <li>日本政策金融公庫</li>
+                  <li>三井住友銀行（SMBC）</li>
+                  <li>GMOあおぞらネット銀行</li>
+                </ul>
+              </div>
             </div>
           </div>
         </div>
