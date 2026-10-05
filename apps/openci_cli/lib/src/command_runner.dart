@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:args/args.dart';
 import 'package:args/command_runner.dart';
+import 'package:cli_completion/cli_completion.dart';
 import 'package:cli_util/cli_logging.dart';
 import 'package:meta/meta.dart';
 
@@ -14,6 +15,8 @@ import 'commands/switch/switch_command.dart';
 import 'commands/sync/sync_command.dart';
 import 'commands/update_command.dart';
 import 'commands/use_command.dart';
+import 'completion/genuineci_completion_command.dart';
+import 'credential_store/credential_store.dart';
 import 'i18n/i18n.dart';
 import 'update/cli_updater.dart';
 import 'update/prompt_for_update.dart';
@@ -21,7 +24,14 @@ import 'version.dart';
 
 export 'version.dart' show genuineCIVersion;
 
-class GenuineCICommandRunner extends CommandRunner<int> {
+class GenuineCICommandRunner extends CompletionCommandRunner<int> {
+  static const _completionCommands = {
+    HandleCompletionRequestCommand.commandName,
+    InstallCompletionFilesCommand.commandName,
+    UnistallCompletionFilesCommand.commandName,
+  };
+
+  final CredentialStore _completionCredentialStore;
   final Logger _logger;
   final CliUpdater _updater;
   final bool Function() _confirmUpdate;
@@ -31,10 +41,13 @@ class GenuineCICommandRunner extends CommandRunner<int> {
   GenuineCICommandRunner({
     Logger? logger,
     CliUpdater? updater,
+    @visibleForTesting CredentialStore? completionCredentialStore,
     @visibleForTesting bool Function() confirmUpdate = promptForUpdate,
     @visibleForTesting bool? hasTerminal,
     @visibleForTesting Map<String, String>? environment,
-  }) : _logger = logger ?? Logger.standard(),
+  }) : _completionCredentialStore =
+           completionCredentialStore ?? CredentialStore(),
+       _logger = logger ?? Logger.standard(),
        _updater = updater ?? CliUpdater(),
        _confirmUpdate = confirmUpdate,
        _hasTerminal =
@@ -42,6 +55,7 @@ class GenuineCICommandRunner extends CommandRunner<int> {
            (stdin.hasTerminal && stdout.hasTerminal && stderr.hasTerminal),
        _environment = environment ?? Platform.environment,
        super('genuineci', t.cli.description) {
+    environmentOverride = _environment;
     argParser
       ..addFlag(
         'version',
@@ -66,6 +80,21 @@ class GenuineCICommandRunner extends CommandRunner<int> {
     addCommand(SyncCommand(logger: _logger));
     addCommand(UpdateCommand(logger: _logger, updater: _updater));
   }
+
+  @override
+  void addCommand(Command<int> command) {
+    super.addCommand(
+      command is HandleCompletionRequestCommand<int>
+          ? GenuineCICompletionCommand(
+              readCredentials: () => _completionCredentialStore.get(),
+            )
+          : command,
+    );
+  }
+
+  @override
+  bool get enableAutoInstall =>
+      _hasTerminal && !_environment.containsKey('CI') && systemShell != null;
 
   @override
   Future<int?> runCommand(ArgResults topLevelResults) async {
@@ -100,7 +129,8 @@ class GenuineCICommandRunner extends CommandRunner<int> {
         results['check-updates'] != true ||
         results.command == null ||
         results.command!.name == 'help' ||
-        results.command!.name == 'update') {
+        results.command!.name == 'update' ||
+        _completionCommands.contains(results.command!.name)) {
       return false;
     }
     for (

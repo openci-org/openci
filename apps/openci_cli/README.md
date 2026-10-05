@@ -32,6 +32,43 @@ The remote commands work from any directory. Local development commands require
 an [OpenCI checkout](https://github.com/openci-org/openci) and the services
 described below.
 
+## Shell completion
+
+Bash and Zsh completion is provided by `cli_completion`. Completion scripts are
+installed automatically when running `genuineci --help` or another command in an
+interactive terminal outside CI. Restart your shell afterwards, or install them
+explicitly and follow the printed instructions:
+
+```sh
+genuineci install-completion-files
+```
+
+For Zsh, ensure `autoload -Uz compinit` and `compinit` run in `~/.zshrc` before
+the completion script is sourced. Reload with `source ~/.zshrc`.
+
+Press Tab to complete every command and subcommand, their options (including
+global flags), and known argument values:
+
+```text
+genuineci reg<Tab>                      # register
+genuineci register <Tab>                # secret, secretFile, options
+genuineci sync <Tab>                    # paths, secrets, options
+genuineci dev start --s<Tab>             # --seed
+genuineci use <Tab>                     # japanese, english, options
+genuineci help register <Tab>           # secret, secretFile, options
+genuineci login --ser<Tab>              # --server
+genuineci login --server <Tab>          # default and saved HTTPS servers
+genuineci login --team-id <Tab>         # saved team IDs for the selected server
+```
+
+Login value completion reads local credential profiles only. `--firebase-api-key`
+also suggests the default and saved Firebase Web API keys for the selected server.
+New server URLs, team IDs, and Web API keys can still be entered directly.
+Completion does not fetch team lists or refresh tokens. Completion requests and
+completion setup commands skip automatic update checks.
+
+Use `genuineci uninstall-completion-files` to remove the scripts.
+
 ## Usage
 
 Log in to a remote server with the same email and password as the dashboard:
