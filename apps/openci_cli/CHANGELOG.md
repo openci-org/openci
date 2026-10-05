@@ -1,7 +1,8 @@
 ## Unreleased
 
-- Add Bash and Zsh command and option completion with `cli_completion`, skipping
-  update checks during completion requests and completion setup.
+- Add Bash and Zsh completion for all commands and options with `cli_completion`,
+  including language arguments, help targets, and locally saved login values.
+  Skip update checks during completion requests and completion setup.
 
 ## 0.3.2
 

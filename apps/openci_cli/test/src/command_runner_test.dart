@@ -245,7 +245,7 @@ void main() {
               '--',
               ...line.split(' '),
             ]),
-            isNull,
+            0,
           );
           expect(completionRunner.suggestions.keys, containsAll(expected));
           expect(completionRunner.suggestions, isNot(contains('completion')));

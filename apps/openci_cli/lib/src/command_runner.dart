@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:args/args.dart';
+import 'package:args/command_runner.dart';
 import 'package:cli_completion/cli_completion.dart';
 import 'package:cli_util/cli_logging.dart';
 import 'package:meta/meta.dart';
@@ -14,6 +15,8 @@ import 'commands/switch/switch_command.dart';
 import 'commands/sync/sync_command.dart';
 import 'commands/update_command.dart';
 import 'commands/use_command.dart';
+import 'completion/genuineci_completion_command.dart';
+import 'credential_store/credential_store.dart';
 import 'i18n/i18n.dart';
 import 'update/cli_updater.dart';
 import 'update/prompt_for_update.dart';
@@ -28,6 +31,7 @@ class GenuineCICommandRunner extends CompletionCommandRunner<int> {
     UnistallCompletionFilesCommand.commandName,
   };
 
+  final CredentialStore _completionCredentialStore;
   final Logger _logger;
   final CliUpdater _updater;
   final bool Function() _confirmUpdate;
@@ -37,10 +41,13 @@ class GenuineCICommandRunner extends CompletionCommandRunner<int> {
   GenuineCICommandRunner({
     Logger? logger,
     CliUpdater? updater,
+    @visibleForTesting CredentialStore? completionCredentialStore,
     @visibleForTesting bool Function() confirmUpdate = promptForUpdate,
     @visibleForTesting bool? hasTerminal,
     @visibleForTesting Map<String, String>? environment,
-  }) : _logger = logger ?? Logger.standard(),
+  }) : _completionCredentialStore =
+           completionCredentialStore ?? CredentialStore(),
+       _logger = logger ?? Logger.standard(),
        _updater = updater ?? CliUpdater(),
        _confirmUpdate = confirmUpdate,
        _hasTerminal =
@@ -72,6 +79,17 @@ class GenuineCICommandRunner extends CompletionCommandRunner<int> {
     addCommand(DevCommand(logger: _logger));
     addCommand(SyncCommand(logger: _logger));
     addCommand(UpdateCommand(logger: _logger, updater: _updater));
+  }
+
+  @override
+  void addCommand(Command<int> command) {
+    super.addCommand(
+      command is HandleCompletionRequestCommand<int>
+          ? GenuineCICompletionCommand(
+              readCredentials: () => _completionCredentialStore.get(),
+            )
+          : command,
+    );
   }
 
   @override

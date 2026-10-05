@@ -4,6 +4,11 @@ import 'package:cli_util/cli_logging.dart';
 import '../i18n/i18n.dart';
 
 class UseCommand extends Command<int> {
+  static const languages = {
+    'japanese': (code: 'ja', name: 'Japanese'),
+    'english': (code: 'en', name: 'English'),
+  };
+
   @override
   final String name = 'use';
 
@@ -26,26 +31,14 @@ class UseCommand extends Command<int> {
     }
 
     final input = rest.first.toLowerCase().trim();
-    final String targetCode;
-    final String languageName;
-
-    switch (input) {
-      case 'japanese':
-        targetCode = 'ja';
-        languageName = 'Japanese';
-        break;
-      case 'english':
-        targetCode = 'en';
-        languageName = 'English';
-        break;
-      default:
-        _logger.stderr(t.use.invalidLanguage(input: input));
-        return 1;
+    final language = languages[input];
+    if (language == null) {
+      _logger.stderr(t.use.invalidLanguage(input: input));
+      return 1;
     }
 
-    await _languageConfig.setLanguage(targetCode);
-
-    _logger.stdout(t.use.success(language: languageName));
+    await _languageConfig.setLanguage(language.code);
+    _logger.stdout(t.use.success(language: language.name));
     return 0;
   }
 }
