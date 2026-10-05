@@ -1,4 +1,4 @@
-## Unreleased
+## 0.3.2
 
 - Fix `genuineci sync paths` failing on directory names such as `switch` by
   appending an underscore to reserved getter names while preserving their paths.
