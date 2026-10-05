@@ -167,9 +167,9 @@ If the active profile or its credentials change during selection, the CLI
 refuses to overwrite them and asks you to run `genuineci switch team` again.
 
 Subsequent `genuineci list secrets`, `genuineci register secret`,
-`genuineci register secretFile`, and `genuineci sync secrets` commands use the newly
-selected team. Existing `openci/secrets.g.dart` files are updated by running
-`genuineci sync secrets` in the workflow project.
+`genuineci register secretFile`, and `genuineci sync --secrets` commands use the newly
+selected team. Existing `openci/generated/secrets.g.dart` files are updated by running
+`genuineci sync --secrets` in the workflow project.
 
 Team switching requires interactive stdin and stdout with ANSI support. Run it
 directly in a terminal, without piped input or redirected output. Success and
@@ -215,7 +215,7 @@ shows `******`, regardless of the value's length.
 Registering an existing name updates its value. The CLI uses the dashboard's
 existing API, which trims leading and trailing whitespace from values. Values
 are not printed or saved locally. Firebase tokens are refreshed when needed.
-After adding a secret, run `genuineci sync secrets` from your workflow project
+After adding a secret, run `genuineci sync --secrets` from your workflow project
 to update its generated secret definitions.
 
 Register a file as a Base64 secret:
@@ -236,7 +236,7 @@ underscores become `_`, and `_BASE64` is appended. Names beginning with a digit
 are prefixed with `_`. For example, `google-services.json` becomes
 `GOOGLE_SERVICES_JSON_BASE64`. Selecting an existing name updates that secret.
 Empty files are rejected. Neither the file contents nor the encoded value is
-printed or saved locally. Run `genuineci sync secrets` afterwards to update the
+printed or saved locally. Run `genuineci sync --secrets` afterwards to update the
 generated definitions.
 
 Run `genuineci dev start` from the OpenCI checkout to start local services and the
@@ -334,16 +334,28 @@ be combined with `--local`.
 Local login does not read Docker's `INTERNAL_API_KEY`. Worker and seed operations
 still use that key, and `--seed` does not require CLI login.
 
-With an authenticated credential profile, generate typed secret definitions
-from your workflow project:
+Run `genuineci sync` from your workflow project to generate both typed secret
+definitions and workspace paths:
 
 ```sh
-genuineci sync secrets
+genuineci sync
+```
+
+The files are written to `openci/generated/secrets.g.dart` and
+`openci/generated/paths.g.dart`. The `generated` directory is created if needed.
+Use `--secrets` or `--paths` to generate only that file; passing both flags
+generates both. Each selected generator runs even if the other fails, and the
+command exits unsuccessfully if either selected generator fails.
+
+With an authenticated credential profile, generate only secret definitions:
+
+```sh
+genuineci sync --secrets
 ```
 
 The command uses the active credential profile and finds the nearest ancestor
 containing an `openci` directory, starting from the current directory. It
-replaces `openci/secrets.g.dart` with getters that read environment variables
+replaces `openci/generated/secrets.g.dart` with getters that read environment variables
 at workflow runtime. Secret values are never downloaded or written to this file.
 Run it again after adding or removing secrets. Fetch or generation failures leave
 the existing file unchanged.
@@ -351,13 +363,13 @@ the existing file unchanged.
 Generate typed workspace paths without logging in or starting local services:
 
 ```sh
-genuineci sync paths
+genuineci sync --paths
 ```
 
 Run this from your workflow project or one of its subdirectories. The command
 reads the `workspace` list in the root `pubspec.yaml` and each listed package's
 `name`, recursively collects their subdirectories, then writes
-`openci/paths.g.dart` following the directory hierarchy. For example,
+`openci/generated/paths.g.dart` following the directory hierarchy. For example,
 `apps/dashboard/android/app` becomes
 `WorkspacePaths.root.apps.dashboard.android.app`. If `workspace` is absent, the
 command treats the root package as a single-package project and collects its
@@ -366,7 +378,8 @@ subdirectories. For example, `android/app` becomes
 An explicitly empty `workspace: []` still generates only the root accessor.
 Hidden directories, symlinks, and generated or dependency directories (`build`,
 `coverage`, `node_modules`, `Pods`, `ephemeral`, and `xcuserdata`) are excluded at
-every level. Directory names determine the getters; package names are used to
+every level. `openci/generated` is also excluded so repeated syncs produce
+stable paths. Directory names determine the getters; package names are used to
 validate the workspace.
 Dart keywords and `Object` member names get a trailing underscore: `switch`
 becomes `switch_`, `class` becomes `class_`, and `hash_code` becomes `hashCode_`.
@@ -375,13 +388,18 @@ getter, such as `switch` and `switch_`, are rejected.
 Run it again after adding, moving or renaming workspace directories. Read or
 generation failures preserve the existing file.
 
+The previous `sync secrets` and `sync paths` subcommands are replaced by these
+flags. When upgrading existing workflows, change imports to
+`generated/secrets.g.dart` and `generated/paths.g.dart`, then remove the old
+files from `openci/` after updating their imports.
+
 Import the generated file in your workflow and run it from the repository root,
 as the worker does, because these paths are relative to that root:
 
 ```dart
 import 'package:openci_workflow/openci_workflow.dart';
 
-import 'paths.g.dart';
+import 'generated/paths.g.dart';
 
 final openCI = await OpenCI.init(
   workflowName: 'Dashboard CI',

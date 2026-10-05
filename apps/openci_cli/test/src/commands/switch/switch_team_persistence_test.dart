@@ -440,7 +440,7 @@ void main() {
             ..addCommand(
               command == 'list'
                   ? ListSecretsCommand(logger: logger, credentialStore: store)
-                  : SyncSecretsCommand(
+                  : SyncCommand(
                       logger: logger,
                       credentialStore: store,
                       workingDirectory: workflows.parent,
@@ -448,7 +448,9 @@ void main() {
             );
 
           final result = await http.runWithClient(
-            () => runner.run(['secrets']),
+            () => runner.run(
+              command == 'list' ? ['secrets'] : ['sync', '--secrets'],
+            ),
             () => MockClient((request) async {
               requests.add(request);
               return http.Response(
@@ -482,7 +484,7 @@ void main() {
           } else {
             expect(
               await File(
-                p.join(workflows.path, 'secrets.g.dart'),
+                p.join(workflows.path, 'generated', 'secrets.g.dart'),
               ).readAsString(),
               contains('DEPLOY_KEY'),
             );

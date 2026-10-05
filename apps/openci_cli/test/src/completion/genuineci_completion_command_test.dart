@@ -224,6 +224,23 @@ void main() {
         },
       );
 
+      test(
+        'completes sync selection flags without running generation',
+        () async {
+          final suggestions = await runner.complete('genuineci sync ', shell);
+          expect(suggestions, containsAll(['--secrets', '--paths']));
+          expect(suggestions, isNot(contains('secrets')));
+          expect(suggestions, isNot(contains('paths')));
+          expect(await runner.complete('genuineci sync --s', shell), {
+            '--secrets',
+          });
+          expect(await runner.complete('genuineci sync --secrets --p', shell), {
+            '--paths',
+          });
+          expect(store.reads, 0);
+        },
+      );
+
       test('completes help targets at every command depth', () async {
         for (final (path, command) in _commands(runner.commands)) {
           expect(

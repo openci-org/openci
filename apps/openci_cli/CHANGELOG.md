@@ -1,5 +1,9 @@
-## Unreleased
+## 0.4.0
 
+- **Breaking:** `genuineci sync` now generates both secrets and workspace paths.
+  Use `--secrets` or `--paths` instead of the previous subcommands to generate
+  only one file. Generated files now live in `openci/generated/`; update workflow
+  imports to use `generated/secrets.g.dart` and `generated/paths.g.dart`.
 - Add Bash and Zsh completion for all commands and options with `cli_completion`,
   including language arguments, help targets, and locally saved login values.
   Skip update checks during completion requests and completion setup.

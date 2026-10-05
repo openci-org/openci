@@ -14,8 +14,6 @@ export 'src/commands/status_command.dart';
 export 'src/commands/switch/switch_command.dart';
 export 'src/commands/switch/switch_team_command.dart';
 export 'src/commands/sync/sync_command.dart';
-export 'src/commands/sync/sync_paths_command.dart';
-export 'src/commands/sync/sync_secrets_command.dart';
 export 'src/commands/update_command.dart';
 export 'src/commands/use_command.dart';
 export 'src/config/cli_config.dart';

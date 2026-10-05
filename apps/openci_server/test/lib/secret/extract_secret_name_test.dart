@@ -68,6 +68,8 @@ void main() {
           for (final source in [
             "import 'secrets.g.dart';",
             'import "../secrets.g.dart";',
+            "import 'generated/secrets.g.dart';",
+            'import "../generated/secrets.g.dart";',
           ]) {
             expect(extractSecretNames(source), isEmpty);
             expect(

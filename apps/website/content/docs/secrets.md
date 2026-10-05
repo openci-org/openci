@@ -50,7 +50,9 @@ genuineci register secretFile
 ワークフローのプロジェクト内で、シークレットの定義を更新します。
 
 ```sh
-genuineci sync secrets
+genuineci sync --secrets
 ```
+
+定義は `openci/generated/secrets.g.dart` に保存されます。シークレットの値はこのファイルに保存されず、ワークフロー実行時の環境変数から読み込まれます。`genuineci sync` を実行すると、ワークスペースパスも一緒に生成されます。
 
 チームを切り替えた場合も、必要に応じて再度同期します。CLIのインストールとログインは[CLIリファレンス](/docs/cli/)を参照してください。

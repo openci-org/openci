@@ -169,21 +169,13 @@ void main() {
     expect(team!.description, t.switchCommand.team.description);
   });
 
-  test('registers sync secrets with localized descriptions', () {
+  test('registers sync with localized selection flags', () {
     final sync = runner.commands['sync'];
     expect(sync, isA<SyncCommand>());
     expect(sync!.description, t.sync.description);
-    expect(sync.subcommands['secrets'], isA<SyncSecretsCommand>());
-    expect(
-      sync.subcommands['secrets']!.description,
-      t.sync.secrets.description,
-    );
-  });
-
-  test('registers sync paths with a localized description', () {
-    final paths = runner.commands['sync']!.subcommands['paths'];
-    expect(paths, isA<SyncPathsCommand>());
-    expect(paths!.description, t.sync.paths.description);
+    expect(sync.subcommands, isEmpty);
+    expect(sync.argParser.options['secrets']!.help, t.sync.secrets.description);
+    expect(sync.argParser.options['paths']!.help, t.sync.paths.description);
   });
 
   test('login rejects a remote server URL without HTTPS', () async {

@@ -64,7 +64,8 @@ void main() {
   setUp(() async {
     project = await Directory.systemTemp.createTemp('openci-sync-test-');
     workflows = await Directory('${project.path}/openci').create();
-    output = File('${workflows.path}/secrets.g.dart');
+    output = File('${workflows.path}/generated/secrets.g.dart');
+    await output.parent.create();
     await output.writeAsString(previousSource);
     store = CredentialStore(customFilePath: '${project.path}/credentials.json');
     await store.set(
@@ -101,9 +102,9 @@ void main() {
     final previousCredentials = await credentials.exists()
         ? await credentials.readAsBytes()
         : null;
-    final runner = CommandRunner<int>('genuineci sync', 'test')
+    final runner = CommandRunner<int>('genuineci', 'test')
       ..addCommand(
-        SyncSecretsCommand(
+        SyncCommand(
           logger: logger,
           credentialStore: store,
           workingDirectory: workingDirectory ?? project,
@@ -111,7 +112,7 @@ void main() {
       );
     try {
       return await http.runWithClient(
-        () => runner.run(['secrets', ...arguments]),
+        () => runner.run(['sync', '--secrets', ...arguments]),
         () {
           final client = _TrackingClient((request) async {
             requests.add(request);
@@ -149,38 +150,41 @@ void main() {
         expiresAt: DateTime.now().toUtc().subtract(const Duration(minutes: 1)),
       ),
     );
-    final runner = CommandRunner<int>('genuineci sync', 'test')
+    final runner = CommandRunner<int>('genuineci', 'test')
       ..addCommand(
-        SyncSecretsCommand(
+        SyncCommand(
           logger: logger,
           credentialStore: store,
           workingDirectory: project,
         ),
       );
 
-    final result = await http.runWithClient(() => runner.run(['secrets']), () {
-      final client = _TrackingClient((request) async {
-        requests.add(request);
-        if (request.url.host == 'securetoken.googleapis.com') {
-          return http.Response(
-            jsonEncode({
-              'id_token': 'refreshed-id-token',
-              'refresh_token': 'rotated-refresh-token',
-              'expires_in': '3600',
-            }),
-            200,
+    final result = await http.runWithClient(
+      () => runner.run(['sync', '--secrets']),
+      () {
+        final client = _TrackingClient((request) async {
+          requests.add(request);
+          if (request.url.host == 'securetoken.googleapis.com') {
+            return http.Response(
+              jsonEncode({
+                'id_token': 'refreshed-id-token',
+                'refresh_token': 'rotated-refresh-token',
+                'expires_in': '3600',
+              }),
+              200,
+            );
+          }
+          expect(
+            request.url.toString(),
+            'https://ci.example.com/teams/remote-team/secrets',
           );
-        }
-        expect(
-          request.url.toString(),
-          'https://ci.example.com/teams/remote-team/secrets',
-        );
-        expect(request.headers['authorization'], 'Bearer refreshed-id-token');
-        return namesResponse(['ASC_KEY']);
-      });
-      clients.add(client);
-      return client;
-    });
+          expect(request.headers['authorization'], 'Bearer refreshed-id-token');
+          return namesResponse(['ASC_KEY']);
+        });
+        clients.add(client);
+        return client;
+      },
+    );
 
     expect(result, 0);
     expect(requests, hasLength(2));
@@ -203,7 +207,7 @@ void main() {
   test(
     'creates definitions using the active profile and names-only API',
     () async {
-      await output.delete();
+      await output.parent.delete(recursive: true);
 
       expect(await runSync(), 0);
 
@@ -385,7 +389,7 @@ void main() {
     expect(await runSync(), 1);
 
     expect(await existing.readAsString(), 'keep');
-    expect(workflows.listSync().map((entry) => entry.path), [output.path]);
+    expect(output.parent.listSync().map((entry) => entry.path), [output.path]);
     expect(logger.stdoutMessages, isEmpty);
     expect(logger.stderrMessages, [t.sync.secrets.saveFailed]);
   });

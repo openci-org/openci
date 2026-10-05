@@ -38,6 +38,12 @@ Future<List<String>> readDirectoryPaths(
     if (entry is! Directory) continue;
     final name = p.basename(entry.path);
     if (name.startsWith('.') || excludedDirectories.contains(name)) continue;
+    if (p.equals(
+      entry.path,
+      p.join(workspaceRoot.path, 'openci', 'generated'),
+    )) {
+      continue;
+    }
     paths.addAll(await readDirectoryPaths(entry, workspaceRoot: workspaceRoot));
   }
   return paths;

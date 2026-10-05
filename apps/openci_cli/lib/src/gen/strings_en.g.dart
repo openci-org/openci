@@ -333,11 +333,14 @@ class Translations$sync$en {
 
 	// Translations
 
-	/// en: 'Sync local workflow definitions with OpenCI.'
-	String get description => 'Sync local workflow definitions with OpenCI.';
+	/// en: 'Generate secret definitions and workspace paths in openci/generated.'
+	String get description => 'Generate secret definitions and workspace paths in openci/generated.';
 
 	late final Translations$sync$paths$en paths = Translations$sync$paths$en.internal(_root);
 	late final Translations$sync$secrets$en secrets = Translations$sync$secrets$en.internal(_root);
+
+	/// en: 'sync does not accept positional arguments. Use --secrets or --paths to select what to generate.'
+	String get noArguments => 'sync does not accept positional arguments. Use --secrets or --paths to select what to generate.';
 }
 
 // Path: common
@@ -686,11 +689,8 @@ class Translations$sync$paths$en {
 
 	// Translations
 
-	/// en: 'Generate openci/paths.g.dart from the pubspec.yaml workspace.'
-	String get description => 'Generate openci/paths.g.dart from the pubspec.yaml workspace.';
-
-	/// en: 'sync paths does not accept positional arguments.'
-	String get noArguments => 'sync paths does not accept positional arguments.';
+	/// en: 'Generate only openci/generated/paths.g.dart from pubspec.yaml.'
+	String get description => 'Generate only openci/generated/paths.g.dart from pubspec.yaml.';
 
 	/// en: 'No project containing pubspec.yaml and an openci directory found. Run this command from your workflow project.'
 	String get projectRootNotFound => 'No project containing pubspec.yaml and an openci directory found. Run this command from your workflow project.';
@@ -710,11 +710,8 @@ class Translations$sync$secrets$en {
 
 	// Translations
 
-	/// en: 'Generate openci/secrets.g.dart from the active team's secret names.'
-	String get description => 'Generate openci/secrets.g.dart from the active team\'s secret names.';
-
-	/// en: 'sync secrets does not accept positional arguments.'
-	String get noArguments => 'sync secrets does not accept positional arguments.';
+	/// en: 'Generate only openci/generated/secrets.g.dart from the active team's secret names.'
+	String get description => 'Generate only openci/generated/secrets.g.dart from the active team\'s secret names.';
 
 	/// en: 'Run genuineci login (or genuineci login --local) before syncing secrets.'
 	String get loginRequired => 'Run genuineci login (or genuineci login --local) before syncing secrets.';
@@ -901,20 +898,19 @@ extension on Translations {
 			'dev.start.projectRootNotFound' => 'Error: OpenCI project root not found.',
 			'dev.start.stepOrchardController' => 'Step 2: Starting Orchard Controller...',
 			'dev.start.stepBuildJobWorkerWaiting' => 'Waiting for the current build job to finish before restarting services...',
-			'sync.description' => 'Sync local workflow definitions with OpenCI.',
-			'sync.paths.description' => 'Generate openci/paths.g.dart from the pubspec.yaml workspace.',
-			'sync.paths.noArguments' => 'sync paths does not accept positional arguments.',
+			'sync.description' => 'Generate secret definitions and workspace paths in openci/generated.',
+			'sync.paths.description' => 'Generate only openci/generated/paths.g.dart from pubspec.yaml.',
 			'sync.paths.projectRootNotFound' => 'No project containing pubspec.yaml and an openci directory found. Run this command from your workflow project.',
 			'sync.paths.fileAccessFailed' => ({required Object path}) => 'Could not read or write ${path}. Check that the file exists and you have permission to access it.',
 			'sync.paths.saved' => ({required Object path}) => 'Generated workspace paths: ${path}',
-			'sync.secrets.description' => 'Generate openci/secrets.g.dart from the active team\'s secret names.',
-			'sync.secrets.noArguments' => 'sync secrets does not accept positional arguments.',
+			'sync.secrets.description' => 'Generate only openci/generated/secrets.g.dart from the active team\'s secret names.',
 			'sync.secrets.loginRequired' => 'Run genuineci login (or genuineci login --local) before syncing secrets.',
 			'sync.secrets.workflowDirectoryNotFound' => 'No openci directory found. Run this command from your workflow project.',
 			'sync.secrets.requestFailed' => ({required Object status}) => 'Could not fetch secret names (HTTP ${status}).',
 			'sync.secrets.fetchFailed' => 'Could not fetch secret names. Check the server connection and response.',
 			'sync.secrets.saveFailed' => 'Could not save secrets.g.dart. Check the destination and file permissions.',
 			'sync.secrets.saved' => ({required Object path}) => 'Generated secret definitions: ${path}',
+			'sync.noArguments' => 'sync does not accept positional arguments. Use --secrets or --paths to select what to generate.',
 			'common.error' => ({required Object error}) => 'Error: ${error}',
 			_ => null,
 		};

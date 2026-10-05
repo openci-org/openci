@@ -102,11 +102,14 @@ void main() {
       expect(request.url.path, startsWith(prefix));
       final file = request.url.path.substring(prefix.length);
       requestedFiles.add(file);
-      if (file == 'openci/secrets.g.dart' && definitionsStatus != 200) {
+      if ((file == 'openci/secrets.g.dart' ||
+              file == 'openci/generated/secrets.g.dart') &&
+          definitionsStatus != 200) {
         return http.Response('Not found', definitionsStatus);
       }
       final content = switch (file) {
         'openci/secrets.g.dart' => definitions,
+        'openci/generated/secrets.g.dart' => definitions,
         _ when file == '$directory/$fileName' => workflow,
         _ => throw StateError('Unexpected GitHub request: $file'),
       };
@@ -192,6 +195,34 @@ void main() {
     });
 
     for (final commitSha in ['job-commit', null]) {
+      for (final import in [
+        "import 'generated/secrets.g.dart';",
+        'import "generated/secrets.g.dart";',
+        "import './generated/secrets.g.dart';",
+        "import '../generated/secrets.g.dart' show Secrets;",
+      ]) {
+        test(
+          'resolves generated imports at the job ref: $import, $commitSha',
+          () async {
+            final response = await requestSecrets(
+              workflow: '$import\nfinal key = Secrets.ascKey;',
+              commitSha: commitSha,
+            );
+
+            expect(response.statusCode, 200);
+            final body = await response.json() as Map<String, dynamic>;
+            expect(
+              body['secretsContent'],
+              'GITHUB_TOKEN=$token\nASC_KEY=test-asc-value',
+            );
+            expect(requestedFiles, [
+              'openci/ci.dart',
+              'openci/generated/secrets.g.dart',
+            ]);
+          },
+        );
+      }
+
       test('resolves the getter using the same job ref: $commitSha', () async {
         final response = await requestSecrets(
           workflow: "import 'secrets.g.dart';\nfinal key = Secrets.ascKey;",
@@ -256,6 +287,24 @@ void main() {
         'openci/secrets.g.dart',
       ]);
     });
+
+    test(
+      'does not use legacy definitions if the generated import is missing',
+      () async {
+        final response = await requestSecrets(
+          workflow:
+              "import 'generated/secrets.g.dart';\nfinal key = Secrets.ascKey;",
+          definitionsStatus: 404,
+        );
+
+        expect(response.statusCode, 500);
+        expect(requestedFiles, [
+          'openci/ci.dart',
+          'openci/generated/secrets.g.dart',
+        ]);
+        verifyNever(() => dao.getSecretsForTeam('team-1'));
+      },
+    );
 
     test('fails instead of silently omitting an unresolved getter', () async {
       final response = await requestSecrets(workflow: 'Secrets.unknown;');

@@ -37,7 +37,8 @@ void main() {
     final member = File(p.join(root.path, 'apps/dashboard/pubspec.yaml'));
     await member.parent.create(recursive: true);
     await member.writeAsString('name: dashboard\n');
-    output = File(p.join(workflows.path, 'paths.g.dart'));
+    output = File(p.join(workflows.path, 'generated', 'paths.g.dart'));
+    await output.parent.create();
     await output.writeAsString(previousSource);
     logger = _RecordingLogger();
   });
@@ -48,14 +49,11 @@ void main() {
     List<String> arguments = const [],
     Directory? workingDirectory,
   }) {
-    final runner = CommandRunner<int>('genuineci sync', 'test')
+    final runner = CommandRunner<int>('genuineci', 'test')
       ..addCommand(
-        SyncPathsCommand(
-          logger: logger,
-          workingDirectory: workingDirectory ?? root,
-        ),
+        SyncCommand(logger: logger, workingDirectory: workingDirectory ?? root),
       );
-    return runner.run(['paths', ...arguments]);
+    return runner.run(['sync', '--paths', ...arguments]);
   }
 
   Future<void> expectPreserved() async {
@@ -75,7 +73,7 @@ void main() {
     for (final name in ['.dart_tool', 'build']) {
       await Directory(p.join(root.path, 'apps/dashboard', name)).create();
     }
-    final secrets = File(p.join(workflows.path, 'secrets.g.dart'));
+    final secrets = File(p.join(workflows.path, 'generated', 'secrets.g.dart'));
     await secrets.writeAsString('// Existing secrets\n');
 
     expect(await runSync(workingDirectory: nested), 0);
@@ -225,7 +223,10 @@ void main() {
 
       expect(await runSync(workingDirectory: workflows), 0);
 
-      expect(output.path, p.join(root.path, 'openci', 'paths.g.dart'));
+      expect(
+        output.path,
+        p.join(root.path, 'openci', 'generated', 'paths.g.dart'),
+      );
       expect(
         await output.readAsString(),
         contains(
@@ -397,7 +398,7 @@ void main() {
     expect(await runSync(), 1);
 
     expect(await existing.readAsString(), 'keep');
-    expect(workflows.listSync().map((entry) => entry.path), [output.path]);
+    expect(output.parent.listSync().map((entry) => entry.path), [output.path]);
     expect(logger.stdoutMessages, isEmpty);
     expect(logger.stderrMessages.single, contains('paths.g.dart'));
   });

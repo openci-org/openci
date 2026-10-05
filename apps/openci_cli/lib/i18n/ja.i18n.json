@@ -182,24 +182,23 @@
     }
   },
   "sync": {
-    "description": "ローカルのワークフロー定義をOpenCIと同期します。",
+    "description": "シークレット定義とワークスペースパスをopenci/generatedに生成します。",
     "paths": {
-      "description": "pubspec.yamlのworkspaceからopenci/paths.g.dartを生成します。",
-      "noArguments": "sync pathsに位置引数は指定できません。",
+      "description": "pubspec.yamlからopenci/generated/paths.g.dartだけを生成します。",
       "projectRootNotFound": "pubspec.yamlとopenciディレクトリのあるプロジェクトが見つかりません。ワークフローのあるプロジェクト内で実行してください。",
       "fileAccessFailed": "${path}を読み書きできませんでした。ファイルの有無とアクセス権限を確認してください。",
       "saved": "ワークスペースのパスを生成しました: ${path}"
     },
     "secrets": {
-      "description": "現在のチームのシークレット名からopenci/secrets.g.dartを生成します。",
-      "noArguments": "sync secretsに位置引数は指定できません。",
+      "description": "現在のチームのシークレット名からopenci/generated/secrets.g.dartだけを生成します。",
       "loginRequired": "genuineci login（ローカルならgenuineci login --local）を実行してからシークレットを同期してください。",
       "workflowDirectoryNotFound": "openciディレクトリが見つかりません。ワークフローのあるプロジェクト内で実行してください。",
       "requestFailed": "シークレット名を取得できませんでした（HTTP ${status}）。",
       "fetchFailed": "シークレット名を取得できませんでした。サーバーの接続状態とレスポンスを確認してください。",
       "saveFailed": "secrets.g.dartを保存できませんでした。保存先とファイルの権限を確認してください。",
       "saved": "シークレット定義を生成しました: ${path}"
-    }
+    },
+    "noArguments": "syncに位置引数は指定できません。生成対象を選ぶには--secretsまたは--pathsを指定してください。"
   },
   "common": {
     "error": "エラー: ${error}"
