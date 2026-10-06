@@ -52,6 +52,7 @@ global flags), and known argument values:
 ```text
 genuineci reg<Tab>                      # register
 genuineci register <Tab>                # secret, secretFile, options
+genuineci setup <Tab>                   # asc-keys, options
 genuineci sync <Tab>                    # paths, secrets, options
 genuineci dev start --s<Tab>             # --seed
 genuineci use <Tab>                     # japanese, english, options
@@ -201,6 +202,24 @@ Names are printed one per line, sorted by name, without secret values. If the
 team has no secrets, the command prints a message and exits successfully. It
 works from any directory, supports redirected output, and does not generate
 workflow files. Control characters in names are displayed as escaped text.
+
+Check App Store Connect API key setup for the active profile's team:
+
+```sh
+genuineci setup asc-keys
+```
+
+This first stage checks your GenuineCI login, verifies the selected team is
+available, and displays its name and ID together with the saved server URL.
+It checks for the `OPENCI_ASC_API_KEY` secret, reserved for a JSON bundle of
+the ASC Key ID, Issuer ID, and private key. Only secret names are inspected;
+secret values and Apple credentials are not downloaded or validated.
+
+The command currently performs these checks only. It does not install asc,
+sign in to Apple, issue an API key, or save a secret. An existing secret returns
+exit code 0. A missing secret reports that setup is incomplete and returns 1;
+login, team, and API errors also return 1. Expiring Firebase tokens are refreshed
+automatically. The command works without an interactive terminal.
 
 Register a secret for the active profile's team:
 

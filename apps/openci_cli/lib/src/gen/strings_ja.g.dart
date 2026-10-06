@@ -44,6 +44,7 @@ class TranslationsJa extends Translations with BaseTranslations<AppLocale, Trans
 	@override late final _Translations$status$ja status = _Translations$status$ja._(_root);
 	@override late final _Translations$list$ja list = _Translations$list$ja._(_root);
 	@override late final _Translations$register$ja register = _Translations$register$ja._(_root);
+	@override late final _Translations$setup$ja setup = _Translations$setup$ja._(_root);
 	@override late final _Translations$switchCommand$ja switchCommand = _Translations$switchCommand$ja._(_root);
 	@override late final _Translations$use$ja use = _Translations$use$ja._(_root);
 	@override late final _Translations$dev$ja dev = _Translations$dev$ja._(_root);
@@ -165,6 +166,17 @@ class _Translations$register$ja extends Translations$register$en {
 	@override String get description => 'OpenCIにリソースを登録します。';
 	@override late final _Translations$register$secret$ja secret = _Translations$register$secret$ja._(_root);
 	@override late final _Translations$register$secretFile$ja secretFile = _Translations$register$secretFile$ja._(_root);
+}
+
+// Path: setup
+class _Translations$setup$ja extends Translations$setup$en {
+	_Translations$setup$ja._(TranslationsJa root) : this._root = root, super.internal(root);
+
+	final TranslationsJa _root; // ignore: unused_field
+
+	// Translations
+	@override String get description => 'OpenCIの連携を設定します。';
+	@override late final _Translations$setup$ascKeys$ja ascKeys = _Translations$setup$ascKeys$ja._(_root);
 }
 
 // Path: switchCommand
@@ -317,6 +329,28 @@ class _Translations$register$secretFile$ja extends Translations$register$secretF
 	@override String get inputFailed => 'ファイルを選択できませんでした。対話可能な端末で再試行してください。';
 	@override String get readFailed => '選択したファイルを読み取れませんでした。通常のファイルであることと読み取り権限を確認してください。';
 	@override String get emptyFile => '選択したファイルは空です。シークレットは登録されませんでした。';
+}
+
+// Path: setup.ascKeys
+class _Translations$setup$ascKeys$ja extends Translations$setup$ascKeys$en {
+	_Translations$setup$ascKeys$ja._(TranslationsJa root) : this._root = root, super.internal(root);
+
+	final TranslationsJa _root; // ignore: unused_field
+
+	// Translations
+	@override String get description => '現在のチームのApp Store Connect APIキーの設定状況を確認します。';
+	@override String get noArguments => 'setup asc-keysは位置引数を受け取りません。';
+	@override String get loginRequired => 'ASCキーを設定する前に genuineci login（または genuineci login --local）を実行してください。';
+	@override String get noTeamSelected => '保存先チームが選択されていません。genuineci switch team でチームを選択してください。';
+	@override String get teamNotFound => '選択中のチームは利用できません。genuineci switch team で利用できるチームを選択してください。';
+	@override String server({required Object value}) => 'サーバー: ${value}';
+	@override String team({required Object name, required Object id}) => '保存先チーム: ${name} (${id})';
+	@override String get registered => 'このチームにはASC APIキーのシークレットが登録済みです。';
+	@override String get notRegistered => 'このチームにはASC APIキーのシークレットが登録されていません。';
+	@override String get creationUnavailable => 'このバージョンではASCキーの作成にまだ対応していません。セットアップは未完了です。';
+	@override String requestFailed({required Object status}) => 'ASCキーの設定状況を確認できませんでした（HTTP ${status}）。';
+	@override String get invalidResponse => 'サーバーから無効なチーム一覧またはシークレット一覧が返されました。';
+	@override String get checkFailed => 'ASCキーの設定状況を確認できませんでした。現在のプロファイルのサーバーURLとネットワーク接続を確認してください。';
 }
 
 // Path: switchCommand.team
@@ -525,6 +559,20 @@ extension on TranslationsJa {
 			'register.secretFile.inputFailed' => 'ファイルを選択できませんでした。対話可能な端末で再試行してください。',
 			'register.secretFile.readFailed' => '選択したファイルを読み取れませんでした。通常のファイルであることと読み取り権限を確認してください。',
 			'register.secretFile.emptyFile' => '選択したファイルは空です。シークレットは登録されませんでした。',
+			'setup.description' => 'OpenCIの連携を設定します。',
+			'setup.ascKeys.description' => '現在のチームのApp Store Connect APIキーの設定状況を確認します。',
+			'setup.ascKeys.noArguments' => 'setup asc-keysは位置引数を受け取りません。',
+			'setup.ascKeys.loginRequired' => 'ASCキーを設定する前に genuineci login（または genuineci login --local）を実行してください。',
+			'setup.ascKeys.noTeamSelected' => '保存先チームが選択されていません。genuineci switch team でチームを選択してください。',
+			'setup.ascKeys.teamNotFound' => '選択中のチームは利用できません。genuineci switch team で利用できるチームを選択してください。',
+			'setup.ascKeys.server' => ({required Object value}) => 'サーバー: ${value}',
+			'setup.ascKeys.team' => ({required Object name, required Object id}) => '保存先チーム: ${name} (${id})',
+			'setup.ascKeys.registered' => 'このチームにはASC APIキーのシークレットが登録済みです。',
+			'setup.ascKeys.notRegistered' => 'このチームにはASC APIキーのシークレットが登録されていません。',
+			'setup.ascKeys.creationUnavailable' => 'このバージョンではASCキーの作成にまだ対応していません。セットアップは未完了です。',
+			'setup.ascKeys.requestFailed' => ({required Object status}) => 'ASCキーの設定状況を確認できませんでした（HTTP ${status}）。',
+			'setup.ascKeys.invalidResponse' => 'サーバーから無効なチーム一覧またはシークレット一覧が返されました。',
+			'setup.ascKeys.checkFailed' => 'ASCキーの設定状況を確認できませんでした。現在のプロファイルのサーバーURLとネットワーク接続を確認してください。',
 			'switchCommand.description' => 'OpenCIで使用するチームを切り替えます。',
 			'switchCommand.team.description' => '現在のプロファイルで使用するチームを対話式で切り替えます。',
 			'switchCommand.team.noArguments' => 'switch teamに位置引数は指定できません。',

@@ -145,6 +145,15 @@ void main() {
     expect(secretFile!.description, t.register.secretFile.description);
   });
 
+  test('registers setup asc-keys with localized descriptions', () {
+    final setup = runner.commands['setup'];
+    expect(setup, isA<SetupCommand>());
+    expect(setup!.description, t.setup.description);
+    final ascKeys = setup.subcommands['asc-keys'];
+    expect(ascKeys, isA<SetupAscKeysCommand>());
+    expect(ascKeys!.description, t.setup.ascKeys.description);
+  });
+
   test('registers list secrets with localized descriptions', () {
     final list = runner.commands['list'];
     expect(list, isA<ListCommand>());

@@ -40,6 +40,7 @@ class Translations with BaseTranslations<AppLocale, Translations> {
 	late final Translations$status$en status = Translations$status$en.internal(_root);
 	late final Translations$list$en list = Translations$list$en.internal(_root);
 	late final Translations$register$en register = Translations$register$en.internal(_root);
+	late final Translations$setup$en setup = Translations$setup$en.internal(_root);
 	late final Translations$switchCommand$en switchCommand = Translations$switchCommand$en.internal(_root);
 	late final Translations$use$en use = Translations$use$en.internal(_root);
 	late final Translations$dev$en dev = Translations$dev$en.internal(_root);
@@ -277,6 +278,20 @@ class Translations$register$en {
 
 	late final Translations$register$secret$en secret = Translations$register$secret$en.internal(_root);
 	late final Translations$register$secretFile$en secretFile = Translations$register$secretFile$en.internal(_root);
+}
+
+// Path: setup
+class Translations$setup$en {
+	Translations$setup$en.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// en: 'Set up integrations for OpenCI.'
+	String get description => 'Set up integrations for OpenCI.';
+
+	late final Translations$setup$ascKeys$en ascKeys = Translations$setup$ascKeys$en.internal(_root);
 }
 
 // Path: switchCommand
@@ -530,6 +545,54 @@ class Translations$register$secretFile$en {
 
 	/// en: 'The selected file is empty. No secret was registered.'
 	String get emptyFile => 'The selected file is empty. No secret was registered.';
+}
+
+// Path: setup.ascKeys
+class Translations$setup$ascKeys$en {
+	Translations$setup$ascKeys$en.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// en: 'Check the active team's App Store Connect API key setup.'
+	String get description => 'Check the active team\'s App Store Connect API key setup.';
+
+	/// en: 'setup asc-keys does not accept positional arguments.'
+	String get noArguments => 'setup asc-keys does not accept positional arguments.';
+
+	/// en: 'Run genuineci login (or genuineci login --local) before setting up ASC keys.'
+	String get loginRequired => 'Run genuineci login (or genuineci login --local) before setting up ASC keys.';
+
+	/// en: 'No destination team is selected. Run genuineci switch team to select a team.'
+	String get noTeamSelected => 'No destination team is selected. Run genuineci switch team to select a team.';
+
+	/// en: 'The selected team is no longer available. Run genuineci switch team to select an available team.'
+	String get teamNotFound => 'The selected team is no longer available. Run genuineci switch team to select an available team.';
+
+	/// en: 'Server: ${value}'
+	String server({required Object value}) => 'Server: ${value}';
+
+	/// en: 'Destination team: ${name} (${id})'
+	String team({required Object name, required Object id}) => 'Destination team: ${name} (${id})';
+
+	/// en: 'An ASC API key secret is already registered for this team.'
+	String get registered => 'An ASC API key secret is already registered for this team.';
+
+	/// en: 'No ASC API key secret is registered for this team.'
+	String get notRegistered => 'No ASC API key secret is registered for this team.';
+
+	/// en: 'ASC key creation is not available in this version. Setup is not complete.'
+	String get creationUnavailable => 'ASC key creation is not available in this version. Setup is not complete.';
+
+	/// en: 'Could not check ASC key setup (HTTP ${status}).'
+	String requestFailed({required Object status}) => 'Could not check ASC key setup (HTTP ${status}).';
+
+	/// en: 'The server returned an invalid team or secret list.'
+	String get invalidResponse => 'The server returned an invalid team or secret list.';
+
+	/// en: 'Could not check ASC key setup. Check the active profile's server URL and network connection.'
+	String get checkFailed => 'Could not check ASC key setup. Check the active profile\'s server URL and network connection.';
 }
 
 // Path: switchCommand.team
@@ -849,6 +912,20 @@ extension on Translations {
 			'register.secretFile.inputFailed' => 'Could not select the file. Retry in an interactive terminal.',
 			'register.secretFile.readFailed' => 'Could not read the selected file. Check that it is a regular file and that you have permission to read it.',
 			'register.secretFile.emptyFile' => 'The selected file is empty. No secret was registered.',
+			'setup.description' => 'Set up integrations for OpenCI.',
+			'setup.ascKeys.description' => 'Check the active team\'s App Store Connect API key setup.',
+			'setup.ascKeys.noArguments' => 'setup asc-keys does not accept positional arguments.',
+			'setup.ascKeys.loginRequired' => 'Run genuineci login (or genuineci login --local) before setting up ASC keys.',
+			'setup.ascKeys.noTeamSelected' => 'No destination team is selected. Run genuineci switch team to select a team.',
+			'setup.ascKeys.teamNotFound' => 'The selected team is no longer available. Run genuineci switch team to select an available team.',
+			'setup.ascKeys.server' => ({required Object value}) => 'Server: ${value}',
+			'setup.ascKeys.team' => ({required Object name, required Object id}) => 'Destination team: ${name} (${id})',
+			'setup.ascKeys.registered' => 'An ASC API key secret is already registered for this team.',
+			'setup.ascKeys.notRegistered' => 'No ASC API key secret is registered for this team.',
+			'setup.ascKeys.creationUnavailable' => 'ASC key creation is not available in this version. Setup is not complete.',
+			'setup.ascKeys.requestFailed' => ({required Object status}) => 'Could not check ASC key setup (HTTP ${status}).',
+			'setup.ascKeys.invalidResponse' => 'The server returned an invalid team or secret list.',
+			'setup.ascKeys.checkFailed' => 'Could not check ASC key setup. Check the active profile\'s server URL and network connection.',
 			'switchCommand.description' => 'Switch the active team in OpenCI.',
 			'switchCommand.team.description' => 'Interactively switch the team used by the active profile.',
 			'switchCommand.team.noArguments' => 'switch team does not accept positional arguments.',
