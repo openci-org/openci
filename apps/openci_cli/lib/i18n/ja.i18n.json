@@ -120,6 +120,24 @@
       "emptyFile": "選択したファイルは空です。シークレットは登録されませんでした。"
     }
   },
+  "setup": {
+    "description": "OpenCIの連携を設定します。",
+    "ascKeys": {
+      "description": "現在のチームのApp Store Connect APIキーの設定状況を確認します。",
+      "noArguments": "setup asc-keysは位置引数を受け取りません。",
+      "loginRequired": "ASCキーを設定する前に genuineci login（または genuineci login --local）を実行してください。",
+      "noTeamSelected": "保存先チームが選択されていません。genuineci switch team でチームを選択してください。",
+      "teamNotFound": "選択中のチームは利用できません。genuineci switch team で利用できるチームを選択してください。",
+      "server": "サーバー: ${value}",
+      "team": "保存先チーム: ${name} (${id})",
+      "registered": "このチームにはASC APIキーのシークレットが登録済みです。",
+      "notRegistered": "このチームにはASC APIキーのシークレットが登録されていません。",
+      "creationUnavailable": "このバージョンではASCキーの作成にまだ対応していません。セットアップは未完了です。",
+      "requestFailed": "ASCキーの設定状況を確認できませんでした（HTTP ${status}）。",
+      "invalidResponse": "サーバーから無効なチーム一覧またはシークレット一覧が返されました。",
+      "checkFailed": "ASCキーの設定状況を確認できませんでした。現在のプロファイルのサーバーURLとネットワーク接続を確認してください。"
+    }
+  },
   "switchCommand": {
     "description": "OpenCIで使用するチームを切り替えます。",
     "team": {

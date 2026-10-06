@@ -120,6 +120,24 @@
       "emptyFile": "The selected file is empty. No secret was registered."
     }
   },
+  "setup": {
+    "description": "Set up integrations for OpenCI.",
+    "ascKeys": {
+      "description": "Check the active team's App Store Connect API key setup.",
+      "noArguments": "setup asc-keys does not accept positional arguments.",
+      "loginRequired": "Run genuineci login (or genuineci login --local) before setting up ASC keys.",
+      "noTeamSelected": "No destination team is selected. Run genuineci switch team to select a team.",
+      "teamNotFound": "The selected team is no longer available. Run genuineci switch team to select an available team.",
+      "server": "Server: ${value}",
+      "team": "Destination team: ${name} (${id})",
+      "registered": "An ASC API key secret is already registered for this team.",
+      "notRegistered": "No ASC API key secret is registered for this team.",
+      "creationUnavailable": "ASC key creation is not available in this version. Setup is not complete.",
+      "requestFailed": "Could not check ASC key setup (HTTP ${status}).",
+      "invalidResponse": "The server returned an invalid team or secret list.",
+      "checkFailed": "Could not check ASC key setup. Check the active profile's server URL and network connection."
+    }
+  },
   "switchCommand": {
     "description": "Switch the active team in OpenCI.",
     "team": {

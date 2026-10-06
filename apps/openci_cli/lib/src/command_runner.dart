@@ -10,6 +10,7 @@ import 'commands/dev/dev_command.dart';
 import 'commands/list/list_command.dart';
 import 'commands/login_command.dart';
 import 'commands/register/register_command.dart';
+import 'commands/setup/setup_command.dart';
 import 'commands/status_command.dart';
 import 'commands/switch/switch_command.dart';
 import 'commands/sync/sync_command.dart';
@@ -74,6 +75,7 @@ class GenuineCICommandRunner extends CompletionCommandRunner<int> {
     addCommand(StatusCommand(logger: _logger));
     addCommand(ListCommand(logger: _logger));
     addCommand(RegisterCommand(logger: _logger));
+    addCommand(SetupCommand(logger: _logger));
     addCommand(SwitchCommand(logger: _logger));
     addCommand(UseCommand(logger: _logger));
     addCommand(DevCommand(logger: _logger));
