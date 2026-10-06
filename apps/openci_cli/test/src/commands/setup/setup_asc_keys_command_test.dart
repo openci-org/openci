@@ -4,6 +4,8 @@ import 'dart:io';
 import 'package:args/command_runner.dart';
 import 'package:cli_util/cli_logging.dart';
 import 'package:genuineci_cli/genuineci_cli.dart';
+import 'package:genuineci_cli/src/asc/asc_cli.dart';
+import 'package:genuineci_cli/src/asc/asc_release.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:path/path.dart' as p;
@@ -48,6 +50,16 @@ void main() {
   late List<http.Request> requests;
   late List<_TrackingClient> clients;
   late MockClientHandler handler;
+  late int preparationCount;
+  late Future<File> Function() prepareAsc;
+
+  List<String> preparationMessages() => [
+    t.setup.ascKeys.preparingAsc(version: AscRelease.version),
+    t.setup.ascKeys.ascReady(
+      version: AscRelease.version,
+      path: p.join(root.path, 'asc'),
+    ),
+  ];
 
   Map<String, Object> team(String id, String name) => {
     'id': id,
@@ -103,6 +115,8 @@ void main() {
     logger = _RecordingLogger();
     requests = [];
     clients = [];
+    preparationCount = 0;
+    prepareAsc = () async => File(p.join(root.path, 'asc'));
     handler = (request) async => isTeamsRequest(request)
         ? teamsResponse()
         : secretsResponse(['OPENCI_ASC_API_KEY', 'UNRELATED_SECRET']);
@@ -114,13 +128,26 @@ void main() {
       expect(messages, isNot(contains(secret)));
     }
     expect(clients.every((client) => client.closed), isTrue);
+    if (!logger.output.contains(t.setup.ascKeys.notRegistered)) {
+      expect(preparationCount, 0);
+    }
     LocaleSettings.setLocaleSync(originalLocale);
     await root.delete(recursive: true);
   });
 
   Future<int?> run([List<String> arguments = const ['asc-keys']]) {
     final runner = CommandRunner<int>('genuineci', 'test')
-      ..addCommand(SetupCommand(logger: logger, credentialStore: store));
+      ..addCommand(
+        SetupCommand(
+          logger: logger,
+          credentialStore: store,
+          prepareAsc: () {
+            preparationCount++;
+            expect(clients.every((client) => client.closed), isTrue);
+            return prepareAsc();
+          },
+        ),
+      );
     return http.runWithClient(() => runner.run(['setup', ...arguments]), () {
       final client = _TrackingClient((request) async {
         requests.add(request);
@@ -174,7 +201,9 @@ void main() {
       expect(logger.output, [
         ...contextMessages(),
         t.setup.ascKeys.notRegistered,
+        ...preparationMessages(),
       ]);
+      expect(preparationCount, 1);
       expect(logger.errors, [t.setup.ascKeys.creationUnavailable]);
       expect(requests, hasLength(2));
       expect(requests.every((request) => request.method == 'GET'), isTrue);
@@ -186,7 +215,12 @@ void main() {
         isTeamsRequest(request) ? teamsResponse() : secretsResponse([]);
 
     expect(await run(), 1);
-    expect(logger.output.last, t.setup.ascKeys.notRegistered);
+    expect(logger.output, [
+      ...contextMessages(),
+      t.setup.ascKeys.notRegistered,
+      ...preparationMessages(),
+    ]);
+    expect(preparationCount, 1);
     expect(logger.errors, [t.setup.ascKeys.creationUnavailable]);
   });
 
@@ -373,10 +407,50 @@ void main() {
     expect(logger.output, [
       ...contextMessages(),
       t.setup.ascKeys.notRegistered,
+      ...preparationMessages(),
     ]);
     expect(logger.output[1], contains('保存先チーム'));
     expect(logger.errors, [t.setup.ascKeys.creationUnavailable]);
     expect(logger.errors.single, contains('セットアップは未完了'));
+  });
+
+  for (final failure in AscCliFailure.values) {
+    test('reports asc $failure separately from GenuineCI API errors', () async {
+      handler = (request) async =>
+          isTeamsRequest(request) ? teamsResponse() : secretsResponse([]);
+      prepareAsc = () async => throw AscCliException(failure);
+
+      expect(await run(), 1);
+      expect(preparationCount, 1);
+      expect(logger.errors, [
+        switch (failure) {
+          AscCliFailure.unsupportedPlatform => t.setup.ascKeys.ascUnsupported,
+          AscCliFailure.cache => t.setup.ascKeys.ascCacheFailed,
+          AscCliFailure.download => t.setup.ascKeys.ascDownloadFailed,
+          AscCliFailure.checksum => t.setup.ascKeys.ascChecksumFailed,
+          AscCliFailure.permission => t.setup.ascKeys.ascPermissionFailed,
+        },
+      ]);
+      expect(logger.output.last, preparationMessages().first);
+    });
+  }
+
+  test('does not expose unexpected asc preparation errors', () async {
+    handler = (request) async =>
+        isTeamsRequest(request) ? teamsResponse() : secretsResponse([]);
+    prepareAsc = () async => throw StateError(privateValue);
+
+    expect(await run(), 1);
+    expect(logger.errors, [t.setup.ascKeys.ascPreparationFailed]);
+  });
+
+  test('escapes terminal controls in the asc cache path', () async {
+    handler = (request) async =>
+        isTeamsRequest(request) ? teamsResponse() : secretsResponse([]);
+    prepareAsc = () async => File('/cache/asc\x1b[2J\nother');
+
+    expect(await run(), 1);
+    expect(logger.output.last, contains(r'/cache/asc\x1b[2J\x0aother'));
   });
 
   test('rejects positional arguments before reading credentials', () async {

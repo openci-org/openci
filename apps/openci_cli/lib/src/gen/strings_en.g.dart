@@ -555,8 +555,8 @@ class Translations$setup$ascKeys$en {
 
 	// Translations
 
-	/// en: 'Check the active team's App Store Connect API key setup.'
-	String get description => 'Check the active team\'s App Store Connect API key setup.';
+	/// en: 'Check the active team's App Store Connect API key setup and prepare asc.'
+	String get description => 'Check the active team\'s App Store Connect API key setup and prepare asc.';
 
 	/// en: 'setup asc-keys does not accept positional arguments.'
 	String get noArguments => 'setup asc-keys does not accept positional arguments.';
@@ -581,6 +581,30 @@ class Translations$setup$ascKeys$en {
 
 	/// en: 'No ASC API key secret is registered for this team.'
 	String get notRegistered => 'No ASC API key secret is registered for this team.';
+
+	/// en: 'Preparing asc ${version} (the first run downloads it from GitHub)...'
+	String preparingAsc({required Object version}) => 'Preparing asc ${version} (the first run downloads it from GitHub)...';
+
+	/// en: 'asc ${version} is ready: ${path}'
+	String ascReady({required Object version, required Object path}) => 'asc ${version} is ready: ${path}';
+
+	/// en: 'asc is not available for this OS/CPU. Supported: macOS and Linux (arm64/x64), Windows (x64).'
+	String get ascUnsupported => 'asc is not available for this OS/CPU. Supported: macOS and Linux (arm64/x64), Windows (x64).';
+
+	/// en: 'Could not prepare the asc cache. Check your user cache directory and its permissions, then retry.'
+	String get ascCacheFailed => 'Could not prepare the asc cache. Check your user cache directory and its permissions, then retry.';
+
+	/// en: 'Could not download asc. Check your network connection and access to GitHub Releases, then retry.'
+	String get ascDownloadFailed => 'Could not download asc. Check your network connection and access to GitHub Releases, then retry.';
+
+	/// en: 'The asc download failed SHA-256 verification and was discarded. Retry to download it again.'
+	String get ascChecksumFailed => 'The asc download failed SHA-256 verification and was discarded. Retry to download it again.';
+
+	/// en: 'Could not make asc executable. Check your user cache permissions, then retry.'
+	String get ascPermissionFailed => 'Could not make asc executable. Check your user cache permissions, then retry.';
+
+	/// en: 'Could not prepare asc. Retry genuineci setup asc-keys.'
+	String get ascPreparationFailed => 'Could not prepare asc. Retry genuineci setup asc-keys.';
 
 	/// en: 'ASC key creation is not available in this version. Setup is not complete.'
 	String get creationUnavailable => 'ASC key creation is not available in this version. Setup is not complete.';
@@ -913,7 +937,7 @@ extension on Translations {
 			'register.secretFile.readFailed' => 'Could not read the selected file. Check that it is a regular file and that you have permission to read it.',
 			'register.secretFile.emptyFile' => 'The selected file is empty. No secret was registered.',
 			'setup.description' => 'Set up integrations for OpenCI.',
-			'setup.ascKeys.description' => 'Check the active team\'s App Store Connect API key setup.',
+			'setup.ascKeys.description' => 'Check the active team\'s App Store Connect API key setup and prepare asc.',
 			'setup.ascKeys.noArguments' => 'setup asc-keys does not accept positional arguments.',
 			'setup.ascKeys.loginRequired' => 'Run genuineci login (or genuineci login --local) before setting up ASC keys.',
 			'setup.ascKeys.noTeamSelected' => 'No destination team is selected. Run genuineci switch team to select a team.',
@@ -922,6 +946,14 @@ extension on Translations {
 			'setup.ascKeys.team' => ({required Object name, required Object id}) => 'Destination team: ${name} (${id})',
 			'setup.ascKeys.registered' => 'An ASC API key secret is already registered for this team.',
 			'setup.ascKeys.notRegistered' => 'No ASC API key secret is registered for this team.',
+			'setup.ascKeys.preparingAsc' => ({required Object version}) => 'Preparing asc ${version} (the first run downloads it from GitHub)...',
+			'setup.ascKeys.ascReady' => ({required Object version, required Object path}) => 'asc ${version} is ready: ${path}',
+			'setup.ascKeys.ascUnsupported' => 'asc is not available for this OS/CPU. Supported: macOS and Linux (arm64/x64), Windows (x64).',
+			'setup.ascKeys.ascCacheFailed' => 'Could not prepare the asc cache. Check your user cache directory and its permissions, then retry.',
+			'setup.ascKeys.ascDownloadFailed' => 'Could not download asc. Check your network connection and access to GitHub Releases, then retry.',
+			'setup.ascKeys.ascChecksumFailed' => 'The asc download failed SHA-256 verification and was discarded. Retry to download it again.',
+			'setup.ascKeys.ascPermissionFailed' => 'Could not make asc executable. Check your user cache permissions, then retry.',
+			'setup.ascKeys.ascPreparationFailed' => 'Could not prepare asc. Retry genuineci setup asc-keys.',
 			'setup.ascKeys.creationUnavailable' => 'ASC key creation is not available in this version. Setup is not complete.',
 			'setup.ascKeys.requestFailed' => ({required Object status}) => 'Could not check ASC key setup (HTTP ${status}).',
 			'setup.ascKeys.invalidResponse' => 'The server returned an invalid team or secret list.',

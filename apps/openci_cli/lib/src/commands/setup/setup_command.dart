@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:args/command_runner.dart';
 import 'package:cli_util/cli_logging.dart';
 
@@ -12,9 +14,17 @@ class SetupCommand extends Command<int> {
   @override
   String get description => t.setup.description;
 
-  SetupCommand({required Logger logger, CredentialStore? credentialStore}) {
+  SetupCommand({
+    required Logger logger,
+    CredentialStore? credentialStore,
+    Future<File> Function()? prepareAsc,
+  }) {
     addSubcommand(
-      SetupAscKeysCommand(logger: logger, credentialStore: credentialStore),
+      SetupAscKeysCommand(
+        logger: logger,
+        credentialStore: credentialStore,
+        prepareAsc: prepareAsc,
+      ),
     );
   }
 }
