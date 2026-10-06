@@ -338,7 +338,7 @@ class _Translations$setup$ascKeys$ja extends Translations$setup$ascKeys$en {
 	final TranslationsJa _root; // ignore: unused_field
 
 	// Translations
-	@override String get description => '現在のチームのApp Store Connect APIキーの設定状況を確認します。';
+	@override String get description => '現在のチームのApp Store Connect APIキーの設定状況を確認し、ascを準備します。';
 	@override String get noArguments => 'setup asc-keysは位置引数を受け取りません。';
 	@override String get loginRequired => 'ASCキーを設定する前に genuineci login（または genuineci login --local）を実行してください。';
 	@override String get noTeamSelected => '保存先チームが選択されていません。genuineci switch team でチームを選択してください。';
@@ -347,6 +347,14 @@ class _Translations$setup$ascKeys$ja extends Translations$setup$ascKeys$en {
 	@override String team({required Object name, required Object id}) => '保存先チーム: ${name} (${id})';
 	@override String get registered => 'このチームにはASC APIキーのシークレットが登録済みです。';
 	@override String get notRegistered => 'このチームにはASC APIキーのシークレットが登録されていません。';
+	@override String preparingAsc({required Object version}) => 'asc ${version}を準備しています（初回はGitHubからダウンロードします）...';
+	@override String ascReady({required Object version, required Object path}) => 'asc ${version}を準備しました: ${path}';
+	@override String get ascUnsupported => 'このOS・CPUに対応するascはありません。対応環境: macOS・Linux（arm64/x64）、Windows（x64）。';
+	@override String get ascCacheFailed => 'ascのキャッシュを準備できませんでした。ユーザーのキャッシュディレクトリとアクセス権限を確認して再試行してください。';
+	@override String get ascDownloadFailed => 'ascをダウンロードできませんでした。ネットワーク接続とGitHub Releasesへのアクセスを確認して再試行してください。';
+	@override String get ascChecksumFailed => 'ダウンロードしたascのSHA-256検証に失敗したため、破棄しました。再試行してダウンロードし直してください。';
+	@override String get ascPermissionFailed => 'ascに実行権限を設定できませんでした。ユーザーのキャッシュへのアクセス権限を確認して再試行してください。';
+	@override String get ascPreparationFailed => 'ascを準備できませんでした。genuineci setup asc-keys を再試行してください。';
 	@override String get creationUnavailable => 'このバージョンではASCキーの作成にまだ対応していません。セットアップは未完了です。';
 	@override String requestFailed({required Object status}) => 'ASCキーの設定状況を確認できませんでした（HTTP ${status}）。';
 	@override String get invalidResponse => 'サーバーから無効なチーム一覧またはシークレット一覧が返されました。';
@@ -560,7 +568,7 @@ extension on TranslationsJa {
 			'register.secretFile.readFailed' => '選択したファイルを読み取れませんでした。通常のファイルであることと読み取り権限を確認してください。',
 			'register.secretFile.emptyFile' => '選択したファイルは空です。シークレットは登録されませんでした。',
 			'setup.description' => 'OpenCIの連携を設定します。',
-			'setup.ascKeys.description' => '現在のチームのApp Store Connect APIキーの設定状況を確認します。',
+			'setup.ascKeys.description' => '現在のチームのApp Store Connect APIキーの設定状況を確認し、ascを準備します。',
 			'setup.ascKeys.noArguments' => 'setup asc-keysは位置引数を受け取りません。',
 			'setup.ascKeys.loginRequired' => 'ASCキーを設定する前に genuineci login（または genuineci login --local）を実行してください。',
 			'setup.ascKeys.noTeamSelected' => '保存先チームが選択されていません。genuineci switch team でチームを選択してください。',
@@ -569,6 +577,14 @@ extension on TranslationsJa {
 			'setup.ascKeys.team' => ({required Object name, required Object id}) => '保存先チーム: ${name} (${id})',
 			'setup.ascKeys.registered' => 'このチームにはASC APIキーのシークレットが登録済みです。',
 			'setup.ascKeys.notRegistered' => 'このチームにはASC APIキーのシークレットが登録されていません。',
+			'setup.ascKeys.preparingAsc' => ({required Object version}) => 'asc ${version}を準備しています（初回はGitHubからダウンロードします）...',
+			'setup.ascKeys.ascReady' => ({required Object version, required Object path}) => 'asc ${version}を準備しました: ${path}',
+			'setup.ascKeys.ascUnsupported' => 'このOS・CPUに対応するascはありません。対応環境: macOS・Linux（arm64/x64）、Windows（x64）。',
+			'setup.ascKeys.ascCacheFailed' => 'ascのキャッシュを準備できませんでした。ユーザーのキャッシュディレクトリとアクセス権限を確認して再試行してください。',
+			'setup.ascKeys.ascDownloadFailed' => 'ascをダウンロードできませんでした。ネットワーク接続とGitHub Releasesへのアクセスを確認して再試行してください。',
+			'setup.ascKeys.ascChecksumFailed' => 'ダウンロードしたascのSHA-256検証に失敗したため、破棄しました。再試行してダウンロードし直してください。',
+			'setup.ascKeys.ascPermissionFailed' => 'ascに実行権限を設定できませんでした。ユーザーのキャッシュへのアクセス権限を確認して再試行してください。',
+			'setup.ascKeys.ascPreparationFailed' => 'ascを準備できませんでした。genuineci setup asc-keys を再試行してください。',
 			'setup.ascKeys.creationUnavailable' => 'このバージョンではASCキーの作成にまだ対応していません。セットアップは未完了です。',
 			'setup.ascKeys.requestFailed' => ({required Object status}) => 'ASCキーの設定状況を確認できませんでした（HTTP ${status}）。',
 			'setup.ascKeys.invalidResponse' => 'サーバーから無効なチーム一覧またはシークレット一覧が返されました。',

@@ -4,6 +4,8 @@ import 'package:args/command_runner.dart';
 import 'package:cli_util/cli_logging.dart';
 import 'package:openci_shared/openci_shared.dart';
 
+import '../../asc/asc_cli.dart';
+import '../../asc/asc_release.dart';
 import '../../credential_store/credential_config.dart';
 import '../../credential_store/credential_store.dart';
 import '../../credential_store/read_authenticated_profile.dart';
@@ -23,12 +25,15 @@ class SetupAscKeysCommand extends Command<int> {
 
   final Logger _logger;
   final CredentialStore _credentialStore;
+  final Future<File> Function() _prepareAsc;
 
   SetupAscKeysCommand({
     required Logger logger,
     CredentialStore? credentialStore,
+    Future<File> Function()? prepareAsc,
   }) : _logger = logger,
-       _credentialStore = credentialStore ?? CredentialStore();
+       _credentialStore = credentialStore ?? CredentialStore(),
+       _prepareAsc = prepareAsc ?? AscCli().ensureAvailable;
 
   @override
   Future<int> run() async {
@@ -69,11 +74,12 @@ class SetupAscKeysCommand extends Command<int> {
       }
 
       _logger.stdout(t.setup.ascKeys.notRegistered);
-      _logger.stderr(t.setup.ascKeys.creationUnavailable);
     } on TeamsHttpException catch (error) {
       _reportHttpError(error.statusCode);
+      return 1;
     } on SecretNamesHttpException catch (error) {
       _reportHttpError(error.statusCode);
+      return 1;
     } catch (error) {
       // Responses and exceptions may contain credentials or secret values.
       _logger.stderr(
@@ -81,8 +87,34 @@ class SetupAscKeysCommand extends Command<int> {
             ? t.setup.ascKeys.invalidResponse
             : t.setup.ascKeys.checkFailed,
       );
+      return 1;
     } finally {
       client.dispose();
+    }
+    return _prepareCli();
+  }
+
+  Future<int> _prepareCli() async {
+    _logger.stdout(t.setup.ascKeys.preparingAsc(version: AscRelease.version));
+    try {
+      final executable = await _prepareAsc();
+      _logger.stdout(
+        t.setup.ascKeys.ascReady(
+          version: AscRelease.version,
+          path: _display(executable.path),
+        ),
+      );
+      _logger.stderr(t.setup.ascKeys.creationUnavailable);
+    } on AscCliException catch (error) {
+      _logger.stderr(switch (error.failure) {
+        AscCliFailure.unsupportedPlatform => t.setup.ascKeys.ascUnsupported,
+        AscCliFailure.cache => t.setup.ascKeys.ascCacheFailed,
+        AscCliFailure.download => t.setup.ascKeys.ascDownloadFailed,
+        AscCliFailure.checksum => t.setup.ascKeys.ascChecksumFailed,
+        AscCliFailure.permission => t.setup.ascKeys.ascPermissionFailed,
+      });
+    } catch (_) {
+      _logger.stderr(t.setup.ascKeys.ascPreparationFailed);
     }
     return 1;
   }

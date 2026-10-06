@@ -83,6 +83,7 @@ CSS・操作用JavaScript・faviconはHTMLにも埋め込み、外部フォン�
 
 `openci/website_ci.dart` はdevelopへのPRとpushで、依存取得・フォーマット・
 静的解析・静的サイト生成・生成HTMLのテストを実行します。公開先を切り替える処理は含みません。
+CIでは実行ごとに空きポートを選び、プレビューや別のビルドとの固定ポートの競合を避けます。
 
 ## Firebase Hosting
 

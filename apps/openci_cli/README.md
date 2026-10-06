@@ -203,23 +203,41 @@ team has no secrets, the command prints a message and exits successfully. It
 works from any directory, supports redirected output, and does not generate
 workflow files. Control characters in names are displayed as escaped text.
 
-Check App Store Connect API key setup for the active profile's team:
+Check App Store Connect API key setup and prepare asc for the active profile's team:
 
 ```sh
 genuineci setup asc-keys
 ```
 
-This first stage checks your GenuineCI login, verifies the selected team is
+The command checks your GenuineCI login, verifies the selected team is
 available, and displays its name and ID together with the saved server URL.
 It checks for the `OPENCI_ASC_API_KEY` secret, reserved for a JSON bundle of
 the ASC Key ID, Issuer ID, and private key. Only secret names are inspected;
 secret values and Apple credentials are not downloaded or validated.
 
-The command currently performs these checks only. It does not install asc,
-sign in to Apple, issue an API key, or save a secret. An existing secret returns
-exit code 0. A missing secret reports that setup is incomplete and returns 1;
-login, team, and API errors also return 1. Expiring Firebase tokens are refreshed
-automatically. The command works without an interactive terminal.
+An existing secret returns exit code 0 without preparing asc. When the secret
+is missing, the command automatically downloads the pinned
+[asc 5.11.0](https://github.com/rorkai/App-Store-Connect-CLI/releases/tag/5.11.0)
+binary for your OS and CPU, verifies its bundled SHA-256 checksum, and caches it.
+The checksum is checked again before reuse; a corrupt cached binary is downloaded
+again. Downloads are staged separately and installed only after verification.
+The asc MIT license is saved beside the binary.
+
+No prior asc installation is required. GenuineCI uses its own cache, independently
+of any asc on `PATH`:
+
+- macOS: `~/Library/Caches/genuineci/tools/asc/5.11.0/<target>/`
+- Linux: `${XDG_CACHE_HOME:-~/.cache}/genuineci/tools/asc/5.11.0/<target>/`
+- Windows: `%LOCALAPPDATA%\genuineci\tools\asc\5.11.0\<target>\`
+
+Available binaries cover macOS and Linux on arm64/x64, and Windows on x64.
+Other platforms return an error before downloading.
+
+Apple sign-in, key issuance, and secret persistence are not implemented yet.
+A missing secret still reports incomplete setup and returns 1 after preparing
+asc; login, team, API, and asc preparation errors also return 1. Expiring Firebase
+tokens are refreshed automatically. The command works without an interactive
+terminal.
 
 Register a secret for the active profile's team:
 

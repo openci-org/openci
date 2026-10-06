@@ -14,6 +14,7 @@ dependencies:
   characters: ^1.4.0
   cli_completion: ^0.5.1
   cli_util: ^0.5.0
+  crypto: ^3.0.7
   dart_console_plus: ^1.0.0
   freezed_annotation: ^3.1.0
   http: ^1.6.0
