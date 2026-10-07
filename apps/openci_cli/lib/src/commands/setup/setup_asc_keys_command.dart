@@ -5,6 +5,7 @@ import 'package:cli_util/cli_logging.dart';
 import 'package:meta/meta.dart';
 
 import '../../asc/asc_release.dart';
+import '../../asc/check_asc_authentication.dart';
 import '../../asc/find_cached_asc_executable.dart';
 import '../../asc/install_asc.dart';
 import '../../asc/start_asc_login.dart';
@@ -25,6 +26,7 @@ class SetupAscKeysCommand extends Command<int> {
   final Future<void> Function(File) _verifyExecutable;
   final Future<String?> Function() _readAppleId;
   final Future<Process> Function(File, String) _startLogin;
+  final Future<bool> Function(File, String) _checkAuthentication;
 
   SetupAscKeysCommand({
     required Logger logger,
@@ -37,12 +39,16 @@ class SetupAscKeysCommand extends Command<int> {
     Future<String?> Function() readAppleIdInput = readAppleId,
     @visibleForTesting
     Future<Process> Function(File, String) startLogin = startAscLogin,
+    @visibleForTesting
+    Future<bool> Function(File, String) checkAuthentication =
+        checkAscAuthentication,
   }) : _logger = logger,
        _findCachedExecutable = findCachedExecutable,
        _installExecutable = installExecutable,
        _verifyExecutable = verifyExecutable,
        _readAppleId = readAppleIdInput,
-       _startLogin = startLogin;
+       _startLogin = startLogin,
+       _checkAuthentication = checkAuthentication;
 
   @override
   Future<int> run() async {
@@ -106,10 +112,23 @@ class SetupAscKeysCommand extends Command<int> {
       final process = await _startLogin(executable, appleId);
       final code = await process.exitCode;
       if (code != 0) return code < 0 ? 128 - code : code;
+
+      if (!await _checkAuthentication(executable, appleId)) {
+        _logger.stderr(t.setup.ascKeys.notAuthenticated);
+        return 1;
+      }
+      _logger.stdout(t.setup.ascKeys.authenticationVerified);
     } on AppleIdInputException catch (error) {
       _logger.stderr(switch (error.failure) {
         AppleIdInputFailure.notInteractive => t.setup.ascKeys.terminalRequired,
         AppleIdInputFailure.read => t.setup.ascKeys.appleIdInputFailed,
+      });
+      return 1;
+    } on AscAuthenticationException catch (error) {
+      _logger.stderr(switch (error.failure) {
+        AscAuthenticationFailure.execution => t.setup.ascKeys.authStatusFailed,
+        AscAuthenticationFailure.timeout => t.setup.ascKeys.authStatusTimedOut,
+        AscAuthenticationFailure.response => t.setup.ascKeys.authStatusInvalid,
       });
       return 1;
     } on ProcessException {

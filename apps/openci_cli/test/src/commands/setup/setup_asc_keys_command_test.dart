@@ -5,6 +5,7 @@ import 'package:args/command_runner.dart';
 import 'package:cli_util/cli_logging.dart';
 import 'package:genuineci_cli/genuineci_cli.dart';
 import 'package:genuineci_cli/src/asc/asc_release.dart';
+import 'package:genuineci_cli/src/asc/check_asc_authentication.dart';
 import 'package:genuineci_cli/src/asc/install_asc.dart';
 import 'package:genuineci_cli/src/asc/verify_asc_executable.dart';
 import 'package:genuineci_cli/src/commands/setup/read_apple_id.dart';
@@ -42,9 +43,11 @@ void main() {
   late Future<void> Function(File) verifyExecutable;
   late Future<String?> Function() readAppleId;
   late Future<Process> Function(File, String) startLogin;
+  late Future<bool> Function(File, String) checkAuthentication;
   late List<String> steps;
   late List<File> verifiedFiles;
   late List<(File, String)> startedLogins;
+  late List<(File, String)> checkedSessions;
   late int lookups;
   late int installs;
   late int reads;
@@ -58,9 +61,11 @@ void main() {
     verifyExecutable = (_) async {};
     readAppleId = () async => 'user@example.com';
     startLogin = (_, _) async => _LoginProcess(Future.value(0));
+    checkAuthentication = (_, _) async => true;
     steps = [];
     verifiedFiles = [];
     startedLogins = [];
+    checkedSessions = [];
     lookups = 0;
     installs = 0;
     reads = 0;
@@ -100,6 +105,11 @@ void main() {
             startedLogins.add((file, appleId));
             return startLogin(file, appleId);
           },
+          checkAuthentication: (file, appleId) {
+            steps.add('status');
+            checkedSessions.add((file, appleId));
+            return checkAuthentication(file, appleId);
+          },
         ),
       );
     return runner.run(['asc-keys', ...arguments]);
@@ -116,12 +126,14 @@ void main() {
       expect(lookups, 1);
       expect(installs, 0);
       expect(verifiedFiles, [file]);
-      expect(steps, ['find', 'verify', 'read', 'login']);
+      expect(steps, ['find', 'verify', 'read', 'login', 'status']);
       expect(startedLogins, [(file, 'user@example.com')]);
+      expect(checkedSessions, [(file, 'user@example.com')]);
       expect(logger.output, [
         t.setup.ascKeys.cacheFound(version: ascVersion, path: file.path),
         t.setup.ascKeys.versionVerified(version: ascVersion),
         t.setup.ascKeys.appleIdReceived,
+        t.setup.ascKeys.authenticationVerified,
       ]);
       expect(logger.errors, [t.setup.ascKeys.notImplemented]);
     });
@@ -136,13 +148,15 @@ void main() {
         expect(lookups, 1);
         expect(installs, 1);
         expect(verifiedFiles.map((file) => file.path), ['installed-asc']);
-        expect(steps, ['find', 'install', 'verify', 'read', 'login']);
+        expect(steps, ['find', 'install', 'verify', 'read', 'login', 'status']);
         expect(startedLogins, [(verifiedFiles.single, 'user@example.com')]);
+        expect(checkedSessions, [(verifiedFiles.single, 'user@example.com')]);
         expect(logger.output, [
           t.setup.ascKeys.installing(version: ascVersion),
           t.setup.ascKeys.installed(version: ascVersion, path: 'installed-asc'),
           t.setup.ascKeys.versionVerified(version: ascVersion),
           t.setup.ascKeys.appleIdReceived,
+          t.setup.ascKeys.authenticationVerified,
         ]);
         expect(logger.errors, [t.setup.ascKeys.notImplemented]);
       },
@@ -160,6 +174,7 @@ void main() {
           expect(await run(), 1);
           expect(reads, 0);
           expect(startedLogins, isEmpty);
+          expect(checkedSessions, isEmpty);
 
           expect(installs, cached ? 0 : 1);
           expect(verifiedFiles.map((file) => file.path), [
@@ -200,6 +215,7 @@ void main() {
 
       expect(reads, 1);
       expect(startedLogins, isEmpty);
+      expect(checkedSessions, isEmpty);
       expect(logger.output, isNot(contains(t.setup.ascKeys.appleIdReceived)));
       expect(logger.errors, [t.setup.ascKeys.appleIdRequired]);
     });
@@ -213,6 +229,7 @@ void main() {
 
         expect(reads, 1);
         expect(startedLogins, isEmpty);
+        expect(checkedSessions, isEmpty);
         expect(logger.output, isNot(contains(t.setup.ascKeys.appleIdReceived)));
         expect(logger.errors, [
           switch (failure) {
@@ -234,6 +251,7 @@ void main() {
         expect(await run(), 1);
 
         expect(startedLogins, hasLength(1));
+        expect(checkedSessions, isEmpty);
         expect(logger.errors, [t.setup.ascKeys.loginStartFailed]);
       },
     );
@@ -252,7 +270,51 @@ void main() {
         expect(await run(), expected);
 
         expect(startedLogins, hasLength(1));
+        expect(checkedSessions, isEmpty);
         expect(logger.errors, isEmpty);
+      });
+    }
+
+    test(
+      'stops when asc reports an unauthenticated session: $locale',
+      () async {
+        LocaleSettings.setLocaleSync(locale);
+        checkAuthentication = (_, _) async => false;
+
+        expect(await run(), 1);
+
+        expect(checkedSessions, hasLength(1));
+        expect(
+          logger.output,
+          isNot(contains(t.setup.ascKeys.authenticationVerified)),
+        );
+        expect(logger.errors, [t.setup.ascKeys.notAuthenticated]);
+      },
+    );
+
+    for (final failure in AscAuthenticationFailure.values) {
+      test('reports authentication status $failure: $locale', () async {
+        LocaleSettings.setLocaleSync(locale);
+        checkAuthentication = (_, _) async =>
+            throw AscAuthenticationException(failure);
+
+        expect(await run(), 1);
+
+        expect(checkedSessions, hasLength(1));
+        expect(
+          logger.output,
+          isNot(contains(t.setup.ascKeys.authenticationVerified)),
+        );
+        expect(logger.errors, [
+          switch (failure) {
+            AscAuthenticationFailure.execution =>
+              t.setup.ascKeys.authStatusFailed,
+            AscAuthenticationFailure.timeout =>
+              t.setup.ascKeys.authStatusTimedOut,
+            AscAuthenticationFailure.response =>
+              t.setup.ascKeys.authStatusInvalid,
+          },
+        ]);
       });
     }
   }
@@ -273,10 +335,40 @@ void main() {
     await Future<void>.delayed(Duration.zero);
 
     expect(completed, isFalse);
+    expect(checkedSessions, isEmpty);
     expect(logger.errors, isEmpty);
     exited.complete(0);
 
     expect(await result, 1);
+    expect(checkedSessions, hasLength(1));
+    expect(logger.errors, [t.setup.ascKeys.notImplemented]);
+  });
+
+  test('waits for the status check before reporting authentication', () async {
+    final checking = Completer<void>();
+    final status = Completer<bool>();
+    addTearDown(() {
+      if (!status.isCompleted) status.complete(false);
+    });
+    checkAuthentication = (_, _) async {
+      checking.complete();
+      return status.future;
+    };
+    var completed = false;
+    final result = run().whenComplete(() => completed = true);
+    await checking.future;
+    await Future<void>.delayed(Duration.zero);
+
+    expect(completed, isFalse);
+    expect(
+      logger.output,
+      isNot(contains(t.setup.ascKeys.authenticationVerified)),
+    );
+    expect(logger.errors, isEmpty);
+    status.complete(true);
+
+    expect(await result, 1);
+    expect(logger.output.last, t.setup.ascKeys.authenticationVerified);
     expect(logger.errors, [t.setup.ascKeys.notImplemented]);
   });
 
@@ -290,6 +382,7 @@ void main() {
     expect(verifiedFiles, isEmpty);
     expect(reads, 0);
     expect(startedLogins, isEmpty);
+    expect(checkedSessions, isEmpty);
   });
 
   test('reports filesystem failures', () async {
@@ -303,6 +396,7 @@ void main() {
     expect(verifiedFiles, isEmpty);
     expect(reads, 0);
     expect(startedLogins, isEmpty);
+    expect(checkedSessions, isEmpty);
   });
 
   for (final failure in AscInstallFailure.values) {
@@ -314,6 +408,7 @@ void main() {
       expect(verifiedFiles, isEmpty);
       expect(reads, 0);
       expect(startedLogins, isEmpty);
+      expect(checkedSessions, isEmpty);
       expect(logger.output, [t.setup.ascKeys.installing(version: ascVersion)]);
       expect(logger.errors, [
         switch (failure) {
@@ -335,6 +430,7 @@ void main() {
     expect(verifiedFiles, isEmpty);
     expect(reads, 0);
     expect(startedLogins, isEmpty);
+    expect(checkedSessions, isEmpty);
   });
 
   test('reports cache read failures during verification', () async {
@@ -349,6 +445,7 @@ void main() {
     expect(installs, 0);
     expect(reads, 0);
     expect(startedLogins, isEmpty);
+    expect(checkedSessions, isEmpty);
   });
 
   test('rejects positional arguments before inspecting the cache', () async {
@@ -359,6 +456,7 @@ void main() {
     expect(verifiedFiles, isEmpty);
     expect(reads, 0);
     expect(startedLogins, isEmpty);
+    expect(checkedSessions, isEmpty);
     expect(logger.output, isEmpty);
     expect(logger.errors, isEmpty);
   });
@@ -371,6 +469,7 @@ void main() {
     expect(verifiedFiles, isEmpty);
     expect(reads, 0);
     expect(startedLogins, isEmpty);
+    expect(checkedSessions, isEmpty);
     expect(logger.errors, isEmpty);
   });
 }

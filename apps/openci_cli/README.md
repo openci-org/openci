@@ -445,9 +445,16 @@ and web sessions. GenuineCI does not read those inputs.
 The command waits for asc to exit and propagates a nonzero exit code (negative
 signal codes are mapped to `128 + signal`). A failure to start asc produces a
 localized error. Cancellation inside asc follows asc's exit status; asc 5.11.0
-returns 1 when its password prompt is interrupted. Session inspection, key
-issuance, and key storage remain unimplemented, so setup still exits with code 1
-when asc login exits with code 0.
+returns 1 when its password prompt is interrupted.
+After login exits with code 0, GenuineCI checks the same Apple ID with
+`web auth status --apple-id <email> --output json`. The check requires exit code
+0 and a JSON object with `authenticated: true`; asc can also exit with code 0
+for an unauthenticated session. A false value stops setup with a sign-in message.
+Execution failures, malformed responses, and a 30-second timeout produce
+localized errors. Status output is limited to 16 KiB and is not printed; a
+timed-out process is terminated.
+Key issuance and key storage remain unimplemented, so setup still exits with
+code 1 after confirming authentication.
 Use `genuineci setup asc-keys --help` to view its help.
 
 ## Code generation
