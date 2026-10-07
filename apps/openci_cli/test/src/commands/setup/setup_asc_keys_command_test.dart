@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:args/command_runner.dart';
 import 'package:cli_util/cli_logging.dart';
 import 'package:genuineci_cli/genuineci_cli.dart';
+import 'package:genuineci_cli/src/asc/asc_authentication_status.dart';
 import 'package:genuineci_cli/src/asc/asc_release.dart';
 import 'package:genuineci_cli/src/asc/check_asc_authentication.dart';
 import 'package:genuineci_cli/src/asc/install_asc.dart';
@@ -43,7 +44,8 @@ void main() {
   late Future<void> Function(File) verifyExecutable;
   late Future<String?> Function() readAppleId;
   late Future<Process> Function(File, String) startLogin;
-  late Future<bool> Function(File, String) checkAuthentication;
+  late Future<AscAuthenticationStatus> Function(File, String)
+  checkAuthentication;
   late List<String> steps;
   late List<File> verifiedFiles;
   late List<(File, String)> startedLogins;
@@ -61,7 +63,11 @@ void main() {
     verifyExecutable = (_) async {};
     readAppleId = () async => 'user@example.com';
     startLogin = (_, _) async => _LoginProcess(Future.value(0));
-    checkAuthentication = (_, _) async => true;
+    checkAuthentication = (_, _) async => const AscAuthenticationStatus(
+      authenticated: true,
+      providerId: 123,
+      publicProviderId: 'PUBLIC1234',
+    );
     steps = [];
     verifiedFiles = [];
     startedLogins = [];
@@ -134,6 +140,9 @@ void main() {
         t.setup.ascKeys.versionVerified(version: ascVersion),
         t.setup.ascKeys.appleIdReceived,
         t.setup.ascKeys.authenticationVerified,
+        t.setup.ascKeys.selectedProvider,
+        t.setup.ascKeys.providerId(id: 123),
+        t.setup.ascKeys.publicProviderId(id: 'PUBLIC1234'),
       ]);
       expect(logger.errors, [t.setup.ascKeys.notImplemented]);
     });
@@ -157,6 +166,9 @@ void main() {
           t.setup.ascKeys.versionVerified(version: ascVersion),
           t.setup.ascKeys.appleIdReceived,
           t.setup.ascKeys.authenticationVerified,
+          t.setup.ascKeys.selectedProvider,
+          t.setup.ascKeys.providerId(id: 123),
+          t.setup.ascKeys.publicProviderId(id: 'PUBLIC1234'),
         ]);
         expect(logger.errors, [t.setup.ascKeys.notImplemented]);
       },
@@ -279,7 +291,11 @@ void main() {
       'stops when asc reports an unauthenticated session: $locale',
       () async {
         LocaleSettings.setLocaleSync(locale);
-        checkAuthentication = (_, _) async => false;
+        checkAuthentication = (_, _) async => const AscAuthenticationStatus(
+          authenticated: false,
+          providerId: 123,
+          publicProviderId: 'PUBLIC1234',
+        );
 
         expect(await run(), 1);
 
@@ -288,9 +304,54 @@ void main() {
           logger.output,
           isNot(contains(t.setup.ascKeys.authenticationVerified)),
         );
+        expect(
+          logger.output,
+          isNot(contains(t.setup.ascKeys.selectedProvider)),
+        );
+        expect(logger.output.join('\n'), isNot(contains('PUBLIC1234')));
         expect(logger.errors, [t.setup.ascKeys.notAuthenticated]);
       },
     );
+
+    for (final (providerId, publicProviderId) in <(int?, String?)>[
+      (123, null),
+      (null, 'PUBLIC1234'),
+      (null, null),
+    ]) {
+      test(
+        'displays available provider IDs ($providerId, $publicProviderId): $locale',
+        () async {
+          LocaleSettings.setLocaleSync(locale);
+          checkAuthentication = (_, _) async => AscAuthenticationStatus(
+            authenticated: true,
+            providerId: providerId,
+            publicProviderId: publicProviderId,
+          );
+
+          expect(await run(), 1);
+
+          expect(
+            logger.output.skipWhile(
+              (line) => line != t.setup.ascKeys.authenticationVerified,
+            ),
+            [
+              t.setup.ascKeys.authenticationVerified,
+              if (providerId != null || publicProviderId != null)
+                t.setup.ascKeys.selectedProvider,
+              if (providerId != null)
+                t.setup.ascKeys.providerId(id: providerId),
+              if (publicProviderId != null)
+                t.setup.ascKeys.publicProviderId(id: publicProviderId),
+            ],
+          );
+          expect(logger.errors, [
+            if (providerId == null && publicProviderId == null)
+              t.setup.ascKeys.providerUnavailable,
+            t.setup.ascKeys.notImplemented,
+          ]);
+        },
+      );
+    }
 
     for (final failure in AscAuthenticationFailure.values) {
       test('reports authentication status $failure: $locale', () async {
@@ -346,9 +407,11 @@ void main() {
 
   test('waits for the status check before reporting authentication', () async {
     final checking = Completer<void>();
-    final status = Completer<bool>();
+    final status = Completer<AscAuthenticationStatus>();
     addTearDown(() {
-      if (!status.isCompleted) status.complete(false);
+      if (!status.isCompleted) {
+        status.complete(const AscAuthenticationStatus(authenticated: false));
+      }
     });
     checkAuthentication = (_, _) async {
       checking.complete();
@@ -364,11 +427,14 @@ void main() {
       logger.output,
       isNot(contains(t.setup.ascKeys.authenticationVerified)),
     );
+    expect(logger.output, isNot(contains(t.setup.ascKeys.selectedProvider)));
     expect(logger.errors, isEmpty);
-    status.complete(true);
+    status.complete(
+      const AscAuthenticationStatus(authenticated: true, providerId: 123),
+    );
 
     expect(await result, 1);
-    expect(logger.output.last, t.setup.ascKeys.authenticationVerified);
+    expect(logger.output.last, t.setup.ascKeys.providerId(id: 123));
     expect(logger.errors, [t.setup.ascKeys.notImplemented]);
   });
 

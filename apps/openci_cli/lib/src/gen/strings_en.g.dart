@@ -597,6 +597,18 @@ class Translations$setup$ascKeys$en {
 	/// en: 'Apple authentication verified.'
 	String get authenticationVerified => 'Apple authentication verified.';
 
+	/// en: 'Selected App Store Connect provider:'
+	String get selectedProvider => 'Selected App Store Connect provider:';
+
+	/// en: ' Provider ID: ${id}'
+	String providerId({required Object id}) => '  Provider ID: ${id}';
+
+	/// en: ' Public Provider ID: ${id}'
+	String publicProviderId({required Object id}) => '  Public Provider ID: ${id}';
+
+	/// en: 'Could not determine the selected App Store Connect provider.'
+	String get providerUnavailable => 'Could not determine the selected App Store Connect provider.';
+
 	/// en: 'Apple login could not be confirmed. Run genuineci setup asc-keys to sign in again.'
 	String get notAuthenticated => 'Apple login could not be confirmed. Run genuineci setup asc-keys to sign in again.';
 
@@ -969,6 +981,10 @@ extension on Translations {
 			'setup.ascKeys.appleIdInputFailed' => 'Could not read the Apple ID. Retry in an interactive terminal.',
 			'setup.ascKeys.loginStartFailed' => 'Could not start asc login. Check that the cached asc file is executable and retry.',
 			'setup.ascKeys.authenticationVerified' => 'Apple authentication verified.',
+			'setup.ascKeys.selectedProvider' => 'Selected App Store Connect provider:',
+			'setup.ascKeys.providerId' => ({required Object id}) => '  Provider ID: ${id}',
+			'setup.ascKeys.publicProviderId' => ({required Object id}) => '  Public Provider ID: ${id}',
+			'setup.ascKeys.providerUnavailable' => 'Could not determine the selected App Store Connect provider.',
 			'setup.ascKeys.notAuthenticated' => 'Apple login could not be confirmed. Run genuineci setup asc-keys to sign in again.',
 			'setup.ascKeys.authStatusFailed' => 'Could not check Apple authentication with asc. Retry setup.',
 			'setup.ascKeys.authStatusTimedOut' => 'Checking Apple authentication timed out. Retry setup.',

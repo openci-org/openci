@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:genuineci_cli/src/asc/asc_authentication_status.dart';
 import 'package:genuineci_cli/src/asc/check_asc_authentication.dart';
 import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
@@ -60,25 +61,26 @@ void main() {
 
   setUp(() => process = _StatusProcess());
 
-  Future<bool> check({Duration timeout = const Duration(seconds: 1)}) =>
-      checkAscAuthentication(
-        executable,
+  Future<AscAuthenticationStatus> check({
+    Duration timeout = const Duration(seconds: 1),
+  }) => checkAscAuthentication(
+    executable,
+    appleId,
+    timeout: timeout,
+    processStarter: (path, arguments) async {
+      expect(path, executable.absolute.path);
+      expect(arguments, [
+        'web',
+        'auth',
+        'status',
+        '--apple-id',
         appleId,
-        timeout: timeout,
-        processStarter: (path, arguments) async {
-          expect(path, executable.absolute.path);
-          expect(arguments, [
-            'web',
-            'auth',
-            'status',
-            '--apple-id',
-            appleId,
-            '--output',
-            'json',
-          ]);
-          return process;
-        },
-      );
+        '--output',
+        'json',
+      ]);
+      return process;
+    },
+  );
 
   Matcher failsWith(AscAuthenticationFailure failure) => throwsA(
     isA<AscAuthenticationException>().having(
@@ -96,14 +98,74 @@ void main() {
           'appleId': appleId,
           'passwordStored': true,
           'providerId': 123,
+          'publicProviderId': 'PUBLIC1234',
         }),
       );
 
-      expect(await check(), authenticated);
+      final status = await check();
+      expect(status.authenticated, authenticated);
+      expect(status.providerId, 123);
+      expect(status.publicProviderId, 'PUBLIC1234');
 
       expect(process.stdin.closed, isTrue);
       expect(process.signals, isEmpty);
     });
+  }
+
+  for (final (fields, providerId, publicProviderId)
+      in <(Map<String, Object?>, int?, String?)>[
+        ({}, null, null),
+        ({'providerId': null, 'publicProviderId': null}, null, null),
+        ({'providerId': 123}, 123, null),
+        ({'publicProviderId': 'PUBLIC1234'}, null, 'PUBLIC1234'),
+        ({'publicProviderId': '  PUBLIC1234  '}, null, 'PUBLIC1234'),
+        ({'publicProviderId': ''}, null, null),
+        ({'publicProviderId': '   '}, null, null),
+        ({'teamId': 'OTHER12345', 'developerTeamId': 'DEV1234567'}, null, null),
+      ]) {
+    test(
+      'reads optional provider information: ${jsonEncode(fields)}',
+      () async {
+        process = _StatusProcess(
+          output: jsonEncode({'authenticated': true, ...fields}),
+        );
+
+        final status = await check();
+
+        expect(status.authenticated, isTrue);
+        expect(status.providerId, providerId);
+        expect(status.publicProviderId, publicProviderId);
+      },
+    );
+  }
+
+  for (final fields in <Map<String, Object>>[
+    {'providerId': '123'},
+    {'providerId': 123.0},
+    {'providerId': 0},
+    {'providerId': -1},
+    {'providerId': true},
+    {'providerId': <int>[]},
+    {'publicProviderId': 123},
+    {'publicProviderId': true},
+    {'publicProviderId': <String>[]},
+    {'publicProviderId': 'PUBLIC\u001b[31m'},
+    {'publicProviderId': 'PUBLIC\nID'},
+    {'publicProviderId': 'PUBLIC\u0085ID'},
+  ]) {
+    test(
+      'rejects invalid provider information: ${jsonEncode(fields)}',
+      () async {
+        process = _StatusProcess(
+          output: jsonEncode({'authenticated': true, ...fields}),
+        );
+
+        await expectLater(
+          check(),
+          failsWith(AscAuthenticationFailure.response),
+        );
+      },
+    );
   }
 
   for (final output in [
@@ -133,7 +195,7 @@ void main() {
       stdout: Stream.fromIterable(bytes.map((byte) => [byte])),
     );
 
-    expect(await check(), isTrue);
+    expect((await check()).authenticated, isTrue);
   });
 
   test('rejects invalid UTF-8 output', () async {
@@ -247,7 +309,10 @@ done
 printf '{"authenticated":$authenticated}\\n'
 ''');
 
-        expect(await checkAscAuthentication(script, appleId), authenticated);
+        expect(
+          (await checkAscAuthentication(script, appleId)).authenticated,
+          authenticated,
+        );
       });
     }
 
