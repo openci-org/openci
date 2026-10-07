@@ -92,6 +92,19 @@
       "empty": "No secrets registered for the active team."
     }
   },
+  "delete": {
+    "description": "Delete resources from OpenCI.",
+    "secret": {
+      "description": "Delete a secret by name from the active team.",
+      "nameRequired": "Specify exactly one non-empty secret name: genuineci delete secret SECRET_NAME.",
+      "invalidName": "The secret name cannot be . or .. because these names are URL path segments.",
+      "loginRequired": "Run genuineci login (or genuineci login --local) before deleting secrets.",
+      "notFound": "Secret ${name} was not found in team ${teamId}.",
+      "requestFailed": "Could not delete the secret (HTTP ${status}).",
+      "deleteFailed": "Could not delete the secret. Check the server connection.",
+      "deleted": "Deleted secret ${name} from team ${teamId}."
+    }
+  },
   "register": {
     "description": "Register resources with OpenCI.",
     "secret": {

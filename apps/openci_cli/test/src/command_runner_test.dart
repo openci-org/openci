@@ -154,6 +154,16 @@ void main() {
     expect(secrets!.description, t.list.secrets.description);
   });
 
+  test('registers delete secret with localized descriptions', () {
+    final delete = runner.commands['delete'];
+    expect(delete, isA<DeleteCommand>());
+    expect(delete!.description, t.delete.description);
+    final secret = delete.subcommands['secret'];
+    expect(secret, isA<DeleteSecretCommand>());
+    expect(secret!.description, t.delete.secret.description);
+    expect(secret.invocation, 'genuineci delete secret SECRET_NAME');
+  });
+
   test('registers list teams with a localized description', () {
     final teams = runner.commands['list']!.subcommands['teams'];
     expect(teams, isA<ListTeamsCommand>());
@@ -206,9 +216,10 @@ void main() {
   group('shell completion', () {
     for (final shell in ['bash', 'zsh']) {
       for (final (line, expected) in [
-        ('genuineci ', ['login', 'register', 'switch', '--version']),
+        ('genuineci ', ['login', 'register', 'delete', 'switch', '--version']),
         ('genuineci reg', ['register']),
         ('genuineci register ', ['secret', 'secretFile']),
+        ('genuineci delete ', ['secret']),
         ('genuineci switch ', ['team']),
         ('genuineci login --ser', ['--server']),
         ('genuineci --no-check', ['--no-check-updates']),

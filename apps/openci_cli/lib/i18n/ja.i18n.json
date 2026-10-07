@@ -92,6 +92,19 @@
       "empty": "現在のチームにはシークレットが登録されていません。"
     }
   },
+  "delete": {
+    "description": "OpenCIのリソースを削除します。",
+    "secret": {
+      "description": "現在のチームのシークレットを名前で指定して削除します。",
+      "nameRequired": "空でないシークレット名を1つ指定してください: genuineci delete secret SECRET_NAME。",
+      "invalidName": "URLのパスとして解釈されるため、シークレット名に . と .. は指定できません。",
+      "loginRequired": "genuineci login（ローカルならgenuineci login --local）を実行してからシークレットを削除してください。",
+      "notFound": "チーム${teamId}にシークレット${name}が見つかりませんでした。",
+      "requestFailed": "シークレットを削除できませんでした（HTTP ${status}）。",
+      "deleteFailed": "シークレットを削除できませんでした。サーバーの接続状態を確認してください。",
+      "deleted": "チーム${teamId}からシークレット${name}を削除しました。"
+    }
+  },
   "register": {
     "description": "OpenCIにリソースを登録します。",
     "secret": {

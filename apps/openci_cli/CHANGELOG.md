@@ -1,3 +1,8 @@
+## 0.5.2
+
+- Add `genuineci delete secret SECRET_NAME` to delete a secret from the active
+  team, with English and Japanese messages and a nonzero exit code on failure.
+
 ## 0.5.1
 
 - Display the selected App Store Connect provider's organization name when asc

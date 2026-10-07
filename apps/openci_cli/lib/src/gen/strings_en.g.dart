@@ -39,6 +39,7 @@ class Translations with BaseTranslations<AppLocale, Translations> {
 	late final Translations$login$en login = Translations$login$en.internal(_root);
 	late final Translations$status$en status = Translations$status$en.internal(_root);
 	late final Translations$list$en list = Translations$list$en.internal(_root);
+	late final Translations$delete$en delete = Translations$delete$en.internal(_root);
 	late final Translations$register$en register = Translations$register$en.internal(_root);
 	late final Translations$setup$en setup = Translations$setup$en.internal(_root);
 	late final Translations$switchCommand$en switchCommand = Translations$switchCommand$en.internal(_root);
@@ -265,6 +266,20 @@ class Translations$list$en {
 	late final Translations$list$secrets$en secrets = Translations$list$secrets$en.internal(_root);
 }
 
+// Path: delete
+class Translations$delete$en {
+	Translations$delete$en.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// en: 'Delete resources from OpenCI.'
+	String get description => 'Delete resources from OpenCI.';
+
+	late final Translations$delete$secret$en secret = Translations$delete$secret$en.internal(_root);
+}
+
 // Path: register
 class Translations$register$en {
 	Translations$register$en.internal(this._root);
@@ -464,6 +479,39 @@ class Translations$list$secrets$en {
 
 	/// en: 'No secrets registered for the active team.'
 	String get empty => 'No secrets registered for the active team.';
+}
+
+// Path: delete.secret
+class Translations$delete$secret$en {
+	Translations$delete$secret$en.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// en: 'Delete a secret by name from the active team.'
+	String get description => 'Delete a secret by name from the active team.';
+
+	/// en: 'Specify exactly one non-empty secret name: genuineci delete secret SECRET_NAME.'
+	String get nameRequired => 'Specify exactly one non-empty secret name: genuineci delete secret SECRET_NAME.';
+
+	/// en: 'The secret name cannot be . or .. because these names are URL path segments.'
+	String get invalidName => 'The secret name cannot be . or .. because these names are URL path segments.';
+
+	/// en: 'Run genuineci login (or genuineci login --local) before deleting secrets.'
+	String get loginRequired => 'Run genuineci login (or genuineci login --local) before deleting secrets.';
+
+	/// en: 'Secret ${name} was not found in team ${teamId}.'
+	String notFound({required Object name, required Object teamId}) => 'Secret ${name} was not found in team ${teamId}.';
+
+	/// en: 'Could not delete the secret (HTTP ${status}).'
+	String requestFailed({required Object status}) => 'Could not delete the secret (HTTP ${status}).';
+
+	/// en: 'Could not delete the secret. Check the server connection.'
+	String get deleteFailed => 'Could not delete the secret. Check the server connection.';
+
+	/// en: 'Deleted secret ${name} from team ${teamId}.'
+	String deleted({required Object name, required Object teamId}) => 'Deleted secret ${name} from team ${teamId}.';
 }
 
 // Path: register.secret
@@ -1019,6 +1067,15 @@ extension on Translations {
 			'list.secrets.requestFailed' => ({required Object status}) => 'Could not fetch secret names (HTTP ${status}).',
 			'list.secrets.fetchFailed' => 'Could not fetch secret names. Check the server connection and response.',
 			'list.secrets.empty' => 'No secrets registered for the active team.',
+			'delete.description' => 'Delete resources from OpenCI.',
+			'delete.secret.description' => 'Delete a secret by name from the active team.',
+			'delete.secret.nameRequired' => 'Specify exactly one non-empty secret name: genuineci delete secret SECRET_NAME.',
+			'delete.secret.invalidName' => 'The secret name cannot be . or .. because these names are URL path segments.',
+			'delete.secret.loginRequired' => 'Run genuineci login (or genuineci login --local) before deleting secrets.',
+			'delete.secret.notFound' => ({required Object name, required Object teamId}) => 'Secret ${name} was not found in team ${teamId}.',
+			'delete.secret.requestFailed' => ({required Object status}) => 'Could not delete the secret (HTTP ${status}).',
+			'delete.secret.deleteFailed' => 'Could not delete the secret. Check the server connection.',
+			'delete.secret.deleted' => ({required Object name, required Object teamId}) => 'Deleted secret ${name} from team ${teamId}.',
 			'register.description' => 'Register resources with OpenCI.',
 			'register.secret.description' => 'Create or update a secret for the active team. Enter its name, then its value. The value is hidden while typing and shown as ****** after Enter.',
 			'register.secret.noArguments' => 'register secret does not accept positional arguments. Enter the name and value at the prompts.',
