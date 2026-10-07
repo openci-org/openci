@@ -13,14 +13,21 @@ class AscKeyConfirmationException implements Exception {
 Future<bool> confirmAscKeyCreation({
   @visibleForTesting Stdin? input,
   @visibleForTesting Stdout? output,
-}) async {
+}) => _confirm(t.setup.ascKeys.confirmKeyCreation, input, output);
+
+Future<bool> confirmAscKeySave({
+  @visibleForTesting Stdin? input,
+  @visibleForTesting Stdout? output,
+}) => _confirm(t.setup.ascKeys.confirmKeySave, input, output);
+
+Future<bool> _confirm(String message, Stdin? input, Stdout? output) async {
   final terminal = input ?? stdin;
   final prompt = output ?? stderr;
   try {
     if (!terminal.hasTerminal || !prompt.hasTerminal) {
       throw const AscKeyConfirmationException();
     }
-    prompt.write(t.setup.ascKeys.confirmKeyCreation);
+    prompt.write(message);
     await prompt.flush();
     final answer = terminal.readLineSync(encoding: utf8)?.trim().toLowerCase();
     if (answer == null) prompt.writeln();

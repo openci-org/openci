@@ -139,4 +139,14 @@ void main() {
       await expectLater(confirm(), throwsA(isA<AscKeyConfirmationException>()));
     });
   }
+
+  for (final locale in [AppLocale.en, AppLocale.ja]) {
+    test('asks only about saving when reusing a key: $locale', () async {
+      LocaleSettings.setLocaleSync(locale);
+      input.line = 'yes';
+      expect(await confirmAscKeySave(input: input, output: output), isTrue);
+      expect(output.messages, [t.setup.ascKeys.confirmKeySave]);
+      expect(input.reads, 1);
+    });
+  }
 }
