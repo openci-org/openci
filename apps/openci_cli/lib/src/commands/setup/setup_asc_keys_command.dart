@@ -7,6 +7,7 @@ import 'package:meta/meta.dart';
 import '../../asc/asc_release.dart';
 import '../../asc/find_cached_asc_executable.dart';
 import '../../asc/install_asc.dart';
+import '../../asc/start_asc_login.dart';
 import '../../asc/verify_asc_executable.dart';
 import '../../i18n/i18n.dart';
 import 'read_apple_id.dart';
@@ -23,6 +24,7 @@ class SetupAscKeysCommand extends Command<int> {
   final Future<File> Function() _installExecutable;
   final Future<void> Function(File) _verifyExecutable;
   final Future<String?> Function() _readAppleId;
+  final Future<Process> Function(File, String) _startLogin;
 
   SetupAscKeysCommand({
     required Logger logger,
@@ -33,11 +35,14 @@ class SetupAscKeysCommand extends Command<int> {
     Future<void> Function(File) verifyExecutable = verifyAscExecutable,
     @visibleForTesting
     Future<String?> Function() readAppleIdInput = readAppleId,
+    @visibleForTesting
+    Future<Process> Function(File, String) startLogin = startAscLogin,
   }) : _logger = logger,
        _findCachedExecutable = findCachedExecutable,
        _installExecutable = installExecutable,
        _verifyExecutable = verifyExecutable,
-       _readAppleId = readAppleIdInput;
+       _readAppleId = readAppleIdInput,
+       _startLogin = startLogin;
 
   @override
   Future<int> run() async {
@@ -45,15 +50,17 @@ class SetupAscKeysCommand extends Command<int> {
       usageException(t.setup.ascKeys.noArguments);
     }
 
+    final File executable;
     try {
-      var executable = await _findCachedExecutable();
-      if (executable == null) {
+      final cachedExecutable = await _findCachedExecutable();
+      if (cachedExecutable == null) {
         _logger.stdout(t.setup.ascKeys.installing(version: ascVersion));
         executable = await _installExecutable();
         _logger.stdout(
           t.setup.ascKeys.installed(version: ascVersion, path: executable.path),
         );
       } else {
+        executable = cachedExecutable;
         _logger.stdout(
           t.setup.ascKeys.cacheFound(
             version: ascVersion,
@@ -95,11 +102,18 @@ class SetupAscKeysCommand extends Command<int> {
         return 1;
       }
       _logger.stdout(t.setup.ascKeys.appleIdReceived);
+
+      final process = await _startLogin(executable, appleId);
+      final code = await process.exitCode;
+      if (code != 0) return code < 0 ? 128 - code : code;
     } on AppleIdInputException catch (error) {
       _logger.stderr(switch (error.failure) {
         AppleIdInputFailure.notInteractive => t.setup.ascKeys.terminalRequired,
         AppleIdInputFailure.read => t.setup.ascKeys.appleIdInputFailed,
       });
+      return 1;
+    } on ProcessException {
+      _logger.stderr(t.setup.ascKeys.loginStartFailed);
       return 1;
     }
 
