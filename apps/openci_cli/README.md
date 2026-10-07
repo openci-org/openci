@@ -435,13 +435,19 @@ execution; an execution failure, unexpected version, or 10-second timeout stops
 setup with an error. A timed-out process is terminated.
 After verification, it prompts for an Apple ID email address in an interactive
 terminal. Surrounding whitespace is trimmed; empty input or EOF stops setup
-with exit code 1, and Ctrl+C interrupts it with shell exit code 130. Input and
-prompt output (stderr) must both be attached to a terminal. The prompt leaves
-stdin open and does not change terminal modes, so asc can inherit the terminal
-in a later step.
-The entered Apple ID is not stored or sent anywhere. Apple login, key issuance,
-and key storage remain unimplemented, so the command still exits with code 1
-after accepting the Apple ID.
+with exit code 1. Ctrl+C at the email prompt interrupts it with shell exit code
+130. Input and prompt output (stderr) must both be attached to a terminal.
+The prompt leaves stdin open and does not change terminal modes. It then starts
+the verified asc binary with `web auth login --apple-id <email> --output table`,
+inheriting the terminal's stdin, stdout, and stderr. Password and two-factor
+prompts are handled directly by asc, which manages its own saved credentials
+and web sessions. GenuineCI does not read those inputs.
+The command waits for asc to exit and propagates a nonzero exit code (negative
+signal codes are mapped to `128 + signal`). A failure to start asc produces a
+localized error. Cancellation inside asc follows asc's exit status; asc 5.11.0
+returns 1 when its password prompt is interrupted. Session inspection, key
+issuance, and key storage remain unimplemented, so setup still exits with code 1
+when asc login exits with code 0.
 Use `genuineci setup asc-keys --help` to view its help.
 
 ## Code generation

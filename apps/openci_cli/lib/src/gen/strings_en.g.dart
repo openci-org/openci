@@ -591,6 +591,9 @@ class Translations$setup$ascKeys$en {
 	/// en: 'Could not read the Apple ID. Retry in an interactive terminal.'
 	String get appleIdInputFailed => 'Could not read the Apple ID. Retry in an interactive terminal.';
 
+	/// en: 'Could not start asc login. Check that the cached asc file is executable and retry.'
+	String get loginStartFailed => 'Could not start asc login. Check that the cached asc file is executable and retry.';
+
 	/// en: 'The cached asc file did not match the expected SHA-256. It was not run. Remove the cached file and retry the command.'
 	String get cachedChecksumFailed => 'The cached asc file did not match the expected SHA-256. It was not run. Remove the cached file and retry the command.';
 
@@ -949,6 +952,7 @@ extension on Translations {
 			'setup.ascKeys.appleIdRequired' => 'No Apple ID was entered. Setup was stopped.',
 			'setup.ascKeys.terminalRequired' => 'Entering an Apple ID requires an interactive terminal. Run genuineci setup asc-keys in a terminal.',
 			'setup.ascKeys.appleIdInputFailed' => 'Could not read the Apple ID. Retry in an interactive terminal.',
+			'setup.ascKeys.loginStartFailed' => 'Could not start asc login. Check that the cached asc file is executable and retry.',
 			'setup.ascKeys.cachedChecksumFailed' => 'The cached asc file did not match the expected SHA-256. It was not run. Remove the cached file and retry the command.',
 			'setup.ascKeys.executionFailed' => 'Could not run asc version successfully. Check that the cached asc file is executable and retry.',
 			'setup.ascKeys.versionTimedOut' => 'asc version timed out. Retry the command.',

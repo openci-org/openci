@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:args/command_runner.dart';
@@ -23,6 +24,16 @@ class _RecordingLogger implements Logger {
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
+class _LoginProcess implements Process {
+  _LoginProcess(this.exitCode);
+
+  @override
+  final Future<int> exitCode;
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
 void main() {
   late AppLocale originalLocale;
   late _RecordingLogger logger;
@@ -30,8 +41,10 @@ void main() {
   late Future<File> Function() installExecutable;
   late Future<void> Function(File) verifyExecutable;
   late Future<String?> Function() readAppleId;
+  late Future<Process> Function(File, String) startLogin;
   late List<String> steps;
   late List<File> verifiedFiles;
+  late List<(File, String)> startedLogins;
   late int lookups;
   late int installs;
   late int reads;
@@ -44,8 +57,10 @@ void main() {
     installExecutable = () async => File('installed-asc');
     verifyExecutable = (_) async {};
     readAppleId = () async => 'user@example.com';
+    startLogin = (_, _) async => _LoginProcess(Future.value(0));
     steps = [];
     verifiedFiles = [];
+    startedLogins = [];
     lookups = 0;
     installs = 0;
     reads = 0;
@@ -80,6 +95,11 @@ void main() {
             reads++;
             return readAppleId();
           },
+          startLogin: (file, appleId) {
+            steps.add('login');
+            startedLogins.add((file, appleId));
+            return startLogin(file, appleId);
+          },
         ),
       );
     return runner.run(['asc-keys', ...arguments]);
@@ -96,7 +116,8 @@ void main() {
       expect(lookups, 1);
       expect(installs, 0);
       expect(verifiedFiles, [file]);
-      expect(steps, ['find', 'verify', 'read']);
+      expect(steps, ['find', 'verify', 'read', 'login']);
+      expect(startedLogins, [(file, 'user@example.com')]);
       expect(logger.output, [
         t.setup.ascKeys.cacheFound(version: ascVersion, path: file.path),
         t.setup.ascKeys.versionVerified(version: ascVersion),
@@ -115,7 +136,8 @@ void main() {
         expect(lookups, 1);
         expect(installs, 1);
         expect(verifiedFiles.map((file) => file.path), ['installed-asc']);
-        expect(steps, ['find', 'install', 'verify', 'read']);
+        expect(steps, ['find', 'install', 'verify', 'read', 'login']);
+        expect(startedLogins, [(verifiedFiles.single, 'user@example.com')]);
         expect(logger.output, [
           t.setup.ascKeys.installing(version: ascVersion),
           t.setup.ascKeys.installed(version: ascVersion, path: 'installed-asc'),
@@ -137,6 +159,7 @@ void main() {
 
           expect(await run(), 1);
           expect(reads, 0);
+          expect(startedLogins, isEmpty);
 
           expect(installs, cached ? 0 : 1);
           expect(verifiedFiles.map((file) => file.path), [
@@ -176,6 +199,7 @@ void main() {
       expect(await run(), 1);
 
       expect(reads, 1);
+      expect(startedLogins, isEmpty);
       expect(logger.output, isNot(contains(t.setup.ascKeys.appleIdReceived)));
       expect(logger.errors, [t.setup.ascKeys.appleIdRequired]);
     });
@@ -188,6 +212,7 @@ void main() {
         expect(await run(), 1);
 
         expect(reads, 1);
+        expect(startedLogins, isEmpty);
         expect(logger.output, isNot(contains(t.setup.ascKeys.appleIdReceived)));
         expect(logger.errors, [
           switch (failure) {
@@ -198,7 +223,62 @@ void main() {
         ]);
       });
     }
+
+    test(
+      'reports login startup failure without raw details: $locale',
+      () async {
+        LocaleSettings.setLocaleSync(locale);
+        startLogin = (file, appleId) async =>
+            throw ProcessException(file.path, [appleId], 'private diagnostic');
+
+        expect(await run(), 1);
+
+        expect(startedLogins, hasLength(1));
+        expect(logger.errors, [t.setup.ascKeys.loginStartFailed]);
+      },
+    );
+
+    for (final (code, expected) in [
+      (1, 1),
+      (7, 7),
+      (130, 130),
+      (-2, 130),
+      (-15, 143),
+    ]) {
+      test('propagates asc exit $code without proceeding: $locale', () async {
+        LocaleSettings.setLocaleSync(locale);
+        startLogin = (_, _) async => _LoginProcess(Future.value(code));
+
+        expect(await run(), expected);
+
+        expect(startedLogins, hasLength(1));
+        expect(logger.errors, isEmpty);
+      });
+    }
   }
+
+  test('waits for asc before reporting that key setup is unfinished', () async {
+    final started = Completer<void>();
+    final exited = Completer<int>();
+    addTearDown(() {
+      if (!exited.isCompleted) exited.complete(1);
+    });
+    startLogin = (_, _) async {
+      started.complete();
+      return _LoginProcess(exited.future);
+    };
+    var completed = false;
+    final result = run().whenComplete(() => completed = true);
+    await started.future;
+    await Future<void>.delayed(Duration.zero);
+
+    expect(completed, isFalse);
+    expect(logger.errors, isEmpty);
+    exited.complete(0);
+
+    expect(await result, 1);
+    expect(logger.errors, [t.setup.ascKeys.notImplemented]);
+  });
 
   test('reports an unsupported platform', () async {
     findCachedExecutable = () async => throw UnsupportedError('unsupported');
@@ -209,6 +289,7 @@ void main() {
     expect(installs, 0);
     expect(verifiedFiles, isEmpty);
     expect(reads, 0);
+    expect(startedLogins, isEmpty);
   });
 
   test('reports filesystem failures', () async {
@@ -221,6 +302,7 @@ void main() {
     expect(installs, 0);
     expect(verifiedFiles, isEmpty);
     expect(reads, 0);
+    expect(startedLogins, isEmpty);
   });
 
   for (final failure in AscInstallFailure.values) {
@@ -231,6 +313,7 @@ void main() {
       expect(installs, 1);
       expect(verifiedFiles, isEmpty);
       expect(reads, 0);
+      expect(startedLogins, isEmpty);
       expect(logger.output, [t.setup.ascKeys.installing(version: ascVersion)]);
       expect(logger.errors, [
         switch (failure) {
@@ -251,6 +334,7 @@ void main() {
     expect(logger.errors, [t.setup.ascKeys.cacheFailed]);
     expect(verifiedFiles, isEmpty);
     expect(reads, 0);
+    expect(startedLogins, isEmpty);
   });
 
   test('reports cache read failures during verification', () async {
@@ -264,6 +348,7 @@ void main() {
     expect(logger.errors, [t.setup.ascKeys.cacheFailed]);
     expect(installs, 0);
     expect(reads, 0);
+    expect(startedLogins, isEmpty);
   });
 
   test('rejects positional arguments before inspecting the cache', () async {
@@ -273,6 +358,7 @@ void main() {
     expect(installs, 0);
     expect(verifiedFiles, isEmpty);
     expect(reads, 0);
+    expect(startedLogins, isEmpty);
     expect(logger.output, isEmpty);
     expect(logger.errors, isEmpty);
   });
@@ -284,6 +370,7 @@ void main() {
     expect(installs, 0);
     expect(verifiedFiles, isEmpty);
     expect(reads, 0);
+    expect(startedLogins, isEmpty);
     expect(logger.errors, isEmpty);
   });
 }
