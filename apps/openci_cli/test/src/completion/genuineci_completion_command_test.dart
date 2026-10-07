@@ -169,7 +169,6 @@ void main() {
               'status',
               'list',
               'register',
-              'setup',
               'switch',
               'use',
               'dev',
