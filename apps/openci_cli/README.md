@@ -451,10 +451,16 @@ After login exits with code 0, GenuineCI checks the same Apple ID with
 0 and a JSON object with `authenticated: true`; asc can also exit with code 0
 for an unauthenticated session. A false value stops setup with a sign-in message.
 Execution failures, malformed responses, and a 30-second timeout produce
-localized errors. Status output is limited to 16 KiB and is not printed; a
-timed-out process is terminated.
-Key issuance and key storage remain unimplemented, so setup still exits with
-code 1 after confirming authentication.
+localized errors. Raw status output is limited to 16 KiB and is not printed; a
+timed-out process is terminated. The authentication result retains the optional
+`providerId` and `publicProviderId` fields. Once authentication is confirmed,
+GenuineCI displays the returned IDs of the currently selected App Store Connect
+provider. If neither ID is available, it reports that the provider could not be
+determined. Other team IDs are not used as substitutes. This response describes
+the current provider, not a list of available teams.
+Provider switching, key issuance, and key storage remain unimplemented, so setup
+still exits with code 1 after confirming authentication and showing provider
+information.
 Use `genuineci setup asc-keys --help` to view its help.
 
 ## Code generation

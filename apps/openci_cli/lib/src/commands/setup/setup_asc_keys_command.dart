@@ -4,6 +4,7 @@ import 'package:args/command_runner.dart';
 import 'package:cli_util/cli_logging.dart';
 import 'package:meta/meta.dart';
 
+import '../../asc/asc_authentication_status.dart';
 import '../../asc/asc_release.dart';
 import '../../asc/check_asc_authentication.dart';
 import '../../asc/find_cached_asc_executable.dart';
@@ -26,7 +27,8 @@ class SetupAscKeysCommand extends Command<int> {
   final Future<void> Function(File) _verifyExecutable;
   final Future<String?> Function() _readAppleId;
   final Future<Process> Function(File, String) _startLogin;
-  final Future<bool> Function(File, String) _checkAuthentication;
+  final Future<AscAuthenticationStatus> Function(File, String)
+  _checkAuthentication;
 
   SetupAscKeysCommand({
     required Logger logger,
@@ -40,7 +42,7 @@ class SetupAscKeysCommand extends Command<int> {
     @visibleForTesting
     Future<Process> Function(File, String) startLogin = startAscLogin,
     @visibleForTesting
-    Future<bool> Function(File, String) checkAuthentication =
+    Future<AscAuthenticationStatus> Function(File, String) checkAuthentication =
         checkAscAuthentication,
   }) : _logger = logger,
        _findCachedExecutable = findCachedExecutable,
@@ -113,11 +115,27 @@ class SetupAscKeysCommand extends Command<int> {
       final code = await process.exitCode;
       if (code != 0) return code < 0 ? 128 - code : code;
 
-      if (!await _checkAuthentication(executable, appleId)) {
+      final status = await _checkAuthentication(executable, appleId);
+      if (!status.authenticated) {
         _logger.stderr(t.setup.ascKeys.notAuthenticated);
         return 1;
       }
       _logger.stdout(t.setup.ascKeys.authenticationVerified);
+      final providerId = status.providerId;
+      final publicProviderId = status.publicProviderId;
+      if (providerId == null && publicProviderId == null) {
+        _logger.stderr(t.setup.ascKeys.providerUnavailable);
+      } else {
+        _logger.stdout(t.setup.ascKeys.selectedProvider);
+        if (providerId != null) {
+          _logger.stdout(t.setup.ascKeys.providerId(id: providerId));
+        }
+        if (publicProviderId != null) {
+          _logger.stdout(
+            t.setup.ascKeys.publicProviderId(id: publicProviderId),
+          );
+        }
+      }
     } on AppleIdInputException catch (error) {
       _logger.stderr(switch (error.failure) {
         AppleIdInputFailure.notInteractive => t.setup.ascKeys.terminalRequired,

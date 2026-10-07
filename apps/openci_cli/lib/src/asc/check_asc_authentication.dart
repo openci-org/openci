@@ -4,6 +4,8 @@ import 'dart:io';
 
 import 'package:meta/meta.dart';
 
+import 'asc_authentication_status.dart';
+
 enum AscAuthenticationFailure { execution, timeout, response }
 
 class AscAuthenticationException implements Exception {
@@ -13,7 +15,7 @@ class AscAuthenticationException implements Exception {
 }
 
 /// Checks the selected Apple ID's session using an already verified asc binary.
-Future<bool> checkAscAuthentication(
+Future<AscAuthenticationStatus> checkAscAuthentication(
   File executable,
   String appleId, {
   @visibleForTesting
@@ -70,8 +72,26 @@ Future<bool> checkAscAuthentication(
         response['authenticated'] is! bool) {
       throw const AscAuthenticationException(AscAuthenticationFailure.response);
     }
+    final providerId = response['providerId'];
+    final publicProviderId = response['publicProviderId'];
+    if (providerId is! int? ||
+        (providerId != null && providerId <= 0) ||
+        publicProviderId is! String?) {
+      throw const AscAuthenticationException(AscAuthenticationFailure.response);
+    }
+    final trimmedPublicProviderId = publicProviderId?.trim();
+    if (trimmedPublicProviderId != null &&
+        RegExp(r'[\x00-\x1f\x7f-\x9f]').hasMatch(trimmedPublicProviderId)) {
+      throw const AscAuthenticationException(AscAuthenticationFailure.response);
+    }
     // asc also exits with code 0 when no valid session exists.
-    return response['authenticated'] as bool;
+    return AscAuthenticationStatus(
+      authenticated: response['authenticated'] as bool,
+      providerId: providerId,
+      publicProviderId: trimmedPublicProviderId == ''
+          ? null
+          : trimmedPublicProviderId,
+    );
   } on TimeoutException {
     throw const AscAuthenticationException(AscAuthenticationFailure.timeout);
   } on IOException {
