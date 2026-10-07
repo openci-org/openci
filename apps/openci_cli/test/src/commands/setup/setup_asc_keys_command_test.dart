@@ -117,6 +117,7 @@ void main() {
     startLogin = (_, _) async => _LoginProcess(Future.value(0));
     checkAuthentication = (_, _) async => const AscAuthenticationStatus(
       authenticated: true,
+      providerName: 'OpenCI株式会社',
       providerId: 123,
       publicProviderId: 'PUBLIC1234',
     );
@@ -215,6 +216,7 @@ void main() {
         t.setup.ascKeys.appleIdReceived,
         t.setup.ascKeys.authenticationVerified,
         t.setup.ascKeys.selectedProvider,
+        t.setup.ascKeys.providerName(name: 'OpenCI株式会社'),
         t.setup.ascKeys.providerId(id: 123),
         t.setup.ascKeys.publicProviderId(id: 'PUBLIC1234'),
         t.setup.ascKeys.keyCreationCancelled,
@@ -248,6 +250,7 @@ void main() {
         t.setup.ascKeys.appleIdReceived,
         t.setup.ascKeys.authenticationVerified,
         t.setup.ascKeys.selectedProvider,
+        t.setup.ascKeys.providerName(name: 'OpenCI株式会社'),
         t.setup.ascKeys.providerId(id: 123),
         t.setup.ascKeys.publicProviderId(id: 'PUBLIC1234'),
         t.setup.ascKeys.keyCreationCancelled,
@@ -464,6 +467,23 @@ void main() {
         ]);
       });
     }
+
+    test(
+      'a provider name alone cannot identify the key destination: $locale',
+      () async {
+        LocaleSettings.setLocaleSync(locale);
+        checkAuthentication = (_, _) async => const AscAuthenticationStatus(
+          authenticated: true,
+          providerName: 'OpenCI株式会社',
+        );
+
+        expect(await run(), 1);
+
+        expect(logger.errors, [t.setup.ascKeys.providerUnavailable]);
+        expect(steps, isNot(contains('confirm')));
+        expect(steps, isNot(contains('create')));
+      },
+    );
 
     test(
       'passes the confirmed session to creation and reports local success: $locale',

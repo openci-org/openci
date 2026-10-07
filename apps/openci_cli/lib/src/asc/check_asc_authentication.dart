@@ -72,21 +72,28 @@ Future<AscAuthenticationStatus> checkAscAuthentication(
         response['authenticated'] is! bool) {
       throw const AscAuthenticationException(AscAuthenticationFailure.response);
     }
+    final providerName = response['providerName'];
     final providerId = response['providerId'];
     final publicProviderId = response['publicProviderId'];
-    if (providerId is! int? ||
+    if (providerName is! String? ||
+        providerId is! int? ||
         (providerId != null && providerId <= 0) ||
         publicProviderId is! String?) {
       throw const AscAuthenticationException(AscAuthenticationFailure.response);
     }
+    final trimmedProviderName = providerName?.trim();
     final trimmedPublicProviderId = publicProviderId?.trim();
-    if (trimmedPublicProviderId != null &&
-        RegExp(r'[\x00-\x1f\x7f-\x9f]').hasMatch(trimmedPublicProviderId)) {
-      throw const AscAuthenticationException(AscAuthenticationFailure.response);
+    for (final value in [trimmedProviderName, trimmedPublicProviderId]) {
+      if (value != null && RegExp(r'[\x00-\x1f\x7f-\x9f]').hasMatch(value)) {
+        throw const AscAuthenticationException(
+          AscAuthenticationFailure.response,
+        );
+      }
     }
     // asc also exits with code 0 when no valid session exists.
     return AscAuthenticationStatus(
       authenticated: response['authenticated'] as bool,
+      providerName: trimmedProviderName == '' ? null : trimmedProviderName,
       providerId: providerId,
       publicProviderId: trimmedPublicProviderId == ''
           ? null

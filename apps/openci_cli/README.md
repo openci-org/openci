@@ -459,10 +459,12 @@ for an unauthenticated session. A false value stops setup with a sign-in message
 Execution failures, malformed responses, and a 30-second timeout produce
 localized errors. Raw status output is limited to 16 KiB and is not printed; a
 timed-out process is terminated. The authentication result retains the optional
-`providerId` and `publicProviderId` fields. Once authentication is confirmed,
-GenuineCI displays the returned IDs of the currently selected App Store Connect
-provider. If neither ID is available, setup stops. Other team IDs are not used as
-substitutes. This response describes the current provider, not a list of teams.
+`providerName`, `providerId`, and `publicProviderId` fields. Once authentication is
+confirmed, GenuineCI displays the returned name (when available) and IDs of the
+currently selected App Store Connect provider. If neither ID is available, setup
+stops. Other team IDs are not used as substitutes. This response describes the
+current provider, not a list of teams. The pinned asc 5.11.0 does not emit
+`providerName`, so its output continues to display IDs only.
 
 After displaying the provider, GenuineCI asks whether to create a **new** key
 named `GenuineCI` with `APP_MANAGER` access to all apps and save it to the

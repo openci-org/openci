@@ -359,6 +359,7 @@ class _Translations$setup$ascKeys$ja extends Translations$setup$ascKeys$en {
 	@override String get loginStartFailed => 'asc のログイン処理を起動できませんでした。キャッシュ内の asc ファイルに実行権限があることを確認して再試行してください。';
 	@override String get authenticationVerified => 'Apple の認証状態を確認しました。';
 	@override String get selectedProvider => '選択中の App Store Connect Provider:';
+	@override String providerName({required Object name}) => '  組織名: ${name}';
 	@override String providerId({required Object id}) => '  Provider ID: ${id}';
 	@override String publicProviderId({required Object id}) => '  Public Provider ID: ${id}';
 	@override String get providerUnavailable => '選択中の App Store Connect Provider を取得できませんでした。';
@@ -623,6 +624,7 @@ extension on TranslationsJa {
 			'setup.ascKeys.loginStartFailed' => 'asc のログイン処理を起動できませんでした。キャッシュ内の asc ファイルに実行権限があることを確認して再試行してください。',
 			'setup.ascKeys.authenticationVerified' => 'Apple の認証状態を確認しました。',
 			'setup.ascKeys.selectedProvider' => '選択中の App Store Connect Provider:',
+			'setup.ascKeys.providerName' => ({required Object name}) => '  組織名: ${name}',
 			'setup.ascKeys.providerId' => ({required Object id}) => '  Provider ID: ${id}',
 			'setup.ascKeys.publicProviderId' => ({required Object id}) => '  Public Provider ID: ${id}',
 			'setup.ascKeys.providerUnavailable' => '選択中の App Store Connect Provider を取得できませんでした。',

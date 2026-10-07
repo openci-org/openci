@@ -618,6 +618,9 @@ class Translations$setup$ascKeys$en {
 	/// en: 'Selected App Store Connect provider:'
 	String get selectedProvider => 'Selected App Store Connect provider:';
 
+	/// en: ' Organization: ${name}'
+	String providerName({required Object name}) => '  Organization: ${name}';
+
 	/// en: ' Provider ID: ${id}'
 	String providerId({required Object id}) => '  Provider ID: ${id}';
 
@@ -1060,6 +1063,7 @@ extension on Translations {
 			'setup.ascKeys.loginStartFailed' => 'Could not start asc login. Check that the cached asc file is executable and retry.',
 			'setup.ascKeys.authenticationVerified' => 'Apple authentication verified.',
 			'setup.ascKeys.selectedProvider' => 'Selected App Store Connect provider:',
+			'setup.ascKeys.providerName' => ({required Object name}) => '  Organization: ${name}',
 			'setup.ascKeys.providerId' => ({required Object id}) => '  Provider ID: ${id}',
 			'setup.ascKeys.publicProviderId' => ({required Object id}) => '  Public Provider ID: ${id}',
 			'setup.ascKeys.providerUnavailable' => 'Could not determine the selected App Store Connect provider.',

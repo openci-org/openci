@@ -178,6 +178,10 @@ class SetupAscKeysCommand extends Command<int> {
         return 1;
       }
       _logger.stdout(t.setup.ascKeys.selectedProvider);
+      final providerName = status.providerName;
+      if (providerName != null) {
+        _logger.stdout(t.setup.ascKeys.providerName(name: providerName));
+      }
       if (providerId != null) {
         _logger.stdout(t.setup.ascKeys.providerId(id: providerId));
       }

@@ -144,6 +144,7 @@
       "loginStartFailed": "asc のログイン処理を起動できませんでした。キャッシュ内の asc ファイルに実行権限があることを確認して再試行してください。",
       "authenticationVerified": "Apple の認証状態を確認しました。",
       "selectedProvider": "選択中の App Store Connect Provider:",
+      "providerName": "  組織名: ${name}",
       "providerId": "  Provider ID: ${id}",
       "publicProviderId": "  Public Provider ID: ${id}",
       "providerUnavailable": "選択中の App Store Connect Provider を取得できませんでした。",
