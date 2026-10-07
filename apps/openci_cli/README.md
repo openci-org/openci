@@ -433,8 +433,15 @@ cached file's SHA-256 again. It then runs `asc version` using the absolute cache
 path and requires exit code 0 and version 5.11.0. A checksum mismatch prevents
 execution; an execution failure, unexpected version, or 10-second timeout stops
 setup with an error. A timed-out process is terminated.
-Apple login, key issuance, and key storage remain unimplemented, so the command
-still exits with code 1 after verifying asc.
+After verification, it prompts for an Apple ID email address in an interactive
+terminal. Surrounding whitespace is trimmed; empty input or EOF stops setup
+with exit code 1, and Ctrl+C interrupts it with shell exit code 130. Input and
+prompt output (stderr) must both be attached to a terminal. The prompt leaves
+stdin open and does not change terminal modes, so asc can inherit the terminal
+in a later step.
+The entered Apple ID is not stored or sent anywhere. Apple login, key issuance,
+and key storage remain unimplemented, so the command still exits with code 1
+after accepting the Apple ID.
 Use `genuineci setup asc-keys --help` to view its help.
 
 ## Code generation

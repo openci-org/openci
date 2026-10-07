@@ -9,6 +9,7 @@ import '../../asc/find_cached_asc_executable.dart';
 import '../../asc/install_asc.dart';
 import '../../asc/verify_asc_executable.dart';
 import '../../i18n/i18n.dart';
+import 'read_apple_id.dart';
 
 class SetupAscKeysCommand extends Command<int> {
   @override
@@ -21,6 +22,7 @@ class SetupAscKeysCommand extends Command<int> {
   final Future<File?> Function() _findCachedExecutable;
   final Future<File> Function() _installExecutable;
   final Future<void> Function(File) _verifyExecutable;
+  final Future<String?> Function() _readAppleId;
 
   SetupAscKeysCommand({
     required Logger logger,
@@ -29,10 +31,13 @@ class SetupAscKeysCommand extends Command<int> {
     @visibleForTesting Future<File> Function() installExecutable = installAsc,
     @visibleForTesting
     Future<void> Function(File) verifyExecutable = verifyAscExecutable,
+    @visibleForTesting
+    Future<String?> Function() readAppleIdInput = readAppleId,
   }) : _logger = logger,
        _findCachedExecutable = findCachedExecutable,
        _installExecutable = installExecutable,
-       _verifyExecutable = verifyExecutable;
+       _verifyExecutable = verifyExecutable,
+       _readAppleId = readAppleIdInput;
 
   @override
   Future<int> run() async {
@@ -80,6 +85,21 @@ class SetupAscKeysCommand extends Command<int> {
       return 1;
     } on FileSystemException {
       _logger.stderr(t.setup.ascKeys.cacheFailed);
+      return 1;
+    }
+
+    try {
+      final appleId = await _readAppleId();
+      if (appleId == null) {
+        _logger.stderr(t.setup.ascKeys.appleIdRequired);
+        return 1;
+      }
+      _logger.stdout(t.setup.ascKeys.appleIdReceived);
+    } on AppleIdInputException catch (error) {
+      _logger.stderr(switch (error.failure) {
+        AppleIdInputFailure.notInteractive => t.setup.ascKeys.terminalRequired,
+        AppleIdInputFailure.read => t.setup.ascKeys.appleIdInputFailed,
+      });
       return 1;
     }
 

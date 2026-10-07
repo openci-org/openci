@@ -345,6 +345,11 @@ class _Translations$setup$ascKeys$ja extends Translations$setup$ascKeys$en {
 	@override String installing({required Object version}) => 'Apple Silicon Mac 用の asc ${version} をダウンロードしてインストールしています...';
 	@override String installed({required Object version, required Object path}) => 'asc ${version} をインストールしました: ${path}';
 	@override String versionVerified({required Object version}) => 'asc ${version} の動作を確認しました。';
+	@override String get appleIdPrompt => 'Apple ID（メールアドレス）: ';
+	@override String get appleIdReceived => 'Apple ID を受け付けました。';
+	@override String get appleIdRequired => 'Apple ID が入力されなかったため、セットアップを中止しました。';
+	@override String get terminalRequired => 'Apple ID の入力には対話可能な端末が必要です。端末で genuineci setup asc-keys を実行してください。';
+	@override String get appleIdInputFailed => 'Apple ID を読み取れませんでした。対話可能な端末で再試行してください。';
 	@override String get cachedChecksumFailed => 'キャッシュ内の asc ファイルの SHA-256 が期待値と一致しなかったため、実行しませんでした。キャッシュファイルを削除して再試行してください。';
 	@override String get executionFailed => 'asc version を正常に実行できませんでした。キャッシュ内の asc ファイルに実行権限があることを確認して再試行してください。';
 	@override String get versionTimedOut => 'asc version がタイムアウトしました。再試行してください。';
@@ -570,6 +575,11 @@ extension on TranslationsJa {
 			'setup.ascKeys.installing' => ({required Object version}) => 'Apple Silicon Mac 用の asc ${version} をダウンロードしてインストールしています...',
 			'setup.ascKeys.installed' => ({required Object version, required Object path}) => 'asc ${version} をインストールしました: ${path}',
 			'setup.ascKeys.versionVerified' => ({required Object version}) => 'asc ${version} の動作を確認しました。',
+			'setup.ascKeys.appleIdPrompt' => 'Apple ID（メールアドレス）: ',
+			'setup.ascKeys.appleIdReceived' => 'Apple ID を受け付けました。',
+			'setup.ascKeys.appleIdRequired' => 'Apple ID が入力されなかったため、セットアップを中止しました。',
+			'setup.ascKeys.terminalRequired' => 'Apple ID の入力には対話可能な端末が必要です。端末で genuineci setup asc-keys を実行してください。',
+			'setup.ascKeys.appleIdInputFailed' => 'Apple ID を読み取れませんでした。対話可能な端末で再試行してください。',
 			'setup.ascKeys.cachedChecksumFailed' => 'キャッシュ内の asc ファイルの SHA-256 が期待値と一致しなかったため、実行しませんでした。キャッシュファイルを削除して再試行してください。',
 			'setup.ascKeys.executionFailed' => 'asc version を正常に実行できませんでした。キャッシュ内の asc ファイルに実行権限があることを確認して再試行してください。',
 			'setup.ascKeys.versionTimedOut' => 'asc version がタイムアウトしました。再試行してください。',

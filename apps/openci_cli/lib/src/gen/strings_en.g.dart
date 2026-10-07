@@ -576,6 +576,21 @@ class Translations$setup$ascKeys$en {
 	/// en: 'Verified asc ${version}.'
 	String versionVerified({required Object version}) => 'Verified asc ${version}.';
 
+	/// en: 'Apple ID (email address): '
+	String get appleIdPrompt => 'Apple ID (email address): ';
+
+	/// en: 'Apple ID received.'
+	String get appleIdReceived => 'Apple ID received.';
+
+	/// en: 'No Apple ID was entered. Setup was stopped.'
+	String get appleIdRequired => 'No Apple ID was entered. Setup was stopped.';
+
+	/// en: 'Entering an Apple ID requires an interactive terminal. Run genuineci setup asc-keys in a terminal.'
+	String get terminalRequired => 'Entering an Apple ID requires an interactive terminal. Run genuineci setup asc-keys in a terminal.';
+
+	/// en: 'Could not read the Apple ID. Retry in an interactive terminal.'
+	String get appleIdInputFailed => 'Could not read the Apple ID. Retry in an interactive terminal.';
+
 	/// en: 'The cached asc file did not match the expected SHA-256. It was not run. Remove the cached file and retry the command.'
 	String get cachedChecksumFailed => 'The cached asc file did not match the expected SHA-256. It was not run. Remove the cached file and retry the command.';
 
@@ -929,6 +944,11 @@ extension on Translations {
 			'setup.ascKeys.installing' => ({required Object version}) => 'Downloading and installing asc ${version} for Apple Silicon Mac...',
 			'setup.ascKeys.installed' => ({required Object version, required Object path}) => 'Installed asc ${version}: ${path}',
 			'setup.ascKeys.versionVerified' => ({required Object version}) => 'Verified asc ${version}.',
+			'setup.ascKeys.appleIdPrompt' => 'Apple ID (email address): ',
+			'setup.ascKeys.appleIdReceived' => 'Apple ID received.',
+			'setup.ascKeys.appleIdRequired' => 'No Apple ID was entered. Setup was stopped.',
+			'setup.ascKeys.terminalRequired' => 'Entering an Apple ID requires an interactive terminal. Run genuineci setup asc-keys in a terminal.',
+			'setup.ascKeys.appleIdInputFailed' => 'Could not read the Apple ID. Retry in an interactive terminal.',
 			'setup.ascKeys.cachedChecksumFailed' => 'The cached asc file did not match the expected SHA-256. It was not run. Remove the cached file and retry the command.',
 			'setup.ascKeys.executionFailed' => 'Could not run asc version successfully. Check that the cached asc file is executable and retry.',
 			'setup.ascKeys.versionTimedOut' => 'asc version timed out. Retry the command.',

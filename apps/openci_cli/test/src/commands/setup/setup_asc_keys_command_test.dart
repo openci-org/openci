@@ -6,6 +6,7 @@ import 'package:genuineci_cli/genuineci_cli.dart';
 import 'package:genuineci_cli/src/asc/asc_release.dart';
 import 'package:genuineci_cli/src/asc/install_asc.dart';
 import 'package:genuineci_cli/src/asc/verify_asc_executable.dart';
+import 'package:genuineci_cli/src/commands/setup/read_apple_id.dart';
 import 'package:test/test.dart';
 
 class _RecordingLogger implements Logger {
@@ -28,9 +29,12 @@ void main() {
   late Future<File?> Function() findCachedExecutable;
   late Future<File> Function() installExecutable;
   late Future<void> Function(File) verifyExecutable;
+  late Future<String?> Function() readAppleId;
+  late List<String> steps;
   late List<File> verifiedFiles;
   late int lookups;
   late int installs;
+  late int reads;
 
   setUp(() {
     originalLocale = LocaleSettings.currentLocale;
@@ -39,9 +43,12 @@ void main() {
     findCachedExecutable = () async => null;
     installExecutable = () async => File('installed-asc');
     verifyExecutable = (_) async {};
+    readAppleId = () async => 'user@example.com';
+    steps = [];
     verifiedFiles = [];
     lookups = 0;
     installs = 0;
+    reads = 0;
   });
 
   tearDown(() {
@@ -54,16 +61,24 @@ void main() {
         SetupAscKeysCommand(
           logger: logger,
           findCachedExecutable: () {
+            steps.add('find');
             lookups++;
             return findCachedExecutable();
           },
           installExecutable: () {
+            steps.add('install');
             installs++;
             return installExecutable();
           },
           verifyExecutable: (file) {
+            steps.add('verify');
             verifiedFiles.add(file);
             return verifyExecutable(file);
+          },
+          readAppleIdInput: () {
+            steps.add('read');
+            reads++;
+            return readAppleId();
           },
         ),
       );
@@ -81,9 +96,11 @@ void main() {
       expect(lookups, 1);
       expect(installs, 0);
       expect(verifiedFiles, [file]);
+      expect(steps, ['find', 'verify', 'read']);
       expect(logger.output, [
         t.setup.ascKeys.cacheFound(version: ascVersion, path: file.path),
         t.setup.ascKeys.versionVerified(version: ascVersion),
+        t.setup.ascKeys.appleIdReceived,
       ]);
       expect(logger.errors, [t.setup.ascKeys.notImplemented]);
     });
@@ -98,10 +115,12 @@ void main() {
         expect(lookups, 1);
         expect(installs, 1);
         expect(verifiedFiles.map((file) => file.path), ['installed-asc']);
+        expect(steps, ['find', 'install', 'verify', 'read']);
         expect(logger.output, [
           t.setup.ascKeys.installing(version: ascVersion),
           t.setup.ascKeys.installed(version: ascVersion, path: 'installed-asc'),
           t.setup.ascKeys.versionVerified(version: ascVersion),
+          t.setup.ascKeys.appleIdReceived,
         ]);
         expect(logger.errors, [t.setup.ascKeys.notImplemented]);
       },
@@ -117,6 +136,7 @@ void main() {
               throw AscVerificationException(failure);
 
           expect(await run(), 1);
+          expect(reads, 0);
 
           expect(installs, cached ? 0 : 1);
           expect(verifiedFiles.map((file) => file.path), [
@@ -148,6 +168,36 @@ void main() {
         });
       }
     }
+
+    test('stops when no Apple ID is entered: $locale', () async {
+      LocaleSettings.setLocaleSync(locale);
+      readAppleId = () async => null;
+
+      expect(await run(), 1);
+
+      expect(reads, 1);
+      expect(logger.output, isNot(contains(t.setup.ascKeys.appleIdReceived)));
+      expect(logger.errors, [t.setup.ascKeys.appleIdRequired]);
+    });
+
+    for (final failure in AppleIdInputFailure.values) {
+      test('reports $failure during Apple ID input: $locale', () async {
+        LocaleSettings.setLocaleSync(locale);
+        readAppleId = () async => throw AppleIdInputException(failure);
+
+        expect(await run(), 1);
+
+        expect(reads, 1);
+        expect(logger.output, isNot(contains(t.setup.ascKeys.appleIdReceived)));
+        expect(logger.errors, [
+          switch (failure) {
+            AppleIdInputFailure.notInteractive =>
+              t.setup.ascKeys.terminalRequired,
+            AppleIdInputFailure.read => t.setup.ascKeys.appleIdInputFailed,
+          },
+        ]);
+      });
+    }
   }
 
   test('reports an unsupported platform', () async {
@@ -158,6 +208,7 @@ void main() {
     expect(logger.errors, [t.setup.ascKeys.unsupportedPlatform]);
     expect(installs, 0);
     expect(verifiedFiles, isEmpty);
+    expect(reads, 0);
   });
 
   test('reports filesystem failures', () async {
@@ -169,6 +220,7 @@ void main() {
     expect(logger.errors, [t.setup.ascKeys.cacheFailed]);
     expect(installs, 0);
     expect(verifiedFiles, isEmpty);
+    expect(reads, 0);
   });
 
   for (final failure in AscInstallFailure.values) {
@@ -178,6 +230,7 @@ void main() {
       expect(await run(), 1);
       expect(installs, 1);
       expect(verifiedFiles, isEmpty);
+      expect(reads, 0);
       expect(logger.output, [t.setup.ascKeys.installing(version: ascVersion)]);
       expect(logger.errors, [
         switch (failure) {
@@ -197,6 +250,7 @@ void main() {
     expect(logger.output, [t.setup.ascKeys.installing(version: ascVersion)]);
     expect(logger.errors, [t.setup.ascKeys.cacheFailed]);
     expect(verifiedFiles, isEmpty);
+    expect(reads, 0);
   });
 
   test('reports cache read failures during verification', () async {
@@ -209,6 +263,7 @@ void main() {
     ]);
     expect(logger.errors, [t.setup.ascKeys.cacheFailed]);
     expect(installs, 0);
+    expect(reads, 0);
   });
 
   test('rejects positional arguments before inspecting the cache', () async {
@@ -217,6 +272,7 @@ void main() {
     expect(lookups, 0);
     expect(installs, 0);
     expect(verifiedFiles, isEmpty);
+    expect(reads, 0);
     expect(logger.output, isEmpty);
     expect(logger.errors, isEmpty);
   });
@@ -227,6 +283,7 @@ void main() {
     expect(lookups, 0);
     expect(installs, 0);
     expect(verifiedFiles, isEmpty);
+    expect(reads, 0);
     expect(logger.errors, isEmpty);
   });
 }
