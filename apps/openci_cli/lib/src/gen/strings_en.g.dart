@@ -573,6 +573,21 @@ class Translations$setup$ascKeys$en {
 	/// en: 'Installed asc ${version}: ${path}'
 	String installed({required Object version, required Object path}) => 'Installed asc ${version}: ${path}';
 
+	/// en: 'Verified asc ${version}.'
+	String versionVerified({required Object version}) => 'Verified asc ${version}.';
+
+	/// en: 'The cached asc file did not match the expected SHA-256. It was not run. Remove the cached file and retry the command.'
+	String get cachedChecksumFailed => 'The cached asc file did not match the expected SHA-256. It was not run. Remove the cached file and retry the command.';
+
+	/// en: 'Could not run asc version successfully. Check that the cached asc file is executable and retry.'
+	String get executionFailed => 'Could not run asc version successfully. Check that the cached asc file is executable and retry.';
+
+	/// en: 'asc version timed out. Retry the command.'
+	String get versionTimedOut => 'asc version timed out. Retry the command.';
+
+	/// en: 'asc version did not report the required version (${version}). Remove the cached file and retry the command.'
+	String versionMismatch({required Object version}) => 'asc version did not report the required version (${version}). Remove the cached file and retry the command.';
+
 	/// en: 'setup asc-keys currently supports only Apple Silicon Macs (macOS arm64).'
 	String get unsupportedPlatform => 'setup asc-keys currently supports only Apple Silicon Macs (macOS arm64).';
 
@@ -913,6 +928,11 @@ extension on Translations {
 			'setup.ascKeys.cacheFound' => ({required Object version, required Object path}) => 'Found a cached file for asc ${version}: ${path}',
 			'setup.ascKeys.installing' => ({required Object version}) => 'Downloading and installing asc ${version} for Apple Silicon Mac...',
 			'setup.ascKeys.installed' => ({required Object version, required Object path}) => 'Installed asc ${version}: ${path}',
+			'setup.ascKeys.versionVerified' => ({required Object version}) => 'Verified asc ${version}.',
+			'setup.ascKeys.cachedChecksumFailed' => 'The cached asc file did not match the expected SHA-256. It was not run. Remove the cached file and retry the command.',
+			'setup.ascKeys.executionFailed' => 'Could not run asc version successfully. Check that the cached asc file is executable and retry.',
+			'setup.ascKeys.versionTimedOut' => 'asc version timed out. Retry the command.',
+			'setup.ascKeys.versionMismatch' => ({required Object version}) => 'asc version did not report the required version (${version}). Remove the cached file and retry the command.',
 			'setup.ascKeys.unsupportedPlatform' => 'setup asc-keys currently supports only Apple Silicon Macs (macOS arm64).',
 			'setup.ascKeys.cacheFailed' => 'Could not access the asc cache. Check its permissions and available disk space.',
 			'setup.ascKeys.downloadFailed' => 'Could not download asc. Check your network connection and retry.',
