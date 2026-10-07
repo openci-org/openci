@@ -5,12 +5,19 @@ import 'package:path/path.dart' as p;
 
 import 'asc_api_key.dart';
 
-const ascApiKeySecretName = 'ASC_API_KEY';
+const ascKeyIdSecretName = 'OPENCI_GENERATED_ASC_KEY_ID';
+const ascIssuerIdSecretName = 'OPENCI_GENERATED_ASC_ISSUER_ID';
+const ascP8SecretName = 'OPENCI_GENERATED_P8_BASE64';
+const ascApiKeySecretNames = [
+  ascKeyIdSecretName,
+  ascIssuerIdSecretName,
+  ascP8SecretName,
+];
 
 /// Loads a previously issued key without contacting Apple or issuing another.
 Future<AscApiKey> readSavedAscApiKey(Directory directory) async {
   final metadata = File(p.join(directory.absolute.path, 'key.json'));
-  final json = jsonDecode(await _readKeyFile(metadata));
+  final json = jsonDecode(utf8.decode(await _readKeyFile(metadata)));
   if (json is! Map<String, dynamic>) {
     throw const FormatException('Invalid key metadata.');
   }
@@ -35,13 +42,14 @@ Future<AscApiKey> readSavedAscApiKey(Directory directory) async {
     issuerId: issuerId.trim(),
     privateKeyFile: keyFile,
   );
-  await encodeAscApiKeySecret(key);
+  await encodeAscApiKeySecrets(key);
   return key;
 }
 
-/// Encodes the three credentials in fastlane's API key JSON format.
-Future<String> encodeAscApiKeySecret(AscApiKey key) async {
-  final pem = await _readKeyFile(key.privateKeyFile);
+/// Prepares two text secrets and a Base64-encoded private-key file secret.
+Future<Map<String, String>> encodeAscApiKeySecrets(AscApiKey key) async {
+  final bytes = await _readKeyFile(key.privateKeyFile);
+  final pem = utf8.decode(bytes);
   final match = RegExp(
     r'^-----BEGIN PRIVATE KEY-----\r?\n([A-Za-z0-9+/=\r\n]+)\r?\n-----END PRIVATE KEY-----\s*$',
   ).firstMatch(pem);
@@ -49,14 +57,14 @@ Future<String> encodeAscApiKeySecret(AscApiKey key) async {
       base64Decode(match[1]!.replaceAll(RegExp(r'\s'), '')).isEmpty) {
     throw const FormatException('Invalid private key file.');
   }
-  return jsonEncode({
-    'key_id': key.keyId,
-    'issuer_id': key.issuerId,
-    'key': pem,
-  });
+  return {
+    ascKeyIdSecretName: key.keyId,
+    ascIssuerIdSecretName: key.issuerId,
+    ascP8SecretName: base64Encode(bytes),
+  };
 }
 
-Future<String> _readKeyFile(File file) async {
+Future<List<int>> _readKeyFile(File file) async {
   if (await FileSystemEntity.type(file.path, followLinks: false) !=
           FileSystemEntityType.file ||
       await file.length() > 16 * 1024) {
@@ -69,5 +77,5 @@ Future<String> _readKeyFile(File file) async {
     }
     bytes.addAll(chunk);
   }
-  return utf8.decode(bytes);
+  return bytes;
 }

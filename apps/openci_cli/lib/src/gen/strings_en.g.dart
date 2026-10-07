@@ -567,8 +567,8 @@ class Translations$setup$ascKeys$en {
 	/// en: '--key-directory requires a non-empty directory path.'
 	String get keyDirectoryRequired => '--key-directory requires a non-empty directory path.';
 
-	/// en: 'OpenCI save destination: ${server} Team ID: ${team} Secret: ${name}'
-	String saveDestination({required Object server, required Object team, required Object name}) => 'OpenCI save destination: ${server}\n  Team ID: ${team}\n  Secret: ${name}';
+	/// en: 'OpenCI save destination: ${server} Team ID: ${team} Secrets: ${names}'
+	String saveDestination({required Object server, required Object team, required Object names}) => 'OpenCI save destination: ${server}\n  Team ID: ${team}\n  Secrets:\n    ${names}';
 
 	/// en: 'The existing ${name} secret will be replaced if you continue.'
 	String secretWillReplace({required Object name}) => 'The existing ${name} secret will be replaced if you continue.';
@@ -633,8 +633,8 @@ class Translations$setup$ascKeys$en {
 	/// en: 'Save this key to the OpenCI destination shown above? [y/N] '
 	String get confirmKeySave => 'Save this key to the OpenCI destination shown above? [y/N] ';
 
-	/// en: 'Key saving cancelled. The OpenCI secret was not changed.'
-	String get keySaveCancelled => 'Key saving cancelled. The OpenCI secret was not changed.';
+	/// en: 'Key saving cancelled. The OpenCI secrets were not changed.'
+	String get keySaveCancelled => 'Key saving cancelled. The OpenCI secrets were not changed.';
 
 	/// en: 'Key creation cancelled. No new key was requested.'
 	String get keyCreationCancelled => 'Key creation cancelled. No new key was requested.';
@@ -660,11 +660,11 @@ class Translations$setup$ascKeys$en {
 	/// en: ' Private key: ${path}'
 	String privateKeySaved({required Object path}) => '  Private key: ${path}';
 
-	/// en: 'App Store Connect API key setup is complete. The key is saved to OpenCI, and the local files are retained.'
-	String get setupComplete => 'App Store Connect API key setup is complete. The key is saved to OpenCI, and the local files are retained.';
+	/// en: 'App Store Connect API key setup is complete. All three secrets are saved to OpenCI, and the local files are retained.'
+	String get setupComplete => 'App Store Connect API key setup is complete. All three secrets are saved to OpenCI, and the local files are retained.';
 
-	/// en: 'The local key files are retained. Retry saving without issuing another key: ${command}'
-	String retrySave({required Object command}) => 'The local key files are retained. Retry saving without issuing another key:\n  ${command}';
+	/// en: 'Some secrets may already have been saved. The local key files are retained. Retry saving all three using the same key, without issuing another: ${command}'
+	String retrySave({required Object command}) => 'Some secrets may already have been saved. The local key files are retained. Retry saving all three using the same key, without issuing another:\n  ${command}';
 
 	/// en: 'Could not start asc key creation. No new key was requested.'
 	String get keyCreationStartFailed => 'Could not start asc key creation. No new key was requested.';
@@ -1043,7 +1043,7 @@ extension on Translations {
 			'setup.ascKeys.noArguments' => 'setup asc-keys does not accept positional arguments.',
 			'setup.ascKeys.keyDirectoryHelp' => 'Save a previously issued key from a directory containing key.json and its .p8 file; does not issue a new key.',
 			'setup.ascKeys.keyDirectoryRequired' => '--key-directory requires a non-empty directory path.',
-			'setup.ascKeys.saveDestination' => ({required Object server, required Object team, required Object name}) => 'OpenCI save destination: ${server}\n  Team ID: ${team}\n  Secret: ${name}',
+			'setup.ascKeys.saveDestination' => ({required Object server, required Object team, required Object names}) => 'OpenCI save destination: ${server}\n  Team ID: ${team}\n  Secrets:\n    ${names}',
 			'setup.ascKeys.secretWillReplace' => ({required Object name}) => 'The existing ${name} secret will be replaced if you continue.',
 			'setup.ascKeys.savePreflightFailed' => 'Could not verify access to the OpenCI team\'s secrets. Check the server and connection before issuing a key.',
 			'setup.ascKeys.saveProfileChanged' => 'The OpenCI profile or credentials changed during setup. The key was not saved. Retry with the intended profile and team.',
@@ -1065,7 +1065,7 @@ extension on Translations {
 			'setup.ascKeys.providerUnavailable' => 'Could not determine the selected App Store Connect provider.',
 			'setup.ascKeys.confirmKeyCreation' => 'Create a new GenuineCI key with APP_MANAGER access to all apps for this provider and save it to the OpenCI destination shown above? [y/N] ',
 			'setup.ascKeys.confirmKeySave' => 'Save this key to the OpenCI destination shown above? [y/N] ',
-			'setup.ascKeys.keySaveCancelled' => 'Key saving cancelled. The OpenCI secret was not changed.',
+			'setup.ascKeys.keySaveCancelled' => 'Key saving cancelled. The OpenCI secrets were not changed.',
 			'setup.ascKeys.keyCreationCancelled' => 'Key creation cancelled. No new key was requested.',
 			'setup.ascKeys.keyConfirmationFailed' => 'Could not read confirmation. Run genuineci setup asc-keys in an interactive terminal.',
 			'setup.ascKeys.keyDirectoryFailed' => 'Could not prepare the key directory. Check permissions and available disk space. No new key was requested.',
@@ -1074,8 +1074,8 @@ extension on Translations {
 			'setup.ascKeys.keyId' => ({required Object id}) => '  Key ID: ${id}',
 			'setup.ascKeys.issuerId' => ({required Object id}) => '  Issuer ID: ${id}',
 			'setup.ascKeys.privateKeySaved' => ({required Object path}) => '  Private key: ${path}',
-			'setup.ascKeys.setupComplete' => 'App Store Connect API key setup is complete. The key is saved to OpenCI, and the local files are retained.',
-			'setup.ascKeys.retrySave' => ({required Object command}) => 'The local key files are retained. Retry saving without issuing another key:\n  ${command}',
+			'setup.ascKeys.setupComplete' => 'App Store Connect API key setup is complete. All three secrets are saved to OpenCI, and the local files are retained.',
+			'setup.ascKeys.retrySave' => ({required Object command}) => 'Some secrets may already have been saved. The local key files are retained. Retry saving all three using the same key, without issuing another:\n  ${command}',
 			'setup.ascKeys.keyCreationStartFailed' => 'Could not start asc key creation. No new key was requested.',
 			'setup.ascKeys.keyCreationFailed' => 'asc did not complete API key creation successfully.',
 			'setup.ascKeys.keyCreationInvalid' => 'Could not verify the key creation result or the saved private key.',

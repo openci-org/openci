@@ -342,7 +342,7 @@ class _Translations$setup$ascKeys$ja extends Translations$setup$ascKeys$en {
 	@override String get noArguments => 'setup asc-keys は位置引数を受け付けません。';
 	@override String get keyDirectoryHelp => 'key.json と .p8 があるディレクトリから発行済みのキーを保存します。新しいキーは発行しません。';
 	@override String get keyDirectoryRequired => '--key-directory には空でないディレクトリのパスを指定してください。';
-	@override String saveDestination({required Object server, required Object team, required Object name}) => 'OpenCI の保存先: ${server}\n  Team ID: ${team}\n  Secret: ${name}';
+	@override String saveDestination({required Object server, required Object team, required Object names}) => 'OpenCI の保存先: ${server}\n  Team ID: ${team}\n  Secrets:\n    ${names}';
 	@override String secretWillReplace({required Object name}) => '続行すると、既存の ${name} シークレットを置き換えます。';
 	@override String get savePreflightFailed => 'OpenCI チームのシークレットへのアクセスを確認できませんでした。キーを発行する前にサーバーと接続を確認してください。';
 	@override String get saveProfileChanged => 'セットアップ中に OpenCI のプロファイルまたは認証情報が変更されました。キーは保存していません。保存先のプロファイルとチームを確認して再試行してください。';
@@ -373,8 +373,8 @@ class _Translations$setup$ascKeys$ja extends Translations$setup$ascKeys$en {
 	@override String keyId({required Object id}) => '  Key ID: ${id}';
 	@override String issuerId({required Object id}) => '  Issuer ID: ${id}';
 	@override String privateKeySaved({required Object path}) => '  秘密鍵: ${path}';
-	@override String get setupComplete => 'App Store Connect API キーのセットアップが完了しました。OpenCI に保存し、ローカルの鍵ファイルも保持しています。';
-	@override String retrySave({required Object command}) => 'ローカルの鍵ファイルは保持しています。新しいキーを発行せずに保存を再試行できます:\n  ${command}';
+	@override String get setupComplete => 'App Store Connect API キーのセットアップが完了しました。3つのシークレットをすべて OpenCI に保存し、ローカルの鍵ファイルも保持しています。';
+	@override String retrySave({required Object command}) => '一部のシークレットは保存されている可能性があります。ローカルの鍵ファイルは保持しています。新しいキーを発行せず、同じキーで3つすべての保存を再試行できます:\n  ${command}';
 	@override String get keyCreationStartFailed => 'asc のキー発行処理を起動できませんでした。新しいキーの発行はリクエストしていません。';
 	@override String get keyCreationFailed => 'asc の API キー発行処理が正常に完了しませんでした。';
 	@override String get keyCreationInvalid => 'キーの発行結果または保存された秘密鍵を確認できませんでした。';
@@ -606,7 +606,7 @@ extension on TranslationsJa {
 			'setup.ascKeys.noArguments' => 'setup asc-keys は位置引数を受け付けません。',
 			'setup.ascKeys.keyDirectoryHelp' => 'key.json と .p8 があるディレクトリから発行済みのキーを保存します。新しいキーは発行しません。',
 			'setup.ascKeys.keyDirectoryRequired' => '--key-directory には空でないディレクトリのパスを指定してください。',
-			'setup.ascKeys.saveDestination' => ({required Object server, required Object team, required Object name}) => 'OpenCI の保存先: ${server}\n  Team ID: ${team}\n  Secret: ${name}',
+			'setup.ascKeys.saveDestination' => ({required Object server, required Object team, required Object names}) => 'OpenCI の保存先: ${server}\n  Team ID: ${team}\n  Secrets:\n    ${names}',
 			'setup.ascKeys.secretWillReplace' => ({required Object name}) => '続行すると、既存の ${name} シークレットを置き換えます。',
 			'setup.ascKeys.savePreflightFailed' => 'OpenCI チームのシークレットへのアクセスを確認できませんでした。キーを発行する前にサーバーと接続を確認してください。',
 			'setup.ascKeys.saveProfileChanged' => 'セットアップ中に OpenCI のプロファイルまたは認証情報が変更されました。キーは保存していません。保存先のプロファイルとチームを確認して再試行してください。',
@@ -637,8 +637,8 @@ extension on TranslationsJa {
 			'setup.ascKeys.keyId' => ({required Object id}) => '  Key ID: ${id}',
 			'setup.ascKeys.issuerId' => ({required Object id}) => '  Issuer ID: ${id}',
 			'setup.ascKeys.privateKeySaved' => ({required Object path}) => '  秘密鍵: ${path}',
-			'setup.ascKeys.setupComplete' => 'App Store Connect API キーのセットアップが完了しました。OpenCI に保存し、ローカルの鍵ファイルも保持しています。',
-			'setup.ascKeys.retrySave' => ({required Object command}) => 'ローカルの鍵ファイルは保持しています。新しいキーを発行せずに保存を再試行できます:\n  ${command}',
+			'setup.ascKeys.setupComplete' => 'App Store Connect API キーのセットアップが完了しました。3つのシークレットをすべて OpenCI に保存し、ローカルの鍵ファイルも保持しています。',
+			'setup.ascKeys.retrySave' => ({required Object command}) => '一部のシークレットは保存されている可能性があります。ローカルの鍵ファイルは保持しています。新しいキーを発行せず、同じキーで3つすべての保存を再試行できます:\n  ${command}',
 			'setup.ascKeys.keyCreationStartFailed' => 'asc のキー発行処理を起動できませんでした。新しいキーの発行はリクエストしていません。',
 			'setup.ascKeys.keyCreationFailed' => 'asc の API キー発行処理が正常に完了しませんでした。',
 			'setup.ascKeys.keyCreationInvalid' => 'キーの発行結果または保存された秘密鍵を確認できませんでした。',

@@ -30,21 +30,18 @@ void main() {
   });
   tearDown(() => directory.delete(recursive: true));
 
-  test(
-    'reads a saved key and encodes one fastlane-compatible secret',
-    () async {
-      final key = await readSavedAscApiKey(directory);
-      expect(key.keyId, 'KEY123');
-      expect(key.issuerId, 'issuer');
-      expect(jsonDecode(await encodeAscApiKeySecret(key)), {
-        'key_id': 'KEY123',
-        'issuer_id': 'issuer',
-        'key': pem,
-      });
-      expect(await privateKey.readAsString(), pem);
-      expect(await metadata.exists(), isTrue);
-    },
-  );
+  test('reads a saved key and prepares three standard secret values', () async {
+    final key = await readSavedAscApiKey(directory);
+    expect(key.keyId, 'KEY123');
+    expect(key.issuerId, 'issuer');
+    expect(await encodeAscApiKeySecrets(key), {
+      'OPENCI_GENERATED_ASC_KEY_ID': 'KEY123',
+      'OPENCI_GENERATED_ASC_ISSUER_ID': 'issuer',
+      'OPENCI_GENERATED_P8_BASE64': base64Encode(utf8.encode(pem)),
+    });
+    expect(await privateKey.readAsString(), pem);
+    expect(await metadata.exists(), isTrue);
+  });
 
   for (final changes in <Map<String, Object?>>[
     {'keyId': '../outside'},
@@ -97,7 +94,19 @@ void main() {
     final crlf = pem.replaceAll('\n', '\r\n');
     await privateKey.writeAsString(crlf);
     final key = await readSavedAscApiKey(directory);
-    expect((jsonDecode(await encodeAscApiKeySecret(key)) as Map)['key'], crlf);
+    final secrets = await encodeAscApiKeySecrets(key);
+    expect(
+      base64Decode(secrets[ascP8SecretName]!),
+      await privateKey.readAsBytes(),
+    );
+  });
+
+  test('encodes the original file bytes, including a UTF-8 BOM', () async {
+    final bytes = [0xef, 0xbb, 0xbf, ...utf8.encode(pem)];
+    await privateKey.writeAsBytes(bytes);
+    final key = await readSavedAscApiKey(directory);
+    final secrets = await encodeAscApiKeySecrets(key);
+    expect(base64Decode(secrets[ascP8SecretName]!), bytes);
   });
 
   for (final name in ['key.json', 'AuthKey_KEY123.p8']) {
@@ -118,7 +127,7 @@ void main() {
         issuerId: 'issuer',
         privateKeyFile: metadata,
       );
-      await expectLater(encodeAscApiKeySecret(key), throwsFormatException);
+      await expectLater(encodeAscApiKeySecrets(key), throwsFormatException);
     },
   );
 }

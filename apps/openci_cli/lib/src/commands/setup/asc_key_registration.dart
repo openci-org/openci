@@ -64,13 +64,13 @@ class AscKeyRegistration {
         t.setup.ascKeys.saveDestination(
           server: _escapeControls(profile.serverUrl),
           team: _escapeControls(profile.teamId),
-          name: ascApiKeySecretName,
+          names: ascApiKeySecretNames.join('\n    '),
         ),
       );
-      if (names.contains(ascApiKeySecretName)) {
-        _logger.stdout(
-          t.setup.ascKeys.secretWillReplace(name: ascApiKeySecretName),
-        );
+      for (final name in ascApiKeySecretNames) {
+        if (names.contains(name)) {
+          _logger.stdout(t.setup.ascKeys.secretWillReplace(name: name));
+        }
       }
       return target;
     } on SecretNamesHttpException catch (error) {
@@ -89,9 +89,9 @@ class AscKeyRegistration {
   }
 
   Future<int> save(AscKeySaveTarget target, AscApiKey key) async {
-    final String value;
+    final Map<String, String> secrets;
     try {
-      value = await encodeAscApiKeySecret(key);
+      secrets = await encodeAscApiKeySecrets(key);
     } catch (_) {
       _logger.stderr(t.setup.ascKeys.savedKeyInvalid);
       return 1;
@@ -116,7 +116,15 @@ class AscKeyRegistration {
         _logger.stderr(t.setup.ascKeys.saveProfileChanged);
         return 1;
       }
-      return await _registration.save(profile, ascApiKeySecretName, value);
+      for (final secret in secrets.entries) {
+        final code = await _registration.save(
+          profile,
+          secret.key,
+          secret.value,
+        );
+        if (code != 0) return code;
+      }
+      return 0;
     } catch (_) {
       _logger.stderr(t.register.secret.saveFailed);
       return 1;

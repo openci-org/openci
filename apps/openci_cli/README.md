@@ -423,10 +423,11 @@ later calls without `dir` continue to use the configured working directory.
 `apps`. Both can also be passed directly to methods accepting a `String` path.
 
 `genuineci setup asc-keys` creates a key on Apple Silicon Macs (macOS arm64)
-and saves it as the active OpenCI team's `ASC_API_KEY` secret. First run
+and saves its credentials as three secrets for the active OpenCI team. First run
 `genuineci login` (or `genuineci login --local`) and select the intended team.
 Setup checks access to that team's secrets before contacting Apple, displays
-the server and team ID, and indicates if `ASC_API_KEY` will be replaced.
+the server, team ID, and secret names, and indicates which existing secrets
+will be replaced.
 
 It reuses a regular asc 5.11.0 file in GenuineCI's cache at
 `<cache>/tools/asc/5.11.0/macOS_arm64/asc`. If absent, it downloads the pinned
@@ -481,13 +482,20 @@ Issuer ID, provider IDs, role, and private-key path with mode `0600`. Private ke
 contents and raw asc output are never printed. asc handles any reauthentication
 through `/dev/tty` and applies its own network timeouts.
 
-The CLI sends one `ASC_API_KEY` secret through the existing team Secret API.
-Its value is [fastlane API key JSON](https://docs.fastlane.tools/app-store-connect-api/#using-fastlane-api-key-json-file):
-`key_id`, `issuer_id`, and `key` (the P8 contents). The server encrypts the whole
-value in its existing secrets table. Setup refreshes OpenCI authentication
-before saving and stops if the active profile or credentials changed while
-Apple authentication was in progress. Credentials and private-key contents are
-not logged. Success means the server accepted the save; local files are retained.
+The CLI saves three separate secrets through the existing team Secret API:
+
+| Secret name | Value |
+| --- | --- |
+| `OPENCI_GENERATED_ASC_KEY_ID` | The Key ID as text |
+| `OPENCI_GENERATED_ASC_ISSUER_ID` | The Issuer ID as text |
+| `OPENCI_GENERATED_P8_BASE64` | The complete P8 file encoded as Base64, matching `register secret-file` |
+
+The server encrypts each value in its existing secrets table. Setup refreshes
+OpenCI authentication before saving and stops if the active profile or
+credentials changed while Apple authentication was in progress. Secret values
+are not logged. Success means the server accepted all three saves; local files
+are retained. Saves are sequential, so a failure or interruption can leave a
+partial update. Retry with the same local key to overwrite all three values.
 
 Creation is never automatically retried. On failure or interruption, downloaded
 files are retained; check the displayed directory and App Store Connect before
@@ -499,8 +507,9 @@ genuineci setup asc-keys --key-directory '/path/to/asc-api-keys/key-xxxxxx'
 
 This reads `key.json` and its matching `.p8`, displays the destination and key
 IDs, and asks for confirmation. It does not install or run asc or contact Apple.
-An existing `ASC_API_KEY` is replaced only after confirmation. Save failures
-exit with code 1 and print this retry command. Provider switching remains a
+Existing generated secrets are replaced only after confirmation. Save failures
+exit with code 1 and print this retry command. Each retry saves all three
+values, including any that were already saved. Provider switching remains a
 future step.
 Use `genuineci setup asc-keys --help` to view its help.
 

@@ -89,6 +89,7 @@ void main() {
       token,
       'BEGIN PRIVATE KEY',
       'dGVzdA==',
+      base64Encode(utf8.encode(pem)),
       'private diagnostic',
       'private-refresh-token',
       'refreshed-id-token',
@@ -121,7 +122,7 @@ void main() {
 
   for (final locale in [AppLocale.en, AppLocale.ja]) {
     test(
-      'preflights and saves all credentials in one request: $locale',
+      'preflights and saves three separate secret values: $locale',
       () async {
         LocaleSettings.setLocaleSync(locale);
         final target = (await prepare())!;
@@ -131,47 +132,58 @@ void main() {
           t.setup.ascKeys.saveDestination(
             server: profile.serverUrl,
             team: profile.teamId,
-            name: ascApiKeySecretName,
+            names: ascApiKeySecretNames.join('\n    '),
           ),
         ]);
         expect(await save(target), 0);
-        expect(requests.map((r) => r.method), ['GET', 'POST']);
-        final post = requests.last;
-        expect(
-          post.url.toString(),
-          'https://ci.example.com/proxy/teams/selected-team/secrets',
-        );
-        expect(post.headers['authorization'], 'Bearer $token');
-        final body = jsonDecode(utf8.decode(post.bodyBytes)) as Map;
-        expect(body['name'], ascApiKeySecretName);
-        expect(jsonDecode(body['value'] as String), {
-          'key_id': 'KEY123',
-          'issuer_id': 'issuer',
-          'key': pem,
+        expect(requests.map((r) => r.method), ['GET', 'POST', 'POST', 'POST']);
+        final saved = <String, String>{};
+        for (final post in requests.skip(1)) {
+          expect(
+            post.url.toString(),
+            'https://ci.example.com/proxy/teams/selected-team/secrets',
+          );
+          expect(post.headers['authorization'], 'Bearer $token');
+          final body = jsonDecode(utf8.decode(post.bodyBytes)) as Map;
+          expect(body.keys, unorderedEquals(['name', 'value']));
+          saved[body['name'] as String] = body['value'] as String;
+        }
+        expect(saved, {
+          'OPENCI_GENERATED_ASC_KEY_ID': 'KEY123',
+          'OPENCI_GENERATED_ASC_ISSUER_ID': 'issuer',
+          'OPENCI_GENERATED_P8_BASE64': base64Encode(utf8.encode(pem)),
         });
+        expect(
+          base64Decode(saved[ascP8SecretName]!),
+          await key.privateKeyFile.readAsBytes(),
+        );
         expect(logger.errors, isEmpty);
         expect(await key.privateKeyFile.readAsString(), pem);
       },
     );
   }
 
-  test(
-    'displays replacement before confirmation if the secret exists',
-    () async {
+  for (final existing in [
+    for (final name in ascApiKeySecretNames) [name],
+    ascApiKeySecretNames,
+    ['UNRELATED_SECRET'],
+  ]) {
+    test('displays replacement only for existing secrets: $existing', () async {
       handler = (_) async => response({
         'success': true,
         'secrets': [
-          {'name': ascApiKeySecretName},
+          for (final name in existing) {'name': name},
         ],
       });
       expect(await prepare(), isNotNull);
-      expect(
-        logger.output.last,
-        t.setup.ascKeys.secretWillReplace(name: ascApiKeySecretName),
-      );
+      expect(logger.output.skip(1), [
+        for (final name in ascApiKeySecretNames)
+          if (existing.contains(name))
+            t.setup.ascKeys.secretWillReplace(name: name),
+      ]);
       expect(requests.single.method, 'GET');
-    },
-  );
+    });
+  }
 
   test('encodes team path segments and supports the local profile', () async {
     await store.saveProfile(
@@ -283,39 +295,72 @@ void main() {
       await save(AscKeySaveTarget(profileName: 'remote', profile: expired)),
       0,
     );
-    expect(requests, hasLength(2));
+    expect(requests, hasLength(4));
     expect((await store.getActiveProfile())!.token, 'refreshed-id-token');
   });
 
   for (final status in [401, 403, 500]) {
-    test(
-      'retains local files and never retries a failed save ($status)',
-      () async {
+    for (final failureAt in [1, 2, 3]) {
+      test('stops after save $failureAt fails with $status', () async {
         final target = (await prepare())!;
-        handler = (_) async =>
-            response({'error': 'private diagnostic'}, status);
+        var posts = 0;
+        handler = (_) async => ++posts == failureAt
+            ? response({'error': 'private diagnostic'}, status)
+            : response({'success': true});
         expect(await save(target), 1);
-        expect(requests.where((r) => r.method == 'POST'), hasLength(1));
+        expect(requests.where((r) => r.method == 'POST'), hasLength(failureAt));
         expect(await key.privateKeyFile.readAsString(), pem);
         expect(logger.errors, [
           status == 401 || status == 403
               ? t.register.secret.loginRequired
               : t.register.secret.requestFailed(status: status),
         ]);
-      },
-    );
+      });
+    }
   }
 
-  test(
-    'handles a lost save response without retrying or logging the key',
-    () async {
-      final target = (await prepare())!;
-      handler = (_) async => throw const SocketException('private diagnostic');
-      expect(await save(target), 1);
-      expect(requests.where((r) => r.method == 'POST'), hasLength(1));
-      expect(logger.errors, [t.register.secret.saveFailed]);
-    },
-  );
+  for (final failureAt in [1, 2, 3]) {
+    for (final responseLost in [false, true]) {
+      test(
+        'retry restores all three after save $failureAt fails (response lost: $responseLost)',
+        () async {
+          final target = (await prepare())!;
+          final saved = {
+            for (final name in ascApiKeySecretNames) name: 'old-$name',
+          };
+          var posts = 0;
+          var shouldFail = true;
+          handler = (request) async {
+            final body = jsonDecode(utf8.decode(request.bodyBytes)) as Map;
+            final fails = ++posts == failureAt && shouldFail;
+            if (fails && !responseLost) {
+              return response({'error': 'private diagnostic'}, 500);
+            }
+            saved[body['name'] as String] = body['value'] as String;
+            if (fails) throw const SocketException('private diagnostic');
+            return response({'success': true});
+          };
+          expect(await save(target), 1);
+          expect(posts, failureAt);
+          expect(logger.errors, [
+            responseLost
+                ? t.register.secret.saveFailed
+                : t.register.secret.requestFailed(status: 500),
+          ]);
+          expect(await key.privateKeyFile.readAsString(), pem);
+          shouldFail = false;
+          requests.clear();
+          expect(await save(target), 0);
+          expect(requests, hasLength(3));
+          expect(saved, {
+            'OPENCI_GENERATED_ASC_KEY_ID': 'KEY123',
+            'OPENCI_GENERATED_ASC_ISSUER_ID': 'issuer',
+            'OPENCI_GENERATED_P8_BASE64': base64Encode(utf8.encode(pem)),
+          });
+        },
+      );
+    }
+  }
 
   test('does not post an invalid private key', () async {
     final target = (await prepare())!;
