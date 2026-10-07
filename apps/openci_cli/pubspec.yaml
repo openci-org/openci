@@ -1,6 +1,6 @@
 name: genuineci_cli
-description: Command-line tools for OpenCI authentication, team switching, secrets, workflow paths, and local development.
-version: 0.4.0
+description: Command-line tools for OpenCI authentication, teams, secrets, App Store Connect setup, workflow paths, and local development.
+version: 0.5.1
 repository: https://github.com/openci-org/openci/tree/develop/apps/openci_cli
 issue_tracker: https://github.com/openci-org/openci/issues
 
@@ -43,3 +43,6 @@ executables:
 # Firebase client configuration is public and is not an authentication token.
 false_secrets:
   - /lib/src/auth/firebase_auth_client.dart
+  # These PEM fixtures contain only the bytes "test", not real private keys.
+  - /test/src/asc/asc_api_key_secret_test.dart
+  - /test/src/commands/setup/asc_key_registration_test.dart

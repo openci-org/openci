@@ -1,3 +1,20 @@
+## 0.5.1
+
+- Display the selected App Store Connect provider's organization name when asc
+  includes it in the authentication response, alongside its provider IDs.
+
+## 0.5.0
+
+- Add `genuineci setup asc-keys` for Apple Silicon Macs, including a verified,
+  pinned asc installation, interactive Apple login and two-factor authentication,
+  provider verification, and App Manager API key creation.
+- Save generated credentials as three encrypted OpenCI team secrets:
+  `OPENCI_GENERATED_ASC_KEY_ID`, `OPENCI_GENERATED_ASC_ISSUER_ID`, and
+  `OPENCI_GENERATED_P8_BASE64`, matching the existing text and Base64 file formats.
+- Add `--key-directory` to retry saving an existing local key without issuing
+  another key. Confirm the destination before saving and retain local key files
+  when a save fails or is interrupted.
+
 ## 0.4.0
 
 - **Breaking:** `genuineci sync` now generates both secrets and workspace paths.

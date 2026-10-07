@@ -144,6 +144,7 @@
       "loginStartFailed": "Could not start asc login. Check that the cached asc file is executable and retry.",
       "authenticationVerified": "Apple authentication verified.",
       "selectedProvider": "Selected App Store Connect provider:",
+      "providerName": "  Organization: ${name}",
       "providerId": "  Provider ID: ${id}",
       "publicProviderId": "  Public Provider ID: ${id}",
       "providerUnavailable": "Could not determine the selected App Store Connect provider.",

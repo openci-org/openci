@@ -97,6 +97,7 @@ void main() {
           'authenticated': authenticated,
           'appleId': appleId,
           'passwordStored': true,
+          'providerName': 'OpenCI Inc.',
           'providerId': 123,
           'publicProviderId': 'PUBLIC1234',
         }),
@@ -104,11 +105,30 @@ void main() {
 
       final status = await check();
       expect(status.authenticated, authenticated);
+      expect(status.providerName, 'OpenCI Inc.');
       expect(status.providerId, 123);
       expect(status.publicProviderId, 'PUBLIC1234');
 
       expect(process.stdin.closed, isTrue);
       expect(process.signals, isEmpty);
+    });
+  }
+
+  for (final (fields, providerName) in <(Map<String, Object?>, String?)>[
+    ({}, null),
+    ({'providerName': null}, null),
+    ({'providerName': ''}, null),
+    ({'providerName': '   '}, null),
+    ({'providerName': '  OpenCI株式会社  '}, 'OpenCI株式会社'),
+    ({'providerName': 'Masahiro Aoki'}, 'Masahiro Aoki'),
+    ({'name': 'Account name', 'teamName': 'Developer team'}, null),
+  ]) {
+    test('reads the optional provider name: ${jsonEncode(fields)}', () async {
+      process = _StatusProcess(
+        output: jsonEncode({'authenticated': true, ...fields}),
+      );
+
+      expect((await check()).providerName, providerName);
     });
   }
 
@@ -140,6 +160,12 @@ void main() {
   }
 
   for (final fields in <Map<String, Object>>[
+    {'providerName': 123},
+    {'providerName': true},
+    {'providerName': <String>[]},
+    {'providerName': 'OpenCI\u001b[31m'},
+    {'providerName': 'OpenCI\nInc.'},
+    {'providerName': 'OpenCI\u0085Inc.'},
     {'providerId': '123'},
     {'providerId': 123.0},
     {'providerId': 0},
