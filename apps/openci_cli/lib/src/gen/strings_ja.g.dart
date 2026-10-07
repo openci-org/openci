@@ -342,9 +342,13 @@ class _Translations$setup$ascKeys$ja extends Translations$setup$ascKeys$en {
 	@override String get noArguments => 'setup asc-keys は位置引数を受け付けません。';
 	@override String get notImplemented => 'App Store Connect API キーのセットアップはまだ実装されていません。';
 	@override String cacheFound({required Object version, required Object path}) => 'asc ${version} 用のキャッシュファイルが見つかりました: ${path}';
-	@override String cacheMissing({required Object version}) => 'asc ${version} 用のキャッシュファイルが見つかりません。自動インストールはまだ実装されていません。';
+	@override String installing({required Object version}) => 'Apple Silicon Mac 用の asc ${version} をダウンロードしてインストールしています...';
+	@override String installed({required Object version, required Object path}) => 'asc ${version} をインストールしました: ${path}';
 	@override String get unsupportedPlatform => 'setup asc-keys は現在 Apple Silicon Mac（macOS arm64）のみに対応しています。';
-	@override String get cacheCheckFailed => 'asc のキャッシュを確認できませんでした。キャッシュディレクトリの権限を確認してください。';
+	@override String get cacheFailed => 'asc のキャッシュにアクセスできませんでした。権限とディスクの空き容量を確認してください。';
+	@override String get downloadFailed => 'asc をダウンロードできませんでした。ネットワーク接続を確認して再試行してください。';
+	@override String get checksumFailed => 'ダウンロードした asc の SHA-256 が一致しないため、インストールしませんでした。再試行してください。';
+	@override String get permissionFailed => 'asc に実行権限を設定できなかったため、インストールしませんでした。キャッシュディレクトリの権限を確認してください。';
 }
 
 // Path: switchCommand.team
@@ -558,9 +562,13 @@ extension on TranslationsJa {
 			'setup.ascKeys.noArguments' => 'setup asc-keys は位置引数を受け付けません。',
 			'setup.ascKeys.notImplemented' => 'App Store Connect API キーのセットアップはまだ実装されていません。',
 			'setup.ascKeys.cacheFound' => ({required Object version, required Object path}) => 'asc ${version} 用のキャッシュファイルが見つかりました: ${path}',
-			'setup.ascKeys.cacheMissing' => ({required Object version}) => 'asc ${version} 用のキャッシュファイルが見つかりません。自動インストールはまだ実装されていません。',
+			'setup.ascKeys.installing' => ({required Object version}) => 'Apple Silicon Mac 用の asc ${version} をダウンロードしてインストールしています...',
+			'setup.ascKeys.installed' => ({required Object version, required Object path}) => 'asc ${version} をインストールしました: ${path}',
 			'setup.ascKeys.unsupportedPlatform' => 'setup asc-keys は現在 Apple Silicon Mac（macOS arm64）のみに対応しています。',
-			'setup.ascKeys.cacheCheckFailed' => 'asc のキャッシュを確認できませんでした。キャッシュディレクトリの権限を確認してください。',
+			'setup.ascKeys.cacheFailed' => 'asc のキャッシュにアクセスできませんでした。権限とディスクの空き容量を確認してください。',
+			'setup.ascKeys.downloadFailed' => 'asc をダウンロードできませんでした。ネットワーク接続を確認して再試行してください。',
+			'setup.ascKeys.checksumFailed' => 'ダウンロードした asc の SHA-256 が一致しないため、インストールしませんでした。再試行してください。',
+			'setup.ascKeys.permissionFailed' => 'asc に実行権限を設定できなかったため、インストールしませんでした。キャッシュディレクトリの権限を確認してください。',
 			'switchCommand.description' => 'OpenCIで使用するチームを切り替えます。',
 			'switchCommand.team.description' => '現在のプロファイルで使用するチームを対話式で切り替えます。',
 			'switchCommand.team.noArguments' => 'switch teamに位置引数は指定できません。',

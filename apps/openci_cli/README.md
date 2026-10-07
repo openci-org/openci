@@ -423,11 +423,14 @@ later calls without `dir` continue to use the configured working directory.
 `apps`. Both can also be passed directly to methods accepting a `String` path.
 
 `genuineci setup asc-keys` currently supports only Apple Silicon Macs
-(macOS arm64). It checks for an asc 5.11.0 file in GenuineCI's cache at
-`<cache>/tools/asc/5.11.0/macOS_arm64/asc`. It reports whether a regular file is
-present; it does not validate the contents or execute asc.
-Downloading asc and setting up App Store Connect API keys are not implemented
-yet, so the command still exits with code 1 even when a cached file is found.
+(macOS arm64). It reuses a regular asc 5.11.0 file in GenuineCI's cache at
+`<cache>/tools/asc/5.11.0/macOS_arm64/asc`. If absent, it downloads the pinned
+[official release](https://github.com/rorkai/App-Store-Connect-CLI/releases/tag/5.11.0),
+verifies its SHA-256, sets owner-only executable permissions, and moves it into
+the cache alongside its MIT license. Failed downloads are cleaned up.
+Existing cached files are still checked only for presence. Running asc and
+setting up App Store Connect API keys remain unimplemented, so the command
+still exits with code 1 after locating or installing asc.
 Use `genuineci setup asc-keys --help` to view its help.
 
 ## Code generation

@@ -567,14 +567,26 @@ class Translations$setup$ascKeys$en {
 	/// en: 'Found a cached file for asc ${version}: ${path}'
 	String cacheFound({required Object version, required Object path}) => 'Found a cached file for asc ${version}: ${path}';
 
-	/// en: 'No cached file was found for asc ${version}. Automatic installation is not implemented yet.'
-	String cacheMissing({required Object version}) => 'No cached file was found for asc ${version}. Automatic installation is not implemented yet.';
+	/// en: 'Downloading and installing asc ${version} for Apple Silicon Mac...'
+	String installing({required Object version}) => 'Downloading and installing asc ${version} for Apple Silicon Mac...';
+
+	/// en: 'Installed asc ${version}: ${path}'
+	String installed({required Object version, required Object path}) => 'Installed asc ${version}: ${path}';
 
 	/// en: 'setup asc-keys currently supports only Apple Silicon Macs (macOS arm64).'
 	String get unsupportedPlatform => 'setup asc-keys currently supports only Apple Silicon Macs (macOS arm64).';
 
-	/// en: 'Could not check the asc cache. Check the cache directory permissions.'
-	String get cacheCheckFailed => 'Could not check the asc cache. Check the cache directory permissions.';
+	/// en: 'Could not access the asc cache. Check its permissions and available disk space.'
+	String get cacheFailed => 'Could not access the asc cache. Check its permissions and available disk space.';
+
+	/// en: 'Could not download asc. Check your network connection and retry.'
+	String get downloadFailed => 'Could not download asc. Check your network connection and retry.';
+
+	/// en: 'The downloaded asc file did not match the expected SHA-256. It was not installed. Retry the command.'
+	String get checksumFailed => 'The downloaded asc file did not match the expected SHA-256. It was not installed. Retry the command.';
+
+	/// en: 'Could not set the asc executable permissions. It was not installed. Check the cache directory permissions.'
+	String get permissionFailed => 'Could not set the asc executable permissions. It was not installed. Check the cache directory permissions.';
 }
 
 // Path: switchCommand.team
@@ -899,9 +911,13 @@ extension on Translations {
 			'setup.ascKeys.noArguments' => 'setup asc-keys does not accept positional arguments.',
 			'setup.ascKeys.notImplemented' => 'App Store Connect API key setup is not implemented yet.',
 			'setup.ascKeys.cacheFound' => ({required Object version, required Object path}) => 'Found a cached file for asc ${version}: ${path}',
-			'setup.ascKeys.cacheMissing' => ({required Object version}) => 'No cached file was found for asc ${version}. Automatic installation is not implemented yet.',
+			'setup.ascKeys.installing' => ({required Object version}) => 'Downloading and installing asc ${version} for Apple Silicon Mac...',
+			'setup.ascKeys.installed' => ({required Object version, required Object path}) => 'Installed asc ${version}: ${path}',
 			'setup.ascKeys.unsupportedPlatform' => 'setup asc-keys currently supports only Apple Silicon Macs (macOS arm64).',
-			'setup.ascKeys.cacheCheckFailed' => 'Could not check the asc cache. Check the cache directory permissions.',
+			'setup.ascKeys.cacheFailed' => 'Could not access the asc cache. Check its permissions and available disk space.',
+			'setup.ascKeys.downloadFailed' => 'Could not download asc. Check your network connection and retry.',
+			'setup.ascKeys.checksumFailed' => 'The downloaded asc file did not match the expected SHA-256. It was not installed. Retry the command.',
+			'setup.ascKeys.permissionFailed' => 'Could not set the asc executable permissions. It was not installed. Check the cache directory permissions.',
 			'switchCommand.description' => 'Switch the active team in OpenCI.',
 			'switchCommand.team.description' => 'Interactively switch the team used by the active profile.',
 			'switchCommand.team.noArguments' => 'switch team does not accept positional arguments.',

@@ -127,9 +127,13 @@
       "noArguments": "setup asc-keys does not accept positional arguments.",
       "notImplemented": "App Store Connect API key setup is not implemented yet.",
       "cacheFound": "Found a cached file for asc ${version}: ${path}",
-      "cacheMissing": "No cached file was found for asc ${version}. Automatic installation is not implemented yet.",
+      "installing": "Downloading and installing asc ${version} for Apple Silicon Mac...",
+      "installed": "Installed asc ${version}: ${path}",
       "unsupportedPlatform": "setup asc-keys currently supports only Apple Silicon Macs (macOS arm64).",
-      "cacheCheckFailed": "Could not check the asc cache. Check the cache directory permissions."
+      "cacheFailed": "Could not access the asc cache. Check its permissions and available disk space.",
+      "downloadFailed": "Could not download asc. Check your network connection and retry.",
+      "checksumFailed": "The downloaded asc file did not match the expected SHA-256. It was not installed. Retry the command.",
+      "permissionFailed": "Could not set the asc executable permissions. It was not installed. Check the cache directory permissions."
     }
   },
   "switchCommand": {

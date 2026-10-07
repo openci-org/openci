@@ -4,6 +4,7 @@ import 'package:args/command_runner.dart';
 import 'package:cli_util/cli_logging.dart';
 import 'package:genuineci_cli/genuineci_cli.dart';
 import 'package:genuineci_cli/src/asc/find_cached_asc_executable.dart';
+import 'package:genuineci_cli/src/asc/install_asc.dart';
 import 'package:test/test.dart';
 
 class _RecordingLogger implements Logger {
@@ -24,14 +25,18 @@ void main() {
   late AppLocale originalLocale;
   late _RecordingLogger logger;
   late Future<File?> Function() findCachedExecutable;
+  late Future<File> Function() installExecutable;
   late int lookups;
+  late int installs;
 
   setUp(() {
     originalLocale = LocaleSettings.currentLocale;
     LocaleSettings.setLocaleSync(AppLocale.en);
     logger = _RecordingLogger();
     findCachedExecutable = () async => null;
+    installExecutable = () async => File('installed-asc');
     lookups = 0;
+    installs = 0;
   });
 
   tearDown(() {
@@ -47,6 +52,10 @@ void main() {
             lookups++;
             return findCachedExecutable();
           },
+          installExecutable: () {
+            installs++;
+            return installExecutable();
+          },
         ),
       );
     return runner.run(['asc-keys', ...arguments]);
@@ -61,6 +70,7 @@ void main() {
       expect(await run(), 1);
 
       expect(lookups, 1);
+      expect(installs, 0);
       expect(logger.output, [
         t.setup.ascKeys.cacheFound(version: ascVersion, path: file.path),
       ]);
@@ -68,17 +78,19 @@ void main() {
     });
 
     test(
-      'reports a missing file without claiming installation: $locale',
+      'installs a missing file but does not claim successful key setup: $locale',
       () async {
         LocaleSettings.setLocaleSync(locale);
 
         expect(await run(), 1);
 
         expect(lookups, 1);
-        expect(logger.output, isEmpty);
-        expect(logger.errors, [
-          t.setup.ascKeys.cacheMissing(version: ascVersion),
+        expect(installs, 1);
+        expect(logger.output, [
+          t.setup.ascKeys.installing(version: ascVersion),
+          t.setup.ascKeys.installed(version: ascVersion, path: 'installed-asc'),
         ]);
+        expect(logger.errors, [t.setup.ascKeys.notImplemented]);
       },
     );
   }
@@ -89,6 +101,7 @@ void main() {
     expect(await run(), 1);
     expect(logger.output, isEmpty);
     expect(logger.errors, [t.setup.ascKeys.unsupportedPlatform]);
+    expect(installs, 0);
   });
 
   test('reports filesystem failures', () async {
@@ -97,13 +110,41 @@ void main() {
 
     expect(await run(), 1);
     expect(logger.output, isEmpty);
-    expect(logger.errors, [t.setup.ascKeys.cacheCheckFailed]);
+    expect(logger.errors, [t.setup.ascKeys.cacheFailed]);
+    expect(installs, 0);
+  });
+
+  for (final failure in AscInstallFailure.values) {
+    test('reports $failure without claiming installation', () async {
+      installExecutable = () async => throw AscInstallException(failure);
+
+      expect(await run(), 1);
+      expect(installs, 1);
+      expect(logger.output, [t.setup.ascKeys.installing(version: ascVersion)]);
+      expect(logger.errors, [
+        switch (failure) {
+          AscInstallFailure.download => t.setup.ascKeys.downloadFailed,
+          AscInstallFailure.checksum => t.setup.ascKeys.checksumFailed,
+          AscInstallFailure.permission => t.setup.ascKeys.permissionFailed,
+        },
+      ]);
+    });
+  }
+
+  test('reports cache write failures during installation', () async {
+    installExecutable = () async =>
+        throw const FileSystemException('disk full');
+
+    expect(await run(), 1);
+    expect(logger.output, [t.setup.ascKeys.installing(version: ascVersion)]);
+    expect(logger.errors, [t.setup.ascKeys.cacheFailed]);
   });
 
   test('rejects positional arguments before inspecting the cache', () async {
     await expectLater(run(['unexpected']), throwsA(isA<UsageException>()));
 
     expect(lookups, 0);
+    expect(installs, 0);
     expect(logger.output, isEmpty);
     expect(logger.errors, isEmpty);
   });
@@ -112,6 +153,7 @@ void main() {
     expect(await run(['--help']), isNull);
 
     expect(lookups, 0);
+    expect(installs, 0);
     expect(logger.errors, isEmpty);
   });
 }
