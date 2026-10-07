@@ -127,9 +127,13 @@
       "noArguments": "setup asc-keys は位置引数を受け付けません。",
       "notImplemented": "App Store Connect API キーのセットアップはまだ実装されていません。",
       "cacheFound": "asc ${version} 用のキャッシュファイルが見つかりました: ${path}",
-      "cacheMissing": "asc ${version} 用のキャッシュファイルが見つかりません。自動インストールはまだ実装されていません。",
+      "installing": "Apple Silicon Mac 用の asc ${version} をダウンロードしてインストールしています...",
+      "installed": "asc ${version} をインストールしました: ${path}",
       "unsupportedPlatform": "setup asc-keys は現在 Apple Silicon Mac（macOS arm64）のみに対応しています。",
-      "cacheCheckFailed": "asc のキャッシュを確認できませんでした。キャッシュディレクトリの権限を確認してください。"
+      "cacheFailed": "asc のキャッシュにアクセスできませんでした。権限とディスクの空き容量を確認してください。",
+      "downloadFailed": "asc をダウンロードできませんでした。ネットワーク接続を確認して再試行してください。",
+      "checksumFailed": "ダウンロードした asc の SHA-256 が一致しないため、インストールしませんでした。再試行してください。",
+      "permissionFailed": "asc に実行権限を設定できなかったため、インストールしませんでした。キャッシュディレクトリの権限を確認してください。"
     }
   },
   "switchCommand": {
