@@ -167,7 +167,8 @@ If the active profile or its credentials change during selection, the CLI
 refuses to overwrite them and asks you to run `genuineci switch team` again.
 
 Subsequent `genuineci list secrets`, `genuineci register secret`,
-`genuineci register secretFile`, and `genuineci sync --secrets` commands use the newly
+`genuineci register secretFile`, `genuineci delete secret SECRET_NAME`, and
+`genuineci sync --secrets` commands use the newly
 selected team. Existing `openci/generated/secrets.g.dart` files are updated by running
 `genuineci sync --secrets` in the workflow project.
 
@@ -201,6 +202,18 @@ Names are printed one per line, sorted by name, without secret values. If the
 team has no secrets, the command prints a message and exits successfully. It
 works from any directory, supports redirected output, and does not generate
 workflow files. Control characters in names are displayed as escaped text.
+
+Delete a secret by name from the active profile's team:
+
+```sh
+genuineci delete secret SECRET_NAME
+```
+
+The command deletes the named secret immediately, without a confirmation prompt,
+and works in scripts. It returns exit code 0 on success, 1 if the secret is not
+found or the request fails, and 64 for invalid arguments. Secret values are never
+fetched or displayed. After deletion, run `genuineci sync --secrets` from your
+workflow project to update its generated secret definitions.
 
 Register a secret for the active profile's team:
 

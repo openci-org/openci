@@ -43,6 +43,7 @@ class TranslationsJa extends Translations with BaseTranslations<AppLocale, Trans
 	@override late final _Translations$login$ja login = _Translations$login$ja._(_root);
 	@override late final _Translations$status$ja status = _Translations$status$ja._(_root);
 	@override late final _Translations$list$ja list = _Translations$list$ja._(_root);
+	@override late final _Translations$delete$ja delete = _Translations$delete$ja._(_root);
 	@override late final _Translations$register$ja register = _Translations$register$ja._(_root);
 	@override late final _Translations$setup$ja setup = _Translations$setup$ja._(_root);
 	@override late final _Translations$switchCommand$ja switchCommand = _Translations$switchCommand$ja._(_root);
@@ -154,6 +155,17 @@ class _Translations$list$ja extends Translations$list$en {
 	@override String get description => 'OpenCIのリソースを一覧表示します。';
 	@override late final _Translations$list$teams$ja teams = _Translations$list$teams$ja._(_root);
 	@override late final _Translations$list$secrets$ja secrets = _Translations$list$secrets$ja._(_root);
+}
+
+// Path: delete
+class _Translations$delete$ja extends Translations$delete$en {
+	_Translations$delete$ja._(TranslationsJa root) : this._root = root, super.internal(root);
+
+	final TranslationsJa _root; // ignore: unused_field
+
+	// Translations
+	@override String get description => 'OpenCIのリソースを削除します。';
+	@override late final _Translations$delete$secret$ja secret = _Translations$delete$secret$ja._(_root);
 }
 
 // Path: register
@@ -290,6 +302,23 @@ class _Translations$list$secrets$ja extends Translations$list$secrets$en {
 	@override String requestFailed({required Object status}) => 'シークレット名を取得できませんでした（HTTP ${status}）。';
 	@override String get fetchFailed => 'シークレット名を取得できませんでした。サーバーの接続状態とレスポンスを確認してください。';
 	@override String get empty => '現在のチームにはシークレットが登録されていません。';
+}
+
+// Path: delete.secret
+class _Translations$delete$secret$ja extends Translations$delete$secret$en {
+	_Translations$delete$secret$ja._(TranslationsJa root) : this._root = root, super.internal(root);
+
+	final TranslationsJa _root; // ignore: unused_field
+
+	// Translations
+	@override String get description => '現在のチームのシークレットを名前で指定して削除します。';
+	@override String get nameRequired => '空でないシークレット名を1つ指定してください: genuineci delete secret SECRET_NAME。';
+	@override String get invalidName => 'URLのパスとして解釈されるため、シークレット名に . と .. は指定できません。';
+	@override String get loginRequired => 'genuineci login（ローカルならgenuineci login --local）を実行してからシークレットを削除してください。';
+	@override String notFound({required Object teamId, required Object name}) => 'チーム${teamId}にシークレット${name}が見つかりませんでした。';
+	@override String requestFailed({required Object status}) => 'シークレットを削除できませんでした（HTTP ${status}）。';
+	@override String get deleteFailed => 'シークレットを削除できませんでした。サーバーの接続状態を確認してください。';
+	@override String deleted({required Object teamId, required Object name}) => 'チーム${teamId}からシークレット${name}を削除しました。';
 }
 
 // Path: register.secret
@@ -580,6 +609,15 @@ extension on TranslationsJa {
 			'list.secrets.requestFailed' => ({required Object status}) => 'シークレット名を取得できませんでした（HTTP ${status}）。',
 			'list.secrets.fetchFailed' => 'シークレット名を取得できませんでした。サーバーの接続状態とレスポンスを確認してください。',
 			'list.secrets.empty' => '現在のチームにはシークレットが登録されていません。',
+			'delete.description' => 'OpenCIのリソースを削除します。',
+			'delete.secret.description' => '現在のチームのシークレットを名前で指定して削除します。',
+			'delete.secret.nameRequired' => '空でないシークレット名を1つ指定してください: genuineci delete secret SECRET_NAME。',
+			'delete.secret.invalidName' => 'URLのパスとして解釈されるため、シークレット名に . と .. は指定できません。',
+			'delete.secret.loginRequired' => 'genuineci login（ローカルならgenuineci login --local）を実行してからシークレットを削除してください。',
+			'delete.secret.notFound' => ({required Object teamId, required Object name}) => 'チーム${teamId}にシークレット${name}が見つかりませんでした。',
+			'delete.secret.requestFailed' => ({required Object status}) => 'シークレットを削除できませんでした（HTTP ${status}）。',
+			'delete.secret.deleteFailed' => 'シークレットを削除できませんでした。サーバーの接続状態を確認してください。',
+			'delete.secret.deleted' => ({required Object teamId, required Object name}) => 'チーム${teamId}からシークレット${name}を削除しました。',
 			'register.description' => 'OpenCIにリソースを登録します。',
 			'register.secret.description' => '現在のチームのシークレットを登録・更新します。名前と値を順に入力します。値は入力中は非表示で、Enterで確定すると******と表示します。',
 			'register.secret.noArguments' => 'register secretに位置引数は指定できません。名前と値は対話入力で指定してください。',
