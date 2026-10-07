@@ -594,6 +594,21 @@ class Translations$setup$ascKeys$en {
 	/// en: 'Could not start asc login. Check that the cached asc file is executable and retry.'
 	String get loginStartFailed => 'Could not start asc login. Check that the cached asc file is executable and retry.';
 
+	/// en: 'Apple authentication verified.'
+	String get authenticationVerified => 'Apple authentication verified.';
+
+	/// en: 'Apple login could not be confirmed. Run genuineci setup asc-keys to sign in again.'
+	String get notAuthenticated => 'Apple login could not be confirmed. Run genuineci setup asc-keys to sign in again.';
+
+	/// en: 'Could not check Apple authentication with asc. Retry setup.'
+	String get authStatusFailed => 'Could not check Apple authentication with asc. Retry setup.';
+
+	/// en: 'Checking Apple authentication timed out. Retry setup.'
+	String get authStatusTimedOut => 'Checking Apple authentication timed out. Retry setup.';
+
+	/// en: 'asc returned an unexpected authentication status. Retry setup.'
+	String get authStatusInvalid => 'asc returned an unexpected authentication status. Retry setup.';
+
 	/// en: 'The cached asc file did not match the expected SHA-256. It was not run. Remove the cached file and retry the command.'
 	String get cachedChecksumFailed => 'The cached asc file did not match the expected SHA-256. It was not run. Remove the cached file and retry the command.';
 
@@ -953,6 +968,11 @@ extension on Translations {
 			'setup.ascKeys.terminalRequired' => 'Entering an Apple ID requires an interactive terminal. Run genuineci setup asc-keys in a terminal.',
 			'setup.ascKeys.appleIdInputFailed' => 'Could not read the Apple ID. Retry in an interactive terminal.',
 			'setup.ascKeys.loginStartFailed' => 'Could not start asc login. Check that the cached asc file is executable and retry.',
+			'setup.ascKeys.authenticationVerified' => 'Apple authentication verified.',
+			'setup.ascKeys.notAuthenticated' => 'Apple login could not be confirmed. Run genuineci setup asc-keys to sign in again.',
+			'setup.ascKeys.authStatusFailed' => 'Could not check Apple authentication with asc. Retry setup.',
+			'setup.ascKeys.authStatusTimedOut' => 'Checking Apple authentication timed out. Retry setup.',
+			'setup.ascKeys.authStatusInvalid' => 'asc returned an unexpected authentication status. Retry setup.',
 			'setup.ascKeys.cachedChecksumFailed' => 'The cached asc file did not match the expected SHA-256. It was not run. Remove the cached file and retry the command.',
 			'setup.ascKeys.executionFailed' => 'Could not run asc version successfully. Check that the cached asc file is executable and retry.',
 			'setup.ascKeys.versionTimedOut' => 'asc version timed out. Retry the command.',
