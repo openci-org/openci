@@ -561,8 +561,20 @@ class Translations$setup$ascKeys$en {
 	/// en: 'setup asc-keys does not accept positional arguments.'
 	String get noArguments => 'setup asc-keys does not accept positional arguments.';
 
-	/// en: 'genuineci setup asc-keys is not implemented yet.'
-	String get notImplemented => 'genuineci setup asc-keys is not implemented yet.';
+	/// en: 'App Store Connect API key setup is not implemented yet.'
+	String get notImplemented => 'App Store Connect API key setup is not implemented yet.';
+
+	/// en: 'Found a cached file for asc ${version}: ${path}'
+	String cacheFound({required Object version, required Object path}) => 'Found a cached file for asc ${version}: ${path}';
+
+	/// en: 'No cached file was found for asc ${version}. Automatic installation is not implemented yet.'
+	String cacheMissing({required Object version}) => 'No cached file was found for asc ${version}. Automatic installation is not implemented yet.';
+
+	/// en: 'setup asc-keys currently supports only Apple Silicon Macs (macOS arm64).'
+	String get unsupportedPlatform => 'setup asc-keys currently supports only Apple Silicon Macs (macOS arm64).';
+
+	/// en: 'Could not check the asc cache. Check the cache directory permissions.'
+	String get cacheCheckFailed => 'Could not check the asc cache. Check the cache directory permissions.';
 }
 
 // Path: switchCommand.team
@@ -885,7 +897,11 @@ extension on Translations {
 			'setup.description' => 'Set up integrations for OpenCI.',
 			'setup.ascKeys.description' => 'Set up App Store Connect API keys (not implemented yet).',
 			'setup.ascKeys.noArguments' => 'setup asc-keys does not accept positional arguments.',
-			'setup.ascKeys.notImplemented' => 'genuineci setup asc-keys is not implemented yet.',
+			'setup.ascKeys.notImplemented' => 'App Store Connect API key setup is not implemented yet.',
+			'setup.ascKeys.cacheFound' => ({required Object version, required Object path}) => 'Found a cached file for asc ${version}: ${path}',
+			'setup.ascKeys.cacheMissing' => ({required Object version}) => 'No cached file was found for asc ${version}. Automatic installation is not implemented yet.',
+			'setup.ascKeys.unsupportedPlatform' => 'setup asc-keys currently supports only Apple Silicon Macs (macOS arm64).',
+			'setup.ascKeys.cacheCheckFailed' => 'Could not check the asc cache. Check the cache directory permissions.',
 			'switchCommand.description' => 'Switch the active team in OpenCI.',
 			'switchCommand.team.description' => 'Interactively switch the team used by the active profile.',
 			'switchCommand.team.noArguments' => 'switch team does not accept positional arguments.',

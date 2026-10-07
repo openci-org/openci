@@ -340,7 +340,11 @@ class _Translations$setup$ascKeys$ja extends Translations$setup$ascKeys$en {
 	// Translations
 	@override String get description => 'App Store Connect API キーをセットアップします（未実装）。';
 	@override String get noArguments => 'setup asc-keys は位置引数を受け付けません。';
-	@override String get notImplemented => 'genuineci setup asc-keys はまだ実装されていません。';
+	@override String get notImplemented => 'App Store Connect API キーのセットアップはまだ実装されていません。';
+	@override String cacheFound({required Object version, required Object path}) => 'asc ${version} 用のキャッシュファイルが見つかりました: ${path}';
+	@override String cacheMissing({required Object version}) => 'asc ${version} 用のキャッシュファイルが見つかりません。自動インストールはまだ実装されていません。';
+	@override String get unsupportedPlatform => 'setup asc-keys は現在 Apple Silicon Mac（macOS arm64）のみに対応しています。';
+	@override String get cacheCheckFailed => 'asc のキャッシュを確認できませんでした。キャッシュディレクトリの権限を確認してください。';
 }
 
 // Path: switchCommand.team
@@ -552,7 +556,11 @@ extension on TranslationsJa {
 			'setup.description' => 'OpenCI の外部サービス連携をセットアップします。',
 			'setup.ascKeys.description' => 'App Store Connect API キーをセットアップします（未実装）。',
 			'setup.ascKeys.noArguments' => 'setup asc-keys は位置引数を受け付けません。',
-			'setup.ascKeys.notImplemented' => 'genuineci setup asc-keys はまだ実装されていません。',
+			'setup.ascKeys.notImplemented' => 'App Store Connect API キーのセットアップはまだ実装されていません。',
+			'setup.ascKeys.cacheFound' => ({required Object version, required Object path}) => 'asc ${version} 用のキャッシュファイルが見つかりました: ${path}',
+			'setup.ascKeys.cacheMissing' => ({required Object version}) => 'asc ${version} 用のキャッシュファイルが見つかりません。自動インストールはまだ実装されていません。',
+			'setup.ascKeys.unsupportedPlatform' => 'setup asc-keys は現在 Apple Silicon Mac（macOS arm64）のみに対応しています。',
+			'setup.ascKeys.cacheCheckFailed' => 'asc のキャッシュを確認できませんでした。キャッシュディレクトリの権限を確認してください。',
 			'switchCommand.description' => 'OpenCIで使用するチームを切り替えます。',
 			'switchCommand.team.description' => '現在のプロファイルで使用するチームを対話式で切り替えます。',
 			'switchCommand.team.noArguments' => 'switch teamに位置引数は指定できません。',
