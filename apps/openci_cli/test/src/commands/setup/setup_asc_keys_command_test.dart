@@ -4,11 +4,14 @@ import 'dart:io';
 import 'package:args/command_runner.dart';
 import 'package:cli_util/cli_logging.dart';
 import 'package:genuineci_cli/genuineci_cli.dart';
+import 'package:genuineci_cli/src/asc/asc_api_key.dart';
 import 'package:genuineci_cli/src/asc/asc_authentication_status.dart';
 import 'package:genuineci_cli/src/asc/asc_release.dart';
 import 'package:genuineci_cli/src/asc/check_asc_authentication.dart';
+import 'package:genuineci_cli/src/asc/create_asc_api_key.dart';
 import 'package:genuineci_cli/src/asc/install_asc.dart';
 import 'package:genuineci_cli/src/asc/verify_asc_executable.dart';
+import 'package:genuineci_cli/src/commands/setup/confirm_asc_key_creation.dart';
 import 'package:genuineci_cli/src/commands/setup/read_apple_id.dart';
 import 'package:test/test.dart';
 
@@ -46,6 +49,15 @@ void main() {
   late Future<Process> Function(File, String) startLogin;
   late Future<AscAuthenticationStatus> Function(File, String)
   checkAuthentication;
+  late Future<bool> Function() confirmCreation;
+  late Future<Directory> Function() prepareKeyDirectory;
+  late Future<AscApiKey> Function(
+    File,
+    String,
+    AscAuthenticationStatus,
+    Directory,
+  )
+  createKey;
   late List<String> steps;
   late List<File> verifiedFiles;
   late List<(File, String)> startedLogins;
@@ -67,6 +79,13 @@ void main() {
       authenticated: true,
       providerId: 123,
       publicProviderId: 'PUBLIC1234',
+    );
+    confirmCreation = () async => false;
+    prepareKeyDirectory = () async => Directory('/key-output');
+    createKey = (_, _, _, _) async => AscApiKey(
+      keyId: 'KEY123',
+      issuerId: 'ISSUER123',
+      privateKeyFile: File('/key-output/AuthKey_KEY123.p8'),
     );
     steps = [];
     verifiedFiles = [];
@@ -116,23 +135,35 @@ void main() {
             checkedSessions.add((file, appleId));
             return checkAuthentication(file, appleId);
           },
+          confirmCreation: () {
+            steps.add('confirm');
+            return confirmCreation();
+          },
+          prepareKeyDirectory: () {
+            steps.add('directory');
+            return prepareKeyDirectory();
+          },
+          createKey: (file, appleId, status, directory) {
+            steps.add('create');
+            return createKey(file, appleId, status, directory);
+          },
         ),
       );
     return runner.run(['asc-keys', ...arguments]);
   }
 
   for (final locale in [AppLocale.en, AppLocale.ja]) {
-    test('reports a cached file but not successful setup: $locale', () async {
+    test('uses a cached file and allows cancellation: $locale', () async {
       LocaleSettings.setLocaleSync(locale);
       final file = File('cached-asc');
       findCachedExecutable = () async => file;
 
-      expect(await run(), 1);
+      expect(await run(), 0);
 
       expect(lookups, 1);
       expect(installs, 0);
       expect(verifiedFiles, [file]);
-      expect(steps, ['find', 'verify', 'read', 'login', 'status']);
+      expect(steps, ['find', 'verify', 'read', 'login', 'status', 'confirm']);
       expect(startedLogins, [(file, 'user@example.com')]);
       expect(checkedSessions, [(file, 'user@example.com')]);
       expect(logger.output, [
@@ -143,36 +174,43 @@ void main() {
         t.setup.ascKeys.selectedProvider,
         t.setup.ascKeys.providerId(id: 123),
         t.setup.ascKeys.publicProviderId(id: 'PUBLIC1234'),
+        t.setup.ascKeys.keyCreationCancelled,
       ]);
-      expect(logger.errors, [t.setup.ascKeys.notImplemented]);
+      expect(logger.errors, isEmpty);
     });
 
-    test(
-      'installs a missing file but does not claim successful key setup: $locale',
-      () async {
-        LocaleSettings.setLocaleSync(locale);
+    test('installs a missing file and allows cancellation: $locale', () async {
+      LocaleSettings.setLocaleSync(locale);
 
-        expect(await run(), 1);
+      expect(await run(), 0);
 
-        expect(lookups, 1);
-        expect(installs, 1);
-        expect(verifiedFiles.map((file) => file.path), ['installed-asc']);
-        expect(steps, ['find', 'install', 'verify', 'read', 'login', 'status']);
-        expect(startedLogins, [(verifiedFiles.single, 'user@example.com')]);
-        expect(checkedSessions, [(verifiedFiles.single, 'user@example.com')]);
-        expect(logger.output, [
-          t.setup.ascKeys.installing(version: ascVersion),
-          t.setup.ascKeys.installed(version: ascVersion, path: 'installed-asc'),
-          t.setup.ascKeys.versionVerified(version: ascVersion),
-          t.setup.ascKeys.appleIdReceived,
-          t.setup.ascKeys.authenticationVerified,
-          t.setup.ascKeys.selectedProvider,
-          t.setup.ascKeys.providerId(id: 123),
-          t.setup.ascKeys.publicProviderId(id: 'PUBLIC1234'),
-        ]);
-        expect(logger.errors, [t.setup.ascKeys.notImplemented]);
-      },
-    );
+      expect(lookups, 1);
+      expect(installs, 1);
+      expect(verifiedFiles.map((file) => file.path), ['installed-asc']);
+      expect(steps, [
+        'find',
+        'install',
+        'verify',
+        'read',
+        'login',
+        'status',
+        'confirm',
+      ]);
+      expect(startedLogins, [(verifiedFiles.single, 'user@example.com')]);
+      expect(checkedSessions, [(verifiedFiles.single, 'user@example.com')]);
+      expect(logger.output, [
+        t.setup.ascKeys.installing(version: ascVersion),
+        t.setup.ascKeys.installed(version: ascVersion, path: 'installed-asc'),
+        t.setup.ascKeys.versionVerified(version: ascVersion),
+        t.setup.ascKeys.appleIdReceived,
+        t.setup.ascKeys.authenticationVerified,
+        t.setup.ascKeys.selectedProvider,
+        t.setup.ascKeys.providerId(id: 123),
+        t.setup.ascKeys.publicProviderId(id: 'PUBLIC1234'),
+        t.setup.ascKeys.keyCreationCancelled,
+      ]);
+      expect(logger.errors, isEmpty);
+    });
 
     for (final cached in [true, false]) {
       for (final failure in AscVerificationFailure.values) {
@@ -310,6 +348,8 @@ void main() {
         );
         expect(logger.output.join('\n'), isNot(contains('PUBLIC1234')));
         expect(logger.errors, [t.setup.ascKeys.notAuthenticated]);
+        expect(steps, isNot(contains('confirm')));
+        expect(steps, isNot(contains('create')));
       },
     );
 
@@ -328,7 +368,8 @@ void main() {
             publicProviderId: publicProviderId,
           );
 
-          expect(await run(), 1);
+          final hasProvider = providerId != null || publicProviderId != null;
+          expect(await run(), hasProvider ? 0 : 1);
 
           expect(
             logger.output.skipWhile(
@@ -342,13 +383,15 @@ void main() {
                 t.setup.ascKeys.providerId(id: providerId),
               if (publicProviderId != null)
                 t.setup.ascKeys.publicProviderId(id: publicProviderId),
+              if (hasProvider) t.setup.ascKeys.keyCreationCancelled,
             ],
           );
           expect(logger.errors, [
             if (providerId == null && publicProviderId == null)
               t.setup.ascKeys.providerUnavailable,
-            t.setup.ascKeys.notImplemented,
           ]);
+          expect(steps.contains('confirm'), hasProvider);
+          expect(steps, isNot(contains('create')));
         },
       );
     }
@@ -378,32 +421,145 @@ void main() {
         ]);
       });
     }
+
+    test(
+      'passes the confirmed session to creation and reports local success: $locale',
+      () async {
+        LocaleSettings.setLocaleSync(locale);
+        final status = const AscAuthenticationStatus(
+          authenticated: true,
+          providerId: 987,
+          publicProviderId: 'PUBLIC987',
+        );
+        checkAuthentication = (_, _) async => status;
+        confirmCreation = () async {
+          expect(
+            logger.output.last,
+            t.setup.ascKeys.publicProviderId(id: 'PUBLIC987'),
+          );
+          return true;
+        };
+        createKey = (file, appleId, selected, directory) async {
+          expect(file, same(verifiedFiles.single));
+          expect(appleId, 'user@example.com');
+          expect(selected, same(status));
+          expect(directory.path, '/key-output');
+          expect(
+            logger.output.last,
+            t.setup.ascKeys.keyOutputDirectory(path: directory.path),
+          );
+          return AscApiKey(
+            keyId: 'KEY123',
+            issuerId: 'ISSUER123',
+            privateKeyFile: File('/key-output/AuthKey_KEY123.p8'),
+          );
+        };
+
+        expect(await run(), 0);
+        expect(steps, [
+          'find',
+          'install',
+          'verify',
+          'read',
+          'login',
+          'status',
+          'confirm',
+          'directory',
+          'create',
+        ]);
+        expect(
+          logger.output.skipWhile((line) => line != t.setup.ascKeys.keyCreated),
+          [
+            t.setup.ascKeys.keyCreated,
+            t.setup.ascKeys.keyId(id: 'KEY123'),
+            t.setup.ascKeys.issuerId(id: 'ISSUER123'),
+            t.setup.ascKeys.privateKeySaved(
+              path: '/key-output/AuthKey_KEY123.p8',
+            ),
+            t.setup.ascKeys.serverStoragePending,
+          ],
+        );
+        expect(logger.errors, isEmpty);
+      },
+    );
+
+    test(
+      'stops before preparing files if confirmation fails: $locale',
+      () async {
+        LocaleSettings.setLocaleSync(locale);
+        confirmCreation = () async => throw const AscKeyConfirmationException();
+
+        expect(await run(), 1);
+        expect(steps, isNot(contains('directory')));
+        expect(steps, isNot(contains('create')));
+        expect(logger.errors, [t.setup.ascKeys.keyConfirmationFailed]);
+      },
+    );
+
+    test(
+      'does not request a key if the output directory cannot be prepared: $locale',
+      () async {
+        LocaleSettings.setLocaleSync(locale);
+        confirmCreation = () async => true;
+        prepareKeyDirectory = () async =>
+            throw const FileSystemException('private diagnostic');
+
+        expect(await run(), 1);
+        expect(steps, isNot(contains('create')));
+        expect(logger.errors, [t.setup.ascKeys.keyDirectoryFailed]);
+      },
+    );
+
+    for (final failure in AscApiKeyFailure.values) {
+      test('reports creation $failure without retrying: $locale', () async {
+        LocaleSettings.setLocaleSync(locale);
+        confirmCreation = () async => true;
+        createKey = (_, _, _, _) async => throw AscApiKeyException(failure);
+
+        expect(await run(), 1);
+        expect(steps.where((step) => step == 'create'), hasLength(1));
+        expect(logger.output, isNot(contains(t.setup.ascKeys.keyCreated)));
+        expect(logger.errors, [
+          switch (failure) {
+            AscApiKeyFailure.start => t.setup.ascKeys.keyCreationStartFailed,
+            AscApiKeyFailure.execution => t.setup.ascKeys.keyCreationFailed,
+            AscApiKeyFailure.response => t.setup.ascKeys.keyCreationInvalid,
+            AscApiKeyFailure.storage => t.setup.ascKeys.keyStorageFailed,
+          },
+          if (failure != AscApiKeyFailure.start)
+            t.setup.ascKeys.keyRecovery(path: '/key-output'),
+        ]);
+      });
+    }
   }
 
-  test('waits for asc before reporting that key setup is unfinished', () async {
-    final started = Completer<void>();
-    final exited = Completer<int>();
-    addTearDown(() {
-      if (!exited.isCompleted) exited.complete(1);
-    });
-    startLogin = (_, _) async {
-      started.complete();
-      return _LoginProcess(exited.future);
-    };
-    var completed = false;
-    final result = run().whenComplete(() => completed = true);
-    await started.future;
-    await Future<void>.delayed(Duration.zero);
+  test(
+    'waits for asc login before checking the session and confirming',
+    () async {
+      final started = Completer<void>();
+      final exited = Completer<int>();
+      addTearDown(() {
+        if (!exited.isCompleted) exited.complete(1);
+      });
+      startLogin = (_, _) async {
+        started.complete();
+        return _LoginProcess(exited.future);
+      };
+      var completed = false;
+      final result = run().whenComplete(() => completed = true);
+      await started.future;
+      await Future<void>.delayed(Duration.zero);
 
-    expect(completed, isFalse);
-    expect(checkedSessions, isEmpty);
-    expect(logger.errors, isEmpty);
-    exited.complete(0);
+      expect(completed, isFalse);
+      expect(checkedSessions, isEmpty);
+      expect(logger.errors, isEmpty);
+      exited.complete(0);
 
-    expect(await result, 1);
-    expect(checkedSessions, hasLength(1));
-    expect(logger.errors, [t.setup.ascKeys.notImplemented]);
-  });
+      expect(await result, 0);
+      expect(checkedSessions, hasLength(1));
+      expect(logger.errors, isEmpty);
+    },
+  );
 
   test('waits for the status check before reporting authentication', () async {
     final checking = Completer<void>();
@@ -433,9 +589,29 @@ void main() {
       const AscAuthenticationStatus(authenticated: true, providerId: 123),
     );
 
-    expect(await result, 1);
-    expect(logger.output.last, t.setup.ascKeys.providerId(id: 123));
-    expect(logger.errors, [t.setup.ascKeys.notImplemented]);
+    expect(await result, 0);
+    expect(logger.output, contains(t.setup.ascKeys.providerId(id: 123)));
+    expect(logger.output.last, t.setup.ascKeys.keyCreationCancelled);
+    expect(logger.errors, isEmpty);
+  });
+
+  test('does not create a key until confirmation is complete', () async {
+    final prompted = Completer<void>();
+    final answer = Completer<bool>();
+    addTearDown(() {
+      if (!answer.isCompleted) answer.complete(false);
+    });
+    confirmCreation = () {
+      prompted.complete();
+      return answer.future;
+    };
+    final result = run();
+    await prompted.future;
+    expect(steps, isNot(contains('directory')));
+    expect(steps, isNot(contains('create')));
+    answer.complete(true);
+    expect(await result, 0);
+    expect(steps.last, 'create');
   });
 
   test('reports an unsupported platform', () async {

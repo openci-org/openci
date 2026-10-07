@@ -4,14 +4,18 @@ import 'package:args/command_runner.dart';
 import 'package:cli_util/cli_logging.dart';
 import 'package:meta/meta.dart';
 
+import '../../asc/asc_api_key.dart';
 import '../../asc/asc_authentication_status.dart';
 import '../../asc/asc_release.dart';
 import '../../asc/check_asc_authentication.dart';
+import '../../asc/create_asc_api_key.dart';
 import '../../asc/find_cached_asc_executable.dart';
 import '../../asc/install_asc.dart';
+import '../../asc/prepare_asc_key_directory.dart';
 import '../../asc/start_asc_login.dart';
 import '../../asc/verify_asc_executable.dart';
 import '../../i18n/i18n.dart';
+import 'confirm_asc_key_creation.dart';
 import 'read_apple_id.dart';
 
 class SetupAscKeysCommand extends Command<int> {
@@ -29,6 +33,15 @@ class SetupAscKeysCommand extends Command<int> {
   final Future<Process> Function(File, String) _startLogin;
   final Future<AscAuthenticationStatus> Function(File, String)
   _checkAuthentication;
+  final Future<bool> Function() _confirmCreation;
+  final Future<Directory> Function() _prepareKeyDirectory;
+  final Future<AscApiKey> Function(
+    File,
+    String,
+    AscAuthenticationStatus,
+    Directory,
+  )
+  _createKey;
 
   SetupAscKeysCommand({
     required Logger logger,
@@ -44,13 +57,24 @@ class SetupAscKeysCommand extends Command<int> {
     @visibleForTesting
     Future<AscAuthenticationStatus> Function(File, String) checkAuthentication =
         checkAscAuthentication,
+    @visibleForTesting
+    Future<bool> Function() confirmCreation = confirmAscKeyCreation,
+    @visibleForTesting
+    Future<Directory> Function() prepareKeyDirectory = prepareAscKeyDirectory,
+    @visibleForTesting
+    Future<AscApiKey> Function(File, String, AscAuthenticationStatus, Directory)
+        createKey =
+        createAscApiKey,
   }) : _logger = logger,
        _findCachedExecutable = findCachedExecutable,
        _installExecutable = installExecutable,
        _verifyExecutable = verifyExecutable,
        _readAppleId = readAppleIdInput,
        _startLogin = startLogin,
-       _checkAuthentication = checkAuthentication;
+       _checkAuthentication = checkAuthentication,
+       _confirmCreation = confirmCreation,
+       _prepareKeyDirectory = prepareKeyDirectory,
+       _createKey = createKey;
 
   @override
   Future<int> run() async {
@@ -125,17 +149,52 @@ class SetupAscKeysCommand extends Command<int> {
       final publicProviderId = status.publicProviderId;
       if (providerId == null && publicProviderId == null) {
         _logger.stderr(t.setup.ascKeys.providerUnavailable);
-      } else {
-        _logger.stdout(t.setup.ascKeys.selectedProvider);
-        if (providerId != null) {
-          _logger.stdout(t.setup.ascKeys.providerId(id: providerId));
-        }
-        if (publicProviderId != null) {
-          _logger.stdout(
-            t.setup.ascKeys.publicProviderId(id: publicProviderId),
-          );
-        }
+        return 1;
       }
+      _logger.stdout(t.setup.ascKeys.selectedProvider);
+      if (providerId != null) {
+        _logger.stdout(t.setup.ascKeys.providerId(id: providerId));
+      }
+      if (publicProviderId != null) {
+        _logger.stdout(t.setup.ascKeys.publicProviderId(id: publicProviderId));
+      }
+      if (!await _confirmCreation()) {
+        _logger.stdout(t.setup.ascKeys.keyCreationCancelled);
+        return 0;
+      }
+
+      final directory = await _prepareKeyDirectory();
+      // Print the recovery path before the one-time download, even if the
+      // process is interrupted before returning its result.
+      _logger.stdout(t.setup.ascKeys.keyOutputDirectory(path: directory.path));
+      try {
+        final key = await _createKey(executable, appleId, status, directory);
+        _logger.stdout(t.setup.ascKeys.keyCreated);
+        _logger.stdout(t.setup.ascKeys.keyId(id: key.keyId));
+        _logger.stdout(t.setup.ascKeys.issuerId(id: key.issuerId));
+        _logger.stdout(
+          t.setup.ascKeys.privateKeySaved(path: key.privateKeyFile.path),
+        );
+        _logger.stdout(t.setup.ascKeys.serverStoragePending);
+        return 0;
+      } on AscApiKeyException catch (error) {
+        _logger.stderr(switch (error.failure) {
+          AscApiKeyFailure.start => t.setup.ascKeys.keyCreationStartFailed,
+          AscApiKeyFailure.execution => t.setup.ascKeys.keyCreationFailed,
+          AscApiKeyFailure.response => t.setup.ascKeys.keyCreationInvalid,
+          AscApiKeyFailure.storage => t.setup.ascKeys.keyStorageFailed,
+        });
+        if (error.failure != AscApiKeyFailure.start) {
+          _logger.stderr(t.setup.ascKeys.keyRecovery(path: directory.path));
+        }
+        return 1;
+      }
+    } on AscKeyConfirmationException {
+      _logger.stderr(t.setup.ascKeys.keyConfirmationFailed);
+      return 1;
+    } on FileSystemException {
+      _logger.stderr(t.setup.ascKeys.keyDirectoryFailed);
+      return 1;
     } on AppleIdInputException catch (error) {
       _logger.stderr(switch (error.failure) {
         AppleIdInputFailure.notInteractive => t.setup.ascKeys.terminalRequired,
@@ -153,8 +212,5 @@ class SetupAscKeysCommand extends Command<int> {
       _logger.stderr(t.setup.ascKeys.loginStartFailed);
       return 1;
     }
-
-    _logger.stderr(t.setup.ascKeys.notImplemented);
-    return 1;
   }
 }

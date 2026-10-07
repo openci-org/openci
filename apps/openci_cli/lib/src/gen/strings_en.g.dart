@@ -555,14 +555,11 @@ class Translations$setup$ascKeys$en {
 
 	// Translations
 
-	/// en: 'Set up App Store Connect API keys (not implemented yet).'
-	String get description => 'Set up App Store Connect API keys (not implemented yet).';
+	/// en: 'Create an App Store Connect API key and save it locally.'
+	String get description => 'Create an App Store Connect API key and save it locally.';
 
 	/// en: 'setup asc-keys does not accept positional arguments.'
 	String get noArguments => 'setup asc-keys does not accept positional arguments.';
-
-	/// en: 'App Store Connect API key setup is not implemented yet.'
-	String get notImplemented => 'App Store Connect API key setup is not implemented yet.';
 
 	/// en: 'Found a cached file for asc ${version}: ${path}'
 	String cacheFound({required Object version, required Object path}) => 'Found a cached file for asc ${version}: ${path}';
@@ -608,6 +605,51 @@ class Translations$setup$ascKeys$en {
 
 	/// en: 'Could not determine the selected App Store Connect provider.'
 	String get providerUnavailable => 'Could not determine the selected App Store Connect provider.';
+
+	/// en: 'Create a new GenuineCI key with APP_MANAGER access to all apps for this provider? [y/N] '
+	String get confirmKeyCreation => 'Create a new GenuineCI key with APP_MANAGER access to all apps for this provider? [y/N] ';
+
+	/// en: 'Key creation cancelled. No new key was requested.'
+	String get keyCreationCancelled => 'Key creation cancelled. No new key was requested.';
+
+	/// en: 'Could not read confirmation. Run genuineci setup asc-keys in an interactive terminal.'
+	String get keyConfirmationFailed => 'Could not read confirmation. Run genuineci setup asc-keys in an interactive terminal.';
+
+	/// en: 'Could not prepare the key directory. Check permissions and available disk space. No new key was requested.'
+	String get keyDirectoryFailed => 'Could not prepare the key directory. Check permissions and available disk space. No new key was requested.';
+
+	/// en: 'Key output directory: ${path}'
+	String keyOutputDirectory({required Object path}) => 'Key output directory: ${path}';
+
+	/// en: 'Created a GenuineCI API key with APP_MANAGER access.'
+	String get keyCreated => 'Created a GenuineCI API key with APP_MANAGER access.';
+
+	/// en: ' Key ID: ${id}'
+	String keyId({required Object id}) => '  Key ID: ${id}';
+
+	/// en: ' Issuer ID: ${id}'
+	String issuerId({required Object id}) => '  Issuer ID: ${id}';
+
+	/// en: ' Private key: ${path}'
+	String privateKeySaved({required Object path}) => '  Private key: ${path}';
+
+	/// en: 'The key and key.json are saved locally. Saving to OpenCI is not implemented yet.'
+	String get serverStoragePending => 'The key and key.json are saved locally. Saving to OpenCI is not implemented yet.';
+
+	/// en: 'Could not start asc key creation. No new key was requested.'
+	String get keyCreationStartFailed => 'Could not start asc key creation. No new key was requested.';
+
+	/// en: 'asc did not complete API key creation successfully.'
+	String get keyCreationFailed => 'asc did not complete API key creation successfully.';
+
+	/// en: 'Could not verify the key creation result or the saved private key.'
+	String get keyCreationInvalid => 'Could not verify the key creation result or the saved private key.';
+
+	/// en: 'Could not save or read the API key files.'
+	String get keyStorageFailed => 'Could not save or read the API key files.';
+
+	/// en: 'A key may already have been created. Check App Store Connect before running setup again. Any downloaded files are retained in: ${path}'
+	String keyRecovery({required Object path}) => 'A key may already have been created. Check App Store Connect before running setup again. Any downloaded files are retained in: ${path}';
 
 	/// en: 'Apple login could not be confirmed. Run genuineci setup asc-keys to sign in again.'
 	String get notAuthenticated => 'Apple login could not be confirmed. Run genuineci setup asc-keys to sign in again.';
@@ -967,9 +1009,8 @@ extension on Translations {
 			'register.secretFile.readFailed' => 'Could not read the selected file. Check that it is a regular file and that you have permission to read it.',
 			'register.secretFile.emptyFile' => 'The selected file is empty. No secret was registered.',
 			'setup.description' => 'Set up integrations for OpenCI.',
-			'setup.ascKeys.description' => 'Set up App Store Connect API keys (not implemented yet).',
+			'setup.ascKeys.description' => 'Create an App Store Connect API key and save it locally.',
 			'setup.ascKeys.noArguments' => 'setup asc-keys does not accept positional arguments.',
-			'setup.ascKeys.notImplemented' => 'App Store Connect API key setup is not implemented yet.',
 			'setup.ascKeys.cacheFound' => ({required Object version, required Object path}) => 'Found a cached file for asc ${version}: ${path}',
 			'setup.ascKeys.installing' => ({required Object version}) => 'Downloading and installing asc ${version} for Apple Silicon Mac...',
 			'setup.ascKeys.installed' => ({required Object version, required Object path}) => 'Installed asc ${version}: ${path}',
@@ -985,6 +1026,21 @@ extension on Translations {
 			'setup.ascKeys.providerId' => ({required Object id}) => '  Provider ID: ${id}',
 			'setup.ascKeys.publicProviderId' => ({required Object id}) => '  Public Provider ID: ${id}',
 			'setup.ascKeys.providerUnavailable' => 'Could not determine the selected App Store Connect provider.',
+			'setup.ascKeys.confirmKeyCreation' => 'Create a new GenuineCI key with APP_MANAGER access to all apps for this provider? [y/N] ',
+			'setup.ascKeys.keyCreationCancelled' => 'Key creation cancelled. No new key was requested.',
+			'setup.ascKeys.keyConfirmationFailed' => 'Could not read confirmation. Run genuineci setup asc-keys in an interactive terminal.',
+			'setup.ascKeys.keyDirectoryFailed' => 'Could not prepare the key directory. Check permissions and available disk space. No new key was requested.',
+			'setup.ascKeys.keyOutputDirectory' => ({required Object path}) => 'Key output directory: ${path}',
+			'setup.ascKeys.keyCreated' => 'Created a GenuineCI API key with APP_MANAGER access.',
+			'setup.ascKeys.keyId' => ({required Object id}) => '  Key ID: ${id}',
+			'setup.ascKeys.issuerId' => ({required Object id}) => '  Issuer ID: ${id}',
+			'setup.ascKeys.privateKeySaved' => ({required Object path}) => '  Private key: ${path}',
+			'setup.ascKeys.serverStoragePending' => 'The key and key.json are saved locally. Saving to OpenCI is not implemented yet.',
+			'setup.ascKeys.keyCreationStartFailed' => 'Could not start asc key creation. No new key was requested.',
+			'setup.ascKeys.keyCreationFailed' => 'asc did not complete API key creation successfully.',
+			'setup.ascKeys.keyCreationInvalid' => 'Could not verify the key creation result or the saved private key.',
+			'setup.ascKeys.keyStorageFailed' => 'Could not save or read the API key files.',
+			'setup.ascKeys.keyRecovery' => ({required Object path}) => 'A key may already have been created. Check App Store Connect before running setup again. Any downloaded files are retained in: ${path}',
 			'setup.ascKeys.notAuthenticated' => 'Apple login could not be confirmed. Run genuineci setup asc-keys to sign in again.',
 			'setup.ascKeys.authStatusFailed' => 'Could not check Apple authentication with asc. Retry setup.',
 			'setup.ascKeys.authStatusTimedOut' => 'Checking Apple authentication timed out. Retry setup.',

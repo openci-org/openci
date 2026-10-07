@@ -338,9 +338,8 @@ class _Translations$setup$ascKeys$ja extends Translations$setup$ascKeys$en {
 	final TranslationsJa _root; // ignore: unused_field
 
 	// Translations
-	@override String get description => 'App Store Connect API キーをセットアップします（未実装）。';
+	@override String get description => 'App Store Connect API キーを発行してローカルに保存します。';
 	@override String get noArguments => 'setup asc-keys は位置引数を受け付けません。';
-	@override String get notImplemented => 'App Store Connect API キーのセットアップはまだ実装されていません。';
 	@override String cacheFound({required Object version, required Object path}) => 'asc ${version} 用のキャッシュファイルが見つかりました: ${path}';
 	@override String installing({required Object version}) => 'Apple Silicon Mac 用の asc ${version} をダウンロードしてインストールしています...';
 	@override String installed({required Object version, required Object path}) => 'asc ${version} をインストールしました: ${path}';
@@ -356,6 +355,21 @@ class _Translations$setup$ascKeys$ja extends Translations$setup$ascKeys$en {
 	@override String providerId({required Object id}) => '  Provider ID: ${id}';
 	@override String publicProviderId({required Object id}) => '  Public Provider ID: ${id}';
 	@override String get providerUnavailable => '選択中の App Store Connect Provider を取得できませんでした。';
+	@override String get confirmKeyCreation => 'この Provider の全アプリにアクセスできる APP_MANAGER 権限の GenuineCI キーを新規発行しますか？ [y/N] ';
+	@override String get keyCreationCancelled => 'キーの発行を中止しました。新しいキーの発行はリクエストしていません。';
+	@override String get keyConfirmationFailed => '確認の入力を読み取れませんでした。対話可能な端末で genuineci setup asc-keys を実行してください。';
+	@override String get keyDirectoryFailed => 'キーの保存先を準備できませんでした。権限とディスクの空き容量を確認してください。新しいキーの発行はリクエストしていません。';
+	@override String keyOutputDirectory({required Object path}) => 'キーの保存先: ${path}';
+	@override String get keyCreated => 'APP_MANAGER 権限の GenuineCI API キーを発行しました。';
+	@override String keyId({required Object id}) => '  Key ID: ${id}';
+	@override String issuerId({required Object id}) => '  Issuer ID: ${id}';
+	@override String privateKeySaved({required Object path}) => '  秘密鍵: ${path}';
+	@override String get serverStoragePending => 'キーと key.json をローカルに保存しました。OpenCI への保存はまだ実装されていません。';
+	@override String get keyCreationStartFailed => 'asc のキー発行処理を起動できませんでした。新しいキーの発行はリクエストしていません。';
+	@override String get keyCreationFailed => 'asc の API キー発行処理が正常に完了しませんでした。';
+	@override String get keyCreationInvalid => 'キーの発行結果または保存された秘密鍵を確認できませんでした。';
+	@override String get keyStorageFailed => 'API キーのファイルを保存または読み取りできませんでした。';
+	@override String keyRecovery({required Object path}) => 'キーがすでに発行されている可能性があります。再実行する前に App Store Connect を確認してください。ダウンロード済みのファイルは次の場所に残しています: ${path}';
 	@override String get notAuthenticated => 'Apple の認証を確認できませんでした。genuineci setup asc-keys を再実行してログインしてください。';
 	@override String get authStatusFailed => 'asc で Apple の認証状態を確認できませんでした。セットアップを再試行してください。';
 	@override String get authStatusTimedOut => 'Apple の認証状態の確認がタイムアウトしました。セットアップを再試行してください。';
@@ -578,9 +592,8 @@ extension on TranslationsJa {
 			'register.secretFile.readFailed' => '選択したファイルを読み取れませんでした。通常のファイルであることと読み取り権限を確認してください。',
 			'register.secretFile.emptyFile' => '選択したファイルは空です。シークレットは登録されませんでした。',
 			'setup.description' => 'OpenCI の外部サービス連携をセットアップします。',
-			'setup.ascKeys.description' => 'App Store Connect API キーをセットアップします（未実装）。',
+			'setup.ascKeys.description' => 'App Store Connect API キーを発行してローカルに保存します。',
 			'setup.ascKeys.noArguments' => 'setup asc-keys は位置引数を受け付けません。',
-			'setup.ascKeys.notImplemented' => 'App Store Connect API キーのセットアップはまだ実装されていません。',
 			'setup.ascKeys.cacheFound' => ({required Object version, required Object path}) => 'asc ${version} 用のキャッシュファイルが見つかりました: ${path}',
 			'setup.ascKeys.installing' => ({required Object version}) => 'Apple Silicon Mac 用の asc ${version} をダウンロードしてインストールしています...',
 			'setup.ascKeys.installed' => ({required Object version, required Object path}) => 'asc ${version} をインストールしました: ${path}',
@@ -596,6 +609,21 @@ extension on TranslationsJa {
 			'setup.ascKeys.providerId' => ({required Object id}) => '  Provider ID: ${id}',
 			'setup.ascKeys.publicProviderId' => ({required Object id}) => '  Public Provider ID: ${id}',
 			'setup.ascKeys.providerUnavailable' => '選択中の App Store Connect Provider を取得できませんでした。',
+			'setup.ascKeys.confirmKeyCreation' => 'この Provider の全アプリにアクセスできる APP_MANAGER 権限の GenuineCI キーを新規発行しますか？ [y/N] ',
+			'setup.ascKeys.keyCreationCancelled' => 'キーの発行を中止しました。新しいキーの発行はリクエストしていません。',
+			'setup.ascKeys.keyConfirmationFailed' => '確認の入力を読み取れませんでした。対話可能な端末で genuineci setup asc-keys を実行してください。',
+			'setup.ascKeys.keyDirectoryFailed' => 'キーの保存先を準備できませんでした。権限とディスクの空き容量を確認してください。新しいキーの発行はリクエストしていません。',
+			'setup.ascKeys.keyOutputDirectory' => ({required Object path}) => 'キーの保存先: ${path}',
+			'setup.ascKeys.keyCreated' => 'APP_MANAGER 権限の GenuineCI API キーを発行しました。',
+			'setup.ascKeys.keyId' => ({required Object id}) => '  Key ID: ${id}',
+			'setup.ascKeys.issuerId' => ({required Object id}) => '  Issuer ID: ${id}',
+			'setup.ascKeys.privateKeySaved' => ({required Object path}) => '  秘密鍵: ${path}',
+			'setup.ascKeys.serverStoragePending' => 'キーと key.json をローカルに保存しました。OpenCI への保存はまだ実装されていません。',
+			'setup.ascKeys.keyCreationStartFailed' => 'asc のキー発行処理を起動できませんでした。新しいキーの発行はリクエストしていません。',
+			'setup.ascKeys.keyCreationFailed' => 'asc の API キー発行処理が正常に完了しませんでした。',
+			'setup.ascKeys.keyCreationInvalid' => 'キーの発行結果または保存された秘密鍵を確認できませんでした。',
+			'setup.ascKeys.keyStorageFailed' => 'API キーのファイルを保存または読み取りできませんでした。',
+			'setup.ascKeys.keyRecovery' => ({required Object path}) => 'キーがすでに発行されている可能性があります。再実行する前に App Store Connect を確認してください。ダウンロード済みのファイルは次の場所に残しています: ${path}',
 			'setup.ascKeys.notAuthenticated' => 'Apple の認証を確認できませんでした。genuineci setup asc-keys を再実行してログインしてください。',
 			'setup.ascKeys.authStatusFailed' => 'asc で Apple の認証状態を確認できませんでした。セットアップを再試行してください。',
 			'setup.ascKeys.authStatusTimedOut' => 'Apple の認証状態の確認がタイムアウトしました。セットアップを再試行してください。',

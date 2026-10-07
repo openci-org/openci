@@ -455,12 +455,31 @@ localized errors. Raw status output is limited to 16 KiB and is not printed; a
 timed-out process is terminated. The authentication result retains the optional
 `providerId` and `publicProviderId` fields. Once authentication is confirmed,
 GenuineCI displays the returned IDs of the currently selected App Store Connect
-provider. If neither ID is available, it reports that the provider could not be
-determined. Other team IDs are not used as substitutes. This response describes
-the current provider, not a list of available teams.
-Provider switching, key issuance, and key storage remain unimplemented, so setup
-still exits with code 1 after confirming authentication and showing provider
-information.
+provider. If neither ID is available, setup stops. Other team IDs are not used as
+substitutes. This response describes the current provider, not a list of teams.
+
+After displaying the provider, GenuineCI asks whether to create a **new** key
+named `GenuineCI` with `APP_MANAGER` access to all apps. Only `y` or `yes` proceeds;
+other input or EOF cancels without requesting a key. The Apple account must be
+an Account Holder or Admin to create a team key. The verified binary runs
+`web api-keys create --apple-id <email> --provider-id <id>` (and/or
+`--public-provider-id <id>`) with `--name GenuineCI --role APP_MANAGER`, an
+explicit output directory, and `--output json`. Users do not enter provider IDs.
+Both returned IDs are passed when available so asc can verify they match.
+
+Each issuance uses a new owner-only directory under
+`~/Library/Application Support/genuineci/asc-api-keys/`. Its path is printed
+before creation. asc saves the one-time `AuthKey_<KEY_ID>.p8` with mode `0600`;
+GenuineCI validates the result and saves `key.json` containing the Key ID,
+Issuer ID, provider IDs, role, and private-key path with mode `0600`. Private key
+contents and raw asc output are never printed. asc handles any reauthentication
+through `/dev/tty` and applies its own network timeouts.
+
+Creation is never automatically retried. On failure or interruption, downloaded
+files are retained; check the displayed directory and App Store Connect before
+retrying because a key may already exist. A successful local save exits with
+code 0 and reports that OpenCI server storage is still unimplemented. Provider
+switching, reusing existing keys, and server storage are future steps.
 Use `genuineci setup asc-keys --help` to view its help.
 
 ## Code generation
