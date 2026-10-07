@@ -422,6 +422,10 @@ later calls without `dir` continue to use the configured working directory.
 `WorkspacePaths.root` represents `.` and `WorkspacePaths.root.apps` represents
 `apps`. Both can also be passed directly to methods accepting a `String` path.
 
+`genuineci setup asc-keys` is a placeholder for App Store Connect API key setup.
+It currently prints a not-implemented message to stderr and exits with code 1.
+Use `genuineci setup asc-keys --help` to view its help.
+
 ## Code generation
 
 Run these commands from `apps/openci_cli`:

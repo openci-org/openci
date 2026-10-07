@@ -120,6 +120,14 @@
       "emptyFile": "The selected file is empty. No secret was registered."
     }
   },
+  "setup": {
+    "description": "Set up integrations for OpenCI.",
+    "ascKeys": {
+      "description": "Set up App Store Connect API keys (not implemented yet).",
+      "noArguments": "setup asc-keys does not accept positional arguments.",
+      "notImplemented": "genuineci setup asc-keys is not implemented yet."
+    }
+  },
   "switchCommand": {
     "description": "Switch the active team in OpenCI.",
     "team": {

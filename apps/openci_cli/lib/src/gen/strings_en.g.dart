@@ -40,6 +40,7 @@ class Translations with BaseTranslations<AppLocale, Translations> {
 	late final Translations$status$en status = Translations$status$en.internal(_root);
 	late final Translations$list$en list = Translations$list$en.internal(_root);
 	late final Translations$register$en register = Translations$register$en.internal(_root);
+	late final Translations$setup$en setup = Translations$setup$en.internal(_root);
 	late final Translations$switchCommand$en switchCommand = Translations$switchCommand$en.internal(_root);
 	late final Translations$use$en use = Translations$use$en.internal(_root);
 	late final Translations$dev$en dev = Translations$dev$en.internal(_root);
@@ -277,6 +278,20 @@ class Translations$register$en {
 
 	late final Translations$register$secret$en secret = Translations$register$secret$en.internal(_root);
 	late final Translations$register$secretFile$en secretFile = Translations$register$secretFile$en.internal(_root);
+}
+
+// Path: setup
+class Translations$setup$en {
+	Translations$setup$en.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// en: 'Set up integrations for OpenCI.'
+	String get description => 'Set up integrations for OpenCI.';
+
+	late final Translations$setup$ascKeys$en ascKeys = Translations$setup$ascKeys$en.internal(_root);
 }
 
 // Path: switchCommand
@@ -530,6 +545,24 @@ class Translations$register$secretFile$en {
 
 	/// en: 'The selected file is empty. No secret was registered.'
 	String get emptyFile => 'The selected file is empty. No secret was registered.';
+}
+
+// Path: setup.ascKeys
+class Translations$setup$ascKeys$en {
+	Translations$setup$ascKeys$en.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// en: 'Set up App Store Connect API keys (not implemented yet).'
+	String get description => 'Set up App Store Connect API keys (not implemented yet).';
+
+	/// en: 'setup asc-keys does not accept positional arguments.'
+	String get noArguments => 'setup asc-keys does not accept positional arguments.';
+
+	/// en: 'genuineci setup asc-keys is not implemented yet.'
+	String get notImplemented => 'genuineci setup asc-keys is not implemented yet.';
 }
 
 // Path: switchCommand.team
@@ -849,6 +882,10 @@ extension on Translations {
 			'register.secretFile.inputFailed' => 'Could not select the file. Retry in an interactive terminal.',
 			'register.secretFile.readFailed' => 'Could not read the selected file. Check that it is a regular file and that you have permission to read it.',
 			'register.secretFile.emptyFile' => 'The selected file is empty. No secret was registered.',
+			'setup.description' => 'Set up integrations for OpenCI.',
+			'setup.ascKeys.description' => 'Set up App Store Connect API keys (not implemented yet).',
+			'setup.ascKeys.noArguments' => 'setup asc-keys does not accept positional arguments.',
+			'setup.ascKeys.notImplemented' => 'genuineci setup asc-keys is not implemented yet.',
 			'switchCommand.description' => 'Switch the active team in OpenCI.',
 			'switchCommand.team.description' => 'Interactively switch the team used by the active profile.',
 			'switchCommand.team.noArguments' => 'switch team does not accept positional arguments.',
