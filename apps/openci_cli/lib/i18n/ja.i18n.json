@@ -125,7 +125,11 @@
     "ascKeys": {
       "description": "App Store Connect API キーをセットアップします（未実装）。",
       "noArguments": "setup asc-keys は位置引数を受け付けません。",
-      "notImplemented": "genuineci setup asc-keys はまだ実装されていません。"
+      "notImplemented": "App Store Connect API キーのセットアップはまだ実装されていません。",
+      "cacheFound": "asc ${version} 用のキャッシュファイルが見つかりました: ${path}",
+      "cacheMissing": "asc ${version} 用のキャッシュファイルが見つかりません。自動インストールはまだ実装されていません。",
+      "unsupportedPlatform": "setup asc-keys は現在 Apple Silicon Mac（macOS arm64）のみに対応しています。",
+      "cacheCheckFailed": "asc のキャッシュを確認できませんでした。キャッシュディレクトリの権限を確認してください。"
     }
   },
   "switchCommand": {

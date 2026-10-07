@@ -422,8 +422,12 @@ later calls without `dir` continue to use the configured working directory.
 `WorkspacePaths.root` represents `.` and `WorkspacePaths.root.apps` represents
 `apps`. Both can also be passed directly to methods accepting a `String` path.
 
-`genuineci setup asc-keys` is a placeholder for App Store Connect API key setup.
-It currently prints a not-implemented message to stderr and exits with code 1.
+`genuineci setup asc-keys` currently supports only Apple Silicon Macs
+(macOS arm64). It checks for an asc 5.11.0 file in GenuineCI's cache at
+`<cache>/tools/asc/5.11.0/macOS_arm64/asc`. It reports whether a regular file is
+present; it does not validate the contents or execute asc.
+Downloading asc and setting up App Store Connect API keys are not implemented
+yet, so the command still exits with code 1 even when a cached file is found.
 Use `genuineci setup asc-keys --help` to view its help.
 
 ## Code generation
