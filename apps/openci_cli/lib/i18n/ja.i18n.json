@@ -120,6 +120,14 @@
       "emptyFile": "選択したファイルは空です。シークレットは登録されませんでした。"
     }
   },
+  "setup": {
+    "description": "OpenCI の外部サービス連携をセットアップします。",
+    "ascKeys": {
+      "description": "App Store Connect API キーをセットアップします（未実装）。",
+      "noArguments": "setup asc-keys は位置引数を受け付けません。",
+      "notImplemented": "genuineci setup asc-keys はまだ実装されていません。"
+    }
+  },
   "switchCommand": {
     "description": "OpenCIで使用するチームを切り替えます。",
     "team": {

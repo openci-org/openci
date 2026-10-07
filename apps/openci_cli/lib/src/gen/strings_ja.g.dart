@@ -44,6 +44,7 @@ class TranslationsJa extends Translations with BaseTranslations<AppLocale, Trans
 	@override late final _Translations$status$ja status = _Translations$status$ja._(_root);
 	@override late final _Translations$list$ja list = _Translations$list$ja._(_root);
 	@override late final _Translations$register$ja register = _Translations$register$ja._(_root);
+	@override late final _Translations$setup$ja setup = _Translations$setup$ja._(_root);
 	@override late final _Translations$switchCommand$ja switchCommand = _Translations$switchCommand$ja._(_root);
 	@override late final _Translations$use$ja use = _Translations$use$ja._(_root);
 	@override late final _Translations$dev$ja dev = _Translations$dev$ja._(_root);
@@ -165,6 +166,17 @@ class _Translations$register$ja extends Translations$register$en {
 	@override String get description => 'OpenCIにリソースを登録します。';
 	@override late final _Translations$register$secret$ja secret = _Translations$register$secret$ja._(_root);
 	@override late final _Translations$register$secretFile$ja secretFile = _Translations$register$secretFile$ja._(_root);
+}
+
+// Path: setup
+class _Translations$setup$ja extends Translations$setup$en {
+	_Translations$setup$ja._(TranslationsJa root) : this._root = root, super.internal(root);
+
+	final TranslationsJa _root; // ignore: unused_field
+
+	// Translations
+	@override String get description => 'OpenCI の外部サービス連携をセットアップします。';
+	@override late final _Translations$setup$ascKeys$ja ascKeys = _Translations$setup$ascKeys$ja._(_root);
 }
 
 // Path: switchCommand
@@ -317,6 +329,18 @@ class _Translations$register$secretFile$ja extends Translations$register$secretF
 	@override String get inputFailed => 'ファイルを選択できませんでした。対話可能な端末で再試行してください。';
 	@override String get readFailed => '選択したファイルを読み取れませんでした。通常のファイルであることと読み取り権限を確認してください。';
 	@override String get emptyFile => '選択したファイルは空です。シークレットは登録されませんでした。';
+}
+
+// Path: setup.ascKeys
+class _Translations$setup$ascKeys$ja extends Translations$setup$ascKeys$en {
+	_Translations$setup$ascKeys$ja._(TranslationsJa root) : this._root = root, super.internal(root);
+
+	final TranslationsJa _root; // ignore: unused_field
+
+	// Translations
+	@override String get description => 'App Store Connect API キーをセットアップします（未実装）。';
+	@override String get noArguments => 'setup asc-keys は位置引数を受け付けません。';
+	@override String get notImplemented => 'genuineci setup asc-keys はまだ実装されていません。';
 }
 
 // Path: switchCommand.team
@@ -525,6 +549,10 @@ extension on TranslationsJa {
 			'register.secretFile.inputFailed' => 'ファイルを選択できませんでした。対話可能な端末で再試行してください。',
 			'register.secretFile.readFailed' => '選択したファイルを読み取れませんでした。通常のファイルであることと読み取り権限を確認してください。',
 			'register.secretFile.emptyFile' => '選択したファイルは空です。シークレットは登録されませんでした。',
+			'setup.description' => 'OpenCI の外部サービス連携をセットアップします。',
+			'setup.ascKeys.description' => 'App Store Connect API キーをセットアップします（未実装）。',
+			'setup.ascKeys.noArguments' => 'setup asc-keys は位置引数を受け付けません。',
+			'setup.ascKeys.notImplemented' => 'genuineci setup asc-keys はまだ実装されていません。',
 			'switchCommand.description' => 'OpenCIで使用するチームを切り替えます。',
 			'switchCommand.team.description' => '現在のプロファイルで使用するチームを対話式で切り替えます。',
 			'switchCommand.team.noArguments' => 'switch teamに位置引数は指定できません。',
