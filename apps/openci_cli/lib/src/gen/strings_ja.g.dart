@@ -344,6 +344,11 @@ class _Translations$setup$ascKeys$ja extends Translations$setup$ascKeys$en {
 	@override String cacheFound({required Object version, required Object path}) => 'asc ${version} 用のキャッシュファイルが見つかりました: ${path}';
 	@override String installing({required Object version}) => 'Apple Silicon Mac 用の asc ${version} をダウンロードしてインストールしています...';
 	@override String installed({required Object version, required Object path}) => 'asc ${version} をインストールしました: ${path}';
+	@override String versionVerified({required Object version}) => 'asc ${version} の動作を確認しました。';
+	@override String get cachedChecksumFailed => 'キャッシュ内の asc ファイルの SHA-256 が期待値と一致しなかったため、実行しませんでした。キャッシュファイルを削除して再試行してください。';
+	@override String get executionFailed => 'asc version を正常に実行できませんでした。キャッシュ内の asc ファイルに実行権限があることを確認して再試行してください。';
+	@override String get versionTimedOut => 'asc version がタイムアウトしました。再試行してください。';
+	@override String versionMismatch({required Object version}) => 'asc version の出力が必要なバージョン（${version}）と一致しませんでした。キャッシュファイルを削除して再試行してください。';
 	@override String get unsupportedPlatform => 'setup asc-keys は現在 Apple Silicon Mac（macOS arm64）のみに対応しています。';
 	@override String get cacheFailed => 'asc のキャッシュにアクセスできませんでした。権限とディスクの空き容量を確認してください。';
 	@override String get downloadFailed => 'asc をダウンロードできませんでした。ネットワーク接続を確認して再試行してください。';
@@ -564,6 +569,11 @@ extension on TranslationsJa {
 			'setup.ascKeys.cacheFound' => ({required Object version, required Object path}) => 'asc ${version} 用のキャッシュファイルが見つかりました: ${path}',
 			'setup.ascKeys.installing' => ({required Object version}) => 'Apple Silicon Mac 用の asc ${version} をダウンロードしてインストールしています...',
 			'setup.ascKeys.installed' => ({required Object version, required Object path}) => 'asc ${version} をインストールしました: ${path}',
+			'setup.ascKeys.versionVerified' => ({required Object version}) => 'asc ${version} の動作を確認しました。',
+			'setup.ascKeys.cachedChecksumFailed' => 'キャッシュ内の asc ファイルの SHA-256 が期待値と一致しなかったため、実行しませんでした。キャッシュファイルを削除して再試行してください。',
+			'setup.ascKeys.executionFailed' => 'asc version を正常に実行できませんでした。キャッシュ内の asc ファイルに実行権限があることを確認して再試行してください。',
+			'setup.ascKeys.versionTimedOut' => 'asc version がタイムアウトしました。再試行してください。',
+			'setup.ascKeys.versionMismatch' => ({required Object version}) => 'asc version の出力が必要なバージョン（${version}）と一致しませんでした。キャッシュファイルを削除して再試行してください。',
 			'setup.ascKeys.unsupportedPlatform' => 'setup asc-keys は現在 Apple Silicon Mac（macOS arm64）のみに対応しています。',
 			'setup.ascKeys.cacheFailed' => 'asc のキャッシュにアクセスできませんでした。権限とディスクの空き容量を確認してください。',
 			'setup.ascKeys.downloadFailed' => 'asc をダウンロードできませんでした。ネットワーク接続を確認して再試行してください。',

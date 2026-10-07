@@ -4,7 +4,7 @@ import 'dart:io';
 import 'package:cli_util/cli_util.dart';
 import 'package:path/path.dart' as p;
 
-const ascVersion = '5.11.0';
+import 'asc_release.dart';
 
 /// Finds the cached file for Apple Silicon Macs without validating or running it.
 Future<File?> findCachedAscExecutable({

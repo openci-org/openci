@@ -3,8 +3,9 @@ import 'dart:io';
 import 'package:args/command_runner.dart';
 import 'package:cli_util/cli_logging.dart';
 import 'package:genuineci_cli/genuineci_cli.dart';
-import 'package:genuineci_cli/src/asc/find_cached_asc_executable.dart';
+import 'package:genuineci_cli/src/asc/asc_release.dart';
 import 'package:genuineci_cli/src/asc/install_asc.dart';
+import 'package:genuineci_cli/src/asc/verify_asc_executable.dart';
 import 'package:test/test.dart';
 
 class _RecordingLogger implements Logger {
@@ -26,6 +27,8 @@ void main() {
   late _RecordingLogger logger;
   late Future<File?> Function() findCachedExecutable;
   late Future<File> Function() installExecutable;
+  late Future<void> Function(File) verifyExecutable;
+  late List<File> verifiedFiles;
   late int lookups;
   late int installs;
 
@@ -35,6 +38,8 @@ void main() {
     logger = _RecordingLogger();
     findCachedExecutable = () async => null;
     installExecutable = () async => File('installed-asc');
+    verifyExecutable = (_) async {};
+    verifiedFiles = [];
     lookups = 0;
     installs = 0;
   });
@@ -56,6 +61,10 @@ void main() {
             installs++;
             return installExecutable();
           },
+          verifyExecutable: (file) {
+            verifiedFiles.add(file);
+            return verifyExecutable(file);
+          },
         ),
       );
     return runner.run(['asc-keys', ...arguments]);
@@ -71,8 +80,10 @@ void main() {
 
       expect(lookups, 1);
       expect(installs, 0);
+      expect(verifiedFiles, [file]);
       expect(logger.output, [
         t.setup.ascKeys.cacheFound(version: ascVersion, path: file.path),
+        t.setup.ascKeys.versionVerified(version: ascVersion),
       ]);
       expect(logger.errors, [t.setup.ascKeys.notImplemented]);
     });
@@ -86,13 +97,57 @@ void main() {
 
         expect(lookups, 1);
         expect(installs, 1);
+        expect(verifiedFiles.map((file) => file.path), ['installed-asc']);
         expect(logger.output, [
           t.setup.ascKeys.installing(version: ascVersion),
           t.setup.ascKeys.installed(version: ascVersion, path: 'installed-asc'),
+          t.setup.ascKeys.versionVerified(version: ascVersion),
         ]);
         expect(logger.errors, [t.setup.ascKeys.notImplemented]);
       },
     );
+
+    for (final cached in [true, false]) {
+      for (final failure in AscVerificationFailure.values) {
+        test('reports $failure (cached: $cached, locale: $locale)', () async {
+          LocaleSettings.setLocaleSync(locale);
+          final file = File('cached-asc');
+          findCachedExecutable = () async => cached ? file : null;
+          verifyExecutable = (_) async =>
+              throw AscVerificationException(failure);
+
+          expect(await run(), 1);
+
+          expect(installs, cached ? 0 : 1);
+          expect(verifiedFiles.map((file) => file.path), [
+            cached ? file.path : 'installed-asc',
+          ]);
+          expect(logger.output, [
+            if (cached)
+              t.setup.ascKeys.cacheFound(version: ascVersion, path: file.path)
+            else ...[
+              t.setup.ascKeys.installing(version: ascVersion),
+              t.setup.ascKeys.installed(
+                version: ascVersion,
+                path: 'installed-asc',
+              ),
+            ],
+          ]);
+          expect(logger.errors, [
+            switch (failure) {
+              AscVerificationFailure.checksum =>
+                t.setup.ascKeys.cachedChecksumFailed,
+              AscVerificationFailure.execution =>
+                t.setup.ascKeys.executionFailed,
+              AscVerificationFailure.timeout => t.setup.ascKeys.versionTimedOut,
+              AscVerificationFailure.version => t.setup.ascKeys.versionMismatch(
+                version: ascVersion,
+              ),
+            },
+          ]);
+        });
+      }
+    }
   }
 
   test('reports an unsupported platform', () async {
@@ -102,6 +157,7 @@ void main() {
     expect(logger.output, isEmpty);
     expect(logger.errors, [t.setup.ascKeys.unsupportedPlatform]);
     expect(installs, 0);
+    expect(verifiedFiles, isEmpty);
   });
 
   test('reports filesystem failures', () async {
@@ -112,6 +168,7 @@ void main() {
     expect(logger.output, isEmpty);
     expect(logger.errors, [t.setup.ascKeys.cacheFailed]);
     expect(installs, 0);
+    expect(verifiedFiles, isEmpty);
   });
 
   for (final failure in AscInstallFailure.values) {
@@ -120,6 +177,7 @@ void main() {
 
       expect(await run(), 1);
       expect(installs, 1);
+      expect(verifiedFiles, isEmpty);
       expect(logger.output, [t.setup.ascKeys.installing(version: ascVersion)]);
       expect(logger.errors, [
         switch (failure) {
@@ -138,6 +196,19 @@ void main() {
     expect(await run(), 1);
     expect(logger.output, [t.setup.ascKeys.installing(version: ascVersion)]);
     expect(logger.errors, [t.setup.ascKeys.cacheFailed]);
+    expect(verifiedFiles, isEmpty);
+  });
+
+  test('reports cache read failures during verification', () async {
+    findCachedExecutable = () async => File('cached-asc');
+    verifyExecutable = (_) async => throw const FileSystemException('denied');
+
+    expect(await run(), 1);
+    expect(logger.output, [
+      t.setup.ascKeys.cacheFound(version: ascVersion, path: 'cached-asc'),
+    ]);
+    expect(logger.errors, [t.setup.ascKeys.cacheFailed]);
+    expect(installs, 0);
   });
 
   test('rejects positional arguments before inspecting the cache', () async {
@@ -145,6 +216,7 @@ void main() {
 
     expect(lookups, 0);
     expect(installs, 0);
+    expect(verifiedFiles, isEmpty);
     expect(logger.output, isEmpty);
     expect(logger.errors, isEmpty);
   });
@@ -154,6 +226,7 @@ void main() {
 
     expect(lookups, 0);
     expect(installs, 0);
+    expect(verifiedFiles, isEmpty);
     expect(logger.errors, isEmpty);
   });
 }

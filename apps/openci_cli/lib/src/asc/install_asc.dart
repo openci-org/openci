@@ -8,11 +8,9 @@ import 'package:meta/meta.dart';
 import 'package:path/path.dart' as p;
 
 import 'asc_license.dart';
+import 'asc_release.dart';
 import 'find_cached_asc_executable.dart';
 
-// https://github.com/rorkai/App-Store-Connect-CLI/releases/download/5.11.0/asc_5.11.0_checksums.txt
-const _ascChecksum =
-    '180f77a17dd81a4392bd4a8055d5544918961a0c3ea9bc184a1b16b8aaf1695e';
 final _ascDownloadUrl = Uri.https(
   'github.com',
   '/rorkai/App-Store-Connect-CLI/releases/download/'
@@ -31,7 +29,7 @@ class AscInstallException implements Exception {
 Future<File> installAsc({
   @visibleForTesting Directory? cacheDirectory,
   @visibleForTesting Abi? abi,
-  @visibleForTesting String expectedChecksum = _ascChecksum,
+  @visibleForTesting String expectedChecksum = ascChecksum,
   @visibleForTesting http.Client Function() clientFactory = http.Client.new,
   @visibleForTesting
   Future<ProcessResult> Function(String, List<String>) processRunner =

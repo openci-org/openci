@@ -428,9 +428,13 @@ later calls without `dir` continue to use the configured working directory.
 [official release](https://github.com/rorkai/App-Store-Connect-CLI/releases/tag/5.11.0),
 verifies its SHA-256, sets owner-only executable permissions, and moves it into
 the cache alongside its MIT license. Failed downloads are cleaned up.
-Existing cached files are still checked only for presence. Running asc and
-setting up App Store Connect API keys remain unimplemented, so the command
-still exits with code 1 after locating or installing asc.
+Before running either an existing or newly installed binary, it verifies the
+cached file's SHA-256 again. It then runs `asc version` using the absolute cache
+path and requires exit code 0 and version 5.11.0. A checksum mismatch prevents
+execution; an execution failure, unexpected version, or 10-second timeout stops
+setup with an error. A timed-out process is terminated.
+Apple login, key issuance, and key storage remain unimplemented, so the command
+still exits with code 1 after verifying asc.
 Use `genuineci setup asc-keys --help` to view its help.
 
 ## Code generation

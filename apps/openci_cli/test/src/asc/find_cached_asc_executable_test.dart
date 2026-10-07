@@ -1,6 +1,7 @@
 import 'dart:ffi';
 import 'dart:io';
 
+import 'package:genuineci_cli/src/asc/asc_release.dart';
 import 'package:genuineci_cli/src/asc/find_cached_asc_executable.dart';
 import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
