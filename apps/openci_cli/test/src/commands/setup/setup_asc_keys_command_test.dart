@@ -12,6 +12,7 @@ import 'package:genuineci_cli/src/asc/create_asc_api_key.dart';
 import 'package:genuineci_cli/src/asc/install_asc.dart';
 import 'package:genuineci_cli/src/asc/verify_asc_executable.dart';
 import 'package:genuineci_cli/src/commands/setup/confirm_asc_key_creation.dart';
+import 'package:genuineci_cli/src/commands/setup/asc_key_registration.dart';
 import 'package:genuineci_cli/src/commands/setup/read_apple_id.dart';
 import 'package:test/test.dart';
 
@@ -39,9 +40,41 @@ class _LoginProcess implements Process {
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
+class _Registration extends AscKeyRegistration {
+  _Registration({required super.logger});
+
+  final target = const AscKeySaveTarget(
+    profileName: 'remote',
+    profile: AuthProfile(
+      serverUrl: 'https://ci.example.com',
+      token: 'token',
+      teamId: 'team',
+    ),
+  );
+  int prepares = 0;
+  bool ready = true;
+  int saveCode = 0;
+  final saves = <(AscKeySaveTarget, AscApiKey)>[];
+
+  @override
+  Future<AscKeySaveTarget?> prepare() async {
+    prepares++;
+    return ready ? target : null;
+  }
+
+  @override
+  Future<int> save(AscKeySaveTarget target, AscApiKey key) async {
+    saves.add((target, key));
+    return saveCode;
+  }
+}
+
 void main() {
   late AppLocale originalLocale;
   late _RecordingLogger logger;
+  late _Registration registration;
+  late Future<AscApiKey> Function(Directory) readSavedKey;
+  late Future<bool> Function() confirmSave;
   late Future<File?> Function() findCachedExecutable;
   late Future<File> Function() installExecutable;
   late Future<void> Function(File) verifyExecutable;
@@ -70,6 +103,13 @@ void main() {
     originalLocale = LocaleSettings.currentLocale;
     LocaleSettings.setLocaleSync(AppLocale.en);
     logger = _RecordingLogger();
+    registration = _Registration(logger: logger);
+    readSavedKey = (directory) async => AscApiKey(
+      keyId: 'SAVED123',
+      issuerId: 'SAVEDISSUER',
+      privateKeyFile: File('${directory.path}/AuthKey_SAVED123.p8'),
+    );
+    confirmSave = () async => true;
     findCachedExecutable = () async => null;
     installExecutable = () async => File('installed-asc');
     verifyExecutable = (_) async {};
@@ -105,6 +145,9 @@ void main() {
       ..addCommand(
         SetupAscKeysCommand(
           logger: logger,
+          registration: registration,
+          readSavedKey: readSavedKey,
+          confirmSave: confirmSave,
           findCachedExecutable: () {
             steps.add('find');
             lookups++;
@@ -476,10 +519,12 @@ void main() {
             t.setup.ascKeys.privateKeySaved(
               path: '/key-output/AuthKey_KEY123.p8',
             ),
-            t.setup.ascKeys.serverStoragePending,
+            t.setup.ascKeys.setupComplete,
           ],
         );
         expect(logger.errors, isEmpty);
+        expect(registration.saves.single.$1, same(registration.target));
+        expect(registration.saves.single.$2.keyId, 'KEY123');
       },
     );
 
@@ -614,6 +659,87 @@ void main() {
     expect(steps.last, 'create');
   });
 
+  test('checks OpenCI access before installing or contacting asc', () async {
+    registration.ready = false;
+    expect(await run(), 1);
+    expect(registration.prepares, 1);
+    expect(steps, isEmpty);
+    expect(registration.saves, isEmpty);
+  });
+
+  for (final locale in [AppLocale.en, AppLocale.ja]) {
+    test('reports a failed save with a retry command: $locale', () async {
+      LocaleSettings.setLocaleSync(locale);
+      confirmCreation = () async => true;
+      registration.saveCode = 1;
+      expect(await run(), 1);
+      expect(registration.saves, hasLength(1));
+      expect(logger.output, isNot(contains(t.setup.ascKeys.setupComplete)));
+      expect(logger.errors, [
+        t.setup.ascKeys.retrySave(
+          command: "genuineci setup asc-keys --key-directory '/key-output'",
+        ),
+      ]);
+    });
+
+    test('saves an existing key without running asc: $locale', () async {
+      LocaleSettings.setLocaleSync(locale);
+      expect(await run(['--key-directory', '/saved key']), 0);
+      expect(steps, isEmpty);
+      expect(registration.saves.single.$2.keyId, 'SAVED123');
+      expect(logger.output, [
+        t.setup.ascKeys.keyId(id: 'SAVED123'),
+        t.setup.ascKeys.issuerId(id: 'SAVEDISSUER'),
+        t.setup.ascKeys.setupComplete,
+      ]);
+    });
+
+    test('cancels saving an existing key: $locale', () async {
+      LocaleSettings.setLocaleSync(locale);
+      confirmSave = () async => false;
+      expect(await run(['--key-directory', '/saved key']), 0);
+      expect(steps, isEmpty);
+      expect(registration.saves, isEmpty);
+      expect(logger.output.last, t.setup.ascKeys.keySaveCancelled);
+    });
+
+    test('does not save unreadable metadata: $locale', () async {
+      LocaleSettings.setLocaleSync(locale);
+      readSavedKey = (_) async =>
+          throw const FormatException('private diagnostic');
+      expect(await run(['--key-directory', '/saved key']), 1);
+      expect(registration.saves, isEmpty);
+      expect(steps, isEmpty);
+      expect(logger.errors, [t.setup.ascKeys.savedKeyInvalid]);
+    });
+
+    test('handles confirmation input errors when resuming: $locale', () async {
+      LocaleSettings.setLocaleSync(locale);
+      confirmSave = () async => throw const AscKeyConfirmationException();
+      expect(await run(['--key-directory', '/saved key']), 1);
+      expect(registration.saves, isEmpty);
+      expect(logger.errors, [t.setup.ascKeys.keyConfirmationFailed]);
+    });
+  }
+
+  test('quotes spaces and apostrophes in the resume command', () async {
+    registration.saveCode = 1;
+    expect(await run(['--key-directory', "/saved user's key"]), 1);
+    expect(
+      logger.errors.single,
+      contains("--key-directory '/saved user'\\''s key'"),
+    );
+  });
+
+  test('rejects an empty key directory before reading credentials', () async {
+    await expectLater(
+      run(['--key-directory', '  ']),
+      throwsA(isA<UsageException>()),
+    );
+    expect(registration.prepares, 0);
+    expect(steps, isEmpty);
+  });
+
   test('reports an unsupported platform', () async {
     findCachedExecutable = () async => throw UnsupportedError('unsupported');
 
@@ -713,5 +839,6 @@ void main() {
     expect(startedLogins, isEmpty);
     expect(checkedSessions, isEmpty);
     expect(logger.errors, isEmpty);
+    expect(registration.prepares, 0);
   });
 }

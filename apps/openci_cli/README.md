@@ -422,8 +422,14 @@ later calls without `dir` continue to use the configured working directory.
 `WorkspacePaths.root` represents `.` and `WorkspacePaths.root.apps` represents
 `apps`. Both can also be passed directly to methods accepting a `String` path.
 
-`genuineci setup asc-keys` currently supports only Apple Silicon Macs
-(macOS arm64). It reuses a regular asc 5.11.0 file in GenuineCI's cache at
+`genuineci setup asc-keys` creates a key on Apple Silicon Macs (macOS arm64)
+and saves its credentials as three secrets for the active OpenCI team. First run
+`genuineci login` (or `genuineci login --local`) and select the intended team.
+Setup checks access to that team's secrets before contacting Apple, displays
+the server, team ID, and secret names, and indicates which existing secrets
+will be replaced.
+
+It reuses a regular asc 5.11.0 file in GenuineCI's cache at
 `<cache>/tools/asc/5.11.0/macOS_arm64/asc`. If absent, it downloads the pinned
 [official release](https://github.com/rorkai/App-Store-Connect-CLI/releases/tag/5.11.0),
 verifies its SHA-256, sets owner-only executable permissions, and moves it into
@@ -459,7 +465,8 @@ provider. If neither ID is available, setup stops. Other team IDs are not used a
 substitutes. This response describes the current provider, not a list of teams.
 
 After displaying the provider, GenuineCI asks whether to create a **new** key
-named `GenuineCI` with `APP_MANAGER` access to all apps. Only `y` or `yes` proceeds;
+named `GenuineCI` with `APP_MANAGER` access to all apps and save it to the
+displayed OpenCI destination. Only `y` or `yes` proceeds;
 other input or EOF cancels without requesting a key. The Apple account must be
 an Account Holder or Admin to create a team key. The verified binary runs
 `web api-keys create --apple-id <email> --provider-id <id>` (and/or
@@ -475,11 +482,35 @@ Issuer ID, provider IDs, role, and private-key path with mode `0600`. Private ke
 contents and raw asc output are never printed. asc handles any reauthentication
 through `/dev/tty` and applies its own network timeouts.
 
+The CLI saves three separate secrets through the existing team Secret API:
+
+| Secret name | Value |
+| --- | --- |
+| `OPENCI_GENERATED_ASC_KEY_ID` | The Key ID as text |
+| `OPENCI_GENERATED_ASC_ISSUER_ID` | The Issuer ID as text |
+| `OPENCI_GENERATED_P8_BASE64` | The complete P8 file encoded as Base64, matching `register secret-file` |
+
+The server encrypts each value in its existing secrets table. Setup refreshes
+OpenCI authentication before saving and stops if the active profile or
+credentials changed while Apple authentication was in progress. Secret values
+are not logged. Success means the server accepted all three saves; local files
+are retained. Saves are sequential, so a failure or interruption can leave a
+partial update. Retry with the same local key to overwrite all three values.
+
 Creation is never automatically retried. On failure or interruption, downloaded
 files are retained; check the displayed directory and App Store Connect before
-retrying because a key may already exist. A successful local save exits with
-code 0 and reports that OpenCI server storage is still unimplemented. Provider
-switching, reusing existing keys, and server storage are future steps.
+issuing another key. If a key was saved locally, retry only the OpenCI save:
+
+```sh
+genuineci setup asc-keys --key-directory '/path/to/asc-api-keys/key-xxxxxx'
+```
+
+This reads `key.json` and its matching `.p8`, displays the destination and key
+IDs, and asks for confirmation. It does not install or run asc or contact Apple.
+Existing generated secrets are replaced only after confirmation. Save failures
+exit with code 1 and print this retry command. Each retry saves all three
+values, including any that were already saved. Provider switching remains a
+future step.
 Use `genuineci setup asc-keys --help` to view its help.
 
 ## Code generation

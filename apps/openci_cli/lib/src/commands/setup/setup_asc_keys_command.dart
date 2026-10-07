@@ -5,6 +5,7 @@ import 'package:cli_util/cli_logging.dart';
 import 'package:meta/meta.dart';
 
 import '../../asc/asc_api_key.dart';
+import '../../asc/asc_api_key_secret.dart';
 import '../../asc/asc_authentication_status.dart';
 import '../../asc/asc_release.dart';
 import '../../asc/check_asc_authentication.dart';
@@ -15,6 +16,7 @@ import '../../asc/prepare_asc_key_directory.dart';
 import '../../asc/start_asc_login.dart';
 import '../../asc/verify_asc_executable.dart';
 import '../../i18n/i18n.dart';
+import 'asc_key_registration.dart';
 import 'confirm_asc_key_creation.dart';
 import 'read_apple_id.dart';
 
@@ -26,6 +28,9 @@ class SetupAscKeysCommand extends Command<int> {
   String get description => t.setup.ascKeys.description;
 
   final Logger _logger;
+  final AscKeyRegistration _registration;
+  final Future<AscApiKey> Function(Directory) _readSavedKey;
+  final Future<bool> Function() _confirmSave;
   final Future<File?> Function() _findCachedExecutable;
   final Future<File> Function() _installExecutable;
   final Future<void> Function(File) _verifyExecutable;
@@ -45,6 +50,10 @@ class SetupAscKeysCommand extends Command<int> {
 
   SetupAscKeysCommand({
     required Logger logger,
+    @visibleForTesting AscKeyRegistration? registration,
+    @visibleForTesting
+    Future<AscApiKey> Function(Directory) readSavedKey = readSavedAscApiKey,
+    @visibleForTesting Future<bool> Function() confirmSave = confirmAscKeySave,
     @visibleForTesting
     Future<File?> Function() findCachedExecutable = findCachedAscExecutable,
     @visibleForTesting Future<File> Function() installExecutable = installAsc,
@@ -66,6 +75,9 @@ class SetupAscKeysCommand extends Command<int> {
         createKey =
         createAscApiKey,
   }) : _logger = logger,
+       _registration = registration ?? AscKeyRegistration(logger: logger),
+       _readSavedKey = readSavedKey,
+       _confirmSave = confirmSave,
        _findCachedExecutable = findCachedExecutable,
        _installExecutable = installExecutable,
        _verifyExecutable = verifyExecutable,
@@ -74,12 +86,26 @@ class SetupAscKeysCommand extends Command<int> {
        _checkAuthentication = checkAuthentication,
        _confirmCreation = confirmCreation,
        _prepareKeyDirectory = prepareKeyDirectory,
-       _createKey = createKey;
+       _createKey = createKey {
+    argParser.addOption(
+      'key-directory',
+      help: t.setup.ascKeys.keyDirectoryHelp,
+    );
+  }
 
   @override
   Future<int> run() async {
     if (argResults!.rest.isNotEmpty) {
       usageException(t.setup.ascKeys.noArguments);
+    }
+    final keyDirectory = argResults!.option('key-directory');
+    if (keyDirectory != null && keyDirectory.trim().isEmpty) {
+      usageException(t.setup.ascKeys.keyDirectoryRequired);
+    }
+    final target = await _registration.prepare();
+    if (target == null) return 1;
+    if (keyDirectory != null) {
+      return _saveExistingKey(Directory(keyDirectory).absolute, target);
     }
 
     final File executable;
@@ -175,8 +201,7 @@ class SetupAscKeysCommand extends Command<int> {
         _logger.stdout(
           t.setup.ascKeys.privateKeySaved(path: key.privateKeyFile.path),
         );
-        _logger.stdout(t.setup.ascKeys.serverStoragePending);
-        return 0;
+        return await _saveKey(target, key, directory);
       } on AscApiKeyException catch (error) {
         _logger.stderr(switch (error.failure) {
           AscApiKeyFailure.start => t.setup.ascKeys.keyCreationStartFailed,
@@ -212,5 +237,49 @@ class SetupAscKeysCommand extends Command<int> {
       _logger.stderr(t.setup.ascKeys.loginStartFailed);
       return 1;
     }
+  }
+
+  Future<int> _saveExistingKey(
+    Directory directory,
+    AscKeySaveTarget target,
+  ) async {
+    final AscApiKey key;
+    try {
+      key = await _readSavedKey(directory);
+    } catch (_) {
+      _logger.stderr(t.setup.ascKeys.savedKeyInvalid);
+      return 1;
+    }
+    _logger.stdout(t.setup.ascKeys.keyId(id: key.keyId));
+    _logger.stdout(t.setup.ascKeys.issuerId(id: key.issuerId));
+    try {
+      if (!await _confirmSave()) {
+        _logger.stdout(t.setup.ascKeys.keySaveCancelled);
+        return 0;
+      }
+    } on AscKeyConfirmationException {
+      _logger.stderr(t.setup.ascKeys.keyConfirmationFailed);
+      return 1;
+    }
+    return _saveKey(target, key, directory);
+  }
+
+  Future<int> _saveKey(
+    AscKeySaveTarget target,
+    AscApiKey key,
+    Directory directory,
+  ) async {
+    final code = await _registration.save(target, key);
+    if (code == 0) {
+      _logger.stdout(t.setup.ascKeys.setupComplete);
+    } else {
+      final path = "'${directory.absolute.path.replaceAll("'", "'\\''")}'";
+      _logger.stderr(
+        t.setup.ascKeys.retrySave(
+          command: 'genuineci setup asc-keys --key-directory $path',
+        ),
+      );
+    }
+    return code;
   }
 }
