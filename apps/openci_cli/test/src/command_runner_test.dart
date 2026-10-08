@@ -133,6 +133,14 @@ void main() {
     expect(runner.commands['update']!.description, t.update.description);
   });
 
+  test('registers standalone iOS certificate key setup', () {
+    final setup = runner.commands['setup'];
+    expect(setup, isA<SetupCommand>());
+    final certificate = setup!.subcommands['ios-certificate-key'];
+    expect(certificate, isA<SetupIosCertificateKeyCommand>());
+    expect(certificate!.description, t.setup.iosCertificateKey.description);
+  });
+
   test('registers register secret with localized descriptions', () {
     final register = runner.commands['register'];
     expect(register, isA<RegisterCommand>());

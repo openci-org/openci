@@ -306,6 +306,7 @@ class Translations$setup$en {
 	/// en: 'Set up integrations for OpenCI.'
 	String get description => 'Set up integrations for OpenCI.';
 
+	late final Translations$setup$iosCertificateKey$en iosCertificateKey = Translations$setup$iosCertificateKey$en.internal(_root);
 	late final Translations$setup$ascKeys$en ascKeys = Translations$setup$ascKeys$en.internal(_root);
 }
 
@@ -595,6 +596,36 @@ class Translations$register$secretFile$en {
 	String get emptyFile => 'The selected file is empty. No secret was registered.';
 }
 
+// Path: setup.iosCertificateKey
+class Translations$setup$iosCertificateKey$en {
+	Translations$setup$iosCertificateKey$en.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// en: 'Prepare an iOS certificate private key in OpenCI, keeping any existing key.'
+	String get description => 'Prepare an iOS certificate private key in OpenCI, keeping any existing key.';
+
+	/// en: 'setup ios-certificate-key does not accept positional arguments.'
+	String get noArguments => 'setup ios-certificate-key does not accept positional arguments.';
+
+	/// en: 'OpenCI save destination: ${server} Team ID: ${team} Secret: ${name}'
+	String saveDestination({required Object server, required Object team, required Object name}) => 'OpenCI save destination: ${server}\n  Team ID: ${team}\n  Secret: ${name}';
+
+	/// en: 'Kept the existing iOS certificate private key.'
+	String get reused => 'Kept the existing iOS certificate private key.';
+
+	/// en: 'The iOS certificate private key is saved in OpenCI.'
+	String get ready => 'The iOS certificate private key is saved in OpenCI.';
+
+	/// en: 'Could not prepare or verify the iOS certificate private key. Retry setup.'
+	String get setupFailed => 'Could not prepare or verify the iOS certificate private key. Retry setup.';
+
+	/// en: 'Could not prepare the iOS certificate private key (HTTP ${status}).'
+	String requestFailed({required Object status}) => 'Could not prepare the iOS certificate private key (HTTP ${status}).';
+}
+
 // Path: setup.ascKeys
 class Translations$setup$ascKeys$en {
 	Translations$setup$ascKeys$en.internal(this._root);
@@ -626,18 +657,6 @@ class Translations$setup$ascKeys$en {
 
 	/// en: 'An iOS certificate private key will be generated and saved if missing.'
 	String get certificateKeyWillCreate => 'An iOS certificate private key will be generated and saved if missing.';
-
-	/// en: 'Kept the existing iOS certificate private key.'
-	String get certificateKeyReused => 'Kept the existing iOS certificate private key.';
-
-	/// en: 'The iOS certificate private key is saved in OpenCI.'
-	String get certificateKeyReady => 'The iOS certificate private key is saved in OpenCI.';
-
-	/// en: 'Could not prepare or verify the iOS certificate private key. The ASC key files are retained for retry.'
-	String get certificateKeySetupFailed => 'Could not prepare or verify the iOS certificate private key. The ASC key files are retained for retry.';
-
-	/// en: 'Could not prepare the iOS certificate private key (HTTP ${status}).'
-	String certificateKeyRequestFailed({required Object status}) => 'Could not prepare the iOS certificate private key (HTTP ${status}).';
 
 	/// en: 'Could not verify access to the OpenCI team's secrets. Check the server and connection before issuing a key.'
 	String get savePreflightFailed => 'Could not verify access to the OpenCI team\'s secrets. Check the server and connection before issuing a key.';
@@ -1117,6 +1136,13 @@ extension on Translations {
 			'register.secretFile.readFailed' => 'Could not read the selected file. Check that it is a regular file and that you have permission to read it.',
 			'register.secretFile.emptyFile' => 'The selected file is empty. No secret was registered.',
 			'setup.description' => 'Set up integrations for OpenCI.',
+			'setup.iosCertificateKey.description' => 'Prepare an iOS certificate private key in OpenCI, keeping any existing key.',
+			'setup.iosCertificateKey.noArguments' => 'setup ios-certificate-key does not accept positional arguments.',
+			'setup.iosCertificateKey.saveDestination' => ({required Object server, required Object team, required Object name}) => 'OpenCI save destination: ${server}\n  Team ID: ${team}\n  Secret: ${name}',
+			'setup.iosCertificateKey.reused' => 'Kept the existing iOS certificate private key.',
+			'setup.iosCertificateKey.ready' => 'The iOS certificate private key is saved in OpenCI.',
+			'setup.iosCertificateKey.setupFailed' => 'Could not prepare or verify the iOS certificate private key. Retry setup.',
+			'setup.iosCertificateKey.requestFailed' => ({required Object status}) => 'Could not prepare the iOS certificate private key (HTTP ${status}).',
 			'setup.ascKeys.description' => 'Set up an App Store Connect API key and an iOS certificate private key in OpenCI.',
 			'setup.ascKeys.noArguments' => 'setup asc-keys does not accept positional arguments.',
 			'setup.ascKeys.keyDirectoryHelp' => 'Save an existing ASC key from key.json and its .p8 file, and prepare the iOS certificate private key if missing; does not issue a new ASC key.',
@@ -1125,10 +1151,6 @@ extension on Translations {
 			'setup.ascKeys.secretWillReplace' => ({required Object name}) => 'The existing ${name} secret will be replaced if you continue.',
 			'setup.ascKeys.certificateKeyWillReuse' => 'The existing iOS certificate private key will be kept.',
 			'setup.ascKeys.certificateKeyWillCreate' => 'An iOS certificate private key will be generated and saved if missing.',
-			'setup.ascKeys.certificateKeyReused' => 'Kept the existing iOS certificate private key.',
-			'setup.ascKeys.certificateKeyReady' => 'The iOS certificate private key is saved in OpenCI.',
-			'setup.ascKeys.certificateKeySetupFailed' => 'Could not prepare or verify the iOS certificate private key. The ASC key files are retained for retry.',
-			'setup.ascKeys.certificateKeyRequestFailed' => ({required Object status}) => 'Could not prepare the iOS certificate private key (HTTP ${status}).',
 			'setup.ascKeys.savePreflightFailed' => 'Could not verify access to the OpenCI team\'s secrets. Check the server and connection before issuing a key.',
 			'setup.ascKeys.saveProfileChanged' => 'The OpenCI profile or credentials changed during setup. The key was not saved. Retry with the intended profile and team.',
 			'setup.ascKeys.savedKeyInvalid' => 'Could not read a valid saved key. Check key.json and its matching .p8 file in the key directory.',

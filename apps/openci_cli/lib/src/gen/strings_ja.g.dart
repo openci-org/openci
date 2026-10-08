@@ -188,6 +188,7 @@ class _Translations$setup$ja extends Translations$setup$en {
 
 	// Translations
 	@override String get description => 'OpenCI の外部サービス連携をセットアップします。';
+	@override late final _Translations$setup$iosCertificateKey$ja iosCertificateKey = _Translations$setup$iosCertificateKey$ja._(_root);
 	@override late final _Translations$setup$ascKeys$ja ascKeys = _Translations$setup$ascKeys$ja._(_root);
 }
 
@@ -360,6 +361,22 @@ class _Translations$register$secretFile$ja extends Translations$register$secretF
 	@override String get emptyFile => '選択したファイルは空です。シークレットは登録されませんでした。';
 }
 
+// Path: setup.iosCertificateKey
+class _Translations$setup$iosCertificateKey$ja extends Translations$setup$iosCertificateKey$en {
+	_Translations$setup$iosCertificateKey$ja._(TranslationsJa root) : this._root = root, super.internal(root);
+
+	final TranslationsJa _root; // ignore: unused_field
+
+	// Translations
+	@override String get description => 'iOS 証明書用秘密鍵を OpenCI に準備します。登録済みの鍵は保持します。';
+	@override String get noArguments => 'setup ios-certificate-key は位置引数を受け付けません。';
+	@override String saveDestination({required Object server, required Object team, required Object name}) => 'OpenCI の保存先: ${server}\n  チーム ID: ${team}\n  シークレット: ${name}';
+	@override String get reused => '登録済みの iOS 証明書用秘密鍵を保持しました。';
+	@override String get ready => 'iOS 証明書用秘密鍵が OpenCI に保存されていることを確認しました。';
+	@override String get setupFailed => 'iOS 証明書用秘密鍵の準備または保存確認に失敗しました。セットアップを再試行してください。';
+	@override String requestFailed({required Object status}) => 'iOS 証明書用秘密鍵を準備できませんでした（HTTP ${status}）。';
+}
+
 // Path: setup.ascKeys
 class _Translations$setup$ascKeys$ja extends Translations$setup$ascKeys$en {
 	_Translations$setup$ascKeys$ja._(TranslationsJa root) : this._root = root, super.internal(root);
@@ -375,10 +392,6 @@ class _Translations$setup$ascKeys$ja extends Translations$setup$ascKeys$en {
 	@override String secretWillReplace({required Object name}) => '続行すると、既存の ${name} シークレットを置き換えます。';
 	@override String get certificateKeyWillReuse => '登録済みの iOS 証明書用秘密鍵はそのまま保持します。';
 	@override String get certificateKeyWillCreate => 'iOS 証明書用秘密鍵が未登録の場合は、生成して保存します。';
-	@override String get certificateKeyReused => '登録済みの iOS 証明書用秘密鍵を保持しました。';
-	@override String get certificateKeyReady => 'iOS 証明書用秘密鍵が OpenCI に保存されていることを確認しました。';
-	@override String get certificateKeySetupFailed => 'iOS 証明書用秘密鍵の準備または保存確認に失敗しました。再試行用に ASC キーのファイルは保持しています。';
-	@override String certificateKeyRequestFailed({required Object status}) => 'iOS 証明書用秘密鍵を準備できませんでした（HTTP ${status}）。';
 	@override String get savePreflightFailed => 'OpenCI チームのシークレットへのアクセスを確認できませんでした。キーを発行する前にサーバーと接続を確認してください。';
 	@override String get saveProfileChanged => 'セットアップ中に OpenCI のプロファイルまたは認証情報が変更されました。キーは保存していません。保存先のプロファイルとチームを確認して再試行してください。';
 	@override String get savedKeyInvalid => '有効な保存済みキーを読み取れませんでした。保存先の key.json と対応する .p8 ファイルを確認してください。';
@@ -647,6 +660,13 @@ extension on TranslationsJa {
 			'register.secretFile.readFailed' => '選択したファイルを読み取れませんでした。通常のファイルであることと読み取り権限を確認してください。',
 			'register.secretFile.emptyFile' => '選択したファイルは空です。シークレットは登録されませんでした。',
 			'setup.description' => 'OpenCI の外部サービス連携をセットアップします。',
+			'setup.iosCertificateKey.description' => 'iOS 証明書用秘密鍵を OpenCI に準備します。登録済みの鍵は保持します。',
+			'setup.iosCertificateKey.noArguments' => 'setup ios-certificate-key は位置引数を受け付けません。',
+			'setup.iosCertificateKey.saveDestination' => ({required Object server, required Object team, required Object name}) => 'OpenCI の保存先: ${server}\n  チーム ID: ${team}\n  シークレット: ${name}',
+			'setup.iosCertificateKey.reused' => '登録済みの iOS 証明書用秘密鍵を保持しました。',
+			'setup.iosCertificateKey.ready' => 'iOS 証明書用秘密鍵が OpenCI に保存されていることを確認しました。',
+			'setup.iosCertificateKey.setupFailed' => 'iOS 証明書用秘密鍵の準備または保存確認に失敗しました。セットアップを再試行してください。',
+			'setup.iosCertificateKey.requestFailed' => ({required Object status}) => 'iOS 証明書用秘密鍵を準備できませんでした（HTTP ${status}）。',
 			'setup.ascKeys.description' => 'App Store Connect API キーと iOS 証明書用秘密鍵を OpenCI に準備します。',
 			'setup.ascKeys.noArguments' => 'setup asc-keys は位置引数を受け付けません。',
 			'setup.ascKeys.keyDirectoryHelp' => 'key.json と .p8 ファイルから発行済みの ASC キーを保存し、未登録なら iOS 証明書用秘密鍵も準備します。新しい ASC キーは発行しません。',
@@ -655,10 +675,6 @@ extension on TranslationsJa {
 			'setup.ascKeys.secretWillReplace' => ({required Object name}) => '続行すると、既存の ${name} シークレットを置き換えます。',
 			'setup.ascKeys.certificateKeyWillReuse' => '登録済みの iOS 証明書用秘密鍵はそのまま保持します。',
 			'setup.ascKeys.certificateKeyWillCreate' => 'iOS 証明書用秘密鍵が未登録の場合は、生成して保存します。',
-			'setup.ascKeys.certificateKeyReused' => '登録済みの iOS 証明書用秘密鍵を保持しました。',
-			'setup.ascKeys.certificateKeyReady' => 'iOS 証明書用秘密鍵が OpenCI に保存されていることを確認しました。',
-			'setup.ascKeys.certificateKeySetupFailed' => 'iOS 証明書用秘密鍵の準備または保存確認に失敗しました。再試行用に ASC キーのファイルは保持しています。',
-			'setup.ascKeys.certificateKeyRequestFailed' => ({required Object status}) => 'iOS 証明書用秘密鍵を準備できませんでした（HTTP ${status}）。',
 			'setup.ascKeys.savePreflightFailed' => 'OpenCI チームのシークレットへのアクセスを確認できませんでした。キーを発行する前にサーバーと接続を確認してください。',
 			'setup.ascKeys.saveProfileChanged' => 'セットアップ中に OpenCI のプロファイルまたは認証情報が変更されました。キーは保存していません。保存先のプロファイルとチームを確認して再試行してください。',
 			'setup.ascKeys.savedKeyInvalid' => '有効な保存済みキーを読み取れませんでした。保存先の key.json と対応する .p8 ファイルを確認してください。',

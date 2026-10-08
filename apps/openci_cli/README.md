@@ -541,6 +541,20 @@ prepares the certificate key if missing. Existing certificate keys are kept.
 Provider switching remains a future step.
 Use `genuineci setup asc-keys --help` to view its help.
 
+To prepare only the certificate private key for the active OpenCI team, run:
+
+```sh
+genuineci setup ios-certificate-key
+```
+
+This command requires OpenCI login and a selected team. It generates and saves
+`OPENCI_GENERATED_IOS_CERTIFICATE_PRIVATE_KEY` on the server if missing, or keeps
+the existing key. It verifies that the secret is present before reporting success.
+It does not require Apple login, ASC keys, or local signing tools, and does not
+issue or replace ASC credentials. The private key is not downloaded or printed.
+You can rerun the same command after a failure. Run `genuineci sync --secrets`
+afterward to update the workflow getters.
+
 ## Code generation
 
 Run these commands from `apps/openci_cli`:

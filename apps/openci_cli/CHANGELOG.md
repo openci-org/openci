@@ -1,3 +1,9 @@
+## 0.5.4
+
+- Add `genuineci setup ios-certificate-key` to prepare only the iOS certificate
+  private key for the active team, preserving existing keys without Apple login
+  or ASC credential setup.
+
 ## 0.5.3
 
 - Prepare the iOS certificate private key during `genuineci setup asc-keys`,

@@ -14,6 +14,7 @@ export 'src/commands/register/register_secret_command.dart';
 export 'src/commands/register/register_secret_file_command.dart';
 export 'src/commands/setup/setup_asc_keys_command.dart';
 export 'src/commands/setup/setup_command.dart';
+export 'src/commands/setup/setup_ios_certificate_key_command.dart';
 export 'src/commands/status_command.dart';
 export 'src/commands/switch/switch_command.dart';
 export 'src/commands/switch/switch_team_command.dart';

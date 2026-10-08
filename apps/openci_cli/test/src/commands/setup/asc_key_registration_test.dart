@@ -190,7 +190,7 @@ void main() {
       );
       expect(generate.headers['authorization'], 'Bearer $token');
       expect(generate.body, isEmpty);
-      expect(logger.output.last, t.setup.ascKeys.certificateKeyReady);
+      expect(logger.output.last, t.setup.iosCertificateKey.ready);
       expect(await key.privateKeyFile.readAsString(), pem);
     });
   }
@@ -434,7 +434,7 @@ void main() {
             requests.every((r) => r.url.path.endsWith('/secrets')),
             isTrue,
           );
-          expect(logger.output.last, t.setup.ascKeys.certificateKeyReused);
+          expect(logger.output.last, t.setup.iosCertificateKey.reused);
           expect(logger.errors, isEmpty);
         },
       );
@@ -448,7 +448,7 @@ void main() {
 
       expect(await save(target), 0);
       expect(certificateKeyExists, isTrue);
-      expect(logger.output.last, t.setup.ascKeys.certificateKeyReady);
+      expect(logger.output.last, t.setup.iosCertificateKey.ready);
       expect(logger.errors, isEmpty);
     });
   }
@@ -476,12 +476,9 @@ void main() {
         expect(logger.errors, [
           status == 401 || status == 403
               ? t.register.secret.loginRequired
-              : t.setup.ascKeys.certificateKeyRequestFailed(status: status),
+              : t.setup.iosCertificateKey.requestFailed(status: status),
         ]);
-        expect(
-          logger.output,
-          isNot(contains(t.setup.ascKeys.certificateKeyReady)),
-        );
+        expect(logger.output, isNot(contains(t.setup.iosCertificateKey.ready)));
       });
     }
   }
@@ -511,8 +508,8 @@ void main() {
         expect(generations, 1);
         expect(logger.errors, [
           failure == 'http'
-              ? t.setup.ascKeys.certificateKeyRequestFailed(status: 500)
-              : t.setup.ascKeys.certificateKeySetupFailed,
+              ? t.setup.iosCertificateKey.requestFailed(status: 500)
+              : t.setup.iosCertificateKey.setupFailed,
         ]);
         shouldFail = false;
         expect(await save(target), 0);
@@ -539,11 +536,8 @@ void main() {
             : response({'success': true});
 
         expect(await save(target), 1);
-        expect(logger.errors, [t.setup.ascKeys.certificateKeySetupFailed]);
-        expect(
-          logger.output,
-          isNot(contains(t.setup.ascKeys.certificateKeyReady)),
-        );
+        expect(logger.errors, [t.setup.iosCertificateKey.setupFailed]);
+        expect(logger.output, isNot(contains(t.setup.iosCertificateKey.ready)));
       },
     );
   }

@@ -135,6 +135,15 @@
   },
   "setup": {
     "description": "Set up integrations for OpenCI.",
+    "iosCertificateKey": {
+      "description": "Prepare an iOS certificate private key in OpenCI, keeping any existing key.",
+      "noArguments": "setup ios-certificate-key does not accept positional arguments.",
+      "saveDestination": "OpenCI save destination: ${server}\n  Team ID: ${team}\n  Secret: ${name}",
+      "reused": "Kept the existing iOS certificate private key.",
+      "ready": "The iOS certificate private key is saved in OpenCI.",
+      "setupFailed": "Could not prepare or verify the iOS certificate private key. Retry setup.",
+      "requestFailed": "Could not prepare the iOS certificate private key (HTTP ${status})."
+    },
     "ascKeys": {
       "description": "Set up an App Store Connect API key and an iOS certificate private key in OpenCI.",
       "noArguments": "setup asc-keys does not accept positional arguments.",
@@ -144,10 +153,6 @@
       "secretWillReplace": "The existing ${name} secret will be replaced if you continue.",
       "certificateKeyWillReuse": "The existing iOS certificate private key will be kept.",
       "certificateKeyWillCreate": "An iOS certificate private key will be generated and saved if missing.",
-      "certificateKeyReused": "Kept the existing iOS certificate private key.",
-      "certificateKeyReady": "The iOS certificate private key is saved in OpenCI.",
-      "certificateKeySetupFailed": "Could not prepare or verify the iOS certificate private key. The ASC key files are retained for retry.",
-      "certificateKeyRequestFailed": "Could not prepare the iOS certificate private key (HTTP ${status}).",
       "savePreflightFailed": "Could not verify access to the OpenCI team's secrets. Check the server and connection before issuing a key.",
       "saveProfileChanged": "The OpenCI profile or credentials changed during setup. The key was not saved. Retry with the intended profile and team.",
       "savedKeyInvalid": "Could not read a valid saved key. Check key.json and its matching .p8 file in the key directory.",
