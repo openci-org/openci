@@ -53,6 +53,24 @@ await openCI.flutter.buildAab(flavor: 'production');
 
 The `flavor` argument is passed to Flutter's `--flavor` option. Omit it to keep Flutter's default flavor selection. Both methods also accept `dir` to override the workflow's working directory for that call.
 
+The IPA build API is currently a placeholder. It accepts App Store Connect credentials and a separate certificate private key, but calling it throws `UnimplementedError`:
+
+```dart
+await openCI.flutter.buildIpa(
+  distributionMethod: IosDistributionMethod.adHoc,
+  ascKeys: AppStoreConnectKeys(
+    issuerId: Secrets.openciGeneratedAscIssuerId,
+    keyId: Secrets.openciGeneratedAscKeyId,
+    privateKeyBase64: Secrets.openciGeneratedP8Base64,
+  ),
+  certificatePrivateKey: Secrets.openciGeneratedIosCertificatePrivateKey,
+  flavor: 'dev',
+  additionalArguments: ['--dart-define=SAMPLE=Hello World'],
+);
+```
+
+Here, `Secrets` refers to your workflow's generated secret definitions. Pass the `.p8` file contents as Base64 and the certificate private key as PEM. Each `additionalArguments` item represents one argument, including any spaces in its value. Signing and IPA building will be implemented later.
+
 ## Run locally
 
 ```sh

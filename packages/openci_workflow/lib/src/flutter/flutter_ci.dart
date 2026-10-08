@@ -1,4 +1,6 @@
+import '../app_store_connect_keys.dart';
 import '../time_zone.dart';
+import 'ios_distribution_method.dart';
 
 class FlutterCI {
   const FlutterCI(this._run);
@@ -54,6 +56,17 @@ class FlutterCI {
     ].join(' '),
     workingDirectory: dir,
   );
+
+  Future<void> buildIpa({
+    required IosDistributionMethod distributionMethod,
+    required AppStoreConnectKeys ascKeys,
+    required String certificatePrivateKey,
+    String? dir,
+    String? flavor,
+    List<String> additionalArguments = const [],
+  }) async {
+    throw UnimplementedError('FlutterCI.buildIpa is not implemented yet.');
+  }
 }
 
 String _quoteShellArgument(String value) =>

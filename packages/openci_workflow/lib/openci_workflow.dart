@@ -1,4 +1,6 @@
+export 'src/app_store_connect_keys.dart';
 export 'src/command_runner.dart';
+export 'src/flutter/ios_distribution_method.dart';
 export 'src/flutter/flutter_ci.dart';
 export 'src/open_ci.dart';
 export 'src/machine_type.dart';
