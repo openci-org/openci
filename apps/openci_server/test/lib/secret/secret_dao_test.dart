@@ -28,6 +28,43 @@ void main() {
   });
 
   group('SecretDao', () {
+    test(
+      'insertSecretIfAbsent preserves the first value and timestamps',
+      () async {
+        final originalTime = DateTime.utc(2025, 1, 1);
+        DriftSecret secret(String value, DateTime time) => DriftSecret(
+          name: 'CERTIFICATE_KEY',
+          teamId: 'team-123',
+          encryptedValue: value,
+          createdAt: time,
+          updatedAt: time,
+        );
+        await db.secretDao.insertSecretIfAbsent(
+          secret('original', originalTime),
+        );
+        final original = (await db.secretDao.getSecret(
+          'team-123',
+          'CERTIFICATE_KEY',
+        ))!;
+
+        await Future.wait([
+          for (var i = 0; i < 3; i++)
+            db.secretDao.insertSecretIfAbsent(
+              secret('replacement-$i', DateTime.now().toUtc()),
+            ),
+        ]);
+
+        final saved = (await db.secretDao.getSecret(
+          'team-123',
+          'CERTIFICATE_KEY',
+        ))!;
+        expect(saved.encryptedValue, original.encryptedValue);
+        expect(saved.createdAt, original.createdAt);
+        expect(saved.updatedAt, original.updatedAt);
+        expect(await db.secretDao.getSecretsForTeam('team-123'), hasLength(1));
+      },
+    );
+
     test('Can insert, get, and delete secrets', () async {
       final now = DateTime.now().toUtc();
       final secret = DriftSecret(

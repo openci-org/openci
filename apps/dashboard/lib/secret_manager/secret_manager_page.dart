@@ -40,7 +40,7 @@ class SecretManagerPage extends HookConsumerWidget {
       body: state.when(
         data: (secrets) {
           final hasCertKey = secrets.any(
-            (s) => s.name == 'OPENCI_IOS_CERTIFICATE_PRIVATE_KEY',
+            (s) => s.name == 'OPENCI_GENERATED_IOS_CERTIFICATE_PRIVATE_KEY',
           );
           final setupCards = <Widget>[
             if (!hasCertKey) _GenerateCertificateKeyButton(),

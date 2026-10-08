@@ -31,6 +31,14 @@ class SecretDao extends DatabaseAccessor<AppDatabase> with _$SecretDaoMixin {
     );
   }
 
+  /// Preserves an existing secret, including when multiple callers race.
+  Future<void> insertSecretIfAbsent(DriftSecret secret) {
+    return into(secrets).insert(
+      secret,
+      onConflict: DoNothing(target: [secrets.teamId, secrets.name]),
+    );
+  }
+
   Future<int> deleteSecret(String teamId, String name) {
     return (delete(
       secrets,

@@ -5,6 +5,7 @@ import 'package:dart_frog_test/dart_frog_test.dart';
 import 'package:drift/native.dart';
 import 'package:openci_server/database.dart';
 import 'package:openci_server/secret/secret_crypter.dart';
+import 'package:openci_server/secret/secret_table.dart';
 import 'package:test/test.dart';
 
 import '../../../../../routes/teams/[id]/ios-signing/generate-key.dart'
@@ -40,6 +41,88 @@ void main() {
   });
 
   group('Generate Key Endpoint', () {
+    Future<void> addMember() => db
+        .into(db.teamMembers)
+        .insert(
+          TeamMembersCompanion.insert(teamId: 'team-123', userId: 'user-1'),
+        );
+
+    Future<Response> generate({
+      String? uid = 'user-1',
+      Map<String, String>? env,
+    }) {
+      final context = TestRequestContext(
+        path: '/teams/team-123/ios-signing/generate-key',
+        method: HttpMethod.post,
+      );
+      context.provide<AppDatabase>(db);
+      context.provide<String?>(uid);
+      context.provide<Map<String, String>>(env ?? testEnv);
+      return Future.value(
+        generate_key_route.onRequest(context.context, 'team-123'),
+      );
+    }
+
+    Future<DriftSecret> saveExistingKey() async {
+      final time = DateTime.utc(2025, 1, 1);
+      await db.secretDao.insertOrUpdateSecret(
+        DriftSecret(
+          name: 'OPENCI_GENERATED_IOS_CERTIFICATE_PRIVATE_KEY',
+          teamId: 'team-123',
+          encryptedValue: await SecretCrypter(
+            encryptionKey,
+          ).encrypt('existing-private-key'),
+          createdAt: time,
+          updatedAt: time,
+        ),
+      );
+      return (await db.secretDao.getSecret(
+        'team-123',
+        'OPENCI_GENERATED_IOS_CERTIFICATE_PRIVATE_KEY',
+      ))!;
+    }
+
+    test(
+      'keeps an existing key without requiring generation configuration',
+      () async {
+        await addMember();
+        final original = await saveExistingKey();
+
+        final response = await generate(env: {});
+
+        expect(response.statusCode, HttpStatus.ok);
+        expect(await response.json(), {'success': true});
+        final saved = (await db.secretDao.getSecret(
+          'team-123',
+          original.name,
+        ))!;
+        expect(saved.encryptedValue, original.encryptedValue);
+        expect(saved.createdAt, original.createdAt);
+        expect(saved.updatedAt, original.updatedAt);
+      },
+    );
+
+    for (final (uid, status) in [
+      (null, HttpStatus.unauthorized),
+      ('non-member-user', HttpStatus.forbidden),
+    ]) {
+      test(
+        'checks authorization before reusing an existing key: $status',
+        () async {
+          final original = await saveExistingKey();
+
+          final response = await generate(uid: uid);
+
+          expect(response.statusCode, status);
+          final saved = (await db.secretDao.getSecret(
+            'team-123',
+            original.name,
+          ))!;
+          expect(saved.encryptedValue, original.encryptedValue);
+        },
+      );
+    }
+
     test('rejects unsupported methods without creating a key', () async {
       final context = TestRequestContext(
         path: '/teams/team-123/ios-signing/generate-key',
@@ -155,16 +238,27 @@ void main() {
 
         final secret = await db.secretDao.getSecret(
           'team-123',
-          'OPENCI_IOS_CERTIFICATE_PRIVATE_KEY',
+          'OPENCI_GENERATED_IOS_CERTIFICATE_PRIVATE_KEY',
         );
         expect(secret, isNotNull);
-        expect(secret!.name, equals('OPENCI_IOS_CERTIFICATE_PRIVATE_KEY'));
+        expect(
+          secret!.name,
+          equals('OPENCI_GENERATED_IOS_CERTIFICATE_PRIVATE_KEY'),
+        );
         expect(secret.teamId, equals('team-123'));
 
         final crypter = SecretCrypter(encryptionKey);
         final decrypted = await crypter.decrypt(secret.encryptedValue);
         expect(decrypted, contains('-----BEGIN PRIVATE KEY-----'));
         expect(decrypted, contains('-----END PRIVATE KEY-----'));
+
+        final retry = await generate();
+        expect(retry.statusCode, HttpStatus.ok);
+        expect(await retry.json(), {'success': true});
+        final reused = (await db.secretDao.getSecret('team-123', secret.name))!;
+        expect(reused.encryptedValue, secret.encryptedValue);
+        expect(reused.createdAt, secret.createdAt);
+        expect(reused.updatedAt, secret.updatedAt);
       },
     );
   });

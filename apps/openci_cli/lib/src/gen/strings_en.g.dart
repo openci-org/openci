@@ -603,14 +603,14 @@ class Translations$setup$ascKeys$en {
 
 	// Translations
 
-	/// en: 'Create an App Store Connect API key and save it to OpenCI.'
-	String get description => 'Create an App Store Connect API key and save it to OpenCI.';
+	/// en: 'Set up an App Store Connect API key and an iOS certificate private key in OpenCI.'
+	String get description => 'Set up an App Store Connect API key and an iOS certificate private key in OpenCI.';
 
 	/// en: 'setup asc-keys does not accept positional arguments.'
 	String get noArguments => 'setup asc-keys does not accept positional arguments.';
 
-	/// en: 'Save a previously issued key from a directory containing key.json and its .p8 file; does not issue a new key.'
-	String get keyDirectoryHelp => 'Save a previously issued key from a directory containing key.json and its .p8 file; does not issue a new key.';
+	/// en: 'Save an existing ASC key from key.json and its .p8 file, and prepare the iOS certificate private key if missing; does not issue a new ASC key.'
+	String get keyDirectoryHelp => 'Save an existing ASC key from key.json and its .p8 file, and prepare the iOS certificate private key if missing; does not issue a new ASC key.';
 
 	/// en: '--key-directory requires a non-empty directory path.'
 	String get keyDirectoryRequired => '--key-directory requires a non-empty directory path.';
@@ -620,6 +620,24 @@ class Translations$setup$ascKeys$en {
 
 	/// en: 'The existing ${name} secret will be replaced if you continue.'
 	String secretWillReplace({required Object name}) => 'The existing ${name} secret will be replaced if you continue.';
+
+	/// en: 'The existing iOS certificate private key will be kept.'
+	String get certificateKeyWillReuse => 'The existing iOS certificate private key will be kept.';
+
+	/// en: 'An iOS certificate private key will be generated and saved if missing.'
+	String get certificateKeyWillCreate => 'An iOS certificate private key will be generated and saved if missing.';
+
+	/// en: 'Kept the existing iOS certificate private key.'
+	String get certificateKeyReused => 'Kept the existing iOS certificate private key.';
+
+	/// en: 'The iOS certificate private key is saved in OpenCI.'
+	String get certificateKeyReady => 'The iOS certificate private key is saved in OpenCI.';
+
+	/// en: 'Could not prepare or verify the iOS certificate private key. The ASC key files are retained for retry.'
+	String get certificateKeySetupFailed => 'Could not prepare or verify the iOS certificate private key. The ASC key files are retained for retry.';
+
+	/// en: 'Could not prepare the iOS certificate private key (HTTP ${status}).'
+	String certificateKeyRequestFailed({required Object status}) => 'Could not prepare the iOS certificate private key (HTTP ${status}).';
 
 	/// en: 'Could not verify access to the OpenCI team's secrets. Check the server and connection before issuing a key.'
 	String get savePreflightFailed => 'Could not verify access to the OpenCI team\'s secrets. Check the server and connection before issuing a key.';
@@ -678,11 +696,11 @@ class Translations$setup$ascKeys$en {
 	/// en: 'Could not determine the selected App Store Connect provider.'
 	String get providerUnavailable => 'Could not determine the selected App Store Connect provider.';
 
-	/// en: 'Create a new GenuineCI key with APP_MANAGER access to all apps for this provider and save it to the OpenCI destination shown above? [y/N] '
-	String get confirmKeyCreation => 'Create a new GenuineCI key with APP_MANAGER access to all apps for this provider and save it to the OpenCI destination shown above? [y/N] ';
+	/// en: 'Create a new GenuineCI API key with APP_MANAGER access to all apps for this provider, save it to the OpenCI destination shown above, and prepare the iOS certificate private key if missing? [y/N] '
+	String get confirmKeyCreation => 'Create a new GenuineCI API key with APP_MANAGER access to all apps for this provider, save it to the OpenCI destination shown above, and prepare the iOS certificate private key if missing? [y/N] ';
 
-	/// en: 'Save this key to the OpenCI destination shown above? [y/N] '
-	String get confirmKeySave => 'Save this key to the OpenCI destination shown above? [y/N] ';
+	/// en: 'Save this ASC key to the OpenCI destination shown above and prepare the iOS certificate private key if missing? [y/N] '
+	String get confirmKeySave => 'Save this ASC key to the OpenCI destination shown above and prepare the iOS certificate private key if missing? [y/N] ';
 
 	/// en: 'Key saving cancelled. The OpenCI secrets were not changed.'
 	String get keySaveCancelled => 'Key saving cancelled. The OpenCI secrets were not changed.';
@@ -711,11 +729,11 @@ class Translations$setup$ascKeys$en {
 	/// en: ' Private key: ${path}'
 	String privateKeySaved({required Object path}) => '  Private key: ${path}';
 
-	/// en: 'App Store Connect API key setup is complete. All three secrets are saved to OpenCI, and the local files are retained.'
-	String get setupComplete => 'App Store Connect API key setup is complete. All three secrets are saved to OpenCI, and the local files are retained.';
+	/// en: 'App Store Connect API key and iOS certificate private key setup is complete. All four secrets are in OpenCI, and the local ASC key files are retained.'
+	String get setupComplete => 'App Store Connect API key and iOS certificate private key setup is complete. All four secrets are in OpenCI, and the local ASC key files are retained.';
 
-	/// en: 'Some secrets may already have been saved. The local key files are retained. Retry saving all three using the same key, without issuing another: ${command}'
-	String retrySave({required Object command}) => 'Some secrets may already have been saved. The local key files are retained. Retry saving all three using the same key, without issuing another:\n  ${command}';
+	/// en: 'Some secrets may already have been saved. The local ASC key files are retained. Retry saving the ASC credentials and preparing the certificate private key using the same ASC key, without issuing another: ${command}'
+	String retrySave({required Object command}) => 'Some secrets may already have been saved. The local ASC key files are retained. Retry saving the ASC credentials and preparing the certificate private key using the same ASC key, without issuing another:\n  ${command}';
 
 	/// en: 'Could not start asc key creation. No new key was requested.'
 	String get keyCreationStartFailed => 'Could not start asc key creation. No new key was requested.';
@@ -1099,12 +1117,18 @@ extension on Translations {
 			'register.secretFile.readFailed' => 'Could not read the selected file. Check that it is a regular file and that you have permission to read it.',
 			'register.secretFile.emptyFile' => 'The selected file is empty. No secret was registered.',
 			'setup.description' => 'Set up integrations for OpenCI.',
-			'setup.ascKeys.description' => 'Create an App Store Connect API key and save it to OpenCI.',
+			'setup.ascKeys.description' => 'Set up an App Store Connect API key and an iOS certificate private key in OpenCI.',
 			'setup.ascKeys.noArguments' => 'setup asc-keys does not accept positional arguments.',
-			'setup.ascKeys.keyDirectoryHelp' => 'Save a previously issued key from a directory containing key.json and its .p8 file; does not issue a new key.',
+			'setup.ascKeys.keyDirectoryHelp' => 'Save an existing ASC key from key.json and its .p8 file, and prepare the iOS certificate private key if missing; does not issue a new ASC key.',
 			'setup.ascKeys.keyDirectoryRequired' => '--key-directory requires a non-empty directory path.',
 			'setup.ascKeys.saveDestination' => ({required Object server, required Object team, required Object names}) => 'OpenCI save destination: ${server}\n  Team ID: ${team}\n  Secrets:\n    ${names}',
 			'setup.ascKeys.secretWillReplace' => ({required Object name}) => 'The existing ${name} secret will be replaced if you continue.',
+			'setup.ascKeys.certificateKeyWillReuse' => 'The existing iOS certificate private key will be kept.',
+			'setup.ascKeys.certificateKeyWillCreate' => 'An iOS certificate private key will be generated and saved if missing.',
+			'setup.ascKeys.certificateKeyReused' => 'Kept the existing iOS certificate private key.',
+			'setup.ascKeys.certificateKeyReady' => 'The iOS certificate private key is saved in OpenCI.',
+			'setup.ascKeys.certificateKeySetupFailed' => 'Could not prepare or verify the iOS certificate private key. The ASC key files are retained for retry.',
+			'setup.ascKeys.certificateKeyRequestFailed' => ({required Object status}) => 'Could not prepare the iOS certificate private key (HTTP ${status}).',
 			'setup.ascKeys.savePreflightFailed' => 'Could not verify access to the OpenCI team\'s secrets. Check the server and connection before issuing a key.',
 			'setup.ascKeys.saveProfileChanged' => 'The OpenCI profile or credentials changed during setup. The key was not saved. Retry with the intended profile and team.',
 			'setup.ascKeys.savedKeyInvalid' => 'Could not read a valid saved key. Check key.json and its matching .p8 file in the key directory.',
@@ -1124,8 +1148,8 @@ extension on Translations {
 			'setup.ascKeys.providerId' => ({required Object id}) => '  Provider ID: ${id}',
 			'setup.ascKeys.publicProviderId' => ({required Object id}) => '  Public Provider ID: ${id}',
 			'setup.ascKeys.providerUnavailable' => 'Could not determine the selected App Store Connect provider.',
-			'setup.ascKeys.confirmKeyCreation' => 'Create a new GenuineCI key with APP_MANAGER access to all apps for this provider and save it to the OpenCI destination shown above? [y/N] ',
-			'setup.ascKeys.confirmKeySave' => 'Save this key to the OpenCI destination shown above? [y/N] ',
+			'setup.ascKeys.confirmKeyCreation' => 'Create a new GenuineCI API key with APP_MANAGER access to all apps for this provider, save it to the OpenCI destination shown above, and prepare the iOS certificate private key if missing? [y/N] ',
+			'setup.ascKeys.confirmKeySave' => 'Save this ASC key to the OpenCI destination shown above and prepare the iOS certificate private key if missing? [y/N] ',
 			'setup.ascKeys.keySaveCancelled' => 'Key saving cancelled. The OpenCI secrets were not changed.',
 			'setup.ascKeys.keyCreationCancelled' => 'Key creation cancelled. No new key was requested.',
 			'setup.ascKeys.keyConfirmationFailed' => 'Could not read confirmation. Run genuineci setup asc-keys in an interactive terminal.',
@@ -1135,8 +1159,8 @@ extension on Translations {
 			'setup.ascKeys.keyId' => ({required Object id}) => '  Key ID: ${id}',
 			'setup.ascKeys.issuerId' => ({required Object id}) => '  Issuer ID: ${id}',
 			'setup.ascKeys.privateKeySaved' => ({required Object path}) => '  Private key: ${path}',
-			'setup.ascKeys.setupComplete' => 'App Store Connect API key setup is complete. All three secrets are saved to OpenCI, and the local files are retained.',
-			'setup.ascKeys.retrySave' => ({required Object command}) => 'Some secrets may already have been saved. The local key files are retained. Retry saving all three using the same key, without issuing another:\n  ${command}',
+			'setup.ascKeys.setupComplete' => 'App Store Connect API key and iOS certificate private key setup is complete. All four secrets are in OpenCI, and the local ASC key files are retained.',
+			'setup.ascKeys.retrySave' => ({required Object command}) => 'Some secrets may already have been saved. The local ASC key files are retained. Retry saving the ASC credentials and preparing the certificate private key using the same ASC key, without issuing another:\n  ${command}',
 			'setup.ascKeys.keyCreationStartFailed' => 'Could not start asc key creation. No new key was requested.',
 			'setup.ascKeys.keyCreationFailed' => 'asc did not complete API key creation successfully.',
 			'setup.ascKeys.keyCreationInvalid' => 'Could not verify the key creation result or the saved private key.',
