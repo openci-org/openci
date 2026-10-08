@@ -50,12 +50,30 @@ void main() {
   late List<http.Request> requests;
   late List<_Client> clients;
   late AppLocale originalLocale;
+  late bool certificateKeyExists;
 
   http.Response response(Object body, [int status = 200]) => http.Response(
     jsonEncode(body),
     status,
     headers: {'content-type': 'application/json'},
   );
+
+  http.Response successResponse(http.Request request) {
+    if (request.url.path.endsWith('/ios-signing/generate-key')) {
+      certificateKeyExists = true;
+    }
+    return response(
+      request.method == 'GET'
+          ? {
+              'success': true,
+              'secrets': [
+                if (certificateKeyExists)
+                  {'name': iosCertificatePrivateKeySecretName},
+              ],
+            }
+          : {'success': true},
+    );
+  }
 
   setUp(() async {
     originalLocale = LocaleSettings.currentLocale;
@@ -76,11 +94,8 @@ void main() {
     registration = AscKeyRegistration(logger: logger, credentialStore: store);
     requests = [];
     clients = [];
-    handler = (request) async => response(
-      request.method == 'GET'
-          ? {'success': true, 'secrets': <Object>[]}
-          : {'success': true},
-    );
+    certificateKeyExists = false;
+    handler = (request) async => successResponse(request);
   });
 
   tearDown(() async {
@@ -121,51 +136,70 @@ void main() {
       request(() => registration.save(target, key));
 
   for (final locale in [AppLocale.en, AppLocale.ja]) {
-    test(
-      'preflights and saves three separate secret values: $locale',
-      () async {
-        LocaleSettings.setLocaleSync(locale);
-        final target = (await prepare())!;
-        expect(target.profileName, 'remote');
-        expect(target.profile, profile);
-        expect(logger.output, [
-          t.setup.ascKeys.saveDestination(
-            server: profile.serverUrl,
-            team: profile.teamId,
-            names: ascApiKeySecretNames.join('\n    '),
-          ),
-        ]);
-        expect(await save(target), 0);
-        expect(requests.map((r) => r.method), ['GET', 'POST', 'POST', 'POST']);
-        final saved = <String, String>{};
-        for (final post in requests.skip(1)) {
-          expect(
-            post.url.toString(),
-            'https://ci.example.com/proxy/teams/selected-team/secrets',
-          );
-          expect(post.headers['authorization'], 'Bearer $token');
-          final body = jsonDecode(utf8.decode(post.bodyBytes)) as Map;
-          expect(body.keys, unorderedEquals(['name', 'value']));
-          saved[body['name'] as String] = body['value'] as String;
-        }
-        expect(saved, {
-          'OPENCI_GENERATED_ASC_KEY_ID': 'KEY123',
-          'OPENCI_GENERATED_ASC_ISSUER_ID': 'issuer',
-          'OPENCI_GENERATED_P8_BASE64': base64Encode(utf8.encode(pem)),
-        });
+    test('saves ASC secrets and prepares the certificate key: $locale', () async {
+      LocaleSettings.setLocaleSync(locale);
+      final target = (await prepare())!;
+      expect(target.profileName, 'remote');
+      expect(target.profile, profile);
+      expect(logger.output, [
+        t.setup.ascKeys.saveDestination(
+          server: profile.serverUrl,
+          team: profile.teamId,
+          names: [
+            ...ascApiKeySecretNames,
+            iosCertificatePrivateKeySecretName,
+          ].join('\n    '),
+        ),
+        t.setup.ascKeys.certificateKeyWillCreate,
+      ]);
+      expect(await save(target), 0);
+      expect(requests.map((r) => r.method), [
+        'GET',
+        'POST',
+        'POST',
+        'POST',
+        'GET',
+        'POST',
+        'GET',
+      ]);
+      final saved = <String, String>{};
+      for (final post in requests.skip(1).take(3)) {
         expect(
-          base64Decode(saved[ascP8SecretName]!),
-          await key.privateKeyFile.readAsBytes(),
+          post.url.toString(),
+          'https://ci.example.com/proxy/teams/selected-team/secrets',
         );
-        expect(logger.errors, isEmpty);
-        expect(await key.privateKeyFile.readAsString(), pem);
-      },
-    );
+        expect(post.headers['authorization'], 'Bearer $token');
+        final body = jsonDecode(utf8.decode(post.bodyBytes)) as Map;
+        expect(body.keys, unorderedEquals(['name', 'value']));
+        saved[body['name'] as String] = body['value'] as String;
+      }
+      expect(saved, {
+        'OPENCI_GENERATED_ASC_KEY_ID': 'KEY123',
+        'OPENCI_GENERATED_ASC_ISSUER_ID': 'issuer',
+        'OPENCI_GENERATED_P8_BASE64': base64Encode(utf8.encode(pem)),
+      });
+      expect(
+        base64Decode(saved[ascP8SecretName]!),
+        await key.privateKeyFile.readAsBytes(),
+      );
+      expect(logger.errors, isEmpty);
+      final generate = requests[5];
+      expect(
+        generate.url.toString(),
+        'https://ci.example.com/proxy/teams/selected-team/ios-signing/generate-key',
+      );
+      expect(generate.headers['authorization'], 'Bearer $token');
+      expect(generate.body, isEmpty);
+      expect(logger.output.last, t.setup.ascKeys.certificateKeyReady);
+      expect(await key.privateKeyFile.readAsString(), pem);
+    });
   }
 
   for (final existing in [
     for (final name in ascApiKeySecretNames) [name],
     ascApiKeySecretNames,
+    [iosCertificatePrivateKeySecretName],
+    [...ascApiKeySecretNames, iosCertificatePrivateKeySecretName],
     ['UNRELATED_SECRET'],
   ]) {
     test('displays replacement only for existing secrets: $existing', () async {
@@ -180,6 +214,9 @@ void main() {
         for (final name in ascApiKeySecretNames)
           if (existing.contains(name))
             t.setup.ascKeys.secretWillReplace(name: name),
+        existing.contains(iosCertificatePrivateKeySecretName)
+            ? t.setup.ascKeys.certificateKeyWillReuse
+            : t.setup.ascKeys.certificateKeyWillCreate,
       ]);
       expect(requests.single.method, 'GET');
     });
@@ -197,9 +234,10 @@ void main() {
     expect(await save(target), 0);
     expect(
       requests.every(
-        (r) =>
-            r.url.toString() ==
-            'http://localhost:8080/teams/team%2Fwith%20space%3F%23/secrets',
+        (r) => [
+          'http://localhost:8080/teams/team%2Fwith%20space%3F%23/secrets',
+          'http://localhost:8080/teams/team%2Fwith%20space%3F%23/ios-signing/generate-key',
+        ].contains(r.url.toString()),
       ),
       isTrue,
     );
@@ -289,13 +327,13 @@ void main() {
         });
       }
       expect(request.headers['authorization'], 'Bearer refreshed-id-token');
-      return response({'success': true});
+      return successResponse(request);
     };
     expect(
       await save(AscKeySaveTarget(profileName: 'remote', profile: expired)),
       0,
     );
-    expect(requests, hasLength(4));
+    expect(requests, hasLength(7));
     expect((await store.getActiveProfile())!.token, 'refreshed-id-token');
   });
 
@@ -331,6 +369,10 @@ void main() {
           var posts = 0;
           var shouldFail = true;
           handler = (request) async {
+            if (request.method == 'GET' ||
+                request.url.path.endsWith('/ios-signing/generate-key')) {
+              return successResponse(request);
+            }
             final body = jsonDecode(utf8.decode(request.bodyBytes)) as Map;
             final fails = ++posts == failureAt && shouldFail;
             if (fails && !responseLost) {
@@ -351,7 +393,7 @@ void main() {
           shouldFail = false;
           requests.clear();
           expect(await save(target), 0);
-          expect(requests, hasLength(3));
+          expect(requests, hasLength(6));
           expect(saved, {
             'OPENCI_GENERATED_ASC_KEY_ID': 'KEY123',
             'OPENCI_GENERATED_ASC_ISSUER_ID': 'issuer',
@@ -369,4 +411,140 @@ void main() {
     expect(requests, hasLength(1));
     expect(logger.errors, [t.setup.ascKeys.savedKeyInvalid]);
   });
+
+  for (final locale in [AppLocale.en, AppLocale.ja]) {
+    for (final existingAtPreflight in [false, true]) {
+      test(
+        'rechecks and keeps an existing certificate key: $locale, $existingAtPreflight',
+        () async {
+          LocaleSettings.setLocaleSync(locale);
+          certificateKeyExists = existingAtPreflight;
+          final target = (await prepare())!;
+          certificateKeyExists = true;
+
+          expect(await save(target), 0);
+          expect(requests.map((r) => r.method), [
+            'GET',
+            'POST',
+            'POST',
+            'POST',
+            'GET',
+          ]);
+          expect(
+            requests.every((r) => r.url.path.endsWith('/secrets')),
+            isTrue,
+          );
+          expect(logger.output.last, t.setup.ascKeys.certificateKeyReused);
+          expect(logger.errors, isEmpty);
+        },
+      );
+    }
+
+    test('prepares a key removed after preflight: $locale', () async {
+      LocaleSettings.setLocaleSync(locale);
+      certificateKeyExists = true;
+      final target = (await prepare())!;
+      certificateKeyExists = false;
+
+      expect(await save(target), 0);
+      expect(certificateKeyExists, isTrue);
+      expect(logger.output.last, t.setup.ascKeys.certificateKeyReady);
+      expect(logger.errors, isEmpty);
+    });
+  }
+
+  for (final phase in ['lookup', 'generate', 'verify']) {
+    for (final status in [401, 403, 500]) {
+      test('fails certificate $phase on HTTP $status', () async {
+        final target = (await prepare())!;
+        var gets = 0;
+        handler = (request) async {
+          if (request.method == 'GET') gets++;
+          final fails = switch (phase) {
+            'lookup' => request.method == 'GET' && gets == 1,
+            'generate' => request.url.path.endsWith(
+              '/ios-signing/generate-key',
+            ),
+            _ => request.method == 'GET' && gets == 2,
+          };
+          return fails
+              ? response({'error': 'private diagnostic'}, status)
+              : successResponse(request);
+        };
+
+        expect(await save(target), 1);
+        expect(logger.errors, [
+          status == 401 || status == 403
+              ? t.register.secret.loginRequired
+              : t.setup.ascKeys.certificateKeyRequestFailed(status: status),
+        ]);
+        expect(
+          logger.output,
+          isNot(contains(t.setup.ascKeys.certificateKeyReady)),
+        );
+      });
+    }
+  }
+
+  for (final failure in ['http', 'response-lost']) {
+    test(
+      'retries certificate setup after $failure without replacing a saved key',
+      () async {
+        final target = (await prepare())!;
+        var generations = 0;
+        var shouldFail = true;
+        handler = (request) async {
+          if (request.url.path.endsWith('/ios-signing/generate-key')) {
+            generations++;
+            if (shouldFail) {
+              if (failure == 'http') {
+                return response({'error': 'private diagnostic'}, 500);
+              }
+              certificateKeyExists = true;
+              throw const SocketException('private diagnostic');
+            }
+          }
+          return successResponse(request);
+        };
+
+        expect(await save(target), 1);
+        expect(generations, 1);
+        expect(logger.errors, [
+          failure == 'http'
+              ? t.setup.ascKeys.certificateKeyRequestFailed(status: 500)
+              : t.setup.ascKeys.certificateKeySetupFailed,
+        ]);
+        shouldFail = false;
+        expect(await save(target), 0);
+        expect(generations, failure == 'http' ? 2 : 1);
+        expect(certificateKeyExists, isTrue);
+      },
+    );
+  }
+
+  for (final body in [
+    {'success': true, 'secrets': <Object>[]},
+    {'success': false, 'secrets': <Object>[]},
+    {
+      'success': true,
+      'secrets': ['private diagnostic'],
+    },
+  ]) {
+    test(
+      'does not report success when the certificate key cannot be verified: $body',
+      () async {
+        final target = (await prepare())!;
+        handler = (request) async => request.method == 'GET'
+            ? response(body)
+            : response({'success': true});
+
+        expect(await save(target), 1);
+        expect(logger.errors, [t.setup.ascKeys.certificateKeySetupFailed]);
+        expect(
+          logger.output,
+          isNot(contains(t.setup.ascKeys.certificateKeyReady)),
+        );
+      },
+    );
+  }
 }

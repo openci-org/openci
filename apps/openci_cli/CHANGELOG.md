@@ -1,3 +1,10 @@
+## 0.5.3
+
+- Prepare the iOS certificate private key during `genuineci setup asc-keys`,
+  including retries with `--key-directory`. Keep existing certificate keys and
+  report success only after both ASC credential saves and key preparation succeed.
+- Store the certificate key as `OPENCI_GENERATED_IOS_CERTIFICATE_PRIVATE_KEY`.
+
 ## 0.5.2
 
 - Add `genuineci delete secret SECRET_NAME` to delete a secret from the active

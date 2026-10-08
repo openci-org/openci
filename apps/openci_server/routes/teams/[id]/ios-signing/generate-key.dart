@@ -8,6 +8,8 @@ import 'package:openci_server/request/error_handler.dart';
 import 'package:openci_server/secret/secret_crypter.dart';
 import 'package:openci_server/secret/secret_table.dart';
 
+const _secretName = 'OPENCI_GENERATED_IOS_CERTIFICATE_PRIVATE_KEY';
+
 FutureOr<Response> onRequest(RequestContext context, String id) {
   return switch (context.request.method) {
     HttpMethod.post => _post(context, id),
@@ -32,6 +34,10 @@ Future<Response> _post(RequestContext context, String teamId) async {
         statusCode: HttpStatus.forbidden,
         body: {'success': false, 'error': 'Forbidden'},
       );
+    }
+
+    if (await db.secretDao.getSecret(teamId, _secretName) != null) {
+      return Response.json(body: {'success': true});
     }
 
     Map<String, String> env;
@@ -63,14 +69,15 @@ Future<Response> _post(RequestContext context, String teamId) async {
     final now = DateTime.now().toUtc();
 
     final driftSecret = DriftSecret(
-      name: 'OPENCI_IOS_CERTIFICATE_PRIVATE_KEY',
+      name: _secretName,
       teamId: teamId,
       encryptedValue: encryptedValue,
       createdAt: now,
       updatedAt: now,
     );
 
-    await db.secretDao.insertOrUpdateSecret(driftSecret);
+    // Another request may have saved a key while OpenSSL was running.
+    await db.secretDao.insertSecretIfAbsent(driftSecret);
 
     return Response.json(
       body: {'success': true},

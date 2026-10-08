@@ -64,7 +64,10 @@ class AscKeyRegistration {
         t.setup.ascKeys.saveDestination(
           server: _escapeControls(profile.serverUrl),
           team: _escapeControls(profile.teamId),
-          names: ascApiKeySecretNames.join('\n    '),
+          names: [
+            ...ascApiKeySecretNames,
+            iosCertificatePrivateKeySecretName,
+          ].join('\n    '),
         ),
       );
       for (final name in ascApiKeySecretNames) {
@@ -72,6 +75,11 @@ class AscKeyRegistration {
           _logger.stdout(t.setup.ascKeys.secretWillReplace(name: name));
         }
       }
+      _logger.stdout(
+        names.contains(iosCertificatePrivateKeySecretName)
+            ? t.setup.ascKeys.certificateKeyWillReuse
+            : t.setup.ascKeys.certificateKeyWillCreate,
+      );
       return target;
     } on SecretNamesHttpException catch (error) {
       _logger.stderr(
@@ -124,10 +132,58 @@ class AscKeyRegistration {
         );
         if (code != 0) return code;
       }
-      return 0;
+      return await _ensureCertificateKey(profile);
     } catch (_) {
       _logger.stderr(t.register.secret.saveFailed);
       return 1;
+    }
+  }
+
+  Future<int> _ensureCertificateKey(AuthProfile profile) async {
+    final client = createOpenCIChopperClient(
+      baseUrl: profile.serverUrl,
+      tokenProvider: () => profile.token,
+      services: [OpenCIApiService.create()],
+    );
+    try {
+      final api = client.getService<OpenCIApiService>();
+      // Recheck after Apple login and credential storage: another setup may
+      // have prepared the key since preflight. Never overwrite it via saveSecret.
+      final names = await fetchSecretNames(api, profile.teamId);
+      if (names.contains(iosCertificatePrivateKeySecretName)) {
+        _logger.stdout(t.setup.ascKeys.certificateKeyReused);
+        return 0;
+      }
+
+      final response = await api.generateCertificateKey(
+        Uri.encodeComponent(profile.teamId),
+      );
+      if (!response.isSuccessful) {
+        throw SecretNamesHttpException(response.statusCode);
+      }
+      final savedNames = await fetchSecretNames(api, profile.teamId);
+      if (!savedNames.contains(iosCertificatePrivateKeySecretName)) {
+        _logger.stderr(t.setup.ascKeys.certificateKeySetupFailed);
+        return 1;
+      }
+      _logger.stdout(t.setup.ascKeys.certificateKeyReady);
+      return 0;
+    } on SecretNamesHttpException catch (error) {
+      _logger.stderr(
+        error.statusCode == HttpStatus.unauthorized ||
+                error.statusCode == HttpStatus.forbidden
+            ? t.register.secret.loginRequired
+            : t.setup.ascKeys.certificateKeyRequestFailed(
+                status: error.statusCode,
+              ),
+      );
+      return 1;
+    } catch (_) {
+      // Responses and transport errors can contain credentials or key material.
+      _logger.stderr(t.setup.ascKeys.certificateKeySetupFailed);
+      return 1;
+    } finally {
+      client.dispose();
     }
   }
 }

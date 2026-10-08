@@ -8,6 +8,8 @@ import 'asc_api_key.dart';
 const ascKeyIdSecretName = 'OPENCI_GENERATED_ASC_KEY_ID';
 const ascIssuerIdSecretName = 'OPENCI_GENERATED_ASC_ISSUER_ID';
 const ascP8SecretName = 'OPENCI_GENERATED_P8_BASE64';
+const iosCertificatePrivateKeySecretName =
+    'OPENCI_GENERATED_IOS_CERTIFICATE_PRIVATE_KEY';
 const ascApiKeySecretNames = [
   ascKeyIdSecretName,
   ascIssuerIdSecretName,
