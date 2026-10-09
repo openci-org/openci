@@ -1,4 +1,5 @@
 import '../app_store_connect_keys.dart';
+import '../quote_shell_argument.dart';
 import '../time_zone.dart';
 import 'ios_distribution_method.dart';
 
@@ -33,10 +34,10 @@ class FlutterCI {
   Future<void> unitTests({String? dir, TimeZone? tz, String? excludeTags}) =>
       _run(
         [
-          if (tz != null) 'TZ=${_quoteShellArgument(tz.value)}',
+          if (tz != null) 'TZ=${quoteShellArgument(tz.value)}',
           'flutter test',
           if (excludeTags != null)
-            '--exclude-tags ${_quoteShellArgument(excludeTags)}',
+            '--exclude-tags ${quoteShellArgument(excludeTags)}',
         ].join(' '),
         workingDirectory: dir,
       );
@@ -44,7 +45,7 @@ class FlutterCI {
   Future<void> buildApk({String? dir, String? flavor}) => _run(
     [
       'flutter build apk',
-      if (flavor != null) '--flavor ${_quoteShellArgument(flavor)}',
+      if (flavor != null) '--flavor ${quoteShellArgument(flavor)}',
     ].join(' '),
     workingDirectory: dir,
   );
@@ -52,7 +53,7 @@ class FlutterCI {
   Future<void> buildAab({String? dir, String? flavor}) => _run(
     [
       'flutter build appbundle',
-      if (flavor != null) '--flavor ${_quoteShellArgument(flavor)}',
+      if (flavor != null) '--flavor ${quoteShellArgument(flavor)}',
     ].join(' '),
     workingDirectory: dir,
   );
@@ -68,6 +69,3 @@ class FlutterCI {
     throw UnimplementedError('FlutterCI.buildIpa is not implemented yet.');
   }
 }
-
-String _quoteShellArgument(String value) =>
-    "'${value.replaceAll("'", r"'\''")}'";
