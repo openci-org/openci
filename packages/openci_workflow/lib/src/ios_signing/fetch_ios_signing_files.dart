@@ -12,6 +12,7 @@ Future<void> fetchIosSigningFiles({
 }) async {
   final profileType = switch (distributionMethod) {
     IosDistributionMethod.adHoc => 'IOS_APP_ADHOC',
+    IosDistributionMethod.appStore => 'IOS_APP_STORE',
   };
 
   await run(
