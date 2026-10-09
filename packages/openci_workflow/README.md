@@ -101,7 +101,9 @@ await openCI.flutter.deployIpaToFirebaseAppDistribution(
 
 Register `FIREBASE_SERVICE_ACCOUNT_JSON_BASE64` in your team's OpenCI secrets with the Base64-encoded contents of a service account JSON key, then run `genuineci sync --secrets` to generate its getter. The service account needs the [Firebase App Distribution Admin role](https://firebase.google.com/docs/app-distribution/authenticate-service-account?platform=ios) on the destination project. The key is decoded into a temporary file with owner-only permissions, passed through `GOOGLE_APPLICATION_CREDENTIALS`, and deleted after the command, including on upload failure. Key contents are not included in commands or logs.
 
-The build VM must have the [Firebase CLI](https://firebase.google.com/docs/app-distribution/ios/distribute-cli) on `PATH`. The helper uses macOS `unzip` and `plutil` to read `GOOGLE_APP_ID` from the exported app's `GoogleService-Info.plist`. Pass `appId` explicitly if the IPA does not bundle that file. Relative `ipaPath` values use the workflow directory, or `dir` when specified; the absolute path returned by `buildIpa()` works across working directories.
+The build VM must have the [Firebase CLI](https://firebase.google.com/docs/app-distribution/ios/distribute-cli) on `PATH`, or pass its executable path as `firebaseCliPath`. The Dashboard workflow installs `firebase-tools@15.25.0` under `.dart_tool/firebase-cli` before building and passes that local executable to the helper. It installs Node.js with Homebrew if npm is missing.
+
+The helper uses macOS `unzip` and `plutil` to read `GOOGLE_APP_ID` from the exported app's `GoogleService-Info.plist`. Pass `appId` explicitly if the IPA does not bundle that file. Relative `ipaPath` and `firebaseCliPath` values use the workflow directory, or `dir` when specified; the absolute path returned by `buildIpa()` works across working directories.
 
 By default, this only uploads a release. Set `groups` (group aliases) or `testers` (email addresses) to distribute it to testers, and optionally provide `releaseNotes`. The Dashboard workflow only uploads. Actual upload validation requires Firebase credentials and a signed IPA.
 

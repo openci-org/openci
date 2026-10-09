@@ -96,6 +96,35 @@ void main() {
       expect((await environment.uploadArguments())[1], ipa.path);
     });
 
+    test('uses a custom CLI path as a literal argument', () async {
+      await environment.createIpa();
+      const executablePath = r"tools/firebase ' $(touch unexpected)";
+      final executable = File(
+        '${environment.appDirectory(null).path}/$executablePath',
+      );
+      await executable.parent.create();
+      await environment.file('bin/firebase').rename(executable.path);
+
+      await environment.deploy(firebaseCliPath: executablePath);
+
+      expect(await environment.uploadArguments(), contains(_appId));
+      expect(
+        await File(
+          '${environment.appDirectory(null).path}/unexpected',
+        ).exists(),
+        isFalse,
+      );
+    });
+
+    test('rejects an empty CLI path before running commands', () async {
+      await expectLater(
+        environment.deploy(firebaseCliPath: '  '),
+        throwsArgumentError,
+      );
+
+      expect(environment.commands, isEmpty);
+    });
+
     test(
       'uses an explicit App ID without requiring a bundled config',
       () async {
@@ -351,6 +380,7 @@ exit "$OPENCI_TEST_EXIT_CODE"
   Future<void> deploy({
     String ipaPath = 'app.ipa',
     String? serviceAccountJsonBase64,
+    String firebaseCliPath = 'firebase',
     String? appId,
     List<String> groups = const [],
     List<String> testers = const [],
@@ -364,7 +394,7 @@ exit "$OPENCI_TEST_EXIT_CODE"
         commands.add(command);
         workingDirectories.add(workingDirectory);
         final isUpload = command.contains(
-          'firebase appdistribution:distribute',
+          'appdistribution:distribute',
         );
         if (isUpload && failUploadStart) {
           throw StateError('Could not start shell');
@@ -399,6 +429,7 @@ exit "$OPENCI_TEST_EXIT_CODE"
         ipaPath: ipaPath,
         serviceAccountJsonBase64:
             serviceAccountJsonBase64 ?? _credentialsBase64,
+        firebaseCliPath: firebaseCliPath,
         appId: appId,
         groups: groups,
         testers: testers,

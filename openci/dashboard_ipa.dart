@@ -13,6 +13,15 @@ Future<void> main() async {
     currentWorkingDirectory: WorkspacePaths.root.apps.dashboard,
   );
 
+  await openCI.run('''
+set -eu
+if ! command -v npm >/dev/null 2>&1; then
+  brew install node
+fi
+npm install --prefix .dart_tool/firebase-cli --no-audit --no-fund firebase-tools@15.25.0
+.dart_tool/firebase-cli/node_modules/.bin/firebase --version
+''');
+
   await openCI.placeFileFromBase64(
     dir: WorkspacePaths.root.apps.dashboard.lib,
     fileName: 'firebase_options.dart',
@@ -41,6 +50,7 @@ Future<void> main() async {
   await openCI.flutter.deployIpaToFirebaseAppDistribution(
     ipaPath: ipaPath,
     serviceAccountJsonBase64: Secrets.firebaseServiceAccountJsonBase64,
+    firebaseCliPath: '.dart_tool/firebase-cli/node_modules/.bin/firebase',
   );
 
   await openCI.run('ls -lh build/ios/ipa/*.ipa');

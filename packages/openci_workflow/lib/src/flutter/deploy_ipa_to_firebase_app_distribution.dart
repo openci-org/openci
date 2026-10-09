@@ -8,6 +8,7 @@ Future<void> deployIpaToFirebaseAppDistribution({
   run,
   required String ipaPath,
   required String serviceAccountJsonBase64,
+  String firebaseCliPath = 'firebase',
   String? appId,
   List<String> groups = const [],
   List<String> testers = const [],
@@ -16,6 +17,13 @@ Future<void> deployIpaToFirebaseAppDistribution({
 }) async {
   if (ipaPath.trim().isEmpty || !ipaPath.endsWith('.ipa')) {
     throw ArgumentError.value(ipaPath, 'ipaPath', 'Must be an IPA file path.');
+  }
+  if (firebaseCliPath.trim().isEmpty) {
+    throw ArgumentError.value(
+      firebaseCliPath,
+      'firebaseCliPath',
+      'Must be a Firebase CLI executable path.',
+    );
   }
   final credentials = _decodeServiceAccount(serviceAccountJsonBase64);
   final path = ipaPath.startsWith('/') ? ipaPath : './$ipaPath';
@@ -48,7 +56,8 @@ Future<void> deployIpaToFirebaseAppDistribution({
       "FIREBASE_TOKEN=''",
       'XDG_CONFIG_HOME=${quoteShellArgument(temporary.path)}',
       'GOOGLE_APPLICATION_CREDENTIALS=${quoteShellArgument(file.path)}',
-      'firebase appdistribution:distribute ${quoteShellArgument(path)}',
+      '${quoteShellArgument(firebaseCliPath)} '
+          'appdistribution:distribute ${quoteShellArgument(path)}',
       '--app ${quoteShellArgument(firebaseAppId)}',
       '--non-interactive',
       if (groups.isNotEmpty) '--groups=${quoteShellArgument(groups.join(','))}',
