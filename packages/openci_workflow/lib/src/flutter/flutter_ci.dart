@@ -49,18 +49,30 @@ class FlutterCI {
         workingDirectory: dir,
       );
 
-  Future<void> buildApk({String? dir, String? flavor}) => _run(
+  Future<void> buildApk({
+    String? dir,
+    String? flavor,
+    Map<String, String> dartDefines = const {},
+  }) => _run(
     [
       'flutter build apk',
       if (flavor != null) '--flavor ${quoteShellArgument(flavor)}',
+      for (final entry in dartDefines.entries)
+        '--dart-define ${quoteShellArgument('${entry.key}=${entry.value}')}',
     ].join(' '),
     workingDirectory: dir,
   );
 
-  Future<void> buildAab({String? dir, String? flavor}) => _run(
+  Future<void> buildAab({
+    String? dir,
+    String? flavor,
+    Map<String, String> dartDefines = const {},
+  }) => _run(
     [
       'flutter build appbundle',
       if (flavor != null) '--flavor ${quoteShellArgument(flavor)}',
+      for (final entry in dartDefines.entries)
+        '--dart-define ${quoteShellArgument('${entry.key}=${entry.value}')}',
     ].join(' '),
     workingDirectory: dir,
   );

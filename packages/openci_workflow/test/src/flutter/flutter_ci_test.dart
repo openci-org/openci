@@ -32,9 +32,26 @@ void main() {
     'flutter build apk': (flutter, {dir}) => flutter.buildApk(dir: dir),
     "flutter build apk --flavor 'staging'": (flutter, {dir}) =>
         flutter.buildApk(dir: dir, flavor: 'staging'),
+    "flutter build apk --flavor 'staging' --dart-define 'API_URL=https://example.test' --dart-define 'FEATURE_ENABLED=true'":
+        (flutter, {dir}) => flutter.buildApk(
+          dir: dir,
+          flavor: 'staging',
+          dartDefines: {
+            'API_URL': 'https://example.test',
+            'FEATURE_ENABLED': 'true',
+          },
+        ),
     'flutter build appbundle': (flutter, {dir}) => flutter.buildAab(dir: dir),
     "flutter build appbundle --flavor 'production'": (flutter, {dir}) =>
         flutter.buildAab(dir: dir, flavor: 'production'),
+    "flutter build appbundle --dart-define 'API_URL=https://example.test' --dart-define 'FEATURE_ENABLED=true'":
+        (flutter, {dir}) => flutter.buildAab(
+          dir: dir,
+          dartDefines: {
+            'API_URL': 'https://example.test',
+            'FEATURE_ENABLED': 'true',
+          },
+        ),
   };
 
   for (final (command, execute) in commands.entries.map(
@@ -202,6 +219,74 @@ void main() {
           });
 
           await build(flutter, flavor);
+        });
+      }
+    });
+  }
+
+  for (final (target, build)
+      in <(String, Future<void> Function(FlutterCI, Map<String, String>))>[
+        (
+          'apk',
+          (flutter, defines) =>
+              flutter.buildApk(flavor: 'staging', dartDefines: defines),
+        ),
+        (
+          'appbundle',
+          (flutter, defines) =>
+              flutter.buildAab(flavor: 'staging', dartDefines: defines),
+        ),
+      ]) {
+    group('$target Dart defines', () {
+      for (final (name, defines) in <(String, Map<String, String>)>[
+        ('empty', {}),
+        (
+          'multiple',
+          {'API_URL': 'https://example.test', 'FEATURE_ENABLED': 'true'},
+        ),
+        (
+          'special characters',
+          {
+            'EMPTY': '',
+            'SPACE': 'hello world',
+            'EQUALS': 'one=two=three',
+            'COMMAS': 'one,two,three',
+            'UNICODE': '日本語',
+            'NEWLINE': 'first\nsecond',
+            'SHELL':
+                r'''value' "$OPENCI_TEST_DEFINE" `printf expanded` $(printf expanded); printf injected''',
+            r'''key' "$OPENCI_TEST_DEFINE" `printf expanded` $(printf expanded); printf injected''':
+                'literal key',
+          },
+        ),
+      ]) {
+        test('passes each definition as a literal argument: $name', () async {
+          final flutter = FlutterCI((command, {workingDirectory}) async {
+            final result = await Process.run(
+              'sh',
+              [
+                '-c',
+                r'''flutter() { printf '%s\000' "$@"; }'''
+                    '\n$command',
+              ],
+              environment: {'OPENCI_TEST_DEFINE': 'expanded'},
+            );
+
+            expect(result.exitCode, 0, reason: result.stderr.toString());
+            expect((result.stdout as String).split('\u0000'), [
+              'build',
+              target,
+              '--flavor',
+              'staging',
+              for (final entry in defines.entries) ...[
+                '--dart-define',
+                '${entry.key}=${entry.value}',
+              ],
+              '',
+            ]);
+          });
+
+          await build(flutter, defines);
         });
       }
     });

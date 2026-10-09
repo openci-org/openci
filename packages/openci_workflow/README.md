@@ -44,14 +44,27 @@ await openCI.flutter.unitTests(tz: TimeZone.asiaTokyo, excludeTags: 'golden');
 
 The `tz` argument accepts `TimeZone.asiaTokyo` or `TimeZone.utc` and sets the command's `TZ` environment variable. Omitting it preserves the inherited time zone. The `excludeTags` argument is passed as Flutter's `--exclude-tags` selector, including expressions such as `'golden || slow'`. Omit it to run without a tag exclusion. Use `dir` to override the workflow's working directory for that call.
 
-Build Android APKs and app bundles with an optional product flavor:
+Build Android APKs and app bundles with an optional product flavor and Dart defines:
 
 ```dart
-await openCI.flutter.buildApk(flavor: 'staging');
-await openCI.flutter.buildAab(flavor: 'production');
+await openCI.flutter.buildApk(
+  flavor: 'staging',
+  dartDefines: {'API_URL': 'https://staging.example.com'},
+);
+await openCI.flutter.buildAab(
+  flavor: 'production',
+  dartDefines: {
+    'API_URL': 'https://api.example.com',
+    'FEATURE_ENABLED': 'true',
+  },
+);
 ```
 
 The `flavor` argument is passed to Flutter's `--flavor` option. Omit it to keep Flutter's default flavor selection. Both methods also accept `dir` to override the workflow's working directory for that call.
+
+The `dartDefines` argument accepts a `Map<String, String>`. Each entry becomes a separate `--dart-define 'KEY=VALUE'` argument, preserving spaces, quotes, and other shell characters literally. Omitting it or passing an empty map adds no defines. Read the values in your app with compile-time constructors such as `const String.fromEnvironment('API_URL')` or `const bool.fromEnvironment('FEATURE_ENABLED')`.
+
+Flutter's restrictions on define values still apply: the Flutter 3.47.3 compiler used for validation rejects values containing literal newlines.
 
 Build a signed Ad Hoc IPA with App Store Connect credentials and a separate certificate private key:
 
