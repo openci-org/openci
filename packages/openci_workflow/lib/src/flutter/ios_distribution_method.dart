@@ -1,3 +1,7 @@
 enum IosDistributionMethod {
-  adHoc,
+  adHoc;
+
+  String toArchiveMethod() => switch (this) {
+    IosDistributionMethod.adHoc => 'ad-hoc',
+  };
 }
