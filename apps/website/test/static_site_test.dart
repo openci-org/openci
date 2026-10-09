@@ -10,6 +10,7 @@ void main() {
     '/',
     '/blog/',
     '/blog/v2-1-0/',
+    '/blog/v2-2-0/',
   ];
   const docsRoutes = [
     '/docs/',
@@ -140,8 +141,12 @@ void main() {
   });
 
   test('social cards use the public URL and the release banner', () {
-    const imageUrl = 'https://genuineci.com/ogp/v2-1-0.jpg?v=2';
     for (final route in marketingRoutes) {
+      final isNewArticle = route == '/blog/v2-2-0/';
+      final version = isNewArticle ? 'v2.2.0' : 'v2.1.0';
+      final imageUrl = isNewArticle
+          ? 'https://genuineci.com/ogp/v2-2-0.jpg'
+          : 'https://genuineci.com/ogp/v2-1-0.jpg?v=2';
       final page = pages[route]!;
       String content(String selector) {
         final elements = page.querySelectorAll(selector);
@@ -165,23 +170,27 @@ void main() {
       );
       expect(
         content('meta[property="og:type"]'),
-        route == '/blog/v2-1-0/' ? 'article' : 'website',
+        route.startsWith('/blog/v') ? 'article' : 'website',
       );
       expect(content('meta[property="og:image"]'), imageUrl);
       expect(content('meta[property="og:image:type"]'), 'image/jpeg');
       expect(content('meta[property="og:image:width"]'), '1200');
       expect(content('meta[property="og:image:height"]'), '630');
-      expect(content('meta[property="og:image:alt"]'), contains('v2.1.0'));
+      expect(content('meta[property="og:image:alt"]'), contains(version));
       expect(content('meta[property="og:locale"]'), 'ja_JP');
       expect(content('meta[name="twitter:card"]'), 'summary_large_image');
       expect(content('meta[name="twitter:title"]'), title);
       expect(content('meta[name="twitter:description"]'), description);
       expect(content('meta[name="twitter:image"]'), imageUrl);
-      expect(content('meta[name="twitter:image:alt"]'), contains('v2.1.0'));
+      expect(content('meta[name="twitter:image:alt"]'), contains(version));
     }
     expect(
       File('build/jaspr/ogp/v2-1-0.jpg').readAsBytesSync(),
       File('web/ogp/v2-1-0.jpg').readAsBytesSync(),
+    );
+    expect(
+      File('build/jaspr/ogp/v2-2-0.jpg').readAsBytesSync(),
+      File('web/ogp/v2-2-0.jpg').readAsBytesSync(),
     );
   });
 
@@ -235,10 +244,13 @@ void main() {
   test('the blog contains the release article without sample content', () {
     final blog = pages['/blog/']!;
     final article = pages['/blog/v2-1-0/']!;
-    expect(blog.querySelectorAll('[data-article-category]'), hasLength(1));
-    expect(blog.querySelector('[data-article-count]')!.text, '01 ARTICLE');
+    expect(blog.querySelectorAll('[data-article-category]'), hasLength(2));
+    expect(blog.querySelector('[data-article-count]')!.text, '02 ARTICLES');
     expect(article.querySelector('time')!.attributes['datetime'], '2026-10-02');
-    expect(article.querySelector('.article-next'), isNull);
+    expect(
+      article.querySelector('.article-next a')!.attributes['href'],
+      '/blog/v2-2-0/',
+    );
     expect(
       article
           .querySelectorAll(
