@@ -21,6 +21,26 @@ abstract final class Secrets {
       Platform.environment['KEY_PROPERTIES_BASE64'] ??
       (throw StateError("Secret 'KEY_PROPERTIES_BASE64' is not set in environment."));
 
+  /// Secret key: `OPENCI_GENERATED_ASC_ISSUER_ID`
+  static String get openciGeneratedAscIssuerId =>
+      Platform.environment['OPENCI_GENERATED_ASC_ISSUER_ID'] ??
+      (throw StateError("Secret 'OPENCI_GENERATED_ASC_ISSUER_ID' is not set in environment."));
+
+  /// Secret key: `OPENCI_GENERATED_ASC_KEY_ID`
+  static String get openciGeneratedAscKeyId =>
+      Platform.environment['OPENCI_GENERATED_ASC_KEY_ID'] ??
+      (throw StateError("Secret 'OPENCI_GENERATED_ASC_KEY_ID' is not set in environment."));
+
+  /// Secret key: `OPENCI_GENERATED_IOS_CERTIFICATE_PRIVATE_KEY`
+  static String get openciGeneratedIosCertificatePrivateKey =>
+      Platform.environment['OPENCI_GENERATED_IOS_CERTIFICATE_PRIVATE_KEY'] ??
+      (throw StateError("Secret 'OPENCI_GENERATED_IOS_CERTIFICATE_PRIVATE_KEY' is not set in environment."));
+
+  /// Secret key: `OPENCI_GENERATED_P8_BASE64`
+  static String get openciGeneratedP8Base64 =>
+      Platform.environment['OPENCI_GENERATED_P8_BASE64'] ??
+      (throw StateError("Secret 'OPENCI_GENERATED_P8_BASE64' is not set in environment."));
+
   /// Secret key: `UPLOAD_KEYSTORE_JKS_BASE64`
   static String get uploadKeystoreJksBase64 =>
       Platform.environment['UPLOAD_KEYSTORE_JKS_BASE64'] ??
