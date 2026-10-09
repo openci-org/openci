@@ -14,6 +14,36 @@ void main() {
   tearDown(() => environment.workspace.delete(recursive: true));
 
   group('buildIpa', () {
+    test('exports a TestFlight IPA with App Store signing files', () async {
+      await environment.build(
+        distributionMethod: IosDistributionMethod.appStore,
+      );
+
+      final signing = environment.arguments.singleWhere(
+        (args) => args.contains('fetch-signing-files'),
+      );
+      expect(signing[signing.indexOf('--type') + 1], 'IOS_APP_STORE');
+
+      final profiles = environment.arguments.singleWhere(
+        (args) => args.contains('use-profiles'),
+      );
+      expect(profiles[profiles.indexOf('--archive-method') + 1], 'app-store');
+
+      final build = environment.arguments.singleWhere(
+        (args) => args.contains('ipa'),
+      );
+      expect(
+        build[build.indexOf('--export-options-plist') + 1],
+        profiles[profiles.indexOf('--export-options-plist') + 1],
+      );
+      expect(
+        await File(
+          '${environment.workspace.path}/apps/dashboard/build/ios/ipa/app.ipa',
+        ).readAsString(),
+        'test IPA',
+      );
+    });
+
     for (final dir in <String?>[null, '', 'apps/another app']) {
       test('prepares signing and exports in the workflow directory: $dir', () async {
         const argument =
@@ -352,6 +382,7 @@ esac
   }
 
   Future<void> build({
+    IosDistributionMethod distributionMethod = IosDistributionMethod.adHoc,
     String? dir,
     String? flavor,
     List<String> additionalArguments = const [],
@@ -436,7 +467,7 @@ esac
     );
     await IOOverrides.runZoned(
       () => ci.flutter.buildIpa(
-        distributionMethod: IosDistributionMethod.adHoc,
+        distributionMethod: distributionMethod,
         ascKeys: AppStoreConnectKeys(
           issuerId: 'test-issuer',
           keyId: 'TESTKEY',
