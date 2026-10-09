@@ -24,6 +24,10 @@ Future<void> main() async {
     base64Content: Secrets.googleServiceInfoPlistBase64,
   );
 
+  await openCI.run('xcodebuild -version');
+  await openCI.run('xcodebuild -showsdks');
+  await openCI.run('xcrun simctl list runtimes');
+
   await openCI.flutter.buildIpa(
     distributionMethod: IosDistributionMethod.adHoc,
     ascKeys: AppStoreConnectKeys(
