@@ -1,3 +1,9 @@
+## Unreleased
+
+- Automatically sync workspace paths and secret definitions after successfully
+  saving a secret with `genuineci register secret` or `genuineci register
+  secretFile`. Report sync failures without undoing the saved secret.
+
 ## 0.5.4
 
 - Add `genuineci setup ios-certificate-key` to prepare only the iOS certificate
