@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Return the absolute path of the exported IPA from `FlutterCI.buildIpa()`, rejecting missing or ambiguous exports.
+- Add `FlutterCI.deployIpaToFirebaseAppDistribution()` with required service account credentials, automatic Firebase App ID detection, and optional release notes and tester distribution.
+
 ## 0.1.2
 
 - Add optional `tz` and `excludeTags` arguments to `FlutterCI.unitTests()`, preserving existing defaults when omitted.

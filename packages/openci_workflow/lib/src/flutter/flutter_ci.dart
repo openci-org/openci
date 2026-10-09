@@ -7,6 +7,7 @@ import '../ios_signing/write_ios_signing_secrets.dart';
 import '../quote_shell_argument.dart';
 import '../time_zone.dart';
 import 'build_signed_ipa.dart';
+import 'deploy_ipa_to_firebase_app_distribution.dart' as firebase;
 import 'ios_distribution_method.dart';
 import 'read_ios_build_settings.dart';
 
@@ -77,7 +78,11 @@ class FlutterCI {
     workingDirectory: dir,
   );
 
-  Future<void> buildIpa({
+  /// Builds a signed IPA and returns its absolute path.
+  ///
+  /// Throws a [StateError] if Flutter does not export exactly one new,
+  /// nonempty IPA. Use [dir] to override the workflow's working directory.
+  Future<String> buildIpa({
     required IosDistributionMethod distributionMethod,
     required AppStoreConnectKeys ascKeys,
     required String certificatePrivateKey,
@@ -130,7 +135,7 @@ class FlutterCI {
       distributionMethod: distributionMethod,
       dir: dir,
     );
-    await buildSignedIpa(
+    return buildSignedIpa(
       run: _run,
       exportOptionsPlistPath: exportOptionsPlistPath,
       ipaDirectory: settings.ipaDirectory,
@@ -138,4 +143,34 @@ class FlutterCI {
       dir: dir,
     );
   }
+
+  /// Uploads an IPA to Firebase App Distribution using the Firebase CLI.
+  ///
+  /// Reads the Firebase App ID from the IPA's `GoogleService-Info.plist`
+  /// unless [appId] is provided. Requires `firebase` on `PATH`; automatic
+  /// App ID detection also requires macOS `unzip` and `plutil`.
+  ///
+  /// Decodes [serviceAccountJsonBase64] into a private temporary file for
+  /// authentication and removes it after the upload. The service account needs
+  /// the Firebase App Distribution Admin role on the target Firebase project.
+  /// Relative paths are resolved in the workflow directory or [dir]. When
+  /// [groups] and [testers] are empty, only uploads the release.
+  Future<void> deployIpaToFirebaseAppDistribution({
+    required String ipaPath,
+    required String serviceAccountJsonBase64,
+    String? appId,
+    List<String> groups = const [],
+    List<String> testers = const [],
+    String? releaseNotes,
+    String? dir,
+  }) => firebase.deployIpaToFirebaseAppDistribution(
+    run: _run,
+    ipaPath: ipaPath,
+    serviceAccountJsonBase64: serviceAccountJsonBase64,
+    appId: appId,
+    groups: groups,
+    testers: testers,
+    releaseNotes: releaseNotes,
+    dir: dir,
+  );
 }

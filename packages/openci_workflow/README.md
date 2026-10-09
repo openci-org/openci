@@ -69,7 +69,7 @@ Flutter's restrictions on define values still apply: the Flutter 3.47.3 compiler
 Build a signed Ad Hoc IPA with App Store Connect credentials and a separate certificate private key:
 
 ```dart
-await openCI.flutter.buildIpa(
+final ipaPath = await openCI.flutter.buildIpa(
   distributionMethod: IosDistributionMethod.adHoc,
   ascKeys: AppStoreConnectKeys(
     issuerId: Secrets.openciGeneratedAscIssuerId,
@@ -86,9 +86,24 @@ Here, `Secrets` refers to your workflow's generated secret definitions. Pass the
 
 Use `IosDistributionMethod.appStore` to export an IPA for App Store Connect, including TestFlight. This selects an App Store provisioning profile and generates the corresponding export options. Uploading the IPA to App Store Connect is a separate step.
 
-`buildIpa()` prepares Flutter's release configuration, detects the app's Bundle ID, creates and unlocks a signing Keychain, fetches or creates signing certificates and provisioning profiles, imports the certificates, and applies the profiles to Xcode. It then builds the IPA using the generated ExportOptions.plist and checks that a new IPA was exported. The `flavor` argument and Flutter's default flavor are respected. Use `dir` to override the workflow's working directory for the whole operation.
+`buildIpa()` prepares Flutter's release configuration, detects the app's Bundle ID, creates and unlocks a signing Keychain, fetches or creates signing certificates and provisioning profiles, imports the certificates, and applies the profiles to Xcode. It then builds the IPA using the generated ExportOptions.plist and returns the absolute path of the new, nonempty IPA. Missing exports and multiple new IPAs fail the workflow. The `flavor` argument and Flutter's default flavor are respected. Use `dir` to override the workflow's working directory for the whole operation.
 
 Run this on a disposable macOS build VM with Flutter, Xcode and the required iOS components, Codemagic CLI tools, Ruby `xcodeproj`, and the project's CocoaPods dependencies available. This initial integration supports one iOS app project directly under `ios/`; additional app targets and extensions are not provisioned separately. Ad Hoc devices must already be registered in the Apple Developer team. Signing files and the Keychain remain until the VM is deleted. Uploading the IPA to Firebase App Distribution is a separate step.
+
+Upload the IPA to Firebase App Distribution:
+
+```dart
+await openCI.flutter.deployIpaToFirebaseAppDistribution(
+  ipaPath: ipaPath,
+  serviceAccountJsonBase64: Secrets.firebaseServiceAccountJsonBase64,
+);
+```
+
+Register `FIREBASE_SERVICE_ACCOUNT_JSON_BASE64` in your team's OpenCI secrets with the Base64-encoded contents of a service account JSON key, then run `genuineci sync --secrets` to generate its getter. The service account needs the [Firebase App Distribution Admin role](https://firebase.google.com/docs/app-distribution/authenticate-service-account?platform=ios) on the destination project. The key is decoded into a temporary file with owner-only permissions, passed through `GOOGLE_APPLICATION_CREDENTIALS`, and deleted after the command, including on upload failure. Key contents are not included in commands or logs.
+
+The build VM must have the [Firebase CLI](https://firebase.google.com/docs/app-distribution/ios/distribute-cli) on `PATH`. The helper uses macOS `unzip` and `plutil` to read `GOOGLE_APP_ID` from the exported app's `GoogleService-Info.plist`. Pass `appId` explicitly if the IPA does not bundle that file. Relative `ipaPath` values use the workflow directory, or `dir` when specified; the absolute path returned by `buildIpa()` works across working directories.
+
+By default, this only uploads a release. Set `groups` (group aliases) or `testers` (email addresses) to distribute it to testers, and optionally provide `releaseNotes`. The Dashboard workflow only uploads. Actual upload validation requires Firebase credentials and a signed IPA.
 
 ## Run locally
 
