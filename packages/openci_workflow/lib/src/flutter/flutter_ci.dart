@@ -1,7 +1,14 @@
 import '../app_store_connect_keys.dart';
+import '../ios_signing/apply_ios_provisioning_profiles.dart';
+import '../ios_signing/fetch_ios_signing_files.dart';
+import '../ios_signing/import_ios_signing_certificates.dart';
+import '../ios_signing/initialize_ios_keychain.dart';
+import '../ios_signing/write_ios_signing_secrets.dart';
 import '../quote_shell_argument.dart';
 import '../time_zone.dart';
+import 'build_signed_ipa.dart';
 import 'ios_distribution_method.dart';
+import 'read_ios_build_settings.dart';
 
 class FlutterCI {
   const FlutterCI(this._run);
@@ -66,6 +73,57 @@ class FlutterCI {
     String? flavor,
     List<String> additionalArguments = const [],
   }) async {
-    throw UnimplementedError('FlutterCI.buildIpa is not implemented yet.');
+    for (final argument in additionalArguments) {
+      final option = argument.split('=').first;
+      if (const {
+        '--export-options-plist',
+        '--export-method',
+        '--no-codesign',
+      }.contains(option)) {
+        throw ArgumentError.value(
+          option,
+          'additionalArguments',
+          'IPA signing and export options are managed by buildIpa.',
+        );
+      }
+    }
+    final credentials = await writeIosSigningSecrets(
+      ascKeys: ascKeys,
+      certificatePrivateKey: certificatePrivateKey,
+    );
+    final arguments = [
+      if (flavor != null) ...['--flavor', flavor],
+      ...additionalArguments,
+    ];
+    await _run(
+      [
+        'flutter build ios',
+        ...arguments.map(quoteShellArgument),
+        '--release --config-only --no-codesign',
+      ].join(' '),
+      workingDirectory: dir,
+    );
+    final settings = await readIosBuildSettings(run: _run, dir: dir);
+    await initializeIosKeychain(run: _run, dir: dir);
+    await fetchIosSigningFiles(
+      run: _run,
+      credentials: credentials,
+      bundleId: settings.bundleId,
+      distributionMethod: distributionMethod,
+      dir: dir,
+    );
+    await importIosSigningCertificates(run: _run, dir: dir);
+    final exportOptionsPlistPath = await applyIosProvisioningProfiles(
+      run: _run,
+      distributionMethod: distributionMethod,
+      dir: dir,
+    );
+    await buildSignedIpa(
+      run: _run,
+      exportOptionsPlistPath: exportOptionsPlistPath,
+      ipaDirectory: settings.ipaDirectory,
+      arguments: arguments,
+      dir: dir,
+    );
   }
 }
