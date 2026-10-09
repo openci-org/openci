@@ -15,8 +15,9 @@ Future<void> main() async {
 
   await openCI.run('''
 set -eu
-if ! command -v npm >/dev/null 2>&1; then
-  brew install node
+if ! command -v npm >/dev/null 2>&1 || ! node -e 'process.exit([20, 22, 24].includes(Number(process.versions.node.split(".")[0])) ? 0 : 1)'; then
+  brew install node@24
+  brew link --overwrite --force node@24
 fi
 npm install --prefix .dart_tool/firebase-cli --no-audit --no-fund firebase-tools@15.25.0
 .dart_tool/firebase-cli/node_modules/.bin/firebase --version
