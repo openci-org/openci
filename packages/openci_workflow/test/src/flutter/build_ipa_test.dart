@@ -15,9 +15,11 @@ void main() {
 
   group('buildIpa', () {
     test('exports a TestFlight IPA with App Store signing files', () async {
-      await environment.build(
+      final ipaPath = await environment.build(
         distributionMethod: IosDistributionMethod.appStore,
       );
+      expect(ipaPath, startsWith('/'));
+      expect(await File(ipaPath).readAsString(), 'test IPA');
 
       final signing = environment.arguments.singleWhere(
         (args) => args.contains('fetch-signing-files'),
@@ -52,7 +54,7 @@ void main() {
         environment.configurations = ['Debug', 'Release-Dev'];
         environment.buildDirectory = 'output with spaces';
 
-        await environment.build(
+        final ipaPath = await environment.build(
           dir: dir,
           flavor: 'dev',
           additionalArguments: [argument, '--target', 'lib/main dev.dart'],
@@ -142,6 +144,12 @@ void main() {
             ? environment.workspace.path
             : '${environment.workspace.path}/$relativeDirectory';
         expect(environment.workingDirectories.toSet(), {expectedDirectory});
+        expect(
+          await File(ipaPath).resolveSymbolicLinks(),
+          await File(
+            '$expectedDirectory/output with spaces/ios/ipa/app.ipa',
+          ).resolveSymbolicLinks(),
+        );
         expect(
           await File(
             '$expectedDirectory/output with spaces/ios/ipa/app.ipa',
@@ -280,7 +288,7 @@ void main() {
           await expectLater(
             environment.build(),
             throwsA(
-              isA<ProcessException>().having(
+              isA<StateError>().having(
                 (error) => error.message,
                 'message',
                 contains('Flutter did not export a new IPA.'),
@@ -291,6 +299,51 @@ void main() {
         },
       );
     }
+
+    test('returns the new IPA when an older export is also present', () async {
+      environment.artifact = 'old-and-new';
+
+      final path = await environment.build();
+
+      expect(path, endsWith('/app.ipa'));
+      expect(await File(path).readAsString(), 'test IPA');
+      expect(
+        (await environment.temporary.list().toList()).where(
+          (entry) => entry.path.contains('openci-ipa-build-'),
+        ),
+        isEmpty,
+      );
+    });
+
+    test('supports an absolute Flutter build directory', () async {
+      environment.buildDirectory = '${environment.workspace.path}/absolute out';
+
+      final path = await environment.build();
+
+      expect(path, '${environment.buildDirectory}/ios/ipa/app.ipa');
+      expect(await File(path).readAsString(), 'test IPA');
+    });
+
+    test('rejects multiple new IPAs instead of choosing one', () async {
+      environment.artifact = 'multiple';
+
+      await expectLater(
+        environment.build(),
+        throwsA(
+          isA<StateError>().having(
+            (error) => error.message,
+            'message',
+            contains('multiple IPAs'),
+          ),
+        ),
+      );
+      expect(
+        (await environment.temporary.list().toList()).where(
+          (entry) => entry.path.contains('openci-ipa-build-'),
+        ),
+        isEmpty,
+      );
+    });
 
     for (final option in [
       '--export-method',
@@ -363,7 +416,12 @@ case "$name" in
       cp "$OPENCI_TEST_SETTINGS" ios/Flutter/Generated.xcconfig
     elif [ "$2" = ipa ]; then
       case "$OPENCI_TEST_ARTIFACT" in
-        new) mkdir -p "$OPENCI_TEST_IPA_DIR"; printf 'test IPA' > "$OPENCI_TEST_IPA_DIR/app.ipa" ;;
+        new|old-and-new|multiple)
+          mkdir -p "$OPENCI_TEST_IPA_DIR"
+          printf 'test IPA' > "$OPENCI_TEST_IPA_DIR/app.ipa"
+          if [ "$OPENCI_TEST_ARTIFACT" = multiple ]; then
+            printf 'other IPA' > "$OPENCI_TEST_IPA_DIR/other.ipa"
+          fi ;;
         empty) mkdir -p "$OPENCI_TEST_IPA_DIR"; touch "$OPENCI_TEST_IPA_DIR/app.ipa" ;;
       esac
     fi ;;
@@ -381,7 +439,7 @@ esac
     return _BuildEnvironment(workspace, temporary);
   }
 
-  Future<void> build({
+  Future<String> build({
     IosDistributionMethod distributionMethod = IosDistributionMethod.adHoc,
     String? dir,
     String? flavor,
@@ -414,9 +472,10 @@ esac
             },
       ),
     );
-    if (artifact == 'old') {
+    if (artifact == 'old' || artifact == 'old-and-new') {
+      final filename = artifact == 'old' ? 'app.ipa' : 'old.ipa';
       final ipa = File.fromUri(
-        workingApp.uri.resolve('$buildDirectory/ios/ipa/app.ipa'),
+        workingApp.uri.resolve('$buildDirectory/ios/ipa/$filename'),
       );
       await ipa.create(recursive: true);
       await ipa.writeAsString('old IPA');
@@ -465,7 +524,7 @@ esac
         }
       },
     );
-    await IOOverrides.runZoned(
+    return IOOverrides.runZoned(
       () => ci.flutter.buildIpa(
         distributionMethod: distributionMethod,
         ascKeys: AppStoreConnectKeys(

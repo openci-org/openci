@@ -28,7 +28,7 @@ Future<void> main() async {
   await openCI.run('xcodebuild -showsdks');
   await openCI.run('xcrun simctl list runtimes');
 
-  await openCI.flutter.buildIpa(
+  final ipaPath = await openCI.flutter.buildIpa(
     distributionMethod: IosDistributionMethod.adHoc,
     ascKeys: AppStoreConnectKeys(
       issuerId: Secrets.openciGeneratedAscIssuerId,
@@ -36,6 +36,11 @@ Future<void> main() async {
       privateKeyBase64: Secrets.openciGeneratedP8Base64,
     ),
     certificatePrivateKey: Secrets.openciGeneratedIosCertificatePrivateKey,
+  );
+
+  await openCI.flutter.deployIpaToFirebaseAppDistribution(
+    ipaPath: ipaPath,
+    serviceAccountJsonBase64: Secrets.firebaseServiceAccountJsonBase64,
   );
 
   await openCI.run('ls -lh build/ios/ipa/*.ipa');

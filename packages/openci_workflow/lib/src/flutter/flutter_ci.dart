@@ -7,6 +7,7 @@ import '../ios_signing/write_ios_signing_secrets.dart';
 import '../quote_shell_argument.dart';
 import '../time_zone.dart';
 import 'build_signed_ipa.dart';
+import 'deploy_ipa_to_firebase_app_distribution.dart' as firebase;
 import 'ios_distribution_method.dart';
 import 'read_ios_build_settings.dart';
 
@@ -77,7 +78,11 @@ class FlutterCI {
     workingDirectory: dir,
   );
 
-  Future<void> buildIpa({
+  /// Builds a signed IPA and returns its absolute path.
+  ///
+  /// Throws a [StateError] if Flutter does not export exactly one new,
+  /// nonempty IPA. Use [dir] to override the workflow's working directory.
+  Future<String> buildIpa({
     required IosDistributionMethod distributionMethod,
     required AppStoreConnectKeys ascKeys,
     required String certificatePrivateKey,
@@ -130,7 +135,7 @@ class FlutterCI {
       distributionMethod: distributionMethod,
       dir: dir,
     );
-    await buildSignedIpa(
+    return buildSignedIpa(
       run: _run,
       exportOptionsPlistPath: exportOptionsPlistPath,
       ipaDirectory: settings.ipaDirectory,
@@ -138,4 +143,34 @@ class FlutterCI {
       dir: dir,
     );
   }
+
+  /// Uploads an IPA directly to the Firebase App Distribution REST API.
+  ///
+  /// Reads the Firebase App ID from the IPA's `GoogleService-Info.plist`
+  /// unless [appId] is provided. Automatic App ID detection requires macOS
+  /// `unzip` and `plutil`.
+  ///
+  /// Uses [serviceAccountJsonBase64] in memory for OAuth authentication and
+  /// waits for Firebase to finish processing the uploaded IPA. The service
+  /// account needs the Firebase App Distribution Admin role on the project.
+  /// Relative paths are resolved in the workflow directory or [dir]. When
+  /// [groups] and [testers] are empty, only uploads the release.
+  Future<void> deployIpaToFirebaseAppDistribution({
+    required String ipaPath,
+    required String serviceAccountJsonBase64,
+    String? appId,
+    List<String> groups = const [],
+    List<String> testers = const [],
+    String? releaseNotes,
+    String? dir,
+  }) => firebase.deployIpaToFirebaseAppDistribution(
+    run: _run,
+    ipaPath: ipaPath,
+    serviceAccountJsonBase64: serviceAccountJsonBase64,
+    appId: appId,
+    groups: groups,
+    testers: testers,
+    releaseNotes: releaseNotes,
+    dir: dir,
+  );
 }

@@ -11,6 +11,11 @@ abstract final class Secrets {
       Platform.environment['FIREBASE_OPTIONS_DART_BASE64'] ??
       (throw StateError("Secret 'FIREBASE_OPTIONS_DART_BASE64' is not set in environment."));
 
+  /// Secret key: `FIREBASE_SERVICE_ACCOUNT_JSON_BASE64`
+  static String get firebaseServiceAccountJsonBase64 =>
+      Platform.environment['FIREBASE_SERVICE_ACCOUNT_JSON_BASE64'] ??
+      (throw StateError("Secret 'FIREBASE_SERVICE_ACCOUNT_JSON_BASE64' is not set in environment."));
+
   /// Secret key: `GOOGLE_SERVICES_JSON_BASE64`
   static String get googleServicesJsonBase64 =>
       Platform.environment['GOOGLE_SERVICES_JSON_BASE64'] ??
