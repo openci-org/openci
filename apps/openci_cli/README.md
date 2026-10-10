@@ -228,8 +228,11 @@ shows `******`, regardless of the value's length.
 Registering an existing name updates its value. The CLI uses the dashboard's
 existing API, which trims leading and trailing whitespace from values. Values
 are not printed or saved locally. Firebase tokens are refreshed when needed.
-After adding a secret, run `genuineci sync --secrets` from your workflow project
-to update its generated secret definitions.
+After saving, the command automatically runs `genuineci sync` to update both
+`openci/generated/paths.g.dart` and `openci/generated/secrets.g.dart`. Run it from
+your workflow project or a subdirectory. If sync fails, the secret remains saved
+and the command returns exit code 1; fix the reported problem and retry
+`genuineci sync`. Cancelling input or a failed save does not run sync.
 
 Register a file as a Base64 secret:
 
@@ -249,8 +252,10 @@ underscores become `_`, and `_BASE64` is appended. Names beginning with a digit
 are prefixed with `_`. For example, `google-services.json` becomes
 `GOOGLE_SERVICES_JSON_BASE64`. Selecting an existing name updates that secret.
 Empty files are rejected. Neither the file contents nor the encoded value is
-printed or saved locally. Run `genuineci sync --secrets` afterwards to update the
-generated definitions.
+printed or saved locally. After saving, the command automatically runs the same
+sync as `register secret`, updating both generated files. A sync failure leaves
+the uploaded secret saved and returns exit code 1; retry `genuineci sync` after
+fixing the reported problem.
 
 Run `genuineci dev start` from the OpenCI checkout to start local services and the
 Mac Orchard worker. Prepare the existing non-Firebase Docker Compose credentials

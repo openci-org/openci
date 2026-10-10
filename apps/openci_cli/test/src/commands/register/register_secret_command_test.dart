@@ -52,9 +52,17 @@ void main() {
   late List<_TrackingClient> clients;
   late Future<SecretInput?> Function() readInput;
   late int reads;
+  late File paths;
+  late File secrets;
+  late Set<String> savedNames;
 
   setUp(() async {
     temp = await Directory.systemTemp.createTemp('openci-register-test-');
+    await Directory('${temp.path}/openci').create();
+    await Directory('${temp.path}/lib').create();
+    await File('${temp.path}/pubspec.yaml').writeAsString('name: example\n');
+    paths = File('${temp.path}/openci/generated/paths.g.dart');
+    secrets = File('${temp.path}/openci/generated/secrets.g.dart');
     store = CredentialStore(customFilePath: '${temp.path}/credentials.json');
     await store.set(
       const CredentialConfig(
@@ -70,11 +78,23 @@ void main() {
     clients = [];
     reads = 0;
     readInput = () async => (name: 'API_TOKEN', value: secretValue);
-    handler = (_) async => http.Response(
-      '{"success":true}',
-      200,
-      headers: {'content-type': 'application/json'},
-    );
+    savedNames = {'EXISTING_SECRET'};
+    handler = (request) async {
+      if (request.method == 'POST') {
+        savedNames.add((jsonDecode(request.body) as Map)['name'] as String);
+      }
+      return http.Response(
+        jsonEncode({
+          'success': true,
+          if (request.method == 'GET')
+            'secrets': [
+              for (final name in savedNames) {'name': name},
+            ],
+        }),
+        200,
+        headers: {'content-type': 'application/json'},
+      );
+    };
   });
 
   tearDown(() async {
@@ -91,6 +111,13 @@ void main() {
       expect(messages, isNot(contains(secret)));
     }
     expect(clients.every((client) => client.closed), isTrue);
+    if (!requests.any((request) => request.method == 'GET')) {
+      expect(await paths.exists(), isFalse);
+      expect(await secrets.exists(), isFalse);
+    }
+    if (await secrets.exists()) {
+      expect(await secrets.readAsString(), isNot(contains(secretValue)));
+    }
     expect(
       await File(store.filePath).readAsString(),
       isNot(contains('private-secret-value')),
@@ -104,6 +131,7 @@ void main() {
         RegisterSecretCommand(
           logger: logger,
           credentialStore: store,
+          workingDirectory: Directory('${temp.path}/lib'),
           readInput: () async {
             reads++;
             return readInput();
@@ -126,7 +154,8 @@ void main() {
     expect(await runRegister(), 0);
 
     expect(reads, 1);
-    final request = requests.single;
+    expect(requests.map((request) => request.method), ['POST', 'GET']);
+    final request = requests.first;
     expect(request.method, 'POST');
     expect(
       request.url.toString(),
@@ -141,7 +170,15 @@ void main() {
     expect(logger.stderrMessages, isEmpty);
     expect(logger.stdoutMessages, [
       t.register.secret.saved(name: 'API_TOKEN', teamId: 'selected-team'),
+      t.sync.paths.saved(path: paths.path),
+      t.sync.secrets.saved(path: secrets.path),
     ]);
+    expect(await paths.readAsString(), contains('WorkspaceDirectory("lib")'));
+    final definitions = await secrets.readAsString();
+    expect(definitions, contains("Platform.environment['API_TOKEN']"));
+    expect(definitions, contains("Platform.environment['EXISTING_SECRET']"));
+    expect(requests.last.url, request.url);
+    expect(requests.last.headers['authorization'], 'Bearer $token');
     expect(await File(store.filePath).readAsString(), before);
   });
 
@@ -153,7 +190,7 @@ void main() {
 
     expect(await runRegister(), 0);
     expect(
-      requests.single.url.toString(),
+      requests.first.url.toString(),
       'http://localhost:8080/teams/team%2Fwith%20space%3F%23/secrets',
     );
   });
@@ -186,9 +223,59 @@ void main() {
     };
 
     expect(await runRegister(), 0);
-    expect(requests, hasLength(2));
+    expect(requests, hasLength(3));
     expect(requests.first.url.host, 'securetoken.googleapis.com');
     expect((await store.getActiveProfile())!.token, 'refreshed-id-token');
+  });
+
+  test('reports a sync failure after successfully saving the secret', () async {
+    final saveHandler = handler;
+    handler = (request) async => request.method == 'GET'
+        ? http.Response(
+            jsonEncode({'error': secretValue}),
+            500,
+            headers: {'content-type': 'application/json'},
+          )
+        : saveHandler(request);
+
+    expect(await runRegister(), 1);
+
+    expect(savedNames, contains('API_TOKEN'));
+    expect(requests.map((request) => request.method), ['POST', 'GET']);
+    expect(await paths.exists(), isTrue);
+    expect(await secrets.exists(), isFalse);
+    expect(
+      logger.stdoutMessages.first,
+      t.register.secret.saved(name: 'API_TOKEN', teamId: 'selected-team'),
+    );
+    expect(logger.stderrMessages, [t.sync.secrets.requestFailed(status: 500)]);
+  });
+
+  test('still syncs secrets when workspace path generation fails', () async {
+    await File('${temp.path}/pubspec.yaml').writeAsString('workspace: [\n');
+
+    expect(await runRegister(), 1);
+
+    expect(savedNames, contains('API_TOKEN'));
+    expect(await paths.exists(), isFalse);
+    expect(
+      await secrets.readAsString(),
+      contains("Platform.environment['API_TOKEN']"),
+    );
+    expect(logger.stderrMessages.single, contains('invalid YAML'));
+  });
+
+  test('keeps the saved secret when run outside a workflow project', () async {
+    await Directory('${temp.path}/openci').delete(recursive: true);
+
+    expect(await runRegister(), 1);
+
+    expect(savedNames, contains('API_TOKEN'));
+    expect(requests.single.method, 'POST');
+    expect(logger.stderrMessages, [
+      t.sync.paths.projectRootNotFound,
+      t.sync.secrets.workflowDirectoryNotFound,
+    ]);
   });
 
   test('help does not read a value or contact the server', () async {

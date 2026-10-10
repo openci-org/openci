@@ -1,9 +1,12 @@
+import 'dart:io';
+
 import 'package:args/command_runner.dart';
 import 'package:cli_util/cli_logging.dart';
 import 'package:meta/meta.dart';
 
 import '../../credential_store/credential_store.dart';
 import '../../i18n/i18n.dart';
+import '../sync/sync_workspace.dart';
 import 'read_secret_input.dart';
 import 'secret_registration.dart';
 
@@ -16,17 +19,24 @@ class RegisterSecretCommand extends Command<int> {
 
   final Logger _logger;
   final SecretRegistration _registration;
+  final SyncWorkspace _sync;
   final Future<SecretInput?> Function() _readInput;
 
   RegisterSecretCommand({
     required Logger logger,
     CredentialStore? credentialStore,
+    Directory? workingDirectory,
     @visibleForTesting
     Future<SecretInput?> Function() readInput = readSecretInput,
   }) : _logger = logger,
        _registration = SecretRegistration(
          logger: logger,
          credentialStore: credentialStore,
+       ),
+       _sync = SyncWorkspace(
+         logger: logger,
+         credentialStore: credentialStore,
+         workingDirectory: workingDirectory,
        ),
        _readInput = readInput;
 
@@ -55,6 +65,12 @@ class RegisterSecretCommand extends Command<int> {
       _logger.stderr(t.register.secret.invalidName);
       return 1;
     }
-    return _registration.save(profile, secret.name, secret.value);
+    final saveExitCode = await _registration.save(
+      profile,
+      secret.name,
+      secret.value,
+    );
+    if (saveExitCode != 0) return saveExitCode;
+    return _sync.run();
   }
 }

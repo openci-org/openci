@@ -5,8 +5,7 @@ import 'package:cli_util/cli_logging.dart';
 
 import '../../credential_store/credential_store.dart';
 import '../../i18n/i18n.dart';
-import 'sync_paths.dart';
-import 'sync_secrets.dart';
+import 'sync_workspace.dart';
 
 class SyncCommand extends Command<int> {
   @override
@@ -15,15 +14,13 @@ class SyncCommand extends Command<int> {
   @override
   String get description => t.sync.description;
 
-  final SyncPaths _paths;
-  final SyncSecrets _secrets;
+  final SyncWorkspace _sync;
 
   SyncCommand({
     required Logger logger,
     CredentialStore? credentialStore,
     Directory? workingDirectory,
-  }) : _paths = SyncPaths(logger: logger, workingDirectory: workingDirectory),
-       _secrets = SyncSecrets(
+  }) : _sync = SyncWorkspace(
          logger: logger,
          credentialStore: credentialStore,
          workingDirectory: workingDirectory,
@@ -40,12 +37,9 @@ class SyncCommand extends Command<int> {
       usageException(t.sync.noArguments);
     }
     final syncAll = !arguments.flag('secrets') && !arguments.flag('paths');
-    final pathsExitCode = syncAll || arguments.flag('paths')
-        ? await _paths.run()
-        : 0;
-    final secretsExitCode = syncAll || arguments.flag('secrets')
-        ? await _secrets.run()
-        : 0;
-    return pathsExitCode != 0 ? pathsExitCode : secretsExitCode;
+    return _sync.run(
+      paths: syncAll || arguments.flag('paths'),
+      secrets: syncAll || arguments.flag('secrets'),
+    );
   }
 }

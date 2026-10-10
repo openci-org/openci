@@ -7,6 +7,7 @@ import 'package:meta/meta.dart';
 
 import '../../credential_store/credential_store.dart';
 import '../../i18n/i18n.dart';
+import '../sync/sync_workspace.dart';
 import 'secret_name_for_file.dart';
 import 'secret_registration.dart';
 import 'select_secret_file.dart';
@@ -20,16 +21,23 @@ class RegisterSecretFileCommand extends Command<int> {
 
   final Logger _logger;
   final SecretRegistration _registration;
+  final SyncWorkspace _sync;
   final Future<String?> Function() _selectFile;
 
   RegisterSecretFileCommand({
     required Logger logger,
     CredentialStore? credentialStore,
+    Directory? workingDirectory,
     @visibleForTesting Future<String?> Function() selectFile = selectSecretFile,
   }) : _logger = logger,
        _registration = SecretRegistration(
          logger: logger,
          credentialStore: credentialStore,
+       ),
+       _sync = SyncWorkspace(
+         logger: logger,
+         credentialStore: credentialStore,
+         workingDirectory: workingDirectory,
        ),
        _selectFile = selectFile;
 
@@ -69,10 +77,12 @@ class RegisterSecretFileCommand extends Command<int> {
       return 1;
     }
 
-    return _registration.save(
+    final saveExitCode = await _registration.save(
       profile,
       secretNameForFile(filePath),
       base64Encode(bytes),
     );
+    if (saveExitCode != 0) return saveExitCode;
+    return _sync.run();
   }
 }
