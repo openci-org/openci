@@ -144,22 +144,20 @@ class FlutterCI {
     );
   }
 
-  /// Uploads an IPA to Firebase App Distribution using the Firebase CLI.
+  /// Uploads an IPA directly to the Firebase App Distribution REST API.
   ///
   /// Reads the Firebase App ID from the IPA's `GoogleService-Info.plist`
-  /// unless [appId] is provided. Uses `firebase` on `PATH`, or the executable
-  /// at [firebaseCliPath]. Automatic App ID detection requires macOS `unzip`
-  /// and `plutil`.
+  /// unless [appId] is provided. Automatic App ID detection requires macOS
+  /// `unzip` and `plutil`.
   ///
-  /// Decodes [serviceAccountJsonBase64] into a private temporary file for
-  /// authentication and removes it after the upload. The service account needs
-  /// the Firebase App Distribution Admin role on the target Firebase project.
+  /// Uses [serviceAccountJsonBase64] in memory for OAuth authentication and
+  /// waits for Firebase to finish processing the uploaded IPA. The service
+  /// account needs the Firebase App Distribution Admin role on the project.
   /// Relative paths are resolved in the workflow directory or [dir]. When
   /// [groups] and [testers] are empty, only uploads the release.
   Future<void> deployIpaToFirebaseAppDistribution({
     required String ipaPath,
     required String serviceAccountJsonBase64,
-    String firebaseCliPath = 'firebase',
     String? appId,
     List<String> groups = const [],
     List<String> testers = const [],
@@ -169,7 +167,6 @@ class FlutterCI {
     run: _run,
     ipaPath: ipaPath,
     serviceAccountJsonBase64: serviceAccountJsonBase64,
-    firebaseCliPath: firebaseCliPath,
     appId: appId,
     groups: groups,
     testers: testers,

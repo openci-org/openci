@@ -1,87 +1,94 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 import 'package:openci_workflow/openci_workflow.dart';
 import 'package:test/test.dart';
 
 const _appId = '1:123456789:ios:abcdef';
-const _credentials = {
-  'type': 'service_account',
-  'project_id': 'test-project',
-  'client_email': 'test@test-project.iam.gserviceaccount.com',
-  'private_key': 'TEST_PRIVATE_KEY_DO_NOT_LOG',
-};
-final _credentialsBase64 = base64Encode(utf8.encode(jsonEncode(_credentials)));
+const _appName = 'projects/123456789/apps/$_appId';
+const _release = '$_appName/releases/release-1';
+late String _credentialsBase64;
 
 void main() {
   group('deployIpaToFirebaseAppDistribution', () {
+    late Directory keyDirectory;
     late _UploadEnvironment environment;
 
+    setUpAll(() async {
+      keyDirectory = await Directory.systemTemp.createTemp(
+        'openci-fad-test-key-',
+      );
+      final key = File('${keyDirectory.path}/key.pem');
+      final result = await Process.run('openssl', [
+        'genpkey',
+        '-algorithm',
+        'RSA',
+        '-pkeyopt',
+        'rsa_keygen_bits:2048',
+        '-out',
+        key.path,
+      ]);
+      expect(result.exitCode, 0, reason: result.stderr.toString());
+      // Generated only for mocked OAuth requests; not a real service account key.
+      _credentialsBase64 = base64Encode(
+        utf8.encode(
+          jsonEncode({
+            'type': 'service_account',
+            'project_id': 'test-project',
+            'client_id': '123456789',
+            'client_email': 'test@test-project.iam.gserviceaccount.com',
+            'private_key': await key.readAsString(),
+          }),
+        ),
+      );
+    });
+    tearDownAll(() => keyDirectory.delete(recursive: true));
     setUp(() async => environment = await _UploadEnvironment.create());
-    tearDown(() => environment.workspace.delete(recursive: true));
+    tearDown(() async {
+      expect(environment.clients.every((client) => client.closed), isTrue);
+      expect(await environment.temporary.list().toList(), isEmpty);
+      expect(
+        environment.commands.join('\n'),
+        isNot(contains(_credentialsBase64)),
+      );
+      await environment.workspace.delete(recursive: true);
+    });
 
     for (final binary in [false, true]) {
-      test('reads the exported Firebase config (binary: $binary)', () async {
-        await environment.createIpa(
-          binary: binary,
-          configs: {
-            "Payload/Runner's [prod].app/GoogleService-Info.plist": _plist(
-              _appId,
-            ),
-            'Payload/Runner.app/Watch/Watch.app/GoogleService-Info.plist':
-                _plist('1:987654321:ios:123abc'),
-          },
-        );
+      test(
+        'authenticates and uploads using the IPA config (binary: $binary)',
+        () async {
+          final ipa = await environment.createIpa(
+            binary: binary,
+            configs: {
+              "Payload/Runner's [prod].app/GoogleService-Info.plist": _plist(
+                _appId,
+              ),
+              'Payload/Runner.app/Watch/Watch.app/GoogleService-Info.plist':
+                  _plist('1:987654321:ios:123abc'),
+            },
+          );
+          await environment.deploy();
 
-        await environment.deploy();
-
-        expect(await environment.uploadArguments(), [
-          'appdistribution:distribute',
-          './app.ipa',
-          '--app',
-          _appId,
-          '--non-interactive',
-        ]);
-        expect(environment.workingDirectories.toSet(), {
-          environment.appDirectory(null).path,
-        });
-        expect(
-          jsonDecode(
-            await environment.file('uploaded-credentials').readAsString(),
-          ),
-          _credentials,
-        );
-        expect(
-          (await environment.file('credential-mode').readAsString()).trim(),
-          '600',
-        );
-        final auth = (await environment.file('auth-environment').readAsString())
-            .split('\u0000');
-        expect(
-          auth[2],
-          isEmpty,
-          reason: 'Inherited FIREBASE_TOKEN is cleared.',
-        );
-        expect(await File(auth[0]).exists(), isFalse);
-        expect(await Directory(auth[1]).exists(), isFalse);
-        expect(await environment.temporary.list().toList(), isEmpty);
-        expect(
-          environment.commands.join('\n'),
-          isNot(contains(_credentialsBase64)),
-        );
-        expect(
-          environment.commands.join('\n'),
-          isNot(contains(_credentials['private_key']!)),
-        );
-      });
+          final request = environment.uploadRequest;
+          expect(request.url.path, '/upload/v1/$_appName/releases:upload');
+          expect(request.headers['authorization'], 'Bearer test-access-token');
+          expect(request.bodyBytes, await ipa.readAsBytes());
+          expect(environment.requests, hasLength(2));
+          expect(environment.workingDirectories.toSet(), {
+            environment.appDirectory(null).path,
+          });
+        },
+      );
     }
 
     for (final dir in <String?>[null, '', 'apps/another app']) {
       test('resolves the IPA in the workflow directory: $dir', () async {
-        await environment.createIpa(dir: dir);
-
+        final ipa = await environment.createIpa(dir: dir);
         await environment.deploy(dir: dir);
-
+        expect(environment.uploadRequest.bodyBytes, await ipa.readAsBytes());
         expect(environment.workingDirectories.toSet(), {
           environment.appDirectory(dir).path,
         });
@@ -90,24 +97,32 @@ void main() {
 
     test('accepts an absolute IPA path from another directory', () async {
       final ipa = await environment.createIpa();
-
       await environment.deploy(ipaPath: ipa.path, dir: '');
-
-      expect((await environment.uploadArguments())[1], ipa.path);
+      expect(environment.uploadRequest.bodyBytes, await ipa.readAsBytes());
     });
 
-    test('uses a custom CLI path as a literal argument', () async {
-      await environment.createIpa();
-      const executablePath = r"tools/firebase ' $(touch unexpected)";
-      final executable = File(
-        '${environment.appDirectory(null).path}/$executablePath',
+    test(
+      'uses an explicit App ID without requiring a bundled config',
+      () async {
+        final ipa = await environment.createIpa(configs: {});
+        await environment.deploy(ipaPath: ipa.path, appId: _appId);
+        expect(environment.commands, isEmpty);
+        expect(
+          environment.uploadRequest.url.path,
+          '/upload/v1/$_appName/releases:upload',
+        );
+      },
+    );
+
+    test('treats special characters in the IPA path literally', () async {
+      const filename = r"-app ' $(touch unexpected) 日本語.ipa";
+      final ipa = await environment.createIpa(filename: filename);
+      await environment.deploy(ipaPath: filename);
+      expect(environment.uploadRequest.bodyBytes, await ipa.readAsBytes());
+      expect(
+        environment.uploadRequest.headers['X-Goog-Upload-File-Name'],
+        Uri.encodeComponent(filename),
       );
-      await executable.parent.create();
-      await environment.file('bin/firebase').rename(executable.path);
-
-      await environment.deploy(firebaseCliPath: executablePath);
-
-      expect(await environment.uploadArguments(), contains(_appId));
       expect(
         await File(
           '${environment.appDirectory(null).path}/unexpected',
@@ -116,85 +131,41 @@ void main() {
       );
     });
 
-    test('rejects an empty CLI path before running commands', () async {
-      await expectLater(
-        environment.deploy(firebaseCliPath: '  '),
-        throwsArgumentError,
-      );
-
-      expect(environment.commands, isEmpty);
-    });
-
     test(
-      'uses an explicit App ID without requiring a bundled config',
-      () async {
-        await environment.createIpa(configs: {});
-
-        await environment.deploy(appId: _appId);
-
-        expect(environment.commands, hasLength(1));
-        expect(await environment.uploadArguments(), contains(_appId));
-      },
-    );
-
-    test(
-      'passes paths, groups, testers, and notes as literal arguments',
-      () async {
-        const notes =
-            r'''--notes=' "$SECRET" `printf expanded` $(printf expanded)
-second line''';
-        const filename = r'''-app ' $(printf expanded).ipa''';
-        await environment.createIpa(filename: filename);
-
-        await environment.deploy(
-          ipaPath: filename,
-          groups: ['qa-team', 'internal'],
-          testers: ["o'connor@example.com", 'test@example.com'],
-          releaseNotes: notes,
-        );
-
-        expect(await environment.uploadArguments(), [
-          'appdistribution:distribute',
-          './$filename',
-          '--app',
-          _appId,
-          '--non-interactive',
-          '--groups=qa-team,internal',
-          "--testers=o'connor@example.com,test@example.com",
-          '--release-notes=$notes',
-        ]);
-      },
-    );
-
-    test(
-      'preserves a failed upload status and removes credentials in the shell',
+      'sanitizes authentication failures and closes the HTTP client',
       () async {
         await environment.createIpa();
-        environment.firebaseExitCode = 17;
-        environment.checkShellCleanup = true;
-
+        environment.authStatus = 400;
         await expectLater(
           environment.deploy(),
           throwsA(
-            isA<ProcessException>().having(
-              (error) => error.errorCode,
-              'exit',
-              17,
+            isA<StateError>().having(
+              (error) => error.toString(),
+              'message',
+              allOf(
+                contains('authenticate'),
+                isNot(contains('private-response')),
+              ),
             ),
           ),
         );
-
-        expect(await environment.temporary.list().toList(), isEmpty);
+        expect(environment.requests, hasLength(1));
       },
     );
 
-    test('removes credentials when the command runner cannot start', () async {
+    test('propagates upload failures and closes the HTTP client', () async {
       await environment.createIpa();
-      environment.failUploadStart = true;
-
-      await expectLater(environment.deploy(), throwsStateError);
-
-      expect(await environment.temporary.list().toList(), isEmpty);
+      environment.uploadStatus = 403;
+      await expectLater(
+        environment.deploy(),
+        throwsA(
+          isA<HttpException>().having(
+            (error) => error.message,
+            'message',
+            contains('HTTP 403'),
+          ),
+        ),
+      );
     });
 
     for (final configs in [
@@ -208,11 +179,8 @@ second line''';
         'rejects missing or ambiguous app config: ${configs.length}',
         () async {
           await environment.createIpa(configs: configs);
-
           await expectLater(environment.deploy(), throwsStateError);
-
-          expect(await environment.file('arguments').exists(), isFalse);
-          expect(await environment.temporary.list().toList(), isEmpty);
+          expect(environment.requests, isEmpty);
         },
       );
     }
@@ -226,14 +194,11 @@ second line''';
         await environment.createIpa(
           configs: {'Payload/Runner.app/GoogleService-Info.plist': plist},
         );
-
         await expectLater(
           environment.deploy(),
           throwsA(isA<ProcessException>()),
         );
-
-        expect(await environment.file('arguments').exists(), isFalse);
-        expect(await environment.temporary.list().toList(), isEmpty);
+        expect(environment.requests, isEmpty);
       });
     }
 
@@ -241,11 +206,14 @@ second line''';
       await File(
         '${environment.appDirectory(null).path}/app.ipa',
       ).writeAsString('not a zip');
-
       await expectLater(environment.deploy(), throwsA(isA<ProcessException>()));
+      expect(environment.requests, isEmpty);
+    });
 
-      expect(await environment.file('arguments').exists(), isFalse);
-      expect(await environment.temporary.list().toList(), isEmpty);
+    test('rejects empty IPA files before authenticating', () async {
+      await File('${environment.appDirectory(null).path}/app.ipa').create();
+      await expectLater(environment.deploy(), throwsArgumentError);
+      expect(environment.requests, isEmpty);
     });
 
     for (final appId in ['', 'org.example.app', '1:123:android:abcdef']) {
@@ -255,7 +223,7 @@ second line''';
           throwsArgumentError,
         );
         expect(environment.commands, isEmpty);
-        expect(await environment.temporary.list().toList(), isEmpty);
+        expect(environment.requests, isEmpty);
       });
     }
 
@@ -265,6 +233,16 @@ second line''';
       base64Encode(utf8.encode('[]')),
       base64Encode(utf8.encode('{"type":"authorized_user"}')),
       base64Encode(utf8.encode('{"type":"service_account"}')),
+      base64Encode(
+        utf8.encode(
+          jsonEncode({
+            'type': 'service_account',
+            'client_id': '123',
+            'client_email': 'test@example.com',
+            'private_key': 'TEST_PRIVATE_KEY_DO_NOT_LOG',
+          }),
+        ),
+      ),
     ]) {
       test(
         'rejects malformed credentials without exposing their contents',
@@ -282,7 +260,7 @@ second line''';
             ),
           );
           expect(environment.commands, isEmpty);
-          expect(await environment.temporary.list().toList(), isEmpty);
+          expect(environment.requests, isEmpty);
         },
       );
     }
@@ -296,6 +274,16 @@ String _plist(String appId) =>
 <plist version="1.0"><dict><key>GOOGLE_APP_ID</key><string>$appId</string></dict></plist>
 ''';
 
+class _TrackingClient extends MockClient {
+  _TrackingClient(super.handler);
+  bool closed = false;
+  @override
+  void close() {
+    closed = true;
+    super.close();
+  }
+}
+
 class _UploadEnvironment {
   _UploadEnvironment(this.workspace, this.temporary);
 
@@ -303,34 +291,24 @@ class _UploadEnvironment {
   final Directory temporary;
   final commands = <String>[];
   final workingDirectories = <String>[];
-  int firebaseExitCode = 0;
-  bool failUploadStart = false;
-  bool checkShellCleanup = false;
+  final requests = <http.Request>[];
+  final clients = <_TrackingClient>[];
+  int authStatus = 200;
+  int uploadStatus = 200;
 
-  File file(String name) => File.fromUri(workspace.uri.resolve(name));
-
+  http.Request get uploadRequest =>
+      requests.singleWhere((request) => request.url.path.endsWith(':upload'));
   Directory appDirectory(String? dir) => dir == ''
       ? workspace
       : Directory('${workspace.path}/${dir ?? 'apps/dashboard'}');
 
   static Future<_UploadEnvironment> create() async {
     final workspace = await Directory.systemTemp.createTemp("openci fad ' ");
-    final temporary = Directory.fromUri(workspace.uri.resolve('temporary/'));
-    await temporary.create();
+    final temporary = await Directory.fromUri(
+      workspace.uri.resolve('temporary/'),
+    ).create();
     final environment = _UploadEnvironment(workspace, temporary);
     await environment.appDirectory(null).create(recursive: true);
-    final executable = environment.file('bin/firebase');
-    await executable.parent.create();
-    await executable.writeAsString(r'''#!/bin/sh
-set -eu
-printf '%s\000' "$@" > "$OPENCI_TEST_OUTPUT/arguments"
-printf '%s\000' "$GOOGLE_APPLICATION_CREDENTIALS" "$XDG_CONFIG_HOME" "$FIREBASE_TOKEN" > "$OPENCI_TEST_OUTPUT/auth-environment"
-stat -f '%Lp' "$GOOGLE_APPLICATION_CREDENTIALS" > "$OPENCI_TEST_OUTPUT/credential-mode"
-cat "$GOOGLE_APPLICATION_CREDENTIALS" > "$OPENCI_TEST_OUTPUT/uploaded-credentials"
-exit "$OPENCI_TEST_EXIT_CODE"
-''');
-    final result = await Process.run('chmod', ['700', executable.path]);
-    expect(result.exitCode, 0, reason: result.stderr.toString());
     return environment;
   }
 
@@ -374,17 +352,10 @@ exit "$OPENCI_TEST_EXIT_CODE"
     return ipa;
   }
 
-  Future<List<String>> uploadArguments() async =>
-      (await file('arguments').readAsString()).split('\u0000')..removeLast();
-
   Future<void> deploy({
     String ipaPath = 'app.ipa',
     String? serviceAccountJsonBase64,
-    String firebaseCliPath = 'firebase',
     String? appId,
-    List<String> groups = const [],
-    List<String> testers = const [],
-    String? releaseNotes,
     String? dir,
   }) async {
     final ci = OpenCI.forTesting(
@@ -393,27 +364,10 @@ exit "$OPENCI_TEST_EXIT_CODE"
       commandRunner: (command, {required workingDirectory}) async {
         commands.add(command);
         workingDirectories.add(workingDirectory);
-        final isUpload = command.contains(
-          'appdistribution:distribute',
-        );
-        if (isUpload && failUploadStart) {
-          throw StateError('Could not start shell');
-        }
-        final result = await Process.run(
-          '/bin/sh',
-          ['-c', command],
-          workingDirectory: workingDirectory,
-          environment: {
-            'PATH': '${workspace.path}/bin:${Platform.environment['PATH']}',
-            'OPENCI_TEST_OUTPUT': workspace.path,
-            'OPENCI_TEST_EXIT_CODE': '$firebaseExitCode',
-            'FIREBASE_TOKEN': 'inherited-token',
-          },
-        );
-        if (isUpload && checkShellCleanup) {
-          // Assert before the helper's Dart finally can run.
-          expect(await temporary.list().toList(), isEmpty);
-        }
+        final result = await Process.run('/bin/sh', [
+          '-c',
+          command,
+        ], workingDirectory: workingDirectory);
         if (result.exitCode != 0) {
           throw ProcessException(
             '/bin/sh',
@@ -424,19 +378,74 @@ exit "$OPENCI_TEST_EXIT_CODE"
         }
       },
     );
-    await IOOverrides.runZoned(
-      () => ci.flutter.deployIpaToFirebaseAppDistribution(
-        ipaPath: ipaPath,
-        serviceAccountJsonBase64:
-            serviceAccountJsonBase64 ?? _credentialsBase64,
-        firebaseCliPath: firebaseCliPath,
-        appId: appId,
-        groups: groups,
-        testers: testers,
-        releaseNotes: releaseNotes,
-        dir: dir,
+    await http.runWithClient(
+      () => IOOverrides.runZoned(
+        () => ci.flutter.deployIpaToFirebaseAppDistribution(
+          ipaPath: ipaPath,
+          serviceAccountJsonBase64:
+              serviceAccountJsonBase64 ?? _credentialsBase64,
+          appId: appId,
+          dir: dir,
+        ),
+        getSystemTempDirectory: () => temporary,
       ),
-      getSystemTempDirectory: () => temporary,
+      () {
+        final client = _TrackingClient((request) async {
+          requests.add(request);
+          // No credential file exists while authentication/upload is in flight.
+          expect(await temporary.list().toList(), isEmpty);
+          if (request.url.host == 'oauth2.googleapis.com') {
+            expect(
+              request.bodyFields['grant_type'],
+              'urn:ietf:params:oauth:grant-type:jwt-bearer',
+            );
+            final jwt = request.bodyFields['assertion']!.split('.');
+            final claims =
+                jsonDecode(
+                      utf8.decode(
+                        base64Url.decode(base64Url.normalize(jwt[1])),
+                      ),
+                    )
+                    as Map;
+            expect(claims['iss'], 'test@test-project.iam.gserviceaccount.com');
+            expect(
+              claims['scope'],
+              'https://www.googleapis.com/auth/cloud-platform',
+            );
+            return http.Response(
+              jsonEncode(
+                authStatus == 200
+                    ? {
+                        'access_token': 'test-access-token',
+                        'expires_in': 3600,
+                        'token_type': 'Bearer',
+                      }
+                    : {
+                        'error': 'invalid_grant',
+                        'error_description': 'private-response',
+                      },
+              ),
+              authStatus,
+              headers: {'content-type': 'application/json'},
+            );
+          }
+          expect(request.url.host, 'firebaseappdistribution.googleapis.com');
+          return http.Response(
+            jsonEncode({
+              'name': '$_release/operations/upload-1',
+              'done': true,
+              'response': {
+                'release': {'name': _release},
+                'result': 'RELEASE_CREATED',
+              },
+            }),
+            uploadStatus,
+            headers: {'content-type': 'application/json'},
+          );
+        });
+        clients.add(client);
+        return client;
+      },
     );
   }
 }
