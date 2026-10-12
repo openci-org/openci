@@ -7,7 +7,8 @@ import '../ios_signing/write_ios_signing_secrets.dart';
 import '../quote_shell_argument.dart';
 import '../time_zone.dart';
 import 'build_signed_ipa.dart';
-import 'deploy_ipa_to_firebase_app_distribution.dart' as firebase;
+import 'firebase_app_distribution/deploy_ipa_to_firebase_app_distribution.dart'
+    as firebase;
 import 'ios_distribution_method.dart';
 import 'read_ios_build_settings.dart';
 

@@ -4,7 +4,7 @@ import 'dart:io';
 
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
-import 'package:openci_workflow/src/flutter/firebase_app_distribution_client.dart';
+import 'package:openci_workflow/src/flutter/firebase_app_distribution/firebase_app_distribution_client.dart';
 import 'package:test/test.dart';
 
 const _app = 'projects/123456789/apps/1:123456789:ios:abcdef';
