@@ -5,7 +5,7 @@ import 'dart:io';
 import 'package:googleapis_auth/auth_io.dart';
 import 'package:http/http.dart' as http;
 
-import '../quote_shell_argument.dart';
+import '../../quote_shell_argument.dart';
 import 'firebase_app_distribution_client.dart';
 
 Future<void> deployIpaToFirebaseAppDistribution({

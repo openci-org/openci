@@ -673,6 +673,7 @@ extension type const WorkspaceRoot$Packages$OpenciWorkflow$Lib._(String _path) i
 
 extension type const WorkspaceRoot$Packages$OpenciWorkflow$Lib$Src._(String _path) implements WorkspaceDirectory {
   WorkspaceDirectory get flutter => const WorkspaceDirectory("packages/openci_workflow/lib/src/flutter");
+  WorkspaceDirectory get iosSigning => const WorkspaceDirectory("packages/openci_workflow/lib/src/ios_signing");
   WorkspaceDirectory get loki => const WorkspaceDirectory("packages/openci_workflow/lib/src/loki");
 }
 
@@ -683,6 +684,7 @@ extension type const WorkspaceRoot$Packages$OpenciWorkflow$Test._(String _path) 
 
 extension type const WorkspaceRoot$Packages$OpenciWorkflow$Test$Src._(String _path) implements WorkspaceDirectory {
   WorkspaceDirectory get flutter => const WorkspaceDirectory("packages/openci_workflow/test/src/flutter");
+  WorkspaceDirectory get iosSigning => const WorkspaceDirectory("packages/openci_workflow/test/src/ios_signing");
   WorkspaceDirectory get loki => const WorkspaceDirectory("packages/openci_workflow/test/src/loki");
   WorkspaceDirectory get models => const WorkspaceDirectory("packages/openci_workflow/test/src/models");
 }
