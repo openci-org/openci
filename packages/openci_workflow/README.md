@@ -118,6 +118,25 @@ Use `IosDistributionMethod.appStore` to export an IPA for App Store Connect, inc
 
 Run this on a disposable macOS build VM with Flutter, Xcode and the required iOS components, Codemagic CLI tools, Ruby `xcodeproj`, and the project's CocoaPods dependencies available. This initial integration supports one iOS app project directly under `ios/`; additional app targets and extensions are not provisioned separately. Ad Hoc devices must already be registered in the Apple Developer team. Signing files and the Keychain remain until the VM is deleted. Uploading the IPA to Firebase App Distribution is a separate step.
 
+To upload to TestFlight, build the IPA with `IosDistributionMethod.appStore`, then pass the returned path:
+
+```dart
+await openCI.flutter.deployIpaToTestFlight(
+  ipaPath: ipaPath,
+  ascKeys: AppStoreConnectKeys(
+    issuerId: Secrets.openciGeneratedAscIssuerId,
+    keyId: Secrets.openciGeneratedAscKeyId,
+    privateKeyBase64: Secrets.openciGeneratedP8Base64,
+  ),
+);
+```
+
+The helper uses the [App Store Connect Build Upload API](https://developer.apple.com/documentation/appstoreconnectapi/build-uploads). Provide a team API key with access to the app and build uploads. It reads the Bundle ID, version, and build number from the IPA's app-level `Info.plist` using macOS `unzip` and `plutil`, and finds the matching App Store Connect app. Relative `ipaPath` values use the workflow directory, or `dir` when specified. Private keys and signed API tokens stay in memory.
+
+The IPA is streamed in the byte ranges requested by Apple. API requests have a 60-second timeout, and binary transfer is limited to 20 minutes. After committing the uploaded file, the helper polls that specific build upload every 15 seconds until its state is `COMPLETE`. A successful file transfer alone does not finish the workflow. Failed processing, invalid responses, HTTP errors, and timeouts fail the workflow without logging tokens or signed upload URLs.
+
+Processing is limited to 30 minutes by default; override `processingTimeout` for a longer wait. Timing out does not cancel Apple's processing, so check the existing upload before retrying. The helper does not assign tester groups or submit external beta review; existing automatic distribution settings in App Store Connect still apply. Export compliance and beta review may require further action before testers can install the build.
+
 Upload the IPA to Firebase App Distribution:
 
 ```dart

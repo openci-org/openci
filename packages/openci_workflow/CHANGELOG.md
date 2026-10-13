@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Add `FlutterCI.deployIpaToTestFlight()` with App Store Connect API authentication, streamed IPA uploads, and polling until Apple finishes processing the build.
 - Add `FlutterCI.deployAabToFirebaseAppDistribution()` with Google Play integration checks, service account authentication, streamed AAB upload, and processing completion checks.
 - Add `FlutterCI.deployApkToFirebaseAppDistribution()` with an explicit Android Firebase App ID, service account authentication, streamed upload, and processing completion checks.
 - Return the absolute path of the exported IPA from `FlutterCI.buildIpa()`, rejecting missing or ambiguous exports.
