@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.1.3
 
 - Add `OpenCI.shorebird.releaseApk()` to build a universal Android APK with Shorebird and return its absolute path, with flavors, Dart defines, Flutter arguments, and dry runs.
 - Add `OpenCI.shorebird.releaseAab()` to build Android App Bundles with Shorebird and return the selected variant's absolute AAB path, with flavors, Dart defines, Flutter arguments, and dry runs.
