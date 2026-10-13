@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Add `OpenCI.shorebird.releaseAab()` to build Android App Bundles with Shorebird and return the selected variant's absolute AAB path, with flavors, Dart defines, Flutter arguments, and dry runs.
 - Add `OpenCI.shorebird.releaseIos()` to prepare iOS signing for an explicit bundle ID, build with Shorebird's selected Flutter version, and return the exported IPA path. Support flavors, Dart defines, Flutter arguments, and dry runs.
 - Add `FlutterCI.deployAabToPlayConsole()` with service account authentication, streamed AAB uploads, and Google Play edit commits. Default to internal testing, with configurable tracks and optional draft releases.
 - Add `FlutterCI.deployIpaToTestFlight()` with App Store Connect API authentication, streamed IPA uploads, and polling until Apple finishes processing the build.
