@@ -14,6 +14,7 @@ import 'firebase_app_distribution/deploy_apk_to_firebase_app_distribution.dart'
 import 'firebase_app_distribution/deploy_ipa_to_firebase_app_distribution.dart'
     as firebase;
 import 'ios_distribution_method.dart';
+import 'play_console/deploy_aab_to_play_console.dart' as play_console;
 import 'read_ios_build_settings.dart';
 import 'testflight/deploy_ipa_to_testflight.dart' as testflight;
 
@@ -121,6 +122,35 @@ class FlutterCI {
     aabPath: aabPath,
     appId: appId,
     serviceAccountJsonBase64: serviceAccountJsonBase64,
+    dir: dir,
+  );
+
+  /// Uploads an AAB and commits a release to a Google Play [track].
+  ///
+  /// Uses the Android application ID in [packageName] and a Base64-encoded
+  /// service account JSON in [serviceAccountJsonBase64]. The account needs
+  /// access to the app and permission to release to the selected track in
+  /// Play Console. Credentials stay in memory. Relative [aabPath] values use
+  /// the workflow directory or [dir].
+  ///
+  /// Defaults to the internal testing track. Set [draft] to save a draft
+  /// release. Replaces the selected track's release with this single AAB;
+  /// staged rollouts are not supported. Completes when Google accepts the
+  /// edit, without waiting for review or publication.
+  Future<void> deployAabToPlayConsole({
+    required String aabPath,
+    required String packageName,
+    required String serviceAccountJsonBase64,
+    String track = 'internal',
+    bool draft = false,
+    String? dir,
+  }) => play_console.deployAabToPlayConsole(
+    run: _run,
+    aabPath: aabPath,
+    packageName: packageName,
+    serviceAccountJsonBase64: serviceAccountJsonBase64,
+    track: track,
+    draft: draft,
     dir: dir,
   );
 

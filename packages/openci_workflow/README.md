@@ -94,6 +94,22 @@ AAB uploads require the [Google Play integration](https://firebase.google.com/do
 
 Pass the Android Firebase App ID and Base64-encoded service account JSON as in the APK example. Relative `aabPath` values use the workflow directory, or `dir` when specified. Authentication is limited to 60 seconds, the integration check to 30 seconds, upload to 10 minutes, and processing to 5 minutes. The helper streams the AAB, waits for processing to complete, and uploads the release without distributing it to testers.
 
+Upload an AAB to Google Play Console:
+
+```dart
+await openCI.flutter.deployAabToPlayConsole(
+  aabPath: 'build/app/outputs/bundle/release/app-release.aab',
+  packageName: 'com.example.app',
+  serviceAccountJsonBase64: Secrets.googlePlayServiceAccountJsonBase64,
+);
+```
+
+Use the Android `applicationId` as `packageName`. Register `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON_BASE64` in your team's CI secrets, generate its getter with `genuineci sync --secrets`, and import `generated/secrets.g.dart` in your workflow. [Enable the Google Play Developer API and grant the service account access in Play Console](https://developers.google.com/android-publisher/getting_started). The account needs permission to view the app and release to the selected track; Firebase permissions alone are insufficient. Set up the app and upload its first build through Play Console before using this API. Sign the AAB with the app's accepted upload key and use a new version code.
+
+The helper defaults to `track: 'internal'` and a completed release. Pass another existing track ID to target a different track, or `draft: true` to save a draft, including for apps that are still in draft state. The selected track is updated with a single new AAB, replacing its previous release; staged rollouts are not supported. Relative paths use the workflow directory, or `dir` when specified. Credentials stay in memory and file uploads are streamed.
+
+The helper creates a Google Play edit, uploads the artifact, updates the track, then commits the edit. Success means Google accepted the edit; it does not wait for app review or managed publishing, or guarantee the release is already available to testers. Commits use [`ERROR_IF_IN_REVIEW`](https://developers.google.com/android-publisher/api-ref/rest/v3/edits/commit) so an existing review is not cancelled. Failed operations attempt to discard their uncommitted edit. Authentication and metadata requests time out after 60 seconds; uploads after 10 minutes. If a commit times out or its response is lost, check Play Console before retrying, as Google may already have accepted it. Run one deployment per app at a time: [a new edit or a Play Console change can invalidate an in-progress edit](https://developers.google.com/android-publisher/edits).
+
 Build a signed Ad Hoc IPA with App Store Connect credentials and a separate certificate private key:
 
 ```dart
