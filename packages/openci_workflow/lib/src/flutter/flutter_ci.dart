@@ -15,6 +15,7 @@ import 'firebase_app_distribution/deploy_ipa_to_firebase_app_distribution.dart'
     as firebase;
 import 'ios_distribution_method.dart';
 import 'read_ios_build_settings.dart';
+import 'testflight/deploy_ipa_to_testflight.dart' as testflight;
 
 class FlutterCI {
   const FlutterCI(this._run);
@@ -188,6 +189,27 @@ class FlutterCI {
       dir: dir,
     );
   }
+
+  /// Uploads an IPA to App Store Connect and waits for build processing.
+  ///
+  /// Requires an App Store-signed IPA and a team API key in [ascKeys]. Reads
+  /// the Bundle ID, version, and build number from the IPA using macOS `unzip`
+  /// and `plutil`, then finds the matching App Store Connect app. Credentials
+  /// stay in memory. Relative [ipaPath] values use the workflow directory or
+  /// [dir]. Fails if processing fails or exceeds [processingTimeout].
+  /// Tester group assignment and external beta review are separate steps.
+  Future<void> deployIpaToTestFlight({
+    required String ipaPath,
+    required AppStoreConnectKeys ascKeys,
+    String? dir,
+    Duration processingTimeout = const Duration(minutes: 30),
+  }) => testflight.deployIpaToTestFlight(
+    run: _run,
+    ipaPath: ipaPath,
+    ascKeys: ascKeys,
+    dir: dir,
+    processingTimeout: processingTimeout,
+  );
 
   /// Uploads an IPA directly to the Firebase App Distribution REST API.
   ///
