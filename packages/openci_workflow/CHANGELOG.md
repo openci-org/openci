@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Add `FlutterCI.deployAabToPlayConsole()` with service account authentication, streamed AAB uploads, and Google Play edit commits. Default to internal testing, with configurable tracks and optional draft releases.
 - Add `FlutterCI.deployIpaToTestFlight()` with App Store Connect API authentication, streamed IPA uploads, and polling until Apple finishes processing the build.
 - Add `FlutterCI.deployAabToFirebaseAppDistribution()` with Google Play integration checks, service account authentication, streamed AAB upload, and processing completion checks.
 - Add `FlutterCI.deployApkToFirebaseAppDistribution()` with an explicit Android Firebase App ID, service account authentication, streamed upload, and processing completion checks.
