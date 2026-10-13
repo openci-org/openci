@@ -15,6 +15,108 @@ class ShorebirdCI {
 
   final Future<void> Function(String command, {String? workingDirectory}) _run;
 
+  Future<String> releaseApk({
+    required String flutterVersion,
+    String? dir,
+    String? flavor,
+    Map<String, String> dartDefines = const {},
+    List<String> additionalArguments = const [],
+    bool dryRun = false,
+  }) async {
+    if (flutterVersion.trim().isEmpty) {
+      throw ArgumentError.value(
+        flutterVersion,
+        'flutterVersion',
+        'Must specify a Shorebird Flutter version or revision.',
+      );
+    }
+    for (final argument in additionalArguments) {
+      final option = argument.split('=').first;
+      if (const {
+        '--',
+        '--artifact',
+        '--debug',
+        '--profile',
+        '--release',
+        '--no-release',
+        '--flavor',
+        '--split-per-abi',
+        '--no-split-per-abi',
+      }.contains(option)) {
+        throw ArgumentError.value(
+          option,
+          'additionalArguments',
+          'Artifact type, flavor, and build mode are managed by releaseApk; '
+              'split APKs are not supported.',
+        );
+      }
+    }
+
+    await _run(
+      '''
+set -e
+if [ -z "\${SHOREBIRD_TOKEN:-}" ]; then
+  printf '%s\\n' 'SHOREBIRD_TOKEN is required for releaseApk.' >&2
+  exit 1
+fi
+if ! command -v shorebird >/dev/null 2>&1; then
+  printf '%s\\n' 'Shorebird CLI must be installed and on PATH.' >&2
+  exit 1
+fi
+if [ ! -f shorebird.yaml ]; then
+  printf '%s\\n' 'Missing shorebird.yaml; initialize this app with shorebird init.' >&2
+  exit 1
+fi
+''',
+      workingDirectory: dir,
+    );
+
+    final temporary = await Directory.systemTemp.createTemp(
+      'openci-shorebird-apk-',
+    );
+    final artifact = File.fromUri(temporary.uri.resolve('artifact'));
+    try {
+      await _run(
+        [
+          'CI=true shorebird release android --artifact apk',
+          '--flutter-version ${quoteShellArgument(flutterVersion)}',
+          if (flavor != null) '--flavor ${quoteShellArgument(flavor)}',
+          if (dryRun) '--dry-run',
+          if (dartDefines.isNotEmpty || additionalArguments.isNotEmpty) '--',
+          for (final entry in dartDefines.entries)
+            quoteShellArgument('--dart-define=${entry.key}=${entry.value}'),
+          ...additionalArguments.map(quoteShellArgument),
+        ].join(' '),
+        workingDirectory: dir,
+      );
+      final filename = (flavor?.isNotEmpty ?? false)
+          ? 'app-${flavor!.toLowerCase()}-release.apk'
+          : 'app-release.apk';
+      await _run(
+        '''
+set -e
+apk_path="\$PWD/"${quoteShellArgument('build/app/outputs/flutter-apk/$filename')}
+if [ -f "\$apk_path" ] && [ -s "\$apk_path" ]; then
+  printf '%s' "\$apk_path" > ${quoteShellArgument(artifact.path)}
+else
+  : > ${quoteShellArgument(artifact.path)}
+fi
+''',
+        workingDirectory: dir,
+      );
+      final path = await artifact.readAsString();
+      if (path.isEmpty) {
+        throw StateError(
+          'Shorebird did not produce a nonempty APK at '
+          'build/app/outputs/flutter-apk/$filename.',
+        );
+      }
+      return path;
+    } finally {
+      await temporary.delete(recursive: true);
+    }
+  }
+
   Future<String> releaseAab({
     required String flutterVersion,
     String? dir,
