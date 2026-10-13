@@ -7,6 +7,8 @@ import '../ios_signing/write_ios_signing_secrets.dart';
 import '../quote_shell_argument.dart';
 import '../time_zone.dart';
 import 'build_signed_ipa.dart';
+import 'firebase_app_distribution/deploy_aab_to_firebase_app_distribution.dart'
+    as firebase_aab;
 import 'firebase_app_distribution/deploy_apk_to_firebase_app_distribution.dart'
     as firebase_apk;
 import 'firebase_app_distribution/deploy_ipa_to_firebase_app_distribution.dart'
@@ -95,6 +97,27 @@ class FlutterCI {
   }) => firebase_apk.deployApkToFirebaseAppDistribution(
     run: _run,
     apkPath: apkPath,
+    appId: appId,
+    serviceAccountJsonBase64: serviceAccountJsonBase64,
+    dir: dir,
+  );
+
+  /// Uploads an Android App Bundle to Firebase App Distribution.
+  ///
+  /// Checks the app's Google Play integration before uploading, then waits for
+  /// Firebase to finish processing the AAB. Requires an Android Firebase [appId]
+  /// and a Base64-encoded service account JSON in [serviceAccountJsonBase64].
+  /// The service account needs the Firebase App Distribution Admin role.
+  /// Credentials stay in memory. Relative [aabPath] values use the workflow
+  /// directory or [dir].
+  Future<void> deployAabToFirebaseAppDistribution({
+    required String aabPath,
+    required String appId,
+    required String serviceAccountJsonBase64,
+    String? dir,
+  }) => firebase_aab.deployAabToFirebaseAppDistribution(
+    run: _run,
+    aabPath: aabPath,
     appId: appId,
     serviceAccountJsonBase64: serviceAccountJsonBase64,
     dir: dir,
