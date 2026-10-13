@@ -7,6 +7,8 @@ import '../ios_signing/write_ios_signing_secrets.dart';
 import '../quote_shell_argument.dart';
 import '../time_zone.dart';
 import 'build_signed_ipa.dart';
+import 'firebase_app_distribution/deploy_apk_to_firebase_app_distribution.dart'
+    as firebase_apk;
 import 'firebase_app_distribution/deploy_ipa_to_firebase_app_distribution.dart'
     as firebase;
 import 'ios_distribution_method.dart';
@@ -77,6 +79,25 @@ class FlutterCI {
         '--dart-define ${quoteShellArgument('${entry.key}=${entry.value}')}',
     ].join(' '),
     workingDirectory: dir,
+  );
+
+  /// Uploads an APK to Firebase App Distribution and waits for processing.
+  ///
+  /// Requires an Android Firebase [appId] and a Base64-encoded service account
+  /// JSON in [serviceAccountJsonBase64]. The service account needs the Firebase
+  /// App Distribution Admin role on the project. Credentials stay in memory.
+  /// Relative [apkPath] values use the workflow directory or [dir].
+  Future<void> deployApkToFirebaseAppDistribution({
+    required String apkPath,
+    required String appId,
+    required String serviceAccountJsonBase64,
+    String? dir,
+  }) => firebase_apk.deployApkToFirebaseAppDistribution(
+    run: _run,
+    apkPath: apkPath,
+    appId: appId,
+    serviceAccountJsonBase64: serviceAccountJsonBase64,
+    dir: dir,
   );
 
   /// Builds a signed IPA and returns its absolute path.

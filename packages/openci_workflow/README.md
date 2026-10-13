@@ -66,6 +66,20 @@ The `dartDefines` argument accepts a `Map<String, String>`. Each entry becomes a
 
 Flutter's restrictions on define values still apply: the Flutter 3.47.3 compiler used for validation rejects values containing literal newlines.
 
+Upload a built APK to Firebase App Distribution:
+
+```dart
+await openCI.flutter.deployApkToFirebaseAppDistribution(
+  apkPath: 'build/app/outputs/flutter-apk/app-release.apk',
+  appId: '1:123456789:android:abcdef',
+  serviceAccountJsonBase64: Secrets.firebaseServiceAccountJsonBase64,
+);
+```
+
+Pass the Android Firebase App ID from your Firebase project settings or the matching client's `client_info.mobilesdk_app_id` in `google-services.json`. Pass the Base64-encoded service account JSON key from your CI secrets; the account needs the [Firebase App Distribution Admin role](https://firebase.google.com/docs/app-distribution/authenticate-service-account?platform=android). Credentials stay in memory. Relative `apkPath` values use the workflow directory, or `dir` when specified.
+
+The helper streams the APK to the [Firebase App Distribution REST API](https://firebase.google.com/docs/reference/app-distribution/rest/v1/upload.v1.projects.apps.releases/upload) and waits for processing to finish. Authentication is limited to 60 seconds, upload to 10 minutes, and processing to 5 minutes. Missing or empty APKs, invalid App IDs, authentication failures, and upload or processing errors fail the workflow. This API uploads the release without distributing it to testers.
+
 Build a signed Ad Hoc IPA with App Store Connect credentials and a separate certificate private key:
 
 ```dart
