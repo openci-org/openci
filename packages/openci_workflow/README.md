@@ -89,6 +89,25 @@ The returned path is the single nonempty `.aab` in `build/app/outputs/bundle/rel
 
 By default, the command [registers the release with Shorebird](https://docs.shorebird.dev/code-push/release/). Set `dryRun: true` to build and validate without registering it. Authentication and an unused version/build number are required even for dry runs. Pass the returned `aabPath` to `deployAabToPlayConsole()` or `deployAabToFirebaseAppDistribution()` when ready to upload it.
 
+Create a Shorebird Android release and receive its APK path:
+
+```dart
+if (Secrets.shorebirdToken.isEmpty) {
+  throw StateError('SHOREBIRD_TOKEN must not be empty.');
+}
+
+final apkPath = await openCI.shorebird.releaseApk(
+  flutterVersion: '3.47.7',
+  flavor: 'production',
+  dartDefines: {'ENV': 'production'},
+  additionalArguments: ['--build-number=42'],
+);
+```
+
+Use the same CLI, Android SDK, token, and Gradle release-signing setup as `releaseAab()`. `releaseApk()` runs `shorebird release android --artifact apk`, which builds both an AAB and a universal APK. `flutterVersion`, `dir`, `flavor`, `dartDefines`, `additionalArguments`, and `dryRun` work as in `releaseAab()`. Shorebird does not support `--split-per-abi`, so the helper rejects it.
+
+The returned absolute path is `build/app/outputs/flutter-apk/app-release.apk`, or `app-<lowercased-flavor>-release.apk` in that directory when a flavor is supplied. The helper requires this standard filename and a nonempty APK after a successful command; it does not select APKs from other flavors or build modes. A successful incremental Gradle build may reuse an existing APK. Set `dryRun: true` with an unused version/build number to build without registering a release. Pass the returned `apkPath` to `deployApkToFirebaseAppDistribution()` when ready to upload it.
+
 Upload a built APK to Firebase App Distribution:
 
 ```dart
