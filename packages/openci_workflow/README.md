@@ -66,6 +66,29 @@ The `dartDefines` argument accepts a `Map<String, String>`. Each entry becomes a
 
 Flutter's restrictions on define values still apply: the Flutter 3.47.3 compiler used for validation rejects values containing literal newlines.
 
+Create a Shorebird Android release and receive its App Bundle path:
+
+```dart
+if (Secrets.shorebirdToken.isEmpty) {
+  throw StateError('SHOREBIRD_TOKEN must not be empty.');
+}
+
+final aabPath = await openCI.shorebird.releaseAab(
+  flutterVersion: '3.47.7',
+  flavor: 'production',
+  dartDefines: {'ENV': 'production'},
+  additionalArguments: ['--build-number=42'],
+);
+```
+
+Install the [Shorebird CLI](https://docs.shorebird.dev/code-push/ci/github/), Java, and the Android SDK on the build machine. Initialize the app with `shorebird init` and commit `shorebird.yaml`. Register `SHOREBIRD_TOKEN` in OpenCI Secrets, run `genuineci sync --secrets`, and reference `Secrets.shorebirdToken` in the workflow so the worker injects it. Configure Android release signing in Gradle and restore its keystore and properties from your secrets before calling the helper, as with `buildAab()`. The project's Gradle configuration determines the signing identity.
+
+`releaseAab()` runs `shorebird release android --artifact aab` with the required `flutterVersion`. Pass `flavor` explicitly for flavored Shorebird apps. `dir` overrides the workflow directory. `dartDefines` and each literal argument in `additionalArguments` are forwarded to Flutter after `--`; artifact type, flavor, and release build mode are managed by the helper.
+
+The returned path is the single nonempty `.aab` in `build/app/outputs/bundle/release`, or `build/app/outputs/bundle/<flavor>Release` when a flavor is supplied. This follows Shorebird's standard Android output layout. A successful incremental Gradle build may reuse an existing bundle. A failed command, missing bundle, or multiple nonempty bundles fails the workflow.
+
+By default, the command [registers the release with Shorebird](https://docs.shorebird.dev/code-push/release/). Set `dryRun: true` to build and validate without registering it. Authentication and an unused version/build number are required even for dry runs. Pass the returned `aabPath` to `deployAabToPlayConsole()` or `deployAabToFirebaseAppDistribution()` when ready to upload it.
+
 Upload a built APK to Firebase App Distribution:
 
 ```dart
