@@ -80,6 +80,20 @@ Pass the Android Firebase App ID from your Firebase project settings or the matc
 
 The helper streams the APK to the [Firebase App Distribution REST API](https://firebase.google.com/docs/reference/app-distribution/rest/v1/upload.v1.projects.apps.releases/upload) and waits for processing to finish. Authentication is limited to 60 seconds, upload to 10 minutes, and processing to 5 minutes. Missing or empty APKs, invalid App IDs, authentication failures, and upload or processing errors fail the workflow. This API uploads the release without distributing it to testers.
 
+Upload a built Android App Bundle to Firebase App Distribution:
+
+```dart
+await openCI.flutter.deployAabToFirebaseAppDistribution(
+  aabPath: 'build/app/outputs/bundle/release/app-release.aab',
+  appId: '1:123456789:android:abcdef',
+  serviceAccountJsonBase64: Secrets.firebaseServiceAccountJsonBase64,
+);
+```
+
+AAB uploads require the [Google Play integration](https://firebase.google.com/docs/app-distribution/android/distribute-cli?apptype=aab): link the Firebase project to Google Play, use the same package name for both apps, complete the Play app review, publish the app to a testing or production track, and accept the internal app sharing terms. An unreviewed internal-test release does not satisfy these requirements. The helper checks Firebase's AAB integration status before sending the file and reports setup problems. If Play's status is temporarily unavailable, it attempts the upload as the Firebase CLI does.
+
+Pass the Android Firebase App ID and Base64-encoded service account JSON as in the APK example. Relative `aabPath` values use the workflow directory, or `dir` when specified. Authentication is limited to 60 seconds, the integration check to 30 seconds, upload to 10 minutes, and processing to 5 minutes. The helper streams the AAB, waits for processing to complete, and uploads the release without distributing it to testers.
+
 Build a signed Ad Hoc IPA with App Store Connect credentials and a separate certificate private key:
 
 ```dart
