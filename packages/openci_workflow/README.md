@@ -134,6 +134,39 @@ Use `IosDistributionMethod.appStore` to export an IPA for App Store Connect, inc
 
 Run this on a disposable macOS build VM with Flutter, Xcode and the required iOS components, Codemagic CLI tools, Ruby `xcodeproj`, and the project's CocoaPods dependencies available. This initial integration supports one iOS app project directly under `ios/`; additional app targets and extensions are not provisioned separately. Ad Hoc devices must already be registered in the Apple Developer team. Signing files and the Keychain remain until the VM is deleted. Uploading the IPA to Firebase App Distribution is a separate step.
 
+Create a Shorebird iOS release with the same signing credentials:
+
+```dart
+if (Secrets.shorebirdToken.isEmpty) {
+  throw StateError('SHOREBIRD_TOKEN must not be empty.');
+}
+
+final ipaPath = await openCI.shorebird.releaseIos(
+  bundleId: 'org.example.app.prod',
+  distributionMethod: IosDistributionMethod.appStore,
+  ascKeys: AppStoreConnectKeys(
+    issuerId: Secrets.openciGeneratedAscIssuerId,
+    keyId: Secrets.openciGeneratedAscKeyId,
+    privateKeyBase64: Secrets.openciGeneratedP8Base64,
+  ),
+  certificatePrivateKey: Secrets.openciGeneratedIosCertificatePrivateKey,
+  flutterVersion: '3.47.7',
+  flavor: 'prod',
+  dartDefines: {'ENV': 'production'},
+  additionalArguments: ['--build-number=42'],
+);
+```
+
+Install the [Shorebird CLI](https://docs.shorebird.dev/code-push/ci/github/) on the disposable macOS VM and make it available on the workflow's noninteractive shell PATH. The same Xcode, Codemagic CLI tools, Ruby `xcodeproj`, CocoaPods, and single-app signing requirements as `buildIpa()` apply. Initialize the app with `shorebird init` beforehand and commit `shorebird.yaml`. When using flavors, configure the matching Shorebird apps and pass `flavor` explicitly. Set `bundleId` to the selected flavor's iOS app identifier so the helper can fetch its signing files before building.
+
+Register a Shorebird API key as `SHOREBIRD_TOKEN` in OpenCI Secrets and run `genuineci sync --secrets` to generate its accessor. Reference `Secrets.shorebirdToken` in the workflow, as above: OpenCI only injects secrets referenced by the workflow, so registering the key alone is not enough. The worker supplies this environment variable to the CLI; the helper does not put its value in the command or require a token argument. Authentication is also required for dry runs.
+
+`flutterVersion` is required: use a version or revision supported by Shorebird for your project. The helper runs `shorebird release ios`, which builds using its selected Flutter SDK; no separate system Flutter command runs beforehand. `dir` overrides the workflow directory. `dartDefines` and `additionalArguments` are passed to the release build. Each additional argument is one literal shell argument, forwarded to Flutter after `--`. The helper manages signing, export options, flavor, and release build mode, and rejects overrides of those options.
+
+By default, this builds a signed IPA and [registers the release with Shorebird](https://docs.shorebird.dev/code-push/release/). Use a new app version/build number for each release. Set `dryRun: true` to build and validate without uploading to Shorebird. Dry runs also check for an existing release, so use an unused version/build number. The helper disables Xcode's automatic version/build-number management in ExportOptions.plist so the exported IPA matches the version recorded by Shorebird.
+
+Success requires exactly one newly exported, nonempty IPA; its absolute path is returned. A nonzero CLI exit, failed export, or ambiguous IPA fails the workflow. If Shorebird registered the release before a later export/upload error, check the console before retrying the same version. Signing files and the Keychain remain until the VM is deleted. Uploading the IPA to TestFlight or Firebase App Distribution is a separate call.
+
 To upload to TestFlight, build the IPA with `IosDistributionMethod.appStore`, then pass the returned path:
 
 ```dart

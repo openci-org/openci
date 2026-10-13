@@ -7,6 +7,7 @@ import 'ci_trigger.dart';
 import 'command_runner.dart';
 import 'flutter/flutter_ci.dart';
 import 'machine_type.dart';
+import 'shorebird/shorebird_ci.dart';
 import 'workspace_directory.dart';
 
 class OpenCI {
@@ -45,6 +46,8 @@ class OpenCI {
   _runCommand;
 
   late final FlutterCI flutter = FlutterCI(run);
+
+  late final ShorebirdCI shorebird = ShorebirdCI(run);
 
   static Future<OpenCI> init({
     required String workflowName,
