@@ -197,9 +197,11 @@ void main() {
   test('Docs search indexes every guide and its Markdown content', () {
     for (final route in docsRoutes) {
       final page = pages[route]!;
-      final index = jsonDecode(
-        page.getElementById('docs-search-data')!.text,
-      ) as List<dynamic>;
+      final index =
+          jsonDecode(
+                page.getElementById('docs-search-data')!.text,
+              )
+              as List<dynamic>;
       expect(
         index.map((entry) => (entry as Map<String, dynamic>)['url']),
         unorderedEquals(docsRoutes),

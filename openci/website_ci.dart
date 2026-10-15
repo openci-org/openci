@@ -12,8 +12,9 @@ Future<void> main() async {
     currentWorkingDirectory: 'apps/website',
   );
 
+  // Web compiler versions differ between the supported Dart SDKs.
   await openCI.run(
-    'flutter pub get --enforce-lockfile',
+    'flutter pub get',
     workingDirectory: '.',
   );
   await openCI.run('dart format --output=none --set-exit-if-changed lib test');

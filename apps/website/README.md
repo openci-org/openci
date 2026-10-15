@@ -9,13 +9,14 @@ LP・ブログ一覧・記事にOGPとXの `summary_large_image` を設定して
 
 ## 開発・プレビュー
 
-Flutter **3.47.x** / Dart **3.13.x** を使用してください。
-`build_web_compilers 4.8.5` はDart 3.13とJasprのanalyzer 12依存に対応するため固定しています。
+Flutter **3.44.8** / Dart **3.12.2**、またはFlutter **3.47.x** / Dart **3.13.x** を使用できます。
+`build_web_compilers: ^4.8.0` で、使用中のDart SDKとJasprのanalyzer 12依存に対応するバージョンを選択します。
+SDKを切り替えると共有lockfileの更新が必要になるため、依存取得では `--enforce-lockfile` を付けません。
 
 リポジトリのrootから実行します。
 
 ```sh
-flutter pub get --enforce-lockfile
+flutter pub get
 cd apps/website
 dart run jaspr_cli:jaspr serve --port 8081
 ```
@@ -92,7 +93,7 @@ CIでは実行ごとに空きポートを選び、プレビューや別のビル
 `website` ターゲットの公開先を指定し、`build/jaspr/` を配信します。
 ブログ一覧と記事は、それぞれの生成HTMLを配信します。
 
-Firebase CLIのGoogleログインとDart 3.13.xが必要です。
+Firebase CLIのGoogleログインと上記のFlutter / Dart環境が必要です。
 このディレクトリから実行してください。
 
 ```sh

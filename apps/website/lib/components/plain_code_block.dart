@@ -7,17 +7,15 @@ class PlainCodeBlock extends CustomComponent {
 
   @override
   Component? create(Node node, NodesBuilder builder) {
-    if (node
-        case ElementNode(
-          tag: 'pre',
-          children: [
-            ElementNode(
-              tag: 'code',
-              attributes: {'class': final String language},
-            ),
-          ],
-        )
-        when language != 'language-dart') {
+    if (node case ElementNode(
+      tag: 'pre',
+      children: [
+        ElementNode(
+          tag: 'code',
+          attributes: {'class': final String language},
+        ),
+      ],
+    ) when language != 'language-dart') {
       return CodeBlock.from(source: node.innerText);
     }
     return null;
