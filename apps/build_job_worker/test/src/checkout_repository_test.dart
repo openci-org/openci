@@ -86,6 +86,30 @@ void main() {
   });
 
   group('checkoutRepository', () {
+    test(
+      'checks out from the GHES repository URL supplied by the server',
+      () async {
+        job = job.copyWith(
+          githubBaseUrl: 'https://github.example.com:8443/github',
+        );
+
+        await checkout();
+
+        final encodedScript = RegExp(
+          r"printf %s '([^']*)' \| base64 -d",
+        ).firstMatch(commands.first)!.group(1)!;
+        final script = utf8.decode(base64Decode(encodedScript));
+        const repositoryUrl =
+            'https://github.example.com:8443/github/acme/app.git';
+        expect(script, contains("git remote add origin '$repositoryUrl'"));
+        expect(
+          script,
+          contains('http.$repositoryUrl.extraHeader=Authorization: Basic '),
+        );
+        expect(script, isNot(contains('https://github.com/')));
+      },
+    );
+
     test('forwards checkout output with run, job, and step labels', () async {
       await checkout();
 

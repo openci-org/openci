@@ -148,7 +148,52 @@ void main() {
       expect(jobs.single.status, BuildJobStatus.QUEUED);
       expect(jobs.single.owner, _plan.owner);
       expect(jobs.single.checkRunId, '1001');
+      expect(jobs.single.githubBaseUrl, 'https://api.github.test');
     });
+
+    for (final (apiUrl, repositoryUrl) in [
+      ('https://api.github.com', 'https://github.com'),
+      ('https://github.example.com/api/v3', 'https://github.example.com'),
+    ]) {
+      test('uses $apiUrl instead of the legacy planner URL', () async {
+        environment['GITHUB_API_BASE_URL'] = apiUrl;
+        await _insertTask(db, id: 'task-1', status: 'processing');
+        final plans = parseBuildJobPlans({
+          'jobs': [
+            {..._plan.toJson(), 'githubBaseUrl': 'https://untrusted.example'},
+          ],
+        });
+
+        await completeTask(taskId: 'task-1', jobs: plans);
+
+        final job = (await db.select(db.buildJobs).get()).single;
+        expect(job.githubBaseUrl, repositoryUrl);
+        expect(
+          checkRequests.single.url.toString(),
+          '$apiUrl/repos/openci-owner/openci-repo/check-runs',
+        );
+      });
+    }
+
+    test(
+      'rolls back without creating jobs when the API URL is missing',
+      () async {
+        environment.remove('GITHUB_API_BASE_URL');
+        await _insertTask(db, id: 'task-1', status: 'processing');
+
+        await expectLater(
+          completeTask(taskId: 'task-1', jobs: const [_plan]),
+          throwsStateError,
+        );
+
+        expect(
+          (await db.webhookTaskDao.getWebhookTask('task-1'))!.status,
+          'processing',
+        );
+        expect(await db.select(db.buildJobs).get(), isEmpty);
+        expect(checkRequests, isEmpty);
+      },
+    );
 
     test(
       'creates a queued Check for every job before any run starts',
@@ -270,6 +315,7 @@ void main() {
     );
 
     test('completes a processing task without jobs', () async {
+      environment.remove('GITHUB_API_BASE_URL');
       await _insertTask(db, id: 'task-1', status: 'processing');
 
       final result = await completeTask(
@@ -318,6 +364,7 @@ void main() {
       await _insertTask(db, id: 'task-1', status: 'processing');
       await completeTask(taskId: 'task-1', jobs: const [_plan]);
 
+      environment.remove('GITHUB_API_BASE_URL');
       final result = await completeTask(
         taskId: 'task-1',
         jobs: const [_plan],
@@ -357,7 +404,6 @@ const _plan = BuildJobPlan(
   commitSha: 'commit-sha-1',
   branch: 'develop',
   runsOn: 'macos-latest',
-  githubBaseUrl: 'https://github.com',
   installationId: '98765',
 );
 

@@ -6,6 +6,7 @@ extension BuildJobPlanMapper on BuildJobPlan {
   DriftBuildJob toDrift({
     required String id,
     required DateTime timestamp,
+    required String githubBaseUrl,
   }) {
     return BuildJob(
       id: id,

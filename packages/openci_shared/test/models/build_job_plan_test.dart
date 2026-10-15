@@ -22,7 +22,6 @@ void main() {
         matrixLabel: 'macos',
         workflowRunId: 'workflow-run-1',
         runsOn: 'macos-latest',
-        githubBaseUrl: 'https://github.com',
         installationId: '98765',
       );
 
@@ -34,6 +33,19 @@ void main() {
       expect(json, isNot(contains('runCount')));
       expect(json, isNot(contains('createdAt')));
       expect(json, isNot(contains('updatedAt')));
+      expect(json, isNot(contains('githubBaseUrl')));
+    });
+
+    test('ignores the repository URL sent by older planners', () {
+      final plan = _buildJobPlan();
+      final json = plan.toJson()
+        ..['githubBaseUrl'] = 'https://untrusted.example';
+
+      final parsed = BuildJobPlan.fromJson(json);
+
+      expect(parsed, plan);
+      expect(parsed.toJson(), isNot(contains('githubBaseUrl')));
+      expect(json['githubBaseUrl'], 'https://untrusted.example');
     });
 
     test('rejects persistence fields', () {
@@ -72,7 +84,6 @@ BuildJobPlan _buildJobPlan() {
     commitSha: 'commit-sha-1',
     branch: 'main',
     runsOn: 'macos-latest',
-    githubBaseUrl: 'https://github.com',
     installationId: '98765',
   );
 }

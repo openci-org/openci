@@ -276,7 +276,7 @@ void main() {
     );
 
     test(
-      'inserts a build job with a valid internal key and no UID',
+      'inserts a build job using the configured URL with a valid key and no UID',
       () async {
         final team = DriftTeam(
           id: 'team-xyz',
@@ -298,6 +298,7 @@ void main() {
           'workflowName': 'workflow',
           'workflowFileName': 'ci.yml',
           'teamId': 'team-xyz',
+          'githubBaseUrl': 'https://untrusted.example',
           'createdAt': DateTime.now().toUtc().toIso8601String(),
           'updatedAt': DateTime.now().toUtc().toIso8601String(),
         };
@@ -310,6 +311,9 @@ void main() {
         );
 
         context.provide<AppDatabase>(db);
+        context.provide<Map<String, String>>({
+          'GITHUB_API_BASE_URL': 'https://github.example.com/api/v3',
+        });
         context.provide<InternalApiKeyValidator>(
           const InternalApiKeyValidator.forTesting(
             environment: {'INTERNAL_API_KEY': 'test-internal-key'},
@@ -328,6 +332,7 @@ void main() {
         expect(inserted, isNotNull);
         expect(inserted!.id, equals('job-123'));
         expect(inserted.teamId, equals('team-xyz'));
+        expect(inserted.githubBaseUrl, 'https://github.example.com');
         verifyNever(() => context.context.read<String?>());
       },
     );
@@ -363,6 +368,9 @@ void main() {
         );
 
         context.provide<AppDatabase>(mockDb);
+        context.provide<Map<String, String>>({
+          'GITHUB_API_BASE_URL': 'https://api.github.com',
+        });
         context.provide<InternalApiKeyValidator>(
           const InternalApiKeyValidator.forTesting(
             environment: {'INTERNAL_API_KEY': 'test-internal-key'},
@@ -378,6 +386,27 @@ void main() {
         expect(body['error'], equals('Internal server error'));
       },
     );
+
+    test('does not insert a job when the API URL is missing', () async {
+      final context = TestRequestContext(
+        path: '/builds',
+        method: HttpMethod.post,
+        body: jsonEncode(databaseFailureJob.toShared().toJson()),
+        headers: {'Authorization': 'Bearer test-internal-key'},
+      );
+      context.provide<AppDatabase>(db);
+      context.provide<Map<String, String>>({});
+      context.provide<InternalApiKeyValidator>(
+        const InternalApiKeyValidator.forTesting(
+          environment: {'INTERNAL_API_KEY': 'test-internal-key'},
+        ),
+      );
+
+      final response = await route.onRequest(context.context);
+
+      expect(response.statusCode, HttpStatus.internalServerError);
+      expect(await db.select(db.buildJobs).get(), isEmpty);
+    });
   });
 
   group('GET /builds', () {
@@ -653,6 +682,9 @@ void main() {
       body: jsonEncode(databaseFailureJob.toShared().toJson()),
       headers: {'Authorization': 'Bearer test-internal-key'},
       configure: (context) {
+        context.provide<Map<String, String>>({
+          'GITHUB_API_BASE_URL': 'https://api.github.com',
+        });
         context.provide<InternalApiKeyValidator>(
           const InternalApiKeyValidator.forTesting(
             environment: {'INTERNAL_API_KEY': 'test-internal-key'},

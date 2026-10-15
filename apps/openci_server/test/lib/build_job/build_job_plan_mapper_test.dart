@@ -23,12 +23,15 @@ void main() {
         matrixLabel: 'macos-arm64',
         workflowRunId: 'workflow-run-1',
         runsOn: 'macos-latest',
-        githubBaseUrl: 'https://github.com',
         installationId: '98765',
       );
       final timestamp = DateTime.utc(2026, 9, 4, 6, 30);
 
-      final job = plan.toDrift(id: 'job-1', timestamp: timestamp);
+      final job = plan.toDrift(
+        id: 'job-1',
+        timestamp: timestamp,
+        githubBaseUrl: 'https://github.example.com',
+      );
 
       expect(job.id, 'job-1');
       expect(job.status, BuildJobStatus.QUEUED);
@@ -49,7 +52,7 @@ void main() {
       expect(job.matrixLabel, plan.matrixLabel);
       expect(job.workflowRunId, plan.workflowRunId);
       expect(job.runsOn, plan.runsOn);
-      expect(job.githubBaseUrl, plan.githubBaseUrl);
+      expect(job.githubBaseUrl, 'https://github.example.com');
       expect(job.installationId, plan.installationId);
       expect(job.runCount, 0);
       expect(job.createdAt, timestamp);

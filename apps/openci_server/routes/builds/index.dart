@@ -5,6 +5,7 @@ import 'package:dart_frog/dart_frog.dart';
 import 'package:openci_server/auth/internal_api_key_validator.dart';
 import 'package:openci_server/build_job/build_job_mapper.dart';
 import 'package:openci_server/database.dart';
+import 'package:openci_server/github/github_repository_url.dart';
 import 'package:openci_server/request/error_handler.dart';
 import 'package:openci_server/request/request_extension.dart';
 import 'package:openci_shared/openci_shared.dart';
@@ -124,8 +125,18 @@ Future<Response> _post(RequestContext context) async {
         body: {'success': false, 'error': 'Invalid payload: $e'},
       );
     }
+    var environment = Platform.environment;
+    try {
+      environment = context.read<Map<String, String>>();
+    } catch (_) {
+      // Use the process environment when no override is provided.
+    }
+    final driftJob = job
+        .copyWith(
+          githubBaseUrl: githubRepositoryBaseUrl(environment: environment),
+        )
+        .toDrift();
     final db = context.read<AppDatabase>();
-    final driftJob = job.toDrift();
     await db.buildJobDao.insertBuildJob(driftJob);
 
     return Response.json(

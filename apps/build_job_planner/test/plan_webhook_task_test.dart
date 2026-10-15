@@ -65,7 +65,6 @@ void main() {
         'commitMessage': 'feat: planner',
         'branch': 'main',
         'runsOn': 'macos-latest',
-        'githubBaseUrl': 'https://github.com',
         'installationId': '998877',
       });
     });

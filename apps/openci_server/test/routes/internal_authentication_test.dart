@@ -45,6 +45,11 @@ void main() {
         .use(root.databaseProvider(database ?? db))
         .use(root.authProvider(null))
         .use(
+          provider<Map<String, String>>(
+            (_) => const {'GITHUB_API_BASE_URL': 'https://api.github.com'},
+          ),
+        )
+        .use(
           provider<InternalApiKeyValidator>(
             (_) => const InternalApiKeyValidator.forTesting(
               environment: {'INTERNAL_API_KEY': 'test-internal-key'},

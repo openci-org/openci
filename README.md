@@ -27,6 +27,17 @@ the workflow SDK also reads `OPENCI_STEP_ID` when a step supplies one.
 For workflow authoring and local development commands, see the
 [CLI guide](apps/openci_cli/README.md).
 
+## GitHub endpoint
+
+The server's `GITHUB_API_BASE_URL` controls API requests and repository checkout
+URLs. Use `https://api.github.com` for GitHub.com or
+`https://github.example.com/api/v3` for GHES. The server derives the repository
+base URL and supplies it when creating and claiming jobs, including saved jobs
+with a legacy `githubBaseUrl`.
+
+Deploy the server before the updated planner. The server accepts older planner
+payloads but ignores their `githubBaseUrl`; the updated planner omits that field.
+
 ## GenuineCI website
 
 The Jaspr landing page and blog live in [`apps/website`](apps/website/README.md).
