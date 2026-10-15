@@ -87,14 +87,7 @@ Future<Response> _get(RequestContext context, String teamId) async {
       env = Platform.environment;
     }
 
-    final defaultApiBaseUrl = env['GITHUB_API_BASE_URL']!;
-    final String apiBaseUrl;
-    if (driftTeam.githubBaseUrl != null &&
-        driftTeam.githubBaseUrl!.isNotEmpty) {
-      apiBaseUrl = _getApiBaseUrlFromValue(driftTeam.githubBaseUrl!);
-    } else {
-      apiBaseUrl = defaultApiBaseUrl;
-    }
+    final apiBaseUrl = env['GITHUB_API_BASE_URL']!;
 
     http.Client client;
     try {
@@ -225,15 +218,6 @@ Future<Response> _get(RequestContext context, String teamId) async {
   } catch (e, s) {
     return handleRouteException(e, s, logMessage: 'Failed to list workflows');
   }
-}
-
-String _getApiBaseUrlFromValue(String githubBaseUrl) {
-  final normalized = githubBaseUrl.replaceAll(RegExp(r'/+$'), '');
-  if (normalized == 'https://github.com' ||
-      normalized == 'https://api.github.com') {
-    return 'https://api.github.com';
-  }
-  return '${Uri.parse(normalized).origin}/api/v3';
 }
 
 String _graphqlEndpoint(String apiBaseUrl) {

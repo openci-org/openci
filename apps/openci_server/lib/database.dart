@@ -50,7 +50,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 24;
+  int get schemaVersion => 25;
 
   @override
   MigrationStrategy get migration {
@@ -81,6 +81,9 @@ class AppDatabase extends _$AppDatabase {
         }
         if (from < 24) {
           await m.deleteTable('worker_heartbeats');
+        }
+        if (from < 25) {
+          await m.dropColumn(teams, 'github_base_url');
         }
       },
     );

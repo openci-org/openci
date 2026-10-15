@@ -5,36 +5,33 @@ import 'package:openci_shared/openci_shared.dart';
 import 'package:test/test.dart';
 
 void main() {
-  for (final githubBaseUrl in [null, 'https://github.example.com']) {
-    test(
-      'team database round trip preserves settings for $githubBaseUrl',
-      () async {
-        final db = AppDatabase(NativeDatabase.memory());
-        addTearDown(db.close);
-        final team = Team(
-          id: 'team-1',
-          name: '開発チーム',
-          members: ['user-1'],
-          installationIds: [123, 456],
-          githubBaseUrl: githubBaseUrl,
-          aiEnabled: false,
-          runNumber: 42,
-          createdAt: DateTime.utc(2026, 1, 1),
-          updatedAt: DateTime.utc(2026, 2, 1),
-        );
+  test(
+    'team database round trip preserves settings without a GitHub URL',
+    () async {
+      final db = AppDatabase(NativeDatabase.memory());
+      addTearDown(db.close);
+      final team = Team(
+        id: 'team-1',
+        name: '開発チーム',
+        members: ['user-1'],
+        installationIds: [123, 456],
+        aiEnabled: false,
+        runNumber: 42,
+        createdAt: DateTime.utc(2026, 1, 1),
+        updatedAt: DateTime.utc(2026, 2, 1),
+      );
 
-        await db.teamDao.createTeamAndMember(team.toDrift(), 'user-1');
-        final stored = await db.teamDao.getTeam(team.id);
-        final members = await db.teamDao.getTeamMembers(team.id);
+      await db.teamDao.createTeamAndMember(team.toDrift(), 'user-1');
+      final stored = await db.teamDao.getTeam(team.id);
+      final members = await db.teamDao.getTeamMembers(team.id);
 
-        expect(stored, isNotNull);
-        expect(
-          stored!
-              .toShared(members: members.map((m) => m.userId).toList())
-              .toJson(),
-          team.toJson(),
-        );
-      },
-    );
-  }
+      expect(stored, isNotNull);
+      expect(
+        stored!
+            .toShared(members: members.map((m) => m.userId).toList())
+            .toJson(),
+        team.toJson(),
+      );
+    },
+  );
 }

@@ -24,7 +24,6 @@ void main() {
       DriftTeam(
         id: 'dummy',
         name: 'dummy',
-        githubBaseUrl: null,
         installationIds: const [],
         aiEnabled: true,
         runNumber: 1,

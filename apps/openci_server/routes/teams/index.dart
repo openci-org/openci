@@ -127,7 +127,6 @@ Future<Response> _post(RequestContext context) async {
     final driftTeam = DriftTeam(
       id: teamId,
       name: trimmedTeamName,
-      githubBaseUrl: null,
       installationIds: const [],
       aiEnabled: true,
       runNumber: 1,

@@ -21,7 +21,6 @@ void main() {
     final team = DriftTeam(
       id: 'team-1',
       name: 'OpenCI',
-      githubBaseUrl: 'https://github.example.com',
       installationIds: const [12345, 67890],
       aiEnabled: false,
       runNumber: 42,
@@ -73,7 +72,6 @@ void main() {
           'name': 'OpenCI',
           'members': unorderedEquals(['member-1', 'member-2']),
           'installationIds': [12345, 67890],
-          'githubBaseUrl': 'https://github.example.com',
           'aiEnabled': false,
           'runNumber': 42,
           'createdAt': '2026-01-01T00:00:00.000Z',
