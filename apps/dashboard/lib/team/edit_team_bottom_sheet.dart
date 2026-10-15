@@ -13,7 +13,6 @@ class EditTeamBottomSheet extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final teamListStream = ref.watch(teamListProvider);
     final teamNameController = useTextEditingController();
-    final githubBaseUrlController = useTextEditingController();
     final formKey = useMemoized(() => GlobalKey<FormState>());
     final selectedTeamId = useState<String?>(null);
     final isLoading = useState(false);
@@ -56,7 +55,6 @@ class EditTeamBottomSheet extends HookConsumerWidget {
                       onTap: () {
                         selectedTeamId.value = team.id;
                         teamNameController.text = team.name;
-                        githubBaseUrlController.text = team.githubBaseUrl ?? '';
                       },
                       hoverColor: colorScheme.outlineVariant.withValues(
                         alpha: 0.5,
@@ -184,12 +182,6 @@ class EditTeamBottomSheet extends HookConsumerWidget {
                   ),
                 ),
                 const SizedBox(height: 16),
-                _EnterpriseTextField(
-                  controller: githubBaseUrlController,
-                  label: 'GitHub Base URL',
-                  hintText: 'https://github.ibm.com',
-                ),
-                const SizedBox(height: 16),
                 SizedBox(
                   width: double.infinity,
                   child: TextButton(
@@ -212,12 +204,6 @@ class EditTeamBottomSheet extends HookConsumerWidget {
                                   .updateTeamName(
                                     selectedTeamId.value!,
                                     teamNameController.text,
-                                  );
-                              await ref
-                                  .read(teamServiceProvider)
-                                  .updateGitHubBaseUrl(
-                                    teamId: selectedTeamId.value!,
-                                    githubBaseUrl: githubBaseUrlController.text,
                                   );
                               if (!context.mounted) return;
                               context.showSnackBarMessage(
@@ -256,51 +242,6 @@ class EditTeamBottomSheet extends HookConsumerWidget {
         error: asyncErrorWidget,
         loading: () =>
             const Center(child: CircularProgressIndicator.adaptive()),
-      ),
-    );
-  }
-}
-
-class _EnterpriseTextField extends StatelessWidget {
-  const _EnterpriseTextField({
-    required this.controller,
-    required this.label,
-    required this.hintText,
-  });
-
-  final TextEditingController controller;
-  final String label;
-  final String hintText;
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    return Container(
-      decoration: BoxDecoration(
-        color: colorScheme.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: colorScheme.outlineVariant,
-        ),
-      ),
-      child: TextFormField(
-        controller: controller,
-        style: const TextStyle(
-          fontSize: 14,
-        ),
-        decoration: InputDecoration(
-          labelText: label,
-          hintText: hintText,
-          hintStyle: TextStyle(
-            color: colorScheme.outline,
-            fontSize: 14,
-          ),
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 16,
-            vertical: 14,
-          ),
-          border: InputBorder.none,
-        ),
       ),
     );
   }
