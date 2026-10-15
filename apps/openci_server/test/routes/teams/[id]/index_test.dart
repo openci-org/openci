@@ -22,7 +22,6 @@ void main() {
       DriftTeam(
         id: 'dummy',
         name: 'dummy',
-        githubBaseUrl: null,
         installationIds: const [],
         aiEnabled: true,
         runNumber: 1,
@@ -232,7 +231,6 @@ void main() {
           final team = DriftTeam(
             id: 'team-123',
             name: 'Original Team',
-            githubBaseUrl: 'https://github.com/original',
             installationIds: const [],
             aiEnabled: true,
             runNumber: 1,
@@ -265,10 +263,6 @@ void main() {
           )..where((t) => t.id.equals('team-123'))).getSingle();
 
           expect(updatedTeam.name, equals('Updated Name'));
-          expect(
-            updatedTeam.githubBaseUrl,
-            equals('https://github.com/original'),
-          );
         },
       );
     }
@@ -404,7 +398,6 @@ void main() {
         final team = DriftTeam(
           id: 'team-123',
           name: 'Original Team',
-          githubBaseUrl: 'https://github.com/original',
           installationIds: const [111],
           aiEnabled: true,
           runNumber: 5,
@@ -437,10 +430,6 @@ void main() {
         )..where((t) => t.id.equals('team-123'))).getSingle();
 
         expect(updatedTeam.name, equals('Trimmed Updated Name'));
-        expect(
-          updatedTeam.githubBaseUrl,
-          equals('https://github.com/original'),
-        );
         expect(updatedTeam.installationIds, equals([111]));
         expect(updatedTeam.aiEnabled, isFalse);
         expect(updatedTeam.runNumber, equals(5));

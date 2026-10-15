@@ -250,15 +250,14 @@ void main() {
     });
 
     for (final (baseUrl, graphUrl) in [
-      ('https://github.com/', 'https://api.github.com/graphql'),
-      ('https://github.example.com/', 'https://github.example.com/api/graphql'),
+      ('https://api.github.com/', 'https://api.github.com/graphql'),
+      (
+        'https://github.example.com/api/v3/',
+        'https://github.example.com/api/graphql',
+      ),
     ]) {
       test('uses the GraphQL endpoint for $baseUrl', () async {
-        await db
-            .update(db.teams)
-            .write(
-              TeamsCompanion(githubBaseUrl: Value(baseUrl)),
-            );
+        testEnv['GITHUB_API_BASE_URL'] = baseUrl;
         var queriedGraph = false;
         final response = await fetch(
           client: MockClient((request) async {

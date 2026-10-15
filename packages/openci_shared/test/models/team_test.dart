@@ -14,7 +14,7 @@ void main() {
       expect(team.installationIds, isEmpty);
       expect(team.runNumber, 1);
       expect(team.aiEnabled, isTrue);
-      expect(team.githubBaseUrl, isNull);
+      expect(team.toJson(), isNot(contains('githubBaseUrl')));
       expect(team.createdAt, DateTime.utc(2026, 9, 7));
       expect(team.updatedAt, DateTime.utc(2026, 9, 7, 0, 1));
     });
@@ -25,7 +25,6 @@ void main() {
         'installationIds': [12345, 67890],
         'runNumber': 42,
         'aiEnabled': false,
-        'githubBaseUrl': 'https://github.example.test',
       };
 
       final team = Team.fromJson(json);
@@ -33,8 +32,17 @@ void main() {
       expect(team.installationIds, [12345, 67890]);
       expect(team.runNumber, 42);
       expect(team.aiEnabled, isFalse);
-      expect(team.githubBaseUrl, 'https://github.example.test');
       expect(jsonDecode(jsonEncode(team)), json);
+    });
+
+    test('ignores the removed GitHub URL in older responses', () {
+      final team = Team.fromJson({
+        ..._teamJson(),
+        'githubBaseUrl': 'https://untrusted.example',
+      });
+
+      expect(team, Team.fromJson(_teamJson()));
+      expect(team.toJson(), isNot(contains('githubBaseUrl')));
     });
   });
 }

@@ -9,7 +9,6 @@ extension DriftTeamMapper on DriftTeam {
       members: members,
       createdAt: createdAt,
       updatedAt: updatedAt,
-      githubBaseUrl: githubBaseUrl,
       installationIds: installationIds,
       aiEnabled: aiEnabled,
       runNumber: runNumber,
@@ -22,7 +21,6 @@ extension TeamMapper on Team {
     return DriftTeam(
       id: id,
       name: name,
-      githubBaseUrl: githubBaseUrl,
       installationIds: installationIds,
       aiEnabled: aiEnabled,
       runNumber: runNumber,

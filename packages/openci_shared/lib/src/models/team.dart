@@ -14,7 +14,6 @@ abstract class Team with _$Team {
     @Default([]) List<int> installationIds,
     @Default(1) int runNumber,
     @Default(true) bool aiEnabled,
-    String? githubBaseUrl,
     @DateTimeConverter() required DateTime createdAt,
     @DateTimeConverter() required DateTime updatedAt,
   }) = _Team;

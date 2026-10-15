@@ -20,7 +20,6 @@ void main() {
         name: 'Original team',
         members: const ['user-123'],
         installationIds: const [123, 456],
-        githubBaseUrl: 'https://github.example.com',
         createdAt: DateTime.utc(2026),
         updatedAt: DateTime.utc(2026),
       );

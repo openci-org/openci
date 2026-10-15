@@ -20,7 +20,6 @@ void main() {
         name: 'OpenCI',
         members: const [],
         installationIds: const [998877],
-        githubBaseUrl: 'https://github.example.com',
         createdAt: DateTime.utc(2026),
         updatedAt: DateTime.utc(2026),
       );
@@ -66,7 +65,7 @@ void main() {
         'commitMessage': 'feat: planner',
         'branch': 'main',
         'runsOn': 'macos-latest',
-        'githubBaseUrl': 'https://github.example.com',
+        'githubBaseUrl': 'https://github.com',
         'installationId': '998877',
       });
     });

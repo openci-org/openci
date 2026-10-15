@@ -25,6 +25,11 @@ void main() {
       )
     ''').get();
     expect(legacyTables, isEmpty);
+    final columns = await db.customSelect('PRAGMA table_info(teams)').get();
+    expect(
+      columns.map((row) => row.read<String>('name')),
+      isNot(contains('github_base_url')),
+    );
   });
 
   for (final version in [19, 22, 23]) {
@@ -38,6 +43,8 @@ void main() {
               PRAGMA foreign_keys = ON;
               PRAGMA user_version = $version;
               CREATE TABLE build_jobs (id TEXT PRIMARY KEY);
+              CREATE TABLE teams (id TEXT PRIMARY KEY, github_base_url TEXT);
+              INSERT INTO teams VALUES ('team-1', 'https://untrusted.example');
               CREATE TABLE build_runs (
                 id TEXT PRIMARY KEY,
                 build_job_id TEXT REFERENCES build_jobs (id)
@@ -91,7 +98,7 @@ void main() {
           .get();
       expect(
         tables.map((row) => row.read<String>('name')),
-        unorderedEquals(['build_jobs', 'build_runs']),
+        unorderedEquals(['build_jobs', 'build_runs', 'teams']),
       );
       expect(
         (await db.customSelect('SELECT * FROM build_jobs').get()).single.data,
@@ -105,10 +112,71 @@ void main() {
         (await db.customSelect('PRAGMA user_version').getSingle()).read<int>(
           'user_version',
         ),
-        24,
+        25,
+      );
+      expect(
+        (await db.customSelect('SELECT * FROM teams').getSingle()).data,
+        {'id': 'team-1'},
       );
     });
   }
+
+  test(
+    'upgrades v24 teams without changing membership or build URLs',
+    () async {
+      await db.close();
+      db = AppDatabase(
+        NativeDatabase.memory(
+          setup: (database) {
+            database.execute('''
+        PRAGMA foreign_keys = ON;
+        PRAGMA user_version = 24;
+        CREATE TABLE teams (
+          id TEXT PRIMARY KEY, name TEXT NOT NULL, github_base_url TEXT,
+          installation_ids TEXT NOT NULL, ai_enabled INTEGER NOT NULL,
+          run_number INTEGER NOT NULL DEFAULT 1,
+          created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL
+        );
+        CREATE TABLE team_members (
+          id INTEGER PRIMARY KEY, team_id TEXT REFERENCES teams(id),
+          user_id TEXT NOT NULL
+        );
+        CREATE TABLE build_jobs (id TEXT PRIMARY KEY, github_base_url TEXT);
+        INSERT INTO teams VALUES (
+          'team-1', 'OpenCI', 'https://untrusted.example', '[123]', 1, 42, 0, 1
+        );
+        INSERT INTO team_members VALUES (1, 'team-1', 'user-1');
+        INSERT INTO build_jobs VALUES ('job-1', 'https://legacy.example');
+      ''');
+          },
+        ),
+      );
+
+      final team = await db.teamDao.getTeam('team-1');
+      expect(team!.name, 'OpenCI');
+      expect(team.installationIds, [123]);
+      expect(team.aiEnabled, isTrue);
+      expect(team.runNumber, 42);
+      expect(
+        (await db.teamDao.getTeamMembers('team-1')).single.userId,
+        'user-1',
+      );
+      expect(
+        (await db.customSelect('SELECT * FROM teams').getSingle()).data,
+        isNot(contains('github_base_url')),
+      );
+      expect(
+        (await db.customSelect('SELECT * FROM build_jobs').getSingle()).data,
+        {'id': 'job-1', 'github_base_url': 'https://legacy.example'},
+      );
+      expect(
+        (await db.customSelect('PRAGMA user_version').getSingle()).read<int>(
+          'user_version',
+        ),
+        25,
+      );
+    },
+  );
 
   test('Can insert and retrieve DriftBuildJob', () async {
     final now = DateTime.now().toUtc();

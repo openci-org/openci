@@ -91,7 +91,6 @@ void main() {
         final team = DriftTeam(
           id: 'team-123',
           name: 'My Team',
-          githubBaseUrl: null,
           installationIds: const [],
           runNumber: 1,
           aiEnabled: true,

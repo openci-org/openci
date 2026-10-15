@@ -41,7 +41,6 @@ void main() {
         final team = DriftTeam(
           id: 'team-xyz',
           name: 'Team XYZ',
-          githubBaseUrl: null,
           installationIds: const [],
           runNumber: 1,
           aiEnabled: true,
@@ -95,7 +94,6 @@ void main() {
         final team = DriftTeam(
           id: 'team-xyz',
           name: 'Team XYZ',
-          githubBaseUrl: null,
           installationIds: const [],
           runNumber: 1,
           aiEnabled: true,
@@ -314,7 +312,6 @@ void main() {
         final team = DriftTeam(
           id: 'team-xyz',
           name: 'Team XYZ',
-          githubBaseUrl: null,
           installationIds: const [],
           runNumber: 1,
           aiEnabled: true,
@@ -369,7 +366,6 @@ void main() {
         final team = DriftTeam(
           id: 'team-xyz',
           name: 'Team XYZ',
-          githubBaseUrl: null,
           installationIds: const [],
           runNumber: 1,
           aiEnabled: true,

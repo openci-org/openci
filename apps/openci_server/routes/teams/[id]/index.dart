@@ -91,7 +91,6 @@ Future<Response> _patch(RequestContext context, String id) async {
       name: payload.containsKey('name')
           ? (payload['name'] as String).trim()
           : currentDriftTeam.name,
-      githubBaseUrl: currentDriftTeam.githubBaseUrl,
       installationIds: currentDriftTeam.installationIds,
       aiEnabled: payload.containsKey('aiEnabled')
           ? payload['aiEnabled'] as bool

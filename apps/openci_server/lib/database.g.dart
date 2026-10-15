@@ -2656,17 +2656,6 @@ class $TeamsTable extends Teams with TableInfo<$TeamsTable, DriftTeam> {
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
-  static const VerificationMeta _githubBaseUrlMeta = const VerificationMeta(
-    'githubBaseUrl',
-  );
-  @override
-  late final GeneratedColumn<String> githubBaseUrl = GeneratedColumn<String>(
-    'github_base_url',
-    aliasedName,
-    true,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-  );
   @override
   late final GeneratedColumnWithTypeConverter<List<int>, String>
   installationIds = GeneratedColumn<String>(
@@ -2729,7 +2718,6 @@ class $TeamsTable extends Teams with TableInfo<$TeamsTable, DriftTeam> {
   List<GeneratedColumn> get $columns => [
     id,
     name,
-    githubBaseUrl,
     installationIds,
     aiEnabled,
     runNumber,
@@ -2760,15 +2748,6 @@ class $TeamsTable extends Teams with TableInfo<$TeamsTable, DriftTeam> {
       );
     } else if (isInserting) {
       context.missing(_nameMeta);
-    }
-    if (data.containsKey('github_base_url')) {
-      context.handle(
-        _githubBaseUrlMeta,
-        githubBaseUrl.isAcceptableOrUnknown(
-          data['github_base_url']!,
-          _githubBaseUrlMeta,
-        ),
-      );
     }
     if (data.containsKey('ai_enabled')) {
       context.handle(
@@ -2817,10 +2796,6 @@ class $TeamsTable extends Teams with TableInfo<$TeamsTable, DriftTeam> {
         DriftSqlType.string,
         data['${effectivePrefix}name'],
       )!,
-      githubBaseUrl: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}github_base_url'],
-      ),
       installationIds: $TeamsTable.$converterinstallationIds.fromSql(
         attachedDatabase.typeMapping.read(
           DriftSqlType.string,
@@ -2858,7 +2833,6 @@ class $TeamsTable extends Teams with TableInfo<$TeamsTable, DriftTeam> {
 class DriftTeam extends DataClass implements Insertable<DriftTeam> {
   final String id;
   final String name;
-  final String? githubBaseUrl;
   final List<int> installationIds;
   final bool aiEnabled;
   final int runNumber;
@@ -2867,7 +2841,6 @@ class DriftTeam extends DataClass implements Insertable<DriftTeam> {
   const DriftTeam({
     required this.id,
     required this.name,
-    this.githubBaseUrl,
     required this.installationIds,
     required this.aiEnabled,
     required this.runNumber,
@@ -2879,9 +2852,6 @@ class DriftTeam extends DataClass implements Insertable<DriftTeam> {
     final map = <String, Expression>{};
     map['id'] = Variable<String>(id);
     map['name'] = Variable<String>(name);
-    if (!nullToAbsent || githubBaseUrl != null) {
-      map['github_base_url'] = Variable<String>(githubBaseUrl);
-    }
     {
       map['installation_ids'] = Variable<String>(
         $TeamsTable.$converterinstallationIds.toSql(installationIds),
@@ -2898,9 +2868,6 @@ class DriftTeam extends DataClass implements Insertable<DriftTeam> {
     return TeamsCompanion(
       id: Value(id),
       name: Value(name),
-      githubBaseUrl: githubBaseUrl == null && nullToAbsent
-          ? const Value.absent()
-          : Value(githubBaseUrl),
       installationIds: Value(installationIds),
       aiEnabled: Value(aiEnabled),
       runNumber: Value(runNumber),
@@ -2917,7 +2884,6 @@ class DriftTeam extends DataClass implements Insertable<DriftTeam> {
     return DriftTeam(
       id: serializer.fromJson<String>(json['id']),
       name: serializer.fromJson<String>(json['name']),
-      githubBaseUrl: serializer.fromJson<String?>(json['githubBaseUrl']),
       installationIds: serializer.fromJson<List<int>>(json['installationIds']),
       aiEnabled: serializer.fromJson<bool>(json['aiEnabled']),
       runNumber: serializer.fromJson<int>(json['runNumber']),
@@ -2931,7 +2897,6 @@ class DriftTeam extends DataClass implements Insertable<DriftTeam> {
     return <String, dynamic>{
       'id': serializer.toJson<String>(id),
       'name': serializer.toJson<String>(name),
-      'githubBaseUrl': serializer.toJson<String?>(githubBaseUrl),
       'installationIds': serializer.toJson<List<int>>(installationIds),
       'aiEnabled': serializer.toJson<bool>(aiEnabled),
       'runNumber': serializer.toJson<int>(runNumber),
@@ -2943,7 +2908,6 @@ class DriftTeam extends DataClass implements Insertable<DriftTeam> {
   DriftTeam copyWith({
     String? id,
     String? name,
-    Value<String?> githubBaseUrl = const Value.absent(),
     List<int>? installationIds,
     bool? aiEnabled,
     int? runNumber,
@@ -2952,9 +2916,6 @@ class DriftTeam extends DataClass implements Insertable<DriftTeam> {
   }) => DriftTeam(
     id: id ?? this.id,
     name: name ?? this.name,
-    githubBaseUrl: githubBaseUrl.present
-        ? githubBaseUrl.value
-        : this.githubBaseUrl,
     installationIds: installationIds ?? this.installationIds,
     aiEnabled: aiEnabled ?? this.aiEnabled,
     runNumber: runNumber ?? this.runNumber,
@@ -2965,9 +2926,6 @@ class DriftTeam extends DataClass implements Insertable<DriftTeam> {
     return DriftTeam(
       id: data.id.present ? data.id.value : this.id,
       name: data.name.present ? data.name.value : this.name,
-      githubBaseUrl: data.githubBaseUrl.present
-          ? data.githubBaseUrl.value
-          : this.githubBaseUrl,
       installationIds: data.installationIds.present
           ? data.installationIds.value
           : this.installationIds,
@@ -2983,7 +2941,6 @@ class DriftTeam extends DataClass implements Insertable<DriftTeam> {
     return (StringBuffer('DriftTeam(')
           ..write('id: $id, ')
           ..write('name: $name, ')
-          ..write('githubBaseUrl: $githubBaseUrl, ')
           ..write('installationIds: $installationIds, ')
           ..write('aiEnabled: $aiEnabled, ')
           ..write('runNumber: $runNumber, ')
@@ -2997,7 +2954,6 @@ class DriftTeam extends DataClass implements Insertable<DriftTeam> {
   int get hashCode => Object.hash(
     id,
     name,
-    githubBaseUrl,
     installationIds,
     aiEnabled,
     runNumber,
@@ -3010,7 +2966,6 @@ class DriftTeam extends DataClass implements Insertable<DriftTeam> {
       (other is DriftTeam &&
           other.id == this.id &&
           other.name == this.name &&
-          other.githubBaseUrl == this.githubBaseUrl &&
           other.installationIds == this.installationIds &&
           other.aiEnabled == this.aiEnabled &&
           other.runNumber == this.runNumber &&
@@ -3021,7 +2976,6 @@ class DriftTeam extends DataClass implements Insertable<DriftTeam> {
 class TeamsCompanion extends UpdateCompanion<DriftTeam> {
   final Value<String> id;
   final Value<String> name;
-  final Value<String?> githubBaseUrl;
   final Value<List<int>> installationIds;
   final Value<bool> aiEnabled;
   final Value<int> runNumber;
@@ -3031,7 +2985,6 @@ class TeamsCompanion extends UpdateCompanion<DriftTeam> {
   const TeamsCompanion({
     this.id = const Value.absent(),
     this.name = const Value.absent(),
-    this.githubBaseUrl = const Value.absent(),
     this.installationIds = const Value.absent(),
     this.aiEnabled = const Value.absent(),
     this.runNumber = const Value.absent(),
@@ -3042,7 +2995,6 @@ class TeamsCompanion extends UpdateCompanion<DriftTeam> {
   TeamsCompanion.insert({
     required String id,
     required String name,
-    this.githubBaseUrl = const Value.absent(),
     required List<int> installationIds,
     required bool aiEnabled,
     this.runNumber = const Value.absent(),
@@ -3058,7 +3010,6 @@ class TeamsCompanion extends UpdateCompanion<DriftTeam> {
   static Insertable<DriftTeam> custom({
     Expression<String>? id,
     Expression<String>? name,
-    Expression<String>? githubBaseUrl,
     Expression<String>? installationIds,
     Expression<bool>? aiEnabled,
     Expression<int>? runNumber,
@@ -3069,7 +3020,6 @@ class TeamsCompanion extends UpdateCompanion<DriftTeam> {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (name != null) 'name': name,
-      if (githubBaseUrl != null) 'github_base_url': githubBaseUrl,
       if (installationIds != null) 'installation_ids': installationIds,
       if (aiEnabled != null) 'ai_enabled': aiEnabled,
       if (runNumber != null) 'run_number': runNumber,
@@ -3082,7 +3032,6 @@ class TeamsCompanion extends UpdateCompanion<DriftTeam> {
   TeamsCompanion copyWith({
     Value<String>? id,
     Value<String>? name,
-    Value<String?>? githubBaseUrl,
     Value<List<int>>? installationIds,
     Value<bool>? aiEnabled,
     Value<int>? runNumber,
@@ -3093,7 +3042,6 @@ class TeamsCompanion extends UpdateCompanion<DriftTeam> {
     return TeamsCompanion(
       id: id ?? this.id,
       name: name ?? this.name,
-      githubBaseUrl: githubBaseUrl ?? this.githubBaseUrl,
       installationIds: installationIds ?? this.installationIds,
       aiEnabled: aiEnabled ?? this.aiEnabled,
       runNumber: runNumber ?? this.runNumber,
@@ -3111,9 +3059,6 @@ class TeamsCompanion extends UpdateCompanion<DriftTeam> {
     }
     if (name.present) {
       map['name'] = Variable<String>(name.value);
-    }
-    if (githubBaseUrl.present) {
-      map['github_base_url'] = Variable<String>(githubBaseUrl.value);
     }
     if (installationIds.present) {
       map['installation_ids'] = Variable<String>(
@@ -3143,7 +3088,6 @@ class TeamsCompanion extends UpdateCompanion<DriftTeam> {
     return (StringBuffer('TeamsCompanion(')
           ..write('id: $id, ')
           ..write('name: $name, ')
-          ..write('githubBaseUrl: $githubBaseUrl, ')
           ..write('installationIds: $installationIds, ')
           ..write('aiEnabled: $aiEnabled, ')
           ..write('runNumber: $runNumber, ')
@@ -6858,7 +6802,6 @@ typedef $$TeamsTableCreateCompanionBuilder =
     TeamsCompanion Function({
       required String id,
       required String name,
-      Value<String?> githubBaseUrl,
       required List<int> installationIds,
       required bool aiEnabled,
       Value<int> runNumber,
@@ -6870,7 +6813,6 @@ typedef $$TeamsTableUpdateCompanionBuilder =
     TeamsCompanion Function({
       Value<String> id,
       Value<String> name,
-      Value<String?> githubBaseUrl,
       Value<List<int>> installationIds,
       Value<bool> aiEnabled,
       Value<int> runNumber,
@@ -6989,11 +6931,6 @@ class $$TeamsTableFilterComposer extends Composer<_$AppDatabase, $TeamsTable> {
 
   ColumnFilters<String> get name => $composableBuilder(
     column: $table.name,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get githubBaseUrl => $composableBuilder(
-    column: $table.githubBaseUrl,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -7168,11 +7105,6 @@ class $$TeamsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<String> get githubBaseUrl => $composableBuilder(
-    column: $table.githubBaseUrl,
-    builder: (column) => ColumnOrderings(column),
-  );
-
   ColumnOrderings<String> get installationIds => $composableBuilder(
     column: $table.installationIds,
     builder: (column) => ColumnOrderings(column),
@@ -7213,11 +7145,6 @@ class $$TeamsTableAnnotationComposer
 
   GeneratedColumn<String> get name =>
       $composableBuilder(column: $table.name, builder: (column) => column);
-
-  GeneratedColumn<String> get githubBaseUrl => $composableBuilder(
-    column: $table.githubBaseUrl,
-    builder: (column) => column,
-  );
 
   GeneratedColumnWithTypeConverter<List<int>, String> get installationIds =>
       $composableBuilder(
@@ -7399,7 +7326,6 @@ class $$TeamsTableTableManager
               ({
                 Value<String> id = const Value.absent(),
                 Value<String> name = const Value.absent(),
-                Value<String?> githubBaseUrl = const Value.absent(),
                 Value<List<int>> installationIds = const Value.absent(),
                 Value<bool> aiEnabled = const Value.absent(),
                 Value<int> runNumber = const Value.absent(),
@@ -7409,7 +7335,6 @@ class $$TeamsTableTableManager
               }) => TeamsCompanion(
                 id: id,
                 name: name,
-                githubBaseUrl: githubBaseUrl,
                 installationIds: installationIds,
                 aiEnabled: aiEnabled,
                 runNumber: runNumber,
@@ -7421,7 +7346,6 @@ class $$TeamsTableTableManager
               ({
                 required String id,
                 required String name,
-                Value<String?> githubBaseUrl = const Value.absent(),
                 required List<int> installationIds,
                 required bool aiEnabled,
                 Value<int> runNumber = const Value.absent(),
@@ -7431,7 +7355,6 @@ class $$TeamsTableTableManager
               }) => TeamsCompanion.insert(
                 id: id,
                 name: name,
-                githubBaseUrl: githubBaseUrl,
                 installationIds: installationIds,
                 aiEnabled: aiEnabled,
                 runNumber: runNumber,

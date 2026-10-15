@@ -76,7 +76,7 @@ Future<List<BuildJobPlan>> planWebhookTask({
           pullRequestNumber: event.pullRequestNumber,
           branch: event.branch,
           runsOn: 'macos-latest',
-          githubBaseUrl: team.githubBaseUrl ?? 'https://github.com',
+          githubBaseUrl: 'https://github.com',
           installationId: event.installationId.toString(),
         ),
       )
