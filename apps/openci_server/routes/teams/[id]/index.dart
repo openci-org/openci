@@ -76,19 +76,6 @@ Future<Response> _patch(RequestContext context, String id) async {
       );
     }
 
-    if (payload.containsKey('installationIds')) {
-      final val = payload['installationIds'];
-      if (val is! List || !val.every((element) => element is int)) {
-        return Response.json(
-          statusCode: HttpStatus.badRequest,
-          body: {
-            'success': false,
-            'error': 'installationIds must be a list of integers',
-          },
-        );
-      }
-    }
-
     if (payload.containsKey('aiEnabled') && payload['aiEnabled'] is! bool) {
       return Response.json(
         statusCode: HttpStatus.badRequest,
@@ -119,9 +106,7 @@ Future<Response> _patch(RequestContext context, String id) async {
       githubBaseUrl: payload.containsKey('githubBaseUrl')
           ? payload['githubBaseUrl'] as String?
           : currentDriftTeam.githubBaseUrl,
-      installationIds: payload.containsKey('installationIds')
-          ? (payload['installationIds'] as List<dynamic>).cast<int>()
-          : currentDriftTeam.installationIds,
+      installationIds: currentDriftTeam.installationIds,
       aiEnabled: payload.containsKey('aiEnabled')
           ? payload['aiEnabled'] as bool
           : currentDriftTeam.aiEnabled,

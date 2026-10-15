@@ -256,44 +256,55 @@ void main() {
       },
     );
 
-    test(
-      'responds with 400 Bad Request when installationIds is not a list of integers',
-      () async {
-        final now = DateTime.now().toUtc();
-        final team = DriftTeam(
-          id: 'team-123',
-          name: 'Original Team',
-          installationIds: const [],
-          aiEnabled: true,
-          runNumber: 1,
-          createdAt: now,
-          updatedAt: now,
-        );
-        await db.teamDao.createTeamAndMember(team, 'user-1');
+    for (final installationIds in <Object?>[
+      [222, 333],
+      <int>[],
+      null,
+      ['not-int'],
+    ]) {
+      test(
+        'ignores installationIds=$installationIds and updates the team name',
+        () async {
+          final now = DateTime.now().toUtc();
+          final team = DriftTeam(
+            id: 'team-123',
+            name: 'Original Team',
+            installationIds: const [111],
+            aiEnabled: true,
+            runNumber: 1,
+            createdAt: now,
+            updatedAt: now,
+          );
+          await db.teamDao.createTeamAndMember(team, 'user-1');
 
-        final context = TestRequestContext(
-          path: '/teams/team-123',
-          method: HttpMethod.patch,
-          body: jsonEncode({
-            'installationIds': ['not-int'],
-          }),
-        );
+          final context = TestRequestContext(
+            path: '/teams/team-123',
+            method: HttpMethod.patch,
+            body: jsonEncode({
+              'name': 'Updated Name',
+              'installationIds': installationIds,
+            }),
+          );
 
-        context.provide<AppDatabase>(db);
-        context.provide<String?>('user-1');
+          context.provide<AppDatabase>(db);
+          context.provide<String?>('user-1');
 
-        final response = await route.onRequest(context.context, 'team-123');
+          final response = await route.onRequest(context.context, 'team-123');
 
-        expect(response.statusCode, equals(HttpStatus.badRequest));
+          expect(response.statusCode, equals(HttpStatus.ok));
 
-        final body = await response.json() as Map<String, dynamic>;
-        expect(body['success'], isFalse);
-        expect(
-          body['error'],
-          contains('installationIds must be a list of integers'),
-        );
-      },
-    );
+          final body = await response.json() as Map<String, dynamic>;
+          expect(body['success'], isTrue);
+
+          final updatedTeam = await (db.select(
+            db.teams,
+          )..where((t) => t.id.equals('team-123'))).getSingle();
+
+          expect(updatedTeam.name, equals('Updated Name'));
+          expect(updatedTeam.installationIds, equals([111]));
+        },
+      );
+    }
 
     test(
       'responds with 400 Bad Request when aiEnabled is not a boolean',
@@ -391,7 +402,6 @@ void main() {
           body: jsonEncode({
             'name': '   Trimmed Updated Name   ',
             'githubBaseUrl': 'https://github.com/updated',
-            'installationIds': [222, 333],
             'aiEnabled': false,
           }),
         );
@@ -412,7 +422,7 @@ void main() {
 
         expect(updatedTeam.name, equals('Trimmed Updated Name'));
         expect(updatedTeam.githubBaseUrl, equals('https://github.com/updated'));
-        expect(updatedTeam.installationIds, equals([222, 333]));
+        expect(updatedTeam.installationIds, equals([111]));
         expect(updatedTeam.aiEnabled, isFalse);
         expect(updatedTeam.runNumber, equals(5));
         expect(updatedTeam.createdAt.toUtc(), equals(team.createdAt.toUtc()));
