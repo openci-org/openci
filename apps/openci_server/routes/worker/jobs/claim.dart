@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:dart_frog/dart_frog.dart';
 import 'package:openci_server/build_job/build_job_mapper.dart';
 import 'package:openci_server/database.dart';
+import 'package:openci_server/github/github_repository_url.dart';
 import 'package:openci_server/request/error_handler.dart';
 import 'package:openci_server/request/request_extension.dart';
 import 'package:openci_shared/openci_shared.dart';
@@ -29,6 +30,14 @@ Future<Response> _post(RequestContext context) async {
 
     final claimRequest = ClaimJobRequest.fromJson(payload);
 
+    var environment = Platform.environment;
+    try {
+      environment = context.read<Map<String, String>>();
+    } catch (_) {
+      // Use the process environment when no override is provided.
+    }
+    // Validate before claiming so a configuration error leaves the job queued.
+    final githubBaseUrl = githubRepositoryBaseUrl(environment: environment);
     final db = context.read<AppDatabase>();
     final driftJob = await db.buildJobDao.claimNextJob(
       vmName: claimRequest.vmName,
@@ -39,7 +48,9 @@ Future<Response> _post(RequestContext context) async {
       return Response.json(body: {'job': null});
     }
 
-    return Response.json(body: {'job': driftJob.toShared().toJson()});
+    // Stored jobs may still contain a URL supplied by a team or an old planner.
+    final job = driftJob.toShared().copyWith(githubBaseUrl: githubBaseUrl);
+    return Response.json(body: {'job': job.toJson()});
   } catch (e, s) {
     return handleRouteException(e, s, logMessage: 'Failed to claim next job');
   }

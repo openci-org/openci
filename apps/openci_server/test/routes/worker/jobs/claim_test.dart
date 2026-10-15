@@ -33,6 +33,7 @@ void main() {
     String? token = 'test-internal-key',
     Map<String, String> environment = const {
       'INTERNAL_API_KEY': 'test-internal-key',
+      'GITHUB_API_BASE_URL': 'https://api.github.com',
     },
     String body = '{}',
   }) {
@@ -46,6 +47,7 @@ void main() {
     );
     context.provide<AppDatabase>(db);
     context.provide<String?>(uid);
+    context.provide<Map<String, String>>(environment);
     context.provide<InternalApiKeyValidator>(
       InternalApiKeyValidator.forTesting(environment: environment),
     );
@@ -173,6 +175,7 @@ void main() {
         expect(returned['status'], 'IN_PROGRESS');
         expect(returned['vmName'], 'vm-a');
         expect(returned['workerHost'], 'host-a');
+        expect(returned['githubBaseUrl'], 'https://github.com');
         expect(returned, isNot(contains('installationId')));
         expect(returned, isNot(contains('checkRunId')));
         verify(
@@ -184,5 +187,67 @@ void main() {
         ).called(1);
       },
     );
+
+    for (final (apiUrl, repositoryUrl) in [
+      ('https://api.github.com', 'https://github.com'),
+      ('https://github.example.com/api/v3', 'https://github.example.com'),
+    ]) {
+      for (final savedUrl in [
+        null,
+        'https://github.com',
+        'https://untrusted.example',
+      ]) {
+        test('uses $apiUrl when the saved job URL is $savedUrl', () async {
+          final job = DriftBuildJob(
+            id: 'job-1',
+            status: BuildJobStatus.IN_PROGRESS,
+            owner: 'org',
+            repo: 'repo',
+            workflowName: 'CI',
+            workflowFileName: 'ci.dart',
+            githubBaseUrl: savedUrl,
+            createdAt: DateTime.utc(2026, 9, 1),
+            updatedAt: DateTime.utc(2026, 9, 1),
+          );
+          when(() => dao.claimNextJob()).thenAnswer((_) async => job);
+
+          final response = await request(
+            environment: {
+              'INTERNAL_API_KEY': 'test-internal-key',
+              'GITHUB_API_BASE_URL': apiUrl,
+            },
+          );
+
+          expect(response.statusCode, HttpStatus.ok);
+          final body = await response.json() as Map<String, dynamic>;
+          expect(
+            (body['job'] as Map<String, dynamic>)['githubBaseUrl'],
+            repositoryUrl,
+          );
+          verify(() => dao.claimNextJob()).called(1);
+        });
+      }
+    }
+
+    for (final apiUrl in [
+      null,
+      'https://user:password@github.example.com/api/v3',
+    ]) {
+      test(
+        'does not claim a job with missing or invalid API URL: $apiUrl',
+        () async {
+          final response = await request(
+            environment: {
+              'INTERNAL_API_KEY': 'test-internal-key',
+              'GITHUB_API_BASE_URL': ?apiUrl,
+            },
+          );
+
+          expect(response.statusCode, HttpStatus.internalServerError);
+          verifyZeroInteractions(db);
+          verifyZeroInteractions(dao);
+        },
+      );
+    }
   });
 }

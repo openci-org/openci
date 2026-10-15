@@ -2,6 +2,7 @@ import 'package:drift/drift.dart';
 import 'package:openci_server/build_job/build_job_plan_mapper.dart';
 import 'package:openci_server/build_job/create_queued_check_run.dart';
 import 'package:openci_server/database.dart';
+import 'package:openci_server/github/github_repository_url.dart';
 import 'package:openci_server/webhook_task/webhook_task_transition_exception.dart';
 import 'package:http/http.dart' as http;
 import 'package:openci_shared/openci_shared.dart';
@@ -64,10 +65,17 @@ Future<CompleteWebhookTaskResult> completeWebhookTask({
       throw InvalidWebhookTaskStatusException(currentTask.status);
     }
 
+    if (jobs.isEmpty) return;
+
     final createdJobs = <DriftBuildJob>[];
+    final githubBaseUrl = githubRepositoryBaseUrl(environment: environment);
     for (final plan in jobs) {
       final jobId = const Uuid().v4();
-      final job = plan.toDrift(id: jobId, timestamp: now);
+      final job = plan.toDrift(
+        id: jobId,
+        timestamp: now,
+        githubBaseUrl: githubBaseUrl,
+      );
       await db.buildJobDao.insertBuildJob(job);
       createdJobs.add(job);
       createdJobIds.add(jobId);

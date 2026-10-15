@@ -67,6 +67,7 @@ void main() {
       expect(jobs.single.workflowName, _plan.workflowName);
       expect(jobs.single.installationId, _plan.installationId);
       expect(jobs.single.runCount, 0);
+      expect(jobs.single.githubBaseUrl, 'https://github.com');
     });
 
     test('completes the task when jobs is empty', () async {
@@ -240,7 +241,6 @@ const _plan = BuildJobPlan(
   commitSha: 'commit-sha-1',
   branch: 'develop',
   runsOn: 'macos-latest',
-  githubBaseUrl: 'https://github.com',
   installationId: '98765',
 );
 
@@ -269,7 +269,9 @@ Future<Response> _request({
   required String taskId,
   required List<Map<String, dynamic>> jobs,
   HttpMethod method = HttpMethod.post,
-  Map<String, String> environment = const {},
+  Map<String, String> environment = const {
+    'GITHUB_API_BASE_URL': 'https://api.github.com',
+  },
   http.Client? client,
 }) {
   return _requestWithBody(
@@ -287,7 +289,9 @@ Future<Response> _requestWithBody({
   required String taskId,
   required String body,
   HttpMethod method = HttpMethod.post,
-  Map<String, String> environment = const {},
+  Map<String, String> environment = const {
+    'GITHUB_API_BASE_URL': 'https://api.github.com',
+  },
   http.Client? client,
 }) async {
   const validator = InternalApiKeyValidator.forTesting(

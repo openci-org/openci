@@ -19,7 +19,6 @@ abstract class BuildJobPlan with _$BuildJobPlan {
     required String commitSha,
     required String branch,
     required String runsOn,
-    required String githubBaseUrl,
     required String installationId,
     String? workflowId,
     String? commitMessage,
@@ -43,7 +42,10 @@ BuildJobPlan _validatedBuildJobPlanFromJson(Map<String, Object?> json) {
       throw FormatException('$field must be a non-empty string');
     }
   }
-  return _$BuildJobPlanFromJson(json);
+  // Older planners sent this field. Only the server controls repository URLs.
+  return _$BuildJobPlanFromJson(
+    Map<String, Object?>.of(json)..remove('githubBaseUrl'),
+  );
 }
 
 const _requiredStringFields = <String>{
@@ -55,6 +57,5 @@ const _requiredStringFields = <String>{
   'commitSha',
   'branch',
   'runsOn',
-  'githubBaseUrl',
   'installationId',
 };
