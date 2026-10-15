@@ -84,20 +84,18 @@ class TeamService {
     }
   }
 
-  Future<void> updateGitHubSettings({
+  Future<void> updateGitHubBaseUrl({
     required String teamId,
     String? githubBaseUrl,
-    required List<int> installationIds,
   }) async {
     final apiService = await _ref.read(openciApiServiceProvider.future);
     final response = await apiService.updateTeam(teamId, {
       'githubBaseUrl': _emptyToNull(githubBaseUrl),
-      'installationIds': installationIds,
     });
 
     if (!response.isSuccessful) {
       throw StateError(
-        'Failed to update GitHub settings: ${response.statusCode} ${response.error}',
+        'Failed to update GitHub base URL: ${response.statusCode} ${response.error}',
       );
     }
 
