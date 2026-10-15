@@ -14,7 +14,6 @@ class EditTeamBottomSheet extends HookConsumerWidget {
     final teamListStream = ref.watch(teamListProvider);
     final teamNameController = useTextEditingController();
     final githubBaseUrlController = useTextEditingController();
-    final installationIdsController = useTextEditingController();
     final formKey = useMemoized(() => GlobalKey<FormState>());
     final selectedTeamId = useState<String?>(null);
     final isLoading = useState(false);
@@ -58,9 +57,6 @@ class EditTeamBottomSheet extends HookConsumerWidget {
                         selectedTeamId.value = team.id;
                         teamNameController.text = team.name;
                         githubBaseUrlController.text = team.githubBaseUrl ?? '';
-                        installationIdsController.text = team.installationIds
-                            .map((id) => id.toString())
-                            .join(', ');
                       },
                       hoverColor: colorScheme.outlineVariant.withValues(
                         alpha: 0.5,
@@ -193,20 +189,6 @@ class EditTeamBottomSheet extends HookConsumerWidget {
                   label: 'GitHub Base URL',
                   hintText: 'https://github.ibm.com',
                 ),
-                const SizedBox(height: 8),
-                _EnterpriseTextField(
-                  controller: installationIdsController,
-                  label: 'Installation IDs',
-                  hintText: '123456, 789012',
-                  validator: (value) {
-                    try {
-                      _parseInstallationIds(value ?? '');
-                      return null;
-                    } on FormatException catch (e) {
-                      return e.message;
-                    }
-                  },
-                ),
                 const SizedBox(height: 16),
                 SizedBox(
                   width: double.infinity,
@@ -233,12 +215,9 @@ class EditTeamBottomSheet extends HookConsumerWidget {
                                   );
                               await ref
                                   .read(teamServiceProvider)
-                                  .updateGitHubSettings(
+                                  .updateGitHubBaseUrl(
                                     teamId: selectedTeamId.value!,
                                     githubBaseUrl: githubBaseUrlController.text,
-                                    installationIds: _parseInstallationIds(
-                                      installationIdsController.text,
-                                    ),
                                   );
                               if (!context.mounted) return;
                               context.showSnackBarMessage(
@@ -287,13 +266,11 @@ class _EnterpriseTextField extends StatelessWidget {
     required this.controller,
     required this.label,
     required this.hintText,
-    this.validator,
   });
 
   final TextEditingController controller;
   final String label;
   final String hintText;
-  final String? Function(String?)? validator;
 
   @override
   Widget build(BuildContext context) {
@@ -308,7 +285,6 @@ class _EnterpriseTextField extends StatelessWidget {
       ),
       child: TextFormField(
         controller: controller,
-        validator: validator,
         style: const TextStyle(
           fontSize: 14,
         ),
@@ -328,23 +304,4 @@ class _EnterpriseTextField extends StatelessWidget {
       ),
     );
   }
-}
-
-List<int> _parseInstallationIds(String raw) {
-  final trimmed = raw.trim();
-  if (trimmed.isEmpty) return const [];
-
-  final ids = <int>[];
-  for (final part in trimmed.split(',')) {
-    final value = part.trim();
-    if (value.isEmpty) continue;
-    final id = int.tryParse(value);
-    if (id == null) {
-      throw const FormatException(
-        'Installation IDs must be comma-separated numbers.',
-      );
-    }
-    ids.add(id);
-  }
-  return ids;
 }
