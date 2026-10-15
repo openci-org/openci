@@ -84,26 +84,6 @@ class TeamService {
     }
   }
 
-  Future<void> updateGitHubBaseUrl({
-    required String teamId,
-    String? githubBaseUrl,
-  }) async {
-    final apiService = await _ref.read(openciApiServiceProvider.future);
-    final response = await apiService.updateTeam(teamId, {
-      'githubBaseUrl': _emptyToNull(githubBaseUrl),
-    });
-
-    if (!response.isSuccessful) {
-      throw StateError(
-        'Failed to update GitHub base URL: ${response.statusCode} ${response.error}',
-      );
-    }
-
-    if (_ref.mounted) {
-      _ref.invalidate(teamListProvider);
-    }
-  }
-
   Future<void> deleteTeam(String teamId) async {
     final apiService = await _ref.read(openciApiServiceProvider.future);
     final response = await apiService.deleteTeam(teamId);
@@ -142,9 +122,4 @@ class TeamService {
       throw StateError(errorMessage);
     }
   }
-}
-
-String? _emptyToNull(String? value) {
-  final trimmed = value?.trim();
-  return trimmed == null || trimmed.isEmpty ? null : trimmed;
 }
