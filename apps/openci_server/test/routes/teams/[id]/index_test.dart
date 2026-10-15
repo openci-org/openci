@@ -219,42 +219,59 @@ void main() {
       },
     );
 
-    test(
-      'responds with 400 Bad Request when githubBaseUrl is not a string or null',
-      () async {
-        final now = DateTime.now().toUtc();
-        final team = DriftTeam(
-          id: 'team-123',
-          name: 'Original Team',
-          installationIds: const [],
-          aiEnabled: true,
-          runNumber: 1,
-          createdAt: now,
-          updatedAt: now,
-        );
-        await db.teamDao.createTeamAndMember(team, 'user-1');
+    for (final githubBaseUrl in <Object?>[
+      'https://github.example.com',
+      '',
+      null,
+      123,
+    ]) {
+      test(
+        'ignores githubBaseUrl=$githubBaseUrl and updates the team name',
+        () async {
+          final now = DateTime.now().toUtc();
+          final team = DriftTeam(
+            id: 'team-123',
+            name: 'Original Team',
+            githubBaseUrl: 'https://github.com/original',
+            installationIds: const [],
+            aiEnabled: true,
+            runNumber: 1,
+            createdAt: now,
+            updatedAt: now,
+          );
+          await db.teamDao.createTeamAndMember(team, 'user-1');
 
-        final context = TestRequestContext(
-          path: '/teams/team-123',
-          method: HttpMethod.patch,
-          body: jsonEncode({'githubBaseUrl': 123}),
-        );
+          final context = TestRequestContext(
+            path: '/teams/team-123',
+            method: HttpMethod.patch,
+            body: jsonEncode({
+              'name': 'Updated Name',
+              'githubBaseUrl': githubBaseUrl,
+            }),
+          );
 
-        context.provide<AppDatabase>(db);
-        context.provide<String?>('user-1');
+          context.provide<AppDatabase>(db);
+          context.provide<String?>('user-1');
 
-        final response = await route.onRequest(context.context, 'team-123');
+          final response = await route.onRequest(context.context, 'team-123');
 
-        expect(response.statusCode, equals(HttpStatus.badRequest));
+          expect(response.statusCode, equals(HttpStatus.ok));
 
-        final body = await response.json() as Map<String, dynamic>;
-        expect(body['success'], isFalse);
-        expect(
-          body['error'],
-          contains('githubBaseUrl must be a string or null'),
-        );
-      },
-    );
+          final body = await response.json() as Map<String, dynamic>;
+          expect(body['success'], isTrue);
+
+          final updatedTeam = await (db.select(
+            db.teams,
+          )..where((t) => t.id.equals('team-123'))).getSingle();
+
+          expect(updatedTeam.name, equals('Updated Name'));
+          expect(
+            updatedTeam.githubBaseUrl,
+            equals('https://github.com/original'),
+          );
+        },
+      );
+    }
 
     for (final installationIds in <Object?>[
       [222, 333],
@@ -401,7 +418,6 @@ void main() {
           method: HttpMethod.patch,
           body: jsonEncode({
             'name': '   Trimmed Updated Name   ',
-            'githubBaseUrl': 'https://github.com/updated',
             'aiEnabled': false,
           }),
         );
@@ -421,7 +437,10 @@ void main() {
         )..where((t) => t.id.equals('team-123'))).getSingle();
 
         expect(updatedTeam.name, equals('Trimmed Updated Name'));
-        expect(updatedTeam.githubBaseUrl, equals('https://github.com/updated'));
+        expect(
+          updatedTeam.githubBaseUrl,
+          equals('https://github.com/original'),
+        );
         expect(updatedTeam.installationIds, equals([111]));
         expect(updatedTeam.aiEnabled, isFalse);
         expect(updatedTeam.runNumber, equals(5));

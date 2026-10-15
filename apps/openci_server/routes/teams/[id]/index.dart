@@ -64,18 +64,6 @@ Future<Response> _patch(RequestContext context, String id) async {
       }
     }
 
-    if (payload.containsKey('githubBaseUrl') &&
-        payload['githubBaseUrl'] != null &&
-        payload['githubBaseUrl'] is! String) {
-      return Response.json(
-        statusCode: HttpStatus.badRequest,
-        body: {
-          'success': false,
-          'error': 'githubBaseUrl must be a string or null',
-        },
-      );
-    }
-
     if (payload.containsKey('aiEnabled') && payload['aiEnabled'] is! bool) {
       return Response.json(
         statusCode: HttpStatus.badRequest,
@@ -103,9 +91,7 @@ Future<Response> _patch(RequestContext context, String id) async {
       name: payload.containsKey('name')
           ? (payload['name'] as String).trim()
           : currentDriftTeam.name,
-      githubBaseUrl: payload.containsKey('githubBaseUrl')
-          ? payload['githubBaseUrl'] as String?
-          : currentDriftTeam.githubBaseUrl,
+      githubBaseUrl: currentDriftTeam.githubBaseUrl,
       installationIds: currentDriftTeam.installationIds,
       aiEnabled: payload.containsKey('aiEnabled')
           ? payload['aiEnabled'] as bool
