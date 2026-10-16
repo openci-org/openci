@@ -8,6 +8,7 @@ import 'package:test/test.dart';
 import 'package:uuid/uuid.dart';
 
 import '../test/helpers/github_connection_table_tests.dart';
+import '../test/helpers/save_github_connection_and_consume_session_tests.dart';
 import '../test/helpers/save_github_connection_tests.dart';
 
 void main() {
@@ -37,6 +38,18 @@ void main() {
 
       group('saving verified connections', () {
         testSaveGitHubConnection(
+          () async => AppDatabase(PgDatabase.opened(connection)),
+          openConcurrentDatabase: () async {
+            final other = await pg.Connection.openFromUrl(databaseUrl!);
+            addTearDown(other.close);
+            await other.execute('SET search_path TO "$schema"');
+            return AppDatabase(PgDatabase.opened(other));
+          },
+        );
+      });
+
+      group('saving connections and consuming sessions', () {
+        testSaveGitHubConnectionAndConsumeSession(
           () async => AppDatabase(PgDatabase.opened(connection)),
           openConcurrentDatabase: () async {
             final other = await pg.Connection.openFromUrl(databaseUrl!);

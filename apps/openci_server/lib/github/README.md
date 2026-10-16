@@ -187,8 +187,16 @@ connections. A conditional database upsert makes this decision and write in one
 statement, including concurrent saves. Database failures throw a sanitized error
 instead of returning a conflict. It participates in the caller's transaction.
 
-Fresh authorization checks and atomic session consumption remain follow-up work
-in G-1371. This persistence helper is not yet called by an API route.
+`saveGitHubConnectionAndConsumeSession` combines that save with session
+consumption in one transaction. A conflict returns `null` without consuming the
+session. After a successful save, it checks and consumes the session at the
+current time; an invalid session throws `InvalidGitHubConnectionSessionException`
+and rolls back the insert or refresh. Database failures also roll back and throw
+a sanitized error. On success, the session's temporary token is cleared.
+
+The caller must first verify the GitHub user and installation using the session's
+token. Wiring those fresh GitHub checks into this transaction helper remains
+follow-up work in G-1371. Neither persistence helper is called by an API route yet.
 
 A unique constraint on `(github_api_base_url, github_app_id, installation_id)`
 reserves an installation for one team, including suspended or removed rows.
@@ -206,6 +214,7 @@ Run the SQLite storage and migration tests with:
 
 ```sh
 dart test test/lib/github/github_connection_table_test.dart \
+  test/lib/github/save_github_connection_and_consume_session_test.dart \
   test/lib/github/save_github_connection_test.dart test/lib/database_test.dart
 ```
 
