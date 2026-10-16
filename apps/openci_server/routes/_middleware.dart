@@ -7,9 +7,11 @@ import 'package:openci_server/auth/internal_api_key_validator.dart';
 import 'package:openci_server/auth/server_access_policy_provider.dart';
 import 'package:openci_server/auth/user_email_info.dart';
 import 'package:openci_server/database.dart';
+import 'package:openci_server/github/github_connection_session_cleanup.dart';
 import 'package:sentry/sentry.dart';
 
 final _db = AppDatabase();
+final _sessionCleanup = GitHubConnectionSessionCleanup(_db);
 final FirebaseApp _firebaseApp = FirebaseApp.initializeApp();
 
 bool _sentryInitialized = false;
@@ -29,7 +31,7 @@ void _initSentry() {
 
 Handler middleware(Handler handler) {
   final accessPolicyMiddleware = serverAccessPolicyProvider();
-  return handler
+  final configuredHandler = handler
       .use(sentryMiddleware())
       .use(databaseProvider(_db))
       .use(authProvider(_firebaseApp))
@@ -43,6 +45,8 @@ Handler middleware(Handler handler) {
       .use(corsMiddleware())
       .use(internalRoutesMiddleware())
       .use(requestLoggingMiddleware());
+  _sessionCleanup.start();
+  return configuredHandler;
 }
 
 Middleware requestLoggingMiddleware() {
