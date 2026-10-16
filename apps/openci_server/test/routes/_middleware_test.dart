@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -56,6 +57,46 @@ void main() {
       expect(await response.body(), 'created');
     },
   );
+
+  group('requestLoggingMiddleware', () {
+    test('keeps callback secrets out of access logs', () async {
+      final messages = <String>[];
+      final context = TestRequestContext(
+        path: '/github/callback?code=private-code&state=private-state',
+      );
+      final handler = requestLoggingMiddleware()((context) {
+        expect(context.request.uri.queryParameters['code'], 'private-code');
+        expect(context.request.uri.queryParameters['state'], 'private-state');
+        return Response(statusCode: HttpStatus.notImplemented);
+      });
+
+      final response = await runZoned(
+        () => handler(context.context),
+        zoneSpecification: ZoneSpecification(
+          print: (_, _, _, message) => messages.add(message),
+        ),
+      );
+
+      expect(response.statusCode, HttpStatus.notImplemented);
+      expect(messages, isEmpty);
+    });
+
+    test('preserves access logging for other routes', () async {
+      final messages = <String>[];
+      final context = TestRequestContext(path: '/teams');
+      final handler = requestLoggingMiddleware()((_) => Response());
+
+      await runZoned(
+        () => handler(context.context),
+        zoneSpecification: ZoneSpecification(
+          print: (_, _, _, message) => messages.add(message),
+        ),
+      );
+
+      expect(messages, hasLength(1));
+      expect(messages.single, contains('/teams'));
+    });
+  });
 
   group('sentryMiddleware', () {
     test('preserves a successful downstream response', () async {
