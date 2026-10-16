@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:meta/meta.dart';
 import 'package:openci_server/github/create_github_client.dart';
 import 'package:openci_server/github/fetch_github_installations.dart';
 import 'package:openci_server/github/fetch_github_user.dart';
@@ -7,8 +8,8 @@ import 'package:openci_server/github/fetch_github_user.dart';
 Future<GitHubInstallation?> verifyGitHubInstallation({
   required String accessToken,
   required int installationId,
-  Map<String, String>? environment,
-  Duration membershipTimeout = const Duration(seconds: 10),
+  @visibleForTesting Map<String, String>? environment,
+  @visibleForTesting Duration membershipTimeout = const Duration(seconds: 10),
 }) async {
   if (installationId <= 0) {
     throw ArgumentError('A positive GitHub installation ID is required');

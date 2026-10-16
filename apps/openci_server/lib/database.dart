@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:drift/drift.dart';
 import 'package:drift_postgres/drift_postgres.dart';
+import 'package:meta/meta.dart';
 import 'package:openci_server/build_job/build_job.dart';
 import 'package:openci_server/build_job/build_job_dao.dart';
 import 'package:openci_server/build_run/build_run.dart';
@@ -49,7 +50,8 @@ part 'database.g.dart';
   ],
 )
 class AppDatabase extends _$AppDatabase {
-  AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
+  AppDatabase([@visibleForTesting QueryExecutor? executor])
+    : super(executor ?? _openConnection());
 
   @override
   int get schemaVersion => 26;
@@ -102,7 +104,7 @@ class AppDatabase extends _$AppDatabase {
   }
 }
 
-String loadDatabaseUrl({Map<String, String>? environment}) {
+String loadDatabaseUrl({@visibleForTesting Map<String, String>? environment}) {
   final env = environment ?? Platform.environment;
   final databaseUrlEnv = env['DATABASE_URL'];
 

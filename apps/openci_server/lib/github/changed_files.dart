@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:http/http.dart' as http;
+import 'package:meta/meta.dart';
 import 'package:openci_shared/openci_shared.dart';
 
 import 'github_service.dart';
@@ -13,7 +14,7 @@ Future<ChangedFilesResult> fetchChangedFiles({
   required String payload,
   Map<String, String>? environment,
   http.Client? client,
-  Duration timeout = const Duration(seconds: 30),
+  @visibleForTesting Duration timeout = const Duration(seconds: 30),
 }) async {
   String? baseSha;
   String? headSha;

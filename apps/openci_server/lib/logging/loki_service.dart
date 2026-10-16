@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:chopper/chopper.dart';
 import 'package:http/http.dart' as http;
+import 'package:meta/meta.dart';
 import 'package:openci_shared/openci_shared.dart';
 
 class LokiService {
@@ -10,8 +11,8 @@ class LokiService {
   final http.Client _client;
 
   LokiService({
-    String? lokiUrl,
-    http.Client? client,
+    @visibleForTesting String? lokiUrl,
+    @visibleForTesting http.Client? client,
   }) : lokiUrl =
            lokiUrl ??
            Platform.environment['LOKI_URL'] ??
