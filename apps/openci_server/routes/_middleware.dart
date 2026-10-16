@@ -41,7 +41,23 @@ Handler middleware(Handler handler) {
       .use(accessPolicyMiddleware)
       .use(corsMiddleware())
       .use(internalRoutesMiddleware())
-      .use(requestLogger());
+      .use(requestLoggingMiddleware());
+}
+
+Middleware requestLoggingMiddleware() {
+  return (handler) {
+    final loggedHandler = handler.use(requestLogger());
+    return (context) {
+      final segments = context.request.uri.pathSegments;
+      // OAuth callbacks contain authorization codes and state in the query.
+      if (segments.length >= 2 &&
+          segments[0] == 'github' &&
+          segments[1] == 'callback') {
+        return handler(context);
+      }
+      return loggedHandler(context);
+    };
+  };
 }
 
 Middleware internalRoutesMiddleware({Map<String, String>? environment}) {
