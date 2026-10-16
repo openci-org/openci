@@ -4,16 +4,20 @@ import 'dart:io';
 import 'package:crypto/crypto.dart';
 import 'package:dart_frog/dart_frog.dart';
 import 'package:dart_frog_test/dart_frog_test.dart';
-import 'package:drift/drift.dart';
+import 'package:drift/drift.dart' hide isNull, isNotNull;
 import 'package:drift/native.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:mocktail/mocktail.dart';
 import 'package:openci_server/auth/internal_api_key_validator.dart';
 import 'package:openci_server/database.dart';
+import 'package:openci_server/secret/secret_crypter.dart';
 import 'package:test/test.dart';
 
 import '../../../routes/_middleware.dart' as root;
 import '../../../routes/github/callback.dart' as route;
+
+class _MockStdout extends Mock implements Stdout {}
 
 void main() {
   late AppDatabase db;
@@ -31,6 +35,7 @@ void main() {
       'GITHUB_APP_CLIENT_ID': 'Iv1.test-client',
       'GITHUB_APP_CLIENT_SECRET': 'private-client-secret',
       'GITHUB_OAUTH_REDIRECT_URI': 'https://openci.example/github/callback',
+      'SECRET_ENCRYPTION_KEY': base64Encode(List<int>.filled(32, 1)),
     };
     tokenRequests = [];
     userRequests = [];
@@ -131,11 +136,16 @@ void main() {
         ),
       );
 
-      expect(response.statusCode, HttpStatus.notImplemented);
-      expect(jsonDecode(response.body), {
-        'success': false,
-        'error': 'GitHub connection completion is not implemented yet',
+      expect(response.statusCode, HttpStatus.ok);
+      final body = jsonDecode(response.body) as Map<String, dynamic>;
+      expect(body, {
+        'success': true,
+        'reference': isA<String>(),
       });
+      final reference = body['reference'] as String;
+      expect(reference, matches(r'^[A-Za-z0-9_-]{43}$'));
+      expect(reference, isNot(state));
+      expect(reference, isNot('request-1'));
       expect(response.headers[HttpHeaders.cacheControlHeader], 'no-store');
       expect(response.headers['referrer-policy'], 'no-referrer');
       expect(await db.select(db.gitHubConnectionRequests).get(), isEmpty);
@@ -148,6 +158,27 @@ void main() {
       expect(userRequest.method, 'GET');
       expect(userRequest.url.toString(), 'https://api.github.com/user');
       expect(userRequest.headers['Authorization'], 'Bearer private-user-token');
+      final session = await db.select(db.gitHubConnectionSessions).getSingle();
+      expect(session.userId, 'user-1');
+      expect(session.teamId, 'team-1');
+      expect(session.githubUserId, 123);
+      expect(
+        session.referenceHash,
+        sha256.convert(utf8.encode(reference)).toString(),
+      );
+      expect(session.encryptedAccessToken, isNot('private-user-token'));
+      expect(
+        await SecretCrypter(environment['SECRET_ENCRYPTION_KEY']!).decrypt(
+          session.encryptedAccessToken!,
+        ),
+        'private-user-token',
+      );
+      expect(
+        session.expiresAt.difference(session.createdAt),
+        const Duration(minutes: 10),
+      );
+      expect(session.consumedAt, isNull);
+      expect((await db.teamDao.getTeam('team-1'))!.installationIds, isEmpty);
     },
   );
 
@@ -161,10 +192,11 @@ void main() {
         '&code_verifier=forged-verifier&client_secret=forged-secret'
         '&client_id=forged-client&redirect_uri=https%3A%2F%2Fother.example'
         '&githubBaseUrl=https%3A%2F%2Fother.example'
-        '&access_token=forged-token&githubUserId=999&login=forged-login',
+        '&access_token=forged-token&githubUserId=999&login=forged-login'
+        '&userId=forged-user&teamId=forged-team&reference=forged-reference',
       );
 
-      expect(response.statusCode, HttpStatus.notImplemented);
+      expect(response.statusCode, HttpStatus.ok);
       final request = tokenRequests.single;
       expect(
         request.url.toString(),
@@ -183,6 +215,18 @@ void main() {
         'https://github.example/api/v3/user',
       );
       expect(userRequest.headers['Authorization'], 'Bearer private-user-token');
+      final session = await db.select(db.gitHubConnectionSessions).getSingle();
+      expect(session.userId, 'user-1');
+      expect(session.teamId, 'team-1');
+      expect(session.githubUserId, 123);
+      expect(
+        await SecretCrypter(environment['SECRET_ENCRYPTION_KEY']!).decrypt(
+          session.encryptedAccessToken!,
+        ),
+        'private-user-token',
+      );
+      final body = await response.json() as Map<String, dynamic>;
+      expect(body['reference'], isNot('forged-reference'));
     },
   );
 
@@ -211,6 +255,7 @@ void main() {
       expect(repeated.statusCode, HttpStatus.badRequest);
       expect(tokenRequests, hasLength(1));
       expect(userRequests, isEmpty);
+      expect(await db.select(db.gitHubConnectionSessions).get(), isEmpty);
     },
   );
 
@@ -256,6 +301,7 @@ void main() {
       expect(repeated.statusCode, HttpStatus.badRequest);
       expect(tokenRequests, hasLength(1));
       expect(userRequests, hasLength(1));
+      expect(await db.select(db.gitHubConnectionSessions).get(), isEmpty);
     },
   );
 
@@ -315,7 +361,8 @@ void main() {
   });
 
   test('rejects a callback whose state was already consumed', () async {
-    await get('state=$state&code=authorization-code');
+    final first = await get('state=$state&code=authorization-code');
+    expect(first.statusCode, HttpStatus.ok);
 
     final response = await get('state=$state&code=authorization-code');
 
@@ -326,7 +373,112 @@ void main() {
     });
     expect(tokenRequests, hasLength(1));
     expect(userRequests, hasLength(1));
+    expect(await db.select(db.gitHubConnectionSessions).get(), hasLength(1));
   });
+
+  test('rejects a missing encryption key before contacting GitHub', () async {
+    environment.remove('SECRET_ENCRYPTION_KEY');
+
+    final response = await get('state=$state&code=authorization-code');
+
+    expect(response.statusCode, HttpStatus.internalServerError);
+    expect(await response.json(), {
+      'success': false,
+      'error': 'Internal server error',
+    });
+    expect(tokenRequests, isEmpty);
+    expect(userRequests, isEmpty);
+    expect(await db.select(db.gitHubConnectionRequests).get(), isEmpty);
+    expect(await db.select(db.gitHubConnectionSessions).get(), isEmpty);
+  });
+
+  test(
+    'does not expose an invalid encryption key in responses or logs',
+    () async {
+      environment['SECRET_ENCRYPTION_KEY'] = 'private-encryption-key!';
+      final errorOutput = _MockStdout();
+
+      final response = await IOOverrides.runZoned(
+        () => get('state=$state&code=authorization-code'),
+        stderr: () => errorOutput,
+      );
+
+      expect(response.statusCode, HttpStatus.internalServerError);
+      expect(await response.json(), {
+        'success': false,
+        'error': 'Internal server error',
+      });
+      final logged = verify(
+        () => errorOutput.writeln(captureAny()),
+      ).captured.join('\n');
+      expect(
+        logged,
+        contains('GitHub connection encryption is not configured'),
+      );
+      expect(logged, isNot(contains('private-encryption-key!')));
+      expect(tokenRequests, isEmpty);
+      expect(userRequests, isEmpty);
+      expect(await db.select(db.gitHubConnectionSessions).get(), isEmpty);
+    },
+  );
+
+  test(
+    'does not create a session if membership is removed during GitHub lookup',
+    () async {
+      githubClient = MockClient((request) async {
+        if (request.method == 'POST') {
+          tokenRequests.add(request);
+          return tokenResponse;
+        }
+        userRequests.add(request);
+        await db.delete(db.teamMembers).go();
+        return userResponse;
+      });
+
+      final response = await get('state=$state&code=authorization-code');
+
+      expect(response.statusCode, HttpStatus.forbidden);
+      expect(await response.json(), {'success': false, 'error': 'Forbidden'});
+      expect(tokenRequests, hasLength(1));
+      expect(userRequests, hasLength(1));
+      expect(await db.select(db.gitHubConnectionSessions).get(), isEmpty);
+    },
+  );
+
+  test(
+    'does not return a reference or leak details when session storage fails',
+    () async {
+      await db.customStatement('''
+      CREATE TRIGGER reject_connection_session
+      BEFORE INSERT ON github_connection_sessions
+      BEGIN
+        SELECT RAISE(ABORT, 'private-user-token database detail');
+      END
+    ''');
+      final errorOutput = _MockStdout();
+
+      final response = await IOOverrides.runZoned(
+        () => get('state=$state&code=authorization-code'),
+        stderr: () => errorOutput,
+      );
+
+      expect(response.statusCode, HttpStatus.internalServerError);
+      expect(await response.json(), {
+        'success': false,
+        'error': 'Internal server error',
+      });
+      final logged = verify(
+        () => errorOutput.writeln(captureAny()),
+      ).captured.join('\n');
+      expect(logged, contains('Failed to create GitHub connection session'));
+      expect(logged, isNot(contains('private-user-token')));
+      expect(tokenRequests, hasLength(1));
+      expect(userRequests, hasLength(1));
+      expect(await db.select(db.gitHubConnectionRequests).get(), isEmpty);
+      expect(await db.select(db.gitHubConnectionSessions).get(), isEmpty);
+      expect((await db.teamDao.getTeam('team-1'))!.installationIds, isEmpty);
+    },
+  );
 
   test('rejects unknown state without consuming another request', () async {
     final response = await get('state=unknown&code=authorization-code');
