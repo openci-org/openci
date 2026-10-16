@@ -370,35 +370,55 @@ void main() {
     },
   );
 
-  Future<void> expectGitHubFailure() async {
+  Future<Response> postWithoutErrorLogs() async {
     final errorOutput = _MockStdout();
     final response = await IOOverrides.runZoned(
       () => post(),
       stderr: () => errorOutput,
     );
+    expect(response.headers[HttpHeaders.cacheControlHeader], 'no-store');
+    expect(response.headers['referrer-policy'], 'no-referrer');
+    verifyZeroInteractions(errorOutput);
+    return response;
+  }
+
+  Future<void> expectGitHubFailure() async {
+    final response = await postWithoutErrorLogs();
     expect(response.statusCode, HttpStatus.badGateway);
     expect(await response.json(), {
       'success': false,
       'error': 'Failed to fetch GitHub connection candidates',
+      'code': 'github_unavailable',
     });
-    expect(response.headers[HttpHeaders.cacheControlHeader], 'no-store');
-    expect(response.headers['referrer-policy'], 'no-referrer');
-    verifyZeroInteractions(errorOutput);
   }
 
-  test('returns a safe error when GitHub rejects the stored token', () async {
+  test('requires GitHub reauthorization when its token is rejected', () async {
     respond = (_) async => http.Response('private-upstream-error', 401);
 
-    await expectGitHubFailure();
+    final response = await postWithoutErrorLogs();
+
+    expect(response.statusCode, HttpStatus.conflict);
+    expect(await response.json(), {
+      'success': false,
+      'error': 'GitHub reauthorization required',
+      'code': 'github_reauthorization_required',
+    });
   });
 
-  test('returns a safe error when GitHub denies installation access', () async {
+  test('distinguishes missing installation permissions', () async {
     final success = respond;
     respond = (request) async => request.url.path == '/user/installations'
         ? http.Response('private-upstream-error', 403)
         : success(request);
 
-    await expectGitHubFailure();
+    final response = await postWithoutErrorLogs();
+
+    expect(response.statusCode, HttpStatus.forbidden);
+    expect(await response.json(), {
+      'success': false,
+      'error': 'GitHub permissions required',
+      'code': 'github_permissions_required',
+    });
   });
 
   test(
@@ -409,9 +429,70 @@ void main() {
           ? http.Response('private-upstream-error', 404)
           : success(request);
 
-      await expectGitHubFailure();
+      final response = await postWithoutErrorLogs();
+
+      expect(response.statusCode, HttpStatus.forbidden);
+      expect(await response.json(), {
+        'success': false,
+        'error': 'GitHub permissions required',
+        'code': 'github_permissions_required',
+      });
     },
   );
+
+  test(
+    'preserves reauthorization errors from membership verification',
+    () async {
+      final success = respond;
+      respond = (request) async => request.url.path.contains('/memberships/')
+          ? http.Response('private-upstream-error', 401)
+          : success(request);
+
+      final response = await postWithoutErrorLogs();
+
+      expect(response.statusCode, HttpStatus.conflict);
+      expect(await response.json(), {
+        'success': false,
+        'error': 'GitHub reauthorization required',
+        'code': 'github_reauthorization_required',
+      });
+    },
+  );
+
+  test('classifies primary rate limits as upstream failures', () async {
+    respond = (_) async => http.Response(
+      'private-upstream-error',
+      403,
+      headers: {'x-ratelimit-remaining': '0'},
+    );
+
+    await expectGitHubFailure();
+  });
+
+  test('recognizes secondary rate limits without rate limit headers', () async {
+    respond = (_) async => http.Response(
+      jsonEncode({'message': 'You have exceeded a secondary rate limit.'}),
+      403,
+    );
+
+    await expectGitHubFailure();
+  });
+
+  test('recognizes rate limits with a Retry-After header', () async {
+    respond = (_) async => http.Response(
+      'private-upstream-error',
+      403,
+      headers: {'retry-after': '60'},
+    );
+
+    await expectGitHubFailure();
+  });
+
+  test('classifies HTTP 429 as an upstream failure', () async {
+    respond = (_) async => http.Response('private-upstream-error', 429);
+
+    await expectGitHubFailure();
+  });
 
   test('sanitizes a GitHub server failure', () async {
     respond = (_) async => http.Response('private-upstream-error', 503);

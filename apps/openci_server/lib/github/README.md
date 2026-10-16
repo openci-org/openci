@@ -144,8 +144,17 @@ does not consume the session or save a team connection.
 No eligible candidates returns 200 with an empty array. Authentication/input/
 session/method failures use the same 401/400/403/405 responses as the session
 endpoint. Database, configuration, or decryption failures return a generic 500.
-GitHub fetch or verification failures return a fixed 502 response without
-partial candidates or upstream details. Distinguishing reauthorization, missing
-permissions, and transient failures is follow-up work, along with the shared
-client and Dashboard UI. All responses include `Cache-Control: no-store` and
-`Referrer-Policy: no-referrer`.
+GitHub failures include a fixed `code` alongside `success: false` and `error`:
+
+| HTTP status | Code | Meaning |
+| --- | --- | --- |
+| 409 | `github_reauthorization_required` | GitHub rejected the stored token with 401. Start GitHub authorization again. This differs from an OpenCI/Firebase 401. |
+| 403 | `github_permissions_required` | GitHub returned 403 or 404 and did not provide the required access or membership proof. Check app permissions and organization access. |
+| 502 | `github_unavailable` | GitHub rate limiting, network errors, malformed responses, or other upstream failures. |
+
+Rate-limited 403 responses are recognized by `x-ratelimit-remaining: 0`,
+`retry-after`, or GitHub's secondary rate-limit message; 429 also maps to
+`github_unavailable`. See [GitHub's REST API troubleshooting guide](https://docs.github.com/en/rest/using-the-rest-api/troubleshooting-the-rest-api).
+No partial candidates or upstream error details are returned. All responses
+include `Cache-Control: no-store` and `Referrer-Policy: no-referrer`. The shared
+client, Dashboard UI, and connection confirmation remain follow-up work.

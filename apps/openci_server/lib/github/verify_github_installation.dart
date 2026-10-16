@@ -4,6 +4,7 @@ import 'package:meta/meta.dart';
 import 'package:openci_server/github/create_github_client.dart';
 import 'package:openci_server/github/fetch_github_installations.dart';
 import 'package:openci_server/github/fetch_github_user.dart';
+import 'package:openci_server/github/github_connection_exception.dart';
 
 Future<GitHubInstallation?> verifyGitHubInstallation({
   required String accessToken,
@@ -126,9 +127,15 @@ Future<bool> _isOrganizationAdmin({
         .getJSON<Map<String, dynamic>, Map<String, dynamic>>(
           '/user/memberships/orgs/$org',
           statusCode: HttpStatus.ok,
+          fail: (response) => throw GitHubConnectionException.fromResponse(
+            response,
+            message: 'Failed to verify GitHub organization membership',
+          ),
         )
         .timeout(timeout);
     return _isActiveAdmin(membership, userId, installation.accountId);
+  } on GitHubConnectionException {
+    rethrow;
   } catch (_) {
     throw const HttpException(
       'Failed to verify GitHub organization membership',
