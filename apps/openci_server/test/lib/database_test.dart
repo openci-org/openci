@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
 import 'package:openci_server/database.dart';
+import 'package:openci_server/github/github_connection_table.dart';
 import 'package:openci_shared/openci_shared.dart';
 import 'package:test/test.dart';
 
@@ -105,6 +106,7 @@ void main() {
           'teams',
           'github_connection_requests',
           'github_connection_sessions',
+          'github_connections',
         ]),
       );
       expect(
@@ -119,7 +121,7 @@ void main() {
         (await db.customSelect('PRAGMA user_version').getSingle()).read<int>(
           'user_version',
         ),
-        27,
+        28,
       );
       expect(
         (await db.customSelect('SELECT * FROM teams').getSingle()).data,
@@ -180,7 +182,7 @@ void main() {
         (await db.customSelect('PRAGMA user_version').getSingle()).read<int>(
           'user_version',
         ),
-        27,
+        28,
       );
     },
   );
@@ -224,7 +226,7 @@ void main() {
       (await db.customSelect('PRAGMA user_version').getSingle()).read<int>(
         'user_version',
       ),
-      27,
+      28,
     );
     expect(
       (await db.customSelect('SELECT * FROM teams').getSingle()).data,
@@ -307,7 +309,7 @@ void main() {
       (await db.customSelect('PRAGMA user_version').getSingle()).read<int>(
         'user_version',
       ),
-      27,
+      28,
     );
     expect(
       (await db.customSelect('SELECT * FROM teams').getSingle()).data,
@@ -359,6 +361,102 @@ void main() {
     expect(savedSession.id, 'session-1');
     expect(savedSession.teamId, 'team-1');
   });
+
+  test(
+    'upgrades v27 without promoting legacy links or losing sessions',
+    () async {
+      await db.close();
+      db = AppDatabase(
+        NativeDatabase.memory(
+          setup: (database) {
+            database.execute('''
+            PRAGMA foreign_keys = ON;
+            PRAGMA user_version = 27;
+            CREATE TABLE teams (
+              id TEXT PRIMARY KEY, name TEXT NOT NULL,
+              installation_ids TEXT NOT NULL, ai_enabled INTEGER NOT NULL,
+              run_number INTEGER NOT NULL DEFAULT 1,
+              created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL
+            );
+            CREATE TABLE team_members (
+              id INTEGER PRIMARY KEY, team_id TEXT REFERENCES teams(id),
+              user_id TEXT NOT NULL
+            );
+            CREATE TABLE github_connection_requests (
+              id TEXT PRIMARY KEY, user_id TEXT NOT NULL,
+              team_id TEXT NOT NULL REFERENCES teams(id) ON DELETE CASCADE,
+              state_hash TEXT NOT NULL UNIQUE, code_verifier TEXT NOT NULL,
+              created_at INTEGER NOT NULL, expires_at INTEGER NOT NULL
+            );
+            CREATE TABLE github_connection_sessions (
+              id TEXT PRIMARY KEY, user_id TEXT NOT NULL,
+              team_id TEXT NOT NULL REFERENCES teams(id) ON DELETE CASCADE,
+              github_user_id INTEGER NOT NULL, reference_hash TEXT NOT NULL UNIQUE,
+              encrypted_access_token TEXT, created_at INTEGER NOT NULL,
+              expires_at INTEGER NOT NULL, consumed_at INTEGER
+            );
+            INSERT INTO teams VALUES ('team-1', 'OpenCI', '[123]', 1, 42, 0, 1);
+            INSERT INTO teams VALUES ('team-2', 'Other team', '[123]', 0, 1, 0, 1);
+            INSERT INTO team_members VALUES (1, 'team-1', 'user-1');
+            INSERT INTO github_connection_requests VALUES (
+              'request-1', 'user-1', 'team-1', 'state-hash', 'code-verifier', 0, 600
+            );
+            INSERT INTO github_connection_sessions VALUES (
+              'session-1', 'user-1', 'team-1', 123, 'reference-hash',
+              'encrypted-user-token', 0, 600, NULL
+            );
+          ''');
+          },
+        ),
+      );
+
+      expect(await db.select(db.gitHubConnections).get(), isEmpty);
+      expect(
+        (await db.customSelect('PRAGMA user_version').getSingle()).read<int>(
+          'user_version',
+        ),
+        28,
+      );
+      expect((await db.teamDao.getTeam('team-1'))!.installationIds, [123]);
+      expect((await db.teamDao.getTeam('team-2'))!.installationIds, [123]);
+      expect((await db.teamDao.getTeam('team-1'))!.runNumber, 42);
+      expect(
+        (await db.teamDao.getTeamMembers('team-1')).single.userId,
+        'user-1',
+      );
+      final request = await db.select(db.gitHubConnectionRequests).getSingle();
+      expect(request.id, 'request-1');
+      expect(request.codeVerifier, 'code-verifier');
+      final session = await db.select(db.gitHubConnectionSessions).getSingle();
+      expect(session.id, 'session-1');
+      expect(session.referenceHash, 'reference-hash');
+      expect(session.encryptedAccessToken, 'encrypted-user-token');
+      expect(session.consumedAt, isNull);
+
+      await db
+          .into(db.gitHubConnections)
+          .insert(
+            GitHubConnectionsCompanion.insert(
+              id: 'connection-1',
+              teamId: 'team-1',
+              githubApiBaseUrl: 'https://api.github.com',
+              githubAppId: 1,
+              installationId: 123,
+              accountId: 456,
+              accountType: GitHubAccountType.organization,
+              accountLogin: 'openci-org',
+              verifiedByUserId: 'user-1',
+              verifiedByGitHubUserId: 123,
+              verifiedAt: DateTime.utc(2026),
+              status: GitHubConnectionStatus.active,
+            ),
+          );
+      expect(
+        (await db.select(db.gitHubConnections).getSingle()).teamId,
+        'team-1',
+      );
+    },
+  );
 
   test('Can insert and retrieve DriftBuildJob', () async {
     final now = DateTime.now().toUtc();
