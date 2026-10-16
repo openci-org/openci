@@ -6,7 +6,7 @@ Future<void> main() async {
   final openCI = await OpenCI.init(
     workflowName: 'Build Job Worker CI',
     ciTriggers: [
-      CITrigger.pullRequest(branch: 'develop'),
+      CITrigger.pullRequest(branch: '*'),
       CITrigger.push(branch: 'develop'),
     ],
     currentWorkingDirectory: WorkspacePaths.root.apps.buildJobWorker,
