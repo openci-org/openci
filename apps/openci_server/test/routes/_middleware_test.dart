@@ -221,7 +221,7 @@ void main() {
 
       when(() => mockContext.request).thenReturn(mockRequest);
       when(() => mockContext.read<InternalApiKeyValidator>()).thenReturn(
-        const InternalApiKeyValidator.forTesting(environment: {}),
+        const InternalApiKeyValidator(environment: {}),
       );
       when(() => mockRequest.headers).thenReturn({});
       when(() => mockContext.provide<String?>(any())).thenReturn(mockContext);
@@ -250,7 +250,7 @@ void main() {
             );
           }).use(
             provider<InternalApiKeyValidator>(
-              (_) => const InternalApiKeyValidator.forTesting(
+              (_) => const InternalApiKeyValidator(
                 environment: {'INTERNAL_API_KEY': 'test-internal-key'},
               ),
             ),
@@ -660,7 +660,7 @@ void main() {
         when(
           () => mockContext.read<InternalApiKeyValidator>(),
         ).thenReturn(
-          const InternalApiKeyValidator.forTesting(
+          const InternalApiKeyValidator(
             environment: {'INTERNAL_API_KEY': 'my-internal-key'},
           ),
         );
@@ -697,7 +697,7 @@ void main() {
         when(
           () => mockContext.read<InternalApiKeyValidator>(),
         ).thenReturn(
-          const InternalApiKeyValidator.forTesting(
+          const InternalApiKeyValidator(
             environment: {'INTERNAL_API_KEY': 'my-internal-key'},
           ),
         );

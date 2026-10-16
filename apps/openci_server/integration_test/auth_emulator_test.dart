@@ -195,7 +195,7 @@ Future<HttpServer> _serveProtectedHandler(FirebaseApp app) {
         );
       }).use(
         provider<InternalApiKeyValidator>(
-          (_) => const InternalApiKeyValidator.forTesting(environment: {}),
+          (_) => const InternalApiKeyValidator(environment: {}),
         ),
       );
   return serve(handler, InternetAddress.loopbackIPv4, 0);

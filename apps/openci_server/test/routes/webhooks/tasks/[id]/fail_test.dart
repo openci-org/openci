@@ -167,7 +167,7 @@ Future<Response> _requestWithBody({
   required String body,
   HttpMethod method = HttpMethod.post,
 }) async {
-  const validator = InternalApiKeyValidator.forTesting(
+  const validator = InternalApiKeyValidator(
     environment: {'INTERNAL_API_KEY': 'test-internal-key'},
   );
   final context = TestRequestContext(

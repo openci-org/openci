@@ -51,7 +51,7 @@ void main() {
         )
         .use(
           provider<InternalApiKeyValidator>(
-            (_) => const InternalApiKeyValidator.forTesting(
+            (_) => const InternalApiKeyValidator(
               environment: {'INTERNAL_API_KEY': 'test-internal-key'},
             ),
           ),

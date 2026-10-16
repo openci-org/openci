@@ -358,7 +358,9 @@ class _UploadEnvironment {
     String? appId,
     String? dir,
   }) async {
-    final ci = OpenCI.forTesting(
+    final ci = OpenCI(
+      workflowName: 'test',
+      ciTriggers: const [CITrigger.push(branch: 'test')],
       workspacePath: workspace.path,
       currentWorkingDirectory: 'apps/dashboard',
       commandRunner: (command, {required workingDirectory}) async {

@@ -65,7 +65,9 @@ void main() {
       ]) {
         test('inherits the workflow directory: $directory', () async {
           final calls = <(String, String)>[];
-          final ci = OpenCI.forTesting(
+          final ci = OpenCI(
+            workflowName: 'test',
+            ciTriggers: const [CITrigger.push(branch: 'test')],
             workspacePath: workspace,
             currentWorkingDirectory: directory,
             commandRunner: (command, {required workingDirectory}) async {
@@ -89,7 +91,9 @@ void main() {
       ]) {
         test('overrides the directory for only this call: $dir', () async {
           final calls = <(String, String)>[];
-          final ci = OpenCI.forTesting(
+          final ci = OpenCI(
+            workflowName: 'test',
+            ciTriggers: const [CITrigger.push(branch: 'test')],
             workspacePath: workspace,
             currentWorkingDirectory: 'apps/dashboard',
             commandRunner: (command, {required workingDirectory}) async {
@@ -112,7 +116,9 @@ void main() {
 
       test('waits for the command to complete', () async {
         final completion = Completer<void>();
-        final ci = OpenCI.forTesting(
+        final ci = OpenCI(
+          workflowName: 'test',
+          ciTriggers: const [CITrigger.push(branch: 'test')],
           workspacePath: workspace,
           commandRunner: (_, {required workingDirectory}) => completion.future,
         );
@@ -128,7 +134,9 @@ void main() {
 
       test('propagates command failures', () async {
         final error = StateError('Could not start Flutter');
-        final ci = OpenCI.forTesting(
+        final ci = OpenCI(
+          workflowName: 'test',
+          ciTriggers: const [CITrigger.push(branch: 'test')],
           workspacePath: workspace,
           commandRunner: (_, {required workingDirectory}) =>
               Future.error(error),
@@ -301,12 +309,16 @@ void main() {
       directories.add(workingDirectory);
     }
 
-    final dashboard = OpenCI.forTesting(
+    final dashboard = OpenCI(
+      workflowName: 'test',
+      ciTriggers: const [CITrigger.push(branch: 'test')],
       workspacePath: workspace,
       currentWorkingDirectory: 'apps/dashboard',
       commandRunner: record,
     );
-    final mobile = OpenCI.forTesting(
+    final mobile = OpenCI(
+      workflowName: 'test',
+      ciTriggers: const [CITrigger.push(branch: 'test')],
       workspacePath: workspace,
       currentWorkingDirectory: 'apps/mobile',
       commandRunner: record,

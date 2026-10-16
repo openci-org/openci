@@ -63,7 +63,7 @@ void main() {
     context.provide<String?>(uid);
     context.provide<Map<String, String>>(environment ?? env);
     context.provide<InternalApiKeyValidator>(
-      const InternalApiKeyValidator.forTesting(
+      const InternalApiKeyValidator(
         environment: {'INTERNAL_API_KEY': 'test-internal-key'},
       ),
     );
@@ -289,7 +289,7 @@ void main() {
           postContext.provide<String?>('user-1');
           postContext.provide<Map<String, String>>(env);
           postContext.provide<InternalApiKeyValidator>(
-            const InternalApiKeyValidator.forTesting(
+            const InternalApiKeyValidator(
               environment: {'INTERNAL_API_KEY': 'test-internal-key'},
             ),
           );
@@ -308,7 +308,7 @@ void main() {
           getContext.provide<String?>(null);
           getContext.provide<Map<String, String>>(env);
           getContext.provide<InternalApiKeyValidator>(
-            const InternalApiKeyValidator.forTesting(
+            const InternalApiKeyValidator(
               environment: {'INTERNAL_API_KEY': 'test-internal-key'},
             ),
           );
@@ -336,7 +336,7 @@ void main() {
         getContext.provide<String?>(null);
         getContext.provide<Map<String, String>>(env);
         getContext.provide<InternalApiKeyValidator>(
-          const InternalApiKeyValidator.forTesting(
+          const InternalApiKeyValidator(
             environment: {'INTERNAL_API_KEY': 'test-internal-key'},
           ),
         );

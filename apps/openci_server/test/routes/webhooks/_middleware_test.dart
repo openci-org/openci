@@ -42,7 +42,7 @@ void main() {
         ),
       ]) {
         test('rejects $name before reading the body or database', () async {
-          const validator = InternalApiKeyValidator.forTesting(
+          const validator = InternalApiKeyValidator(
             environment: {'INTERNAL_API_KEY': 'test-internal-key'},
           );
           final db = _MockDatabase();
@@ -73,7 +73,7 @@ void main() {
 
   group('webhooks middleware', () {
     test('allows an internal key on a newly added nested route', () async {
-      const validator = InternalApiKeyValidator.forTesting(
+      const validator = InternalApiKeyValidator(
         environment: {'INTERNAL_API_KEY': 'test-internal-key'},
       );
       final uri = await _startServer(
@@ -90,7 +90,7 @@ void main() {
     });
 
     test('rejects missing credentials on a newly added nested route', () async {
-      const validator = InternalApiKeyValidator.forTesting(
+      const validator = InternalApiKeyValidator(
         environment: {'INTERNAL_API_KEY': 'test-internal-key'},
       );
       final uri = await _startServer(
@@ -108,7 +108,7 @@ void main() {
     });
 
     test('preserves CORS preflight without credentials', () async {
-      const validator = InternalApiKeyValidator.forTesting(environment: {});
+      const validator = InternalApiKeyValidator(environment: {});
       final uri = await _startServer(
         validator: validator,
         handler: (_) => throw StateError('Handler must not run'),

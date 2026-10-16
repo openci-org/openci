@@ -606,7 +606,9 @@ class _Environment {
     String? dir,
     Duration timeout = const Duration(minutes: 30),
   }) async {
-    final ci = OpenCI.forTesting(
+    final ci = OpenCI(
+      workflowName: 'test',
+      ciTriggers: const [CITrigger.push(branch: 'test')],
       workspacePath: workspace.path,
       currentWorkingDirectory: 'apps/mobile',
       commandRunner: (command, {required workingDirectory}) async {

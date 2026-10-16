@@ -63,7 +63,9 @@ void main() {
     for (final dir in <String?>[null, '', 'apps/another app']) {
       test('uses the workflow runner and directory: $dir', () async {
         final directories = <String>[];
-        final ci = OpenCI.forTesting(
+        final ci = OpenCI(
+          workflowName: 'test',
+          ciTriggers: const [CITrigger.push(branch: 'test')],
           workspacePath: '/tmp/workspace',
           currentWorkingDirectory: 'apps/dashboard',
           commandRunner: (_, {required workingDirectory}) async {

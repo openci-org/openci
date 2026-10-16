@@ -34,7 +34,7 @@ Future<void> main(List<String> args) async {
         );
       }).use(
         provider<InternalApiKeyValidator>(
-          (_) => const InternalApiKeyValidator.forTesting(environment: {}),
+          (_) => const InternalApiKeyValidator(environment: {}),
         ),
       );
   final server = await serve(handler, InternetAddress.loopbackIPv4, 0);

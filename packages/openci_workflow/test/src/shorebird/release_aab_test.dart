@@ -300,7 +300,9 @@ exit "$OPENCI_TEST_SHOREBIRD_EXIT"
     await otherBundle.create(recursive: true);
     await otherBundle.writeAsString('another variant');
     final argumentsFile = File.fromUri(workspace.uri.resolve('arguments'));
-    final ci = OpenCI.forTesting(
+    final ci = OpenCI(
+      workflowName: 'test',
+      ciTriggers: const [CITrigger.push(branch: 'test')],
       workspacePath: workspace.path,
       currentWorkingDirectory: 'apps/dashboard',
       commandRunner: (command, {required workingDirectory}) async {

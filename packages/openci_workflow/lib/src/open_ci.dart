@@ -11,25 +11,18 @@ import 'shorebird/shorebird_ci.dart';
 import 'workspace_directory.dart';
 
 class OpenCI {
-  OpenCI._({
+  OpenCI({
     required this.workflowName,
-    required this.ciTriggers,
-    required this.machine,
+    required List<CITrigger> ciTriggers,
+    this.machine = MachineType.macOsLatest,
     this.currentWorkingDirectory,
     required this.workspacePath,
-  }) : _runCommand = runCommand;
-
-  @visibleForTesting
-  OpenCI.forTesting({
-    required this.workspacePath,
-    this.currentWorkingDirectory,
+    @visibleForTesting
     Future<void> Function(String command, {required String workingDirectory})
         commandRunner =
         runCommand,
-  }) : _runCommand = commandRunner,
-       workflowName = 'test',
-       ciTriggers = const [CITrigger.push(branch: 'test')],
-       machine = MachineType.macOsLatest;
+  }) : ciTriggers = List.unmodifiable(ciTriggers),
+       _runCommand = commandRunner;
 
   final String workflowName;
 
@@ -58,9 +51,9 @@ class OpenCI {
   }) async {
     final workspace = workspacePath ?? Directory.current.path;
 
-    return OpenCI._(
+    return OpenCI(
       workflowName: workflowName,
-      ciTriggers: List.unmodifiable(ciTriggers),
+      ciTriggers: ciTriggers,
       machine: machine,
       currentWorkingDirectory: currentWorkingDirectory,
       workspacePath: workspace,

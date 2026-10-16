@@ -59,7 +59,7 @@ void main() {
         context.provide<AppDatabase>(mockDb);
         context.provide<String?>(null);
         context.provide<InternalApiKeyValidator>(
-          const InternalApiKeyValidator.forTesting(
+          const InternalApiKeyValidator(
             environment: {'INTERNAL_API_KEY': 'test-internal-key'},
           ),
         );
@@ -89,7 +89,7 @@ void main() {
         context.provide<AppDatabase>(mockDb);
         context.provide<String?>('system-job-processor');
         context.provide<InternalApiKeyValidator>(
-          const InternalApiKeyValidator.forTesting(
+          const InternalApiKeyValidator(
             environment: {'INTERNAL_API_KEY': 'test-internal-key'},
           ),
         );
@@ -114,7 +114,7 @@ void main() {
 
         context.provide<AppDatabase>(db);
         context.provide<InternalApiKeyValidator>(
-          const InternalApiKeyValidator.forTesting(
+          const InternalApiKeyValidator(
             environment: {'INTERNAL_API_KEY': 'test-internal-key'},
           ),
         );
@@ -141,7 +141,7 @@ void main() {
 
         context.provide<AppDatabase>(db);
         context.provide<InternalApiKeyValidator>(
-          const InternalApiKeyValidator.forTesting(
+          const InternalApiKeyValidator(
             environment: {'INTERNAL_API_KEY': 'test-internal-key'},
           ),
         );
@@ -168,7 +168,7 @@ void main() {
 
         context.provide<AppDatabase>(db);
         context.provide<InternalApiKeyValidator>(
-          const InternalApiKeyValidator.forTesting(
+          const InternalApiKeyValidator(
             environment: {'INTERNAL_API_KEY': 'test-internal-key'},
           ),
         );
@@ -207,7 +207,7 @@ void main() {
         context.provide<AppDatabase>(db);
         context.provide<String?>('system-job-processor');
         context.provide<InternalApiKeyValidator>(
-          const InternalApiKeyValidator.forTesting(
+          const InternalApiKeyValidator(
             environment: {'INTERNAL_API_KEY': 'test-internal-key'},
           ),
         );
@@ -259,7 +259,7 @@ void main() {
         context.provide<AppDatabase>(db);
         context.provide<String?>('user-123');
         context.provide<InternalApiKeyValidator>(
-          const InternalApiKeyValidator.forTesting(
+          const InternalApiKeyValidator(
             environment: {'INTERNAL_API_KEY': 'test-internal-key'},
           ),
         );
@@ -315,7 +315,7 @@ void main() {
           'GITHUB_API_BASE_URL': 'https://github.example.com/api/v3',
         });
         context.provide<InternalApiKeyValidator>(
-          const InternalApiKeyValidator.forTesting(
+          const InternalApiKeyValidator(
             environment: {'INTERNAL_API_KEY': 'test-internal-key'},
           ),
         );
@@ -372,7 +372,7 @@ void main() {
           'GITHUB_API_BASE_URL': 'https://api.github.com',
         });
         context.provide<InternalApiKeyValidator>(
-          const InternalApiKeyValidator.forTesting(
+          const InternalApiKeyValidator(
             environment: {'INTERNAL_API_KEY': 'test-internal-key'},
           ),
         );
@@ -397,7 +397,7 @@ void main() {
       context.provide<AppDatabase>(db);
       context.provide<Map<String, String>>({});
       context.provide<InternalApiKeyValidator>(
-        const InternalApiKeyValidator.forTesting(
+        const InternalApiKeyValidator(
           environment: {'INTERNAL_API_KEY': 'test-internal-key'},
         ),
       );
@@ -419,7 +419,7 @@ void main() {
       context.provide<AppDatabase>(db);
       context.provide<String?>(null);
       context.provide<InternalApiKeyValidator>(
-        const InternalApiKeyValidator.forTesting(
+        const InternalApiKeyValidator(
           environment: {'INTERNAL_API_KEY': 'test-internal-key'},
         ),
       );
@@ -686,7 +686,7 @@ void main() {
           'GITHUB_API_BASE_URL': 'https://api.github.com',
         });
         context.provide<InternalApiKeyValidator>(
-          const InternalApiKeyValidator.forTesting(
+          const InternalApiKeyValidator(
             environment: {'INTERNAL_API_KEY': 'test-internal-key'},
           ),
         );

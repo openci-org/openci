@@ -83,7 +83,9 @@ void main() {
         'name': _aabInfo,
         'integrationState': 'INTEGRATED',
       });
-      ci = OpenCI.forTesting(
+      ci = OpenCI(
+        workflowName: 'test',
+        ciTriggers: const [CITrigger.push(branch: 'test')],
         workspacePath: workspace.path,
         currentWorkingDirectory: 'apps/mobile',
         commandRunner: (command, {required workingDirectory}) async {

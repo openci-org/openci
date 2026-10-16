@@ -76,7 +76,7 @@ void main() {
     context.provide<Map<String, String>>(environment);
     context.provide<String?>('user-1');
     context.provide<InternalApiKeyValidator>(
-      const InternalApiKeyValidator.forTesting(
+      const InternalApiKeyValidator(
         environment: {'INTERNAL_API_KEY': 'test-internal-key'},
       ),
     );

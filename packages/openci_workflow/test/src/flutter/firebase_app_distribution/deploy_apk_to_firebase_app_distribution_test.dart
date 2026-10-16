@@ -77,7 +77,9 @@ void main() {
       clients = [];
       authStatus = 200;
       handler = (_) async => _json(_done());
-      ci = OpenCI.forTesting(
+      ci = OpenCI(
+        workflowName: 'test',
+        ciTriggers: const [CITrigger.push(branch: 'test')],
         workspacePath: workspace.path,
         currentWorkingDirectory: 'apps/mobile',
         commandRunner: (command, {required workingDirectory}) async {

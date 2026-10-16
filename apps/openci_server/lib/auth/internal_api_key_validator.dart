@@ -5,11 +5,8 @@ import 'package:meta/meta.dart';
 import 'package:openci_shared/openci_shared.dart';
 
 class InternalApiKeyValidator {
-  const InternalApiKeyValidator() : _environmentForTesting = null;
-
-  @visibleForTesting
-  const InternalApiKeyValidator.forTesting({
-    required Map<String, String> environment,
+  const InternalApiKeyValidator({
+    @visibleForTesting Map<String, String>? environment,
   }) : _environmentForTesting = environment;
 
   final Map<String, String>? _environmentForTesting;
