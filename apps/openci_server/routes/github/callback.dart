@@ -4,6 +4,7 @@ import 'package:dart_frog/dart_frog.dart';
 import 'package:openci_server/database.dart';
 import 'package:openci_server/github/consume_github_connection_request.dart';
 import 'package:openci_server/github/exchange_github_authorization_code.dart';
+import 'package:openci_server/github/fetch_github_user.dart';
 import 'package:openci_server/request/error_handler.dart';
 
 Future<Response> onRequest(RequestContext context) async {
@@ -43,11 +44,21 @@ Future<Response> _get(RequestContext context) async {
       return _error(HttpStatus.forbidden, 'Forbidden');
     }
 
-    await exchangeGitHubAuthorizationCode(
+    final environment = _environment(context);
+    final accessToken = await exchangeGitHubAuthorizationCode(
       code: parameters['code']!.single,
       codeVerifier: request.codeVerifier,
-      environment: _environment(context),
+      environment: environment,
     );
+
+    try {
+      await fetchGitHubUser(
+        accessToken: accessToken,
+        environment: environment,
+      );
+    } on HttpException {
+      return _error(HttpStatus.badGateway, 'Failed to fetch GitHub user');
+    }
 
     return _error(
       HttpStatus.notImplemented,
