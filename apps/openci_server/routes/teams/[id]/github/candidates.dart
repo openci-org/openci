@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:dart_frog/dart_frog.dart';
 import 'package:openci_server/database.dart';
 import 'package:openci_server/github/fetch_github_installations.dart';
+import 'package:openci_server/github/github_connection_exception.dart';
 import 'package:openci_server/github/read_github_connection_session.dart';
 import 'package:openci_server/github/verify_github_installation.dart';
 import 'package:openci_server/request/error_handler.dart';
@@ -66,11 +67,10 @@ Future<Response> _post(RequestContext context, String teamId) async {
     if (currentSession == null) return _invalidSession();
 
     return _candidatesResponse(candidates);
+  } on GitHubConnectionException catch (error) {
+    return _githubError(error.failure);
   } on HttpException {
-    return _error(
-      HttpStatus.badGateway,
-      'Failed to fetch GitHub connection candidates',
-    );
+    return _githubError(GitHubConnectionFailure.unavailable);
   } catch (e, s) {
     return handleRouteException(
       e,
@@ -136,9 +136,27 @@ Response _invalidSession() => _error(
   'Invalid or expired GitHub connection session',
 );
 
-Response _error(int statusCode, String message) {
+Response _githubError(GitHubConnectionFailure failure) => switch (failure) {
+  GitHubConnectionFailure.reauthorizationRequired => _error(
+    HttpStatus.conflict,
+    'GitHub reauthorization required',
+    code: 'github_reauthorization_required',
+  ),
+  GitHubConnectionFailure.permissionsRequired => _error(
+    HttpStatus.forbidden,
+    'GitHub permissions required',
+    code: 'github_permissions_required',
+  ),
+  GitHubConnectionFailure.unavailable => _error(
+    HttpStatus.badGateway,
+    'Failed to fetch GitHub connection candidates',
+    code: 'github_unavailable',
+  ),
+};
+
+Response _error(int statusCode, String message, {String? code}) {
   return Response.json(
     statusCode: statusCode,
-    body: {'success': false, 'error': message},
+    body: {'success': false, 'error': message, 'code': ?code},
   );
 }

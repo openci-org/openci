@@ -6,6 +6,7 @@ import 'package:github/github.dart';
 import 'package:http/http.dart' as http;
 import 'package:meta/meta.dart';
 import 'package:openci_server/github/create_github_client.dart';
+import 'package:openci_server/github/github_connection_exception.dart';
 
 const _perPage = 100;
 const _maxPages = 10;
@@ -21,6 +22,8 @@ Future<List<GitHubInstallation>> fetchGitHubInstallations({
   );
   try {
     return await _fetchPages(github, timeout);
+  } on GitHubConnectionException {
+    rethrow;
   } catch (_) {
     throw const HttpException('Failed to fetch GitHub installations');
   } finally {
@@ -82,6 +85,10 @@ Future<_InstallationPage> _fetchPage(
           'X-GitHub-Api-Version': github.version,
         },
         statusCode: HttpStatus.ok,
+        fail: (response) => throw GitHubConnectionException.fromResponse(
+          response,
+          message: 'Failed to fetch GitHub installations',
+        ),
       )
       .timeout(timeout);
   return _readPage(response);

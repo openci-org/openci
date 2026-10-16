@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:meta/meta.dart';
 import 'package:openci_server/github/create_github_client.dart';
+import 'package:openci_server/github/github_connection_exception.dart';
 
 Future<GitHubUser> fetchGitHubUser({
   required String accessToken,
@@ -17,9 +18,15 @@ Future<GitHubUser> fetchGitHubUser({
         .getJSON<Map<String, dynamic>, GitHubUser>(
           '/user',
           statusCode: HttpStatus.ok,
+          fail: (response) => throw GitHubConnectionException.fromResponse(
+            response,
+            message: 'Failed to fetch GitHub user',
+          ),
           convert: _readUser,
         )
         .timeout(timeout);
+  } on GitHubConnectionException {
+    rethrow;
   } catch (_) {
     // Response bodies and transport errors may contain private information.
     throw const HttpException('Failed to fetch GitHub user');
