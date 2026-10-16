@@ -8,6 +8,7 @@ import 'package:test/test.dart';
 import 'package:uuid/uuid.dart';
 
 import '../test/helpers/github_connection_table_tests.dart';
+import '../test/helpers/insert_github_connection_tests.dart';
 
 void main() {
   final databaseUrl = Platform.environment['OPENCI_TEST_DATABASE_URL'];
@@ -29,6 +30,12 @@ void main() {
 
       group('table constraints', () {
         testGitHubConnectionTable(
+          () async => AppDatabase(PgDatabase.opened(connection)),
+        );
+      });
+
+      group('inserting verified connections', () {
+        testInsertGitHubConnection(
           () async => AppDatabase(PgDatabase.opened(connection)),
         );
       });

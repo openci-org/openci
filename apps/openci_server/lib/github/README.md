@@ -170,10 +170,20 @@ time, and an explicit `active`, `suspended`, or `removed` status. Account types 
 `GitHubAccountType.user` / `.organization` in Dart and retain `User` /
 `Organization` in database rows and JSON. Unknown stored account types are
 rejected. It stores no OAuth tokens. The URL identifies the operator's
-configuration; it is not a
-team-editable endpoint. The later persistence helper must use the canonical API
-base URL (including the GHES API path, without trailing slashes) and freshly
-verified GitHub metadata.
+configuration; it is not a team-editable endpoint.
+
+`insertGitHubConnection` inserts one freshly verified installation and returns
+the stored row. It generates a UUID, sets the status to `active`, and normalizes
+the operator's API URL with `parseGitHubApiBaseUri`, preserving the GHES API path.
+The caller must provide server-verified installation metadata, the authorized
+team, the verifying Firebase UID and GitHub user ID, and the verification time.
+The helper rejects suspended installations and unsupported account types.
+Database failures throw a sanitized error; duplicate inserts leave existing
+connections intact. It participates in the caller's database transaction.
+
+Same-team updates, conflict classification, fresh authorization checks, and
+atomic session consumption remain follow-up work in G-1371. This insertion
+helper is not yet called by an API route.
 
 A unique constraint on `(github_api_base_url, github_app_id, installation_id)`
 reserves an installation for one team, including suspended or removed rows.
@@ -182,19 +192,22 @@ connections, and deleting the team cascades to its connection rows.
 
 The migration creates an empty table and leaves `Teams.installationIds` intact.
 Legacy IDs, including duplicates across teams, are not evidence of verified
-connections and are not copied into the new table. G-1371 will add the verified
-save operation; G-1379/G-1380 will migrate legacy links and switch consumers.
+connections and are not copied into the new table. G-1371 will combine fresh
+verification, persistence, and session consumption; G-1379/G-1380 will migrate
+legacy links and switch consumers.
 This schema change alone does not change existing API or CI lookups.
 
-Run the SQLite table and migration tests with:
+Run the SQLite storage and migration tests with:
 
 ```sh
-dart test test/lib/github/github_connection_table_test.dart test/lib/database_test.dart
+dart test test/lib/github/github_connection_table_test.dart \
+  test/lib/github/insert_github_connection_test.dart test/lib/database_test.dart
 ```
 
 The PostgreSQL integration test runs the same table constraints plus a v27 → v28
-migration. It creates and removes a unique schema for each test. Use a disposable
-local PostgreSQL database, for example:
+migration, as well as the insertion helper tests. It creates and removes a
+unique schema for each test. Use a disposable local PostgreSQL database, for
+example:
 
 ```sh
 docker run --rm -d --name openci-github-db-test \
