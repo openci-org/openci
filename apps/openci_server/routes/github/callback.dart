@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:dart_frog/dart_frog.dart';
 import 'package:openci_server/database.dart';
 import 'package:openci_server/github/consume_github_connection_request.dart';
+import 'package:openci_server/github/exchange_github_authorization_code.dart';
 import 'package:openci_server/request/error_handler.dart';
 
 Future<Response> onRequest(RequestContext context) async {
@@ -42,9 +43,20 @@ Future<Response> _get(RequestContext context) async {
       return _error(HttpStatus.forbidden, 'Forbidden');
     }
 
+    await exchangeGitHubAuthorizationCode(
+      code: parameters['code']!.single,
+      codeVerifier: request.codeVerifier,
+      environment: _environment(context),
+    );
+
     return _error(
       HttpStatus.notImplemented,
-      'GitHub token exchange is not implemented yet',
+      'GitHub connection completion is not implemented yet',
+    );
+  } on HttpException {
+    return _error(
+      HttpStatus.badGateway,
+      'Failed to exchange GitHub authorization code',
     );
   } catch (e, s) {
     return handleRouteException(
@@ -52,6 +64,14 @@ Future<Response> _get(RequestContext context) async {
       s,
       logMessage: 'Failed to handle GitHub authorization callback',
     );
+  }
+}
+
+Map<String, String> _environment(RequestContext context) {
+  try {
+    return context.read<Map<String, String>>();
+  } catch (_) {
+    return Platform.environment;
   }
 }
 
