@@ -25,6 +25,21 @@ Call this immediately before saving a connection. It does not persist a team
 connection or replace OpenCI authentication, team membership checks, or binding
 the completion session to the user who initiated it.
 
+`fetchGitHubConnectionCandidates`, in the same library, fetches the current user
+and installation list once per call, then applies the same connection rules to
+every installation. It returns an immutable list of eligible installations;
+an empty list means no eligible candidates were found. Each organization
+membership request has its own 10-second timeout. If any GitHub request or
+verification fails, the call throws a sanitized exception instead of returning
+partial results. User and installation-list fetches retain their separate
+10-second limits.
+
+This helper does not read a connection session or expose an HTTP endpoint yet.
+The candidates API must authenticate and bind the session before using its
+decrypted token, and return only the fields needed for selection. Selecting a
+candidate still requires fresh `verifyGitHubInstallation` checks immediately
+before persisting the connection.
+
 ## GitHub connection callback
 
 Set `GITHUB_CONNECTION_RETURN_URL` on the server to the complete Dashboard return
