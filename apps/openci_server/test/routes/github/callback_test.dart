@@ -20,7 +20,9 @@ void main() {
   late Map<String, String> environment;
   late MockClient githubClient;
   late List<http.Request> tokenRequests;
+  late List<http.Request> userRequests;
   late http.Response tokenResponse;
+  late http.Response userResponse;
   const state = 'connection-state';
 
   setUp(() async {
@@ -31,13 +33,26 @@ void main() {
       'GITHUB_OAUTH_REDIRECT_URI': 'https://openci.example/github/callback',
     };
     tokenRequests = [];
+    userRequests = [];
     tokenResponse = http.Response(
       '{"access_token":"private-user-token","token_type":"bearer"}',
       HttpStatus.ok,
     );
+    userResponse = http.Response(
+      '{"id":123,"login":"octocat"}',
+      HttpStatus.ok,
+    );
     githubClient = MockClient((request) async {
-      tokenRequests.add(request);
-      return tokenResponse;
+      if (request.method == 'POST' &&
+          request.url.path.endsWith('/login/oauth/access_token')) {
+        tokenRequests.add(request);
+        return tokenResponse;
+      }
+      if (request.method == 'GET' && request.url.path.endsWith('/user')) {
+        userRequests.add(request);
+        return userResponse;
+      }
+      fail('Unexpected GitHub request: ${request.method} ${request.url.path}');
     });
     db = AppDatabase(
       NativeDatabase.memory(
@@ -129,6 +144,10 @@ void main() {
         tokenRequests.single.bodyFields['code_verifier'],
         'private-code-verifier',
       );
+      final userRequest = userRequests.single;
+      expect(userRequest.method, 'GET');
+      expect(userRequest.url.toString(), 'https://api.github.com/user');
+      expect(userRequest.headers['Authorization'], 'Bearer private-user-token');
     },
   );
 
@@ -141,7 +160,8 @@ void main() {
         'state=$state&code=authorization-code'
         '&code_verifier=forged-verifier&client_secret=forged-secret'
         '&client_id=forged-client&redirect_uri=https%3A%2F%2Fother.example'
-        '&githubBaseUrl=https%3A%2F%2Fother.example',
+        '&githubBaseUrl=https%3A%2F%2Fother.example'
+        '&access_token=forged-token&githubUserId=999&login=forged-login',
       );
 
       expect(response.statusCode, HttpStatus.notImplemented);
@@ -157,6 +177,12 @@ void main() {
         'code': 'authorization-code',
         'code_verifier': 'private-code-verifier',
       });
+      final userRequest = userRequests.single;
+      expect(
+        userRequest.url.toString(),
+        'https://github.example/api/v3/user',
+      );
+      expect(userRequest.headers['Authorization'], 'Bearer private-user-token');
     },
   );
 
@@ -184,6 +210,7 @@ void main() {
 
       expect(repeated.statusCode, HttpStatus.badRequest);
       expect(tokenRequests, hasLength(1));
+      expect(userRequests, isEmpty);
     },
   );
 
@@ -201,7 +228,77 @@ void main() {
       'error': 'Failed to exchange GitHub authorization code',
     });
     expect(tokenRequests, hasLength(1));
+    expect(userRequests, isEmpty);
   });
+
+  test(
+    'returns a safe 502 and prevents retry after user lookup fails',
+    () async {
+      userResponse = http.Response(
+        '{"message":"private-user-token and private-upstream-detail"}',
+        HttpStatus.unauthorized,
+        headers: {HttpHeaders.contentTypeHeader: 'application/json'},
+      );
+
+      final response = await get('state=$state&code=authorization-code');
+
+      expect(response.statusCode, HttpStatus.badGateway);
+      expect(await response.json(), {
+        'success': false,
+        'error': 'Failed to fetch GitHub user',
+      });
+      expect(response.headers[HttpHeaders.cacheControlHeader], 'no-store');
+      expect(response.headers['referrer-policy'], 'no-referrer');
+      expect(await db.select(db.gitHubConnectionRequests).get(), isEmpty);
+
+      final repeated = await get('state=$state&code=authorization-code');
+
+      expect(repeated.statusCode, HttpStatus.badRequest);
+      expect(tokenRequests, hasLength(1));
+      expect(userRequests, hasLength(1));
+    },
+  );
+
+  test('returns a safe 502 when the user lookup cannot connect', () async {
+    githubClient = MockClient((request) async {
+      if (request.method == 'POST') {
+        tokenRequests.add(request);
+        return tokenResponse;
+      }
+      userRequests.add(request);
+      throw http.ClientException('private-user-token and private-user-detail');
+    });
+
+    final response = await get('state=$state&code=authorization-code');
+
+    expect(response.statusCode, HttpStatus.badGateway);
+    expect(await response.json(), {
+      'success': false,
+      'error': 'Failed to fetch GitHub user',
+    });
+    expect(tokenRequests, hasLength(1));
+    expect(userRequests, hasLength(1));
+  });
+
+  test(
+    'rejects an invalid GitHub identity despite forged query values',
+    () async {
+      userResponse = http.Response('{"login":"octocat"}', HttpStatus.ok);
+
+      final response = await get(
+        'state=$state&code=authorization-code'
+        '&userId=user-1&githubUserId=123&id=123&login=forged-login',
+      );
+
+      expect(response.statusCode, HttpStatus.badGateway);
+      expect(await response.json(), {
+        'success': false,
+        'error': 'Failed to fetch GitHub user',
+      });
+      expect(tokenRequests, hasLength(1));
+      expect(userRequests, hasLength(1));
+    },
+  );
 
   test('returns a generic 500 when the client secret is missing', () async {
     environment.remove('GITHUB_APP_CLIENT_SECRET');
@@ -214,6 +311,7 @@ void main() {
       'error': 'Internal server error',
     });
     expect(tokenRequests, isEmpty);
+    expect(userRequests, isEmpty);
   });
 
   test('rejects a callback whose state was already consumed', () async {
@@ -227,6 +325,7 @@ void main() {
       'error': 'Invalid or expired GitHub state',
     });
     expect(tokenRequests, hasLength(1));
+    expect(userRequests, hasLength(1));
   });
 
   test('rejects unknown state without consuming another request', () async {
@@ -235,6 +334,7 @@ void main() {
     expect(response.statusCode, HttpStatus.badRequest);
     expect(await db.select(db.gitHubConnectionRequests).get(), hasLength(1));
     expect(tokenRequests, isEmpty);
+    expect(userRequests, isEmpty);
   });
 
   test('rejects expired state', () async {
@@ -256,6 +356,7 @@ void main() {
       'error': 'Invalid or expired GitHub state',
     });
     expect(tokenRequests, isEmpty);
+    expect(userRequests, isEmpty);
   });
 
   test('rejects missing state', () async {
@@ -263,6 +364,7 @@ void main() {
 
     expect(response.statusCode, HttpStatus.badRequest);
     expect(tokenRequests, isEmpty);
+    expect(userRequests, isEmpty);
   });
 
   test('rejects blank state', () async {
@@ -270,6 +372,7 @@ void main() {
 
     expect(response.statusCode, HttpStatus.badRequest);
     expect(tokenRequests, isEmpty);
+    expect(userRequests, isEmpty);
   });
 
   test('rejects missing code without consuming state', () async {
@@ -278,6 +381,7 @@ void main() {
     expect(response.statusCode, HttpStatus.badRequest);
     expect(await db.select(db.gitHubConnectionRequests).get(), hasLength(1));
     expect(tokenRequests, isEmpty);
+    expect(userRequests, isEmpty);
   });
 
   test('rejects blank code without consuming state', () async {
@@ -286,6 +390,7 @@ void main() {
     expect(response.statusCode, HttpStatus.badRequest);
     expect(await db.select(db.gitHubConnectionRequests).get(), hasLength(1));
     expect(tokenRequests, isEmpty);
+    expect(userRequests, isEmpty);
   });
 
   test('rejects duplicate state parameters', () async {
@@ -294,6 +399,7 @@ void main() {
     expect(response.statusCode, HttpStatus.badRequest);
     expect(await db.select(db.gitHubConnectionRequests).get(), hasLength(1));
     expect(tokenRequests, isEmpty);
+    expect(userRequests, isEmpty);
   });
 
   test('rejects duplicate code parameters without consuming state', () async {
@@ -302,6 +408,7 @@ void main() {
     expect(response.statusCode, HttpStatus.badRequest);
     expect(await db.select(db.gitHubConnectionRequests).get(), hasLength(1));
     expect(tokenRequests, isEmpty);
+    expect(userRequests, isEmpty);
   });
 
   test(
@@ -320,6 +427,7 @@ void main() {
       expect(response.headers['referrer-policy'], 'no-referrer');
       expect(await db.select(db.gitHubConnectionRequests).get(), isEmpty);
       expect(tokenRequests, isEmpty);
+      expect(userRequests, isEmpty);
     },
   );
 
@@ -329,6 +437,7 @@ void main() {
     expect(response.statusCode, HttpStatus.badRequest);
     expect(await db.select(db.gitHubConnectionRequests).get(), hasLength(1));
     expect(tokenRequests, isEmpty);
+    expect(userRequests, isEmpty);
   });
 
   test('rejects blank error without consuming state', () async {
@@ -337,6 +446,7 @@ void main() {
     expect(response.statusCode, HttpStatus.badRequest);
     expect(await db.select(db.gitHubConnectionRequests).get(), hasLength(1));
     expect(tokenRequests, isEmpty);
+    expect(userRequests, isEmpty);
   });
 
   test('rejects conflicting code and error without consuming state', () async {
@@ -345,6 +455,7 @@ void main() {
     expect(response.statusCode, HttpStatus.badRequest);
     expect(await db.select(db.gitHubConnectionRequests).get(), hasLength(1));
     expect(tokenRequests, isEmpty);
+    expect(userRequests, isEmpty);
   });
 
   test('rejects a removed member despite forged callback identity', () async {
@@ -359,6 +470,7 @@ void main() {
     expect(await response.json(), {'success': false, 'error': 'Forbidden'});
     expect(await db.select(db.gitHubConnectionRequests).get(), isEmpty);
     expect(tokenRequests, isEmpty);
+    expect(userRequests, isEmpty);
   });
 
   test(
@@ -376,6 +488,7 @@ void main() {
       expect(response.headers[HttpHeaders.cacheControlHeader], 'no-store');
       expect(response.headers['referrer-policy'], 'no-referrer');
       expect(tokenRequests, isEmpty);
+      expect(userRequests, isEmpty);
     },
   );
 
@@ -389,5 +502,6 @@ void main() {
 
     expect(response.statusCode, HttpStatus.methodNotAllowed);
     expect(tokenRequests, isEmpty);
+    expect(userRequests, isEmpty);
   });
 }
