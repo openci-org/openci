@@ -64,3 +64,37 @@ before login redirects or analytics run, then authenticate the initiating user
 through the server before continuing. A result in the URL is not proof that a
 team is connected. Do not use a route that copies the reference into a login
 redirect's query string.
+
+## Reading a pending connection session
+
+`POST /teams/:id/github/session` accepts a Firebase ID token in the Bearer header
+and a JSON body containing `reference`, taken from the callback fragment. Keep
+the reference out of request URLs and logs. The server uses the verified Firebase
+UID and the team ID from the path; identity values supplied in the body are
+ignored.
+
+The reference must belong to that initiating user and team. The user must still
+be a team member, and the session must be unexpired and unused with its encrypted
+token still present. On success, the response is:
+
+```json
+{
+  "success": true,
+  "session": {
+    "teamId": "team-1",
+    "githubUserId": 123,
+    "expiresAt": "2026-10-16T12:10:00.000Z"
+  }
+}
+```
+
+No token, reference, stored hash, or session database ID is returned. Reads do not
+consume the session or connect an installation to a team. A UID alone, the
+original OAuth state, and the OAuth request ID cannot retrieve the result.
+
+Missing authentication returns 401; malformed JSON or a missing/invalid reference
+field returns 400. Unknown, expired, consumed, or unauthorized sessions all return
+the same 403 response. Database failures return a generic 500, and methods other
+than POST return 405. All responses include `Cache-Control: no-store` and
+`Referrer-Policy: no-referrer`. The Dashboard receiver, installation candidates,
+and explicit connection confirmation remain follow-up work.
