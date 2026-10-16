@@ -8,7 +8,7 @@ import 'package:test/test.dart';
 import 'package:uuid/uuid.dart';
 
 import '../test/helpers/github_connection_table_tests.dart';
-import '../test/helpers/insert_github_connection_tests.dart';
+import '../test/helpers/save_github_connection_tests.dart';
 
 void main() {
   final databaseUrl = Platform.environment['OPENCI_TEST_DATABASE_URL'];
@@ -17,11 +17,12 @@ void main() {
     'GitHub connections on PostgreSQL',
     () {
       late pg.Connection connection;
+      late String schema;
 
       setUp(() async {
         connection = await pg.Connection.openFromUrl(databaseUrl!);
         addTearDown(connection.close);
-        final schema =
+        schema =
             'github_connection_test_${const Uuid().v4().replaceAll('-', '')}';
         await connection.execute('CREATE SCHEMA "$schema"');
         addTearDown(() => connection.execute('DROP SCHEMA "$schema" CASCADE'));
@@ -34,9 +35,15 @@ void main() {
         );
       });
 
-      group('inserting verified connections', () {
-        testInsertGitHubConnection(
+      group('saving verified connections', () {
+        testSaveGitHubConnection(
           () async => AppDatabase(PgDatabase.opened(connection)),
+          openConcurrentDatabase: () async {
+            final other = await pg.Connection.openFromUrl(databaseUrl!);
+            addTearDown(other.close);
+            await other.execute('SET search_path TO "$schema"');
+            return AppDatabase(PgDatabase.opened(other));
+          },
         );
       });
 

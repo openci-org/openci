@@ -1,10 +1,11 @@
+import 'package:drift/drift.dart';
 import 'package:openci_server/database.dart';
 import 'package:openci_server/github/fetch_github_installations.dart';
 import 'package:openci_server/github/github_connection_table.dart';
 import 'package:openci_server/github/parse_github_api_base_uri.dart';
 import 'package:uuid/uuid.dart';
 
-Future<DriftGitHubConnection> insertGitHubConnection({
+Future<DriftGitHubConnection?> saveGitHubConnection({
   required AppDatabase db,
   required String teamId,
   required String githubApiBaseUrl,
@@ -35,8 +36,31 @@ Future<DriftGitHubConnection> insertGitHubConnection({
   );
 
   try {
-    return await db.into(db.gitHubConnections).insertReturning(connection);
+    final table = db.gitHubConnections;
+    return await db
+        .into(table)
+        .insertReturningOrNull(
+          connection,
+          onConflict: DoUpdate.withExcluded(
+            (_, incoming) => GitHubConnectionsCompanion.custom(
+              accountId: incoming.accountId,
+              accountType: incoming.accountType,
+              accountLogin: incoming.accountLogin,
+              verifiedByUserId: incoming.verifiedByUserId,
+              verifiedByGitHubUserId: incoming.verifiedByGitHubUserId,
+              verifiedAt: incoming.verifiedAt,
+              status: incoming.status,
+            ),
+            target: [
+              table.githubApiBaseUrl,
+              table.githubAppId,
+              table.installationId,
+            ],
+            where: (existing, incoming) =>
+                existing.teamId.equalsExp(incoming.teamId),
+          ),
+        );
   } catch (_) {
-    throw StateError('Failed to insert GitHub connection');
+    throw StateError('Failed to save GitHub connection');
   }
 }

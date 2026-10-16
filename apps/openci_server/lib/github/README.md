@@ -172,18 +172,23 @@ time, and an explicit `active`, `suspended`, or `removed` status. Account types 
 rejected. It stores no OAuth tokens. The URL identifies the operator's
 configuration; it is not a team-editable endpoint.
 
-`insertGitHubConnection` inserts one freshly verified installation and returns
-the stored row. It generates a UUID, sets the status to `active`, and normalizes
-the operator's API URL with `parseGitHubApiBaseUri`, preserving the GHES API path.
+`saveGitHubConnection` saves one freshly verified installation and returns
+the stored row. It generates a UUID for a new connection, sets the status to
+`active`, and normalizes the operator's API URL with `parseGitHubApiBaseUri`,
+preserving the GHES API path.
 The caller must provide server-verified installation metadata, the authorized
 team, the verifying Firebase UID and GitHub user ID, and the verification time.
 The helper rejects suspended installations and unsupported account types.
-Database failures throw a sanitized error; duplicate inserts leave existing
-connections intact. It participates in the caller's database transaction.
+For an existing connection on the same team, it preserves the record ID and
+owner while refreshing verified metadata, the verifier, the verification time,
+and the active status. An installation reserved by another team returns `null`
+without modifying or exposing that team's record, including suspended or removed
+connections. A conditional database upsert makes this decision and write in one
+statement, including concurrent saves. Database failures throw a sanitized error
+instead of returning a conflict. It participates in the caller's transaction.
 
-Same-team updates, conflict classification, fresh authorization checks, and
-atomic session consumption remain follow-up work in G-1371. This insertion
-helper is not yet called by an API route.
+Fresh authorization checks and atomic session consumption remain follow-up work
+in G-1371. This persistence helper is not yet called by an API route.
 
 A unique constraint on `(github_api_base_url, github_app_id, installation_id)`
 reserves an installation for one team, including suspended or removed rows.
@@ -201,13 +206,13 @@ Run the SQLite storage and migration tests with:
 
 ```sh
 dart test test/lib/github/github_connection_table_test.dart \
-  test/lib/github/insert_github_connection_test.dart test/lib/database_test.dart
+  test/lib/github/save_github_connection_test.dart test/lib/database_test.dart
 ```
 
 The PostgreSQL integration test runs the same table constraints plus a v27 → v28
-migration, as well as the insertion helper tests. It creates and removes a
-unique schema for each test. Use a disposable local PostgreSQL database, for
-example:
+migration, as well as the save helper tests and concurrent saves over independent
+database connections. It creates and removes a unique schema for each test.
+Use a disposable local PostgreSQL database, for example:
 
 ```sh
 docker run --rm -d --name openci-github-db-test \
