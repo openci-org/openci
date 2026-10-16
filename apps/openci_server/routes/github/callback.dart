@@ -3,9 +3,11 @@ import 'dart:io';
 import 'package:dart_frog/dart_frog.dart';
 import 'package:openci_server/database.dart';
 import 'package:openci_server/github/consume_github_connection_request.dart';
+import 'package:openci_server/github/create_github_connection_session.dart';
 import 'package:openci_server/github/exchange_github_authorization_code.dart';
 import 'package:openci_server/github/fetch_github_user.dart';
 import 'package:openci_server/request/error_handler.dart';
+import 'package:openci_server/secret/secret_crypter.dart';
 
 Future<Response> onRequest(RequestContext context) async {
   final response = switch (context.request.method) {
@@ -45,14 +47,16 @@ Future<Response> _get(RequestContext context) async {
     }
 
     final environment = _environment(context);
+    final crypter = _createSecretCrypter(environment);
     final accessToken = await exchangeGitHubAuthorizationCode(
       code: parameters['code']!.single,
       codeVerifier: request.codeVerifier,
       environment: environment,
     );
 
+    final GitHubUser user;
     try {
-      await fetchGitHubUser(
+      user = await fetchGitHubUser(
         accessToken: accessToken,
         environment: environment,
       );
@@ -60,9 +64,21 @@ Future<Response> _get(RequestContext context) async {
       return _error(HttpStatus.badGateway, 'Failed to fetch GitHub user');
     }
 
-    return _error(
-      HttpStatus.notImplemented,
-      'GitHub connection completion is not implemented yet',
+    if (!await db.teamDao.isTeamMember(request.userId, request.teamId)) {
+      return _error(HttpStatus.forbidden, 'Forbidden');
+    }
+
+    final session = await createGitHubConnectionSession(
+      db: db,
+      crypter: crypter,
+      userId: request.userId,
+      teamId: request.teamId,
+      githubUserId: user.id,
+      accessToken: accessToken,
+    );
+
+    return Response.json(
+      body: {'success': true, 'reference': session.reference},
     );
   } on HttpException {
     return _error(
@@ -75,6 +91,15 @@ Future<Response> _get(RequestContext context) async {
       s,
       logMessage: 'Failed to handle GitHub authorization callback',
     );
+  }
+}
+
+SecretCrypter _createSecretCrypter(Map<String, String> environment) {
+  try {
+    return SecretCrypter(environment['SECRET_ENCRYPTION_KEY'] ?? '');
+  } catch (_) {
+    // Invalid key errors can include the configured secret.
+    throw StateError('GitHub connection encryption is not configured');
   }
 }
 
