@@ -103,6 +103,8 @@ class AppStringsTeam {
   String get newTeamName => '新しいチーム名';
   String get selectTeam => 'チームを選択';
   String get selectTeamLabel => 'チーム';
+  String get connectGitHub => 'GitHubと連携';
+  String get gitHubConnectionComingSoon => 'GitHub連携は準備中です。';
   String get enterTeamName => 'チーム名を入力してください';
   String get createdSuccess => 'チームが作成されました';
   String get updatedSuccess => 'チーム名が更新されました';
