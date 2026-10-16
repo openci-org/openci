@@ -6,7 +6,7 @@ Future<void> main() async {
   final openCI = await OpenCI.init(
     workflowName: 'Website CI',
     ciTriggers: [
-      CITrigger.pullRequest(branch: 'develop'),
+      CITrigger.pullRequest(branch: '*'),
       CITrigger.push(branch: 'develop'),
     ],
     currentWorkingDirectory: 'apps/website',
