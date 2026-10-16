@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:drift/drift.dart';
+import 'package:meta/meta.dart';
 import 'package:openci_server/database.dart';
 import 'package:openci_server/github/github_service.dart';
 import 'package:http/http.dart' as http;
@@ -10,7 +11,7 @@ Future<void> createQueuedCheckRun({
   required DriftBuildJob job,
   Map<String, String>? environment,
   http.Client? client,
-  Duration timeout = const Duration(seconds: 10),
+  @visibleForTesting Duration timeout = const Duration(seconds: 10),
 }) async {
   final installationId = job.installationId;
   final commitSha = job.commitSha;

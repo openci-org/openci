@@ -49,7 +49,7 @@ void main() {
     context.provide<String?>(uid);
     context.provide<Map<String, String>>(environment);
     context.provide<InternalApiKeyValidator>(
-      InternalApiKeyValidator.forTesting(environment: environment),
+      InternalApiKeyValidator(environment: environment),
     );
     return Future.value(worker.middleware(route.onRequest)(context.context));
   }

@@ -28,7 +28,7 @@ void main() {
   ]) {
     group('${method.name} $path', () {
       test('allows the internal key without a UID', () async {
-        const validator = InternalApiKeyValidator.forTesting(
+        const validator = InternalApiKeyValidator(
           environment: {'INTERNAL_API_KEY': 'test-internal-key'},
         );
         final db = AppDatabase(NativeDatabase.memory());
@@ -60,7 +60,7 @@ void main() {
         ),
       ]) {
         test('rejects $name before accessing the database', () async {
-          const validator = InternalApiKeyValidator.forTesting(
+          const validator = InternalApiKeyValidator(
             environment: {'INTERNAL_API_KEY': 'test-internal-key'},
           );
           final db = _MockDatabase();
@@ -91,7 +91,7 @@ void main() {
 
   group('internal middleware with root middleware', () {
     test('allows an internal key on a newly added nested route', () async {
-      const validator = InternalApiKeyValidator.forTesting(
+      const validator = InternalApiKeyValidator(
         environment: {'INTERNAL_API_KEY': 'test-internal-key'},
       );
       final uri = await _startServer(
@@ -108,7 +108,7 @@ void main() {
     });
 
     test('rejects missing credentials on a newly added nested route', () async {
-      const validator = InternalApiKeyValidator.forTesting(
+      const validator = InternalApiKeyValidator(
         environment: {'INTERNAL_API_KEY': 'test-internal-key'},
       );
       final uri = await _startServer(
@@ -122,7 +122,7 @@ void main() {
     });
 
     test('allows CORS preflight when internal APIs are enabled', () async {
-      const validator = InternalApiKeyValidator.forTesting(environment: {});
+      const validator = InternalApiKeyValidator(environment: {});
       final uri = await _startServer(
         validator: validator,
         handler: (_) => throw StateError('Handler must not run'),
@@ -144,7 +144,7 @@ void main() {
 
     for (final method in ['POST', 'OPTIONS']) {
       test('returns 404 for disabled $method even with a valid key', () async {
-        const validator = InternalApiKeyValidator.forTesting(
+        const validator = InternalApiKeyValidator(
           environment: {'INTERNAL_API_KEY': 'test-internal-key'},
         );
         final uri = await _startServer(

@@ -88,7 +88,7 @@ void main() {
       test(
         'rejects $name before upgrading or accessing the database',
         () async {
-          const validator = InternalApiKeyValidator.forTesting(
+          const validator = InternalApiKeyValidator(
             environment: {'INTERNAL_API_KEY': 'test-internal-key'},
           );
           final uri = await startServer(validator, uid: uid);
@@ -102,7 +102,7 @@ void main() {
     }
 
     test('rejects requests when the internal key is not configured', () async {
-      const validator = InternalApiKeyValidator.forTesting(environment: {});
+      const validator = InternalApiKeyValidator(environment: {});
       final uri = await startServer(validator);
 
       await expectUnauthorizedUpgrade(
@@ -114,7 +114,7 @@ void main() {
     test(
       'rejects requests when the configured internal key is empty',
       () async {
-        const validator = InternalApiKeyValidator.forTesting(
+        const validator = InternalApiKeyValidator(
           environment: {'INTERNAL_API_KEY': ''},
         );
         final uri = await startServer(validator);
@@ -129,7 +129,7 @@ void main() {
     test(
       'rejects an incorrect Bearer token despite a valid query key',
       () async {
-        const validator = InternalApiKeyValidator.forTesting(
+        const validator = InternalApiKeyValidator(
           environment: {'INTERNAL_API_KEY': 'test-internal-key'},
         );
         final uri = await startServer(validator);
@@ -153,7 +153,7 @@ void main() {
       test(
         'accepts $name and delivers job notifications without a UID',
         () async {
-          const validator = InternalApiKeyValidator.forTesting(
+          const validator = InternalApiKeyValidator(
             environment: {'INTERNAL_API_KEY': 'test-internal-key'},
           );
           final cancelled = Completer<void>();

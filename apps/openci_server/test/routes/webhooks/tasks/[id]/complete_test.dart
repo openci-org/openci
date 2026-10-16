@@ -294,7 +294,7 @@ Future<Response> _requestWithBody({
   },
   http.Client? client,
 }) async {
-  const validator = InternalApiKeyValidator.forTesting(
+  const validator = InternalApiKeyValidator(
     environment: {'INTERNAL_API_KEY': 'test-internal-key'},
   );
   final context = TestRequestContext(

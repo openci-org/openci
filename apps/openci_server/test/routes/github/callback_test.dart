@@ -112,7 +112,7 @@ void main() {
           .use(provider<Map<String, String>>((_) => environment))
           .use(
             provider<InternalApiKeyValidator>(
-              (_) => const InternalApiKeyValidator.forTesting(environment: {}),
+              (_) => const InternalApiKeyValidator(environment: {}),
             ),
           )
           .use(root.requestLoggingMiddleware());

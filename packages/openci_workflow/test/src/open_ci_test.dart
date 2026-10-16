@@ -7,7 +7,11 @@ import 'package:test/test.dart';
 void main() {
   group('OpenCI.resolveWorkingDirectory', () {
     const workspacePath = '/tmp/openci_workspace';
-    final openCI = OpenCI.forTesting(workspacePath: workspacePath);
+    final openCI = OpenCI(
+      workflowName: 'test',
+      ciTriggers: const [CITrigger.push(branch: 'test')],
+      workspacePath: workspacePath,
+    );
 
     test('returns workspace path when relative cwd is omitted', () {
       expect(openCI.resolveWorkingDirectory(), workspacePath);
@@ -33,7 +37,9 @@ void main() {
       workspace = await Directory.systemTemp.createTemp(
         'openci-place-file-',
       );
-      ci = OpenCI.forTesting(
+      ci = OpenCI(
+        workflowName: 'test',
+        ciTriggers: const [CITrigger.push(branch: 'test')],
         workspacePath: workspace.path,
         currentWorkingDirectory: 'another-directory',
       );

@@ -51,7 +51,7 @@ void main() {
     context.provide<AppDatabase>(database ?? db);
     context.provide<String?>(uid);
     context.provide<InternalApiKeyValidator>(
-      const InternalApiKeyValidator.forTesting(
+      const InternalApiKeyValidator(
         environment: {'INTERNAL_API_KEY': 'test-internal-key'},
       ),
     );

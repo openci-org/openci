@@ -44,7 +44,7 @@ void main() {
       when(() => request.method).thenReturn(HttpMethod.get);
       when(() => request.headers).thenReturn({});
       when(() => context.read<InternalApiKeyValidator>()).thenReturn(
-        const InternalApiKeyValidator.forTesting(
+        const InternalApiKeyValidator(
           environment: {'INTERNAL_API_KEY': 'test-internal-key'},
         ),
       );
@@ -330,7 +330,7 @@ void main() {
       (c) => route.onRequest(c, 'team-1', 'repo'),
       configure: (context) {
         context.provide<InternalApiKeyValidator>(
-          const InternalApiKeyValidator.forTesting(
+          const InternalApiKeyValidator(
             environment: {'INTERNAL_API_KEY': 'test-internal-key'},
           ),
         );
@@ -358,7 +358,7 @@ TestRequestContext _requestContext({
         ..provide<AppDatabase>(db)
         ..provide<String?>(uid)
         ..provide<InternalApiKeyValidator>(
-          const InternalApiKeyValidator.forTesting(
+          const InternalApiKeyValidator(
             environment: {'INTERNAL_API_KEY': 'test-internal-key'},
           ),
         )

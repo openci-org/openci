@@ -43,7 +43,7 @@ void main() {
     int githubStatus = 200,
     bool provideConfiguration = true,
   }) async {
-    const validator = InternalApiKeyValidator.forTesting(
+    const validator = InternalApiKeyValidator(
       environment: {'INTERNAL_API_KEY': 'test-internal-key'},
     );
     final context = TestRequestContext(

@@ -31,7 +31,7 @@ void main() {
     ).thenReturn(Uri.parse('http://localhost/builds/job-123'));
     when(() => context.read<AppDatabase>()).thenReturn(db);
     when(() => context.read<InternalApiKeyValidator>()).thenReturn(
-      const InternalApiKeyValidator.forTesting(
+      const InternalApiKeyValidator(
         environment: {'INTERNAL_API_KEY': 'test-internal-key'},
       ),
     );

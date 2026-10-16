@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:dart_frog/dart_frog.dart';
 import 'package:firebase_admin_sdk/firebase_admin_sdk.dart';
+import 'package:meta/meta.dart';
 import 'package:openci_server/auth/internal_api_key_validator.dart';
 import 'package:openci_server/auth/server_access_policy_provider.dart';
 import 'package:openci_server/auth/user_email_info.dart';
@@ -60,7 +61,9 @@ Middleware requestLoggingMiddleware() {
   };
 }
 
-Middleware internalRoutesMiddleware({Map<String, String>? environment}) {
+Middleware internalRoutesMiddleware({
+  @visibleForTesting Map<String, String>? environment,
+}) {
   final env = environment ?? Platform.environment;
   final enabled = env['ENABLE_INTERNAL_API'] == 'true';
 
@@ -108,7 +111,10 @@ Middleware databaseProvider(AppDatabase db) {
   return provider<AppDatabase>((context) => db);
 }
 
-Middleware authProvider(FirebaseApp? firebaseApp, {bool allowTestUid = false}) {
+Middleware authProvider(
+  FirebaseApp? firebaseApp, {
+  @visibleForTesting bool allowTestUid = false,
+}) {
   return (handler) {
     return (requestContext) async {
       final context = requestContext.provide<UserEmailInfo?>(() => null);
@@ -168,7 +174,9 @@ Middleware authProvider(FirebaseApp? firebaseApp, {bool allowTestUid = false}) {
   };
 }
 
-Middleware corsMiddleware({Map<String, String>? environment}) {
+Middleware corsMiddleware({
+  @visibleForTesting Map<String, String>? environment,
+}) {
   final env = environment ?? Platform.environment;
   final origins = env['ALLOWED_ORIGINS'] ?? '';
   final list = origins
