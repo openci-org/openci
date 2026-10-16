@@ -110,6 +110,17 @@ void main() {
     return callback(context.context);
   }
 
+  Future<void> expectErrorRedirect(Response response, String error) async {
+    expect(response.statusCode, HttpStatus.seeOther);
+    expect(
+      response.headers[HttpHeaders.locationHeader],
+      '${environment['GITHUB_CONNECTION_RETURN_URL']}#error=$error',
+    );
+    expect(await response.body(), isEmpty);
+    expect(response.headers[HttpHeaders.cacheControlHeader], 'no-store');
+    expect(response.headers['referrer-policy'], 'no-referrer');
+  }
+
   test(
     'redirects the browser callback without exposing the reference to the Dashboard server',
     () async {
@@ -287,7 +298,7 @@ void main() {
   );
 
   test(
-    'returns a safe 502 and prevents retry after an exchange failure',
+    'redirects with a fixed error and prevents retry after an exchange failure',
     () async {
       tokenResponse = http.Response(
         '{"error":"bad_verification_code",'
@@ -297,44 +308,43 @@ void main() {
 
       final response = await get('state=$state&code=authorization-code');
 
-      expect(response.statusCode, HttpStatus.badGateway);
-      expect(response.headers[HttpHeaders.locationHeader], isNull);
-      expect(await response.json(), {
-        'success': false,
-        'error': 'Failed to exchange GitHub authorization code',
-      });
-      expect(response.headers[HttpHeaders.cacheControlHeader], 'no-store');
-      expect(response.headers['referrer-policy'], 'no-referrer');
+      await expectErrorRedirect(response, 'connection_failed');
       expect(await db.select(db.gitHubConnectionRequests).get(), isEmpty);
 
       final repeated = await get('state=$state&code=authorization-code');
 
-      expect(repeated.statusCode, HttpStatus.badRequest);
+      await expectErrorRedirect(repeated, 'invalid_state');
       expect(tokenRequests, hasLength(1));
       expect(userRequests, isEmpty);
       expect(await db.select(db.gitHubConnectionSessions).get(), isEmpty);
     },
   );
 
-  test('returns a safe 502 when the GitHub request fails', () async {
+  test('redirects safely when the GitHub request fails', () async {
     githubClient = MockClient((request) async {
       tokenRequests.add(request);
       throw http.ClientException('private-client-secret and private-code');
     });
 
-    final response = await get('state=$state&code=authorization-code');
+    final errorOutput = _MockStdout();
+    final response = await IOOverrides.runZoned(
+      () => get('state=$state&code=authorization-code'),
+      stderr: () => errorOutput,
+    );
 
-    expect(response.statusCode, HttpStatus.badGateway);
-    expect(await response.json(), {
-      'success': false,
-      'error': 'Failed to exchange GitHub authorization code',
-    });
+    await expectErrorRedirect(response, 'connection_failed');
+    final logged = verify(
+      () => errorOutput.writeln(captureAny()),
+    ).captured.join('\n');
+    expect(logged, contains('Failed to exchange GitHub authorization code'));
+    expect(logged, isNot(contains('private-client-secret')));
+    expect(logged, isNot(contains('private-code')));
     expect(tokenRequests, hasLength(1));
     expect(userRequests, isEmpty);
   });
 
   test(
-    'returns a safe 502 and prevents retry after user lookup fails',
+    'redirects with a fixed error and prevents retry after user lookup fails',
     () async {
       userResponse = http.Response(
         '{"message":"private-user-token and private-upstream-detail"}',
@@ -344,25 +354,19 @@ void main() {
 
       final response = await get('state=$state&code=authorization-code');
 
-      expect(response.statusCode, HttpStatus.badGateway);
-      expect(await response.json(), {
-        'success': false,
-        'error': 'Failed to fetch GitHub user',
-      });
-      expect(response.headers[HttpHeaders.cacheControlHeader], 'no-store');
-      expect(response.headers['referrer-policy'], 'no-referrer');
+      await expectErrorRedirect(response, 'connection_failed');
       expect(await db.select(db.gitHubConnectionRequests).get(), isEmpty);
 
       final repeated = await get('state=$state&code=authorization-code');
 
-      expect(repeated.statusCode, HttpStatus.badRequest);
+      await expectErrorRedirect(repeated, 'invalid_state');
       expect(tokenRequests, hasLength(1));
       expect(userRequests, hasLength(1));
       expect(await db.select(db.gitHubConnectionSessions).get(), isEmpty);
     },
   );
 
-  test('returns a safe 502 when the user lookup cannot connect', () async {
+  test('redirects safely when the user lookup cannot connect', () async {
     githubClient = MockClient((request) async {
       if (request.method == 'POST') {
         tokenRequests.add(request);
@@ -374,11 +378,7 @@ void main() {
 
     final response = await get('state=$state&code=authorization-code');
 
-    expect(response.statusCode, HttpStatus.badGateway);
-    expect(await response.json(), {
-      'success': false,
-      'error': 'Failed to fetch GitHub user',
-    });
+    await expectErrorRedirect(response, 'connection_failed');
     expect(tokenRequests, hasLength(1));
     expect(userRequests, hasLength(1));
   });
@@ -393,29 +393,24 @@ void main() {
         '&userId=user-1&githubUserId=123&id=123&login=forged-login',
       );
 
-      expect(response.statusCode, HttpStatus.badGateway);
-      expect(await response.json(), {
-        'success': false,
-        'error': 'Failed to fetch GitHub user',
-      });
+      await expectErrorRedirect(response, 'connection_failed');
       expect(tokenRequests, hasLength(1));
       expect(userRequests, hasLength(1));
     },
   );
 
-  test('returns a generic 500 when the client secret is missing', () async {
-    environment.remove('GITHUB_APP_CLIENT_SECRET');
+  test(
+    'redirects with a fixed error when the client secret is missing',
+    () async {
+      environment.remove('GITHUB_APP_CLIENT_SECRET');
 
-    final response = await get('state=$state&code=authorization-code');
+      final response = await get('state=$state&code=authorization-code');
 
-    expect(response.statusCode, HttpStatus.internalServerError);
-    expect(await response.json(), {
-      'success': false,
-      'error': 'Internal server error',
-    });
-    expect(tokenRequests, isEmpty);
-    expect(userRequests, isEmpty);
-  });
+      await expectErrorRedirect(response, 'connection_failed');
+      expect(tokenRequests, isEmpty);
+      expect(userRequests, isEmpty);
+    },
+  );
 
   test('rejects a callback whose state was already consumed', () async {
     final first = await get('state=$state&code=authorization-code');
@@ -423,12 +418,7 @@ void main() {
 
     final response = await get('state=$state&code=authorization-code');
 
-    expect(response.statusCode, HttpStatus.badRequest);
-    expect(response.headers[HttpHeaders.locationHeader], isNull);
-    expect(await response.json(), {
-      'success': false,
-      'error': 'Invalid or expired GitHub state',
-    });
+    await expectErrorRedirect(response, 'invalid_state');
     expect(tokenRequests, hasLength(1));
     expect(userRequests, hasLength(1));
     expect(await db.select(db.gitHubConnectionSessions).get(), hasLength(1));
@@ -491,11 +481,7 @@ void main() {
 
     final response = await get('state=$state&code=authorization-code');
 
-    expect(response.statusCode, HttpStatus.internalServerError);
-    expect(await response.json(), {
-      'success': false,
-      'error': 'Internal server error',
-    });
+    await expectErrorRedirect(response, 'connection_failed');
     expect(tokenRequests, isEmpty);
     expect(userRequests, isEmpty);
     expect(await db.select(db.gitHubConnectionRequests).get(), isEmpty);
@@ -513,11 +499,7 @@ void main() {
         stderr: () => errorOutput,
       );
 
-      expect(response.statusCode, HttpStatus.internalServerError);
-      expect(await response.json(), {
-        'success': false,
-        'error': 'Internal server error',
-      });
+      await expectErrorRedirect(response, 'connection_failed');
       final logged = verify(
         () => errorOutput.writeln(captureAny()),
       ).captured.join('\n');
@@ -547,8 +529,7 @@ void main() {
 
       final response = await get('state=$state&code=authorization-code');
 
-      expect(response.statusCode, HttpStatus.forbidden);
-      expect(await response.json(), {'success': false, 'error': 'Forbidden'});
+      await expectErrorRedirect(response, 'forbidden');
       expect(tokenRequests, hasLength(1));
       expect(userRequests, hasLength(1));
       expect(await db.select(db.gitHubConnectionSessions).get(), isEmpty);
@@ -572,17 +553,12 @@ void main() {
         stderr: () => errorOutput,
       );
 
-      expect(response.statusCode, HttpStatus.internalServerError);
-      expect(await response.json(), {
-        'success': false,
-        'error': 'Internal server error',
-      });
+      await expectErrorRedirect(response, 'connection_failed');
       final logged = verify(
         () => errorOutput.writeln(captureAny()),
       ).captured.join('\n');
       expect(logged, contains('Failed to create GitHub connection session'));
       expect(logged, isNot(contains('private-user-token')));
-      expect(response.headers[HttpHeaders.locationHeader], isNull);
       expect(tokenRequests, hasLength(1));
       expect(userRequests, hasLength(1));
       expect(await db.select(db.gitHubConnectionRequests).get(), isEmpty);
@@ -594,7 +570,7 @@ void main() {
   test('rejects unknown state without consuming another request', () async {
     final response = await get('state=unknown&code=authorization-code');
 
-    expect(response.statusCode, HttpStatus.badRequest);
+    await expectErrorRedirect(response, 'invalid_state');
     expect(await db.select(db.gitHubConnectionRequests).get(), hasLength(1));
     expect(tokenRequests, isEmpty);
     expect(userRequests, isEmpty);
@@ -613,11 +589,7 @@ void main() {
 
     final response = await get('state=$state&code=authorization-code');
 
-    expect(response.statusCode, HttpStatus.badRequest);
-    expect(await response.json(), {
-      'success': false,
-      'error': 'Invalid or expired GitHub state',
-    });
+    await expectErrorRedirect(response, 'invalid_state');
     expect(tokenRequests, isEmpty);
     expect(userRequests, isEmpty);
   });
@@ -625,7 +597,7 @@ void main() {
   test('rejects missing state', () async {
     final response = await get('code=authorization-code');
 
-    expect(response.statusCode, HttpStatus.badRequest);
+    await expectErrorRedirect(response, 'invalid_callback');
     expect(tokenRequests, isEmpty);
     expect(userRequests, isEmpty);
   });
@@ -633,7 +605,7 @@ void main() {
   test('rejects blank state', () async {
     final response = await get('state=%20&code=authorization-code');
 
-    expect(response.statusCode, HttpStatus.badRequest);
+    await expectErrorRedirect(response, 'invalid_callback');
     expect(tokenRequests, isEmpty);
     expect(userRequests, isEmpty);
   });
@@ -641,7 +613,7 @@ void main() {
   test('rejects missing code without consuming state', () async {
     final response = await get('state=$state');
 
-    expect(response.statusCode, HttpStatus.badRequest);
+    await expectErrorRedirect(response, 'invalid_callback');
     expect(await db.select(db.gitHubConnectionRequests).get(), hasLength(1));
     expect(tokenRequests, isEmpty);
     expect(userRequests, isEmpty);
@@ -650,7 +622,7 @@ void main() {
   test('rejects blank code without consuming state', () async {
     final response = await get('state=$state&code=%20');
 
-    expect(response.statusCode, HttpStatus.badRequest);
+    await expectErrorRedirect(response, 'invalid_callback');
     expect(await db.select(db.gitHubConnectionRequests).get(), hasLength(1));
     expect(tokenRequests, isEmpty);
     expect(userRequests, isEmpty);
@@ -659,7 +631,7 @@ void main() {
   test('rejects duplicate state parameters', () async {
     final response = await get('state=$state&state=other&code=code');
 
-    expect(response.statusCode, HttpStatus.badRequest);
+    await expectErrorRedirect(response, 'invalid_callback');
     expect(await db.select(db.gitHubConnectionRequests).get(), hasLength(1));
     expect(tokenRequests, isEmpty);
     expect(userRequests, isEmpty);
@@ -668,7 +640,7 @@ void main() {
   test('rejects duplicate code parameters without consuming state', () async {
     final response = await get('state=$state&code=first&code=second');
 
-    expect(response.statusCode, HttpStatus.badRequest);
+    await expectErrorRedirect(response, 'invalid_callback');
     expect(await db.select(db.gitHubConnectionRequests).get(), hasLength(1));
     expect(tokenRequests, isEmpty);
     expect(userRequests, isEmpty);
@@ -681,15 +653,13 @@ void main() {
         'state=$state&error=access_denied&error_description=private-detail',
       );
 
-      expect(response.statusCode, HttpStatus.badRequest);
-      expect(response.headers[HttpHeaders.locationHeader], isNull);
-      expect(await response.json(), {
-        'success': false,
-        'error': 'GitHub authorization failed',
-      });
-      expect(response.headers[HttpHeaders.cacheControlHeader], 'no-store');
-      expect(response.headers['referrer-policy'], 'no-referrer');
+      await expectErrorRedirect(response, 'access_denied');
       expect(await db.select(db.gitHubConnectionRequests).get(), isEmpty);
+      expect(await db.select(db.gitHubConnectionSessions).get(), isEmpty);
+
+      final repeated = await get('state=$state&error=access_denied');
+
+      await expectErrorRedirect(repeated, 'invalid_state');
       expect(tokenRequests, isEmpty);
       expect(userRequests, isEmpty);
     },
@@ -698,16 +668,43 @@ void main() {
   test('rejects duplicate error parameters without consuming state', () async {
     final response = await get('state=$state&error=first&error=second');
 
-    expect(response.statusCode, HttpStatus.badRequest);
+    await expectErrorRedirect(response, 'invalid_callback');
     expect(await db.select(db.gitHubConnectionRequests).get(), hasLength(1));
     expect(tokenRequests, isEmpty);
     expect(userRequests, isEmpty);
   });
 
+  test('does not report a denial before verifying state', () async {
+    final response = await get('state=unknown&error=access_denied');
+
+    await expectErrorRedirect(response, 'invalid_state');
+    expect(await db.select(db.gitHubConnectionRequests).get(), hasLength(1));
+    expect(await db.select(db.gitHubConnectionSessions).get(), isEmpty);
+    expect(tokenRequests, isEmpty);
+    expect(userRequests, isEmpty);
+  });
+
+  test(
+    'maps unknown GitHub errors to a fixed result at the fixed URL',
+    () async {
+      final response = await get(
+        'state=$state&error=private-upstream-error'
+        '&error_description=private-detail&error_uri=https%3A%2F%2Fother.example'
+        '&returnUrl=https%3A%2F%2Fother.example&reference=forged-reference',
+      );
+
+      await expectErrorRedirect(response, 'connection_failed');
+      expect(await db.select(db.gitHubConnectionRequests).get(), isEmpty);
+      expect(await db.select(db.gitHubConnectionSessions).get(), isEmpty);
+      expect(tokenRequests, isEmpty);
+      expect(userRequests, isEmpty);
+    },
+  );
+
   test('rejects blank error without consuming state', () async {
     final response = await get('state=$state&error=');
 
-    expect(response.statusCode, HttpStatus.badRequest);
+    await expectErrorRedirect(response, 'invalid_callback');
     expect(await db.select(db.gitHubConnectionRequests).get(), hasLength(1));
     expect(tokenRequests, isEmpty);
     expect(userRequests, isEmpty);
@@ -716,7 +713,7 @@ void main() {
   test('rejects conflicting code and error without consuming state', () async {
     final response = await get('state=$state&code=code&error=access_denied');
 
-    expect(response.statusCode, HttpStatus.badRequest);
+    await expectErrorRedirect(response, 'invalid_callback');
     expect(await db.select(db.gitHubConnectionRequests).get(), hasLength(1));
     expect(tokenRequests, isEmpty);
     expect(userRequests, isEmpty);
@@ -730,27 +727,20 @@ void main() {
       'state=$state&code=code&userId=other-user&teamId=team-1',
     );
 
-    expect(response.statusCode, HttpStatus.forbidden);
-    expect(await response.json(), {'success': false, 'error': 'Forbidden'});
+    await expectErrorRedirect(response, 'forbidden');
     expect(await db.select(db.gitHubConnectionRequests).get(), isEmpty);
     expect(tokenRequests, isEmpty);
     expect(userRequests, isEmpty);
   });
 
   test(
-    'returns a generic 500 response when the database query fails',
+    'redirects with a fixed error when the database query fails',
     () async {
       await db.customStatement('DROP TABLE github_connection_requests');
 
       final response = await get('state=$state&code=authorization-code');
 
-      expect(response.statusCode, HttpStatus.internalServerError);
-      expect(await response.json(), {
-        'success': false,
-        'error': 'Internal server error',
-      });
-      expect(response.headers[HttpHeaders.cacheControlHeader], 'no-store');
-      expect(response.headers['referrer-policy'], 'no-referrer');
+      await expectErrorRedirect(response, 'connection_failed');
       expect(tokenRequests, isEmpty);
       expect(userRequests, isEmpty);
     },

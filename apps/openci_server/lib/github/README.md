@@ -42,8 +42,25 @@ No token, OAuth code/state, or user/team identity is included in the redirect.
 An unset or invalid return URL returns a generic 500 before consuming state,
 calling GitHub, or creating a session; there is no request-supplied fallback URL.
 
-This implements the server's success redirect. The Dashboard receiver and
-redirects for denied or failed authorization are follow-up work. The receiver
-must read and remove the fragment before login redirects or analytics run, then
-authenticate the initiating user through the server before continuing. Do not
-use a route that copies the reference into a login redirect's query string.
+Denied or failed authorization also sends a `303` to the same fixed URL, with
+only `#error=<code>` in the fragment:
+
+| Code | Meaning |
+| --- | --- |
+| `access_denied` | GitHub reported that authorization was denied, with valid state. |
+| `invalid_callback` | Required callback parameters are missing, blank, duplicated, or conflicting. |
+| `invalid_state` | State is unknown, expired, or already used. |
+| `forbidden` | The initiating user is no longer a member of the team. |
+| `connection_failed` | GitHub, server configuration, or database processing failed, or GitHub reported another authorization error. |
+
+GitHub error text, exception details, and session references are never included
+in failure redirects. Malformed callbacks leave state untouched; a valid state
+is consumed before handling denial or contacting GitHub, so those failures
+require starting a new connection attempt. An invalid return URL still returns
+500 without a redirect, and methods other than GET return 405.
+
+The Dashboard receiver is follow-up work. It must read and remove the fragment
+before login redirects or analytics run, then authenticate the initiating user
+through the server before continuing. A result in the URL is not proof that a
+team is connected. Do not use a route that copies the reference into a login
+redirect's query string.

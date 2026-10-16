@@ -25,30 +25,34 @@ Future<Response> onRequest(RequestContext context) async {
 }
 
 Future<Response> _get(RequestContext context) async {
+  Uri? returnUri;
   try {
-    final parameters = context.request.uri.queryParametersAll;
-    if (!_hasValidParameters(parameters)) {
-      return _error(HttpStatus.badRequest, 'Invalid GitHub callback');
-    }
-
     final environment = _environment(context);
-    final returnUri = parseGitHubConnectionReturnUri(
+    returnUri = parseGitHubConnectionReturnUri(
       environment['GITHUB_CONNECTION_RETURN_URL'],
     );
+    final parameters = context.request.uri.queryParametersAll;
+    if (!_hasValidParameters(parameters)) {
+      return _redirect(returnUri, {'error': 'invalid_callback'});
+    }
+
     final db = context.read<AppDatabase>();
     final request = await consumeGitHubConnectionRequest(
       db: db,
       state: parameters['state']!.single,
     );
     if (request == null) {
-      return _error(HttpStatus.badRequest, 'Invalid or expired GitHub state');
+      return _redirect(returnUri, {'error': 'invalid_state'});
     }
 
     if (parameters.containsKey('error')) {
-      return _error(HttpStatus.badRequest, 'GitHub authorization failed');
+      final error = parameters['error']!.single == 'access_denied'
+          ? 'access_denied'
+          : 'connection_failed';
+      return _redirect(returnUri, {'error': error});
     }
     if (!await db.teamDao.isTeamMember(request.userId, request.teamId)) {
-      return _error(HttpStatus.forbidden, 'Forbidden');
+      return _redirect(returnUri, {'error': 'forbidden'});
     }
 
     final crypter = _createSecretCrypter(environment);
@@ -58,18 +62,13 @@ Future<Response> _get(RequestContext context) async {
       environment: environment,
     );
 
-    final GitHubUser user;
-    try {
-      user = await fetchGitHubUser(
-        accessToken: accessToken,
-        environment: environment,
-      );
-    } on HttpException {
-      return _error(HttpStatus.badGateway, 'Failed to fetch GitHub user');
-    }
+    final user = await fetchGitHubUser(
+      accessToken: accessToken,
+      environment: environment,
+    );
 
     if (!await db.teamDao.isTeamMember(request.userId, request.teamId)) {
-      return _error(HttpStatus.forbidden, 'Forbidden');
+      return _redirect(returnUri, {'error': 'forbidden'});
     }
 
     final session = await createGitHubConnectionSession(
@@ -81,29 +80,16 @@ Future<Response> _get(RequestContext context) async {
       accessToken: accessToken,
     );
 
-    // Keep the reference out of the Dashboard server's request URL and logs.
-    final fragment = Uri(
-      queryParameters: {'reference': session.reference},
-    ).query;
-    return Response(
-      statusCode: HttpStatus.seeOther,
-      headers: {
-        HttpHeaders.locationHeader: returnUri
-            .replace(fragment: fragment)
-            .toString(),
-      },
-    );
-  } on HttpException {
-    return _error(
-      HttpStatus.badGateway,
-      'Failed to exchange GitHub authorization code',
-    );
+    return _redirect(returnUri, {'reference': session.reference});
   } catch (e, s) {
-    return handleRouteException(
+    final response = await handleRouteException(
       e,
       s,
       logMessage: 'Failed to handle GitHub authorization callback',
     );
+    return returnUri == null
+        ? response
+        : _redirect(returnUri, {'error': 'connection_failed'});
   }
 }
 
@@ -139,9 +125,15 @@ bool _hasValidParameters(Map<String, List<String>> parameters) {
   return code != null && code.trim().isNotEmpty;
 }
 
-Response _error(int statusCode, String message) {
-  return Response.json(
-    statusCode: statusCode,
-    body: {'success': false, 'error': message},
+Response _redirect(Uri returnUri, Map<String, String> result) {
+  // Keep the result out of the Dashboard server's request URL and logs.
+  final fragment = Uri(queryParameters: result).query;
+  return Response(
+    statusCode: HttpStatus.seeOther,
+    headers: {
+      HttpHeaders.locationHeader: returnUri
+          .replace(fragment: fragment)
+          .toString(),
+    },
   );
 }
