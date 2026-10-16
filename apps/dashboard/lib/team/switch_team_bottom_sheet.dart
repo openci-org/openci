@@ -11,6 +11,7 @@ import 'package:dashboard/utilities/async_error_widget.dart';
 import 'package:dashboard/utilities/snack_bar_extension.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:wolt_modal_sheet/wolt_modal_sheet.dart';
 
@@ -95,6 +96,40 @@ class SwitchTeamBottomSheet extends HookConsumerWidget {
                           ),
                         ],
                       ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: currentTeam == null || isMembersLoading.value
+                          ? null
+                          : () async {
+                              await showDialog<void>(
+                                context: context,
+                                builder: (dialogContext) => AlertDialog(
+                                  title: Text(teamT.connectGitHub),
+                                  content: Text(
+                                    teamT.gitHubConnectionComingSoon,
+                                  ),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () =>
+                                          Navigator.of(dialogContext).pop(),
+                                      child: Text(t.common.close),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      icon: const FaIcon(FontAwesomeIcons.github, size: 20),
+                      label: Text(teamT.connectGitHub),
                     ),
                   ),
                   const SizedBox(height: 12),
