@@ -17,6 +17,8 @@ installation ID only selects a candidate from that fresh list.
   denied. See the [GitHub membership API documentation](https://docs.github.com/en/rest/orgs/members#get-an-organization-membership-for-the-authenticated-user).
 
 The helper returns the verified installation, or `null` for a denied candidate.
+When `expectedGitHubUserId` is supplied, the current GitHub user must also match
+the user recorded in the connection session.
 GitHub API failures, including 403/404 membership responses, throw sanitized
 exceptions instead of authorizing a connection. Each API operation is bounded by
 a 10-second timeout; installation pagination shares its own 10-second budget.

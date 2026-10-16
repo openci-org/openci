@@ -9,6 +9,7 @@ import 'package:openci_server/github/github_connection_exception.dart';
 Future<GitHubInstallation?> verifyGitHubInstallation({
   required String accessToken,
   required int installationId,
+  int? expectedGitHubUserId,
   @visibleForTesting Map<String, String>? environment,
   @visibleForTesting Duration membershipTimeout = const Duration(seconds: 10),
 }) async {
@@ -23,6 +24,9 @@ Future<GitHubInstallation?> verifyGitHubInstallation({
     accessToken: accessToken,
     environment: env,
   );
+  if (expectedGitHubUserId != null && user.id != expectedGitHubUserId) {
+    return null;
+  }
   final installations = await fetchGitHubInstallations(
     accessToken: accessToken,
     environment: env,
