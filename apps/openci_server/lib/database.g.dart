@@ -5837,6 +5837,419 @@ class GitHubConnectionRequestsCompanion
   }
 }
 
+class $GitHubConnectionSessionsTable extends GitHubConnectionSessions
+    with
+        TableInfo<
+          $GitHubConnectionSessionsTable,
+          DriftGitHubConnectionSession
+        > {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $GitHubConnectionSessionsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _userIdMeta = const VerificationMeta('userId');
+  @override
+  late final GeneratedColumn<String> userId = GeneratedColumn<String>(
+    'user_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _teamIdMeta = const VerificationMeta('teamId');
+  @override
+  late final GeneratedColumn<String> teamId = GeneratedColumn<String>(
+    'team_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES teams (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _githubUserIdMeta = const VerificationMeta(
+    'githubUserId',
+  );
+  @override
+  late final GeneratedColumn<int> githubUserId = GeneratedColumn<int>(
+    'github_user_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _referenceHashMeta = const VerificationMeta(
+    'referenceHash',
+  );
+  @override
+  late final GeneratedColumn<String> referenceHash = GeneratedColumn<String>(
+    'reference_hash',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways('UNIQUE'),
+  );
+  static const VerificationMeta _encryptedAccessTokenMeta =
+      const VerificationMeta('encryptedAccessToken');
+  @override
+  late final GeneratedColumn<String> encryptedAccessToken =
+      GeneratedColumn<String>(
+        'encrypted_access_token',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _expiresAtMeta = const VerificationMeta(
+    'expiresAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> expiresAt = GeneratedColumn<DateTime>(
+    'expires_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _consumedAtMeta = const VerificationMeta(
+    'consumedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> consumedAt = GeneratedColumn<DateTime>(
+    'consumed_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    userId,
+    teamId,
+    githubUserId,
+    referenceHash,
+    encryptedAccessToken,
+    createdAt,
+    expiresAt,
+    consumedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'github_connection_sessions';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<DriftGitHubConnectionSession> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('user_id')) {
+      context.handle(
+        _userIdMeta,
+        userId.isAcceptableOrUnknown(data['user_id']!, _userIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_userIdMeta);
+    }
+    if (data.containsKey('team_id')) {
+      context.handle(
+        _teamIdMeta,
+        teamId.isAcceptableOrUnknown(data['team_id']!, _teamIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_teamIdMeta);
+    }
+    if (data.containsKey('github_user_id')) {
+      context.handle(
+        _githubUserIdMeta,
+        githubUserId.isAcceptableOrUnknown(
+          data['github_user_id']!,
+          _githubUserIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_githubUserIdMeta);
+    }
+    if (data.containsKey('reference_hash')) {
+      context.handle(
+        _referenceHashMeta,
+        referenceHash.isAcceptableOrUnknown(
+          data['reference_hash']!,
+          _referenceHashMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_referenceHashMeta);
+    }
+    if (data.containsKey('encrypted_access_token')) {
+      context.handle(
+        _encryptedAccessTokenMeta,
+        encryptedAccessToken.isAcceptableOrUnknown(
+          data['encrypted_access_token']!,
+          _encryptedAccessTokenMeta,
+        ),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('expires_at')) {
+      context.handle(
+        _expiresAtMeta,
+        expiresAt.isAcceptableOrUnknown(data['expires_at']!, _expiresAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_expiresAtMeta);
+    }
+    if (data.containsKey('consumed_at')) {
+      context.handle(
+        _consumedAtMeta,
+        consumedAt.isAcceptableOrUnknown(data['consumed_at']!, _consumedAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  DriftGitHubConnectionSession map(
+    Map<String, dynamic> data, {
+    String? tablePrefix,
+  }) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return DriftGitHubConnectionSession(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      userId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}user_id'],
+      )!,
+      teamId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}team_id'],
+      )!,
+      githubUserId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}github_user_id'],
+      )!,
+      referenceHash: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}reference_hash'],
+      )!,
+      encryptedAccessToken: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}encrypted_access_token'],
+      ),
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      expiresAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}expires_at'],
+      )!,
+      consumedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}consumed_at'],
+      ),
+    );
+  }
+
+  @override
+  $GitHubConnectionSessionsTable createAlias(String alias) {
+    return $GitHubConnectionSessionsTable(attachedDatabase, alias);
+  }
+}
+
+class GitHubConnectionSessionsCompanion
+    extends UpdateCompanion<DriftGitHubConnectionSession> {
+  final Value<String> id;
+  final Value<String> userId;
+  final Value<String> teamId;
+  final Value<int> githubUserId;
+  final Value<String> referenceHash;
+  final Value<String?> encryptedAccessToken;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> expiresAt;
+  final Value<DateTime?> consumedAt;
+  final Value<int> rowid;
+  const GitHubConnectionSessionsCompanion({
+    this.id = const Value.absent(),
+    this.userId = const Value.absent(),
+    this.teamId = const Value.absent(),
+    this.githubUserId = const Value.absent(),
+    this.referenceHash = const Value.absent(),
+    this.encryptedAccessToken = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.expiresAt = const Value.absent(),
+    this.consumedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  GitHubConnectionSessionsCompanion.insert({
+    required String id,
+    required String userId,
+    required String teamId,
+    required int githubUserId,
+    required String referenceHash,
+    this.encryptedAccessToken = const Value.absent(),
+    required DateTime createdAt,
+    required DateTime expiresAt,
+    this.consumedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       userId = Value(userId),
+       teamId = Value(teamId),
+       githubUserId = Value(githubUserId),
+       referenceHash = Value(referenceHash),
+       createdAt = Value(createdAt),
+       expiresAt = Value(expiresAt);
+  static Insertable<DriftGitHubConnectionSession> custom({
+    Expression<String>? id,
+    Expression<String>? userId,
+    Expression<String>? teamId,
+    Expression<int>? githubUserId,
+    Expression<String>? referenceHash,
+    Expression<String>? encryptedAccessToken,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? expiresAt,
+    Expression<DateTime>? consumedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (userId != null) 'user_id': userId,
+      if (teamId != null) 'team_id': teamId,
+      if (githubUserId != null) 'github_user_id': githubUserId,
+      if (referenceHash != null) 'reference_hash': referenceHash,
+      if (encryptedAccessToken != null)
+        'encrypted_access_token': encryptedAccessToken,
+      if (createdAt != null) 'created_at': createdAt,
+      if (expiresAt != null) 'expires_at': expiresAt,
+      if (consumedAt != null) 'consumed_at': consumedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  GitHubConnectionSessionsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? userId,
+    Value<String>? teamId,
+    Value<int>? githubUserId,
+    Value<String>? referenceHash,
+    Value<String?>? encryptedAccessToken,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? expiresAt,
+    Value<DateTime?>? consumedAt,
+    Value<int>? rowid,
+  }) {
+    return GitHubConnectionSessionsCompanion(
+      id: id ?? this.id,
+      userId: userId ?? this.userId,
+      teamId: teamId ?? this.teamId,
+      githubUserId: githubUserId ?? this.githubUserId,
+      referenceHash: referenceHash ?? this.referenceHash,
+      encryptedAccessToken: encryptedAccessToken ?? this.encryptedAccessToken,
+      createdAt: createdAt ?? this.createdAt,
+      expiresAt: expiresAt ?? this.expiresAt,
+      consumedAt: consumedAt ?? this.consumedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (userId.present) {
+      map['user_id'] = Variable<String>(userId.value);
+    }
+    if (teamId.present) {
+      map['team_id'] = Variable<String>(teamId.value);
+    }
+    if (githubUserId.present) {
+      map['github_user_id'] = Variable<int>(githubUserId.value);
+    }
+    if (referenceHash.present) {
+      map['reference_hash'] = Variable<String>(referenceHash.value);
+    }
+    if (encryptedAccessToken.present) {
+      map['encrypted_access_token'] = Variable<String>(
+        encryptedAccessToken.value,
+      );
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (expiresAt.present) {
+      map['expires_at'] = Variable<DateTime>(expiresAt.value);
+    }
+    if (consumedAt.present) {
+      map['consumed_at'] = Variable<DateTime>(consumedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('GitHubConnectionSessionsCompanion(')
+          ..write('id: $id, ')
+          ..write('userId: $userId, ')
+          ..write('teamId: $teamId, ')
+          ..write('githubUserId: $githubUserId, ')
+          ..write('referenceHash: $referenceHash, ')
+          ..write('encryptedAccessToken: $encryptedAccessToken, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('expiresAt: $expiresAt, ')
+          ..write('consumedAt: $consumedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -5851,6 +6264,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $InvitationsTable invitations = $InvitationsTable(this);
   late final $GitHubConnectionRequestsTable gitHubConnectionRequests =
       $GitHubConnectionRequestsTable(this);
+  late final $GitHubConnectionSessionsTable gitHubConnectionSessions =
+      $GitHubConnectionSessionsTable(this);
   late final BuildJobDao buildJobDao = BuildJobDao(this as AppDatabase);
   late final BuildRunDao buildRunDao = BuildRunDao(this as AppDatabase);
   late final TeamDao teamDao = TeamDao(this as AppDatabase);
@@ -5878,6 +6293,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     udidRequests,
     invitations,
     gitHubConnectionRequests,
+    gitHubConnectionSessions,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -5930,6 +6346,15 @@ abstract class _$AppDatabase extends GeneratedDatabase {
       ),
       result: [
         TableUpdate('github_connection_requests', kind: UpdateKind.delete),
+      ],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'teams',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [
+        TableUpdate('github_connection_sessions', kind: UpdateKind.delete),
       ],
     ),
   ]);
@@ -7434,6 +7859,34 @@ final class $$TeamsTableReferences
       manager.$state.copyWith(prefetchedData: cache),
     );
   }
+
+  static MultiTypedResultKey<
+    $GitHubConnectionSessionsTable,
+    List<DriftGitHubConnectionSession>
+  >
+  _gitHubConnectionSessionsRefsTable(_$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.gitHubConnectionSessions,
+        aliasName: $_aliasNameGenerator(
+          db.teams.id,
+          db.gitHubConnectionSessions.teamId,
+        ),
+      );
+
+  $$GitHubConnectionSessionsTableProcessedTableManager
+  get gitHubConnectionSessionsRefs {
+    final manager = $$GitHubConnectionSessionsTableTableManager(
+      $_db,
+      $_db.gitHubConnectionSessions,
+    ).filter((f) => f.teamId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _gitHubConnectionSessionsRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
 }
 
 class $$TeamsTableFilterComposer extends Composer<_$AppDatabase, $TeamsTable> {
@@ -7623,6 +8076,33 @@ class $$TeamsTableFilterComposer extends Composer<_$AppDatabase, $TeamsTable> {
               }) => $$GitHubConnectionRequestsTableFilterComposer(
                 $db: $db,
                 $table: $db.gitHubConnectionRequests,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
+
+  Expression<bool> gitHubConnectionSessionsRefs(
+    Expression<bool> Function($$GitHubConnectionSessionsTableFilterComposer f)
+    f,
+  ) {
+    final $$GitHubConnectionSessionsTableFilterComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.gitHubConnectionSessions,
+          getReferencedColumn: (t) => t.teamId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$GitHubConnectionSessionsTableFilterComposer(
+                $db: $db,
+                $table: $db.gitHubConnectionSessions,
                 $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
                 joinBuilder: joinBuilder,
                 $removeJoinBuilderFromRootComposer:
@@ -7862,6 +8342,33 @@ class $$TeamsTableAnnotationComposer
         );
     return f(composer);
   }
+
+  Expression<T> gitHubConnectionSessionsRefs<T extends Object>(
+    Expression<T> Function($$GitHubConnectionSessionsTableAnnotationComposer a)
+    f,
+  ) {
+    final $$GitHubConnectionSessionsTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.gitHubConnectionSessions,
+          getReferencedColumn: (t) => t.teamId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$GitHubConnectionSessionsTableAnnotationComposer(
+                $db: $db,
+                $table: $db.gitHubConnectionSessions,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
 }
 
 class $$TeamsTableTableManager
@@ -7884,6 +8391,7 @@ class $$TeamsTableTableManager
             bool udidRequestsRefs,
             bool invitationsRefs,
             bool gitHubConnectionRequestsRefs,
+            bool gitHubConnectionSessionsRefs,
           })
         > {
   $$TeamsTableTableManager(_$AppDatabase db, $TeamsTable table)
@@ -7951,6 +8459,7 @@ class $$TeamsTableTableManager
                 udidRequestsRefs = false,
                 invitationsRefs = false,
                 gitHubConnectionRequestsRefs = false,
+                gitHubConnectionSessionsRefs = false,
               }) {
                 return PrefetchHooks(
                   db: db,
@@ -7962,6 +8471,8 @@ class $$TeamsTableTableManager
                     if (invitationsRefs) db.invitations,
                     if (gitHubConnectionRequestsRefs)
                       db.gitHubConnectionRequests,
+                    if (gitHubConnectionSessionsRefs)
+                      db.gitHubConnectionSessions,
                   ],
                   addJoins: null,
                   getPrefetchedDataCallback: (items) async {
@@ -8088,6 +8599,27 @@ class $$TeamsTableTableManager
                               ),
                           typedResults: items,
                         ),
+                      if (gitHubConnectionSessionsRefs)
+                        await $_getPrefetchedData<
+                          DriftTeam,
+                          $TeamsTable,
+                          DriftGitHubConnectionSession
+                        >(
+                          currentTable: table,
+                          referencedTable: $$TeamsTableReferences
+                              ._gitHubConnectionSessionsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$TeamsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).gitHubConnectionSessionsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.teamId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
                     ];
                   },
                 );
@@ -8115,6 +8647,7 @@ typedef $$TeamsTableProcessedTableManager =
         bool udidRequestsRefs,
         bool invitationsRefs,
         bool gitHubConnectionRequestsRefs,
+        bool gitHubConnectionSessionsRefs,
       })
     >;
 typedef $$TeamMembersTableCreateCompanionBuilder =
@@ -10466,6 +10999,433 @@ typedef $$GitHubConnectionRequestsTableProcessedTableManager =
       DriftGitHubConnectionRequest,
       PrefetchHooks Function({bool teamId})
     >;
+typedef $$GitHubConnectionSessionsTableCreateCompanionBuilder =
+    GitHubConnectionSessionsCompanion Function({
+      required String id,
+      required String userId,
+      required String teamId,
+      required int githubUserId,
+      required String referenceHash,
+      Value<String?> encryptedAccessToken,
+      required DateTime createdAt,
+      required DateTime expiresAt,
+      Value<DateTime?> consumedAt,
+      Value<int> rowid,
+    });
+typedef $$GitHubConnectionSessionsTableUpdateCompanionBuilder =
+    GitHubConnectionSessionsCompanion Function({
+      Value<String> id,
+      Value<String> userId,
+      Value<String> teamId,
+      Value<int> githubUserId,
+      Value<String> referenceHash,
+      Value<String?> encryptedAccessToken,
+      Value<DateTime> createdAt,
+      Value<DateTime> expiresAt,
+      Value<DateTime?> consumedAt,
+      Value<int> rowid,
+    });
+
+final class $$GitHubConnectionSessionsTableReferences
+    extends
+        BaseReferences<
+          _$AppDatabase,
+          $GitHubConnectionSessionsTable,
+          DriftGitHubConnectionSession
+        > {
+  $$GitHubConnectionSessionsTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $TeamsTable _teamIdTable(_$AppDatabase db) => db.teams.createAlias(
+    $_aliasNameGenerator(db.gitHubConnectionSessions.teamId, db.teams.id),
+  );
+
+  $$TeamsTableProcessedTableManager get teamId {
+    final $_column = $_itemColumn<String>('team_id')!;
+
+    final manager = $$TeamsTableTableManager(
+      $_db,
+      $_db.teams,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_teamIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$GitHubConnectionSessionsTableFilterComposer
+    extends Composer<_$AppDatabase, $GitHubConnectionSessionsTable> {
+  $$GitHubConnectionSessionsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get userId => $composableBuilder(
+    column: $table.userId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get githubUserId => $composableBuilder(
+    column: $table.githubUserId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get referenceHash => $composableBuilder(
+    column: $table.referenceHash,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get encryptedAccessToken => $composableBuilder(
+    column: $table.encryptedAccessToken,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get expiresAt => $composableBuilder(
+    column: $table.expiresAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get consumedAt => $composableBuilder(
+    column: $table.consumedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$TeamsTableFilterComposer get teamId {
+    final $$TeamsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.teamId,
+      referencedTable: $db.teams,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TeamsTableFilterComposer(
+            $db: $db,
+            $table: $db.teams,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$GitHubConnectionSessionsTableOrderingComposer
+    extends Composer<_$AppDatabase, $GitHubConnectionSessionsTable> {
+  $$GitHubConnectionSessionsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get userId => $composableBuilder(
+    column: $table.userId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get githubUserId => $composableBuilder(
+    column: $table.githubUserId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get referenceHash => $composableBuilder(
+    column: $table.referenceHash,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get encryptedAccessToken => $composableBuilder(
+    column: $table.encryptedAccessToken,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get expiresAt => $composableBuilder(
+    column: $table.expiresAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get consumedAt => $composableBuilder(
+    column: $table.consumedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$TeamsTableOrderingComposer get teamId {
+    final $$TeamsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.teamId,
+      referencedTable: $db.teams,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TeamsTableOrderingComposer(
+            $db: $db,
+            $table: $db.teams,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$GitHubConnectionSessionsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $GitHubConnectionSessionsTable> {
+  $$GitHubConnectionSessionsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get userId =>
+      $composableBuilder(column: $table.userId, builder: (column) => column);
+
+  GeneratedColumn<int> get githubUserId => $composableBuilder(
+    column: $table.githubUserId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get referenceHash => $composableBuilder(
+    column: $table.referenceHash,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get encryptedAccessToken => $composableBuilder(
+    column: $table.encryptedAccessToken,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get expiresAt =>
+      $composableBuilder(column: $table.expiresAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get consumedAt => $composableBuilder(
+    column: $table.consumedAt,
+    builder: (column) => column,
+  );
+
+  $$TeamsTableAnnotationComposer get teamId {
+    final $$TeamsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.teamId,
+      referencedTable: $db.teams,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TeamsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.teams,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$GitHubConnectionSessionsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $GitHubConnectionSessionsTable,
+          DriftGitHubConnectionSession,
+          $$GitHubConnectionSessionsTableFilterComposer,
+          $$GitHubConnectionSessionsTableOrderingComposer,
+          $$GitHubConnectionSessionsTableAnnotationComposer,
+          $$GitHubConnectionSessionsTableCreateCompanionBuilder,
+          $$GitHubConnectionSessionsTableUpdateCompanionBuilder,
+          (
+            DriftGitHubConnectionSession,
+            $$GitHubConnectionSessionsTableReferences,
+          ),
+          DriftGitHubConnectionSession,
+          PrefetchHooks Function({bool teamId})
+        > {
+  $$GitHubConnectionSessionsTableTableManager(
+    _$AppDatabase db,
+    $GitHubConnectionSessionsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$GitHubConnectionSessionsTableFilterComposer(
+                $db: db,
+                $table: table,
+              ),
+          createOrderingComposer: () =>
+              $$GitHubConnectionSessionsTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$GitHubConnectionSessionsTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> userId = const Value.absent(),
+                Value<String> teamId = const Value.absent(),
+                Value<int> githubUserId = const Value.absent(),
+                Value<String> referenceHash = const Value.absent(),
+                Value<String?> encryptedAccessToken = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> expiresAt = const Value.absent(),
+                Value<DateTime?> consumedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => GitHubConnectionSessionsCompanion(
+                id: id,
+                userId: userId,
+                teamId: teamId,
+                githubUserId: githubUserId,
+                referenceHash: referenceHash,
+                encryptedAccessToken: encryptedAccessToken,
+                createdAt: createdAt,
+                expiresAt: expiresAt,
+                consumedAt: consumedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String userId,
+                required String teamId,
+                required int githubUserId,
+                required String referenceHash,
+                Value<String?> encryptedAccessToken = const Value.absent(),
+                required DateTime createdAt,
+                required DateTime expiresAt,
+                Value<DateTime?> consumedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => GitHubConnectionSessionsCompanion.insert(
+                id: id,
+                userId: userId,
+                teamId: teamId,
+                githubUserId: githubUserId,
+                referenceHash: referenceHash,
+                encryptedAccessToken: encryptedAccessToken,
+                createdAt: createdAt,
+                expiresAt: expiresAt,
+                consumedAt: consumedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$GitHubConnectionSessionsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({teamId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (teamId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.teamId,
+                                referencedTable:
+                                    $$GitHubConnectionSessionsTableReferences
+                                        ._teamIdTable(db),
+                                referencedColumn:
+                                    $$GitHubConnectionSessionsTableReferences
+                                        ._teamIdTable(db)
+                                        .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$GitHubConnectionSessionsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $GitHubConnectionSessionsTable,
+      DriftGitHubConnectionSession,
+      $$GitHubConnectionSessionsTableFilterComposer,
+      $$GitHubConnectionSessionsTableOrderingComposer,
+      $$GitHubConnectionSessionsTableAnnotationComposer,
+      $$GitHubConnectionSessionsTableCreateCompanionBuilder,
+      $$GitHubConnectionSessionsTableUpdateCompanionBuilder,
+      (DriftGitHubConnectionSession, $$GitHubConnectionSessionsTableReferences),
+      DriftGitHubConnectionSession,
+      PrefetchHooks Function({bool teamId})
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -10492,5 +11452,10 @@ class $AppDatabaseManager {
       $$GitHubConnectionRequestsTableTableManager(
         _db,
         _db.gitHubConnectionRequests,
+      );
+  $$GitHubConnectionSessionsTableTableManager get gitHubConnectionSessions =>
+      $$GitHubConnectionSessionsTableTableManager(
+        _db,
+        _db.gitHubConnectionSessions,
       );
 }
