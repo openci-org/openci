@@ -73,11 +73,13 @@ void main() {
 
   Future<GitHubInstallation?> verify({
     int installationId = 456,
+    int? expectedGitHubUserId,
     Duration membershipTimeout = const Duration(seconds: 10),
   }) => http.runWithClient(
     () => verifyGitHubInstallation(
       accessToken: 'private-user-token',
       installationId: installationId,
+      expectedGitHubUserId: expectedGitHubUserId,
       environment: environment,
       membershipTimeout: membershipTimeout,
     ),
@@ -176,6 +178,15 @@ void main() {
   test('denies an installation ID absent from the user list', () async {
     expect(await verify(installationId: 999), isNull);
     expect(requests, hasLength(2));
+  });
+
+  test('allows the GitHub user bound to the connection session', () async {
+    expect(await verify(expectedGitHubUserId: 123), isNotNull);
+  });
+
+  test('denies a different GitHub user before listing installations', () async {
+    expect(await verify(expectedGitHubUserId: 999), isNull);
+    expect(requests, hasLength(1));
   });
 
   test('denies a user with no accessible installations', () async {

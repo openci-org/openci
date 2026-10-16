@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:github/github.dart';
 import 'package:http/http.dart' as http;
+import 'package:openci_server/github/parse_github_api_base_uri.dart';
 
 GitHub createGitHubClient({
   required String accessToken,
@@ -10,25 +11,13 @@ GitHub createGitHubClient({
   if (accessToken.isEmpty || accessToken.contains(RegExp(r'\s'))) {
     throw ArgumentError('A valid GitHub user access token is required');
   }
-  final baseUri = Uri.tryParse(
-    (environment ?? Platform.environment)['GITHUB_API_BASE_URL']?.trim() ?? '',
+  final baseUri = parseGitHubApiBaseUri(
+    (environment ?? Platform.environment)['GITHUB_API_BASE_URL'],
   );
-  if (baseUri == null ||
-      (baseUri.scheme != 'https' && baseUri.scheme != 'http') ||
-      baseUri.host.isEmpty ||
-      baseUri.userInfo.isNotEmpty ||
-      baseUri.hasQuery ||
-      baseUri.hasFragment) {
-    throw StateError(
-      'GITHUB_API_BASE_URL must be an HTTP(S) URL without credentials, query, '
-      'or fragment.',
-    );
-  }
-  final path = baseUri.path.replaceFirst(RegExp(r'/+$'), '');
 
   return GitHub(
     auth: Authentication.bearerToken(accessToken),
-    endpoint: baseUri.replace(path: path).toString(),
+    endpoint: baseUri.toString(),
     client: _NoRedirectClient(),
   );
 }

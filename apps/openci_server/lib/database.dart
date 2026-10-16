@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'package:drift/drift.dart';
-import 'package:drift_postgres/drift_postgres.dart';
 import 'package:meta/meta.dart';
 import 'package:openci_server/build_job/build_job.dart';
 import 'package:openci_server/build_job/build_job_dao.dart';
@@ -14,6 +13,7 @@ import 'package:openci_server/device/udid_request_table.dart';
 import 'package:openci_server/github/github_connection_request_table.dart';
 import 'package:openci_server/github/github_connection_session_table.dart';
 import 'package:openci_server/github/github_connection_table.dart';
+import 'package:openci_server/open_postgres_database.dart';
 import 'package:openci_server/secret/secret_dao.dart';
 import 'package:openci_server/secret/secret_table.dart';
 import 'package:openci_server/seed/seed_dao.dart';
@@ -23,7 +23,6 @@ import 'package:openci_server/team/team_table.dart';
 import 'package:openci_server/webhook_task/webhook_task_dao.dart';
 import 'package:openci_server/webhook_task/webhook_task_table.dart';
 import 'package:openci_shared/openci_shared.dart';
-import 'package:postgres/postgres.dart' as pg;
 
 part 'database.g.dart';
 
@@ -107,10 +106,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   static QueryExecutor _openConnection() {
-    final databaseUrl = loadDatabaseUrl();
-    return PgDatabase.opened(
-      pg.Pool.withUrl(databaseUrl),
-    );
+    return openPostgresDatabase(loadDatabaseUrl());
   }
 }
 

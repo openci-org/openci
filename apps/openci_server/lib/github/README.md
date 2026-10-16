@@ -17,6 +17,8 @@ installation ID only selects a candidate from that fresh list.
   denied. See the [GitHub membership API documentation](https://docs.github.com/en/rest/orgs/members#get-an-organization-membership-for-the-authenticated-user).
 
 The helper returns the verified installation, or `null` for a denied candidate.
+When `expectedGitHubUserId` is supplied, the current GitHub user must also match
+the user recorded in the connection session.
 GitHub API failures, including 403/404 membership responses, throw sanitized
 exceptions instead of authorizing a connection. Each API operation is bounded by
 a 10-second timeout; installation pagination shares its own 10-second budget.
@@ -168,10 +170,33 @@ time, and an explicit `active`, `suspended`, or `removed` status. Account types 
 `GitHubAccountType.user` / `.organization` in Dart and retain `User` /
 `Organization` in database rows and JSON. Unknown stored account types are
 rejected. It stores no OAuth tokens. The URL identifies the operator's
-configuration; it is not a
-team-editable endpoint. The later persistence helper must use the canonical API
-base URL (including the GHES API path, without trailing slashes) and freshly
-verified GitHub metadata.
+configuration; it is not a team-editable endpoint.
+
+`saveGitHubConnection` saves one freshly verified installation and returns
+the stored row. It generates a UUID for a new connection, sets the status to
+`active`, and normalizes the operator's API URL with `parseGitHubApiBaseUri`,
+preserving the GHES API path.
+The caller must provide server-verified installation metadata, the authorized
+team, the verifying Firebase UID and GitHub user ID, and the verification time.
+The helper rejects suspended installations and unsupported account types.
+For an existing connection on the same team, it preserves the record ID and
+owner while refreshing verified metadata, the verifier, the verification time,
+and the active status. An installation reserved by another team returns `null`
+without modifying or exposing that team's record, including suspended or removed
+connections. A conditional database upsert makes this decision and write in one
+statement, including concurrent saves. Database failures throw a sanitized error
+instead of returning a conflict. It participates in the caller's transaction.
+
+`saveGitHubConnectionAndConsumeSession` combines that save with session
+consumption in one transaction. A conflict returns `null` without consuming the
+session. After a successful save, it checks and consumes the session at the
+current time; an invalid session throws `InvalidGitHubConnectionSessionException`
+and rolls back the insert or refresh. Database failures also roll back and throw
+a sanitized error. On success, the session's temporary token is cleared.
+
+The caller must first verify the GitHub user and installation using the session's
+token. Wiring those fresh GitHub checks into this transaction helper remains
+follow-up work in G-1371. Neither persistence helper is called by an API route yet.
 
 A unique constraint on `(github_api_base_url, github_app_id, installation_id)`
 reserves an installation for one team, including suspended or removed rows.
@@ -180,19 +205,23 @@ connections, and deleting the team cascades to its connection rows.
 
 The migration creates an empty table and leaves `Teams.installationIds` intact.
 Legacy IDs, including duplicates across teams, are not evidence of verified
-connections and are not copied into the new table. G-1371 will add the verified
-save operation; G-1379/G-1380 will migrate legacy links and switch consumers.
+connections and are not copied into the new table. G-1371 will combine fresh
+verification, persistence, and session consumption; G-1379/G-1380 will migrate
+legacy links and switch consumers.
 This schema change alone does not change existing API or CI lookups.
 
-Run the SQLite table and migration tests with:
+Run the SQLite storage and migration tests with:
 
 ```sh
-dart test test/lib/github/github_connection_table_test.dart test/lib/database_test.dart
+dart test test/lib/github/github_connection_table_test.dart \
+  test/lib/github/save_github_connection_and_consume_session_test.dart \
+  test/lib/github/save_github_connection_test.dart test/lib/database_test.dart
 ```
 
 The PostgreSQL integration test runs the same table constraints plus a v27 → v28
-migration. It creates and removes a unique schema for each test. Use a disposable
-local PostgreSQL database, for example:
+migration, as well as the save helper tests and concurrent saves over independent
+database connections. It creates and removes a unique schema for each test.
+Use a disposable local PostgreSQL database, for example:
 
 ```sh
 docker run --rm -d --name openci-github-db-test \
