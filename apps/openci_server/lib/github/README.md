@@ -158,3 +158,50 @@ Rate-limited 403 responses are recognized by `x-ratelimit-remaining: 0`,
 No partial candidates or upstream error details are returned. All responses
 include `Cache-Control: no-store` and `Referrer-Policy: no-referrer`. The shared
 client, Dashboard UI, and connection confirmation remain follow-up work.
+
+## Verified team connection storage
+
+Schema version 28 adds `github_connections`. Each row records the team, the
+operator's GitHub API base URL and App ID, installation ID, stable account ID,
+account type/login, the verifying Firebase UID and GitHub user ID, verification
+time, and an explicit `active`, `suspended`, or `removed` status. Account types use
+`GitHubAccountType.user` / `.organization` in Dart and retain `User` /
+`Organization` in database rows and JSON. Unknown stored account types are
+rejected. It stores no OAuth tokens. The URL identifies the operator's
+configuration; it is not a
+team-editable endpoint. The later persistence helper must use the canonical API
+base URL (including the GHES API path, without trailing slashes) and freshly
+verified GitHub metadata.
+
+A unique constraint on `(github_api_base_url, github_app_id, installation_id)`
+reserves an installation for one team, including suspended or removed rows.
+Renaming an account does not change that identity. A team can have multiple
+connections, and deleting the team cascades to its connection rows.
+
+The migration creates an empty table and leaves `Teams.installationIds` intact.
+Legacy IDs, including duplicates across teams, are not evidence of verified
+connections and are not copied into the new table. G-1371 will add the verified
+save operation; G-1379/G-1380 will migrate legacy links and switch consumers.
+This schema change alone does not change existing API or CI lookups.
+
+Run the SQLite table and migration tests with:
+
+```sh
+dart test test/lib/github/github_connection_table_test.dart test/lib/database_test.dart
+```
+
+The PostgreSQL integration test runs the same table constraints plus a v27 → v28
+migration. It creates and removes a unique schema for each test. Use a disposable
+local PostgreSQL database, for example:
+
+```sh
+docker run --rm -d --name openci-github-db-test \
+  -e POSTGRES_PASSWORD=openci-test -e POSTGRES_DB=openci_test \
+  -p 127.0.0.1:55432:5432 postgres:16-alpine
+OPENCI_TEST_DATABASE_URL='postgresql://postgres:openci-test@127.0.0.1:55432/openci_test?sslmode=disable' \
+  dart test integration_test/github_connection_database_test.dart
+docker stop openci-github-db-test
+```
+
+Wait until PostgreSQL is ready before running the test. Without
+`OPENCI_TEST_DATABASE_URL`, the integration test is skipped.

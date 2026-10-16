@@ -13,6 +13,7 @@ import 'package:openci_server/device/udid_request_dao.dart';
 import 'package:openci_server/device/udid_request_table.dart';
 import 'package:openci_server/github/github_connection_request_table.dart';
 import 'package:openci_server/github/github_connection_session_table.dart';
+import 'package:openci_server/github/github_connection_table.dart';
 import 'package:openci_server/secret/secret_dao.dart';
 import 'package:openci_server/secret/secret_table.dart';
 import 'package:openci_server/seed/seed_dao.dart';
@@ -39,6 +40,7 @@ part 'database.g.dart';
     Invitations,
     GitHubConnectionRequests,
     GitHubConnectionSessions,
+    GitHubConnections,
   ],
   daos: [
     BuildJobDao,
@@ -56,7 +58,7 @@ class AppDatabase extends _$AppDatabase {
     : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 27;
+  int get schemaVersion => 28;
 
   @override
   MigrationStrategy get migration {
@@ -96,6 +98,9 @@ class AppDatabase extends _$AppDatabase {
         }
         if (from < 27) {
           await m.createTable(gitHubConnectionSessions);
+        }
+        if (from < 28) {
+          await m.createTable(gitHubConnections);
         }
       },
     );
