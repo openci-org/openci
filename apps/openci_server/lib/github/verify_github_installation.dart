@@ -44,7 +44,7 @@ Future<GitHubInstallation?> verifyGitHubInstallation({
 
 Future<List<GitHubInstallation>> fetchGitHubConnectionCandidates({
   required String accessToken,
-  @visibleForTesting Map<String, String>? environment,
+  Map<String, String>? environment,
   @visibleForTesting Duration membershipTimeout = const Duration(seconds: 10),
 }) async {
   final env = environment ?? Platform.environment;

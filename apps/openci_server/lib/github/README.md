@@ -34,10 +34,9 @@ verification fails, the call throws a sanitized exception instead of returning
 partial results. User and installation-list fetches retain their separate
 10-second limits.
 
-This helper does not read a connection session or expose an HTTP endpoint yet.
-The candidates API must authenticate and bind the session before using its
-decrypted token, and return only the fields needed for selection. Selecting a
-candidate still requires fresh `verifyGitHubInstallation` checks immediately
+The helper itself does not read a connection session. The candidates API below
+authenticates and binds the session before using its decrypted token. Selecting
+a candidate still requires fresh `verifyGitHubInstallation` checks immediately
 before persisting the connection.
 
 ## GitHub connection callback
@@ -111,5 +110,42 @@ Missing authentication returns 401; malformed JSON or a missing/invalid referenc
 field returns 400. Unknown, expired, consumed, or unauthorized sessions all return
 the same 403 response. Database failures return a generic 500, and methods other
 than POST return 405. All responses include `Cache-Control: no-store` and
-`Referrer-Policy: no-referrer`. The Dashboard receiver, installation candidates,
-and explicit connection confirmation remain follow-up work.
+`Referrer-Policy: no-referrer`. The Dashboard receiver and explicit connection
+confirmation remain follow-up work.
+
+## Reading connection candidates
+
+`POST /teams/:id/github/candidates` accepts the same Bearer authentication and
+JSON `{ "reference": "<post-callback-reference>" }` as the session endpoint.
+After verifying the initiating UID, team, membership, expiry, and unused state,
+the server decrypts the stored token using `SECRET_ENCRYPTION_KEY` and fetches
+verified candidates from the operator's GitHub API endpoint. It checks the
+session again after the GitHub requests, so a session that expires, is consumed,
+or loses team membership during those requests cannot return candidates.
+
+```json
+{
+  "success": true,
+  "candidates": [
+    {
+      "installationId": 100,
+      "accountLogin": "octocat",
+      "accountType": "User"
+    }
+  ]
+}
+```
+
+Only installation ID, account login, and account type are returned. Credentials,
+references, session IDs, and other teams' connection data are excluded. Caller
+identity, tokens, and GitHub settings supplied in the body are ignored. Reading
+does not consume the session or save a team connection.
+
+No eligible candidates returns 200 with an empty array. Authentication/input/
+session/method failures use the same 401/400/403/405 responses as the session
+endpoint. Database, configuration, or decryption failures return a generic 500.
+GitHub fetch or verification failures return a fixed 502 response without
+partial candidates or upstream details. Distinguishing reauthorization, missing
+permissions, and transient failures is follow-up work, along with the shared
+client and Dashboard UI. All responses include `Cache-Control: no-store` and
+`Referrer-Policy: no-referrer`.
