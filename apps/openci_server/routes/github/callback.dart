@@ -6,6 +6,7 @@ import 'package:openci_server/github/consume_github_connection_request.dart';
 import 'package:openci_server/github/create_github_connection_session.dart';
 import 'package:openci_server/github/exchange_github_authorization_code.dart';
 import 'package:openci_server/github/fetch_github_user.dart';
+import 'package:openci_server/github/parse_github_connection_return_uri.dart';
 import 'package:openci_server/request/error_handler.dart';
 import 'package:openci_server/secret/secret_crypter.dart';
 
@@ -30,6 +31,10 @@ Future<Response> _get(RequestContext context) async {
       return _error(HttpStatus.badRequest, 'Invalid GitHub callback');
     }
 
+    final environment = _environment(context);
+    final returnUri = parseGitHubConnectionReturnUri(
+      environment['GITHUB_CONNECTION_RETURN_URL'],
+    );
     final db = context.read<AppDatabase>();
     final request = await consumeGitHubConnectionRequest(
       db: db,
@@ -46,7 +51,6 @@ Future<Response> _get(RequestContext context) async {
       return _error(HttpStatus.forbidden, 'Forbidden');
     }
 
-    final environment = _environment(context);
     final crypter = _createSecretCrypter(environment);
     final accessToken = await exchangeGitHubAuthorizationCode(
       code: parameters['code']!.single,
@@ -77,8 +81,17 @@ Future<Response> _get(RequestContext context) async {
       accessToken: accessToken,
     );
 
-    return Response.json(
-      body: {'success': true, 'reference': session.reference},
+    // Keep the reference out of the Dashboard server's request URL and logs.
+    final fragment = Uri(
+      queryParameters: {'reference': session.reference},
+    ).query;
+    return Response(
+      statusCode: HttpStatus.seeOther,
+      headers: {
+        HttpHeaders.locationHeader: returnUri
+            .replace(fragment: fragment)
+            .toString(),
+      },
     );
   } on HttpException {
     return _error(

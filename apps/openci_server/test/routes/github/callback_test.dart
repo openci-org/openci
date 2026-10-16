@@ -35,6 +35,8 @@ void main() {
       'GITHUB_APP_CLIENT_ID': 'Iv1.test-client',
       'GITHUB_APP_CLIENT_SECRET': 'private-client-secret',
       'GITHUB_OAUTH_REDIRECT_URI': 'https://openci.example/github/callback',
+      'GITHUB_CONNECTION_RETURN_URL':
+          'https://dashboard.example/github/connection',
       'SECRET_ENCRYPTION_KEY': base64Encode(List<int>.filled(32, 1)),
     };
     tokenRequests = [];
@@ -109,8 +111,25 @@ void main() {
   }
 
   test(
-    'accepts the browser callback without a Firebase bearer token',
+    'redirects the browser callback without exposing the reference to the Dashboard server',
     () async {
+      final dashboardRequests = <Uri>[];
+      final dashboard = await serve(
+        (context) {
+          dashboardRequests.add(context.request.uri);
+          return Response(body: 'Dashboard');
+        },
+        InternetAddress.loopbackIPv4,
+        0,
+      );
+      addTearDown(() => dashboard.close(force: true));
+      environment['GITHUB_CONNECTION_RETURN_URL'] = Uri(
+        scheme: 'http',
+        host: dashboard.address.address,
+        port: dashboard.port,
+        path: '/github/connection',
+      ).toString();
+
       final handler = callback
           .use(root.databaseProvider(db))
           .use(root.authProvider(null))
@@ -126,7 +145,8 @@ void main() {
       final client = http.Client();
       addTearDown(client.close);
 
-      final response = await client.get(
+      final request = http.Request(
+        'GET',
         Uri(
           scheme: 'http',
           host: server.address.address,
@@ -134,15 +154,24 @@ void main() {
           path: '/github/callback',
           queryParameters: {'state': state, 'code': 'authorization-code'},
         ),
+      )..followRedirects = false;
+      final response = await http.Response.fromStream(
+        await client.send(request),
       );
 
-      expect(response.statusCode, HttpStatus.ok);
-      final body = jsonDecode(response.body) as Map<String, dynamic>;
-      expect(body, {
-        'success': true,
+      expect(response.statusCode, HttpStatus.seeOther);
+      expect(response.body, isEmpty);
+      final location = Uri.parse(response.headers[HttpHeaders.locationHeader]!);
+      expect(
+        location.removeFragment().toString(),
+        environment['GITHUB_CONNECTION_RETURN_URL'],
+      );
+      expect(location.hasQuery, isFalse);
+      final fragment = Uri.splitQueryString(location.fragment);
+      expect(fragment, {
         'reference': isA<String>(),
       });
-      final reference = body['reference'] as String;
+      final reference = fragment['reference']!;
       expect(reference, matches(r'^[A-Za-z0-9_-]{43}$'));
       expect(reference, isNot(state));
       expect(reference, isNot('request-1'));
@@ -179,24 +208,46 @@ void main() {
       );
       expect(session.consumedAt, isNull);
       expect((await db.teamDao.getTeam('team-1'))!.installationIds, isEmpty);
+
+      final landing = await client.get(location);
+
+      expect(landing.statusCode, HttpStatus.ok);
+      expect(landing.body, 'Dashboard');
+      final dashboardRequest = dashboardRequests.single;
+      expect(dashboardRequest.path, '/github/connection');
+      expect(dashboardRequest.hasQuery, isFalse);
+      expect(dashboardRequest.hasFragment, isFalse);
+      expect(dashboardRequest.toString(), isNot(contains(reference)));
     },
   );
 
   test(
-    'uses the stored verifier and operator settings despite query overrides',
+    'uses the stored verifier and operator settings despite query and header overrides',
     () async {
       environment['GITHUB_API_BASE_URL'] = 'https://github.example/api/v3';
 
-      final response = await get(
-        'state=$state&code=authorization-code'
-        '&code_verifier=forged-verifier&client_secret=forged-secret'
-        '&client_id=forged-client&redirect_uri=https%3A%2F%2Fother.example'
-        '&githubBaseUrl=https%3A%2F%2Fother.example'
-        '&access_token=forged-token&githubUserId=999&login=forged-login'
-        '&userId=forged-user&teamId=forged-team&reference=forged-reference',
+      final context = TestRequestContext(
+        path:
+            '/github/callback?state=$state&code=authorization-code'
+            '&code_verifier=forged-verifier&client_secret=forged-secret'
+            '&client_id=forged-client&redirect_uri=https%3A%2F%2Fother.example'
+            '&githubBaseUrl=https%3A%2F%2Fother.example'
+            '&access_token=forged-token&githubUserId=999&login=forged-login'
+            '&userId=forged-user&teamId=forged-team&reference=forged-reference'
+            '&returnUrl=https%3A%2F%2Fother.example',
+        headers: {
+          HttpHeaders.hostHeader: 'other.example',
+          'Origin': 'https://other.example',
+          HttpHeaders.refererHeader: 'https://other.example/',
+          'X-Forwarded-Host': 'other.example',
+        },
       );
+      context.provide<AppDatabase>(db);
+      context.provide<Map<String, String>>(environment);
 
-      expect(response.statusCode, HttpStatus.ok);
+      final response = await callback(context.context);
+
+      expect(response.statusCode, HttpStatus.seeOther);
       final request = tokenRequests.single;
       expect(
         request.url.toString(),
@@ -225,8 +276,13 @@ void main() {
         ),
         'private-user-token',
       );
-      final body = await response.json() as Map<String, dynamic>;
-      expect(body['reference'], isNot('forged-reference'));
+      final location = Uri.parse(response.headers[HttpHeaders.locationHeader]!);
+      expect(
+        location.removeFragment().toString(),
+        environment['GITHUB_CONNECTION_RETURN_URL'],
+      );
+      final fragment = Uri.splitQueryString(location.fragment);
+      expect(fragment['reference'], isNot('forged-reference'));
     },
   );
 
@@ -242,6 +298,7 @@ void main() {
       final response = await get('state=$state&code=authorization-code');
 
       expect(response.statusCode, HttpStatus.badGateway);
+      expect(response.headers[HttpHeaders.locationHeader], isNull);
       expect(await response.json(), {
         'success': false,
         'error': 'Failed to exchange GitHub authorization code',
@@ -362,11 +419,12 @@ void main() {
 
   test('rejects a callback whose state was already consumed', () async {
     final first = await get('state=$state&code=authorization-code');
-    expect(first.statusCode, HttpStatus.ok);
+    expect(first.statusCode, HttpStatus.seeOther);
 
     final response = await get('state=$state&code=authorization-code');
 
     expect(response.statusCode, HttpStatus.badRequest);
+    expect(response.headers[HttpHeaders.locationHeader], isNull);
     expect(await response.json(), {
       'success': false,
       'error': 'Invalid or expired GitHub state',
@@ -375,6 +433,58 @@ void main() {
     expect(userRequests, hasLength(1));
     expect(await db.select(db.gitHubConnectionSessions).get(), hasLength(1));
   });
+
+  test('rejects a missing return URL without consuming state', () async {
+    environment.remove('GITHUB_CONNECTION_RETURN_URL');
+
+    final response = await get(
+      'state=$state&code=authorization-code'
+      '&returnUrl=https%3A%2F%2Fother.example',
+    );
+
+    expect(response.statusCode, HttpStatus.internalServerError);
+    expect(response.headers[HttpHeaders.locationHeader], isNull);
+    expect(await response.json(), {
+      'success': false,
+      'error': 'Internal server error',
+    });
+    expect(response.headers[HttpHeaders.cacheControlHeader], 'no-store');
+    expect(response.headers['referrer-policy'], 'no-referrer');
+    expect(tokenRequests, isEmpty);
+    expect(userRequests, isEmpty);
+    expect(await db.select(db.gitHubConnectionRequests).get(), hasLength(1));
+    expect(await db.select(db.gitHubConnectionSessions).get(), isEmpty);
+  });
+
+  test(
+    'rejects an unsafe return URL without logging its credentials',
+    () async {
+      environment['GITHUB_CONNECTION_RETURN_URL'] =
+          'https://user:private-password@dashboard.example/';
+      final errorOutput = _MockStdout();
+
+      final response = await IOOverrides.runZoned(
+        () => get('state=$state&code=authorization-code'),
+        stderr: () => errorOutput,
+      );
+
+      expect(response.statusCode, HttpStatus.internalServerError);
+      expect(response.headers[HttpHeaders.locationHeader], isNull);
+      expect(await response.json(), {
+        'success': false,
+        'error': 'Internal server error',
+      });
+      final logged = verify(
+        () => errorOutput.writeln(captureAny()),
+      ).captured.join('\n');
+      expect(logged, contains('GITHUB_CONNECTION_RETURN_URL'));
+      expect(logged, isNot(contains('private-password')));
+      expect(tokenRequests, isEmpty);
+      expect(userRequests, isEmpty);
+      expect(await db.select(db.gitHubConnectionRequests).get(), hasLength(1));
+      expect(await db.select(db.gitHubConnectionSessions).get(), isEmpty);
+    },
+  );
 
   test('rejects a missing encryption key before contacting GitHub', () async {
     environment.remove('SECRET_ENCRYPTION_KEY');
@@ -472,6 +582,7 @@ void main() {
       ).captured.join('\n');
       expect(logged, contains('Failed to create GitHub connection session'));
       expect(logged, isNot(contains('private-user-token')));
+      expect(response.headers[HttpHeaders.locationHeader], isNull);
       expect(tokenRequests, hasLength(1));
       expect(userRequests, hasLength(1));
       expect(await db.select(db.gitHubConnectionRequests).get(), isEmpty);
@@ -571,6 +682,7 @@ void main() {
       );
 
       expect(response.statusCode, HttpStatus.badRequest);
+      expect(response.headers[HttpHeaders.locationHeader], isNull);
       expect(await response.json(), {
         'success': false,
         'error': 'GitHub authorization failed',
