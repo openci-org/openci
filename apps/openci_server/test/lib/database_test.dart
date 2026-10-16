@@ -98,7 +98,12 @@ void main() {
           .get();
       expect(
         tables.map((row) => row.read<String>('name')),
-        unorderedEquals(['build_jobs', 'build_runs', 'teams']),
+        unorderedEquals([
+          'build_jobs',
+          'build_runs',
+          'teams',
+          'github_connection_requests',
+        ]),
       );
       expect(
         (await db.customSelect('SELECT * FROM build_jobs').get()).single.data,
@@ -112,7 +117,7 @@ void main() {
         (await db.customSelect('PRAGMA user_version').getSingle()).read<int>(
           'user_version',
         ),
-        25,
+        26,
       );
       expect(
         (await db.customSelect('SELECT * FROM teams').getSingle()).data,
@@ -173,10 +178,95 @@ void main() {
         (await db.customSelect('PRAGMA user_version').getSingle()).read<int>(
           'user_version',
         ),
-        25,
+        26,
       );
     },
   );
+
+  test('upgrades v25 while preserving existing data', () async {
+    await db.close();
+    db = AppDatabase(
+      NativeDatabase.memory(
+        setup: (database) {
+          database.execute('''
+            PRAGMA foreign_keys = ON;
+            PRAGMA user_version = 25;
+            CREATE TABLE teams (
+              id TEXT PRIMARY KEY, name TEXT NOT NULL,
+              installation_ids TEXT NOT NULL, ai_enabled INTEGER NOT NULL,
+              run_number INTEGER NOT NULL DEFAULT 1,
+              created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL
+            );
+            CREATE TABLE team_members (
+              id INTEGER PRIMARY KEY, team_id TEXT REFERENCES teams(id),
+              user_id TEXT NOT NULL
+            );
+            CREATE TABLE build_jobs (id TEXT PRIMARY KEY);
+            CREATE TABLE build_runs (
+              id TEXT PRIMARY KEY, build_job_id TEXT REFERENCES build_jobs(id)
+            );
+            INSERT INTO teams VALUES (
+              'team-1', 'OpenCI', '[123]', 1, 42, 0, 1
+            );
+            INSERT INTO team_members VALUES (1, 'team-1', 'user-1');
+            INSERT INTO build_jobs VALUES ('job-1');
+            INSERT INTO build_runs VALUES ('run-1', 'job-1');
+          ''');
+        },
+      ),
+    );
+
+    final requests = await db.select(db.gitHubConnectionRequests).get();
+    expect(requests, isEmpty);
+    expect(
+      (await db.customSelect('PRAGMA user_version').getSingle()).read<int>(
+        'user_version',
+      ),
+      26,
+    );
+    expect(
+      (await db.customSelect('SELECT * FROM teams').getSingle()).data,
+      {
+        'id': 'team-1',
+        'name': 'OpenCI',
+        'installation_ids': '[123]',
+        'ai_enabled': 1,
+        'run_number': 42,
+        'created_at': 0,
+        'updated_at': 1,
+      },
+    );
+    expect(
+      (await db.customSelect('SELECT * FROM team_members').getSingle()).data,
+      {'id': 1, 'team_id': 'team-1', 'user_id': 'user-1'},
+    );
+    expect(
+      (await db.customSelect('SELECT * FROM build_jobs').getSingle()).data,
+      {'id': 'job-1'},
+    );
+    expect(
+      (await db.customSelect('SELECT * FROM build_runs').getSingle()).data,
+      {'id': 'run-1', 'build_job_id': 'job-1'},
+    );
+
+    final request = DriftGitHubConnectionRequest(
+      id: 'request-1',
+      userId: 'user-1',
+      teamId: 'team-1',
+      stateHash: 'state-hash',
+      codeVerifier: 'code-verifier',
+      createdAt: DateTime.utc(2026),
+      expiresAt: DateTime.utc(2026, 1, 1, 0, 10),
+    );
+    await db.into(db.gitHubConnectionRequests).insert(request);
+
+    final savedRequest = await db
+        .select(db.gitHubConnectionRequests)
+        .getSingle();
+    expect(savedRequest.id, 'request-1');
+    expect(savedRequest.userId, 'user-1');
+    expect(savedRequest.teamId, 'team-1');
+  });
 
   test('Can insert and retrieve DriftBuildJob', () async {
     final now = DateTime.now().toUtc();
