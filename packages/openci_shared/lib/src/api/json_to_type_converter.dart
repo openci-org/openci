@@ -6,6 +6,7 @@ import '../models/build_job.dart';
 import '../models/build_step.dart';
 import '../models/changed_files_result.dart';
 import '../models/cicd_commit_group.dart';
+import '../models/github_connection_result.dart';
 import '../models/team.dart';
 import '../models/user_device.dart';
 
@@ -54,6 +55,16 @@ class JsonToTypeConverter extends JsonConverter {
     }
     if (T == ChangedFilesResult) {
       return ChangedFilesResult.fromJson(
+        Map<String, dynamic>.from(json as Map),
+      );
+    }
+    if (T == GitHubConnectionSessionResult) {
+      return GitHubConnectionSessionResult.fromJson(
+        Map<String, dynamic>.from(json as Map),
+      );
+    }
+    if (T == GitHubConnectionCandidatesResult) {
+      return GitHubConnectionCandidatesResult.fromJson(
         Map<String, dynamic>.from(json as Map),
       );
     }

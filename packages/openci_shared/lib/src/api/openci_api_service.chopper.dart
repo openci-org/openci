@@ -197,6 +197,77 @@ final class _$OpenCIApiService extends OpenCIApiService {
   }
 
   @override
+  Future<Response<GitHubConnectionSessionResult>> getGitHubConnectionSession(
+    String teamId,
+    String reference,
+  ) {
+    final Uri $url = Uri.parse('/teams/${teamId}/github/session');
+    final $body = <String, dynamic>{'reference': reference};
+    final ChopperCompleter $abortTrigger = ChopperCompleter<void>();
+    final ChopperTimer $timeout = ChopperTimer(
+      const Duration(microseconds: 10000000),
+      () {
+        if (!$abortTrigger.isCompleted) $abortTrigger.complete();
+      },
+    );
+    final Request $request = Request(
+      'POST',
+      $url,
+      client.baseUrl,
+      body: $body,
+      abortTrigger: $abortTrigger.future,
+    );
+    return client
+        .send<GitHubConnectionSessionResult, GitHubConnectionSessionResult>(
+          $request,
+        )
+        .catchError(
+          (_) => Future<Response<GitHubConnectionSessionResult>>.error(
+            ChopperTimeoutException('Request timed out after 10 seconds'),
+          ),
+          test: (Object err) =>
+              err is ChopperRequestAbortedException &&
+              $abortTrigger.isCompleted,
+        )
+        .whenComplete($timeout.cancel);
+  }
+
+  @override
+  Future<Response<GitHubConnectionCandidatesResult>>
+  getGitHubConnectionCandidates(String teamId, String reference) {
+    final Uri $url = Uri.parse('/teams/${teamId}/github/candidates');
+    final $body = <String, dynamic>{'reference': reference};
+    final ChopperCompleter $abortTrigger = ChopperCompleter<void>();
+    final ChopperTimer $timeout = ChopperTimer(
+      const Duration(microseconds: 60000000),
+      () {
+        if (!$abortTrigger.isCompleted) $abortTrigger.complete();
+      },
+    );
+    final Request $request = Request(
+      'POST',
+      $url,
+      client.baseUrl,
+      body: $body,
+      abortTrigger: $abortTrigger.future,
+    );
+    return client
+        .send<
+          GitHubConnectionCandidatesResult,
+          GitHubConnectionCandidatesResult
+        >($request)
+        .catchError(
+          (_) => Future<Response<GitHubConnectionCandidatesResult>>.error(
+            ChopperTimeoutException('Request timed out after 1 minute'),
+          ),
+          test: (Object err) =>
+              err is ChopperRequestAbortedException &&
+              $abortTrigger.isCompleted,
+        )
+        .whenComplete($timeout.cancel);
+  }
+
+  @override
   Future<Response<Map<String, dynamic>>> getTeamMembers(String id) {
     final Uri $url = Uri.parse('/teams/${id}/members');
     final ChopperCompleter $abortTrigger = ChopperCompleter<void>();

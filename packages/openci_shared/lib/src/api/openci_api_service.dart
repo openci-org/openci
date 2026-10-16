@@ -3,6 +3,7 @@ import 'package:chopper/chopper.dart';
 import '../models/build_step.dart';
 import '../models/changed_files_result.dart';
 import '../models/cicd_commit_group.dart';
+import '../models/github_connection_result.dart';
 import '../models/team.dart';
 import '../models/user_device.dart';
 
@@ -40,6 +41,22 @@ abstract class OpenCIApiService extends ChopperService {
   @POST(path: '/teams/{teamId}/github/connect', timeout: _timeout)
   Future<Response<Map<String, dynamic>>> startGitHubConnection(
     @Path('teamId') String teamId,
+  );
+
+  @POST(path: '/teams/{teamId}/github/session', timeout: _timeout)
+  Future<Response<GitHubConnectionSessionResult>> getGitHubConnectionSession(
+    @Path('teamId') String teamId,
+    @Field('reference') String reference,
+  );
+
+  @POST(
+    path: '/teams/{teamId}/github/candidates',
+    timeout: Duration(minutes: 1),
+  )
+  Future<Response<GitHubConnectionCandidatesResult>>
+  getGitHubConnectionCandidates(
+    @Path('teamId') String teamId,
+    @Field('reference') String reference,
   );
 
   @GET(path: '/teams/{id}/members', timeout: Duration(seconds: 8))
