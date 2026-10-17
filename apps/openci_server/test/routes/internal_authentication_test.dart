@@ -15,6 +15,7 @@ import '../../routes/internal/_middleware.dart' as internal;
 import '../../routes/internal/seed/teams.dart' as seed_teams;
 import '../../routes/teams/by-installation/[installationId].dart'
     as installation;
+import '../../routes/teams/[id]/github/confirm.dart' as github_confirm;
 import '../../routes/teams/index.dart' as teams;
 import '../../routes/webhooks/_middleware.dart' as webhooks;
 import '../../routes/webhooks/claim.dart' as webhook_claim;
@@ -113,6 +114,24 @@ void main() {
       expect(jsonDecode(response.body), {'task': null});
     },
   );
+
+  test('an internal key cannot confirm a user GitHub connection', () async {
+    final database = _MockDatabase();
+    final response = await request(
+      path: '/teams/team-1/github/confirm',
+      route: (context) => github_confirm.onRequest(context, 'team-1'),
+      method: 'POST',
+      headers: {'Authorization': 'Bearer test-internal-key'},
+      database: database,
+    );
+
+    expect(response.statusCode, HttpStatus.unauthorized);
+    expect(jsonDecode(response.body), {
+      'success': false,
+      'error': 'Authentication required',
+    });
+    verifyZeroInteractions(database);
+  });
 
   test('the internal key can seed teams through root authentication', () async {
     final response = await request(

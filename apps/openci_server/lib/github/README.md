@@ -112,8 +112,8 @@ Missing authentication returns 401; malformed JSON or a missing/invalid referenc
 field returns 400. Unknown, expired, consumed, or unauthorized sessions all return
 the same 403 response. Database failures return a generic 500, and methods other
 than POST return 405. All responses include `Cache-Control: no-store` and
-`Referrer-Policy: no-referrer`. The Dashboard receiver and explicit connection
-confirmation remain follow-up work.
+`Referrer-Policy: no-referrer`. The Dashboard receiver remains follow-up work.
+Saving a connection requires the explicit confirmation endpoint below.
 
 ## Reading connection candidates
 
@@ -158,8 +158,47 @@ Rate-limited 403 responses are recognized by `x-ratelimit-remaining: 0`,
 `retry-after`, or GitHub's secondary rate-limit message; 429 also maps to
 `github_unavailable`. See [GitHub's REST API troubleshooting guide](https://docs.github.com/en/rest/using-the-rest-api/troubleshooting-the-rest-api).
 No partial candidates or upstream error details are returned. All responses
-include `Cache-Control: no-store` and `Referrer-Policy: no-referrer`. The shared
-client, Dashboard UI, and connection confirmation remain follow-up work.
+include `Cache-Control: no-store` and `Referrer-Policy: no-referrer`. The Dashboard
+selection UI and shared confirmation client remain follow-up work.
+
+## Confirming a team connection
+
+`POST /teams/:id/github/confirm` requires Firebase Bearer authentication and this
+JSON body:
+
+```json
+{ "reference": "<post-callback-reference>", "installationId": 200 }
+```
+
+Only these two fields are accepted. The reference must be a nonempty string and
+the installation ID a positive JSON integer. Extra fields, including caller
+identity, team/account metadata, tokens, and GitHub settings, return 400.
+The verified Firebase UID and path team ID are passed to
+`persistGitHubConnection`, which checks the session and current membership,
+decrypts its token, and freshly verifies the GitHub user and selected
+installation before saving and consuming the session in one transaction.
+Success returns 200 with only `{ "success": true }`; the temporary token is
+cleared. Neither the OAuth callback nor candidate reads save a connection.
+
+| HTTP status | Code | Meaning |
+| --- | --- | --- |
+| 400 | — | Invalid JSON or confirmation fields. |
+| 401 | — | Missing OpenCI/Firebase authentication. |
+| 403 | — | Invalid, expired, consumed, or unauthorized session. |
+| 403 | `github_permissions_required` | The selected installation or current GitHub identity/authority cannot be verified. |
+| 409 | `github_reauthorization_required` | GitHub rejected the temporary user token. |
+| 409 | `github_connection_conflict` | The installation is reserved by another team; no other team's details are returned. |
+| 502 | `github_unavailable` | GitHub rate limiting, transport failures, or other upstream errors. |
+| 500 | — | Database, encryption, or configuration failure. |
+| 405 | — | Any method other than POST. |
+
+Error JSON contains `success: false`, a fixed `error` message, and `code` only
+where listed. Rejected authority, ownership conflicts, and failed transactions
+preserve existing connections. Ownership conflicts leave the session unused;
+reusing a successfully consumed session returns 403. All responses include
+`Cache-Control: no-store` and `Referrer-Policy: no-referrer`, and neither logs nor
+responses contain the reference, encrypted token, or encryption key.
+The shared confirmation method and Dashboard selection UI remain follow-up work.
 
 ## Verified team connection storage
 
@@ -203,7 +242,7 @@ run before the transaction, and the final save/consume rechecks expiry, team
 membership, and concurrent session use before committing. Rejected authority or
 an invalid session prevents saving; an ownership conflict returns `null` without
 consuming the session. Decryption and database errors expose no credentials.
-The HTTP confirmation endpoint remains follow-up work in G-1372.
+The HTTP confirmation endpoint above calls this helper.
 
 A unique constraint on `(github_api_base_url, github_app_id, installation_id)`
 reserves an installation for one team, including suspended or removed rows.
