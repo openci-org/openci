@@ -1,10 +1,12 @@
 import 'package:dashboard/connections/local_development_connection.dart';
 import 'package:dashboard/firebase/firebase_config_provider.dart';
-import 'package:dashboard/utilities/macos_updater_initializer.dart';
 import 'package:dashboard/revenue_cat/revenue_cat.dart';
 import 'package:dashboard/root.dart';
-import 'package:dashboard/utilities/shared_preferences_provider.dart';
+import 'package:dashboard/team/capture_github_connection_return.dart';
+import 'package:dashboard/team/pending_github_connection_return_provider.dart';
+import 'package:dashboard/utilities/macos_updater_initializer.dart';
 import 'package:dashboard/utilities/sentry_provider_observer.dart';
+import 'package:dashboard/utilities/shared_preferences_provider.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -14,6 +16,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 Future<void> main() async {
   try {
+    final pendingGitHubReturn = PendingGitHubConnectionReturn(
+      kIsWeb ? captureGitHubConnectionReturn() : null,
+    );
     WidgetsFlutterBinding.ensureInitialized();
     if (kIsWeb) {
       usePathUrlStrategy();
@@ -38,6 +43,9 @@ Future<void> main() async {
       overrides: [
         sharedPreferencesProvider.overrideWithValue(sharedPreferences),
         localDevelopmentConnectionProvider.overrideWithValue(localDevelopment),
+        pendingGitHubConnectionReturnProvider.overrideWithValue(
+          pendingGitHubReturn,
+        ),
       ],
       child: Root(),
     );
