@@ -1,20 +1,17 @@
-class GitHubConnectionContext {
-  const GitHubConnectionContext({
-    required this.profileId,
-    required this.apiUrl,
-    required this.userId,
-    required this.teamId,
-  });
+import 'package:freezed_annotation/freezed_annotation.dart';
 
-  final String profileId;
-  final String apiUrl;
-  final String userId;
-  final String teamId;
+part 'github_connection_context.freezed.dart';
+part 'github_connection_context.g.dart';
 
-  bool matches(GitHubConnectionContext? other) =>
-      other != null &&
-      profileId == other.profileId &&
-      apiUrl == other.apiUrl &&
-      userId == other.userId &&
-      teamId == other.teamId;
+@freezed
+abstract class GitHubConnectionContext with _$GitHubConnectionContext {
+  const factory GitHubConnectionContext({
+    required String profileId,
+    required String apiUrl,
+    required String userId,
+    required String teamId,
+  }) = _GitHubConnectionContext;
+
+  factory GitHubConnectionContext.fromJson(Map<String, dynamic> json) =>
+      _$GitHubConnectionContextFromJson(json);
 }
