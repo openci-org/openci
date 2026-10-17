@@ -6,9 +6,9 @@ part of 'github_connection_result.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-GitHubConnectionSessionResult _$GitHubConnectionSessionResultFromJson(
+_GitHubConnectionSessionResult _$GitHubConnectionSessionResultFromJson(
   Map<String, dynamic> json,
-) => GitHubConnectionSessionResult(
+) => _GitHubConnectionSessionResult(
   success: json['success'] as bool,
   session: GitHubConnectionSession.fromJson(
     json['session'] as Map<String, dynamic>,
@@ -16,31 +16,31 @@ GitHubConnectionSessionResult _$GitHubConnectionSessionResultFromJson(
 );
 
 Map<String, dynamic> _$GitHubConnectionSessionResultToJson(
-  GitHubConnectionSessionResult instance,
+  _GitHubConnectionSessionResult instance,
 ) => <String, dynamic>{
   'success': instance.success,
   'session': instance.session.toJson(),
 };
 
-GitHubConnectionSession _$GitHubConnectionSessionFromJson(
+_GitHubConnectionSession _$GitHubConnectionSessionFromJson(
   Map<String, dynamic> json,
-) => GitHubConnectionSession(
+) => _GitHubConnectionSession(
   teamId: json['teamId'] as String,
   githubUserId: (json['githubUserId'] as num).toInt(),
   expiresAt: DateTime.parse(json['expiresAt'] as String),
 );
 
 Map<String, dynamic> _$GitHubConnectionSessionToJson(
-  GitHubConnectionSession instance,
+  _GitHubConnectionSession instance,
 ) => <String, dynamic>{
   'teamId': instance.teamId,
   'githubUserId': instance.githubUserId,
   'expiresAt': instance.expiresAt.toIso8601String(),
 };
 
-GitHubConnectionCandidatesResult _$GitHubConnectionCandidatesResultFromJson(
+_GitHubConnectionCandidatesResult _$GitHubConnectionCandidatesResultFromJson(
   Map<String, dynamic> json,
-) => GitHubConnectionCandidatesResult(
+) => _GitHubConnectionCandidatesResult(
   success: json['success'] as bool,
   candidates: (json['candidates'] as List<dynamic>)
       .map((e) => GitHubConnectionCandidate.fromJson(e as Map<String, dynamic>))
@@ -48,32 +48,32 @@ GitHubConnectionCandidatesResult _$GitHubConnectionCandidatesResultFromJson(
 );
 
 Map<String, dynamic> _$GitHubConnectionCandidatesResultToJson(
-  GitHubConnectionCandidatesResult instance,
+  _GitHubConnectionCandidatesResult instance,
 ) => <String, dynamic>{
   'success': instance.success,
   'candidates': instance.candidates.map((e) => e.toJson()).toList(),
 };
 
-GitHubConnectionCandidate _$GitHubConnectionCandidateFromJson(
+_GitHubConnectionCandidate _$GitHubConnectionCandidateFromJson(
   Map<String, dynamic> json,
-) => GitHubConnectionCandidate(
+) => _GitHubConnectionCandidate(
   installationId: (json['installationId'] as num).toInt(),
   accountLogin: json['accountLogin'] as String,
   accountType: json['accountType'] as String,
 );
 
 Map<String, dynamic> _$GitHubConnectionCandidateToJson(
-  GitHubConnectionCandidate instance,
+  _GitHubConnectionCandidate instance,
 ) => <String, dynamic>{
   'installationId': instance.installationId,
   'accountLogin': instance.accountLogin,
   'accountType': instance.accountType,
 };
 
-GitHubConnectionConfirmationResult _$GitHubConnectionConfirmationResultFromJson(
-  Map<String, dynamic> json,
-) => GitHubConnectionConfirmationResult(success: json['success'] as bool);
+_GitHubConnectionConfirmationResult
+_$GitHubConnectionConfirmationResultFromJson(Map<String, dynamic> json) =>
+    _GitHubConnectionConfirmationResult(success: json['success'] as bool);
 
 Map<String, dynamic> _$GitHubConnectionConfirmationResultToJson(
-  GitHubConnectionConfirmationResult instance,
+  _GitHubConnectionConfirmationResult instance,
 ) => <String, dynamic>{'success': instance.success};

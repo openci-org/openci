@@ -1,6 +1,9 @@
 import 'dart:convert';
 
+import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:http/http.dart' as http;
+
+part 'firebase_auth_client.freezed.dart';
 
 // Public Web API key for the dashboard's default Firebase project.
 const defaultFirebaseApiKey = 'AIzaSyCvYYkNYRMsTzlei8rWRO0WTkT_YRq9LIs';
@@ -116,16 +119,13 @@ class FirebaseAuthClient {
   }
 }
 
-class FirebaseSession {
-  const FirebaseSession({
-    required this.token,
-    required this.refreshToken,
-    required this.expiresAt,
-  });
-
-  final String token;
-  final String refreshToken;
-  final DateTime expiresAt;
+@Freezed(toStringOverride: false)
+abstract class FirebaseSession with _$FirebaseSession {
+  const factory FirebaseSession({
+    required String token,
+    required String refreshToken,
+    required DateTime expiresAt,
+  }) = _FirebaseSession;
 }
 
 class FirebaseAuthException implements Exception {

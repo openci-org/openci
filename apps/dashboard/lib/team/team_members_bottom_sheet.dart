@@ -3,33 +3,28 @@ import 'package:dashboard/app_strings.dart';
 import 'package:dashboard/auth/auth_provider.dart';
 import 'package:dashboard/team/team_provider.dart';
 import 'package:flutter/material.dart';
+import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
+part 'team_members_bottom_sheet.freezed.dart';
 part 'team_members_bottom_sheet.g.dart';
 
-class TeamMember {
-  const TeamMember({
-    required this.uid,
-    this.email,
-    this.displayName,
-    this.photoURL,
-  });
+@freezed
+abstract class TeamMember with _$TeamMember {
+  const factory TeamMember({
+    required String uid,
+    String? email,
+    String? displayName,
+    String? photoURL,
+  }) = _TeamMember;
 
-  final String uid;
-  final String? email;
-  final String? displayName;
-  final String? photoURL;
+  factory TeamMember.fromMap(Map<String, dynamic> map) =>
+      TeamMember.fromJson(map);
 
-  factory TeamMember.fromMap(Map<String, dynamic> map) {
-    return TeamMember(
-      uid: map['uid'] as String,
-      email: map['email'] as String?,
-      displayName: map['displayName'] as String?,
-      photoURL: map['photoURL'] as String?,
-    );
-  }
+  factory TeamMember.fromJson(Map<String, dynamic> json) =>
+      _$TeamMemberFromJson(json);
 }
 
 @riverpod

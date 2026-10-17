@@ -2,11 +2,13 @@ import 'dart:convert';
 
 import 'package:crypto/crypto.dart';
 import 'package:drift/drift.dart' show Value;
-import 'package:meta/meta.dart';
+import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:openci_server/database.dart';
 import 'package:openci_server/github/generate_random_value.dart';
 import 'package:openci_server/secret/secret_crypter.dart';
 import 'package:uuid/uuid.dart';
+
+part 'create_github_connection_session.freezed.dart';
 
 Future<CreateGitHubConnectionSessionResult> createGitHubConnectionSession({
   required AppDatabase db,
@@ -55,12 +57,11 @@ Future<CreateGitHubConnectionSessionResult> createGitHubConnectionSession({
   }
 }
 
-class CreateGitHubConnectionSessionResult {
-  const CreateGitHubConnectionSessionResult({
-    required this.reference,
-    required this.expiresAt,
-  });
-
-  final String reference;
-  final DateTime expiresAt;
+@Freezed(toStringOverride: false)
+abstract class CreateGitHubConnectionSessionResult
+    with _$CreateGitHubConnectionSessionResult {
+  const factory CreateGitHubConnectionSessionResult({
+    required String reference,
+    required DateTime expiresAt,
+  }) = _CreateGitHubConnectionSessionResult;
 }

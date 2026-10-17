@@ -27,6 +27,21 @@ void main() {
 
       expect(config.sentryDsn, isNull);
     });
+
+    test(
+      'does not expose server or Orchard credentials in diagnostic output',
+      () {
+        const config = Config(
+          serverUrl: 'http://localhost:8080',
+          internalApiKey: 'test-api-key',
+          orchardServiceAccountName: 'bootstrap-admin',
+          orchardServiceAccountToken: 'test-orchard-token',
+        );
+
+        expect(config.toString(), isNot(contains('test-api-key')));
+        expect(config.toString(), isNot(contains('test-orchard-token')));
+      },
+    );
   });
 
   group('Config.fromEnvironment', () {

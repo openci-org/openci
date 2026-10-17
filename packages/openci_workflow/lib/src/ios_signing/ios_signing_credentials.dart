@@ -1,13 +1,13 @@
-class IosSigningCredentials {
-  const IosSigningCredentials({
-    required this.issuerId,
-    required this.keyId,
-    required this.ascPrivateKeyPath,
-    required this.certificatePrivateKeyPath,
-  });
+import 'package:freezed_annotation/freezed_annotation.dart';
 
-  final String issuerId;
-  final String keyId;
-  final String ascPrivateKeyPath;
-  final String certificatePrivateKeyPath;
+part 'ios_signing_credentials.freezed.dart';
+
+@Freezed(toStringOverride: false)
+abstract class IosSigningCredentials with _$IosSigningCredentials {
+  const factory IosSigningCredentials({
+    required String issuerId,
+    required String keyId,
+    required String ascPrivateKeyPath,
+    required String certificatePrivateKeyPath,
+  }) = _IosSigningCredentials;
 }

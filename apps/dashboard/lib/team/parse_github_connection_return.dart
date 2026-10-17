@@ -1,3 +1,7 @@
+import 'package:freezed_annotation/freezed_annotation.dart';
+
+part 'parse_github_connection_return.freezed.dart';
+
 enum GitHubConnectionReturnError {
   accessDenied,
   invalidCallback,
@@ -7,11 +11,12 @@ enum GitHubConnectionReturnError {
   invalidResult,
 }
 
-class GitHubConnectionReturn {
-  const GitHubConnectionReturn._({this.reference, this.error});
-
-  final String? reference;
-  final GitHubConnectionReturnError? error;
+@Freezed(copyWith: false, toStringOverride: false)
+abstract class GitHubConnectionReturn with _$GitHubConnectionReturn {
+  const factory GitHubConnectionReturn._({
+    String? reference,
+    GitHubConnectionReturnError? error,
+  }) = _GitHubConnectionReturn;
 }
 
 GitHubConnectionReturn parseGitHubConnectionReturn(String fragment) {

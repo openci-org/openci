@@ -1,53 +1,57 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:freezed_annotation/freezed_annotation.dart';
 
 import '../firebase/firebase_config_provider.dart';
 import 'connection_profile.dart';
 
+part 'local_development_connection.freezed.dart';
+
 const localDevelopmentProfileId = 'local-development';
 
 /// A launch-only connection. It is never loaded from or written to preferences.
-class LocalDevelopmentConnection {
-  LocalDevelopmentConnection._({
-    required this.apiUrl,
-    required this.emulatorHost,
-    required this.emulatorPort,
-  }) : profile = ConnectionProfile(
-         id: localDevelopmentProfileId,
-         name: 'Local development',
-         apiUrl: apiUrl,
-         firebase: const {
-           'web': SelfHostedConfig(
-             apiKey: 'demo-openci-api-key',
-             appId: '1:1234567890:web:0123456789abcdef012345',
-             messagingSenderId: '1234567890',
-             projectId: 'demo-openci',
-             authDomain: 'demo-openci.firebaseapp.com',
-           ),
-           'ios': SelfHostedConfig(
-             apiKey: 'demo-openci-api-key',
-             appId: '1:1234567890:ios:0123456789abcdef012345',
-             messagingSenderId: '1234567890',
-             projectId: 'demo-openci',
-           ),
-           'android': SelfHostedConfig(
-             apiKey: 'demo-openci-api-key',
-             appId: '1:1234567890:android:0123456789abcdef012345',
-             messagingSenderId: '1234567890',
-             projectId: 'demo-openci',
-           ),
-           'macos': SelfHostedConfig(
-             apiKey: 'demo-openci-api-key',
-             appId: '1:1234567890:ios:fedcba9876543210fedcba',
-             messagingSenderId: '1234567890',
-             projectId: 'demo-openci',
-           ),
-         },
-       );
+@Freezed(copyWith: false)
+abstract class LocalDevelopmentConnection with _$LocalDevelopmentConnection {
+  LocalDevelopmentConnection._();
 
-  final String apiUrl;
-  final String emulatorHost;
-  final int emulatorPort;
-  final ConnectionProfile profile;
+  factory LocalDevelopmentConnection._validated({
+    required String apiUrl,
+    required String emulatorHost,
+    required int emulatorPort,
+  }) = _LocalDevelopmentConnection;
+
+  @override
+  late final ConnectionProfile profile = ConnectionProfile(
+    id: localDevelopmentProfileId,
+    name: 'Local development',
+    apiUrl: apiUrl,
+    firebase: const {
+      'web': SelfHostedConfig(
+        apiKey: 'demo-openci-api-key',
+        appId: '1:1234567890:web:0123456789abcdef012345',
+        messagingSenderId: '1234567890',
+        projectId: 'demo-openci',
+        authDomain: 'demo-openci.firebaseapp.com',
+      ),
+      'ios': SelfHostedConfig(
+        apiKey: 'demo-openci-api-key',
+        appId: '1:1234567890:ios:0123456789abcdef012345',
+        messagingSenderId: '1234567890',
+        projectId: 'demo-openci',
+      ),
+      'android': SelfHostedConfig(
+        apiKey: 'demo-openci-api-key',
+        appId: '1:1234567890:android:0123456789abcdef012345',
+        messagingSenderId: '1234567890',
+        projectId: 'demo-openci',
+      ),
+      'macos': SelfHostedConfig(
+        apiKey: 'demo-openci-api-key',
+        appId: '1:1234567890:ios:fedcba9876543210fedcba',
+        messagingSenderId: '1234567890',
+        projectId: 'demo-openci',
+      ),
+    },
+  );
 
   static LocalDevelopmentConnection? fromEnvironment() => parse(
     mode: const String.fromEnvironment('OPENCI_LOCAL_DEV'),
@@ -95,7 +99,7 @@ class LocalDevelopmentConnection {
     if (port == null || port < 1 || port > 65535) {
       throw StateError('OPENCI_AUTH_EMULATOR_PORT must be a valid port.');
     }
-    return LocalDevelopmentConnection._(
+    return LocalDevelopmentConnection._validated(
       apiUrl: apiUrl,
       emulatorHost: emulatorHost,
       emulatorPort: port,

@@ -50,6 +50,7 @@ void main() {
       expect(savedRequest.userId, 'user-1');
       expect(savedRequest.teamId, 'team-1');
       expect(result.state, matches(RegExp(r'^[A-Za-z0-9_-]{43}$')));
+      expect(result.toString(), isNot(contains(result.state)));
       expect(
         savedRequest.stateHash,
         sha256.convert(utf8.encode(result.state)).toString(),

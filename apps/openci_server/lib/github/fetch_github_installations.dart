@@ -2,11 +2,13 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:github/github.dart';
 import 'package:http/http.dart' as http;
-import 'package:meta/meta.dart';
 import 'package:openci_server/github/create_github_client.dart';
 import 'package:openci_server/github/github_connection_exception.dart';
+
+part 'fetch_github_installations.freezed.dart';
 
 const _perPage = 100;
 const _maxPages = 10;
@@ -147,32 +149,23 @@ int _readId(Object? value) {
   return value;
 }
 
-class _InstallationPage {
-  const _InstallationPage({
-    required this.totalCount,
-    required this.installations,
-    required this.hasNext,
-  });
-
-  final int totalCount;
-  final List<GitHubInstallation> installations;
-  final bool hasNext;
+@freezed
+abstract class _InstallationPage with _$InstallationPage {
+  const factory _InstallationPage({
+    required int totalCount,
+    required List<GitHubInstallation> installations,
+    required bool hasNext,
+  }) = _InstallationPageData;
 }
 
-class GitHubInstallation {
-  const GitHubInstallation({
-    required this.id,
-    required this.appId,
-    required this.accountId,
-    required this.accountType,
-    required this.accountLogin,
-    required this.suspendedAt,
-  });
-
-  final int id;
-  final int appId;
-  final int accountId;
-  final String accountType;
-  final String accountLogin;
-  final DateTime? suspendedAt;
+@freezed
+abstract class GitHubInstallation with _$GitHubInstallation {
+  const factory GitHubInstallation({
+    required int id,
+    required int appId,
+    required int accountId,
+    required String accountType,
+    required String accountLogin,
+    required DateTime? suspendedAt,
+  }) = _GitHubInstallation;
 }

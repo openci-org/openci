@@ -18,6 +18,7 @@ dependencies:
   drift_postgres: ^1.3.1
   email_validator: ^3.0.0
   firebase_admin_sdk: ^0.5.3
+  freezed_annotation: ^3.1.0
   github: ^9.25.1
   http: ^1.6.0
   meta: ^1.18.0
@@ -32,6 +33,7 @@ dev_dependencies:
   dart_frog_test: ^0.1.2
   drift_dev: ^2.33.0
   fake_async: ^1.3.3
+  freezed: 3.2.6-dev.1
   mocktail: ^1.0.4
   path: ^1.9.0
   test: ^1.24.0

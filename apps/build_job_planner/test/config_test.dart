@@ -52,6 +52,12 @@ void main() {
     expect(config.sentryDsn, 'https://public@sentry.example.test/1');
   });
 
+  test('does not expose the internal API key in diagnostic output', () {
+    final config = Config.fromEnvironment(environment: requiredEnvironment);
+
+    expect(config.toString(), isNot(contains('planner-test-key')));
+  });
+
   for (final key in requiredEnvironment.keys) {
     for (final value in [null, '']) {
       test('rejects a missing or empty $key: $value', () {

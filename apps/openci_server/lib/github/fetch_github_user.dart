@@ -1,8 +1,10 @@
 import 'dart:io';
 
-import 'package:meta/meta.dart';
+import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:openci_server/github/create_github_client.dart';
 import 'package:openci_server/github/github_connection_exception.dart';
+
+part 'fetch_github_user.freezed.dart';
 
 Future<GitHubUser> fetchGitHubUser({
   required String accessToken,
@@ -45,9 +47,8 @@ GitHubUser _readUser(Map<String, dynamic> data) {
   return GitHubUser(id: id, login: login);
 }
 
-class GitHubUser {
-  const GitHubUser({required this.id, required this.login});
-
-  final int id;
-  final String login;
+@freezed
+abstract class GitHubUser with _$GitHubUser {
+  const factory GitHubUser({required int id, required String login}) =
+      _GitHubUser;
 }

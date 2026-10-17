@@ -43,6 +43,18 @@ void main() {
       getSystemTempDirectory: () => temporaryDirectory,
     );
 
+    test('does not expose the App Store Connect key in diagnostic output', () {
+      final encodedKey = base64Encode(utf8.encode(ascPrivateKey));
+      final keys = AppStoreConnectKeys(
+        issuerId: 'test-issuer-id',
+        keyId: 'TESTKEYID',
+        privateKeyBase64: encodedKey,
+      );
+
+      expect(keys.toString(), isNot(contains(encodedKey)));
+      expect(keys.toString(), isNot(contains(ascPrivateKey)));
+    });
+
     test('keeps IDs as strings and writes only the two private keys', () async {
       final credentials = await writeSecrets();
 

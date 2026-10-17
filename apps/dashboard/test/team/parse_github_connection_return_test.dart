@@ -21,6 +21,7 @@ void main() {
 
     expect(result.reference, 'private-reference');
     expect(result.error, isNull);
+    expect(result.toString(), isNot(contains('private-reference')));
   });
 
   test('decodes a reference without treating its contents as fields', () {
