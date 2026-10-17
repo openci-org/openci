@@ -12,3 +12,18 @@ void saveGitHubConnectionContext(GitHubConnectionContext context) {
 void clearGitHubConnectionContext() {
   web.window.sessionStorage.removeItem(_storageKey);
 }
+
+GitHubConnectionContext? takeGitHubConnectionContext() {
+  try {
+    final storage = web.window.sessionStorage;
+    final value = storage.getItem(_storageKey);
+    storage.removeItem(_storageKey);
+    if (value == null) return null;
+    return GitHubConnectionContext.fromJson(
+      jsonDecode(value) as Map<String, dynamic>,
+    );
+  } catch (_) {
+    // Treat unavailable storage or malformed context as an interrupted attempt.
+    return null;
+  }
+}
