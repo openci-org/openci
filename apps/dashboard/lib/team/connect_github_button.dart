@@ -1,8 +1,6 @@
 import 'package:dashboard/api/openci_api_client.dart';
 import 'package:dashboard/app_strings.dart';
-import 'package:dashboard/auth/auth_provider.dart';
-import 'package:dashboard/connections/active_connection_profile_provider.dart';
-import 'package:dashboard/connections/connection_store_provider.dart';
+import 'package:dashboard/team/current_github_connection_context_provider.dart';
 import 'package:dashboard/team/github_connection_context.dart';
 import 'package:dashboard/team/github_connection_storage.dart';
 import 'package:dashboard/team/team_provider.dart';
@@ -69,25 +67,8 @@ class ConnectGitHubButton extends HookConsumerWidget {
   }
 
   GitHubConnectionContext _readConnectionContext(WidgetRef ref) {
-    final store = ref.read(connectionStoreProvider);
-    final profileState = ref.read(activeConnectionProfileProvider(store));
-    final teamState = ref.read(selectedTeamProvider);
-    final profile = profileState.asData?.value;
-    final team = teamState.asData?.value;
-    final userId = ref.read(currentUserIdProvider);
-    if (profileState.isLoading ||
-        teamState.isLoading ||
-        profile == null ||
-        team == null ||
-        userId == null) {
-      throw StateError('GitHub connection context is unavailable');
-    }
-    return GitHubConnectionContext(
-      profileId: profile.id,
-      apiUrl: profile.apiUrl,
-      userId: userId,
-      teamId: team.id,
-    );
+    return ref.read(currentGitHubConnectionContextProvider) ??
+        (throw StateError('GitHub connection context is unavailable'));
   }
 
   void _clearConnectionContextAfterFailure() {
