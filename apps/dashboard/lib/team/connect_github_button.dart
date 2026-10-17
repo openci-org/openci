@@ -1,5 +1,10 @@
 import 'package:dashboard/api/openci_api_client.dart';
 import 'package:dashboard/app_strings.dart';
+import 'package:dashboard/auth/auth_provider.dart';
+import 'package:dashboard/connections/active_connection_profile_provider.dart';
+import 'package:dashboard/connections/connection_store_provider.dart';
+import 'package:dashboard/team/github_connection_context.dart';
+import 'package:dashboard/team/github_connection_storage.dart';
 import 'package:dashboard/team/team_provider.dart';
 import 'package:dashboard/utilities/snack_bar_extension.dart';
 import 'package:flutter/material.dart';
@@ -37,16 +42,25 @@ class ConnectGitHubButton extends HookConsumerWidget {
     ValueNotifier<bool> isConnecting,
   ) async {
     final context = ref.context;
-    final teamId = ref.read(selectedTeamProvider).value?.id;
-    if (teamId == null || isConnecting.value) return;
+    if (isConnecting.value) return;
 
     isConnecting.value = true;
     try {
-      final uri = await _requestAuthorizationUri(ref, teamId);
+      clearGitHubConnectionContext();
+      final connectionContext = _readConnectionContext(ref);
+      final uri = await _requestAuthorizationUri(
+        ref,
+        connectionContext,
+      );
       if (!context.mounted || uri == null) return;
+      if (connectionContext != _readConnectionContext(ref)) {
+        throw StateError('GitHub connection context changed');
+      }
+      saveGitHubConnectionContext(connectionContext);
       await _openAuthorizationUri(uri);
     } catch (_) {
       if (context.mounted) {
+        _clearConnectionContextAfterFailure();
         context.showSnackBarMessage(t.team.gitHubConnectionFailed);
       }
     } finally {
@@ -54,12 +68,48 @@ class ConnectGitHubButton extends HookConsumerWidget {
     }
   }
 
-  Future<Uri?> _requestAuthorizationUri(WidgetRef ref, String teamId) async {
+  GitHubConnectionContext _readConnectionContext(WidgetRef ref) {
+    final store = ref.read(connectionStoreProvider);
+    final profileState = ref.read(activeConnectionProfileProvider(store));
+    final teamState = ref.read(selectedTeamProvider);
+    final profile = profileState.asData?.value;
+    final team = teamState.asData?.value;
+    final userId = ref.read(currentUserIdProvider);
+    if (profileState.isLoading ||
+        teamState.isLoading ||
+        profile == null ||
+        team == null ||
+        userId == null) {
+      throw StateError('GitHub connection context is unavailable');
+    }
+    return GitHubConnectionContext(
+      profileId: profile.id,
+      apiUrl: profile.apiUrl,
+      userId: userId,
+      teamId: team.id,
+    );
+  }
+
+  void _clearConnectionContextAfterFailure() {
+    try {
+      clearGitHubConnectionContext();
+    } catch (_) {
+      // Storage may be blocked. Still show the connection failure to the user.
+    }
+  }
+
+  Future<Uri?> _requestAuthorizationUri(
+    WidgetRef ref,
+    GitHubConnectionContext connectionContext,
+  ) async {
     final context = ref.context;
     final api = await ref.read(openciApiServiceProvider.future);
     if (!context.mounted) return null;
+    if (connectionContext != _readConnectionContext(ref)) {
+      throw StateError('GitHub connection context changed');
+    }
 
-    final response = await api.startGitHubConnection(teamId);
+    final response = await api.startGitHubConnection(connectionContext.teamId);
     if (!response.isSuccessful || response.body?['success'] != true) {
       throw StateError('Invalid GitHub connection response');
     }

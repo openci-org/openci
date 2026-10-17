@@ -3,14 +3,22 @@ import 'dart:convert';
 
 import 'package:dashboard/api/openci_api_client.dart';
 import 'package:dashboard/app_strings.dart';
+import 'package:dashboard/auth/auth_provider.dart';
+import 'package:dashboard/connections/active_connection_profile_provider.dart';
+import 'package:dashboard/connections/connection_profile.dart';
+import 'package:dashboard/connections/connection_store.dart';
+import 'package:dashboard/connections/connection_store_provider.dart';
+import 'package:dashboard/team/github_connection_storage.dart';
 import 'package:dashboard/team/switch_team_bottom_sheet.dart';
 import 'package:dashboard/team/team_provider.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:openci_shared/openci_shared.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher_platform_interface/link.dart';
 import 'package:url_launcher_platform_interface/url_launcher_platform_interface.dart';
 
@@ -34,17 +42,31 @@ void main() {
   late List<http.Request> requests;
 
   setUp(() {
+    SharedPreferences.setMockInitialValues({});
     originalLauncher = UrlLauncherPlatform.instance;
     launcher = _RecordingUrlLauncher();
     UrlLauncherPlatform.instance = launcher;
     requests = [];
   });
-  tearDown(() => UrlLauncherPlatform.instance = originalLauncher);
+  tearDown(() {
+    UrlLauncherPlatform.instance = originalLauncher;
+    if (kIsWeb) clearGitHubConnectionContext();
+  });
 
   Future<void> pumpSheet(
     WidgetTester tester,
     Future<http.Response> Function(http.Request) respond,
   ) async {
+    const profile = ConnectionProfile(
+      id: 'cloud',
+      name: 'Cloud',
+      apiUrl: 'https://api.openci.test',
+      firebase: {},
+    );
+    final store = ConnectionStore(
+      await SharedPreferences.getInstance(),
+      profile,
+    );
     final client = http.runWithClient(
       () => createOpenCIChopperClient(
         baseUrl: 'https://api.openci.test',
@@ -60,6 +82,11 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          connectionStoreProvider.overrideWithValue(store),
+          activeConnectionProfileProvider(store).overrideWithBuild(
+            (ref, notifier) => profile,
+          ),
+          currentUserIdProvider.overrideWithValue('user-123'),
           teamListProvider.overrideWith(
             (ref) async => [
               team.copyWith(id: 'other-team', name: 'Other team'),
@@ -87,6 +114,18 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  testWidgets('shows the GitHub connection button only on web', (tester) async {
+    await pumpSheet(tester, (_) async => successResponse);
+
+    expect(
+      find.text(t.team.connectGitHub),
+      kIsWeb ? findsOneWidget : findsNothing,
+    );
+    expect(find.text('Selected team'), findsOneWidget);
+    expect(find.text(t.team.members), findsOneWidget);
+    expect(requests, isEmpty);
+  });
+
   testWidgets('starts the selected team connection and opens its URL', (
     tester,
   ) async {
@@ -108,7 +147,7 @@ void main() {
     expect(launcher.url, authorizationUrl);
     expect(launcher.options?.mode, PreferredLaunchMode.externalApplication);
     expect(launcher.options?.webOnlyWindowName, '_self');
-  });
+  }, skip: !kIsWeb);
 
   testWidgets('shows an API failure and allows retrying', (tester) async {
     var response = http.Response('{"success":false}', 403);
@@ -126,7 +165,7 @@ void main() {
 
     expect(requests, hasLength(2));
     expect(launcher.url, authorizationUrl);
-  });
+  }, skip: !kIsWeb);
 
   testWidgets('prevents duplicate requests and navigation after dismissal', (
     tester,
@@ -153,7 +192,7 @@ void main() {
 
     expect(launcher.url, isNull);
     expect(tester.takeException(), isNull);
-  });
+  }, skip: !kIsWeb);
 }
 
 class _RecordingUrlLauncher extends UrlLauncherPlatform {
