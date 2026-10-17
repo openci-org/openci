@@ -63,4 +63,33 @@ void main() {
       'keep-session-value',
     );
   });
+
+  test('takes the saved context once without changing other storage', () {
+    saveGitHubConnectionContext(context);
+    web.window.sessionStorage.setItem(unrelatedKey, 'keep-session-value');
+    web.window.localStorage.setItem(storageKey, 'keep-local-value');
+
+    expect(takeGitHubConnectionContext(), context);
+    expect(takeGitHubConnectionContext(), isNull);
+    expect(web.window.sessionStorage.getItem(storageKey), isNull);
+    expect(
+      web.window.sessionStorage.getItem(unrelatedKey),
+      'keep-session-value',
+    );
+    expect(web.window.localStorage.getItem(storageKey), 'keep-local-value');
+  });
+
+  test('discards malformed saved data', () {
+    web.window.sessionStorage.setItem(storageKey, 'not-json');
+
+    expect(takeGitHubConnectionContext(), isNull);
+    expect(web.window.sessionStorage.getItem(storageKey), isNull);
+  });
+
+  test('discards saved data with missing context fields', () {
+    web.window.sessionStorage.setItem(storageKey, '{"teamId":"team-1"}');
+
+    expect(takeGitHubConnectionContext(), isNull);
+    expect(web.window.sessionStorage.getItem(storageKey), isNull);
+  });
 }
