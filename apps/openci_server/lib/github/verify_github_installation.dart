@@ -10,7 +10,7 @@ Future<GitHubInstallation?> verifyGitHubInstallation({
   required String accessToken,
   required int installationId,
   int? expectedGitHubUserId,
-  @visibleForTesting Map<String, String>? environment,
+  Map<String, String>? environment,
   @visibleForTesting Duration membershipTimeout = const Duration(seconds: 10),
 }) async {
   if (installationId <= 0) {

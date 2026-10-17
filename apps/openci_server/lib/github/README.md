@@ -194,9 +194,16 @@ current time; an invalid session throws `InvalidGitHubConnectionSessionException
 and rolls back the insert or refresh. Database failures also roll back and throw
 a sanitized error. On success, the session's temporary token is cleared.
 
-The caller must first verify the GitHub user and installation using the session's
-token. Wiring those fresh GitHub checks into this transaction helper remains
-follow-up work in G-1371. Neither persistence helper is called by an API route yet.
+`persistGitHubConnection` connects these helpers: it reads an unused, unexpired
+session for the initiating Firebase UID and team, decrypts its temporary token,
+and calls `verifyGitHubInstallation` with the session's GitHub user ID and the
+selected installation ID. GitHub supplies the account metadata and authority;
+the operator's configuration supplies the API endpoint and App ID. GitHub calls
+run before the transaction, and the final save/consume rechecks expiry, team
+membership, and concurrent session use before committing. Rejected authority or
+an invalid session prevents saving; an ownership conflict returns `null` without
+consuming the session. Decryption and database errors expose no credentials.
+The HTTP confirmation endpoint remains follow-up work in G-1372.
 
 A unique constraint on `(github_api_base_url, github_app_id, installation_id)`
 reserves an installation for one team, including suspended or removed rows.
@@ -205,8 +212,7 @@ connections, and deleting the team cascades to its connection rows.
 
 The migration creates an empty table and leaves `Teams.installationIds` intact.
 Legacy IDs, including duplicates across teams, are not evidence of verified
-connections and are not copied into the new table. G-1371 will combine fresh
-verification, persistence, and session consumption; G-1379/G-1380 will migrate
+connections and are not copied into the new table. G-1379/G-1380 will migrate
 legacy links and switch consumers.
 This schema change alone does not change existing API or CI lookups.
 
@@ -214,13 +220,16 @@ Run the SQLite storage and migration tests with:
 
 ```sh
 dart test test/lib/github/github_connection_table_test.dart \
+  test/lib/github/persist_github_connection_test.dart \
   test/lib/github/save_github_connection_and_consume_session_test.dart \
   test/lib/github/save_github_connection_test.dart test/lib/database_test.dart
 ```
 
 The PostgreSQL integration test runs the same table constraints plus a v27 → v28
-migration, as well as the save helper tests and concurrent saves over independent
-database connections. It creates and removes a unique schema for each test.
+migration, the fresh verification/persistence flow, and the save helper tests
+with concurrent saves over independent database connections. GitHub responses
+are mocked for both database suites; these do not replace live GitHub.com/GHES
+validation. It creates and removes a unique schema for each test.
 Use a disposable local PostgreSQL database, for example:
 
 ```sh
