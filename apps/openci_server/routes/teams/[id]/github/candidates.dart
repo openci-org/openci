@@ -2,13 +2,13 @@ import 'dart:io';
 
 import 'package:dart_frog/dart_frog.dart';
 import 'package:openci_server/database.dart';
+import 'package:openci_server/github/decrypt_github_connection_token.dart';
 import 'package:openci_server/github/fetch_github_installations.dart';
 import 'package:openci_server/github/github_connection_exception.dart';
 import 'package:openci_server/github/read_github_connection_session.dart';
 import 'package:openci_server/github/verify_github_installation.dart';
 import 'package:openci_server/request/error_handler.dart';
 import 'package:openci_server/request/request_extension.dart';
-import 'package:openci_server/secret/secret_crypter.dart';
 
 Future<Response> onRequest(RequestContext context, String id) async {
   final response = switch (context.request.method) {
@@ -49,7 +49,7 @@ Future<Response> _post(RequestContext context, String teamId) async {
     if (session == null) return _invalidSession();
 
     final environment = _environment(context);
-    final accessToken = await _decryptAccessToken(
+    final accessToken = await decryptGitHubConnectionToken(
       session.encryptedAccessToken!,
       environment,
     );
@@ -90,19 +90,6 @@ Future<String?> _readReference(RequestContext context) async {
   } on BadRequestException {
     // JSON parsing errors can contain the reference; do not log or return them.
     return null;
-  }
-}
-
-Future<String> _decryptAccessToken(
-  String encryptedAccessToken,
-  Map<String, String> environment,
-) async {
-  try {
-    final crypter = SecretCrypter(environment['SECRET_ENCRYPTION_KEY'] ?? '');
-    return await crypter.decrypt(encryptedAccessToken);
-  } catch (_) {
-    // Key and ciphertext parsing errors can contain credentials.
-    throw StateError('Failed to decrypt GitHub connection token');
   }
 }
 
