@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:meta/meta.dart';
 import 'package:openci_server/database.dart';
 import 'package:openci_server/github/decrypt_github_connection_token.dart';
 import 'package:openci_server/github/github_connection_exception.dart';
@@ -15,7 +14,7 @@ Future<DriftGitHubConnection?> persistGitHubConnection({
   required String userId,
   required String teamId,
   required int installationId,
-  @visibleForTesting Map<String, String>? environment,
+  Map<String, String>? environment,
 }) async {
   final session = await readGitHubConnectionSession(
     db: db,
