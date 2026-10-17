@@ -59,6 +59,16 @@ abstract class OpenCIApiService extends ChopperService {
     @Field('reference') String reference,
   );
 
+  @POST(
+    path: '/teams/{teamId}/github/confirm',
+    timeout: Duration(minutes: 1),
+  )
+  Future<Response<GitHubConnectionConfirmationResult>> confirmGitHubConnection(
+    @Path('teamId') String teamId,
+    @Field('reference') String reference,
+    @Field('installationId') int installationId,
+  );
+
   @GET(path: '/teams/{id}/members', timeout: Duration(seconds: 8))
   Future<Response<Map<String, dynamic>>> getTeamMembers(@Path('id') String id);
 

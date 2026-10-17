@@ -268,6 +268,47 @@ final class _$OpenCIApiService extends OpenCIApiService {
   }
 
   @override
+  Future<Response<GitHubConnectionConfirmationResult>> confirmGitHubConnection(
+    String teamId,
+    String reference,
+    int installationId,
+  ) {
+    final Uri $url = Uri.parse('/teams/${teamId}/github/confirm');
+    final $body = <String, dynamic>{
+      'reference': reference,
+      'installationId': installationId,
+    };
+    final ChopperCompleter $abortTrigger = ChopperCompleter<void>();
+    final ChopperTimer $timeout = ChopperTimer(
+      const Duration(microseconds: 60000000),
+      () {
+        if (!$abortTrigger.isCompleted) $abortTrigger.complete();
+      },
+    );
+    final Request $request = Request(
+      'POST',
+      $url,
+      client.baseUrl,
+      body: $body,
+      abortTrigger: $abortTrigger.future,
+    );
+    return client
+        .send<
+          GitHubConnectionConfirmationResult,
+          GitHubConnectionConfirmationResult
+        >($request)
+        .catchError(
+          (_) => Future<Response<GitHubConnectionConfirmationResult>>.error(
+            ChopperTimeoutException('Request timed out after 1 minute'),
+          ),
+          test: (Object err) =>
+              err is ChopperRequestAbortedException &&
+              $abortTrigger.isCompleted,
+        )
+        .whenComplete($timeout.cancel);
+  }
+
+  @override
   Future<Response<Map<String, dynamic>>> getTeamMembers(String id) {
     final Uri $url = Uri.parse('/teams/${id}/members');
     final ChopperCompleter $abortTrigger = ChopperCompleter<void>();

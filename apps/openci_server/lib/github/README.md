@@ -159,7 +159,7 @@ Rate-limited 403 responses are recognized by `x-ratelimit-remaining: 0`,
 `github_unavailable`. See [GitHub's REST API troubleshooting guide](https://docs.github.com/en/rest/using-the-rest-api/troubleshooting-the-rest-api).
 No partial candidates or upstream error details are returned. All responses
 include `Cache-Control: no-store` and `Referrer-Policy: no-referrer`. The Dashboard
-selection UI and shared confirmation client remain follow-up work.
+selection UI remains follow-up work.
 
 ## Confirming a team connection
 
@@ -198,7 +198,8 @@ preserve existing connections. Ownership conflicts leave the session unused;
 reusing a successfully consumed session returns 403. All responses include
 `Cache-Control: no-store` and `Referrer-Policy: no-referrer`, and neither logs nor
 responses contain the reference, encrypted token, or encryption key.
-The shared confirmation method and Dashboard selection UI remain follow-up work.
+The shared client's `confirmGitHubConnection` method calls this endpoint. The
+Dashboard selection UI remains follow-up work.
 
 ## Verified team connection storage
 

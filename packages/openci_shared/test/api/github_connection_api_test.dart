@@ -39,7 +39,7 @@ void main() {
 
   tearDown(() => client.dispose());
 
-  void expectPost(String endpoint) {
+  void expectPost(String endpoint, {int? installationId}) {
     final request = requests.single;
     expect(request.method, 'POST');
     expect(
@@ -48,7 +48,10 @@ void main() {
     );
     expect(request.headers['Authorization'], 'Bearer firebase-id-token');
     expect(request.headers['content-type'], 'application/json');
-    expect(jsonDecode(request.body), {'reference': 'private-reference'});
+    expect(jsonDecode(request.body), {
+      'reference': 'private-reference',
+      'installationId': ?installationId,
+    });
   }
 
   test(
@@ -216,5 +219,124 @@ void main() {
     expect(response.statusCode, 502);
     expect(response.body, isNull);
     expect(jsonDecode(response.error as String), responseBody);
+  });
+
+  group('confirmGitHubConnection', () {
+    Future<Response<GitHubConnectionConfirmationResult>> confirm() =>
+        api.confirmGitHubConnection('team-1', 'private-reference', 200);
+
+    void expectError(Response<GitHubConnectionConfirmationResult> response) {
+      expect(response.isSuccessful, isFalse);
+      expect(response.statusCode, statusCode);
+      expect(response.body, isNull);
+      expect(jsonDecode(response.error as String), responseBody);
+    }
+
+    test('posts the selection with Firebase authentication', () async {
+      responseBody = {'success': true};
+
+      final response = await confirm();
+
+      expectPost('confirm', installationId: 200);
+      expect(response.isSuccessful, isTrue);
+      expect(response.body!.success, isTrue);
+      expect(response.body!.toJson(), {'success': true});
+    });
+
+    test('preserves missing Firebase authentication', () async {
+      token = null;
+      statusCode = 401;
+      responseBody = {'success': false, 'error': 'Authentication required'};
+
+      final response = await confirm();
+
+      expect(requests.single.headers, isNot(contains('Authorization')));
+      expectError(response);
+    });
+
+    test('preserves an invalid confirmation request', () async {
+      statusCode = 400;
+      responseBody = {
+        'success': false,
+        'error': 'Invalid GitHub connection request',
+      };
+
+      final response = await confirm();
+
+      expectError(response);
+    });
+
+    test('preserves an invalid or expired session', () async {
+      statusCode = 403;
+      responseBody = {
+        'success': false,
+        'error': 'Invalid or expired GitHub connection session',
+      };
+
+      final response = await confirm();
+
+      expectError(response);
+    });
+
+    test('preserves the GitHub reauthorization code', () async {
+      statusCode = 409;
+      responseBody = {
+        'success': false,
+        'error': 'GitHub reauthorization required',
+        'code': 'github_reauthorization_required',
+      };
+
+      final response = await confirm();
+
+      expectError(response);
+    });
+
+    test('preserves the GitHub permissions code', () async {
+      statusCode = 403;
+      responseBody = {
+        'success': false,
+        'error': 'GitHub permissions required',
+        'code': 'github_permissions_required',
+      };
+
+      final response = await confirm();
+
+      expectError(response);
+    });
+
+    test('preserves the connection ownership conflict code', () async {
+      statusCode = 409;
+      responseBody = {
+        'success': false,
+        'error': 'GitHub connection conflict',
+        'code': 'github_connection_conflict',
+      };
+
+      final response = await confirm();
+
+      expectError(response);
+    });
+
+    test('preserves the temporary GitHub failure code', () async {
+      statusCode = 502;
+      responseBody = {
+        'success': false,
+        'error': 'Failed to confirm GitHub connection',
+        'code': 'github_unavailable',
+      };
+
+      final response = await confirm();
+
+      expectError(response);
+    });
+
+    test('preserves an internal server error', () async {
+      statusCode = 500;
+      responseBody = {'success': false, 'error': 'Internal server error'};
+
+      final response = await confirm();
+
+      expectError(response);
+    });
   });
 }

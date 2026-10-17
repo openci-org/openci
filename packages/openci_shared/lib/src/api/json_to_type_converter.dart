@@ -68,6 +68,11 @@ class JsonToTypeConverter extends JsonConverter {
         Map<String, dynamic>.from(json as Map),
       );
     }
+    if (T == GitHubConnectionConfirmationResult) {
+      return GitHubConnectionConfirmationResult.fromJson(
+        Map<String, dynamic>.from(json as Map),
+      );
+    }
 
     return json;
   }
