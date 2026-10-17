@@ -141,6 +141,7 @@ void main() {
       final target = (await prepare())!;
       expect(target.profileName, 'remote');
       expect(target.profile, profile);
+      expect(target.toString(), isNot(contains(token)));
       expect(logger.output, [
         t.setup.ascKeys.saveDestination(
           server: profile.serverUrl,

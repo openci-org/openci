@@ -3,6 +3,25 @@
 part of 'team_members_bottom_sheet.dart';
 
 // **************************************************************************
+// JsonSerializableGenerator
+// **************************************************************************
+
+_TeamMember _$TeamMemberFromJson(Map<String, dynamic> json) => _TeamMember(
+  uid: json['uid'] as String,
+  email: json['email'] as String?,
+  displayName: json['displayName'] as String?,
+  photoURL: json['photoURL'] as String?,
+);
+
+Map<String, dynamic> _$TeamMemberToJson(_TeamMember instance) =>
+    <String, dynamic>{
+      'uid': instance.uid,
+      'email': instance.email,
+      'displayName': instance.displayName,
+      'photoURL': instance.photoURL,
+    };
+
+// **************************************************************************
 // RiverpodGenerator
 // **************************************************************************
 

@@ -1,6 +1,9 @@
-import 'package:drift/drift.dart';
+import 'package:drift/drift.dart' hide JsonKey;
+import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:openci_server/database.dart';
 import 'package:openci_server/webhook_task/webhook_task_transition_exception.dart';
+
+part 'fail_webhook_task.freezed.dart';
 
 String parseWebhookTaskErrorMessage(Map<String, Object?> payload) {
   final errorMessage = payload['errorMessage'];
@@ -49,8 +52,8 @@ Future<FailWebhookTaskResult> failWebhookTask({
   return FailWebhookTaskResult(alreadyFailed: alreadyFailed);
 }
 
-class FailWebhookTaskResult {
-  const FailWebhookTaskResult({required this.alreadyFailed});
-
-  final bool alreadyFailed;
+@freezed
+abstract class FailWebhookTaskResult with _$FailWebhookTaskResult {
+  const factory FailWebhookTaskResult({required bool alreadyFailed}) =
+      _FailWebhookTaskResult;
 }

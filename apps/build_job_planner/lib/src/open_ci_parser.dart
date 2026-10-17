@@ -1,24 +1,26 @@
 import 'package:analyzer/dart/analysis/utilities.dart';
 import 'package:analyzer/dart/ast/ast.dart';
 import 'package:analyzer/dart/ast/visitor.dart';
+import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:glob/glob.dart';
 import 'package:path/path.dart' as p;
+
+part 'open_ci_parser.freezed.dart';
 
 /// An invalid workflow trigger configuration.
 class WorkflowConfigurationException extends FormatException {
   const WorkflowConfigurationException(super.message);
 }
 
-class ParsedWorkflow {
-  const ParsedWorkflow({
-    required this.workflowFileName,
-    required this.workflowName,
-    required this.ciTriggers,
-  });
+@freezed
+abstract class ParsedWorkflow with _$ParsedWorkflow {
+  const ParsedWorkflow._();
 
-  final String workflowFileName;
-  final String workflowName;
-  final List<ParsedCITrigger> ciTriggers;
+  const factory ParsedWorkflow({
+    required String workflowFileName,
+    required String workflowName,
+    required List<ParsedCITrigger> ciTriggers,
+  }) = _ParsedWorkflow;
 
   bool matches({required String eventType, required String branch}) =>
       ciTriggers.any(
@@ -26,16 +28,15 @@ class ParsedWorkflow {
       );
 }
 
-class ParsedCITrigger {
-  const ParsedCITrigger({
-    required this.type,
-    required this.branch,
-    this.whenChanged,
-  });
+@freezed
+abstract class ParsedCITrigger with _$ParsedCITrigger {
+  const ParsedCITrigger._();
 
-  final String type; // 'push' or 'pullRequest'
-  final String branch;
-  final List<String>? whenChanged;
+  const factory ParsedCITrigger({
+    required String type, // 'push' or 'pullRequest'
+    required String branch,
+    List<String>? whenChanged,
+  }) = _ParsedCITrigger;
 
   bool matches({
     required String eventType, // 'push' or 'pull_request'

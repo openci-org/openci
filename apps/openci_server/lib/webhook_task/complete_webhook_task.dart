@@ -1,12 +1,15 @@
-import 'package:drift/drift.dart';
+import 'package:drift/drift.dart' hide JsonKey;
+import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:http/http.dart' as http;
 import 'package:openci_server/build_job/build_job_plan_mapper.dart';
 import 'package:openci_server/build_job/create_queued_check_run.dart';
 import 'package:openci_server/database.dart';
 import 'package:openci_server/github/github_repository_url.dart';
 import 'package:openci_server/webhook_task/webhook_task_transition_exception.dart';
-import 'package:http/http.dart' as http;
 import 'package:openci_shared/openci_shared.dart';
 import 'package:uuid/uuid.dart';
+
+part 'complete_webhook_task.freezed.dart';
 
 List<BuildJobPlan> parseBuildJobPlans(Map<String, Object?> payload) {
   final rawJobs = payload['jobs'];
@@ -109,12 +112,10 @@ Future<CompleteWebhookTaskResult> completeWebhookTask({
   );
 }
 
-class CompleteWebhookTaskResult {
-  const CompleteWebhookTaskResult({
-    required this.jobIds,
-    required this.alreadyCompleted,
-  });
-
-  final List<String> jobIds;
-  final bool alreadyCompleted;
+@freezed
+abstract class CompleteWebhookTaskResult with _$CompleteWebhookTaskResult {
+  const factory CompleteWebhookTaskResult({
+    required List<String> jobIds,
+    required bool alreadyCompleted,
+  }) = _CompleteWebhookTaskResult;
 }

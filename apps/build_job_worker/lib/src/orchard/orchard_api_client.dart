@@ -2,20 +2,24 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/io_client.dart';
 
 import '../config.dart';
 import 'calculate_max_concurrent_jobs.dart' show calculateMaxConcurrentJobs;
 
-class OrchardLease {
-  const OrchardLease({
-    required this.id,
-    required this.vmName,
-    required this.status,
-    this.ipAddress,
-    this.sshPort,
-  });
+part 'orchard_api_client.freezed.dart';
+
+@freezed
+abstract class OrchardLease with _$OrchardLease {
+  const factory OrchardLease({
+    required String id,
+    required String vmName,
+    required String status,
+    String? ipAddress,
+    int? sshPort,
+  }) = _OrchardLease;
 
   factory OrchardLease.fromJson(Map<String, dynamic> json) {
     return OrchardLease(
@@ -26,12 +30,6 @@ class OrchardLease {
       sshPort: json['ssh_port'] as int? ?? json['sshPort'] as int?,
     );
   }
-
-  final String id;
-  final String vmName;
-  final String status;
-  final String? ipAddress;
-  final int? sshPort;
 }
 
 class OrchardApiClient {

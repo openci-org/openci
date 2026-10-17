@@ -2,19 +2,22 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:freezed_annotation/freezed_annotation.dart';
 
 import 'src/macos_updater_api.g.dart';
 
+part 'macos_updater.freezed.dart';
+
 enum MacosUpdaterCheckResultType { updateAvailable, noUpdateFound, failed }
 
-@immutable
-class MacosUpdaterCheckResult {
-  const MacosUpdaterCheckResult({
-    required this.type,
-    required this.message,
-    this.version,
-    this.displayVersion,
-  });
+@freezed
+abstract class MacosUpdaterCheckResult with _$MacosUpdaterCheckResult {
+  const factory MacosUpdaterCheckResult({
+    required MacosUpdaterCheckResultType type,
+    required String message,
+    String? version,
+    String? displayVersion,
+  }) = _MacosUpdaterCheckResult;
 
   factory MacosUpdaterCheckResult.fromMap(Map<Object?, Object?> map) {
     return MacosUpdaterCheckResult(
@@ -29,11 +32,6 @@ class MacosUpdaterCheckResult {
       displayVersion: map['displayVersion'] as String?,
     );
   }
-
-  final MacosUpdaterCheckResultType type;
-  final String message;
-  final String? version;
-  final String? displayVersion;
 }
 
 /// A macOS-only Sparkle updater facade.

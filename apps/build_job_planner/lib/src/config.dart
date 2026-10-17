@@ -1,17 +1,17 @@
 import 'dart:io';
 
+import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:openci_shared/openci_shared.dart';
 
-class Config {
-  Config({
-    required this.serverUrl,
-    required this.internalApiKey,
-    this.sentryDsn,
-  });
+part 'config.freezed.dart';
 
-  final String serverUrl;
-  final String internalApiKey;
-  final String? sentryDsn;
+@Freezed(toStringOverride: false)
+abstract class Config with _$Config {
+  const factory Config({
+    required String serverUrl,
+    required String internalApiKey,
+    String? sentryDsn,
+  }) = _Config;
 
   factory Config.fromEnvironment({Map<String, String>? environment}) {
     final env = environment ?? Platform.environment;

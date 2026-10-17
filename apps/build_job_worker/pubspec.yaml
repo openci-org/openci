@@ -10,12 +10,15 @@ resolution: workspace
 
 dependencies:
   chopper: ^8.6.0
+  freezed_annotation: ^3.1.0
   http: ^1.6.0
   meta: ^1.16.0
   openci_shared: ^1.0.1
   sentry: ^9.22.0
 
 dev_dependencies:
+  build_runner: ^2.15.0
+  freezed: 3.2.6-dev.1
   lints: ^6.0.0
   mocktail: ^1.0.4
   test: ^1.24.0

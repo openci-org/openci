@@ -1,19 +1,23 @@
 import 'dart:io';
 
+import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:openci_shared/openci_shared.dart';
 
-class Config {
-  const Config({
-    required this.serverUrl,
-    required this.internalApiKey,
-    required this.orchardServiceAccountName,
-    required this.orchardServiceAccountToken,
-    this.baseVmName = 'base-macos',
-    this.orchardApiUrl = 'https://orchard-controller:6120',
-    this.lokiUrl = 'http://192.168.64.1:3100',
-    this.internalLokiUrl = 'http://loki:3100',
-    this.sentryDsn,
-  });
+part 'config.freezed.dart';
+
+@Freezed(toStringOverride: false)
+abstract class Config with _$Config {
+  const factory Config({
+    required String serverUrl,
+    required String internalApiKey,
+    required String orchardServiceAccountName,
+    required String orchardServiceAccountToken,
+    @Default('base-macos') String baseVmName,
+    @Default('https://orchard-controller:6120') String orchardApiUrl,
+    @Default('http://192.168.64.1:3100') String lokiUrl,
+    @Default('http://loki:3100') String internalLokiUrl,
+    String? sentryDsn,
+  }) = _Config;
 
   factory Config.fromEnvironment({Map<String, String>? environment}) {
     final env = environment ?? Platform.environment;
@@ -37,14 +41,4 @@ class Config {
       sentryDsn: env['SENTRY_DSN'],
     );
   }
-
-  final String serverUrl;
-  final String internalApiKey;
-  final String? sentryDsn;
-  final String baseVmName;
-  final String orchardApiUrl;
-  final String orchardServiceAccountName;
-  final String orchardServiceAccountToken;
-  final String lokiUrl;
-  final String internalLokiUrl;
 }

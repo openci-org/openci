@@ -1,11 +1,12 @@
-class AppStoreConnectKeys {
-  const AppStoreConnectKeys({
-    required this.issuerId,
-    required this.keyId,
-    required this.privateKeyBase64,
-  });
+import 'package:freezed_annotation/freezed_annotation.dart';
 
-  final String issuerId;
-  final String keyId;
-  final String privateKeyBase64;
+part 'app_store_connect_keys.freezed.dart';
+
+@Freezed(toStringOverride: false)
+abstract class AppStoreConnectKeys with _$AppStoreConnectKeys {
+  const factory AppStoreConnectKeys({
+    required String issuerId,
+    required String keyId,
+    required String privateKeyBase64,
+  }) = _AppStoreConnectKeys;
 }

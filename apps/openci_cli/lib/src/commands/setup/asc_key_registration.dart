@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:cli_util/cli_logging.dart';
+import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:openci_shared/openci_shared.dart';
 
 import '../../asc/asc_api_key.dart';
@@ -12,11 +13,14 @@ import '../../secrets/fetch_secret_names.dart';
 import '../register/secret_registration.dart';
 import 'ensure_ios_certificate_key.dart';
 
-class AscKeySaveTarget {
-  const AscKeySaveTarget({required this.profileName, required this.profile});
+part 'asc_key_registration.freezed.dart';
 
-  final String profileName;
-  final AuthProfile profile;
+@Freezed(toStringOverride: false)
+abstract class AscKeySaveTarget with _$AscKeySaveTarget {
+  const factory AscKeySaveTarget({
+    required String profileName,
+    required AuthProfile profile,
+  }) = _AscKeySaveTarget;
 }
 
 class AscKeyRegistration {

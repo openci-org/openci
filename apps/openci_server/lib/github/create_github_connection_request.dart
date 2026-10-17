@@ -1,10 +1,12 @@
 import 'dart:convert';
 
 import 'package:crypto/crypto.dart';
-import 'package:meta/meta.dart';
+import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:openci_server/database.dart';
 import 'package:openci_server/github/generate_random_value.dart';
 import 'package:uuid/uuid.dart';
+
+part 'create_github_connection_request.freezed.dart';
 
 Future<CreateGitHubConnectionRequestResult> createGitHubConnectionRequest({
   required AppDatabase db,
@@ -37,16 +39,13 @@ Future<CreateGitHubConnectionRequestResult> createGitHubConnectionRequest({
   );
 }
 
-class CreateGitHubConnectionRequestResult {
-  const CreateGitHubConnectionRequestResult({
-    required this.id,
-    required this.state,
-    required this.codeChallenge,
-    required this.expiresAt,
-  });
-
-  final String id;
-  final String state;
-  final String codeChallenge;
-  final DateTime expiresAt;
+@Freezed(toStringOverride: false)
+abstract class CreateGitHubConnectionRequestResult
+    with _$CreateGitHubConnectionRequestResult {
+  const factory CreateGitHubConnectionRequestResult({
+    required String id,
+    required String state,
+    required String codeChallenge,
+    required DateTime expiresAt,
+  }) = _CreateGitHubConnectionRequestResult;
 }

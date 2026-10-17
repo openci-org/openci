@@ -1,29 +1,22 @@
-class GitHubWebhookPayload {
-  const GitHubWebhookPayload({
-    required this.installationId,
-    required this.eventType,
-    required this.owner,
-    required this.repo,
-    required this.commitSha,
-    required this.branch,
-    required this.triggerBranch,
-    required this.triggerType,
-    this.pullRequestNumber,
-    this.commitMessage,
-    this.isDeleted = false,
-  });
+import 'package:freezed_annotation/freezed_annotation.dart';
 
-  final int installationId;
-  final String eventType;
-  final String owner;
-  final String repo;
-  final String commitSha;
-  final String branch;
-  final String triggerBranch;
-  final String triggerType;
-  final int? pullRequestNumber;
-  final String? commitMessage;
-  final bool isDeleted;
+part 'github_webhook_payload.freezed.dart';
+
+@freezed
+abstract class GitHubWebhookPayload with _$GitHubWebhookPayload {
+  const factory GitHubWebhookPayload({
+    required int installationId,
+    required String eventType,
+    required String owner,
+    required String repo,
+    required String commitSha,
+    required String branch,
+    required String triggerBranch,
+    required String triggerType,
+    int? pullRequestNumber,
+    String? commitMessage,
+    @Default(false) bool isDeleted,
+  }) = _GitHubWebhookPayload;
 
   factory GitHubWebhookPayload.fromRawJson({
     required String eventType,
