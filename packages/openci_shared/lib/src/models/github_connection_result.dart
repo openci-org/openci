@@ -71,3 +71,17 @@ class GitHubConnectionCandidate {
 
   Map<String, dynamic> toJson() => _$GitHubConnectionCandidateToJson(this);
 }
+
+@JsonSerializable()
+class GitHubConnectionConfirmationResult {
+  const GitHubConnectionConfirmationResult({required this.success});
+
+  factory GitHubConnectionConfirmationResult.fromJson(
+    Map<String, dynamic> json,
+  ) => _$GitHubConnectionConfirmationResultFromJson(json);
+
+  final bool success;
+
+  Map<String, dynamic> toJson() =>
+      _$GitHubConnectionConfirmationResultToJson(this);
+}

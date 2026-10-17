@@ -69,3 +69,11 @@ Map<String, dynamic> _$GitHubConnectionCandidateToJson(
   'accountLogin': instance.accountLogin,
   'accountType': instance.accountType,
 };
+
+GitHubConnectionConfirmationResult _$GitHubConnectionConfirmationResultFromJson(
+  Map<String, dynamic> json,
+) => GitHubConnectionConfirmationResult(success: json['success'] as bool);
+
+Map<String, dynamic> _$GitHubConnectionConfirmationResultToJson(
+  GitHubConnectionConfirmationResult instance,
+) => <String, dynamic>{'success': instance.success};
