@@ -568,7 +568,7 @@ as DateTime,
 /// @nodoc
 mixin _$GitHubConnectionCandidatesResult {
 
- bool get success; List<GitHubConnectionCandidate> get candidates;
+ bool get success; List<GitHubConnectionCandidate> get candidates; String? get installationUrl;
 /// Create a copy of GitHubConnectionCandidatesResult
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -581,16 +581,16 @@ $GitHubConnectionCandidatesResultCopyWith<GitHubConnectionCandidatesResult> get 
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is GitHubConnectionCandidatesResult&&(identical(other.success, success) || other.success == success)&&const DeepCollectionEquality().equals(other.candidates, candidates));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is GitHubConnectionCandidatesResult&&(identical(other.success, success) || other.success == success)&&const DeepCollectionEquality().equals(other.candidates, candidates)&&(identical(other.installationUrl, installationUrl) || other.installationUrl == installationUrl));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,success,const DeepCollectionEquality().hash(candidates));
+int get hashCode => Object.hash(runtimeType,success,const DeepCollectionEquality().hash(candidates),installationUrl);
 
 @override
 String toString() {
-  return 'GitHubConnectionCandidatesResult(success: $success, candidates: $candidates)';
+  return 'GitHubConnectionCandidatesResult(success: $success, candidates: $candidates, installationUrl: $installationUrl)';
 }
 
 
@@ -601,7 +601,7 @@ abstract mixin class $GitHubConnectionCandidatesResultCopyWith<$Res>  {
   factory $GitHubConnectionCandidatesResultCopyWith(GitHubConnectionCandidatesResult value, $Res Function(GitHubConnectionCandidatesResult) _then) = _$GitHubConnectionCandidatesResultCopyWithImpl;
 @useResult
 $Res call({
- bool success, List<GitHubConnectionCandidate> candidates
+ bool success, List<GitHubConnectionCandidate> candidates, String? installationUrl
 });
 
 
@@ -618,11 +618,12 @@ class _$GitHubConnectionCandidatesResultCopyWithImpl<$Res>
 
 /// Create a copy of GitHubConnectionCandidatesResult
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? success = null,Object? candidates = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? success = null,Object? candidates = null,Object? installationUrl = freezed,}) {
   return _then(_self.copyWith(
 success: null == success ? _self.success : success // ignore: cast_nullable_to_non_nullable
 as bool,candidates: null == candidates ? _self.candidates : candidates // ignore: cast_nullable_to_non_nullable
-as List<GitHubConnectionCandidate>,
+as List<GitHubConnectionCandidate>,installationUrl: freezed == installationUrl ? _self.installationUrl : installationUrl // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 
@@ -707,10 +708,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( bool success,  List<GitHubConnectionCandidate> candidates)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( bool success,  List<GitHubConnectionCandidate> candidates,  String? installationUrl)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _GitHubConnectionCandidatesResult() when $default != null:
-return $default(_that.success,_that.candidates);case _:
+return $default(_that.success,_that.candidates,_that.installationUrl);case _:
   return orElse();
 
 }
@@ -728,10 +729,10 @@ return $default(_that.success,_that.candidates);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( bool success,  List<GitHubConnectionCandidate> candidates)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( bool success,  List<GitHubConnectionCandidate> candidates,  String? installationUrl)  $default,) {final _that = this;
 switch (_that) {
 case _GitHubConnectionCandidatesResult():
-return $default(_that.success,_that.candidates);case _:
+return $default(_that.success,_that.candidates,_that.installationUrl);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -748,10 +749,10 @@ return $default(_that.success,_that.candidates);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( bool success,  List<GitHubConnectionCandidate> candidates)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( bool success,  List<GitHubConnectionCandidate> candidates,  String? installationUrl)?  $default,) {final _that = this;
 switch (_that) {
 case _GitHubConnectionCandidatesResult() when $default != null:
-return $default(_that.success,_that.candidates);case _:
+return $default(_that.success,_that.candidates,_that.installationUrl);case _:
   return null;
 
 }
@@ -761,9 +762,9 @@ return $default(_that.success,_that.candidates);case _:
 
 /// @nodoc
 
-@JsonSerializable(explicitToJson: true)
+@JsonSerializable(explicitToJson: true, includeIfNull: false)
 class _GitHubConnectionCandidatesResult implements GitHubConnectionCandidatesResult {
-  const _GitHubConnectionCandidatesResult({required this.success, required final  List<GitHubConnectionCandidate> candidates}): _candidates = candidates;
+  const _GitHubConnectionCandidatesResult({required this.success, required final  List<GitHubConnectionCandidate> candidates, this.installationUrl}): _candidates = candidates;
   factory _GitHubConnectionCandidatesResult.fromJson(Map<String, dynamic> json) => _$GitHubConnectionCandidatesResultFromJson(json);
 
 @override final  bool success;
@@ -774,6 +775,7 @@ class _GitHubConnectionCandidatesResult implements GitHubConnectionCandidatesRes
   return EqualUnmodifiableListView(_candidates);
 }
 
+@override final  String? installationUrl;
 
 /// Create a copy of GitHubConnectionCandidatesResult
 /// with the given fields replaced by the non-null parameter values.
@@ -788,16 +790,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _GitHubConnectionCandidatesResult&&(identical(other.success, success) || other.success == success)&&const DeepCollectionEquality().equals(other._candidates, _candidates));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _GitHubConnectionCandidatesResult&&(identical(other.success, success) || other.success == success)&&const DeepCollectionEquality().equals(other._candidates, _candidates)&&(identical(other.installationUrl, installationUrl) || other.installationUrl == installationUrl));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,success,const DeepCollectionEquality().hash(_candidates));
+int get hashCode => Object.hash(runtimeType,success,const DeepCollectionEquality().hash(_candidates),installationUrl);
 
 @override
 String toString() {
-  return 'GitHubConnectionCandidatesResult(success: $success, candidates: $candidates)';
+  return 'GitHubConnectionCandidatesResult(success: $success, candidates: $candidates, installationUrl: $installationUrl)';
 }
 
 
@@ -808,7 +810,7 @@ abstract mixin class _$GitHubConnectionCandidatesResultCopyWith<$Res> implements
   factory _$GitHubConnectionCandidatesResultCopyWith(_GitHubConnectionCandidatesResult value, $Res Function(_GitHubConnectionCandidatesResult) _then) = __$GitHubConnectionCandidatesResultCopyWithImpl;
 @override @useResult
 $Res call({
- bool success, List<GitHubConnectionCandidate> candidates
+ bool success, List<GitHubConnectionCandidate> candidates, String? installationUrl
 });
 
 
@@ -825,11 +827,12 @@ class __$GitHubConnectionCandidatesResultCopyWithImpl<$Res>
 
 /// Create a copy of GitHubConnectionCandidatesResult
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? success = null,Object? candidates = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? success = null,Object? candidates = null,Object? installationUrl = freezed,}) {
   return _then(_GitHubConnectionCandidatesResult(
 success: null == success ? _self.success : success // ignore: cast_nullable_to_non_nullable
 as bool,candidates: null == candidates ? _self._candidates : candidates // ignore: cast_nullable_to_non_nullable
-as List<GitHubConnectionCandidate>,
+as List<GitHubConnectionCandidate>,installationUrl: freezed == installationUrl ? _self.installationUrl : installationUrl // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 

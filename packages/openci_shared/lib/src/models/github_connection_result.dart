@@ -33,10 +33,11 @@ abstract class GitHubConnectionSession with _$GitHubConnectionSession {
 abstract class GitHubConnectionCandidatesResult
     with _$GitHubConnectionCandidatesResult {
   // ignore: invalid_annotation_target
-  @JsonSerializable(explicitToJson: true)
+  @JsonSerializable(explicitToJson: true, includeIfNull: false)
   const factory GitHubConnectionCandidatesResult({
     required bool success,
     required List<GitHubConnectionCandidate> candidates,
+    String? installationUrl,
   }) = _GitHubConnectionCandidatesResult;
 
   factory GitHubConnectionCandidatesResult.fromJson(
