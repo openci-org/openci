@@ -64,15 +64,20 @@ Future<List<GitHubInstallation>> fetchGitHubConnectionCandidates({
   );
   final candidates = <GitHubInstallation>[];
   for (final installation in installations) {
-    final canConnect = await _canConnectInstallation(
-      accessToken: accessToken,
-      userId: user.id,
-      appId: appId,
-      installation: installation,
-      environment: env,
-      timeout: membershipTimeout,
-    );
-    if (canConnect) candidates.add(installation);
+    try {
+      final canConnect = await _canConnectInstallation(
+        accessToken: accessToken,
+        userId: user.id,
+        appId: appId,
+        installation: installation,
+        environment: env,
+        timeout: membershipTimeout,
+      );
+      if (canConnect) candidates.add(installation);
+    } on GitHubConnectionException catch (error) {
+      // An inaccessible organization must not hide other verified candidates.
+      if (error.failure != GitHubConnectionFailure.permissionsRequired) rethrow;
+    }
   }
   return List.unmodifiable(candidates);
 }
