@@ -354,6 +354,17 @@ rejects empty tokens. Check creation/update has a 10-second timeout so a stalled
 GitHub request releases the database transaction. The transaction cannot undo a
 GitHub check that was already created if a later database write fails.
 
+Queued check creation also requires the job's active verified connection and
+matching repository installation. It uses the same normalized operator API URL
+for connection lookup and GitHub requests, and no longer skips installation ID
+`12345678`. Missing job metadata, unverified connections, GitHub errors, and
+timeouts propagate to the caller. In webhook completion, the existing
+transaction rolls back the task's completion and all newly inserted jobs if any
+check fails. Repository lookup and check creation each have a 10-second timeout.
+Checks already created on GitHub cannot be rolled back with the database, so a
+failed batch or lost response can leave a GitHub check without a saved job.
+An existing saved check is left unchanged by this creation helper.
+
 Other API and CI consumers will switch in follow-up changes. Production cutover
 still requires existing teams to reconnect (G-1379).
 
