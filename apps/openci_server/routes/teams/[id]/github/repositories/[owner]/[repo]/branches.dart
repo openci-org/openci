@@ -5,6 +5,8 @@ import 'package:dart_frog/dart_frog.dart';
 import 'package:http/http.dart' as http;
 import 'package:openci_server/database.dart';
 import 'package:openci_server/github/github_service.dart';
+import 'package:openci_server/github/parse_github_api_base_uri.dart';
+import 'package:openci_server/github/read_active_github_connections.dart';
 import 'package:openci_server/request/error_handler.dart';
 
 FutureOr<Response> onRequest(
@@ -51,22 +53,32 @@ Future<Response> _get(
       );
     }
 
-    final installationIds = driftTeam.installationIds;
-    if (installationIds.isEmpty) {
-      return Response.json(
-        statusCode: HttpStatus.badRequest,
-        body: {
-          'success': false,
-          'error': 'GitHub App is not installed for this team',
-        },
-      );
-    }
-
     Map<String, String> env;
     try {
       env = context.read<Map<String, String>>();
     } catch (_) {
       env = Platform.environment;
+    }
+    env = {
+      ...env,
+      'GITHUB_API_BASE_URL': parseGitHubApiBaseUri(
+        env['GITHUB_API_BASE_URL'],
+      ).toString(),
+    };
+
+    final connections = await readActiveGitHubConnections(
+      db: db,
+      teamId: teamId,
+      environment: env,
+    );
+    if (connections.isEmpty) {
+      return Response.json(
+        statusCode: HttpStatus.badRequest,
+        body: {
+          'success': false,
+          'error': 'No active GitHub connection for this team',
+        },
+      );
     }
 
     http.Client client;
@@ -76,32 +88,34 @@ Future<Response> _get(
       client = http.Client();
     }
 
-    final allBranches = <String>{};
-    Object? lastError;
-
-    for (final installationId in installationIds) {
-      try {
-        final branches = await GitHubService.listBranches(
-          owner: owner,
-          repo: repo,
-          installationIdStr: installationId.toString(),
-          environment: env,
-          client: client,
-        );
-        allBranches.addAll(branches);
-      } catch (e) {
-        lastError = e;
-      }
+    final installationId = await GitHubService.getRepositoryInstallationId(
+      owner: owner,
+      repo: repo,
+      environment: env,
+      client: client,
+    );
+    final hasConnection = connections.any(
+      (connection) => connection.installationId.toString() == installationId,
+    );
+    if (!hasConnection) {
+      return Response.json(
+        statusCode: HttpStatus.forbidden,
+        body: {'success': false, 'error': 'Forbidden'},
+      );
     }
 
-    if (allBranches.isEmpty && lastError != null) {
-      throw lastError;
-    }
+    final branches = await GitHubService.listBranches(
+      owner: owner,
+      repo: repo,
+      installationIdStr: installationId,
+      environment: env,
+      client: client,
+    );
 
     return Response.json(
       body: {
         'success': true,
-        'branches': allBranches.toList(),
+        'branches': branches,
       },
     );
   } catch (e, s) {

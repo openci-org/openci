@@ -277,6 +277,16 @@ with only legacy installation IDs. It lists repositories using installation
 tokens for the verified connections and returns an error if any GitHub request
 fails, rather than returning a partially successful list. The same normalized
 operator API URL is used for both connection lookup and GitHub requests.
+
+`GET /teams/:id/github/repositories/:owner/:repo/branches` also requires team
+membership and active connections for the operator's API URL and App ID. It
+resolves the repository's installation through GitHub and returns 403 if that
+installation is not among the team's active connections, before issuing an
+installation token. It fetches branches with only the matching connection.
+Legacy IDs cannot authorize the request, and GitHub lookup, token, or branch
+failures return an error without trying another connection. No active connection
+returns 400 before contacting GitHub.
+
 Other API and CI consumers will switch in follow-up changes. Production cutover
 still requires existing teams to reconnect (G-1379).
 
