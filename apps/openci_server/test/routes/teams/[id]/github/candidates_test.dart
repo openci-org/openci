@@ -469,7 +469,7 @@ void main() {
   });
 
   test(
-    'does not return partial candidates when membership proof is unavailable',
+    'omits an organization when its membership is not found',
     () async {
       final success = respond;
       respond = (request) async => request.url.path.contains('/memberships/')
@@ -478,11 +478,16 @@ void main() {
 
       final response = await postWithoutErrorLogs();
 
-      expect(response.statusCode, HttpStatus.forbidden);
+      expect(response.statusCode, HttpStatus.ok);
       expect(await response.json(), {
-        'success': false,
-        'error': 'GitHub permissions required',
-        'code': 'github_permissions_required',
+        'success': true,
+        'candidates': [
+          {
+            'installationId': 100,
+            'accountLogin': 'octocat',
+            'accountType': 'User',
+          },
+        ],
       });
     },
   );
@@ -515,6 +520,22 @@ void main() {
 
     await expectGitHubFailure();
   });
+
+  test(
+    'does not omit an organization when membership is rate limited',
+    () async {
+      final success = respond;
+      respond = (request) async => request.url.path.contains('/memberships/')
+          ? http.Response(
+              'private-upstream-error',
+              403,
+              headers: {'x-ratelimit-remaining': '0'},
+            )
+          : success(request);
+
+      await expectGitHubFailure();
+    },
+  );
 
   test('recognizes secondary rate limits without rate limit headers', () async {
     respond = (_) async => http.Response(

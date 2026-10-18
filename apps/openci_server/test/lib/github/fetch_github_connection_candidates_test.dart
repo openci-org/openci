@@ -310,17 +310,30 @@ void main() {
   });
 
   test(
-    'does not return partial candidates when membership is blocked',
+    'skips a blocked organization and verifies the remaining installations',
     () async {
+      installations.insert(0, {
+        ...organizationInstallation,
+        'id': 300,
+        'account': {'id': 987, 'type': 'Organization', 'login': 'blocked-org'},
+      });
       final original = respond;
       respond = (request) async {
-        if (request.url.path.contains('/memberships/')) {
+        if (request.url.path.endsWith('/memberships/orgs/blocked-org')) {
           return http.Response('private-user-token', HttpStatus.forbidden);
         }
         return original(request);
       };
 
-      await expectLater(fetch(), membershipFailure);
+      final candidates = await fetch();
+
+      expect(candidates.map((candidate) => candidate.id), [100, 200]);
+      expect(requests.map((request) => request.url.path), [
+        '/user',
+        '/user/installations',
+        '/user/memberships/orgs/blocked-org',
+        '/user/memberships/orgs/acme',
+      ]);
       expect(clients.every((client) => client.closed), isTrue);
     },
   );
