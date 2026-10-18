@@ -365,6 +365,17 @@ Checks already created on GitHub cannot be rolled back with the database, so a
 failed batch or lost response can leave a GitHub check without a saved job.
 An existing saved check is left unchanged by this creation helper.
 
+`POST /builds/:id/status-change` verifies each affected job's active connection
+and repository installation before automatically cancelling or skipping its
+GitHub check. Matrix and dependency queries are limited to the source job's
+team. GitHub requests use the operator's normalized API URL/App, not the source
+job's installation, legacy team IDs, or a saved job URL. An existing check with
+missing or invalid metadata is an error; a job without a check needs no GitHub
+request. Failed verification or GitHub requests return a generic 500 after local
+cancellation and recursive skipping finish. These local state changes are kept
+so an external failure does not allow dependent jobs to run. Failed GitHub check
+updates are not automatically retried or rolled back with local state.
+
 Other API and CI consumers will switch in follow-up changes. Production cutover
 still requires existing teams to reconnect (G-1379).
 
