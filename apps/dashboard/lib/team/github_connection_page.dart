@@ -5,6 +5,7 @@ import 'package:dashboard/connections/connection_store_provider.dart';
 import 'package:dashboard/team/connect_github_button.dart';
 import 'package:dashboard/team/current_github_connection_context_provider.dart';
 import 'package:dashboard/team/fetch_github_connection_session.dart';
+import 'package:dashboard/team/github_app_installation_link.dart';
 import 'package:dashboard/team/github_connection_context.dart';
 import 'package:dashboard/team/github_connection_form.dart';
 import 'package:dashboard/team/github_connection_storage.dart';
@@ -42,7 +43,7 @@ class GitHubConnectionPage extends HookConsumerWidget {
       content = const CircularProgressIndicator.adaptive();
     } else if (error != null) {
       content = Text(_errorMessage(error), textAlign: TextAlign.center);
-    } else if (candidates.requireData.isEmpty) {
+    } else if (candidates.requireData.candidates.isEmpty) {
       content = ListView(
         shrinkWrap: true,
         children: [
@@ -58,13 +59,17 @@ class GitHubConnectionPage extends HookConsumerWidget {
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 16),
+          GitHubAppInstallationLink(
+            installationUrl: candidates.requireData.installationUrl,
+          ),
+          const SizedBox(height: 16),
           const ConnectGitHubButton(),
         ],
       );
     } else {
       content = GitHubConnectionForm(
         teamName: ref.watch(selectedTeamProvider).requireValue.name,
-        candidates: candidates.requireData,
+        candidates: candidates.requireData.candidates,
         onConfirm: (installationId) => _confirm(
           ref,
           initiatingContext!,
@@ -123,7 +128,7 @@ class GitHubConnectionPage extends HookConsumerWidget {
     context.go('/');
   }
 
-  Future<List<GitHubConnectionCandidate>> _loadCandidates(
+  Future<GitHubConnectionCandidatesResult> _loadCandidates(
     WidgetRef ref,
     GitHubConnectionReturn? result,
     GitHubConnectionContext? initiatingContext,
@@ -160,7 +165,7 @@ class GitHubConnectionPage extends HookConsumerWidget {
     }
   }
 
-  Future<List<GitHubConnectionCandidate>> _fetchCandidates(
+  Future<GitHubConnectionCandidatesResult> _fetchCandidates(
     OpenCIApiService api,
     String teamId,
     String reference,
@@ -174,7 +179,7 @@ class GitHubConnectionPage extends HookConsumerWidget {
     if (!response.isSuccessful || response.body?.success != true) {
       throw GitHubConnectionReturnError.connectionFailed;
     }
-    return response.body!.candidates;
+    return response.body!;
   }
 
   Future<OpenCIApiService> _prepareClient(
