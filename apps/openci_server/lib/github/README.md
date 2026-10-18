@@ -271,7 +271,14 @@ using the same parser as saving, preserving its path and port. No matching rows
 returns an empty list; invalid configuration and database failures throw errors.
 It does not use `Teams.installationIds`. Callers are responsible for authorizing
 access to the team; this helper does not call GitHub to recheck live permissions.
-API and CI consumers will switch to this reader in a follow-up change.
+`GET /teams/:id/github/repositories` uses this reader after checking team
+membership. It returns 400 when no active connection matches, including teams
+with only legacy installation IDs. It lists repositories using installation
+tokens for the verified connections and returns an error if any GitHub request
+fails, rather than returning a partially successful list. The same normalized
+operator API URL is used for both connection lookup and GitHub requests.
+Other API and CI consumers will switch in follow-up changes. Production cutover
+still requires existing teams to reconnect (G-1379).
 
 A unique constraint on `(github_api_base_url, github_app_id, installation_id)`
 reserves an installation for one team, including suspended or removed rows.
@@ -281,8 +288,7 @@ connections, and deleting the team cascades to its connection rows.
 The migration creates an empty table and leaves `Teams.installationIds` intact.
 Legacy IDs, including duplicates across teams, are not evidence of verified
 connections and are not copied into the new table. G-1379/G-1380 will migrate
-legacy links and switch consumers.
-This schema change alone does not change existing API or CI lookups.
+legacy links and finish switching the remaining API and CI consumers.
 
 Run the SQLite storage and migration tests with:
 
