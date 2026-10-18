@@ -189,6 +189,8 @@ void main() {
     'returns only verified candidates and leaves the session pending',
     () async {
       environment['GITHUB_API_BASE_URL'] = 'https://github.example/api/v3';
+      environment['GITHUB_APP_INSTALLATION_URL'] =
+          'https://github.example/apps/openci/installations/new';
       final response = await post(
         body: jsonEncode({
           'reference': reference,
@@ -196,12 +198,15 @@ void main() {
           'teamId': 'team-2',
           'accessToken': 'forged-token',
           'githubBaseUrl': 'https://attacker.example',
+          'installationUrl': 'https://attacker.example/install',
         }),
       );
 
       expect(response.statusCode, HttpStatus.ok);
       expect(await response.json(), {
         'success': true,
+        'installationUrl':
+            'https://github.example/apps/openci/installations/new',
         'candidates': [
           {
             'installationId': 100,
@@ -232,11 +237,53 @@ void main() {
   test('returns an empty array when the user has no installations', () async {
     installations.clear();
 
-    final response = await post();
+    final response = await post(
+      body: jsonEncode({
+        'reference': reference,
+        'installationUrl': 'https://attacker.example/install',
+      }),
+    );
 
     expect(response.statusCode, HttpStatus.ok);
     expect(await response.json(), {'success': true, 'candidates': []});
     expect(requests, hasLength(2));
+  });
+
+  test(
+    'returns the configured installation URL even with no candidates',
+    () async {
+      installations.clear();
+      environment['GITHUB_APP_INSTALLATION_URL'] =
+          '  https://github.com/apps/openci/installations/new  ';
+
+      final response = await post();
+
+      expect(response.statusCode, HttpStatus.ok);
+      expect(await response.json(), {
+        'success': true,
+        'installationUrl': 'https://github.com/apps/openci/installations/new',
+        'candidates': [],
+      });
+      expect(requests, hasLength(2));
+      expect(
+        requests.every((request) => request.url.host == 'api.github.com'),
+        isTrue,
+      );
+    },
+  );
+
+  test('omits an invalid installation URL without losing candidates', () async {
+    environment['GITHUB_APP_INSTALLATION_URL'] =
+        'https://user:private-password@github.com/apps/openci';
+
+    final response = await post();
+    final body = await response.json();
+
+    expect(response.statusCode, HttpStatus.ok);
+    expect(body['success'], isTrue);
+    expect(body['candidates'], hasLength(2));
+    expect(body, isNot(contains('installationUrl')));
+    expect(jsonEncode(body), isNot(contains('private-password')));
   });
 
   test('excludes organizations where the user is an ordinary member', () async {
