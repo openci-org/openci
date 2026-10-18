@@ -26,14 +26,22 @@ class GitHubConnectionPage extends HookConsumerWidget {
     );
     final initiatingContext = useMemoized(takeGitHubConnectionContext);
     final currentContext = ref.watch(currentGitHubConnectionContextProvider);
-    final session = useFuture(
-      useMemoized(() => _loadSession(ref, result, initiatingContext)),
+    final candidates = useFuture(
+      useMemoized(() => _loadCandidates(ref, result, initiatingContext)),
     );
     final error =
-        session.error ??
+        candidates.error ??
         (initiatingContext != currentContext
             ? GitHubConnectionReturnError.forbidden
             : null);
+    final Widget content;
+    if (candidates.connectionState != ConnectionState.done) {
+      content = const CircularProgressIndicator.adaptive();
+    } else if (error != null) {
+      content = Text(_errorMessage(error), textAlign: TextAlign.center);
+    } else {
+      content = _candidateList(candidates.requireData);
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -41,22 +49,42 @@ class GitHubConnectionPage extends HookConsumerWidget {
         leading: CloseButton(onPressed: () => context.go('/')),
       ),
       body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: session.connectionState != ConnectionState.done
-              ? const CircularProgressIndicator.adaptive()
-              : Text(
-                  error == null
-                      ? t.team.gitHubConnectionVerified
-                      : _errorMessage(error),
-                  textAlign: TextAlign.center,
-                ),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 560),
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: content,
+          ),
         ),
       ),
     );
   }
 
-  Future<GitHubConnectionSession> _loadSession(
+  Widget _candidateList(List<GitHubConnectionCandidate> candidates) {
+    return ListView(
+      shrinkWrap: true,
+      children: [
+        Text(t.team.gitHubConnectionVerified, textAlign: TextAlign.center),
+        const SizedBox(height: 16),
+        if (candidates.isEmpty)
+          Text(t.team.gitHubConnectionNoCandidates, textAlign: TextAlign.center)
+        else ...[
+          Text(t.team.gitHubConnectionCandidates, textAlign: TextAlign.center),
+          for (final candidate in candidates)
+            ListTile(
+              leading: Icon(
+                candidate.accountType == 'Organization'
+                    ? Icons.business
+                    : Icons.person_outline,
+              ),
+              title: Text(candidate.accountLogin),
+            ),
+        ],
+      ],
+    );
+  }
+
+  Future<List<GitHubConnectionCandidate>> _loadCandidates(
     WidgetRef ref,
     GitHubConnectionReturn? result,
     GitHubConnectionContext? initiatingContext,
@@ -73,18 +101,41 @@ class GitHubConnectionPage extends HookConsumerWidget {
         initiatingContext: initiatingContext,
         currentContext: ref.read(currentGitHubConnectionContextProvider),
       );
-      final session = await fetchGitHubConnectionSession(
+      await fetchGitHubConnectionSession(
         api: api,
         initiatingContext: initiatingContext,
         reference: reference,
       );
       _requireMatchingContext(ref, initiatingContext);
-      return session;
+      final candidates = await _fetchCandidates(
+        api,
+        initiatingContext.teamId,
+        reference,
+      );
+      _requireMatchingContext(ref, initiatingContext);
+      return candidates;
     } on GitHubConnectionReturnError {
       rethrow;
     } catch (_) {
       throw GitHubConnectionReturnError.connectionFailed;
     }
+  }
+
+  Future<List<GitHubConnectionCandidate>> _fetchCandidates(
+    OpenCIApiService api,
+    String teamId,
+    String reference,
+  ) async {
+    final response = await api.getGitHubConnectionCandidates(teamId, reference);
+    if (response.statusCode == 401 ||
+        response.statusCode == 403 ||
+        response.statusCode == 409) {
+      throw GitHubConnectionReturnError.forbidden;
+    }
+    if (!response.isSuccessful || response.body?.success != true) {
+      throw GitHubConnectionReturnError.connectionFailed;
+    }
+    return response.body!.candidates;
   }
 
   Future<OpenCIApiService> _prepareClient(

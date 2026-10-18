@@ -73,6 +73,27 @@ void main() {
     },
   });
 
+  http.Response candidatesResponse() => jsonResponse({
+    'success': true,
+    'candidates': [
+      {
+        'installationId': 456,
+        'accountLogin': 'example-org',
+        'accountType': 'Organization',
+      },
+      {
+        'installationId': 789,
+        'accountLogin': 'example-user',
+        'accountType': 'User',
+      },
+    ],
+  });
+
+  Future<http.Response> successfulResponse(http.Request request) async =>
+      request.url.path.endsWith('/session')
+      ? sessionResponse()
+      : candidatesResponse();
+
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
     store = ConnectionStore(await SharedPreferences.getInstance(), profile);
@@ -82,7 +103,7 @@ void main() {
     userId = 'user-1';
     result = parseGitHubConnectionReturn('reference=$reference');
     requests = [];
-    respond = (_) async => sessionResponse();
+    respond = successfulResponse;
     apiReady = null;
   });
 
@@ -143,14 +164,19 @@ void main() {
   void expectRestart() {
     expect(find.text(t.team.gitHubConnectionRestartRequired), findsOneWidget);
     expect(find.text(t.team.gitHubConnectionVerified), findsNothing);
+    expect(find.text('example-org'), findsNothing);
+    expect(find.text('example-user'), findsNothing);
     expect(find.textContaining(reference), findsNothing);
   }
 
-  testWidgets('verifies the session and consumes the saved inputs once', (
+  testWidgets('verifies the session before fetching and showing candidates', (
     tester,
   ) async {
-    final response = Completer<http.Response>();
-    respond = (_) => response.future;
+    final session = Completer<http.Response>();
+    final candidates = Completer<http.Response>();
+    respond = (request) => request.url.path.endsWith('/session')
+        ? session.future
+        : candidates.future;
     await pumpPage(tester);
 
     expect(find.byType(CircularProgressIndicator), findsOneWidget);
@@ -160,17 +186,30 @@ void main() {
       container.read(pendingGitHubConnectionReturnProvider).take(),
       isNull,
     );
+    expect(requests.single.url.path, '/teams/team-1/github/session');
 
-    response.complete(sessionResponse());
+    session.complete(sessionResponse());
+    await tester.pump();
+    expect(requests, hasLength(2));
+    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    expect(find.text('example-org'), findsNothing);
+
+    candidates.complete(candidatesResponse());
     await tester.pumpAndSettle();
 
     expect(find.text(t.team.gitHubConnectionVerified), findsOneWidget);
-    expect(requests.single.url.path, '/teams/team-1/github/session');
+    expect(find.text('example-org'), findsOneWidget);
+    expect(find.text('example-user'), findsOneWidget);
+    expect(find.byIcon(Icons.business), findsOneWidget);
+    expect(find.byIcon(Icons.person_outline), findsOneWidget);
+    expect(requests.last.url.path, '/teams/team-1/github/candidates');
+    expect(requests.last.method, 'POST');
     expect(
-      requests.single.headers['Authorization'],
+      requests.last.headers['Authorization'],
       'Bearer firebase-id-token',
     );
-    expect(jsonDecode(requests.single.body), {'reference': reference});
+    expect(jsonDecode(requests.first.body), {'reference': reference});
+    expect(jsonDecode(requests.last.body), {'reference': reference});
     expect(find.textContaining(reference), findsNothing);
 
     await tester.tap(find.byType(CloseButton));
@@ -179,7 +218,7 @@ void main() {
     router.go('/github/connection');
     await tester.pumpAndSettle();
     expectRestart();
-    expect(requests, hasLength(1));
+    expect(requests, hasLength(2));
   });
 
   testWidgets('shows cancellation without sending the reference', (
@@ -234,7 +273,7 @@ void main() {
     teamReady.complete(team);
     await tester.pumpAndSettle();
     expect(find.text(t.team.gitHubConnectionVerified), findsOneWidget);
-    expect(requests, hasLength(1));
+    expect(requests, hasLength(2));
   });
 
   testWidgets('rechecks the user after waiting for the API client', (
@@ -281,7 +320,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expectRestart();
-    expect(requests, hasLength(1));
+    expect(requests, hasLength(2));
   });
 
   testWidgets('requires restarting if the server rejects the session', (
@@ -292,6 +331,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expectRestart();
+    expect(requests, hasLength(1));
   });
 
   testWidgets('shows a fixed message for a server failure', (tester) async {
@@ -303,6 +343,115 @@ void main() {
     expect(find.textContaining(reference), findsNothing);
     expect(find.text(t.team.gitHubConnectionVerified), findsNothing);
   });
+
+  testWidgets('shows installation guidance when there are no candidates', (
+    tester,
+  ) async {
+    respond = (request) async => request.url.path.endsWith('/session')
+        ? sessionResponse()
+        : jsonResponse({'success': true, 'candidates': []});
+    await pumpPage(tester);
+    await tester.pumpAndSettle();
+
+    expect(find.text(t.team.gitHubConnectionNoCandidates), findsOneWidget);
+    expect(find.byType(ListTile), findsNothing);
+    expect(requests, hasLength(2));
+  });
+
+  testWidgets('rejects candidates after the selected team changes', (
+    tester,
+  ) async {
+    final candidates = Completer<http.Response>();
+    respond = (request) async => request.url.path.endsWith('/session')
+        ? sessionResponse()
+        : candidates.future;
+    await pumpPage(tester);
+    expect(requests, hasLength(2));
+
+    selectedTeam = team.copyWith(id: 'team-2');
+    container.invalidate(selectedTeamProvider);
+    candidates.complete(candidatesResponse());
+    await tester.pumpAndSettle();
+
+    expectRestart();
+    expect(requests, hasLength(2));
+  });
+
+  testWidgets(
+    'requires restarting if the session expires while fetching candidates',
+    (
+      tester,
+    ) async {
+      respond = (request) async => request.url.path.endsWith('/session')
+          ? sessionResponse()
+          : jsonResponse({'error': reference}, status: 403);
+      await pumpPage(tester);
+      await tester.pumpAndSettle();
+
+      expectRestart();
+      expect(requests, hasLength(2));
+    },
+  );
+
+  testWidgets('requires restarting when GitHub reauthorization is needed', (
+    tester,
+  ) async {
+    respond = (request) async => request.url.path.endsWith('/session')
+        ? sessionResponse()
+        : jsonResponse({
+            'code': 'github_reauthorization_required',
+          }, status: 409);
+    await pumpPage(tester);
+    await tester.pumpAndSettle();
+
+    expectRestart();
+    expect(requests, hasLength(2));
+  });
+
+  testWidgets('does not expose candidate API failure details', (tester) async {
+    respond = (request) async => request.url.path.endsWith('/session')
+        ? sessionResponse()
+        : jsonResponse({'error': reference}, status: 502);
+    await pumpPage(tester);
+    await tester.pumpAndSettle();
+
+    expect(find.text(t.team.gitHubConnectionCheckFailed), findsOneWidget);
+    expect(find.textContaining(reference), findsNothing);
+    expect(find.byType(ListTile), findsNothing);
+  });
+
+  testWidgets(
+    'does not treat an unsuccessful response as an empty candidate list',
+    (
+      tester,
+    ) async {
+      respond = (request) async => request.url.path.endsWith('/session')
+          ? sessionResponse()
+          : jsonResponse({'success': false, 'candidates': []});
+      await pumpPage(tester);
+      await tester.pumpAndSettle();
+
+      expect(find.text(t.team.gitHubConnectionCheckFailed), findsOneWidget);
+      expect(find.text(t.team.gitHubConnectionNoCandidates), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'handles malformed candidates without displaying the raw response',
+    (
+      tester,
+    ) async {
+      respond = (request) async => request.url.path.endsWith('/session')
+          ? sessionResponse()
+          : jsonResponse({'success': true, 'candidates': reference});
+      await pumpPage(tester);
+      await tester.pumpAndSettle();
+
+      expect(find.text(t.team.gitHubConnectionCheckFailed), findsOneWidget);
+      expect(find.textContaining(reference), findsNothing);
+      expect(find.byType(ListTile), findsNothing);
+    },
+  );
 
   testWidgets('stops if the page closes while preparing the API client', (
     tester,
