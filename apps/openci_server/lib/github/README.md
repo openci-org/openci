@@ -387,6 +387,19 @@ returns 403. Configuration, database, and GitHub failures return a generic 500
 without registering the job. This endpoint does not create a queued check;
 the existing build-start path verifies the saved connection again.
 
+`GET /webhooks/tasks/:id/changed-files` still requires a valid internal API key.
+It resolves the stored webhook's installation to a team through an active
+verified connection for the operator's normalized API URL/App, then checks that
+GitHub reports the same installation for the repository before issuing a token
+or fetching the diff. Legacy team IDs alone cannot authorize this request.
+Missing/inactive connections and repository installation mismatches return 403.
+Invalid stored repository/installation metadata, configuration or database
+failures, and GitHub request failures return a generic 500. Authentication,
+permission, timeout, and malformed-response errors do not become successful
+indeterminate results. Legitimate diff limitations, such as a new branch or
+file-count limits, still return an indeterminate result for a verified
+repository. The task state is not changed by this read endpoint.
+
 Other API and CI consumers will switch in follow-up changes. Production cutover
 still requires existing teams to reconnect (G-1379).
 
