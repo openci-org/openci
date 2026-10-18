@@ -25,6 +25,8 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:openci_shared/openci_shared.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher_platform_interface/link.dart';
+import 'package:url_launcher_platform_interface/url_launcher_platform_interface.dart';
 
 void main() {
   const profile = ConnectionProfile(
@@ -47,6 +49,8 @@ void main() {
     updatedAt: DateTime.utc(2026),
   );
   const reference = 'private-reference';
+  const authorizationUrl =
+      'https://github.example.test/login/oauth/authorize?state=new-state';
   late ConnectionStore store;
   late ProviderContainer container;
   late GoRouter router;
@@ -58,6 +62,8 @@ void main() {
   late Future<http.Response> Function(http.Request) respond;
   late OpenCIApiService apiService;
   late int teamListReads;
+  late UrlLauncherPlatform originalLauncher;
+  late _RecordingUrlLauncher launcher;
   Future<void>? apiReady;
 
   http.Response jsonResponse(Object body, {int status = 200}) => http.Response(
@@ -111,9 +117,15 @@ void main() {
     respond = successfulResponse;
     apiReady = null;
     teamListReads = 0;
+    originalLauncher = UrlLauncherPlatform.instance;
+    launcher = _RecordingUrlLauncher();
+    UrlLauncherPlatform.instance = launcher;
   });
 
-  tearDown(clearGitHubConnectionContext);
+  tearDown(() {
+    clearGitHubConnectionContext();
+    UrlLauncherPlatform.instance = originalLauncher;
+  });
 
   OpenCIApiService createApi(String baseUrl) {
     final client = http.runWithClient(
@@ -189,6 +201,14 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('example-org'));
     await tester.pump();
+  }
+
+  Future<void> pumpEmptyCandidates(WidgetTester tester) async {
+    respond = (request) async => request.url.path.endsWith('/session')
+        ? sessionResponse()
+        : jsonResponse({'success': true, 'candidates': []});
+    await pumpPage(tester);
+    await tester.pumpAndSettle();
   }
 
   List<http.Request> confirmationRequests() => requests
@@ -373,16 +393,110 @@ void main() {
   testWidgets('shows installation guidance when there are no candidates', (
     tester,
   ) async {
-    respond = (request) async => request.url.path.endsWith('/session')
-        ? sessionResponse()
-        : jsonResponse({'success': true, 'candidates': []});
-    await pumpPage(tester);
+    await tester.binding.setSurfaceSize(const Size(320, 240));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await pumpEmptyCandidates(tester);
+    expect(
+      find.text(t.team.gitHubConnectionTeam(name: 'Team 1')),
+      findsOneWidget,
+    );
+    expect(find.text(t.team.gitHubConnectionNoCandidates), findsOneWidget);
+
+    await tester.ensureVisible(find.byType(OutlinedButton));
     await tester.pumpAndSettle();
 
-    expect(find.text(t.team.gitHubConnectionNoCandidates), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    expect(
+      find.widgetWithText(OutlinedButton, t.team.connectGitHub).hitTestable(),
+      findsOneWidget,
+    );
     expect(find.byType(ListTile), findsNothing);
     expect(find.byType(FilledButton), findsNothing);
     expect(requests, hasLength(2));
+  });
+
+  testWidgets(
+    'starts a new connection for the same team after empty candidates',
+    (
+      tester,
+    ) async {
+      await pumpEmptyCandidates(tester);
+      final authorization = Completer<http.Response>();
+      respond = (_) => authorization.future;
+      final retry = tester
+          .widget<OutlinedButton>(find.byType(OutlinedButton))
+          .onPressed!;
+      retry();
+      retry();
+      await tester.pump();
+
+      expect(requests, hasLength(3));
+      final request = requests.last;
+      expect(request.method, 'POST');
+      expect(request.url.path, '/teams/team-1/github/connect');
+      expect(request.url.query, isEmpty);
+      expect(request.headers['Authorization'], 'Bearer firebase-id-token');
+      expect(request.body, isEmpty);
+      expect(
+        tester.widget<OutlinedButton>(find.byType(OutlinedButton)).onPressed,
+        isNull,
+      );
+      expect(launcher.url, isNull);
+      expect(takeGitHubConnectionContext(), isNull);
+
+      authorization.complete(
+        jsonResponse({
+          'success': true,
+          'authorizationUrl': authorizationUrl,
+        }),
+      );
+      await tester.pumpAndSettle();
+
+      expect(launcher.url, authorizationUrl);
+      expect(takeGitHubConnectionContext(), initiatingContext);
+      expect(confirmationRequests(), isEmpty);
+      expect(find.textContaining(reference), findsNothing);
+    },
+  );
+
+  testWidgets('allows another retry if starting a new connection fails', (
+    tester,
+  ) async {
+    await pumpEmptyCandidates(tester);
+    respond = (_) async => jsonResponse({'error': reference}, status: 502);
+    await tester.tap(find.byType(OutlinedButton));
+    await tester.pumpAndSettle();
+
+    expect(find.text(t.team.gitHubConnectionFailed), findsOneWidget);
+    expect(find.textContaining(reference), findsNothing);
+    expect(launcher.url, isNull);
+    expect(takeGitHubConnectionContext(), isNull);
+
+    respond = (_) async => jsonResponse({
+      'success': true,
+      'authorizationUrl': authorizationUrl,
+    });
+    await tester.tap(find.byType(OutlinedButton));
+    await tester.pumpAndSettle();
+
+    expect(requests, hasLength(4));
+    expect(launcher.url, authorizationUrl);
+    expect(takeGitHubConnectionContext(), initiatingContext);
+    expect(confirmationRequests(), isEmpty);
+  });
+
+  testWidgets('removes the empty-candidate retry if the team changes', (
+    tester,
+  ) async {
+    await pumpEmptyCandidates(tester);
+    selectedTeam = team.copyWith(id: 'team-2');
+    container.invalidate(selectedTeamProvider);
+    await tester.pumpAndSettle();
+
+    expectRestart();
+    expect(find.byType(OutlinedButton), findsNothing);
+    expect(requests, hasLength(2));
+    expect(launcher.url, isNull);
   });
 
   testWidgets('rejects candidates after the selected team changes', (
@@ -745,4 +859,17 @@ void main() {
     expect(find.text(t.team.gitHubConnectionCompleted), findsNothing);
     expect(tester.takeException(), isNull);
   });
+}
+
+class _RecordingUrlLauncher extends UrlLauncherPlatform {
+  String? url;
+
+  @override
+  LinkDelegate? get linkDelegate => null;
+
+  @override
+  Future<bool> launchUrl(String url, LaunchOptions options) async {
+    this.url = url;
+    return true;
+  }
 }
