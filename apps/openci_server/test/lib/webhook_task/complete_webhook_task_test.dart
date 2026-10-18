@@ -2,8 +2,10 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
 import 'package:openci_server/database.dart';
+import 'package:openci_server/github/github_connection_table.dart';
 import 'package:openci_server/webhook_task/complete_webhook_task.dart';
 import 'package:openci_server/webhook_task/webhook_task_transition_exception.dart';
 import 'package:http/http.dart' as http;
@@ -77,11 +79,50 @@ void main() {
     late Map<String, String> environment;
     late MockClient client;
     late List<http.Request> checkRequests;
+    late List<http.Request> githubRequests;
     Future<void> Function()? beforeCreate;
     var failedWorkflow = '';
 
+    Future<void> insertConnection() async {
+      final now = DateTime.now().toUtc();
+      await db.teamDao.createTeamAndMember(
+        DriftTeam(
+          id: 'team-1',
+          name: 'OpenCI',
+          installationIds: const [],
+          aiEnabled: false,
+          runNumber: 1,
+          createdAt: now,
+          updatedAt: now,
+        ),
+        'user-1',
+      );
+      await db
+          .into(db.gitHubConnections)
+          .insert(
+            DriftGitHubConnection(
+              id: 'connection-1',
+              teamId: 'team-1',
+              githubApiBaseUrl: environment['GITHUB_API_BASE_URL']!,
+              githubAppId: 123456,
+              installationId: 98765,
+              accountId: 42,
+              accountType: GitHubAccountType.organization,
+              accountLogin: 'openci-owner',
+              verifiedByUserId: 'user-1',
+              verifiedByGitHubUserId: 100,
+              verifiedAt: now,
+              status: GitHubConnectionStatus.active,
+            ),
+          );
+    }
+
     setUp(() async {
-      db = AppDatabase(NativeDatabase.memory());
+      db = AppDatabase(
+        NativeDatabase.memory(
+          setup: (database) => database.execute('PRAGMA foreign_keys = ON'),
+        ),
+      );
       final directory = await Directory.systemTemp.createTemp('queued_checks_');
       final keyFile = File.fromUri(directory.uri.resolve('key.pem'));
       await keyFile.writeAsString(testRsaPrivateKey);
@@ -91,10 +132,16 @@ void main() {
         'GITHUB_PRIVATE_KEY_PATH': keyFile.path,
         'GITHUB_API_BASE_URL': 'https://api.github.test',
       };
+      await insertConnection();
       checkRequests = [];
+      githubRequests = [];
       beforeCreate = null;
       failedWorkflow = '';
       client = MockClient((request) async {
+        githubRequests.add(request);
+        if (request.url.path.endsWith('/installation')) {
+          return http.Response('{"id":98765}', HttpStatus.ok);
+        }
         if (request.url.path.endsWith('/access_tokens')) {
           return http.Response('{"token":"test-token"}', HttpStatus.created);
         }
@@ -157,6 +204,11 @@ void main() {
     ]) {
       test('uses $apiUrl instead of the legacy planner URL', () async {
         environment['GITHUB_API_BASE_URL'] = apiUrl;
+        await db
+            .update(db.gitHubConnections)
+            .write(
+              GitHubConnectionsCompanion(githubApiBaseUrl: Value(apiUrl)),
+            );
         await _insertTask(db, id: 'task-1', status: 'processing');
         final plans = parseBuildJobPlans({
           'jobs': [
@@ -232,33 +284,27 @@ void main() {
       },
     );
 
-    test('keeps all jobs and other Checks when one creation fails', () async {
+    test('rolls back all jobs when one Check creation fails', () async {
       await _insertTask(db, id: 'task-1', status: 'processing');
       failedWorkflow = 'Failing CI';
 
-      await completeTask(
-        taskId: 'task-1',
-        jobs: [
-          _plan,
-          _plan.copyWith(workflowName: failedWorkflow),
-          _plan,
-        ],
+      await expectLater(
+        completeTask(
+          taskId: 'task-1',
+          jobs: [
+            _plan,
+            _plan.copyWith(workflowName: failedWorkflow),
+            _plan,
+          ],
+        ),
+        throwsA(isA<HttpException>()),
       );
 
-      final jobs = await db.select(db.buildJobs).get();
-      expect(jobs, hasLength(3));
+      expect(await db.select(db.buildJobs).get(), isEmpty);
       expect(checkRequests, hasLength(3));
-      expect(jobs.where((job) => job.checkRunId != null), hasLength(2));
-      expect(
-        jobs
-            .singleWhere((job) => job.workflowName == failedWorkflow)
-            .checkRunId,
-        isNull,
-      );
-      expect(jobs.every((job) => job.status == BuildJobStatus.QUEUED), isTrue);
       expect(
         (await db.webhookTaskDao.getWebhookTask('task-1'))!.status,
-        'completed',
+        'processing',
       );
     });
 
@@ -270,6 +316,7 @@ void main() {
       addTearDown(() => directory.delete(recursive: true));
       final databaseFile = File.fromUri(directory.uri.resolve('test.sqlite'));
       db = AppDatabase(NativeDatabase(databaseFile));
+      await insertConnection();
       await _insertTask(db, id: 'task-1', status: 'processing');
       final observer = AppDatabase(NativeDatabase(databaseFile));
       addTearDown(observer.close);
@@ -293,26 +340,60 @@ void main() {
       expect(queued.every((job) => job.checkRunId != null), isTrue);
     });
 
-    test(
-      'skips Checks for jobs without GitHub installation or commit metadata',
-      () async {
-        await _insertTask(db, id: 'task-1', status: 'processing');
+    test('rolls back jobs without an installation', () async {
+      await _insertTask(db, id: 'task-1', status: 'processing');
 
-        await completeTask(
+      await expectLater(
+        completeTask(
           taskId: 'task-1',
-          jobs: [
-            for (final installationId in ['', '12345678'])
-              _plan.copyWith(installationId: installationId),
-            _plan.copyWith(commitSha: ''),
-          ],
-        );
+          jobs: [_plan.copyWith(installationId: '')],
+        ),
+        throwsStateError,
+      );
 
-        expect(checkRequests, isEmpty);
-        final jobs = await db.select(db.buildJobs).get();
-        expect(jobs, hasLength(3));
-        expect(jobs.every((job) => job.checkRunId == null), isTrue);
-      },
-    );
+      expect(githubRequests, isEmpty);
+      expect(await db.select(db.buildJobs).get(), isEmpty);
+      expect(
+        (await db.webhookTaskDao.getWebhookTask('task-1'))!.status,
+        'processing',
+      );
+    });
+
+    test('rolls back jobs without a commit SHA', () async {
+      await _insertTask(db, id: 'task-1', status: 'processing');
+
+      await expectLater(
+        completeTask(
+          taskId: 'task-1',
+          jobs: [_plan.copyWith(commitSha: '')],
+        ),
+        throwsStateError,
+      );
+
+      expect(githubRequests, isEmpty);
+      expect(await db.select(db.buildJobs).get(), isEmpty);
+      expect(
+        (await db.webhookTaskDao.getWebhookTask('task-1'))!.status,
+        'processing',
+      );
+    });
+
+    test('rolls back jobs without a verified connection', () async {
+      await _insertTask(db, id: 'task-1', status: 'processing');
+      await db.delete(db.gitHubConnections).go();
+
+      await expectLater(
+        completeTask(taskId: 'task-1', jobs: const [_plan]),
+        throwsStateError,
+      );
+
+      expect(githubRequests, isEmpty);
+      expect(await db.select(db.buildJobs).get(), isEmpty);
+      expect(
+        (await db.webhookTaskDao.getWebhookTask('task-1'))!.status,
+        'processing',
+      );
+    });
 
     test('completes a processing task without jobs', () async {
       environment.remove('GITHUB_API_BASE_URL');
