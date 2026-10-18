@@ -4,41 +4,31 @@ import 'dart:io';
 import 'package:dart_frog/dart_frog.dart';
 import 'package:dart_frog_test/dart_frog_test.dart';
 import 'package:drift/native.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:openci_server/auth/internal_api_key_validator.dart';
-import 'package:openci_server/build_job/build_job_dao.dart';
 import 'package:openci_server/build_job/build_job_mapper.dart';
 import 'package:openci_server/database.dart';
+import 'package:openci_server/github/github_connection_table.dart';
 import 'package:openci_shared/openci_shared.dart';
 import 'package:test/test.dart';
 
 import '../../helpers/database_failure_checks.dart';
+import '../../helpers/github_app_test_key.dart';
 import '../../../routes/builds/index.dart' as route;
 
 class MockAppDatabase extends Mock implements AppDatabase {}
 
-class MockBuildJobDao extends Mock implements BuildJobDao {}
-
 void main() {
   late AppDatabase db;
 
-  setUpAll(() {
-    registerFallbackValue(
-      DriftBuildJob(
-        id: '',
-        status: BuildJobStatus.QUEUED,
-        owner: '',
-        repo: '',
-        workflowName: '',
-        workflowFileName: 'ci.yml',
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
+  setUp(() {
+    db = AppDatabase(
+      NativeDatabase.memory(
+        setup: (database) => database.execute('PRAGMA foreign_keys = ON'),
       ),
     );
-  });
-
-  setUp(() {
-    db = AppDatabase(NativeDatabase.memory());
   });
 
   tearDown(() async {
@@ -275,102 +265,86 @@ void main() {
       },
     );
 
-    test(
-      'inserts a build job using the configured URL with a valid key and no UID',
-      () async {
-        final team = DriftTeam(
-          id: 'team-xyz',
-          name: 'Team XYZ',
-          installationIds: const [],
-          runNumber: 1,
-          aiEnabled: true,
-          createdAt: DateTime.now().toUtc(),
-          updatedAt: DateTime.now().toUtc(),
-        );
+    group('verified GitHub connections', () {
+      late Directory tempDir;
+      late Map<String, String> environment;
+      late List<http.Request> githubRequests;
 
-        await db.teamDao.createTeamAndMember(team, 'user-123');
+      final job = BuildJob(
+        id: 'job-123',
+        status: BuildJobStatus.QUEUED,
+        owner: 'owner',
+        repo: 'repo',
+        workflowName: 'workflow',
+        workflowFileName: 'ci.dart',
+        teamId: 'team-xyz',
+        githubBaseUrl: 'https://untrusted.example',
+        commitSha: 'commit-sha',
+        createdAt: DateTime.utc(2026),
+        updatedAt: DateTime.utc(2026),
+      );
+      final connection = DriftGitHubConnection(
+        id: 'connection-1',
+        teamId: 'team-xyz',
+        githubApiBaseUrl: 'https://api.github.com',
+        githubAppId: 123456,
+        installationId: 54321,
+        accountId: 42,
+        accountType: GitHubAccountType.organization,
+        accountLogin: 'owner',
+        verifiedByUserId: 'user-123',
+        verifiedByGitHubUserId: 100,
+        verifiedAt: DateTime.utc(2026),
+        status: GitHubConnectionStatus.active,
+      );
 
-        final payload = {
-          'id': 'job-123',
-          'status': 'QUEUED',
-          'owner': 'owner',
-          'repo': 'repo',
-          'workflowName': 'workflow',
-          'workflowFileName': 'ci.yml',
-          'teamId': 'team-xyz',
-          'githubBaseUrl': 'https://untrusted.example',
-          'createdAt': DateTime.now().toUtc().toIso8601String(),
-          'updatedAt': DateTime.now().toUtc().toIso8601String(),
-        };
-
-        final context = TestRequestContext(
-          path: '/builds',
-          method: HttpMethod.post,
-          body: jsonEncode(payload),
-          headers: {'Authorization': 'Bearer test-internal-key'},
-        );
-
-        context.provide<AppDatabase>(db);
-        context.provide<Map<String, String>>({
-          'GITHUB_API_BASE_URL': 'https://github.example.com/api/v3',
-        });
-        context.provide<InternalApiKeyValidator>(
-          const InternalApiKeyValidator(
-            environment: {'INTERNAL_API_KEY': 'test-internal-key'},
+      setUp(() async {
+        await db.teamDao.createTeamAndMember(
+          DriftTeam(
+            id: 'team-xyz',
+            name: 'Team XYZ',
+            installationIds: const [],
+            runNumber: 1,
+            aiEnabled: true,
+            createdAt: DateTime.utc(2026),
+            updatedAt: DateTime.utc(2026),
           ),
+          'user-123',
         );
-
-        final response = await route.onRequest(context.context);
-
-        expect(response.statusCode, equals(HttpStatus.ok));
-
-        final body = await response.json() as Map<String, dynamic>;
-        expect(body['success'], isTrue);
-        expect(body['id'], equals('job-123'));
-
-        final inserted = await db.buildJobDao.getBuildJob('job-123');
-        expect(inserted, isNotNull);
-        expect(inserted!.id, equals('job-123'));
-        expect(inserted.teamId, equals('team-xyz'));
-        expect(inserted.githubBaseUrl, 'https://github.example.com');
-        verifyNever(() => context.context.read<String?>());
-      },
-    );
-
-    test(
-      'responds with 500 Internal Server Error when database fails',
-      () async {
-        final mockDb = MockAppDatabase();
-        final mockBuildJobDao = MockBuildJobDao();
-
-        when(() => mockDb.buildJobDao).thenReturn(mockBuildJobDao);
-        when(
-          () => mockBuildJobDao.insertBuildJob(any()),
-        ).thenThrow(Exception('Database failure'));
-
-        final payload = {
-          'id': 'job-123',
-          'status': 'QUEUED',
-          'owner': 'owner',
-          'repo': 'repo',
-          'workflowName': 'workflow',
-          'workflowFileName': 'ci.yml',
-          'teamId': 'team-xyz',
-          'createdAt': DateTime.now().toUtc().toIso8601String(),
-          'updatedAt': DateTime.now().toUtc().toIso8601String(),
-        };
-
-        final context = TestRequestContext(
-          path: '/builds',
-          method: HttpMethod.post,
-          body: jsonEncode(payload),
-          headers: {'Authorization': 'Bearer test-internal-key'},
-        );
-
-        context.provide<AppDatabase>(mockDb);
-        context.provide<Map<String, String>>({
+        await db.into(db.gitHubConnections).insert(connection);
+        tempDir = await Directory.systemTemp.createTemp('register_build_test_');
+        final keyFile = File('${tempDir.path}/key.pem');
+        await keyFile.writeAsString(testRsaPrivateKey);
+        environment = {
+          'GITHUB_APP_ID': '123456',
+          'GITHUB_PRIVATE_KEY_PATH': keyFile.path,
           'GITHUB_API_BASE_URL': 'https://api.github.com',
+        };
+        githubRequests = [];
+      });
+
+      tearDown(() => tempDir.delete(recursive: true));
+
+      Future<Response> post({
+        Map<String, dynamic>? payload,
+        http.Response Function(http.Request)? respond,
+      }) async {
+        final client = MockClient((request) async {
+          githubRequests.add(request);
+          return respond != null
+              ? respond(request)
+              : http.Response(jsonEncode({'id': 54321}), 200);
         });
+        addTearDown(client.close);
+        final context = TestRequestContext(
+          path: '/builds',
+          method: HttpMethod.post,
+          body: jsonEncode(payload ?? job.toJson()),
+          headers: {'Authorization': 'Bearer test-internal-key'},
+        );
+        context.provide<AppDatabase>(db);
+        context.provide<Map<String, String>>(environment);
+        context.provide<http.Client>(client);
         context.provide<InternalApiKeyValidator>(
           const InternalApiKeyValidator(
             environment: {'INTERNAL_API_KEY': 'test-internal-key'},
@@ -379,33 +353,282 @@ void main() {
 
         final response = await route.onRequest(context.context);
 
-        expect(response.statusCode, equals(HttpStatus.internalServerError));
+        verifyNever(() => context.context.read<String?>());
+        return response;
+      }
 
-        final body = await response.json() as Map<String, dynamic>;
-        expect(body['success'], isFalse);
-        expect(body['error'], equals('Internal server error'));
-      },
-    );
+      Future<void> expectFailure(Response response) async {
+        expect(response.statusCode, HttpStatus.internalServerError);
+        expect(await response.json(), {
+          'success': false,
+          'error': 'Internal server error',
+        });
+        expect(await db.select(db.buildJobs).get(), isEmpty);
+      }
 
-    test('does not insert a job when the API URL is missing', () async {
-      final context = TestRequestContext(
-        path: '/builds',
-        method: HttpMethod.post,
-        body: jsonEncode(databaseFailureJob.toShared().toJson()),
-        headers: {'Authorization': 'Bearer test-internal-key'},
+      Future<void> expectConnectionRejected(
+        DriftGitHubConnection rejectedConnection,
+      ) async {
+        await db.update(db.gitHubConnections).replace(rejectedConnection);
+
+        final response = await post();
+
+        expect(response.statusCode, HttpStatus.forbidden);
+        expect(await response.json(), {'success': false, 'error': 'Forbidden'});
+        expect(await db.select(db.buildJobs).get(), isEmpty);
+        expect(githubRequests, isEmpty);
+      }
+
+      test(
+        'saves the verified repository installation with an internal key and no UID',
+        () async {
+          final response = await post();
+
+          expect(response.statusCode, HttpStatus.ok);
+          expect(await response.json(), {'success': true, 'id': job.id});
+          final inserted = (await db.buildJobDao.getBuildJob(job.id))!;
+          expect(inserted.installationId, '54321');
+          expect(inserted.checkRunId, isNull);
+          expect(inserted.githubBaseUrl, 'https://github.com');
+          expect(
+            inserted.toShared().toJson(),
+            job.copyWith(githubBaseUrl: 'https://github.com').toJson(),
+          );
+          expect(githubRequests, hasLength(1));
+          expect(githubRequests.single.method, 'GET');
+          expect(
+            githubRequests.single.url.toString(),
+            'https://api.github.com/repos/owner/repo/installation',
+          );
+        },
       );
-      context.provide<AppDatabase>(db);
-      context.provide<Map<String, String>>({});
-      context.provide<InternalApiKeyValidator>(
-        const InternalApiKeyValidator(
-          environment: {'INTERNAL_API_KEY': 'test-internal-key'},
-        ),
+
+      test('ignores caller supplied installation and check IDs', () async {
+        final response = await post(
+          payload: {
+            ...job.toJson(),
+            'installationId': '98765',
+            'checkRunId': '99999',
+          },
+        );
+
+        expect(response.statusCode, HttpStatus.ok);
+        final inserted = (await db.buildJobDao.getBuildJob(job.id))!;
+        expect(inserted.installationId, '54321');
+        expect(inserted.checkRunId, isNull);
+      });
+
+      test(
+        'selects the repository installation among multiple verified connections',
+        () async {
+          await db
+              .into(db.gitHubConnections)
+              .insert(
+                connection.copyWith(id: 'connection-2', installationId: 65432),
+              );
+
+          final response = await post(
+            respond: (_) => http.Response(jsonEncode({'id': 65432}), 200),
+          );
+
+          expect(response.statusCode, HttpStatus.ok);
+          expect(
+            (await db.buildJobDao.getBuildJob(job.id))!.installationId,
+            '65432',
+          );
+          expect(githubRequests, hasLength(1));
+        },
       );
 
-      final response = await route.onRequest(context.context);
+      test('requires a team before contacting GitHub', () async {
+        final response = await post(
+          payload: job.copyWith(teamId: null).toJson(),
+        );
 
-      expect(response.statusCode, HttpStatus.internalServerError);
-      expect(await db.select(db.buildJobs).get(), isEmpty);
+        expect(response.statusCode, HttpStatus.badRequest);
+        expect(await response.json(), {
+          'success': false,
+          'error': 'teamId is required',
+        });
+        expect(await db.select(db.buildJobs).get(), isEmpty);
+        expect(githubRequests, isEmpty);
+      });
+
+      test('rejects an empty team before contacting GitHub', () async {
+        final response = await post(payload: job.copyWith(teamId: '').toJson());
+
+        expect(response.statusCode, HttpStatus.badRequest);
+        expect(await db.select(db.buildJobs).get(), isEmpty);
+        expect(githubRequests, isEmpty);
+      });
+
+      test('rejects a nonexistent team before contacting GitHub', () async {
+        final response = await post(
+          payload: job.copyWith(teamId: 'missing-team').toJson(),
+        );
+
+        expect(response.statusCode, HttpStatus.forbidden);
+        expect(await db.select(db.buildJobs).get(), isEmpty);
+        expect(githubRequests, isEmpty);
+      });
+
+      test('legacy team IDs cannot authorize registration', () async {
+        await db.delete(db.gitHubConnections).go();
+        final team = (await db.teamDao.getTeam('team-xyz'))!;
+        await db.teamDao.updateTeam(team.copyWith(installationIds: [54321]));
+
+        final response = await post();
+
+        expect(response.statusCode, HttpStatus.forbidden);
+        expect(await response.json(), {'success': false, 'error': 'Forbidden'});
+        expect(await db.select(db.buildJobs).get(), isEmpty);
+        expect(githubRequests, isEmpty);
+      });
+
+      test('rejects a connection owned by another team', () async {
+        final team = (await db.teamDao.getTeam('team-xyz'))!;
+        await db.into(db.teams).insert(team.copyWith(id: 'other-team'));
+
+        await expectConnectionRejected(
+          connection.copyWith(teamId: 'other-team'),
+        );
+      });
+
+      test('rejects suspended connections', () async {
+        await expectConnectionRejected(
+          connection.copyWith(status: GitHubConnectionStatus.suspended),
+        );
+      });
+
+      test('rejects removed connections', () async {
+        await expectConnectionRejected(
+          connection.copyWith(status: GitHubConnectionStatus.removed),
+        );
+      });
+
+      test('rejects a connection for another GitHub API host', () async {
+        await expectConnectionRejected(
+          connection.copyWith(
+            githubApiBaseUrl: 'https://github.example/api/v3',
+          ),
+        );
+      });
+
+      test('rejects a connection for another GitHub App', () async {
+        await expectConnectionRejected(connection.copyWith(githubAppId: 42));
+      });
+
+      test(
+        'rejects an installation mismatch without falling back to supplied IDs',
+        () async {
+          final response = await post(
+            payload: {...job.toJson(), 'installationId': '54321'},
+            respond: (_) => http.Response(jsonEncode({'id': 65432}), 200),
+          );
+
+          expect(response.statusCode, HttpStatus.forbidden);
+          expect(await response.json(), {
+            'success': false,
+            'error': 'Forbidden',
+          });
+          expect(await db.select(db.buildJobs).get(), isEmpty);
+          expect(githubRequests, hasLength(1));
+          expect(githubRequests.single.method, 'GET');
+        },
+      );
+
+      test('does not insert when GitHub refuses repository access', () async {
+        final response = await post(
+          respond: (_) => http.Response('private permission detail', 403),
+        );
+
+        await expectFailure(response);
+        expect(githubRequests, hasLength(1));
+      });
+
+      test(
+        'does not insert when GitHub returns an invalid installation ID',
+        () async {
+          final response = await post(
+            respond: (_) => http.Response(jsonEncode({'id': 0}), 200),
+          );
+
+          await expectFailure(response);
+          expect(githubRequests, hasLength(1));
+        },
+      );
+
+      test('does not insert when GitHub transport fails', () async {
+        final response = await post(
+          respond: (_) =>
+              throw const SocketException('private transport detail'),
+        );
+
+        await expectFailure(response);
+        expect(githubRequests, hasLength(1));
+      });
+
+      test(
+        'does not insert or contact GitHub when connection lookup fails',
+        () async {
+          await db.customStatement('DROP TABLE github_connections');
+
+          await expectFailure(await post());
+          expect(githubRequests, isEmpty);
+        },
+      );
+
+      test('reports an insert failure after repository verification', () async {
+        await db.customStatement('''CREATE TRIGGER reject_build_job
+          BEFORE INSERT ON build_jobs
+          BEGIN
+            SELECT RAISE(FAIL, 'private database insert detail');
+          END''');
+
+        await expectFailure(await post());
+        expect(githubRequests, hasLength(1));
+      });
+
+      test('does not insert when the App ID is missing', () async {
+        environment.remove('GITHUB_APP_ID');
+
+        await expectFailure(await post());
+        expect(githubRequests, isEmpty);
+      });
+
+      test('does not insert when the API URL is missing', () async {
+        environment.remove('GITHUB_API_BASE_URL');
+
+        await expectFailure(await post());
+        expect(githubRequests, isEmpty);
+      });
+
+      test(
+        'normalizes the operator URL for verification and repository cloning',
+        () async {
+          environment['GITHUB_API_BASE_URL'] =
+              ' https://github.example:8443/api/v3/// ';
+          await db
+              .update(db.gitHubConnections)
+              .replace(
+                connection.copyWith(
+                  githubApiBaseUrl: 'https://github.example:8443/api/v3',
+                ),
+              );
+
+          final response = await post();
+
+          expect(response.statusCode, HttpStatus.ok);
+          final inserted = (await db.buildJobDao.getBuildJob(job.id))!;
+          expect(inserted.installationId, '54321');
+          expect(inserted.githubBaseUrl, 'https://github.example:8443');
+          expect(githubRequests, hasLength(1));
+          expect(
+            githubRequests.single.url.toString(),
+            'https://github.example:8443/api/v3/repos/owner/repo/installation',
+          );
+        },
+      );
     });
   });
 
@@ -684,6 +907,7 @@ void main() {
       configure: (context) {
         context.provide<Map<String, String>>({
           'GITHUB_API_BASE_URL': 'https://api.github.com',
+          'GITHUB_APP_ID': '123456',
         });
         context.provide<InternalApiKeyValidator>(
           const InternalApiKeyValidator(
