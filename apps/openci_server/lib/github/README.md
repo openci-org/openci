@@ -334,6 +334,15 @@ dummy credentials; empty GitHub tokens are rejected. Responses containing
 credentials use `Cache-Control: no-store`. Workflow refs, Dart secret definitions,
 and YAML secret extraction keep their existing behavior.
 
+`POST /builds/:id/check-run` checks the saved job's active verified connection
+and repository installation before issuing a token and updating its GitHub
+check. This also applies to internal API key callers. Missing or invalid
+installation/check IDs return 400, and unverified or mismatched connections
+return 403. The update uses the operator's normalized API URL. GitHub lookup,
+token, and update failures return errors instead of success. The shared check
+update method no longer skips installation ID `12345678` or uses dummy tokens;
+it rejects empty tokens before sending an update.
+
 Other API and CI consumers will switch in follow-up changes. Production cutover
 still requires existing teams to reconnect (G-1379).
 

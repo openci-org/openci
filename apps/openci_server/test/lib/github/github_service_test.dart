@@ -940,6 +940,65 @@ void main() {
     });
 
     group('updateGitHubCheckRun', () {
+      test('updates the former dummy installation through GitHub', () async {
+        final requests = <http.Request>[];
+        final client = MockClient((request) async {
+          requests.add(request);
+          return request.method == 'POST'
+              ? _jsonResponse({'token': 'test-token'})
+              : _jsonResponse({'id': 99999});
+        });
+        addTearDown(client.close);
+
+        await GitHubService.updateGitHubCheckRun(
+          owner: 'my-owner',
+          repo: 'my-repo',
+          checkRunIdStr: '99999',
+          installationIdStr: '12345678',
+          runStatus: 'completed',
+          conclusion: 'success',
+          environment: testEnv,
+          client: client,
+        );
+
+        expect(requests.map((request) => request.method), ['POST', 'PATCH']);
+        expect(requests.map((request) => request.url.path), [
+          '/app/installations/12345678/access_tokens',
+          '/repos/my-owner/my-repo/check-runs/99999',
+        ]);
+        expect(requests.last.headers['authorization'], 'Bearer test-token');
+      });
+
+      test('rejects a blank token before sending an update', () async {
+        final requests = <http.Request>[];
+        final client = MockClient((request) async {
+          requests.add(request);
+          return _jsonResponse({'token': ' '});
+        });
+        addTearDown(client.close);
+
+        await expectLater(
+          GitHubService.updateGitHubCheckRun(
+            owner: 'my-owner',
+            repo: 'my-repo',
+            checkRunIdStr: '99999',
+            installationIdStr: '98765',
+            runStatus: 'completed',
+            conclusion: 'success',
+            environment: testEnv,
+            client: client,
+          ),
+          throwsFormatException,
+        );
+
+        expect(requests, hasLength(1));
+        expect(requests.single.method, 'POST');
+        expect(
+          requests.single.url.path,
+          '/app/installations/98765/access_tokens',
+        );
+      });
+
       test('successfully updates check run (queued/in_progress)', () async {
         var tokenRequested = false;
         var patchRequested = false;
