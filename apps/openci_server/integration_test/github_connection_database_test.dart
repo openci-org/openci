@@ -7,6 +7,7 @@ import 'package:postgres/postgres.dart' as pg;
 import 'package:test/test.dart';
 import 'package:uuid/uuid.dart';
 
+import '../test/helpers/get_team_by_installation_id_tests.dart';
 import '../test/helpers/github_connection_table_tests.dart';
 import '../test/helpers/persist_github_connection_tests.dart';
 import '../test/helpers/read_active_github_connections_tests.dart';
@@ -52,6 +53,12 @@ void main() {
 
       group('reading active connections', () {
         testReadActiveGitHubConnections(
+          () async => AppDatabase(PgDatabase.opened(connection)),
+        );
+      });
+
+      group('resolving teams by verified installation', () {
+        testGetTeamByInstallationId(
           () async => AppDatabase(PgDatabase.opened(connection)),
         );
       });

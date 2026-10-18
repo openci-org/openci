@@ -5,6 +5,7 @@ import 'package:dart_frog_test/dart_frog_test.dart';
 import 'package:drift/native.dart';
 import 'package:openci_server/auth/internal_api_key_validator.dart';
 import 'package:openci_server/database.dart';
+import 'package:openci_server/github/github_connection_table.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:test/test.dart';
 
@@ -15,24 +16,48 @@ class _MockAppDatabase extends Mock implements AppDatabase {}
 
 void main() {
   late AppDatabase db;
+  late Map<String, String> environment;
+  final connection = DriftGitHubConnection(
+    id: 'connection-1',
+    teamId: 'team-1',
+    githubApiBaseUrl: 'https://api.github.com',
+    githubAppId: 42,
+    installationId: 12345,
+    accountId: 100,
+    accountType: GitHubAccountType.organization,
+    accountLogin: 'openci-org',
+    verifiedByUserId: 'member-1',
+    verifiedByGitHubUserId: 200,
+    verifiedAt: DateTime.utc(2026),
+    status: GitHubConnectionStatus.active,
+  );
 
   setUp(() async {
-    db = AppDatabase(NativeDatabase.memory());
+    environment = {
+      'GITHUB_API_BASE_URL': 'https://api.github.com',
+      'GITHUB_APP_ID': '42',
+    };
+    db = AppDatabase(
+      NativeDatabase.memory(
+        setup: (database) => database.execute('PRAGMA foreign_keys = ON'),
+      ),
+    );
     final team = DriftTeam(
       id: 'team-1',
       name: 'OpenCI',
-      installationIds: const [12345, 67890],
+      installationIds: const [],
       aiEnabled: false,
       runNumber: 42,
       createdAt: DateTime.utc(2026),
       updatedAt: DateTime.utc(2026, 2),
     );
     await db.teamDao.createTeamAndMember(
-      team.copyWith(id: 'other-team', installationIds: [99999]),
+      team.copyWith(id: 'other-team', installationIds: [12345, 99999]),
       'other-member',
     );
     await db.teamDao.createTeamAndMember(team, 'member-1');
     await db.teamDao.addTeamMember(team.id, 'member-2');
+    await db.into(db.gitHubConnections).insert(connection);
   });
 
   tearDown(() => db.close());
@@ -50,6 +75,7 @@ void main() {
     );
     context.provide<AppDatabase>(database ?? db);
     context.provide<String?>(uid);
+    context.provide<Map<String, String>>(environment);
     context.provide<InternalApiKeyValidator>(
       const InternalApiKeyValidator(
         environment: {'INTERNAL_API_KEY': 'test-internal-key'},
@@ -71,7 +97,7 @@ void main() {
           'id': 'team-1',
           'name': 'OpenCI',
           'members': unorderedEquals(['member-1', 'member-2']),
-          'installationIds': [12345, 67890],
+          'installationIds': [],
           'aiEnabled': false,
           'runNumber': 42,
           'createdAt': '2026-01-01T00:00:00.000Z',
@@ -147,6 +173,103 @@ void main() {
         'error': 'Team not found',
       });
     });
+
+    test(
+      'rejects a nonpositive installation ID before reading the database',
+      () async {
+        final context = createContext(
+          installationId: '0',
+          token: 'test-internal-key',
+        );
+
+        final response = await route.onRequest(context.context, '0');
+
+        expect(response.statusCode, HttpStatus.badRequest);
+        verifyNever(() => context.context.read<AppDatabase>());
+      },
+    );
+
+    test('returns 404 for an installation with only legacy links', () async {
+      final context = createContext(
+        installationId: '99999',
+        token: 'test-internal-key',
+      );
+
+      final response = await route.onRequest(context.context, '99999');
+
+      expect(response.statusCode, HttpStatus.notFound);
+      expect(await response.json(), {
+        'success': false,
+        'error': 'Team not found',
+      });
+    });
+
+    test('returns 404 for a suspended connection', () async {
+      await db
+          .update(db.gitHubConnections)
+          .replace(
+            connection.copyWith(status: GitHubConnectionStatus.suspended),
+          );
+      final context = createContext(token: 'test-internal-key');
+
+      final response = await route.onRequest(context.context, '12345');
+
+      expect(response.statusCode, HttpStatus.notFound);
+    });
+
+    test('normalizes the operator API URL and App ID before lookup', () async {
+      environment['GITHUB_API_BASE_URL'] =
+          ' https://github.example:8443/api/v3/// ';
+      environment['GITHUB_APP_ID'] = ' 42 ';
+      await db
+          .update(db.gitHubConnections)
+          .replace(
+            connection.copyWith(
+              githubApiBaseUrl: 'https://github.example:8443/api/v3',
+            ),
+          );
+      final context = createContext(token: 'test-internal-key');
+
+      final response = await route.onRequest(context.context, '12345');
+
+      expect(response.statusCode, HttpStatus.ok);
+      final body = await response.json() as Map<String, dynamic>;
+      expect(body['id'], 'team-1');
+    });
+
+    test(
+      'rejects a missing operator API URL before reading the database',
+      () async {
+        environment.remove('GITHUB_API_BASE_URL');
+        final context = createContext(token: 'test-internal-key');
+
+        final response = await route.onRequest(context.context, '12345');
+
+        expect(response.statusCode, HttpStatus.internalServerError);
+        expect(await response.json(), {
+          'success': false,
+          'error': 'Internal server error',
+        });
+        verifyNever(() => context.context.read<AppDatabase>());
+      },
+    );
+
+    test(
+      'rejects an invalid operator App ID before reading the database',
+      () async {
+        environment['GITHUB_APP_ID'] = '0x2a';
+        final context = createContext(token: 'test-internal-key');
+
+        final response = await route.onRequest(context.context, '12345');
+
+        expect(response.statusCode, HttpStatus.internalServerError);
+        expect(await response.json(), {
+          'success': false,
+          'error': 'Internal server error',
+        });
+        verifyNever(() => context.context.read<AppDatabase>());
+      },
+    );
 
     test('hides database failure details', () async {
       final database = _MockAppDatabase();
