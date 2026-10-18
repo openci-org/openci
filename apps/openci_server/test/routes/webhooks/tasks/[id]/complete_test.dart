@@ -7,6 +7,7 @@ import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:openci_server/auth/internal_api_key_validator.dart';
 import 'package:openci_server/database.dart';
+import 'package:openci_server/github/github_connection_table.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:openci_shared/openci_shared.dart';
@@ -20,9 +21,84 @@ import '../../../../helpers/github_app_test_key.dart';
 void main() {
   group('POST /webhooks/tasks/[id]/complete', () {
     late AppDatabase db;
+    late Map<String, String> environment;
+    late MockClient client;
+    late List<http.Request> checkRequests;
+    late List<http.Request> githubRequests;
+    var repositoryInstallationId = 98765;
+    var tokenStatus = HttpStatus.created;
+    var createStatus = HttpStatus.created;
 
-    setUp(() {
-      db = AppDatabase(NativeDatabase.memory());
+    setUp(() async {
+      db = AppDatabase(
+        NativeDatabase.memory(
+          setup: (database) => database.execute('PRAGMA foreign_keys = ON'),
+        ),
+      );
+      final directory = await Directory.systemTemp.createTemp(
+        'queued_check_route_',
+      );
+      final keyFile = File.fromUri(directory.uri.resolve('key.pem'));
+      await keyFile.writeAsString(testRsaPrivateKey);
+      addTearDown(() => directory.delete(recursive: true));
+      environment = {
+        'GITHUB_APP_ID': '123456',
+        'GITHUB_PRIVATE_KEY_PATH': keyFile.path,
+        'GITHUB_API_BASE_URL': 'https://api.github.com',
+      };
+      checkRequests = [];
+      githubRequests = [];
+      repositoryInstallationId = 98765;
+      tokenStatus = HttpStatus.created;
+      createStatus = HttpStatus.created;
+      client = MockClient((request) async {
+        githubRequests.add(request);
+        if (request.url.path.endsWith('/installation')) {
+          return http.Response(
+            jsonEncode({'id': repositoryInstallationId}),
+            HttpStatus.ok,
+          );
+        }
+        if (request.url.path.endsWith('/access_tokens')) {
+          return http.Response('{"token":"test-token"}', tokenStatus);
+        }
+        checkRequests.add(request);
+        return http.Response(
+          '{"id":99999}',
+          request.method == 'POST' ? createStatus : HttpStatus.ok,
+        );
+      });
+      addTearDown(client.close);
+      await db.teamDao.createTeamAndMember(
+        DriftTeam(
+          id: 'team-1',
+          name: 'OpenCI',
+          installationIds: const [],
+          aiEnabled: false,
+          runNumber: 1,
+          createdAt: DateTime.utc(2026),
+          updatedAt: DateTime.utc(2026),
+        ),
+        'user-1',
+      );
+      await db
+          .into(db.gitHubConnections)
+          .insert(
+            DriftGitHubConnection(
+              id: 'connection-1',
+              teamId: 'team-1',
+              githubApiBaseUrl: 'https://api.github.com',
+              githubAppId: 123456,
+              installationId: 98765,
+              accountId: 42,
+              accountType: GitHubAccountType.organization,
+              accountLogin: 'openci-owner',
+              verifiedByUserId: 'user-1',
+              verifiedByGitHubUserId: 100,
+              verifiedAt: DateTime.utc(2026),
+              status: GitHubConnectionStatus.active,
+            ),
+          );
     });
 
     tearDown(() async {
@@ -47,6 +123,8 @@ void main() {
         db: db,
         taskId: 'task-1',
         jobs: [_plan.toJson()],
+        environment: environment,
+        client: client,
       );
 
       expect(response.statusCode, HttpStatus.ok);
@@ -91,29 +169,6 @@ void main() {
     });
 
     test('reuses a queued Check when the first run starts', () async {
-      final directory = await Directory.systemTemp.createTemp(
-        'queued_check_route_',
-      );
-      final keyFile = File.fromUri(directory.uri.resolve('key.pem'));
-      await keyFile.writeAsString(testRsaPrivateKey);
-      addTearDown(() => directory.delete(recursive: true));
-      final environment = {
-        'GITHUB_APP_ID': '123456',
-        'GITHUB_PRIVATE_KEY_PATH': keyFile.path,
-        'GITHUB_API_BASE_URL': 'https://api.github.test',
-      };
-      final checkRequests = <http.Request>[];
-      final client = MockClient((request) async {
-        if (request.url.path.endsWith('/access_tokens')) {
-          return http.Response('{"token":"test-token"}', HttpStatus.created);
-        }
-        checkRequests.add(request);
-        return http.Response(
-          '{"id":99999}',
-          request.method == 'POST' ? HttpStatus.created : HttpStatus.ok,
-        );
-      });
-      addTearDown(client.close);
       await _insertTask(db, id: 'task-1', status: 'processing');
 
       final response = await _request(
@@ -214,11 +269,15 @@ void main() {
           db: db,
           taskId: 'task-1',
           jobs: [_plan.toJson()],
+          environment: environment,
+          client: client,
         );
         final secondResponse = await _request(
           db: db,
           taskId: 'task-1',
           jobs: [_plan.toJson()],
+          environment: environment,
+          client: client,
         );
 
         expect(firstResponse.statusCode, HttpStatus.ok);
@@ -229,6 +288,67 @@ void main() {
         expect(await db.select(db.buildJobs).get(), hasLength(1));
       },
     );
+
+    Future<void> expectTaskRejected() async {
+      await _insertTask(db, id: 'task-1', status: 'processing');
+
+      final response = await _request(
+        db: db,
+        taskId: 'task-1',
+        jobs: [_plan.toJson()],
+        environment: environment,
+        client: client,
+      );
+
+      expect(response.statusCode, HttpStatus.internalServerError);
+      expect(await response.json(), {
+        'success': false,
+        'error': 'Internal server error',
+      });
+      expect(await db.select(db.buildJobs).get(), isEmpty);
+      expect(
+        (await db.webhookTaskDao.getWebhookTask('task-1'))!.status,
+        'processing',
+      );
+    }
+
+    test(
+      'rejects an unverified connection even with the internal API key',
+      () async {
+        await db.delete(db.gitHubConnections).go();
+
+        await expectTaskRejected();
+
+        expect(githubRequests, isEmpty);
+      },
+    );
+
+    test('rejects a repository belonging to another installation', () async {
+      repositoryInstallationId = 54321;
+
+      await expectTaskRejected();
+
+      expect(
+        githubRequests.single.url.path,
+        '/repos/openci-owner/openci-repo/installation',
+      );
+    });
+
+    test('rolls back when GitHub refuses token issuance', () async {
+      tokenStatus = HttpStatus.forbidden;
+
+      await expectTaskRejected();
+
+      expect(checkRequests, isEmpty);
+    });
+
+    test('rolls back when GitHub refuses Check creation', () async {
+      createStatus = HttpStatus.forbidden;
+
+      await expectTaskRejected();
+
+      expect(checkRequests, hasLength(1));
+    });
   });
 }
 

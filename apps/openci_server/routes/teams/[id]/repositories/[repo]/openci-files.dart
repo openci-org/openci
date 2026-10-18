@@ -6,6 +6,8 @@ import 'package:http/http.dart' as http;
 import 'package:openci_server/auth/internal_api_key_validator.dart';
 import 'package:openci_server/database.dart';
 import 'package:openci_server/github/github_service.dart';
+import 'package:openci_server/github/parse_github_api_base_uri.dart';
+import 'package:openci_server/github/read_active_github_connections.dart';
 import 'package:openci_server/request/error_handler.dart';
 
 FutureOr<Response> onRequest(
@@ -58,17 +60,6 @@ Future<Response> _get(
       );
     }
 
-    final installationIds = driftTeam.installationIds;
-    if (installationIds.isEmpty) {
-      return Response.json(
-        statusCode: HttpStatus.badRequest,
-        body: {
-          'success': false,
-          'error': 'GitHub App is not installed for this team',
-        },
-      );
-    }
-
     final queryParams = context.request.uri.queryParameters;
     final ref = queryParams['ref'] ?? 'HEAD';
     final owner = queryParams['owner']?.trim();
@@ -88,28 +79,48 @@ Future<Response> _get(
     }
 
     final installationId = int.tryParse(installationIdParam);
-    if (installationId == null) {
+    if (installationId == null || installationId <= 0) {
       return Response.json(
         statusCode: HttpStatus.badRequest,
         body: {'success': false, 'error': 'Invalid installationId'},
       );
     }
 
-    if (!installationIds.contains(installationId)) {
-      return Response.json(
-        statusCode: HttpStatus.badRequest,
-        body: {
-          'success': false,
-          'error': 'Installation is not associated with this team',
-        },
-      );
-    }
-
-    Map<String, String>? env;
+    Map<String, String> env;
     try {
       env = context.read<Map<String, String>>();
     } catch (_) {
       env = Platform.environment;
+    }
+    env = {
+      ...env,
+      'GITHUB_API_BASE_URL': parseGitHubApiBaseUri(
+        env['GITHUB_API_BASE_URL'],
+      ).toString(),
+    };
+
+    final connections = await readActiveGitHubConnections(
+      db: db,
+      teamId: teamId,
+      environment: env,
+    );
+    if (connections.isEmpty) {
+      return Response.json(
+        statusCode: HttpStatus.badRequest,
+        body: {
+          'success': false,
+          'error': 'No active GitHub connection for this team',
+        },
+      );
+    }
+    final hasConnection = connections.any(
+      (connection) => connection.installationId == installationId,
+    );
+    if (!hasConnection) {
+      return Response.json(
+        statusCode: HttpStatus.forbidden,
+        body: {'success': false, 'error': 'Forbidden'},
+      );
     }
 
     http.Client? client;
@@ -117,6 +128,20 @@ Future<Response> _get(
       client = context.read<http.Client>();
     } catch (_) {
       client = null;
+    }
+
+    final repositoryInstallationId =
+        await GitHubService.getRepositoryInstallationId(
+          owner: owner,
+          repo: repo,
+          environment: env,
+          client: client,
+        );
+    if (repositoryInstallationId != installationId.toString()) {
+      return Response.json(
+        statusCode: HttpStatus.forbidden,
+        body: {'success': false, 'error': 'Forbidden'},
+      );
     }
 
     final files = await GitHubService.fetchOpenCIFiles(

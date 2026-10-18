@@ -148,9 +148,14 @@ class GitHubService {
 
     final token = await getInstallationToken(
       installationIdStr: installationIdStr,
-      environment: environment,
+      environment: env,
       client: client,
     );
+    if (token.trim().isEmpty) {
+      throw const FormatException(
+        'GitHub returned an empty installation token',
+      );
+    }
     final url = Uri.parse('$githubApiBaseUrl/repos/$owner/$repo/check-runs');
     final headers = {
       'Authorization': 'Bearer $token',
@@ -194,17 +199,18 @@ class GitHubService {
     Map<String, String>? environment,
     http.Client? client,
   }) async {
-    if (installationIdStr == '12345678') {
-      return;
-    }
-
+    final env = environment ?? Platform.environment;
     final token = await getInstallationToken(
       installationIdStr: installationIdStr,
-      environment: environment,
+      environment: env,
       client: client,
     );
+    if (token.trim().isEmpty) {
+      throw const FormatException(
+        'GitHub returned an empty installation token',
+      );
+    }
 
-    final env = environment ?? Platform.environment;
     final githubApiBaseUrlStr = env['GITHUB_API_BASE_URL'];
     if (githubApiBaseUrlStr == null || githubApiBaseUrlStr.isEmpty) {
       throw StateError(

@@ -6,6 +6,8 @@ import 'package:drift/drift.dart';
 import 'package:http/http.dart' as http;
 import 'package:openci_server/database.dart';
 import 'package:openci_server/github/github_service.dart';
+import 'package:openci_server/github/parse_github_api_base_uri.dart';
+import 'package:openci_server/github/read_active_github_connections.dart';
 import 'package:openci_server/request/error_handler.dart';
 import 'package:openci_server/request/request_extension.dart';
 
@@ -85,6 +87,89 @@ Future<Response> _post(RequestContext context, String id) async {
       );
     }
 
+    final driftJob = context.read<DriftBuildJob>();
+    final installationId = int.tryParse(
+      driftJob.installationId ?? '',
+      radix: 10,
+    );
+    if (installationId == null || installationId <= 0) {
+      return Response.json(
+        statusCode: HttpStatus.badRequest,
+        body: {'success': false, 'error': 'Invalid installationId for job'},
+      );
+    }
+
+    final savedCheckRunId = driftJob.checkRunId;
+    final hasCheck = savedCheckRunId != null && savedCheckRunId.isNotEmpty;
+    final checkRunId = int.tryParse(savedCheckRunId ?? '', radix: 10);
+    if (hasCheck && (checkRunId == null || checkRunId <= 0)) {
+      return Response.json(
+        statusCode: HttpStatus.badRequest,
+        body: {'success': false, 'error': 'Invalid checkRunId for job'},
+      );
+    }
+    final commitSha = driftJob.commitSha;
+    if (!hasCheck && (commitSha == null || commitSha.isEmpty)) {
+      return Response.json(
+        statusCode: HttpStatus.badRequest,
+        body: {'success': false, 'error': 'commitSha is required for job'},
+      );
+    }
+
+    final teamId = driftJob.teamId;
+    if (teamId == null || teamId.isEmpty) {
+      return Response.json(
+        statusCode: HttpStatus.forbidden,
+        body: {'success': false, 'error': 'Forbidden'},
+      );
+    }
+
+    Map<String, String> environment;
+    try {
+      environment = context.read<Map<String, String>>();
+    } catch (_) {
+      environment = Platform.environment;
+    }
+    environment = {
+      ...environment,
+      'GITHUB_API_BASE_URL': parseGitHubApiBaseUri(
+        environment['GITHUB_API_BASE_URL'],
+      ).toString(),
+    };
+    final connections = await readActiveGitHubConnections(
+      db: db,
+      teamId: teamId,
+      environment: environment,
+    );
+    if (!connections.any(
+      (connection) => connection.installationId == installationId,
+    )) {
+      return Response.json(
+        statusCode: HttpStatus.forbidden,
+        body: {'success': false, 'error': 'Forbidden'},
+      );
+    }
+
+    http.Client? client;
+    try {
+      client = context.read<http.Client>();
+    } catch (_) {
+      // GitHubService uses its default HTTP client.
+    }
+    final repositoryInstallationId =
+        await GitHubService.getRepositoryInstallationId(
+          owner: driftJob.owner,
+          repo: driftJob.repo,
+          environment: environment,
+          client: client,
+        );
+    if (repositoryInstallationId != installationId.toString()) {
+      return Response.json(
+        statusCode: HttpStatus.forbidden,
+        body: {'success': false, 'error': 'Forbidden'},
+      );
+    }
+
     final now = DateTime.now().toUtc();
     final driftRun = DriftBuildRun(
       id: runId,
@@ -94,6 +179,7 @@ Future<Response> _post(RequestContext context, String id) async {
       updatedAt: now,
     );
 
+    final githubClient = client ?? http.Client();
     try {
       await db.transaction(() async {
         await db.buildRunDao.insertBuildRun(driftRun);
@@ -102,6 +188,34 @@ Future<Response> _post(RequestContext context, String id) async {
           latestRunId: runId,
           updatedAt: now,
         );
+
+        if (!hasCheck) {
+          final createdCheckRunId = await GitHubService.createGitHubCheckRun(
+            owner: driftJob.owner,
+            repo: driftJob.repo,
+            installationIdStr: installationId.toString(),
+            name: driftJob.workflowName,
+            headSha: commitSha!,
+            externalId: driftJob.id,
+            environment: environment,
+            client: githubClient,
+          ).timeout(const Duration(seconds: 10));
+          await (db.update(
+            db.buildJobs,
+          )..where((job) => job.id.equals(id))).write(
+            BuildJobsCompanion(checkRunId: Value(createdCheckRunId)),
+          );
+        } else {
+          await GitHubService.updateGitHubCheckRun(
+            owner: driftJob.owner,
+            repo: driftJob.repo,
+            checkRunIdStr: checkRunId.toString(),
+            installationIdStr: installationId.toString(),
+            runStatus: 'in_progress',
+            environment: environment,
+            client: githubClient,
+          ).timeout(const Duration(seconds: 10));
+        }
       });
     } catch (e) {
       final errStr = e.toString();
@@ -120,64 +234,8 @@ Future<Response> _post(RequestContext context, String id) async {
         );
       }
       rethrow;
-    }
-
-    final driftJob = context.read<DriftBuildJob>();
-    final installationId = driftJob.installationId;
-    if (installationId != null &&
-        installationId.isNotEmpty &&
-        installationId != '12345678') {
-      try {
-        Map<String, String>? environment;
-        http.Client? client;
-        try {
-          environment = context.read<Map<String, String>>();
-        } catch (_) {
-          // GitHubService falls back to the process environment.
-        }
-        try {
-          client = context.read<http.Client>();
-        } catch (_) {
-          // GitHubService uses its default HTTP client.
-        }
-
-        final checkRunId = driftJob.checkRunId;
-        if (checkRunId == null || checkRunId.isEmpty) {
-          final commitSha = driftJob.commitSha;
-          if (commitSha == null || commitSha.isEmpty) {
-            throw StateError('commitSha is required to create a GitHub check');
-          }
-          final createdCheckRunId = await GitHubService.createGitHubCheckRun(
-            owner: driftJob.owner,
-            repo: driftJob.repo,
-            installationIdStr: installationId,
-            name: driftJob.workflowName,
-            headSha: commitSha,
-            externalId: driftJob.id,
-            environment: environment,
-            client: client,
-          );
-          await (db.update(
-            db.buildJobs,
-          )..where((job) => job.id.equals(id))).write(
-            BuildJobsCompanion(checkRunId: Value(createdCheckRunId)),
-          );
-        } else {
-          await GitHubService.updateGitHubCheckRun(
-            owner: driftJob.owner,
-            repo: driftJob.repo,
-            checkRunIdStr: checkRunId,
-            installationIdStr: installationId,
-            runStatus: 'in_progress',
-            environment: environment,
-            client: client,
-          );
-        }
-      } catch (e) {
-        stderr.writeln(
-          'Failed to start GitHub check run for job ${driftJob.id}: $e',
-        );
-      }
+    } finally {
+      if (client == null) githubClient.close();
     }
 
     return Response.json(body: {'success': true});

@@ -2,10 +2,14 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:dart_frog/dart_frog.dart';
+import 'package:http/http.dart' as http;
 import 'package:openci_server/auth/internal_api_key_validator.dart';
 import 'package:openci_server/build_job/build_job_mapper.dart';
 import 'package:openci_server/database.dart';
 import 'package:openci_server/github/github_repository_url.dart';
+import 'package:openci_server/github/github_service.dart';
+import 'package:openci_server/github/parse_github_api_base_uri.dart';
+import 'package:openci_server/github/read_active_github_connections.dart';
 import 'package:openci_server/request/error_handler.dart';
 import 'package:openci_server/request/request_extension.dart';
 import 'package:openci_shared/openci_shared.dart';
@@ -125,18 +129,72 @@ Future<Response> _post(RequestContext context) async {
         body: {'success': false, 'error': 'Invalid payload: $e'},
       );
     }
+
+    final teamId = job.teamId;
+    if (teamId == null || teamId.isEmpty) {
+      return Response.json(
+        statusCode: HttpStatus.badRequest,
+        body: {'success': false, 'error': 'teamId is required'},
+      );
+    }
+
     var environment = Platform.environment;
     try {
       environment = context.read<Map<String, String>>();
     } catch (_) {
       // Use the process environment when no override is provided.
     }
+    environment = {
+      ...environment,
+      'GITHUB_API_BASE_URL': parseGitHubApiBaseUri(
+        environment['GITHUB_API_BASE_URL'],
+      ).toString(),
+    };
+    final db = context.read<AppDatabase>();
+    final connections = await readActiveGitHubConnections(
+      db: db,
+      teamId: teamId,
+      environment: environment,
+    );
+    if (connections.isEmpty) {
+      return Response.json(
+        statusCode: HttpStatus.forbidden,
+        body: {'success': false, 'error': 'Forbidden'},
+      );
+    }
+
+    http.Client? providedClient;
+    try {
+      providedClient = context.read<http.Client>();
+    } catch (_) {
+      // Create a client when one is not provided by the request context.
+    }
+    final client = providedClient ?? http.Client();
+    final String installationId;
+    try {
+      installationId = await GitHubService.getRepositoryInstallationId(
+        owner: job.owner,
+        repo: job.repo,
+        environment: environment,
+        client: client,
+      );
+    } finally {
+      if (providedClient == null) client.close();
+    }
+    if (!connections.any(
+      (connection) => connection.installationId.toString() == installationId,
+    )) {
+      return Response.json(
+        statusCode: HttpStatus.forbidden,
+        body: {'success': false, 'error': 'Forbidden'},
+      );
+    }
+
     final driftJob = job
         .copyWith(
           githubBaseUrl: githubRepositoryBaseUrl(environment: environment),
         )
-        .toDrift();
-    final db = context.read<AppDatabase>();
+        .toDrift(installationId: installationId);
     await db.buildJobDao.insertBuildJob(driftJob);
 
     return Response.json(

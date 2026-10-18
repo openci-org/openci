@@ -1,5 +1,6 @@
 import 'package:drift/drift.dart';
 import 'package:openci_server/database.dart';
+import 'package:openci_server/github/github_connection_table.dart';
 import 'package:openci_server/team/team_table.dart';
 
 part 'team_dao.g.dart';
@@ -45,14 +46,23 @@ class TeamDao extends DatabaseAccessor<AppDatabase> with _$TeamDaoMixin {
     });
   }
 
-  Future<DriftTeam?> getTeamByInstallationId(int installationId) async {
-    final allTeams = await select(teams).get();
-    for (final team in allTeams) {
-      if (team.installationIds.contains(installationId)) {
-        return team;
-      }
-    }
-    return null;
+  Future<DriftTeam?> getTeamByInstallationId(
+    int installationId, {
+    required String githubApiBaseUrl,
+    required int githubAppId,
+  }) async {
+    final connections = attachedDatabase.gitHubConnections;
+    final query =
+        select(teams).join([
+          innerJoin(connections, connections.teamId.equalsExp(teams.id)),
+        ])..where(
+          connections.installationId.equals(installationId) &
+              connections.githubApiBaseUrl.equals(githubApiBaseUrl) &
+              connections.githubAppId.equals(githubAppId) &
+              connections.status.equalsValue(GitHubConnectionStatus.active),
+        );
+    final row = await query.getSingleOrNull();
+    return row?.readTable(teams);
   }
 
   Future<DriftTeam?> getTeam(String teamId) {

@@ -6,6 +6,7 @@ import 'package:drift/native.dart';
 import 'package:openci_server/auth/internal_api_key_validator.dart';
 import 'package:openci_server/build_job/build_job_dao.dart';
 import 'package:openci_server/database.dart';
+import 'package:openci_server/github/github_connection_table.dart';
 import 'package:http/http.dart' as http;
 import 'package:mocktail/mocktail.dart';
 import 'package:test/test.dart';
@@ -47,7 +48,10 @@ void main() {
         .use(root.authProvider(null))
         .use(
           provider<Map<String, String>>(
-            (_) => const {'GITHUB_API_BASE_URL': 'https://api.github.com'},
+            (_) => const {
+              'GITHUB_API_BASE_URL': 'https://api.github.com',
+              'GITHUB_APP_ID': '42',
+            },
           ),
         )
         .use(
@@ -190,7 +194,7 @@ void main() {
       DriftTeam(
         id: 'team-1',
         name: 'OpenCI',
-        installationIds: const [12345],
+        installationIds: const [],
         aiEnabled: false,
         runNumber: 1,
         createdAt: DateTime.utc(2026),
@@ -198,6 +202,24 @@ void main() {
       ),
       'member-1',
     );
+    await db
+        .into(db.gitHubConnections)
+        .insert(
+          DriftGitHubConnection(
+            id: 'connection-1',
+            teamId: 'team-1',
+            githubApiBaseUrl: 'https://api.github.com',
+            githubAppId: 42,
+            installationId: 12345,
+            accountId: 100,
+            accountType: GitHubAccountType.organization,
+            accountLogin: 'openci-org',
+            verifiedByUserId: 'member-1',
+            verifiedByGitHubUserId: 200,
+            verifiedAt: DateTime.utc(2026),
+            status: GitHubConnectionStatus.active,
+          ),
+        );
 
     final response = await request(
       path: '/teams/by-installation/12345',

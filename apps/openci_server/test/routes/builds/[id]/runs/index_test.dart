@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -7,11 +8,14 @@ import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:openci_server/auth/internal_api_key_validator.dart';
 import 'package:openci_server/database.dart';
+import 'package:openci_server/github/github_connection_table.dart';
 import 'package:openci_shared/openci_shared.dart';
 import 'package:test/test.dart';
 
 import '../../../../helpers/database_failure_checks.dart';
+import '../../../../../routes/builds/[id]/_middleware.dart' as build;
 import '../../../../../routes/builds/[id]/runs/index.dart' as route;
 import '../../../../helpers/github_app_test_key.dart';
 
@@ -29,9 +33,78 @@ DateTime _getNormalizedNow() {
 
 void main() {
   late AppDatabase db;
+  late Map<String, String> environment;
+  late List<http.Request> requests;
+  late MockClient client;
+  var repositoryInstallationId = 98765;
+  var lookupStatus = HttpStatus.ok;
+  var tokenStatus = HttpStatus.created;
+  var token = 'test-token';
+  var createStatus = HttpStatus.created;
+  var updateStatus = HttpStatus.ok;
+  Completer<http.Response>? pendingCheck;
 
-  setUp(() {
-    db = AppDatabase(NativeDatabase.memory());
+  final connection = DriftGitHubConnection(
+    id: 'connection-1',
+    teamId: 'team-xyz',
+    githubApiBaseUrl: 'https://api.github.com',
+    githubAppId: 123456,
+    installationId: 98765,
+    accountId: 42,
+    accountType: GitHubAccountType.organization,
+    accountLogin: 'org',
+    verifiedByUserId: 'user-123',
+    verifiedByGitHubUserId: 100,
+    verifiedAt: DateTime.utc(2026),
+    status: GitHubConnectionStatus.active,
+  );
+
+  setUp(() async {
+    db = AppDatabase(
+      NativeDatabase.memory(
+        setup: (database) => database.execute('PRAGMA foreign_keys = ON'),
+      ),
+    );
+    final directory = await Directory.systemTemp.createTemp('build_run_check_');
+    final keyFile = File('${directory.path}/key.pem');
+    await keyFile.writeAsString(testRsaPrivateKey);
+    addTearDown(() => directory.delete(recursive: true));
+    environment = {
+      'GITHUB_APP_ID': '123456',
+      'GITHUB_PRIVATE_KEY_PATH': keyFile.path,
+      'GITHUB_API_BASE_URL': 'https://api.github.com',
+    };
+    requests = [];
+    repositoryInstallationId = 98765;
+    lookupStatus = HttpStatus.ok;
+    tokenStatus = HttpStatus.created;
+    token = 'test-token';
+    createStatus = HttpStatus.created;
+    updateStatus = HttpStatus.ok;
+    pendingCheck = null;
+    client = MockClient((request) async {
+      requests.add(request);
+      if (request.url.path.endsWith('/installation')) {
+        return http.Response(
+          jsonEncode({'id': repositoryInstallationId}),
+          lookupStatus,
+        );
+      }
+      if (request.url.path.endsWith('/access_tokens')) {
+        return http.Response(jsonEncode({'token': token}), tokenStatus);
+      }
+      if (request.method == 'POST' &&
+          request.url.path.endsWith('/check-runs')) {
+        if (pendingCheck != null) return pendingCheck!.future;
+        return http.Response('{"id":99999}', createStatus);
+      }
+      if (request.method == 'PATCH' &&
+          request.url.path.endsWith('/check-runs/99999')) {
+        return http.Response('{}', updateStatus);
+      }
+      return http.Response('Unexpected GitHub request', 500);
+    });
+    addTearDown(client.close);
   });
 
   tearDown(() async {
@@ -162,6 +235,7 @@ void main() {
         );
 
         await db.teamDao.createTeamAndMember(team, 'user-123');
+        await db.into(db.gitHubConnections).insert(connection);
 
         final job = DriftBuildJob(
           id: 'job-xyz',
@@ -172,6 +246,8 @@ void main() {
           workflowFileName: 'ci.yml',
           teamId: 'team-xyz',
           runCount: 2,
+          installationId: '98765',
+          commitSha: 'abc123',
           createdAt: now,
           updatedAt: now,
         );
@@ -187,6 +263,8 @@ void main() {
         context.provide<AppDatabase>(db);
         context.provide<String?>('user-123');
         context.provide<DriftBuildJob>(job);
+        context.provide<Map<String, String>>(environment);
+        context.provide<http.Client>(client);
 
         final response = await route.onRequest(context.context, 'job-xyz');
 
@@ -221,6 +299,7 @@ void main() {
         );
 
         await db.teamDao.createTeamAndMember(team, 'user-123');
+        await db.into(db.gitHubConnections).insert(connection);
 
         final job = DriftBuildJob(
           id: 'job-xyz',
@@ -230,6 +309,8 @@ void main() {
           workflowName: 'workflow',
           workflowFileName: 'ci.yml',
           teamId: 'team-xyz',
+          installationId: '98765',
+          commitSha: 'abc123',
           createdAt: now,
           updatedAt: now,
         );
@@ -245,6 +326,8 @@ void main() {
         context1.provide<AppDatabase>(db);
         context1.provide<String?>('user-123');
         context1.provide<DriftBuildJob>(job);
+        context1.provide<Map<String, String>>(environment);
+        context1.provide<http.Client>(client);
 
         final response1 = await route.onRequest(context1.context, 'job-xyz');
         expect(response1.statusCode, equals(HttpStatus.ok));
@@ -258,6 +341,8 @@ void main() {
         context2.provide<AppDatabase>(db);
         context2.provide<String?>('user-123');
         context2.provide<DriftBuildJob>(job);
+        context2.provide<Map<String, String>>(environment);
+        context2.provide<http.Client>(client);
 
         final response2 = await route.onRequest(context2.context, 'job-xyz');
         expect(response2.statusCode, equals(HttpStatus.conflict));
@@ -306,44 +391,21 @@ void main() {
   });
 
   group('GitHub Check at build start', () {
-    late Directory tempDirectory;
-    late Map<String, String> environment;
-    late List<http.Request> requests;
-    late MockClient client;
-    var createStatus = HttpStatus.created;
-    var updateStatus = HttpStatus.ok;
-
     setUp(() async {
-      tempDirectory = await Directory.systemTemp.createTemp('build_run_check_');
-      final keyFile = File('${tempDirectory.path}/key.pem');
-      await keyFile.writeAsString(testRsaPrivateKey);
-      environment = {
-        'GITHUB_APP_ID': '123456',
-        'GITHUB_PRIVATE_KEY_PATH': keyFile.path,
-        'GITHUB_API_BASE_URL': 'https://api.github.com',
-      };
-      requests = [];
-      createStatus = HttpStatus.created;
-      updateStatus = HttpStatus.ok;
-      client = MockClient((request) async {
-        requests.add(request);
-        if (request.url.path.endsWith('/access_tokens')) {
-          return http.Response('{"token":"test-token"}', HttpStatus.created);
-        }
-        if (request.method == 'POST' &&
-            request.url.path == '/repos/org/mobile/check-runs') {
-          return http.Response('{"id":99999}', createStatus);
-        }
-        if (request.method == 'PATCH' &&
-            request.url.path == '/repos/org/mobile/check-runs/99999') {
-          return http.Response('{}', updateStatus);
-        }
-        fail('Unexpected GitHub request: ${request.method} ${request.url}');
-      });
-      addTearDown(client.close);
-      addTearDown(() => tempDirectory.delete(recursive: true));
-
       final now = _getNormalizedNow();
+      await db.teamDao.createTeamAndMember(
+        DriftTeam(
+          id: 'team-xyz',
+          name: 'Team XYZ',
+          installationIds: const [],
+          runNumber: 1,
+          aiEnabled: true,
+          createdAt: now,
+          updatedAt: now,
+        ),
+        'user-123',
+      );
+      await db.into(db.gitHubConnections).insert(connection);
       await db.buildJobDao.insertBuildJob(
         DriftBuildJob(
           id: 'job-check',
@@ -352,7 +414,9 @@ void main() {
           repo: 'mobile',
           workflowName: 'Flutter CI',
           workflowFileName: 'ci.dart',
+          teamId: 'team-xyz',
           installationId: '98765',
+          githubBaseUrl: 'https://untrusted.example',
           commitSha: 'abc123',
           runCount: 2,
           latestRunId: 'previous-run',
@@ -364,26 +428,70 @@ void main() {
 
     Future<Response> startRun({
       String runId = 'run-check',
-      bool provideEnvironment = true,
-      bool provideClient = true,
+      String? uid,
+      String? bearerToken = 'test-internal-key',
     }) async {
-      final job = (await db.buildJobDao.getBuildJob('job-check'))!;
-      final context = TestRequestContext(
-        path: '/builds/job-check/runs',
-        method: HttpMethod.post,
-        body: jsonEncode({'id': runId}),
-      )..provide<AppDatabase>(db);
-      context.provide<DriftBuildJob>(job);
-      if (provideEnvironment) {
-        context.provide<Map<String, String>>(environment);
+      final handler =
+          ((RequestContext context) => route.onRequest(context, 'job-check'))
+              .use(build.middleware)
+              .use(provider<AppDatabase>((_) => db))
+              .use(provider<String?>((_) => uid))
+              .use(provider<Map<String, String>>((_) => environment))
+              .use(provider<http.Client>((_) => client))
+              .use(
+                provider<InternalApiKeyValidator>(
+                  (_) => const InternalApiKeyValidator(
+                    environment: {'INTERNAL_API_KEY': 'test-internal-key'},
+                  ),
+                ),
+              );
+      final server = await serve(handler, InternetAddress.loopbackIPv4, 0);
+      final requestClient = http.Client();
+      try {
+        final response = await requestClient.post(
+          Uri(
+            scheme: 'http',
+            host: server.address.address,
+            port: server.port,
+            path: '/builds/job-check/runs',
+          ),
+          body: jsonEncode({'id': runId}),
+          headers: {
+            HttpHeaders.contentTypeHeader: 'application/json',
+            if (bearerToken != null)
+              HttpHeaders.authorizationHeader: 'Bearer $bearerToken',
+          },
+        );
+        return Response(statusCode: response.statusCode, body: response.body);
+      } finally {
+        requestClient.close();
+        await server.close(force: true);
       }
-      if (provideClient) context.provide<http.Client>(client);
-      return route.onRequest(context.context, job.id);
     }
 
     List<http.Request> checkRequests() => requests
         .where((request) => request.url.path.contains('/check-runs'))
         .toList();
+
+    Future<void> expectRunNotStarted() async {
+      expect(await db.select(db.buildRuns).get(), isEmpty);
+      final stored = (await db.buildJobDao.getBuildJob('job-check'))!;
+      expect(stored.runCount, 2);
+      expect(stored.latestRunId, 'previous-run');
+    }
+
+    Future<void> expectConnectionRejected(
+      DriftGitHubConnection rejectedConnection,
+    ) async {
+      await db.update(db.gitHubConnections).replace(rejectedConnection);
+
+      final response = await startRun();
+
+      expect(response.statusCode, HttpStatus.forbidden);
+      expect(await response.json(), {'success': false, 'error': 'Forbidden'});
+      expect(requests, isEmpty);
+      await expectRunNotStarted();
+    }
 
     for (final checkRunId in [null, '']) {
       test('creates and saves a Check when the ID is $checkRunId', () async {
@@ -396,8 +504,19 @@ void main() {
         final response = await startRun();
 
         expect(response.statusCode, HttpStatus.ok);
+        expect(requests.map((request) => request.method), [
+          'GET',
+          'POST',
+          'POST',
+        ]);
+        expect(requests.map((request) => request.url.toString()), [
+          'https://api.github.com/repos/org/mobile/installation',
+          'https://api.github.com/app/installations/98765/access_tokens',
+          'https://api.github.com/repos/org/mobile/check-runs',
+        ]);
         final request = checkRequests().single;
         expect(request.method, 'POST');
+        expect(request.headers['authorization'], 'Bearer test-token');
         expect(jsonDecode(request.body), containsPair('head_sha', 'abc123'));
         expect(jsonDecode(request.body), containsPair('name', 'Flutter CI'));
         expect(
@@ -436,82 +555,305 @@ void main() {
       expect((await startRun()).statusCode, HttpStatus.ok);
       expect((await startRun()).statusCode, HttpStatus.conflict);
       expect(checkRequests(), hasLength(1));
+      expect((await db.buildJobDao.getBuildJob('job-check'))!.runCount, 3);
     });
 
-    test('keeps the build run when Check creation fails', () async {
+    test('rolls back the build run when Check creation is rejected', () async {
       createStatus = HttpStatus.forbidden;
 
-      expect((await startRun()).statusCode, HttpStatus.ok);
+      final response = await startRun();
+
+      expect(response.statusCode, HttpStatus.internalServerError);
+      expect(await response.json(), {
+        'success': false,
+        'error': 'Internal server error',
+      });
       expect(checkRequests().single.method, 'POST');
       final stored = (await db.buildJobDao.getBuildJob('job-check'))!;
       expect(stored.checkRunId, isNull);
-      expect(stored.runCount, 3);
-      expect(
-        await db.buildRunDao.getBuildRun('job-check', 'run-check'),
-        isNotNull,
-      );
-    });
+      await expectRunNotStarted();
 
-    test('preserves an existing Check if its update fails', () async {
-      await db
-          .update(db.buildJobs)
-          .write(
-            const BuildJobsCompanion(
-              checkRunId: Value('99999'),
-              commitSha: Value(null),
-            ),
-          );
-      updateStatus = HttpStatus.internalServerError;
-
+      createStatus = HttpStatus.created;
       expect((await startRun()).statusCode, HttpStatus.ok);
-      expect(checkRequests().single.method, 'PATCH');
-      expect(
-        (await db.buildJobDao.getBuildJob('job-check'))!.checkRunId,
-        '99999',
-      );
+      expect((await db.buildJobDao.getBuildJob('job-check'))!.runCount, 3);
     });
 
-    for (final installationId in [null, '', '12345678']) {
-      test(
-        'skips GitHub for an absent or dummy installation: $installationId',
-        () async {
-          await db
-              .update(db.buildJobs)
-              .write(
-                BuildJobsCompanion(installationId: Value(installationId)),
-              );
-
-          expect((await startRun()).statusCode, HttpStatus.ok);
-          expect(requests, isEmpty);
-          expect(
-            (await db.buildJobDao.getBuildJob('job-check'))!.checkRunId,
-            isNull,
-          );
-        },
-      );
-    }
-
-    for (final commitSha in [null, '']) {
-      test('skips Check creation when commit SHA is $commitSha', () async {
+    test(
+      'rolls back the run and preserves the Check if updating fails',
+      () async {
         await db
             .update(db.buildJobs)
             .write(
-              BuildJobsCompanion(commitSha: Value(commitSha)),
+              const BuildJobsCompanion(
+                checkRunId: Value('99999'),
+                commitSha: Value(null),
+              ),
             );
+        updateStatus = HttpStatus.internalServerError;
 
-        final response = await startRun(
-          provideEnvironment: false,
-          provideClient: false,
+        expect((await startRun()).statusCode, HttpStatus.internalServerError);
+        expect(checkRequests().single.method, 'PATCH');
+        expect(
+          (await db.buildJobDao.getBuildJob('job-check'))!.checkRunId,
+          '99999',
         );
+        await expectRunNotStarted();
+      },
+    );
 
-        expect(response.statusCode, HttpStatus.ok);
+    test('rejects a job with no installation before starting a run', () async {
+      await db
+          .update(db.buildJobs)
+          .write(
+            const BuildJobsCompanion(installationId: Value(null)),
+          );
+
+      expect((await startRun()).statusCode, HttpStatus.badRequest);
+      expect(requests, isEmpty);
+      await expectRunNotStarted();
+    });
+
+    test('rejects a nonnumeric installation before starting a run', () async {
+      await db
+          .update(db.buildJobs)
+          .write(
+            const BuildJobsCompanion(installationId: Value('invalid')),
+          );
+
+      expect((await startRun()).statusCode, HttpStatus.badRequest);
+      expect(requests, isEmpty);
+      await expectRunNotStarted();
+    });
+
+    test('rejects a nonpositive installation before starting a run', () async {
+      await db
+          .update(db.buildJobs)
+          .write(
+            const BuildJobsCompanion(installationId: Value('0')),
+          );
+
+      expect((await startRun()).statusCode, HttpStatus.badRequest);
+      expect(requests, isEmpty);
+      await expectRunNotStarted();
+    });
+
+    test('requires a commit SHA when creating a Check', () async {
+      await db
+          .update(db.buildJobs)
+          .write(
+            const BuildJobsCompanion(commitSha: Value(null)),
+          );
+
+      expect((await startRun()).statusCode, HttpStatus.badRequest);
+      expect(requests, isEmpty);
+      await expectRunNotStarted();
+    });
+
+    test('rejects an invalid saved Check ID', () async {
+      await db
+          .update(db.buildJobs)
+          .write(
+            const BuildJobsCompanion(checkRunId: Value('invalid')),
+          );
+
+      expect((await startRun()).statusCode, HttpStatus.badRequest);
+      expect(requests, isEmpty);
+      await expectRunNotStarted();
+    });
+
+    test(
+      'does not authorize a legacy installation without a connection',
+      () async {
+        final team = (await db.teamDao.getTeam('team-xyz'))!;
+        await db.teamDao.updateTeam(team.copyWith(installationIds: [98765]));
+        await db.delete(db.gitHubConnections).go();
+
+        expect((await startRun()).statusCode, HttpStatus.forbidden);
         expect(requests, isEmpty);
+        await expectRunNotStarted();
+      },
+    );
+
+    test('rejects a connection belonging to another team', () async {
+      final team = (await db.teamDao.getTeam('team-xyz'))!;
+      await db.teamDao.createTeamAndMember(
+        team.copyWith(id: 'other-team'),
+        'other-user',
+      );
+      await expectConnectionRejected(connection.copyWith(teamId: 'other-team'));
+    });
+
+    test('rejects a suspended connection', () async {
+      await expectConnectionRejected(
+        connection.copyWith(status: GitHubConnectionStatus.suspended),
+      );
+    });
+
+    test('rejects a removed connection', () async {
+      await expectConnectionRejected(
+        connection.copyWith(status: GitHubConnectionStatus.removed),
+      );
+    });
+
+    test('rejects a connection for a different API host', () async {
+      await expectConnectionRejected(
+        connection.copyWith(githubApiBaseUrl: 'https://other.example/api/v3'),
+      );
+    });
+
+    test('rejects a connection for a different App', () async {
+      await expectConnectionRejected(connection.copyWith(githubAppId: 999));
+    });
+
+    test(
+      'rejects a repository belonging to a different installation',
+      () async {
+        repositoryInstallationId = 54321;
+
+        expect((await startRun()).statusCode, HttpStatus.forbidden);
+        expect(requests.single.url.path, '/repos/org/mobile/installation');
+        await expectRunNotStarted();
+      },
+    );
+
+    test(
+      'returns an error when GitHub rejects the repository lookup',
+      () async {
+        lookupStatus = HttpStatus.forbidden;
+
+        expect((await startRun()).statusCode, HttpStatus.internalServerError);
+        expect(requests.single.url.path, '/repos/org/mobile/installation');
+        await expectRunNotStarted();
+      },
+    );
+
+    test('rolls back when GitHub rejects token issuance', () async {
+      tokenStatus = HttpStatus.forbidden;
+
+      expect((await startRun()).statusCode, HttpStatus.internalServerError);
+      expect(requests.map((request) => request.url.path), [
+        '/repos/org/mobile/installation',
+        '/app/installations/98765/access_tokens',
+      ]);
+      await expectRunNotStarted();
+    });
+
+    test('rejects an empty token before creating a Check', () async {
+      token = ' ';
+
+      expect((await startRun()).statusCode, HttpStatus.internalServerError);
+      expect(checkRequests(), isEmpty);
+      await expectRunNotStarted();
+    });
+
+    test('rolls back when GitHub does not finish creating a Check', () async {
+      pendingCheck = Completer<http.Response>();
+      try {
+        expect((await startRun()).statusCode, HttpStatus.internalServerError);
+        await expectRunNotStarted();
         expect(
           (await db.buildJobDao.getBuildJob('job-check'))!.checkRunId,
           isNull,
         );
-      });
-    }
+      } finally {
+        pendingCheck!.complete(
+          http.Response('{"id":99999}', HttpStatus.created),
+        );
+      }
+    });
+
+    test('uses GitHub for the former dummy installation', () async {
+      await db
+          .update(db.gitHubConnections)
+          .replace(
+            connection.copyWith(installationId: 12345678),
+          );
+      await db
+          .update(db.buildJobs)
+          .write(
+            const BuildJobsCompanion(installationId: Value('12345678')),
+          );
+      repositoryInstallationId = 12345678;
+
+      expect((await startRun()).statusCode, HttpStatus.ok);
+      expect(requests.map((request) => request.url.path), [
+        '/repos/org/mobile/installation',
+        '/app/installations/12345678/access_tokens',
+        '/repos/org/mobile/check-runs',
+      ]);
+      expect(
+        checkRequests().single.headers['authorization'],
+        'Bearer test-token',
+      );
+    });
+
+    test('rechecks the connection before reusing a saved Check', () async {
+      expect((await startRun()).statusCode, HttpStatus.ok);
+      requests.clear();
+      await db.delete(db.gitHubConnections).go();
+
+      expect((await startRun(runId: 'rerun')).statusCode, HttpStatus.forbidden);
+      expect(requests, isEmpty);
+      expect((await db.buildJobDao.getBuildJob('job-check'))!.runCount, 3);
+      expect(await db.buildRunDao.getBuildRun('job-check', 'rerun'), isNull);
+    });
+
+    test(
+      'uses the normalized operator URL instead of the saved job URL',
+      () async {
+        environment['GITHUB_API_BASE_URL'] =
+            'https://ghe.example:8443/api/v3///';
+        await db
+            .update(db.gitHubConnections)
+            .replace(
+              connection.copyWith(
+                githubApiBaseUrl: 'https://ghe.example:8443/api/v3',
+              ),
+            );
+
+        expect((await startRun()).statusCode, HttpStatus.ok);
+        expect(requests.map((request) => request.url.toString()), [
+          'https://ghe.example:8443/api/v3/repos/org/mobile/installation',
+          'https://ghe.example:8443/api/v3/app/installations/98765/access_tokens',
+          'https://ghe.example:8443/api/v3/repos/org/mobile/check-runs',
+        ]);
+      },
+    );
+
+    test(
+      'rejects missing GitHub configuration before starting a run',
+      () async {
+        environment.remove('GITHUB_APP_ID');
+
+        expect((await startRun()).statusCode, HttpStatus.internalServerError);
+        expect(requests, isEmpty);
+        await expectRunNotStarted();
+      },
+    );
+
+    test('allows a team member without an internal API key', () async {
+      final response = await startRun(uid: 'user-123', bearerToken: null);
+
+      expect(response.statusCode, HttpStatus.ok);
+      expect(checkRequests(), hasLength(1));
+    });
+
+    test('rejects an unauthenticated caller', () async {
+      expect(
+        (await startRun(bearerToken: null)).statusCode,
+        HttpStatus.unauthorized,
+      );
+      expect(requests, isEmpty);
+      await expectRunNotStarted();
+    });
+
+    test('rejects a caller outside the team', () async {
+      final response = await startRun(uid: 'outsider', bearerToken: null);
+
+      expect(response.statusCode, HttpStatus.forbidden);
+      expect(requests, isEmpty);
+      await expectRunNotStarted();
+    });
   });
 
   group('GET /builds/<id>/runs', () {
@@ -624,6 +966,18 @@ void main() {
       HttpMethod.post,
       (c) => route.onRequest(c, 'job-1'),
       body: '{"id":"run-1"}',
+      configure: (context) {
+        context.provide<DriftBuildJob>(
+          databaseFailureJob.copyWith(
+            installationId: const Value('98765'),
+            commitSha: const Value('abc123'),
+          ),
+        );
+        context.provide<Map<String, String>>({
+          'GITHUB_APP_ID': '123456',
+          'GITHUB_API_BASE_URL': 'https://api.github.com',
+        });
+      },
     ),
   ]);
 }

@@ -8,6 +8,7 @@ import 'package:drift/native.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:openci_server/database.dart';
+import 'package:openci_server/github/github_connection_table.dart';
 import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 
@@ -37,9 +38,27 @@ void main() {
   late Directory tempDir;
   late File privateKeyFile;
   late Map<String, String> testEnv;
+  final connection = DriftGitHubConnection(
+    id: 'connection-1',
+    teamId: 'team-123',
+    githubApiBaseUrl: 'https://api.github.com',
+    githubAppId: 123456,
+    installationId: 54321,
+    accountId: 42,
+    accountType: GitHubAccountType.organization,
+    accountLogin: 'owner',
+    verifiedByUserId: 'user-1',
+    verifiedByGitHubUserId: 100,
+    verifiedAt: DateTime.utc(2026),
+    status: GitHubConnectionStatus.active,
+  );
 
   setUp(() async {
-    db = AppDatabase(NativeDatabase.memory());
+    db = AppDatabase(
+      NativeDatabase.memory(
+        setup: (database) => database.execute('PRAGMA foreign_keys = ON'),
+      ),
+    );
     await db
         .into(db.teams)
         .insert(
@@ -53,6 +72,7 @@ void main() {
             updatedAt: DateTime.now().toUtc(),
           ),
         );
+    await db.into(db.gitHubConnections).insert(connection);
 
     tempDir = Directory.systemTemp.createTempSync('workflows_test_');
     privateKeyFile = File(p.join(tempDir.path, 'private_key.pem'));
@@ -85,6 +105,9 @@ void main() {
       final httpClient =
           client ??
           MockClient((request) async {
+            if (request.url.path.endsWith('/installation')) {
+              return http.Response(jsonEncode({'id': 54321}), 200);
+            }
             if (request.url.path.endsWith('/access_tokens')) {
               return http.Response(jsonEncode({'token': 'test-token'}), 200);
             }
@@ -106,6 +129,23 @@ void main() {
       );
     }
 
+    Future<void> expectConnectionRejected(
+      DriftGitHubConnection rejectedConnection,
+    ) async {
+      await db.update(db.gitHubConnections).replace(rejectedConnection);
+      final response = await fetch(
+        client: MockClient((_) async {
+          fail('No GitHub request should be made without an active connection');
+        }),
+      );
+
+      expect(response.statusCode, HttpStatus.badRequest);
+      expect(await response.json(), {
+        'success': false,
+        'error': 'No active GitHub connection for this team',
+      });
+    }
+
     test('rejects unsupported methods', () async {
       expect(
         (await fetch(method: HttpMethod.post)).statusCode,
@@ -114,22 +154,108 @@ void main() {
     });
 
     test(
-      'reports a missing GitHub installation before making requests',
+      'rejects legacy installation IDs without a verified connection',
       () async {
-        await db
-            .update(db.teams)
-            .write(
-              const TeamsCompanion(installationIds: Value([])),
-            );
+        await db.delete(db.gitHubConnections).go();
         final response = await fetch(
           client: MockClient((_) async {
-            fail('No GitHub request should be made without an installation');
+            fail('No GitHub request should be made without a connection');
           }),
         );
         expect(response.statusCode, HttpStatus.badRequest);
         expect(await response.json(), {
           'success': false,
-          'error': 'GitHub App is not installed for this team',
+          'error': 'No active GitHub connection for this team',
+        });
+      },
+    );
+
+    test('does not use another team connection', () async {
+      final team = (await db.teamDao.getTeam('team-123'))!;
+      await db.into(db.teams).insert(team.copyWith(id: 'other-team'));
+
+      await expectConnectionRejected(connection.copyWith(teamId: 'other-team'));
+    });
+
+    test('does not use a suspended connection', () async {
+      await expectConnectionRejected(
+        connection.copyWith(status: GitHubConnectionStatus.suspended),
+      );
+    });
+
+    test('does not use a removed connection', () async {
+      await expectConnectionRejected(
+        connection.copyWith(status: GitHubConnectionStatus.removed),
+      );
+    });
+
+    test('does not use a connection for another API host', () async {
+      await expectConnectionRejected(
+        connection.copyWith(githubApiBaseUrl: 'https://github.example/api/v3'),
+      );
+    });
+
+    test('does not use a connection for another App', () async {
+      await expectConnectionRejected(connection.copyWith(githubAppId: 999));
+    });
+
+    test(
+      'rejects a repository installation that only matches a legacy ID',
+      () async {
+        final requests = <http.Request>[];
+        final response = await fetch(
+          client: MockClient((request) async {
+            requests.add(request);
+            expect(request.method, 'GET');
+            expect(request.url.path, '/repos/owner/repo/installation');
+            return http.Response(jsonEncode({'id': 98765}), 200);
+          }),
+        );
+
+        expect(response.statusCode, HttpStatus.forbidden);
+        expect(await response.json(), {'success': false, 'error': 'Forbidden'});
+        expect(requests, hasLength(1));
+      },
+    );
+
+    test(
+      'reports invalid configuration before making GitHub requests',
+      () async {
+        testEnv.remove('GITHUB_APP_ID');
+        var calledGitHub = false;
+        final response = await fetch(
+          client: MockClient((_) async {
+            calledGitHub = true;
+            return http.Response('Unexpected request', 500);
+          }),
+        );
+
+        expect(calledGitHub, isFalse);
+        expect(response.statusCode, HttpStatus.internalServerError);
+        expect(await response.json(), {
+          'success': false,
+          'error': 'Internal server error',
+        });
+      },
+    );
+
+    test(
+      'reports a connection database failure before GitHub requests',
+      () async {
+        await db.customStatement('DROP TABLE github_connections');
+        var calledGitHub = false;
+        final response = await fetch(
+          client: MockClient((_) async {
+            calledGitHub = true;
+            return http.Response('Unexpected request', 500);
+          }),
+        );
+
+        expect(calledGitHub, isFalse);
+        expect(response.statusCode, HttpStatus.internalServerError);
+        expect(await response.json(), {
+          'success': false,
+          'error': 'Internal server error',
         });
       },
     );
@@ -156,7 +282,7 @@ void main() {
       );
     }
 
-    test('reports a repository absent from all installations', () async {
+    test('reports a repository missing from the GraphQL response', () async {
       final response = await fetch(
         graphqlBody: {
           'data': {'repository': null},
@@ -196,72 +322,145 @@ void main() {
       );
     }
 
-    test('tries the next installation when the first request fails', () async {
+    test(
+      'does not treat mixed missing-tree and permission errors as success',
+      () async {
+        final response = await fetch(
+          graphqlBody: {
+            'errors': [
+              {'message': 'Could not resolve to an object at this path'},
+              {'message': 'Resource not accessible by integration'},
+            ],
+            'data': {
+              'repository': {
+                'object': {'entries': []},
+              },
+            },
+          },
+        );
+
+        expect(response.statusCode, HttpStatus.internalServerError);
+        expect(await response.json(), {
+          'success': false,
+          'error': 'Internal server error',
+        });
+      },
+    );
+
+    test('stops when the repository installation lookup fails', () async {
+      final requests = <http.Request>[];
+      final response = await fetch(
+        client: MockClient((request) async {
+          requests.add(request);
+          return http.Response('private GitHub permission detail', 403);
+        }),
+      );
+
+      expect(response.statusCode, HttpStatus.internalServerError);
+      expect(await response.json(), {
+        'success': false,
+        'error': 'Internal server error',
+      });
+      expect(requests, hasLength(1));
+      expect(requests.single.method, 'GET');
+      expect(requests.single.url.path, '/repos/owner/repo/installation');
+    });
+
+    test(
+      'does not try another connection after token issuance fails',
+      () async {
+        await db
+            .into(db.gitHubConnections)
+            .insert(
+              connection.copyWith(id: 'other-connection', installationId: 222),
+            );
+        final paths = <String>[];
+        final response = await fetch(
+          client: MockClient((request) async {
+            paths.add(request.url.path);
+            if (request.url.path.endsWith('/installation')) {
+              return http.Response(jsonEncode({'id': 54321}), 200);
+            }
+            return http.Response('private GitHub permission detail', 403);
+          }),
+        );
+
+        expect(response.statusCode, HttpStatus.internalServerError);
+        expect(await response.json(), {
+          'success': false,
+          'error': 'Internal server error',
+        });
+        expect(paths, [
+          '/repos/owner/repo/installation',
+          '/app/installations/54321/access_tokens',
+        ]);
+      },
+    );
+
+    test('does not try another connection after a GraphQL failure', () async {
       await db
-          .update(db.teams)
-          .write(
-            const TeamsCompanion(installationIds: Value([111, 222])),
+          .into(db.gitHubConnections)
+          .insert(
+            connection.copyWith(id: 'other-connection', installationId: 222),
           );
       final tokenPaths = <String>[];
       var graphRequests = 0;
       final response = await fetch(
         client: MockClient((request) async {
+          if (request.url.path.endsWith('/installation')) {
+            return http.Response(jsonEncode({'id': 54321}), 200);
+          }
           if (request.url.path.endsWith('/access_tokens')) {
             tokenPaths.add(request.url.path);
             return http.Response(jsonEncode({'token': 'test-token'}), 200);
           }
-          if (++graphRequests == 1) return http.Response('unavailable', 503);
-          return http.Response(
-            jsonEncode({
-              'data': {
-                'repository': {
-                  'object': {
-                    'entries': [
-                      {
-                        'type': 'blob',
-                        'name': 'build.yml',
-                        'object': {'text': 'steps: []'},
-                      },
-                    ],
-                  },
-                },
-              },
-            }),
-            200,
-          );
+          graphRequests++;
+          return http.Response('private permission detail', 403);
         }),
       );
-      expect(response.statusCode, HttpStatus.ok);
+      expect(response.statusCode, HttpStatus.internalServerError);
       expect(tokenPaths, [
-        '/app/installations/111/access_tokens',
-        '/app/installations/222/access_tokens',
+        '/app/installations/54321/access_tokens',
       ]);
-      expect(graphRequests, 2);
+      expect(graphRequests, 1);
       expect(await response.json(), {
-        'success': true,
-        'files': [
-          {
-            'name': 'build.yml',
-            'path': '.openci/build.yml',
-            'content': 'steps: []',
-          },
-        ],
+        'success': false,
+        'error': 'Internal server error',
       });
     });
 
     for (final (baseUrl, graphUrl) in [
       ('https://api.github.com/', 'https://api.github.com/graphql'),
       (
-        'https://github.example.com/api/v3/',
-        'https://github.example.com/api/graphql',
+        'https://github.example.com:8443/api/v3/',
+        'https://github.example.com:8443/api/graphql',
       ),
     ]) {
       test('uses the GraphQL endpoint for $baseUrl', () async {
-        testEnv['GITHUB_API_BASE_URL'] = baseUrl;
+        testEnv['GITHUB_API_BASE_URL'] = ' $baseUrl/ ';
+        final canonicalApiUrl = baseUrl.replaceFirst(RegExp(r'/+$'), '');
+        await db
+            .update(db.gitHubConnections)
+            .replace(
+              connection.copyWith(
+                githubApiBaseUrl: canonicalApiUrl,
+              ),
+            );
         var queriedGraph = false;
         final response = await fetch(
           client: MockClient((request) async {
+            if (request.url.path.endsWith('/installation')) {
+              expect(
+                request.url.toString(),
+                '$canonicalApiUrl/repos/owner/repo/installation',
+              );
+              return http.Response(jsonEncode({'id': 54321}), 200);
+            }
             if (request.url.path.endsWith('/access_tokens')) {
+              expect(
+                request.url.toString(),
+                '$canonicalApiUrl/app/installations/54321/access_tokens',
+              );
               return http.Response(jsonEncode({'token': 'test-token'}), 200);
             }
             queriedGraph = true;
@@ -380,6 +579,11 @@ void main() {
 
     test('responds with 200 OK and lists workflow files from GitHub', () async {
       await db
+          .update(db.teams)
+          .write(
+            const TeamsCompanion(installationIds: Value([])),
+          );
+      await db
           .into(db.teamMembers)
           .insert(
             TeamMembersCompanion.insert(
@@ -389,8 +593,13 @@ void main() {
           );
 
       final mockHttpClient = MockClient((request) async {
+        if (request.method == 'GET' &&
+            request.url.path == '/repos/owner/repo/installation') {
+          return http.Response(jsonEncode({'id': 54321}), 200);
+        }
         if (request.method == 'POST' &&
             request.url.path.endsWith('/access_tokens')) {
+          expect(request.url.path, '/app/installations/54321/access_tokens');
           return http.Response(
             jsonEncode({'token': 'ghs_mockedtoken123456'}),
             200,
@@ -435,6 +644,7 @@ void main() {
 
         return http.Response('Not Found', 404);
       });
+      addTearDown(mockHttpClient.close);
 
       final context = TestRequestContext(
         path: '/teams/team-123/workflows?repository=owner/repo',
