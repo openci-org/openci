@@ -105,6 +105,12 @@ class AppStringsTeam {
   String get selectTeamLabel => 'チーム';
   String get connectGitHub => 'GitHubと連携';
   String get gitHubConnectionFailed => 'GitHub連携を開始できませんでした。もう一度お試しください。';
+  String get gitHubConnectionVerified => 'GitHub認証を確認しました。チームへの連携はまだ確定していません。';
+  String get gitHubConnectionCancelled => 'GitHubの認可がキャンセルされました。';
+  String get gitHubConnectionRestartRequired =>
+      '連携を再開できませんでした。この画面を閉じて、チーム画面からもう一度お試しください。';
+  String get gitHubConnectionCheckFailed =>
+      'GitHub連携の確認に失敗しました。この画面を閉じて、もう一度お試しください。';
   String get enterTeamName => 'チーム名を入力してください';
   String get createdSuccess => 'チームが作成されました';
   String get updatedSuccess => 'チーム名が更新されました';
