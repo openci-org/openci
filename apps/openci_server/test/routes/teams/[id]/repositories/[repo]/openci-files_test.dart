@@ -299,6 +299,37 @@ void main() {
       });
     }
 
+    test(
+      'does not return sample files when GitHub refuses the former dummy token',
+      () async {
+        final response = await get(
+          respond: (request) {
+            if (request.url.path.endsWith('/installation')) {
+              return http.Response(jsonEncode({'id': 998877}), 200);
+            }
+            if (request.method == 'POST') {
+              return http.Response(
+                jsonEncode({'token': 'mock-github-installation-token-local'}),
+                201,
+              );
+            }
+            return http.Response(jsonEncode({'message': 'Forbidden'}), 403);
+          },
+        );
+
+        expect(response.statusCode, HttpStatus.internalServerError);
+        expect(await response.json(), {
+          'success': false,
+          'error': 'Internal server error',
+        });
+        expect(requests.map((request) => request.url.path), [
+          '/repos/openci-org/openci/installation',
+          '/app/installations/998877/access_tokens',
+          '/repos/openci-org/openci/contents/openci',
+        ]);
+      },
+    );
+
     test('rejects a missing team before contacting GitHub', () async {
       await db.delete(db.teams).go();
 

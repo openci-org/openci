@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:isolate';
 
 import 'package:github/github.dart';
 import 'package:http/http.dart' as http;
@@ -61,6 +62,56 @@ void main() {
       });
       addTearDown(client.close);
       return client;
+    }
+
+    Future<Map<String, dynamic>> requestTokenWithProcessEnvironment({
+      required String installationId,
+      required Map<String, String> environment,
+    }) async {
+      // A child process isolates Platform.environment from developer credentials.
+      final probe = File(p.join(tempDir.path, 'request_token.dart'));
+      await probe.writeAsString(r'''
+import 'dart:convert';
+import 'dart:io';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
+import 'package:openci_server/github/github_service.dart';
+
+Future<void> main(List<String> args) async {
+  String? tokenUrl;
+  final client = MockClient((request) async {
+    tokenUrl = request.url.toString();
+    return http.Response('{"token":"github-issued-token"}', 201);
+  });
+  try {
+    final token = await GitHubService.getInstallationToken(
+      installationIdStr: args.single,
+      client: client,
+    );
+    stdout.writeln(jsonEncode({'token': token, 'tokenUrl': tokenUrl}));
+  } catch (error) {
+    stdout.writeln(jsonEncode({
+      'error': error.runtimeType.toString(),
+      'tokenUrl': tokenUrl,
+    }));
+  } finally {
+    client.close();
+  }
+}
+''');
+      final packageConfig = (await Isolate.packageConfig)!;
+      final result = await Process.run(
+        Platform.resolvedExecutable,
+        [
+          '--packages=${packageConfig.toFilePath()}',
+          probe.path,
+          installationId,
+        ],
+        environment: environment,
+        includeParentEnvironment: false,
+      );
+      expect(result.exitCode, 0, reason: result.stderr.toString());
+      return jsonDecode(result.stdout as String) as Map<String, dynamic>;
     }
 
     group('getRepositoryInstallationId', () {
@@ -356,6 +407,69 @@ void main() {
 
     group('fetchWorkflowContent', () {
       test(
+        'fetches the real workflow for the former dummy installation',
+        () async {
+          final requests = <http.Request>[];
+          const content = 'void main() { print("Repository workflow"); }';
+          final client = apiClient((request) {
+            requests.add(request);
+            return _jsonResponse({'content': content, 'encoding': 'utf-8'});
+          });
+
+          final result = await GitHubService.fetchWorkflowContent(
+            owner: 'org',
+            repo: 'mobile',
+            workflowFileName: 'ci.dart',
+            installationIdStr: '12345678',
+            commitSha: 'abc123',
+            environment: testEnv,
+            client: client,
+          );
+
+          expect(result, content);
+          expect(
+            requests.single.url.path,
+            '/repos/org/mobile/contents/openci/ci.dart',
+          );
+          expect(requests.single.url.queryParameters, {'ref': 'abc123'});
+        },
+      );
+
+      test(
+        'does not return a sample workflow for a mock-prefixed token',
+        () async {
+          final requests = <http.Request>[];
+          final client = MockClient((request) async {
+            requests.add(request);
+            return http.Response('Forbidden', HttpStatus.forbidden);
+          });
+          addTearDown(client.close);
+
+          await expectLater(
+            GitHubService.fetchWorkflowContent(
+              owner: 'org',
+              repo: 'mobile',
+              workflowFileName: 'ci.dart',
+              installationIdStr: '98765',
+              token: 'mock-old-token',
+              environment: testEnv,
+              client: client,
+            ),
+            throwsA(isA<HttpException>()),
+          );
+          expect(requests.single.method, 'GET');
+          expect(
+            requests.single.url.path,
+            '/repos/org/mobile/contents/openci/ci.dart',
+          );
+          expect(
+            requests.single.headers['authorization'],
+            'Bearer mock-old-token',
+          );
+        },
+      );
+
+      test(
         'fetches Dart from openci at the commit using an existing token',
         () async {
           final requests = <http.Request>[];
@@ -508,6 +622,67 @@ void main() {
     });
 
     group('fetchOpenCIFiles', () {
+      test('requests real files for the former dummy token', () async {
+        final requests = <http.Request>[];
+        final client = MockClient((request) async {
+          requests.add(request);
+          if (request.method == 'POST') {
+            return _jsonResponse({'token': 'mock-github-installation-token'});
+          }
+          return _jsonResponse([]);
+        });
+        addTearDown(client.close);
+
+        final files = await GitHubService.fetchOpenCIFiles(
+          owner: 'org',
+          repo: 'mobile',
+          commitSha: 'abc123',
+          installationIdStr: '98765',
+          environment: testEnv,
+          client: client,
+        );
+
+        expect(files, isEmpty);
+        expect(requests.map((request) => request.url.path), [
+          '/app/installations/98765/access_tokens',
+          '/repos/org/mobile/contents/openci',
+        ]);
+        expect(requests.last.url.queryParameters, {'ref': 'abc123'});
+      });
+
+      test(
+        'does not hide GitHub refusal for the former local dummy token',
+        () async {
+          final requests = <http.Request>[];
+          final client = MockClient((request) async {
+            requests.add(request);
+            if (request.method == 'POST') {
+              return _jsonResponse({
+                'token': 'mock-github-installation-token-local',
+              });
+            }
+            return _jsonResponse({'message': 'Forbidden'}, statusCode: 403);
+          });
+          addTearDown(client.close);
+
+          await expectLater(
+            GitHubService.fetchOpenCIFiles(
+              owner: 'org',
+              repo: 'mobile',
+              commitSha: 'abc123',
+              installationIdStr: '98765',
+              environment: testEnv,
+              client: client,
+            ),
+            throwsA(isA<GitHubError>()),
+          );
+          expect(requests.map((request) => request.url.path), [
+            '/app/installations/98765/access_tokens',
+            '/repos/org/mobile/contents/openci',
+          ]);
+        },
+      );
+
       test(
         'loads Dart files at the same commit and excludes other entries',
         () async {
@@ -620,6 +795,46 @@ void main() {
     });
 
     group('getInstallationToken', () {
+      test(
+        'uses process configuration for the former dummy installation',
+        () async {
+          final result = await requestTokenWithProcessEnvironment(
+            installationId: '12345678',
+            environment: testEnv,
+          );
+
+          expect(result, {
+            'token': 'github-issued-token',
+            'tokenUrl':
+                'https://api.github.com/app/installations/12345678/access_tokens',
+          });
+        },
+      );
+
+      test(
+        'does not create a dummy token when process configuration is missing',
+        () async {
+          final result = await requestTokenWithProcessEnvironment(
+            installationId: '12345678',
+            environment: {},
+          );
+
+          expect(result, {'error': 'StateError', 'tokenUrl': null});
+        },
+      );
+
+      test(
+        'does not create a dummy token for the placeholder App ID',
+        () async {
+          final result = await requestTokenWithProcessEnvironment(
+            installationId: '98765',
+            environment: {'GITHUB_APP_ID': 'your-github-app-id-here'},
+          );
+
+          expect(result, {'error': 'StateError', 'tokenUrl': null});
+        },
+      );
+
       test(
         'successfully retrieves token when GitHub API returns 200',
         () async {

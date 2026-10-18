@@ -400,6 +400,13 @@ indeterminate results. Legitimate diff limitations, such as a new branch or
 file-count limits, still return an indeterminate result for a verified
 repository. The task state is not changed by this read endpoint.
 
+`GitHubService` no longer manufactures tokens or sample workflows/files for
+installation ID `12345678`, the placeholder App ID, or `mock-` tokens. Token
+issuance requires the configured GitHub App credentials and propagates GitHub
+failures. Workflow and OpenCI file reads contact GitHub even for those former
+test values, so they cannot bypass file-access errors. Tests supply mock HTTP
+responses explicitly; these shortcuts are not part of runtime behavior.
+
 Other API and CI consumers will switch in follow-up changes. Production cutover
 still requires existing teams to reconnect (G-1379).
 
