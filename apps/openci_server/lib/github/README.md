@@ -325,6 +325,15 @@ return errors; the endpoint never substitutes a dummy token. Successful token
 responses use `Cache-Control: no-store`. GitHub requests use the operator's
 normalized API URL, not the URL stored in the job.
 
+`GET /builds/:id/secrets` performs the same checks before issuing a token,
+fetching workflow files, or reading team secrets. Internal API key callers also
+require an active verified connection and a matching repository installation.
+Legacy, missing, suspended, removed, or mismatched connections cannot authorize
+secret access. Configuration, database, and GitHub failures return errors without
+dummy credentials; empty GitHub tokens are rejected. Responses containing
+credentials use `Cache-Control: no-store`. Workflow refs, Dart secret definitions,
+and YAML secret extraction keep their existing behavior.
+
 Other API and CI consumers will switch in follow-up changes. Production cutover
 still requires existing teams to reconnect (G-1379).
 
