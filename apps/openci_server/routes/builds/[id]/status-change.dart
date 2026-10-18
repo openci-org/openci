@@ -3,8 +3,11 @@ import 'dart:io';
 
 import 'package:dart_frog/dart_frog.dart';
 import 'package:drift/drift.dart' show Value;
+import 'package:http/http.dart' as http;
 import 'package:openci_server/database.dart';
 import 'package:openci_server/github/github_service.dart';
+import 'package:openci_server/github/parse_github_api_base_uri.dart';
+import 'package:openci_server/github/read_active_github_connections.dart';
 import 'package:openci_server/request/error_handler.dart';
 import 'package:openci_server/request/request_extension.dart';
 import 'package:openci_shared/openci_shared.dart';
@@ -20,6 +23,13 @@ Future<Response> _post(RequestContext context, String id) async {
   try {
     final db = context.read<AppDatabase>();
     final driftJob = context.read<DriftBuildJob>();
+    final teamId = driftJob.teamId;
+    if (teamId == null || teamId.isEmpty) {
+      return Response.json(
+        statusCode: HttpStatus.forbidden,
+        body: {'success': false, 'error': 'Forbidden'},
+      );
+    }
 
     final Map<String, dynamic> payload;
     try {
@@ -40,6 +50,7 @@ Future<Response> _post(RequestContext context, String id) async {
     }
 
     final completedStatus = BuildJobStatus.values.byName(statusStr);
+    var checkUpdateFailed = false;
 
     if (completedStatus == BuildJobStatus.FAILURE &&
         driftJob.workflowRunId != null &&
@@ -52,6 +63,7 @@ Future<Response> _post(RequestContext context, String id) async {
 
       final candidates =
           await (db.select(db.buildJobs)
+                ..where((t) => t.teamId.equals(teamId))
                 ..where((t) => t.workflowRunId.equals(driftJob.workflowRunId!))
                 ..where(
                   (t) => t.workflowJobKey.equals(driftJob.workflowJobKey!),
@@ -70,21 +82,11 @@ Future<Response> _post(RequestContext context, String id) async {
         );
         await db.buildJobDao.updateBuildJob(updated);
 
-        if (updated.checkRunId != null && updated.installationId != null) {
-          try {
-            await GitHubService.updateGitHubCheckRun(
-              owner: updated.owner,
-              repo: updated.repo,
-              checkRunIdStr: updated.checkRunId!,
-              installationIdStr: updated.installationId!,
-              runStatus: 'completed',
-              conclusion: 'cancelled',
-            );
-          } catch (e) {
-            stderr.writeln(
-              'Failed to cancel check run for matrix job ${updated.id}: $e',
-            );
-          }
+        try {
+          await _updateCheckRun(context, updated, 'cancelled');
+        } catch (_) {
+          // Finish stopping related jobs even when GitHub rejects an update.
+          checkUpdateFailed = true;
         }
       }
     }
@@ -99,6 +101,7 @@ Future<Response> _post(RequestContext context, String id) async {
 
       final waitingJobs =
           await (db.select(db.buildJobs)
+                ..where((t) => t.teamId.equals(teamId))
                 ..where((t) => t.workflowRunId.equals(workflowRunId))
                 ..where((t) => t.status.equals(BuildJobStatus.WAITING.name)))
               .get();
@@ -118,21 +121,10 @@ Future<Response> _post(RequestContext context, String id) async {
           );
           await db.buildJobDao.updateBuildJob(updated);
 
-          if (updated.checkRunId != null && updated.installationId != null) {
-            try {
-              await GitHubService.updateGitHubCheckRun(
-                owner: updated.owner,
-                repo: updated.repo,
-                checkRunIdStr: updated.checkRunId!,
-                installationIdStr: updated.installationId!,
-                runStatus: 'completed',
-                conclusion: 'skipped',
-              );
-            } catch (e) {
-              stderr.writeln(
-                'Failed to skip check run for job ${updated.id}: $e',
-              );
-            }
+          try {
+            await _updateCheckRun(context, updated, 'skipped');
+          } catch (_) {
+            checkUpdateFailed = true;
           }
 
           await resolveDependencies(updated, BuildJobStatus.SKIPPED);
@@ -143,6 +135,7 @@ Future<Response> _post(RequestContext context, String id) async {
         for (final needJobKey in needs) {
           final needJob =
               await (db.select(db.buildJobs)
+                    ..where((t) => t.teamId.equals(teamId))
                     ..where((t) => t.workflowRunId.equals(workflowRunId))
                     ..where((t) => t.jobKey.equals(needJobKey)))
                   .getSingleOrNull();
@@ -183,6 +176,10 @@ Future<Response> _post(RequestContext context, String id) async {
       );
     }
 
+    if (checkUpdateFailed) {
+      throw StateError('Failed to update GitHub checks after status change');
+    }
+
     return Response.json(body: {'success': true});
   } catch (e, s) {
     return handleRouteException(
@@ -190,5 +187,82 @@ Future<Response> _post(RequestContext context, String id) async {
       s,
       logMessage: 'Failed to process status change for job $id',
     );
+  }
+}
+
+Future<void> _updateCheckRun(
+  RequestContext context,
+  DriftBuildJob job,
+  String conclusion,
+) async {
+  // Jobs without a GitHub check still need their local state updated.
+  if (job.checkRunId == null) return;
+
+  final installationId = int.tryParse(job.installationId ?? '', radix: 10);
+  final checkRunId = int.tryParse(job.checkRunId!, radix: 10);
+  final teamId = job.teamId;
+  if (installationId == null ||
+      installationId <= 0 ||
+      checkRunId == null ||
+      checkRunId <= 0 ||
+      teamId == null ||
+      teamId.isEmpty) {
+    throw StateError('Valid job metadata is required to update a GitHub check');
+  }
+
+  Map<String, String> environment;
+  try {
+    environment = context.read<Map<String, String>>();
+  } catch (_) {
+    environment = Platform.environment;
+  }
+  environment = {
+    ...environment,
+    'GITHUB_API_BASE_URL': parseGitHubApiBaseUri(
+      environment['GITHUB_API_BASE_URL'],
+    ).toString(),
+  };
+  final connections = await readActiveGitHubConnections(
+    db: context.read<AppDatabase>(),
+    teamId: teamId,
+    environment: environment,
+  );
+  if (!connections.any(
+    (connection) => connection.installationId == installationId,
+  )) {
+    throw StateError('An active verified GitHub connection is required');
+  }
+
+  http.Client? providedClient;
+  try {
+    providedClient = context.read<http.Client>();
+  } catch (_) {
+    // Create a client when one is not provided by the request context.
+  }
+  final client = providedClient ?? http.Client();
+  try {
+    final repositoryInstallationId =
+        await GitHubService.getRepositoryInstallationId(
+          owner: job.owner,
+          repo: job.repo,
+          environment: environment,
+          client: client,
+        );
+    if (repositoryInstallationId != installationId.toString()) {
+      throw StateError('The repository does not match the GitHub connection');
+    }
+
+    await GitHubService.updateGitHubCheckRun(
+      owner: job.owner,
+      repo: job.repo,
+      checkRunIdStr: checkRunId.toString(),
+      installationIdStr: installationId.toString(),
+      runStatus: 'completed',
+      conclusion: conclusion,
+      environment: environment,
+      client: client,
+    );
+  } finally {
+    if (providedClient == null) client.close();
   }
 }
