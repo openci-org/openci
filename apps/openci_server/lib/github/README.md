@@ -315,6 +315,16 @@ fallback after a GitHub failure. The requested branch and YAML file response
 format are preserved. A missing workflow tree still returns an empty list, but
 GraphQL responses containing permission errors are rejected.
 
+`GET /builds/:id/token` applies the connection checks to saved jobs, including
+calls authenticated with the internal API key. The job's installation ID must
+belong to an active connection for its team and the operator's API URL/App ID.
+GitHub must also resolve the job's repository to that installation before token
+issuance. Missing or invalid installation IDs return 400, and unverified or
+mismatched connections return 403. Configuration, database, and GitHub failures
+return errors; the endpoint never substitutes a dummy token. Successful token
+responses use `Cache-Control: no-store`. GitHub requests use the operator's
+normalized API URL, not the URL stored in the job.
+
 Other API and CI consumers will switch in follow-up changes. Production cutover
 still requires existing teams to reconnect (G-1379).
 
