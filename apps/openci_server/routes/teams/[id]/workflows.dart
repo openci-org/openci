@@ -6,6 +6,8 @@ import 'package:dart_frog/dart_frog.dart';
 import 'package:http/http.dart' as http;
 import 'package:openci_server/database.dart';
 import 'package:openci_server/github/github_service.dart';
+import 'package:openci_server/github/parse_github_api_base_uri.dart';
+import 'package:openci_server/github/read_active_github_connections.dart';
 import 'package:openci_server/request/error_handler.dart';
 
 FutureOr<Response> onRequest(RequestContext context, String id) {
@@ -69,17 +71,6 @@ Future<Response> _get(RequestContext context, String teamId) async {
       );
     }
 
-    final installationIds = driftTeam.installationIds;
-    if (installationIds.isEmpty) {
-      return Response.json(
-        statusCode: HttpStatus.badRequest,
-        body: {
-          'success': false,
-          'error': 'GitHub App is not installed for this team',
-        },
-      );
-    }
-
     Map<String, String> env;
     try {
       env = context.read<Map<String, String>>();
@@ -87,7 +78,25 @@ Future<Response> _get(RequestContext context, String teamId) async {
       env = Platform.environment;
     }
 
-    final apiBaseUrl = env['GITHUB_API_BASE_URL']!;
+    final apiBaseUrl = parseGitHubApiBaseUri(
+      env['GITHUB_API_BASE_URL'],
+    ).toString();
+    env = {...env, 'GITHUB_API_BASE_URL': apiBaseUrl};
+
+    final connections = await readActiveGitHubConnections(
+      db: db,
+      teamId: teamId,
+      environment: env,
+    );
+    if (connections.isEmpty) {
+      return Response.json(
+        statusCode: HttpStatus.badRequest,
+        body: {
+          'success': false,
+          'error': 'No active GitHub connection for this team',
+        },
+      );
+    }
 
     http.Client client;
     try {
@@ -96,21 +105,32 @@ Future<Response> _get(RequestContext context, String teamId) async {
       client = http.Client();
     }
 
-    List<Map<String, dynamic>>? files;
-    Object? lastError;
+    final installationId = await GitHubService.getRepositoryInstallationId(
+      owner: owner,
+      repo: repo,
+      environment: env,
+      client: client,
+    );
+    final hasConnection = connections.any(
+      (connection) => connection.installationId.toString() == installationId,
+    );
+    if (!hasConnection) {
+      return Response.json(
+        statusCode: HttpStatus.forbidden,
+        body: {'success': false, 'error': 'Forbidden'},
+      );
+    }
 
-    for (final installationId in installationIds) {
-      try {
-        final token = await GitHubService.getInstallationToken(
-          installationIdStr: installationId.toString(),
-          environment: env,
-          client: client,
-        );
+    final token = await GitHubService.getInstallationToken(
+      installationIdStr: installationId,
+      environment: env,
+      client: client,
+    );
 
-        final expression = '$branch:.openci';
-        final graphqlUrl = _graphqlEndpoint(apiBaseUrl);
+    final expression = '$branch:.openci';
+    final graphqlUrl = _graphqlEndpoint(apiBaseUrl);
 
-        const query = r'''
+    const query = r'''
           query($owner: String!, $repo: String!, $expression: String!) {
             repository(owner: $owner, name: $repo) {
               object(expression: $expression) {
@@ -128,78 +148,52 @@ Future<Response> _get(RequestContext context, String teamId) async {
           }
         ''';
 
-        final response = await client.post(
-          Uri.parse(graphqlUrl),
-          headers: {
-            'accept': 'application/vnd.github.v3+json',
-            'authorization': 'bearer $token',
-            'content-type': 'application/json; charset=utf-8',
-            'user-agent': 'OpenCI-Server',
-          },
-          body: jsonEncode({
-            'query': query,
-            'variables': {
-              'owner': owner,
-              'repo': repo,
-              'expression': expression,
-            },
-          }),
-        );
+    final response = await client.post(
+      Uri.parse(graphqlUrl),
+      headers: {
+        'accept': 'application/vnd.github.v3+json',
+        'authorization': 'bearer $token',
+        'content-type': 'application/json; charset=utf-8',
+        'user-agent': 'OpenCI-Server',
+      },
+      body: jsonEncode({
+        'query': query,
+        'variables': {
+          'owner': owner,
+          'repo': repo,
+          'expression': expression,
+        },
+      }),
+    );
 
-        if (response.statusCode >= 300) {
-          throw HttpException(
-            'GraphQL request failed: ${response.statusCode} ${response.body}',
-          );
-        }
-
-        final data = jsonDecode(response.body) as Map<String, dynamic>;
-        if (data['errors'] != null) {
-          final errStr = jsonEncode(data['errors']);
-          if (errStr.contains('Could not resolve to an object')) {
-            files = [];
-            break;
-          }
-          throw HttpException('GraphQL errors: $errStr');
-        }
-
-        final repositoryObj = data['data']?['repository'];
-        if (repositoryObj == null) {
-          continue;
-        }
-
-        final objectObj = repositoryObj['object'];
-        if (objectObj == null) {
-          files = [];
-          break;
-        }
-
-        final entries = objectObj['entries'] as List<dynamic>? ?? [];
-        final list = <Map<String, dynamic>>[];
-        for (final entry in entries) {
-          final type = entry['type'] as String?;
-          final name = entry['name'] as String?;
-          final text = entry['object']?['text'] as String?;
-          if (type == 'blob' && name != null && text != null) {
-            if (name.endsWith('.yaml') || name.endsWith('.yml')) {
-              list.add({
-                'name': name,
-                'path': '.openci/$name',
-                'content': text,
-              });
-            }
-          }
-        }
-        files = list;
-        break;
-      } catch (e) {
-        lastError = e;
-      }
+    if (response.statusCode >= 300) {
+      throw HttpException(
+        'GraphQL request failed: ${response.statusCode} ${response.body}',
+      );
     }
 
-    if (files == null) {
-      if (lastError != null) {
-        throw lastError;
+    final data = jsonDecode(response.body) as Map<String, dynamic>;
+    final errors = data['errors'];
+    if (errors != null) {
+      final missingTree =
+          errors is List &&
+          errors.isNotEmpty &&
+          errors.every(
+            (error) =>
+                error is Map &&
+                error['message'] is String &&
+                (error['message'] as String).contains(
+                  'Could not resolve to an object',
+                ),
+          );
+      if (missingTree) {
+        return Response.json(body: {'success': true, 'files': []});
       }
+      throw HttpException('GraphQL errors: ${jsonEncode(errors)}');
+    }
+
+    final repositoryObj = data['data']?['repository'];
+    if (repositoryObj == null) {
       return Response.json(
         statusCode: HttpStatus.notFound,
         body: {
@@ -207,6 +201,23 @@ Future<Response> _get(RequestContext context, String teamId) async {
           'error': 'Repository not found in any installation',
         },
       );
+    }
+
+    final entries = repositoryObj['object']?['entries'] as List<dynamic>? ?? [];
+    final files = <Map<String, dynamic>>[];
+    for (final entry in entries) {
+      final type = entry['type'] as String?;
+      final name = entry['name'] as String?;
+      final text = entry['object']?['text'] as String?;
+      if (type == 'blob' && name != null && text != null) {
+        if (name.endsWith('.yaml') || name.endsWith('.yml')) {
+          files.add({
+            'name': name,
+            'path': '.openci/$name',
+            'content': text,
+          });
+        }
+      }
     }
 
     return Response.json(
