@@ -138,14 +138,29 @@ or loses team membership during those requests cannot return candidates.
 }
 ```
 
-Only installation ID, account login, and account type are returned. Credentials,
-references, session IDs, and other teams' connection data are excluded. Caller
-identity, tokens, and GitHub settings supplied in the body are ignored. Reading
-does not consume the session or save a team connection.
+Each candidate contains only installation ID, account login, and account type.
+Credentials, references, session IDs, and other teams' connection data are
+excluded. Caller identity, tokens, and GitHub settings supplied in the body are
+ignored. Reading does not consume the session or save a team connection.
+
+Set the optional `GITHUB_APP_INSTALLATION_URL` to the full installation or
+management page of the operator's GitHub App on GitHub.com or GHES, for example
+`https://github.example/apps/openci/installations/new`. Docker Compose forwards
+this setting to the server. The URL must be absolute HTTP(S), without credentials,
+query parameters, or a fragment. Use HTTPS outside local development.
+
+When the setting is valid, successful responses include `installationUrl` next
+to `candidates`, including when the candidate list is empty. A missing, blank,
+or invalid setting omits this field without failing candidate retrieval. No
+request-supplied URL is used as a fallback. The server only returns this link;
+it does not fetch the URL or use it to authorize or save a connection. Reading
+the field in the shared client and displaying the link in the Dashboard are
+follow-up work.
 
 No eligible candidates returns 200 with an empty array. Authentication/input/
 session/method failures use the same 401/400/403/405 responses as the session
-endpoint. Database, configuration, or decryption failures return a generic 500.
+endpoint. Database, GitHub API configuration, or decryption failures return a
+generic 500.
 GitHub failures include a fixed `code` alongside `success: false` and `error`:
 
 | HTTP status | Code | Meaning |

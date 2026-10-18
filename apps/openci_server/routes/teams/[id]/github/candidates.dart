@@ -5,6 +5,7 @@ import 'package:openci_server/database.dart';
 import 'package:openci_server/github/decrypt_github_connection_token.dart';
 import 'package:openci_server/github/fetch_github_installations.dart';
 import 'package:openci_server/github/github_connection_exception.dart';
+import 'package:openci_server/github/parse_github_app_installation_uri.dart';
 import 'package:openci_server/github/read_github_connection_session.dart';
 import 'package:openci_server/github/verify_github_installation.dart';
 import 'package:openci_server/request/error_handler.dart';
@@ -66,7 +67,10 @@ Future<Response> _post(RequestContext context, String teamId) async {
     );
     if (currentSession == null) return _invalidSession();
 
-    return _candidatesResponse(candidates);
+    final installationUri = parseGitHubAppInstallationUri(
+      environment['GITHUB_APP_INSTALLATION_URL'],
+    );
+    return _candidatesResponse(candidates, installationUri);
   } on GitHubConnectionException catch (error) {
     return _githubError(error.failure);
   } on HttpException {
@@ -101,10 +105,14 @@ Map<String, String> _environment(RequestContext context) {
   }
 }
 
-Response _candidatesResponse(List<GitHubInstallation> candidates) {
+Response _candidatesResponse(
+  List<GitHubInstallation> candidates,
+  Uri? installationUri,
+) {
   return Response.json(
     body: {
       'success': true,
+      'installationUrl': ?installationUri?.toString(),
       'candidates': candidates
           .map(
             (candidate) => {
