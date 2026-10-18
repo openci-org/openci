@@ -56,6 +56,8 @@ void main() {
   late GitHubConnectionReturn? result;
   late List<http.Request> requests;
   late Future<http.Response> Function(http.Request) respond;
+  late OpenCIApiService apiService;
+  late int teamListReads;
   Future<void>? apiReady;
 
   http.Response jsonResponse(Object body, {int status = 200}) => http.Response(
@@ -89,10 +91,13 @@ void main() {
     ],
   });
 
-  Future<http.Response> successfulResponse(http.Request request) async =>
-      request.url.path.endsWith('/session')
-      ? sessionResponse()
-      : candidatesResponse();
+  Future<http.Response> successfulResponse(http.Request request) async {
+    if (request.url.path.endsWith('/session')) return sessionResponse();
+    if (request.url.path.endsWith('/confirm')) {
+      return jsonResponse({'success': true});
+    }
+    return candidatesResponse();
+  }
 
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
@@ -105,14 +110,15 @@ void main() {
     requests = [];
     respond = successfulResponse;
     apiReady = null;
+    teamListReads = 0;
   });
 
   tearDown(clearGitHubConnectionContext);
 
-  Future<void> pumpPage(WidgetTester tester) async {
+  OpenCIApiService createApi(String baseUrl) {
     final client = http.runWithClient(
       () => createOpenCIChopperClient(
-        baseUrl: profile.apiUrl,
+        baseUrl: baseUrl,
         tokenProvider: () => 'firebase-id-token',
       ),
       () => MockClient((request) {
@@ -121,6 +127,11 @@ void main() {
       }),
     );
     addTearDown(client.dispose);
+    return OpenCIApiService.create(client);
+  }
+
+  Future<void> pumpPage(WidgetTester tester) async {
+    apiService = createApi(profile.apiUrl);
     container = ProviderContainer.test(
       overrides: [
         connectionStoreProvider.overrideWithValue(store),
@@ -128,13 +139,17 @@ void main() {
           (ref, notifier) => selectedProfile,
         ),
         selectedTeamProvider.overrideWith((ref) => selectedTeam),
+        teamListProvider.overrideWith((ref) {
+          teamListReads++;
+          return [team];
+        }),
         currentUserIdProvider.overrideWith((ref) => userId),
         pendingGitHubConnectionReturnProvider.overrideWithValue(
           PendingGitHubConnectionReturn(result),
         ),
         openciApiServiceProvider.overrideWith((ref) async {
           if (apiReady != null) await apiReady;
-          return OpenCIApiService.create(client);
+          return apiService;
         }),
       ],
     );
@@ -168,6 +183,17 @@ void main() {
     expect(find.text('example-user'), findsNothing);
     expect(find.textContaining(reference), findsNothing);
   }
+
+  Future<void> selectOrganization(WidgetTester tester) async {
+    await pumpPage(tester);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('example-org'));
+    await tester.pump();
+  }
+
+  List<http.Request> confirmationRequests() => requests
+      .where((request) => request.url.path.endsWith('/confirm'))
+      .toList();
 
   testWidgets('verifies the session before fetching and showing candidates', (
     tester,
@@ -355,6 +381,7 @@ void main() {
 
     expect(find.text(t.team.gitHubConnectionNoCandidates), findsOneWidget);
     expect(find.byType(ListTile), findsNothing);
+    expect(find.byType(FilledButton), findsNothing);
     expect(requests, hasLength(2));
   });
 
@@ -467,6 +494,255 @@ void main() {
 
     expect(find.text('Dashboard'), findsOneWidget);
     expect(requests, isEmpty);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets(
+    'confirms only the selected account and refreshes teams on success',
+    (
+      tester,
+    ) async {
+      final confirmed = Completer<http.Response>();
+      respond = (request) => request.url.path.endsWith('/confirm')
+          ? confirmed.future
+          : successfulResponse(request);
+      await pumpPage(tester);
+      await tester.pumpAndSettle();
+      final teams = container.listen(teamListProvider, (_, _) {});
+      addTearDown(teams.close);
+      await container.read(teamListProvider.future);
+
+      expect(
+        find.text(t.team.gitHubConnectionTeam(name: 'Team 1')),
+        findsOneWidget,
+      );
+      expect(
+        tester.widget<FilledButton>(find.byType(FilledButton)).onPressed,
+        isNull,
+      );
+      expect(confirmationRequests(), isEmpty);
+
+      await tester.tap(find.text('example-user'));
+      await tester.pump();
+      await tester.tap(find.text('example-org'));
+      await tester.pump();
+      final confirm = tester
+          .widget<FilledButton>(find.byType(FilledButton))
+          .onPressed!;
+      confirm();
+      confirm();
+      await tester.pump();
+
+      final request = confirmationRequests().single;
+      expect(request.url.path, '/teams/team-1/github/confirm');
+      expect(request.method, 'POST');
+      expect(request.headers['Authorization'], 'Bearer firebase-id-token');
+      expect(jsonDecode(request.body), {
+        'reference': reference,
+        'installationId': 456,
+      });
+      expect(find.text(t.team.gitHubConnectionConfirming), findsOneWidget);
+      expect(
+        tester.widget<FilledButton>(find.byType(FilledButton)).onPressed,
+        isNull,
+      );
+      expect(
+        tester
+            .widget<RadioListTile<int>>(
+              find.widgetWithText(RadioListTile<int>, 'example-user'),
+            )
+            .enabled,
+        isFalse,
+      );
+      expect(find.text(t.team.gitHubConnectionCompleted), findsNothing);
+      expect(teamListReads, 1);
+
+      confirmed.complete(jsonResponse({'success': true}));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Dashboard'), findsOneWidget);
+      expect(find.text(t.team.gitHubConnectionCompleted), findsOneWidget);
+      expect(teamListReads, 2);
+      expect(confirmationRequests(), hasLength(1));
+    },
+  );
+
+  testWidgets('allows confirmation retry after an API failure', (tester) async {
+    respond = (request) async => request.url.path.endsWith('/confirm')
+        ? jsonResponse({'error': reference}, status: 502)
+        : successfulResponse(request);
+    await selectOrganization(tester);
+    final teams = container.listen(teamListProvider, (_, _) {});
+    addTearDown(teams.close);
+    await container.read(teamListProvider.future);
+    await tester.tap(find.text(t.team.gitHubConnectionConfirm));
+    await tester.pumpAndSettle();
+
+    expect(find.text(t.team.gitHubConnectionConfirmFailed), findsOneWidget);
+    expect(find.textContaining(reference), findsNothing);
+    expect(find.text(t.team.gitHubConnectionCompleted), findsNothing);
+    expect(
+      tester.widget<FilledButton>(find.byType(FilledButton)).onPressed,
+      isNotNull,
+    );
+    expect(teamListReads, 1);
+
+    respond = successfulResponse;
+    await tester.tap(find.text(t.team.gitHubConnectionConfirm));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Dashboard'), findsOneWidget);
+    expect(find.text(t.team.gitHubConnectionCompleted), findsOneWidget);
+    expect(teamListReads, 2);
+    expect(confirmationRequests(), hasLength(2));
+  });
+
+  testWidgets(
+    'requires restarting when confirmation rejects an expired session',
+    (
+      tester,
+    ) async {
+      respond = (request) async => request.url.path.endsWith('/confirm')
+          ? jsonResponse({'error': reference}, status: 403)
+          : successfulResponse(request);
+      await selectOrganization(tester);
+      await tester.tap(find.text(t.team.gitHubConnectionConfirm));
+      await tester.pumpAndSettle();
+
+      expect(find.text(t.team.gitHubConnectionRestartRequired), findsOneWidget);
+      expect(
+        tester.widget<FilledButton>(find.byType(FilledButton)).onPressed,
+        isNull,
+      );
+      expect(find.text(t.team.gitHubConnectionCompleted), findsNothing);
+      expect(find.textContaining(reference), findsNothing);
+    },
+  );
+
+  testWidgets('requires restarting when the connection conflicts', (
+    tester,
+  ) async {
+    respond = (request) async => request.url.path.endsWith('/confirm')
+        ? jsonResponse({'code': 'github_connection_conflict'}, status: 409)
+        : successfulResponse(request);
+    await selectOrganization(tester);
+    await tester.tap(find.text(t.team.gitHubConnectionConfirm));
+    await tester.pumpAndSettle();
+
+    expect(find.text(t.team.gitHubConnectionRestartRequired), findsOneWidget);
+    expect(
+      tester.widget<FilledButton>(find.byType(FilledButton)).onPressed,
+      isNull,
+    );
+    expect(find.text(t.team.gitHubConnectionCompleted), findsNothing);
+  });
+
+  testWidgets(
+    'does not report success when confirmation returns success false',
+    (
+      tester,
+    ) async {
+      respond = (request) async => request.url.path.endsWith('/confirm')
+          ? jsonResponse({'success': false})
+          : successfulResponse(request);
+      await selectOrganization(tester);
+      await tester.tap(find.text(t.team.gitHubConnectionConfirm));
+      await tester.pumpAndSettle();
+
+      expect(find.text(t.team.gitHubConnectionConfirmFailed), findsOneWidget);
+      expect(find.text(t.team.gitHubConnectionCompleted), findsNothing);
+      expect(find.text('Dashboard'), findsNothing);
+    },
+  );
+
+  testWidgets('sanitizes malformed confirmation responses', (tester) async {
+    respond = (request) async => request.url.path.endsWith('/confirm')
+        ? jsonResponse({'success': reference})
+        : successfulResponse(request);
+    await selectOrganization(tester);
+    await tester.tap(find.text(t.team.gitHubConnectionConfirm));
+    await tester.pumpAndSettle();
+
+    expect(find.text(t.team.gitHubConnectionConfirmFailed), findsOneWidget);
+    expect(find.textContaining(reference), findsNothing);
+    expect(find.text(t.team.gitHubConnectionCompleted), findsNothing);
+  });
+
+  testWidgets('does not send confirmation to a different API server', (
+    tester,
+  ) async {
+    await selectOrganization(tester);
+    apiService = createApi('https://other.example.test');
+    container.invalidate(openciApiServiceProvider);
+    await tester.tap(find.text(t.team.gitHubConnectionConfirm));
+    await tester.pumpAndSettle();
+
+    expect(find.text(t.team.gitHubConnectionRestartRequired), findsOneWidget);
+    expect(confirmationRequests(), isEmpty);
+  });
+
+  testWidgets('rechecks the user before sending confirmation', (tester) async {
+    await selectOrganization(tester);
+    final ready = Completer<void>();
+    apiReady = ready.future;
+    container.invalidate(openciApiServiceProvider);
+    await tester.tap(find.text(t.team.gitHubConnectionConfirm));
+    await tester.pump();
+
+    userId = 'user-2';
+    container.invalidate(currentUserIdProvider);
+    ready.complete();
+    await tester.pumpAndSettle();
+
+    expectRestart();
+    expect(confirmationRequests(), isEmpty);
+    expect(find.text(t.team.gitHubConnectionCompleted), findsNothing);
+  });
+
+  testWidgets('does not apply confirmation success after the team changes', (
+    tester,
+  ) async {
+    final confirmed = Completer<http.Response>();
+    respond = (request) => request.url.path.endsWith('/confirm')
+        ? confirmed.future
+        : successfulResponse(request);
+    await selectOrganization(tester);
+    final teams = container.listen(teamListProvider, (_, _) {});
+    addTearDown(teams.close);
+    await container.read(teamListProvider.future);
+    await tester.tap(find.text(t.team.gitHubConnectionConfirm));
+    await tester.pump();
+    expect(confirmationRequests(), hasLength(1));
+
+    selectedTeam = team.copyWith(id: 'team-2');
+    container.invalidate(selectedTeamProvider);
+    confirmed.complete(jsonResponse({'success': true}));
+    await tester.pumpAndSettle();
+
+    expectRestart();
+    expect(find.text(t.team.gitHubConnectionCompleted), findsNothing);
+    expect(find.text('Dashboard'), findsNothing);
+    expect(teamListReads, 1);
+  });
+
+  testWidgets('does not show a completion message after the page closes', (
+    tester,
+  ) async {
+    final confirmed = Completer<http.Response>();
+    respond = (request) => request.url.path.endsWith('/confirm')
+        ? confirmed.future
+        : successfulResponse(request);
+    await selectOrganization(tester);
+    await tester.tap(find.text(t.team.gitHubConnectionConfirm));
+    await tester.pump();
+    await tester.tap(find.byType(CloseButton));
+    await tester.pumpAndSettle();
+
+    confirmed.complete(jsonResponse({'success': true}));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Dashboard'), findsOneWidget);
+    expect(find.text(t.team.gitHubConnectionCompleted), findsNothing);
     expect(tester.takeException(), isNull);
   });
 }

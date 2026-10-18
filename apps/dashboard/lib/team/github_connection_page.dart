@@ -5,11 +5,13 @@ import 'package:dashboard/connections/connection_store_provider.dart';
 import 'package:dashboard/team/current_github_connection_context_provider.dart';
 import 'package:dashboard/team/fetch_github_connection_session.dart';
 import 'package:dashboard/team/github_connection_context.dart';
+import 'package:dashboard/team/github_connection_form.dart';
 import 'package:dashboard/team/github_connection_storage.dart';
 import 'package:dashboard/team/parse_github_connection_return.dart';
 import 'package:dashboard/team/pending_github_connection_return_provider.dart';
 import 'package:dashboard/team/read_github_connection_reference.dart';
 import 'package:dashboard/team/team_provider.dart';
+import 'package:dashboard/utilities/snack_bar_extension.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:go_router/go_router.dart';
@@ -39,8 +41,22 @@ class GitHubConnectionPage extends HookConsumerWidget {
       content = const CircularProgressIndicator.adaptive();
     } else if (error != null) {
       content = Text(_errorMessage(error), textAlign: TextAlign.center);
+    } else if (candidates.requireData.isEmpty) {
+      content = Text(
+        t.team.gitHubConnectionNoCandidates,
+        textAlign: TextAlign.center,
+      );
     } else {
-      content = _candidateList(candidates.requireData);
+      content = GitHubConnectionForm(
+        teamName: ref.watch(selectedTeamProvider).requireValue.name,
+        candidates: candidates.requireData,
+        onConfirm: (installationId) => _confirm(
+          ref,
+          initiatingContext!,
+          result!.reference!,
+          installationId,
+        ),
+      );
     }
 
     return Scaffold(
@@ -60,28 +76,36 @@ class GitHubConnectionPage extends HookConsumerWidget {
     );
   }
 
-  Widget _candidateList(List<GitHubConnectionCandidate> candidates) {
-    return ListView(
-      shrinkWrap: true,
-      children: [
-        Text(t.team.gitHubConnectionVerified, textAlign: TextAlign.center),
-        const SizedBox(height: 16),
-        if (candidates.isEmpty)
-          Text(t.team.gitHubConnectionNoCandidates, textAlign: TextAlign.center)
-        else ...[
-          Text(t.team.gitHubConnectionCandidates, textAlign: TextAlign.center),
-          for (final candidate in candidates)
-            ListTile(
-              leading: Icon(
-                candidate.accountType == 'Organization'
-                    ? Icons.business
-                    : Icons.person_outline,
-              ),
-              title: Text(candidate.accountLogin),
-            ),
-        ],
-      ],
+  Future<void> _confirm(
+    WidgetRef ref,
+    GitHubConnectionContext initiatingContext,
+    String reference,
+    int installationId,
+  ) async {
+    final context = ref.context;
+    final api = await _prepareClient(ref, initiatingContext);
+    _requireMatchingContext(ref, initiatingContext);
+    if (api.client.baseUrl != Uri.tryParse(initiatingContext.apiUrl)) {
+      throw GitHubConnectionReturnError.forbidden;
+    }
+    final response = await api.confirmGitHubConnection(
+      initiatingContext.teamId,
+      reference,
+      installationId,
     );
+    _requireMatchingContext(ref, initiatingContext);
+    if (response.statusCode == 401 ||
+        response.statusCode == 403 ||
+        response.statusCode == 409) {
+      throw GitHubConnectionReturnError.forbidden;
+    }
+    if (!response.isSuccessful || response.body?.success != true) {
+      throw GitHubConnectionReturnError.connectionFailed;
+    }
+    if (!context.mounted) return;
+    ref.invalidate(teamListProvider);
+    context.showSnackBarMessage(t.team.gitHubConnectionCompleted);
+    context.go('/');
   }
 
   Future<List<GitHubConnectionCandidate>> _loadCandidates(

@@ -109,6 +109,12 @@ class AppStringsTeam {
   String get gitHubConnectionCandidates => '連携できるGitHubアカウント';
   String get gitHubConnectionNoCandidates =>
       '連携できるGitHubアカウントが見つかりませんでした。GitHub Appのインストールと権限を確認してください。';
+  String gitHubConnectionTeam({required String name}) => '連携するチーム: $name';
+  String get gitHubConnectionConfirm => '連携を確定';
+  String get gitHubConnectionConfirming => '連携中…';
+  String get gitHubConnectionCompleted => 'GitHubとの連携が完了しました';
+  String get gitHubConnectionConfirmFailed =>
+      'GitHub連携の完了を確認できませんでした。もう一度お試しください。';
   String get gitHubConnectionCancelled => 'GitHubの認可がキャンセルされました。';
   String get gitHubConnectionRestartRequired =>
       '連携を再開できませんでした。この画面を閉じて、チーム画面からもう一度お試しください。';
