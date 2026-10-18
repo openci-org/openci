@@ -45,6 +45,7 @@ _GitHubConnectionCandidatesResult _$GitHubConnectionCandidatesResultFromJson(
   candidates: (json['candidates'] as List<dynamic>)
       .map((e) => GitHubConnectionCandidate.fromJson(e as Map<String, dynamic>))
       .toList(),
+  installationUrl: json['installationUrl'] as String?,
 );
 
 Map<String, dynamic> _$GitHubConnectionCandidatesResultToJson(
@@ -52,6 +53,7 @@ Map<String, dynamic> _$GitHubConnectionCandidatesResultToJson(
 ) => <String, dynamic>{
   'success': instance.success,
   'candidates': instance.candidates.map((e) => e.toJson()).toList(),
+  'installationUrl': ?instance.installationUrl,
 };
 
 _GitHubConnectionCandidate _$GitHubConnectionCandidateFromJson(

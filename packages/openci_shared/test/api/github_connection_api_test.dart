@@ -126,6 +126,30 @@ void main() {
 
       expect(response.isSuccessful, isTrue);
       expect(response.body!.candidates, isEmpty);
+      expect(response.body!.installationUrl, isNull);
+    },
+  );
+
+  test(
+    'reads the installation URL even when there are no candidates',
+    () async {
+      const installationUrl =
+          'https://github.example:8443/prefix/apps/openci/installations/new';
+      responseBody = {
+        'success': true,
+        'candidates': [],
+        'installationUrl': installationUrl,
+      };
+
+      final response = await api.getGitHubConnectionCandidates(
+        'team-1',
+        'private-reference',
+      );
+
+      expectPost('candidates');
+      expect(response.isSuccessful, isTrue);
+      expect(response.body!.candidates, isEmpty);
+      expect(response.body!.installationUrl, installationUrl);
     },
   );
 
