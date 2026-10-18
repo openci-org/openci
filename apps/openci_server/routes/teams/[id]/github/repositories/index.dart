@@ -5,6 +5,8 @@ import 'package:dart_frog/dart_frog.dart';
 import 'package:http/http.dart' as http;
 import 'package:openci_server/database.dart';
 import 'package:openci_server/github/github_service.dart';
+import 'package:openci_server/github/parse_github_api_base_uri.dart';
+import 'package:openci_server/github/read_active_github_connections.dart';
 import 'package:openci_server/request/error_handler.dart';
 
 FutureOr<Response> onRequest(RequestContext context, String id) {
@@ -42,22 +44,32 @@ Future<Response> _get(RequestContext context, String teamId) async {
       );
     }
 
-    final installationIds = driftTeam.installationIds;
-    if (installationIds.isEmpty) {
-      return Response.json(
-        statusCode: HttpStatus.badRequest,
-        body: {
-          'success': false,
-          'error': 'GitHub App is not installed for this team',
-        },
-      );
-    }
-
     Map<String, String> env;
     try {
       env = context.read<Map<String, String>>();
     } catch (_) {
       env = Platform.environment;
+    }
+    env = {
+      ...env,
+      'GITHUB_API_BASE_URL': parseGitHubApiBaseUri(
+        env['GITHUB_API_BASE_URL'],
+      ).toString(),
+    };
+
+    final connections = await readActiveGitHubConnections(
+      db: db,
+      teamId: teamId,
+      environment: env,
+    );
+    if (connections.isEmpty) {
+      return Response.json(
+        statusCode: HttpStatus.badRequest,
+        body: {
+          'success': false,
+          'error': 'No active GitHub connection for this team',
+        },
+      );
     }
 
     http.Client client;
@@ -68,26 +80,16 @@ Future<Response> _get(RequestContext context, String teamId) async {
     }
 
     final allRepos = <String, Map<String, dynamic>>{};
-    Object? lastError;
-
-    for (final installationId in installationIds) {
-      try {
-        final repos = await GitHubService.listRepositories(
-          installationIdStr: installationId.toString(),
-          environment: env,
-          client: client,
-        );
-        for (final repo in repos) {
-          final fullName = repo['fullName'] as String;
-          allRepos[fullName] = repo;
-        }
-      } catch (e) {
-        lastError = e;
+    for (final connection in connections) {
+      final repos = await GitHubService.listRepositories(
+        installationIdStr: connection.installationId.toString(),
+        environment: env,
+        client: client,
+      );
+      for (final repo in repos) {
+        final fullName = repo['fullName'] as String;
+        allRepos[fullName] = repo;
       }
-    }
-
-    if (allRepos.isEmpty && lastError != null) {
-      throw lastError;
     }
 
     return Response.json(
