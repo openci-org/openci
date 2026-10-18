@@ -51,6 +51,8 @@ void main() {
   const reference = 'private-reference';
   const authorizationUrl =
       'https://github.example.test/login/oauth/authorize?state=new-state';
+  const installationUrl =
+      'https://github.example.test:8443/prefix/apps/openci/installations/new';
   late ConnectionStore store;
   late ProviderContainer container;
   late GoRouter router;
@@ -83,6 +85,7 @@ void main() {
 
   http.Response candidatesResponse() => jsonResponse({
     'success': true,
+    'installationUrl': installationUrl,
     'candidates': [
       {
         'installationId': 456,
@@ -203,10 +206,17 @@ void main() {
     await tester.pump();
   }
 
-  Future<void> pumpEmptyCandidates(WidgetTester tester) async {
+  Future<void> pumpEmptyCandidates(
+    WidgetTester tester, {
+    String? installationUrl,
+  }) async {
     respond = (request) async => request.url.path.endsWith('/session')
         ? sessionResponse()
-        : jsonResponse({'success': true, 'candidates': []});
+        : jsonResponse({
+            'success': true,
+            'candidates': [],
+            'installationUrl': ?installationUrl,
+          });
     await pumpPage(tester);
     await tester.pumpAndSettle();
   }
@@ -246,6 +256,8 @@ void main() {
     expect(find.text(t.team.gitHubConnectionVerified), findsOneWidget);
     expect(find.text('example-org'), findsOneWidget);
     expect(find.text('example-user'), findsOneWidget);
+    expect(find.text(t.team.gitHubAppInstallation), findsNothing);
+    expect(find.text(t.team.gitHubAppInstallationUrlUnavailable), findsNothing);
     expect(find.byIcon(Icons.business), findsOneWidget);
     expect(find.byIcon(Icons.person_outline), findsOneWidget);
     expect(requests.last.url.path, '/teams/team-1/github/candidates');
@@ -401,8 +413,13 @@ void main() {
       findsOneWidget,
     );
     expect(find.text(t.team.gitHubConnectionNoCandidates), findsOneWidget);
+    expect(
+      find.text(t.team.gitHubAppInstallationUrlUnavailable),
+      findsOneWidget,
+    );
+    expect(find.text(t.team.gitHubAppInstallation), findsNothing);
 
-    await tester.ensureVisible(find.byType(OutlinedButton));
+    await tester.scrollUntilVisible(find.byType(OutlinedButton), 100);
     await tester.pumpAndSettle();
 
     expect(tester.takeException(), isNull);
@@ -413,6 +430,89 @@ void main() {
     expect(find.byType(ListTile), findsNothing);
     expect(find.byType(FilledButton), findsNothing);
     expect(requests, hasLength(2));
+  });
+
+  testWidgets(
+    'opens the configured App URL and keeps connection retry available',
+    (
+      tester,
+    ) async {
+      await tester.binding.setSurfaceSize(const Size(320, 240));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await pumpEmptyCandidates(tester, installationUrl: installationUrl);
+
+      expect(
+        find.text(t.team.gitHubAppInstallationUrlUnavailable),
+        findsNothing,
+      );
+      final installationLink = find.text(t.team.gitHubAppInstallation);
+      await tester.ensureVisible(installationLink);
+      await tester.pumpAndSettle();
+      await tester.tap(installationLink);
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      expect(launcher.url, installationUrl);
+      expect(launcher.options!.webOnlyWindowName, '_blank');
+      expect(requests, hasLength(2));
+      expect(confirmationRequests(), isEmpty);
+      expect(takeGitHubConnectionContext(), isNull);
+
+      respond = (_) async => jsonResponse({
+        'success': true,
+        'authorizationUrl': authorizationUrl,
+      });
+      await tester.ensureVisible(find.byType(OutlinedButton));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byType(OutlinedButton));
+      await tester.pumpAndSettle();
+
+      expect(requests.last.url.path, '/teams/team-1/github/connect');
+      expect(launcher.url, authorizationUrl);
+      expect(launcher.options!.webOnlyWindowName, '_self');
+      expect(takeGitHubConnectionContext(), initiatingContext);
+      expect(confirmationRequests(), isEmpty);
+    },
+  );
+
+  testWidgets(
+    'shows configuration guidance instead of opening an invalid URL',
+    (
+      tester,
+    ) async {
+      await pumpEmptyCandidates(tester, installationUrl: 'javascript:alert(1)');
+
+      expect(
+        find.text(t.team.gitHubAppInstallationUrlUnavailable),
+        findsOneWidget,
+      );
+      expect(find.text(t.team.gitHubAppInstallation), findsNothing);
+      expect(find.textContaining('javascript:'), findsNothing);
+      expect(
+        find.widgetWithText(OutlinedButton, t.team.connectGitHub),
+        findsOneWidget,
+      );
+      expect(launcher.url, isNull);
+      expect(requests, hasLength(2));
+    },
+  );
+
+  testWidgets('shows a message if the App page cannot be opened', (
+    tester,
+  ) async {
+    launcher.launchResult = false;
+    await pumpEmptyCandidates(tester, installationUrl: installationUrl);
+    await tester.tap(find.text(t.team.gitHubAppInstallation));
+    await tester.pumpAndSettle();
+
+    expect(find.text(t.team.gitHubAppInstallationOpenFailed), findsOneWidget);
+    expect(find.text(t.team.gitHubConnectionNoCandidates), findsOneWidget);
+    expect(
+      tester.widget<OutlinedButton>(find.byType(OutlinedButton)).onPressed,
+      isNotNull,
+    );
+    expect(requests, hasLength(2));
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets(
@@ -863,6 +963,8 @@ void main() {
 
 class _RecordingUrlLauncher extends UrlLauncherPlatform {
   String? url;
+  LaunchOptions? options;
+  bool launchResult = true;
 
   @override
   LinkDelegate? get linkDelegate => null;
@@ -870,6 +972,7 @@ class _RecordingUrlLauncher extends UrlLauncherPlatform {
   @override
   Future<bool> launchUrl(String url, LaunchOptions options) async {
     this.url = url;
-    return true;
+    this.options = options;
+    return launchResult;
   }
 }
