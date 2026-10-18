@@ -148,9 +148,14 @@ class GitHubService {
 
     final token = await getInstallationToken(
       installationIdStr: installationIdStr,
-      environment: environment,
+      environment: env,
       client: client,
     );
+    if (token.trim().isEmpty) {
+      throw const FormatException(
+        'GitHub returned an empty installation token',
+      );
+    }
     final url = Uri.parse('$githubApiBaseUrl/repos/$owner/$repo/check-runs');
     final headers = {
       'Authorization': 'Bearer $token',

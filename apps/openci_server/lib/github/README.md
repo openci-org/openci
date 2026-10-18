@@ -343,6 +343,17 @@ token, and update failures return errors instead of success. The shared check
 update method no longer skips installation ID `12345678` or uses dummy tokens;
 it rejects empty tokens before sending an update.
 
+`POST /builds/:id/runs` also requires the saved job's active verified connection
+and matching repository installation before starting or restarting a GitHub
+check. Missing/invalid installation IDs, invalid saved check IDs, and a missing
+commit SHA for a new check return 400. Connection mismatches return 403, including
+internal API key requests. GitHub failures return an error and roll back the new build run,
+run count, and saved check ID. Duplicate run IDs still return 409 without
+creating another check. Check creation uses explicit operator settings and
+rejects empty tokens. Check creation/update has a 10-second timeout so a stalled
+GitHub request releases the database transaction. The transaction cannot undo a
+GitHub check that was already created if a later database write fails.
+
 Other API and CI consumers will switch in follow-up changes. Production cutover
 still requires existing teams to reconnect (G-1379).
 
