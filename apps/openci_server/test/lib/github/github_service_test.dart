@@ -937,6 +937,23 @@ void main() {
           );
         },
       );
+
+      test('rejects a blank token before creating a Check', () async {
+        final requests = <http.Request>[];
+        final client = MockClient((request) async {
+          requests.add(request);
+          return _jsonResponse({'token': ' '});
+        });
+        addTearDown(client.close);
+
+        await expectLater(createCheck(client: client), throwsFormatException);
+
+        expect(requests, hasLength(1));
+        expect(
+          requests.single.url.path,
+          '/app/installations/98765/access_tokens',
+        );
+      });
     });
 
     group('updateGitHubCheckRun', () {

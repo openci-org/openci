@@ -7,6 +7,7 @@ import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:openci_server/auth/internal_api_key_validator.dart';
 import 'package:openci_server/database.dart';
+import 'package:openci_server/github/github_connection_table.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:openci_shared/openci_shared.dart';
@@ -104,6 +105,9 @@ void main() {
       };
       final checkRequests = <http.Request>[];
       final client = MockClient((request) async {
+        if (request.url.path.endsWith('/installation')) {
+          return http.Response('{"id":98765}', HttpStatus.ok);
+        }
         if (request.url.path.endsWith('/access_tokens')) {
           return http.Response('{"token":"test-token"}', HttpStatus.created);
         }
@@ -115,6 +119,24 @@ void main() {
       });
       addTearDown(client.close);
       await _insertTask(db, id: 'task-1', status: 'processing');
+      await db
+          .into(db.gitHubConnections)
+          .insert(
+            DriftGitHubConnection(
+              id: 'connection-1',
+              teamId: 'team-1',
+              githubApiBaseUrl: 'https://api.github.test',
+              githubAppId: 123456,
+              installationId: 98765,
+              accountId: 42,
+              accountType: GitHubAccountType.organization,
+              accountLogin: 'openci-owner',
+              verifiedByUserId: 'user-1',
+              verifiedByGitHubUserId: 100,
+              verifiedAt: DateTime.utc(2026),
+              status: GitHubConnectionStatus.active,
+            ),
+          );
 
       final response = await _request(
         db: db,
