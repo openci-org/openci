@@ -376,6 +376,17 @@ cancellation and recursive skipping finish. These local state changes are kept
 so an external failure does not allow dependent jobs to run. Failed GitHub check
 updates are not automatically retried or rolled back with local state.
 
+`POST /builds` still requires a valid internal API key. Before registering a
+job, it requires a team and an active verified connection for the operator's
+normalized API URL/App. It asks GitHub for the repository's installation and
+requires a matching connection, then saves that installation ID with the job.
+Caller-supplied installation/check IDs and legacy team IDs do not authorize
+registration. The saved repository URL also comes from the operator's settings.
+A missing team returns 400; no active connection or an installation mismatch
+returns 403. Configuration, database, and GitHub failures return a generic 500
+without registering the job. This endpoint does not create a queued check;
+the existing build-start path verifies the saved connection again.
+
 Other API and CI consumers will switch in follow-up changes. Production cutover
 still requires existing teams to reconnect (G-1379).
 
