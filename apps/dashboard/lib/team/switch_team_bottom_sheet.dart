@@ -10,6 +10,7 @@ import 'package:dashboard/team/team_provider.dart';
 import 'package:dashboard/utilities/adaptive_modal.dart';
 import 'package:dashboard/utilities/async_error_widget.dart';
 import 'package:dashboard/utilities/snack_bar_extension.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -98,13 +99,15 @@ class SwitchTeamBottomSheet extends HookConsumerWidget {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 12),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ConnectGitHubButton(
-                      enabled: !isMembersLoading.value,
+                  if (kIsWeb) ...[
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ConnectGitHubButton(
+                        enabled: !isMembersLoading.value,
+                      ),
                     ),
-                  ),
+                  ],
                   const SizedBox(height: 12),
                   _TeamActions(
                     isMembersLoading: isMembersLoading.value,
