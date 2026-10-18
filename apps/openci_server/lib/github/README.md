@@ -287,6 +287,16 @@ Legacy IDs cannot authorize the request, and GitHub lookup, token, or branch
 failures return an error without trying another connection. No active connection
 returns 400 before contacting GitHub.
 
+`GET /teams/:id/repositories/:repo/openci-files` applies the same connection
+checks to both team members and callers with a valid internal API key. The
+requested installation must be an active verified connection for the team and
+the operator's API URL/App ID; legacy installation IDs cannot authorize access.
+It also checks that GitHub resolves the repository to the requested installation
+before issuing a token. No active connection returns 400, and a mismatched
+connection returns 403. GitHub lookup, token, and permission failures return an
+error instead of falling back to another connection. The requested commit/ref is
+preserved when reading the files.
+
 Other API and CI consumers will switch in follow-up changes. Production cutover
 still requires existing teams to reconnect (G-1379).
 
