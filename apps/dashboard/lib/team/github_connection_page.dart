@@ -2,6 +2,7 @@ import 'package:dashboard/api/openci_api_client.dart';
 import 'package:dashboard/app_strings.dart';
 import 'package:dashboard/connections/active_connection_profile_provider.dart';
 import 'package:dashboard/connections/connection_store_provider.dart';
+import 'package:dashboard/team/connect_github_button.dart';
 import 'package:dashboard/team/current_github_connection_context_provider.dart';
 import 'package:dashboard/team/fetch_github_connection_session.dart';
 import 'package:dashboard/team/github_connection_context.dart';
@@ -42,9 +43,23 @@ class GitHubConnectionPage extends HookConsumerWidget {
     } else if (error != null) {
       content = Text(_errorMessage(error), textAlign: TextAlign.center);
     } else if (candidates.requireData.isEmpty) {
-      content = Text(
-        t.team.gitHubConnectionNoCandidates,
-        textAlign: TextAlign.center,
+      content = ListView(
+        shrinkWrap: true,
+        children: [
+          Text(
+            t.team.gitHubConnectionTeam(
+              name: ref.watch(selectedTeamProvider).requireValue.name,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            t.team.gitHubConnectionNoCandidates,
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 16),
+          const ConnectGitHubButton(),
+        ],
       );
     } else {
       content = GitHubConnectionForm(
