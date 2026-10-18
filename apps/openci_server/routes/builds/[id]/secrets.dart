@@ -5,10 +5,11 @@ import 'package:dart_frog/dart_frog.dart';
 import 'package:http/http.dart' as http;
 import 'package:openci_server/database.dart';
 import 'package:openci_server/github/github_service.dart';
+import 'package:openci_server/github/parse_github_api_base_uri.dart';
+import 'package:openci_server/github/read_active_github_connections.dart';
 import 'package:openci_server/request/error_handler.dart';
 import 'package:openci_server/secret/extract_secret_name.dart';
 import 'package:openci_server/secret/secret_crypter.dart';
-import 'package:openci_server/secret/secret_table.dart';
 
 FutureOr<Response> onRequest(RequestContext context, String id) {
   return switch (context.request.method) {
@@ -32,6 +33,20 @@ Future<Response> _get(RequestContext context, String id) async {
       );
     }
 
+    final installationId = int.tryParse(installationIdStr, radix: 10);
+    if (installationId == null || installationId <= 0) {
+      return Response.json(
+        statusCode: HttpStatus.badRequest,
+        body: {'success': false, 'error': 'Invalid installationId for job'},
+      );
+    }
+    if (teamId == null || teamId.isEmpty) {
+      return Response.json(
+        statusCode: HttpStatus.forbidden,
+        body: {'success': false, 'error': 'Forbidden'},
+      );
+    }
+
     final workflowFileName = driftJob.workflowFileName;
     if (workflowFileName.isEmpty) {
       return Response.json(
@@ -40,12 +55,34 @@ Future<Response> _get(RequestContext context, String id) async {
       );
     }
 
-    Map<String, String>? environment;
+    Map<String, String> environment;
     try {
       environment = context.read<Map<String, String>>();
     } catch (_) {
-      // GitHubService uses process configuration when none is provided.
+      environment = Platform.environment;
     }
+    environment = {
+      ...environment,
+      'GITHUB_API_BASE_URL': parseGitHubApiBaseUri(
+        environment['GITHUB_API_BASE_URL'],
+      ).toString(),
+    };
+
+    final connections = await readActiveGitHubConnections(
+      db: db,
+      teamId: teamId,
+      environment: environment,
+    );
+    final hasConnection = connections.any(
+      (connection) => connection.installationId == installationId,
+    );
+    if (!hasConnection) {
+      return Response.json(
+        statusCode: HttpStatus.forbidden,
+        body: {'success': false, 'error': 'Forbidden'},
+      );
+    }
+
     http.Client? client;
     try {
       client = context.read<http.Client>();
@@ -53,11 +90,30 @@ Future<Response> _get(RequestContext context, String id) async {
       // GitHubService creates its own HTTP requests when none is provided.
     }
 
+    final repositoryInstallationId =
+        await GitHubService.getRepositoryInstallationId(
+          owner: driftJob.owner,
+          repo: driftJob.repo,
+          environment: environment,
+          client: client,
+        );
+    if (repositoryInstallationId != installationId.toString()) {
+      return Response.json(
+        statusCode: HttpStatus.forbidden,
+        body: {'success': false, 'error': 'Forbidden'},
+      );
+    }
+
     final token = await GitHubService.getInstallationToken(
-      installationIdStr: installationIdStr,
+      installationIdStr: installationId.toString(),
       environment: environment,
       client: client,
     );
+    if (token.trim().isEmpty) {
+      throw const FormatException(
+        'GitHub returned an empty installation token',
+      );
+    }
 
     final workflowContent = await GitHubService.fetchWorkflowContent(
       owner: driftJob.owner,
@@ -97,14 +153,10 @@ Future<Response> _get(RequestContext context, String id) async {
       secretDefinitions: secretDefinitions,
     );
 
-    final targetSecrets = <DriftSecret>[];
-    if (teamId != null) {
-      final secretMetadataList = await db.secretDao.getSecretsForTeam(teamId);
-      final filtered = secretMetadataList.where((meta) {
-        return usedSecretNames.contains(meta.name);
-      }).toList();
-      targetSecrets.addAll(filtered);
-    }
+    final secretMetadataList = await db.secretDao.getSecretsForTeam(teamId);
+    final targetSecrets = secretMetadataList.where((meta) {
+      return usedSecretNames.contains(meta.name);
+    }).toList();
 
     final resolvedSecrets = <String, String>{};
     resolvedSecrets['GITHUB_TOKEN'] = token;
@@ -112,6 +164,7 @@ Future<Response> _get(RequestContext context, String id) async {
     if (targetSecrets.isEmpty) {
       final secretFileContent = 'GITHUB_TOKEN=${token.replaceAll('\n', '\\n')}';
       return Response.json(
+        headers: {HttpHeaders.cacheControlHeader: 'no-store'},
         body: {
           'success': true,
           'secretsContent': secretFileContent,
@@ -119,8 +172,7 @@ Future<Response> _get(RequestContext context, String id) async {
       );
     }
 
-    final env = environment ?? Platform.environment;
-    final encryptionKey = env['SECRET_ENCRYPTION_KEY']!;
+    final encryptionKey = environment['SECRET_ENCRYPTION_KEY']!;
     final crypter = SecretCrypter(encryptionKey);
 
     for (final sec in targetSecrets) {
@@ -137,6 +189,7 @@ Future<Response> _get(RequestContext context, String id) async {
         .join('\n');
 
     return Response.json(
+      headers: {HttpHeaders.cacheControlHeader: 'no-store'},
       body: {
         'success': true,
         'secretsContent': secretFileContent,
