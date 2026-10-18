@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:dashboard/auth/auth_provider.dart';
 import 'package:dashboard/router/router.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -129,6 +130,33 @@ void main() {
     await tester.pump();
     expect(await resolve(tester, location), authUri);
   });
+
+  testWidgets(
+    'preserves only the GitHub return path through sign-in',
+    (tester) async {
+      createRouter();
+      await tester.pumpWidget(const SizedBox());
+      final result = resolve(
+        tester,
+        '/github/connection?reference=query-secret#reference=fragment-secret',
+      );
+      changes.add(null);
+      await tester.pump();
+
+      final authUri = await result;
+      expect(authUri.path, '/auth');
+      expect(authUri.queryParameters, {'from': '/github/connection'});
+      expect(authUri.fragment, isEmpty);
+
+      changes.add(_User());
+      await tester.pump();
+      expect(
+        await resolve(tester, authUri.toString()),
+        Uri.parse('/github/connection'),
+      );
+    },
+    skip: !kIsWeb,
+  );
 }
 
 class _Auth extends Fake implements FirebaseAuth {
