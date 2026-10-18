@@ -7,3 +7,5 @@ void saveGitHubConnectionContext(GitHubConnectionContext context) {
 void clearGitHubConnectionContext() {
   throw UnsupportedError('GitHub connection storage is only available on web.');
 }
+
+GitHubConnectionContext? takeGitHubConnectionContext() => null;
