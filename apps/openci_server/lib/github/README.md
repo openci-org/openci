@@ -297,6 +297,15 @@ connection returns 403. GitHub lookup, token, and permission failures return an
 error instead of falling back to another connection. The requested commit/ref is
 preserved when reading the files.
 
+`GET /teams/by-installation/:installationId` resolves the owning team through
+`TeamDao.getTeamByInstallationId`. The lookup joins the team to an active
+verified connection matching the installation ID and the operator's API URL/App
+ID. The endpoint normalizes and validates the operator settings before the
+query. It returns 404 when no active connection matches and 500 for configuration
+or database failures. Legacy `Teams.installationIds` never determine ownership,
+so webhook planning can resolve teams that only have a new verified connection.
+The existing authentication rules and Team response format are preserved.
+
 Other API and CI consumers will switch in follow-up changes. Production cutover
 still requires existing teams to reconnect (G-1379).
 

@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:dart_frog/dart_frog.dart';
 import 'package:openci_server/auth/internal_api_key_validator.dart';
 import 'package:openci_server/database.dart';
+import 'package:openci_server/github/parse_github_api_base_uri.dart';
 import 'package:openci_server/request/error_handler.dart';
 import 'package:openci_server/team/team_mapper.dart';
 
@@ -28,15 +29,36 @@ Future<Response> _get(RequestContext context, String installationIdStr) async {
     }
 
     final installationId = int.tryParse(installationIdStr);
-    if (installationId == null) {
+    if (installationId == null || installationId <= 0) {
       return Response.json(
         statusCode: HttpStatus.badRequest,
         body: {'success': false, 'error': 'Invalid installationId'},
       );
     }
 
+    Map<String, String> env;
+    try {
+      env = context.read<Map<String, String>>();
+    } catch (_) {
+      env = Platform.environment;
+    }
+    final githubApiBaseUrl = parseGitHubApiBaseUri(
+      env['GITHUB_API_BASE_URL'],
+    ).toString();
+    final githubAppId = int.tryParse(
+      env['GITHUB_APP_ID']?.trim() ?? '',
+      radix: 10,
+    );
+    if (githubAppId == null || githubAppId <= 0) {
+      throw StateError('GITHUB_APP_ID must be a positive integer');
+    }
+
     final db = context.read<AppDatabase>();
-    final driftTeam = await db.teamDao.getTeamByInstallationId(installationId);
+    final driftTeam = await db.teamDao.getTeamByInstallationId(
+      installationId,
+      githubApiBaseUrl: githubApiBaseUrl,
+      githubAppId: githubAppId,
+    );
     if (driftTeam == null) {
       return Response.json(
         statusCode: HttpStatus.notFound,
