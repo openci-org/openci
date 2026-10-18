@@ -265,6 +265,14 @@ an invalid session prevents saving; an ownership conflict returns `null` without
 consuming the session. Decryption and database errors expose no credentials.
 The HTTP confirmation endpoint above calls this helper.
 
+`readActiveGitHubConnections` reads a team's `active` connections for the
+operator's `GITHUB_API_BASE_URL` and `GITHUB_APP_ID`. It normalizes the API URL
+using the same parser as saving, preserving its path and port. No matching rows
+returns an empty list; invalid configuration and database failures throw errors.
+It does not use `Teams.installationIds`. Callers are responsible for authorizing
+access to the team; this helper does not call GitHub to recheck live permissions.
+API and CI consumers will switch to this reader in a follow-up change.
+
 A unique constraint on `(github_api_base_url, github_app_id, installation_id)`
 reserves an installation for one team, including suspended or removed rows.
 Renaming an account does not change that identity. A team can have multiple
@@ -280,6 +288,7 @@ Run the SQLite storage and migration tests with:
 
 ```sh
 dart test test/lib/github/github_connection_table_test.dart \
+  test/lib/github/read_active_github_connections_test.dart \
   test/lib/github/persist_github_connection_test.dart \
   test/lib/github/save_github_connection_and_consume_session_test.dart \
   test/lib/github/save_github_connection_test.dart test/lib/database_test.dart
@@ -287,8 +296,9 @@ dart test test/lib/github/github_connection_table_test.dart \
 
 The PostgreSQL integration test runs the same table constraints plus a v27 → v28
 migration, the fresh verification/persistence flow, and the save helper tests
-with concurrent saves over independent database connections. GitHub responses
-are mocked for both database suites; these do not replace live GitHub.com/GHES
+with concurrent saves over independent database connections, plus active
+connection reads. GitHub responses are mocked for both database suites;
+these do not replace live GitHub.com/GHES
 validation. It creates and removes a unique schema for each test.
 Use a disposable local PostgreSQL database, for example:
 

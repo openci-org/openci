@@ -9,6 +9,7 @@ import 'package:uuid/uuid.dart';
 
 import '../test/helpers/github_connection_table_tests.dart';
 import '../test/helpers/persist_github_connection_tests.dart';
+import '../test/helpers/read_active_github_connections_tests.dart';
 import '../test/helpers/save_github_connection_and_consume_session_tests.dart';
 import '../test/helpers/save_github_connection_tests.dart';
 
@@ -46,6 +47,12 @@ void main() {
             await other.execute('SET search_path TO "$schema"');
             return AppDatabase(PgDatabase.opened(other));
           },
+        );
+      });
+
+      group('reading active connections', () {
+        testReadActiveGitHubConnections(
+          () async => AppDatabase(PgDatabase.opened(connection)),
         );
       });
 
