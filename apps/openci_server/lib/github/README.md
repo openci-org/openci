@@ -306,6 +306,15 @@ or database failures. Legacy `Teams.installationIds` never determine ownership,
 so webhook planning can resolve teams that only have a new verified connection.
 The existing authentication rules and Team response format are preserved.
 
+`GET /teams/:id/workflows` checks team membership and active connections for the
+operator's API URL/App ID before contacting GitHub. It resolves the repository's
+installation and requires that exact connection before issuing a token and
+querying `.openci` through GraphQL. No active connection returns 400; a different
+installation returns 403. Legacy IDs and other connections cannot be used as a
+fallback after a GitHub failure. The requested branch and YAML file response
+format are preserved. A missing workflow tree still returns an empty list, but
+GraphQL responses containing permission errors are rejected.
+
 Other API and CI consumers will switch in follow-up changes. Production cutover
 still requires existing teams to reconnect (G-1379).
 
