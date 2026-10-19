@@ -31,10 +31,11 @@ the completion session to the user who initiated it.
 and installation list once per call, then applies the same connection rules to
 every installation. It returns an immutable list of eligible installations;
 an empty list means no eligible candidates were found. Each organization
-membership request has its own 10-second timeout. If any GitHub request or
-verification fails, the call throws a sanitized exception instead of returning
-partial results. User and installation-list fetches retain their separate
-10-second limits.
+membership request has its own 10-second timeout. Membership 403/404 responses
+exclude only the inaccessible organization. Token rejection, rate limits, and
+other upstream failures throw a sanitized exception instead of returning partial
+results. User and installation-list fetches retain their separate 10-second
+limits.
 
 The helper itself does not read a connection session. The candidates API below
 authenticates and binds the session before using its decrypted token. Selecting
@@ -75,11 +76,12 @@ is consumed before handling denial or contacting GitHub, so those failures
 require starting a new connection attempt. An invalid return URL still returns
 500 without a redirect, and methods other than GET return 405.
 
-The Dashboard receiver is follow-up work. It must read and remove the fragment
-before login redirects or analytics run, then authenticate the initiating user
-through the server before continuing. A result in the URL is not proof that a
-team is connected. Do not use a route that copies the reference into a login
-redirect's query string.
+On Web, the Dashboard captures the result and removes the fragment before
+initializing routing or Sentry. Login redirects retain only `/github/connection`.
+The receiver checks the saved initiating user, team, and server profile before
+asking the authenticated session API to validate the reference. A result in the
+URL is not proof that a team is connected; the user must select and confirm a
+verified candidate.
 
 ## Reading a pending connection session
 
@@ -112,8 +114,9 @@ Missing authentication returns 401; malformed JSON or a missing/invalid referenc
 field returns 400. Unknown, expired, consumed, or unauthorized sessions all return
 the same 403 response. Database failures return a generic 500, and methods other
 than POST return 405. All responses include `Cache-Control: no-store` and
-`Referrer-Policy: no-referrer`. The Dashboard receiver remains follow-up work.
-Saving a connection requires the explicit confirmation endpoint below.
+`Referrer-Policy: no-referrer`. The Web Dashboard reads this session before
+loading candidates. Saving a connection requires the explicit confirmation
+endpoint below.
 
 ## Reading connection candidates
 
@@ -153,9 +156,9 @@ When the setting is valid, successful responses include `installationUrl` next
 to `candidates`, including when the candidate list is empty. A missing, blank,
 or invalid setting omits this field without failing candidate retrieval. No
 request-supplied URL is used as a fallback. The server only returns this link;
-it does not fetch the URL or use it to authorize or save a connection. Reading
-the field in the shared client and displaying the link in the Dashboard are
-follow-up work.
+it does not fetch the URL or use it to authorize or save a connection. The shared
+client reads this field, and the Web Dashboard shows the link when no eligible
+candidates are available. The user can install the App and restart authorization.
 
 No eligible candidates returns 200 with an empty array. Authentication/input/
 session/method failures use the same 401/400/403/405 responses as the session
@@ -178,8 +181,8 @@ connections. Token rejection, rate limits, and other upstream failures still
 fail the whole request. Confirmation rechecks the selected installation and
 continues to reject missing membership proof.
 No upstream error details are returned. All responses
-include `Cache-Control: no-store` and `Referrer-Policy: no-referrer`. The Dashboard
-selection UI remains follow-up work.
+include `Cache-Control: no-store` and `Referrer-Policy: no-referrer`. The Web
+Dashboard displays candidates and requires an explicit selection and confirmation.
 
 ## Confirming a team connection
 
@@ -407,8 +410,8 @@ failures. Workflow and OpenCI file reads contact GitHub even for those former
 test values, so they cannot bypass file-access errors. Tests supply mock HTTP
 responses explicitly; these shortcuts are not part of runtime behavior.
 
-Other API and CI consumers will switch in follow-up changes. Production cutover
-still requires existing teams to reconnect (G-1379).
+Before production cutover, follow the [existing-team reconnection and rollout
+procedure](ROLLOUT.md) (G-1379/G-1381).
 
 A unique constraint on `(github_api_base_url, github_app_id, installation_id)`
 reserves an installation for one team, including suspended or removed rows.
@@ -417,8 +420,8 @@ connections, and deleting the team cascades to its connection rows.
 
 The migration creates an empty table and leaves `Teams.installationIds` intact.
 Legacy IDs, including duplicates across teams, are not evidence of verified
-connections and are not copied into the new table. G-1379/G-1380 will migrate
-legacy links and finish switching the remaining API and CI consumers.
+connections and are not copied into the new table. Existing teams reconnect
+through GitHub Connect before G-1380's consumer checks are deployed.
 
 Run the SQLite storage and migration tests with:
 
