@@ -1,11 +1,35 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net/http"
+	"os"
+	"strings"
+	"time"
+
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 func main() {
+	databaseURL := strings.TrimSpace(os.Getenv("DATABASE_URL"))
+	if databaseURL == "" {
+		log.Fatal("DATABASE_URL must be set")
+	}
+
+	pool, err := pgxpool.New(context.Background(), databaseURL)
+	if err != nil {
+		log.Fatal("Invalid DATABASE_URL")
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	err = pool.Ping(ctx)
+	cancel()
+	if err != nil {
+		pool.Close()
+		log.Fatal("PostgreSQL connection check failed")
+	}
+
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -13,5 +37,7 @@ func main() {
 	})
 
 	log.Println("Starting GenuineCI server on :8081")
-	log.Fatal(http.ListenAndServe(":8081", mux))
+	err = http.ListenAndServe(":8081", mux)
+	pool.Close()
+	log.Fatal(err)
 }
