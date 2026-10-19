@@ -1,14 +1,15 @@
 # GitHub connection cutover
 
-G-1379 prepares existing teams for G-1380's verified-connection checks. Complete
-this before deploying those checks to a server that still uses legacy
-`Teams.installationIds`. G-1381 records Web/GitHub.com validation; G-1379 and the
-production release work record the shared-server cutover decision. GHES
-validation is pending separately in G-1392.
+G-1379 records existing-team readiness for G-1380's verified-connection checks.
+G-1381 records Web/GitHub.com validation; G-1379 and the production release work
+record the shared-server cutover decision. GHES validation is pending separately
+in G-1392.
 
-The [2026-10-19 validation record](#5-validation-record-2026-10-19) covers an
-isolated GitHub.com environment. Client-team migration, GHES, and native clients
-are deferred. This validation does not authorize the shared production cutover.
+The [isolated validation record](#5-validation-record-2026-10-19) and the
+[production rollout record](#6-production-rollout-2026-10-19) describe separate
+checks. The operator authorized the production cutover on 2026-10-19, accepting
+that the remaining client team cannot run GitHub-backed operations until it
+reconnects. Client-team reconnection, GHES, and native clients remain deferred.
 
 ## 1. Inventory the running server
 
@@ -58,14 +59,16 @@ to mark a team ready. A saved row alone is not proof of live CI compatibility.
 ## 3. Cut over and verify
 
 G-1380 applies to the whole server; there is no per-team compatibility switch.
-Do not deploy it while an actively used team's reconnection is incomplete.
-Teams intentionally left unconnected cannot use GitHub-backed operations or
-retry their old jobs; explicitly record that decision with the operator.
+Reconnect actively used teams before deployment, or record the operator's
+explicit decision to accept interruption for the remaining teams. Teams
+intentionally left unconnected cannot use GitHub-backed operations or retry
+their old jobs. This decision does not bypass connection verification.
 
 Before deployment, record the reviewed release/image, operator configuration,
 database backup and restore procedure, and rollback target. Pause new CI intake
 and drain or explicitly account for queued/running work and pending webhooks.
-Deploy only after the required teams have reconnected and release checks pass.
+Deploy after the required teams have reconnected, any deferred teams' interruption
+has been explicitly accepted, and release checks pass.
 
 At deployment, repeat G-1381's Web authorization/confirmation and
 repository/branch/workflow checks using the deployed release. Resume CI
@@ -116,10 +119,10 @@ App. A dedicated planner/worker and Orchard controller ran real macOS VMs.
   connection API tests. GitHub check `external_id` values matched the isolated
   database's job IDs.
 
-| Trigger | GitHub result |
-| --- | --- |
+| Trigger      | GitHub result                                                              |
+| ------------ | -------------------------------------------------------------------------- |
 | Pull request | [Successful check](https://github.com/openci-org/openci/runs/117808187541) |
-| Push | [Successful check](https://github.com/openci-org/openci/runs/117808201368) |
+| Push         | [Successful check](https://github.com/openci-org/openci/runs/117808201368) |
 
 Real webhook payloads were retrieved from GitHub and replayed into the isolated
 receiver with a temporary signing secret. This verifies processing through the
@@ -137,12 +140,12 @@ The following checks passed on merged develop commit
 live-verification source is the server CI command change from `flutter test` to
 `dart test`. No new integration-test framework or test files were added.
 
-| Area | Evidence and result |
-| --- | --- |
-| Server: 788 tests | GitHub helpers, callback, connection APIs, middleware, build token/secrets, and OpenCI files passed. Covers cancellation, expiry, replay, wrong user/team, revoked authority, suspended/removed connections, GitHub failures, and preservation of an existing connection after failure. |
-| Web: 106 tests in Chrome | GitHub connection tests and router tests passed. Covers starting/returning, identity/profile changes, empty candidates, installation guidance, retry, explicit confirmation, duplicate-click prevention, and completion. |
-| Shared API: 18 tests | Typed session/candidates/confirmation responses and error propagation passed; reference is sent in the JSON body. |
-| Static analysis | `dart analyze --fatal-infos apps/openci_server apps/dashboard packages/openci_shared` reported no issues. |
+| Area                     | Evidence and result                                                                                                                                                                                                                                                                     |
+| ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Server: 788 tests        | GitHub helpers, callback, connection APIs, middleware, build token/secrets, and OpenCI files passed. Covers cancellation, expiry, replay, wrong user/team, revoked authority, suspended/removed connections, GitHub failures, and preservation of an existing connection after failure. |
+| Web: 106 tests in Chrome | GitHub connection tests and router tests passed. Covers starting/returning, identity/profile changes, empty candidates, installation guidance, retry, explicit confirmation, duplicate-click prevention, and completion.                                                                |
+| Shared API: 18 tests     | Typed session/candidates/confirmation responses and error propagation passed; reference is sent in the JSON body.                                                                                                                                                                       |
+| Static analysis          | `dart analyze --fatal-infos apps/openci_server apps/dashboard packages/openci_shared` reported no issues.                                                                                                                                                                               |
 
 The existing HTTP callback test confirms that the Dashboard request receives no
 reference query/fragment and that responses use `no-store` and `no-referrer`.
@@ -177,16 +180,16 @@ Configuration names and wiring were checked against the server helpers and
 root `docker-compose.yml`. The real OAuth/CI flow above exercised the isolated
 environment's settings. Production values must be checked at deployment.
 
-| Setting | Required configuration |
-| --- | --- |
-| `GITHUB_API_BASE_URL`, `GITHUB_APP_ID` | GitHub.com API (`https://api.github.com`) and the same App used for authorization and installation access. |
-| `GITHUB_APP_CLIENT_ID`, `GITHUB_APP_CLIENT_SECRET` | OAuth credentials for that App; keep the secret on the server. |
-| `GITHUB_OAUTH_REDIRECT_URI` | Server `/github/callback`, registered in the App's callback URLs. |
-| `GITHUB_CONNECTION_RETURN_URL` | Web Dashboard `/github/connection`; fixed server setting without query/fragment. This is distinct from the OAuth callback. |
-| `GITHUB_APP_INSTALLATION_URL` | Optional App installation page used by empty-candidate guidance. |
-| `GITHUB_PRIVATE_KEY_PATH`, `GITHUB_WEBHOOK_SECRET` | App signing key mounted in the server and the webhook signature secret. |
-| `SECRET_ENCRYPTION_KEY` | Server encryption key used to save/read temporary OAuth tokens. |
-| App permissions | Organization **Members: read** for owner verification; repository **Contents: read**, **Pull requests: read**, and **Checks: write** for CI. Existing installations must approve added permissions. |
+| Setting                                            | Required configuration                                                                                                                                                                              |
+| -------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GITHUB_API_BASE_URL`, `GITHUB_APP_ID`             | GitHub.com API (`https://api.github.com`) and the same App used for authorization and installation access.                                                                                          |
+| `GITHUB_APP_CLIENT_ID`, `GITHUB_APP_CLIENT_SECRET` | OAuth credentials for that App; keep the secret on the server.                                                                                                                                      |
+| `GITHUB_OAUTH_REDIRECT_URI`                        | Server `/github/callback`, registered in the App's callback URLs.                                                                                                                                   |
+| `GITHUB_CONNECTION_RETURN_URL`                     | Web Dashboard `/github/connection`; fixed server setting without query/fragment. This is distinct from the OAuth callback.                                                                          |
+| `GITHUB_APP_INSTALLATION_URL`                      | Optional App installation page used by empty-candidate guidance.                                                                                                                                    |
+| `GITHUB_PRIVATE_KEY_PATH`, `GITHUB_WEBHOOK_SECRET` | App signing key mounted in the server and the webhook signature secret.                                                                                                                             |
+| `SECRET_ENCRYPTION_KEY`                            | Server encryption key used to save/read temporary OAuth tokens.                                                                                                                                     |
+| App permissions                                    | Organization **Members: read** for owner verification; repository **Contents: read**, **Pull requests: read**, and **Checks: write** for CI. Existing installations must approve added permissions. |
 
 Repository permissions correspond to GitHub's
 [contents](https://docs.github.com/en/rest/repos/contents#get-repository-content),
@@ -199,15 +202,91 @@ Use HTTPS outside localhost. Check the Dashboard origin against the server CORS
 policy. Client-side profiles must point to the same server/Firebase project that
 started the connection.
 
-The remaining release checks are specific to the deployed environment:
+The isolated validation left these checks for the deployed environment:
 
 - Direct webhook delivery to the public server, followed by one controlled
   PR/push CI run on that release.
 - Public proxy/access logs and deployed telemetry must not retain callback
   queries or credential-bearing bodies. The app tests above do not inspect
   external proxy or telemetry storage.
-- Shared-server cutover still requires section 3's inventory, reconnection,
-  drain/backup, and recovery decision. Deferring client migration does not make
-  the whole server ready for enforcement.
+- Shared-server cutover requires section 3's inventory, reconnection or explicit
+  acceptance of interruption, drain/backup, and recovery decision.
 
 GHES and native-client behavior are unverified and excluded from this record.
+
+## 6. Production rollout: 2026-10-19
+
+### Shared server
+
+At 10:52 JST, release `7043e77f5e0675b456cfd95467a15836791c303a` was deployed
+to the shared server with the operator's authorization. One active client team
+remains unconnected and must complete the normal GitHub Connect flow later.
+Legacy IDs were not copied into verified connections.
+
+- The release's six CI checks passed. Queued/running jobs finished before the
+  cutover; zero remained when the server was replaced.
+- A PostgreSQL backup was restored successfully in an isolated database. A
+  second backup was taken immediately before the cutover. Schema version 28,
+  team memberships, and existing connections were preserved.
+- The server became healthy and the existing planner/worker resumed.
+- An operator-owned team completed Web authorization, return, candidate
+  selection, and confirmation against the deployed server. Its connection was
+  active; confirmation consumed the session and removed its temporary token.
+- GitHub delivered both a real push and PR webhook directly to production,
+  receiving HTTP 200. Both tasks completed without retry, and each macOS VM
+  passed the 18 shared GitHub connection API tests.
+
+| Trigger      | GitHub result                                                              |
+| ------------ | -------------------------------------------------------------------------- |
+| Push         | [Successful check](https://github.com/openci-org/openci/runs/117852578266) |
+| Pull request | [Successful check](https://github.com/openci-org/openci/runs/117853146255) |
+
+The [verification PR #3341](https://github.com/openci-org/openci/pull/3341) was
+closed without merging. Its branches and the isolated restore-check resources
+were removed; production backups were retained. Verified installation lookup
+returned 200 and an unverified installation returned 404. The earlier isolated
+preflight also confirmed that an unverified job's token request returns 403.
+
+One processing webhook task predates this deployment and was left unchanged;
+the new verification tasks completed normally. Unconnected historical jobs
+remain unavailable for retry until their team reconnects. G-1379 tracks the
+remaining client reconnection. No client organization or App permissions were
+changed for this rollout.
+
+### Public Web Dashboard
+
+At 12:05 JST, the same release `7043e77f` was published to
+[dashboard.openci.org](https://dashboard.openci.org). Firebase Hosting's
+`dashboard-openci` site now serves version `bb5d7e9152fe6412`; its previous
+version was `cda768720ac6a2ae`. Only this Hosting site was deployed. The landing
+page and existing Hosting headers, rewrites, and association file were preserved.
+
+- The release build used Flutter 3.44.8 / Dart 3.12.2 with the existing production
+  Dashboard configuration. `flutter build web --release` succeeded, 106 focused
+  Chrome tests passed, and Dashboard/shared-package static analysis reported no
+  issues. No application code changed for this deployment.
+- Root `firebase/firebase.json` was the deployment configuration. The built Web
+  files were copied into its `firebase/public` directory in a temporary checkout,
+  then deployed with `--only hosting:dashboard-openci --project openci-b1b91`.
+- Published JavaScript, bootstrap, index, and association-file contents matched
+  the build. `/github/connection` returned the SPA successfully. The published
+  `main.dart.js` SHA-256 was
+  `eaf26cdd6f5852fa06d317da9e988d4c00f9459b41a9f77cf6b4893e72112ffc`.
+- At 12:10 JST, the server's `GITHUB_CONNECTION_RETURN_URL` changed from localhost
+  to `https://dashboard.openci.org/github/connection`. The server restarted with
+  the same image; the OAuth callback URL, all other environment settings, and
+  existing connections were unchanged. The previous environment was backed up
+  privately. Server health and the planner/worker remained normal.
+- A fresh flow started from the public Dashboard and returned to the public
+  connection page. The initiating team and intended GitHub account were shown
+  correctly, with no reference remaining in the visible URL.
+- At 12:14 JST, explicit confirmation succeeded and returned to the CI log page.
+  A read-only DB check confirmed the active connection's new verification time,
+  the consumed session, and removal of its temporary token. The client team
+  awaiting reconnection remained unconnected.
+
+Web/GitHub.com implementation and release verification for G-1327/G-1329 are
+complete. G-1379 remains a separate follow-up for client-team reconnection;
+GHES and native clients remain outside this release. The previous section's
+direct push/PR verification covers the same server release. No additional CI
+framework or permanent integration tests were introduced for these checks.
