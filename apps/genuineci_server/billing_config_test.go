@@ -55,3 +55,56 @@ func TestBillingEnabled(t *testing.T) {
 		})
 	}
 }
+
+func TestTrialAllowanceSeconds(t *testing.T) {
+	const invalidAllowance = "BILLING_TRIAL_ALLOWANCE_SECONDS must be a non-negative integer"
+	zero, seconds := int64(0), int64(1800)
+	for _, tc := range []struct {
+		name    string
+		env     map[string]string
+		want    *int64
+		wantErr string
+	}{
+		{"unset allowance", map[string]string{"SERVER_ACCESS_MODE": "cloud", "BILLING_ENABLED": "true"}, nil, ""},
+		{"zero allowance", map[string]string{"SERVER_ACCESS_MODE": "cloud", "BILLING_ENABLED": "true", "BILLING_TRIAL_ALLOWANCE_SECONDS": "0"}, &zero, ""},
+		{"configured allowance", map[string]string{"SERVER_ACCESS_MODE": "cloud", "BILLING_ENABLED": "true", "BILLING_TRIAL_ALLOWANCE_SECONDS": "1800"}, &seconds, ""},
+		{"unset mode ignores allowance", map[string]string{"BILLING_ENABLED": "true", "BILLING_TRIAL_ALLOWANCE_SECONDS": "invalid"}, nil, ""},
+		{"self hosted ignores allowance", map[string]string{"SERVER_ACCESS_MODE": "self_hosted", "BILLING_ENABLED": "invalid", "BILLING_TRIAL_ALLOWANCE_SECONDS": "invalid"}, nil, ""},
+		{"disabled cloud ignores allowance", map[string]string{"SERVER_ACCESS_MODE": "cloud", "BILLING_ENABLED": "false", "BILLING_TRIAL_ALLOWANCE_SECONDS": "invalid"}, nil, ""},
+		{"cloud defaults off", map[string]string{"SERVER_ACCESS_MODE": "cloud", "BILLING_TRIAL_ALLOWANCE_SECONDS": "invalid"}, nil, ""},
+		{"invalid mode", map[string]string{"SERVER_ACCESS_MODE": "invalid"}, nil, "SERVER_ACCESS_MODE must be self_hosted or cloud"},
+		{"invalid flag", map[string]string{"SERVER_ACCESS_MODE": "cloud", "BILLING_ENABLED": "invalid"}, nil, "BILLING_ENABLED must be true or false"},
+		{"empty allowance", map[string]string{"SERVER_ACCESS_MODE": "cloud", "BILLING_ENABLED": "true", "BILLING_TRIAL_ALLOWANCE_SECONDS": ""}, nil, invalidAllowance},
+		{"negative allowance", map[string]string{"SERVER_ACCESS_MODE": "cloud", "BILLING_ENABLED": "true", "BILLING_TRIAL_ALLOWANCE_SECONDS": "-1"}, nil, invalidAllowance},
+		{"fractional allowance", map[string]string{"SERVER_ACCESS_MODE": "cloud", "BILLING_ENABLED": "true", "BILLING_TRIAL_ALLOWANCE_SECONDS": "1.5"}, nil, invalidAllowance},
+		{"invalid allowance", map[string]string{"SERVER_ACCESS_MODE": "cloud", "BILLING_ENABLED": "true", "BILLING_TRIAL_ALLOWANCE_SECONDS": "invalid"}, nil, invalidAllowance},
+		{"padded allowance", map[string]string{"SERVER_ACCESS_MODE": "cloud", "BILLING_ENABLED": "true", "BILLING_TRIAL_ALLOWANCE_SECONDS": "1800 "}, nil, invalidAllowance},
+		{"overflow", map[string]string{"SERVER_ACCESS_MODE": "cloud", "BILLING_ENABLED": "true", "BILLING_TRIAL_ALLOWANCE_SECONDS": "9223372036854775808"}, nil, invalidAllowance},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			for _, key := range []string{"SERVER_ACCESS_MODE", "BILLING_ENABLED", "BILLING_TRIAL_ALLOWANCE_SECONDS"} {
+				value, set := tc.env[key]
+				t.Setenv(key, value)
+				if !set {
+					if err := os.Unsetenv(key); err != nil {
+						t.Fatal(err)
+					}
+				}
+			}
+			got, err := trialAllowanceSeconds()
+			if tc.wantErr == "" {
+				if err != nil {
+					t.Fatal(err)
+				}
+			} else if err == nil || err.Error() != tc.wantErr {
+				t.Errorf("want error %q, got %v", tc.wantErr, err)
+			}
+			if (got == nil) != (tc.want == nil) {
+				t.Fatalf("want configured=%v, got configured=%v", tc.want != nil, got != nil)
+			}
+			if got != nil && *got != *tc.want {
+				t.Errorf("want allowance %d, got %d", *tc.want, *got)
+			}
+		})
+	}
+}
