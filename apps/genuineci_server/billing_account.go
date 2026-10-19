@@ -25,3 +25,23 @@ func getBillingAccount(ctx context.Context, pool *pgxpool.Pool, teamID string) (
 	}
 	return &account, nil
 }
+
+func ensureBillingAccount(ctx context.Context, pool *pgxpool.Pool, teamID string) (*billingAccount, error) {
+	var account billingAccount
+	err := pgx.BeginFunc(ctx, pool, func(tx pgx.Tx) error {
+		if err := tx.QueryRow(ctx,
+			"SELECT id FROM teams WHERE id = $1 FOR UPDATE", teamID,
+		).Scan(&account.TeamID); err != nil {
+			return err
+		}
+		_, err := tx.Exec(ctx,
+			"INSERT INTO billing_accounts (team_id) VALUES ($1) ON CONFLICT (team_id) DO NOTHING",
+			teamID,
+		)
+		return err
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &account, nil
+}
