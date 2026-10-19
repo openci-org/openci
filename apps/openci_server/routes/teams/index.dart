@@ -5,6 +5,7 @@ import 'package:dart_frog/dart_frog.dart';
 import 'package:openci_server/database.dart';
 import 'package:openci_server/request/error_handler.dart';
 import 'package:openci_server/request/request_extension.dart';
+import 'package:openci_server/team/team_dao.dart';
 import 'package:openci_server/team/team_mapper.dart';
 import 'package:openci_shared/openci_shared.dart';
 import 'package:uuid/uuid.dart';
@@ -138,6 +139,11 @@ Future<Response> _post(RequestContext context) async {
 
     return Response.json(
       body: {'success': true, 'id': teamId},
+    );
+  } on TeamIdAlreadyUsedException {
+    return Response.json(
+      statusCode: HttpStatus.conflict,
+      body: {'success': false, 'error': 'Team ID cannot be reused'},
     );
   } catch (e, s) {
     return handleRouteException(e, s, logMessage: 'Failed to create team');
