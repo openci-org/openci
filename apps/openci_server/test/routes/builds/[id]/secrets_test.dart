@@ -423,6 +423,41 @@ void main() {
     );
 
     test(
+      'does not return credentials if workflow access fails for the former dummy installation',
+      () async {
+        await db
+            .update(db.gitHubConnections)
+            .replace(
+              connection.copyWith(installationId: 12345678),
+            );
+
+        final response = await requestSecrets(
+          installationId: '12345678',
+          respond: (request) {
+            if (request.url.path.endsWith('/installation')) {
+              return http.Response(jsonEncode({'id': 12345678}), 200);
+            }
+            if (request.method == 'POST') {
+              return http.Response(jsonEncode({'token': token}), 201);
+            }
+            return http.Response('private workflow permission detail', 403);
+          },
+        );
+
+        expect(response.statusCode, HttpStatus.internalServerError);
+        expect(jsonDecode(response.body), {
+          'success': false,
+          'error': 'Internal server error',
+        });
+        expect(githubRequests.map((request) => request.url.path), [
+          '/api/v3/repos/owner/repo/installation',
+          '/api/v3/app/installations/12345678/access_tokens',
+          '/api/v3/repos/owner/repo/contents/openci/ci.dart',
+        ]);
+      },
+    );
+
+    test(
       'does not return credentials when the private key is missing',
       () async {
         environment.remove('GITHUB_PRIVATE_KEY_PATH');

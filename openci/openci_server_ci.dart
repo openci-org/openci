@@ -14,5 +14,5 @@ Future<void> main() async {
 
   await openCI.flutter.staticAnalysis();
 
-  await openCI.flutter.unitTests();
+  await openCI.run('dart test');
 }
