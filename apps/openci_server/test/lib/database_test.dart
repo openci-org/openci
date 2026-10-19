@@ -107,6 +107,7 @@ void main() {
           'github_connection_requests',
           'github_connection_sessions',
           'github_connections',
+          'billing_accounts',
         ]),
       );
       expect(
@@ -121,7 +122,7 @@ void main() {
         (await db.customSelect('PRAGMA user_version').getSingle()).read<int>(
           'user_version',
         ),
-        28,
+        29,
       );
       expect(
         (await db.customSelect('SELECT * FROM teams').getSingle()).data,
@@ -182,7 +183,7 @@ void main() {
         (await db.customSelect('PRAGMA user_version').getSingle()).read<int>(
           'user_version',
         ),
-        28,
+        29,
       );
     },
   );
@@ -226,7 +227,7 @@ void main() {
       (await db.customSelect('PRAGMA user_version').getSingle()).read<int>(
         'user_version',
       ),
-      28,
+      29,
     );
     expect(
       (await db.customSelect('SELECT * FROM teams').getSingle()).data,
@@ -309,7 +310,7 @@ void main() {
       (await db.customSelect('PRAGMA user_version').getSingle()).read<int>(
         'user_version',
       ),
-      28,
+      29,
     );
     expect(
       (await db.customSelect('SELECT * FROM teams').getSingle()).data,
@@ -415,7 +416,7 @@ void main() {
         (await db.customSelect('PRAGMA user_version').getSingle()).read<int>(
           'user_version',
         ),
-        28,
+        29,
       );
       expect((await db.teamDao.getTeam('team-1'))!.installationIds, [123]);
       expect((await db.teamDao.getTeam('team-2'))!.installationIds, [123]);
@@ -457,6 +458,46 @@ void main() {
       );
     },
   );
+
+  test('stores one billing account per team', () async {
+    const account = BillingAccount(teamId: 'team-1');
+    await db.into(db.billingAccounts).insert(account);
+    await expectLater(
+      db.into(db.billingAccounts).insert(account),
+      throwsA(isA<Exception>()),
+    );
+    await db
+        .into(db.billingAccounts)
+        .insert(account.copyWith(teamId: 'team-2'));
+    expect(
+      await db.select(db.billingAccounts).get(),
+      unorderedEquals([account, account.copyWith(teamId: 'team-2')]),
+    );
+  });
+
+  test('retains billing identity after team deletion', () async {
+    await db.customStatement('PRAGMA foreign_keys = ON');
+    await db.teamDao.createTeamAndMember(
+      DriftTeam(
+        id: 'team-1',
+        name: 'OpenCI',
+        installationIds: const [],
+        aiEnabled: false,
+        runNumber: 1,
+        createdAt: DateTime.utc(2026),
+        updatedAt: DateTime.utc(2026),
+      ),
+      'member-1',
+    );
+    const account = BillingAccount(teamId: 'team-1');
+    await db.into(db.billingAccounts).insert(account);
+
+    await db.teamDao.deleteTeam('team-1');
+
+    expect(await db.teamDao.getTeam('team-1'), isNull);
+    expect(await db.teamDao.getTeamMembers('team-1'), isEmpty);
+    expect(await db.select(db.billingAccounts).getSingle(), account);
+  });
 
   test('Can insert and retrieve DriftBuildJob', () async {
     final now = DateTime.now().toUtc();
