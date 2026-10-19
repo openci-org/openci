@@ -126,8 +126,9 @@ void main() {
               .select(db.gitHubConnectionRequests)
               .getSingle();
 
-          // The existing tables are unchanged in v28. Removing only the new table
-          // and restoring the version recreates the populated v27 schema.
+          // Remove the tables added since v27 and restore the version to
+          // recreate the populated v27 schema.
+          await db.customStatement('DROP TABLE billing_accounts');
           await db.customStatement('DROP TABLE github_connections');
           await db.customStatement('UPDATE __schema SET version = 27');
           await db.close();
@@ -137,7 +138,7 @@ void main() {
           expect(
             (await db.customSelect('SELECT version FROM __schema').getSingle())
                 .read<int>('version'),
-            28,
+            29,
           );
           expect(
             (await db.teamDao.getTeam('team-1'))!.toJson(),

@@ -7018,6 +7018,169 @@ class GitHubConnectionsCompanion
   }
 }
 
+class $BillingAccountsTable extends BillingAccounts
+    with TableInfo<$BillingAccountsTable, BillingAccount> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $BillingAccountsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _teamIdMeta = const VerificationMeta('teamId');
+  @override
+  late final GeneratedColumn<String> teamId = GeneratedColumn<String>(
+    'team_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [teamId];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'billing_accounts';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<BillingAccount> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('team_id')) {
+      context.handle(
+        _teamIdMeta,
+        teamId.isAcceptableOrUnknown(data['team_id']!, _teamIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_teamIdMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {teamId};
+  @override
+  BillingAccount map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return BillingAccount(
+      teamId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}team_id'],
+      )!,
+    );
+  }
+
+  @override
+  $BillingAccountsTable createAlias(String alias) {
+    return $BillingAccountsTable(attachedDatabase, alias);
+  }
+}
+
+class BillingAccount extends DataClass implements Insertable<BillingAccount> {
+  final String teamId;
+  const BillingAccount({required this.teamId});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['team_id'] = Variable<String>(teamId);
+    return map;
+  }
+
+  BillingAccountsCompanion toCompanion(bool nullToAbsent) {
+    return BillingAccountsCompanion(teamId: Value(teamId));
+  }
+
+  factory BillingAccount.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return BillingAccount(teamId: serializer.fromJson<String>(json['teamId']));
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{'teamId': serializer.toJson<String>(teamId)};
+  }
+
+  BillingAccount copyWith({String? teamId}) =>
+      BillingAccount(teamId: teamId ?? this.teamId);
+  BillingAccount copyWithCompanion(BillingAccountsCompanion data) {
+    return BillingAccount(
+      teamId: data.teamId.present ? data.teamId.value : this.teamId,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('BillingAccount(')
+          ..write('teamId: $teamId')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => teamId.hashCode;
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is BillingAccount && other.teamId == this.teamId);
+}
+
+class BillingAccountsCompanion extends UpdateCompanion<BillingAccount> {
+  final Value<String> teamId;
+  final Value<int> rowid;
+  const BillingAccountsCompanion({
+    this.teamId = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  BillingAccountsCompanion.insert({
+    required String teamId,
+    this.rowid = const Value.absent(),
+  }) : teamId = Value(teamId);
+  static Insertable<BillingAccount> custom({
+    Expression<String>? teamId,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (teamId != null) 'team_id': teamId,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  BillingAccountsCompanion copyWith({
+    Value<String>? teamId,
+    Value<int>? rowid,
+  }) {
+    return BillingAccountsCompanion(
+      teamId: teamId ?? this.teamId,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (teamId.present) {
+      map['team_id'] = Variable<String>(teamId.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('BillingAccountsCompanion(')
+          ..write('teamId: $teamId, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -7036,6 +7199,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
       $GitHubConnectionSessionsTable(this);
   late final $GitHubConnectionsTable gitHubConnections =
       $GitHubConnectionsTable(this);
+  late final $BillingAccountsTable billingAccounts = $BillingAccountsTable(
+    this,
+  );
   late final BuildJobDao buildJobDao = BuildJobDao(this as AppDatabase);
   late final BuildRunDao buildRunDao = BuildRunDao(this as AppDatabase);
   late final TeamDao teamDao = TeamDao(this as AppDatabase);
@@ -7065,6 +7231,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     gitHubConnectionRequests,
     gitHubConnectionSessions,
     gitHubConnections,
+    billingAccounts,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -12797,6 +12964,128 @@ typedef $$GitHubConnectionsTableProcessedTableManager =
       DriftGitHubConnection,
       PrefetchHooks Function({bool teamId})
     >;
+typedef $$BillingAccountsTableCreateCompanionBuilder =
+    BillingAccountsCompanion Function({
+      required String teamId,
+      Value<int> rowid,
+    });
+typedef $$BillingAccountsTableUpdateCompanionBuilder =
+    BillingAccountsCompanion Function({Value<String> teamId, Value<int> rowid});
+
+class $$BillingAccountsTableFilterComposer
+    extends Composer<_$AppDatabase, $BillingAccountsTable> {
+  $$BillingAccountsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get teamId => $composableBuilder(
+    column: $table.teamId,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$BillingAccountsTableOrderingComposer
+    extends Composer<_$AppDatabase, $BillingAccountsTable> {
+  $$BillingAccountsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get teamId => $composableBuilder(
+    column: $table.teamId,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$BillingAccountsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $BillingAccountsTable> {
+  $$BillingAccountsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get teamId =>
+      $composableBuilder(column: $table.teamId, builder: (column) => column);
+}
+
+class $$BillingAccountsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $BillingAccountsTable,
+          BillingAccount,
+          $$BillingAccountsTableFilterComposer,
+          $$BillingAccountsTableOrderingComposer,
+          $$BillingAccountsTableAnnotationComposer,
+          $$BillingAccountsTableCreateCompanionBuilder,
+          $$BillingAccountsTableUpdateCompanionBuilder,
+          (
+            BillingAccount,
+            BaseReferences<
+              _$AppDatabase,
+              $BillingAccountsTable,
+              BillingAccount
+            >,
+          ),
+          BillingAccount,
+          PrefetchHooks Function()
+        > {
+  $$BillingAccountsTableTableManager(
+    _$AppDatabase db,
+    $BillingAccountsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$BillingAccountsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$BillingAccountsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$BillingAccountsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> teamId = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => BillingAccountsCompanion(teamId: teamId, rowid: rowid),
+          createCompanionCallback:
+              ({
+                required String teamId,
+                Value<int> rowid = const Value.absent(),
+              }) =>
+                  BillingAccountsCompanion.insert(teamId: teamId, rowid: rowid),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$BillingAccountsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $BillingAccountsTable,
+      BillingAccount,
+      $$BillingAccountsTableFilterComposer,
+      $$BillingAccountsTableOrderingComposer,
+      $$BillingAccountsTableAnnotationComposer,
+      $$BillingAccountsTableCreateCompanionBuilder,
+      $$BillingAccountsTableUpdateCompanionBuilder,
+      (
+        BillingAccount,
+        BaseReferences<_$AppDatabase, $BillingAccountsTable, BillingAccount>,
+      ),
+      BillingAccount,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -12831,4 +13120,6 @@ class $AppDatabaseManager {
       );
   $$GitHubConnectionsTableTableManager get gitHubConnections =>
       $$GitHubConnectionsTableTableManager(_db, _db.gitHubConnections);
+  $$BillingAccountsTableTableManager get billingAccounts =>
+      $$BillingAccountsTableTableManager(_db, _db.billingAccounts);
 }
