@@ -45,3 +45,20 @@ func ensureBillingAccount(ctx context.Context, pool *pgxpool.Pool, teamID string
 	}
 	return &account, nil
 }
+
+func withBillingAccountLock(ctx context.Context, pool *pgxpool.Pool, teamID string, action func(pgx.Tx, *billingAccount) error) error {
+	return pgx.BeginFunc(ctx, pool, func(tx pgx.Tx) error {
+		var account billingAccount
+		if err := tx.QueryRow(ctx,
+			"SELECT id FROM teams WHERE id = $1 FOR UPDATE", teamID,
+		).Scan(&account.TeamID); err != nil {
+			return err
+		}
+		if err := tx.QueryRow(ctx,
+			"SELECT team_id FROM billing_accounts WHERE team_id = $1 FOR UPDATE", teamID,
+		).Scan(&account.TeamID); err != nil {
+			return err
+		}
+		return action(tx, &account)
+	})
+}
