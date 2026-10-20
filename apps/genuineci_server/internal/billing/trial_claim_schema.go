@@ -1,4 +1,4 @@
-package main
+package billing
 
 import (
 	"context"
@@ -7,7 +7,9 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-func ensureBillingTrialClaimsTable(ctx context.Context, pool *pgxpool.Pool) error {
+// EnsureTrialClaimsTable creates trial claim storage if it does not exist.
+// The billing_accounts table must already exist.
+func EnsureTrialClaimsTable(ctx context.Context, pool *pgxpool.Pool) error {
 	return pgx.BeginFunc(ctx, pool, func(tx pgx.Tx) error {
 		// Serialize schema creation when multiple servers start at the same time.
 		if _, err := tx.Exec(ctx, `

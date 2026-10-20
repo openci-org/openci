@@ -6,6 +6,7 @@ COPY apps/genuineci_server/go.mod apps/genuineci_server/go.sum ./
 RUN go mod download
 
 COPY apps/genuineci_server/*.go ./
+COPY apps/genuineci_server/internal/ ./internal/
 RUN CGO_ENABLED=0 go build -mod=readonly -trimpath -o /out/server .
 
 FROM debian:bookworm-slim

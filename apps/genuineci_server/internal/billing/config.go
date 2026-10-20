@@ -1,4 +1,4 @@
-package main
+package billing
 
 import (
 	"errors"
@@ -6,7 +6,8 @@ import (
 	"strconv"
 )
 
-func billingEnabled() (bool, error) {
+// Enabled reports whether billing is enabled in a Cloud environment.
+func Enabled() (bool, error) {
 	mode, set := os.LookupEnv("SERVER_ACCESS_MODE")
 	if !set || mode == "self_hosted" {
 		return false, nil
@@ -25,8 +26,10 @@ func billingEnabled() (bool, error) {
 	return true, nil
 }
 
-func trialAllowanceSeconds() (*int64, error) {
-	enabled, err := billingEnabled()
+// TrialAllowanceSeconds returns the configured trial allowance, or nil when
+// billing is disabled or the allowance is unset.
+func TrialAllowanceSeconds() (*int64, error) {
+	enabled, err := Enabled()
 	if err != nil || !enabled {
 		return nil, err
 	}
