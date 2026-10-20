@@ -445,6 +445,29 @@ void main() {
       },
     );
 
+    test('rejects a team ID with a retained billing identity', () async {
+      const account = BillingAccount(teamId: 'retired-id');
+      await db.into(db.billingAccounts).insert(account);
+      final context = TestRequestContext(
+        path: '/teams',
+        method: HttpMethod.post,
+        body: jsonEncode({'id': account.teamId, 'name': 'Replacement Team'}),
+      );
+      context.provide<AppDatabase>(db);
+      context.provide<String?>('new-user');
+
+      final response = await route.onRequest(context.context);
+
+      expect(response.statusCode, HttpStatus.conflict);
+      expect(await response.json(), {
+        'success': false,
+        'error': 'Team ID cannot be reused',
+      });
+      expect(await db.select(db.teams).get(), isEmpty);
+      expect(await db.select(db.teamMembers).get(), isEmpty);
+      expect(await db.select(db.billingAccounts).getSingle(), account);
+    });
+
     test(
       'responds with 500 Internal Server Error when database fails',
       () async {

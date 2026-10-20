@@ -27,7 +27,14 @@ class TeamDao extends DatabaseAccessor<AppDatabase> with _$TeamDaoMixin {
 
   Future<void> createTeamAndMember(DriftTeam team, String userId) async {
     await transaction(() async {
+      // Insert first so a concurrent deletion cannot bypass the identity check.
       await into(teams).insert(team);
+      final account = await (select(
+        attachedDatabase.billingAccounts,
+      )..where((account) => account.teamId.equals(team.id))).getSingleOrNull();
+      if (account != null) {
+        throw const TeamIdAlreadyUsedException();
+      }
       await into(teamMembers).insert(
         TeamMembersCompanion.insert(
           teamId: team.id,
@@ -81,4 +88,8 @@ class TeamDao extends DatabaseAccessor<AppDatabase> with _$TeamDaoMixin {
   Future<List<DriftTeamMember>> getTeamMembers(String teamId) {
     return (select(teamMembers)..where((t) => t.teamId.equals(teamId))).get();
   }
+}
+
+class TeamIdAlreadyUsedException implements Exception {
+  const TeamIdAlreadyUsedException();
 }
