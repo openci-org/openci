@@ -18,9 +18,14 @@ type trialStart struct {
 }
 
 func startTrial(ctx context.Context, pool *pgxpool.Pool, input trialStart) (bool, error) {
+	enabled, err := Enabled()
+	if err != nil || !enabled {
+		return false, err
+	}
+
 	period := newTrialBillingPeriod(input.PeriodID, input.TeamID, input.StartsAt, input.AllowanceSeconds)
 	started := false
-	err := withBillingAccountLock(ctx, pool, input.TeamID, func(tx pgx.Tx, _ *billingAccount) error {
+	err = withBillingAccountLock(ctx, pool, input.TeamID, func(tx pgx.Tx, _ *billingAccount) error {
 		claimed, err := createTrialClaim(ctx, tx, trialClaim{
 			UserID:    input.UserID,
 			TeamID:    input.TeamID,
