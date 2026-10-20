@@ -39,3 +39,28 @@ func getBillingPeriod(ctx context.Context, pool *pgxpool.Pool, teamID, periodID 
 	period.EndsAt = time.Unix(endsAt, 0).UTC()
 	return &period, nil
 }
+
+func createBillingPeriod(ctx context.Context, tx pgx.Tx, period billingPeriod) error {
+	result, err := tx.Exec(ctx, `
+		INSERT INTO billing_periods
+			(id, team_id, plan_id, period_type, starts_at, ends_at, allowance_seconds)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)
+		ON CONFLICT (id) DO NOTHING
+	`, period.ID, period.TeamID, period.PlanID, period.PeriodType,
+		period.StartsAt.Unix(), period.EndsAt.Unix(), period.AllowanceSeconds)
+	if err != nil {
+		return err
+	}
+	if result.RowsAffected() == 0 {
+		var teamID string
+		if err := tx.QueryRow(ctx,
+			"SELECT team_id FROM billing_periods WHERE id = $1", period.ID,
+		).Scan(&teamID); err != nil {
+			return err
+		}
+		if teamID != period.TeamID {
+			return errors.New("billing period ID belongs to another team")
+		}
+	}
+	return nil
+}
