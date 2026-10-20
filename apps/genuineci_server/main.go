@@ -12,6 +12,10 @@ import (
 )
 
 func main() {
+	if _, err := trialAllowanceSeconds(); err != nil {
+		log.Fatal(err)
+	}
+
 	databaseURL := strings.TrimSpace(os.Getenv("DATABASE_URL"))
 	if databaseURL == "" {
 		log.Fatal("DATABASE_URL must be set")
