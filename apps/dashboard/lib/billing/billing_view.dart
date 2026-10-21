@@ -126,7 +126,7 @@ class BillingView extends StatelessWidget {
 
 String _blockMessage(String reason) => switch (reason) {
   'payment_required' => 'CIの利用にはプランの購入が必要です。',
-  'allowance_exhausted' => '今期の利用枠を使い切りました。',
+  'allowance_exhausted' => '新しいCIを開始できる利用枠がありません。',
   'subscription_ended' => '契約が終了しています。',
   'payment_pending' => '決済を確認しています。時間をおいて再読み込みしてください。',
   _ => '現在、CIを開始できません。時間をおいて再読み込みしてください。',

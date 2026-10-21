@@ -11,6 +11,7 @@ void main() {
     bool canManage = true,
     bool enabled = true,
     bool canStart = false,
+    String blockReason = 'payment_required',
     String? planId,
     bool returned = false,
     ValueChanged<String>? checkout,
@@ -28,7 +29,7 @@ void main() {
                 billingEnabled: enabled,
                 planId: planId,
                 canStartCi: canStart,
-                blockReason: 'payment_required',
+                blockReason: blockReason,
                 paidUntil: null,
                 canCheckout: canCheckout,
                 canManageBilling: canManage,
@@ -98,6 +99,30 @@ void main() {
     }
     expect(calls, 0);
     expect(find.text('Stripeを開く準備をしています…'), findsOneWidget);
+  });
+
+  testWidgets('unavailable allowance keeps management and reload accessible', (
+    tester,
+  ) async {
+    var managed = 0;
+    var reloaded = 0;
+    await show(
+      tester,
+      canCheckout: false,
+      planId: 'light',
+      blockReason: 'allowance_exhausted',
+      portal: () => managed++,
+      reload: () => reloaded++,
+    );
+    expect(find.text('新しいCIを開始できる利用枠がありません。'), findsOneWidget);
+    expect(find.text('Lightを選ぶ'), findsNothing);
+    expect(find.text('Proを選ぶ'), findsNothing);
+    await tester.scrollUntilVisible(find.text('契約を管理'), 200);
+    await tester.tap(find.text('契約を管理'));
+    await tester.scrollUntilVisible(find.text('再読み込み'), 200);
+    await tester.tap(find.text('再読み込み'));
+    expect(managed, 1);
+    expect(reloaded, 1);
   });
 
   testWidgets('a Stripe return does not change the server access decision', (

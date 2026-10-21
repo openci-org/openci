@@ -68,5 +68,8 @@ func newStripeStateTestDB(t *testing.T) (context.Context, *pgxpool.Pool) {
 	if err := EnsureStripeStateTables(ctx, pool); err != nil {
 		t.Fatal(err)
 	}
+	if err := EnsureExecutionsTable(ctx, pool); err != nil {
+		t.Fatal(err)
+	}
 	return ctx, pool
 }
