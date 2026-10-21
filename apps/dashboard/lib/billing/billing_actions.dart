@@ -60,13 +60,17 @@ class BillingActions {
           ? 'billing.stripe.com'
           : 'checkout.stripe.com';
       final path = planId == null ? '/p/session/' : '/c/pay/';
+      final hasPortalQuerySession =
+          planId == null &&
+          uri?.path == '/p/session' &&
+          (uri?.queryParameters['secret']?.trim().isNotEmpty ?? false);
       if (uri == null ||
           uri.scheme != 'https' ||
           uri.host != host ||
           uri.userInfo.isNotEmpty ||
           uri.port != 443 ||
-          !uri.path.startsWith(path) ||
-          uri.path.length == path.length) {
+          (!hasPortalQuerySession &&
+              (!uri.path.startsWith(path) || uri.path.length == path.length))) {
         throw const BillingException('invalid_redirect');
       }
       return uri;
