@@ -20,6 +20,8 @@ class MockAppDatabase extends Mock implements AppDatabase {}
 
 class MockTeamDao extends Mock implements TeamDao {}
 
+class MockBillingProxy extends Mock implements BillingProxy {}
+
 void main() {
   setUpAll(() {
     registerFallbackValue(
@@ -704,6 +706,26 @@ void main() {
         expect(await db.teamDao.getTeam('team-1'), isNotNull);
       },
     );
+
+    test('asynchronous proxy failures reach the route error handler', () async {
+      proxy = MockBillingProxy();
+      when(
+        () => proxy.request(
+          operation: BillingOperation.deleteTeam,
+          teamId: 'team-1',
+          uid: 'user-1',
+        ),
+      ).thenAnswer((_) async => throw StateError('proxy failed'));
+
+      final response = await deleteTeam();
+
+      expect(response.statusCode, HttpStatus.internalServerError);
+      expect(await response.json(), {
+        'success': false,
+        'error': 'Internal server error',
+      });
+      expect(await db.teamDao.getTeam('team-1'), isNotNull);
+    });
 
     test('unauthenticated callers never reach the billing server', () async {
       expect((await deleteTeam(uid: null)).statusCode, HttpStatus.unauthorized);
