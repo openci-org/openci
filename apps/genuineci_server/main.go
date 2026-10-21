@@ -12,6 +12,10 @@ import (
 )
 
 func main() {
+	enabled, err := billingEnabled()
+	if err != nil {
+		log.Fatal(err)
+	}
 	if _, err := trialAllowanceSeconds(); err != nil {
 		log.Fatal(err)
 	}
@@ -32,6 +36,16 @@ func main() {
 	if err != nil {
 		pool.Close()
 		log.Fatal("PostgreSQL connection check failed")
+	}
+
+	if enabled {
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		err = ensureBillingTrialClaimsTable(ctx, pool)
+		cancel()
+		if err != nil {
+			pool.Close()
+			log.Fatal("Billing trial claim table initialization failed: ", err)
+		}
 	}
 
 	mux := http.NewServeMux()
