@@ -196,6 +196,8 @@ func TestStartTrialDeletedTeam(t *testing.T) {
 
 func newTrialStartTestDB(t *testing.T, teamIDs ...string) (context.Context, *pgxpool.Pool) {
 	t.Helper()
+	t.Setenv("SERVER_ACCESS_MODE", "cloud")
+	t.Setenv("BILLING_ENABLED", "true")
 	ctx, pool := newTrialClaimTestDB(t, teamIDs...)
 	if _, err := pool.Exec(ctx, `
 		CREATE TABLE teams (id text PRIMARY KEY);
