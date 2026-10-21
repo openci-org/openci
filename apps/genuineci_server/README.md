@@ -71,7 +71,12 @@ authorization and HTTP integration follow separately.
 storage. It sends only the original stored parameters, with the durable key also
 in Session metadata, and returns a result only after recording it. A known Session
 is retrieved instead of creating another one. Unrecorded outcomes may replay the
-same key within 23 hours; older or future-dated records require reconciliation.
+same key within 23 hours. Older unknown outcomes are recovered through a bounded,
+paginated Customer-scoped Session lookup. Recovery requires exactly one match for
+the creation key, matching identity/return URLs, and the original Price at quantity
+one. Open, completed, and expired results are recorded without creating a replacement.
+Missing, ambiguous, truncated, or mismatched results remain blocked; future-dated
+intents also remain blocked. Lookup scans at most 1,000 Sessions within ten seconds.
 This internal helper does not authorize a purchase, close intents, or grant access.
 
 ## Checkout creation storage
