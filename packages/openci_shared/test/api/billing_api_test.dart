@@ -47,6 +47,34 @@ void main() {
   tearDown(() => client.dispose());
 
   test(
+    'Portal sends an authenticated team request without provider fields',
+    () async {
+      body = {'url': 'https://billing.stripe.com/p/session/test'};
+      final response = await api.createBillingPortal('team-2');
+      final request = requests.single;
+      expect(request.method, 'POST');
+      expect(
+        request.url.toString(),
+        'https://api.openci.test/teams/team-2/billing/portal',
+      );
+      expect(request.headers['Authorization'], 'Bearer firebase-token');
+      expect(request.body, isEmpty);
+      expect(response.body, body);
+    },
+  );
+
+  test('Portal preserves customer-missing and forbidden responses', () async {
+    for (final entry in [(409, 'customer_missing'), (403, 'forbidden')]) {
+      status = entry.$1;
+      body = {'error': entry.$2};
+      final response = await api.createBillingPortal('team-1');
+      expect(response.statusCode, status);
+      expect(response.body, isNull);
+      expect(jsonDecode(response.error as String), body);
+    }
+  });
+
+  test(
     'Checkout sends only the plan to the authenticated team endpoint',
     () async {
       body = {'url': 'https://checkout.stripe.com/c/pay/test'};

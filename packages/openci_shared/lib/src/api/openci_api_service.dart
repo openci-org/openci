@@ -49,6 +49,11 @@ abstract class OpenCIApiService extends ChopperService {
     @Field('planId') String planId,
   );
 
+  @POST(path: '/teams/{teamId}/billing/portal', timeout: Duration(minutes: 1))
+  Future<Response<Map<String, dynamic>>> createBillingPortal(
+    @Path('teamId') String teamId,
+  );
+
   @POST(path: '/teams/{teamId}/github/connect', timeout: _timeout)
   Future<Response<Map<String, dynamic>>> startGitHubConnection(
     @Path('teamId') String teamId,
