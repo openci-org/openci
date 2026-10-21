@@ -54,30 +54,46 @@ func ensureCheckoutCreation(ctx context.Context, pool *pgxpool.Pool, request che
 			return err
 		}
 
-		var createdAt int64
-		err = tx.QueryRow(ctx, `
-			SELECT team_id, plan_id, stripe_customer_id, stripe_price_id, success_url, cancel_url,
-				livemode, idempotency_key, created_at, stripe_checkout_session_id
-			FROM billing_checkout_creations WHERE team_id = $1 AND closed_at IS NULL
-		`, account.TeamID).Scan(
-			&creation.Request.TeamID, &creation.Request.PlanID, &creation.Request.CustomerID,
-			&creation.Request.PriceID, &creation.Request.SuccessURL, &creation.Request.CancelURL,
-			&creation.Request.Livemode, &creation.IdempotencyKey, &createdAt, &creation.StripeCheckoutSessionID,
-		)
+		stored, err := getOpenCheckoutCreation(ctx, tx, account.TeamID)
 		if err != nil {
 			return err
 		}
+		if stored == nil {
+			return errStripeCheckoutReconciliationRequired
+		}
+		creation = *stored
 		matchesPurchase := creation.Request.PlanID == request.PlanID &&
 			creation.Request.CustomerID == request.CustomerID &&
 			creation.Request.Livemode == request.Livemode
 		if !matchesPurchase {
 			return errCheckoutCreationConflict
 		}
-		creation.CreatedAt = time.Unix(createdAt, 0).UTC()
 		return nil
 	})
 	if err != nil {
 		return nil, err
 	}
+	return &creation, nil
+}
+
+func getOpenCheckoutCreation(ctx context.Context, tx pgx.Tx, teamID string) (*checkoutCreation, error) {
+	var creation checkoutCreation
+	var createdAt int64
+	err := tx.QueryRow(ctx, `
+		SELECT team_id, plan_id, stripe_customer_id, stripe_price_id, success_url, cancel_url,
+			livemode, idempotency_key, created_at, stripe_checkout_session_id
+		FROM billing_checkout_creations WHERE team_id = $1 AND closed_at IS NULL
+	`, teamID).Scan(
+		&creation.Request.TeamID, &creation.Request.PlanID, &creation.Request.CustomerID,
+		&creation.Request.PriceID, &creation.Request.SuccessURL, &creation.Request.CancelURL,
+		&creation.Request.Livemode, &creation.IdempotencyKey, &createdAt, &creation.StripeCheckoutSessionID,
+	)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	creation.CreatedAt = time.Unix(createdAt, 0).UTC()
 	return &creation, nil
 }
