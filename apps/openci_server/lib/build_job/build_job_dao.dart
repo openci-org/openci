@@ -126,22 +126,35 @@ class BuildJobDao extends DatabaseAccessor<AppDatabase>
     required String id,
     required String latestRunId,
     required DateTime updatedAt,
+    bool requireInProgress = false,
   }) async {
-    final count = await (update(buildJobs)..where((t) => t.id.equals(id)))
-        .write(
-          BuildJobsCompanion.custom(
-            runCount:
-                coalesce([buildJobs.runCount, const Constant(0)]) +
-                const Constant(1),
-            latestRunId: Constant(latestRunId),
-            updatedAt: Constant(updatedAt),
-          ),
-        );
+    final count =
+        await (update(buildJobs)..where(
+              (t) =>
+                  t.id.equals(id) &
+                  (requireInProgress
+                      ? t.status.equalsValue(BuildJobStatus.IN_PROGRESS)
+                      : const Constant(true)),
+            ))
+            .write(
+              BuildJobsCompanion.custom(
+                runCount:
+                    coalesce([buildJobs.runCount, const Constant(0)]) +
+                    const Constant(1),
+                latestRunId: Constant(latestRunId),
+                updatedAt: Constant(updatedAt),
+              ),
+            );
     if (count != 1) {
+      if (requireInProgress) throw const BuildJobNotClaimedException();
       throw StateError(
         'Failed to increment run count for build job $id: '
         'expected 1 row to be updated, but updated $count.',
       );
     }
   }
+}
+
+class BuildJobNotClaimedException implements Exception {
+  const BuildJobNotClaimedException();
 }

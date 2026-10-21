@@ -43,6 +43,7 @@ void main() {
   var createStatus = HttpStatus.created;
   var updateStatus = HttpStatus.ok;
   Completer<http.Response>? pendingCheck;
+  Future<void> Function()? onRepositoryLookup;
 
   final connection = DriftGitHubConnection(
     id: 'connection-1',
@@ -82,9 +83,11 @@ void main() {
     createStatus = HttpStatus.created;
     updateStatus = HttpStatus.ok;
     pendingCheck = null;
+    onRepositoryLookup = null;
     client = MockClient((request) async {
       requests.add(request);
       if (request.url.path.endsWith('/installation')) {
+        await onRepositoryLookup?.call();
         return http.Response(
           jsonEncode({'id': repositoryInstallationId}),
           lookupStatus,
@@ -492,6 +495,63 @@ void main() {
       expect(requests, isEmpty);
       await expectRunNotStarted();
     }
+
+    group('Cloud run admission', () {
+      setUp(() {
+        environment['SERVER_ACCESS_MODE'] = 'cloud';
+        environment['BILLING_ENABLED'] = 'false';
+      });
+
+      for (final token in [null, 'invalid-worker-key']) {
+        test(
+          'rejects a Firebase member without a valid worker key: $token',
+          () async {
+            final response = await startRun(
+              uid: 'user-123',
+              bearerToken: token,
+            );
+            expect(response.statusCode, HttpStatus.forbidden);
+            expect(requests, isEmpty);
+            await expectRunNotStarted();
+          },
+        );
+      }
+
+      for (final status in BuildJobStatus.values.where(
+        (status) => status != BuildJobStatus.IN_PROGRESS,
+      )) {
+        test('rejects worker run creation for $status', () async {
+          await db
+              .update(db.buildJobs)
+              .write(BuildJobsCompanion(status: Value(status)));
+          final response = await startRun();
+          expect(response.statusCode, HttpStatus.conflict);
+          expect(requests, isEmpty);
+          await expectRunNotStarted();
+        });
+      }
+
+      test('accepts an authenticated worker for an in-progress job', () async {
+        expect((await startRun()).statusCode, HttpStatus.ok);
+        expect(
+          await db.buildRunDao.getBuildRun('job-check', 'run-check'),
+          isNotNull,
+        );
+      });
+
+      test('rolls back if the job stops before the run is inserted', () async {
+        onRepositoryLookup = () async {
+          await db
+              .update(db.buildJobs)
+              .write(
+                const BuildJobsCompanion(status: Value(BuildJobStatus.FAILURE)),
+              );
+        };
+        expect((await startRun()).statusCode, HttpStatus.conflict);
+        expect(checkRequests(), isEmpty);
+        await expectRunNotStarted();
+      });
+    });
 
     for (final checkRunId in [null, '']) {
       test('creates and saves a Check when the ID is $checkRunId', () async {

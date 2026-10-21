@@ -4,12 +4,15 @@ import 'dart:io';
 import 'package:dart_frog/dart_frog.dart';
 import 'package:drift/drift.dart';
 import 'package:http/http.dart' as http;
+import 'package:openci_server/auth/internal_api_key_validator.dart';
+import 'package:openci_server/build_job/build_job_dao.dart';
 import 'package:openci_server/database.dart';
 import 'package:openci_server/github/github_service.dart';
 import 'package:openci_server/github/parse_github_api_base_uri.dart';
 import 'package:openci_server/github/read_active_github_connections.dart';
 import 'package:openci_server/request/error_handler.dart';
 import 'package:openci_server/request/request_extension.dart';
+import 'package:openci_shared/openci_shared.dart';
 
 FutureOr<Response> onRequest(RequestContext context, String id) {
   return switch (context.request.method) {
@@ -49,6 +52,25 @@ Future<Response> _get(RequestContext context, String id) async {
 Future<Response> _post(RequestContext context, String id) async {
   try {
     final db = context.read<AppDatabase>();
+    Map<String, String> environment;
+    try {
+      environment = context.read<Map<String, String>>();
+    } catch (_) {
+      environment = Platform.environment;
+    }
+    final isCloud = environment['SERVER_ACCESS_MODE'] == 'cloud';
+    final driftJob = context.read<DriftBuildJob>();
+    if (isCloud) {
+      if (!context.read<InternalApiKeyValidator>().isValid(context)) {
+        return Response.json(
+          statusCode: HttpStatus.forbidden,
+          body: {'success': false, 'error': 'Worker authentication required'},
+        );
+      }
+      if (driftJob.status != BuildJobStatus.IN_PROGRESS) {
+        return _jobNotClaimed();
+      }
+    }
 
     final Map<String, dynamic> payload;
     try {
@@ -87,7 +109,6 @@ Future<Response> _post(RequestContext context, String id) async {
       );
     }
 
-    final driftJob = context.read<DriftBuildJob>();
     final installationId = int.tryParse(
       driftJob.installationId ?? '',
       radix: 10,
@@ -124,12 +145,6 @@ Future<Response> _post(RequestContext context, String id) async {
       );
     }
 
-    Map<String, String> environment;
-    try {
-      environment = context.read<Map<String, String>>();
-    } catch (_) {
-      environment = Platform.environment;
-    }
     environment = {
       ...environment,
       'GITHUB_API_BASE_URL': parseGitHubApiBaseUri(
@@ -187,6 +202,7 @@ Future<Response> _post(RequestContext context, String id) async {
           id: id,
           latestRunId: runId,
           updatedAt: now,
+          requireInProgress: isCloud,
         );
 
         if (!hasCheck) {
@@ -217,6 +233,8 @@ Future<Response> _post(RequestContext context, String id) async {
           ).timeout(const Duration(seconds: 10));
         }
       });
+    } on BuildJobNotClaimedException {
+      return _jobNotClaimed();
     } catch (e) {
       final errStr = e.toString();
       final isUniqueViolation =
@@ -247,3 +265,8 @@ Future<Response> _post(RequestContext context, String id) async {
     );
   }
 }
+
+Response _jobNotClaimed() => Response.json(
+  statusCode: HttpStatus.conflict,
+  body: {'success': false, 'error': 'Build job must be in progress'},
+);
