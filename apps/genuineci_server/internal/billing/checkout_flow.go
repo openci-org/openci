@@ -115,20 +115,8 @@ func checkoutURL(session *stripe.CheckoutSession) (string, error) {
 }
 
 func (s *Service) retireCompletedCheckout(ctx context.Context, member billingMember, creation checkoutCreation, session *stripe.CheckoutSession) error {
-	if session.Subscription == nil || session.Subscription.ID == "" {
-		return errStripeCheckoutReconciliationRequired
-	}
-	subscription, err := getStripeSubscription(ctx, s.stripe, session.Subscription.ID)
-	if err != nil {
+	if err := requireEndedCheckoutSubscription(ctx, s.stripe, creation, session); err != nil {
 		return err
-	}
-	if subscription == nil || subscription.ID != session.Subscription.ID || subscription.Customer == nil ||
-		subscription.Customer.ID != creation.Request.CustomerID || subscription.Livemode != creation.Request.Livemode ||
-		subscription.Metadata["team_id"] != member.TeamID {
-		return errStripeCheckoutReconciliationRequired
-	}
-	if subscription.Status != stripe.SubscriptionStatusCanceled && subscription.Status != stripe.SubscriptionStatusIncompleteExpired {
-		return errStripeSubscriptionExists
 	}
 	return withBillingMemberLock(ctx, s.pool, member, func(tx pgx.Tx) error {
 		result, err := tx.Exec(ctx, `
@@ -143,4 +131,23 @@ func (s *Service) retireCompletedCheckout(ctx context.Context, member billingMem
 		}
 		return nil
 	})
+}
+
+func requireEndedCheckoutSubscription(ctx context.Context, client *stripe.Client, creation checkoutCreation, session *stripe.CheckoutSession) error {
+	if session.Subscription == nil || session.Subscription.ID == "" {
+		return errStripeCheckoutReconciliationRequired
+	}
+	subscription, err := getStripeSubscription(ctx, client, session.Subscription.ID)
+	if err != nil {
+		return err
+	}
+	if subscription == nil || subscription.ID != session.Subscription.ID || subscription.Customer == nil ||
+		subscription.Customer.ID != creation.Request.CustomerID || subscription.Livemode != creation.Request.Livemode ||
+		subscription.Metadata["team_id"] != creation.Request.TeamID {
+		return errStripeCheckoutReconciliationRequired
+	}
+	if subscription.Status != stripe.SubscriptionStatusCanceled && subscription.Status != stripe.SubscriptionStatusIncompleteExpired {
+		return errStripeSubscriptionExists
+	}
+	return nil
 }
