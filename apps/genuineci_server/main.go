@@ -62,6 +62,9 @@ func main() {
 		if err == nil {
 			err = billing.EnsureExecutionsTable(ctx, pool)
 		}
+		if err == nil {
+			err = billing.EnsureAdmissionsTable(ctx, pool)
+		}
 		cancel()
 		if err != nil {
 			pool.Close()
