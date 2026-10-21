@@ -85,6 +85,11 @@ Lost expiry responses trigger a fresh read; completed or uncertain purchases kee
 the intent blocking a replacement. Repeated closure preserves its original time.
 This is the prerequisite for pre-payment plan reselection, not subscription changes.
 
+Purchase guards retrieve the stored Customer and verify its ID, team metadata,
+mode, and availability. A Customer-scoped, paginated subscription lookup blocks
+new purchases for every nonterminal or unknown status. Only canceled and
+incomplete-expired contracts permit another purchase; failed reads fail closed.
+
 ## Checkout creation storage
 
 When Cloud billing is enabled, startup prepares `billing_checkout_creations` in Go.
