@@ -90,6 +90,16 @@ mode, and availability. A Customer-scoped, paginated subscription lookup blocks
 new purchases for every nonterminal or unknown status. Only canceled and
 incomplete-expired contracts permit another purchase; failed reads fail closed.
 
+## Customer Portal
+
+`createStripePortalSession` uses an explicit server-owned Portal configuration.
+Before issuing a Session it verifies active/test-live mode, invoice history,
+payment-method updates, period-end cancellation without proration, disabled
+subscription updates, and disabled public Portal login. The returned Customer,
+configuration, mode, and return URL must match. Configuration reads and Session
+creation share a ten-second deadline. Membership and Customer ownership are
+the responsibility of the higher-level billing workflow.
+
 ## Checkout creation storage
 
 When Cloud billing is enabled, startup prepares `billing_checkout_creations` in Go.
