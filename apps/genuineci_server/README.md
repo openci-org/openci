@@ -62,8 +62,8 @@ error; this helper does not generate a new key or perform application-level retr
 The caller must persist the creation intent and key before invoking this helper.
 Stripe can [remove API v1 idempotency keys after 24 hours](https://docs.stripe.com/api/idempotent_requests?lang=go),
 so older uncertain outcomes need reconciliation before another creation attempt.
-The SDK helper is not yet called by the server. Connecting it to the stored intent,
-recovering uncertain results, authorization, and HTTP integration follow separately.
+The SDK helper is used by the internal creation flow below. Authorization, HTTP
+integration, and reconciliation of older uncertain results follow separately.
 
 ## Customer creation storage
 
@@ -98,5 +98,21 @@ original key, mode, and intent timestamp are preserved, and success is returned
 only after commit.
 
 This helper must not receive a Customer object supplied by an HTTP client.
-Connecting the SDK call, result persistence, authorization, and recovery into the
-request flow remains follow-up work.
+
+## Customer creation flow
+
+`ensureStripeCustomer` requires enabled Cloud billing and a configured SDK client.
+It commits the team's creation intent first, calls Stripe with the saved key
+outside the database transaction, and returns the Customer ID only after the
+verified result is committed. An existing recorded ID is returned without a
+Stripe request. A lost response or failed result save leaves the original intent
+available for a later call to retry with the same key.
+
+Pending intents can be retried for 23 hours from their original timestamp, leaving
+a margin before Stripe's 24-hour minimum key retention. The request deadline also
+ends at this boundary. Older or future-dated pending intents return
+`errStripeCustomerReconciliationRequired` without a Stripe request or a new key.
+
+This internal flow is not yet connected to an HTTP route. The caller must verify
+current team membership and supply the team and expected mode from trusted server
+state. Automatic reconciliation of older pending intents remains follow-up work.
