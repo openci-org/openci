@@ -21,7 +21,19 @@ failures return a generic error, and SDK logging is disabled to keep raw upstrea
 errors and response bodies out of logs. Ownership/payment validation and HTTP
 route integration follow separately.
 
-## Checkout Price validation
+## Checkout Price configuration and validation
+
+`stripeCheckoutPriceID` selects a server-configured Price ID from the plan ID:
+
+| Plan | Environment variable |
+| --- | --- |
+| `light` | `STRIPE_LIGHT_PRICE_ID` |
+| `pro` | `STRIPE_PRO_PRICE_ID` |
+
+When Cloud billing is enabled, the selected plan requires a nonblank value;
+surrounding whitespace is trimmed and unknown plans are rejected. Disabled
+billing and Self-hosted return an empty ID without requiring Price configuration.
+This lookup makes no Stripe requests and is not yet wired into Checkout.
 
 `validateStripeCheckoutPrice` checks a retrieved Stripe Price against the
 server-selected Light or Pro plan and expected test/live mode. New purchases
@@ -29,6 +41,7 @@ require an active, fixed USD monthly Price: Light costs 1,000 cents and Pro cost
 10,000 cents. Metered/tiered billing, customer-chosen amounts, quantity
 transformations, and trials are rejected.
 
-This check makes no Stripe requests. Configured Price ID lookup and Checkout
-creation with quantity one follow separately. It validates new-purchase pricing;
-it does not decide access for an existing subscription or paid period.
+This check makes no Stripe requests. Connecting configuration, retrieval, and
+validation to Checkout creation with quantity one follows separately. It validates
+new-purchase pricing; it does not decide access for an existing subscription or
+paid period.
