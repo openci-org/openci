@@ -65,8 +65,32 @@ The caller must validate Customer ownership, the configured Price, and allowed
 return URLs, then persist all parameters and a Checkout-specific idempotency key
 before calling this helper. Retries forward the same parameters and key unchanged;
 a timeout does not prove that Stripe failed to create the Session. Persisted
-Checkout intents, result validation/storage, recovery, membership authorization,
-and HTTP integration follow separately. This helper is not wired into a route.
+Checkout intent writes, result validation/storage, recovery, membership
+authorization, and HTTP integration follow separately. This helper is not wired
+into a route.
+
+## Checkout creation storage
+
+When Cloud billing is enabled, startup prepares `billing_checkout_creations` in Go.
+It requires `billing_accounts` and uses the shared billing schema lock. Table and
+index creation run in one transaction; repeated initialization preserves records.
+
+Each record stores a unique idempotency key, team and plan IDs, the exact Customer
+and Price IDs, success/cancel URLs, test/live mode, and creation time. A nullable
+Session ID records the verified Stripe result and cannot belong to two records.
+Its absence means that the result is not recorded, not that no Session exists.
+
+`closed_at` is null while an intent is unresolved or its Session remains open. A
+partial unique index allows only one such record per team, across all plans and
+modes. Historical closed records retain their keys and Session IDs. Timestamps are
+Unix seconds. The future workflow must establish that an intent is safe to close
+before setting `closed_at`; closing an intent alone does not authorize another
+purchase when an existing subscription is present. Billing account deletion is
+blocked while these records exist.
+
+This change prepares storage only. Writing intents under the account lock,
+validating ownership, saving results, and deciding when to close an intent follow
+in separate slices.
 
 ## Customer creation
 

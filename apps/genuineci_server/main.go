@@ -45,6 +45,9 @@ func main() {
 		if err == nil {
 			err = billing.EnsureCustomerCreationsTable(ctx, pool)
 		}
+		if err == nil {
+			err = billing.EnsureCheckoutCreationsTable(ctx, pool)
+		}
 		cancel()
 		if err != nil {
 			pool.Close()
