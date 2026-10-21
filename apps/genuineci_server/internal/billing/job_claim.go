@@ -34,6 +34,9 @@ func (s *Service) claimJob(ctx context.Context, request workerClaimRequest) (*wo
 	}
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
+	if err := s.recoverWorkerExecutions(ctx); err != nil {
+		return nil, err
+	}
 	var result *workerClaim
 	err := pgx.BeginFunc(ctx, s.pool, func(tx pgx.Tx) error {
 		if request.MaxConcurrentJobs != nil {
