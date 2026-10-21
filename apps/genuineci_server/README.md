@@ -64,10 +64,9 @@ cancellation and earlier deadlines.
 The caller must validate Customer ownership, the configured Price, and allowed
 return URLs, then persist all parameters and a Checkout-specific idempotency key
 before calling this helper. Retries forward the same parameters and key unchanged;
-a timeout does not prove that Stripe failed to create the Session. Persisted
-Checkout intent writes, result validation/storage, recovery, membership
-authorization, and HTTP integration follow separately. This helper is not wired
-into a route.
+a timeout does not prove that Stripe failed to create the Session. Connecting
+persisted intents to this SDK helper, result validation/storage, recovery,
+membership authorization, and HTTP integration follow separately.
 
 ## Checkout creation storage
 
@@ -88,9 +87,23 @@ before setting `closed_at`; closing an intent alone does not authorize another
 purchase when an existing subscription is present. Billing account deletion is
 blocked while these records exist.
 
-This change prepares storage only. Writing intents under the account lock,
-validating ownership, saving results, and deciding when to close an intent follow
-in separate slices.
+`ensureCheckoutCreation` saves a new intent under the team and billing account
+locks, with a server-generated key and creation time, and returns it only after
+commit. It requires a current team, an initialized billing account, a supported
+plan, and nonblank Customer/Price IDs and return URLs.
+
+An unfinished intent for the same plan, Customer, and mode is reused, including
+its original key, timestamp, exact parameters, and any recorded Session ID. Price
+or return URL configuration changes do not rewrite it. A different plan, Customer,
+or mode returns `errCheckoutCreationConflict` without changing the record. Closed
+history is retained when a new intent is saved.
+
+This storage helper makes no Stripe calls and does not close intents. Its caller
+must validate Customer ownership, Price eligibility, allowed return URLs, current
+membership, and existing subscriptions before authorizing a purchase. An old
+unfinished intent still requires reconciliation before retrying Stripe outside
+the safe idempotency window. Result storage and workflow integration follow in
+separate slices.
 
 ## Customer creation
 
