@@ -3,7 +3,6 @@ package billing
 import (
 	"context"
 	"errors"
-	"math"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -80,9 +79,10 @@ func (s *Service) status(ctx context.Context, member billingMember) (*billingSta
 		if err != nil {
 			return nil, err
 		}
-		if usage == nil || usage.AllowanceSeconds > math.MaxInt64/1000 {
+		available, err := usage.availableMillis()
+		if err != nil {
 			result.CanStartCI, result.BlockReason = false, "billing_unavailable"
-		} else if usage.AllowanceSeconds*1000-usage.MeasuredMillis <= usage.LeasedMillis {
+		} else if available == 0 {
 			result.CanStartCI, result.BlockReason = false, "allowance_exhausted"
 		}
 	}
