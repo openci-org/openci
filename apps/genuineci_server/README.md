@@ -62,6 +62,22 @@ error; this helper does not generate a new key or perform application-level retr
 The caller must persist the creation intent and key before invoking this helper.
 Stripe can [remove API v1 idempotency keys after 24 hours](https://docs.stripe.com/api/idempotent_requests?lang=go),
 so older uncertain outcomes need reconciliation before another creation attempt.
-Durable intent/Customer storage, team locking and authorization, recovery, and
-HTTP integration follow separately; this helper alone does not ensure one Customer
-per team. It is not yet called by the server.
+The SDK helper is not yet called by the server. Persisting and recovering creation
+attempts, team locking/authorization, and HTTP integration follow separately.
+
+## Customer creation storage
+
+When Cloud billing is enabled, startup prepares `billing_customer_creations` in Go.
+The existing `billing_accounts` table must be present. A shared schema lock makes
+repeated and concurrent initialization safe without replacing existing rows.
+
+Each team can have one creation record: a unique `idempotency_key`, expected
+`livemode`, `created_at` in Unix seconds, and a nullable, unique `stripe_customer_id`.
+The timestamp records when the durable intent began, not Stripe's Customer creation
+time. A missing Customer ID means the result has not been recorded; it does not
+prove that Stripe has not created a Customer. The foreign key retains this record
+with its billing account identity.
+
+This slice adds storage only. Saving the intent before Stripe calls, recording the
+verified result, and enforcing one Customer per team across retries remain follow-up
+work. Disabled billing and Self-hosted do not create this table at startup.

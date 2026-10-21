@@ -42,10 +42,13 @@ func main() {
 	if enabled {
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		err = billing.EnsureTrialClaimsTable(ctx, pool)
+		if err == nil {
+			err = billing.EnsureCustomerCreationsTable(ctx, pool)
+		}
 		cancel()
 		if err != nil {
 			pool.Close()
-			log.Fatal("Billing trial claim table initialization failed: ", err)
+			log.Fatal("Billing table initialization failed: ", err)
 		}
 	}
 
