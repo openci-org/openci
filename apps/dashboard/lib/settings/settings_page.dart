@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:dashboard/app_strings.dart';
 import 'package:dashboard/auth/auth_provider.dart';
+import 'package:dashboard/billing/billing_identity.dart';
 import 'package:dashboard/connections/active_connection_profile_provider.dart';
 import 'package:dashboard/connections/connection_store_provider.dart';
 import 'package:dashboard/connections/local_development_connection.dart';
@@ -13,6 +14,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:macos_updater/macos_updater.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -43,6 +45,32 @@ class SettingsPage extends HookConsumerWidget {
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
                 children: [
+                  if (ref.watch(billingIdentityProvider) != null) ...[
+                    const _SectionHeader(label: '課金'),
+                    _SettingsGroup(
+                      children: [
+                        _SettingsItem(
+                          icon: Symbols.credit_card_rounded,
+                          title: '課金を管理',
+                          subtitle: 'チームのプラン・請求・支払い方法',
+                          onTap: () {
+                            final selected = ref.read(selectedTeamProvider);
+                            final teamId =
+                                selected.isLoading || selected.hasError
+                                ? null
+                                : selected.asData?.value.id;
+                            context.go(
+                              Uri(
+                                path: '/billing',
+                                queryParameters: {'teamId': ?teamId},
+                              ).toString(),
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+                  ],
                   _SectionHeader(label: settingsT.preferences),
                   _SettingsGroup(
                     children: [
