@@ -38,16 +38,24 @@ func ensureStripeCustomer(ctx context.Context, pool *pgxpool.Pool, client *strip
 
 	now := time.Now()
 	retryDeadline := creation.CreatedAt.Add(stripeCustomerRetryWindow)
-	if now.Before(creation.CreatedAt) || !now.Before(retryDeadline) {
+	if now.Before(creation.CreatedAt) {
 		return "", errStripeCustomerReconciliationRequired
 	}
-	stripeCtx, cancel := context.WithDeadline(ctx, retryDeadline)
-	defer cancel()
 
-	customer, err := createStripeCustomer(stripeCtx, client, stripeCustomerCreateRequest{
-		TeamID:         creation.TeamID,
-		IdempotencyKey: creation.IdempotencyKey,
-	})
+	var customer *stripe.Customer
+	if now.Before(retryDeadline) {
+		stripeCtx, cancel := context.WithDeadline(ctx, retryDeadline)
+		defer cancel()
+		customer, err = createStripeCustomer(stripeCtx, client, stripeCustomerCreateRequest{
+			TeamID:         creation.TeamID,
+			IdempotencyKey: creation.IdempotencyKey,
+		})
+	} else {
+		customer, err = findStripeCustomer(ctx, client, stripeCustomerRequest{
+			TeamID:   creation.TeamID,
+			Livemode: creation.Livemode,
+		})
+	}
 	if err != nil {
 		return "", err
 	}
