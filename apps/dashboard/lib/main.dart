@@ -1,6 +1,4 @@
 import 'package:dashboard/connections/local_development_connection.dart';
-import 'package:dashboard/firebase/firebase_config_provider.dart';
-import 'package:dashboard/revenue_cat/revenue_cat.dart';
 import 'package:dashboard/root.dart';
 import 'package:dashboard/team/capture_github_connection_return.dart';
 import 'package:dashboard/team/pending_github_connection_return_provider.dart';
@@ -25,13 +23,6 @@ Future<void> main() async {
     }
 
     final localDevelopment = LocalDevelopmentConnection.fromEnvironment();
-    if (localDevelopment == null) {
-      final selfHosted = await loadSelfHostedConfig();
-      if (selfHosted == null) {
-        await initializeRevenueCat();
-      }
-    }
-
     await initializeMacosUpdater();
 
     final sharedPreferences = await SharedPreferences.getInstance();
