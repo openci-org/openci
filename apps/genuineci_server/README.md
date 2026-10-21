@@ -20,3 +20,15 @@ deadlines and cancellation are preserved. Request failures return a generic
 error, and SDK logging is disabled to keep raw upstream errors and response
 bodies out of logs. Ownership/payment validation and HTTP route integration
 follow separately.
+
+## Checkout Price validation
+
+`validateStripeCheckoutPrice` checks a retrieved Stripe Price against the
+server-selected Light or Pro plan and expected test/live mode. New purchases
+require an active, fixed USD monthly Price: Light costs 1,000 cents and Pro costs
+10,000 cents. Metered/tiered billing, customer-chosen amounts, quantity
+transformations, and trials are rejected.
+
+This check makes no Stripe requests. Configured Price ID lookup and Checkout
+creation with quantity one follow separately. It validates new-purchase pricing;
+it does not decide access for an existing subscription or paid period.
