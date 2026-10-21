@@ -1,10 +1,33 @@
 package billing
 
 import (
+	"context"
 	"errors"
 
 	"github.com/stripe/stripe-go/v87"
 )
+
+func getStripeCheckoutPrice(ctx context.Context, client *stripe.Client, planID string, livemode bool) (*stripe.Price, error) {
+	priceID, err := stripeCheckoutPriceID(planID)
+	if err != nil {
+		return nil, err
+	}
+	if priceID == "" {
+		return nil, errors.New("Stripe billing is not configured")
+	}
+
+	price, err := getStripePrice(ctx, client, priceID)
+	if err != nil {
+		return nil, err
+	}
+	if err := validateStripeCheckoutPrice(price, planID, livemode); err != nil {
+		return nil, err
+	}
+	if price.ID != priceID {
+		return nil, errors.New("Stripe Price does not match the configured ID")
+	}
+	return price, nil
+}
 
 func validateStripeCheckoutPrice(price *stripe.Price, planID string, livemode bool) error {
 	plan, err := getPaidBillingPlan(planID)

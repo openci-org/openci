@@ -33,7 +33,7 @@ route integration follow separately.
 When Cloud billing is enabled, the selected plan requires a nonblank value;
 surrounding whitespace is trimmed and unknown plans are rejected. Disabled
 billing and Self-hosted return an empty ID without requiring Price configuration.
-This lookup makes no Stripe requests and is not yet wired into Checkout.
+This configuration lookup makes no Stripe requests.
 
 `validateStripeCheckoutPrice` checks a retrieved Stripe Price against the
 server-selected Light or Pro plan and expected test/live mode. New purchases
@@ -41,7 +41,12 @@ require an active, fixed USD monthly Price: Light costs 1,000 cents and Pro cost
 10,000 cents. Metered/tiered billing, customer-chosen amounts, quantity
 transformations, and trials are rejected.
 
-This check makes no Stripe requests. Connecting configuration, retrieval, and
-validation to Checkout creation with quantity one follows separately. It validates
-new-purchase pricing; it does not decide access for an existing subscription or
-paid period.
+`getStripeCheckoutPrice` connects configuration, bounded retrieval, and validation.
+It accepts a plan ID and the expected test/live mode from its server caller, and
+returns only a valid Price whose ID matches the configured ID. Disabled billing,
+missing configuration, retrieval failures, and validation failures return no Price
+and an error. It preserves the retrieval helper's sanitized errors and cancellation.
+
+Checkout session creation with quantity one and HTTP route integration follow
+separately. These helpers validate new-purchase pricing; they do not decide access
+for an existing subscription or paid period.
