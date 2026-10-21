@@ -1,5 +1,10 @@
 # GenuineCI server
 
+Billing authorization treats every current team member equally. `withBillingMemberLock`
+locks the current team and billing account, then checks membership before performing
+an operation. Account initialization rolls back for rejected users. The UID must
+come from verified authentication; a request body is not an identity source.
+
 ## Stripe client
 
 The server uses the official [Stripe Go SDK](https://github.com/stripe/stripe-go),
