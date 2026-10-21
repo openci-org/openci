@@ -1,8 +1,9 @@
 # GenuineCI server
 
 See [ROLLOUT.md](ROLLOUT.md) for service configuration, release gates, and the
-Stripe sandbox verification plan. The current stack is not ready for production
-activation: worker accounting and atomic allowance admission still need integration.
+Stripe sandbox verification plan. Worker accounting and atomic allowance admission
+are connected and locally tested. Production activation still requires PR review
+and integration, deployed Stripe sandbox verification, and a published refund contact.
 
 Billing authorization treats every current team member equally. `withBillingMemberLock`
 locks the current team and billing account, then checks membership before performing
@@ -295,7 +296,8 @@ Stripe return, or an explicit reload, without polling.
 
 Existing `billing_accounts` and `billing_periods` migrations in `openci_server`
 must run first. Go owns Customer/Checkout intents, Stripe state, and event tables.
-Initial trial routes remain disabled. Internal execution metering and allowance
-admission are separate from these Stripe routes; do not enable production billing
-until they and deployed Stripe sandbox validation are complete. No production
-configuration is changed by adding these endpoints.
+Initial trial routes remain disabled. Authenticated worker claim, start and report
+routes enforce allowance admission and record execution time independently of
+Stripe calls. See [the worker lifecycle](ROLLOUT.md#worker-lifecycle-and-recovery)
+for reservations, lease expiry and recovery. Do not enable production billing
+before the remaining rollout gates are complete.

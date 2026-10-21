@@ -7,17 +7,16 @@ verified webhook reconciliation, DB-backed status, the authenticated Dart proxy,
 and Web billing screens. All current team members have the same billing access.
 Cloud team deletion checks current membership, subscriptions, and pending Checkout.
 
-The Go execution ledger stores starts, observations, completion and worker loss.
-Its internal aggregate splits execution time across paid periods and adds parallel
-runs. The worker now supplies its host label when claiming a job. These components
-are not yet connected into complete execution accounting or quota admission.
+Cloud worker claims now check paid eligibility and reserve remaining allowance
+atomically. Run creation, metering and completion use the admitted attempt's
+identity. The Go execution ledger splits measured time across paid periods and
+adds parallel runs; DB-backed status includes live leases and pending reservations.
+Self-hosted and disabled-billing workers keep the existing claim path.
 
-**Production activation is blocked.** The current `canStartCi` response checks
-subscription/payment eligibility and the persisted execution ledger's remaining
-allowance, including live lease time. Worker accounting and claim reservations are
-not connected yet. Claiming a job does not yet enforce paid eligibility or reserve
-allowance. Do not treat a successful
-Checkout or the local test suite as evidence that the CI billing boundary is ready.
+The implementation is published as stacked PRs and has local PostgreSQL and
+Dart-to-Go HTTP coverage. **Production activation remains blocked** on review and
+integration, real Stripe/staging verification, and refund-contact configuration.
+Local test fixtures do not establish that deployed Stripe billing is ready.
 
 ## Service configuration
 
@@ -43,8 +42,9 @@ query parameter nor a browser redirect grants access.
 
 Run the Dart migrations for `billing_accounts` and `billing_periods` before enabling
 Go schema initialization. Go creates Customer/Checkout intents, Stripe state/event
-tables, the execution ledger, and the preserved trial-claim table at startup. Trial
-API/onboarding/UI remain inactive. Existing billing history must survive rollback.
+tables, the execution ledger, admissions, and the preserved trial-claim table at
+startup. Trial API/onboarding/UI remain inactive. Existing billing history must
+survive rollback.
 
 Keep `/internal/` on the private service network or explicitly blocked at the public
 reverse proxy. Route only `POST /stripe/webhook` publicly to Go over HTTPS, preserving
@@ -71,10 +71,7 @@ and start a different selection; uncertain outcomes continue blocking a replacem
 
 | Gate | Tracking | Required result |
 | --- | --- | --- |
-| Worker lifecycle and usage | [G-1382](https://linear.app/genuineci/issue/G-1382) | Server-validated start/heartbeat/finish events bound to the admitted attempt; queue/dependency waiting excluded; worker-loss recovery connected |
-| Atomic CI admission | [G-1358](https://linear.app/genuineci/issue/G-1358) | Paid eligibility and remaining allowance checked with reservations in the claim transaction; ineligible queue heads skipped; Self-hosted bypass preserved |
-| Allowance exhaustion behavior | [G-1358](https://linear.app/genuineci/issue/G-1358) | Implement and test the approved policy: already-running CI finishes, only new starts are blocked |
-| Minimal exhausted state | [G-1417](https://linear.app/genuineci/issue/G-1417) | Existing ledger-based status must also account for the completed claim-reservation integration |
+| Review and integration | [G-1354](https://linear.app/genuineci/issue/G-1354) | Review the stacked PRs in dependency order and require passing checks on the integrated branch |
 | Refund contact and verification | [G-1443](https://linear.app/genuineci/issue/G-1443) | Select a real support contact and validate the approved refund/cancellation procedure |
 | Deployed sandbox verification | [G-1360](https://linear.app/genuineci/issue/G-1360) | Record results using the actual Stripe test environment and staging worker |
 | Production activation | [G-1361](https://linear.app/genuineci/issue/G-1361) | Separate rollout after review, integration, sandbox evidence and operational configuration |
@@ -82,8 +79,64 @@ and start a different selection; uncertain outcomes continue blocking a replacem
 Jobs already admitted may finish after subscription expiry, allowance exhaustion,
 or refund cancellation. Continue measuring those runs through completion; no overage
 charge is introduced. Block new starts when the paid allowance is unavailable.
-No fixed team-concurrency cap substitutes for accounting or reservations. Initial trials, detailed usage API/UI, Native billing
-screens and periodic client polling remain deferred.
+No fixed team-concurrency cap substitutes for accounting or reservations. Initial
+trials, detailed usage API/UI, Native billing screens and periodic client polling
+remain deferred.
+
+## Worker lifecycle and recovery
+
+The authenticated Dart worker routes proxy Cloud billing operations to Go over the
+private service connection. Workers send an admission ID, job ID, run ID and host;
+they cannot choose accounting timestamps. The server rechecks the current attempt
+before accepting lifecycle events or completing a job/check run.
+
+1. Claiming reserves up to 60 seconds of available allowance, with a two-minute
+   deadline to start. Ineligible teams stay queued without blocking eligible teams.
+   Claims for the same team serialize the allowance decision; host capacity still
+   applies without a plan/team concurrency cap.
+2. Run creation binds the admission to a new run ID. The worker must receive a
+   successful metering-start acknowledgement before preparing its VM. Metering
+   includes VM preparation, checkout and workflow execution, and ends before
+   completion reporting and VM cleanup. Queue/dependency waiting is excluded.
+3. The worker reports every 15 seconds. Server observations renew a 60-second lease.
+   Finishing records one terminal interval; retries do not double-count it. Paid
+   expiry, cancellation or allowance exhaustion does not interrupt admitted runs.
+4. A worker claim poll also runs bounded recovery. An expired admission with no
+   execution can release its reservation and requeue the still-current job. A new
+   claim gets a new ID; late messages from the old attempt are rejected.
+5. An expired execution lease is finalized at the last server observation and
+   marked incomplete/abandoned. Recovery closes its admission but leaves the job
+   in progress; it does not start another VM for work that might still be running.
+   Confirm the actual VM outcome before operational cancellation or rerun. Existing
+   runs are never stopped merely because a heartbeat or billing request failed.
+
+Recovery is triggered by claim polls, not a separate background scheduler. Without
+polling, persisted recovery waits until a later poll or lifecycle observation;
+usage reads already bound expired leases instead of accumulating time indefinitely.
+Retain incomplete records for investigation rather than inventing a finish time.
+
+## Local validation
+
+The integrated stack passed Go formatting, `go vet`, and 769 PostgreSQL race-test
+cases/subtests, plus worker lifecycle/API tests and the Dart Frog production build.
+The Dart-to-Go bridge suite uses actual HTTP handlers, Drift migrations and an
+isolated PostgreSQL schema. Its three scenarios cover paid claim/run/meter/finish,
+exhaustion and cancellation while running, reclaimed-attempt rejection, worker
+authentication and server-owned timestamps. It uses a GitHub fixture and no real
+Stripe objects or worker VMs.
+
+To rerun the bridge, set `OPENCI_TEST_DATABASE_URL` to a disposable local PostgreSQL
+database with schema-creation permissions, put Go and Dart on `PATH`, then run:
+
+```sh
+cd apps/openci_server
+dart test integration_test/billing_worker_bridge_test.dart
+```
+
+The test builds `apps/genuineci_server/integration_test/worker_bridge`, which only
+runs against its isolated test schema. It does not enable billing on a deployed
+server. Full Go database tests use the same environment variable with
+`go test -race ./...` from `apps/genuineci_server`.
 
 ## Sandbox verification record
 
@@ -101,7 +154,7 @@ expected result and observed result in G-1360; never attach keys or signing secr
 | Renewal, failed payment and period-end cancellation | Only verified paid invoices extend access; old allowance stays historical; Portal cancellation ends access at the confirmed end |
 | Page open, Stripe return, browser Back and manual reload | A status fetch occurs at the intended boundary; no timer polling; Native/Self-hosted show no billing entry |
 | Non-member, removed member and team deletion | No cross-team action; active/pending purchases prevent deletion; completed deletion retains billing history |
-| CI eligibility, parallel usage, renewal and worker loss | After the gates above are implemented, verify queued jobs, atomic reservations, actual measured time and the approved exhaustion behavior |
+| CI eligibility, parallel usage, renewal and worker loss | Verify queued jobs, atomic reservations, actual measured time, attempt recovery and the approved exhaustion behavior with deployed workers |
 | Manual refund and access outcome | Verify a full refund for an eligible first payment, immediate cancellation, denial of new CI starts, and completion of existing runs in test mode |
 
 ## Approved manual refund operations
