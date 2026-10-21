@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:http/http.dart' as http;
 import 'package:openci_shared/openci_shared.dart';
 
+import '../billing_attempt.dart';
 import '../billing_execution_meter.dart';
 import '../checkout_repository.dart';
 import '../complete_build_job.dart';
@@ -42,6 +43,13 @@ Future<BuildJobStatus> executeBuildJob({
       'run-${DateTime.now().microsecondsSinceEpoch}-'
       '${Random.secure().nextInt(1 << 32).toRadixString(16)}';
   final vmName = 'openci-vm-$runId';
+  final billingAttempt = job.billingAdmissionId == null
+      ? null
+      : BillingAttempt(
+          admissionId: job.billingAdmissionId!,
+          runId: runId,
+          workerHost: job.workerHost ?? '',
+        );
   var status = BuildJobStatus.FAILURE;
   var runCreated = false;
   BillingExecutionMeter? billingMeter;
@@ -225,13 +233,22 @@ Future<BuildJobStatus> executeBuildJob({
           runId: runId,
           status: status,
         ),
+      if (billingAttempt != null)
+        () => completeGitHubCheckRun(
+          api: api,
+          jobId: job.id,
+          status: status,
+          billingAttempt: billingAttempt,
+        ),
       () => completeBuildJob(
         api: api,
         jobId: job.id,
         status: status,
         completedAt: completedAt,
+        billingAttempt: billingAttempt,
       ),
-      () => completeGitHubCheckRun(api: api, jobId: job.id, status: status),
+      if (billingAttempt == null)
+        () => completeGitHubCheckRun(api: api, jobId: job.id, status: status),
       if (vmToDelete != null) () => orchardApi.deleteLease(vmToDelete),
     ]) {
       try {

@@ -1,9 +1,12 @@
 import 'package:openci_shared/openci_shared.dart';
 
+import 'billing_attempt.dart';
+
 Future<void> completeGitHubCheckRun({
   required OpenCIApiService api,
   required String jobId,
   required BuildJobStatus status,
+  BillingAttempt? billingAttempt,
 }) async {
   final conclusion = switch (status) {
     BuildJobStatus.SUCCESS => 'success',
@@ -24,6 +27,7 @@ Future<void> completeGitHubCheckRun({
   final int statusCode;
   try {
     final response = await api.updateCheckRun(jobId, {
+      ...?billingAttempt?.toJson(),
       'status': 'completed',
       'conclusion': conclusion,
     });
