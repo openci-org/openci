@@ -10,11 +10,10 @@ import (
 )
 
 type trialStart struct {
-	PeriodID         string
-	UserID           string
-	TeamID           string
-	StartsAt         time.Time
-	AllowanceSeconds *int64
+	PeriodID string
+	UserID   string
+	TeamID   string
+	StartsAt time.Time
 }
 
 func startTrial(ctx context.Context, pool *pgxpool.Pool, input trialStart) (bool, error) {
@@ -22,8 +21,12 @@ func startTrial(ctx context.Context, pool *pgxpool.Pool, input trialStart) (bool
 	if err != nil || !enabled {
 		return false, err
 	}
+	allowanceSeconds, err := TrialAllowanceSeconds()
+	if err != nil {
+		return false, err
+	}
 
-	period := newTrialBillingPeriod(input.PeriodID, input.TeamID, input.StartsAt, input.AllowanceSeconds)
+	period := newTrialBillingPeriod(input.PeriodID, input.TeamID, input.StartsAt, allowanceSeconds)
 	started := false
 	err = withBillingAccountLock(ctx, pool, input.TeamID, func(tx pgx.Tx, _ *billingAccount) error {
 		claimed, err := createTrialClaim(ctx, tx, trialClaim{

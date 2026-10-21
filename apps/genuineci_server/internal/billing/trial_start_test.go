@@ -3,6 +3,7 @@ package billing
 import (
 	"context"
 	"errors"
+	"os"
 	"reflect"
 	"testing"
 	"time"
@@ -26,7 +27,42 @@ func TestStartTrial(t *testing.T) {
 	if err != nil || !started {
 		t.Fatalf("want a new trial: started=%v, err=%v", started, err)
 	}
-	assertOnlyStartedTrial(t, ctx, pool, input)
+	assertOnlyStartedTrial(t, ctx, pool, input, nil)
+}
+
+func TestStartTrialAllowance(t *testing.T) {
+	zero, seconds := int64(0), int64(1800)
+	for _, tc := range []struct {
+		name, setting string
+		want          *int64
+	}{
+		{"unset", "", nil},
+		{"zero", "0", &zero},
+		{"configured", "1800", &seconds},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			ctx, pool := newTrialStartTestDB(t, "team-1")
+			if tc.setting != "" {
+				t.Setenv("BILLING_TRIAL_ALLOWANCE_SECONDS", tc.setting)
+			}
+			input := trialStart{
+				PeriodID: "trial-1", UserID: "user-1", TeamID: "team-1", StartsAt: time.Unix(1000, 0),
+			}
+
+			started, err := startTrial(ctx, pool, input)
+
+			if err != nil || !started {
+				t.Fatalf("want a new trial: started=%v, err=%v", started, err)
+			}
+			assertOnlyStartedTrial(t, ctx, pool, input, tc.want)
+
+			t.Setenv("BILLING_TRIAL_ALLOWANCE_SECONDS", "3600")
+			if started, err := startTrial(ctx, pool, input); err != nil || started {
+				t.Fatalf("config change must not restart the trial: started=%v, err=%v", started, err)
+			}
+			assertOnlyStartedTrial(t, ctx, pool, input, tc.want)
+		})
+	}
 }
 
 func TestStartTrialRetry(t *testing.T) {
@@ -37,29 +73,28 @@ func TestStartTrialRetry(t *testing.T) {
 	if started, err := startTrial(ctx, pool, original); err != nil || !started {
 		t.Fatalf("seed original trial: started=%v, err=%v", started, err)
 	}
-	allowance := int64(1800)
+	t.Setenv("BILLING_TRIAL_ALLOWANCE_SECONDS", "1800")
 	retry := original
 	retry.PeriodID = "trial-retry"
 	retry.StartsAt = original.StartsAt.Add(8 * 24 * time.Hour)
-	retry.AllowanceSeconds = &allowance
 
 	started, err := startTrial(ctx, pool, retry)
 
 	if err != nil || started {
 		t.Fatalf("retry must not restart an expired trial: started=%v, err=%v", started, err)
 	}
-	assertOnlyStartedTrial(t, ctx, pool, original)
+	assertOnlyStartedTrial(t, ctx, pool, original, nil)
 }
 
 func TestStartTrialRollback(t *testing.T) {
 	ctx, pool := newTrialStartTestDB(t, "team-1")
-	negative := int64(-1)
+	if _, err := pool.Exec(ctx, `
+		ALTER TABLE billing_periods ADD CONSTRAINT reject_trial_insert CHECK (id <> 'trial-1')
+	`); err != nil {
+		t.Fatal(err)
+	}
 	input := trialStart{
-		PeriodID:         "trial-1",
-		UserID:           "user-1",
-		TeamID:           "team-1",
-		StartsAt:         time.Unix(1000, 0),
-		AllowanceSeconds: &negative,
+		PeriodID: "trial-1", UserID: "user-1", TeamID: "team-1", StartsAt: time.Unix(1000, 0),
 	}
 
 	started, err := startTrial(ctx, pool, input)
@@ -70,11 +105,13 @@ func TestStartTrialRollback(t *testing.T) {
 	}
 	assertNoStartedTrial(t, ctx, pool)
 
-	input.AllowanceSeconds = nil
+	if _, err := pool.Exec(ctx, "ALTER TABLE billing_periods DROP CONSTRAINT reject_trial_insert"); err != nil {
+		t.Fatal(err)
+	}
 	if started, err := startTrial(ctx, pool, input); err != nil || !started {
 		t.Fatalf("failed period creation must leave the user and team eligible: started=%v, err=%v", started, err)
 	}
-	assertOnlyStartedTrial(t, ctx, pool, input)
+	assertOnlyStartedTrial(t, ctx, pool, input, nil)
 }
 
 func TestStartTrialPeriodIDConflict(t *testing.T) {
@@ -165,7 +202,7 @@ func TestStartTrialConcurrent(t *testing.T) {
 			if starts != 1 {
 				t.Fatalf("want exactly one successful start, got %d", starts)
 			}
-			assertOnlyStartedTrial(t, ctx, pool, original)
+			assertOnlyStartedTrial(t, ctx, pool, original, nil)
 
 			unused := trialStart{
 				PeriodID: "trial-unused", UserID: "user-2", TeamID: "team-2", StartsAt: original.StartsAt,
@@ -198,6 +235,10 @@ func newTrialStartTestDB(t *testing.T, teamIDs ...string) (context.Context, *pgx
 	t.Helper()
 	t.Setenv("SERVER_ACCESS_MODE", "cloud")
 	t.Setenv("BILLING_ENABLED", "true")
+	t.Setenv("BILLING_TRIAL_ALLOWANCE_SECONDS", "")
+	if err := os.Unsetenv("BILLING_TRIAL_ALLOWANCE_SECONDS"); err != nil {
+		t.Fatal(err)
+	}
 	ctx, pool := newTrialClaimTestDB(t, teamIDs...)
 	if _, err := pool.Exec(ctx, `
 		CREATE TABLE teams (id text PRIMARY KEY);
@@ -220,13 +261,13 @@ func newTrialStartTestDB(t *testing.T, teamIDs ...string) (context.Context, *pgx
 	return ctx, pool
 }
 
-func assertOnlyStartedTrial(t *testing.T, ctx context.Context, pool *pgxpool.Pool, input trialStart) {
+func assertOnlyStartedTrial(t *testing.T, ctx context.Context, pool *pgxpool.Pool, input trialStart, wantAllowance *int64) {
 	t.Helper()
 	startsAt := input.StartsAt.UTC().Truncate(time.Second)
 	assertOnlyTrialClaim(t, ctx, pool, trialClaim{UserID: input.UserID, TeamID: input.TeamID, ClaimedAt: startsAt})
 	want := billingPeriod{
 		ID: input.PeriodID, TeamID: input.TeamID, PlanID: "pro", PeriodType: "trial",
-		StartsAt: startsAt, EndsAt: startsAt.Add(7 * 24 * time.Hour), AllowanceSeconds: input.AllowanceSeconds,
+		StartsAt: startsAt, EndsAt: startsAt.Add(7 * 24 * time.Hour), AllowanceSeconds: wantAllowance,
 	}
 	got, err := getBillingPeriod(ctx, pool, input.TeamID, input.PeriodID)
 	if err != nil || got == nil || !reflect.DeepEqual(*got, want) {
