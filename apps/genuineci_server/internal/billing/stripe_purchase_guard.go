@@ -9,6 +9,7 @@ import (
 )
 
 var errStripeSubscriptionExists = errors.New("the team already has a Stripe subscription; use billing management")
+var errStripeCustomerOwnership = errors.New("Stripe Customer does not belong to the team in the configured mode")
 
 func getOwnedStripeCustomer(ctx context.Context, client *stripe.Client, request stripeCustomerRequest, customerID string) (*stripe.Customer, error) {
 	if client == nil || customerID == "" || request.TeamID == "" {
@@ -25,7 +26,7 @@ func getOwnedStripeCustomer(ctx context.Context, client *stripe.Client, request 
 	}
 	if customer == nil || customer.ID != customerID || customer.Deleted ||
 		customer.Livemode != request.Livemode || customer.Metadata["team_id"] != request.TeamID {
-		return nil, errors.New("Stripe Customer does not belong to the team in the configured mode")
+		return nil, errStripeCustomerOwnership
 	}
 	return customer, nil
 }
