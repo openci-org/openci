@@ -5,6 +5,13 @@ locks the current team and billing account, then checks membership before perfor
 an operation. Account initialization rolls back for rejected users. The UID must
 come from verified authentication; a request body is not an identity source.
 
+`LoadServiceConfig` requires explicit `STRIPE_LIVEMODE`, distinct Light/Pro Price
+IDs, `STRIPE_PORTAL_CONFIGURATION_ID`, `STRIPE_WEBHOOK_SECRET`, and a shared
+`BILLING_INTERNAL_TOKEN` of at least 32 characters when billing is enabled.
+`BILLING_DASHBOARD_ORIGIN` must be HTTPS (loopback HTTP is allowed locally).
+Return URLs are generated on the server as `/billing?teamId=...&result=...`;
+clients cannot supply a return origin. Disabled billing needs none of these settings.
+
 ## Stripe client
 
 The server uses the official [Stripe Go SDK](https://github.com/stripe/stripe-go),
