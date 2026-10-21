@@ -60,6 +60,36 @@ func TestReconcileStripeEventDoesNotExtendFailedRenewal(t *testing.T) {
 	assertStripeState(t, ctx, service, "past_due", "stripe:in_paid", 1, 2)
 }
 
+func TestReconcileStripeEventTracksPortalCancellation(t *testing.T) {
+	for _, mode := range []string{"classic", "flexible"} {
+		t.Run(mode, func(t *testing.T) {
+			ctx, service, gateway := newReconciliationTest(t)
+			gateway.subscription.CancelAt = gateway.subscription.Items.Data[0].CurrentPeriodEnd
+			gateway.subscription.CancelAtPeriodEnd = mode == "classic"
+			if err := service.reconcileStripeEvent(ctx, stripe.Event{ID: "evt_cancel_scheduled"}, gateway.customer.ID); err != nil {
+				t.Fatal(err)
+			}
+			var scheduled bool
+			err := service.pool.QueryRow(ctx, "SELECT cancel_at_period_end FROM billing_stripe_state WHERE team_id = 'team-1'").Scan(&scheduled)
+			if err != nil || !scheduled {
+				t.Fatalf("Portal cancellation must be reflected in persisted state: scheduled=%v, err=%v", scheduled, err)
+			}
+			assertStripeState(t, ctx, service, "active", "stripe:in_paid", 1, 1)
+
+			gateway.subscription.CancelAt = 0
+			gateway.subscription.CancelAtPeriodEnd = false
+			if err := service.reconcileStripeEvent(ctx, stripe.Event{ID: "evt_cancel_removed"}, gateway.customer.ID); err != nil {
+				t.Fatal(err)
+			}
+			err = service.pool.QueryRow(ctx, "SELECT cancel_at_period_end FROM billing_stripe_state WHERE team_id = 'team-1'").Scan(&scheduled)
+			if err != nil || scheduled {
+				t.Fatalf("resuming the subscription must clear the cancellation: scheduled=%v, err=%v", scheduled, err)
+			}
+			assertStripeState(t, ctx, service, "active", "stripe:in_paid", 1, 2)
+		})
+	}
+}
+
 func TestReconcileStripeEventFailsClosedOnMismatches(t *testing.T) {
 	for _, mismatch := range []string{"customer metadata", "purchase key", "Price", "invoice Customer"} {
 		t.Run(mismatch, func(t *testing.T) {

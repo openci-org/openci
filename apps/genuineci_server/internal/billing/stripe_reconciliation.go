@@ -87,6 +87,9 @@ func (s *Service) observeStripePurchase(ctx context.Context, tx pgx.Tx, teamID, 
 	if err := validateStripePurchase(*creation, subscription); err != nil {
 		return observation, err
 	}
+	if subscription.CancelAt == subscription.Items.Data[0].CurrentPeriodEnd {
+		observation.CancelAtPeriodEnd = true
+	}
 	observation.PlanID = creation.Request.PlanID
 	if subscription.LatestInvoice == nil {
 		return observation, errStripePaymentUnverified
