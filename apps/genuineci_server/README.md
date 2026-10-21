@@ -64,9 +64,15 @@ cancellation and earlier deadlines.
 The caller must validate Customer ownership, the configured Price, and allowed
 return URLs, then persist all parameters and a Checkout-specific idempotency key
 before calling this helper. Retries forward the same parameters and key unchanged;
-a timeout does not prove that Stripe failed to create the Session. Connecting
-persisted intents and result storage to this SDK helper, recovery, membership
-authorization, and HTTP integration follow separately.
+a timeout does not prove that Stripe failed to create the Session. Membership
+authorization and HTTP integration follow separately.
+
+`ensureStripeCheckoutSession` connects committed intents to creation and result
+storage. It sends only the original stored parameters, with the durable key also
+in Session metadata, and returns a result only after recording it. A known Session
+is retrieved instead of creating another one. Unrecorded outcomes may replay the
+same key within 23 hours; older or future-dated records require reconciliation.
+This internal helper does not authorize a purchase, close intents, or grant access.
 
 ## Checkout creation storage
 

@@ -34,6 +34,7 @@ func TestCreateStripeCheckoutSession(t *testing.T) {
 			"line_items[0][price]":                 {creation.PriceID},
 			"line_items[0][quantity]":              {"1"},
 			"metadata[team_id]":                    {creation.TeamID},
+			"metadata[checkout_creation_key]":      {creation.IdempotencyKey},
 			"subscription_data[metadata][team_id]": {creation.TeamID},
 		}
 		if !reflect.DeepEqual(request.PostForm, want) {
