@@ -128,6 +128,7 @@ void main() {
 
           // Remove the tables added since v27 and restore the version to
           // recreate the populated v27 schema.
+          await db.customStatement('DROP TABLE billing_periods');
           await db.customStatement('DROP TABLE billing_accounts');
           await db.customStatement('DROP TABLE github_connections');
           await db.customStatement('UPDATE __schema SET version = 27');
@@ -138,7 +139,7 @@ void main() {
           expect(
             (await db.customSelect('SELECT version FROM __schema').getSingle())
                 .read<int>('version'),
-            29,
+            30,
           );
           expect(
             (await db.teamDao.getTeam('team-1'))!.toJson(),

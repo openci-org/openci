@@ -108,6 +108,7 @@ void main() {
           'github_connection_sessions',
           'github_connections',
           'billing_accounts',
+          'billing_periods',
         ]),
       );
       expect(
@@ -122,7 +123,7 @@ void main() {
         (await db.customSelect('PRAGMA user_version').getSingle()).read<int>(
           'user_version',
         ),
-        29,
+        30,
       );
       expect(
         (await db.customSelect('SELECT * FROM teams').getSingle()).data,
@@ -183,7 +184,7 @@ void main() {
         (await db.customSelect('PRAGMA user_version').getSingle()).read<int>(
           'user_version',
         ),
-        29,
+        30,
       );
     },
   );
@@ -227,7 +228,7 @@ void main() {
       (await db.customSelect('PRAGMA user_version').getSingle()).read<int>(
         'user_version',
       ),
-      29,
+      30,
     );
     expect(
       (await db.customSelect('SELECT * FROM teams').getSingle()).data,
@@ -310,7 +311,7 @@ void main() {
       (await db.customSelect('PRAGMA user_version').getSingle()).read<int>(
         'user_version',
       ),
-      29,
+      30,
     );
     expect(
       (await db.customSelect('SELECT * FROM teams').getSingle()).data,
@@ -416,7 +417,7 @@ void main() {
         (await db.customSelect('PRAGMA user_version').getSingle()).read<int>(
           'user_version',
         ),
-        29,
+        30,
       );
       expect((await db.teamDao.getTeam('team-1'))!.installationIds, [123]);
       expect((await db.teamDao.getTeam('team-2'))!.installationIds, [123]);

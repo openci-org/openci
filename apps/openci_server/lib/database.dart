@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:drift/drift.dart';
 import 'package:meta/meta.dart';
 import 'package:openci_server/billing/billing_account_table.dart';
+import 'package:openci_server/billing/billing_period_table.dart';
 import 'package:openci_server/build_job/build_job.dart';
 import 'package:openci_server/build_job/build_job_dao.dart';
 import 'package:openci_server/build_run/build_run.dart';
@@ -42,6 +43,7 @@ part 'database.g.dart';
     GitHubConnectionSessions,
     GitHubConnections,
     BillingAccounts,
+    BillingPeriods,
   ],
   daos: [
     BuildJobDao,
@@ -59,7 +61,7 @@ class AppDatabase extends _$AppDatabase {
     : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 29;
+  int get schemaVersion => 30;
 
   @override
   MigrationStrategy get migration {
@@ -105,6 +107,9 @@ class AppDatabase extends _$AppDatabase {
         }
         if (from < 29) {
           await m.createTable(billingAccounts);
+        }
+        if (from < 30) {
+          await m.createTable(billingPeriods);
         }
       },
     );

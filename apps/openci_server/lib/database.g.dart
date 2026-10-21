@@ -7181,6 +7181,477 @@ class BillingAccountsCompanion extends UpdateCompanion<BillingAccount> {
   }
 }
 
+class $BillingPeriodsTable extends BillingPeriods
+    with TableInfo<$BillingPeriodsTable, BillingPeriod> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $BillingPeriodsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _teamIdMeta = const VerificationMeta('teamId');
+  @override
+  late final GeneratedColumn<String> teamId = GeneratedColumn<String>(
+    'team_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES billing_accounts (team_id)',
+    ),
+  );
+  static const VerificationMeta _planIdMeta = const VerificationMeta('planId');
+  @override
+  late final GeneratedColumn<String> planId = GeneratedColumn<String>(
+    'plan_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _periodTypeMeta = const VerificationMeta(
+    'periodType',
+  );
+  @override
+  late final GeneratedColumn<String> periodType = GeneratedColumn<String>(
+    'period_type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _startsAtMeta = const VerificationMeta(
+    'startsAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> startsAt = GeneratedColumn<DateTime>(
+    'starts_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _endsAtMeta = const VerificationMeta('endsAt');
+  @override
+  late final GeneratedColumn<DateTime> endsAt = GeneratedColumn<DateTime>(
+    'ends_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _allowanceSecondsMeta = const VerificationMeta(
+    'allowanceSeconds',
+  );
+  @override
+  late final GeneratedColumn<int> allowanceSeconds = GeneratedColumn<int>(
+    'allowance_seconds',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    teamId,
+    planId,
+    periodType,
+    startsAt,
+    endsAt,
+    allowanceSeconds,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'billing_periods';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<BillingPeriod> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('team_id')) {
+      context.handle(
+        _teamIdMeta,
+        teamId.isAcceptableOrUnknown(data['team_id']!, _teamIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_teamIdMeta);
+    }
+    if (data.containsKey('plan_id')) {
+      context.handle(
+        _planIdMeta,
+        planId.isAcceptableOrUnknown(data['plan_id']!, _planIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_planIdMeta);
+    }
+    if (data.containsKey('period_type')) {
+      context.handle(
+        _periodTypeMeta,
+        periodType.isAcceptableOrUnknown(data['period_type']!, _periodTypeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_periodTypeMeta);
+    }
+    if (data.containsKey('starts_at')) {
+      context.handle(
+        _startsAtMeta,
+        startsAt.isAcceptableOrUnknown(data['starts_at']!, _startsAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_startsAtMeta);
+    }
+    if (data.containsKey('ends_at')) {
+      context.handle(
+        _endsAtMeta,
+        endsAt.isAcceptableOrUnknown(data['ends_at']!, _endsAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_endsAtMeta);
+    }
+    if (data.containsKey('allowance_seconds')) {
+      context.handle(
+        _allowanceSecondsMeta,
+        allowanceSeconds.isAcceptableOrUnknown(
+          data['allowance_seconds']!,
+          _allowanceSecondsMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  BillingPeriod map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return BillingPeriod(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      teamId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}team_id'],
+      )!,
+      planId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}plan_id'],
+      )!,
+      periodType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}period_type'],
+      )!,
+      startsAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}starts_at'],
+      )!,
+      endsAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}ends_at'],
+      )!,
+      allowanceSeconds: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}allowance_seconds'],
+      ),
+    );
+  }
+
+  @override
+  $BillingPeriodsTable createAlias(String alias) {
+    return $BillingPeriodsTable(attachedDatabase, alias);
+  }
+}
+
+class BillingPeriod extends DataClass implements Insertable<BillingPeriod> {
+  final String id;
+  final String teamId;
+  final String planId;
+  final String periodType;
+  final DateTime startsAt;
+  final DateTime endsAt;
+  final int? allowanceSeconds;
+  const BillingPeriod({
+    required this.id,
+    required this.teamId,
+    required this.planId,
+    required this.periodType,
+    required this.startsAt,
+    required this.endsAt,
+    this.allowanceSeconds,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['team_id'] = Variable<String>(teamId);
+    map['plan_id'] = Variable<String>(planId);
+    map['period_type'] = Variable<String>(periodType);
+    map['starts_at'] = Variable<DateTime>(startsAt);
+    map['ends_at'] = Variable<DateTime>(endsAt);
+    if (!nullToAbsent || allowanceSeconds != null) {
+      map['allowance_seconds'] = Variable<int>(allowanceSeconds);
+    }
+    return map;
+  }
+
+  BillingPeriodsCompanion toCompanion(bool nullToAbsent) {
+    return BillingPeriodsCompanion(
+      id: Value(id),
+      teamId: Value(teamId),
+      planId: Value(planId),
+      periodType: Value(periodType),
+      startsAt: Value(startsAt),
+      endsAt: Value(endsAt),
+      allowanceSeconds: allowanceSeconds == null && nullToAbsent
+          ? const Value.absent()
+          : Value(allowanceSeconds),
+    );
+  }
+
+  factory BillingPeriod.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return BillingPeriod(
+      id: serializer.fromJson<String>(json['id']),
+      teamId: serializer.fromJson<String>(json['teamId']),
+      planId: serializer.fromJson<String>(json['planId']),
+      periodType: serializer.fromJson<String>(json['periodType']),
+      startsAt: serializer.fromJson<DateTime>(json['startsAt']),
+      endsAt: serializer.fromJson<DateTime>(json['endsAt']),
+      allowanceSeconds: serializer.fromJson<int?>(json['allowanceSeconds']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'teamId': serializer.toJson<String>(teamId),
+      'planId': serializer.toJson<String>(planId),
+      'periodType': serializer.toJson<String>(periodType),
+      'startsAt': serializer.toJson<DateTime>(startsAt),
+      'endsAt': serializer.toJson<DateTime>(endsAt),
+      'allowanceSeconds': serializer.toJson<int?>(allowanceSeconds),
+    };
+  }
+
+  BillingPeriod copyWith({
+    String? id,
+    String? teamId,
+    String? planId,
+    String? periodType,
+    DateTime? startsAt,
+    DateTime? endsAt,
+    Value<int?> allowanceSeconds = const Value.absent(),
+  }) => BillingPeriod(
+    id: id ?? this.id,
+    teamId: teamId ?? this.teamId,
+    planId: planId ?? this.planId,
+    periodType: periodType ?? this.periodType,
+    startsAt: startsAt ?? this.startsAt,
+    endsAt: endsAt ?? this.endsAt,
+    allowanceSeconds: allowanceSeconds.present
+        ? allowanceSeconds.value
+        : this.allowanceSeconds,
+  );
+  BillingPeriod copyWithCompanion(BillingPeriodsCompanion data) {
+    return BillingPeriod(
+      id: data.id.present ? data.id.value : this.id,
+      teamId: data.teamId.present ? data.teamId.value : this.teamId,
+      planId: data.planId.present ? data.planId.value : this.planId,
+      periodType: data.periodType.present
+          ? data.periodType.value
+          : this.periodType,
+      startsAt: data.startsAt.present ? data.startsAt.value : this.startsAt,
+      endsAt: data.endsAt.present ? data.endsAt.value : this.endsAt,
+      allowanceSeconds: data.allowanceSeconds.present
+          ? data.allowanceSeconds.value
+          : this.allowanceSeconds,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('BillingPeriod(')
+          ..write('id: $id, ')
+          ..write('teamId: $teamId, ')
+          ..write('planId: $planId, ')
+          ..write('periodType: $periodType, ')
+          ..write('startsAt: $startsAt, ')
+          ..write('endsAt: $endsAt, ')
+          ..write('allowanceSeconds: $allowanceSeconds')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    teamId,
+    planId,
+    periodType,
+    startsAt,
+    endsAt,
+    allowanceSeconds,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is BillingPeriod &&
+          other.id == this.id &&
+          other.teamId == this.teamId &&
+          other.planId == this.planId &&
+          other.periodType == this.periodType &&
+          other.startsAt == this.startsAt &&
+          other.endsAt == this.endsAt &&
+          other.allowanceSeconds == this.allowanceSeconds);
+}
+
+class BillingPeriodsCompanion extends UpdateCompanion<BillingPeriod> {
+  final Value<String> id;
+  final Value<String> teamId;
+  final Value<String> planId;
+  final Value<String> periodType;
+  final Value<DateTime> startsAt;
+  final Value<DateTime> endsAt;
+  final Value<int?> allowanceSeconds;
+  final Value<int> rowid;
+  const BillingPeriodsCompanion({
+    this.id = const Value.absent(),
+    this.teamId = const Value.absent(),
+    this.planId = const Value.absent(),
+    this.periodType = const Value.absent(),
+    this.startsAt = const Value.absent(),
+    this.endsAt = const Value.absent(),
+    this.allowanceSeconds = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  BillingPeriodsCompanion.insert({
+    required String id,
+    required String teamId,
+    required String planId,
+    required String periodType,
+    required DateTime startsAt,
+    required DateTime endsAt,
+    this.allowanceSeconds = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       teamId = Value(teamId),
+       planId = Value(planId),
+       periodType = Value(periodType),
+       startsAt = Value(startsAt),
+       endsAt = Value(endsAt);
+  static Insertable<BillingPeriod> custom({
+    Expression<String>? id,
+    Expression<String>? teamId,
+    Expression<String>? planId,
+    Expression<String>? periodType,
+    Expression<DateTime>? startsAt,
+    Expression<DateTime>? endsAt,
+    Expression<int>? allowanceSeconds,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (teamId != null) 'team_id': teamId,
+      if (planId != null) 'plan_id': planId,
+      if (periodType != null) 'period_type': periodType,
+      if (startsAt != null) 'starts_at': startsAt,
+      if (endsAt != null) 'ends_at': endsAt,
+      if (allowanceSeconds != null) 'allowance_seconds': allowanceSeconds,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  BillingPeriodsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? teamId,
+    Value<String>? planId,
+    Value<String>? periodType,
+    Value<DateTime>? startsAt,
+    Value<DateTime>? endsAt,
+    Value<int?>? allowanceSeconds,
+    Value<int>? rowid,
+  }) {
+    return BillingPeriodsCompanion(
+      id: id ?? this.id,
+      teamId: teamId ?? this.teamId,
+      planId: planId ?? this.planId,
+      periodType: periodType ?? this.periodType,
+      startsAt: startsAt ?? this.startsAt,
+      endsAt: endsAt ?? this.endsAt,
+      allowanceSeconds: allowanceSeconds ?? this.allowanceSeconds,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (teamId.present) {
+      map['team_id'] = Variable<String>(teamId.value);
+    }
+    if (planId.present) {
+      map['plan_id'] = Variable<String>(planId.value);
+    }
+    if (periodType.present) {
+      map['period_type'] = Variable<String>(periodType.value);
+    }
+    if (startsAt.present) {
+      map['starts_at'] = Variable<DateTime>(startsAt.value);
+    }
+    if (endsAt.present) {
+      map['ends_at'] = Variable<DateTime>(endsAt.value);
+    }
+    if (allowanceSeconds.present) {
+      map['allowance_seconds'] = Variable<int>(allowanceSeconds.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('BillingPeriodsCompanion(')
+          ..write('id: $id, ')
+          ..write('teamId: $teamId, ')
+          ..write('planId: $planId, ')
+          ..write('periodType: $periodType, ')
+          ..write('startsAt: $startsAt, ')
+          ..write('endsAt: $endsAt, ')
+          ..write('allowanceSeconds: $allowanceSeconds, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -7202,6 +7673,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $BillingAccountsTable billingAccounts = $BillingAccountsTable(
     this,
   );
+  late final $BillingPeriodsTable billingPeriods = $BillingPeriodsTable(this);
   late final BuildJobDao buildJobDao = BuildJobDao(this as AppDatabase);
   late final BuildRunDao buildRunDao = BuildRunDao(this as AppDatabase);
   late final TeamDao teamDao = TeamDao(this as AppDatabase);
@@ -7232,6 +7704,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     gitHubConnectionSessions,
     gitHubConnections,
     billingAccounts,
+    billingPeriods,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -12972,6 +13445,37 @@ typedef $$BillingAccountsTableCreateCompanionBuilder =
 typedef $$BillingAccountsTableUpdateCompanionBuilder =
     BillingAccountsCompanion Function({Value<String> teamId, Value<int> rowid});
 
+final class $$BillingAccountsTableReferences
+    extends
+        BaseReferences<_$AppDatabase, $BillingAccountsTable, BillingAccount> {
+  $$BillingAccountsTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static MultiTypedResultKey<$BillingPeriodsTable, List<BillingPeriod>>
+  _billingPeriodsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.billingPeriods,
+    aliasName: $_aliasNameGenerator(
+      db.billingAccounts.teamId,
+      db.billingPeriods.teamId,
+    ),
+  );
+
+  $$BillingPeriodsTableProcessedTableManager get billingPeriodsRefs {
+    final manager = $$BillingPeriodsTableTableManager($_db, $_db.billingPeriods)
+        .filter(
+          (f) => f.teamId.teamId.sqlEquals($_itemColumn<String>('team_id')!),
+        );
+
+    final cache = $_typedResult.readTableOrNull(_billingPeriodsRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+}
+
 class $$BillingAccountsTableFilterComposer
     extends Composer<_$AppDatabase, $BillingAccountsTable> {
   $$BillingAccountsTableFilterComposer({
@@ -12985,6 +13489,31 @@ class $$BillingAccountsTableFilterComposer
     column: $table.teamId,
     builder: (column) => ColumnFilters(column),
   );
+
+  Expression<bool> billingPeriodsRefs(
+    Expression<bool> Function($$BillingPeriodsTableFilterComposer f) f,
+  ) {
+    final $$BillingPeriodsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.teamId,
+      referencedTable: $db.billingPeriods,
+      getReferencedColumn: (t) => t.teamId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$BillingPeriodsTableFilterComposer(
+            $db: $db,
+            $table: $db.billingPeriods,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$BillingAccountsTableOrderingComposer
@@ -13013,6 +13542,31 @@ class $$BillingAccountsTableAnnotationComposer
   });
   GeneratedColumn<String> get teamId =>
       $composableBuilder(column: $table.teamId, builder: (column) => column);
+
+  Expression<T> billingPeriodsRefs<T extends Object>(
+    Expression<T> Function($$BillingPeriodsTableAnnotationComposer a) f,
+  ) {
+    final $$BillingPeriodsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.teamId,
+      referencedTable: $db.billingPeriods,
+      getReferencedColumn: (t) => t.teamId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$BillingPeriodsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.billingPeriods,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$BillingAccountsTableTableManager
@@ -13026,16 +13580,9 @@ class $$BillingAccountsTableTableManager
           $$BillingAccountsTableAnnotationComposer,
           $$BillingAccountsTableCreateCompanionBuilder,
           $$BillingAccountsTableUpdateCompanionBuilder,
-          (
-            BillingAccount,
-            BaseReferences<
-              _$AppDatabase,
-              $BillingAccountsTable,
-              BillingAccount
-            >,
-          ),
+          (BillingAccount, $$BillingAccountsTableReferences),
           BillingAccount,
-          PrefetchHooks Function()
+          PrefetchHooks Function({bool billingPeriodsRefs})
         > {
   $$BillingAccountsTableTableManager(
     _$AppDatabase db,
@@ -13062,9 +13609,45 @@ class $$BillingAccountsTableTableManager
               }) =>
                   BillingAccountsCompanion.insert(teamId: teamId, rowid: rowid),
           withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$BillingAccountsTableReferences(db, table, e),
+                ),
+              )
               .toList(),
-          prefetchHooksCallback: null,
+          prefetchHooksCallback: ({billingPeriodsRefs = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [
+                if (billingPeriodsRefs) db.billingPeriods,
+              ],
+              addJoins: null,
+              getPrefetchedDataCallback: (items) async {
+                return [
+                  if (billingPeriodsRefs)
+                    await $_getPrefetchedData<
+                      BillingAccount,
+                      $BillingAccountsTable,
+                      BillingPeriod
+                    >(
+                      currentTable: table,
+                      referencedTable: $$BillingAccountsTableReferences
+                          ._billingPeriodsRefsTable(db),
+                      managerFromTypedResult: (p0) =>
+                          $$BillingAccountsTableReferences(
+                            db,
+                            table,
+                            p0,
+                          ).billingPeriodsRefs,
+                      referencedItemsForCurrentItem: (item, referencedItems) =>
+                          referencedItems.where((e) => e.teamId == item.teamId),
+                      typedResults: items,
+                    ),
+                ];
+              },
+            );
+          },
         ),
       );
 }
@@ -13079,12 +13662,380 @@ typedef $$BillingAccountsTableProcessedTableManager =
       $$BillingAccountsTableAnnotationComposer,
       $$BillingAccountsTableCreateCompanionBuilder,
       $$BillingAccountsTableUpdateCompanionBuilder,
-      (
-        BillingAccount,
-        BaseReferences<_$AppDatabase, $BillingAccountsTable, BillingAccount>,
-      ),
+      (BillingAccount, $$BillingAccountsTableReferences),
       BillingAccount,
-      PrefetchHooks Function()
+      PrefetchHooks Function({bool billingPeriodsRefs})
+    >;
+typedef $$BillingPeriodsTableCreateCompanionBuilder =
+    BillingPeriodsCompanion Function({
+      required String id,
+      required String teamId,
+      required String planId,
+      required String periodType,
+      required DateTime startsAt,
+      required DateTime endsAt,
+      Value<int?> allowanceSeconds,
+      Value<int> rowid,
+    });
+typedef $$BillingPeriodsTableUpdateCompanionBuilder =
+    BillingPeriodsCompanion Function({
+      Value<String> id,
+      Value<String> teamId,
+      Value<String> planId,
+      Value<String> periodType,
+      Value<DateTime> startsAt,
+      Value<DateTime> endsAt,
+      Value<int?> allowanceSeconds,
+      Value<int> rowid,
+    });
+
+final class $$BillingPeriodsTableReferences
+    extends BaseReferences<_$AppDatabase, $BillingPeriodsTable, BillingPeriod> {
+  $$BillingPeriodsTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $BillingAccountsTable _teamIdTable(_$AppDatabase db) =>
+      db.billingAccounts.createAlias(
+        $_aliasNameGenerator(
+          db.billingPeriods.teamId,
+          db.billingAccounts.teamId,
+        ),
+      );
+
+  $$BillingAccountsTableProcessedTableManager get teamId {
+    final $_column = $_itemColumn<String>('team_id')!;
+
+    final manager = $$BillingAccountsTableTableManager(
+      $_db,
+      $_db.billingAccounts,
+    ).filter((f) => f.teamId.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_teamIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$BillingPeriodsTableFilterComposer
+    extends Composer<_$AppDatabase, $BillingPeriodsTable> {
+  $$BillingPeriodsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get planId => $composableBuilder(
+    column: $table.planId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get periodType => $composableBuilder(
+    column: $table.periodType,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get startsAt => $composableBuilder(
+    column: $table.startsAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get endsAt => $composableBuilder(
+    column: $table.endsAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get allowanceSeconds => $composableBuilder(
+    column: $table.allowanceSeconds,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$BillingAccountsTableFilterComposer get teamId {
+    final $$BillingAccountsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.teamId,
+      referencedTable: $db.billingAccounts,
+      getReferencedColumn: (t) => t.teamId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$BillingAccountsTableFilterComposer(
+            $db: $db,
+            $table: $db.billingAccounts,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$BillingPeriodsTableOrderingComposer
+    extends Composer<_$AppDatabase, $BillingPeriodsTable> {
+  $$BillingPeriodsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get planId => $composableBuilder(
+    column: $table.planId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get periodType => $composableBuilder(
+    column: $table.periodType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get startsAt => $composableBuilder(
+    column: $table.startsAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get endsAt => $composableBuilder(
+    column: $table.endsAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get allowanceSeconds => $composableBuilder(
+    column: $table.allowanceSeconds,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$BillingAccountsTableOrderingComposer get teamId {
+    final $$BillingAccountsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.teamId,
+      referencedTable: $db.billingAccounts,
+      getReferencedColumn: (t) => t.teamId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$BillingAccountsTableOrderingComposer(
+            $db: $db,
+            $table: $db.billingAccounts,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$BillingPeriodsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $BillingPeriodsTable> {
+  $$BillingPeriodsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get planId =>
+      $composableBuilder(column: $table.planId, builder: (column) => column);
+
+  GeneratedColumn<String> get periodType => $composableBuilder(
+    column: $table.periodType,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get startsAt =>
+      $composableBuilder(column: $table.startsAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get endsAt =>
+      $composableBuilder(column: $table.endsAt, builder: (column) => column);
+
+  GeneratedColumn<int> get allowanceSeconds => $composableBuilder(
+    column: $table.allowanceSeconds,
+    builder: (column) => column,
+  );
+
+  $$BillingAccountsTableAnnotationComposer get teamId {
+    final $$BillingAccountsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.teamId,
+      referencedTable: $db.billingAccounts,
+      getReferencedColumn: (t) => t.teamId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$BillingAccountsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.billingAccounts,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$BillingPeriodsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $BillingPeriodsTable,
+          BillingPeriod,
+          $$BillingPeriodsTableFilterComposer,
+          $$BillingPeriodsTableOrderingComposer,
+          $$BillingPeriodsTableAnnotationComposer,
+          $$BillingPeriodsTableCreateCompanionBuilder,
+          $$BillingPeriodsTableUpdateCompanionBuilder,
+          (BillingPeriod, $$BillingPeriodsTableReferences),
+          BillingPeriod,
+          PrefetchHooks Function({bool teamId})
+        > {
+  $$BillingPeriodsTableTableManager(
+    _$AppDatabase db,
+    $BillingPeriodsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$BillingPeriodsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$BillingPeriodsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$BillingPeriodsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> teamId = const Value.absent(),
+                Value<String> planId = const Value.absent(),
+                Value<String> periodType = const Value.absent(),
+                Value<DateTime> startsAt = const Value.absent(),
+                Value<DateTime> endsAt = const Value.absent(),
+                Value<int?> allowanceSeconds = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => BillingPeriodsCompanion(
+                id: id,
+                teamId: teamId,
+                planId: planId,
+                periodType: periodType,
+                startsAt: startsAt,
+                endsAt: endsAt,
+                allowanceSeconds: allowanceSeconds,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String teamId,
+                required String planId,
+                required String periodType,
+                required DateTime startsAt,
+                required DateTime endsAt,
+                Value<int?> allowanceSeconds = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => BillingPeriodsCompanion.insert(
+                id: id,
+                teamId: teamId,
+                planId: planId,
+                periodType: periodType,
+                startsAt: startsAt,
+                endsAt: endsAt,
+                allowanceSeconds: allowanceSeconds,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$BillingPeriodsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({teamId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (teamId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.teamId,
+                                referencedTable: $$BillingPeriodsTableReferences
+                                    ._teamIdTable(db),
+                                referencedColumn:
+                                    $$BillingPeriodsTableReferences
+                                        ._teamIdTable(db)
+                                        .teamId,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$BillingPeriodsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $BillingPeriodsTable,
+      BillingPeriod,
+      $$BillingPeriodsTableFilterComposer,
+      $$BillingPeriodsTableOrderingComposer,
+      $$BillingPeriodsTableAnnotationComposer,
+      $$BillingPeriodsTableCreateCompanionBuilder,
+      $$BillingPeriodsTableUpdateCompanionBuilder,
+      (BillingPeriod, $$BillingPeriodsTableReferences),
+      BillingPeriod,
+      PrefetchHooks Function({bool teamId})
     >;
 
 class $AppDatabaseManager {
@@ -13122,4 +14073,6 @@ class $AppDatabaseManager {
       $$GitHubConnectionsTableTableManager(_db, _db.gitHubConnections);
   $$BillingAccountsTableTableManager get billingAccounts =>
       $$BillingAccountsTableTableManager(_db, _db.billingAccounts);
+  $$BillingPeriodsTableTableManager get billingPeriods =>
+      $$BillingPeriodsTableTableManager(_db, _db.billingPeriods);
 }
