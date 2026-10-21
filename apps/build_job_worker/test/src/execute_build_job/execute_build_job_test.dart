@@ -187,6 +187,33 @@ void main() {
       await record('createRun');
       return createMockResponse<void>(null);
     });
+    when(() => api.startBillingExecution(any())).thenAnswer((invocation) async {
+      final payload =
+          invocation.positionalArguments.single as Map<String, dynamic>;
+      expect(payload, {
+        'admissionId': 'admission-1',
+        'jobId': job.id,
+        'runId': runIds.single,
+        'workerHost': 'worker-1',
+      });
+      await record('billingStart');
+      return createMockResponse(<String, dynamic>{
+        'active': true,
+        'measurementIncomplete': false,
+      });
+    });
+    when(() => api.reportBillingExecution(any())).thenAnswer((
+      invocation,
+    ) async {
+      final payload =
+          invocation.positionalArguments.single as Map<String, dynamic>;
+      completions['billingFinish'] = payload;
+      await record('billingFinish');
+      return createMockResponse(<String, dynamic>{
+        'active': false,
+        'measurementIncomplete': false,
+      });
+    });
     when(() => api.resolveInstallationToken(job.id)).thenAnswer((_) async {
       await record('token');
       return createMockResponse({'token': token});
@@ -294,6 +321,96 @@ void main() {
 
   group('executeBuildJob', () {
     test(
+      'measures an admitted job from VM preparation through completion',
+      () async {
+        job = job.copyWith(
+          billingAdmissionId: 'admission-1',
+          workerHost: 'worker-1',
+        );
+
+        expect(await execute(), BuildJobStatus.SUCCESS);
+
+        expect(
+          events.indexOf('billingStart'),
+          greaterThan(events.indexOf('token')),
+        );
+        expect(
+          events.indexOf('billingStart'),
+          lessThan(events.indexOf('createVm')),
+        );
+        expect(
+          events.indexOf('billingFinish'),
+          lessThan(events.indexOf('completeRun')),
+        );
+        expect(completions['billingFinish'], {
+          'admissionId': 'admission-1',
+          'jobId': job.id,
+          'runId': runIds.single,
+          'workerHost': 'worker-1',
+          'outcome': 'success',
+        });
+        expectCompletion(BuildJobStatus.SUCCESS);
+        expect(errors, isEmpty);
+      },
+    );
+
+    test('does not start a VM when admission acknowledgement fails', () async {
+      job = job.copyWith(
+        billingAdmissionId: 'admission-1',
+        workerHost: 'worker-1',
+      );
+      failures['billingStart'] = StateError('private billing details');
+
+      expect(await execute(), BuildJobStatus.FAILURE);
+
+      expect(events, [
+        'createRun',
+        'token',
+        'billingStart',
+        'completeRun',
+        'completeJob',
+        'completeCheck',
+      ]);
+      expectCompletion(BuildJobStatus.FAILURE);
+      expect(
+        errors.single.$1.toString(),
+        isNot(contains('private billing details')),
+      );
+      verifyZeroInteractions(orchardApi);
+    });
+
+    test('finishes CI cleanup even when billing completion fails', () async {
+      job = job.copyWith(
+        billingAdmissionId: 'admission-1',
+        workerHost: 'worker-1',
+      );
+      failures['billingFinish'] = StateError('private billing details');
+
+      expect(await execute(), BuildJobStatus.SUCCESS);
+
+      expectCompletion(BuildJobStatus.SUCCESS);
+      expect(deletedVms, ['lease-1']);
+      expect(
+        errors.single.$1.toString(),
+        isNot(contains('private billing details')),
+      );
+    });
+
+    test('reports failed admitted workflows without losing cleanup', () async {
+      job = job.copyWith(
+        billingAdmissionId: 'admission-1',
+        workerHost: 'worker-1',
+      );
+      workflowExitCode = 1;
+
+      expect(await execute(), BuildJobStatus.FAILURE);
+
+      expect(completions['billingFinish']!['outcome'], 'failure');
+      expectCompletion(BuildJobStatus.FAILURE);
+      expect(deletedVms, ['lease-1']);
+    });
+
+    test(
       'executes a claimed job, saves success and deletes its lease',
       () async {
         expect(await execute(), BuildJobStatus.SUCCESS);
@@ -346,6 +463,8 @@ void main() {
         ).called(1);
         expect(deletedVms, ['lease-1']);
         expect(errors, isEmpty);
+        verifyNever(() => api.startBillingExecution(any()));
+        verifyNever(() => api.reportBillingExecution(any()));
 
         final steps = stepEvents('prepare_vm');
         expect(steps.map((step) => step.status), [

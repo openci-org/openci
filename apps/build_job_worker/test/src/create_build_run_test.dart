@@ -22,6 +22,40 @@ void main() {
   Future<void> create() => createBuildRun(api: api, jobId: jobId, runId: runId);
 
   group('createBuildRun', () {
+    test('binds the paid run to the claimed admission and worker', () async {
+      final payload = {
+        'id': runId,
+        'billingAdmissionId': 'admission-1',
+        'workerHost': 'worker-1',
+      };
+      when(
+        () => api.createRun(jobId, payload),
+      ).thenAnswer((_) async => createMockResponse<void>(null));
+
+      await createBuildRun(
+        api: api,
+        jobId: jobId,
+        runId: runId,
+        billingAdmissionId: 'admission-1',
+        workerHost: 'worker-1',
+      );
+
+      verify(() => api.createRun(jobId, payload)).called(1);
+    });
+
+    test('rejects a paid run without its worker identity', () async {
+      await expectLater(
+        createBuildRun(
+          api: api,
+          jobId: jobId,
+          runId: runId,
+          billingAdmissionId: 'admission-1',
+        ),
+        throwsArgumentError,
+      );
+      verifyZeroInteractions(api);
+    });
+
     test('creates one run with the supplied job and run IDs', () async {
       when(
         () => api.createRun(jobId, {'id': runId}),
