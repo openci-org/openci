@@ -12,5 +12,10 @@ and `BILLING_ENABLED=true`. It requires a nonblank `STRIPE_SECRET_KEY`; disabled
 billing and Self-hosted require no Stripe key and return no client.
 
 Client construction makes no Stripe requests and does not verify the key against
-Stripe. This first slice is not yet wired into server startup. Bounded API reads,
-sanitized request errors, and HTTP route integration follow separately.
+Stripe. It is not yet wired into server startup or HTTP routes.
+
+`getStripeCheckoutSession` retrieves one session using the SDK, with a ten-second
+deadline including retries. Earlier caller deadlines and cancellation are
+preserved. Request failures return a generic error, and SDK logging is disabled
+to keep raw upstream errors and response bodies out of logs. Subscription reads,
+ownership/payment validation, and HTTP route integration follow separately.
