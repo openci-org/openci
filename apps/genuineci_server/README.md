@@ -50,3 +50,18 @@ and an error. It preserves the retrieval helper's sanitized errors and cancellat
 Checkout session creation with quantity one and HTTP route integration follow
 separately. These helpers validate new-purchase pricing; they do not decide access
 for an existing subscription or paid period.
+
+## Customer creation
+
+`createStripeCustomer` uses the SDK's [Customer creation API](https://docs.stripe.com/api/customers/create?lang=go)
+with server-owned `team_id` metadata and a required caller-provided idempotency key.
+It forwards the key unchanged and bounds the call to ten seconds, preserving
+earlier deadlines and cancellation. Failures return no Customer and a sanitized
+error; this helper does not generate a new key or perform application-level retries.
+
+The caller must persist the creation intent and key before invoking this helper.
+Stripe can [remove API v1 idempotency keys after 24 hours](https://docs.stripe.com/api/idempotent_requests?lang=go),
+so older uncertain outcomes need reconciliation before another creation attempt.
+Durable intent/Customer storage, team locking and authorization, recovery, and
+HTTP integration follow separately; this helper alone does not ensure one Customer
+per team. It is not yet called by the server.
