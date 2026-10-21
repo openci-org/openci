@@ -38,6 +38,11 @@ abstract class OpenCIApiService extends ChopperService {
   @DELETE(path: '/teams/{id}', timeout: _timeout)
   Future<Response<void>> deleteTeam(@Path('id') String id);
 
+  @GET(path: '/teams/{teamId}/billing', timeout: _timeout)
+  Future<Response<Map<String, dynamic>>> getBillingStatus(
+    @Path('teamId') String teamId,
+  );
+
   @POST(path: '/teams/{teamId}/github/connect', timeout: _timeout)
   Future<Response<Map<String, dynamic>>> startGitHubConnection(
     @Path('teamId') String teamId,
