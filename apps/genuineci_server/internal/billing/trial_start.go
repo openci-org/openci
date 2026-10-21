@@ -29,6 +29,10 @@ func startTrial(ctx context.Context, pool *pgxpool.Pool, input trialStart) (bool
 	period := newTrialBillingPeriod(input.PeriodID, input.TeamID, input.StartsAt, allowanceSeconds)
 	started := false
 	err = withBillingAccountLock(ctx, pool, input.TeamID, func(tx pgx.Tx, _ *billingAccount) error {
+		paid, err := hasActivePaidPeriod(ctx, tx, input.TeamID, period.StartsAt)
+		if err != nil || paid {
+			return err
+		}
 		claimed, err := createTrialClaim(ctx, tx, trialClaim{
 			UserID:    input.UserID,
 			TeamID:    input.TeamID,

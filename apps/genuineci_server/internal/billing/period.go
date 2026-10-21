@@ -40,6 +40,18 @@ func getBillingPeriod(ctx context.Context, pool *pgxpool.Pool, teamID, periodID 
 	return &period, nil
 }
 
+func hasActivePaidPeriod(ctx context.Context, tx pgx.Tx, teamID string, at time.Time) (bool, error) {
+	var active bool
+	err := tx.QueryRow(ctx, `
+		SELECT EXISTS (
+			SELECT 1 FROM billing_periods
+			WHERE team_id = $1 AND period_type = 'paid'
+				AND starts_at <= $2 AND ends_at > $2
+		)
+	`, teamID, at.Unix()).Scan(&active)
+	return active, err
+}
+
 func createBillingPeriod(ctx context.Context, tx pgx.Tx, period billingPeriod) error {
 	created, err := insertBillingPeriod(ctx, tx, period)
 	if err != nil {

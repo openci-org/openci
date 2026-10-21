@@ -166,7 +166,7 @@ func TestStartTrialConcurrent(t *testing.T) {
 				t.Fatal(err)
 			}
 			defer blocker.Rollback(ctx)
-			if _, err := blocker.Exec(ctx, "LOCK TABLE billing_periods IN ACCESS EXCLUSIVE MODE"); err != nil {
+			if _, err := blocker.Exec(ctx, "LOCK TABLE billing_periods IN SHARE MODE"); err != nil {
 				t.Fatal(err)
 			}
 			type result struct {
