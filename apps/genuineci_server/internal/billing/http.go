@@ -21,6 +21,7 @@ func RegisterRoutes(mux *http.ServeMux, pool *pgxpool.Pool, client *stripe.Clien
 	s := &Service{pool: pool, stripe: client, config: *config}
 	mux.HandleFunc("POST /stripe/webhook", s.webhook)
 	mux.Handle("GET /internal/billing/teams/{teamID}", s.internal(s.handleStatus))
+	mux.Handle("DELETE /internal/billing/teams/{teamID}", s.internal(s.handleTeamDeletion))
 	mux.Handle("POST /internal/billing/teams/{teamID}/checkout", s.internal(s.handleCheckout))
 	mux.Handle("POST /internal/billing/teams/{teamID}/portal", s.internal(s.handlePortal))
 }
@@ -52,6 +53,17 @@ func (s *Service) handleStatus(w http.ResponseWriter, r *http.Request, member bi
 		return
 	}
 	writeBillingJSON(w, http.StatusOK, status)
+}
+
+func (s *Service) handleTeamDeletion(w http.ResponseWriter, r *http.Request, member billingMember) {
+	if !readBillingJSON(w, r, &struct{}{}, true) {
+		return
+	}
+	if err := s.deleteTeam(r.Context(), member); err != nil {
+		writeBillingError(w, err)
+		return
+	}
+	writeBillingJSON(w, http.StatusOK, map[string]bool{"success": true})
 }
 
 func (s *Service) handleCheckout(w http.ResponseWriter, r *http.Request, member billingMember) {
