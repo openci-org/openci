@@ -25,6 +25,7 @@ func TestStartTrialPaidPeriodBoundaries(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			ctx, pool := newTrialStartTestDB(t, "team-1")
+			addTrialStartMembers(t, ctx, pool, "team-1", "user-1")
 			if err := pgx.BeginFunc(ctx, pool, func(tx pgx.Tx) error {
 				return createBillingPeriod(ctx, tx, paid)
 			}); err != nil {
@@ -54,6 +55,7 @@ func TestStartTrialPaidPeriodBoundaries(t *testing.T) {
 
 func TestStartTrialWithAnotherTeamsPaidPeriod(t *testing.T) {
 	ctx, pool := newTrialStartTestDB(t, "team-1", "team-2")
+	addTrialStartMembers(t, ctx, pool, "team-1", "user-1")
 	paid := paidPeriodForTrialStartTest("team-2", "pro")
 	if err := pgx.BeginFunc(ctx, pool, func(tx pgx.Tx) error {
 		return createBillingPeriod(ctx, tx, paid)
@@ -75,6 +77,8 @@ func TestStartTrialWithAnotherTeamsPaidPeriod(t *testing.T) {
 
 func TestStartTrialWaitsForPaidPeriodCommit(t *testing.T) {
 	ctx, pool := newTrialStartTestDB(t, "team-1", "team-2")
+	addTrialStartMembers(t, ctx, pool, "team-1", "user-1")
+	addTrialStartMembers(t, ctx, pool, "team-2", "user-1")
 	paid := paidPeriodForTrialStartTest("team-1", "pro")
 	tx, err := pool.Begin(ctx)
 	if err != nil {
