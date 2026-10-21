@@ -1,7 +1,10 @@
 import 'package:openci_shared/openci_shared.dart';
 
-Future<BuildJob?> claimNextBuildJob(OpenCIApiService api) async {
-  final response = await api.claimNextJob(const {});
+Future<BuildJob?> claimNextBuildJob(
+  OpenCIApiService api, {
+  String? workerHost,
+}) async {
+  final response = await api.claimNextJob({'workerHost': ?workerHost});
   if (!response.isSuccessful || response.body == null) {
     throw StateError(
       'Failed to claim build job: HTTP ${response.statusCode} - ${response.error}',
@@ -23,5 +26,9 @@ Future<BuildJob?> claimNextBuildJob(OpenCIApiService api) async {
     );
   }
 
-  return BuildJob.fromJson(jobData);
+  final job = BuildJob.fromJson(jobData);
+  if (workerHost != null && job.workerHost != workerHost) {
+    throw StateError('Claimed job does not belong to this worker host.');
+  }
+  return job;
 }

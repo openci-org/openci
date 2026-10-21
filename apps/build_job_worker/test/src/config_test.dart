@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:build_job_worker/build_job_worker.dart';
 import 'package:test/test.dart';
 
@@ -61,6 +63,7 @@ void main() {
           'LOKI_URL': 'http://internal-loki.example.com:3100',
           'LOKI_URL_FOR_VM': 'http://vm-loki.example.com:3100',
           'SENTRY_DSN': 'https://public@example.com/1',
+          'WORKER_HOST': 'runner-01',
         },
       );
 
@@ -73,6 +76,7 @@ void main() {
       expect(config.internalLokiUrl, 'http://internal-loki.example.com:3100');
       expect(config.lokiUrl, 'http://vm-loki.example.com:3100');
       expect(config.sentryDsn, 'https://public@example.com/1');
+      expect(config.workerHost, 'runner-01');
     });
 
     test('accepts only the required variables without a build job ID', () {
@@ -85,7 +89,25 @@ void main() {
       expect(config.internalLokiUrl, 'http://loki:3100');
       expect(config.lokiUrl, 'http://192.168.64.1:3100');
       expect(config.sentryDsn, isNull);
+      expect(config.workerHost, Platform.localHostname);
     });
+
+    for (final (name, host) in [
+      ('empty', ''),
+      ('whitespace', ' '),
+      ('newline', 'worker\nother'),
+      ('embedded space', 'worker name'),
+      ('too long', 'w' * 256),
+    ]) {
+      test('rejects an invalid worker host: $name', () {
+        expect(
+          () => Config.fromEnvironment(
+            environment: {...requiredEnvironment, 'WORKER_HOST': host},
+          ),
+          throwsStateError,
+        );
+      });
+    }
 
     for (final key in requiredEnvironment.keys) {
       test('rejects a missing $key', () {

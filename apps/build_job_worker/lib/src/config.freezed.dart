@@ -14,7 +14,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$Config {
 
- String get serverUrl; String get internalApiKey; String get orchardServiceAccountName; String get orchardServiceAccountToken; String get baseVmName; String get orchardApiUrl; String get lokiUrl; String get internalLokiUrl; String? get sentryDsn;
+ String get serverUrl; String get internalApiKey; String get orchardServiceAccountName; String get orchardServiceAccountToken; String get baseVmName; String get orchardApiUrl; String get lokiUrl; String get internalLokiUrl; String? get workerHost; String? get sentryDsn;
 /// Create a copy of Config
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -25,12 +25,12 @@ $ConfigCopyWith<Config> get copyWith => _$ConfigCopyWithImpl<Config>(this as Con
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is Config&&(identical(other.serverUrl, serverUrl) || other.serverUrl == serverUrl)&&(identical(other.internalApiKey, internalApiKey) || other.internalApiKey == internalApiKey)&&(identical(other.orchardServiceAccountName, orchardServiceAccountName) || other.orchardServiceAccountName == orchardServiceAccountName)&&(identical(other.orchardServiceAccountToken, orchardServiceAccountToken) || other.orchardServiceAccountToken == orchardServiceAccountToken)&&(identical(other.baseVmName, baseVmName) || other.baseVmName == baseVmName)&&(identical(other.orchardApiUrl, orchardApiUrl) || other.orchardApiUrl == orchardApiUrl)&&(identical(other.lokiUrl, lokiUrl) || other.lokiUrl == lokiUrl)&&(identical(other.internalLokiUrl, internalLokiUrl) || other.internalLokiUrl == internalLokiUrl)&&(identical(other.sentryDsn, sentryDsn) || other.sentryDsn == sentryDsn));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is Config&&(identical(other.serverUrl, serverUrl) || other.serverUrl == serverUrl)&&(identical(other.internalApiKey, internalApiKey) || other.internalApiKey == internalApiKey)&&(identical(other.orchardServiceAccountName, orchardServiceAccountName) || other.orchardServiceAccountName == orchardServiceAccountName)&&(identical(other.orchardServiceAccountToken, orchardServiceAccountToken) || other.orchardServiceAccountToken == orchardServiceAccountToken)&&(identical(other.baseVmName, baseVmName) || other.baseVmName == baseVmName)&&(identical(other.orchardApiUrl, orchardApiUrl) || other.orchardApiUrl == orchardApiUrl)&&(identical(other.lokiUrl, lokiUrl) || other.lokiUrl == lokiUrl)&&(identical(other.internalLokiUrl, internalLokiUrl) || other.internalLokiUrl == internalLokiUrl)&&(identical(other.workerHost, workerHost) || other.workerHost == workerHost)&&(identical(other.sentryDsn, sentryDsn) || other.sentryDsn == sentryDsn));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,serverUrl,internalApiKey,orchardServiceAccountName,orchardServiceAccountToken,baseVmName,orchardApiUrl,lokiUrl,internalLokiUrl,sentryDsn);
+int get hashCode => Object.hash(runtimeType,serverUrl,internalApiKey,orchardServiceAccountName,orchardServiceAccountToken,baseVmName,orchardApiUrl,lokiUrl,internalLokiUrl,workerHost,sentryDsn);
 
 
 
@@ -41,7 +41,7 @@ abstract mixin class $ConfigCopyWith<$Res>  {
   factory $ConfigCopyWith(Config value, $Res Function(Config) _then) = _$ConfigCopyWithImpl;
 @useResult
 $Res call({
- String serverUrl, String internalApiKey, String orchardServiceAccountName, String orchardServiceAccountToken, String baseVmName, String orchardApiUrl, String lokiUrl, String internalLokiUrl, String? sentryDsn
+ String serverUrl, String internalApiKey, String orchardServiceAccountName, String orchardServiceAccountToken, String baseVmName, String orchardApiUrl, String lokiUrl, String internalLokiUrl, String? workerHost, String? sentryDsn
 });
 
 
@@ -58,7 +58,7 @@ class _$ConfigCopyWithImpl<$Res>
 
 /// Create a copy of Config
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? serverUrl = null,Object? internalApiKey = null,Object? orchardServiceAccountName = null,Object? orchardServiceAccountToken = null,Object? baseVmName = null,Object? orchardApiUrl = null,Object? lokiUrl = null,Object? internalLokiUrl = null,Object? sentryDsn = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? serverUrl = null,Object? internalApiKey = null,Object? orchardServiceAccountName = null,Object? orchardServiceAccountToken = null,Object? baseVmName = null,Object? orchardApiUrl = null,Object? lokiUrl = null,Object? internalLokiUrl = null,Object? workerHost = freezed,Object? sentryDsn = freezed,}) {
   return _then(_self.copyWith(
 serverUrl: null == serverUrl ? _self.serverUrl : serverUrl // ignore: cast_nullable_to_non_nullable
 as String,internalApiKey: null == internalApiKey ? _self.internalApiKey : internalApiKey // ignore: cast_nullable_to_non_nullable
@@ -68,7 +68,8 @@ as String,baseVmName: null == baseVmName ? _self.baseVmName : baseVmName // igno
 as String,orchardApiUrl: null == orchardApiUrl ? _self.orchardApiUrl : orchardApiUrl // ignore: cast_nullable_to_non_nullable
 as String,lokiUrl: null == lokiUrl ? _self.lokiUrl : lokiUrl // ignore: cast_nullable_to_non_nullable
 as String,internalLokiUrl: null == internalLokiUrl ? _self.internalLokiUrl : internalLokiUrl // ignore: cast_nullable_to_non_nullable
-as String,sentryDsn: freezed == sentryDsn ? _self.sentryDsn : sentryDsn // ignore: cast_nullable_to_non_nullable
+as String,workerHost: freezed == workerHost ? _self.workerHost : workerHost // ignore: cast_nullable_to_non_nullable
+as String?,sentryDsn: freezed == sentryDsn ? _self.sentryDsn : sentryDsn // ignore: cast_nullable_to_non_nullable
 as String?,
   ));
 }
@@ -154,10 +155,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String serverUrl,  String internalApiKey,  String orchardServiceAccountName,  String orchardServiceAccountToken,  String baseVmName,  String orchardApiUrl,  String lokiUrl,  String internalLokiUrl,  String? sentryDsn)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String serverUrl,  String internalApiKey,  String orchardServiceAccountName,  String orchardServiceAccountToken,  String baseVmName,  String orchardApiUrl,  String lokiUrl,  String internalLokiUrl,  String? workerHost,  String? sentryDsn)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Config() when $default != null:
-return $default(_that.serverUrl,_that.internalApiKey,_that.orchardServiceAccountName,_that.orchardServiceAccountToken,_that.baseVmName,_that.orchardApiUrl,_that.lokiUrl,_that.internalLokiUrl,_that.sentryDsn);case _:
+return $default(_that.serverUrl,_that.internalApiKey,_that.orchardServiceAccountName,_that.orchardServiceAccountToken,_that.baseVmName,_that.orchardApiUrl,_that.lokiUrl,_that.internalLokiUrl,_that.workerHost,_that.sentryDsn);case _:
   return orElse();
 
 }
@@ -175,10 +176,10 @@ return $default(_that.serverUrl,_that.internalApiKey,_that.orchardServiceAccount
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String serverUrl,  String internalApiKey,  String orchardServiceAccountName,  String orchardServiceAccountToken,  String baseVmName,  String orchardApiUrl,  String lokiUrl,  String internalLokiUrl,  String? sentryDsn)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String serverUrl,  String internalApiKey,  String orchardServiceAccountName,  String orchardServiceAccountToken,  String baseVmName,  String orchardApiUrl,  String lokiUrl,  String internalLokiUrl,  String? workerHost,  String? sentryDsn)  $default,) {final _that = this;
 switch (_that) {
 case _Config():
-return $default(_that.serverUrl,_that.internalApiKey,_that.orchardServiceAccountName,_that.orchardServiceAccountToken,_that.baseVmName,_that.orchardApiUrl,_that.lokiUrl,_that.internalLokiUrl,_that.sentryDsn);case _:
+return $default(_that.serverUrl,_that.internalApiKey,_that.orchardServiceAccountName,_that.orchardServiceAccountToken,_that.baseVmName,_that.orchardApiUrl,_that.lokiUrl,_that.internalLokiUrl,_that.workerHost,_that.sentryDsn);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -195,10 +196,10 @@ return $default(_that.serverUrl,_that.internalApiKey,_that.orchardServiceAccount
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String serverUrl,  String internalApiKey,  String orchardServiceAccountName,  String orchardServiceAccountToken,  String baseVmName,  String orchardApiUrl,  String lokiUrl,  String internalLokiUrl,  String? sentryDsn)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String serverUrl,  String internalApiKey,  String orchardServiceAccountName,  String orchardServiceAccountToken,  String baseVmName,  String orchardApiUrl,  String lokiUrl,  String internalLokiUrl,  String? workerHost,  String? sentryDsn)?  $default,) {final _that = this;
 switch (_that) {
 case _Config() when $default != null:
-return $default(_that.serverUrl,_that.internalApiKey,_that.orchardServiceAccountName,_that.orchardServiceAccountToken,_that.baseVmName,_that.orchardApiUrl,_that.lokiUrl,_that.internalLokiUrl,_that.sentryDsn);case _:
+return $default(_that.serverUrl,_that.internalApiKey,_that.orchardServiceAccountName,_that.orchardServiceAccountToken,_that.baseVmName,_that.orchardApiUrl,_that.lokiUrl,_that.internalLokiUrl,_that.workerHost,_that.sentryDsn);case _:
   return null;
 
 }
@@ -210,7 +211,7 @@ return $default(_that.serverUrl,_that.internalApiKey,_that.orchardServiceAccount
 
 
 class _Config implements Config {
-  const _Config({required this.serverUrl, required this.internalApiKey, required this.orchardServiceAccountName, required this.orchardServiceAccountToken, this.baseVmName = 'base-macos', this.orchardApiUrl = 'https://orchard-controller:6120', this.lokiUrl = 'http://192.168.64.1:3100', this.internalLokiUrl = 'http://loki:3100', this.sentryDsn});
+  const _Config({required this.serverUrl, required this.internalApiKey, required this.orchardServiceAccountName, required this.orchardServiceAccountToken, this.baseVmName = 'base-macos', this.orchardApiUrl = 'https://orchard-controller:6120', this.lokiUrl = 'http://192.168.64.1:3100', this.internalLokiUrl = 'http://loki:3100', this.workerHost, this.sentryDsn});
 
 
 @override final  String serverUrl;
@@ -221,6 +222,7 @@ class _Config implements Config {
 @override@JsonKey() final  String orchardApiUrl;
 @override@JsonKey() final  String lokiUrl;
 @override@JsonKey() final  String internalLokiUrl;
+@override final  String? workerHost;
 @override final  String? sentryDsn;
 
 /// Create a copy of Config
@@ -233,12 +235,12 @@ _$ConfigCopyWith<_Config> get copyWith => __$ConfigCopyWithImpl<_Config>(this, _
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Config&&(identical(other.serverUrl, serverUrl) || other.serverUrl == serverUrl)&&(identical(other.internalApiKey, internalApiKey) || other.internalApiKey == internalApiKey)&&(identical(other.orchardServiceAccountName, orchardServiceAccountName) || other.orchardServiceAccountName == orchardServiceAccountName)&&(identical(other.orchardServiceAccountToken, orchardServiceAccountToken) || other.orchardServiceAccountToken == orchardServiceAccountToken)&&(identical(other.baseVmName, baseVmName) || other.baseVmName == baseVmName)&&(identical(other.orchardApiUrl, orchardApiUrl) || other.orchardApiUrl == orchardApiUrl)&&(identical(other.lokiUrl, lokiUrl) || other.lokiUrl == lokiUrl)&&(identical(other.internalLokiUrl, internalLokiUrl) || other.internalLokiUrl == internalLokiUrl)&&(identical(other.sentryDsn, sentryDsn) || other.sentryDsn == sentryDsn));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Config&&(identical(other.serverUrl, serverUrl) || other.serverUrl == serverUrl)&&(identical(other.internalApiKey, internalApiKey) || other.internalApiKey == internalApiKey)&&(identical(other.orchardServiceAccountName, orchardServiceAccountName) || other.orchardServiceAccountName == orchardServiceAccountName)&&(identical(other.orchardServiceAccountToken, orchardServiceAccountToken) || other.orchardServiceAccountToken == orchardServiceAccountToken)&&(identical(other.baseVmName, baseVmName) || other.baseVmName == baseVmName)&&(identical(other.orchardApiUrl, orchardApiUrl) || other.orchardApiUrl == orchardApiUrl)&&(identical(other.lokiUrl, lokiUrl) || other.lokiUrl == lokiUrl)&&(identical(other.internalLokiUrl, internalLokiUrl) || other.internalLokiUrl == internalLokiUrl)&&(identical(other.workerHost, workerHost) || other.workerHost == workerHost)&&(identical(other.sentryDsn, sentryDsn) || other.sentryDsn == sentryDsn));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,serverUrl,internalApiKey,orchardServiceAccountName,orchardServiceAccountToken,baseVmName,orchardApiUrl,lokiUrl,internalLokiUrl,sentryDsn);
+int get hashCode => Object.hash(runtimeType,serverUrl,internalApiKey,orchardServiceAccountName,orchardServiceAccountToken,baseVmName,orchardApiUrl,lokiUrl,internalLokiUrl,workerHost,sentryDsn);
 
 
 
@@ -249,7 +251,7 @@ abstract mixin class _$ConfigCopyWith<$Res> implements $ConfigCopyWith<$Res> {
   factory _$ConfigCopyWith(_Config value, $Res Function(_Config) _then) = __$ConfigCopyWithImpl;
 @override @useResult
 $Res call({
- String serverUrl, String internalApiKey, String orchardServiceAccountName, String orchardServiceAccountToken, String baseVmName, String orchardApiUrl, String lokiUrl, String internalLokiUrl, String? sentryDsn
+ String serverUrl, String internalApiKey, String orchardServiceAccountName, String orchardServiceAccountToken, String baseVmName, String orchardApiUrl, String lokiUrl, String internalLokiUrl, String? workerHost, String? sentryDsn
 });
 
 
@@ -266,7 +268,7 @@ class __$ConfigCopyWithImpl<$Res>
 
 /// Create a copy of Config
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? serverUrl = null,Object? internalApiKey = null,Object? orchardServiceAccountName = null,Object? orchardServiceAccountToken = null,Object? baseVmName = null,Object? orchardApiUrl = null,Object? lokiUrl = null,Object? internalLokiUrl = null,Object? sentryDsn = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? serverUrl = null,Object? internalApiKey = null,Object? orchardServiceAccountName = null,Object? orchardServiceAccountToken = null,Object? baseVmName = null,Object? orchardApiUrl = null,Object? lokiUrl = null,Object? internalLokiUrl = null,Object? workerHost = freezed,Object? sentryDsn = freezed,}) {
   return _then(_Config(
 serverUrl: null == serverUrl ? _self.serverUrl : serverUrl // ignore: cast_nullable_to_non_nullable
 as String,internalApiKey: null == internalApiKey ? _self.internalApiKey : internalApiKey // ignore: cast_nullable_to_non_nullable
@@ -276,7 +278,8 @@ as String,baseVmName: null == baseVmName ? _self.baseVmName : baseVmName // igno
 as String,orchardApiUrl: null == orchardApiUrl ? _self.orchardApiUrl : orchardApiUrl // ignore: cast_nullable_to_non_nullable
 as String,lokiUrl: null == lokiUrl ? _self.lokiUrl : lokiUrl // ignore: cast_nullable_to_non_nullable
 as String,internalLokiUrl: null == internalLokiUrl ? _self.internalLokiUrl : internalLokiUrl // ignore: cast_nullable_to_non_nullable
-as String,sentryDsn: freezed == sentryDsn ? _self.sentryDsn : sentryDsn // ignore: cast_nullable_to_non_nullable
+as String,workerHost: freezed == workerHost ? _self.workerHost : workerHost // ignore: cast_nullable_to_non_nullable
+as String?,sentryDsn: freezed == sentryDsn ? _self.sentryDsn : sentryDsn // ignore: cast_nullable_to_non_nullable
 as String?,
   ));
 }

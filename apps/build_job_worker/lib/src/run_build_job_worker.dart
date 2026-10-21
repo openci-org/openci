@@ -8,6 +8,7 @@ Future<void> runBuildJobWorker({
   required Future<BuildJobStatus> Function(BuildJob job) executeJob,
   required bool Function() shouldStop,
   required void Function(Object error, StackTrace stackTrace) onError,
+  String? workerHost,
   Duration pollInterval = const Duration(seconds: 3),
 }) async {
   if (pollInterval <= Duration.zero) {
@@ -25,7 +26,7 @@ Future<void> runBuildJobWorker({
         final capacity = await getMaxConcurrentJobs();
         final availableSlots = capacity - running.length;
         for (var slot = 0; slot < availableSlots && !shouldStop(); slot++) {
-          final job = await claimNextBuildJob(api);
+          final job = await claimNextBuildJob(api, workerHost: workerHost);
           if (job == null) break;
 
           late final Future<void> execution;
