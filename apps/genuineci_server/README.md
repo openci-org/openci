@@ -87,5 +87,16 @@ and returns a record only after the transaction commits successfully.
 This internal storage helper makes no Stripe calls and is not yet wired into the
 server. Its caller must enforce Cloud billing and membership authorization, and
 decide whether an existing intent needs reconciliation before a Stripe retry.
-Recording the verified result and connecting the creation/recovery flow follow
-separately. Disabled billing and Self-hosted do not create this table at startup.
+Disabled billing and Self-hosted do not create this table at startup.
+
+`recordStripeCustomer` accepts a Customer obtained by the server through the Stripe
+SDK, checks its ID, deletion flag, team metadata, and test/live mode, then saves its
+ID under the billing account lock. It requires a current team and a stored intent
+with the same key and mode. Repeating the same result is safe; a different Customer
+cannot replace an existing link or be shared with another team's intent. The
+original key, mode, and intent timestamp are preserved, and success is returned
+only after commit.
+
+This helper must not receive a Customer object supplied by an HTTP client.
+Connecting the SDK call, result persistence, authorization, and recovery into the
+request flow remains follow-up work.
