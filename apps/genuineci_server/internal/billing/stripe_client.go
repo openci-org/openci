@@ -19,5 +19,9 @@ func NewStripeClient() (*stripe.Client, error) {
 		return nil, errors.New("STRIPE_SECRET_KEY must be set when billing is enabled")
 	}
 
-	return stripe.NewClient(key), nil
+	backends := stripe.NewBackendsWithConfig(&stripe.BackendConfig{
+		// Request failures are sanitized by the billing operations before logging.
+		LeveledLogger: &stripe.LeveledLogger{Level: stripe.LevelNull},
+	})
+	return stripe.NewClient(key, stripe.WithBackends(backends)), nil
 }
