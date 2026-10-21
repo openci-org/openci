@@ -123,7 +123,7 @@ Future<Response> _delete(RequestContext context, String id) async {
     }
     final proxy = context.read<BillingProxy?>();
     if (proxy != null) {
-      return proxy.request(
+      return await proxy.request(
         operation: BillingOperation.deleteTeam,
         teamId: id,
         uid: uid,
