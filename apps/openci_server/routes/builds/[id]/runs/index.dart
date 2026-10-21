@@ -5,6 +5,7 @@ import 'package:dart_frog/dart_frog.dart';
 import 'package:drift/drift.dart';
 import 'package:http/http.dart' as http;
 import 'package:openci_server/auth/internal_api_key_validator.dart';
+import 'package:openci_server/billing/billing_admission_store.dart';
 import 'package:openci_server/build_job/build_job_dao.dart';
 import 'package:openci_server/database.dart';
 import 'package:openci_server/github/github_service.dart';
@@ -109,6 +110,22 @@ Future<Response> _post(RequestContext context, String id) async {
       );
     }
 
+    final billingEnabled = isCloud && environment['BILLING_ENABLED'] == 'true';
+    final admissionId = payload['billingAdmissionId'];
+    final workerHost = payload['workerHost'];
+    if (billingEnabled &&
+        (admissionId is! String ||
+            admissionId.isEmpty ||
+            admissionId.length > 255 ||
+            workerHost is! String ||
+            workerHost.isEmpty ||
+            workerHost.length > 255)) {
+      return Response.json(
+        statusCode: HttpStatus.badRequest,
+        body: {'error': 'billing_admission_required'},
+      );
+    }
+
     final installationId = int.tryParse(
       driftJob.installationId ?? '',
       radix: 10,
@@ -197,6 +214,14 @@ Future<Response> _post(RequestContext context, String id) async {
     final githubClient = client ?? http.Client();
     try {
       await db.transaction(() async {
+        if (billingEnabled) {
+          await BillingAdmissionStore(db).bindRun(
+            admissionId: admissionId as String,
+            jobId: id,
+            runId: runId,
+            workerHost: workerHost as String,
+          );
+        }
         await db.buildRunDao.insertBuildRun(driftRun);
         await db.buildJobDao.incrementRunCount(
           id: id,
@@ -233,6 +258,11 @@ Future<Response> _post(RequestContext context, String id) async {
           ).timeout(const Duration(seconds: 10));
         }
       });
+    } on BillingAdmissionNotCurrent {
+      return Response.json(
+        statusCode: HttpStatus.conflict,
+        body: {'error': 'admission_not_current'},
+      );
     } on BuildJobNotClaimedException {
       return _jobNotClaimed();
     } catch (e) {
