@@ -47,6 +47,38 @@ void main() {
   tearDown(() => client.dispose());
 
   test(
+    'Checkout sends only the plan to the authenticated team endpoint',
+    () async {
+      body = {'url': 'https://checkout.stripe.com/c/pay/test'};
+      final response = await api.createBillingCheckout('team-2', 'pro');
+      final request = requests.single;
+      expect(request.method, 'POST');
+      expect(
+        request.url.toString(),
+        'https://api.openci.test/teams/team-2/billing/checkout',
+      );
+      expect(request.headers['Authorization'], 'Bearer firebase-token');
+      expect(jsonDecode(request.body), {'planId': 'pro'});
+      expect(response.body, body);
+    },
+  );
+
+  test('Checkout preserves payment-pending and conflict responses', () async {
+    status = 409;
+    for (final error in [
+      'payment_pending',
+      'subscription_exists',
+      'checkout_conflict',
+    ]) {
+      body = {'error': error};
+      final response = await api.createBillingCheckout('team-1', 'light');
+      expect(response.statusCode, 409);
+      expect(response.body, isNull);
+      expect(jsonDecode(response.error as String), body);
+    }
+  });
+
+  test(
     'reads team billing using Firebase auth without a refresh flag',
     () async {
       final response = await api.getBillingStatus('team-1');
