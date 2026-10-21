@@ -202,12 +202,13 @@ func TestEnsureStripeCustomerRequiresConfiguration(t *testing.T) {
 
 func TestEnsureStripeCustomerRequiresReconciliation(t *testing.T) {
 	for _, tc := range []struct {
-		name   string
-		offset time.Duration
+		name         string
+		offset       time.Duration
+		wantRequests int
 	}{
-		{"at retry boundary", -23 * time.Hour},
-		{"past Stripe retention", -25 * time.Hour},
-		{"future timestamp", time.Hour},
+		{"at retry boundary", -23 * time.Hour, 1},
+		{"past Stripe retention", -25 * time.Hour, 1},
+		{"future timestamp", time.Hour, 0},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			ctx, pool, intent := newCustomerCreationResultTestDB(t, false)
@@ -215,15 +216,22 @@ func TestEnsureStripeCustomerRequiresReconciliation(t *testing.T) {
 			if _, err := pool.Exec(ctx, "UPDATE billing_customer_creations SET created_at = $1", intent.CreatedAt.Unix()); err != nil {
 				t.Fatal(err)
 			}
-			client := newStripeReadTestClient(t, func(*http.Request) (*http.Response, error) {
-				t.Error("an uncertain old or future-dated intent must not call Stripe")
-				return nil, errors.New("unexpected request")
+			requests := 0
+			client := newStripeReadTestClient(t, func(request *http.Request) (*http.Response, error) {
+				requests++
+				if request.Method != http.MethodGet || request.URL.Path != "/v1/customers/search" {
+					t.Error("an expired intent must only search for an existing Customer")
+				}
+				return stripeTestResponse(http.StatusOK, `{"data":[],"has_more":false}`), nil
 			})
 
 			id, err := ensureStripeCustomer(ctx, pool, client, stripeCustomerRequest{TeamID: intent.TeamID})
 
 			if id != "" || !errors.Is(err, errStripeCustomerReconciliationRequired) {
 				t.Fatalf("want reconciliation without a Customer ID: id=%q, err=%v", id, err)
+			}
+			if requests != tc.wantRequests {
+				t.Fatalf("want %d Stripe requests, got %d", tc.wantRequests, requests)
 			}
 			assertStoredCustomerCreation(t, ctx, pool, intent)
 		})

@@ -36,7 +36,6 @@ func findStripeCustomer(ctx context.Context, client *stripe.Client, request stri
 		return nil, errors.New("Stripe Customer search failed")
 	}
 
-	// Search is eventually consistent; an empty result cannot authorize creation.
 	customers := results.Data()
 	if results.Meta().HasMore || len(customers) != 1 {
 		return nil, errStripeCustomerReconciliationRequired

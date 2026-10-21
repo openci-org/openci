@@ -62,8 +62,8 @@ error; this helper does not generate a new key or perform application-level retr
 The caller must persist the creation intent and key before invoking this helper.
 Stripe can [remove API v1 idempotency keys after 24 hours](https://docs.stripe.com/api/idempotent_requests?lang=go),
 so older uncertain outcomes need reconciliation before another creation attempt.
-The SDK helper is used by the internal creation flow below. Authorization, HTTP
-integration, and reconciliation of older uncertain results follow separately.
+The SDK helper is used by the internal creation flow below. Authorization and HTTP
+integration follow separately.
 
 ## Customer creation storage
 
@@ -84,9 +84,8 @@ the stored key, original timestamp, and any recorded Customer ID. It requires a
 current team and an initialized billing account, rejects a test/live mode mismatch,
 and returns a record only after the transaction commits successfully.
 
-This internal storage helper makes no Stripe calls and is not yet wired into the
-server. Its caller must enforce Cloud billing and membership authorization, and
-decide whether an existing intent needs reconciliation before a Stripe retry.
+This internal storage helper makes no Stripe calls. The creation flow below uses
+it before calling Stripe. HTTP callers must enforce membership authorization.
 Disabled billing and Self-hosted do not create this table at startup.
 
 `recordStripeCustomer` accepts a Customer obtained by the server through the Stripe
@@ -110,12 +109,19 @@ available for a later call to retry with the same key.
 
 Pending intents can be retried for 23 hours from their original timestamp, leaving
 a margin before Stripe's 24-hour minimum key retention. The request deadline also
-ends at this boundary. Older or future-dated pending intents return
-`errStripeCustomerReconciliationRequired` without a Stripe request or a new key.
+ends at this boundary. Once the window expires, the flow searches Stripe for an
+existing Customer and commits a verified match before returning its ID. It retains
+the original key and intent timestamp throughout recovery. Failed searches or
+result commits leave the intent available for another recovery attempt.
+
+Empty or ambiguous searches remain unresolved and never trigger a new creation
+or key. Future-dated pending intents return
+`errStripeCustomerReconciliationRequired` without contacting Stripe.
 
 This internal flow is not yet connected to an HTTP route. The caller must verify
 current team membership and supply the team and expected mode from trusted server
-state. Automatic reconciliation of older pending intents remains follow-up work.
+state. Recovery runs when the internal flow is called again; operator handling of
+unresolved outcomes remains follow-up work.
 
 ## Customer recovery lookup
 
@@ -128,5 +134,5 @@ and expected test/live mode are valid.
 
 Stripe search is eventually consistent. Empty, multiple, incomplete, or mismatched
 results return `errStripeCustomerReconciliationRequired`; an empty search is not
-proof that no Customer exists. This helper only reads Stripe. Connecting it to
-the pending-intent flow and committing a recovered Customer remain follow-up work.
+proof that no Customer exists. This helper only reads Stripe; the creation flow
+handles result persistence after this lookup succeeds.
