@@ -41,17 +41,11 @@ func getBillingPeriod(ctx context.Context, pool *pgxpool.Pool, teamID, periodID 
 }
 
 func createBillingPeriod(ctx context.Context, tx pgx.Tx, period billingPeriod) error {
-	result, err := tx.Exec(ctx, `
-		INSERT INTO billing_periods
-			(id, team_id, plan_id, period_type, starts_at, ends_at, allowance_seconds)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)
-		ON CONFLICT (id) DO NOTHING
-	`, period.ID, period.TeamID, period.PlanID, period.PeriodType,
-		period.StartsAt.Unix(), period.EndsAt.Unix(), period.AllowanceSeconds)
+	created, err := insertBillingPeriod(ctx, tx, period)
 	if err != nil {
 		return err
 	}
-	if result.RowsAffected() == 0 {
+	if !created {
 		var teamID string
 		if err := tx.QueryRow(ctx,
 			"SELECT team_id FROM billing_periods WHERE id = $1", period.ID,
@@ -63,4 +57,18 @@ func createBillingPeriod(ctx context.Context, tx pgx.Tx, period billingPeriod) e
 		}
 	}
 	return nil
+}
+
+func insertBillingPeriod(ctx context.Context, tx pgx.Tx, period billingPeriod) (bool, error) {
+	result, err := tx.Exec(ctx, `
+		INSERT INTO billing_periods
+			(id, team_id, plan_id, period_type, starts_at, ends_at, allowance_seconds)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)
+		ON CONFLICT (id) DO NOTHING
+	`, period.ID, period.TeamID, period.PlanID, period.PeriodType,
+		period.StartsAt.Unix(), period.EndsAt.Unix(), period.AllowanceSeconds)
+	if err != nil {
+		return false, err
+	}
+	return result.RowsAffected() == 1, nil
 }
