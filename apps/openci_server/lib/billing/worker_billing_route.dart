@@ -14,6 +14,7 @@ Future<Response> workerBillingRoute(
   if (context.request.method != HttpMethod.post) {
     return _error(HttpStatus.methodNotAllowed, 'method_not_allowed');
   }
+  final Map<String, dynamic> payload;
   try {
     final bytes = <int>[];
     await for (final chunk in context.request.bytes().timeout(
@@ -50,12 +51,13 @@ Future<Response> workerBillingRoute(
         }.contains(body['outcome'])) {
       throw const FormatException();
     }
-    return proxy.workerRequest(operation: operation, payload: body);
+    payload = body;
   } on TimeoutException {
     return _error(HttpStatus.requestTimeout, 'invalid_request');
   } catch (_) {
     return _error(HttpStatus.badRequest, 'invalid_request');
   }
+  return proxy.workerRequest(operation: operation, payload: payload);
 }
 
 Response _error(int status, String code) => Response.json(
