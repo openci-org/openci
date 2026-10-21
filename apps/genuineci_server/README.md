@@ -65,8 +65,8 @@ The caller must validate Customer ownership, the configured Price, and allowed
 return URLs, then persist all parameters and a Checkout-specific idempotency key
 before calling this helper. Retries forward the same parameters and key unchanged;
 a timeout does not prove that Stripe failed to create the Session. Connecting
-persisted intents to this SDK helper, result validation/storage, recovery,
-membership authorization, and HTTP integration follow separately.
+persisted intents and result storage to this SDK helper, recovery, membership
+authorization, and HTTP integration follow separately.
 
 ## Checkout creation storage
 
@@ -98,12 +98,28 @@ or return URL configuration changes do not rewrite it. A different plan, Custome
 or mode returns `errCheckoutCreationConflict` without changing the record. Closed
 history is retained when a new intent is saved.
 
+`recordStripeCheckoutSession` records the ID from a server-obtained Stripe Session
+after matching its subscription/hosted mode, test/live mode, Customer, team
+metadata, client reference, and return URLs against the intent. Under the team
+and billing account locks, it requires the stored key, creation time, and every
+original request parameter to remain unchanged. Missing, closed, changed, or
+already differently linked intents are rejected. The same Session ID can be
+saved again after reconnecting, but cannot belong to another intent, including
+closed history. The write succeeds only after commit.
+
+This result helper stores the Session identity; it does not establish paid access
+or close the intent. It also accepts completed or expired Sessions without a
+payment URL so an obtained result can still be recorded. The caller must supply
+the response for this exact creation request. It is not a validator for arbitrary
+recovered Sessions: [line items are not returned by default](https://docs.stripe.com/api/checkout/sessions/object?lang=go),
+and this helper does not retrieve or validate their Price or quantity. Recovery
+and payment validation must perform those checks separately.
+
 This storage helper makes no Stripe calls and does not close intents. Its caller
 must validate Customer ownership, Price eligibility, allowed return URLs, current
 membership, and existing subscriptions before authorizing a purchase. An old
 unfinished intent still requires reconciliation before retrying Stripe outside
-the safe idempotency window. Result storage and workflow integration follow in
-separate slices.
+the safe idempotency window. Workflow integration follows separately.
 
 ## Customer creation
 
