@@ -85,6 +85,7 @@ void main() {
         'needs': ['lint', 'test'],
         'vmName': 'vm-1',
         'workerHost': 'worker-1',
+        'billingAdmissionId': 'admission-1',
         'createdAt': '2026-09-07T09:00:00+09:00',
         'updatedAt': '2026-09-07T09:01:00+09:00',
         'completedAt': '2026-09-07T09:02:00+09:00',
@@ -99,6 +100,7 @@ void main() {
       expect(job.needs, ['lint', 'test']);
       expect(job.vmName, 'vm-1');
       expect(job.workerHost, 'worker-1');
+      expect(job.billingAdmissionId, 'admission-1');
       expect(job.createdAt, DateTime.utc(2026, 9, 7));
       expect(job.updatedAt, DateTime.utc(2026, 9, 7, 0, 1));
       expect(job.completedAt, DateTime.utc(2026, 9, 7, 0, 2));
@@ -122,6 +124,7 @@ void main() {
       expect(job.needs, isNull);
       expect(job.vmName, isNull);
       expect(job.workerHost, isNull);
+      expect(job.billingAdmissionId, isNull);
       expect(job.toJson()['completedAt'], isNull);
     });
 

@@ -64,6 +64,7 @@ abstract class BuildJob with _$BuildJob {
     String? githubBaseUrl,
     String? vmName,
     String? workerHost,
+    String? billingAdmissionId,
     @DateTimeConverter() required DateTime createdAt,
     @DateTimeConverter() required DateTime updatedAt,
     @DateTimeConverter() DateTime? completedAt,
