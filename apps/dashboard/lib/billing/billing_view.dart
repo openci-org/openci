@@ -88,6 +88,11 @@ class BillingView extends StatelessWidget {
           const Text('プラン・チーム単位の同時実行数制限はありません。実行開始はワーカーの空き状況に依存します。'),
           const SizedBox(height: 8),
           const Text('7日間返金保証。初回から決済が発生します。'),
+          const SizedBox(height: 8),
+          const Text(
+            '初回決済の成功から168時間以内の申請で全額返金します。更新・再契約は対象外です。'
+            '返金時に即時解約となり、新しいCIは開始できません。実行中のCIは完了まで継続します。',
+          ),
           if (status.canManageBilling) ...[
             const SizedBox(height: 20),
             OutlinedButton.icon(
