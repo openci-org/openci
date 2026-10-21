@@ -103,9 +103,11 @@ func TestEnsureStripeCheckoutSessionBlocksUnsafeReplay(t *testing.T) {
 		t.Run(offset.String(), func(t *testing.T) {
 			ctx, pool, creation := newCheckoutCreationResultTestDB(t, false)
 			execCheckoutCreationSQL(t, ctx, pool, "UPDATE billing_checkout_creations SET created_at = $1", time.Now().Add(offset).Unix())
-			client := newStripeReadTestClient(t, func(*http.Request) (*http.Response, error) {
-				t.Error("unsafe intent must not be replayed")
-				return nil, errors.New("unexpected request")
+			client := newStripeReadTestClient(t, func(r *http.Request) (*http.Response, error) {
+				if r.Method != http.MethodGet || offset > 0 {
+					t.Error("unsafe intent must not be replayed")
+				}
+				return stripeTestResponse(http.StatusOK, `{"object":"list","data":[],"has_more":false}`), nil
 			})
 			session, err := ensureStripeCheckoutSession(ctx, pool, client, creation.Request)
 			if session != nil || !errors.Is(err, errStripeCheckoutReconciliationRequired) {

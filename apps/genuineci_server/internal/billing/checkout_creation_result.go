@@ -11,6 +11,32 @@ import (
 )
 
 func recordStripeCheckoutSession(ctx context.Context, pool *pgxpool.Pool, creation checkoutCreation, session *stripe.CheckoutSession) error {
+	if err := validateStripeCheckoutIdentity(creation, session); err != nil {
+		return err
+	}
+	request := creation.Request
+	return withBillingAccountLock(ctx, pool, request.TeamID, func(tx pgx.Tx, account *billingAccount) error {
+		result, err := tx.Exec(ctx, `
+			UPDATE billing_checkout_creations SET stripe_checkout_session_id = $10
+			WHERE team_id = $1 AND idempotency_key = $2 AND plan_id = $3
+				AND stripe_customer_id = $4 AND stripe_price_id = $5
+				AND success_url = $6 AND cancel_url = $7 AND livemode = $8 AND created_at = $9
+				AND closed_at IS NULL
+				AND (stripe_checkout_session_id IS NULL OR stripe_checkout_session_id = $10)
+		`, account.TeamID, creation.IdempotencyKey, request.PlanID, request.CustomerID,
+			request.PriceID, request.SuccessURL, request.CancelURL, request.Livemode,
+			creation.CreatedAt.Unix(), session.ID)
+		if err != nil {
+			return err
+		}
+		if result.RowsAffected() != 1 {
+			return errors.New("Stripe Checkout creation intent is missing, changed, closed, or already linked")
+		}
+		return nil
+	})
+}
+
+func validateStripeCheckoutIdentity(creation checkoutCreation, session *stripe.CheckoutSession) error {
 	if session == nil || strings.TrimSpace(session.ID) == "" {
 		return errors.New("Stripe Checkout Session is not available")
 	}
@@ -32,23 +58,5 @@ func recordStripeCheckoutSession(ctx context.Context, pool *pgxpool.Pool, creati
 		return errors.New("Stripe Checkout Session does not match the expected return URLs")
 	}
 
-	return withBillingAccountLock(ctx, pool, request.TeamID, func(tx pgx.Tx, account *billingAccount) error {
-		result, err := tx.Exec(ctx, `
-			UPDATE billing_checkout_creations SET stripe_checkout_session_id = $10
-			WHERE team_id = $1 AND idempotency_key = $2 AND plan_id = $3
-				AND stripe_customer_id = $4 AND stripe_price_id = $5
-				AND success_url = $6 AND cancel_url = $7 AND livemode = $8 AND created_at = $9
-				AND closed_at IS NULL
-				AND (stripe_checkout_session_id IS NULL OR stripe_checkout_session_id = $10)
-		`, account.TeamID, creation.IdempotencyKey, request.PlanID, request.CustomerID,
-			request.PriceID, request.SuccessURL, request.CancelURL, request.Livemode,
-			creation.CreatedAt.Unix(), session.ID)
-		if err != nil {
-			return err
-		}
-		if result.RowsAffected() != 1 {
-			return errors.New("Stripe Checkout creation intent is missing, changed, closed, or already linked")
-		}
-		return nil
-	})
+	return nil
 }
