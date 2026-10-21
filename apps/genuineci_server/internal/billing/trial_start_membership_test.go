@@ -40,7 +40,7 @@ func TestStartTrialByNonMember(t *testing.T) {
 
 			started, err := startTrial(ctx, pool, input)
 
-			if started || !errors.Is(err, errNotTeamMember) {
+			if started || !errors.Is(err, ErrNotTeamMember) {
 				t.Fatalf("must reject a non-member: started=%v, err=%v", started, err)
 			}
 			assertNoStartedTrial(t, ctx, pool)
@@ -66,7 +66,7 @@ func TestStartTrialByRemovedMember(t *testing.T) {
 
 	started, err := startTrial(ctx, pool, input)
 
-	if started || !errors.Is(err, errNotTeamMember) {
+	if started || !errors.Is(err, ErrNotTeamMember) {
 		t.Fatalf("must reject a removed member: started=%v, err=%v", started, err)
 	}
 	assertNoStartedTrial(t, ctx, pool)
@@ -104,7 +104,7 @@ func TestStartTrialChecksMembershipAfterLockWait(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if got := <-results; got.started || !errors.Is(got.err, errNotTeamMember) {
+	if got := <-results; got.started || !errors.Is(got.err, ErrNotTeamMember) {
 		t.Fatalf("must see membership removal after acquiring the lock: started=%v, err=%v", got.started, got.err)
 	}
 	assertNoStartedTrial(t, ctx, pool)
@@ -114,12 +114,12 @@ func TestStartTrialWithoutUser(t *testing.T) {
 	t.Setenv("SERVER_ACCESS_MODE", "cloud")
 	t.Setenv("BILLING_ENABLED", "true")
 	t.Setenv("BILLING_TRIAL_ALLOWANCE_SECONDS", "0")
-	input := trialStart{PeriodID: "trial-1", TeamID: "team-1", StartsAt: time.Unix(1000, 0)}
+	request := TrialStartRequest{TeamID: "team-1"}
 
 	// A nil pool ensures a missing UID is rejected before database access.
-	started, err := startTrial(t.Context(), nil, input)
+	started, err := StartTrial(t.Context(), nil, request)
 
-	if started || !errors.Is(err, errNotTeamMember) {
+	if started || !errors.Is(err, ErrNotTeamMember) {
 		t.Fatalf("must reject a missing UID: started=%v, err=%v", started, err)
 	}
 }

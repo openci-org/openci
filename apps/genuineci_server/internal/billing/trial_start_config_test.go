@@ -30,7 +30,7 @@ func TestStartTrialDisabled(t *testing.T) {
 			t.Setenv("BILLING_TRIAL_ALLOWANCE_SECONDS", "invalid")
 
 			// A nil pool ensures disabled billing never accesses the database.
-			started, err := startTrial(t.Context(), nil, trialStart{})
+			started, err := StartTrial(t.Context(), nil, TrialStartRequest{})
 
 			if err != nil || started {
 				t.Fatalf("disabled billing must not start a trial: started=%v, err=%v", started, err)
@@ -50,7 +50,7 @@ func TestStartTrialInvalidConfig(t *testing.T) {
 			t.Setenv("SERVER_ACCESS_MODE", tc.mode)
 			t.Setenv("BILLING_ENABLED", tc.flag)
 
-			started, err := startTrial(t.Context(), nil, trialStart{})
+			started, err := StartTrial(t.Context(), nil, TrialStartRequest{})
 
 			if started || err == nil || err.Error() != tc.wantErr {
 				t.Fatalf("want error %q before accessing the database, got started=%v, err=%v", tc.wantErr, started, err)
@@ -64,7 +64,7 @@ func TestStartTrialInvalidAllowance(t *testing.T) {
 	t.Setenv("BILLING_ENABLED", "true")
 	t.Setenv("BILLING_TRIAL_ALLOWANCE_SECONDS", "-1")
 
-	started, err := startTrial(t.Context(), nil, trialStart{})
+	started, err := StartTrial(t.Context(), nil, TrialStartRequest{})
 
 	const wantErr = "BILLING_TRIAL_ALLOWANCE_SECONDS must be a non-negative integer"
 	if started || err == nil || err.Error() != wantErr {
