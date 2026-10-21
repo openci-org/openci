@@ -25,8 +25,14 @@ func TestMainBillingConfiguration(t *testing.T) {
 		want string
 	}{
 		{"default settings", nil, "DATABASE_URL must be set"},
-		{"cloud with unset allowance", []string{"SERVER_ACCESS_MODE=cloud", "BILLING_ENABLED=true"}, "DATABASE_URL must be set"},
-		{"cloud with configured allowance", []string{"SERVER_ACCESS_MODE=cloud", "BILLING_ENABLED=true", "BILLING_TRIAL_ALLOWANCE_SECONDS=1800"}, "DATABASE_URL must be set"},
+		{"cloud requires Stripe configuration", []string{"SERVER_ACCESS_MODE=cloud", "BILLING_ENABLED=true"}, "STRIPE_LIVEMODE must be true or false"},
+		{"cloud with configured allowance", []string{"SERVER_ACCESS_MODE=cloud", "BILLING_ENABLED=true", "BILLING_TRIAL_ALLOWANCE_SECONDS=1800"}, "STRIPE_LIVEMODE must be true or false"},
+		{"configured billing requires database", []string{
+			"SERVER_ACCESS_MODE=cloud", "BILLING_ENABLED=true", "STRIPE_LIVEMODE=false", "STRIPE_SECRET_KEY=sk_test_placeholder",
+			"BILLING_DASHBOARD_ORIGIN=https://app.example", "STRIPE_PORTAL_CONFIGURATION_ID=bpc_test",
+			"STRIPE_WEBHOOK_SECRET=whsec_test", "BILLING_INTERNAL_TOKEN=01234567890123456789012345678901",
+			"STRIPE_LIGHT_PRICE_ID=price_light", "STRIPE_PRO_PRICE_ID=price_pro",
+		}, "DATABASE_URL must be set"},
 		{"self hosted ignores invalid settings", []string{"SERVER_ACCESS_MODE=self_hosted", "BILLING_ENABLED=invalid", "BILLING_TRIAL_ALLOWANCE_SECONDS=invalid", "STRIPE_SECRET_KEY=invalid"}, "DATABASE_URL must be set"},
 		{"disabled cloud ignores invalid settings", []string{"SERVER_ACCESS_MODE=cloud", "BILLING_ENABLED=false", "BILLING_TRIAL_ALLOWANCE_SECONDS=invalid", "STRIPE_SECRET_KEY=invalid"}, "DATABASE_URL must be set"},
 		{"invalid mode", []string{"SERVER_ACCESS_MODE=invalid"}, "SERVER_ACCESS_MODE must be self_hosted or cloud"},
