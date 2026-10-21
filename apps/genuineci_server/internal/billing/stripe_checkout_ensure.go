@@ -32,6 +32,8 @@ func ensureStripeCheckoutSession(ctx context.Context, pool *pgxpool.Pool, client
 		if err == nil && (session == nil || session.ID != *creation.StripeCheckoutSessionID) {
 			return nil, errStripeCheckoutReconciliationRequired
 		}
+	} else if !time.Now().Before(creation.CreatedAt.Add(stripeCheckoutRetryWindow)) {
+		session, err = findStripeCheckoutSession(ctx, client, *creation)
 	} else {
 		now := time.Now()
 		deadline := creation.CreatedAt.Add(stripeCheckoutRetryWindow)
