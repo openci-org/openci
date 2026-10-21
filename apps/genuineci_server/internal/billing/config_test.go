@@ -1,4 +1,4 @@
-package main
+package billing
 
 import (
 	"os"
@@ -41,7 +41,7 @@ func TestBillingEnabled(t *testing.T) {
 					}
 				}
 			}
-			got, err := billingEnabled()
+			got, err := Enabled()
 			if got != tc.want {
 				t.Errorf("want enabled=%v, got %v", tc.want, got)
 			}
@@ -91,7 +91,7 @@ func TestTrialAllowanceSeconds(t *testing.T) {
 					}
 				}
 			}
-			got, err := trialAllowanceSeconds()
+			got, err := TrialAllowanceSeconds()
 			if tc.wantErr == "" {
 				if err != nil {
 					t.Fatal(err)

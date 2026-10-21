@@ -1,4 +1,4 @@
-package main
+package billing
 
 import (
 	"context"
@@ -50,7 +50,7 @@ func TestEnsureBillingTrialClaimsTable(t *testing.T) {
 	}()
 
 	var pgErr *pgconn.PgError
-	if err := ensureBillingTrialClaimsTable(ctx, pool); !errors.As(err, &pgErr) || pgErr.Code != "42P01" {
+	if err := EnsureTrialClaimsTable(ctx, pool); !errors.As(err, &pgErr) || pgErr.Code != "42P01" {
 		t.Fatalf("must reject missing billing_accounts: %v", err)
 	}
 	var absent bool
@@ -76,7 +76,7 @@ func TestEnsureBillingTrialClaimsTable(t *testing.T) {
 	}
 	results := make(chan error, 2)
 	for range 2 {
-		go func() { results <- ensureBillingTrialClaimsTable(ctx, pool) }()
+		go func() { results <- EnsureTrialClaimsTable(ctx, pool) }()
 	}
 	waitForBillingLocks(t, ctx, pool, 2)
 	if err := blocker.Commit(ctx); err != nil {
@@ -115,7 +115,7 @@ func TestEnsureBillingTrialClaimsTable(t *testing.T) {
 		DELETE FROM teams WHERE id = 'team-1';
 	`)
 	pool.Reset()
-	if err := ensureBillingTrialClaimsTable(ctx, pool); err != nil {
+	if err := EnsureTrialClaimsTable(ctx, pool); err != nil {
 		t.Fatal(err)
 	}
 	var userID, teamID string
@@ -137,7 +137,7 @@ func TestEnsureBillingTrialClaimsTable(t *testing.T) {
 
 	canceled, stop := context.WithCancel(ctx)
 	stop()
-	if err := ensureBillingTrialClaimsTable(canceled, pool); !errors.Is(err, context.Canceled) {
+	if err := EnsureTrialClaimsTable(canceled, pool); !errors.Is(err, context.Canceled) {
 		t.Fatalf("want cancellation error, got %v", err)
 	}
 }

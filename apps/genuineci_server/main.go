@@ -9,14 +9,15 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/openci-org/openci/apps/genuineci_server/internal/billing"
 )
 
 func main() {
-	enabled, err := billingEnabled()
+	enabled, err := billing.Enabled()
 	if err != nil {
 		log.Fatal(err)
 	}
-	if _, err := trialAllowanceSeconds(); err != nil {
+	if _, err := billing.TrialAllowanceSeconds(); err != nil {
 		log.Fatal(err)
 	}
 
@@ -40,7 +41,7 @@ func main() {
 
 	if enabled {
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-		err = ensureBillingTrialClaimsTable(ctx, pool)
+		err = billing.EnsureTrialClaimsTable(ctx, pool)
 		cancel()
 		if err != nil {
 			pool.Close()
