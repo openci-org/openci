@@ -14,8 +14,9 @@ billing and Self-hosted require no Stripe key and return no client.
 Client construction makes no Stripe requests and does not verify the key against
 Stripe. It is not yet wired into server startup or HTTP routes.
 
-`getStripeCheckoutSession` retrieves one session using the SDK, with a ten-second
-deadline including retries. Earlier caller deadlines and cancellation are
-preserved. Request failures return a generic error, and SDK logging is disabled
-to keep raw upstream errors and response bodies out of logs. Subscription reads,
-ownership/payment validation, and HTTP route integration follow separately.
+`getStripeCheckoutSession` and `getStripeSubscription` each retrieve one object
+by ID using the SDK, with a ten-second deadline including retries. Earlier caller
+deadlines and cancellation are preserved. Request failures return a generic
+error, and SDK logging is disabled to keep raw upstream errors and response
+bodies out of logs. Ownership/payment validation and HTTP route integration
+follow separately.
