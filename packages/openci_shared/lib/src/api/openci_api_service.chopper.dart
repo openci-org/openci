@@ -231,6 +231,35 @@ final class _$OpenCIApiService extends OpenCIApiService {
   }
 
   @override
+  Future<Response<Map<String, dynamic>>> createBillingPortal(String teamId) {
+    final Uri $url = Uri.parse('/teams/${teamId}/billing/portal');
+    final ChopperCompleter $abortTrigger = ChopperCompleter<void>();
+    final ChopperTimer $timeout = ChopperTimer(
+      const Duration(microseconds: 60000000),
+      () {
+        if (!$abortTrigger.isCompleted) $abortTrigger.complete();
+      },
+    );
+    final Request $request = Request(
+      'POST',
+      $url,
+      client.baseUrl,
+      abortTrigger: $abortTrigger.future,
+    );
+    return client
+        .send<Map<String, dynamic>, Map<String, dynamic>>($request)
+        .catchError(
+          (_) => Future<Response<Map<String, dynamic>>>.error(
+            ChopperTimeoutException('Request timed out after 1 minute'),
+          ),
+          test: (Object err) =>
+              err is ChopperRequestAbortedException &&
+              $abortTrigger.isCompleted,
+        )
+        .whenComplete($timeout.cancel);
+  }
+
+  @override
   Future<Response<Map<String, dynamic>>> startGitHubConnection(String teamId) {
     final Uri $url = Uri.parse('/teams/${teamId}/github/connect');
     final ChopperCompleter $abortTrigger = ChopperCompleter<void>();
