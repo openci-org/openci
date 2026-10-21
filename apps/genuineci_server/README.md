@@ -47,9 +47,26 @@ returns only a valid Price whose ID matches the configured ID. Disabled billing,
 missing configuration, retrieval failures, and validation failures return no Price
 and an error. It preserves the retrieval helper's sanitized errors and cancellation.
 
-Checkout session creation with quantity one and HTTP route integration follow
-separately. These helpers validate new-purchase pricing; they do not decide access
-for an existing subscription or paid period.
+These helpers validate new-purchase pricing; they do not decide access for an
+existing subscription or paid period. HTTP route integration follows separately.
+
+## Checkout Session creation
+
+`createStripeCheckoutSession` uses the SDK's [Checkout Session creation API](https://docs.stripe.com/api/checkout/sessions/create?lang=go)
+with an existing Customer, one Price at quantity one, and server-owned return URLs.
+It creates a hosted subscription checkout, restricts eligible payment methods to
+cards, disables Adaptive Pricing, and adds no trial or promotion settings. Both
+the Session and resulting Subscription carry `team_id` metadata; the Session also
+uses the team ID as its client reference. It returns the Session, including its ID
+and payment URL, with a ten-second deadline, sanitized failures, and preserved
+cancellation and earlier deadlines.
+
+The caller must validate Customer ownership, the configured Price, and allowed
+return URLs, then persist all parameters and a Checkout-specific idempotency key
+before calling this helper. Retries forward the same parameters and key unchanged;
+a timeout does not prove that Stripe failed to create the Session. Persisted
+Checkout intents, result validation/storage, recovery, membership authorization,
+and HTTP integration follow separately. This helper is not wired into a route.
 
 ## Customer creation
 
