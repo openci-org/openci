@@ -79,6 +79,12 @@ Missing, ambiguous, truncated, or mismatched results remain blocked; future-date
 intents also remain blocked. Lookup scans at most 1,000 Sessions within ten seconds.
 This internal helper does not authorize a purchase, close intents, or grant access.
 
+`expireCheckoutCreation` retrieves and validates a recorded Session before expiry.
+It closes the durable intent only after Stripe confirms `expired` and unpaid.
+Lost expiry responses trigger a fresh read; completed or uncertain purchases keep
+the intent blocking a replacement. Repeated closure preserves its original time.
+This is the prerequisite for pre-payment plan reselection, not subscription changes.
+
 ## Checkout creation storage
 
 When Cloud billing is enabled, startup prepares `billing_checkout_creations` in Go.
