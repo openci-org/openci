@@ -9,8 +9,11 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+var errNotTeamMember = errors.New("trial start requires a current team member")
+
 type trialStart struct {
 	PeriodID string
+	// UserID must come from verified authentication at the API boundary.
 	UserID   string
 	TeamID   string
 	StartsAt time.Time
@@ -25,10 +28,25 @@ func startTrial(ctx context.Context, pool *pgxpool.Pool, input trialStart) (bool
 	if err != nil {
 		return false, err
 	}
+	if input.UserID == "" {
+		return false, errNotTeamMember
+	}
 
 	period := newTrialBillingPeriod(input.PeriodID, input.TeamID, input.StartsAt, allowanceSeconds)
 	started := false
 	err = withBillingAccountLock(ctx, pool, input.TeamID, func(tx pgx.Tx, _ *billingAccount) error {
+		var member bool
+		err := tx.QueryRow(ctx, `
+			SELECT EXISTS (
+				SELECT 1 FROM team_members WHERE team_id = $1 AND user_id = $2
+			)
+		`, input.TeamID, input.UserID).Scan(&member)
+		if err != nil {
+			return err
+		}
+		if !member {
+			return errNotTeamMember
+		}
 		paid, err := hasActivePaidPeriod(ctx, tx, input.TeamID, period.StartsAt)
 		if err != nil || paid {
 			return err
