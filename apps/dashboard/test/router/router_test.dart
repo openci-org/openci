@@ -132,6 +132,32 @@ void main() {
   });
 
   testWidgets(
+    'preserves billing team and return context through sign-in on Web',
+    (tester) async {
+      createRouter();
+      await tester.pumpWidget(const SizedBox());
+      const location = '/billing?teamId=team-1&result=success';
+      final result = resolve(tester, location);
+      changes.add(null);
+      await tester.pump();
+      final authUri = await result;
+      expect(authUri.queryParameters['from'], location);
+      changes.add(_User());
+      await tester.pump();
+      expect(await resolve(tester, authUri.toString()), Uri.parse(location));
+    },
+    skip: !kIsWeb,
+  );
+
+  test('Native has no billing route', () {
+    createRouter();
+    expect(
+      router.configuration.findMatch(Uri.parse('/billing')).error,
+      isNotNull,
+    );
+  }, skip: kIsWeb);
+
+  testWidgets(
     'preserves only the GitHub return path through sign-in',
     (tester) async {
       createRouter();
