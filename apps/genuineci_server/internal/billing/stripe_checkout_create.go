@@ -52,7 +52,9 @@ func createStripeCheckoutSession(ctx context.Context, client *stripe.Client, req
 		LineItems: []*stripe.CheckoutSessionCreateLineItemParams{
 			{Price: stripe.String(request.PriceID), Quantity: stripe.Int64(1)},
 		},
-		Metadata: map[string]string{"team_id": request.TeamID},
+		Metadata: map[string]string{
+			"team_id": request.TeamID, "checkout_creation_key": request.IdempotencyKey,
+		},
 		SubscriptionData: &stripe.CheckoutSessionCreateSubscriptionDataParams{
 			Metadata: map[string]string{"team_id": request.TeamID},
 		},
