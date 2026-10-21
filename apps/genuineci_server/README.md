@@ -116,3 +116,17 @@ ends at this boundary. Older or future-dated pending intents return
 This internal flow is not yet connected to an HTTP route. The caller must verify
 current team membership and supply the team and expected mode from trusted server
 state. Automatic reconciliation of older pending intents remains follow-up work.
+
+## Customer recovery lookup
+
+`findStripeCustomer` uses the SDK's [Customer search API](https://docs.stripe.com/api/customers/search?lang=go)
+to find a candidate by server-owned `team_id` metadata, with a ten-second deadline
+and sanitized failures. It checks only the first page, requesting at most two
+results to detect ambiguity. It returns a Customer only when the page contains
+exactly one result, has no further pages, and its ID, deletion flag, exact team ID,
+and expected test/live mode are valid.
+
+Stripe search is eventually consistent. Empty, multiple, incomplete, or mismatched
+results return `errStripeCustomerReconciliationRequired`; an empty search is not
+proof that no Customer exists. This helper only reads Stripe. Connecting it to
+the pending-intent flow and committing a recovered Customer remain follow-up work.
