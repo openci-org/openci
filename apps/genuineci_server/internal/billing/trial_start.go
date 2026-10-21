@@ -2,6 +2,7 @@ package billing
 
 import (
 	"context"
+	"crypto/rand"
 	"errors"
 	"time"
 
@@ -9,13 +10,27 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-var errNotTeamMember = errors.New("trial start requires a current team member")
+var ErrNotTeamMember = errors.New("trial start requires a current team member")
+
+type TrialStartRequest struct {
+	TeamID string
+	UserID string
+}
+
+func StartTrial(ctx context.Context, pool *pgxpool.Pool, request TrialStartRequest) (bool, error) {
+	return startTrial(ctx, pool, trialStart{
+		PeriodID: rand.Text(),
+		UserID:   request.UserID,
+		TeamID:   request.TeamID,
+	})
+}
 
 type trialStart struct {
 	PeriodID string
 	// UserID must come from verified authentication at the API boundary.
-	UserID   string
-	TeamID   string
+	UserID string
+	TeamID string
+	// A zero StartsAt selects the current time after acquiring the account lock.
 	StartsAt time.Time
 }
 
@@ -29,10 +44,9 @@ func startTrial(ctx context.Context, pool *pgxpool.Pool, input trialStart) (bool
 		return false, err
 	}
 	if input.UserID == "" {
-		return false, errNotTeamMember
+		return false, ErrNotTeamMember
 	}
 
-	period := newTrialBillingPeriod(input.PeriodID, input.TeamID, input.StartsAt, allowanceSeconds)
 	started := false
 	err = withBillingAccountLock(ctx, pool, input.TeamID, func(tx pgx.Tx, _ *billingAccount) error {
 		var member bool
@@ -45,8 +59,13 @@ func startTrial(ctx context.Context, pool *pgxpool.Pool, input trialStart) (bool
 			return err
 		}
 		if !member {
-			return errNotTeamMember
+			return ErrNotTeamMember
 		}
+		startsAt := input.StartsAt
+		if startsAt.IsZero() {
+			startsAt = time.Now()
+		}
+		period := newTrialBillingPeriod(input.PeriodID, input.TeamID, startsAt, allowanceSeconds)
 		paid, err := hasActivePaidPeriod(ctx, tx, input.TeamID, period.StartsAt)
 		if err != nil || paid {
 			return err
