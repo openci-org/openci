@@ -433,6 +433,7 @@ void main() {
       String runId = 'run-check',
       String? uid,
       String? bearerToken = 'test-internal-key',
+      Map<String, Object?> admission = const {},
     }) async {
       final handler =
           ((RequestContext context) => route.onRequest(context, 'job-check'))
@@ -458,7 +459,7 @@ void main() {
             port: server.port,
             path: '/builds/job-check/runs',
           ),
-          body: jsonEncode({'id': runId}),
+          body: jsonEncode({'id': runId, ...admission}),
           headers: {
             HttpHeaders.contentTypeHeader: 'application/json',
             if (bearerToken != null)
@@ -501,6 +502,26 @@ void main() {
         environment['SERVER_ACCESS_MODE'] = 'cloud';
         environment['BILLING_ENABLED'] = 'false';
       });
+
+      for (final admission in <Map<String, Object?>>[
+        {},
+        {'billingAdmissionId': 'admission-1'},
+        {'billingAdmissionId': 123, 'workerHost': 'worker-1'},
+      ]) {
+        test(
+          'billing requires a complete admission identity: $admission',
+          () async {
+            environment['BILLING_ENABLED'] = 'true';
+            final response = await startRun(admission: admission);
+            expect(response.statusCode, HttpStatus.badRequest);
+            expect(await response.json(), {
+              'error': 'billing_admission_required',
+            });
+            expect(requests, isEmpty);
+            await expectRunNotStarted();
+          },
+        );
+      }
 
       for (final token in [null, 'invalid-worker-key']) {
         test(
