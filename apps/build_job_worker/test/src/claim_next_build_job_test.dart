@@ -18,6 +18,34 @@ void main() {
   });
 
   group('claimNextBuildJob', () {
+    for (final returnedHost in ['runner-01', 'runner-02', null]) {
+      test('checks the returned worker attribution: $returnedHost', () async {
+        final now = DateTime.utc(2026, 10, 21);
+        final job = BuildJob(
+          id: 'job-1',
+          status: BuildJobStatus.IN_PROGRESS,
+          owner: 'acme',
+          repo: 'app',
+          workflowName: 'CI',
+          workflowFileName: 'ci.dart',
+          workerHost: returnedHost,
+          createdAt: now,
+          updatedAt: now,
+        );
+        when(
+          () => api.claimNextJob(any()),
+        ).thenAnswer((_) async => createMockResponse({'job': job.toJson()}));
+
+        final claim = claimNextBuildJob(api, workerHost: 'runner-01');
+        if (returnedHost == 'runner-01') {
+          expect(await claim, job);
+        } else {
+          await expectLater(claim, throwsStateError);
+        }
+        verify(() => api.claimNextJob({'workerHost': 'runner-01'})).called(1);
+      });
+    }
+
     test('returns a BuildJob when a queued job is claimed', () async {
       final now = DateTime.utc(2026, 9, 5);
       final jobData = {

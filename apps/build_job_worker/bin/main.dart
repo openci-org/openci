@@ -71,6 +71,7 @@ Future<void> _runWorker(Config config) async {
     stdout.writeln('Starting build job worker...');
     await runBuildJobWorker(
       api: api,
+      workerHost: config.workerHost,
       getMaxConcurrentJobs: orchardApi.getMaxConcurrentJobs,
       executeJob: (job) => executeBuildJob(
         api: api,

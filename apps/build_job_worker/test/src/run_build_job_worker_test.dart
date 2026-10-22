@@ -19,17 +19,19 @@ void main() {
   late Future<int> Function() getMaxConcurrentJobs;
   var stopRequested = false;
 
-  Future<void> run({Duration interval = pollInterval}) => runBuildJobWorker(
-    api: api,
-    getMaxConcurrentJobs: () => getMaxConcurrentJobs(),
-    executeJob: (job) {
-      executed.add(job);
-      return executeJob(job);
-    },
-    shouldStop: () => stopRequested,
-    onError: (error, stackTrace) => errors.add((error, stackTrace)),
-    pollInterval: interval,
-  );
+  Future<void> run({Duration interval = pollInterval, String? workerHost}) =>
+      runBuildJobWorker(
+        api: api,
+        workerHost: workerHost,
+        getMaxConcurrentJobs: () => getMaxConcurrentJobs(),
+        executeJob: (job) {
+          executed.add(job);
+          return executeJob(job);
+        },
+        shouldStop: () => stopRequested,
+        onError: (error, stackTrace) => errors.add((error, stackTrace)),
+        pollInterval: interval,
+      );
 
   setUp(() {
     api = _MockOpenCIApiService();
@@ -59,6 +61,20 @@ void main() {
   });
 
   group('runBuildJobWorker', () {
+    test('carries the worker host through polling and execution', () async {
+      final claimed = firstJob.copyWith(workerHost: 'runner-01');
+      when(
+        () => api.claimNextJob({'workerHost': 'runner-01'}),
+      ).thenAnswer((_) async => createMockResponse({'job': claimed.toJson()}));
+
+      await run(workerHost: 'runner-01');
+
+      expect(executed, [claimed]);
+      expect(errors, isEmpty);
+      verify(() => api.claimNextJob({'workerHost': 'runner-01'})).called(1);
+      verifyNever(() => api.claimNextJob(const {}));
+    });
+
     test(
       'passes the claimed job to the executor and stops after it finishes',
       () async {

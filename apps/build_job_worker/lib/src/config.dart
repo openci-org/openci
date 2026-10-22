@@ -16,11 +16,18 @@ abstract class Config with _$Config {
     @Default('https://orchard-controller:6120') String orchardApiUrl,
     @Default('http://192.168.64.1:3100') String lokiUrl,
     @Default('http://loki:3100') String internalLokiUrl,
+    String? workerHost,
     String? sentryDsn,
   }) = _Config;
 
   factory Config.fromEnvironment({Map<String, String>? environment}) {
     final env = environment ?? Platform.environment;
+    final workerHost = env['WORKER_HOST'] ?? Platform.localHostname;
+    if (workerHost.isEmpty ||
+        workerHost.length > 255 ||
+        RegExp(r'\s').hasMatch(workerHost)) {
+      throw StateError('WORKER_HOST must be a nonempty host identifier.');
+    }
 
     return Config(
       serverUrl: getRequiredEnv('OPENCI_SERVER_URL', environment: env),
@@ -38,6 +45,7 @@ abstract class Config with _$Config {
           env['ORCHARD_API_URL'] ?? 'https://orchard-controller:6120',
       lokiUrl: env['LOKI_URL_FOR_VM'] ?? 'http://192.168.64.1:3100',
       internalLokiUrl: env['LOKI_URL'] ?? 'http://loki:3100',
+      workerHost: workerHost,
       sentryDsn: env['SENTRY_DSN'],
     );
   }
