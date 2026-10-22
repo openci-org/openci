@@ -85,7 +85,17 @@ void main() {
       'conclusion': status.name.toLowerCase(),
     };
     expect(completions['completeRun'], hasRun ? payload : isNull);
-    expect(completions['completeCheck'], payload);
+    final attempt = {
+      if (job.billingAdmissionId != null) ...{
+        'billingAdmissionId': job.billingAdmissionId,
+        'runId': runIds.single,
+        'workerHost': job.workerHost,
+      },
+    };
+    expect(completions['completeCheck'], {...payload, ...attempt});
+    for (final entry in attempt.entries) {
+      expect(completions['completeJob'], containsPair(entry.key, entry.value));
+    }
     final jobCompletion = completions['completeJob']!;
     expect(jobCompletion['status'], status.name);
     expect(
@@ -368,8 +378,8 @@ void main() {
         'token',
         'billingStart',
         'completeRun',
-        'completeJob',
         'completeCheck',
+        'completeJob',
       ]);
       expectCompletion(BuildJobStatus.FAILURE);
       expect(
@@ -378,6 +388,44 @@ void main() {
       );
       verifyZeroInteractions(orchardApi);
     });
+
+    test(
+      'finalizes the current unbound admission when run creation fails',
+      () async {
+        job = job.copyWith(
+          billingAdmissionId: 'admission-1',
+          workerHost: 'worker-1',
+        );
+        failures['createRun'] = StateError('creation failed');
+
+        expect(await execute(), BuildJobStatus.FAILURE);
+
+        expect(events, ['createRun', 'completeCheck', 'completeJob']);
+        expectCompletion(BuildJobStatus.FAILURE, hasRun: false);
+        verifyNever(() => api.startBillingExecution(any()));
+      },
+    );
+
+    test(
+      'a failed paid check update still closes the job and deletes its VM',
+      () async {
+        job = job.copyWith(
+          billingAdmissionId: 'admission-1',
+          workerHost: 'worker-1',
+        );
+        failures['completeCheck'] = StateError('check failed');
+
+        expect(await execute(), BuildJobStatus.SUCCESS);
+
+        expect(
+          events.indexOf('completeCheck'),
+          lessThan(events.indexOf('completeJob')),
+        );
+        expectCompletion(BuildJobStatus.SUCCESS);
+        expect(deletedVms, ['lease-1']);
+        expect(errors, hasLength(1));
+      },
+    );
 
     test('finishes CI cleanup even when billing completion fails', () async {
       job = job.copyWith(

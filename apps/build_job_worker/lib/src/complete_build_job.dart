@@ -1,9 +1,12 @@
 import 'package:openci_shared/openci_shared.dart';
 
+import 'billing_attempt.dart';
+
 Future<void> completeBuildJob({
   required OpenCIApiService api,
   required String jobId,
   required BuildJobStatus status,
+  BillingAttempt? billingAttempt,
   required DateTime completedAt,
 }) async {
   final statusName = switch (status) {
@@ -25,6 +28,7 @@ Future<void> completeBuildJob({
   final int statusCode;
   try {
     final response = await api.completeJob(jobId, {
+      ...?billingAttempt?.toJson(),
       'status': statusName,
       'completedAt': completedAt.toUtc().toIso8601String(),
     });
