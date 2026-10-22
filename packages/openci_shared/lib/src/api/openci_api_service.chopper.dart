@@ -758,6 +758,72 @@ final class _$OpenCIApiService extends OpenCIApiService {
   }
 
   @override
+  Future<Response<Map<String, dynamic>>> startBillingExecution(
+    Map<String, dynamic> body,
+  ) {
+    final Uri $url = Uri.parse('/worker/billing/start');
+    final $body = body;
+    final ChopperCompleter $abortTrigger = ChopperCompleter<void>();
+    final ChopperTimer $timeout = ChopperTimer(
+      const Duration(microseconds: 10000000),
+      () {
+        if (!$abortTrigger.isCompleted) $abortTrigger.complete();
+      },
+    );
+    final Request $request = Request(
+      'POST',
+      $url,
+      client.baseUrl,
+      body: $body,
+      abortTrigger: $abortTrigger.future,
+    );
+    return client
+        .send<Map<String, dynamic>, Map<String, dynamic>>($request)
+        .catchError(
+          (_) => Future<Response<Map<String, dynamic>>>.error(
+            ChopperTimeoutException('Request timed out after 10 seconds'),
+          ),
+          test: (Object err) =>
+              err is ChopperRequestAbortedException &&
+              $abortTrigger.isCompleted,
+        )
+        .whenComplete($timeout.cancel);
+  }
+
+  @override
+  Future<Response<Map<String, dynamic>>> reportBillingExecution(
+    Map<String, dynamic> body,
+  ) {
+    final Uri $url = Uri.parse('/worker/billing/report');
+    final $body = body;
+    final ChopperCompleter $abortTrigger = ChopperCompleter<void>();
+    final ChopperTimer $timeout = ChopperTimer(
+      const Duration(microseconds: 10000000),
+      () {
+        if (!$abortTrigger.isCompleted) $abortTrigger.complete();
+      },
+    );
+    final Request $request = Request(
+      'POST',
+      $url,
+      client.baseUrl,
+      body: $body,
+      abortTrigger: $abortTrigger.future,
+    );
+    return client
+        .send<Map<String, dynamic>, Map<String, dynamic>>($request)
+        .catchError(
+          (_) => Future<Response<Map<String, dynamic>>>.error(
+            ChopperTimeoutException('Request timed out after 10 seconds'),
+          ),
+          test: (Object err) =>
+              err is ChopperRequestAbortedException &&
+              $abortTrigger.isCompleted,
+        )
+        .whenComplete($timeout.cancel);
+  }
+
+  @override
   Future<Response<void>> createRun(
     String buildJobId,
     Map<String, dynamic> body,

@@ -150,6 +150,16 @@ abstract class OpenCIApiService extends ChopperService {
     @Body() Map<String, dynamic> body,
   );
 
+  @POST(path: '/worker/billing/start', timeout: _timeout)
+  Future<Response<Map<String, dynamic>>> startBillingExecution(
+    @Body() Map<String, dynamic> body,
+  );
+
+  @POST(path: '/worker/billing/report', timeout: _timeout)
+  Future<Response<Map<String, dynamic>>> reportBillingExecution(
+    @Body() Map<String, dynamic> body,
+  );
+
   @POST(path: '/builds/{id}/runs', timeout: _timeout)
   Future<Response<void>> createRun(
     @Path('id') String buildJobId,
