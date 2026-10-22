@@ -73,15 +73,16 @@ and start a different selection; uncertain outcomes continue blocking a replacem
 | --- | --- | --- |
 | Worker lifecycle and usage | [G-1382](https://linear.app/genuineci/issue/G-1382) | Server-validated start/heartbeat/finish events bound to the admitted attempt; queue/dependency waiting excluded; worker-loss recovery connected |
 | Atomic CI admission | [G-1358](https://linear.app/genuineci/issue/G-1358) | Paid eligibility and remaining allowance checked with reservations in the claim transaction; ineligible queue heads skipped; Self-hosted bypass preserved |
-| Allowance exhaustion policy | [G-1358](https://linear.app/genuineci/issue/G-1358) | Product decision on stopping or finishing running jobs when the budget is exhausted, followed by concurrency/renewal/recovery tests |
+| Allowance exhaustion behavior | [G-1358](https://linear.app/genuineci/issue/G-1358) | Implement and test the approved policy: already-running CI finishes, only new starts are blocked |
 | Minimal exhausted state | [G-1417](https://linear.app/genuineci/issue/G-1417) | Existing ledger-based status must also account for the completed claim-reservation integration |
-| Refund terms and contact | [G-1443](https://linear.app/genuineci/issue/G-1443) | Approve detailed eligibility, request deadline, cancellation/access timing and a real support contact |
+| Refund contact and verification | [G-1443](https://linear.app/genuineci/issue/G-1443) | Select a real support contact and validate the approved refund/cancellation procedure |
 | Deployed sandbox verification | [G-1360](https://linear.app/genuineci/issue/G-1360) | Record results using the actual Stripe test environment and staging worker |
 | Production activation | [G-1361](https://linear.app/genuineci/issue/G-1361) | Separate rollout after review, integration, sandbox evidence and operational configuration |
 
-Jobs claimed before subscription expiry may finish. Behavior at allowance exhaustion
-is a separate, unanswered decision. No fixed team-concurrency cap substitutes for
-accounting or reservations. Initial trials, detailed usage API/UI, Native billing
+Jobs already admitted may finish after subscription expiry, allowance exhaustion,
+or refund cancellation. Continue measuring those runs through completion; no overage
+charge is introduced. Block new starts when the paid allowance is unavailable.
+No fixed team-concurrency cap substitutes for accounting or reservations. Initial trials, detailed usage API/UI, Native billing
 screens and periodic client polling remain deferred.
 
 ## Sandbox verification record
@@ -101,19 +102,33 @@ expected result and observed result in G-1360; never attach keys or signing secr
 | Page open, Stripe return, browser Back and manual reload | A status fetch occurs at the intended boundary; no timer polling; Native/Self-hosted show no billing entry |
 | Non-member, removed member and team deletion | No cross-team action; active/pending purchases prevent deletion; completed deletion retains billing history |
 | CI eligibility, parallel usage, renewal and worker loss | After the gates above are implemented, verify queued jobs, atomic reservations, actual measured time and the approved exhaustion behavior |
-| Manual refund and access outcome | After G-1443 is approved, verify the separate refund and cancellation/access effects in test mode |
+| Manual refund and access outcome | Verify a full refund for an eligible first payment, immediate cancellation, denial of new CI starts, and completion of existing runs in test mode |
 
-## Manual refund operations — pending policy approval
+## Approved manual refund operations
 
-Seven-day money-back and manual processing are approved. The exact first-payment
-eligibility, cutoff, handling of renewals/re-subscriptions, cancellation timing and
-support address are not yet approved; do not publish the proposed details as terms.
+An application received within 168 hours of the first successful subscription
+payment is eligible for a full refund. Renewals and re-subscriptions are excluded.
+Use UTC payment and request timestamps to measure the elapsed window. Do not deduct
+CI usage from the refund. Cancel the subscription immediately when processing the
+refund; block new CI starts while allowing already-running CI to complete.
 
-Once approved, an operator must match the request to the current team, Customer,
-Subscription and paid invoice, check eligibility and earlier refunds, and retain a
-support/audit reference. Stripe supports [manual refunds](https://docs.stripe.com/refunds)
-and [subscription cancellation](https://docs.stripe.com/billing/subscriptions/cancel).
-Review the intended amount and cancellation settings before executing either action.
+The support email address or URL is still undecided. Publish a real request channel
+before activation. The Web page contains the approved terms; no custom refund API,
+request form or administration screen is required.
+
+1. Verify the requesting current member and match the team to its retained Stripe
+   Customer, Subscription, first successful payment and invoice. Record the request
+   timestamp and support case. A new subscription must not reset first-payment history.
+2. Compare elapsed time with 168 hours. Reject renewals/re-subscriptions and requests
+   outside the window under the approved policy; retain the decision in the support case.
+3. Check existing and pending refunds before acting. For an eligible payment, process
+   one full [manual refund](https://docs.stripe.com/refunds) and
+   [immediate subscription cancellation](https://docs.stripe.com/billing/subscriptions/cancel).
+   Do not combine a full refund with a second refund or an additional prorated credit.
+4. Record Stripe identifiers and actual outcomes. A pending/failed refund is not a
+   completed refund. Re-read its state before retrying; do not create a duplicate.
+5. Verify subscription webhook processing and denied new-start status. Existing runs
+   continue and logs/settings remain accessible. Confirm the outcome in the support case.
 
 The application does not infer access revocation from `charge.refunded`. Its current
 access reconciliation follows subscription/invoice state. A refund by itself is not

@@ -145,6 +145,19 @@ void main() {
     expect(find.text('契約を管理'), findsNothing);
   });
 
+  testWidgets('shows the approved refund terms without an unpaid trial', (
+    tester,
+  ) async {
+    await show(tester);
+    final terms = find.textContaining('初回決済の成功から168時間以内');
+    await tester.scrollUntilVisible(terms, 200);
+    expect(terms, findsOneWidget);
+    expect(find.textContaining('更新・再契約は対象外'), findsOneWidget);
+    expect(find.textContaining('実行中のCIは完了まで継続'), findsOneWidget);
+    expect(find.text('7日間返金保証。初回から決済が発生します。'), findsOneWidget);
+    expect(find.textContaining('無料トライアル'), findsNothing);
+  });
+
   testWidgets('fits a narrow viewport with enlarged text', (tester) async {
     tester.view.physicalSize = const Size(320, 800);
     tester.view.devicePixelRatio = 1;
