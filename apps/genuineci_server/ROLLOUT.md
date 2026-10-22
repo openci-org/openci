@@ -165,9 +165,9 @@ Use UTC payment and request timestamps to measure the elapsed window. Do not ded
 CI usage from the refund. Cancel the subscription immediately when processing the
 refund; block new CI starts while allowing already-running CI to complete.
 
-The support email address or URL is still undecided. Publish a real request channel
-before activation. The Web page contains the approved terms; no custom refund API,
-request form or administration screen is required.
+Refund requests go to [m.aoki@openci.org](mailto:m.aoki@openci.org), with the team
+name included. The Web billing page contains this email link and the approved
+terms; no custom refund API, request form or administration screen is required.
 
 1. Verify the requesting current member and match the team to its retained Stripe
    Customer, Subscription, first successful payment and invoice. Record the request
