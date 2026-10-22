@@ -12,9 +12,11 @@ Future<Response> billingRoute(
 ) async {
   final proxy = context.read<BillingProxy?>();
   if (proxy == null) return _error(HttpStatus.notFound, 'not_found');
-  final method = operation == BillingOperation.status
-      ? HttpMethod.get
-      : HttpMethod.post;
+  final method = switch (operation) {
+    BillingOperation.status => HttpMethod.get,
+    BillingOperation.deleteTeam => HttpMethod.delete,
+    _ => HttpMethod.post,
+  };
   if (context.request.method != method) {
     return _error(HttpStatus.methodNotAllowed, 'method_not_allowed');
   }

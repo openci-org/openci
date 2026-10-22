@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:dart_frog/dart_frog.dart';
+import 'package:openci_server/billing/billing_proxy.dart';
 import 'package:openci_server/database.dart';
 import 'package:openci_server/request/error_handler.dart';
 import 'package:openci_server/request/request_extension.dart';
@@ -118,6 +119,14 @@ Future<Response> _delete(RequestContext context, String id) async {
       return Response.json(
         statusCode: HttpStatus.unauthorized,
         body: {'success': false, 'error': 'Authentication required'},
+      );
+    }
+    final proxy = context.read<BillingProxy?>();
+    if (proxy != null) {
+      return await proxy.request(
+        operation: BillingOperation.deleteTeam,
+        teamId: id,
+        uid: uid,
       );
     }
     final isMember = await db.teamDao.isTeamMember(uid, id);

@@ -6,7 +6,7 @@ import 'package:dart_frog/dart_frog.dart';
 import 'package:http/http.dart' as http;
 import 'package:openci_server/billing/billing_proxy_config.dart';
 
-enum BillingOperation { status, checkout, portal }
+enum BillingOperation { status, checkout, portal, deleteTeam }
 
 class BillingProxy {
   BillingProxy(this.config, this.client);
@@ -29,12 +29,18 @@ class BillingProxy {
           'billing',
           'teams',
           teamId,
-          if (operation != BillingOperation.status) operation.name,
+          if (operation == BillingOperation.checkout ||
+              operation == BillingOperation.portal)
+            operation.name,
         ],
       );
       final request =
           http.AbortableRequest(
-              operation == BillingOperation.status ? 'GET' : 'POST',
+              switch (operation) {
+                BillingOperation.status => 'GET',
+                BillingOperation.deleteTeam => 'DELETE',
+                _ => 'POST',
+              },
               uri,
               abortTrigger: abort.future,
             )
@@ -61,6 +67,10 @@ class BillingProxy {
       if (body is! Map<String, dynamic>) throw const FormatException();
       if (response.statusCode != HttpStatus.ok) {
         return _upstreamError(response.statusCode, body['error']);
+      }
+      if (operation == BillingOperation.deleteTeam) {
+        if (body['success'] != true) throw const FormatException();
+        return _json(HttpStatus.ok, {'success': true});
       }
       if (operation == BillingOperation.status) {
         for (final key in [

@@ -6,6 +6,8 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/stripe/stripe-go/v87"
 )
 
 func TestBillingHTTPRequiresInternalTokenAndVerifiedUser(t *testing.T) {
@@ -70,6 +72,43 @@ func TestBillingHTTPDisabledHasNoRoutes(t *testing.T) {
 			t.Fatal("disabled billing must not expose endpoints")
 		}
 	}
+}
+
+func TestBillingHTTPTeamDeletion(t *testing.T) {
+	ctx, service, gateway := newCheckoutFlowTest(t)
+	mux := http.NewServeMux()
+	RegisterRoutes(mux, service.pool, service.stripe, &service.config)
+	path := "/internal/billing/teams/team-1"
+	response := httptest.NewRecorder()
+	mux.ServeHTTP(response, httptest.NewRequest(http.MethodDelete, path, nil))
+	if response.Code != http.StatusUnauthorized {
+		t.Fatal("deletion requires the internal token and verified user")
+	}
+	for _, tc := range []struct {
+		user, body string
+		status     int
+	}{
+		{"outsider", "", http.StatusForbidden},
+		{"user-1", `{"userId":"user-2"}`, http.StatusBadRequest},
+	} {
+		response = billingHTTPRequest(mux, service.config, http.MethodDelete, path, tc.body, tc.user)
+		if response.Code != tc.status {
+			t.Fatalf("unexpected authorization result: %d", response.Code)
+		}
+	}
+	if _, err := service.checkout(ctx, billingMember{TeamID: "team-1", UserID: "user-1"}, "light"); err != nil {
+		t.Fatal(err)
+	}
+	response = billingHTTPRequest(mux, service.config, http.MethodDelete, path, "", "user-2")
+	if response.Code != http.StatusConflict || !strings.Contains(response.Body.String(), "payment_pending") {
+		t.Fatal("pending Checkout must prevent deletion through HTTP")
+	}
+	gateway.sessions["cs_1"].Status = stripe.CheckoutSessionStatusExpired
+	response = billingHTTPRequest(mux, service.config, http.MethodDelete, path, "", "user-2")
+	if response.Code != http.StatusOK || response.Body.String() != "{\"success\":true}\n" || response.Header().Get("Cache-Control") != "no-store" {
+		t.Fatalf("unexpected successful deletion: %d %s", response.Code, response.Body)
+	}
+	assertTeamDeleted(t, ctx, service, true)
 }
 
 func billingHTTPRequest(handler http.Handler, config ServiceConfig, method, path, body, user string) *httptest.ResponseRecorder {
