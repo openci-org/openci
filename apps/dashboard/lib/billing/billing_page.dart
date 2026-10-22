@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:dashboard/billing/billing_actions.dart';
 import 'package:dashboard/billing/billing_error_message.dart';
 import 'package:dashboard/billing/billing_identity.dart';
+import 'package:dashboard/billing/billing_page_restore.dart';
 import 'package:dashboard/billing/billing_provider.dart';
 import 'package:dashboard/billing/billing_response.dart';
 import 'package:dashboard/billing/billing_view.dart';
@@ -97,6 +98,25 @@ class _TeamBillingPageState extends ConsumerState<_TeamBillingPage> {
   bool _pending = false;
   bool _accessLost = false;
   String? _error;
+  int _actionGeneration = 0;
+  late final void Function() _stopListening;
+
+  @override
+  void initState() {
+    super.initState();
+    _stopListening = listenForBillingPageRestore(() {
+      if (!mounted) return;
+      _actionGeneration++;
+      _pending = false;
+      _reload();
+    });
+  }
+
+  @override
+  void dispose() {
+    _stopListening();
+    super.dispose();
+  }
 
   @override
   void didUpdateWidget(covariant _TeamBillingPage oldWidget) {
@@ -155,6 +175,7 @@ class _TeamBillingPageState extends ConsumerState<_TeamBillingPage> {
     final identity = ref.read(billingIdentityProvider);
     final actions = ref.read(billingActionsProvider(widget.team.id));
     if (identity == null || actions == null) return;
+    final generation = _actionGeneration;
     setState(() {
       _pending = true;
       _error = null;
@@ -163,12 +184,16 @@ class _TeamBillingPageState extends ConsumerState<_TeamBillingPage> {
       final uri = planId == null
           ? await actions.portal()
           : await actions.checkout(planId);
-      if (!mounted || ref.read(billingIdentityProvider) != identity) return;
+      if (!mounted ||
+          generation != _actionGeneration ||
+          ref.read(billingIdentityProvider) != identity) {
+        return;
+      }
       if (!await launchUrl(uri, webOnlyWindowName: '_self')) {
         throw const BillingException('launch_failed');
       }
     } catch (error) {
-      if (!mounted) return;
+      if (!mounted || generation != _actionGeneration) return;
       setState(() {
         _error = billingErrorMessage(error);
         _accessLost =
@@ -180,7 +205,9 @@ class _TeamBillingPageState extends ConsumerState<_TeamBillingPage> {
             }.contains(error.code);
       });
     } finally {
-      if (mounted) setState(() => _pending = false);
+      if (mounted && generation == _actionGeneration) {
+        setState(() => _pending = false);
+      }
     }
   }
 }
