@@ -129,6 +129,8 @@ func writeBillingError(w http.ResponseWriter, err error) {
 		status, code = http.StatusBadRequest, "invalid_plan"
 	case errors.Is(err, errBillingCustomerMissing):
 		status, code = http.StatusConflict, "customer_missing"
+	case errors.Is(err, errComplimentaryPro):
+		status, code = http.StatusConflict, "complimentary_pro"
 	case errors.Is(err, errStripeSubscriptionExists), errors.Is(err, errStripeCheckoutCompleted):
 		status, code = http.StatusConflict, "subscription_exists"
 	case errors.Is(err, errCheckoutCreationConflict):

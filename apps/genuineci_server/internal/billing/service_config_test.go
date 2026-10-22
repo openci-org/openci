@@ -32,6 +32,9 @@ func TestLoadServiceConfigRejectsInvalidSettings(t *testing.T) {
 		{"short internal token", "BILLING_INTERNAL_TOKEN", "short-sensitive"},
 		{"missing webhook secret", "STRIPE_WEBHOOK_SECRET", ""},
 		{"same Prices", "STRIPE_PRO_PRICE_ID", "price_light"},
+		{"empty complimentary team", "BILLING_COMPLIMENTARY_PRO_TEAM_IDS", "team-1,,team-2"},
+		{"whitespace in complimentary team", "BILLING_COMPLIMENTARY_PRO_TEAM_IDS", "team 1"},
+		{"control in complimentary team", "BILLING_COMPLIMENTARY_PRO_TEAM_IDS", "team\x01"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			setBillingServiceEnvironment(t)
@@ -63,7 +66,21 @@ func setBillingServiceEnvironment(t *testing.T) {
 		"BILLING_DASHBOARD_ORIGIN": "https://app.example/", "STRIPE_PORTAL_CONFIGURATION_ID": "bpc_team",
 		"BILLING_INTERNAL_TOKEN": strings.Repeat("test", 8), "STRIPE_WEBHOOK_SECRET": "whsec_test_endpoint",
 		"STRIPE_LIGHT_PRICE_ID": "price_light", "STRIPE_PRO_PRICE_ID": "price_pro",
+		"BILLING_COMPLIMENTARY_PRO_TEAM_IDS": "",
 	} {
 		t.Setenv(key, value)
+	}
+}
+
+func TestLoadComplimentaryProTeams(t *testing.T) {
+	setBillingServiceEnvironment(t)
+	config, err := LoadServiceConfig()
+	if err != nil || config.hasComplimentaryPro("team-1") || config.hasComplimentaryPro("") {
+		t.Fatal("complimentary Pro must be opt-in")
+	}
+	t.Setenv("BILLING_COMPLIMENTARY_PRO_TEAM_IDS", " team-1, team-2 ")
+	config, err = LoadServiceConfig()
+	if err != nil || !config.hasComplimentaryPro("team-1") || !config.hasComplimentaryPro("team-2") || config.hasComplimentaryPro("team") || config.hasComplimentaryPro("team-3") {
+		t.Fatal("only exact configured team IDs may receive complimentary Pro")
 	}
 }

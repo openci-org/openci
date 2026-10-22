@@ -69,16 +69,22 @@ func (s *Service) claimJob(ctx context.Context, request workerClaimRequest) (*wo
 					return err
 				}
 				var lockedID string
-				for _, query := range []string{
-					`SELECT id FROM teams WHERE id = $1 FOR UPDATE`,
-					`SELECT team_id FROM billing_accounts WHERE team_id = $1 FOR UPDATE`,
-				} {
-					if err := candidate.QueryRow(ctx, query, teamID).Scan(&lockedID); err != nil {
-						if errors.Is(err, pgx.ErrNoRows) {
-							return errTeamNotEligible
-						}
+				if err := candidate.QueryRow(ctx, `SELECT id FROM teams WHERE id = $1 FOR UPDATE`, teamID).Scan(&lockedID); err != nil {
+					if errors.Is(err, pgx.ErrNoRows) {
+						return errTeamNotEligible
+					}
+					return err
+				}
+				if s.config.hasComplimentaryPro(teamID) {
+					if _, err := candidate.Exec(ctx, `INSERT INTO billing_accounts (team_id) VALUES ($1) ON CONFLICT DO NOTHING`, teamID); err != nil {
 						return err
 					}
+				}
+				if err := candidate.QueryRow(ctx, `SELECT team_id FROM billing_accounts WHERE team_id = $1 FOR UPDATE`, teamID).Scan(&lockedID); err != nil {
+					if errors.Is(err, pgx.ErrNoRows) {
+						return errTeamNotEligible
+					}
+					return err
 				}
 				now := time.Now()
 				periodID, available, err := s.availableClaimBudget(ctx, candidate, teamID, now)
@@ -118,7 +124,14 @@ func (s *Service) claimJob(ctx context.Context, request workerClaimRequest) (*wo
 
 func (s *Service) availableClaimBudget(ctx context.Context, tx pgx.Tx, teamID string, now time.Time) (string, int64, error) {
 	var periodID string
-	err := tx.QueryRow(ctx, `
+	if s.config.hasComplimentaryPro(teamID) {
+		period, err := ensureComplimentaryProPeriod(ctx, tx, teamID, now)
+		if err != nil {
+			return "", 0, err
+		}
+		periodID = period.ID
+	} else {
+		err := tx.QueryRow(ctx, `
 		SELECT p.id FROM billing_stripe_state s
 		JOIN billing_customer_creations c ON c.team_id = s.team_id AND c.stripe_customer_id = s.stripe_customer_id
 		JOIN billing_periods p ON p.id = s.paid_period_id AND p.team_id = s.team_id AND p.plan_id = s.plan_id
@@ -127,11 +140,12 @@ func (s *Service) availableClaimBudget(ctx context.Context, tx pgx.Tx, teamID st
 			AND s.subscription_status IN ('active', 'past_due') AND p.period_type = 'paid'
 			AND p.starts_at <= $3 AND $3 < p.ends_at
 	`, teamID, s.config.Livemode, now.Unix()).Scan(&periodID)
-	if errors.Is(err, pgx.ErrNoRows) {
-		return "", 0, errTeamNotEligible
-	}
-	if err != nil {
-		return "", 0, err
+		if errors.Is(err, pgx.ErrNoRows) {
+			return "", 0, errTeamNotEligible
+		}
+		if err != nil {
+			return "", 0, err
+		}
 	}
 	usage, err := getPeriodExecutionUsage(ctx, tx, periodExecutionUsageQuery{TeamID: teamID, PeriodID: periodID, At: now})
 	if err != nil {
