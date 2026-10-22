@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:http/http.dart' as http;
 import 'package:openci_shared/openci_shared.dart';
 
+import '../billing_execution_meter.dart';
 import '../checkout_repository.dart';
 import '../complete_build_job.dart';
 import '../complete_build_run.dart';
@@ -43,6 +44,7 @@ Future<BuildJobStatus> executeBuildJob({
   final vmName = 'openci-vm-$runId';
   var status = BuildJobStatus.FAILURE;
   var runCreated = false;
+  BillingExecutionMeter? billingMeter;
   String? leaseId;
   final errors = <(Object, StackTrace)>[];
   final logErrors = <(Object, StackTrace)>[];
@@ -63,9 +65,25 @@ Future<BuildJobStatus> executeBuildJob({
   );
 
   try {
-    await createBuildRun(api: api, jobId: job.id, runId: runId);
+    await createBuildRun(
+      api: api,
+      jobId: job.id,
+      runId: runId,
+      billingAdmissionId: job.billingAdmissionId,
+      workerHost: job.workerHost,
+    );
     runCreated = true;
     final token = await resolveGitHubInstallationToken(api: api, jobId: job.id);
+    if (job.billingAdmissionId != null) {
+      final meter = BillingExecutionMeter(
+        api: api,
+        job: job,
+        runId: runId,
+        onError: (error, stackTrace) => errors.add((error, stackTrace)),
+      );
+      await meter.start();
+      billingMeter = meter;
+    }
     final startedAt = DateTime.now().toUtc();
     final vmStep = BuildStep(
       id: 'prepare_vm',
@@ -199,6 +217,7 @@ Future<BuildJobStatus> executeBuildJob({
     final completedAt = DateTime.now().toUtc();
     final vmToDelete = leaseId;
     for (final action in <Future<void> Function()>[
+      if (billingMeter != null) () => billingMeter!.finish(status),
       if (runCreated)
         () => completeBuildRun(
           api: api,
