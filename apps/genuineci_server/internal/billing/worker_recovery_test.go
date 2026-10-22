@@ -121,13 +121,19 @@ func TestConcurrentRecoveryAndClaimsDoNotDuplicateAnExpiredJob(t *testing.T) {
 		}
 		if result.claim != nil {
 			claimed++
-			if result.claim.JobID != "job-1" {
-				t.Fatal("host capacity must not admit a second job")
-			}
 		}
 	}
 	if claimed != 1 {
 		t.Fatalf("want one recovery winner, got %d", claimed)
+	}
+	var running, open, recovered int
+	err := service.pool.QueryRow(ctx, `SELECT
+		(SELECT count(*) FROM build_jobs WHERE status = 'IN_PROGRESS' AND worker_host = 'worker-1'),
+		(SELECT count(*) FROM billing_admissions WHERE closed_at_ms IS NULL),
+		(SELECT count(*) FROM billing_admissions WHERE job_id = 'job-1' AND closed_at_ms IS NOT NULL)
+	`).Scan(&running, &open, &recovered)
+	if err != nil || running != 1 || open != 1 || recovered != 1 {
+		t.Fatalf("want one active claim and one recovered admission: running=%d, open=%d, recovered=%d, err=%v", running, open, recovered, err)
 	}
 }
 
