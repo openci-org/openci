@@ -59,6 +59,9 @@ func main() {
 		if err == nil {
 			err = billing.EnsureStripeStateTables(ctx, pool)
 		}
+		if err == nil {
+			err = billing.EnsureExecutionsTable(ctx, pool)
+		}
 		cancel()
 		if err != nil {
 			pool.Close()
