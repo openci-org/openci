@@ -1,5 +1,9 @@
 # GenuineCI server
 
+See [ROLLOUT.md](ROLLOUT.md) for service configuration, release gates, and the
+Stripe sandbox verification plan. The current stack is not ready for production
+activation: worker accounting and atomic allowance admission still need integration.
+
 Billing authorization treats every current team member equally. `withBillingMemberLock`
 locks the current team and billing account, then checks membership before performing
 an operation. Account initialization rolls back for rejected users. The UID must
@@ -262,12 +266,14 @@ verified Firebase UID in `X-GenuineCI-User-ID` and the shared
 | Method | Path | Request |
 | --- | --- | --- |
 | GET | `/internal/billing/teams/{teamID}` | No body |
+| DELETE | `/internal/billing/teams/{teamID}` | Empty body or `{}` |
 | POST | `/internal/billing/teams/{teamID}/checkout` | `{"planId":"light"}` or `{"planId":"pro"}` |
 | POST | `/internal/billing/teams/{teamID}/portal` | Empty body or `{}` |
 
 Keep `/internal/` behind the service network or reverse-proxy access rules; never
 expose the shared token to a browser. Go rechecks current team membership for all
-three routes. Responses are not cached and never expose raw Stripe errors.
+routes. Responses are not cached and never expose raw Stripe errors. Team deletion
+blocks active subscriptions and unresolved Checkout, then retains billing history.
 
 Expose `POST /stripe/webhook` to Stripe using HTTPS and the snapshot API version
 above. The official SDK verifies the unmodified body and signature with a
