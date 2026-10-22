@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/openci-org/openci/apps/genuineci_server/internal/testutil"
 )
 
 func TestEnsureStripeCustomer(t *testing.T) {
@@ -24,7 +25,7 @@ func TestEnsureStripeCustomer(t *testing.T) {
 			input := stripeCustomerRequest{TeamID: "team-1", Livemode: tc.livemode}
 			requests := 0
 			var intent customerCreation
-			client := newStripeReadTestClient(t, func(request *http.Request) (*http.Response, error) {
+			client := testutil.NewStripeClient(t, func(request *http.Request) (*http.Response, error) {
 				requests++
 				intent = *readCustomerCreation(t, ctx, pool, input.TeamID)
 				if request.Method != http.MethodPost || request.URL.Path != "/v1/customers" ||
@@ -38,7 +39,7 @@ func TestEnsureStripeCustomer(t *testing.T) {
 					t.Fatalf("the account lock must be released before calling Stripe: %v", err)
 				}
 				body := fmt.Sprintf(`{"id":"cus_team1","object":"customer","metadata":{"team_id":"team-1"},"livemode":%t}`, tc.livemode)
-				return stripeTestResponse(http.StatusOK, body), nil
+				return testutil.StripeResponse(http.StatusOK, body), nil
 			})
 
 			id, err := ensureStripeCustomer(ctx, pool, client, input)
@@ -64,7 +65,7 @@ func TestEnsureStripeCustomerRetriesLostResponse(t *testing.T) {
 	input := stripeCustomerRequest{TeamID: "team-1"}
 	requests := 0
 	var originalKey string
-	client := newStripeReadTestClient(t, func(request *http.Request) (*http.Response, error) {
+	client := testutil.NewStripeClient(t, func(request *http.Request) (*http.Response, error) {
 		requests++
 		key := request.Header.Get("Idempotency-Key")
 		if requests == 1 {
@@ -74,7 +75,7 @@ func TestEnsureStripeCustomerRetriesLostResponse(t *testing.T) {
 		if key != originalKey || key == "" {
 			t.Error("a lost response must not cause a new creation key")
 		}
-		return stripeTestResponse(http.StatusOK, `{"id":"cus_team1","metadata":{"team_id":"team-1"}}`), nil
+		return testutil.StripeResponse(http.StatusOK, `{"id":"cus_team1","metadata":{"team_id":"team-1"}}`), nil
 	})
 
 	id, err := ensureStripeCustomer(ctx, pool, client, input)
@@ -98,7 +99,7 @@ func TestEnsureStripeCustomerRetriesLostResponse(t *testing.T) {
 
 func TestEnsureStripeCustomerRetriesFailedResultCommit(t *testing.T) {
 	ctx, pool := newCustomerCreationTestDB(t)
-	execCustomerCreationSQL(t, ctx, pool, `
+	testutil.ExecSQL(t, ctx, pool, `
 		CREATE TABLE allowed_customers (id text PRIMARY KEY);
 		ALTER TABLE billing_customer_creations ADD CONSTRAINT reject_result_at_commit
 			FOREIGN KEY (stripe_customer_id) REFERENCES allowed_customers(id)
@@ -106,9 +107,9 @@ func TestEnsureStripeCustomerRetriesFailedResultCommit(t *testing.T) {
 	`)
 	input := stripeCustomerRequest{TeamID: "team-1"}
 	var keys []string
-	client := newStripeReadTestClient(t, func(request *http.Request) (*http.Response, error) {
+	client := testutil.NewStripeClient(t, func(request *http.Request) (*http.Response, error) {
 		keys = append(keys, request.Header.Get("Idempotency-Key"))
-		return stripeTestResponse(http.StatusOK, `{"id":"cus_team1","metadata":{"team_id":"team-1"}}`), nil
+		return testutil.StripeResponse(http.StatusOK, `{"id":"cus_team1","metadata":{"team_id":"team-1"}}`), nil
 	})
 
 	id, err := ensureStripeCustomer(ctx, pool, client, input)
@@ -121,7 +122,7 @@ func TestEnsureStripeCustomerRetriesFailedResultCommit(t *testing.T) {
 	if intent.StripeCustomerID != nil {
 		t.Fatal("failed result commit must leave the intent pending")
 	}
-	execCustomerCreationSQL(t, ctx, pool, "ALTER TABLE billing_customer_creations DROP CONSTRAINT reject_result_at_commit")
+	testutil.ExecSQL(t, ctx, pool, "ALTER TABLE billing_customer_creations DROP CONSTRAINT reject_result_at_commit")
 
 	id, err = ensureStripeCustomer(ctx, pool, client, input)
 
@@ -134,13 +135,13 @@ func TestEnsureStripeCustomerRetriesFailedResultCommit(t *testing.T) {
 
 func TestEnsureStripeCustomerRequiresCommittedIntent(t *testing.T) {
 	ctx, pool := newCustomerCreationTestDB(t)
-	execCustomerCreationSQL(t, ctx, pool, `
+	testutil.ExecSQL(t, ctx, pool, `
 		CREATE TABLE allowed_keys (key text PRIMARY KEY);
 		ALTER TABLE billing_customer_creations ADD CONSTRAINT reject_intent_at_commit
 			FOREIGN KEY (idempotency_key) REFERENCES allowed_keys(key)
 			DEFERRABLE INITIALLY DEFERRED
 	`)
-	client := newStripeReadTestClient(t, func(*http.Request) (*http.Response, error) {
+	client := testutil.NewStripeClient(t, func(*http.Request) (*http.Response, error) {
 		t.Error("Stripe must not be called before the intent commits")
 		return nil, errors.New("unexpected request")
 	})
@@ -156,8 +157,8 @@ func TestEnsureStripeCustomerRequiresCommittedIntent(t *testing.T) {
 
 func TestEnsureStripeCustomerRejectsInvalidResult(t *testing.T) {
 	ctx, pool := newCustomerCreationTestDB(t)
-	client := newStripeReadTestClient(t, func(*http.Request) (*http.Response, error) {
-		return stripeTestResponse(http.StatusOK, `{"id":"cus_another","metadata":{"team_id":"another-team"}}`), nil
+	client := testutil.NewStripeClient(t, func(*http.Request) (*http.Response, error) {
+		return testutil.StripeResponse(http.StatusOK, `{"id":"cus_another","metadata":{"team_id":"another-team"}}`), nil
 	})
 
 	id, err := ensureStripeCustomer(ctx, pool, client, stripeCustomerRequest{TeamID: "team-1"})
@@ -181,7 +182,7 @@ func TestEnsureStripeCustomerRequiresConfiguration(t *testing.T) {
 		{"missing client", "cloud", "true", true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			client := newStripeReadTestClient(t, func(*http.Request) (*http.Response, error) {
+			client := testutil.NewStripeClient(t, func(*http.Request) (*http.Response, error) {
 				t.Error("invalid configuration must not call Stripe")
 				return nil, errors.New("unexpected request")
 			})
@@ -217,12 +218,12 @@ func TestEnsureStripeCustomerRequiresReconciliation(t *testing.T) {
 				t.Fatal(err)
 			}
 			requests := 0
-			client := newStripeReadTestClient(t, func(request *http.Request) (*http.Response, error) {
+			client := testutil.NewStripeClient(t, func(request *http.Request) (*http.Response, error) {
 				requests++
 				if request.Method != http.MethodGet || request.URL.Path != "/v1/customers/search" {
 					t.Error("an expired intent must only search for an existing Customer")
 				}
-				return stripeTestResponse(http.StatusOK, `{"data":[],"has_more":false}`), nil
+				return testutil.StripeResponse(http.StatusOK, `{"data":[],"has_more":false}`), nil
 			})
 
 			id, err := ensureStripeCustomer(ctx, pool, client, stripeCustomerRequest{TeamID: intent.TeamID})
@@ -240,10 +241,10 @@ func TestEnsureStripeCustomerRequiresReconciliation(t *testing.T) {
 
 func TestEnsureStripeCustomerReusesOldRecordedCustomer(t *testing.T) {
 	ctx, pool := newCustomerCreationTestDB(t)
-	execCustomerCreationSQL(t, ctx, pool, `
+	testutil.ExecSQL(t, ctx, pool, `
 		INSERT INTO billing_customer_creations VALUES ('team-1', 'old-key', false, 1000, 'cus_team1')
 	`)
-	client := newStripeReadTestClient(t, func(*http.Request) (*http.Response, error) {
+	client := testutil.NewStripeClient(t, func(*http.Request) (*http.Response, error) {
 		t.Error("recorded Customers must be reused regardless of intent age")
 		return nil, errors.New("unexpected request")
 	})
@@ -262,11 +263,11 @@ func TestEnsureStripeCustomerCapsRequestAtRetryBoundary(t *testing.T) {
 		t.Fatal(err)
 	}
 	wantDeadline := intent.CreatedAt.Add(23 * time.Hour)
-	client := newStripeReadTestClient(t, func(request *http.Request) (*http.Response, error) {
+	client := testutil.NewStripeClient(t, func(request *http.Request) (*http.Response, error) {
 		if deadline, ok := request.Context().Deadline(); !ok || !deadline.Equal(wantDeadline) {
 			t.Errorf("request must end at the retry boundary: want=%v, got=%v", wantDeadline, deadline)
 		}
-		return stripeTestResponse(http.StatusOK, `{"id":"cus_team1","metadata":{"team_id":"team-1"}}`), nil
+		return testutil.StripeResponse(http.StatusOK, `{"id":"cus_team1","metadata":{"team_id":"team-1"}}`), nil
 	})
 
 	id, err := ensureStripeCustomer(ctx, pool, client, stripeCustomerRequest{TeamID: intent.TeamID})
@@ -282,11 +283,11 @@ func TestEnsureStripeCustomerConcurrent(t *testing.T) {
 	defer cancel()
 	requests := make(chan string, 2)
 	releaseResponses := make(chan struct{})
-	client := newStripeReadTestClient(t, func(request *http.Request) (*http.Response, error) {
+	client := testutil.NewStripeClient(t, func(request *http.Request) (*http.Response, error) {
 		requests <- request.Header.Get("Idempotency-Key")
 		select {
 		case <-releaseResponses:
-			return stripeTestResponse(http.StatusOK, `{"id":"cus_team1","metadata":{"team_id":"team-1"}}`), nil
+			return testutil.StripeResponse(http.StatusOK, `{"id":"cus_team1","metadata":{"team_id":"team-1"}}`), nil
 		case <-request.Context().Done():
 			return nil, request.Context().Err()
 		}
@@ -331,7 +332,7 @@ func TestEnsureStripeCustomerCanceledDuringRequest(t *testing.T) {
 	ctx, pool := newCustomerCreationTestDB(t)
 	requestCtx, cancel := context.WithCancel(ctx)
 	defer cancel()
-	client := newStripeReadTestClient(t, func(request *http.Request) (*http.Response, error) {
+	client := testutil.NewStripeClient(t, func(request *http.Request) (*http.Response, error) {
 		cancel()
 		return nil, request.Context().Err()
 	})

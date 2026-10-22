@@ -11,6 +11,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/openci-org/openci/apps/genuineci_server/internal/testutil"
 )
 
 func TestEnsureBillingAccount(t *testing.T) {
@@ -84,7 +85,7 @@ func TestEnsureBillingAccount(t *testing.T) {
 			results <- err
 		}()
 	}
-	waitForBillingLocks(t, ctx, pool, 2)
+	testutil.WaitForLocks(t, ctx, pool, 2)
 	if err := blocker.Commit(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -106,7 +107,7 @@ func TestEnsureBillingAccount(t *testing.T) {
 		_, err := ensureBillingAccount(ctx, pool, "deleted")
 		results <- err
 	}()
-	waitForBillingLocks(t, ctx, pool, 1)
+	testutil.WaitForLocks(t, ctx, pool, 1)
 	if err := deleter.Commit(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -124,27 +125,5 @@ func TestEnsureBillingAccount(t *testing.T) {
 	var count int
 	if err := pool.QueryRow(ctx, "SELECT count(*) FROM billing_accounts").Scan(&count); err != nil || count != 4 {
 		t.Fatalf("want retained, team-1, concurrent, and fail accounts: count=%d, err=%v", count, err)
-	}
-}
-
-func waitForBillingLocks(t *testing.T, ctx context.Context, pool *pgxpool.Pool, want int) {
-	t.Helper()
-	for {
-		var waiting int
-		err := pool.QueryRow(ctx, `
-			SELECT count(*) FROM pg_stat_activity
-			WHERE application_name = current_setting('application_name') AND wait_event_type = 'Lock'
-		`).Scan(&waiting)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if waiting >= want {
-			return
-		}
-		select {
-		case <-ctx.Done():
-			t.Fatal(ctx.Err())
-		case <-time.After(time.Millisecond):
-		}
 	}
 }

@@ -4,6 +4,8 @@ import (
 	"errors"
 	"testing"
 	"time"
+
+	"github.com/openci-org/openci/apps/genuineci_server/internal/testutil"
 )
 
 func TestExpiredUnstartedAdmissionCanBeClaimedAgain(t *testing.T) {
@@ -14,7 +16,7 @@ func TestExpiredUnstartedAdmissionCanBeClaimedAgain(t *testing.T) {
 	if err != nil || first == nil {
 		t.Fatalf("first claim: %+v, %v", first, err)
 	}
-	execCheckoutCreationSQL(t, ctx, service.pool, `UPDATE billing_admissions SET claimed_at_ms = 0, start_by_ms = 1`)
+	testutil.ExecSQL(t, ctx, service.pool, `UPDATE billing_admissions SET claimed_at_ms = 0, start_by_ms = 1`)
 	second, err := service.claimJob(ctx, request)
 	if err != nil || second == nil || second.JobID != first.JobID || second.AdmissionID == first.AdmissionID {
 		t.Fatalf("expired reservation must release host capacity and get a fresh identity: %+v, %v", second, err)
@@ -31,7 +33,7 @@ func TestExpiredUnstartedAdmissionCanBeClaimedAgain(t *testing.T) {
 
 func TestExpiredBoundAdmissionCannotStartAfterRecovery(t *testing.T) {
 	ctx, service, request := newAdmittedExecutionTest(t)
-	execCheckoutCreationSQL(t, ctx, service.pool, `
+	testutil.ExecSQL(t, ctx, service.pool, `
 		ALTER TABLE build_runs ADD COLUMN status text DEFAULT 'in_progress', ADD COLUMN conclusion text, ADD COLUMN updated_at bigint;
 		UPDATE billing_admissions SET claimed_at_ms = 0, start_by_ms = 1
 	`)
@@ -101,7 +103,7 @@ func TestConcurrentRecoveryAndClaimsDoNotDuplicateAnExpiredJob(t *testing.T) {
 	if claim, err := service.claimJob(ctx, request); err != nil || claim == nil {
 		t.Fatal("initial claim failed")
 	}
-	execCheckoutCreationSQL(t, ctx, service.pool, `UPDATE billing_admissions SET claimed_at_ms = 0, start_by_ms = 1`)
+	testutil.ExecSQL(t, ctx, service.pool, `UPDATE billing_admissions SET claimed_at_ms = 0, start_by_ms = 1`)
 	type result struct {
 		claim *workerClaim
 		err   error
@@ -142,7 +144,7 @@ func TestRecoveryDoesNotRestoreCancelledJobs(t *testing.T) {
 	if claim, err := service.claimJob(ctx, workerClaimRequest{WorkerHost: "worker-1"}); err != nil || claim == nil {
 		t.Fatal("claim failed")
 	}
-	execCheckoutCreationSQL(t, ctx, service.pool, `UPDATE billing_admissions SET claimed_at_ms = 0, start_by_ms = 1; UPDATE build_jobs SET status = 'CANCELLED' WHERE id = 'job-1'`)
+	testutil.ExecSQL(t, ctx, service.pool, `UPDATE billing_admissions SET claimed_at_ms = 0, start_by_ms = 1; UPDATE build_jobs SET status = 'CANCELLED' WHERE id = 'job-1'`)
 	if err := service.recoverWorkerExecutions(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -160,7 +162,7 @@ func TestRecoverySkipsLockedJobsAndRetainsDeletedJobHistory(t *testing.T) {
 	if err != nil || claim == nil {
 		t.Fatal(err)
 	}
-	execCheckoutCreationSQL(t, ctx, service.pool, `UPDATE billing_admissions SET claimed_at_ms = 0, start_by_ms = 1`)
+	testutil.ExecSQL(t, ctx, service.pool, `UPDATE billing_admissions SET claimed_at_ms = 0, start_by_ms = 1`)
 	lock, err := service.pool.Begin(ctx)
 	if err != nil {
 		t.Fatal(err)

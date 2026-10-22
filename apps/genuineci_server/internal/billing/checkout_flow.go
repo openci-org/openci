@@ -7,23 +7,17 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/openci-org/openci/apps/genuineci_server/internal/billing/stripeapi"
 	"github.com/stripe/stripe-go/v87"
 )
 
 var errBillingPlan = errors.New("choose a supported paid billing plan")
 
-type Service struct {
-	pool   *pgxpool.Pool
-	stripe *stripe.Client
-	config ServiceConfig
-}
-
 func (s *Service) checkout(ctx context.Context, member billingMember, planID string) (string, error) {
 	if err := authorizeBillingMember(ctx, s.pool, member); err != nil {
 		return "", err
 	}
-	if s.config.hasComplimentaryPro(member.TeamID) {
+	if s.config.HasComplimentaryPro(member.TeamID) {
 		return "", errComplimentaryPro
 	}
 	priceID := s.config.LightPriceID
@@ -34,7 +28,7 @@ func (s *Service) checkout(ctx context.Context, member billingMember, planID str
 	default:
 		return "", errBillingPlan
 	}
-	price, err := getStripePrice(ctx, s.stripe, priceID)
+	price, err := stripeapi.GetPrice(ctx, s.stripe, priceID)
 	if err != nil {
 		return "", err
 	}
@@ -93,8 +87,8 @@ func (s *Service) checkout(ctx context.Context, member billingMember, planID str
 	}
 	session, err := ensureStripeCheckoutSession(ctx, s.pool, s.stripe, checkoutCreationRequest{
 		TeamID: member.TeamID, PlanID: planID, CustomerID: customerID, PriceID: priceID,
-		SuccessURL: s.config.returnURL(member.TeamID, "success"),
-		CancelURL:  s.config.returnURL(member.TeamID, "cancel"), Livemode: s.config.Livemode,
+		SuccessURL: s.config.ReturnURL(member.TeamID, "success"),
+		CancelURL:  s.config.ReturnURL(member.TeamID, "cancel"), Livemode: s.config.Livemode,
 	})
 	if err != nil {
 		return "", err
@@ -140,7 +134,7 @@ func requireEndedCheckoutSubscription(ctx context.Context, client *stripe.Client
 	if session.Subscription == nil || session.Subscription.ID == "" {
 		return errStripeCheckoutReconciliationRequired
 	}
-	subscription, err := getStripeSubscription(ctx, client, session.Subscription.ID)
+	subscription, err := stripeapi.GetSubscription(ctx, client, session.Subscription.ID)
 	if err != nil {
 		return err
 	}

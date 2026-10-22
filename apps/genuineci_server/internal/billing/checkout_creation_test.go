@@ -10,10 +10,11 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/openci-org/openci/apps/genuineci_server/internal/testutil"
 )
 
 func TestEnsureCheckoutCreationPersistsIntent(t *testing.T) {
-	ctx, pool := newCheckoutCreationTestDB(t)
+	ctx, pool := testutil.NewCheckoutCreationDB(t)
 	var previousKey string
 	for _, teamID := range []string{"team-1", "team-2"} {
 		request := checkoutCreationTestRequest()
@@ -48,13 +49,13 @@ func TestEnsureCheckoutCreationPersistsIntent(t *testing.T) {
 func TestEnsureCheckoutCreationReusesOriginalParameters(t *testing.T) {
 	for _, sessionID := range []string{"", "cs_recorded"} {
 		t.Run("Session="+sessionID, func(t *testing.T) {
-			ctx, pool := newCheckoutCreationTestDB(t)
+			ctx, pool := testutil.NewCheckoutCreationDB(t)
 			request := checkoutCreationTestRequest()
 			original, err := ensureCheckoutCreation(ctx, pool, request)
 			if err != nil {
 				t.Fatal(err)
 			}
-			execCheckoutCreationSQL(t, ctx, pool, `
+			testutil.ExecSQL(t, ctx, pool, `
 				UPDATE billing_checkout_creations SET created_at = 1000, stripe_checkout_session_id = NULLIF($1, '')
 			`, sessionID)
 			want := readCheckoutCreation(t, ctx, pool, original.IdempotencyKey)
@@ -86,12 +87,12 @@ func TestEnsureCheckoutCreationRejectsPurchaseChanges(t *testing.T) {
 		{"mode", func(r *checkoutCreationRequest) { r.Livemode = true }},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			ctx, pool := newCheckoutCreationTestDB(t)
+			ctx, pool := testutil.NewCheckoutCreationDB(t)
 			request := checkoutCreationTestRequest()
 			if _, err := ensureCheckoutCreation(ctx, pool, request); err != nil {
 				t.Fatal(err)
 			}
-			want := checkoutCreationRecords(t, ctx, pool)
+			want := testutil.CheckoutCreationRecords(t, ctx, pool)
 			tc.change(&request)
 
 			got, err := ensureCheckoutCreation(ctx, pool, request)
@@ -99,7 +100,7 @@ func TestEnsureCheckoutCreationRejectsPurchaseChanges(t *testing.T) {
 			if got != nil || !errors.Is(err, errCheckoutCreationConflict) {
 				t.Fatalf("purchase changes must return a conflict without an intent: got=%+v, err=%v", got, err)
 			}
-			if stored := checkoutCreationRecords(t, ctx, pool); stored != want {
+			if stored := testutil.CheckoutCreationRecords(t, ctx, pool); stored != want {
 				t.Fatalf("conflict must leave the unfinished intent unchanged: want=%s, got=%s", want, stored)
 			}
 		})
@@ -107,13 +108,13 @@ func TestEnsureCheckoutCreationRejectsPurchaseChanges(t *testing.T) {
 }
 
 func TestEnsureCheckoutCreationAfterClosedIntent(t *testing.T) {
-	ctx, pool := newCheckoutCreationTestDB(t)
+	ctx, pool := testutil.NewCheckoutCreationDB(t)
 	request := checkoutCreationTestRequest()
 	original, err := ensureCheckoutCreation(ctx, pool, request)
 	if err != nil {
 		t.Fatal(err)
 	}
-	execCheckoutCreationSQL(t, ctx, pool, `
+	testutil.ExecSQL(t, ctx, pool, `
 		UPDATE billing_checkout_creations SET closed_at = 1800000100, stripe_checkout_session_id = 'cs_closed'
 	`)
 	want := readCheckoutCreation(t, ctx, pool, original.IdempotencyKey)
@@ -136,8 +137,8 @@ func TestEnsureCheckoutCreationRequiresLiveBillingAccount(t *testing.T) {
 		{"uninitialized account", "DELETE FROM billing_accounts WHERE team_id = 'team-1'"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			ctx, pool := newCheckoutCreationTestDB(t)
-			execCheckoutCreationSQL(t, ctx, pool, tc.sql)
+			ctx, pool := testutil.NewCheckoutCreationDB(t)
+			testutil.ExecSQL(t, ctx, pool, tc.sql)
 
 			got, err := ensureCheckoutCreation(ctx, pool, checkoutCreationTestRequest())
 
@@ -152,7 +153,7 @@ func TestEnsureCheckoutCreationRequiresLiveBillingAccount(t *testing.T) {
 func TestEnsureCheckoutCreationConcurrent(t *testing.T) {
 	for _, planID := range []string{"light", "pro"} {
 		t.Run("competing plan="+planID, func(t *testing.T) {
-			ctx, pool := newCheckoutCreationTestDB(t)
+			ctx, pool := testutil.NewCheckoutCreationDB(t)
 			blocker, err := pool.Begin(ctx)
 			if err != nil {
 				t.Fatal(err)
@@ -174,7 +175,7 @@ func TestEnsureCheckoutCreationConcurrent(t *testing.T) {
 					results <- result{creation, err}
 				}()
 			}
-			waitForBillingLocks(t, ctx, pool, 2)
+			testutil.WaitForLocks(t, ctx, pool, 2)
 			if err := blocker.Commit(ctx); err != nil {
 				t.Fatal(err)
 			}
@@ -210,8 +211,8 @@ func TestEnsureCheckoutCreationConcurrent(t *testing.T) {
 }
 
 func TestEnsureCheckoutCreationCommitFailure(t *testing.T) {
-	ctx, pool := newCheckoutCreationTestDB(t)
-	execCheckoutCreationSQL(t, ctx, pool, `
+	ctx, pool := testutil.NewCheckoutCreationDB(t)
+	testutil.ExecSQL(t, ctx, pool, `
 		CREATE TABLE allowed_checkout_keys (key text PRIMARY KEY);
 		ALTER TABLE billing_checkout_creations ADD CONSTRAINT reject_key_at_commit
 			FOREIGN KEY (idempotency_key) REFERENCES allowed_checkout_keys(key)
@@ -225,14 +226,14 @@ func TestEnsureCheckoutCreationCommitFailure(t *testing.T) {
 		t.Fatalf("failed commit must return no usable intent: got=%+v, err=%v", got, err)
 	}
 	assertCheckoutCreationCount(t, ctx, pool, 0)
-	execCheckoutCreationSQL(t, ctx, pool, "ALTER TABLE billing_checkout_creations DROP CONSTRAINT reject_key_at_commit")
+	testutil.ExecSQL(t, ctx, pool, "ALTER TABLE billing_checkout_creations DROP CONSTRAINT reject_key_at_commit")
 	if got, err := ensureCheckoutCreation(ctx, pool, checkoutCreationTestRequest()); err != nil || got == nil {
 		t.Fatalf("must allow retry after rollback: got=%+v, err=%v", got, err)
 	}
 }
 
 func TestEnsureCheckoutCreationCanceled(t *testing.T) {
-	ctx, pool := newCheckoutCreationTestDB(t)
+	ctx, pool := testutil.NewCheckoutCreationDB(t)
 	canceled, cancel := context.WithCancel(ctx)
 	cancel()
 
@@ -268,19 +269,6 @@ func TestEnsureCheckoutCreationRejectsInvalidInput(t *testing.T) {
 			}
 		})
 	}
-}
-
-func newCheckoutCreationTestDB(t *testing.T) (context.Context, *pgxpool.Pool) {
-	t.Helper()
-	ctx, pool := newCheckoutCreationSchemaTestDB(t)
-	execCheckoutCreationSQL(t, ctx, pool, `
-		CREATE TABLE teams (id text PRIMARY KEY);
-		INSERT INTO teams VALUES ('team-1'), ('team-2'), ('team-3')
-	`)
-	if err := EnsureCheckoutCreationsTable(ctx, pool); err != nil {
-		t.Fatal(err)
-	}
-	return ctx, pool
 }
 
 func checkoutCreationTestRequest() checkoutCreationRequest {

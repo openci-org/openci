@@ -12,6 +12,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/openci-org/openci/apps/genuineci_server/internal/testutil"
 )
 
 func TestWithBillingAccountLock(t *testing.T) {
@@ -109,7 +110,7 @@ func TestWithBillingAccountLock(t *testing.T) {
 	}
 	results := make(chan error, 1)
 	go func() { results <- withBillingAccountLock(ctx, pool, "team-1", record) }()
-	waitForBillingLocks(t, ctx, pool, 1)
+	testutil.WaitForLocks(t, ctx, pool, 1)
 	if err := withBillingAccountLock(ctx, pool, "team-2", record); err != nil {
 		t.Fatalf("another team must not be blocked: %v", err)
 	}
@@ -129,7 +130,7 @@ func TestWithBillingAccountLock(t *testing.T) {
 		t.Fatal(err)
 	}
 	go func() { results <- withBillingAccountLock(ctx, pool, "deleted", record) }()
-	waitForBillingLocks(t, ctx, pool, 1)
+	testutil.WaitForLocks(t, ctx, pool, 1)
 	if err := deleter.Commit(ctx); err != nil {
 		t.Fatal(err)
 	}

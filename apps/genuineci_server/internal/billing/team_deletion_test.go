@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/openci-org/openci/apps/genuineci_server/internal/testutil"
 	"github.com/stripe/stripe-go/v87"
 )
 
@@ -38,20 +39,20 @@ func TestDeleteTeamBlocksActiveOrUncertainPurchases(t *testing.T) {
 			}
 			switch scenario {
 			case "unknown session":
-				execCheckoutCreationSQL(t, ctx, service.pool, "UPDATE billing_checkout_creations SET stripe_checkout_session_id = NULL")
+				testutil.ExecSQL(t, ctx, service.pool, "UPDATE billing_checkout_creations SET stripe_checkout_session_id = NULL")
 			case "active subscription":
 				gateway.subscription = checkoutFlowSubscription(stripe.SubscriptionStatusActive)
 			case "unknown subscription":
 				gateway.subscription = checkoutFlowSubscription("future_status")
 			case "unresolved customer":
-				execCheckoutCreationSQL(t, ctx, service.pool, "UPDATE billing_customer_creations SET stripe_customer_id = NULL")
+				testutil.ExecSQL(t, ctx, service.pool, "UPDATE billing_customer_creations SET stripe_customer_id = NULL")
 			case "wrong mode":
 				service.config.Livemode = true
 			case "wrong session key":
 				gateway.sessions["cs_1"].Status = stripe.CheckoutSessionStatusExpired
 				gateway.sessions["cs_1"].Metadata["checkout_creation_key"] = "different-key"
 			case "Stripe unavailable":
-				service.stripe = newStripeReadTestClient(t, func(*http.Request) (*http.Response, error) {
+				service.stripe = testutil.NewStripeClient(t, func(*http.Request) (*http.Response, error) {
 					return nil, errors.New("unavailable")
 				})
 			}
@@ -116,7 +117,7 @@ func TestDeleteTeamRechecksMembershipAfterLockWait(t *testing.T) {
 	}
 	result := make(chan error, 1)
 	go func() { result <- service.deleteTeam(ctx, billingMember{TeamID: "team-1", UserID: "user-1"}) }()
-	waitForBillingLocks(t, ctx, service.pool, 1)
+	testutil.WaitForLocks(t, ctx, service.pool, 1)
 	if _, err := blocker.Exec(ctx, "DELETE FROM team_members WHERE team_id = 'team-1' AND user_id = 'user-1'"); err != nil {
 		t.Fatal(err)
 	}
@@ -141,7 +142,7 @@ func TestDeleteTeamPreventsConcurrentCheckoutIntent(t *testing.T) {
 	entered, resume := make(chan struct{}), make(chan struct{})
 	release := sync.OnceFunc(func() { close(resume) })
 	defer release()
-	service.stripe = newStripeReadTestClient(t, func(r *http.Request) (*http.Response, error) {
+	service.stripe = testutil.NewStripeClient(t, func(r *http.Request) (*http.Response, error) {
 		if r.URL.Path == "/v1/customers/cus_team" {
 			close(entered)
 			select {
@@ -163,11 +164,11 @@ func TestDeleteTeamPreventsConcurrentCheckoutIntent(t *testing.T) {
 	go func() {
 		_, err := ensureCheckoutCreation(ctx, service.pool, checkoutCreationRequest{
 			TeamID: "team-1", PlanID: "light", CustomerID: "cus_team", PriceID: "price_light",
-			SuccessURL: service.config.returnURL("team-1", "success"), CancelURL: service.config.returnURL("team-1", "cancel"),
+			SuccessURL: service.config.ReturnURL("team-1", "success"), CancelURL: service.config.ReturnURL("team-1", "cancel"),
 		})
 		created <- err
 	}()
-	waitForBillingLocks(t, ctx, service.pool, 1)
+	testutil.WaitForLocks(t, ctx, service.pool, 1)
 	release()
 	if err := <-deleted; err != nil {
 		t.Fatal(err)

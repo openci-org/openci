@@ -7,6 +7,8 @@ import (
 	"sync"
 	"testing"
 
+	billingconfig "github.com/openci-org/openci/apps/genuineci_server/internal/billing/config"
+	"github.com/openci-org/openci/apps/genuineci_server/internal/testutil"
 	"github.com/stripe/stripe-go/v87"
 )
 
@@ -119,7 +121,7 @@ func TestReconcileStripeEventRollsBackAndRetries(t *testing.T) {
 			if failure == "Stripe outage" {
 				gateway.fail = true
 			} else {
-				execCheckoutCreationSQL(t, ctx, service.pool, `
+				testutil.ExecSQL(t, ctx, service.pool, `
 				CREATE TABLE allowed_events (id text PRIMARY KEY);
 				ALTER TABLE billing_stripe_events ADD CONSTRAINT reject_event FOREIGN KEY (event_id)
 				REFERENCES allowed_events(id) DEFERRABLE INITIALLY DEFERRED
@@ -135,7 +137,7 @@ func TestReconcileStripeEventRollsBackAndRetries(t *testing.T) {
 			}
 			gateway.fail = false
 			if failure == "event commit" {
-				execCheckoutCreationSQL(t, ctx, service.pool, "ALTER TABLE billing_stripe_events DROP CONSTRAINT reject_event")
+				testutil.ExecSQL(t, ctx, service.pool, "ALTER TABLE billing_stripe_events DROP CONSTRAINT reject_event")
 			}
 			if err := service.reconcileStripeEvent(ctx, event, gateway.customer.ID); err != nil {
 				t.Fatal(err)
@@ -173,9 +175,9 @@ type reconciliationGateway struct {
 
 func newReconciliationTest(t *testing.T) (context.Context, *Service, *reconciliationGateway) {
 	t.Helper()
-	ctx, pool := newStripeStateTestDB(t)
-	setBillingServiceEnvironment(t)
-	config, err := LoadServiceConfig()
+	ctx, pool := testutil.NewStripeStateDB(t)
+	testutil.SetBillingEnvironment(t)
+	config, err := billingconfig.Load()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -184,7 +186,7 @@ func newReconciliationTest(t *testing.T) (context.Context, *Service, *reconcilia
 	if err != nil {
 		t.Fatal(err)
 	}
-	execCheckoutCreationSQL(t, ctx, pool, `
+	testutil.ExecSQL(t, ctx, pool, `
 		INSERT INTO billing_customer_creations (team_id, idempotency_key, livemode, created_at, stripe_customer_id)
 		VALUES ($1, 'customer-key', false, 1, $2)
 	`, fixture.Request.TeamID, fixture.Request.CustomerID)
@@ -195,7 +197,7 @@ func newReconciliationTest(t *testing.T) (context.Context, *Service, *reconcilia
 		customer:     &stripe.Customer{ID: fixture.Request.CustomerID, Metadata: map[string]string{"team_id": fixture.Request.TeamID}},
 		subscription: subscription, session: session, invoice: invoice,
 	}
-	client := newStripeReadTestClient(t, func(r *http.Request) (*http.Response, error) {
+	client := testutil.NewStripeClient(t, func(r *http.Request) (*http.Response, error) {
 		gateway.mu.Lock()
 		defer gateway.mu.Unlock()
 		gateway.calls++

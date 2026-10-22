@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/openci-org/openci/apps/genuineci_server/internal/billing/stripeapi"
 	"github.com/stripe/stripe-go/v87"
 )
 
@@ -65,7 +66,7 @@ func (s *Service) requireCheckoutEnded(ctx context.Context, creation checkoutCre
 	if creation.StripeCheckoutSessionID == nil {
 		return errStripeCheckoutReconciliationRequired
 	}
-	session, err := getStripeCheckoutSession(ctx, s.stripe, *creation.StripeCheckoutSessionID)
+	session, err := stripeapi.GetCheckoutSession(ctx, s.stripe, *creation.StripeCheckoutSessionID)
 	if err != nil {
 		return err
 	}

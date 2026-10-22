@@ -7,10 +7,11 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/openci-org/openci/apps/genuineci_server/internal/testutil"
 )
 
 func TestCreateExecutionPreservesFirstStartAndAllowsDistinctReruns(t *testing.T) {
-	ctx, pool := newExecutionTestDB(t)
+	ctx, pool := testutil.NewExecutionDB(t)
 	request := executionStartFixture()
 	var original *execution
 	err := pgx.BeginFunc(ctx, pool, func(tx pgx.Tx) error {
@@ -51,7 +52,7 @@ func TestCreateExecutionPreservesFirstStartAndAllowsDistinctReruns(t *testing.T)
 func TestCreateExecutionRejectsChangedIdentityAndIneligiblePeriods(t *testing.T) {
 	for _, scenario := range []string{"worker", "job", "team", "period", "trial", "future period", "empty identity", "invalid lease"} {
 		t.Run(scenario, func(t *testing.T) {
-			ctx, pool := newExecutionTestDB(t)
+			ctx, pool := testutil.NewExecutionDB(t)
 			request := executionStartFixture()
 			if err := pgx.BeginFunc(ctx, pool, func(tx pgx.Tx) error {
 				_, err := createExecution(ctx, tx, request)
@@ -70,10 +71,10 @@ func TestCreateExecutionRejectsChangedIdentityAndIneligiblePeriods(t *testing.T)
 				request.Identity.PeriodID = "paid-2"
 			case "trial":
 				request.Identity.RunID = "new-run"
-				execCheckoutCreationSQL(t, ctx, pool, "UPDATE billing_periods SET period_type = 'trial' WHERE id = 'paid-1'")
+				testutil.ExecSQL(t, ctx, pool, "UPDATE billing_periods SET period_type = 'trial' WHERE id = 'paid-1'")
 			case "future period":
 				request.Identity.RunID = "new-run"
-				execCheckoutCreationSQL(t, ctx, pool, "UPDATE billing_periods SET starts_at = 100 WHERE id = 'paid-1'")
+				testutil.ExecSQL(t, ctx, pool, "UPDATE billing_periods SET starts_at = 100 WHERE id = 'paid-1'")
 			case "empty identity":
 				request.Identity.WorkerHost = " "
 			case "invalid lease":
@@ -91,7 +92,7 @@ func TestCreateExecutionRejectsChangedIdentityAndIneligiblePeriods(t *testing.T)
 }
 
 func TestCreateExecutionConcurrentRetryAndRollback(t *testing.T) {
-	ctx, pool := newExecutionTestDB(t)
+	ctx, pool := testutil.NewExecutionDB(t)
 	request := executionStartFixture()
 	tx, err := pool.Begin(ctx)
 	if err != nil {
@@ -108,7 +109,7 @@ func TestCreateExecutionConcurrentRetryAndRollback(t *testing.T) {
 			return err
 		})
 	}()
-	waitForBillingLocks(t, ctx, pool, 1)
+	testutil.WaitForLocks(t, ctx, pool, 1)
 	if err := tx.Rollback(ctx); err != nil {
 		t.Fatal(err)
 	}

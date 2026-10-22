@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/openci-org/openci/apps/genuineci_server/internal/testutil"
 	"github.com/stripe/stripe-go/v87"
 )
 
@@ -17,14 +18,14 @@ func TestEnsureStripeCheckoutSessionRecoversOldIntent(t *testing.T) {
 	} {
 		t.Run(string(status), func(t *testing.T) {
 			ctx, pool, creation := newCheckoutCreationResultTestDB(t, false)
-			execCheckoutCreationSQL(t, ctx, pool, "UPDATE billing_checkout_creations SET created_at = $1", time.Now().Add(-48*time.Hour).Unix())
+			testutil.ExecSQL(t, ctx, pool, "UPDATE billing_checkout_creations SET created_at = $1", time.Now().Add(-48*time.Hour).Unix())
 			creation = *readCheckoutCreation(t, ctx, pool, creation.IdempotencyKey)
 			session := recoverableCheckoutSession(t, creation)
 			session.Status = status
 			if status != stripe.CheckoutSessionStatusOpen {
 				session.URL = ""
 			}
-			client := newStripeReadTestClient(t, func(r *http.Request) (*http.Response, error) {
+			client := testutil.NewStripeClient(t, func(r *http.Request) (*http.Response, error) {
 				if r.Method != http.MethodGet || r.URL.Path != "/v1/checkout/sessions" ||
 					r.URL.Query().Get("customer") != creation.Request.CustomerID ||
 					r.URL.Query().Get("expand[0]") != "data.line_items" {
@@ -65,7 +66,7 @@ func TestFindStripeCheckoutSessionRejectsUncertainMatches(t *testing.T) {
 			creation := checkoutCreation{Request: checkoutCreationTestRequest(), IdempotencyKey: "original-key", CreatedAt: time.Now()}
 			session := recoverableCheckoutSession(t, creation)
 			tc.change(session)
-			client := newStripeReadTestClient(t, func(*http.Request) (*http.Response, error) {
+			client := testutil.NewStripeClient(t, func(*http.Request) (*http.Response, error) {
 				return checkoutSessionListResponse(t, []*stripe.CheckoutSession{session}, false), nil
 			})
 			if got, err := findStripeCheckoutSession(t.Context(), client, creation); got != nil || !errors.Is(err, errStripeCheckoutReconciliationRequired) {
@@ -85,7 +86,7 @@ func TestFindStripeCheckoutSessionPaginatesAndDetectsAmbiguity(t *testing.T) {
 				first.Metadata["checkout_creation_key"] = "another-key"
 			}
 			calls := 0
-			client := newStripeReadTestClient(t, func(r *http.Request) (*http.Response, error) {
+			client := testutil.NewStripeClient(t, func(r *http.Request) (*http.Response, error) {
 				calls++
 				if calls == 1 {
 					return checkoutSessionListResponse(t, []*stripe.CheckoutSession{first}, true), nil
@@ -112,7 +113,7 @@ func TestFindStripeCheckoutSessionPaginatesAndDetectsAmbiguity(t *testing.T) {
 
 func TestFindStripeCheckoutSessionSanitizesFailure(t *testing.T) {
 	creation := checkoutCreation{Request: checkoutCreationTestRequest(), IdempotencyKey: "original-key"}
-	client := newStripeReadTestClient(t, func(*http.Request) (*http.Response, error) {
+	client := testutil.NewStripeClient(t, func(*http.Request) (*http.Response, error) {
 		return nil, errors.New("sk_test_sensitive upstream failure")
 	})
 	got, err := findStripeCheckoutSession(t.Context(), client, creation)
@@ -139,5 +140,5 @@ func checkoutSessionListResponse(t *testing.T, sessions []*stripe.CheckoutSessio
 	if err != nil {
 		t.Fatal(err)
 	}
-	return stripeTestResponse(http.StatusOK, string(body))
+	return testutil.StripeResponse(http.StatusOK, string(body))
 }

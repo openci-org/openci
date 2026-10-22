@@ -4,11 +4,13 @@ import (
 	"context"
 	"errors"
 
+	billingconfig "github.com/openci-org/openci/apps/genuineci_server/internal/billing/config"
+	"github.com/openci-org/openci/apps/genuineci_server/internal/billing/stripeapi"
 	"github.com/stripe/stripe-go/v87"
 )
 
 func getStripeCheckoutPrice(ctx context.Context, client *stripe.Client, planID string, livemode bool) (*stripe.Price, error) {
-	priceID, err := stripeCheckoutPriceID(planID)
+	priceID, err := billingconfig.CheckoutPriceID(planID)
 	if err != nil {
 		return nil, err
 	}
@@ -16,7 +18,7 @@ func getStripeCheckoutPrice(ctx context.Context, client *stripe.Client, planID s
 		return nil, errors.New("Stripe billing is not configured")
 	}
 
-	price, err := getStripePrice(ctx, client, priceID)
+	price, err := stripeapi.GetPrice(ctx, client, priceID)
 	if err != nil {
 		return nil, err
 	}

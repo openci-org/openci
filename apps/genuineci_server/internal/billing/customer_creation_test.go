@@ -10,6 +10,8 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
+	billingschema "github.com/openci-org/openci/apps/genuineci_server/internal/billing/schema"
+	"github.com/openci-org/openci/apps/genuineci_server/internal/testutil"
 )
 
 func TestEnsureCustomerCreationPersistsIntent(t *testing.T) {
@@ -80,7 +82,7 @@ func TestEnsureCustomerCreationReusesStoredIntent(t *testing.T) {
 
 func TestEnsureCustomerCreationRejectsModeChange(t *testing.T) {
 	ctx, pool := newCustomerCreationTestDB(t)
-	execCustomerCreationSQL(t, ctx, pool, `
+	testutil.ExecSQL(t, ctx, pool, `
 		INSERT INTO billing_customer_creations VALUES ('team-1', 'original-key', true, 1000, 'cus_team1')
 	`)
 	want := readCustomerCreation(t, ctx, pool, "team-1")
@@ -103,7 +105,7 @@ func TestEnsureCustomerCreationRequiresLiveBillingAccount(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			ctx, pool := newCustomerCreationTestDB(t)
-			execCustomerCreationSQL(t, ctx, pool, tc.sql)
+			testutil.ExecSQL(t, ctx, pool, tc.sql)
 
 			got, err := ensureCustomerCreation(ctx, pool, "team-1", false)
 
@@ -136,7 +138,7 @@ func TestEnsureCustomerCreationConcurrent(t *testing.T) {
 			results <- result{creation, err}
 		}()
 	}
-	waitForBillingLocks(t, ctx, pool, 2)
+	testutil.WaitForLocks(t, ctx, pool, 2)
 	if err := blocker.Commit(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -160,7 +162,7 @@ func TestEnsureCustomerCreationConcurrent(t *testing.T) {
 func TestEnsureCustomerCreationCommitFailure(t *testing.T) {
 	ctx, pool := newCustomerCreationTestDB(t)
 	// Let INSERT and SELECT succeed, then reject the key only at COMMIT.
-	execCustomerCreationSQL(t, ctx, pool, `
+	testutil.ExecSQL(t, ctx, pool, `
 		CREATE TABLE allowed_customer_keys (key text PRIMARY KEY);
 		ALTER TABLE billing_customer_creations ADD CONSTRAINT reject_key_at_commit
 			FOREIGN KEY (idempotency_key) REFERENCES allowed_customer_keys(key)
@@ -174,7 +176,7 @@ func TestEnsureCustomerCreationCommitFailure(t *testing.T) {
 		t.Fatalf("failed commit must return no usable key: got=%+v, err=%v", got, err)
 	}
 	assertNoCustomerCreations(t, ctx, pool)
-	execCustomerCreationSQL(t, ctx, pool, "ALTER TABLE billing_customer_creations DROP CONSTRAINT reject_key_at_commit")
+	testutil.ExecSQL(t, ctx, pool, "ALTER TABLE billing_customer_creations DROP CONSTRAINT reject_key_at_commit")
 	if got, err := ensureCustomerCreation(ctx, pool, "team-1", false); err != nil || got == nil {
 		t.Fatalf("must allow retry after rollback: got=%+v, err=%v", got, err)
 	}
@@ -195,12 +197,12 @@ func TestEnsureCustomerCreationCanceled(t *testing.T) {
 
 func newCustomerCreationTestDB(t *testing.T) (context.Context, *pgxpool.Pool) {
 	t.Helper()
-	ctx, pool := newCustomerCreationSchemaTestDB(t)
-	execCustomerCreationSQL(t, ctx, pool, `
+	ctx, pool := testutil.NewCustomerCreationSchemaDB(t)
+	testutil.ExecSQL(t, ctx, pool, `
 		CREATE TABLE teams (id text PRIMARY KEY);
 		INSERT INTO teams VALUES ('team-1'), ('team-2'), ('team-3')
 	`)
-	if err := EnsureCustomerCreationsTable(ctx, pool); err != nil {
+	if err := billingschema.EnsureCustomerCreationsTable(ctx, pool); err != nil {
 		t.Fatal(err)
 	}
 	return ctx, pool

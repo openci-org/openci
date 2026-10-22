@@ -3,6 +3,8 @@ package billing
 import (
 	"testing"
 	"time"
+
+	"github.com/openci-org/openci/apps/genuineci_server/internal/testutil"
 )
 
 func TestBillingStatusUsesPersistedExecutionBudget(t *testing.T) {
@@ -24,17 +26,17 @@ func TestBillingStatusUsesPersistedExecutionBudget(t *testing.T) {
 		{"zero allowance", 0, 0, 0, true, false},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			ctx, pool := newStripeStateTestDB(t)
+			ctx, pool := testutil.NewStripeStateDB(t)
 			now := time.Now().Truncate(time.Millisecond)
 			observed := now.UnixMilli()
 			lease := observed + tc.leaseMillis
 			if tc.leaseMillis < 0 {
 				observed = lease - 1000
 			}
-			execCheckoutCreationSQL(t, ctx, pool, `
+			testutil.ExecSQL(t, ctx, pool, `
 				INSERT INTO billing_periods VALUES ('paid', 'team-1', 'light', 'paid', $1, $2, $3);
 			`, now.Add(-time.Hour).Unix(), now.Add(time.Hour).Unix(), tc.allowance)
-			execCheckoutCreationSQL(t, ctx, pool, `
+			testutil.ExecSQL(t, ctx, pool, `
 				INSERT INTO billing_stripe_state
 					(team_id, stripe_customer_id, livemode, stripe_subscription_id, subscription_status, plan_id, paid_period_id, synced_at)
 				VALUES ('team-1', 'cus_team', false, 'sub_team', 'active', 'light', 'paid', $1)
@@ -46,7 +48,7 @@ func TestBillingStatusUsesPersistedExecutionBudget(t *testing.T) {
 				value := "success"
 				outcome = &value
 			}
-			execCheckoutCreationSQL(t, ctx, pool, `
+			testutil.ExecSQL(t, ctx, pool, `
 				INSERT INTO billing_executions
 					(run_id, team_id, job_id, worker_host, period_id, started_at_ms, observed_at_ms, lease_until_ms, finished_at_ms, outcome)
 				VALUES ('run', 'team-1', 'job', 'worker', 'paid', $1, $2, $3, $4, $5)
@@ -75,12 +77,12 @@ func TestBillingStatusUsesPersistedExecutionBudget(t *testing.T) {
 }
 
 func TestBillingStatusRejectsMissingUsageAllowance(t *testing.T) {
-	ctx, pool := newStripeStateTestDB(t)
+	ctx, pool := testutil.NewStripeStateDB(t)
 	now := time.Now()
-	execCheckoutCreationSQL(t, ctx, pool, `
+	testutil.ExecSQL(t, ctx, pool, `
 		INSERT INTO billing_periods VALUES ('paid', 'team-1', 'light', 'paid', $1, $2, NULL)
 	`, now.Add(-time.Hour).Unix(), now.Add(time.Hour).Unix())
-	execCheckoutCreationSQL(t, ctx, pool, `
+	testutil.ExecSQL(t, ctx, pool, `
 		INSERT INTO billing_stripe_state
 			(team_id, stripe_customer_id, livemode, stripe_subscription_id, subscription_status, plan_id, paid_period_id, synced_at)
 		VALUES ('team-1', 'cus_team', false, 'sub_team', 'active', 'light', 'paid', $1)

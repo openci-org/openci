@@ -7,13 +7,15 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	billingconfig "github.com/openci-org/openci/apps/genuineci_server/internal/billing/config"
+	"github.com/openci-org/openci/apps/genuineci_server/internal/billing/stripeapi"
 	"github.com/stripe/stripe-go/v87"
 )
 
 var errStripeCheckoutCompleted = errors.New("Checkout completed; refresh billing state before another purchase")
 
 func expireCheckoutCreation(ctx context.Context, pool *pgxpool.Pool, client *stripe.Client, creation checkoutCreation) error {
-	enabled, err := Enabled()
+	enabled, err := billingconfig.Enabled()
 	if err != nil {
 		return err
 	}
@@ -23,7 +25,7 @@ func expireCheckoutCreation(ctx context.Context, pool *pgxpool.Pool, client *str
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 	id := *creation.StripeCheckoutSessionID
-	session, err := getStripeCheckoutSession(ctx, client, id)
+	session, err := stripeapi.GetCheckoutSession(ctx, client, id)
 	if err != nil {
 		return err
 	}
@@ -38,7 +40,7 @@ func expireCheckoutCreation(ctx context.Context, pool *pgxpool.Pool, client *str
 			if ctx.Err() != nil {
 				return ctx.Err()
 			}
-			session, err = getStripeCheckoutSession(ctx, client, id)
+			session, err = stripeapi.GetCheckoutSession(ctx, client, id)
 			if err != nil {
 				return err
 			}

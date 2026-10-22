@@ -7,15 +7,16 @@ import (
 	"testing"
 	"time"
 
+	"github.com/openci-org/openci/apps/genuineci_server/internal/testutil"
 	"github.com/stripe/stripe-go/v87"
 )
 
 func TestEnsureStripeCheckoutSession(t *testing.T) {
-	ctx, pool := newCheckoutCreationTestDB(t)
+	ctx, pool := testutil.NewCheckoutCreationDB(t)
 	request := checkoutCreationTestRequest()
 	var creation *checkoutCreation
 	posts, gets := 0, 0
-	client := newStripeReadTestClient(t, func(r *http.Request) (*http.Response, error) {
+	client := testutil.NewStripeClient(t, func(r *http.Request) (*http.Response, error) {
 		if r.Method == http.MethodPost {
 			posts++
 			creation = readCheckoutCreation(t, ctx, pool, r.Header.Get("Idempotency-Key"))
@@ -28,7 +29,7 @@ func TestEnsureStripeCheckoutSession(t *testing.T) {
 				t.Errorf("must retrieve the recorded Session, got %s", r.URL.Path)
 			}
 		}
-		return stripeTestResponse(http.StatusOK, checkoutSessionResponse(t, *creation)), nil
+		return testutil.StripeResponse(http.StatusOK, checkoutSessionResponse(t, *creation)), nil
 	})
 
 	session, err := ensureStripeCheckoutSession(ctx, pool, client, request)
@@ -52,9 +53,9 @@ func TestEnsureStripeCheckoutSession(t *testing.T) {
 func TestEnsureStripeCheckoutSessionRecoversRetry(t *testing.T) {
 	for _, fail := range []string{"lost response", "failed result commit"} {
 		t.Run(fail, func(t *testing.T) {
-			ctx, pool := newCheckoutCreationTestDB(t)
+			ctx, pool := testutil.NewCheckoutCreationDB(t)
 			if fail == "failed result commit" {
-				execCheckoutCreationSQL(t, ctx, pool, `
+				testutil.ExecSQL(t, ctx, pool, `
 					CREATE TABLE allowed_sessions (id text PRIMARY KEY);
 					ALTER TABLE billing_checkout_creations ADD CONSTRAINT reject_result
 					FOREIGN KEY (stripe_checkout_session_id) REFERENCES allowed_sessions(id)
@@ -63,7 +64,7 @@ func TestEnsureStripeCheckoutSessionRecoversRetry(t *testing.T) {
 			}
 			var key, body string
 			calls := 0
-			client := newStripeReadTestClient(t, func(r *http.Request) (*http.Response, error) {
+			client := testutil.NewStripeClient(t, func(r *http.Request) (*http.Response, error) {
 				calls++
 				if err := r.ParseForm(); err != nil {
 					t.Fatal(err)
@@ -77,7 +78,7 @@ func TestEnsureStripeCheckoutSessionRecoversRetry(t *testing.T) {
 					t.Error("retry must preserve both key and original parameters")
 				}
 				creation := readCheckoutCreation(t, ctx, pool, key)
-				return stripeTestResponse(http.StatusOK, checkoutSessionResponse(t, *creation)), nil
+				return testutil.StripeResponse(http.StatusOK, checkoutSessionResponse(t, *creation)), nil
 			})
 			request := checkoutCreationTestRequest()
 			if session, err := ensureStripeCheckoutSession(ctx, pool, client, request); session != nil || err == nil {
@@ -87,7 +88,7 @@ func TestEnsureStripeCheckoutSessionRecoversRetry(t *testing.T) {
 				t.Fatal("failed attempt must remain pending")
 			}
 			if fail == "failed result commit" {
-				execCheckoutCreationSQL(t, ctx, pool, "ALTER TABLE billing_checkout_creations DROP CONSTRAINT reject_result")
+				testutil.ExecSQL(t, ctx, pool, "ALTER TABLE billing_checkout_creations DROP CONSTRAINT reject_result")
 			}
 			pool.Reset()
 			request.PriceID, request.SuccessURL = "price_new", "https://new.example/success"
@@ -102,12 +103,12 @@ func TestEnsureStripeCheckoutSessionBlocksUnsafeReplay(t *testing.T) {
 	for _, offset := range []time.Duration{-24 * time.Hour, time.Hour} {
 		t.Run(offset.String(), func(t *testing.T) {
 			ctx, pool, creation := newCheckoutCreationResultTestDB(t, false)
-			execCheckoutCreationSQL(t, ctx, pool, "UPDATE billing_checkout_creations SET created_at = $1", time.Now().Add(offset).Unix())
-			client := newStripeReadTestClient(t, func(r *http.Request) (*http.Response, error) {
+			testutil.ExecSQL(t, ctx, pool, "UPDATE billing_checkout_creations SET created_at = $1", time.Now().Add(offset).Unix())
+			client := testutil.NewStripeClient(t, func(r *http.Request) (*http.Response, error) {
 				if r.Method != http.MethodGet || offset > 0 {
 					t.Error("unsafe intent must not be replayed")
 				}
-				return stripeTestResponse(http.StatusOK, `{"object":"list","data":[],"has_more":false}`), nil
+				return testutil.StripeResponse(http.StatusOK, `{"object":"list","data":[],"has_more":false}`), nil
 			})
 			session, err := ensureStripeCheckoutSession(ctx, pool, client, creation.Request)
 			if session != nil || !errors.Is(err, errStripeCheckoutReconciliationRequired) {
@@ -119,9 +120,9 @@ func TestEnsureStripeCheckoutSessionBlocksUnsafeReplay(t *testing.T) {
 
 func TestEnsureStripeCheckoutSessionRejectsWrongCreationKey(t *testing.T) {
 	ctx, pool, creation := newCheckoutCreationResultTestDB(t, false)
-	client := newStripeReadTestClient(t, func(*http.Request) (*http.Response, error) {
+	client := testutil.NewStripeClient(t, func(*http.Request) (*http.Response, error) {
 		creation.IdempotencyKey = "another-intent"
-		return stripeTestResponse(http.StatusOK, checkoutSessionResponse(t, creation)), nil
+		return testutil.StripeResponse(http.StatusOK, checkoutSessionResponse(t, creation)), nil
 	})
 	if session, err := ensureStripeCheckoutSession(ctx, pool, client, creation.Request); session != nil || !errors.Is(err, errStripeCheckoutReconciliationRequired) {
 		t.Fatalf("another intent's result must not be returned: %v", err)

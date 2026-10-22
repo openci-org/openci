@@ -1,18 +1,17 @@
 package billing
 
 import (
-	"context"
 	"errors"
 	"testing"
 
-	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/openci-org/openci/apps/genuineci_server/internal/testutil"
 )
 
 func TestAuthorizeBillingMember(t *testing.T) {
 	for _, userID := range []string{"user-1", "user-2", "outsider", ""} {
 		t.Run("user="+userID, func(t *testing.T) {
-			ctx, pool := newBillingMemberTestDB(t)
-			execCheckoutCreationSQL(t, ctx, pool, "DELETE FROM billing_accounts WHERE team_id = 'team-1'")
+			ctx, pool := testutil.NewBillingMemberDB(t)
+			testutil.ExecSQL(t, ctx, pool, "DELETE FROM billing_accounts WHERE team_id = 'team-1'")
 			err := authorizeBillingMember(ctx, pool, billingMember{TeamID: "team-1", UserID: userID})
 			allowed := userID == "user-1" || userID == "user-2"
 			if allowed && err != nil || !allowed && !errors.Is(err, errBillingForbidden) {
@@ -35,7 +34,7 @@ func TestAuthorizeBillingMemberAfterLockWait(t *testing.T) {
 		"DELETE FROM teams WHERE id = 'team-1'",
 	} {
 		t.Run(deletion, func(t *testing.T) {
-			ctx, pool := newBillingMemberTestDB(t)
+			ctx, pool := testutil.NewBillingMemberDB(t)
 			blocker, err := pool.Begin(ctx)
 			if err != nil {
 				t.Fatal(err)
@@ -46,7 +45,7 @@ func TestAuthorizeBillingMemberAfterLockWait(t *testing.T) {
 			}
 			result := make(chan error, 1)
 			go func() { result <- authorizeBillingMember(ctx, pool, billingMember{TeamID: "team-1", UserID: "user-1"}) }()
-			waitForBillingLocks(t, ctx, pool, 1)
+			testutil.WaitForLocks(t, ctx, pool, 1)
 			if _, err := blocker.Exec(ctx, deletion); err != nil {
 				t.Fatal(err)
 			}
@@ -64,14 +63,4 @@ func TestAuthorizeBillingMemberWithoutIdentity(t *testing.T) {
 	if err := authorizeBillingMember(t.Context(), nil, billingMember{TeamID: "team-1"}); !errors.Is(err, errBillingForbidden) {
 		t.Fatal("missing verified user must be rejected before database access")
 	}
-}
-
-func newBillingMemberTestDB(t *testing.T) (context.Context, *pgxpool.Pool) {
-	t.Helper()
-	ctx, pool := newCheckoutCreationTestDB(t)
-	execCheckoutCreationSQL(t, ctx, pool, `
-		CREATE TABLE team_members (team_id text NOT NULL, user_id text NOT NULL, PRIMARY KEY(team_id, user_id));
-		INSERT INTO team_members VALUES ('team-1', 'user-1'), ('team-1', 'user-2'), ('team-2', 'outsider')
-	`)
-	return ctx, pool
 }

@@ -13,6 +13,8 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/openci-org/openci/apps/genuineci_server/internal/billing"
+	billingconfig "github.com/openci-org/openci/apps/genuineci_server/internal/billing/config"
+	billingschema "github.com/openci-org/openci/apps/genuineci_server/internal/billing/schema"
 )
 
 func main() {
@@ -34,8 +36,8 @@ func run() error {
 		return errors.New("an isolated billing_bridge_ schema is required")
 	}
 	for _, ensure := range []func(context.Context, *pgxpool.Pool) error{
-		billing.EnsureCustomerCreationsTable, billing.EnsureCheckoutCreationsTable,
-		billing.EnsureStripeStateTables, billing.EnsureExecutionsTable, billing.EnsureAdmissionsTable,
+		billingschema.EnsureCustomerCreationsTable, billingschema.EnsureCheckoutCreationsTable,
+		billingschema.EnsureStripeStateTables, billingschema.EnsureExecutionsTable, billingschema.EnsureAdmissionsTable,
 	} {
 		if err := ensure(ctx, pool); err != nil {
 			return err
@@ -47,7 +49,7 @@ func run() error {
 	}
 	defer listener.Close()
 	mux := http.NewServeMux()
-	billing.RegisterRoutes(mux, pool, nil, &billing.ServiceConfig{InternalToken: os.Getenv("BILLING_INTERNAL_TOKEN")})
+	billing.RegisterRoutes(mux, pool, nil, &billingconfig.Config{InternalToken: os.Getenv("BILLING_INTERNAL_TOKEN")})
 	fmt.Println("http://" + listener.Addr().String())
 	server := &http.Server{Handler: mux, ReadHeaderTimeout: 5 * time.Second}
 	return server.Serve(listener)

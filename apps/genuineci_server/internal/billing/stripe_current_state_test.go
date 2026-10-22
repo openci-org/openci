@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/openci-org/openci/apps/genuineci_server/internal/testutil"
 	"github.com/stripe/stripe-go/v87"
 )
 
@@ -14,7 +15,7 @@ func TestCurrentStripeSubscriptionReadsAllPages(t *testing.T) {
 	old := *active
 	old.ID, old.Status = "sub_old", stripe.SubscriptionStatusCanceled
 	pages := 0
-	client := newStripeReadTestClient(t, func(r *http.Request) (*http.Response, error) {
+	client := testutil.NewStripeClient(t, func(r *http.Request) (*http.Response, error) {
 		pages++
 		if r.URL.Query().Get("status") != "all" || r.URL.Query().Get("customer") != active.Customer.ID {
 			t.Fatal("must inspect all statuses for the team's Customer")
@@ -36,7 +37,7 @@ func TestCurrentStripeSubscriptionReadsAllPages(t *testing.T) {
 
 func TestCurrentStripeSubscriptionRejectsAmbiguousContracts(t *testing.T) {
 	_, subscription, _ := paidStripeFixtures()
-	client := newStripeReadTestClient(t, func(r *http.Request) (*http.Response, error) {
+	client := testutil.NewStripeClient(t, func(r *http.Request) (*http.Response, error) {
 		return stripeObjectResponse(t, map[string]any{"object": "list", "data": []*stripe.Subscription{subscription, subscription}}), nil
 	})
 	if got, err := currentStripeSubscription(t.Context(), client, subscription.Customer); got != nil || !errors.Is(err, errStripePaymentUnverified) {
@@ -61,7 +62,7 @@ func TestSubscriptionCheckoutRequiresAnUnambiguousCompletedPurchase(t *testing.T
 			case "open":
 				session.Status = stripe.CheckoutSessionStatusOpen
 			}
-			client := newStripeReadTestClient(t, func(r *http.Request) (*http.Response, error) {
+			client := testutil.NewStripeClient(t, func(r *http.Request) (*http.Response, error) {
 				if r.URL.Query().Get("subscription") != subscription.ID {
 					t.Fatal("must filter by subscription")
 				}
@@ -82,7 +83,7 @@ func TestSubscriptionCheckoutRequiresAnUnambiguousCompletedPurchase(t *testing.T
 func TestGetStripeInvoiceValidatesIdentityAndSanitizesFailure(t *testing.T) {
 	for _, outcome := range []string{"paid", "wrong ID", "upstream failure"} {
 		t.Run(outcome, func(t *testing.T) {
-			client := newStripeReadTestClient(t, func(r *http.Request) (*http.Response, error) {
+			client := testutil.NewStripeClient(t, func(r *http.Request) (*http.Response, error) {
 				if outcome == "upstream failure" {
 					return nil, errors.New("sensitive provider response")
 				}
@@ -110,5 +111,5 @@ func stripeObjectResponse(t *testing.T, value any) *http.Response {
 	if err != nil {
 		t.Fatal(err)
 	}
-	return stripeTestResponse(http.StatusOK, string(body))
+	return testutil.StripeResponse(http.StatusOK, string(body))
 }

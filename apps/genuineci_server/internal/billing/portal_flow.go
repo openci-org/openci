@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/openci-org/openci/apps/genuineci_server/internal/billing/stripeapi"
 )
 
 var errBillingCustomerMissing = errors.New("the team does not have a Stripe Customer yet")
@@ -37,9 +38,9 @@ func (s *Service) portal(ctx context.Context, member billingMember) (string, err
 	if err := authorizeBillingMember(ctx, s.pool, member); err != nil {
 		return "", err
 	}
-	session, err := createStripePortalSession(ctx, s.stripe, stripePortalRequest{
+	session, err := stripeapi.CreatePortalSession(ctx, s.stripe, stripeapi.PortalRequest{
 		CustomerID: *customerID, ConfigurationID: s.config.PortalConfigurationID,
-		ReturnURL: s.config.returnURL(member.TeamID, "portal"), Livemode: livemode,
+		ReturnURL: s.config.ReturnURL(member.TeamID, "portal"), Livemode: livemode,
 	})
 	if err != nil {
 		return "", err

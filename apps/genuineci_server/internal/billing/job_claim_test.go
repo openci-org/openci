@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/openci-org/openci/apps/genuineci_server/internal/testutil"
 )
 
 func TestClaimJobReservesAllowanceAndPersistsWorker(t *testing.T) {
@@ -42,7 +43,7 @@ func TestClaimJobSkipsIneligibleTeam(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			ctx, service := newJobClaimTestDB(t)
-			execCheckoutCreationSQL(t, ctx, service.pool, tc.sql)
+			testutil.ExecSQL(t, ctx, service.pool, tc.sql)
 			claim, err := service.claimJob(ctx, workerClaimRequest{WorkerHost: "worker-1"})
 			if err != nil || claim == nil || claim.JobID != "job-3" {
 				t.Fatalf("blocked queue head must not block the other team: claim=%+v, err=%v", claim, err)
@@ -54,7 +55,7 @@ func TestClaimJobSkipsIneligibleTeam(t *testing.T) {
 
 func TestClaimJobSerializesNearExhaustion(t *testing.T) {
 	ctx, service := newJobClaimTestDB(t)
-	execCheckoutCreationSQL(t, ctx, service.pool, `UPDATE billing_periods SET allowance_seconds = 1 WHERE id = 'paid-1'; DELETE FROM build_jobs WHERE team_id = 'team-2'`)
+	testutil.ExecSQL(t, ctx, service.pool, `UPDATE billing_periods SET allowance_seconds = 1 WHERE id = 'paid-1'; DELETE FROM build_jobs WHERE team_id = 'team-2'`)
 	blocker, err := service.pool.Begin(ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -74,7 +75,7 @@ func TestClaimJobSerializesNearExhaustion(t *testing.T) {
 			results <- result{claim, err}
 		}()
 	}
-	waitForBillingLocks(t, ctx, service.pool, 2)
+	testutil.WaitForLocks(t, ctx, service.pool, 2)
 	if err := blocker.Commit(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -112,7 +113,7 @@ func TestClaimJobRechecksCancellationAfterLockWait(t *testing.T) {
 		}
 		results <- err
 	}()
-	waitForBillingLocks(t, ctx, service.pool, 1)
+	testutil.WaitForLocks(t, ctx, service.pool, 1)
 	if _, err := blocker.Exec(ctx, `UPDATE billing_stripe_state SET subscription_status = 'canceled' WHERE team_id = 'team-1'`); err != nil {
 		t.Fatal(err)
 	}
@@ -143,7 +144,7 @@ func TestClaimJobHonorsHostCapacityWithoutPlanConcurrencyCap(t *testing.T) {
 
 func TestClaimJobRollsBackReservationOnJobUpdateFailure(t *testing.T) {
 	ctx, service := newJobClaimTestDB(t)
-	execCheckoutCreationSQL(t, ctx, service.pool, `ALTER TABLE build_jobs ADD CHECK (status <> 'IN_PROGRESS')`)
+	testutil.ExecSQL(t, ctx, service.pool, `ALTER TABLE build_jobs ADD CHECK (status <> 'IN_PROGRESS')`)
 	if claim, err := service.claimJob(ctx, workerClaimRequest{WorkerHost: "worker-1"}); err == nil || claim != nil {
 		t.Fatal("failed job update must fail the entire claim")
 	}
@@ -161,12 +162,12 @@ func TestClaimJobRejectsInvalidWorkerBeforeDatabaseAccess(t *testing.T) {
 
 func newJobClaimTestDB(t *testing.T) (context.Context, *Service) {
 	t.Helper()
-	ctx, pool := newAdmissionTestDB(t)
+	ctx, pool := testutil.NewAdmissionDB(t)
 	now := time.Now().Unix()
 	if _, err := pool.Exec(ctx, `UPDATE billing_periods SET starts_at = $1::bigint - 100, ends_at = $1::bigint + 3600`, now); err != nil {
 		t.Fatal(err)
 	}
-	execCheckoutCreationSQL(t, ctx, pool, `
+	testutil.ExecSQL(t, ctx, pool, `
 		INSERT INTO billing_customer_creations VALUES ('team-1', 'key-1', false, 0, 'cus_1'), ('team-2', 'key-2', false, 0, 'cus_2');
 		INSERT INTO billing_stripe_state (team_id, stripe_customer_id, livemode, stripe_subscription_id, subscription_status, plan_id, paid_period_id, synced_at)
 		VALUES ('team-1', 'cus_1', false, 'sub_1', 'active', 'light', 'paid-1', 0), ('team-2', 'cus_2', false, 'sub_2', 'active', 'pro', 'paid-2', 0);

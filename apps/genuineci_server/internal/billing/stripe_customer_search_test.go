@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/openci-org/openci/apps/genuineci_server/internal/testutil"
 	"github.com/stripe/stripe-go/v87"
 )
 
@@ -21,7 +22,7 @@ func TestFindStripeCustomer(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			input := stripeCustomerRequest{TeamID: "team-1", Livemode: tc.livemode}
-			client := newStripeReadTestClient(t, func(request *http.Request) (*http.Response, error) {
+			client := testutil.NewStripeClient(t, func(request *http.Request) (*http.Response, error) {
 				if request.Method != http.MethodGet || request.URL.Path != "/v1/customers/search" {
 					t.Errorf("unexpected request: %s %s", request.Method, request.URL.Path)
 				}
@@ -37,7 +38,7 @@ func TestFindStripeCustomer(t *testing.T) {
 					"object":"search_result", "has_more":false,
 					"data":[{"id":"cus_team","metadata":{"team_id":"team-1"},"livemode":%t}]
 				}`, tc.livemode)
-				return stripeTestResponse(http.StatusOK, body), nil
+				return testutil.StripeResponse(http.StatusOK, body), nil
 			})
 
 			customer, err := findStripeCustomer(t.Context(), client, input)
@@ -60,11 +61,11 @@ func TestFindStripeCustomerEscapesTeamID(t *testing.T) {
 		{"backslash before quote", `team\"`, `metadata["team_id"]:"team\\\""`},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			client := newStripeReadTestClient(t, func(request *http.Request) (*http.Response, error) {
+			client := testutil.NewStripeClient(t, func(request *http.Request) (*http.Response, error) {
 				if got := request.URL.Query().Get("query"); got != tc.query {
 					t.Errorf("team ID must remain one quoted metadata value: want=%q, got=%q", tc.query, got)
 				}
-				return stripeTestResponse(http.StatusOK, `{"data":[],"has_more":false}`), nil
+				return testutil.StripeResponse(http.StatusOK, `{"data":[],"has_more":false}`), nil
 			})
 
 			customer, err := findStripeCustomer(t.Context(), client, stripeCustomerRequest{TeamID: tc.teamID})
@@ -90,12 +91,12 @@ func TestFindStripeCustomerRequiresUnambiguousMatch(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			requests := 0
-			client := newStripeReadTestClient(t, func(request *http.Request) (*http.Response, error) {
+			client := testutil.NewStripeClient(t, func(request *http.Request) (*http.Response, error) {
 				requests++
 				if request.Method != http.MethodGet || request.URL.Path != "/v1/customers/search" {
 					t.Error("an unresolved search must only read Stripe")
 				}
-				return stripeTestResponse(http.StatusOK, tc.body), nil
+				return testutil.StripeResponse(http.StatusOK, tc.body), nil
 			})
 
 			customer, err := findStripeCustomer(t.Context(), client, stripeCustomerRequest{TeamID: "team-1"})
@@ -122,11 +123,11 @@ func TestFindStripeCustomerSanitizesFailures(t *testing.T) {
 		{"transport error", 0, "connection error with sk_test_sensitive"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			client := newStripeReadTestClient(t, func(*http.Request) (*http.Response, error) {
+			client := testutil.NewStripeClient(t, func(*http.Request) (*http.Response, error) {
 				if tc.status == 0 {
 					return nil, errors.New(tc.body)
 				}
-				return stripeTestResponse(tc.status, tc.body), nil
+				return testutil.StripeResponse(tc.status, tc.body), nil
 			})
 
 			customer, err := findStripeCustomer(t.Context(), client, stripeCustomerRequest{TeamID: "team-1"})
@@ -139,7 +140,7 @@ func TestFindStripeCustomerSanitizesFailures(t *testing.T) {
 }
 
 func TestFindStripeCustomerRequiresClientAndTeam(t *testing.T) {
-	client := newStripeReadTestClient(t, func(*http.Request) (*http.Response, error) {
+	client := testutil.NewStripeClient(t, func(*http.Request) (*http.Response, error) {
 		t.Error("invalid input must not call Stripe")
 		return nil, errors.New("unexpected request")
 	})
@@ -164,7 +165,7 @@ func TestFindStripeCustomerRequiresClientAndTeam(t *testing.T) {
 func TestFindStripeCustomerHonorsCancellation(t *testing.T) {
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
-	client := newStripeReadTestClient(t, func(request *http.Request) (*http.Response, error) {
+	client := testutil.NewStripeClient(t, func(request *http.Request) (*http.Response, error) {
 		cancel()
 		<-request.Context().Done()
 		return nil, request.Context().Err()
@@ -181,7 +182,7 @@ func TestFindStripeCustomerHonorsEarlierDeadline(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 100*time.Millisecond)
 	defer cancel()
 	wantDeadline, _ := ctx.Deadline()
-	client := newStripeReadTestClient(t, func(request *http.Request) (*http.Response, error) {
+	client := testutil.NewStripeClient(t, func(request *http.Request) (*http.Response, error) {
 		if deadline, ok := request.Context().Deadline(); !ok || !deadline.Equal(wantDeadline) {
 			t.Error("must preserve the caller's earlier deadline")
 		}
