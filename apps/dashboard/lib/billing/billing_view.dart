@@ -1,6 +1,7 @@
 import 'package:dashboard/billing/billing_status.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/link.dart';
 
 class BillingView extends StatelessWidget {
   const BillingView({
@@ -92,6 +93,16 @@ class BillingView extends StatelessWidget {
           const Text(
             '初回決済の成功から168時間以内の申請で全額返金します。更新・再契約は対象外です。'
             '返金時に即時解約となり、新しいCIは開始できません。実行中のCIは完了まで継続します。',
+          ),
+          const SizedBox(height: 8),
+          const Text('返金申請は、チーム名を添えてメールでご連絡ください。'),
+          Link(
+            uri: Uri(scheme: 'mailto', path: 'm.aoki@openci.org'),
+            builder: (context, followLink) => TextButton.icon(
+              onPressed: followLink,
+              icon: const Icon(Icons.mail_outline),
+              label: const Text('m.aoki@openci.org'),
+            ),
           ),
           if (status.canManageBilling) ...[
             const SizedBox(height: 20),

@@ -2,8 +2,19 @@ import 'package:dashboard/billing/billing_status.dart';
 import 'package:dashboard/billing/billing_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:url_launcher_platform_interface/link.dart';
+import 'package:url_launcher_platform_interface/url_launcher_platform_interface.dart';
 
 void main() {
+  late _Launcher launcher;
+
+  setUp(() {
+    final original = UrlLauncherPlatform.instance;
+    launcher = _Launcher();
+    UrlLauncherPlatform.instance = launcher;
+    addTearDown(() => UrlLauncherPlatform.instance = original);
+  });
+
   Future<void> show(
     WidgetTester tester, {
     bool pending = false,
@@ -165,6 +176,7 @@ void main() {
     expect(find.textContaining('課金機能を利用できません'), findsOneWidget);
     expect(find.text('Lightを選ぶ'), findsNothing);
     expect(find.text('契約を管理'), findsNothing);
+    expect(find.text('m.aoki@openci.org'), findsNothing);
   });
 
   testWidgets('shows the approved refund terms without an unpaid trial', (
@@ -180,6 +192,16 @@ void main() {
     expect(find.textContaining('無料トライアル'), findsNothing);
   });
 
+  testWidgets('opens an email to the approved refund contact', (tester) async {
+    await show(tester);
+    final contact = find.text('m.aoki@openci.org');
+    await tester.scrollUntilVisible(contact, 200);
+    expect(find.text('返金申請は、チーム名を添えてメールでご連絡ください。'), findsOneWidget);
+    await tester.tap(contact);
+    await tester.pump();
+    expect(launcher.url, 'mailto:m.aoki@openci.org');
+  });
+
   testWidgets('fits a narrow viewport with enlarged text', (tester) async {
     tester.view.physicalSize = const Size(320, 800);
     tester.view.devicePixelRatio = 1;
@@ -191,4 +213,17 @@ void main() {
     await tester.scrollUntilVisible(find.text('再読み込み'), 200);
     expect(tester.takeException(), isNull);
   });
+}
+
+class _Launcher extends UrlLauncherPlatform {
+  String? url;
+
+  @override
+  LinkDelegate? get linkDelegate => null;
+
+  @override
+  Future<bool> launchUrl(String url, LaunchOptions options) async {
+    this.url = url;
+    return true;
+  }
 }
