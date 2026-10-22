@@ -109,6 +109,41 @@ void main() {
     },
   );
 
+  test('Portal accepts a session secret in the query string', () async {
+    const url = 'https://billing.stripe.com/p/session?secret=test_session';
+    respond = () async => redirect(url);
+
+    expect(await (await actions()).portal(), Uri.parse(url));
+    expect(requests.single.url.path, '/teams/team-1/billing/portal');
+  });
+
+  test('Portal rejects missing secrets and unsafe query session URLs', () async {
+    final action = await actions();
+    for (final url in [
+      'https://billing.stripe.com/p/session',
+      'https://billing.stripe.com/p/session?secret=',
+      'https://billing.stripe.com/p/session?secret=%20',
+      'https://billing.stripe.com/other?secret=test_session',
+      'https://billing.stripe.com.attacker.example/p/session?secret=test_session',
+      'http://billing.stripe.com/p/session?secret=test_session',
+      'https://billing.stripe.com:8443/p/session?secret=test_session',
+      'https://user@billing.stripe.com/p/session?secret=test_session',
+    ]) {
+      respond = () async => redirect(url);
+      await expectLater(
+        action.portal(),
+        throwsA(
+          isA<BillingException>().having(
+            (e) => e.code,
+            'code',
+            'invalid_redirect',
+          ),
+        ),
+        reason: url,
+      );
+    }
+  });
+
   test(
     'server capabilities prevent ineligible actions before network access',
     () async {
