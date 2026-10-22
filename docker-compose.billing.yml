@@ -1,0 +1,39 @@
+services:
+  server:
+    environment:
+      SERVER_ACCESS_MODE: cloud
+      BILLING_ENABLED: ${BILLING_ENABLED:-false}
+      BILLING_INTERNAL_TOKEN: ${BILLING_INTERNAL_TOKEN:-}
+      GENUINECI_SERVER_URL: http://genuineci-server:8081
+    depends_on:
+      genuineci-server:
+        condition: service_healthy
+
+  genuineci-server:
+    build:
+      context: .
+      dockerfile: apps/genuineci_server/Dockerfile
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-openci}}
+      SERVER_ACCESS_MODE: cloud
+      BILLING_ENABLED: ${BILLING_ENABLED:-false}
+      BILLING_INTERNAL_TOKEN: ${BILLING_INTERNAL_TOKEN:-}
+      BILLING_DASHBOARD_ORIGIN: ${BILLING_DASHBOARD_ORIGIN:-}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+      STRIPE_LIVEMODE: ${STRIPE_LIVEMODE:-}
+      STRIPE_LIGHT_PRICE_ID: ${STRIPE_LIGHT_PRICE_ID:-}
+      STRIPE_PRO_PRICE_ID: ${STRIPE_PRO_PRICE_ID:-}
+      STRIPE_PORTAL_CONFIGURATION_ID: ${STRIPE_PORTAL_CONFIGURATION_ID:-}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+    ports:
+      - "127.0.0.1:8081:8081"
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8081/healthz"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
