@@ -12,9 +12,11 @@ Its internal aggregate splits execution time across paid periods and adds parall
 runs. The worker now supplies its host label when claiming a job. These components
 are not yet connected into complete execution accounting or quota admission.
 
-**Production activation is blocked.** The current `canStartCi` response reflects
-subscription/payment eligibility, not the 600/6,000-minute allowance. Claiming a job
-does not yet enforce paid eligibility or reserve allowance. Do not treat a successful
+**Production activation is blocked.** The current `canStartCi` response checks
+subscription/payment eligibility and the persisted execution ledger's remaining
+allowance, including live lease time. Worker accounting and claim reservations are
+not connected yet. Claiming a job does not yet enforce paid eligibility or reserve
+allowance. Do not treat a successful
 Checkout or the local test suite as evidence that the CI billing boundary is ready.
 
 ## Service configuration
@@ -72,7 +74,7 @@ and start a different selection; uncertain outcomes continue blocking a replacem
 | Worker lifecycle and usage | [G-1382](https://linear.app/genuineci/issue/G-1382) | Server-validated start/heartbeat/finish events bound to the admitted attempt; queue/dependency waiting excluded; worker-loss recovery connected |
 | Atomic CI admission | [G-1358](https://linear.app/genuineci/issue/G-1358) | Paid eligibility and remaining allowance checked with reservations in the claim transaction; ineligible queue heads skipped; Self-hosted bypass preserved |
 | Allowance exhaustion policy | [G-1358](https://linear.app/genuineci/issue/G-1358) | Product decision on stopping or finishing running jobs when the budget is exhausted, followed by concurrency/renewal/recovery tests |
-| Minimal exhausted state | [G-1417](https://linear.app/genuineci/issue/G-1417) | `canStartCi` and the Web block reason include the completed internal allowance check |
+| Minimal exhausted state | [G-1417](https://linear.app/genuineci/issue/G-1417) | Existing ledger-based status must also account for the completed claim-reservation integration |
 | Refund terms and contact | [G-1443](https://linear.app/genuineci/issue/G-1443) | Approve detailed eligibility, request deadline, cancellation/access timing and a real support contact |
 | Deployed sandbox verification | [G-1360](https://linear.app/genuineci/issue/G-1360) | Record results using the actual Stripe test environment and staging worker |
 | Production activation | [G-1361](https://linear.app/genuineci/issue/G-1361) | Separate rollout after review, integration, sandbox evidence and operational configuration |
