@@ -101,6 +101,28 @@ void main() {
     expect(find.text('Stripeを開く準備をしています…'), findsOneWidget);
   });
 
+  testWidgets('unpaid renewals direct members to manage billing', (
+    tester,
+  ) async {
+    var managed = 0;
+    await show(
+      tester,
+      canCheckout: false,
+      planId: 'light',
+      portal: () => managed++,
+    );
+    expect(
+      find.text('CIを利用するには、「契約を管理」からお支払いを確認してください。'),
+      findsOneWidget,
+    );
+    expect(find.text('CIの利用にはプランの購入が必要です。'), findsNothing);
+    expect(find.text('Lightを選ぶ'), findsNothing);
+    expect(find.text('Proを選ぶ'), findsNothing);
+    await tester.scrollUntilVisible(find.text('契約を管理'), 200);
+    await tester.tap(find.text('契約を管理'));
+    expect(managed, 1);
+  });
+
   testWidgets('unavailable allowance keeps management and reload accessible', (
     tester,
   ) async {

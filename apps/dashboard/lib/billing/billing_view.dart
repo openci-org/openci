@@ -42,7 +42,7 @@ class BillingView extends StatelessWidget {
             const SizedBox(height: 16),
           ],
           Text(
-            status.canStartCi ? 'CIを利用できます' : _blockMessage(status.blockReason),
+            status.canStartCi ? 'CIを利用できます' : _blockMessage(status),
             style: theme.textTheme.titleMedium,
           ),
           if (status.paidUntil != null) ...[
@@ -129,7 +129,9 @@ class BillingView extends StatelessWidget {
   }
 }
 
-String _blockMessage(String reason) => switch (reason) {
+String _blockMessage(BillingStatus status) => switch (status.blockReason) {
+  'payment_required' when !status.canCheckout && status.canManageBilling =>
+    'CIを利用するには、「契約を管理」からお支払いを確認してください。',
   'payment_required' => 'CIの利用にはプランの購入が必要です。',
   'allowance_exhausted' => '新しいCIを開始できる利用枠がありません。',
   'subscription_ended' => '契約が終了しています。',
