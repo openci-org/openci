@@ -42,7 +42,7 @@ void main() {
         );
         await db.customStatement('''CREATE TABLE billing_admissions (
         id text PRIMARY KEY, job_id text, team_id text, worker_host text,
-        run_id text UNIQUE, start_by_ms bigint, closed_at_ms bigint
+        run_id text UNIQUE, start_by_ms bigint, closed_at_ms bigint, claimed_at_ms bigint DEFAULT 0
       )''');
         await db.customStatement(
           r'''INSERT INTO billing_admissions
@@ -59,6 +59,114 @@ void main() {
         runId: 'run-1',
         workerHost: 'worker-1',
       );
+
+      const attempt = BillingWorkerAttempt(
+        admissionId: 'admission-1',
+        jobId: 'job-1',
+        runId: 'run-1',
+        workerHost: 'worker-1',
+      );
+
+      Future<void> markBound() async {
+        await db.customStatement(
+          "UPDATE billing_admissions SET run_id = 'run-1'",
+        );
+        await db.customStatement(
+          "UPDATE build_jobs SET latest_run_id = 'run-1'",
+        );
+      }
+
+      test(
+        'current bound completion keeps unrelated job fields and can repeat',
+        () async {
+          await markBound();
+          await store.completeJob(attempt, BuildJobStatus.SUCCESS);
+          await store.completeJob(attempt, BuildJobStatus.SUCCESS);
+          final job = (await db.buildJobDao.getBuildJob('job-1'))!;
+          expect(job.status, BuildJobStatus.SUCCESS);
+          expect(job.latestRunId, 'run-1');
+          expect(job.owner, 'org');
+          expect(job.completedAt, isNotNull);
+          expect(
+            (await db
+                    .customSelect('SELECT closed_at_ms FROM billing_admissions')
+                    .getSingle())
+                .readNullable<int>('closed_at_ms'),
+            isNotNull,
+          );
+        },
+      );
+
+      test(
+        'failure before run creation closes only the current open admission',
+        () async {
+          await store.completeJob(attempt, BuildJobStatus.FAILURE);
+          expect(
+            (await db.buildJobDao.getBuildJob('job-1'))!.status,
+            BuildJobStatus.FAILURE,
+          );
+          await db.customStatement(
+            "UPDATE build_jobs SET status = 'IN_PROGRESS'",
+          );
+          await expectLater(
+            store.completeJob(attempt, BuildJobStatus.FAILURE),
+            throwsA(isA<BillingAdmissionNotCurrent>()),
+          );
+        },
+      );
+
+      test('unbound success cannot complete a job', () async {
+        await expectLater(
+          store.completeJob(attempt, BuildJobStatus.SUCCESS),
+          throwsA(isA<BillingAdmissionNotCurrent>()),
+        );
+      });
+
+      test(
+        'a rejected action rolls back changes while holding current attempt',
+        () async {
+          await markBound();
+          await expectLater(
+            store.withCurrentAttempt<void>(attempt, BuildJobStatus.SUCCESS, (
+              _,
+            ) async {
+              await db.customStatement(
+                "UPDATE build_jobs SET status = 'SUCCESS'",
+              );
+              throw StateError('downstream failed');
+            }),
+            throwsStateError,
+          );
+          expect(
+            (await db.buildJobDao.getBuildJob('job-1'))!.status,
+            BuildJobStatus.IN_PROGRESS,
+          );
+        },
+      );
+
+      for (final (name, sql) in [
+        ('a new run', "UPDATE build_jobs SET latest_run_id = 'new-run'"),
+        ('a new unbound claim', "UPDATE build_jobs SET latest_run_id = NULL"),
+        ('another worker', "UPDATE build_jobs SET worker_host = 'other'"),
+        ('another team', "UPDATE billing_admissions SET team_id = 'other'"),
+        ('a rerun queue', "UPDATE build_jobs SET status = 'QUEUED'"),
+        ('a cancellation', "UPDATE build_jobs SET status = 'CANCELLED'"),
+      ]) {
+        test('late completion cannot overwrite $name', () async {
+          await markBound();
+          await db.customStatement(sql);
+          var called = false;
+          await expectLater(
+            store.withCurrentAttempt<void>(attempt, BuildJobStatus.SUCCESS, (
+              _,
+            ) async {
+              called = true;
+            }),
+            throwsA(isA<BillingAdmissionNotCurrent>()),
+          );
+          expect(called, isFalse);
+        });
+      }
 
       test('commits the binding and run together', () async {
         await db.transaction(() async {
