@@ -10,7 +10,8 @@ Future<void> main() async {
     currentWorkingDirectory: 'apps/genuineci_server',
   );
 
-  await openCI.run('command -v go >/dev/null || brew install go');
-  await openCI.run('go vet ./...');
-  await openCI.run('go test -v ./...');
+  await openCI.go.vet();
+
+  await openCI.go.format();
+  await openCI.go.test();
 }
