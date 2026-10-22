@@ -1,10 +1,22 @@
 # GenuineCI server
 
+Billing authorization treats every current team member equally. `withBillingMemberLock`
+locks the current team and billing account, then checks membership before performing
+an operation. Account initialization rolls back for rejected users. The UID must
+come from verified authentication; a request body is not an identity source.
+
+`LoadServiceConfig` requires explicit `STRIPE_LIVEMODE`, distinct Light/Pro Price
+IDs, `STRIPE_PORTAL_CONFIGURATION_ID`, `STRIPE_WEBHOOK_SECRET`, and a shared
+`BILLING_INTERNAL_TOKEN` of at least 32 characters when billing is enabled.
+`BILLING_DASHBOARD_ORIGIN` must be HTTPS (loopback HTTP is allowed locally).
+Return URLs are generated on the server as `/billing?teamId=...&result=...`;
+clients cannot supply a return origin. Disabled billing needs none of these settings.
+
 ## Stripe client
 
 The server uses the official [Stripe Go SDK](https://github.com/stripe/stripe-go),
 pinned to `v87.0.0`. Its default API version is `2026-09-30.endive`
-(`stripe.APIVersion`). Configure future snapshot webhook endpoints with this
+(`stripe.APIVersion`). Configure snapshot webhook endpoints with this
 version and review compatibility when upgrading the SDK.
 
 `billing.NewStripeClient()` creates a client only when `SERVER_ACCESS_MODE=cloud`
@@ -12,14 +24,15 @@ and `BILLING_ENABLED=true`. It requires a nonblank `STRIPE_SECRET_KEY`; disabled
 billing and Self-hosted require no Stripe key and return no client.
 
 Client construction makes no Stripe requests and does not verify the key against
-Stripe. It is not yet wired into server startup or HTTP routes.
+Stripe. Startup validates configuration, initializes the billing tables, and registers
+the routes only when Cloud billing is enabled.
 
 `getStripeCheckoutSession`, `getStripeSubscription`, and `getStripePrice` each
 retrieve one object by ID using the SDK, with a ten-second deadline including
 retries. Earlier caller deadlines and cancellation are preserved. Request
 failures return a generic error, and SDK logging is disabled to keep raw upstream
-errors and response bodies out of logs. Ownership/payment validation and HTTP
-route integration follow separately.
+errors and response bodies out of logs. The billing workflows validate ownership
+and payment before returning actions or committing access state.
 
 ## Checkout Price configuration and validation
 
@@ -47,9 +60,111 @@ returns only a valid Price whose ID matches the configured ID. Disabled billing,
 missing configuration, retrieval failures, and validation failures return no Price
 and an error. It preserves the retrieval helper's sanitized errors and cancellation.
 
-Checkout session creation with quantity one and HTTP route integration follow
-separately. These helpers validate new-purchase pricing; they do not decide access
-for an existing subscription or paid period.
+These helpers validate new-purchase pricing; they do not decide access for an
+existing subscription or paid period. Paid access uses the verified invoice period.
+
+## Checkout Session creation
+
+`createStripeCheckoutSession` uses the SDK's [Checkout Session creation API](https://docs.stripe.com/api/checkout/sessions/create?lang=go)
+with an existing Customer, one Price at quantity one, and server-owned return URLs.
+It creates a hosted subscription checkout, restricts eligible payment methods to
+cards, disables Adaptive Pricing, and adds no trial or promotion settings. Both
+the Session and resulting Subscription carry `team_id` metadata; the Session also
+uses the team ID as its client reference. It returns the Session, including its ID
+and payment URL, with a ten-second deadline, sanitized failures, and preserved
+cancellation and earlier deadlines.
+
+The caller must validate Customer ownership, the configured Price, and allowed
+return URLs, then persist all parameters and a Checkout-specific idempotency key
+before calling this helper. Retries forward the same parameters and key unchanged;
+a timeout does not prove that Stripe failed to create the Session. Membership
+authorization is enforced by the Checkout workflow.
+
+`ensureStripeCheckoutSession` connects committed intents to creation and result
+storage. It sends only the original stored parameters, with the durable key also
+in Session metadata, and returns a result only after recording it. A known Session
+is retrieved instead of creating another one. Unrecorded outcomes may replay the
+same key within 23 hours. Older unknown outcomes are recovered through a bounded,
+paginated Customer-scoped Session lookup. Recovery requires exactly one match for
+the creation key, matching identity/return URLs, and the original Price at quantity
+one. Open, completed, and expired results are recorded without creating a replacement.
+Missing, ambiguous, truncated, or mismatched results remain blocked; future-dated
+intents also remain blocked. Lookup scans at most 1,000 Sessions within ten seconds.
+This internal helper does not authorize a purchase, close intents, or grant access.
+
+`expireCheckoutCreation` retrieves and validates a recorded Session before expiry.
+It closes the durable intent only after Stripe confirms `expired` and unpaid.
+Lost expiry responses trigger a fresh read; completed or uncertain purchases keep
+the intent blocking a replacement. Repeated closure preserves its original time.
+This is the prerequisite for pre-payment plan reselection, not subscription changes.
+
+Purchase guards retrieve the stored Customer and verify its ID, team metadata,
+mode, and availability. A Customer-scoped, paginated subscription lookup blocks
+new purchases for every nonterminal or unknown status. Only canceled and
+incomplete-expired contracts permit another purchase; failed reads fail closed.
+
+## Customer Portal
+
+`createStripePortalSession` uses an explicit server-owned Portal configuration.
+Before issuing a Session it verifies active/test-live mode, invoice history,
+payment-method updates, period-end cancellation without proration, disabled
+subscription updates, and disabled public Portal login. The returned Customer,
+configuration, mode, and return URL must match. Configuration reads and Session
+creation share a ten-second deadline. Membership and Customer ownership are
+the responsibility of the higher-level billing workflow.
+
+## Checkout creation storage
+
+When Cloud billing is enabled, startup prepares `billing_checkout_creations` in Go.
+It requires `billing_accounts` and uses the shared billing schema lock. Table and
+index creation run in one transaction; repeated initialization preserves records.
+
+Each record stores a unique idempotency key, team and plan IDs, the exact Customer
+and Price IDs, success/cancel URLs, test/live mode, and creation time. A nullable
+Session ID records the verified Stripe result and cannot belong to two records.
+Its absence means that the result is not recorded, not that no Session exists.
+
+`closed_at` is null while an intent is unresolved or its Session remains open. A
+partial unique index allows only one such record per team, across all plans and
+modes. Historical closed records retain their keys and Session IDs. Timestamps are
+Unix seconds. The Checkout workflow establishes that an intent is safe to close
+before setting `closed_at`; closing an intent alone does not authorize another
+purchase when an existing subscription is present. Billing account deletion is
+blocked while these records exist.
+
+`ensureCheckoutCreation` saves a new intent under the team and billing account
+locks, with a server-generated key and creation time, and returns it only after
+commit. It requires a current team, an initialized billing account, a supported
+plan, and nonblank Customer/Price IDs and return URLs.
+
+An unfinished intent for the same plan, Customer, and mode is reused, including
+its original key, timestamp, exact parameters, and any recorded Session ID. Price
+or return URL configuration changes do not rewrite it. A different plan, Customer,
+or mode returns `errCheckoutCreationConflict` without changing the record. Closed
+history is retained when a new intent is saved.
+
+`recordStripeCheckoutSession` records the ID from a server-obtained Stripe Session
+after matching its subscription/hosted mode, test/live mode, Customer, team
+metadata, client reference, and return URLs against the intent. Under the team
+and billing account locks, it requires the stored key, creation time, and every
+original request parameter to remain unchanged. Missing, closed, changed, or
+already differently linked intents are rejected. The same Session ID can be
+saved again after reconnecting, but cannot belong to another intent, including
+closed history. The write succeeds only after commit.
+
+This result helper stores the Session identity; it does not establish paid access
+or close the intent. It also accepts completed or expired Sessions without a
+payment URL so an obtained result can still be recorded. The caller must supply
+the response for this exact creation request. It is not a validator for arbitrary
+recovered Sessions: [line items are not returned by default](https://docs.stripe.com/api/checkout/sessions/object?lang=go),
+and this helper does not retrieve or validate their Price or quantity. Recovery
+and payment validation must perform those checks separately.
+
+This storage helper makes no Stripe calls and does not close intents. Its caller
+must validate Customer ownership, Price eligibility, allowed return URLs, current
+membership, and existing subscriptions before authorizing a purchase. An old
+unfinished intent still requires reconciliation before retrying Stripe outside
+the safe idempotency window. The Checkout workflow coordinates these checks.
 
 ## Customer creation
 
@@ -62,8 +177,8 @@ error; this helper does not generate a new key or perform application-level retr
 The caller must persist the creation intent and key before invoking this helper.
 Stripe can [remove API v1 idempotency keys after 24 hours](https://docs.stripe.com/api/idempotent_requests?lang=go),
 so older uncertain outcomes need reconciliation before another creation attempt.
-The SDK helper is used by the internal creation flow below. Authorization and HTTP
-integration follow separately.
+The SDK helper is used by the authorized Checkout flow through the internal
+creation flow below.
 
 ## Customer creation storage
 
@@ -118,10 +233,11 @@ Empty or ambiguous searches remain unresolved and never trigger a new creation
 or key. Future-dated pending intents return
 `errStripeCustomerReconciliationRequired` without contacting Stripe.
 
-This internal flow is not yet connected to an HTTP route. The caller must verify
-current team membership and supply the team and expected mode from trusted server
-state. Recovery runs when the internal flow is called again; operator handling of
-unresolved outcomes remains follow-up work.
+The Checkout route calls this flow after verifying current team membership.
+The team and expected mode come from trusted server state. Recovery runs on the
+next Checkout request. Ambiguous or absent recovery results remain blocked for
+operator investigation; operators must not clear an intent merely because a
+request timed out.
 
 ## Customer recovery lookup
 
@@ -136,3 +252,44 @@ Stripe search is eventually consistent. Empty, multiple, incomplete, or mismatch
 results return `errStripeCustomerReconciliationRequired`; an empty search is not
 proof that no Customer exists. This helper only reads Stripe; the creation flow
 handles result persistence after this lookup succeeds.
+
+## HTTP integration and webhooks
+
+The authenticated `openci_server` billing proxy must supply a
+verified Firebase UID in `X-GenuineCI-User-ID` and the shared
+`Authorization: Bearer <BILLING_INTERNAL_TOKEN>` to these private Go routes:
+
+| Method | Path | Request |
+| --- | --- | --- |
+| GET | `/internal/billing/teams/{teamID}` | No body |
+| POST | `/internal/billing/teams/{teamID}/checkout` | `{"planId":"light"}` or `{"planId":"pro"}` |
+| POST | `/internal/billing/teams/{teamID}/portal` | Empty body or `{}` |
+
+Keep `/internal/` behind the service network or reverse-proxy access rules; never
+expose the shared token to a browser. Go rechecks current team membership for all
+three routes. Responses are not cached and never expose raw Stripe errors.
+
+Expose `POST /stripe/webhook` to Stripe using HTTPS and the snapshot API version
+above. The official SDK verifies the unmodified body and signature with a
+five-minute tolerance. Subscribe to `checkout.session.completed`,
+`checkout.session.expired`, `customer.subscription.created`,
+`customer.subscription.updated`, `customer.subscription.deleted`,
+`customer.subscription.paused`, `customer.subscription.resumed`, `invoice.paid`,
+`invoice.payment_failed`, `invoice.payment_action_required`,
+`invoice.marked_uncollectible`, `invoice.voided`, and `customer.deleted`.
+See [Stripe webhook setup](https://docs.stripe.com/webhooks).
+
+A webhook refreshes current Stripe state under the team billing lock. The verified
+paid period, subscription state, and processed event ID commit together. Retries
+do not reset periods, failed renewals do not extend them, and provider/commit
+failures return 500 for Stripe to retry. Unverifiable purchases deny access.
+Status reads only the DB and bounds access by the paid interval; it never calls
+Stripe. A browser return does not grant access. Clients refresh on page open,
+Stripe return, or an explicit reload, without polling.
+
+Existing `billing_accounts` and `billing_periods` migrations in `openci_server`
+must run first. Go owns Customer/Checkout intents, Stripe state, and event tables.
+Initial trial routes remain disabled. Internal execution metering and allowance
+admission are separate from these Stripe routes; do not enable production billing
+until they and deployed Stripe sandbox validation are complete. No production
+configuration is changed by adding these endpoints.

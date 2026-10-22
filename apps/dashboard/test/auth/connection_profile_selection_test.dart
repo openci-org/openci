@@ -4,6 +4,7 @@ import 'package:dashboard/api/ws_uri_builder.dart';
 import 'package:dashboard/app_strings.dart';
 import 'package:dashboard/auth/auth_page.dart';
 import 'package:dashboard/auth/auth_provider.dart';
+import 'package:dashboard/billing/billing_provider.dart';
 import 'package:dashboard/connections/connection_firebase_auth.dart';
 import 'package:dashboard/connections/connection_profile.dart';
 import 'package:dashboard/connections/connection_snapshot.dart';
@@ -104,6 +105,7 @@ void main() {
         GoRoute(path: '/auth', builder: (_, _) => loginPage),
         GoRoute(path: '/', builder: (_, _) => const _Page('Home')),
         GoRoute(path: '/settings', builder: (_, _) => const SettingsPage()),
+        GoRoute(path: '/billing', builder: (_, _) => const _Page('Billing')),
       ],
     );
     addTearDown(router.dispose);
@@ -505,6 +507,32 @@ void main() {
       tester.widgetList<Text>(find.byType(Text)).map((text) => text.data),
       containsAll(['Company', 'https://company.example.com']),
     );
+  });
+
+  testWidgets('billing entry is Web-only and carries the selected Cloud team', (
+    tester,
+  ) async {
+    cloudAuth = _Auth(_User('cloud'));
+    await pumpApp(tester, location: '/settings');
+    expect(container.exists(billingStatusProvider('company-team')), isFalse);
+    if (kIsWeb) {
+      expect(find.text('課金を管理'), findsOneWidget);
+      await tester.tap(find.text('課金を管理'));
+      await tester.pumpAndSettle();
+      expect(router.state.uri.path, '/billing');
+      expect(router.state.uri.queryParameters['teamId'], 'company-team');
+    } else {
+      expect(find.text('課金を管理'), findsNothing);
+    }
+  });
+
+  testWidgets('Self-hosted settings never show the billing entry', (
+    tester,
+  ) async {
+    await store.save(store.load().copyWith(activeId: 'company'));
+    await pumpApp(tester, location: '/settings');
+    expect(find.text('課金を管理'), findsNothing);
+    expect(container.exists(billingStatusProvider('company-team')), isFalse);
   });
 
   testWidgets('hides return to Cloud in settings when Cloud is selected', (

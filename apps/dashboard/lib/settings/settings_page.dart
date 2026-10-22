@@ -2,12 +2,11 @@ import 'dart:async';
 
 import 'package:dashboard/app_strings.dart';
 import 'package:dashboard/auth/auth_provider.dart';
+import 'package:dashboard/billing/billing_identity.dart';
 import 'package:dashboard/connections/active_connection_profile_provider.dart';
 import 'package:dashboard/connections/connection_store_provider.dart';
 import 'package:dashboard/connections/local_development_connection.dart';
 import 'package:dashboard/connections/select_connection_profile.dart';
-import 'package:dashboard/revenue_cat/revenue_cat.dart';
-import 'package:dashboard/revenue_cat/subscription_page.dart';
 import 'package:dashboard/team/team_provider.dart';
 import 'package:dashboard/utilities/macos_updater_initializer.dart';
 import 'package:dashboard/utilities/snack_bar_extension.dart';
@@ -15,11 +14,11 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:macos_updater/macos_updater.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
-import 'package:swipeable_page_route/swipeable_page_route.dart';
 
 class SettingsPage extends HookConsumerWidget {
   const SettingsPage({super.key, this.onSwitchTeam});
@@ -46,22 +45,32 @@ class SettingsPage extends HookConsumerWidget {
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
                 children: [
-                  _SectionHeader(label: settingsT.subscription),
-                  _SettingsGroup(
-                    children: [
-                      _SettingsItem(
-                        icon: Symbols.credit_card_rounded,
-                        title: settingsT.subscription,
-                        subtitle: settingsT.manageSubscription,
-                        onTap: () => Navigator.of(context).push(
-                          SwipeablePageRoute(
-                            builder: (_) => const SubscriptionPage(),
-                          ),
+                  if (ref.watch(billingIdentityProvider) != null) ...[
+                    const _SectionHeader(label: '課金'),
+                    _SettingsGroup(
+                      children: [
+                        _SettingsItem(
+                          icon: Symbols.credit_card_rounded,
+                          title: '課金を管理',
+                          subtitle: 'チームのプラン・請求・支払い方法',
+                          onTap: () {
+                            final selected = ref.read(selectedTeamProvider);
+                            final teamId =
+                                selected.isLoading || selected.hasError
+                                ? null
+                                : selected.asData?.value.id;
+                            context.go(
+                              Uri(
+                                path: '/billing',
+                                queryParameters: {'teamId': ?teamId},
+                              ).toString(),
+                            );
+                          },
                         ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+                  ],
                   _SectionHeader(label: settingsT.preferences),
                   _SettingsGroup(
                     children: [
@@ -155,7 +164,6 @@ Future<void> _signOut(BuildContext context, WidgetRef ref) async {
   final settingsT = t.settings;
   try {
     final auth = await ref.read(firebaseAuthProvider.future);
-    await logoutRevenueCat();
     await auth.signOut();
 
     if (!context.mounted) return;
