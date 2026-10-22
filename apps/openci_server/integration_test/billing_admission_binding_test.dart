@@ -1,4 +1,9 @@
 import 'dart:io';
+import 'dart:convert';
+
+import 'package:dart_frog/dart_frog.dart';
+import 'package:dart_frog_test/dart_frog_test.dart';
+import 'package:openci_server/auth/internal_api_key_validator.dart';
 
 import 'package:drift_postgres/drift_postgres.dart';
 import 'package:openci_server/billing/billing_admission_store.dart';
@@ -7,6 +12,9 @@ import 'package:openci_shared/openci_shared.dart';
 import 'package:postgres/postgres.dart' as pg;
 import 'package:test/test.dart';
 import 'package:uuid/uuid.dart';
+
+import '../routes/builds/[id]/index.dart' as job_route;
+import '../routes/builds/[id]/check-run.dart' as check_route;
 
 void main() {
   final databaseUrl = Platform.environment['OPENCI_TEST_DATABASE_URL'];
@@ -75,6 +83,141 @@ void main() {
           "UPDATE build_jobs SET latest_run_id = 'run-1'",
         );
       }
+
+      final completion = {
+        'billingAdmissionId': 'admission-1',
+        'runId': 'run-1',
+        'workerHost': 'worker-1',
+        'status': 'SUCCESS',
+      };
+      Future<Response> completeRequest(
+        Map<String, dynamic> body, {
+        bool worker = true,
+        bool check = false,
+        DriftBuildJob? snapshot,
+      }) async {
+        final context = TestRequestContext(
+          path: check ? '/builds/job-1/check-run' : '/builds/job-1',
+          method: check ? HttpMethod.post : HttpMethod.patch,
+          headers: {
+            'Authorization': 'Bearer ${worker ? 'worker-key' : 'user-key'}',
+          },
+          body: jsonEncode(body),
+        );
+        context.provide<AppDatabase>(db);
+        context.provide<DriftBuildJob>(
+          snapshot ?? (await db.buildJobDao.getBuildJob('job-1'))!,
+        );
+        context.provide<Map<String, String>>({
+          'SERVER_ACCESS_MODE': 'cloud',
+          'BILLING_ENABLED': 'true',
+        });
+        context.provide<InternalApiKeyValidator>(
+          const InternalApiKeyValidator(
+            environment: {'INTERNAL_API_KEY': 'worker-key'},
+          ),
+        );
+        return check
+            ? check_route.onRequest(context.context, 'job-1')
+            : job_route.onRequest(context.context, 'job-1');
+      }
+
+      test(
+        'paid completion route writes only the current admitted run',
+        () async {
+          await markBound();
+          expect((await completeRequest(completion)).statusCode, 200);
+          expect(
+            (await db.buildJobDao.getBuildJob('job-1'))!.status,
+            BuildJobStatus.SUCCESS,
+          );
+          await db.customStatement(
+            "UPDATE build_jobs SET latest_run_id = 'new-run', status = 'IN_PROGRESS'",
+          );
+          expect((await completeRequest(completion)).statusCode, 409);
+          expect(
+            (await db.buildJobDao.getBuildJob('job-1'))!.status,
+            BuildJobStatus.IN_PROGRESS,
+          );
+        },
+      );
+
+      for (final check in [false, true]) {
+        test(
+          'paid ${check ? 'check' : 'job'} route requires worker identity',
+          () async {
+            expect(
+              (await completeRequest(
+                completion,
+                worker: false,
+                check: check,
+              )).statusCode,
+              403,
+            );
+            expect(
+              (await completeRequest({
+                'status': 'SUCCESS',
+              }, check: check)).statusCode,
+              400,
+            );
+          },
+        );
+      }
+
+      test('nonterminal or mixed paid state updates are rejected', () async {
+        await markBound();
+        expect(
+          (await completeRequest({
+            ...completion,
+            'status': 'QUEUED',
+          })).statusCode,
+          400,
+        );
+        expect(
+          (await completeRequest({
+            ...completion,
+            'latestRunId': 'other-run',
+          })).statusCode,
+          400,
+        );
+        expect(
+          (await db.buildJobDao.getBuildJob('job-1'))!.latestRunId,
+          'run-1',
+        );
+      });
+
+      test(
+        'a metadata patch cannot restore a stale run or status snapshot',
+        () async {
+          final snapshot = (await db.buildJobDao.getBuildJob('job-1'))!;
+          await markBound();
+          await store.completeJob(attempt, BuildJobStatus.SUCCESS);
+          expect(
+            (await completeRequest({
+              'failureSummary': 'summary',
+            }, snapshot: snapshot)).statusCode,
+            200,
+          );
+          final job = (await db.buildJobDao.getBuildJob('job-1'))!;
+          expect(job.status, BuildJobStatus.SUCCESS);
+          expect(job.latestRunId, 'run-1');
+          expect(job.failureSummary, 'summary');
+        },
+      );
+
+      test('a stale check callback is rejected before GitHub access', () async {
+        await markBound();
+        await db.customStatement(
+          "UPDATE build_jobs SET latest_run_id = 'new-run'",
+        );
+        final response = await completeRequest({
+          ...completion,
+          'status': 'completed',
+          'conclusion': 'success',
+        }, check: true);
+        expect(response.statusCode, 409);
+        expect(await response.json(), {'error': 'admission_not_current'});
+      });
 
       test(
         'current bound completion keeps unrelated job fields and can repeat',
