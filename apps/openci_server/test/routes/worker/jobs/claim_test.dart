@@ -3,6 +3,10 @@ import 'dart:io';
 
 import 'package:dart_frog/dart_frog.dart';
 import 'package:dart_frog_test/dart_frog_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
+import 'package:openci_server/billing/billing_proxy.dart';
+import 'package:openci_server/billing/billing_proxy_config.dart';
 import 'package:openci_server/auth/internal_api_key_validator.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:openci_server/build_job/build_job_dao.dart';
@@ -36,6 +40,7 @@ void main() {
       'GITHUB_API_BASE_URL': 'https://api.github.com',
     },
     String body = '{}',
+    BillingProxy? billingProxy,
   }) {
     final context = TestRequestContext(
       path: '/worker/jobs/claim',
@@ -51,8 +56,132 @@ void main() {
     context.provide<InternalApiKeyValidator>(
       InternalApiKeyValidator(environment: environment),
     );
-    return Future.value(worker.middleware(route.onRequest)(context.context));
+    context.provide<BillingProxy?>(billingProxy);
+    final requestContext = context.context;
+    when(
+      () => requestContext.provide<BillingProxy?>(any()),
+    ).thenReturn(requestContext);
+    return Future.value(worker.middleware(route.onRequest)(requestContext));
   }
+
+  group('paid Cloud claims', () {
+    const environment = {
+      'SERVER_ACCESS_MODE': 'cloud',
+      'BILLING_ENABLED': 'true',
+      'INTERNAL_API_KEY': 'test-internal-key',
+      'GITHUB_API_BASE_URL': 'https://api.github.com',
+      'GENUINECI_SERVER_URL': 'http://genuineci-server:8081',
+      'BILLING_INTERNAL_TOKEN': '01234567890123456789012345678901',
+    };
+    final job = DriftBuildJob(
+      id: 'job-1',
+      status: BuildJobStatus.IN_PROGRESS,
+      workerHost: 'worker-1',
+      owner: 'org',
+      repo: 'repo',
+      workflowName: 'CI',
+      workflowFileName: 'ci.dart',
+      createdAt: DateTime.utc(2026),
+      updatedAt: DateTime.utc(2026),
+    );
+    test(
+      'returns the admitted job without calling the unrestricted DAO',
+      () async {
+        final client = MockClient((incoming) async {
+          expect(incoming.url.path, '/internal/billing/worker/claim');
+          expect(
+            jsonDecode(incoming.body),
+            containsPair('workerHost', 'worker-1'),
+          );
+          return http.Response(
+            '{"claim":{"jobId":"job-1","admissionId":"admission-1"}}',
+            200,
+          );
+        });
+        addTearDown(client.close);
+        when(() => dao.getBuildJob('job-1')).thenAnswer((_) async => job);
+        final response = await request(
+          environment: environment,
+          body: '{"workerHost":"worker-1"}',
+          billingProxy: BillingProxy(
+            BillingProxyConfig.fromEnvironment(environment)!,
+            client,
+          ),
+        );
+        expect(response.statusCode, 200);
+        final body = await response.json() as Map<String, dynamic>;
+        expect(body['job'], containsPair('billingAdmissionId', 'admission-1'));
+        expect(
+          body['job'],
+          containsPair('githubBaseUrl', 'https://github.com'),
+        );
+        verify(() => dao.getBuildJob('job-1')).called(1);
+        verifyNoMoreInteractions(dao);
+      },
+    );
+    for (final (status, body) in [
+      (200, '{"claim":null}'),
+      (503, '{"error":"billing_unavailable"}'),
+    ]) {
+      test('never falls back when billing returns $status $body', () async {
+        final client = MockClient((_) async => http.Response(body, status));
+        addTearDown(client.close);
+        final response = await request(
+          environment: environment,
+          body: '{"workerHost":"worker-1"}',
+          billingProxy: BillingProxy(
+            BillingProxyConfig.fromEnvironment(environment)!,
+            client,
+          ),
+        );
+        expect(response.statusCode, status);
+        if (status == 200) expect(await response.json(), {'job': null});
+        verifyZeroInteractions(dao);
+      });
+    }
+    test('rejects a job no longer owned by the requesting worker', () async {
+      final client = MockClient(
+        (_) async => http.Response(
+          '{"claim":{"jobId":"job-1","admissionId":"admission-1"}}',
+          200,
+        ),
+      );
+      addTearDown(client.close);
+      when(() => dao.getBuildJob('job-1')).thenAnswer((_) async => job);
+      final response = await request(
+        environment: environment,
+        body: '{"workerHost":"worker-2"}',
+        billingProxy: BillingProxy(
+          BillingProxyConfig.fromEnvironment(environment)!,
+          client,
+        ),
+      );
+      expect(response.statusCode, 409);
+      expect(await response.json(), {'error': 'admission_not_current'});
+    });
+    test('missing billing transport fails closed', () async {
+      final response = await request(environment: environment);
+      expect(response.statusCode, 503);
+      verifyZeroInteractions(dao);
+    });
+    test('Firebase users cannot invoke paid worker claims', () async {
+      final client = MockClient(
+        (_) async => throw StateError('must not call billing'),
+      );
+      addTearDown(client.close);
+      final response = await request(
+        environment: environment,
+        token: 'firebase-token',
+        uid: 'user-1',
+        billingProxy: BillingProxy(
+          BillingProxyConfig.fromEnvironment(environment)!,
+          client,
+        ),
+      );
+      expect(response.statusCode, 401);
+      verifyZeroInteractions(dao);
+    });
+  });
 
   group('POST /worker/jobs/claim', () {
     test('rejects other methods without claiming a job', () async {
