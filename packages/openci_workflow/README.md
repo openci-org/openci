@@ -36,6 +36,16 @@ OpenCI discovers Dart files in `openci/` and matches their declared triggers to 
 
 For Flutter analysis, use `await openCI.flutter.staticAnalysis()` or pass your preferred `flutter analyze` flags to `openCI.run()`.
 
+Format Go files, run static analysis, and run tests with the toolchain available on the build machine:
+
+```dart
+await openCI.go.format();
+await openCI.go.vet();
+await openCI.go.test();
+```
+
+These run `go fmt ./...`, `go vet ./...`, and `go test -v ./...`, respectively. `format()` rewrites files in place. Go must already be on `PATH`; the helpers do not install it. All three methods use the workflow's working directory and accept `dir` to override it for that call.
+
 Run Flutter tests with an optional time zone and tag exclusion:
 
 ```dart

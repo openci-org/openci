@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.4
+
+- Add `OpenCI.go.format()`, `OpenCI.go.vet()`, and `OpenCI.go.test()` to format Go files and run checks with an optional working directory, using the preinstalled Go toolchain.
+- Expose the `OpenCI` constructor with an injectable command runner, replacing `OpenCI.forTesting()`.
+- Add value equality and `copyWith()` to signing credential models while keeping credential values out of `toString()`.
+
 ## 0.1.3
 
 - Add `OpenCI.shorebird.releaseApk()` to build a universal Android APK with Shorebird and return its absolute path, with flavors, Dart defines, Flutter arguments, and dry runs.
