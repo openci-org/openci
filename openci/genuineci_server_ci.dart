@@ -11,7 +11,6 @@ Future<void> main() async {
   );
 
   await openCI.go.vet();
-
   await openCI.go.format();
   await openCI.go.test();
 }
