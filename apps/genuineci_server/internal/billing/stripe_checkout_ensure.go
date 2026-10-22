@@ -6,6 +6,8 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	billingconfig "github.com/openci-org/openci/apps/genuineci_server/internal/billing/config"
+	"github.com/openci-org/openci/apps/genuineci_server/internal/billing/stripeapi"
 	"github.com/stripe/stripe-go/v87"
 )
 
@@ -14,7 +16,7 @@ const stripeCheckoutRetryWindow = 23 * time.Hour
 var errStripeCheckoutReconciliationRequired = errors.New("Stripe Checkout creation requires reconciliation")
 
 func ensureStripeCheckoutSession(ctx context.Context, pool *pgxpool.Pool, client *stripe.Client, request checkoutCreationRequest) (*stripe.CheckoutSession, error) {
-	enabled, err := Enabled()
+	enabled, err := billingconfig.Enabled()
 	if err != nil {
 		return nil, err
 	}
@@ -28,7 +30,7 @@ func ensureStripeCheckoutSession(ctx context.Context, pool *pgxpool.Pool, client
 
 	var session *stripe.CheckoutSession
 	if creation.StripeCheckoutSessionID != nil {
-		session, err = getStripeCheckoutSession(ctx, client, *creation.StripeCheckoutSessionID)
+		session, err = stripeapi.GetCheckoutSession(ctx, client, *creation.StripeCheckoutSessionID)
 		if err == nil && (session == nil || session.ID != *creation.StripeCheckoutSessionID) {
 			return nil, errStripeCheckoutReconciliationRequired
 		}
@@ -43,7 +45,7 @@ func ensureStripeCheckoutSession(ctx context.Context, pool *pgxpool.Pool, client
 		stripeCtx, cancel := context.WithDeadline(ctx, deadline)
 		defer cancel()
 		original := creation.Request
-		session, err = createStripeCheckoutSession(stripeCtx, client, stripeCheckoutCreateRequest{
+		session, err = stripeapi.CreateCheckoutSession(stripeCtx, client, stripeapi.CheckoutCreateRequest{
 			TeamID: original.TeamID, CustomerID: original.CustomerID, PriceID: original.PriceID,
 			SuccessURL: original.SuccessURL, CancelURL: original.CancelURL,
 			IdempotencyKey: creation.IdempotencyKey,

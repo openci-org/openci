@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/openci-org/openci/apps/genuineci_server/internal/testutil"
 	"github.com/stripe/stripe-go/v87"
 )
 
@@ -16,18 +17,18 @@ func TestPortalFlowUsesRecordedTeamCustomer(t *testing.T) {
 		t.Fatal(err)
 	}
 	created := 0
-	service.stripe = newStripeReadTestClient(t, func(r *http.Request) (*http.Response, error) {
+	service.stripe = testutil.NewStripeClient(t, func(r *http.Request) (*http.Response, error) {
 		switch r.URL.Path {
 		case "/v1/customers/cus_team":
-			return stripeTestResponse(http.StatusOK, `{"id":"cus_team","metadata":{"team_id":"team-1"}}`), nil
+			return testutil.StripeResponse(http.StatusOK, `{"id":"cus_team","metadata":{"team_id":"team-1"}}`), nil
 		case "/v1/billing_portal/configurations/bpc_team":
-			return portalConfigurationResponse(t, validPortalConfiguration()), nil
+			return testutil.PortalConfigurationResponse(t, testutil.PortalConfiguration()), nil
 		case "/v1/billing_portal/sessions":
 			created++
 			if err := r.ParseForm(); err != nil {
 				t.Fatal(err)
 			}
-			if r.Form.Get("customer") != "cus_team" || r.Form.Get("return_url") != service.config.returnURL("team-1", "portal") {
+			if r.Form.Get("customer") != "cus_team" || r.Form.Get("return_url") != service.config.ReturnURL("team-1", "portal") {
 				t.Fatal("Customer and return URL must come from server state")
 			}
 			body, err := json.Marshal(&stripe.BillingPortalSession{
@@ -37,7 +38,7 @@ func TestPortalFlowUsesRecordedTeamCustomer(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			return stripeTestResponse(http.StatusOK, string(body)), nil
+			return testutil.StripeResponse(http.StatusOK, string(body)), nil
 		default:
 			t.Fatalf("unexpected request: %s", r.URL.Path)
 			return nil, nil

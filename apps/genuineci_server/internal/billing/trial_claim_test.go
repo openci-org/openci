@@ -11,6 +11,8 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
+	billingschema "github.com/openci-org/openci/apps/genuineci_server/internal/billing/schema"
+	"github.com/openci-org/openci/apps/genuineci_server/internal/testutil"
 )
 
 func TestCreateTrialClaim(t *testing.T) {
@@ -123,7 +125,7 @@ func TestCreateTrialClaimConcurrent(t *testing.T) {
 				created, err := commitTrialClaim(ctx, pool, competing)
 				results <- result{created, err}
 			}()
-			waitForBillingLocks(t, ctx, pool, 1)
+			testutil.WaitForLocks(t, ctx, pool, 1)
 			if err := tx.Commit(ctx); err != nil {
 				t.Fatal(err)
 			}
@@ -192,7 +194,7 @@ func newTrialClaimTestDB(t *testing.T, teamIDs ...string) (context.Context, *pgx
 			t.Fatal(err)
 		}
 	}
-	if err := EnsureTrialClaimsTable(ctx, pool); err != nil {
+	if err := billingschema.EnsureTrialClaimsTable(ctx, pool); err != nil {
 		t.Fatal(err)
 	}
 	return ctx, pool

@@ -7,12 +7,46 @@ target is production; a separate staging environment is not required. Follow
 [G-1361](https://linear.app/genuineci/issue/G-1361) for live configuration, the existing-team
 transition and the published refund contact before enabling billing.
 
+## Go package layout
+
+```text
+cmd/server/                 Server entry point and startup tests
+internal/
+  billing/                  Billing workflows, authorization, storage, and HTTP handlers
+    config/                 Environment validation and server-owned return URLs
+    schema/                 PostgreSQL table and index initialization
+    stripeapi/              Bounded Stripe SDK calls and sanitized upstream errors
+  testutil/                 Shared database fixtures and fake Stripe transport
+integration_test/
+  worker_bridge/            Server used by the Dart worker bridge integration test
+```
+
+Tests live beside the code they exercise. Billing workflows own purchase
+eligibility, payment verification, and transaction boundaries; `stripeapi` does
+not import them. Schema initialization depends only on PostgreSQL. `testutil`
+is imported only by tests.
+
+Run these commands from `apps/genuineci_server`:
+
+```sh
+go run ./cmd/server
+go build -o /tmp/genuineci-server ./cmd/server
+go vet ./...
+go test -race ./...
+```
+
+Startup requires `DATABASE_URL`. Set `OPENCI_TEST_DATABASE_URL` to a disposable
+local PostgreSQL database to include database tests; otherwise they are skipped.
+The Dockerfile builds the same `./cmd/server` entry point from the repository root.
+
+## Billing service
+
 Billing authorization treats every current team member equally. `withBillingMemberLock`
 locks the current team and billing account, then checks membership before performing
 an operation. Account initialization rolls back for rejected users. The UID must
 come from verified authentication; a request body is not an identity source.
 
-`LoadServiceConfig` requires explicit `STRIPE_LIVEMODE`, distinct Light/Pro Price
+`config.Load` requires explicit `STRIPE_LIVEMODE`, distinct Light/Pro Price
 IDs, `STRIPE_PORTAL_CONFIGURATION_ID`, `STRIPE_WEBHOOK_SECRET`, and a shared
 `BILLING_INTERNAL_TOKEN` of at least 32 characters when billing is enabled.
 `BILLING_DASHBOARD_ORIGIN` must be HTTPS (loopback HTTP is allowed locally).
@@ -66,7 +100,7 @@ pinned to `v87.0.0`. Its default API version is `2026-09-30.endive`
 (`stripe.APIVersion`). Configure snapshot webhook endpoints with this
 version and review compatibility when upgrading the SDK.
 
-`billing.NewStripeClient()` creates a client only when `SERVER_ACCESS_MODE=cloud`
+`stripeapi.NewClient()` creates a client only when `SERVER_ACCESS_MODE=cloud`
 and `BILLING_ENABLED=true`. It requires a nonblank `STRIPE_SECRET_KEY`; disabled
 billing and Self-hosted require no Stripe key and return no client.
 
@@ -74,7 +108,7 @@ Client construction makes no Stripe requests and does not verify the key against
 Stripe. Startup validates configuration, initializes the billing tables, and registers
 the routes only when Cloud billing is enabled.
 
-`getStripeCheckoutSession`, `getStripeSubscription`, and `getStripePrice` each
+`stripeapi.GetCheckoutSession`, `stripeapi.GetSubscription`, and `stripeapi.GetPrice` each
 retrieve one object by ID using the SDK, with a ten-second deadline including
 retries. Earlier caller deadlines and cancellation are preserved. Request
 failures return a generic error, and SDK logging is disabled to keep raw upstream
@@ -83,7 +117,7 @@ and payment before returning actions or committing access state.
 
 ## Checkout Price configuration and validation
 
-`stripeCheckoutPriceID` selects a server-configured Price ID from the plan ID:
+`config.CheckoutPriceID` selects a server-configured Price ID from the plan ID:
 
 | Plan | Environment variable |
 | --- | --- |
@@ -112,7 +146,7 @@ existing subscription or paid period. Paid access uses the verified invoice peri
 
 ## Checkout Session creation
 
-`createStripeCheckoutSession` uses the SDK's [Checkout Session creation API](https://docs.stripe.com/api/checkout/sessions/create?lang=go)
+`stripeapi.CreateCheckoutSession` uses the SDK's [Checkout Session creation API](https://docs.stripe.com/api/checkout/sessions/create?lang=go)
 with an existing Customer, one Price at quantity one, and server-owned return URLs.
 It creates a hosted subscription checkout, restricts eligible payment methods to
 cards, disables Adaptive Pricing, and adds no trial or promotion settings. Both
@@ -152,7 +186,7 @@ incomplete-expired contracts permit another purchase; failed reads fail closed.
 
 ## Customer Portal
 
-`createStripePortalSession` uses an explicit server-owned Portal configuration.
+`stripeapi.CreatePortalSession` uses an explicit server-owned Portal configuration.
 Before issuing a Session it verifies active/test-live mode, invoice history,
 payment-method updates, period-end cancellation without proration, disabled
 subscription updates, and disabled public Portal login. The returned Customer,
@@ -215,7 +249,7 @@ the safe idempotency window. The Checkout workflow coordinates these checks.
 
 ## Customer creation
 
-`createStripeCustomer` uses the SDK's [Customer creation API](https://docs.stripe.com/api/customers/create?lang=go)
+`stripeapi.CreateCustomer` uses the SDK's [Customer creation API](https://docs.stripe.com/api/customers/create?lang=go)
 with server-owned `team_id` metadata and a required caller-provided idempotency key.
 It forwards the key unchanged and bounds the call to ten seconds, preserving
 earlier deadlines and cancellation. Failures return no Customer and a sanitized

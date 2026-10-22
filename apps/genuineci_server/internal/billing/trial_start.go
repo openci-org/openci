@@ -8,6 +8,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	billingconfig "github.com/openci-org/openci/apps/genuineci_server/internal/billing/config"
 )
 
 var ErrNotTeamMember = errors.New("trial start requires a current team member")
@@ -35,11 +36,11 @@ type trialStart struct {
 }
 
 func startTrial(ctx context.Context, pool *pgxpool.Pool, input trialStart) (bool, error) {
-	enabled, err := Enabled()
+	enabled, err := billingconfig.Enabled()
 	if err != nil || !enabled {
 		return false, err
 	}
-	allowanceSeconds, err := TrialAllowanceSeconds()
+	allowanceSeconds, err := billingconfig.TrialAllowanceSeconds()
 	if err != nil {
 		return false, err
 	}

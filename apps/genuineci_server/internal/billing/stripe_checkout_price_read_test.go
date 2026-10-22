@@ -6,7 +6,10 @@ import (
 	"errors"
 	"net/http"
 	"testing"
+	"time"
 
+	"github.com/openci-org/openci/apps/genuineci_server/internal/billing/stripeapi"
+	"github.com/openci-org/openci/apps/genuineci_server/internal/testutil"
 	"github.com/stripe/stripe-go/v87"
 )
 
@@ -26,7 +29,7 @@ func TestGetStripeCheckoutPrice(t *testing.T) {
 			configured.ID = tc.priceID
 			configured.UnitAmount = tc.amount
 			configured.Livemode = tc.livemode
-			client := newStripeReadTestClient(t, func(request *http.Request) (*http.Response, error) {
+			client := testutil.NewStripeClient(t, func(request *http.Request) (*http.Response, error) {
 				if request.Method != http.MethodGet || request.URL.Path != "/v1/prices/"+tc.priceID {
 					t.Errorf("must retrieve the server-selected Price: %s %s", request.Method, request.URL.Path)
 				}
@@ -60,7 +63,7 @@ func TestGetStripeCheckoutPriceRejectsMismatches(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			configured := validStripeCheckoutPrice()
 			tc.change(configured)
-			client := newStripeReadTestClient(t, func(*http.Request) (*http.Response, error) {
+			client := testutil.NewStripeClient(t, func(*http.Request) (*http.Response, error) {
 				return stripeCheckoutPriceTestResponse(t, configured), nil
 			})
 			t.Setenv("STRIPE_LIGHT_PRICE_ID", "price_configured")
@@ -75,7 +78,7 @@ func TestGetStripeCheckoutPriceRejectsMismatches(t *testing.T) {
 }
 
 func TestGetStripeCheckoutPriceRejectsInvalidInputBeforeRequest(t *testing.T) {
-	client := newStripeReadTestClient(t, func(*http.Request) (*http.Response, error) {
+	client := testutil.NewStripeClient(t, func(*http.Request) (*http.Response, error) {
 		t.Error("invalid input must not make a Stripe request")
 		return nil, errors.New("unexpected request")
 	})
@@ -107,7 +110,7 @@ func TestGetStripeCheckoutPriceWhenBillingDisabled(t *testing.T) {
 		{"disabled cloud", "cloud", "false"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			client := newStripeReadTestClient(t, func(*http.Request) (*http.Response, error) {
+			client := testutil.NewStripeClient(t, func(*http.Request) (*http.Response, error) {
 				t.Error("disabled billing must not make a Stripe request")
 				return nil, errors.New("unexpected request")
 			})
@@ -125,8 +128,8 @@ func TestGetStripeCheckoutPriceWhenBillingDisabled(t *testing.T) {
 }
 
 func TestGetStripeCheckoutPricePreservesSanitizedFailure(t *testing.T) {
-	client := newStripeReadTestClient(t, func(*http.Request) (*http.Response, error) {
-		return stripeTestResponse(http.StatusNotFound, `{"error":{"message":"private Stripe details"}}`), nil
+	client := testutil.NewStripeClient(t, func(*http.Request) (*http.Response, error) {
+		return testutil.StripeResponse(http.StatusNotFound, `{"error":{"message":"private Stripe details"}}`), nil
 	})
 	t.Setenv("STRIPE_LIGHT_PRICE_ID", "price_configured")
 
@@ -140,7 +143,7 @@ func TestGetStripeCheckoutPricePreservesSanitizedFailure(t *testing.T) {
 func TestGetStripeCheckoutPricePreservesCancellation(t *testing.T) {
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
-	client := newStripeReadTestClient(t, func(request *http.Request) (*http.Response, error) {
+	client := testutil.NewStripeClient(t, func(request *http.Request) (*http.Response, error) {
 		cancel()
 		<-request.Context().Done()
 		return nil, request.Context().Err()
@@ -160,5 +163,40 @@ func stripeCheckoutPriceTestResponse(t *testing.T, price *stripe.Price) *http.Re
 	if err != nil {
 		t.Fatal(err)
 	}
-	return stripeTestResponse(http.StatusOK, string(body))
+	return testutil.StripeResponse(http.StatusOK, string(body))
+}
+
+func TestGetStripePrice(t *testing.T) {
+	client := testutil.NewStripeClient(t, func(request *http.Request) (*http.Response, error) {
+		if request.Method != http.MethodGet || request.URL.Path != "/v1/prices/price_light" {
+			t.Errorf("unexpected request: %s %s", request.Method, request.URL.Path)
+		}
+		deadline, ok := request.Context().Deadline()
+		if !ok || time.Until(deadline) <= 0 || time.Until(deadline) > 10*time.Second {
+			t.Error("Stripe reads must have a deadline within ten seconds")
+		}
+		return testutil.StripeResponse(http.StatusOK, `{
+			"id": "price_light",
+			"object": "price",
+			"active": true,
+			"livemode": false,
+			"currency": "usd",
+			"unit_amount": 1000,
+			"billing_scheme": "per_unit",
+			"type": "recurring",
+			"recurring": {"interval": "month", "interval_count": 1, "usage_type": "licensed"}
+		}`), nil
+	})
+
+	price, err := stripeapi.GetPrice(t.Context(), client, "price_light")
+
+	if err != nil {
+		t.Fatal(err)
+	}
+	if price == nil || price.ID != "price_light" {
+		t.Fatal("expected the requested Price")
+	}
+	if err := validateStripeCheckoutPrice(price, "light", false); err != nil {
+		t.Fatalf("retrieved Price must be usable by Checkout validation: %v", err)
+	}
 }

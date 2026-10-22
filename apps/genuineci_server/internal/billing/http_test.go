@@ -7,13 +7,16 @@ import (
 	"strings"
 	"testing"
 
+	billingconfig "github.com/openci-org/openci/apps/genuineci_server/internal/billing/config"
+	billingschema "github.com/openci-org/openci/apps/genuineci_server/internal/billing/schema"
+	"github.com/openci-org/openci/apps/genuineci_server/internal/testutil"
 	"github.com/stripe/stripe-go/v87"
 )
 
 func TestBillingHTTPRequiresInternalTokenAndVerifiedUser(t *testing.T) {
 	for _, tc := range []struct{ token, user string }{{"", "user-1"}, {"wrong", "user-1"}, {strings.Repeat("x", 32), ""}} {
 		mux := http.NewServeMux()
-		config := &ServiceConfig{InternalToken: strings.Repeat("x", 32)}
+		config := &billingconfig.Config{InternalToken: strings.Repeat("x", 32)}
 		RegisterRoutes(mux, nil, nil, config)
 		request := httptest.NewRequest(http.MethodGet, "/internal/billing/teams/team-1", nil)
 		request.Header.Set("Authorization", "Bearer "+tc.token)
@@ -40,8 +43,8 @@ func TestBillingHTTPRejectsClientOwnedIdentityAndReturnURLs(t *testing.T) {
 
 func TestBillingHTTPCheckoutAndStatus(t *testing.T) {
 	_, service, _ := newCheckoutFlowTest(t)
-	execCheckoutCreationSQL(t, t.Context(), service.pool, "CREATE TABLE billing_periods (id text PRIMARY KEY, team_id text, period_type text, starts_at bigint, ends_at bigint)")
-	if err := EnsureStripeStateTables(t.Context(), service.pool); err != nil {
+	testutil.ExecSQL(t, t.Context(), service.pool, "CREATE TABLE billing_periods (id text PRIMARY KEY, team_id text, period_type text, starts_at bigint, ends_at bigint)")
+	if err := billingschema.EnsureStripeStateTables(t.Context(), service.pool); err != nil {
 		t.Fatal(err)
 	}
 	mux := http.NewServeMux()
@@ -111,7 +114,7 @@ func TestBillingHTTPTeamDeletion(t *testing.T) {
 	assertTeamDeleted(t, ctx, service, true)
 }
 
-func billingHTTPRequest(handler http.Handler, config ServiceConfig, method, path, body, user string) *httptest.ResponseRecorder {
+func billingHTTPRequest(handler http.Handler, config billingconfig.Config, method, path, body, user string) *httptest.ResponseRecorder {
 	request := httptest.NewRequest(method, path, strings.NewReader(body))
 	request.Header.Set("Authorization", "Bearer "+config.InternalToken)
 	request.Header.Set("X-GenuineCI-User-ID", user)

@@ -4,6 +4,8 @@ import (
 	"errors"
 	"testing"
 	"time"
+
+	"github.com/openci-org/openci/apps/genuineci_server/internal/testutil"
 )
 
 func TestStartTrialByAnyMember(t *testing.T) {
@@ -96,7 +98,7 @@ func TestStartTrialChecksMembershipAfterLockWait(t *testing.T) {
 		started, err := startTrial(ctx, pool, input)
 		results <- result{started, err}
 	}()
-	waitForBillingLocks(t, ctx, pool, 1)
+	testutil.WaitForLocks(t, ctx, pool, 1)
 	if _, err := blocker.Exec(ctx, "DELETE FROM team_members WHERE team_id = 'team-1' AND user_id = 'user-1'"); err != nil {
 		t.Fatal(err)
 	}

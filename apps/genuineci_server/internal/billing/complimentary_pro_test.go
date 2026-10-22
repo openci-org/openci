@@ -8,10 +8,12 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
+	billingconfig "github.com/openci-org/openci/apps/genuineci_server/internal/billing/config"
+	"github.com/openci-org/openci/apps/genuineci_server/internal/testutil"
 )
 
 func TestComplimentaryProRenewsByUTCMonthWithoutResettingHistory(t *testing.T) {
-	ctx, pool := newStripeStateTestDB(t)
+	ctx, pool := testutil.NewStripeStateDB(t)
 	before := time.Date(2040, 1, 1, 8, 59, 59, 0, time.FixedZone("JST", 9*60*60))
 	var first *billingPeriod
 	err := withBillingMemberLock(ctx, pool, billingMember{TeamID: "team-1", UserID: "user-1"}, func(tx pgx.Tx) error {
@@ -43,7 +45,7 @@ func TestComplimentaryProRenewsByUTCMonthWithoutResettingHistory(t *testing.T) {
 	if err := pool.QueryRow(ctx, `SELECT count(*) FROM billing_periods WHERE team_id = 'team-1'`).Scan(&periods); err != nil || periods != 2 {
 		t.Fatalf("both immutable periods must remain: count=%d, err=%v", periods, err)
 	}
-	execCheckoutCreationSQL(t, ctx, pool, `UPDATE billing_periods SET allowance_seconds = 1 WHERE id = $1`, first.ID)
+	testutil.ExecSQL(t, ctx, pool, `UPDATE billing_periods SET allowance_seconds = 1 WHERE id = $1`, first.ID)
 	err = withBillingMemberLock(ctx, pool, billingMember{TeamID: "team-1", UserID: "user-1"}, func(tx pgx.Tx) error {
 		_, err := ensureComplimentaryProPeriod(ctx, tx, "team-1", before)
 		return err
@@ -54,8 +56,8 @@ func TestComplimentaryProRenewsByUTCMonthWithoutResettingHistory(t *testing.T) {
 }
 
 func TestComplimentaryProRequiresMembershipAndDoesNotCreateStripeObjects(t *testing.T) {
-	ctx, pool := newStripeStateTestDB(t)
-	service := &Service{pool: pool, config: ServiceConfig{ComplimentaryProTeamIDs: []string{"team-1"}}}
+	ctx, pool := testutil.NewStripeStateDB(t)
+	service := &Service{pool: pool, config: billingconfig.Config{ComplimentaryProTeamIDs: []string{"team-1"}}}
 	for _, member := range []billingMember{{TeamID: "team-1", UserID: "outsider"}, {TeamID: "team-1"}, {TeamID: "missing", UserID: "user-1"}} {
 		if status, err := service.status(ctx, member); status != nil || !errors.Is(err, errBillingForbidden) {
 			t.Fatalf("grant must not bypass membership: %+v, %v", status, err)
@@ -78,8 +80,8 @@ func TestComplimentaryProRequiresMembershipAndDoesNotCreateStripeObjects(t *test
 }
 
 func TestComplimentaryProBlocksCheckoutBeforeStripe(t *testing.T) {
-	_, pool := newStripeStateTestDB(t)
-	config := &ServiceConfig{InternalToken: strings.Repeat("x", 32), ComplimentaryProTeamIDs: []string{"team-1"}}
+	_, pool := testutil.NewStripeStateDB(t)
+	config := &billingconfig.Config{InternalToken: strings.Repeat("x", 32), ComplimentaryProTeamIDs: []string{"team-1"}}
 	mux := http.NewServeMux()
 	RegisterRoutes(mux, pool, nil, config)
 	for _, userID := range []string{"outsider", "user-1"} {
@@ -94,8 +96,8 @@ func TestComplimentaryProBlocksCheckoutBeforeStripe(t *testing.T) {
 }
 
 func TestComplimentaryProMetersExecutionAcrossMonthBoundary(t *testing.T) {
-	ctx, pool := newStripeStateTestDB(t)
-	service := &Service{pool: pool, config: ServiceConfig{ComplimentaryProTeamIDs: []string{"team-1"}}}
+	ctx, pool := testutil.NewStripeStateDB(t)
+	service := &Service{pool: pool, config: billingconfig.Config{ComplimentaryProTeamIDs: []string{"team-1"}}}
 	boundary := time.Date(2040, 1, 1, 0, 0, 0, 0, time.UTC)
 	err := withBillingMemberLock(ctx, pool, billingMember{TeamID: "team-1", UserID: "user-1"}, func(tx pgx.Tx) error {
 		previous, err := ensureComplimentaryProPeriod(ctx, tx, "team-1", boundary.Add(-time.Hour))

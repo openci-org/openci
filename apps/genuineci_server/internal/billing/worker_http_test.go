@@ -6,16 +6,19 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	billingconfig "github.com/openci-org/openci/apps/genuineci_server/internal/billing/config"
+	"github.com/openci-org/openci/apps/genuineci_server/internal/testutil"
 )
 
 func TestWorkerBillingHTTPAuthorizationAndInput(t *testing.T) {
-	config := &ServiceConfig{InternalToken: strings.Repeat("x", 32)}
+	config := &billingconfig.Config{InternalToken: strings.Repeat("x", 32)}
 	mux := http.NewServeMux()
 	RegisterRoutes(mux, nil, nil, config)
 	for _, path := range []string{"claim", "start", "report"} {
 		path = "/internal/billing/worker/" + path
 		for _, token := range []string{"", "wrong"} {
-			response := billingHTTPRequest(mux, ServiceConfig{InternalToken: token}, http.MethodPost, path, `{}`, "user-1")
+			response := billingHTTPRequest(mux, billingconfig.Config{InternalToken: token}, http.MethodPost, path, `{}`, "user-1")
 			if response.Code != http.StatusUnauthorized {
 				t.Fatalf("worker endpoint must require service authentication: %d", response.Code)
 			}
@@ -48,7 +51,7 @@ func TestWorkerBillingHTTPClaim(t *testing.T) {
 	if err := json.Unmarshal(response.Body.Bytes(), &result); err != nil || response.Code != http.StatusOK || result.Claim == nil || result.Claim.JobID != "job-1" {
 		t.Fatalf("unexpected claim response: %d %s", response.Code, response.Body)
 	}
-	execCheckoutCreationSQL(t, ctx, service.pool, `UPDATE billing_stripe_state SET subscription_status = 'canceled'`)
+	testutil.ExecSQL(t, ctx, service.pool, `UPDATE billing_stripe_state SET subscription_status = 'canceled'`)
 	response = billingHTTPRequest(mux, service.config, http.MethodPost, "/internal/billing/worker/claim", `{"workerHost":"worker-1"}`, "")
 	if response.Code != http.StatusOK || response.Body.String() != "{\"claim\":null}\n" {
 		t.Fatal("no eligible work must return an empty claim")

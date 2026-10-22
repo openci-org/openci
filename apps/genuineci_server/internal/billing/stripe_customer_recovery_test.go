@@ -10,6 +10,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/openci-org/openci/apps/genuineci_server/internal/testutil"
 )
 
 func TestEnsureStripeCustomerRecoversExpiredIntent(t *testing.T) {
@@ -24,7 +25,7 @@ func TestEnsureStripeCustomerRecoversExpiredIntent(t *testing.T) {
 			ctx, pool, intent := newExpiredCustomerCreationTestDB(t, tc.livemode)
 			pool.Reset()
 			requests := 0
-			client := newStripeReadTestClient(t, func(request *http.Request) (*http.Response, error) {
+			client := testutil.NewStripeClient(t, func(request *http.Request) (*http.Response, error) {
 				requests++
 				if request.Method != http.MethodGet || request.URL.Path != "/v1/customers/search" {
 					t.Error("recovery must search for an existing Customer, never create one")
@@ -37,7 +38,7 @@ func TestEnsureStripeCustomerRecoversExpiredIntent(t *testing.T) {
 					"data":[{"id":"cus_recovered","metadata":{"team_id":"team-1"},"livemode":%t}],
 					"has_more":false
 				}`, tc.livemode)
-				return stripeTestResponse(http.StatusOK, body), nil
+				return testutil.StripeResponse(http.StatusOK, body), nil
 			})
 			input := stripeCustomerRequest{TeamID: intent.TeamID, Livemode: intent.Livemode}
 
@@ -72,12 +73,12 @@ func TestEnsureStripeCustomerKeepsUnresolvedRecoveryPending(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			ctx, pool, intent := newExpiredCustomerCreationTestDB(t, false)
 			requests := 0
-			client := newStripeReadTestClient(t, func(request *http.Request) (*http.Response, error) {
+			client := testutil.NewStripeClient(t, func(request *http.Request) (*http.Response, error) {
 				requests++
 				if request.Method != http.MethodGet || request.URL.Path != "/v1/customers/search" {
 					t.Error("unresolved recovery must not fall back to Customer creation")
 				}
-				return stripeTestResponse(tc.status, tc.body), nil
+				return testutil.StripeResponse(tc.status, tc.body), nil
 			})
 
 			id, err := ensureStripeCustomer(ctx, pool, client, stripeCustomerRequest{TeamID: intent.TeamID})
@@ -95,19 +96,19 @@ func TestEnsureStripeCustomerKeepsUnresolvedRecoveryPending(t *testing.T) {
 
 func TestEnsureStripeCustomerRecoveryRequiresCommit(t *testing.T) {
 	ctx, pool, intent := newExpiredCustomerCreationTestDB(t, false)
-	execCustomerCreationSQL(t, ctx, pool, `
+	testutil.ExecSQL(t, ctx, pool, `
 		CREATE TABLE allowed_customers (id text PRIMARY KEY);
 		ALTER TABLE billing_customer_creations ADD CONSTRAINT reject_recovery_at_commit
 			FOREIGN KEY (stripe_customer_id) REFERENCES allowed_customers(id)
 			DEFERRABLE INITIALLY DEFERRED
 	`)
 	requests := 0
-	client := newStripeReadTestClient(t, func(request *http.Request) (*http.Response, error) {
+	client := testutil.NewStripeClient(t, func(request *http.Request) (*http.Response, error) {
 		requests++
 		if request.Method != http.MethodGet || request.URL.Path != "/v1/customers/search" {
 			t.Error("recovery retries must only search for an existing Customer")
 		}
-		return stripeTestResponse(http.StatusOK, `{"data":[{"id":"cus_recovered","metadata":{"team_id":"team-1"}}]}`), nil
+		return testutil.StripeResponse(http.StatusOK, `{"data":[{"id":"cus_recovered","metadata":{"team_id":"team-1"}}]}`), nil
 	})
 	input := stripeCustomerRequest{TeamID: intent.TeamID}
 
@@ -118,7 +119,7 @@ func TestEnsureStripeCustomerRecoveryRequiresCommit(t *testing.T) {
 		t.Fatalf("failed recovery commit must return no Customer ID: id=%q, err=%v", id, err)
 	}
 	assertStoredCustomerCreation(t, ctx, pool, intent)
-	execCustomerCreationSQL(t, ctx, pool, "ALTER TABLE billing_customer_creations DROP CONSTRAINT reject_recovery_at_commit")
+	testutil.ExecSQL(t, ctx, pool, "ALTER TABLE billing_customer_creations DROP CONSTRAINT reject_recovery_at_commit")
 	pool.Reset()
 
 	id, err = ensureStripeCustomer(ctx, pool, client, input)

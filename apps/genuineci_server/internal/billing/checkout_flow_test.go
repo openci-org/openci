@@ -11,6 +11,9 @@ import (
 	"testing"
 	"time"
 
+	billingconfig "github.com/openci-org/openci/apps/genuineci_server/internal/billing/config"
+	billingschema "github.com/openci-org/openci/apps/genuineci_server/internal/billing/schema"
+	"github.com/openci-org/openci/apps/genuineci_server/internal/testutil"
 	"github.com/stripe/stripe-go/v87"
 )
 
@@ -144,17 +147,17 @@ type checkoutFlowGateway struct {
 
 func newCheckoutFlowTest(t *testing.T) (context.Context, *Service, *checkoutFlowGateway) {
 	t.Helper()
-	ctx, pool := newBillingMemberTestDB(t)
-	if err := EnsureCustomerCreationsTable(ctx, pool); err != nil {
+	ctx, pool := testutil.NewBillingMemberDB(t)
+	if err := billingschema.EnsureCustomerCreationsTable(ctx, pool); err != nil {
 		t.Fatal(err)
 	}
-	setBillingServiceEnvironment(t)
-	config, err := LoadServiceConfig()
+	testutil.SetBillingEnvironment(t)
+	config, err := billingconfig.Load()
 	if err != nil {
 		t.Fatal(err)
 	}
 	gateway := &checkoutFlowGateway{sessions: map[string]*stripe.CheckoutSession{}, keys: map[string]string{}}
-	client := newStripeReadTestClient(t, gateway.request)
+	client := testutil.NewStripeClient(t, gateway.request)
 	return ctx, &Service{pool: pool, stripe: client, config: *config}, gateway
 }
 
@@ -223,7 +226,7 @@ func (g *checkoutFlowGateway) request(r *http.Request) (*http.Response, error) {
 	if err != nil {
 		return nil, err
 	}
-	return stripeTestResponse(http.StatusOK, string(body)), nil
+	return testutil.StripeResponse(http.StatusOK, string(body)), nil
 }
 
 func checkoutFlowSubscription(status stripe.SubscriptionStatus) *stripe.Subscription {

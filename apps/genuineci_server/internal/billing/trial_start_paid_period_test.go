@@ -8,6 +8,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/openci-org/openci/apps/genuineci_server/internal/testutil"
 )
 
 func TestStartTrialPaidPeriodBoundaries(t *testing.T) {
@@ -106,7 +107,7 @@ func TestStartTrialWaitsForPaidPeriodCommit(t *testing.T) {
 		started, err := startTrial(ctx, pool, input)
 		results <- result{started, err}
 	}()
-	waitForBillingLocks(t, ctx, pool, 1)
+	testutil.WaitForLocks(t, ctx, pool, 1)
 	if err := tx.Commit(ctx); err != nil {
 		t.Fatal(err)
 	}

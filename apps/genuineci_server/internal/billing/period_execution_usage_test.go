@@ -8,10 +8,11 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/openci-org/openci/apps/genuineci_server/internal/testutil"
 )
 
 func TestPeriodExecutionUsageSumsParallelRunsAcrossRenewal(t *testing.T) {
-	ctx, pool := newExecutionTestDB(t)
+	ctx, pool := testutil.NewExecutionDB(t)
 	seedPeriodExecutionUsage(t, ctx, pool)
 	first := readPeriodExecutionUsage(t, ctx, pool, "team-1", "paid-1", 14000)
 	if first == nil || first.AllowanceSeconds != 36000 || first.MeasuredMillis != 8000 || first.LeasedMillis != 0 || first.MeasurementIncomplete {
@@ -36,7 +37,7 @@ func TestPeriodExecutionUsageSumsParallelRunsAcrossRenewal(t *testing.T) {
 }
 
 func TestPeriodExecutionUsageBoundsAbandonedMeasurements(t *testing.T) {
-	ctx, pool := newExecutionTestDB(t)
+	ctx, pool := testutil.NewExecutionDB(t)
 	seedPeriodExecutionUsage(t, ctx, pool)
 	expired := readPeriodExecutionUsage(t, ctx, pool, "team-1", "paid-next", 16000)
 	if expired == nil || expired.MeasuredMillis != 4000 || expired.LeasedMillis != 0 || !expired.MeasurementIncomplete {
@@ -54,8 +55,8 @@ func TestPeriodExecutionUsageBoundsAbandonedMeasurements(t *testing.T) {
 }
 
 func TestPeriodExecutionUsageExcludesQueuesAndTrials(t *testing.T) {
-	ctx, pool := newExecutionTestDB(t)
-	execCheckoutCreationSQL(t, ctx, pool, `
+	ctx, pool := testutil.NewExecutionDB(t)
+	testutil.ExecSQL(t, ctx, pool, `
 		CREATE TABLE build_jobs (id text PRIMARY KEY, team_id text, status text, created_at bigint);
 		INSERT INTO build_jobs VALUES ('queued', 'team-1', 'QUEUED', 1), ('dependency-wait', 'team-1', 'WAITING', 1);
 		INSERT INTO billing_periods (id, team_id, plan_id, period_type, starts_at, ends_at, allowance_seconds)
@@ -71,8 +72,8 @@ func TestPeriodExecutionUsageExcludesQueuesAndTrials(t *testing.T) {
 }
 
 func TestPeriodExecutionUsagePreservesIncompleteStartAtPeriodBoundary(t *testing.T) {
-	ctx, pool := newExecutionTestDB(t)
-	execCheckoutCreationSQL(t, ctx, pool, `
+	ctx, pool := testutil.NewExecutionDB(t)
+	testutil.ExecSQL(t, ctx, pool, `
 		INSERT INTO billing_executions
 			(run_id, team_id, job_id, worker_host, period_id, started_at_ms, observed_at_ms, lease_until_ms,
 			finished_at_ms, outcome, measurement_incomplete)
@@ -86,7 +87,7 @@ func TestPeriodExecutionUsagePreservesIncompleteStartAtPeriodBoundary(t *testing
 
 func seedPeriodExecutionUsage(t *testing.T, ctx context.Context, pool *pgxpool.Pool) {
 	t.Helper()
-	execCheckoutCreationSQL(t, ctx, pool, `
+	testutil.ExecSQL(t, ctx, pool, `
 		UPDATE billing_periods SET ends_at = 10 WHERE id = 'paid-1';
 		INSERT INTO billing_periods (id, team_id, plan_id, period_type, starts_at, ends_at, allowance_seconds)
 		VALUES ('paid-next', 'team-1', 'pro', 'paid', 10, 20, 360000);

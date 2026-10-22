@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/openci-org/openci/apps/genuineci_server/internal/testutil"
 )
 
 func TestComplimentaryProClaimInitializesAccountWithoutWebVisit(t *testing.T) {
@@ -43,7 +44,7 @@ func TestComplimentaryProSerializesReservationsAtAllowanceLimit(t *testing.T) {
 		t.Fatal(err)
 	}
 	now := time.Now().UnixMilli()
-	execCheckoutCreationSQL(t, ctx, service.pool, `
+	testutil.ExecSQL(t, ctx, service.pool, `
 		INSERT INTO billing_admissions (id, job_id, team_id, worker_host, period_id, claimed_at_ms, start_by_ms, reserved_millis)
 		VALUES ('existing', 'other-job', 'team-1', 'other-worker', $1, $2, $3, 359999000)
 	`, periodID, now, now+120000)
@@ -66,7 +67,7 @@ func TestComplimentaryProSerializesReservationsAtAllowanceLimit(t *testing.T) {
 			results <- result{claim, err}
 		}()
 	}
-	waitForBillingLocks(t, ctx, service.pool, 2)
+	testutil.WaitForLocks(t, ctx, service.pool, 2)
 	if err := blocker.Commit(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -105,7 +106,7 @@ func TestComplimentaryProRemovalStopsNewClaimsAndLetsRunningWorkFinish(t *testin
 	if err != nil || claim == nil {
 		t.Fatalf("claim failed: %+v, %v", claim, err)
 	}
-	execCheckoutCreationSQL(t, ctx, service.pool, `CREATE TABLE build_runs (id text PRIMARY KEY, build_job_id text); INSERT INTO build_runs VALUES ('run-1', 'job-1'); UPDATE build_jobs SET latest_run_id = 'run-1' WHERE id = 'job-1'; UPDATE billing_admissions SET run_id = 'run-1'`)
+	testutil.ExecSQL(t, ctx, service.pool, `CREATE TABLE build_runs (id text PRIMARY KEY, build_job_id text); INSERT INTO build_runs VALUES ('run-1', 'job-1'); UPDATE build_jobs SET latest_run_id = 'run-1' WHERE id = 'job-1'; UPDATE billing_admissions SET run_id = 'run-1'`)
 	request := workerExecutionRequest{AdmissionID: claim.AdmissionID, JobID: claim.JobID, RunID: "run-1", WorkerHost: "worker-1"}
 	if _, err := service.startAdmittedExecution(ctx, request); err != nil {
 		t.Fatal(err)
@@ -128,7 +129,7 @@ func TestComplimentaryProRemovalStopsNewClaimsAndLetsRunningWorkFinish(t *testin
 func newComplimentaryProClaimTest(t *testing.T) (context.Context, *Service) {
 	t.Helper()
 	ctx, service := newJobClaimTestDB(t)
-	execCheckoutCreationSQL(t, ctx, service.pool, `DELETE FROM billing_stripe_state; DELETE FROM billing_customer_creations; DELETE FROM billing_periods; DELETE FROM billing_accounts`)
+	testutil.ExecSQL(t, ctx, service.pool, `DELETE FROM billing_stripe_state; DELETE FROM billing_customer_creations; DELETE FROM billing_periods; DELETE FROM billing_accounts`)
 	service.config.ComplimentaryProTeamIDs = []string{"team-1"}
 	return ctx, service
 }

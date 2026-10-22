@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	billingconfig "github.com/openci-org/openci/apps/genuineci_server/internal/billing/config"
 	"github.com/stripe/stripe-go/v87"
 	"github.com/stripe/stripe-go/v87/webhook"
 )
@@ -16,7 +17,7 @@ import (
 func TestWebhookVerifiesSignatureBeforeReconciliation(t *testing.T) {
 	for _, scenario := range []string{"missing signature", "wrong secret", "changed body", "expired signature", "wrong mode", "wrong version", "connected account", "oversized body"} {
 		t.Run(scenario, func(t *testing.T) {
-			service := &Service{config: ServiceConfig{WebhookSecret: "whsec_endpoint"}}
+			service := &Service{config: billingconfig.Config{WebhookSecret: "whsec_endpoint"}}
 			body := billingWebhookBody(t, "cus_team", "invoice.paid")
 			secret, timestamp := service.config.WebhookSecret, time.Now()
 			switch scenario {
@@ -80,7 +81,7 @@ func TestWebhookReturnsRetryableFailure(t *testing.T) {
 }
 
 func TestWebhookIgnoresUnrelatedEventTypes(t *testing.T) {
-	service := &Service{config: ServiceConfig{WebhookSecret: "whsec_endpoint"}}
+	service := &Service{config: billingconfig.Config{WebhookSecret: "whsec_endpoint"}}
 	if response := sendBillingWebhook(t, service, billingWebhookBody(t, "cus_other", "product.created")); response.Code != http.StatusNoContent {
 		t.Fatal("unrelated signed events must be ignored without database access")
 	}

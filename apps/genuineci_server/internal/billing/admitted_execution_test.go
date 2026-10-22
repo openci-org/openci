@@ -5,6 +5,8 @@ import (
 	"errors"
 	"testing"
 	"time"
+
+	"github.com/openci-org/openci/apps/genuineci_server/internal/testutil"
 )
 
 func TestAdmittedExecutionStartsAndFinishesOnce(t *testing.T) {
@@ -36,7 +38,7 @@ func TestAdmittedExecutionStartsAndFinishesOnce(t *testing.T) {
 
 func TestAdmittedExecutionContinuesAfterEntitlementEnds(t *testing.T) {
 	ctx, service, request := newAdmittedExecutionTest(t)
-	execCheckoutCreationSQL(t, ctx, service.pool, `UPDATE billing_stripe_state SET subscription_status = 'canceled'; UPDATE billing_periods SET allowance_seconds = 0, ends_at = starts_at + 1; DELETE FROM teams`)
+	testutil.ExecSQL(t, ctx, service.pool, `UPDATE billing_stripe_state SET subscription_status = 'canceled'; UPDATE billing_periods SET allowance_seconds = 0, ends_at = starts_at + 1; DELETE FROM teams`)
 	if _, err := service.startAdmittedExecution(ctx, request); err != nil {
 		t.Fatalf("accepted admission must survive period end and cancellation: %v", err)
 	}
@@ -61,7 +63,7 @@ func TestAdmittedExecutionRejectsStaleOrUnboundIdentity(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			ctx, service, request := newAdmittedExecutionTest(t)
-			execCheckoutCreationSQL(t, ctx, service.pool, tc.sql)
+			testutil.ExecSQL(t, ctx, service.pool, tc.sql)
 			if _, err := service.startAdmittedExecution(ctx, request); !errors.Is(err, errAdmissionNotCurrent) {
 				t.Fatalf("stale claim must be rejected: %v", err)
 			}
@@ -110,6 +112,6 @@ func newAdmittedExecutionTest(t *testing.T) (context.Context, *Service, workerEx
 	if err != nil || claim == nil {
 		t.Fatalf("claim failed: %+v, %v", claim, err)
 	}
-	execCheckoutCreationSQL(t, ctx, service.pool, `CREATE TABLE build_runs (id text PRIMARY KEY, build_job_id text); INSERT INTO build_runs VALUES ('run-1', 'job-1'); UPDATE build_jobs SET latest_run_id = 'run-1' WHERE id = 'job-1'; UPDATE billing_admissions SET run_id = 'run-1'`)
+	testutil.ExecSQL(t, ctx, service.pool, `CREATE TABLE build_runs (id text PRIMARY KEY, build_job_id text); INSERT INTO build_runs VALUES ('run-1', 'job-1'); UPDATE build_jobs SET latest_run_id = 'run-1' WHERE id = 'job-1'; UPDATE billing_admissions SET run_id = 'run-1'`)
 	return ctx, service, workerExecutionRequest{AdmissionID: claim.AdmissionID, JobID: claim.JobID, RunID: "run-1", WorkerHost: "worker-1"}
 }

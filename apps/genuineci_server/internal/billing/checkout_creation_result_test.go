@@ -9,6 +9,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/openci-org/openci/apps/genuineci_server/internal/testutil"
 	"github.com/stripe/stripe-go/v87"
 )
 
@@ -44,13 +45,13 @@ func TestRecordStripeCheckoutSession(t *testing.T) {
 			if err := pool.QueryRow(ctx, "SELECT closed_at IS NULL FROM billing_checkout_creations").Scan(&unfinished); err != nil || !unfinished {
 				t.Fatalf("saving a Session must not close the intent: unfinished=%v, err=%v", unfinished, err)
 			}
-			stored := checkoutCreationRecords(t, ctx, pool)
+			stored := testutil.CheckoutCreationRecords(t, ctx, pool)
 			pool.Reset()
 
 			if err := recordStripeCheckoutSession(ctx, pool, creation, session); err != nil {
 				t.Fatalf("the same result must be safe to retry after reconnect: %v", err)
 			}
-			if got := checkoutCreationRecords(t, ctx, pool); got != stored {
+			if got := testutil.CheckoutCreationRecords(t, ctx, pool); got != stored {
 				t.Fatal("retry must preserve the stored record")
 			}
 		})
@@ -109,15 +110,15 @@ func TestRecordStripeCheckoutSessionRejectsChangedIntent(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			ctx, pool, creation := newCheckoutCreationResultTestDB(t, false)
-			execCheckoutCreationSQL(t, ctx, pool, "UPDATE billing_checkout_creations SET "+tc.assignment)
-			want := checkoutCreationRecords(t, ctx, pool)
+			testutil.ExecSQL(t, ctx, pool, "UPDATE billing_checkout_creations SET "+tc.assignment)
+			want := testutil.CheckoutCreationRecords(t, ctx, pool)
 
 			err := recordStripeCheckoutSession(ctx, pool, creation, checkoutSessionForCreation(creation, "cs_checkout"))
 
 			if err == nil {
 				t.Fatal("stale results must not overwrite a changed or closed intent")
 			}
-			if got := checkoutCreationRecords(t, ctx, pool); got != want {
+			if got := testutil.CheckoutCreationRecords(t, ctx, pool); got != want {
 				t.Fatalf("must preserve the record: want=%s, got=%s", want, got)
 			}
 		})
@@ -126,7 +127,7 @@ func TestRecordStripeCheckoutSessionRejectsChangedIntent(t *testing.T) {
 
 func TestRecordStripeCheckoutSessionDoesNotRecreateMissingIntent(t *testing.T) {
 	ctx, pool, creation := newCheckoutCreationResultTestDB(t, false)
-	execCheckoutCreationSQL(t, ctx, pool, "DELETE FROM billing_checkout_creations")
+	testutil.ExecSQL(t, ctx, pool, "DELETE FROM billing_checkout_creations")
 
 	if err := recordStripeCheckoutSession(ctx, pool, creation, checkoutSessionForCreation(creation, "cs_checkout")); err == nil {
 		t.Fatal("missing intent must be rejected")
@@ -136,15 +137,15 @@ func TestRecordStripeCheckoutSessionDoesNotRecreateMissingIntent(t *testing.T) {
 
 func TestRecordStripeCheckoutSessionRejectsDeletedTeam(t *testing.T) {
 	ctx, pool, creation := newCheckoutCreationResultTestDB(t, false)
-	execCheckoutCreationSQL(t, ctx, pool, "DELETE FROM teams WHERE id = 'team-1'")
-	want := checkoutCreationRecords(t, ctx, pool)
+	testutil.ExecSQL(t, ctx, pool, "DELETE FROM teams WHERE id = 'team-1'")
+	want := testutil.CheckoutCreationRecords(t, ctx, pool)
 
 	err := recordStripeCheckoutSession(ctx, pool, creation, checkoutSessionForCreation(creation, "cs_checkout"))
 
 	if !errors.Is(err, pgx.ErrNoRows) {
 		t.Fatalf("must require a current team, got %v", err)
 	}
-	if got := checkoutCreationRecords(t, ctx, pool); got != want {
+	if got := testutil.CheckoutCreationRecords(t, ctx, pool); got != want {
 		t.Fatal("deleted team's intent must remain unchanged")
 	}
 }
@@ -155,12 +156,12 @@ func TestRecordStripeCheckoutSessionCannotReuseHistoricalSession(t *testing.T) {
 	if err := recordStripeCheckoutSession(ctx, pool, first, session); err != nil {
 		t.Fatal(err)
 	}
-	execCheckoutCreationSQL(t, ctx, pool, "UPDATE billing_checkout_creations SET closed_at = 1800000100")
+	testutil.ExecSQL(t, ctx, pool, "UPDATE billing_checkout_creations SET closed_at = 1800000100")
 	second, err := ensureCheckoutCreation(ctx, pool, first.Request)
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := checkoutCreationRecords(t, ctx, pool)
+	want := testutil.CheckoutCreationRecords(t, ctx, pool)
 
 	err = recordStripeCheckoutSession(ctx, pool, *second, session)
 
@@ -168,7 +169,7 @@ func TestRecordStripeCheckoutSessionCannotReuseHistoricalSession(t *testing.T) {
 	if !errors.As(err, &pgErr) || pgErr.Code != "23505" {
 		t.Fatalf("a Session must belong to only one intent, including closed history: %v", err)
 	}
-	if got := checkoutCreationRecords(t, ctx, pool); got != want {
+	if got := testutil.CheckoutCreationRecords(t, ctx, pool); got != want {
 		t.Fatal("historical Session conflict must leave both intents unchanged")
 	}
 }
@@ -202,7 +203,7 @@ func TestRecordStripeCheckoutSessionConcurrent(t *testing.T) {
 					results <- result{id, err}
 				}()
 			}
-			waitForBillingLocks(t, ctx, pool, 2)
+			testutil.WaitForLocks(t, ctx, pool, 2)
 			if err := blocker.Commit(ctx); err != nil {
 				t.Fatal(err)
 			}
@@ -230,13 +231,13 @@ func TestRecordStripeCheckoutSessionConcurrent(t *testing.T) {
 
 func TestRecordStripeCheckoutSessionCommitFailure(t *testing.T) {
 	ctx, pool, creation := newCheckoutCreationResultTestDB(t, false)
-	execCheckoutCreationSQL(t, ctx, pool, `
+	testutil.ExecSQL(t, ctx, pool, `
 		CREATE TABLE allowed_checkout_sessions (id text PRIMARY KEY);
 		ALTER TABLE billing_checkout_creations ADD CONSTRAINT reject_session_at_commit
 			FOREIGN KEY (stripe_checkout_session_id) REFERENCES allowed_checkout_sessions(id)
 			DEFERRABLE INITIALLY DEFERRED
 	`)
-	want := checkoutCreationRecords(t, ctx, pool)
+	want := testutil.CheckoutCreationRecords(t, ctx, pool)
 	session := checkoutSessionForCreation(creation, "cs_checkout")
 
 	err := recordStripeCheckoutSession(ctx, pool, creation, session)
@@ -245,10 +246,10 @@ func TestRecordStripeCheckoutSessionCommitFailure(t *testing.T) {
 	if !errors.As(err, &pgErr) || pgErr.Code != "23503" {
 		t.Fatalf("must report failure at commit, got %v", err)
 	}
-	if got := checkoutCreationRecords(t, ctx, pool); got != want {
+	if got := testutil.CheckoutCreationRecords(t, ctx, pool); got != want {
 		t.Fatal("failed commit must not store the Session")
 	}
-	execCheckoutCreationSQL(t, ctx, pool, "ALTER TABLE billing_checkout_creations DROP CONSTRAINT reject_session_at_commit")
+	testutil.ExecSQL(t, ctx, pool, "ALTER TABLE billing_checkout_creations DROP CONSTRAINT reject_session_at_commit")
 	if err := recordStripeCheckoutSession(ctx, pool, creation, session); err != nil {
 		t.Fatalf("must allow the same result to be retried after rollback: %v", err)
 	}
@@ -259,7 +260,7 @@ func TestRecordStripeCheckoutSessionCommitFailure(t *testing.T) {
 
 func TestRecordStripeCheckoutSessionCanceled(t *testing.T) {
 	ctx, pool, creation := newCheckoutCreationResultTestDB(t, false)
-	want := checkoutCreationRecords(t, ctx, pool)
+	want := testutil.CheckoutCreationRecords(t, ctx, pool)
 	canceled, cancel := context.WithCancel(ctx)
 	cancel()
 
@@ -268,14 +269,14 @@ func TestRecordStripeCheckoutSessionCanceled(t *testing.T) {
 	if !errors.Is(err, context.Canceled) {
 		t.Fatalf("want cancellation, got %v", err)
 	}
-	if got := checkoutCreationRecords(t, ctx, pool); got != want {
+	if got := testutil.CheckoutCreationRecords(t, ctx, pool); got != want {
 		t.Fatal("canceled operation must leave the intent unchanged")
 	}
 }
 
 func newCheckoutCreationResultTestDB(t *testing.T, livemode bool) (context.Context, *pgxpool.Pool, checkoutCreation) {
 	t.Helper()
-	ctx, pool := newCheckoutCreationTestDB(t)
+	ctx, pool := testutil.NewCheckoutCreationDB(t)
 	request := checkoutCreationTestRequest()
 	request.Livemode = livemode
 	creation, err := ensureCheckoutCreation(ctx, pool, request)

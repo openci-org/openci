@@ -9,6 +9,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/openci-org/openci/apps/genuineci_server/internal/testutil"
 )
 
 func TestExecutionHeartbeatAndFinishAreMonotonicAndIdempotent(t *testing.T) {
@@ -128,7 +129,7 @@ func TestConcurrentExecutionFinishesPreserveFirstResult(t *testing.T) {
 		})
 		results <- result{got, err}
 	}()
-	waitForBillingLocks(t, ctx, pool, 1)
+	testutil.WaitForLocks(t, ctx, pool, 1)
 	if err := tx.Commit(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -139,7 +140,7 @@ func TestConcurrentExecutionFinishesPreserveFirstResult(t *testing.T) {
 
 func startedExecutionTest(t *testing.T) (context.Context, *pgxpool.Pool, executionIdentity) {
 	t.Helper()
-	ctx, pool := newExecutionTestDB(t)
+	ctx, pool := testutil.NewExecutionDB(t)
 	request := executionStartFixture()
 	if err := pgx.BeginFunc(ctx, pool, func(tx pgx.Tx) error {
 		_, err := createExecution(ctx, tx, request)

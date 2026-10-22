@@ -1,10 +1,13 @@
 package billing
 
-import "testing"
+import (
+	"github.com/openci-org/openci/apps/genuineci_server/internal/testutil"
+	"testing"
+)
 
 func TestPeriodUsageReservesUnstartedClaimsWithoutChargingWaitingTime(t *testing.T) {
-	ctx, pool := newAdmissionTestDB(t)
-	execCheckoutCreationSQL(t, ctx, pool, `
+	ctx, pool := testutil.NewAdmissionDB(t)
+	testutil.ExecSQL(t, ctx, pool, `
 		UPDATE billing_periods SET allowance_seconds = 120 WHERE id = 'paid-1';
 		INSERT INTO billing_admissions VALUES
 			('pending', 'job-1', 'team-1', 'worker-1', 'paid-1', 1000, 121000, 60000, NULL, NULL),
@@ -18,7 +21,7 @@ func TestPeriodUsageReservesUnstartedClaimsWithoutChargingWaitingTime(t *testing
 	if err != nil || available != 0 || before.MeasuredMillis != 0 || before.LeasedMillis != 0 || before.ReservedMillis != 120000 {
 		t.Fatalf("pending and bound-but-unstarted claims must reserve without measured consumption: %+v, %v", before, err)
 	}
-	execCheckoutCreationSQL(t, ctx, pool, `
+	testutil.ExecSQL(t, ctx, pool, `
 		INSERT INTO billing_executions
 			(run_id, team_id, job_id, worker_host, period_id, started_at_ms, observed_at_ms, lease_until_ms)
 		VALUES ('run-2', 'team-1', 'job-2', 'worker-2', 'paid-1', 10000, 11000, 71000)
@@ -36,8 +39,8 @@ func TestPeriodUsageReservesUnstartedClaimsWithoutChargingWaitingTime(t *testing
 }
 
 func TestPendingReservationCrossesRenewalWithoutResettingItsBudget(t *testing.T) {
-	ctx, pool := newAdmissionTestDB(t)
-	execCheckoutCreationSQL(t, ctx, pool, `
+	ctx, pool := testutil.NewAdmissionDB(t)
+	testutil.ExecSQL(t, ctx, pool, `
 		UPDATE billing_periods SET ends_at = 10 WHERE id = 'paid-1';
 		INSERT INTO billing_periods VALUES ('renewal', 'team-1', 'pro', 'paid', 10, 1000, 360000);
 		INSERT INTO billing_admissions VALUES ('crossing', 'job-1', 'team-1', 'worker-1', 'paid-1', 9000, 129000, 60000, NULL, NULL)

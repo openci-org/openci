@@ -11,6 +11,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/openci-org/openci/apps/genuineci_server/internal/testutil"
 )
 
 func TestCreateBillingPeriod(t *testing.T) {
@@ -128,7 +129,7 @@ func TestCreateBillingPeriod(t *testing.T) {
 	for range 2 {
 		go func() { results <- create(retry) }()
 	}
-	waitForBillingLocks(t, ctx, pool, 2)
+	testutil.WaitForLocks(t, ctx, pool, 2)
 	if err := blocker.Commit(ctx); err != nil {
 		t.Fatal(err)
 	}

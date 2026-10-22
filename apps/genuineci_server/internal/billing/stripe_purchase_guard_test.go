@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/openci-org/openci/apps/genuineci_server/internal/testutil"
 	"github.com/stripe/stripe-go/v87"
 )
 
@@ -18,11 +19,11 @@ func TestGetOwnedStripeCustomer(t *testing.T) {
 		`{"id":"cus_team","deleted":true}`,
 	} {
 		t.Run(body, func(t *testing.T) {
-			client := newStripeReadTestClient(t, func(r *http.Request) (*http.Response, error) {
+			client := testutil.NewStripeClient(t, func(r *http.Request) (*http.Response, error) {
 				if r.Method != http.MethodGet || r.URL.Path != "/v1/customers/cus_team" {
 					t.Error("must retrieve the stored Customer")
 				}
-				return stripeTestResponse(http.StatusOK, body), nil
+				return testutil.StripeResponse(http.StatusOK, body), nil
 			})
 			got, err := getOwnedStripeCustomer(t.Context(), client, stripeCustomerRequest{TeamID: "team-1"}, "cus_team")
 			valid := body == `{"id":"cus_team","metadata":{"team_id":"team-1"}}`
@@ -42,7 +43,7 @@ func TestRequireNoStripeSubscription(t *testing.T) {
 	} {
 		t.Run(string(status), func(t *testing.T) {
 			customer := &stripe.Customer{ID: "cus_team"}
-			client := newStripeReadTestClient(t, func(r *http.Request) (*http.Response, error) {
+			client := testutil.NewStripeClient(t, func(r *http.Request) (*http.Response, error) {
 				if r.URL.Query().Get("customer") != customer.ID || r.URL.Query().Get("status") != "all" {
 					t.Error("must inspect all subscription states for the Customer")
 				}
@@ -60,7 +61,7 @@ func TestRequireNoStripeSubscription(t *testing.T) {
 func TestRequireNoStripeSubscriptionChecksLaterPages(t *testing.T) {
 	customer := &stripe.Customer{ID: "cus_team"}
 	calls := 0
-	client := newStripeReadTestClient(t, func(r *http.Request) (*http.Response, error) {
+	client := testutil.NewStripeClient(t, func(r *http.Request) (*http.Response, error) {
 		calls++
 		if calls == 1 {
 			return subscriptionListResponse(t, []*stripe.Subscription{{ID: "sub_old", Customer: customer, Status: stripe.SubscriptionStatusCanceled}}, true), nil
@@ -81,5 +82,5 @@ func subscriptionListResponse(t *testing.T, subscriptions []*stripe.Subscription
 	if err != nil {
 		t.Fatal(err)
 	}
-	return stripeTestResponse(http.StatusOK, string(body))
+	return testutil.StripeResponse(http.StatusOK, string(body))
 }

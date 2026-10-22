@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/openci-org/openci/apps/genuineci_server/internal/testutil"
 	"github.com/stripe/stripe-go/v87"
 )
 
@@ -30,7 +31,7 @@ func TestBillingStatusReadsOnlyPersistedState(t *testing.T) {
 }
 
 func TestBillingStatusRequiresCurrentMember(t *testing.T) {
-	ctx, pool := newStripeStateTestDB(t)
+	ctx, pool := testutil.NewStripeStateDB(t)
 	service := &Service{pool: pool}
 	for _, member := range []billingMember{{TeamID: "team-1", UserID: "outsider"}, {TeamID: "team-1"}, {TeamID: "missing", UserID: "user-1"}} {
 		if status, err := service.status(ctx, member); status != nil || !errors.Is(err, errBillingForbidden) {
@@ -61,12 +62,12 @@ func TestBillingStatusAccessBoundaries(t *testing.T) {
 		{"unverified", "unverified", "paid", -3600, 3600, false, false, "billing_unavailable"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			ctx, pool := newStripeStateTestDB(t)
+			ctx, pool := testutil.NewStripeStateDB(t)
 			now := time.Now().Unix()
-			execCheckoutCreationSQL(t, ctx, pool, `
+			testutil.ExecSQL(t, ctx, pool, `
 				INSERT INTO billing_periods VALUES ('period', 'team-1', 'light', $1, $2, $3, 36000)
 			`, tc.periodType, now+tc.start, now+tc.end)
-			execCheckoutCreationSQL(t, ctx, pool, `
+			testutil.ExecSQL(t, ctx, pool, `
 				INSERT INTO billing_stripe_state (team_id, stripe_customer_id, livemode, stripe_subscription_id, subscription_status, plan_id, paid_period_id, synced_at, cancel_at_period_end)
 				VALUES ('team-1', 'cus_team', false, 'sub_team', $1, 'light', 'period', $2, $3)
 			`, tc.state, now, tc.name == "period end cancellation")

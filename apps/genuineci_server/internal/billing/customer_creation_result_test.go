@@ -9,6 +9,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/openci-org/openci/apps/genuineci_server/internal/testutil"
 	"github.com/stripe/stripe-go/v87"
 )
 
@@ -72,7 +73,7 @@ func TestRecordStripeCustomerRejectsChangedIntent(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			ctx, pool, creation := newCustomerCreationResultTestDB(t, false)
-			execCustomerCreationSQL(t, ctx, pool, tc.sql)
+			testutil.ExecSQL(t, ctx, pool, tc.sql)
 			want := *readCustomerCreation(t, ctx, pool, creation.TeamID)
 
 			err := recordStripeCustomer(ctx, pool, creation, customerForCreation(creation, "cus_team1"))
@@ -87,7 +88,7 @@ func TestRecordStripeCustomerRejectsChangedIntent(t *testing.T) {
 
 func TestRecordStripeCustomerRequiresIntent(t *testing.T) {
 	ctx, pool, creation := newCustomerCreationResultTestDB(t, false)
-	execCustomerCreationSQL(t, ctx, pool, "DELETE FROM billing_customer_creations")
+	testutil.ExecSQL(t, ctx, pool, "DELETE FROM billing_customer_creations")
 
 	err := recordStripeCustomer(ctx, pool, creation, customerForCreation(creation, "cus_team1"))
 
@@ -99,7 +100,7 @@ func TestRecordStripeCustomerRequiresIntent(t *testing.T) {
 
 func TestRecordStripeCustomerRejectsDeletedTeam(t *testing.T) {
 	ctx, pool, creation := newCustomerCreationResultTestDB(t, false)
-	execCustomerCreationSQL(t, ctx, pool, "DELETE FROM teams WHERE id = 'team-1'")
+	testutil.ExecSQL(t, ctx, pool, "DELETE FROM teams WHERE id = 'team-1'")
 
 	err := recordStripeCustomer(ctx, pool, creation, customerForCreation(creation, "cus_team1"))
 
@@ -160,7 +161,7 @@ func TestRecordStripeCustomerConcurrent(t *testing.T) {
 					results <- result{id, err}
 				}()
 			}
-			waitForBillingLocks(t, ctx, pool, 2)
+			testutil.WaitForLocks(t, ctx, pool, 2)
 			if err := blocker.Commit(ctx); err != nil {
 				t.Fatal(err)
 			}
@@ -185,7 +186,7 @@ func TestRecordStripeCustomerConcurrent(t *testing.T) {
 func TestRecordStripeCustomerCommitFailure(t *testing.T) {
 	ctx, pool, creation := newCustomerCreationResultTestDB(t, false)
 	// Allow UPDATE, but reject the Customer ID at COMMIT.
-	execCustomerCreationSQL(t, ctx, pool, `
+	testutil.ExecSQL(t, ctx, pool, `
 		CREATE TABLE allowed_customers (id text PRIMARY KEY);
 		ALTER TABLE billing_customer_creations ADD CONSTRAINT reject_customer_at_commit
 			FOREIGN KEY (stripe_customer_id) REFERENCES allowed_customers(id)
@@ -200,7 +201,7 @@ func TestRecordStripeCustomerCommitFailure(t *testing.T) {
 		t.Fatalf("must report failure at commit, got %v", err)
 	}
 	assertStoredCustomerCreation(t, ctx, pool, creation)
-	execCustomerCreationSQL(t, ctx, pool, "ALTER TABLE billing_customer_creations DROP CONSTRAINT reject_customer_at_commit")
+	testutil.ExecSQL(t, ctx, pool, "ALTER TABLE billing_customer_creations DROP CONSTRAINT reject_customer_at_commit")
 	if err := recordStripeCustomer(ctx, pool, creation, customer); err != nil {
 		t.Fatalf("must allow the same result to be retried after rollback: %v", err)
 	}

@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/openci-org/openci/apps/genuineci_server/internal/testutil"
 	"github.com/stripe/stripe-go/v87"
 )
 
@@ -20,7 +21,7 @@ func TestExpireCheckoutCreation(t *testing.T) {
 			}
 			creation.StripeCheckoutSessionID = &session.ID
 			posts := 0
-			client := newStripeReadTestClient(t, func(r *http.Request) (*http.Response, error) {
+			client := testutil.NewStripeClient(t, func(r *http.Request) (*http.Response, error) {
 				if r.Method == http.MethodPost {
 					posts++
 					if r.URL.Path != "/v1/checkout/sessions/cs_checkout/expire" || r.Header.Get("Idempotency-Key") != creation.IdempotencyKey+":expire" {
@@ -36,7 +37,7 @@ func TestExpireCheckoutCreation(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				return stripeTestResponse(http.StatusOK, string(body)), nil
+				return testutil.StripeResponse(http.StatusOK, string(body)), nil
 			})
 			if err := expireCheckoutCreation(ctx, pool, client, creation); err != nil {
 				t.Fatal(err)
@@ -45,11 +46,11 @@ func TestExpireCheckoutCreation(t *testing.T) {
 			if err := pool.QueryRow(ctx, "SELECT closed_at IS NOT NULL FROM billing_checkout_creations").Scan(&closed); err != nil || !closed {
 				t.Fatalf("confirmed expiry must close the intent: closed=%v, err=%v", closed, err)
 			}
-			want := checkoutCreationRecords(t, ctx, pool)
+			want := testutil.CheckoutCreationRecords(t, ctx, pool)
 			if err := expireCheckoutCreation(ctx, pool, client, creation); err != nil {
 				t.Fatal(err)
 			}
-			if posts != 1 || checkoutCreationRecords(t, ctx, pool) != want {
+			if posts != 1 || testutil.CheckoutCreationRecords(t, ctx, pool) != want {
 				t.Fatal("retry must preserve the original closure without expiring again")
 			}
 		})
@@ -66,11 +67,11 @@ func TestExpireCheckoutCreationBlocksCompletedOrUnknownOutcomes(t *testing.T) {
 				t.Fatal(err)
 			}
 			creation.StripeCheckoutSessionID = &session.ID
-			want := checkoutCreationRecords(t, ctx, pool)
+			want := testutil.CheckoutCreationRecords(t, ctx, pool)
 			if outcome == "completed before expiry" {
 				session.Status = stripe.CheckoutSessionStatusComplete
 			}
-			client := newStripeReadTestClient(t, func(r *http.Request) (*http.Response, error) {
+			client := testutil.NewStripeClient(t, func(r *http.Request) (*http.Response, error) {
 				if r.Method == http.MethodPost {
 					if outcome == "completed before expiry" || outcome == "wrong Session" {
 						t.Error("must reject invalid/completed Sessions before attempting expiry")
@@ -78,7 +79,7 @@ func TestExpireCheckoutCreationBlocksCompletedOrUnknownOutcomes(t *testing.T) {
 					if outcome == "payment wins the race" {
 						session.Status = stripe.CheckoutSessionStatusComplete
 					}
-					return stripeTestResponse(http.StatusBadRequest, `{"error":{"message":"cannot expire"}}`), nil
+					return testutil.StripeResponse(http.StatusBadRequest, `{"error":{"message":"cannot expire"}}`), nil
 				}
 				response := *session
 				if outcome == "wrong Session" {
@@ -88,12 +89,12 @@ func TestExpireCheckoutCreationBlocksCompletedOrUnknownOutcomes(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				return stripeTestResponse(http.StatusOK, string(body)), nil
+				return testutil.StripeResponse(http.StatusOK, string(body)), nil
 			})
 			if err := expireCheckoutCreation(ctx, pool, client, creation); err == nil {
 				t.Fatal("completed or uncertain purchases must not be closed")
 			}
-			if checkoutCreationRecords(t, ctx, pool) != want {
+			if testutil.CheckoutCreationRecords(t, ctx, pool) != want {
 				t.Fatal("failed expiry must keep the original intent blocking another purchase")
 			}
 		})

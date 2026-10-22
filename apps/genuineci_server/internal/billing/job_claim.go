@@ -75,7 +75,7 @@ func (s *Service) claimJob(ctx context.Context, request workerClaimRequest) (*wo
 					}
 					return err
 				}
-				if s.config.hasComplimentaryPro(teamID) {
+				if s.config.HasComplimentaryPro(teamID) {
 					if _, err := candidate.Exec(ctx, `INSERT INTO billing_accounts (team_id) VALUES ($1) ON CONFLICT DO NOTHING`, teamID); err != nil {
 						return err
 					}
@@ -124,7 +124,7 @@ func (s *Service) claimJob(ctx context.Context, request workerClaimRequest) (*wo
 
 func (s *Service) availableClaimBudget(ctx context.Context, tx pgx.Tx, teamID string, now time.Time) (string, int64, error) {
 	var periodID string
-	if s.config.hasComplimentaryPro(teamID) {
+	if s.config.HasComplimentaryPro(teamID) {
 		period, err := ensureComplimentaryProPeriod(ctx, tx, teamID, now)
 		if err != nil {
 			return "", 0, err

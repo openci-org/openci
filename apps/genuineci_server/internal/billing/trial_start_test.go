@@ -11,6 +11,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/openci-org/openci/apps/genuineci_server/internal/testutil"
 )
 
 func TestStartTrial(t *testing.T) {
@@ -186,12 +187,12 @@ func TestStartTrialConcurrent(t *testing.T) {
 				started, err := startTrial(ctx, pool, original)
 				results <- result{started, err}
 			}()
-			waitForBillingLocks(t, ctx, pool, 1)
+			testutil.WaitForLocks(t, ctx, pool, 1)
 			go func() {
 				started, err := startTrial(ctx, pool, competing)
 				results <- result{started, err}
 			}()
-			waitForBillingLocks(t, ctx, pool, 2)
+			testutil.WaitForLocks(t, ctx, pool, 2)
 			if err := blocker.Commit(ctx); err != nil {
 				t.Fatal(err)
 			}

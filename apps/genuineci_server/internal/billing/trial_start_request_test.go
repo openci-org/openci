@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/openci-org/openci/apps/genuineci_server/internal/testutil"
 )
 
 func TestStartTrialRequest(t *testing.T) {
@@ -73,7 +74,7 @@ func TestStartTrialRequestUsesTimeAfterLockWait(t *testing.T) {
 		started, err := StartTrial(ctx, pool, request)
 		results <- result{started, err}
 	}()
-	waitForBillingLocks(t, ctx, pool, 1)
+	testutil.WaitForLocks(t, ctx, pool, 1)
 	// Cross a storage-second boundary so a timestamp captured before the wait fails.
 	time.Sleep(time.Until(time.Now().Truncate(time.Second).Add(time.Second)))
 	releasedAt := time.Now().Unix()
