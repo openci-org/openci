@@ -24,9 +24,23 @@ func RegisterRoutes(mux *http.ServeMux, pool *pgxpool.Pool, client *stripe.Clien
 	mux.Handle("DELETE /internal/billing/teams/{teamID}", s.internal(s.handleTeamDeletion))
 	mux.Handle("POST /internal/billing/teams/{teamID}/checkout", s.internal(s.handleCheckout))
 	mux.Handle("POST /internal/billing/teams/{teamID}/portal", s.internal(s.handlePortal))
+	mux.Handle("POST /internal/billing/worker/claim", s.internalService(s.handleWorkerClaim))
+	mux.Handle("POST /internal/billing/worker/start", s.internalService(s.handleWorkerStart))
+	mux.Handle("POST /internal/billing/worker/report", s.internalService(s.handleWorkerReport))
 }
 
 func (s *Service) internal(action func(http.ResponseWriter, *http.Request, billingMember)) http.Handler {
+	return s.internalService(func(w http.ResponseWriter, r *http.Request) {
+		member := billingMember{TeamID: r.PathValue("teamID"), UserID: strings.TrimSpace(r.Header.Get("X-GenuineCI-User-ID"))}
+		if member.UserID == "" {
+			writeBillingJSON(w, http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+			return
+		}
+		action(w, r, member)
+	})
+}
+
+func (s *Service) internalService(action http.HandlerFunc) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-store")
 		w.Header().Set("Content-Type", "application/json")
@@ -35,14 +49,9 @@ func (s *Service) internal(action func(http.ResponseWriter, *http.Request, billi
 			writeBillingJSON(w, http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
 			return
 		}
-		member := billingMember{TeamID: r.PathValue("teamID"), UserID: strings.TrimSpace(r.Header.Get("X-GenuineCI-User-ID"))}
-		if member.UserID == "" {
-			writeBillingJSON(w, http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
-			return
-		}
 		ctx, cancel := context.WithTimeout(r.Context(), 55*time.Second)
 		defer cancel()
-		action(w, r.WithContext(ctx), member)
+		action(w, r.WithContext(ctx))
 	})
 }
 
@@ -110,6 +119,10 @@ func readBillingJSON(w http.ResponseWriter, r *http.Request, value any, allowEmp
 func writeBillingError(w http.ResponseWriter, err error) {
 	status, code := http.StatusServiceUnavailable, "billing_unavailable"
 	switch {
+	case errors.Is(err, errWorkerClaim), errors.Is(err, errExecutionRequest):
+		status, code = http.StatusBadRequest, "invalid_request"
+	case errors.Is(err, errAdmissionNotCurrent), errors.Is(err, errExecutionIdentity):
+		status, code = http.StatusConflict, "admission_not_current"
 	case errors.Is(err, errBillingForbidden):
 		status, code = http.StatusForbidden, "forbidden"
 	case errors.Is(err, errBillingPlan):
