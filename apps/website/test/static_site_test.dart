@@ -11,6 +11,7 @@ void main() {
     '/blog/',
     '/blog/v2-1-0/',
     '/blog/v2-2-0/',
+    '/blog/v2-3-0/',
   ];
   const docsRoutes = [
     '/docs/',
@@ -142,11 +143,12 @@ void main() {
 
   test('social cards use the public URL and the release banner', () {
     for (final route in marketingRoutes) {
-      final isNewArticle = route == '/blog/v2-2-0/';
-      final version = isNewArticle ? 'v2.2.0' : 'v2.1.0';
-      final imageUrl = isNewArticle
-          ? 'https://genuineci.com/ogp/v2-2-0.jpg'
-          : 'https://genuineci.com/ogp/v2-1-0.jpg?v=2';
+      final (version, imagePath) = switch (route) {
+        '/blog/v2-3-0/' => ('v2.3.0', '/ogp/v2-3-0.jpg'),
+        '/blog/v2-2-0/' => ('v2.2.0', '/ogp/v2-2-0.jpg'),
+        _ => ('v2.1.0', '/ogp/v2-1-0.jpg?v=2'),
+      };
+      final imageUrl = 'https://genuineci.com$imagePath';
       final page = pages[route]!;
       String content(String selector) {
         final elements = page.querySelectorAll(selector);
@@ -191,6 +193,10 @@ void main() {
     expect(
       File('build/jaspr/ogp/v2-2-0.jpg').readAsBytesSync(),
       File('web/ogp/v2-2-0.jpg').readAsBytesSync(),
+    );
+    expect(
+      File('build/jaspr/ogp/v2-3-0.jpg').readAsBytesSync(),
+      File('web/ogp/v2-3-0.jpg').readAsBytesSync(),
     );
   });
 
@@ -246,12 +252,12 @@ void main() {
   test('the blog contains the release article without sample content', () {
     final blog = pages['/blog/']!;
     final article = pages['/blog/v2-1-0/']!;
-    expect(blog.querySelectorAll('[data-article-category]'), hasLength(2));
-    expect(blog.querySelector('[data-article-count]')!.text, '02 ARTICLES');
+    expect(blog.querySelectorAll('[data-article-category]'), hasLength(3));
+    expect(blog.querySelector('[data-article-count]')!.text, '03 ARTICLES');
     expect(article.querySelector('time')!.attributes['datetime'], '2026-10-02');
     expect(
       article.querySelector('.article-next a')!.attributes['href'],
-      '/blog/v2-2-0/',
+      '/blog/v2-3-0/',
     );
     expect(
       article
