@@ -23,6 +23,9 @@ func (s *Service) checkout(ctx context.Context, member billingMember, planID str
 	if err := authorizeBillingMember(ctx, s.pool, member); err != nil {
 		return "", err
 	}
+	if s.config.hasComplimentaryPro(member.TeamID) {
+		return "", errComplimentaryPro
+	}
 	priceID := s.config.LightPriceID
 	switch planID {
 	case "light":

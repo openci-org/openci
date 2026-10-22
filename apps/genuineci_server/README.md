@@ -19,6 +19,26 @@ IDs, `STRIPE_PORTAL_CONFIGURATION_ID`, `STRIPE_WEBHOOK_SECRET`, and a shared
 Return URLs are generated on the server as `/billing?teamId=...&result=...`;
 clients cannot supply a return origin. Disabled billing needs none of these settings.
 
+## Complimentary Pro
+
+Operators can set `BILLING_COMPLIMENTARY_PRO_TEAM_IDS` to a comma-separated list of
+exact team IDs. Listed teams receive Pro without a charge, with 6,000 minutes per
+UTC calendar month, renewed on the first day at 00:00 UTC. The grant continues
+until the operator removes the team ID and restarts the service. The default is empty.
+
+The first authorized status read or worker claim creates that month's immutable
+`complimentary-pro:<team-id>:YYYY-MM` allowance. These use the existing `paid`
+period type to share paid-plan accounting; they are operator grants, not payment
+records. No Stripe Customer, Subscription, invoice or payment state is created.
+The Web page shows Pro without a paid-through date or purchase/Portal actions;
+direct Checkout requests are also blocked. Configure grants before purchases begin;
+granting Pro does not cancel or refund an existing Stripe subscription.
+
+Membership, worker capacity, metering and atomic allowance reservations remain
+enforced. Exhaustion or removing a grant blocks new starts, while admitted/running
+jobs finish and their history is retained. Unlisted teams still require a verified
+Stripe subscription and paid period. Old grant periods alone never authorize CI.
+
 ## Cloud deployment with Compose
 
 From the repository root, apply `docker-compose.billing.yml` after the base file:

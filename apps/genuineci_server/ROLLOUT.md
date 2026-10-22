@@ -35,6 +35,14 @@ delivers webhooks to the Go server independently of browser navigation.
 not require Stripe configuration or use the billing proxy. Keep the deferred trial
 configuration unset. The current Go listener is `:8081`; `PORT` is not implemented.
 
+Optional Go-only `BILLING_COMPLIMENTARY_PRO_TEAM_IDS` grants ongoing complimentary
+Pro to exact operator-selected team IDs. Each UTC calendar month grants 6,000
+minutes with ordinary usage enforcement; the default is no grants. Before enabling
+billing, verify the intended team's membership, Pro status and denied Checkout,
+and verify an unlisted unpaid team cannot start CI. See [README.md](README.md#complimentary-pro)
+for renewal, removal and history behavior. Preserve this setting in deployment
+backups; do not replace real Stripe state with synthetic subscriptions.
+
 `BILLING_DASHBOARD_ORIGIN` must be an HTTPS origin, with loopback HTTP allowed for
 local development. Serve `/billing` through the Web application's normal fallback
 route. Server-generated return URLs include `teamId` and `result`; neither a result

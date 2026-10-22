@@ -23,6 +23,9 @@ func (s *Service) status(ctx context.Context, member billingMember) (*billingSta
 	if member.UserID == "" || member.TeamID == "" {
 		return nil, errBillingForbidden
 	}
+	if s.config.hasComplimentaryPro(member.TeamID) {
+		return s.complimentaryProStatus(ctx, member)
+	}
 	tx, err := s.pool.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.RepeatableRead, AccessMode: pgx.ReadOnly})
 	if err != nil {
 		return nil, err

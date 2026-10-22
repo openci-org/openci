@@ -4,17 +4,20 @@ import (
 	"errors"
 	"net/url"
 	"os"
+	"slices"
 	"strings"
+	"unicode"
 )
 
 type ServiceConfig struct {
-	Livemode              bool
-	DashboardOrigin       string
-	PortalConfigurationID string
-	InternalToken         string
-	WebhookSecret         string
-	LightPriceID          string
-	ProPriceID            string
+	Livemode                bool
+	DashboardOrigin         string
+	PortalConfigurationID   string
+	InternalToken           string
+	WebhookSecret           string
+	LightPriceID            string
+	ProPriceID              string
+	ComplimentaryProTeamIDs []string
 }
 
 func LoadServiceConfig() (*ServiceConfig, error) {
@@ -63,7 +66,20 @@ func LoadServiceConfig() (*ServiceConfig, error) {
 	if config.LightPriceID == config.ProPriceID {
 		return nil, errors.New("Light and Pro require distinct Stripe Price IDs")
 	}
+	if value := strings.TrimSpace(os.Getenv("BILLING_COMPLIMENTARY_PRO_TEAM_IDS")); value != "" {
+		for _, value := range strings.Split(value, ",") {
+			teamID := strings.TrimSpace(value)
+			if teamID == "" || strings.ContainsFunc(teamID, func(r rune) bool { return unicode.IsSpace(r) || unicode.IsControl(r) }) {
+				return nil, errors.New("BILLING_COMPLIMENTARY_PRO_TEAM_IDS must contain comma-separated nonempty team IDs")
+			}
+			config.ComplimentaryProTeamIDs = append(config.ComplimentaryProTeamIDs, teamID)
+		}
+	}
 	return config, nil
+}
+
+func (config ServiceConfig) hasComplimentaryPro(teamID string) bool {
+	return teamID != "" && slices.Contains(config.ComplimentaryProTeamIDs, teamID)
 }
 
 func (config ServiceConfig) returnURL(teamID, result string) string {
