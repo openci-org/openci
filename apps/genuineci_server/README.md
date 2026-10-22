@@ -1,9 +1,11 @@
 # GenuineCI server
 
 See [ROLLOUT.md](ROLLOUT.md) for service configuration, release gates, and the
-Stripe sandbox verification plan. Worker accounting and atomic allowance admission
-are connected and locally tested. Production activation still requires PR review
-and integration, deployed Stripe sandbox verification, and a published refund contact.
+Stripe verification plan. Local Stripe Sandbox and real-worker verification results
+are recorded in [G-1360](https://linear.app/genuineci/issue/G-1360). The next deployment
+target is production; a separate staging environment is not required. Follow
+[G-1361](https://linear.app/genuineci/issue/G-1361) for live configuration, the existing-team
+transition and the published refund contact before enabling billing.
 
 Billing authorization treats every current team member equally. `withBillingMemberLock`
 locks the current team and billing account, then checks membership before performing
@@ -16,6 +18,26 @@ IDs, `STRIPE_PORTAL_CONFIGURATION_ID`, `STRIPE_WEBHOOK_SECRET`, and a shared
 `BILLING_DASHBOARD_ORIGIN` must be HTTPS (loopback HTTP is allowed locally).
 Return URLs are generated on the server as `/billing?teamId=...&result=...`;
 clients cannot supply a return origin. Disabled billing needs none of these settings.
+
+## Cloud deployment with Compose
+
+From the repository root, apply `docker-compose.billing.yml` after the base file:
+
+```sh
+BILLING_ENABLED=false docker compose -f docker-compose.yml -f docker-compose.billing.yml up -d --build --wait server genuineci-server
+```
+
+The overlay sets both servers to Cloud mode and shares their database and billing
+token. Billing defaults to disabled, so Stripe credentials are not required for
+this initial deployment. The Dart server connects to `http://genuineci-server:8081`
+and waits for the Go health check. Go is reachable from the host only at
+`127.0.0.1:8081`; the base Compose configuration remains available for Self-hosted.
+
+Keep using both Compose files for subsequent updates. Before setting
+`BILLING_ENABLED=true`, complete the Dart database migrations, configure the billing
+variables listed in [ROLLOUT.md](ROLLOUT.md#service-configuration), and route only
+`POST /stripe/webhook` through the public HTTPS proxy. Keep `/internal/` private.
+While billing is disabled, Go serves `/healthz`; billing and webhook routes are inactive.
 
 ## Stripe client
 
