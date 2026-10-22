@@ -22,7 +22,7 @@ dependencies:
   github: ^9.25.1
   http: ^1.6.0
   meta: ^1.18.0
-  openci_shared: ^1.0.1
+  openci_shared: ^2.0.0
   postgres: ^3.5.11
   sentry: ^9.22.0
   uuid: ^4.5.3

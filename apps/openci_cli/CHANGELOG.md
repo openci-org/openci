@@ -1,8 +1,11 @@
-## Unreleased
+## 0.6.0
 
 - Automatically sync workspace paths and secret definitions after successfully
   saving a secret with `genuineci register secret` or `genuineci register
   secretFile`. Report sync failures without undoing the saved secret.
+- Use `openci_shared` 2.0.0 for the current server API and team models.
+- Add Freezed value equality and `copyWith()` to App Store Connect credentials,
+  authentication results, Firebase sign-in results, and key registration models.
 
 ## 0.5.4
 
