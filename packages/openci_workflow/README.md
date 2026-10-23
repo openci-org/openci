@@ -12,6 +12,25 @@ dart pub add --dev openci_workflow
 
 For a Flutter repository, use `flutter pub add --dev openci_workflow`.
 
+## Secrets
+
+Run `genuineci sync --secrets` to generate `openci/generated/secrets.g.dart`.
+Each generated member is a `Secret` reference:
+
+```dart
+import 'generated/secrets.g.dart';
+
+final secret = Secrets.apiToken;
+final key = secret.key; // API_TOKEN
+final token = secret.value; // Read the environment variable as a String.
+```
+
+The reference and its `.key` can be used without reading the environment.
+`.value` throws a `StateError` when the variable is missing and preserves empty
+strings. After regenerating older String getters, add `.value` wherever your
+workflow needs the secret's value, including string interpolation. The updated
+server parser supports both generated formats.
+
 ## Define a workflow
 
 Create `openci/static_analysis.dart` in the repository root:
@@ -79,7 +98,7 @@ Flutter's restrictions on define values still apply: the Flutter 3.47.3 compiler
 Create a Shorebird Android release and receive its App Bundle path:
 
 ```dart
-if (Secrets.shorebirdToken.isEmpty) {
+if (Secrets.shorebirdToken.value.isEmpty) {
   throw StateError('SHOREBIRD_TOKEN must not be empty.');
 }
 
@@ -102,7 +121,7 @@ By default, the command [registers the release with Shorebird](https://docs.shor
 Create a Shorebird Android release and receive its APK path:
 
 ```dart
-if (Secrets.shorebirdToken.isEmpty) {
+if (Secrets.shorebirdToken.value.isEmpty) {
   throw StateError('SHOREBIRD_TOKEN must not be empty.');
 }
 
@@ -124,7 +143,7 @@ Upload a built APK to Firebase App Distribution:
 await openCI.flutter.deployApkToFirebaseAppDistribution(
   apkPath: 'build/app/outputs/flutter-apk/app-release.apk',
   appId: '1:123456789:android:abcdef',
-  serviceAccountJsonBase64: Secrets.firebaseServiceAccountJsonBase64,
+  serviceAccountJsonBase64: Secrets.firebaseServiceAccountJsonBase64.value,
 );
 ```
 
@@ -138,7 +157,7 @@ Upload a built Android App Bundle to Firebase App Distribution:
 await openCI.flutter.deployAabToFirebaseAppDistribution(
   aabPath: 'build/app/outputs/bundle/release/app-release.aab',
   appId: '1:123456789:android:abcdef',
-  serviceAccountJsonBase64: Secrets.firebaseServiceAccountJsonBase64,
+  serviceAccountJsonBase64: Secrets.firebaseServiceAccountJsonBase64.value,
 );
 ```
 
@@ -152,7 +171,7 @@ Upload an AAB to Google Play Console:
 await openCI.flutter.deployAabToPlayConsole(
   aabPath: 'build/app/outputs/bundle/release/app-release.aab',
   packageName: 'com.example.app',
-  serviceAccountJsonBase64: Secrets.googlePlayServiceAccountJsonBase64,
+  serviceAccountJsonBase64: Secrets.googlePlayServiceAccountJsonBase64.value,
 );
 ```
 
@@ -168,11 +187,11 @@ Build a signed Ad Hoc IPA with App Store Connect credentials and a separate cert
 final ipaPath = await openCI.flutter.buildIpa(
   distributionMethod: IosDistributionMethod.adHoc,
   ascKeys: AppStoreConnectKeys(
-    issuerId: Secrets.openciGeneratedAscIssuerId,
-    keyId: Secrets.openciGeneratedAscKeyId,
-    privateKeyBase64: Secrets.openciGeneratedP8Base64,
+    issuerId: Secrets.openciGeneratedAscIssuerId.value,
+    keyId: Secrets.openciGeneratedAscKeyId.value,
+    privateKeyBase64: Secrets.openciGeneratedP8Base64.value,
   ),
-  certificatePrivateKey: Secrets.openciGeneratedIosCertificatePrivateKey,
+  certificatePrivateKey: Secrets.openciGeneratedIosCertificatePrivateKey.value,
   flavor: 'dev',
   additionalArguments: ['--dart-define=SAMPLE=Hello World'],
 );
@@ -189,7 +208,7 @@ Run this on a disposable macOS build VM with Flutter, Xcode and the required iOS
 Create a Shorebird iOS release with the same signing credentials:
 
 ```dart
-if (Secrets.shorebirdToken.isEmpty) {
+if (Secrets.shorebirdToken.value.isEmpty) {
   throw StateError('SHOREBIRD_TOKEN must not be empty.');
 }
 
@@ -197,11 +216,11 @@ final ipaPath = await openCI.shorebird.releaseIos(
   bundleId: 'org.example.app.prod',
   distributionMethod: IosDistributionMethod.appStore,
   ascKeys: AppStoreConnectKeys(
-    issuerId: Secrets.openciGeneratedAscIssuerId,
-    keyId: Secrets.openciGeneratedAscKeyId,
-    privateKeyBase64: Secrets.openciGeneratedP8Base64,
+    issuerId: Secrets.openciGeneratedAscIssuerId.value,
+    keyId: Secrets.openciGeneratedAscKeyId.value,
+    privateKeyBase64: Secrets.openciGeneratedP8Base64.value,
   ),
-  certificatePrivateKey: Secrets.openciGeneratedIosCertificatePrivateKey,
+  certificatePrivateKey: Secrets.openciGeneratedIosCertificatePrivateKey.value,
   flutterVersion: '3.47.7',
   flavor: 'prod',
   dartDefines: {'ENV': 'production'},
@@ -225,9 +244,9 @@ To upload to TestFlight, build the IPA with `IosDistributionMethod.appStore`, th
 await openCI.flutter.deployIpaToTestFlight(
   ipaPath: ipaPath,
   ascKeys: AppStoreConnectKeys(
-    issuerId: Secrets.openciGeneratedAscIssuerId,
-    keyId: Secrets.openciGeneratedAscKeyId,
-    privateKeyBase64: Secrets.openciGeneratedP8Base64,
+    issuerId: Secrets.openciGeneratedAscIssuerId.value,
+    keyId: Secrets.openciGeneratedAscKeyId.value,
+    privateKeyBase64: Secrets.openciGeneratedP8Base64.value,
   ),
 );
 ```
@@ -243,7 +262,7 @@ Upload the IPA to Firebase App Distribution:
 ```dart
 await openCI.flutter.deployIpaToFirebaseAppDistribution(
   ipaPath: ipaPath,
-  serviceAccountJsonBase64: Secrets.firebaseServiceAccountJsonBase64,
+  serviceAccountJsonBase64: Secrets.firebaseServiceAccountJsonBase64.value,
 );
 ```
 

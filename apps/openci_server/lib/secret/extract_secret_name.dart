@@ -7,6 +7,12 @@ Set<String> extractSecretNames(String content, {String? secretDefinitions}) {
     for (final match in getterPattern.allMatches(secretDefinitions)) {
       getterNames[match.group(1)!] = (match.group(2) ?? match.group(3))!;
     }
+    final referencePattern = RegExp(
+      r'''static\s+const\s+(?:Secret\s+)?([a-zA-Z0-9_$]+)\s*=\s*(?:const\s+)?Secret\s*\(\s*(?:"([^"]+)"|'([^']+)')\s*,?\s*\)''',
+    );
+    for (final match in referencePattern.allMatches(secretDefinitions)) {
+      getterNames[match.group(1)!] = (match.group(2) ?? match.group(3))!;
+    }
   }
 
   final secretNames = <String>{};

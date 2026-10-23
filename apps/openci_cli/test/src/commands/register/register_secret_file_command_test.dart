@@ -157,11 +157,8 @@ void main() {
       ]);
       expect(await paths.readAsString(), contains('WorkspaceDirectory("lib")'));
       final definitions = await secrets.readAsString();
-      expect(
-        definitions,
-        contains("Platform.environment['GOOGLE_SERVICES_JSON_BASE64']"),
-      );
-      expect(definitions, contains("Platform.environment['EXISTING_SECRET']"));
+      expect(definitions, contains("Secret('GOOGLE_SERVICES_JSON_BASE64')"));
+      expect(definitions, contains("Secret('EXISTING_SECRET')"));
       expect(requests.last.url, request.url);
       expect(requests.last.headers['authorization'], 'Bearer $token');
     },
@@ -242,7 +239,7 @@ void main() {
     expect(await paths.exists(), isFalse);
     expect(
       await secrets.readAsString(),
-      contains("Platform.environment['GOOGLE_SERVICES_JSON_BASE64']"),
+      contains("Secret('GOOGLE_SERVICES_JSON_BASE64')"),
     );
     expect(logger.errors.single, contains('invalid YAML'));
   });

@@ -114,6 +114,7 @@ void main() {
     String? installationId = '98765',
     String? commitSha = 'job-commit',
     String? teamId = 'team-1',
+    String secretDefinitions = definitions,
     int definitionsStatus = 200,
     String method = 'GET',
     String? uid,
@@ -147,8 +148,8 @@ void main() {
         return http.Response('Not found', definitionsStatus);
       }
       final content = switch (file) {
-        'openci/secrets.g.dart' => definitions,
-        'openci/generated/secrets.g.dart' => definitions,
+        'openci/secrets.g.dart' => secretDefinitions,
+        'openci/generated/secrets.g.dart' => secretDefinitions,
         _ when file == '$directory/$fileName' => workflow,
         _ => throw StateError('Unexpected GitHub request: $file'),
       };
@@ -627,6 +628,41 @@ void main() {
           'openci/secrets.g.dart',
         ]);
       });
+    }
+
+    for (final expression in [
+      'Secrets.ascKey',
+      'Secrets.ascKey.key',
+      'Secrets.ascKey.value',
+    ]) {
+      test(
+        'injects the original secret for a Secret reference: $expression',
+        () async {
+          final response = await requestSecrets(
+            workflow:
+                "import 'generated/secrets.g.dart';\nfinal key = $expression;",
+            secretDefinitions: '''
+            import 'package:openci_workflow/openci_workflow.dart' show Secret;
+
+            abstract final class Secrets {
+              static const ascKey = Secret('ASC_KEY');
+              static const unused = Secret('UNUSED_KEY');
+            }
+          ''',
+          );
+
+          expect(response.statusCode, 200);
+          final body = jsonDecode(response.body) as Map<String, dynamic>;
+          expect(
+            body['secretsContent'],
+            'GITHUB_TOKEN=$token\nASC_KEY=test-asc-value',
+          );
+          expect(requestedFiles, [
+            'openci/ci.dart',
+            'openci/generated/secrets.g.dart',
+          ]);
+        },
+      );
     }
 
     test(

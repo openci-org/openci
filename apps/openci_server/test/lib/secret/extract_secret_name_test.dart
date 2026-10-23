@@ -91,6 +91,64 @@ void main() {
       });
     });
 
+    group('Dart Secret references', () {
+      const definitions = '''
+        abstract final class Secrets {
+          static const iosBuildNumber = Secret('IOS_BUILD_NUMBER');
+          static const signingKey = Secret("custom_SIGNING_KEY");
+          static const unused = Secret('UNUSED_KEY');
+        }
+      ''';
+
+      for (final expression in [
+        'getBuildNumber(Secrets.iosBuildNumber)',
+        'Secrets.iosBuildNumber.key',
+        'Secrets.iosBuildNumber.value',
+      ]) {
+        test('resolves $expression to the original key', () {
+          expect(
+            extractSecretNames(expression, secretDefinitions: definitions),
+            {'IOS_BUILD_NUMBER'},
+          );
+        });
+      }
+
+      test('preserves casing and deduplicates references', () {
+        expect(
+          extractSecretNames(
+            'Secrets.signingKey; Secrets.signingKey.value; '
+            "secrets['custom_SIGNING_KEY'];",
+            secretDefinitions: definitions,
+          ),
+          {'custom_SIGNING_KEY'},
+        );
+      });
+
+      test('handles explicit types, const, whitespace and trailing commas', () {
+        expect(
+          extractSecretNames(
+            'Secrets.iosBuildNumber.key',
+            secretDefinitions: '''
+              static const Secret iosBuildNumber = const Secret(
+                'IOS_BUILD_NUMBER',
+              );
+            ''',
+          ),
+          {'IOS_BUILD_NUMBER'},
+        );
+      });
+
+      test('rejects references missing from the generated definitions', () {
+        expect(
+          () => extractSecretNames(
+            'Secrets.unknown.value',
+            secretDefinitions: definitions,
+          ),
+          throwsStateError,
+        );
+      });
+    });
+
     test('extracts secrets using bracket notation with single quotes', () {
       final content = "run: echo \${{ secrets['GITHUB_TOKEN'] }}";
       final result = extractSecretNames(content);

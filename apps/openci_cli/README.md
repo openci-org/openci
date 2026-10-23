@@ -373,10 +373,30 @@ genuineci sync --secrets
 
 The command uses the active credential profile and finds the nearest ancestor
 containing an `openci` directory, starting from the current directory. It
-replaces `openci/generated/secrets.g.dart` with getters that read environment variables
-at workflow runtime. Secret values are never downloaded or written to this file.
+replaces `openci/generated/secrets.g.dart` with constant `Secret` references from
+`openci_workflow`. Each reference preserves the original environment variable
+name in `.key` and reads its runtime value through `.value`:
+
+```dart
+import 'generated/secrets.g.dart';
+
+final secret = Secrets.iosBuildNumber;
+final key = secret.key; // IOS_BUILD_NUMBER
+final value = secret.value; // The environment variable's value as a String.
+```
+
+Creating or passing a reference and reading `.key` do not require an environment
+variable. Reading `.value` throws a `StateError` if the variable is absent; an
+empty value remains an empty string. Secret values are never downloaded or
+written to the generated file.
 Run it again after adding or removing secrets. Fetch or generation failures leave
 the existing file unchanged.
+
+When regenerating an existing workflow, replace value usages such as
+`Secrets.apiToken` with `Secrets.apiToken.value`, including string interpolation.
+Use `openci_workflow` 0.1.5 or later, which exports `Secret`. Deploy the server's
+updated secret-definition parser before running workflows with the new format;
+the parser continues to support previously generated String getters.
 
 Generate typed workspace paths without logging in or starting local services:
 
@@ -526,7 +546,7 @@ Success means the ASC saves succeeded and the certificate key is present;
 local ASC files are retained. Saves are sequential, so a failure or interruption
 can leave a partial update. Retry with the same local ASC key. This step prepares
 the private key; signing certificates and provisioning profiles are obtained
-during the build. Run `genuineci sync --secrets` afterward to generate the getters
+during the build. Run `genuineci sync --secrets` afterward to generate the references
 used by workflows.
 
 Creation is never automatically retried. On failure or interruption, downloaded
@@ -558,7 +578,7 @@ the existing key. It verifies that the secret is present before reporting succes
 It does not require Apple login, ASC keys, or local signing tools, and does not
 issue or replace ASC credentials. The private key is not downloaded or printed.
 You can rerun the same command after a failure. Run `genuineci sync --secrets`
-afterward to update the workflow getters.
+afterward to update the workflow secret references.
 
 ## Code generation
 

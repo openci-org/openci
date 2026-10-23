@@ -1,3 +1,10 @@
+## 0.7.0
+
+- **Breaking:** Generate `Secret` references instead of String getters in
+  `secrets.g.dart`. Use `.key` for the original environment name and `.value`
+  for its runtime value. Update `openci_workflow` to 0.1.5 or later and deploy
+  the server parser update before using the new format.
+
 ## 0.6.0
 
 - Automatically sync workspace paths and secret definitions after successfully
