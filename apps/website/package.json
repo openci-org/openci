@@ -15,7 +15,7 @@
     "fmt": "prettier --write .",
     "fmt:check": "prettier --check .",
     "verify": "npm run fmt:check && npm run check && npm run build && npm test",
-    "ci": "npm exec --yes --package=node@22.23.4 --package=npm@11.14.1 --call \"npm ci --workspace genuineci-website --include-workspace-root && npm run verify\""
+    "ci": "bash scripts/ci.sh"
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.12",

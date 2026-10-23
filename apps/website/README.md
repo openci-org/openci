@@ -70,11 +70,12 @@ npm run preview --workspace genuineci-website
 フォーマットの適用は `npm run fmt --workspace genuineci-website` です。
 
 `openci/website_ci.dart` はPRとdevelopへのpushで、依存取得・フォーマット・
-Astroの静的解析・ビルド・テストを `npm run ci` で実行します。
-このコマンドはnpmのキャッシュにNode.js 22.23.4とnpm 11.14.1を取得し、
-その実行環境で依存取得と `npm run verify` を実行します。
-ワーカーやFirebase CLIが引き継ぐNode.jsのバージョンに依存しません。
-初回はnpmレジストリへの接続が必要です。
+Astroの静的解析・ビルド・テストを `bash scripts/ci.sh` で実行します。
+このスクリプトは `.node-version` のNode.js公式バイナリを一時ディレクトリへ取得し、
+SHA-256を検証した後、npm 11.14.1で依存取得と `npm run verify` を実行します。
+ワーカーやFirebase CLIが引き継ぐNode.jsのバージョンに依存せず、実行後に一時ディレクトリを削除します。
+macOS / Linuxのarm64・x64、bash・curl・tar・SHA-256コマンドと外部ネットワーク接続が必要です。
+ローカルでは同じ処理を `npm run ci --workspace genuineci-website` で実行できます。
 
 ## Firebase Hosting
 

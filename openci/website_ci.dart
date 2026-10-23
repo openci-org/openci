@@ -10,6 +10,6 @@ Future<void> main() async {
     currentWorkingDirectory: 'apps/website',
   );
 
-  // Use the pinned Node.js/npm runtime for the website checks.
-  await openCI.run('npm run ci');
+  // Bootstrap the pinned runtime; CI VMs may not have Node.js/npm installed.
+  await openCI.run('bash scripts/ci.sh');
 }

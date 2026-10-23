@@ -3,7 +3,7 @@
     "target": "website",
     "public": "dist",
     "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
-    "predeploy": ["cd \"$PROJECT_DIR\" && npm run ci"],
+    "predeploy": ["cd \"$PROJECT_DIR\" && bash scripts/ci.sh"],
     "cleanUrls": true,
     "headers": [
       {

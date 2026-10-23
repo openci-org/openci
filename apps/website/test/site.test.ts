@@ -18,6 +18,9 @@ const pages = new Map(
     load(read("dist/" + f)),
   ]),
 );
+const contentRoutes = (readdirSync("content", { recursive: true }) as string[])
+  .filter((file) => file.endsWith(".md"))
+  .map((file) => "/" + file.replace(/(?:\/index)?\.md$/, "") + "/");
 const legacy = JSON.parse(
   read("test/fixtures/legacy-heading-ids.json"),
 ) as Record<string, string[]>;
@@ -29,8 +32,11 @@ const fences = (source: string) =>
     code: m[2].trimEnd(),
   }));
 
-test("all 26 localized routes are built", () => {
-  assert.equal(pages.size, 26);
+test("all content and localized landing pages are built", () => {
+  assert.deepEqual(
+    new Set(pages.keys()),
+    new Set(["/en/", "/ja/", ...contentRoutes]),
+  );
   for (const route of Object.keys(legacy)) assert.ok(pages.has(route), route);
 });
 for (const [route, $] of pages) {
@@ -55,10 +61,12 @@ for (const [route, $] of pages) {
     );
     for (const language of ["en", "ja", "x-default"]) {
       const href = $(`link[hreflang="${language}"]`).attr("href");
+      const translatedPath = localePath(language === "ja" ? "ja" : "en", route);
       assert.equal(
         href,
-        "https://genuineci.com" +
-          localePath(language === "ja" ? "ja" : "en", route),
+        pages.has(translatedPath)
+          ? "https://genuineci.com" + translatedPath
+          : undefined,
       );
     }
     const ids = $("[id]")
@@ -131,7 +139,11 @@ for (const [route, $] of pages) {
   if (route.includes("/docs/")) {
     test(`${route}: search and navigation remain in the current language`, () => {
       const entries = JSON.parse($("#docs-search-data").text());
-      assert.equal(entries.length, 8);
+      const docsPrefix = "/" + route.split("/")[1] + "/docs/";
+      assert.deepEqual(
+        new Set(entries.map((entry: { url: string }) => entry.url)),
+        new Set(contentRoutes.filter((path) => path.startsWith(docsPrefix))),
+      );
       for (const entry of entries) {
         assert.ok(entry.url.startsWith("/" + route.split("/")[1] + "/docs/"));
         assert.ok(pages.has(entry.url));
@@ -155,8 +167,16 @@ for (const locale of ["en", "ja"] as const) {
     const links = $(".post-card-link")
       .toArray()
       .map((e) => $(e).attr("href"));
-    assert.equal(links.length, 3);
-    assert.ok(links[0]?.endsWith("/v2-3-0/"));
+    assert.deepEqual(
+      new Set(links),
+      new Set(
+        contentRoutes.filter(
+          (path) =>
+            path.startsWith(`/${locale}/blog/`) && path !== `/${locale}/blog/`,
+        ),
+      ),
+    );
+    assert.equal($(".featured-post").attr("href"), links[0]);
     for (const link of links) {
       assert.ok(link!.startsWith(`/${locale}/blog/`));
       const article = pages.get(link!)!;
