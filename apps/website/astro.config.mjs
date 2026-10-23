@@ -1,13 +1,14 @@
 import { defineConfig } from "astro/config";
 import { unified } from "@astrojs/markdown-remark";
 import { genuineMarkdown } from "./src/lib/markdown.ts";
+import { defaultLocale, locales, siteOrigin } from "./src/lib/i18n.ts";
 export default defineConfig({
-  site: "https://genuineci.com",
+  site: siteOrigin,
   output: "static",
   trailingSlash: "always",
   i18n: {
-    locales: ["en", "ja"],
-    defaultLocale: "en",
+    locales: [...locales],
+    defaultLocale,
     routing: { prefixDefaultLocale: true, redirectToDefaultLocale: false },
   },
   markdown: {

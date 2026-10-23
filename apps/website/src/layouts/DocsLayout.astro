@@ -1,4 +1,5 @@
 ---
+import { getRelativeLocaleUrl } from "astro:i18n";
 import type { MarkdownHeading } from "astro";
 import BaseLayout from "./BaseLayout.astro";
 import LanguageSwitcher from "../components/LanguageSwitcher.astro";
@@ -10,14 +11,13 @@ import DocsHelp from "../components/DocsHelp.astro";
 import DocsHome from "../components/DocsHome.astro";
 import Icon from "../components/Icon.astro";
 import Toc from "../components/Toc.astro";
+import { translator, type Locale, safeJson } from "../lib/i18n";
 import {
-  translator,
-  localeFromPath,
-  localePath,
   availableTranslations,
-  safeJson,
-} from "../lib/i18n";
-import { pagePath, type Page } from "../lib/content";
+  pageLocale,
+  pagePath,
+  type Page,
+} from "../lib/content";
 import { docsNavigation } from "../lib/navigation";
 interface Props {
   page: Page;
@@ -25,12 +25,12 @@ interface Props {
   headings: MarkdownHeading[];
 }
 const { page, pages, headings } = Astro.props;
-const locale = localeFromPath(page.id),
+const locale = Astro.currentLocale as Locale,
   t = translator(locale),
   path = pagePath(page);
 const availablePaths = pages.map(pagePath),
-  translations = availableTranslations(path, availablePaths);
-const isHome = path === localePath(locale, "/docs/");
+  translations = availableTranslations(page, pages);
+const isHome = path === getRelativeLocaleUrl(locale, "docs/");
 const toc = isHome
   ? [
       { text: t("はじめの一歩", "First steps"), slug: "start", depth: 2 },
@@ -54,9 +54,7 @@ const current = items.findIndex((item) => item.path === path);
 const previous = current > 0 ? items[current - 1] : undefined,
   next = current >= 0 ? items[current + 1] : undefined;
 const search = pages
-  .filter(
-    (p) => p.data.layout === "genuine-docs" && localeFromPath(p.id) === locale,
-  )
+  .filter((p) => p.data.layout === "genuine-docs" && pageLocale(p) === locale)
   .map((p) => ({
     title: p.data.title,
     description: p.data.description,
@@ -94,7 +92,7 @@ const messages = {
   translations={translations}
 >
   <div class:list={["docs-shell", { "docs-overview": isHome }]}>
-    <LanguageSwitcher locale={locale} translations={translations} />
+    <LanguageSwitcher translations={translations} />
     <a class="skip-link" href="#main">
       <span>{t("本文へスキップ", "Skip to content")}</span>
     </a>
@@ -110,7 +108,7 @@ const messages = {
       </aside>
       <main id="main" class="d-main" tabindex="-1">
         <div class="d-breadcrumb">
-          <a href={localePath(locale, "/docs/")}>
+          <a href={getRelativeLocaleUrl(locale, "docs/")}>
             <span>Docs</span>
           </a>
           <Icon name="chevron" />

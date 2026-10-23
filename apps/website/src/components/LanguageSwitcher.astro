@@ -1,10 +1,10 @@
 ---
 import { translator, locales, type Locale } from "../lib/i18n";
 interface Props {
-  locale: Locale;
   translations: Partial<Record<Locale, string>>;
 }
-const { locale, translations } = Astro.props;
+const { translations } = Astro.props;
+const locale = Astro.currentLocale as Locale;
 const t = translator(locale);
 ---
 

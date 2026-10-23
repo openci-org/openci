@@ -1,19 +1,19 @@
-import { translator, localePath, type Locale } from "./i18n";
+import { getRelativeLocaleUrl } from "astro:i18n";
+import { translator, type Locale } from "./i18n";
 export function docsNavigation(locale: Locale) {
-  const t = translator(locale),
-    path = (p: string) => localePath(locale, p);
+  const t = translator(locale);
   return [
     {
       group: t("はじめに", "Getting started"),
       items: [
         {
           title: t("GenuineCIへようこそ", "Welcome to GenuineCI"),
-          path: path("/docs/"),
+          path: getRelativeLocaleUrl(locale, "docs/"),
           icon: "book",
         },
         {
           title: t("クイックスタート", "Quickstart"),
-          path: path("/docs/quickstart/"),
+          path: getRelativeLocaleUrl(locale, "docs/quickstart/"),
           icon: "spark",
         },
       ],
@@ -23,22 +23,22 @@ export function docsNavigation(locale: Locale) {
       items: [
         {
           title: t("Dartでワークフローを書く", "Write workflows in Dart"),
-          path: path("/docs/workflows/"),
+          path: getRelativeLocaleUrl(locale, "docs/workflows/"),
           icon: "code",
         },
         {
           title: t("トリガー", "Triggers"),
-          path: path("/docs/triggers/"),
+          path: getRelativeLocaleUrl(locale, "docs/triggers/"),
           icon: "branch",
         },
         {
           title: t("Flutterのビルドとテスト", "Build and test Flutter"),
-          path: path("/docs/flutter/"),
+          path: getRelativeLocaleUrl(locale, "docs/flutter/"),
           icon: "box",
         },
         {
           title: t("シークレット", "Secrets"),
-          path: path("/docs/secrets/"),
+          path: getRelativeLocaleUrl(locale, "docs/secrets/"),
           icon: "lock",
         },
       ],
@@ -48,12 +48,12 @@ export function docsNavigation(locale: Locale) {
       items: [
         {
           title: t("CLIリファレンス", "CLI reference"),
-          path: path("/docs/cli/"),
+          path: getRelativeLocaleUrl(locale, "docs/cli/"),
           icon: "terminal",
         },
         {
           title: t("セルフホスト", "Self-hosting"),
-          path: path("/docs/self-hosting/"),
+          path: getRelativeLocaleUrl(locale, "docs/self-hosting/"),
           icon: "server",
         },
       ],

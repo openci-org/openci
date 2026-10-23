@@ -1,12 +1,12 @@
 ---
+import { getRelativeLocaleUrl } from "astro:i18n";
 import Icon from "./Icon.astro";
-import { translator, localePath, type Locale } from "../lib/i18n";
+import { translator, type Locale } from "../lib/i18n";
 interface Props {
   locale: Locale;
 }
 const { locale } = Astro.props;
 const t = translator(locale);
-const localPath = (path: string) => localePath(locale, path);
 ---
 
 <header class="site-header wrap">
@@ -26,10 +26,10 @@ const localPath = (path: string) => localePath(locale, path);
     <a href="#pricing">
       <span>{t("料金", "Pricing")}</span>
     </a>
-    <a href={localPath("/docs/")}>
+    <a href={getRelativeLocaleUrl(locale, "docs/")}>
       <span>Docs</span>
     </a>
-    <a href={localPath("/blog/")}>
+    <a href={getRelativeLocaleUrl(locale, "blog/")}>
       <span>{t("ブログ", "Blog")}</span>
     </a>
   </nav>

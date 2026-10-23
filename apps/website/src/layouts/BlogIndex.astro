@@ -6,20 +6,25 @@ import LanguageSwitcher from "../components/LanguageSwitcher.astro";
 import PostMeta from "../components/PostMeta.astro";
 import PostCover from "../components/PostCover.astro";
 import Icon from "../components/Icon.astro";
-import { translator, localeFromPath, availableTranslations } from "../lib/i18n";
-import { blogPosts, pagePath, type Page } from "../lib/content";
+import { translator, type Locale } from "../lib/i18n";
+import {
+  availableTranslations,
+  blogPosts,
+  pagePath,
+  type Page,
+} from "../lib/content";
 interface Props {
   page: Page;
   pages: Page[];
 }
 const { page, pages } = Astro.props;
-const locale = localeFromPath(page.id),
+const locale = Astro.currentLocale as Locale,
   t = translator(locale),
   path = pagePath(page);
 const posts = blogPosts(pages, locale),
   featured = posts[0],
   categories = [...new Set(posts.map((p) => p.data.category!))];
-const translations = availableTranslations(path, pages.map(pagePath));
+const translations = availableTranslations(page, pages);
 ---
 
 <BaseLayout
@@ -33,7 +38,7 @@ const translations = availableTranslations(path, pages.map(pagePath));
     <a class="skip-link" href="#main">
       <span>{t("本文へスキップ", "Skip to content")}</span>
     </a>
-    <LanguageSwitcher locale={locale} translations={translations} />
+    <LanguageSwitcher translations={translations} />
     <BlogHeader locale={locale} />
     <main id="main">
       <section class="wrap journal-hero">

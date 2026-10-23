@@ -26,6 +26,9 @@ npm run dev --workspace genuineci-website
 - `/<en|ja>/docs/`: Docsホーム
 - `/<en|ja>/docs/<slug>/`: 各ガイド
 
+言語URLはAstro標準の `getRelativeLocaleUrl()`、表示中の言語は `Astro.currentLocale` を使います。
+対応言語・デフォルト言語は `src/lib/i18n.ts` で定義し、`astro.config.mjs` と共有します。
+記事・Docsの言語はContent IDの先頭を `getLocaleByPath()` で解決します。
 言語切り替えは同じページの対訳へ移動し、クエリと共通セクションID（`#pricing` など）を維持します。
 翻訳で変わるMarkdownの見出しIDは引き継がず、記事の先頭へ移動します。
 翻訳がないページでは対訳へのリンクを無効にし、存在しないURLをhreflangへ追加しません。

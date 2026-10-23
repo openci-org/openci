@@ -1,4 +1,5 @@
 ---
+import { getRelativeLocaleUrl } from "astro:i18n";
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import LanguageSwitcher from "../../components/LanguageSwitcher.astro";
 import LandingHeader from "../../components/LandingHeader.astro";
@@ -14,18 +15,21 @@ import {
 } from "../../lib/i18n";
 export const getStaticPaths = () =>
   locales.map((locale) => ({ params: { locale } }));
-const locale = Astro.params.locale as Locale;
+const locale = Astro.currentLocale as Locale;
 const t = translator(locale);
+const translations = Object.fromEntries(
+  locales.map((language) => [language, getRelativeLocaleUrl(language)]),
+);
 ---
 
 <BaseLayout
   locale={locale}
   title={siteTitle(locale)}
   description={siteDescription(locale)}
-  path={`/${locale}/`}
-  translations={{ en: "/en/", ja: "/ja/" }}
+  path={getRelativeLocaleUrl(locale)}
+  translations={translations}
 >
-  <LanguageSwitcher locale={locale} translations={{ en: "/en/", ja: "/ja/" }} />
+  <LanguageSwitcher translations={translations} />
   <a class="skip-link" href="#main">
     <span>{t("本文へスキップ", "Skip to content")}</span>
   </a>

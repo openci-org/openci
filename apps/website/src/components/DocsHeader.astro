@@ -1,21 +1,21 @@
 ---
+import { getRelativeLocaleUrl } from "astro:i18n";
 import Icon from "./Icon.astro";
-import { translator, localePath, type Locale } from "../lib/i18n";
+import { translator, type Locale } from "../lib/i18n";
 interface Props {
   locale: Locale;
 }
 const { locale } = Astro.props;
 const t = translator(locale);
-const localPath = (path: string) => localePath(locale, path);
 ---
 
 <header class="d-header">
   <div class="d-brand-lockup">
-    <a class="d-wordmark" href={localPath("/")}>
+    <a class="d-wordmark" href={getRelativeLocaleUrl(locale)}>
       <span>GenuineCI</span>
     </a>
     <span class="d-brand-divider">/</span>
-    <a class="d-docs-label" href={localPath("/docs/")}>
+    <a class="d-docs-label" href={getRelativeLocaleUrl(locale, "docs/")}>
       <span>docs</span>
     </a>
   </div>
@@ -30,7 +30,7 @@ const localPath = (path: string) => localePath(locale, path);
     <kbd>⌘ K</kbd>
   </button>
   <div class="d-header-actions">
-    <a class="d-header-blog" href={localPath("/blog/")}>
+    <a class="d-header-blog" href={getRelativeLocaleUrl(locale, "blog/")}>
       <span>{t("ブログ", "Blog")}</span>
     </a>
     <a

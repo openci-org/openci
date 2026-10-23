@@ -1,12 +1,12 @@
 ---
+import { getRelativeLocaleUrl } from "astro:i18n";
 import Icon from "./Icon.astro";
-import { translator, localePath, type Locale } from "../lib/i18n";
+import { translator, type Locale } from "../lib/i18n";
 interface Props {
   locale: Locale;
 }
 const { locale } = Astro.props;
 const t = translator(locale);
-const localPath = (path: string) => localePath(locale, path);
 ---
 
 <section
@@ -194,7 +194,10 @@ const localPath = (path: string) => localePath(locale, path);
         "Prefer your own machines? You can self-host. Cloud pricing does not apply.",
       )}
     </p>
-    <a class="text-link" href={localPath("/docs/self-hosting/")}>
+    <a
+      class="text-link"
+      href={getRelativeLocaleUrl(locale, "docs/self-hosting/")}
+    >
       <span>{t("セルフホストのガイド", "Self-hosting guide")}</span>
       <Icon name="arrow" marketing />
     </a>

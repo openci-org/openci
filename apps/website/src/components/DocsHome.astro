@@ -1,12 +1,12 @@
 ---
+import { getRelativeLocaleUrl } from "astro:i18n";
 import Icon from "./Icon.astro";
-import { translator, localePath, type Locale } from "../lib/i18n";
+import { translator, type Locale } from "../lib/i18n";
 interface Props {
   locale: Locale;
 }
 const { locale } = Astro.props;
 const t = translator(locale);
-const localPath = (path: string) => localePath(locale, path);
 ---
 
 <div class="d-home">
@@ -43,7 +43,10 @@ const localPath = (path: string) => localePath(locale, path);
         <br />
         {t("小さなビルドからはじめよう。", "Start with a small build.")}
       </p>
-      <a class="d-primary" href={localPath("/docs/quickstart/")}>
+      <a
+        class="d-primary"
+        href={getRelativeLocaleUrl(locale, "docs/quickstart/")}
+      >
         <span>{t("クイックスタート", "Quickstart")}</span>
         <Icon name="arrow" />
       </a>
@@ -95,7 +98,7 @@ const localPath = (path: string) => localePath(locale, path);
       <span>FIND YOUR WAY</span>
     </div>
     <div class="d-guide-grid">
-      <a class="d-guide" href={localPath("/docs/workflows/")}>
+      <a class="d-guide" href={getRelativeLocaleUrl(locale, "docs/workflows/")}>
         <div class="d-guide-top">
           <span class="d-guide-icon">
             <Icon name="code" />
@@ -109,7 +112,7 @@ const localPath = (path: string) => localePath(locale, path);
           {t("使い慣れた言語をCIにも。", "A familiar language for your CI.")}
         </p>
       </a>
-      <a class="d-guide" href={localPath("/docs/flutter/")}>
+      <a class="d-guide" href={getRelativeLocaleUrl(locale, "docs/flutter/")}>
         <div class="d-guide-top">
           <span class="d-guide-icon">
             <Icon name="box" />
@@ -123,7 +126,10 @@ const localPath = (path: string) => localePath(locale, path);
           {t("アプリの品質をコードで守る。", "Keep your app quality in code.")}
         </p>
       </a>
-      <a class="d-guide" href={localPath("/docs/self-hosting/")}>
+      <a
+        class="d-guide"
+        href={getRelativeLocaleUrl(locale, "docs/self-hosting/")}
+      >
         <div class="d-guide-top">
           <span class="d-guide-icon">
             <Icon name="server" />
@@ -212,7 +218,7 @@ Future&lt;void&gt; main() async &#123;
             "Simple code. Reliable builds.",
           )}
         </span>
-        <a href={localPath("/docs/workflows/")}>
+        <a href={getRelativeLocaleUrl(locale, "docs/workflows/")}>
           <span>{t("ワークフローの書き方", "Writing workflows")}</span>
           <Icon name="arrow" marketing />
         </a>
@@ -220,7 +226,10 @@ Future&lt;void&gt; main() async &#123;
     </div>
   </section>
   <section class="d-reference-section">
-    <a class="d-reference-link" href={localPath("/docs/cli/")}>
+    <a
+      class="d-reference-link"
+      href={getRelativeLocaleUrl(locale, "docs/cli/")}
+    >
       <Icon name="terminal" />
       <div>
         <strong>{t("CLIリファレンス", "CLI reference")}</strong>
@@ -233,7 +242,10 @@ Future&lt;void&gt; main() async &#123;
       </div>
       <Icon name="arrow" />
     </a>
-    <a class="d-reference-link" href={localPath("/docs/secrets/")}>
+    <a
+      class="d-reference-link"
+      href={getRelativeLocaleUrl(locale, "docs/secrets/")}
+    >
       <Icon name="lock" />
       <div>
         <strong>{t("シークレットの管理", "Manage secrets")}</strong>

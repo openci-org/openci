@@ -1,4 +1,5 @@
 ---
+import { getRelativeLocaleUrl } from "astro:i18n";
 import type { MarkdownHeading } from "astro";
 import BaseLayout from "./BaseLayout.astro";
 import BlogHeader from "../components/BlogHeader.astro";
@@ -8,26 +9,27 @@ import PostMeta from "../components/PostMeta.astro";
 import PostCover from "../components/PostCover.astro";
 import Icon from "../components/Icon.astro";
 import Toc from "../components/Toc.astro";
+import { translator, type Locale } from "../lib/i18n";
 import {
-  translator,
-  localeFromPath,
-  localePath,
   availableTranslations,
-} from "../lib/i18n";
-import { blogPosts, pagePath, plainTitle, type Page } from "../lib/content";
+  blogPosts,
+  pagePath,
+  plainTitle,
+  type Page,
+} from "../lib/content";
 interface Props {
   page: Page;
   pages: Page[];
   headings: MarkdownHeading[];
 }
 const { page, pages, headings } = Astro.props;
-const locale = localeFromPath(page.id),
+const locale = Astro.currentLocale as Locale,
   t = translator(locale),
   path = pagePath(page);
 const posts = blogPosts(pages, locale),
   index = posts.findIndex((p) => p.id === page.id),
   next = posts.length > 1 ? posts[(index + 1) % posts.length] : undefined;
-const translations = availableTranslations(path, pages.map(pagePath));
+const translations = availableTranslations(page, pages);
 ---
 
 <BaseLayout
@@ -45,12 +47,12 @@ const translations = availableTranslations(path, pages.map(pagePath));
     <a class="skip-link" href="#main">
       <span>{t("本文へスキップ", "Skip to content")}</span>
     </a>
-    <LanguageSwitcher locale={locale} translations={translations} />
+    <LanguageSwitcher translations={translations} />
     <BlogHeader locale={locale} />
     <main id="main">
       <article>
         <div class="wrap article-masthead">
-          <a class="back-to-blog" href={localePath(locale, "/blog/")}>
+          <a class="back-to-blog" href={getRelativeLocaleUrl(locale, "blog/")}>
             <span>{t("← ブログ一覧", "← Back to the blog")}</span>
           </a>
           <PostMeta post={page} />
@@ -86,7 +88,7 @@ const translations = availableTranslations(path, pages.map(pagePath));
             <div class="article-endmark" aria-hidden="true">
               g.
             </div>
-            <a class="text-link" href={localePath(locale, "/")}>
+            <a class="text-link" href={getRelativeLocaleUrl(locale)}>
               <span>{t("GenuineCI を詳しく見る", "Explore GenuineCI")}</span>
               <Icon name="arrow" marketing />
             </a>
@@ -103,7 +105,7 @@ const translations = availableTranslations(path, pages.map(pagePath));
             <h2>{plainTitle(next.data.title)}</h2>
             <Icon name="arrow" marketing />
           </a>
-          <a class="back-to-blog" href={localePath(locale, "/blog/")}>
+          <a class="back-to-blog" href={getRelativeLocaleUrl(locale, "blog/")}>
             <span>{t("すべての記事を見る", "View all articles")}</span>
           </a>
         </section>

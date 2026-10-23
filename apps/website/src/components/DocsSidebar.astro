@@ -1,6 +1,7 @@
 ---
+import { getRelativeLocaleUrl } from "astro:i18n";
 import Icon from "./Icon.astro";
-import { translator, localePath, type Locale } from "../lib/i18n";
+import { translator, type Locale } from "../lib/i18n";
 import { docsNavigation } from "../lib/navigation";
 interface Props {
   locale: Locale;
@@ -12,7 +13,7 @@ const t = translator(locale);
 ---
 
 <div class="d-sidebar-content">
-  <a class="d-docs-home" href={localePath(locale, "/docs/")}>
+  <a class="d-docs-home" href={getRelativeLocaleUrl(locale, "docs/")}>
     <span class="d-square-logo">g.</span>
     <span>{t("ドキュメント", "Documentation")}</span>
     <span class="d-small-tag">DART</span>
@@ -31,7 +32,8 @@ const t = translator(locale);
             >
               <Icon name={item.icon} />
               <span>{item.title}</span>
-              {item.path === localePath(locale, "/docs/quickstart/") && (
+              {item.path ===
+                getRelativeLocaleUrl(locale, "docs/quickstart/") && (
                 <span class="d-nav-arrow">↗</span>
               )}
             </a>

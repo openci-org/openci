@@ -2,12 +2,8 @@ import assert from "node:assert/strict";
 import { readFileSync, readdirSync, existsSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { test } from "node:test";
+import { runInNewContext } from "node:vm";
 import { load } from "cheerio";
-import {
-  availableTranslations,
-  localePath,
-  logicalPath,
-} from "../src/lib/i18n.ts";
 const read = (file: string) => readFileSync(file, "utf8");
 const files = (readdirSync("dist", { recursive: true }) as string[]).filter(
   (f) => /^(en|ja)\/.*index\.html$/.test(f),
@@ -61,14 +57,33 @@ for (const [route, $] of pages) {
     );
     for (const language of ["en", "ja", "x-default"]) {
       const href = $(`link[hreflang="${language}"]`).attr("href");
-      const translatedPath = localePath(language === "ja" ? "ja" : "en", route);
+      const translatedPath = route.replace(
+        /^\/(en|ja)\//,
+        language === "ja" ? "/ja/" : "/en/",
+      );
       assert.equal(
         href,
         pages.has(translatedPath)
           ? "https://genuineci.com" + translatedPath
           : undefined,
       );
+      if (language !== "x-default") {
+        const link = $(`.language-switcher [lang="${language}"]`);
+        assert.equal(link.length, 1);
+        assert.equal(
+          link.attr("href"),
+          pages.has(translatedPath) ? translatedPath : undefined,
+        );
+        assert.equal(
+          link.attr("aria-disabled"),
+          pages.has(translatedPath) ? undefined : "true",
+        );
+      }
     }
+    assert.equal(
+      $(".language-switcher [aria-current=page]").attr("lang"),
+      locale,
+    );
     const ids = $("[id]")
       .toArray()
       .map((e) => $(e).attr("id"));
@@ -204,21 +219,57 @@ for (const locale of ["en", "ja"] as const) {
     );
   });
 }
-test("localization preserves query/hash, external URLs, and missing translations", () => {
-  assert.equal(
-    localePath("en", "/ja/blog/v2-3-0/?source=mail#release"),
-    "/en/blog/v2-3-0/?source=mail#release",
-  );
-  assert.equal(
-    localePath("ja", "https://dashboard.openci.org/"),
-    "https://dashboard.openci.org/",
-  );
-  assert.equal(localePath("en", "//example.com/path"), "//example.com/path");
-  assert.equal(logicalPath("/ja/docs"), "/docs/");
-  assert.deepEqual(availableTranslations("/ja/blog/new/", ["/ja/blog/new/"]), {
-    ja: "/ja/blog/new/",
+for (const [route, hash, shared] of [
+  ["/ja/", "#pricing", true],
+  ["/en/blog/v2-3-0/", "#article-heading", false],
+  ["/ja/docs/", "#guides", true],
+] as const) {
+  test(`${route}: language switching preserves queries and appropriate anchors`, () => {
+    const location = new URL(
+      "https://genuineci.com" + route + "?source=mail" + hash,
+    );
+    const $ = pages.get(route)!;
+    const links = $("[data-language-link]")
+      .toArray()
+      .map((element) => {
+        let href = $(element).attr("href")!;
+        return {
+          get href() {
+            return new URL(href, location).href;
+          },
+          set href(value: string) {
+            href = value;
+          },
+        };
+      });
+    const events = new Map<string, () => void>();
+    runInNewContext(read("src/scripts/site.js"), {
+      URL,
+      document: {
+        querySelectorAll: (selector: string) =>
+          selector === "[data-language-link]" ? links : [],
+      },
+      window: {
+        location,
+        addEventListener: (event: string, listener: () => void) =>
+          events.set(event, listener),
+      },
+    });
+    for (const link of links) {
+      const url = new URL(link.href);
+      assert.equal(url.search, "?source=mail");
+      assert.equal(url.hash, shared || url.pathname === route ? hash : "");
+    }
+    location.hash = "#another-heading";
+    assert.ok(events.has("hashchange"));
+    events.get("hashchange")!();
+    for (const link of links) {
+      const url = new URL(link.href);
+      assert.equal(url.search, "?source=mail");
+      assert.equal(url.hash, url.pathname === route ? "#another-heading" : "");
+    }
   });
-});
+}
 test("translated articles keep identical executable examples", () => {
   for (const file of readdirSync("content/en", {
     recursive: true,

@@ -1,11 +1,11 @@
 ---
-import { translator, localePath, type Locale } from "../lib/i18n";
+import { getRelativeLocaleUrl } from "astro:i18n";
+import { translator, type Locale } from "../lib/i18n";
 interface Props {
   locale: Locale;
 }
 const { locale } = Astro.props;
 const t = translator(locale);
-const localPath = (path: string) => localePath(locale, path);
 ---
 
 <footer class="site-footer">
@@ -14,13 +14,13 @@ const localPath = (path: string) => localePath(locale, path);
     <span class="footer-tagline">
       Open source. Built for Flutter &amp; Dart.
     </span>
-    <a href={localPath("/docs/")}>
+    <a href={getRelativeLocaleUrl(locale, "docs/")}>
       <span>Docs</span>
     </a>
     <a href="#pricing">
       <span>{t("料金", "Pricing")}</span>
     </a>
-    <a href={localPath("/blog/")}>
+    <a href={getRelativeLocaleUrl(locale, "blog/")}>
       <span>{t("ブログ", "Blog")}</span>
     </a>
     <a href="#">
