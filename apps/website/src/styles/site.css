@@ -659,6 +659,11 @@ summary:focus-visible,
   font-size: 13px;
 }
 .code-panel {
+  --code-bg: #1b1d1b;
+  --code-text: #ddd;
+  --code-muted: #99a390;
+  --code-keyword: #fffb00;
+  --code-string: #bacdab;
   background: #1b1d1b;
   color: #ddd;
   border: 1px solid #080808;
@@ -1758,31 +1763,23 @@ summary:focus-visible,
   padding: 28px 24px;
   min-height: 302px;
 }
-.dart-line {
-  display: flex;
-  gap: 20px;
-  min-height: 26px;
-  white-space: pre;
+.dart-content .astro-code {
+  margin: 0;
   font: 12px/26px var(--mono);
 }
-.dart-line code {
-  font: inherit;
+.dart-content code {
+  counter-reset: code-line;
 }
-.line-number {
-  flex: 0 0 14px;
+.dart-content .line::before {
+  counter-increment: code-line;
+  content: counter(code-line) / "";
+  display: inline-block;
+  width: 14px;
+  margin-right: 20px;
   text-align: right;
   color: #757d71;
   font-size: 10px;
   user-select: none;
-}
-.syntax-comment {
-  color: #99a390;
-}
-.syntax-keyword {
-  color: #fffb00;
-}
-.syntax-string {
-  color: #bacdab;
 }
 @media (max-width: 560px) {
   .brand {
@@ -1792,15 +1789,14 @@ summary:focus-visible,
     padding: 21px 12px;
     min-height: 276px;
   }
-  .dart-line {
+  .dart-content .astro-code {
     font-size: 10px;
     line-height: 25px;
-    min-height: 25px;
-    gap: 10px;
   }
-  .line-number {
+  .dart-content .line::before {
     font-size: 9px;
-    flex-basis: 12px;
+    width: 12px;
+    margin-right: 10px;
   }
   .stack-names {
     gap: 14px;
@@ -1814,9 +1810,8 @@ summary:focus-visible,
   .hero h1 {
     font-size: 28px;
   }
-  .dart-line {
+  .dart-content .astro-code {
     font-size: 9px;
-    gap: 8px;
   }
   .stack-names {
     font-size: 14px;

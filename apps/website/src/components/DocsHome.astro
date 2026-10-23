@@ -1,4 +1,5 @@
 ---
+import { Code } from "astro:components";
 import { getRelativeLocaleUrl } from "astro:i18n";
 import Icon from "./Icon.astro";
 import { translator, type Locale } from "../lib/i18n";
@@ -7,6 +8,19 @@ interface Props {
 }
 const { locale } = Astro.props;
 const t = translator(locale);
+const workflowCode = `import 'package:openci_workflow/openci_workflow.dart';
+
+Future<void> main() async {
+  final ci = await OpenCI.init(
+    workflowName: 'Flutter CI',
+    ciTriggers: [CITrigger.push(branch: 'main')],
+  );
+
+  await ci.run('flutter pub get');
+  await ci.flutter.staticAnalysis();
+  await ci.flutter.unitTests();
+  await ci.flutter.buildApk();
+}`;
 ---
 
 <div class="d-home">
@@ -198,19 +212,12 @@ const t = translator(locale);
           <span>{t("コピー", "Copy")}</span>
         </button>
       </div>
-      <pre><code id="home-code">import <span class="syntax-string">'package:openci_workflow/openci_workflow.dart'</span>;
-
-Future&lt;void&gt; main() async &#123;
-  <span class="syntax-keyword">final</span> ci = <span class="syntax-keyword">await</span> OpenCI.init(
-    workflowName: <span class="syntax-string">'Flutter CI'</span>,
-    ciTriggers: [CITrigger.push(branch: <span class="syntax-string">'main'</span>)],
-  );
-
-  <span class="syntax-keyword">await</span> ci.run(<span class="syntax-string">'flutter pub get'</span>);
-  <span class="syntax-keyword">await</span> ci.flutter.staticAnalysis();
-  <span class="syntax-keyword">await</span> ci.flutter.unitTests();
-  <span class="syntax-keyword">await</span> ci.flutter.buildApk();
-&#125;</code></pre>
+      <Code
+        id="home-code"
+        code={workflowCode}
+        lang="dart"
+        theme="css-variables"
+      />
       <div class="d-code-caption">
         <span>
           {t(

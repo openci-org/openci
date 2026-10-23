@@ -19,8 +19,7 @@ interface Props {
 }
 const { page, pages } = Astro.props;
 const locale = Astro.currentLocale as Locale,
-  t = translator(locale),
-  path = pagePath(page);
+  t = translator(locale);
 const posts = blogPosts(pages, locale),
   featured = posts[0],
   categories = [...new Set(posts.map((p) => p.data.category!))];
@@ -31,7 +30,6 @@ const translations = availableTranslations(page, pages);
   locale={locale}
   title={page.data.title}
   description={page.data.description}
-  path={path}
   translations={translations}
 >
   <div class="journal-page">

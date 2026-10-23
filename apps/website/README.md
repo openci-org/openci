@@ -50,8 +50,12 @@ Docsには `layout: genuine-docs`、`title`、`description` を指定します�
 `src/lib/navigation.ts` にガイドを追加すると、サイドバーと前後リンクに反映されます。
 Docsホームの内容は `src/components/DocsHome.astro` で編集します。
 
-目次はMarkdownの見出しから生成します。既存の見出しIDを維持する処理と
-コード表示の拡張は `src/lib/markdown.ts` にあります。
+見出しIDはAstro標準で自動生成し、目次は `render()` が返す `headings` を使います。
+旧サイト独自の見出しIDは引き継ぎません。例：`#01-sdk` は `#01-sdkを追加する` になります。
+Markdownの色付けは標準Shiki、LP・Docsホームのコード例は `astro:components` の `<Code />` を使います。
+`css-variables` テーマを `src/styles/code.css` で既存の配色に接続し、DocsのLight / Dark切り替えにも適用します。
+`src/lib/markdown.ts` は生成済みの見出しへのリンクとコード操作UIを追加します。
+canonical・OGPのURLは `Astro.url.pathname` と `Astro.site` から生成します。
 Docs検索は現在の言語のタイトル・説明・本文を検索します。Cmd/Ctrl+Kでも開けます。
 コードコピー、Light / Dark切り替え、モバイルメニューはブラウザーのJavaScriptで動作します。
 
@@ -69,7 +73,6 @@ npm run preview --workspace genuineci-website
 
 `dist/` にHTML・公開アセットを生成します。テストはビルド後に実行し、
 日英ルート・リンク・見出しID・メタデータ・コード例・検索データ・料金表示を検証します。
-`test/fixtures/legacy-heading-ids.json` は移行前に公開した見出しリンクの互換性を検証するための記録です。
 フォーマットの適用は `npm run fmt --workspace genuineci-website` です。
 
 `openci/website_ci.dart` はPRとdevelopへのpushで、依存取得・フォーマット・

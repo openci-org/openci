@@ -17,9 +17,6 @@ const pages = new Map(
 const contentRoutes = (readdirSync("content", { recursive: true }) as string[])
   .filter((file) => file.endsWith(".md"))
   .map((file) => "/" + file.replace(/(?:\/index)?\.md$/, "") + "/");
-const legacy = JSON.parse(
-  read("test/fixtures/legacy-heading-ids.json"),
-) as Record<string, string[]>;
 const digest = (text: string) =>
   createHash("sha256").update(text).digest("hex");
 const fences = (source: string) =>
@@ -33,7 +30,6 @@ test("all content and localized landing pages are built", () => {
     new Set(pages.keys()),
     new Set(["/en/", "/ja/", ...contentRoutes]),
   );
-  for (const route of Object.keys(legacy)) assert.ok(pages.has(route), route);
 });
 for (const [route, $] of pages) {
   test(`${route}: language, metadata, accessible structure, and assets`, () => {
@@ -51,6 +47,10 @@ for (const [route, $] of pages) {
       $('meta[property="og:url"]').attr("content"),
       "https://genuineci.com" + route,
     );
+    const image = $('meta[property="og:image"]').attr("content")!;
+    assert.equal(new URL(image).origin, "https://genuineci.com");
+    assert.ok(existsSync("dist" + new URL(image).pathname));
+    assert.equal($('meta[name="twitter:image"]').attr("content"), image);
     assert.equal(
       $('meta[property="og:locale"]').attr("content"),
       locale === "en" ? "en_US" : "ja_JP",
@@ -95,8 +95,6 @@ for (const [route, $] of pages) {
         assert.ok(existsSync("dist" + src.split("?")[0]), src);
     }
     assert.equal($('script[src*="dart"],astro-island').length, 0);
-    for (const id of legacy[route] ?? [])
-      assert.ok(ids.includes(id), `lost permalink #${id}`);
     for (const a of $("a[href]").toArray()) {
       const href = $(a).attr("href")!;
       const target = new URL(href, "https://genuineci.com" + route);
@@ -131,14 +129,19 @@ for (const [route, $] of pages) {
           $(e).closest(".code-block").find("button[aria-label]").length,
           1,
         );
-        if (expected[i].language === "dart")
-          assert.ok($(e).find("span").length > 0, "Dart highlighting");
+        assert.ok($(e).closest("pre").hasClass("astro-code"));
+        assert.equal(
+          $(e).closest("pre").attr("data-language"),
+          expected[i].language || "plaintext",
+        );
+        assert.ok($(e).find(".line").length > 0, "Shiki code lines");
       });
       const selector = route.includes("/docs/")
         ? ".d-prose :header[id]"
         : ".article-body :header[id]";
       for (const h of $(selector).toArray()) {
         const id = $(h).attr("id");
+        assert.equal($(h).find("[data-heading-anchor]").attr("href"), `#${id}`);
         assert.ok(
           $(".d-toc a,.article-sidebar a")
             .toArray()
@@ -177,6 +180,29 @@ for (const [route, $] of pages) {
   }
 }
 for (const locale of ["en", "ja"] as const) {
+  test(`${locale}: landing and Docs samples use highlighted, copyable code`, () => {
+    const landing = pages.get(`/${locale}/`)!;
+    for (const name of ["flutter", "dart"]) {
+      const sample = landing(
+        `#workflow-${name} pre.astro-code[data-language=dart]`,
+      );
+      assert.equal(sample.length, 1);
+      assert.ok(sample.find("code .line").length > 1);
+    }
+    assert.ok(
+      landing("#workflow-dart code")
+        .text()
+        .includes("\n  await ci.run(command);\n}"),
+    );
+    const docs = pages.get(`/${locale}/docs/`)!;
+    const home = docs("#home-code.astro-code[data-language=dart]");
+    assert.equal(home.length, 1);
+    assert.ok(home.find("code").text().includes("Future<void> main() async {"));
+    assert.equal(
+      home.closest(".d-home-code").find("[data-copy-home]").length,
+      1,
+    );
+  });
   test(`${locale}: blog listing, dates and next article`, () => {
     const $ = pages.get(`/${locale}/blog/`)!;
     const links = $(".post-card-link")
@@ -219,6 +245,39 @@ for (const locale of ["en", "ja"] as const) {
     );
   });
 }
+test("Japanese Markdown headings use Astro's generated IDs", () => {
+  const $ = pages.get("/ja/docs/quickstart/")!;
+  assert.deepEqual(
+    $(".d-prose h2")
+      .toArray()
+      .map((heading) => $(heading).attr("id")),
+    [
+      "はじめる前に",
+      "01-sdkを追加する",
+      "02-ワークフローを書く",
+      "03-ローカルで確かめる",
+      "04-ciで動かす準備",
+      "次にできること",
+    ],
+  );
+});
+test("all Shiki colors have matching CSS variables", () => {
+  const styles = (readdirSync("dist/_astro") as string[])
+    .filter((file) => file.endsWith(".css"))
+    .map((file) => read("dist/_astro/" + file))
+    .join("\n");
+  for (const [route, $] of pages) {
+    for (const element of $(
+      ".astro-code[style],.astro-code [style]",
+    ).toArray()) {
+      for (const [name] of $(element)
+        .attr("style")!
+        .matchAll(/--astro-code-[a-z-]+/g)) {
+        assert.ok(styles.includes(`${name}:`), `${route}: undefined ${name}`);
+      }
+    }
+  }
+});
 for (const [route, hash, shared] of [
   ["/ja/", "#pricing", true],
   ["/en/blog/v2-3-0/", "#article-heading", false],

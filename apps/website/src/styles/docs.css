@@ -623,15 +623,6 @@
   overflow-x: auto;
   tab-size: 2;
 }
-.d-home-code .syntax-string {
-  color: var(--code-string);
-}
-.d-home-code .syntax-keyword {
-  color: var(--code-keyword);
-}
-.d-home-code .syntax-comment {
-  color: var(--code-muted);
-}
 .d-code-caption {
   display: flex;
   align-items: center;
@@ -1472,15 +1463,6 @@
 }
 .d-prose .content .d-doc-code-bar [data-doc-copy]:hover {
   background: var(--code-hover);
-}
-.d-prose .d-article-code .syntax-string {
-  color: var(--code-string);
-}
-.d-prose .d-article-code .syntax-keyword {
-  color: var(--code-keyword);
-}
-.d-prose .d-article-code .syntax-comment {
-  color: var(--code-muted);
 }
 
 /* Shared sample appearance; inline code and the rest of the page stay independent. */

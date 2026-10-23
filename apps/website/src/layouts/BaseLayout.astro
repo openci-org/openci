@@ -3,17 +3,12 @@ import "../styles/site.css";
 import "../styles/blog.css";
 import "../styles/docs.css";
 import "../styles/content.css";
-import {
-  siteOrigin,
-  releaseImage,
-  releaseImageAlt,
-  type Locale,
-} from "../lib/i18n";
+import "../styles/code.css";
+import { releaseImage, releaseImageAlt, type Locale } from "../lib/i18n";
 interface Props {
   locale: Locale;
   title: string;
   description: string;
-  path: string;
   translations: Partial<Record<Locale, string>>;
   image?: string;
   imageAlt?: string;
@@ -24,15 +19,14 @@ const {
   locale,
   title,
   description,
-  path,
   translations,
   image = releaseImage,
   imageAlt = releaseImageAlt(locale),
   type = "website",
   section,
 } = Astro.props;
-const url = new URL(path, siteOrigin).href;
-const imageUrl = new URL(image, siteOrigin).href;
+const url = new URL(Astro.url.pathname, Astro.site).href;
+const imageUrl = new URL(image, Astro.site).href;
 ---
 
 <!doctype html>
@@ -55,14 +49,14 @@ const imageUrl = new URL(image, siteOrigin).href;
       <link
         rel="alternate"
         hreflang={language}
-        href={new URL(href!, siteOrigin).href}
+        href={new URL(href!, Astro.site).href}
       />
     ))}
     {translations.en && (
       <link
         rel="alternate"
         hreflang="x-default"
-        href={new URL(translations.en, siteOrigin).href}
+        href={new URL(translations.en, Astro.site).href}
       />
     )}
     {Object.entries({

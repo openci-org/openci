@@ -1,4 +1,5 @@
 ---
+import { Code } from "astro:components";
 import Icon from "./Icon.astro";
 import Pricing from "./Pricing.astro";
 import { translator, type Locale } from "../lib/i18n";
@@ -7,6 +8,29 @@ interface Props {
 }
 const { locale } = Astro.props;
 const t = translator(locale);
+const flutterCode = `${t(
+  "// flutter_ci.dart — 処理部分",
+  "// flutter_ci.dart — workflow steps",
+)}
+await ci.run('flutter pub get');
+
+await ci.flutter.staticAnalysis();
+await ci.flutter.unitTests();
+
+await ci.run(
+  'flutter build ios --no-codesign',
+);`;
+const dartCode = `${t(
+  "// dart_ci.dart — 処理部分",
+  "// dart_ci.dart — workflow steps",
+)}
+for (final command in [
+  'dart pub get',
+  'dart analyze',
+  'dart test',
+]) {
+  await ci.run(command);
+}`;
 ---
 
 <div class="stack-band wrap">
@@ -189,81 +213,7 @@ const t = translator(locale);
         aria-labelledby="tab-flutter"
         tabindex="0"
       >
-        <div class="dart-line">
-          <span class="line-number" aria-hidden="true">
-            1
-          </span>
-          <code>
-            <span class="syntax-comment">
-              {t(
-                "// flutter_ci.dart — 処理部分",
-                "// flutter_ci.dart — workflow steps",
-              )}
-            </span>
-          </code>
-        </div>
-        <div class="dart-line">
-          <span class="line-number" aria-hidden="true">
-            2
-          </span>
-          <code>
-            <span class="syntax-keyword">await</span> ci.run(
-            <span class="syntax-string">'flutter pub get'</span>);
-          </code>
-        </div>
-        <div class="dart-line">
-          <span class="line-number" aria-hidden="true">
-            3
-          </span>
-          <code></code>
-        </div>
-        <div class="dart-line">
-          <span class="line-number" aria-hidden="true">
-            4
-          </span>
-          <code>
-            <span class="syntax-keyword">await</span>{" "}
-            ci.flutter.staticAnalysis();
-          </code>
-        </div>
-        <div class="dart-line">
-          <span class="line-number" aria-hidden="true">
-            5
-          </span>
-          <code>
-            <span class="syntax-keyword">await</span> ci.flutter.unitTests();
-          </code>
-        </div>
-        <div class="dart-line">
-          <span class="line-number" aria-hidden="true">
-            6
-          </span>
-          <code></code>
-        </div>
-        <div class="dart-line">
-          <span class="line-number" aria-hidden="true">
-            7
-          </span>
-          <code>
-            <span class="syntax-keyword">await</span> ci.run(
-          </code>
-        </div>
-        <div class="dart-line">
-          <span class="line-number" aria-hidden="true">
-            8
-          </span>
-          <code>
-            {" "}
-            <span class="syntax-string">'flutter build ios --no-codesign'</span>
-            ,
-          </code>
-        </div>
-        <div class="dart-line">
-          <span class="line-number" aria-hidden="true">
-            9
-          </span>
-          <code>);</code>
-        </div>
+        <Code code={flutterCode} lang="dart" theme="css-variables" />
       </div>
       <div
         id="workflow-dart"
@@ -273,77 +223,7 @@ const t = translator(locale);
         tabindex="0"
         hidden=""
       >
-        <div class="dart-line">
-          <span class="line-number" aria-hidden="true">
-            1
-          </span>
-          <code>
-            <span class="syntax-comment">
-              {t(
-                "// dart_ci.dart — 処理部分",
-                "// dart_ci.dart — workflow steps",
-              )}
-            </span>
-          </code>
-        </div>
-        <div class="dart-line">
-          <span class="line-number" aria-hidden="true">
-            2
-          </span>
-          <code>
-            <span class="syntax-keyword">for</span> (
-            <span class="syntax-keyword">final</span> command{" "}
-            <span class="syntax-keyword">in</span> [
-          </code>
-        </div>
-        <div class="dart-line">
-          <span class="line-number" aria-hidden="true">
-            3
-          </span>
-          <code>
-            {" "}
-            <span class="syntax-string">'dart pub get'</span>,
-          </code>
-        </div>
-        <div class="dart-line">
-          <span class="line-number" aria-hidden="true">
-            4
-          </span>
-          <code>
-            {" "}
-            <span class="syntax-string">'dart analyze'</span>,
-          </code>
-        </div>
-        <div class="dart-line">
-          <span class="line-number" aria-hidden="true">
-            5
-          </span>
-          <code>
-            {" "}
-            <span class="syntax-string">'dart test'</span>,
-          </code>
-        </div>
-        <div class="dart-line">
-          <span class="line-number" aria-hidden="true">
-            6
-          </span>
-          <code>]) &#123;</code>
-        </div>
-        <div class="dart-line">
-          <span class="line-number" aria-hidden="true">
-            7
-          </span>
-          <code>
-            {" "}
-            <span class="syntax-keyword">await</span> ci.run(command);
-          </code>
-        </div>
-        <div class="dart-line">
-          <span class="line-number" aria-hidden="true">
-            8
-          </span>
-          <code>&#125;</code>
-        </div>
+        <Code code={dartCode} lang="dart" theme="css-variables" />
       </div>
       <div class="code-footer">
         <span>

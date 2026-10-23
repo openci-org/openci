@@ -24,8 +24,7 @@ interface Props {
 }
 const { page, pages, headings } = Astro.props;
 const locale = Astro.currentLocale as Locale,
-  t = translator(locale),
-  path = pagePath(page);
+  t = translator(locale);
 const posts = blogPosts(pages, locale),
   index = posts.findIndex((p) => p.id === page.id),
   next = posts.length > 1 ? posts[(index + 1) % posts.length] : undefined;
@@ -36,7 +35,6 @@ const translations = availableTranslations(page, pages);
   locale={locale}
   title={`${plainTitle(page.data.title)} — GenuineCI Blog`}
   description={page.data.description}
-  path={path}
   translations={translations}
   image={page.data.image}
   imageAlt={page.data.imageAlt}

@@ -1,0 +1,20 @@
+/* Astro's built-in Shiki theme follows each code surface's palette. */
+.astro-code {
+  --astro-code-foreground: var(--code-text, var(--content-pre-code, #ddd));
+  --astro-code-background: var(--code-bg, var(--content-pre-bg, #1b1d1b));
+  --astro-code-token-comment: var(--code-muted, #99a390);
+  --astro-code-token-keyword: var(--code-keyword, #fffb00);
+  --astro-code-token-string: var(--code-string, #bacdab);
+  --astro-code-token-string-expression: var(--code-string, #bacdab);
+  --astro-code-token-constant: var(--code-keyword, #fffb00);
+  --astro-code-token-parameter: var(--astro-code-foreground);
+  --astro-code-token-function: var(--astro-code-foreground);
+  --astro-code-token-punctuation: var(--astro-code-foreground);
+  --astro-code-token-link: var(--code-string, #bacdab);
+  --astro-code-token-inserted: var(--code-string, #bacdab);
+  --astro-code-token-deleted: #e57373;
+  --astro-code-token-changed: var(--code-keyword, #fffb00);
+}
+.astro-code code {
+  font: inherit;
+}
