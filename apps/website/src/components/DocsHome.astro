@@ -1,0 +1,292 @@
+---
+import { Code } from "astro:components";
+import { getRelativeLocaleUrl } from "astro:i18n";
+import Icon from "./Icon.astro";
+import { translator, type Locale } from "../lib/i18n";
+interface Props {
+  locale: Locale;
+}
+const { locale } = Astro.props;
+const t = translator(locale);
+const workflowCode = `import 'package:openci_workflow/openci_workflow.dart';
+
+Future<void> main() async {
+  final ci = await OpenCI.init(
+    workflowName: 'Flutter CI',
+    ciTriggers: [CITrigger.push(branch: 'main')],
+  );
+
+  await ci.run('flutter pub get');
+  await ci.flutter.staticAnalysis();
+  await ci.flutter.unitTests();
+  await ci.flutter.buildApk();
+}`;
+---
+
+<div class="d-home">
+  <header class="d-home-heading">
+    <span class="d-eyebrow">LET’S BUILD SOMETHING GENUINE.</span>
+    <h1>
+      GenuineCI Docs<span class="d-title-dot">.</span>
+    </h1>
+    <p class="d-lead">
+      {t(
+        "いつものDartで、ビルドからリリースまで。",
+        "From build to release, in the Dart you know.",
+      )}
+      <br />
+      {t(
+        "Flutter & DartのためのCIを、ここからはじめましょう。",
+        "Start here with CI for Flutter & Dart.",
+      )}
+    </p>
+  </header>
+  <section id="start" class="d-quickstart">
+    <div class="d-quickstart-copy">
+      <span class="d-kicker">YOUR FIRST BUILD</span>
+      <h2>
+        {t("最初の一歩を、", "Your first steps.")}
+        <br />
+        {t("一緒に。", "Together.")}
+      </h2>
+      <p>
+        {t(
+          "セットアップから、最初のワークフローまで。",
+          "From setup to your first workflow.",
+        )}
+        <br />
+        {t("小さなビルドからはじめよう。", "Start with a small build.")}
+      </p>
+      <a
+        class="d-primary"
+        href={getRelativeLocaleUrl(locale, "docs/quickstart/")}
+      >
+        <span>{t("クイックスタート", "Quickstart")}</span>
+        <Icon name="arrow" />
+      </a>
+    </div>
+    <div class="d-build-illustration" aria-hidden="true">
+      <div class="d-illustration-top">
+        <Icon name="branch" />
+        <span>main</span>
+        <span class="d-illustration-line"></span>
+      </div>
+      <div class="d-file-card">
+        <span class="d-file-icon">&#123; &#125;</span>
+        <div>
+          <strong>flutter_ci.dart</strong>
+          <span>Your workflow. Your code.</span>
+        </div>
+        <Icon name="check" />
+      </div>
+      <div class="d-pipeline">
+        <div>
+          <span class="d-pipeline-check">
+            <Icon name="check" />
+          </span>
+          <span>Analyze</span>
+        </div>
+        <div>
+          <span class="d-pipeline-check">
+            <Icon name="check" />
+          </span>
+          <span>Test</span>
+        </div>
+        <div>
+          <span class="d-pipeline-check">
+            <Icon name="check" />
+          </span>
+          <span>Build</span>
+        </div>
+      </div>
+      <div class="d-build-status">
+        <span class="d-status-dot"></span>
+        <span>ALL CHECKS PASSED</span>
+        <span>↗</span>
+      </div>
+    </div>
+  </section>
+  <section id="guides" class="d-guide-section">
+    <div class="d-section-heading">
+      <h2>{t("目的から探す", "Find a guide")}</h2>
+      <span>FIND YOUR WAY</span>
+    </div>
+    <div class="d-guide-grid">
+      <a class="d-guide" href={getRelativeLocaleUrl(locale, "docs/workflows/")}>
+        <div class="d-guide-top">
+          <span class="d-guide-icon">
+            <Icon name="code" />
+          </span>
+          <Icon name="arrow" />
+        </div>
+        <h3>{t("ワークフローを書く", "Write a workflow")}</h3>
+        <p>
+          {t("Dartで手順を定義。", "Define your steps in Dart.")}
+          <br />
+          {t("使い慣れた言語をCIにも。", "A familiar language for your CI.")}
+        </p>
+      </a>
+      <a class="d-guide" href={getRelativeLocaleUrl(locale, "docs/flutter/")}>
+        <div class="d-guide-top">
+          <span class="d-guide-icon">
+            <Icon name="box" />
+          </span>
+          <Icon name="arrow" />
+        </div>
+        <h3>{t("Flutterをビルドする", "Build with Flutter")}</h3>
+        <p>
+          {t("解析、テスト、ビルド。", "Analyze, test, and build.")}
+          <br />
+          {t("アプリの品質をコードで守る。", "Keep your app quality in code.")}
+        </p>
+      </a>
+      <a
+        class="d-guide"
+        href={getRelativeLocaleUrl(locale, "docs/self-hosting/")}
+      >
+        <div class="d-guide-top">
+          <span class="d-guide-icon">
+            <Icon name="server" />
+          </span>
+          <Icon name="arrow" />
+        </div>
+        <h3>{t("自分のMacで動かす", "Run on your own Mac")}</h3>
+        <p>
+          {t("Apple Siliconで実行。", "Run on Apple Silicon.")}
+          <br />
+          {t("実行環境も、自分の手に。", "Own your build environment.")}
+        </p>
+      </a>
+    </div>
+  </section>
+  <section id="write-dart" class="d-dart-section">
+    <div class="d-section-heading">
+      <h2>
+        {t(
+          "ワークフローも、いつものDartで。",
+          "Workflows in the Dart you know.",
+        )}
+      </h2>
+      <span>FAMILIAR BY DESIGN</span>
+    </div>
+    <p class="d-section-description">
+      {t(
+        "特別な構文はいりません。関数も、条件分岐も、そのまま。",
+        "No special syntax. Use the same functions and conditionals you already know.",
+      )}
+    </p>
+    <div class="d-home-code d-code-surface" data-code-theme="dark">
+      <div class="d-code-bar">
+        <span>
+          <Icon name="code" />
+          openci/flutter_ci.dart
+        </span>
+        <span class="d-code-language">Dart</span>
+        <div
+          class="d-code-theme-toggle"
+          role="group"
+          aria-label={t("コードサンプルの背景", "Code sample background")}
+        >
+          <button
+            type="button"
+            data-code-theme-choice="light"
+            aria-pressed="false"
+          >
+            Light
+          </button>
+          <button
+            type="button"
+            data-code-theme-choice="dark"
+            aria-pressed="true"
+          >
+            Dark
+          </button>
+        </div>
+        <button
+          class="d-code-copy"
+          type="button"
+          data-copy-home=""
+          aria-label={t("コードをコピー", "Copy code")}
+        >
+          <Icon name="copy" />
+          <span>{t("コピー", "Copy")}</span>
+        </button>
+      </div>
+      <Code
+        id="home-code"
+        code={workflowCode}
+        lang="dart"
+        theme="css-variables"
+      />
+      <div class="d-code-caption">
+        <span>
+          {t(
+            "シンプルに書いて、確かに動かす。",
+            "Simple code. Reliable builds.",
+          )}
+        </span>
+        <a href={getRelativeLocaleUrl(locale, "docs/workflows/")}>
+          <span>{t("ワークフローの書き方", "Writing workflows")}</span>
+          <Icon name="arrow" marketing />
+        </a>
+      </div>
+    </div>
+  </section>
+  <section class="d-reference-section">
+    <a
+      class="d-reference-link"
+      href={getRelativeLocaleUrl(locale, "docs/cli/")}
+    >
+      <Icon name="terminal" />
+      <div>
+        <strong>{t("CLIリファレンス", "CLI reference")}</strong>
+        <p>
+          {t(
+            "必要なコマンドを、すぐ手元に。",
+            "The commands you need, close at hand.",
+          )}
+        </p>
+      </div>
+      <Icon name="arrow" />
+    </a>
+    <a
+      class="d-reference-link"
+      href={getRelativeLocaleUrl(locale, "docs/secrets/")}
+    >
+      <Icon name="lock" />
+      <div>
+        <strong>{t("シークレットの管理", "Manage secrets")}</strong>
+        <p>
+          {t(
+            "ビルドに必要な値を管理する。",
+            "Manage the values your builds need.",
+          )}
+        </p>
+      </div>
+      <Icon name="arrow" />
+    </a>
+  </section>
+  <section id="open-source" class="d-open-source">
+    <Icon name="github" />
+    <div>
+      <h2>
+        {t(
+          "コードも、つくる過程も、オープンに。",
+          "Open code. Open development.",
+        )}
+      </h2>
+      <p>
+        {t(
+          "GenuineCIはオープンソース。あなたのアイデアを待っています。",
+          "GenuineCI is open source. Bring your ideas.",
+        )}
+      </p>
+    </div>
+    <a
+      href="https://github.com/openci-org/openci"
+      aria-label={t("GitHubでGenuineCIを見る", "View GenuineCI on GitHub")}
+    >
+      <Icon name="external" />
+    </a>
+  </section>
+</div>

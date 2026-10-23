@@ -1,0 +1,30 @@
+---
+import { getRelativeLocaleUrl } from "astro:i18n";
+import { translator, type Locale } from "../lib/i18n";
+interface Props {
+  locale: Locale;
+}
+const { locale } = Astro.props;
+const t = translator(locale);
+---
+
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <span>© 2026 GenuineCI</span>
+    <span class="footer-tagline">
+      Open source. Built for Flutter &amp; Dart.
+    </span>
+    <a href={getRelativeLocaleUrl(locale, "docs/")}>
+      <span>Docs</span>
+    </a>
+    <a href="#pricing">
+      <span>{t("料金", "Pricing")}</span>
+    </a>
+    <a href={getRelativeLocaleUrl(locale, "blog/")}>
+      <span>{t("ブログ", "Blog")}</span>
+    </a>
+    <a href="#">
+      <span>{t("ページの先頭へ ↑", "Back to top ↑")}</span>
+    </a>
+  </div>
+</footer>

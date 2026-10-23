@@ -1,0 +1,186 @@
+---
+import Icon from "./Icon.astro";
+import { translator, type Locale } from "../lib/i18n";
+interface Props {
+  locale: Locale;
+}
+const { locale } = Astro.props;
+const t = translator(locale);
+---
+
+<main id="main">
+  <section class="hero wrap">
+    <div class="hero-kicker">
+      <span>BUILT IN DART. MADE FOR FLUTTER &amp; DART.</span>
+      <span>OPEN SOURCE. YOUR MACHINES, TOO.</span>
+    </div>
+    <div class="hero-wordmark" aria-label="GenuineCI">
+      GenuineCI
+    </div>
+    <div class="hero-story">
+      <h1>
+        {t("Flutter & Dartに、", "For Flutter & Dart.")}
+        <br />
+        {t("本物のCIを。", "Real CI.")}
+      </h1>
+      <div class="hero-description">
+        <p>
+          {t(
+            "Dartで書かれた、Flutter & Dart専用のCI。",
+            "CI for Flutter & Dart, built in Dart.",
+          )}
+          <br />
+          {t(
+            "ワークフローもDartで定義。Apple Siliconで動く、セルフホストも可能なオープンソースCIです。",
+            "Write your workflows in Dart. Run on Apple Silicon. Open source, with the freedom to self-host.",
+          )}
+        </p>
+        <div class="hero-actions">
+          <a class="button button-dark" href="#get-started">
+            <span>
+              {t("GenuineCI をはじめる", "Get started with GenuineCI")}
+            </span>
+            <Icon name="arrow" marketing />
+          </a>
+          <a class="text-link" href="#workflow">
+            <span>{t("仕組みを見る", "See how it works")}</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+  <div class="wrap">
+    <section
+      class="build-preview"
+      aria-label={t(
+        "ビルド画面のデザインプレビュー",
+        "Build dashboard design preview",
+      )}
+    >
+      <div class="window-top">
+        <div class="window-dots" aria-hidden="true">
+          <i></i>
+          <i></i>
+          <i></i>
+        </div>
+        <span>GenuineCI / workspace / your-flutter-app</span>
+        <span class="preview-label">UI PREVIEW</span>
+      </div>
+      <div class="dashboard-body">
+        <aside class="dashboard-sidebar">
+          <div class="workspace-name">
+            <span class="workspace-icon">g</span>
+            <span>Your workspace</span>
+          </div>
+          <div class="sidebar-item">
+            <Icon name="grid" marketing />
+            <span>Overview</span>
+          </div>
+          <div class="sidebar-item selected">
+            <Icon name="play" marketing />
+            <span>Builds</span>
+            <span class="count">24</span>
+          </div>
+          <div class="sidebar-item">
+            <Icon name="branch" marketing />
+            <span>Workflows</span>
+          </div>
+          <div class="sidebar-item">
+            <Icon name="box" marketing />
+            <span>Artifacts</span>
+          </div>
+          <div class="sidebar-bottom">
+            <span class="avatar">Y</span>
+            <span>Your team</span>
+          </div>
+        </aside>
+        <div class="dashboard-main">
+          <div class="build-heading">
+            <div>
+              <p class="build-breadcrumb">
+                your-flutter-app / flutter_ci.dart / #128
+              </p>
+              <h2>Flutter CI — all checks passed.</h2>
+            </div>
+            <span class="status-badge">
+              <Icon name="check" marketing />
+              <span>Passed</span>
+            </span>
+          </div>
+          <div class="build-meta">
+            <span>
+              <Icon name="branch" marketing />
+              main
+            </span>
+            <span class="commit">a1b2c3d</span>
+            <span>
+              <Icon name="cpu" marketing />
+              macOS · Apple M4
+            </span>
+            <span>
+              <Icon name="clock" marketing />
+              2m 48s
+            </span>
+          </div>
+          <div class="pipeline">
+            <div class="pipeline-step">
+              <div class="step-top">
+                <span class="check-circle">
+                  <Icon name="check" marketing />
+                </span>
+                <strong>Checkout</strong>
+              </div>
+              <span class="step-time">4s</span>
+            </div>
+            <div class="pipeline-step">
+              <div class="step-top">
+                <span class="check-circle">
+                  <Icon name="check" marketing />
+                </span>
+                <strong>Analyze</strong>
+              </div>
+              <span class="step-time">18s</span>
+            </div>
+            <div class="pipeline-step">
+              <div class="step-top">
+                <span class="check-circle">
+                  <Icon name="check" marketing />
+                </span>
+                <strong>Test</strong>
+              </div>
+              <span class="step-time">42s</span>
+            </div>
+            <div class="pipeline-step">
+              <div class="step-top">
+                <span class="check-circle">
+                  <Icon name="check" marketing />
+                </span>
+                <strong>Build</strong>
+              </div>
+              <span class="step-time">1m 44s</span>
+            </div>
+          </div>
+          <div class="terminal-preview">
+            <div class="terminal-title">
+              <Icon name="terminal" marketing />
+              <span>Build output</span>
+              <span class="sample-note">{t("サンプル", "Sample")}</span>
+            </div>
+            <div class="terminal-line">
+              <span>01</span>
+              <code>$ dart run flutter_ci.dart</code>
+            </div>
+            <div class="terminal-line muted-line">
+              <span>02</span>
+              <code>Running Flutter analysis, tests and build…</code>
+            </div>
+            <div class="terminal-line success-line">
+              <span>03</span>
+              <code>✓ Workflow completed on Apple Silicon.</code>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+</main>

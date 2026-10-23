@@ -1,0 +1,34 @@
+---
+import { getRelativeLocaleUrl } from "astro:i18n";
+import Icon from "./Icon.astro";
+import { translator, type Locale } from "../lib/i18n";
+interface Props {
+  locale: Locale;
+}
+const { locale } = Astro.props;
+const t = translator(locale);
+---
+
+<footer class="journal-footer">
+  <div class="wrap journal-footer-top">
+    <div>
+      <p class="eyebrow">BUILT IN DART. BUILT IN THE OPEN.</p>
+      <h2>
+        {t("つくる人のための、\n本物のCI。", "Real CI.\nFor people who build.")}
+      </h2>
+    </div>
+    <a class="button button-dark" href={getRelativeLocaleUrl(locale)}>
+      <span>{t("GenuineCI を知る", "Explore GenuineCI")}</span>
+      <Icon name="arrow" marketing />
+    </a>
+  </div>
+  <div class="wrap journal-footer-bottom">
+    <a class="brand" href={getRelativeLocaleUrl(locale)}>
+      <span>GenuineCI</span>
+    </a>
+    <span>© 2026 GenuineCI</span>
+    <a href={getRelativeLocaleUrl(locale, "blog/")}>
+      <span>{t("ブログ一覧へ", "Back to the blog")}</span>
+    </a>
+  </div>
+</footer>

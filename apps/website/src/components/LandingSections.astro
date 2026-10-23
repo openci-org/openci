@@ -1,0 +1,409 @@
+---
+import { Code } from "astro:components";
+import Icon from "./Icon.astro";
+import Pricing from "./Pricing.astro";
+import { translator, type Locale } from "../lib/i18n";
+interface Props {
+  locale: Locale;
+}
+const { locale } = Astro.props;
+const t = translator(locale);
+const flutterCode = `${t(
+  "// flutter_ci.dart — 処理部分",
+  "// flutter_ci.dart — workflow steps",
+)}
+await ci.run('flutter pub get');
+
+await ci.flutter.staticAnalysis();
+await ci.flutter.unitTests();
+
+await ci.run(
+  'flutter build ios --no-codesign',
+);`;
+const dartCode = `${t(
+  "// dart_ci.dart — 処理部分",
+  "// dart_ci.dart — workflow steps",
+)}
+for (final command in [
+  'dart pub get',
+  'dart analyze',
+  'dart test',
+]) {
+  await ci.run(command);
+}`;
+---
+
+<div class="stack-band wrap">
+  <span class="stack-caption">
+    {t("Flutter & Dart 専用のCI。", "CI built for Flutter & Dart.")}
+  </span>
+  <div class="stack-names">
+    <span>Flutter</span>
+    <span>Dart</span>
+    <span>Apple Silicon</span>
+    <span>Open source</span>
+  </div>
+</div>
+<section id="features" class="section wrap features">
+  <div class="section-label">
+    <span class="section-number">01</span>
+    <span>WHAT MAKES IT GENUINE</span>
+  </div>
+  <div class="section-heading">
+    <h2>
+      {t("本物のCIを、", "Real CI.")}
+      <br />
+      {t("オープンにつくる。", "Built in the open.")}
+    </h2>
+    <p>
+      {t(
+        "Genuineは「本物」。Flutter & Dartの開発者にとって、本当に使いたいCIをつくる。そのための、オープンソースプロジェクトです。",
+        "Genuine means real. We are building the CI that Flutter & Dart developers want to use, as an open-source project.",
+      )}
+    </p>
+  </div>
+  <div class="feature-grid">
+    <article class="feature">
+      <div class="feature-top">
+        <span class="feature-icon">
+          <Icon name="cpu" marketing />
+        </span>
+        <span>/ 01</span>
+      </div>
+      <h3>{t("Flutter & Dartのために。", "Made for Flutter & Dart.")}</h3>
+      <p>
+        {t(
+          "GenuineCI自体もDartで書かれています。FlutterアプリもDartパッケージも、いつもの言語でワークフローから支えます。",
+          "GenuineCI itself is written in Dart. Use a familiar language to write workflows for your Flutter apps and Dart packages.",
+        )}
+      </p>
+      <div class="feature-tags">
+        <span>Built with Dart</span>
+        <span>Dart workflows</span>
+      </div>
+    </article>
+    <article class="feature">
+      <div class="feature-top">
+        <span class="feature-icon">
+          <Icon name="branch" marketing />
+        </span>
+        <span>/ 02</span>
+      </div>
+      <h3>{t("Apple Siliconで動かす。", "Run on Apple Silicon.")}</h3>
+      <p>
+        {t(
+          "現在の実行マシンはApple Siliconのみ。M1・M2・M3・M4をサポートし、Mac上でビルドとテストを実行します。",
+          "Builds and tests currently run on Apple Silicon Macs, with support for M1, M2, M3, and M4.",
+        )}
+      </p>
+      <div class="feature-tags">
+        <span>M1 / M2 / M3 / M4</span>
+        <span>macOS</span>
+      </div>
+    </article>
+    <article class="feature">
+      <div class="feature-top">
+        <span class="feature-icon">
+          <Icon name="terminal" marketing />
+        </span>
+        <span>/ 03</span>
+      </div>
+      <h3>
+        {t("コードも、運用も、自分の手で。", "Your code. Your machines.")}
+      </h3>
+      <p>
+        {t(
+          "GenuineCIはOSS。ソースコードを読んで、改善に参加することも、自分のApple Siliconマシンでセルフホストすることもできます。",
+          "Read the source, contribute improvements, or self-host on your own Apple Silicon machines. GenuineCI is open source.",
+        )}
+      </p>
+      <a
+        class="text-link feature-source"
+        href="https://github.com/openci-org/openci"
+      >
+        <span>{t("GitHubでソースを見る", "View source on GitHub")}</span>
+        <Icon name="external" marketing />
+      </a>
+      <div class="feature-tags">
+        <span>Open source</span>
+        <span>Self-hosted</span>
+      </div>
+    </article>
+  </div>
+</section>
+<section id="workflow" class="workflow-section">
+  <div class="wrap workflow-grid">
+    <div class="workflow-copy">
+      <div class="section-label">
+        <span class="section-number">02</span>
+        <span>YOUR WORKFLOW IS DART</span>
+      </div>
+      <h2>
+        {t("ワークフローも、", "Your workflows.")}
+        <br />
+        {t("いつものDartで。", "The Dart you know.")}
+      </h2>
+      <p>
+        {t(
+          "ビルドやテストの手順を、Dartのコードで定義。関数、条件分岐、ループ。アプリ開発で使い慣れた書き方を、そのままCIにも。",
+          "Define build and test steps in Dart. Functions, conditionals, and loops: bring the code you already know to your CI.",
+        )}
+      </p>
+      <ul class="check-list">
+        <li>
+          <Icon name="check" marketing />
+          {t("Dartでワークフローを定義する", "Define workflows in Dart")}
+        </li>
+        <li>
+          <Icon name="check" marketing />
+          {t("関数にまとめて、手順を再利用する", "Reuse steps with functions")}
+        </li>
+        <li>
+          <Icon name="check" marketing />
+          {t(
+            "Flutter & Dartの解析・テストを実行する",
+            "Analyze and test Flutter & Dart projects",
+          )}
+        </li>
+      </ul>
+      <a class="text-link" href="#get-started">
+        <span>{t("はじめ方を見る", "See how to get started")}</span>
+        <Icon name="arrow" marketing />
+      </a>
+    </div>
+    <div class="code-panel">
+      <div
+        class="code-tabs"
+        role="tablist"
+        aria-label={t(
+          "Dartで定義するワークフローの例",
+          "Example workflows written in Dart",
+        )}
+      >
+        <button
+          id="tab-flutter"
+          class="code-tab active"
+          type="button"
+          role="tab"
+          aria-selected="true"
+          aria-controls="workflow-flutter"
+          tabindex="0"
+          data-workflow="flutter"
+        >
+          Flutter
+        </button>
+        <button
+          id="tab-dart"
+          class="code-tab"
+          type="button"
+          role="tab"
+          aria-selected="false"
+          aria-controls="workflow-dart"
+          tabindex="-1"
+          data-workflow="dart"
+        >
+          Dart
+        </button>
+        <span class="code-filetype">DART</span>
+      </div>
+      <div
+        id="workflow-flutter"
+        class="code-content dart-content"
+        role="tabpanel"
+        aria-labelledby="tab-flutter"
+        tabindex="0"
+      >
+        <Code code={flutterCode} lang="dart" theme="css-variables" />
+      </div>
+      <div
+        id="workflow-dart"
+        class="code-content dart-content"
+        role="tabpanel"
+        aria-labelledby="tab-dart"
+        tabindex="0"
+        hidden=""
+      >
+        <Code code={dartCode} lang="dart" theme="css-variables" />
+      </div>
+      <div class="code-footer">
+        <span>
+          <Icon name="terminal" marketing />
+          {t(
+            "Dartワークフロー · 初期化部分は省略",
+            "Dart workflow · initialization omitted",
+          )}
+        </span>
+        <span>Apple Silicon</span>
+      </div>
+    </div>
+  </div>
+</section>
+<Pricing locale={locale} />
+<section id="get-started" class="section wrap getting-started">
+  <div class="section-label">
+    <span class="section-number">04</span>
+    <span>YOUR FIRST BUILD STARTS HERE</span>
+  </div>
+  <div class="section-heading">
+    <h2>{t("まずは、ひとつのビルドから。", "Start with one build.")}</h2>
+    <a class="button button-outline" href="https://dashboard.openci.org/">
+      <span>{t("ダッシュボードを開く", "Open dashboard")}</span>
+      <Icon name="external" marketing />
+    </a>
+  </div>
+  <ol class="setup-steps">
+    <li>
+      <span class="setup-number">01</span>
+      <h3>{t("プロジェクトを選ぶ", "Choose a project")}</h3>
+      <p>
+        {t(
+          "FlutterアプリやDartパッケージ。まずはCIで確かめたいプロジェクトを用意します。",
+          "Pick the Flutter app or Dart package you want to check with CI.",
+        )}
+      </p>
+    </li>
+    <li>
+      <span class="setup-number">02</span>
+      <h3>{t("Dartで手順を書く", "Write your steps in Dart")}</h3>
+      <p>
+        {t(
+          "静的解析、テスト、ビルド。必要な処理をDartのワークフローとして定義します。",
+          "Analysis, tests, and builds. Define the steps you need as a Dart workflow.",
+        )}
+      </p>
+    </li>
+    <li>
+      <span class="setup-number">03</span>
+      <h3>{t("Apple Siliconで実行", "Run on Apple Silicon")}</h3>
+      <p>
+        {t(
+          "M1〜M4のMacでワークフローを実行。自分のマシンでセルフホストすることもできます。",
+          "Run your workflow on an M1–M4 Mac. You can also self-host on your own machines.",
+        )}
+      </p>
+    </li>
+  </ol>
+</section>
+<section class="faq-section wrap">
+  <div>
+    <div class="section-label">
+      <span class="section-number">05</span>
+      <span>GOOD TO KNOW</span>
+    </div>
+    <h2>{t("よくある質問", "Frequently asked questions")}</h2>
+  </div>
+  <div class="faq-list">
+    <details>
+      <summary>
+        {t(
+          "GenuineCIという名前には、どんな意味がありますか？",
+          "What does GenuineCI mean?",
+        )}
+        <span class="faq-plus" aria-hidden="true">
+          +
+        </span>
+      </summary>
+      <p>
+        {t(
+          "Genuineは「本物」という意味です。Flutter & Dartの開発者にとって、本当に使いたい、本物のCIをつくることを目指しています。",
+          "Genuine means real. Our goal is to build real CI that Flutter & Dart developers want to use.",
+        )}
+      </p>
+    </details>
+    <details>
+      <summary>
+        {t(
+          "どんなプロジェクトに対応していますか？",
+          "What projects does it support?",
+        )}
+        <span class="faq-plus" aria-hidden="true">
+          +
+        </span>
+      </summary>
+      <p>
+        {t(
+          "Flutter & Dart専用です。FlutterアプリやDartパッケージの静的解析、テスト、ビルドなどを、Dartで定義したワークフローで実行します。",
+          "GenuineCI is built for Flutter & Dart. Run analysis, tests, builds, and more for Flutter apps and Dart packages using workflows written in Dart.",
+        )}
+      </p>
+    </details>
+    <details>
+      <summary>
+        {t("どのマシンで動きますか？", "What machines does it run on?")}
+        <span class="faq-plus" aria-hidden="true">
+          +
+        </span>
+      </summary>
+      <p>
+        {t(
+          "現在はApple Silicon搭載のMacのみが対象です。M1・M2・M3・M4に対応しています。",
+          "Currently, Apple Silicon Macs are supported: M1, M2, M3, and M4.",
+        )}
+      </p>
+    </details>
+    <details>
+      <summary>
+        {t("セルフホストできますか？", "Can I self-host?")}
+        <span class="faq-plus" aria-hidden="true">
+          +
+        </span>
+      </summary>
+      <p>
+        {t(
+          "はい。GenuineCIはオープンソースです。自分のApple Siliconマシンを使ってセルフホストすることもできます。",
+          "Yes. GenuineCI is open source, and you can self-host on your own Apple Silicon machines.",
+        )}
+      </p>
+    </details>
+    <details>
+      <summary>
+        {t(
+          "GenuineCI自体は何で書かれていますか？",
+          "What is GenuineCI built with?",
+        )}
+        <span class="faq-plus" aria-hidden="true">
+          +
+        </span>
+      </summary>
+      <p>
+        {t(
+          "GenuineCIはDartで書かれています。サービス自体の実装も、利用するワークフローの定義もDartです。",
+          "GenuineCI is written in Dart. Both the service and your workflow definitions use Dart.",
+        )}
+      </p>
+    </details>
+    <details>
+      <summary>
+        {t("ワークフローは何で書きますか？", "How do I write a workflow?")}
+        <span class="faq-plus" aria-hidden="true">
+          +
+        </span>
+      </summary>
+      <p>
+        {t(
+          "Dartで定義します。関数や条件分岐、ループなど、Dartの言語機能を使ってビルドやテストの手順を組み立てられます。",
+          "Write it in Dart. Use functions, conditionals, loops, and other Dart language features to put together your build and test steps.",
+        )}
+      </p>
+    </details>
+  </div>
+</section>
+<section class="closing">
+  <div class="wrap closing-content">
+    <div>
+      <p class="eyebrow">GENUINE MEANS REAL.</p>
+      <h2>
+        {t("本物のCIを、", "Real CI.")}
+        <br />
+        {t("一緒につくろう。", "Built together.")}
+      </h2>
+    </div>
+    <a class="button button-dark" href="#get-started">
+      <span>{t("GenuineCI をはじめる", "Get started with GenuineCI")}</span>
+      <Icon name="arrow" marketing />
+    </a>
+  </div>
+  <div class="wrap footer-wordmark" aria-hidden="true">
+    GenuineCI
+  </div>
+</section>

@@ -1,0 +1,20 @@
+---
+import { icons, marketingIcons } from "../lib/icons";
+interface Props {
+  name: string;
+  marketing?: boolean;
+}
+const { name, marketing = false } = Astro.props;
+---
+
+<svg
+  class={marketing ? "icon" : "d-icon"}
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="currentColor"
+  stroke-width="1.6"
+  stroke-linecap="round"
+  stroke-linejoin="round"
+  aria-hidden="true"
+  set:html={(marketing ? marketingIcons : icons)[name] ?? icons.book}
+/>

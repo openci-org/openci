@@ -1,0 +1,29 @@
+---
+import { translator, locales, type Locale } from "../lib/i18n";
+interface Props {
+  translations: Partial<Record<Locale, string>>;
+}
+const { translations } = Astro.props;
+const locale = Astro.currentLocale as Locale;
+const t = translator(locale);
+---
+
+<nav class="language-switcher" aria-label={t("言語を選択", "Choose language")}>
+  {locales.map((language) =>
+    translations[language] ? (
+      <a
+        href={translations[language]}
+        lang={language}
+        hreflang={language}
+        data-language-link
+        aria-current={language === locale ? "page" : undefined}
+      >
+        {language === "en" ? "English" : "日本語"}
+      </a>
+    ) : (
+      <span lang={language} aria-disabled="true">
+        {language === "en" ? "English" : "日本語"}
+      </span>
+    ),
+  )}
+</nav>

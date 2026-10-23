@@ -1,0 +1,97 @@
+---
+import "../styles/site.css";
+import "../styles/blog.css";
+import "../styles/docs.css";
+import "../styles/content.css";
+import "../styles/code.css";
+import { releaseImage, releaseImageAlt, type Locale } from "../lib/i18n";
+interface Props {
+  locale: Locale;
+  title: string;
+  description: string;
+  translations: Partial<Record<Locale, string>>;
+  image?: string;
+  imageAlt?: string;
+  type?: string;
+  section?: string;
+}
+const {
+  locale,
+  title,
+  description,
+  translations,
+  image = releaseImage,
+  imageAlt = releaseImageAlt(locale),
+  type = "website",
+  section,
+} = Astro.props;
+const url = new URL(Astro.url.pathname, Astro.site).href;
+const imageUrl = new URL(image, Astro.site).href;
+---
+
+<!doctype html>
+<html
+  lang={locale}
+  prefix="og: https://ogp.me/ns# article: https://ogp.me/ns/article#"
+>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="generator" content={Astro.generator} />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <meta name="theme-color" content="#fffb00" />
+    <meta name="robots" content="noindex, nofollow" />
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <link rel="canonical" href={url} />
+    <link rel="license" href="/licenses/jaspr-content.txt" />
+    {Object.entries(translations).map(([language, href]) => (
+      <link
+        rel="alternate"
+        hreflang={language}
+        href={new URL(href!, Astro.site).href}
+      />
+    ))}
+    {translations.en && (
+      <link
+        rel="alternate"
+        hreflang="x-default"
+        href={new URL(translations.en, Astro.site).href}
+      />
+    )}
+    {Object.entries({
+      "og:title": title,
+      "og:type": type,
+      "og:url": url,
+      "og:description": description,
+      "og:site_name": "GenuineCI",
+      "og:locale": locale === "ja" ? "ja_JP" : "en_US",
+      "og:image": imageUrl,
+      "og:image:type": "image/jpeg",
+      "og:image:width": "1200",
+      "og:image:height": "630",
+      "og:image:alt": imageAlt,
+      ...(section ? { "article:section": section } : {}),
+    }).map(([property, content]) => (
+      <meta property={property} content={content} />
+    ))}
+    <meta name="twitter:card" content="summary_large_image" />
+    {Object.entries({
+      title,
+      description,
+      image: imageUrl,
+      "image:alt": imageAlt,
+    }).map(([name, content]) => (
+      <meta name={`twitter:${name}`} content={content} />
+    ))}
+  </head>
+  <body>
+    <slot />
+    <script>
+      import "../scripts/site.js";
+      import "../scripts/blog.js";
+      import "../scripts/docs.js";
+      import "../scripts/copy.js";
+    </script>
+  </body>
+</html>

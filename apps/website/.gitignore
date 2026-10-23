@@ -1,5 +1,5 @@
-.dart_tool/
-build/
-lib/*.options.dart
+node_modules/
+dist/
+.astro/
 .firebase/
 firebase-debug.log*

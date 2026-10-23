@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:openci_workflow/openci_workflow.dart';
 
 Future<void> main() async {
@@ -12,18 +10,6 @@ Future<void> main() async {
     currentWorkingDirectory: 'apps/website',
   );
 
-  // Web compiler versions differ between the supported Dart SDKs.
-  await openCI.run(
-    'flutter pub get',
-    workingDirectory: '.',
-  );
-  await openCI.run('dart format --output=none --set-exit-if-changed lib test');
-  // Avoid collisions with a preview or another build on the CI machine.
-  final socket = await ServerSocket.bind(InternetAddress.anyIPv4, 0);
-  final port = socket.port;
-  await socket.close();
-  await openCI.run('dart run jaspr_cli:jaspr build --port $port');
-  // Analytics network failures must not crash the CI analysis server.
-  await openCI.run('dart --suppress-analytics analyze --fatal-infos');
-  await openCI.run('dart test');
+  // Bootstrap the pinned runtime; CI VMs may not have Node.js/npm installed.
+  await openCI.run('bash scripts/ci.sh');
 }

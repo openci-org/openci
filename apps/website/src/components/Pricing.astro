@@ -1,0 +1,205 @@
+---
+import { getRelativeLocaleUrl } from "astro:i18n";
+import Icon from "./Icon.astro";
+import { translator, type Locale } from "../lib/i18n";
+interface Props {
+  locale: Locale;
+}
+const { locale } = Astro.props;
+const t = translator(locale);
+---
+
+<section
+  id="pricing"
+  class="section wrap pricing"
+  aria-labelledby="pricing-title"
+>
+  <div class="section-label">
+    <span class="section-number">03</span>
+    <span>PRICING</span>
+  </div>
+  <div class="section-heading">
+    <h2 id="pricing-title">
+      {t("チームに合った、", "Simple pricing.")}
+      <br />
+      {t("シンプルな料金。", "For your team.")}
+    </h2>
+    <p>
+      {t(
+        "Apple Siliconで動くGenuineCI Cloud。個人開発からチーム開発まで、必要な実行時間で選べます。",
+        "GenuineCI Cloud runs on Apple Silicon. Choose the build time you need, whether you work solo or with a team.",
+      )}
+    </p>
+  </div>
+  <div class="pricing-grid">
+    <article class="pricing-card" aria-labelledby="plan-light">
+      <h3 id="plan-light">Light</h3>
+      <p class="pricing-description">
+        {t(
+          "個人開発や、小さく始めるチームに。",
+          "For solo developers and teams starting small.",
+        )}
+      </p>
+      <p class="pricing-price">
+        <span class="pricing-currency">US$</span>
+        <strong>10</strong>
+        <span class="pricing-period">
+          {t("/ 月・チーム", "/ month per team")}
+        </span>
+      </p>
+      <p class="pricing-allowance">
+        <Icon name="clock" marketing />
+        <strong>{t("600分", "600 min")}</strong>
+        <span>{t("/ 月のCI実行時間", "/ month of CI runtime")}</span>
+      </p>
+      <ul class="check-list pricing-features">
+        <li>
+          <Icon name="check" marketing />
+          {t("Apple SiliconのMacで実行", "Run on Apple Silicon Macs")}
+        </li>
+        <li>
+          <Icon name="check" marketing />
+          {t("チーム全員で利用時間を共有", "Share runtime across your team")}
+        </li>
+        <li>
+          <Icon name="check" marketing />
+          {t(
+            "プランによる同時実行数制限なし",
+            "No plan-based concurrency limit",
+          )}
+        </li>
+      </ul>
+      <a
+        class="button button-dark"
+        href="https://dashboard.openci.org/"
+        aria-label={t(
+          "Lightプランをダッシュボードで選ぶ",
+          "Choose Light in the dashboard",
+        )}
+      >
+        <span>{t("ダッシュボードで選ぶ", "Choose in dashboard")}</span>
+        <Icon name="external" marketing />
+      </a>
+    </article>
+    <article class="pricing-card pricing-pro" aria-labelledby="plan-pro">
+      <h3 id="plan-pro">Pro</h3>
+      <p class="pricing-description">
+        {t(
+          "毎日のビルドを、チームでしっかり。",
+          "For teams building every day.",
+        )}
+      </p>
+      <p class="pricing-price">
+        <span class="pricing-currency">US$</span>
+        <strong>100</strong>
+        <span class="pricing-period">
+          {t("/ 月・チーム", "/ month per team")}
+        </span>
+      </p>
+      <p class="pricing-allowance">
+        <Icon name="clock" marketing />
+        <strong>{t("6,000分", "6,000 min")}</strong>
+        <span>{t("/ 月のCI実行時間", "/ month of CI runtime")}</span>
+      </p>
+      <ul class="check-list pricing-features">
+        <li>
+          <Icon name="check" marketing />
+          {t("Apple SiliconのMacで実行", "Run on Apple Silicon Macs")}
+        </li>
+        <li>
+          <Icon name="check" marketing />
+          {t("チーム全員で利用時間を共有", "Share runtime across your team")}
+        </li>
+        <li>
+          <Icon name="check" marketing />
+          {t(
+            "プランによる同時実行数制限なし",
+            "No plan-based concurrency limit",
+          )}
+        </li>
+      </ul>
+      <a
+        class="button button-dark"
+        href="https://dashboard.openci.org/"
+        aria-label={t(
+          "Proプランをダッシュボードで選ぶ",
+          "Choose Pro in the dashboard",
+        )}
+      >
+        <span>{t("ダッシュボードで選ぶ", "Choose in dashboard")}</span>
+        <Icon name="external" marketing />
+      </a>
+    </article>
+  </div>
+  <p class="pricing-signup">
+    {t(
+      "Webダッシュボードでチームを選び、「設定 → 課金を管理」からお申し込みください。初回から決済が発生します。",
+      "Select your team in the web dashboard, then open Settings → Manage billing to subscribe. Payment is taken when you subscribe.",
+    )}
+  </p>
+  <ul class="pricing-notes">
+    <li>
+      {t(
+        "利用枠は毎月の請求期間ごとに適用されます。各ジョブの実行時間を合算し、キューや依存ジョブの待ち時間は含みません。",
+        "The allowance applies to each monthly billing period. Usage is the sum of job runtime, excluding time spent in queues or waiting for dependencies.",
+      )}
+    </li>
+    <li>
+      {t(
+        "プラン・チーム単位の同時実行数制限はありません。実際の開始時刻は、ワーカーの空き状況によります。",
+        "There is no concurrency cap per plan or team. When jobs start depends on worker availability.",
+      )}
+    </li>
+    <li>
+      {t(
+        "利用枠を使い切ると新しいCIの開始を止めます。実行中のジョブは完了まで継続し、追加の従量料金は発生しません。",
+        "Once the allowance is used up, new CI runs are blocked. Running jobs can finish, and there are no overage charges.",
+      )}
+    </li>
+  </ul>
+  <div class="pricing-guarantee">
+    <div>
+      <h3>{t("7日間返金保証", "7-day money-back guarantee")}</h3>
+      <p>
+        {t("まずは、いつものプロジェクトで。", "Try it with your own project.")}
+      </p>
+    </div>
+    <div>
+      <p>
+        {t(
+          "初回決済の成功から168時間以内の申請で全額返金します。更新・再契約は対象外です。",
+          "Request a full refund within 168 hours of your first successful payment. Renewals and resubscriptions are excluded.",
+        )}
+      </p>
+      <details>
+        <summary>
+          {t("返金時の取り扱い・申請先", "Refund details and contact")}
+        </summary>
+        <p>
+          {t(
+            "返金時は即時解約となり、新しいCIは開始できません。実行中のCIは完了まで継続します。チーム名を添えて、メールでご連絡ください。",
+            "A refund cancels your subscription immediately and blocks new CI runs. Running jobs can finish. Email us with your team name to request a refund.",
+          )}
+        </p>
+        <a href="mailto:m.aoki@openci.org">
+          <span>m.aoki@openci.org</span>
+        </a>
+      </details>
+    </div>
+  </div>
+  <div class="pricing-self-hosted">
+    <p>
+      {t(
+        "自分のマシンで動かすなら、セルフホストも。Cloudの料金は適用されません。",
+        "Prefer your own machines? You can self-host. Cloud pricing does not apply.",
+      )}
+    </p>
+    <a
+      class="text-link"
+      href={getRelativeLocaleUrl(locale, "docs/self-hosting/")}
+    >
+      <span>{t("セルフホストのガイド", "Self-hosting guide")}</span>
+      <Icon name="arrow" marketing />
+    </a>
+  </div>
+</section>

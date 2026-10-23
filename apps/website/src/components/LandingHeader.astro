@@ -1,0 +1,43 @@
+---
+import { getRelativeLocaleUrl } from "astro:i18n";
+import Icon from "./Icon.astro";
+import { translator, type Locale } from "../lib/i18n";
+interface Props {
+  locale: Locale;
+}
+const { locale } = Astro.props;
+const t = translator(locale);
+---
+
+<header class="site-header wrap">
+  <a class="brand" href="#">
+    <span>GenuineCI</span>
+  </a>
+  <nav
+    class="desktop-nav"
+    aria-label={t("メインナビゲーション", "Main navigation")}
+  >
+    <a href="#features">
+      <span>{t("特長", "Features")}</span>
+    </a>
+    <a href="#workflow">
+      <span>{t("ワークフロー", "Workflows")}</span>
+    </a>
+    <a href="#pricing">
+      <span>{t("料金", "Pricing")}</span>
+    </a>
+    <a href={getRelativeLocaleUrl(locale, "docs/")}>
+      <span>Docs</span>
+    </a>
+    <a href={getRelativeLocaleUrl(locale, "blog/")}>
+      <span>{t("ブログ", "Blog")}</span>
+    </a>
+  </nav>
+  <a class="mobile-blog-link" href="#pricing">
+    <span>{t("料金", "Pricing")}</span>
+  </a>
+  <a class="button button-small button-dark" href="#get-started">
+    <span>{t("はじめる", "Get started")}</span>
+    <Icon name="arrow" marketing />
+  </a>
+</header>

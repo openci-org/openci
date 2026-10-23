@@ -1,0 +1,32 @@
+---
+import { getCollection, render } from "astro:content";
+import DocsLayout from "../layouts/DocsLayout.astro";
+import BlogIndex from "../layouts/BlogIndex.astro";
+import BlogArticle from "../layouts/BlogArticle.astro";
+import type { Page } from "../lib/content";
+export async function getStaticPaths() {
+  const pages = await getCollection("pages");
+  return pages.map((page) => ({
+    params: { page: page.id },
+    props: { page, pages },
+  }));
+}
+interface Props {
+  page: Page;
+  pages: Page[];
+}
+const { page, pages } = Astro.props;
+const { Content, headings } = await render(page);
+---
+
+{page.data.layout === "blog-index" ? (
+  <BlogIndex page={page} pages={pages} />
+) : page.data.layout === "blog-article" ? (
+  <BlogArticle page={page} pages={pages} headings={headings}>
+    <Content />
+  </BlogArticle>
+) : (
+  <DocsLayout page={page} pages={pages} headings={headings}>
+    <Content />
+  </DocsLayout>
+)}

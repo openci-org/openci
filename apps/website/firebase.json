@@ -1,17 +1,9 @@
 {
   "hosting": {
     "target": "website",
-    "public": "build/jaspr",
-    "ignore": [
-      "firebase.json",
-      "**/.*",
-      "**/node_modules/**"
-    ],
-    "predeploy": [
-      "cd \"$PROJECT_DIR\" && flutter --suppress-analytics pub get",
-      "cd \"$PROJECT_DIR\" && dart --suppress-analytics run jaspr_cli:jaspr build --port 62841",
-      "cd \"$PROJECT_DIR\" && dart --suppress-analytics test"
-    ],
+    "public": "dist",
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+    "predeploy": ["cd \"$PROJECT_DIR\" && bash scripts/ci.sh"],
     "cleanUrls": true,
     "headers": [
       {

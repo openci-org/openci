@@ -1,0 +1,145 @@
+---
+import BaseLayout from "./BaseLayout.astro";
+import BlogHeader from "../components/BlogHeader.astro";
+import BlogFooter from "../components/BlogFooter.astro";
+import LanguageSwitcher from "../components/LanguageSwitcher.astro";
+import PostMeta from "../components/PostMeta.astro";
+import PostCover from "../components/PostCover.astro";
+import Icon from "../components/Icon.astro";
+import { translator, type Locale } from "../lib/i18n";
+import {
+  availableTranslations,
+  blogPosts,
+  pagePath,
+  type Page,
+} from "../lib/content";
+interface Props {
+  page: Page;
+  pages: Page[];
+}
+const { page, pages } = Astro.props;
+const locale = Astro.currentLocale as Locale,
+  t = translator(locale);
+const posts = blogPosts(pages, locale),
+  featured = posts[0],
+  categories = [...new Set(posts.map((p) => p.data.category!))];
+const translations = availableTranslations(page, pages);
+---
+
+<BaseLayout
+  locale={locale}
+  title={page.data.title}
+  description={page.data.description}
+  translations={translations}
+>
+  <div class="journal-page">
+    <a class="skip-link" href="#main">
+      <span>{t("本文へスキップ", "Skip to content")}</span>
+    </a>
+    <LanguageSwitcher translations={translations} />
+    <BlogHeader locale={locale} />
+    <main id="main">
+      <section class="wrap journal-hero">
+        <div class="journal-kicker">
+          <span>THE GENUINECI BLOG</span>
+        </div>
+        <div class="journal-title-row">
+          <h1>
+            Journal<span class="journal-dot">.</span>
+          </h1>
+          <div class="journal-intro">
+            <h2>{t("つくる過程も、オープンに。", "Building in the open.")}</h2>
+            <p>
+              {t(
+                "Flutter & Dartと、本物のCIのこと。\nGenuineCIの考え方と開発の記録。",
+                "Flutter, Dart, and real CI.\nIdeas and updates from GenuineCI.",
+              )}
+            </p>
+          </div>
+        </div>
+      </section>
+      {featured && (
+        <section class="wrap featured-section" aria-labelledby="featured-label">
+          <div class="journal-section-label">
+            <h2 id="featured-label">PICKUP</h2>
+            <span>
+              {t("最新のリリースをチェック。", "Explore the latest release.")}
+            </span>
+          </div>
+          <a class="featured-post" href={pagePath(featured)}>
+            <PostCover post={featured} featured />
+            <div class="featured-copy">
+              <PostMeta post={featured} />
+              <h3>{featured.data.title}</h3>
+              <p>{featured.data.description}</p>
+              <span class="article-read-link">
+                {t("記事を読む", "Read article")}
+                <Icon name="arrow" marketing />
+              </span>
+            </div>
+          </a>
+        </section>
+      )}
+      <section class="wrap journal-articles" aria-labelledby="articles-heading">
+        <div class="articles-heading">
+          <h2 id="articles-heading">{t("すべての記事", "All articles")}</h2>
+          <span class="article-count" data-article-count aria-live="polite">
+            {String(posts.length).padStart(2, "0")}{" "}
+            {posts.length === 1 ? "ARTICLE" : "ARTICLES"}
+          </span>
+        </div>
+        <div
+          class="article-filters"
+          role="group"
+          aria-label={t(
+            "記事をカテゴリで絞り込む",
+            "Filter articles by category",
+          )}
+        >
+          <button
+            class="filter-button"
+            type="button"
+            data-category-filter="all"
+            aria-pressed="true"
+            aria-controls="article-grid"
+          >
+            {t("すべて", "All")}
+          </button>
+          {categories.map((category) => (
+            <button
+              class="filter-button"
+              type="button"
+              data-category-filter={category}
+              aria-pressed="false"
+              aria-controls="article-grid"
+            >
+              {category}
+            </button>
+          ))}
+        </div>
+        <div class="article-grid" id="article-grid">
+          {posts.map((post) => (
+            <article
+              class="post-card"
+              data-article-category={post.data.category}
+            >
+              <a class="post-card-link" href={pagePath(post)}>
+                <PostCover post={post} />
+                <div class="post-card-body">
+                  <PostMeta post={post} />
+                  <h3>{post.data.title}</h3>
+                  <p>{post.data.description}</p>
+                  <span class="card-read-link">
+                    {t("記事を読む", "Read article")}
+                    <Icon name="arrow" marketing />
+                  </span>
+                </div>
+              </a>
+            </article>
+          ))}
+        </div>
+      </section>
+    </main>
+    <BlogFooter locale={locale} />
+  </div>
+</BaseLayout>

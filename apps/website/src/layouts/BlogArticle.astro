@@ -1,0 +1,114 @@
+---
+import { getRelativeLocaleUrl } from "astro:i18n";
+import type { MarkdownHeading } from "astro";
+import BaseLayout from "./BaseLayout.astro";
+import BlogHeader from "../components/BlogHeader.astro";
+import BlogFooter from "../components/BlogFooter.astro";
+import LanguageSwitcher from "../components/LanguageSwitcher.astro";
+import PostMeta from "../components/PostMeta.astro";
+import PostCover from "../components/PostCover.astro";
+import Icon from "../components/Icon.astro";
+import Toc from "../components/Toc.astro";
+import { translator, type Locale } from "../lib/i18n";
+import {
+  availableTranslations,
+  blogPosts,
+  pagePath,
+  plainTitle,
+  type Page,
+} from "../lib/content";
+interface Props {
+  page: Page;
+  pages: Page[];
+  headings: MarkdownHeading[];
+}
+const { page, pages, headings } = Astro.props;
+const locale = Astro.currentLocale as Locale,
+  t = translator(locale);
+const posts = blogPosts(pages, locale),
+  index = posts.findIndex((p) => p.id === page.id),
+  next = posts.length > 1 ? posts[(index + 1) % posts.length] : undefined;
+const translations = availableTranslations(page, pages);
+---
+
+<BaseLayout
+  locale={locale}
+  title={`${plainTitle(page.data.title)} — GenuineCI Blog`}
+  description={page.data.description}
+  translations={translations}
+  image={page.data.image}
+  imageAlt={page.data.imageAlt}
+  type="article"
+  section={page.data.category}
+>
+  <div class="journal-page article-page">
+    <a class="skip-link" href="#main">
+      <span>{t("本文へスキップ", "Skip to content")}</span>
+    </a>
+    <LanguageSwitcher translations={translations} />
+    <BlogHeader locale={locale} />
+    <main id="main">
+      <article>
+        <div class="wrap article-masthead">
+          <a class="back-to-blog" href={getRelativeLocaleUrl(locale, "blog/")}>
+            <span>{t("← ブログ一覧", "← Back to the blog")}</span>
+          </a>
+          <PostMeta post={page} />
+          <h1>{page.data.title}</h1>
+          <p class="article-lead">{page.data.description}</p>
+          <div class="article-byline">
+            <span class="author-monogram" aria-hidden="true">
+              g
+            </span>
+            <span>{page.data.author ?? "GenuineCI Team"}</span>
+          </div>
+        </div>
+        <div class="wrap article-cover-wrap">
+          <PostCover post={page} featured />
+        </div>
+        <div class="wrap article-layout">
+          <aside class="article-sidebar">
+            <nav aria-label={t("記事の目次", "Article contents")}>
+              <p class="toc-heading">IN THIS ARTICLE</p>
+              <Toc locale={locale} headings={headings} />
+            </nav>
+            <p class="article-aside-note">
+              {t(
+                "Flutter & Dartのために。\nDartでつくられた、\nオープンソースのCI。",
+                "For Flutter & Dart.\nBuilt in Dart.\nOpen-source CI.",
+              )}
+            </p>
+          </aside>
+          <div class="article-body">
+            <section class="content">
+              <slot />
+            </section>
+            <div class="article-endmark" aria-hidden="true">
+              g.
+            </div>
+            <a class="text-link" href={getRelativeLocaleUrl(locale)}>
+              <span>{t("GenuineCI を詳しく見る", "Explore GenuineCI")}</span>
+              <Icon name="arrow" marketing />
+            </a>
+          </div>
+        </div>
+      </article>
+      {next && (
+        <section
+          class="wrap article-next"
+          aria-label={t("次の記事", "Next article")}
+        >
+          <p class="eyebrow">READ NEXT</p>
+          <a href={pagePath(next)}>
+            <h2>{plainTitle(next.data.title)}</h2>
+            <Icon name="arrow" marketing />
+          </a>
+          <a class="back-to-blog" href={getRelativeLocaleUrl(locale, "blog/")}>
+            <span>{t("すべての記事を見る", "View all articles")}</span>
+          </a>
+        </section>
+      )}
+    </main>
+    <BlogFooter locale={locale} />
+  </div>
+</BaseLayout>
