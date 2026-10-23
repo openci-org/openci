@@ -31,6 +31,42 @@ test("all content and localized landing pages are built", () => {
     new Set(["/en/", "/ja/", ...contentRoutes]),
   );
 });
+test("each blog article has its own localized 1200 x 630 PNG social image", () => {
+  const imageHashes = new Set<string>();
+  const articleImages: string[] = [];
+  for (const [route, $] of pages) {
+    if ($('meta[property="og:type"]').attr("content") !== "article") continue;
+    const imagePath = `/ogp${route.replace(/\/$/, "")}.png`;
+    const imageUrl = "https://genuineci.com" + imagePath;
+    assert.equal($('meta[property="og:image"]').attr("content"), imageUrl);
+    assert.equal($('meta[name="twitter:image"]').attr("content"), imageUrl);
+    assert.equal(
+      $('meta[property="og:image:type"]').attr("content"),
+      "image/png",
+    );
+    assert.equal($('meta[property="og:image:width"]').attr("content"), "1200");
+    assert.equal($('meta[property="og:image:height"]').attr("content"), "630");
+    const title = $("h1").text().replace(/\s+/g, " ").trim();
+    assert.equal($('meta[property="og:image:alt"]').attr("content"), title);
+    assert.equal($('meta[name="twitter:image:alt"]').attr("content"), title);
+    const image = readFileSync("dist" + imagePath);
+    assert.equal(image.subarray(0, 8).toString("hex"), "89504e470d0a1a0a");
+    assert.equal(image.readUInt32BE(16), 1200);
+    assert.equal(image.readUInt32BE(20), 630);
+    imageHashes.add(createHash("sha256").update(image).digest("hex"));
+    articleImages.push(imagePath.slice("/ogp/".length));
+  }
+  assert.ok(articleImages.length > 0);
+  assert.equal(
+    imageHashes.size,
+    articleImages.length,
+    "articles or translations share an image",
+  );
+  const generated = (
+    readdirSync("dist/ogp", { recursive: true }) as string[]
+  ).filter((file) => file.endsWith(".png"));
+  assert.deepEqual(new Set(generated), new Set(articleImages));
+});
 for (const [route, $] of pages) {
   test(`${route}: language, metadata, accessible structure, and assets`, () => {
     const locale = route.split("/")[1];

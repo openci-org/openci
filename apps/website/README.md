@@ -43,7 +43,19 @@ Astro Content Collectionsが読み込み、`src/content.config.ts` がfrontmatte
 
 ブログには `layout: blog-article`、`title`、`description`、`category`、
 `date`（`"YYYY-MM-DD"`）が必要です。`author`、`readTime`、`coverLabel`、
-`coverTitle`、`image`、`imageAlt` も指定できます。
+`coverTitle` も指定できます。
+
+記事のOGP画像は `astro-og-canvas` がビルド時に自動生成します。
+`title`、`description`、`category`、`date` を使い、黄色（#FFFB00）の背景に黒い文字で描画します。
+画像の追加やfrontmatterの `image` 指定は不要です。
+英語・日本語はそれぞれのMarkdownから別の1200×630 PNGを生成します。
+たとえば `/en/blog/v2-3-0/` は `/ogp/en/blog/v2-3-0.png`、
+`/ja/blog/v2-3-0/` は `/ogp/ja/blog/v2-3-0.png` をOGP・X Cardで参照します。
+
+生成ルートとデザインは `src/pages/ogp/[...route].ts` にあります。
+日本語・英語を含むNoto Sans JPを `src/assets/fonts/` にライセンスとともに同梱し、
+画像生成時のフォント取得にはネットワークを使いません。フォントは配信アセットには含まれません。
+記事以外のページと既存の共有リンク用に、従来の `public/ogp/` のJPEGは保持しています。
 
 Docsには `layout: genuine-docs`、`title`、`description` を指定します。
 `group`、`eyebrow`、`reading` は任意です。
@@ -73,6 +85,7 @@ npm run preview --workspace genuineci-website
 
 `dist/` にHTML・公開アセットを生成します。テストはビルド後に実行し、
 日英ルート・リンク・見出しID・メタデータ・コード例・検索データ・料金表示を検証します。
+記事ごとのOGP画像の生成、PNG形式・寸法、言語ごとの画像とX Cardの参照も確認します。
 フォーマットの適用は `npm run fmt --workspace genuineci-website` です。
 
 `openci/website_ci.dart` はPRとdevelopへのpushで、依存取得・フォーマット・
@@ -108,6 +121,7 @@ firebase deploy --only hosting:website --project openci-b1b91
 - `src/pages/`: URLとページ生成
 - `src/layouts/`: HTMLメタ情報・ブログ・Docsの共通レイアウト
 - `src/components/`: LP、料金、言語切替、ナビゲーション、コードの表示部品
+- `src/assets/fonts/`: OGP画像生成用のフォントとライセンス
 - `src/lib/`: 言語、記事情報、ナビゲーション、Markdown処理
 - `src/styles/`: 既存デザインのCSS。`content.css` のJaspr Content由来のタイポグラフィはMITライセンス表示を保持
 - `src/scripts/`: 検索、メニュー、フィルター、コードコピーなど
