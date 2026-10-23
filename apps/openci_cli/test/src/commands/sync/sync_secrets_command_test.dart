@@ -190,7 +190,7 @@ void main() {
     expect(requests, hasLength(2));
     expect((await store.getActiveProfile())!.token, 'refreshed-id-token');
     final source = await output.readAsString();
-    expect(source, contains("Platform.environment['ASC_KEY']"));
+    expect(source, contains("Secret('ASC_KEY')"));
     for (final secret in [
       'refreshed-id-token',
       'private-refresh-token',
@@ -219,10 +219,11 @@ void main() {
       );
       expect(request.headers['Authorization'], 'Bearer $token');
       final source = await output.readAsString();
-      expect(source, contains("static String get ascKey"));
-      expect(source, contains("Platform.environment['ASC_KEY']"));
-      expect(source, contains("static String get firebaseOptions"));
-      expect(source, contains("Platform.environment['FIREBASE_OPTIONS']"));
+      expect(source, contains("static const ascKey = Secret('ASC_KEY');"));
+      expect(
+        source,
+        contains("static const firebaseOptions = Secret('FIREBASE_OPTIONS');"),
+      );
       expect(source, isNot(contains(privateValue)));
       expect(source, isNot(contains(token)));
       expect(logger.stdoutMessages, [t.sync.secrets.saved(path: output.path)]);
@@ -252,7 +253,7 @@ void main() {
     },
   );
 
-  test('removes stale getters when the team has no secrets', () async {
+  test('removes stale references when the team has no secrets', () async {
     handler = (_) async => namesResponse([]);
 
     expect(await runSync(), 0);
@@ -260,7 +261,7 @@ void main() {
     final source = await output.readAsString();
     expect(source, contains('abstract final class Secrets {}'));
     expect(source, isNot(contains(previousSource)));
-    expect(source, isNot(contains('Platform.environment')));
+    expect(source, isNot(contains('static const')));
   });
 
   test('requires login when credentials have not been saved', () async {

@@ -175,8 +175,8 @@ void main() {
     ]);
     expect(await paths.readAsString(), contains('WorkspaceDirectory("lib")'));
     final definitions = await secrets.readAsString();
-    expect(definitions, contains("Platform.environment['API_TOKEN']"));
-    expect(definitions, contains("Platform.environment['EXISTING_SECRET']"));
+    expect(definitions, contains("Secret('API_TOKEN')"));
+    expect(definitions, contains("Secret('EXISTING_SECRET')"));
     expect(requests.last.url, request.url);
     expect(requests.last.headers['authorization'], 'Bearer $token');
     expect(await File(store.filePath).readAsString(), before);
@@ -258,10 +258,7 @@ void main() {
 
     expect(savedNames, contains('API_TOKEN'));
     expect(await paths.exists(), isFalse);
-    expect(
-      await secrets.readAsString(),
-      contains("Platform.environment['API_TOKEN']"),
-    );
+    expect(await secrets.readAsString(), contains("Secret('API_TOKEN')"));
     expect(logger.stderrMessages.single, contains('invalid YAML'));
   });
 

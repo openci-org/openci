@@ -82,9 +82,13 @@ String generateSecretSource(Map<String, String> getters) {
 // dart format off
 
 ''');
-  if (getters.isNotEmpty) buffer.writeln("import 'dart:io';\n");
+  if (getters.isNotEmpty) {
+    buffer.writeln(
+      "import 'package:openci_workflow/openci_workflow.dart' show Secret;\n",
+    );
+  }
   buffer.writeln(
-    '/// Provides type-safe access to OpenCI secrets via environment variables.',
+    '/// References to OpenCI secrets, exposing their keys and runtime values.',
   );
   if (getters.isEmpty) {
     buffer.writeln('abstract final class Secrets {}');
@@ -95,10 +99,8 @@ String generateSecretSource(Map<String, String> getters) {
           .map(
             (entry) =>
                 '''
-  /// Secret key: `${entry.value}`
-  static String get ${entry.key} =>
-      Platform.environment['${entry.value}'] ??
-      (throw StateError("Secret '${entry.value}' is not set in environment."));
+  /// The secret with the environment key `${entry.value}`.
+  static const ${entry.key} = Secret('${entry.value}');
 ''',
           )
           .join('\n'),

@@ -6,6 +6,7 @@ export 'src/flutter/ios_distribution_method.dart';
 export 'src/go/go_ci.dart';
 export 'src/machine_type.dart';
 export 'src/open_ci.dart';
+export 'src/secret.dart';
 export 'src/shorebird/shorebird_ci.dart';
 export 'src/time_zone.dart';
 export 'src/workspace_directory.dart';

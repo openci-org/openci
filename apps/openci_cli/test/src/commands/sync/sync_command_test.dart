@@ -112,9 +112,7 @@ void main() {
       );
       expect(
         await secrets.readAsString(),
-        generateSecrets
-            ? contains("Platform.environment['API_KEY']")
-            : previous,
+        generateSecrets ? contains("Secret('API_KEY')") : previous,
       );
       expect(requests, hasLength(generateSecrets ? 1 : 0));
       expect(
