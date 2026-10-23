@@ -3,6 +3,7 @@ import 'package:jaspr/dom.dart' show RawText;
 
 import '../components/dart_code.dart';
 import '../components/html.dart';
+import '../components/pricing.dart';
 import '../components/social_metadata.dart';
 
 class LandingPage extends StatelessComponent {
@@ -30,12 +31,12 @@ class LandingPage extends StatelessComponent {
                 children: [
                   link('特長', '#features'),
                   link('ワークフロー', '#workflow'),
-                  link('はじめ方', '#get-started'),
+                  link('料金', '#pricing'),
                   link('Docs', '/docs/'),
                   link('ブログ', '/blog/'),
                 ],
               ),
-              link('Docs', '/docs/', cls: 'mobile-blog-link'),
+              link('料金', '#pricing', cls: 'mobile-blog-link'),
               link(
                 'はじめる',
                 '#get-started',
@@ -73,6 +74,7 @@ class LandingPage extends StatelessComponent {
       ),
       const Features(),
       const Workflow(),
+      const Pricing(),
       const GettingStarted(),
       const Faq(),
       el(
@@ -128,6 +130,7 @@ class LandingPage extends StatelessComponent {
                 text: 'Open source. Built for Flutter & Dart.',
               ),
               link('Docs', '/docs/'),
+              link('料金', '#pricing'),
               link('ブログ', '/blog/'),
               link('ページの先頭へ ↑', '#'),
             ],
@@ -673,7 +676,7 @@ class GettingStarted extends StatelessComponent {
     id: 'get-started',
     cls: 'section wrap getting-started',
     children: [
-      label('03', 'YOUR FIRST BUILD STARTS HERE'),
+      label('04', 'YOUR FIRST BUILD STARTS HERE'),
       el(
         'div',
         cls: 'section-heading',
@@ -728,7 +731,7 @@ class Faq extends StatelessComponent {
       el(
         'div',
         children: [
-          label('04', 'GOOD TO KNOW'),
+          label('05', 'GOOD TO KNOW'),
           el('h2', text: 'よくある質問'),
         ],
       ),
