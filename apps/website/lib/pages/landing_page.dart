@@ -1,20 +1,34 @@
-import 'package:jaspr/server.dart';
 import 'package:jaspr/dom.dart' show RawText;
+import 'package:jaspr/server.dart';
 
 import '../components/dart_code.dart';
 import '../components/html.dart';
+import '../components/language_switcher.dart';
 import '../components/pricing.dart';
 import '../components/social_metadata.dart';
+import '../l10n/localized_component.dart';
+import '../l10n/site_locale.dart';
 
-class LandingPage extends StatelessComponent {
-  const LandingPage({super.key});
+class LandingPage extends LocalizedComponent {
+  const LandingPage(super.locale, {super.key});
 
   @override
   Component build(BuildContext context) => el(
     'div',
     children: [
-      socialMetadata(title: siteTitle, description: siteDescription, path: '/'),
-      link('本文へスキップ', '#main', cls: 'skip-link'),
+      socialMetadata(
+        title: siteTitle(locale),
+        description: siteDescription(locale),
+        path: localPath('/'),
+        translations: {
+          for (final language in SiteLocale.values)
+            language: language.path('/'),
+        },
+      ),
+      languageSwitcher(locale, {
+        for (final language in SiteLocale.values) language: language.path('/'),
+      }),
+      link(t('本文へスキップ', 'Skip to content'), '#main', cls: 'skip-link'),
       el(
         'div',
         cls: 'hero-shell',
@@ -27,18 +41,18 @@ class LandingPage extends StatelessComponent {
               el(
                 'nav',
                 cls: 'desktop-nav',
-                attrs: {'aria-label': 'メインナビゲーション'},
+                attrs: {'aria-label': t('メインナビゲーション', 'Main navigation')},
                 children: [
-                  link('特長', '#features'),
-                  link('ワークフロー', '#workflow'),
-                  link('料金', '#pricing'),
-                  link('Docs', '/docs/'),
-                  link('ブログ', '/blog/'),
+                  link(t('特長', 'Features'), '#features'),
+                  link(t('ワークフロー', 'Workflows'), '#workflow'),
+                  link(t('料金', 'Pricing'), '#pricing'),
+                  link('Docs', localPath('/docs/')),
+                  link(t('ブログ', 'Blog'), localPath('/blog/')),
                 ],
               ),
-              link('料金', '#pricing', cls: 'mobile-blog-link'),
+              link(t('料金', 'Pricing'), '#pricing', cls: 'mobile-blog-link'),
               link(
-                'はじめる',
+                t('はじめる', 'Get started'),
                 '#get-started',
                 cls: 'button button-small button-dark',
                 arrow: 'arrow',
@@ -49,8 +63,8 @@ class LandingPage extends StatelessComponent {
             'main',
             id: 'main',
             children: [
-              const Hero(),
-              el('div', cls: 'wrap', children: [const BuildPreview()]),
+              Hero(locale),
+              el('div', cls: 'wrap', children: [BuildPreview(locale)]),
             ],
           ),
         ],
@@ -59,7 +73,11 @@ class LandingPage extends StatelessComponent {
         'div',
         cls: 'stack-band wrap',
         children: [
-          el('span', cls: 'stack-caption', text: 'Flutter & Dart 専用のCI。'),
+          el(
+            'span',
+            cls: 'stack-caption',
+            text: t('Flutter & Dart 専用のCI。', 'CI built for Flutter & Dart.'),
+          ),
           el(
             'div',
             cls: 'stack-names',
@@ -72,11 +90,11 @@ class LandingPage extends StatelessComponent {
           ),
         ],
       ),
-      const Features(),
-      const Workflow(),
-      const Pricing(),
-      const GettingStarted(),
-      const Faq(),
+      Features(locale),
+      Workflow(locale),
+      Pricing(locale),
+      GettingStarted(locale),
+      Faq(locale),
       el(
         'section',
         cls: 'closing',
@@ -92,15 +110,15 @@ class LandingPage extends StatelessComponent {
                   el(
                     'h2',
                     children: [
-                      Component.text('本物のCIを、'),
+                      Component.text(t('本物のCIを、', 'Real CI.')),
                       el('br'),
-                      Component.text('一緒につくろう。'),
+                      Component.text(t('一緒につくろう。', 'Built together.')),
                     ],
                   ),
                 ],
               ),
               link(
-                'GenuineCI をはじめる',
+                t('GenuineCI をはじめる', 'Get started with GenuineCI'),
                 '#get-started',
                 cls: 'button button-dark',
                 arrow: 'arrow',
@@ -129,10 +147,10 @@ class LandingPage extends StatelessComponent {
                 cls: 'footer-tagline',
                 text: 'Open source. Built for Flutter & Dart.',
               ),
-              link('Docs', '/docs/'),
-              link('料金', '#pricing'),
-              link('ブログ', '/blog/'),
-              link('ページの先頭へ ↑', '#'),
+              link('Docs', localPath('/docs/')),
+              link(t('料金', 'Pricing'), '#pricing'),
+              link(t('ブログ', 'Blog'), localPath('/blog/')),
+              link(t('ページの先頭へ ↑', 'Back to top ↑'), '#'),
             ],
           ),
         ],
@@ -141,8 +159,8 @@ class LandingPage extends StatelessComponent {
   );
 }
 
-class Hero extends StatelessComponent {
-  const Hero({super.key});
+class Hero extends LocalizedComponent {
+  const Hero(super.locale, {super.key});
   @override
   Component build(BuildContext context) => el(
     'section',
@@ -169,9 +187,9 @@ class Hero extends StatelessComponent {
           el(
             'h1',
             children: [
-              Component.text('Flutter & Dartに、'),
+              Component.text(t('Flutter & Dartに、', 'For Flutter & Dart.')),
               el('br'),
-              Component.text('本物のCIを。'),
+              Component.text(t('本物のCIを。', 'Real CI.')),
             ],
           ),
           el(
@@ -181,10 +199,18 @@ class Hero extends StatelessComponent {
               el(
                 'p',
                 children: [
-                  Component.text('Dartで書かれた、Flutter & Dart専用のCI。'),
+                  Component.text(
+                    t(
+                      'Dartで書かれた、Flutter & Dart専用のCI。',
+                      'CI for Flutter & Dart, built in Dart.',
+                    ),
+                  ),
                   el('br'),
                   Component.text(
-                    'ワークフローもDartで定義。Apple Siliconで動く、セルフホストも可能なオープンソースCIです。',
+                    t(
+                      'ワークフローもDartで定義。Apple Siliconで動く、セルフホストも可能なオープンソースCIです。',
+                      'Write your workflows in Dart. Run on Apple Silicon. Open source, with the freedom to self-host.',
+                    ),
                   ),
                 ],
               ),
@@ -193,12 +219,16 @@ class Hero extends StatelessComponent {
                 cls: 'hero-actions',
                 children: [
                   link(
-                    'GenuineCI をはじめる',
+                    t('GenuineCI をはじめる', 'Get started with GenuineCI'),
                     '#get-started',
                     cls: 'button button-dark',
                     arrow: 'arrow',
                   ),
-                  link('仕組みを見る', '#workflow', cls: 'text-link'),
+                  link(
+                    t('仕組みを見る', 'See how it works'),
+                    '#workflow',
+                    cls: 'text-link',
+                  ),
                 ],
               ),
             ],
@@ -209,13 +239,15 @@ class Hero extends StatelessComponent {
   );
 }
 
-class BuildPreview extends StatelessComponent {
-  const BuildPreview({super.key});
+class BuildPreview extends LocalizedComponent {
+  const BuildPreview(super.locale, {super.key});
   @override
   Component build(BuildContext context) => el(
     'section',
     cls: 'build-preview',
-    attrs: {'aria-label': 'ビルド画面のデザインプレビュー'},
+    attrs: {
+      'aria-label': t('ビルド画面のデザインプレビュー', 'Build dashboard design preview'),
+    },
     children: [
       el(
         'div',
@@ -379,7 +411,7 @@ class BuildPreview extends StatelessComponent {
                     children: [
                       icon('terminal'),
                       el('span', text: 'Build output'),
-                      el('span', cls: 'sample-note', text: 'サンプル'),
+                      el('span', cls: 'sample-note', text: t('サンプル', 'Sample')),
                     ],
                   ),
                   el(
@@ -422,8 +454,8 @@ class BuildPreview extends StatelessComponent {
   );
 }
 
-class Features extends StatelessComponent {
-  const Features({super.key});
+class Features extends LocalizedComponent {
+  const Features(super.locale, {super.key});
   @override
   Component build(BuildContext context) => el(
     'section',
@@ -438,15 +470,17 @@ class Features extends StatelessComponent {
           el(
             'h2',
             children: [
-              Component.text('本物のCIを、'),
+              Component.text(t('本物のCIを、', 'Real CI.')),
               el('br'),
-              Component.text('オープンにつくる。'),
+              Component.text(t('オープンにつくる。', 'Built in the open.')),
             ],
           ),
           el(
             'p',
-            text:
-                'Genuineは「本物」。Flutter & Dartの開発者にとって、本当に使いたいCIをつくる。そのための、オープンソースプロジェクトです。',
+            text: t(
+              'Genuineは「本物」。Flutter & Dartの開発者にとって、本当に使いたいCIをつくる。そのための、オープンソースプロジェクトです。',
+              'Genuine means real. We are building the CI that Flutter & Dart developers want to use, as an open-source project.',
+            ),
           ),
         ],
       ),
@@ -457,22 +491,31 @@ class Features extends StatelessComponent {
           feature(
             'cpu',
             '01',
-            'Flutter & Dartのために。',
-            'GenuineCI自体もDartで書かれています。FlutterアプリもDartパッケージも、いつもの言語でワークフローから支えます。',
+            t('Flutter & Dartのために。', 'Made for Flutter & Dart.'),
+            t(
+              'GenuineCI自体もDartで書かれています。FlutterアプリもDartパッケージも、いつもの言語でワークフローから支えます。',
+              'GenuineCI itself is written in Dart. Use a familiar language to write workflows for your Flutter apps and Dart packages.',
+            ),
             ['Built with Dart', 'Dart workflows'],
           ),
           feature(
             'branch',
             '02',
-            'Apple Siliconで動かす。',
-            '現在の実行マシンはApple Siliconのみ。M1・M2・M3・M4をサポートし、Mac上でビルドとテストを実行します。',
+            t('Apple Siliconで動かす。', 'Run on Apple Silicon.'),
+            t(
+              '現在の実行マシンはApple Siliconのみ。M1・M2・M3・M4をサポートし、Mac上でビルドとテストを実行します。',
+              'Builds and tests currently run on Apple Silicon Macs, with support for M1, M2, M3, and M4.',
+            ),
             ['M1 / M2 / M3 / M4', 'macOS'],
           ),
           feature(
             'terminal',
             '03',
-            'コードも、運用も、自分の手で。',
-            'GenuineCIはOSS。ソースコードを読んで、改善に参加することも、自分のApple Siliconマシンでセルフホストすることもできます。',
+            t('コードも、運用も、自分の手で。', 'Your code. Your machines.'),
+            t(
+              'GenuineCIはOSS。ソースコードを読んで、改善に参加することも、自分のApple Siliconマシンでセルフホストすることもできます。',
+              'Read the source, contribute improvements, or self-host on your own Apple Silicon machines. GenuineCI is open source.',
+            ),
             ['Open source', 'Self-hosted'],
           ),
         ],
@@ -501,7 +544,7 @@ class Features extends StatelessComponent {
       el('p', text: body),
       if (number == '03')
         link(
-          'GitHubでソースを見る',
+          t('GitHubでソースを見る', 'View source on GitHub'),
           'https://github.com/openci-org/openci',
           cls: 'text-link feature-source',
           arrow: 'external',
@@ -515,8 +558,8 @@ class Features extends StatelessComponent {
   );
 }
 
-class Workflow extends StatelessComponent {
-  const Workflow({super.key});
+class Workflow extends LocalizedComponent {
+  const Workflow(super.locale, {super.key});
   @override
   Component build(BuildContext context) => el(
     'section',
@@ -535,41 +578,54 @@ class Workflow extends StatelessComponent {
               el(
                 'h2',
                 children: [
-                  Component.text('ワークフローも、'),
+                  Component.text(t('ワークフローも、', 'Your workflows.')),
                   el('br'),
-                  Component.text('いつものDartで。'),
+                  Component.text(t('いつものDartで。', 'The Dart you know.')),
                 ],
               ),
               el(
                 'p',
-                text:
-                    'ビルドやテストの手順を、Dartのコードで定義。関数、条件分岐、ループ。アプリ開発で使い慣れた書き方を、そのままCIにも。',
+                text: t(
+                  'ビルドやテストの手順を、Dartのコードで定義。関数、条件分岐、ループ。アプリ開発で使い慣れた書き方を、そのままCIにも。',
+                  'Define build and test steps in Dart. Functions, conditionals, and loops: bring the code you already know to your CI.',
+                ),
               ),
               el(
                 'ul',
                 cls: 'check-list',
                 children: [
                   for (final item in [
-                    'Dartでワークフローを定義する',
-                    '関数にまとめて、手順を再利用する',
-                    'Flutter & Dartの解析・テストを実行する',
+                    t('Dartでワークフローを定義する', 'Define workflows in Dart'),
+                    t('関数にまとめて、手順を再利用する', 'Reuse steps with functions'),
+                    t(
+                      'Flutter & Dartの解析・テストを実行する',
+                      'Analyze and test Flutter & Dart projects',
+                    ),
                   ])
                     el('li', children: [icon('check'), Component.text(item)]),
                 ],
               ),
-              link('はじめ方を見る', '#get-started', cls: 'text-link', arrow: 'arrow'),
+              link(
+                t('はじめ方を見る', 'See how to get started'),
+                '#get-started',
+                cls: 'text-link',
+                arrow: 'arrow',
+              ),
             ],
           ),
-          const DartWorkflowPreview(),
+          DartWorkflowPreview(locale),
         ],
       ),
     ],
   );
 }
 
-const workflowExamples = {
+Map<String, List<String>> workflowExamples(SiteLocale locale) => {
   'Flutter': [
-    '// flutter_ci.dart — 処理部分',
+    locale.text(
+      '// flutter_ci.dart — 処理部分',
+      '// flutter_ci.dart — workflow steps',
+    ),
     "await ci.run('flutter pub get');",
     '',
     'await ci.flutter.staticAnalysis();',
@@ -580,7 +636,7 @@ const workflowExamples = {
     ');',
   ],
   'Dart': [
-    '// dart_ci.dart — 処理部分',
+    locale.text('// dart_ci.dart — 処理部分', '// dart_ci.dart — workflow steps'),
     'for (final command in [',
     "  'dart pub get',",
     "  'dart analyze',",
@@ -591,8 +647,8 @@ const workflowExamples = {
   ],
 };
 
-class DartWorkflowPreview extends StatelessComponent {
-  const DartWorkflowPreview({super.key});
+class DartWorkflowPreview extends LocalizedComponent {
+  const DartWorkflowPreview(super.locale, {super.key});
 
   @override
   Component build(BuildContext context) => el(
@@ -602,9 +658,15 @@ class DartWorkflowPreview extends StatelessComponent {
       el(
         'div',
         cls: 'code-tabs',
-        attrs: {'role': 'tablist', 'aria-label': 'Dartで定義するワークフローの例'},
+        attrs: {
+          'role': 'tablist',
+          'aria-label': t(
+            'Dartで定義するワークフローの例',
+            'Example workflows written in Dart',
+          ),
+        },
         children: [
-          for (final name in workflowExamples.keys)
+          for (final name in workflowExamples(locale).keys)
             el(
               'button',
               id: 'tab-${name.toLowerCase()}',
@@ -622,7 +684,7 @@ class DartWorkflowPreview extends StatelessComponent {
           el('span', cls: 'code-filetype', text: 'DART'),
         ],
       ),
-      for (final entry in workflowExamples.entries)
+      for (final entry in workflowExamples(locale).entries)
         el(
           'div',
           id: 'workflow-${entry.key.toLowerCase()}',
@@ -658,7 +720,12 @@ class DartWorkflowPreview extends StatelessComponent {
             'span',
             children: [
               icon('terminal'),
-              Component.text('Dartワークフロー · 初期化部分は省略'),
+              Component.text(
+                t(
+                  'Dartワークフロー · 初期化部分は省略',
+                  'Dart workflow · initialization omitted',
+                ),
+              ),
             ],
           ),
           el('span', text: 'Apple Silicon'),
@@ -668,8 +735,8 @@ class DartWorkflowPreview extends StatelessComponent {
   );
 }
 
-class GettingStarted extends StatelessComponent {
-  const GettingStarted({super.key});
+class GettingStarted extends LocalizedComponent {
+  const GettingStarted(super.locale, {super.key});
   @override
   Component build(BuildContext context) => el(
     'section',
@@ -681,9 +748,9 @@ class GettingStarted extends StatelessComponent {
         'div',
         cls: 'section-heading',
         children: [
-          el('h2', text: 'まずは、ひとつのビルドから。'),
+          el('h2', text: t('まずは、ひとつのビルドから。', 'Start with one build.')),
           link(
-            'ダッシュボードを開く',
+            t('ダッシュボードを開く', 'Open dashboard'),
             'https://dashboard.openci.org/',
             cls: 'button button-outline',
             arrow: 'external',
@@ -697,14 +764,27 @@ class GettingStarted extends StatelessComponent {
           for (final step in [
             (
               '01',
-              'プロジェクトを選ぶ',
-              'FlutterアプリやDartパッケージ。まずはCIで確かめたいプロジェクトを用意します。',
+              t('プロジェクトを選ぶ', 'Choose a project'),
+              t(
+                'FlutterアプリやDartパッケージ。まずはCIで確かめたいプロジェクトを用意します。',
+                'Pick the Flutter app or Dart package you want to check with CI.',
+              ),
             ),
-            ('02', 'Dartで手順を書く', '静的解析、テスト、ビルド。必要な処理をDartのワークフローとして定義します。'),
+            (
+              '02',
+              t('Dartで手順を書く', 'Write your steps in Dart'),
+              t(
+                '静的解析、テスト、ビルド。必要な処理をDartのワークフローとして定義します。',
+                'Analysis, tests, and builds. Define the steps you need as a Dart workflow.',
+              ),
+            ),
             (
               '03',
-              'Apple Siliconで実行',
-              'M1〜M4のMacでワークフローを実行。自分のマシンでセルフホストすることもできます。',
+              t('Apple Siliconで実行', 'Run on Apple Silicon'),
+              t(
+                'M1〜M4のMacでワークフローを実行。自分のマシンでセルフホストすることもできます。',
+                'Run your workflow on an M1–M4 Mac. You can also self-host on your own machines.',
+              ),
             ),
           ])
             el(
@@ -721,8 +801,8 @@ class GettingStarted extends StatelessComponent {
   );
 }
 
-class Faq extends StatelessComponent {
-  const Faq({super.key});
+class Faq extends LocalizedComponent {
+  const Faq(super.locale, {super.key});
   @override
   Component build(BuildContext context) => el(
     'section',
@@ -732,7 +812,7 @@ class Faq extends StatelessComponent {
         'div',
         children: [
           label('05', 'GOOD TO KNOW'),
-          el('h2', text: 'よくある質問'),
+          el('h2', text: t('よくある質問', 'Frequently asked questions')),
         ],
       ),
       el(
@@ -741,28 +821,46 @@ class Faq extends StatelessComponent {
         children: [
           for (final item in [
             (
-              'GenuineCIという名前には、どんな意味がありますか？',
-              'Genuineは「本物」という意味です。Flutter & Dartの開発者にとって、本当に使いたい、本物のCIをつくることを目指しています。',
+              t('GenuineCIという名前には、どんな意味がありますか？', 'What does GenuineCI mean?'),
+              t(
+                'Genuineは「本物」という意味です。Flutter & Dartの開発者にとって、本当に使いたい、本物のCIをつくることを目指しています。',
+                'Genuine means real. Our goal is to build real CI that Flutter & Dart developers want to use.',
+              ),
             ),
             (
-              'どんなプロジェクトに対応していますか？',
-              'Flutter & Dart専用です。FlutterアプリやDartパッケージの静的解析、テスト、ビルドなどを、Dartで定義したワークフローで実行します。',
+              t('どんなプロジェクトに対応していますか？', 'What projects does it support?'),
+              t(
+                'Flutter & Dart専用です。FlutterアプリやDartパッケージの静的解析、テスト、ビルドなどを、Dartで定義したワークフローで実行します。',
+                'GenuineCI is built for Flutter & Dart. Run analysis, tests, builds, and more for Flutter apps and Dart packages using workflows written in Dart.',
+              ),
             ),
             (
-              'どのマシンで動きますか？',
-              '現在はApple Silicon搭載のMacのみが対象です。M1・M2・M3・M4に対応しています。',
+              t('どのマシンで動きますか？', 'What machines does it run on?'),
+              t(
+                '現在はApple Silicon搭載のMacのみが対象です。M1・M2・M3・M4に対応しています。',
+                'Currently, Apple Silicon Macs are supported: M1, M2, M3, and M4.',
+              ),
             ),
             (
-              'セルフホストできますか？',
-              'はい。GenuineCIはオープンソースです。自分のApple Siliconマシンを使ってセルフホストすることもできます。',
+              t('セルフホストできますか？', 'Can I self-host?'),
+              t(
+                'はい。GenuineCIはオープンソースです。自分のApple Siliconマシンを使ってセルフホストすることもできます。',
+                'Yes. GenuineCI is open source, and you can self-host on your own Apple Silicon machines.',
+              ),
             ),
             (
-              'GenuineCI自体は何で書かれていますか？',
-              'GenuineCIはDartで書かれています。サービス自体の実装も、利用するワークフローの定義もDartです。',
+              t('GenuineCI自体は何で書かれていますか？', 'What is GenuineCI built with?'),
+              t(
+                'GenuineCIはDartで書かれています。サービス自体の実装も、利用するワークフローの定義もDartです。',
+                'GenuineCI is written in Dart. Both the service and your workflow definitions use Dart.',
+              ),
             ),
             (
-              'ワークフローは何で書きますか？',
-              'Dartで定義します。関数や条件分岐、ループなど、Dartの言語機能を使ってビルドやテストの手順を組み立てられます。',
+              t('ワークフローは何で書きますか？', 'How do I write a workflow?'),
+              t(
+                'Dartで定義します。関数や条件分岐、ループなど、Dartの言語機能を使ってビルドやテストの手順を組み立てられます。',
+                'Write it in Dart. Use functions, conditionals, loops, and other Dart language features to put together your build and test steps.',
+              ),
             ),
           ])
             el(

@@ -1,6 +1,7 @@
 (() => {
   const root = document.querySelector('.docs-shell');
   if (!root) return;
+  const messages = JSON.parse(document.getElementById('docs-ui-text').textContent);
   const codeThemeKey = 'genuineci.docs.codeTheme';
   const codeSurfaces = [...root.querySelectorAll('[data-code-theme]')];
   function applyCodeTheme(theme) {
@@ -40,7 +41,7 @@
     const matches = pages.filter((page) => terms.every((term) => `${page.title} ${page.description} ${page.body}`.toLowerCase().includes(term)));
     results.replaceChildren();
     selected = -1;
-    status.textContent = terms.length ? `${matches.length}件のドキュメント` : 'ドキュメントから探す';
+    status.textContent = terms.length ? messages.results.replace('{count}', matches.length) : messages.search;
     for (const page of matches) {
       const link = document.createElement('a');
       link.href = page.url;
@@ -55,7 +56,7 @@
     if (!matches.length) {
       const empty = document.createElement('p');
       empty.className = 'd-search-empty';
-      empty.textContent = '見つかりませんでした。別のキーワードで試してください。';
+      empty.textContent = messages.empty;
       results.append(empty);
     }
   }
@@ -89,12 +90,12 @@
       const code = copy.closest('.code-block, .d-home-code').querySelector('pre code');
       try {
         await navigator.clipboard.writeText(code.textContent);
-        copy.querySelector('span').textContent = 'コピー済み';
-        copy.setAttribute('aria-label', 'コピーしました');
-        setTimeout(() => { copy.querySelector('span').textContent = 'コピー'; copy.setAttribute('aria-label', 'コードをコピー'); }, 2000);
+        copy.querySelector('span').textContent = messages.copied;
+        copy.setAttribute('aria-label', messages.copiedLabel);
+        setTimeout(() => { copy.querySelector('span').textContent = messages.copy; copy.setAttribute('aria-label', messages.copyLabel); }, 2000);
       } catch (_) {
-        copy.querySelector('span').textContent = '選択してコピー';
-        copy.setAttribute('aria-label', 'コードを選択してコピーしてください');
+        copy.querySelector('span').textContent = messages.selectCopy;
+        copy.setAttribute('aria-label', messages.selectCopyLabel);
         const range = document.createRange(); range.selectNodeContents(code);
         const selection = window.getSelection(); selection.removeAllRanges(); selection.addRange(range);
       }

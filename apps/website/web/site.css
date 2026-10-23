@@ -59,6 +59,24 @@ summary:focus-visible,
   max-width: 1280px;
   margin-inline: auto;
 }
+.language-switcher {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 16px;
+  padding: 7px max(24px, calc((100% - 1280px) / 2));
+  background: var(--yellow);
+  font-size: 12px;
+  line-height: 24px;
+}
+.language-switcher a[aria-current="page"] {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  font-weight: 700;
+}
+.language-switcher [aria-disabled="true"] {
+  color: #686868;
+}
 .icon {
   width: 20px;
   height: 20px;

@@ -6,30 +6,67 @@ import 'package:jaspr_content/jaspr_content.dart';
 
 import '../components/docs_icon.dart';
 import '../components/html.dart';
+import '../components/language_switcher.dart';
+import '../components/social_metadata.dart';
+import '../l10n/localized_component.dart';
+import '../l10n/site_locale.dart';
 import '../pages/docs_home.dart';
 
-const docsNavigation = [
+List<({String group, List<({String title, String path, String icon})> items})>
+docsNavigation(SiteLocale locale) => [
   (
-    group: 'はじめに',
+    group: locale.text('はじめに', 'Getting started'),
     items: [
-      (title: 'GenuineCIへようこそ', path: '/docs/', icon: 'book'),
-      (title: 'クイックスタート', path: '/docs/quickstart/', icon: 'spark'),
+      (
+        title: locale.text('GenuineCIへようこそ', 'Welcome to GenuineCI'),
+        path: locale.path('/docs/'),
+        icon: 'book',
+      ),
+      (
+        title: locale.text('クイックスタート', 'Quickstart'),
+        path: locale.path('/docs/quickstart/'),
+        icon: 'spark',
+      ),
     ],
   ),
   (
-    group: 'ワークフロー',
+    group: locale.text('ワークフロー', 'Workflows'),
     items: [
-      (title: 'Dartでワークフローを書く', path: '/docs/workflows/', icon: 'code'),
-      (title: 'トリガー', path: '/docs/triggers/', icon: 'branch'),
-      (title: 'Flutterのビルドとテスト', path: '/docs/flutter/', icon: 'box'),
-      (title: 'シークレット', path: '/docs/secrets/', icon: 'lock'),
+      (
+        title: locale.text('Dartでワークフローを書く', 'Write workflows in Dart'),
+        path: locale.path('/docs/workflows/'),
+        icon: 'code',
+      ),
+      (
+        title: locale.text('トリガー', 'Triggers'),
+        path: locale.path('/docs/triggers/'),
+        icon: 'branch',
+      ),
+      (
+        title: locale.text('Flutterのビルドとテスト', 'Build and test Flutter'),
+        path: locale.path('/docs/flutter/'),
+        icon: 'box',
+      ),
+      (
+        title: locale.text('シークレット', 'Secrets'),
+        path: locale.path('/docs/secrets/'),
+        icon: 'lock',
+      ),
     ],
   ),
   (
-    group: '環境とツール',
+    group: locale.text('環境とツール', 'Environment and tools'),
     items: [
-      (title: 'CLIリファレンス', path: '/docs/cli/', icon: 'terminal'),
-      (title: 'セルフホスト', path: '/docs/self-hosting/', icon: 'server'),
+      (
+        title: locale.text('CLIリファレンス', 'CLI reference'),
+        path: locale.path('/docs/cli/'),
+        icon: 'terminal',
+      ),
+      (
+        title: locale.text('セルフホスト', 'Self-hosting'),
+        path: locale.path('/docs/self-hosting/'),
+        icon: 'server',
+      ),
     ],
   ),
 ];
@@ -42,39 +79,50 @@ class GenuineDocsLayout implements PageLayout {
   Component buildLayout(Page page, Component child) => DocsPage(page, child);
 }
 
-class DocsPage extends StatelessComponent {
-  const DocsPage(this.page, this.content, {super.key});
+class DocsPage extends LocalizedComponent {
+  DocsPage(this.page, this.content, {super.key})
+    : super(SiteLocale.fromPath(page.url));
   final Page page;
   final Component content;
 
   @override
   Component build(BuildContext context) {
+    final translations = availableTranslations(
+      page.url,
+      context.pages.map((p) => p.url),
+    );
     final data = page.data.page;
     final path = '${page.url.replaceFirst(RegExp(r'/$'), '')}/';
-    final isHome = path == '/docs/';
+    final isHome = path == localPath('/docs/');
     final title = data['title'] as String;
     final description = data['description'] as String;
-    final group = data['group'] as String? ?? 'はじめに';
-    final allItems = docsNavigation.expand((group) => group.items).toList();
+    final group = data['group'] as String? ?? t('はじめに', 'Getting started');
+    final allItems = docsNavigation(
+      locale,
+    ).expand((group) => group.items).toList();
     final current = allItems.indexWhere((item) => item.path == path);
     final searchPages = context.pages
-        .where((p) => p.url.startsWith('/docs'))
+        .where(
+          (p) =>
+              p.url == localPath('/docs/').replaceFirst(RegExp(r'/$'), '') ||
+              p.url.startsWith(localPath('/docs/')),
+        )
         .map(
           (p) => {
             'title': p.data.page['title'],
             'description': p.data.page['description'],
-            'group': p.data.page['group'] ?? 'はじめに',
+            'group': p.data.page['group'] ?? t('はじめに', 'Getting started'),
             'url': '${p.url.replaceFirst(RegExp(r'/$'), '')}/',
             'body': p.content,
           },
         )
         .toList();
     final toc = isHome
-        ? const [
-            ('はじめの一歩', 'start'),
-            ('ガイドを探す', 'guides'),
-            ('いつものDartで書く', 'write-dart'),
-            ('オープンにつくる', 'open-source'),
+        ? [
+            (t('はじめの一歩', 'First steps'), 'start'),
+            (t('ガイドを探す', 'Explore guides'), 'guides'),
+            (t('いつものDartで書く', 'Write in Dart'), 'write-dart'),
+            (t('オープンにつくる', 'Build in the open'), 'open-source'),
           ]
         : [
             if (page.data['toc'] case TableOfContents t)
@@ -83,7 +131,7 @@ class DocsPage extends StatelessComponent {
     Component tocLinks() => el(
       'nav',
       cls: 'd-toc-links',
-      attrs: {'aria-label': 'このページの目次'},
+      attrs: {'aria-label': t('このページの目次', 'On this page')},
       children: [
         for (final entry in toc) link(entry.$1, '#${entry.$2}'),
       ],
@@ -92,11 +140,14 @@ class DocsPage extends StatelessComponent {
       'div',
       cls: 'docs-shell${isHome ? ' docs-overview' : ''}',
       children: [
-        Document.head(
+        socialMetadata(
           title: '$title — GenuineCI Docs',
-          meta: {'description': description},
+          description: description,
+          path: path,
+          translations: translations,
         ),
-        link('本文へスキップ', '#main', cls: 'skip-link'),
+        languageSwitcher(locale, translations),
+        link(t('本文へスキップ', 'Skip to content'), '#main', cls: 'skip-link'),
         el(
           'header',
           cls: 'd-header',
@@ -105,9 +156,9 @@ class DocsPage extends StatelessComponent {
               'div',
               cls: 'd-brand-lockup',
               children: [
-                link('GenuineCI', '/', cls: 'd-wordmark'),
+                link('GenuineCI', localPath('/'), cls: 'd-wordmark'),
                 el('span', cls: 'd-brand-divider', text: '/'),
-                link('docs', '/docs/', cls: 'd-docs-label'),
+                link('docs', localPath('/docs/'), cls: 'd-docs-label'),
               ],
             ),
             el(
@@ -116,11 +167,11 @@ class DocsPage extends StatelessComponent {
               attrs: {
                 'type': 'button',
                 'data-search-open': '',
-                'aria-label': 'ドキュメントを検索',
+                'aria-label': t('ドキュメントを検索', 'Search documentation'),
               },
               children: [
                 docsIcon('search'),
-                el('span', text: 'ドキュメントを検索…'),
+                el('span', text: t('ドキュメントを検索…', 'Search docs…')),
                 el('kbd', text: '⌘ K'),
               ],
             ),
@@ -128,13 +179,17 @@ class DocsPage extends StatelessComponent {
               'div',
               cls: 'd-header-actions',
               children: [
-                link('ブログ', '/blog/', cls: 'd-header-blog'),
+                link(
+                  t('ブログ', 'Blog'),
+                  localPath('/blog/'),
+                  cls: 'd-header-blog',
+                ),
                 el(
                   'a',
                   cls: 'd-icon-button d-github-link',
                   attrs: {
                     'href': 'https://github.com/openci-org/openci',
-                    'aria-label': 'GitHubでソースを見る',
+                    'aria-label': t('GitHubでソースを見る', 'View source on GitHub'),
                   },
                   children: [docsIcon('github')],
                 ),
@@ -143,7 +198,7 @@ class DocsPage extends StatelessComponent {
                   cls: 'd-dashboard',
                   attrs: {'href': 'https://dashboard.openci.org/'},
                   children: [
-                    el('span', text: 'ダッシュボード'),
+                    el('span', text: t('ダッシュボード', 'Dashboard')),
                     docsIcon('external'),
                   ],
                 ),
@@ -161,11 +216,11 @@ class DocsPage extends StatelessComponent {
               attrs: {
                 'type': 'button',
                 'data-menu-open': '',
-                'aria-label': 'ドキュメントメニューを開く',
+                'aria-label': t('ドキュメントメニューを開く', 'Open documentation menu'),
               },
               children: [
                 docsIcon('menu'),
-                el('span', text: 'メニュー'),
+                el('span', text: t('メニュー', 'Menu')),
               ],
             ),
             el('span', text: 'GenuineCI Docs'),
@@ -175,7 +230,11 @@ class DocsPage extends StatelessComponent {
           'div',
           cls: 'd-layout',
           children: [
-            el('aside', cls: 'd-sidebar', children: [docsSidebar(path)]),
+            el(
+              'aside',
+              cls: 'd-sidebar',
+              children: [docsSidebar(locale, path)],
+            ),
             el(
               'main',
               id: 'main',
@@ -186,13 +245,13 @@ class DocsPage extends StatelessComponent {
                   'div',
                   cls: 'd-breadcrumb',
                   children: [
-                    link('Docs', '/docs/'),
+                    link('Docs', localPath('/docs/')),
                     docsIcon('chevron'),
-                    el('span', text: isHome ? '概要' : group),
+                    el('span', text: isHome ? t('概要', 'Overview') : group),
                   ],
                 ),
                 if (isHome)
-                  const DocsHome()
+                  DocsHome(locale)
                 else ...[
                   el(
                     'header',
@@ -223,7 +282,7 @@ class DocsPage extends StatelessComponent {
                     'details',
                     cls: 'd-mobile-toc',
                     children: [
-                      el('summary', text: 'このページの内容'),
+                      el('summary', text: t('このページの内容', 'On this page')),
                       tocLinks(),
                     ],
                   ),
@@ -232,11 +291,13 @@ class DocsPage extends StatelessComponent {
                 el(
                   'nav',
                   cls: 'd-page-nav',
-                  attrs: {'aria-label': '前後のドキュメント'},
+                  attrs: {
+                    'aria-label': t('前後のドキュメント', 'Previous and next guides'),
+                  },
                   children: [
                     if (current > 0)
                       pageLink(
-                        '前のページ',
+                        t('前のページ', 'Previous'),
                         allItems[current - 1].title,
                         allItems[current - 1].path,
                         false,
@@ -245,7 +306,7 @@ class DocsPage extends StatelessComponent {
                       el('div'),
                     if (current >= 0 && current < allItems.length - 1)
                       pageLink(
-                        '次のページ',
+                        t('次のページ', 'Next'),
                         allItems[current + 1].title,
                         allItems[current + 1].path,
                         true,
@@ -271,7 +332,7 @@ class DocsPage extends StatelessComponent {
                   cls: 'd-toc-title',
                   children: [
                     docsIcon('list'),
-                    el('span', text: 'このページの内容'),
+                    el('span', text: t('このページの内容', 'On this page')),
                   ],
                 ),
                 tocLinks(),
@@ -280,15 +341,24 @@ class DocsPage extends StatelessComponent {
                   cls: 'd-help',
                   children: [
                     el('span', cls: 'd-help-mark', text: 'g.'),
-                    el('strong', text: '一緒につくる、Docs。'),
-                    docLines('p', text: '気づいたことやアイデアを、\nGitHubで教えてください。'),
+                    el(
+                      'strong',
+                      text: t('一緒につくる、Docs。', 'Build better docs together.'),
+                    ),
+                    docLines(
+                      'p',
+                      text: t(
+                        '気づいたことやアイデアを、\nGitHubで教えてください。',
+                        'Share feedback and ideas\non GitHub.',
+                      ),
+                    ),
                     el(
                       'a',
                       attrs: {
                         'href': 'https://github.com/openci-org/openci/issues',
                       },
                       children: [
-                        el('span', text: 'Issueを開く'),
+                        el('span', text: t('Issueを開く', 'Open an issue')),
                         docsIcon('external'),
                       ],
                     ),
@@ -302,7 +372,7 @@ class DocsPage extends StatelessComponent {
           'dialog',
           id: 'docs-menu',
           cls: 'd-menu-dialog',
-          attrs: {'aria-label': 'ドキュメントメニュー'},
+          attrs: {'aria-label': t('ドキュメントメニュー', 'Documentation menu')},
           children: [
             el(
               'div',
@@ -315,13 +385,13 @@ class DocsPage extends StatelessComponent {
                   attrs: {
                     'type': 'button',
                     'data-menu-close': '',
-                    'aria-label': 'メニューを閉じる',
+                    'aria-label': t('メニューを閉じる', 'Close menu'),
                   },
                   children: [docsIcon('close')],
                 ),
               ],
             ),
-            docsSidebar(path),
+            docsSidebar(locale, path),
           ],
         ),
         el(
@@ -340,14 +410,14 @@ class DocsPage extends StatelessComponent {
                   id: 'search-label',
                   cls: 'd-sr-only',
                   attrs: {'for': 'docs-query'},
-                  text: 'ドキュメントを検索',
+                  text: t('ドキュメントを検索', 'Search documentation'),
                 ),
                 el(
                   'input',
                   id: 'docs-query',
                   attrs: {
                     'type': 'search',
-                    'placeholder': 'キーワードで検索…',
+                    'placeholder': t('キーワードで検索…', 'Search by keyword…'),
                     'autocomplete': 'off',
                   },
                 ),
@@ -357,7 +427,7 @@ class DocsPage extends StatelessComponent {
                   attrs: {
                     'type': 'button',
                     'data-search-close': '',
-                    'aria-label': '検索を閉じる',
+                    'aria-label': t('検索を閉じる', 'Close search'),
                   },
                   text: 'Esc',
                 ),
@@ -370,7 +440,40 @@ class DocsPage extends StatelessComponent {
               attrs: {'aria-live': 'polite'},
             ),
             el('div', id: 'docs-results', cls: 'd-search-results'),
-            el('div', cls: 'd-search-footer', text: '↑ ↓ 選択　↵ ページを開く　esc 閉じる'),
+            el(
+              'div',
+              cls: 'd-search-footer',
+              text: t(
+                '↑ ↓ 選択　↵ ページを開く　esc 閉じる',
+                '↑ ↓ Select　↵ Open page　esc Close',
+              ),
+            ),
+          ],
+        ),
+        el(
+          'script',
+          id: 'docs-ui-text',
+          attrs: {'type': 'application/json'},
+          children: [
+            RawText(
+              jsonEncode({
+                'results': t('{count}件のドキュメント', '{count} documents'),
+                'search': t('ドキュメントから探す', 'Search documentation'),
+                'empty': t(
+                  '見つかりませんでした。別のキーワードで試してください。',
+                  'No results. Try another keyword.',
+                ),
+                'copied': t('コピー済み', 'Copied'),
+                'copiedLabel': t('コピーしました', 'Code copied'),
+                'copy': t('コピー', 'Copy'),
+                'copyLabel': t('コードをコピー', 'Copy code'),
+                'selectCopy': t('選択してコピー', 'Select and copy'),
+                'selectCopyLabel': t(
+                  'コードを選択してコピーしてください',
+                  'Select the code and copy it',
+                ),
+              }).replaceAll('<', r'\u003c'),
+            ),
           ],
         ),
         el(
@@ -386,67 +489,77 @@ class DocsPage extends StatelessComponent {
   }
 }
 
-Component docsSidebar(String active) => el(
-  'div',
-  cls: 'd-sidebar-content',
-  children: [
-    el(
-      'a',
-      cls: 'd-docs-home',
-      attrs: {'href': '/docs/'},
-      children: [
-        el('span', cls: 'd-square-logo', text: 'g.'),
-        el('span', text: 'ドキュメント'),
-        el('span', cls: 'd-small-tag', text: 'DART'),
-      ],
-    ),
-    el(
-      'nav',
-      attrs: {'aria-label': 'ドキュメント'},
-      children: [
-        for (final group in docsNavigation)
+Component docsSidebar(SiteLocale locale, String active) {
+  final t = locale.text;
+  final localPath = locale.path;
+  return el(
+    'div',
+    cls: 'd-sidebar-content',
+    children: [
+      el(
+        'a',
+        cls: 'd-docs-home',
+        attrs: {'href': localPath('/docs/')},
+        children: [
+          el('span', cls: 'd-square-logo', text: 'g.'),
+          el('span', text: t('ドキュメント', 'Documentation')),
+          el('span', cls: 'd-small-tag', text: 'DART'),
+        ],
+      ),
+      el(
+        'nav',
+        attrs: {'aria-label': t('ドキュメント', 'Documentation')},
+        children: [
+          for (final group in docsNavigation(locale))
+            el(
+              'div',
+              cls: 'd-nav-group',
+              children: [
+                el('h2', text: group.group),
+                for (final item in group.items)
+                  el(
+                    'a',
+                    cls: 'd-nav-link${item.path == active ? ' is-active' : ''}',
+                    attrs: {
+                      'href': item.path,
+                      if (item.path == active) 'aria-current': 'page',
+                    },
+                    children: [
+                      docsIcon(item.icon),
+                      el('span', text: item.title),
+                      if (item.path == localPath('/docs/quickstart/'))
+                        el('span', cls: 'd-nav-arrow', text: '↗'),
+                    ],
+                  ),
+              ],
+            ),
+        ],
+      ),
+      el(
+        'div',
+        cls: 'd-sidebar-bottom',
+        children: [
+          docLines(
+            'p',
+            text: t(
+              'Flutter & Dartのための、\nオープンソースCI。',
+              'Open-source CI\nfor Flutter & Dart.',
+            ),
+          ),
           el(
-            'div',
-            cls: 'd-nav-group',
+            'a',
+            attrs: {'href': 'https://github.com/openci-org/openci'},
             children: [
-              el('h2', text: group.group),
-              for (final item in group.items)
-                el(
-                  'a',
-                  cls: 'd-nav-link${item.path == active ? ' is-active' : ''}',
-                  attrs: {
-                    'href': item.path,
-                    if (item.path == active) 'aria-current': 'page',
-                  },
-                  children: [
-                    docsIcon(item.icon),
-                    el('span', text: item.title),
-                    if (item.path == '/docs/quickstart/')
-                      el('span', cls: 'd-nav-arrow', text: '↗'),
-                  ],
-                ),
+              docsIcon('github'),
+              el('span', text: t('GitHubで見る', 'View on GitHub')),
+              docsIcon('external'),
             ],
           ),
-      ],
-    ),
-    el(
-      'div',
-      cls: 'd-sidebar-bottom',
-      children: [
-        docLines('p', text: 'Flutter & Dartのための、\nオープンソースCI。'),
-        el(
-          'a',
-          attrs: {'href': 'https://github.com/openci-org/openci'},
-          children: [
-            docsIcon('github'),
-            el('span', text: 'GitHubで見る'),
-            docsIcon('external'),
-          ],
-        ),
-      ],
-    ),
-  ],
-);
+        ],
+      ),
+    ],
+  );
+}
 
 Component pageLink(String caption, String title, String path, bool next) => el(
   'a',

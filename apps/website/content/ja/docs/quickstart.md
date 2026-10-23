@@ -66,10 +66,10 @@ dart run openci/flutter_ci.dart
 
 リポジトリとGitHub Appの連携、チーム、実行マシンの準備ができたら、ワークフローをコミットして対象ブランチへpushします。`openci/` 内のDartファイルのトリガーが、GitHubイベントと照合されます。
 
-[ダッシュボードを開く](https://dashboard.openci.org/)と、ビルドの状況を確認できます。実行イベントの指定は[トリガー](/docs/triggers/)を参照してください。
+[ダッシュボードを開く](https://dashboard.openci.org/)と、ビルドの状況を確認できます。実行イベントの指定は[トリガー](/ja/docs/triggers/)を参照してください。
 
 ## 次にできること
 
-- [Flutterのビルドとテスト](/docs/flutter/) — APKやApp Bundleをビルドする
-- [Dartでワークフローを書く](/docs/workflows/) — 関数の再利用やモノレポの設定
-- [CLIリファレンス](/docs/cli/) — ログインとチームの切り替え
+- [Flutterのビルドとテスト](/ja/docs/flutter/) — APKやApp Bundleをビルドする
+- [Dartでワークフローを書く](/ja/docs/workflows/) — 関数の再利用やモノレポの設定
+- [CLIリファレンス](/ja/docs/cli/) — ログインとチームの切り替え

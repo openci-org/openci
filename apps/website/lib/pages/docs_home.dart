@@ -1,13 +1,14 @@
 import 'package:jaspr/dom.dart' show RawText;
 import 'package:jaspr/server.dart';
 
-import '../components/dart_code.dart';
 import '../components/code_theme_toggle.dart';
+import '../components/dart_code.dart';
 import '../components/docs_icon.dart';
 import '../components/html.dart';
+import '../l10n/localized_component.dart';
 
-class DocsHome extends StatelessComponent {
-  const DocsHome({super.key});
+class DocsHome extends LocalizedComponent {
+  const DocsHome(super.locale, {super.key});
   @override
   Component build(BuildContext context) => el(
     'div',
@@ -28,7 +29,10 @@ class DocsHome extends StatelessComponent {
           docLines(
             'p',
             cls: 'd-lead',
-            text: 'いつものDartで、ビルドからリリースまで。\nFlutter & DartのためのCIを、ここからはじめましょう。',
+            text: t(
+              'いつものDartで、ビルドからリリースまで。\nFlutter & DartのためのCIを、ここからはじめましょう。',
+              'From build to release, in the Dart you know.\nStart here with CI for Flutter & Dart.',
+            ),
           ),
         ],
       ),
@@ -42,14 +46,23 @@ class DocsHome extends StatelessComponent {
             cls: 'd-quickstart-copy',
             children: [
               el('span', cls: 'd-kicker', text: 'YOUR FIRST BUILD'),
-              docLines('h2', text: '最初の一歩を、\n一緒に。'),
-              docLines('p', text: 'セットアップから、最初のワークフローまで。\n小さなビルドからはじめよう。'),
+              docLines(
+                'h2',
+                text: t('最初の一歩を、\n一緒に。', 'Your first steps.\nTogether.'),
+              ),
+              docLines(
+                'p',
+                text: t(
+                  'セットアップから、最初のワークフローまで。\n小さなビルドからはじめよう。',
+                  'From setup to your first workflow.\nStart with a small build.',
+                ),
+              ),
               el(
                 'a',
                 cls: 'd-primary',
-                attrs: {'href': '/docs/quickstart/'},
+                attrs: {'href': localPath('/docs/quickstart/')},
                 children: [
-                  el('span', text: 'クイックスタート'),
+                  el('span', text: t('クイックスタート', 'Quickstart')),
                   docsIcon('arrow'),
                 ],
               ),
@@ -120,28 +133,37 @@ class DocsHome extends StatelessComponent {
         id: 'guides',
         cls: 'd-guide-section',
         children: [
-          sectionHeading('目的から探す', 'FIND YOUR WAY'),
+          sectionHeading(t('目的から探す', 'Find a guide'), 'FIND YOUR WAY'),
           el(
             'div',
             cls: 'd-guide-grid',
             children: [
               guide(
                 'code',
-                'ワークフローを書く',
-                'Dartで手順を定義。\n使い慣れた言語をCIにも。',
-                '/docs/workflows/',
+                t('ワークフローを書く', 'Write a workflow'),
+                t(
+                  'Dartで手順を定義。\n使い慣れた言語をCIにも。',
+                  'Define your steps in Dart.\nA familiar language for your CI.',
+                ),
+                localPath('/docs/workflows/'),
               ),
               guide(
                 'box',
-                'Flutterをビルドする',
-                '解析、テスト、ビルド。\nアプリの品質をコードで守る。',
-                '/docs/flutter/',
+                t('Flutterをビルドする', 'Build with Flutter'),
+                t(
+                  '解析、テスト、ビルド。\nアプリの品質をコードで守る。',
+                  'Analyze, test, and build.\nKeep your app quality in code.',
+                ),
+                localPath('/docs/flutter/'),
               ),
               guide(
                 'server',
-                '自分のMacで動かす',
-                'Apple Siliconで実行。\n実行環境も、自分の手に。',
-                '/docs/self-hosting/',
+                t('自分のMacで動かす', 'Run on your own Mac'),
+                t(
+                  'Apple Siliconで実行。\n実行環境も、自分の手に。',
+                  'Run on Apple Silicon.\nOwn your build environment.',
+                ),
+                localPath('/docs/self-hosting/'),
               ),
             ],
           ),
@@ -152,11 +174,17 @@ class DocsHome extends StatelessComponent {
         id: 'write-dart',
         cls: 'd-dart-section',
         children: [
-          sectionHeading('ワークフローも、いつものDartで。', 'FAMILIAR BY DESIGN'),
+          sectionHeading(
+            t('ワークフローも、いつものDartで。', 'Workflows in the Dart you know.'),
+            'FAMILIAR BY DESIGN',
+          ),
           el(
             'p',
             cls: 'd-section-description',
-            text: '特別な構文はいりません。関数も、条件分岐も、そのまま。',
+            text: t(
+              '特別な構文はいりません。関数も、条件分岐も、そのまま。',
+              'No special syntax. Use the same functions and conditionals you already know.',
+            ),
           ),
           el(
             'div',
@@ -175,18 +203,18 @@ class DocsHome extends StatelessComponent {
                     ],
                   ),
                   el('span', cls: 'd-code-language', text: 'Dart'),
-                  codeThemeToggle(initialTheme: 'dark'),
+                  codeThemeToggle(locale: locale, initialTheme: 'dark'),
                   el(
                     'button',
                     cls: 'd-code-copy',
                     attrs: {
                       'type': 'button',
                       'data-copy-home': '',
-                      'aria-label': 'コードをコピー',
+                      'aria-label': t('コードをコピー', 'Copy code'),
                     },
                     children: [
                       docsIcon('copy'),
-                      el('span', text: 'コピー'),
+                      el('span', text: t('コピー', 'Copy')),
                     ],
                   ),
                 ],
@@ -212,8 +240,18 @@ class DocsHome extends StatelessComponent {
                 'div',
                 cls: 'd-code-caption',
                 children: [
-                  el('span', text: 'シンプルに書いて、確かに動かす。'),
-                  link('ワークフローの書き方', '/docs/workflows/', arrow: 'arrow'),
+                  el(
+                    'span',
+                    text: t(
+                      'シンプルに書いて、確かに動かす。',
+                      'Simple code. Reliable builds.',
+                    ),
+                  ),
+                  link(
+                    t('ワークフローの書き方', 'Writing workflows'),
+                    localPath('/docs/workflows/'),
+                    arrow: 'arrow',
+                  ),
                 ],
               ),
             ],
@@ -227,14 +265,20 @@ class DocsHome extends StatelessComponent {
           el(
             'a',
             cls: 'd-reference-link',
-            attrs: {'href': '/docs/cli/'},
+            attrs: {'href': localPath('/docs/cli/')},
             children: [
               docsIcon('terminal'),
               el(
                 'div',
                 children: [
-                  el('strong', text: 'CLIリファレンス'),
-                  el('p', text: '必要なコマンドを、すぐ手元に。'),
+                  el('strong', text: t('CLIリファレンス', 'CLI reference')),
+                  el(
+                    'p',
+                    text: t(
+                      '必要なコマンドを、すぐ手元に。',
+                      'The commands you need, close at hand.',
+                    ),
+                  ),
                 ],
               ),
               docsIcon('arrow'),
@@ -243,14 +287,20 @@ class DocsHome extends StatelessComponent {
           el(
             'a',
             cls: 'd-reference-link',
-            attrs: {'href': '/docs/secrets/'},
+            attrs: {'href': localPath('/docs/secrets/')},
             children: [
               docsIcon('lock'),
               el(
                 'div',
                 children: [
-                  el('strong', text: 'シークレットの管理'),
-                  el('p', text: 'ビルドに必要な値を管理する。'),
+                  el('strong', text: t('シークレットの管理', 'Manage secrets')),
+                  el(
+                    'p',
+                    text: t(
+                      'ビルドに必要な値を管理する。',
+                      'Manage the values your builds need.',
+                    ),
+                  ),
                 ],
               ),
               docsIcon('arrow'),
@@ -267,15 +317,27 @@ class DocsHome extends StatelessComponent {
           el(
             'div',
             children: [
-              el('h2', text: 'コードも、つくる過程も、オープンに。'),
-              el('p', text: 'GenuineCIはオープンソース。あなたのアイデアを待っています。'),
+              el(
+                'h2',
+                text: t('コードも、つくる過程も、オープンに。', 'Open code. Open development.'),
+              ),
+              el(
+                'p',
+                text: t(
+                  'GenuineCIはオープンソース。あなたのアイデアを待っています。',
+                  'GenuineCI is open source. Bring your ideas.',
+                ),
+              ),
             ],
           ),
           el(
             'a',
             attrs: {
               'href': 'https://github.com/openci-org/openci',
-              'aria-label': 'GitHubでGenuineCIを見る',
+              'aria-label': t(
+                'GitHubでGenuineCIを見る',
+                'View GenuineCI on GitHub',
+              ),
             },
             children: [docsIcon('external')],
           ),

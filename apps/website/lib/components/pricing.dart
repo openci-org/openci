@@ -1,9 +1,10 @@
 import 'package:jaspr/server.dart';
 
+import '../l10n/localized_component.dart';
 import 'html.dart';
 
-class Pricing extends StatelessComponent {
-  const Pricing({super.key});
+class Pricing extends LocalizedComponent {
+  const Pricing(super.locale, {super.key});
 
   @override
   Component build(BuildContext context) => el(
@@ -21,14 +22,17 @@ class Pricing extends StatelessComponent {
             'h2',
             id: 'pricing-title',
             children: [
-              Component.text('チームに合った、'),
+              Component.text(t('チームに合った、', 'Simple pricing.')),
               el('br'),
-              Component.text('シンプルな料金。'),
+              Component.text(t('シンプルな料金。', 'For your team.')),
             ],
           ),
           el(
             'p',
-            text: 'Apple Siliconで動くGenuineCI Cloud。個人開発からチーム開発まで、必要な実行時間で選べます。',
+            text: t(
+              'Apple Siliconで動くGenuineCI Cloud。個人開発からチーム開発まで、必要な実行時間で選べます。',
+              'GenuineCI Cloud runs on Apple Silicon. Choose the build time you need, whether you work solo or with a team.',
+            ),
           ),
         ],
       ),
@@ -41,13 +45,19 @@ class Pricing extends StatelessComponent {
               name: 'Light',
               price: '10',
               minutes: '600',
-              description: '個人開発や、小さく始めるチームに。',
+              description: t(
+                '個人開発や、小さく始めるチームに。',
+                'For solo developers and teams starting small.',
+              ),
             ),
             (
               name: 'Pro',
               price: '100',
               minutes: '6,000',
-              description: '毎日のビルドを、チームでしっかり。',
+              description: t(
+                '毎日のビルドを、チームでしっかり。',
+                'For teams building every day.',
+              ),
             ),
           ])
             el(
@@ -67,7 +77,11 @@ class Pricing extends StatelessComponent {
                   children: [
                     el('span', cls: 'pricing-currency', text: 'US\$'),
                     el('strong', text: plan.price),
-                    el('span', cls: 'pricing-period', text: '/ 月・チーム'),
+                    el(
+                      'span',
+                      cls: 'pricing-period',
+                      text: t('/ 月・チーム', '/ month per team'),
+                    ),
                   ],
                 ),
                 el(
@@ -75,8 +89,11 @@ class Pricing extends StatelessComponent {
                   cls: 'pricing-allowance',
                   children: [
                     icon('clock'),
-                    el('strong', text: '${plan.minutes}分'),
-                    el('span', text: '/ 月のCI実行時間'),
+                    el(
+                      'strong',
+                      text: t('${plan.minutes}分', '${plan.minutes} min'),
+                    ),
+                    el('span', text: t('/ 月のCI実行時間', '/ month of CI runtime')),
                   ],
                 ),
                 el(
@@ -84,9 +101,9 @@ class Pricing extends StatelessComponent {
                   cls: 'check-list pricing-features',
                   children: [
                     for (final feature in [
-                      'Apple SiliconのMacで実行',
-                      'チーム全員で利用時間を共有',
-                      'プランによる同時実行数制限なし',
+                      t('Apple SiliconのMacで実行', 'Run on Apple Silicon Macs'),
+                      t('チーム全員で利用時間を共有', 'Share runtime across your team'),
+                      t('プランによる同時実行数制限なし', 'No plan-based concurrency limit'),
                     ])
                       el(
                         'li',
@@ -99,10 +116,13 @@ class Pricing extends StatelessComponent {
                   cls: 'button button-dark',
                   attrs: {
                     'href': 'https://dashboard.openci.org/',
-                    'aria-label': '${plan.name}プランをダッシュボードで選ぶ',
+                    'aria-label': t(
+                      '${plan.name}プランをダッシュボードで選ぶ',
+                      'Choose ${plan.name} in the dashboard',
+                    ),
                   },
                   children: [
-                    el('span', text: 'ダッシュボードで選ぶ'),
+                    el('span', text: t('ダッシュボードで選ぶ', 'Choose in dashboard')),
                     icon('external'),
                   ],
                 ),
@@ -113,7 +133,10 @@ class Pricing extends StatelessComponent {
       el(
         'p',
         cls: 'pricing-signup',
-        text: 'Webダッシュボードでチームを選び、「設定 → 課金を管理」からお申し込みください。初回から決済が発生します。',
+        text: t(
+          'Webダッシュボードでチームを選び、「設定 → 課金を管理」からお申し込みください。初回から決済が発生します。',
+          'Select your team in the web dashboard, then open Settings → Manage billing to subscribe. Payment is taken when you subscribe.',
+        ),
       ),
       el(
         'ul',
@@ -121,12 +144,24 @@ class Pricing extends StatelessComponent {
         children: [
           el(
             'li',
-            text: '利用枠は毎月の請求期間ごとに適用されます。各ジョブの実行時間を合算し、キューや依存ジョブの待ち時間は含みません。',
+            text: t(
+              '利用枠は毎月の請求期間ごとに適用されます。各ジョブの実行時間を合算し、キューや依存ジョブの待ち時間は含みません。',
+              'The allowance applies to each monthly billing period. Usage is the sum of job runtime, excluding time spent in queues or waiting for dependencies.',
+            ),
           ),
-          el('li', text: 'プラン・チーム単位の同時実行数制限はありません。実際の開始時刻は、ワーカーの空き状況によります。'),
           el(
             'li',
-            text: '利用枠を使い切ると新しいCIの開始を止めます。実行中のジョブは完了まで継続し、追加の従量料金は発生しません。',
+            text: t(
+              'プラン・チーム単位の同時実行数制限はありません。実際の開始時刻は、ワーカーの空き状況によります。',
+              'There is no concurrency cap per plan or team. When jobs start depends on worker availability.',
+            ),
+          ),
+          el(
+            'li',
+            text: t(
+              '利用枠を使い切ると新しいCIの開始を止めます。実行中のジョブは完了まで継続し、追加の従量料金は発生しません。',
+              'Once the allowance is used up, new CI runs are blocked. Running jobs can finish, and there are no overage charges.',
+            ),
           ),
         ],
       ),
@@ -137,22 +172,36 @@ class Pricing extends StatelessComponent {
           el(
             'div',
             children: [
-              el('h3', text: '7日間返金保証'),
-              el('p', text: 'まずは、いつものプロジェクトで。'),
+              el('h3', text: t('7日間返金保証', '7-day money-back guarantee')),
+              el(
+                'p',
+                text: t('まずは、いつものプロジェクトで。', 'Try it with your own project.'),
+              ),
             ],
           ),
           el(
             'div',
             children: [
-              el('p', text: '初回決済の成功から168時間以内の申請で全額返金します。更新・再契約は対象外です。'),
+              el(
+                'p',
+                text: t(
+                  '初回決済の成功から168時間以内の申請で全額返金します。更新・再契約は対象外です。',
+                  'Request a full refund within 168 hours of your first successful payment. Renewals and resubscriptions are excluded.',
+                ),
+              ),
               el(
                 'details',
                 children: [
-                  el('summary', text: '返金時の取り扱い・申請先'),
+                  el(
+                    'summary',
+                    text: t('返金時の取り扱い・申請先', 'Refund details and contact'),
+                  ),
                   el(
                     'p',
-                    text:
-                        '返金時は即時解約となり、新しいCIは開始できません。実行中のCIは完了まで継続します。チーム名を添えて、メールでご連絡ください。',
+                    text: t(
+                      '返金時は即時解約となり、新しいCIは開始できません。実行中のCIは完了まで継続します。チーム名を添えて、メールでご連絡ください。',
+                      'A refund cancels your subscription immediately and blocks new CI runs. Running jobs can finish. Email us with your team name to request a refund.',
+                    ),
                   ),
                   link('m.aoki@openci.org', 'mailto:m.aoki@openci.org'),
                 ],
@@ -165,10 +214,16 @@ class Pricing extends StatelessComponent {
         'div',
         cls: 'pricing-self-hosted',
         children: [
-          el('p', text: '自分のマシンで動かすなら、セルフホストも。Cloudの料金は適用されません。'),
+          el(
+            'p',
+            text: t(
+              '自分のマシンで動かすなら、セルフホストも。Cloudの料金は適用されません。',
+              'Prefer your own machines? You can self-host. Cloud pricing does not apply.',
+            ),
+          ),
           link(
-            'セルフホストのガイド',
-            '/docs/self-hosting/',
+            t('セルフホストのガイド', 'Self-hosting guide'),
+            localPath('/docs/self-hosting/'),
             cls: 'text-link',
             arrow: 'arrow',
           ),

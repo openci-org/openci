@@ -8,7 +8,7 @@
       filters.forEach((filter) => filter.setAttribute("aria-pressed", String(filter === button)));
       let visible = 0;
       articles.forEach((article) => {
-        article.hidden = category !== "すべて" && article.dataset.articleCategory !== category;
+        article.hidden = category !== "all" && article.dataset.articleCategory !== category;
         if (!article.hidden) visible += 1;
       });
       count.textContent = `${String(visible).padStart(2, "0")} ${visible === 1 ? "ARTICLE" : "ARTICLES"}`;

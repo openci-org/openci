@@ -8,11 +8,12 @@ import 'package:jaspr_content/jaspr_content.dart';
 import 'package:jaspr_content/theme.dart';
 import 'package:jaspr_router/jaspr_router.dart';
 
-import 'components/html.dart';
 import 'components/docs_code_block.dart';
+import 'components/html.dart';
 import 'components/plain_code_block.dart';
 import 'components/social_metadata.dart';
 import 'content/heading_ids_extension.dart';
+import 'l10n/site_locale.dart';
 import 'layouts/blog_layout.dart';
 import 'layouts/docs_layout.dart';
 import 'main.server.options.dart';
@@ -23,11 +24,11 @@ void main() {
   final favicon = base64Encode(File('web/favicon.png').readAsBytesSync());
   runApp(
     Document(
-      title: siteTitle,
-      lang: 'ja',
+      title: siteTitle(SiteLocale.en),
+      lang: 'en',
       base: null,
       meta: {
-        'description': siteDescription,
+        'description': siteDescription(SiteLocale.en),
         'theme-color': '#fffb00',
         'robots': 'noindex, nofollow',
       },
@@ -68,8 +69,8 @@ void main() {
                 const TableOfContentsExtension(),
                 HeadingAnchorsExtension(),
               ],
-              components: source.path.startsWith('docs/')
-                  ? [const DocsCodeBlock()]
+              components: logicalPath(source.path).startsWith('/docs/')
+                  ? [DocsCodeBlock(SiteLocale.fromPath(source.path))]
                   : [const PlainCodeBlock(), CodeBlock()],
               layouts: [
                 const BlogArticleLayout(),
@@ -88,8 +89,13 @@ void main() {
               routes: [
                 Route(
                   path: '/',
-                  builder: (context, state) => const LandingPage(),
+                  builder: (context, state) => const LandingPage(SiteLocale.en),
                 ),
+                for (final locale in SiteLocale.values)
+                  Route(
+                    path: '/${locale.name}',
+                    builder: (context, state) => LandingPage(locale),
+                  ),
                 for (final loaderRoutes in routes) ...loaderRoutes,
               ],
             ),

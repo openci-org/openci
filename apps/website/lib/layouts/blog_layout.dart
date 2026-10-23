@@ -2,7 +2,10 @@ import 'package:jaspr/server.dart';
 import 'package:jaspr_content/jaspr_content.dart';
 
 import '../components/html.dart';
+import '../components/language_switcher.dart';
 import '../components/social_metadata.dart';
+import '../l10n/localized_component.dart';
+import '../l10n/site_locale.dart';
 import '../models/blog_post.dart';
 import '../pages/blog_page.dart';
 
@@ -27,8 +30,9 @@ class BlogArticleLayout implements PageLayout {
       BlogArticlePage(page, child);
 }
 
-class BlogArticlePage extends StatelessComponent {
-  const BlogArticlePage(this.page, this.content, {super.key});
+class BlogArticlePage extends LocalizedComponent {
+  BlogArticlePage(this.page, this.content, {super.key})
+    : super(SiteLocale.fromPath(page.url));
 
   final Page page;
   final Component content;
@@ -36,7 +40,11 @@ class BlogArticlePage extends StatelessComponent {
   @override
   Component build(BuildContext context) {
     final post = BlogPost(page);
-    final blogPosts = postsFromPages(context.pages);
+    final translations = availableTranslations(
+      page.url,
+      context.pages.map((p) => p.url),
+    );
+    final blogPosts = postsFromPages(context.pages, locale);
     final index = blogPosts.indexWhere((item) => item.url == post.url);
     final nextPost = blogPosts.length > 1
         ? blogPosts[(index + 1) % blogPosts.length]
@@ -49,13 +57,15 @@ class BlogArticlePage extends StatelessComponent {
           title: post.pageTitle,
           description: post.summary,
           path: post.url,
+          translations: translations,
           imagePath: post.imagePath,
           imageAlt: post.imageAlt,
           type: 'article',
           section: post.category,
         ),
-        link('本文へスキップ', '#main', cls: 'skip-link'),
-        blogHeader(),
+        link(t('本文へスキップ', 'Skip to content'), '#main', cls: 'skip-link'),
+        languageSwitcher(locale, translations),
+        blogHeader(locale),
         el(
           'main',
           id: 'main',
@@ -67,7 +77,11 @@ class BlogArticlePage extends StatelessComponent {
                   'div',
                   cls: 'wrap article-masthead',
                   children: [
-                    link('← ブログ一覧', '/blog/', cls: 'back-to-blog'),
+                    link(
+                      t('← ブログ一覧', '← Back to the blog'),
+                      localPath('/blog/'),
+                      cls: 'back-to-blog',
+                    ),
                     postMeta(post),
                     el('h1', text: post.title),
                     el('p', cls: 'article-lead', text: post.summary),
@@ -101,7 +115,7 @@ class BlogArticlePage extends StatelessComponent {
                       children: [
                         el(
                           'nav',
-                          attrs: {'aria-label': '記事の目次'},
+                          attrs: {'aria-label': t('記事の目次', 'Article contents')},
                           children: [
                             el(
                               'p',
@@ -115,7 +129,10 @@ class BlogArticlePage extends StatelessComponent {
                         el(
                           'p',
                           cls: 'article-aside-note',
-                          text: 'Flutter & Dartのために。\nDartでつくられた、\nオープンソースのCI。',
+                          text: t(
+                            'Flutter & Dartのために。\nDartでつくられた、\nオープンソースのCI。',
+                            'For Flutter & Dart.\nBuilt in Dart.\nOpen-source CI.',
+                          ),
                         ),
                       ],
                     ),
@@ -131,8 +148,8 @@ class BlogArticlePage extends StatelessComponent {
                           attrs: {'aria-hidden': 'true'},
                         ),
                         link(
-                          'GenuineCI を詳しく見る',
-                          '/',
+                          t('GenuineCI を詳しく見る', 'Explore GenuineCI'),
+                          localPath('/'),
                           cls: 'text-link',
                           arrow: 'arrow',
                         ),
@@ -146,23 +163,27 @@ class BlogArticlePage extends StatelessComponent {
               el(
                 'section',
                 cls: 'wrap article-next',
-                attrs: {'aria-label': '次の記事'},
+                attrs: {'aria-label': t('次の記事', 'Next article')},
                 children: [
                   el('p', cls: 'eyebrow', text: 'READ NEXT'),
                   el(
                     'a',
                     attrs: {'href': nextPost.url},
                     children: [
-                      el('h2', text: nextPost.title.replaceAll('\n', '')),
+                      el('h2', text: nextPost.plainTitle),
                       icon('arrow'),
                     ],
                   ),
-                  link('すべての記事を見る', '/blog/', cls: 'back-to-blog'),
+                  link(
+                    t('すべての記事を見る', 'View all articles'),
+                    localPath('/blog/'),
+                    cls: 'back-to-blog',
+                  ),
                 ],
               ),
           ],
         ),
-        blogFooter(),
+        blogFooter(locale),
       ],
     );
   }
