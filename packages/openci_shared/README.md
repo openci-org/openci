@@ -2,6 +2,14 @@
 
 Shared constants and models for OpenCI.
 
+## Upgrading to 2.0.0
+
+Remove `githubBaseUrl` arguments and property reads from `Team` and `BuildJobPlan`.
+The server owns repository URL configuration through `GITHUB_API_BASE_URL`.
+`BuildJobPlan.fromJson` accepts older planner payloads by ignoring their legacy
+`githubBaseUrl` field. Use the verified GitHub connection API below for team
+connections.
+
 ## GitHub connection
 
 Use `OpenCIApiService` to read and confirm a pending GitHub connection:

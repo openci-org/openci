@@ -1,1 +1,1 @@
-const String genuineCIVersion = '0.5.4';
+const String genuineCIVersion = '0.6.0';
