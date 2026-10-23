@@ -21,7 +21,6 @@ extension type const WorkspaceRoot$Apps._(String _path) implements WorkspaceDire
   WorkspaceRoot$Apps$Dashboard get dashboard => const WorkspaceRoot$Apps$Dashboard._("apps/dashboard");
   WorkspaceRoot$Apps$OpenciCli get openciCli => const WorkspaceRoot$Apps$OpenciCli._("apps/openci_cli");
   WorkspaceRoot$Apps$OpenciServer get openciServer => const WorkspaceRoot$Apps$OpenciServer._("apps/openci_server");
-  WorkspaceRoot$Apps$Website get website => const WorkspaceRoot$Apps$Website._("apps/website");
 }
 
 extension type const WorkspaceRoot$Apps$BuildJobPlanner._(String _path) implements WorkspaceDirectory {
@@ -524,35 +523,6 @@ extension type const WorkspaceRoot$Apps$OpenciServer$Test$Routes$Webhooks$Tasks.
 
 extension type const WorkspaceRoot$Apps$OpenciServer$Test$Routes$Worker._(String _path) implements WorkspaceDirectory {
   WorkspaceDirectory get jobs => const WorkspaceDirectory("apps/openci_server/test/routes/worker/jobs");
-}
-
-extension type const WorkspaceRoot$Apps$Website._(String _path) implements WorkspaceDirectory {
-  WorkspaceRoot$Apps$Website$Content get content => const WorkspaceRoot$Apps$Website$Content._("apps/website/content");
-  WorkspaceRoot$Apps$Website$Lib get lib => const WorkspaceRoot$Apps$Website$Lib._("apps/website/lib");
-  WorkspaceRoot$Apps$Website$Test get test => const WorkspaceRoot$Apps$Website$Test._("apps/website/test");
-  WorkspaceRoot$Apps$Website$Web get web => const WorkspaceRoot$Apps$Website$Web._("apps/website/web");
-}
-
-extension type const WorkspaceRoot$Apps$Website$Content._(String _path) implements WorkspaceDirectory {
-  WorkspaceDirectory get blog => const WorkspaceDirectory("apps/website/content/blog");
-  WorkspaceDirectory get docs => const WorkspaceDirectory("apps/website/content/docs");
-}
-
-extension type const WorkspaceRoot$Apps$Website$Lib._(String _path) implements WorkspaceDirectory {
-  WorkspaceDirectory get components => const WorkspaceDirectory("apps/website/lib/components");
-  WorkspaceDirectory get content => const WorkspaceDirectory("apps/website/lib/content");
-  WorkspaceDirectory get layouts => const WorkspaceDirectory("apps/website/lib/layouts");
-  WorkspaceDirectory get models => const WorkspaceDirectory("apps/website/lib/models");
-  WorkspaceDirectory get pages => const WorkspaceDirectory("apps/website/lib/pages");
-}
-
-extension type const WorkspaceRoot$Apps$Website$Test._(String _path) implements WorkspaceDirectory {
-  WorkspaceDirectory get content => const WorkspaceDirectory("apps/website/test/content");
-  WorkspaceDirectory get models => const WorkspaceDirectory("apps/website/test/models");
-}
-
-extension type const WorkspaceRoot$Apps$Website$Web._(String _path) implements WorkspaceDirectory {
-  WorkspaceDirectory get ogp => const WorkspaceDirectory("apps/website/web/ogp");
 }
 
 extension type const WorkspaceRoot$Packages._(String _path) implements WorkspaceDirectory {

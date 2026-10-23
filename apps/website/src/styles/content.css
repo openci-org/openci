@@ -1,0 +1,934 @@
+/*! @license Article typography retained from Jaspr Content 0.5.4.
+
+MIT License
+
+Copyright (c) 2025 The Jaspr Authors. All rights reserved.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
+:root {
+  --primary: #141414;
+  --background: #ffffff;
+  --text: #141414;
+  --content-headings: oklch(0.21 0.034 264.665);
+  --content-lead: oklch(0.446 0.03 256.802);
+  --content-links: oklch(0.21 0.034 264.665);
+  --content-bold: oklch(0.21 0.034 264.665);
+  --content-counters: oklch(0.551 0.027 264.364);
+  --content-bullets: oklch(0.872 0.01 258.338);
+  --content-hr: oklch(0.928 0.006 264.531);
+  --content-quotes: oklch(0.21 0.034 264.665);
+  --content-quote-borders: oklch(0.928 0.006 264.531);
+  --content-captions: oklch(0.551 0.027 264.364);
+  --content-kbd: oklch(0.21 0.034 264.665);
+  --content-kbd-shadows: oklch(0.21 0.034 264.665);
+  --content-code: oklch(0.21 0.034 264.665);
+  --content-pre-code: oklch(0.928 0.006 264.531);
+  --content-pre-bg: oklch(0.278 0.033 256.848);
+  --content-th-borders: oklch(0.872 0.01 258.338);
+  --content-td-borders: oklch(0.928 0.006 264.531);
+}
+:root[data-theme="dark"] {
+  --content-headings: white;
+  --content-lead: oklch(0.707 0.022 261.325);
+  --content-links: white;
+  --content-bold: white;
+  --content-counters: oklch(0.707 0.022 261.325);
+  --content-bullets: oklch(0.446 0.03 256.802);
+  --content-hr: oklch(0.373 0.034 259.733);
+  --content-quotes: oklch(0.967 0.003 264.542);
+  --content-quote-borders: oklch(0.373 0.034 259.733);
+  --content-captions: oklch(0.707 0.022 261.325);
+  --content-kbd: white;
+  --content-kbd-shadows: white;
+  --content-code: white;
+  --content-pre-code: oklch(0.872 0.01 258.338);
+  --content-pre-bg: rgb(0 0 0 / 50%);
+  --content-th-borders: oklch(0.446 0.03 256.802);
+  --content-td-borders: oklch(0.373 0.034 259.733);
+}
+*,
+:after,
+:before {
+  box-sizing: border-box;
+  border: solid #e5e7eb 0;
+}
+:host,
+html {
+  line-height: 1.5em;
+  -webkit-text-size-adjust: 100%;
+  -moz-tab-size: 4;
+  tab-size: 4;
+  font-feature-settings: normal;
+  font-variation-settings: normal;
+  -webkit-tap-highlight-color: transparent;
+}
+body {
+  margin: 0;
+  line-height: inherit;
+  -webkit-font-smoothing: antialiased;
+}
+hr {
+  height: 0;
+  border-top-style: solid;
+  border-top-width: 1px;
+  color: inherit;
+}
+a {
+  color: inherit;
+  text-decoration: inherit;
+}
+b,
+strong {
+  font-weight: bolder;
+}
+code,
+kbd,
+pre,
+samp {
+  font-size: 1em;
+  font-feature-settings: normal;
+  font-variation-settings: normal;
+}
+small {
+  font-size: 80%;
+}
+sub,
+sup {
+  position: relative;
+  font-size: 75%;
+  line-height: 0;
+  vertical-align: baseline;
+}
+sub {
+  position: relative;
+  bottom: -0.25em;
+}
+sup {
+  position: relative;
+  top: -0.5em;
+}
+table {
+  border: solid inherit;
+  text-indent: 0;
+  border-collapse: collapse;
+}
+button,
+input,
+optgroup,
+select,
+textarea {
+  padding: 0;
+  margin: 0;
+  color: inherit;
+  font-family: inherit;
+  font-size: 100%;
+  font-weight: inherit;
+  letter-spacing: inherit;
+  line-height: inherit;
+  font-feature-settings: inherit;
+  font-variation-settings: inherit;
+}
+button,
+select {
+  text-transform: none;
+}
+button,
+input[type="button"],
+input[type="reset"],
+input[type="submit"] {
+  -webkit-appearance: button;
+  background-color: transparent;
+  background-image: none;
+}
+:-moz-focusring {
+  outline: auto;
+}
+:-moz-ui-invalid {
+  box-shadow: none;
+}
+progress {
+  vertical-align: baseline;
+}
+::-webkit-inner-spin-button,
+::-webkit-outer-spin-button {
+  height: auto;
+}
+[type="search"] {
+  -webkit-appearance: textfield;
+  outline-offset: -2px;
+}
+::-webkit-search-decoration {
+  -webkit-appearance: none;
+}
+::-webkit-file-upload-button {
+  -webkit-appearance: button;
+  font: inherit;
+}
+summary {
+  display: list-item;
+}
+blockquote,
+dd,
+dl,
+figure,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+hr,
+p,
+pre {
+  margin: 0;
+}
+fieldset {
+  margin: 0;
+}
+fieldset,
+legend {
+  padding: 0;
+}
+menu,
+ol,
+ul {
+  padding: 0;
+  margin: 0;
+  list-style-type: none;
+}
+dialog {
+  padding: 0;
+}
+textarea {
+  resize: vertical;
+}
+input::placeholder,
+textarea::placeholder {
+  opacity: 1;
+  color: #9ca3af;
+}
+[role="button"],
+button {
+  cursor: pointer;
+}
+:disabled {
+  cursor: default;
+}
+audio,
+canvas,
+embed,
+iframe,
+img,
+object,
+svg,
+video {
+  display: block;
+  vertical-align: middle;
+}
+img,
+video {
+  height: auto;
+  max-width: 100%;
+}
+:root {
+  --content-font: var(--font);
+  --content-code-font: var(--mono);
+}
+:host,
+html {
+  font-family: var(--content-font);
+}
+code,
+kbd,
+pre,
+samp {
+  font-family: var(--content-code-font);
+}
+body {
+  color: var(--text);
+  background-color: var(--background);
+}
+.content {
+  color: var(--text);
+  font-size: 1rem;
+  line-height: 1.75em;
+}
+.content
+  :where(a):not(:where([class~="not-content"], [class~="not-content"] *)) {
+  color: var(--content-links);
+  font-weight: 500;
+  text-decoration: underline;
+}
+.content
+  :where(strong):not(:where([class~="not-content"], [class~="not-content"] *)) {
+  color: var(--content-bold);
+  font-weight: 600;
+}
+.content
+  :where(a strong):not(
+    :where([class~="not-content"], [class~="not-content"] *)
+  ) {
+  color: inherit;
+}
+.content
+  :where(blockquote strong):not(
+    :where([class~="not-content"], [class~="not-content"] *)
+  ) {
+  color: inherit;
+}
+.content
+  :where(thead th strong):not(
+    :where([class~="not-content"], [class~="not-content"] *)
+  ) {
+  color: inherit;
+}
+.content
+  :where(ol):not(:where([class~="not-content"], [class~="not-content"] *)) {
+  list-style-type: decimal;
+}
+.content
+  :where(ol[type="A"]):not(
+    :where([class~="not-content"], [class~="not-content"] *)
+  ) {
+  list-style-type: upper-alpha;
+}
+.content
+  :where(ol[type="a"]):not(
+    :where([class~="not-content"], [class~="not-content"] *)
+  ) {
+  list-style-type: lower-alpha;
+}
+.content
+  :where(ol[type="A" s]):not(
+    :where([class~="not-content"], [class~="not-content"] *)
+  ) {
+  list-style-type: upper-alpha;
+}
+.content
+  :where(ol[type="a" s]):not(
+    :where([class~="not-content"], [class~="not-content"] *)
+  ) {
+  list-style-type: lower-alpha;
+}
+.content
+  :where(ol[type="I"]):not(
+    :where([class~="not-content"], [class~="not-content"] *)
+  ) {
+  list-style-type: upper-roman;
+}
+.content
+  :where(ol[type="i"]):not(
+    :where([class~="not-content"], [class~="not-content"] *)
+  ) {
+  list-style-type: lower-roman;
+}
+.content
+  :where(ol[type="I" s]):not(
+    :where([class~="not-content"], [class~="not-content"] *)
+  ) {
+  list-style-type: upper-roman;
+}
+.content
+  :where(ol[type="i" s]):not(
+    :where([class~="not-content"], [class~="not-content"] *)
+  ) {
+  list-style-type: lower-roman;
+}
+.content
+  :where(ol[type="1"]):not(
+    :where([class~="not-content"], [class~="not-content"] *)
+  ) {
+  list-style-type: decimal;
+}
+.content
+  :where(ul):not(:where([class~="not-content"], [class~="not-content"] *)) {
+  list-style-type: disc;
+}
+.content
+  :where(ol > li::marker):not(
+    :where([class~="not-content"], [class~="not-content"] *)
+  ) {
+  color: var(--content-counters);
+  font-weight: 400;
+}
+.content
+  :where(ul > li::marker):not(
+    :where([class~="not-content"], [class~="not-content"] *)
+  ) {
+  color: var(--content-bullets);
+}
+.content
+  :where(dt):not(:where([class~="not-content"], [class~="not-content"] *)) {
+  color: var(--content-headings);
+  font-weight: 600;
+}
+.content
+  :where(hr):not(:where([class~="not-content"], [class~="not-content"] *)) {
+  border: solid var(--content-hr);
+  border-top-width: 1px;
+}
+.content
+  :where(blockquote):not(
+    :where([class~="not-content"], [class~="not-content"] *)
+  ) {
+  color: var(--content-quotes);
+  font-weight: 500;
+  font-style: italic;
+  border-inline-start-width: 0.25rem;
+  border-inline-start-color: var(--content-quote-borders);
+  quotes: "\201C" "\201D" "\2018" "\2019";
+}
+.content
+  :where(blockquote p:first-of-type::before):not(
+    :where([class~="not-content"], [class~="not-content"] *)
+  ) {
+  content: open-quote;
+}
+.content
+  :where(blockquote p:last-of-type::after):not(
+    :where([class~="not-content"], [class~="not-content"] *)
+  ) {
+  content: close-quote;
+}
+.content
+  :where(h1):not(:where([class~="not-content"], [class~="not-content"] *)) {
+  color: var(--content-headings);
+  font-weight: 800;
+}
+.content
+  :where(h1 strong):not(
+    :where([class~="not-content"], [class~="not-content"] *)
+  ) {
+  color: inherit;
+  font-weight: 900;
+}
+.content
+  :where(h2):not(:where([class~="not-content"], [class~="not-content"] *)) {
+  color: var(--content-headings);
+  font-weight: 700;
+}
+.content
+  :where(h2 strong):not(
+    :where([class~="not-content"], [class~="not-content"] *)
+  ) {
+  color: inherit;
+  font-weight: 800;
+}
+.content
+  :where(h3):not(:where([class~="not-content"], [class~="not-content"] *)) {
+  color: var(--content-headings);
+  font-weight: 600;
+}
+.content
+  :where(h3 strong):not(
+    :where([class~="not-content"], [class~="not-content"] *)
+  ) {
+  color: inherit;
+  font-weight: 700;
+}
+.content
+  :where(h4):not(:where([class~="not-content"], [class~="not-content"] *)) {
+  color: var(--content-headings);
+  font-weight: 600;
+}
+.content
+  :where(h4 strong):not(
+    :where([class~="not-content"], [class~="not-content"] *)
+  ) {
+  color: inherit;
+  font-weight: 700;
+}
+.content
+  :where(picture):not(
+    :where([class~="not-content"], [class~="not-content"] *)
+  ) {
+  display: block;
+}
+.content
+  :where(kbd):not(:where([class~="not-content"], [class~="not-content"] *)) {
+  color: var(--content-kbd);
+  font-family: inherit;
+  font-weight: 500;
+}
+.content
+  :where(code):not(:where([class~="not-content"], [class~="not-content"] *)) {
+  color: var(--content-code);
+  font-weight: 600;
+}
+.content
+  :where(code::before):not(
+    :where([class~="not-content"], [class~="not-content"] *)
+  ) {
+  content: "`";
+}
+.content
+  :where(code::after):not(
+    :where([class~="not-content"], [class~="not-content"] *)
+  ) {
+  content: "`";
+}
+.content
+  :where(a code):not(:where([class~="not-content"], [class~="not-content"] *)) {
+  color: inherit;
+}
+.content
+  :where(h1 code):not(
+    :where([class~="not-content"], [class~="not-content"] *)
+  ) {
+  color: inherit;
+}
+.content
+  :where(h2 code):not(
+    :where([class~="not-content"], [class~="not-content"] *)
+  ) {
+  color: inherit;
+}
+.content
+  :where(h3 code):not(
+    :where([class~="not-content"], [class~="not-content"] *)
+  ) {
+  color: inherit;
+}
+.content
+  :where(h4 code):not(
+    :where([class~="not-content"], [class~="not-content"] *)
+  ) {
+  color: inherit;
+}
+.content
+  :where(blockquote code):not(
+    :where([class~="not-content"], [class~="not-content"] *)
+  ) {
+  color: inherit;
+}
+.content
+  :where(thead th code):not(
+    :where([class~="not-content"], [class~="not-content"] *)
+  ) {
+  color: inherit;
+}
+.content
+  :where(pre):not(:where([class~="not-content"], [class~="not-content"] *)) {
+  overflow-x: auto;
+  color: var(--content-pre-code);
+  font-weight: 400;
+  background-color: var(--content-pre-bg);
+}
+.content
+  :where(pre code):not(
+    :where([class~="not-content"], [class~="not-content"] *)
+  ) {
+  padding: 0;
+  border: solid 0;
+  border-radius: 0;
+  color: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+  background-color: transparent;
+}
+.content
+  :where(pre code::before):not(
+    :where([class~="not-content"], [class~="not-content"] *)
+  ) {
+  content: none;
+}
+.content
+  :where(pre code::after):not(
+    :where([class~="not-content"], [class~="not-content"] *)
+  ) {
+  content: none;
+}
+.content
+  :where(table):not(:where([class~="not-content"], [class~="not-content"] *)) {
+  width: 100%;
+  margin-top: 2em;
+  margin-bottom: 2em;
+  table-layout: auto;
+}
+.content
+  :where(thead):not(:where([class~="not-content"], [class~="not-content"] *)) {
+  border-bottom-style: solid;
+  border-bottom-color: var(--content-th-borders);
+  border-bottom-width: 1px;
+}
+.content
+  :where(thead th):not(
+    :where([class~="not-content"], [class~="not-content"] *)
+  ) {
+  color: var(--content-headings);
+  font-weight: 600;
+  vertical-align: bottom;
+}
+.content
+  :where(tbody tr):not(
+    :where([class~="not-content"], [class~="not-content"] *)
+  ) {
+  border-bottom-style: solid;
+  border-bottom-color: var(--content-td-borders);
+  border-bottom-width: 1px;
+}
+.content
+  :where(tbody tr:last-child):not(
+    :where([class~="not-content"], [class~="not-content"] *)
+  ) {
+  border-bottom-style: solid;
+  border-bottom-width: 0;
+}
+.content
+  :where(tbody td):not(
+    :where([class~="not-content"], [class~="not-content"] *)
+  ) {
+  vertical-align: baseline;
+}
+.content
+  :where(tfoot):not(:where([class~="not-content"], [class~="not-content"] *)) {
+  border-top-style: solid;
+  border-top-color: var(--content-th-borders);
+  border-top-width: 1px;
+}
+.content
+  :where(tfoot td):not(
+    :where([class~="not-content"], [class~="not-content"] *)
+  ) {
+  vertical-align: top;
+}
+.content
+  :where(th, td):not(:where([class~="not-content"], [class~="not-content"] *)) {
+  text-align: start;
+}
+.content
+  :where(figcaption):not(
+    :where([class~="not-content"], [class~="not-content"] *)
+  ) {
+  color: var(--content-captions);
+}
+.content
+  :where(p):not(:where([class~="not-content"], [class~="not-content"] *)) {
+  margin-top: 1.25em;
+  margin-bottom: 1.25em;
+}
+.content
+  :where(blockquote):not(
+    :where([class~="not-content"], [class~="not-content"] *)
+  ) {
+  padding-left: 1em;
+  margin-top: 1.6em;
+  margin-bottom: 1.6em;
+}
+.content
+  :where(h1):not(:where([class~="not-content"], [class~="not-content"] *)) {
+  margin-top: 0;
+  margin-bottom: 0.88em;
+  font-size: 2.25em;
+  line-height: 1.11em;
+}
+.content
+  :where(h2):not(:where([class~="not-content"], [class~="not-content"] *)) {
+  margin-top: 1.5em;
+  margin-bottom: 1em;
+  font-size: 1.5em;
+  line-height: 1.33em;
+}
+.content
+  :where(h3):not(:where([class~="not-content"], [class~="not-content"] *)) {
+  margin-top: 1.6em;
+  margin-bottom: 0.6em;
+  font-size: 1.25em;
+  line-height: 1.6em;
+}
+.content
+  :where(h4):not(:where([class~="not-content"], [class~="not-content"] *)) {
+  margin-top: 2em;
+  margin-bottom: 0.5em;
+  line-height: 1.5em;
+}
+.content
+  :where(img):not(:where([class~="not-content"], [class~="not-content"] *)) {
+  margin-top: 2em;
+  margin-bottom: 2em;
+}
+.content
+  :where(picture):not(
+    :where([class~="not-content"], [class~="not-content"] *)
+  ) {
+  margin-top: 2em;
+  margin-bottom: 2em;
+}
+.content
+  :where(picture > img):not(
+    :where([class~="not-content"], [class~="not-content"] *)
+  ) {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+.content
+  :where(video):not(:where([class~="not-content"], [class~="not-content"] *)) {
+  margin-top: 2em;
+  margin-bottom: 2em;
+}
+.content
+  :where(kbd):not(:where([class~="not-content"], [class~="not-content"] *)) {
+  padding: 0.1875rem 0.375rem 0.1875rem 0.375rem;
+  border-radius: 0.3125rem;
+  font-size: 0.875em;
+}
+.content
+  :where(code):not(:where([class~="not-content"], [class~="not-content"] *)) {
+  font-size: 0.875em;
+}
+.content
+  :where(h2 code):not(
+    :where([class~="not-content"], [class~="not-content"] *)
+  ) {
+  font-size: 0.875em;
+}
+.content
+  :where(h3 code):not(
+    :where([class~="not-content"], [class~="not-content"] *)
+  ) {
+  font-size: 0.9em;
+}
+.content
+  :where(pre):not(:where([class~="not-content"], [class~="not-content"] *)) {
+  padding: 0.857em 1.14em 0.857em 1.14em;
+  margin-top: 1.71em;
+  margin-bottom: 1.71em;
+  border-radius: 0.375rem;
+  font-size: 0.875em;
+  line-height: 1.71em;
+}
+.content
+  :where(ol):not(:where([class~="not-content"], [class~="not-content"] *)) {
+  padding-left: 1.625em;
+  margin-top: 1.25em;
+  margin-bottom: 1.25em;
+}
+.content
+  :where(ul):not(:where([class~="not-content"], [class~="not-content"] *)) {
+  padding-left: 1.625em;
+  margin-top: 1.25em;
+  margin-bottom: 1.25em;
+}
+.content
+  :where(li):not(:where([class~="not-content"], [class~="not-content"] *)) {
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+}
+.content
+  :where(ol > li):not(
+    :where([class~="not-content"], [class~="not-content"] *)
+  ) {
+  padding-left: 0.375em;
+}
+.content
+  :where(ul > li):not(
+    :where([class~="not-content"], [class~="not-content"] *)
+  ) {
+  padding-left: 0.375em;
+}
+.content
+  :where(> ul > li p):not(
+    :where([class~="not-content"], [class~="not-content"] *)
+  ) {
+  margin-top: 0.75em;
+  margin-bottom: 0.75em;
+}
+.content
+  :where(> ul > li > p:first-child):not(
+    :where([class~="not-content"], [class~="not-content"] *)
+  ) {
+  margin-top: 1.25em;
+}
+.content
+  :where(> ul > li > p:last-child):not(
+    :where([class~="not-content"], [class~="not-content"] *)
+  ) {
+  margin-bottom: 1.25em;
+}
+.content
+  :where(> ol > li > p:first-child):not(
+    :where([class~="not-content"], [class~="not-content"] *)
+  ) {
+  margin-top: 1.25em;
+}
+.content
+  :where(> ol > li > p:last-child):not(
+    :where([class~="not-content"], [class~="not-content"] *)
+  ) {
+  margin-bottom: 1.25em;
+}
+.content
+  :where(ul ul, ul ol, ol ul, ol ol):not(
+    :where([class~="not-content"], [class~="not-content"] *)
+  ) {
+  margin-top: 0.75em;
+  margin-bottom: 0.75em;
+}
+.content
+  :where(dl):not(:where([class~="not-content"], [class~="not-content"] *)) {
+  margin-top: 1.25em;
+  margin-bottom: 1.25em;
+}
+.content
+  :where(dt):not(:where([class~="not-content"], [class~="not-content"] *)) {
+  margin-top: 1.25em;
+}
+.content
+  :where(dd):not(:where([class~="not-content"], [class~="not-content"] *)) {
+  padding-left: 1.625em;
+  margin-top: 0.5em;
+}
+.content
+  :where(hr):not(:where([class~="not-content"], [class~="not-content"] *)) {
+  margin-top: 3em;
+  margin-bottom: 3em;
+}
+.content
+  :where(hr + *):not(:where([class~="not-content"], [class~="not-content"] *)) {
+  margin-top: 0;
+}
+.content
+  :where(h2 + *):not(:where([class~="not-content"], [class~="not-content"] *)) {
+  margin-top: 0;
+}
+.content
+  :where(h3 + *):not(:where([class~="not-content"], [class~="not-content"] *)) {
+  margin-top: 0;
+}
+.content
+  :where(h4 + *):not(:where([class~="not-content"], [class~="not-content"] *)) {
+  margin-top: 0;
+}
+.content
+  :where(table):not(:where([class~="not-content"], [class~="not-content"] *)) {
+  font-size: 0.875em;
+  line-height: 1.71em;
+}
+.content
+  :where(thead th):not(
+    :where([class~="not-content"], [class~="not-content"] *)
+  ) {
+  padding-left: 0.57em;
+  padding-right: 0.57em;
+  padding-bottom: 0.57em;
+}
+.content
+  :where(thead th:first-child):not(
+    :where([class~="not-content"], [class~="not-content"] *)
+  ) {
+  padding-left: 0;
+}
+.content
+  :where(thead th:last-child):not(
+    :where([class~="not-content"], [class~="not-content"] *)
+  ) {
+  padding-right: 0;
+}
+.content
+  :where(tbody td, tfoot td):not(
+    :where([class~="not-content"], [class~="not-content"] *)
+  ) {
+  padding: 0.57em 0.57em 0.57em 0.57em;
+}
+.content
+  :where(tbody td:first-child, tfoot td:first-child):not(
+    :where([class~="not-content"], [class~="not-content"] *)
+  ) {
+  padding-left: 0;
+}
+.content
+  :where(tbody td:last-child, tfoot td:last-child):not(
+    :where([class~="not-content"], [class~="not-content"] *)
+  ) {
+  padding-right: 0;
+}
+.content
+  :where(figure):not(:where([class~="not-content"], [class~="not-content"] *)) {
+  margin-top: 2em;
+  margin-bottom: 2em;
+}
+.content
+  :where(figure > *):not(
+    :where([class~="not-content"], [class~="not-content"] *)
+  ) {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+.content
+  :where(figcaption):not(
+    :where([class~="not-content"], [class~="not-content"] *)
+  ) {
+  margin-top: 0.857em;
+  font-size: 0.875em;
+  line-height: 1.42em;
+}
+.content
+  :where(> :first-child):not(
+    :where([class~="not-content"], [class~="not-content"] *)
+  ) {
+  margin-top: 0;
+}
+.content
+  :where(> :last-child):not(
+    :where([class~="not-content"], [class~="not-content"] *)
+  ) {
+  margin-bottom: 0;
+}
+
+:is(h1, h2, h3, h4, h5, h6)[anchor="true"] {
+  display: flex;
+  align-items: baseline;
+  column-gap: 0.5rem;
+}
+:is(h1, h2, h3, h4, h5, h6)[anchor="true"] > a {
+  opacity: 0;
+  transition: opacity 300ms;
+  font-size: 0.8em;
+  text-decoration: none;
+}
+:is(h1, h2, h3, h4, h5, h6)[anchor="true"]:hover > a {
+  opacity: 0.8;
+}
+:is(h1, h2, h3, h4, h5, h6)[anchor="true"] > a:hover {
+  opacity: 1;
+}
+
+.code-block {
+  position: relative;
+}
+.code-block button {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  z-index: 10;
+  width: 1.25rem;
+  height: 1.25rem;
+  opacity: 0;
+  color: white;
+}
+.code-block:hover button {
+  opacity: 0.75;
+}
+
+[data-heading-anchor]::before {
+  content: "#";
+}

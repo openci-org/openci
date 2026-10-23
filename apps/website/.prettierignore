@@ -1,0 +1,7 @@
+dist/
+.astro/
+.firebase/
+node_modules/
+content/
+public/
+*.log

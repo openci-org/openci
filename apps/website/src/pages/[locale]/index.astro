@@ -1,0 +1,38 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import LanguageSwitcher from "../../components/LanguageSwitcher.astro";
+import LandingHeader from "../../components/LandingHeader.astro";
+import LandingContent from "../../components/LandingContent.astro";
+import LandingSections from "../../components/LandingSections.astro";
+import LandingFooter from "../../components/LandingFooter.astro";
+import {
+  locales,
+  translator,
+  siteTitle,
+  siteDescription,
+  type Locale,
+} from "../../lib/i18n";
+export const getStaticPaths = () =>
+  locales.map((locale) => ({ params: { locale } }));
+const locale = Astro.params.locale as Locale;
+const t = translator(locale);
+---
+
+<BaseLayout
+  locale={locale}
+  title={siteTitle(locale)}
+  description={siteDescription(locale)}
+  path={`/${locale}/`}
+  translations={{ en: "/en/", ja: "/ja/" }}
+>
+  <LanguageSwitcher locale={locale} translations={{ en: "/en/", ja: "/ja/" }} />
+  <a class="skip-link" href="#main">
+    <span>{t("本文へスキップ", "Skip to content")}</span>
+  </a>
+  <div class="hero-shell">
+    <LandingHeader locale={locale} />
+    <LandingContent locale={locale} />
+  </div>
+  <LandingSections locale={locale} />
+  <LandingFooter locale={locale} />
+</BaseLayout>

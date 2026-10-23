@@ -1,0 +1,37 @@
+---
+import Icon from "./Icon.astro";
+import { translator, localePath, type Locale } from "../lib/i18n";
+interface Props {
+  locale: Locale;
+}
+const { locale } = Astro.props;
+const t = translator(locale);
+const localPath = (path: string) => localePath(locale, path);
+---
+
+<header class="site-header wrap blog-header">
+  <a class="brand" href={localPath("/")}>
+    <span>GenuineCI</span>
+  </a>
+  <nav
+    class="blog-nav"
+    aria-label={t("メインナビゲーション", "Main navigation")}
+  >
+    <a class="blog-product-link" href={localPath("/")}>
+      <span>{t("プロダクト", "Product")}</span>
+    </a>
+    <a href={localPath("/docs/")}>
+      <span>Docs</span>
+    </a>
+    <a class="blog-workflow-link" href={localPath("/#workflow")}>
+      <span>{t("ワークフロー", "Workflows")}</span>
+    </a>
+    <a class="nav-current" href={localPath("/blog/")} aria-current="page">
+      {t("ブログ", "Blog")}
+    </a>
+  </nav>
+  <a class="button button-small button-dark" href={localPath("/#get-started")}>
+    <span>{t("はじめる", "Get started")}</span>
+    <Icon name="arrow" marketing />
+  </a>
+</header>

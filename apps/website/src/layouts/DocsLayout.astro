@@ -1,0 +1,219 @@
+---
+import type { MarkdownHeading } from "astro";
+import BaseLayout from "./BaseLayout.astro";
+import LanguageSwitcher from "../components/LanguageSwitcher.astro";
+import DocsHeader from "../components/DocsHeader.astro";
+import DocsMobileBar from "../components/DocsMobileBar.astro";
+import DocsSidebar from "../components/DocsSidebar.astro";
+import DocsSearchDialog from "../components/DocsSearchDialog.astro";
+import DocsHelp from "../components/DocsHelp.astro";
+import DocsHome from "../components/DocsHome.astro";
+import Icon from "../components/Icon.astro";
+import Toc from "../components/Toc.astro";
+import {
+  translator,
+  localeFromPath,
+  localePath,
+  availableTranslations,
+  safeJson,
+} from "../lib/i18n";
+import { pagePath, type Page } from "../lib/content";
+import { docsNavigation } from "../lib/navigation";
+interface Props {
+  page: Page;
+  pages: Page[];
+  headings: MarkdownHeading[];
+}
+const { page, pages, headings } = Astro.props;
+const locale = localeFromPath(page.id),
+  t = translator(locale),
+  path = pagePath(page);
+const availablePaths = pages.map(pagePath),
+  translations = availableTranslations(path, availablePaths);
+const isHome = path === localePath(locale, "/docs/");
+const toc = isHome
+  ? [
+      { text: t("はじめの一歩", "First steps"), slug: "start", depth: 2 },
+      { text: t("ガイドを探す", "Explore guides"), slug: "guides", depth: 2 },
+      {
+        text: t("いつものDartで書く", "Write in Dart"),
+        slug: "write-dart",
+        depth: 2,
+      },
+      {
+        text: t("オープンにつくる", "Build in the open"),
+        slug: "open-source",
+        depth: 2,
+      },
+    ]
+  : headings;
+const items = docsNavigation(locale)
+  .flatMap((group) => group.items)
+  .filter((item) => availablePaths.includes(item.path));
+const current = items.findIndex((item) => item.path === path);
+const previous = current > 0 ? items[current - 1] : undefined,
+  next = current >= 0 ? items[current + 1] : undefined;
+const search = pages
+  .filter(
+    (p) => p.data.layout === "genuine-docs" && localeFromPath(p.id) === locale,
+  )
+  .map((p) => ({
+    title: p.data.title,
+    description: p.data.description,
+    group: p.data.group ?? t("はじめに", "Getting started"),
+    url: pagePath(p),
+    body: p.body ?? "",
+  }));
+const messages = {
+  search: t(
+    "キーワードでドキュメントを検索できます。",
+    "Search the documentation by keyword.",
+  ),
+  results: t("{count} 件のドキュメント", "{count} documents"),
+  empty: t(
+    "一致するドキュメントがありません。別のキーワードをお試しください。",
+    "No matching documents. Try another keyword.",
+  ),
+  copied: t("コピーしました", "Copied"),
+  copiedLabel: t("コードをコピーしました", "Code copied"),
+  copy: t("コピー", "Copy"),
+  copyLabel: t("コードをコピー", "Copy code"),
+  selectCopy: t("選択してコピー", "Select and copy"),
+  selectCopyLabel: t(
+    "コードを選択してコピーしてください",
+    "Select the code and copy it",
+  ),
+};
+---
+
+<BaseLayout
+  locale={locale}
+  title={`${page.data.title} — GenuineCI Docs`}
+  description={page.data.description}
+  path={path}
+  translations={translations}
+>
+  <div class:list={["docs-shell", { "docs-overview": isHome }]}>
+    <LanguageSwitcher locale={locale} translations={translations} />
+    <a class="skip-link" href="#main">
+      <span>{t("本文へスキップ", "Skip to content")}</span>
+    </a>
+    <DocsHeader locale={locale} />
+    <DocsMobileBar locale={locale} />
+    <div class="d-layout">
+      <aside class="d-sidebar">
+        <DocsSidebar
+          locale={locale}
+          path={path}
+          availablePaths={availablePaths}
+        />
+      </aside>
+      <main id="main" class="d-main" tabindex="-1">
+        <div class="d-breadcrumb">
+          <a href={localePath(locale, "/docs/")}>
+            <span>Docs</span>
+          </a>
+          <Icon name="chevron" />
+          <span>{isHome ? t("概要", "Overview") : page.data.group}</span>
+        </div>
+        {isHome ? (
+          <DocsHome locale={locale} />
+        ) : (
+          <>
+            <header class="d-article-header">
+              <span class="d-eyebrow">
+                {page.data.eyebrow ?? "DOCUMENTATION"}
+              </span>
+              <h1>{page.data.title}</h1>
+              <p class="d-lead">{page.data.description}</p>
+              <div class="d-article-meta">
+                <span>GenuineCI Docs</span>
+                <span>·</span>
+                <span>{page.data.reading ?? "3 min read"}</span>
+              </div>
+            </header>
+            <details class="d-mobile-toc">
+              <summary>{t("このページの内容", "On this page")}</summary>
+              <Toc locale={locale} headings={toc} docs />
+            </details>
+            <article class="d-prose">
+              <section class="content">
+                <slot />
+              </section>
+            </article>
+          </>
+        )}
+        <nav
+          class="d-page-nav"
+          aria-label={t("前後のドキュメント", "Previous and next guides")}
+        >
+          {previous ? (
+            <a class="d-page-link" href={previous.path}>
+              <span>{t("前のページ", "Previous")}</span>
+              <strong>
+                <span>←</span>
+                {previous.title}
+              </strong>
+            </a>
+          ) : (
+            <div />
+          )}
+          {next && (
+            <a class="d-page-link is-next" href={next.path}>
+              <span>{t("次のページ", "Next")}</span>
+              <strong>
+                {next.title}
+                <Icon name="arrow" />
+              </strong>
+            </a>
+          )}
+        </nav>
+        <footer class="d-footer">
+          <span>© 2026 GenuineCI</span>
+          <span>BUILT IN DART. BUILT IN THE OPEN.</span>
+        </footer>
+      </main>
+      <aside class="d-toc">
+        <div class="d-toc-title">
+          <Icon name="list" />
+          <span>{t("このページの内容", "On this page")}</span>
+        </div>
+        <Toc locale={locale} headings={toc} docs />
+        <DocsHelp locale={locale} />
+      </aside>
+    </div>
+    <dialog
+      id="docs-menu"
+      class="d-menu-dialog"
+      aria-label={t("ドキュメントメニュー", "Documentation menu")}
+    >
+      <div class="d-menu-heading">
+        <strong>GenuineCI Docs</strong>
+        <button
+          class="d-icon-button"
+          type="button"
+          data-menu-close
+          aria-label={t("メニューを閉じる", "Close menu")}
+        >
+          <Icon name="close" />
+        </button>
+      </div>
+      <DocsSidebar
+        locale={locale}
+        path={path}
+        availablePaths={availablePaths}
+      />
+    </dialog>
+    <DocsSearchDialog locale={locale} />
+    <script
+      id="docs-ui-text"
+      type="application/json"
+      set:html={safeJson(messages)}
+    />
+    <script
+      id="docs-search-data"
+      type="application/json"
+      set:html={safeJson(search)}
+    />
+  </div>
+</BaseLayout>

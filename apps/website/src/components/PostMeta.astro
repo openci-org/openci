@@ -1,0 +1,13 @@
+---
+import type { Page } from "../lib/content";
+interface Props {
+  post: Page;
+}
+const { post } = Astro.props;
+---
+
+<div class="post-meta">
+  <span class="post-category">{post.data.category}</span>
+  <time datetime={post.data.date}>{post.data.date?.replaceAll("-", ".")}</time>
+  {post.data.readTime && <span>{post.data.readTime}</span>}
+</div>

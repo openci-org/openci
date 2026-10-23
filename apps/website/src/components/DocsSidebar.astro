@@ -1,0 +1,54 @@
+---
+import Icon from "./Icon.astro";
+import { translator, localePath, type Locale } from "../lib/i18n";
+import { docsNavigation } from "../lib/navigation";
+interface Props {
+  locale: Locale;
+  path: string;
+  availablePaths: string[];
+}
+const { locale, path, availablePaths } = Astro.props;
+const t = translator(locale);
+---
+
+<div class="d-sidebar-content">
+  <a class="d-docs-home" href={localePath(locale, "/docs/")}>
+    <span class="d-square-logo">g.</span>
+    <span>{t("ドキュメント", "Documentation")}</span>
+    <span class="d-small-tag">DART</span>
+  </a>
+  <nav aria-label={t("ドキュメント", "Documentation")}>
+    {docsNavigation(locale).map((group) => (
+      <div class="d-nav-group">
+        <h2>{group.group}</h2>
+        {group.items
+          .filter((item) => availablePaths.includes(item.path))
+          .map((item) => (
+            <a
+              class:list={["d-nav-link", { "is-active": item.path === path }]}
+              href={item.path}
+              aria-current={item.path === path ? "page" : undefined}
+            >
+              <Icon name={item.icon} />
+              <span>{item.title}</span>
+              {item.path === localePath(locale, "/docs/quickstart/") && (
+                <span class="d-nav-arrow">↗</span>
+              )}
+            </a>
+          ))}
+      </div>
+    ))}
+  </nav>
+  <div class="d-sidebar-bottom">
+    <p>
+      {t("Flutter & Dartのための、", "Open-source CI")}
+      <br />
+      {t("オープンソースCI。", "for Flutter & Dart.")}
+    </p>
+    <a href="https://github.com/openci-org/openci">
+      <Icon name="github" />
+      <span>{t("GitHubで見る", "View on GitHub")}</span>
+      <Icon name="external" />
+    </a>
+  </div>
+</div>

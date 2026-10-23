@@ -1,0 +1,48 @@
+---
+import Icon from "./Icon.astro";
+import { translator, localePath, type Locale } from "../lib/i18n";
+interface Props {
+  locale: Locale;
+}
+const { locale } = Astro.props;
+const t = translator(locale);
+const localPath = (path: string) => localePath(locale, path);
+---
+
+<header class="d-header">
+  <div class="d-brand-lockup">
+    <a class="d-wordmark" href={localPath("/")}>
+      <span>GenuineCI</span>
+    </a>
+    <span class="d-brand-divider">/</span>
+    <a class="d-docs-label" href={localPath("/docs/")}>
+      <span>docs</span>
+    </a>
+  </div>
+  <button
+    class="d-search-trigger"
+    type="button"
+    data-search-open=""
+    aria-label={t("ドキュメントを検索", "Search documentation")}
+  >
+    <Icon name="search" />
+    <span>{t("ドキュメントを検索…", "Search docs…")}</span>
+    <kbd>⌘ K</kbd>
+  </button>
+  <div class="d-header-actions">
+    <a class="d-header-blog" href={localPath("/blog/")}>
+      <span>{t("ブログ", "Blog")}</span>
+    </a>
+    <a
+      class="d-icon-button d-github-link"
+      href="https://github.com/openci-org/openci"
+      aria-label={t("GitHubでソースを見る", "View source on GitHub")}
+    >
+      <Icon name="github" />
+    </a>
+    <a class="d-dashboard" href="https://dashboard.openci.org/">
+      <span>{t("ダッシュボード", "Dashboard")}</span>
+      <Icon name="external" />
+    </a>
+  </div>
+</header>

@@ -3,7 +3,8 @@
   "private": true,
   "workspaces": [
     "apps/landing_page",
-    "firebase"
+    "firebase",
+    "apps/website"
   ],
   "scripts": {
     "build": "vp run -r build",

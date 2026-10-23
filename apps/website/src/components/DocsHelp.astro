@@ -1,0 +1,23 @@
+---
+import Icon from "./Icon.astro";
+import { translator, type Locale } from "../lib/i18n";
+interface Props {
+  locale: Locale;
+}
+const { locale } = Astro.props;
+const t = translator(locale);
+---
+
+<div class="d-help">
+  <span class="d-help-mark">g.</span>
+  <strong>{t("一緒につくる、Docs。", "Build better docs together.")}</strong>
+  <p>
+    {t("気づいたことやアイデアを、", "Share feedback and ideas")}
+    <br />
+    {t("GitHubで教えてください。", "on GitHub.")}
+  </p>
+  <a href="https://github.com/openci-org/openci/issues">
+    <span>{t("Issueを開く", "Open an issue")}</span>
+    <Icon name="external" />
+  </a>
+</div>

@@ -1,0 +1,158 @@
+{
+  "/en/": [],
+  "/ja/": [],
+  "/en/blog/": [],
+  "/en/docs/": [],
+  "/ja/blog/": [],
+  "/ja/docs/": [],
+  "/en/blog/v2-1-0/": [
+    "new-in-v210",
+    "apks-and-aabs-from-a-dart-workflow",
+    "set-analysis-strictness-for-your-project",
+    "switch-teams-from-the-cli",
+    "a-more-independent-sdk-and-deeper-workspace-paths"
+  ],
+  "/en/blog/v2-2-0/": [
+    "this-week-we-prepared-for-ios-builds",
+    "create-apple-keys-and-save-them-to-your-team",
+    "signed-ipa-builds-are-in-progress",
+    "easier-installation-and-everyday-cli-use",
+    "generated-files-in-one-directory",
+    "time-zones-and-tags-for-flutter-tests",
+    "a-home-for-the-documentation"
+  ],
+  "/en/blog/v2-3-0/": [
+    "from-ios-signing-setup-to-distribution-uploads",
+    "build-a-signed-ipa-and-send-it-to-testflight",
+    "android-and-shorebird-distribution-in-dart-too",
+    "confirm-your-github-connection-in-the-dashboard",
+    "monthly-cloud-plans-for-teams",
+    "register-a-secret-and-sync-generated-files",
+    "go-checks-in-the-same-workflow",
+    "updating-the-sdk"
+  ],
+  "/en/docs/cli/": [
+    "install",
+    "log-in",
+    "check-your-status",
+    "switch-teams",
+    "commands",
+    "language-and-updates"
+  ],
+  "/en/docs/flutter/": [
+    "install-dependencies",
+    "analyze-and-test",
+    "build-for-android",
+    "build-for-ios",
+    "run-in-individual-packages"
+  ],
+  "/en/docs/quickstart/": [
+    "before-you-begin",
+    "01-add-the-sdk",
+    "02-write-a-workflow",
+    "03-try-it-locally",
+    "04-prepare-to-run-in-ci",
+    "next-steps"
+  ],
+  "/en/docs/secrets/": [
+    "check-your-team",
+    "register-a-secret",
+    "list-secret-names",
+    "register-a-file",
+    "sync-definitions"
+  ],
+  "/en/docs/self-hosting/": [
+    "run-in-your-own-environment",
+    "main-components",
+    "local-development-environment",
+    "detailed-setup"
+  ],
+  "/en/docs/triggers/": [
+    "run-on-push",
+    "run-on-pull-requests",
+    "combine-triggers",
+    "if-a-workflow-does-not-run"
+  ],
+  "/en/docs/workflows/": [
+    "workflow-basics",
+    "run-shell-commands",
+    "reuse-steps-with-functions",
+    "work-with-monorepos",
+    "run-locally"
+  ],
+  "/ja/blog/v2-1-0/": [
+    "v210",
+    "apkaabdart",
+    "解析の厳しさを、プロジェクトに合わせる。",
+    "cli",
+    "sdk"
+  ],
+  "/ja/blog/v2-2-0/": [
+    "ios",
+    "apple",
+    "ipa",
+    "cli",
+    "生成ファイルを、ひとつのディレクトリに。",
+    "flutter",
+    "使い方を調べる場所も整えました。"
+  ],
+  "/ja/blog/v2-3-0/": [
+    "ios",
+    "ipatestflight",
+    "androidshorebirddart",
+    "github",
+    "cloud",
+    "シークレットを登録したら、生成ファイルも同期。",
+    "go",
+    "sdk"
+  ],
+  "/ja/docs/cli/": [
+    "インストール",
+    "ログイン",
+    "現在の状態を確認する",
+    "チームを切り替える",
+    "コマンド一覧",
+    "表示言語と更新"
+  ],
+  "/ja/docs/flutter/": [
+    "依存関係を取得する",
+    "静的解析とテスト",
+    "android",
+    "ios",
+    "パッケージごとに実行する"
+  ],
+  "/ja/docs/quickstart/": [
+    "はじめる前に",
+    "01-sdk",
+    "02-",
+    "03-",
+    "04-ci",
+    "次にできること"
+  ],
+  "/ja/docs/secrets/": [
+    "チームを確認する",
+    "シークレットを登録する",
+    "名前の一覧を見る",
+    "ファイルを登録する",
+    "定義を同期する"
+  ],
+  "/ja/docs/self-hosting/": [
+    "自分の環境で動かす",
+    "主な構成",
+    "ローカル開発環境",
+    "詳細なセットアップ"
+  ],
+  "/ja/docs/triggers/": [
+    "push",
+    "pull-request",
+    "複数のトリガーを組み合わせる",
+    "実行されないとき"
+  ],
+  "/ja/docs/workflows/": [
+    "ワークフローの基本",
+    "シェルコマンドを実行する",
+    "処理を関数にまとめる",
+    "モノレポで実行する",
+    "手元で実行する"
+  ]
+}
