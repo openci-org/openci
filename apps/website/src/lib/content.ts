@@ -8,6 +8,7 @@ export const pageLocale = (page: Page) =>
   getLocaleByPath(page.id.split("/")[0]) as Locale;
 export const pagePath = (page: Page) =>
   getRelativeLocaleUrl(pageLocale(page), pageSlug(page));
+export const blogImagePath = (page: Page) => `/ogp/${page.id}.png`;
 export function availableTranslations(
   page: Page,
   pages: Page[],

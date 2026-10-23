@@ -12,6 +12,7 @@ interface Props {
   translations: Partial<Record<Locale, string>>;
   image?: string;
   imageAlt?: string;
+  imageType?: "image/jpeg" | "image/png";
   type?: string;
   section?: string;
 }
@@ -22,6 +23,7 @@ const {
   translations,
   image = releaseImage,
   imageAlt = releaseImageAlt(locale),
+  imageType = "image/jpeg",
   type = "website",
   section,
 } = Astro.props;
@@ -67,7 +69,7 @@ const imageUrl = new URL(image, Astro.site).href;
       "og:site_name": "GenuineCI",
       "og:locale": locale === "ja" ? "ja_JP" : "en_US",
       "og:image": imageUrl,
-      "og:image:type": "image/jpeg",
+      "og:image:type": imageType,
       "og:image:width": "1200",
       "og:image:height": "630",
       "og:image:alt": imageAlt,

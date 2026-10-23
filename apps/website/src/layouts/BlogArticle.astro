@@ -12,6 +12,7 @@ import Toc from "../components/Toc.astro";
 import { translator, type Locale } from "../lib/i18n";
 import {
   availableTranslations,
+  blogImagePath,
   blogPosts,
   pagePath,
   plainTitle,
@@ -36,8 +37,9 @@ const translations = availableTranslations(page, pages);
   title={`${plainTitle(page.data.title)} — GenuineCI Blog`}
   description={page.data.description}
   translations={translations}
-  image={page.data.image}
-  imageAlt={page.data.imageAlt}
+  image={blogImagePath(page)}
+  imageAlt={plainTitle(page.data.title)}
+  imageType="image/png"
   type="article"
   section={page.data.category}
 >

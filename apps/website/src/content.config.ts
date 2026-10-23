@@ -22,8 +22,6 @@ const pages = defineCollection({
       author: z.string().optional(),
       coverLabel: z.string().optional(),
       coverTitle: z.string().optional(),
-      image: z.string().optional(),
-      imageAlt: z.string().optional(),
       group: z.string().optional(),
       eyebrow: z.string().optional(),
       reading: z.string().optional(),
