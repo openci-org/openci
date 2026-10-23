@@ -4,13 +4,16 @@ import 'package:jaspr/dom.dart' show RawText;
 import 'package:jaspr/server.dart';
 import 'package:jaspr_content/jaspr_content.dart';
 
-import 'dart_code.dart';
+import '../l10n/site_locale.dart';
 import 'code_theme_toggle.dart';
+import 'dart_code.dart';
 import 'docs_icon.dart';
 import 'html.dart';
 
 class DocsCodeBlock extends CustomComponent {
-  const DocsCodeBlock() : super.base();
+  const DocsCodeBlock(this.locale) : super.base();
+
+  final SiteLocale locale;
 
   @override
   Component? create(Node node, NodesBuilder builder) {
@@ -36,17 +39,17 @@ class DocsCodeBlock extends CustomComponent {
                   Component.text(isDart ? 'Dart' : 'Terminal'),
                 ],
               ),
-              codeThemeToggle(initialTheme: 'light'),
+              codeThemeToggle(locale: locale, initialTheme: 'light'),
               el(
                 'button',
                 attrs: {
                   'type': 'button',
                   'data-doc-copy': '',
-                  'aria-label': 'コードをコピー',
+                  'aria-label': locale.text('コードをコピー', 'Copy code'),
                 },
                 children: [
                   docsIcon('copy'),
-                  el('span', text: 'コピー'),
+                  el('span', text: locale.text('コピー', 'Copy')),
                 ],
               ),
             ],

@@ -2,7 +2,11 @@
   "hosting": {
     "target": "website",
     "public": "build/jaspr",
-    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
     "predeploy": [
       "cd \"$PROJECT_DIR\" && flutter --suppress-analytics pub get",
       "cd \"$PROJECT_DIR\" && dart --suppress-analytics run jaspr_cli:jaspr build --port 62841",
@@ -18,6 +22,33 @@
             "value": "public, max-age=0, must-revalidate"
           }
         ]
+      }
+    ],
+    "redirects": [
+      {
+        "source": "/",
+        "destination": "/en/",
+        "type": 301
+      },
+      {
+        "source": "/blog",
+        "destination": "/ja/blog/",
+        "type": 301
+      },
+      {
+        "source": "/blog/:path*",
+        "destination": "/ja/blog/:path/",
+        "type": 301
+      },
+      {
+        "source": "/docs",
+        "destination": "/ja/docs/",
+        "type": 301
+      },
+      {
+        "source": "/docs/:path*",
+        "destination": "/ja/docs/:path/",
+        "type": 301
       }
     ]
   },

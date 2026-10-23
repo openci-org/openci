@@ -24,3 +24,22 @@
     });
   });
 })();
+// Keep shared section anchors when switching language. Translated Markdown
+// headings have different IDs, so those switches start at the article itself.
+(() => {
+  const sharedAnchors = new Set([
+    'main', 'features', 'workflow', 'pricing', 'get-started',
+    'start', 'guides', 'write-dart', 'open-source',
+  ]);
+  function updateLanguageLinks() {
+    document.querySelectorAll('[data-language-link]').forEach((link) => {
+      const url = new URL(link.href);
+      url.search = window.location.search;
+      url.hash = url.pathname === window.location.pathname || sharedAnchors.has(window.location.hash.slice(1))
+        ? window.location.hash : '';
+      link.href = url.pathname + url.search + url.hash;
+    });
+  }
+  updateLanguageLinks();
+  window.addEventListener('hashchange', updateLanguageLinks);
+})();

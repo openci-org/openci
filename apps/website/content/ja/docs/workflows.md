@@ -77,4 +77,4 @@ await ci.flutter.unitTests(dir: 'apps/mobile');
 dart run openci/flutter_ci.dart
 ```
 
-必要なSDKとビルドツールは、実行環境側に用意してください。詳しくは[クイックスタート](/docs/quickstart/)を参照してください。
+必要なSDKとビルドツールは、実行環境側に用意してください。詳しくは[クイックスタート](/ja/docs/quickstart/)を参照してください。

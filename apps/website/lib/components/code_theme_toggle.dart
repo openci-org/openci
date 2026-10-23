@@ -1,11 +1,18 @@
 import 'package:jaspr/server.dart';
 
+import '../l10n/site_locale.dart';
 import 'html.dart';
 
-Component codeThemeToggle({required String initialTheme}) => el(
+Component codeThemeToggle({
+  required SiteLocale locale,
+  required String initialTheme,
+}) => el(
   'div',
   cls: 'd-code-theme-toggle',
-  attrs: {'role': 'group', 'aria-label': 'コードサンプルの背景'},
+  attrs: {
+    'role': 'group',
+    'aria-label': locale.text('コードサンプルの背景', 'Code sample background'),
+  },
   children: [
     for (final theme in ['light', 'dark'])
       el(

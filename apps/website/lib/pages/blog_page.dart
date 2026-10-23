@@ -2,73 +2,95 @@ import 'package:jaspr/server.dart';
 import 'package:jaspr_content/jaspr_content.dart';
 
 import '../components/html.dart';
+import '../components/language_switcher.dart';
 import '../components/social_metadata.dart';
+import '../l10n/localized_component.dart';
+import '../l10n/site_locale.dart';
 import '../models/blog_post.dart';
 
-Component blogHeader() => el(
-  'header',
-  cls: 'site-header wrap blog-header',
-  children: [
-    link('GenuineCI', '/', cls: 'brand'),
-    el(
-      'nav',
-      cls: 'blog-nav',
-      attrs: {'aria-label': 'メインナビゲーション'},
-      children: [
-        link('プロダクト', '/', cls: 'blog-product-link'),
-        link('Docs', '/docs/'),
-        link('ワークフロー', '/#workflow', cls: 'blog-workflow-link'),
-        el(
-          'a',
-          cls: 'nav-current',
-          text: 'ブログ',
-          attrs: {'href': '/blog/', 'aria-current': 'page'},
-        ),
-      ],
-    ),
-    link(
-      'はじめる',
-      '/#get-started',
-      cls: 'button button-small button-dark',
-      arrow: 'arrow',
-    ),
-  ],
-);
+Component blogHeader(SiteLocale locale) {
+  final t = locale.text;
+  final localPath = locale.path;
+  return el(
+    'header',
+    cls: 'site-header wrap blog-header',
+    children: [
+      link('GenuineCI', localPath('/'), cls: 'brand'),
+      el(
+        'nav',
+        cls: 'blog-nav',
+        attrs: {'aria-label': t('メインナビゲーション', 'Main navigation')},
+        children: [
+          link(t('プロダクト', 'Product'), localPath('/'), cls: 'blog-product-link'),
+          link('Docs', localPath('/docs/')),
+          link(
+            t('ワークフロー', 'Workflows'),
+            localPath('/#workflow'),
+            cls: 'blog-workflow-link',
+          ),
+          el(
+            'a',
+            cls: 'nav-current',
+            text: t('ブログ', 'Blog'),
+            attrs: {'href': localPath('/blog/'), 'aria-current': 'page'},
+          ),
+        ],
+      ),
+      link(
+        t('はじめる', 'Get started'),
+        localPath('/#get-started'),
+        cls: 'button button-small button-dark',
+        arrow: 'arrow',
+      ),
+    ],
+  );
+}
 
-Component blogFooter() => el(
-  'footer',
-  cls: 'journal-footer',
-  children: [
-    el(
-      'div',
-      cls: 'wrap journal-footer-top',
-      children: [
-        el(
-          'div',
-          children: [
-            el('p', cls: 'eyebrow', text: 'BUILT IN DART. BUILT IN THE OPEN.'),
-            el('h2', text: 'つくる人のための、\n本物のCI。'),
-          ],
-        ),
-        link(
-          'GenuineCI を知る',
-          '/',
-          cls: 'button button-dark',
-          arrow: 'arrow',
-        ),
-      ],
-    ),
-    el(
-      'div',
-      cls: 'wrap journal-footer-bottom',
-      children: [
-        link('GenuineCI', '/', cls: 'brand'),
-        el('span', text: '© 2026 GenuineCI'),
-        link('ブログ一覧へ', '/blog/'),
-      ],
-    ),
-  ],
-);
+Component blogFooter(SiteLocale locale) {
+  final t = locale.text;
+  final localPath = locale.path;
+  return el(
+    'footer',
+    cls: 'journal-footer',
+    children: [
+      el(
+        'div',
+        cls: 'wrap journal-footer-top',
+        children: [
+          el(
+            'div',
+            children: [
+              el(
+                'p',
+                cls: 'eyebrow',
+                text: 'BUILT IN DART. BUILT IN THE OPEN.',
+              ),
+              el(
+                'h2',
+                text: t('つくる人のための、\n本物のCI。', 'Real CI.\nFor people who build.'),
+              ),
+            ],
+          ),
+          link(
+            t('GenuineCI を知る', 'Explore GenuineCI'),
+            localPath('/'),
+            cls: 'button button-dark',
+            arrow: 'arrow',
+          ),
+        ],
+      ),
+      el(
+        'div',
+        cls: 'wrap journal-footer-bottom',
+        children: [
+          link('GenuineCI', localPath('/'), cls: 'brand'),
+          el('span', text: '© 2026 GenuineCI'),
+          link(t('ブログ一覧へ', 'Back to the blog'), localPath('/blog/')),
+        ],
+      ),
+    ],
+  );
+}
 
 Component postMeta(BlogPost post) => el(
   'div',
@@ -116,14 +138,18 @@ Component postCover(BlogPost post, {bool featured = false}) => el(
   ],
 );
 
-class BlogPage extends StatelessComponent {
-  const BlogPage(this.page, {super.key});
+class BlogPage extends LocalizedComponent {
+  BlogPage(this.page, {super.key}) : super(SiteLocale.fromPath(page.url));
 
   final Page page;
 
   @override
   Component build(BuildContext context) {
-    final blogPosts = postsFromPages(context.pages);
+    final translations = availableTranslations(
+      page.url,
+      context.pages.map((p) => p.url),
+    );
+    final blogPosts = postsFromPages(context.pages, locale);
     return el(
       'div',
       cls: 'journal-page',
@@ -131,10 +157,12 @@ class BlogPage extends StatelessComponent {
         socialMetadata(
           title: page.data.page['title'] as String,
           description: page.data.page['description'] as String,
-          path: '/blog/',
+          path: localPath('/blog/'),
+          translations: translations,
         ),
-        link('本文へスキップ', '#main', cls: 'skip-link'),
-        blogHeader(),
+        link(t('本文へスキップ', 'Skip to content'), '#main', cls: 'skip-link'),
+        languageSwitcher(locale, translations),
+        blogHeader(locale),
         el(
           'main',
           id: 'main',
@@ -163,11 +191,16 @@ class BlogPage extends StatelessComponent {
                       'div',
                       cls: 'journal-intro',
                       children: [
-                        el('h2', text: 'つくる過程も、オープンに。'),
+                        el(
+                          'h2',
+                          text: t('つくる過程も、オープンに。', 'Building in the open.'),
+                        ),
                         el(
                           'p',
-                          text:
-                              'Flutter & Dartと、本物のCIのこと。\nGenuineCIの考え方と開発の記録。',
+                          text: t(
+                            'Flutter & Dartと、本物のCIのこと。\nGenuineCIの考え方と開発の記録。',
+                            'Flutter, Dart, and real CI.\nIdeas and updates from GenuineCI.',
+                          ),
                         ),
                       ],
                     ),
@@ -186,7 +219,10 @@ class BlogPage extends StatelessComponent {
                     cls: 'journal-section-label',
                     children: [
                       el('h2', id: 'featured-label', text: 'PICKUP'),
-                      el('span', text: '最新のリリースをチェック。'),
+                      el(
+                        'span',
+                        text: t('最新のリリースをチェック。', 'Explore the latest release.'),
+                      ),
                     ],
                   ),
                   el(
@@ -205,7 +241,10 @@ class BlogPage extends StatelessComponent {
                           el(
                             'span',
                             cls: 'article-read-link',
-                            children: [Component.text('記事を読む'), icon('arrow')],
+                            children: [
+                              Component.text(t('記事を読む', 'Read article')),
+                              icon('arrow'),
+                            ],
                           ),
                         ],
                       ),
@@ -222,7 +261,11 @@ class BlogPage extends StatelessComponent {
                   'div',
                   cls: 'articles-heading',
                   children: [
-                    el('h2', id: 'articles-heading', text: 'すべての記事'),
+                    el(
+                      'h2',
+                      id: 'articles-heading',
+                      text: t('すべての記事', 'All articles'),
+                    ),
                     el(
                       'span',
                       cls: 'article-count',
@@ -236,10 +279,16 @@ class BlogPage extends StatelessComponent {
                 el(
                   'div',
                   cls: 'article-filters',
-                  attrs: {'role': 'group', 'aria-label': '記事をカテゴリで絞り込む'},
+                  attrs: {
+                    'role': 'group',
+                    'aria-label': t(
+                      '記事をカテゴリで絞り込む',
+                      'Filter articles by category',
+                    ),
+                  },
                   children: [
                     for (final category in [
-                      'すべて',
+                      t('すべて', 'All'),
                       ...blogPosts.map((post) => post.category).toSet(),
                     ])
                       el(
@@ -248,8 +297,12 @@ class BlogPage extends StatelessComponent {
                         text: category,
                         attrs: {
                           'type': 'button',
-                          'data-category-filter': category,
-                          'aria-pressed': category == 'すべて' ? 'true' : 'false',
+                          'data-category-filter': category == t('すべて', 'All')
+                              ? 'all'
+                              : category,
+                          'aria-pressed': category == t('すべて', 'All')
+                              ? 'true'
+                              : 'false',
                           'aria-controls': 'article-grid',
                         },
                       ),
@@ -283,7 +336,9 @@ class BlogPage extends StatelessComponent {
                                     'span',
                                     cls: 'card-read-link',
                                     children: [
-                                      Component.text('記事を読む'),
+                                      Component.text(
+                                        t('記事を読む', 'Read article'),
+                                      ),
                                       icon('arrow'),
                                     ],
                                   ),
@@ -299,7 +354,7 @@ class BlogPage extends StatelessComponent {
             ),
           ],
         ),
-        blogFooter(),
+        blogFooter(locale),
       ],
     );
   }
