@@ -117,13 +117,13 @@ void main() {
       );
       expect(
         (await db.customSelect('SELECT * FROM build_runs').get()).single.data,
-        {'id': 'run-1', 'build_job_id': 'job-1'},
+        {'id': 'run-1', 'build_job_id': 'job-1', 'run_number': null},
       );
       expect(
         (await db.customSelect('PRAGMA user_version').getSingle()).read<int>(
           'user_version',
         ),
-        30,
+        31,
       );
       expect(
         (await db.customSelect('SELECT * FROM teams').getSingle()).data,
@@ -153,6 +153,7 @@ void main() {
           user_id TEXT NOT NULL
         );
         CREATE TABLE build_jobs (id TEXT PRIMARY KEY, github_base_url TEXT);
+        CREATE TABLE build_runs (id TEXT PRIMARY KEY, build_job_id TEXT);
         INSERT INTO teams VALUES (
           'team-1', 'OpenCI', 'https://untrusted.example', '[123]', 1, 42, 0, 1
         );
@@ -184,7 +185,7 @@ void main() {
         (await db.customSelect('PRAGMA user_version').getSingle()).read<int>(
           'user_version',
         ),
-        30,
+        31,
       );
     },
   );
@@ -228,7 +229,7 @@ void main() {
       (await db.customSelect('PRAGMA user_version').getSingle()).read<int>(
         'user_version',
       ),
-      30,
+      31,
     );
     expect(
       (await db.customSelect('SELECT * FROM teams').getSingle()).data,
@@ -252,7 +253,7 @@ void main() {
     );
     expect(
       (await db.customSelect('SELECT * FROM build_runs').getSingle()).data,
-      {'id': 'run-1', 'build_job_id': 'job-1'},
+      {'id': 'run-1', 'build_job_id': 'job-1', 'run_number': null},
     );
 
     final request = DriftGitHubConnectionRequest(
@@ -282,6 +283,7 @@ void main() {
           database.execute('''
             PRAGMA foreign_keys = ON;
             PRAGMA user_version = 26;
+            CREATE TABLE build_runs (id TEXT PRIMARY KEY, build_job_id TEXT);
             CREATE TABLE teams (
               id TEXT PRIMARY KEY, name TEXT NOT NULL,
               installation_ids TEXT NOT NULL, ai_enabled INTEGER NOT NULL,
@@ -311,7 +313,7 @@ void main() {
       (await db.customSelect('PRAGMA user_version').getSingle()).read<int>(
         'user_version',
       ),
-      30,
+      31,
     );
     expect(
       (await db.customSelect('SELECT * FROM teams').getSingle()).data,
@@ -374,6 +376,7 @@ void main() {
             database.execute('''
             PRAGMA foreign_keys = ON;
             PRAGMA user_version = 27;
+            CREATE TABLE build_runs (id TEXT PRIMARY KEY, build_job_id TEXT);
             CREATE TABLE teams (
               id TEXT PRIMARY KEY, name TEXT NOT NULL,
               installation_ids TEXT NOT NULL, ai_enabled INTEGER NOT NULL,
@@ -417,7 +420,7 @@ void main() {
         (await db.customSelect('PRAGMA user_version').getSingle()).read<int>(
           'user_version',
         ),
-        30,
+        31,
       );
       expect((await db.teamDao.getTeam('team-1'))!.installationIds, [123]);
       expect((await db.teamDao.getTeam('team-2'))!.installationIds, [123]);
@@ -457,6 +460,70 @@ void main() {
         (await db.select(db.gitHubConnections).getSingle()).teamId,
         'team-1',
       );
+    },
+  );
+
+  test(
+    'upgrades v30 without numbering existing runs or resetting counters',
+    () async {
+      await db.close();
+      db = AppDatabase(
+        NativeDatabase.memory(
+          setup: (database) {
+            database.execute('''
+            PRAGMA foreign_keys = ON;
+            PRAGMA user_version = 30;
+            CREATE TABLE teams (id TEXT PRIMARY KEY, run_number INTEGER NOT NULL);
+            CREATE TABLE build_jobs (id TEXT PRIMARY KEY);
+            CREATE TABLE build_runs (
+              id TEXT PRIMARY KEY,
+              build_job_id TEXT NOT NULL REFERENCES build_jobs(id),
+              status TEXT NOT NULL, conclusion TEXT,
+              created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL
+            );
+            INSERT INTO teams VALUES ('team-1', 42);
+            INSERT INTO build_jobs VALUES ('job-1');
+            INSERT INTO build_runs VALUES (
+              'run-1', 'job-1', 'completed', 'success', 0, 1
+            );
+          ''');
+          },
+        ),
+      );
+
+      expect(
+        (await db.customSelect('SELECT * FROM build_runs').getSingle()).data,
+        {
+          'id': 'run-1',
+          'build_job_id': 'job-1',
+          'status': 'completed',
+          'conclusion': 'success',
+          'created_at': 0,
+          'updated_at': 1,
+          'run_number': null,
+        },
+      );
+      expect(
+        (await db.customSelect('SELECT * FROM teams').getSingle()).data,
+        {'id': 'team-1', 'run_number': 42},
+      );
+      expect(
+        (await db.customSelect('SELECT * FROM build_jobs').getSingle()).data,
+        {'id': 'job-1'},
+      );
+      expect(
+        (await db.customSelect('PRAGMA user_version').getSingle()).read<int>(
+          'user_version',
+        ),
+        31,
+      );
+
+      await db
+          .update(db.buildRuns)
+          .write(
+            const BuildRunsCompanion(runNumber: Value(42)),
+          );
+      expect((await db.select(db.buildRuns).getSingle()).runNumber, 42);
     },
   );
 

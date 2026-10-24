@@ -2243,6 +2243,17 @@ class $BuildRunsTable extends BuildRuns
       'REFERENCES build_jobs (id) ON DELETE CASCADE',
     ),
   );
+  static const VerificationMeta _runNumberMeta = const VerificationMeta(
+    'runNumber',
+  );
+  @override
+  late final GeneratedColumn<int> runNumber = GeneratedColumn<int>(
+    'run_number',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _statusMeta = const VerificationMeta('status');
   @override
   late final GeneratedColumn<String> status = GeneratedColumn<String>(
@@ -2289,6 +2300,7 @@ class $BuildRunsTable extends BuildRuns
   List<GeneratedColumn> get $columns => [
     id,
     buildJobId,
+    runNumber,
     status,
     conclusion,
     createdAt,
@@ -2321,6 +2333,12 @@ class $BuildRunsTable extends BuildRuns
       );
     } else if (isInserting) {
       context.missing(_buildJobIdMeta);
+    }
+    if (data.containsKey('run_number')) {
+      context.handle(
+        _runNumberMeta,
+        runNumber.isAcceptableOrUnknown(data['run_number']!, _runNumberMeta),
+      );
     }
     if (data.containsKey('status')) {
       context.handle(
@@ -2369,6 +2387,10 @@ class $BuildRunsTable extends BuildRuns
         DriftSqlType.string,
         data['${effectivePrefix}build_job_id'],
       )!,
+      runNumber: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}run_number'],
+      ),
       status: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}status'],
@@ -2397,6 +2419,7 @@ class $BuildRunsTable extends BuildRuns
 class DriftBuildRun extends DataClass implements Insertable<DriftBuildRun> {
   final String id;
   final String buildJobId;
+  final int? runNumber;
   final String status;
   final String? conclusion;
   final DateTime createdAt;
@@ -2404,6 +2427,7 @@ class DriftBuildRun extends DataClass implements Insertable<DriftBuildRun> {
   const DriftBuildRun({
     required this.id,
     required this.buildJobId,
+    this.runNumber,
     required this.status,
     this.conclusion,
     required this.createdAt,
@@ -2414,6 +2438,9 @@ class DriftBuildRun extends DataClass implements Insertable<DriftBuildRun> {
     final map = <String, Expression>{};
     map['id'] = Variable<String>(id);
     map['build_job_id'] = Variable<String>(buildJobId);
+    if (!nullToAbsent || runNumber != null) {
+      map['run_number'] = Variable<int>(runNumber);
+    }
     map['status'] = Variable<String>(status);
     if (!nullToAbsent || conclusion != null) {
       map['conclusion'] = Variable<String>(conclusion);
@@ -2427,6 +2454,9 @@ class DriftBuildRun extends DataClass implements Insertable<DriftBuildRun> {
     return BuildRunsCompanion(
       id: Value(id),
       buildJobId: Value(buildJobId),
+      runNumber: runNumber == null && nullToAbsent
+          ? const Value.absent()
+          : Value(runNumber),
       status: Value(status),
       conclusion: conclusion == null && nullToAbsent
           ? const Value.absent()
@@ -2444,6 +2474,7 @@ class DriftBuildRun extends DataClass implements Insertable<DriftBuildRun> {
     return DriftBuildRun(
       id: serializer.fromJson<String>(json['id']),
       buildJobId: serializer.fromJson<String>(json['buildJobId']),
+      runNumber: serializer.fromJson<int?>(json['runNumber']),
       status: serializer.fromJson<String>(json['status']),
       conclusion: serializer.fromJson<String?>(json['conclusion']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
@@ -2456,6 +2487,7 @@ class DriftBuildRun extends DataClass implements Insertable<DriftBuildRun> {
     return <String, dynamic>{
       'id': serializer.toJson<String>(id),
       'buildJobId': serializer.toJson<String>(buildJobId),
+      'runNumber': serializer.toJson<int?>(runNumber),
       'status': serializer.toJson<String>(status),
       'conclusion': serializer.toJson<String?>(conclusion),
       'createdAt': serializer.toJson<DateTime>(createdAt),
@@ -2466,6 +2498,7 @@ class DriftBuildRun extends DataClass implements Insertable<DriftBuildRun> {
   DriftBuildRun copyWith({
     String? id,
     String? buildJobId,
+    Value<int?> runNumber = const Value.absent(),
     String? status,
     Value<String?> conclusion = const Value.absent(),
     DateTime? createdAt,
@@ -2473,6 +2506,7 @@ class DriftBuildRun extends DataClass implements Insertable<DriftBuildRun> {
   }) => DriftBuildRun(
     id: id ?? this.id,
     buildJobId: buildJobId ?? this.buildJobId,
+    runNumber: runNumber.present ? runNumber.value : this.runNumber,
     status: status ?? this.status,
     conclusion: conclusion.present ? conclusion.value : this.conclusion,
     createdAt: createdAt ?? this.createdAt,
@@ -2484,6 +2518,7 @@ class DriftBuildRun extends DataClass implements Insertable<DriftBuildRun> {
       buildJobId: data.buildJobId.present
           ? data.buildJobId.value
           : this.buildJobId,
+      runNumber: data.runNumber.present ? data.runNumber.value : this.runNumber,
       status: data.status.present ? data.status.value : this.status,
       conclusion: data.conclusion.present
           ? data.conclusion.value
@@ -2498,6 +2533,7 @@ class DriftBuildRun extends DataClass implements Insertable<DriftBuildRun> {
     return (StringBuffer('DriftBuildRun(')
           ..write('id: $id, ')
           ..write('buildJobId: $buildJobId, ')
+          ..write('runNumber: $runNumber, ')
           ..write('status: $status, ')
           ..write('conclusion: $conclusion, ')
           ..write('createdAt: $createdAt, ')
@@ -2507,14 +2543,22 @@ class DriftBuildRun extends DataClass implements Insertable<DriftBuildRun> {
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, buildJobId, status, conclusion, createdAt, updatedAt);
+  int get hashCode => Object.hash(
+    id,
+    buildJobId,
+    runNumber,
+    status,
+    conclusion,
+    createdAt,
+    updatedAt,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is DriftBuildRun &&
           other.id == this.id &&
           other.buildJobId == this.buildJobId &&
+          other.runNumber == this.runNumber &&
           other.status == this.status &&
           other.conclusion == this.conclusion &&
           other.createdAt == this.createdAt &&
@@ -2524,6 +2568,7 @@ class DriftBuildRun extends DataClass implements Insertable<DriftBuildRun> {
 class BuildRunsCompanion extends UpdateCompanion<DriftBuildRun> {
   final Value<String> id;
   final Value<String> buildJobId;
+  final Value<int?> runNumber;
   final Value<String> status;
   final Value<String?> conclusion;
   final Value<DateTime> createdAt;
@@ -2532,6 +2577,7 @@ class BuildRunsCompanion extends UpdateCompanion<DriftBuildRun> {
   const BuildRunsCompanion({
     this.id = const Value.absent(),
     this.buildJobId = const Value.absent(),
+    this.runNumber = const Value.absent(),
     this.status = const Value.absent(),
     this.conclusion = const Value.absent(),
     this.createdAt = const Value.absent(),
@@ -2541,6 +2587,7 @@ class BuildRunsCompanion extends UpdateCompanion<DriftBuildRun> {
   BuildRunsCompanion.insert({
     required String id,
     required String buildJobId,
+    this.runNumber = const Value.absent(),
     required String status,
     this.conclusion = const Value.absent(),
     required DateTime createdAt,
@@ -2554,6 +2601,7 @@ class BuildRunsCompanion extends UpdateCompanion<DriftBuildRun> {
   static Insertable<DriftBuildRun> custom({
     Expression<String>? id,
     Expression<String>? buildJobId,
+    Expression<int>? runNumber,
     Expression<String>? status,
     Expression<String>? conclusion,
     Expression<DateTime>? createdAt,
@@ -2563,6 +2611,7 @@ class BuildRunsCompanion extends UpdateCompanion<DriftBuildRun> {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (buildJobId != null) 'build_job_id': buildJobId,
+      if (runNumber != null) 'run_number': runNumber,
       if (status != null) 'status': status,
       if (conclusion != null) 'conclusion': conclusion,
       if (createdAt != null) 'created_at': createdAt,
@@ -2574,6 +2623,7 @@ class BuildRunsCompanion extends UpdateCompanion<DriftBuildRun> {
   BuildRunsCompanion copyWith({
     Value<String>? id,
     Value<String>? buildJobId,
+    Value<int?>? runNumber,
     Value<String>? status,
     Value<String?>? conclusion,
     Value<DateTime>? createdAt,
@@ -2583,6 +2633,7 @@ class BuildRunsCompanion extends UpdateCompanion<DriftBuildRun> {
     return BuildRunsCompanion(
       id: id ?? this.id,
       buildJobId: buildJobId ?? this.buildJobId,
+      runNumber: runNumber ?? this.runNumber,
       status: status ?? this.status,
       conclusion: conclusion ?? this.conclusion,
       createdAt: createdAt ?? this.createdAt,
@@ -2599,6 +2650,9 @@ class BuildRunsCompanion extends UpdateCompanion<DriftBuildRun> {
     }
     if (buildJobId.present) {
       map['build_job_id'] = Variable<String>(buildJobId.value);
+    }
+    if (runNumber.present) {
+      map['run_number'] = Variable<int>(runNumber.value);
     }
     if (status.present) {
       map['status'] = Variable<String>(status.value);
@@ -2623,6 +2677,7 @@ class BuildRunsCompanion extends UpdateCompanion<DriftBuildRun> {
     return (StringBuffer('BuildRunsCompanion(')
           ..write('id: $id, ')
           ..write('buildJobId: $buildJobId, ')
+          ..write('runNumber: $runNumber, ')
           ..write('status: $status, ')
           ..write('conclusion: $conclusion, ')
           ..write('createdAt: $createdAt, ')
@@ -8797,6 +8852,7 @@ typedef $$BuildRunsTableCreateCompanionBuilder =
     BuildRunsCompanion Function({
       required String id,
       required String buildJobId,
+      Value<int?> runNumber,
       required String status,
       Value<String?> conclusion,
       required DateTime createdAt,
@@ -8807,6 +8863,7 @@ typedef $$BuildRunsTableUpdateCompanionBuilder =
     BuildRunsCompanion Function({
       Value<String> id,
       Value<String> buildJobId,
+      Value<int?> runNumber,
       Value<String> status,
       Value<String?> conclusion,
       Value<DateTime> createdAt,
@@ -8849,6 +8906,11 @@ class $$BuildRunsTableFilterComposer
   });
   ColumnFilters<String> get id => $composableBuilder(
     column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get runNumber => $composableBuilder(
+    column: $table.runNumber,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -8910,6 +8972,11 @@ class $$BuildRunsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get runNumber => $composableBuilder(
+    column: $table.runNumber,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get status => $composableBuilder(
     column: $table.status,
     builder: (column) => ColumnOrderings(column),
@@ -8965,6 +9032,9 @@ class $$BuildRunsTableAnnotationComposer
   });
   GeneratedColumn<String> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<int> get runNumber =>
+      $composableBuilder(column: $table.runNumber, builder: (column) => column);
 
   GeneratedColumn<String> get status =>
       $composableBuilder(column: $table.status, builder: (column) => column);
@@ -9034,6 +9104,7 @@ class $$BuildRunsTableTableManager
               ({
                 Value<String> id = const Value.absent(),
                 Value<String> buildJobId = const Value.absent(),
+                Value<int?> runNumber = const Value.absent(),
                 Value<String> status = const Value.absent(),
                 Value<String?> conclusion = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
@@ -9042,6 +9113,7 @@ class $$BuildRunsTableTableManager
               }) => BuildRunsCompanion(
                 id: id,
                 buildJobId: buildJobId,
+                runNumber: runNumber,
                 status: status,
                 conclusion: conclusion,
                 createdAt: createdAt,
@@ -9052,6 +9124,7 @@ class $$BuildRunsTableTableManager
               ({
                 required String id,
                 required String buildJobId,
+                Value<int?> runNumber = const Value.absent(),
                 required String status,
                 Value<String?> conclusion = const Value.absent(),
                 required DateTime createdAt,
@@ -9060,6 +9133,7 @@ class $$BuildRunsTableTableManager
               }) => BuildRunsCompanion.insert(
                 id: id,
                 buildJobId: buildJobId,
+                runNumber: runNumber,
                 status: status,
                 conclusion: conclusion,
                 createdAt: createdAt,
