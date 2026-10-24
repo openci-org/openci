@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Add `OpenCI.runNumber` to read the server-assigned team sequence from
+  `OPENCI_RUN_NUMBER`, with validation and guidance for local workflows.
+
 ## 0.1.5
 
 - Add `Secret` references with the original environment name in `.key` and lazy

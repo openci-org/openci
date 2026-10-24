@@ -33,6 +33,22 @@ class OpenCI {
   final String? currentWorkingDirectory;
   final String workspacePath;
 
+  /// The team-scoped number assigned to this run by the server.
+  ///
+  /// Reads `OPENCI_RUN_NUMBER` without allocating a number or making a request.
+  /// Throws a [StateError] if the variable is missing or is not a positive
+  /// decimal integer. Set it explicitly when running a workflow locally.
+  int get runNumber {
+    final value = Platform.environment['OPENCI_RUN_NUMBER'];
+    final number = value == null ? null : int.tryParse(value, radix: 10);
+    if (number == null || number <= 0) {
+      throw StateError(
+        'OPENCI_RUN_NUMBER must be set to a positive decimal integer.',
+      );
+    }
+    return number;
+  }
+
   final Future<void> Function(
     String command, {
     required String workingDirectory,
