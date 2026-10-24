@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.1.6
 
 - Add `OpenCI.runNumber` to read the server-assigned team sequence from
   `OPENCI_RUN_NUMBER`, with validation and guidance for local workflows.
