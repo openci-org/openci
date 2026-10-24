@@ -42,13 +42,14 @@ Future<void> main() async {
 ''');
     for (final arguments in [
       ['pub', 'get'],
-      ['analyze', '--fatal-infos'],
+      ['analyze', '--fatal-infos', 'main.dart'],
       ['run', 'main.dart'],
     ]) {
       final result = await Process.run(
         'dart',
         arguments,
         workingDirectory: directory.path,
+        environment: {'PUB_CACHE': '${directory.path}/pub-cache'},
       ).timeout(const Duration(minutes: 2));
       stdout.write(result.stdout);
       stderr.write(result.stderr);
