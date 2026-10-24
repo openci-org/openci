@@ -279,6 +279,9 @@ void main() {
         final driftRun = await db.buildRunDao.getBuildRun('job-xyz', 'run-456');
         expect(driftRun, isNotNull);
         expect(driftRun!.status, equals('in_progress'));
+        expect(body['runNumber'], 1);
+        expect(driftRun.runNumber, 1);
+        expect((await db.teamDao.getTeam('team-xyz'))!.runNumber, 2);
 
         final updatedJob = await db.buildJobDao.getBuildJob('job-xyz');
         expect(updatedJob, isNotNull);
@@ -353,6 +356,7 @@ void main() {
         final body2 = await response2.json() as Map<String, dynamic>;
         expect(body2['success'], isFalse);
         expect(body2['error'], equals('Run ID already exists'));
+        expect((await db.teamDao.getTeam('team-xyz'))!.runNumber, 2);
       },
     );
 
@@ -431,12 +435,13 @@ void main() {
 
     Future<Response> startRun({
       String runId = 'run-check',
+      String jobId = 'job-check',
       String? uid,
       String? bearerToken = 'test-internal-key',
       Map<String, Object?> admission = const {},
     }) async {
       final handler =
-          ((RequestContext context) => route.onRequest(context, 'job-check'))
+          ((RequestContext context) => route.onRequest(context, jobId))
               .use(build.middleware)
               .use(provider<AppDatabase>((_) => db))
               .use(provider<String?>((_) => uid))
@@ -457,7 +462,7 @@ void main() {
             scheme: 'http',
             host: server.address.address,
             port: server.port,
-            path: '/builds/job-check/runs',
+            path: '/builds/$jobId/runs',
           ),
           body: jsonEncode({'id': runId, ...admission}),
           headers: {
@@ -482,6 +487,7 @@ void main() {
       final stored = (await db.buildJobDao.getBuildJob('job-check'))!;
       expect(stored.runCount, 2);
       expect(stored.latestRunId, 'previous-run');
+      expect((await db.teamDao.getTeam('team-xyz'))!.runNumber, 1);
     }
 
     Future<void> expectConnectionRejected(
@@ -617,8 +623,21 @@ void main() {
     }
 
     test('reuses the saved Check on a subsequent run', () async {
-      expect((await startRun()).statusCode, HttpStatus.ok);
-      expect((await startRun(runId: 'rerun')).statusCode, HttpStatus.ok);
+      final first = await startRun();
+      final rerun = await startRun(runId: 'rerun');
+      expect(first.statusCode, HttpStatus.ok);
+      expect(rerun.statusCode, HttpStatus.ok);
+      expect(await first.json(), {'success': true, 'runNumber': 1});
+      expect(await rerun.json(), {'success': true, 'runNumber': 2});
+      expect(
+        (await db.buildRunDao.getBuildRun('job-check', 'run-check'))!.runNumber,
+        1,
+      );
+      expect(
+        (await db.buildRunDao.getBuildRun('job-check', 'rerun'))!.runNumber,
+        2,
+      );
+      expect((await db.teamDao.getTeam('team-xyz'))!.runNumber, 3);
 
       final calls = checkRequests();
       expect(calls.map((request) => request.method), ['POST', 'PATCH']);
@@ -637,6 +656,85 @@ void main() {
       expect((await startRun()).statusCode, HttpStatus.conflict);
       expect(checkRequests(), hasLength(1));
       expect((await db.buildJobDao.getBuildJob('job-check'))!.runCount, 3);
+      expect((await db.teamDao.getTeam('team-xyz'))!.runNumber, 2);
+    });
+
+    test('shares the sequence across workflows but not across teams', () async {
+      final job = (await db.buildJobDao.getBuildJob('job-check'))!;
+      await db.buildJobDao.insertBuildJob(
+        job.copyWith(
+          id: 'job-other-workflow',
+          workflowName: 'Release',
+          workflowFileName: 'release.dart',
+        ),
+      );
+      expect(await (await startRun()).json(), {
+        'success': true,
+        'runNumber': 1,
+      });
+      expect(
+        await (await startRun(
+          jobId: 'job-other-workflow',
+          runId: 'run-release',
+        )).json(),
+        {'success': true, 'runNumber': 2},
+      );
+
+      final team = (await db.teamDao.getTeam('team-xyz'))!;
+      await db.teamDao.createTeamAndMember(
+        team.copyWith(id: 'other-team', runNumber: 1),
+        'user-123',
+      );
+      repositoryInstallationId = 98766;
+      await db
+          .into(db.gitHubConnections)
+          .insert(
+            connection.copyWith(
+              id: 'other-connection',
+              teamId: 'other-team',
+              installationId: repositoryInstallationId,
+            ),
+          );
+      await db.buildJobDao.insertBuildJob(
+        job.copyWith(
+          id: 'other-job',
+          teamId: const Value('other-team'),
+          repo: 'other-app',
+          installationId: Value(repositoryInstallationId.toString()),
+        ),
+      );
+      expect(
+        await (await startRun(jobId: 'other-job', runId: 'other-run')).json(),
+        {'success': true, 'runNumber': 1},
+      );
+      expect((await db.teamDao.getTeam('team-xyz'))!.runNumber, 3);
+      expect((await db.teamDao.getTeam('other-team'))!.runNumber, 2);
+      expect(
+        (await db.buildRunDao.getBuildRun(
+          'job-other-workflow',
+          'run-release',
+        ))!.runNumber,
+        2,
+      );
+      expect(
+        (await db.buildRunDao.getBuildRun('other-job', 'other-run'))!.runNumber,
+        1,
+      );
+    });
+
+    test('rolls back allocation if saving the run number fails', () async {
+      await db.customStatement('''
+        CREATE TRIGGER reject_run_number BEFORE UPDATE OF run_number ON build_runs
+        BEGIN SELECT RAISE(ABORT, 'run-number write failed'); END;
+      ''');
+
+      expect((await startRun()).statusCode, HttpStatus.internalServerError);
+      await expectRunNotStarted();
+
+      await db.customStatement('DROP TRIGGER reject_run_number');
+      final retry = await startRun();
+      expect(retry.statusCode, HttpStatus.ok);
+      expect(await retry.json(), {'success': true, 'runNumber': 1});
     });
 
     test('rolls back the build run when Check creation is rejected', () async {
@@ -980,6 +1078,7 @@ void main() {
         final run2 = DriftBuildRun(
           id: 'run-2',
           buildJobId: 'job-xyz',
+          runNumber: 42,
           status: 'in_progress',
           conclusion: null,
           createdAt: now,
@@ -1006,6 +1105,7 @@ void main() {
         expect(body, hasLength(2));
 
         final r1 = body[0] as Map<String, dynamic>;
+        expect(r1, containsPair('runNumber', null));
         expect(r1['id'], equals('run-1'));
         expect(r1['buildJobId'], equals('job-xyz'));
         expect(r1['status'], equals('success'));
@@ -1020,6 +1120,7 @@ void main() {
         );
 
         final r2 = body[1] as Map<String, dynamic>;
+        expect(r2['runNumber'], 42);
         expect(r2['id'], equals('run-2'));
         expect(r2['buildJobId'], equals('job-xyz'));
         expect(r2['status'], equals('in_progress'));
