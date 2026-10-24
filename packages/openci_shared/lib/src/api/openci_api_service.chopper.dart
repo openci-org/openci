@@ -824,7 +824,7 @@ final class _$OpenCIApiService extends OpenCIApiService {
   }
 
   @override
-  Future<Response<void>> createRun(
+  Future<Response<Map<String, dynamic>>> createRun(
     String buildJobId,
     Map<String, dynamic> body,
   ) {
@@ -845,9 +845,9 @@ final class _$OpenCIApiService extends OpenCIApiService {
       abortTrigger: $abortTrigger.future,
     );
     return client
-        .send<void, void>($request)
+        .send<Map<String, dynamic>, Map<String, dynamic>>($request)
         .catchError(
-          (_) => Future<Response<void>>.error(
+          (_) => Future<Response<Map<String, dynamic>>>.error(
             ChopperTimeoutException('Request timed out after 10 seconds'),
           ),
           test: (Object err) =>

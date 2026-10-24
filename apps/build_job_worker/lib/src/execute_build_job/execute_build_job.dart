@@ -73,7 +73,7 @@ Future<BuildJobStatus> executeBuildJob({
   );
 
   try {
-    await createBuildRun(
+    final runNumber = await createBuildRun(
       api: api,
       jobId: job.id,
       runId: runId,
@@ -203,6 +203,7 @@ Future<BuildJobStatus> executeBuildJob({
         vmName: vmName,
         job: job,
         runId: runId,
+        runNumber: runNumber,
         secretsContent: secretsContent,
         onLogError: onError,
       );

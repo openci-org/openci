@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:build_job_worker/build_job_worker.dart';
 import 'package:http/http.dart' as http;
@@ -26,6 +27,7 @@ void main() {
     String workspacePath = '/tmp/workspace',
     String vmHomePath = '/Users/admin',
     String runId = 'run-1',
+    int runNumber = 42,
   }) => runWorkflow(
     api: api,
     lokiClient: lokiClient,
@@ -34,6 +36,7 @@ void main() {
     vmName: 'vm-1',
     job: job,
     runId: runId,
+    runNumber: runNumber,
     secretsContent: secretsContent,
     workspacePath: workspacePath,
     vmHomePath: vmHomePath,
@@ -117,10 +120,59 @@ void main() {
           final script = utf8.decode(base64Decode(encodedScript));
           expect(script, contains("cd '/tmp/workspace'\n"));
           expect(script, contains("export OPENCI_RUN_ID='run-1'\n"));
+          expect(script, contains("export OPENCI_RUN_NUMBER='42'\n"));
           expect(script, contains("export OPENCI_BUILD_JOB_ID='job-1'\n"));
           expect(script, contains('flutter pub get\n$invocation\n'));
         },
       );
+    }
+
+    test(
+      'exports the assigned number even when a Secret uses the same name',
+      () async {
+        final directory = await Directory.systemTemp.createTemp(
+          'workflow_run_number_',
+        );
+        addTearDown(() => directory.delete(recursive: true));
+        final workspace = await Directory(
+          '${directory.path}/workspace',
+        ).create();
+        final vmHome = '${directory.path}/home';
+        final flutter = File('$vmHome/fvm/default/bin/flutter');
+        await flutter.parent.create(recursive: true);
+        await flutter.writeAsString(r'''#!/bin/sh
+printf '%s\n' "$OPENCI_RUN_NUMBER"
+''');
+        final chmod = await Process.run('/bin/chmod', ['+x', flutter.path]);
+        expect(chmod.exitCode, 0);
+
+        await run(
+          runNumber: 314,
+          secretsContent: 'OPENCI_RUN_NUMBER=999',
+          workspacePath: workspace.path,
+          vmHomePath: vmHome,
+        );
+        final encodedScript = RegExp(
+          r"printf %s '([^']*)' \| base64 -d",
+        ).firstMatch(commands[1])!.group(1)!;
+        final script = File('${workspace.path}.workflow.sh');
+        await script.writeAsBytes(base64Decode(encodedScript));
+        final result = await Process.run(
+          '/bin/sh',
+          [script.path],
+          environment: {'OPENCI_RUN_NUMBER': '123'},
+        );
+
+        expect(result.exitCode, 0, reason: result.stderr.toString());
+        expect(result.stdout, '314\n314\n');
+      },
+    );
+
+    for (final runNumber in [0, -1]) {
+      test('rejects run number $runNumber before contacting Orchard', () async {
+        await expectLater(run(runNumber: runNumber), throwsArgumentError);
+        verifyZeroInteractions(api);
+      });
     }
 
     for (final exitCode in [0, 23]) {

@@ -164,6 +164,49 @@ void main() {
   });
 
   group('OpenCIApiService worker endpoints', () {
+    for (final statusCode in [200, 409]) {
+      test('createRun preserves the HTTP $statusCode response', () async {
+        final payload = {
+          'id': 'run-456',
+          'billingAdmissionId': 'admission-1',
+          'workerHost': 'worker-1',
+        };
+        final body = statusCode == 200
+            ? {'success': true, 'runNumber': 42}
+            : {'success': false, 'error': 'Run ID already exists'};
+        final httpClient = MockClient((request) async {
+          expect(request.method, 'POST');
+          expect(
+            request.url,
+            Uri.parse('https://api.openci.test/builds/job-123/runs'),
+          );
+          expect(jsonDecode(request.body), payload);
+          return http.Response(
+            jsonEncode(body),
+            statusCode,
+            headers: {'content-type': 'application/json'},
+          );
+        });
+        final client = _createClient(httpClient);
+        addTearDown(client.dispose);
+
+        final response = await client.getService<OpenCIApiService>().createRun(
+          'job-123',
+          payload,
+        );
+
+        expect(response.statusCode, statusCode);
+        expect(response.isSuccessful, statusCode == 200);
+        if (statusCode == 200) {
+          expect(response.body, body);
+          expect(response.body!['runNumber'], isA<int>());
+        } else {
+          expect(response.body, isNull);
+          expect(jsonDecode(response.error as String), body);
+        }
+      });
+    }
+
     test(
       'claimNextJob sends the payload to the worker claim endpoint',
       () async {

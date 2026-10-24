@@ -13,11 +13,15 @@ Future<int> runWorkflow({
   required String vmName,
   required BuildJob job,
   required String runId,
+  required int runNumber,
   required String secretsContent,
   required void Function(Object error, StackTrace stackTrace) onLogError,
   String workspacePath = '/tmp/workspace',
   String vmHomePath = '/Users/admin',
 }) async {
+  if (runNumber <= 0) {
+    throw ArgumentError.value(runNumber, 'runNumber', 'Must be positive.');
+  }
   final workspace = workspacePath.replaceFirst(RegExp(r'/+$'), '');
   final vmHome = vmHomePath.replaceFirst(RegExp(r'/+$'), '');
   if ([
@@ -72,6 +76,7 @@ export HOME=${_shellQuote(vmHome)}
 export FLUTTER_ROOT=${_shellQuote('$vmHome/fvm/default')}
 export PATH="\$FLUTTER_ROOT/bin:\$HOME/.pub-cache/bin:/opt/homebrew/bin:/usr/local/bin:\$PATH"
 export OPENCI_RUN_ID=${_shellQuote(runId)}
+export OPENCI_RUN_NUMBER=${_shellQuote(runNumber.toString())}
 export OPENCI_BUILD_JOB_ID=${_shellQuote(job.id)}
 export LOKI_URL=${_shellQuote(vmLokiUrl)}
 flutter pub get
