@@ -6,6 +6,7 @@ import 'package:drift/native.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:openci_server/auth/internal_api_key_validator.dart';
+import 'package:openci_server/auth/workflow_token.dart';
 import 'package:openci_server/database.dart';
 import 'package:openci_server/github/github_connection_table.dart';
 import 'package:openci_server/secret/secret_crypter.dart';
@@ -114,6 +115,7 @@ void main() {
     String? installationId = '98765',
     String? commitSha = 'job-commit',
     String? teamId = 'team-1',
+    String? runId,
     String secretDefinitions = definitions,
     int definitionsStatus = 200,
     String method = 'GET',
@@ -170,6 +172,7 @@ void main() {
         owner: 'owner',
         repo: 'repo',
         teamId: teamId,
+        latestRunId: runId,
         installationId: installationId,
         githubBaseUrl: 'https://untrusted.example',
         commitSha: commitSha,
@@ -227,6 +230,36 @@ void main() {
     expect(jsonDecode(response.body), {'success': false, 'error': 'Forbidden'});
     expect(githubRequests, isEmpty);
   }
+
+  test(
+    'injects a scoped workflow token after verified secret resolution',
+    () async {
+      environment['INTERNAL_API_KEY'] = 'server-only-key';
+      final response = await requestSecrets(runId: 'run-1');
+      expect(response.statusCode, 200);
+      final content = jsonDecode(response.body)['secretsContent'] as String;
+      final variables = <String, String>{
+        for (final line in content.split('\n'))
+          line.substring(0, line.indexOf('=')): line.substring(
+            line.indexOf('=') + 1,
+          ),
+      };
+      expect(variables['ASC_KEY'], 'test-asc-value');
+      expect(
+        variables.keys,
+        unorderedEquals(['GITHUB_TOKEN', 'ASC_KEY', 'OPENCI_WORKFLOW_TOKEN']),
+      );
+      final claims = WorkflowToken('server-only-key').verify(
+        variables['OPENCI_WORKFLOW_TOKEN']!,
+      );
+      expect(claims, isNotNull);
+      expect(claims!.jobId, 'job-1');
+      expect(claims.runId, 'run-1');
+      expect(claims.teamId, 'team-1');
+      expect(claims.secretKeys, {'ASC_KEY'});
+      expect(content, isNot(contains('server-only-key')));
+    },
+  );
 
   group('verified connections', () {
     test('an internal key resolves secrets through a new connection', () async {
