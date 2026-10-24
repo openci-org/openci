@@ -3,7 +3,6 @@ import 'dart:io';
 
 import 'package:dart_frog/dart_frog.dart';
 import 'package:http/http.dart' as http;
-import 'package:openci_server/auth/workflow_token.dart';
 import 'package:openci_server/database.dart';
 import 'package:openci_server/github/github_service.dart';
 import 'package:openci_server/github/parse_github_api_base_uri.dart';
@@ -161,17 +160,9 @@ Future<Response> _get(RequestContext context, String id) async {
 
     final resolvedSecrets = <String, String>{};
     resolvedSecrets['GITHUB_TOKEN'] = token;
-    final workflowVariables = workflowEnvironment(
-      job: driftJob,
-      secretKeys: usedSecretNames,
-      environment: environment,
-    );
 
     if (targetSecrets.isEmpty) {
-      final secretFileContent = {...resolvedSecrets, ...workflowVariables}
-          .entries
-          .map((entry) => '${entry.key}=${entry.value.replaceAll('\n', '\\n')}')
-          .join('\n');
+      final secretFileContent = 'GITHUB_TOKEN=${token.replaceAll('\n', '\\n')}';
       return Response.json(
         headers: {HttpHeaders.cacheControlHeader: 'no-store'},
         body: {
@@ -193,7 +184,6 @@ Future<Response> _get(RequestContext context, String id) async {
       }
     }
 
-    resolvedSecrets.addAll(workflowVariables);
     final secretFileContent = resolvedSecrets.entries
         .map((entry) => '${entry.key}=${entry.value.replaceAll('\n', '\\n')}')
         .join('\n');
