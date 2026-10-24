@@ -55,6 +55,7 @@ void main() {
   late Map<String, Object> failures;
   late Map<String, Completer<void>> pending;
   late Future<http.Response> Function(http.Request) respondToLog;
+  late Map<String, dynamic> runResponse;
   var leaseId = 'lease-1';
   var workflowExitCode = 0;
 
@@ -162,6 +163,7 @@ void main() {
     pending = {};
     leaseId = 'lease-1';
     workflowExitCode = 0;
+    runResponse = {'success': true, 'runNumber': 42};
     respondToLog = (_) async => http.Response('', 204);
     lokiClient = _TrackingClient((request) {
       logRequests.add(request);
@@ -195,7 +197,7 @@ void main() {
       final body = invocation.positionalArguments[1] as Map<String, dynamic>;
       runIds.add(body['id'] as String);
       await record('createRun');
-      return createMockResponse<void>(null);
+      return createMockResponse(runResponse);
     });
     when(() => api.startBillingExecution(any())).thenAnswer((invocation) async {
       final payload =
@@ -496,6 +498,10 @@ void main() {
         expect(files['writeSecrets'], secretsContent);
         expect(files['writeWorkflow'], contains(secretsContent));
         expect(files['writeWorkflow'], contains(runIds.single));
+        expect(
+          files['writeWorkflow'],
+          contains("export OPENCI_RUN_NUMBER='42'\n"),
+        );
         expect(files['writeWorkflow'], contains(job.id));
         expect(files['writeWorkflow'], contains(config.lokiUrl));
         expect(files['writeWorkflow'], contains('openci/ci.dart'));
@@ -546,6 +552,26 @@ void main() {
           expect(labels, containsPair('run_id', runIds.single));
           expect(labels, containsPair('build_job_id', job.id));
         }
+      },
+    );
+
+    test(
+      'fails before VM preparation when the server omits runNumber',
+      () async {
+        runResponse = {'success': true};
+
+        expect(await execute(), BuildJobStatus.FAILURE);
+
+        expect(events, ['createRun', 'completeJob', 'completeCheck']);
+        expectCompletion(BuildJobStatus.FAILURE, hasRun: false);
+        expect(errors.single.$1, isA<StateError>());
+        expect(
+          errors.single.$1.toString(),
+          contains('"runNumber" must be a positive integer'),
+        );
+        expectWorkerErrorsInLoki();
+        verifyZeroInteractions(orchardApi);
+        verifyNever(() => api.resolveInstallationToken(any()));
       },
     );
 

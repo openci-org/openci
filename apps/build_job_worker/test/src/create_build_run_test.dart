@@ -19,7 +19,7 @@ void main() {
     api = _MockOpenCIApiService();
   });
 
-  Future<void> create() => createBuildRun(api: api, jobId: jobId, runId: runId);
+  Future<int> create() => createBuildRun(api: api, jobId: jobId, runId: runId);
 
   group('createBuildRun', () {
     test('binds the paid run to the claimed admission and worker', () async {
@@ -28,11 +28,14 @@ void main() {
         'billingAdmissionId': 'admission-1',
         'workerHost': 'worker-1',
       };
-      when(
-        () => api.createRun(jobId, payload),
-      ).thenAnswer((_) async => createMockResponse<void>(null));
+      when(() => api.createRun(jobId, payload)).thenAnswer(
+        (_) async => createMockResponse(<String, dynamic>{
+          'success': true,
+          'runNumber': 42,
+        }),
+      );
 
-      await createBuildRun(
+      final runNumber = await createBuildRun(
         api: api,
         jobId: jobId,
         runId: runId,
@@ -40,6 +43,7 @@ void main() {
         workerHost: 'worker-1',
       );
 
+      expect(runNumber, 42);
       verify(() => api.createRun(jobId, payload)).called(1);
     });
 
@@ -56,26 +60,73 @@ void main() {
       verifyZeroInteractions(api);
     });
 
-    test('creates one run with the supplied job and run IDs', () async {
-      when(
-        () => api.createRun(jobId, {'id': runId}),
-      ).thenAnswer((_) async => createMockResponse<void>(null));
+    test('creates one run and returns the server-assigned number', () async {
+      when(() => api.createRun(jobId, {'id': runId})).thenAnswer(
+        (_) async => createMockResponse(<String, dynamic>{
+          'success': true,
+          'runNumber': 1,
+        }),
+      );
 
-      await create();
+      expect(await create(), 1);
 
       verify(() => api.createRun(jobId, {'id': runId})).called(1);
       verifyNoMoreInteractions(api);
     });
+
+    for (final testCase in <String, Map<String, dynamic>?>{
+      'a missing body': null,
+      'a missing success flag': {'runNumber': 42},
+      'a failure result': {'success': false, 'runNumber': 42},
+      'a non-boolean success flag': {'success': 'true', 'runNumber': 42},
+      'a missing run number': {'success': true},
+      'a null run number': {'success': true, 'runNumber': null},
+      'a zero run number': {'success': true, 'runNumber': 0},
+      'a negative run number': {'success': true, 'runNumber': -1},
+      'a string run number': {'success': true, 'runNumber': '42'},
+      'a double run number': {'success': true, 'runNumber': 42.0},
+      'a boolean run number': {'success': true, 'runNumber': true},
+      'an object run number': {
+        'success': true,
+        'runNumber': {'value': secret},
+      },
+      'a list run number': {
+        'success': true,
+        'runNumber': [secret],
+      },
+    }.entries) {
+      test('rejects ${testCase.key} without exposing response content', () async {
+        when(() => api.createRun(jobId, {'id': runId})).thenAnswer(
+          (_) async => createMockResponse<Map<String, dynamic>?>(
+            testCase.value,
+          ).copyWith<Map<String, dynamic>>(),
+        );
+
+        await expectLater(
+          create(),
+          throwsA(
+            isA<StateError>().having(
+              (error) => error.message,
+              'message',
+              'Invalid build run response: '
+                  '"success" must be true and "runNumber" must be a positive integer.',
+            ),
+          ),
+        );
+        verify(() => api.createRun(jobId, {'id': runId})).called(1);
+        verifyNoMoreInteractions(api);
+      });
+    }
 
     for (final statusCode in [400, 401, 404, 409, 503]) {
       test(
         'reports HTTP $statusCode without retrying or exposing errors',
         () async {
           when(() => api.createRun(jobId, {'id': runId})).thenAnswer(
-            (_) async => createMockResponse<void>(
-              null,
+            (_) async => createMockResponse<Map<String, dynamic>>(
+              {},
               statusCode: statusCode,
-            ).copyWith<void>(bodyError: secret),
+            ).copyWith<Map<String, dynamic>>(bodyError: secret),
           );
 
           await expectLater(
