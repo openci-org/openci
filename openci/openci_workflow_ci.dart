@@ -14,5 +14,6 @@ Future<void> main() async {
 
   await openCI.flutter.staticAnalysis();
 
-  await openCI.flutter.unitTests();
+  // Subprocess tests require Isolate.packageConfig from the Dart test runner.
+  await openCI.run('dart test');
 }
