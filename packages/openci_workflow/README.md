@@ -31,6 +31,39 @@ strings. After regenerating older String getters, add `.value` wherever your
 workflow needs the secret's value, including string interpolation. The updated
 server parser supports both generated formats.
 
+## Run numbers
+
+Read the number assigned to the current run synchronously. This getter is built
+into the SDK and is available without running `genuineci sync`:
+
+```dart
+final runNumber = openCI.runNumber;
+await openCI.run('flutter build ipa --build-number=$runNumber');
+```
+
+The getter reads `OPENCI_RUN_NUMBER` as a positive decimal integer. It makes no
+network request and does not allocate or increment a number. Repeated reads in
+the same run return the same value. Missing or invalid values throw `StateError`.
+Workflows that do not read the getter can still run without this variable.
+
+All workflows in a team share one sequence; each team has its own sequence.
+A rerun with a new run ID receives a new number while the original run keeps its
+number. A build that fails after run creation still consumes its number, so
+published builds can have gaps. Rolled-back run creation does not consume a number.
+Historical runs retain a null `runNumber` in the server API and are not backfilled.
+
+For local testing, set the variable explicitly before running your workflow:
+
+```sh
+OPENCI_RUN_NUMBER=42 dart run openci/release.dart
+```
+
+This local value does not reserve a number or update the team's counter.
+
+Roll out the database migration and server allocation API first, then the worker
+that exports `OPENCI_RUN_NUMBER`, and finally workflows using the SDK with this
+getter. Older workers do not supply the variable.
+
 ## Define a workflow
 
 Create `openci/static_analysis.dart` in the repository root:
