@@ -1,27 +1,15 @@
 ---
 import type { MarkdownHeading } from "astro";
-import { translator, type Locale } from "../lib/i18n";
 interface Props {
   headings: MarkdownHeading[];
-  locale: Locale;
-  docs?: boolean;
 }
-const { headings, locale, docs = false } = Astro.props;
-const t = translator(locale);
+const { headings } = Astro.props;
 ---
 
-{docs ? (
-  <nav class="d-toc-links" aria-label={t("このページの目次", "On this page")}>
-    {headings.map((h) => (
+<ul>
+  {headings.map((h) => (
+    <li>
       <a href={`#${h.slug}`}>{h.text}</a>
-    ))}
-  </nav>
-) : (
-  <ul>
-    {headings.map((h) => (
-      <li>
-        <a href={`#${h.slug}`}>{h.text}</a>
-      </li>
-    ))}
-  </ul>
-)}
+    </li>
+  ))}
+</ul>

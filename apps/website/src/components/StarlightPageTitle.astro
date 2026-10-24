@@ -1,0 +1,16 @@
+---
+import PageTitle from "@astrojs/starlight/components/PageTitle.astro";
+
+const { description } = Astro.locals.starlightRoute.entry.data;
+---
+
+<PageTitle />
+{description && <p class="lead">{description}</p>}
+
+<style>
+  .lead {
+    margin-top: 1rem;
+    color: var(--sl-color-gray-2);
+    font-size: var(--sl-text-lg);
+  }
+</style>

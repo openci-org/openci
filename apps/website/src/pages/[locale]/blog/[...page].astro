@@ -1,13 +1,15 @@
 ---
 import { getCollection, render } from "astro:content";
-import DocsLayout from "../layouts/DocsLayout.astro";
-import BlogIndex from "../layouts/BlogIndex.astro";
-import BlogArticle from "../layouts/BlogArticle.astro";
-import type { Page } from "../lib/content";
+import BlogIndex from "../../../layouts/BlogIndex.astro";
+import BlogArticle from "../../../layouts/BlogArticle.astro";
+import type { Page } from "../../../lib/content";
 export async function getStaticPaths() {
   const pages = await getCollection("pages");
   return pages.map((page) => ({
-    params: { page: page.id },
+    params: {
+      locale: page.id.split("/")[0],
+      page: page.id.split("/").slice(2).join("/") || undefined,
+    },
     props: { page, pages },
   }));
 }
@@ -21,12 +23,8 @@ const { Content, headings } = await render(page);
 
 {page.data.layout === "blog-index" ? (
   <BlogIndex page={page} pages={pages} />
-) : page.data.layout === "blog-article" ? (
+) : (
   <BlogArticle page={page} pages={pages} headings={headings}>
     <Content />
   </BlogArticle>
-) : (
-  <DocsLayout page={page} pages={pages} headings={headings}>
-    <Content />
-  </DocsLayout>
 )}

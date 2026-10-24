@@ -1,11 +1,8 @@
 ---
-layout: genuine-docs
 title: Write workflows in Dart
 description: Steps, conditionals, and functions. Bring the Dart you use for app development to CI.
-group: Workflows
-eyebrow: WORKFLOWS IN DART
-reading: 4 min read
 ---
+
 ## Workflow basics
 
 A workflow is a Dart file in your repository's `openci/` directory. Initialize it with `OpenCI.init`, then call the commands you want to run in order.

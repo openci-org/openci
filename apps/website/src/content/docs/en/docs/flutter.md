@@ -1,11 +1,8 @@
 ---
-layout: genuine-docs
 title: Build and test Flutter
 description: From static analysis to APK builds. Keep workflows readable with Flutter helpers.
-group: Workflows
-eyebrow: MADE FOR FLUTTER
-reading: 3 min read
 ---
+
 ## Install dependencies
 
 Fetch project dependencies before running analysis or tests.

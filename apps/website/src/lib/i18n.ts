@@ -20,5 +20,3 @@ export const releaseImageAlt = (locale: Locale) =>
     "GenuineCI v2.1.0 is here. — 黄色い背景に黒い文字のリリースバナー",
     "GenuineCI v2.1.0 is here. — Black lettering on a yellow release banner",
   );
-export const safeJson = (value: unknown) =>
-  JSON.stringify(value).replaceAll("<", "\\u003c");

@@ -1,11 +1,8 @@
 ---
-layout: genuine-docs
 title: Triggers
 description: Choose when CI runs. Connect your workflows to GitHub pushes and pull requests.
-group: Workflows
-eyebrow: RUN AT THE RIGHT TIME
-reading: 2 min read
 ---
+
 ## Run on push
 
 Trigger a workflow when a push reaches the specified branch.

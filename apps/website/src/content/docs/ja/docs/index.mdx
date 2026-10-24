@@ -1,0 +1,92 @@
+---
+title: GenuineCIへようこそ
+description: Flutter & DartのためのCIを、ここから。セットアップからワークフロー、CLIまで、GenuineCIの使い方をご案内します。
+hero:
+  title: GenuineCI Docs
+  tagline: いつものDartで、ビルドからリリースまで。Flutter & DartのためのCIを、ここからはじめましょう。
+  actions:
+    - text: クイックスタート
+      link: /ja/docs/quickstart/
+      icon: right-arrow
+    - text: ダッシュボードを開く
+      link: https://dashboard.openci.org/
+      variant: secondary
+---
+
+import { CardGrid, LinkCard } from "@astrojs/starlight/components";
+
+<span id="start" />
+
+## はじめの一歩
+
+セットアップから、最初のワークフローまで。小さなビルドからはじめよう。
+[クイックスタート](/ja/docs/quickstart/)で、SDKの追加から最初のチェックまで進められます。
+
+<span id="guides" />
+
+## 目的から探す
+
+<CardGrid>
+  <LinkCard
+    title="ワークフローを書く"
+    description="Dartで手順を定義。使い慣れた言語をCIにも。"
+    href="/ja/docs/workflows/"
+  />
+  <LinkCard
+    title="Flutterをビルドする"
+    description="解析、テスト、ビルド。アプリの品質をコードで守る。"
+    href="/ja/docs/flutter/"
+  />
+  <LinkCard
+    title="トリガー"
+    description="push、プルリクエスト、タグでワークフローを実行する。"
+    href="/ja/docs/triggers/"
+  />
+  <LinkCard
+    title="自分のMacで動かす"
+    description="Apple Siliconで実行。実行環境も、自分の手に。"
+    href="/ja/docs/self-hosting/"
+  />
+  <LinkCard
+    title="CLIリファレンス"
+    description="必要なコマンドを、すぐ手元に。"
+    href="/ja/docs/cli/"
+  />
+  <LinkCard
+    title="シークレットの管理"
+    description="ビルドに必要な値を管理する。"
+    href="/ja/docs/secrets/"
+  />
+</CardGrid>
+
+<span id="write-dart" />
+
+## ワークフローも、いつものDartで
+
+特別な構文はいりません。関数も、条件分岐も、そのまま。
+`openci/flutter_ci.dart` を作成します。
+
+```dart
+import 'package:openci_workflow/openci_workflow.dart';
+
+Future<void> main() async {
+  final ci = await OpenCI.init(
+    workflowName: 'Flutter CI',
+    ciTriggers: [CITrigger.push(branch: 'main')],
+  );
+
+  await ci.run('flutter pub get');
+  await ci.flutter.staticAnalysis();
+  await ci.flutter.unitTests();
+  await ci.flutter.buildApk();
+}
+```
+
+シンプルに書いて、確かに動かす。詳しくは[ワークフローの書き方](/ja/docs/workflows/)をご覧ください。
+
+<span id="open-source" />
+
+## コードも、つくる過程も、オープンに
+
+GenuineCIはオープンソース。あなたのアイデアを待っています。
+[GitHubでGenuineCIを見る](https://github.com/openci-org/openci)。

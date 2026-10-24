@@ -1,8 +1,38 @@
 import type { Root, Element, ElementContent, Properties } from "hast";
 import { toText } from "hast-util-to-text";
 import { visit } from "unist-util-visit";
+import { unified, rehypeHeadingIds } from "@astrojs/markdown-remark";
 import { icons } from "./icons";
-const text = (value: string): ElementContent => ({ type: "text", value });
+
+/** Let Starlight extend the docs pipeline while retaining the blog renderer. */
+export function websiteMarkdown(): ReturnType<typeof unified> {
+  const docs = unified({ smartypants: false });
+  const blog = unified({
+    smartypants: false,
+    rehypePlugins: [rehypeHeadingIds, genuineMarkdown],
+  });
+  return {
+    ...docs,
+    async createRenderer(shared) {
+      const [docsRenderer, blogRenderer] = await Promise.all([
+        docs.createRenderer(shared),
+        blog.createRenderer({ ...shared, syntaxHighlight: "shiki" }),
+      ]);
+      return {
+        render(content, options) {
+          const isBlog = /\/content\/[^/]+\/blog\//.test(
+            options?.fileURL?.pathname ?? "",
+          );
+          return (isBlog ? blogRenderer : docsRenderer).render(
+            content,
+            options,
+          );
+        },
+      };
+    },
+  };
+}
+
 const el = (
   tagName: string,
   properties: Properties = {},
@@ -24,9 +54,8 @@ const svg = (name: string): Element =>
     [{ type: "raw", value: icons[name] } as unknown as ElementContent],
   );
 /** Add site controls around Astro's heading IDs and Shiki code blocks. */
-export function genuineMarkdown() {
+function genuineMarkdown() {
   return (tree: Root, file: { path?: string }) => {
-    const docs = /[/\\]docs[/\\]/.test(file.path ?? "");
     const ja = /[/\\]ja[/\\]/.test(file.path ?? "");
     const copyLabel = ja ? "コードをコピー" : "Copy code";
     visit(tree, "element", (node) => {
@@ -52,62 +81,19 @@ export function genuineMarkdown() {
       if (node.tagName === "pre" && parent && index !== undefined) {
         const code = node.children[0];
         if (code?.type !== "element" || code.tagName !== "code") return;
-        const dart = node.properties.dataLanguage === "dart";
         const copy = el(
           "button",
           {
             type: "button",
             ariaLabel: copyLabel,
-            [docs ? "dataDocCopy" : "dataBlogCopy"]: "",
+            dataBlogCopy: "",
           },
-          [
-            svg("copy"),
-            ...(docs ? [el("span", {}, [text(ja ? "コピー" : "Copy")])] : []),
-          ],
+          [svg("copy")],
         );
-        const children: ElementContent[] = docs
-          ? [
-              el("div", { className: ["d-doc-code-bar"] }, [
-                el("span", {}, [
-                  svg(dart ? "code" : "terminal"),
-                  text(dart ? "Dart" : "Terminal"),
-                ]),
-                el(
-                  "div",
-                  {
-                    className: ["d-code-theme-toggle"],
-                    role: "group",
-                    ariaLabel: ja
-                      ? "コードサンプルの背景"
-                      : "Code sample background",
-                  },
-                  ["light", "dark"].map((theme) =>
-                    el(
-                      "button",
-                      {
-                        type: "button",
-                        dataCodeThemeChoice: theme,
-                        ariaPressed: String(theme === "light"),
-                      },
-                      [text(theme === "light" ? "Light" : "Dark")],
-                    ),
-                  ),
-                ),
-                copy,
-              ]),
-              node,
-            ]
-          : [copy, node];
-        parent.children[index] = el(
-          "div",
-          {
-            className: docs
-              ? ["code-block", "d-article-code", "d-code-surface"]
-              : ["code-block"],
-            ...(docs ? { dataCodeTheme: "light" } : {}),
-          },
-          children,
-        );
+        parent.children[index] = el("div", { className: ["code-block"] }, [
+          copy,
+          node,
+        ]);
         return "skip";
       }
     });

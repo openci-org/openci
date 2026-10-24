@@ -1,11 +1,8 @@
 ---
-layout: genuine-docs
 title: Self-hosting
 description: Own your build environment. Learn how GenuineCI uses Apple Silicon Macs to run workflows.
-group: Environment and tools
-eyebrow: YOUR MACHINES, TOO
-reading: 3 min read
 ---
+
 ## Run in your own environment
 
 GenuineCI is open-source CI. You can set up your own environment with Apple Silicon Macs as build machines.
@@ -14,12 +11,12 @@ The source code and configuration files are available in the [GitHub repository]
 
 ## Main components
 
-| Component | Role |
-| --- | --- |
-| Dashboard | Manage teams, repositories, and build results |
-| API / planner | Plan workflows from GitHub events |
-| Worker | Execute build jobs on Macs |
-| GitHub App | Connect repositories and receive events |
+| Component     | Role                                          |
+| ------------- | --------------------------------------------- |
+| Dashboard     | Manage teams, repositories, and build results |
+| API / planner | Plan workflows from GitHub events             |
+| Worker        | Execute build jobs on Macs                    |
+| GitHub App    | Connect repositories and receive events       |
 
 You do not need to start these components just to run Dart workflows locally. Try the [Quickstart](/en/docs/quickstart/).
 

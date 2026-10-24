@@ -1,11 +1,8 @@
 ---
-layout: genuine-docs
 title: CLIリファレンス
 description: ターミナルからGenuineCIへ。インストール、ログイン、チームの切り替えに必要なコマンド。
-group: 環境とツール
-eyebrow: AT YOUR COMMAND
-reading: 3 min read
 ---
+
 ## インストール
 
 Dart 3.11.5以降で、CLIをインストールします。
@@ -53,18 +50,18 @@ genuineci switch team
 
 ## コマンド一覧
 
-| コマンド | 用途 |
-| --- | --- |
-| `genuineci login` | リモート環境にログイン |
-| `genuineci status` | 現在のプロファイルとチームを確認 |
-| `genuineci switch team` | 操作対象のチームを切り替え |
-| `genuineci list secrets` | シークレット名を一覧表示 |
-| `genuineci register secret` | シークレットを登録・更新 |
-| `genuineci register secretFile` | ファイルをBase64で登録 |
-| `genuineci sync` | シークレット定義とワークスペースパスを生成 |
-| `genuineci sync --secrets` | シークレット定義のみを生成 |
-| `genuineci sync --paths` | ワークスペースパスのみを生成（ログイン不要） |
-| `genuineci update` | CLIを更新 |
+| コマンド                        | 用途                                         |
+| ------------------------------- | -------------------------------------------- |
+| `genuineci login`               | リモート環境にログイン                       |
+| `genuineci status`              | 現在のプロファイルとチームを確認             |
+| `genuineci switch team`         | 操作対象のチームを切り替え                   |
+| `genuineci list secrets`        | シークレット名を一覧表示                     |
+| `genuineci register secret`     | シークレットを登録・更新                     |
+| `genuineci register secretFile` | ファイルをBase64で登録                       |
+| `genuineci sync`                | シークレット定義とワークスペースパスを生成   |
+| `genuineci sync --secrets`      | シークレット定義のみを生成                   |
+| `genuineci sync --paths`        | ワークスペースパスのみを生成（ログイン不要） |
+| `genuineci update`              | CLIを更新                                    |
 
 `sync` の生成ファイルは `openci/generated/` に保存されます。ワークフローでは `generated/secrets.g.dart` と `generated/paths.g.dart` を import してください。
 

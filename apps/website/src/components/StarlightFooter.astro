@@ -1,0 +1,25 @@
+---
+import Footer from "@astrojs/starlight/components/Footer.astro";
+import { getRelativeLocaleUrl } from "astro:i18n";
+import { translator, type Locale } from "../lib/i18n";
+
+const locale = Astro.locals.starlightRoute.lang as Locale;
+const t = translator(locale);
+---
+
+<Footer />
+<nav class="site-links" aria-label={t("GenuineCIのリンク", "GenuineCI links")}>
+  <a href={getRelativeLocaleUrl(locale)}>GenuineCI</a>
+  <a href={getRelativeLocaleUrl(locale, "blog/")}>{t("ブログ", "Blog")}</a>
+  <a href="https://dashboard.openci.org/">{t("ダッシュボード", "Dashboard")}</a>
+</nav>
+
+<style>
+  .site-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-top: 2rem;
+    font-size: var(--sl-text-sm);
+  }
+</style>

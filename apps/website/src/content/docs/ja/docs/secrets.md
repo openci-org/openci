@@ -1,11 +1,8 @@
 ---
-layout: genuine-docs
 title: シークレット
 description: APIトークンや設定ファイルをチームで管理し、ワークフローから使うための準備をします。
-group: ワークフロー
-eyebrow: CONFIGURE YOUR BUILD
-reading: 3 min read
 ---
+
 ## チームを確認する
 
 シークレット操作は、CLIで選択しているチームに対して行われます。

@@ -1,0 +1,16 @@
+{
+  "heading.anchorLabel": "{{title}}へのリンク",
+  "expressiveCode.copyButtonTooltip": "コードをコピー",
+  "expressiveCode.copyButtonCopied": "コピーしました",
+  "expressiveCode.terminalWindowFallbackTitle": "ターミナル",
+  "pagefind.clear_search": "クリア",
+  "pagefind.load_more": "さらに表示",
+  "pagefind.search_label": "ドキュメントを検索",
+  "pagefind.filters_label": "絞り込み",
+  "pagefind.zero_results": "「[SEARCH_TERM]」に一致するドキュメントはありません",
+  "pagefind.many_results": "「[SEARCH_TERM]」の検索結果: [COUNT]件",
+  "pagefind.one_result": "「[SEARCH_TERM]」の検索結果: [COUNT]件",
+  "pagefind.alt_search": "「[SEARCH_TERM]」は見つかりませんでした。「[DIFFERENT_TERM]」の結果を表示します",
+  "pagefind.search_suggestion": "「[SEARCH_TERM]」は見つかりませんでした。別のキーワードをお試しください",
+  "pagefind.searching": "「[SEARCH_TERM]」を検索中…"
+}
