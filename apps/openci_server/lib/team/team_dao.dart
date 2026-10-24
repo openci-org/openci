@@ -44,7 +44,33 @@ class TeamDao extends DatabaseAccessor<AppDatabase> with _$TeamDaoMixin {
     });
   }
 
-  Future<void> updateTeam(DriftTeam team) => update(teams).replace(team);
+  Future<void> updateTeam(DriftTeam team) async {
+    await (update(teams)..where((row) => row.id.equals(team.id))).write(
+      TeamsCompanion(
+        name: Value(team.name),
+        installationIds: Value(team.installationIds),
+        aiEnabled: Value(team.aiEnabled),
+        updatedAt: Value(team.updatedAt),
+      ),
+    );
+  }
+
+  Future<int> allocateRunNumber(String teamId) async {
+    final rows =
+        await (update(teams)..where(
+              (row) =>
+                  row.id.equals(teamId) & row.runNumber.isBiggerThanValue(0),
+            ))
+            .writeReturning(
+              TeamsCompanion.custom(
+                runNumber: teams.runNumber + const Constant(1),
+              ),
+            );
+    if (rows.isEmpty) {
+      throw StateError('Team not found or run-number counter is not positive.');
+    }
+    return rows.single.runNumber - 1;
+  }
 
   Future<void> deleteTeam(String teamId) async {
     await transaction(() async {

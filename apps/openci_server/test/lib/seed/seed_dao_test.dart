@@ -32,10 +32,11 @@ void main() {
         installationId: 42,
         userId: 'user-a',
       );
+      await db.transaction(() => db.teamDao.allocateRunNumber('team-a'));
       final original = (await db.teamDao.getTeam('team-a'))!.copyWith(
         aiEnabled: false,
-        runNumber: 9,
       );
+      expect(original.runNumber, 2);
       await db.teamDao.updateTeam(original);
 
       await db.seedDao.ensureTestTeam(
@@ -61,6 +62,7 @@ void main() {
         installationId: 2,
         userId: 'user-b',
       );
+      await db.transaction(() => db.teamDao.allocateRunNumber('team-a'));
 
       await db.seedDao.ensureTestTeam(
         teamId: 'team-a',
@@ -71,6 +73,8 @@ void main() {
 
       expect((await db.teamDao.getTeam('team-a'))!.installationIds, [1, 3]);
       expect((await db.teamDao.getTeam('team-b'))!.installationIds, [2]);
+      expect((await db.teamDao.getTeam('team-a'))!.runNumber, 2);
+      expect((await db.teamDao.getTeam('team-b'))!.runNumber, 1);
       expect(
         (await db.teamDao.getTeamMembers('team-a')).map((m) => m.userId),
         unorderedEquals(['user-a', 'user-b']),
