@@ -126,8 +126,11 @@ void main() {
               .select(db.gitHubConnectionRequests)
               .getSingle();
 
-          // Remove the tables added since v27 and restore the version to
+          // Remove schema additions since v27 and restore the version to
           // recreate the populated v27 schema.
+          await db.customStatement(
+            'ALTER TABLE build_runs DROP COLUMN run_number',
+          );
           await db.customStatement('DROP TABLE billing_periods');
           await db.customStatement('DROP TABLE billing_accounts');
           await db.customStatement('DROP TABLE github_connections');
@@ -139,7 +142,7 @@ void main() {
           expect(
             (await db.customSelect('SELECT version FROM __schema').getSingle())
                 .read<int>('version'),
-            30,
+            31,
           );
           expect(
             (await db.teamDao.getTeam('team-1'))!.toJson(),
