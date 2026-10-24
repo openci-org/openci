@@ -32,6 +32,7 @@ Future<Response> _get(RequestContext context, String id) async {
           (run) => {
             'id': run.id,
             'buildJobId': run.buildJobId,
+            'runNumber': run.runNumber,
             'status': run.status,
             'conclusion': run.conclusion,
             'createdAt': run.createdAt.toUtc().toIso8601String(),
@@ -212,6 +213,7 @@ Future<Response> _post(RequestContext context, String id) async {
     );
 
     final githubClient = client ?? http.Client();
+    late final int runNumber;
     try {
       await db.transaction(() async {
         if (billingEnabled) {
@@ -257,6 +259,10 @@ Future<Response> _post(RequestContext context, String id) async {
             client: githubClient,
           ).timeout(const Duration(seconds: 10));
         }
+
+        runNumber = await db.teamDao.allocateRunNumber(teamId);
+        await (db.update(db.buildRuns)..where((run) => run.id.equals(runId)))
+            .write(BuildRunsCompanion(runNumber: Value(runNumber)));
       });
     } on BillingAdmissionNotCurrent {
       return Response.json(
@@ -286,7 +292,7 @@ Future<Response> _post(RequestContext context, String id) async {
       if (client == null) githubClient.close();
     }
 
-    return Response.json(body: {'success': true});
+    return Response.json(body: {'success': true, 'runNumber': runNumber});
   } catch (e, s) {
     return handleRouteException(
       e,

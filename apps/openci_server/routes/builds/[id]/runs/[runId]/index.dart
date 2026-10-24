@@ -38,6 +38,7 @@ Future<Response> _get(
       body: {
         'id': driftRun.id,
         'buildJobId': driftRun.buildJobId,
+        'runNumber': driftRun.runNumber,
         'status': driftRun.status,
         'conclusion': driftRun.conclusion,
         'createdAt': driftRun.createdAt.toUtc().toIso8601String(),

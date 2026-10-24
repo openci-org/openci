@@ -39,6 +39,14 @@ void main() {
         expect(job, isNotNull);
         final identity = bridge.execution(job!);
         await bridge.bind(job);
+        expect(
+          (await bridge.db.buildRunDao.getBuildRun(
+            'job-1',
+            'run-1',
+          ))!.runNumber,
+          1,
+        );
+        expect((await bridge.db.teamDao.getTeam('team-1'))!.runNumber, 2);
         expect(await bridge.post('/worker/billing/start', identity), {
           'active': true,
           'measurementIncomplete': false,
@@ -91,6 +99,54 @@ void main() {
         );
         expect(await bridge.claim(), isNull);
       });
+
+      test(
+        'rolls back billing binding and allocation if saving fails',
+        () async {
+          final job = (await bridge.claim())!;
+          await bridge.db.customStatement('''
+          ALTER TABLE build_runs ADD CONSTRAINT reject_run_number
+          CHECK (run_number IS NULL)
+        ''');
+
+          final payload = {
+            'id': 'run-1',
+            'billingAdmissionId': job.billingAdmissionId,
+            'workerHost': job.workerHost,
+          };
+          await bridge.post('/builds/job-1/runs', payload, expectedStatus: 500);
+          expect(await bridge.db.select(bridge.db.buildRuns).get(), isEmpty);
+          expect((await bridge.db.teamDao.getTeam('team-1'))!.runNumber, 1);
+          expect(
+            (await bridge.db.buildJobDao.getBuildJob('job-1'))!.latestRunId,
+            isNull,
+          );
+          final admission = await bridge.db
+              .customSelect('SELECT run_id FROM billing_admissions')
+              .getSingle();
+          expect(admission.readNullable<String>('run_id'), isNull);
+
+          await bridge.db.customStatement(
+            'ALTER TABLE build_runs DROP CONSTRAINT reject_run_number',
+          );
+          expect(await bridge.post('/builds/job-1/runs', payload), {
+            'success': true,
+            'runNumber': 1,
+          });
+          expect(
+            (await bridge.db.buildRunDao.getBuildRun(
+              'job-1',
+              'run-1',
+            ))!.runNumber,
+            1,
+          );
+          expect((await bridge.db.teamDao.getTeam('team-1'))!.runNumber, 2);
+          final boundAdmission = await bridge.db
+              .customSelect('SELECT run_id FROM billing_admissions')
+              .getSingle();
+          expect(boundAdmission.read<String>('run_id'), 'run-1');
+        },
+      );
 
       test(
         'expired bound admission is reclaimed and old callbacks are rejected',

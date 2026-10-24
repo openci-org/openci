@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:dart_frog/dart_frog.dart';
 import 'package:dart_frog_test/dart_frog_test.dart';
+import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
 import 'package:openci_server/database.dart';
 import 'package:openci_shared/openci_shared.dart';
@@ -148,6 +149,7 @@ void main() {
         final body = await response.json() as Map<String, dynamic>;
         expect(body['id'], equals('run-456'));
         expect(body['buildJobId'], equals('job-xyz'));
+        expect(body, containsPair('runNumber', null));
         expect(body['status'], equals('success'));
         expect(body['conclusion'], equals('completed'));
         expect(
@@ -158,6 +160,19 @@ void main() {
           body['updatedAt'],
           equals(run.updatedAt.toUtc().toIso8601String()),
         );
+
+        await db.buildRunDao.updateBuildRun(
+          run.copyWith(runNumber: const Value(42)),
+        );
+        final numberedResponse = await route.onRequest(
+          context.context,
+          'job-xyz',
+          'run-456',
+        );
+        expect(numberedResponse.statusCode, HttpStatus.ok);
+        final numberedBody =
+            await numberedResponse.json() as Map<String, dynamic>;
+        expect(numberedBody['runNumber'], 42);
       },
     );
   });
@@ -360,14 +375,14 @@ void main() {
     );
 
     test(
-      'responds with 200 OK and updates the build run when authorized',
+      'updates a failed build run without changing its assigned number',
       () async {
         final now = _getNormalizedNow();
         final team = DriftTeam(
           id: 'team-xyz',
           name: 'Team XYZ',
           installationIds: const [],
-          runNumber: 1,
+          runNumber: 43,
           aiEnabled: true,
           createdAt: now,
           updatedAt: now,
@@ -393,6 +408,7 @@ void main() {
           id: 'run-456',
           buildJobId: 'job-xyz',
           status: 'in_progress',
+          runNumber: 42,
           conclusion: null,
           createdAt: now.subtract(const Duration(minutes: 5)),
           updatedAt: now.subtract(const Duration(minutes: 5)),
@@ -403,7 +419,7 @@ void main() {
         final context = TestRequestContext(
           path: '/builds/job-xyz/runs/run-456',
           method: HttpMethod.patch,
-          body: '{"status": "success", "conclusion": "completed"}',
+          body: '{"status": "completed", "conclusion": "failure"}',
         );
 
         context.provide<AppDatabase>(db);
@@ -426,8 +442,10 @@ void main() {
           'run-456',
         );
         expect(updatedRun, isNotNull);
-        expect(updatedRun!.status, equals('success'));
-        expect(updatedRun.conclusion, equals('completed'));
+        expect(updatedRun!.status, equals('completed'));
+        expect(updatedRun.conclusion, equals('failure'));
+        expect(updatedRun.runNumber, 42);
+        expect((await db.teamDao.getTeam('team-xyz'))!.runNumber, 43);
         expect(updatedRun.updatedAt.isAfter(run.updatedAt), isTrue);
       },
     );
