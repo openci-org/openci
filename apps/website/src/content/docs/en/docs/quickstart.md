@@ -1,11 +1,8 @@
 ---
-layout: genuine-docs
 title: Quickstart
 description: Add your first workflow to a familiar project. Start by running analysis and tests locally.
-group: Getting started
-eyebrow: YOUR FIRST WORKFLOW
-reading: 5 min read
 ---
+
 ## Before you begin
 
 This guide adds a Dart workflow to a Flutter project and runs it locally.

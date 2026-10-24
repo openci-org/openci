@@ -1,11 +1,8 @@
 ---
-layout: genuine-docs
 title: Secrets
 description: Manage API tokens and configuration files for your team and prepare them for use in workflows.
-group: Workflows
-eyebrow: CONFIGURE YOUR BUILD
-reading: 3 min read
 ---
+
 ## Check your team
 
 Secret commands operate on the team selected in the CLI.

@@ -1,7 +1,9 @@
 dist/
 .astro/
 .firebase/
+.dart_tool/
+build/
 node_modules/
-content/
+/content/
 public/
 *.log

@@ -1,11 +1,8 @@
 ---
-layout: genuine-docs
 title: トリガー
 description: どのタイミングでCIを動かすか。GitHubのpushとpull requestに、ワークフローをつなぎます。
-group: ワークフロー
-eyebrow: RUN AT THE RIGHT TIME
-reading: 2 min read
 ---
+
 ## pushで実行する
 
 指定したブランチへのpushをトリガーにします。

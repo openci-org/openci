@@ -18,3 +18,11 @@
 .astro-code code {
   font: inherit;
 }
+
+.code-block .d-icon {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  vertical-align: middle;
+}

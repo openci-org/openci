@@ -1,6 +1,7 @@
 # GenuineCI website
 
 Astro + TypeScriptで実装したGenuineCIのLP・Pricing・ブログ・Docsです。
+Docsには [Starlight](https://starlight.astro.build/ja/) を使用しています。
 ReactなどのUIフレームワークは使わず、静的HTML・CSSと必要なJavaScriptを生成します。
 ブランドカラーは **#FFFB00** と黒。公開URLは `https://genuineci.com` です。
 
@@ -29,15 +30,18 @@ npm run dev --workspace genuineci-website
 言語URLはAstro標準の `getRelativeLocaleUrl()`、表示中の言語は `Astro.currentLocale` を使います。
 対応言語・デフォルト言語は `src/lib/i18n.ts` で定義し、`astro.config.mjs` と共有します。
 記事・Docsの言語はContent IDの先頭を `getLocaleByPath()` で解決します。
-言語切り替えは同じページの対訳へ移動し、クエリと共通セクションID（`#pricing` など）を維持します。
+LP・ブログの言語切り替えは同じページの対訳へ移動し、クエリと共通セクションID（`#pricing` など）を維持します。
 翻訳で変わるMarkdownの見出しIDは引き継がず、記事の先頭へ移動します。
-翻訳がないページでは対訳へのリンクを無効にし、存在しないURLをhreflangへ追加しません。
+翻訳がないブログ記事では対訳へのリンクを無効にします。
+DocsはStarlight標準の言語選択ドロップダウンを使い、同じページの言語URLへ移動します。
+クエリとハッシュの扱いも標準動作に従い、そのまま引き継ぎます。
+hreflangは実際に存在する翻訳だけを掲載します。
 canonical・hreflang・OGP・X Cardを各ページに生成します。
 従来の `noindex, nofollow` 方針を維持しています。
 
 ## 記事・Docsの編集
 
-`content/<en|ja>/blog/` と `content/<en|ja>/docs/` のMarkdownを編集します。
+ブログは `content/<en|ja>/blog/`、Docsは `src/content/docs/<en|ja>/docs/` のMarkdown・MDXを編集します。
 Astro Content Collectionsが読み込み、`src/content.config.ts` がfrontmatterを検証します。
 新しい記事は同じslugで両言語に追加します。一覧は言語ごとに日付の新しい順で表示します。
 
@@ -57,19 +61,26 @@ Astro Content Collectionsが読み込み、`src/content.config.ts` がfrontmatte
 画像生成時のフォント取得にはネットワークを使いません。フォントは配信アセットには含まれません。
 記事以外のページと既存の共有リンク用に、従来の `public/ogp/` のJPEGは保持しています。
 
-Docsには `layout: genuine-docs`、`title`、`description` を指定します。
-`group`、`eyebrow`、`reading` は任意です。
-`src/lib/navigation.ts` にガイドを追加すると、サイドバーと前後リンクに反映されます。
-Docsホームの内容は `src/components/DocsHome.astro` で編集します。
+Docsには `title`、`description` を指定します。`layout` の指定は不要です。
+Starlightの `docsLoader()` と `docsSchema()` がコンテンツを読み込み、検証します。
+`astro.config.mjs` の `starlight.sidebar` にガイドを追加すると、サイドバーと前後リンクに反映されます。
+Docsホームは各言語の `index.mdx` にあり、StarlightのHero・CardGrid・LinkCardを使用します。
+`docs/` を言語ディレクトリ内に置くことで、既存の `/<en|ja>/docs/…` URLを維持しています。
+翻訳のないDocsはStarlightの標準動作で英語本文と未翻訳の案内を表示します。
 
 見出しIDはAstro標準で自動生成し、目次は `render()` が返す `headings` を使います。
 旧サイト独自の見出しIDは引き継ぎません。例：`#01-sdk` は `#01-sdkを追加する` になります。
-Markdownの色付けは標準Shiki、LP・Docsホームのコード例は `astro:components` の `<Code />` を使います。
-`css-variables` テーマを `src/styles/code.css` で既存の配色に接続し、DocsのLight / Dark切り替えにも適用します。
-`src/lib/markdown.ts` は生成済みの見出しへのリンクとコード操作UIを追加します。
+Docsの目次・見出しリンク・コードの色付けとコピーはStarlightとExpressive Codeが生成します。
+ライト／ダークの切り替えはページ全体とコードに適用されます。
+ブランドカラーは `src/styles/starlight.css`、メタデータとDocsホームへのリンクは `src/lib/docs-route.ts` で調整します。
+ブログのMarkdownとLPの `<Code />` は既存のShikiと `css-variables` テーマを使用します。
+`src/lib/markdown.ts` がブログのレンダラーを分け、StarlightのMarkdown拡張がブログ表示に影響しないようにしています。
 canonical・OGPのURLは `Astro.url.pathname` と `Astro.site` から生成します。
-Docs検索は現在の言語のタイトル・説明・本文を検索します。Cmd/Ctrl+Kでも開けます。
-コードコピー、Light / Dark切り替え、モバイルメニューはブラウザーのJavaScriptで動作します。
+Docs検索はStarlight標準のPagefindで現在の言語の本文を検索します。Cmd/Ctrl+Kでも開けます。
+検索インデックスはビルド時に `dist/pagefind/` へ生成されます。検索の確認は `npm run build` 後の `npm run preview` で行います。
+`npm run dev` では検索インデックスを生成しません。
+LP・ブログの言語切り替えのクエリ・共通アンカー維持は `src/scripts/site.js` で処理します。
+コードコピー、テーマ切り替え、モバイルメニューはブラウザーのJavaScriptで動作します。
 
 ## 検証
 

@@ -1,11 +1,8 @@
 ---
-layout: genuine-docs
 title: Flutterのビルドとテスト
 description: 静的解析からAPKのビルドまで。Flutterのためのヘルパーで、ワークフローを読みやすく。
-group: ワークフロー
-eyebrow: MADE FOR FLUTTER
-reading: 3 min read
 ---
+
 ## 依存関係を取得する
 
 解析やテストの前に、プロジェクトの依存関係を取得します。

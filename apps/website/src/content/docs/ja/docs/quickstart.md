@@ -1,11 +1,8 @@
 ---
-layout: genuine-docs
 title: クイックスタート
 description: いつものプロジェクトに、最初のワークフローを。まずはローカルで解析とテストを実行してみましょう。
-group: はじめに
-eyebrow: YOUR FIRST WORKFLOW
-reading: 5 min read
 ---
+
 ## はじめる前に
 
 このガイドでは、FlutterプロジェクトにDartのワークフローを追加し、ローカルで実行します。

@@ -1,16 +1,18 @@
 import { defineCollection } from "astro:content";
 import { glob } from "astro/loaders";
 import { z } from "astro/zod";
+import { docsLoader, i18nLoader } from "@astrojs/starlight/loaders";
+import { docsSchema, i18nSchema } from "@astrojs/starlight/schema";
 const pages = defineCollection({
   loader: glob({
     base: "./content",
-    pattern: "**/*.md",
+    pattern: "*/blog/*.md",
     generateId: ({ entry }) =>
       entry.replace(/\.md$/, "").replace(/\/index$/, ""),
   }),
   schema: z
     .object({
-      layout: z.enum(["blog-index", "blog-article", "genuine-docs"]),
+      layout: z.enum(["blog-index", "blog-article"]),
       title: z.string(),
       description: z.string(),
       category: z.string().optional(),
@@ -22,9 +24,6 @@ const pages = defineCollection({
       author: z.string().optional(),
       coverLabel: z.string().optional(),
       coverTitle: z.string().optional(),
-      group: z.string().optional(),
-      eyebrow: z.string().optional(),
-      reading: z.string().optional(),
     })
     .superRefine((data, ctx) => {
       if (data.layout === "blog-article" && (!data.date || !data.category))
@@ -34,4 +33,8 @@ const pages = defineCollection({
         });
     }),
 });
-export const collections = { pages };
+export const collections = {
+  pages,
+  docs: defineCollection({ loader: docsLoader(), schema: docsSchema() }),
+  i18n: defineCollection({ loader: i18nLoader(), schema: i18nSchema() }),
+};

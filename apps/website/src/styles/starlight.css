@@ -1,0 +1,25 @@
+/* GenuineCI's yellow accent, with dark text on light surfaces for contrast. */
+:root {
+  --sl-color-accent-low: #343300;
+  --sl-color-accent: #fffb00;
+  --sl-color-accent-high: #fffda3;
+  --sl-font: "Inter", "Noto Sans JP", system-ui, sans-serif;
+}
+
+:root[data-theme="light"] {
+  --sl-color-accent-low: #fffec2;
+  --sl-color-accent: #605e00;
+  --sl-color-accent-high: #302f00;
+}
+
+.site-title {
+  color: var(--sl-color-white);
+  letter-spacing: -0.04em;
+}
+
+[aria-current="page"],
+.sl-link-button.primary {
+  color: #181818;
+  background: #fffb00;
+  border-color: #fffb00;
+}

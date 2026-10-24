@@ -1,0 +1,92 @@
+---
+title: Welcome to GenuineCI
+description: Start here with CI for Flutter & Dart. Learn how to set up GenuineCI, write workflows, and use the CLI.
+hero:
+  title: GenuineCI Docs
+  tagline: From build to release, in the Dart you know. Start here with CI for Flutter & Dart.
+  actions:
+    - text: Quickstart
+      link: /en/docs/quickstart/
+      icon: right-arrow
+    - text: Open the dashboard
+      link: https://dashboard.openci.org/
+      variant: secondary
+---
+
+import { CardGrid, LinkCard } from "@astrojs/starlight/components";
+
+<span id="start" />
+
+## First steps
+
+From setup to your first workflow. Start with a small build.
+The [Quickstart](/en/docs/quickstart/) walks you through adding the SDK and running your first checks.
+
+<span id="guides" />
+
+## Find a guide
+
+<CardGrid>
+  <LinkCard
+    title="Write a workflow"
+    description="Define your steps in Dart. A familiar language for your CI."
+    href="/en/docs/workflows/"
+  />
+  <LinkCard
+    title="Build with Flutter"
+    description="Analyze, test, and build. Keep your app quality in code."
+    href="/en/docs/flutter/"
+  />
+  <LinkCard
+    title="Triggers"
+    description="Run workflows on pushes, pull requests, and tags."
+    href="/en/docs/triggers/"
+  />
+  <LinkCard
+    title="Run on your own Mac"
+    description="Run on Apple Silicon. Own your build environment."
+    href="/en/docs/self-hosting/"
+  />
+  <LinkCard
+    title="CLI reference"
+    description="The commands you need, close at hand."
+    href="/en/docs/cli/"
+  />
+  <LinkCard
+    title="Manage secrets"
+    description="Manage the values your builds need."
+    href="/en/docs/secrets/"
+  />
+</CardGrid>
+
+<span id="write-dart" />
+
+## Workflows in the Dart you know
+
+No special syntax. Use the same functions and conditionals you already know.
+Create `openci/flutter_ci.dart`:
+
+```dart
+import 'package:openci_workflow/openci_workflow.dart';
+
+Future<void> main() async {
+  final ci = await OpenCI.init(
+    workflowName: 'Flutter CI',
+    ciTriggers: [CITrigger.push(branch: 'main')],
+  );
+
+  await ci.run('flutter pub get');
+  await ci.flutter.staticAnalysis();
+  await ci.flutter.unitTests();
+  await ci.flutter.buildApk();
+}
+```
+
+Simple code. Reliable builds. Learn more about [writing workflows](/en/docs/workflows/).
+
+<span id="open-source" />
+
+## Open code. Open development.
+
+GenuineCI is open source. Bring your ideas.
+[View GenuineCI on GitHub](https://github.com/openci-org/openci).

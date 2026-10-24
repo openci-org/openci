@@ -1,11 +1,8 @@
 ---
-layout: genuine-docs
 title: Dartでワークフローを書く
 description: 手順も、条件分岐も、関数も。アプリ開発で使っているDartを、そのままCIに。
-group: ワークフロー
-eyebrow: WORKFLOWS IN DART
-reading: 4 min read
 ---
+
 ## ワークフローの基本
 
 ワークフローは、リポジトリの `openci/` ディレクトリに置くDartファイルです。`OpenCI.init` でワークフローを初期化し、実行したいコマンドを順番に呼び出します。
