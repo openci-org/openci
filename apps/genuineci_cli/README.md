@@ -90,6 +90,34 @@ process startup; empty or invalid XDG variables use the library's defaults.
 The Go CLI starts with fresh settings. Dart CLI files under `openci` are not
 imported or migrated.
 
+## Language settings
+
+`internal/config.NewStore()` resolves the personal `config.json` path and creates
+an independent [Viper](https://github.com/spf13/viper) instance. `store.Load()`
+returns typed `Settings`, and `store.SetLanguage("ja")` or
+`store.SetLanguage("en")` saves the selected language through `WriteFile` with
+mode `0600`.
+
+```json
+{
+  "language": "ja"
+}
+```
+
+A missing file, omitted `language`, or `"language": null` uses English (`en`).
+Reading never creates files or directories or writes these defaults to disk.
+Empty files, malformed JSON, non-object roots, language values other than a
+string or null, and strings other than `ja` or `en` return errors. Explicit
+updates accept only `ja` and `en`. Invalid or unreadable existing files are left
+intact when an update is attempted.
+
+Each load rereads the file. Language updates load the current settings before
+saving Viper's normalized settings.
+Keys follow Viper's case-insensitive behavior; language values are case-sensitive.
+Credentials remain in their separate file. The `use japanese/english` commands
+and translated output will be added later; help, version, and completion do not
+load settings.
+
 ## Saving settings files
 
 `internal/config.WriteFile(path, data, mode)` saves already-encoded bytes. It
@@ -111,11 +139,11 @@ helper does not lock concurrent saves or guarantee recovery after a power loss.
 ```text
 cmd/go-genuine/    Entry point, exit codes, version discovery, and command tests
 internal/cli/     Cobra command tree
-internal/config/  Personal settings paths and safe file writes
+internal/config/  Personal settings paths, safe file writes, and language settings
 ```
 
 Add migrated commands to the command tree, with domain logic in focused
-`internal` packages. Settings persistence, credentials, and interactive forms can be
+`internal` packages. Credential persistence and interactive forms can be
 introduced with the commands that need them.
 
 Run from this module:
