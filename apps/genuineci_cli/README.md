@@ -69,15 +69,36 @@ version. Release builds can set an explicit version:
 go build -ldflags '-X main.version=v0.1.0' -o build/go-genuine ./cmd/go-genuine
 ```
 
+## Personal settings paths
+
+`internal/config.ResolvePaths()` locates `config.json` and `credentials.json`
+under `xdg.ConfigHome/genuineci`, using
+[`adrg/xdg`](https://github.com/adrg/xdg). An absolute `XDG_CONFIG_HOME` overrides
+the default on every supported OS. Otherwise, typical locations are:
+
+| OS | Directory |
+| --- | --- |
+| macOS | `$HOME/Library/Application Support/genuineci` |
+| Linux | `$HOME/.config/genuineci` |
+| Windows | `%LOCALAPPDATA%\genuineci` (the OS LocalAppData folder) |
+
+The resolver only returns paths and reports an error if XDG has no config home.
+It does not create or modify files or directories. XDG determines its paths at
+process startup; empty or invalid XDG variables use the library's defaults.
+
+The Go CLI starts with fresh settings. Dart CLI files under `openci` are not
+imported or migrated.
+
 ## Layout and checks
 
 ```text
 cmd/go-genuine/    Entry point, exit codes, version discovery, and command tests
 internal/cli/     Cobra command tree
+internal/config/  Personal settings file paths
 ```
 
 Add migrated commands to the command tree, with domain logic in focused
-`internal` packages. Configuration, credentials, and interactive forms can be
+`internal` packages. Settings persistence, credentials, and interactive forms can be
 introduced with the commands that need them.
 
 Run from this module:
