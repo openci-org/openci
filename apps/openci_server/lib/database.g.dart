@@ -4235,6 +4235,1057 @@ class WebhookTasksCompanion extends UpdateCompanion<DriftWebhookTask> {
   }
 }
 
+class $SkippedWorkflowReportsTable extends SkippedWorkflowReports
+    with TableInfo<$SkippedWorkflowReportsTable, DriftSkippedWorkflowReport> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $SkippedWorkflowReportsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _webhookTaskIdMeta = const VerificationMeta(
+    'webhookTaskId',
+  );
+  @override
+  late final GeneratedColumn<String> webhookTaskId = GeneratedColumn<String>(
+    'webhook_task_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES webhook_tasks (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _teamIdMeta = const VerificationMeta('teamId');
+  @override
+  late final GeneratedColumn<String> teamId = GeneratedColumn<String>(
+    'team_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES teams (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _ownerMeta = const VerificationMeta('owner');
+  @override
+  late final GeneratedColumn<String> owner = GeneratedColumn<String>(
+    'owner',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _repoMeta = const VerificationMeta('repo');
+  @override
+  late final GeneratedColumn<String> repo = GeneratedColumn<String>(
+    'repo',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _workflowNameMeta = const VerificationMeta(
+    'workflowName',
+  );
+  @override
+  late final GeneratedColumn<String> workflowName = GeneratedColumn<String>(
+    'workflow_name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _workflowFileNameMeta = const VerificationMeta(
+    'workflowFileName',
+  );
+  @override
+  late final GeneratedColumn<String> workflowFileName = GeneratedColumn<String>(
+    'workflow_file_name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _commitShaMeta = const VerificationMeta(
+    'commitSha',
+  );
+  @override
+  late final GeneratedColumn<String> commitSha = GeneratedColumn<String>(
+    'commit_sha',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _installationIdMeta = const VerificationMeta(
+    'installationId',
+  );
+  @override
+  late final GeneratedColumn<String> installationId = GeneratedColumn<String>(
+    'installation_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _reasonMeta = const VerificationMeta('reason');
+  @override
+  late final GeneratedColumn<String> reason = GeneratedColumn<String>(
+    'reason',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _externalIdMeta = const VerificationMeta(
+    'externalId',
+  );
+  @override
+  late final GeneratedColumn<String> externalId = GeneratedColumn<String>(
+    'external_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways('UNIQUE'),
+  );
+  static const VerificationMeta _checkRunIdMeta = const VerificationMeta(
+    'checkRunId',
+  );
+  @override
+  late final GeneratedColumn<String> checkRunId = GeneratedColumn<String>(
+    'check_run_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<
+    SkippedWorkflowReportStatus,
+    String
+  >
+  status =
+      GeneratedColumn<String>(
+        'status',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+        defaultValue: const Constant('pending'),
+      ).withConverter<SkippedWorkflowReportStatus>(
+        $SkippedWorkflowReportsTable.$converterstatus,
+      );
+  static const VerificationMeta _attemptsMeta = const VerificationMeta(
+    'attempts',
+  );
+  @override
+  late final GeneratedColumn<int> attempts = GeneratedColumn<int>(
+    'attempts',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _nextAttemptAtMeta = const VerificationMeta(
+    'nextAttemptAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> nextAttemptAt =
+      GeneratedColumn<DateTime>(
+        'next_attempt_at',
+        aliasedName,
+        true,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _lastErrorMeta = const VerificationMeta(
+    'lastError',
+  );
+  @override
+  late final GeneratedColumn<String> lastError = GeneratedColumn<String>(
+    'last_error',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    webhookTaskId,
+    teamId,
+    owner,
+    repo,
+    workflowName,
+    workflowFileName,
+    commitSha,
+    installationId,
+    reason,
+    externalId,
+    checkRunId,
+    status,
+    attempts,
+    nextAttemptAt,
+    lastError,
+    createdAt,
+    updatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'skipped_workflow_reports';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<DriftSkippedWorkflowReport> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('webhook_task_id')) {
+      context.handle(
+        _webhookTaskIdMeta,
+        webhookTaskId.isAcceptableOrUnknown(
+          data['webhook_task_id']!,
+          _webhookTaskIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_webhookTaskIdMeta);
+    }
+    if (data.containsKey('team_id')) {
+      context.handle(
+        _teamIdMeta,
+        teamId.isAcceptableOrUnknown(data['team_id']!, _teamIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_teamIdMeta);
+    }
+    if (data.containsKey('owner')) {
+      context.handle(
+        _ownerMeta,
+        owner.isAcceptableOrUnknown(data['owner']!, _ownerMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_ownerMeta);
+    }
+    if (data.containsKey('repo')) {
+      context.handle(
+        _repoMeta,
+        repo.isAcceptableOrUnknown(data['repo']!, _repoMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_repoMeta);
+    }
+    if (data.containsKey('workflow_name')) {
+      context.handle(
+        _workflowNameMeta,
+        workflowName.isAcceptableOrUnknown(
+          data['workflow_name']!,
+          _workflowNameMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_workflowNameMeta);
+    }
+    if (data.containsKey('workflow_file_name')) {
+      context.handle(
+        _workflowFileNameMeta,
+        workflowFileName.isAcceptableOrUnknown(
+          data['workflow_file_name']!,
+          _workflowFileNameMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_workflowFileNameMeta);
+    }
+    if (data.containsKey('commit_sha')) {
+      context.handle(
+        _commitShaMeta,
+        commitSha.isAcceptableOrUnknown(data['commit_sha']!, _commitShaMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_commitShaMeta);
+    }
+    if (data.containsKey('installation_id')) {
+      context.handle(
+        _installationIdMeta,
+        installationId.isAcceptableOrUnknown(
+          data['installation_id']!,
+          _installationIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_installationIdMeta);
+    }
+    if (data.containsKey('reason')) {
+      context.handle(
+        _reasonMeta,
+        reason.isAcceptableOrUnknown(data['reason']!, _reasonMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_reasonMeta);
+    }
+    if (data.containsKey('external_id')) {
+      context.handle(
+        _externalIdMeta,
+        externalId.isAcceptableOrUnknown(data['external_id']!, _externalIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_externalIdMeta);
+    }
+    if (data.containsKey('check_run_id')) {
+      context.handle(
+        _checkRunIdMeta,
+        checkRunId.isAcceptableOrUnknown(
+          data['check_run_id']!,
+          _checkRunIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('attempts')) {
+      context.handle(
+        _attemptsMeta,
+        attempts.isAcceptableOrUnknown(data['attempts']!, _attemptsMeta),
+      );
+    }
+    if (data.containsKey('next_attempt_at')) {
+      context.handle(
+        _nextAttemptAtMeta,
+        nextAttemptAt.isAcceptableOrUnknown(
+          data['next_attempt_at']!,
+          _nextAttemptAtMeta,
+        ),
+      );
+    }
+    if (data.containsKey('last_error')) {
+      context.handle(
+        _lastErrorMeta,
+        lastError.isAcceptableOrUnknown(data['last_error']!, _lastErrorMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  List<Set<GeneratedColumn>> get uniqueKeys => [
+    {webhookTaskId, workflowFileName, commitSha},
+  ];
+  @override
+  DriftSkippedWorkflowReport map(
+    Map<String, dynamic> data, {
+    String? tablePrefix,
+  }) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return DriftSkippedWorkflowReport(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      webhookTaskId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}webhook_task_id'],
+      )!,
+      teamId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}team_id'],
+      )!,
+      owner: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}owner'],
+      )!,
+      repo: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}repo'],
+      )!,
+      workflowName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}workflow_name'],
+      )!,
+      workflowFileName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}workflow_file_name'],
+      )!,
+      commitSha: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}commit_sha'],
+      )!,
+      installationId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}installation_id'],
+      )!,
+      reason: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}reason'],
+      )!,
+      externalId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}external_id'],
+      )!,
+      checkRunId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}check_run_id'],
+      ),
+      status: $SkippedWorkflowReportsTable.$converterstatus.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}status'],
+        )!,
+      ),
+      attempts: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}attempts'],
+      )!,
+      nextAttemptAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}next_attempt_at'],
+      ),
+      lastError: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}last_error'],
+      ),
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $SkippedWorkflowReportsTable createAlias(String alias) {
+    return $SkippedWorkflowReportsTable(attachedDatabase, alias);
+  }
+
+  static JsonTypeConverter2<SkippedWorkflowReportStatus, String, String>
+  $converterstatus = const EnumNameConverter<SkippedWorkflowReportStatus>(
+    SkippedWorkflowReportStatus.values,
+  );
+}
+
+class DriftSkippedWorkflowReport extends DataClass
+    implements Insertable<DriftSkippedWorkflowReport> {
+  final String id;
+  final String webhookTaskId;
+  final String teamId;
+  final String owner;
+  final String repo;
+  final String workflowName;
+  final String workflowFileName;
+  final String commitSha;
+  final String installationId;
+  final String reason;
+  final String externalId;
+  final String? checkRunId;
+  final SkippedWorkflowReportStatus status;
+  final int attempts;
+  final DateTime? nextAttemptAt;
+  final String? lastError;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  const DriftSkippedWorkflowReport({
+    required this.id,
+    required this.webhookTaskId,
+    required this.teamId,
+    required this.owner,
+    required this.repo,
+    required this.workflowName,
+    required this.workflowFileName,
+    required this.commitSha,
+    required this.installationId,
+    required this.reason,
+    required this.externalId,
+    this.checkRunId,
+    required this.status,
+    required this.attempts,
+    this.nextAttemptAt,
+    this.lastError,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['webhook_task_id'] = Variable<String>(webhookTaskId);
+    map['team_id'] = Variable<String>(teamId);
+    map['owner'] = Variable<String>(owner);
+    map['repo'] = Variable<String>(repo);
+    map['workflow_name'] = Variable<String>(workflowName);
+    map['workflow_file_name'] = Variable<String>(workflowFileName);
+    map['commit_sha'] = Variable<String>(commitSha);
+    map['installation_id'] = Variable<String>(installationId);
+    map['reason'] = Variable<String>(reason);
+    map['external_id'] = Variable<String>(externalId);
+    if (!nullToAbsent || checkRunId != null) {
+      map['check_run_id'] = Variable<String>(checkRunId);
+    }
+    {
+      map['status'] = Variable<String>(
+        $SkippedWorkflowReportsTable.$converterstatus.toSql(status),
+      );
+    }
+    map['attempts'] = Variable<int>(attempts);
+    if (!nullToAbsent || nextAttemptAt != null) {
+      map['next_attempt_at'] = Variable<DateTime>(nextAttemptAt);
+    }
+    if (!nullToAbsent || lastError != null) {
+      map['last_error'] = Variable<String>(lastError);
+    }
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  SkippedWorkflowReportsCompanion toCompanion(bool nullToAbsent) {
+    return SkippedWorkflowReportsCompanion(
+      id: Value(id),
+      webhookTaskId: Value(webhookTaskId),
+      teamId: Value(teamId),
+      owner: Value(owner),
+      repo: Value(repo),
+      workflowName: Value(workflowName),
+      workflowFileName: Value(workflowFileName),
+      commitSha: Value(commitSha),
+      installationId: Value(installationId),
+      reason: Value(reason),
+      externalId: Value(externalId),
+      checkRunId: checkRunId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(checkRunId),
+      status: Value(status),
+      attempts: Value(attempts),
+      nextAttemptAt: nextAttemptAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(nextAttemptAt),
+      lastError: lastError == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastError),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory DriftSkippedWorkflowReport.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return DriftSkippedWorkflowReport(
+      id: serializer.fromJson<String>(json['id']),
+      webhookTaskId: serializer.fromJson<String>(json['webhookTaskId']),
+      teamId: serializer.fromJson<String>(json['teamId']),
+      owner: serializer.fromJson<String>(json['owner']),
+      repo: serializer.fromJson<String>(json['repo']),
+      workflowName: serializer.fromJson<String>(json['workflowName']),
+      workflowFileName: serializer.fromJson<String>(json['workflowFileName']),
+      commitSha: serializer.fromJson<String>(json['commitSha']),
+      installationId: serializer.fromJson<String>(json['installationId']),
+      reason: serializer.fromJson<String>(json['reason']),
+      externalId: serializer.fromJson<String>(json['externalId']),
+      checkRunId: serializer.fromJson<String?>(json['checkRunId']),
+      status: $SkippedWorkflowReportsTable.$converterstatus.fromJson(
+        serializer.fromJson<String>(json['status']),
+      ),
+      attempts: serializer.fromJson<int>(json['attempts']),
+      nextAttemptAt: serializer.fromJson<DateTime?>(json['nextAttemptAt']),
+      lastError: serializer.fromJson<String?>(json['lastError']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'webhookTaskId': serializer.toJson<String>(webhookTaskId),
+      'teamId': serializer.toJson<String>(teamId),
+      'owner': serializer.toJson<String>(owner),
+      'repo': serializer.toJson<String>(repo),
+      'workflowName': serializer.toJson<String>(workflowName),
+      'workflowFileName': serializer.toJson<String>(workflowFileName),
+      'commitSha': serializer.toJson<String>(commitSha),
+      'installationId': serializer.toJson<String>(installationId),
+      'reason': serializer.toJson<String>(reason),
+      'externalId': serializer.toJson<String>(externalId),
+      'checkRunId': serializer.toJson<String?>(checkRunId),
+      'status': serializer.toJson<String>(
+        $SkippedWorkflowReportsTable.$converterstatus.toJson(status),
+      ),
+      'attempts': serializer.toJson<int>(attempts),
+      'nextAttemptAt': serializer.toJson<DateTime?>(nextAttemptAt),
+      'lastError': serializer.toJson<String?>(lastError),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  DriftSkippedWorkflowReport copyWith({
+    String? id,
+    String? webhookTaskId,
+    String? teamId,
+    String? owner,
+    String? repo,
+    String? workflowName,
+    String? workflowFileName,
+    String? commitSha,
+    String? installationId,
+    String? reason,
+    String? externalId,
+    Value<String?> checkRunId = const Value.absent(),
+    SkippedWorkflowReportStatus? status,
+    int? attempts,
+    Value<DateTime?> nextAttemptAt = const Value.absent(),
+    Value<String?> lastError = const Value.absent(),
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) => DriftSkippedWorkflowReport(
+    id: id ?? this.id,
+    webhookTaskId: webhookTaskId ?? this.webhookTaskId,
+    teamId: teamId ?? this.teamId,
+    owner: owner ?? this.owner,
+    repo: repo ?? this.repo,
+    workflowName: workflowName ?? this.workflowName,
+    workflowFileName: workflowFileName ?? this.workflowFileName,
+    commitSha: commitSha ?? this.commitSha,
+    installationId: installationId ?? this.installationId,
+    reason: reason ?? this.reason,
+    externalId: externalId ?? this.externalId,
+    checkRunId: checkRunId.present ? checkRunId.value : this.checkRunId,
+    status: status ?? this.status,
+    attempts: attempts ?? this.attempts,
+    nextAttemptAt: nextAttemptAt.present
+        ? nextAttemptAt.value
+        : this.nextAttemptAt,
+    lastError: lastError.present ? lastError.value : this.lastError,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  DriftSkippedWorkflowReport copyWithCompanion(
+    SkippedWorkflowReportsCompanion data,
+  ) {
+    return DriftSkippedWorkflowReport(
+      id: data.id.present ? data.id.value : this.id,
+      webhookTaskId: data.webhookTaskId.present
+          ? data.webhookTaskId.value
+          : this.webhookTaskId,
+      teamId: data.teamId.present ? data.teamId.value : this.teamId,
+      owner: data.owner.present ? data.owner.value : this.owner,
+      repo: data.repo.present ? data.repo.value : this.repo,
+      workflowName: data.workflowName.present
+          ? data.workflowName.value
+          : this.workflowName,
+      workflowFileName: data.workflowFileName.present
+          ? data.workflowFileName.value
+          : this.workflowFileName,
+      commitSha: data.commitSha.present ? data.commitSha.value : this.commitSha,
+      installationId: data.installationId.present
+          ? data.installationId.value
+          : this.installationId,
+      reason: data.reason.present ? data.reason.value : this.reason,
+      externalId: data.externalId.present
+          ? data.externalId.value
+          : this.externalId,
+      checkRunId: data.checkRunId.present
+          ? data.checkRunId.value
+          : this.checkRunId,
+      status: data.status.present ? data.status.value : this.status,
+      attempts: data.attempts.present ? data.attempts.value : this.attempts,
+      nextAttemptAt: data.nextAttemptAt.present
+          ? data.nextAttemptAt.value
+          : this.nextAttemptAt,
+      lastError: data.lastError.present ? data.lastError.value : this.lastError,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('DriftSkippedWorkflowReport(')
+          ..write('id: $id, ')
+          ..write('webhookTaskId: $webhookTaskId, ')
+          ..write('teamId: $teamId, ')
+          ..write('owner: $owner, ')
+          ..write('repo: $repo, ')
+          ..write('workflowName: $workflowName, ')
+          ..write('workflowFileName: $workflowFileName, ')
+          ..write('commitSha: $commitSha, ')
+          ..write('installationId: $installationId, ')
+          ..write('reason: $reason, ')
+          ..write('externalId: $externalId, ')
+          ..write('checkRunId: $checkRunId, ')
+          ..write('status: $status, ')
+          ..write('attempts: $attempts, ')
+          ..write('nextAttemptAt: $nextAttemptAt, ')
+          ..write('lastError: $lastError, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    webhookTaskId,
+    teamId,
+    owner,
+    repo,
+    workflowName,
+    workflowFileName,
+    commitSha,
+    installationId,
+    reason,
+    externalId,
+    checkRunId,
+    status,
+    attempts,
+    nextAttemptAt,
+    lastError,
+    createdAt,
+    updatedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is DriftSkippedWorkflowReport &&
+          other.id == this.id &&
+          other.webhookTaskId == this.webhookTaskId &&
+          other.teamId == this.teamId &&
+          other.owner == this.owner &&
+          other.repo == this.repo &&
+          other.workflowName == this.workflowName &&
+          other.workflowFileName == this.workflowFileName &&
+          other.commitSha == this.commitSha &&
+          other.installationId == this.installationId &&
+          other.reason == this.reason &&
+          other.externalId == this.externalId &&
+          other.checkRunId == this.checkRunId &&
+          other.status == this.status &&
+          other.attempts == this.attempts &&
+          other.nextAttemptAt == this.nextAttemptAt &&
+          other.lastError == this.lastError &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt);
+}
+
+class SkippedWorkflowReportsCompanion
+    extends UpdateCompanion<DriftSkippedWorkflowReport> {
+  final Value<String> id;
+  final Value<String> webhookTaskId;
+  final Value<String> teamId;
+  final Value<String> owner;
+  final Value<String> repo;
+  final Value<String> workflowName;
+  final Value<String> workflowFileName;
+  final Value<String> commitSha;
+  final Value<String> installationId;
+  final Value<String> reason;
+  final Value<String> externalId;
+  final Value<String?> checkRunId;
+  final Value<SkippedWorkflowReportStatus> status;
+  final Value<int> attempts;
+  final Value<DateTime?> nextAttemptAt;
+  final Value<String?> lastError;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<int> rowid;
+  const SkippedWorkflowReportsCompanion({
+    this.id = const Value.absent(),
+    this.webhookTaskId = const Value.absent(),
+    this.teamId = const Value.absent(),
+    this.owner = const Value.absent(),
+    this.repo = const Value.absent(),
+    this.workflowName = const Value.absent(),
+    this.workflowFileName = const Value.absent(),
+    this.commitSha = const Value.absent(),
+    this.installationId = const Value.absent(),
+    this.reason = const Value.absent(),
+    this.externalId = const Value.absent(),
+    this.checkRunId = const Value.absent(),
+    this.status = const Value.absent(),
+    this.attempts = const Value.absent(),
+    this.nextAttemptAt = const Value.absent(),
+    this.lastError = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  SkippedWorkflowReportsCompanion.insert({
+    required String id,
+    required String webhookTaskId,
+    required String teamId,
+    required String owner,
+    required String repo,
+    required String workflowName,
+    required String workflowFileName,
+    required String commitSha,
+    required String installationId,
+    required String reason,
+    required String externalId,
+    this.checkRunId = const Value.absent(),
+    this.status = const Value.absent(),
+    this.attempts = const Value.absent(),
+    this.nextAttemptAt = const Value.absent(),
+    this.lastError = const Value.absent(),
+    required DateTime createdAt,
+    required DateTime updatedAt,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       webhookTaskId = Value(webhookTaskId),
+       teamId = Value(teamId),
+       owner = Value(owner),
+       repo = Value(repo),
+       workflowName = Value(workflowName),
+       workflowFileName = Value(workflowFileName),
+       commitSha = Value(commitSha),
+       installationId = Value(installationId),
+       reason = Value(reason),
+       externalId = Value(externalId),
+       createdAt = Value(createdAt),
+       updatedAt = Value(updatedAt);
+  static Insertable<DriftSkippedWorkflowReport> custom({
+    Expression<String>? id,
+    Expression<String>? webhookTaskId,
+    Expression<String>? teamId,
+    Expression<String>? owner,
+    Expression<String>? repo,
+    Expression<String>? workflowName,
+    Expression<String>? workflowFileName,
+    Expression<String>? commitSha,
+    Expression<String>? installationId,
+    Expression<String>? reason,
+    Expression<String>? externalId,
+    Expression<String>? checkRunId,
+    Expression<String>? status,
+    Expression<int>? attempts,
+    Expression<DateTime>? nextAttemptAt,
+    Expression<String>? lastError,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (webhookTaskId != null) 'webhook_task_id': webhookTaskId,
+      if (teamId != null) 'team_id': teamId,
+      if (owner != null) 'owner': owner,
+      if (repo != null) 'repo': repo,
+      if (workflowName != null) 'workflow_name': workflowName,
+      if (workflowFileName != null) 'workflow_file_name': workflowFileName,
+      if (commitSha != null) 'commit_sha': commitSha,
+      if (installationId != null) 'installation_id': installationId,
+      if (reason != null) 'reason': reason,
+      if (externalId != null) 'external_id': externalId,
+      if (checkRunId != null) 'check_run_id': checkRunId,
+      if (status != null) 'status': status,
+      if (attempts != null) 'attempts': attempts,
+      if (nextAttemptAt != null) 'next_attempt_at': nextAttemptAt,
+      if (lastError != null) 'last_error': lastError,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  SkippedWorkflowReportsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? webhookTaskId,
+    Value<String>? teamId,
+    Value<String>? owner,
+    Value<String>? repo,
+    Value<String>? workflowName,
+    Value<String>? workflowFileName,
+    Value<String>? commitSha,
+    Value<String>? installationId,
+    Value<String>? reason,
+    Value<String>? externalId,
+    Value<String?>? checkRunId,
+    Value<SkippedWorkflowReportStatus>? status,
+    Value<int>? attempts,
+    Value<DateTime?>? nextAttemptAt,
+    Value<String?>? lastError,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+    Value<int>? rowid,
+  }) {
+    return SkippedWorkflowReportsCompanion(
+      id: id ?? this.id,
+      webhookTaskId: webhookTaskId ?? this.webhookTaskId,
+      teamId: teamId ?? this.teamId,
+      owner: owner ?? this.owner,
+      repo: repo ?? this.repo,
+      workflowName: workflowName ?? this.workflowName,
+      workflowFileName: workflowFileName ?? this.workflowFileName,
+      commitSha: commitSha ?? this.commitSha,
+      installationId: installationId ?? this.installationId,
+      reason: reason ?? this.reason,
+      externalId: externalId ?? this.externalId,
+      checkRunId: checkRunId ?? this.checkRunId,
+      status: status ?? this.status,
+      attempts: attempts ?? this.attempts,
+      nextAttemptAt: nextAttemptAt ?? this.nextAttemptAt,
+      lastError: lastError ?? this.lastError,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (webhookTaskId.present) {
+      map['webhook_task_id'] = Variable<String>(webhookTaskId.value);
+    }
+    if (teamId.present) {
+      map['team_id'] = Variable<String>(teamId.value);
+    }
+    if (owner.present) {
+      map['owner'] = Variable<String>(owner.value);
+    }
+    if (repo.present) {
+      map['repo'] = Variable<String>(repo.value);
+    }
+    if (workflowName.present) {
+      map['workflow_name'] = Variable<String>(workflowName.value);
+    }
+    if (workflowFileName.present) {
+      map['workflow_file_name'] = Variable<String>(workflowFileName.value);
+    }
+    if (commitSha.present) {
+      map['commit_sha'] = Variable<String>(commitSha.value);
+    }
+    if (installationId.present) {
+      map['installation_id'] = Variable<String>(installationId.value);
+    }
+    if (reason.present) {
+      map['reason'] = Variable<String>(reason.value);
+    }
+    if (externalId.present) {
+      map['external_id'] = Variable<String>(externalId.value);
+    }
+    if (checkRunId.present) {
+      map['check_run_id'] = Variable<String>(checkRunId.value);
+    }
+    if (status.present) {
+      map['status'] = Variable<String>(
+        $SkippedWorkflowReportsTable.$converterstatus.toSql(status.value),
+      );
+    }
+    if (attempts.present) {
+      map['attempts'] = Variable<int>(attempts.value);
+    }
+    if (nextAttemptAt.present) {
+      map['next_attempt_at'] = Variable<DateTime>(nextAttemptAt.value);
+    }
+    if (lastError.present) {
+      map['last_error'] = Variable<String>(lastError.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SkippedWorkflowReportsCompanion(')
+          ..write('id: $id, ')
+          ..write('webhookTaskId: $webhookTaskId, ')
+          ..write('teamId: $teamId, ')
+          ..write('owner: $owner, ')
+          ..write('repo: $repo, ')
+          ..write('workflowName: $workflowName, ')
+          ..write('workflowFileName: $workflowFileName, ')
+          ..write('commitSha: $commitSha, ')
+          ..write('installationId: $installationId, ')
+          ..write('reason: $reason, ')
+          ..write('externalId: $externalId, ')
+          ..write('checkRunId: $checkRunId, ')
+          ..write('status: $status, ')
+          ..write('attempts: $attempts, ')
+          ..write('nextAttemptAt: $nextAttemptAt, ')
+          ..write('lastError: $lastError, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $UserDevicesTable extends UserDevices
     with TableInfo<$UserDevicesTable, DriftUserDevice> {
   @override
@@ -7716,6 +8767,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $TeamMembersTable teamMembers = $TeamMembersTable(this);
   late final $SecretsTable secrets = $SecretsTable(this);
   late final $WebhookTasksTable webhookTasks = $WebhookTasksTable(this);
+  late final $SkippedWorkflowReportsTable skippedWorkflowReports =
+      $SkippedWorkflowReportsTable(this);
   late final $UserDevicesTable userDevices = $UserDevicesTable(this);
   late final $UdidRequestsTable udidRequests = $UdidRequestsTable(this);
   late final $InvitationsTable invitations = $InvitationsTable(this);
@@ -7752,6 +8805,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     teamMembers,
     secrets,
     webhookTasks,
+    skippedWorkflowReports,
     userDevices,
     udidRequests,
     invitations,
@@ -7783,6 +8837,24 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         limitUpdateKind: UpdateKind.delete,
       ),
       result: [TableUpdate('secrets', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'webhook_tasks',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [
+        TableUpdate('skipped_workflow_reports', kind: UpdateKind.delete),
+      ],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'teams',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [
+        TableUpdate('skipped_workflow_reports', kind: UpdateKind.delete),
+      ],
     ),
     WritePropagation(
       on: TableUpdateQuery.onTableName(
@@ -9270,6 +10342,34 @@ final class $$TeamsTableReferences
     );
   }
 
+  static MultiTypedResultKey<
+    $SkippedWorkflowReportsTable,
+    List<DriftSkippedWorkflowReport>
+  >
+  _skippedWorkflowReportsRefsTable(_$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.skippedWorkflowReports,
+        aliasName: $_aliasNameGenerator(
+          db.teams.id,
+          db.skippedWorkflowReports.teamId,
+        ),
+      );
+
+  $$SkippedWorkflowReportsTableProcessedTableManager
+  get skippedWorkflowReportsRefs {
+    final manager = $$SkippedWorkflowReportsTableTableManager(
+      $_db,
+      $_db.skippedWorkflowReports,
+    ).filter((f) => f.teamId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _skippedWorkflowReportsRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
   static MultiTypedResultKey<$UserDevicesTable, List<DriftUserDevice>>
   _userDevicesRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
     db.userDevices,
@@ -9499,6 +10599,32 @@ class $$TeamsTableFilterComposer extends Composer<_$AppDatabase, $TeamsTable> {
                 $removeJoinBuilderFromRootComposer,
           ),
     );
+    return f(composer);
+  }
+
+  Expression<bool> skippedWorkflowReportsRefs(
+    Expression<bool> Function($$SkippedWorkflowReportsTableFilterComposer f) f,
+  ) {
+    final $$SkippedWorkflowReportsTableFilterComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.skippedWorkflowReports,
+          getReferencedColumn: (t) => t.teamId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$SkippedWorkflowReportsTableFilterComposer(
+                $db: $db,
+                $table: $db.skippedWorkflowReports,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
     return f(composer);
   }
 
@@ -9785,6 +10911,32 @@ class $$TeamsTableAnnotationComposer
     return f(composer);
   }
 
+  Expression<T> skippedWorkflowReportsRefs<T extends Object>(
+    Expression<T> Function($$SkippedWorkflowReportsTableAnnotationComposer a) f,
+  ) {
+    final $$SkippedWorkflowReportsTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.skippedWorkflowReports,
+          getReferencedColumn: (t) => t.teamId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$SkippedWorkflowReportsTableAnnotationComposer(
+                $db: $db,
+                $table: $db.skippedWorkflowReports,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
+
   Expression<T> userDevicesRefs<T extends Object>(
     Expression<T> Function($$UserDevicesTableAnnotationComposer a) f,
   ) {
@@ -9957,6 +11109,7 @@ class $$TeamsTableTableManager
           PrefetchHooks Function({
             bool teamMembersRefs,
             bool secretsRefs,
+            bool skippedWorkflowReportsRefs,
             bool userDevicesRefs,
             bool udidRequestsRefs,
             bool invitationsRefs,
@@ -10026,6 +11179,7 @@ class $$TeamsTableTableManager
               ({
                 teamMembersRefs = false,
                 secretsRefs = false,
+                skippedWorkflowReportsRefs = false,
                 userDevicesRefs = false,
                 udidRequestsRefs = false,
                 invitationsRefs = false,
@@ -10038,6 +11192,7 @@ class $$TeamsTableTableManager
                   explicitlyWatchedTables: [
                     if (teamMembersRefs) db.teamMembers,
                     if (secretsRefs) db.secrets,
+                    if (skippedWorkflowReportsRefs) db.skippedWorkflowReports,
                     if (userDevicesRefs) db.userDevices,
                     if (udidRequestsRefs) db.udidRequests,
                     if (invitationsRefs) db.invitations,
@@ -10082,6 +11237,27 @@ class $$TeamsTableTableManager
                               ._secretsRefsTable(db),
                           managerFromTypedResult: (p0) =>
                               $$TeamsTableReferences(db, table, p0).secretsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.teamId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                      if (skippedWorkflowReportsRefs)
+                        await $_getPrefetchedData<
+                          DriftTeam,
+                          $TeamsTable,
+                          DriftSkippedWorkflowReport
+                        >(
+                          currentTable: table,
+                          referencedTable: $$TeamsTableReferences
+                              ._skippedWorkflowReportsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$TeamsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).skippedWorkflowReportsRefs,
                           referencedItemsForCurrentItem:
                               (item, referencedItems) => referencedItems.where(
                                 (e) => e.teamId == item.id,
@@ -10237,6 +11413,7 @@ typedef $$TeamsTableProcessedTableManager =
       PrefetchHooks Function({
         bool teamMembersRefs,
         bool secretsRefs,
+        bool skippedWorkflowReportsRefs,
         bool userDevicesRefs,
         bool udidRequestsRefs,
         bool invitationsRefs,
@@ -10863,6 +12040,40 @@ typedef $$WebhookTasksTableUpdateCompanionBuilder =
       Value<int> rowid,
     });
 
+final class $$WebhookTasksTableReferences
+    extends
+        BaseReferences<_$AppDatabase, $WebhookTasksTable, DriftWebhookTask> {
+  $$WebhookTasksTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static MultiTypedResultKey<
+    $SkippedWorkflowReportsTable,
+    List<DriftSkippedWorkflowReport>
+  >
+  _skippedWorkflowReportsRefsTable(_$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.skippedWorkflowReports,
+        aliasName: $_aliasNameGenerator(
+          db.webhookTasks.id,
+          db.skippedWorkflowReports.webhookTaskId,
+        ),
+      );
+
+  $$SkippedWorkflowReportsTableProcessedTableManager
+  get skippedWorkflowReportsRefs {
+    final manager = $$SkippedWorkflowReportsTableTableManager(
+      $_db,
+      $_db.skippedWorkflowReports,
+    ).filter((f) => f.webhookTaskId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _skippedWorkflowReportsRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+}
+
 class $$WebhookTasksTableFilterComposer
     extends Composer<_$AppDatabase, $WebhookTasksTable> {
   $$WebhookTasksTableFilterComposer({
@@ -10916,6 +12127,32 @@ class $$WebhookTasksTableFilterComposer
     column: $table.updatedAt,
     builder: (column) => ColumnFilters(column),
   );
+
+  Expression<bool> skippedWorkflowReportsRefs(
+    Expression<bool> Function($$SkippedWorkflowReportsTableFilterComposer f) f,
+  ) {
+    final $$SkippedWorkflowReportsTableFilterComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.skippedWorkflowReports,
+          getReferencedColumn: (t) => t.webhookTaskId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$SkippedWorkflowReportsTableFilterComposer(
+                $db: $db,
+                $table: $db.skippedWorkflowReports,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
 }
 
 class $$WebhookTasksTableOrderingComposer
@@ -11014,6 +12251,32 @@ class $$WebhookTasksTableAnnotationComposer
 
   GeneratedColumn<DateTime> get updatedAt =>
       $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  Expression<T> skippedWorkflowReportsRefs<T extends Object>(
+    Expression<T> Function($$SkippedWorkflowReportsTableAnnotationComposer a) f,
+  ) {
+    final $$SkippedWorkflowReportsTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.skippedWorkflowReports,
+          getReferencedColumn: (t) => t.webhookTaskId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$SkippedWorkflowReportsTableAnnotationComposer(
+                $db: $db,
+                $table: $db.skippedWorkflowReports,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
 }
 
 class $$WebhookTasksTableTableManager
@@ -11027,12 +12290,9 @@ class $$WebhookTasksTableTableManager
           $$WebhookTasksTableAnnotationComposer,
           $$WebhookTasksTableCreateCompanionBuilder,
           $$WebhookTasksTableUpdateCompanionBuilder,
-          (
-            DriftWebhookTask,
-            BaseReferences<_$AppDatabase, $WebhookTasksTable, DriftWebhookTask>,
-          ),
+          (DriftWebhookTask, $$WebhookTasksTableReferences),
           DriftWebhookTask,
-          PrefetchHooks Function()
+          PrefetchHooks Function({bool skippedWorkflowReportsRefs})
         > {
   $$WebhookTasksTableTableManager(_$AppDatabase db, $WebhookTasksTable table)
     : super(
@@ -11094,9 +12354,47 @@ class $$WebhookTasksTableTableManager
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$WebhookTasksTableReferences(db, table, e),
+                ),
+              )
               .toList(),
-          prefetchHooksCallback: null,
+          prefetchHooksCallback: ({skippedWorkflowReportsRefs = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [
+                if (skippedWorkflowReportsRefs) db.skippedWorkflowReports,
+              ],
+              addJoins: null,
+              getPrefetchedDataCallback: (items) async {
+                return [
+                  if (skippedWorkflowReportsRefs)
+                    await $_getPrefetchedData<
+                      DriftWebhookTask,
+                      $WebhookTasksTable,
+                      DriftSkippedWorkflowReport
+                    >(
+                      currentTable: table,
+                      referencedTable: $$WebhookTasksTableReferences
+                          ._skippedWorkflowReportsRefsTable(db),
+                      managerFromTypedResult: (p0) =>
+                          $$WebhookTasksTableReferences(
+                            db,
+                            table,
+                            p0,
+                          ).skippedWorkflowReportsRefs,
+                      referencedItemsForCurrentItem: (item, referencedItems) =>
+                          referencedItems.where(
+                            (e) => e.webhookTaskId == item.id,
+                          ),
+                      typedResults: items,
+                    ),
+                ];
+              },
+            );
+          },
         ),
       );
 }
@@ -11111,12 +12409,709 @@ typedef $$WebhookTasksTableProcessedTableManager =
       $$WebhookTasksTableAnnotationComposer,
       $$WebhookTasksTableCreateCompanionBuilder,
       $$WebhookTasksTableUpdateCompanionBuilder,
-      (
-        DriftWebhookTask,
-        BaseReferences<_$AppDatabase, $WebhookTasksTable, DriftWebhookTask>,
-      ),
+      (DriftWebhookTask, $$WebhookTasksTableReferences),
       DriftWebhookTask,
-      PrefetchHooks Function()
+      PrefetchHooks Function({bool skippedWorkflowReportsRefs})
+    >;
+typedef $$SkippedWorkflowReportsTableCreateCompanionBuilder =
+    SkippedWorkflowReportsCompanion Function({
+      required String id,
+      required String webhookTaskId,
+      required String teamId,
+      required String owner,
+      required String repo,
+      required String workflowName,
+      required String workflowFileName,
+      required String commitSha,
+      required String installationId,
+      required String reason,
+      required String externalId,
+      Value<String?> checkRunId,
+      Value<SkippedWorkflowReportStatus> status,
+      Value<int> attempts,
+      Value<DateTime?> nextAttemptAt,
+      Value<String?> lastError,
+      required DateTime createdAt,
+      required DateTime updatedAt,
+      Value<int> rowid,
+    });
+typedef $$SkippedWorkflowReportsTableUpdateCompanionBuilder =
+    SkippedWorkflowReportsCompanion Function({
+      Value<String> id,
+      Value<String> webhookTaskId,
+      Value<String> teamId,
+      Value<String> owner,
+      Value<String> repo,
+      Value<String> workflowName,
+      Value<String> workflowFileName,
+      Value<String> commitSha,
+      Value<String> installationId,
+      Value<String> reason,
+      Value<String> externalId,
+      Value<String?> checkRunId,
+      Value<SkippedWorkflowReportStatus> status,
+      Value<int> attempts,
+      Value<DateTime?> nextAttemptAt,
+      Value<String?> lastError,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<int> rowid,
+    });
+
+final class $$SkippedWorkflowReportsTableReferences
+    extends
+        BaseReferences<
+          _$AppDatabase,
+          $SkippedWorkflowReportsTable,
+          DriftSkippedWorkflowReport
+        > {
+  $$SkippedWorkflowReportsTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $WebhookTasksTable _webhookTaskIdTable(_$AppDatabase db) =>
+      db.webhookTasks.createAlias(
+        $_aliasNameGenerator(
+          db.skippedWorkflowReports.webhookTaskId,
+          db.webhookTasks.id,
+        ),
+      );
+
+  $$WebhookTasksTableProcessedTableManager get webhookTaskId {
+    final $_column = $_itemColumn<String>('webhook_task_id')!;
+
+    final manager = $$WebhookTasksTableTableManager(
+      $_db,
+      $_db.webhookTasks,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_webhookTaskIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static $TeamsTable _teamIdTable(_$AppDatabase db) => db.teams.createAlias(
+    $_aliasNameGenerator(db.skippedWorkflowReports.teamId, db.teams.id),
+  );
+
+  $$TeamsTableProcessedTableManager get teamId {
+    final $_column = $_itemColumn<String>('team_id')!;
+
+    final manager = $$TeamsTableTableManager(
+      $_db,
+      $_db.teams,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_teamIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$SkippedWorkflowReportsTableFilterComposer
+    extends Composer<_$AppDatabase, $SkippedWorkflowReportsTable> {
+  $$SkippedWorkflowReportsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get owner => $composableBuilder(
+    column: $table.owner,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get repo => $composableBuilder(
+    column: $table.repo,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get workflowName => $composableBuilder(
+    column: $table.workflowName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get workflowFileName => $composableBuilder(
+    column: $table.workflowFileName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get commitSha => $composableBuilder(
+    column: $table.commitSha,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get installationId => $composableBuilder(
+    column: $table.installationId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get reason => $composableBuilder(
+    column: $table.reason,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get externalId => $composableBuilder(
+    column: $table.externalId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get checkRunId => $composableBuilder(
+    column: $table.checkRunId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<
+    SkippedWorkflowReportStatus,
+    SkippedWorkflowReportStatus,
+    String
+  >
+  get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnFilters<int> get attempts => $composableBuilder(
+    column: $table.attempts,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get nextAttemptAt => $composableBuilder(
+    column: $table.nextAttemptAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get lastError => $composableBuilder(
+    column: $table.lastError,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$WebhookTasksTableFilterComposer get webhookTaskId {
+    final $$WebhookTasksTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.webhookTaskId,
+      referencedTable: $db.webhookTasks,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$WebhookTasksTableFilterComposer(
+            $db: $db,
+            $table: $db.webhookTasks,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$TeamsTableFilterComposer get teamId {
+    final $$TeamsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.teamId,
+      referencedTable: $db.teams,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TeamsTableFilterComposer(
+            $db: $db,
+            $table: $db.teams,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$SkippedWorkflowReportsTableOrderingComposer
+    extends Composer<_$AppDatabase, $SkippedWorkflowReportsTable> {
+  $$SkippedWorkflowReportsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get owner => $composableBuilder(
+    column: $table.owner,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get repo => $composableBuilder(
+    column: $table.repo,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get workflowName => $composableBuilder(
+    column: $table.workflowName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get workflowFileName => $composableBuilder(
+    column: $table.workflowFileName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get commitSha => $composableBuilder(
+    column: $table.commitSha,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get installationId => $composableBuilder(
+    column: $table.installationId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get reason => $composableBuilder(
+    column: $table.reason,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get externalId => $composableBuilder(
+    column: $table.externalId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get checkRunId => $composableBuilder(
+    column: $table.checkRunId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get attempts => $composableBuilder(
+    column: $table.attempts,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get nextAttemptAt => $composableBuilder(
+    column: $table.nextAttemptAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get lastError => $composableBuilder(
+    column: $table.lastError,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$WebhookTasksTableOrderingComposer get webhookTaskId {
+    final $$WebhookTasksTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.webhookTaskId,
+      referencedTable: $db.webhookTasks,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$WebhookTasksTableOrderingComposer(
+            $db: $db,
+            $table: $db.webhookTasks,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$TeamsTableOrderingComposer get teamId {
+    final $$TeamsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.teamId,
+      referencedTable: $db.teams,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TeamsTableOrderingComposer(
+            $db: $db,
+            $table: $db.teams,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$SkippedWorkflowReportsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $SkippedWorkflowReportsTable> {
+  $$SkippedWorkflowReportsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get owner =>
+      $composableBuilder(column: $table.owner, builder: (column) => column);
+
+  GeneratedColumn<String> get repo =>
+      $composableBuilder(column: $table.repo, builder: (column) => column);
+
+  GeneratedColumn<String> get workflowName => $composableBuilder(
+    column: $table.workflowName,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get workflowFileName => $composableBuilder(
+    column: $table.workflowFileName,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get commitSha =>
+      $composableBuilder(column: $table.commitSha, builder: (column) => column);
+
+  GeneratedColumn<String> get installationId => $composableBuilder(
+    column: $table.installationId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get reason =>
+      $composableBuilder(column: $table.reason, builder: (column) => column);
+
+  GeneratedColumn<String> get externalId => $composableBuilder(
+    column: $table.externalId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get checkRunId => $composableBuilder(
+    column: $table.checkRunId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumnWithTypeConverter<SkippedWorkflowReportStatus, String>
+  get status =>
+      $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<int> get attempts =>
+      $composableBuilder(column: $table.attempts, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get nextAttemptAt => $composableBuilder(
+    column: $table.nextAttemptAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get lastError =>
+      $composableBuilder(column: $table.lastError, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  $$WebhookTasksTableAnnotationComposer get webhookTaskId {
+    final $$WebhookTasksTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.webhookTaskId,
+      referencedTable: $db.webhookTasks,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$WebhookTasksTableAnnotationComposer(
+            $db: $db,
+            $table: $db.webhookTasks,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$TeamsTableAnnotationComposer get teamId {
+    final $$TeamsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.teamId,
+      referencedTable: $db.teams,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TeamsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.teams,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$SkippedWorkflowReportsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $SkippedWorkflowReportsTable,
+          DriftSkippedWorkflowReport,
+          $$SkippedWorkflowReportsTableFilterComposer,
+          $$SkippedWorkflowReportsTableOrderingComposer,
+          $$SkippedWorkflowReportsTableAnnotationComposer,
+          $$SkippedWorkflowReportsTableCreateCompanionBuilder,
+          $$SkippedWorkflowReportsTableUpdateCompanionBuilder,
+          (DriftSkippedWorkflowReport, $$SkippedWorkflowReportsTableReferences),
+          DriftSkippedWorkflowReport,
+          PrefetchHooks Function({bool webhookTaskId, bool teamId})
+        > {
+  $$SkippedWorkflowReportsTableTableManager(
+    _$AppDatabase db,
+    $SkippedWorkflowReportsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$SkippedWorkflowReportsTableFilterComposer(
+                $db: db,
+                $table: table,
+              ),
+          createOrderingComposer: () =>
+              $$SkippedWorkflowReportsTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$SkippedWorkflowReportsTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> webhookTaskId = const Value.absent(),
+                Value<String> teamId = const Value.absent(),
+                Value<String> owner = const Value.absent(),
+                Value<String> repo = const Value.absent(),
+                Value<String> workflowName = const Value.absent(),
+                Value<String> workflowFileName = const Value.absent(),
+                Value<String> commitSha = const Value.absent(),
+                Value<String> installationId = const Value.absent(),
+                Value<String> reason = const Value.absent(),
+                Value<String> externalId = const Value.absent(),
+                Value<String?> checkRunId = const Value.absent(),
+                Value<SkippedWorkflowReportStatus> status =
+                    const Value.absent(),
+                Value<int> attempts = const Value.absent(),
+                Value<DateTime?> nextAttemptAt = const Value.absent(),
+                Value<String?> lastError = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => SkippedWorkflowReportsCompanion(
+                id: id,
+                webhookTaskId: webhookTaskId,
+                teamId: teamId,
+                owner: owner,
+                repo: repo,
+                workflowName: workflowName,
+                workflowFileName: workflowFileName,
+                commitSha: commitSha,
+                installationId: installationId,
+                reason: reason,
+                externalId: externalId,
+                checkRunId: checkRunId,
+                status: status,
+                attempts: attempts,
+                nextAttemptAt: nextAttemptAt,
+                lastError: lastError,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String webhookTaskId,
+                required String teamId,
+                required String owner,
+                required String repo,
+                required String workflowName,
+                required String workflowFileName,
+                required String commitSha,
+                required String installationId,
+                required String reason,
+                required String externalId,
+                Value<String?> checkRunId = const Value.absent(),
+                Value<SkippedWorkflowReportStatus> status =
+                    const Value.absent(),
+                Value<int> attempts = const Value.absent(),
+                Value<DateTime?> nextAttemptAt = const Value.absent(),
+                Value<String?> lastError = const Value.absent(),
+                required DateTime createdAt,
+                required DateTime updatedAt,
+                Value<int> rowid = const Value.absent(),
+              }) => SkippedWorkflowReportsCompanion.insert(
+                id: id,
+                webhookTaskId: webhookTaskId,
+                teamId: teamId,
+                owner: owner,
+                repo: repo,
+                workflowName: workflowName,
+                workflowFileName: workflowFileName,
+                commitSha: commitSha,
+                installationId: installationId,
+                reason: reason,
+                externalId: externalId,
+                checkRunId: checkRunId,
+                status: status,
+                attempts: attempts,
+                nextAttemptAt: nextAttemptAt,
+                lastError: lastError,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$SkippedWorkflowReportsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({webhookTaskId = false, teamId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (webhookTaskId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.webhookTaskId,
+                                referencedTable:
+                                    $$SkippedWorkflowReportsTableReferences
+                                        ._webhookTaskIdTable(db),
+                                referencedColumn:
+                                    $$SkippedWorkflowReportsTableReferences
+                                        ._webhookTaskIdTable(db)
+                                        .id,
+                              )
+                              as T;
+                    }
+                    if (teamId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.teamId,
+                                referencedTable:
+                                    $$SkippedWorkflowReportsTableReferences
+                                        ._teamIdTable(db),
+                                referencedColumn:
+                                    $$SkippedWorkflowReportsTableReferences
+                                        ._teamIdTable(db)
+                                        .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$SkippedWorkflowReportsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $SkippedWorkflowReportsTable,
+      DriftSkippedWorkflowReport,
+      $$SkippedWorkflowReportsTableFilterComposer,
+      $$SkippedWorkflowReportsTableOrderingComposer,
+      $$SkippedWorkflowReportsTableAnnotationComposer,
+      $$SkippedWorkflowReportsTableCreateCompanionBuilder,
+      $$SkippedWorkflowReportsTableUpdateCompanionBuilder,
+      (DriftSkippedWorkflowReport, $$SkippedWorkflowReportsTableReferences),
+      DriftSkippedWorkflowReport,
+      PrefetchHooks Function({bool webhookTaskId, bool teamId})
     >;
 typedef $$UserDevicesTableCreateCompanionBuilder =
     UserDevicesCompanion Function({
@@ -14127,6 +16122,11 @@ class $AppDatabaseManager {
       $$SecretsTableTableManager(_db, _db.secrets);
   $$WebhookTasksTableTableManager get webhookTasks =>
       $$WebhookTasksTableTableManager(_db, _db.webhookTasks);
+  $$SkippedWorkflowReportsTableTableManager get skippedWorkflowReports =>
+      $$SkippedWorkflowReportsTableTableManager(
+        _db,
+        _db.skippedWorkflowReports,
+      );
   $$UserDevicesTableTableManager get userDevices =>
       $$UserDevicesTableTableManager(_db, _db.userDevices);
   $$UdidRequestsTableTableManager get udidRequests =>

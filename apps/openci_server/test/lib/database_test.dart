@@ -5,6 +5,8 @@ import 'package:openci_server/github/github_connection_table.dart';
 import 'package:openci_shared/openci_shared.dart';
 import 'package:test/test.dart';
 
+import '../helpers/skipped_workflow_report_schema.dart';
+
 void main() {
   late AppDatabase db;
 
@@ -19,6 +21,7 @@ void main() {
   test('creates the database without legacy log or heartbeat tables', () async {
     final jobs = await db.select(db.buildJobs).get();
     expect(jobs, isEmpty);
+    expect(await db.select(db.skippedWorkflowReports).get(), isEmpty);
 
     final legacyTables = await db.customSelect('''
       SELECT name FROM sqlite_master
@@ -109,6 +112,7 @@ void main() {
           'github_connections',
           'billing_accounts',
           'billing_periods',
+          'skipped_workflow_reports',
         ]),
       );
       expect(
@@ -123,7 +127,7 @@ void main() {
         (await db.customSelect('PRAGMA user_version').getSingle()).read<int>(
           'user_version',
         ),
-        31,
+        32,
       );
       expect(
         (await db.customSelect('SELECT * FROM teams').getSingle()).data,
@@ -185,7 +189,7 @@ void main() {
         (await db.customSelect('PRAGMA user_version').getSingle()).read<int>(
           'user_version',
         ),
-        31,
+        32,
       );
     },
   );
@@ -229,7 +233,7 @@ void main() {
       (await db.customSelect('PRAGMA user_version').getSingle()).read<int>(
         'user_version',
       ),
-      31,
+      32,
     );
     expect(
       (await db.customSelect('SELECT * FROM teams').getSingle()).data,
@@ -313,7 +317,7 @@ void main() {
       (await db.customSelect('PRAGMA user_version').getSingle()).read<int>(
         'user_version',
       ),
-      31,
+      32,
     );
     expect(
       (await db.customSelect('SELECT * FROM teams').getSingle()).data,
@@ -420,7 +424,7 @@ void main() {
         (await db.customSelect('PRAGMA user_version').getSingle()).read<int>(
           'user_version',
         ),
-        31,
+        32,
       );
       expect((await db.teamDao.getTeam('team-1'))!.installationIds, [123]);
       expect((await db.teamDao.getTeam('team-2'))!.installationIds, [123]);
@@ -515,7 +519,7 @@ void main() {
         (await db.customSelect('PRAGMA user_version').getSingle()).read<int>(
           'user_version',
         ),
-        31,
+        32,
       );
 
       await db
@@ -524,6 +528,59 @@ void main() {
             const BuildRunsCompanion(runNumber: Value(42)),
           );
       expect((await db.select(db.buildRuns).getSingle()).runNumber, 42);
+    },
+  );
+
+  test(
+    'upgrades v31 without changing existing teams, tasks, jobs, or runs',
+    () async {
+      await db.close();
+      db = AppDatabase(
+        NativeDatabase.memory(
+          setup: (database) {
+            database.execute('''
+            PRAGMA foreign_keys = ON;
+            PRAGMA user_version = 31;
+            CREATE TABLE teams (id TEXT PRIMARY KEY, run_number INTEGER NOT NULL);
+            CREATE TABLE webhook_tasks (id TEXT PRIMARY KEY, status TEXT NOT NULL);
+            CREATE TABLE build_jobs (id TEXT PRIMARY KEY);
+            CREATE TABLE build_runs (
+              id TEXT PRIMARY KEY, build_job_id TEXT REFERENCES build_jobs(id),
+              run_number INTEGER
+            );
+            INSERT INTO teams VALUES ('team-1', 42);
+            INSERT INTO webhook_tasks VALUES ('task-1', 'completed');
+            INSERT INTO build_jobs VALUES ('job-1');
+            INSERT INTO build_runs VALUES ('run-1', 'job-1', 41);
+          ''');
+          },
+        ),
+      );
+
+      expect(await db.select(db.skippedWorkflowReports).get(), isEmpty);
+      expect(
+        (await db.customSelect('PRAGMA user_version').getSingle()).read<int>(
+          'user_version',
+        ),
+        32,
+      );
+      expect(
+        (await db.customSelect('SELECT * FROM teams').getSingle()).data,
+        {'id': 'team-1', 'run_number': 42},
+      );
+      expect(
+        (await db.customSelect('SELECT * FROM webhook_tasks').getSingle()).data,
+        {'id': 'task-1', 'status': 'completed'},
+      );
+      expect(
+        (await db.customSelect('SELECT * FROM build_jobs').getSingle()).data,
+        {'id': 'job-1'},
+      );
+      expect(
+        (await db.customSelect('SELECT * FROM build_runs').getSingle()).data,
+        {'id': 'run-1', 'build_job_id': 'job-1', 'run_number': 41},
+      );
+      await expectSkippedWorkflowReportSchema(db);
     },
   );
 

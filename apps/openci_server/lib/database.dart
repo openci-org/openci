@@ -22,6 +22,7 @@ import 'package:openci_server/seed/seed_dao.dart';
 import 'package:openci_server/team/invitation_table.dart';
 import 'package:openci_server/team/team_dao.dart';
 import 'package:openci_server/team/team_table.dart';
+import 'package:openci_server/webhook_task/skipped_workflow_report_table.dart';
 import 'package:openci_server/webhook_task/webhook_task_dao.dart';
 import 'package:openci_server/webhook_task/webhook_task_table.dart';
 import 'package:openci_shared/openci_shared.dart';
@@ -36,6 +37,7 @@ part 'database.g.dart';
     TeamMembers,
     Secrets,
     WebhookTasks,
+    SkippedWorkflowReports,
     UserDevices,
     UdidRequests,
     Invitations,
@@ -61,7 +63,7 @@ class AppDatabase extends _$AppDatabase {
     : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 31;
+  int get schemaVersion => 32;
 
   @override
   MigrationStrategy get migration {
@@ -113,6 +115,9 @@ class AppDatabase extends _$AppDatabase {
         }
         if (from < 31) {
           await m.addColumn(buildRuns, buildRuns.runNumber);
+        }
+        if (from < 32) {
+          await m.createTable(skippedWorkflowReports);
         }
       },
     );
