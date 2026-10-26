@@ -34,6 +34,7 @@ void main() {
       final members = await db.teamDao.getTeamMembers(team.id);
 
       // Remove later schema additions to recreate a populated v28 database.
+      await db.customStatement('DROP TABLE skipped_workflow_reports');
       await db.customStatement('ALTER TABLE build_runs DROP COLUMN run_number');
       await db.customStatement('DROP TABLE billing_periods');
       await db.customStatement('DROP TABLE billing_accounts');
@@ -45,7 +46,7 @@ void main() {
       expect(
         (await db.customSelect('SELECT version FROM __schema').getSingle())
             .read<int>('version'),
-        31,
+        32,
       );
       expect(
         (await db.teamDao.getTeam(team.id))!.toJson(),

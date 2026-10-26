@@ -128,6 +128,7 @@ void main() {
 
           // Remove schema additions since v27 and restore the version to
           // recreate the populated v27 schema.
+          await db.customStatement('DROP TABLE skipped_workflow_reports');
           await db.customStatement(
             'ALTER TABLE build_runs DROP COLUMN run_number',
           );
@@ -142,7 +143,7 @@ void main() {
           expect(
             (await db.customSelect('SELECT version FROM __schema').getSingle())
                 .read<int>('version'),
-            31,
+            32,
           );
           expect(
             (await db.teamDao.getTeam('team-1'))!.toJson(),
