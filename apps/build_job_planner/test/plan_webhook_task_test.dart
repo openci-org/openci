@@ -25,7 +25,7 @@ void main() {
       );
     });
 
-    test('creates a BuildJobPlan for each matching workflow', () async {
+    test('includes a BuildJobPlan for each matching workflow', () async {
       when(
         () => api.getTeamByInstallationId(998877),
       ).thenAnswer((_) async => createMockResponse(team));
@@ -52,10 +52,10 @@ void main() {
         ]),
       );
 
-      final plans = await planWebhookTask(task: _pushTask(), api: api);
+      final plan = await planWebhookTask(task: _pushTask(), api: api);
 
-      expect(plans, hasLength(1));
-      expect(plans.single.toJson(), {
+      expect(plan.jobs, hasLength(1));
+      expect(plan.jobs.single.toJson(), {
         'owner': 'openci-org',
         'repo': 'openci',
         'workflowName': 'CI',
@@ -67,44 +67,76 @@ void main() {
         'runsOn': 'macos-latest',
         'installationId': '998877',
       });
+      expect(plan.skippedWorkflows, isEmpty);
+      expect(plan.changedFilesFallbackReason, isNull);
     });
 
-    for (final eventType in ['push', 'pull_request']) {
-      for (final branch in ['develop', 'main']) {
-        test(
-          'matches multiple triggers for $eventType targeting $branch',
-          () async {
-            _stubWorkflow(api, team, _multiTriggerWorkflowSource);
-            final task = eventType == 'push'
-                ? _pushTask(branch: branch)
-                : _pullRequestTask(
-                    baseBranch: branch,
-                    headBranch: branch == 'develop' ? 'feature/ci' : 'develop',
-                  );
+    test('matches the push trigger targeting develop', () async {
+      _stubWorkflow(api, team, _multiTriggerWorkflowSource);
 
-            final plans = await planWebhookTask(task: task, api: api);
+      final plan = await planWebhookTask(
+        task: _pushTask(branch: 'develop'),
+        api: api,
+      );
 
-            expect(plans, hasLength(branch == 'develop' ? 1 : 0));
-            if (plans.isNotEmpty) {
-              expect(plans.single.workflowName, 'Dashboard CI');
-              expect(plans.single.workflowFileName, 'dashboard_ci.dart');
-              expect(plans.single.commitSha, 'abc123');
-              expect(
-                plans.single.branch,
-                eventType == 'push' ? 'develop' : 'feature/ci',
-              );
-              expect(
-                plans.single.pullRequestNumber,
-                eventType == 'push' ? null : 42,
-              );
-            }
-          },
-        );
-      }
-    }
+      expect(plan.jobs, hasLength(1));
+      expect(plan.jobs.single.workflowName, 'Dashboard CI');
+      expect(plan.jobs.single.workflowFileName, 'dashboard_ci.dart');
+      expect(plan.jobs.single.commitSha, 'abc123');
+      expect(plan.jobs.single.branch, 'develop');
+      expect(plan.jobs.single.pullRequestNumber, isNull);
+      expect(plan.skippedWorkflows, isEmpty);
+      expect(plan.changedFilesFallbackReason, isNull);
+    });
+
+    test('returns an empty plan for a push to an unmatched branch', () async {
+      _stubWorkflow(api, team, _multiTriggerWorkflowSource);
+
+      final plan = await planWebhookTask(task: _pushTask(), api: api);
+
+      expect(plan, const WebhookTaskPlan(jobs: []));
+    });
 
     test(
-      'creates only one plan when multiple triggers match the event',
+      'matches pull requests by base branch and preserves the head',
+      () async {
+        _stubWorkflow(api, team, _multiTriggerWorkflowSource);
+
+        final plan = await planWebhookTask(
+          task: _pullRequestTask(
+            baseBranch: 'develop',
+            headBranch: 'feature/ci',
+          ),
+          api: api,
+        );
+
+        expect(plan.jobs, hasLength(1));
+        expect(plan.jobs.single.workflowName, 'Dashboard CI');
+        expect(plan.jobs.single.workflowFileName, 'dashboard_ci.dart');
+        expect(plan.jobs.single.commitSha, 'abc123');
+        expect(plan.jobs.single.branch, 'feature/ci');
+        expect(plan.jobs.single.pullRequestNumber, 42);
+        expect(plan.skippedWorkflows, isEmpty);
+        expect(plan.changedFilesFallbackReason, isNull);
+      },
+    );
+
+    test(
+      'returns an empty plan for a pull request to an unmatched base',
+      () async {
+        _stubWorkflow(api, team, _multiTriggerWorkflowSource);
+
+        final plan = await planWebhookTask(
+          task: _pullRequestTask(baseBranch: 'main', headBranch: 'develop'),
+          api: api,
+        );
+
+        expect(plan, const WebhookTaskPlan(jobs: []));
+      },
+    );
+
+    test(
+      'includes only one job when multiple triggers match the event',
       () async {
         _stubWorkflow(api, team, '''
 Future<void> main() async {
@@ -119,36 +151,62 @@ Future<void> main() async {
 }
 ''');
 
-        final plans = await planWebhookTask(
+        final plan = await planWebhookTask(
           task: _pushTask(branch: 'develop'),
           api: api,
         );
 
-        expect(plans, hasLength(1));
+        expect(plan.jobs, hasLength(1));
+        expect(plan.skippedWorkflows, isEmpty);
+        expect(plan.changedFilesFallbackReason, isNull);
       },
     );
 
     test(
-      'returns no plans for a deleted branch without calling APIs',
+      'keeps whenChanged workflows without looking up changed files',
       () async {
-        final plans = await planWebhookTask(
+        _stubWorkflow(api, team, '''
+Future<void> main() async {
+  await OpenCI.init(
+    workflowName: 'Dashboard CI',
+    ciTriggers: [
+      CITrigger.push(branch: 'main', whenChanged: ['apps/dashboard/**']),
+    ],
+  );
+}
+''');
+
+        final plan = await planWebhookTask(task: _pushTask(), api: api);
+
+        expect(plan.jobs, hasLength(1));
+        expect(plan.jobs.single.workflowName, 'Dashboard CI');
+        expect(plan.skippedWorkflows, isEmpty);
+        expect(plan.changedFilesFallbackReason, isNull);
+        verifyNever(() => api.getWebhookTaskChangedFiles(any()));
+      },
+    );
+
+    test(
+      'returns an empty plan for a deleted branch without calling APIs',
+      () async {
+        final plan = await planWebhookTask(
           task: _pushTask(deleted: true),
           api: api,
         );
 
-        expect(plans, isEmpty);
+        expect(plan, const WebhookTaskPlan(jobs: []));
         verifyNever(() => api.getTeamByInstallationId(any()));
       },
     );
 
-    test('returns no plans when no team owns the installation', () async {
+    test('returns an empty plan when no team owns the installation', () async {
       when(
         () => api.getTeamByInstallationId(998877),
       ).thenAnswer((_) async => createMockResponse(team, statusCode: 404));
 
-      final plans = await planWebhookTask(task: _pushTask(), api: api);
+      final plan = await planWebhookTask(task: _pushTask(), api: api);
 
-      expect(plans, isEmpty);
+      expect(plan, const WebhookTaskPlan(jobs: []));
       verifyNever(
         () => api.fetchOpenCIFiles(
           any(),
@@ -160,7 +218,7 @@ Future<void> main() async {
       );
     });
 
-    test('returns no plans when no OpenCI files exist', () async {
+    test('returns an empty plan when no OpenCI files exist', () async {
       when(
         () => api.getTeamByInstallationId(998877),
       ).thenAnswer((_) async => createMockResponse(team));
@@ -174,9 +232,9 @@ Future<void> main() async {
         ),
       ).thenAnswer((_) async => createMockResponse(<Map<String, dynamic>>[]));
 
-      final plans = await planWebhookTask(task: _pushTask(), api: api);
+      final plan = await planWebhookTask(task: _pushTask(), api: api);
 
-      expect(plans, isEmpty);
+      expect(plan, const WebhookTaskPlan(jobs: []));
     });
 
     test('throws FormatException for an invalid task payload', () async {

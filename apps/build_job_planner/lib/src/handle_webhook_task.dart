@@ -7,10 +7,8 @@ Future<int> handleWebhookTask({
   required OpenCIApiService api,
 }) async {
   try {
-    final plans = await planWebhookTask(task: task, api: api);
-    final response = await api.completeWebhookTask(task.id, {
-      'jobs': plans.map((plan) => plan.toJson()).toList(),
-    });
+    final plan = await planWebhookTask(task: task, api: api);
+    final response = await api.completeWebhookTask(task.id, plan.toJson());
 
     if (!response.isSuccessful || response.body?['success'] != true) {
       throw StateError(

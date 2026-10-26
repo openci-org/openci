@@ -5,7 +5,7 @@ import 'package:openci_shared/openci_shared.dart';
 import 'open_ci_parser.dart';
 import 'github_webhook_payload.dart';
 
-Future<List<BuildJobPlan>> planWebhookTask({
+Future<WebhookTaskPlan> planWebhookTask({
   required WebhookTask task,
   required OpenCIApiService api,
 }) async {
@@ -21,12 +21,12 @@ Future<List<BuildJobPlan>> planWebhookTask({
     rawJson: rawJson,
   );
   if (event.isDeleted) {
-    return const [];
+    return const WebhookTaskPlan(jobs: []);
   }
 
   final teamResponse = await api.getTeamByInstallationId(event.installationId);
   if (teamResponse.statusCode == 404) {
-    return const [];
+    return const WebhookTaskPlan(jobs: []);
   }
 
   final team = teamResponse.body;
@@ -63,7 +63,7 @@ Future<List<BuildJobPlan>> planWebhookTask({
         ),
       );
 
-  return matchingWorkflows
+  final jobs = matchingWorkflows
       .map(
         (workflow) => BuildJobPlan(
           owner: event.owner,
@@ -80,4 +80,6 @@ Future<List<BuildJobPlan>> planWebhookTask({
         ),
       )
       .toList();
+
+  return WebhookTaskPlan(jobs: jobs);
 }

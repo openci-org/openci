@@ -16,7 +16,7 @@ void main() {
       api = _MockOpenCIApiService();
     });
 
-    test('completes the task with serialized build job plans', () async {
+    test('completes the task with a serialized webhook task plan', () async {
       _stubPlanning(api);
       when(() => api.completeWebhookTask('task-1', any())).thenAnswer(
         (_) async => createMockResponse(<String, dynamic>{
@@ -50,9 +50,42 @@ void main() {
             'installationId': '998877',
           },
         ],
+        'skippedWorkflows': [],
       });
       verifyNever(() => api.failWebhookTask(any(), any()));
     });
+
+    test(
+      'completes the task with an empty plan when no workflow matches',
+      () async {
+        _stubPlanning(
+          api,
+          workflowSource: _workflowSource.replaceFirst(
+            "branch: 'main'",
+            "branch: 'develop'",
+          ),
+        );
+        when(() => api.completeWebhookTask('task-1', any())).thenAnswer(
+          (_) async => createMockResponse(<String, dynamic>{
+            'success': true,
+            'jobs_created': 0,
+            'job_ids': [],
+            'already_completed': false,
+          }),
+        );
+
+        final jobsCreated = await handleWebhookTask(task: _task(), api: api);
+
+        expect(jobsCreated, 0);
+        final body =
+            verify(
+                  () => api.completeWebhookTask('task-1', captureAny()),
+                ).captured.single
+                as Map<String, dynamic>;
+        expect(body, {'jobs': [], 'skippedWorkflows': []});
+        verifyNever(() => api.failWebhookTask(any(), any()));
+      },
+    );
 
     test('reports invalid whenChanged as a task failure', () async {
       _stubPlanning(
