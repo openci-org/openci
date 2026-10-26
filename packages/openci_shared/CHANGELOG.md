@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Add `WebhookTaskPlan` and `SkippedWorkflowPlan` for planned jobs, skipped
+  workflows, and changed-file fallback reasons. Accept legacy jobs-only payloads.
+
 ## 2.0.0
 
 - **Breaking:** Remove `githubBaseUrl` from `Team` and `BuildJobPlan`. Repository
