@@ -22,6 +22,7 @@ import 'package:openci_server/seed/seed_dao.dart';
 import 'package:openci_server/team/invitation_table.dart';
 import 'package:openci_server/team/team_dao.dart';
 import 'package:openci_server/team/team_table.dart';
+import 'package:openci_server/webhook_task/skipped_workflow_report_dao.dart';
 import 'package:openci_server/webhook_task/skipped_workflow_report_table.dart';
 import 'package:openci_server/webhook_task/webhook_task_dao.dart';
 import 'package:openci_server/webhook_task/webhook_task_table.dart';
@@ -52,6 +53,7 @@ part 'database.g.dart';
     BuildRunDao,
     TeamDao,
     WebhookTaskDao,
+    SkippedWorkflowReportDao,
     SecretDao,
     DeviceDao,
     UdidRequestDao,
