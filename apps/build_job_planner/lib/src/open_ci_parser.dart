@@ -55,6 +55,19 @@ abstract class ParsedCITrigger with _$ParsedCITrigger {
     return _matchesBranch(this.branch, branch);
   }
 
+  /// Whether any repository-relative changed path matches [whenChanged].
+  ///
+  /// An omitted condition accepts all changes, including an empty diff.
+  bool matchesChangedFiles(List<String> changedPaths) {
+    final patterns = whenChanged;
+    if (patterns == null) return true;
+
+    return patterns.any((pattern) {
+      final glob = Glob(pattern, context: p.posix, caseSensitive: true);
+      return changedPaths.any(glob.matches);
+    });
+  }
+
   static bool _matchesBranch(String pattern, String branch) {
     if (pattern == '*' || pattern == branch) {
       return true;
