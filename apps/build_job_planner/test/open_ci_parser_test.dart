@@ -306,6 +306,159 @@ void main() {
     }
   });
 
+  group('ParsedCITrigger.matchesChangedFiles', () {
+    test('accepts all changes when whenChanged is omitted', () {
+      const trigger = ParsedCITrigger(type: 'push', branch: 'main');
+
+      expect(trigger.matchesChangedFiles(['README.md']), isTrue);
+      expect(trigger.matchesChangedFiles([]), isTrue);
+    });
+
+    test('matches an exact repository-relative path', () {
+      const trigger = ParsedCITrigger(
+        type: 'push',
+        branch: 'main',
+        whenChanged: ['pubspec.lock'],
+      );
+
+      expect(trigger.matchesChangedFiles(['pubspec.lock']), isTrue);
+      expect(trigger.matchesChangedFiles(['nested/pubspec.lock']), isFalse);
+      expect(trigger.matchesChangedFiles(['pubspec.lock.backup']), isFalse);
+    });
+
+    test('a single star matches within one path segment', () {
+      const trigger = ParsedCITrigger(
+        type: 'push',
+        branch: 'main',
+        whenChanged: ['packages/*/pubspec.yaml'],
+      );
+
+      expect(
+        trigger.matchesChangedFiles(['packages/openci_shared/pubspec.yaml']),
+        isTrue,
+      );
+      expect(
+        trigger.matchesChangedFiles([
+          'packages/openci_shared/example/pubspec.yaml',
+        ]),
+        isFalse,
+      );
+      expect(trigger.matchesChangedFiles(['packages/pubspec.yaml']), isFalse);
+    });
+
+    test('a trailing double star matches files at any depth', () {
+      const trigger = ParsedCITrigger(
+        type: 'push',
+        branch: 'main',
+        whenChanged: ['apps/dashboard/**'],
+      );
+
+      expect(
+        trigger.matchesChangedFiles(['apps/dashboard/pubspec.yaml']),
+        isTrue,
+      );
+      expect(
+        trigger.matchesChangedFiles(['apps/dashboard/lib/src/main.dart']),
+        isTrue,
+      );
+      expect(
+        trigger.matchesChangedFiles(['apps/dashboard_other/lib/main.dart']),
+        isFalse,
+      );
+    });
+
+    test('double star matches zero or more directories below a prefix', () {
+      const trigger = ParsedCITrigger(
+        type: 'push',
+        branch: 'main',
+        whenChanged: ['apps/**/pubspec.yaml'],
+      );
+
+      expect(trigger.matchesChangedFiles(['apps/pubspec.yaml']), isTrue);
+      expect(
+        trigger.matchesChangedFiles(['apps/dashboard/pubspec.yaml']),
+        isTrue,
+      );
+      expect(
+        trigger.matchesChangedFiles(['apps/dashboard/example/pubspec.yaml']),
+        isTrue,
+      );
+      expect(trigger.matchesChangedFiles(['packages/pubspec.yaml']), isFalse);
+    });
+
+    test('a leading double star also matches files at the repository root', () {
+      const trigger = ParsedCITrigger(
+        type: 'push',
+        branch: 'main',
+        whenChanged: ['**/*.dart'],
+      );
+
+      expect(trigger.matchesChangedFiles(['main.dart']), isTrue);
+      expect(trigger.matchesChangedFiles(['lib/main.dart']), isTrue);
+      expect(
+        trigger.matchesChangedFiles(['apps/dashboard/lib/main.dart']),
+        isTrue,
+      );
+      expect(trigger.matchesChangedFiles(['main.txt']), isFalse);
+    });
+
+    test('matches directory and file names case-sensitively', () {
+      const trigger = ParsedCITrigger(
+        type: 'push',
+        branch: 'main',
+        whenChanged: ['apps/**/README.md'],
+      );
+
+      expect(trigger.matchesChangedFiles(['apps/dashboard/README.md']), isTrue);
+      expect(
+        trigger.matchesChangedFiles(['Apps/dashboard/README.md']),
+        isFalse,
+      );
+      expect(
+        trigger.matchesChangedFiles(['apps/dashboard/readme.md']),
+        isFalse,
+      );
+    });
+
+    test('accepts any matching pattern and changed file', () {
+      const trigger = ParsedCITrigger(
+        type: 'push',
+        branch: 'main',
+        whenChanged: ['apps/dashboard/**', 'pubspec.lock'],
+      );
+
+      expect(
+        trigger.matchesChangedFiles(['README.md', 'pubspec.lock']),
+        isTrue,
+      );
+      expect(trigger.matchesChangedFiles(['apps/dashboard/main.dart']), isTrue);
+      expect(
+        trigger.matchesChangedFiles(['README.md', 'apps/worker/main.dart']),
+        isFalse,
+      );
+    });
+
+    test('rejects an empty diff when whenChanged is configured', () {
+      const trigger = ParsedCITrigger(
+        type: 'push',
+        branch: 'main',
+        whenChanged: ['**'],
+      );
+
+      expect(trigger.matchesChangedFiles([]), isFalse);
+    });
+
+    test('matches escaped glob characters from a parsed trigger literally', () {
+      final workflow = _parseTrigger(
+        r"CITrigger.push(branch: 'main', whenChanged: [r'\*.dart'])",
+      )!;
+      final trigger = workflow.ciTriggers.single;
+
+      expect(trigger.matchesChangedFiles(['*.dart']), isTrue);
+      expect(trigger.matchesChangedFiles(['main.dart']), isFalse);
+    });
+  });
+
   group('ParsedWorkflow.matches', () {
     for (final triggerType in ['workflow_dispatch', 'pull_request']) {
       test('does not match unsupported trigger types: $triggerType', () {
