@@ -8788,6 +8788,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final WebhookTaskDao webhookTaskDao = WebhookTaskDao(
     this as AppDatabase,
   );
+  late final SkippedWorkflowReportDao skippedWorkflowReportDao =
+      SkippedWorkflowReportDao(this as AppDatabase);
   late final SecretDao secretDao = SecretDao(this as AppDatabase);
   late final DeviceDao deviceDao = DeviceDao(this as AppDatabase);
   late final UdidRequestDao udidRequestDao = UdidRequestDao(
