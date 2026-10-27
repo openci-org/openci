@@ -71,6 +71,8 @@ go build -ldflags '-X main.version=v0.1.0' -o build/go-genuine ./cmd/go-genuine
 
 ## Personal settings paths
 
+Personal settings currently target macOS and Linux.
+
 `internal/config.ResolvePaths()` locates `config.json` and `credentials.json`
 under `xdg.ConfigHome/genuineci`, using
 [`adrg/xdg`](https://github.com/adrg/xdg). An absolute `XDG_CONFIG_HOME` overrides
@@ -80,7 +82,6 @@ the default on every supported OS. Otherwise, typical locations are:
 | --- | --- |
 | macOS | `$HOME/Library/Application Support/genuineci` |
 | Linux | `$HOME/.config/genuineci` |
-| Windows | `%LOCALAPPDATA%\genuineci` (the OS LocalAppData folder) |
 
 The resolver only returns paths and reports an error if XDG has no config home.
 It does not create or modify files or directories. XDG determines its paths at
@@ -89,12 +90,28 @@ process startup; empty or invalid XDG variables use the library's defaults.
 The Go CLI starts with fresh settings. Dart CLI files under `openci` are not
 imported or migrated.
 
+## Saving settings files
+
+`internal/config.WriteFile(path, data, mode)` saves already-encoded bytes. It
+creates missing parent directories with mode `0700`, then creates a unique
+temporary file alongside the destination. It applies the requested file mode
+before writing, syncs and closes the file, and replaces the destination only
+after those steps succeed. Credential callers should pass `0600`; replacing an
+existing file also applies this mode on macOS/Linux.
+
+Failures before replacement leave the previous file unchanged and remove the
+temporary file. Cleanup errors are returned alongside the original error, without
+including the payload. The helper does not parse JSON or resolve config paths.
+
+Replacement uses [`os.Rename`](https://pkg.go.dev/os#Rename). This
+helper does not lock concurrent saves or guarantee recovery after a power loss.
+
 ## Layout and checks
 
 ```text
 cmd/go-genuine/    Entry point, exit codes, version discovery, and command tests
 internal/cli/     Cobra command tree
-internal/config/  Personal settings file paths
+internal/config/  Personal settings paths and safe file writes
 ```
 
 Add migrated commands to the command tree, with domain logic in focused
