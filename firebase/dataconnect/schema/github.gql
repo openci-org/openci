@@ -1,0 +1,20 @@
+type GitHubConnection
+  @table(name: "github_connections", key: "id")
+  @unique(fields: ["githubApiBaseUrl", "githubAppId", "installationId"]) {
+  id: String!
+  teamId: String! @col(name: "team_id")
+  team: Team! @ref(fields: "teamId", references: "id")
+  githubApiBaseUrl: String! @col(name: "github_api_base_url")
+  githubAppId: Int64! @col(name: "github_app_id")
+  installationId: Int64! @col(name: "installation_id")
+  accountId: Int64! @col(name: "account_id")
+  # Drift stores User / Organization as text.
+  accountType: String! @col(name: "account_type")
+  accountLogin: String! @col(name: "account_login")
+  verifiedByUserId: String! @col(name: "verified_by_user_id")
+  verifiedByGitHubUserId: Int64! @col(name: "verified_by_github_user_id")
+  # Drift stores DateTime as Unix seconds.
+  verifiedAt: Int64! @col(name: "verified_at")
+  # Drift stores active / suspended / removed as text.
+  status: String!
+}
