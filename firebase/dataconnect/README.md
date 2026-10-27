@@ -9,6 +9,14 @@ This directory has its own Firebase configuration, separate from Hosting.
   and membership IDs (`bigserial`) retain their existing storage types.
 - Explicit `limit: null` preserves the existing API's full team/member lists.
 
+## Retired features
+
+`invitations`, `user_devices`, and `udid_requests` are retired from the migration
+scope. Their schemas, connector operations, and data will not be migrated to SQL
+Connect. Cleanup of the existing server APIs, shared models, and legacy database
+tables is tracked in [G-1569](https://linear.app/genuineci/issue/G-1569/retire-legacy-invitation-device-and-udid-request-storage)
+and has not been implemented yet.
+
 ## Secrets
 
 `schema/secret.gql` defines `secret_references`: team, name, timestamps, and
