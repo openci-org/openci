@@ -13,8 +13,8 @@ All 19 migration-target tables are now defined, including the pending skipped
 workflow reporting table. See [the schema inventory](SCHEMA.md) for source
 mappings, Secret Manager references, billing uniqueness keys, and the write
 rules required before switching the servers to SQL Connect. Connector operations
-cover `GetMyTeams`, `CreateBillingPeriod`, and the Stripe Customer creation
-operations described below.
+cover `GetMyTeams`, `CreateBillingPeriod`, and the Stripe Customer, Checkout, and
+state/event operations described below.
 
 ## Retired features
 
@@ -73,6 +73,72 @@ timeout, read it again and use the stored key. Verify the returned Customer's
 Stripe API calls and Functions integration remain follow-up work. The team
 existence check is not a replacement for the legacy team/account row locks;
 coordinate team deletion when implementing that workflow.
+
+### Stripe Checkout creation
+
+`billing/checkouts.gql` adds four server-only operations:
+
+- `CreateBillingCheckoutCreation` requires an existing team and billing account.
+  It validates the paid plan, nonblank key/Customer/Price/return URLs, and
+  non-negative creation time. It derives `openTeamId` from `teamId`; its unique
+  constraint allows only one unfinished intent per team, including concurrent
+  requests. Duplicate keys or open intents fail without overwriting them.
+- `GetOpenBillingCheckoutCreation` returns the unfinished intent, or null if
+  absent, and rejects missing teams and Stripe mode mismatches. After a duplicate
+  create or ambiguous timeout, use this lookup to recover the stored parameters.
+- `RecordBillingCheckoutSession` matches every original parameter and the open
+  state in the update itself. The same Session ID can be retried; changed/closed
+  intents, replacing the Session ID, and reusing a Session from another intent
+  (including closed history) are rejected.
+- `CloseBillingCheckoutCreation` checks the recorded Session's identity and close
+  time, then sets `closedAt` and clears `openTeamId` together. Retrying or closing
+  concurrently preserves the first close time. The closed intent stays in history
+  while a new Checkout can reserve the team's slot.
+
+Functions must verify membership, Customer ownership, Price/plan compatibility,
+and subscription state before creating a Checkout. Reuse the saved key, Price,
+and return URLs when retrying, and resolve a different plan/Customer before
+starting another purchase. Before recording a Session, verify its hosted
+subscription mode, `livemode`, non-deleted Customer, team metadata/client
+reference, and return URLs against that saved intent.
+
+Before closing, Functions must verify an expired/unpaid Session, or a completed
+Session whose Subscription is canceled/incomplete_expired. Recording a Session
+does not close the intent. Functions/Stripe integration and team-deletion
+coordination are pending; the new operations do not switch production billing
+traffic.
+
+### Stripe state and events
+
+`billing/stripe.gql` adds four server-only operations:
+
+- `InitializeBillingStripeState` inserts an initial `none` state only for the
+  account's recorded Customer and mode. Duplicates never overwrite existing state.
+- `GetBillingStripeState` returns the current state, paid-period end, and revision.
+  `GetBillingStripeEvent` checks whether an event has already committed.
+- `RecordBillingStripeEvent` updates the state and inserts the processed event in
+  one transaction. Duplicate events or failed checks roll back both writes. The
+  update must match `expectedRevision`; a successful update increments it once.
+
+Functions must read the state revision **before** fetching the latest Stripe
+data. On a revision conflict, read the new state and fetch Stripe again; do not
+reuse an old observation with a new revision. After a duplicate delivery or an
+ambiguous timeout, check the stored event before retrying. Event creation time is
+not used to order subscriptions: delayed notifications still trigger a fresh
+Stripe observation.
+
+Checks reject invalid status/plan combinations, backwards sync times, reviving an
+ended subscription, and discarding/shortening the same subscription's verified
+paid period. A supplied period must already exist and belong to this team, paid
+period type, and plan. Functions must verify Stripe payment evidence before
+creating a period and merge retained plan/period or terminal state as the legacy
+reconciliation does. This mutation does not create periods or call Stripe.
+
+The new `revision` column starts at `0` for imported/initialized states and
+protects simultaneous updates even within the same Unix second. These operations
+can process billing history after team deletion. Webhook signature validation,
+Customer/team resolution, Stripe verification, and Functions retry orchestration
+remain follow-up work.
 
 ## Secrets
 
