@@ -18,3 +18,33 @@ type GitHubConnection
   # Drift stores active / suspended / removed as text.
   status: String!
 }
+
+type GitHubConnectionRequest
+  @table(name: "github_connection_requests", key: "id")
+  @index(fields: ["expiresAt"]) {
+  id: String!
+  userId: String! @col(name: "user_id")
+  teamId: String! @col(name: "team_id")
+  team: Team! @ref(fields: "teamId", references: "id")
+  stateHash: String! @col(name: "state_hash") @unique
+  # PKCE verifier values belong in Secret Manager, not SQL Connect.
+  codeVerifierSecretVersionPath: String! @col(name: "code_verifier_secret_version_path")
+  createdAt: Int64! @col(name: "created_at")
+  expiresAt: Int64! @col(name: "expires_at")
+}
+
+type GitHubConnectionSession
+  @table(name: "github_connection_sessions", key: "id")
+  @index(fields: ["expiresAt"]) {
+  id: String!
+  userId: String! @col(name: "user_id")
+  teamId: String! @col(name: "team_id")
+  team: Team! @ref(fields: "teamId", references: "id")
+  githubUserId: Int64! @col(name: "github_user_id")
+  referenceHash: String! @col(name: "reference_hash") @unique
+  # Clear the reference on consumption/expiry; destroy the secret separately.
+  accessTokenSecretVersionPath: String @col(name: "access_token_secret_version_path")
+  createdAt: Int64! @col(name: "created_at")
+  expiresAt: Int64! @col(name: "expires_at")
+  consumedAt: Int64 @col(name: "consumed_at")
+}

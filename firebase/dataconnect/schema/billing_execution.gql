@@ -1,0 +1,41 @@
+# Preserve millisecond precision; these timestamps differ from BillingPeriod.
+type BillingAdmission
+  @table(name: "billing_admissions", key: "id")
+  @index(name: "billing_admissions_team_period", fields: ["teamId", "periodId", "closedAtMs"])
+  @index(name: "billing_admissions_pending_start", fields: ["closedAtMs", "startByMs"]) {
+  id: String!
+  # Job/run IDs intentionally have no foreign keys, so billing history survives.
+  jobId: String! @col(name: "job_id")
+  teamId: String! @col(name: "team_id")
+  billingAccount: BillingAccount! @ref(fields: "teamId", references: "teamId")
+  workerHost: String! @col(name: "worker_host")
+  periodId: String! @col(name: "period_id")
+  billingPeriod: BillingPeriod! @ref(fields: ["periodId", "teamId"], references: ["id", "teamId"])
+  claimedAtMs: Int64! @col(name: "claimed_at_ms")
+  startByMs: Int64! @col(name: "start_by_ms")
+  reservedMillis: Int64! @col(name: "reserved_millis")
+  runId: String @col(name: "run_id") @unique
+  closedAtMs: Int64 @col(name: "closed_at_ms")
+  # Replaces WHERE closed_at_ms IS NULL: jobId while open, null when closed.
+  # Future mutations must derive this value and update it atomically with closedAtMs.
+  openJobId: String @col(name: "open_job_id") @unique(indexName: "billing_admissions_open_job")
+}
+
+type BillingExecution
+  @table(name: "billing_executions", key: "runId")
+  @index(name: "billing_executions_team_start", fields: ["teamId", "startedAtMs"])
+  @index(name: "billing_executions_unfinished_lease", fields: ["finishedAtMs", "leaseUntilMs"]) {
+  runId: String! @col(name: "run_id")
+  teamId: String! @col(name: "team_id")
+  billingAccount: BillingAccount! @ref(fields: "teamId", references: "teamId")
+  jobId: String! @col(name: "job_id")
+  workerHost: String! @col(name: "worker_host")
+  periodId: String! @col(name: "period_id")
+  billingPeriod: BillingPeriod! @ref(fields: ["periodId", "teamId"], references: ["id", "teamId"])
+  startedAtMs: Int64! @col(name: "started_at_ms")
+  observedAtMs: Int64! @col(name: "observed_at_ms")
+  leaseUntilMs: Int64! @col(name: "lease_until_ms")
+  finishedAtMs: Int64 @col(name: "finished_at_ms")
+  outcome: String
+  measurementIncomplete: Boolean! @col(name: "measurement_incomplete") @default(value: false)
+}
