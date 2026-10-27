@@ -1,5 +1,8 @@
 # Local Firebase Auth Emulator
 
+For the separate Firebase SQL Connect configuration, see
+[the team query prototype](dataconnect/README.md).
+
 This standalone Docker Compose setup runs the Auth Emulator and Emulator UI
 using project ID `demo-openci`. It requires Docker Compose with `--wait` support;
 no Firebase login, real Firebase project, or service account is needed.

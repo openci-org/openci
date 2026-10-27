@@ -1,0 +1,19 @@
+# Explicit null limits preserve GET /teams behavior beyond the default 100 rows.
+query GetMyTeams @auth(level: USER) {
+  teams(
+    where: { teamMembers_on_team: { exist: { userId: { eq_expr: "auth.uid" } } } }
+    orderBy: { id: ASC }
+    limit: null
+  ) {
+    id
+    name
+    installationIds
+    aiEnabled
+    runNumber
+    createdAt
+    updatedAt
+    members: teamMembers_on_team(orderBy: { userId: ASC }, limit: null) {
+      userId
+    }
+  }
+}

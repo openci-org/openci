@@ -1,0 +1,18 @@
+# Match the existing Drift PostgreSQL tables without changing their storage types.
+type Team @table(name: "teams", key: "id") {
+  id: String!
+  name: String!
+  installationIds: String! @col(name: "installation_ids")
+  aiEnabled: Boolean! @col(name: "ai_enabled")
+  runNumber: Int64! @col(name: "run_number") @default(value: 1)
+  # Drift stores DateTime as Unix seconds, not PostgreSQL timestamptz.
+  createdAt: Int64! @col(name: "created_at")
+  updatedAt: Int64! @col(name: "updated_at")
+}
+
+type TeamMember @table(name: "team_members", key: "id") @unique(fields: ["teamId", "userId"]) {
+  id: Int64! @col(dataType: "bigserial")
+  teamId: String! @col(name: "team_id")
+  team: Team! @ref(fields: "teamId", references: "id")
+  userId: String! @col(name: "user_id")
+}
