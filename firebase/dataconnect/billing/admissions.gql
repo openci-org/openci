@@ -1,0 +1,210 @@
+query GetBillingAdmission($teamId: String!, $id: String!) @auth(level: NO_ACCESS) {
+  billingAccount(key: { teamId: $teamId }) {
+    usageRevision
+  }
+  billingAdmission(first: { where: { id: { eq: $id }, teamId: { eq: $teamId } } }) {
+    ...BillingAdmissionFields
+  }
+}
+
+fragment BillingAdmissionFields on BillingAdmission {
+  id
+  teamId
+  jobId
+  workerHost
+  periodId
+  claimedAtMs
+  startByMs
+  reservedMillis
+  runId
+  closedAtMs
+  openJobId
+}
+
+# Functions authorize the worker and paid/complimentary entitlement, select a
+# queued job, and enforce worker capacity. Never accept the period/time from a client.
+mutation CreateBillingAdmission(
+  $id: String!
+  $teamId: String!
+  $jobId: String!
+  $workerHost: String!
+  $periodId: String!
+  $atMs: Int64!
+  $vmName: String = null
+) @auth(level: NO_ACCESS) @transaction {
+  query @redact {
+    team(id: $teamId) @check(expr: "this != null", message: "Team not found") {
+      id
+    }
+    ...BillingUsageSnapshot
+  }
+  # The quota and revision above come from ONE SQL snapshot. Any concurrent
+  # admission or execution change invalidates this CAS, including another job.
+  billingAccount_updateMany(
+    where: {
+      teamId: { eq: $teamId }
+      usageRevision: {
+        eq_expr: "response.query.usage == null ? -1 : int(response.query.usage.revision)"
+      }
+    }
+    data: { usageRevision_update: { inc: 1 } }
+  )
+    @check(
+      expr: "response.query.usage != null && int(response.query.usage.availableMillis) > 0"
+      message: "No paid CI allowance remains"
+    )
+    @check(
+      expr: "int(response.query.usage.startsAt) <= int(vars.atMs) / 1000 && int(vars.atMs) / 1000 < int(response.query.usage.endsAt)"
+      message: "Billing period is not current"
+    )
+    @check(expr: "this == 1", message: "Billing usage changed; read and retry")
+  buildJob_updateMany(
+    where: { id: { eq: $jobId }, teamId: { eq: $teamId }, status: { eq: "QUEUED" } }
+    data: {
+      status: "IN_PROGRESS"
+      workerHost: $workerHost
+      vmName: $vmName
+      latestRunId: null
+      updatedAt_expr: "int(vars.atMs) / 1000"
+    }
+  ) @check(expr: "this == 1", message: "Job is no longer queued for this team")
+  billingAdmission_insert(
+    data: {
+      id: $id
+      teamId: $teamId
+      jobId: $jobId
+      workerHost: $workerHost
+      periodId: $periodId
+      claimedAtMs: $atMs
+      startByMs_expr: "int(vars.atMs) + 120000"
+      reservedMillis_expr: "int(response.query.usage.availableMillis) < 60000 ? int(response.query.usage.availableMillis) : 60000"
+      openJobId: $jobId
+    }
+  )
+    @check(
+      expr: "vars.id.matches('[^[:space:]]') && size(vars.id) <= 255 && vars.jobId.matches('[^[:space:]]') && size(vars.jobId) <= 255"
+      message: "Admission and job IDs are required and must be at most 255 characters"
+    )
+    @check(
+      expr: "size(vars.workerHost) > 0 && size(vars.workerHost) <= 255 && !vars.workerHost.matches('[[:space:][:cntrl:]]')"
+      message: "Invalid worker host"
+    )
+    @check(
+      expr: "vars.vmName == null || (vars.vmName.matches('[^[:space:]]') && size(vars.vmName) <= 255)"
+      message: "Invalid VM name"
+    )
+    @check(
+      expr: "int(vars.atMs) >= 0 && int(vars.atMs) <= 9223372036854655807"
+      message: "Invalid claim time"
+    )
+}
+
+# Insert the run and bind both pointers atomically. A duplicate must be resolved
+# by GetBillingAdmission; it must never replace the original run.
+mutation BindBillingAdmissionRun(
+  $id: String!
+  $teamId: String!
+  $jobId: String!
+  $workerHost: String!
+  $runId: String!
+  $expectedUsageRevision: Int64!
+  $atMs: Int64!
+) @auth(level: NO_ACCESS) @transaction {
+  billingAccount_updateMany(
+    where: { teamId: { eq: $teamId }, usageRevision: { eq: $expectedUsageRevision } }
+    data: { usageRevision_update: { inc: 1 } }
+  ) @check(expr: "this == 1", message: "Billing usage changed; read and retry")
+  billingAdmission_updateMany(
+    where: {
+      id: { eq: $id }
+      teamId: { eq: $teamId }
+      jobId: { eq: $jobId }
+      workerHost: { eq: $workerHost }
+      runId: { isNull: true }
+      closedAtMs: { isNull: true }
+      openJobId: { eq: $jobId }
+      claimedAtMs: { le: $atMs }
+      startByMs: { gt: $atMs }
+    }
+    data: { runId: $runId }
+  ) @check(expr: "this == 1", message: "Admission is missing, expired, closed, or already bound")
+  buildJob_updateMany(
+    where: {
+      id: { eq: $jobId }
+      teamId: { eq: $teamId }
+      workerHost: { eq: $workerHost }
+      status: { eq: "IN_PROGRESS" }
+      latestRunId: { isNull: true }
+    }
+    data: { latestRunId: $runId, updatedAt_expr: "int(vars.atMs) / 1000" }
+  ) @check(expr: "this == 1", message: "Job is no longer owned by this admission")
+  buildRun_insert(
+    data: {
+      id: $runId
+      buildJobId: $jobId
+      status: "in_progress"
+      createdAt_expr: "int(vars.atMs) / 1000"
+      updatedAt_expr: "int(vars.atMs) / 1000"
+    }
+  )
+    @check(
+      expr: "vars.runId.matches('[^[:space:]]') && size(vars.runId) <= 255"
+      message: "Invalid run ID"
+    )
+}
+
+# Release an expired reservation only if no execution was started. An exact
+# current-attempt match protects a later retry when recovering an old admission.
+mutation ExpireBillingAdmission(
+  $id: String!
+  $teamId: String!
+  $runId: String = null
+  $expectedUsageRevision: Int64!
+  $atMs: Int64!
+) @auth(level: NO_ACCESS) @transaction {
+  query @redact {
+    admission: billingAdmission(id: $id)
+      @check(
+        expr: "this != null && this.teamId == vars.teamId && this.runId == vars.runId && this.closedAtMs == null && this.openJobId == this.jobId && int(vars.atMs) >= int(this.startByMs)"
+        message: "Admission is not open and expired"
+      ) {
+      ...BillingAdmissionFields
+      billingAccount {
+        ...BillingUsageGuard
+      }
+    }
+    executions: billingExecutions(where: { runId: { eq: $runId } }, limit: 1)
+      @check(expr: "size(this) == 0", message: "An execution already exists; finish it instead") {
+      runId
+    }
+  }
+  billingAccount_updateMany(
+    where: { teamId: { eq: $teamId }, usageRevision: { eq: $expectedUsageRevision } }
+    data: { usageRevision_update: { inc: 1 } }
+  ) @check(expr: "this == 1", message: "Billing usage changed; read and retry")
+  buildJob_updateMany(
+    where: {
+      id: { eq_expr: "response.query.admission.jobId" }
+      teamId: { eq: $teamId }
+      workerHost: { eq_expr: "response.query.admission.workerHost" }
+      status: { eq: "IN_PROGRESS" }
+      latestRunId: { eq: $runId }
+    }
+    data: {
+      status: "QUEUED"
+      latestRunId: null
+      workerHost: null
+      vmName: null
+      updatedAt_expr: "int(vars.atMs) / 1000"
+    }
+  )
+  buildRun_updateMany(
+    where: {
+      id: { eq: $runId }
+      buildJobId: { eq_expr: "response.query.admission.jobId" }
+      status: { eq: "in_progress" }
+    }
+    data: { status: "completed", conclusion: "failure", updatedAt_expr: "int(vars.atMs) / 1000" }
+  )
+  billingAdmission_update(id: $id, data: { closedAtMs: $atMs, openJobId: null })
+}

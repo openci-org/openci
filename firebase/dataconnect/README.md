@@ -13,8 +13,8 @@ All 19 migration-target tables are now defined, including the pending skipped
 workflow reporting table. See [the schema inventory](SCHEMA.md) for source
 mappings, Secret Manager references, billing uniqueness keys, and the write
 rules required before switching the servers to SQL Connect. Connector operations
-cover `GetMyTeams`, `CreateBillingPeriod`, and the Stripe Customer, Checkout, and
-state/event operations described below.
+cover `GetMyTeams`, `CreateBillingPeriod`, Stripe Customer/Checkout/state/event
+operations, and CI admission/execution operations described below.
 
 ## Retired features
 
@@ -42,7 +42,8 @@ period or leaving a newly created account behind.
 
 `BillingPeriod.billingAccount` defines the foreign key using `@ref`. Billing
 accounts have no foreign key to teams, so team deletion retains billing history.
-No account/period update or delete operation is exposed. Do not physically delete billing
+Only the account's usage revision is updated; no account/period delete or period
+update operation is exposed. Do not physically delete billing
 accounts or periods: required `@ref` relations cascade to billing history, while
 the optional Stripe paid-period reference would be set to null.
 
@@ -139,6 +140,64 @@ protects simultaneous updates even within the same Unix second. These operations
 can process billing history after team deletion. Webhook signature validation,
 Customer/team resolution, Stripe verification, and Functions retry orchestration
 remain follow-up work.
+
+### CI reservations and execution measurement
+
+`billing/admissions.gql`, `billing/executions.gql`, and `billing/usage.gql` add
+eleven server-only operations. This implements paid-period billing storage;
+it does not enable a trial or switch the existing workers to SQL Connect.
+
+| Operation                   | Behavior                                                                                                                                                    |
+| --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GetBillingPeriodUsage`     | Returns the account revision, allowance, measured/leased/reserved milliseconds, remaining allowance, and incomplete-measurement flag.                       |
+| `CreateBillingAdmission`    | Claims a selected queued job and reserves `min(remainingMillis, 60000)` in one transaction. The reservation must start within two minutes.                  |
+| `GetBillingAdmission`       | Reads an admission and the account revision for subsequent writes or recovery after an ambiguous response.                                                  |
+| `BindBillingAdmissionRun`   | Creates a minimal `BuildRun` and binds both the admission and job to it atomically, before the reservation expires.                                         |
+| `StartBillingExecution`     | Starts the bound current run with a one-minute lease. Its reservation is then excluded from pending usage, preventing double counting.                      |
+| `GetBillingExecution`       | Reads the measurement and account revision, including an already committed final outcome.                                                                   |
+| `HeartbeatBillingExecution` | Advances the observed time and extends the lease to at least one minute after the observation; rejects stale observations and expired leases.               |
+| `FinishBillingExecution`    | Records `success`, `failure`, `cancelled`, or `timed_out` and closes the admission in one transaction. It preserves any later observation already recorded. |
+| `ExpireBillingExecution`    | Marks an expired lease `abandoned`/incomplete at the last observed time. Unobserved time is not charged. Any open admission is closed.                      |
+| `ExpireBillingAdmission`    | Releases an expired, unstarted reservation; requeues only its matching current job attempt and fails its bound unfinished run.                              |
+| `GetExpiredBillingWork`     | Returns at most 100 expired executions and 100 unstarted expired admission identities for a recovery sweep.                                                 |
+
+Remaining allowance is `max(0, allowance - measured - leased - reserved)`.
+Measurements and leases are clipped to the requested period. Executions and
+reservations that originated in another period still contribute when they
+overlap. Expired leases/reservations stop reserving allowance. As in the existing
+service, an admitted execution may keep renewing its lease after the remaining
+allowance reaches zero; the budget controls admission of additional jobs.
+
+The complex interval aggregation and recovery anti-join use
+[native SQL](https://firebase.google.com/docs/sql-connect/native-sql) inside the
+connector; no separate SQL migration is required. Their `Any` results require
+runtime shape validation in Functions. Usage numeric fields are decimal strings
+to preserve bigint precision; do not convert them to JavaScript `number`.
+Recovery identities contain `id`, `teamId`, and nullable `runId`.
+
+`billing_accounts.usage_revision` starts at `0` for imported accounts. Every
+admission/execution mutation increments it in the same transaction as its writes.
+Creation compares the revision from the same SQL snapshot as the remaining
+allowance. Other mutations require `expectedUsageRevision`; read it before the
+call. This serializes usage changes across different jobs of a team and rejects
+stale snapshots. A failure rolls back the revision, job/run changes, and billing
+writes together. Future usage writers must follow this protocol too.
+
+On conflicts, read current records again and reconsider the action. Creates,
+bindings, starts, and terminal transitions do not overwrite existing history;
+after a duplicate or ambiguous response, read the saved admission/execution.
+Expired heartbeats/finish reports must go through expiration instead of extending
+the unobserved interval. Recovery must process executions first, then fetch fresh
+revisions for unstarted admissions. It must not continuously retry already
+closed/finished records. An already closed or historically absent admission does
+not prevent execution expiration.
+
+Functions integration remains pending: authenticate workers; select the verified
+paid or complimentary period and Stripe mode; choose server timestamps and IDs;
+select jobs with worker-capacity/queue ordering; assign run display numbers; and
+coordinate team deletion, job completion, GitHub status updates, and recovery
+scheduling. The selected-job claim is atomic, but a fleet-wide scheduler is not
+implemented here. Trial claims and their activation routes remain untouched.
 
 ## Secrets
 

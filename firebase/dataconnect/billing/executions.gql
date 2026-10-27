@@ -1,0 +1,283 @@
+query GetBillingExecution($teamId: String!, $runId: String!) @auth(level: NO_ACCESS) {
+  billingAccount(key: { teamId: $teamId }) {
+    usageRevision
+  }
+  billingExecution(first: { where: { runId: { eq: $runId }, teamId: { eq: $teamId } } }) {
+    ...BillingExecutionFields
+  }
+}
+
+fragment BillingUsageGuard on BillingAccount {
+  usageRevision
+    @check(
+      expr: "this == vars.expectedUsageRevision"
+      message: "Billing usage changed; read and retry"
+    )
+}
+
+fragment BillingExecutionFields on BillingExecution {
+  runId
+  teamId
+  jobId
+  workerHost
+  periodId
+  startedAtMs
+  observedAtMs
+  leaseUntilMs
+  finishedAtMs
+  outcome
+  measurementIncomplete
+}
+
+# Functions read the account's usageRevision before invoking a mutation. A CAS
+# failure requires a fresh read and a new decision, not a blind replay. Timestamps
+# are chosen by Functions, never by the worker. Duplicate starts use GetBillingExecution.
+mutation StartBillingExecution(
+  $admissionId: String!
+  $teamId: String!
+  $jobId: String!
+  $workerHost: String!
+  $runId: String!
+  $expectedUsageRevision: Int64!
+  $atMs: Int64!
+) @auth(level: NO_ACCESS) @transaction {
+  query @redact {
+    admission: billingAdmission(id: $admissionId)
+      @check(
+        expr: "this != null && this.teamId == vars.teamId && this.jobId == vars.jobId && this.workerHost == vars.workerHost && this.runId == vars.runId && this.openJobId == vars.jobId && this.closedAtMs == null"
+        message: "Admission identity does not match"
+      )
+      @check(
+        expr: "int(vars.atMs) >= int(this.claimedAtMs) && int(vars.atMs) < int(this.startByMs)"
+        message: "Execution must start before the admission expires"
+      ) {
+      ...BillingAdmissionFields
+      billingAccount {
+        ...BillingUsageGuard
+      }
+      billingPeriod
+        @check(
+          expr: "this.periodType == 'paid' && int(this.startsAt) <= int(vars.atMs) / 1000"
+          message: "Execution requires a started paid period"
+        ) {
+        periodType
+        startsAt
+      }
+    }
+    buildRun(id: $runId)
+      @check(
+        expr: "this != null && this.buildJobId == vars.jobId && this.status == 'in_progress'"
+        message: "Build run does not match"
+      ) {
+      buildJobId
+      status
+    }
+  }
+  billingAccount_updateMany(
+    where: { teamId: { eq: $teamId }, usageRevision: { eq: $expectedUsageRevision } }
+    data: { usageRevision_update: { inc: 1 } }
+  ) @check(expr: "this == 1", message: "Billing usage changed; read and retry")
+  # Lock the exact current attempt as well as the account. Updating the same
+  # worker value prevents a concurrent job retry from passing this ownership check.
+  buildJob_updateMany(
+    where: {
+      id: { eq: $jobId }
+      teamId: { eq: $teamId }
+      workerHost: { eq: $workerHost }
+      latestRunId: { eq: $runId }
+      status: { eq: "IN_PROGRESS" }
+    }
+    data: { workerHost: $workerHost }
+  ) @check(expr: "this == 1", message: "Build run is no longer current")
+  billingExecution_insert(
+    data: {
+      runId: $runId
+      teamId: $teamId
+      jobId: $jobId
+      workerHost: $workerHost
+      periodId_expr: "response.query.admission.periodId"
+      startedAtMs: $atMs
+      observedAtMs: $atMs
+      leaseUntilMs_expr: "int(vars.atMs) + 60000"
+      measurementIncomplete: false
+    }
+  )
+    @check(
+      expr: "int(vars.atMs) >= 0 && int(vars.atMs) <= 9223372036854715807"
+      message: "Invalid execution time"
+    )
+}
+
+mutation HeartbeatBillingExecution(
+  $teamId: String!
+  $jobId: String!
+  $workerHost: String!
+  $runId: String!
+  $expectedUsageRevision: Int64!
+  $atMs: Int64!
+) @auth(level: NO_ACCESS) @transaction {
+  query @redact {
+    execution: billingExecution(key: { runId: $runId })
+      @check(
+        expr: "this != null && this.teamId == vars.teamId && this.jobId == vars.jobId && this.workerHost == vars.workerHost && this.finishedAtMs == null"
+        message: "Execution identity does not match or execution has finished"
+      )
+      @check(
+        expr: "int(vars.atMs) >= int(this.observedAtMs) && int(vars.atMs) < int(this.leaseUntilMs)"
+        message: "Heartbeat is stale or the execution lease expired"
+      ) {
+      ...BillingExecutionFields
+      billingAccount {
+        ...BillingUsageGuard
+      }
+    }
+  }
+  billingAccount_updateMany(
+    where: { teamId: { eq: $teamId }, usageRevision: { eq: $expectedUsageRevision } }
+    data: { usageRevision_update: { inc: 1 } }
+  ) @check(expr: "this == 1", message: "Billing usage changed; read and retry")
+  buildJob_updateMany(
+    where: {
+      id: { eq: $jobId }
+      teamId: { eq: $teamId }
+      workerHost: { eq: $workerHost }
+      latestRunId: { eq: $runId }
+      status: { eq: "IN_PROGRESS" }
+    }
+    data: { workerHost: $workerHost }
+  ) @check(expr: "this == 1", message: "Build run is no longer current")
+  billingExecution_update(
+    key: { runId: $runId }
+    data: {
+      observedAtMs: $atMs
+      leaseUntilMs_expr: "int(response.query.execution.leaseUntilMs) > int(vars.atMs) + 60000 ? int(response.query.execution.leaseUntilMs) : int(vars.atMs) + 60000"
+    }
+  ) @check(expr: "int(vars.atMs) <= 9223372036854715807", message: "Invalid heartbeat time")
+}
+
+# Finish only within the last lease. An expired worker cannot report additional
+# billable time: use ExpireBillingExecution and preserve the last observation.
+mutation FinishBillingExecution(
+  $teamId: String!
+  $jobId: String!
+  $workerHost: String!
+  $runId: String!
+  $expectedUsageRevision: Int64!
+  $atMs: Int64!
+  $outcome: String!
+) @auth(level: NO_ACCESS) @transaction {
+  query @redact {
+    execution: billingExecution(key: { runId: $runId })
+      @check(
+        expr: "this != null && this.teamId == vars.teamId && this.jobId == vars.jobId && this.workerHost == vars.workerHost && this.finishedAtMs == null"
+        message: "Execution identity does not match or execution has finished"
+      )
+      @check(
+        expr: "int(vars.atMs) >= int(this.startedAtMs) && int(vars.atMs) < int(this.leaseUntilMs)"
+        message: "Invalid finish time or execution lease expired"
+      ) {
+      ...BillingExecutionFields
+      billingAccount {
+        ...BillingUsageGuard
+      }
+    }
+  }
+  billingAccount_updateMany(
+    where: { teamId: { eq: $teamId }, usageRevision: { eq: $expectedUsageRevision } }
+    data: { usageRevision_update: { inc: 1 } }
+  ) @check(expr: "this == 1", message: "Billing usage changed; read and retry")
+  buildJob_updateMany(
+    where: {
+      id: { eq: $jobId }
+      teamId: { eq: $teamId }
+      workerHost: { eq: $workerHost }
+      latestRunId: { eq: $runId }
+    }
+    data: { workerHost: $workerHost }
+  ) @check(expr: "this == 1", message: "Build run is no longer current")
+  billingExecution_update(
+    key: { runId: $runId }
+    data: {
+      observedAtMs_expr: "int(vars.atMs) > int(response.query.execution.observedAtMs) ? vars.atMs : response.query.execution.observedAtMs"
+      finishedAtMs_expr: "int(vars.atMs) > int(response.query.execution.observedAtMs) ? vars.atMs : response.query.execution.observedAtMs"
+      outcome: $outcome
+    }
+  )
+    @check(
+      expr: "vars.outcome in ['success', 'failure', 'cancelled', 'timed_out']"
+      message: "Invalid execution outcome"
+    )
+  billingAdmission_updateMany(
+    where: {
+      teamId: { eq: $teamId }
+      jobId: { eq: $jobId }
+      workerHost: { eq: $workerHost }
+      runId: { eq: $runId }
+      closedAtMs: { isNull: true }
+    }
+    data: {
+      closedAtMs_expr: "int(vars.atMs) > int(response.query.execution.observedAtMs) ? vars.atMs : response.query.execution.observedAtMs"
+      openJobId: null
+    }
+  )
+}
+
+mutation ExpireBillingExecution(
+  $teamId: String!
+  $runId: String!
+  $expectedUsageRevision: Int64!
+  $atMs: Int64!
+) @auth(level: NO_ACCESS) @transaction {
+  query @redact {
+    execution: billingExecution(key: { runId: $runId })
+      @check(
+        expr: "this != null && this.teamId == vars.teamId && this.finishedAtMs == null && int(vars.atMs) >= int(this.leaseUntilMs)"
+        message: "Execution lease is not expired"
+      ) {
+      ...BillingExecutionFields
+      billingAccount {
+        ...BillingUsageGuard
+      }
+    }
+  }
+  billingAccount_updateMany(
+    where: { teamId: { eq: $teamId }, usageRevision: { eq: $expectedUsageRevision } }
+    data: { usageRevision_update: { inc: 1 } }
+  ) @check(expr: "this == 1", message: "Billing usage changed; read and retry")
+  billingExecution_update(
+    key: { runId: $runId }
+    data: {
+      finishedAtMs_expr: "response.query.execution.observedAtMs"
+      outcome: "abandoned"
+      measurementIncomplete: true
+    }
+  )
+  billingAdmission_updateMany(
+    where: { teamId: { eq: $teamId }, runId: { eq: $runId }, closedAtMs: { isNull: true } }
+    data: { closedAtMs_expr: "response.query.execution.observedAtMs", openJobId: null }
+  )
+}
+
+# Bounded sweep; Functions process executions first, then unstarted admissions.
+# Finish/retry job orchestration remains separate from billing recovery.
+query GetExpiredBillingWork($atMs: Int64!) @auth(level: NO_ACCESS) {
+  billingExecutions(
+    where: { finishedAtMs: { isNull: true }, leaseUntilMs: { le: $atMs } }
+    orderBy: [{ leaseUntilMs: ASC }, { runId: ASC }]
+    limit: 100
+  ) {
+    ...BillingExecutionFields
+  }
+  # Exclude started runs before LIMIT so long-running builds cannot starve recovery.
+  # Any[] result: Functions validate these id/teamId/runId identities before use.
+  admissions: _select(
+    sql: """
+    SELECT a.id, a.team_id AS "teamId", a.run_id AS "runId"
+    FROM billing_admissions a
+    WHERE a.closed_at_ms IS NULL AND a.start_by_ms <= $1::bigint
+      AND NOT EXISTS (SELECT 1 FROM billing_executions e WHERE e.run_id = a.run_id)
+    ORDER BY a.start_by_ms, a.id LIMIT 100
+    """
+    params: [$atMs]
+  )
+}

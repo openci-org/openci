@@ -60,6 +60,7 @@ in this branch's legacy `AppDatabase`.
 | Open admission (`closed_at_ms IS NULL`)             | Set `open_job_id = job_id`; otherwise set it to NULL                                               |
 | Open checkout (`closed_at IS NULL`)                 | Set `open_team_id = team_id`; otherwise set it to NULL                                             |
 | Existing Stripe state                               | Initialize the new `revision` column to `0`                                                        |
+| Existing billing account                            | Initialize the new `usage_revision` column to `0`                                                  |
 
 The new open-key columns have ordinary nullable unique constraints. Two open
 rows cannot reserve the same key, while closed rows can retain the same job/team
@@ -71,12 +72,18 @@ An open-key column is not generated automatically. Imports and mutations
 must derive it from the row's ID and closed timestamp, and update both fields in
 the same transaction. A standalone `@check` that queries for an existing row is
 not sufficient for concurrent requests; the unique key must arbitrate the write.
-Checkout operations enforce this rule. Admission write operations still need it.
+Checkout and admission operations enforce this rule.
 
 `billing_stripe_state.revision` is a new non-null bigint with default `0`. The
 event-recording mutation compares the expected revision in its UPDATE and
 increments it atomically, so equal-second observations cannot silently overwrite
 one another. Functions must re-fetch Stripe after a revision conflict.
+
+`billing_accounts.usage_revision` is a separate non-null bigint with default `0`.
+Every admission/execution writer increments it transactionally. A quota check
+and its revision come from one SQL snapshot, followed by a conditional update;
+other writes require an expected revision. This prevents simultaneous requests
+from reserving the same remaining allowance and protects observation/expiry races.
 
 OAuth request/session values must not be copied into SQL Connect. At cutover,
 let short-lived flows expire and restart, or explicitly move the secrets to
@@ -86,14 +93,15 @@ the future Functions cleanup must do both.
 ## Validation required in future write operations
 
 `CreateBillingPeriod` and the operations in `billing/customers.gql`,
-`billing/checkouts.gql`, and `billing/stripe.gql` have write validations
+`billing/checkouts.gql`, `billing/stripe.gql`, `billing/admissions.gql`, and
+`billing/executions.gql` have write validations
 implemented. Creation intents are insert-only; Customer/Session IDs use
 conditional updates. Checkout operations derive/release the open key atomically.
 Stripe state/event writes share a transaction, enforce period ownership and
 retention, protect ended subscriptions, and reject stale revisions. Stripe
-responses and membership must be verified by Functions. Other new tables have
-no write operations defined here. Before exposing their writes, apply `@check`
-and `@transaction` to the following legacy invariants:
+responses and membership must be verified by Functions. Admission/execution
+operations enforce the following invariants through derived values, `@check`,
+conditional updates, and transactions. Future writers must preserve them too:
 
 | Table                | Required checks and atomic behavior                                                                                                                                                                                                                                                                                       |
 | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -102,9 +110,12 @@ and `@transaction` to the following legacy invariants:
 
 Trial claims retain user-primary-key and team-unique protection. Stripe event
 IDs and customer/checkout idempotency keys remain unique. Coordinating these
-records with period creation, external Stripe calls, allowance consumption,
-leases, and job claims belongs in the Functions/connector implementation.
-Existing row locks and advisory locks are not replaced by schema definitions.
+records with Stripe, worker authorization/capacity, run display numbering, job
+completion, and recovery scheduling remains Functions work. The billing connector
+now claims a selected queued job atomically with its reservation, binds its run,
+and measures/renews/finishes execution leases. It does not replace the queue's
+worker-capacity advisory lock or expose general writes for the other tables.
+Trial activation is not exposed.
 
 ## Excluded storage
 

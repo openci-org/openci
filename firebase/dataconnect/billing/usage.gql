@@ -1,0 +1,53 @@
+# Server-selected timestamps, in milliseconds. This SQL aggregation clips usage
+# to the period, including executions/reservations originating in another period.
+# Native SQL returns Any: Functions must validate the result shape. Bigints are
+# explicitly text to avoid losing precision in JavaScript/JSON.
+query GetBillingPeriodUsage($teamId: String!, $periodId: String!, $atMs: Int64!)
+@auth(level: NO_ACCESS) {
+  ...BillingUsageSnapshot
+}
+
+fragment BillingUsageSnapshot on Query {
+  usage: _selectFirst(
+    sql: """
+    WITH period AS (
+      SELECT p.*, a.usage_revision,
+             p.starts_at::numeric * 1000 AS starts_ms,
+             p.ends_at::numeric * 1000 AS ends_ms
+      FROM billing_periods p
+      JOIN billing_accounts a ON a.team_id = p.team_id
+      WHERE p.team_id = $1 AND p.id = $2 AND p.period_type = 'paid'
+        AND p.allowance_seconds BETWEEN 0 AND 9223372036854775
+    ), usage AS (
+      SELECT p.*,
+        COALESCE((SELECT sum(GREATEST(0,
+          LEAST(e.observed_at_ms, p.ends_ms) - GREATEST(e.started_at_ms, p.starts_ms)))
+          FROM billing_executions e WHERE e.team_id = p.team_id), 0) AS measured_ms,
+        COALESCE((SELECT sum(GREATEST(0,
+          LEAST(e.lease_until_ms, p.ends_ms) - GREATEST(e.observed_at_ms, p.starts_ms)))
+          FROM billing_executions e WHERE e.team_id = p.team_id
+            AND e.finished_at_ms IS NULL AND e.lease_until_ms > $3::bigint), 0) AS leased_ms,
+        COALESCE((SELECT sum(a.reserved_millis::numeric)
+          FROM billing_admissions a WHERE a.team_id = p.team_id
+            AND a.closed_at_ms IS NULL AND a.start_by_ms > $3::bigint
+            AND $3::bigint < p.ends_ms AND a.start_by_ms > p.starts_ms
+            AND a.claimed_at_ms < p.ends_ms
+            AND NOT EXISTS (SELECT 1 FROM billing_executions e WHERE e.run_id = a.run_id)), 0) AS reserved_ms,
+        EXISTS (SELECT 1 FROM billing_executions e WHERE e.team_id = p.team_id
+          AND e.started_at_ms < p.ends_ms
+          AND (COALESCE(e.finished_at_ms, e.lease_until_ms) > p.starts_ms OR e.started_at_ms >= p.starts_ms)
+          AND (e.measurement_incomplete OR (e.finished_at_ms IS NULL AND e.lease_until_ms <= $3::bigint))) AS incomplete
+      FROM period p
+    )
+    SELECT usage_revision::text AS revision,
+      starts_at::text AS "startsAt", ends_at::text AS "endsAt",
+      (allowance_seconds::numeric * 1000)::text AS "allowanceMillis",
+      measured_ms::text AS "measuredMillis", leased_ms::text AS "leasedMillis",
+      reserved_ms::text AS "reservedMillis",
+      GREATEST(0, allowance_seconds::numeric * 1000 - measured_ms - leased_ms - reserved_ms)::text AS "availableMillis",
+      incomplete AS "measurementIncomplete"
+    FROM usage
+    """
+    params: [$teamId, $periodId, $atMs]
+  ) @check(expr: "int(vars.atMs) >= 0", message: "Usage time must not be negative")
+}
