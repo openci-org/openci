@@ -1,4 +1,4 @@
-# Team reads with Firebase SQL Connect
+# Firebase SQL Connect schemas
 
 This directory has its own Firebase configuration, separate from Hosting.
 
@@ -8,6 +8,19 @@ This directory has its own Firebase configuration, separate from Hosting.
 - Text IDs, JSON-encoded `installation_ids`, Unix-second timestamps (`bigint`),
   and membership IDs (`bigserial`) retain their existing storage types.
 - Explicit `limit: null` preserves the existing API's full team/member lists.
+
+## Secrets
+
+`schema/secret.gql` defines `secret_references`: team, name, timestamps, and
+`secretVersionPath` (`projects/{project}/secrets/{secret}/versions/{number}`).
+The value belongs in Secret Manager. Numeric versions let the server publish a
+new value by updating the reference after the version has been created.
+
+Only the server will write these references and access values after checking
+team/build permissions. No connector operations expose this table yet.
+The existing encrypted `secrets` table remains separate; switching the server,
+copying existing values, and cleaning up Secret Manager versions on update or
+team/secret deletion are follow-up work.
 
 ## Local validation
 
