@@ -23,7 +23,13 @@ operations, and CI admission/execution operations described below.
 
 `teams/connector.yaml` generates the three team operations into
 `apps/dashboard/lib/generated/teams`. Dashboard uses `firebase_data_connect`
-`0.4.1`; connecting the team screens to the generated SDK is the next step.
+`0.4.1`. Team lists use `GetMyTeams` through the generated SDK, with the selected
+connection's Firebase app and authentication. Local development uses the Auth
+Emulator host and SQL Connect port `9399` configured in `firebase.json`.
+
+Team creation and renaming still use the existing REST API. Switch those writes
+to SQL Connect before releasing the new list reader, so reads and writes use
+the same database. Team deletion remains part of the billing migration.
 
 Regenerate from the repository root with Firebase CLI 15.25.0:
 

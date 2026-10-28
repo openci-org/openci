@@ -2,7 +2,9 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:dashboard/api/openci_api_client.dart';
+import 'package:dashboard/auth/auth_provider.dart';
 import 'package:dashboard/team/selected_team_provider.dart';
+import 'package:dashboard/team/teams_connector_provider.dart';
 import 'package:openci_shared/openci_shared.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -25,16 +27,29 @@ Future<Team> selectedTeam(Ref ref) async {
 
 @riverpod
 Future<List<Team>> teamList(Ref ref) async {
-  final apiService = await ref.watch(openciApiServiceProvider.future);
-  final response = await apiService.getTeams();
+  final user = await ref.watch(authStateChangesProvider.future);
+  if (user == null) return const [];
 
-  if (!response.isSuccessful) {
-    throw StateError(
-      'Failed to fetch teams: ${response.statusCode} ${response.error}',
-    );
-  }
-
-  return response.body ?? const [];
+  final connector = await ref.watch(teamsConnectorProvider.future);
+  final result = await connector.getMyTeams().execute();
+  return result.data.teams
+      .map(
+        (team) => Team(
+          id: team.id,
+          name: team.name,
+          members: team.members.map((member) => member.userId).toList(),
+          runNumber: team.runNumber.toInt(),
+          createdAt: DateTime.fromMillisecondsSinceEpoch(
+            team.createdAt.toInt() * 1000,
+            isUtc: true,
+          ),
+          updatedAt: DateTime.fromMillisecondsSinceEpoch(
+            team.updatedAt.toInt() * 1000,
+            isUtc: true,
+          ),
+        ),
+      )
+      .toList();
 }
 
 @Riverpod(keepAlive: true)
