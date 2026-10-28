@@ -1,0 +1,4 @@
+type BillingAccount @table(name: "billing_accounts", key: "teamId") {
+  # No Team foreign key: retain billing identity after team deletion.
+  teamId: String! @col(name: "team_id")
+}
