@@ -7,7 +7,6 @@ query GetMyTeams @auth(level: USER) {
   ) {
     id
     name
-    installationIds
     runNumber
     createdAt
     updatedAt

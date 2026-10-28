@@ -7,8 +7,9 @@ This directory has its own Firebase configuration, separate from Hosting.
   user and filters membership by `auth.uid`.
 - `teams/mutations.gql` adds `CreateTeam` (team and own membership in one
   transaction) and `RenameTeam` (members only). Flutter SDK integration is next.
-- Text IDs, JSON-encoded `installation_ids`, Unix-second timestamps (`bigint`),
-  and membership IDs (`bigserial`) retain their existing storage types.
+- Text IDs, Unix-second timestamps (`bigint`), and membership IDs (`bigserial`)
+  retain their existing storage types. GitHub installations belong to
+  `github_connections`; `Team` no longer exposes `installationIds`.
 - Explicit `limit: null` preserves the existing API's full team/member lists.
 
 All 19 migration-target tables are now defined, including the pending skipped
@@ -238,6 +239,12 @@ is `openci-b1b91-database`.
 
 `COMPATIBLE` allows unrelated tables but can still alter mapped tables. Review
 `firebase dataconnect:sql:diff --project openci-b1b91` before deployment.
+
+Removing `Team.installationIds` in `COMPATIBLE` mode keeps the legacy
+`teams.installation_ids` column and its data, but removes its `NOT NULL`
+constraint so `CreateTeam` can omit it. Deploy both the schema and `teams`
+connector together. No supplemental SQL migration is needed; see the
+[SQL Connect migration behavior](https://firebase.google.com/docs/sql-connect/manage-schemas-and-connectors#use-compatible-mode-when-you-have-production-data-in-your-database).
 
 Dashboard still uses the existing server. The provisioned service contains an
 older server's team-data snapshot; current production data has not been migrated

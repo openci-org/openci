@@ -3,7 +3,6 @@ mutation CreateTeam($id: String!, $name: String!) @auth(level: USER) @transactio
     data: {
       id: $id
       name: $name
-      installationIds: "[]"
       createdAt_expr: "int(request.time)"
       updatedAt_expr: "int(request.time)"
     }

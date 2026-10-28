@@ -54,6 +54,7 @@ in this branch's legacy `AppDatabase`.
 | Legacy storage                                      | Destination                                                                                        |
 | --------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
 | `teams.ai_enabled`                                  | Omitted as previously agreed                                                                       |
+| `teams.installation_ids`                            | Omitted; GitHub installations are managed in `github_connections`                                  |
 | `secrets.encrypted_value`                           | Secret Manager value; `secret_references.secret_version_path` identifies a numeric version         |
 | `github_connection_requests.code_verifier`          | Secret Manager value; `code_verifier_secret_version_path` is required                              |
 | `github_connection_sessions.encrypted_access_token` | Secret Manager value; nullable `access_token_secret_version_path` is cleared on consumption/expiry |
