@@ -79,9 +79,12 @@ the future Functions cleanup must do both.
 
 ## Validation required in future write operations
 
-Only `CreateBillingPeriod` has its write validations implemented. The new tables
-have no connector operations defined here. Before exposing writes, apply `@check`
-and `@transaction` to the following legacy invariants:
+`CreateBillingPeriod` and the Customer creation operations in
+`billing/customers.gql` have write validations implemented. Customer creation
+uses insert-only intents and a conditional update for the Stripe Customer ID;
+the Stripe response and membership must be verified by Functions. Other new
+tables have no write operations defined here. Before exposing their writes,
+apply `@check` and `@transaction` to the following legacy invariants:
 
 | Table                        | Required checks and atomic behavior                                                                                                                                                                                                                                                                                       |
 | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

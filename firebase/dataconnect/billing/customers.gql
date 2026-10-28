@@ -1,0 +1,87 @@
+# Server-only: Functions must authenticate membership and select the Stripe mode.
+# On a duplicate create, read the stored intent and reuse its idempotency key.
+mutation CreateBillingCustomerCreation(
+  $teamId: String!
+  $idempotencyKey: String!
+  $livemode: Boolean!
+  $createdAt: Int64!
+) @auth(level: NO_ACCESS) @transaction {
+  query @redact {
+    team(id: $teamId) @check(expr: "this != null", message: "Team not found") {
+      id
+    }
+  }
+  billingAccount_upsert(data: { teamId: $teamId })
+  billingCustomerCreation_insert(
+    data: {
+      teamId: $teamId
+      idempotencyKey: $idempotencyKey
+      livemode: $livemode
+      createdAt: $createdAt
+    }
+  )
+    @check(
+      expr: "vars.idempotencyKey.matches('[^[:space:]]')"
+      message: "Stripe Customer creation requires an idempotency key"
+    )
+    @check(expr: "int(vars.createdAt) >= 0", message: "Creation time must not be negative")
+}
+
+query GetBillingCustomerCreation($teamId: String!, $livemode: Boolean!) @auth(level: NO_ACCESS) {
+  team(id: $teamId) @redact @check(expr: "this != null", message: "Team not found") {
+    id
+  }
+  billingCustomerCreation(key: { teamId: $teamId })
+    @check(
+      expr: "this == null || this.livemode == vars.livemode"
+      message: "Stripe Customer creation mode does not match"
+    ) {
+    teamId
+    idempotencyKey
+    livemode
+    createdAt
+    stripeCustomerId
+  }
+}
+
+# Functions must verify that Stripe returned a non-deleted Customer whose
+# metadata.team_id and livemode match the stored intent before calling this.
+mutation RecordBillingCustomer(
+  $teamId: String!
+  $idempotencyKey: String!
+  $livemode: Boolean!
+  $stripeCustomerId: String!
+) @auth(level: NO_ACCESS) @transaction {
+  query @redact {
+    team(id: $teamId) @check(expr: "this != null", message: "Team not found") {
+      id
+    }
+  }
+  # Match the expected state in the UPDATE itself, including concurrent retries.
+  billingCustomerCreation_updateMany(
+    where: {
+      _and: [
+        {
+          teamId: { eq: $teamId }
+          idempotencyKey: { eq: $idempotencyKey }
+          livemode: { eq: $livemode }
+        }
+        {
+          _or: [
+            { stripeCustomerId: { isNull: true } }
+            { stripeCustomerId: { eq: $stripeCustomerId } }
+          ]
+        }
+      ]
+    }
+    data: { stripeCustomerId: $stripeCustomerId }
+  )
+    @check(
+      expr: "vars.stripeCustomerId.matches('[^[:space:]]')"
+      message: "Stripe Customer ID is required"
+    )
+    @check(
+      expr: "this == 1"
+      message: "Stripe Customer creation is missing, changed, or already linked"
+    )
+}

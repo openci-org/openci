@@ -12,8 +12,9 @@ This directory has its own Firebase configuration, separate from Hosting.
 All 19 migration-target tables are now defined, including the pending skipped
 workflow reporting table. See [the schema inventory](SCHEMA.md) for source
 mappings, Secret Manager references, billing uniqueness keys, and the write
-rules required before switching the servers to SQL Connect. The only connector
-operations defined here are `GetMyTeams` and `CreateBillingPeriod`.
+rules required before switching the servers to SQL Connect. Connector operations
+cover `GetMyTeams`, `CreateBillingPeriod`, and the Stripe Customer creation
+operations described below.
 
 ## Retired features
 
@@ -41,15 +42,37 @@ period or leaving a newly created account behind.
 
 `BillingPeriod.billingAccount` defines the foreign key using `@ref`. Billing
 accounts have no foreign key to teams, so team deletion retains billing history.
-No update or delete operation is exposed. Do not physically delete billing
+No account/period update or delete operation is exposed. Do not physically delete billing
 accounts or periods: required `@ref` relations cascade to billing history, while
 the optional Stripe paid-period reference would be set to null.
 
 No supplemental SQL migration is required. These validations apply to this
 connector operation, not direct SQL or ad hoc administrative mutations. Future
 write operations must carry the same checks. The existing servers still use
-their current database; routing billing writes through this operation is
+their current database; routing billing writes through these operations is
 follow-up work.
+
+### Stripe Customer creation
+
+`billing/customers.gql` adds three server-only operations:
+
+- `CreateBillingCustomerCreation` requires an existing team, creates its billing
+  account if needed, and inserts an immutable creation intent in one transaction.
+  Empty/whitespace-only keys and negative creation times are rejected. Duplicate
+  team/key attempts fail without changing the original intent.
+- `GetBillingCustomerCreation` reads the stored key and Customer ID, returning
+  null if there is no intent. It rejects a missing team or a Stripe mode mismatch.
+- `RecordBillingCustomer` sets the Customer ID only when the team, stored key,
+  and mode match. Repeating the same ID succeeds; replacing it or assigning a
+  Customer already linked to another team fails.
+
+Functions must verify membership and choose the mode, key, and timestamp. Before
+calling Stripe, read or create the intent; after a duplicate create or ambiguous
+timeout, read it again and use the stored key. Verify the returned Customer's
+`metadata.team_id`, `livemode`, and non-deleted status before recording its ID.
+Stripe API calls and Functions integration remain follow-up work. The team
+existence check is not a replacement for the legacy team/account row locks;
+coordinate team deletion when implementing that workflow.
 
 ## Secrets
 
