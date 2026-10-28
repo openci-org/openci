@@ -1,0 +1,83 @@
+# Functions must authenticate the worker and verify its assignment to this run.
+fragment LogWriteScope on BuildRun {
+  id
+  logsExpireAt
+    @check(
+      expr: "this == null || this > request.time"
+      message: "Log retention has expired"
+    )
+  buildJob {
+    teamId
+      @check(
+        expr: "this == vars.teamId"
+        message: "Run does not belong to this team"
+      )
+  }
+}
+
+mutation CreateBuildStep(
+  $teamId: String!
+  $runId: String!
+  $stepId: String!
+  $name: String!
+  $stepOrder: Int!
+) @auth(level: NO_ACCESS) @transaction {
+  query @redact {
+    buildRun(id: $runId)
+      @check(expr: "this != null", message: "Run not found")
+      @check(
+        expr: "vars.stepId.matches('[^[:space:]]') && size(bytes(vars.stepId)) <= 255 && vars.name.matches('[^[:space:]]') && size(bytes(vars.name)) <= 1024 && vars.stepOrder >= 0"
+        message: "Invalid step identity, name, or order"
+      ) {
+      ...LogWriteScope
+    }
+  }
+  # Insert-only: a retried create cannot reset a completed step.
+  buildStep_insert(
+    data: {
+      runId: $runId
+      stepId: $stepId
+      name: $name
+      stepOrder: $stepOrder
+      status: "IN_PROGRESS"
+    }
+  )
+}
+
+mutation UpdateBuildStep(
+  $teamId: String!
+  $runId: String!
+  $stepId: String!
+  $status: String!
+  $durationMs: Int64!
+) @auth(level: NO_ACCESS) @transaction {
+  query @redact {
+    buildRun(id: $runId)
+      @check(expr: "this != null", message: "Run not found")
+      @check(
+        expr: "vars.status in ['IN_PROGRESS', 'SUCCESS', 'FAILURE', 'CANCELLED', 'SKIPPED', 'TIMED_OUT'] && int(vars.durationMs) >= 0"
+        message: "Invalid step status or duration"
+      ) {
+      ...LogWriteScope
+    }
+  }
+  # The predicate is evaluated by UPDATE, so concurrent/late events cannot
+  # regress duration or reopen/replace a terminal state.
+  buildStep_updateMany(
+    where: {
+      runId: { eq: $runId }
+      stepId: { eq: $stepId }
+      status: { eq: "IN_PROGRESS" }
+      durationMs: { le: $durationMs }
+    }
+    data: {
+      status: $status
+      durationMs: $durationMs
+      updatedAt_expr: "request.time"
+    }
+  )
+    @check(
+      expr: "this == 1"
+      message: "Step is missing, finished, or the update is stale"
+    )
+}

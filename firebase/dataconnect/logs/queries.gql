@@ -1,0 +1,141 @@
+fragment LogReaderMembership on Query {
+  teamMembers(
+    where: { teamId: { eq: $teamId }, userId: { eq_expr: "auth.uid" } }
+    limit: 1
+  )
+    @redact
+    @check(expr: "size(this) == 1", message: "Team access denied")
+    @check(
+      expr: "vars.limit >= 1 && vars.limit <= 200"
+      message: "Invalid page size"
+    ) {
+    id
+  }
+}
+
+fragment BuildStepFields on BuildStep {
+  stepId
+  name
+  status
+  stepOrder
+  durationMs
+  createdAt
+  updatedAt
+}
+
+fragment BuildLogFields on BuildLog {
+  logId
+  sequence
+  stepId
+  source
+  stream
+  message
+  occurredAt
+  createdAt
+}
+
+query GetBuildSteps(
+  $teamId: String!
+  $runId: String!
+  $offset: Int! = 0
+  $limit: Int! = 100
+)
+# Reject invalid pagination before SQL reads, not only in a result @check.
+@auth(
+  expr: "auth != null && auth.token.firebase.sign_in_provider != 'anonymous' && vars.offset >= 0 && vars.limit >= 1 && vars.limit <= 200"
+) {
+  ...LogReaderMembership
+  run: buildRun(
+    first: {
+      where: { id: { eq: $runId }, buildJob: { teamId: { eq: $teamId } } }
+    }
+  )
+    @check(expr: "this != null", message: "Run not found")
+    @check(expr: "vars.offset >= 0", message: "Invalid page offset") {
+    id
+    steps: buildSteps_on_run(
+      orderBy: [{ stepOrder: ASC }, { stepId: ASC }]
+      offset: $offset
+      limit: $limit
+    ) {
+      ...BuildStepFields
+    }
+  }
+}
+
+query GetBuildLogs(
+  $teamId: String!
+  $runId: String!
+  $afterSequence: Int64! = 0
+  $limit: Int! = 100
+)
+@auth(
+  expr: "auth != null && auth.token.firebase.sign_in_provider != 'anonymous' && int(vars.afterSequence) >= 0 && vars.limit >= 1 && vars.limit <= 200"
+) {
+  ...LogReaderMembership
+  run: buildRun(
+    first: {
+      where: { id: { eq: $runId }, buildJob: { teamId: { eq: $teamId } } }
+    }
+  )
+    @check(expr: "this != null", message: "Run not found")
+    @check(
+      expr: "int(vars.afterSequence) >= 0"
+      message: "Invalid log cursor"
+    ) {
+    id
+    lastLogSequence
+    logsExpireAt
+    logs: buildLogs_on_run(
+      where: { sequence: { gt: $afterSequence } }
+      orderBy: { sequence: ASC }
+      limit: $limit
+    ) {
+      ...BuildLogFields
+    }
+  }
+}
+
+# Functions use these reads after a conflict or ambiguous response. Compare saved
+# payloads before treating a retry as successful; never overwrite a reused ID.
+query GetBuildLogWriteState(
+  $teamId: String!
+  $runId: String!
+  $logIds: [UUID!]!
+) @auth(level: NO_ACCESS) {
+  run: buildRun(
+    first: {
+      where: { id: { eq: $runId }, buildJob: { teamId: { eq: $teamId } } }
+    }
+  )
+    @check(expr: "this != null", message: "Run not found")
+    @check(expr: "size(vars.logIds) <= 100", message: "Too many log IDs") {
+    id
+    lastLogSequence
+    logsExpireAt
+    logs: buildLogs_on_run(
+      where: { logId: { in: $logIds } }
+      orderBy: { sequence: ASC }
+      limit: 100
+    ) {
+      ...BuildLogFields
+    }
+  }
+}
+
+query GetBuildStepWriteState(
+  $teamId: String!
+  $runId: String!
+  $stepId: String!
+) @auth(level: NO_ACCESS) {
+  run: buildRun(
+    first: {
+      where: { id: { eq: $runId }, buildJob: { teamId: { eq: $teamId } } }
+    }
+  ) @check(expr: "this != null", message: "Run not found") {
+    id
+    steps: buildSteps_on_run(where: { stepId: { eq: $stepId } }, limit: 1) {
+      ...BuildStepFields
+    }
+  }
+}
