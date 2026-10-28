@@ -2,3 +2,17 @@ type BillingAccount @table(name: "billing_accounts", key: "teamId") {
   # No Team foreign key: retain billing identity after team deletion.
   teamId: String! @col(name: "team_id")
 }
+
+type BillingPeriod
+  @table(name: "billing_periods", key: "id")
+  @unique(fields: ["id", "teamId"], indexName: "billing_periods_id_team") {
+  id: String!
+  teamId: String! @col(name: "team_id")
+  billingAccount: BillingAccount! @ref(fields: "teamId", references: "teamId")
+  planId: String! @col(name: "plan_id")
+  periodType: String! @col(name: "period_type")
+  # Keep Drift's Unix-second timestamps and nullable bigint allowance.
+  startsAt: Int64! @col(name: "starts_at")
+  endsAt: Int64! @col(name: "ends_at")
+  allowanceSeconds: Int64 @col(name: "allowance_seconds")
+}

@@ -17,6 +17,31 @@ Connect. Cleanup of the existing server APIs, shared models, and legacy database
 tables is tracked in [G-1569](https://linear.app/genuineci/issue/G-1569/retire-legacy-invitation-device-and-udid-request-storage)
 and has not been implemented yet.
 
+## Billing
+
+`schema/billing.gql` maps `billing_accounts` and `billing_periods`, preserving
+text IDs, Unix-second timestamps, and nullable bigint allowances. The unique
+`(id, team_id)` index supports the existing admission/execution foreign keys.
+
+`billing/mutations.gql` defines the server-only `CreateBillingPeriod` operation
+(`@auth(level: NO_ACCESS)`). Its five `@check` directives validate the plan,
+period type, time range, non-negative allowance, and required paid allowance.
+`Int64` values are converted to integers in CEL before numeric comparisons.
+The billing account is created if missing, and the period is inserted in the
+same `@transaction`. Duplicate period IDs fail without overwriting the existing
+period or leaving a newly created account behind.
+
+`BillingPeriod.billingAccount` defines the foreign key using `@ref`. Billing
+accounts have no foreign key to teams, so team deletion retains billing history.
+No update or delete operation is exposed. Do not physically delete billing
+accounts: the required `@ref` would cascade-delete their periods.
+
+No supplemental SQL migration is required. These validations apply to this
+connector operation, not direct SQL or ad hoc administrative mutations. Future
+write operations must carry the same checks. The existing servers still use
+their current database; routing billing writes through this operation is
+follow-up work.
+
 ## Secrets
 
 `schema/secret.gql` defines `secret_references`: team, name, timestamps, and
