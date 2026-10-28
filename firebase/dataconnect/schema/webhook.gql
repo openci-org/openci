@@ -1,0 +1,38 @@
+type WebhookTask @table(name: "webhook_tasks", key: "id") @index(fields: ["status", "createdAt"]) {
+  id: String!
+  deliveryId: String! @col(name: "delivery_id") @unique
+  eventType: String! @col(name: "event_type")
+  payload: String!
+  status: String! @default(value: "pending")
+  retryCount: Int64! @col(name: "retry_count") @default(value: 0)
+  errorMessage: String @col(name: "error_message")
+  createdAt: Int64! @col(name: "created_at")
+  updatedAt: Int64! @col(name: "updated_at")
+}
+
+# Includes the pending paths/skipped-workflow reporting feature (G-1561).
+type SkippedWorkflowReport
+  @table(name: "skipped_workflow_reports", key: "id")
+  @unique(fields: ["webhookTaskId", "workflowFileName", "commitSha"])
+  @index(fields: ["status", "nextAttemptAt"]) {
+  id: String!
+  webhookTaskId: String! @col(name: "webhook_task_id")
+  webhookTask: WebhookTask! @ref(fields: "webhookTaskId", references: "id")
+  teamId: String! @col(name: "team_id")
+  team: Team! @ref(fields: "teamId", references: "id")
+  owner: String!
+  repo: String!
+  workflowName: String! @col(name: "workflow_name")
+  workflowFileName: String! @col(name: "workflow_file_name")
+  commitSha: String! @col(name: "commit_sha")
+  installationId: String! @col(name: "installation_id")
+  reason: String!
+  externalId: String! @col(name: "external_id") @unique
+  checkRunId: String @col(name: "check_run_id")
+  status: String! @default(value: "pending")
+  attempts: Int64! @default(value: 0)
+  nextAttemptAt: Int64 @col(name: "next_attempt_at")
+  lastError: String @col(name: "last_error")
+  createdAt: Int64! @col(name: "created_at")
+  updatedAt: Int64! @col(name: "updated_at")
+}

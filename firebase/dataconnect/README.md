@@ -9,6 +9,12 @@ This directory has its own Firebase configuration, separate from Hosting.
   and membership IDs (`bigserial`) retain their existing storage types.
 - Explicit `limit: null` preserves the existing API's full team/member lists.
 
+All 19 migration-target tables are now defined, including the pending skipped
+workflow reporting table. See [the schema inventory](SCHEMA.md) for source
+mappings, Secret Manager references, billing uniqueness keys, and the write
+rules required before switching the servers to SQL Connect. The only connector
+operations defined here are `GetMyTeams` and `CreateBillingPeriod`.
+
 ## Retired features
 
 `invitations`, `user_devices`, and `udid_requests` are retired from the migration
@@ -19,9 +25,11 @@ and has not been implemented yet.
 
 ## Billing
 
-`schema/billing.gql` maps `billing_accounts` and `billing_periods`, preserving
-text IDs, Unix-second timestamps, and nullable bigint allowances. The unique
-`(id, team_id)` index supports the existing admission/execution foreign keys.
+`schema/billing.gql`, `schema/billing_stripe.gql`, and
+`schema/billing_execution.gql` map all nine billing tables. Text IDs and bigint
+allowances retain their existing types. Periods and Stripe timestamps use Unix
+seconds; admission/execution timestamps retain milliseconds. Composite
+admission/execution foreign keys enforce that the period belongs to the team.
 
 `billing/mutations.gql` defines the server-only `CreateBillingPeriod` operation
 (`@auth(level: NO_ACCESS)`). Its five `@check` directives validate the plan,
@@ -34,7 +42,8 @@ period or leaving a newly created account behind.
 `BillingPeriod.billingAccount` defines the foreign key using `@ref`. Billing
 accounts have no foreign key to teams, so team deletion retains billing history.
 No update or delete operation is exposed. Do not physically delete billing
-accounts: the required `@ref` would cascade-delete their periods.
+accounts or periods: required `@ref` relations cascade to billing history, while
+the optional Stripe paid-period reference would be set to null.
 
 No supplemental SQL migration is required. These validations apply to this
 connector operation, not direct SQL or ad hoc administrative mutations. Future
@@ -54,6 +63,10 @@ team/build permissions. No connector operations expose this table yet.
 The existing encrypted `secrets` table remains separate; switching the server,
 copying existing values, and cleaning up Secret Manager versions on update or
 team/secret deletion are follow-up work.
+
+GitHub OAuth requests and sessions follow the same policy: PKCE verifiers and
+access tokens live in Secret Manager. `schema/github.gql` stores version paths
+and state/reference hashes, with no plaintext or encrypted token columns.
 
 ## Local validation
 

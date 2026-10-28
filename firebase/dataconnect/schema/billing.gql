@@ -16,3 +16,10 @@ type BillingPeriod
   endsAt: Int64! @col(name: "ends_at")
   allowanceSeconds: Int64 @col(name: "allowance_seconds")
 }
+
+type BillingTrialClaim @table(name: "billing_trial_claims", key: "userId") {
+  userId: String! @col(name: "user_id")
+  teamId: String! @col(name: "team_id") @unique
+  billingAccount: BillingAccount! @ref(fields: "teamId", references: "teamId")
+  claimedAt: Int64! @col(name: "claimed_at")
+}
