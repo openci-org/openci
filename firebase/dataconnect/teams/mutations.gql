@@ -1,0 +1,35 @@
+mutation CreateTeam($id: String!, $name: String!) @auth(level: USER) @transaction {
+  team_insert(
+    data: {
+      id: $id
+      name: $name
+      installationIds: "[]"
+      createdAt_expr: "int(request.time)"
+      updatedAt_expr: "int(request.time)"
+    }
+  )
+    @check(expr: "vars.id.matches('[^[:space:]]')", message: "Team ID must not be blank")
+    @check(expr: "vars.name.matches('[^[:space:]]')", message: "Team name must not be blank")
+  # Billing identity survives deletion; never reuse it for a new team.
+  query @redact {
+    billingAccount(key: { teamId: $id })
+      @check(expr: "this == null", message: "Team ID has already been used") {
+      teamId
+    }
+  }
+  teamMember_insert(data: { teamId: $id, userId_expr: "auth.uid" })
+}
+
+mutation RenameTeam($teamId: String!, $name: String!) @auth(level: USER) @transaction {
+  team_update(
+    first: {
+      where: {
+        id: { eq: $teamId }
+        teamMembers_on_team: { exist: { userId: { eq_expr: "auth.uid" } } }
+      }
+    }
+    data: { name: $name, updatedAt_expr: "int(request.time)" }
+  )
+    @check(expr: "vars.name.matches('[^[:space:]]')", message: "Team name must not be blank")
+    @check(expr: "this != null", message: "Team access denied")
+}
