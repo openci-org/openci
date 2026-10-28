@@ -4,7 +4,9 @@ This directory has its own Firebase configuration, separate from Hosting.
 
 - `schema/schema.gql` maps the existing `teams` and `team_members` tables.
 - `teams/queries.gql` defines `GetMyTeams`. It requires a non-anonymous Firebase
-  user and filters membership by `auth.uid`. There are no client mutations.
+  user and filters membership by `auth.uid`.
+- `teams/mutations.gql` adds `CreateTeam` (team and own membership in one
+  transaction) and `RenameTeam` (members only). Flutter SDK integration is next.
 - Text IDs, JSON-encoded `installation_ids`, Unix-second timestamps (`bigint`),
   and membership IDs (`bigserial`) retain their existing storage types.
 - Explicit `limit: null` preserves the existing API's full team/member lists.
