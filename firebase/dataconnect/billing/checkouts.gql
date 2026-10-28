@@ -1,0 +1,193 @@
+# Server-only: Functions select the plan, Customer, Price, mode, and return URLs.
+# On a duplicate create, read the open intent and reuse its original parameters.
+mutation CreateBillingCheckoutCreation(
+  $idempotencyKey: String!
+  $teamId: String!
+  $planId: String!
+  $stripeCustomerId: String!
+  $stripePriceId: String!
+  $successUrl: String!
+  $cancelUrl: String!
+  $livemode: Boolean!
+  $createdAt: Int64!
+) @auth(level: NO_ACCESS) @transaction {
+  query @redact {
+    team(id: $teamId) @check(expr: "this != null", message: "Team not found") {
+      id
+    }
+    billingAccount(key: { teamId: $teamId })
+      @check(expr: "this != null", message: "Billing account not found") {
+      teamId
+    }
+  }
+  billingCheckoutCreation_insert(
+    data: {
+      idempotencyKey: $idempotencyKey
+      teamId: $teamId
+      planId: $planId
+      stripeCustomerId: $stripeCustomerId
+      stripePriceId: $stripePriceId
+      successUrl: $successUrl
+      cancelUrl: $cancelUrl
+      livemode: $livemode
+      createdAt: $createdAt
+      openTeamId: $teamId
+    }
+  )
+    @check(
+      expr: "vars.idempotencyKey.matches('[^[:space:]]')"
+      message: "Checkout creation requires an idempotency key"
+    )
+    @check(expr: "vars.planId in ['light', 'pro']", message: "Invalid billing plan")
+    @check(
+      expr: "vars.stripeCustomerId.matches('[^[:space:]]') && vars.stripePriceId.matches('[^[:space:]]')"
+      message: "Checkout creation requires a Customer and Price"
+    )
+    @check(
+      expr: "vars.successUrl.matches('[^[:space:]]') && vars.cancelUrl.matches('[^[:space:]]')"
+      message: "Checkout creation requires return URLs"
+    )
+    @check(expr: "int(vars.createdAt) >= 0", message: "Creation time must not be negative")
+}
+
+query GetOpenBillingCheckoutCreation($teamId: String!, $livemode: Boolean!)
+@auth(level: NO_ACCESS) {
+  team(id: $teamId) @redact @check(expr: "this != null", message: "Team not found") {
+    id
+  }
+  # openTeamId is unique, so at most one row can match.
+  billingCheckoutCreation(
+    first: {
+      where: { openTeamId: { eq: $teamId }, teamId: { eq: $teamId }, closedAt: { isNull: true } }
+    }
+  )
+    @check(
+      expr: "this == null || this.livemode == vars.livemode"
+      message: "Checkout creation mode does not match"
+    ) {
+    idempotencyKey
+    teamId
+    planId
+    stripeCustomerId
+    stripePriceId
+    successUrl
+    cancelUrl
+    livemode
+    createdAt
+    stripeCheckoutSessionId
+  }
+}
+
+# Verify Stripe's Session against the saved intent before recording its ID.
+# Pass the original intent returned by GetOpenBillingCheckoutCreation.
+mutation RecordBillingCheckoutSession(
+  $idempotencyKey: String!
+  $teamId: String!
+  $planId: String!
+  $stripeCustomerId: String!
+  $stripePriceId: String!
+  $successUrl: String!
+  $cancelUrl: String!
+  $livemode: Boolean!
+  $createdAt: Int64!
+  $stripeCheckoutSessionId: String!
+) @auth(level: NO_ACCESS) @transaction {
+  query @redact {
+    team(id: $teamId) @check(expr: "this != null", message: "Team not found") {
+      id
+    }
+  }
+  # Match every original parameter and the open state in the UPDATE itself.
+  billingCheckoutCreation_updateMany(
+    where: {
+      _and: [
+        {
+          idempotencyKey: { eq: $idempotencyKey }
+          teamId: { eq: $teamId }
+          planId: { eq: $planId }
+          stripeCustomerId: { eq: $stripeCustomerId }
+          stripePriceId: { eq: $stripePriceId }
+          successUrl: { eq: $successUrl }
+          cancelUrl: { eq: $cancelUrl }
+          livemode: { eq: $livemode }
+          createdAt: { eq: $createdAt }
+          openTeamId: { eq: $teamId }
+          closedAt: { isNull: true }
+        }
+        {
+          _or: [
+            { stripeCheckoutSessionId: { isNull: true } }
+            { stripeCheckoutSessionId: { eq: $stripeCheckoutSessionId } }
+          ]
+        }
+      ]
+    }
+    data: { stripeCheckoutSessionId: $stripeCheckoutSessionId }
+  )
+    @check(
+      expr: "vars.stripeCheckoutSessionId.matches('[^[:space:]]')"
+      message: "Stripe Checkout Session ID is required"
+    )
+    @check(
+      expr: "this == 1"
+      message: "Checkout creation intent is missing, changed, closed, or already linked"
+    )
+}
+
+# Functions must first verify an expired/unpaid Session, or a completed Session
+# whose Subscription is canceled/incomplete_expired. Keep the first close time.
+mutation CloseBillingCheckoutCreation(
+  $idempotencyKey: String!
+  $teamId: String!
+  $stripeCustomerId: String!
+  $livemode: Boolean!
+  $stripeCheckoutSessionId: String!
+  $closedAt: Int64!
+) @auth(level: NO_ACCESS) @transaction {
+  query @redact {
+    team(id: $teamId) @check(expr: "this != null", message: "Team not found") {
+      id
+    }
+    billingCheckoutCreation(key: { idempotencyKey: $idempotencyKey })
+      @check(
+        expr: """
+        this != null && this.teamId == vars.teamId &&
+        this.stripeCustomerId == vars.stripeCustomerId &&
+        this.livemode == vars.livemode &&
+        this.stripeCheckoutSessionId == vars.stripeCheckoutSessionId
+        """
+        message: "Checkout creation identity does not match"
+      )
+      @check(
+        expr: "this.closedAt == null ? this.openTeamId == vars.teamId : this.openTeamId == null"
+        message: "Checkout creation has an inconsistent open key"
+      )
+      @check(
+        expr: "int(vars.closedAt) >= 0 && int(vars.closedAt) >= int(this.createdAt)"
+        message: "Close time must not precede creation"
+      ) {
+      teamId
+      stripeCustomerId
+      livemode
+      stripeCheckoutSessionId
+      createdAt
+      closedAt
+      openTeamId
+    }
+  }
+  # The identity is immutable after recording a Session. Zero updated rows
+  # means this intent was already closed, possibly by a concurrent request.
+  billingCheckoutCreation_updateMany(
+    where: {
+      idempotencyKey: { eq: $idempotencyKey }
+      teamId: { eq: $teamId }
+      stripeCustomerId: { eq: $stripeCustomerId }
+      livemode: { eq: $livemode }
+      stripeCheckoutSessionId: { eq: $stripeCheckoutSessionId }
+      openTeamId: { eq: $teamId }
+      closedAt: { isNull: true }
+      createdAt: { le: $closedAt }
+    }
+    data: { closedAt: $closedAt, openTeamId: null }
+  )
+}

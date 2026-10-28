@@ -22,7 +22,7 @@ type BillingCheckoutCreation @table(name: "billing_checkout_creations", key: "id
   stripeCheckoutSessionId: String @col(name: "stripe_checkout_session_id") @unique
   closedAt: Int64 @col(name: "closed_at")
   # Replaces WHERE closed_at IS NULL: teamId while open, null when closed.
-  # Future mutations must derive this value and update it atomically with closedAt.
+  # Connector mutations derive this value and clear it atomically with closedAt.
   openTeamId: String
     @col(name: "open_team_id")
     @unique(indexName: "billing_checkout_creations_open_team")
@@ -40,6 +40,8 @@ type BillingStripeState @table(name: "billing_stripe_state", key: "teamId") {
   paidPeriod: BillingPeriod @ref(fields: "paidPeriodId", references: "id")
   cancelAtPeriodEnd: Boolean! @col(name: "cancel_at_period_end") @default(value: false)
   syncedAt: Int64! @col(name: "synced_at")
+  # Functions read this before observing Stripe and retry on a concurrent update.
+  revision: Int64! @default(value: 0)
 }
 
 type BillingStripeEvent @table(name: "billing_stripe_events", key: "eventId") {

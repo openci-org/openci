@@ -59,6 +59,7 @@ in this branch's legacy `AppDatabase`.
 | `github_connection_sessions.encrypted_access_token` | Secret Manager value; nullable `access_token_secret_version_path` is cleared on consumption/expiry |
 | Open admission (`closed_at_ms IS NULL`)             | Set `open_job_id = job_id`; otherwise set it to NULL                                               |
 | Open checkout (`closed_at IS NULL`)                 | Set `open_team_id = team_id`; otherwise set it to NULL                                             |
+| Existing Stripe state                               | Initialize the new `revision` column to `0`                                                        |
 
 The new open-key columns have ordinary nullable unique constraints. Two open
 rows cannot reserve the same key, while closed rows can retain the same job/team
@@ -66,11 +67,16 @@ with NULL keys. SQL Connect's schema directives do not express the legacy
 partial unique indexes. The remaining partial lookup indexes become ordinary
 indexes that include the closed/finished timestamp.
 
-An open-key column is not generated automatically. Imports and future mutations
+An open-key column is not generated automatically. Imports and mutations
 must derive it from the row's ID and closed timestamp, and update both fields in
 the same transaction. A standalone `@check` that queries for an existing row is
 not sufficient for concurrent requests; the unique key must arbitrate the write.
-Do not enable writes until this rule is enforced in the stored operations.
+Checkout operations enforce this rule. Admission write operations still need it.
+
+`billing_stripe_state.revision` is a new non-null bigint with default `0`. The
+event-recording mutation compares the expected revision in its UPDATE and
+increments it atomically, so equal-second observations cannot silently overwrite
+one another. Functions must re-fetch Stripe after a revision conflict.
 
 OAuth request/session values must not be copied into SQL Connect. At cutover,
 let short-lived flows expire and restart, or explicitly move the secrets to
@@ -79,19 +85,20 @@ the future Functions cleanup must do both.
 
 ## Validation required in future write operations
 
-`CreateBillingPeriod` and the Customer creation operations in
-`billing/customers.gql` have write validations implemented. Customer creation
-uses insert-only intents and a conditional update for the Stripe Customer ID;
-the Stripe response and membership must be verified by Functions. Other new
-tables have no write operations defined here. Before exposing their writes,
-apply `@check` and `@transaction` to the following legacy invariants:
+`CreateBillingPeriod` and the operations in `billing/customers.gql`,
+`billing/checkouts.gql`, and `billing/stripe.gql` have write validations
+implemented. Creation intents are insert-only; Customer/Session IDs use
+conditional updates. Checkout operations derive/release the open key atomically.
+Stripe state/event writes share a transaction, enforce period ownership and
+retention, protect ended subscriptions, and reject stale revisions. Stripe
+responses and membership must be verified by Functions. Other new tables have
+no write operations defined here. Before exposing their writes, apply `@check`
+and `@transaction` to the following legacy invariants:
 
-| Table                        | Required checks and atomic behavior                                                                                                                                                                                                                                                                                       |
-| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `billing_stripe_state`       | `plan_id` is NULL, `light`, or `pro`; a selected paid period belongs to the same team                                                                                                                                                                                                                                     |
-| `billing_admissions`         | Nonempty ID/job/worker/run IDs; positive reservation; `start_by_ms > claimed_at_ms`; closed time is NULL or at least the claim time; derive/release `open_job_id`                                                                                                                                                         |
-| `billing_executions`         | Nonempty run/job/worker IDs; `started_at_ms <= observed_at_ms <= lease_until_ms`; finished time is NULL or equals observed time; finished time and outcome are both NULL or both set; outcome is `success`, `failure`, `cancelled`, `timed_out`, or `abandoned`; `measurement_incomplete` is true exactly for `abandoned` |
-| `billing_checkout_creations` | Derive/release `open_team_id` atomically; calculate plan/price/customer on the server                                                                                                                                                                                                                                     |
+| Table                | Required checks and atomic behavior                                                                                                                                                                                                                                                                                       |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `billing_admissions` | Nonempty ID/job/worker/run IDs; positive reservation; `start_by_ms > claimed_at_ms`; closed time is NULL or at least the claim time; derive/release `open_job_id`                                                                                                                                                         |
+| `billing_executions` | Nonempty run/job/worker IDs; `started_at_ms <= observed_at_ms <= lease_until_ms`; finished time is NULL or equals observed time; finished time and outcome are both NULL or both set; outcome is `success`, `failure`, `cancelled`, `timed_out`, or `abandoned`; `measurement_incomplete` is true exactly for `abandoned` |
 
 Trial claims retain user-primary-key and team-unique protection. Stripe event
 IDs and customer/checkout idempotency keys remain unique. Coordinating these
