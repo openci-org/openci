@@ -6,7 +6,7 @@ This directory has its own Firebase configuration, separate from Hosting.
 - `teams/queries.gql` defines `GetMyTeams`. It requires a non-anonymous Firebase
   user and filters membership by `auth.uid`.
 - `teams/mutations.gql` adds `CreateTeam` (team and own membership in one
-  transaction) and `RenameTeam` (members only). Flutter SDK integration is next.
+  transaction) and `RenameTeam` (members only).
 - Text IDs, Unix-second timestamps (`bigint`), and membership IDs (`bigserial`)
   retain their existing storage types. GitHub installations belong to
   `github_connections`; `Team` no longer exposes `installationIds`.
@@ -18,6 +18,24 @@ mappings, Secret Manager references, billing uniqueness keys, and the write
 rules required before switching the servers to SQL Connect. Connector operations
 cover `GetMyTeams`, `CreateBillingPeriod`, Stripe Customer/Checkout/state/event
 operations, and CI admission/execution operations described below.
+
+## Flutter SDK
+
+`teams/connector.yaml` generates the three team operations into
+`apps/dashboard/lib/generated/teams`. Dashboard uses `firebase_data_connect`
+`0.4.1`; connecting the team screens to the generated SDK is the next step.
+
+Regenerate from the repository root with Firebase CLI 15.25.0:
+
+```sh
+cd firebase/dataconnect
+firebase dataconnect:sdk:generate --project demo-openci
+cd ../..
+dart format apps/dashboard/lib/generated/teams
+```
+
+Generation uses the local schema and does not deploy it. The generated
+`TeamsConnector.instance` uses the default Firebase app's project at runtime.
 
 ## Retired features
 
