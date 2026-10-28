@@ -1,0 +1,33 @@
+# New log storage uses Timestamp; existing build/run timestamps stay Unix seconds.
+type BuildStep
+  @table(name: "build_steps", key: ["runId", "stepId"])
+  @index(fields: ["runId", "stepOrder"]) {
+  runId: String! @col(name: "run_id")
+  run: BuildRun! @ref(fields: "runId", references: "id")
+  stepId: String! @col(name: "step_id")
+  name: String!
+  status: String!
+  stepOrder: Int! @col(name: "step_order")
+  durationMs: Int64! @col(name: "duration_ms") @default(value: 0)
+  createdAt: Timestamp! @col(name: "created_at") @default(expr: "request.time")
+  updatedAt: Timestamp! @col(name: "updated_at") @default(expr: "request.time")
+}
+
+type BuildLog
+  @table(name: "build_logs", key: ["runId", "sequence"])
+  @unique(fields: ["runId", "logId"])
+  @index(fields: ["runId", "stepId", "sequence"]) {
+  runId: String! @col(name: "run_id")
+  run: BuildRun! @ref(fields: "runId", references: "id")
+  # Committed order within a run, not the order of timestamps from different hosts.
+  sequence: Int64!
+  # Supplied by the sender and reused on retries; never generate a new ID on retry.
+  logId: UUID! @col(name: "log_id")
+  # Null for run-level logs. Mutations must verify (runId, stepId) when present.
+  stepId: String @col(name: "step_id")
+  source: String!
+  stream: String!
+  message: String!
+  occurredAt: Timestamp! @col(name: "occurred_at")
+  createdAt: Timestamp! @col(name: "created_at") @default(expr: "request.time")
+}

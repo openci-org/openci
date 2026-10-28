@@ -13,9 +13,10 @@ This directory has its own Firebase configuration, separate from Hosting.
 - Explicit `limit: null` preserves the existing API's full team/member lists.
 
 All 19 migration-target tables are now defined, including the pending skipped
-workflow reporting table. See [the schema inventory](SCHEMA.md) for source
-mappings, Secret Manager references, billing uniqueness keys, and the write
-rules required before switching the servers to SQL Connect. Connector operations
+workflow reporting table, plus two new build log/step tables. See
+[the schema inventory](SCHEMA.md) for source mappings, Secret Manager references,
+billing uniqueness keys, and the write rules required before switching the
+servers to SQL Connect. Connector operations
 cover `GetMyTeams`, `CreateBillingPeriod`, Stripe Customer/Checkout/state/event
 operations, and CI admission/execution operations described below.
 
@@ -225,6 +226,23 @@ select jobs with worker-capacity/queue ordering; assign run display numbers; and
 coordinate team deletion, job completion, GitHub status updates, and recovery
 scheduling. The selected-job claim is atomic, but a fleet-wide scheduler is not
 implemented here. Trial claims and their activation routes remain untouched.
+
+## Build logs
+
+`schema/build_log.gql` adds `BuildStep` and `BuildLog`, both owned by a `BuildRun`.
+Each log is a separate row; senders will upload multiple logs in a batch.
+`(runId, sequence)` orders persisted logs, and `(runId, logId)` prevents duplicate
+rows on retries. Step IDs are scoped to a run; logs without a step are allowed.
+
+`BuildRun.lastLogSequence` starts at `0`. A future append mutation must reserve
+the batch's consecutive sequence numbers with a conditional update and insert
+all rows in the same transaction. `logsExpireAt` is a nullable retention deadline;
+it does not automatically delete logs. New log/step timestamps use `Timestamp`,
+while existing build/run timestamps keep their Unix-second representation.
+
+This change defines storage only. Batch mutations, worker authorization, team
+read permissions, SDK integration, realtime refresh, and retention cleanup are
+follow-up work. The current applications still send/read build logs through Loki.
 
 ## Secrets
 

@@ -1,7 +1,8 @@
 # Schema migration inventory
 
-These definitions cover 19 destination tables: the active Dart tables, all
-seven Go-owned billing tables, and the pending skipped-workflow report table.
+These definitions cover 21 destination tables: the 19 migration-target tables
+(the active Dart tables, all seven Go-owned billing tables, and the pending
+skipped-workflow report table), plus two new build log/step tables.
 They do not switch any application traffic or migrate existing rows.
 
 | Table                        | GraphQL type              | Schema file             |
@@ -14,6 +15,8 @@ They do not switch any application traffic or migrate existing rows.
 | `github_connection_sessions` | `GitHubConnectionSession` | `github.gql`            |
 | `build_jobs`                 | `BuildJob`                | `build.gql`             |
 | `build_runs`                 | `BuildRun`                | `build.gql`             |
+| `build_steps`                | `BuildStep`               | `build_log.gql`         |
+| `build_logs`                 | `BuildLog`                | `build_log.gql`         |
 | `webhook_tasks`              | `WebhookTask`             | `webhook.gql`           |
 | `skipped_workflow_reports`   | `SkippedWorkflowReport`   | `webhook.gql`           |
 | `billing_accounts`           | `BillingAccount`          | `billing.gql`           |
@@ -35,14 +38,18 @@ in this branch's legacy `AppDatabase`.
 
 ## Storage and relation rules
 
-- Keep text IDs and text enum/status values. JSON encoded as text (`matrix`,
-  `needs`, `provisioned_udids`, webhook `payload`) remains `String`, not `Any`.
+- Keep existing text IDs and text enum/status values. New log IDs use `UUID`.
+  JSON encoded as text (`matrix`, `needs`, `provisioned_udids`, webhook `payload`)
+  remains `String`, not `Any`.
 - Drift integers and DateTime columns remain PostgreSQL `bigint` (`Int64`).
   DateTime values are Unix seconds. Admission/execution `*_ms` values and
   `reserved_millis` remain milliseconds; `allowance_seconds` remains seconds.
+  New log/step timestamps and `BuildRun.logsExpireAt` use `Timestamp`
+  (`timestamptz`); step durations and log sequence numbers use `Int64`.
 - Team deletion removes members, secret references, GitHub connection metadata,
   and skipped reports. Build jobs and billing accounts have no Team foreign key,
-  so their history survives. Build runs cascade with their owning job.
+  so their history survives. Build runs cascade with their owning job, and
+  their steps/logs cascade when a run is deleted.
 - Billing admissions/executions reference `(period_id, team_id)` together;
   referencing another team's period fails at the database layer.
 - Required `@ref` relations cascade on delete; optional references use SET NULL.
@@ -91,6 +98,30 @@ let short-lived flows expire and restart, or explicitly move the secrets to
 Secret Manager. Deleting SQL references does not destroy Secret Manager versions;
 the future Functions cleanup must do both.
 
+## Build log storage
+
+`BuildStep` stores the latest state of each `(runId, stepId)`. `BuildLog` stores
+one log entry per row, with a run-scoped sequence for pagination and a sender's
+stable UUID for retry detection. `occurredAt` is the sender's event time;
+`createdAt` defaults to the server request time. Timestamp defaults apply only
+on insertion; step updates must explicitly advance `updatedAt`.
+
+Before exposing connector operations, validate the worker/run assignment and
+team membership, supported status/source/stream values, non-negative step
+order/duration, and bounded batch/message sizes. A non-null `stepId` must match a
+step in the same run. It is intentionally a scalar: an optional composite `@ref`
+would SET NULL on both the step ID and the required run ID when deleting a step.
+
+Log writers must be insert-only. Resolve retried `logId` values against the saved
+payload, then reserve positive consecutive sequences by conditionally advancing
+`BuildRun.lastLogSequence` once per batch. Commit that update and all inserts in
+one transaction; a conflict requires a fresh read and retry. Guard step state
+transitions so a late running event cannot overwrite a terminal state.
+
+`logsExpireAt` is indexed for future cleanup of log bodies while retaining run
+and step summaries. It starts unset; retention scheduling and deletion are not
+implemented. No log/step connector operations are exposed by this schema change.
+
 ## Validation required in future write operations
 
 `CreateBillingPeriod` and the operations in `billing/customers.gql`,
@@ -122,6 +153,8 @@ Trial activation is not exposed.
 
 `invitations`, `user_devices`, and `udid_requests` are retired (G-1569). The old
 `secrets` value table is replaced by `secret_references`. Previously removed
-`processed_webhooks`, build log/step tables, and `worker_heartbeats` are not
-reintroduced. Build artifact metadata, including `provisioned_udids`, is retained
-independently of the retired device registration tables.
+`processed_webhooks`, `build_step_logs`, and `worker_heartbeats` are not
+reintroduced. `build_steps` and `build_logs` above are new definitions for the
+current Loki-backed logs, not a copy of the removed legacy tables. Build artifact
+metadata, including `provisioned_udids`, is retained independently of the retired
+device registration tables.
