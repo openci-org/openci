@@ -17,7 +17,7 @@ type BillingAdmission
   runId: String @col(name: "run_id") @unique
   closedAtMs: Int64 @col(name: "closed_at_ms")
   # Replaces WHERE closed_at_ms IS NULL: jobId while open, null when closed.
-  # Future mutations must derive this value and update it atomically with closedAtMs.
+  # Mutations derive this value and update it atomically with closedAtMs.
   openJobId: String @col(name: "open_job_id") @unique(indexName: "billing_admissions_open_job")
 }
 

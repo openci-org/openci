@@ -1,6 +1,8 @@
 type BillingAccount @table(name: "billing_accounts", key: "teamId") {
   # No Team foreign key: retain billing identity after team deletion.
   teamId: String! @col(name: "team_id")
+  # Every admission/execution write advances this guard in the same transaction.
+  usageRevision: Int64! @col(name: "usage_revision") @default(value: 0)
 }
 
 type BillingPeriod
