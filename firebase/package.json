@@ -9,6 +9,7 @@
   "dependencies": {
     "@openci/builds-admin": "file:generated/builds-admin",
     "@openci/logs-admin": "file:generated/logs-admin",
+    "@openci/secrets-admin": "file:generated/secrets-admin",
     "@openci/teams-admin": "file:generated/teams-admin",
     "firebase-admin": "^14.5.0"
   },

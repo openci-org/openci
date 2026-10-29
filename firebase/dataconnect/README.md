@@ -67,19 +67,28 @@ to the UI and Functions remains follow-up work.
 Admin callers must impersonate the verified user because the query checks team
 membership. Dashboard integration and production cutover remain follow-up work.
 
+`secrets/connector.yaml` generates all five secret-reference operations into:
+
+- Flutter: `apps/dashboard/lib/generated/secrets` (`SecretsConnector`).
+- Node.js Admin: `firebase/generated/secrets-admin` (`@openci/secrets-admin`),
+  linked from the `firebase` npm workspace.
+
+Dashboard uses `GetSecrets` for metadata only. The other four operations are
+server-only, even though their methods also appear in the Flutter SDK. Admin
+calls to `GetSecrets` must impersonate the verified user for the membership check.
+
 Regenerate from the repository root with Node.js 22 and Firebase CLI 15.34.2:
 
 ```sh
 env -u DEBUG npx --yes firebase-tools@15.34.2 dataconnect:sdk:generate \
   --config firebase/dataconnect/firebase.json --project demo-openci
-dart format apps/dashboard/lib/generated/teams apps/dashboard/lib/generated/logs apps/dashboard/lib/generated/builds
-vp fmt firebase/generated/logs-admin firebase/generated/teams-admin firebase/generated/builds-admin
+dart format apps/dashboard/lib/generated/teams apps/dashboard/lib/generated/logs apps/dashboard/lib/generated/builds apps/dashboard/lib/generated/secrets
+vp fmt firebase/generated/logs-admin firebase/generated/teams-admin firebase/generated/builds-admin firebase/generated/secrets-admin
 ```
 
 Generation uses the local schema and does not deploy it. The generated
-`TeamsConnector.instance`, `LogsConnector.instance`, and `BuildsConnector.instance`
-use the default Firebase app's project at runtime. The emulator also regenerates
-SDKs on startup; run the formatters again afterward.
+connector singletons use the default Firebase app's project at runtime. The
+emulator also regenerates SDKs on startup; run the formatters again afterward.
 
 ## Retired features
 
@@ -320,11 +329,41 @@ env -u DEBUG npx --yes firebase-tools@15.34.1 emulators:exec \
 The value belongs in Secret Manager. Numeric versions let the server publish a
 new value by updating the reference after the version has been created.
 
-Only the server will write these references and access values after checking
-team/build permissions. No connector operations expose this table yet.
+The `secrets` connector provides:
+
+- `GetSecrets`: non-anonymous team members can list names, team IDs, and timestamps
+  in name order. An explicit null limit preserves the full list beyond 100 rows.
+  Neither values nor Secret Manager paths are returned.
+- `GetSecretReference`: server-only lookup of the version path and metadata;
+  returns null when the reference is absent.
+- `CreateSecretReference`: server-only insert for an existing team. Duplicate
+  names within a team fail; timestamps are server-generated Unix seconds.
+- `UpdateSecretReference` / `DeleteSecretReference`: server-only writes that
+  match `expectedSecretVersionPath` in the write itself. A missing or changed
+  reference fails. Updates preserve `createdAt`.
+
+Creation rejects blank names. Both create and update require a positive numeric
+version path, not `latest` or another alias; global and regional Secret Manager
+paths are supported. The operations store references only and do not call Secret
+Manager.
+
+Functions must authenticate callers, check team/build permissions, and derive
+the path from the Secret Manager response for that team's secret. A path format
+check does not prove resource ownership. Create the Secret Manager version before
+publishing its reference. After a conflict or ambiguous response, reread the
+reference and reconcile before retrying; never reuse a stale expected path.
+
 The existing encrypted `secrets` table remains separate; switching the server,
 copying existing values, and cleaning up Secret Manager versions on update or
 team/secret deletion are follow-up work.
+
+Run the operation and generated Admin SDK tests against the local emulator:
+
+```sh
+env -u DEBUG npx --yes firebase-tools@15.34.2 emulators:exec \
+  --config firebase/dataconnect/firebase.json --only dataconnect --project demo-openci \
+  'node --test firebase/dataconnect/test/secrets.test.mjs'
+```
 
 GitHub OAuth requests and sessions follow the same policy: PKCE verifiers and
 access tokens live in Secret Manager. `schema/github.gql` stores version paths
