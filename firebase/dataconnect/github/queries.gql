@@ -1,0 +1,49 @@
+fragment GitHubConnectionMetadata on GitHubConnection {
+  id
+  teamId
+  githubApiBaseUrl
+  githubAppId
+  installationId
+  accountId
+  accountType
+  accountLogin
+  status
+  verifiedAt
+}
+
+# Dashboard can read connection metadata, never OAuth credentials or hashes.
+query GetGitHubConnections($teamId: String!) @auth(level: USER) {
+  teamMembers(where: { teamId: { eq: $teamId }, userId: { eq_expr: "auth.uid" } }, limit: 1)
+    @redact
+    @check(expr: "size(this) == 1", message: "Team access denied") {
+    id
+  }
+  connections: gitHubConnections(
+    where: { teamId: { eq: $teamId } }
+    orderBy: [{ accountLogin: ASC }, { id: ASC }]
+    limit: null
+  ) {
+    ...GitHubConnectionMetadata
+  }
+}
+
+# Functions supplies the operator-configured host/app, then verifies live GitHub
+# permissions before minting a token or serving repository data.
+query GetActiveGitHubConnection(
+  $githubApiBaseUrl: String!
+  $githubAppId: Int64!
+  $installationId: Int64!
+) @auth(level: NO_ACCESS) {
+  connection: gitHubConnection(
+    first: {
+      where: {
+        githubApiBaseUrl: { eq: $githubApiBaseUrl }
+        githubAppId: { eq: $githubAppId }
+        installationId: { eq: $installationId }
+        status: { eq: "active" }
+      }
+    }
+  ) {
+    ...GitHubConnectionMetadata
+  }
+}

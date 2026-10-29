@@ -1,0 +1,32 @@
+# Functions destroys the returned Secret Manager versions before deleting these
+# expired rows. Repeated batches start at the oldest remaining row (no offset).
+query GetExpiredGitHubConnectionCredentials @auth(level: NO_ACCESS) {
+  requests: gitHubConnectionRequests(
+    where: { expiresAt: { le_expr: "int(request.time)" } }
+    orderBy: [{ expiresAt: ASC }, { id: ASC }]
+    limit: 100
+  ) {
+    id
+    codeVerifierSecretVersionPath
+  }
+  sessions: gitHubConnectionSessions(
+    where: { expiresAt: { le_expr: "int(request.time)" } }
+    orderBy: [{ expiresAt: ASC }, { id: ASC }]
+    limit: 100
+  ) {
+    id
+    accessTokenSecretVersionPath
+  }
+}
+
+mutation DeleteExpiredGitHubConnectionRequest($id: String!) @auth(level: NO_ACCESS) {
+  gitHubConnectionRequest_deleteMany(
+    where: { id: { eq: $id }, expiresAt: { le_expr: "int(request.time)" } }
+  )
+}
+
+mutation DeleteExpiredGitHubConnectionSession($id: String!) @auth(level: NO_ACCESS) {
+  gitHubConnectionSession_deleteMany(
+    where: { id: { eq: $id }, expiresAt: { le_expr: "int(request.time)" } }
+  )
+}

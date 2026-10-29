@@ -8,6 +8,7 @@
   },
   "dependencies": {
     "@openci/builds-admin": "file:generated/builds-admin",
+    "@openci/github-admin": "file:generated/github-admin",
     "@openci/logs-admin": "file:generated/logs-admin",
     "@openci/secrets-admin": "file:generated/secrets-admin",
     "@openci/teams-admin": "file:generated/teams-admin",
