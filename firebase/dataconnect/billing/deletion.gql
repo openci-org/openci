@@ -1,0 +1,101 @@
+# Functions reads GetBillingContext BEFORE verifying Stripe has no live
+# subscription. Close any verified ended Checkout first, then pass the observed
+# Customer intent/ID and state revision. A conflict requires fresh verification.
+mutation DeleteBillingTeam(
+  $teamId: String!
+  $userId: String!
+  $livemode: Boolean!
+  $expectedCustomerCreationKey: String = null
+  $expectedStripeCustomerId: String = null
+  $expectedStripeRevision: Int64 = null
+) @auth(level: NO_ACCESS) @transaction {
+  team_update(key: { id: $teamId }, data: { updatedAt_expr: "int(request.time)" })
+    @redact
+    @check(expr: "this != null", message: "Team not found")
+  billingAccount_upsert(data: { teamId_expr: "response.team_update.id" })
+  query @redact {
+    teamMember(
+      first: {
+        where: {
+          teamId: { eq_expr: "response.billingAccount_upsert.teamId" }
+          userId: { eq: $userId }
+        }
+      }
+    ) @check(expr: "this != null", message: "Team access denied") {
+      id
+    }
+    customer: billingCustomerCreation(
+      key: { teamId_expr: "response.billingAccount_upsert.teamId" }
+    )
+      @check(
+        expr: """
+        this == null
+          ? vars.expectedCustomerCreationKey == null && vars.expectedStripeCustomerId == null
+          : this.idempotencyKey == vars.expectedCustomerCreationKey &&
+            this.stripeCustomerId != null && this.stripeCustomerId == vars.expectedStripeCustomerId &&
+            this.livemode == vars.livemode
+        """
+        message: "Customer creation is pending or changed; verify Stripe again"
+      ) {
+      idempotencyKey
+      stripeCustomerId
+      livemode
+    }
+    stripe: billingStripeState(key: { teamId_expr: "response.billingAccount_upsert.teamId" })
+      @check(
+        expr: """
+        this == null ? vars.expectedStripeRevision == null :
+          this.revision == vars.expectedStripeRevision &&
+          this.stripeCustomerId == vars.expectedStripeCustomerId && this.livemode == vars.livemode &&
+          this.subscriptionStatus in ['none', 'canceled', 'incomplete_expired']
+        """
+        message: "Subscription is active, unverified, or changed; verify Stripe again"
+      ) {
+      revision
+      stripeCustomerId
+      livemode
+      subscriptionStatus
+    }
+    checkouts: billingCheckoutCreations(
+      where: {
+        teamId: { eq_expr: "response.billingAccount_upsert.teamId" }
+        closedAt: { isNull: true }
+      }
+      limit: 1
+    )
+      @check(
+        expr: "size(this) == 0"
+        message: "Resolve the open Checkout before deleting the team"
+      ) {
+      idempotencyKey
+    }
+  }
+  # Return credential references before the Team FK cascades remove them.
+  # Functions must persist/retry Secret Manager cleanup, including lost responses.
+  cleanup: query {
+    secrets: secretReferences(
+      where: { teamId: { eq_expr: "response.billingAccount_upsert.teamId" } }
+      limit: null
+    ) {
+      secretVersionPath
+    }
+    requests: gitHubConnectionRequests(
+      where: { teamId: { eq_expr: "response.billingAccount_upsert.teamId" } }
+      limit: null
+    ) {
+      codeVerifierSecretVersionPath
+    }
+    sessions: gitHubConnectionSessions(
+      where: {
+        teamId: { eq_expr: "response.billingAccount_upsert.teamId" }
+        accessTokenSecretVersionPath: { isNull: false }
+      }
+      limit: null
+    ) {
+      accessTokenSecretVersionPath
+    }
+  }
+  # Billing accounts/periods/trial claims/purchases and build history survive.
+  team_delete(id_expr: "response.billingAccount_upsert.teamId")
+    @check(expr: "this != null", message: "Team not found")
+}

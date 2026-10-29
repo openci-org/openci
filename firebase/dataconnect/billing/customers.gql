@@ -6,15 +6,13 @@ mutation CreateBillingCustomerCreation(
   $livemode: Boolean!
   $createdAt: Int64!
 ) @auth(level: NO_ACCESS) @transaction {
-  query @redact {
-    team(id: $teamId) @check(expr: "this != null", message: "Team not found") {
-      id
-    }
-  }
-  billingAccount_upsert(data: { teamId: $teamId })
+  team_update(key: { id: $teamId }, data: { updatedAt_expr: "int(request.time)" })
+    @redact
+    @check(expr: "this != null", message: "Team not found")
+  billingAccount_upsert(data: { teamId_expr: "response.team_update.id" })
   billingCustomerCreation_insert(
     data: {
-      teamId: $teamId
+      teamId_expr: "response.billingAccount_upsert.teamId"
       idempotencyKey: $idempotencyKey
       livemode: $livemode
       createdAt: $createdAt
@@ -52,17 +50,15 @@ mutation RecordBillingCustomer(
   $livemode: Boolean!
   $stripeCustomerId: String!
 ) @auth(level: NO_ACCESS) @transaction {
-  query @redact {
-    team(id: $teamId) @check(expr: "this != null", message: "Team not found") {
-      id
-    }
-  }
+  team_update(key: { id: $teamId }, data: { updatedAt_expr: "int(request.time)" })
+    @redact
+    @check(expr: "this != null", message: "Team not found")
   # Match the expected state in the UPDATE itself, including concurrent retries.
   billingCustomerCreation_updateMany(
     where: {
       _and: [
         {
-          teamId: { eq: $teamId }
+          teamId: { eq_expr: "response.team_update.id" }
           idempotencyKey: { eq: $idempotencyKey }
           livemode: { eq: $livemode }
         }

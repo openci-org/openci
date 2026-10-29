@@ -1,0 +1,107 @@
+# Functions supplies the verified Firebase UID. Status/Checkout/Portal policy,
+# including Stripe mode and complimentary teams, comes from server configuration.
+query GetBillingContext($teamId: String!, $userId: String!) @auth(level: NO_ACCESS) {
+  ...BillingMemberCheck
+  account: billingAccount(key: { teamId: $teamId }) {
+    usageRevision
+  }
+  customer: billingCustomerCreation(key: { teamId: $teamId }) {
+    ...BillingCustomerFields
+  }
+  stripe: billingStripeState(key: { teamId: $teamId }) {
+    teamId
+    stripeCustomerId
+    livemode
+    stripeSubscriptionId
+    subscriptionStatus
+    planId
+    paidPeriodId
+    paidPeriod {
+      ...BillingPeriodFields
+    }
+    cancelAtPeriodEnd
+    syncedAt
+    revision
+  }
+  checkout: billingCheckoutCreation(
+    first: { where: { teamId: { eq: $teamId }, closedAt: { isNull: true } } }
+  ) {
+    ...BillingCheckoutFields
+  }
+}
+
+fragment BillingMemberCheck on Query {
+  teamMember(first: { where: { teamId: { eq: $teamId }, userId: { eq: $userId } } })
+    @redact
+    @check(expr: "this != null", message: "Team access denied") {
+    id
+  }
+}
+
+fragment BillingCustomerFields on BillingCustomerCreation {
+  teamId
+  idempotencyKey
+  livemode
+  createdAt
+  stripeCustomerId
+}
+
+fragment BillingCheckoutFields on BillingCheckoutCreation {
+  idempotencyKey
+  teamId
+  planId
+  stripeCustomerId
+  stripePriceId
+  successUrl
+  cancelUrl
+  livemode
+  createdAt
+  stripeCheckoutSessionId
+  closedAt
+  openTeamId
+}
+
+# Webhooks still resolve historical purchases after team deletion. Verify the
+# webhook signature and Stripe Customer ownership before using this result.
+query GetBillingCustomerByStripeId($stripeCustomerId: String!, $livemode: Boolean!)
+@auth(level: NO_ACCESS) {
+  customer: billingCustomerCreation(
+    first: { where: { stripeCustomerId: { eq: $stripeCustomerId }, livemode: { eq: $livemode } } }
+  ) {
+    ...BillingCustomerFields
+  }
+}
+
+# Includes closed Checkout intents for invoice verification and lost responses.
+query GetBillingCheckoutCreation($teamId: String!, $idempotencyKey: String!, $livemode: Boolean!)
+@auth(level: NO_ACCESS) {
+  checkout: billingCheckoutCreation(
+    first: {
+      where: {
+        teamId: { eq: $teamId }
+        idempotencyKey: { eq: $idempotencyKey }
+        livemode: { eq: $livemode }
+      }
+    }
+  ) {
+    ...BillingCheckoutFields
+  }
+}
+
+# After a duplicate/ambiguous CreateBillingPeriod, Functions must compare EVERY
+# field against the verified invoice or configured monthly complimentary period.
+query GetBillingPeriod($teamId: String!, $id: String!) @auth(level: NO_ACCESS) {
+  period: billingPeriod(first: { where: { teamId: { eq: $teamId }, id: { eq: $id } } }) {
+    ...BillingPeriodFields
+  }
+}
+
+fragment BillingPeriodFields on BillingPeriod {
+  id
+  teamId
+  planId
+  periodType
+  startsAt
+  endsAt
+  allowanceSeconds
+}

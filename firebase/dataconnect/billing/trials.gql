@@ -1,0 +1,85 @@
+# Persistence for the existing dormant trial feature. Functions must enforce the
+# feature flag; these Admin-only operations do not enable trials or trial CI.
+query GetBillingTrialEligibility($teamId: String!, $userId: String!) @auth(level: NO_ACCESS) {
+  ...BillingMemberCheck
+  userClaim: billingTrialClaim(key: { userId: $userId }) {
+    teamId
+    claimedAt
+  }
+  teamClaim: billingTrialClaim(first: { where: { teamId: { eq: $teamId } } }) {
+    userId
+    claimedAt
+  }
+  activePaidPeriod: billingPeriod(
+    first: {
+      where: {
+        teamId: { eq: $teamId }
+        periodType: { eq: "paid" }
+        startsAt: { le_expr: "int(request.time)" }
+        endsAt: { gt_expr: "int(request.time)" }
+      }
+    }
+  ) {
+    id
+  }
+}
+
+# One claim per user AND team, retained after deletion. On a duplicate or lost
+# response, inspect eligibility and the requested period instead of granting anew.
+mutation StartBillingTrial(
+  $teamId: String!
+  $userId: String!
+  $periodId: String!
+  $allowanceSeconds: Int64 = null
+) @auth(level: NO_ACCESS) @transaction {
+  team_update(key: { id: $teamId }, data: { updatedAt_expr: "int(request.time)" })
+    @redact
+    @check(expr: "this != null", message: "Team not found")
+  billingAccount_upsert(data: { teamId_expr: "response.team_update.id" })
+  query @redact {
+    teamMember(
+      first: {
+        where: {
+          teamId: { eq_expr: "response.billingAccount_upsert.teamId" }
+          userId: { eq: $userId }
+        }
+      }
+    ) @check(expr: "this != null", message: "Team access denied") {
+      id
+    }
+    activePaidPeriods: billingPeriods(
+      where: {
+        teamId: { eq_expr: "response.billingAccount_upsert.teamId" }
+        periodType: { eq: "paid" }
+        startsAt: { le_expr: "int(request.time)" }
+        endsAt: { gt_expr: "int(request.time)" }
+      }
+      limit: 1
+    ) @check(expr: "size(this) == 0", message: "An active paid period already exists") {
+      id
+    }
+  }
+  billingTrialClaim_insert(
+    data: {
+      userId: $userId
+      teamId_expr: "response.billingAccount_upsert.teamId"
+      claimedAt_expr: "int(request.time)"
+    }
+  )
+  billingPeriod_insert(
+    data: {
+      id: $periodId
+      teamId_expr: "response.billingAccount_upsert.teamId"
+      planId: "pro"
+      periodType: "trial"
+      startsAt_expr: "int(request.time)"
+      endsAt_expr: "int(request.time) + 604800"
+      allowanceSeconds: $allowanceSeconds
+    }
+  )
+    @check(expr: "vars.periodId.matches('[^[:space:]]')", message: "Period ID must not be blank")
+    @check(
+      expr: "vars.allowanceSeconds == null || int(vars.allowanceSeconds) >= 0"
+      message: "Trial allowance must not be negative"
+    )
+}

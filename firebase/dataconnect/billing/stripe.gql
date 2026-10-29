@@ -36,8 +36,11 @@ mutation InitializeBillingStripeState(
   $stripeCustomerId: String!
   $livemode: Boolean!
 ) @auth(level: NO_ACCESS) @transaction {
+  billingAccount_update(key: { teamId: $teamId }, data: { usageRevision_update: { inc: 0 } })
+    @redact
+    @check(expr: "this != null", message: "Billing account not found")
   query @redact {
-    billingCustomerCreation(key: { teamId: $teamId })
+    billingCustomerCreation(key: { teamId_expr: "response.billingAccount_update.teamId" })
       @check(
         expr: "this != null && this.stripeCustomerId == vars.stripeCustomerId && this.livemode == vars.livemode"
         message: "Stripe Customer is not linked to this billing account and mode"
@@ -48,7 +51,7 @@ mutation InitializeBillingStripeState(
   }
   billingStripeState_insert(
     data: {
-      teamId: $teamId
+      teamId_expr: "response.billingAccount_update.teamId"
       stripeCustomerId: $stripeCustomerId
       livemode: $livemode
       subscriptionStatus: "none"
@@ -77,8 +80,11 @@ mutation RecordBillingStripeEvent(
   $eventCreated: Int64!
   $processedAt: Int64!
 ) @auth(level: NO_ACCESS) @transaction {
+  billingAccount_update(key: { teamId: $teamId }, data: { usageRevision_update: { inc: 0 } })
+    @redact
+    @check(expr: "this != null", message: "Billing account not found")
   query @redact {
-    state: billingStripeState(key: { teamId: $teamId })
+    state: billingStripeState(key: { teamId_expr: "response.billingAccount_update.teamId" })
       @check(
         expr: """
         this != null && this.stripeCustomerId == vars.stripeCustomerId &&
@@ -126,7 +132,7 @@ mutation RecordBillingStripeEvent(
   }
   billingStripeState_updateMany(
     where: {
-      teamId: { eq: $teamId }
+      teamId: { eq_expr: "response.billingAccount_update.teamId" }
       stripeCustomerId: { eq: $stripeCustomerId }
       livemode: { eq: $livemode }
       revision: { eq: $expectedRevision }
