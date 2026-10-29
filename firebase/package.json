@@ -7,6 +7,7 @@
     "fmt:check": "vp fmt --check"
   },
   "dependencies": {
+    "@openci/builds-admin": "file:generated/builds-admin",
     "@openci/logs-admin": "file:generated/logs-admin",
     "@openci/teams-admin": "file:generated/teams-admin",
     "firebase-admin": "^14.5.0"

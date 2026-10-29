@@ -58,19 +58,28 @@ rejects client calls. Dashboard should use `GetBuildLogs` and `GetBuildSteps`;
 Functions use the Admin SDK for writes and recovery reads. Connecting the SDKs
 to the UI and Functions remains follow-up work.
 
+`builds/connector.yaml` generates `GetBuildJobs` into:
+
+- Flutter: `apps/dashboard/lib/generated/builds` (`BuildsConnector`).
+- Node.js Admin: `firebase/generated/builds-admin` (`@openci/builds-admin`), linked
+  from the `firebase` npm workspace.
+
+Admin callers must impersonate the verified user because the query checks team
+membership. Dashboard integration and production cutover remain follow-up work.
+
 Regenerate from the repository root with Node.js 22 and Firebase CLI 15.34.2:
 
 ```sh
 env -u DEBUG npx --yes firebase-tools@15.34.2 dataconnect:sdk:generate \
   --config firebase/dataconnect/firebase.json --project demo-openci
-dart format apps/dashboard/lib/generated/teams apps/dashboard/lib/generated/logs
-vp fmt firebase/generated/logs-admin firebase/generated/teams-admin
+dart format apps/dashboard/lib/generated/teams apps/dashboard/lib/generated/logs apps/dashboard/lib/generated/builds
+vp fmt firebase/generated/logs-admin firebase/generated/teams-admin firebase/generated/builds-admin
 ```
 
 Generation uses the local schema and does not deploy it. The generated
-`TeamsConnector.instance` and `LogsConnector.instance` use the default Firebase
-app's project at runtime. The emulator also regenerates SDKs on startup; run the
-formatters again afterward.
+`TeamsConnector.instance`, `LogsConnector.instance`, and `BuildsConnector.instance`
+use the default Firebase app's project at runtime. The emulator also regenerates
+SDKs on startup; run the formatters again afterward.
 
 ## Retired features
 
