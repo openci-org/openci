@@ -1,0 +1,52 @@
+query GetTeamMembers($teamId: String!) @auth(level: USER) {
+  team(
+    first: {
+      where: {
+        id: { eq: $teamId }
+        teamMembers_on_team: { exist: { userId: { eq_expr: "auth.uid" } } }
+      }
+    }
+  ) {
+    members: teamMembers_on_team(orderBy: { userId: ASC }, limit: null) {
+      userId
+    }
+  }
+}
+
+# Functions resolves the registered account by email and supplies the caller's
+# verified UID. Clients cannot insert an arbitrary Firebase Auth UID directly.
+mutation AddTeamMember($teamId: String!, $actorUid: String!, $userId: String!)
+@auth(level: NO_ACCESS)
+@transaction {
+  # Serialize membership changes on the team row, then recheck membership.
+  team_update(key: { id: $teamId }, data: { updatedAt_expr: "int(request.time)" })
+    @check(expr: "this != null", message: "Team access denied")
+  query @redact {
+    actor: teamMember(first: { where: { teamId: { eq: $teamId }, userId: { eq: $actorUid } } })
+      @check(expr: "this != null", message: "Team access denied") {
+      id
+    }
+    existing: teamMember(first: { where: { teamId: { eq: $teamId }, userId: { eq: $userId } } })
+      @check(expr: "this == null", message: "User is already a team member") {
+      id
+    }
+  }
+  teamMember_insert(data: { teamId: $teamId, userId: $userId })
+    @check(expr: "vars.userId.matches('[^[:space:]]')", message: "User ID must not be blank")
+}
+
+mutation RemoveTeamMember($teamId: String!, $userId: String!) @auth(level: USER) @transaction {
+  # The shared row lock prevents two members from removing each other at once.
+  team_update(key: { id: $teamId }, data: { updatedAt_expr: "int(request.time)" })
+    @check(expr: "this != null", message: "Team access denied")
+    @check(expr: "vars.userId != auth.uid", message: "You cannot remove yourself")
+  query @redact {
+    actor: teamMember(
+      first: { where: { teamId: { eq: $teamId }, userId: { eq_expr: "auth.uid" } } }
+    ) @check(expr: "this != null", message: "Team access denied") {
+      id
+    }
+  }
+  teamMember_delete(first: { where: { teamId: { eq: $teamId }, userId: { eq: $userId } } })
+    @check(expr: "this != null", message: "Team member not found")
+}
