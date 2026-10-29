@@ -108,15 +108,16 @@ on insertion; step updates must explicitly advance `updatedAt`.
 
 The `logs` connector validates team membership, run/team ownership, supported
 status/source/stream values, non-negative step order/duration, and bounded
-batch/message sizes. Worker/run assignment remains Functions work.
+message sizes. Worker/run assignment remains Functions work.
 A non-null `stepId` must match a step in the same run. It is intentionally a scalar:
 an optional composite `@ref` would SET NULL on both the step ID and the required
 run ID when deleting a step.
 
 Log writers must be insert-only. Resolve retried `logId` values against the saved
 payload, then reserve positive consecutive sequences by conditionally advancing
-`BuildRun.lastLogSequence` once per batch. Commit that update and all inserts in
-one transaction; a conflict requires a fresh read and retry. Guard step state
+`BuildRun.lastLogSequence` once per log. Commit that update and the log insert in
+one transaction; a conflict requires a fresh read and retry. Earlier committed
+logs remain saved if a later append fails. Guard step state
 transitions so a late running event cannot overwrite a terminal state.
 
 `logsExpireAt` is indexed for future cleanup of log bodies while retaining run
