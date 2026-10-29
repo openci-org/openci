@@ -28,9 +28,13 @@ operations, and CI admission/execution operations described below.
 connection's Firebase app and authentication. Local development uses the Auth
 Emulator host and SQL Connect port `9399` configured in `firebase.json`.
 
-Team creation and renaming still use the existing REST API. Switch those writes
-to SQL Connect before releasing the new list reader, so reads and writes use
-the same database. Team deletion remains part of the billing migration.
+New account registration uses the generated `CreateTeam` mutation to create the
+initial team and its membership. The user's UID remains the team's ID and name.
+Dashboard no longer offers manual creation of additional teams.
+
+Team renaming and member management still use the existing REST API. Switch those
+operations before production cutover so reads and writes use the same database.
+Team deletion remains part of the billing migration.
 
 `logs/connector.yaml` generates all seven log/step operations into:
 

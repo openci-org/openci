@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:dashboard/api/openci_api_client.dart';
 import 'package:dashboard/app_strings.dart';
 import 'package:dashboard/auth/auth_provider.dart';
 import 'package:dashboard/auth/self_hosted_setup_form.dart';
@@ -13,7 +12,7 @@ import 'package:dashboard/connections/local_development_connection.dart';
 import 'package:dashboard/connections/select_connection_profile.dart';
 import 'package:dashboard/firebase/firebase_config_provider.dart';
 import 'package:dashboard/firebase/plist_parser.dart';
-import 'package:dashboard/team/selected_team_provider.dart';
+import 'package:dashboard/team/team_provider.dart';
 import 'package:dashboard/utilities/snack_bar_extension.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
@@ -303,6 +302,9 @@ class AuthPage extends HookConsumerWidget {
                                                 .validate()) {
                                               isLoading.value = true;
                                               try {
+                                                final teamService = ref.read(
+                                                  teamServiceProvider,
+                                                );
                                                 final auth = await ref.read(
                                                   firebaseAuthProvider.future,
                                                 );
@@ -315,34 +317,10 @@ class AuthPage extends HookConsumerWidget {
                                                               .text,
                                                     );
                                                 TextInput.finishAutofillContext();
-                                                final userId =
-                                                    credential.user!.uid;
-                                                final teamId = userId;
-                                                final apiService = await ref
-                                                    .read(
-                                                      openciApiServiceProvider
-                                                          .future,
+                                                await teamService
+                                                    .createInitialTeam(
+                                                      credential.user!.uid,
                                                     );
-                                                final response =
-                                                    await apiService.createTeam(
-                                                      {
-                                                        'id': teamId,
-                                                        'name': teamId,
-                                                      },
-                                                    );
-
-                                                if (response.statusCode !=
-                                                    200) {
-                                                  throw StateError(
-                                                    'Failed to initialize team on the server: ${response.bodyString}',
-                                                  );
-                                                }
-                                                await ref
-                                                    .read(
-                                                      selectedTeamIdProvider
-                                                          .notifier,
-                                                    )
-                                                    .saveSelectedTeamId(teamId);
                                               } catch (e) {
                                                 if (!context.mounted) {
                                                   return;
