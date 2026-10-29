@@ -234,15 +234,42 @@ Each log is a separate row; senders will upload multiple logs in a batch.
 `(runId, sequence)` orders persisted logs, and `(runId, logId)` prevents duplicate
 rows on retries. Step IDs are scoped to a run; logs without a step are allowed.
 
-`BuildRun.lastLogSequence` starts at `0`. A future append mutation must reserve
-the batch's consecutive sequence numbers with a conditional update and insert
-all rows in the same transaction. `logsExpireAt` is a nullable retention deadline;
-it does not automatically delete logs. New log/step timestamps use `Timestamp`,
-while existing build/run timestamps keep their Unix-second representation.
+The `logs` connector provides:
 
-This change defines storage only. Batch mutations, worker authorization, team
-read permissions, SDK integration, realtime refresh, and retention cleanup are
-follow-up work. The current applications still send/read build logs through Loki.
+- `GetBuildSteps` / `GetBuildLogs`: non-anonymous team members only. Pages default
+  to 100 entries (maximum 200); steps use an offset, logs use the last returned
+  entry's sequence as the next cursor, not the run's `lastLogSequence`.
+- `CreateBuildStep` / `UpdateBuildStep`: server-only creation and updates.
+  Completed steps cannot be overwritten and duration cannot decrease.
+- `AppendBuildLogs`: server-only batch insertion with a conditional sequence
+  update in the same transaction. Any failure rolls back the whole batch.
+- `GetBuildLogWriteState` / `GetBuildStepWriteState`: server-only recovery reads.
+
+Batches contain 1–100 entries for one run and one optional step. Sources are
+`worker`/`workflow`, streams are `stdout`/`stderr`, and messages allow at most
+16 KiB of UTF-8 (empty messages are valid). `occurredAt` comes from the sender;
+`createdAt` is server-generated. Int64 values must retain their precision.
+
+Functions must authenticate the worker and verify its run assignment. Before
+appending, look up the stable sender-generated IDs with `GetBuildLogWriteState`
+and compare saved step/source/stream/message/event-time values, normalizing UUIDs
+and timestamps. Reject reused IDs with different payloads; acknowledge saved
+entries and assign only missing entries consecutive sequences after
+`lastLogSequence`, passing it as `expectedLastSequence`. A conflict or ambiguous
+response requires a fresh lookup; duplicate appends are not successful no-ops.
+Use `GetBuildStepWriteState` to recover duplicate creates or terminal updates.
+
+Expired `logsExpireAt` rejects writes but does not delete rows. Functions retry
+orchestration, SDK/UI integration, realtime refresh, and retention cleanup are
+follow-up work. Current applications still use Loki.
+
+Run the operation tests against the local emulator (Node.js 22):
+
+```sh
+cd firebase/dataconnect
+env -u DEBUG firebase emulators:exec --only dataconnect --project demo-openci \
+  'node --test test/logs.test.mjs'
+```
 
 ## Secrets
 

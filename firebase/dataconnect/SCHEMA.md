@@ -106,11 +106,12 @@ stable UUID for retry detection. `occurredAt` is the sender's event time;
 `createdAt` defaults to the server request time. Timestamp defaults apply only
 on insertion; step updates must explicitly advance `updatedAt`.
 
-Before exposing connector operations, validate the worker/run assignment and
-team membership, supported status/source/stream values, non-negative step
-order/duration, and bounded batch/message sizes. A non-null `stepId` must match a
-step in the same run. It is intentionally a scalar: an optional composite `@ref`
-would SET NULL on both the step ID and the required run ID when deleting a step.
+The `logs` connector validates team membership, run/team ownership, supported
+status/source/stream values, non-negative step order/duration, and bounded
+batch/message sizes. Worker/run assignment remains Functions work.
+A non-null `stepId` must match a step in the same run. It is intentionally a scalar:
+an optional composite `@ref` would SET NULL on both the step ID and the required
+run ID when deleting a step.
 
 Log writers must be insert-only. Resolve retried `logId` values against the saved
 payload, then reserve positive consecutive sequences by conditionally advancing
@@ -120,7 +121,7 @@ transitions so a late running event cannot overwrite a terminal state.
 
 `logsExpireAt` is indexed for future cleanup of log bodies while retaining run
 and step summaries. It starts unset; retention scheduling and deletion are not
-implemented. No log/step connector operations are exposed by this schema change.
+implemented. See [Build logs](README.md#build-logs) for connector usage.
 
 ## Validation required in future write operations
 
