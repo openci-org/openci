@@ -127,9 +127,9 @@ implemented. See [Build logs](README.md#build-logs) for connector usage.
 ## Validation required in future write operations
 
 `CreateBillingPeriod` and the operations in `billing/customers.gql`,
-`billing/checkouts.gql`, `billing/stripe.gql`, `billing/admissions.gql`, and
-`billing/executions.gql` have write validations
-implemented. Creation intents are insert-only; Customer/Session IDs use
+`billing/checkouts.gql`, `billing/stripe.gql`, `billing/trials.gql`,
+`billing/deletion.gql`, `billing/admissions.gql`, and `billing/executions.gql`
+have write validations implemented. Creation intents are insert-only; Customer/Session IDs use
 conditional updates. Checkout operations derive/release the open key atomically.
 Stripe state/event writes share a transaction, enforce period ownership and
 retention, protect ended subscriptions, and reject stale revisions. Stripe
@@ -142,14 +142,23 @@ conditional updates, and transactions. Future writers must preserve them too:
 | `billing_admissions` | Nonempty ID/job/worker/run IDs; positive reservation; `start_by_ms > claimed_at_ms`; closed time is NULL or at least the claim time; derive/release `open_job_id`                                                                                                                                                         |
 | `billing_executions` | Nonempty run/job/worker IDs; `started_at_ms <= observed_at_ms <= lease_until_ms`; finished time is NULL or equals observed time; finished time and outcome are both NULL or both set; outcome is `success`, `failure`, `cancelled`, `timed_out`, or `abandoned`; `measurement_incomplete` is true exactly for `abandoned` |
 
-Trial claims retain user-primary-key and team-unique protection. Stripe event
-IDs and customer/checkout idempotency keys remain unique. Coordinating these
+`StartBillingTrial` atomically creates a seven-day Pro period and claim after
+checking membership and absence of an active paid period. Trial claims retain
+user-primary-key and team-unique protection and survive team deletion. Stripe
+event IDs and customer/checkout idempotency keys remain unique. Coordinating these
 records with Stripe, worker authorization/capacity, run display numbering, job
 completion, and recovery scheduling remains Functions work. The billing connector
 now claims a selected queued job atomically with its reservation, binds its run,
 and measures/renews/finishes execution leases. It does not replace the queue's
 worker-capacity advisory lock or expose general writes for the other tables.
-Trial activation is not exposed.
+Trial activation is not exposed to clients or wired to the execution flow.
+
+`DeleteBillingTeam` verifies membership, expected Customer/Stripe state, and
+absence of pending purchases under the same row locks used by billing writes.
+It preserves billing/build history and returns Secret Manager references before
+their SQL rows cascade. Functions must verify Stripe before calling it and
+durably handle credential cleanup, including lost responses and concurrent
+secret creation. See [Team deletion](README.md#team-deletion).
 
 ## Excluded storage
 

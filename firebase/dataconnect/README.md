@@ -87,13 +87,24 @@ Only `GetGitHubConnections` is client-accessible, with a team-membership check.
 The other nine generated methods require unrestricted Admin access. OAuth and
 GitHub API calls belong in Functions, not in these generated SDKs.
 
+`billing/connector.yaml` generates all 33 billing operations into:
+
+- Flutter: `apps/dashboard/lib/generated/billing` (`BillingConnector`).
+- Node.js Admin: `firebase/generated/billing-admin` (`@openci/billing-admin`),
+  linked from the `firebase` npm workspace.
+
+All billing operations are `NO_ACCESS`, including reads. Generating Flutter
+methods does not allow clients to call them. Functions must authenticate the
+caller and use the Admin SDK to compute billing status or perform writes.
+Stripe calls, worker orchestration, and UI/API integration remain follow-up work.
+
 Regenerate from the repository root with Node.js 22 and Firebase CLI 15.34.2:
 
 ```sh
 env -u DEBUG npx --yes firebase-tools@15.34.2 dataconnect:sdk:generate \
   --config firebase/dataconnect/firebase.json --project demo-openci
-dart format apps/dashboard/lib/generated/teams apps/dashboard/lib/generated/logs apps/dashboard/lib/generated/builds apps/dashboard/lib/generated/secrets apps/dashboard/lib/generated/github
-vp fmt firebase/generated/logs-admin firebase/generated/teams-admin firebase/generated/builds-admin firebase/generated/secrets-admin firebase/generated/github-admin
+dart format apps/dashboard/lib/generated/teams apps/dashboard/lib/generated/logs apps/dashboard/lib/generated/builds apps/dashboard/lib/generated/secrets apps/dashboard/lib/generated/github apps/dashboard/lib/generated/billing
+vp fmt firebase/generated/logs-admin firebase/generated/teams-admin firebase/generated/builds-admin firebase/generated/secrets-admin firebase/generated/github-admin firebase/generated/billing-admin
 ```
 
 Generation uses the local schema and does not deploy it. The generated
@@ -137,6 +148,39 @@ write operations must carry the same checks. The existing servers still use
 their current database; routing billing writes through these operations is
 follow-up work.
 
+### Context and recovery reads
+
+`billing/context.gql` supplies the reads needed by status, Checkout, Portal, and
+webhook Functions:
+
+- `GetBillingContext` verifies the supplied user's membership and returns the
+  account revision, Customer intent, Stripe state with its full paid period,
+  and open Checkout. Missing billing records are nullable.
+- `GetBillingCustomerByStripeId` resolves the Customer in the specified Stripe
+  mode. `GetBillingCheckoutCreation` reads an exact team/key/mode combination,
+  including closed purchases. Both work after team deletion for webhook recovery.
+- `GetBillingPeriod` returns all immutable period fields for the specified team.
+  After a duplicate or ambiguous `CreateBillingPeriod`, compare every field
+  before treating the operation as successful. This also supports configured
+  monthly complimentary periods; Functions chooses their IDs and allowances.
+
+Functions must supply the verified Firebase UID, check Stripe mode, and derive
+entitlement and allowance policy from server configuration. These queries do not
+call Stripe, compute the public billing-status response, or create Portal URLs.
+
+### Trial persistence
+
+`billing/trials.gql` adds `GetBillingTrialEligibility` and `StartBillingTrial` for
+the existing dormant trial feature. The mutation checks membership, rejects an
+active paid period, and inserts a seven-day Pro period and its claim in one
+transaction. User-primary-key and team-unique constraints permit only one trial
+per user and per team, even across concurrent requests. Claims survive deletion.
+The nullable allowance must be non-negative when supplied.
+
+On a duplicate or ambiguous response, reread eligibility and the requested
+period before retrying. These Admin operations do not enable a trial route, UI,
+or trial CI; admission and execution operations still require paid periods.
+
 ### Stripe Customer creation
 
 `billing/customers.gql` adds three server-only operations:
@@ -155,9 +199,8 @@ Functions must verify membership and choose the mode, key, and timestamp. Before
 calling Stripe, read or create the intent; after a duplicate create or ambiguous
 timeout, read it again and use the stored key. Verify the returned Customer's
 `metadata.team_id`, `livemode`, and non-deleted status before recording its ID.
-Stripe API calls and Functions integration remain follow-up work. The team
-existence check is not a replacement for the legacy team/account row locks;
-coordinate team deletion when implementing that workflow.
+Stripe API calls and Functions integration remain follow-up work. Customer
+creation and recording share the team-row lock used by `DeleteBillingTeam`.
 
 ### Stripe Checkout creation
 
@@ -189,9 +232,10 @@ reference, and return URLs against that saved intent.
 
 Before closing, Functions must verify an expired/unpaid Session, or a completed
 Session whose Subscription is canceled/incomplete_expired. Recording a Session
-does not close the intent. Functions/Stripe integration and team-deletion
-coordination are pending; the new operations do not switch production billing
-traffic.
+does not close the intent. Checkout writes share the team-row lock used by
+`DeleteBillingTeam`; an open intent prevents deletion. Functions/Stripe
+integration remains pending, and these operations do not switch production
+billing traffic.
 
 ### Stripe state and events
 
@@ -224,6 +268,31 @@ protects simultaneous updates even within the same Unix second. These operations
 can process billing history after team deletion. Webhook signature validation,
 Customer/team resolution, Stripe verification, and Functions retry orchestration
 remain follow-up work.
+
+### Team deletion
+
+`billing/deletion.gql` defines `DeleteBillingTeam`. Functions must read
+`GetBillingContext` **before** verifying the Customer has no live Stripe
+subscriptions, and resolve any open Checkout with Stripe before closing it.
+Pass the observed Customer creation key/ID and Stripe revision to the mutation.
+
+The mutation rechecks membership, Customer identity/mode, terminal subscription
+state, and absence of an open Checkout under row locks. Pending Customer creation
+or changed state rejects deletion; Functions must read and verify Stripe again.
+Team deletion cascades to members, secret references, GitHub metadata, and
+skipped reports, while billing and build history survive. Returned Secret
+Manager references are cleanup inputs, not proof that credentials were destroyed.
+
+Customer/Checkout creation, trials, CI admission, and deletion lock the Team row
+before updating billing data. Stripe state writes lock the billing account;
+deletion takes that lock after the Team lock. Explicit `response` bindings make
+dependent writes and guard reads execute after acquiring those locks. Keep these
+dependencies: independent mutation fields can otherwise share a SQL statement
+and its earlier snapshot.
+
+Functions must implement durable Secret Manager cleanup and reconciliation for
+lost responses and concurrent secret creation before exposing deletion. This
+mutation does not call Stripe or Secret Manager and is not a deletion endpoint.
 
 ### CI reservations and execution measurement
 
@@ -276,12 +345,30 @@ revisions for unstarted admissions. It must not continuously retry already
 closed/finished records. An already closed or historically absent admission does
 not prevent execution expiration.
 
+`billing/jobs.gql` supplies three Admin reads: `GetQueuedBillingJobs` returns
+FIFO candidates with `(createdAt, id)` keyset pagination, an excluded-team list,
+and pages of 1–100 jobs; `GetBillingWorkerJobs` returns the host's in-progress
+jobs; `GetBillingJob` resolves a job's team, worker, and current run. These are
+snapshots, not worker-capacity reservations. The scheduler must handle rejected
+or already-reserved candidates and advance its cursor accordingly.
+
 Functions integration remains pending: authenticate workers; select the verified
 paid or complimentary period and Stripe mode; choose server timestamps and IDs;
 select jobs with worker-capacity/queue ordering; assign run display numbers; and
 coordinate team deletion, job completion, GitHub status updates, and recovery
 scheduling. The selected-job claim is atomic, but a fleet-wide scheduler is not
-implemented here. Trial claims and their activation routes remain untouched.
+implemented here. Trial activation routes remain disabled.
+
+Run the billing operations, authorization/concurrency checks, and generated
+Admin SDK tests against the local emulator:
+
+```sh
+env -u DEBUG npx --yes firebase-tools@15.34.2 emulators:exec \
+  --config firebase/dataconnect/firebase.json --only dataconnect --project demo-openci \
+  'node --test firebase/dataconnect/test/billing.test.mjs'
+cd apps/dashboard
+flutter test --no-pub test/generated/billing_sdk_test.dart
+```
 
 ## Build logs
 

@@ -11,11 +11,11 @@ mutation CreateBillingCheckoutCreation(
   $livemode: Boolean!
   $createdAt: Int64!
 ) @auth(level: NO_ACCESS) @transaction {
+  team_update(key: { id: $teamId }, data: { updatedAt_expr: "int(request.time)" })
+    @redact
+    @check(expr: "this != null", message: "Team not found")
   query @redact {
-    team(id: $teamId) @check(expr: "this != null", message: "Team not found") {
-      id
-    }
-    billingAccount(key: { teamId: $teamId })
+    billingAccount(key: { teamId_expr: "response.team_update.id" })
       @check(expr: "this != null", message: "Billing account not found") {
       teamId
     }
@@ -23,7 +23,7 @@ mutation CreateBillingCheckoutCreation(
   billingCheckoutCreation_insert(
     data: {
       idempotencyKey: $idempotencyKey
-      teamId: $teamId
+      teamId_expr: "response.team_update.id"
       planId: $planId
       stripeCustomerId: $stripeCustomerId
       stripePriceId: $stripePriceId
@@ -92,18 +92,16 @@ mutation RecordBillingCheckoutSession(
   $createdAt: Int64!
   $stripeCheckoutSessionId: String!
 ) @auth(level: NO_ACCESS) @transaction {
-  query @redact {
-    team(id: $teamId) @check(expr: "this != null", message: "Team not found") {
-      id
-    }
-  }
+  team_update(key: { id: $teamId }, data: { updatedAt_expr: "int(request.time)" })
+    @redact
+    @check(expr: "this != null", message: "Team not found")
   # Match every original parameter and the open state in the UPDATE itself.
   billingCheckoutCreation_updateMany(
     where: {
       _and: [
         {
           idempotencyKey: { eq: $idempotencyKey }
-          teamId: { eq: $teamId }
+          teamId: { eq_expr: "response.team_update.id" }
           planId: { eq: $planId }
           stripeCustomerId: { eq: $stripeCustomerId }
           stripePriceId: { eq: $stripePriceId }
@@ -144,10 +142,10 @@ mutation CloseBillingCheckoutCreation(
   $stripeCheckoutSessionId: String!
   $closedAt: Int64!
 ) @auth(level: NO_ACCESS) @transaction {
+  team_update(key: { id: $teamId }, data: { updatedAt_expr: "int(request.time)" })
+    @redact
+    @check(expr: "this != null", message: "Team not found")
   query @redact {
-    team(id: $teamId) @check(expr: "this != null", message: "Team not found") {
-      id
-    }
     billingCheckoutCreation(key: { idempotencyKey: $idempotencyKey })
       @check(
         expr: """
@@ -180,7 +178,7 @@ mutation CloseBillingCheckoutCreation(
   billingCheckoutCreation_updateMany(
     where: {
       idempotencyKey: { eq: $idempotencyKey }
-      teamId: { eq: $teamId }
+      teamId: { eq_expr: "response.team_update.id" }
       stripeCustomerId: { eq: $stripeCustomerId }
       livemode: { eq: $livemode }
       stripeCheckoutSessionId: { eq: $stripeCheckoutSessionId }

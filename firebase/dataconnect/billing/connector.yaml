@@ -1,1 +1,9 @@
 connectorId: "billing"
+generate:
+  dartSdk:
+    outputDir: "../../../apps/dashboard/lib/generated/billing"
+    package: "billing"
+  adminNodeSdk:
+    outputDir: "../../generated/billing-admin"
+    package: "@openci/billing-admin"
+    packageJsonDir: "../.."

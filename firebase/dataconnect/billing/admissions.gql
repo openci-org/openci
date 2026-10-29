@@ -32,17 +32,17 @@ mutation CreateBillingAdmission(
   $atMs: Int64!
   $vmName: String = null
 ) @auth(level: NO_ACCESS) @transaction {
+  team_update(key: { id: $teamId }, data: { updatedAt_expr: "int(request.time)" })
+    @redact
+    @check(expr: "this != null", message: "Team not found")
   query @redact {
-    team(id: $teamId) @check(expr: "this != null", message: "Team not found") {
-      id
-    }
     ...BillingUsageSnapshot
   }
   # The quota and revision above come from ONE SQL snapshot. Any concurrent
   # admission or execution change invalidates this CAS, including another job.
   billingAccount_updateMany(
     where: {
-      teamId: { eq: $teamId }
+      teamId: { eq_expr: "response.team_update.id" }
       usageRevision: {
         eq_expr: "response.query.usage == null ? -1 : int(response.query.usage.revision)"
       }

@@ -7,6 +7,7 @@
     "fmt:check": "vp fmt --check"
   },
   "dependencies": {
+    "@openci/billing-admin": "file:generated/billing-admin",
     "@openci/builds-admin": "file:generated/builds-admin",
     "@openci/github-admin": "file:generated/github-admin",
     "@openci/logs-admin": "file:generated/logs-admin",

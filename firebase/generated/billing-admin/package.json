@@ -1,0 +1,25 @@
+{
+  "name": "@openci/billing-admin",
+  "version": "0.0.1",
+  "description": "Generated Admin SDK For billing",
+  "license": "Apache-2.0",
+  "author": "Firebase <firebase-support@google.com> (https://firebase.google.com/)",
+  "main": "index.cjs.js",
+  "module": "esm/index.esm.js",
+  "browser": "esm/index.esm.js",
+  "typings": "index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "require": "./index.cjs.js",
+      "default": "./esm/index.esm.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "peerDependencies": {
+    "firebase-admin": "^13.4.0 || ^14.0.0"
+  },
+  "engines": {
+    "node": " >=18.0"
+  }
+}

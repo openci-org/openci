@@ -12,7 +12,7 @@ mutation CreateBillingPeriod(
   billingPeriod_insert(
     data: {
       id: $id
-      teamId: $teamId
+      teamId_expr: "response.billingAccount_upsert.teamId"
       planId: $planId
       periodType: $periodType
       startsAt: $startsAt
