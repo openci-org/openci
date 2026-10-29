@@ -2,16 +2,9 @@
 fragment LogWriteScope on BuildRun {
   id
   logsExpireAt
-    @check(
-      expr: "this == null || this > request.time"
-      message: "Log retention has expired"
-    )
+    @check(expr: "this == null || this > request.time", message: "Log retention has expired")
   buildJob {
-    teamId
-      @check(
-        expr: "this == vars.teamId"
-        message: "Run does not belong to this team"
-      )
+    teamId @check(expr: "this == vars.teamId", message: "Run does not belong to this team")
   }
 }
 
@@ -70,14 +63,6 @@ mutation UpdateBuildStep(
       status: { eq: "IN_PROGRESS" }
       durationMs: { le: $durationMs }
     }
-    data: {
-      status: $status
-      durationMs: $durationMs
-      updatedAt_expr: "request.time"
-    }
-  )
-    @check(
-      expr: "this == 1"
-      message: "Step is missing, finished, or the update is stale"
-    )
+    data: { status: $status, durationMs: $durationMs, updatedAt_expr: "request.time" }
+  ) @check(expr: "this == 1", message: "Step is missing, finished, or the update is stale")
 }

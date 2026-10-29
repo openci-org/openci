@@ -7,5 +7,5 @@
     "strict": true,
     "noEmit": true
   },
-  "include": ["healthcheck.ts"]
+  "include": ["healthcheck.ts", "functions/**/*.ts"]
 }
