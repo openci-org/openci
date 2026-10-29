@@ -22,8 +22,18 @@ operations, and CI admission/execution operations described below.
 
 ## Generated SDKs
 
-`teams/connector.yaml` generates the three team operations into
-`apps/dashboard/lib/generated/teams`. Dashboard uses `firebase_data_connect`
+`teams/connector.yaml` generates all six team operations, including
+`GetTeamMembers`, `AddTeamMember`, and `RemoveTeamMember`, into:
+
+- Flutter: `apps/dashboard/lib/generated/teams` (`TeamsConnector`).
+- Node.js Admin: `firebase/generated/teams-admin` (`@openci/teams-admin`), linked
+  from the `firebase` npm workspace.
+
+`AddTeamMember` is server-only (`NO_ACCESS`), even though it is included in the
+Flutter SDK. Its `actorUid` must come from the server's verified caller identity.
+Member Functions and Dashboard integration remain separate follow-up work.
+
+Dashboard uses `firebase_data_connect`
 `0.4.1`. Team lists use `GetMyTeams` through the generated SDK, with the selected
 connection's Firebase app and authentication. Local development uses the Auth
 Emulator host and SQL Connect port `9399` configured in `firebase.json`.
@@ -48,13 +58,13 @@ rejects client calls. Dashboard should use `GetBuildLogs` and `GetBuildSteps`;
 Functions use the Admin SDK for writes and recovery reads. Connecting the SDKs
 to the UI and Functions remains follow-up work.
 
-Regenerate from the repository root with Node.js 22 and Firebase CLI 15.34.1:
+Regenerate from the repository root with Node.js 22 and Firebase CLI 15.34.2:
 
 ```sh
-env -u DEBUG npx --yes firebase-tools@15.34.1 dataconnect:sdk:generate \
+env -u DEBUG npx --yes firebase-tools@15.34.2 dataconnect:sdk:generate \
   --config firebase/dataconnect/firebase.json --project demo-openci
 dart format apps/dashboard/lib/generated/teams apps/dashboard/lib/generated/logs
-vp fmt firebase/generated/logs-admin
+vp fmt firebase/generated/logs-admin firebase/generated/teams-admin
 ```
 
 Generation uses the local schema and does not deploy it. The generated
