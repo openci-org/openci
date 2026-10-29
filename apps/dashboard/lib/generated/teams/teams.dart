@@ -4,6 +4,12 @@ import 'package:firebase_data_connect/firebase_data_connect.dart';
 import 'package:flutter/foundation.dart';
 import 'dart:convert';
 
+part 'get_team_members.dart';
+
+part 'add_team_member.dart';
+
+part 'remove_team_member.dart';
+
 part 'create_team.dart';
 
 part 'rename_team.dart';
@@ -19,6 +25,39 @@ BigInt bigIntFromJson(dynamic value) {
 }
 
 class TeamsConnector {
+  GetTeamMembersVariablesBuilder getTeamMembers({
+    required String teamId,
+  }) {
+    return GetTeamMembersVariablesBuilder(
+      dataConnect,
+      teamId: teamId,
+    );
+  }
+
+  AddTeamMemberVariablesBuilder addTeamMember({
+    required String teamId,
+    required String actorUid,
+    required String userId,
+  }) {
+    return AddTeamMemberVariablesBuilder(
+      dataConnect,
+      teamId: teamId,
+      actorUid: actorUid,
+      userId: userId,
+    );
+  }
+
+  RemoveTeamMemberVariablesBuilder removeTeamMember({
+    required String teamId,
+    required String userId,
+  }) {
+    return RemoveTeamMemberVariablesBuilder(
+      dataConnect,
+      teamId: teamId,
+      userId: userId,
+    );
+  }
+
   CreateTeamVariablesBuilder createTeam({
     required String id,
     required String name,

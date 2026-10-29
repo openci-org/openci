@@ -21,6 +21,55 @@ TeamsConnector.instance.dataConnect.useDataConnectEmulator(host, port);
 You can also call queries and mutations by using the connector class.
 ## Queries
 
+### GetTeamMembers
+#### Required Arguments
+```dart
+String teamId = ...;
+TeamsConnector.instance.getTeamMembers(
+  teamId: teamId,
+).execute();
+```
+
+
+
+#### Return Type
+`execute()` returns a `QueryResult<GetTeamMembersData, GetTeamMembersVariables>`
+```dart
+/// Result of an Operation Request (query/mutation).
+class OperationResult<Data, Variables> {
+  OperationResult(this.dataConnect, this.data, this.ref);
+  Data data;
+  OperationRef<Data, Variables> ref;
+  FirebaseDataConnect dataConnect;
+}
+
+/// Result of a query request. Created to hold extra variables in the future.
+class QueryResult<Data, Variables> extends OperationResult<Data, Variables> {
+  QueryResult(super.dataConnect, super.data, super.ref);
+}
+
+final result = await TeamsConnector.instance.getTeamMembers(
+  teamId: teamId,
+);
+GetTeamMembersData data = result.data;
+final ref = result.ref;
+```
+
+#### Getting the Ref
+Each builder returns an `execute` function, which is a helper function that creates a `Ref` object, and executes the underlying operation.
+An example of how to use the `Ref` object is shown below:
+```dart
+String teamId = ...;
+
+final ref = TeamsConnector.instance.getTeamMembers(
+  teamId: teamId,
+).ref();
+ref.execute();
+
+ref.subscribe(...);
+```
+
+
 ### GetMyTeams
 #### Required Arguments
 ```dart
@@ -62,6 +111,105 @@ ref.subscribe(...);
 ```
 
 ## Mutations
+
+### AddTeamMember
+#### Required Arguments
+```dart
+String teamId = ...;
+String actorUid = ...;
+String userId = ...;
+TeamsConnector.instance.addTeamMember(
+  teamId: teamId,
+  actorUid: actorUid,
+  userId: userId,
+).execute();
+```
+
+
+
+#### Return Type
+`execute()` returns a `OperationResult<AddTeamMemberData, AddTeamMemberVariables>`
+```dart
+/// Result of an Operation Request (query/mutation).
+class OperationResult<Data, Variables> {
+  OperationResult(this.dataConnect, this.data, this.ref);
+  Data data;
+  OperationRef<Data, Variables> ref;
+  FirebaseDataConnect dataConnect;
+}
+
+final result = await TeamsConnector.instance.addTeamMember(
+  teamId: teamId,
+  actorUid: actorUid,
+  userId: userId,
+);
+AddTeamMemberData data = result.data;
+final ref = result.ref;
+```
+
+#### Getting the Ref
+Each builder returns an `execute` function, which is a helper function that creates a `Ref` object, and executes the underlying operation.
+An example of how to use the `Ref` object is shown below:
+```dart
+String teamId = ...;
+String actorUid = ...;
+String userId = ...;
+
+final ref = TeamsConnector.instance.addTeamMember(
+  teamId: teamId,
+  actorUid: actorUid,
+  userId: userId,
+).ref();
+ref.execute();
+```
+
+
+### RemoveTeamMember
+#### Required Arguments
+```dart
+String teamId = ...;
+String userId = ...;
+TeamsConnector.instance.removeTeamMember(
+  teamId: teamId,
+  userId: userId,
+).execute();
+```
+
+
+
+#### Return Type
+`execute()` returns a `OperationResult<RemoveTeamMemberData, RemoveTeamMemberVariables>`
+```dart
+/// Result of an Operation Request (query/mutation).
+class OperationResult<Data, Variables> {
+  OperationResult(this.dataConnect, this.data, this.ref);
+  Data data;
+  OperationRef<Data, Variables> ref;
+  FirebaseDataConnect dataConnect;
+}
+
+final result = await TeamsConnector.instance.removeTeamMember(
+  teamId: teamId,
+  userId: userId,
+);
+RemoveTeamMemberData data = result.data;
+final ref = result.ref;
+```
+
+#### Getting the Ref
+Each builder returns an `execute` function, which is a helper function that creates a `Ref` object, and executes the underlying operation.
+An example of how to use the `Ref` object is shown below:
+```dart
+String teamId = ...;
+String userId = ...;
+
+final ref = TeamsConnector.instance.removeTeamMember(
+  teamId: teamId,
+  userId: userId,
+).ref();
+ref.execute();
+```
+
 
 ### CreateTeam
 #### Required Arguments
