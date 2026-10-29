@@ -72,16 +72,8 @@ class TeamService {
   }
 
   Future<void> updateTeamName(String teamId, String newName) async {
-    final apiService = await _ref.read(openciApiServiceProvider.future);
-    final response = await apiService.updateTeam(teamId, {
-      'name': newName,
-    });
-
-    if (!response.isSuccessful) {
-      throw StateError(
-        'Failed to update team name: ${response.statusCode} ${response.error}',
-      );
-    }
+    final connector = await _ref.read(teamsConnectorProvider.future);
+    await connector.renameTeam(teamId: teamId, name: newName).execute();
 
     if (_ref.mounted) {
       _ref.invalidate(teamListProvider);

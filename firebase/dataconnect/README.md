@@ -32,9 +32,10 @@ New account registration uses the generated `CreateTeam` mutation to create the
 initial team and its membership. The user's UID remains the team's ID and name.
 Dashboard no longer offers manual creation of additional teams.
 
-Team renaming and member management still use the existing REST API. Switch those
-operations before production cutover so reads and writes use the same database.
-Team deletion remains part of the billing migration.
+Team renaming uses the generated `RenameTeam` mutation and refreshes the team
+list after a successful update. Member management still uses the existing REST
+API and must move before production cutover so reads and writes use the same
+database. Team deletion remains part of the billing migration.
 
 `logs/connector.yaml` generates all seven log/step operations into:
 
