@@ -1,1 +1,9 @@
 connectorId: "logs"
+generate:
+  dartSdk:
+    outputDir: "../../../apps/dashboard/lib/generated/logs"
+    package: "logs"
+  adminNodeSdk:
+    outputDir: "../../generated/logs-admin"
+    package: "@openci/logs-admin"
+    packageJsonDir: "../.."

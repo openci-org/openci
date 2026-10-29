@@ -20,7 +20,7 @@ servers to SQL Connect. Connector operations
 cover `GetMyTeams`, `CreateBillingPeriod`, Stripe Customer/Checkout/state/event
 operations, and CI admission/execution operations described below.
 
-## Flutter SDK
+## Generated SDKs
 
 `teams/connector.yaml` generates the three team operations into
 `apps/dashboard/lib/generated/teams`. Dashboard uses `firebase_data_connect`
@@ -32,17 +32,30 @@ Team creation and renaming still use the existing REST API. Switch those writes
 to SQL Connect before releasing the new list reader, so reads and writes use
 the same database. Team deletion remains part of the billing migration.
 
-Regenerate from the repository root with Firebase CLI 15.25.0:
+`logs/connector.yaml` generates all seven log/step operations into:
+
+- Flutter: `apps/dashboard/lib/generated/logs` (`LogsConnector`).
+- Node.js Admin: `firebase/generated/logs-admin` (`@openci/logs-admin`), linked
+  from the `firebase` npm workspace and used with `firebase-admin`.
+
+The Flutter SDK includes the server-only operations, but `NO_ACCESS` still
+rejects client calls. Dashboard should use `GetBuildLogs` and `GetBuildSteps`;
+Functions use the Admin SDK for writes and recovery reads. Connecting the SDKs
+to the UI and Functions remains follow-up work.
+
+Regenerate from the repository root with Node.js 22 and Firebase CLI 15.34.1:
 
 ```sh
-cd firebase/dataconnect
-firebase dataconnect:sdk:generate --project demo-openci
-cd ../..
-dart format apps/dashboard/lib/generated/teams
+env -u DEBUG npx --yes firebase-tools@15.34.1 dataconnect:sdk:generate \
+  --config firebase/dataconnect/firebase.json --project demo-openci
+dart format apps/dashboard/lib/generated/teams apps/dashboard/lib/generated/logs
+vp fmt firebase/generated/logs-admin
 ```
 
 Generation uses the local schema and does not deploy it. The generated
-`TeamsConnector.instance` uses the default Firebase app's project at runtime.
+`TeamsConnector.instance` and `LogsConnector.instance` use the default Firebase
+app's project at runtime. The emulator also regenerates SDKs on startup; run the
+formatters again afterward.
 
 ## Retired features
 
@@ -230,7 +243,8 @@ implemented here. Trial claims and their activation routes remain untouched.
 ## Build logs
 
 `schema/build_log.gql` adds `BuildStep` and `BuildLog`, both owned by a `BuildRun`.
-Each log is a separate row; senders will upload multiple logs in a batch.
+Each log is a separate row. Senders may upload multiple logs to Functions in one
+request; Functions persist them one at a time.
 `(runId, sequence)` orders persisted logs, and `(runId, logId)` prevents duplicate
 rows on retries. Step IDs are scoped to a run; logs without a step are allowed.
 
@@ -241,11 +255,12 @@ The `logs` connector provides:
   entry's sequence as the next cursor, not the run's `lastLogSequence`.
 - `CreateBuildStep` / `UpdateBuildStep`: server-only creation and updates.
   Completed steps cannot be overwritten and duration cannot decrease.
-- `AppendBuildLogs`: server-only batch insertion with a conditional sequence
-  update in the same transaction. Any failure rolls back the whole batch.
+- `AppendBuildLog`: server-only insertion of one log with a conditional sequence
+  update in the same transaction. A failure rolls back that log and the counter;
+  earlier committed logs remain saved.
 - `GetBuildLogWriteState` / `GetBuildStepWriteState`: server-only recovery reads.
 
-Batches contain 1–100 entries for one run and one optional step. Sources are
+Each append belongs to one run and one optional step. Sources are
 `worker`/`workflow`, streams are `stdout`/`stderr`, and messages allow at most
 16 KiB of UTF-8 (empty messages are valid). `occurredAt` comes from the sender;
 `createdAt` is server-generated. Int64 values must retain their precision.
@@ -255,20 +270,23 @@ appending, look up the stable sender-generated IDs with `GetBuildLogWriteState`
 and compare saved step/source/stream/message/event-time values, normalizing UUIDs
 and timestamps. Reject reused IDs with different payloads; acknowledge saved
 entries and assign only missing entries consecutive sequences after
-`lastLogSequence`, passing it as `expectedLastSequence`. A conflict or ambiguous
+`lastLogSequence`. Append each missing entry with `expectedLastSequence` and
+`sequence = expectedLastSequence + 1`. A conflict or ambiguous
 response requires a fresh lookup; duplicate appends are not successful no-ops.
 Use `GetBuildStepWriteState` to recover duplicate creates or terminal updates.
 
 Expired `logsExpireAt` rejects writes but does not delete rows. Functions retry
-orchestration, SDK/UI integration, realtime refresh, and retention cleanup are
+orchestration, Functions/UI integration, realtime refresh, and retention cleanup are
 follow-up work. Current applications still use Loki.
 
-Run the operation tests against the local emulator (Node.js 22):
+Run the operation and generated Admin SDK tests from the repository root
+against the local emulator (Node.js 22):
 
 ```sh
-cd firebase/dataconnect
-env -u DEBUG firebase emulators:exec --only dataconnect --project demo-openci \
-  'node --test test/logs.test.mjs'
+npm ci
+env -u DEBUG npx --yes firebase-tools@15.34.1 emulators:exec \
+  --config firebase/dataconnect/firebase.json --only dataconnect --project demo-openci \
+  'node --test firebase/dataconnect/test/logs.test.mjs'
 ```
 
 ## Secrets
@@ -290,11 +308,11 @@ and state/reference hashes, with no plaintext or encrypted token columns.
 
 ## Local validation
 
-Use Firebase CLI 15.25.0. From the repository root:
+Use Firebase CLI 15.34.1. From the repository root:
 
 ```sh
-cd firebase/dataconnect
-firebase emulators:exec --only dataconnect --project demo-openci 'true'
+env -u DEBUG npx --yes firebase-tools@15.34.1 emulators:exec \
+  --config firebase/dataconnect/firebase.json --only dataconnect --project demo-openci 'true'
 ```
 
 The emulator uses ports `9399` (Data Connect) and `9939` (PostgreSQL).

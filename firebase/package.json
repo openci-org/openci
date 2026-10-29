@@ -6,6 +6,10 @@
     "fmt": "vp fmt",
     "fmt:check": "vp fmt --check"
   },
+  "dependencies": {
+    "@openci/logs-admin": "file:generated/logs-admin",
+    "firebase-admin": "^14.5.0"
+  },
   "devDependencies": {
     "@types/node": "^22.20.4",
     "typescript": "^6.0.3"
