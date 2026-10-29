@@ -1,0 +1,56 @@
+# Functions generates state/PKCE, stores the verifier in Secret Manager, and
+# supplies a SHA-256 state hash and the numeric version path. userId is verified.
+mutation CreateGitHubConnectionRequest(
+  $id: String!
+  $userId: String!
+  $teamId: String!
+  $stateHash: String!
+  $codeVerifierSecretVersionPath: String!
+) @auth(level: NO_ACCESS) @transaction {
+  query @redact {
+    teamMember(first: { where: { teamId: { eq: $teamId }, userId: { eq: $userId } } })
+      @check(expr: "this != null", message: "Team access denied") {
+      id
+    }
+  }
+  gitHubConnectionRequest_insert(
+    data: {
+      id: $id
+      userId: $userId
+      teamId: $teamId
+      stateHash: $stateHash
+      codeVerifierSecretVersionPath: $codeVerifierSecretVersionPath
+      createdAt_expr: "int(request.time)"
+      expiresAt_expr: "int(request.time) + 600"
+    }
+  )
+    @check(expr: "vars.id.matches('[^[:space:]]')", message: "Request ID must not be blank")
+    @check(
+      expr: "vars.stateHash.matches('^[0-9a-f]{64}$')"
+      message: "A SHA-256 state hash is required"
+    )
+    @check(
+      expr: "vars.codeVerifierSecretVersionPath.matches('^projects/[a-zA-Z0-9-]+/(locations/[a-z0-9-]+/)?secrets/[a-zA-Z0-9_-]+/versions/[1-9][0-9]*$')"
+      message: "A numeric Secret Manager version path is required"
+    )
+}
+
+# Only the winning callback receives the request. A replay/concurrent loser
+# fails the transaction; Functions must not retry the OAuth exchange blindly.
+mutation ConsumeGitHubConnectionRequest($stateHash: String!) @auth(level: NO_ACCESS) @transaction {
+  query {
+    request: gitHubConnectionRequest(
+      first: {
+        where: { stateHash: { eq: $stateHash }, expiresAt: { gt_expr: "int(request.time)" } }
+      }
+    ) @check(expr: "this != null", message: "Invalid or expired GitHub request") {
+      id
+      userId
+      teamId
+      codeVerifierSecretVersionPath
+    }
+  }
+  gitHubConnectionRequest_deleteMany(
+    where: { stateHash: { eq: $stateHash }, expiresAt: { gt_expr: "int(request.time)" } }
+  ) @check(expr: "this == 1", message: "GitHub request already consumed")
+}

@@ -1,0 +1,9 @@
+connectorId: "github"
+generate:
+  dartSdk:
+    outputDir: "../../../apps/dashboard/lib/generated/github"
+    package: "github"
+  adminNodeSdk:
+    outputDir: "../../generated/github-admin"
+    package: "@openci/github-admin"
+    packageJsonDir: "../.."

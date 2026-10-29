@@ -1,0 +1,15 @@
+# Basic Usage
+
+```dart
+GithubConnector.instance.GetExpiredGitHubConnectionCredentials().execute();
+GithubConnector.instance.DeleteExpiredGitHubConnectionRequest(deleteExpiredGitHubConnectionRequestVariables).execute();
+GithubConnector.instance.DeleteExpiredGitHubConnectionSession(deleteExpiredGitHubConnectionSessionVariables).execute();
+GithubConnector.instance.ConfirmGitHubConnection(confirmGitHubConnectionVariables).execute();
+GithubConnector.instance.GetGitHubConnections(getGitHubConnectionsVariables).execute();
+GithubConnector.instance.GetActiveGitHubConnection(getActiveGitHubConnectionVariables).execute();
+GithubConnector.instance.CreateGitHubConnectionRequest(createGitHubConnectionRequestVariables).execute();
+GithubConnector.instance.ConsumeGitHubConnectionRequest(consumeGitHubConnectionRequestVariables).execute();
+GithubConnector.instance.CreateGitHubConnectionSession(createGitHubConnectionSessionVariables).execute();
+GithubConnector.instance.GetGitHubConnectionSession(getGitHubConnectionSessionVariables).execute();
+
+```

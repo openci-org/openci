@@ -77,13 +77,23 @@ Dashboard uses `GetSecrets` for metadata only. The other four operations are
 server-only, even though their methods also appear in the Flutter SDK. Admin
 calls to `GetSecrets` must impersonate the verified user for the membership check.
 
+`github/connector.yaml` generates all ten GitHub connection operations into:
+
+- Flutter: `apps/dashboard/lib/generated/github` (`GithubConnector`).
+- Node.js Admin: `firebase/generated/github-admin` (`@openci/github-admin`),
+  linked from the `firebase` npm workspace.
+
+Only `GetGitHubConnections` is client-accessible, with a team-membership check.
+The other nine generated methods require unrestricted Admin access. OAuth and
+GitHub API calls belong in Functions, not in these generated SDKs.
+
 Regenerate from the repository root with Node.js 22 and Firebase CLI 15.34.2:
 
 ```sh
 env -u DEBUG npx --yes firebase-tools@15.34.2 dataconnect:sdk:generate \
   --config firebase/dataconnect/firebase.json --project demo-openci
-dart format apps/dashboard/lib/generated/teams apps/dashboard/lib/generated/logs apps/dashboard/lib/generated/builds apps/dashboard/lib/generated/secrets
-vp fmt firebase/generated/logs-admin firebase/generated/teams-admin firebase/generated/builds-admin firebase/generated/secrets-admin
+dart format apps/dashboard/lib/generated/teams apps/dashboard/lib/generated/logs apps/dashboard/lib/generated/builds apps/dashboard/lib/generated/secrets apps/dashboard/lib/generated/github
+vp fmt firebase/generated/logs-admin firebase/generated/teams-admin firebase/generated/builds-admin firebase/generated/secrets-admin firebase/generated/github-admin
 ```
 
 Generation uses the local schema and does not deploy it. The generated
@@ -368,6 +378,53 @@ env -u DEBUG npx --yes firebase-tools@15.34.2 emulators:exec \
 GitHub OAuth requests and sessions follow the same policy: PKCE verifiers and
 access tokens live in Secret Manager. `schema/github.gql` stores version paths
 and state/reference hashes, with no plaintext or encrypted token columns.
+
+## GitHub connections
+
+The `github` connector provides the persistence layer for the existing OAuth
+and installation-confirmation flow. It does not call GitHub or Secret Manager.
+
+| Operation                                                                       | Behavior                                                                                                                                                                                   |
+| ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `GetGitHubConnections`                                                          | Members list their team's connection metadata, ordered by account login and ID, without the default 100-row limit. No credential paths or hashes are exposed.                              |
+| `GetActiveGitHubConnection`                                                     | Admin lookup by the exact API host, App ID, and Installation ID. Suspended, removed, and missing connections return null.                                                                  |
+| `CreateGitHubConnectionRequest`                                                 | Inserts a member's request with a SHA-256 state hash and numeric PKCE secret-version path. Server timestamps give it a ten-minute lifetime.                                                |
+| `ConsumeGitHubConnectionRequest`                                                | Reads and deletes an unexpired request in one transaction; concurrent callbacks have one winner. Returns the verifier path to Functions.                                                   |
+| `CreateGitHubConnectionSession`                                                 | Inserts a member's verified GitHub user and numeric token-version path with a SHA-256 reference hash and ten-minute lifetime.                                                              |
+| `GetGitHubConnectionSession`                                                    | Admin read restricted to the supplied user/team/hash, current membership, and an unexpired, unconsumed session with a token reference.                                                     |
+| `ConfirmGitHubConnection`                                                       | Atomically saves the verified installation and consumes its session, clearing the token reference. Same-team reconnection preserves the connection ID; another team cannot take ownership. |
+| `GetExpiredGitHubConnectionCredentials`                                         | Reads the oldest 100 expired requests and 100 expired sessions, including remaining secret paths for cleanup.                                                                              |
+| `DeleteExpiredGitHubConnectionRequest` / `DeleteExpiredGitHubConnectionSession` | Delete one expired row after Secret Manager cleanup; active rows and repeated deletes return zero.                                                                                         |
+
+All operations except the member list are `NO_ACCESS`. Functions must derive
+`userId` from verified Firebase identity (or the consumed OAuth request), hash
+random state/reference values, and supply Secret Manager paths from actual
+creation responses. The URL/App ID come from operator configuration, including
+canonical URL normalization; syntax checks are not an endpoint allowlist.
+
+Before confirmation, Functions must freshly verify the installation, its active
+status, App ID, and the session GitHub user's authority. Account metadata comes
+from that verification. The mutation rechecks membership under the same team-row
+lock used by member removal and never allows a different team to overwrite the
+unique host/App/Installation association. Repository, branch, workflow-file,
+installation-token and Check Run API calls still require Functions and live
+GitHub authorization; a stored connection is not sufficient by itself.
+
+After a successful callback/confirmation, Functions must destroy the returned
+PKCE/token secret version; for expired rows, destroy the secret before deleting
+the row. Consumed sessions retain no token path. Secret deletion retries and
+orphan cleanup after partial failures, lost responses, or team deletion must be
+implemented with Functions. A lost consume/confirm response is not an invitation
+to replay OAuth or reuse a session: reconcile the result or restart the flow.
+The connector does not implement resource cleanup or deploy the new flow.
+
+Run the generated Admin SDK and authorization/concurrency tests locally:
+
+```sh
+env -u DEBUG npx --yes firebase-tools@15.34.2 emulators:exec \
+  --config firebase/dataconnect/firebase.json --only dataconnect --project demo-openci \
+  'node --test firebase/dataconnect/test/github.test.mjs'
+```
 
 ## Local validation
 
