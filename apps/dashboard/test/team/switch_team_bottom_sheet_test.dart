@@ -103,7 +103,6 @@ void main() {
             body: SwitchTeamBottomSheet(
               onMembers: () {},
               onInvite: () {},
-              onCreate: () {},
               onEdit: () {},
               onDelete: () {},
             ),
@@ -123,6 +122,7 @@ void main() {
     );
     expect(find.text('Selected team'), findsOneWidget);
     expect(find.text(t.team.members), findsOneWidget);
+    expect(find.text(t.team.createTeam), findsNothing);
     expect(requests, isEmpty);
   });
 

@@ -59,26 +59,15 @@ class TeamService {
   final Ref _ref;
   TeamService(this._ref);
 
-  Future<void> createTeam(String teamName) async {
-    final apiService = await _ref.read(openciApiServiceProvider.future);
-    final response = await apiService.createTeam({
-      'name': teamName,
-    });
-
-    if (!response.isSuccessful) {
-      throw StateError(
-        'Failed to create team: ${response.statusCode} ${response.error}',
-      );
-    }
-
-    final data = response.body ?? <String, dynamic>{};
-    final teamId = data['id'] as String;
+  Future<void> createInitialTeam(String userId) async {
+    final connector = await _ref.read(teamsConnectorProvider.future);
+    await connector.createTeam(id: userId, name: userId).execute();
 
     if (_ref.mounted) {
       _ref.invalidate(teamListProvider);
       await _ref
           .read(selectedTeamIdProvider.notifier)
-          .saveSelectedTeamId(teamId);
+          .saveSelectedTeamId(userId);
     }
   }
 
