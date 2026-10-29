@@ -9,4 +9,4 @@ schema:
       schemaValidation: "COMPATIBLE"
       cloudSql:
         instanceId: "openci-b1b91-instance"
-connectorDirs: ["./teams", "./billing", "./logs", "./builds"]
+connectorDirs: ["./teams", "./billing", "./logs", "./builds", "./secrets"]
