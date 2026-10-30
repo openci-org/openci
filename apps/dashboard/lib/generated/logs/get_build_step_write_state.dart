@@ -19,8 +19,8 @@ class GetBuildStepWriteStateVariablesBuilder {
   Future<
     QueryResult<GetBuildStepWriteStateData, GetBuildStepWriteStateVariables>
   >
-  execute() {
-    return ref().execute();
+  execute({QueryFetchPolicy fetchPolicy = QueryFetchPolicy.preferCache}) {
+    return ref().execute(fetchPolicy: fetchPolicy);
   }
 
   QueryRef<GetBuildStepWriteStateData, GetBuildStepWriteStateVariables> ref() {

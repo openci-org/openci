@@ -54,7 +54,9 @@ export async function loadSecrets(
       !/^[A-Za-z0-9+/]*={0,2}$/.test(encoded)
     )
       throw new Error("Invalid secret value");
-    const value = new TextDecoder("utf-8", { fatal: true }).decode(Buffer.from(encoded, "base64"));
+    const value = new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(
+      Buffer.from(encoded, "base64"),
+    );
     total += Buffer.byteLength(value);
     if (total > 512 * 1024 || value.includes("\0")) throw new Error("Invalid secret value");
     secrets[reference.name] = value;

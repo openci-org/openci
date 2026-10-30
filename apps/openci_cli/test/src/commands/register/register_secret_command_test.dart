@@ -1,3 +1,4 @@
+import '../../../helpers/secret_functions.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -40,6 +41,7 @@ void main() {
   const token = 'private-test-api-key';
   const secretValue = 'private-secret-value 日本語 🚀';
   const profile = AuthProfile(
+    firebaseProjectId: 'test-project',
     serverUrl: 'https://ci.example.com/proxy/',
     token: token,
     teamId: 'selected-team',
@@ -69,7 +71,11 @@ void main() {
         activeProfile: 'selected',
         profiles: {
           'selected': profile,
-          'unused': AuthProfile(token: 'unused-token', teamId: 'unused-team'),
+          'unused': AuthProfile(
+            firebaseProjectId: 'test-project',
+            token: 'unused-token',
+            teamId: 'unused-team',
+          ),
         },
       ),
     );
@@ -80,13 +86,13 @@ void main() {
     readInput = () async => (name: 'API_TOKEN', value: secretValue);
     savedNames = {'EXISTING_SECRET'};
     handler = (request) async {
-      if (request.method == 'POST') {
-        savedNames.add((jsonDecode(request.body) as Map)['name'] as String);
+      if (secretAction(request) == 'save') {
+        savedNames.add((secretData(request) as Map)['name'] as String);
       }
-      return http.Response(
+      return functionResponse(
         jsonEncode({
           'success': true,
-          if (request.method == 'GET')
+          if (secretAction(request) == 'list')
             'secrets': [
               for (final name in savedNames) {'name': name},
             ],
@@ -111,7 +117,7 @@ void main() {
       expect(messages, isNot(contains(secret)));
     }
     expect(clients.every((client) => client.closed), isTrue);
-    if (!requests.any((request) => request.method == 'GET')) {
+    if (!requests.any((request) => secretAction(request) == 'list')) {
       expect(await paths.exists(), isFalse);
       expect(await secrets.exists(), isFalse);
     }
@@ -148,51 +154,54 @@ void main() {
     });
   }
 
-  test('posts the value to the active team through the shared API', () async {
-    final before = await File(store.filePath).readAsString();
+  test(
+    'posts the value to the active team through the Firebase callable',
+    () async {
+      final before = await File(store.filePath).readAsString();
 
-    expect(await runRegister(), 0);
+      expect(await runRegister(), 0);
 
-    expect(reads, 1);
-    expect(requests.map((request) => request.method), ['POST', 'GET']);
-    final request = requests.first;
-    expect(request.method, 'POST');
-    expect(
-      request.url.toString(),
-      'https://ci.example.com/proxy/teams/selected-team/secrets',
-    );
-    expect(request.headers['authorization'], 'Bearer $token');
-    expect(request.headers['content-type'], contains('application/json'));
-    expect(jsonDecode(utf8.decode(request.bodyBytes)), {
-      'name': 'API_TOKEN',
-      'value': secretValue,
-    });
-    expect(logger.stderrMessages, isEmpty);
-    expect(logger.stdoutMessages, [
-      t.register.secret.saved(name: 'API_TOKEN', teamId: 'selected-team'),
-      t.sync.paths.saved(path: paths.path),
-      t.sync.secrets.saved(path: secrets.path),
-    ]);
-    expect(await paths.readAsString(), contains('WorkspaceDirectory("lib")'));
-    final definitions = await secrets.readAsString();
-    expect(definitions, contains("Secret('API_TOKEN')"));
-    expect(definitions, contains("Secret('EXISTING_SECRET')"));
-    expect(requests.last.url, request.url);
-    expect(requests.last.headers['authorization'], 'Bearer $token');
-    expect(await File(store.filePath).readAsString(), before);
-  });
+      expect(reads, 1);
+      expect(requests.map(secretAction), ['save', 'list']);
+      final request = requests.first;
+      expect(request.method, 'POST');
+      expect(request.url.toString(), secretFunctionUrl);
+      expect(request.headers['authorization'], 'Bearer $token');
+      expect(request.headers['content-type'], contains('application/json'));
+      expect(secretData(request), {
+        'action': 'save',
+        'teamId': profile.teamId,
+        'name': 'API_TOKEN',
+        'value': secretValue,
+      });
+      expect(logger.stderrMessages, isEmpty);
+      expect(logger.stdoutMessages, [
+        t.register.secret.saved(name: 'API_TOKEN', teamId: 'selected-team'),
+        t.sync.paths.saved(path: paths.path),
+        t.sync.secrets.saved(path: secrets.path),
+      ]);
+      expect(await paths.readAsString(), contains('WorkspaceDirectory("lib")'));
+      final definitions = await secrets.readAsString();
+      expect(definitions, contains("Secret('API_TOKEN')"));
+      expect(definitions, contains("Secret('EXISTING_SECRET')"));
+      expect(requests.last.url, request.url);
+      expect(requests.last.headers['authorization'], 'Bearer $token');
+      expect(await File(store.filePath).readAsString(), before);
+    },
+  );
 
-  test('supports a local profile and encodes the team path segment', () async {
+  test('supports a local profile and preserves the team in JSON', () async {
     await store.saveProfile(
       'local',
-      const AuthProfile(token: token, teamId: 'team/with space?#'),
+      const AuthProfile(
+        firebaseProjectId: 'test-project',
+        token: token,
+        teamId: 'team/with space?#',
+      ),
     );
 
     expect(await runRegister(), 0);
-    expect(
-      requests.first.url.toString(),
-      'http://localhost:8080/teams/team%2Fwith%20space%3F%23/secrets',
-    );
+    expect(requests.first.url.toString(), secretFunctionUrl);
   });
 
   test('refreshes an expired Firebase session before registering', () async {
@@ -209,7 +218,7 @@ void main() {
     handler = (request) async {
       if (request.url.host == 'securetoken.googleapis.com') {
         expect(request.bodyFields['refresh_token'], 'private-refresh-token');
-        return http.Response(
+        return functionResponse(
           jsonEncode({
             'id_token': 'refreshed-id-token',
             'refresh_token': 'private-refresh-token',
@@ -230,8 +239,8 @@ void main() {
 
   test('reports a sync failure after successfully saving the secret', () async {
     final saveHandler = handler;
-    handler = (request) async => request.method == 'GET'
-        ? http.Response(
+    handler = (request) async => secretAction(request) == 'list'
+        ? functionResponse(
             jsonEncode({'error': secretValue}),
             500,
             headers: {'content-type': 'application/json'},
@@ -241,7 +250,7 @@ void main() {
     expect(await runRegister(), 1);
 
     expect(savedNames, contains('API_TOKEN'));
-    expect(requests.map((request) => request.method), ['POST', 'GET']);
+    expect(requests.map(secretAction), ['save', 'list']);
     expect(await paths.exists(), isTrue);
     expect(await secrets.exists(), isFalse);
     expect(
@@ -325,7 +334,7 @@ void main() {
   }
 
   for (final invalid in [
-    const AuthProfile(),
+    const AuthProfile(firebaseProjectId: 'test-project'),
     profile.copyWith(teamId: ''),
     profile.copyWith(serverUrl: 'invalid-server'),
     profile.copyWith(serverUrl: 'https://ci.example.com?query'),
@@ -371,7 +380,7 @@ void main() {
 
   for (final status in [400, 401, 403, 500, 302]) {
     test('reports HTTP $status without printing the response body', () async {
-      handler = (_) async => http.Response(
+      handler = (_) async => functionResponse(
         jsonEncode({'success': false, 'error': secretValue}),
         status,
         headers: {'content-type': 'application/json; charset=utf-8'},

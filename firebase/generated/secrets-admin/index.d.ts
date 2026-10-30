@@ -57,6 +57,16 @@ export interface BillingTrialClaim_Key {
   __typename?: "BillingTrialClaim_Key";
 }
 
+export interface BuildDispatchScheduler_Key {
+  id: string;
+  __typename?: "BuildDispatchScheduler_Key";
+}
+
+export interface BuildJobDispatch_Key {
+  id: string;
+  __typename?: "BuildJobDispatch_Key";
+}
+
 export interface BuildJob_Key {
   id: string;
   __typename?: "BuildJob_Key";
@@ -79,6 +89,27 @@ export interface BuildStep_Key {
   __typename?: "BuildStep_Key";
 }
 
+export interface CommitManagedSecretData {
+  team_update?: Team_Key | null;
+  secretReference_upsert: SecretReference_Key;
+}
+
+export interface CommitManagedSecretVariables {
+  teamId: string;
+  actorUid: string;
+  name: string;
+  expectedPath?: string | null;
+  path: string;
+}
+
+export interface CompleteSecretVersionCleanupData {
+  secretVersionCleanup_delete?: SecretVersionCleanup_Key | null;
+}
+
+export interface CompleteSecretVersionCleanupVariables {
+  path: string;
+}
+
 export interface CreateSecretReferenceData {
   secretReference_insert: SecretReference_Key;
 }
@@ -89,6 +120,18 @@ export interface CreateSecretReferenceVariables {
   secretVersionPath: string;
 }
 
+export interface DeleteManagedSecretData {
+  team_update?: Team_Key | null;
+  secretReference_deleteMany: number;
+}
+
+export interface DeleteManagedSecretVariables {
+  teamId: string;
+  actorUid: string;
+  name: string;
+  expectedPath: string;
+}
+
 export interface DeleteSecretReferenceData {
   secretReference_deleteMany: number;
 }
@@ -97,6 +140,29 @@ export interface DeleteSecretReferenceVariables {
   teamId: string;
   name: string;
   expectedSecretVersionPath: string;
+}
+
+export interface GetDueSecretVersionsData {
+  versions: ({
+    path: string;
+  } & SecretVersionCleanup_Key)[];
+}
+
+export interface GetManagedSecretContextData {
+  teamMember?: {
+    id: Int64String;
+  } & TeamMember_Key;
+  secrets: {
+    name: string;
+    secretVersionPath: string;
+    createdAt: Int64String;
+    updatedAt: Int64String;
+  }[];
+}
+
+export interface GetManagedSecretContextVariables {
+  teamId: string;
+  actorUid: string;
 }
 
 export interface GetSecretReferenceData {
@@ -112,6 +178,16 @@ export interface GetSecretReferenceData {
 export interface GetSecretReferenceVariables {
   teamId: string;
   name: string;
+}
+
+export interface GetSecretVersionReferencesData {
+  references: {
+    name: string;
+  }[];
+}
+
+export interface GetSecretVersionReferencesVariables {
+  path: string;
 }
 
 export interface GetSecretsData {
@@ -142,10 +218,38 @@ export interface GitHubConnection_Key {
   __typename?: "GitHubConnection_Key";
 }
 
+export interface QueueSecretVersionCleanupData {
+  secretVersionCleanup_upsert: SecretVersionCleanup_Key;
+}
+
+export interface QueueSecretVersionCleanupVariables {
+  path: string;
+}
+
+export interface RenameManagedSecretData {
+  team_update?: Team_Key | null;
+  secretReference_delete?: SecretReference_Key | null;
+  secretReference_insert: SecretReference_Key;
+}
+
+export interface RenameManagedSecretVariables {
+  teamId: string;
+  actorUid: string;
+  name: string;
+  newName: string;
+  expectedPath: string;
+  path?: string | null;
+}
+
 export interface SecretReference_Key {
   teamId: string;
   name: string;
   __typename?: "SecretReference_Key";
+}
+
+export interface SecretVersionCleanup_Key {
+  path: string;
+  __typename?: "SecretVersionCleanup_Key";
 }
 
 export interface SkippedWorkflowReport_Key {
@@ -178,6 +282,100 @@ export interface WebhookTask_Key {
   id: string;
   __typename?: "WebhookTask_Key";
 }
+
+/** Generated Node Admin SDK operation action function for the 'GetManagedSecretContext' Query. Allow users to execute without passing in DataConnect. */
+export function getManagedSecretContext(
+  dc: DataConnect,
+  vars: GetManagedSecretContextVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<GetManagedSecretContextData>>;
+/** Generated Node Admin SDK operation action function for the 'GetManagedSecretContext' Query. Allow users to pass in custom DataConnect instances. */
+export function getManagedSecretContext(
+  vars: GetManagedSecretContextVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<GetManagedSecretContextData>>;
+
+/** Generated Node Admin SDK operation action function for the 'CommitManagedSecret' Mutation. Allow users to execute without passing in DataConnect. */
+export function commitManagedSecret(
+  dc: DataConnect,
+  vars: CommitManagedSecretVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<CommitManagedSecretData>>;
+/** Generated Node Admin SDK operation action function for the 'CommitManagedSecret' Mutation. Allow users to pass in custom DataConnect instances. */
+export function commitManagedSecret(
+  vars: CommitManagedSecretVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<CommitManagedSecretData>>;
+
+/** Generated Node Admin SDK operation action function for the 'RenameManagedSecret' Mutation. Allow users to execute without passing in DataConnect. */
+export function renameManagedSecret(
+  dc: DataConnect,
+  vars: RenameManagedSecretVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<RenameManagedSecretData>>;
+/** Generated Node Admin SDK operation action function for the 'RenameManagedSecret' Mutation. Allow users to pass in custom DataConnect instances. */
+export function renameManagedSecret(
+  vars: RenameManagedSecretVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<RenameManagedSecretData>>;
+
+/** Generated Node Admin SDK operation action function for the 'DeleteManagedSecret' Mutation. Allow users to execute without passing in DataConnect. */
+export function deleteManagedSecret(
+  dc: DataConnect,
+  vars: DeleteManagedSecretVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<DeleteManagedSecretData>>;
+/** Generated Node Admin SDK operation action function for the 'DeleteManagedSecret' Mutation. Allow users to pass in custom DataConnect instances. */
+export function deleteManagedSecret(
+  vars: DeleteManagedSecretVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<DeleteManagedSecretData>>;
+
+/** Generated Node Admin SDK operation action function for the 'QueueSecretVersionCleanup' Mutation. Allow users to execute without passing in DataConnect. */
+export function queueSecretVersionCleanup(
+  dc: DataConnect,
+  vars: QueueSecretVersionCleanupVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<QueueSecretVersionCleanupData>>;
+/** Generated Node Admin SDK operation action function for the 'QueueSecretVersionCleanup' Mutation. Allow users to pass in custom DataConnect instances. */
+export function queueSecretVersionCleanup(
+  vars: QueueSecretVersionCleanupVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<QueueSecretVersionCleanupData>>;
+
+/** Generated Node Admin SDK operation action function for the 'GetDueSecretVersions' Query. Allow users to execute without passing in DataConnect. */
+export function getDueSecretVersions(
+  dc: DataConnect,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<GetDueSecretVersionsData>>;
+/** Generated Node Admin SDK operation action function for the 'GetDueSecretVersions' Query. Allow users to pass in custom DataConnect instances. */
+export function getDueSecretVersions(
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<GetDueSecretVersionsData>>;
+
+/** Generated Node Admin SDK operation action function for the 'GetSecretVersionReferences' Query. Allow users to execute without passing in DataConnect. */
+export function getSecretVersionReferences(
+  dc: DataConnect,
+  vars: GetSecretVersionReferencesVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<GetSecretVersionReferencesData>>;
+/** Generated Node Admin SDK operation action function for the 'GetSecretVersionReferences' Query. Allow users to pass in custom DataConnect instances. */
+export function getSecretVersionReferences(
+  vars: GetSecretVersionReferencesVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<GetSecretVersionReferencesData>>;
+
+/** Generated Node Admin SDK operation action function for the 'CompleteSecretVersionCleanup' Mutation. Allow users to execute without passing in DataConnect. */
+export function completeSecretVersionCleanup(
+  dc: DataConnect,
+  vars: CompleteSecretVersionCleanupVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<CompleteSecretVersionCleanupData>>;
+/** Generated Node Admin SDK operation action function for the 'CompleteSecretVersionCleanup' Mutation. Allow users to pass in custom DataConnect instances. */
+export function completeSecretVersionCleanup(
+  vars: CompleteSecretVersionCleanupVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<CompleteSecretVersionCleanupData>>;
 
 /** Generated Node Admin SDK operation action function for the 'CreateSecretReference' Mutation. Allow users to execute without passing in DataConnect. */
 export function createSecretReference(

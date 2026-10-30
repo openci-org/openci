@@ -179,15 +179,15 @@ stderr and return a nonzero exit code.
 
 Troubleshooting team selection:
 
-| Condition | What to check |
-| --- | --- |
-| Login required or HTTP 401/403 | Log in again for the intended server with `genuineci login` or `genuineci login --local`. |
-| No team memberships | Create or join a team in the dashboard for that server. |
-| Interactive terminal required | Use an ANSI-capable terminal with interactive stdin and stdout; remove pipes and output redirection. |
+| Condition                        | What to check                                                                                                                     |
+| -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| Login required or HTTP 401/403   | Log in again for the intended server with `genuineci login` or `genuineci login --local`.                                         |
+| No team memberships              | Create or join a team in the dashboard for that server.                                                                           |
+| Interactive terminal required    | Use an ANSI-capable terminal with interactive stdin and stdout; remove pipes and output redirection.                              |
 | HTTP error or connection failure | Check the active profile's server URL and network connection. For local development, check that `genuineci dev start` is running. |
-| Invalid team list | Check that the saved server URL points to a compatible OpenCI API. |
-| Changed profile or credentials | Run `genuineci switch team` again using the current authentication. |
-| Save failure | Check the credentials file, its permissions, and available disk space. |
+| Invalid team list                | Check that the saved server URL points to a compatible OpenCI API.                                                                |
+| Changed profile or credentials   | Run `genuineci switch team` again using the current authentication.                                                               |
+| Save failure                     | Check the credentials file, its permissions, and available disk space.                                                            |
 
 Choose English or Japanese messages with `genuineci use english` or
 `genuineci use japanese`. The language setting is saved for future invocations.
@@ -267,7 +267,7 @@ The command uses `docker-compose.yml`, `docker-compose.local.yml`, and
 for project `demo-openci` and waits for its health check before starting Orchard
 Controller, the Mac worker, and the local API. No production Firebase service
 account is needed. The Auth endpoint is `http://127.0.0.1:9099` and the Emulator
-UI is `http://127.0.0.1:4000/auth`. It rebuilds and starts the API and Loki
+UI is `http://127.0.0.1:4000/auth`. It rebuilds and starts the API
 containers. The Mac Orchard worker provides VM capacity; build planning and
 execution use the [Firebase Functions and Cloud Run path](../../firebase/functions/BUILD_EXECUTOR.md),
 which this command does not deploy or start. See [the emulator setup](../../firebase/README.md)
@@ -483,8 +483,7 @@ execution; an execution failure, unexpected version, or 10-second timeout stops
 setup with an error. A timed-out process is terminated.
 After verification, it prompts for an Apple ID email address in an interactive
 terminal. Surrounding whitespace is trimmed; empty input or EOF stops setup
-with exit code 1. Ctrl+C at the email prompt interrupts it with shell exit code
-130. Input and prompt output (stderr) must both be attached to a terminal.
+with exit code 1. Ctrl+C at the email prompt interrupts it with shell exit code 130. Input and prompt output (stderr) must both be attached to a terminal.
 The prompt leaves stdin open and does not change terminal modes. It then starts
 the verified asc binary with `web auth login --apple-id <email> --output table`,
 inheriting the terminal's stdin, stdout, and stderr. Password and two-factor
@@ -528,11 +527,11 @@ through `/dev/tty` and applies its own network timeouts.
 
 Setup prepares four secrets for the active team:
 
-| Secret name | Value |
-| --- | --- |
-| `OPENCI_GENERATED_ASC_KEY_ID` | The Key ID as text |
-| `OPENCI_GENERATED_ASC_ISSUER_ID` | The Issuer ID as text |
-| `OPENCI_GENERATED_P8_BASE64` | The complete P8 file encoded as Base64, matching `register secret-file` |
+| Secret name                                    | Value                                                                                       |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `OPENCI_GENERATED_ASC_KEY_ID`                  | The Key ID as text                                                                          |
+| `OPENCI_GENERATED_ASC_ISSUER_ID`               | The Issuer ID as text                                                                       |
+| `OPENCI_GENERATED_P8_BASE64`                   | The complete P8 file encoded as Base64, matching `register secret-file`                     |
 | `OPENCI_GENERATED_IOS_CERTIFICATE_PRIVATE_KEY` | A persistent RSA private key generated on the server if absent; existing keys are preserved |
 
 The server encrypts each value in its existing secrets table. Setup refreshes
@@ -594,3 +593,7 @@ dart run build_runner build
 
 Translations use `slang.yaml` through the Slang CLI. `build_runner` generates
 the Freezed and JSON models.
+
+### Secrets backend
+
+Secrets commands use the Firebase `teamSecrets` callable in `asia-northeast1`. The Firebase project is inferred from the current login ID token. Firebase Auth emulator profiles use the Functions emulator on loopback port 5001. Static API-key profiles must log in with Firebase. See [the cutover guide](../../firebase/functions/LOGS_AND_SECRETS.md) for deployment and existing-secret migration.

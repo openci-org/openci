@@ -15,8 +15,8 @@ class GetSecretReferenceVariablesBuilder {
   Serializer<GetSecretReferenceVariables> varsSerializer =
       (GetSecretReferenceVariables vars) => jsonEncode(vars.toJson());
   Future<QueryResult<GetSecretReferenceData, GetSecretReferenceVariables>>
-  execute() {
-    return ref().execute();
+  execute({QueryFetchPolicy fetchPolicy = QueryFetchPolicy.preferCache}) {
+    return ref().execute(fetchPolicy: fetchPolicy);
   }
 
   QueryRef<GetSecretReferenceData, GetSecretReferenceVariables> ref() {

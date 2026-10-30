@@ -1,3 +1,4 @@
+import '../../../helpers/secret_functions.dart';
 import 'dart:convert';
 import 'dart:io';
 
@@ -81,6 +82,7 @@ void main() {
     store = _CountingCredentialStore(p.join(root.path, 'credentials.json'));
     otherStore = CredentialStore(customFilePath: store.filePath);
     profile = AuthProfile(
+      firebaseProjectId: 'test-project',
       serverUrl: 'https://ci.example.com/proxy/',
       token: 'private-token',
       teamId: 'team-1',
@@ -453,7 +455,7 @@ void main() {
             ),
             () => MockClient((request) async {
               requests.add(request);
-              return http.Response(
+              return functionResponse(
                 jsonEncode({
                   'success': true,
                   'secrets': [
@@ -468,10 +470,13 @@ void main() {
 
           expect(result, 0);
           final request = requests.single;
-          expect(request.method, 'GET');
+          expect(request.method, 'POST');
+          expect(secretData(request), {'action': 'list', 'teamId': 'team-2'});
           expect(
             request.url.toString(),
-            'https://ci.example.com/proxy/teams/team-2/secrets',
+            refresh
+                ? secretFunctionUrl
+                : 'http://127.0.0.1:5001/test-project/asia-northeast1/teamSecrets',
           );
           expect(
             request.headers['authorization'],

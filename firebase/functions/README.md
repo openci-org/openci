@@ -156,3 +156,5 @@ does not automatically redeliver failed deliveries; use GitHub redelivery for
 failed or timed-out requests. See the official
 [webhook best practices](https://docs.github.com/en/webhooks/using-webhooks/best-practices-for-using-webhooks)
 and [webhook documentation](https://docs.github.com/en/webhooks/using-webhooks).
+
+Logs and Secrets now use FSC and Secret Manager. See [deployment and import order](LOGS_AND_SECRETS.md) before releasing the migrated clients or removing the old APIs.

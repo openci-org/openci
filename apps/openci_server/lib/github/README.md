@@ -328,14 +328,11 @@ return errors; the endpoint never substitutes a dummy token. Successful token
 responses use `Cache-Control: no-store`. GitHub requests use the operator's
 normalized API URL, not the URL stored in the job.
 
-`GET /builds/:id/secrets` performs the same checks before issuing a token,
-fetching workflow files, or reading team secrets. Internal API key callers also
-require an active verified connection and a matching repository installation.
-Legacy, missing, suspended, removed, or mismatched connections cannot authorize
-secret access. Configuration, database, and GitHub failures return errors without
-dummy credentials; empty GitHub tokens are rejected. Responses containing
-credentials use `Cache-Control: no-store`. Workflow refs, Dart secret definitions,
-and YAML secret extraction keep their existing behavior.
+`GET /builds/:id/secrets` has been removed. The Cloud Run executor obtains
+team secret references from FSC and reads their values from Secret Manager.
+Client management uses the authenticated `teamSecrets` callable. See the
+[Logs and Secrets cutover guide](../../../../firebase/functions/LOGS_AND_SECRETS.md)
+for deployment order and importing existing encrypted values.
 
 `POST /builds/:id/check-run` checks the saved job's active verified connection
 and repository installation before issuing a token and updating its GitHub

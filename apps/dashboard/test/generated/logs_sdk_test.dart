@@ -38,7 +38,7 @@ void main() {
           'id': 'run',
           'lastLogSequence': '9007199254740993',
           'logsExpireAt': null,
-          'logs': [
+          'logEntries': [
             {
               'logId': 'd69b6d0488ce41bf9812f9016e85e711',
               'sequence': '9007199254740993',
@@ -54,7 +54,7 @@ void main() {
       });
 
       final run = result.run!;
-      final log = run.logs.single;
+      final log = run.logEntries.single;
       expect(run.lastLogSequence, BigInt.parse('9007199254740993'));
       expect(run.logsExpireAt, isNull);
       expect(log.sequence, run.lastLogSequence);

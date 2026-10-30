@@ -329,3 +329,64 @@ test("the CommonJS package also supports the default DataConnect overload", asyn
   const result = await cjs.getSecretReference({ teamId: f.teamId, name: "TOKEN" });
   assert.equal(result.data.secretReference.secretVersionPath, input(f).secretVersionPath);
 });
+
+test("managed writes enforce membership and compare the previous version atomically", async (t) => {
+  const f = await fixture(t);
+  const vars = {
+    teamId: f.teamId,
+    actorUid: f.user,
+    name: "TOKEN",
+    path: input(f).secretVersionPath,
+    expectedPath: null,
+  };
+  await assert.rejects(sdk.commitManagedSecret(dc, { ...vars, actorUid: "outsider" }));
+  await assert.rejects(sdk.commitManagedSecret(dc, vars, asUser(f.user)));
+  await sdk.commitManagedSecret(dc, vars);
+  const results = await Promise.allSettled(
+    ["2", "3"].map((version) =>
+      sdk.commitManagedSecret(dc, {
+        ...vars,
+        expectedPath: vars.path,
+        path: input(f, "TOKEN", version).secretVersionPath,
+      }),
+    ),
+  );
+  assert.equal(results.filter((result) => result.status === "fulfilled").length, 1);
+  assert.notEqual((await read(f)).secretVersionPath, vars.path);
+});
+
+test("managed rename rolls back on collision and can atomically replace the value", async (t) => {
+  const f = await fixture(t);
+  const original = input(f);
+  await sdk.createSecretReference(dc, original);
+  await sdk.createSecretReference(dc, input(f, "EXISTS"));
+  const vars = {
+    teamId: f.teamId,
+    actorUid: f.user,
+    name: "TOKEN",
+    newName: "EXISTS",
+    expectedPath: original.secretVersionPath,
+  };
+  await assert.rejects(sdk.renameManagedSecret(dc, vars));
+  assert.equal((await read(f)).secretVersionPath, original.secretVersionPath);
+  const path = input(f, "TOKEN", "2").secretVersionPath;
+  await sdk.renameManagedSecret(dc, { ...vars, newName: "RENAMED", path });
+  assert.equal(await read(f), null);
+  assert.equal((await read(f, "RENAMED")).secretVersionPath, path);
+  await assert.rejects(
+    sdk.deleteManagedSecret(dc, {
+      teamId: f.teamId,
+      actorUid: "outsider",
+      name: "RENAMED",
+      expectedPath: path,
+    }),
+    /Team access denied/,
+  );
+  await sdk.deleteManagedSecret(dc, {
+    teamId: f.teamId,
+    actorUid: f.user,
+    name: "RENAMED",
+    expectedPath: path,
+  });
+  assert.equal(await read(f, "RENAMED"), null);
+});

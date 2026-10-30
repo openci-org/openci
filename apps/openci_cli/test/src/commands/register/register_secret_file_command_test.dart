@@ -1,3 +1,4 @@
+import '../../../helpers/secret_functions.dart';
 import 'dart:convert';
 import 'dart:io';
 
@@ -51,6 +52,7 @@ void main() {
     await store.saveProfile(
       'test',
       const AuthProfile(
+        firebaseProjectId: 'test-project',
         serverUrl: 'https://ci.example.com/proxy/',
         token: token,
         teamId: 'selected/team',
@@ -62,13 +64,13 @@ void main() {
     selectFile = () async => file.path;
     savedNames = {'EXISTING_SECRET'};
     handler = (request) async {
-      if (request.method == 'POST') {
-        savedNames.add((jsonDecode(request.body) as Map)['name'] as String);
+      if (secretAction(request) == 'save') {
+        savedNames.add((secretData(request) as Map)['name'] as String);
       }
-      return http.Response(
+      return functionResponse(
         jsonEncode({
           'success': true,
-          if (request.method == 'GET')
+          if (secretAction(request) == 'list')
             'secrets': [
               for (final name in savedNames) {'name': name},
             ],
@@ -83,10 +85,8 @@ void main() {
     final output = [...logger.output, ...logger.errors].join('\n');
     expect(output, isNot(contains(token)));
     expect(output, isNot(contains('{"private":')));
-    for (final request in requests.where(
-      (r) => r.url.host == 'ci.example.com' && r.method == 'POST',
-    )) {
-      final payload = jsonDecode(request.body) as Map<String, dynamic>;
+    for (final request in requests.where((r) => secretAction(r) == 'save')) {
+      final payload = secretData(request);
       expect(output, isNot(contains(payload['value'] as String)));
       expect(
         await File(store.filePath).readAsString(),
@@ -99,7 +99,7 @@ void main() {
         );
       }
     }
-    if (!requests.any((request) => request.method == 'GET')) {
+    if (!requests.any((request) => secretAction(request) == 'list')) {
       expect(await paths.exists(), isFalse);
       expect(await secrets.exists(), isFalse);
     }
@@ -134,15 +134,12 @@ void main() {
       final bytes = await file.readAsBytes();
       final credentials = await File(store.filePath).readAsString();
       expect(await run(), 0);
-      expect(requests.map((request) => request.method), ['POST', 'GET']);
+      expect(requests.map(secretAction), ['save', 'list']);
       final request = requests.first;
       expect(request.method, 'POST');
-      expect(
-        request.url.toString(),
-        'https://ci.example.com/proxy/teams/selected%2Fteam/secrets',
-      );
+      expect(request.url.toString(), secretFunctionUrl);
       expect(request.headers['authorization'], 'Bearer $token');
-      final payload = jsonDecode(request.body) as Map<String, dynamic>;
+      final payload = secretData(request);
       expect(payload['name'], 'GOOGLE_SERVICES_JSON_BASE64');
       expect(base64Decode(payload['value'] as String), bytes);
       expect(await file.readAsBytes(), bytes);
@@ -168,7 +165,9 @@ void main() {
     file = File(p.join(root.path, 'signing key.p12'));
     await file.writeAsBytes([0, 255, 128, 13, 10, 0]);
     expect(await run(), 0);
-    expect(jsonDecode(requests.first.body), {
+    expect(secretData(requests.first), {
+      'action': 'save',
+      'teamId': 'selected/team',
       'name': 'SIGNING_KEY_P12_BASE64',
       'value': base64Encode([0, 255, 128, 13, 10, 0]),
     });
@@ -189,7 +188,7 @@ void main() {
     handler = (request) async {
       if (request.url.host == 'securetoken.googleapis.com') {
         expect(selections, 0);
-        return http.Response(
+        return functionResponse(
           jsonEncode({
             'id_token': 'refreshed-id-token',
             'refresh_token': 'private-refresh-token',
@@ -207,14 +206,14 @@ void main() {
 
   test('reports a sync failure after successfully saving the file', () async {
     final saveHandler = handler;
-    handler = (request) async => request.method == 'GET'
-        ? http.Response('private-file-contents', 500)
+    handler = (request) async => secretAction(request) == 'list'
+        ? functionResponse('private-file-contents', 500)
         : saveHandler(request);
 
     expect(await run(), 1);
 
     expect(savedNames, contains('GOOGLE_SERVICES_JSON_BASE64'));
-    expect(requests.map((request) => request.method), ['POST', 'GET']);
+    expect(requests.map(secretAction), ['save', 'list']);
     expect(await paths.exists(), isTrue);
     expect(await secrets.exists(), isFalse);
     expect(
@@ -260,7 +259,10 @@ void main() {
   test(
     'requires authentication before selecting or reading any file',
     () async {
-      await store.saveProfile('test', const AuthProfile());
+      await store.saveProfile(
+        'test',
+        const AuthProfile(firebaseProjectId: 'test-project'),
+      );
       expect(await run(), 1);
       expect(selections, 0);
       expect(requests, isEmpty);
@@ -313,7 +315,7 @@ void main() {
   }
 
   test('server errors do not print an echoed encoded file', () async {
-    handler = (request) async => http.Response(request.body, 500);
+    handler = (request) async => functionResponse(request.body, 500);
     expect(await run(), 1);
     expect(logger.output, isEmpty);
     expect(logger.errors, [t.register.secret.requestFailed(status: 500)]);

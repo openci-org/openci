@@ -1,3 +1,4 @@
+import { validSecretName } from "../secrets/validation.js";
 import type { GetBuildExecutionData, GetBuildExecutorContextData } from "@openci/dispatch-admin";
 
 export type Dispatch = NonNullable<GetBuildExecutionData["dispatch"]>;
@@ -76,10 +77,7 @@ export function workflowScript(
     OPENCI_RUN_NUMBER: String(runNumber),
   };
   for (const name of Object.keys(secrets)) {
-    if (
-      !/^[A-Za-z_][A-Za-z0-9_]*$/.test(name) ||
-      /^(OPENCI_|LOKI_|BASH_ENV$|ENV$|SHELLOPTS$|BASHOPTS$|HOME$|PATH$|FLUTTER_ROOT$)/.test(name)
-    ) {
+    if (!validSecretName(name)) {
       throw new Error("Reserved or invalid secret name");
     }
   }

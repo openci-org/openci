@@ -1,6 +1,5 @@
 import 'package:chopper/chopper.dart';
 
-import '../models/build_step.dart';
 import '../models/changed_files_result.dart';
 import '../models/cicd_commit_group.dart';
 import '../models/github_connection_result.dart';
@@ -204,67 +203,9 @@ abstract class OpenCIApiService extends ChopperService {
     @Path('id') String buildJobId,
   );
 
-  @GET(path: '/builds/{id}/secrets', timeout: _timeout)
-  Future<Response<Map<String, dynamic>>> getJobSecrets(
-    @Path('id') String buildJobId,
-  );
-
   @GET(path: '/builds/{id}/event', timeout: _timeout)
   Future<Response<Map<String, dynamic>>> getJobEventPayload(
     @Path('id') String buildJobId,
-  );
-
-  @POST(path: '/teams/{teamId}/secrets', timeout: _timeout)
-  Future<Response<void>> saveSecret(
-    @Path('teamId') String teamId,
-    @Body() Map<String, dynamic> body,
-  );
-
-  @GET(path: '/teams/{teamId}/secrets', timeout: _timeout)
-  Future<Response<Map<String, dynamic>>> getSecrets(
-    @Path('teamId') String teamId,
-  );
-
-  @GET(path: '/teams/{teamId}/secrets/{name}', timeout: _timeout)
-  Future<Response<Map<String, dynamic>>> getSecretValue(
-    @Path('teamId') String teamId,
-    @Path('name') String name,
-  );
-
-  @DELETE(path: '/teams/{teamId}/secrets/{name}', timeout: _timeout)
-  Future<Response<void>> deleteSecret(
-    @Path('teamId') String teamId,
-    @Path('name') String name,
-  );
-
-  @POST(
-    path: '/teams/{teamId}/ios-signing/generate-key',
-    timeout: Duration(seconds: 15),
-  )
-  Future<Response<void>> generateCertificateKey(
-    @Path('teamId') String teamId,
-  );
-
-  @GET(path: '/builds/{id}/runs/{runId}/logs', timeout: _timeout)
-  Future<Response<List<String>>> getAllBuildRunLogs(
-    @Path('id') String buildJobId,
-    @Path('runId') String runId,
-  );
-
-  @GET(path: '/builds/{id}/runs/{runId}/steps', timeout: _timeout)
-  Future<Response<List<BuildStep>>> getBuildSteps(
-    @Path('id') String buildJobId,
-    @Path('runId') String runId,
-  );
-
-  @GET(
-    path: '/builds/{id}/runs/{runId}/steps/{stepId}/logs',
-    timeout: _timeout,
-  )
-  Future<Response<List<String>>> getBuildStepLogs(
-    @Path('id') String buildJobId,
-    @Path('runId') String runId,
-    @Path('stepId') String stepId,
   );
 
   @GET(path: '/builds/commits', timeout: _timeout)

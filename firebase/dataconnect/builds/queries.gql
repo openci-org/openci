@@ -1,7 +1,8 @@
 query GetBuildJobs($teamId: String!, $offset: Int! = 0, $limit: Int! = 100)
 @auth(
   expr: "auth != null && auth.token.firebase.sign_in_provider != 'anonymous' && vars.offset >= 0 && vars.limit >= 1 && vars.limit <= 200"
-) {
+)
+@refresh(every: { seconds: 10 }) {
   teamMembers(where: { teamId: { eq: $teamId }, userId: { eq_expr: "auth.uid" } }, limit: 1)
     @redact
     @check(expr: "size(this) == 1", message: "Team access denied") {
@@ -13,30 +14,53 @@ query GetBuildJobs($teamId: String!, $offset: Int! = 0, $limit: Int! = 100)
     offset: $offset
     limit: $limit
   ) {
-    id
-    status
-    owner
-    repo
     teamId
-    workflowId
-    workflowName
-    workflowFileName
-    commitSha
-    commitMessage
-    pullRequestNumber
-    branch
-    tagName
-    jobKey
-    workflowJobKey
-    workflowRunId
-    matrix
-    matrixLabel
-    needs
-    runsOn
-    runCount
-    latestRunId
-    createdAt
-    updatedAt
-    completedAt
+    ...BuildJobFields
   }
+}
+
+query GetBuildJob($id: String!)
+@auth(expr: "auth != null && auth.token.firebase.sign_in_provider != 'anonymous'")
+@refresh(every: { seconds: 10 }) {
+  memberships: teamMembers(where: { userId: { eq_expr: "auth.uid" } }, limit: null) @redact {
+    teamId
+  }
+  job: buildJob(key: { id: $id })
+    @check(
+      expr: "this == null || (this.teamId != null && this.teamId in response.memberships.map(m, m.teamId))"
+      message: "Team access denied"
+    ) {
+    teamId
+    ...BuildJobFields
+  }
+}
+
+fragment BuildJobFields on BuildJob {
+  id
+  status
+  owner
+  repo
+  workflowId
+  workflowName
+  workflowFileName
+  commitSha
+  commitMessage
+  pullRequestNumber
+  branch
+  tagName
+  jobKey
+  workflowJobKey
+  workflowRunId
+  matrix
+  matrixLabel
+  needs
+  runsOn
+  runCount
+  latestRunId
+  createdAt
+  updatedAt
+  completedAt
+  githubBaseUrl
+  failureSummary
+  failureSummaryStatus
 }

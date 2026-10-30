@@ -1,8 +1,8 @@
 import 'dart:io';
 
 import 'package:cli_util/cli_logging.dart';
-import 'package:openci_shared/openci_shared.dart';
 
+import '../../secrets/secrets_api.dart';
 import '../../credential_store/credential_config.dart';
 import '../../credential_store/credential_store.dart';
 import '../../credential_store/read_authenticated_profile.dart';
@@ -29,6 +29,7 @@ class SecretRegistration {
           server.userInfo.isEmpty &&
           !server.hasQuery &&
           !server.hasFragment) {
+        secretFunctionEndpoint(profile);
         return profile;
       }
     } catch (_) {
@@ -39,16 +40,12 @@ class SecretRegistration {
   }
 
   Future<int> save(AuthProfile profile, String name, String value) async {
-    final client = createOpenCIChopperClient(
-      baseUrl: profile.serverUrl,
-      tokenProvider: () => profile.token,
-      services: [OpenCIApiService.create()],
-    );
+    final client = SecretsApi(profile);
     try {
-      final response = await client.getService<OpenCIApiService>().saveSecret(
-        Uri.encodeComponent(profile.teamId),
-        {'name': name, 'value': value},
-      );
+      final response = await client.saveSecret(profile.teamId, {
+        'name': name,
+        'value': value,
+      });
       if (!response.isSuccessful) {
         _logger.stderr(
           response.statusCode == HttpStatus.unauthorized ||

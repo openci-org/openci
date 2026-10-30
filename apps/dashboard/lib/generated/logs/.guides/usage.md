@@ -6,6 +6,9 @@ LogsConnector.instance.GetBuildSteps(getBuildStepsVariables).execute();
 LogsConnector.instance.GetBuildLogs(getBuildLogsVariables).execute();
 LogsConnector.instance.GetBuildLogWriteState(getBuildLogWriteStateVariables).execute();
 LogsConnector.instance.GetBuildStepWriteState(getBuildStepWriteStateVariables).execute();
+LogsConnector.instance.GetBuildLogState(getBuildLogStateVariables).execute();
+LogsConnector.instance.GetExpiredBuildLogs().execute();
+LogsConnector.instance.DeleteExpiredBuildLogs(deleteExpiredBuildLogsVariables).execute();
 LogsConnector.instance.CreateBuildStep(createBuildStepVariables).execute();
 LogsConnector.instance.UpdateBuildStep(updateBuildStepVariables).execute();
 

@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:dashboard/api/ws_uri_builder.dart';
 import 'package:dashboard/app_strings.dart';
 import 'package:dashboard/auth/auth_page.dart';
 import 'package:dashboard/auth/auth_provider.dart';
@@ -205,16 +204,8 @@ void main() {
     await pumpSelector(tester);
     await tester.tap(useButton(_company));
     await tester.pumpAndSettle();
-    final uriProvider = FutureProvider(
-      (ref) => buildAuthedWebSocketUri(ref, '/builds/commits/stream'),
-    );
-
-    expect(
-      await container.read(uriProvider.future),
-      Uri.parse(
-        'wss://company.example.com/builds/commits/stream?token=company-token',
-      ),
-    );
+    final auth = await container.read(firebaseAuthProvider.future);
+    expect(await auth.currentUser!.getIdToken(), 'company-token');
   });
 
   testWidgets('preserves the other connection login session', (tester) async {
@@ -485,16 +476,8 @@ void main() {
 
     await tester.tap(find.text(t.settings.returnToCloud));
     await tester.pumpAndSettle();
-    final uriProvider = FutureProvider(
-      (ref) => buildAuthedWebSocketUri(ref, '/builds/commits/stream'),
-    );
-
-    expect(
-      await container.read(uriProvider.future),
-      Uri.parse(
-        'wss://cloud.example.com/builds/commits/stream?token=cloud-token',
-      ),
-    );
+    final auth = await container.read(firebaseAuthProvider.future);
+    expect(await auth.currentUser!.getIdToken(), 'cloud-token');
   });
 
   testWidgets('shows the active connection and API URL in settings', (

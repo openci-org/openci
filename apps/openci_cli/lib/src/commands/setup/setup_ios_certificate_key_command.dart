@@ -1,6 +1,7 @@
 import 'package:args/command_runner.dart';
 import 'package:cli_util/cli_logging.dart';
 
+import '../../secrets/secrets_api.dart';
 import '../../asc/asc_api_key_secret.dart';
 import '../../credential_store/credential_store.dart';
 import '../../i18n/i18n.dart';
@@ -36,7 +37,7 @@ class SetupIosCertificateKeyCommand extends Command<int> {
 
     _logger.stdout(
       t.setup.iosCertificateKey.saveDestination(
-        server: _escapeControls(profile.serverUrl),
+        server: _escapeControls(secretFunctionEndpoint(profile).toString()),
         team: _escapeControls(profile.teamId),
         name: iosCertificatePrivateKeySecretName,
       ),

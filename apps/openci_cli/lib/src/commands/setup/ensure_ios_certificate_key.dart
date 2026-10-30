@@ -1,8 +1,8 @@
 import 'dart:io';
 
 import 'package:cli_util/cli_logging.dart';
-import 'package:openci_shared/openci_shared.dart';
 
+import '../../secrets/secrets_api.dart';
 import '../../asc/asc_api_key_secret.dart';
 import '../../credential_store/credential_config.dart';
 import '../../i18n/i18n.dart';
@@ -12,28 +12,21 @@ Future<int> ensureIosCertificateKey({
   required AuthProfile profile,
   required Logger logger,
 }) async {
-  final client = createOpenCIChopperClient(
-    baseUrl: profile.serverUrl,
-    tokenProvider: () => profile.token,
-    services: [OpenCIApiService.create()],
-  );
+  final client = SecretsApi(profile);
   try {
-    final api = client.getService<OpenCIApiService>();
     // Recheck before generation: another setup may have prepared the key.
     // Never overwrite it via saveSecret.
-    final names = await fetchSecretNames(api, profile.teamId);
+    final names = await fetchSecretNames(client, profile.teamId);
     if (names.contains(iosCertificatePrivateKeySecretName)) {
       logger.stdout(t.setup.iosCertificateKey.reused);
       return 0;
     }
 
-    final response = await api.generateCertificateKey(
-      Uri.encodeComponent(profile.teamId),
-    );
+    final response = await client.generateCertificateKey(profile.teamId);
     if (!response.isSuccessful) {
       throw SecretNamesHttpException(response.statusCode);
     }
-    final savedNames = await fetchSecretNames(api, profile.teamId);
+    final savedNames = await fetchSecretNames(client, profile.teamId);
     if (!savedNames.contains(iosCertificatePrivateKeySecretName)) {
       logger.stderr(t.setup.iosCertificateKey.setupFailed);
       return 1;

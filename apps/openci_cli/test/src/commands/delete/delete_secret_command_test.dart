@@ -1,3 +1,4 @@
+import '../../../helpers/secret_functions.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -40,6 +41,7 @@ void main() {
   const token = 'private-delete-token';
   const privateValue = 'private-secret-value';
   const profile = AuthProfile(
+    firebaseProjectId: 'test-project',
     serverUrl: 'https://ci.example.com/proxy/',
     token: token,
     teamId: 'selected/team',
@@ -51,7 +53,7 @@ void main() {
   late List<_TrackingClient> clients;
   late MockClientHandler handler;
 
-  http.Response success() => http.Response(
+  http.Response success() => functionResponse(
     '{"success":true}',
     200,
     headers: {'content-type': 'application/json'},
@@ -68,7 +70,11 @@ void main() {
         activeProfile: 'selected',
         profiles: {
           'selected': profile,
-          'unused': AuthProfile(token: 'unused-token', teamId: 'unused-team'),
+          'unused': AuthProfile(
+            firebaseProjectId: 'test-project',
+            token: 'unused-token',
+            teamId: 'unused-team',
+          ),
         },
       ),
     );
@@ -116,13 +122,14 @@ void main() {
     expect(await run(), 0);
 
     final request = requests.single;
-    expect(request.method, 'DELETE');
-    expect(
-      request.url.toString(),
-      'https://ci.example.com/proxy/teams/selected%2Fteam/secrets/API_TOKEN',
-    );
+    expect(request.method, 'POST');
+    expect(request.url.toString(), secretFunctionUrl);
     expect(request.headers['authorization'], 'Bearer $token');
-    expect(request.body, isEmpty);
+    expect(secretData(request), {
+      'action': 'delete',
+      'teamId': profile.teamId,
+      'name': 'API_TOKEN',
+    });
     expect(logger.output, [
       t.delete.secret.deleted(name: 'API_TOKEN', teamId: profile.teamId),
     ]);
@@ -133,12 +140,11 @@ void main() {
     ]);
   });
 
-  test('accepts a successful empty response', () async {
-    handler = (_) async => http.Response('', 204);
-
-    expect(await run(), 0);
-    expect(logger.output, hasLength(1));
-    expect(logger.errors, isEmpty);
+  test('rejects a malformed empty callable response', () async {
+    handler = (_) async => functionResponse('', 204);
+    expect(await run(), 1);
+    expect(logger.output, isEmpty);
+    expect(logger.errors, isNotEmpty);
   });
 
   for (final name in [
@@ -147,18 +153,16 @@ void main() {
     'name with spaces',
     '../another?key=value#fragment%2F',
   ]) {
-    test('preserves the exact name in one URL segment: $name', () async {
+    test('preserves the exact name in JSON: $name', () async {
       expect(await run([name]), 0);
 
       final request = requests.single;
-      expect(request.method, 'DELETE');
-      expect(request.url.pathSegments, [
-        'proxy',
-        'teams',
-        profile.teamId,
-        'secrets',
-        name,
-      ]);
+      expect(request.method, 'POST');
+      expect(secretData(request), {
+        'action': 'delete',
+        'teamId': profile.teamId,
+        'name': name,
+      });
       expect(request.url.hasQuery, isFalse);
       expect(request.url.hasFragment, isFalse);
     });
@@ -170,10 +174,10 @@ void main() {
         'selected',
         profile.copyWith(teamId: 'team\x1b[2J'),
       );
-      handler = (_) async => http.Response('', status);
+      handler = (_) async => functionResponse('{"success":true}', status);
 
       expect(await run(['A\nB']), status == 200 ? 0 : 1);
-      expect(requests.single.url.pathSegments.last, 'A\nB');
+      expect(secretData(requests.single)['name'], 'A\nB');
       expect(
         [...logger.output, ...logger.errors],
         [
@@ -286,7 +290,7 @@ void main() {
     await expireFirebaseToken();
     handler = (request) async {
       if (request.url.host == 'securetoken.googleapis.com') {
-        return http.Response(
+        return functionResponse(
           jsonEncode({
             'id_token': 'refreshed-id-token',
             'refresh_token': 'rotated-refresh-token',
@@ -295,7 +299,7 @@ void main() {
           200,
         );
       }
-      expect(request.method, 'DELETE');
+      expect(request.method, 'POST');
       expect(request.headers['authorization'], 'Bearer refreshed-id-token');
       return success();
     };
@@ -312,7 +316,7 @@ void main() {
   test('does not delete when refreshing authentication fails', () async {
     await expireFirebaseToken();
     final credentials = await File(store.filePath).readAsBytes();
-    handler = (_) async => http.Response(privateValue, 400);
+    handler = (_) async => functionResponse(privateValue, 400);
 
     expect(await run(), 1);
     expect(requests.single.url.host, 'securetoken.googleapis.com');
@@ -323,7 +327,7 @@ void main() {
 
   for (final status in [400, 401, 403, 404, 500, 302]) {
     test('reports HTTP $status without exposing the response body', () async {
-      handler = (_) async => http.Response(privateValue, status);
+      handler = (_) async => functionResponse(privateValue, status);
 
       expect(await run(), 1);
       expect(requests, hasLength(1));

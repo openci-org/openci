@@ -1,6 +1,8 @@
 connectorId: "builds"
 generate:
   dartSdk:
+    clientCache:
+      maxAge: 5s
     outputDir: "../../../apps/dashboard/lib/generated/builds"
     package: "builds"
   adminNodeSdk:

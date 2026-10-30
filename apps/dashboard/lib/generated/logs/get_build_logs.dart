@@ -29,8 +29,10 @@ class GetBuildLogsVariablesBuilder {
       GetBuildLogsData.fromJson(jsonDecode(json));
   Serializer<GetBuildLogsVariables> varsSerializer =
       (GetBuildLogsVariables vars) => jsonEncode(vars.toJson());
-  Future<QueryResult<GetBuildLogsData, GetBuildLogsVariables>> execute() {
-    return ref().execute();
+  Future<QueryResult<GetBuildLogsData, GetBuildLogsVariables>> execute({
+    QueryFetchPolicy fetchPolicy = QueryFetchPolicy.preferCache,
+  }) {
+    return ref().execute(fetchPolicy: fetchPolicy);
   }
 
   QueryRef<GetBuildLogsData, GetBuildLogsVariables> ref() {
@@ -54,15 +56,15 @@ class GetBuildLogsRun {
   final String id;
   final BigInt lastLogSequence;
   final Timestamp? logsExpireAt;
-  final List<GetBuildLogsRunLogs> logs;
+  final List<GetBuildLogsRunLogEntries> logEntries;
   GetBuildLogsRun.fromJson(dynamic json)
     : id = nativeFromJson<String>(json['id']),
       lastLogSequence = bigIntFromJson(json['lastLogSequence']),
       logsExpireAt = json['logsExpireAt'] == null
           ? null
           : Timestamp.fromJson(json['logsExpireAt']),
-      logs = (json['logs'] as List<dynamic>)
-          .map((e) => GetBuildLogsRunLogs.fromJson(e))
+      logEntries = (json['logEntries'] as List<dynamic>)
+          .map((e) => GetBuildLogsRunLogEntries.fromJson(e))
           .toList();
   @override
   bool operator ==(Object other) {
@@ -77,7 +79,7 @@ class GetBuildLogsRun {
     return id == otherTyped.id &&
         lastLogSequence == otherTyped.lastLogSequence &&
         logsExpireAt == otherTyped.logsExpireAt &&
-        logs == otherTyped.logs;
+        logEntries == otherTyped.logEntries;
   }
 
   @override
@@ -85,7 +87,7 @@ class GetBuildLogsRun {
     id.hashCode,
     lastLogSequence.hashCode,
     logsExpireAt.hashCode,
-    logs.hashCode,
+    logEntries.hashCode,
   ]);
 
   Map<String, dynamic> toJson() {
@@ -95,7 +97,7 @@ class GetBuildLogsRun {
     if (logsExpireAt != null) {
       json['logsExpireAt'] = logsExpireAt!.toJson();
     }
-    json['logs'] = logs.map((e) => e.toJson()).toList();
+    json['logEntries'] = logEntries.map((e) => e.toJson()).toList();
     return json;
   }
 
@@ -103,12 +105,12 @@ class GetBuildLogsRun {
     required this.id,
     required this.lastLogSequence,
     this.logsExpireAt,
-    required this.logs,
+    required this.logEntries,
   });
 }
 
 @immutable
-class GetBuildLogsRunLogs {
+class GetBuildLogsRunLogEntries {
   final String logId;
   final BigInt sequence;
   final String? stepId;
@@ -117,7 +119,7 @@ class GetBuildLogsRunLogs {
   final String message;
   final Timestamp occurredAt;
   final Timestamp createdAt;
-  GetBuildLogsRunLogs.fromJson(dynamic json)
+  GetBuildLogsRunLogEntries.fromJson(dynamic json)
     : logId = nativeFromJson<String>(json['logId']),
       sequence = bigIntFromJson(json['sequence']),
       stepId = json['stepId'] == null
@@ -137,7 +139,8 @@ class GetBuildLogsRunLogs {
       return false;
     }
 
-    final GetBuildLogsRunLogs otherTyped = other as GetBuildLogsRunLogs;
+    final GetBuildLogsRunLogEntries otherTyped =
+        other as GetBuildLogsRunLogEntries;
     return logId == otherTyped.logId &&
         sequence == otherTyped.sequence &&
         stepId == otherTyped.stepId &&
@@ -175,7 +178,7 @@ class GetBuildLogsRunLogs {
     return json;
   }
 
-  GetBuildLogsRunLogs({
+  GetBuildLogsRunLogEntries({
     required this.logId,
     required this.sequence,
     this.stepId,

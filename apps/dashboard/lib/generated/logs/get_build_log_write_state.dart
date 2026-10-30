@@ -17,8 +17,8 @@ class GetBuildLogWriteStateVariablesBuilder {
   Serializer<GetBuildLogWriteStateVariables> varsSerializer =
       (GetBuildLogWriteStateVariables vars) => jsonEncode(vars.toJson());
   Future<QueryResult<GetBuildLogWriteStateData, GetBuildLogWriteStateVariables>>
-  execute() {
-    return ref().execute();
+  execute({QueryFetchPolicy fetchPolicy = QueryFetchPolicy.preferCache}) {
+    return ref().execute(fetchPolicy: fetchPolicy);
   }
 
   QueryRef<GetBuildLogWriteStateData, GetBuildLogWriteStateVariables> ref() {

@@ -1,3 +1,4 @@
+import '../../../helpers/secret_functions.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -39,7 +40,11 @@ void main() {
   const token = 'private-test-api-key';
   const privateValue = 'private-value-must-not-be-saved';
   const previousSource = '// Previous secret definitions\n';
-  const profile = AuthProfile(token: token, teamId: 'selected-team');
+  const profile = AuthProfile(
+    firebaseProjectId: 'test-project',
+    token: token,
+    teamId: 'selected-team',
+  );
   late Directory project;
   late Directory workflows;
   late File output;
@@ -49,7 +54,7 @@ void main() {
   late List<http.Request> requests;
   late List<_TrackingClient> clients;
 
-  http.Response namesResponse(List<String> names) => http.Response(
+  http.Response namesResponse(List<String> names) => functionResponse(
     jsonEncode({
       'success': true,
       'secrets': [
@@ -73,7 +78,11 @@ void main() {
         activeProfile: 'selected',
         profiles: {
           'selected': profile,
-          'unused': AuthProfile(token: 'unused-token', teamId: 'unused-team'),
+          'unused': AuthProfile(
+            firebaseProjectId: 'test-project',
+            token: 'unused-token',
+            teamId: 'unused-team',
+          ),
         },
       ),
     );
@@ -141,6 +150,7 @@ void main() {
     await store.saveProfile(
       'remote',
       AuthProfile(
+        firebaseProjectId: 'test-project',
         serverUrl: 'https://ci.example.com',
         token: 'expired-id-token',
         teamId: 'remote-team',
@@ -165,7 +175,7 @@ void main() {
         final client = _TrackingClient((request) async {
           requests.add(request);
           if (request.url.host == 'securetoken.googleapis.com') {
-            return http.Response(
+            return functionResponse(
               jsonEncode({
                 'id_token': 'refreshed-id-token',
                 'refresh_token': 'rotated-refresh-token',
@@ -174,10 +184,7 @@ void main() {
               200,
             );
           }
-          expect(
-            request.url.toString(),
-            'https://ci.example.com/teams/remote-team/secrets',
-          );
+          expect(request.url.toString(), secretFunctionUrl);
           expect(request.headers['authorization'], 'Bearer refreshed-id-token');
           return namesResponse(['ASC_KEY']);
         });
@@ -212,11 +219,8 @@ void main() {
       expect(await runSync(), 0);
 
       final request = requests.single;
-      expect(request.method, 'GET');
-      expect(
-        request.url,
-        Uri.parse('http://localhost:8080/teams/selected-team/secrets'),
-      );
+      expect(request.method, 'POST');
+      expect(request.url, Uri.parse(secretFunctionUrl));
       expect(request.headers['Authorization'], 'Bearer $token');
       final source = await output.readAsString();
       expect(source, contains("static const ascKey = Secret('ASC_KEY');"));
@@ -275,8 +279,17 @@ void main() {
 
   for (final (label, invalidProfile) in <(String, AuthProfile?)>[
     ('missing active profile', null),
-    ('missing token', const AuthProfile(teamId: 'selected-team')),
-    ('missing team', const AuthProfile(token: token)),
+    (
+      'missing token',
+      const AuthProfile(
+        firebaseProjectId: 'test-project',
+        teamId: 'selected-team',
+      ),
+    ),
+    (
+      'missing team',
+      const AuthProfile(firebaseProjectId: 'test-project', token: token),
+    ),
     ('invalid server URL', profile.copyWith(serverUrl: 'http://[')),
     ('relative server URL', profile.copyWith(serverUrl: '/server')),
     (
@@ -320,7 +333,7 @@ void main() {
 
   for (final status in [401, 403, 404, 500]) {
     test('preserves definitions on HTTP $status', () async {
-      handler = (_) async => http.Response(privateValue, status);
+      handler = (_) async => functionResponse(privateValue, status);
 
       expect(await runSync(), 1);
 
@@ -338,7 +351,7 @@ void main() {
     '{"success":true,"secrets":[{}]}',
   ]) {
     test('preserves definitions for an invalid API response: $body', () async {
-      handler = (_) async => http.Response(
+      handler = (_) async => functionResponse(
         body,
         200,
         headers: {'content-type': 'application/json'},
