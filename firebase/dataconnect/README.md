@@ -123,9 +123,13 @@ emulator also regenerates SDKs on startup; run the formatters again afterward.
 
 `invitations`, `user_devices`, and `udid_requests` are retired from the migration
 scope. Their schemas, connector operations, and data will not be migrated to SQL
-Connect. Cleanup of the existing server APIs, shared models, and legacy database
-tables is tracked in [G-1569](https://linear.app/genuineci/issue/G-1569/retire-legacy-invitation-device-and-udid-request-storage)
-and has not been implemented yet.
+Connect. [G-1569](https://linear.app/genuineci/issue/G-1569/retire-legacy-invitation-device-and-udid-request-storage)
+removes the server APIs, DAOs and shared device model. Server schema v32 drops
+all three legacy tables with `IF EXISTS`; fresh databases omit them. Deploy this
+server release with the matching clients after draining older server instances,
+and retain a backup before the irreversible data drop. `/devices/mobile-config`
+retains its storage-free 410 response for stale enrollment links/callbacks. Team membership,
+build history and artifact metadata such as `provisioned_udids` are preserved.
 
 ## Billing
 

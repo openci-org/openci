@@ -57,16 +57,6 @@ void main() {
       ),
     ],
   );
-  final device = UserDevice(
-    id: 'device-1',
-    userId: 'user-1',
-    teamId: 'team-1',
-    udid: 'udid-1',
-    deviceProduct: 'iPhone15,2',
-    deviceOsVersion: '18.0',
-    createdAt: now,
-    updatedAt: now,
-  );
   final step = BuildStep(
     id: 'step-1',
     runId: 'run-1',
@@ -94,13 +84,6 @@ void main() {
       expect(response.body, [group]);
     },
   );
-
-  test('converts a nonempty list of user devices', () async {
-    final response = await _convert<List<UserDevice>, UserDevice>([
-      device.toJson(),
-    ]);
-    expect(response.body, [device]);
-  });
 
   test('converts build steps and preserves their order', () async {
     final next = step.copyWith(id: 'step-2', stepOrder: 1);

@@ -104,7 +104,7 @@ void main() {
     () => MockClient((request) async {
       requests.add(request);
       return http.Response(
-        '[]',
+        '{}',
         200,
         headers: {'content-type': 'application/json'},
       );
@@ -127,8 +127,8 @@ void main() {
     expect(container.read(currentUserIdProvider), user?.uid);
 
     final api = await container.read(openciApiServiceProvider.future);
-    await api.getDevices();
-    expect(requests.last.url.toString(), '${profile.apiUrl}/devices');
+    await api.getBuildJob('job-123');
+    expect(requests.last.url.toString(), '${profile.apiUrl}/builds/job-123');
     expect(
       requests.last.headers['Authorization'],
       'Bearer ${profile.id}-token',
@@ -178,7 +178,7 @@ void main() {
       authResults[local.profile.id] = ready.future;
       listenToConnection();
       final api = await container.read(openciApiServiceProvider.future);
-      final response = api.getDevices();
+      final response = api.getBuildJob('job-123');
       await container.pump();
 
       expect(container.read(authStateChangesProvider).isLoading, isTrue);
@@ -189,7 +189,7 @@ void main() {
 
       expect(requests, hasLength(2));
       for (final request in requests) {
-        expect(request.url.toString(), 'http://127.0.0.1:8080/devices');
+        expect(request.url.toString(), 'http://127.0.0.1:8080/builds/job-123');
         expect(
           request.headers['Authorization'],
           'Bearer local-development-token',
@@ -215,7 +215,7 @@ void main() {
           throwsA(same(error)),
         );
         final requestFailure = expectLater(
-          api.getDevices(),
+          api.getBuildJob('job-123'),
           throwsA(same(error)),
         );
 

@@ -91,35 +91,6 @@ final class _$OpenCIApiService extends OpenCIApiService {
   }
 
   @override
-  Future<Response<List<UserDevice>>> getDevices() {
-    final Uri $url = Uri.parse('/devices');
-    final ChopperCompleter $abortTrigger = ChopperCompleter<void>();
-    final ChopperTimer $timeout = ChopperTimer(
-      const Duration(microseconds: 10000000),
-      () {
-        if (!$abortTrigger.isCompleted) $abortTrigger.complete();
-      },
-    );
-    final Request $request = Request(
-      'GET',
-      $url,
-      client.baseUrl,
-      abortTrigger: $abortTrigger.future,
-    );
-    return client
-        .send<List<UserDevice>, UserDevice>($request)
-        .catchError(
-          (_) => Future<Response<List<UserDevice>>>.error(
-            ChopperTimeoutException('Request timed out after 10 seconds'),
-          ),
-          test: (Object err) =>
-              err is ChopperRequestAbortedException &&
-              $abortTrigger.isCompleted,
-        )
-        .whenComplete($timeout.cancel);
-  }
-
-  @override
   Future<Response<Map<String, dynamic>>> seedLocalData(
     Map<String, dynamic> body,
   ) {
