@@ -13,7 +13,8 @@ This directory has its own Firebase configuration, separate from Hosting.
 - Explicit `limit: null` preserves the existing API's full team/member lists.
 
 All 19 migration-target tables are now defined, including the pending skipped
-workflow reporting table, plus two new build log/step tables. See
+workflow reporting table, plus two new build log/step tables and two dispatch
+reservation/lease tables. See
 [the schema inventory](SCHEMA.md) for source mappings, Secret Manager references,
 billing uniqueness keys, and the write rules required before switching the
 servers to SQL Connect. Connector operations
@@ -98,13 +99,20 @@ methods does not allow clients to call them. Functions must authenticate the
 caller and use the Admin SDK to compute billing status or perform writes.
 Stripe calls, worker orchestration, and UI/API integration remain follow-up work.
 
+`dispatch/connector.yaml` generates the server-only reservation, scheduler lease,
+launch and executor-claim operations into `firebase/generated/dispatch-admin`.
+The Node Functions use these to reserve Orchard capacity and launch a Cloud Run
+Job. See the [dispatch flow and executor contract](../functions/BUILD_DISPATCH.md).
+All dispatch operations are `NO_ACCESS`; billing admission and execution still
+belong to the executor.
+
 Regenerate from the repository root with Node.js 22 and Firebase CLI 15.34.2:
 
 ```sh
 env -u DEBUG npx --yes firebase-tools@15.34.2 dataconnect:sdk:generate \
   --config firebase/dataconnect/firebase.json --project demo-openci
 dart format apps/dashboard/lib/generated/teams apps/dashboard/lib/generated/logs apps/dashboard/lib/generated/builds apps/dashboard/lib/generated/secrets apps/dashboard/lib/generated/github apps/dashboard/lib/generated/billing
-vp fmt firebase/generated/logs-admin firebase/generated/teams-admin firebase/generated/builds-admin firebase/generated/secrets-admin firebase/generated/github-admin firebase/generated/billing-admin
+vp fmt firebase/generated/logs-admin firebase/generated/teams-admin firebase/generated/builds-admin firebase/generated/secrets-admin firebase/generated/github-admin firebase/generated/billing-admin firebase/generated/webhooks-admin firebase/generated/dispatch-admin
 ```
 
 Generation uses the local schema and does not deploy it. The generated

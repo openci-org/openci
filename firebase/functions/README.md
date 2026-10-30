@@ -48,7 +48,8 @@ completes the pending task. It supplies the team/installation from the stored
 connection, server timestamps, `runCount: 0`, and `runsOn: macos-latest`.
 Stable task/file IDs, a conditional task transition and one transaction prevent
 duplicate batches, partial inserts and retries resetting existing jobs. This
-mutation's returned `jobs` IDs are the handoff for G-1604. The generated SDK does
+mutation's returned `jobs` IDs trigger `queueBuildJobs`, which enqueues Cloud
+Tasks for the [capacity dispatcher](BUILD_DISPATCH.md). The generated SDK does
 not support bulk `_Data` inputs, so the bulk insert uses a parameterized
 `jsonb_to_recordset` SQL statement inside the GraphQL transaction.
 
@@ -60,7 +61,7 @@ source, raw payloads, tokens or SDK operation variables.
 
 This preserves the existing planner's event/branch matching (PR base branch,
 head SHA/branch for checkout). `whenChanged` evaluation, queued GitHub Checks,
-execution-slot reservation and build execution remain separate work. Keep the
+and build execution remain separate work. Keep the
 production webhook URL on the existing receiver until the execution path is
 ready; the current Dart worker does not automatically consume these FSC jobs.
 
@@ -76,7 +77,7 @@ env -u DEBUG npx --yes firebase-tools@15.34.2 dataconnect:compile \
   --config firebase/dataconnect/firebase.json --project openci-b1b91
 env -u DEBUG npx --yes firebase-tools@15.34.2 emulators:exec \
   --config firebase/dataconnect/firebase.json --only dataconnect --project demo-openci \
-  'node --test firebase/dataconnect/test/webhooks.test.mjs firebase/dataconnect/test/build_job_planning.test.mjs'
+  'node --test --test-concurrency=1 firebase/dataconnect/test/webhooks.test.mjs firebase/dataconnect/test/build_job_planning.test.mjs firebase/dataconnect/test/build_dispatch.test.mjs'
 ```
 
 `dataconnect:compile` reads the deployed schema, so this read-only check uses
@@ -93,8 +94,8 @@ generated-code formatting described in `../dataconnect/README.md` afterward.
 
 For an HTTP smoke test, build the Node Functions and configure dummy local values:
 
-- `firebase/.secret.local`: `GITHUB_WEBHOOK_SECRET`.
-- `firebase/.env.local`: `PROCESS_WEBHOOK_TASK_URL=http://127.0.0.1:5001/demo-openci/asia-northeast1/process-webhook-task`.
+- `firebase/.secret.local`: dummy `GITHUB_WEBHOOK_SECRET` and `ORCHARD_SERVICE_ACCOUNT_TOKEN`.
+- `firebase/.env.local`: `PROCESS_WEBHOOK_TASK_URL=http://127.0.0.1:5001/demo-openci/asia-northeast1/process-webhook-task`, `ORCHARD_API_URL=http://127.0.0.1:18080`, `ORCHARD_SERVICE_ACCOUNT_NAME=test`, and `BUILD_EXECUTOR_JOB=projects/demo-openci/locations/asia-northeast1/jobs/build-executor` (unused by the receiver smoke test).
 - `firebase/dart_functions/.env.local`: `GITHUB_APP_ID=1`.
 - `firebase/dart_functions/.secret.local`: `GITHUB_APP_PRIVATE_KEY` (unused by the receiver smoke test).
 

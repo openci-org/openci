@@ -13,6 +13,7 @@
     "@octokit/webhooks": "^14.2.0",
     "@openci/billing-admin": "file:generated/billing-admin",
     "@openci/builds-admin": "file:generated/builds-admin",
+    "@openci/dispatch-admin": "file:generated/dispatch-admin",
     "@openci/github-admin": "file:generated/github-admin",
     "@openci/logs-admin": "file:generated/logs-admin",
     "@openci/secrets-admin": "file:generated/secrets-admin",

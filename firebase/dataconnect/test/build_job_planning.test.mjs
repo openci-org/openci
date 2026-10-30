@@ -7,11 +7,16 @@ import { createServer as createHttpServer } from "node:http";
 import { setTimeout as delay } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
 import { after, before, test } from "node:test";
-import { deleteApp, initializeApp } from "firebase-admin/app";
+import { deleteApp, getApps, initializeApp } from "firebase-admin/app";
 import { getDataConnect } from "firebase-admin/data-connect";
 import * as sdk from "@openci/webhooks-admin";
 import { invokeProcessWebhookTask } from "../../lib/functions/build_job_planning.js";
 import { enqueueWebhook } from "../../lib/functions/webhook_queue.js";
+import { createdBuildJobIds, dispatchBuildJob } from "../../lib/functions/build_dispatch.js";
+import {
+  DataConnectDispatchStore,
+  getDispatchDataConnect,
+} from "../../lib/functions/dispatch_store.js";
 
 const host = process.env.DATA_CONNECT_EMULATOR_HOST;
 assert.match(host ?? "", /^(127\.0\.0\.1|localhost):\d+$/, "Start the SQL Connect emulator first");
@@ -121,7 +126,7 @@ after(async () => {
     await once(dartFunction, "exit");
   }
   if (githubServer) await new Promise((resolve) => githubServer.close(resolve));
-  await deleteApp(app);
+  await Promise.all(getApps().map((app) => deleteApp(app)));
 });
 
 async function graphql(query, variables) {
@@ -288,6 +293,65 @@ test("concurrent Dart invocations publish one batch", async (t) => {
   assert.equal(results.filter((r) => r === "created").length, 1);
   assert.equal(results.filter((r) => r === "duplicate").length, 5);
   assert.equal((await f.state()).buildJobs.length, 2);
+});
+
+test("CompleteWebhookTask result hands created IDs to the capacity dispatcher", async (t) => {
+  const f = await fixture(t);
+  const jobId = randomUUID();
+  const result = await sdk.completeWebhookTask(dc, {
+    id: f.taskId,
+    jobCount: 1,
+    connectionId: f.connectionId,
+    jobsJson: JSON.stringify([{ id: jobId, name: "Build", file: "ci.dart" }]),
+    owner: "org",
+    repo: "app",
+    commitSha: sha,
+    branch: "develop",
+  });
+  assert.deepEqual(createdBuildJobIds(result), [jobId]);
+  const dispatchStore = new DataConnectDispatchStore(getDispatchDataConnect(app));
+  try {
+    let launched;
+    await dispatchBuildJob(jobId, {
+      store: dispatchStore,
+      configuration: {
+        cpu: 2,
+        memoryMiB: 4096,
+        image: "base-macos",
+        cloudRunJob: "projects/demo-openci/locations/asia-northeast1/jobs/build-executor",
+      },
+      snapshot: async () => ({
+        workers: [
+          {
+            name: "mac-1",
+            last_seen: new Date().toISOString(),
+            resources: {
+              "org.cirruslabs.logical-cores": 2,
+              "org.cirruslabs.memory-mib": 4096,
+              "org.cirruslabs.tart-vms": 1,
+            },
+          },
+        ],
+        vms: [],
+      }),
+      enqueueRecovery: async () => {},
+      launch: async (dispatch) => {
+        launched = dispatch;
+        return "test-operation";
+      },
+    });
+    assert.equal(launched.jobId, jobId);
+    assert.equal((await f.state()).buildJobs[0].status, "QUEUED");
+  } finally {
+    await graphql(
+      `
+        mutation CleanupDispatch($id: String!) {
+          buildJobDispatch_deleteMany(where: { jobId: { eq: $id } })
+        }
+      `,
+      { id: jobId },
+    );
+  }
 });
 
 test("redelivery after completion never resets a running job", async (t) => {

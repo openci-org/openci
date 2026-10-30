@@ -1,0 +1,6 @@
+connectorId: "dispatch"
+generate:
+  adminNodeSdk:
+    outputDir: "../../generated/dispatch-admin"
+    package: "@openci/dispatch-admin"
+    packageJsonDir: "../.."
