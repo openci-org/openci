@@ -26,11 +26,43 @@ tasks. Duplicate requests never reset task status; conflicting reuse of a
 delivery ID returns 409. Storage failures return 503 without logging the raw
 payload, secret, or SDK error (which can include operation variables).
 
-This is the intake portion of the migration. Workflow discovery, BuildJob
-creation, execution-slot reservation, Cloud Run Jobs, and completion handling
-are subsequent work. The current Dart planner reads the existing server's
-database, so it does not automatically consume these FSC tasks. Keep the
-production webhook URL on the existing receiver until the FSC consumer is ready.
+After persistence, the receiver awaits `RequestWebhookTaskPlanning`, a privileged
+mutation carrying only the task ID. This keeps raw webhook bodies out of the
+planning event and below [Eventarc's event-size limit](https://cloud.google.com/eventarc/quotas).
+A failed dispatch returns 503; redelivery reuses the saved task and signals it
+again. Completed and failed tasks are never reset.
+
+`createBuildJobs` listens only to that mutation and forwards the task ID to
+[`process-webhook-task`](../dart_functions/README.md), a private Dart HTTP
+Function. Node awaits completion and retries transient failures through Eventarc.
+`PROCESS_WEBHOOK_TASK_URL` points to this Dart Function; the new flow does not
+use the legacy polling service.
+The Dart Function owns the full planner: it reads the durable task, validates
+GitHub metadata, resolves the active connection, obtains a repository-scoped
+read-only installation token, fetches `openci/*.dart` at the webhook SHA, applies
+the migrated AST parser, and saves the matching BuildJobs. Repository identity
+and commit access are verified before source is fetched; source is never run.
+
+`CompleteWebhookTask` atomically inserts all matching `QUEUED` BuildJobs and
+completes the pending task. It supplies the team/installation from the stored
+connection, server timestamps, `runCount: 0`, and `runsOn: macos-latest`.
+Stable task/file IDs, a conditional task transition and one transaction prevent
+duplicate batches, partial inserts and retries resetting existing jobs. This
+mutation's returned `jobs` IDs are the handoff for G-1604. The generated SDK does
+not support bulk `_Data` inputs, so the bulk insert uses a parameterized
+`jsonb_to_recordset` SQL statement inside the GraphQL transaction.
+
+Deleted refs, unmatched workflows and installations without an active connection
+complete with zero jobs. Invalid payloads/workflow configuration fail with a
+sanitized reason. GitHub, parser and database outages leave tasks pending and
+are retried by the mutation trigger. A received failure never logs private
+source, raw payloads, tokens or SDK operation variables.
+
+This preserves the existing planner's event/branch matching (PR base branch,
+head SHA/branch for checkout). `whenChanged` evaluation, queued GitHub Checks,
+execution-slot reservation and build execution remain separate work. Keep the
+production webhook URL on the existing receiver until the execution path is
+ready; the current Dart worker does not automatically consume these FSC jobs.
 
 ## Local checks
 
@@ -44,22 +76,32 @@ env -u DEBUG npx --yes firebase-tools@15.34.2 dataconnect:compile \
   --config firebase/dataconnect/firebase.json --project openci-b1b91
 env -u DEBUG npx --yes firebase-tools@15.34.2 emulators:exec \
   --config firebase/dataconnect/firebase.json --only dataconnect --project demo-openci \
-  'node --test firebase/dataconnect/test/webhooks.test.mjs'
+  'node --test firebase/dataconnect/test/webhooks.test.mjs firebase/dataconnect/test/build_job_planning.test.mjs'
 ```
 
 `dataconnect:compile` reads the deployed schema, so this read-only check uses
 the real project and requires Google credentials. Fixture-writing emulator tests
 always use `demo-openci`.
 
+The pinned CLI does not emulate FSC mutation-event delivery. The planning tests
+invoke the consumer directly, using the real SQL Connect emulator and Dart HTTP
+Function; the production Eventarc handoff remains a deployment check.
+
 Regenerate the connector SDK with `dataconnect:sdk:generate` using the same
 configuration and `--project demo-openci`. Emulator startup also regenerates SDKs; apply the repository's
 generated-code formatting described in `../dataconnect/README.md` afterward.
 
-For an HTTP smoke test, set a dummy `GITHUB_WEBHOOK_SECRET` in the ignored file
-`firebase/.secret.local`, build the Functions, and run:
+For an HTTP smoke test, build the Node Functions and configure dummy local values:
+
+- `firebase/.secret.local`: `GITHUB_WEBHOOK_SECRET`.
+- `firebase/.env.local`: `PROCESS_WEBHOOK_TASK_URL=http://127.0.0.1:5001/demo-openci/asia-northeast1/process-webhook-task`.
+- `firebase/dart_functions/.env.local`: `GITHUB_APP_ID=1`.
+- `firebase/dart_functions/.secret.local`: `GITHUB_APP_PRIVATE_KEY` (unused by the receiver smoke test).
+
+Then run:
 
 ```sh
-env -u DEBUG npx --yes firebase-tools@15.34.2 emulators:start \
+env -u DEBUG FIREBASE_CLI_EXPERIMENTS=dartfunctions npx --yes firebase-tools@15.34.2 emulators:start \
   --config firebase/firebase.json --only functions,dataconnect --project demo-openci
 ```
 
@@ -81,13 +123,28 @@ Gen2 allocation of 1 CPU, concurrency 1, minimum instances 0, and a 60-second
 timeout. See the [Firebase runtime options](https://firebase.google.com/docs/functions/manage-functions#override_cpu_defaults).
 The endpoint is publicly invokable because GitHub uses
 the webhook signature, not a Google identity token, to authenticate deliveries.
-Only the bound `GITHUB_WEBHOOK_SECRET` Secret Manager secret is read at runtime.
+Only the bound `GITHUB_WEBHOOK_SECRET` Secret Manager secret is read by the receiver.
 Its value must match the GitHub App webhook secret.
 
 Deploy the `webhooks` connector before the Function, and grant the runtime
 service account permission to execute its privileged FSC operations. The
 Function codebase is `openci` in `firebase/firebase.json`; its predeploy hook
 builds the TypeScript. Build and deploy are separate actions.
+
+The Node consumer needs `PROCESS_WEBHOOK_TASK_URL`, the full deployed Dart Function
+URL. Grant its runtime service account `roles/run.invoker` on that Function;
+invocation uses an ID token with that URL as its audience. Only an explicitly
+local Functions emulator may use HTTP without a token. The consumer keeps 1 CPU,
+128 MiB, concurrency 1, minimum instances 0, a 540-second timeout and retries.
+
+GitHub App configuration and `GITHUB_APP_PRIVATE_KEY` now belong to the Dart
+codebase. Its runtime service account needs permission to execute privileged
+operations on the `github` and `webhooks` connectors. Deploy those connectors,
+then the Dart planner, configure IAM and the URL, and deploy the Node dispatcher.
+The Dart planner has a 480-second timeout and accepts up to 100 Dart files
+totaling 1 MiB. See its README for configuration and the transitional Compose
+launcher. Production Eventarc delivery, IAM, GitHub credentials and 128 MiB memory
+headroom must be verified before routing real webhook traffic here.
 
 Before routing production traffic here, verify the complete consumer path and
 cold-start response latency. GitHub expects a response within 10 seconds and

@@ -1,4 +1,4 @@
-import 'package:build_job_planner/build_job_planner.dart';
+import 'package:openci_dart_functions/build_job_planner.dart';
 import 'package:test/test.dart';
 
 void main() {

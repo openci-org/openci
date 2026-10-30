@@ -7,6 +7,28 @@ const connectorConfig = {
 };
 exports.connectorConfig = connectorConfig;
 
+function completeWebhookTask(dcOrVarsOrOptions, varsOrOptions, options) {
+  const {
+    dc: dcInstance,
+    vars: inputVars,
+    options: inputOpts,
+  } = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeMutation("CompleteWebhookTask", inputVars, inputOpts);
+}
+exports.completeWebhookTask = completeWebhookTask;
+
+function rejectWebhookTask(dcOrVarsOrOptions, varsOrOptions, options) {
+  const {
+    dc: dcInstance,
+    vars: inputVars,
+    options: inputOpts,
+  } = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeMutation("RejectWebhookTask", inputVars, inputOpts);
+}
+exports.rejectWebhookTask = rejectWebhookTask;
+
 function createWebhookTask(dcOrVarsOrOptions, varsOrOptions, options) {
   const {
     dc: dcInstance,
@@ -18,6 +40,17 @@ function createWebhookTask(dcOrVarsOrOptions, varsOrOptions, options) {
 }
 exports.createWebhookTask = createWebhookTask;
 
+function requestWebhookTaskPlanning(dcOrVarsOrOptions, varsOrOptions, options) {
+  const {
+    dc: dcInstance,
+    vars: inputVars,
+    options: inputOpts,
+  } = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeMutation("RequestWebhookTaskPlanning", inputVars, inputOpts);
+}
+exports.requestWebhookTaskPlanning = requestWebhookTaskPlanning;
+
 function getWebhookTaskByDeliveryId(dcOrVarsOrOptions, varsOrOptions, options) {
   const {
     dc: dcInstance,
@@ -28,3 +61,14 @@ function getWebhookTaskByDeliveryId(dcOrVarsOrOptions, varsOrOptions, options) {
   return dcInstance.executeQuery("GetWebhookTaskByDeliveryId", inputVars, inputOpts);
 }
 exports.getWebhookTaskByDeliveryId = getWebhookTaskByDeliveryId;
+
+function getWebhookTask(dcOrVarsOrOptions, varsOrOptions, options) {
+  const {
+    dc: dcInstance,
+    vars: inputVars,
+    options: inputOpts,
+  } = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeQuery("GetWebhookTask", inputVars, inputOpts);
+}
+exports.getWebhookTask = getWebhookTask;

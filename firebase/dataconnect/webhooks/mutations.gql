@@ -24,3 +24,12 @@ mutation CreateWebhookTask(
       message: "Invalid webhook task"
     )
 }
+
+# Signal only the task ID. CreateWebhookTask carries the raw GitHub payload,
+# which can exceed Eventarc's event-size limit. Repeating this signal is safe.
+mutation RequestWebhookTaskPlanning($id: String!) @auth(level: NO_ACCESS) @transaction {
+  task: webhookTask_update(
+    first: { where: { id: { eq: $id }, status: { eq: "pending" } } }
+    data: { status: "pending" }
+  )
+}

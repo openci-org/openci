@@ -79,6 +79,25 @@ export interface BuildStep_Key {
   __typename?: "BuildStep_Key";
 }
 
+export interface CompleteWebhookTaskData {
+  webhookTask_updateMany: number;
+  jobs?: unknown[] | null;
+}
+
+export interface CompleteWebhookTaskVariables {
+  id: string;
+  jobsJson: string;
+  jobCount: number;
+  connectionId?: string | null;
+  owner?: string | null;
+  repo?: string | null;
+  commitSha?: string | null;
+  branch?: string | null;
+  commitMessage?: string | null;
+  pullRequestNumber?: Int64String | null;
+  githubBaseUrl?: string | null;
+}
+
 export interface CreateWebhookTaskData {
   webhookTask_insert: WebhookTask_Key;
 }
@@ -108,6 +127,21 @@ export interface GetWebhookTaskByDeliveryIdVariables {
   deliveryId: string;
 }
 
+export interface GetWebhookTaskData {
+  webhookTask?: {
+    id: string;
+    deliveryId: string;
+    eventType: string;
+    payload: string;
+    status: string;
+    errorMessage?: string | null;
+  } & WebhookTask_Key;
+}
+
+export interface GetWebhookTaskVariables {
+  id: string;
+}
+
 export interface GitHubConnectionRequest_Key {
   id: string;
   __typename?: "GitHubConnectionRequest_Key";
@@ -121,6 +155,23 @@ export interface GitHubConnectionSession_Key {
 export interface GitHubConnection_Key {
   id: string;
   __typename?: "GitHubConnection_Key";
+}
+
+export interface RejectWebhookTaskData {
+  webhookTask_updateMany: number;
+}
+
+export interface RejectWebhookTaskVariables {
+  id: string;
+  reason: string;
+}
+
+export interface RequestWebhookTaskPlanningData {
+  task?: WebhookTask_Key | null;
+}
+
+export interface RequestWebhookTaskPlanningVariables {
+  id: string;
 }
 
 export interface SecretReference_Key {
@@ -149,6 +200,30 @@ export interface WebhookTask_Key {
   __typename?: "WebhookTask_Key";
 }
 
+/** Generated Node Admin SDK operation action function for the 'CompleteWebhookTask' Mutation. Allow users to execute without passing in DataConnect. */
+export function completeWebhookTask(
+  dc: DataConnect,
+  vars: CompleteWebhookTaskVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<CompleteWebhookTaskData>>;
+/** Generated Node Admin SDK operation action function for the 'CompleteWebhookTask' Mutation. Allow users to pass in custom DataConnect instances. */
+export function completeWebhookTask(
+  vars: CompleteWebhookTaskVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<CompleteWebhookTaskData>>;
+
+/** Generated Node Admin SDK operation action function for the 'RejectWebhookTask' Mutation. Allow users to execute without passing in DataConnect. */
+export function rejectWebhookTask(
+  dc: DataConnect,
+  vars: RejectWebhookTaskVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<RejectWebhookTaskData>>;
+/** Generated Node Admin SDK operation action function for the 'RejectWebhookTask' Mutation. Allow users to pass in custom DataConnect instances. */
+export function rejectWebhookTask(
+  vars: RejectWebhookTaskVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<RejectWebhookTaskData>>;
+
 /** Generated Node Admin SDK operation action function for the 'CreateWebhookTask' Mutation. Allow users to execute without passing in DataConnect. */
 export function createWebhookTask(
   dc: DataConnect,
@@ -161,6 +236,18 @@ export function createWebhookTask(
   options?: OperationOptions,
 ): Promise<ExecuteOperationResponse<CreateWebhookTaskData>>;
 
+/** Generated Node Admin SDK operation action function for the 'RequestWebhookTaskPlanning' Mutation. Allow users to execute without passing in DataConnect. */
+export function requestWebhookTaskPlanning(
+  dc: DataConnect,
+  vars: RequestWebhookTaskPlanningVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<RequestWebhookTaskPlanningData>>;
+/** Generated Node Admin SDK operation action function for the 'RequestWebhookTaskPlanning' Mutation. Allow users to pass in custom DataConnect instances. */
+export function requestWebhookTaskPlanning(
+  vars: RequestWebhookTaskPlanningVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<RequestWebhookTaskPlanningData>>;
+
 /** Generated Node Admin SDK operation action function for the 'GetWebhookTaskByDeliveryId' Query. Allow users to execute without passing in DataConnect. */
 export function getWebhookTaskByDeliveryId(
   dc: DataConnect,
@@ -172,3 +259,15 @@ export function getWebhookTaskByDeliveryId(
   vars: GetWebhookTaskByDeliveryIdVariables,
   options?: OperationOptions,
 ): Promise<ExecuteOperationResponse<GetWebhookTaskByDeliveryIdData>>;
+
+/** Generated Node Admin SDK operation action function for the 'GetWebhookTask' Query. Allow users to execute without passing in DataConnect. */
+export function getWebhookTask(
+  dc: DataConnect,
+  vars: GetWebhookTaskVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<GetWebhookTaskData>>;
+/** Generated Node Admin SDK operation action function for the 'GetWebhookTask' Query. Allow users to pass in custom DataConnect instances. */
+export function getWebhookTask(
+  vars: GetWebhookTaskVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<GetWebhookTaskData>>;

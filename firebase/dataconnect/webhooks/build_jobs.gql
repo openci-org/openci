@@ -1,0 +1,78 @@
+# Completing the task and publishing all jobs is atomic. The SDK generator does
+# not support BuildJob_Data inputs, so only the bulk insert uses PostgreSQL's
+# jsonb_to_recordset. All SQL parameters are bound, never interpolated.
+mutation CompleteWebhookTask(
+  $id: String!
+  $jobsJson: String!
+  $jobCount: Int!
+  $connectionId: String = null
+  $owner: String = null
+  $repo: String = null
+  $commitSha: String = null
+  $branch: String = null
+  $commitMessage: String = null
+  $pullRequestNumber: Int64 = null
+  $githubBaseUrl: String = null
+) @auth(level: NO_ACCESS) @transaction {
+  webhookTask_updateMany(
+    where: { id: { eq: $id }, status: { eq: "pending" } }
+    data: { status: "completed", errorMessage: null, updatedAt_expr: "int(request.time)" }
+  )
+    @check(expr: "this == 1", message: "Webhook task is not pending")
+    @check(expr: "vars.jobCount >= 0 && vars.jobCount <= 100", message: "Invalid job count")
+  query @redact {
+    connection: gitHubConnection(first: { where: { id: { eq: $connectionId } } })
+      @check(
+        expr: "vars.jobCount == 0 || (this != null && this.status == 'active')"
+        message: "GitHub connection is no longer active"
+      ) {
+      teamId
+      installationId
+      status
+    }
+  }
+  jobs: _executeReturning(
+    sql: """
+    INSERT INTO build_jobs (
+      id, status, owner, repo, workflow_name, workflow_file_name, team_id,
+      commit_sha, branch, commit_message, pull_request_number, github_base_url,
+      installation_id, runs_on, run_count, created_at, updated_at
+    )
+    SELECT w.id, 'QUEUED', $2, $3, w.name, w.file, $4,
+      $5, $6, $7, $8::bigint, $9, $10, 'macos-latest', 0, $11::bigint, $11::bigint
+    FROM jsonb_to_recordset($1::jsonb) AS w(id text, name text, file text)
+    WHERE length(trim(w.id)) > 0 AND length(trim(w.name)) > 0
+      AND length(w.file) > 0 AND length($2::text) > 0 AND length($3::text) > 0
+      AND length($5::text) > 0 AND length($6::text) > 0
+    RETURNING id
+    """
+    params: [
+      $jobsJson
+      $owner
+      $repo
+      { _expr: "response.query.connection == null ? '' : response.query.connection.teamId" }
+      $commitSha
+      $branch
+      $commitMessage
+      $pullRequestNumber
+      $githubBaseUrl
+      {
+        _expr: "response.query.connection == null ? '' : string(response.query.connection.installationId)"
+      }
+      { _expr: "int(request.time)" }
+    ]
+  ) @check(expr: "size(this) == vars.jobCount", message: "Invalid build job batch")
+}
+
+# Only permanent input/configuration errors terminate a task. Infrastructure
+# failures are retried by the trigger without claiming or stranding the task.
+mutation RejectWebhookTask($id: String!, $reason: String!) @auth(level: NO_ACCESS) @transaction {
+  webhookTask_updateMany(
+    where: { id: { eq: $id }, status: { eq: "pending" } }
+    data: { status: "failed", errorMessage: $reason, updatedAt_expr: "int(request.time)" }
+  )
+    @check(
+      expr: "vars.reason in ['invalid_payload', 'invalid_workflow']"
+      message: "Invalid failure reason"
+    )
+}

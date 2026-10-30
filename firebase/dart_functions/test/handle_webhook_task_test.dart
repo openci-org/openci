@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:build_job_planner/build_job_planner.dart';
+import 'package:openci_dart_functions/build_job_planner.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:openci_shared/openci_shared.dart';
 import 'package:openci_shared/test_helpers.dart';
@@ -50,7 +50,7 @@ void main() {
             'installationId': '998877',
           },
         ],
-        'skippedWorkflows': [],
+        'skippedWorkflows': <Object?>[],
       });
       verifyNever(() => api.failWebhookTask(any(), any()));
     });
@@ -69,7 +69,7 @@ void main() {
           (_) async => createMockResponse(<String, dynamic>{
             'success': true,
             'jobs_created': 0,
-            'job_ids': [],
+            'job_ids': <Object?>[],
             'already_completed': false,
           }),
         );
@@ -82,7 +82,7 @@ void main() {
                   () => api.completeWebhookTask('task-1', captureAny()),
                 ).captured.single
                 as Map<String, dynamic>;
-        expect(body, {'jobs': [], 'skippedWorkflows': []});
+        expect(body, {'jobs': <Object?>[], 'skippedWorkflows': <Object?>[]});
         verifyNever(() => api.failWebhookTask(any(), any()));
       },
     );

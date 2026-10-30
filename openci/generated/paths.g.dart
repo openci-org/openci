@@ -11,26 +11,16 @@ abstract final class WorkspacePaths {
 
 extension type const WorkspaceRoot._(String _path) implements WorkspaceDirectory {
   WorkspaceRoot$Apps get apps => const WorkspaceRoot$Apps._("apps");
+  WorkspaceRoot$Firebase get firebase => const WorkspaceRoot$Firebase._("firebase");
   WorkspaceDirectory get openci => const WorkspaceDirectory("openci");
   WorkspaceRoot$Packages get packages => const WorkspaceRoot$Packages._("packages");
 }
 
 extension type const WorkspaceRoot$Apps._(String _path) implements WorkspaceDirectory {
-  WorkspaceRoot$Apps$BuildJobPlanner get buildJobPlanner => const WorkspaceRoot$Apps$BuildJobPlanner._("apps/build_job_planner");
   WorkspaceRoot$Apps$BuildJobWorker get buildJobWorker => const WorkspaceRoot$Apps$BuildJobWorker._("apps/build_job_worker");
   WorkspaceRoot$Apps$Dashboard get dashboard => const WorkspaceRoot$Apps$Dashboard._("apps/dashboard");
   WorkspaceRoot$Apps$OpenciCli get openciCli => const WorkspaceRoot$Apps$OpenciCli._("apps/openci_cli");
   WorkspaceRoot$Apps$OpenciServer get openciServer => const WorkspaceRoot$Apps$OpenciServer._("apps/openci_server");
-}
-
-extension type const WorkspaceRoot$Apps$BuildJobPlanner._(String _path) implements WorkspaceDirectory {
-  WorkspaceDirectory get bin => const WorkspaceDirectory("apps/build_job_planner/bin");
-  WorkspaceRoot$Apps$BuildJobPlanner$Lib get lib => const WorkspaceRoot$Apps$BuildJobPlanner$Lib._("apps/build_job_planner/lib");
-  WorkspaceDirectory get test => const WorkspaceDirectory("apps/build_job_planner/test");
-}
-
-extension type const WorkspaceRoot$Apps$BuildJobPlanner$Lib._(String _path) implements WorkspaceDirectory {
-  WorkspaceDirectory get src => const WorkspaceDirectory("apps/build_job_planner/lib/src");
 }
 
 extension type const WorkspaceRoot$Apps$BuildJobWorker._(String _path) implements WorkspaceDirectory {
@@ -523,6 +513,20 @@ extension type const WorkspaceRoot$Apps$OpenciServer$Test$Routes$Webhooks$Tasks.
 
 extension type const WorkspaceRoot$Apps$OpenciServer$Test$Routes$Worker._(String _path) implements WorkspaceDirectory {
   WorkspaceDirectory get jobs => const WorkspaceDirectory("apps/openci_server/test/routes/worker/jobs");
+}
+
+extension type const WorkspaceRoot$Firebase._(String _path) implements WorkspaceDirectory {
+  WorkspaceRoot$Firebase$DartFunctions get dartFunctions => const WorkspaceRoot$Firebase$DartFunctions._("firebase/dart_functions");
+}
+
+extension type const WorkspaceRoot$Firebase$DartFunctions._(String _path) implements WorkspaceDirectory {
+  WorkspaceDirectory get bin => const WorkspaceDirectory("firebase/dart_functions/bin");
+  WorkspaceRoot$Firebase$DartFunctions$Lib get lib => const WorkspaceRoot$Firebase$DartFunctions$Lib._("firebase/dart_functions/lib");
+  WorkspaceDirectory get test => const WorkspaceDirectory("firebase/dart_functions/test");
+}
+
+extension type const WorkspaceRoot$Firebase$DartFunctions$Lib._(String _path) implements WorkspaceDirectory {
+  WorkspaceDirectory get src => const WorkspaceDirectory("firebase/dart_functions/lib/src");
 }
 
 extension type const WorkspaceRoot$Packages._(String _path) implements WorkspaceDirectory {

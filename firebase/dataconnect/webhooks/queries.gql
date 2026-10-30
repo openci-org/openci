@@ -12,3 +12,15 @@ query GetWebhookTaskByDeliveryId($deliveryId: String!) @auth(level: NO_ACCESS) {
     updatedAt
   }
 }
+
+# The consumer re-reads the durable task instead of trusting an event payload.
+query GetWebhookTask($id: String!) @auth(level: NO_ACCESS) {
+  webhookTask(id: $id) {
+    id
+    deliveryId
+    eventType
+    payload
+    status
+    errorMessage
+  }
+}
