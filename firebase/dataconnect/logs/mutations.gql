@@ -1,0 +1,59 @@
+# Scalar inputs support both Flutter and Node.js Admin SDK generation.
+# Functions read the write state and append missing entries one at a time.
+mutation AppendBuildLog(
+  $teamId: String!
+  $runId: String!
+  $stepId: String = null
+  $expectedLastSequence: Int64!
+  $sequence: Int64!
+  $logId: UUID!
+  $source: String!
+  $stream: String!
+  $message: String!
+  $occurredAt: Timestamp!
+) @auth(level: NO_ACCESS) @transaction {
+  query @redact {
+    buildRun(id: $runId)
+      @check(expr: "this != null", message: "Run not found")
+      @check(
+        expr: "int(vars.expectedLastSequence) >= 0 && int(vars.expectedLastSequence) < 9223372036854775807 && int(vars.sequence) == int(vars.expectedLastSequence) + 1"
+        message: "Log sequence must follow the expected last sequence"
+      )
+      @check(
+        expr: "vars.source in ['worker', 'workflow'] && vars.stream in ['stdout', 'stderr'] && size(bytes(vars.message)) <= 16384"
+        message: "Invalid log source, stream, message, or event time"
+      ) {
+      ...LogWriteScope
+    }
+    buildStep(first: { where: { runId: { eq: $runId }, stepId: { eq: $stepId } } })
+      @check(
+        expr: "vars.stepId == null || this != null"
+        message: "Step does not belong to this run"
+      ) {
+      stepId
+    }
+  }
+  # CAS plus the primary key guarantees a gap-free committed sequence. A failed
+  # insert/check rolls back the counter update as well as the log entry.
+  buildRun_updateMany(
+    where: {
+      _and: [
+        { id: { eq: $runId }, lastLogSequence: { eq: $expectedLastSequence } }
+        { _or: [{ logsExpireAt: { isNull: true } }, { logsExpireAt: { gt_expr: "request.time" } }] }
+      ]
+    }
+    data: { lastLogSequence: $sequence }
+  ) @check(expr: "this == 1", message: "Log sequence changed; read write state and retry")
+  buildLog_insert(
+    data: {
+      runId: $runId
+      sequence: $sequence
+      logId: $logId
+      stepId: $stepId
+      source: $source
+      stream: $stream
+      message: $message
+      occurredAt: $occurredAt
+    }
+  )
+}

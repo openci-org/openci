@@ -1,0 +1,69 @@
+# Functions has exchanged the code and verified the GitHub user. The raw
+# reference and access token are never stored here. userId comes from the request.
+mutation CreateGitHubConnectionSession(
+  $id: String!
+  $userId: String!
+  $teamId: String!
+  $githubUserId: Int64!
+  $referenceHash: String!
+  $accessTokenSecretVersionPath: String!
+) @auth(level: NO_ACCESS) @transaction {
+  query @redact {
+    teamMember(first: { where: { teamId: { eq: $teamId }, userId: { eq: $userId } } })
+      @check(expr: "this != null", message: "Team access denied") {
+      id
+    }
+  }
+  gitHubConnectionSession_insert(
+    data: {
+      id: $id
+      userId: $userId
+      teamId: $teamId
+      githubUserId: $githubUserId
+      referenceHash: $referenceHash
+      accessTokenSecretVersionPath: $accessTokenSecretVersionPath
+      createdAt_expr: "int(request.time)"
+      expiresAt_expr: "int(request.time) + 600"
+      consumedAt: null
+    }
+  )
+    @check(expr: "vars.id.matches('[^[:space:]]')", message: "Session ID must not be blank")
+    @check(expr: "int(vars.githubUserId) > 0", message: "GitHub user ID must be positive")
+    @check(
+      expr: "vars.referenceHash.matches('^[0-9a-f]{64}$')"
+      message: "A SHA-256 reference hash is required"
+    )
+    @check(
+      expr: "vars.accessTokenSecretVersionPath.matches('^projects/[a-zA-Z0-9-]+/(locations/[a-z0-9-]+/)?secrets/[a-zA-Z0-9_-]+/versions/[1-9][0-9]*$')"
+      message: "A numeric Secret Manager version path is required"
+    )
+}
+
+# Used by status/candidate/confirmation Functions after authenticating the user.
+query GetGitHubConnectionSession($teamId: String!, $userId: String!, $referenceHash: String!)
+@auth(level: NO_ACCESS) {
+  teamMembers(where: { teamId: { eq: $teamId }, userId: { eq: $userId } }, limit: 1)
+    @redact
+    @check(expr: "size(this) == 1", message: "Team access denied") {
+    id
+  }
+  session: gitHubConnectionSession(
+    first: {
+      where: {
+        teamId: { eq: $teamId }
+        userId: { eq: $userId }
+        referenceHash: { eq: $referenceHash }
+        expiresAt: { gt_expr: "int(request.time)" }
+        consumedAt: { isNull: true }
+        accessTokenSecretVersionPath: { isNull: false }
+      }
+    }
+  ) {
+    id
+    teamId
+    userId
+    githubUserId
+    accessTokenSecretVersionPath
+    expiresAt
+  }
+}

@@ -2,8 +2,6 @@
 type Team @table(name: "teams", key: "id") {
   id: String!
   name: String!
-  installationIds: String! @col(name: "installation_ids")
-  aiEnabled: Boolean! @col(name: "ai_enabled")
   runNumber: Int64! @col(name: "run_number") @default(value: 1)
   # Drift stores DateTime as Unix seconds, not PostgreSQL timestamptz.
   createdAt: Int64! @col(name: "created_at")

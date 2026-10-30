@@ -1,0 +1,44 @@
+# Serializes capacity snapshots across Functions instances. No process-local lock.
+type BuildDispatchScheduler @table(name: "build_dispatch_schedulers", key: "id") {
+  id: String!
+  owner: String
+  leaseUntil: Timestamp
+}
+
+# One open reservation per job. Old attempts remain fenced after replacement.
+type BuildJobDispatch
+  @table(name: "build_job_dispatches", key: "id")
+  @index(fields: ["finishedAt", "startDeadline"])
+  @index(fields: ["finishedAt", "updatedAt"])
+  @index(fields: ["jobId", "createdAt"]) {
+  id: String!
+  jobId: String!
+  teamId: String
+  activeJobId: String @unique
+  vmName: String! @unique
+  cpu: Int!
+  memoryMiB: Int! @col(name: "memory_mib")
+  image: String!
+  cloudRunJob: String!
+  state: String!
+  launchOwner: String
+  launchLeaseUntil: Timestamp
+  operationName: String
+  executionName: String
+  executorId: String
+  runId: String
+  checkRunId: String
+  startedAt: Timestamp
+  heartbeatAt: Timestamp
+  deadlineAt: Timestamp
+  outcome: String
+  resultAt: Timestamp
+  vmRequestedAt: Timestamp
+  vmDeletedAt: Timestamp
+  cleanupOwner: String
+  cleanupLeaseUntil: Timestamp
+  startDeadline: Timestamp!
+  createdAt: Timestamp!
+  updatedAt: Timestamp!
+  finishedAt: Timestamp
+}

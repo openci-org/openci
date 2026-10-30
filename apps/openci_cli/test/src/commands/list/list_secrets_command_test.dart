@@ -1,3 +1,4 @@
+import '../../../helpers/secret_functions.dart';
 import 'dart:convert';
 import 'dart:io';
 
@@ -39,6 +40,7 @@ void main() {
   const token = 'private-list-token';
   const privateValue = 'private-secret-value';
   const profile = AuthProfile(
+    firebaseProjectId: 'test-project',
     serverUrl: 'https://ci.example.com/proxy/',
     token: token,
     teamId: 'selected/team',
@@ -50,7 +52,7 @@ void main() {
   late List<_TrackingClient> clients;
   late MockClientHandler handler;
 
-  http.Response namesResponse(List<String> names) => http.Response(
+  http.Response namesResponse(List<String> names) => functionResponse(
     jsonEncode({
       'success': true,
       'secrets': [
@@ -72,7 +74,11 @@ void main() {
         activeProfile: 'selected',
         profiles: {
           'selected': profile,
-          'unused': AuthProfile(token: 'unused-token', teamId: 'unused-team'),
+          'unused': AuthProfile(
+            firebaseProjectId: 'test-project',
+            token: 'unused-token',
+            teamId: 'unused-team',
+          ),
         },
       ),
     );
@@ -112,13 +118,10 @@ void main() {
       expect(await run(), 0);
 
       final request = requests.single;
-      expect(request.method, 'GET');
-      expect(
-        request.url.toString(),
-        'https://ci.example.com/proxy/teams/selected%2Fteam/secrets',
-      );
+      expect(request.method, 'POST');
+      expect(request.url.toString(), secretFunctionUrl);
       expect(request.headers['authorization'], 'Bearer $token');
-      expect(request.body, isEmpty);
+      expect(secretData(request), {'action': 'list', 'teamId': profile.teamId});
       expect(logger.output, ['ASC_KEY', 'FIREBASE_OPTIONS_DART_BASE64']);
       expect(logger.errors, isEmpty);
       expect(await File(store.filePath).readAsBytes(), credentials);
@@ -156,7 +159,7 @@ void main() {
     );
     handler = (request) async {
       if (request.url.host == 'securetoken.googleapis.com') {
-        return http.Response(
+        return functionResponse(
           jsonEncode({
             'id_token': 'new-id-token',
             'refresh_token': 'rotated-refresh-token',
@@ -242,7 +245,7 @@ void main() {
 
   for (final status in [401, 403, 500]) {
     test('reports HTTP $status without exposing the response body', () async {
-      handler = (_) async => http.Response(privateValue, status);
+      handler = (_) async => functionResponse(privateValue, status);
 
       expect(await run(), 1);
       expect(logger.output, isEmpty);
@@ -255,7 +258,7 @@ void main() {
   }
 
   test('does not print a partial list when the response is invalid', () async {
-    handler = (_) async => http.Response(
+    handler = (_) async => functionResponse(
       jsonEncode({
         'success': true,
         'secrets': [

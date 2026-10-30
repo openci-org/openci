@@ -262,8 +262,7 @@
       "stepSeedFailed": "Error: Failed to seed local test data.",
       "stepSeedCompleted": "Local test data seeded.",
       "projectRootNotFound": "Error: OpenCI project root not found.",
-      "stepOrchardController": "Step 2: Starting Orchard Controller...",
-      "stepBuildJobWorkerWaiting": "Waiting for the current build job to finish before restarting services..."
+      "stepOrchardController": "Step 2: Starting Orchard Controller..."
     }
   },
   "sync": {

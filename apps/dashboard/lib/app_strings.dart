@@ -133,6 +133,18 @@ class AppStringsTeam {
   String get inviteEmail => 'メールアドレス';
   String get enterEmail => 'メールアドレスを入力してください';
   String get addedSuccess => 'メンバーをチームに追加しました';
+  String get removeMember => 'メンバーを削除';
+  String removeMemberConfirm({
+    required String name,
+    required String teamName,
+  }) => '「$name」を「$teamName」から削除しますか？';
+  String get removedSuccess => 'メンバーをチームから削除しました';
+  String get accessDenied => 'チームにアクセスできません。ログインと接続先を確認してください。';
+  String get memberAlreadyAdded => 'このユーザーはすでにチームのメンバーです。';
+  String get memberNotRegistered => '追加するユーザーは先にDashboardへ登録してください。';
+  String get memberUnavailable => 'このアカウントは利用できません。';
+  String get enterValidEmail => '有効なメールアドレスを入力してください。';
+  String get operationFailed => 'チームの操作に失敗しました。もう一度お試しください。';
   String get members => 'メンバー';
   String membersCount({required Object count}) => '$count人のメンバー';
   String get you => 'あなた';

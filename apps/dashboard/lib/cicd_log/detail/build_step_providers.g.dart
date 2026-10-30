@@ -9,6 +9,88 @@ part of 'build_step_providers.dart';
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
 
+@ProviderFor(buildRunLogs)
+final buildRunLogsProvider = BuildRunLogsFamily._();
+
+final class BuildRunLogsProvider
+    extends $FunctionalProvider<AsyncValue<RunLogs>, RunLogs, Stream<RunLogs>>
+    with $FutureModifier<RunLogs>, $StreamProvider<RunLogs> {
+  BuildRunLogsProvider._({
+    required BuildRunLogsFamily super.from,
+    required ({String buildJobId, String runId}) super.argument,
+  }) : super(
+         retry: null,
+         name: r'buildRunLogsProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
+
+  @override
+  String debugGetCreateSourceHash() => _$buildRunLogsHash();
+
+  @override
+  String toString() {
+    return r'buildRunLogsProvider'
+        ''
+        '$argument';
+  }
+
+  @$internal
+  @override
+  $StreamProviderElement<RunLogs> $createElement($ProviderPointer pointer) =>
+      $StreamProviderElement(pointer);
+
+  @override
+  Stream<RunLogs> create(Ref ref) {
+    final argument = this.argument as ({String buildJobId, String runId});
+    return buildRunLogs(
+      ref,
+      buildJobId: argument.buildJobId,
+      runId: argument.runId,
+    );
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is BuildRunLogsProvider && other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$buildRunLogsHash() => r'59cb74e80dc4e02b123eef3022f2e27281ec4459';
+
+final class BuildRunLogsFamily extends $Family
+    with
+        $FunctionalFamilyOverride<
+          Stream<RunLogs>,
+          ({String buildJobId, String runId})
+        > {
+  BuildRunLogsFamily._()
+    : super(
+        retry: null,
+        name: r'buildRunLogsProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  BuildRunLogsProvider call({
+    required String buildJobId,
+    required String runId,
+  }) => BuildRunLogsProvider._(
+    argument: (buildJobId: buildJobId, runId: runId),
+    from: this,
+  );
+
+  @override
+  String toString() => r'buildRunLogsProvider';
+}
+
 @ProviderFor(buildStepSummaries)
 final buildStepSummariesProvider = BuildStepSummariesFamily._();
 
@@ -69,7 +151,7 @@ final class BuildStepSummariesProvider
 }
 
 String _$buildStepSummariesHash() =>
-    r'90011ecfbe6f18ad196f6112b4819c94a5baaa31';
+    r'f3ff514f409ba007fc81942ee8e30b13bad64c78';
 
 final class BuildStepSummariesFamily extends $Family
     with
@@ -160,7 +242,7 @@ final class BuildStepLogDetailProvider
 }
 
 String _$buildStepLogDetailHash() =>
-    r'998a0756c0e3c1138e767a9ead2c54cbb44a37a2';
+    r'b83875399aff82bf4d23f0995cdbbb2994b9d991';
 
 final class BuildStepLogDetailFamily extends $Family
     with
@@ -243,7 +325,7 @@ final class AllBuildStepLogsProvider
   }
 }
 
-String _$allBuildStepLogsHash() => r'a97fba6bbce4cb04ec4baa62995fa75c88e69e81';
+String _$allBuildStepLogsHash() => r'2d73a79433250772034b2e651c0a48f818da55c6';
 
 final class AllBuildStepLogsFamily extends $Family
     with
@@ -270,95 +352,4 @@ final class AllBuildStepLogsFamily extends $Family
 
   @override
   String toString() => r'allBuildStepLogsProvider';
-}
-
-@ProviderFor(realtimeRunLogsStream)
-final realtimeRunLogsStreamProvider = RealtimeRunLogsStreamFamily._();
-
-final class RealtimeRunLogsStreamProvider
-    extends
-        $FunctionalProvider<
-          AsyncValue<Map<String, dynamic>>,
-          Map<String, dynamic>,
-          Stream<Map<String, dynamic>>
-        >
-    with
-        $FutureModifier<Map<String, dynamic>>,
-        $StreamProvider<Map<String, dynamic>> {
-  RealtimeRunLogsStreamProvider._({
-    required RealtimeRunLogsStreamFamily super.from,
-    required ({String buildJobId, String runId}) super.argument,
-  }) : super(
-         retry: null,
-         name: r'realtimeRunLogsStreamProvider',
-         isAutoDispose: true,
-         dependencies: null,
-         $allTransitiveDependencies: null,
-       );
-
-  @override
-  String debugGetCreateSourceHash() => _$realtimeRunLogsStreamHash();
-
-  @override
-  String toString() {
-    return r'realtimeRunLogsStreamProvider'
-        ''
-        '$argument';
-  }
-
-  @$internal
-  @override
-  $StreamProviderElement<Map<String, dynamic>> $createElement(
-    $ProviderPointer pointer,
-  ) => $StreamProviderElement(pointer);
-
-  @override
-  Stream<Map<String, dynamic>> create(Ref ref) {
-    final argument = this.argument as ({String buildJobId, String runId});
-    return realtimeRunLogsStream(
-      ref,
-      buildJobId: argument.buildJobId,
-      runId: argument.runId,
-    );
-  }
-
-  @override
-  bool operator ==(Object other) {
-    return other is RealtimeRunLogsStreamProvider && other.argument == argument;
-  }
-
-  @override
-  int get hashCode {
-    return argument.hashCode;
-  }
-}
-
-String _$realtimeRunLogsStreamHash() =>
-    r'2476e9e557754c709a03454b7b5b05d2685caf07';
-
-final class RealtimeRunLogsStreamFamily extends $Family
-    with
-        $FunctionalFamilyOverride<
-          Stream<Map<String, dynamic>>,
-          ({String buildJobId, String runId})
-        > {
-  RealtimeRunLogsStreamFamily._()
-    : super(
-        retry: null,
-        name: r'realtimeRunLogsStreamProvider',
-        dependencies: null,
-        $allTransitiveDependencies: null,
-        isAutoDispose: true,
-      );
-
-  RealtimeRunLogsStreamProvider call({
-    required String buildJobId,
-    required String runId,
-  }) => RealtimeRunLogsStreamProvider._(
-    argument: (buildJobId: buildJobId, runId: runId),
-    from: this,
-  );
-
-  @override
-  String toString() => r'realtimeRunLogsStreamProvider';
 }

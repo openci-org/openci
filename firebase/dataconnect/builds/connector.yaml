@@ -1,0 +1,11 @@
+connectorId: "builds"
+generate:
+  dartSdk:
+    clientCache:
+      maxAge: 5s
+    outputDir: "../../../apps/dashboard/lib/generated/builds"
+    package: "builds"
+  adminNodeSdk:
+    outputDir: "../../generated/builds-admin"
+    package: "@openci/builds-admin"
+    packageJsonDir: "../.."

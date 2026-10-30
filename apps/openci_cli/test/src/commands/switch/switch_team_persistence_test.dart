@@ -1,3 +1,5 @@
+import '../../../helpers/team_functions.dart';
+import '../../../helpers/secret_functions.dart';
 import 'dart:convert';
 import 'dart:io';
 
@@ -57,7 +59,7 @@ void main() {
   late List<http.Request> requests;
 
   http.Response teamsResponse({String nextName = 'Next team'}) => http.Response(
-    jsonEncode([
+    encodeTeams([
       for (final (id, name) in [
         ('team-1', 'Current team'),
         ('team-2', nextName),
@@ -81,6 +83,7 @@ void main() {
     store = _CountingCredentialStore(p.join(root.path, 'credentials.json'));
     otherStore = CredentialStore(customFilePath: store.filePath);
     profile = AuthProfile(
+      firebaseProjectId: 'test-project',
       serverUrl: 'https://ci.example.com/proxy/',
       token: 'private-token',
       teamId: 'team-1',
@@ -155,7 +158,7 @@ void main() {
       ),
     );
     handler = (request) async {
-      if (request.method == 'POST') {
+      if (request.url.path.endsWith('/token')) {
         return http.Response(
           jsonEncode({
             'id_token': 'rotated-token',
@@ -233,7 +236,7 @@ void main() {
       expect(refreshed.firebaseAuthEmulatorHost, emulatorHost);
       expect(await otherStore.get(), withTeam(authenticated, 'team-2'));
       expect(store.writes, 2);
-      expect(requests.map((request) => request.method), ['POST', 'GET']);
+      expect(requests.map((request) => request.method), ['POST', 'POST']);
       expect(logger.errors, isEmpty);
     });
   }
@@ -453,7 +456,7 @@ void main() {
             ),
             () => MockClient((request) async {
               requests.add(request);
-              return http.Response(
+              return functionResponse(
                 jsonEncode({
                   'success': true,
                   'secrets': [
@@ -468,10 +471,13 @@ void main() {
 
           expect(result, 0);
           final request = requests.single;
-          expect(request.method, 'GET');
+          expect(request.method, 'POST');
+          expect(secretData(request), {'action': 'list', 'teamId': 'team-2'});
           expect(
             request.url.toString(),
-            'https://ci.example.com/proxy/teams/team-2/secrets',
+            refresh
+                ? secretFunctionUrl
+                : 'http://127.0.0.1:5001/test-project/asia-northeast1/teamSecrets',
           );
           expect(
             request.headers['authorization'],

@@ -66,11 +66,6 @@ void main() {
         t.dev.start.stepOrchardController,
       ),
       (
-        DockerComposeStep.stopBuildJobWorker,
-        ['compose', ...localComposeFiles, 'stop', 'build-job-worker'],
-        t.dev.start.stepBuildJobWorkerWaiting,
-      ),
-      (
         DockerComposeStep.down,
         ['compose', ...localComposeFiles, 'down', '--remove-orphans'],
         t.dev.start.stepDockerComposeDown,
@@ -111,7 +106,7 @@ void main() {
       });
     }
 
-    test('starts worker services from the project root', () async {
+    test('starts API and log services from the project root', () async {
       late String executable;
       final calls = <List<String>>[];
       late String capturedWorkingDirectory;
@@ -152,9 +147,6 @@ void main() {
           '--build',
           '--remove-orphans',
           'server',
-          'build-job-planner',
-          'build-job-worker',
-          'loki',
         ],
       ]);
       expect(capturedWorkingDirectory, equals(projectRoot.path));

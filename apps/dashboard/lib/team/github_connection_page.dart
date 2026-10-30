@@ -1,4 +1,3 @@
-import 'package:dashboard/api/openci_api_client.dart';
 import 'package:dashboard/app_strings.dart';
 import 'package:dashboard/connections/active_connection_profile_provider.dart';
 import 'package:dashboard/connections/connection_store_provider.dart';
@@ -6,6 +5,7 @@ import 'package:dashboard/team/connect_github_button.dart';
 import 'package:dashboard/team/current_github_connection_context_provider.dart';
 import 'package:dashboard/team/fetch_github_connection_session.dart';
 import 'package:dashboard/team/github_app_installation_link.dart';
+import 'package:dashboard/team/github_connection_api.dart';
 import 'package:dashboard/team/github_connection_context.dart';
 import 'package:dashboard/team/github_connection_form.dart';
 import 'package:dashboard/team/github_connection_storage.dart';
@@ -105,23 +105,14 @@ class GitHubConnectionPage extends HookConsumerWidget {
     final context = ref.context;
     final api = await _prepareClient(ref, initiatingContext);
     _requireMatchingContext(ref, initiatingContext);
-    if (api.client.baseUrl != Uri.tryParse(initiatingContext.apiUrl)) {
+    if (api.context != initiatingContext) {
       throw GitHubConnectionReturnError.forbidden;
     }
-    final response = await api.confirmGitHubConnection(
-      initiatingContext.teamId,
+    await api.confirm(
       reference,
       installationId,
     );
     _requireMatchingContext(ref, initiatingContext);
-    if (response.statusCode == 401 ||
-        response.statusCode == 403 ||
-        response.statusCode == 409) {
-      throw GitHubConnectionReturnError.forbidden;
-    }
-    if (!response.isSuccessful || response.body?.success != true) {
-      throw GitHubConnectionReturnError.connectionFailed;
-    }
     if (!context.mounted) return;
     ref.invalidate(teamListProvider);
     context.showSnackBarMessage(t.team.gitHubConnectionCompleted);
@@ -166,23 +157,17 @@ class GitHubConnectionPage extends HookConsumerWidget {
   }
 
   Future<GitHubConnectionCandidatesResult> _fetchCandidates(
-    OpenCIApiService api,
+    GitHubConnectionApi api,
     String teamId,
     String reference,
   ) async {
-    final response = await api.getGitHubConnectionCandidates(teamId, reference);
-    if (response.statusCode == 401 ||
-        response.statusCode == 403 ||
-        response.statusCode == 409) {
+    if (api.context.teamId != teamId) {
       throw GitHubConnectionReturnError.forbidden;
     }
-    if (!response.isSuccessful || response.body?.success != true) {
-      throw GitHubConnectionReturnError.connectionFailed;
-    }
-    return response.body!;
+    return api.candidates(reference);
   }
 
-  Future<OpenCIApiService> _prepareClient(
+  Future<GitHubConnectionApi> _prepareClient(
     WidgetRef ref,
     GitHubConnectionContext initiatingContext,
   ) async {
@@ -191,7 +176,7 @@ class GitHubConnectionPage extends HookConsumerWidget {
     if (!ref.context.mounted) throw GitHubConnectionReturnError.forbidden;
     await ref.read(selectedTeamProvider.future);
     _requireMatchingContext(ref, initiatingContext);
-    return ref.read(openciApiServiceProvider.future);
+    return ref.read(githubConnectionApiProvider.future);
   }
 
   void _requireMatchingContext(

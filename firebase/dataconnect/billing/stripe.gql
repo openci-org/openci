@@ -1,0 +1,208 @@
+# Server-only: historical billing records remain available after team deletion.
+query GetBillingStripeState($teamId: String!, $livemode: Boolean!) @auth(level: NO_ACCESS) {
+  billingStripeState(key: { teamId: $teamId })
+    @check(
+      expr: "this == null || this.livemode == vars.livemode"
+      message: "Stripe billing mode does not match"
+    ) {
+    teamId
+    stripeCustomerId
+    livemode
+    stripeSubscriptionId
+    subscriptionStatus
+    planId
+    paidPeriodId
+    paidPeriod {
+      endsAt
+    }
+    cancelAtPeriodEnd
+    syncedAt
+    revision
+  }
+}
+
+query GetBillingStripeEvent($eventId: String!) @auth(level: NO_ACCESS) {
+  billingStripeEvent(key: { eventId: $eventId }) {
+    eventId
+    eventType
+    eventCreated
+    processedAt
+  }
+}
+
+# Insert-only initialization: on a duplicate, read the existing state instead.
+mutation InitializeBillingStripeState(
+  $teamId: String!
+  $stripeCustomerId: String!
+  $livemode: Boolean!
+) @auth(level: NO_ACCESS) @transaction {
+  billingAccount_update(key: { teamId: $teamId }, data: { usageRevision_update: { inc: 0 } })
+    @redact
+    @check(expr: "this != null", message: "Billing account not found")
+  query @redact {
+    billingCustomerCreation(key: { teamId_expr: "response.billingAccount_update.teamId" })
+      @check(
+        expr: "this != null && this.stripeCustomerId == vars.stripeCustomerId && this.livemode == vars.livemode"
+        message: "Stripe Customer is not linked to this billing account and mode"
+      ) {
+      stripeCustomerId
+      livemode
+    }
+  }
+  billingStripeState_insert(
+    data: {
+      teamId_expr: "response.billingAccount_update.teamId"
+      stripeCustomerId: $stripeCustomerId
+      livemode: $livemode
+      subscriptionStatus: "none"
+      cancelAtPeriodEnd: false
+      syncedAt: 0
+      revision: 0
+    }
+  )
+}
+
+# Functions read the revision BEFORE fetching current Stripe data. On conflict,
+# read again and re-fetch Stripe; never retry an old observation with a new revision.
+# The paid period must already exist and have been verified against Stripe.
+mutation RecordBillingStripeEvent(
+  $teamId: String!
+  $stripeCustomerId: String!
+  $livemode: Boolean!
+  $expectedRevision: Int64!
+  $stripeSubscriptionId: String = null
+  $subscriptionStatus: String!
+  $planId: String = null
+  $paidPeriodId: String = null
+  $cancelAtPeriodEnd: Boolean!
+  $eventId: String!
+  $eventType: String!
+  $eventCreated: Int64!
+  $processedAt: Int64!
+) @auth(level: NO_ACCESS) @transaction {
+  billingAccount_update(key: { teamId: $teamId }, data: { usageRevision_update: { inc: 0 } })
+    @redact
+    @check(expr: "this != null", message: "Billing account not found")
+  query @redact {
+    state: billingStripeState(key: { teamId_expr: "response.billingAccount_update.teamId" })
+      @check(
+        expr: """
+        this != null && this.stripeCustomerId == vars.stripeCustomerId &&
+        this.livemode == vars.livemode && this.revision == vars.expectedRevision
+        """
+        message: "Stripe billing state changed; fetch the state and Stripe again"
+      )
+      @check(
+        expr: """
+        !(this.subscriptionStatus in ['canceled', 'incomplete_expired']) ||
+        (vars.stripeSubscriptionId != null && vars.stripeSubscriptionId != this.stripeSubscriptionId) ||
+        (vars.stripeSubscriptionId == this.stripeSubscriptionId && vars.subscriptionStatus == this.subscriptionStatus)
+        """
+        message: "An ended subscription must not be revived"
+      )
+      @check(
+        expr: "int(vars.processedAt) >= int(this.syncedAt)"
+        message: "Sync time must not move backwards"
+      ) {
+      stripeCustomerId
+      livemode
+      stripeSubscriptionId
+      subscriptionStatus
+      planId
+      paidPeriodId
+      paidPeriod {
+        endsAt
+      }
+      syncedAt
+      revision
+    }
+    period: billingPeriod(first: { where: { id: { eq: $paidPeriodId } } })
+      @check(
+        expr: """
+        vars.paidPeriodId == null ||
+        (this != null && this.teamId == vars.teamId && this.periodType == 'paid' && this.planId == vars.planId)
+        """
+        message: "Paid period must belong to this team and plan"
+      ) {
+      teamId
+      periodType
+      planId
+      endsAt
+    }
+  }
+  billingStripeState_updateMany(
+    where: {
+      teamId: { eq_expr: "response.billingAccount_update.teamId" }
+      stripeCustomerId: { eq: $stripeCustomerId }
+      livemode: { eq: $livemode }
+      revision: { eq: $expectedRevision }
+    }
+    data: {
+      stripeSubscriptionId: $stripeSubscriptionId
+      subscriptionStatus: $subscriptionStatus
+      planId: $planId
+      paidPeriodId: $paidPeriodId
+      cancelAtPeriodEnd: $cancelAtPeriodEnd
+      syncedAt: $processedAt
+      revision_update: { inc: 1 }
+    }
+  )
+    @check(
+      expr: "this == 1"
+      message: "Stripe billing state changed; fetch the state and Stripe again"
+    )
+    @check(
+      expr: "vars.planId == null || vars.planId in ['light', 'pro']"
+      message: "Invalid billing plan"
+    )
+    @check(
+      expr: """
+      vars.subscriptionStatus in [
+        'none', 'unverified', 'incomplete', 'incomplete_expired', 'trialing',
+        'active', 'past_due', 'canceled', 'unpaid', 'paused'
+      ]
+      """
+      message: "Invalid subscription status"
+    )
+    @check(
+      expr: """
+      vars.subscriptionStatus in ['none', 'unverified']
+        ? (vars.stripeSubscriptionId == null && vars.planId == null && vars.paidPeriodId == null && !vars.cancelAtPeriodEnd)
+        : (vars.stripeSubscriptionId != null && vars.stripeSubscriptionId.matches('[^[:space:]]'))
+      """
+      message: "Subscription details do not match its status"
+    )
+    @check(
+      expr: """
+      response.query.state.stripeSubscriptionId == null ||
+      response.query.state.stripeSubscriptionId != vars.stripeSubscriptionId ||
+      vars.subscriptionStatus == 'unverified' || (
+        (response.query.state.planId == null || vars.planId != null) && (
+          response.query.state.paidPeriodId == null || (
+            vars.paidPeriodId != null &&
+            int(response.query.period.endsAt) >= int(response.query.state.paidPeriod.endsAt)
+          )
+        )
+      )
+      """
+      message: "The same subscription must retain its paid plan and must not shorten its paid period"
+    )
+  # A duplicate event fails the transaction, including the state/revision update.
+  # After a failure or ambiguous timeout, read the event before retrying.
+  billingStripeEvent_insert(
+    data: {
+      eventId: $eventId
+      eventType: $eventType
+      eventCreated: $eventCreated
+      processedAt: $processedAt
+    }
+  )
+    @check(
+      expr: "vars.eventId.matches('[^[:space:]]') && vars.eventType.matches('[^[:space:]]')"
+      message: "Stripe event ID and type are required"
+    )
+    @check(
+      expr: "int(vars.expectedRevision) >= 0 && int(vars.eventCreated) >= 0 && int(vars.processedAt) >= 0"
+      message: "Stripe event times and state revision must not be negative"
+    )
+}

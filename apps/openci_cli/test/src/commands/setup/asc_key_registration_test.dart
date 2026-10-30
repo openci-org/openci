@@ -1,3 +1,4 @@
+import '../../../helpers/secret_functions.dart';
 import 'dart:convert';
 import 'dart:io';
 
@@ -37,6 +38,7 @@ void main() {
   const pem =
       '-----BEGIN PRIVATE KEY-----\ndGVzdA==\n-----END PRIVATE KEY-----\n';
   const profile = AuthProfile(
+    firebaseProjectId: 'test-project',
     serverUrl: 'https://ci.example.com/proxy/',
     token: token,
     teamId: 'selected-team',
@@ -52,18 +54,18 @@ void main() {
   late AppLocale originalLocale;
   late bool certificateKeyExists;
 
-  http.Response response(Object body, [int status = 200]) => http.Response(
+  http.Response response(Object body, [int status = 200]) => functionResponse(
     jsonEncode(body),
     status,
     headers: {'content-type': 'application/json'},
   );
 
   http.Response successResponse(http.Request request) {
-    if (request.url.path.endsWith('/ios-signing/generate-key')) {
+    if (secretAction(request) == 'generateCertificateKey') {
       certificateKeyExists = true;
     }
     return response(
-      request.method == 'GET'
+      secretAction(request) == 'list'
           ? {
               'success': true,
               'secrets': [
@@ -136,64 +138,69 @@ void main() {
       request(() => registration.save(target, key));
 
   for (final locale in [AppLocale.en, AppLocale.ja]) {
-    test('saves ASC secrets and prepares the certificate key: $locale', () async {
-      LocaleSettings.setLocaleSync(locale);
-      final target = (await prepare())!;
-      expect(target.profileName, 'remote');
-      expect(target.profile, profile);
-      expect(target.toString(), isNot(contains(token)));
-      expect(logger.output, [
-        t.setup.ascKeys.saveDestination(
-          server: profile.serverUrl,
-          team: profile.teamId,
-          names: [
-            ...ascApiKeySecretNames,
-            iosCertificatePrivateKeySecretName,
-          ].join('\n    '),
-        ),
-        t.setup.ascKeys.certificateKeyWillCreate,
-      ]);
-      expect(await save(target), 0);
-      expect(requests.map((r) => r.method), [
-        'GET',
-        'POST',
-        'POST',
-        'POST',
-        'GET',
-        'POST',
-        'GET',
-      ]);
-      final saved = <String, String>{};
-      for (final post in requests.skip(1).take(3)) {
+    test(
+      'saves ASC secrets and prepares the certificate key: $locale',
+      () async {
+        LocaleSettings.setLocaleSync(locale);
+        final target = (await prepare())!;
+        expect(target.profileName, 'remote');
+        expect(target.profile, profile);
+        expect(target.toString(), isNot(contains(token)));
+        expect(logger.output, [
+          t.setup.ascKeys.saveDestination(
+            server: secretFunctionUrl,
+            team: profile.teamId,
+            names: [
+              ...ascApiKeySecretNames,
+              iosCertificatePrivateKeySecretName,
+            ].join('\n    '),
+          ),
+          t.setup.ascKeys.certificateKeyWillCreate,
+        ]);
+        expect(await save(target), 0);
+        expect(requests.map(secretAction), [
+          'list',
+          'save',
+          'save',
+          'save',
+          'list',
+          'generateCertificateKey',
+          'list',
+        ]);
+        final saved = <String, String>{};
+        for (final post in requests.skip(1).take(3)) {
+          expect(post.url.toString(), secretFunctionUrl);
+          expect(post.headers['authorization'], 'Bearer $token');
+          final body = secretData(post) as Map;
+          expect(
+            body.keys,
+            unorderedEquals(['action', 'teamId', 'name', 'value']),
+          );
+          expect(body['action'], 'save');
+          expect(body['teamId'], profile.teamId);
+          saved[body['name'] as String] = body['value'] as String;
+        }
+        expect(saved, {
+          'OPENCI_GENERATED_ASC_KEY_ID': 'KEY123',
+          'OPENCI_GENERATED_ASC_ISSUER_ID': 'issuer',
+          'OPENCI_GENERATED_P8_BASE64': base64Encode(utf8.encode(pem)),
+        });
         expect(
-          post.url.toString(),
-          'https://ci.example.com/proxy/teams/selected-team/secrets',
+          base64Decode(saved[ascP8SecretName]!),
+          await key.privateKeyFile.readAsBytes(),
         );
-        expect(post.headers['authorization'], 'Bearer $token');
-        final body = jsonDecode(utf8.decode(post.bodyBytes)) as Map;
-        expect(body.keys, unorderedEquals(['name', 'value']));
-        saved[body['name'] as String] = body['value'] as String;
-      }
-      expect(saved, {
-        'OPENCI_GENERATED_ASC_KEY_ID': 'KEY123',
-        'OPENCI_GENERATED_ASC_ISSUER_ID': 'issuer',
-        'OPENCI_GENERATED_P8_BASE64': base64Encode(utf8.encode(pem)),
-      });
-      expect(
-        base64Decode(saved[ascP8SecretName]!),
-        await key.privateKeyFile.readAsBytes(),
-      );
-      expect(logger.errors, isEmpty);
-      final generate = requests[5];
-      expect(
-        generate.url.toString(),
-        'https://ci.example.com/proxy/teams/selected-team/ios-signing/generate-key',
-      );
-      expect(generate.headers['authorization'], 'Bearer $token');
-      expect(generate.body, isEmpty);
-      expect(logger.output.last, t.setup.iosCertificateKey.ready);
-      expect(await key.privateKeyFile.readAsString(), pem);
-    });
+        expect(logger.errors, isEmpty);
+        final generate = requests[5];
+        expect(generate.url.toString(), secretFunctionUrl);
+        expect(generate.headers['authorization'], 'Bearer $token');
+        expect(secretData(generate), {
+          'action': 'generateCertificateKey',
+          'teamId': profile.teamId,
+        });
+        expect(logger.output.last, t.setup.iosCertificateKey.ready);
+        expect(await key.privateKeyFile.readAsString(), pem);
+      },
+    );
   }
 
   for (final existing in [
@@ -219,11 +226,11 @@ void main() {
             ? t.setup.ascKeys.certificateKeyWillReuse
             : t.setup.ascKeys.certificateKeyWillCreate,
       ]);
-      expect(requests.single.method, 'GET');
+      expect(requests.single.method, 'POST');
     });
   }
 
-  test('encodes team path segments and supports the local profile', () async {
+  test('preserves teams in JSON and supports the local profile', () async {
     await store.saveProfile(
       'local',
       profile.copyWith(
@@ -235,17 +242,15 @@ void main() {
     expect(await save(target), 0);
     expect(
       requests.every(
-        (r) => [
-          'http://localhost:8080/teams/team%2Fwith%20space%3F%23/secrets',
-          'http://localhost:8080/teams/team%2Fwith%20space%3F%23/ios-signing/generate-key',
-        ].contains(r.url.toString()),
+        (r) =>
+            [secretFunctionUrl, secretFunctionUrl].contains(r.url.toString()),
       ),
       isTrue,
     );
   });
 
   for (final invalid in [
-    const AuthProfile(),
+    const AuthProfile(firebaseProjectId: 'test-project'),
     profile.copyWith(serverUrl: 'not a URL'),
     profile.copyWith(teamId: ''),
     profile.copyWith(token: ''),
@@ -267,7 +272,7 @@ void main() {
             ? t.register.secret.loginRequired
             : t.setup.ascKeys.savePreflightFailed,
       ]);
-      expect(requests.single.method, 'GET');
+      expect(requests.single.method, 'POST');
     });
   }
 
@@ -347,7 +352,10 @@ void main() {
             ? response({'error': 'private diagnostic'}, status)
             : response({'success': true});
         expect(await save(target), 1);
-        expect(requests.where((r) => r.method == 'POST'), hasLength(failureAt));
+        expect(
+          requests.where((r) => secretAction(r) == 'save'),
+          hasLength(failureAt),
+        );
         expect(await key.privateKeyFile.readAsString(), pem);
         expect(logger.errors, [
           status == 401 || status == 403
@@ -370,11 +378,11 @@ void main() {
           var posts = 0;
           var shouldFail = true;
           handler = (request) async {
-            if (request.method == 'GET' ||
-                request.url.path.endsWith('/ios-signing/generate-key')) {
+            if (secretAction(request) == 'list' ||
+                secretAction(request) == 'generateCertificateKey') {
               return successResponse(request);
             }
-            final body = jsonDecode(utf8.decode(request.bodyBytes)) as Map;
+            final body = secretData(request) as Map;
             final fails = ++posts == failureAt && shouldFail;
             if (fails && !responseLost) {
               return response({'error': 'private diagnostic'}, 500);
@@ -424,15 +432,15 @@ void main() {
           certificateKeyExists = true;
 
           expect(await save(target), 0);
-          expect(requests.map((r) => r.method), [
-            'GET',
-            'POST',
-            'POST',
-            'POST',
-            'GET',
+          expect(requests.map(secretAction), [
+            'list',
+            'save',
+            'save',
+            'save',
+            'list',
           ]);
           expect(
-            requests.every((r) => r.url.path.endsWith('/secrets')),
+            requests.every((r) => secretAction(r) != 'generateCertificateKey'),
             isTrue,
           );
           expect(logger.output.last, t.setup.iosCertificateKey.reused);
@@ -460,13 +468,11 @@ void main() {
         final target = (await prepare())!;
         var gets = 0;
         handler = (request) async {
-          if (request.method == 'GET') gets++;
+          if (secretAction(request) == 'list') gets++;
           final fails = switch (phase) {
-            'lookup' => request.method == 'GET' && gets == 1,
-            'generate' => request.url.path.endsWith(
-              '/ios-signing/generate-key',
-            ),
-            _ => request.method == 'GET' && gets == 2,
+            'lookup' => secretAction(request) == 'list' && gets == 1,
+            'generate' => secretAction(request) == 'generateCertificateKey',
+            _ => secretAction(request) == 'list' && gets == 2,
           };
           return fails
               ? response({'error': 'private diagnostic'}, status)
@@ -492,7 +498,7 @@ void main() {
         var generations = 0;
         var shouldFail = true;
         handler = (request) async {
-          if (request.url.path.endsWith('/ios-signing/generate-key')) {
+          if (secretAction(request) == 'generateCertificateKey') {
             generations++;
             if (shouldFail) {
               if (failure == 'http') {
@@ -532,7 +538,7 @@ void main() {
       'does not report success when the certificate key cannot be verified: $body',
       () async {
         final target = (await prepare())!;
-        handler = (request) async => request.method == 'GET'
+        handler = (request) async => secretAction(request) == 'list'
             ? response(body)
             : response({'success': true});
 

@@ -1,0 +1,64 @@
+# Preserve Drift's text enums, JSON-encoded text, and Unix-second timestamps.
+type BuildJob
+  @table(name: "build_jobs", key: "id")
+  @index(fields: ["teamId", "createdAt"], order: [ASC, DESC])
+  @index(fields: ["status", "createdAt"]) {
+  id: String!
+  status: String!
+  owner: String!
+  repo: String!
+  workflowName: String! @col(name: "workflow_name")
+  # No Team foreign key in the existing table; retain historical jobs.
+  teamId: String @col(name: "team_id")
+  workflowId: String @col(name: "workflow_id")
+  workflowFileName: String! @col(name: "workflow_file_name")
+  commitSha: String @col(name: "commit_sha")
+  commitMessage: String @col(name: "commit_message")
+  pullRequestNumber: Int64 @col(name: "pull_request_number")
+  runCount: Int64 @col(name: "run_count")
+  latestRunId: String @col(name: "latest_run_id")
+  tagName: String @col(name: "tag_name")
+  branch: String
+  jobKey: String @col(name: "job_key")
+  workflowJobKey: String @col(name: "workflow_job_key")
+  matrix: String
+  matrixLabel: String @col(name: "matrix_label")
+  workflowRunId: String @col(name: "workflow_run_id")
+  needs: String
+  runsOn: String @col(name: "runs_on")
+  failureSummary: String @col(name: "failure_summary")
+  failureSummaryModel: String @col(name: "failure_summary_model")
+  failureSummaryStatus: String @col(name: "failure_summary_status")
+  failureSummaryDurationMs: Int64 @col(name: "failure_summary_duration_ms")
+  provisionedUdids: String @col(name: "provisioned_udids")
+  ipaUrl: String @col(name: "ipa_url")
+  hasIpa: Boolean @col(name: "has_ipa")
+  bundleId: String @col(name: "bundle_id")
+  ipaVersion: String @col(name: "ipa_version")
+  appName: String @col(name: "app_name")
+  githubBaseUrl: String @col(name: "github_base_url")
+  vmName: String @col(name: "vm_name")
+  workerHost: String @col(name: "worker_host")
+  installationId: String @col(name: "installation_id")
+  checkRunId: String @col(name: "check_run_id")
+  createdAt: Int64! @col(name: "created_at")
+  updatedAt: Int64! @col(name: "updated_at")
+  completedAt: Int64 @col(name: "completed_at")
+}
+
+type BuildRun
+  @table(name: "build_runs", key: "id")
+  @index(fields: ["buildJobId", "createdAt"])
+  @index(fields: ["logsExpireAt"]) {
+  id: String!
+  buildJobId: String! @col(name: "build_job_id")
+  buildJob: BuildJob! @ref(fields: "buildJobId", references: "id")
+  runNumber: Int64 @col(name: "run_number")
+  status: String!
+  conclusion: String
+  # Advance once per batch, in the same transaction as the log inserts.
+  lastLogSequence: Int64! @col(name: "last_log_sequence") @default(value: 0)
+  logsExpireAt: Timestamp @col(name: "logs_expire_at")
+  createdAt: Int64! @col(name: "created_at")
+  updatedAt: Int64! @col(name: "updated_at")
+}

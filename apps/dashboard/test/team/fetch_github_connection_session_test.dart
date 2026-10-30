@@ -1,11 +1,12 @@
 import 'dart:convert';
 
 import 'package:dashboard/team/fetch_github_connection_session.dart';
+import 'package:dashboard/team/github_connection_api.dart';
 import 'package:dashboard/team/github_connection_context.dart';
 import 'package:dashboard/team/parse_github_connection_return.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
-import 'package:http/testing.dart';
+import '../helpers/github_connection_callable.dart';
 import 'package:openci_shared/openci_shared.dart';
 
 void main() {
@@ -41,19 +42,16 @@ void main() {
   });
 
   Future<GitHubConnectionSession> fetch() {
-    final client = http.runWithClient(
-      () => createOpenCIChopperClient(
-        baseUrl: apiUrl,
-        tokenProvider: () => 'firebase-id-token',
-      ),
-      () => MockClient((request) {
+    final api = GitHubConnectionApi(
+      context: context.copyWith(apiUrl: apiUrl),
+      callable: TestGitHubCallable((request) {
         requests.add(request);
         return respond(request);
       }),
+      isCurrent: () => true,
     );
-    addTearDown(client.dispose);
     return fetchGitHubConnectionSession(
-      api: OpenCIApiService.create(client),
+      api: api,
       initiatingContext: context,
       reference: reference,
     );
@@ -68,10 +66,13 @@ void main() {
       expect(request.method, 'POST');
       expect(
         request.url,
-        Uri.parse('https://ci.example.test/teams/team-1/github/session'),
+        Uri.parse('https://functions.test/githubConnection'),
       );
-      expect(request.headers['Authorization'], 'Bearer firebase-id-token');
-      expect(jsonDecode(request.body), {'reference': reference});
+      expect(callableData(request), {
+        'action': 'session',
+        'teamId': 'team-1',
+        'reference': reference,
+      });
     },
   );
 

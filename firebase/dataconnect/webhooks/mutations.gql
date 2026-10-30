@@ -1,0 +1,35 @@
+# Only the signature-verifying webhook Function may enqueue external deliveries.
+# Insert-only: retries must never reset an existing task or replace its payload.
+mutation CreateWebhookTask(
+  $id: String!
+  $deliveryId: String!
+  $eventType: String!
+  $payload: String!
+  $receivedAt: Int64!
+) @auth(level: NO_ACCESS) @transaction {
+  webhookTask_insert(
+    data: {
+      id: $id
+      deliveryId: $deliveryId
+      eventType: $eventType
+      payload: $payload
+      status: "pending"
+      retryCount: 0
+      createdAt: $receivedAt
+      updatedAt: $receivedAt
+    }
+  )
+    @check(
+      expr: "size(vars.id) > 0 && size(vars.deliveryId) > 0 && vars.eventType in ['push', 'pull_request'] && size(vars.payload) > 0 && int(vars.receivedAt) >= 0"
+      message: "Invalid webhook task"
+    )
+}
+
+# Signal only the task ID. CreateWebhookTask carries the raw GitHub payload,
+# which can exceed Eventarc's event-size limit. Repeating this signal is safe.
+mutation RequestWebhookTaskPlanning($id: String!) @auth(level: NO_ACCESS) @transaction {
+  task: webhookTask_update(
+    first: { where: { id: { eq: $id }, status: { eq: "pending" } } }
+    data: { status: "pending" }
+  )
+}

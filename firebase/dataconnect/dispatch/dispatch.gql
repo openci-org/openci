@@ -1,0 +1,280 @@
+fragment BuildDispatchFields on BuildJobDispatch {
+  id
+  jobId
+  teamId
+  activeJobId
+  vmName
+  cpu
+  memoryMiB
+  image
+  cloudRunJob
+  state
+  launchOwner
+  launchLeaseUntil
+  operationName
+  executionName
+  executorId
+  runId
+  checkRunId
+  startedAt
+  heartbeatAt
+  deadlineAt
+  outcome
+  resultAt
+  vmRequestedAt
+  vmDeletedAt
+  cleanupOwner
+  cleanupLeaseUntil
+  startDeadline
+  createdAt
+  updatedAt
+  finishedAt
+}
+
+query GetBuildDispatchState($jobId: String!) @auth(level: NO_ACCESS) {
+  job: buildJob(id: $jobId) {
+    id
+    status
+    runsOn
+  }
+  dispatch: buildJobDispatch(first: { where: { activeJobId: { eq: $jobId } } }) {
+    ...BuildDispatchFields
+  }
+}
+
+# Runner input is read from FSC, never from a caller-supplied workflow/VM URL.
+query GetBuildJobDispatch($id: String!) @auth(level: NO_ACCESS) {
+  dispatch: buildJobDispatch(id: $id) {
+    ...BuildDispatchFields
+  }
+}
+
+query GetActiveBuildDispatches @auth(level: NO_ACCESS) {
+  dispatches: buildJobDispatches(where: { finishedAt: { isNull: true } }, limit: null) {
+    ...BuildDispatchFields
+  }
+}
+
+mutation InitializeBuildDispatchScheduler @auth(level: NO_ACCESS) {
+  buildDispatchScheduler_upsert(data: { id: "orchard" })
+}
+
+mutation AcquireBuildDispatchScheduler($owner: String!) @auth(level: NO_ACCESS) @transaction {
+  acquired: buildDispatchScheduler_updateMany(
+    where: {
+      _and: [
+        { id: { eq: "orchard" } }
+        { _or: [{ leaseUntil: { isNull: true } }, { leaseUntil: { le_expr: "request.time" } }] }
+      ]
+    }
+    data: { owner: $owner, leaseUntil_expr: "request.time + duration('90s')" }
+  )
+}
+
+mutation ReleaseBuildDispatchScheduler($owner: String!) @auth(level: NO_ACCESS) {
+  buildDispatchScheduler_updateMany(
+    where: { id: { eq: "orchard" }, owner: { eq: $owner } }
+    data: { owner: null, leaseUntil: null }
+  )
+}
+
+mutation ReserveBuildJobDispatch(
+  $owner: String!
+  $id: String!
+  $jobId: String!
+  $vmName: String!
+  $cpu: Int!
+  $memoryMiB: Int!
+  $image: String!
+  $cloudRunJob: String!
+) @auth(level: NO_ACCESS) @transaction {
+  query @redact {
+    job: buildJob(id: $jobId) {
+      teamId
+    }
+  }
+  # A stale scheduler cannot reserve after another invocation takes its lease.
+  buildDispatchScheduler_updateMany(
+    where: { id: { eq: "orchard" }, owner: { eq: $owner }, leaseUntil: { gt_expr: "request.time" } }
+    data: { owner: $owner }
+  ) @check(expr: "this == 1", message: "Scheduler lease lost")
+  buildJob_updateMany(
+    where: { id: { eq: $jobId }, status: { eq: "QUEUED" }, runsOn: { eq: "macos-latest" } }
+    data: { status: "QUEUED" }
+  ) @check(expr: "this == 1", message: "Job is not eligible for dispatch")
+  buildJobDispatch_insert(
+    data: {
+      id: $id
+      jobId: $jobId
+      teamId_expr: "response.query.job.teamId"
+      activeJobId: $jobId
+      vmName: $vmName
+      cpu: $cpu
+      memoryMiB: $memoryMiB
+      image: $image
+      cloudRunJob: $cloudRunJob
+      state: "reserved"
+      startDeadline_expr: "request.time + duration('600s')"
+      createdAt_expr: "request.time"
+      updatedAt_expr: "request.time"
+    }
+  )
+    @check(expr: "vars.cpu > 0 && vars.memoryMiB > 0", message: "Invalid VM size")
+    @check(
+      expr: "size(vars.id) > 0 && size(vars.jobId) > 0 && size(vars.vmName) > 0 && size(vars.image) > 0 && size(vars.cloudRunJob) > 0"
+      message: "Dispatch configuration is required"
+    )
+}
+
+# Safe even if jobs.run succeeded but its response was lost: a late container
+# must claim this exact reservation before it can allocate a VM.
+mutation ExpireUnstartedBuildDispatches @auth(level: NO_ACCESS) {
+  buildJobDispatch_updateMany(
+    where: {
+      finishedAt: { isNull: true }
+      executorId: { isNull: true }
+      startDeadline: { le_expr: "request.time" }
+    }
+    data: {
+      activeJobId: null
+      state: "expired"
+      finishedAt_expr: "request.time"
+      updatedAt_expr: "request.time"
+    }
+  )
+}
+
+mutation CancelUnstartedBuildDispatch($jobId: String!) @auth(level: NO_ACCESS) @transaction {
+  query @redact {
+    job: buildJob(id: $jobId)
+      @check(
+        expr: "this == null || this.status != 'QUEUED' || this.runsOn != 'macos-latest'"
+        message: "Job is still eligible"
+      ) {
+      status
+      runsOn
+    }
+  }
+  buildJobDispatch_updateMany(
+    where: { activeJobId: { eq: $jobId }, executorId: { isNull: true } }
+    data: {
+      activeJobId: null
+      state: "cancelled"
+      finishedAt_expr: "request.time"
+      updatedAt_expr: "request.time"
+    }
+  )
+}
+
+mutation AcquireBuildDispatchLaunch($id: String!, $owner: String!) @auth(level: NO_ACCESS) {
+  acquired: buildJobDispatch_updateMany(
+    where: {
+      _and: [
+        {
+          id: { eq: $id }
+          finishedAt: { isNull: true }
+          executorId: { isNull: true }
+          operationName: { isNull: true }
+          startDeadline: { gt_expr: "request.time" }
+        }
+        {
+          _or: [
+            { launchLeaseUntil: { isNull: true } }
+            { launchLeaseUntil: { le_expr: "request.time" } }
+          ]
+        }
+      ]
+    }
+    data: { launchOwner: $owner, launchLeaseUntil_expr: "request.time + duration('90s')" }
+  )
+}
+
+mutation RecordBuildDispatchLaunch($id: String!, $owner: String!, $operationName: String!)
+@auth(level: NO_ACCESS) {
+  buildJobDispatch_updateMany(
+    where: { id: { eq: $id }, launchOwner: { eq: $owner }, finishedAt: { isNull: true } }
+    data: { operationName: $operationName, updatedAt_expr: "request.time" }
+  )
+}
+
+# G-1605 calls this once before billing admission, VM creation, or checkout.
+# executorId is a fresh process UUID. A restarted/duplicate container must exit
+# when acquired == 0, even if CLOUD_RUN_EXECUTION is the same.
+mutation ClaimBuildJobExecution(
+  $id: String!
+  $executorId: String!
+  $executionName: String!
+  $timeoutSeconds: Int! = 3600
+) @auth(level: NO_ACCESS) @transaction {
+  query @redact {
+    dispatch: buildJobDispatch(id: $id) {
+      jobId
+    }
+  }
+  buildJob_updateMany(
+    where: {
+      id: { eq_expr: "response.query.dispatch.jobId" }
+      status: { eq: "QUEUED" }
+      runsOn: { eq: "macos-latest" }
+    }
+    data: { status: "QUEUED" }
+  ) @check(expr: "this == 1", message: "Job is no longer queued")
+  acquired: buildJobDispatch_updateMany(
+    where: {
+      id: { eq: $id }
+      finishedAt: { isNull: true }
+      executorId: { isNull: true }
+      startDeadline: { gt_expr: "request.time" }
+    }
+    data: {
+      executorId: $executorId
+      executionName: $executionName
+      state: "running"
+      runId_expr: "'run-' + vars.id"
+      startedAt_expr: "request.time"
+      heartbeatAt_expr: "request.time"
+      deadlineAt_expr: "request.time + duration(string(vars.timeoutSeconds) + 's')"
+      updatedAt_expr: "request.time"
+    }
+  )
+    @check(
+      expr: "size(vars.executorId) > 0 && size(vars.executionName) > 0"
+      message: "Execution identity is required"
+    )
+    @check(
+      expr: "vars.timeoutSeconds >= 60 && vars.timeoutSeconds <= 86400"
+      message: "Invalid build timeout"
+    )
+}
+
+# G-1605 must delete the VM and finalize the job before releasing capacity.
+mutation FinishBuildJobDispatch($id: String!, $jobId: String!, $executorId: String!)
+@auth(level: NO_ACCESS)
+@transaction {
+  query @redact {
+    dispatch: buildJobDispatch(id: $id)
+      @check(
+        expr: "this != null && this.jobId == vars.jobId && this.executorId == vars.executorId"
+        message: "Execution identity does not match"
+      ) {
+      jobId
+      executorId
+    }
+    job: buildJob(id: $jobId)
+      @check(
+        expr: "this == null || this.status in ['SUCCESS', 'FAILURE', 'CANCELLED', 'SKIPPED', 'TIMED_OUT']"
+        message: "Finalize the build before releasing its reservation"
+      ) {
+      status
+    }
+  }
+  buildJobDispatch_updateMany(
+    where: { id: { eq: $id }, executorId: { eq: $executorId }, finishedAt: { isNull: true } }
+    data: {
+      activeJobId: null
+      state: "finished"
+      finishedAt_expr: "request.time"
+      updatedAt_expr: "request.time"
+    }
+  )
+}

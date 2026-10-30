@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:dashboard/api/openci_api_client.dart';
-import 'package:dashboard/api/ws_uri_builder.dart';
 import 'package:dashboard/auth/auth_provider.dart';
 import 'package:dashboard/connections/active_connection_profile_provider.dart';
 import 'package:dashboard/connections/connection_firebase_auth.dart';
@@ -47,9 +46,6 @@ void main() {
     emulatorHost: '127.0.0.1',
     emulatorPort: '9099',
   )!;
-  final wsUriProvider = FutureProvider<Uri>(
-    (ref) => buildAuthedWebSocketUri(ref, '/builds/commits/stream'),
-  );
   late ConnectionStore store;
   late ProviderContainer container;
   late Map<String, _Auth> auths;
@@ -119,7 +115,6 @@ void main() {
     container.listen(authStateChangesProvider, (_, _) {});
     container.listen(currentUserIdProvider, (_, _) {});
     container.listen(openciApiServiceProvider, (_, _) {});
-    container.listen(wsUriProvider, (_, _) {});
   }
 
   Future<void> expectConnection(ConnectionProfile profile) async {
@@ -132,19 +127,16 @@ void main() {
     expect(container.read(currentUserIdProvider), user?.uid);
 
     final api = await container.read(openciApiServiceProvider.future);
-    await api.getTeams();
-    expect(requests.last.url.toString(), '${profile.apiUrl}/teams');
+    await api.getDevices();
+    expect(requests.last.url.toString(), '${profile.apiUrl}/devices');
     expect(
       requests.last.headers['Authorization'],
       'Bearer ${profile.id}-token',
     );
-    final wsUri = await container.read(wsUriProvider.future);
-    expect(wsUri.host, Uri.parse(profile.apiUrl).host);
-    expect(wsUri.queryParameters['token'], '${profile.id}-token');
   }
 
   test(
-    'restores the saved profile for authentication, HTTP, and WebSocket',
+    'restores the saved profile for authentication and HTTP',
     () {
       return withHttp(() async {
         await saveProfiles(activeId: selfHosted.id);
@@ -186,7 +178,7 @@ void main() {
       authResults[local.profile.id] = ready.future;
       listenToConnection();
       final api = await container.read(openciApiServiceProvider.future);
-      final response = api.getTeams();
+      final response = api.getDevices();
       await container.pump();
 
       expect(container.read(authStateChangesProvider).isLoading, isTrue);
@@ -197,7 +189,7 @@ void main() {
 
       expect(requests, hasLength(2));
       for (final request in requests) {
-        expect(request.url.toString(), 'http://127.0.0.1:8080/teams');
+        expect(request.url.toString(), 'http://127.0.0.1:8080/devices');
         expect(
           request.headers['Authorization'],
           'Bearer local-development-token',
@@ -223,7 +215,7 @@ void main() {
           throwsA(same(error)),
         );
         final requestFailure = expectLater(
-          api.getTeams(),
+          api.getDevices(),
           throwsA(same(error)),
         );
 

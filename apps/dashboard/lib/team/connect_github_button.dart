@@ -1,6 +1,6 @@
-import 'package:dashboard/api/openci_api_client.dart';
 import 'package:dashboard/app_strings.dart';
 import 'package:dashboard/team/current_github_connection_context_provider.dart';
+import 'package:dashboard/team/github_connection_api.dart';
 import 'package:dashboard/team/github_connection_context.dart';
 import 'package:dashboard/team/github_connection_storage.dart';
 import 'package:dashboard/team/team_provider.dart';
@@ -84,17 +84,15 @@ class ConnectGitHubButton extends HookConsumerWidget {
     GitHubConnectionContext connectionContext,
   ) async {
     final context = ref.context;
-    final api = await ref.read(openciApiServiceProvider.future);
+    final api = await ref.read(githubConnectionApiProvider.future);
     if (!context.mounted) return null;
-    if (connectionContext != _readConnectionContext(ref)) {
+    if (connectionContext != _readConnectionContext(ref) ||
+        api.context != connectionContext) {
       throw StateError('GitHub connection context changed');
     }
 
-    final response = await api.startGitHubConnection(connectionContext.teamId);
-    if (!response.isSuccessful || response.body?['success'] != true) {
-      throw StateError('Invalid GitHub connection response');
-    }
-    return _parseAuthorizationUri(response.body?['authorizationUrl']);
+    final response = await api.start();
+    return _parseAuthorizationUri(response['authorizationUrl']);
   }
 
   Uri _parseAuthorizationUri(Object? authorizationUrl) {

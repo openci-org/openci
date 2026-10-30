@@ -18,6 +18,12 @@ abstract class AuthProfile with _$AuthProfile {
     @JsonKey(name: 'firebase_api_key') @Default('') String firebaseApiKey,
     @JsonKey(name: 'firebase_auth_emulator_host', includeIfNull: false)
     String? firebaseAuthEmulatorHost,
+    @JsonKey(name: 'firebase_project_id') @Default('') String firebaseProjectId,
+    @JsonKey(name: 'functions_region')
+    @Default('asia-northeast1')
+    String functionsRegion,
+    @JsonKey(name: 'functions_emulator_host', includeIfNull: false)
+    String? functionsEmulatorHost,
     @JsonKey(name: 'expires_at') DateTime? expiresAt,
   }) = _AuthProfile;
 

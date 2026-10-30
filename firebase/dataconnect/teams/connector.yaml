@@ -1,1 +1,9 @@
 connectorId: "teams"
+generate:
+  dartSdk:
+    outputDir: "../../../apps/dashboard/lib/generated/teams"
+    package: "teams"
+  adminNodeSdk:
+    outputDir: "../../generated/teams-admin"
+    package: "@openci/teams-admin"
+    packageJsonDir: "../.."

@@ -1,0 +1,37 @@
+# Server-only: clients must not choose their own plan or allowance.
+mutation CreateBillingPeriod(
+  $id: String!
+  $teamId: String!
+  $planId: String!
+  $periodType: String!
+  $startsAt: Int64!
+  $endsAt: Int64!
+  $allowanceSeconds: Int64 = null
+) @auth(level: NO_ACCESS) @transaction {
+  billingAccount_upsert(data: { teamId: $teamId })
+  billingPeriod_insert(
+    data: {
+      id: $id
+      teamId_expr: "response.billingAccount_upsert.teamId"
+      planId: $planId
+      periodType: $periodType
+      startsAt: $startsAt
+      endsAt: $endsAt
+      allowanceSeconds: $allowanceSeconds
+    }
+  )
+    @check(expr: "vars.planId in ['light', 'pro']", message: "Invalid billing plan")
+    @check(expr: "vars.periodType in ['trial', 'paid']", message: "Invalid billing period type")
+    @check(
+      expr: "int(vars.endsAt) > int(vars.startsAt)"
+      message: "Billing period must end after it starts"
+    )
+    @check(
+      expr: "vars.allowanceSeconds == null || int(vars.allowanceSeconds) >= 0"
+      message: "Billing allowance must not be negative"
+    )
+    @check(
+      expr: "vars.periodType == 'trial' || vars.allowanceSeconds != null"
+      message: "Paid billing periods require an allowance"
+    )
+}

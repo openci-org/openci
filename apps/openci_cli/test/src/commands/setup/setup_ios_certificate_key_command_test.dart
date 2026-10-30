@@ -1,3 +1,4 @@
+import '../../../helpers/secret_functions.dart';
 import 'dart:convert';
 import 'dart:io';
 
@@ -40,6 +41,7 @@ void main() {
   const token = 'private-setup-token';
   const privateValue = 'private-key-value';
   const profile = AuthProfile(
+    firebaseProjectId: 'test-project',
     serverUrl: 'https://ci.example.com/proxy/',
     token: token,
     teamId: 'selected/team',
@@ -52,14 +54,14 @@ void main() {
   late MockClientHandler handler;
   late bool keyExists;
 
-  http.Response response(Object body, [int status = 200]) => http.Response(
+  http.Response response(Object body, [int status = 200]) => functionResponse(
     jsonEncode(body),
     status,
     headers: {'content-type': 'application/json'},
   );
 
   http.Response success(http.Request request) {
-    if (request.method == 'GET') {
+    if (secretAction(request) == 'list') {
       return response({
         'success': true,
         'secrets': [
@@ -83,7 +85,11 @@ void main() {
         activeProfile: 'selected',
         profiles: {
           'selected': profile,
-          'unused': AuthProfile(token: 'unused-token', teamId: 'unused-team'),
+          'unused': AuthProfile(
+            firebaseProjectId: 'test-project',
+            token: 'unused-token',
+            teamId: 'unused-team',
+          ),
         },
       ),
     );
@@ -135,19 +141,23 @@ void main() {
 
       expect(await run(), 0);
 
-      expect(requests.map((r) => r.method), ['GET', 'POST', 'GET']);
+      expect(requests.map(secretAction), [
+        'list',
+        'generateCertificateKey',
+        'list',
+      ]);
       expect(requests.map((r) => r.url.toString()), [
-        'https://ci.example.com/proxy/teams/selected%2Fteam/secrets',
-        'https://ci.example.com/proxy/teams/selected%2Fteam/ios-signing/generate-key',
-        'https://ci.example.com/proxy/teams/selected%2Fteam/secrets',
+        secretFunctionUrl,
+        secretFunctionUrl,
+        secretFunctionUrl,
       ]);
       for (final request in requests) {
         expect(request.headers['authorization'], 'Bearer $token');
-        expect(request.body, isEmpty);
+        expect(secretData(request)['teamId'], profile.teamId);
       }
       expect(logger.output, [
         t.setup.iosCertificateKey.saveDestination(
-          server: profile.serverUrl,
+          server: secretFunctionUrl,
           team: profile.teamId,
           name: iosCertificatePrivateKeySecretName,
         ),
@@ -165,27 +175,24 @@ void main() {
     keyExists = true;
 
     expect(await run(), 0);
-    expect(requests.single.method, 'GET');
+    expect(requests.single.method, 'POST');
     expect(logger.output.last, t.setup.iosCertificateKey.reused);
     expect(logger.errors, isEmpty);
   });
 
-  test(
-    'escapes displayed controls and preserves the team URL segment',
-    () async {
-      const team = 'team\x1b[2J/with space?#';
-      await store.saveProfile('selected', profile.copyWith(teamId: team));
+  test('escapes displayed controls and preserves the team in JSON', () async {
+    const team = 'team\x1b[2J/with space?#';
+    await store.saveProfile('selected', profile.copyWith(teamId: team));
 
-      expect(await run(), 0);
-      for (final request in requests) {
-        expect(request.url.pathSegments[2], team);
-        expect(request.url.hasQuery, isFalse);
-        expect(request.url.hasFragment, isFalse);
-      }
-      expect(logger.output.first, contains(r'team\x1b[2J/with space?#'));
-      expect(logger.output.first, isNot(contains('\x1b')));
-    },
-  );
+    expect(await run(), 0);
+    for (final request in requests) {
+      expect(secretData(request)['teamId'], team);
+      expect(request.url.hasQuery, isFalse);
+      expect(request.url.hasFragment, isFalse);
+    }
+    expect(logger.output.first, contains(r'team\x1b[2J/with space?#'));
+    expect(logger.output.first, isNot(contains('\x1b')));
+  });
 
   test('rejects positional arguments before reading credentials', () async {
     await File(store.filePath).writeAsString(token);
@@ -292,12 +299,13 @@ void main() {
 
   for (final status in [401, 403, 500]) {
     test('reports generation failure HTTP $status without details', () async {
-      handler = (request) async => request.method == 'POST'
+      handler = (request) async =>
+          secretAction(request) == 'generateCertificateKey'
           ? response({'error': privateValue}, status)
           : success(request);
 
       expect(await run(), 1);
-      expect(requests.map((r) => r.method), ['GET', 'POST']);
+      expect(requests.map(secretAction), ['list', 'generateCertificateKey']);
       expect(logger.output, hasLength(1));
       expect(logger.errors, [
         status == 401 || status == 403
@@ -308,12 +316,17 @@ void main() {
   }
 
   test('requires the generated key to be present before success', () async {
-    handler = (request) async => request.method == 'POST'
+    handler = (request) async =>
+        secretAction(request) == 'generateCertificateKey'
         ? response({'success': true})
         : success(request);
 
     expect(await run(), 1);
-    expect(requests.map((r) => r.method), ['GET', 'POST', 'GET']);
+    expect(requests.map(secretAction), [
+      'list',
+      'generateCertificateKey',
+      'list',
+    ]);
     expect(logger.output, hasLength(1));
     expect(logger.errors, [t.setup.iosCertificateKey.setupFailed]);
   });
@@ -321,14 +334,20 @@ void main() {
   test('reuses a generated key after losing the generation response', () async {
     handler = (request) async {
       final result = success(request);
-      if (request.method == 'POST') throw http.ClientException(privateValue);
+      if (secretAction(request) == 'generateCertificateKey') {
+        throw http.ClientException(privateValue);
+      }
       return result;
     };
 
     expect(await run(), 1);
     expect(logger.errors, [t.setup.iosCertificateKey.setupFailed]);
     expect(await run(), 0);
-    expect(requests.map((r) => r.method), ['GET', 'POST', 'GET']);
+    expect(requests.map(secretAction), [
+      'list',
+      'generateCertificateKey',
+      'list',
+    ]);
     expect(logger.output.last, t.setup.iosCertificateKey.reused);
   });
 }

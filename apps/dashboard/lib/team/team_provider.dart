@@ -1,8 +1,10 @@
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:dashboard/api/openci_api_client.dart';
+import 'package:dashboard/auth/auth_provider.dart';
 import 'package:dashboard/team/selected_team_provider.dart';
+import 'package:dashboard/team/team_members_api.dart';
+import 'package:dashboard/team/teams_connector_provider.dart';
 import 'package:openci_shared/openci_shared.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -25,16 +27,29 @@ Future<Team> selectedTeam(Ref ref) async {
 
 @riverpod
 Future<List<Team>> teamList(Ref ref) async {
-  final apiService = await ref.watch(openciApiServiceProvider.future);
-  final response = await apiService.getTeams();
+  final user = await ref.watch(authStateChangesProvider.future);
+  if (user == null) return const [];
 
-  if (!response.isSuccessful) {
-    throw StateError(
-      'Failed to fetch teams: ${response.statusCode} ${response.error}',
-    );
-  }
-
-  return response.body ?? const [];
+  final connector = await ref.watch(teamsConnectorProvider.future);
+  final result = await connector.getMyTeams().execute();
+  return result.data.teams
+      .map(
+        (team) => Team(
+          id: team.id,
+          name: team.name,
+          members: team.members.map((member) => member.userId).toList(),
+          runNumber: team.runNumber.toInt(),
+          createdAt: DateTime.fromMillisecondsSinceEpoch(
+            team.createdAt.toInt() * 1000,
+            isUtc: true,
+          ),
+          updatedAt: DateTime.fromMillisecondsSinceEpoch(
+            team.updatedAt.toInt() * 1000,
+            isUtc: true,
+          ),
+        ),
+      )
+      .toList();
 }
 
 @Riverpod(keepAlive: true)
@@ -44,40 +59,21 @@ class TeamService {
   final Ref _ref;
   TeamService(this._ref);
 
-  Future<void> createTeam(String teamName) async {
-    final apiService = await _ref.read(openciApiServiceProvider.future);
-    final response = await apiService.createTeam({
-      'name': teamName,
-    });
-
-    if (!response.isSuccessful) {
-      throw StateError(
-        'Failed to create team: ${response.statusCode} ${response.error}',
-      );
-    }
-
-    final data = response.body ?? <String, dynamic>{};
-    final teamId = data['id'] as String;
+  Future<void> createInitialTeam(String userId) async {
+    final connector = await _ref.read(teamsConnectorProvider.future);
+    await connector.createTeam(id: userId, name: userId).execute();
 
     if (_ref.mounted) {
       _ref.invalidate(teamListProvider);
       await _ref
           .read(selectedTeamIdProvider.notifier)
-          .saveSelectedTeamId(teamId);
+          .saveSelectedTeamId(userId);
     }
   }
 
   Future<void> updateTeamName(String teamId, String newName) async {
-    final apiService = await _ref.read(openciApiServiceProvider.future);
-    final response = await apiService.updateTeam(teamId, {
-      'name': newName,
-    });
-
-    if (!response.isSuccessful) {
-      throw StateError(
-        'Failed to update team name: ${response.statusCode} ${response.error}',
-      );
-    }
+    final connector = await _ref.read(teamsConnectorProvider.future);
+    await connector.renameTeam(teamId: teamId, name: newName).execute();
 
     if (_ref.mounted) {
       _ref.invalidate(teamListProvider);
@@ -100,26 +96,8 @@ class TeamService {
   }
 
   Future<void> inviteMember(String teamId, String email) async {
-    final apiService = await _ref.read(openciApiServiceProvider.future);
-    final response = await apiService.inviteMember(teamId, {
-      'email': email,
-    });
-
-    if (!response.isSuccessful) {
-      String errorMessage = 'Failed to invite member';
-      try {
-        final errorBody = response.error as Map<String, dynamic>?;
-        errorMessage = errorBody?['error'] as String? ?? errorMessage;
-      } catch (_) {
-        final errString = response.error?.toString();
-        if (errString != null && errString.isNotEmpty) {
-          try {
-            final parsed = jsonDecode(errString) as Map<String, dynamic>;
-            errorMessage = parsed['error'] as String? ?? errorMessage;
-          } catch (_) {}
-        }
-      }
-      throw StateError(errorMessage);
-    }
+    final api = await _ref.read(teamMembersApiProvider.future);
+    await api.add(teamId, email);
+    if (_ref.mounted) _ref.invalidate(teamListProvider);
   }
 }

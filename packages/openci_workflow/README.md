@@ -324,6 +324,6 @@ await openCI.run('flutter analyze', workingDirectory: 'apps/mobile');
 
 ## Build logs
 
-Command output is always printed to stdout and stderr. OpenCI workers provide `LOKI_URL`, `OPENCI_RUN_ID`, and `OPENCI_BUILD_JOB_ID` to also send structured build logs to Loki. Without `LOKI_URL`, local execution only prints to the terminal.
+Command output is printed to stdout and stderr. The Cloud Run executor captures these streams through Orchard and stores build logs in Firebase SQL Connect. Local execution prints to the terminal.
 
 Log forwarding failures produce a warning and do not change the command's exit status.

@@ -84,7 +84,7 @@ void main() {
       );
       await tester.pumpAndSettle();
       check(find.text('Test team')).findsOneWidget();
-      check(find.text(t.settings.manageSubscription)).findsOneWidget();
+      check(find.text(t.settings.logout)).findsOneWidget();
 
       await tester.tap(
         find.descendant(of: navigation, matching: find.text('CI/CDログ')),

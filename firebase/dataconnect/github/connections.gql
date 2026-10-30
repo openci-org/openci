@@ -1,0 +1,102 @@
+# Functions must freshly verify this installation using the session's token and
+# GitHub user. Host/app and verified account details are never trusted client input.
+mutation ConfirmGitHubConnection(
+  $teamId: String!
+  $userId: String!
+  $referenceHash: String!
+  $githubApiBaseUrl: String!
+  $githubAppId: Int64!
+  $installationId: Int64!
+  $accountId: Int64!
+  $accountType: String!
+  $accountLogin: String!
+) @auth(level: NO_ACCESS) @transaction {
+  # Share the team lock with membership changes and serialize same-team refreshes.
+  team_update(key: { id: $teamId }, data: { updatedAt_expr: "int(request.time)" })
+    @check(expr: "this != null", message: "Team access denied")
+    @check(
+      expr: "int(vars.githubAppId) > 0 && int(vars.installationId) > 0 && int(vars.accountId) > 0"
+      message: "GitHub IDs must be positive"
+    )
+    @check(
+      expr: "vars.accountType in ['User', 'Organization']"
+      message: "Invalid GitHub account type"
+    )
+    @check(
+      expr: "vars.accountLogin.matches('[^[:space:]]')"
+      message: "GitHub account login must not be blank"
+    )
+    @check(
+      expr: "vars.githubApiBaseUrl.matches('^https?://[^/?#@[:space:]]+(/[^?#@[:space:]]*)?$') && !vars.githubApiBaseUrl.endsWith('/')"
+      message: "A canonical GitHub API base URL is required"
+    )
+  query {
+    actor: teamMember(first: { where: { teamId: { eq: $teamId }, userId: { eq: $userId } } })
+      @redact
+      @check(expr: "this != null", message: "Team access denied") {
+      id
+    }
+    session: gitHubConnectionSession(
+      first: {
+        where: {
+          teamId: { eq: $teamId }
+          userId: { eq: $userId }
+          referenceHash: { eq: $referenceHash }
+          expiresAt: { gt_expr: "int(request.time)" }
+          consumedAt: { isNull: true }
+          accessTokenSecretVersionPath: { isNull: false }
+        }
+      }
+    ) @check(expr: "this != null", message: "Invalid or expired GitHub session") {
+      githubUserId
+      # Returned to Functions for Secret Manager cleanup after commit.
+      accessTokenSecretVersionPath
+    }
+    existing: gitHubConnection(
+      first: {
+        where: {
+          githubApiBaseUrl: { eq: $githubApiBaseUrl }
+          githubAppId: { eq: $githubAppId }
+          installationId: { eq: $installationId }
+        }
+      }
+    )
+      @redact
+      @check(
+        expr: "this == null || this.teamId == vars.teamId"
+        message: "GitHub installation is already connected"
+      ) {
+      id
+      teamId
+    }
+  }
+  gitHubConnectionSession_updateMany(
+    where: {
+      teamId: { eq: $teamId }
+      userId: { eq: $userId }
+      referenceHash: { eq: $referenceHash }
+      expiresAt: { gt_expr: "int(request.time)" }
+      consumedAt: { isNull: true }
+      accessTokenSecretVersionPath: { isNull: false }
+    }
+    data: { consumedAt_expr: "int(request.time)", accessTokenSecretVersionPath: null }
+  ) @check(expr: "this == 1", message: "GitHub session already consumed")
+  # Preserve an existing connection's ID. The unique host/app/installation key
+  # also rejects simultaneous first claims by different teams, rolling back all writes.
+  connection: gitHubConnection_upsert(
+    data: {
+      id_expr: "response.query.existing == null ? uuidV4() : response.query.existing.id"
+      teamId: $teamId
+      githubApiBaseUrl: $githubApiBaseUrl
+      githubAppId: $githubAppId
+      installationId: $installationId
+      accountId: $accountId
+      accountType: $accountType
+      accountLogin: $accountLogin
+      verifiedByUserId: $userId
+      verifiedByGitHubUserId_expr: "response.query.session.githubUserId"
+      verifiedAt_expr: "int(request.time)"
+      status: "active"
+    }
+  )
+}

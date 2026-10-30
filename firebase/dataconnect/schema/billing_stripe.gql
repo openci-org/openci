@@ -1,0 +1,52 @@
+# Billing timestamps in these tables are Unix seconds.
+type BillingCustomerCreation @table(name: "billing_customer_creations", key: "teamId") {
+  teamId: String! @col(name: "team_id")
+  billingAccount: BillingAccount! @ref(fields: "teamId", references: "teamId")
+  idempotencyKey: String! @col(name: "idempotency_key") @unique
+  livemode: Boolean!
+  createdAt: Int64! @col(name: "created_at")
+  stripeCustomerId: String @col(name: "stripe_customer_id") @unique
+}
+
+type BillingCheckoutCreation @table(name: "billing_checkout_creations", key: "idempotencyKey") {
+  idempotencyKey: String! @col(name: "idempotency_key")
+  teamId: String! @col(name: "team_id")
+  billingAccount: BillingAccount! @ref(fields: "teamId", references: "teamId")
+  planId: String! @col(name: "plan_id")
+  stripeCustomerId: String! @col(name: "stripe_customer_id")
+  stripePriceId: String! @col(name: "stripe_price_id")
+  successUrl: String! @col(name: "success_url")
+  cancelUrl: String! @col(name: "cancel_url")
+  livemode: Boolean!
+  createdAt: Int64! @col(name: "created_at")
+  stripeCheckoutSessionId: String @col(name: "stripe_checkout_session_id") @unique
+  closedAt: Int64 @col(name: "closed_at")
+  # Replaces WHERE closed_at IS NULL: teamId while open, null when closed.
+  # Connector mutations derive this value and clear it atomically with closedAt.
+  openTeamId: String
+    @col(name: "open_team_id")
+    @unique(indexName: "billing_checkout_creations_open_team")
+}
+
+type BillingStripeState @table(name: "billing_stripe_state", key: "teamId") {
+  teamId: String! @col(name: "team_id")
+  billingAccount: BillingAccount! @ref(fields: "teamId", references: "teamId")
+  stripeCustomerId: String! @col(name: "stripe_customer_id") @unique
+  livemode: Boolean!
+  stripeSubscriptionId: String @col(name: "stripe_subscription_id") @unique
+  subscriptionStatus: String! @col(name: "subscription_status")
+  planId: String @col(name: "plan_id")
+  paidPeriodId: String @col(name: "paid_period_id")
+  paidPeriod: BillingPeriod @ref(fields: "paidPeriodId", references: "id")
+  cancelAtPeriodEnd: Boolean! @col(name: "cancel_at_period_end") @default(value: false)
+  syncedAt: Int64! @col(name: "synced_at")
+  # Functions read this before observing Stripe and retry on a concurrent update.
+  revision: Int64! @default(value: 0)
+}
+
+type BillingStripeEvent @table(name: "billing_stripe_events", key: "eventId") {
+  eventId: String! @col(name: "event_id")
+  eventType: String! @col(name: "event_type")
+  eventCreated: Int64! @col(name: "event_created")
+  processedAt: Int64! @col(name: "processed_at")
+}

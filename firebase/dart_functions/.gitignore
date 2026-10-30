@@ -1,0 +1,9 @@
+.dart_tool/
+functions.yaml
+bin/server
+bin/server.exe
+build/
+
+# firebase/.gitignore excludes Node's compiled lib/; this is Dart source.
+!lib/
+!lib/**

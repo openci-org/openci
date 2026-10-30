@@ -18,9 +18,12 @@ void main() {
       return http.Response(
         jsonEncode([
           {
-            'id': 'team-123',
-            'name': 'Test team',
-            'members': ['user-123'],
+            'id': 'device-123',
+            'userId': 'user-123',
+            'teamId': 'team-123',
+            'udid': 'device-udid',
+            'deviceProduct': 'iPhone',
+            'deviceOsVersion': '26.0',
             'createdAt': '2026-01-01T00:00:00Z',
             'updatedAt': '2026-01-01T00:00:00Z',
           },
@@ -42,7 +45,7 @@ void main() {
   }
 
   test(
-    'resolves the current token for each request and decodes teams',
+    'resolves the current token for each request and decodes devices',
     () async {
       var token = 'first-token';
       var tokenReads = 0;
@@ -52,19 +55,19 @@ void main() {
       });
       final api = client.getService<OpenCIApiService>();
 
-      final firstResponse = await api.getTeams();
+      final firstResponse = await api.getDevices();
       token = 'refreshed-token';
-      final secondResponse = await api.getTeams();
+      final secondResponse = await api.getDevices();
 
       expect(tokenReads, 2);
       expect(requests.map((r) => r.headers['Authorization']), [
         'Bearer first-token',
         'Bearer refreshed-token',
       ]);
-      expect(requests.first.url, Uri.parse('https://api.openci.test/teams'));
-      expect(firstResponse.body!.single.id, 'team-123');
-      expect(secondResponse.body!.single.name, 'Test team');
-      expect(secondResponse.body!.single.members, ['user-123']);
+      expect(requests.first.url, Uri.parse('https://api.openci.test/devices'));
+      expect(firstResponse.body!.single.id, 'device-123');
+      expect(secondResponse.body!.single.teamId, 'team-123');
+      expect(secondResponse.body!.single.userId, 'user-123');
     },
   );
 
@@ -72,7 +75,7 @@ void main() {
     test('sends no authorization header when token is $token', () async {
       final client = createClient(() => token);
 
-      final response = await client.getService<OpenCIApiService>().getTeams();
+      final response = await client.getService<OpenCIApiService>().getDevices();
 
       expect(response.isSuccessful, isTrue);
       expect(requests.single.headers, isNot(contains('Authorization')));
@@ -83,7 +86,7 @@ void main() {
     final token = Completer<String?>();
     final client = createClient(() => token.future);
 
-    final response = client.getService<OpenCIApiService>().getTeams();
+    final response = client.getService<OpenCIApiService>().getDevices();
     await Future<void>.delayed(Duration.zero);
     expect(requests, isEmpty);
 
@@ -95,8 +98,8 @@ void main() {
   test('replaces stale authorization while preserving other headers', () async {
     final client = createClient(() => 'current-token');
 
-    await client.get<List<Team>, Team>(
-      Uri.parse('/teams'),
+    await client.get<List<UserDevice>, UserDevice>(
+      Uri.parse('/devices'),
       headers: {'Authorization': 'Bearer stale-token', 'X-Request-ID': 'req-1'},
     );
 
@@ -109,7 +112,7 @@ void main() {
     final client = createClient(() async => throw error);
 
     await expectLater(
-      client.getService<OpenCIApiService>().getTeams(),
+      client.getService<OpenCIApiService>().getDevices(),
       throwsA(same(error)),
     );
     expect(requests, isEmpty);

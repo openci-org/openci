@@ -142,12 +142,12 @@ Switch the active profile's team without logging in again:
 genuineci switch team
 ```
 
-The CLI fetches your team memberships from the server saved in the active
-credential profile. A `remote` profile uses the HTTPS URL saved by `genuineci login`,
-including any `--server` override. A `local` profile created by
-`genuineci login --local` uses `http://localhost:8080` and its saved Auth Emulator
-settings. To activate the remote or local profile, run the corresponding login
-command first.
+Login, status, team listing and switching fetch memberships from the
+`teamManagement` Firebase callable Function, backed by FSC. The active profile's
+Firebase project (or the ID token's audience) and `functions_region` select the
+endpoint. `--server` remains the address for other legacy APIs. A local profile
+uses its saved Auth/Functions Emulator settings (Functions defaults to port 5001).
+To activate the remote or local profile, run the corresponding login command first.
 
 The picker shows each team's name and ID, with `*` marking the saved current
 team and `>` marking the highlighted choice. It starts on the current team if
@@ -179,15 +179,15 @@ stderr and return a nonzero exit code.
 
 Troubleshooting team selection:
 
-| Condition | What to check |
-| --- | --- |
-| Login required or HTTP 401/403 | Log in again for the intended server with `genuineci login` or `genuineci login --local`. |
-| No team memberships | Create or join a team in the dashboard for that server. |
-| Interactive terminal required | Use an ANSI-capable terminal with interactive stdin and stdout; remove pipes and output redirection. |
+| Condition                        | What to check                                                                                                                     |
+| -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| Login required or HTTP 401/403   | Log in again for the intended server with `genuineci login` or `genuineci login --local`.                                         |
+| No team memberships              | Create or join a team in the dashboard for that server.                                                                           |
+| Interactive terminal required    | Use an ANSI-capable terminal with interactive stdin and stdout; remove pipes and output redirection.                              |
 | HTTP error or connection failure | Check the active profile's server URL and network connection. For local development, check that `genuineci dev start` is running. |
-| Invalid team list | Check that the saved server URL points to a compatible OpenCI API. |
-| Changed profile or credentials | Run `genuineci switch team` again using the current authentication. |
-| Save failure | Check the credentials file, its permissions, and available disk space. |
+| Invalid team list                | Check that the saved server URL points to a compatible OpenCI API.                                                                |
+| Changed profile or credentials   | Run `genuineci switch team` again using the current authentication.                                                               |
+| Save failure                     | Check the credentials file, its permissions, and available disk space.                                                            |
 
 Choose English or Japanese messages with `genuineci use english` or
 `genuineci use japanese`. The language setting is saved for future invocations.
@@ -267,11 +267,12 @@ The command uses `docker-compose.yml`, `docker-compose.local.yml`, and
 for project `demo-openci` and waits for its health check before starting Orchard
 Controller, the Mac worker, and the local API. No production Firebase service
 account is needed. The Auth endpoint is `http://127.0.0.1:9099` and the Emulator
-UI is `http://127.0.0.1:4000/auth`. When restarting, the command stops the old
-build-job-worker and waits for running jobs to finish while the server remains
-available for saving results and deleting their VMs. It then rebuilds and
-starts the application containers. See [the emulator setup](../../firebase/README.md)
-for standalone start and stop commands.
+UI is `http://127.0.0.1:4000/auth`. It rebuilds and starts the API
+containers. The Mac Orchard worker provides VM capacity; build planning and
+execution use the [Firebase Functions and Cloud Run path](../../firebase/functions/BUILD_EXECUTOR.md),
+which this command does not deploy or start. See [the emulator setup](../../firebase/README.md)
+for standalone start and stop commands. Drain any legacy polling containers
+from an older deployment before upgrading; Compose removes orphan containers.
 
 The `/internal` seed and cleanup API is disabled by default. `genuineci dev start`
 automatically enables it by passing `ENABLE_INTERNAL_API=true` to Docker Compose.
@@ -315,8 +316,10 @@ The server seeds `test-team` and one `macos-latest` job for
 `openci-org/openci`'s `openci/worker_smoke.dart`, pinned to commit
 `5cb05f76d8941ea1edc3593eb753ce808f0f290e` on
 `test/build-job-worker-smoke-openci`.
-The workflow checks macOS and Flutter versions and runs the worker's unit tests.
-It uses this fixed fixture, not uncommitted files in your local checkout.
+This historical fixture checks macOS and Flutter versions and runs the former
+worker's tests at that pinned commit. Seeding now exercises only the legacy API
+and database: the local stack has no polling executor, and these jobs are not
+submitted to FSC. Use the Cloud Run executor to validate the new build path.
 
 The server resolves the installation ID using the GitHub App already configured
 in Docker Compose. That App must have access to `openci-org/openci`.
@@ -334,11 +337,11 @@ genuineci login --local
 
 Enter `test@openci.org` and `123456`, or the credentials of another user
 you created in the Auth Emulator UI. The CLI signs in through the
-fixed address `127.0.0.1:9099`, sends the resulting Firebase ID token to
-`http://localhost:8080/teams`, and selects `test-team` only if the API returns it
-among your memberships. `--seed` prepares this membership for `test@openci.org`;
-you can use the same account in the local Dashboard. If `test-team` is missing,
-check that seeding completed and that you are using the seeded account.
+fixed address `127.0.0.1:9099`, then calls `teamManagement` on the Functions
+Emulator at port 5001. It selects `test-team` only if FSC returns it among the
+authenticated user's memberships. Start Functions and FSC emulators and seed that
+FSC team/membership as well: the legacy Compose `--seed` initializes SQL data and
+does not synchronize it into FSC. See the [team migration guide](../../firebase/functions/TEAMS.md).
 
 Successful login saves and activates the `local` Firebase profile, including
 the refresh credentials and `firebase_auth_emulator_host`. Later token refreshes
@@ -480,8 +483,7 @@ execution; an execution failure, unexpected version, or 10-second timeout stops
 setup with an error. A timed-out process is terminated.
 After verification, it prompts for an Apple ID email address in an interactive
 terminal. Surrounding whitespace is trimmed; empty input or EOF stops setup
-with exit code 1. Ctrl+C at the email prompt interrupts it with shell exit code
-130. Input and prompt output (stderr) must both be attached to a terminal.
+with exit code 1. Ctrl+C at the email prompt interrupts it with shell exit code 130. Input and prompt output (stderr) must both be attached to a terminal.
 The prompt leaves stdin open and does not change terminal modes. It then starts
 the verified asc binary with `web auth login --apple-id <email> --output table`,
 inheriting the terminal's stdin, stdout, and stderr. Password and two-factor
@@ -525,11 +527,11 @@ through `/dev/tty` and applies its own network timeouts.
 
 Setup prepares four secrets for the active team:
 
-| Secret name | Value |
-| --- | --- |
-| `OPENCI_GENERATED_ASC_KEY_ID` | The Key ID as text |
-| `OPENCI_GENERATED_ASC_ISSUER_ID` | The Issuer ID as text |
-| `OPENCI_GENERATED_P8_BASE64` | The complete P8 file encoded as Base64, matching `register secret-file` |
+| Secret name                                    | Value                                                                                       |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `OPENCI_GENERATED_ASC_KEY_ID`                  | The Key ID as text                                                                          |
+| `OPENCI_GENERATED_ASC_ISSUER_ID`               | The Issuer ID as text                                                                       |
+| `OPENCI_GENERATED_P8_BASE64`                   | The complete P8 file encoded as Base64, matching `register secret-file`                     |
 | `OPENCI_GENERATED_IOS_CERTIFICATE_PRIVATE_KEY` | A persistent RSA private key generated on the server if absent; existing keys are preserved |
 
 The server encrypts each value in its existing secrets table. Setup refreshes
@@ -591,3 +593,7 @@ dart run build_runner build
 
 Translations use `slang.yaml` through the Slang CLI. `build_runner` generates
 the Freezed and JSON models.
+
+### Secrets backend
+
+Secrets commands use the Firebase `teamSecrets` callable in `asia-northeast1`. The Firebase project is inferred from the current login ID token. Firebase Auth emulator profiles use the Functions emulator on loopback port 5001. Static API-key profiles must log in with Firebase. See [the cutover guide](../../firebase/functions/LOGS_AND_SECRETS.md) for deployment and existing-secret migration.

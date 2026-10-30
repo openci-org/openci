@@ -4,7 +4,9 @@ import 'dart:convert';
 import 'package:genuineci_cli/src/secrets/fetch_secret_names.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
-import 'package:openci_shared/openci_shared.dart';
+import 'package:genuineci_cli/src/secrets/secrets_api.dart';
+import 'package:genuineci_cli/src/credential_store/credential_config.dart';
+import '../../helpers/secret_functions.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -127,25 +129,23 @@ void main() {
   });
 
   group('fetchSecretNames', () {
-    OpenCIApiService createApi(MockClientHandler handler) {
-      final httpClient = MockClient(handler);
-      final client = http.runWithClient(
-        () => createOpenCIChopperClient(
-          baseUrl: 'http://localhost:8080',
-          tokenProvider: () => 'local-test-token',
-          services: [OpenCIApiService.create()],
+    SecretsApi createApi(MockClientHandler handler) {
+      final api = SecretsApi(
+        const AuthProfile(
+          firebaseProjectId: 'test-project',
+          token: 'local-test-token',
         ),
-        () => httpClient,
+        client: MockClient(handler),
       );
-      addTearDown(client.dispose);
-      return client.getService<OpenCIApiService>();
+      addTearDown(api.dispose);
+      return api;
     }
 
-    test('fetches names through the shared authenticated API', () async {
+    test('fetches names through the Firebase callable', () async {
       final requests = <http.Request>[];
       final api = createApi((request) async {
         requests.add(request);
-        return http.Response(
+        return functionResponse(
           jsonEncode(responseBody),
           200,
           headers: {'content-type': 'application/json'},
@@ -156,20 +156,17 @@ void main() {
 
       expect(names, ['ASC_KEY', 'FIREBASE_OPTIONS']);
       final request = requests.single;
-      expect(request.method, 'GET');
-      expect(
-        request.url,
-        Uri.parse('http://localhost:8080/teams/test-team/secrets'),
-      );
+      expect(request.method, 'POST');
+      expect(request.url, Uri.parse(secretFunctionUrl));
       expect(request.headers['Authorization'], 'Bearer local-test-token');
-      expect(request.body, isEmpty);
+      expect(secretData(request), {'action': 'list', 'teamId': 'test-team'});
     });
 
-    test('encodes the team as one path segment', () async {
+    test('preserves the exact team in JSON', () async {
       final requests = <http.Request>[];
       final api = createApi((request) async {
         requests.add(request);
-        return http.Response(
+        return functionResponse(
           '{"success":true,"secrets":[]}',
           200,
           headers: {'content-type': 'application/json'},
@@ -177,12 +174,8 @@ void main() {
       });
 
       expect(await fetchSecretNames(api, 'team/with space?#'), isEmpty);
-      expect(
-        requests.single.url,
-        Uri.parse(
-          'http://localhost:8080/teams/team%2Fwith%20space%3F%23/secrets',
-        ),
-      );
+      expect(secretData(requests.single)['teamId'], 'team/with space?#');
+      expect(requests.single.url, Uri.parse(secretFunctionUrl));
     });
 
     test(
@@ -191,7 +184,7 @@ void main() {
         var requests = 0;
         final api = createApi((_) async {
           requests++;
-          return http.Response(
+          return functionResponse(
             jsonEncode(responseBody),
             200,
             headers: {'content-type': 'application/json'},
@@ -213,7 +206,7 @@ void main() {
     for (final status in [401, 403, 404, 429, 500, 302]) {
       test('reports HTTP $status without exposing the response body', () async {
         final api = createApi(
-          (_) async => http.Response('unexpected-private-response', status),
+          (_) async => functionResponse('unexpected-private-response', status),
         );
 
         await expectLater(
@@ -235,9 +228,9 @@ void main() {
       ('null body', 'null'),
       ('invalid metadata', '{"success":true,"secrets":[{"name":42}]}'),
     ]) {
-      test('rejects $label returned by the shared API', () async {
+      test('rejects $label returned by the Firebase callable', () async {
         final api = createApi(
-          (_) async => http.Response(
+          (_) async => functionResponse(
             body,
             200,
             headers: {'content-type': 'application/json'},
@@ -255,7 +248,7 @@ void main() {
       ('network failures', http.ClientException('Connection failed')),
       ('timeouts', TimeoutException('Request timed out')),
     ]) {
-      test('propagates $label from the shared API', () async {
+      test('propagates $label from the Firebase callable', () async {
         final api = createApi((_) async => throw error);
 
         await expectLater(

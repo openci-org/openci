@@ -1,0 +1,26 @@
+# Used to reconcile duplicate deliveries and a lost create response. Payloads
+# can contain private repository data and are never exposed to client SDKs.
+query GetWebhookTaskByDeliveryId($deliveryId: String!) @auth(level: NO_ACCESS) {
+  webhookTask(first: { where: { deliveryId: { eq: $deliveryId } } }) {
+    id
+    deliveryId
+    eventType
+    payload
+    status
+    retryCount
+    createdAt
+    updatedAt
+  }
+}
+
+# The consumer re-reads the durable task instead of trusting an event payload.
+query GetWebhookTask($id: String!) @auth(level: NO_ACCESS) {
+  webhookTask(id: $id) {
+    id
+    deliveryId
+    eventType
+    payload
+    status
+    errorMessage
+  }
+}

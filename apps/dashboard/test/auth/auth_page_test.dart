@@ -1,6 +1,6 @@
+import 'dart:async';
 import 'dart:convert';
 
-import 'package:dashboard/api/openci_api_client.dart';
 import 'package:dashboard/app_strings.dart';
 import 'package:dashboard/auth/auth_page.dart';
 import 'package:dashboard/auth/auth_provider.dart';
@@ -9,16 +9,16 @@ import 'package:dashboard/connections/connection_snapshot.dart';
 import 'package:dashboard/connections/connection_store.dart';
 import 'package:dashboard/connections/connection_store_provider.dart';
 import 'package:dashboard/connections/local_development_connection.dart';
+import 'package:dashboard/generated/teams/teams.dart';
 import 'package:dashboard/team/selected_team_provider.dart';
 import 'package:dashboard/team/team_provider.dart';
+import 'package:dashboard/team/teams_connector_provider.dart';
 import 'package:dashboard/utilities/shared_preferences_provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_data_connect/firebase_data_connect.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:http/http.dart' as http;
-import 'package:http/testing.dart';
-import 'package:openci_shared/openci_shared.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
@@ -89,90 +89,161 @@ void main() {
     });
   }
 
-  for (final statusCode in [200, 500]) {
-    testWidgets('creates the signup team through the API: $statusCode', (
+  testWidgets('creates and selects the signup team through the SDK', (
+    tester,
+  ) async {
+    final setup = await _pumpSignup(tester);
+    final button = find.widgetWithText(OutlinedButton, t.auth.createAccount);
+
+    await tester.tap(button);
+    await tester.pumpAndSettle();
+
+    expect(setup.connector.requests, [
+      CreateTeamVariables(id: 'new-user', name: 'new-user'),
+    ]);
+    expect(setup.prefs.getString('selected_team_id:cloud'), 'new-user');
+    expect(setup.container.read(selectedTeamIdProvider).value, 'new-user');
+    expect(
+      (await setup.container.read(teamListProvider.future)).single.id,
+      'new-user',
+    );
+    expect(find.byType(SnackBar), findsNothing);
+    expect(tester.widget<OutlinedButton>(button).onPressed, isNotNull);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('keeps the selected team when the SDK rejects creation', (
+    tester,
+  ) async {
+    final setup = await _pumpSignup(
       tester,
-    ) async {
-      SharedPreferences.setMockInitialValues({
-        'selected_team_id:cloud': 'previous-team',
-      });
-      final prefs = await SharedPreferences.getInstance();
-      final requests = <http.Request>[];
-      final client = http.runWithClient(
-        () => createOpenCIChopperClient(
-          baseUrl: 'https://api.example.com',
-          tokenProvider: () => 'api-client-token',
-        ),
-        () => MockClient((request) async {
-          requests.add(request);
-          return http.Response(
-            statusCode == 200 ? '{"id":"new-user"}' : 'Team creation failed',
-            statusCode,
-            headers: {
-              'content-type': statusCode == 200
-                  ? 'application/json'
-                  : 'text/plain',
-            },
-          );
-        }),
-      );
-      addTearDown(client.dispose);
-      final container = ProviderContainer.test(
-        overrides: [
-          sharedPreferencesProvider.overrideWithValue(prefs),
-          firebaseAuthProvider.overrideWith((ref) async => _Auth()),
-          openciApiServiceProvider.overrideWith(
-            (ref) async => OpenCIApiService.create(client),
+      error: StateError('Team creation failed'),
+    );
+    final button = find.widgetWithText(OutlinedButton, t.auth.createAccount);
+
+    await tester.tap(button);
+    await tester.pumpAndSettle();
+
+    expect(setup.connector.requests, hasLength(1));
+    expect(setup.prefs.getString('selected_team_id:cloud'), 'previous-team');
+    expect(find.textContaining('Team creation failed'), findsOneWidget);
+    expect(tester.widget<OutlinedButton>(button).onPressed, isNotNull);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('finishes team creation after the auth page is disposed', (
+    tester,
+  ) async {
+    final credential = Completer<UserCredential>();
+    final setup = await _pumpSignup(tester, credential: credential.future);
+
+    await tester.tap(find.widgetWithText(OutlinedButton, t.auth.createAccount));
+    await tester.pump();
+    await tester.pumpWidget(const SizedBox.shrink());
+    credential.complete(_Credential());
+    await tester.pumpAndSettle();
+
+    expect(setup.connector.requests, hasLength(1));
+    expect(setup.prefs.getString('selected_team_id:cloud'), 'new-user');
+    expect(tester.takeException(), isNull);
+  });
+}
+
+Future<
+  ({
+    ProviderContainer container,
+    SharedPreferences prefs,
+    _Connector connector,
+  })
+>
+_pumpSignup(
+  WidgetTester tester, {
+  Object? error,
+  Future<UserCredential>? credential,
+}) async {
+  SharedPreferences.setMockInitialValues({
+    'selected_team_id:cloud': 'previous-team',
+  });
+  final prefs = await SharedPreferences.getInstance();
+  final connector = _Connector(error);
+  final container = ProviderContainer.test(
+    overrides: [
+      sharedPreferencesProvider.overrideWithValue(prefs),
+      firebaseAuthProvider.overrideWith((ref) async => _Auth(credential)),
+      teamsConnectorProvider.overrideWith((ref) async => connector),
+      teamListProvider.overrideWith((ref) async {
+        if (connector.requests.isEmpty || error != null) return [];
+        final request = connector.requests.single;
+        return [
+          Team(
+            id: request.id,
+            name: request.name,
+            members: const ['new-user'],
+            createdAt: DateTime.utc(2026),
+            updatedAt: DateTime.utc(2026),
           ),
-          teamListProvider.overrideWith((ref) async => []),
-        ],
-      );
-      container.listen(selectedTeamIdProvider, (_, _) {});
-      await container.read(selectedTeamIdProvider.future);
-      await tester.pumpWidget(
-        UncontrolledProviderScope(
-          container: container,
-          child: const MaterialApp(home: AuthPage()),
-        ),
-      );
-      await tester.pumpAndSettle();
+        ];
+      }),
+    ],
+  );
+  container.listen(selectedTeamIdProvider, (_, _) {});
+  await container.read(selectedTeamIdProvider.future);
+  await tester.pumpWidget(
+    UncontrolledProviderScope(
+      container: container,
+      child: const MaterialApp(home: AuthPage()),
+    ),
+  );
+  await tester.pumpAndSettle();
+  await tester.enterText(find.byType(TextFormField).at(0), 'user@example.com');
+  await tester.enterText(find.byType(TextFormField).at(1), 'test-password');
+  await tester.ensureVisible(
+    find.widgetWithText(OutlinedButton, t.auth.createAccount),
+  );
+  return (container: container, prefs: prefs, connector: connector);
+}
 
-      await tester.enterText(
-        find.byType(TextFormField).at(0),
-        'user@example.com',
-      );
-      await tester.enterText(find.byType(TextFormField).at(1), 'test-password');
-      final button = find.widgetWithText(OutlinedButton, t.auth.createAccount);
-      await tester.ensureVisible(button);
-      await tester.tap(button);
-      await tester.pumpAndSettle();
+class _Connector extends Fake implements TeamsConnector {
+  _Connector(this.error);
 
-      expect(requests, hasLength(1));
-      final request = requests.single;
-      expect(request.method, 'POST');
-      expect(request.url.toString(), 'https://api.example.com/teams');
-      expect(request.headers['Authorization'], 'Bearer api-client-token');
-      expect(jsonDecode(request.body), {'id': 'new-user', 'name': 'new-user'});
-      if (statusCode == 200) {
-        expect(prefs.getString('selected_team_id:cloud'), 'new-user');
-        expect(container.read(selectedTeamIdProvider).value, 'new-user');
-        expect(find.byType(SnackBar), findsNothing);
-      } else {
-        expect(prefs.getString('selected_team_id:cloud'), 'previous-team');
-        expect(find.textContaining('Team creation failed'), findsOneWidget);
-      }
-      expect(tester.widget<OutlinedButton>(button).onPressed, isNotNull);
-      expect(tester.takeException(), isNull);
-    });
+  final Object? error;
+  final requests = <CreateTeamVariables>[];
+
+  @override
+  CreateTeamVariablesBuilder createTeam({
+    required String id,
+    required String name,
+  }) => _CreateTeam(() async {
+    requests.add(CreateTeamVariables(id: id, name: name));
+    if (error != null) throw error!;
+  });
+}
+
+class _CreateTeam extends Fake implements CreateTeamVariablesBuilder {
+  _CreateTeam(this.create);
+
+  final Future<void> Function() create;
+
+  @override
+  Future<OperationResult<CreateTeamData, CreateTeamVariables>> execute() async {
+    await create();
+    return _CreateTeamResult();
   }
 }
 
+class _CreateTeamResult extends Fake
+    implements OperationResult<CreateTeamData, CreateTeamVariables> {}
+
 class _Auth extends Fake implements FirebaseAuth {
+  _Auth(this.credential);
+
+  final Future<UserCredential>? credential;
+
   @override
   Future<UserCredential> createUserWithEmailAndPassword({
     required String email,
     required String password,
-  }) async => _Credential();
+  }) async => credential ?? _Credential();
 }
 
 class _Credential extends Fake implements UserCredential {
