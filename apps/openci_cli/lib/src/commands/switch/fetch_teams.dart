@@ -2,13 +2,21 @@ import 'dart:io';
 
 import 'package:openci_shared/openci_shared.dart';
 
-Future<List<Team>> fetchTeams(OpenCIApiService api) async {
+import '../../teams/teams_api.dart';
+
+Future<List<Team>> fetchTeams(TeamsApi api) async {
   final response = await api.getTeams();
   if (response.statusCode != HttpStatus.ok) {
     throw TeamsHttpException(response.statusCode);
   }
-  final teams = response.body;
-  if (teams == null || teams.any((team) => team.id.trim().isEmpty)) {
+  final data = response.body;
+  if (data?['success'] != true || data?['teams'] is! List) {
+    throw const FormatException('Invalid teams response');
+  }
+  final teams = (data!['teams'] as List)
+      .map((team) => Team.fromJson(Map<String, dynamic>.from(team as Map)))
+      .toList();
+  if (teams.any((team) => team.id.trim().isEmpty)) {
     throw const FormatException('Invalid teams response');
   }
 

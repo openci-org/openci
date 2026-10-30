@@ -1,3 +1,4 @@
+import '../../../helpers/team_functions.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -55,7 +56,7 @@ void main() {
   late List<({List<Team> teams, String currentTeamId})> selections;
 
   http.Response teamsResponse({bool empty = false}) => http.Response(
-    jsonEncode([
+    encodeTeams([
       if (!empty)
         {
           'id': 'team-1',
@@ -77,6 +78,7 @@ void main() {
       customFilePath: p.join(root.path, 'credentials.json'),
     );
     profile = AuthProfile(
+      firebaseProjectId: 'test-project',
       serverUrl: 'https://ci.example.com/proxy/',
       token: token,
       teamId: 'team-1',
@@ -175,8 +177,11 @@ void main() {
         expect(await run(), 0);
 
         final request = requests.single;
-        expect(request.method, 'GET');
-        expect(request.url.toString(), 'https://ci.example.com/proxy/teams');
+        expect(request.method, 'POST');
+        expect(
+          request.url.toString(),
+          'https://asia-northeast1-test-project.cloudfunctions.net/teamManagement',
+        );
         expect(request.headers['authorization'], 'Bearer $token');
         expect(logger.errors, isEmpty);
         expect(logger.output, [
@@ -203,7 +208,7 @@ void main() {
     ('local', 'http://localhost:8080', '127.0.0.1:9099'),
     ('remote', 'https://ci.example.com/proxy/', null),
   ]) {
-    test('uses the active $name profile server and token', () async {
+    test('uses the active $name profile Functions endpoint and token', () async {
       await store.saveProfile(
         name,
         profile.copyWith(
@@ -215,7 +220,9 @@ void main() {
       expect(await run(), 0);
       expect(
         requests.single.url.toString(),
-        '${serverUrl.replaceAll(RegExp(r'/$'), '')}/teams',
+        emulatorHost == null
+            ? 'https://asia-northeast1-test-project.cloudfunctions.net/teamManagement'
+            : 'http://127.0.0.1:5001/test-project/asia-northeast1/teamManagement',
       );
       expect(requests.single.headers['authorization'], 'Bearer $token');
       expect(logger.errors, isEmpty);
@@ -245,7 +252,7 @@ void main() {
     'passes sorted candidates and the active profile team to the picker',
     () async {
       handler = (_) async => http.Response(
-        jsonEncode([
+        encodeTeams([
           for (final (id, name) in [
             ('team-z', 'Zulu'),
             ('team-2', 'Alpha'),
@@ -280,7 +287,7 @@ void main() {
         await store.getActiveProfile(),
         profile.copyWith(teamId: 'team-2'),
       );
-      expect(requests.single.method, 'GET');
+      expect(requests.single.method, 'POST');
     },
   );
 
@@ -294,7 +301,7 @@ void main() {
         expect(await run(), 1);
         expect(selections.single.teams, hasLength(1));
         expect(logger.errors, [t.switchCommand.team.cancelled]);
-        expect(requests.single.method, 'GET');
+        expect(requests.single.method, 'POST');
       },
     );
 
@@ -325,7 +332,7 @@ void main() {
 
         expect(await run(), 1);
         expect(logger.errors, [t.switchCommand.team.nonInteractive]);
-        expect(requests.single.method, 'GET');
+        expect(requests.single.method, 'POST');
       },
     );
   }
@@ -336,7 +343,7 @@ void main() {
       const Duration(seconds: 30),
     ]) {
       test(
-        'refreshes before GET /teams: emulator=$emulatorHost expiry=$expiry',
+        'refreshes before calling teamManagement: emulator=$emulatorHost expiry=$expiry',
         () async {
           await store.saveProfile(
             'selected',
@@ -346,7 +353,7 @@ void main() {
             ),
           );
           handler = (request) async {
-            if (request.method == 'POST') {
+            if (request.url.path.endsWith('/token')) {
               expect(
                 request.url.toString(),
                 emulatorHost == null
@@ -371,7 +378,7 @@ void main() {
           };
 
           expect(await run(refreshExpected: true), 0);
-          expect(requests.map((request) => request.method), ['POST', 'GET']);
+          expect(requests.map((request) => request.method), ['POST', 'POST']);
           expect(logger.errors, isEmpty);
           expect(logger.output, [
             t.switchCommand.team.alreadyCurrent(
@@ -405,7 +412,7 @@ void main() {
         'selected',
         profile.copyWith(expiresAt: DateTime.now().toUtc()),
       );
-      handler = (request) async => request.method == 'POST'
+      handler = (request) async => request.url.path.endsWith('/token')
           ? http.Response(
               jsonEncode({
                 'id_token': 'rotated-token',

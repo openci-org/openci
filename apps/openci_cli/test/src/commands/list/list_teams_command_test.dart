@@ -1,3 +1,4 @@
+import '../../../helpers/team_functions.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -41,6 +42,7 @@ void main() {
   const refreshToken = 'private-refresh-token';
   const responseDetail = 'private-response-detail';
   final profile = AuthProfile(
+    firebaseProjectId: 'test-project',
     serverUrl: 'https://ci.example.com/proxy/',
     authType: 'firebase',
     token: token,
@@ -66,7 +68,7 @@ void main() {
   };
 
   http.Response response(Object? body) => http.Response(
-    jsonEncode(body),
+    encodeTeamResponse(body),
     200,
     headers: {'content-type': 'application/json'},
   );
@@ -146,10 +148,16 @@ void main() {
     ]);
     expect(logger.errors, isEmpty);
     final request = requests.single;
-    expect(request.method, 'GET');
-    expect(request.url.toString(), 'https://ci.example.com/proxy/teams');
+    expect(request.method, 'POST');
+    expect(
+      request.url.toString(),
+      'https://asia-northeast1-test-project.cloudfunctions.net/teamManagement',
+    );
     expect(request.headers['authorization'], 'Bearer $token');
-    expect(request.body, isEmpty);
+    expect(jsonDecode(request.body), {
+      'data': {'action': 'list'},
+    });
+    expect(request.followRedirects, isFalse);
     expect(await File(store.filePath).readAsBytes(), credentials);
     expect(root.listSync().map((entry) => p.basename(entry.path)), [
       'credentials.json',
@@ -246,7 +254,9 @@ void main() {
         }
         expect(
           request.url.toString(),
-          '${activeProfile.serverUrl.replaceAll(RegExp(r'/$'), '')}/teams',
+          local
+              ? 'http://127.0.0.1:5001/test-project/asia-northeast1/teamManagement'
+              : 'https://asia-northeast1-test-project.cloudfunctions.net/teamManagement',
         );
         expect(request.headers['authorization'], 'Bearer new-id-token');
         return response([team(activeProfile.teamId, 'My team')]);

@@ -1,9 +1,9 @@
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:dashboard/api/openci_api_client.dart';
 import 'package:dashboard/auth/auth_provider.dart';
 import 'package:dashboard/team/selected_team_provider.dart';
+import 'package:dashboard/team/team_members_api.dart';
 import 'package:dashboard/team/teams_connector_provider.dart';
 import 'package:openci_shared/openci_shared.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -96,26 +96,8 @@ class TeamService {
   }
 
   Future<void> inviteMember(String teamId, String email) async {
-    final apiService = await _ref.read(openciApiServiceProvider.future);
-    final response = await apiService.inviteMember(teamId, {
-      'email': email,
-    });
-
-    if (!response.isSuccessful) {
-      String errorMessage = 'Failed to invite member';
-      try {
-        final errorBody = response.error as Map<String, dynamic>?;
-        errorMessage = errorBody?['error'] as String? ?? errorMessage;
-      } catch (_) {
-        final errString = response.error?.toString();
-        if (errString != null && errString.isNotEmpty) {
-          try {
-            final parsed = jsonDecode(errString) as Map<String, dynamic>;
-            errorMessage = parsed['error'] as String? ?? errorMessage;
-          } catch (_) {}
-        }
-      }
-      throw StateError(errorMessage);
-    }
+    final api = await _ref.read(teamMembersApiProvider.future);
+    await api.add(teamId, email);
+    if (_ref.mounted) _ref.invalidate(teamListProvider);
   }
 }

@@ -1,9 +1,12 @@
+import '../../../helpers/team_functions.dart';
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:genuineci_cli/src/commands/switch/fetch_teams.dart';
 import 'package:openci_shared/openci_shared.dart';
+import 'package:genuineci_cli/src/credential_store/credential_config.dart';
+import 'package:genuineci_cli/src/teams/teams_api.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -19,7 +22,7 @@ void main() {
   };
 
   http.Response response(Object? body, {int status = 200}) => http.Response(
-    jsonEncode(body),
+    encodeTeamResponse(body),
     status,
     headers: {'content-type': 'application/json'},
   );
@@ -34,13 +37,11 @@ void main() {
   });
 
   Future<List<Team>> fetch() => http.runWithClient(() async {
-    final client = createOpenCIChopperClient(
-      baseUrl: 'https://ci.example.com/proxy/',
-      tokenProvider: () => token,
-      services: [OpenCIApiService.create()],
+    final client = TeamsApi(
+      const AuthProfile(token: token, firebaseProjectId: 'test-project'),
     );
     try {
-      return await fetchTeams(client.getService<OpenCIApiService>());
+      return await fetchTeams(client);
     } finally {
       client.dispose();
     }
@@ -65,10 +66,16 @@ void main() {
     expect(teams.first.members, ['user-1']);
     expect(teams.first.createdAt, DateTime.utc(2026, 10, 1));
     final request = requests.single;
-    expect(request.method, 'GET');
-    expect(request.url.toString(), 'https://ci.example.com/proxy/teams');
+    expect(request.method, 'POST');
+    expect(
+      request.url.toString(),
+      'https://asia-northeast1-test-project.cloudfunctions.net/teamManagement',
+    );
     expect(request.headers['authorization'], 'Bearer $token');
-    expect(request.body, isEmpty);
+    expect(jsonDecode(request.body), {
+      'data': {'action': 'list'},
+    });
+    expect(request.followRedirects, isFalse);
   });
 
   test('returns an empty list for a user without teams', () async {

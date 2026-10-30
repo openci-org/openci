@@ -142,12 +142,12 @@ Switch the active profile's team without logging in again:
 genuineci switch team
 ```
 
-The CLI fetches your team memberships from the server saved in the active
-credential profile. A `remote` profile uses the HTTPS URL saved by `genuineci login`,
-including any `--server` override. A `local` profile created by
-`genuineci login --local` uses `http://localhost:8080` and its saved Auth Emulator
-settings. To activate the remote or local profile, run the corresponding login
-command first.
+Login, status, team listing and switching fetch memberships from the
+`teamManagement` Firebase callable Function, backed by FSC. The active profile's
+Firebase project (or the ID token's audience) and `functions_region` select the
+endpoint. `--server` remains the address for other legacy APIs. A local profile
+uses its saved Auth/Functions Emulator settings (Functions defaults to port 5001).
+To activate the remote or local profile, run the corresponding login command first.
 
 The picker shows each team's name and ID, with `*` marking the saved current
 team and `>` marking the highlighted choice. It starts on the current team if
@@ -337,11 +337,11 @@ genuineci login --local
 
 Enter `test@openci.org` and `123456`, or the credentials of another user
 you created in the Auth Emulator UI. The CLI signs in through the
-fixed address `127.0.0.1:9099`, sends the resulting Firebase ID token to
-`http://localhost:8080/teams`, and selects `test-team` only if the API returns it
-among your memberships. `--seed` prepares this membership for `test@openci.org`;
-you can use the same account in the local Dashboard. If `test-team` is missing,
-check that seeding completed and that you are using the seeded account.
+fixed address `127.0.0.1:9099`, then calls `teamManagement` on the Functions
+Emulator at port 5001. It selects `test-team` only if FSC returns it among the
+authenticated user's memberships. Start Functions and FSC emulators and seed that
+FSC team/membership as well: the legacy Compose `--seed` initializes SQL data and
+does not synchronize it into FSC. See the [team migration guide](../../firebase/functions/TEAMS.md).
 
 Successful login saves and activates the `local` Firebase profile, including
 the refresh credentials and `firebase_auth_emulator_host`. Later token refreshes

@@ -1,3 +1,4 @@
+import '../../../helpers/team_functions.dart';
 import '../../../helpers/secret_functions.dart';
 import 'dart:convert';
 import 'dart:io';
@@ -58,7 +59,7 @@ void main() {
   late List<http.Request> requests;
 
   http.Response teamsResponse({String nextName = 'Next team'}) => http.Response(
-    jsonEncode([
+    encodeTeams([
       for (final (id, name) in [
         ('team-1', 'Current team'),
         ('team-2', nextName),
@@ -157,7 +158,7 @@ void main() {
       ),
     );
     handler = (request) async {
-      if (request.method == 'POST') {
+      if (request.url.path.endsWith('/token')) {
         return http.Response(
           jsonEncode({
             'id_token': 'rotated-token',
@@ -235,7 +236,7 @@ void main() {
       expect(refreshed.firebaseAuthEmulatorHost, emulatorHost);
       expect(await otherStore.get(), withTeam(authenticated, 'team-2'));
       expect(store.writes, 2);
-      expect(requests.map((request) => request.method), ['POST', 'GET']);
+      expect(requests.map((request) => request.method), ['POST', 'POST']);
       expect(logger.errors, isEmpty);
     });
   }

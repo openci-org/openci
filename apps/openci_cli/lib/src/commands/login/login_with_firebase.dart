@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:cli_util/cli_logging.dart';
 import 'package:http/http.dart' as http;
 
@@ -7,6 +5,7 @@ import '../../auth/firebase_auth_client.dart';
 import '../../credential_store/credential_config.dart';
 import '../../credential_store/credential_store.dart';
 import '../../i18n/i18n.dart';
+import '../../teams/teams_api.dart';
 import 'read_login_credentials.dart';
 
 Future<int> loginWithFirebase({
@@ -40,13 +39,20 @@ Future<int> loginWithFirebase({
           password: credentials.password,
         );
 
-    final request = http.Request('GET', Uri.parse('$serverUrl/teams'))
-      ..followRedirects = false
-      ..headers['Authorization'] = 'Bearer ${session.token}';
-    final response = await client
-        .send(request)
-        .then(http.Response.fromStream)
-        .timeout(timeout);
+    final profile = AuthProfile(
+      serverUrl: serverUrl,
+      token: session.token,
+      authType: 'firebase',
+      refreshToken: session.refreshToken,
+      firebaseApiKey: firebaseApiKey,
+      firebaseAuthEmulatorHost: emulatorHost,
+      expiresAt: session.expiresAt,
+    );
+    final response = await TeamsApi(
+      profile,
+      client: client,
+      timeout: timeout,
+    ).getTeams();
     if (response.statusCode != 200) {
       logger.stderr(
         isLocal && (response.statusCode == 401 || response.statusCode == 403)
@@ -55,8 +61,9 @@ Future<int> loginWithFirebase({
       );
       return 1;
     }
-    final teams = jsonDecode(utf8.decode(response.bodyBytes));
-    if (teams is! List ||
+    final teams = response.body?['teams'];
+    if (response.body?['success'] != true ||
+        teams is! List ||
         teams.any(
           (team) =>
               team is! Map ||
@@ -84,16 +91,7 @@ Future<int> loginWithFirebase({
     try {
       await store.saveProfile(
         profileName,
-        AuthProfile(
-          serverUrl: serverUrl,
-          token: session.token,
-          teamId: selectedTeamId,
-          authType: 'firebase',
-          refreshToken: session.refreshToken,
-          firebaseApiKey: firebaseApiKey,
-          firebaseAuthEmulatorHost: emulatorHost,
-          expiresAt: session.expiresAt,
-        ),
+        profile.copyWith(teamId: selectedTeamId),
       );
     } catch (_) {
       logger.stderr(t.login.saveFailed);

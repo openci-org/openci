@@ -1,3 +1,4 @@
+import '../../helpers/team_functions.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -71,7 +72,7 @@ void main() {
   };
 
   http.Response response(Object? body) => http.Response(
-    jsonEncode(body),
+    encodeTeamResponse(body),
     200,
     headers: {'content-type': 'application/json; charset=utf-8'},
   );
@@ -89,6 +90,7 @@ void main() {
       customFilePath: p.join(root.path, 'credentials.json'),
     );
     profile = AuthProfile(
+      firebaseProjectId: 'test-project',
       serverUrl: 'https://ci.example.com/proxy/',
       token: token,
       teamId: 'team-current',
@@ -189,10 +191,16 @@ void main() {
       expect(await run(), 0);
 
       final request = requests.single;
-      expect(request.method, 'GET');
-      expect(request.url.toString(), 'https://ci.example.com/proxy/teams');
+      expect(request.method, 'POST');
+      expect(
+        request.url.toString(),
+        'https://asia-northeast1-test-project.cloudfunctions.net/teamManagement',
+      );
       expect(request.headers['authorization'], 'Bearer $token');
-      expect(request.body, isEmpty);
+      expect(jsonDecode(request.body), {
+        'data': {'action': 'list'},
+      });
+      expect(request.followRedirects, isFalse);
       expect(logger.output, output);
       expect(logger.errors, isEmpty);
     });
@@ -230,7 +238,7 @@ void main() {
       );
       await store.saveProfile(name, active);
       handler = (request) async {
-        if (request.method == 'POST') {
+        if (request.url.path.endsWith('/token')) {
           expect(
             request.url.toString(),
             emulatorHost == null
@@ -249,14 +257,16 @@ void main() {
         }
         expect(
           request.url.toString(),
-          '${serverUrl.replaceAll(RegExp(r'/$'), '')}/teams',
+          emulatorHost == null
+              ? 'https://asia-northeast1-test-project.cloudfunctions.net/teamManagement'
+              : 'http://127.0.0.1:5001/test-project/asia-northeast1/teamManagement',
         );
         expect(request.headers['authorization'], 'Bearer rotated-token');
         return teamsResponse();
       };
 
       expect(await run(refreshExpected: true), 0);
-      expect(requests.map((request) => request.method), ['POST', 'GET']);
+      expect(requests.map((request) => request.method), ['POST', 'POST']);
       expect(logger.output, [
         'Profile: $name',
         'Server: $serverUrl',

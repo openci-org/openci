@@ -4,6 +4,7 @@ import 'package:args/command_runner.dart';
 import 'package:cli_util/cli_logging.dart';
 import 'package:openci_shared/openci_shared.dart';
 
+import '../../teams/teams_api.dart';
 import '../../credential_store/credential_config.dart';
 import '../../credential_store/credential_store.dart';
 import '../../credential_store/read_authenticated_profile.dart';
@@ -40,14 +41,10 @@ class SwitchTeamCommand extends Command<int> {
     if (authenticated == null) return 1;
     final profile = authenticated.profile;
 
-    final client = createOpenCIChopperClient(
-      baseUrl: profile.serverUrl,
-      tokenProvider: () => profile.token,
-      services: [OpenCIApiService.create()],
-    );
+    final client = TeamsApi(profile);
     final List<Team> teams;
     try {
-      teams = await fetchTeams(client.getService<OpenCIApiService>());
+      teams = await fetchTeams(client);
     } on TeamsHttpException catch (error) {
       _logger.stderr(
         error.statusCode == HttpStatus.unauthorized ||

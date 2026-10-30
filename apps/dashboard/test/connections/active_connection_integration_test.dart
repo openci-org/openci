@@ -127,8 +127,8 @@ void main() {
     expect(container.read(currentUserIdProvider), user?.uid);
 
     final api = await container.read(openciApiServiceProvider.future);
-    await api.getTeams();
-    expect(requests.last.url.toString(), '${profile.apiUrl}/teams');
+    await api.getDevices();
+    expect(requests.last.url.toString(), '${profile.apiUrl}/devices');
     expect(
       requests.last.headers['Authorization'],
       'Bearer ${profile.id}-token',
@@ -178,7 +178,7 @@ void main() {
       authResults[local.profile.id] = ready.future;
       listenToConnection();
       final api = await container.read(openciApiServiceProvider.future);
-      final response = api.getTeams();
+      final response = api.getDevices();
       await container.pump();
 
       expect(container.read(authStateChangesProvider).isLoading, isTrue);
@@ -189,7 +189,7 @@ void main() {
 
       expect(requests, hasLength(2));
       for (final request in requests) {
-        expect(request.url.toString(), 'http://127.0.0.1:8080/teams');
+        expect(request.url.toString(), 'http://127.0.0.1:8080/devices');
         expect(
           request.headers['Authorization'],
           'Bearer local-development-token',
@@ -215,7 +215,7 @@ void main() {
           throwsA(same(error)),
         );
         final requestFailure = expectLater(
-          api.getTeams(),
+          api.getDevices(),
           throwsA(same(error)),
         );
 

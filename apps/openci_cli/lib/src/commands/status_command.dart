@@ -2,8 +2,8 @@ import 'dart:io';
 
 import 'package:args/command_runner.dart';
 import 'package:cli_util/cli_logging.dart';
-import 'package:openci_shared/openci_shared.dart';
 
+import '../teams/teams_api.dart';
 import '../credential_store/credential_config.dart';
 import '../credential_store/credential_store.dart';
 import '../credential_store/read_authenticated_profile.dart';
@@ -65,13 +65,9 @@ class StatusCommand extends Command<int> {
     final profile = await _readProfile(config.activeProfile, savedProfile);
     if (profile == null) return 1;
 
-    final client = createOpenCIChopperClient(
-      baseUrl: profile.serverUrl,
-      tokenProvider: () => profile.token,
-      services: [OpenCIApiService.create()],
-    );
+    final client = TeamsApi(profile);
     try {
-      final teams = await fetchTeams(client.getService<OpenCIApiService>());
+      final teams = await fetchTeams(client);
       final team = teams.where((team) => team.id == profile.teamId).firstOrNull;
       if (team == null) {
         _logger.stderr(
