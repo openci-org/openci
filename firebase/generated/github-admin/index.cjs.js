@@ -74,6 +74,17 @@ function getActiveGitHubConnection(dcOrVarsOrOptions, varsOrOptions, options) {
 }
 exports.getActiveGitHubConnection = getActiveGitHubConnection;
 
+function getGitHubConnectionContext(dcOrVarsOrOptions, varsOrOptions, options) {
+  const {
+    dc: dcInstance,
+    vars: inputVars,
+    options: inputOpts,
+  } = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeQuery("GetGitHubConnectionContext", inputVars, inputOpts);
+}
+exports.getGitHubConnectionContext = getGitHubConnectionContext;
+
 function createGitHubConnectionRequest(dcOrVarsOrOptions, varsOrOptions, options) {
   const {
     dc: dcInstance,

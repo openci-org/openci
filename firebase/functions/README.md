@@ -1,5 +1,8 @@
 # GitHub webhook receiver
 
+GitHub App authorization and team connection are implemented separately by
+[`githubConnection` and `githubConnectionCallback`](GITHUB_CONNECTION.md).
+
 `githubWebhook` is a second-generation HTTPS Function in `asia-northeast1`.
 The Firebase npm workspace is its deployment source; TypeScript in this
 directory compiles to `firebase/lib/functions` and uses the generated Admin SDK
