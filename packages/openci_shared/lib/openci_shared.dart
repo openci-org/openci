@@ -14,7 +14,6 @@ export 'src/models/github_connection_result.dart';
 export 'src/models/open_ci_file.dart';
 export 'src/models/skipped_workflow_plan.dart';
 export 'src/models/team.dart';
-export 'src/models/user_device.dart';
 export 'src/models/webhook_task.dart';
 export 'src/models/webhook_task_plan.dart';
 export 'src/utilities/constant_time_compare.dart';

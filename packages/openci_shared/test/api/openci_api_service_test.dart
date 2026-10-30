@@ -16,7 +16,9 @@ void main() {
       httpClient.close();
     });
 
-    final response = await client.getService<OpenCIApiService>().getDevices();
+    final response = await client.getService<OpenCIApiService>().getBuildJob(
+      'job-123',
+    );
 
     expect(response.isSuccessful, isTrue);
     expect(response.body, isEmpty);
@@ -334,7 +336,7 @@ class _TimeoutInspectingClient extends http.BaseClient {
     expect(request, isA<http.AbortableRequest>());
     expect((request as http.AbortableRequest).abortTrigger, isNotNull);
     return http.StreamedResponse(
-      Stream.value(utf8.encode('[]')),
+      Stream.value(utf8.encode('{}')),
       200,
       headers: {'content-type': 'application/json'},
     );

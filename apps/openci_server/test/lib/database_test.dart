@@ -16,14 +16,15 @@ void main() {
     await db.close();
   });
 
-  test('creates the database without legacy log or heartbeat tables', () async {
+  test('creates the database without retired storage', () async {
     final jobs = await db.select(db.buildJobs).get();
     expect(jobs, isEmpty);
 
     final legacyTables = await db.customSelect('''
       SELECT name FROM sqlite_master
       WHERE name IN (
-        'build_steps', 'build_step_logs', 'build_job_logs', 'worker_heartbeats'
+        'build_steps', 'build_step_logs', 'build_job_logs', 'worker_heartbeats',
+        'invitations', 'user_devices', 'udid_requests'
       )
     ''').get();
     expect(legacyTables, isEmpty);
@@ -34,7 +35,7 @@ void main() {
     );
   });
 
-  for (final version in [19, 22, 23]) {
+  for (final version in [16, 17, 18, 19, 22, 23]) {
     test('upgrades v$version while preserving jobs and runs', () async {
       await db.close();
       db = AppDatabase(
@@ -63,7 +64,23 @@ void main() {
               INSERT INTO worker_heartbeats VALUES (
                 'worker-1', '1.0.0', 'macos', 'idle', 0
               );
+              CREATE TABLE user_devices (
+                id TEXT PRIMARY KEY, team_id TEXT REFERENCES teams(id)
+              );
+              CREATE TABLE udid_requests (
+                id TEXT PRIMARY KEY, team_id TEXT REFERENCES teams(id)
+              );
+              INSERT INTO user_devices VALUES ('device-1', 'team-1');
+              INSERT INTO udid_requests VALUES ('request-1', 'team-1');
             ''');
+            if (version == 17) {
+              database.execute('''
+                CREATE TABLE invitations (
+                  id TEXT PRIMARY KEY, team_id TEXT REFERENCES teams(id)
+                );
+                INSERT INTO invitations VALUES ('invitation-1', 'team-1');
+              ''');
+            }
             if (version < 23) {
               database.execute('''
                 CREATE TABLE build_job_logs (
@@ -113,7 +130,7 @@ void main() {
       );
       expect(
         (await db.customSelect('SELECT * FROM build_jobs').get()).single.data,
-        {'id': 'job-1'},
+        {'id': 'job-1', if (version < 19) 'commit_message': null},
       );
       expect(
         (await db.customSelect('SELECT * FROM build_runs').get()).single.data,
@@ -123,7 +140,7 @@ void main() {
         (await db.customSelect('PRAGMA user_version').getSingle()).read<int>(
           'user_version',
         ),
-        31,
+        32,
       );
       expect(
         (await db.customSelect('SELECT * FROM teams').getSingle()).data,
@@ -185,7 +202,7 @@ void main() {
         (await db.customSelect('PRAGMA user_version').getSingle()).read<int>(
           'user_version',
         ),
-        31,
+        32,
       );
     },
   );
@@ -229,7 +246,7 @@ void main() {
       (await db.customSelect('PRAGMA user_version').getSingle()).read<int>(
         'user_version',
       ),
-      31,
+      32,
     );
     expect(
       (await db.customSelect('SELECT * FROM teams').getSingle()).data,
@@ -313,7 +330,7 @@ void main() {
       (await db.customSelect('PRAGMA user_version').getSingle()).read<int>(
         'user_version',
       ),
-      31,
+      32,
     );
     expect(
       (await db.customSelect('SELECT * FROM teams').getSingle()).data,
@@ -420,7 +437,7 @@ void main() {
         (await db.customSelect('PRAGMA user_version').getSingle()).read<int>(
           'user_version',
         ),
-        31,
+        32,
       );
       expect((await db.teamDao.getTeam('team-1'))!.installationIds, [123]);
       expect((await db.teamDao.getTeam('team-2'))!.installationIds, [123]);
@@ -515,7 +532,7 @@ void main() {
         (await db.customSelect('PRAGMA user_version').getSingle()).read<int>(
           'user_version',
         ),
-        31,
+        32,
       );
 
       await db
@@ -526,6 +543,110 @@ void main() {
       expect((await db.select(db.buildRuns).getSingle()).runNumber, 42);
     },
   );
+
+  for (final retiredTables in [
+    ['invitations', 'user_devices', 'udid_requests'],
+    ['user_devices', 'udid_requests'],
+    <String>[],
+  ]) {
+    test(
+      'v31 retires $retiredTables while preserving team, membership, build and billing rows',
+      () async {
+        await db.close();
+        db = AppDatabase(
+          NativeDatabase.memory(
+            setup: (database) {
+              database.execute('''
+          PRAGMA foreign_keys = ON;
+          PRAGMA user_version = 31;
+          CREATE TABLE teams (id TEXT PRIMARY KEY, name TEXT NOT NULL);
+          CREATE TABLE team_members (
+            id INTEGER PRIMARY KEY, team_id TEXT REFERENCES teams(id), user_id TEXT NOT NULL
+          );
+          CREATE TABLE build_jobs (id TEXT PRIMARY KEY, team_id TEXT REFERENCES teams(id));
+          CREATE TABLE build_runs (
+            id TEXT PRIMARY KEY, build_job_id TEXT REFERENCES build_jobs(id),
+            run_number INTEGER, provisioned_udids TEXT
+          );
+          CREATE TABLE billing_accounts (team_id TEXT PRIMARY KEY);
+          CREATE TABLE billing_periods (id TEXT PRIMARY KEY, team_id TEXT REFERENCES billing_accounts(team_id));
+          INSERT INTO teams VALUES ('team-1', 'OpenCI');
+          INSERT INTO team_members VALUES (1, 'team-1', 'member-1');
+          INSERT INTO build_jobs VALUES ('job-1', 'team-1');
+          INSERT INTO build_runs VALUES ('run-1', 'job-1', 42, '["artifact-udid"]');
+          INSERT INTO billing_accounts VALUES ('team-1');
+          INSERT INTO billing_periods VALUES ('period-1', 'team-1');
+        ''');
+              for (final table in retiredTables) {
+                database.execute(
+                  'CREATE TABLE $table (id TEXT PRIMARY KEY, team_id TEXT REFERENCES teams(id))',
+                );
+                database.execute(
+                  "INSERT INTO $table VALUES ('retired-1', 'team-1')",
+                );
+              }
+            },
+          ),
+        );
+        final tables = await db
+            .customSelect("SELECT name FROM sqlite_master WHERE type = 'table'")
+            .get();
+        expect(
+          tables.map((row) => row.read<String>('name')),
+          unorderedEquals([
+            'teams',
+            'team_members',
+            'build_jobs',
+            'build_runs',
+            'billing_accounts',
+            'billing_periods',
+          ]),
+        );
+        expect(
+          (await db.customSelect('PRAGMA user_version').getSingle()).read<int>(
+            'user_version',
+          ),
+          32,
+        );
+        expect(
+          (await db.customSelect('SELECT * FROM teams').getSingle()).data,
+          {'id': 'team-1', 'name': 'OpenCI'},
+        );
+        expect(
+          (await db.customSelect('SELECT * FROM team_members').getSingle())
+              .data,
+          {'id': 1, 'team_id': 'team-1', 'user_id': 'member-1'},
+        );
+        expect(
+          (await db.customSelect('SELECT * FROM build_jobs').getSingle()).data,
+          {'id': 'job-1', 'team_id': 'team-1'},
+        );
+        expect(
+          (await db.customSelect('SELECT * FROM build_runs').getSingle()).data,
+          {
+            'id': 'run-1',
+            'build_job_id': 'job-1',
+            'run_number': 42,
+            'provisioned_udids': '["artifact-udid"]',
+          },
+        );
+        expect(
+          (await db.customSelect('SELECT * FROM billing_accounts').getSingle())
+              .data,
+          {'team_id': 'team-1'},
+        );
+        expect(
+          (await db.customSelect('SELECT * FROM billing_periods').getSingle())
+              .data,
+          {'id': 'period-1', 'team_id': 'team-1'},
+        );
+        expect(
+          await db.customSelect('PRAGMA foreign_key_check').get(),
+          isEmpty,
+        );
+      },
+    );
+  }
 
   test('stores one billing account per team', () async {
     const account = BillingAccount(teamId: 'team-1');

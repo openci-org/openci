@@ -8,10 +8,6 @@ import 'package:openci_server/build_job/build_job.dart';
 import 'package:openci_server/build_job/build_job_dao.dart';
 import 'package:openci_server/build_run/build_run.dart';
 import 'package:openci_server/build_run/build_run_dao.dart';
-import 'package:openci_server/device/device_dao.dart';
-import 'package:openci_server/device/device_table.dart';
-import 'package:openci_server/device/udid_request_dao.dart';
-import 'package:openci_server/device/udid_request_table.dart';
 import 'package:openci_server/github/github_connection_request_table.dart';
 import 'package:openci_server/github/github_connection_session_table.dart';
 import 'package:openci_server/github/github_connection_table.dart';
@@ -19,7 +15,6 @@ import 'package:openci_server/open_postgres_database.dart';
 import 'package:openci_server/secret/secret_dao.dart';
 import 'package:openci_server/secret/secret_table.dart';
 import 'package:openci_server/seed/seed_dao.dart';
-import 'package:openci_server/team/invitation_table.dart';
 import 'package:openci_server/team/team_dao.dart';
 import 'package:openci_server/team/team_table.dart';
 import 'package:openci_server/webhook_task/webhook_task_dao.dart';
@@ -36,9 +31,6 @@ part 'database.g.dart';
     TeamMembers,
     Secrets,
     WebhookTasks,
-    UserDevices,
-    UdidRequests,
-    Invitations,
     GitHubConnectionRequests,
     GitHubConnectionSessions,
     GitHubConnections,
@@ -51,8 +43,6 @@ part 'database.g.dart';
     TeamDao,
     WebhookTaskDao,
     SecretDao,
-    DeviceDao,
-    UdidRequestDao,
     SeedDao,
   ],
 )
@@ -61,7 +51,7 @@ class AppDatabase extends _$AppDatabase {
     : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 31;
+  int get schemaVersion => 32;
 
   @override
   MigrationStrategy get migration {
@@ -71,12 +61,6 @@ class AppDatabase extends _$AppDatabase {
         await m.createAll();
       },
       onUpgrade: (Migrator m, int from, int to) async {
-        if (from < 17) {
-          await m.createTable(invitations);
-        }
-        if (from < 18) {
-          await m.deleteTable('invitations');
-        }
         if (from < 19) {
           await m.addColumn(buildJobs, buildJobs.commitMessage);
         }
@@ -113,6 +97,15 @@ class AppDatabase extends _$AppDatabase {
         }
         if (from < 31) {
           await m.addColumn(buildRuns, buildRuns.runNumber);
+        }
+        if (from < 32) {
+          // G-1569: APIs/DAOs are retired in the same release. deleteTable
+          // uses IF EXISTS, covering invitations already removed by v18.
+          await transaction(() async {
+            await m.deleteTable('udid_requests');
+            await m.deleteTable('user_devices');
+            await m.deleteTable('invitations');
+          });
         }
       },
     );

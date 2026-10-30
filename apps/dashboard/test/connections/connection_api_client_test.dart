@@ -97,7 +97,7 @@ void main() {
       final client = _HttpClient((request) async {
         requests.add(request);
         return http.Response(
-          '[]',
+          '{}',
           200,
           headers: {'content-type': 'application/json'},
         );
@@ -112,8 +112,8 @@ void main() {
     final selfHostedClient = clientFor(selfHosted);
 
     await Future.wait([
-      OpenCIApiService.create(cloudClient).getDevices(),
-      OpenCIApiService.create(selfHostedClient).getDevices(),
+      OpenCIApiService.create(cloudClient).getBuildJob('job-123'),
+      OpenCIApiService.create(selfHostedClient).getBuildJob('job-123'),
     ]);
 
     expect(requests, hasLength(2));
@@ -123,22 +123,23 @@ void main() {
           request.url.toString(): request.headers['Authorization'],
       },
       {
-        'https://cloud.example.com/devices': 'Bearer cloud-token',
-        'https://self-hosted.example.com/devices': 'Bearer self-hosted-token',
+        'https://cloud.example.com/builds/job-123': 'Bearer cloud-token',
+        'https://self-hosted.example.com/builds/job-123':
+            'Bearer self-hosted-token',
       },
     );
   });
 
   test('reads the current user and token on every request', () async {
     final api = OpenCIApiService.create(clientFor(selfHosted));
-    await api.getDevices();
+    await api.getBuildJob('job-123');
 
     (selfHostedAuth.currentUser! as _User).token = 'renewed-token';
-    await api.getDevices();
+    await api.getBuildJob('job-123');
     selfHostedAuth.currentUser = null;
-    await api.getDevices();
+    await api.getBuildJob('job-123');
     selfHostedAuth.currentUser = _User('new-user-token');
-    await api.getDevices();
+    await api.getBuildJob('job-123');
 
     expect(requests.map((request) => request.headers['Authorization']), [
       'Bearer self-hosted-token',
@@ -155,8 +156,8 @@ void main() {
     );
 
     expect(updated, isNot(same(original)));
-    await OpenCIApiService.create(original).getDevices();
-    await OpenCIApiService.create(updated).getDevices();
+    await OpenCIApiService.create(original).getBuildJob('job-123');
+    await OpenCIApiService.create(updated).getBuildJob('job-123');
 
     expect(requests.map((request) => request.url.host), [
       'self-hosted.example.com',
@@ -172,7 +173,7 @@ void main() {
     final ready = Completer<FirebaseAuth>();
     selfHostedAuthResult = ready.future;
     final api = OpenCIApiService.create(clientFor(selfHosted));
-    final response = api.getDevices();
+    final response = api.getBuildJob('job-123');
     await Future<void>.delayed(Duration.zero);
     expect(requests, isEmpty);
 
@@ -189,7 +190,7 @@ void main() {
     (selfHostedAuth.currentUser! as _User).error = error;
     final api = OpenCIApiService.create(clientFor(selfHosted));
 
-    await expectLater(api.getDevices(), throwsA(same(error)));
+    await expectLater(api.getBuildJob('job-123'), throwsA(same(error)));
     expect(requests, isEmpty);
   });
 

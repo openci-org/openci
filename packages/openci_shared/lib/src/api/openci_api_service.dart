@@ -3,7 +3,6 @@ import 'package:chopper/chopper.dart';
 import '../models/changed_files_result.dart';
 import '../models/cicd_commit_group.dart';
 import '../models/team.dart';
-import '../models/user_device.dart';
 
 part 'openci_api_service.chopper.dart';
 
@@ -30,9 +29,6 @@ abstract class OpenCIApiService extends ChopperService {
     @Query('owner') required String owner,
     @Query('installationId') required int installationId,
   });
-
-  @GET(path: '/devices', timeout: _timeout)
-  Future<Response<List<UserDevice>>> getDevices();
 
   @POST(path: '/internal/seed', timeout: _timeout)
   Future<Response<Map<String, dynamic>>> seedLocalData(
