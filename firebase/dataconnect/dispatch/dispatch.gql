@@ -1,6 +1,7 @@
 fragment BuildDispatchFields on BuildJobDispatch {
   id
   jobId
+  teamId
   activeJobId
   vmName
   cpu
@@ -13,6 +14,17 @@ fragment BuildDispatchFields on BuildJobDispatch {
   operationName
   executionName
   executorId
+  runId
+  checkRunId
+  startedAt
+  heartbeatAt
+  deadlineAt
+  outcome
+  resultAt
+  vmRequestedAt
+  vmDeletedAt
+  cleanupOwner
+  cleanupLeaseUntil
   startDeadline
   createdAt
   updatedAt
@@ -76,6 +88,11 @@ mutation ReserveBuildJobDispatch(
   $image: String!
   $cloudRunJob: String!
 ) @auth(level: NO_ACCESS) @transaction {
+  query @redact {
+    job: buildJob(id: $jobId) {
+      teamId
+    }
+  }
   # A stale scheduler cannot reserve after another invocation takes its lease.
   buildDispatchScheduler_updateMany(
     where: { id: { eq: "orchard" }, owner: { eq: $owner }, leaseUntil: { gt_expr: "request.time" } }
@@ -89,6 +106,7 @@ mutation ReserveBuildJobDispatch(
     data: {
       id: $id
       jobId: $jobId
+      teamId_expr: "response.query.job.teamId"
       activeJobId: $jobId
       vmName: $vmName
       cpu: $cpu
@@ -182,9 +200,12 @@ mutation RecordBuildDispatchLaunch($id: String!, $owner: String!, $operationName
 # G-1605 calls this once before billing admission, VM creation, or checkout.
 # executorId is a fresh process UUID. A restarted/duplicate container must exit
 # when acquired == 0, even if CLOUD_RUN_EXECUTION is the same.
-mutation ClaimBuildJobExecution($id: String!, $executorId: String!, $executionName: String!)
-@auth(level: NO_ACCESS)
-@transaction {
+mutation ClaimBuildJobExecution(
+  $id: String!
+  $executorId: String!
+  $executionName: String!
+  $timeoutSeconds: Int! = 3600
+) @auth(level: NO_ACCESS) @transaction {
   query @redact {
     dispatch: buildJobDispatch(id: $id) {
       jobId
@@ -209,12 +230,20 @@ mutation ClaimBuildJobExecution($id: String!, $executorId: String!, $executionNa
       executorId: $executorId
       executionName: $executionName
       state: "running"
+      runId_expr: "'run-' + vars.id"
+      startedAt_expr: "request.time"
+      heartbeatAt_expr: "request.time"
+      deadlineAt_expr: "request.time + duration(string(vars.timeoutSeconds) + 's')"
       updatedAt_expr: "request.time"
     }
   )
     @check(
       expr: "size(vars.executorId) > 0 && size(vars.executionName) > 0"
       message: "Execution identity is required"
+    )
+    @check(
+      expr: "vars.timeoutSeconds >= 60 && vars.timeoutSeconds <= 86400"
+      message: "Invalid build timeout"
     )
 }
 

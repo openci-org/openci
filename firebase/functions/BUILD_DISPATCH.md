@@ -15,8 +15,9 @@ CompleteWebhookTask -> queueBuildJobs -> Cloud Tasks -> dispatchBuildJob
 
 The Function returns after the launch operation is accepted. It does not create
 a VM, hold a WebSocket, stream logs, or wait for the workflow. The existing Dart
-worker does not implement the new executor contract. Keep the existing production
-webhook path until G-1605 and deployment validation are complete.
+worker does not implement the new executor contract. The [Cloud Run executor](BUILD_EXECUTOR.md)
+implements G-1605. Keep the existing production webhook path until deployment
+validation is complete.
 
 ## Capacity and retries
 
@@ -61,7 +62,7 @@ zero and choose the workflow timeout on the pre-created Job.
 1. Read `GetBuildJobDispatch` from the privileged `dispatch` connector and verify
    the supplied job ID. Use its pinned `vmName`, `cpu`, `memoryMiB` and `image`.
 2. Generate a fresh process UUID and call `ClaimBuildJobExecution` with that
-   `executorId` and `CLOUD_RUN_EXECUTION`. Continue only when `acquired == 1`.
+   `executorId` and the full Cloud Run execution resource name. Continue only when `acquired == 1`.
    A rejected claim, including a lost claim response, must not create a VM.
    Even restarted containers with the same execution name must claim separately.
 3. Perform billing admission and the existing job/run transition, then create
@@ -69,13 +70,13 @@ zero and choose the workflow timeout on the pre-created Job.
    credentials and workflow metadata server-side. This reservation alone does
    not authorize paid execution or increment the build's run count.
 4. Own checkout, workflow execution, logs, cancellation, billing and GitHub
-   Checks. Delete the VM and finalize the job before calling
-   `FinishBuildJobDispatch` with the matching dispatch/job/executor IDs.
+   Checks. Persist the result, acquire the cleanup lease, delete the VM and close
+   billing, then call `CompleteBuildExecution` with the matching cleanup owner.
 
-G-1605 must reconcile crashed executors and clean up their VMs before releasing
-claimed reservations. Automatically expiring a running build here could allocate
-its capacity twice. Billing integration, that reconciliation, and manual rerun
-dispatch are follow-up work. `WAITING` and unknown job statuses are not terminal.
+`recoverBuildExecutions` reconciles crashed executors and deletes their VMs before
+releasing claimed reservations. Automatically expiring a running build here
+could allocate its capacity twice. Manual rerun dispatch remains separate work.
+`WAITING` and unknown job statuses are not terminal.
 
 ## Configuration and rollout
 

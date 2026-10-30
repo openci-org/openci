@@ -1,0 +1,413 @@
+fragment ExecutionJobFields on BuildJob {
+  id
+  teamId
+  status
+  owner
+  repo
+  workflowName
+  workflowFileName
+  commitSha
+  branch
+  installationId
+  githubBaseUrl
+  latestRunId
+  workerHost
+  runCount
+}
+
+query GetBuildExecution($id: String!, $jobId: String!, $runId: String!) @auth(level: NO_ACCESS) {
+  dispatch: buildJobDispatch(id: $id) {
+    ...BuildDispatchFields
+  }
+  job: buildJob(id: $jobId) {
+    ...ExecutionJobFields
+  }
+  run: buildRun(id: $runId) {
+    id
+    runNumber
+    status
+    conclusion
+  }
+}
+
+# Inputs are derived from the persisted job and operator configuration.
+query GetBuildExecutorContext(
+  $teamId: String!
+  $installationId: Int64!
+  $appId: Int64!
+  $apiBaseUrl: String!
+) @auth(level: NO_ACCESS) {
+  team: team(id: $teamId) {
+    id
+  }
+  connection: gitHubConnection(
+    first: {
+      where: {
+        teamId: { eq: $teamId }
+        installationId: { eq: $installationId }
+        githubAppId: { eq: $appId }
+        githubApiBaseUrl: { eq: $apiBaseUrl }
+        status: { eq: "active" }
+      }
+    }
+  ) {
+    id
+    accountId
+    accountLogin
+  }
+  customer: billingCustomerCreation(key: { teamId: $teamId }) {
+    stripeCustomerId
+    livemode
+  }
+  stripe: billingStripeState(key: { teamId: $teamId }) {
+    stripeCustomerId
+    livemode
+    stripeSubscriptionId
+    subscriptionStatus
+    planId
+    paidPeriodId
+    paidPeriod {
+      id
+      teamId
+      planId
+      periodType
+      startsAt
+      endsAt
+      allowanceSeconds
+    }
+  }
+}
+
+query GetBuildExecutionSecrets($teamId: String!) @auth(level: NO_ACCESS) {
+  secrets: secretReferences(where: { teamId: { eq: $teamId } }, limit: null) {
+    name
+    secretVersionPath
+  }
+}
+
+mutation ConfigureBuildExecutionRun($id: String!, $jobId: String!, $executorId: String!)
+@auth(level: NO_ACCESS)
+@transaction {
+  query @redact {
+    dispatch: buildJobDispatch(id: $id)
+      @check(
+        expr: "this != null && this.executorId == vars.executorId && this.state == 'running' && this.finishedAt == null && this.deadlineAt > request.time"
+        message: "Execution is not active"
+      ) {
+      jobId
+      runId
+      executorId
+      state
+      finishedAt
+      deadlineAt
+    }
+    job: buildJob(id: $jobId)
+      @check(expr: "this != null && this.runCount != null", message: "Missing run count") {
+      runCount
+    }
+  }
+  buildJob_updateMany(
+    where: {
+      id: { eq: $jobId }
+      latestRunId: { eq_expr: "response.query.dispatch.runId" }
+      status: { eq: "IN_PROGRESS" }
+      runCount: { eq_expr: "response.query.job.runCount" }
+    }
+    data: { runCount_update: { inc: 1 } }
+  )
+    @check(
+      expr: "this == 1 && vars.jobId == response.query.dispatch.jobId"
+      message: "Run is no longer current"
+    )
+  buildRun_updateMany(
+    where: {
+      id: { eq_expr: "response.query.dispatch.runId" }
+      buildJobId: { eq_expr: "response.query.dispatch.jobId" }
+      runNumber: { isNull: true }
+    }
+    data: {
+      runNumber_expr: "int(response.query.job.runCount) + 1"
+      logsExpireAt_expr: "request.time + duration('1209600s')"
+    }
+  ) @check(expr: "this == 1", message: "Run is already configured or missing")
+}
+
+mutation HeartbeatBuildExecution($id: String!, $executorId: String!) @auth(level: NO_ACCESS) {
+  updated: buildJobDispatch_updateMany(
+    where: {
+      id: { eq: $id }
+      executorId: { eq: $executorId }
+      state: { eq: "running" }
+      finishedAt: { isNull: true }
+      deadlineAt: { gt_expr: "request.time" }
+    }
+    data: { heartbeatAt_expr: "request.time", updatedAt_expr: "request.time" }
+  )
+}
+
+mutation MarkBuildVmRequested($id: String!, $executorId: String!)
+@auth(level: NO_ACCESS)
+@transaction {
+  buildJobDispatch_updateMany(
+    where: {
+      id: { eq: $id }
+      executorId: { eq: $executorId }
+      state: { eq: "running" }
+      finishedAt: { isNull: true }
+      deadlineAt: { gt_expr: "request.time" }
+    }
+    data: { vmRequestedAt_expr: "request.time" }
+  ) @check(expr: "this == 1", message: "Execution is not active")
+}
+
+mutation RecordBuildExecutionCheck($id: String!, $checkRunId: String!)
+@auth(level: NO_ACCESS)
+@transaction {
+  buildJobDispatch_updateMany(
+    where: {
+      _and: [
+        { id: { eq: $id }, executorId: { isNull: false }, finishedAt: { isNull: true } }
+        { _or: [{ checkRunId: { isNull: true } }, { checkRunId: { eq: $checkRunId } }] }
+      ]
+    }
+    data: { checkRunId: $checkRunId }
+  )
+    @check(
+      expr: "this == 1 && vars.checkRunId.matches('^[1-9][0-9]*$')"
+      message: "Check identity changed"
+    )
+}
+
+mutation RecordBuildExecutionResult($id: String!, $executorId: String!, $outcome: String!)
+@auth(level: NO_ACCESS)
+@transaction {
+  updated: buildJobDispatch_updateMany(
+    where: {
+      id: { eq: $id }
+      executorId: { eq: $executorId }
+      state: { eq: "running" }
+      finishedAt: { isNull: true }
+    }
+    data: {
+      state: "finishing"
+      outcome: $outcome
+      resultAt_expr: "request.time"
+      updatedAt_expr: "request.time"
+    }
+  )
+    @check(
+      expr: "vars.outcome in ['success', 'failure', 'cancelled', 'timed_out', 'blocked']"
+      message: "Invalid outcome"
+    )
+}
+
+query GetRecoverableBuildExecutions @auth(level: NO_ACCESS) {
+  dispatches: buildJobDispatches(
+    where: {
+      _and: [
+        { executorId: { isNull: false }, finishedAt: { isNull: true } }
+        {
+          _or: [
+            { cleanupLeaseUntil: { isNull: true } }
+            { cleanupLeaseUntil: { le_expr: "request.time" } }
+          ]
+        }
+        {
+          _or: [
+            { state: { eq: "finishing" } }
+            { heartbeatAt: { le_expr: "request.time - duration('90s')" } }
+            { deadlineAt: { le_expr: "request.time" } }
+          ]
+        }
+      ]
+    }
+    orderBy: [{ updatedAt: ASC }, { id: ASC }]
+    limit: 100
+  ) {
+    ...BuildDispatchFields
+  }
+}
+
+# A controller may commit VM creation after its HTTP client has disconnected.
+# Reconcile actual VM names against closed attempts, without deleting active VMs.
+query GetFinishedBuildExecutionsForVms($vmNames: [String!]!) @auth(level: NO_ACCESS) {
+  dispatches: buildJobDispatches(
+    where: {
+      vmName: { in: $vmNames }
+      finishedAt: { isNull: false }
+      executorId: { isNull: false }
+    }
+    limit: 100
+  ) @check(expr: "size(vars.vmNames) <= 100", message: "Too many VM names") {
+    id
+    vmName
+  }
+}
+
+# Recovery must stop and observe the Cloud Run execution before deleting its VM.
+# The runner and recovery coordinator serialize cleanup using this lease.
+mutation AcquireBuildExecutionCleanup($id: String!, $owner: String!)
+@auth(level: NO_ACCESS)
+@transaction {
+  query @redact {
+    dispatch: buildJobDispatch(id: $id) {
+      outcome
+      deadlineAt
+      state
+      heartbeatAt
+    }
+  }
+  acquired: buildJobDispatch_updateMany(
+    where: {
+      _and: [
+        {
+          id: { eq: $id }
+          executorId: { isNull: false }
+          finishedAt: { isNull: true }
+          state: { eq_expr: "response.query.dispatch.state" }
+          heartbeatAt: { eq_expr: "response.query.dispatch.heartbeatAt" }
+        }
+        {
+          _or: [
+            { state: { eq: "finishing" } }
+            { heartbeatAt: { le_expr: "request.time - duration('90s')" } }
+            { deadlineAt: { le_expr: "request.time" } }
+          ]
+        }
+        {
+          _or: [
+            { cleanupLeaseUntil: { isNull: true } }
+            { cleanupLeaseUntil: { le_expr: "request.time" } }
+          ]
+        }
+      ]
+    }
+    data: {
+      state: "finishing"
+      cleanupOwner: $owner
+      cleanupLeaseUntil_expr: "request.time + duration('180s')"
+      outcome_expr: "response.query.dispatch.outcome != null ? response.query.dispatch.outcome : (response.query.dispatch.deadlineAt <= request.time ? 'timed_out' : 'failure')"
+      updatedAt_expr: "request.time"
+    }
+  )
+}
+
+mutation ConfirmBuildVmDeleted($id: String!, $owner: String!) @auth(level: NO_ACCESS) @transaction {
+  buildJobDispatch_updateMany(
+    where: {
+      id: { eq: $id }
+      cleanupOwner: { eq: $owner }
+      cleanupLeaseUntil: { gt_expr: "request.time" }
+      finishedAt: { isNull: true }
+    }
+    data: { vmDeletedAt_expr: "request.time" }
+  ) @check(expr: "this == 1", message: "Cleanup lease lost")
+}
+
+# Completion waits for VM deletion and billing closure; retries cannot release
+# capacity while a VM or an unclosed billing attempt is still outstanding.
+mutation CompleteBuildExecution($id: String!, $jobId: String!, $owner: String!)
+@auth(level: NO_ACCESS)
+@transaction {
+  query @redact {
+    dispatch: buildJobDispatch(id: $id)
+      @check(
+        expr: "this != null && this.jobId == vars.jobId && this.cleanupOwner == vars.owner && this.cleanupLeaseUntil > request.time && this.vmDeletedAt != null && this.finishedAt == null"
+        message: "Cleanup is not ready"
+      ) {
+      jobId
+      runId
+      outcome
+      checkRunId
+      cleanupOwner
+      cleanupLeaseUntil
+      vmDeletedAt
+      finishedAt
+    }
+    job: buildJob(id: $jobId) {
+      status
+      latestRunId
+    }
+    admissions: billingAdmissions(
+      where: { id: { eq_expr: "'admission-' + vars.id" }, closedAtMs: { isNull: true } }
+      limit: 1
+    ) @check(expr: "size(this) == 0", message: "Billing admission is still open") {
+      id
+    }
+    executions: billingExecutions(
+      where: { runId: { eq_expr: "'run-' + vars.id" }, finishedAtMs: { isNull: true } }
+      limit: 1
+    ) @check(expr: "size(this) == 0", message: "Billing execution is still open") {
+      runId
+    }
+  }
+  buildJob_updateMany(
+    where: {
+      _and: [
+        {
+          id: { eq: $jobId }
+          status: { eq_expr: "response.query.job == null ? '' : response.query.job.status" }
+        }
+        {
+          _or: [
+            { latestRunId: { eq_expr: "response.query.dispatch.runId" } }
+            { latestRunId: { isNull: true }, workerHost: { eq_expr: "'cloud-run-' + vars.id" } }
+            {
+              latestRunId: { isNull: true }
+              workerHost: { isNull: true }
+              status: { in: ["QUEUED", "CANCELLED"] }
+            }
+          ]
+        }
+      ]
+    }
+    data: {
+      status_expr: "response.query.job != null && response.query.job.status == 'CANCELLED' ? 'CANCELLED' : (response.query.dispatch.outcome == 'blocked' ? 'QUEUED' : (response.query.dispatch.outcome == 'success' ? 'SUCCESS' : (response.query.dispatch.outcome == 'cancelled' ? 'CANCELLED' : (response.query.dispatch.outcome == 'timed_out' ? 'TIMED_OUT' : 'FAILURE'))))"
+      checkRunId_expr: "response.query.dispatch.checkRunId"
+      completedAt: null
+      updatedAt_expr: "int(request.time)"
+    }
+  )
+  # A newer attempt may own the job. Finish this run and release its deleted VM
+  # without overwriting the newer attempt's status, check, or completion time.
+  completed: buildJob_updateMany(
+    where: {
+      id: { eq: $jobId, ne_expr: "response.buildJob_updateMany == 1 ? '' : vars.jobId" }
+      status: { in: ["SUCCESS", "FAILURE", "CANCELLED", "TIMED_OUT"] }
+    }
+    data: { completedAt_expr: "int(request.time)" }
+  )
+  buildRun_updateMany(
+    where: {
+      id: { eq_expr: "response.query.dispatch.runId" }
+      buildJobId: { eq_expr: "response.query.dispatch.jobId" }
+    }
+    data: {
+      status: "completed"
+      conclusion_expr: "response.buildJob_updateMany == 1 && response.query.job.status == 'CANCELLED' ? 'cancelled' : response.query.dispatch.outcome"
+      updatedAt_expr: "int(request.time)"
+    }
+  )
+  buildStep_updateMany(
+    where: { runId: { eq_expr: "response.query.dispatch.runId" }, status: { eq: "IN_PROGRESS" } }
+    data: {
+      status_expr: "response.buildJob_updateMany == 1 && response.query.job.status == 'CANCELLED' ? 'CANCELLED' : (response.query.dispatch.outcome == 'timed_out' ? 'TIMED_OUT' : 'FAILURE')"
+      updatedAt_expr: "request.time"
+    }
+  )
+  buildJobDispatch_updateMany(
+    where: {
+      id: { eq: $id }
+      cleanupOwner: { eq: $owner }
+      cleanupLeaseUntil: { gt_expr: "request.time" }
+      finishedAt: { isNull: true }
+    }
+    data: {
+      state: "finished"
+      outcome_expr: "response.buildJob_updateMany == 1 && response.query.job.status == 'CANCELLED' ? 'cancelled' : response.query.dispatch.outcome"
+      activeJobId: null
+      finishedAt_expr: "request.time"
+      updatedAt_expr: "request.time"
+    }
+  ) @check(expr: "this == 1", message: "Cleanup lease lost")
+}
