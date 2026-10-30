@@ -1,7 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:dashboard/api/openci_api_client.dart';
+import 'package:dashboard/billing/billing_api.dart';
+import '../helpers/billing_callable.dart';
 import 'package:dashboard/billing/billing_actions.dart';
 import 'package:dashboard/billing/billing_identity.dart';
 import 'package:dashboard/billing/billing_provider.dart';
@@ -11,8 +12,6 @@ import 'package:dashboard/connections/connection_profile.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
-import 'package:http/testing.dart';
-import 'package:openci_shared/openci_shared.dart';
 
 void main() {
   const cloud = ConnectionProfile(
@@ -41,22 +40,18 @@ void main() {
     canManage = true;
     respond = () async =>
         redirect('https://checkout.stripe.com/c/pay/cs_test#fid-example');
-    final client = http.runWithClient(
-      () => createOpenCIChopperClient(
-        baseUrl: cloud.apiUrl,
-        tokenProvider: () => 'firebase-token',
-      ),
-      () => MockClient((request) {
-        requests.add(request);
-        return respond();
-      }),
-    );
-    addTearDown(client.dispose);
+    final callable = TestBillingCallable((request) {
+      requests.add(request);
+      return respond();
+    });
     container = ProviderContainer.test(
       overrides: [
         billingIdentityProvider.overrideWith((ref) => identity),
-        openciApiServiceProvider.overrideWith(
-          (ref) async => OpenCIApiService.create(client),
+        billingApiProvider.overrideWith(
+          (ref) async => BillingApi(
+            callable: callable,
+            isCurrent: () => ref.mounted && identity?.connection == cloud,
+          ),
         ),
         billingStatusProvider('team-1').overrideWith(
           (ref) async => BillingStatus(
@@ -88,7 +83,11 @@ void main() {
       final result = await (await actions()).checkout('light');
       expect(result.host, 'checkout.stripe.com');
       expect(result.fragment, 'fid-example');
-      expect(jsonDecode(requests.single.body), {'planId': 'light'});
+      expect(billingCallData(requests.single), {
+        'action': 'checkout',
+        'teamId': 'team-1',
+        'planId': 'light',
+      });
       expect(
         container
             .read(billingStatusProvider('team-1'))
@@ -105,7 +104,10 @@ void main() {
       respond = () async =>
           redirect('https://billing.stripe.com/p/session/test');
       expect((await (await actions()).portal()).host, 'billing.stripe.com');
-      expect(requests.single.url.path, '/teams/team-1/billing/portal');
+      expect(billingCallData(requests.single), {
+        'action': 'portal',
+        'teamId': 'team-1',
+      });
     },
   );
 
@@ -114,7 +116,10 @@ void main() {
     respond = () async => redirect(url);
 
     expect(await (await actions()).portal(), Uri.parse(url));
-    expect(requests.single.url.path, '/teams/team-1/billing/portal');
+    expect(billingCallData(requests.single), {
+      'action': 'portal',
+      'teamId': 'team-1',
+    });
   });
 
   test('Portal rejects missing secrets and unsafe query session URLs', () async {

@@ -1,4 +1,5 @@
 import 'package:dashboard/app_strings.dart';
+import 'package:dashboard/billing/billing_error_message.dart';
 import 'package:dashboard/team/selected_team_provider.dart';
 import 'package:dashboard/team/team_provider.dart';
 import 'package:dashboard/utilities/async_error_widget.dart';
@@ -49,9 +50,11 @@ class DeleteTeamBottomSheet extends HookConsumerWidget {
                           color: Theme.of(context).dividerColor,
                         ),
                       InkWell(
-                        onTap: () {
-                          selectedTeamId.value = teams[i].id;
-                        },
+                        onTap: isDeleting.value
+                            ? null
+                            : () {
+                                selectedTeamId.value = teams[i].id;
+                              },
                         hoverColor: colorScheme.outlineVariant.withValues(
                           alpha: 0.5,
                         ),
@@ -193,22 +196,24 @@ class DeleteTeamBottomSheet extends HookConsumerWidget {
                                 (t) => t.id != teamIdToDelete,
                               );
                               await ref
-                                  .read(selectedTeamIdProvider.notifier)
-                                  .saveSelectedTeamId(otherTeam.id);
-
-                              await ref
                                   .read(teamServiceProvider)
                                   .deleteTeam(teamIdToDelete);
 
+                              if (!context.mounted) return;
+                              await ref
+                                  .read(selectedTeamIdProvider.notifier)
+                                  .saveSelectedTeamId(otherTeam.id);
                               if (!context.mounted) return;
                               context.showSnackBarMessage(
                                 teamT.deletedSuccess,
                               );
                               Navigator.of(context).pop();
                             } catch (e) {
-                              isDeleting.value = false;
                               if (!context.mounted) return;
-                              context.showSnackBarMessage(e.toString());
+                              isDeleting.value = false;
+                              context.showSnackBarMessage(
+                                billingErrorMessage(e),
+                              );
                             }
                           },
                     child: isDeleting.value

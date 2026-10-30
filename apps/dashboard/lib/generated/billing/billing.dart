@@ -22,6 +22,8 @@ part 'close_billing_checkout_creation.dart';
 
 part 'get_billing_context.dart';
 
+part 'get_billing_membership.dart';
+
 part 'get_billing_customer_by_stripe_id.dart';
 
 part 'get_billing_checkout_creation.dart';
@@ -35,6 +37,16 @@ part 'get_billing_customer_creation.dart';
 part 'record_billing_customer.dart';
 
 part 'delete_billing_team.dart';
+
+part 'get_billing_team_deletion.dart';
+
+part 'get_due_billing_team_deletions.dart';
+
+part 'complete_billing_team_cleanup.dart';
+
+part 'acknowledge_billing_credential_cleanup.dart';
+
+part 'defer_billing_team_cleanup.dart';
 
 part 'get_billing_execution.dart';
 
@@ -148,6 +160,7 @@ class BillingConnector {
   CreateBillingCheckoutCreationVariablesBuilder createBillingCheckoutCreation({
     required String idempotencyKey,
     required String teamId,
+    required String userId,
     required String planId,
     required String stripeCustomerId,
     required String stripePriceId,
@@ -160,6 +173,7 @@ class BillingConnector {
       dataConnect,
       idempotencyKey: idempotencyKey,
       teamId: teamId,
+      userId: userId,
       planId: planId,
       stripeCustomerId: stripeCustomerId,
       stripePriceId: stripePriceId,
@@ -239,6 +253,17 @@ class BillingConnector {
     );
   }
 
+  GetBillingMembershipVariablesBuilder getBillingMembership({
+    required String teamId,
+    required String userId,
+  }) {
+    return GetBillingMembershipVariablesBuilder(
+      dataConnect,
+      teamId: teamId,
+      userId: userId,
+    );
+  }
+
   GetBillingCustomerByStripeIdVariablesBuilder getBillingCustomerByStripeId({
     required String stripeCustomerId,
     required bool livemode,
@@ -276,6 +301,7 @@ class BillingConnector {
 
   CreateBillingCustomerCreationVariablesBuilder createBillingCustomerCreation({
     required String teamId,
+    required String userId,
     required String idempotencyKey,
     required bool livemode,
     required BigInt createdAt,
@@ -283,6 +309,7 @@ class BillingConnector {
     return CreateBillingCustomerCreationVariablesBuilder(
       dataConnect,
       teamId: teamId,
+      userId: userId,
       idempotencyKey: idempotencyKey,
       livemode: livemode,
       createdAt: createdAt,
@@ -325,6 +352,55 @@ class BillingConnector {
       teamId: teamId,
       userId: userId,
       livemode: livemode,
+    );
+  }
+
+  GetBillingTeamDeletionVariablesBuilder getBillingTeamDeletion({
+    required String teamId,
+    required String userId,
+  }) {
+    return GetBillingTeamDeletionVariablesBuilder(
+      dataConnect,
+      teamId: teamId,
+      userId: userId,
+    );
+  }
+
+  GetDueBillingTeamDeletionsVariablesBuilder getDueBillingTeamDeletions() {
+    return GetDueBillingTeamDeletionsVariablesBuilder(
+      dataConnect,
+    );
+  }
+
+  CompleteBillingTeamCleanupVariablesBuilder completeBillingTeamCleanup({
+    required String teamId,
+  }) {
+    return CompleteBillingTeamCleanupVariablesBuilder(
+      dataConnect,
+      teamId: teamId,
+    );
+  }
+
+  AcknowledgeBillingCredentialCleanupVariablesBuilder
+  acknowledgeBillingCredentialCleanup({
+    required String teamId,
+    required String path,
+    required String kind,
+  }) {
+    return AcknowledgeBillingCredentialCleanupVariablesBuilder(
+      dataConnect,
+      teamId: teamId,
+      path: path,
+      kind: kind,
+    );
+  }
+
+  DeferBillingTeamCleanupVariablesBuilder deferBillingTeamCleanup({
+    required String teamId,
+  }) {
+    return DeferBillingTeamCleanupVariablesBuilder(
+      dataConnect,
+      teamId: teamId,
     );
   }
 

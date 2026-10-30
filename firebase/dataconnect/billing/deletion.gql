@@ -95,7 +95,92 @@ mutation DeleteBillingTeam(
       accessTokenSecretVersionPath
     }
   }
+  # Persist cleanup in this transaction; returning paths alone loses them if
+  # the response never reaches Functions. Keep versions for in-flight builds.
+  receipt: billingTeamDeletion_insert(
+    data: {
+      teamId_expr: "response.billingAccount_upsert.teamId"
+      userId: $userId
+      secretPaths_expr: "response.cleanup.secrets.map(s, s.secretVersionPath)"
+      githubPaths_expr: "response.cleanup.requests.map(r, r.codeVerifierSecretVersionPath) + response.cleanup.sessions.map(s, s.accessTokenSecretVersionPath)"
+      createdAt_expr: "request.time"
+      cleanupAfter_expr: "request.time + duration('86400s')"
+    }
+  )
   # Billing accounts/periods/trial claims/purchases and build history survive.
-  team_delete(id_expr: "response.billingAccount_upsert.teamId")
+  team_delete(id_expr: "response.receipt.teamId")
     @check(expr: "this != null", message: "Team not found")
+}
+
+query GetBillingTeamDeletion($teamId: String!, $userId: String!) @auth(level: NO_ACCESS) {
+  receipt: billingTeamDeletion(
+    first: { where: { teamId: { eq: $teamId }, userId: { eq: $userId } } }
+  ) {
+    teamId
+  }
+}
+
+query GetDueBillingTeamDeletions @auth(level: NO_ACCESS) {
+  deletions: billingTeamDeletions(
+    where: { cleanedAt: { isNull: true }, cleanupAfter: { le_expr: "request.time" } }
+    orderBy: [{ cleanupAfter: ASC }, { teamId: ASC }]
+    limit: 10
+  ) {
+    teamId
+    secretPaths
+    githubPaths
+  }
+}
+
+mutation CompleteBillingTeamCleanup($teamId: String!) @auth(level: NO_ACCESS) @transaction {
+  query @redact {
+    receipt: billingTeamDeletion(key: { teamId: $teamId })
+      @check(
+        expr: "this != null && size(dyn(this.secretPaths)) == 0 && size(dyn(this.githubPaths)) == 0"
+        message: "Credential cleanup is incomplete"
+      ) {
+      teamId
+      secretPaths
+      githubPaths
+    }
+  }
+  billingTeamDeletion_update(
+    key: { teamId_expr: "response.query.receipt.teamId" }
+    data: { secretPaths_expr: "[]", githubPaths_expr: "[]", cleanedAt_expr: "request.time" }
+  )
+}
+
+# Acknowledge each remote destruction so a large team makes progress even if
+# Functions times out halfway through its credential list.
+mutation AcknowledgeBillingCredentialCleanup($teamId: String!, $path: String!, $kind: String!)
+@auth(level: NO_ACCESS)
+@transaction {
+  locked: billingTeamDeletion_update(
+    key: { teamId: $teamId }
+    data: { cleanupAfter_expr: "request.time" }
+  )
+    @check(
+      expr: "this != null && vars.kind in ['secret', 'github']"
+      message: "Invalid cleanup receipt"
+    )
+  query @redact {
+    receipt: billingTeamDeletion(key: { teamId_expr: "response.locked.teamId" }) {
+      secretPaths
+      githubPaths
+    }
+  }
+  billingTeamDeletion_update(
+    key: { teamId_expr: "response.locked.teamId" }
+    data: {
+      secretPaths_expr: "vars.kind == 'secret' ? dyn(response.query.receipt.secretPaths).filter(p, p != vars.path) : response.query.receipt.secretPaths"
+      githubPaths_expr: "vars.kind == 'github' ? dyn(response.query.receipt.githubPaths).filter(p, p != vars.path) : response.query.receipt.githubPaths"
+    }
+  )
+}
+
+mutation DeferBillingTeamCleanup($teamId: String!) @auth(level: NO_ACCESS) {
+  billingTeamDeletion_update(
+    key: { teamId: $teamId }
+    data: { cleanupAfter_expr: "request.time + duration('3600s')" }
+  )
 }

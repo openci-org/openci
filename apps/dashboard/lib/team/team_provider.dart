@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:dashboard/api/openci_api_client.dart';
+import 'package:dashboard/billing/billing_api.dart';
 import 'package:dashboard/auth/auth_provider.dart';
 import 'package:dashboard/team/selected_team_provider.dart';
 import 'package:dashboard/team/team_members_api.dart';
@@ -81,14 +81,8 @@ class TeamService {
   }
 
   Future<void> deleteTeam(String teamId) async {
-    final apiService = await _ref.read(openciApiServiceProvider.future);
-    final response = await apiService.deleteTeam(teamId);
-
-    if (!response.isSuccessful) {
-      throw StateError(
-        'Failed to delete team: ${response.statusCode} ${response.error}',
-      );
-    }
+    final api = await _ref.read(billingApiProvider.future);
+    await api.deleteTeam(teamId);
 
     if (_ref.mounted) {
       _ref.invalidate(teamListProvider);

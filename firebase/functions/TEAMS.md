@@ -43,12 +43,12 @@ Its runtime identity needs FSC execution/impersonation access and Firebase Auth
 user read access. It does not need Secret Manager access. Local mode uses the
 Functions emulator on port 5001 and FSC on port 9399.
 
-**Team deletion remains with the billing migration**, including live Stripe
-subscription/Checkout verification and credential cleanup. `DELETE /teams/:id`
-and its shared client method are retained. This change removes legacy
+**Team deletion now uses [`teamBilling`](BILLING.md)**, including live Stripe
+subscription/Checkout verification and durable credential cleanup. The legacy
+`DELETE /teams/:id` and its shared client method have been removed, along with
 `GET /teams`, `POST /teams`, `PATCH /teams/:id`, and member list/add endpoints.
 
-The remaining legacy billing, repository and workflow endpoints still authorize
+The remaining legacy repository and workflow endpoints still authorize
 against their SQL membership tables. FSC membership changes are not mirrored
 there. Therefore deploy the final client cutover together with migration or
 retirement of those legacy authorization paths; otherwise adding/removing a

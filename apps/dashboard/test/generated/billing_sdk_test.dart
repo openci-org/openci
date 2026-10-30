@@ -59,6 +59,7 @@ void main() {
 
   test('team deletion returns nullable OAuth references for cleanup', () {
     final data = DeleteBillingTeamData.fromJson({
+      'receipt': {'teamId': 'team'},
       'billingAccount_upsert': {'teamId': 'team'},
       'team_delete': {'id': 'team'},
       'cleanup': {

@@ -2,6 +2,7 @@ part of 'billing.dart';
 
 class CreateBillingCustomerCreationVariablesBuilder {
   String teamId;
+  String userId;
   String idempotencyKey;
   bool livemode;
   BigInt createdAt;
@@ -10,6 +11,7 @@ class CreateBillingCustomerCreationVariablesBuilder {
   CreateBillingCustomerCreationVariablesBuilder(
     this._dataConnect, {
     required this.teamId,
+    required this.userId,
     required this.idempotencyKey,
     required this.livemode,
     required this.createdAt,
@@ -38,6 +40,7 @@ class CreateBillingCustomerCreationVariablesBuilder {
     CreateBillingCustomerCreationVariables vars =
         CreateBillingCustomerCreationVariables(
           teamId: teamId,
+          userId: userId,
           idempotencyKey: idempotencyKey,
           livemode: livemode,
           createdAt: createdAt,
@@ -172,6 +175,7 @@ class CreateBillingCustomerCreationData {
 @immutable
 class CreateBillingCustomerCreationVariables {
   final String teamId;
+  final String userId;
   final String idempotencyKey;
   final bool livemode;
   final BigInt createdAt;
@@ -180,6 +184,7 @@ class CreateBillingCustomerCreationVariables {
   )
   CreateBillingCustomerCreationVariables.fromJson(Map<String, dynamic> json)
     : teamId = nativeFromJson<String>(json['teamId']),
+      userId = nativeFromJson<String>(json['userId']),
       idempotencyKey = nativeFromJson<String>(json['idempotencyKey']),
       livemode = nativeFromJson<bool>(json['livemode']),
       createdAt = bigIntFromJson(json['createdAt']);
@@ -195,6 +200,7 @@ class CreateBillingCustomerCreationVariables {
     final CreateBillingCustomerCreationVariables otherTyped =
         other as CreateBillingCustomerCreationVariables;
     return teamId == otherTyped.teamId &&
+        userId == otherTyped.userId &&
         idempotencyKey == otherTyped.idempotencyKey &&
         livemode == otherTyped.livemode &&
         createdAt == otherTyped.createdAt;
@@ -203,6 +209,7 @@ class CreateBillingCustomerCreationVariables {
   @override
   int get hashCode => Object.hashAll([
     teamId.hashCode,
+    userId.hashCode,
     idempotencyKey.hashCode,
     livemode.hashCode,
     createdAt.hashCode,
@@ -211,6 +218,7 @@ class CreateBillingCustomerCreationVariables {
   Map<String, dynamic> toJson() {
     Map<String, dynamic> json = {};
     json['teamId'] = nativeToJson<String>(teamId);
+    json['userId'] = nativeToJson<String>(userId);
     json['idempotencyKey'] = nativeToJson<String>(idempotencyKey);
     json['livemode'] = nativeToJson<bool>(livemode);
     json['createdAt'] = bigIntToJson(createdAt);
@@ -219,6 +227,7 @@ class CreateBillingCustomerCreationVariables {
 
   CreateBillingCustomerCreationVariables({
     required this.teamId,
+    required this.userId,
     required this.idempotencyKey,
     required this.livemode,
     required this.createdAt,

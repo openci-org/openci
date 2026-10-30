@@ -1,5 +1,10 @@
 # GenuineCI server
 
+Cloud billing is moving to [Firebase Functions and FSC](../../firebase/functions/BILLING.md).
+That document owns the cutover/import procedure. This legacy Go service and worker
+bridge remain for consumers not yet retired; do not run its billing writers after
+switching the cloud ledger to FSC. The configuration below describes the old runtime.
+
 See [ROLLOUT.md](ROLLOUT.md) for service configuration, release gates, and the
 Stripe verification plan. Local Stripe Sandbox and real-worker verification results
 are recorded in [G-1360](https://linear.app/genuineci/issue/G-1360). The next deployment
@@ -119,10 +124,10 @@ and payment before returning actions or committing access state.
 
 `config.CheckoutPriceID` selects a server-configured Price ID from the plan ID:
 
-| Plan | Environment variable |
-| --- | --- |
+| Plan    | Environment variable    |
+| ------- | ----------------------- |
 | `light` | `STRIPE_LIGHT_PRICE_ID` |
-| `pro` | `STRIPE_PRO_PRICE_ID` |
+| `pro`   | `STRIPE_PRO_PRICE_ID`   |
 
 When Cloud billing is enabled, the selected plan requires a nonblank value;
 surrounding whitespace is trimmed and unknown plans are rejected. Disabled
@@ -340,12 +345,12 @@ The authenticated `openci_server` billing proxy must supply a
 verified Firebase UID in `X-GenuineCI-User-ID` and the shared
 `Authorization: Bearer <BILLING_INTERNAL_TOKEN>` to these private Go routes:
 
-| Method | Path | Request |
-| --- | --- | --- |
-| GET | `/internal/billing/teams/{teamID}` | No body |
-| DELETE | `/internal/billing/teams/{teamID}` | Empty body or `{}` |
-| POST | `/internal/billing/teams/{teamID}/checkout` | `{"planId":"light"}` or `{"planId":"pro"}` |
-| POST | `/internal/billing/teams/{teamID}/portal` | Empty body or `{}` |
+| Method | Path                                        | Request                                    |
+| ------ | ------------------------------------------- | ------------------------------------------ |
+| GET    | `/internal/billing/teams/{teamID}`          | No body                                    |
+| DELETE | `/internal/billing/teams/{teamID}`          | Empty body or `{}`                         |
+| POST   | `/internal/billing/teams/{teamID}/checkout` | `{"planId":"light"}` or `{"planId":"pro"}` |
+| POST   | `/internal/billing/teams/{teamID}/portal`   | Empty body or `{}`                         |
 
 Keep `/internal/` behind the service network or reverse-proxy access rules; never
 expose the shared token to a browser. Go rechecks current team membership for all

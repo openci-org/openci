@@ -4,7 +4,8 @@ GitHub App authorization and team connection are implemented separately by
 [`githubConnection` and `githubConnectionCallback`](GITHUB_CONNECTION.md).
 
 Team and member management use the [FSC teams connector and `teamManagement`
-callable](TEAMS.md). Team deletion remains with the billing migration.
+callable](TEAMS.md). [Billing and team deletion](BILLING.md) use `teamBilling`,
+`stripeWebhook` and the shared FSC billing ledger.
 
 `githubWebhook` is a second-generation HTTPS Function in `asia-northeast1`.
 The Firebase npm workspace is its deployment source; TypeScript in this

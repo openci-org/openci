@@ -1,4 +1,4 @@
-import 'package:dashboard/api/openci_api_client.dart';
+import 'package:dashboard/billing/billing_api.dart';
 import 'package:dashboard/billing/billing_identity.dart';
 import 'package:dashboard/billing/billing_provider.dart';
 import 'package:dashboard/billing/billing_response.dart';
@@ -44,16 +44,14 @@ class BillingActions {
     }
     _pending = true;
     try {
-      final api = await _ref.read(openciApiServiceProvider.future);
+      final api = await _ref.read(billingApiProvider.future);
       _requireCurrentIdentity();
-      if (api.client.baseUrl != Uri.tryParse(_identity.connection.apiUrl)) {
-        throw const BillingException('billing_unavailable');
-      }
-      final response = planId == null
-          ? await api.createBillingPortal(teamId)
-          : await api.createBillingCheckout(teamId, planId);
+      final body = await api.call(
+        planId == null ? 'portal' : 'checkout',
+        teamId,
+        planId: planId,
+      );
       _requireCurrentIdentity();
-      final body = billingResponseBody(response);
       final url = body['url'];
       final uri = url is String ? Uri.tryParse(url) : null;
       final host = planId == null

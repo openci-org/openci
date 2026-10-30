@@ -183,6 +183,60 @@ ref.subscribe(...);
 ```
 
 
+### GetBillingMembership
+#### Required Arguments
+```dart
+String teamId = ...;
+String userId = ...;
+BillingConnector.instance.getBillingMembership(
+  teamId: teamId,
+  userId: userId,
+).execute();
+```
+
+
+
+#### Return Type
+`execute()` returns a `QueryResult<GetBillingMembershipData, GetBillingMembershipVariables>`
+```dart
+/// Result of an Operation Request (query/mutation).
+class OperationResult<Data, Variables> {
+  OperationResult(this.dataConnect, this.data, this.ref);
+  Data data;
+  OperationRef<Data, Variables> ref;
+  FirebaseDataConnect dataConnect;
+}
+
+/// Result of a query request. Created to hold extra variables in the future.
+class QueryResult<Data, Variables> extends OperationResult<Data, Variables> {
+  QueryResult(super.dataConnect, super.data, super.ref);
+}
+
+final result = await BillingConnector.instance.getBillingMembership(
+  teamId: teamId,
+  userId: userId,
+);
+GetBillingMembershipData data = result.data;
+final ref = result.ref;
+```
+
+#### Getting the Ref
+Each builder returns an `execute` function, which is a helper function that creates a `Ref` object, and executes the underlying operation.
+An example of how to use the `Ref` object is shown below:
+```dart
+String teamId = ...;
+String userId = ...;
+
+final ref = BillingConnector.instance.getBillingMembership(
+  teamId: teamId,
+  userId: userId,
+).ref();
+ref.execute();
+
+ref.subscribe(...);
+```
+
+
 ### GetBillingCustomerByStripeId
 #### Required Arguments
 ```dart
@@ -398,6 +452,101 @@ final ref = BillingConnector.instance.getBillingCustomerCreation(
   teamId: teamId,
   livemode: livemode,
 ).ref();
+ref.execute();
+
+ref.subscribe(...);
+```
+
+
+### GetBillingTeamDeletion
+#### Required Arguments
+```dart
+String teamId = ...;
+String userId = ...;
+BillingConnector.instance.getBillingTeamDeletion(
+  teamId: teamId,
+  userId: userId,
+).execute();
+```
+
+
+
+#### Return Type
+`execute()` returns a `QueryResult<GetBillingTeamDeletionData, GetBillingTeamDeletionVariables>`
+```dart
+/// Result of an Operation Request (query/mutation).
+class OperationResult<Data, Variables> {
+  OperationResult(this.dataConnect, this.data, this.ref);
+  Data data;
+  OperationRef<Data, Variables> ref;
+  FirebaseDataConnect dataConnect;
+}
+
+/// Result of a query request. Created to hold extra variables in the future.
+class QueryResult<Data, Variables> extends OperationResult<Data, Variables> {
+  QueryResult(super.dataConnect, super.data, super.ref);
+}
+
+final result = await BillingConnector.instance.getBillingTeamDeletion(
+  teamId: teamId,
+  userId: userId,
+);
+GetBillingTeamDeletionData data = result.data;
+final ref = result.ref;
+```
+
+#### Getting the Ref
+Each builder returns an `execute` function, which is a helper function that creates a `Ref` object, and executes the underlying operation.
+An example of how to use the `Ref` object is shown below:
+```dart
+String teamId = ...;
+String userId = ...;
+
+final ref = BillingConnector.instance.getBillingTeamDeletion(
+  teamId: teamId,
+  userId: userId,
+).ref();
+ref.execute();
+
+ref.subscribe(...);
+```
+
+
+### GetDueBillingTeamDeletions
+#### Required Arguments
+```dart
+// No required arguments
+BillingConnector.instance.getDueBillingTeamDeletions().execute();
+```
+
+
+
+#### Return Type
+`execute()` returns a `QueryResult<GetDueBillingTeamDeletionsData, void>`
+```dart
+/// Result of an Operation Request (query/mutation).
+class OperationResult<Data, Variables> {
+  OperationResult(this.dataConnect, this.data, this.ref);
+  Data data;
+  OperationRef<Data, Variables> ref;
+  FirebaseDataConnect dataConnect;
+}
+
+/// Result of a query request. Created to hold extra variables in the future.
+class QueryResult<Data, Variables> extends OperationResult<Data, Variables> {
+  QueryResult(super.dataConnect, super.data, super.ref);
+}
+
+final result = await BillingConnector.instance.getDueBillingTeamDeletions();
+GetDueBillingTeamDeletionsData data = result.data;
+final ref = result.ref;
+```
+
+#### Getting the Ref
+Each builder returns an `execute` function, which is a helper function that creates a `Ref` object, and executes the underlying operation.
+An example of how to use the `Ref` object is shown below:
+```dart
+final ref = BillingConnector.instance.getDueBillingTeamDeletions().ref();
 ref.execute();
 
 ref.subscribe(...);
@@ -1140,6 +1289,7 @@ ref.execute();
 ```dart
 String idempotencyKey = ...;
 String teamId = ...;
+String userId = ...;
 String planId = ...;
 String stripeCustomerId = ...;
 String stripePriceId = ...;
@@ -1150,6 +1300,7 @@ BigInt createdAt = ...;
 BillingConnector.instance.createBillingCheckoutCreation(
   idempotencyKey: idempotencyKey,
   teamId: teamId,
+  userId: userId,
   planId: planId,
   stripeCustomerId: stripeCustomerId,
   stripePriceId: stripePriceId,
@@ -1176,6 +1327,7 @@ class OperationResult<Data, Variables> {
 final result = await BillingConnector.instance.createBillingCheckoutCreation(
   idempotencyKey: idempotencyKey,
   teamId: teamId,
+  userId: userId,
   planId: planId,
   stripeCustomerId: stripeCustomerId,
   stripePriceId: stripePriceId,
@@ -1194,6 +1346,7 @@ An example of how to use the `Ref` object is shown below:
 ```dart
 String idempotencyKey = ...;
 String teamId = ...;
+String userId = ...;
 String planId = ...;
 String stripeCustomerId = ...;
 String stripePriceId = ...;
@@ -1205,6 +1358,7 @@ BigInt createdAt = ...;
 final ref = BillingConnector.instance.createBillingCheckoutCreation(
   idempotencyKey: idempotencyKey,
   teamId: teamId,
+  userId: userId,
   planId: planId,
   stripeCustomerId: stripeCustomerId,
   stripePriceId: stripePriceId,
@@ -1375,11 +1529,13 @@ ref.execute();
 #### Required Arguments
 ```dart
 String teamId = ...;
+String userId = ...;
 String idempotencyKey = ...;
 bool livemode = ...;
 BigInt createdAt = ...;
 BillingConnector.instance.createBillingCustomerCreation(
   teamId: teamId,
+  userId: userId,
   idempotencyKey: idempotencyKey,
   livemode: livemode,
   createdAt: createdAt,
@@ -1401,6 +1557,7 @@ class OperationResult<Data, Variables> {
 
 final result = await BillingConnector.instance.createBillingCustomerCreation(
   teamId: teamId,
+  userId: userId,
   idempotencyKey: idempotencyKey,
   livemode: livemode,
   createdAt: createdAt,
@@ -1414,12 +1571,14 @@ Each builder returns an `execute` function, which is a helper function that crea
 An example of how to use the `Ref` object is shown below:
 ```dart
 String teamId = ...;
+String userId = ...;
 String idempotencyKey = ...;
 bool livemode = ...;
 BigInt createdAt = ...;
 
 final ref = BillingConnector.instance.createBillingCustomerCreation(
   teamId: teamId,
+  userId: userId,
   idempotencyKey: idempotencyKey,
   livemode: livemode,
   createdAt: createdAt,
@@ -1562,6 +1721,142 @@ final ref = BillingConnector.instance.deleteBillingTeam(
   teamId: teamId,
   userId: userId,
   livemode: livemode,
+).ref();
+ref.execute();
+```
+
+
+### CompleteBillingTeamCleanup
+#### Required Arguments
+```dart
+String teamId = ...;
+BillingConnector.instance.completeBillingTeamCleanup(
+  teamId: teamId,
+).execute();
+```
+
+
+
+#### Return Type
+`execute()` returns a `OperationResult<CompleteBillingTeamCleanupData, CompleteBillingTeamCleanupVariables>`
+```dart
+/// Result of an Operation Request (query/mutation).
+class OperationResult<Data, Variables> {
+  OperationResult(this.dataConnect, this.data, this.ref);
+  Data data;
+  OperationRef<Data, Variables> ref;
+  FirebaseDataConnect dataConnect;
+}
+
+final result = await BillingConnector.instance.completeBillingTeamCleanup(
+  teamId: teamId,
+);
+CompleteBillingTeamCleanupData data = result.data;
+final ref = result.ref;
+```
+
+#### Getting the Ref
+Each builder returns an `execute` function, which is a helper function that creates a `Ref` object, and executes the underlying operation.
+An example of how to use the `Ref` object is shown below:
+```dart
+String teamId = ...;
+
+final ref = BillingConnector.instance.completeBillingTeamCleanup(
+  teamId: teamId,
+).ref();
+ref.execute();
+```
+
+
+### AcknowledgeBillingCredentialCleanup
+#### Required Arguments
+```dart
+String teamId = ...;
+String path = ...;
+String kind = ...;
+BillingConnector.instance.acknowledgeBillingCredentialCleanup(
+  teamId: teamId,
+  path: path,
+  kind: kind,
+).execute();
+```
+
+
+
+#### Return Type
+`execute()` returns a `OperationResult<AcknowledgeBillingCredentialCleanupData, AcknowledgeBillingCredentialCleanupVariables>`
+```dart
+/// Result of an Operation Request (query/mutation).
+class OperationResult<Data, Variables> {
+  OperationResult(this.dataConnect, this.data, this.ref);
+  Data data;
+  OperationRef<Data, Variables> ref;
+  FirebaseDataConnect dataConnect;
+}
+
+final result = await BillingConnector.instance.acknowledgeBillingCredentialCleanup(
+  teamId: teamId,
+  path: path,
+  kind: kind,
+);
+AcknowledgeBillingCredentialCleanupData data = result.data;
+final ref = result.ref;
+```
+
+#### Getting the Ref
+Each builder returns an `execute` function, which is a helper function that creates a `Ref` object, and executes the underlying operation.
+An example of how to use the `Ref` object is shown below:
+```dart
+String teamId = ...;
+String path = ...;
+String kind = ...;
+
+final ref = BillingConnector.instance.acknowledgeBillingCredentialCleanup(
+  teamId: teamId,
+  path: path,
+  kind: kind,
+).ref();
+ref.execute();
+```
+
+
+### DeferBillingTeamCleanup
+#### Required Arguments
+```dart
+String teamId = ...;
+BillingConnector.instance.deferBillingTeamCleanup(
+  teamId: teamId,
+).execute();
+```
+
+
+
+#### Return Type
+`execute()` returns a `OperationResult<DeferBillingTeamCleanupData, DeferBillingTeamCleanupVariables>`
+```dart
+/// Result of an Operation Request (query/mutation).
+class OperationResult<Data, Variables> {
+  OperationResult(this.dataConnect, this.data, this.ref);
+  Data data;
+  OperationRef<Data, Variables> ref;
+  FirebaseDataConnect dataConnect;
+}
+
+final result = await BillingConnector.instance.deferBillingTeamCleanup(
+  teamId: teamId,
+);
+DeferBillingTeamCleanupData data = result.data;
+final ref = result.ref;
+```
+
+#### Getting the Ref
+Each builder returns an `execute` function, which is a helper function that creates a `Ref` object, and executes the underlying operation.
+An example of how to use the `Ref` object is shown below:
+```dart
+String teamId = ...;
+
+final ref = BillingConnector.instance.deferBillingTeamCleanup(
+  teamId: teamId,
 ).ref();
 ref.execute();
 ```

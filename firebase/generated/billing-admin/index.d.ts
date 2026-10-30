@@ -12,6 +12,17 @@ export type UUIDString = string;
 export type Int64String = string;
 export type DateString = string;
 
+export interface AcknowledgeBillingCredentialCleanupData {
+  locked?: BillingTeamDeletion_Key | null;
+  billingTeamDeletion_update?: BillingTeamDeletion_Key | null;
+}
+
+export interface AcknowledgeBillingCredentialCleanupVariables {
+  teamId: string;
+  path: string;
+  kind: string;
+}
+
 export interface BillingAccount_Key {
   teamId: string;
   __typename?: "BillingAccount_Key";
@@ -52,6 +63,11 @@ export interface BillingStripeState_Key {
   __typename?: "BillingStripeState_Key";
 }
 
+export interface BillingTeamDeletion_Key {
+  teamId: string;
+  __typename?: "BillingTeamDeletion_Key";
+}
+
 export interface BillingTrialClaim_Key {
   userId: string;
   __typename?: "BillingTrialClaim_Key";
@@ -72,6 +88,16 @@ export interface BindBillingAdmissionRunVariables {
   runId: string;
   expectedUsageRevision: Int64String;
   atMs: Int64String;
+}
+
+export interface BuildDispatchScheduler_Key {
+  id: string;
+  __typename?: "BuildDispatchScheduler_Key";
+}
+
+export interface BuildJobDispatch_Key {
+  id: string;
+  __typename?: "BuildJobDispatch_Key";
 }
 
 export interface BuildJob_Key {
@@ -109,6 +135,14 @@ export interface CloseBillingCheckoutCreationVariables {
   closedAt: Int64String;
 }
 
+export interface CompleteBillingTeamCleanupData {
+  billingTeamDeletion_update?: BillingTeamDeletion_Key | null;
+}
+
+export interface CompleteBillingTeamCleanupVariables {
+  teamId: string;
+}
+
 export interface CreateBillingAdmissionData {
   billingAccount_updateMany: number;
   buildJob_updateMany: number;
@@ -132,6 +166,7 @@ export interface CreateBillingCheckoutCreationData {
 export interface CreateBillingCheckoutCreationVariables {
   idempotencyKey: string;
   teamId: string;
+  userId: string;
   planId: string;
   stripeCustomerId: string;
   stripePriceId: string;
@@ -148,6 +183,7 @@ export interface CreateBillingCustomerCreationData {
 
 export interface CreateBillingCustomerCreationVariables {
   teamId: string;
+  userId: string;
   idempotencyKey: string;
   livemode: boolean;
   createdAt: Int64String;
@@ -168,6 +204,14 @@ export interface CreateBillingPeriodVariables {
   allowanceSeconds?: Int64String | null;
 }
 
+export interface DeferBillingTeamCleanupData {
+  billingTeamDeletion_update?: BillingTeamDeletion_Key | null;
+}
+
+export interface DeferBillingTeamCleanupVariables {
+  teamId: string;
+}
+
 export interface DeleteBillingTeamData {
   billingAccount_upsert: BillingAccount_Key;
   cleanup?: {
@@ -181,6 +225,7 @@ export interface DeleteBillingTeamData {
       accessTokenSecretVersionPath?: string | null;
     }[];
   };
+  receipt: BillingTeamDeletion_Key;
   team_delete?: Team_Key | null;
 }
 
@@ -406,6 +451,17 @@ export interface GetBillingJobVariables {
   id: string;
 }
 
+export interface GetBillingMembershipData {
+  member?: {
+    id: Int64String;
+  } & TeamMember_Key;
+}
+
+export interface GetBillingMembershipVariables {
+  teamId: string;
+  userId: string;
+}
+
 export interface GetBillingPeriodData {
   period?: {
     id: string;
@@ -469,6 +525,17 @@ export interface GetBillingStripeStateVariables {
   livemode: boolean;
 }
 
+export interface GetBillingTeamDeletionData {
+  receipt?: {
+    teamId: string;
+  } & BillingTeamDeletion_Key;
+}
+
+export interface GetBillingTeamDeletionVariables {
+  teamId: string;
+  userId: string;
+}
+
 export interface GetBillingTrialEligibilityData {
   userClaim?: {
     teamId: string;
@@ -498,6 +565,14 @@ export interface GetBillingWorkerJobsData {
 
 export interface GetBillingWorkerJobsVariables {
   workerHost: string;
+}
+
+export interface GetDueBillingTeamDeletionsData {
+  deletions: ({
+    teamId: string;
+    secretPaths: unknown;
+    githubPaths: unknown;
+  } & BillingTeamDeletion_Key)[];
 }
 
 export interface GetExpiredBillingWorkData {
@@ -649,6 +724,11 @@ export interface SecretReference_Key {
   teamId: string;
   name: string;
   __typename?: "SecretReference_Key";
+}
+
+export interface SecretVersionCleanup_Key {
+  path: string;
+  __typename?: "SecretVersionCleanup_Key";
 }
 
 export interface SkippedWorkflowReport_Key {
@@ -808,6 +888,18 @@ export function getBillingContext(
   options?: OperationOptions,
 ): Promise<ExecuteOperationResponse<GetBillingContextData>>;
 
+/** Generated Node Admin SDK operation action function for the 'GetBillingMembership' Query. Allow users to execute without passing in DataConnect. */
+export function getBillingMembership(
+  dc: DataConnect,
+  vars: GetBillingMembershipVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<GetBillingMembershipData>>;
+/** Generated Node Admin SDK operation action function for the 'GetBillingMembership' Query. Allow users to pass in custom DataConnect instances. */
+export function getBillingMembership(
+  vars: GetBillingMembershipVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<GetBillingMembershipData>>;
+
 /** Generated Node Admin SDK operation action function for the 'GetBillingCustomerByStripeId' Query. Allow users to execute without passing in DataConnect. */
 export function getBillingCustomerByStripeId(
   dc: DataConnect,
@@ -891,6 +983,64 @@ export function deleteBillingTeam(
   vars: DeleteBillingTeamVariables,
   options?: OperationOptions,
 ): Promise<ExecuteOperationResponse<DeleteBillingTeamData>>;
+
+/** Generated Node Admin SDK operation action function for the 'GetBillingTeamDeletion' Query. Allow users to execute without passing in DataConnect. */
+export function getBillingTeamDeletion(
+  dc: DataConnect,
+  vars: GetBillingTeamDeletionVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<GetBillingTeamDeletionData>>;
+/** Generated Node Admin SDK operation action function for the 'GetBillingTeamDeletion' Query. Allow users to pass in custom DataConnect instances. */
+export function getBillingTeamDeletion(
+  vars: GetBillingTeamDeletionVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<GetBillingTeamDeletionData>>;
+
+/** Generated Node Admin SDK operation action function for the 'GetDueBillingTeamDeletions' Query. Allow users to execute without passing in DataConnect. */
+export function getDueBillingTeamDeletions(
+  dc: DataConnect,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<GetDueBillingTeamDeletionsData>>;
+/** Generated Node Admin SDK operation action function for the 'GetDueBillingTeamDeletions' Query. Allow users to pass in custom DataConnect instances. */
+export function getDueBillingTeamDeletions(
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<GetDueBillingTeamDeletionsData>>;
+
+/** Generated Node Admin SDK operation action function for the 'CompleteBillingTeamCleanup' Mutation. Allow users to execute without passing in DataConnect. */
+export function completeBillingTeamCleanup(
+  dc: DataConnect,
+  vars: CompleteBillingTeamCleanupVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<CompleteBillingTeamCleanupData>>;
+/** Generated Node Admin SDK operation action function for the 'CompleteBillingTeamCleanup' Mutation. Allow users to pass in custom DataConnect instances. */
+export function completeBillingTeamCleanup(
+  vars: CompleteBillingTeamCleanupVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<CompleteBillingTeamCleanupData>>;
+
+/** Generated Node Admin SDK operation action function for the 'AcknowledgeBillingCredentialCleanup' Mutation. Allow users to execute without passing in DataConnect. */
+export function acknowledgeBillingCredentialCleanup(
+  dc: DataConnect,
+  vars: AcknowledgeBillingCredentialCleanupVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<AcknowledgeBillingCredentialCleanupData>>;
+/** Generated Node Admin SDK operation action function for the 'AcknowledgeBillingCredentialCleanup' Mutation. Allow users to pass in custom DataConnect instances. */
+export function acknowledgeBillingCredentialCleanup(
+  vars: AcknowledgeBillingCredentialCleanupVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<AcknowledgeBillingCredentialCleanupData>>;
+
+/** Generated Node Admin SDK operation action function for the 'DeferBillingTeamCleanup' Mutation. Allow users to execute without passing in DataConnect. */
+export function deferBillingTeamCleanup(
+  dc: DataConnect,
+  vars: DeferBillingTeamCleanupVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<DeferBillingTeamCleanupData>>;
+/** Generated Node Admin SDK operation action function for the 'DeferBillingTeamCleanup' Mutation. Allow users to pass in custom DataConnect instances. */
+export function deferBillingTeamCleanup(
+  vars: DeferBillingTeamCleanupVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<DeferBillingTeamCleanupData>>;
 
 /** Generated Node Admin SDK operation action function for the 'GetBillingExecution' Query. Allow users to execute without passing in DataConnect. */
 export function getBillingExecution(
