@@ -1,4 +1,3 @@
-import 'package:openci_server/build_job/build_job_mapper.dart';
 import 'package:openci_shared/openci_shared.dart';
 import 'package:test/test.dart';
 

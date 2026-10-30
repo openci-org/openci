@@ -59,37 +59,6 @@ class CicdLogDetailPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    ref.listen(
-      realtimeRunLogsStreamProvider(
-        buildJobId: buildJobId,
-        runId: runId,
-      ),
-      (previous, next) {
-        next.whenData((event) {
-          final isStepEvent = event['isStepEvent'] as bool? ?? false;
-          final stepId = event['stepId'] as String?;
-
-          if (isStepEvent) {
-            ref.invalidate(
-              buildStepSummariesProvider(
-                buildJobId: buildJobId,
-                runId: runId,
-              ),
-            );
-          }
-          if (stepId != null && stepId.isNotEmpty) {
-            ref.invalidate(
-              buildStepLogDetailProvider(
-                buildJobId: buildJobId,
-                runId: runId,
-                stepId: stepId,
-              ),
-            );
-          }
-        });
-      },
-    );
-
     final stepsAsync = ref.watch(
       buildStepSummariesProvider(
         buildJobId: buildJobId,
@@ -255,7 +224,7 @@ class _StepAccordion extends HookConsumerWidget {
   }
 }
 
-class _StepLogsContent extends HookConsumerWidget {
+class _StepLogsContent extends ConsumerWidget {
   const _StepLogsContent({
     required this.buildJobId,
     required this.runId,
@@ -268,9 +237,6 @@ class _StepLogsContent extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final liveLogs = useState<List<String>>([]);
-    final isInitialized = useState<bool>(false);
-
     final detailAsync = ref.watch(
       buildStepLogDetailProvider(
         buildJobId: buildJobId,
@@ -279,43 +245,13 @@ class _StepLogsContent extends HookConsumerWidget {
       ),
     );
 
-    detailAsync.whenData((initialLogs) {
-      if (!isInitialized.value) {
-        liveLogs.value = List.from(initialLogs);
-        isInitialized.value = true;
-      }
-    });
-
-    ref.listen(
-      realtimeRunLogsStreamProvider(
-        buildJobId: buildJobId,
-        runId: runId,
-      ),
-      (previous, next) {
-        next.whenData((event) {
-          final isStepEvent = event['isStepEvent'] as bool? ?? false;
-          final eventStepId = event['stepId'] as String?;
-          final message = event['message'] as String?;
-
-          if (!isStepEvent &&
-              eventStepId == stepId &&
-              message != null &&
-              message.isNotEmpty) {
-            if (!liveLogs.value.contains(message)) {
-              liveLogs.value = [...liveLogs.value, message];
-            }
-          }
-        });
-      },
-    );
-
-    final logs = isInitialized.value
-        ? liveLogs.value
-        : (detailAsync.value ?? []);
-
-    if (detailAsync.isLoading && !isInitialized.value) {
+    final logs = detailAsync.value ?? [];
+    if (detailAsync.hasError) {
+      return asyncErrorWidget(detailAsync.error!, detailAsync.stackTrace!);
+    }
+    if (detailAsync.isLoading && !detailAsync.hasValue) {
       return const Padding(
-        padding: EdgeInsets.all(16.0),
+        padding: EdgeInsets.all(16),
         child: Center(child: CircularProgressIndicator.adaptive()),
       );
     }
@@ -324,7 +260,7 @@ class _StepLogsContent extends HookConsumerWidget {
       return const Padding(
         padding: EdgeInsets.symmetric(vertical: 12.0, horizontal: 16.0),
         child: Text(
-          'No logs available.',
+          'ログがありません。保存期間を過ぎたログと移行前のログは表示されません。',
           style: TextStyle(color: Colors.grey, fontSize: 13),
         ),
       );
@@ -348,7 +284,7 @@ class _StepLogsContent extends HookConsumerWidget {
                 return Padding(
                   padding: const EdgeInsets.symmetric(vertical: 2),
                   child: Text(
-                    log,
+                    log.endsWith('\n') ? log.substring(0, log.length - 1) : log,
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 12,
@@ -370,7 +306,7 @@ class _StepLogsContent extends HookConsumerWidget {
             ),
             tooltip: 'ログをコピー',
             onPressed: () async {
-              await Clipboard.setData(ClipboardData(text: logs.join('\n')));
+              await Clipboard.setData(ClipboardData(text: logs.join()));
               if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(

@@ -1,10 +1,10 @@
 library;
 
 export 'src/api/json_to_type_converter.dart';
-export 'src/api/loki_api_service.dart';
 export 'src/api/openci_api_service.dart';
 export 'src/api/token_auth_interceptor.dart';
 export 'src/models/build_job.dart';
+export 'src/models/group_build_jobs.dart';
 export 'src/models/build_job_plan.dart';
 export 'src/models/build_step.dart';
 export 'src/models/changed_files_result.dart';
@@ -12,8 +12,6 @@ export 'src/models/cicd_commit_group.dart';
 export 'src/models/claim_job_request.dart';
 export 'src/models/github_connection_result.dart';
 export 'src/models/open_ci_file.dart';
-export 'src/models/loki/step_event.dart';
-export 'src/models/loki/step_log.dart';
 export 'src/models/skipped_workflow_plan.dart';
 export 'src/models/team.dart';
 export 'src/models/user_device.dart';

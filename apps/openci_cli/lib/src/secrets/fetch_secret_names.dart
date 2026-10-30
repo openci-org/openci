@@ -1,13 +1,10 @@
 import 'dart:io';
 
 import 'package:meta/meta.dart';
-import 'package:openci_shared/openci_shared.dart';
+import 'secrets_api.dart';
 
-Future<List<String>> fetchSecretNames(
-  OpenCIApiService api,
-  String teamId,
-) async {
-  final response = await api.getSecrets(Uri.encodeComponent(teamId));
+Future<List<String>> fetchSecretNames(SecretsApi api, String teamId) async {
+  final response = await api.getSecrets(teamId);
   if (response.statusCode != HttpStatus.ok) {
     throw SecretNamesHttpException(response.statusCode);
   }

@@ -237,7 +237,7 @@ async function stepState(f, stepId = "build") {
 }
 
 async function readLogs(f, overrides = {}, actor = f.user) {
-  return (
+  const run = (
     await operation(
       "Query",
       "GetBuildLogs",
@@ -245,6 +245,7 @@ async function readLogs(f, overrides = {}, actor = f.user) {
       actor,
     )
   ).run;
+  return { ...run, logs: run.logEntries };
 }
 
 test("single appends use server timestamps and sequence cursor pagination", async (t) => {
@@ -300,9 +301,9 @@ test("generated Admin SDK saves and reads logs with member authorization", async
   });
   assert.equal(appended.data.buildLog_insert.sequence, "1");
   const page = await logsSdk.getBuildLogs(dc, scope, member);
-  assert.equal(page.data.run.logs[0].message, entry.message);
-  assert.equal(page.data.run.logs[0].occurredAt, entry.occurredAt);
-  assert.equal(page.data.run.logs[0].stepId, "build");
+  assert.equal(page.data.run.logEntries[0].message, entry.message);
+  assert.equal(page.data.run.logEntries[0].occurredAt, entry.occurredAt);
+  assert.equal(page.data.run.logEntries[0].stepId, "build");
   const recovery = await logsSdk.getBuildLogWriteState(dc, {
     ...scope,
     logIds: [entry.logId],
@@ -316,8 +317,8 @@ test("generated Admin SDK saves and reads logs with member authorization", async
     durationMs: "9007199254740993",
   });
   const steps = await logsSdk.getBuildSteps(dc, scope, member);
-  assert.equal(steps.data.run.steps[0].status, "SUCCESS");
-  assert.equal(steps.data.run.steps[0].durationMs, "9007199254740993");
+  assert.equal(steps.data.run.stepSummaries[0].status, "SUCCESS");
+  assert.equal(steps.data.run.stepSummaries[0].durationMs, "9007199254740993");
   const savedStep = await logsSdk.getBuildStepWriteState(dc, {
     ...scope,
     stepId: "build",
@@ -389,15 +390,15 @@ test("step listing has deterministic order and pagination", async (t) => {
   const vars = { teamId: f.teamId, runId: f.runId, limit: 2 };
   const page = await operation("Query", "GetBuildSteps", vars, f.user);
   assert.deepEqual(
-    page.run.steps.map((s) => s.stepId),
+    page.run.stepSummaries.map((s) => s.stepId),
     ["a", "b"],
   );
-  assert.equal(page.run.steps[0].durationMs, "0");
-  assert.equal(page.run.steps[0].status, "IN_PROGRESS");
-  assert.equal(page.run.steps[0].createdAt, page.run.steps[0].updatedAt);
+  assert.equal(page.run.stepSummaries[0].durationMs, "0");
+  assert.equal(page.run.stepSummaries[0].status, "IN_PROGRESS");
+  assert.equal(page.run.stepSummaries[0].createdAt, page.run.stepSummaries[0].updatedAt);
   const next = await operation("Query", "GetBuildSteps", { ...vars, offset: 2 }, f.user);
   assert.deepEqual(
-    next.run.steps.map((s) => s.stepId),
+    next.run.stepSummaries.map((s) => s.stepId),
     ["z"],
   );
 });
@@ -605,4 +606,77 @@ test("query pagination and recovery sizes are bounded", async (t) => {
     ),
     /Too many log IDs/,
   );
+});
+
+test("reader state is scoped to both the job and team", async (t) => {
+  const f = await fixture(t);
+  await createStep(f);
+  await append(f, log(f));
+  const vars = { teamId: f.teamId, jobId: f.jobId, runId: f.runId };
+  const data = await operation("Query", "GetBuildLogState", vars, f.user);
+  assert.equal(data.run.lastLogSequence, "1");
+  assert.equal(data.run.allSteps.length, 1);
+  await assert.rejects(operation("Query", "GetBuildLogState", vars, f.otherUser));
+  await assert.rejects(
+    operation("Query", "GetBuildLogState", { ...vars, jobId: f.otherJobId }, f.user),
+  );
+});
+
+test("retention deletes only an expired completed run through the selected cursor", async (t) => {
+  const f = await fixture(t);
+  await createStep(f);
+  await append(f, log(f));
+  await append(f, log(f, 2), { expectedLastSequence: "1" });
+  const vars = { runId: f.runId, throughSequence: "1" };
+  assert.equal(
+    (await operation("Mutation", "DeleteExpiredBuildLogs", vars)).buildLog_deleteMany,
+    0,
+  );
+  await graphql(
+    `
+      mutation Expire($id: String!) {
+        buildRun_update(
+          key: { id: $id }
+          data: { status: "completed", logsExpireAt: "2000-01-01T00:00:00Z" }
+        )
+      }
+    `,
+    { id: f.runId },
+  );
+  const due = await operation("Query", "GetExpiredBuildLogs", {});
+  assert.equal(due.runs.find((run) => run.id === f.runId).expiredLogs.length, 2);
+  await assert.rejects(operation("Mutation", "DeleteExpiredBuildLogs", vars, f.user));
+  assert.equal(
+    (await operation("Mutation", "DeleteExpiredBuildLogs", vars)).buildLog_deleteMany,
+    1,
+  );
+  assert.equal((await readLogs(f)).logs.length, 1);
+  assert.equal((await stepState(f)).length, 1);
+});
+
+test("job detail requires membership and rejects anonymous or cross-team access", async (t) => {
+  const f = await fixture(t);
+  const detail = (id, user) =>
+    request("/connectors/builds:impersonateQuery", {
+      operationName: "GetBuildJob",
+      variables: { id },
+      extensions: {
+        impersonate:
+          user === null
+            ? { unauthenticated: true }
+            : {
+                authClaims:
+                  typeof user === "string"
+                    ? { sub: user, firebase: { sign_in_provider: "password" } }
+                    : user,
+              },
+      },
+    });
+  assert.equal((await detail(f.jobId, f.user)).job.id, f.jobId);
+  await assert.rejects(detail(f.jobId, f.otherUser), /Team access denied/);
+  await assert.rejects(detail(f.jobId, null));
+  await assert.rejects(
+    detail(f.jobId, { sub: f.user, firebase: { sign_in_provider: "anonymous" } }),
+  );
+  assert.equal((await detail("missing", f.user)).job, null);
 });

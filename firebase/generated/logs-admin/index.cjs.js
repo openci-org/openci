@@ -62,6 +62,40 @@ function getBuildStepWriteState(dcOrVarsOrOptions, varsOrOptions, options) {
 }
 exports.getBuildStepWriteState = getBuildStepWriteState;
 
+function getBuildLogState(dcOrVarsOrOptions, varsOrOptions, options) {
+  const {
+    dc: dcInstance,
+    vars: inputVars,
+    options: inputOpts,
+  } = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeQuery("GetBuildLogState", inputVars, inputOpts);
+}
+exports.getBuildLogState = getBuildLogState;
+
+function getExpiredBuildLogs(dcOrOptions, options) {
+  const { dc: dcInstance, options: inputOpts } = validateAdminArgs(
+    connectorConfig,
+    dcOrOptions,
+    options,
+    undefined,
+  );
+  dcInstance.useGen(true);
+  return dcInstance.executeQuery("GetExpiredBuildLogs", undefined, inputOpts);
+}
+exports.getExpiredBuildLogs = getExpiredBuildLogs;
+
+function deleteExpiredBuildLogs(dcOrVarsOrOptions, varsOrOptions, options) {
+  const {
+    dc: dcInstance,
+    vars: inputVars,
+    options: inputOpts,
+  } = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeMutation("DeleteExpiredBuildLogs", inputVars, inputOpts);
+}
+exports.deleteExpiredBuildLogs = deleteExpiredBuildLogs;
+
 function createBuildStep(dcOrVarsOrOptions, varsOrOptions, options) {
   const {
     dc: dcInstance,

@@ -75,6 +75,16 @@ export interface BillingTrialClaim_Key {
   __typename?: "BillingTrialClaim_Key";
 }
 
+export interface BuildDispatchScheduler_Key {
+  id: string;
+  __typename?: "BuildDispatchScheduler_Key";
+}
+
+export interface BuildJobDispatch_Key {
+  id: string;
+  __typename?: "BuildJobDispatch_Key";
+}
+
 export interface BuildJob_Key {
   id: string;
   __typename?: "BuildJob_Key";
@@ -109,6 +119,39 @@ export interface CreateBuildStepVariables {
   stepOrder: number;
 }
 
+export interface DeleteExpiredBuildLogsData {
+  buildLog_deleteMany: number;
+}
+
+export interface DeleteExpiredBuildLogsVariables {
+  runId: string;
+  throughSequence: Int64String;
+}
+
+export interface GetBuildLogStateData {
+  run?: {
+    id: string;
+    status: string;
+    lastLogSequence: Int64String;
+    logsExpireAt?: TimestampString | null;
+    allSteps: {
+      stepId: string;
+      name: string;
+      status: string;
+      stepOrder: number;
+      durationMs: Int64String;
+      createdAt: TimestampString;
+      updatedAt: TimestampString;
+    }[];
+  } & BuildRun_Key;
+}
+
+export interface GetBuildLogStateVariables {
+  teamId: string;
+  jobId: string;
+  runId: string;
+}
+
 export interface GetBuildLogWriteStateData {
   run?: {
     id: string;
@@ -138,7 +181,7 @@ export interface GetBuildLogsData {
     id: string;
     lastLogSequence: Int64String;
     logsExpireAt?: TimestampString | null;
-    logs: {
+    logEntries: {
       logId: UUIDString;
       sequence: Int64String;
       stepId?: string | null;
@@ -182,7 +225,7 @@ export interface GetBuildStepWriteStateVariables {
 export interface GetBuildStepsData {
   run?: {
     id: string;
-    steps: {
+    stepSummaries: {
       stepId: string;
       name: string;
       status: string;
@@ -199,6 +242,15 @@ export interface GetBuildStepsVariables {
   runId: string;
   offset?: number;
   limit?: number;
+}
+
+export interface GetExpiredBuildLogsData {
+  runs: ({
+    id: string;
+    expiredLogs: {
+      sequence: Int64String;
+    }[];
+  } & BuildRun_Key)[];
 }
 
 export interface GitHubConnectionRequest_Key {
@@ -220,6 +272,11 @@ export interface SecretReference_Key {
   teamId: string;
   name: string;
   __typename?: "SecretReference_Key";
+}
+
+export interface SecretVersionCleanup_Key {
+  path: string;
+  __typename?: "SecretVersionCleanup_Key";
 }
 
 export interface SkippedWorkflowReport_Key {
@@ -313,6 +370,40 @@ export function getBuildStepWriteState(
   vars: GetBuildStepWriteStateVariables,
   options?: OperationOptions,
 ): Promise<ExecuteOperationResponse<GetBuildStepWriteStateData>>;
+
+/** Generated Node Admin SDK operation action function for the 'GetBuildLogState' Query. Allow users to execute without passing in DataConnect. */
+export function getBuildLogState(
+  dc: DataConnect,
+  vars: GetBuildLogStateVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<GetBuildLogStateData>>;
+/** Generated Node Admin SDK operation action function for the 'GetBuildLogState' Query. Allow users to pass in custom DataConnect instances. */
+export function getBuildLogState(
+  vars: GetBuildLogStateVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<GetBuildLogStateData>>;
+
+/** Generated Node Admin SDK operation action function for the 'GetExpiredBuildLogs' Query. Allow users to execute without passing in DataConnect. */
+export function getExpiredBuildLogs(
+  dc: DataConnect,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<GetExpiredBuildLogsData>>;
+/** Generated Node Admin SDK operation action function for the 'GetExpiredBuildLogs' Query. Allow users to pass in custom DataConnect instances. */
+export function getExpiredBuildLogs(
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<GetExpiredBuildLogsData>>;
+
+/** Generated Node Admin SDK operation action function for the 'DeleteExpiredBuildLogs' Mutation. Allow users to execute without passing in DataConnect. */
+export function deleteExpiredBuildLogs(
+  dc: DataConnect,
+  vars: DeleteExpiredBuildLogsVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<DeleteExpiredBuildLogsData>>;
+/** Generated Node Admin SDK operation action function for the 'DeleteExpiredBuildLogs' Mutation. Allow users to pass in custom DataConnect instances. */
+export function deleteExpiredBuildLogs(
+  vars: DeleteExpiredBuildLogsVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<DeleteExpiredBuildLogsData>>;
 
 /** Generated Node Admin SDK operation action function for the 'CreateBuildStep' Mutation. Allow users to execute without passing in DataConnect. */
 export function createBuildStep(

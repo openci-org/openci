@@ -26,8 +26,10 @@ class GetBuildStepsVariablesBuilder {
       GetBuildStepsData.fromJson(jsonDecode(json));
   Serializer<GetBuildStepsVariables> varsSerializer =
       (GetBuildStepsVariables vars) => jsonEncode(vars.toJson());
-  Future<QueryResult<GetBuildStepsData, GetBuildStepsVariables>> execute() {
-    return ref().execute();
+  Future<QueryResult<GetBuildStepsData, GetBuildStepsVariables>> execute({
+    QueryFetchPolicy fetchPolicy = QueryFetchPolicy.preferCache,
+  }) {
+    return ref().execute(fetchPolicy: fetchPolicy);
   }
 
   QueryRef<GetBuildStepsData, GetBuildStepsVariables> ref() {
@@ -49,11 +51,11 @@ class GetBuildStepsVariablesBuilder {
 @immutable
 class GetBuildStepsRun {
   final String id;
-  final List<GetBuildStepsRunSteps> steps;
+  final List<GetBuildStepsRunStepSummaries> stepSummaries;
   GetBuildStepsRun.fromJson(dynamic json)
     : id = nativeFromJson<String>(json['id']),
-      steps = (json['steps'] as List<dynamic>)
-          .map((e) => GetBuildStepsRunSteps.fromJson(e))
+      stepSummaries = (json['stepSummaries'] as List<dynamic>)
+          .map((e) => GetBuildStepsRunStepSummaries.fromJson(e))
           .toList();
   @override
   bool operator ==(Object other) {
@@ -65,27 +67,27 @@ class GetBuildStepsRun {
     }
 
     final GetBuildStepsRun otherTyped = other as GetBuildStepsRun;
-    return id == otherTyped.id && steps == otherTyped.steps;
+    return id == otherTyped.id && stepSummaries == otherTyped.stepSummaries;
   }
 
   @override
-  int get hashCode => Object.hashAll([id.hashCode, steps.hashCode]);
+  int get hashCode => Object.hashAll([id.hashCode, stepSummaries.hashCode]);
 
   Map<String, dynamic> toJson() {
     Map<String, dynamic> json = {};
     json['id'] = nativeToJson<String>(id);
-    json['steps'] = steps.map((e) => e.toJson()).toList();
+    json['stepSummaries'] = stepSummaries.map((e) => e.toJson()).toList();
     return json;
   }
 
   GetBuildStepsRun({
     required this.id,
-    required this.steps,
+    required this.stepSummaries,
   });
 }
 
 @immutable
-class GetBuildStepsRunSteps {
+class GetBuildStepsRunStepSummaries {
   final String stepId;
   final String name;
   final String status;
@@ -93,7 +95,7 @@ class GetBuildStepsRunSteps {
   final BigInt durationMs;
   final Timestamp createdAt;
   final Timestamp updatedAt;
-  GetBuildStepsRunSteps.fromJson(dynamic json)
+  GetBuildStepsRunStepSummaries.fromJson(dynamic json)
     : stepId = nativeFromJson<String>(json['stepId']),
       name = nativeFromJson<String>(json['name']),
       status = nativeFromJson<String>(json['status']),
@@ -110,7 +112,8 @@ class GetBuildStepsRunSteps {
       return false;
     }
 
-    final GetBuildStepsRunSteps otherTyped = other as GetBuildStepsRunSteps;
+    final GetBuildStepsRunStepSummaries otherTyped =
+        other as GetBuildStepsRunStepSummaries;
     return stepId == otherTyped.stepId &&
         name == otherTyped.name &&
         status == otherTyped.status &&
@@ -143,7 +146,7 @@ class GetBuildStepsRunSteps {
     return json;
   }
 
-  GetBuildStepsRunSteps({
+  GetBuildStepsRunStepSummaries({
     required this.stepId,
     required this.name,
     required this.status,

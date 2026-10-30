@@ -1,0 +1,26 @@
+query GetExpiredBuildLogs @auth(level: NO_ACCESS) {
+  runs: buildRuns(
+    where: {
+      logsExpireAt: { le_expr: "request.time" }
+      status: { eq: "completed" }
+      buildLogs_on_run: { exist: { sequence: { gt: 0 } } }
+    }
+    orderBy: [{ logsExpireAt: ASC }, { id: ASC }]
+    limit: 20
+  ) {
+    id
+    expiredLogs: buildLogs_on_run(orderBy: { sequence: ASC }, limit: 500) {
+      sequence
+    }
+  }
+}
+
+mutation DeleteExpiredBuildLogs($runId: String!, $throughSequence: Int64!) @auth(level: NO_ACCESS) {
+  buildLog_deleteMany(
+    where: {
+      runId: { eq: $runId }
+      sequence: { le: $throughSequence }
+      run: { logsExpireAt: { le_expr: "request.time" }, status: { eq: "completed" } }
+    }
+  )
+}

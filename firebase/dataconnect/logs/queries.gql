@@ -38,7 +38,7 @@ query GetBuildSteps($teamId: String!, $runId: String!, $offset: Int! = 0, $limit
     @check(expr: "this != null", message: "Run not found")
     @check(expr: "vars.offset >= 0", message: "Invalid page offset") {
     id
-    steps: buildSteps_on_run(
+    stepSummaries: buildSteps_on_run(
       orderBy: [{ stepOrder: ASC }, { stepId: ASC }]
       offset: $offset
       limit: $limit
@@ -64,7 +64,7 @@ query GetBuildLogs(
     id
     lastLogSequence
     logsExpireAt
-    logs: buildLogs_on_run(
+    logEntries: buildLogs_on_run(
       where: { sequence: { gt: $afterSequence } }
       orderBy: { sequence: ASC }
       limit: $limit
@@ -100,6 +100,52 @@ query GetBuildStepWriteState($teamId: String!, $runId: String!, $stepId: String!
     @check(expr: "this != null", message: "Run not found") {
     id
     steps: buildSteps_on_run(where: { stepId: { eq: $stepId } }, limit: 1) {
+      ...BuildStepFields
+    }
+  }
+}
+
+# A small shared subscription signals readers to fetch only unseen log pages.
+query GetBuildLogState($teamId: String!, $jobId: String!, $runId: String!)
+@auth(level: USER)
+@refresh(every: { seconds: 10 })
+@refresh(
+  onMutationExecuted: {
+    operation: "AppendBuildLog"
+    condition: "mutation.variables.runId == request.variables.runId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "CreateBuildStep"
+    condition: "mutation.variables.runId == request.variables.runId"
+  }
+)
+@refresh(
+  onMutationExecuted: {
+    operation: "UpdateBuildStep"
+    condition: "mutation.variables.runId == request.variables.runId"
+  }
+) {
+  teamMembers(where: { teamId: { eq: $teamId }, userId: { eq_expr: "auth.uid" } }, limit: 1)
+    @redact
+    @check(expr: "size(this) == 1", message: "Team access denied") {
+    id
+  }
+  run: buildRun(
+    first: {
+      where: {
+        id: { eq: $runId }
+        buildJobId: { eq: $jobId }
+        buildJob: { teamId: { eq: $teamId } }
+      }
+    }
+  ) @check(expr: "this != null", message: "Run not found") {
+    id
+    status
+    lastLogSequence
+    logsExpireAt
+    allSteps: buildSteps_on_run(orderBy: [{ stepOrder: ASC }, { stepId: ASC }], limit: null) {
       ...BuildStepFields
     }
   }

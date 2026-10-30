@@ -14,6 +14,12 @@ part 'get_build_log_write_state.dart';
 
 part 'get_build_step_write_state.dart';
 
+part 'get_build_log_state.dart';
+
+part 'get_expired_build_logs.dart';
+
+part 'delete_expired_build_logs.dart';
+
 part 'create_build_step.dart';
 
 part 'update_build_step.dart';
@@ -100,6 +106,36 @@ class LogsConnector {
     );
   }
 
+  GetBuildLogStateVariablesBuilder getBuildLogState({
+    required String teamId,
+    required String jobId,
+    required String runId,
+  }) {
+    return GetBuildLogStateVariablesBuilder(
+      dataConnect,
+      teamId: teamId,
+      jobId: jobId,
+      runId: runId,
+    );
+  }
+
+  GetExpiredBuildLogsVariablesBuilder getExpiredBuildLogs() {
+    return GetExpiredBuildLogsVariablesBuilder(
+      dataConnect,
+    );
+  }
+
+  DeleteExpiredBuildLogsVariablesBuilder deleteExpiredBuildLogs({
+    required String runId,
+    required BigInt throughSequence,
+  }) {
+    return DeleteExpiredBuildLogsVariablesBuilder(
+      dataConnect,
+      runId: runId,
+      throughSequence: throughSequence,
+    );
+  }
+
   CreateBuildStepVariablesBuilder createBuildStep({
     required String teamId,
     required String runId,
@@ -142,9 +178,16 @@ class LogsConnector {
 
   LogsConnector({required this.dataConnect});
   static LogsConnector get instance {
+    CacheSettings cacheSettings = CacheSettings(
+      maxAge: Duration(milliseconds: 5000),
+      storage: CacheStorage.persistent,
+    );
+
     return LogsConnector(
       dataConnect: FirebaseDataConnect.instanceFor(
         connectorConfig: connectorConfig,
+
+        cacheSettings: cacheSettings,
 
         sdkType: CallerSDKType.generated,
       ),

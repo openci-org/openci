@@ -147,7 +147,6 @@ void main() {
           '--build',
           '--remove-orphans',
           'server',
-          'loki',
         ],
       ]);
       expect(capturedWorkingDirectory, equals(projectRoot.path));

@@ -57,6 +57,16 @@ export interface BillingTrialClaim_Key {
   __typename?: "BillingTrialClaim_Key";
 }
 
+export interface BuildDispatchScheduler_Key {
+  id: string;
+  __typename?: "BuildDispatchScheduler_Key";
+}
+
+export interface BuildJobDispatch_Key {
+  id: string;
+  __typename?: "BuildJobDispatch_Key";
+}
+
 export interface BuildJob_Key {
   id: string;
   __typename?: "BuildJob_Key";
@@ -79,13 +89,13 @@ export interface BuildStep_Key {
   __typename?: "BuildStep_Key";
 }
 
-export interface GetBuildJobsData {
-  buildJobs: ({
+export interface GetBuildJobData {
+  job?: {
+    teamId?: string | null;
     id: string;
     status: string;
     owner: string;
     repo: string;
-    teamId?: string | null;
     workflowId?: string | null;
     workflowName: string;
     workflowFileName: string;
@@ -106,6 +116,46 @@ export interface GetBuildJobsData {
     createdAt: Int64String;
     updatedAt: Int64String;
     completedAt?: Int64String | null;
+    githubBaseUrl?: string | null;
+    failureSummary?: string | null;
+    failureSummaryStatus?: string | null;
+  } & BuildJob_Key;
+}
+
+export interface GetBuildJobVariables {
+  id: string;
+}
+
+export interface GetBuildJobsData {
+  buildJobs: ({
+    teamId?: string | null;
+    id: string;
+    status: string;
+    owner: string;
+    repo: string;
+    workflowId?: string | null;
+    workflowName: string;
+    workflowFileName: string;
+    commitSha?: string | null;
+    commitMessage?: string | null;
+    pullRequestNumber?: Int64String | null;
+    branch?: string | null;
+    tagName?: string | null;
+    jobKey?: string | null;
+    workflowJobKey?: string | null;
+    workflowRunId?: string | null;
+    matrix?: string | null;
+    matrixLabel?: string | null;
+    needs?: string | null;
+    runsOn?: string | null;
+    runCount?: Int64String | null;
+    latestRunId?: string | null;
+    createdAt: Int64String;
+    updatedAt: Int64String;
+    completedAt?: Int64String | null;
+    githubBaseUrl?: string | null;
+    failureSummary?: string | null;
+    failureSummaryStatus?: string | null;
   } & BuildJob_Key)[];
 }
 
@@ -134,6 +184,11 @@ export interface SecretReference_Key {
   teamId: string;
   name: string;
   __typename?: "SecretReference_Key";
+}
+
+export interface SecretVersionCleanup_Key {
+  path: string;
+  __typename?: "SecretVersionCleanup_Key";
 }
 
 export interface SkippedWorkflowReport_Key {
@@ -167,3 +222,15 @@ export function getBuildJobs(
   vars: GetBuildJobsVariables,
   options?: OperationOptions,
 ): Promise<ExecuteOperationResponse<GetBuildJobsData>>;
+
+/** Generated Node Admin SDK operation action function for the 'GetBuildJob' Query. Allow users to execute without passing in DataConnect. */
+export function getBuildJob(
+  dc: DataConnect,
+  vars: GetBuildJobVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<GetBuildJobData>>;
+/** Generated Node Admin SDK operation action function for the 'GetBuildJob' Query. Allow users to pass in custom DataConnect instances. */
+export function getBuildJob(
+  vars: GetBuildJobVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<GetBuildJobData>>;

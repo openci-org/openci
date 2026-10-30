@@ -74,7 +74,6 @@ Future<bool> startDockerCompose(
         '--build',
         '--remove-orphans',
         'server',
-        'loki',
       ],
       t.dev.start.stepDockerCompose,
       t.dev.start.stepDockerComposeFailed,

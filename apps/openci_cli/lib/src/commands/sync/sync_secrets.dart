@@ -1,9 +1,9 @@
 import 'dart:io';
 
 import 'package:cli_util/cli_logging.dart';
-import 'package:openci_shared/openci_shared.dart';
 import 'package:path/path.dart' as p;
 
+import '../../secrets/secrets_api.dart';
 import '../../credential_store/credential_config.dart';
 import '../../credential_store/credential_store.dart';
 import '../../credential_store/read_authenticated_profile.dart';
@@ -71,16 +71,9 @@ class SyncSecrets {
   }
 
   Future<List<String>> _fetchNames(AuthProfile profile) async {
-    final client = createOpenCIChopperClient(
-      baseUrl: profile.serverUrl,
-      tokenProvider: () => profile.token,
-      services: [OpenCIApiService.create()],
-    );
+    final client = SecretsApi(profile);
     try {
-      return await fetchSecretNames(
-        client.getService<OpenCIApiService>(),
-        profile.teamId,
-      );
+      return await fetchSecretNames(client, profile.teamId);
     } finally {
       client.dispose();
     }

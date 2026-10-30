@@ -2,8 +2,8 @@ import 'dart:io';
 
 import 'package:cli_util/cli_logging.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
-import 'package:openci_shared/openci_shared.dart';
 
+import '../../secrets/secrets_api.dart';
 import '../../asc/asc_api_key.dart';
 import '../../asc/asc_api_key_secret.dart';
 import '../../credential_store/credential_config.dart';
@@ -55,19 +55,12 @@ class AscKeyRegistration {
       return null;
     }
 
-    final client = createOpenCIChopperClient(
-      baseUrl: profile.serverUrl,
-      tokenProvider: () => profile.token,
-      services: [OpenCIApiService.create()],
-    );
+    final client = SecretsApi(profile);
     try {
-      final names = await fetchSecretNames(
-        client.getService<OpenCIApiService>(),
-        profile.teamId,
-      );
+      final names = await fetchSecretNames(client, profile.teamId);
       _logger.stdout(
         t.setup.ascKeys.saveDestination(
-          server: _escapeControls(profile.serverUrl),
+          server: _escapeControls(secretFunctionEndpoint(profile).toString()),
           team: _escapeControls(profile.teamId),
           names: [
             ...ascApiKeySecretNames,

@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$AuthProfile {
 
-@JsonKey(name: 'server_url') String get serverUrl; String get token;@JsonKey(name: 'team_id') String get teamId;@JsonKey(name: 'auth_type') String get authType;@JsonKey(name: 'refresh_token') String get refreshToken;@JsonKey(name: 'firebase_api_key') String get firebaseApiKey;@JsonKey(name: 'firebase_auth_emulator_host', includeIfNull: false) String? get firebaseAuthEmulatorHost;@JsonKey(name: 'expires_at') DateTime? get expiresAt;
+@JsonKey(name: 'server_url') String get serverUrl; String get token;@JsonKey(name: 'team_id') String get teamId;@JsonKey(name: 'auth_type') String get authType;@JsonKey(name: 'refresh_token') String get refreshToken;@JsonKey(name: 'firebase_api_key') String get firebaseApiKey;@JsonKey(name: 'firebase_auth_emulator_host', includeIfNull: false) String? get firebaseAuthEmulatorHost;@JsonKey(name: 'firebase_project_id') String get firebaseProjectId;@JsonKey(name: 'functions_region') String get functionsRegion;@JsonKey(name: 'functions_emulator_host', includeIfNull: false) String? get functionsEmulatorHost;@JsonKey(name: 'expires_at') DateTime? get expiresAt;
 /// Create a copy of AuthProfile
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,12 +28,12 @@ $AuthProfileCopyWith<AuthProfile> get copyWith => _$AuthProfileCopyWithImpl<Auth
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is AuthProfile&&(identical(other.serverUrl, serverUrl) || other.serverUrl == serverUrl)&&(identical(other.token, token) || other.token == token)&&(identical(other.teamId, teamId) || other.teamId == teamId)&&(identical(other.authType, authType) || other.authType == authType)&&(identical(other.refreshToken, refreshToken) || other.refreshToken == refreshToken)&&(identical(other.firebaseApiKey, firebaseApiKey) || other.firebaseApiKey == firebaseApiKey)&&(identical(other.firebaseAuthEmulatorHost, firebaseAuthEmulatorHost) || other.firebaseAuthEmulatorHost == firebaseAuthEmulatorHost)&&(identical(other.expiresAt, expiresAt) || other.expiresAt == expiresAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is AuthProfile&&(identical(other.serverUrl, serverUrl) || other.serverUrl == serverUrl)&&(identical(other.token, token) || other.token == token)&&(identical(other.teamId, teamId) || other.teamId == teamId)&&(identical(other.authType, authType) || other.authType == authType)&&(identical(other.refreshToken, refreshToken) || other.refreshToken == refreshToken)&&(identical(other.firebaseApiKey, firebaseApiKey) || other.firebaseApiKey == firebaseApiKey)&&(identical(other.firebaseAuthEmulatorHost, firebaseAuthEmulatorHost) || other.firebaseAuthEmulatorHost == firebaseAuthEmulatorHost)&&(identical(other.firebaseProjectId, firebaseProjectId) || other.firebaseProjectId == firebaseProjectId)&&(identical(other.functionsRegion, functionsRegion) || other.functionsRegion == functionsRegion)&&(identical(other.functionsEmulatorHost, functionsEmulatorHost) || other.functionsEmulatorHost == functionsEmulatorHost)&&(identical(other.expiresAt, expiresAt) || other.expiresAt == expiresAt));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,serverUrl,token,teamId,authType,refreshToken,firebaseApiKey,firebaseAuthEmulatorHost,expiresAt);
+int get hashCode => Object.hash(runtimeType,serverUrl,token,teamId,authType,refreshToken,firebaseApiKey,firebaseAuthEmulatorHost,firebaseProjectId,functionsRegion,functionsEmulatorHost,expiresAt);
 
 
 
@@ -44,7 +44,7 @@ abstract mixin class $AuthProfileCopyWith<$Res>  {
   factory $AuthProfileCopyWith(AuthProfile value, $Res Function(AuthProfile) _then) = _$AuthProfileCopyWithImpl;
 @useResult
 $Res call({
-@JsonKey(name: 'server_url') String serverUrl, String token,@JsonKey(name: 'team_id') String teamId,@JsonKey(name: 'auth_type') String authType,@JsonKey(name: 'refresh_token') String refreshToken,@JsonKey(name: 'firebase_api_key') String firebaseApiKey,@JsonKey(name: 'firebase_auth_emulator_host', includeIfNull: false) String? firebaseAuthEmulatorHost,@JsonKey(name: 'expires_at') DateTime? expiresAt
+@JsonKey(name: 'server_url') String serverUrl, String token,@JsonKey(name: 'team_id') String teamId,@JsonKey(name: 'auth_type') String authType,@JsonKey(name: 'refresh_token') String refreshToken,@JsonKey(name: 'firebase_api_key') String firebaseApiKey,@JsonKey(name: 'firebase_auth_emulator_host', includeIfNull: false) String? firebaseAuthEmulatorHost,@JsonKey(name: 'firebase_project_id') String firebaseProjectId,@JsonKey(name: 'functions_region') String functionsRegion,@JsonKey(name: 'functions_emulator_host', includeIfNull: false) String? functionsEmulatorHost,@JsonKey(name: 'expires_at') DateTime? expiresAt
 });
 
 
@@ -61,7 +61,7 @@ class _$AuthProfileCopyWithImpl<$Res>
 
 /// Create a copy of AuthProfile
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? serverUrl = null,Object? token = null,Object? teamId = null,Object? authType = null,Object? refreshToken = null,Object? firebaseApiKey = null,Object? firebaseAuthEmulatorHost = freezed,Object? expiresAt = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? serverUrl = null,Object? token = null,Object? teamId = null,Object? authType = null,Object? refreshToken = null,Object? firebaseApiKey = null,Object? firebaseAuthEmulatorHost = freezed,Object? firebaseProjectId = null,Object? functionsRegion = null,Object? functionsEmulatorHost = freezed,Object? expiresAt = freezed,}) {
   return _then(_self.copyWith(
 serverUrl: null == serverUrl ? _self.serverUrl : serverUrl // ignore: cast_nullable_to_non_nullable
 as String,token: null == token ? _self.token : token // ignore: cast_nullable_to_non_nullable
@@ -70,6 +70,9 @@ as String,authType: null == authType ? _self.authType : authType // ignore: cast
 as String,refreshToken: null == refreshToken ? _self.refreshToken : refreshToken // ignore: cast_nullable_to_non_nullable
 as String,firebaseApiKey: null == firebaseApiKey ? _self.firebaseApiKey : firebaseApiKey // ignore: cast_nullable_to_non_nullable
 as String,firebaseAuthEmulatorHost: freezed == firebaseAuthEmulatorHost ? _self.firebaseAuthEmulatorHost : firebaseAuthEmulatorHost // ignore: cast_nullable_to_non_nullable
+as String?,firebaseProjectId: null == firebaseProjectId ? _self.firebaseProjectId : firebaseProjectId // ignore: cast_nullable_to_non_nullable
+as String,functionsRegion: null == functionsRegion ? _self.functionsRegion : functionsRegion // ignore: cast_nullable_to_non_nullable
+as String,functionsEmulatorHost: freezed == functionsEmulatorHost ? _self.functionsEmulatorHost : functionsEmulatorHost // ignore: cast_nullable_to_non_nullable
 as String?,expiresAt: freezed == expiresAt ? _self.expiresAt : expiresAt // ignore: cast_nullable_to_non_nullable
 as DateTime?,
   ));
@@ -156,10 +159,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'server_url')  String serverUrl,  String token, @JsonKey(name: 'team_id')  String teamId, @JsonKey(name: 'auth_type')  String authType, @JsonKey(name: 'refresh_token')  String refreshToken, @JsonKey(name: 'firebase_api_key')  String firebaseApiKey, @JsonKey(name: 'firebase_auth_emulator_host', includeIfNull: false)  String? firebaseAuthEmulatorHost, @JsonKey(name: 'expires_at')  DateTime? expiresAt)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'server_url')  String serverUrl,  String token, @JsonKey(name: 'team_id')  String teamId, @JsonKey(name: 'auth_type')  String authType, @JsonKey(name: 'refresh_token')  String refreshToken, @JsonKey(name: 'firebase_api_key')  String firebaseApiKey, @JsonKey(name: 'firebase_auth_emulator_host', includeIfNull: false)  String? firebaseAuthEmulatorHost, @JsonKey(name: 'firebase_project_id')  String firebaseProjectId, @JsonKey(name: 'functions_region')  String functionsRegion, @JsonKey(name: 'functions_emulator_host', includeIfNull: false)  String? functionsEmulatorHost, @JsonKey(name: 'expires_at')  DateTime? expiresAt)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _AuthProfile() when $default != null:
-return $default(_that.serverUrl,_that.token,_that.teamId,_that.authType,_that.refreshToken,_that.firebaseApiKey,_that.firebaseAuthEmulatorHost,_that.expiresAt);case _:
+return $default(_that.serverUrl,_that.token,_that.teamId,_that.authType,_that.refreshToken,_that.firebaseApiKey,_that.firebaseAuthEmulatorHost,_that.firebaseProjectId,_that.functionsRegion,_that.functionsEmulatorHost,_that.expiresAt);case _:
   return orElse();
 
 }
@@ -177,10 +180,10 @@ return $default(_that.serverUrl,_that.token,_that.teamId,_that.authType,_that.re
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'server_url')  String serverUrl,  String token, @JsonKey(name: 'team_id')  String teamId, @JsonKey(name: 'auth_type')  String authType, @JsonKey(name: 'refresh_token')  String refreshToken, @JsonKey(name: 'firebase_api_key')  String firebaseApiKey, @JsonKey(name: 'firebase_auth_emulator_host', includeIfNull: false)  String? firebaseAuthEmulatorHost, @JsonKey(name: 'expires_at')  DateTime? expiresAt)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'server_url')  String serverUrl,  String token, @JsonKey(name: 'team_id')  String teamId, @JsonKey(name: 'auth_type')  String authType, @JsonKey(name: 'refresh_token')  String refreshToken, @JsonKey(name: 'firebase_api_key')  String firebaseApiKey, @JsonKey(name: 'firebase_auth_emulator_host', includeIfNull: false)  String? firebaseAuthEmulatorHost, @JsonKey(name: 'firebase_project_id')  String firebaseProjectId, @JsonKey(name: 'functions_region')  String functionsRegion, @JsonKey(name: 'functions_emulator_host', includeIfNull: false)  String? functionsEmulatorHost, @JsonKey(name: 'expires_at')  DateTime? expiresAt)  $default,) {final _that = this;
 switch (_that) {
 case _AuthProfile():
-return $default(_that.serverUrl,_that.token,_that.teamId,_that.authType,_that.refreshToken,_that.firebaseApiKey,_that.firebaseAuthEmulatorHost,_that.expiresAt);case _:
+return $default(_that.serverUrl,_that.token,_that.teamId,_that.authType,_that.refreshToken,_that.firebaseApiKey,_that.firebaseAuthEmulatorHost,_that.firebaseProjectId,_that.functionsRegion,_that.functionsEmulatorHost,_that.expiresAt);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -197,10 +200,10 @@ return $default(_that.serverUrl,_that.token,_that.teamId,_that.authType,_that.re
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'server_url')  String serverUrl,  String token, @JsonKey(name: 'team_id')  String teamId, @JsonKey(name: 'auth_type')  String authType, @JsonKey(name: 'refresh_token')  String refreshToken, @JsonKey(name: 'firebase_api_key')  String firebaseApiKey, @JsonKey(name: 'firebase_auth_emulator_host', includeIfNull: false)  String? firebaseAuthEmulatorHost, @JsonKey(name: 'expires_at')  DateTime? expiresAt)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'server_url')  String serverUrl,  String token, @JsonKey(name: 'team_id')  String teamId, @JsonKey(name: 'auth_type')  String authType, @JsonKey(name: 'refresh_token')  String refreshToken, @JsonKey(name: 'firebase_api_key')  String firebaseApiKey, @JsonKey(name: 'firebase_auth_emulator_host', includeIfNull: false)  String? firebaseAuthEmulatorHost, @JsonKey(name: 'firebase_project_id')  String firebaseProjectId, @JsonKey(name: 'functions_region')  String functionsRegion, @JsonKey(name: 'functions_emulator_host', includeIfNull: false)  String? functionsEmulatorHost, @JsonKey(name: 'expires_at')  DateTime? expiresAt)?  $default,) {final _that = this;
 switch (_that) {
 case _AuthProfile() when $default != null:
-return $default(_that.serverUrl,_that.token,_that.teamId,_that.authType,_that.refreshToken,_that.firebaseApiKey,_that.firebaseAuthEmulatorHost,_that.expiresAt);case _:
+return $default(_that.serverUrl,_that.token,_that.teamId,_that.authType,_that.refreshToken,_that.firebaseApiKey,_that.firebaseAuthEmulatorHost,_that.firebaseProjectId,_that.functionsRegion,_that.functionsEmulatorHost,_that.expiresAt);case _:
   return null;
 
 }
@@ -212,7 +215,7 @@ return $default(_that.serverUrl,_that.token,_that.teamId,_that.authType,_that.re
 @JsonSerializable()
 
 class _AuthProfile extends AuthProfile {
-  const _AuthProfile({@JsonKey(name: 'server_url') this.serverUrl = 'http://localhost:8080', this.token = '', @JsonKey(name: 'team_id') this.teamId = '', @JsonKey(name: 'auth_type') this.authType = 'api_key', @JsonKey(name: 'refresh_token') this.refreshToken = '', @JsonKey(name: 'firebase_api_key') this.firebaseApiKey = '', @JsonKey(name: 'firebase_auth_emulator_host', includeIfNull: false) this.firebaseAuthEmulatorHost, @JsonKey(name: 'expires_at') this.expiresAt}): super._();
+  const _AuthProfile({@JsonKey(name: 'server_url') this.serverUrl = 'http://localhost:8080', this.token = '', @JsonKey(name: 'team_id') this.teamId = '', @JsonKey(name: 'auth_type') this.authType = 'api_key', @JsonKey(name: 'refresh_token') this.refreshToken = '', @JsonKey(name: 'firebase_api_key') this.firebaseApiKey = '', @JsonKey(name: 'firebase_auth_emulator_host', includeIfNull: false) this.firebaseAuthEmulatorHost, @JsonKey(name: 'firebase_project_id') this.firebaseProjectId = '', @JsonKey(name: 'functions_region') this.functionsRegion = 'asia-northeast1', @JsonKey(name: 'functions_emulator_host', includeIfNull: false) this.functionsEmulatorHost, @JsonKey(name: 'expires_at') this.expiresAt}): super._();
   factory _AuthProfile.fromJson(Map<String, dynamic> json) => _$AuthProfileFromJson(json);
 
 @override@JsonKey(name: 'server_url') final  String serverUrl;
@@ -222,6 +225,9 @@ class _AuthProfile extends AuthProfile {
 @override@JsonKey(name: 'refresh_token') final  String refreshToken;
 @override@JsonKey(name: 'firebase_api_key') final  String firebaseApiKey;
 @override@JsonKey(name: 'firebase_auth_emulator_host', includeIfNull: false) final  String? firebaseAuthEmulatorHost;
+@override@JsonKey(name: 'firebase_project_id') final  String firebaseProjectId;
+@override@JsonKey(name: 'functions_region') final  String functionsRegion;
+@override@JsonKey(name: 'functions_emulator_host', includeIfNull: false) final  String? functionsEmulatorHost;
 @override@JsonKey(name: 'expires_at') final  DateTime? expiresAt;
 
 /// Create a copy of AuthProfile
@@ -237,12 +243,12 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _AuthProfile&&(identical(other.serverUrl, serverUrl) || other.serverUrl == serverUrl)&&(identical(other.token, token) || other.token == token)&&(identical(other.teamId, teamId) || other.teamId == teamId)&&(identical(other.authType, authType) || other.authType == authType)&&(identical(other.refreshToken, refreshToken) || other.refreshToken == refreshToken)&&(identical(other.firebaseApiKey, firebaseApiKey) || other.firebaseApiKey == firebaseApiKey)&&(identical(other.firebaseAuthEmulatorHost, firebaseAuthEmulatorHost) || other.firebaseAuthEmulatorHost == firebaseAuthEmulatorHost)&&(identical(other.expiresAt, expiresAt) || other.expiresAt == expiresAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _AuthProfile&&(identical(other.serverUrl, serverUrl) || other.serverUrl == serverUrl)&&(identical(other.token, token) || other.token == token)&&(identical(other.teamId, teamId) || other.teamId == teamId)&&(identical(other.authType, authType) || other.authType == authType)&&(identical(other.refreshToken, refreshToken) || other.refreshToken == refreshToken)&&(identical(other.firebaseApiKey, firebaseApiKey) || other.firebaseApiKey == firebaseApiKey)&&(identical(other.firebaseAuthEmulatorHost, firebaseAuthEmulatorHost) || other.firebaseAuthEmulatorHost == firebaseAuthEmulatorHost)&&(identical(other.firebaseProjectId, firebaseProjectId) || other.firebaseProjectId == firebaseProjectId)&&(identical(other.functionsRegion, functionsRegion) || other.functionsRegion == functionsRegion)&&(identical(other.functionsEmulatorHost, functionsEmulatorHost) || other.functionsEmulatorHost == functionsEmulatorHost)&&(identical(other.expiresAt, expiresAt) || other.expiresAt == expiresAt));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,serverUrl,token,teamId,authType,refreshToken,firebaseApiKey,firebaseAuthEmulatorHost,expiresAt);
+int get hashCode => Object.hash(runtimeType,serverUrl,token,teamId,authType,refreshToken,firebaseApiKey,firebaseAuthEmulatorHost,firebaseProjectId,functionsRegion,functionsEmulatorHost,expiresAt);
 
 
 
@@ -253,7 +259,7 @@ abstract mixin class _$AuthProfileCopyWith<$Res> implements $AuthProfileCopyWith
   factory _$AuthProfileCopyWith(_AuthProfile value, $Res Function(_AuthProfile) _then) = __$AuthProfileCopyWithImpl;
 @override @useResult
 $Res call({
-@JsonKey(name: 'server_url') String serverUrl, String token,@JsonKey(name: 'team_id') String teamId,@JsonKey(name: 'auth_type') String authType,@JsonKey(name: 'refresh_token') String refreshToken,@JsonKey(name: 'firebase_api_key') String firebaseApiKey,@JsonKey(name: 'firebase_auth_emulator_host', includeIfNull: false) String? firebaseAuthEmulatorHost,@JsonKey(name: 'expires_at') DateTime? expiresAt
+@JsonKey(name: 'server_url') String serverUrl, String token,@JsonKey(name: 'team_id') String teamId,@JsonKey(name: 'auth_type') String authType,@JsonKey(name: 'refresh_token') String refreshToken,@JsonKey(name: 'firebase_api_key') String firebaseApiKey,@JsonKey(name: 'firebase_auth_emulator_host', includeIfNull: false) String? firebaseAuthEmulatorHost,@JsonKey(name: 'firebase_project_id') String firebaseProjectId,@JsonKey(name: 'functions_region') String functionsRegion,@JsonKey(name: 'functions_emulator_host', includeIfNull: false) String? functionsEmulatorHost,@JsonKey(name: 'expires_at') DateTime? expiresAt
 });
 
 
@@ -270,7 +276,7 @@ class __$AuthProfileCopyWithImpl<$Res>
 
 /// Create a copy of AuthProfile
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? serverUrl = null,Object? token = null,Object? teamId = null,Object? authType = null,Object? refreshToken = null,Object? firebaseApiKey = null,Object? firebaseAuthEmulatorHost = freezed,Object? expiresAt = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? serverUrl = null,Object? token = null,Object? teamId = null,Object? authType = null,Object? refreshToken = null,Object? firebaseApiKey = null,Object? firebaseAuthEmulatorHost = freezed,Object? firebaseProjectId = null,Object? functionsRegion = null,Object? functionsEmulatorHost = freezed,Object? expiresAt = freezed,}) {
   return _then(_AuthProfile(
 serverUrl: null == serverUrl ? _self.serverUrl : serverUrl // ignore: cast_nullable_to_non_nullable
 as String,token: null == token ? _self.token : token // ignore: cast_nullable_to_non_nullable
@@ -279,6 +285,9 @@ as String,authType: null == authType ? _self.authType : authType // ignore: cast
 as String,refreshToken: null == refreshToken ? _self.refreshToken : refreshToken // ignore: cast_nullable_to_non_nullable
 as String,firebaseApiKey: null == firebaseApiKey ? _self.firebaseApiKey : firebaseApiKey // ignore: cast_nullable_to_non_nullable
 as String,firebaseAuthEmulatorHost: freezed == firebaseAuthEmulatorHost ? _self.firebaseAuthEmulatorHost : firebaseAuthEmulatorHost // ignore: cast_nullable_to_non_nullable
+as String?,firebaseProjectId: null == firebaseProjectId ? _self.firebaseProjectId : firebaseProjectId // ignore: cast_nullable_to_non_nullable
+as String,functionsRegion: null == functionsRegion ? _self.functionsRegion : functionsRegion // ignore: cast_nullable_to_non_nullable
+as String,functionsEmulatorHost: freezed == functionsEmulatorHost ? _self.functionsEmulatorHost : functionsEmulatorHost // ignore: cast_nullable_to_non_nullable
 as String?,expiresAt: freezed == expiresAt ? _self.expiresAt : expiresAt // ignore: cast_nullable_to_non_nullable
 as DateTime?,
   ));

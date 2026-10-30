@@ -2,6 +2,7 @@
 
 ```dart
 BuildsConnector.instance.GetBuildJobs(getBuildJobsVariables).execute();
+BuildsConnector.instance.GetBuildJob(getBuildJobVariables).execute();
 
 ```
 

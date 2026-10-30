@@ -1,3 +1,4 @@
+import '../../../helpers/secret_functions.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -48,7 +49,11 @@ void main() {
     );
     await store.saveProfile(
       'test',
-      const AuthProfile(token: 'private-token', teamId: 'selected-team'),
+      const AuthProfile(
+        firebaseProjectId: 'test-project',
+        token: 'private-token',
+        teamId: 'selected-team',
+      ),
     );
     logger = _RecordingLogger();
     requests = [];
@@ -70,7 +75,7 @@ void main() {
       () => runner.run(['sync', ...arguments]),
       () => MockClient((request) async {
         requests.add(request);
-        return http.Response(
+        return functionResponse(
           jsonEncode({
             'success': true,
             'secrets': [

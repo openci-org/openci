@@ -24,8 +24,10 @@ class GetBuildJobsVariablesBuilder {
       GetBuildJobsData.fromJson(jsonDecode(json));
   Serializer<GetBuildJobsVariables> varsSerializer =
       (GetBuildJobsVariables vars) => jsonEncode(vars.toJson());
-  Future<QueryResult<GetBuildJobsData, GetBuildJobsVariables>> execute() {
-    return ref().execute();
+  Future<QueryResult<GetBuildJobsData, GetBuildJobsVariables>> execute({
+    QueryFetchPolicy fetchPolicy = QueryFetchPolicy.preferCache,
+  }) {
+    return ref().execute(fetchPolicy: fetchPolicy);
   }
 
   QueryRef<GetBuildJobsData, GetBuildJobsVariables> ref() {
@@ -45,11 +47,11 @@ class GetBuildJobsVariablesBuilder {
 
 @immutable
 class GetBuildJobsBuildJobs {
+  final String? teamId;
   final String id;
   final String status;
   final String owner;
   final String repo;
-  final String? teamId;
   final String? workflowId;
   final String workflowName;
   final String workflowFileName;
@@ -70,14 +72,17 @@ class GetBuildJobsBuildJobs {
   final BigInt createdAt;
   final BigInt updatedAt;
   final BigInt? completedAt;
+  final String? githubBaseUrl;
+  final String? failureSummary;
+  final String? failureSummaryStatus;
   GetBuildJobsBuildJobs.fromJson(dynamic json)
-    : id = nativeFromJson<String>(json['id']),
+    : teamId = json['teamId'] == null
+          ? null
+          : nativeFromJson<String>(json['teamId']),
+      id = nativeFromJson<String>(json['id']),
       status = nativeFromJson<String>(json['status']),
       owner = nativeFromJson<String>(json['owner']),
       repo = nativeFromJson<String>(json['repo']),
-      teamId = json['teamId'] == null
-          ? null
-          : nativeFromJson<String>(json['teamId']),
       workflowId = json['workflowId'] == null
           ? null
           : nativeFromJson<String>(json['workflowId']),
@@ -129,7 +134,16 @@ class GetBuildJobsBuildJobs {
       updatedAt = bigIntFromJson(json['updatedAt']),
       completedAt = json['completedAt'] == null
           ? null
-          : bigIntFromJson(json['completedAt']);
+          : bigIntFromJson(json['completedAt']),
+      githubBaseUrl = json['githubBaseUrl'] == null
+          ? null
+          : nativeFromJson<String>(json['githubBaseUrl']),
+      failureSummary = json['failureSummary'] == null
+          ? null
+          : nativeFromJson<String>(json['failureSummary']),
+      failureSummaryStatus = json['failureSummaryStatus'] == null
+          ? null
+          : nativeFromJson<String>(json['failureSummaryStatus']);
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) {
@@ -140,11 +154,11 @@ class GetBuildJobsBuildJobs {
     }
 
     final GetBuildJobsBuildJobs otherTyped = other as GetBuildJobsBuildJobs;
-    return id == otherTyped.id &&
+    return teamId == otherTyped.teamId &&
+        id == otherTyped.id &&
         status == otherTyped.status &&
         owner == otherTyped.owner &&
         repo == otherTyped.repo &&
-        teamId == otherTyped.teamId &&
         workflowId == otherTyped.workflowId &&
         workflowName == otherTyped.workflowName &&
         workflowFileName == otherTyped.workflowFileName &&
@@ -164,16 +178,19 @@ class GetBuildJobsBuildJobs {
         latestRunId == otherTyped.latestRunId &&
         createdAt == otherTyped.createdAt &&
         updatedAt == otherTyped.updatedAt &&
-        completedAt == otherTyped.completedAt;
+        completedAt == otherTyped.completedAt &&
+        githubBaseUrl == otherTyped.githubBaseUrl &&
+        failureSummary == otherTyped.failureSummary &&
+        failureSummaryStatus == otherTyped.failureSummaryStatus;
   }
 
   @override
   int get hashCode => Object.hashAll([
+    teamId.hashCode,
     id.hashCode,
     status.hashCode,
     owner.hashCode,
     repo.hashCode,
-    teamId.hashCode,
     workflowId.hashCode,
     workflowName.hashCode,
     workflowFileName.hashCode,
@@ -194,17 +211,20 @@ class GetBuildJobsBuildJobs {
     createdAt.hashCode,
     updatedAt.hashCode,
     completedAt.hashCode,
+    githubBaseUrl.hashCode,
+    failureSummary.hashCode,
+    failureSummaryStatus.hashCode,
   ]);
 
   Map<String, dynamic> toJson() {
     Map<String, dynamic> json = {};
+    if (teamId != null) {
+      json['teamId'] = nativeToJson<String?>(teamId);
+    }
     json['id'] = nativeToJson<String>(id);
     json['status'] = nativeToJson<String>(status);
     json['owner'] = nativeToJson<String>(owner);
     json['repo'] = nativeToJson<String>(repo);
-    if (teamId != null) {
-      json['teamId'] = nativeToJson<String?>(teamId);
-    }
     if (workflowId != null) {
       json['workflowId'] = nativeToJson<String?>(workflowId);
     }
@@ -257,15 +277,26 @@ class GetBuildJobsBuildJobs {
     if (completedAt != null) {
       json['completedAt'] = bigIntToJson(completedAt);
     }
+    if (githubBaseUrl != null) {
+      json['githubBaseUrl'] = nativeToJson<String?>(githubBaseUrl);
+    }
+    if (failureSummary != null) {
+      json['failureSummary'] = nativeToJson<String?>(failureSummary);
+    }
+    if (failureSummaryStatus != null) {
+      json['failureSummaryStatus'] = nativeToJson<String?>(
+        failureSummaryStatus,
+      );
+    }
     return json;
   }
 
   GetBuildJobsBuildJobs({
+    this.teamId,
     required this.id,
     required this.status,
     required this.owner,
     required this.repo,
-    this.teamId,
     this.workflowId,
     required this.workflowName,
     required this.workflowFileName,
@@ -286,6 +317,9 @@ class GetBuildJobsBuildJobs {
     required this.createdAt,
     required this.updatedAt,
     this.completedAt,
+    this.githubBaseUrl,
+    this.failureSummary,
+    this.failureSummaryStatus,
   });
 }
 
