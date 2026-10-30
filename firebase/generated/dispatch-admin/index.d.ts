@@ -29,6 +29,15 @@ export interface AcquireBuildDispatchSchedulerVariables {
   owner: string;
 }
 
+export interface AcquireBuildExecutionCleanupData {
+  acquired: number;
+}
+
+export interface AcquireBuildExecutionCleanupVariables {
+  id: string;
+  owner: string;
+}
+
 export interface BillingAccount_Key {
   teamId: string;
   __typename?: "BillingAccount_Key";
@@ -123,6 +132,41 @@ export interface ClaimBuildJobExecutionVariables {
   id: string;
   executorId: string;
   executionName: string;
+  timeoutSeconds?: number;
+}
+
+export interface CompleteBuildExecutionData {
+  buildJob_updateMany: number;
+  completed: number;
+  buildRun_updateMany: number;
+  buildStep_updateMany: number;
+  buildJobDispatch_updateMany: number;
+}
+
+export interface CompleteBuildExecutionVariables {
+  id: string;
+  jobId: string;
+  owner: string;
+}
+
+export interface ConfigureBuildExecutionRunData {
+  buildJob_updateMany: number;
+  buildRun_updateMany: number;
+}
+
+export interface ConfigureBuildExecutionRunVariables {
+  id: string;
+  jobId: string;
+  executorId: string;
+}
+
+export interface ConfirmBuildVmDeletedData {
+  buildJobDispatch_updateMany: number;
+}
+
+export interface ConfirmBuildVmDeletedVariables {
+  id: string;
+  owner: string;
 }
 
 export interface ExpireUnstartedBuildDispatchesData {
@@ -143,6 +187,7 @@ export interface GetActiveBuildDispatchesData {
   dispatches: ({
     id: string;
     jobId: string;
+    teamId?: string | null;
     activeJobId?: string | null;
     vmName: string;
     cpu: number;
@@ -155,6 +200,17 @@ export interface GetActiveBuildDispatchesData {
     operationName?: string | null;
     executionName?: string | null;
     executorId?: string | null;
+    runId?: string | null;
+    checkRunId?: string | null;
+    startedAt?: TimestampString | null;
+    heartbeatAt?: TimestampString | null;
+    deadlineAt?: TimestampString | null;
+    outcome?: string | null;
+    resultAt?: TimestampString | null;
+    vmRequestedAt?: TimestampString | null;
+    vmDeletedAt?: TimestampString | null;
+    cleanupOwner?: string | null;
+    cleanupLeaseUntil?: TimestampString | null;
     startDeadline: TimestampString;
     createdAt: TimestampString;
     updatedAt: TimestampString;
@@ -171,6 +227,7 @@ export interface GetBuildDispatchStateData {
   dispatch?: {
     id: string;
     jobId: string;
+    teamId?: string | null;
     activeJobId?: string | null;
     vmName: string;
     cpu: number;
@@ -183,6 +240,17 @@ export interface GetBuildDispatchStateData {
     operationName?: string | null;
     executionName?: string | null;
     executorId?: string | null;
+    runId?: string | null;
+    checkRunId?: string | null;
+    startedAt?: TimestampString | null;
+    heartbeatAt?: TimestampString | null;
+    deadlineAt?: TimestampString | null;
+    outcome?: string | null;
+    resultAt?: TimestampString | null;
+    vmRequestedAt?: TimestampString | null;
+    vmDeletedAt?: TimestampString | null;
+    cleanupOwner?: string | null;
+    cleanupLeaseUntil?: TimestampString | null;
     startDeadline: TimestampString;
     createdAt: TimestampString;
     updatedAt: TimestampString;
@@ -194,10 +262,11 @@ export interface GetBuildDispatchStateVariables {
   jobId: string;
 }
 
-export interface GetBuildJobDispatchData {
+export interface GetBuildExecutionData {
   dispatch?: {
     id: string;
     jobId: string;
+    teamId?: string | null;
     activeJobId?: string | null;
     vmName: string;
     cpu: number;
@@ -210,6 +279,130 @@ export interface GetBuildJobDispatchData {
     operationName?: string | null;
     executionName?: string | null;
     executorId?: string | null;
+    runId?: string | null;
+    checkRunId?: string | null;
+    startedAt?: TimestampString | null;
+    heartbeatAt?: TimestampString | null;
+    deadlineAt?: TimestampString | null;
+    outcome?: string | null;
+    resultAt?: TimestampString | null;
+    vmRequestedAt?: TimestampString | null;
+    vmDeletedAt?: TimestampString | null;
+    cleanupOwner?: string | null;
+    cleanupLeaseUntil?: TimestampString | null;
+    startDeadline: TimestampString;
+    createdAt: TimestampString;
+    updatedAt: TimestampString;
+    finishedAt?: TimestampString | null;
+  } & BuildJobDispatch_Key;
+  job?: {
+    id: string;
+    teamId?: string | null;
+    status: string;
+    owner: string;
+    repo: string;
+    workflowName: string;
+    workflowFileName: string;
+    commitSha?: string | null;
+    branch?: string | null;
+    installationId?: string | null;
+    githubBaseUrl?: string | null;
+    latestRunId?: string | null;
+    workerHost?: string | null;
+    runCount?: Int64String | null;
+  } & BuildJob_Key;
+  run?: {
+    id: string;
+    runNumber?: Int64String | null;
+    status: string;
+    conclusion?: string | null;
+  } & BuildRun_Key;
+}
+
+export interface GetBuildExecutionSecretsData {
+  secrets: {
+    name: string;
+    secretVersionPath: string;
+  }[];
+}
+
+export interface GetBuildExecutionSecretsVariables {
+  teamId: string;
+}
+
+export interface GetBuildExecutionVariables {
+  id: string;
+  jobId: string;
+  runId: string;
+}
+
+export interface GetBuildExecutorContextData {
+  team?: {
+    id: string;
+  } & Team_Key;
+  connection?: {
+    id: string;
+    accountId: Int64String;
+    accountLogin: string;
+  } & GitHubConnection_Key;
+  customer?: {
+    stripeCustomerId?: string | null;
+    livemode: boolean;
+  };
+  stripe?: {
+    stripeCustomerId: string;
+    livemode: boolean;
+    stripeSubscriptionId?: string | null;
+    subscriptionStatus: string;
+    planId?: string | null;
+    paidPeriodId?: string | null;
+    paidPeriod?: {
+      id: string;
+      teamId: string;
+      planId: string;
+      periodType: string;
+      startsAt: Int64String;
+      endsAt: Int64String;
+      allowanceSeconds?: Int64String | null;
+    } & BillingPeriod_Key;
+  };
+}
+
+export interface GetBuildExecutorContextVariables {
+  teamId: string;
+  installationId: Int64String;
+  appId: Int64String;
+  apiBaseUrl: string;
+}
+
+export interface GetBuildJobDispatchData {
+  dispatch?: {
+    id: string;
+    jobId: string;
+    teamId?: string | null;
+    activeJobId?: string | null;
+    vmName: string;
+    cpu: number;
+    memoryMiB: number;
+    image: string;
+    cloudRunJob: string;
+    state: string;
+    launchOwner?: string | null;
+    launchLeaseUntil?: TimestampString | null;
+    operationName?: string | null;
+    executionName?: string | null;
+    executorId?: string | null;
+    runId?: string | null;
+    checkRunId?: string | null;
+    startedAt?: TimestampString | null;
+    heartbeatAt?: TimestampString | null;
+    deadlineAt?: TimestampString | null;
+    outcome?: string | null;
+    resultAt?: TimestampString | null;
+    vmRequestedAt?: TimestampString | null;
+    vmDeletedAt?: TimestampString | null;
+    cleanupOwner?: string | null;
+    cleanupLeaseUntil?: TimestampString | null;
     startDeadline: TimestampString;
     createdAt: TimestampString;
     updatedAt: TimestampString;
@@ -219,6 +412,52 @@ export interface GetBuildJobDispatchData {
 
 export interface GetBuildJobDispatchVariables {
   id: string;
+}
+
+export interface GetFinishedBuildExecutionsForVmsData {
+  dispatches: ({
+    id: string;
+    vmName: string;
+  } & BuildJobDispatch_Key)[];
+}
+
+export interface GetFinishedBuildExecutionsForVmsVariables {
+  vmNames: string[];
+}
+
+export interface GetRecoverableBuildExecutionsData {
+  dispatches: ({
+    id: string;
+    jobId: string;
+    teamId?: string | null;
+    activeJobId?: string | null;
+    vmName: string;
+    cpu: number;
+    memoryMiB: number;
+    image: string;
+    cloudRunJob: string;
+    state: string;
+    launchOwner?: string | null;
+    launchLeaseUntil?: TimestampString | null;
+    operationName?: string | null;
+    executionName?: string | null;
+    executorId?: string | null;
+    runId?: string | null;
+    checkRunId?: string | null;
+    startedAt?: TimestampString | null;
+    heartbeatAt?: TimestampString | null;
+    deadlineAt?: TimestampString | null;
+    outcome?: string | null;
+    resultAt?: TimestampString | null;
+    vmRequestedAt?: TimestampString | null;
+    vmDeletedAt?: TimestampString | null;
+    cleanupOwner?: string | null;
+    cleanupLeaseUntil?: TimestampString | null;
+    startDeadline: TimestampString;
+    createdAt: TimestampString;
+    updatedAt: TimestampString;
+    finishedAt?: TimestampString | null;
+  } & BuildJobDispatch_Key)[];
 }
 
 export interface GitHubConnectionRequest_Key {
@@ -236,8 +475,26 @@ export interface GitHubConnection_Key {
   __typename?: "GitHubConnection_Key";
 }
 
+export interface HeartbeatBuildExecutionData {
+  updated: number;
+}
+
+export interface HeartbeatBuildExecutionVariables {
+  id: string;
+  executorId: string;
+}
+
 export interface InitializeBuildDispatchSchedulerData {
   buildDispatchScheduler_upsert: BuildDispatchScheduler_Key;
+}
+
+export interface MarkBuildVmRequestedData {
+  buildJobDispatch_updateMany: number;
+}
+
+export interface MarkBuildVmRequestedVariables {
+  id: string;
+  executorId: string;
 }
 
 export interface RecordBuildDispatchLaunchData {
@@ -248,6 +505,25 @@ export interface RecordBuildDispatchLaunchVariables {
   id: string;
   owner: string;
   operationName: string;
+}
+
+export interface RecordBuildExecutionCheckData {
+  buildJobDispatch_updateMany: number;
+}
+
+export interface RecordBuildExecutionCheckVariables {
+  id: string;
+  checkRunId: string;
+}
+
+export interface RecordBuildExecutionResultData {
+  updated: number;
+}
+
+export interface RecordBuildExecutionResultVariables {
+  id: string;
+  executorId: string;
+  outcome: string;
 }
 
 export interface ReleaseBuildDispatchSchedulerData {
@@ -450,3 +726,157 @@ export function finishBuildJobDispatch(
   vars: FinishBuildJobDispatchVariables,
   options?: OperationOptions,
 ): Promise<ExecuteOperationResponse<FinishBuildJobDispatchData>>;
+
+/** Generated Node Admin SDK operation action function for the 'GetBuildExecution' Query. Allow users to execute without passing in DataConnect. */
+export function getBuildExecution(
+  dc: DataConnect,
+  vars: GetBuildExecutionVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<GetBuildExecutionData>>;
+/** Generated Node Admin SDK operation action function for the 'GetBuildExecution' Query. Allow users to pass in custom DataConnect instances. */
+export function getBuildExecution(
+  vars: GetBuildExecutionVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<GetBuildExecutionData>>;
+
+/** Generated Node Admin SDK operation action function for the 'GetBuildExecutorContext' Query. Allow users to execute without passing in DataConnect. */
+export function getBuildExecutorContext(
+  dc: DataConnect,
+  vars: GetBuildExecutorContextVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<GetBuildExecutorContextData>>;
+/** Generated Node Admin SDK operation action function for the 'GetBuildExecutorContext' Query. Allow users to pass in custom DataConnect instances. */
+export function getBuildExecutorContext(
+  vars: GetBuildExecutorContextVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<GetBuildExecutorContextData>>;
+
+/** Generated Node Admin SDK operation action function for the 'GetBuildExecutionSecrets' Query. Allow users to execute without passing in DataConnect. */
+export function getBuildExecutionSecrets(
+  dc: DataConnect,
+  vars: GetBuildExecutionSecretsVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<GetBuildExecutionSecretsData>>;
+/** Generated Node Admin SDK operation action function for the 'GetBuildExecutionSecrets' Query. Allow users to pass in custom DataConnect instances. */
+export function getBuildExecutionSecrets(
+  vars: GetBuildExecutionSecretsVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<GetBuildExecutionSecretsData>>;
+
+/** Generated Node Admin SDK operation action function for the 'ConfigureBuildExecutionRun' Mutation. Allow users to execute without passing in DataConnect. */
+export function configureBuildExecutionRun(
+  dc: DataConnect,
+  vars: ConfigureBuildExecutionRunVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<ConfigureBuildExecutionRunData>>;
+/** Generated Node Admin SDK operation action function for the 'ConfigureBuildExecutionRun' Mutation. Allow users to pass in custom DataConnect instances. */
+export function configureBuildExecutionRun(
+  vars: ConfigureBuildExecutionRunVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<ConfigureBuildExecutionRunData>>;
+
+/** Generated Node Admin SDK operation action function for the 'HeartbeatBuildExecution' Mutation. Allow users to execute without passing in DataConnect. */
+export function heartbeatBuildExecution(
+  dc: DataConnect,
+  vars: HeartbeatBuildExecutionVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<HeartbeatBuildExecutionData>>;
+/** Generated Node Admin SDK operation action function for the 'HeartbeatBuildExecution' Mutation. Allow users to pass in custom DataConnect instances. */
+export function heartbeatBuildExecution(
+  vars: HeartbeatBuildExecutionVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<HeartbeatBuildExecutionData>>;
+
+/** Generated Node Admin SDK operation action function for the 'MarkBuildVmRequested' Mutation. Allow users to execute without passing in DataConnect. */
+export function markBuildVmRequested(
+  dc: DataConnect,
+  vars: MarkBuildVmRequestedVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<MarkBuildVmRequestedData>>;
+/** Generated Node Admin SDK operation action function for the 'MarkBuildVmRequested' Mutation. Allow users to pass in custom DataConnect instances. */
+export function markBuildVmRequested(
+  vars: MarkBuildVmRequestedVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<MarkBuildVmRequestedData>>;
+
+/** Generated Node Admin SDK operation action function for the 'RecordBuildExecutionCheck' Mutation. Allow users to execute without passing in DataConnect. */
+export function recordBuildExecutionCheck(
+  dc: DataConnect,
+  vars: RecordBuildExecutionCheckVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<RecordBuildExecutionCheckData>>;
+/** Generated Node Admin SDK operation action function for the 'RecordBuildExecutionCheck' Mutation. Allow users to pass in custom DataConnect instances. */
+export function recordBuildExecutionCheck(
+  vars: RecordBuildExecutionCheckVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<RecordBuildExecutionCheckData>>;
+
+/** Generated Node Admin SDK operation action function for the 'RecordBuildExecutionResult' Mutation. Allow users to execute without passing in DataConnect. */
+export function recordBuildExecutionResult(
+  dc: DataConnect,
+  vars: RecordBuildExecutionResultVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<RecordBuildExecutionResultData>>;
+/** Generated Node Admin SDK operation action function for the 'RecordBuildExecutionResult' Mutation. Allow users to pass in custom DataConnect instances. */
+export function recordBuildExecutionResult(
+  vars: RecordBuildExecutionResultVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<RecordBuildExecutionResultData>>;
+
+/** Generated Node Admin SDK operation action function for the 'GetRecoverableBuildExecutions' Query. Allow users to execute without passing in DataConnect. */
+export function getRecoverableBuildExecutions(
+  dc: DataConnect,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<GetRecoverableBuildExecutionsData>>;
+/** Generated Node Admin SDK operation action function for the 'GetRecoverableBuildExecutions' Query. Allow users to pass in custom DataConnect instances. */
+export function getRecoverableBuildExecutions(
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<GetRecoverableBuildExecutionsData>>;
+
+/** Generated Node Admin SDK operation action function for the 'GetFinishedBuildExecutionsForVms' Query. Allow users to execute without passing in DataConnect. */
+export function getFinishedBuildExecutionsForVms(
+  dc: DataConnect,
+  vars: GetFinishedBuildExecutionsForVmsVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<GetFinishedBuildExecutionsForVmsData>>;
+/** Generated Node Admin SDK operation action function for the 'GetFinishedBuildExecutionsForVms' Query. Allow users to pass in custom DataConnect instances. */
+export function getFinishedBuildExecutionsForVms(
+  vars: GetFinishedBuildExecutionsForVmsVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<GetFinishedBuildExecutionsForVmsData>>;
+
+/** Generated Node Admin SDK operation action function for the 'AcquireBuildExecutionCleanup' Mutation. Allow users to execute without passing in DataConnect. */
+export function acquireBuildExecutionCleanup(
+  dc: DataConnect,
+  vars: AcquireBuildExecutionCleanupVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<AcquireBuildExecutionCleanupData>>;
+/** Generated Node Admin SDK operation action function for the 'AcquireBuildExecutionCleanup' Mutation. Allow users to pass in custom DataConnect instances. */
+export function acquireBuildExecutionCleanup(
+  vars: AcquireBuildExecutionCleanupVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<AcquireBuildExecutionCleanupData>>;
+
+/** Generated Node Admin SDK operation action function for the 'ConfirmBuildVmDeleted' Mutation. Allow users to execute without passing in DataConnect. */
+export function confirmBuildVmDeleted(
+  dc: DataConnect,
+  vars: ConfirmBuildVmDeletedVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<ConfirmBuildVmDeletedData>>;
+/** Generated Node Admin SDK operation action function for the 'ConfirmBuildVmDeleted' Mutation. Allow users to pass in custom DataConnect instances. */
+export function confirmBuildVmDeleted(
+  vars: ConfirmBuildVmDeletedVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<ConfirmBuildVmDeletedData>>;
+
+/** Generated Node Admin SDK operation action function for the 'CompleteBuildExecution' Mutation. Allow users to execute without passing in DataConnect. */
+export function completeBuildExecution(
+  dc: DataConnect,
+  vars: CompleteBuildExecutionVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<CompleteBuildExecutionData>>;
+/** Generated Node Admin SDK operation action function for the 'CompleteBuildExecution' Mutation. Allow users to pass in custom DataConnect instances. */
+export function completeBuildExecution(
+  vars: CompleteBuildExecutionVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<CompleteBuildExecutionData>>;

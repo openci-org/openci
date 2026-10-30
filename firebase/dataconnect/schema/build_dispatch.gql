@@ -9,9 +9,11 @@ type BuildDispatchScheduler @table(name: "build_dispatch_schedulers", key: "id")
 type BuildJobDispatch
   @table(name: "build_job_dispatches", key: "id")
   @index(fields: ["finishedAt", "startDeadline"])
+  @index(fields: ["finishedAt", "updatedAt"])
   @index(fields: ["jobId", "createdAt"]) {
   id: String!
   jobId: String!
+  teamId: String
   activeJobId: String @unique
   vmName: String! @unique
   cpu: Int!
@@ -24,6 +26,17 @@ type BuildJobDispatch
   operationName: String
   executionName: String
   executorId: String
+  runId: String
+  checkRunId: String
+  startedAt: Timestamp
+  heartbeatAt: Timestamp
+  deadlineAt: Timestamp
+  outcome: String
+  resultAt: Timestamp
+  vmRequestedAt: Timestamp
+  vmDeletedAt: Timestamp
+  cleanupOwner: String
+  cleanupLeaseUntil: Timestamp
   startDeadline: Timestamp!
   createdAt: Timestamp!
   updatedAt: Timestamp!

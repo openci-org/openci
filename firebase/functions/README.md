@@ -60,10 +60,12 @@ are retried by the mutation trigger. A received failure never logs private
 source, raw payloads, tokens or SDK operation variables.
 
 This preserves the existing planner's event/branch matching (PR base branch,
-head SHA/branch for checkout). `whenChanged` evaluation, queued GitHub Checks,
-and build execution remain separate work. Keep the
-production webhook URL on the existing receiver until the execution path is
-ready; the current Dart worker does not automatically consume these FSC jobs.
+head SHA/branch for checkout). `whenChanged` evaluation and queued GitHub Checks
+remain separate work. The [Cloud Run executor](BUILD_EXECUTOR.md) now handles
+claimed FSC jobs through Orchard, including logs, billing, checks and crash
+recovery. Keep the production webhook URL on the existing receiver until
+deployment validation is complete; the current Dart worker does not
+automatically consume these FSC jobs.
 
 ## Local checks
 
@@ -77,7 +79,7 @@ env -u DEBUG npx --yes firebase-tools@15.34.2 dataconnect:compile \
   --config firebase/dataconnect/firebase.json --project openci-b1b91
 env -u DEBUG npx --yes firebase-tools@15.34.2 emulators:exec \
   --config firebase/dataconnect/firebase.json --only dataconnect --project demo-openci \
-  'node --test --test-concurrency=1 firebase/dataconnect/test/webhooks.test.mjs firebase/dataconnect/test/build_job_planning.test.mjs firebase/dataconnect/test/build_dispatch.test.mjs'
+  'node --test --test-concurrency=1 firebase/dataconnect/test/webhooks.test.mjs firebase/dataconnect/test/build_job_planning.test.mjs firebase/dataconnect/test/build_dispatch.test.mjs firebase/dataconnect/test/build_execution.test.mjs firebase/dataconnect/test/billing.test.mjs firebase/dataconnect/test/logs.test.mjs'
 ```
 
 `dataconnect:compile` reads the deployed schema, so this read-only check uses

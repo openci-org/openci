@@ -1,0 +1,23 @@
+FROM node:22-bookworm-slim AS build
+WORKDIR /app
+COPY package.json package-lock.json ./
+COPY apps/landing_page/package.json apps/landing_page/package.json
+COPY apps/website/package.json apps/website/package.json
+COPY firebase/package.json firebase/package.json
+COPY firebase/generated firebase/generated
+RUN npm ci --workspace firebase --include-workspace-root=false --ignore-scripts
+COPY firebase/functions firebase/functions
+COPY firebase/tsconfig.json firebase/tsconfig.functions.json firebase/
+RUN npm run build --workspace firebase
+RUN npm prune --omit=dev --workspace firebase --include-workspace-root=false --ignore-scripts
+
+FROM node:22-bookworm-slim
+ENV NODE_ENV=production
+WORKDIR /app
+COPY --from=build /app/node_modules ./node_modules
+COPY --from=build /app/package.json ./package.json
+COPY --from=build /app/firebase/package.json ./firebase/package.json
+COPY --from=build /app/firebase/generated ./firebase/generated
+COPY --from=build /app/firebase/lib ./firebase/lib
+USER node
+ENTRYPOINT ["node", "firebase/lib/functions/executor/main.js"]
