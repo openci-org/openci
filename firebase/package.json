@@ -1,22 +1,31 @@
 {
   "name": "firebase-dev",
   "private": true,
+  "main": "lib/functions/index.js",
   "scripts": {
-    "check": "vp lint --deny-warnings healthcheck.ts && tsc --noEmit",
+    "build": "tsc -p tsconfig.functions.json",
+    "check": "vp lint --deny-warnings healthcheck.ts functions && tsc --noEmit",
+    "test": "npm run build && node --test functions/test/*.test.mjs",
     "fmt": "vp fmt",
     "fmt:check": "vp fmt --check"
   },
   "dependencies": {
+    "@octokit/webhooks": "^14.2.0",
     "@openci/billing-admin": "file:generated/billing-admin",
     "@openci/builds-admin": "file:generated/builds-admin",
     "@openci/github-admin": "file:generated/github-admin",
     "@openci/logs-admin": "file:generated/logs-admin",
     "@openci/secrets-admin": "file:generated/secrets-admin",
     "@openci/teams-admin": "file:generated/teams-admin",
-    "firebase-admin": "^14.5.0"
+    "@openci/webhooks-admin": "file:generated/webhooks-admin",
+    "firebase-admin": "^14.5.0",
+    "firebase-functions": "^7.4.0"
   },
   "devDependencies": {
     "@types/node": "^22.20.4",
     "typescript": "^6.0.3"
+  },
+  "engines": {
+    "node": "22"
   }
 }

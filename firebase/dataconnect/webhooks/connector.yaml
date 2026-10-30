@@ -1,0 +1,6 @@
+connectorId: "webhooks"
+generate:
+  adminNodeSdk:
+    outputDir: "../../generated/webhooks-admin"
+    package: "@openci/webhooks-admin"
+    packageJsonDir: "../.."

@@ -67,3 +67,7 @@ node_modules/
 
 # Flutter web build output for hosting
 public/
+
+# Compiled Functions and emulator-only secret values
+lib/
+.secret.local

@@ -1,5 +1,38 @@
 {
+  "functions": [
+    {
+      "source": ".",
+      "codebase": "openci",
+      "runtime": "nodejs22",
+      "ignore": [
+        "node_modules",
+        ".git",
+        ".firebase",
+        "*.log",
+        ".env*",
+        ".secret.local",
+        "dataconnect",
+        "public",
+        "public_landing",
+        "functions/test",
+        "functions/integration_test"
+      ],
+      "predeploy": ["npm --prefix \"$RESOURCE_DIR\" run build"]
+    }
+  ],
+  "dataconnect": {
+    "source": "dataconnect"
+  },
   "emulators": {
+    "functions": {
+      "host": "127.0.0.1",
+      "port": 5001
+    },
+    "dataconnect": {
+      "host": "127.0.0.1",
+      "port": 9399,
+      "postgresPort": 9939
+    },
     "auth": {
       "host": "0.0.0.0",
       "port": 9099
