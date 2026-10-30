@@ -38,7 +38,7 @@ class _TrackingClient extends MockClient {
 
 void main() {
   const password = 'private-password';
-  const token = 'private-id-token';
+  const token = 'header.eyJhdWQiOiJ0ZXN0LXByb2plY3QifQ.signature';
   const refreshToken = 'private-refresh-token';
   late Directory temp;
   late CredentialStore store;
@@ -75,7 +75,10 @@ void main() {
         : http.Response('[{"id":"team-1","name":"My team"}]', 200);
     client = _TrackingClient((request) async {
       requests.add(request);
-      return handler(request);
+      final response = await handler(request);
+      return request.url.path.endsWith('/teamManagement')
+          ? teamCallableResponse(response)
+          : response;
     });
   });
 
@@ -117,14 +120,16 @@ void main() {
       expect(requests.first.url.queryParameters['key'], defaultFirebaseApiKey);
       expect(jsonDecode(requests.first.body)['password'], password);
       final teamRequest = requests.last;
-      expect(teamRequest.method, 'GET');
+      expect(teamRequest.method, 'POST');
       expect(
         teamRequest.url.toString(),
-        'https://openci-worker-01.tail4beb18.ts.net/teams',
+        'https://asia-northeast1-test-project.cloudfunctions.net/teamManagement',
       );
       expect(teamRequest.headers['Authorization'], 'Bearer $token');
       expect(teamRequest.followRedirects, isFalse);
-      expect(teamRequest.body, isEmpty);
+      expect(jsonDecode(teamRequest.body), {
+        'data': {'action': 'list'},
+      });
       final saved = await store.get();
       expect(saved.activeProfile, 'remote');
       expect(saved.profiles['local']!.token, 'local-key');
@@ -168,40 +173,34 @@ void main() {
     }
   });
 
-  test(
-    'supports a custom server, Firebase project and explicit team',
-    () async {
-      final defaultHandler = handler;
-      handler = (request) =>
-          request.url.host == 'identitytoolkit.googleapis.com'
-          ? defaultHandler(request)
-          : Future.value(
-              http.Response('[{"id":"team-1"},{"id":"team-2"}]', 200),
-            );
+  test('supports a custom server, Firebase project and explicit team', () async {
+    final defaultHandler = handler;
+    handler = (request) => request.url.host == 'identitytoolkit.googleapis.com'
+        ? defaultHandler(request)
+        : Future.value(http.Response('[{"id":"team-1"},{"id":"team-2"}]', 200));
 
-      expect(
-        await runLogin([
-          '--server',
-          'https://ci.example.com/proxy/',
-          '--team-id',
-          'team-2',
-          '--firebase-api-key',
-          'self-hosted-key',
-        ]),
-        0,
-      );
+    expect(
+      await runLogin([
+        '--server',
+        'https://ci.example.com/proxy/',
+        '--team-id',
+        'team-2',
+        '--firebase-api-key',
+        'self-hosted-key',
+      ]),
+      0,
+    );
 
-      expect(requests.first.url.queryParameters['key'], 'self-hosted-key');
-      expect(
-        requests.last.url.toString(),
-        'https://ci.example.com/proxy/teams',
-      );
-      final saved = await store.getActiveProfile();
-      expect(saved!.serverUrl, 'https://ci.example.com/proxy');
-      expect(saved.teamId, 'team-2');
-      expect(saved.firebaseApiKey, 'self-hosted-key');
-    },
-  );
+    expect(requests.first.url.queryParameters['key'], 'self-hosted-key');
+    expect(
+      requests.last.url.toString(),
+      'https://asia-northeast1-test-project.cloudfunctions.net/teamManagement',
+    );
+    final saved = await store.getActiveProfile();
+    expect(saved!.serverUrl, 'https://ci.example.com/proxy');
+    expect(saved.teamId, 'team-2');
+    expect(saved.firebaseApiKey, 'self-hosted-key');
+  });
 
   for (final (body, message) in [
     ('[]', () => t.login.noTeams),
@@ -313,4 +312,21 @@ void main() {
       },
     );
   }
+}
+
+http.Response teamCallableResponse(http.Response response) {
+  if (response.statusCode != 200) return response;
+  Object? value;
+  try {
+    value = jsonDecode(response.body);
+  } on FormatException {
+    return response;
+  }
+  return http.Response(
+    jsonEncode({
+      'result': {'success': true, 'teams': value},
+    }),
+    response.statusCode,
+    headers: {'content-type': 'application/json'},
+  );
 }

@@ -14,23 +14,9 @@ abstract class OpenCIApiService extends ChopperService {
 
   static const _timeout = Duration(seconds: 10);
 
-  @GET(path: '/teams', timeout: _timeout)
-  Future<Response<List<Team>>> getTeams();
-
   @GET(path: '/teams/by-installation/{installationId}', timeout: _timeout)
   Future<Response<Team>> getTeamByInstallationId(
     @Path('installationId') int installationId,
-  );
-
-  @POST(path: '/teams', timeout: _timeout)
-  Future<Response<Map<String, dynamic>>> createTeam(
-    @Body() Map<String, dynamic> body,
-  );
-
-  @PATCH(path: '/teams/{id}', timeout: _timeout)
-  Future<Response<void>> updateTeam(
-    @Path('id') String id,
-    @Body() Map<String, dynamic> body,
   );
 
   @DELETE(path: '/teams/{id}', timeout: _timeout)
@@ -50,15 +36,6 @@ abstract class OpenCIApiService extends ChopperService {
   @POST(path: '/teams/{teamId}/billing/portal', timeout: Duration(minutes: 1))
   Future<Response<Map<String, dynamic>>> createBillingPortal(
     @Path('teamId') String teamId,
-  );
-
-  @GET(path: '/teams/{id}/members', timeout: Duration(seconds: 8))
-  Future<Response<Map<String, dynamic>>> getTeamMembers(@Path('id') String id);
-
-  @POST(path: '/teams/{id}/members', timeout: _timeout)
-  Future<Response<void>> inviteMember(
-    @Path('id') String id,
-    @Body() Map<String, dynamic> body,
   );
 
   @GET(

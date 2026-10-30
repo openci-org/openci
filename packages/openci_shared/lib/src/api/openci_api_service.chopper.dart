@@ -19,35 +19,6 @@ final class _$OpenCIApiService extends OpenCIApiService {
   final Type definitionType = OpenCIApiService;
 
   @override
-  Future<Response<List<Team>>> getTeams() {
-    final Uri $url = Uri.parse('/teams');
-    final ChopperCompleter $abortTrigger = ChopperCompleter<void>();
-    final ChopperTimer $timeout = ChopperTimer(
-      const Duration(microseconds: 10000000),
-      () {
-        if (!$abortTrigger.isCompleted) $abortTrigger.complete();
-      },
-    );
-    final Request $request = Request(
-      'GET',
-      $url,
-      client.baseUrl,
-      abortTrigger: $abortTrigger.future,
-    );
-    return client
-        .send<List<Team>, Team>($request)
-        .catchError(
-          (_) => Future<Response<List<Team>>>.error(
-            ChopperTimeoutException('Request timed out after 10 seconds'),
-          ),
-          test: (Object err) =>
-              err is ChopperRequestAbortedException &&
-              $abortTrigger.isCompleted,
-        )
-        .whenComplete($timeout.cancel);
-  }
-
-  @override
   Future<Response<Team>> getTeamByInstallationId(int installationId) {
     final Uri $url = Uri.parse('/teams/by-installation/${installationId}');
     final ChopperCompleter $abortTrigger = ChopperCompleter<void>();
@@ -67,68 +38,6 @@ final class _$OpenCIApiService extends OpenCIApiService {
         .send<Team, Team>($request)
         .catchError(
           (_) => Future<Response<Team>>.error(
-            ChopperTimeoutException('Request timed out after 10 seconds'),
-          ),
-          test: (Object err) =>
-              err is ChopperRequestAbortedException &&
-              $abortTrigger.isCompleted,
-        )
-        .whenComplete($timeout.cancel);
-  }
-
-  @override
-  Future<Response<Map<String, dynamic>>> createTeam(Map<String, dynamic> body) {
-    final Uri $url = Uri.parse('/teams');
-    final $body = body;
-    final ChopperCompleter $abortTrigger = ChopperCompleter<void>();
-    final ChopperTimer $timeout = ChopperTimer(
-      const Duration(microseconds: 10000000),
-      () {
-        if (!$abortTrigger.isCompleted) $abortTrigger.complete();
-      },
-    );
-    final Request $request = Request(
-      'POST',
-      $url,
-      client.baseUrl,
-      body: $body,
-      abortTrigger: $abortTrigger.future,
-    );
-    return client
-        .send<Map<String, dynamic>, Map<String, dynamic>>($request)
-        .catchError(
-          (_) => Future<Response<Map<String, dynamic>>>.error(
-            ChopperTimeoutException('Request timed out after 10 seconds'),
-          ),
-          test: (Object err) =>
-              err is ChopperRequestAbortedException &&
-              $abortTrigger.isCompleted,
-        )
-        .whenComplete($timeout.cancel);
-  }
-
-  @override
-  Future<Response<void>> updateTeam(String id, Map<String, dynamic> body) {
-    final Uri $url = Uri.parse('/teams/${id}');
-    final $body = body;
-    final ChopperCompleter $abortTrigger = ChopperCompleter<void>();
-    final ChopperTimer $timeout = ChopperTimer(
-      const Duration(microseconds: 10000000),
-      () {
-        if (!$abortTrigger.isCompleted) $abortTrigger.complete();
-      },
-    );
-    final Request $request = Request(
-      'PATCH',
-      $url,
-      client.baseUrl,
-      body: $body,
-      abortTrigger: $abortTrigger.future,
-    );
-    return client
-        .send<void, void>($request)
-        .catchError(
-          (_) => Future<Response<void>>.error(
             ChopperTimeoutException('Request timed out after 10 seconds'),
           ),
           test: (Object err) =>
@@ -251,66 +160,6 @@ final class _$OpenCIApiService extends OpenCIApiService {
         .catchError(
           (_) => Future<Response<Map<String, dynamic>>>.error(
             ChopperTimeoutException('Request timed out after 1 minute'),
-          ),
-          test: (Object err) =>
-              err is ChopperRequestAbortedException &&
-              $abortTrigger.isCompleted,
-        )
-        .whenComplete($timeout.cancel);
-  }
-
-  @override
-  Future<Response<Map<String, dynamic>>> getTeamMembers(String id) {
-    final Uri $url = Uri.parse('/teams/${id}/members');
-    final ChopperCompleter $abortTrigger = ChopperCompleter<void>();
-    final ChopperTimer $timeout = ChopperTimer(
-      const Duration(microseconds: 8000000),
-      () {
-        if (!$abortTrigger.isCompleted) $abortTrigger.complete();
-      },
-    );
-    final Request $request = Request(
-      'GET',
-      $url,
-      client.baseUrl,
-      abortTrigger: $abortTrigger.future,
-    );
-    return client
-        .send<Map<String, dynamic>, Map<String, dynamic>>($request)
-        .catchError(
-          (_) => Future<Response<Map<String, dynamic>>>.error(
-            ChopperTimeoutException('Request timed out after 8 seconds'),
-          ),
-          test: (Object err) =>
-              err is ChopperRequestAbortedException &&
-              $abortTrigger.isCompleted,
-        )
-        .whenComplete($timeout.cancel);
-  }
-
-  @override
-  Future<Response<void>> inviteMember(String id, Map<String, dynamic> body) {
-    final Uri $url = Uri.parse('/teams/${id}/members');
-    final $body = body;
-    final ChopperCompleter $abortTrigger = ChopperCompleter<void>();
-    final ChopperTimer $timeout = ChopperTimer(
-      const Duration(microseconds: 10000000),
-      () {
-        if (!$abortTrigger.isCompleted) $abortTrigger.complete();
-      },
-    );
-    final Request $request = Request(
-      'POST',
-      $url,
-      client.baseUrl,
-      body: $body,
-      abortTrigger: $abortTrigger.future,
-    );
-    return client
-        .send<void, void>($request)
-        .catchError(
-          (_) => Future<Response<void>>.error(
-            ChopperTimeoutException('Request timed out after 10 seconds'),
           ),
           test: (Object err) =>
               err is ChopperRequestAbortedException &&

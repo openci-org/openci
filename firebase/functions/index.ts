@@ -67,6 +67,7 @@ export const createBuildJobs = onMutationExecuted(
 );
 
 export { teamSecrets, cleanSecretVersions } from "./secret_functions.js";
+export { teamManagement } from "./team_functions.js";
 export {
   githubConnection,
   githubConnectionCallback,

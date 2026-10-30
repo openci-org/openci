@@ -1,7 +1,8 @@
-import 'package:dashboard/api/openci_api_client.dart';
 import 'package:dashboard/app_strings.dart';
 import 'package:dashboard/auth/auth_provider.dart';
+import 'package:dashboard/team/team_members_api.dart';
 import 'package:dashboard/team/team_provider.dart';
+import 'package:dashboard/utilities/snack_bar_extension.dart';
 import 'package:flutter/material.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -33,21 +34,9 @@ Future<List<TeamMember>> teamMembers(Ref ref) async {
   final team = ref.watch(selectedTeamProvider).value;
   if (team == null) return [];
 
-  final apiService = await ref.watch(openciApiServiceProvider.future);
-  final response = await apiService.getTeamMembers(team.id);
-
-  if (response.statusCode != 200) {
-    throw StateError(
-      'Failed to fetch team members: ${response.statusCode} ${response.bodyString}',
-    );
-  }
-
-  final data = response.body!;
-  final membersList = (data['members'] as List<dynamic>?) ?? [];
-
-  return membersList
-      .map((m) => TeamMember.fromMap(Map<String, dynamic>.from(m as Map)))
-      .toList();
+  final api = await ref.watch(teamMembersApiProvider.future);
+  final members = await api.members(team.id);
+  return members.map(TeamMember.fromMap).toList();
 }
 
 class TeamMembersBottomSheet extends ConsumerWidget {
@@ -211,7 +200,7 @@ class TeamMembersBottomSheet extends ConsumerWidget {
             final member = sorted[index - 1];
             final isCurrentUser = member.uid == currentUid;
             final displayName = member.displayName;
-            final email = member.email ?? teamT.noEmail;
+            final email = member.email ?? member.uid;
 
             return Container(
               decoration: BoxDecoration(
@@ -323,6 +312,12 @@ class TeamMembersBottomSheet extends ConsumerWidget {
                         ],
                       ),
                     ),
+                    if (!isCurrentUser)
+                      IconButton(
+                        tooltip: teamT.removeMember,
+                        icon: const Icon(Icons.person_remove_outlined),
+                        onPressed: () => _removeMember(context, ref, member),
+                      ),
                   ],
                 ),
               ),
@@ -333,7 +328,52 @@ class TeamMembersBottomSheet extends ConsumerWidget {
     );
   }
 
+  Future<void> _removeMember(
+    BuildContext context,
+    WidgetRef ref,
+    TeamMember member,
+  ) async {
+    final team = ref.read(selectedTeamProvider).value;
+    if (team == null) return;
+    try {
+      // Capture the authenticated connection before the confirmation dialog.
+      final api = await ref.read(teamMembersApiProvider.future);
+      if (!context.mounted) return;
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text(t.team.removeMember),
+          content: Text(
+            t.team.removeMemberConfirm(
+              name: member.email ?? member.displayName ?? member.uid,
+              teamName: team.name,
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text(t.common.cancel),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: Text(t.common.delete),
+            ),
+          ],
+        ),
+      );
+      if (confirmed != true || !context.mounted) return;
+      await api.remove(team.id, member.uid);
+      if (!context.mounted) return;
+      ref.invalidate(teamMembersProvider);
+      ref.invalidate(teamListProvider);
+      context.showSnackBarMessage(t.team.removedSuccess);
+    } catch (_) {
+      if (context.mounted) context.showSnackBarMessage(t.team.operationFailed);
+    }
+  }
+
   String _getInitials(String name) {
+    if (name.trim().isEmpty) return '?';
     final parts = name.trim().split(RegExp(r'[\s@]+'));
     if (parts.length >= 2) {
       return '${parts[0][0]}${parts[1][0]}'.toUpperCase();

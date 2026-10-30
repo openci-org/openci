@@ -16,7 +16,7 @@ void main() {
       httpClient.close();
     });
 
-    final response = await client.getService<OpenCIApiService>().getTeams();
+    final response = await client.getService<OpenCIApiService>().getDevices();
 
     expect(response.isSuccessful, isTrue);
     expect(response.body, isEmpty);

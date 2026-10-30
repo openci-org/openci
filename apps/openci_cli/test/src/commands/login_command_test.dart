@@ -41,7 +41,7 @@ class _TrackingClient extends MockClient {
 }
 
 void main() {
-  const token = 'private-local-id-token';
+  const token = 'header.eyJhdWQiOiJkZW1vLW9wZW5jaSJ9.signature';
   const refreshToken = 'private-refresh-token';
   const password = 'private-password';
   const existingConfig = CredentialConfig(
@@ -89,10 +89,14 @@ void main() {
     fetchTeams = () async => http.Response('[{"id":"test-team"}]', 200);
     client = _TrackingClient((request) async {
       requests.add(request);
-      return request.url.path ==
-              '/identitytoolkit.googleapis.com/v1/accounts:signInWithPassword'
-          ? authenticate()
-          : fetchTeams();
+      final response =
+          await (request.url.path ==
+                  '/identitytoolkit.googleapis.com/v1/accounts:signInWithPassword'
+              ? authenticate()
+              : fetchTeams());
+      return request.url.path.endsWith('/teamManagement')
+          ? teamCallableResponse(response)
+          : response;
     });
   });
 
@@ -200,11 +204,18 @@ void main() {
       });
       expect(authRequest.followRedirects, isFalse);
       final teamRequest = requests.last;
-      expect(teamRequest.method, 'GET');
-      expect(teamRequest.url, Uri.parse('http://localhost:8080/teams'));
+      expect(teamRequest.method, 'POST');
+      expect(
+        teamRequest.url,
+        Uri.parse(
+          'http://127.0.0.1:5001/demo-openci/asia-northeast1/teamManagement',
+        ),
+      );
       expect(teamRequest.headers['Authorization'], 'Bearer $token');
       expect(teamRequest.followRedirects, isFalse);
-      expect(teamRequest.body, isEmpty);
+      expect(jsonDecode(teamRequest.body), {
+        'data': {'action': 'list'},
+      });
       expect(client.closed, isTrue);
       final config = await store.get();
       expect(config.activeProfile, 'local');
@@ -245,7 +256,12 @@ void main() {
     );
     expect(result, 0);
     expect(requests, hasLength(2));
-    expect(requests.last.url, Uri.parse('http://localhost:8080/teams'));
+    expect(
+      requests.last.url,
+      Uri.parse(
+        'http://127.0.0.1:5001/demo-openci/asia-northeast1/teamManagement',
+      ),
+    );
     expect(client.closed, isTrue);
   });
 
@@ -431,4 +447,21 @@ void main() {
     expect(await parentFile.readAsString(), 'existing file');
     expect(logger.stdoutMessages, [t.login.loggingIn]);
   });
+}
+
+http.Response teamCallableResponse(http.Response response) {
+  if (response.statusCode != 200) return response;
+  Object? value;
+  try {
+    value = jsonDecode(response.body);
+  } on FormatException {
+    return response;
+  }
+  return http.Response(
+    jsonEncode({
+      'result': {'success': true, 'teams': value},
+    }),
+    response.statusCode,
+    headers: {'content-type': 'application/json'},
+  );
 }

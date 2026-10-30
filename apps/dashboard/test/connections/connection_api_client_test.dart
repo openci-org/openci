@@ -112,8 +112,8 @@ void main() {
     final selfHostedClient = clientFor(selfHosted);
 
     await Future.wait([
-      OpenCIApiService.create(cloudClient).getTeams(),
-      OpenCIApiService.create(selfHostedClient).getTeams(),
+      OpenCIApiService.create(cloudClient).getDevices(),
+      OpenCIApiService.create(selfHostedClient).getDevices(),
     ]);
 
     expect(requests, hasLength(2));
@@ -123,22 +123,22 @@ void main() {
           request.url.toString(): request.headers['Authorization'],
       },
       {
-        'https://cloud.example.com/teams': 'Bearer cloud-token',
-        'https://self-hosted.example.com/teams': 'Bearer self-hosted-token',
+        'https://cloud.example.com/devices': 'Bearer cloud-token',
+        'https://self-hosted.example.com/devices': 'Bearer self-hosted-token',
       },
     );
   });
 
   test('reads the current user and token on every request', () async {
     final api = OpenCIApiService.create(clientFor(selfHosted));
-    await api.getTeams();
+    await api.getDevices();
 
     (selfHostedAuth.currentUser! as _User).token = 'renewed-token';
-    await api.getTeams();
+    await api.getDevices();
     selfHostedAuth.currentUser = null;
-    await api.getTeams();
+    await api.getDevices();
     selfHostedAuth.currentUser = _User('new-user-token');
-    await api.getTeams();
+    await api.getDevices();
 
     expect(requests.map((request) => request.headers['Authorization']), [
       'Bearer self-hosted-token',
@@ -155,8 +155,8 @@ void main() {
     );
 
     expect(updated, isNot(same(original)));
-    await OpenCIApiService.create(original).getTeams();
-    await OpenCIApiService.create(updated).getTeams();
+    await OpenCIApiService.create(original).getDevices();
+    await OpenCIApiService.create(updated).getDevices();
 
     expect(requests.map((request) => request.url.host), [
       'self-hosted.example.com',
@@ -172,7 +172,7 @@ void main() {
     final ready = Completer<FirebaseAuth>();
     selfHostedAuthResult = ready.future;
     final api = OpenCIApiService.create(clientFor(selfHosted));
-    final response = api.getTeams();
+    final response = api.getDevices();
     await Future<void>.delayed(Duration.zero);
     expect(requests, isEmpty);
 
@@ -189,7 +189,7 @@ void main() {
     (selfHostedAuth.currentUser! as _User).error = error;
     final api = OpenCIApiService.create(clientFor(selfHosted));
 
-    await expectLater(api.getTeams(), throwsA(same(error)));
+    await expectLater(api.getDevices(), throwsA(same(error)));
     expect(requests, isEmpty);
   });
 
