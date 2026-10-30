@@ -267,11 +267,12 @@ The command uses `docker-compose.yml`, `docker-compose.local.yml`, and
 for project `demo-openci` and waits for its health check before starting Orchard
 Controller, the Mac worker, and the local API. No production Firebase service
 account is needed. The Auth endpoint is `http://127.0.0.1:9099` and the Emulator
-UI is `http://127.0.0.1:4000/auth`. When restarting, the command stops the old
-build-job-worker and waits for running jobs to finish while the server remains
-available for saving results and deleting their VMs. It then rebuilds and
-starts the application containers. See [the emulator setup](../../firebase/README.md)
-for standalone start and stop commands.
+UI is `http://127.0.0.1:4000/auth`. It rebuilds and starts the API and Loki
+containers. The Mac Orchard worker provides VM capacity; build planning and
+execution use the [Firebase Functions and Cloud Run path](../../firebase/functions/BUILD_EXECUTOR.md),
+which this command does not deploy or start. See [the emulator setup](../../firebase/README.md)
+for standalone start and stop commands. Drain any legacy polling containers
+from an older deployment before upgrading; Compose removes orphan containers.
 
 The `/internal` seed and cleanup API is disabled by default. `genuineci dev start`
 automatically enables it by passing `ENABLE_INTERNAL_API=true` to Docker Compose.
@@ -315,8 +316,10 @@ The server seeds `test-team` and one `macos-latest` job for
 `openci-org/openci`'s `openci/worker_smoke.dart`, pinned to commit
 `5cb05f76d8941ea1edc3593eb753ce808f0f290e` on
 `test/build-job-worker-smoke-openci`.
-The workflow checks macOS and Flutter versions and runs the worker's unit tests.
-It uses this fixed fixture, not uncommitted files in your local checkout.
+This historical fixture checks macOS and Flutter versions and runs the former
+worker's tests at that pinned commit. Seeding now exercises only the legacy API
+and database: the local stack has no polling executor, and these jobs are not
+submitted to FSC. Use the Cloud Run executor to validate the new build path.
 
 The server resolves the installation ID using the GitHub App already configured
 in Docker Compose. That App must have access to `openci-org/openci`.

@@ -117,11 +117,6 @@ class DevStartCommand extends Command<int> {
           worker = await _orchardWorkerStarter(_logger);
           return worker != null;
         },
-        () => _dockerComposeStarter(
-          _logger,
-          projectRoot,
-          step: DockerComposeStep.stopBuildJobWorker,
-        ),
         () => _dockerComposeStarter(_logger, projectRoot),
         if (shouldSeedLocalData)
           () => _localDataSeeder(_logger, projectRoot: projectRoot),

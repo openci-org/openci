@@ -3,7 +3,7 @@ import 'package:openci_shared/openci_shared.dart';
 import 'github_webhook_payload.dart';
 import 'open_ci_parser.dart';
 
-/// Shared planning rules for Firebase and the transitional legacy entry point.
+/// Builds job plans from workflow definitions matching the webhook event.
 List<BuildJobPlan> planJobs({
   required GitHubWebhookPayload event,
   required String teamId,

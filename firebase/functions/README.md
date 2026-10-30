@@ -35,8 +35,8 @@ again. Completed and failed tasks are never reset.
 `createBuildJobs` listens only to that mutation and forwards the task ID to
 [`process-webhook-task`](../dart_functions/README.md), a private Dart HTTP
 Function. Node awaits completion and retries transient failures through Eventarc.
-`PROCESS_WEBHOOK_TASK_URL` points to this Dart Function; the new flow does not
-use the legacy polling service.
+`PROCESS_WEBHOOK_TASK_URL` points to this Dart Function; the legacy polling
+service has been removed.
 The Dart Function owns the full planner: it reads the durable task, validates
 GitHub metadata, resolves the active connection, obtains a repository-scoped
 read-only installation token, fetches `openci/*.dart` at the webhook SHA, applies
@@ -63,9 +63,10 @@ This preserves the existing planner's event/branch matching (PR base branch,
 head SHA/branch for checkout). `whenChanged` evaluation and queued GitHub Checks
 remain separate work. The [Cloud Run executor](BUILD_EXECUTOR.md) now handles
 claimed FSC jobs through Orchard, including logs, billing, checks and crash
-recovery. Keep the production webhook URL on the existing receiver until
-deployment validation is complete; the current Dart worker does not
-automatically consume these FSC jobs.
+recovery. Validate deployment before switching the production webhook URL.
+The local Compose stack no longer includes a build planner or executor; it does
+not consume FSC jobs. Drain previously deployed polling containers before
+upgrading the stack or switching execution paths.
 
 ## Local checks
 
