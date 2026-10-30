@@ -1,7 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:dashboard/api/openci_api_client.dart';
+import 'package:dashboard/billing/billing_api.dart';
+import '../helpers/billing_callable.dart';
 import 'package:dashboard/auth/auth_provider.dart';
 import 'package:dashboard/billing/billing_identity.dart';
 import 'package:dashboard/billing/billing_provider.dart';
@@ -15,8 +16,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:http/http.dart' as http;
-import 'package:http/testing.dart';
-import 'package:openci_shared/openci_shared.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
@@ -51,22 +50,18 @@ void main() {
     identity = (connection: cloud, userId: 'user-1');
     requests = [];
     respond = (_) async => statusResponse();
-    final client = http.runWithClient(
-      () => createOpenCIChopperClient(
-        baseUrl: cloud.apiUrl,
-        tokenProvider: () => 'firebase-token',
-      ),
-      () => MockClient((request) {
-        requests.add(request);
-        return respond(request);
-      }),
-    );
-    addTearDown(client.dispose);
+    final callable = TestBillingCallable((request) {
+      requests.add(request);
+      return respond(request);
+    });
     container = ProviderContainer.test(
       overrides: [
         billingIdentityProvider.overrideWith((ref) => identity),
-        openciApiServiceProvider.overrideWith(
-          (ref) async => OpenCIApiService.create(client),
+        billingApiProvider.overrideWith(
+          (ref) async => BillingApi(
+            callable: callable,
+            isCurrent: () => ref.mounted && identity?.connection == cloud,
+          ),
         ),
       ],
     );
@@ -115,7 +110,7 @@ void main() {
 
   test('keeps team responses separate', () async {
     respond = (request) async => statusResponse(
-      plan: request.url.path.contains('team-2') ? 'pro' : 'light',
+      plan: billingCallData(request)['teamId'] == 'team-2' ? 'pro' : 'light',
     );
     final first = container.listen(billingStatusProvider('team-1'), (_, _) {});
     final second = container.listen(billingStatusProvider('team-2'), (_, _) {});
@@ -210,7 +205,7 @@ void main() {
           connectionStoreProvider.overrideWith(
             (ref) => throw StateError('must not read'),
           ),
-          openciApiServiceProvider.overrideWith(
+          billingApiProvider.overrideWith(
             (ref) => throw StateError('must not read'),
           ),
         ],
@@ -241,7 +236,7 @@ void main() {
         overrides: [
           billingWebSupportedProvider.overrideWithValue(true),
           connectionStoreProvider.overrideWithValue(store),
-          openciApiServiceProvider.overrideWith(
+          billingApiProvider.overrideWith(
             (ref) => throw StateError('must not read'),
           ),
         ],

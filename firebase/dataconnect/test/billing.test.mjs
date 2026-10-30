@@ -5,6 +5,24 @@ import { after, test } from "node:test";
 import { deleteApp, initializeApp } from "firebase-admin/app";
 import { getDataConnect } from "firebase-admin/data-connect";
 import * as sdk from "@openci/billing-admin";
+import { BillingStore } from "../../lib/functions/billing/store.js";
+import { Billing } from "../../lib/functions/billing/service.js";
+import {
+  billingTables,
+  migrateBilling,
+  billingDestination,
+} from "../../lib/functions/billing/migrate.js";
+import { legacyBillingRows } from "../../functions/test/helpers/legacy_billing.mjs";
+import {
+  config,
+  now,
+  price,
+  session,
+  intent,
+  subscription,
+  invoice,
+  stripeFixture,
+} from "../../functions/test/helpers/billing.mjs";
 
 const host = process.env.DATA_CONNECT_EMULATOR_HOST;
 assert.match(host ?? "", /^(127\.0\.0\.1|localhost):\d+$/, "Start the SQL Connect emulator first");
@@ -35,6 +53,7 @@ async function fixture(t) {
           team_deleteMany(where: { id: { in: $ids } })
           buildJob_deleteMany(where: { teamId: { in: $ids } })
           billingAccount_deleteMany(where: { teamId: { in: $ids } })
+          billingTeamDeletion_deleteMany(where: { teamId: { in: $ids } })
         }
       `,
       { ids: [f.teamId, f.otherTeamId] },
@@ -64,7 +83,13 @@ function context(f) {
 }
 
 async function customer(f) {
-  const input = { teamId: f.teamId, idempotencyKey: randomUUID(), livemode: false, createdAt: "1" };
+  const input = {
+    teamId: f.teamId,
+    userId: f.userId,
+    idempotencyKey: randomUUID(),
+    livemode: false,
+    createdAt: "1",
+  };
   await sdk.createBillingCustomerCreation(dc, input);
   const linked = {
     teamId: f.teamId,
@@ -88,7 +113,7 @@ async function checkout(f, c) {
     livemode: false,
     createdAt: "2",
   };
-  await sdk.createBillingCheckoutCreation(dc, input);
+  await sdk.createBillingCheckoutCreation(dc, { ...input, userId: f.userId });
   const session = { ...input, stripeCheckoutSessionId: `cs_${randomUUID()}` };
   await sdk.recordBillingCheckoutSession(dc, session);
   return session;
@@ -431,6 +456,7 @@ test("pending Customer creation and open Checkouts prevent team deletion", async
   const stale = deletion(f, await context(f));
   const intent = {
     teamId: f.teamId,
+    userId: f.userId,
     idempotencyKey: randomUUID(),
     livemode: false,
     createdAt: "1",
@@ -505,6 +531,7 @@ test("concurrent Customer creation and deletion cannot both commit", async (t) =
     sdk.deleteBillingTeam(dc, deletion(f)),
     sdk.createBillingCustomerCreation(dc, {
       teamId: f.teamId,
+      userId: f.userId,
       idempotencyKey: randomUUID(),
       livemode: false,
       createdAt: "1",
@@ -521,6 +548,7 @@ test("concurrent Checkout creation and deletion cannot both commit", async (t) =
     sdk.deleteBillingTeam(dc, deletion(f, observed)),
     sdk.createBillingCheckoutCreation(dc, {
       teamId: f.teamId,
+      userId: f.userId,
       idempotencyKey: randomUUID(),
       livemode: false,
       createdAt: "2",
@@ -630,6 +658,12 @@ test("all billing SDK operations reject Firebase clients, including team members
   };
   const cases = [
     [sdk.getBillingContext, member],
+    [sdk.getBillingMembership, member],
+    [sdk.getBillingTeamDeletion, member],
+    [sdk.getDueBillingTeamDeletions, undefined],
+    [sdk.completeBillingTeamCleanup, team],
+    [sdk.deferBillingTeamCleanup, team],
+    [sdk.acknowledgeBillingCredentialCleanup, { ...team, path: "path", kind: "secret" }],
     [sdk.getBillingCustomerByStripeId, { stripeCustomerId: "customer", livemode: false }],
     [sdk.getBillingCheckoutCreation, { ...team, idempotencyKey: "key", livemode: false }],
     [sdk.getBillingPeriod, { ...team, id: "period" }],
@@ -653,11 +687,11 @@ test("all billing SDK operations reject Firebase clients, including team members
     ],
     [
       sdk.createBillingCustomerCreation,
-      { ...team, idempotencyKey: "key", livemode: false, createdAt: "1" },
+      { ...member, idempotencyKey: "key", livemode: false, createdAt: "1" },
     ],
     [sdk.getBillingCustomerCreation, { ...team, livemode: false }],
     [sdk.recordBillingCustomer, c],
-    [sdk.createBillingCheckoutCreation, s],
+    [sdk.createBillingCheckoutCreation, { ...s, userId: f.userId }],
     [sdk.getOpenBillingCheckoutCreation, { ...team, livemode: false }],
     [sdk.recordBillingCheckoutSession, { ...s, stripeCheckoutSessionId: "session" }],
     [sdk.closeBillingCheckoutCreation, { ...c, stripeCheckoutSessionId: "session", closedAt: "2" }],
@@ -713,9 +747,282 @@ test("all billing SDK operations reject Firebase clients, including team members
     { impersonate: { unauthenticated: true } },
   ]) {
     for (const [operation, variables] of cases) {
-      await assert.rejects(operation(dc, variables, actor), /permission|auth|access denied/i);
+      await assert.rejects(
+        variables === undefined ? operation(dc, actor) : operation(dc, variables, actor),
+        /permission|auth|access denied/i,
+      );
     }
   }
-  assert.equal(cases.length, 33);
+  assert.equal(cases.length, 39);
   assert.equal((await context(f)).account, null);
+});
+
+test("creation mutations reject outsiders and membership revoked before the write", async (t) => {
+  const f = await fixture(t);
+  const input = {
+    teamId: f.teamId,
+    userId: "outsider",
+    livemode: false,
+    idempotencyKey: randomUUID(),
+    createdAt: "1",
+  };
+  await assert.rejects(sdk.createBillingCustomerCreation(dc, input));
+  const c = await customer(f);
+  await graphql(
+    `
+      mutation Revoke($teamId: String!) {
+        teamMember_deleteMany(where: { teamId: { eq: $teamId } })
+      }
+    `,
+    { teamId: f.teamId },
+  );
+  await assert.rejects(
+    sdk.createBillingCheckoutCreation(dc, {
+      ...intent(f.teamId),
+      stripeCustomerId: c.stripeCustomerId,
+      userId: f.userId,
+    }),
+  );
+});
+
+test("deletion durably captures cleanup and a private receipt before cascading credentials", async (t) => {
+  const f = await fixture(t);
+  const path = `projects/demo-openci/secrets/team-${randomUUID()}/versions/1`;
+  const oauth = `projects/demo-openci/secrets/openci-github-${randomUUID()}/versions/1`;
+  await graphql(
+    `
+      mutation Seed($teamId: String!, $path: String!, $oauth: String!) @transaction {
+        secretReference_insert(
+          data: {
+            teamId: $teamId
+            name: "TOKEN"
+            secretVersionPath: $path
+            createdAt: 1
+            updatedAt: 1
+          }
+        )
+        gitHubConnectionRequest_insert(
+          data: {
+            id: $teamId
+            teamId: $teamId
+            userId: "actor"
+            stateHash: $teamId
+            codeVerifierSecretVersionPath: $oauth
+            createdAt: 1
+            expiresAt: 2
+          }
+        )
+      }
+    `,
+    { teamId: f.teamId, path, oauth },
+  );
+  await sdk.deleteBillingTeam(dc, deletion(f));
+  assert.ok(
+    (await sdk.getBillingTeamDeletion(dc, { teamId: f.teamId, userId: f.userId })).data.receipt,
+  );
+  assert.equal(
+    (await sdk.getBillingTeamDeletion(dc, { teamId: f.teamId, userId: "other" })).data.receipt,
+    null,
+  );
+  assert.ok(
+    !(await sdk.getDueBillingTeamDeletions(dc)).data.deletions.some((d) => d.teamId === f.teamId),
+  );
+  await graphql(
+    `
+      mutation Due($teamId: String!) {
+        billingTeamDeletion_update(
+          key: { teamId: $teamId }
+          data: { cleanupAfter: "2000-01-01T00:00:00Z" }
+        )
+      }
+    `,
+    { teamId: f.teamId },
+  );
+  const cleanup = (await sdk.getDueBillingTeamDeletions(dc)).data.deletions.find(
+    (d) => d.teamId === f.teamId,
+  );
+  assert.deepEqual(cleanup.secretPaths, [path]);
+  assert.deepEqual(cleanup.githubPaths, [oauth]);
+  await sdk.acknowledgeBillingCredentialCleanup(dc, { teamId: f.teamId, path, kind: "secret" });
+  const partial = (await sdk.getDueBillingTeamDeletions(dc)).data.deletions.find(
+    (d) => d.teamId === f.teamId,
+  );
+  assert.deepEqual(partial.secretPaths, []);
+  assert.deepEqual(partial.githubPaths, [oauth]);
+  await assert.rejects(sdk.completeBillingTeamCleanup(dc, { teamId: f.teamId }));
+  await sdk.acknowledgeBillingCredentialCleanup(dc, {
+    teamId: f.teamId,
+    path: oauth,
+    kind: "github",
+  });
+  await sdk.deferBillingTeamCleanup(dc, { teamId: f.teamId });
+  assert.ok(
+    !(await sdk.getDueBillingTeamDeletions(dc)).data.deletions.some((d) => d.teamId === f.teamId),
+  );
+  await sdk.completeBillingTeamCleanup(dc, { teamId: f.teamId });
+  assert.ok(
+    (await sdk.getBillingTeamDeletion(dc, { teamId: f.teamId, userId: f.userId })).data.receipt,
+  );
+});
+
+test("parallel callable checkouts share one durable Stripe purchase and recover lost database replies", async (t) => {
+  const f = await fixture(t);
+  let customer;
+  const sessions = new Map();
+  const stripe = stripeFixture((r) => {
+    const path = r.url.pathname;
+    if (path === "/v1/prices/price_light") return price;
+    if (path === "/v1/customers" && r.method === "POST") {
+      customer ??= { id: `cus_${f.teamId}`, livemode: false, metadata: { team_id: f.teamId } };
+      return customer;
+    }
+    if (path === `/v1/customers/${customer?.id}`) return customer;
+    if (path === "/v1/subscriptions") return { data: [], has_more: false };
+    if (path === "/v1/checkout/sessions" && r.method === "POST") {
+      const key = r.headers.get("idempotency-key");
+      const i = {
+        ...intent(f.teamId),
+        idempotencyKey: key,
+        stripeCustomerId: customer.id,
+        successUrl: r.body.get("success_url"),
+        cancelUrl: r.body.get("cancel_url"),
+      };
+      if (!sessions.has(key)) sessions.set(key, { ...session(i), id: `cs_${key}` });
+      return sessions.get(key);
+    }
+    return [...sessions.values()].find((s) => path === `/v1/checkout/sessions/${s.id}`);
+  });
+  const store = new BillingStore(dc);
+  const record = store.recordCheckout.bind(store);
+  store.recordCheckout = async (...args) => {
+    await record(...args);
+    throw Error("lost reply after commit");
+  };
+  const service = new Billing(store, stripe.stripe, config);
+  const results = await Promise.all(
+    [1, 2].map(() =>
+      service.execute(f.userId, { action: "checkout", teamId: f.teamId, planId: "light" }),
+    ),
+  );
+  assert.equal(results[0].url, results[1].url);
+  assert.equal(sessions.size, 1);
+  assert.equal(
+    new Set(
+      stripe.requests
+        .filter((r) => r.url.pathname === "/v1/customers")
+        .map((r) => r.headers.get("idempotency-key")),
+    ).size,
+    1,
+  );
+  const saved = await context(f);
+  assert.equal(saved.checkout.stripeCheckoutSessionId, [...sessions.values()][0].id);
+});
+
+test("membership revoked during Stripe price lookup prevents any purchase creation", async (t) => {
+  const f = await fixture(t);
+  const stripe = stripeFixture(async (r) => {
+    assert.equal(r.url.pathname, "/v1/prices/price_light");
+    await graphql(
+      `
+        mutation Revoke($teamId: String!) {
+          teamMember_deleteMany(where: { teamId: { eq: $teamId } })
+        }
+      `,
+      { teamId: f.teamId },
+    );
+    return price;
+  });
+  const service = new Billing(new BillingStore(dc), stripe.stripe, config);
+  await assert.rejects(
+    service.execute(f.userId, { action: "checkout", teamId: f.teamId, planId: "light" }),
+    /forbidden/,
+  );
+  assert.equal(stripe.requests.length, 1);
+});
+
+test("legacy billing import preserves all nine tables and consumption with resumable insert-only writes", async (t) => {
+  const f = await fixture(t);
+  const rows = legacyBillingRows(f.teamId);
+  t.after(() =>
+    graphql(
+      `
+        mutation RemoveEvent($id: String!) {
+          billingStripeEvent_delete(key: { eventId: $id })
+        }
+      `,
+      { id: rows.BillingStripeEvent.event_id },
+    ),
+  );
+  const scan = async (visit) => {
+    for (const table of billingTables) await visit(table, rows[table.type]);
+  };
+  const target = billingDestination(dc);
+  assert.equal((await migrateBilling(scan, target)).dryRun, true);
+  assert.equal((await context(f)).account, null);
+  assert.equal((await migrateBilling(scan, target, true)).inserted, 9);
+  assert.equal((await migrateBilling(scan, target, true)).unchanged, 9);
+  const saved = await context(f);
+  assert.equal(saved.customer.stripeCustomerId, rows.BillingCustomerCreation.stripe_customer_id);
+  assert.equal(saved.checkout.idempotencyKey, rows.BillingCheckoutCreation.idempotency_key);
+  assert.equal(saved.stripe.paidPeriodId, rows.BillingStripeState.paid_period_id);
+  const available = await new BillingStore(dc).available(f.teamId, rows.BillingPeriod.id, 3000);
+  assert.equal(available, 35999000n); // One second already consumed by the old worker.
+});
+
+test("paid renewal, failed renewal and cancellation update callable status through the real FSC ledger", async (t) => {
+  const f = await fixture(t);
+  const c = await customer(f);
+  const i = {
+    ...intent(f.teamId),
+    idempotencyKey: randomUUID(),
+    stripeCustomerId: c.stripeCustomerId,
+  };
+  const s = {
+    ...session(i),
+    id: `cs_${f.teamId}`,
+    status: "complete",
+    subscription: `sub_${f.teamId}`,
+  };
+  await sdk.createBillingCheckoutCreation(dc, { ...i, userId: f.userId });
+  await sdk.recordBillingCheckoutSession(dc, { ...i, stripeCheckoutSessionId: s.id });
+  const sub = { ...subscription(f.teamId), id: s.subscription, customer: c.stripeCustomerId };
+  sub.items.data[0].current_period_end = now + 60;
+  let paid = {
+    ...invoice(),
+    id: `in_${f.teamId}`,
+    customer: c.stripeCustomerId,
+    parent: { subscription_details: { subscription: sub.id } },
+  };
+  paid.lines.data[0].invoice = paid.id;
+  paid.lines.data[0].parent.subscription_item_details.subscription = sub.id;
+  paid.lines.data[0].period.end = now + 60;
+  sub.latest_invoice = paid.id;
+  let at = now * 1000;
+  const stripe = stripeFixture((r) => {
+    if (r.url.pathname === `/v1/customers/${c.stripeCustomerId}`)
+      return { id: c.stripeCustomerId, metadata: { team_id: f.teamId }, livemode: false };
+    if (r.url.pathname === "/v1/subscriptions") return { data: [sub], has_more: false };
+    if (r.url.pathname === "/v1/checkout/sessions") return { data: [s], has_more: false };
+    if (r.url.pathname === `/v1/invoices/${paid.id}`) return paid;
+  });
+  const service = new Billing(new BillingStore(dc), stripe.stripe, config, () => at);
+  const status = () => service.execute(f.userId, { action: "status", teamId: f.teamId });
+  assert.equal((await status()).canStartCi, true);
+  paid = { ...paid, id: `in_renew_${f.teamId}`, status: "open" };
+  sub.latest_invoice = paid.id;
+  sub.status = "past_due";
+  sub.items.data[0].current_period_start = now + 60;
+  sub.items.data[0].current_period_end = now + 120;
+  assert.equal((await status()).canStartCi, true); // Prior paid window is retained.
+  at = (now + 61) * 1000;
+  assert.equal((await status()).canStartCi, false);
+  paid.status = "paid";
+  paid.lines.data[0].invoice = paid.id;
+  paid.lines.data[0].period = { start: now + 60, end: now + 120 };
+  sub.status = "active";
+  assert.equal((await status()).canStartCi, true);
+  sub.status = "canceled";
+  const ended = await status();
+  assert.equal(ended.canStartCi, false);
+  assert.equal(ended.blockReason, "subscription_ended");
 });

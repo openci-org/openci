@@ -2,6 +2,7 @@
 # On a duplicate create, read the stored intent and reuse its idempotency key.
 mutation CreateBillingCustomerCreation(
   $teamId: String!
+  $userId: String!
   $idempotencyKey: String!
   $livemode: Boolean!
   $createdAt: Int64!
@@ -9,7 +10,14 @@ mutation CreateBillingCustomerCreation(
   team_update(key: { id: $teamId }, data: { updatedAt_expr: "int(request.time)" })
     @redact
     @check(expr: "this != null", message: "Team not found")
-  billingAccount_upsert(data: { teamId_expr: "response.team_update.id" })
+  query @redact {
+    member: teamMember(
+      first: { where: { teamId: { eq_expr: "response.team_update.id" }, userId: { eq: $userId } } }
+    ) @check(expr: "this != null", message: "Team access denied") {
+      teamId
+    }
+  }
+  billingAccount_upsert(data: { teamId_expr: "response.query.member.teamId" })
   billingCustomerCreation_insert(
     data: {
       teamId_expr: "response.billingAccount_upsert.teamId"

@@ -1,0 +1,11 @@
+# Receipt and cleanup outbox survive the Team cascade and a lost HTTP response.
+type BillingTeamDeletion @table(name: "billing_team_deletions", key: "teamId") {
+  teamId: String! @col(name: "team_id")
+  userId: String! @col(name: "user_id")
+  # JSON arrays allow a server-side CEL map of the locked credential rows.
+  secretPaths: Any! @col(name: "secret_paths")
+  githubPaths: Any! @col(name: "github_paths")
+  createdAt: Timestamp! @col(name: "created_at")
+  cleanupAfter: Timestamp! @col(name: "cleanup_after") @index
+  cleanedAt: Timestamp @col(name: "cleaned_at")
+}

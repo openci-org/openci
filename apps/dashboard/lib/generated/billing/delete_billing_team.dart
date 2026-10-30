@@ -262,6 +262,39 @@ class DeleteBillingTeamCleanupSessions {
 }
 
 @immutable
+class DeleteBillingTeamReceipt {
+  final String teamId;
+  DeleteBillingTeamReceipt.fromJson(dynamic json)
+    : teamId = nativeFromJson<String>(json['teamId']);
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) {
+      return true;
+    }
+    if (other.runtimeType != runtimeType) {
+      return false;
+    }
+
+    final DeleteBillingTeamReceipt otherTyped =
+        other as DeleteBillingTeamReceipt;
+    return teamId == otherTyped.teamId;
+  }
+
+  @override
+  int get hashCode => teamId.hashCode;
+
+  Map<String, dynamic> toJson() {
+    Map<String, dynamic> json = {};
+    json['teamId'] = nativeToJson<String>(teamId);
+    return json;
+  }
+
+  DeleteBillingTeamReceipt({
+    required this.teamId,
+  });
+}
+
+@immutable
 class DeleteBillingTeamTeamDelete {
   final String id;
   DeleteBillingTeamTeamDelete.fromJson(dynamic json)
@@ -298,6 +331,7 @@ class DeleteBillingTeamTeamDelete {
 class DeleteBillingTeamData {
   final DeleteBillingTeamBillingAccountUpsert billingAccount_upsert;
   final DeleteBillingTeamCleanup? cleanup;
+  final DeleteBillingTeamReceipt receipt;
   final DeleteBillingTeamTeamDelete? team_delete;
   DeleteBillingTeamData.fromJson(dynamic json)
     : billingAccount_upsert = DeleteBillingTeamBillingAccountUpsert.fromJson(
@@ -306,6 +340,7 @@ class DeleteBillingTeamData {
       cleanup = json['cleanup'] == null
           ? null
           : DeleteBillingTeamCleanup.fromJson(json['cleanup']),
+      receipt = DeleteBillingTeamReceipt.fromJson(json['receipt']),
       team_delete = json['team_delete'] == null
           ? null
           : DeleteBillingTeamTeamDelete.fromJson(json['team_delete']);
@@ -321,6 +356,7 @@ class DeleteBillingTeamData {
     final DeleteBillingTeamData otherTyped = other as DeleteBillingTeamData;
     return billingAccount_upsert == otherTyped.billingAccount_upsert &&
         cleanup == otherTyped.cleanup &&
+        receipt == otherTyped.receipt &&
         team_delete == otherTyped.team_delete;
   }
 
@@ -328,6 +364,7 @@ class DeleteBillingTeamData {
   int get hashCode => Object.hashAll([
     billingAccount_upsert.hashCode,
     cleanup.hashCode,
+    receipt.hashCode,
     team_delete.hashCode,
   ]);
 
@@ -337,6 +374,7 @@ class DeleteBillingTeamData {
     if (cleanup != null) {
       json['cleanup'] = cleanup!.toJson();
     }
+    json['receipt'] = receipt.toJson();
     if (team_delete != null) {
       json['team_delete'] = team_delete!.toJson();
     }
@@ -346,6 +384,7 @@ class DeleteBillingTeamData {
   DeleteBillingTeamData({
     required this.billingAccount_upsert,
     this.cleanup,
+    required this.receipt,
     this.team_delete,
   });
 }

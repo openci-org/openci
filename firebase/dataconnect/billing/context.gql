@@ -38,6 +38,13 @@ fragment BillingMemberCheck on Query {
   }
 }
 
+# Classify access denial without inspecting SDK errors (which include source).
+query GetBillingMembership($teamId: String!, $userId: String!) @auth(level: NO_ACCESS) {
+  member: teamMember(first: { where: { teamId: { eq: $teamId }, userId: { eq: $userId } } }) {
+    id
+  }
+}
+
 fragment BillingCustomerFields on BillingCustomerCreation {
   teamId
   idempotencyKey

@@ -96,6 +96,16 @@ export function getBillingContext(dcOrVarsOrOptions, varsOrOptions, options) {
   return dcInstance.executeQuery("GetBillingContext", inputVars, inputOpts);
 }
 
+export function getBillingMembership(dcOrVarsOrOptions, varsOrOptions, options) {
+  const {
+    dc: dcInstance,
+    vars: inputVars,
+    options: inputOpts,
+  } = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeQuery("GetBillingMembership", inputVars, inputOpts);
+}
+
 export function getBillingCustomerByStripeId(dcOrVarsOrOptions, varsOrOptions, options) {
   const {
     dc: dcInstance,
@@ -164,6 +174,57 @@ export function deleteBillingTeam(dcOrVarsOrOptions, varsOrOptions, options) {
   } = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
   dcInstance.useGen(true);
   return dcInstance.executeMutation("DeleteBillingTeam", inputVars, inputOpts);
+}
+
+export function getBillingTeamDeletion(dcOrVarsOrOptions, varsOrOptions, options) {
+  const {
+    dc: dcInstance,
+    vars: inputVars,
+    options: inputOpts,
+  } = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeQuery("GetBillingTeamDeletion", inputVars, inputOpts);
+}
+
+export function getDueBillingTeamDeletions(dcOrOptions, options) {
+  const { dc: dcInstance, options: inputOpts } = validateAdminArgs(
+    connectorConfig,
+    dcOrOptions,
+    options,
+    undefined,
+  );
+  dcInstance.useGen(true);
+  return dcInstance.executeQuery("GetDueBillingTeamDeletions", undefined, inputOpts);
+}
+
+export function completeBillingTeamCleanup(dcOrVarsOrOptions, varsOrOptions, options) {
+  const {
+    dc: dcInstance,
+    vars: inputVars,
+    options: inputOpts,
+  } = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeMutation("CompleteBillingTeamCleanup", inputVars, inputOpts);
+}
+
+export function acknowledgeBillingCredentialCleanup(dcOrVarsOrOptions, varsOrOptions, options) {
+  const {
+    dc: dcInstance,
+    vars: inputVars,
+    options: inputOpts,
+  } = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeMutation("AcknowledgeBillingCredentialCleanup", inputVars, inputOpts);
+}
+
+export function deferBillingTeamCleanup(dcOrVarsOrOptions, varsOrOptions, options) {
+  const {
+    dc: dcInstance,
+    vars: inputVars,
+    options: inputOpts,
+  } = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeMutation("DeferBillingTeamCleanup", inputVars, inputOpts);
 }
 
 export function getBillingExecution(dcOrVarsOrOptions, varsOrOptions, options) {

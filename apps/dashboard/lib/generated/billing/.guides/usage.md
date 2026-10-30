@@ -10,7 +10,7 @@ BillingConnector.instance.GetOpenBillingCheckoutCreation(getOpenBillingCheckoutC
 BillingConnector.instance.RecordBillingCheckoutSession(recordBillingCheckoutSessionVariables).execute();
 BillingConnector.instance.CloseBillingCheckoutCreation(closeBillingCheckoutCreationVariables).execute();
 BillingConnector.instance.GetBillingContext(getBillingContextVariables).execute();
-BillingConnector.instance.GetBillingCustomerByStripeId(getBillingCustomerByStripeIdVariables).execute();
+BillingConnector.instance.GetBillingMembership(getBillingMembershipVariables).execute();
 
 ```
 

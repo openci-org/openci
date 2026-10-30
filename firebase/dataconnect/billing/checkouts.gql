@@ -3,6 +3,7 @@
 mutation CreateBillingCheckoutCreation(
   $idempotencyKey: String!
   $teamId: String!
+  $userId: String!
   $planId: String!
   $stripeCustomerId: String!
   $stripePriceId: String!
@@ -15,6 +16,11 @@ mutation CreateBillingCheckoutCreation(
     @redact
     @check(expr: "this != null", message: "Team not found")
   query @redact {
+    member: teamMember(
+      first: { where: { teamId: { eq_expr: "response.team_update.id" }, userId: { eq: $userId } } }
+    ) @check(expr: "this != null", message: "Team access denied") {
+      teamId
+    }
     billingAccount(key: { teamId_expr: "response.team_update.id" })
       @check(expr: "this != null", message: "Billing account not found") {
       teamId
@@ -23,7 +29,7 @@ mutation CreateBillingCheckoutCreation(
   billingCheckoutCreation_insert(
     data: {
       idempotencyKey: $idempotencyKey
-      teamId_expr: "response.team_update.id"
+      teamId_expr: "response.query.member.teamId"
       planId: $planId
       stripeCustomerId: $stripeCustomerId
       stripePriceId: $stripePriceId

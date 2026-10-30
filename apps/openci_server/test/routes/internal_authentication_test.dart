@@ -16,7 +16,7 @@ import '../../routes/internal/_middleware.dart' as internal;
 import '../../routes/internal/seed/teams.dart' as seed_teams;
 import '../../routes/teams/by-installation/[installationId].dart'
     as installation;
-import '../../routes/teams/[id]/index.dart' as teams;
+import '../../routes/devices/index.dart' as devices;
 import '../../routes/webhooks/_middleware.dart' as webhooks;
 import '../../routes/webhooks/claim.dart' as webhook_claim;
 import '../../routes/worker/_middleware.dart' as worker;
@@ -214,14 +214,14 @@ void main() {
     expect(body['members'], ['member-1']);
   });
 
-  for (final method in ['DELETE']) {
+  for (final method in ['GET']) {
     test(
-      'an internal key cannot use the user-only $method /teams/<id> route',
+      'an internal key cannot use the user-only $method /devices route',
       () async {
         final database = _MockDatabase();
         final response = await request(
-          path: '/teams/team-123',
-          route: (context) => teams.onRequest(context, 'team-123'),
+          path: '/devices',
+          route: devices.onRequest,
           method: method,
           headers: {'Authorization': 'Bearer test-internal-key'},
           database: database,

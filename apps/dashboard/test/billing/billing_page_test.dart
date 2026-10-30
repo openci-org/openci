@@ -1,7 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:dashboard/api/openci_api_client.dart';
+import 'package:dashboard/billing/billing_api.dart';
+import '../helpers/billing_callable.dart';
 import 'package:dashboard/billing/billing_identity.dart';
 import 'package:dashboard/billing/billing_page.dart';
 import 'package:dashboard/connections/connection_profile.dart';
@@ -11,8 +12,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
-import 'package:http/testing.dart';
-import 'package:openci_shared/openci_shared.dart';
 import 'package:url_launcher_platform_interface/url_launcher_platform_interface.dart';
 import 'package:url_launcher_platform_interface/link.dart';
 
@@ -45,9 +44,9 @@ void main() {
     UrlLauncherPlatform.instance = launcher;
     addTearDown(() => UrlLauncherPlatform.instance = original);
     respond = (request) async {
-      if (request.method == 'POST') {
+      if (billingCallData(request)['action'] != 'status') {
         return jsonResponse({
-          'url': request.url.path.endsWith('/portal')
+          'url': billingCallData(request)['action'] == 'portal'
               ? 'https://billing.stripe.com/p/session/test'
               : 'https://checkout.stripe.com/c/pay/test',
         });
@@ -70,22 +69,18 @@ void main() {
     String? teamId = 'team-1',
     String? result,
   }) async {
-    final client = http.runWithClient(
-      () => createOpenCIChopperClient(
-        baseUrl: cloud.apiUrl,
-        tokenProvider: () => 'firebase-token',
-      ),
-      () => MockClient((request) {
-        requests.add(request);
-        return respond(request);
-      }),
-    );
-    addTearDown(client.dispose);
+    final callable = TestBillingCallable((request) {
+      requests.add(request);
+      return respond(request);
+    });
     container = ProviderContainer.test(
       overrides: [
         billingIdentityProvider.overrideWith((ref) => identity),
-        openciApiServiceProvider.overrideWith(
-          (ref) async => OpenCIApiService.create(client),
+        billingApiProvider.overrideWith(
+          (ref) async => BillingApi(
+            callable: callable,
+            isCurrent: () => ref.mounted && identity?.connection == cloud,
+          ),
         ),
         teamListProvider.overrideWith(
           (ref) async => [
@@ -119,7 +114,10 @@ void main() {
     tester,
   ) async {
     await show(tester, result: 'success');
-    expect(requests.single.url.path, '/teams/team-1/billing');
+    expect(billingCallData(requests.single), {
+      'action': 'status',
+      'teamId': 'team-1',
+    });
     expect(find.text('team-1'), findsOneWidget);
     expect(find.text('CIを利用できます'), findsNothing);
     expect(find.text('CIの利用にはプランの購入が必要です。'), findsOneWidget);
@@ -140,7 +138,10 @@ void main() {
     tester,
   ) async {
     await show(tester, teamId: null);
-    expect(requests.single.url.path, '/teams/team-2/billing');
+    expect(billingCallData(requests.single), {
+      'action': 'status',
+      'teamId': 'team-2',
+    });
   });
 
   testWidgets('a new Stripe return refreshes an already mounted billing page', (
@@ -157,7 +158,10 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(requests.where((r) => r.method == 'GET'), hasLength(2));
+    expect(
+      requests.where((r) => billingCallData(r)['action'] == 'status'),
+      hasLength(2),
+    );
     expect(find.text('CIを利用できます'), findsOneWidget);
   });
 
@@ -178,10 +182,17 @@ void main() {
     await show(tester);
     await tester.tap(find.text('Lightを選ぶ'));
     await tester.pumpAndSettle();
-    expect(jsonDecode(requests.last.body), {'planId': 'light'});
+    expect(billingCallData(requests.last), {
+      'action': 'checkout',
+      'teamId': 'team-1',
+      'planId': 'light',
+    });
     expect(launcher.url, 'https://checkout.stripe.com/c/pay/test');
     expect(launcher.options?.webOnlyWindowName, '_self');
-    expect(requests.where((r) => r.method == 'GET'), hasLength(1));
+    expect(
+      requests.where((r) => billingCallData(r)['action'] == 'status'),
+      hasLength(1),
+    );
   });
 
   testWidgets('Portal and launch failures preserve the team and allow retry', (
@@ -204,7 +215,10 @@ void main() {
     await tester.tap(find.text('契約を管理'));
     await tester.pumpAndSettle();
     expect(launcher.url, 'https://billing.stripe.com/p/session/test');
-    expect(requests.last.url.path, '/teams/team-1/billing/portal');
+    expect(billingCallData(requests.last), {
+      'action': 'portal',
+      'teamId': 'team-1',
+    });
   });
 
   testWidgets('membership loss during a purchase hides stale billing data', (

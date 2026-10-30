@@ -3,6 +3,7 @@ part of 'billing.dart';
 class CreateBillingCheckoutCreationVariablesBuilder {
   String idempotencyKey;
   String teamId;
+  String userId;
   String planId;
   String stripeCustomerId;
   String stripePriceId;
@@ -16,6 +17,7 @@ class CreateBillingCheckoutCreationVariablesBuilder {
     this._dataConnect, {
     required this.idempotencyKey,
     required this.teamId,
+    required this.userId,
     required this.planId,
     required this.stripeCustomerId,
     required this.stripePriceId,
@@ -49,6 +51,7 @@ class CreateBillingCheckoutCreationVariablesBuilder {
         CreateBillingCheckoutCreationVariables(
           idempotencyKey: idempotencyKey,
           teamId: teamId,
+          userId: userId,
           planId: planId,
           stripeCustomerId: stripeCustomerId,
           stripePriceId: stripePriceId,
@@ -144,6 +147,7 @@ class CreateBillingCheckoutCreationData {
 class CreateBillingCheckoutCreationVariables {
   final String idempotencyKey;
   final String teamId;
+  final String userId;
   final String planId;
   final String stripeCustomerId;
   final String stripePriceId;
@@ -157,6 +161,7 @@ class CreateBillingCheckoutCreationVariables {
   CreateBillingCheckoutCreationVariables.fromJson(Map<String, dynamic> json)
     : idempotencyKey = nativeFromJson<String>(json['idempotencyKey']),
       teamId = nativeFromJson<String>(json['teamId']),
+      userId = nativeFromJson<String>(json['userId']),
       planId = nativeFromJson<String>(json['planId']),
       stripeCustomerId = nativeFromJson<String>(json['stripeCustomerId']),
       stripePriceId = nativeFromJson<String>(json['stripePriceId']),
@@ -177,6 +182,7 @@ class CreateBillingCheckoutCreationVariables {
         other as CreateBillingCheckoutCreationVariables;
     return idempotencyKey == otherTyped.idempotencyKey &&
         teamId == otherTyped.teamId &&
+        userId == otherTyped.userId &&
         planId == otherTyped.planId &&
         stripeCustomerId == otherTyped.stripeCustomerId &&
         stripePriceId == otherTyped.stripePriceId &&
@@ -190,6 +196,7 @@ class CreateBillingCheckoutCreationVariables {
   int get hashCode => Object.hashAll([
     idempotencyKey.hashCode,
     teamId.hashCode,
+    userId.hashCode,
     planId.hashCode,
     stripeCustomerId.hashCode,
     stripePriceId.hashCode,
@@ -203,6 +210,7 @@ class CreateBillingCheckoutCreationVariables {
     Map<String, dynamic> json = {};
     json['idempotencyKey'] = nativeToJson<String>(idempotencyKey);
     json['teamId'] = nativeToJson<String>(teamId);
+    json['userId'] = nativeToJson<String>(userId);
     json['planId'] = nativeToJson<String>(planId);
     json['stripeCustomerId'] = nativeToJson<String>(stripeCustomerId);
     json['stripePriceId'] = nativeToJson<String>(stripePriceId);
@@ -216,6 +224,7 @@ class CreateBillingCheckoutCreationVariables {
   CreateBillingCheckoutCreationVariables({
     required this.idempotencyKey,
     required this.teamId,
+    required this.userId,
     required this.planId,
     required this.stripeCustomerId,
     required this.stripePriceId,
