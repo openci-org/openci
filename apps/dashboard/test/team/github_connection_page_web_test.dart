@@ -4,7 +4,7 @@ library;
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:dashboard/api/openci_api_client.dart';
+import 'package:dashboard/team/github_connection_api.dart';
 import 'package:dashboard/app_strings.dart';
 import 'package:dashboard/auth/auth_provider.dart';
 import 'package:dashboard/connections/active_connection_profile_provider.dart';
@@ -22,8 +22,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
-import 'package:http/testing.dart';
-import 'package:openci_shared/openci_shared.dart';
+import '../helpers/github_connection_callable.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher_platform_interface/link.dart';
 import 'package:url_launcher_platform_interface/url_launcher_platform_interface.dart';
@@ -62,7 +61,7 @@ void main() {
   late GitHubConnectionReturn? result;
   late List<http.Request> requests;
   late Future<http.Response> Function(http.Request) respond;
-  late OpenCIApiService apiService;
+  late GitHubConnectionApi apiService;
   late int teamListReads;
   late UrlLauncherPlatform originalLauncher;
   late _RecordingUrlLauncher launcher;
@@ -101,8 +100,10 @@ void main() {
   });
 
   Future<http.Response> successfulResponse(http.Request request) async {
-    if (request.url.path.endsWith('/session')) return sessionResponse();
-    if (request.url.path.endsWith('/confirm')) {
+    if ((callableData(request)['action'] == 'session')) {
+      return sessionResponse();
+    }
+    if ((callableData(request)['action'] == 'confirm')) {
       return jsonResponse({'success': true});
     }
     return candidatesResponse();
@@ -130,20 +131,14 @@ void main() {
     UrlLauncherPlatform.instance = originalLauncher;
   });
 
-  OpenCIApiService createApi(String baseUrl) {
-    final client = http.runWithClient(
-      () => createOpenCIChopperClient(
-        baseUrl: baseUrl,
-        tokenProvider: () => 'firebase-id-token',
-      ),
-      () => MockClient((request) {
-        requests.add(request);
-        return respond(request);
-      }),
-    );
-    addTearDown(client.dispose);
-    return OpenCIApiService.create(client);
-  }
+  GitHubConnectionApi createApi(String baseUrl) => GitHubConnectionApi(
+    context: initiatingContext.copyWith(apiUrl: baseUrl),
+    callable: TestGitHubCallable((request) {
+      requests.add(request);
+      return respond(request);
+    }),
+    isCurrent: () => true,
+  );
 
   Future<void> pumpPage(WidgetTester tester) async {
     apiService = createApi(profile.apiUrl);
@@ -162,7 +157,7 @@ void main() {
         pendingGitHubConnectionReturnProvider.overrideWithValue(
           PendingGitHubConnectionReturn(result),
         ),
-        openciApiServiceProvider.overrideWith((ref) async {
+        githubConnectionApiProvider.overrideWith((ref) async {
           if (apiReady != null) await apiReady;
           return apiService;
         }),
@@ -210,7 +205,7 @@ void main() {
     WidgetTester tester, {
     String? installationUrl,
   }) async {
-    respond = (request) async => request.url.path.endsWith('/session')
+    respond = (request) async => (callableData(request)['action'] == 'session')
         ? sessionResponse()
         : jsonResponse({
             'success': true,
@@ -222,7 +217,7 @@ void main() {
   }
 
   List<http.Request> confirmationRequests() => requests
-      .where((request) => request.url.path.endsWith('/confirm'))
+      .where((request) => (callableData(request)['action'] == 'confirm'))
       .toList();
 
   testWidgets('verifies the session before fetching and showing candidates', (
@@ -230,7 +225,7 @@ void main() {
   ) async {
     final session = Completer<http.Response>();
     final candidates = Completer<http.Response>();
-    respond = (request) => request.url.path.endsWith('/session')
+    respond = (request) => (callableData(request)['action'] == 'session')
         ? session.future
         : candidates.future;
     await pumpPage(tester);
@@ -242,7 +237,7 @@ void main() {
       container.read(pendingGitHubConnectionReturnProvider).take(),
       isNull,
     );
-    expect(requests.single.url.path, '/teams/team-1/github/session');
+    expect(callableData(requests.single)['action'], 'session');
 
     session.complete(sessionResponse());
     await tester.pump();
@@ -260,14 +255,18 @@ void main() {
     expect(find.text(t.team.gitHubAppInstallationUrlUnavailable), findsNothing);
     expect(find.byIcon(Icons.business), findsOneWidget);
     expect(find.byIcon(Icons.person_outline), findsOneWidget);
-    expect(requests.last.url.path, '/teams/team-1/github/candidates');
+    expect(callableData(requests.last)['action'], 'candidates');
     expect(requests.last.method, 'POST');
-    expect(
-      requests.last.headers['Authorization'],
-      'Bearer firebase-id-token',
-    );
-    expect(jsonDecode(requests.first.body), {'reference': reference});
-    expect(jsonDecode(requests.last.body), {'reference': reference});
+    expect(callableData(requests.first), {
+      'action': 'session',
+      'teamId': 'team-1',
+      'reference': reference,
+    });
+    expect(callableData(requests.last), {
+      'action': 'candidates',
+      'teamId': 'team-1',
+      'reference': reference,
+    });
     expect(find.textContaining(reference), findsNothing);
 
     await tester.tap(find.byType(CloseButton));
@@ -467,7 +466,7 @@ void main() {
       await tester.tap(find.byType(OutlinedButton));
       await tester.pumpAndSettle();
 
-      expect(requests.last.url.path, '/teams/team-1/github/connect');
+      expect(callableData(requests.last)['action'], 'start');
       expect(launcher.url, authorizationUrl);
       expect(launcher.options!.webOnlyWindowName, '_self');
       expect(takeGitHubConnectionContext(), initiatingContext);
@@ -533,10 +532,9 @@ void main() {
       expect(requests, hasLength(3));
       final request = requests.last;
       expect(request.method, 'POST');
-      expect(request.url.path, '/teams/team-1/github/connect');
+      expect(request.url.path, '/githubConnection');
       expect(request.url.query, isEmpty);
-      expect(request.headers['Authorization'], 'Bearer firebase-id-token');
-      expect(request.body, isEmpty);
+      expect(callableData(request), {'action': 'start', 'teamId': 'team-1'});
       expect(
         tester.widget<OutlinedButton>(find.byType(OutlinedButton)).onPressed,
         isNull,
@@ -603,7 +601,7 @@ void main() {
     tester,
   ) async {
     final candidates = Completer<http.Response>();
-    respond = (request) async => request.url.path.endsWith('/session')
+    respond = (request) async => (callableData(request)['action'] == 'session')
         ? sessionResponse()
         : candidates.future;
     await pumpPage(tester);
@@ -623,7 +621,8 @@ void main() {
     (
       tester,
     ) async {
-      respond = (request) async => request.url.path.endsWith('/session')
+      respond = (request) async =>
+          (callableData(request)['action'] == 'session')
           ? sessionResponse()
           : jsonResponse({'error': reference}, status: 403);
       await pumpPage(tester);
@@ -637,7 +636,7 @@ void main() {
   testWidgets('requires restarting when GitHub reauthorization is needed', (
     tester,
   ) async {
-    respond = (request) async => request.url.path.endsWith('/session')
+    respond = (request) async => (callableData(request)['action'] == 'session')
         ? sessionResponse()
         : jsonResponse({
             'code': 'github_reauthorization_required',
@@ -650,7 +649,7 @@ void main() {
   });
 
   testWidgets('does not expose candidate API failure details', (tester) async {
-    respond = (request) async => request.url.path.endsWith('/session')
+    respond = (request) async => (callableData(request)['action'] == 'session')
         ? sessionResponse()
         : jsonResponse({'error': reference}, status: 502);
     await pumpPage(tester);
@@ -666,7 +665,8 @@ void main() {
     (
       tester,
     ) async {
-      respond = (request) async => request.url.path.endsWith('/session')
+      respond = (request) async =>
+          (callableData(request)['action'] == 'session')
           ? sessionResponse()
           : jsonResponse({'success': false, 'candidates': []});
       await pumpPage(tester);
@@ -682,7 +682,8 @@ void main() {
     (
       tester,
     ) async {
-      respond = (request) async => request.url.path.endsWith('/session')
+      respond = (request) async =>
+          (callableData(request)['action'] == 'session')
           ? sessionResponse()
           : jsonResponse({'success': true, 'candidates': reference});
       await pumpPage(tester);
@@ -717,7 +718,7 @@ void main() {
       tester,
     ) async {
       final confirmed = Completer<http.Response>();
-      respond = (request) => request.url.path.endsWith('/confirm')
+      respond = (request) => (callableData(request)['action'] == 'confirm')
           ? confirmed.future
           : successfulResponse(request);
       await pumpPage(tester);
@@ -748,10 +749,11 @@ void main() {
       await tester.pump();
 
       final request = confirmationRequests().single;
-      expect(request.url.path, '/teams/team-1/github/confirm');
+      expect(request.url.path, '/githubConnection');
       expect(request.method, 'POST');
-      expect(request.headers['Authorization'], 'Bearer firebase-id-token');
-      expect(jsonDecode(request.body), {
+      expect(callableData(request), {
+        'action': 'confirm',
+        'teamId': 'team-1',
         'reference': reference,
         'installationId': 456,
       });
@@ -782,7 +784,7 @@ void main() {
   );
 
   testWidgets('allows confirmation retry after an API failure', (tester) async {
-    respond = (request) async => request.url.path.endsWith('/confirm')
+    respond = (request) async => (callableData(request)['action'] == 'confirm')
         ? jsonResponse({'error': reference}, status: 502)
         : successfulResponse(request);
     await selectOrganization(tester);
@@ -816,7 +818,8 @@ void main() {
     (
       tester,
     ) async {
-      respond = (request) async => request.url.path.endsWith('/confirm')
+      respond = (request) async =>
+          (callableData(request)['action'] == 'confirm')
           ? jsonResponse({'error': reference}, status: 403)
           : successfulResponse(request);
       await selectOrganization(tester);
@@ -836,7 +839,7 @@ void main() {
   testWidgets('requires restarting when the connection conflicts', (
     tester,
   ) async {
-    respond = (request) async => request.url.path.endsWith('/confirm')
+    respond = (request) async => (callableData(request)['action'] == 'confirm')
         ? jsonResponse({'code': 'github_connection_conflict'}, status: 409)
         : successfulResponse(request);
     await selectOrganization(tester);
@@ -856,7 +859,8 @@ void main() {
     (
       tester,
     ) async {
-      respond = (request) async => request.url.path.endsWith('/confirm')
+      respond = (request) async =>
+          (callableData(request)['action'] == 'confirm')
           ? jsonResponse({'success': false})
           : successfulResponse(request);
       await selectOrganization(tester);
@@ -870,7 +874,7 @@ void main() {
   );
 
   testWidgets('sanitizes malformed confirmation responses', (tester) async {
-    respond = (request) async => request.url.path.endsWith('/confirm')
+    respond = (request) async => (callableData(request)['action'] == 'confirm')
         ? jsonResponse({'success': reference})
         : successfulResponse(request);
     await selectOrganization(tester);
@@ -887,7 +891,7 @@ void main() {
   ) async {
     await selectOrganization(tester);
     apiService = createApi('https://other.example.test');
-    container.invalidate(openciApiServiceProvider);
+    container.invalidate(githubConnectionApiProvider);
     await tester.tap(find.text(t.team.gitHubConnectionConfirm));
     await tester.pumpAndSettle();
 
@@ -899,7 +903,7 @@ void main() {
     await selectOrganization(tester);
     final ready = Completer<void>();
     apiReady = ready.future;
-    container.invalidate(openciApiServiceProvider);
+    container.invalidate(githubConnectionApiProvider);
     await tester.tap(find.text(t.team.gitHubConnectionConfirm));
     await tester.pump();
 
@@ -917,7 +921,7 @@ void main() {
     tester,
   ) async {
     final confirmed = Completer<http.Response>();
-    respond = (request) => request.url.path.endsWith('/confirm')
+    respond = (request) => (callableData(request)['action'] == 'confirm')
         ? confirmed.future
         : successfulResponse(request);
     await selectOrganization(tester);
@@ -943,7 +947,7 @@ void main() {
     tester,
   ) async {
     final confirmed = Completer<http.Response>();
-    respond = (request) => request.url.path.endsWith('/confirm')
+    respond = (request) => (callableData(request)['action'] == 'confirm')
         ? confirmed.future
         : successfulResponse(request);
     await selectOrganization(tester);

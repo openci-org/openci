@@ -7,9 +7,9 @@ GithubConnector.instance.DeleteExpiredGitHubConnectionSession(deleteExpiredGitHu
 GithubConnector.instance.ConfirmGitHubConnection(confirmGitHubConnectionVariables).execute();
 GithubConnector.instance.GetGitHubConnections(getGitHubConnectionsVariables).execute();
 GithubConnector.instance.GetActiveGitHubConnection(getActiveGitHubConnectionVariables).execute();
+GithubConnector.instance.GetGitHubConnectionContext(getGitHubConnectionContextVariables).execute();
 GithubConnector.instance.CreateGitHubConnectionRequest(createGitHubConnectionRequestVariables).execute();
 GithubConnector.instance.ConsumeGitHubConnectionRequest(consumeGitHubConnectionRequestVariables).execute();
 GithubConnector.instance.CreateGitHubConnectionSession(createGitHubConnectionSessionVariables).execute();
-GithubConnector.instance.GetGitHubConnectionSession(getGitHubConnectionSessionVariables).execute();
 
 ```

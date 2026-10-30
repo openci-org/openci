@@ -4,7 +4,9 @@ The dashboard reads build jobs, steps and logs from Firebase SQL Connect (FSC).
 Secret values live in Secret Manager; FSC stores names and numeric version paths.
 Neither feature requires `openci_server` after this cutover. Past Loki logs are
 not imported. Keep the legacy SQL `secrets` table until migration is verified.
-`SECRET_ENCRYPTION_KEY` is still used by the server's GitHub connection tokens.
+Keep `SECRET_ENCRYPTION_KEY` through the import and rollback window. Legacy
+GitHub token rows may also need it; the new [GitHub connection flow](GITHUB_CONNECTION.md)
+uses Secret Manager and does not require that key.
 
 ## Runtime
 

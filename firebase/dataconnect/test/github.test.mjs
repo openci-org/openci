@@ -5,6 +5,8 @@ import { after, test } from "node:test";
 import { deleteApp, initializeApp } from "firebase-admin/app";
 import { getDataConnect } from "firebase-admin/data-connect";
 import * as sdk from "@openci/github-admin";
+import { GitHubConnections } from "../../lib/functions/github_connection/service.js";
+import { GitHubConnectionStore } from "../../lib/functions/github_connection/store.js";
 
 // Never use fixture mutations against a real project or remote emulator.
 const host = process.env.DATA_CONNECT_EMULATOR_HOST;
@@ -29,6 +31,113 @@ async function graphql(query, variables) {
 function hash(value) {
   return createHash("sha256").update(value).digest("hex");
 }
+
+test("GitHub Functions context rejects outsiders and direct client execution", async (t) => {
+  const f = await fixture(t);
+  assert.ok(
+    (await sdk.getGitHubConnectionContext(dc, { teamId: f.teamId, userId: f.userId })).data
+      .teamMember,
+  );
+  await assert.rejects(
+    sdk.getGitHubConnectionContext(dc, { teamId: f.teamId, userId: "outsider" }),
+    /Team access denied/,
+  );
+  await assert.rejects(
+    sdk.getGitHubConnectionContext(dc, { teamId: f.teamId, userId: f.userId }, asUser(f.userId)),
+    /permission|unauthoriz|access/i,
+  );
+});
+
+test("Functions connection flow writes FSC through the generated SDK without returning credentials", async (t) => {
+  const f = await fixture(t);
+  const config = {
+    apiBaseUrl: f.githubApiBaseUrl,
+    baseUrl: "https://github.com",
+    appId: f.githubAppId,
+    clientId: "client",
+    clientSecret: "secret",
+    callbackUrl: "https://functions.test/githubConnectionCallback",
+    returnUrl: "https://dashboard.test/github/connection",
+  };
+  const credentials = new Map();
+  const vault = {
+    async create(value) {
+      const path = `projects/demo-openci/secrets/openci-github-${randomUUID()}/versions/1`;
+      credentials.set(path, value);
+      return path;
+    },
+    async read(path) {
+      assert.ok(credentials.has(path));
+      return credentials.get(path);
+    },
+    async destroy(path) {
+      credentials.delete(path);
+    },
+  };
+  const github = {
+    async exchange(code, verifier) {
+      assert.equal(code, "github-code");
+      assert.match(verifier, /^[\w-]{43}$/);
+      return "github-private-token";
+    },
+    async user() {
+      return 123;
+    },
+    async candidates(token, userId) {
+      assert.equal(token, "github-private-token");
+      assert.equal(userId, "123");
+      return [
+        {
+          installationId: 100,
+          accountId: 200,
+          accountLogin: "verified-org",
+          accountType: "Organization",
+        },
+      ];
+    },
+  };
+  const service = new GitHubConnections(
+    config,
+    new GitHubConnectionStore(dc, config),
+    vault,
+    github,
+  );
+  const start = await service.execute(f.userId, { action: "start", teamId: f.teamId });
+  const state = new URL(start.authorizationUrl).searchParams.get("state");
+  const callback = new URLSearchParams({ state, code: "github-code" });
+  const redirect = await service.callback(callback);
+  const reference = new URLSearchParams(new URL(redirect).hash.slice(1)).get("reference");
+  assert.match(reference, /^[\w-]{43}$/);
+  const input = { teamId: f.teamId, reference };
+  assert.equal(
+    (await service.execute(f.userId, { ...input, action: "session" })).session.githubUserId,
+    123,
+  );
+  // Another member of the same team does not own this OAuth session.
+  await assert.rejects(
+    service.execute(f.otherUserId, { ...input, action: "candidates" }),
+    /Restart/,
+  );
+  assert.equal(
+    (await service.execute(f.userId, { ...input, action: "candidates" })).candidates[0]
+      .accountLogin,
+    "verified-org",
+  );
+  assert.deepEqual(
+    await service.execute(f.userId, { ...input, action: "confirm", installationId: 100 }),
+    { success: true },
+  );
+  const connections = (await sdk.getGitHubConnections(dc, { teamId: f.teamId }, asUser(f.userId)))
+    .data.connections;
+  assert.equal(connections[0].githubAppId, f.githubAppId);
+  assert.equal(connections[0].accountId, "200");
+  assert.doesNotMatch(
+    JSON.stringify(connections),
+    /github-private-token|referenceHash|SecretVersionPath/,
+  );
+  assert.equal(credentials.size, 0);
+  assert.match(await service.callback(callback), /error=invalid_state$/);
+});
 
 function asUser(uid, provider = "password") {
   return { impersonate: { authClaims: { sub: uid, firebase: { sign_in_provider: provider } } } };

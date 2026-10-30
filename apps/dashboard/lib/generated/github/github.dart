@@ -16,6 +16,8 @@ part 'get_git_hub_connections.dart';
 
 part 'get_active_git_hub_connection.dart';
 
+part 'get_git_hub_connection_context.dart';
+
 part 'create_git_hub_connection_request.dart';
 
 part 'consume_git_hub_connection_request.dart';
@@ -104,6 +106,17 @@ class GithubConnector {
       githubApiBaseUrl: githubApiBaseUrl,
       githubAppId: githubAppId,
       installationId: installationId,
+    );
+  }
+
+  GetGitHubConnectionContextVariablesBuilder getGitHubConnectionContext({
+    required String teamId,
+    required String userId,
+  }) {
+    return GetGitHubConnectionContextVariablesBuilder(
+      dataConnect,
+      teamId: teamId,
+      userId: userId,
     );
   }
 

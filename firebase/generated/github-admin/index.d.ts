@@ -57,6 +57,16 @@ export interface BillingTrialClaim_Key {
   __typename?: "BillingTrialClaim_Key";
 }
 
+export interface BuildDispatchScheduler_Key {
+  id: string;
+  __typename?: "BuildDispatchScheduler_Key";
+}
+
+export interface BuildJobDispatch_Key {
+  id: string;
+  __typename?: "BuildJobDispatch_Key";
+}
+
 export interface BuildJob_Key {
   id: string;
   __typename?: "BuildJob_Key";
@@ -192,6 +202,17 @@ export interface GetExpiredGitHubConnectionCredentialsData {
   } & GitHubConnectionSession_Key)[];
 }
 
+export interface GetGitHubConnectionContextData {
+  teamMember?: {
+    id: Int64String;
+  } & TeamMember_Key;
+}
+
+export interface GetGitHubConnectionContextVariables {
+  teamId: string;
+  userId: string;
+}
+
 export interface GetGitHubConnectionSessionData {
   session?: {
     id: string;
@@ -247,6 +268,11 @@ export interface SecretReference_Key {
   teamId: string;
   name: string;
   __typename?: "SecretReference_Key";
+}
+
+export interface SecretVersionCleanup_Key {
+  path: string;
+  __typename?: "SecretVersionCleanup_Key";
 }
 
 export interface SkippedWorkflowReport_Key {
@@ -338,6 +364,18 @@ export function getActiveGitHubConnection(
   vars: GetActiveGitHubConnectionVariables,
   options?: OperationOptions,
 ): Promise<ExecuteOperationResponse<GetActiveGitHubConnectionData>>;
+
+/** Generated Node Admin SDK operation action function for the 'GetGitHubConnectionContext' Query. Allow users to execute without passing in DataConnect. */
+export function getGitHubConnectionContext(
+  dc: DataConnect,
+  vars: GetGitHubConnectionContextVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<GetGitHubConnectionContextData>>;
+/** Generated Node Admin SDK operation action function for the 'GetGitHubConnectionContext' Query. Allow users to pass in custom DataConnect instances. */
+export function getGitHubConnectionContext(
+  vars: GetGitHubConnectionContextVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<GetGitHubConnectionContextData>>;
 
 /** Generated Node Admin SDK operation action function for the 'CreateGitHubConnectionRequest' Mutation. Allow users to execute without passing in DataConnect. */
 export function createGitHubConnectionRequest(
