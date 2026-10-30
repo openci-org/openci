@@ -1,8 +1,9 @@
 # Schema migration inventory
 
-These definitions cover 21 destination tables: the 19 migration-target tables
+These definitions cover 23 destination tables: the 19 migration-target tables
 (the active Dart tables, all seven Go-owned billing tables, and the pending
-skipped-workflow report table), plus two new build log/step tables.
+skipped-workflow report table), plus two new build log/step tables and two
+dispatch reservation/lease tables.
 They do not switch any application traffic or migrate existing rows.
 
 | Table                        | GraphQL type              | Schema file             |
@@ -17,6 +18,8 @@ They do not switch any application traffic or migrate existing rows.
 | `build_runs`                 | `BuildRun`                | `build.gql`             |
 | `build_steps`                | `BuildStep`               | `build_log.gql`         |
 | `build_logs`                 | `BuildLog`                | `build_log.gql`         |
+| `build_dispatch_schedulers`  | `BuildDispatchScheduler`  | `build_dispatch.gql`    |
+| `build_job_dispatches`       | `BuildJobDispatch`        | `build_dispatch.gql`    |
 | `webhook_tasks`              | `WebhookTask`             | `webhook.gql`           |
 | `skipped_workflow_reports`   | `SkippedWorkflowReport`   | `webhook.gql`           |
 | `billing_accounts`           | `BillingAccount`          | `billing.gql`           |
@@ -52,6 +55,10 @@ in this branch's legacy `AppDatabase`.
   their steps/logs cascade when a run is deleted.
 - Billing admissions/executions reference `(period_id, team_id)` together;
   referencing another team's period fails at the database layer.
+- Dispatch reservations use timestamp leases and a nullable unique
+  `active_job_id`. They retain historical job IDs without cascading deletion:
+  deleting a job must not make its still-running VM disappear from capacity
+  accounting. The executor cleans up the VM before closing its reservation.
 - Required `@ref` relations cascade on delete; optional references use SET NULL.
   Billing accounts and periods must not be physically deleted. This differs
   from the legacy billing NO ACTION foreign keys. No delete operation is exposed.
