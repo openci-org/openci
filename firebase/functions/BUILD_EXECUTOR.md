@@ -120,13 +120,15 @@ Cloud Scheduler must invoke the private scheduled Function. Both runtimes need
 controller network access; the Job also needs outbound GitHub/Google access.
 
 Deploy the schema/connector, Job and recovery Function before enabling dispatch
-and changing the GitHub webhook URL. Keep the old path available until a staging
-build proves real Orchard stdin/EOF, VM deletion, Cloud Run IAM/cancellation,
+and changing the GitHub webhook URL. Before switching traffic, a staging build
+must prove real Orchard stdin/EOF, VM deletion, Cloud Run IAM/cancellation,
 FSC event delivery, private checkout, secret access and billing/check completion.
 Do not rename the configured Job while its dispatches remain active.
-Drain and stop the legacy polling worker before enabling this dispatcher on the
-same job queue. Cleanup fences older attempts and never overwrites a newer run.
-This implementation does not deploy infrastructure or switch production traffic.
+The legacy planner/worker source and Compose services have been removed. Drain
+and stop any previously deployed polling containers before upgrading Compose
+(which removes orphans) or enabling this dispatcher on the same job queue.
+Cleanup fences older attempts and never overwrites a newer run. Removing source
+does not stop existing containers, deploy infrastructure or switch production traffic.
 
 Run the commands in [README.md](README.md#local-checks). The executor suite uses
 real SQL Connect with fake Orchard/GitHub/Cloud Run boundaries; separate Node

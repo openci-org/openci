@@ -16,7 +16,6 @@ typedef DockerComposeProcessRunner =
 enum DockerComposeStep {
   startAuthEmulator,
   startOrchardController,
-  stopBuildJobWorker,
   startServices,
   down,
 }
@@ -66,11 +65,6 @@ Future<bool> startDockerCompose(
       t.dev.start.stepOrchardController,
       t.dev.start.stepDockerComposeFailed,
     ),
-    DockerComposeStep.stopBuildJobWorker => (
-      ['compose', ..._localComposeFiles, 'stop', 'build-job-worker'],
-      t.dev.start.stepBuildJobWorkerWaiting,
-      t.dev.start.stepDockerComposeFailed,
-    ),
     DockerComposeStep.startServices => (
       [
         'compose',
@@ -80,8 +74,6 @@ Future<bool> startDockerCompose(
         '--build',
         '--remove-orphans',
         'server',
-        'build-job-planner',
-        'build-job-worker',
         'loki',
       ],
       t.dev.start.stepDockerCompose,

@@ -1,5 +1,12 @@
 # Stripe billing rollout
 
+The legacy polling planner and build worker have been removed from this checkout.
+Their Go worker APIs remain for compatibility, but the current FSC execution
+path uses the [Cloud Run executor](../../firebase/functions/BUILD_EXECUTOR.md)
+for admission and metering. The rollout notes below describe the legacy
+Dart-to-Go billing integration; Stripe webhook, Checkout and Portal still use
+this Go server.
+
 ## Implementation status — 2026-10-21
 
 The stacked PRs implement Customer and Checkout recovery, purchase guards, Portal,
@@ -29,7 +36,6 @@ delivers webhooks to the Go server independently of browser navigation.
 | Both servers | `SERVER_ACCESS_MODE=cloud`, `BILLING_ENABLED=true`, the same `BILLING_INTERNAL_TOKEN` with at least 32 characters and no whitespace |
 | `genuineci_server` | `DATABASE_URL`, `STRIPE_SECRET_KEY`, explicit `STRIPE_LIVEMODE=true` or `false`, `STRIPE_LIGHT_PRICE_ID`, `STRIPE_PRO_PRICE_ID`, `STRIPE_PORTAL_CONFIGURATION_ID`, `STRIPE_WEBHOOK_SECRET`, `BILLING_DASHBOARD_ORIGIN` |
 | `openci_server` | Its existing database/authentication settings, plus `GENUINECI_SERVER_URL` containing the private Go origin without a path/query/fragment |
-| `build_job_worker` | Existing worker credentials; optional `WORKER_HOST` defaults to the process hostname. Use a stable, nonblank identifier for attribution across restarts. It is not an authentication credential. |
 
 `DATABASE_URL` is required by Go even when billing is disabled. Self-hosted does
 not require Stripe configuration or use the billing proxy. Keep the deferred trial

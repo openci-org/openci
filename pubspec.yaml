@@ -6,7 +6,6 @@ environment:
 
 workspace:
   - apps/dashboard
-  - apps/build_job_worker
   - apps/openci_cli
   - apps/openci_server
   - firebase/dart_functions

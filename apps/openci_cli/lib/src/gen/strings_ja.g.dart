@@ -503,7 +503,6 @@ class _Translations$dev$start$ja extends Translations$dev$start$en {
 	@override String get stepSeedCompleted => 'ローカルテストデータを投入しました。';
 	@override String get projectRootNotFound => 'エラー: OpenCI プロジェクトのルートディレクトリが見つかりません。';
 	@override String get stepOrchardController => 'Step 2: Orchard Controllerを起動中...';
-	@override String get stepBuildJobWorkerWaiting => 'サービスを再起動する前に、実行中のビルドジョブの終了を待っています...';
 }
 
 // Path: sync.paths
@@ -773,7 +772,6 @@ extension on TranslationsJa {
 			'dev.start.stepSeedCompleted' => 'ローカルテストデータを投入しました。',
 			'dev.start.projectRootNotFound' => 'エラー: OpenCI プロジェクトのルートディレクトリが見つかりません。',
 			'dev.start.stepOrchardController' => 'Step 2: Orchard Controllerを起動中...',
-			'dev.start.stepBuildJobWorkerWaiting' => 'サービスを再起動する前に、実行中のビルドジョブの終了を待っています...',
 			'sync.description' => 'シークレット定義とワークスペースパスをopenci/generatedに生成します。',
 			'sync.paths.description' => 'pubspec.yamlからopenci/generated/paths.g.dartだけを生成します。',
 			'sync.paths.projectRootNotFound' => 'pubspec.yamlとopenciディレクトリのあるプロジェクトが見つかりません。ワークフローのあるプロジェクト内で実行してください。',

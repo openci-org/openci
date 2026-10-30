@@ -17,36 +17,9 @@ extension type const WorkspaceRoot._(String _path) implements WorkspaceDirectory
 }
 
 extension type const WorkspaceRoot$Apps._(String _path) implements WorkspaceDirectory {
-  WorkspaceRoot$Apps$BuildJobWorker get buildJobWorker => const WorkspaceRoot$Apps$BuildJobWorker._("apps/build_job_worker");
   WorkspaceRoot$Apps$Dashboard get dashboard => const WorkspaceRoot$Apps$Dashboard._("apps/dashboard");
   WorkspaceRoot$Apps$OpenciCli get openciCli => const WorkspaceRoot$Apps$OpenciCli._("apps/openci_cli");
   WorkspaceRoot$Apps$OpenciServer get openciServer => const WorkspaceRoot$Apps$OpenciServer._("apps/openci_server");
-}
-
-extension type const WorkspaceRoot$Apps$BuildJobWorker._(String _path) implements WorkspaceDirectory {
-  WorkspaceDirectory get bin => const WorkspaceDirectory("apps/build_job_worker/bin");
-  WorkspaceRoot$Apps$BuildJobWorker$Lib get lib => const WorkspaceRoot$Apps$BuildJobWorker$Lib._("apps/build_job_worker/lib");
-  WorkspaceRoot$Apps$BuildJobWorker$Test get test => const WorkspaceRoot$Apps$BuildJobWorker$Test._("apps/build_job_worker/test");
-}
-
-extension type const WorkspaceRoot$Apps$BuildJobWorker$Lib._(String _path) implements WorkspaceDirectory {
-  WorkspaceRoot$Apps$BuildJobWorker$Lib$Src get src => const WorkspaceRoot$Apps$BuildJobWorker$Lib$Src._("apps/build_job_worker/lib/src");
-}
-
-extension type const WorkspaceRoot$Apps$BuildJobWorker$Lib$Src._(String _path) implements WorkspaceDirectory {
-  WorkspaceDirectory get executeBuildJob => const WorkspaceDirectory("apps/build_job_worker/lib/src/execute_build_job");
-  WorkspaceDirectory get loki => const WorkspaceDirectory("apps/build_job_worker/lib/src/loki");
-  WorkspaceDirectory get orchard => const WorkspaceDirectory("apps/build_job_worker/lib/src/orchard");
-}
-
-extension type const WorkspaceRoot$Apps$BuildJobWorker$Test._(String _path) implements WorkspaceDirectory {
-  WorkspaceRoot$Apps$BuildJobWorker$Test$Src get src => const WorkspaceRoot$Apps$BuildJobWorker$Test$Src._("apps/build_job_worker/test/src");
-}
-
-extension type const WorkspaceRoot$Apps$BuildJobWorker$Test$Src._(String _path) implements WorkspaceDirectory {
-  WorkspaceDirectory get executeBuildJob => const WorkspaceDirectory("apps/build_job_worker/test/src/execute_build_job");
-  WorkspaceDirectory get loki => const WorkspaceDirectory("apps/build_job_worker/test/src/loki");
-  WorkspaceDirectory get orchard => const WorkspaceDirectory("apps/build_job_worker/test/src/orchard");
 }
 
 extension type const WorkspaceRoot$Apps$Dashboard._(String _path) implements WorkspaceDirectory {

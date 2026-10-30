@@ -262,8 +262,7 @@
       "stepSeedFailed": "エラー: ローカルテストデータの投入に失敗しました。",
       "stepSeedCompleted": "ローカルテストデータを投入しました。",
       "projectRootNotFound": "エラー: OpenCI プロジェクトのルートディレクトリが見つかりません。",
-      "stepOrchardController": "Step 2: Orchard Controllerを起動中...",
-      "stepBuildJobWorkerWaiting": "サービスを再起動する前に、実行中のビルドジョブの終了を待っています..."
+      "stepOrchardController": "Step 2: Orchard Controllerを起動中..."
     }
   },
   "sync": {

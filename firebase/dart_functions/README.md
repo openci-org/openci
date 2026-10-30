@@ -1,6 +1,5 @@
 # Dart build job planner Functions
 
-This package owns the functionality formerly in `apps/build_job_planner`.
 The private Firebase HTTP Function `process-webhook-task` receives only a task
 ID. It reads the saved webhook from FSC, validates GitHub metadata, resolves the
 active GitHub connection, obtains a repository-scoped installation token, fetches
@@ -14,11 +13,13 @@ failures leave the task pending; invalid payloads and workflow configurations
 are marked failed. Concurrent calls and lost completion responses are reconciled
 without inserting duplicate jobs or resetting existing jobs.
 
-`planJobs` and the existing parser/payload tests are shared with the transitional
-legacy entry point. Event/branch rules are preserved: PRs match the base branch
+`planJobs` and the parser/payload tests cover the workflow planning rules.
+PRs match the base branch
 and use the head SHA/branch for checkout. `whenChanged` validation and path
-matching helpers are retained; evaluating changed paths, execution-slot
-reservation, build execution and GitHub Checks remain separate work.
+matching helpers are retained; evaluating changed paths remains separate work.
+Execution-slot reservation belongs to the [dispatcher](../functions/BUILD_DISPATCH.md).
+The [Cloud Run executor](../functions/BUILD_EXECUTOR.md) runs builds and updates
+GitHub Checks.
 
 ## Runtime configuration
 
@@ -57,7 +58,6 @@ dart test
 dart run build_runner build --build-filter=functions.yaml
 dart format --output=none --set-exit-if-changed .
 dart compile exe bin/server.dart -o bin/server --target-os=linux --target-arch=x64
-dart compile exe bin/legacy_planner.dart -o planner --target-os=linux --target-arch=x64
 ```
 
 The FSC integration test runs this actual Dart Function against the SQL Connect
@@ -81,12 +81,5 @@ The CLI generates the manifest and compiles the Linux binary locally. No custom
 Docker image or separate Cloud Run definition is needed for this Function.
 Local tests do not deploy it.
 
-## Transitional legacy launcher
-
-`bin/legacy_planner.dart` preserves the existing polling, claim/complete/fail API
-adapter for the current `openci_server` database. Compose's `build-job-planner`
-service now builds `Dockerfile.legacy-planner` here. Its existing server URL,
-internal API key and optional Sentry configuration are unchanged. All source
-and tests live in this package; there is no `build_job_planner` package dependency.
-The Firebase entry point never runs this polling loop or calls the legacy API.
-Remove the legacy launcher after the FSC execution path replaces the old worker.
+The legacy polling launcher and its API adapters have been removed. This package
+plans FSC webhook tasks through the Firebase Function entry point only.

@@ -27,9 +27,6 @@ flags:
   openci_dart_functions:
     paths:
       - firebase/dart_functions/lib/
-  build_job_worker:
-    paths:
-      - apps/build_job_worker/lib/
   openci_server:
     paths:
       - apps/openci_server/lib/

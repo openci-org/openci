@@ -953,9 +953,6 @@ class Translations$dev$start$en {
 
 	/// en: 'Step 2: Starting Orchard Controller...'
 	String get stepOrchardController => 'Step 2: Starting Orchard Controller...';
-
-	/// en: 'Waiting for the current build job to finish before restarting services...'
-	String get stepBuildJobWorkerWaiting => 'Waiting for the current build job to finish before restarting services...';
 }
 
 // Path: sync.paths
@@ -1249,7 +1246,6 @@ extension on Translations {
 			'dev.start.stepSeedCompleted' => 'Local test data seeded.',
 			'dev.start.projectRootNotFound' => 'Error: OpenCI project root not found.',
 			'dev.start.stepOrchardController' => 'Step 2: Starting Orchard Controller...',
-			'dev.start.stepBuildJobWorkerWaiting' => 'Waiting for the current build job to finish before restarting services...',
 			'sync.description' => 'Generate secret definitions and workspace paths in openci/generated.',
 			'sync.paths.description' => 'Generate only openci/generated/paths.g.dart from pubspec.yaml.',
 			'sync.paths.projectRootNotFound' => 'No project containing pubspec.yaml and an openci directory found. Run this command from your workflow project.',
