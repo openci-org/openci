@@ -72,7 +72,7 @@ services:
   build-job-planner:
     build:
       context: .
-      dockerfile: apps/build_job_planner/Dockerfile
+      dockerfile: firebase/dart_functions/Dockerfile.legacy-planner
     container_name: openci-build-job-planner
     restart: unless-stopped
     environment:

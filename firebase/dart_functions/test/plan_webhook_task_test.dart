@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:build_job_planner/build_job_planner.dart';
+import 'package:openci_dart_functions/build_job_planner.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:openci_shared/openci_shared.dart';
 import 'package:openci_shared/test_helpers.dart';

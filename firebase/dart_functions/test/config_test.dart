@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'package:build_job_planner/src/config.dart';
+import 'package:openci_dart_functions/src/config.dart';
 import 'package:test/test.dart';
 
 void main() {

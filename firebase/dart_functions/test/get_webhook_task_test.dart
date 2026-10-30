@@ -1,4 +1,4 @@
-import 'package:build_job_planner/src/get_webhook_task.dart';
+import 'package:openci_dart_functions/src/get_webhook_task.dart';
 import 'package:logging/logging.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:openci_shared/openci_shared.dart';
@@ -61,7 +61,7 @@ void main() {
     });
 
     for (final task in [
-      [],
+      <Object?>[],
       {'id': 'incomplete-task'},
     ]) {
       test('rejects malformed task data: $task', () async {

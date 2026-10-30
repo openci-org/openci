@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:build_job_planner/build_job_planner.dart';
+import 'package:openci_dart_functions/build_job_planner.dart';
 import 'package:logging/logging.dart';
 import 'package:openci_shared/initialize_logging.dart';
 import 'package:openci_shared/initialize_sentry.dart';

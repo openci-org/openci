@@ -140,8 +140,9 @@ function interceptMutation(executeMutation) {
 test("a lost successful insert response is reconciled as a duplicate", async (t) => {
   const delivery = fixture(t);
   const connection = interceptMutation(async (...args) => {
-    await dc.executeMutation(...args);
-    throw new Error("Simulated response loss after commit");
+    const result = await dc.executeMutation(...args);
+    if (args[0] === "CreateWebhookTask") throw new Error("Simulated response loss after commit");
+    return result;
   });
   assert.equal(await enqueueWebhook(connection, delivery), "duplicate");
   assert.equal((await stored(delivery)).status, "pending");
@@ -155,6 +156,38 @@ test("a failed insert with no stored delivery is not acknowledged as a duplicate
   });
   await assert.rejects(enqueueWebhook(connection, delivery), (error) => error === failure);
   assert.equal(await stored(delivery), null);
+});
+
+test("planning signals contain only an ID even for large private payloads", async (t) => {
+  const delivery = { ...fixture(t), payload: JSON.stringify({ private: "x".repeat(600000) }) };
+  const signals = [];
+  const connection = interceptMutation(async (name, variables, ...rest) => {
+    if (name === "RequestWebhookTaskPlanning") signals.push(variables);
+    return dc.executeMutation(name, variables, ...rest);
+  });
+  await enqueueWebhook(connection, delivery);
+  const task = await stored(delivery);
+  assert.deepEqual(signals, [{ id: task.id }]);
+  assert.equal(task.payload, delivery.payload);
+});
+
+test("a failed dispatch is not acknowledged; redelivery signals the persisted task", async (t) => {
+  const delivery = fixture(t);
+  const connection = interceptMutation(async (name, ...args) => {
+    if (name === "RequestWebhookTaskPlanning") throw new Error("Dispatch unavailable");
+    return dc.executeMutation(name, ...args);
+  });
+  await assert.rejects(enqueueWebhook(connection, delivery));
+  const pending = await stored(delivery);
+  assert.equal(pending.status, "pending");
+  const signals = [];
+  const recovered = interceptMutation(async (name, variables, ...rest) => {
+    if (name === "RequestWebhookTaskPlanning") signals.push(variables.id);
+    return dc.executeMutation(name, variables, ...rest);
+  });
+  assert.equal(await enqueueWebhook(recovered, delivery), "duplicate");
+  assert.deepEqual(signals, [pending.id]);
+  assert.deepEqual(await stored(delivery), pending);
 });
 
 test("invalid privileged inserts roll back instead of leaving a queued task", async (t) => {
@@ -175,6 +208,9 @@ test("client identities cannot enqueue or read private webhook payloads", async 
   ]) {
     await assert.rejects(
       sdk.getWebhookTaskByDeliveryId(dc, { deliveryId: delivery.deliveryId }, { impersonate }),
+    );
+    await assert.rejects(
+      sdk.requestWebhookTaskPlanning(dc, { id: (await stored(delivery)).id }, { impersonate }),
     );
     await assert.rejects(
       sdk.createWebhookTask(

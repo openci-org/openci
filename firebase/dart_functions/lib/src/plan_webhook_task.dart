@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:openci_shared/openci_shared.dart';
 
-import 'open_ci_parser.dart';
+import 'plan_jobs.dart';
 import 'github_webhook_payload.dart';
 
 Future<WebhookTaskPlan> planWebhookTask({
@@ -52,34 +52,11 @@ Future<WebhookTaskPlan> planWebhookTask({
     );
   }
 
-  final matchingWorkflows = rawFiles
-      .map(OpenCIFile.fromJson)
-      .map((file) => parseOpenCIWorkflow(file.content, file.name))
-      .whereType<ParsedWorkflow>()
-      .where(
-        (workflow) => workflow.matches(
-          eventType: event.triggerType,
-          branch: event.triggerBranch,
-        ),
-      );
-
-  final jobs = matchingWorkflows
-      .map(
-        (workflow) => BuildJobPlan(
-          owner: event.owner,
-          repo: event.repo,
-          workflowName: workflow.workflowName,
-          workflowFileName: workflow.workflowFileName,
-          teamId: team.id,
-          commitSha: event.commitSha,
-          commitMessage: event.commitMessage,
-          pullRequestNumber: event.pullRequestNumber,
-          branch: event.branch,
-          runsOn: 'macos-latest',
-          installationId: event.installationId.toString(),
-        ),
-      )
-      .toList();
-
-  return WebhookTaskPlan(jobs: jobs);
+  return WebhookTaskPlan(
+    jobs: planJobs(
+      event: event,
+      teamId: team.id,
+      files: rawFiles.map(OpenCIFile.fromJson),
+    ),
+  );
 }
