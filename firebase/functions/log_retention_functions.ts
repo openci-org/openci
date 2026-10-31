@@ -2,12 +2,14 @@ import { onSchedule } from "firebase-functions/v2/scheduler";
 import * as sdk from "@openci/logs-admin";
 import { isolatedConnector } from "./executor/store.js";
 import { deleteExpiredLogs } from "./log_retention.js";
+import { apiServiceAccount } from "./function_identity.js";
 
 export const expireBuildLogs = onSchedule(
   {
+    serviceAccount: apiServiceAccount,
     region: "asia-northeast1",
     schedule: "every 5 minutes",
-    memory: "128MiB",
+    memory: "256MiB",
     cpu: 1,
     minInstances: 0,
     maxInstances: 1,

@@ -6,7 +6,7 @@ import { WebSocketServer } from "ws";
 import { ExecutionLogs, StreamingRedactor } from "../../lib/functions/executor/logs.js";
 import { checkoutScript, workflowScript, validateJob } from "../../lib/functions/executor/model.js";
 import { OrchardExecutor } from "../../lib/functions/executor/orchard.js";
-import { paidPeriod } from "../../lib/functions/executor/billing.js";
+import { ExecutionBilling, paidPeriod } from "../../lib/functions/executor/billing.js";
 import {
   loadSecrets,
   secretUrl,
@@ -37,6 +37,92 @@ const job = {
   workflowFileName: "ci/test.dart",
   commitSha: "a".repeat(40),
 };
+
+test("billing start survives a burst of revision conflicts and reconciles a lost success response", async () => {
+  let revision = 1;
+  let execution = null;
+  let writes = 0;
+  const waits = [];
+  const dc = {
+    connectorConfig: {},
+    useGen() {},
+    async executeQuery(name) {
+      assert.equal(name, "GetBillingExecution");
+      return {
+        data: {
+          billingAccount: { usageRevision: String(revision) },
+          billingExecution: execution,
+        },
+      };
+    },
+    async executeMutation(name, vars) {
+      assert.equal(name, "StartBillingExecution");
+      assert.equal(vars.expectedUsageRevision, String(revision));
+      writes++;
+      revision++;
+      if (writes <= 5) throw new Error("Concurrent team usage changed");
+      execution = {
+        teamId: dispatch.teamId,
+        jobId: dispatch.jobId,
+        workerHost: `cloud-run-${dispatch.id}`,
+        runId: dispatch.runId,
+        leaseUntilMs: "61000",
+        finishedAtMs: null,
+      };
+      throw new Error("Committed, but response lost");
+    },
+  };
+  const billing = new ExecutionBilling(
+    dc,
+    () => 1000,
+    async (ms) => waits.push(ms),
+  );
+  await billing.start(dispatch);
+  await billing.start(dispatch);
+  assert.equal(writes, 6, "A committed execution must not be charged twice");
+  assert.equal(waits.length, 6);
+  assert.ok(waits.every((ms) => ms >= 50 && ms <= 250));
+});
+
+test("billing contention retries remain bounded and never ignore an expired execution", async () => {
+  let writes = 0;
+  let expired = false;
+  const dc = {
+    connectorConfig: {},
+    useGen() {},
+    async executeQuery() {
+      return {
+        data: {
+          billingAccount: { usageRevision: String(writes) },
+          billingExecution: expired
+            ? {
+                teamId: dispatch.teamId,
+                jobId: dispatch.jobId,
+                workerHost: `cloud-run-${dispatch.id}`,
+                runId: dispatch.runId,
+                leaseUntilMs: "999",
+                finishedAtMs: null,
+              }
+            : null,
+        },
+      };
+    },
+    async executeMutation() {
+      writes++;
+      throw new Error("Persistent conflict");
+    },
+  };
+  const billing = new ExecutionBilling(
+    dc,
+    () => 1000,
+    async () => {},
+  );
+  await assert.rejects(billing.start(dispatch), /could not be confirmed/);
+  assert.equal(writes, 12);
+  expired = true;
+  await assert.rejects(billing.start(dispatch), /expired/);
+  assert.equal(writes, 12);
+});
 
 test("scripts quote secrets, pin the commit, and reject unsafe workflow paths", () => {
   validateJob(job, dispatch);

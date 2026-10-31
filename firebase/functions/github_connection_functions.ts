@@ -9,6 +9,7 @@ import { ConnectionError, OctokitConnectionClient } from "./github_connection/gi
 import { GitHubConnections } from "./github_connection/service.js";
 import { GitHubConnectionStore } from "./github_connection/store.js";
 import { GitHubCredentialVault } from "./github_connection/vault.js";
+import { apiServiceAccount } from "./function_identity.js";
 
 const clientSecret = defineSecret("GITHUB_APP_CLIENT_SECRET");
 let service: GitHubConnections | undefined;
@@ -29,8 +30,9 @@ function runtime(): GitHubConnections {
 }
 
 const options = {
+  serviceAccount: apiServiceAccount,
   region: "asia-northeast1",
-  memory: "128MiB" as const,
+  memory: "256MiB" as const,
   cpu: 1,
   concurrency: 1,
   minInstances: 0,

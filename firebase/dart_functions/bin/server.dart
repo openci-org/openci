@@ -8,6 +8,12 @@ import 'package:openci_dart_functions/src/planner_runtime.dart';
 // ignore: non_constant_identifier_names
 final GITHUB_APP_PRIVATE_KEY = defineSecret('GITHUB_APP_PRIVATE_KEY');
 final githubAppId = defineString('GITHUB_APP_ID');
+final plannerServiceAccount = defineString(
+  'OPENCI_PLANNER_SERVICE_ACCOUNT',
+  ParamOptions(
+    defaultValue: 'openci-planner@openci-b1b91.iam.gserviceaccount.com',
+  ),
+);
 final githubApiBaseUrl = defineString(
   'GITHUB_API_BASE_URL',
   ParamOptions(defaultValue: 'https://api.github.com'),
@@ -24,6 +30,7 @@ Future<void> main() async {
       // SDK 0.6 supports defineSecret references in its manifest builder.
       // ignore: non_const_argument_for_const_parameter
       options: HttpsOptions(
+        serviceAccount: ServiceAccount.param(plannerServiceAccount),
         region: Region(SupportedRegion.asiaNortheast1),
         invoker: Invoker.private(),
         memory: Memory(MemoryOption.mb128),

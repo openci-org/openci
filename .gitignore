@@ -15,6 +15,10 @@ node_modules/
 worker_credentials.json
 create_workers.js
 .env
+firebase/.env.*
+firebase/dart_functions/.env.*
+!firebase/.env.example
+!firebase/dart_functions/.env.example
 firebase-service-account.json
 build_machine_ip_list.json
 **/*.pem

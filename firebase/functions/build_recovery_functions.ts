@@ -3,15 +3,19 @@ import { defineSecret } from "firebase-functions/params";
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import { recoverExecutions } from "./executor/execute.js";
 import { runtime } from "./executor/runtime.js";
+import { orchardNetworkOptions } from "./orchard_network.js";
+import { recoveryServiceAccount } from "./function_identity.js";
 
 const orchardToken = defineSecret("ORCHARD_SERVICE_ACCOUNT_TOKEN");
 const githubPrivateKey = defineSecret("GITHUB_APP_PRIVATE_KEY");
 
 export const recoverBuildExecutions = onSchedule(
   {
+    ...orchardNetworkOptions,
+    serviceAccount: recoveryServiceAccount,
     region: "asia-northeast1",
     schedule: "every 1 minutes",
-    memory: "128MiB",
+    memory: "256MiB",
     cpu: 1,
     concurrency: 1,
     minInstances: 0,

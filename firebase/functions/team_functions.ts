@@ -4,12 +4,14 @@ import { connectorConfig } from "@openci/teams-admin";
 import { isolatedConnector } from "./executor/store.js";
 import { TeamError, TeamManagement } from "./teams/service.js";
 import { ManagedTeamStore } from "./teams/store.js";
+import { apiServiceAccount } from "./function_identity.js";
 
 let service: TeamManagement | undefined;
 export const teamManagement = onCall(
   {
+    serviceAccount: apiServiceAccount,
     region: "asia-northeast1",
-    memory: "128MiB",
+    memory: "256MiB",
     cpu: 1,
     minInstances: 0,
     concurrency: 1,

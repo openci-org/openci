@@ -24,7 +24,7 @@ uses Secret Manager and does not require that key.
 - `expireBuildLogs` runs every five minutes. It deletes at most 500 log bodies
   from each of 20 completed, expired runs. It preserves job/run/step metadata.
   The executor already sets a 14-day expiry. The next sweep resumes the backlog.
-- `teamSecrets` is a Gen2 callable in `asia-northeast1`, with 128 MiB, 1 CPU and
+- `teamSecrets` is a Gen2 callable in `asia-northeast1`, with 256 MiB, 1 CPU and
   concurrency 1. It requires a non-anonymous Firebase ID token and membership in
   the requested team. Mutations recheck membership inside their FSC transaction.
   All team members retain the same management access as the old API.

@@ -7,7 +7,8 @@ Team and member management use the [FSC teams connector and `teamManagement`
 callable](TEAMS.md). [Billing and team deletion](BILLING.md) use `teamBilling`,
 `stripeWebhook` and the shared FSC billing ledger.
 
-`githubWebhook` is a second-generation HTTPS Function in `asia-northeast1`.
+`githubWebhookFsc` is a second-generation HTTPS Function in `asia-northeast1`.
+The distinct name allows validation before switching an existing GitHub webhook.
 The Firebase npm workspace is its deployment source; TypeScript in this
 directory compiles to `firebase/lib/functions` and uses the generated Admin SDK
 in `firebase/generated/webhooks-admin`.
@@ -117,7 +118,7 @@ env -u DEBUG FIREBASE_CLI_EXPERIMENTS=dartfunctions npx --yes firebase-tools@15.
 ```
 
 Send signed JSON to
-`http://127.0.0.1:5001/demo-openci/asia-northeast1/githubWebhook` with the
+`http://127.0.0.1:5001/demo-openci/asia-northeast1/githubWebhookFsc` with the
 `X-GitHub-Delivery`, `X-GitHub-Event`, and `X-Hub-Signature-256` headers.
 Use only the `demo-openci` project for fixture-writing tests.
 
@@ -129,8 +130,9 @@ the command.
 
 ## Deployment configuration
 
-The receiver uses 128 MiB (the smallest supported memory setting), the standard
-Gen2 allocation of 1 CPU, concurrency 1, minimum instances 0, and a 60-second
+The receiver uses 256 MiB (128 MiB exceeded its limit during a production cold
+start), the standard Gen2 allocation of 1 CPU, concurrency 1, minimum instances
+0, and a 60-second
 timeout. See the [Firebase runtime options](https://firebase.google.com/docs/functions/manage-functions#override_cpu_defaults).
 The endpoint is publicly invokable because GitHub uses
 the webhook signature, not a Google identity token, to authenticate deliveries.
@@ -146,7 +148,7 @@ The Node consumer needs `PROCESS_WEBHOOK_TASK_URL`, the full deployed Dart Funct
 URL. Grant its runtime service account `roles/run.invoker` on that Function;
 invocation uses an ID token with that URL as its audience. Only an explicitly
 local Functions emulator may use HTTP without a token. The consumer keeps 1 CPU,
-128 MiB, concurrency 1, minimum instances 0, a 540-second timeout and retries.
+256 MiB, concurrency 1, minimum instances 0, a 540-second timeout and retries.
 
 GitHub App configuration and `GITHUB_APP_PRIVATE_KEY` now belong to the Dart
 codebase. Its runtime service account needs permission to execute privileged
@@ -154,8 +156,11 @@ operations on the `github` and `webhooks` connectors. Deploy those connectors,
 then the Dart planner, configure IAM and the URL, and deploy the Node dispatcher.
 The Dart planner has a 480-second timeout and accepts up to 100 Dart files
 totaling 1 MiB. See its README for configuration and the transitional Compose
-launcher. Production Eventarc delivery, IAM, GitHub credentials and 128 MiB memory
-headroom must be verified before routing real webhook traffic here.
+launcher. Verify production Eventarc delivery, IAM, GitHub credentials and memory
+headroom (256 MiB for Node, 128 MiB for Dart) before routing real webhook traffic.
+
+See [deployment identities and rollout](DEPLOYMENT.md) for the runtime accounts,
+IAM setup and production cutover requirements.
 
 Before routing production traffic here, verify the complete consumer path and
 cold-start response latency. GitHub expects a response within 10 seconds and

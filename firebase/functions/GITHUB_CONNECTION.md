@@ -75,7 +75,7 @@ Set these server-controlled variables for the Functions codebase:
 
 Endpoints require HTTPS, except loopback HTTP for emulators. Match the executor's
 configured API and checkout hosts when using GHES. Clients cannot override them.
-Functions use 128 MiB, 1 CPU, concurrency 1, min instances 0 and a five-minute
+Functions use 256 MiB, 1 CPU, concurrency 1, min instances 0 and a five-minute
 timeout. The callback is publicly invokable; callable requests require Firebase
 authentication. Local Dashboard mode uses the Functions emulator on port 5001.
 

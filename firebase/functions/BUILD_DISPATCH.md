@@ -2,7 +2,7 @@
 
 `queueBuildJobs` listens to the successful admin `CompleteWebhookTask` mutation
 and enqueues its returned BuildJob IDs. `dispatchBuildJob` is a private Gen2
-task queue Function. Both use Tokyo, 1 CPU, 128 MiB, concurrency 1, minimum
+task queue Function. Both use Tokyo, 1 CPU, 256 MiB, concurrency 1, minimum
 instances 0, and a 60-second timeout.
 
 ```text
@@ -80,15 +80,22 @@ could allocate its capacity twice. Manual rerun dispatch remains separate work.
 
 ## Configuration and rollout
 
-| Parameter                                  | Value                                                   |
-| ------------------------------------------ | ------------------------------------------------------- |
-| `ORCHARD_API_URL`                          | HTTPS controller base URL                               |
-| `ORCHARD_SERVICE_ACCOUNT_NAME`             | Orchard account with workers/VMs read access            |
-| `ORCHARD_SERVICE_ACCOUNT_TOKEN`            | Bound Secret Manager secret                             |
-| `ORCHARD_CA_CERT`                          | Optional trusted PEM CA; TLS verification stays enabled |
-| `ORCHARD_VM_CPU` / `ORCHARD_VM_MEMORY_MIB` | Positive integers, defaults 2 / 4096                    |
-| `BASE_VM_NAME`                             | Orchard image, default `base-macos`                     |
-| `BUILD_EXECUTOR_JOB`                       | `projects/PROJECT/locations/REGION/jobs/JOB`            |
+| Parameter                                  | Value                                                         |
+| ------------------------------------------ | ------------------------------------------------------------- |
+| `ORCHARD_API_URL`                          | Private HTTPS controller URL (`https://10.77.0.2:443` on GCP) |
+| `ORCHARD_SERVICE_ACCOUNT_NAME`             | Orchard account with workers/VMs read access                  |
+| `ORCHARD_SERVICE_ACCOUNT_TOKEN`            | Bound Secret Manager secret                                   |
+| `ORCHARD_CA_CERT`                          | Optional trusted PEM CA; TLS verification stays enabled       |
+| `ORCHARD_VM_CPU` / `ORCHARD_VM_MEMORY_MIB` | Positive integers, defaults 2 / 4096                          |
+| `BASE_VM_NAME`                             | Orchard image, default `base-macos`                           |
+| `BUILD_EXECUTOR_JOB`                       | `projects/PROJECT/locations/REGION/jobs/JOB`                  |
+
+`dispatchBuildJob` and `recoverBuildExecutions` use Direct VPC egress from
+`orchard_network.ts`. Set `ORCHARD_VPC_NETWORK` and `ORCHARD_VPC_SUBNETWORK` if
+using a different network (defaults `orchard` / `orchard-tokyo`). Both carry the
+`orchard-client` network tag and route only private ranges through VPC. Allow
+that tag to reach the controller's TCP 443; retain certificate verification.
+See [Orchard networking](../../infra/orchard/README.md).
 
 Deploy the new schema tables and `dispatch` connector, then provision the G-1605
 Cloud Run Job. Enable Cloud Tasks and Cloud Run APIs. Deploy `dispatchBuildJob`
@@ -111,7 +118,7 @@ dispatcher. Use the [Cloud Run execution permissions](https://docs.cloud.google.
 This change does not deploy schema, Functions, queues, IAM, or a Cloud Run Job.
 Before cutover, verify actual mutation delivery, task OIDC invocation, controller
 TLS/networking, Job launch and claim, capacity exhaustion/retry, executor crash
-cleanup, and memory headroom with the configured 128 MiB.
+cleanup, and memory headroom with the configured 256 MiB.
 
 ## Local verification
 

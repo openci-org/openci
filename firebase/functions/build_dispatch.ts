@@ -33,6 +33,39 @@ export class DispatchRetry extends Error {
   }
 }
 
+/** Return only fixed diagnostics; SDK errors can embed private request data. */
+export function dispatchFailureReason(failure: unknown): string {
+  if (!failure || typeof failure !== "object") return "unknown";
+  const codes = new Set([
+    "data-connect/permission-denied",
+    "data-connect/query-error",
+    "data-connect/invalid-argument",
+    "data-connect/unavailable",
+    "data-connect/internal-error",
+    "app/invalid-credential",
+    "ETIMEDOUT",
+    "ECONNREFUSED",
+    "ECONNRESET",
+    "ERR_TLS_CERT_ALTNAME_INVALID",
+    "DEPTH_ZERO_SELF_SIGNED_CERT",
+  ]);
+  if ("code" in failure && typeof failure.code === "string" && codes.has(failure.code))
+    return failure.code;
+  const messages: Record<string, string> = {
+    "Orchard request timed out": "orchard_timeout",
+    "Orchard capacity unavailable": "orchard_unavailable",
+    "Invalid VM size": "invalid_vm_size",
+    "Unknown Orchard VM resource usage": "unknown_vm_resources",
+    "Build reservation unavailable": "reservation_unavailable",
+    "Missing build reservation": "reservation_missing",
+    "Build dispatch could not be queued": "recovery_enqueue_failed",
+    "Invalid Cloud Run operation response": "invalid_launch_response",
+  };
+  return failure instanceof Error && Object.hasOwn(messages, failure.message)
+    ? messages[failure.message]
+    : "unknown";
+}
+
 export function validJobId(value: unknown): value is string {
   return typeof value === "string" && /^[\x21-\x7e]{1,255}$/.test(value);
 }
