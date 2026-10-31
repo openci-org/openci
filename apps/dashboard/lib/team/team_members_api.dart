@@ -57,6 +57,10 @@ class TeamMembersApi {
         'already-exists' => t.team.memberAlreadyAdded,
         'not-found' => t.team.memberNotRegistered,
         'invalid-argument' => t.team.enterValidEmail,
+        'failed-precondition'
+            when error.details is Map &&
+                error.details['reason'] == 'email-not-verified' =>
+          t.team.memberEmailNotVerified,
         'failed-precondition' => t.team.memberUnavailable,
         _ => t.team.operationFailed,
       });

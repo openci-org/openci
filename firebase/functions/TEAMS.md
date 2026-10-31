@@ -17,9 +17,19 @@ connects member removal to FSC, and moves CLI team listing to the callable.
 
 The callable accepts neither a caller UID nor an arbitrary target UID for an
 addition. It resolves a trimmed, lowercased email using Firebase Auth and rejects
-missing or disabled accounts. Existing membership is reported as `already-exists`.
+missing, disabled or unverified-email accounts. The server requires the current
+Auth record's `emailVerified` to be exactly `true`; caller-supplied verification
+fields are ignored. An unverified target returns `failed-precondition` with
+`details.reason: email-not-verified` before any membership is written. Existing
+membership for an eligible account is reported as `already-exists`.
 This is immediate addition of an already registered account, not an email
 invitation; no email is sent and no Firebase Auth account is created.
+
+The target user can send a verification email and refresh their verification
+status from Dashboard **Settings → Account** using the active Firebase Auth
+connection. After following Firebase's verification link, a team member can retry
+the addition. This check applies to new additions; it does not revoke existing
+memberships or restrict initial creation of a user's own team.
 
 Member profiles contain only UID, email, display name and photo URL. Missing Auth
 accounts remain visible by UID so their stale membership can be removed. Lookups
@@ -34,7 +44,7 @@ and `status` use the selected profile's Firebase project, region and token; cred
 refresh, sorting and profile-change checks remain in place. The HTTP callable
 transport is shared with Secrets and never follows redirects.
 
-## Deployment and remaining migration
+## Deployment
 
 Deploy the existing `teams` connector operations and the `teamManagement` Gen2
 Function in `asia-northeast1`. No new schema or operation is required. The Function
@@ -48,24 +58,18 @@ subscription/Checkout verification and durable credential cleanup. The legacy
 `DELETE /teams/:id` and its shared client method have been removed, along with
 `GET /teams`, `POST /teams`, `PATCH /teams/:id`, and member list/add endpoints.
 
-The remaining legacy repository and workflow endpoints still authorize
-against their SQL membership tables. FSC membership changes are not mirrored
-there. Therefore deploy the final client cutover together with migration or
-retirement of those legacy authorization paths; otherwise adding/removing a
-member can leave different permissions between old and new endpoints. The former
-one-time team import is not continuous synchronization. Do not claim a production
-cutover based only on this source change.
-
-No production deployment, membership import or Auth/IAM validation has been
-performed. Keep the old client/server release available until the remaining
-consumers are ready. The legacy team tables/DAOs remain for those consumers.
+The production cutover and legacy server retirement are recorded in
+[DEPLOYMENT.md](DEPLOYMENT.md) and [LEGACY_RETIREMENT.md](LEGACY_RETIREMENT.md).
+The verified-email check requires updating `teamManagement` and the Dashboard;
+it does not change the FSC schema or connector operations.
 
 ## Validation
 
 Run Firebase Functions lint/type checking and tests, then the FSC teams emulator
 suite in `firebase/dataconnect/test/teams.test.mjs`. The latter covers real SDK
 authorization, duplicate addition, lookup-time revocation, concurrent removals,
-creation/rename and more than 100 members. Run Dashboard analysis, provider/API/
-widget tests and web build, plus CLI, shared and server analysis/tests after
-retiring the old endpoints. Firebase Auth calls are mocked in local tests;
-deployment credentials and live Auth access need separate validation.
+creation/rename, rejection before membership creation, verified-email retry and
+more than 100 members. Run Dashboard analysis, team API and email verification
+widget tests and a web build. Firebase Auth calls are mocked in local tests;
+delivery to a real mailbox and following the verification link need separate
+validation.

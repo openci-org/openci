@@ -10,6 +10,7 @@ export class TeamError extends Error {
       | "already-exists"
       | "failed-precondition",
     message: string,
+    readonly details?: { reason: "email-not-verified" },
   ) {
     super(message);
   }
@@ -65,6 +66,13 @@ export class TeamManagement {
         throw new Error("Could not look up team member");
       });
       if (user.disabled) throw new TeamError("failed-precondition", "This account is disabled");
+      // The email lookup alone does not prove ownership of the address.
+      if (user.emailVerified !== true)
+        throw new TeamError(
+          "failed-precondition",
+          "The member must verify their email address before joining a team",
+          { reason: "email-not-verified" },
+        );
       // The mutation locks the team and rechecks actor membership and duplicates.
       await this.store.add(teamId, claims, user.uid);
       return { success: true };

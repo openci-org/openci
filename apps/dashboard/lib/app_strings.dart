@@ -73,6 +73,16 @@ class AppStringsSettings {
 
   String get title => '設定';
   String get preferences => '環境設定';
+  String get emailVerification => 'メールアドレスの確認';
+  String get emailVerified => '確認済み';
+  String get emailVerificationRequired =>
+      '他のチームに参加するにはメールアドレスの確認が必要です。確認メール内のリンクを開いてください。';
+  String get sendVerificationEmail => '確認メールを送信';
+  String get refreshEmailVerification => '確認状態を更新';
+  String get verificationEmailSent => '確認メールを送信しました。受信トレイを確認してください。';
+  String get emailStillUnverified => 'まだ確認できていません。確認メール内のリンクを開いてください。';
+  String get emailVerificationFailed => 'メール確認の操作に失敗しました。もう一度お試しください。';
+  String get emailVerificationRateLimited => '操作が多すぎます。しばらく待ってからお試しください。';
   String get checkForUpdates => 'アップデートを確認';
   String get checkForUpdatesDescription => 'macOSアプリの新しいバージョンを手動で確認';
   String checkForUpdatesFailed({required Object error}) =>
@@ -142,6 +152,8 @@ class AppStringsTeam {
   String get accessDenied => 'チームにアクセスできません。ログインと接続先を確認してください。';
   String get memberAlreadyAdded => 'このユーザーはすでにチームのメンバーです。';
   String get memberNotRegistered => '追加するユーザーは先にDashboardへ登録してください。';
+  String get memberEmailNotVerified =>
+      '追加するユーザーのメールアドレスが未確認です。本人にDashboardの「設定」→「アカウント」でメール確認を済ませてもらい、もう一度追加してください。';
   String get memberUnavailable => 'このアカウントは利用できません。';
   String get enterValidEmail => '有効なメールアドレスを入力してください。';
   String get operationFailed => 'チームの操作に失敗しました。もう一度お試しください。';

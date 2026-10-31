@@ -126,6 +126,36 @@ void main() {
   });
 
   test(
+    'explains email verification without conflating disabled accounts',
+    () async {
+      for (final details in [
+        {'reason': 'email-not-verified'},
+        {'reason': 'unknown'},
+        null,
+        'email-not-verified',
+      ]) {
+        callable.respond = () => throw FirebaseFunctionsException(
+          code: 'failed-precondition',
+          message: 'private account details',
+          details: details,
+        );
+        await expectLater(
+          api.add('team', 'member@example.test'),
+          throwsA(
+            isA<StateError>().having(
+              (e) => e.message,
+              'message',
+              details is Map && details['reason'] == 'email-not-verified'
+                  ? t.team.memberEmailNotVerified
+                  : t.team.memberUnavailable,
+            ),
+          ),
+        );
+      }
+    },
+  );
+
+  test(
     'rejects malformed member data instead of reporting no members',
     () async {
       callable.respond = () async => {'success': true};

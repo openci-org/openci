@@ -27,7 +27,8 @@ export const teamManagement = onCall(
       );
       return await service.execute(request.auth.token, request.data);
     } catch (error) {
-      if (error instanceof TeamError) throw new HttpsError(error.code, error.message);
+      if (error instanceof TeamError)
+        throw new HttpsError(error.code, error.message, error.details);
       // Auth and FSC errors can include emails, tokens and operation variables.
       throw new HttpsError("unavailable", "Team operation failed; try again");
     }
