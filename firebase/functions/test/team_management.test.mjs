@@ -32,7 +32,7 @@ function fixture() {
   const auth = {
     async getUserByEmail(email) {
       calls.push(["email", email]);
-      return { uid: "member", disabled: false };
+      return { uid: "member", disabled: false, emailVerified: true };
     },
     async getUsers(ids) {
       calls.push(["users", ids]);
@@ -157,7 +157,7 @@ test("rechecks membership after Auth lookup and filters removed members", async 
   });
 });
 
-test("add resolves a normalized email and supplies only the verified actor and resolved UID", async () => {
+test("add resolves a verified email and supplies only the authenticated actor and resolved UID", async () => {
   const f = fixture();
   assert.deepEqual(
     await f.service.execute(claims, {
@@ -176,6 +176,24 @@ test("add resolves a normalized email and supplies only the verified actor and r
   ]);
 });
 
+test("unverified accounts cannot join even when the caller forges verification fields", async () => {
+  for (const emailVerified of [false, undefined, null, "true", 1]) {
+    const f = fixture();
+    f.auth.getUserByEmail = async () => ({ uid: "attacker", disabled: false, emailVerified });
+    await assert.rejects(
+      f.service.execute(claims, {
+        action: "add",
+        teamId: "team",
+        email: "victim@example.test",
+        emailVerified: true,
+        email_verified: true,
+      }),
+      { code: "failed-precondition", details: { reason: "email-not-verified" } },
+    );
+    assert.deepEqual(f.calls, [["members", "team", "actor"]]);
+  }
+});
+
 test("invalid, unknown and disabled accounts cannot be added; upstream details stay private", async () => {
   const f = fixture();
   for (const email of [undefined, [], "", "hello", "two@@example.test", "a\n@example.test"]) {
@@ -190,7 +208,7 @@ test("invalid, unknown and disabled accounts cannot be added; upstream details s
     f.service.execute(claims, { action: "add", teamId: "team", email: "missing@example.test" }),
     { code: "not-found" },
   );
-  f.auth.getUserByEmail = async () => ({ uid: "member", disabled: true });
+  f.auth.getUserByEmail = async () => ({ uid: "member", disabled: true, emailVerified: true });
   await assert.rejects(
     f.service.execute(claims, { action: "add", teamId: "team", email: "disabled@example.test" }),
     { code: "failed-precondition" },

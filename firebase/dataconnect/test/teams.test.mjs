@@ -98,7 +98,7 @@ test("Functions resolves accounts and writes membership through the generated SD
   const api = new TeamManagement(store, {
     async getUserByEmail(email) {
       assert.equal(email, "member@example.test");
-      return { uid: f.memberId, disabled: false };
+      return { uid: f.memberId, disabled: false, emailVerified: true };
     },
     async getUsers(ids) {
       return {
@@ -136,6 +136,29 @@ test("Functions resolves accounts and writes membership through the generated SD
   assert.deepEqual((await api.execute(claims(f.memberId), { action: "list" })).teams, []);
 });
 
+test("email ownership must be verified before the target receives any team access", async (t) => {
+  const f = await fixture(t);
+  const store = new ManagedTeamStore(dc);
+  let emailVerified = false;
+  const api = new TeamManagement(store, {
+    async getUserByEmail() {
+      return { uid: f.memberId, disabled: false, emailVerified };
+    },
+  });
+  const input = { action: "add", teamId: f.teamId, email: "member@example.test" };
+  await assert.rejects(api.execute(claims(f.userId), input), {
+    code: "failed-precondition",
+    details: { reason: "email-not-verified" },
+  });
+  assert.deepEqual(await store.members(f.teamId, claims(f.userId)), [f.userId]);
+  assert.deepEqual((await sdk.getMyTeams(dc, asUser(f.memberId))).data.teams, []);
+  await assert.rejects(store.members(f.teamId, claims(f.memberId)), { code: "permission-denied" });
+
+  emailVerified = true;
+  await api.execute(claims(f.userId), input);
+  assert.ok((await store.members(f.teamId, claims(f.memberId))).includes(f.memberId));
+});
+
 test("only the server can add a UID and removal rejects outsiders and self-removal", async (t) => {
   const f = await fixture(t);
   await assert.rejects(
@@ -166,7 +189,7 @@ test("membership revoked during email lookup cannot authorize an addition", asyn
   const api = new TeamManagement(new ManagedTeamStore(dc), {
     async getUserByEmail() {
       await sdk.removeTeamMember(dc, { teamId: f.teamId, userId: f.userId }, asUser(f.memberId));
-      return { uid: "new-member", disabled: false };
+      return { uid: "new-member", disabled: false, emailVerified: true };
     },
   });
   await assert.rejects(

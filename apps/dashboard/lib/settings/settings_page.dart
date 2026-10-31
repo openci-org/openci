@@ -7,6 +7,7 @@ import 'package:dashboard/connections/active_connection_profile_provider.dart';
 import 'package:dashboard/connections/connection_store_provider.dart';
 import 'package:dashboard/connections/local_development_connection.dart';
 import 'package:dashboard/connections/select_connection_profile.dart';
+import 'package:dashboard/settings/email_verification_settings.dart';
 import 'package:dashboard/team/team_provider.dart';
 import 'package:dashboard/utilities/macos_updater_initializer.dart';
 import 'package:dashboard/utilities/snack_bar_extension.dart';
@@ -119,6 +120,8 @@ class SettingsPage extends HookConsumerWidget {
                   const _SectionHeader(label: 'アカウント'),
                   _SettingsGroup(
                     children: [
+                      const EmailVerificationSettings(),
+                      const _GroupDivider(),
                       _SettingsItem(
                         icon: Icons.logout_rounded,
                         title: settingsT.logout,
