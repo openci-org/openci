@@ -1,4 +1,6 @@
 import type { DataConnect } from "firebase-admin/data-connect";
+import { randomInt } from "node:crypto";
+import { setTimeout as delay } from "node:timers/promises";
 import * as sdk from "@openci/billing-admin";
 import { ExecutionStopped, identity, type Context, type Dispatch } from "./model.js";
 
@@ -34,7 +36,14 @@ export class ExecutionBilling {
   constructor(
     private readonly dc: DataConnect,
     private readonly now = Date.now,
+    private readonly wait: (milliseconds: number) => Promise<void> = delay,
   ) {}
+
+  private async waitBeforeRetry(attempt: number): Promise<void> {
+    // All runs on a team share one usage revision. Spread concurrent starts and
+    // heartbeats instead of exhausting immediate retries against the same burst.
+    if (attempt > 0) await this.wait(randomInt(50, 251));
+  }
 
   async period(
     context: Context,
@@ -76,7 +85,8 @@ export class ExecutionBilling {
 
   async admit(dispatch: Dispatch, periodId: string): Promise<void> {
     const { admissionId: id, ...attempt } = identity(dispatch);
-    for (let retry = 0; retry < 4; retry++) {
+    for (let retry = 0; retry < 12; retry++) {
+      await this.waitBeforeRetry(retry);
       const state = (await sdk.getBillingAdmission(this.dc, { id, teamId: attempt.teamId })).data;
       const admission = state.billingAdmission;
       if (admission) {
@@ -136,7 +146,8 @@ export class ExecutionBilling {
 
   async start(dispatch: Dispatch): Promise<void> {
     const attempt = identity(dispatch);
-    for (let retry = 0; retry < 4; retry++) {
+    for (let retry = 0; retry < 12; retry++) {
+      await this.waitBeforeRetry(retry);
       const state = (
         await sdk.getBillingExecution(this.dc, { teamId: attempt.teamId, runId: attempt.runId })
       ).data;
@@ -166,7 +177,8 @@ export class ExecutionBilling {
   async heartbeat(dispatch: Dispatch): Promise<void> {
     const { admissionId: _admissionId, ...attempt } = identity(dispatch);
     const observedAt = this.now();
-    for (let retry = 0; retry < 4; retry++) {
+    for (let retry = 0; retry < 12; retry++) {
+      await this.waitBeforeRetry(retry);
       const state = (
         await sdk.getBillingExecution(this.dc, { teamId: attempt.teamId, runId: attempt.runId })
       ).data;
@@ -192,7 +204,8 @@ export class ExecutionBilling {
 
   async close(dispatch: Dispatch): Promise<void> {
     const { admissionId: id, ...attempt } = identity(dispatch);
-    for (let retry = 0; retry < 4; retry++) {
+    for (let retry = 0; retry < 12; retry++) {
+      await this.waitBeforeRetry(retry);
       const state = (
         await sdk.getBillingExecution(this.dc, { teamId: attempt.teamId, runId: attempt.runId })
       ).data;

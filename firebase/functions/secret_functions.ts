@@ -6,6 +6,7 @@ import { isolatedConnector } from "./executor/store.js";
 import { TeamSecrets, SecretError } from "./secrets/service.js";
 import { ManagedSecretStore } from "./secrets/store.js";
 import { ManagedSecretVault } from "./secrets/vault.js";
+import { apiServiceAccount } from "./function_identity.js";
 
 let cachedRuntime: ReturnType<typeof createRuntime> | undefined;
 function runtime() {
@@ -22,8 +23,9 @@ function createRuntime() {
 
 export const teamSecrets = onCall(
   {
+    serviceAccount: apiServiceAccount,
     region: "asia-northeast1",
-    memory: "128MiB",
+    memory: "256MiB",
     cpu: 1,
     minInstances: 0,
     concurrency: 1,
@@ -44,9 +46,10 @@ export const teamSecrets = onCall(
 
 export const cleanSecretVersions = onSchedule(
   {
+    serviceAccount: apiServiceAccount,
     region: "asia-northeast1",
     schedule: "every 60 minutes",
-    memory: "128MiB",
+    memory: "256MiB",
     cpu: 1,
     minInstances: 0,
     maxInstances: 1,

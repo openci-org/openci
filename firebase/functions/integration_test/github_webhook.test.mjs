@@ -9,7 +9,7 @@ const host = process.env.DATA_CONNECT_EMULATOR_HOST;
 assert.match(host ?? "", /^(127\.0\.0\.1|localhost):\d+$/, "Start the SQL Connect emulator first");
 const secret = process.env.GITHUB_WEBHOOK_TEST_SECRET;
 assert.ok(secret, "Set GITHUB_WEBHOOK_TEST_SECRET to the dummy emulator secret");
-const endpoint = "http://127.0.0.1:5001/demo-openci/asia-northeast1/githubWebhook";
+const endpoint = "http://127.0.0.1:5001/demo-openci/asia-northeast1/githubWebhookFsc";
 const service = `http://${host}/v1/projects/demo-openci/locations/asia-northeast1/services/openci-b1b91-service`;
 const app = initializeApp({ projectId: "demo-openci" });
 const dc = getDataConnect(connectorConfig, app);

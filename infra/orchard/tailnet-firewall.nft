@@ -1,0 +1,44 @@
+# Replace only Orchard's table in one transaction. Other firewall rules remain.
+add table inet orchard_tailnet
+delete table inet orchard_tailnet
+table inet orchard_tailnet {
+  set clients4 {
+    type ipv4_addr
+    elements = {
+      100.112.30.120, # hobbydevelop
+      100.73.109.33,  # growth
+      100.83.142.124, # kiai
+      100.104.145.82, # nakama
+      100.66.12.37,   # dokyo
+      100.103.23.24,  # jboy
+      100.107.196.61, # origin
+      100.80.30.41,   # heaven-osk
+      100.87.79.84,   # m1-max-64gb-mbp
+      100.117.171.73, # Masahiro MacBook Pro 2
+      100.119.229.48  # Masahiro MacBook Pro
+    }
+  }
+  set clients6 {
+    type ipv6_addr
+    elements = {
+      fd7a:115c:a1e0::6139:1e78, # hobbydevelop
+      fd7a:115c:a1e0::4d39:6d21, # growth
+      fd7a:115c:a1e0::3439:8e7c, # kiai
+      fd7a:115c:a1e0::d039:9152, # nakama
+      fd7a:115c:a1e0::8b39:c25,  # dokyo
+      fd7a:115c:a1e0::7339:1718, # jboy
+      fd7a:115c:a1e0::9439:c43e, # origin
+      fd7a:115c:a1e0::dc39:1e29, # heaven-osk
+      fd7a:115c:a1e0::2b39:4f54, # m1-max-64gb-mbp
+      fd7a:115c:a1e0::5639:ab49, # Masahiro MacBook Pro 2
+      fd7a:115c:a1e0::be39:e530  # Masahiro MacBook Pro
+    }
+  }
+  chain input {
+    type filter hook input priority -10; policy accept;
+    iifname "tailscale0" ct direction reply ct state established,related accept
+    iifname "tailscale0" ip saddr @clients4 tcp dport 443 counter accept
+    iifname "tailscale0" ip6 saddr @clients6 tcp dport 443 counter accept
+    iifname "tailscale0" counter drop
+  }
+}

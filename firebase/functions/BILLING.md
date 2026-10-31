@@ -79,7 +79,7 @@ remains after cleanup for retry identity; secret references are cleared.
 
 ## Configuration and deployment
 
-Both HTTP Functions use 128 MiB, one CPU, concurrency one, min instances zero,
+Both HTTP Functions use 256 MiB, one CPU, concurrency one, min instances zero,
 and a 300-second timeout. Cleanup uses the same limits and max instances one.
 
 | Setting                                        | Value                                                            |
@@ -158,12 +158,12 @@ recreating the team. It never contacts Stripe or prints row contents.
    Stripe environment. Verify IAM and delayed credential cleanup separately.
 
 The old Dashboard billing/delete-team routes and shared REST methods have been
-removed. Legacy Go service code and the old worker bridge remain until remaining
-server consumers are retired; they must not keep writing the old ledger after
-cutover. Repository/workflow endpoints still use legacy SQL membership and are
-separate migration work. If rollback becomes necessary after new billing writes,
-freeze again and reconcile the ledger first; switching back to an old database
-snapshot would lose purchases/usage.
+removed. Production legacy writers were stopped during the documented cutover.
+Legacy server code, shared REST types and local development seed tooling still
+remain in the repository; audit local/self-hosted consumers before removing them.
+They must not resume writing the old ledger. If rollback becomes necessary after
+new billing writes, freeze again and reconcile the ledger first; switching back
+to an old database snapshot would lose purchases/usage.
 
 ## Validation
 
@@ -176,3 +176,8 @@ analysis/tests and a Dashboard web build after removing the REST methods.
 
 Local tests do not deploy Functions, migrate production rows, configure Stripe,
 or verify live Stripe/IAM/Secret Manager access.
+
+For the completed production cutover and real Stripe Sandbox verification of
+purchases, payment-method changes, cancellation and repurchase, see
+[the deployment report](DEPLOYMENT.md#stripe-sandbox-verification-on-2026-10-31-jst).
+Direct plan switching on an active subscription remains disabled.

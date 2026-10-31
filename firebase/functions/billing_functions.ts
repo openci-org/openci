@@ -14,6 +14,7 @@ import { StripeBilling } from "./billing/stripe.js";
 import { receiveStripeWebhook } from "./billing/webhook.js";
 import { ManagedSecretVault } from "./secrets/vault.js";
 import { GitHubCredentialVault } from "./github_connection/vault.js";
+import { apiServiceAccount } from "./function_identity.js";
 
 const stripeKey = defineSecret("STRIPE_SECRET_KEY");
 const webhookSecret = defineSecret("STRIPE_WEBHOOK_SECRET");
@@ -35,8 +36,9 @@ function runtime(): Billing {
   return cached;
 }
 const options = {
+  serviceAccount: apiServiceAccount,
   region: "asia-northeast1",
-  memory: "128MiB" as const,
+  memory: "256MiB" as const,
   cpu: 1,
   concurrency: 1,
   minInstances: 0,

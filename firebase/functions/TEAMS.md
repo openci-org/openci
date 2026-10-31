@@ -38,7 +38,7 @@ transport is shared with Secrets and never follows redirects.
 
 Deploy the existing `teams` connector operations and the `teamManagement` Gen2
 Function in `asia-northeast1`. No new schema or operation is required. The Function
-uses 128 MiB, one CPU, concurrency one, min instances zero and a 60-second timeout.
+uses 256 MiB, one CPU, concurrency one, min instances zero and a 60-second timeout.
 Its runtime identity needs FSC execution/impersonation access and Firebase Auth
 user read access. It does not need Secret Manager access. Local mode uses the
 Functions emulator on port 5001 and FSC on port 9399.

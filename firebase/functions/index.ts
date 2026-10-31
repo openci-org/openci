@@ -8,6 +8,7 @@ import { connectorConfig } from "@openci/webhooks-admin";
 import { receiveGitHubWebhook } from "./github_webhook.js";
 import { enqueueWebhook } from "./webhook_queue.js";
 import { invokeProcessWebhookTask, requestedWebhookTaskId } from "./build_job_planning.js";
+import { apiServiceAccount } from "./function_identity.js";
 
 initializeApp();
 const githubWebhookSecret = defineSecret("GITHUB_WEBHOOK_SECRET");
@@ -17,11 +18,12 @@ export { queueBuildJobs, dispatchBuildJob } from "./build_dispatch_functions.js"
 export { recoverBuildExecutions } from "./build_recovery_functions.js";
 export { expireBuildLogs } from "./log_retention_functions.js";
 
-export const githubWebhook = onRequest(
+export const githubWebhookFsc = onRequest(
   {
+    serviceAccount: apiServiceAccount,
     region: "asia-northeast1",
     invoker: "public",
-    memory: "128MiB",
+    memory: "256MiB",
     cpu: 1,
     concurrency: 1,
     minInstances: 0,
@@ -40,11 +42,12 @@ export const githubWebhook = onRequest(
 
 export const createBuildJobs = onMutationExecuted(
   {
+    serviceAccount: apiServiceAccount,
     region: "asia-northeast1",
     service: "openci-b1b91-service",
     connector: "webhooks",
     operation: "RequestWebhookTaskPlanning",
-    memory: "128MiB",
+    memory: "256MiB",
     cpu: 1,
     concurrency: 1,
     minInstances: 0,

@@ -2,7 +2,11 @@ import assert from "node:assert/strict";
 import { once } from "node:events";
 import { createServer } from "node:http";
 import { test } from "node:test";
-import { createdBuildJobIds, dispatchTaskId } from "../../lib/functions/build_dispatch.js";
+import {
+  createdBuildJobIds,
+  dispatchTaskId,
+  dispatchFailureReason,
+} from "../../lib/functions/build_dispatch.js";
 import { launchCloudRunJob } from "../../lib/functions/cloud_run_job.js";
 import { hasOrchardCapacity, OrchardCapacityClient } from "../../lib/functions/orchard_capacity.js";
 
@@ -28,6 +32,23 @@ const vm = (name, overrides = {}) => ({
   ...overrides,
 });
 const reserved = (vmName) => ({ vmName, ...size });
+
+test("dispatch diagnostics omit SDK payloads and unrecognized error fields", () => {
+  const failure = Object.assign(new Error("private payload and credentials"), {
+    code: "data-connect/permission-denied",
+    cause: { authorization: "private token" },
+  });
+  assert.equal(dispatchFailureReason(failure), "data-connect/permission-denied");
+  assert.equal(dispatchFailureReason(new Error("Orchard request timed out")), "orchard_timeout");
+  for (const value of [
+    null,
+    "private value",
+    new Error("private payload"),
+    new Error("constructor"),
+    { code: "private-code", message: "Orchard request timed out" },
+  ])
+    assert.equal(dispatchFailureReason(value), "unknown");
+});
 
 test("only committed CompleteWebhookTask results enqueue distinct job IDs", () => {
   assert.deepEqual(

@@ -56,7 +56,7 @@ Google credentials, Orchard credentials and the GitHub App key never enter the V
 
 ## Recovery
 
-`recoverBuildExecutions` is a Gen2 scheduled Function (1 CPU, 128 MiB, one instance,
+`recoverBuildExecutions` is a Gen2 scheduled Function (1 CPU, 256 MiB, one instance,
 300-second timeout). It handles finishing runs, 90-second stale heartbeats and
 expired build deadlines. Cleanup leases serialize the executor and the sweep;
 failed items rotate through a bounded queue and retry after lease expiry.
@@ -88,6 +88,13 @@ docker build --platform linux/amd64 -f firebase/Dockerfile.executor -t BUILD_EXE
 
 Use one task, one container, `--max-retries=0`, 1 CPU and 512 MiB (Cloud Run Jobs'
 [minimum memory](https://docs.cloud.google.com/run/docs/configuring/jobs/memory-limits)).
+Attach the Job to the controller VPC with `--network=orchard
+--subnet=orchard-tokyo --network-tags=orchard-client
+--vpc-egress=private-ranges-only`. Use `ORCHARD_API_URL=https://10.77.0.2:443`
+and trust `ORCHARD_CA_CERT`. The recovery Function uses the same network settings
+through `orchard_network.ts`. This keeps GitHub/Google API access on the normal
+serverless route without adding a VPC connector or Cloud NAT.
+
 Set the Job task timeout to **3900s** for the default 3600s build deadline,
 leaving time for cleanup; recovery still handles a hard kill. No HTTP port or
 public invoker is needed. The Dockerfile-specific ignore file includes the npm
@@ -113,7 +120,7 @@ consistent with the dispatcher/planner:
 The Job runtime identity needs privileged FSC access to `dispatch`, `billing`
 and `logs`, plus access to its bound credentials and team secrets. The recovery
 identity needs privileged FSC access and its bound credentials, and
-`run.executions.get` / `run.jobs.run` on the configured Job to inspect/cancel it.
+`run.executions.get` / `run.executions.cancel` on the configured Job to inspect/cancel it.
 See [execution lookup](https://docs.cloud.google.com/run/docs/reference/rest/v2/projects.locations.jobs.executions/get)
 and [cancellation](https://docs.cloud.google.com/run/docs/reference/rest/v2/projects.locations.jobs.executions/cancel).
 Cloud Scheduler must invoke the private scheduled Function. Both runtimes need

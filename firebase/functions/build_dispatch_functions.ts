@@ -7,12 +7,15 @@ import {
   createdBuildJobIds,
   dispatchBuildJob as executeDispatch,
   dispatchTaskId,
+  dispatchFailureReason,
   DispatchRetry,
   validJobId,
 } from "./build_dispatch.js";
 import { DataConnectDispatchStore, getDispatchDataConnect } from "./dispatch_store.js";
 import { OrchardCapacityClient } from "./orchard_capacity.js";
 import { launchCloudRunJob } from "./cloud_run_job.js";
+import { orchardNetworkOptions } from "./orchard_network.js";
+import { dispatchServiceAccount } from "./function_identity.js";
 
 const orchardUrl = defineString("ORCHARD_API_URL");
 const orchardAccount = defineString("ORCHARD_SERVICE_ACCOUNT_NAME");
@@ -45,11 +48,12 @@ async function enqueue(jobId: string, dispatchId?: string, scheduleTime?: Date):
 
 export const queueBuildJobs = onMutationExecuted(
   {
+    serviceAccount: dispatchServiceAccount,
     region: "asia-northeast1",
     service: "openci-b1b91-service",
     connector: "webhooks",
     operation: "CompleteWebhookTask",
-    memory: "128MiB",
+    memory: "256MiB",
     cpu: 1,
     concurrency: 1,
     minInstances: 0,
@@ -69,9 +73,12 @@ export const queueBuildJobs = onMutationExecuted(
 
 export const dispatchBuildJob = onTaskDispatched<unknown>(
   {
+    ...orchardNetworkOptions,
+    serviceAccount: dispatchServiceAccount,
     region: "asia-northeast1",
-    invoker: "private",
-    memory: "128MiB",
+    // Keep the scoped IAM bindings from deployment. Setting "private" here
+    // makes Firebase CLI clear both Run invokers and Cloud Tasks enqueuers.
+    memory: "256MiB",
     cpu: 1,
     concurrency: 1,
     minInstances: 0,
@@ -126,7 +133,7 @@ export const dispatchBuildJob = onTaskDispatched<unknown>(
       // Never include SDK/HTTP exception objects: they can contain credentials.
       if (failure instanceof DispatchRetry)
         info("Build dispatch deferred", { jobId, reason: failure.reason });
-      else error("Build dispatch failed", { jobId });
+      else error("Build dispatch failed", { jobId, reason: dispatchFailureReason(failure) });
       throw new Error("Build dispatch deferred; retry required");
     }
   },
