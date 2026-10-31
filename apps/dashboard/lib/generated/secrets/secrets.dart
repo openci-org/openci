@@ -20,15 +20,7 @@ part 'get_secret_version_references.dart';
 
 part 'complete_secret_version_cleanup.dart';
 
-part 'create_secret_reference.dart';
-
-part 'update_secret_reference.dart';
-
-part 'delete_secret_reference.dart';
-
 part 'get_secrets.dart';
-
-part 'get_secret_reference.dart';
 
 String? bigIntToJson(BigInt? value) {
   return value?.toString();
@@ -130,64 +122,12 @@ class SecretsConnector {
     );
   }
 
-  CreateSecretReferenceVariablesBuilder createSecretReference({
-    required String teamId,
-    required String name,
-    required String secretVersionPath,
-  }) {
-    return CreateSecretReferenceVariablesBuilder(
-      dataConnect,
-      teamId: teamId,
-      name: name,
-      secretVersionPath: secretVersionPath,
-    );
-  }
-
-  UpdateSecretReferenceVariablesBuilder updateSecretReference({
-    required String teamId,
-    required String name,
-    required String expectedSecretVersionPath,
-    required String secretVersionPath,
-  }) {
-    return UpdateSecretReferenceVariablesBuilder(
-      dataConnect,
-      teamId: teamId,
-      name: name,
-      expectedSecretVersionPath: expectedSecretVersionPath,
-      secretVersionPath: secretVersionPath,
-    );
-  }
-
-  DeleteSecretReferenceVariablesBuilder deleteSecretReference({
-    required String teamId,
-    required String name,
-    required String expectedSecretVersionPath,
-  }) {
-    return DeleteSecretReferenceVariablesBuilder(
-      dataConnect,
-      teamId: teamId,
-      name: name,
-      expectedSecretVersionPath: expectedSecretVersionPath,
-    );
-  }
-
   GetSecretsVariablesBuilder getSecrets({
     required String teamId,
   }) {
     return GetSecretsVariablesBuilder(
       dataConnect,
       teamId: teamId,
-    );
-  }
-
-  GetSecretReferenceVariablesBuilder getSecretReference({
-    required String teamId,
-    required String name,
-  }) {
-    return GetSecretReferenceVariablesBuilder(
-      dataConnect,
-      teamId: teamId,
-      name: name,
     );
   }
 

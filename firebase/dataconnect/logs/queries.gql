@@ -28,26 +28,6 @@ fragment BuildLogFields on BuildLog {
   createdAt
 }
 
-query GetBuildSteps($teamId: String!, $runId: String!, $offset: Int! = 0, $limit: Int! = 100)
-# Reject invalid pagination before SQL reads, not only in a result @check.
-@auth(
-  expr: "auth != null && auth.token.firebase.sign_in_provider != 'anonymous' && vars.offset >= 0 && vars.limit >= 1 && vars.limit <= 200"
-) {
-  ...LogReaderMembership
-  run: buildRun(first: { where: { id: { eq: $runId }, buildJob: { teamId: { eq: $teamId } } } })
-    @check(expr: "this != null", message: "Run not found")
-    @check(expr: "vars.offset >= 0", message: "Invalid page offset") {
-    id
-    stepSummaries: buildSteps_on_run(
-      orderBy: [{ stepOrder: ASC }, { stepId: ASC }]
-      offset: $offset
-      limit: $limit
-    ) {
-      ...BuildStepFields
-    }
-  }
-}
-
 query GetBuildLogs(
   $teamId: String!
   $runId: String!

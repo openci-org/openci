@@ -2,7 +2,6 @@
 
 ```dart
 LogsConnector.instance.AppendBuildLog(appendBuildLogVariables).execute();
-LogsConnector.instance.GetBuildSteps(getBuildStepsVariables).execute();
 LogsConnector.instance.GetBuildLogs(getBuildLogsVariables).execute();
 LogsConnector.instance.GetBuildLogWriteState(getBuildLogWriteStateVariables).execute();
 LogsConnector.instance.GetBuildStepWriteState(getBuildStepWriteStateVariables).execute();

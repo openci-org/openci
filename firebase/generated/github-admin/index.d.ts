@@ -52,9 +52,9 @@ export interface BillingStripeState_Key {
   __typename?: "BillingStripeState_Key";
 }
 
-export interface BillingTrialClaim_Key {
-  userId: string;
-  __typename?: "BillingTrialClaim_Key";
+export interface BillingTeamDeletion_Key {
+  teamId: string;
+  __typename?: "BillingTeamDeletion_Key";
 }
 
 export interface BuildDispatchScheduler_Key {
@@ -230,25 +230,6 @@ export interface GetGitHubConnectionSessionVariables {
   referenceHash: string;
 }
 
-export interface GetGitHubConnectionsData {
-  connections: ({
-    id: string;
-    teamId: string;
-    githubApiBaseUrl: string;
-    githubAppId: Int64String;
-    installationId: Int64String;
-    accountId: Int64String;
-    accountType: string;
-    accountLogin: string;
-    status: string;
-    verifiedAt: Int64String;
-  } & GitHubConnection_Key)[];
-}
-
-export interface GetGitHubConnectionsVariables {
-  teamId: string;
-}
-
 export interface GitHubConnectionRequest_Key {
   id: string;
   __typename?: "GitHubConnectionRequest_Key";
@@ -273,11 +254,6 @@ export interface SecretReference_Key {
 export interface SecretVersionCleanup_Key {
   path: string;
   __typename?: "SecretVersionCleanup_Key";
-}
-
-export interface SkippedWorkflowReport_Key {
-  id: string;
-  __typename?: "SkippedWorkflowReport_Key";
 }
 
 export interface TeamMember_Key {
@@ -340,18 +316,6 @@ export function confirmGitHubConnection(
   vars: ConfirmGitHubConnectionVariables,
   options?: OperationOptions,
 ): Promise<ExecuteOperationResponse<ConfirmGitHubConnectionData>>;
-
-/** Generated Node Admin SDK operation action function for the 'GetGitHubConnections' Query. Allow users to execute without passing in DataConnect. */
-export function getGitHubConnections(
-  dc: DataConnect,
-  vars: GetGitHubConnectionsVariables,
-  options?: OperationOptions,
-): Promise<ExecuteOperationResponse<GetGitHubConnectionsData>>;
-/** Generated Node Admin SDK operation action function for the 'GetGitHubConnections' Query. Allow users to pass in custom DataConnect instances. */
-export function getGitHubConnections(
-  vars: GetGitHubConnectionsVariables,
-  options?: OperationOptions,
-): Promise<ExecuteOperationResponse<GetGitHubConnectionsData>>;
 
 /** Generated Node Admin SDK operation action function for the 'GetActiveGitHubConnection' Query. Allow users to execute without passing in DataConnect. */
 export function getActiveGitHubConnection(

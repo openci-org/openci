@@ -47,16 +47,6 @@ export function confirmGitHubConnection(dcOrVarsOrOptions, varsOrOptions, option
   return dcInstance.executeMutation("ConfirmGitHubConnection", inputVars, inputOpts);
 }
 
-export function getGitHubConnections(dcOrVarsOrOptions, varsOrOptions, options) {
-  const {
-    dc: dcInstance,
-    vars: inputVars,
-    options: inputOpts,
-  } = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
-  dcInstance.useGen(true);
-  return dcInstance.executeQuery("GetGitHubConnections", inputVars, inputOpts);
-}
-
 export function getActiveGitHubConnection(dcOrVarsOrOptions, varsOrOptions, options) {
   const {
     dc: dcInstance,

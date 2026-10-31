@@ -56,36 +56,8 @@ mutation CreateBillingCheckoutCreation(
     @check(expr: "int(vars.createdAt) >= 0", message: "Creation time must not be negative")
 }
 
-query GetOpenBillingCheckoutCreation($teamId: String!, $livemode: Boolean!)
-@auth(level: NO_ACCESS) {
-  team(id: $teamId) @redact @check(expr: "this != null", message: "Team not found") {
-    id
-  }
-  # openTeamId is unique, so at most one row can match.
-  billingCheckoutCreation(
-    first: {
-      where: { openTeamId: { eq: $teamId }, teamId: { eq: $teamId }, closedAt: { isNull: true } }
-    }
-  )
-    @check(
-      expr: "this == null || this.livemode == vars.livemode"
-      message: "Checkout creation mode does not match"
-    ) {
-    idempotencyKey
-    teamId
-    planId
-    stripeCustomerId
-    stripePriceId
-    successUrl
-    cancelUrl
-    livemode
-    createdAt
-    stripeCheckoutSessionId
-  }
-}
-
 # Verify Stripe's Session against the saved intent before recording its ID.
-# Pass the original intent returned by GetOpenBillingCheckoutCreation.
+# Pass the original intent returned by GetBillingContext.
 mutation RecordBillingCheckoutSession(
   $idempotencyKey: String!
   $teamId: String!

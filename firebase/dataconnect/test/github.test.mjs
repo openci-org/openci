@@ -127,12 +127,11 @@ test("Functions connection flow writes FSC through the generated SDK without ret
     await service.execute(f.userId, { ...input, action: "confirm", installationId: 100 }),
     { success: true },
   );
-  const connections = (await sdk.getGitHubConnections(dc, { teamId: f.teamId }, asUser(f.userId)))
-    .data.connections;
-  assert.equal(connections[0].githubAppId, f.githubAppId);
-  assert.equal(connections[0].accountId, "200");
+  const connection = (await sdk.getActiveGitHubConnection(dc, installationKey(f))).data.connection;
+  assert.equal(connection.githubAppId, f.githubAppId);
+  assert.equal(connection.accountId, "200");
   assert.doesNotMatch(
-    JSON.stringify(connections),
+    JSON.stringify(connection),
     /github-private-token|referenceHash|SecretVersionPath/,
   );
   assert.equal(credentials.size, 0);
@@ -260,42 +259,7 @@ async function storedSession(s) {
   ).gitHubConnectionSession;
 }
 
-test("members list only their team's connection metadata in account order", async (t) => {
-  const f = await fixture(t);
-  await sdk.confirmGitHubConnection(dc, {
-    ...confirmation(f, await session(f)),
-    accountLogin: "z-org",
-  });
-  await sdk.confirmGitHubConnection(dc, {
-    ...confirmation(f, await session(f), "101"),
-    accountLogin: "a-org",
-  });
-  const other = { ...f, teamId: f.otherTeamId, userId: f.otherUserId };
-  await sdk.confirmGitHubConnection(dc, confirmation(other, await session(other), "102"));
-  const { data } = await sdk.getGitHubConnections(dc, { teamId: f.teamId }, asUser(f.userId));
-  assert.deepEqual(Object.keys(data), ["connections"]);
-  assert.deepEqual(
-    data.connections.map((row) => row.accountLogin),
-    ["a-org", "z-org"],
-  );
-  for (const row of data.connections) {
-    assert.equal(row.teamId, f.teamId);
-    assert.deepEqual(Object.keys(row).sort(), [
-      "accountId",
-      "accountLogin",
-      "accountType",
-      "githubApiBaseUrl",
-      "githubAppId",
-      "id",
-      "installationId",
-      "status",
-      "teamId",
-      "verifiedAt",
-    ]);
-  }
-});
-
-test("lists include more than 100 connections; active lookups match host and app", async (t) => {
+test("active lookups match host and app beyond the default 100 rows", async (t) => {
   const f = await fixture(t);
   const rows = Array.from({ length: 101 }, (_, i) => ({
     id: randomUUID(),
@@ -320,9 +284,9 @@ test("lists include more than 100 connections; active lookups match host and app
     );
   }
   assert.equal(
-    (await sdk.getGitHubConnections(dc, { teamId: f.teamId }, asUser(f.userId))).data.connections
-      .length,
-    101,
+    (await sdk.getActiveGitHubConnection(dc, installationKey(f, "101"))).data.connection
+      .accountLogin,
+    "user-100",
   );
   assert.equal(
     (await sdk.getActiveGitHubConnection(dc, installationKey(f, "1"))).data.connection.teamId,
@@ -356,30 +320,6 @@ test("lists include more than 100 connections; active lookups match host and app
       null,
     );
   }
-});
-
-test("unauthenticated, anonymous, other-team and removed-member reads are rejected", async (t) => {
-  const f = await fixture(t);
-  const variables = { teamId: f.teamId };
-  assert.deepEqual(
-    (await sdk.getGitHubConnections(dc, variables, asUser(f.userId))).data.connections,
-    [],
-  );
-  await assert.rejects(
-    sdk.getGitHubConnections(dc, variables, { impersonate: { unauthenticated: true } }),
-  );
-  await assert.rejects(sdk.getGitHubConnections(dc, variables, asUser(f.userId, "anonymous")));
-  await assert.rejects(sdk.getGitHubConnections(dc, variables, asUser("outsider")));
-  await assert.rejects(sdk.getGitHubConnections(dc, { teamId: f.otherTeamId }, asUser(f.userId)));
-  await graphql(
-    `
-      mutation Remove($teamId: String!) {
-        teamMember_deleteMany(where: { teamId: { eq: $teamId } })
-      }
-    `,
-    variables,
-  );
-  await assert.rejects(sdk.getGitHubConnections(dc, variables, asUser(f.userId)));
 });
 
 test("all nine administrative operations reject client calls without modifying credentials", async (t) => {
@@ -634,11 +574,12 @@ test("simultaneous confirmations cannot reuse a session for multiple installatio
     sdk.confirmGitHubConnection(dc, confirmation(f, s, "101")),
   ]);
   assert.equal(results.filter((r) => r.status === "fulfilled").length, 1);
-  assert.equal(
-    (await sdk.getGitHubConnections(dc, { teamId: f.teamId }, asUser(f.userId))).data.connections
-      .length,
-    1,
+  const connections = await Promise.all(
+    ["100", "101"].map((installationId) =>
+      sdk.getActiveGitHubConnection(dc, installationKey(f, installationId)),
+    ),
   );
+  assert.equal(connections.filter((result) => result.data.connection !== null).length, 1);
 });
 
 test("invalid verified metadata rolls back confirmation without consuming the session", async (t) => {
@@ -753,8 +694,8 @@ test("cleanup exposes expired paths only and never deletes active credentials", 
 test("CommonJS SDK supports the default DataConnect instance", async (t) => {
   const f = await fixture(t);
   const commonjs = createRequire(import.meta.url)("@openci/github-admin");
-  assert.deepEqual(
-    (await commonjs.getGitHubConnections({ teamId: f.teamId }, asUser(f.userId))).data.connections,
-    [],
+  assert.equal(
+    (await commonjs.getActiveGitHubConnection(installationKey(f))).data.connection,
+    null,
   );
 });

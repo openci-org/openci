@@ -316,9 +316,9 @@ test("generated Admin SDK saves and reads logs with member authorization", async
     status: "SUCCESS",
     durationMs: "9007199254740993",
   });
-  const steps = await logsSdk.getBuildSteps(dc, scope, member);
-  assert.equal(steps.data.run.stepSummaries[0].status, "SUCCESS");
-  assert.equal(steps.data.run.stepSummaries[0].durationMs, "9007199254740993");
+  const steps = await logsSdk.getBuildLogState(dc, { ...scope, jobId: f.jobId }, member);
+  assert.equal(steps.data.run.allSteps[0].status, "SUCCESS");
+  assert.equal(steps.data.run.allSteps[0].durationMs, "9007199254740993");
   const savedStep = await logsSdk.getBuildStepWriteState(dc, {
     ...scope,
     stepId: "build",
@@ -342,11 +342,21 @@ test("queries reject unauthenticated, anonymous and other-team users", async (t)
   });
   await assert.rejects(readLogs(f, { runId: f.otherRunId }), /Run not found/);
   await assert.rejects(
-    operation("Query", "GetBuildSteps", { teamId: f.teamId, runId: f.runId }, f.otherUser),
+    operation(
+      "Query",
+      "GetBuildLogState",
+      { teamId: f.teamId, jobId: f.jobId, runId: f.runId },
+      f.otherUser,
+    ),
     /Team access denied/,
   );
   await assert.rejects(
-    operation("Query", "GetBuildSteps", { teamId: f.teamId, runId: f.otherRunId }, f.user),
+    operation(
+      "Query",
+      "GetBuildLogState",
+      { teamId: f.teamId, jobId: f.jobId, runId: f.otherRunId },
+      f.user,
+    ),
     /Run not found/,
   );
   await graphql(
@@ -382,25 +392,24 @@ test("all mutations and recovery queries are server-only", async (t) => {
   assert.equal((await writeState(f)).lastLogSequence, "0");
 });
 
-test("step listing has deterministic order and pagination", async (t) => {
+test("reader state includes all step summaries in deterministic order", async (t) => {
   const f = await fixture(t);
   await createStep(f, { stepId: "z", stepOrder: 1 });
   await createStep(f, { stepId: "b", stepOrder: 0 });
   await createStep(f, { stepId: "a", stepOrder: 0 });
-  const vars = { teamId: f.teamId, runId: f.runId, limit: 2 };
-  const page = await operation("Query", "GetBuildSteps", vars, f.user);
-  assert.deepEqual(
-    page.run.stepSummaries.map((s) => s.stepId),
-    ["a", "b"],
+  const state = await operation(
+    "Query",
+    "GetBuildLogState",
+    { teamId: f.teamId, jobId: f.jobId, runId: f.runId },
+    f.user,
   );
-  assert.equal(page.run.stepSummaries[0].durationMs, "0");
-  assert.equal(page.run.stepSummaries[0].status, "IN_PROGRESS");
-  assert.equal(page.run.stepSummaries[0].createdAt, page.run.stepSummaries[0].updatedAt);
-  const next = await operation("Query", "GetBuildSteps", { ...vars, offset: 2 }, f.user);
   assert.deepEqual(
-    next.run.stepSummaries.map((s) => s.stepId),
-    ["z"],
+    state.run.allSteps.map((s) => s.stepId),
+    ["a", "b", "z"],
   );
+  assert.equal(state.run.allSteps[0].durationMs, "0");
+  assert.equal(state.run.allSteps[0].status, "IN_PROGRESS");
+  assert.equal(state.run.allSteps[0].createdAt, state.run.allSteps[0].updatedAt);
 });
 
 test("step creation rejects invalid metadata and never overwrites a duplicate", async (t) => {
@@ -596,9 +605,6 @@ test("query pagination and recovery sizes are bounded", async (t) => {
   await assert.rejects(readLogs(f, { limit: 201 }), /auth/);
   await assert.rejects(readLogs(f, { limit: null }));
   await assert.rejects(readLogs(f, { afterSequence: "-1" }), /auth/);
-  await assert.rejects(
-    operation("Query", "GetBuildSteps", { teamId: f.teamId, runId: f.runId, offset: -1 }, f.user),
-  );
   await assert.rejects(
     writeState(
       f,

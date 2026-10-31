@@ -30,15 +30,9 @@ void main() {
   });
 
   test(
-    'an empty list and an absent server reference deserialize correctly',
+    'an empty metadata list deserializes correctly',
     () {
       expect(GetSecretsData.fromJson({'secrets': []}).secrets, isEmpty);
-      expect(
-        GetSecretReferenceData.fromJson({
-          'secretReference': null,
-        }).secretReference,
-        isNull,
-      );
     },
   );
 }

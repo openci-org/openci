@@ -56,16 +56,6 @@ export function createBillingCheckoutCreation(dcOrVarsOrOptions, varsOrOptions, 
   return dcInstance.executeMutation("CreateBillingCheckoutCreation", inputVars, inputOpts);
 }
 
-export function getOpenBillingCheckoutCreation(dcOrVarsOrOptions, varsOrOptions, options) {
-  const {
-    dc: dcInstance,
-    vars: inputVars,
-    options: inputOpts,
-  } = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
-  dcInstance.useGen(true);
-  return dcInstance.executeQuery("GetOpenBillingCheckoutCreation", inputVars, inputOpts);
-}
-
 export function recordBillingCheckoutSession(dcOrVarsOrOptions, varsOrOptions, options) {
   const {
     dc: dcInstance,
@@ -144,16 +134,6 @@ export function createBillingCustomerCreation(dcOrVarsOrOptions, varsOrOptions, 
   } = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
   dcInstance.useGen(true);
   return dcInstance.executeMutation("CreateBillingCustomerCreation", inputVars, inputOpts);
-}
-
-export function getBillingCustomerCreation(dcOrVarsOrOptions, varsOrOptions, options) {
-  const {
-    dc: dcInstance,
-    vars: inputVars,
-    options: inputOpts,
-  } = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
-  dcInstance.useGen(true);
-  return dcInstance.executeQuery("GetBillingCustomerCreation", inputVars, inputOpts);
 }
 
 export function recordBillingCustomer(dcOrVarsOrOptions, varsOrOptions, options) {
@@ -277,36 +257,6 @@ export function expireBillingExecution(dcOrVarsOrOptions, varsOrOptions, options
   return dcInstance.executeMutation("ExpireBillingExecution", inputVars, inputOpts);
 }
 
-export function getExpiredBillingWork(dcOrVarsOrOptions, varsOrOptions, options) {
-  const {
-    dc: dcInstance,
-    vars: inputVars,
-    options: inputOpts,
-  } = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
-  dcInstance.useGen(true);
-  return dcInstance.executeQuery("GetExpiredBillingWork", inputVars, inputOpts);
-}
-
-export function getQueuedBillingJobs(dcOrVarsOrOptions, varsOrOptions, options) {
-  const {
-    dc: dcInstance,
-    vars: inputVars,
-    options: inputOpts,
-  } = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, false);
-  dcInstance.useGen(true);
-  return dcInstance.executeQuery("GetQueuedBillingJobs", inputVars, inputOpts);
-}
-
-export function getBillingWorkerJobs(dcOrVarsOrOptions, varsOrOptions, options) {
-  const {
-    dc: dcInstance,
-    vars: inputVars,
-    options: inputOpts,
-  } = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
-  dcInstance.useGen(true);
-  return dcInstance.executeQuery("GetBillingWorkerJobs", inputVars, inputOpts);
-}
-
 export function getBillingJob(dcOrVarsOrOptions, varsOrOptions, options) {
   const {
     dc: dcInstance,
@@ -365,26 +315,6 @@ export function recordBillingStripeEvent(dcOrVarsOrOptions, varsOrOptions, optio
   } = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
   dcInstance.useGen(true);
   return dcInstance.executeMutation("RecordBillingStripeEvent", inputVars, inputOpts);
-}
-
-export function getBillingTrialEligibility(dcOrVarsOrOptions, varsOrOptions, options) {
-  const {
-    dc: dcInstance,
-    vars: inputVars,
-    options: inputOpts,
-  } = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
-  dcInstance.useGen(true);
-  return dcInstance.executeQuery("GetBillingTrialEligibility", inputVars, inputOpts);
-}
-
-export function startBillingTrial(dcOrVarsOrOptions, varsOrOptions, options) {
-  const {
-    dc: dcInstance,
-    vars: inputVars,
-    options: inputOpts,
-  } = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
-  dcInstance.useGen(true);
-  return dcInstance.executeMutation("StartBillingTrial", inputVars, inputOpts);
 }
 
 export function getBillingPeriodUsage(dcOrVarsOrOptions, varsOrOptions, options) {

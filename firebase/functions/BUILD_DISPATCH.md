@@ -59,7 +59,7 @@ Cloud Run receives only `BUILD_JOB_ID` and `BUILD_DISPATCH_ID` as overrides.
 Use a single task and a single application container; configure task retries to
 zero and choose the workflow timeout on the pre-created Job.
 
-1. Read `GetBuildJobDispatch` from the privileged `dispatch` connector and verify
+1. Read `GetBuildExecution` from the privileged `dispatch` connector and verify
    the supplied job ID. Use its pinned `vmName`, `cpu`, `memoryMiB` and `image`.
 2. Generate a fresh process UUID and call `ClaimBuildJobExecution` with that
    `executorId` and the full Cloud Run execution resource name. Continue only when `acquired == 1`.

@@ -52,9 +52,19 @@ export interface BillingStripeState_Key {
   __typename?: "BillingStripeState_Key";
 }
 
-export interface BillingTrialClaim_Key {
-  userId: string;
-  __typename?: "BillingTrialClaim_Key";
+export interface BillingTeamDeletion_Key {
+  teamId: string;
+  __typename?: "BillingTeamDeletion_Key";
+}
+
+export interface BuildDispatchScheduler_Key {
+  id: string;
+  __typename?: "BuildDispatchScheduler_Key";
+}
+
+export interface BuildJobDispatch_Key {
+  id: string;
+  __typename?: "BuildJobDispatch_Key";
 }
 
 export interface BuildJob_Key {
@@ -180,9 +190,9 @@ export interface SecretReference_Key {
   __typename?: "SecretReference_Key";
 }
 
-export interface SkippedWorkflowReport_Key {
-  id: string;
-  __typename?: "SkippedWorkflowReport_Key";
+export interface SecretVersionCleanup_Key {
+  path: string;
+  __typename?: "SecretVersionCleanup_Key";
 }
 
 export interface TeamMember_Key {

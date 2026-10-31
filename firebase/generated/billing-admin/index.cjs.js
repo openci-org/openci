@@ -62,17 +62,6 @@ function createBillingCheckoutCreation(dcOrVarsOrOptions, varsOrOptions, options
 }
 exports.createBillingCheckoutCreation = createBillingCheckoutCreation;
 
-function getOpenBillingCheckoutCreation(dcOrVarsOrOptions, varsOrOptions, options) {
-  const {
-    dc: dcInstance,
-    vars: inputVars,
-    options: inputOpts,
-  } = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
-  dcInstance.useGen(true);
-  return dcInstance.executeQuery("GetOpenBillingCheckoutCreation", inputVars, inputOpts);
-}
-exports.getOpenBillingCheckoutCreation = getOpenBillingCheckoutCreation;
-
 function recordBillingCheckoutSession(dcOrVarsOrOptions, varsOrOptions, options) {
   const {
     dc: dcInstance,
@@ -160,17 +149,6 @@ function createBillingCustomerCreation(dcOrVarsOrOptions, varsOrOptions, options
   return dcInstance.executeMutation("CreateBillingCustomerCreation", inputVars, inputOpts);
 }
 exports.createBillingCustomerCreation = createBillingCustomerCreation;
-
-function getBillingCustomerCreation(dcOrVarsOrOptions, varsOrOptions, options) {
-  const {
-    dc: dcInstance,
-    vars: inputVars,
-    options: inputOpts,
-  } = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
-  dcInstance.useGen(true);
-  return dcInstance.executeQuery("GetBillingCustomerCreation", inputVars, inputOpts);
-}
-exports.getBillingCustomerCreation = getBillingCustomerCreation;
 
 function recordBillingCustomer(dcOrVarsOrOptions, varsOrOptions, options) {
   const {
@@ -305,39 +283,6 @@ function expireBillingExecution(dcOrVarsOrOptions, varsOrOptions, options) {
 }
 exports.expireBillingExecution = expireBillingExecution;
 
-function getExpiredBillingWork(dcOrVarsOrOptions, varsOrOptions, options) {
-  const {
-    dc: dcInstance,
-    vars: inputVars,
-    options: inputOpts,
-  } = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
-  dcInstance.useGen(true);
-  return dcInstance.executeQuery("GetExpiredBillingWork", inputVars, inputOpts);
-}
-exports.getExpiredBillingWork = getExpiredBillingWork;
-
-function getQueuedBillingJobs(dcOrVarsOrOptions, varsOrOptions, options) {
-  const {
-    dc: dcInstance,
-    vars: inputVars,
-    options: inputOpts,
-  } = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, false);
-  dcInstance.useGen(true);
-  return dcInstance.executeQuery("GetQueuedBillingJobs", inputVars, inputOpts);
-}
-exports.getQueuedBillingJobs = getQueuedBillingJobs;
-
-function getBillingWorkerJobs(dcOrVarsOrOptions, varsOrOptions, options) {
-  const {
-    dc: dcInstance,
-    vars: inputVars,
-    options: inputOpts,
-  } = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
-  dcInstance.useGen(true);
-  return dcInstance.executeQuery("GetBillingWorkerJobs", inputVars, inputOpts);
-}
-exports.getBillingWorkerJobs = getBillingWorkerJobs;
-
 function getBillingJob(dcOrVarsOrOptions, varsOrOptions, options) {
   const {
     dc: dcInstance,
@@ -403,28 +348,6 @@ function recordBillingStripeEvent(dcOrVarsOrOptions, varsOrOptions, options) {
   return dcInstance.executeMutation("RecordBillingStripeEvent", inputVars, inputOpts);
 }
 exports.recordBillingStripeEvent = recordBillingStripeEvent;
-
-function getBillingTrialEligibility(dcOrVarsOrOptions, varsOrOptions, options) {
-  const {
-    dc: dcInstance,
-    vars: inputVars,
-    options: inputOpts,
-  } = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
-  dcInstance.useGen(true);
-  return dcInstance.executeQuery("GetBillingTrialEligibility", inputVars, inputOpts);
-}
-exports.getBillingTrialEligibility = getBillingTrialEligibility;
-
-function startBillingTrial(dcOrVarsOrOptions, varsOrOptions, options) {
-  const {
-    dc: dcInstance,
-    vars: inputVars,
-    options: inputOpts,
-  } = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
-  dcInstance.useGen(true);
-  return dcInstance.executeMutation("StartBillingTrial", inputVars, inputOpts);
-}
-exports.startBillingTrial = startBillingTrial;
 
 function getBillingPeriodUsage(dcOrVarsOrOptions, varsOrOptions, options) {
   const {

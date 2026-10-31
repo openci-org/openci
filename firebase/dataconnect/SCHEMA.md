@@ -1,16 +1,15 @@
 # Schema migration inventory
 
-These definitions cover 23 destination tables: the 19 migration-target tables
-(the active Dart tables, all seven Go-owned billing tables, and the pending
-skipped-workflow report table), plus two new build log/step tables and two
-dispatch reservation/lease tables.
-They do not switch any application traffic or migrate existing rows.
+These definitions cover the 23 production tables used by Functions, the Dart
+planner, the Cloud Run executor and Dashboard. The legacy data cutover is complete;
+`schema/` is the source of truth for application storage.
 
 | Table                        | GraphQL type              | Schema file             |
 | ---------------------------- | ------------------------- | ----------------------- |
 | `teams`                      | `Team`                    | `schema.gql`            |
 | `team_members`               | `TeamMember`              | `schema.gql`            |
 | `secret_references`          | `SecretReference`         | `secret.gql`            |
+| `secret_version_cleanup`     | `SecretVersionCleanup`    | `secret.gql`            |
 | `github_connections`         | `GitHubConnection`        | `github.gql`            |
 | `github_connection_requests` | `GitHubConnectionRequest` | `github.gql`            |
 | `github_connection_sessions` | `GitHubConnectionSession` | `github.gql`            |
@@ -21,16 +20,15 @@ They do not switch any application traffic or migrate existing rows.
 | `build_dispatch_schedulers`  | `BuildDispatchScheduler`  | `build_dispatch.gql`    |
 | `build_job_dispatches`       | `BuildJobDispatch`        | `build_dispatch.gql`    |
 | `webhook_tasks`              | `WebhookTask`             | `webhook.gql`           |
-| `skipped_workflow_reports`   | `SkippedWorkflowReport`   | `webhook.gql`           |
 | `billing_accounts`           | `BillingAccount`          | `billing.gql`           |
 | `billing_periods`            | `BillingPeriod`           | `billing.gql`           |
-| `billing_trial_claims`       | `BillingTrialClaim`       | `billing.gql`           |
 | `billing_customer_creations` | `BillingCustomerCreation` | `billing_stripe.gql`    |
 | `billing_checkout_creations` | `BillingCheckoutCreation` | `billing_stripe.gql`    |
 | `billing_stripe_state`       | `BillingStripeState`      | `billing_stripe.gql`    |
 | `billing_stripe_events`      | `BillingStripeEvent`      | `billing_stripe.gql`    |
 | `billing_admissions`         | `BillingAdmission`        | `billing_execution.gql` |
 | `billing_executions`         | `BillingExecution`        | `billing_execution.gql` |
+| `billing_team_deletions`     | `BillingTeamDeletion`     | `billing_deletion.gql`  |
 
 The definitions in `schema/` are authoritative. The legacy Dart `AppDatabase`
 and Go billing schema were retired after the production FSC cutover (G-1607).
@@ -39,7 +37,7 @@ Their final source remains in Git history before the retirement commit.
 ## Storage and relation rules
 
 - Keep existing text IDs and text enum/status values. New log IDs use `UUID`.
-  JSON encoded as text (`matrix`, `needs`, `provisioned_udids`, webhook `payload`)
+  JSON encoded as text (`matrix`, `needs`, webhook `payload`)
   remains `String`, not `Any`.
 - Drift integers and DateTime columns remain PostgreSQL `bigint` (`Int64`).
   DateTime values are Unix seconds. Admission/execution `*_ms` values and
@@ -47,7 +45,7 @@ Their final source remains in Git history before the retirement commit.
   New log/step timestamps and `BuildRun.logsExpireAt` use `Timestamp`
   (`timestamptz`); step durations and log sequence numbers use `Int64`.
 - Team deletion removes members, secret references, GitHub connection metadata,
-  and skipped reports. Build jobs and billing accounts have no Team foreign key,
+  and OAuth requests/sessions. Build jobs and billing accounts have no Team foreign key,
   so their history survives. Build runs cascade with their owning job, and
   their steps/logs cascade when a run is deleted.
 - Billing admissions/executions reference `(period_id, team_id)` together;
@@ -80,7 +78,7 @@ with NULL keys. SQL Connect's schema directives do not express the legacy
 partial unique indexes. The remaining partial lookup indexes become ordinary
 indexes that include the closed/finished timestamp.
 
-An open-key column is not generated automatically. Imports and mutations
+An open-key column is not generated automatically. Mutations
 must derive it from the row's ID and closed timestamp, and update both fields in
 the same transaction. A standalone `@check` that queries for an existing row is
 not sufficient for concurrent requests; the unique key must arbitrate the write.
@@ -97,10 +95,9 @@ and its revision come from one SQL snapshot, followed by a conditional update;
 other writes require an expected revision. This prevents simultaneous requests
 from reserving the same remaining allowance and protects observation/expiry races.
 
-OAuth request/session values must not be copied into SQL Connect. At cutover,
-let short-lived flows expire and restart, or explicitly move the secrets to
-Secret Manager. Deleting SQL references does not destroy Secret Manager versions;
-the future Functions cleanup must do both.
+OAuth PKCE verifiers and access tokens live in Secret Manager. Functions clear
+consumed/expired references and destroy their versions. Delayed secret cleanup
+and durable team-deletion receipts reconcile partial failures and lost responses.
 
 ## Build log storage
 
@@ -112,7 +109,7 @@ on insertion; step updates must explicitly advance `updatedAt`.
 
 The `logs` connector validates team membership, run/team ownership, supported
 status/source/stream values, non-negative step order/duration, and bounded
-message sizes. Worker/run assignment remains Functions work.
+message sizes. The executor verifies worker/run assignment before writing.
 A non-null `stepId` must match a step in the same run. It is intentionally a scalar:
 an optional composite `@ref` would SET NULL on both the step ID and the required
 run ID when deleting a step.
@@ -124,14 +121,14 @@ one transaction; a conflict requires a fresh read and retry. Earlier committed
 logs remain saved if a later append fails. Guard step state
 transitions so a late running event cannot overwrite a terminal state.
 
-`logsExpireAt` is indexed for future cleanup of log bodies while retaining run
-and step summaries. It starts unset; retention scheduling and deletion are not
-implemented. See [Build logs](README.md#build-logs) for connector usage.
+`logsExpireAt` is indexed for the `expireBuildLogs` scheduled Function, which
+deletes expired log bodies in bounded batches while retaining run and step
+summaries. The executor initializes a 14-day retention deadline. See [Build logs](README.md#logs-and-secrets) for connector usage.
 
-## Validation required in future write operations
+## Write invariants
 
 `CreateBillingPeriod` and the operations in `billing/customers.gql`,
-`billing/checkouts.gql`, `billing/stripe.gql`, `billing/trials.gql`,
+`billing/checkouts.gql`, `billing/stripe.gql`,
 `billing/deletion.gql`, `billing/admissions.gql`, and `billing/executions.gql`
 have write validations implemented. Creation intents are insert-only; Customer/Session IDs use
 conditional updates. Checkout operations derive/release the open key atomically.
@@ -146,23 +143,18 @@ conditional updates, and transactions. Future writers must preserve them too:
 | `billing_admissions` | Nonempty ID/job/worker/run IDs; positive reservation; `start_by_ms > claimed_at_ms`; closed time is NULL or at least the claim time; derive/release `open_job_id`                                                                                                                                                         |
 | `billing_executions` | Nonempty run/job/worker IDs; `started_at_ms <= observed_at_ms <= lease_until_ms`; finished time is NULL or equals observed time; finished time and outcome are both NULL or both set; outcome is `success`, `failure`, `cancelled`, `timed_out`, or `abandoned`; `measurement_incomplete` is true exactly for `abandoned` |
 
-`StartBillingTrial` atomically creates a seven-day Pro period and claim after
-checking membership and absence of an active paid period. Trial claims retain
-user-primary-key and team-unique protection and survive team deletion. Stripe
-event IDs and customer/checkout idempotency keys remain unique. Coordinating these
-records with Stripe, worker authorization/capacity, run display numbering, job
-completion, and recovery scheduling remains Functions work. The billing connector
-now claims a selected queued job atomically with its reservation, binds its run,
-and measures/renews/finishes execution leases. It does not replace the queue's
-worker-capacity advisory lock or expose general writes for the other tables.
-Trial activation is not exposed to clients or wired to the execution flow.
+Stripe event IDs and customer/checkout idempotency keys remain unique. Functions
+coordinate Stripe, worker capacity, job completion and recovery. The dispatch
+connector owns fleet reservations and scheduler leases; the billing connector
+owns paid/complimentary usage admission and measurement. Trial activation and
+its unused claim table have been retired.
 
 `DeleteBillingTeam` verifies membership, expected Customer/Stripe state, and
 absence of pending purchases under the same row locks used by billing writes.
 It preserves billing/build history and returns Secret Manager references before
 their SQL rows cascade. Functions must verify Stripe before calling it and
 durably handle credential cleanup, including lost responses and concurrent
-secret creation. See [Team deletion](README.md#team-deletion).
+secret creation. See [Team deletion](../functions/BILLING.md#team-deletion-and-credential-cleanup).
 
 ## Excluded storage
 
@@ -170,6 +162,7 @@ secret creation. See [Team deletion](README.md#team-deletion).
 `secrets` value table is replaced by `secret_references`. Previously removed
 `processed_webhooks`, `build_step_logs`, and `worker_heartbeats` are not
 reintroduced. `build_steps` and `build_logs` above are new definitions for the
-FSC log storage, not a copy of the removed legacy tables. Build artifact
-metadata, including `provisioned_udids`, is retained independently of the retired
-device registration tables.
+FSC log storage, not a copy of the removed legacy tables. Unused build artifact
+metadata and summary-model timing fields have also been retired, together with
+the empty trial-claim and skipped-workflow tables. See the
+[storage cleanup migration](migrations/README.md).
