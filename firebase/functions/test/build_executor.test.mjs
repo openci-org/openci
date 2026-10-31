@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { createServer } from "node:http";
 import { generateKeyPairSync } from "node:crypto";
+import { spawnSync } from "node:child_process";
 import { WebSocketServer } from "ws";
 import { ExecutionLogs, StreamingRedactor } from "../../lib/functions/executor/logs.js";
 import { checkoutScript, workflowScript, validateJob } from "../../lib/functions/executor/model.js";
@@ -137,6 +138,29 @@ test("scripts quote secrets, pin the commit, and reject unsafe workflow paths", 
   assert.throws(() => validateJob({ ...job, workflowFileName: "../test.dart" }, dispatch));
   assert.throws(() => workflowScript(job, dispatch, 7, { BASH_ENV: "attack" }));
   assert.throws(() => validateJob({ ...job, commitSha: "main; echo token" }, dispatch));
+});
+
+test("workflows expose VM toolchains when Orchard supplies a minimal PATH", () => {
+  const result = spawnSync("/bin/bash", ["-s"], {
+    // Stub only the VM workspace and Flutter; execute the generated environment setup.
+    input:
+      'cd() { :; }\nflutter() { if [[ "$2" == run ]]; then printf "%s" "$PATH"; fi; }\n' +
+      workflowScript(job, dispatch, 1, {}),
+    env: { PATH: "/usr/bin:/bin" },
+    encoding: "utf8",
+  });
+  assert.equal(result.status, 0, result.stderr);
+  const paths = result.stdout.split(":");
+  for (const required of [
+    "/Users/admin/fvm/default/bin",
+    "/Users/admin/.pub-cache/bin",
+    "/opt/homebrew/bin",
+    "/usr/local/bin", // The base image exposes go and gofmt here.
+    "/usr/bin",
+    "/bin",
+  ]) {
+    assert.ok(paths.includes(required), `Workflow PATH must include ${required}`);
+  }
 });
 
 test("redaction covers split tokens, multiline secrets and overlapping values", () => {

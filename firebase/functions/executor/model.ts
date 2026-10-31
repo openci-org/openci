@@ -86,7 +86,7 @@ export function workflowScript(
       "set -euo pipefail",
       "export HOME=/Users/admin",
       'export FLUTTER_ROOT="$HOME/fvm/default"',
-      'export PATH="$FLUTTER_ROOT/bin:$HOME/.pub-cache/bin:/opt/homebrew/bin:$PATH"',
+      'export PATH="$FLUTTER_ROOT/bin:$HOME/.pub-cache/bin:/opt/homebrew/bin:/usr/local/bin:$PATH"',
       "unset LOKI_URL LOKI_USERNAME LOKI_PASSWORD",
       "cd /Users/admin/openci-build",
       ...Object.entries(variables).map(([key, value]) => `export ${key}=${shellQuote(value)}`),
