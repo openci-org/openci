@@ -4,6 +4,12 @@ The controller runs on a single Compute Engine VM. macOS builds run on the
 separate Orchard workers. The controller's Badger database needs a persistent
 filesystem; this deployment does not use Cloud Run for the controller.
 
+GCP resources and the related runtime invocation grants are managed by the
+Terraform root module in this directory. See [Terraform operations](TERRAFORM.md)
+for ownership, authentication, plan/apply and state recovery. `startup.sh` and
+`tailnet-firewall.nft` remain VM metadata inputs; Terraform does not run them
+locally or restart the controller on every apply.
+
 | Resource             | Configuration                                                |
 | -------------------- | ------------------------------------------------------------ |
 | Project              | `openci-b1b91`                                               |
@@ -138,7 +144,8 @@ Policy updates replace only the `orchard_tailnet` table, without flushing other
 firewall rules. Reloading the service applies updates atomically.
 
 When adding or replacing a Mac, update both addresses in
-`tailnet-firewall.nft` and the VM metadata below. The current Tailscale node key
+`tailnet-firewall.nft`, apply the Terraform metadata change, and load the policy
+during the rollout described below. The current Tailscale node key
 expires on **2027-04-28**; renew it or configure the controller as a tagged
 infrastructure device in the Tailscale admin console before that date.
 
@@ -164,15 +171,17 @@ sudo tailscale status
 df -h /var/lib/orchard
 ```
 
-Update the startup script from the repository root:
+Update the startup script or firewall file, then review the Terraform plan from
+the repository root:
 
 ```sh
-gcloud compute instances add-metadata orchard-controller \
-  --project=openci-b1b91 --zone=asia-northeast1-a \
-  --metadata-from-file=startup-script=infra/orchard/startup.sh,orchard-tailnet-firewall=infra/orchard/tailnet-firewall.nft
+terraform -chdir=infra/orchard init
+terraform -chdir=infra/orchard plan -out=orchard.tfplan
+terraform -chdir=infra/orchard apply orchard.tfplan
 ```
 
-Apply it during a maintenance window using `sudo google_metadata_script_runner
+Terraform updates metadata without rerunning the startup script. Apply the VM
+configuration during a maintenance window using `sudo google_metadata_script_runner
 startup` or a reboot. This restarts the controller and disconnects active exec
 streams. Controller deployment alone does not deploy Functions/Cloud Run, migrate
 FSC data, move production workers, or switch GitHub webhook traffic.

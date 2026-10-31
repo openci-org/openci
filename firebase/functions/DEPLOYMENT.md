@@ -62,10 +62,13 @@ names. The API's project-level create permission does not grant access to
 existing unrelated secrets. API/dispatch trigger identities also have
 `roles/eventarc.eventReceiver`.
 
-After Functions deployment, apply the target-specific invocation bindings:
+After Functions deployment, reconcile the target-specific invocation bindings
+through the Orchard Terraform module:
 
 ```sh
-bash infra/orchard/grant-runtime-callers.sh
+terraform -chdir=infra/orchard init
+terraform -chdir=infra/orchard plan -out=orchard.tfplan
+terraform -chdir=infra/orchard apply orchard.tfplan
 ```
 
 This covers Eventarc to the Node Functions, Node to Dart, and Cloud Tasks to the
@@ -76,6 +79,11 @@ Function is private until its bindings are granted. Check policies after deploy.
 The Dart Function's explicitly private declaration also requires reapplying its
 caller binding after deployment. No public caller is granted to the planner or
 dispatcher.
+
+Review the complete plan before applying. Terraform owns only the individual
+invocation grants, not the Firebase-managed services or task queue. See
+[Terraform operations](../../infra/orchard/TERRAFORM.md) for authentication and
+state management.
 
 For Orchard connectivity, see [the controller deployment](../../infra/orchard/README.md).
 Only dispatcher, recovery and the Job use Direct VPC egress. All three retain
