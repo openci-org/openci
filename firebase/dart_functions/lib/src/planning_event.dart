@@ -42,6 +42,11 @@ class PlanningEvent {
         if (_positiveId(_object(base['repo'])['id']) != repositoryId) {
           _invalid();
         }
+        // The workflow runs with team secrets. Only a head in the same
+        // repository is trusted; missing/deleted repositories fail closed too.
+        if (_positiveId(_object(head['repo'])['id']) != repositoryId) {
+          throw const InvalidPlanningInput('untrusted_pull_request');
+        }
         sha = _nonempty(head['sha']);
         _nonempty(head['ref']);
         _nonempty(base['ref']);

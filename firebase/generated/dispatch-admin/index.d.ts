@@ -294,6 +294,7 @@ export interface GetBuildExecutionData {
     workflowName: string;
     workflowFileName: string;
     commitSha?: string | null;
+    pullRequestNumber?: Int64String | null;
     branch?: string | null;
     installationId?: string | null;
     githubBaseUrl?: string | null;

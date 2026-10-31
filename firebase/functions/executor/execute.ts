@@ -18,7 +18,7 @@ import type { OrchardExecutor } from "./orchard.js";
 export interface ExecutorDependencies {
   store: Pick<ExecutionStore, keyof ExecutionStore>;
   billing: Pick<ExecutionBilling, "period" | "admit" | "start" | "heartbeat" | "close">;
-  github: Pick<ExecutionGitHub, "options" | "checkout" | "check">;
+  github: Pick<ExecutionGitHub, "options" | "verifyPullRequest" | "checkout" | "check">;
   orchard: Pick<OrchardExecutor, "create" | "ready" | "remove" | "exec" | "vmNames">;
   logs: (dispatch: Dispatch) => Pick<ExecutionLogs, "start" | "finish" | "output">;
   secrets: (teamId: string, signal: AbortSignal) => Promise<Record<string, string>>;
@@ -138,6 +138,10 @@ export async function executeBuild(
       github.options.apiBaseUrl,
     );
     if (!context.team || !context.connection) throw new Error("GitHub connection is not active");
+    // Guard existing/queued/rerun jobs as well as newly planned ones. A failed
+    // check is terminal (not the billing "blocked" outcome, which requeues).
+    await github.verifyPullRequest(job, context.connection.accountId);
+    signal.throwIfAborted();
     const period = await billing.period(
       context,
       job.teamId!,

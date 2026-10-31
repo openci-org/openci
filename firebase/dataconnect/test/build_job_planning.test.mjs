@@ -463,7 +463,7 @@ test("PR plans persist the head SHA/branch while matching the base branch", asyn
       number: 7,
       pull_request: {
         title: "PR title",
-        head: { sha, ref: "feature" },
+        head: { sha, ref: "feature", repo: { id: 10 } },
         base: { ref: "develop", repo: { id: 10 } },
       },
     },
@@ -476,6 +476,36 @@ test("PR plans persist the head SHA/branch while matching the base branch", asyn
   assert.equal(job.commitSha, sha);
   assert.equal(job.pullRequestNumber, "7");
   assert.equal(job.commitMessage, "PR title");
+});
+
+test("fork or unknown PR sources are rejected before token issuance, workflow fetching or job creation", async (t) => {
+  for (const headRepo of [{ id: 99 }, null, undefined, {}, { id: "10" }, { id: -10 }]) {
+    const f = await fixture(
+      t,
+      {
+        action: "synchronize",
+        number: 7,
+        pull_request: {
+          title: "Untrusted PR",
+          head: { sha, ref: "feature", repo: headRepo },
+          base: { ref: "develop", repo: { id: 10 } },
+        },
+      },
+      "pull_request",
+    );
+    f.github.files = [{ name: "pr.dart", content: source("PR", "develop", "pullRequest") }];
+    assert.equal(await invoke(f.taskId), "failed");
+    assert.equal(f.github.tokenRequests.length, 0);
+    assert.deepEqual(await f.state(), {
+      webhookTask: {
+        status: "failed",
+        errorMessage: headRepo?.id === 99 ? "untrusted_pull_request" : "invalid_payload",
+      },
+      buildJobs: [],
+    });
+    assert.equal(await invoke(f.taskId), "duplicate", "Redelivery must not bypass rejection");
+    assert.equal(f.github.tokenRequests.length, 0);
+  }
 });
 
 test("invalid payloads fail without contacting GitHub", async (t) => {

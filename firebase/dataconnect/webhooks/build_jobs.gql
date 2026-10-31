@@ -72,7 +72,7 @@ mutation RejectWebhookTask($id: String!, $reason: String!) @auth(level: NO_ACCES
     data: { status: "failed", errorMessage: $reason, updatedAt_expr: "int(request.time)" }
   )
     @check(
-      expr: "vars.reason in ['invalid_payload', 'invalid_workflow']"
+      expr: "vars.reason in ['invalid_payload', 'invalid_workflow', 'untrusted_pull_request']"
       message: "Invalid failure reason"
     )
 }

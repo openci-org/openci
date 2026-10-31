@@ -7,6 +7,7 @@ fragment ExecutionJobFields on BuildJob {
   workflowName
   workflowFileName
   commitSha
+  pullRequestNumber
   branch
   installationId
   githubBaseUrl
@@ -316,7 +317,10 @@ mutation CompleteBuildExecution($id: String!, $jobId: String!, $owner: String!)
         message: "Cleanup is not ready"
       ) {
       jobId
+      activeJobId
       runId
+      executorId
+      vmRequestedAt
       outcome
       checkRunId
       cleanupOwner
@@ -351,6 +355,17 @@ mutation CompleteBuildExecution($id: String!, $jobId: String!, $owner: String!)
         {
           _or: [
             { latestRunId: { eq_expr: "response.query.dispatch.runId" } }
+            # Rejected reruns have not bound a new run yet. Only the claimed,
+            # active reservation may terminate this still-queued job.
+            {
+              id: {
+                eq_expr: "response.query.dispatch.activeJobId == vars.jobId && response.query.dispatch.executorId != null && response.query.dispatch.vmRequestedAt == null && response.query.dispatch.outcome == 'failure' ? vars.jobId : ''"
+              }
+              status: { eq: "QUEUED" }
+              latestRunId: {
+                eq_expr: "response.query.job == null ? '' : response.query.job.latestRunId"
+              }
+            }
             { latestRunId: { isNull: true }, workerHost: { eq_expr: "'cloud-run-' + vars.id" } }
             {
               latestRunId: { isNull: true }
