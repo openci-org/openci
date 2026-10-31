@@ -1,0 +1,38 @@
+---
+orchard_worker_name: "genuineci-worker-{{ inventory_hostname }}"
+orchard_worker_service_label: com.genuineci.orchard-worker
+orchard_worker_plist_path: "/Library/LaunchDaemons/{{ orchard_worker_service_label }}.plist"
+orchard_worker_binary: /opt/homebrew/bin/orchard
+orchard_worker_tart_binary: /opt/homebrew/bin/tart
+orchard_worker_path: /opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin
+orchard_worker_set_home: true
+orchard_worker_no_auto_prune: false
+orchard_worker_slots: 2
+orchard_worker_bootstrap_path: /Library/Application Support/GenuineCI/orchard-bootstrap-token
+orchard_worker_log_path: /Users/admin/Library/Logs/genuineci-orchard-worker.log
+# Optional operator-local file, used only when the host has no bootstrap token.
+orchard_worker_bootstrap_source: ""
+# A service change additionally requires a paused, drained worker in the Controller.
+orchard_worker_allow_restart: false
+orchard_worker_controller_account: build-executor
+orchard_worker_api_url: "{{ orchard_worker_controller_url }}"
+orchard_worker_controller_token: "{{ lookup('ansible.builtin.env', 'ORCHARD_SERVICE_ACCOUNT_TOKEN') }}"
+orchard_worker_arguments:
+  - "{{ orchard_worker_binary }}"
+  - worker
+  - run
+  - "{{ orchard_worker_controller_url }}"
+  - --name
+  - "{{ orchard_worker_name }}"
+  - --user
+  - admin
+  - --no-pki
+  - --bootstrap-token-stdin
+  - --default-cpu
+  - "2"
+  - --default-memory
+  - "4096"
+  - --labels
+  - "host={{ inventory_hostname }}"
+  - --resources
+  - "org.cirruslabs.tart-vms={{ orchard_worker_slots }}"

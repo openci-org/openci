@@ -1,0 +1,16 @@
+---
+ansible_user: admin
+ansible_ssh_common_args: >-
+  -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes
+  -o PreferredAuthentications=publickey
+  -o PasswordAuthentication=no -o KbdInteractiveAuthentication=no
+
+# Additive: keys already on a Mac are not removed. Override this list with -e @local.yml.
+mac_admin_authorized_keys:
+  - "{{ lookup('ansible.builtin.file', lookup('ansible.builtin.env', 'HOME') + '/.ssh/id_ed25519.pub') }}"
+
+orchard_worker_controller_url: https://orchard-controller-gcp.tail4beb18.ts.net:443
+# Operator-side checks also work when that machine has MagicDNS disabled.
+orchard_worker_api_url: https://100.66.22.93:443
+orchard_worker_controller_ca: "{{ playbook_dir }}/../orchard/controller-ca.crt"
+orchard_worker_version: orchard version 0.55.0-3083b54

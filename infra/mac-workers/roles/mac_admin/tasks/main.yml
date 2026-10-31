@@ -1,0 +1,64 @@
+---
+- name: Require at least one management public key before enforcing key-only SSH
+  ansible.builtin.assert:
+    that:
+      - mac_admin_authorized_keys | length > 0
+      - mac_admin_authorized_keys | select('match', '^ssh-|^ecdsa-') | list | length == mac_admin_authorized_keys | length
+
+- name: Retain existing keys and authorize the management keys
+  ansible.posix.authorized_key:
+    user: admin
+    key: "{{ mac_admin_authorized_keys | join('\n') }}"
+    state: present
+    exclusive: false
+
+- name: Manage the SSH public-key-only configuration
+  ansible.builtin.copy:
+    src: 00-openci-key-only.conf
+    dest: /etc/ssh/sshd_config.d/00-openci-key-only.conf
+    owner: root
+    group: wheel
+    mode: "0644"
+    backup: true
+    validate: /usr/sbin/sshd -t -f %s
+
+- name: Validate the complete SSH configuration
+  ansible.builtin.command: /usr/sbin/sshd -t
+  changed_when: false
+  check_mode: false
+
+- name: Read effective SSH settings for management and guest connections
+  ansible.builtin.command:
+    argv:
+      - /usr/sbin/sshd
+      - -T
+      - -C
+      - "user=admin,host={{ inventory_hostname }},addr={{ item }}"
+  loop:
+    - "{{ ansible_facts.env.SSH_CONNECTION.split()[0] }}"
+    - 192.168.64.2
+    - fd00::2
+  changed_when: false
+  check_mode: false
+  register: mac_admin_effective_ssh
+
+- name: Verify key-only authentication remains effective
+  ansible.builtin.assert:
+    quiet: true
+    that:
+      - "'pubkeyauthentication yes' in item.stdout_lines"
+      - "'authenticationmethods publickey' in item.stdout_lines"
+      - "'passwordauthentication no' in item.stdout_lines"
+      - "'kbdinteractiveauthentication no' in item.stdout_lines"
+  loop: "{{ mac_admin_effective_ssh.results }}"
+  loop_control:
+    label: "{{ item.item }}"
+
+- name: Discard the existing SSH connection
+  ansible.builtin.meta: reset_connection
+
+- name: Verify a fresh public-key connection
+  ansible.builtin.wait_for_connection:
+    timeout: 30
+  become: false
+  when: not ansible_check_mode
