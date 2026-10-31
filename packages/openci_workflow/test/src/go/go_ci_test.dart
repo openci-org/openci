@@ -20,7 +20,7 @@ void main() {
           workflowName: 'test',
           ciTriggers: const [CITrigger.push(branch: 'test')],
           workspacePath: workspace,
-          currentWorkingDirectory: 'apps/genuineci_server',
+          currentWorkingDirectory: 'apps/example_go_app',
           commandRunner: (command, {required workingDirectory}) async {
             calls.add((command, workingDirectory));
           },
@@ -31,7 +31,7 @@ void main() {
         expect(calls, [
           (
             entry.key,
-            '$workspace${Platform.pathSeparator}apps/genuineci_server',
+            '$workspace${Platform.pathSeparator}apps/example_go_app',
           ),
         ]);
       });

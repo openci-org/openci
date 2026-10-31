@@ -7,7 +7,6 @@ import { BuildJobCardDemo } from "./build-job-card-demo";
 const formUrl = "https://form.typeform.com/to/XIdO4iES";
 const dashboardUrl = "https://dashboard.openci.org/";
 const githubUrl = "https://github.com/openci-org/openci";
-const macosDownloadUrl = "https://api.openci.org/updates/openci-org/openci/macos/latest";
 
 const containerClass = "mx-auto w-full max-w-6xl px-6";
 const cicdContainerClass = "mx-auto w-full max-w-5xl px-6";
@@ -27,8 +26,6 @@ type CicdCopy = {
   heroTagline: string;
   heroDescription: ReactNode;
   heroCta: string;
-  heroSubCta?: string;
-  navDownloadMac?: string;
   demoLabel: string;
   pricingTitle: string;
   pricingSubtitle: string;
@@ -55,8 +52,6 @@ const cicdCopy: Record<"en" | "ja", CicdCopy> = {
       </>
     ),
     heroCta: "Start for free",
-    heroSubCta: "Download macOS App (.zip)",
-    navDownloadMac: "macOS App",
     demoLabel: "OpenCI demo video",
     pricingTitle: "Simple pricing",
     pricingSubtitle: "Pay only for what you use. No hidden costs.",
@@ -76,8 +71,6 @@ const cicdCopy: Record<"en" | "ja", CicdCopy> = {
     heroTagline: "もっと安く、もっと速く。",
     heroDescription: <>正しいツールで、正しい仕事を。</>,
     heroCta: "無料で始める",
-    heroSubCta: "macOSアプリをダウンロード (.zip)",
-    navDownloadMac: "macOSアプリ",
     demoLabel: "OpenCIのデモ動画",
     pricingTitle: "シンプルな料金体系",
     pricingSubtitle: "使った分だけ。隠れたコストなし。",
@@ -183,14 +176,6 @@ export function CicdPage({ lang }: { lang: "en" | "ja" }) {
                 {copy.navReleases}
               </Link>
             ) : null}
-            {copy.navDownloadMac ? (
-              <a
-                href={macosDownloadUrl}
-                className="text-sm font-normal text-neutral-600 transition-colors hover:text-neutral-950"
-              >
-                {copy.navDownloadMac}
-              </a>
-            ) : null}
             <a
               href={githubUrl}
               target="_blank"
@@ -232,14 +217,6 @@ export function CicdPage({ lang }: { lang: "en" | "ja" }) {
               >
                 {copy.heroCta}
               </a>
-              {copy.heroSubCta ? (
-                <a
-                  href={macosDownloadUrl}
-                  className="text-xs text-neutral-500 hover:text-neutral-950 underline decoration-neutral-400 underline-offset-4 transition-colors"
-                >
-                  {copy.heroSubCta}
-                </a>
-              ) : null}
             </div>
           </div>
         </section>
@@ -323,14 +300,6 @@ export function CicdPage({ lang }: { lang: "en" | "ja" }) {
               >
                 GitHub
               </a>
-              {copy.navDownloadMac ? (
-                <a
-                  href={macosDownloadUrl}
-                  className="text-sm font-normal text-neutral-500 transition-colors hover:text-neutral-950"
-                >
-                  {copy.navDownloadMac}
-                </a>
-              ) : null}
               <a
                 href="/studio/"
                 className="text-sm font-normal text-neutral-500 transition-colors hover:text-neutral-950"

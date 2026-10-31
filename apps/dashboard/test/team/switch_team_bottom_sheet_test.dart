@@ -1,13 +1,14 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:dashboard/api/openci_api_client.dart';
 import 'package:dashboard/app_strings.dart';
 import 'package:dashboard/auth/auth_provider.dart';
 import 'package:dashboard/connections/active_connection_profile_provider.dart';
 import 'package:dashboard/connections/connection_profile.dart';
 import 'package:dashboard/connections/connection_store.dart';
 import 'package:dashboard/connections/connection_store_provider.dart';
+import 'package:dashboard/team/github_connection_api.dart';
+import 'package:dashboard/team/github_connection_context.dart';
 import 'package:dashboard/team/github_connection_storage.dart';
 import 'package:dashboard/team/switch_team_bottom_sheet.dart';
 import 'package:dashboard/team/team_provider.dart';
@@ -16,11 +17,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
-import 'package:http/testing.dart';
-import 'package:openci_shared/openci_shared.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher_platform_interface/link.dart';
 import 'package:url_launcher_platform_interface/url_launcher_platform_interface.dart';
+
+import '../helpers/github_connection_callable.dart';
 
 void main() {
   final team = Team(
@@ -67,17 +68,19 @@ void main() {
       await SharedPreferences.getInstance(),
       profile,
     );
-    final client = http.runWithClient(
-      () => createOpenCIChopperClient(
-        baseUrl: 'https://api.openci.test',
-        tokenProvider: () => 'firebase-id-token',
+    final api = GitHubConnectionApi(
+      context: GitHubConnectionContext(
+        profileId: profile.id,
+        apiUrl: profile.apiUrl,
+        userId: 'user-123',
+        teamId: team.id,
       ),
-      () => MockClient((request) async {
+      callable: TestGitHubCallable((request) {
         requests.add(request);
         return respond(request);
       }),
+      isCurrent: () => true,
     );
-    addTearDown(client.dispose);
 
     await tester.pumpWidget(
       ProviderScope(
@@ -94,9 +97,7 @@ void main() {
             ],
           ),
           selectedTeamProvider.overrideWith((ref) async => team),
-          openciApiServiceProvider.overrideWith(
-            (ref) async => OpenCIApiService.create(client),
-          ),
+          githubConnectionApiProvider.overrideWith((ref) async => api),
         ],
         child: MaterialApp(
           home: Scaffold(
@@ -135,15 +136,10 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(requests, hasLength(1));
-    expect(requests.single.method, 'POST');
-    expect(
-      requests.single.url.path,
-      '/teams/selected-team/github/connect',
-    );
-    expect(
-      requests.single.headers['Authorization'],
-      'Bearer firebase-id-token',
-    );
+    expect(callableData(requests.single), {
+      'action': 'start',
+      'teamId': 'selected-team',
+    });
     expect(launcher.url, authorizationUrl);
     expect(launcher.options?.mode, PreferredLaunchMode.externalApplication);
     expect(launcher.options?.webOnlyWindowName, '_self');

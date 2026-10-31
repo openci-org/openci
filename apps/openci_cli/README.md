@@ -53,7 +53,6 @@ global flags), and known argument values:
 genuineci reg<Tab>                      # register
 genuineci register <Tab>                # secret, secretFile, options
 genuineci sync <Tab>                    # paths, secrets, options
-genuineci dev start --s<Tab>             # --seed
 genuineci use <Tab>                     # japanese, english, options
 genuineci help register <Tab>           # secret, secretFile, options
 genuineci login --ser<Tab>              # --server
@@ -184,7 +183,7 @@ Troubleshooting team selection:
 | Login required or HTTP 401/403   | Log in again for the intended server with `genuineci login` or `genuineci login --local`.                                         |
 | No team memberships              | Create or join a team in the dashboard for that server.                                                                           |
 | Interactive terminal required    | Use an ANSI-capable terminal with interactive stdin and stdout; remove pipes and output redirection.                              |
-| HTTP error or connection failure | Check the active profile's server URL and network connection. For local development, check that `genuineci dev start` is running. |
+| HTTP error or connection failure | Check the active profile's server URL and network connection. For local development, check that the Auth and Functions emulators are running. |
 | Invalid team list                | Check that the saved server URL points to a compatible OpenCI API.                                                                |
 | Changed profile or credentials   | Run `genuineci switch team` again using the current authentication.                                                               |
 | Save failure                     | Check the credentials file, its permissions, and available disk space.                                                            |
@@ -257,91 +256,25 @@ sync as `register secret`, updating both generated files. A sync failure leaves
 the uploaded secret saved and returns exit code 1; retry `genuineci sync` after
 fixing the reported problem.
 
-Run `genuineci dev start` from the OpenCI checkout to start local services and the
-Mac Orchard worker. Prepare the existing non-Firebase Docker Compose credentials
-and `base-macos` VM first. Docker Compose 2.24.4 or later is required for the
-local API override.
+## Local development
 
-The command uses `docker-compose.yml`, `docker-compose.local.yml`, and
-`docker-compose.local-api.yml` together. It starts the Firebase Auth Emulator
-for project `demo-openci` and waits for its health check before starting Orchard
-Controller, the Mac worker, and the local API. No production Firebase service
-account is needed. The Auth endpoint is `http://127.0.0.1:9099` and the Emulator
-UI is `http://127.0.0.1:4000/auth`. It rebuilds and starts the API
-containers. The Mac Orchard worker provides VM capacity; build planning and
-execution use the [Firebase Functions and Cloud Run path](../../firebase/functions/BUILD_EXECUTOR.md),
-which this command does not deploy or start. See [the emulator setup](../../firebase/README.md)
-for standalone start and stop commands. Drain any legacy polling containers
-from an older deployment before upgrading; Compose removes orphan containers.
+The legacy `genuineci dev start` command and its PostgreSQL/API/Orchard Compose
+stack have been retired. The CLI's team and Secrets commands use Firebase
+Functions. See [Firebase development](../../firebase/README.md) for the Auth
+Emulator and [FSC deployment](../../firebase/functions/DEPLOYMENT.md) for the
+Functions, Data Connect and Cloud Run setup.
 
-The `/internal` seed and cleanup API is disabled by default. `genuineci dev start`
-automatically enables it by passing `ENABLE_INTERNAL_API=true` to Docker Compose.
-Requests also require `INTERNAL_API_KEY`. For `genuineci dev start --seed`, the CLI
-always reads it from the checkout's `.env` file and only seeds a local server.
-The dev command also excludes a shell-exported `INTERNAL_API_KEY` from Docker
-Compose so the server and seed request use the same key.
-
-To also prepare a development Auth user and queue the default smoke-test build job:
-
-```sh
-genuineci dev start --seed
-```
-
-The CLI first creates an email/password user in the local `demo-openci` Auth
-Emulator and marks its email as verified:
-
-- Email: `test@openci.org`
-- Password: `123456`
-
-These fixed credentials are only for local development. Repeated seeding reuses
-the same user and sets `emailVerified=true` without resetting its password.
-If the account already exists with a different password or is disabled, seeding
-fails without changing it. Check the account in the
-[Auth Emulator UI](http://127.0.0.1:4000/auth). An Auth failure stops seeding before
-the team/job request. Emulator users are lost when the emulator restarts;
-`--seed` creates the user again.
-
-The local Compose override configures `test@openci.org` as the allowed email by
-default. Set `LOCAL_ALLOWED_USER_EMAILS` in `.env` to use another comma-separated
-allowlist; an empty value configures a deny-all policy. API enforcement is
-tracked in [#2942](https://github.com/openci-org/openci/issues/2942).
-
-The CLI sends that user's UID to the seed API, which registers it as a member
-of `test-team` before queuing the smoke-test job. Repeated seeding preserves the
-existing membership. If team or membership creation fails, the seed request
-fails without queuing a job. Direct `/internal/seed` callers can omit `userId`
-to seed only the team and job.
-
-The server seeds `test-team` and one `macos-latest` job for
-`openci-org/openci`'s `openci/worker_smoke.dart`, pinned to commit
-`5cb05f76d8941ea1edc3593eb753ce808f0f290e` on
-`test/build-job-worker-smoke-openci`.
-This historical fixture checks macOS and Flutter versions and runs the former
-worker's tests at that pinned commit. Seeding now exercises only the legacy API
-and database: the local stack has no polling executor, and these jobs are not
-submitted to FSC. Use the Cloud Run executor to validate the new build path.
-
-The server resolves the installation ID using the GitHub App already configured
-in Docker Compose. That App must have access to `openci-org/openci`.
-Webhook reception and planning are separate from this smoke test.
-
-Press Ctrl+C to stop the Mac Orchard worker and the local Docker Compose stack.
-The same shutdown also runs when the command exits or receives SIGTERM. Named
-volumes and local data are kept.
-
-To log in locally, keep `genuineci dev start --seed` running, then run:
+To log in locally, start the Auth, Functions and FSC emulators, create an Auth
+user and its FSC team membership, then run:
 
 ```sh
 genuineci login --local
 ```
 
-Enter `test@openci.org` and `123456`, or the credentials of another user
-you created in the Auth Emulator UI. The CLI signs in through the
-fixed address `127.0.0.1:9099`, then calls `teamManagement` on the Functions
-Emulator at port 5001. It selects `test-team` only if FSC returns it among the
-authenticated user's memberships. Start Functions and FSC emulators and seed that
-FSC team/membership as well: the legacy Compose `--seed` initializes SQL data and
-does not synchronize it into FSC. See the [team migration guide](../../firebase/functions/TEAMS.md).
+Enter the credentials of a user you created in the Auth Emulator UI. The CLI
+signs in at `127.0.0.1:9099`, then calls `teamManagement` on the Functions Emulator
+at port 5001. It selects `test-team` only if FSC returns it among the user's
+memberships. See the [team migration guide](../../firebase/functions/TEAMS.md).
 
 Successful login saves and activates the `local` Firebase profile, including
 the refresh credentials and `firebase_auth_emulator_host`. Later token refreshes
@@ -351,9 +284,6 @@ an internal API key, run `genuineci login --local` again after preparing the use
 and team; successful login replaces only that profile. The password is never
 saved. The remote `--server`, `--team-id`, and `--firebase-api-key` options cannot
 be combined with `--local`.
-
-Local login does not read Docker's `INTERNAL_API_KEY`. Worker and seed operations
-still use that key, and `--seed` does not require CLI login.
 
 Run `genuineci sync` from your workflow project to generate both typed secret
 definitions and workspace paths:

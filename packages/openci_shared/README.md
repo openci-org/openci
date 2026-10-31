@@ -1,50 +1,19 @@
 # openci_shared
 
-Shared constants and models for OpenCI.
+Shared Dart models and utilities for the Dashboard, CLI, workflow SDK and Dart
+planner. Team, build and GitHub connection DTOs remain available.
 
-## Upgrading to 2.0.0
+## FSC API access
 
-Remove `githubBaseUrl` arguments and property reads from `Team` and `BuildJobPlan`.
-The server owns repository URL configuration through `GITHUB_API_BASE_URL`.
-`BuildJobPlan.fromJson` accepts older planner payloads by ignoring their legacy
-`githubBaseUrl` field. Use the verified GitHub connection API below for team
-connections.
+The legacy `OpenCIApiService` REST client, its Chopper converter and token
+interceptor have been removed with the retired servers. Use the generated
+Data Connect SDKs for authorized queries and Firebase callable Functions for
+team, Secrets, GitHub connection and billing operations. Functions verify
+Firebase identity and team access before using Admin SDK operations.
 
-## GitHub connection
+See [Functions](../../firebase/functions/README.md) and
+[Data Connect](../../firebase/dataconnect/README.md) for operation definitions.
 
-Use `OpenCIApiService` to read and confirm a pending GitHub connection:
-
-| Method | Endpoint | Response body type |
-| --- | --- | --- |
-| `getGitHubConnectionSession(teamId, reference)` | `POST /teams/{teamId}/github/session` | `GitHubConnectionSessionResult` |
-| `getGitHubConnectionCandidates(teamId, reference)` | `POST /teams/{teamId}/github/candidates` | `GitHubConnectionCandidatesResult` |
-| `confirmGitHubConnection(teamId, reference, installationId)` | `POST /teams/{teamId}/github/confirm` | `GitHubConnectionConfirmationResult` |
-
-Read methods send only `reference` in the JSON body. Confirmation sends
-`reference` and the selected `installationId`. Configure
-`createOpenCIChopperClient` with the existing Firebase ID-token provider; the
-token is added to the Bearer header. Keep the reference out of URLs and logs.
-Session reads have a ten-second timeout. Candidate reads and confirmation allow
-one minute for the server's GitHub requests.
-
-Confirmation rechecks the user's authority before saving the connection and
-consuming the temporary session. Its successful response contains only
-`success: true`.
-
-Check `response.isSuccessful` before using the typed body. An empty candidates
-list is a successful response. For non-2xx responses, `response.body` is null
-and `response.error` retains the JSON string. GitHub failures include a `code`:
-`github_reauthorization_required` (409), `github_permissions_required` (403),
-or `github_unavailable` (502). These differ from an OpenCI authentication
-failure (401) or an invalid connection session (403 without a GitHub code).
-Confirmation can also return `github_connection_conflict` (409) when another
-team owns the selected installation.
-
-## Workflow files
-
-`OpenCIApiService.fetchOpenCIFiles` requests
-`GET /teams/{teamId}/repositories/{repo}/openci-files`. Pass the commit or
-branch as `ref`, plus the repository `owner` and GitHub App `installationId`.
-The response contains Dart workflow files from `openci/` as JSON objects with
-`name`, `path`, and `content`. Requests require team membership or a valid
-internal API key.
+`BuildJobPlan.fromJson` continues to accept older planner payloads by ignoring
+the legacy `githubBaseUrl` field. Repository access and workflow retrieval are
+owned by the Dart planner and its verified GitHub connection.

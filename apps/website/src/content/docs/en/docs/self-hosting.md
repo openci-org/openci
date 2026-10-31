@@ -1,39 +1,33 @@
 ---
 title: Self-hosting
-description: Own your build environment. Learn how GenuineCI uses Apple Silicon Macs to run workflows.
+description: Own your build environment. Learn how GenuineCI uses Firebase, GCP and Apple Silicon Macs.
 ---
 
 ## Run in your own environment
 
-GenuineCI is open-source CI. You can set up your own environment with Apple Silicon Macs as build machines.
+GenuineCI is open-source CI. Its control plane uses Firebase and GCP; Apple Silicon Macs provide build capacity through Orchard.
 
 The source code and configuration files are available in the [GitHub repository](https://github.com/openci-org/openci).
 
 ## Main components
 
-| Component     | Role                                          |
-| ------------- | --------------------------------------------- |
-| Dashboard     | Manage teams, repositories, and build results |
-| API / planner | Plan workflows from GitHub events             |
-| Worker        | Execute build jobs on Macs                    |
-| GitHub App    | Connect repositories and receive events       |
+| Component                          | Role                                             |
+| ---------------------------------- | ------------------------------------------------ |
+| Dashboard and Firebase Auth        | Sign in and manage teams and builds              |
+| Firebase SQL Connect               | Store teams, jobs, logs and billing state        |
+| Firebase Functions                 | Receive webhooks, plan jobs and dispatch builds  |
+| Cloud Run executor                 | Run workflows through Orchard and record results |
+| Orchard Controller and Mac workers | Allocate and run macOS VMs                       |
+| GitHub App                         | Connect repositories and receive events          |
 
-You do not need to start these components just to run Dart workflows locally. Try the [Quickstart](/en/docs/quickstart/).
+You do not need to deploy these components to run Dart workflows locally. Start with the [Quickstart](/en/docs/quickstart/).
 
-## Local development environment
+## Development and deployment
 
-The repository includes a command that starts the API, Firebase Auth Emulator, Orchard Controller, and Mac workers for development.
+The former API servers, PostgreSQL Compose stack and `genuineci dev start` command have been retired. The repository still provides a standalone Firebase Auth Emulator. Functions, Data Connect and build execution require their own setup.
 
-```sh
-genuineci dev start
-```
+- [Firebase development and emulator setup](https://github.com/openci-org/openci/blob/develop/firebase/README.md)
+- [Functions and Cloud Run deployment](https://github.com/openci-org/openci/blob/develop/firebase/functions/DEPLOYMENT.md)
+- [Orchard Controller deployment](https://github.com/openci-org/openci/blob/develop/infra/orchard/README.md)
 
-Run this command inside a checkout of the GenuineCI source code. Prepare Docker Compose 2.24.4 or later, the Compose configuration and credentials, and a `base-macos` VM beforehand.
-
-> `dev start` is for local development. It does not automatically complete production deployment or authentication setup.
-
-## Detailed setup
-
-See the current [CLI README](https://github.com/openci-org/openci/tree/develop/apps/openci_cli) for prerequisites and development startup instructions.
-
-For production, configure the GitHub App, authentication, networking, secrets, and build machine management for your environment. Questions and suggestions are welcome on [GitHub Issues](https://github.com/openci-org/openci/issues).
+For your deployment, configure project-specific identities, GitHub and Stripe settings, network access, secrets and Mac workers. The deployment record describes OpenCI's production project; use your own resource identifiers.

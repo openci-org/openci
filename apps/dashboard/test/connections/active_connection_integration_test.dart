@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:dashboard/api/openci_api_client.dart';
 import 'package:dashboard/auth/auth_provider.dart';
 import 'package:dashboard/connections/active_connection_profile_provider.dart';
 import 'package:dashboard/connections/connection_firebase_auth.dart';
@@ -19,8 +18,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
-import 'package:http/http.dart' as http;
-import 'package:http/testing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 ConnectionProfile profile(String id) => ConnectionProfile(
@@ -50,7 +47,6 @@ void main() {
   late ProviderContainer container;
   late Map<String, _Auth> auths;
   late Map<String, FutureOr<FirebaseAuth>> authResults;
-  late List<http.Request> requests;
   LocalDevelopmentConnection? localSettings;
 
   setUp(() async {
@@ -69,7 +65,6 @@ void main() {
       addTearDown(auth.changes.close);
     }
     authResults = {...auths};
-    requests = [];
     final router = GoRouter(
       routes: [
         GoRoute(
@@ -99,22 +94,11 @@ void main() {
     ConnectionSnapshot(profiles: [cloud, selfHosted], activeId: activeId),
   );
 
-  Future<void> withHttp(Future<void> Function() body) => http.runWithClient(
-    body,
-    () => MockClient((request) async {
-      requests.add(request);
-      return http.Response(
-        '{}',
-        200,
-        headers: {'content-type': 'application/json'},
-      );
-    }),
-  );
-
-  void listenToConnection() {
+  Future<void> listenToConnection() async {
     container.listen(authStateChangesProvider, (_, _) {});
     container.listen(currentUserIdProvider, (_, _) {});
-    container.listen(openciApiServiceProvider, (_, _) {});
+    await container.read(activeConnectionProfileProvider(store).future);
+    await container.pump();
   }
 
   Future<void> expectConnection(ConnectionProfile profile) async {
@@ -125,38 +109,23 @@ void main() {
     final user = await container.read(authStateChangesProvider.future);
     expect(user?.uid, '${profile.id}-user');
     expect(container.read(currentUserIdProvider), user?.uid);
-
-    final api = await container.read(openciApiServiceProvider.future);
-    await api.getBuildJob('job-123');
-    expect(requests.last.url.toString(), '${profile.apiUrl}/builds/job-123');
-    expect(
-      requests.last.headers['Authorization'],
-      'Bearer ${profile.id}-token',
-    );
   }
 
+  test('restores the saved profile for authentication', () async {
+    await saveProfiles(activeId: selfHosted.id);
+    await listenToConnection();
+    await expectConnection(selfHosted);
+  });
+
   test(
-    'restores the saved profile for authentication and HTTP',
-    () {
-      return withHttp(() async {
-        await saveProfiles(activeId: selfHosted.id);
-        listenToConnection();
-
-        await expectConnection(selfHosted);
-        expect(requests, hasLength(1));
-      });
-    },
-  );
-
-  test('switches shared providers and signs out only the selected profile', () {
-    return withHttp(() async {
+    'switches authentication and signs out only the selected profile',
+    () async {
       await saveProfiles();
-      listenToConnection();
+      await listenToConnection();
       await expectConnection(cloud);
       final selection = container.read(
         activeConnectionProfileProvider(store).notifier,
       );
-
       await selection.select(selfHosted.id);
       await expectConnection(selfHosted);
       await (await container.read(firebaseAuthProvider.future)).signOut();
@@ -164,89 +133,56 @@ void main() {
       expect(container.read(currentUserProvider), isNull);
       expect(auths[selfHosted.id]!.currentUser, isNull);
       expect(auths[cloud.id]!.currentUser, isNotNull);
-
       await selection.select(cloud.id);
       await expectConnection(cloud);
-    });
-  });
-
-  test('local Auth gates API requests and supplies their token', () {
-    return withHttp(() async {
-      await saveProfiles(activeId: selfHosted.id);
-      localSettings = local;
-      final ready = Completer<FirebaseAuth>();
-      authResults[local.profile.id] = ready.future;
-      listenToConnection();
-      final api = await container.read(openciApiServiceProvider.future);
-      final response = api.getBuildJob('job-123');
-      await container.pump();
-
-      expect(container.read(authStateChangesProvider).isLoading, isTrue);
-      expect(requests, isEmpty);
-      ready.complete(auths[local.profile.id]);
-      await response;
-      await expectConnection(local.profile);
-
-      expect(requests, hasLength(2));
-      for (final request in requests) {
-        expect(request.url.toString(), 'http://127.0.0.1:8080/builds/job-123');
-        expect(
-          request.headers['Authorization'],
-          'Bearer local-development-token',
-        );
-      }
-      expect(store.load().activeId, selfHosted.id);
-    });
-  });
-
-  test(
-    'failed local Auth blocks API requests without falling back to Cloud',
-    () {
-      return withHttp(() async {
-        await saveProfiles(activeId: selfHosted.id);
-        localSettings = local;
-        final ready = Completer<FirebaseAuth>();
-        authResults[local.profile.id] = ready.future;
-        listenToConnection();
-        final api = await container.read(openciApiServiceProvider.future);
-        final error = StateError('Emulator setup failed');
-        final authFailure = expectLater(
-          container.read(firebaseAuthProvider.future),
-          throwsA(same(error)),
-        );
-        final requestFailure = expectLater(
-          api.getBuildJob('job-123'),
-          throwsA(same(error)),
-        );
-
-        ready.completeError(error);
-        await Future.wait([authFailure, requestFailure]);
-        expect(requests, isEmpty);
-        expect(store.load().activeId, selfHosted.id);
-      });
     },
   );
 
+  test('waits for local Auth without changing the saved selection', () async {
+    await saveProfiles(activeId: selfHosted.id);
+    localSettings = local;
+    final ready = Completer<FirebaseAuth>();
+    authResults[local.profile.id] = ready.future;
+    await listenToConnection();
+    await container.pump();
+    expect(container.read(authStateChangesProvider).isLoading, isTrue);
+    ready.complete(auths[local.profile.id]);
+    await expectConnection(local.profile);
+    expect(store.load().activeId, selfHosted.id);
+  });
+
+  test('failed local Auth does not fall back to Cloud', () async {
+    await saveProfiles(activeId: selfHosted.id);
+    localSettings = local;
+    final ready = Completer<FirebaseAuth>();
+    authResults[local.profile.id] = ready.future;
+    await listenToConnection();
+    final error = StateError('Emulator setup failed');
+    final failure = expectLater(
+      container.read(firebaseAuthProvider.future),
+      throwsA(same(error)),
+    );
+    ready.completeError(error);
+    await failure;
+    expect(store.load().activeId, selfHosted.id);
+  });
+
   test(
     'a delayed previous initialization does not replace the selected profile',
-    () {
-      return withHttp(() async {
-        await saveProfiles();
-        final pending = Completer<FirebaseAuth>();
-        authResults[cloud.id] = pending.future;
-        listenToConnection();
-        await container.pump();
-        expect(container.read(authStateChangesProvider).isLoading, isTrue);
-
-        await container
-            .read(activeConnectionProfileProvider(store).notifier)
-            .select(selfHosted.id);
-        await expectConnection(selfHosted);
-
-        pending.complete(auths[cloud.id]);
-        await container.pump();
-        await expectConnection(selfHosted);
-      });
+    () async {
+      await saveProfiles();
+      final pending = Completer<FirebaseAuth>();
+      authResults[cloud.id] = pending.future;
+      await listenToConnection();
+      await container.pump();
+      expect(container.read(authStateChangesProvider).isLoading, isTrue);
+      await container
+          .read(activeConnectionProfileProvider(store).notifier)
+          .select(selfHosted.id);
+      await expectConnection(selfHosted);
+      pending.complete(auths[cloud.id]);
+      await container.pump();
+      await expectConnection(selfHosted);
     },
   );
 

@@ -48,7 +48,6 @@ class TranslationsJa extends Translations with BaseTranslations<AppLocale, Trans
 	@override late final _Translations$setup$ja setup = _Translations$setup$ja._(_root);
 	@override late final _Translations$switchCommand$ja switchCommand = _Translations$switchCommand$ja._(_root);
 	@override late final _Translations$use$ja use = _Translations$use$ja._(_root);
-	@override late final _Translations$dev$ja dev = _Translations$dev$ja._(_root);
 	@override late final _Translations$sync$ja sync = _Translations$sync$ja._(_root);
 	@override late final _Translations$common$ja common = _Translations$common$ja._(_root);
 }
@@ -97,11 +96,11 @@ class _Translations$login$ja extends Translations$login$en {
 	@override String get loggingIn => 'OpenCI にログイン中...';
 	@override String savedSuccess({required Object profile}) => 'プロファイル「${profile}」を保存し、有効にしました。';
 	@override String get noArguments => 'loginに位置引数は指定できません。';
-	@override String get authenticationFailed => 'ローカルサーバーの認証に失敗しました。genuineci dev start で起動したサーバーを確認してください。';
+	@override String get authenticationFailed => 'Firebase認証に失敗しました。認証情報とAuth Emulatorの設定を確認してください。';
 	@override String requestFailed({required Object status}) => 'チーム一覧を取得できませんでした（HTTP ${status}）。';
 	@override String get localTeamRequired => 'このユーザーはtest-teamを利用できません。チームが初期データとして作成され、このAuth Emulatorユーザーが所属していることを確認してください。';
 	@override String get invalidResponse => 'サーバーから返されたチーム一覧が不正です。';
-	@override String get connectionFailed => 'ローカルサーバーに接続できませんでした。genuineci dev start の起動状態を確認してください。';
+	@override String get connectionFailed => 'Auth Emulatorに接続できませんでした。起動状態を確認してください。';
 	@override String get saveFailed => '認証情報を保存できませんでした。ローカルの認証情報ファイルと権限を確認してください。';
 	@override String get localOptionsConflict => '--localとリモートログイン用のオプションは同時に指定できません。';
 	@override String get serverRequired => '--serverには認証情報、クエリ、フラグメントを含まない有効なHTTPSのURLを指定してください。ローカル開発には--localを使ってください。';
@@ -213,17 +212,6 @@ class _Translations$use$ja extends Translations$use$en {
 	@override String get description => '表示言語を設定します（japanese, english）。';
 	@override String success({required Object language}) => '言語を${language}に設定しました。';
 	@override String invalidLanguage({required Object input}) => '無効な言語です: 「${input}」。対応言語: japanese, english';
-}
-
-// Path: dev
-class _Translations$dev$ja extends Translations$dev$en {
-	_Translations$dev$ja._(TranslationsJa root) : this._root = root, super.internal(root);
-
-	final TranslationsJa _root; // ignore: unused_field
-
-	// Translations
-	@override String get description => 'ローカル開発環境（Docker, Tart, DB, サーバー）を管理します。';
-	@override late final _Translations$dev$start$ja start = _Translations$dev$start$ja._(_root);
 }
 
 // Path: sync
@@ -471,40 +459,6 @@ class _Translations$switchCommand$team$ja extends Translations$switchCommand$tea
 	@override String get saveFailed => '選択したチームを保存できませんでした。認証情報ファイル、権限、ディスクの空き容量を確認して再試行してください。';
 }
 
-// Path: dev.start
-class _Translations$dev$start$ja extends Translations$dev$start$en {
-	_Translations$dev$start$ja._(TranslationsJa root) : this._root = root, super.internal(root);
-
-	final TranslationsJa _root; // ignore: unused_field
-
-	// Translations
-	@override String get description => 'ローカルサービスを起動し、Ctrl+CまでMac側のOrchard Workerを実行します。';
-	@override late final _Translations$dev$start$flags$ja flags = _Translations$dev$start$flags$ja._(_root);
-	@override String get starting => 'OpenCI ローカル開発環境を起動しています...';
-	@override String get stepTart => 'Step 1: Tart VM ベースイメージを確認中...';
-	@override String get stepTartNotFound => 'エラー: Tart VM イメージ「base-macos」が見つかりません。\n以下のコマンドを実行してイメージを準備してください:\n  tart pull ghcr.io/cirruslabs/macos-tahoe-vanilla:26.5\n  tart clone ghcr.io/cirruslabs/macos-tahoe-vanilla:26.5 base-macos';
-	@override String get stepTartExists => 'Tart VM (base-macos) を確認しました。';
-	@override String get stepAuthEmulator => 'Firebase Auth Emulator を起動し、準備完了を待っています...';
-	@override String get stepAuthEmulatorFailed => 'エラー: Firebase Auth Emulator の起動または準備完了の確認に失敗しました。';
-	@override String get stepDockerCompose => 'Step 5: Docker コンテナを起動中...';
-	@override String get stepDockerComposeFailed => 'エラー: Docker コンテナの起動に失敗しました。';
-	@override String get stepDockerComposeStarted => 'Docker コンテナを起動しました。';
-	@override String get stepDockerComposeDown => 'ローカルのDockerコンテナを停止・削除しています（データ用ボリュームは保持します）...';
-	@override String get stepDockerComposeDownFailed => 'エラー: ローカルのDockerコンテナの終了に失敗しました。チェックアウトのルートで docker compose -f docker-compose.yml -f docker-compose.local.yml -f docker-compose.local-api.yml down --remove-orphans を実行して再試行してください。';
-	@override String get stepOrchardWaiting => 'Step 3: Orchard Controller の起動を待機中...';
-	@override String get stepOrchardNotReady => 'エラー: Orchard Controller の起動を確認できませんでした。';
-	@override String get stepOrchardContext => 'Step 4: Orchard CLI コンテキストを登録中...';
-	@override String get stepOrchardContextFailed => 'エラー: Orchard CLI コンテキストの登録に失敗しました。';
-	@override String get stepOrchardContextRegistered => 'Orchard CLI コンテキストを認証しました。';
-	@override String get stepOrchardWorker => 'Mac側のOrchard Workerを起動します。Ctrl+Cで停止できます。Dockerコンテナは起動したままになります。';
-	@override String get stepOrchardWorkerFailed => 'エラー: Orchard Workerを起動できなかったか、異常終了しました。';
-	@override String get stepSeed => 'Step 6: ローカルテストデータを投入中...';
-	@override String get stepSeedFailed => 'エラー: ローカルテストデータの投入に失敗しました。';
-	@override String get stepSeedCompleted => 'ローカルテストデータを投入しました。';
-	@override String get projectRootNotFound => 'エラー: OpenCI プロジェクトのルートディレクトリが見つかりません。';
-	@override String get stepOrchardController => 'Step 2: Orchard Controllerを起動中...';
-}
-
 // Path: sync.paths
 class _Translations$sync$paths$ja extends Translations$sync$paths$en {
 	_Translations$sync$paths$ja._(TranslationsJa root) : this._root = root, super.internal(root);
@@ -532,16 +486,6 @@ class _Translations$sync$secrets$ja extends Translations$sync$secrets$en {
 	@override String get fetchFailed => 'シークレット名を取得できませんでした。サーバーの接続状態とレスポンスを確認してください。';
 	@override String get saveFailed => 'secrets.g.dartを保存できませんでした。保存先とファイルの権限を確認してください。';
 	@override String saved({required Object path}) => 'シークレット定義を生成しました: ${path}';
-}
-
-// Path: dev.start.flags
-class _Translations$dev$start$flags$ja extends Translations$dev$start$flags$en {
-	_Translations$dev$start$flags$ja._(TranslationsJa root) : this._root = root, super.internal(root);
-
-	final TranslationsJa _root; // ignore: unused_field
-
-	// Translations
-	@override String get seed => 'サービス起動後にデフォルトの動作確認用ジョブを1件投入します。';
 }
 
 /// The flat map containing all translations for locale <ja>.
@@ -576,11 +520,11 @@ extension on TranslationsJa {
 			'login.loggingIn' => 'OpenCI にログイン中...',
 			'login.savedSuccess' => ({required Object profile}) => 'プロファイル「${profile}」を保存し、有効にしました。',
 			'login.noArguments' => 'loginに位置引数は指定できません。',
-			'login.authenticationFailed' => 'ローカルサーバーの認証に失敗しました。genuineci dev start で起動したサーバーを確認してください。',
+			'login.authenticationFailed' => 'Firebase認証に失敗しました。認証情報とAuth Emulatorの設定を確認してください。',
 			'login.requestFailed' => ({required Object status}) => 'チーム一覧を取得できませんでした（HTTP ${status}）。',
 			'login.localTeamRequired' => 'このユーザーはtest-teamを利用できません。チームが初期データとして作成され、このAuth Emulatorユーザーが所属していることを確認してください。',
 			'login.invalidResponse' => 'サーバーから返されたチーム一覧が不正です。',
-			'login.connectionFailed' => 'ローカルサーバーに接続できませんでした。genuineci dev start の起動状態を確認してください。',
+			'login.connectionFailed' => 'Auth Emulatorに接続できませんでした。起動状態を確認してください。',
 			'login.saveFailed' => '認証情報を保存できませんでした。ローカルの認証情報ファイルと権限を確認してください。',
 			'login.localOptionsConflict' => '--localとリモートログイン用のオプションは同時に指定できません。',
 			'login.serverRequired' => '--serverには認証情報、クエリ、フラグメントを含まない有効なHTTPSのURLを指定してください。ローカル開発には--localを使ってください。',
@@ -746,32 +690,6 @@ extension on TranslationsJa {
 			'use.description' => '表示言語を設定します（japanese, english）。',
 			'use.success' => ({required Object language}) => '言語を${language}に設定しました。',
 			'use.invalidLanguage' => ({required Object input}) => '無効な言語です: 「${input}」。対応言語: japanese, english',
-			'dev.description' => 'ローカル開発環境（Docker, Tart, DB, サーバー）を管理します。',
-			'dev.start.description' => 'ローカルサービスを起動し、Ctrl+CまでMac側のOrchard Workerを実行します。',
-			'dev.start.flags.seed' => 'サービス起動後にデフォルトの動作確認用ジョブを1件投入します。',
-			'dev.start.starting' => 'OpenCI ローカル開発環境を起動しています...',
-			'dev.start.stepTart' => 'Step 1: Tart VM ベースイメージを確認中...',
-			'dev.start.stepTartNotFound' => 'エラー: Tart VM イメージ「base-macos」が見つかりません。\n以下のコマンドを実行してイメージを準備してください:\n  tart pull ghcr.io/cirruslabs/macos-tahoe-vanilla:26.5\n  tart clone ghcr.io/cirruslabs/macos-tahoe-vanilla:26.5 base-macos',
-			'dev.start.stepTartExists' => 'Tart VM (base-macos) を確認しました。',
-			'dev.start.stepAuthEmulator' => 'Firebase Auth Emulator を起動し、準備完了を待っています...',
-			'dev.start.stepAuthEmulatorFailed' => 'エラー: Firebase Auth Emulator の起動または準備完了の確認に失敗しました。',
-			'dev.start.stepDockerCompose' => 'Step 5: Docker コンテナを起動中...',
-			'dev.start.stepDockerComposeFailed' => 'エラー: Docker コンテナの起動に失敗しました。',
-			'dev.start.stepDockerComposeStarted' => 'Docker コンテナを起動しました。',
-			'dev.start.stepDockerComposeDown' => 'ローカルのDockerコンテナを停止・削除しています（データ用ボリュームは保持します）...',
-			'dev.start.stepDockerComposeDownFailed' => 'エラー: ローカルのDockerコンテナの終了に失敗しました。チェックアウトのルートで docker compose -f docker-compose.yml -f docker-compose.local.yml -f docker-compose.local-api.yml down --remove-orphans を実行して再試行してください。',
-			'dev.start.stepOrchardWaiting' => 'Step 3: Orchard Controller の起動を待機中...',
-			'dev.start.stepOrchardNotReady' => 'エラー: Orchard Controller の起動を確認できませんでした。',
-			'dev.start.stepOrchardContext' => 'Step 4: Orchard CLI コンテキストを登録中...',
-			'dev.start.stepOrchardContextFailed' => 'エラー: Orchard CLI コンテキストの登録に失敗しました。',
-			'dev.start.stepOrchardContextRegistered' => 'Orchard CLI コンテキストを認証しました。',
-			'dev.start.stepOrchardWorker' => 'Mac側のOrchard Workerを起動します。Ctrl+Cで停止できます。Dockerコンテナは起動したままになります。',
-			'dev.start.stepOrchardWorkerFailed' => 'エラー: Orchard Workerを起動できなかったか、異常終了しました。',
-			'dev.start.stepSeed' => 'Step 6: ローカルテストデータを投入中...',
-			'dev.start.stepSeedFailed' => 'エラー: ローカルテストデータの投入に失敗しました。',
-			'dev.start.stepSeedCompleted' => 'ローカルテストデータを投入しました。',
-			'dev.start.projectRootNotFound' => 'エラー: OpenCI プロジェクトのルートディレクトリが見つかりません。',
-			'dev.start.stepOrchardController' => 'Step 2: Orchard Controllerを起動中...',
 			'sync.description' => 'シークレット定義とワークスペースパスをopenci/generatedに生成します。',
 			'sync.paths.description' => 'pubspec.yamlからopenci/generated/paths.g.dartだけを生成します。',
 			'sync.paths.projectRootNotFound' => 'pubspec.yamlとopenciディレクトリのあるプロジェクトが見つかりません。ワークフローのあるプロジェクト内で実行してください。',
