@@ -117,8 +117,9 @@ OAuth flow, capacity exhaustion or an intentionally crashed executor.
 ## Production cutover on 2026-10-31 JST
 
 Legacy API, Go billing server, planner and build worker were drained and stopped;
-their Docker restart policies are now `no`. PostgreSQL, Loki and the old Orchard
-controller remain available for rollback investigation. The source backup is
+their Docker restart policies were set to `no`. PostgreSQL, Loki and the old
+Orchard controller were initially retained for rollback investigation, then
+[backed up and retired in G-1607](LEGACY_RETIREMENT.md). The cutover source backup is
 `/home/ubuntu/openci/backups/fsc-cutover-20261031` on `openci-worker-01`.
 It contains the container configuration, environment files and a PostgreSQL
 custom-format dump, verified with `pg_restore --list`. The dump SHA-256 is
@@ -276,9 +277,11 @@ history; Stripe does not allow deactivating the default Portal configuration.
 Local test credentials and services were removed after verification.
 
 The production cutover is complete for the migrated build and Dashboard paths.
-Remaining follow-up work is to commit/review the deployment changes, retire the
-retained legacy code/infrastructure after the rollback window, and configure
-Controller data-disk backups and Tailscale key renewal as described in
+The deployment changes were merged in
+[PR #3756](https://github.com/openci-org/openci/pull/3756), and the legacy
+code/infrastructure retirement is recorded in [G-1607](LEGACY_RETIREMENT.md).
+Remaining operational follow-ups are Controller data-disk backups and Tailscale
+key renewal as described in
 [the Controller runbook](../../infra/orchard/README.md).
 
 ## Cutover
@@ -299,7 +302,8 @@ check their state afterward.
    enable billing and switch the GitHub App webhook. Reconcile missed Stripe
    events and GitHub deliveries before resuming normal work.
 4. Resume credential cleanup, move the remaining drained workers, and retire
-   legacy writers. Retain the source database and rollback configuration.
+   legacy writers. Retain the source database and rollback configuration through
+   the rollback window; verify an off-host backup before retiring their storage.
 
 The migration preserves Firebase user IDs and verified installation ownership.
 Historical Loki logs are excluded by design.

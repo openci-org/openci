@@ -32,12 +32,9 @@ They do not switch any application traffic or migrate existing rows.
 | `billing_admissions`         | `BillingAdmission`        | `billing_execution.gql` |
 | `billing_executions`         | `BillingExecution`        | `billing_execution.gql` |
 
-Source definitions are the table classes registered in
-[`AppDatabase`](../../apps/openci_server/lib/database.dart) and the Go service's
-[`billing/schema`](../../apps/genuineci_server/internal/billing/schema).
-`SkippedWorkflowReport` follows the table introduced by
-[G-1561](https://linear.app/genuineci/issue/G-1561), which is not yet registered
-in this branch's legacy `AppDatabase`.
+The definitions in `schema/` are authoritative. The legacy Dart `AppDatabase`
+and Go billing schema were retired after the production FSC cutover (G-1607).
+Their final source remains in Git history before the retirement commit.
 
 ## Storage and relation rules
 
@@ -173,6 +170,6 @@ secret creation. See [Team deletion](README.md#team-deletion).
 `secrets` value table is replaced by `secret_references`. Previously removed
 `processed_webhooks`, `build_step_logs`, and `worker_heartbeats` are not
 reintroduced. `build_steps` and `build_logs` above are new definitions for the
-current Loki-backed logs, not a copy of the removed legacy tables. Build artifact
+FSC log storage, not a copy of the removed legacy tables. Build artifact
 metadata, including `provisioned_udids`, is retained independently of the retired
 device registration tables.

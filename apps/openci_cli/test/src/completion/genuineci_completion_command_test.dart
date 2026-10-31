@@ -172,7 +172,6 @@ void main() {
               'setup',
               'switch',
               'use',
-              'dev',
               'sync',
               'update',
               'help',

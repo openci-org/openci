@@ -32,11 +32,11 @@
     "loggingIn": "Logging in to OpenCI...",
     "savedSuccess": "Successfully saved and activated profile \"${profile}\".",
     "noArguments": "Login does not accept positional arguments.",
-    "authenticationFailed": "Local server authentication failed. Check the server started by genuineci dev start.",
+    "authenticationFailed": "Firebase authentication failed. Check your credentials and Auth Emulator settings.",
     "requestFailed": "Could not fetch teams (HTTP ${status}).",
     "localTeamRequired": "test-team is not available for this user. Check that the team is seeded and this Auth Emulator user belongs to it.",
     "invalidResponse": "The server returned an invalid team list.",
-    "connectionFailed": "Could not connect to the local server. Check that genuineci dev start is running.",
+    "connectionFailed": "Could not connect to the Auth Emulator. Check that it is running.",
     "saveFailed": "Could not save credentials. Check the local credentials file and its permissions.",
     "localOptionsConflict": "--local cannot be combined with remote login options.",
     "serverRequired": "--server must be a valid HTTPS URL without credentials, a query or a fragment. Use --local for local development.",
@@ -232,38 +232,6 @@
     "description": "Set the default display language (japanese, english).",
     "success": "Language set to ${language}.",
     "invalidLanguage": "Invalid language \"${input}\". Supported languages: japanese, english."
-  },
-  "dev": {
-    "description": "Manage local development environment (Docker, Tart, DB, Server).",
-    "start": {
-      "description": "Start local services and run the Mac Orchard Worker until Ctrl+C.",
-      "flags": {
-        "seed": "Queue the default smoke-test build job after starting services."
-      },
-      "starting": "Starting OpenCI Local Development Environment...",
-      "stepTart": "Step 1: Checking Tart VM base image...",
-      "stepTartNotFound": "Error: Tart VM image \"base-macos\" not found.\nPlease run the following commands to setup the base image:\n  tart pull ghcr.io/cirruslabs/macos-tahoe-vanilla:26.5\n  tart clone ghcr.io/cirruslabs/macos-tahoe-vanilla:26.5 base-macos",
-      "stepTartExists": "Tart VM (base-macos) exists.",
-      "stepAuthEmulator": "Starting Firebase Auth Emulator and waiting for readiness...",
-      "stepAuthEmulatorFailed": "Error: Failed to start or verify Firebase Auth Emulator.",
-      "stepDockerCompose": "Step 5: Starting Docker containers...",
-      "stepDockerComposeFailed": "Error: Failed to start Docker containers.",
-      "stepDockerComposeStarted": "Docker containers started.",
-      "stepDockerComposeDown": "Stopping and removing local Docker containers (keeping data volumes)...",
-      "stepDockerComposeDownFailed": "Error: Failed to shut down local Docker containers. Run docker compose -f docker-compose.yml -f docker-compose.local.yml -f docker-compose.local-api.yml down --remove-orphans from the checkout to retry.",
-      "stepOrchardWaiting": "Step 3: Waiting for Orchard Controller to initialize...",
-      "stepOrchardNotReady": "Error: Orchard Controller did not become ready.",
-      "stepOrchardContext": "Step 4: Registering Orchard CLI context...",
-      "stepOrchardContextFailed": "Error: Failed to register Orchard CLI context.",
-      "stepOrchardContextRegistered": "Orchard CLI context authenticated.",
-      "stepOrchardWorker": "Starting Orchard Worker on this Mac. Press Ctrl+C to stop it. Docker containers will keep running.",
-      "stepOrchardWorkerFailed": "Error: Orchard Worker could not start or exited with an error.",
-      "stepSeed": "Step 6: Seeding local test data...",
-      "stepSeedFailed": "Error: Failed to seed local test data.",
-      "stepSeedCompleted": "Local test data seeded.",
-      "projectRootNotFound": "Error: OpenCI project root not found.",
-      "stepOrchardController": "Step 2: Starting Orchard Controller..."
-    }
   },
   "sync": {
     "description": "Generate secret definitions and workspace paths in openci/generated.",

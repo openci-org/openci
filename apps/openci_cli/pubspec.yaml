@@ -1,5 +1,5 @@
 name: genuineci_cli
-description: Command-line tools for OpenCI authentication, teams, secrets, App Store Connect setup, workflow paths, and local development.
+description: Command-line tools for OpenCI authentication, teams, secrets, App Store Connect setup, and workflow paths.
 version: 0.7.0
 repository: https://github.com/openci-org/openci/tree/develop/apps/openci_cli
 issue_tracker: https://github.com/openci-org/openci/issues

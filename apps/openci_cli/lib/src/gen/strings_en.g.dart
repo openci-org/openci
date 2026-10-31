@@ -44,7 +44,6 @@ class Translations with BaseTranslations<AppLocale, Translations> {
 	late final Translations$setup$en setup = Translations$setup$en.internal(_root);
 	late final Translations$switchCommand$en switchCommand = Translations$switchCommand$en.internal(_root);
 	late final Translations$use$en use = Translations$use$en.internal(_root);
-	late final Translations$dev$en dev = Translations$dev$en.internal(_root);
 	late final Translations$sync$en sync = Translations$sync$en.internal(_root);
 	late final Translations$common$en common = Translations$common$en.internal(_root);
 }
@@ -130,8 +129,8 @@ class Translations$login$en {
 	/// en: 'Login does not accept positional arguments.'
 	String get noArguments => 'Login does not accept positional arguments.';
 
-	/// en: 'Local server authentication failed. Check the server started by genuineci dev start.'
-	String get authenticationFailed => 'Local server authentication failed. Check the server started by genuineci dev start.';
+	/// en: 'Firebase authentication failed. Check your credentials and Auth Emulator settings.'
+	String get authenticationFailed => 'Firebase authentication failed. Check your credentials and Auth Emulator settings.';
 
 	/// en: 'Could not fetch teams (HTTP ${status}).'
 	String requestFailed({required Object status}) => 'Could not fetch teams (HTTP ${status}).';
@@ -142,8 +141,8 @@ class Translations$login$en {
 	/// en: 'The server returned an invalid team list.'
 	String get invalidResponse => 'The server returned an invalid team list.';
 
-	/// en: 'Could not connect to the local server. Check that genuineci dev start is running.'
-	String get connectionFailed => 'Could not connect to the local server. Check that genuineci dev start is running.';
+	/// en: 'Could not connect to the Auth Emulator. Check that it is running.'
+	String get connectionFailed => 'Could not connect to the Auth Emulator. Check that it is running.';
 
 	/// en: 'Could not save credentials. Check the local credentials file and its permissions.'
 	String get saveFailed => 'Could not save credentials. Check the local credentials file and its permissions.';
@@ -340,20 +339,6 @@ class Translations$use$en {
 
 	/// en: 'Invalid language "${input}". Supported languages: japanese, english.'
 	String invalidLanguage({required Object input}) => 'Invalid language "${input}". Supported languages: japanese, english.';
-}
-
-// Path: dev
-class Translations$dev$en {
-	Translations$dev$en.internal(this._root);
-
-	final Translations _root; // ignore: unused_field
-
-	// Translations
-
-	/// en: 'Manage local development environment (Docker, Tart, DB, Server).'
-	String get description => 'Manage local development environment (Docker, Tart, DB, Server).';
-
-	late final Translations$dev$start$en start = Translations$dev$start$en.internal(_root);
 }
 
 // Path: sync
@@ -872,89 +857,6 @@ class Translations$switchCommand$team$en {
 	String get saveFailed => 'Could not save the selected team. Check the credentials file, its permissions, and available disk space, then retry.';
 }
 
-// Path: dev.start
-class Translations$dev$start$en {
-	Translations$dev$start$en.internal(this._root);
-
-	final Translations _root; // ignore: unused_field
-
-	// Translations
-
-	/// en: 'Start local services and run the Mac Orchard Worker until Ctrl+C.'
-	String get description => 'Start local services and run the Mac Orchard Worker until Ctrl+C.';
-
-	late final Translations$dev$start$flags$en flags = Translations$dev$start$flags$en.internal(_root);
-
-	/// en: 'Starting OpenCI Local Development Environment...'
-	String get starting => 'Starting OpenCI Local Development Environment...';
-
-	/// en: 'Step 1: Checking Tart VM base image...'
-	String get stepTart => 'Step 1: Checking Tart VM base image...';
-
-	/// en: 'Error: Tart VM image "base-macos" not found. Please run the following commands to setup the base image: tart pull ghcr.io/cirruslabs/macos-tahoe-vanilla:26.5 tart clone ghcr.io/cirruslabs/macos-tahoe-vanilla:26.5 base-macos'
-	String get stepTartNotFound => 'Error: Tart VM image "base-macos" not found.\nPlease run the following commands to setup the base image:\n  tart pull ghcr.io/cirruslabs/macos-tahoe-vanilla:26.5\n  tart clone ghcr.io/cirruslabs/macos-tahoe-vanilla:26.5 base-macos';
-
-	/// en: 'Tart VM (base-macos) exists.'
-	String get stepTartExists => 'Tart VM (base-macos) exists.';
-
-	/// en: 'Starting Firebase Auth Emulator and waiting for readiness...'
-	String get stepAuthEmulator => 'Starting Firebase Auth Emulator and waiting for readiness...';
-
-	/// en: 'Error: Failed to start or verify Firebase Auth Emulator.'
-	String get stepAuthEmulatorFailed => 'Error: Failed to start or verify Firebase Auth Emulator.';
-
-	/// en: 'Step 5: Starting Docker containers...'
-	String get stepDockerCompose => 'Step 5: Starting Docker containers...';
-
-	/// en: 'Error: Failed to start Docker containers.'
-	String get stepDockerComposeFailed => 'Error: Failed to start Docker containers.';
-
-	/// en: 'Docker containers started.'
-	String get stepDockerComposeStarted => 'Docker containers started.';
-
-	/// en: 'Stopping and removing local Docker containers (keeping data volumes)...'
-	String get stepDockerComposeDown => 'Stopping and removing local Docker containers (keeping data volumes)...';
-
-	/// en: 'Error: Failed to shut down local Docker containers. Run docker compose -f docker-compose.yml -f docker-compose.local.yml -f docker-compose.local-api.yml down --remove-orphans from the checkout to retry.'
-	String get stepDockerComposeDownFailed => 'Error: Failed to shut down local Docker containers. Run docker compose -f docker-compose.yml -f docker-compose.local.yml -f docker-compose.local-api.yml down --remove-orphans from the checkout to retry.';
-
-	/// en: 'Step 3: Waiting for Orchard Controller to initialize...'
-	String get stepOrchardWaiting => 'Step 3: Waiting for Orchard Controller to initialize...';
-
-	/// en: 'Error: Orchard Controller did not become ready.'
-	String get stepOrchardNotReady => 'Error: Orchard Controller did not become ready.';
-
-	/// en: 'Step 4: Registering Orchard CLI context...'
-	String get stepOrchardContext => 'Step 4: Registering Orchard CLI context...';
-
-	/// en: 'Error: Failed to register Orchard CLI context.'
-	String get stepOrchardContextFailed => 'Error: Failed to register Orchard CLI context.';
-
-	/// en: 'Orchard CLI context authenticated.'
-	String get stepOrchardContextRegistered => 'Orchard CLI context authenticated.';
-
-	/// en: 'Starting Orchard Worker on this Mac. Press Ctrl+C to stop it. Docker containers will keep running.'
-	String get stepOrchardWorker => 'Starting Orchard Worker on this Mac. Press Ctrl+C to stop it. Docker containers will keep running.';
-
-	/// en: 'Error: Orchard Worker could not start or exited with an error.'
-	String get stepOrchardWorkerFailed => 'Error: Orchard Worker could not start or exited with an error.';
-
-	/// en: 'Step 6: Seeding local test data...'
-	String get stepSeed => 'Step 6: Seeding local test data...';
-
-	/// en: 'Error: Failed to seed local test data.'
-	String get stepSeedFailed => 'Error: Failed to seed local test data.';
-
-	/// en: 'Local test data seeded.'
-	String get stepSeedCompleted => 'Local test data seeded.';
-
-	/// en: 'Error: OpenCI project root not found.'
-	String get projectRootNotFound => 'Error: OpenCI project root not found.';
-
-	/// en: 'Step 2: Starting Orchard Controller...'
-	String get stepOrchardController => 'Step 2: Starting Orchard Controller...';
-}
-
 // Path: sync.paths
 class Translations$sync$paths$en {
 	Translations$sync$paths$en.internal(this._root);
@@ -1006,18 +908,6 @@ class Translations$sync$secrets$en {
 	String saved({required Object path}) => 'Generated secret definitions: ${path}';
 }
 
-// Path: dev.start.flags
-class Translations$dev$start$flags$en {
-	Translations$dev$start$flags$en.internal(this._root);
-
-	final Translations _root; // ignore: unused_field
-
-	// Translations
-
-	/// en: 'Queue the default smoke-test build job after starting services.'
-	String get seed => 'Queue the default smoke-test build job after starting services.';
-}
-
 /// The flat map containing all translations for locale <en>.
 /// Only for edge cases! For simple maps, use the map function of this library.
 ///
@@ -1050,11 +940,11 @@ extension on Translations {
 			'login.loggingIn' => 'Logging in to OpenCI...',
 			'login.savedSuccess' => ({required Object profile}) => 'Successfully saved and activated profile "${profile}".',
 			'login.noArguments' => 'Login does not accept positional arguments.',
-			'login.authenticationFailed' => 'Local server authentication failed. Check the server started by genuineci dev start.',
+			'login.authenticationFailed' => 'Firebase authentication failed. Check your credentials and Auth Emulator settings.',
 			'login.requestFailed' => ({required Object status}) => 'Could not fetch teams (HTTP ${status}).',
 			'login.localTeamRequired' => 'test-team is not available for this user. Check that the team is seeded and this Auth Emulator user belongs to it.',
 			'login.invalidResponse' => 'The server returned an invalid team list.',
-			'login.connectionFailed' => 'Could not connect to the local server. Check that genuineci dev start is running.',
+			'login.connectionFailed' => 'Could not connect to the Auth Emulator. Check that it is running.',
 			'login.saveFailed' => 'Could not save credentials. Check the local credentials file and its permissions.',
 			'login.localOptionsConflict' => '--local cannot be combined with remote login options.',
 			'login.serverRequired' => '--server must be a valid HTTPS URL without credentials, a query or a fragment. Use --local for local development.',
@@ -1220,32 +1110,6 @@ extension on Translations {
 			'use.description' => 'Set the default display language (japanese, english).',
 			'use.success' => ({required Object language}) => 'Language set to ${language}.',
 			'use.invalidLanguage' => ({required Object input}) => 'Invalid language "${input}". Supported languages: japanese, english.',
-			'dev.description' => 'Manage local development environment (Docker, Tart, DB, Server).',
-			'dev.start.description' => 'Start local services and run the Mac Orchard Worker until Ctrl+C.',
-			'dev.start.flags.seed' => 'Queue the default smoke-test build job after starting services.',
-			'dev.start.starting' => 'Starting OpenCI Local Development Environment...',
-			'dev.start.stepTart' => 'Step 1: Checking Tart VM base image...',
-			'dev.start.stepTartNotFound' => 'Error: Tart VM image "base-macos" not found.\nPlease run the following commands to setup the base image:\n  tart pull ghcr.io/cirruslabs/macos-tahoe-vanilla:26.5\n  tart clone ghcr.io/cirruslabs/macos-tahoe-vanilla:26.5 base-macos',
-			'dev.start.stepTartExists' => 'Tart VM (base-macos) exists.',
-			'dev.start.stepAuthEmulator' => 'Starting Firebase Auth Emulator and waiting for readiness...',
-			'dev.start.stepAuthEmulatorFailed' => 'Error: Failed to start or verify Firebase Auth Emulator.',
-			'dev.start.stepDockerCompose' => 'Step 5: Starting Docker containers...',
-			'dev.start.stepDockerComposeFailed' => 'Error: Failed to start Docker containers.',
-			'dev.start.stepDockerComposeStarted' => 'Docker containers started.',
-			'dev.start.stepDockerComposeDown' => 'Stopping and removing local Docker containers (keeping data volumes)...',
-			'dev.start.stepDockerComposeDownFailed' => 'Error: Failed to shut down local Docker containers. Run docker compose -f docker-compose.yml -f docker-compose.local.yml -f docker-compose.local-api.yml down --remove-orphans from the checkout to retry.',
-			'dev.start.stepOrchardWaiting' => 'Step 3: Waiting for Orchard Controller to initialize...',
-			'dev.start.stepOrchardNotReady' => 'Error: Orchard Controller did not become ready.',
-			'dev.start.stepOrchardContext' => 'Step 4: Registering Orchard CLI context...',
-			'dev.start.stepOrchardContextFailed' => 'Error: Failed to register Orchard CLI context.',
-			'dev.start.stepOrchardContextRegistered' => 'Orchard CLI context authenticated.',
-			'dev.start.stepOrchardWorker' => 'Starting Orchard Worker on this Mac. Press Ctrl+C to stop it. Docker containers will keep running.',
-			'dev.start.stepOrchardWorkerFailed' => 'Error: Orchard Worker could not start or exited with an error.',
-			'dev.start.stepSeed' => 'Step 6: Seeding local test data...',
-			'dev.start.stepSeedFailed' => 'Error: Failed to seed local test data.',
-			'dev.start.stepSeedCompleted' => 'Local test data seeded.',
-			'dev.start.projectRootNotFound' => 'Error: OpenCI project root not found.',
-			'dev.start.stepOrchardController' => 'Step 2: Starting Orchard Controller...',
 			'sync.description' => 'Generate secret definitions and workspace paths in openci/generated.',
 			'sync.paths.description' => 'Generate only openci/generated/paths.g.dart from pubspec.yaml.',
 			'sync.paths.projectRootNotFound' => 'No project containing pubspec.yaml and an openci directory found. Run this command from your workflow project.',

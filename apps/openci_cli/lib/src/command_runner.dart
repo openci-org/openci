@@ -7,7 +7,6 @@ import 'package:cli_util/cli_logging.dart';
 import 'package:meta/meta.dart';
 
 import 'commands/delete/delete_command.dart';
-import 'commands/dev/dev_command.dart';
 import 'commands/list/list_command.dart';
 import 'commands/login_command.dart';
 import 'commands/register/register_command.dart';
@@ -80,7 +79,6 @@ class GenuineCICommandRunner extends CompletionCommandRunner<int> {
     addCommand(SetupCommand(logger: _logger));
     addCommand(SwitchCommand(logger: _logger));
     addCommand(UseCommand(logger: _logger));
-    addCommand(DevCommand(logger: _logger));
     addCommand(SyncCommand(logger: _logger));
     addCommand(UpdateCommand(logger: _logger, updater: _updater));
   }

@@ -1,15 +1,10 @@
 import 'package:flutter/foundation.dart';
 import 'package:macos_updater/macos_updater.dart';
 
-const _openciServerUrl = String.fromEnvironment('OPENCI_SERVER_URL');
-
 String? get _macosUpdateFeedUrl {
   const customFeedUrl = String.fromEnvironment('OPENCI_MACOS_UPDATE_FEED_URL');
   if (customFeedUrl.isNotEmpty) {
     return customFeedUrl;
-  }
-  if (_openciServerUrl.isNotEmpty) {
-    return '$_openciServerUrl/updates/openci-org/openci/macos/appcast.xml';
   }
   return null;
 }

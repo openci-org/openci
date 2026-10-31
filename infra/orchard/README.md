@@ -215,6 +215,11 @@ webhooks now use FSC. Their previous launchd configuration and bootstrap token
 are backed up in root-only directories on each Mac. See the
 [production cutover record](../../firebase/functions/DEPLOYMENT.md).
 
+The old controller container and data volume were backed up and removed later
+on 2026-10-31 JST. See [the retirement record](../../firebase/functions/LEGACY_RETIREMENT.md)
+for backup locations and restore verification. This does not replace the pending
+backup configuration for this GCP controller's data disk.
+
 References: [Orchard deployment](https://tart.run/orchard/deploying-controller/),
 [worker deployment](https://tart.run/orchard/deploying-workers/),
 [Orchard 0.58.0](https://github.com/openai/orchard/releases/tag/0.58.0).

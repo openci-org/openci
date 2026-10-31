@@ -50,7 +50,8 @@ uses Secret Manager and does not require that key.
 
 Do not deploy the server endpoint removal or distribute the new clients before
 steps 1–4. Existing deployed clients continue using the old API during preparation.
-The old Loki volume/database are not deleted by this source change.
+The old Loki storage is retired separately in G-1607; see
+[the retirement record](LEGACY_RETIREMENT.md).
 
 1. Deploy the FSC schema and connectors from `firebase/`. This adds
    `SecretVersionCleanup` and the new queries/mutations; it does not drop the old

@@ -3,7 +3,6 @@
     { "name": "root", "path": "." },
     { "name": "dashboard", "path": "apps/dashboard" },
     { "name": "openci_cli", "path": "apps/openci_cli" },
-    { "name": "openci_server", "path": "apps/openci_server" },
     { "name": "dart_functions", "path": "firebase/dart_functions" },
     { "name": "openci_workflow", "path": "packages/openci_workflow" },
     { "name": "openci_shared", "path": "packages/openci_shared" },

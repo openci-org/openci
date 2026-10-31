@@ -4,7 +4,7 @@ import { setTimeout as delay } from "node:timers/promises";
 import * as sdk from "@openci/billing-admin";
 import { ExecutionStopped, identity, type Context, type Dispatch } from "./model.js";
 
-/** Same paid/complimentary admission policy as genuineci_server. No trial bypass. */
+/** Paid/complimentary admission policy. No trial bypass. */
 export function paidPeriod(
   context: Context,
   teamId: string,

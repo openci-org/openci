@@ -19,7 +19,6 @@ extension type const WorkspaceRoot._(String _path) implements WorkspaceDirectory
 extension type const WorkspaceRoot$Apps._(String _path) implements WorkspaceDirectory {
   WorkspaceRoot$Apps$Dashboard get dashboard => const WorkspaceRoot$Apps$Dashboard._("apps/dashboard");
   WorkspaceRoot$Apps$OpenciCli get openciCli => const WorkspaceRoot$Apps$OpenciCli._("apps/openci_cli");
-  WorkspaceRoot$Apps$OpenciServer get openciServer => const WorkspaceRoot$Apps$OpenciServer._("apps/openci_server");
 }
 
 extension type const WorkspaceRoot$Apps$Dashboard._(String _path) implements WorkspaceDirectory {
@@ -122,11 +121,7 @@ extension type const WorkspaceRoot$Apps$Dashboard$Ios$RunnerXcodeproj$ProjectXcw
 }
 
 extension type const WorkspaceRoot$Apps$Dashboard$Ios$RunnerXcodeproj$ProjectXcworkspace$Xcshareddata._(String _path) implements WorkspaceDirectory {
-  WorkspaceRoot$Apps$Dashboard$Ios$RunnerXcodeproj$ProjectXcworkspace$Xcshareddata$Swiftpm get swiftpm => const WorkspaceRoot$Apps$Dashboard$Ios$RunnerXcodeproj$ProjectXcworkspace$Xcshareddata$Swiftpm._("apps/dashboard/ios/Runner.xcodeproj/project.xcworkspace/xcshareddata/swiftpm");
-}
-
-extension type const WorkspaceRoot$Apps$Dashboard$Ios$RunnerXcodeproj$ProjectXcworkspace$Xcshareddata$Swiftpm._(String _path) implements WorkspaceDirectory {
-  WorkspaceDirectory get configuration => const WorkspaceDirectory("apps/dashboard/ios/Runner.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/configuration");
+  WorkspaceDirectory get swiftpm => const WorkspaceDirectory("apps/dashboard/ios/Runner.xcodeproj/project.xcworkspace/xcshareddata/swiftpm");
 }
 
 extension type const WorkspaceRoot$Apps$Dashboard$Ios$RunnerXcodeproj$Xcshareddata._(String _path) implements WorkspaceDirectory {
@@ -138,22 +133,20 @@ extension type const WorkspaceRoot$Apps$Dashboard$Ios$RunnerXcworkspace._(String
 }
 
 extension type const WorkspaceRoot$Apps$Dashboard$Ios$RunnerXcworkspace$Xcshareddata._(String _path) implements WorkspaceDirectory {
-  WorkspaceRoot$Apps$Dashboard$Ios$RunnerXcworkspace$Xcshareddata$Swiftpm get swiftpm => const WorkspaceRoot$Apps$Dashboard$Ios$RunnerXcworkspace$Xcshareddata$Swiftpm._("apps/dashboard/ios/Runner.xcworkspace/xcshareddata/swiftpm");
-}
-
-extension type const WorkspaceRoot$Apps$Dashboard$Ios$RunnerXcworkspace$Xcshareddata$Swiftpm._(String _path) implements WorkspaceDirectory {
-  WorkspaceDirectory get configuration => const WorkspaceDirectory("apps/dashboard/ios/Runner.xcworkspace/xcshareddata/swiftpm/configuration");
+  WorkspaceDirectory get swiftpm => const WorkspaceDirectory("apps/dashboard/ios/Runner.xcworkspace/xcshareddata/swiftpm");
 }
 
 extension type const WorkspaceRoot$Apps$Dashboard$Lib._(String _path) implements WorkspaceDirectory {
   WorkspaceDirectory get api => const WorkspaceDirectory("apps/dashboard/lib/api");
   WorkspaceDirectory get auth => const WorkspaceDirectory("apps/dashboard/lib/auth");
+  WorkspaceDirectory get billing => const WorkspaceDirectory("apps/dashboard/lib/billing");
   WorkspaceRoot$Apps$Dashboard$Lib$BuildLogs get buildLogs => const WorkspaceRoot$Apps$Dashboard$Lib$BuildLogs._("apps/dashboard/lib/build_logs");
   WorkspaceRoot$Apps$Dashboard$Lib$CicdLog get cicdLog => const WorkspaceRoot$Apps$Dashboard$Lib$CicdLog._("apps/dashboard/lib/cicd_log");
   WorkspaceDirectory get connections => const WorkspaceDirectory("apps/dashboard/lib/connections");
   WorkspaceDirectory get deepLink => const WorkspaceDirectory("apps/dashboard/lib/deep_link");
   WorkspaceDirectory get extensions => const WorkspaceDirectory("apps/dashboard/lib/extensions");
   WorkspaceDirectory get firebase => const WorkspaceDirectory("apps/dashboard/lib/firebase");
+  WorkspaceRoot$Apps$Dashboard$Lib$Generated get generated => const WorkspaceRoot$Apps$Dashboard$Lib$Generated._("apps/dashboard/lib/generated");
   WorkspaceDirectory get responsive => const WorkspaceDirectory("apps/dashboard/lib/responsive");
   WorkspaceDirectory get revenueCat => const WorkspaceDirectory("apps/dashboard/lib/revenue_cat");
   WorkspaceDirectory get root => const WorkspaceDirectory("apps/dashboard/lib/root");
@@ -171,6 +164,15 @@ extension type const WorkspaceRoot$Apps$Dashboard$Lib$BuildLogs._(String _path) 
 extension type const WorkspaceRoot$Apps$Dashboard$Lib$CicdLog._(String _path) implements WorkspaceDirectory {
   WorkspaceDirectory get detail => const WorkspaceDirectory("apps/dashboard/lib/cicd_log/detail");
   WorkspaceDirectory get widgets => const WorkspaceDirectory("apps/dashboard/lib/cicd_log/widgets");
+}
+
+extension type const WorkspaceRoot$Apps$Dashboard$Lib$Generated._(String _path) implements WorkspaceDirectory {
+  WorkspaceDirectory get billing => const WorkspaceDirectory("apps/dashboard/lib/generated/billing");
+  WorkspaceDirectory get builds => const WorkspaceDirectory("apps/dashboard/lib/generated/builds");
+  WorkspaceDirectory get github => const WorkspaceDirectory("apps/dashboard/lib/generated/github");
+  WorkspaceDirectory get logs => const WorkspaceDirectory("apps/dashboard/lib/generated/logs");
+  WorkspaceDirectory get secrets => const WorkspaceDirectory("apps/dashboard/lib/generated/secrets");
+  WorkspaceDirectory get teams => const WorkspaceDirectory("apps/dashboard/lib/generated/teams");
 }
 
 extension type const WorkspaceRoot$Apps$Dashboard$Macos._(String _path) implements WorkspaceDirectory {
@@ -201,11 +203,7 @@ extension type const WorkspaceRoot$Apps$Dashboard$Macos$RunnerXcodeproj$ProjectX
 }
 
 extension type const WorkspaceRoot$Apps$Dashboard$Macos$RunnerXcodeproj$ProjectXcworkspace$Xcshareddata._(String _path) implements WorkspaceDirectory {
-  WorkspaceRoot$Apps$Dashboard$Macos$RunnerXcodeproj$ProjectXcworkspace$Xcshareddata$Swiftpm get swiftpm => const WorkspaceRoot$Apps$Dashboard$Macos$RunnerXcodeproj$ProjectXcworkspace$Xcshareddata$Swiftpm._("apps/dashboard/macos/Runner.xcodeproj/project.xcworkspace/xcshareddata/swiftpm");
-}
-
-extension type const WorkspaceRoot$Apps$Dashboard$Macos$RunnerXcodeproj$ProjectXcworkspace$Xcshareddata$Swiftpm._(String _path) implements WorkspaceDirectory {
-  WorkspaceDirectory get configuration => const WorkspaceDirectory("apps/dashboard/macos/Runner.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/configuration");
+  WorkspaceDirectory get swiftpm => const WorkspaceDirectory("apps/dashboard/macos/Runner.xcodeproj/project.xcworkspace/xcshareddata/swiftpm");
 }
 
 extension type const WorkspaceRoot$Apps$Dashboard$Macos$RunnerXcodeproj$Xcshareddata._(String _path) implements WorkspaceDirectory {
@@ -217,21 +215,20 @@ extension type const WorkspaceRoot$Apps$Dashboard$Macos$RunnerXcworkspace._(Stri
 }
 
 extension type const WorkspaceRoot$Apps$Dashboard$Macos$RunnerXcworkspace$Xcshareddata._(String _path) implements WorkspaceDirectory {
-  WorkspaceRoot$Apps$Dashboard$Macos$RunnerXcworkspace$Xcshareddata$Swiftpm get swiftpm => const WorkspaceRoot$Apps$Dashboard$Macos$RunnerXcworkspace$Xcshareddata$Swiftpm._("apps/dashboard/macos/Runner.xcworkspace/xcshareddata/swiftpm");
-}
-
-extension type const WorkspaceRoot$Apps$Dashboard$Macos$RunnerXcworkspace$Xcshareddata$Swiftpm._(String _path) implements WorkspaceDirectory {
-  WorkspaceDirectory get configuration => const WorkspaceDirectory("apps/dashboard/macos/Runner.xcworkspace/xcshareddata/swiftpm/configuration");
+  WorkspaceDirectory get swiftpm => const WorkspaceDirectory("apps/dashboard/macos/Runner.xcworkspace/xcshareddata/swiftpm");
 }
 
 extension type const WorkspaceRoot$Apps$Dashboard$Test._(String _path) implements WorkspaceDirectory {
-  WorkspaceDirectory get api => const WorkspaceDirectory("apps/dashboard/test/api");
   WorkspaceDirectory get auth => const WorkspaceDirectory("apps/dashboard/test/auth");
+  WorkspaceDirectory get billing => const WorkspaceDirectory("apps/dashboard/test/billing");
   WorkspaceDirectory get buildLogs => const WorkspaceDirectory("apps/dashboard/test/build_logs");
   WorkspaceDirectory get connections => const WorkspaceDirectory("apps/dashboard/test/connections");
   WorkspaceDirectory get firebase => const WorkspaceDirectory("apps/dashboard/test/firebase");
+  WorkspaceDirectory get generated => const WorkspaceDirectory("apps/dashboard/test/generated");
+  WorkspaceDirectory get helpers => const WorkspaceDirectory("apps/dashboard/test/helpers");
   WorkspaceDirectory get root => const WorkspaceDirectory("apps/dashboard/test/root");
   WorkspaceDirectory get router => const WorkspaceDirectory("apps/dashboard/test/router");
+  WorkspaceDirectory get secretManager => const WorkspaceDirectory("apps/dashboard/test/secret_manager");
   WorkspaceDirectory get team => const WorkspaceDirectory("apps/dashboard/test/team");
   WorkspaceDirectory get utilities => const WorkspaceDirectory("apps/dashboard/test/utilities");
 }
@@ -259,17 +256,18 @@ extension type const WorkspaceRoot$Apps$OpenciCli$Lib$Src._(String _path) implem
   WorkspaceDirectory get config => const WorkspaceDirectory("apps/openci_cli/lib/src/config");
   WorkspaceDirectory get credentialStore => const WorkspaceDirectory("apps/openci_cli/lib/src/credential_store");
   WorkspaceDirectory get extensions => const WorkspaceDirectory("apps/openci_cli/lib/src/extensions");
+  WorkspaceDirectory get functions => const WorkspaceDirectory("apps/openci_cli/lib/src/functions");
   WorkspaceDirectory get gen => const WorkspaceDirectory("apps/openci_cli/lib/src/gen");
   WorkspaceDirectory get i18n => const WorkspaceDirectory("apps/openci_cli/lib/src/i18n");
   WorkspaceDirectory get jsonFileStore => const WorkspaceDirectory("apps/openci_cli/lib/src/json_file_store");
   WorkspaceDirectory get secrets => const WorkspaceDirectory("apps/openci_cli/lib/src/secrets");
+  WorkspaceDirectory get teams => const WorkspaceDirectory("apps/openci_cli/lib/src/teams");
   WorkspaceDirectory get terminal => const WorkspaceDirectory("apps/openci_cli/lib/src/terminal");
   WorkspaceDirectory get update => const WorkspaceDirectory("apps/openci_cli/lib/src/update");
 }
 
 extension type const WorkspaceRoot$Apps$OpenciCli$Lib$Src$Commands._(String _path) implements WorkspaceDirectory {
   WorkspaceDirectory get delete => const WorkspaceDirectory("apps/openci_cli/lib/src/commands/delete");
-  WorkspaceDirectory get dev => const WorkspaceDirectory("apps/openci_cli/lib/src/commands/dev");
   WorkspaceDirectory get list => const WorkspaceDirectory("apps/openci_cli/lib/src/commands/list");
   WorkspaceDirectory get login => const WorkspaceDirectory("apps/openci_cli/lib/src/commands/login");
   WorkspaceDirectory get register => const WorkspaceDirectory("apps/openci_cli/lib/src/commands/register");
@@ -279,6 +277,7 @@ extension type const WorkspaceRoot$Apps$OpenciCli$Lib$Src$Commands._(String _pat
 }
 
 extension type const WorkspaceRoot$Apps$OpenciCli$Test._(String _path) implements WorkspaceDirectory {
+  WorkspaceDirectory get helpers => const WorkspaceDirectory("apps/openci_cli/test/helpers");
   WorkspaceRoot$Apps$OpenciCli$Test$Src get src => const WorkspaceRoot$Apps$OpenciCli$Test$Src._("apps/openci_cli/test/src");
 }
 
@@ -298,194 +297,12 @@ extension type const WorkspaceRoot$Apps$OpenciCli$Test$Src._(String _path) imple
 
 extension type const WorkspaceRoot$Apps$OpenciCli$Test$Src$Commands._(String _path) implements WorkspaceDirectory {
   WorkspaceDirectory get delete => const WorkspaceDirectory("apps/openci_cli/test/src/commands/delete");
-  WorkspaceDirectory get dev => const WorkspaceDirectory("apps/openci_cli/test/src/commands/dev");
   WorkspaceDirectory get list => const WorkspaceDirectory("apps/openci_cli/test/src/commands/list");
   WorkspaceDirectory get login => const WorkspaceDirectory("apps/openci_cli/test/src/commands/login");
   WorkspaceDirectory get register => const WorkspaceDirectory("apps/openci_cli/test/src/commands/register");
   WorkspaceDirectory get setup => const WorkspaceDirectory("apps/openci_cli/test/src/commands/setup");
   WorkspaceDirectory get switch_ => const WorkspaceDirectory("apps/openci_cli/test/src/commands/switch");
   WorkspaceDirectory get sync => const WorkspaceDirectory("apps/openci_cli/test/src/commands/sync");
-}
-
-extension type const WorkspaceRoot$Apps$OpenciServer._(String _path) implements WorkspaceDirectory {
-  WorkspaceDirectory get integrationTest => const WorkspaceDirectory("apps/openci_server/integration_test");
-  WorkspaceRoot$Apps$OpenciServer$Lib get lib => const WorkspaceRoot$Apps$OpenciServer$Lib._("apps/openci_server/lib");
-  WorkspaceRoot$Apps$OpenciServer$Routes get routes => const WorkspaceRoot$Apps$OpenciServer$Routes._("apps/openci_server/routes");
-  WorkspaceRoot$Apps$OpenciServer$Test get test => const WorkspaceRoot$Apps$OpenciServer$Test._("apps/openci_server/test");
-}
-
-extension type const WorkspaceRoot$Apps$OpenciServer$Lib._(String _path) implements WorkspaceDirectory {
-  WorkspaceDirectory get auth => const WorkspaceDirectory("apps/openci_server/lib/auth");
-  WorkspaceDirectory get buildJob => const WorkspaceDirectory("apps/openci_server/lib/build_job");
-  WorkspaceDirectory get buildRun => const WorkspaceDirectory("apps/openci_server/lib/build_run");
-  WorkspaceDirectory get device => const WorkspaceDirectory("apps/openci_server/lib/device");
-  WorkspaceDirectory get github => const WorkspaceDirectory("apps/openci_server/lib/github");
-  WorkspaceDirectory get iosSigning => const WorkspaceDirectory("apps/openci_server/lib/ios_signing");
-  WorkspaceDirectory get logging => const WorkspaceDirectory("apps/openci_server/lib/logging");
-  WorkspaceDirectory get request => const WorkspaceDirectory("apps/openci_server/lib/request");
-  WorkspaceDirectory get secret => const WorkspaceDirectory("apps/openci_server/lib/secret");
-  WorkspaceDirectory get seed => const WorkspaceDirectory("apps/openci_server/lib/seed");
-  WorkspaceDirectory get team => const WorkspaceDirectory("apps/openci_server/lib/team");
-  WorkspaceDirectory get webhookTask => const WorkspaceDirectory("apps/openci_server/lib/webhook_task");
-}
-
-extension type const WorkspaceRoot$Apps$OpenciServer$Routes._(String _path) implements WorkspaceDirectory {
-  WorkspaceRoot$Apps$OpenciServer$Routes$Builds get builds => const WorkspaceRoot$Apps$OpenciServer$Routes$Builds._("apps/openci_server/routes/builds");
-  WorkspaceDirectory get devices => const WorkspaceDirectory("apps/openci_server/routes/devices");
-  WorkspaceRoot$Apps$OpenciServer$Routes$Internal get internal => const WorkspaceRoot$Apps$OpenciServer$Routes$Internal._("apps/openci_server/routes/internal");
-  WorkspaceRoot$Apps$OpenciServer$Routes$Teams get teams => const WorkspaceRoot$Apps$OpenciServer$Routes$Teams._("apps/openci_server/routes/teams");
-  WorkspaceRoot$Apps$OpenciServer$Routes$Webhooks get webhooks => const WorkspaceRoot$Apps$OpenciServer$Routes$Webhooks._("apps/openci_server/routes/webhooks");
-  WorkspaceRoot$Apps$OpenciServer$Routes$Worker get worker => const WorkspaceRoot$Apps$OpenciServer$Routes$Worker._("apps/openci_server/routes/worker");
-}
-
-extension type const WorkspaceRoot$Apps$OpenciServer$Routes$Builds._(String _path) implements WorkspaceDirectory {
-  WorkspaceRoot$Apps$OpenciServer$Routes$Builds$Id get id => const WorkspaceRoot$Apps$OpenciServer$Routes$Builds$Id._("apps/openci_server/routes/builds/[id]");
-  WorkspaceDirectory get commits => const WorkspaceDirectory("apps/openci_server/routes/builds/commits");
-}
-
-extension type const WorkspaceRoot$Apps$OpenciServer$Routes$Builds$Id._(String _path) implements WorkspaceDirectory {
-  WorkspaceRoot$Apps$OpenciServer$Routes$Builds$Id$Runs get runs => const WorkspaceRoot$Apps$OpenciServer$Routes$Builds$Id$Runs._("apps/openci_server/routes/builds/[id]/runs");
-}
-
-extension type const WorkspaceRoot$Apps$OpenciServer$Routes$Builds$Id$Runs._(String _path) implements WorkspaceDirectory {
-  WorkspaceRoot$Apps$OpenciServer$Routes$Builds$Id$Runs$RunId get runId => const WorkspaceRoot$Apps$OpenciServer$Routes$Builds$Id$Runs$RunId._("apps/openci_server/routes/builds/[id]/runs/[runId]");
-}
-
-extension type const WorkspaceRoot$Apps$OpenciServer$Routes$Builds$Id$Runs$RunId._(String _path) implements WorkspaceDirectory {
-  WorkspaceRoot$Apps$OpenciServer$Routes$Builds$Id$Runs$RunId$Steps get steps => const WorkspaceRoot$Apps$OpenciServer$Routes$Builds$Id$Runs$RunId$Steps._("apps/openci_server/routes/builds/[id]/runs/[runId]/steps");
-}
-
-extension type const WorkspaceRoot$Apps$OpenciServer$Routes$Builds$Id$Runs$RunId$Steps._(String _path) implements WorkspaceDirectory {
-  WorkspaceDirectory get stepId => const WorkspaceDirectory("apps/openci_server/routes/builds/[id]/runs/[runId]/steps/[stepId]");
-}
-
-extension type const WorkspaceRoot$Apps$OpenciServer$Routes$Internal._(String _path) implements WorkspaceDirectory {
-  WorkspaceDirectory get seed => const WorkspaceDirectory("apps/openci_server/routes/internal/seed");
-}
-
-extension type const WorkspaceRoot$Apps$OpenciServer$Routes$Teams._(String _path) implements WorkspaceDirectory {
-  WorkspaceRoot$Apps$OpenciServer$Routes$Teams$Id get id => const WorkspaceRoot$Apps$OpenciServer$Routes$Teams$Id._("apps/openci_server/routes/teams/[id]");
-  WorkspaceDirectory get byInstallation => const WorkspaceDirectory("apps/openci_server/routes/teams/by-installation");
-}
-
-extension type const WorkspaceRoot$Apps$OpenciServer$Routes$Teams$Id._(String _path) implements WorkspaceDirectory {
-  WorkspaceRoot$Apps$OpenciServer$Routes$Teams$Id$Github get github => const WorkspaceRoot$Apps$OpenciServer$Routes$Teams$Id$Github._("apps/openci_server/routes/teams/[id]/github");
-  WorkspaceDirectory get iosSigning => const WorkspaceDirectory("apps/openci_server/routes/teams/[id]/ios-signing");
-  WorkspaceRoot$Apps$OpenciServer$Routes$Teams$Id$Repositories get repositories => const WorkspaceRoot$Apps$OpenciServer$Routes$Teams$Id$Repositories._("apps/openci_server/routes/teams/[id]/repositories");
-  WorkspaceDirectory get secrets => const WorkspaceDirectory("apps/openci_server/routes/teams/[id]/secrets");
-}
-
-extension type const WorkspaceRoot$Apps$OpenciServer$Routes$Teams$Id$Github._(String _path) implements WorkspaceDirectory {
-  WorkspaceRoot$Apps$OpenciServer$Routes$Teams$Id$Github$Repositories get repositories => const WorkspaceRoot$Apps$OpenciServer$Routes$Teams$Id$Github$Repositories._("apps/openci_server/routes/teams/[id]/github/repositories");
-}
-
-extension type const WorkspaceRoot$Apps$OpenciServer$Routes$Teams$Id$Github$Repositories._(String _path) implements WorkspaceDirectory {
-  WorkspaceRoot$Apps$OpenciServer$Routes$Teams$Id$Github$Repositories$Owner get owner => const WorkspaceRoot$Apps$OpenciServer$Routes$Teams$Id$Github$Repositories$Owner._("apps/openci_server/routes/teams/[id]/github/repositories/[owner]");
-}
-
-extension type const WorkspaceRoot$Apps$OpenciServer$Routes$Teams$Id$Github$Repositories$Owner._(String _path) implements WorkspaceDirectory {
-  WorkspaceDirectory get repo => const WorkspaceDirectory("apps/openci_server/routes/teams/[id]/github/repositories/[owner]/[repo]");
-}
-
-extension type const WorkspaceRoot$Apps$OpenciServer$Routes$Teams$Id$Repositories._(String _path) implements WorkspaceDirectory {
-  WorkspaceDirectory get repo => const WorkspaceDirectory("apps/openci_server/routes/teams/[id]/repositories/[repo]");
-}
-
-extension type const WorkspaceRoot$Apps$OpenciServer$Routes$Webhooks._(String _path) implements WorkspaceDirectory {
-  WorkspaceRoot$Apps$OpenciServer$Routes$Webhooks$Tasks get tasks => const WorkspaceRoot$Apps$OpenciServer$Routes$Webhooks$Tasks._("apps/openci_server/routes/webhooks/tasks");
-}
-
-extension type const WorkspaceRoot$Apps$OpenciServer$Routes$Webhooks$Tasks._(String _path) implements WorkspaceDirectory {
-  WorkspaceDirectory get id => const WorkspaceDirectory("apps/openci_server/routes/webhooks/tasks/[id]");
-}
-
-extension type const WorkspaceRoot$Apps$OpenciServer$Routes$Worker._(String _path) implements WorkspaceDirectory {
-  WorkspaceDirectory get jobs => const WorkspaceDirectory("apps/openci_server/routes/worker/jobs");
-}
-
-extension type const WorkspaceRoot$Apps$OpenciServer$Test._(String _path) implements WorkspaceDirectory {
-  WorkspaceDirectory get helpers => const WorkspaceDirectory("apps/openci_server/test/helpers");
-  WorkspaceRoot$Apps$OpenciServer$Test$Lib get lib => const WorkspaceRoot$Apps$OpenciServer$Test$Lib._("apps/openci_server/test/lib");
-  WorkspaceRoot$Apps$OpenciServer$Test$Routes get routes => const WorkspaceRoot$Apps$OpenciServer$Test$Routes._("apps/openci_server/test/routes");
-}
-
-extension type const WorkspaceRoot$Apps$OpenciServer$Test$Lib._(String _path) implements WorkspaceDirectory {
-  WorkspaceDirectory get auth => const WorkspaceDirectory("apps/openci_server/test/lib/auth");
-  WorkspaceDirectory get buildJob => const WorkspaceDirectory("apps/openci_server/test/lib/build_job");
-  WorkspaceDirectory get device => const WorkspaceDirectory("apps/openci_server/test/lib/device");
-  WorkspaceDirectory get github => const WorkspaceDirectory("apps/openci_server/test/lib/github");
-  WorkspaceDirectory get iosSigning => const WorkspaceDirectory("apps/openci_server/test/lib/ios_signing");
-  WorkspaceDirectory get logging => const WorkspaceDirectory("apps/openci_server/test/lib/logging");
-  WorkspaceDirectory get secret => const WorkspaceDirectory("apps/openci_server/test/lib/secret");
-  WorkspaceDirectory get seed => const WorkspaceDirectory("apps/openci_server/test/lib/seed");
-  WorkspaceDirectory get team => const WorkspaceDirectory("apps/openci_server/test/lib/team");
-  WorkspaceDirectory get webhookTask => const WorkspaceDirectory("apps/openci_server/test/lib/webhook_task");
-}
-
-extension type const WorkspaceRoot$Apps$OpenciServer$Test$Routes._(String _path) implements WorkspaceDirectory {
-  WorkspaceRoot$Apps$OpenciServer$Test$Routes$Builds get builds => const WorkspaceRoot$Apps$OpenciServer$Test$Routes$Builds._("apps/openci_server/test/routes/builds");
-  WorkspaceDirectory get devices => const WorkspaceDirectory("apps/openci_server/test/routes/devices");
-  WorkspaceRoot$Apps$OpenciServer$Test$Routes$Internal get internal => const WorkspaceRoot$Apps$OpenciServer$Test$Routes$Internal._("apps/openci_server/test/routes/internal");
-  WorkspaceRoot$Apps$OpenciServer$Test$Routes$Teams get teams => const WorkspaceRoot$Apps$OpenciServer$Test$Routes$Teams._("apps/openci_server/test/routes/teams");
-  WorkspaceRoot$Apps$OpenciServer$Test$Routes$Webhooks get webhooks => const WorkspaceRoot$Apps$OpenciServer$Test$Routes$Webhooks._("apps/openci_server/test/routes/webhooks");
-  WorkspaceRoot$Apps$OpenciServer$Test$Routes$Worker get worker => const WorkspaceRoot$Apps$OpenciServer$Test$Routes$Worker._("apps/openci_server/test/routes/worker");
-}
-
-extension type const WorkspaceRoot$Apps$OpenciServer$Test$Routes$Builds._(String _path) implements WorkspaceDirectory {
-  WorkspaceRoot$Apps$OpenciServer$Test$Routes$Builds$Id get id => const WorkspaceRoot$Apps$OpenciServer$Test$Routes$Builds$Id._("apps/openci_server/test/routes/builds/[id]");
-  WorkspaceDirectory get commits => const WorkspaceDirectory("apps/openci_server/test/routes/builds/commits");
-}
-
-extension type const WorkspaceRoot$Apps$OpenciServer$Test$Routes$Builds$Id._(String _path) implements WorkspaceDirectory {
-  WorkspaceRoot$Apps$OpenciServer$Test$Routes$Builds$Id$Runs get runs => const WorkspaceRoot$Apps$OpenciServer$Test$Routes$Builds$Id$Runs._("apps/openci_server/test/routes/builds/[id]/runs");
-}
-
-extension type const WorkspaceRoot$Apps$OpenciServer$Test$Routes$Builds$Id$Runs._(String _path) implements WorkspaceDirectory {
-  WorkspaceDirectory get runId => const WorkspaceDirectory("apps/openci_server/test/routes/builds/[id]/runs/[runId]");
-}
-
-extension type const WorkspaceRoot$Apps$OpenciServer$Test$Routes$Internal._(String _path) implements WorkspaceDirectory {
-  WorkspaceDirectory get seed => const WorkspaceDirectory("apps/openci_server/test/routes/internal/seed");
-}
-
-extension type const WorkspaceRoot$Apps$OpenciServer$Test$Routes$Teams._(String _path) implements WorkspaceDirectory {
-  WorkspaceRoot$Apps$OpenciServer$Test$Routes$Teams$Id get id => const WorkspaceRoot$Apps$OpenciServer$Test$Routes$Teams$Id._("apps/openci_server/test/routes/teams/[id]");
-  WorkspaceDirectory get byInstallation => const WorkspaceDirectory("apps/openci_server/test/routes/teams/by-installation");
-}
-
-extension type const WorkspaceRoot$Apps$OpenciServer$Test$Routes$Teams$Id._(String _path) implements WorkspaceDirectory {
-  WorkspaceRoot$Apps$OpenciServer$Test$Routes$Teams$Id$Github get github => const WorkspaceRoot$Apps$OpenciServer$Test$Routes$Teams$Id$Github._("apps/openci_server/test/routes/teams/[id]/github");
-  WorkspaceDirectory get iosSigning => const WorkspaceDirectory("apps/openci_server/test/routes/teams/[id]/ios-signing");
-  WorkspaceRoot$Apps$OpenciServer$Test$Routes$Teams$Id$Repositories get repositories => const WorkspaceRoot$Apps$OpenciServer$Test$Routes$Teams$Id$Repositories._("apps/openci_server/test/routes/teams/[id]/repositories");
-  WorkspaceDirectory get secrets => const WorkspaceDirectory("apps/openci_server/test/routes/teams/[id]/secrets");
-}
-
-extension type const WorkspaceRoot$Apps$OpenciServer$Test$Routes$Teams$Id$Github._(String _path) implements WorkspaceDirectory {
-  WorkspaceRoot$Apps$OpenciServer$Test$Routes$Teams$Id$Github$Repositories get repositories => const WorkspaceRoot$Apps$OpenciServer$Test$Routes$Teams$Id$Github$Repositories._("apps/openci_server/test/routes/teams/[id]/github/repositories");
-}
-
-extension type const WorkspaceRoot$Apps$OpenciServer$Test$Routes$Teams$Id$Github$Repositories._(String _path) implements WorkspaceDirectory {
-  WorkspaceRoot$Apps$OpenciServer$Test$Routes$Teams$Id$Github$Repositories$Owner get owner => const WorkspaceRoot$Apps$OpenciServer$Test$Routes$Teams$Id$Github$Repositories$Owner._("apps/openci_server/test/routes/teams/[id]/github/repositories/[owner]");
-}
-
-extension type const WorkspaceRoot$Apps$OpenciServer$Test$Routes$Teams$Id$Github$Repositories$Owner._(String _path) implements WorkspaceDirectory {
-  WorkspaceDirectory get repo => const WorkspaceDirectory("apps/openci_server/test/routes/teams/[id]/github/repositories/[owner]/[repo]");
-}
-
-extension type const WorkspaceRoot$Apps$OpenciServer$Test$Routes$Teams$Id$Repositories._(String _path) implements WorkspaceDirectory {
-  WorkspaceDirectory get repo => const WorkspaceDirectory("apps/openci_server/test/routes/teams/[id]/repositories/[repo]");
-}
-
-extension type const WorkspaceRoot$Apps$OpenciServer$Test$Routes$Webhooks._(String _path) implements WorkspaceDirectory {
-  WorkspaceRoot$Apps$OpenciServer$Test$Routes$Webhooks$Tasks get tasks => const WorkspaceRoot$Apps$OpenciServer$Test$Routes$Webhooks$Tasks._("apps/openci_server/test/routes/webhooks/tasks");
-}
-
-extension type const WorkspaceRoot$Apps$OpenciServer$Test$Routes$Webhooks$Tasks._(String _path) implements WorkspaceDirectory {
-  WorkspaceDirectory get id => const WorkspaceDirectory("apps/openci_server/test/routes/webhooks/tasks/[id]");
-}
-
-extension type const WorkspaceRoot$Apps$OpenciServer$Test$Routes$Worker._(String _path) implements WorkspaceDirectory {
-  WorkspaceDirectory get jobs => const WorkspaceDirectory("apps/openci_server/test/routes/worker/jobs");
 }
 
 extension type const WorkspaceRoot$Firebase._(String _path) implements WorkspaceDirectory {
@@ -584,28 +401,13 @@ extension type const WorkspaceRoot$Packages$OpenciShared$Lib._(String _path) imp
 }
 
 extension type const WorkspaceRoot$Packages$OpenciShared$Lib$Src._(String _path) implements WorkspaceDirectory {
-  WorkspaceDirectory get api => const WorkspaceDirectory("packages/openci_shared/lib/src/api");
-  WorkspaceRoot$Packages$OpenciShared$Lib$Src$Models get models => const WorkspaceRoot$Packages$OpenciShared$Lib$Src$Models._("packages/openci_shared/lib/src/models");
+  WorkspaceDirectory get models => const WorkspaceDirectory("packages/openci_shared/lib/src/models");
   WorkspaceDirectory get utilities => const WorkspaceDirectory("packages/openci_shared/lib/src/utilities");
 }
 
-extension type const WorkspaceRoot$Packages$OpenciShared$Lib$Src$Models._(String _path) implements WorkspaceDirectory {
-  WorkspaceDirectory get loki => const WorkspaceDirectory("packages/openci_shared/lib/src/models/loki");
-}
-
 extension type const WorkspaceRoot$Packages$OpenciShared$Test._(String _path) implements WorkspaceDirectory {
-  WorkspaceDirectory get api => const WorkspaceDirectory("packages/openci_shared/test/api");
-  WorkspaceRoot$Packages$OpenciShared$Test$Models get models => const WorkspaceRoot$Packages$OpenciShared$Test$Models._("packages/openci_shared/test/models");
-  WorkspaceRoot$Packages$OpenciShared$Test$Src get src => const WorkspaceRoot$Packages$OpenciShared$Test$Src._("packages/openci_shared/test/src");
+  WorkspaceDirectory get models => const WorkspaceDirectory("packages/openci_shared/test/models");
   WorkspaceDirectory get utilities => const WorkspaceDirectory("packages/openci_shared/test/utilities");
-}
-
-extension type const WorkspaceRoot$Packages$OpenciShared$Test$Models._(String _path) implements WorkspaceDirectory {
-  WorkspaceDirectory get loki => const WorkspaceDirectory("packages/openci_shared/test/models/loki");
-}
-
-extension type const WorkspaceRoot$Packages$OpenciShared$Test$Src._(String _path) implements WorkspaceDirectory {
-  WorkspaceDirectory get api => const WorkspaceDirectory("packages/openci_shared/test/src/api");
 }
 
 extension type const WorkspaceRoot$Packages$OpenciWorkflow._(String _path) implements WorkspaceDirectory {
@@ -619,9 +421,16 @@ extension type const WorkspaceRoot$Packages$OpenciWorkflow$Lib._(String _path) i
 }
 
 extension type const WorkspaceRoot$Packages$OpenciWorkflow$Lib$Src._(String _path) implements WorkspaceDirectory {
-  WorkspaceDirectory get flutter => const WorkspaceDirectory("packages/openci_workflow/lib/src/flutter");
+  WorkspaceRoot$Packages$OpenciWorkflow$Lib$Src$Flutter get flutter => const WorkspaceRoot$Packages$OpenciWorkflow$Lib$Src$Flutter._("packages/openci_workflow/lib/src/flutter");
+  WorkspaceDirectory get go => const WorkspaceDirectory("packages/openci_workflow/lib/src/go");
   WorkspaceDirectory get iosSigning => const WorkspaceDirectory("packages/openci_workflow/lib/src/ios_signing");
-  WorkspaceDirectory get loki => const WorkspaceDirectory("packages/openci_workflow/lib/src/loki");
+  WorkspaceDirectory get shorebird => const WorkspaceDirectory("packages/openci_workflow/lib/src/shorebird");
+}
+
+extension type const WorkspaceRoot$Packages$OpenciWorkflow$Lib$Src$Flutter._(String _path) implements WorkspaceDirectory {
+  WorkspaceDirectory get firebaseAppDistribution => const WorkspaceDirectory("packages/openci_workflow/lib/src/flutter/firebase_app_distribution");
+  WorkspaceDirectory get playConsole => const WorkspaceDirectory("packages/openci_workflow/lib/src/flutter/play_console");
+  WorkspaceDirectory get testflight => const WorkspaceDirectory("packages/openci_workflow/lib/src/flutter/testflight");
 }
 
 extension type const WorkspaceRoot$Packages$OpenciWorkflow$Test._(String _path) implements WorkspaceDirectory {
@@ -630,10 +439,16 @@ extension type const WorkspaceRoot$Packages$OpenciWorkflow$Test._(String _path) 
 }
 
 extension type const WorkspaceRoot$Packages$OpenciWorkflow$Test$Src._(String _path) implements WorkspaceDirectory {
-  WorkspaceDirectory get flutter => const WorkspaceDirectory("packages/openci_workflow/test/src/flutter");
+  WorkspaceRoot$Packages$OpenciWorkflow$Test$Src$Flutter get flutter => const WorkspaceRoot$Packages$OpenciWorkflow$Test$Src$Flutter._("packages/openci_workflow/test/src/flutter");
+  WorkspaceDirectory get go => const WorkspaceDirectory("packages/openci_workflow/test/src/go");
   WorkspaceDirectory get iosSigning => const WorkspaceDirectory("packages/openci_workflow/test/src/ios_signing");
-  WorkspaceDirectory get loki => const WorkspaceDirectory("packages/openci_workflow/test/src/loki");
-  WorkspaceDirectory get models => const WorkspaceDirectory("packages/openci_workflow/test/src/models");
+  WorkspaceDirectory get shorebird => const WorkspaceDirectory("packages/openci_workflow/test/src/shorebird");
+}
+
+extension type const WorkspaceRoot$Packages$OpenciWorkflow$Test$Src$Flutter._(String _path) implements WorkspaceDirectory {
+  WorkspaceDirectory get firebaseAppDistribution => const WorkspaceDirectory("packages/openci_workflow/test/src/flutter/firebase_app_distribution");
+  WorkspaceDirectory get playConsole => const WorkspaceDirectory("packages/openci_workflow/test/src/flutter/play_console");
+  WorkspaceDirectory get testflight => const WorkspaceDirectory("packages/openci_workflow/test/src/flutter/testflight");
 }
 
 extension type const WorkspaceRoot$Packages$PubspecVersionHook._(String _path) implements WorkspaceDirectory {

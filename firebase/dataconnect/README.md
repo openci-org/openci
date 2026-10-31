@@ -417,9 +417,10 @@ entries and assign only missing entries consecutive sequences after
 response requires a fresh lookup; duplicate appends are not successful no-ops.
 Use `GetBuildStepWriteState` to recover duplicate creates or terminal updates.
 
-Expired `logsExpireAt` rejects writes but does not delete rows. Functions retry
-orchestration, Functions/UI integration, realtime refresh, and retention cleanup are
-follow-up work. Current applications still use Loki.
+Expired `logsExpireAt` rejects writes but does not delete rows. The Cloud Run
+executor writes FSC logs, Dashboard reads them through this connector, and the
+retention Function deletes expired entries. See
+[logs and Secrets](../functions/LOGS_AND_SECRETS.md).
 
 Run the operation and generated Admin SDK tests from the repository root
 against the local emulator (Node.js 22):
