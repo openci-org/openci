@@ -1,0 +1,6 @@
+.packer.d/
+packer_cache/
+artifacts/
+*.local.pkrvars.hcl
+*.log
+.env
