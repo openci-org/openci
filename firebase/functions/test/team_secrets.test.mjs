@@ -1,9 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { createCipheriv, randomBytes } from "node:crypto";
 import { TeamSecrets } from "../../lib/functions/secrets/service.js";
 import { validSecretName } from "../../lib/functions/secrets/validation.js";
-import { decryptLegacySecret } from "../../lib/functions/secrets/migrate.js";
 
 function fixture() {
   const refs = new Map(),
@@ -116,61 +114,6 @@ test("certificate creation reuses the existing key and generated names are allow
   assert(validSecretName("OPENCI_GENERATED_ASC_KEY_ID"));
   for (const name of ["OPENCI_RUN_ID", "HOME", "PATH", "BASH_ENV", "LOKI_URL"])
     assert(!validSecretName(name));
-});
-test("legacy AES-GCM migration decrypts exact UTF-8 bytes and rejects wrong keys", () => {
-  const key = randomBytes(32),
-    iv = randomBytes(12),
-    value = "  日本語\r\n\n";
-  const cipher = createCipheriv("aes-256-gcm", key, iv);
-  const bytes = Buffer.concat([iv, cipher.update(value), cipher.final(), cipher.getAuthTag()]);
-  assert.equal(decryptLegacySecret(bytes.toString("base64"), key), value);
-  assert.throws(() => decryptLegacySecret(bytes.toString("base64"), randomBytes(32)));
-});
-
-test("migration dry run validates every row; apply is repeatable and never replaces a conflict", async () => {
-  const { migrateSecrets } = await import("../../lib/functions/secrets/migrate.js");
-  const rows = [
-    ["team", "TOKEN", "\uFEFF  value\r\n"],
-    ["team", "OPENCI_GENERATED_ASC_KEY_ID", "key"],
-  ];
-  const scan = async (visit) => {
-    for (const [team_id, name, value] of rows) await visit({ team_id, name }, value);
-  };
-  const values = new Map(),
-    refs = new Map(),
-    queued = [];
-  const target = {
-    vault: {
-      create: async (_, value) => {
-        const path = `version-${values.size + 1}`;
-        values.set(path, value);
-        return path;
-      },
-      read: async (path) => values.get(path),
-    },
-    get: async (team, name) => refs.get(`${team}/${name}`),
-    queue: async (path) => queued.push(path),
-    insert: async (team, name, path) => {
-      assert(!refs.has(`${team}/${name}`));
-      refs.set(`${team}/${name}`, path);
-    },
-  };
-  assert.deepEqual(await migrateSecrets(scan), { dryRun: true, validated: 2, teams: 1 });
-  assert.equal(values.size, 0);
-  rows.push(["team", "PATH", "invalid"]);
-  await assert.rejects(migrateSecrets(scan, () => target));
-  assert.equal(values.size, 0);
-  rows.pop();
-  assert.equal((await migrateSecrets(scan, () => target)).imported, 2);
-  assert.equal((await migrateSecrets(scan, () => target)).unchanged, 2);
-  assert.equal(values.size, 2);
-  assert.equal(queued.length, 2);
-  rows[0][2] = "different";
-  await assert.rejects(
-    migrateSecrets(scan, () => target),
-    /different value/,
-  );
-  assert.equal(values.get(refs.get("team/TOKEN")), "\uFEFF  value\r\n");
 });
 
 test("vault preserves UTF-8 BOM and only destroys owned, unscheduled versions", async () => {

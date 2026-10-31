@@ -64,8 +64,8 @@ It rejects pending customer creation or an unresolved/open Checkout. It does not
 cancel a paid subscription or expire an open purchase on the user's behalf.
 The FSC transaction compares the observed customer intent, customer ID and Stripe
 revision, checks that no open Checkout remains, then removes the team and its
-dependent memberships, connections and secret references. Billing identities,
-trial claims and build/usage history survive.
+dependent memberships, connections and secret references. Billing identities
+and build/usage history survive.
 
 The same transaction stores a `BillingTeamDeletion` receipt, scoped to the
 initiating UID, and captures the disappearing credential references. A lost
@@ -115,63 +115,25 @@ See [Stripe webhook configuration](https://docs.stripe.com/webhooks). Keep the
 executor's `BILLING_STRIPE_LIVEMODE` consistent with `STRIPE_LIVEMODE`, and give
 both runtimes the same complimentary team list.
 
-## Existing data and cutover
+## Production data ownership
 
-The operator tool `billing/migrate.ts` copies the nine legacy billing tables:
-accounts, periods, trial claims, customer intents, checkout intents, Stripe state,
-admissions, executions and processed events. It preserves purchase IDs/keys,
-allowances and consumed milliseconds, derives FSC's open-intent fields and starts
-its new CAS counters at zero. Deleted-team billing history remains without
-recreating the team. It never contacts Stripe or prints row contents.
+FSC owns billing accounts, periods, purchase intents, Stripe observations and
+consumed execution usage. The production cutover is complete; legacy writers,
+server code and the one-time PostgreSQL import tool are retired. The unused trial
+claim table and activation operations have also been removed.
 
-1. Freeze legacy and new billing writers, team changes and build admission. Drain
-   running work. Stop both webhook consumers/refresh paths from writing while
-   copying; events must remain available for later retry. Import active teams and
-   memberships first. Use one billing owner throughout the cutover.
-2. Deploy the FSC schema and connector, then stage Functions with billing disabled.
-   Keep credential cleanup paused until the target data/configuration is ready.
-   The tool requires all legacy billing schema migrations to have been applied.
-3. Set `LEGACY_DATABASE_URL` to the source connection and
-   `BILLING_MIGRATION_PROJECT` to the target project in the operator environment.
-   With appropriate Google credentials, run from the repository root:
-
-   ```sh
-   npm run build --workspace firebase
-   node firebase/lib/functions/billing/migrate.js
-   node firebase/lib/functions/billing/migrate.js --apply
-   node firebase/lib/functions/billing/migrate.js
-   ```
-
-   The first/default run is read-only. It reads a repeatable snapshot and compares
-   every source row with FSC before inserting anything. It refuses unfinished
-   admissions/executions, unsafe integer conversion and differing existing rows.
-   `--apply` is insert-only, verifies each row, and can resume after a lost response.
-   Conflicts or an incomplete run leave billing disabled until resolved. Do not
-   merge independently active ledgers or reset usage revisions with this tool.
-
-4. Set the Stripe configuration/secrets, enable Functions billing, configure the
-   new webhook URL/secret, replay missed events and refresh an existing team.
-   Release Dashboard with the callable client and resume the FSC executor only
-   after reconciling plans, paid-through dates and consumed usage.
-5. Verify purchase/duplicate click, renewal, failed payment, cancellation, Portal,
-   exhausted allowance and subscribed/unsubscribed team deletion with the intended
-   Stripe environment. Verify IAM and delayed credential cleanup separately.
-
-The old Dashboard billing/delete-team routes and shared REST methods have been
-removed. Production legacy writers were stopped during the documented cutover.
-Legacy server code, shared REST types and local development seed tooling still
-remain in the repository; audit local/self-hosted consumers before removing them.
-They must not resume writing the old ledger. If rollback becomes necessary after
-new billing writes, freeze again and reconcile the ledger first; switching back
-to an old database snapshot would lose purchases/usage.
+Retain billing and build history after team deletion. Retirement backups cannot
+replace the current ledger without reconciliation: doing so would lose purchases
+and usage recorded since cutover. See [the deployment report](DEPLOYMENT.md) and
+[legacy retirement](LEGACY_RETIREMENT.md).
 
 ## Validation
 
 Run Functions lint/type checks and unit tests, then the FSC emulator billing suite.
 It covers all privileged operations rejecting client credentials, concurrent
 Checkout, lost responses, membership revocation, paid/failed renewal, cancellation,
-cleanup receipts and real Admin SDK import/readback. Stripe HTTP transport is
-mocked through the official SDK. Run Dashboard billing/team tests, shared/server
+cleanup receipts and real Admin SDK ledger writes/readback. Stripe HTTP transport is
+mocked through the official SDK. Run Dashboard billing/team tests, shared-package
 analysis/tests and a Dashboard web build after removing the REST methods.
 
 Local tests do not deploy Functions, migrate production rows, configure Stripe,

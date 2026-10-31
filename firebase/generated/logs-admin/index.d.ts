@@ -70,9 +70,9 @@ export interface BillingStripeState_Key {
   __typename?: "BillingStripeState_Key";
 }
 
-export interface BillingTrialClaim_Key {
-  userId: string;
-  __typename?: "BillingTrialClaim_Key";
+export interface BillingTeamDeletion_Key {
+  teamId: string;
+  __typename?: "BillingTeamDeletion_Key";
 }
 
 export interface BuildDispatchScheduler_Key {
@@ -222,28 +222,6 @@ export interface GetBuildStepWriteStateVariables {
   stepId: string;
 }
 
-export interface GetBuildStepsData {
-  run?: {
-    id: string;
-    stepSummaries: {
-      stepId: string;
-      name: string;
-      status: string;
-      stepOrder: number;
-      durationMs: Int64String;
-      createdAt: TimestampString;
-      updatedAt: TimestampString;
-    }[];
-  } & BuildRun_Key;
-}
-
-export interface GetBuildStepsVariables {
-  teamId: string;
-  runId: string;
-  offset?: number;
-  limit?: number;
-}
-
 export interface GetExpiredBuildLogsData {
   runs: ({
     id: string;
@@ -277,11 +255,6 @@ export interface SecretReference_Key {
 export interface SecretVersionCleanup_Key {
   path: string;
   __typename?: "SecretVersionCleanup_Key";
-}
-
-export interface SkippedWorkflowReport_Key {
-  id: string;
-  __typename?: "SkippedWorkflowReport_Key";
 }
 
 export interface TeamMember_Key {
@@ -322,18 +295,6 @@ export function appendBuildLog(
   vars: AppendBuildLogVariables,
   options?: OperationOptions,
 ): Promise<ExecuteOperationResponse<AppendBuildLogData>>;
-
-/** Generated Node Admin SDK operation action function for the 'GetBuildSteps' Query. Allow users to execute without passing in DataConnect. */
-export function getBuildSteps(
-  dc: DataConnect,
-  vars: GetBuildStepsVariables,
-  options?: OperationOptions,
-): Promise<ExecuteOperationResponse<GetBuildStepsData>>;
-/** Generated Node Admin SDK operation action function for the 'GetBuildSteps' Query. Allow users to pass in custom DataConnect instances. */
-export function getBuildSteps(
-  vars: GetBuildStepsVariables,
-  options?: OperationOptions,
-): Promise<ExecuteOperationResponse<GetBuildStepsData>>;
 
 /** Generated Node Admin SDK operation action function for the 'GetBuildLogs' Query. Allow users to execute without passing in DataConnect. */
 export function getBuildLogs(

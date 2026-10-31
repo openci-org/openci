@@ -42,13 +42,6 @@ query GetBuildDispatchState($jobId: String!) @auth(level: NO_ACCESS) {
   }
 }
 
-# Runner input is read from FSC, never from a caller-supplied workflow/VM URL.
-query GetBuildJobDispatch($id: String!) @auth(level: NO_ACCESS) {
-  dispatch: buildJobDispatch(id: $id) {
-    ...BuildDispatchFields
-  }
-}
-
 query GetActiveBuildDispatches @auth(level: NO_ACCESS) {
   dispatches: buildJobDispatches(where: { finishedAt: { isNull: true } }, limit: null) {
     ...BuildDispatchFields
@@ -245,36 +238,4 @@ mutation ClaimBuildJobExecution(
       expr: "vars.timeoutSeconds >= 60 && vars.timeoutSeconds <= 86400"
       message: "Invalid build timeout"
     )
-}
-
-# G-1605 must delete the VM and finalize the job before releasing capacity.
-mutation FinishBuildJobDispatch($id: String!, $jobId: String!, $executorId: String!)
-@auth(level: NO_ACCESS)
-@transaction {
-  query @redact {
-    dispatch: buildJobDispatch(id: $id)
-      @check(
-        expr: "this != null && this.jobId == vars.jobId && this.executorId == vars.executorId"
-        message: "Execution identity does not match"
-      ) {
-      jobId
-      executorId
-    }
-    job: buildJob(id: $jobId)
-      @check(
-        expr: "this == null || this.status in ['SUCCESS', 'FAILURE', 'CANCELLED', 'SKIPPED', 'TIMED_OUT']"
-        message: "Finalize the build before releasing its reservation"
-      ) {
-      status
-    }
-  }
-  buildJobDispatch_updateMany(
-    where: { id: { eq: $id }, executorId: { eq: $executorId }, finishedAt: { isNull: true } }
-    data: {
-      activeJobId: null
-      state: "finished"
-      finishedAt_expr: "request.time"
-      updatedAt_expr: "request.time"
-    }
-  )
 }

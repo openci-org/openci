@@ -2,8 +2,10 @@
 
 ## Unreleased
 
-- Add `WebhookTaskPlan` and `SkippedWorkflowPlan` for planned jobs, skipped
-  workflows, and changed-file fallback reasons. Accept legacy jobs-only payloads.
+- **Breaking:** Remove unused BuildJob IPA/UDID and failure-summary model/timing
+  fields after the FSC cutover.
+- Remove unused `WebhookTaskPlan` and `SkippedWorkflowPlan` models for the
+  unimplemented skipped-workflow reporting path.
 
 ## 2.0.0
 
@@ -36,7 +38,6 @@
 - Add constant-time comparison utilities (`constantTimeCompare`, `constantTimeCompareString`).
 
 ## 1.0.3
-
 
 - Add Chopper API service and client utilities.
 

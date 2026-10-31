@@ -16,16 +16,6 @@ export function getBuildDispatchState(dcOrVarsOrOptions, varsOrOptions, options)
   return dcInstance.executeQuery("GetBuildDispatchState", inputVars, inputOpts);
 }
 
-export function getBuildJobDispatch(dcOrVarsOrOptions, varsOrOptions, options) {
-  const {
-    dc: dcInstance,
-    vars: inputVars,
-    options: inputOpts,
-  } = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
-  dcInstance.useGen(true);
-  return dcInstance.executeQuery("GetBuildJobDispatch", inputVars, inputOpts);
-}
-
 export function getActiveBuildDispatches(dcOrOptions, options) {
   const { dc: dcInstance, options: inputOpts } = validateAdminArgs(
     connectorConfig,
@@ -127,16 +117,6 @@ export function claimBuildJobExecution(dcOrVarsOrOptions, varsOrOptions, options
   } = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
   dcInstance.useGen(true);
   return dcInstance.executeMutation("ClaimBuildJobExecution", inputVars, inputOpts);
-}
-
-export function finishBuildJobDispatch(dcOrVarsOrOptions, varsOrOptions, options) {
-  const {
-    dc: dcInstance,
-    vars: inputVars,
-    options: inputOpts,
-  } = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
-  dcInstance.useGen(true);
-  return dcInstance.executeMutation("FinishBuildJobDispatch", inputVars, inputOpts);
 }
 
 export function getBuildExecution(dcOrVarsOrOptions, varsOrOptions, options) {

@@ -68,15 +68,27 @@ function input(f, name = "TOKEN", version = "1") {
   };
 }
 
+async function seedReference(data) {
+  await graphql(
+    `
+      mutation SeedReference($data: SecretReference_Data!) {
+        secretReference_insert(data: $data)
+      }
+    `,
+    { data: { ...data, createdAt: "1", updatedAt: "1" } },
+  );
+}
+
 async function read(f, name = "TOKEN") {
-  return (await sdk.getSecretReference(dc, { teamId: f.teamId, name })).data.secretReference;
+  const context = await sdk.getManagedSecretContext(dc, { teamId: f.teamId, actorUid: f.user });
+  return context.data.secrets.find((secret) => secret.name === name) ?? null;
 }
 
 test("members see only their team's sorted metadata, without paths or values", async (t) => {
   const f = await fixture(t);
-  await sdk.createSecretReference(dc, input(f, "Z_TOKEN"));
-  await sdk.createSecretReference(dc, input(f, "A_TOKEN"));
-  await sdk.createSecretReference(dc, { ...input(f, "OTHER"), teamId: f.otherTeamId });
+  await seedReference(input(f, "Z_TOKEN"));
+  await seedReference(input(f, "A_TOKEN"));
+  await seedReference({ ...input(f, "OTHER"), teamId: f.otherTeamId });
 
   const { data } = await sdk.getSecrets(dc, { teamId: f.teamId }, asUser(f.user));
   assert.deepEqual(Object.keys(data), ["secrets"]);
@@ -140,196 +152,6 @@ test("unauthenticated, anonymous, nonmember and removed-member reads are denied"
   await assert.rejects(sdk.getSecrets(dc, variables, asUser(f.user)));
 });
 
-test("all reference operations reject clients, including team members", async (t) => {
-  const f = await fixture(t);
-  const original = input(f);
-  await sdk.createSecretReference(dc, original);
-  for (const actor of [
-    asUser(f.user),
-    asUser(f.user, "anonymous"),
-    { impersonate: { unauthenticated: true } },
-  ]) {
-    await assert.rejects(sdk.getSecretReference(dc, { teamId: f.teamId, name: "TOKEN" }, actor));
-    await assert.rejects(sdk.createSecretReference(dc, input(f, "NEW"), actor));
-    await assert.rejects(
-      sdk.updateSecretReference(
-        dc,
-        {
-          ...input(f, "TOKEN", "2"),
-          expectedSecretVersionPath: original.secretVersionPath,
-        },
-        actor,
-      ),
-    );
-    await assert.rejects(
-      sdk.deleteSecretReference(
-        dc,
-        {
-          teamId: f.teamId,
-          name: "TOKEN",
-          expectedSecretVersionPath: original.secretVersionPath,
-        },
-        actor,
-      ),
-    );
-  }
-  assert.equal((await read(f)).secretVersionPath, original.secretVersionPath);
-  assert.equal(await read(f, "NEW"), null);
-});
-
-test("creation uses server timestamps and does not overwrite duplicates", async (t) => {
-  const f = await fixture(t);
-  const before = BigInt(Math.floor(Date.now() / 1000));
-  await sdk.createSecretReference(dc, input(f));
-  const saved = await read(f);
-  assert.ok(BigInt(saved.createdAt) >= before);
-  assert.ok(BigInt(saved.updatedAt) <= BigInt(Math.floor(Date.now() / 1000)));
-  assert.equal(saved.createdAt, saved.updatedAt);
-  await assert.rejects(sdk.createSecretReference(dc, input(f, "TOKEN", "2")));
-  assert.deepEqual(await read(f), saved);
-});
-
-test("creation rejects missing teams, blank names and non-numeric version paths", async (t) => {
-  const f = await fixture(t);
-  await assert.rejects(
-    sdk.createSecretReference(dc, { ...input(f), teamId: "missing-team" }),
-    /Team not found/,
-  );
-  await assert.rejects(
-    sdk.createSecretReference(dc, { ...input(f), name: " \t\n" }),
-    /Secret name must not be blank/,
-  );
-  for (const path of [
-    "",
-    "plaintext",
-    input(f).secretVersionPath + "/extra",
-    input(f, "TOKEN", "latest").secretVersionPath,
-    input(f, "TOKEN", "0").secretVersionPath,
-  ]) {
-    await assert.rejects(
-      sdk.createSecretReference(dc, { ...input(f), secretVersionPath: path }),
-      /numeric Secret Manager version path/,
-    );
-    assert.equal(await read(f), null);
-  }
-});
-
-test("regional numeric Secret Manager references are supported", async (t) => {
-  const f = await fixture(t);
-  const secretVersionPath = `projects/123456/locations/asia-northeast1/secrets/${f.teamId}/versions/2`;
-  await sdk.createSecretReference(dc, { ...input(f), secretVersionPath });
-  assert.equal((await read(f)).secretVersionPath, secretVersionPath);
-});
-
-test("updates preserve creation time and invalid paths roll back", async (t) => {
-  const f = await fixture(t);
-  const original = input(f);
-  await sdk.createSecretReference(dc, original);
-  await graphql(
-    `
-      mutation OldTimestamps($teamId: String!) {
-        secretReference_update(
-          key: { teamId: $teamId, name: "TOKEN" }
-          data: { createdAt: 1, updatedAt: 2 }
-        )
-      }
-    `,
-    { teamId: f.teamId },
-  );
-  const saved = await read(f);
-  await assert.rejects(
-    sdk.updateSecretReference(dc, {
-      ...original,
-      expectedSecretVersionPath: original.secretVersionPath,
-      secretVersionPath: "plaintext",
-    }),
-    /numeric Secret Manager version path/,
-  );
-  assert.deepEqual(await read(f), saved);
-  await sdk.updateSecretReference(dc, {
-    ...input(f, "TOKEN", "2"),
-    expectedSecretVersionPath: original.secretVersionPath,
-  });
-  const updated = await read(f);
-  assert.equal(updated.createdAt, "1");
-  assert.ok(BigInt(updated.updatedAt) > 2n);
-  assert.equal(updated.secretVersionPath, input(f, "TOKEN", "2").secretVersionPath);
-});
-
-test("concurrent updates allow only one writer and stale writes cannot delete it", async (t) => {
-  const f = await fixture(t);
-  const original = input(f);
-  await sdk.createSecretReference(dc, original);
-  const updates = [input(f, "TOKEN", "2"), input(f, "TOKEN", "3")];
-  const results = await Promise.allSettled(
-    updates.map((update) =>
-      sdk.updateSecretReference(dc, {
-        ...update,
-        expectedSecretVersionPath: original.secretVersionPath,
-      }),
-    ),
-  );
-  assert.equal(results.filter((result) => result.status === "fulfilled").length, 1);
-  const winner = updates[results.findIndex((result) => result.status === "fulfilled")];
-  const saved = await read(f);
-  assert.equal(saved.secretVersionPath, winner.secretVersionPath);
-  await assert.rejects(
-    sdk.updateSecretReference(dc, {
-      ...input(f, "TOKEN", "4"),
-      expectedSecretVersionPath: original.secretVersionPath,
-    }),
-    /not found or changed/,
-  );
-  await assert.rejects(
-    sdk.deleteSecretReference(dc, {
-      teamId: f.teamId,
-      name: "TOKEN",
-      expectedSecretVersionPath: original.secretVersionPath,
-    }),
-    /not found or changed/,
-  );
-  assert.deepEqual(await read(f), saved);
-});
-
-test("deletion matches team, name and version and preserves other teams", async (t) => {
-  const f = await fixture(t);
-  const original = input(f);
-  const other = { ...f, teamId: f.otherTeamId };
-  await sdk.createSecretReference(dc, original);
-  await sdk.createSecretReference(dc, input(other));
-  await assert.rejects(
-    sdk.deleteSecretReference(dc, {
-      teamId: other.teamId,
-      name: "TOKEN",
-      expectedSecretVersionPath: original.secretVersionPath,
-    }),
-    /not found or changed/,
-  );
-  await sdk.deleteSecretReference(dc, {
-    teamId: f.teamId,
-    name: "TOKEN",
-    expectedSecretVersionPath: original.secretVersionPath,
-  });
-  assert.equal(await read(f), null);
-  assert.equal((await read(other)).secretVersionPath, input(other).secretVersionPath);
-  await assert.rejects(
-    sdk.deleteSecretReference(dc, {
-      teamId: f.teamId,
-      name: "TOKEN",
-      expectedSecretVersionPath: original.secretVersionPath,
-    }),
-    /not found or changed/,
-  );
-});
-
-test("the CommonJS package also supports the default DataConnect overload", async (t) => {
-  const f = await fixture(t);
-  const cjs = createRequire(import.meta.url)("@openci/secrets-admin");
-  await cjs.createSecretReference(input(f));
-  const result = await cjs.getSecretReference({ teamId: f.teamId, name: "TOKEN" });
-  assert.equal(result.data.secretReference.secretVersionPath, input(f).secretVersionPath);
-});
-
 test("managed writes enforce membership and compare the previous version atomically", async (t) => {
   const f = await fixture(t);
   const vars = {
@@ -358,8 +180,8 @@ test("managed writes enforce membership and compare the previous version atomica
 test("managed rename rolls back on collision and can atomically replace the value", async (t) => {
   const f = await fixture(t);
   const original = input(f);
-  await sdk.createSecretReference(dc, original);
-  await sdk.createSecretReference(dc, input(f, "EXISTS"));
+  await seedReference(original);
+  await seedReference(input(f, "EXISTS"));
   const vars = {
     teamId: f.teamId,
     actorUid: f.user,
@@ -389,4 +211,82 @@ test("managed rename rolls back on collision and can atomically replace the valu
     expectedPath: path,
   });
   assert.equal(await read(f, "RENAMED"), null);
+});
+
+test("all managed secret operations reject Firebase clients, including team members", async (t) => {
+  const f = await fixture(t);
+  const variables = {
+    teamId: f.teamId,
+    actorUid: f.user,
+    name: "TOKEN",
+    path: input(f).secretVersionPath,
+  };
+  const cases = [
+    [sdk.getManagedSecretContext, { teamId: f.teamId, actorUid: f.user }],
+    [sdk.commitManagedSecret, { ...variables, expectedPath: null }],
+    [sdk.renameManagedSecret, { ...variables, newName: "NEXT", expectedPath: variables.path }],
+    [
+      sdk.deleteManagedSecret,
+      { teamId: f.teamId, actorUid: f.user, name: "TOKEN", expectedPath: variables.path },
+    ],
+    [sdk.queueSecretVersionCleanup, { path: variables.path }],
+    [sdk.getDueSecretVersions, undefined],
+    [sdk.getSecretVersionReferences, { path: variables.path }],
+    [sdk.completeSecretVersionCleanup, { path: variables.path }],
+  ];
+  for (const actor of [
+    asUser(f.user),
+    asUser(f.user, "anonymous"),
+    { impersonate: { unauthenticated: true } },
+  ]) {
+    for (const [operation, input] of cases)
+      await assert.rejects(
+        input === undefined ? operation(dc, actor) : operation(dc, input, actor),
+        /permission|auth|access/i,
+      );
+  }
+  assert.equal(await read(f), null);
+});
+
+test("managed create and replacement use server timestamps and preserve creation time", async (t) => {
+  const f = await fixture(t);
+  const before = BigInt(Math.floor(Date.now() / 1000));
+  const variables = {
+    teamId: f.teamId,
+    actorUid: f.user,
+    name: "TOKEN",
+    path: input(f).secretVersionPath,
+    expectedPath: null,
+  };
+  await sdk.commitManagedSecret(dc, variables);
+  const saved = await read(f);
+  assert.ok(BigInt(saved.createdAt) >= before);
+  assert.ok(BigInt(saved.updatedAt) <= BigInt(Math.floor(Date.now() / 1000)));
+  assert.equal(saved.createdAt, saved.updatedAt);
+  await assert.rejects(
+    sdk.commitManagedSecret(dc, { ...variables, path: input(f, "TOKEN", "2").secretVersionPath }),
+  );
+  assert.deepEqual(await read(f), saved);
+  await sdk.commitManagedSecret(dc, {
+    ...variables,
+    expectedPath: variables.path,
+    path: input(f, "TOKEN", "2").secretVersionPath,
+  });
+  const updated = await read(f);
+  assert.equal(updated.createdAt, saved.createdAt);
+  assert.equal(updated.secretVersionPath, input(f, "TOKEN", "2").secretVersionPath);
+});
+
+test("CommonJS managed operations support the default DataConnect overload", async (t) => {
+  const f = await fixture(t);
+  const cjs = createRequire(import.meta.url)("@openci/secrets-admin");
+  await cjs.commitManagedSecret({
+    teamId: f.teamId,
+    actorUid: f.user,
+    name: "TOKEN",
+    path: input(f).secretVersionPath,
+    expectedPath: null,
+  });
+  const result = await cjs.getManagedSecretContext({ teamId: f.teamId, actorUid: f.user });
+  assert.equal(result.data.secrets[0].secretVersionPath, input(f).secretVersionPath);
 });

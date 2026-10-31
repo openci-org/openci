@@ -68,11 +68,6 @@ export interface BillingTeamDeletion_Key {
   __typename?: "BillingTeamDeletion_Key";
 }
 
-export interface BillingTrialClaim_Key {
-  userId: string;
-  __typename?: "BillingTrialClaim_Key";
-}
-
 export interface BindBillingAdmissionRunData {
   billingAccount_updateMany: number;
   billingAdmission_updateMany: number;
@@ -398,21 +393,6 @@ export interface GetBillingCustomerByStripeIdVariables {
   livemode: boolean;
 }
 
-export interface GetBillingCustomerCreationData {
-  billingCustomerCreation?: {
-    teamId: string;
-    idempotencyKey: string;
-    livemode: boolean;
-    createdAt: Int64String;
-    stripeCustomerId?: string | null;
-  } & BillingCustomerCreation_Key;
-}
-
-export interface GetBillingCustomerCreationVariables {
-  teamId: string;
-  livemode: boolean;
-}
-
 export interface GetBillingExecutionData {
   billingAccount?: {
     usageRevision: Int64String;
@@ -536,99 +516,12 @@ export interface GetBillingTeamDeletionVariables {
   userId: string;
 }
 
-export interface GetBillingTrialEligibilityData {
-  userClaim?: {
-    teamId: string;
-    claimedAt: Int64String;
-  };
-  teamClaim?: {
-    userId: string;
-    claimedAt: Int64String;
-  } & BillingTrialClaim_Key;
-  activePaidPeriod?: {
-    id: string;
-  } & BillingPeriod_Key;
-}
-
-export interface GetBillingTrialEligibilityVariables {
-  teamId: string;
-  userId: string;
-}
-
-export interface GetBillingWorkerJobsData {
-  jobs: ({
-    id: string;
-    teamId?: string | null;
-    latestRunId?: string | null;
-  } & BuildJob_Key)[];
-}
-
-export interface GetBillingWorkerJobsVariables {
-  workerHost: string;
-}
-
 export interface GetDueBillingTeamDeletionsData {
   deletions: ({
     teamId: string;
     secretPaths: unknown;
     githubPaths: unknown;
   } & BillingTeamDeletion_Key)[];
-}
-
-export interface GetExpiredBillingWorkData {
-  billingExecutions: ({
-    runId: string;
-    teamId: string;
-    jobId: string;
-    workerHost: string;
-    periodId: string;
-    startedAtMs: Int64String;
-    observedAtMs: Int64String;
-    leaseUntilMs: Int64String;
-    finishedAtMs?: Int64String | null;
-    outcome?: string | null;
-    measurementIncomplete: boolean;
-  } & BillingExecution_Key)[];
-  admissions?: unknown[] | null;
-}
-
-export interface GetExpiredBillingWorkVariables {
-  atMs: Int64String;
-}
-
-export interface GetOpenBillingCheckoutCreationData {
-  billingCheckoutCreation?: {
-    idempotencyKey: string;
-    teamId: string;
-    planId: string;
-    stripeCustomerId: string;
-    stripePriceId: string;
-    successUrl: string;
-    cancelUrl: string;
-    livemode: boolean;
-    createdAt: Int64String;
-    stripeCheckoutSessionId?: string | null;
-  } & BillingCheckoutCreation_Key;
-}
-
-export interface GetOpenBillingCheckoutCreationVariables {
-  teamId: string;
-  livemode: boolean;
-}
-
-export interface GetQueuedBillingJobsData {
-  jobs: ({
-    id: string;
-    teamId?: string | null;
-    createdAt: Int64String;
-  } & BuildJob_Key)[];
-}
-
-export interface GetQueuedBillingJobsVariables {
-  afterCreatedAt?: Int64String;
-  afterId?: string;
-  excludedTeamIds?: string[];
-  limit?: number;
 }
 
 export interface GitHubConnectionRequest_Key {
@@ -731,11 +624,6 @@ export interface SecretVersionCleanup_Key {
   __typename?: "SecretVersionCleanup_Key";
 }
 
-export interface SkippedWorkflowReport_Key {
-  id: string;
-  __typename?: "SkippedWorkflowReport_Key";
-}
-
 export interface StartBillingExecutionData {
   billingAccount_updateMany: number;
   buildJob_updateMany: number;
@@ -750,19 +638,6 @@ export interface StartBillingExecutionVariables {
   runId: string;
   expectedUsageRevision: Int64String;
   atMs: Int64String;
-}
-
-export interface StartBillingTrialData {
-  billingAccount_upsert: BillingAccount_Key;
-  billingTrialClaim_insert: BillingTrialClaim_Key;
-  billingPeriod_insert: BillingPeriod_Key;
-}
-
-export interface StartBillingTrialVariables {
-  teamId: string;
-  userId: string;
-  periodId: string;
-  allowanceSeconds?: Int64String | null;
 }
 
 export interface TeamMember_Key {
@@ -839,18 +714,6 @@ export function createBillingCheckoutCreation(
   vars: CreateBillingCheckoutCreationVariables,
   options?: OperationOptions,
 ): Promise<ExecuteOperationResponse<CreateBillingCheckoutCreationData>>;
-
-/** Generated Node Admin SDK operation action function for the 'GetOpenBillingCheckoutCreation' Query. Allow users to execute without passing in DataConnect. */
-export function getOpenBillingCheckoutCreation(
-  dc: DataConnect,
-  vars: GetOpenBillingCheckoutCreationVariables,
-  options?: OperationOptions,
-): Promise<ExecuteOperationResponse<GetOpenBillingCheckoutCreationData>>;
-/** Generated Node Admin SDK operation action function for the 'GetOpenBillingCheckoutCreation' Query. Allow users to pass in custom DataConnect instances. */
-export function getOpenBillingCheckoutCreation(
-  vars: GetOpenBillingCheckoutCreationVariables,
-  options?: OperationOptions,
-): Promise<ExecuteOperationResponse<GetOpenBillingCheckoutCreationData>>;
 
 /** Generated Node Admin SDK operation action function for the 'RecordBillingCheckoutSession' Mutation. Allow users to execute without passing in DataConnect. */
 export function recordBillingCheckoutSession(
@@ -947,18 +810,6 @@ export function createBillingCustomerCreation(
   vars: CreateBillingCustomerCreationVariables,
   options?: OperationOptions,
 ): Promise<ExecuteOperationResponse<CreateBillingCustomerCreationData>>;
-
-/** Generated Node Admin SDK operation action function for the 'GetBillingCustomerCreation' Query. Allow users to execute without passing in DataConnect. */
-export function getBillingCustomerCreation(
-  dc: DataConnect,
-  vars: GetBillingCustomerCreationVariables,
-  options?: OperationOptions,
-): Promise<ExecuteOperationResponse<GetBillingCustomerCreationData>>;
-/** Generated Node Admin SDK operation action function for the 'GetBillingCustomerCreation' Query. Allow users to pass in custom DataConnect instances. */
-export function getBillingCustomerCreation(
-  vars: GetBillingCustomerCreationVariables,
-  options?: OperationOptions,
-): Promise<ExecuteOperationResponse<GetBillingCustomerCreationData>>;
 
 /** Generated Node Admin SDK operation action function for the 'RecordBillingCustomer' Mutation. Allow users to execute without passing in DataConnect. */
 export function recordBillingCustomer(
@@ -1102,42 +953,6 @@ export function expireBillingExecution(
   options?: OperationOptions,
 ): Promise<ExecuteOperationResponse<ExpireBillingExecutionData>>;
 
-/** Generated Node Admin SDK operation action function for the 'GetExpiredBillingWork' Query. Allow users to execute without passing in DataConnect. */
-export function getExpiredBillingWork(
-  dc: DataConnect,
-  vars: GetExpiredBillingWorkVariables,
-  options?: OperationOptions,
-): Promise<ExecuteOperationResponse<GetExpiredBillingWorkData>>;
-/** Generated Node Admin SDK operation action function for the 'GetExpiredBillingWork' Query. Allow users to pass in custom DataConnect instances. */
-export function getExpiredBillingWork(
-  vars: GetExpiredBillingWorkVariables,
-  options?: OperationOptions,
-): Promise<ExecuteOperationResponse<GetExpiredBillingWorkData>>;
-
-/** Generated Node Admin SDK operation action function for the 'GetQueuedBillingJobs' Query. Allow users to execute without passing in DataConnect. */
-export function getQueuedBillingJobs(
-  dc: DataConnect,
-  vars?: GetQueuedBillingJobsVariables,
-  options?: OperationOptions,
-): Promise<ExecuteOperationResponse<GetQueuedBillingJobsData>>;
-/** Generated Node Admin SDK operation action function for the 'GetQueuedBillingJobs' Query. Allow users to pass in custom DataConnect instances. */
-export function getQueuedBillingJobs(
-  vars?: GetQueuedBillingJobsVariables,
-  options?: OperationOptions,
-): Promise<ExecuteOperationResponse<GetQueuedBillingJobsData>>;
-
-/** Generated Node Admin SDK operation action function for the 'GetBillingWorkerJobs' Query. Allow users to execute without passing in DataConnect. */
-export function getBillingWorkerJobs(
-  dc: DataConnect,
-  vars: GetBillingWorkerJobsVariables,
-  options?: OperationOptions,
-): Promise<ExecuteOperationResponse<GetBillingWorkerJobsData>>;
-/** Generated Node Admin SDK operation action function for the 'GetBillingWorkerJobs' Query. Allow users to pass in custom DataConnect instances. */
-export function getBillingWorkerJobs(
-  vars: GetBillingWorkerJobsVariables,
-  options?: OperationOptions,
-): Promise<ExecuteOperationResponse<GetBillingWorkerJobsData>>;
-
 /** Generated Node Admin SDK operation action function for the 'GetBillingJob' Query. Allow users to execute without passing in DataConnect. */
 export function getBillingJob(
   dc: DataConnect,
@@ -1209,30 +1024,6 @@ export function recordBillingStripeEvent(
   vars: RecordBillingStripeEventVariables,
   options?: OperationOptions,
 ): Promise<ExecuteOperationResponse<RecordBillingStripeEventData>>;
-
-/** Generated Node Admin SDK operation action function for the 'GetBillingTrialEligibility' Query. Allow users to execute without passing in DataConnect. */
-export function getBillingTrialEligibility(
-  dc: DataConnect,
-  vars: GetBillingTrialEligibilityVariables,
-  options?: OperationOptions,
-): Promise<ExecuteOperationResponse<GetBillingTrialEligibilityData>>;
-/** Generated Node Admin SDK operation action function for the 'GetBillingTrialEligibility' Query. Allow users to pass in custom DataConnect instances. */
-export function getBillingTrialEligibility(
-  vars: GetBillingTrialEligibilityVariables,
-  options?: OperationOptions,
-): Promise<ExecuteOperationResponse<GetBillingTrialEligibilityData>>;
-
-/** Generated Node Admin SDK operation action function for the 'StartBillingTrial' Mutation. Allow users to execute without passing in DataConnect. */
-export function startBillingTrial(
-  dc: DataConnect,
-  vars: StartBillingTrialVariables,
-  options?: OperationOptions,
-): Promise<ExecuteOperationResponse<StartBillingTrialData>>;
-/** Generated Node Admin SDK operation action function for the 'StartBillingTrial' Mutation. Allow users to pass in custom DataConnect instances. */
-export function startBillingTrial(
-  vars: StartBillingTrialVariables,
-  options?: OperationOptions,
-): Promise<ExecuteOperationResponse<StartBillingTrialData>>;
 
 /** Generated Node Admin SDK operation action function for the 'GetBillingPeriodUsage' Query. Allow users to execute without passing in DataConnect. */
 export function getBillingPeriodUsage(

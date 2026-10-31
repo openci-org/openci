@@ -283,35 +283,24 @@ test("an expired unclaimed attempt is replaced and cannot claim the new reservat
   const current = (await f.state()).dispatch;
   assert.notEqual(current.id, old.id);
   assert.equal((await claim(old.id)).data.acquired, 0);
-  assert.equal((await sdk.getBuildJobDispatch(dc, { id: old.id })).data.dispatch.state, "expired");
+  assert.equal(
+    (await sdk.getBuildExecution(dc, { id: old.id, jobId: f.jobId, runId: `run-${old.id}` })).data
+      .dispatch.state,
+    "expired",
+  );
   assert.equal((await claim(current.id)).data.acquired, 1);
   assert.equal((await store.active()).length, 1);
 });
 
-test("claimed work never expires and only its owner can release a finalized build", async (t) => {
+test("claimed work does not expire through unstarted dispatch recovery", async (t) => {
   const f = await fixture(t);
   await f.run();
   const { dispatch } = await f.state();
-  const executorId = randomUUID();
-  assert.equal((await claim(dispatch.id, executorId)).data.acquired, 1);
+  assert.equal((await claim(dispatch.id, randomUUID())).data.acquired, 1);
   await updateDispatch(dispatch.id, { startDeadline: past });
   await store.expireUnstarted();
   assert.equal((await f.state()).dispatch.id, dispatch.id);
-  const finish = { id: dispatch.id, jobId: f.jobId, executorId };
-  await assert.rejects(sdk.finishBuildJobDispatch(dc, finish));
-  await updateJob(f.jobId, "IN_PROGRESS");
-  await assert.rejects(sdk.finishBuildJobDispatch(dc, finish));
-  await updateJob(f.jobId, "WAITING");
-  await assert.rejects(sdk.finishBuildJobDispatch(dc, finish));
-  await updateJob(f.jobId, "SUCCESS");
-  await assert.rejects(sdk.finishBuildJobDispatch(dc, { ...finish, executorId: "other" }));
-  await assert.rejects(sdk.finishBuildJobDispatch(dc, { ...finish, jobId: "other" }));
-  await sdk.finishBuildJobDispatch(dc, finish);
-  await sdk.finishBuildJobDispatch(dc, finish);
-  assert.equal((await f.state()).dispatch, null);
-  const next = await fixture(t);
-  await next.run();
-  assert.equal(next.launched.length, 1);
+  assert.equal((await store.active()).length, 1);
 });
 
 test("cancellation releases unstarted reservations and prevents a late executor", async (t) => {
@@ -349,7 +338,13 @@ test("end users cannot inspect capacity reservations, acquire execution, or rele
     const options = { impersonate };
     await assert.rejects(sdk.getBuildDispatchState(dc, { jobId: f.jobId }, options));
     await assert.rejects(sdk.getActiveBuildDispatches(dc, options));
-    await assert.rejects(sdk.getBuildJobDispatch(dc, { id: dispatch.id }, options));
+    await assert.rejects(
+      sdk.getBuildExecution(
+        dc,
+        { id: dispatch.id, jobId: f.jobId, runId: `run-${dispatch.id}` },
+        options,
+      ),
+    );
     await assert.rejects(sdk.initializeBuildDispatchScheduler(dc, options));
     await assert.rejects(sdk.acquireBuildDispatchScheduler(dc, { owner: "user" }, options));
     await assert.rejects(
@@ -363,11 +358,7 @@ test("end users cannot inspect capacity reservations, acquire execution, or rele
       ),
     );
     await assert.rejects(
-      sdk.finishBuildJobDispatch(
-        dc,
-        { id: dispatch.id, jobId: f.jobId, executorId: "user" },
-        options,
-      ),
+      sdk.completeBuildExecution(dc, { id: dispatch.id, jobId: f.jobId, owner: "user" }, options),
     );
     await assert.rejects(sdk.expireUnstartedBuildDispatches(dc, options));
     await assert.rejects(sdk.cancelUnstartedBuildDispatch(dc, { jobId: f.jobId }, options));

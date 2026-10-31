@@ -8,12 +8,6 @@ import * as sdk from "@openci/billing-admin";
 import { BillingStore } from "../../lib/functions/billing/store.js";
 import { Billing } from "../../lib/functions/billing/service.js";
 import {
-  billingTables,
-  migrateBilling,
-  billingDestination,
-} from "../../lib/functions/billing/migrate.js";
-import { legacyBillingRows } from "../../functions/test/helpers/legacy_billing.mjs";
-import {
   config,
   now,
   price,
@@ -280,132 +274,6 @@ test("period retry reads preserve bigint precision and never overwrite a period"
   );
 });
 
-test("trial creation is atomic, seven days long, and limited to one per user and team", async (t) => {
-  const f = await fixture(t);
-  const input = {
-    teamId: f.teamId,
-    userId: f.userId,
-    periodId: randomUUID(),
-    allowanceSeconds: "120",
-  };
-  const initial = (await sdk.getBillingTrialEligibility(dc, { teamId: f.teamId, userId: f.userId }))
-    .data;
-  assert.deepEqual(initial, { userClaim: null, teamClaim: null, activePaidPeriod: null });
-  await sdk.startBillingTrial(dc, input);
-  const p = (await sdk.getBillingPeriod(dc, { teamId: f.teamId, id: input.periodId })).data.period;
-  assert.equal(BigInt(p.endsAt) - BigInt(p.startsAt), 604800n);
-  assert.equal(p.planId, "pro");
-  assert.equal(p.periodType, "trial");
-  assert.equal(p.allowanceSeconds, "120");
-  await assert.rejects(sdk.startBillingTrial(dc, { ...input, periodId: randomUUID() }));
-  await assert.rejects(
-    sdk.startBillingTrial(dc, { ...input, teamId: f.otherTeamId, periodId: randomUUID() }),
-  );
-  await graphql(
-    `
-      mutation Member($teamId: String!, $userId: String!) {
-        teamMember_insert(data: { teamId: $teamId, userId: $userId })
-      }
-    `,
-    { teamId: f.teamId, userId: `${f.userId}-second` },
-  );
-  await assert.rejects(
-    sdk.startBillingTrial(dc, { ...input, userId: `${f.userId}-second`, periodId: randomUUID() }),
-  );
-  await sdk.deleteBillingTeam(dc, deletion(f));
-  const eligibility = (
-    await sdk.getBillingTrialEligibility(dc, { teamId: f.otherTeamId, userId: f.userId })
-  ).data;
-  assert.equal(eligibility.userClaim.teamId, f.teamId);
-});
-
-test("invalid trial inputs and nonmembers leave neither a claim nor a period", async (t) => {
-  const f = await fixture(t);
-  const input = { teamId: f.teamId, userId: f.userId, periodId: randomUUID() };
-  await assert.rejects(sdk.startBillingTrial(dc, { ...input, userId: "outsider" }));
-  await assert.rejects(sdk.startBillingTrial(dc, { ...input, allowanceSeconds: "-1" }));
-  await assert.rejects(sdk.startBillingTrial(dc, { ...input, periodId: " " }));
-  assert.equal(
-    (await sdk.getBillingTrialEligibility(dc, { teamId: f.teamId, userId: f.userId })).data
-      .userClaim,
-    null,
-  );
-  assert.equal(
-    (await sdk.getBillingPeriod(dc, { teamId: f.teamId, id: input.periodId })).data.period,
-    null,
-  );
-  await sdk.startBillingTrial(dc, input);
-  assert.equal(
-    (await sdk.getBillingPeriod(dc, { teamId: f.teamId, id: input.periodId })).data.period
-      .allowanceSeconds,
-    null,
-  );
-});
-
-test("active paid periods prevent trials and failed period inserts roll back the trial claim", async (t) => {
-  const f = await fixture(t);
-  const p = await period(f);
-  const input = { teamId: f.teamId, userId: f.userId, periodId: randomUUID() };
-  await assert.rejects(sdk.startBillingTrial(dc, input));
-  const paid = (await sdk.getBillingTrialEligibility(dc, { teamId: f.teamId, userId: f.userId }))
-    .data;
-  assert.equal(paid.activePaidPeriod.id, p.id);
-  assert.equal(paid.userClaim, null);
-  await assert.rejects(
-    sdk.startBillingTrial(dc, { ...input, teamId: f.otherTeamId, periodId: p.id }),
-  );
-  assert.equal(
-    (await sdk.getBillingTrialEligibility(dc, { teamId: f.otherTeamId, userId: f.userId })).data
-      .userClaim,
-    null,
-  );
-});
-
-test("concurrent trials across teams give the shared user only one trial", async (t) => {
-  const f = await fixture(t);
-  const attempts = await Promise.allSettled([
-    sdk.startBillingTrial(dc, { teamId: f.teamId, userId: f.userId, periodId: randomUUID() }),
-    sdk.startBillingTrial(dc, { teamId: f.otherTeamId, userId: f.userId, periodId: randomUUID() }),
-  ]);
-  assert.equal(attempts.filter((r) => r.status === "fulfilled").length, 1);
-});
-
-test("queue cursors preserve FIFO ties, filter teams, and validate bounded pages", async (t) => {
-  const f = await fixture(t);
-  const a = await seedJob(f, { id: `${f.teamId}-a`, createdAt: "20" });
-  const b = await seedJob(f, { id: `${f.teamId}-b`, createdAt: "20" });
-  const c = await seedJob(f, { id: `${f.teamId}-c`, createdAt: "21", teamId: f.otherTeamId });
-  await seedJob(f, {
-    status: "IN_PROGRESS",
-    createdAt: "19",
-    workerHost: f.teamId,
-    latestRunId: "run",
-  });
-  const page = (await sdk.getQueuedBillingJobs(dc, { afterCreatedAt: "19", limit: 1 })).data.jobs;
-  assert.equal(page[0].id, a.id);
-  const next = (
-    await sdk.getQueuedBillingJobs(dc, {
-      afterCreatedAt: page[0].createdAt,
-      afterId: page[0].id,
-      excludedTeamIds: [f.otherTeamId],
-    })
-  ).data.jobs;
-  assert.deepEqual(
-    next.map((j) => j.id),
-    [b.id],
-  );
-  assert.equal(
-    (await sdk.getQueuedBillingJobs(dc, { afterCreatedAt: "20", afterId: b.id })).data.jobs[0].id,
-    c.id,
-  );
-  await assert.rejects(sdk.getQueuedBillingJobs(dc, { limit: 0 }));
-  await assert.rejects(sdk.getQueuedBillingJobs(dc, { limit: 101 }));
-  await assert.rejects(sdk.getQueuedBillingJobs(dc, { afterCreatedAt: "-1" }));
-  assert.equal((await sdk.getBillingWorkerJobs(dc, { workerHost: f.teamId })).data.jobs.length, 1);
-  assert.equal((await sdk.getBillingJob(dc, { id: b.id })).data.job.status, "QUEUED");
-  assert.equal((await sdk.getBillingJob(dc, { id: "missing" })).data.job, null);
-});
-
 test("team deletion returns secret references and retains billing/build history", async (t) => {
   const f = await fixture(t);
   const c = await customer(f);
@@ -608,7 +476,7 @@ test("generated SDK executes reservation, run binding, measurement and completio
   );
 });
 
-test("CommonJS default SDK and native SQL recovery responses work", async (t) => {
+test("CommonJS default SDK and admission expiry preserve queued jobs", async (t) => {
   const f = await fixture(t);
   const cjs = createRequire(import.meta.url)("@openci/billing-admin");
   assert.equal(
@@ -626,12 +494,10 @@ test("CommonJS default SDK and native SQL recovery responses work", async (t) =>
     periodId: p.id,
     atMs: "1000",
   });
-  const expired = (await sdk.getExpiredBillingWork(dc, { atMs: "121000" })).data;
-  assert.ok(
-    expired.admissions.some(
-      (row) => row.id === id && row.teamId === f.teamId && row.runId === null,
-    ),
-  );
+  const admission = (await sdk.getBillingAdmission(dc, { teamId: f.teamId, id })).data
+    .billingAdmission;
+  assert.equal(admission.openJobId, job.id);
+  assert.equal(admission.runId, null);
   await sdk.expireBillingAdmission(dc, {
     id,
     teamId: f.teamId,
@@ -667,10 +533,6 @@ test("all billing SDK operations reject Firebase clients, including team members
     [sdk.getBillingCustomerByStripeId, { stripeCustomerId: "customer", livemode: false }],
     [sdk.getBillingCheckoutCreation, { ...team, idempotencyKey: "key", livemode: false }],
     [sdk.getBillingPeriod, { ...team, id: "period" }],
-    [sdk.getBillingTrialEligibility, member],
-    [sdk.startBillingTrial, { ...member, periodId: "period" }],
-    [sdk.getQueuedBillingJobs, {}],
-    [sdk.getBillingWorkerJobs, { workerHost: "worker" }],
     [sdk.getBillingJob, { id: "job" }],
     [sdk.deleteBillingTeam, deletion(f)],
     [
@@ -689,10 +551,8 @@ test("all billing SDK operations reject Firebase clients, including team members
       sdk.createBillingCustomerCreation,
       { ...member, idempotencyKey: "key", livemode: false, createdAt: "1" },
     ],
-    [sdk.getBillingCustomerCreation, { ...team, livemode: false }],
     [sdk.recordBillingCustomer, c],
     [sdk.createBillingCheckoutCreation, { ...s, userId: f.userId }],
-    [sdk.getOpenBillingCheckoutCreation, { ...team, livemode: false }],
     [sdk.recordBillingCheckoutSession, { ...s, stripeCheckoutSessionId: "session" }],
     [sdk.closeBillingCheckoutCreation, { ...c, stripeCheckoutSessionId: "session", closedAt: "2" }],
     [sdk.getBillingStripeState, { ...team, livemode: false }],
@@ -739,7 +599,6 @@ test("all billing SDK operations reject Firebase clients, including team members
       sdk.expireBillingExecution,
       { ...team, runId: "run", expectedUsageRevision: "0", atMs: "1000" },
     ],
-    [sdk.getExpiredBillingWork, { atMs: "1000" }],
   ];
   for (const actor of [
     { impersonate: { authClaims: { sub: f.userId, firebase: { sign_in_provider: "password" } } } },
@@ -753,7 +612,7 @@ test("all billing SDK operations reject Firebase clients, including team members
       );
     }
   }
-  assert.equal(cases.length, 39);
+  assert.equal(cases.length, 32);
   assert.equal((await context(f)).account, null);
 });
 
@@ -938,35 +797,6 @@ test("membership revoked during Stripe price lookup prevents any purchase creati
     /forbidden/,
   );
   assert.equal(stripe.requests.length, 1);
-});
-
-test("legacy billing import preserves all nine tables and consumption with resumable insert-only writes", async (t) => {
-  const f = await fixture(t);
-  const rows = legacyBillingRows(f.teamId);
-  t.after(() =>
-    graphql(
-      `
-        mutation RemoveEvent($id: String!) {
-          billingStripeEvent_delete(key: { eventId: $id })
-        }
-      `,
-      { id: rows.BillingStripeEvent.event_id },
-    ),
-  );
-  const scan = async (visit) => {
-    for (const table of billingTables) await visit(table, rows[table.type]);
-  };
-  const target = billingDestination(dc);
-  assert.equal((await migrateBilling(scan, target)).dryRun, true);
-  assert.equal((await context(f)).account, null);
-  assert.equal((await migrateBilling(scan, target, true)).inserted, 9);
-  assert.equal((await migrateBilling(scan, target, true)).unchanged, 9);
-  const saved = await context(f);
-  assert.equal(saved.customer.stripeCustomerId, rows.BillingCustomerCreation.stripe_customer_id);
-  assert.equal(saved.checkout.idempotencyKey, rows.BillingCheckoutCreation.idempotency_key);
-  assert.equal(saved.stripe.paidPeriodId, rows.BillingStripeState.paid_period_id);
-  const available = await new BillingStore(dc).available(f.teamId, rows.BillingPeriod.id, 3000);
-  assert.equal(available, 35999000n); // One second already consumed by the old worker.
 });
 
 test("paid renewal, failed renewal and cancellation update callable status through the real FSC ledger", async (t) => {

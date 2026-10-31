@@ -33,23 +33,6 @@ mutation CreateBillingCustomerCreation(
     @check(expr: "int(vars.createdAt) >= 0", message: "Creation time must not be negative")
 }
 
-query GetBillingCustomerCreation($teamId: String!, $livemode: Boolean!) @auth(level: NO_ACCESS) {
-  team(id: $teamId) @redact @check(expr: "this != null", message: "Team not found") {
-    id
-  }
-  billingCustomerCreation(key: { teamId: $teamId })
-    @check(
-      expr: "this == null || this.livemode == vars.livemode"
-      message: "Stripe Customer creation mode does not match"
-    ) {
-    teamId
-    idempotencyKey
-    livemode
-    createdAt
-    stripeCustomerId
-  }
-}
-
 # Functions must verify that Stripe returned a non-deleted Customer whose
 # metadata.team_id and livemode match the stored intent before calling this.
 mutation RecordBillingCustomer(

@@ -46,71 +46,19 @@ uses Secret Manager and does not require that key.
   a crash between them can leave an orphan, so inspect resources labelled
   `openci-managed=true` during operational cleanup before deleting anything.
 
-## Deploy and migrate in order
+## Production cutover
 
-Do not deploy the server endpoint removal or distribute the new clients before
-steps 1–4. Existing deployed clients continue using the old API during preparation.
-The old Loki storage is retired separately in G-1607; see
-[the retirement record](LEGACY_RETIREMENT.md).
+The production cutover is complete. SQL Connect and Secret Manager own current
+logs and team secrets; the old PostgreSQL/Loki services and one-time import tool
+have been retired. Historical Loki logs were intentionally not imported.
 
-1. Deploy the FSC schema and connectors from `firebase/`. This adds
-   `SecretVersionCleanup` and the new queries/mutations; it does not drop the old
-   SQL secrets table. Confirm all source teams exist in FSC with the same IDs.
-2. Set `SECRET_MANAGER_PROJECT` for Functions to the same project used by the
-   executor (otherwise the function defaults to its Firebase project). Grant the
-   Functions runtime identity FSC admin access, Secret Manager create/add/access,
-   get metadata/version, and destroy-version permissions. Keep the executor's
-   existing read access. The operator running the import also needs FSC admin,
-   Secret Manager create/add/access and source PostgreSQL read access.
-3. Deploy `teamSecrets`, `cleanSecretVersions`, and `expireBuildLogs`. Deploy the
-   executor image containing the four generated-name exceptions. Verify team
-   membership checks with two test accounts before switching clients.
-4. Run the dry run below. Pause writes to the old Secrets API during the apply
-   run, run the import, then run apply a second time: `imported` must be zero and
-   `unchanged` must equal `validated`. The tool verifies the exact value and
-   reference after each new import. It never overwrites a differing destination.
-5. Release the dashboard and CLI. Verify list/read/save/rename/delete, iOS key
-   reuse, one real build using an imported multiline secret, repeated log lines,
-   live updates and final output. Verify that no secret values appear in logs.
-6. Deploy the server version without the old log/Secrets routes and remove Loki
-   from the running Compose stack. Retain the legacy database backup and key for
-   the rollback window. No historical log transfer is needed.
+The retained retirement backups contain the old data. They are recovery artifacts,
+not an active source: newer Secrets exist only in Secret Manager. See
+[the deployment report](DEPLOYMENT.md) and [retirement record](LEGACY_RETIREMENT.md).
 
-For rollback before retiring the old service, restore the old client/server
-release. Secrets created or changed after cutover only exist in Secret Manager;
-reconcile those explicitly before restoring an old Secrets writer. An apply run
-with conflicting values stops rather than silently choosing a source.
-
-## Secret import tool
-
-Build from the repository root:
-
-```sh
-npm run build --workspace firebase
-```
-
-Provide these through the operator's secure environment; do not paste their
-contents into logs or command arguments:
-
-- `LEGACY_DATABASE_URL`: read access to the old PostgreSQL database.
-- `LEGACY_SECRET_ENCRYPTION_KEY`: the existing base64 AES-256 key.
-- `SECRET_MANAGER_PROJECT`: the executor's Secret Manager project ID.
-- Application Default Credentials for the destination Firebase/GCP project.
-
-```sh
-# Read-only by default; decrypts and validates the entire stable source snapshot.
-node firebase/lib/functions/secrets/migrate.js
-
-# Creates missing destination values, verifies them, and skips exact matches.
-node firebase/lib/functions/secrets/migrate.js --apply
-```
-
-The tool reads a repeatable-read, read-only PostgreSQL snapshot, pages by
-`(team_id, name)`, and validates all names/counts/sizes before creating any values.
-It prints counts, never plaintext, encrypted values, or credentials. A failed
-apply may leave already imported entries; rerunning is safe while old writes are
-paused. Invalid legacy names must be corrected before migration. Metadata
-creation/update timestamps in the destination reflect the import time.
+For a normal release, deploy the schema/connector before Functions and matching
+clients. Keep `teamSecrets`, `cleanSecretVersions` and `expireBuildLogs` deployed,
+with the documented Secret Manager permissions and executor project configuration.
 
 ## Client configuration and local validation
 

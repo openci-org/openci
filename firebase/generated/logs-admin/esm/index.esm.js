@@ -16,16 +16,6 @@ export function appendBuildLog(dcOrVarsOrOptions, varsOrOptions, options) {
   return dcInstance.executeMutation("AppendBuildLog", inputVars, inputOpts);
 }
 
-export function getBuildSteps(dcOrVarsOrOptions, varsOrOptions, options) {
-  const {
-    dc: dcInstance,
-    vars: inputVars,
-    options: inputOpts,
-  } = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
-  dcInstance.useGen(true);
-  return dcInstance.executeQuery("GetBuildSteps", inputVars, inputOpts);
-}
-
 export function getBuildLogs(dcOrVarsOrOptions, varsOrOptions, options) {
   const {
     dc: dcInstance,

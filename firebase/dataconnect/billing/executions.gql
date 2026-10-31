@@ -257,27 +257,3 @@ mutation ExpireBillingExecution(
     data: { closedAtMs_expr: "response.query.execution.observedAtMs", openJobId: null }
   )
 }
-
-# Bounded sweep; Functions process executions first, then unstarted admissions.
-# Finish/retry job orchestration remains separate from billing recovery.
-query GetExpiredBillingWork($atMs: Int64!) @auth(level: NO_ACCESS) {
-  billingExecutions(
-    where: { finishedAtMs: { isNull: true }, leaseUntilMs: { le: $atMs } }
-    orderBy: [{ leaseUntilMs: ASC }, { runId: ASC }]
-    limit: 100
-  ) {
-    ...BillingExecutionFields
-  }
-  # Exclude started runs before LIMIT so long-running builds cannot starve recovery.
-  # Any[] result: Functions validate these id/teamId/runId identities before use.
-  admissions: _select(
-    sql: """
-    SELECT a.id, a.team_id AS "teamId", a.run_id AS "runId"
-    FROM billing_admissions a
-    WHERE a.closed_at_ms IS NULL AND a.start_by_ms <= $1::bigint
-      AND NOT EXISTS (SELECT 1 FROM billing_executions e WHERE e.run_id = a.run_id)
-    ORDER BY a.start_by_ms, a.id LIMIT 100
-    """
-    params: [$atMs]
-  )
-}

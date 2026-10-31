@@ -9,8 +9,7 @@ SecretsConnector.instance.QueueSecretVersionCleanup(queueSecretVersionCleanupVar
 SecretsConnector.instance.GetDueSecretVersions().execute();
 SecretsConnector.instance.GetSecretVersionReferences(getSecretVersionReferencesVariables).execute();
 SecretsConnector.instance.CompleteSecretVersionCleanup(completeSecretVersionCleanupVariables).execute();
-SecretsConnector.instance.CreateSecretReference(createSecretReferenceVariables).execute();
-SecretsConnector.instance.UpdateSecretReference(updateSecretReferenceVariables).execute();
+SecretsConnector.instance.GetSecrets(getSecretsVariables).execute();
 
 ```
 

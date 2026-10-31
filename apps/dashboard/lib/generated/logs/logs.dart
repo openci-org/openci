@@ -6,8 +6,6 @@ import 'dart:convert';
 
 part 'append_build_log.dart';
 
-part 'get_build_steps.dart';
-
 part 'get_build_logs.dart';
 
 part 'get_build_log_write_state.dart';
@@ -55,17 +53,6 @@ class LogsConnector {
       stream: stream,
       message: message,
       occurredAt: occurredAt,
-    );
-  }
-
-  GetBuildStepsVariablesBuilder getBuildSteps({
-    required String teamId,
-    required String runId,
-  }) {
-    return GetBuildStepsVariablesBuilder(
-      dataConnect,
-      teamId: teamId,
-      runId: runId,
     );
   }
 
