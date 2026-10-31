@@ -88,10 +88,14 @@ When provisioning the executor Job, include these options:
 --vpc-egress=private-ranges-only
 ```
 
-The `orchard-allow-private-https` firewall rule permits TCP 443 from the
-`orchard-client` source tag to the `orchard-controller` destination tag. Do not
-add a subnet-wide or internet-wide allow rule. Network tags are infrastructure
-permissions, not Orchard credentials; retain token authentication and TLS.
+The `orchard-allow-private-https` firewall rule permits TCP 443 from the dedicated
+`orchard-tokyo` subnet (`10.77.0.0/24`) to the `orchard-controller` destination
+tag. Cloud Run Direct VPC does not support source network tags in ingress
+firewall rules; use the subnet range as required by the
+[Direct VPC limitations](https://docs.cloud.google.com/run/docs/configuring/vpc-direct-vpc#limitations).
+Keep this subnet dedicated to Orchard and its authorized runtimes. The
+`orchard-client` tag is not an ingress authorization boundary. Retain token
+authentication and TLS, and keep the public `orchard-allow-https` rule disabled.
 
 The runtime identities need access to `ORCHARD_SERVICE_ACCOUNT_TOKEN`. Cloud Run
 can bind `ORCHARD_CA_CERT` as a secret environment variable; the Firebase

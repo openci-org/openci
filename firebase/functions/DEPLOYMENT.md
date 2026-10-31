@@ -201,6 +201,25 @@ Before rolling traffic back, stop new admissions and billing writers, drain
 executions and reconcile the new FSC writes with the legacy database. The
 pre-cutover dump alone does not include builds or billing changes made afterward.
 
+## CI environment corrections on 2026-10-31 JST
+
+PR #3756's Go workflows failed with `go: command not found` and
+`gofmt: command not found`. The new executor omitted `/usr/local/bin`, which
+the legacy worker included and the VM image uses for its Go executable links.
+The workflow environment now restores that directory while preserving Flutter,
+pub-cache, Homebrew and inherited system paths. A shell-level regression test
+reproduced the failure; Functions formatting, lint, TypeScript and all 92 tests
+passed after the fix. The executor was deployed as
+`sha256:97683d55528f7671426e8d6a947dbd9e3c02cd0c93ff73dc4fb1661749c8bb13`.
+
+During remote verification, dispatcher requests also repeatedly timed out
+connecting to Orchard while the Controller itself remained healthy. Its ingress
+firewall rule used a Cloud Run source tag, which Direct VPC does not support.
+The rule now permits only TCP 443 from `10.77.0.0/24` to the Controller target
+tag, as described in the [Orchard runbook](../../infra/orchard/README.md).
+The public HTTPS rule stays disabled; TLS and Orchard token authentication
+remain required. The dispatcher was also redeployed during diagnosis.
+
 ## Stripe Sandbox verification on 2026-10-31 JST
 
 The real Stripe Sandbox `acct_1StPaWIoRC3DAU5M` was used with test cards and the
