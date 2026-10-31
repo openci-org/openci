@@ -118,6 +118,11 @@ their old controller. Do not run two worker processes managing the same Mac.
 
 ## Tailnet access
 
+The six physical Mac workers' SSH and launchd configuration is managed by
+[Ansible in `infra/mac-workers`](../mac-workers/README.md). Use that inventory
+and playbook for host configuration changes, including its pause/drain checks
+before restarting a worker.
+
 Tailscale is installed from its signed Debian Bookworm repository (version
 `1.104.4`). The approved node is `orchard-controller-gcp`, with address
 `100.66.22.93`, in the `open-ci.io` Tailnet. It uses

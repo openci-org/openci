@@ -1,0 +1,27 @@
+---
+# Preserve the existing service identity, argument order and separate log file.
+orchard_worker_service_label: org.genuineci.orchard.worker
+orchard_worker_set_home: false
+orchard_worker_path: /opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin
+orchard_worker_exit_timeout: 60
+orchard_worker_bootstrap_path: /Library/Application Support/GenuineCI/orchard-worker.bootstrap
+orchard_worker_log_path: /Users/admin/Library/Logs/GenuineCI/orchard-launchd.log
+orchard_worker_arguments:
+  - "{{ orchard_worker_binary }}"
+  - worker
+  - run
+  - "{{ orchard_worker_controller_url }}"
+  - --user
+  - admin
+  - --bootstrap-token-stdin
+  - --no-pki
+  - --name
+  - "{{ orchard_worker_name }}"
+  - --default-cpu
+  - "2"
+  - --default-memory
+  - "4096"
+  - --resources
+  - "org.cirruslabs.tart-vms={{ orchard_worker_slots }}"
+  - --log-file
+  - /Users/admin/Library/Logs/GenuineCI/orchard-worker.log

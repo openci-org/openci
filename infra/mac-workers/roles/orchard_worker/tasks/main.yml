@@ -1,0 +1,134 @@
+---
+- name: Read the installed Orchard version
+  ansible.builtin.command:
+    argv: ["{{ orchard_worker_binary }}", --version]
+  changed_when: false
+  check_mode: false
+  register: orchard_worker_installed
+
+- name: Read the installed Tart version
+  ansible.builtin.command:
+    argv: ["{{ orchard_worker_tart_binary }}", --version]
+  become: false
+  changed_when: false
+  check_mode: false
+  register: orchard_worker_tart_installed
+
+- name: Require the reviewed runtime versions
+  ansible.builtin.assert:
+    that:
+      - orchard_worker_installed.stdout == orchard_worker_version
+      - orchard_worker_tart_installed.stdout == orchard_worker_tart_version
+    fail_msg: Review the runtime upgrade and inventory together; this playbook does not upgrade packages.
+
+- name: Inspect the bootstrap file without reading its contents
+  ansible.builtin.stat:
+    path: "{{ orchard_worker_bootstrap_path }}"
+    get_checksum: false
+    get_mime: false
+  register: orchard_worker_bootstrap
+
+- name: Require an existing bootstrap file or an operator-local source
+  ansible.builtin.assert:
+    that:
+      - orchard_worker_bootstrap.stat.exists or orchard_worker_bootstrap_source | length > 0
+      - not orchard_worker_bootstrap.stat.exists or (orchard_worker_bootstrap.stat.isreg and orchard_worker_bootstrap.stat.size > 0)
+    fail_msg: Supply the mac-workers bootstrap token file; never use a Controller admin or GCP credential.
+
+- name: Preview the launchd definition before changing any worker files
+  ansible.builtin.template:
+    src: worker.plist.j2
+    dest: "{{ orchard_worker_plist_path }}"
+    owner: root
+    group: wheel
+    mode: "0644"
+    validate: /usr/bin/plutil -lint %s
+  check_mode: true
+  register: orchard_worker_definition
+
+- name: Inspect the currently loaded worker
+  ansible.builtin.command:
+    argv: [/bin/launchctl, list, "{{ orchard_worker_service_label }}"]
+  changed_when: false
+  failed_when: false
+  check_mode: false
+  register: orchard_worker_service
+
+- name: Determine whether the worker process needs a change
+  ansible.builtin.set_fact:
+    orchard_worker_service_change: >-
+      {{ orchard_worker_definition.changed or not orchard_worker_bootstrap.stat.exists
+         or orchard_worker_service.rc != 0
+         or not (orchard_worker_service.stdout is search('"PID" = [0-9]+;')) }}
+
+- name: Check the maintenance preconditions before changing a worker process
+  ansible.builtin.include_tasks: maintenance.yml
+  when:
+    - orchard_worker_service_change
+    - not ansible_check_mode
+
+- name: Protect the directory containing the worker credential
+  ansible.builtin.file:
+    path: "{{ orchard_worker_bootstrap_path | dirname }}"
+    state: directory
+    owner: root
+    group: wheel
+    mode: "0700"
+
+- name: Seed a missing worker credential from the operator-local file
+  ansible.builtin.copy:
+    src: "{{ orchard_worker_bootstrap_source }}"
+    dest: "{{ orchard_worker_bootstrap_path }}"
+    owner: root
+    group: wheel
+    mode: "0600"
+    force: false
+  no_log: true
+  diff: false
+  when: not orchard_worker_bootstrap.stat.exists
+  notify: Restart the drained Orchard worker
+
+- name: Protect the existing worker credential
+  ansible.builtin.file:
+    path: "{{ orchard_worker_bootstrap_path }}"
+    owner: root
+    group: wheel
+    mode: "0600"
+  when: orchard_worker_bootstrap.stat.exists or not ansible_check_mode
+
+- name: Prepare the worker log directory
+  ansible.builtin.file:
+    path: "{{ orchard_worker_log_path | dirname }}"
+    state: directory
+    owner: admin
+    group: staff
+    mode: "0700"
+
+- name: Manage the worker launchd definition
+  ansible.builtin.template:
+    src: worker.plist.j2
+    dest: "{{ orchard_worker_plist_path }}"
+    owner: root
+    group: wheel
+    mode: "0644"
+    backup: true
+    validate: /usr/bin/plutil -lint %s
+  notify: Restart the drained Orchard worker
+
+- name: Apply a pending worker definition before checking its state
+  ansible.builtin.meta: flush_handlers
+
+- name: Keep the worker running under launchd
+  community.general.launchd:
+    name: "{{ orchard_worker_service_label }}"
+    state: started
+
+- name: Verify launchd has a running worker process
+  ansible.builtin.command:
+    argv: [/bin/launchctl, list, "{{ orchard_worker_service_label }}"]
+  register: orchard_worker_running
+  changed_when: false
+  retries: 6
+  delay: 5
+  until: orchard_worker_running.stdout is search('"PID" = [0-9]+;')
+  when: not ansible_check_mode
