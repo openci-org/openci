@@ -32,7 +32,7 @@ export class ExecutionGitHub {
 
   private async client(
     job: Job,
-    checks: boolean,
+    purpose: "checkout" | "checks" | "pull_request",
   ): Promise<{ request: (typeof import("@octokit/request"))["request"]; token: string }> {
     if (
       (job.githubBaseUrl ?? "https://github.com") !== this.options.baseUrl ||
@@ -65,7 +65,12 @@ export class ExecutionGitHub {
       type: "installation",
       installationId: Number(job.installationId),
       repositoryNames: [job.repo],
-      permissions: checks ? { checks: "write" } : { contents: "read" },
+      permissions:
+        purpose === "checks"
+          ? { checks: "write" }
+          : purpose === "pull_request"
+            ? { pull_requests: "read" }
+            : { contents: "read" },
     });
     return {
       request: transport.defaults({ headers: { authorization: `token ${installation.token}` } }),
@@ -73,11 +78,46 @@ export class ExecutionGitHub {
     };
   }
 
+  /** Recheck persisted PR jobs, including jobs planned before the fork policy. */
+  async verifyPullRequest(job: Job, accountId: string): Promise<void> {
+    if (job.pullRequestNumber === null) return;
+    // Missing projections/invalid PR numbers must not silently become push jobs.
+    const number = Number(job.pullRequestNumber);
+    if (!/^[1-9][0-9]*$/.test(job.pullRequestNumber ?? "") || !Number.isSafeInteger(number))
+      throw new Error("Invalid pull request metadata");
+    const client = await this.client(job, "pull_request");
+    try {
+      const { data: repo } = await client.request("GET /repos/{owner}/{repo}", {
+        owner: job.owner,
+        repo: job.repo,
+      });
+      const { data: pr } = await client.request("GET /repos/{owner}/{repo}/pulls/{pull_number}", {
+        owner: job.owner,
+        repo: job.repo,
+        pull_number: number,
+      });
+      if (
+        !Number.isSafeInteger(repo.id) ||
+        repo.id <= 0 ||
+        String(repo.owner?.id) !== accountId ||
+        repo.full_name?.toLowerCase() !== `${job.owner}/${job.repo}`.toLowerCase() ||
+        pr.number !== number ||
+        pr.base?.repo?.id !== repo.id ||
+        pr.head?.repo?.id !== repo.id ||
+        pr.head?.sha !== job.commitSha?.toLowerCase()
+      )
+        throw new Error("Untrusted pull request source");
+    } finally {
+      // This PR-read token stays in Cloud Run, including on rejection/API errors.
+      await client.request("DELETE /installation/token");
+    }
+  }
+
   async checkout(
     job: Job,
     accountId: string,
   ): Promise<{ token: string; cloneUrl: string; revoke: () => Promise<void> }> {
-    const client = await this.client(job, false);
+    const client = await this.client(job, "checkout");
     const { data: repo } = await client.request("GET /repos/{owner}/{repo}", {
       owner: job.owner,
       repo: job.repo,
@@ -98,7 +138,7 @@ export class ExecutionGitHub {
   }
 
   async check(job: Job, dispatch: Dispatch, outcome?: Outcome): Promise<string> {
-    const { request } = await this.client(job, true);
+    const { request } = await this.client(job, "checks");
     let checkRunId: number | bigint | undefined = dispatch.checkRunId
       ? BigInt(dispatch.checkRunId)
       : undefined;

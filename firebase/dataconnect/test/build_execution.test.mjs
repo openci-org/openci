@@ -155,6 +155,7 @@ async function fixture(t) {
     configuration,
     github: {
       options: { appId: "1", apiBaseUrl: "https://api.github.com", baseUrl: "https://github.com" },
+      verifyPullRequest: async () => {},
       checkout: async () => ({
         token: "checkout-token",
         cloneUrl: "https://github.com/org/app.git",
@@ -241,6 +242,7 @@ test("Cloud Run executor completes checkout, workflow, FSC logs, billing, checks
   await f.run();
   const state = await f.state();
   assert.equal(state.job.status, "SUCCESS", JSON.stringify(f.reports));
+  assert.equal(state.job.pullRequestNumber, null, "Push jobs return explicit null provenance");
   assert.equal(state.job.runCount, "1");
   assert.equal(state.run.runNumber, "1");
   assert.equal(state.run.conclusion, "success");
@@ -280,6 +282,70 @@ test("Cloud Run executor completes checkout, workflow, FSC logs, billing, checks
   assert.ok(Date.parse(logs.buildRun.logsExpireAt) > Date.now());
   await f.run();
   assert.equal(f.calls.filter((call) => call === "create").length, 1);
+});
+
+test("persisted PR jobs and reruns fail before billing, VM creation, checkout and secrets when source verification fails", async (t) => {
+  for (const runCount of [0, 3]) {
+    const f = await fixture(t);
+    await alterJob(f.jobId, {
+      pullRequestNumber: "7",
+      runCount: String(runCount),
+      latestRunId: runCount ? "previous-run" : null,
+      workerHost: runCount ? "previous-worker" : null,
+    });
+    let verified = 0;
+    f.dependencies.github.verifyPullRequest = async (job, accountId) => {
+      assert.equal(job.pullRequestNumber, "7", "FSC must expose the saved PR number to the guard");
+      assert.equal(accountId, "10");
+      verified++;
+      throw new Error("Untrusted pull request source");
+    };
+    const denied = [];
+    const forbid = (operation) => async () => {
+      denied.push(operation);
+      throw new Error(`Unexpected ${operation}`);
+    };
+    f.dependencies.billing = {
+      ...f.dependencies.billing,
+      period: forbid("billing"),
+      close: billing.close.bind(billing),
+    };
+    f.dependencies.github.checkout = forbid("checkout");
+    f.dependencies.secrets = forbid("secrets");
+    await f.run();
+    const state = await f.state();
+    assert.equal(verified, 1);
+    assert.deepEqual(denied, []);
+    assert.equal(state.job.status, "FAILURE");
+    assert.equal(state.job.runCount, String(runCount));
+    assert.equal(state.run, null);
+    assert.equal(state.dispatch.outcome, "failure");
+    assert.equal(state.dispatch.activeJobId, null);
+    assert.ok(state.dispatch.finishedAt);
+    assert.equal(await f.billingState(), null);
+    assert.deepEqual(f.calls, ["remove"]);
+    assert.deepEqual(f.checks, []);
+    await f.run();
+    assert.equal(verified, 1, "A rejected attempt must not be replayed");
+  }
+});
+
+test("rejected old attempts cannot fail a queued job after losing their active reservation", async (t) => {
+  const f = await fixture(t);
+  const executorId = await f.claim();
+  await store.result(f.id, executorId, "failure");
+  await alterDispatch(f.id, { activeJobId: null });
+  await alterJob(f.jobId, {
+    status: "QUEUED",
+    latestRunId: "newer-run",
+    workerHost: "newer-worker",
+  });
+  await cleanupExecution(f.id, f.jobId, f.dependencies, false);
+  const state = await f.state();
+  assert.equal(state.job.status, "QUEUED");
+  assert.equal(state.job.latestRunId, "newer-run");
+  assert.equal(state.job.workerHost, "newer-worker");
+  assert.ok(state.dispatch.finishedAt);
 });
 
 test("lost acknowledgements do not duplicate admissions, runs, or log entries", async (t) => {

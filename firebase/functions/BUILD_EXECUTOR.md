@@ -7,7 +7,7 @@ It does not run Flutter or parse Dart workflows locally.
 
 ```text
 dispatchBuildJob -> Cloud Run Job
-  claim reservation -> billing admission -> create numbered run
+  claim reservation -> verify PR source -> billing admission -> create numbered run
   prepare_vm -> checkout exact commit -> run_workflow
   persist result -> delete VM -> close billing -> complete GitHub Check
   -> complete job/run and release reservation
@@ -51,6 +51,14 @@ HTTPS/WSS certificate verification remains enabled, including custom CA support.
 GitHub App authentication uses Octokit. Checkout receives a repository-scoped
 contents-read token, revoked after checkout. A separate checks-write token stays
 in Cloud Run. Repository ownership must match the active FSC GitHub connection.
+Before billing admission or VM creation, PR jobs are rechecked against GitHub:
+head and base repository IDs must both match the connected repository, and the
+head SHA must match the saved job. This protects queued jobs and reruns created
+before the planner's fork restriction. Unknown/deleted heads, API failures, and
+superseded PR commits fail the attempt without fetching team secrets or handing
+a checkout token to the VM. Rerun the latest PR commit after a new push. A separate
+repository-scoped `pull_requests: read` token is revoked after verification and
+never sent to the VM; the GitHub App must have that read permission.
 Only the team's pinned Secret Manager versions are injected into the workflow.
 Google credentials, Orchard credentials and the GitHub App key never enter the VM.
 

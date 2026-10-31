@@ -14,8 +14,11 @@ are marked failed. Concurrent calls and lost completion responses are reconciled
 without inserting duplicate jobs or resetting existing jobs.
 
 `planJobs` and the parser/payload tests cover the workflow planning rules.
-PRs match the base branch
-and use the head SHA/branch for checkout. `whenChanged` validation and path
+PRs require valid, identical webhook/base/head repository IDs before fetching
+workflows or creating jobs. External forks and unknown/deleted head repositories
+are rejected. The repository's own `fork` flag does not affect same-repository
+PRs. Accepted PRs match the base branch and use the head SHA/branch for checkout.
+`whenChanged` validation and path
 matching helpers are retained; evaluating changed paths remains separate work.
 Execution-slot reservation belongs to the [dispatcher](../functions/BUILD_DISPATCH.md).
 The [Cloud Run executor](../functions/BUILD_EXECUTOR.md) runs builds and updates

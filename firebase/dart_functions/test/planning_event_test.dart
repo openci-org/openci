@@ -36,7 +36,7 @@ void main() {
         'action': 'synchronize',
         'number': 7,
         'pull_request': {
-          'head': {'sha': sha, 'ref': 'feature'},
+          'head': {'sha': sha, 'ref': 'feature', 'repo': repository},
           'base': {'repo': repository, 'ref': 'develop'},
           'title': 'PR title',
         },
@@ -46,6 +46,51 @@ void main() {
     expect(event.webhook.branch, 'feature');
     expect(event.webhook.commitSha, sha);
     expect(event.webhook.pullRequestNumber, 7);
+  });
+  test('PR repository provenance fails closed for forks and unknown IDs', () {
+    Map<String, Object?> pullRequest(Object? headRepo, Object? baseRepo) => {
+      'installation': {'id': 30},
+      'repository': repository,
+      'action': 'opened',
+      'number': 7,
+      'pull_request': {
+        'head': {'sha': sha, 'ref': 'feature', 'repo': headRepo},
+        'base': {'ref': 'develop', 'repo': baseRepo},
+        'title': 'PR title',
+      },
+    };
+
+    for (final invalid in <Object?>[
+      null,
+      {},
+      {'id': 99, 'fork': false},
+      {'id': '10'},
+      {'id': 0},
+      {'id': -10},
+      {'id': 10.5},
+      {'id': 9007199254740992},
+    ]) {
+      for (final payload in [
+        pullRequest(invalid, repository),
+        pullRequest(repository, invalid),
+      ]) {
+        expect(
+          () => PlanningEvent.parse('pull_request', jsonEncode(payload)),
+          throwsA(isA<InvalidPlanningInput>()),
+        );
+      }
+    }
+    // A repository can itself be a fork while hosting a trusted local PR.
+    final ownFork = {...repository, 'fork': true};
+    for (final action in ['opened', 'synchronize', 'reopened']) {
+      expect(
+        PlanningEvent.parse(
+          'pull_request',
+          jsonEncode({...pullRequest(ownFork, ownFork), 'action': action}),
+        ),
+        isNotNull,
+      );
+    }
   });
   test('deletions and ignored PR actions produce no plan', () {
     expect(PlanningEvent.parse('push', '{"deleted":true}'), isNull);

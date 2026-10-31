@@ -37,6 +37,7 @@ const job = {
   workflowName: "Test",
   workflowFileName: "ci/test.dart",
   commitSha: "a".repeat(40),
+  pullRequestNumber: null,
 };
 
 test("billing start survives a burst of revision conflicts and reconciles a lost success response", async () => {
@@ -450,4 +451,94 @@ test("Octokit scopes checkout/check tokens and reconciles a lost check creation 
   assert.deepEqual(tokens[0].body.permissions, { contents: "read" });
   assert.deepEqual(tokens[1].body.permissions, { checks: "write" });
   await assert.rejects(github.checkout(job, "other-account"), /connected installation/);
+});
+
+test("PR execution revalidates repository IDs and pinned SHA with a separate revoked read token", async (t) => {
+  const { privateKey } = generateKeyPairSync("rsa", {
+    modulusLength: 2048,
+    privateKeyEncoding: { type: "pkcs8", format: "pem" },
+    publicKeyEncoding: { type: "spki", format: "pem" },
+  });
+  const repository = { id: 101, full_name: "org/app", owner: { id: 10 }, fork: true };
+  const trusted = {
+    number: 7,
+    head: { repo: repository, sha: job.commitSha },
+    base: { repo: repository },
+  };
+  const prJob = { ...job, pullRequestNumber: "7" };
+  let pullRequest = trusted;
+  let repo = repository;
+  let apiStatus = 200;
+  const calls = [];
+  const original = globalThis.fetch;
+  t.after(() => {
+    globalThis.fetch = original;
+  });
+  globalThis.fetch = async (url, init) => {
+    const path = new URL(url).pathname;
+    calls.push(path);
+    assert.equal(new URL(url).origin, "https://api.github.com");
+    assert.equal(init.redirect, "error");
+    if (path.endsWith("/access_tokens")) {
+      const body = JSON.parse(init.body);
+      assert.deepEqual(body.repositories, ["app"]);
+      assert.deepEqual(body.permissions, { pull_requests: "read" });
+      return Response.json({
+        token: "pr-read-token",
+        expires_at: new Date(Date.now() + 3600000).toISOString(),
+        repositories: [repository],
+        permissions: body.permissions,
+        repository_selection: "selected",
+      });
+    }
+    assert.equal(init.headers.authorization, "token pr-read-token");
+    if (path === "/repos/org/app") return Response.json(repo);
+    if (path === "/repos/org/app/pulls/7") return Response.json(pullRequest, { status: apiStatus });
+    if (path === "/installation/token") return new Response(null, { status: 204 });
+    assert.fail(`Unexpected request: ${path}`);
+  };
+  const github = new ExecutionGitHub({
+    appId: "1",
+    privateKey,
+    apiBaseUrl: "https://api.github.com",
+    baseUrl: "https://github.com",
+  });
+  await github.verifyPullRequest(job, "10");
+  assert.equal(calls.length, 0, "Push jobs do not need a PR token");
+  for (const pullRequestNumber of [undefined, "", "0", "-1", "1.5", "9007199254740992"]) {
+    await assert.rejects(github.verifyPullRequest({ ...job, pullRequestNumber }, "10"));
+  }
+  assert.equal(calls.length, 0, "Invalid/missing PR metadata must not mint tokens");
+  await github.verifyPullRequest(prJob, "10");
+  assert.equal(calls.at(-1), "/installation/token");
+  for (const badPr of [
+    { ...trusted, head: { ...trusted.head, repo: { ...repository, id: 999, fork: false } } },
+    { ...trusted, head: { ...trusted.head, repo: null } },
+    { ...trusted, head: { sha: job.commitSha } },
+    { ...trusted, head: { ...trusted.head, repo: { id: "101" } } },
+    { ...trusted, head: { ...trusted.head, sha: "b".repeat(40) } },
+    { ...trusted, base: { repo: { ...repository, id: 999 } } },
+    { ...trusted, base: { repo: null } },
+    { ...trusted, number: 8 },
+  ]) {
+    pullRequest = badPr;
+    await assert.rejects(github.verifyPullRequest(prJob, "10"), /Untrusted pull request/);
+    assert.equal(calls.at(-1), "/installation/token", "Rejecting a PR must also revoke its token");
+  }
+  pullRequest = trusted;
+  for (const badRepo of [
+    { ...repository, owner: { id: 11 } },
+    { ...repository, full_name: "other/app" },
+    { ...repository, id: "101" },
+  ]) {
+    repo = badRepo;
+    await assert.rejects(github.verifyPullRequest(prJob, "10"), /Untrusted pull request/);
+    assert.equal(calls.at(-1), "/installation/token");
+  }
+  repo = repository;
+  for (const status of [403, 404, 500]) {
+    apiStatus = status;
+    await assert.rejects(github.verifyPullRequest(prJob, "10"));
+    assert.equal(calls.at(-1), "/installation/token");
+  }
 });
