@@ -2,7 +2,10 @@
   "name": "Stacked PR",
   "description": "Manage dependent pull requests and restack after parent updates and squash merges.",
   "url": "https://github.com/openci-org/openci/tree/develop/apps/stacked_pr",
-  "hook_attributes": { "url": "https://stacked-pr-webhook-YOUR_SERVICE_ID.an.run.app", "active": true },
+  "hook_attributes": {
+    "url": "https://asia-northeast1-YOUR_PROJECT.cloudfunctions.net/stackedPrWebhook",
+    "active": true
+  },
   "public": false,
   "default_permissions": {
     "metadata": "read",

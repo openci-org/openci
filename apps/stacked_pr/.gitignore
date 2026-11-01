@@ -1,9 +1,8 @@
 .env
 secrets/
 data/
-.dart_tool/
-.dart_frog/
-build/
+node_modules/
+lib/
 coverage/
 *.pem
 .DS_Store
@@ -12,4 +11,3 @@ coverage/
 .secret.local
 .firebase/
 *-debug.log
-bin/server

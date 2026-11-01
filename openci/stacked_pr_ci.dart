@@ -10,10 +10,5 @@ Future<void> main() async {
     currentWorkingDirectory: 'apps/stacked_pr',
   );
 
-  await openCI.run('dart pub get --enforce-lockfile');
-  await openCI.run(
-    'dart format --output=none --set-exit-if-changed lib bin test integration_test',
-  );
-  await openCI.run('dart analyze --fatal-infos');
-  await openCI.run('dart test test integration_test --concurrency=1');
+  await openCI.run('bash scripts/ci.sh');
 }
