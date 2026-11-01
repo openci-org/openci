@@ -100,7 +100,13 @@ void main() {
         });
       }
       expect(request.url.toString(), 'https://git.example.com/api/graphql');
-      final variables = jsonObject(jsonObject(jsonDecode(request.body))['variables']);
+      final body = jsonObject(jsonDecode(request.body));
+      final query = body['query'] as String;
+      expect(query, contains('AUTOMATIC_BASE_CHANGE_SUCCEEDED_EVENT'));
+      expect(query, contains('... on AutomaticBaseChangeSucceededEvent'));
+      expect(query, contains('oldBase'));
+      expect(query, contains('newBase'));
+      final variables = jsonObject(body['variables']);
       seen.add(variables['cursor']);
       if (fail) {
         return response({
@@ -158,6 +164,10 @@ void main() {
       }
       final body = jsonObject(jsonDecode(request.body));
       final query = body['query'] as String;
+      expect(query, contains('AUTOMATIC_BASE_CHANGE_SUCCEEDED_EVENT'));
+      expect(query, contains('... on AutomaticBaseChangeSucceededEvent'));
+      expect(query, contains('oldBase'));
+      expect(query, contains('newBase'));
       if (query.contains('query StackHistories')) {
         batches++;
         final numbers = RegExp(

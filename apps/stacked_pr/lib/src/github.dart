@@ -157,7 +157,7 @@ query StackHistory($owner: String!, $name: String!, $number: Int!, $cursor: Stri
   repository(owner: $owner, name: $name) {
     pullRequest(number: $number) {
       timelineItems(first: 100, after: $cursor, itemTypes: [
-        HEAD_REF_FORCE_PUSHED_EVENT, BASE_REF_CHANGED_EVENT
+        HEAD_REF_FORCE_PUSHED_EVENT, BASE_REF_CHANGED_EVENT, AUTOMATIC_BASE_CHANGE_SUCCEEDED_EVENT
       ]) {
         nodes {
           __typename
@@ -165,6 +165,7 @@ query StackHistory($owner: String!, $name: String!, $number: Int!, $cursor: Stri
             createdAt beforeCommit { oid } afterCommit { oid }
           }
           ... on BaseRefChangedEvent { createdAt previousRefName currentRefName }
+          ... on AutomaticBaseChangeSucceededEvent { createdAt oldBase newBase }
         }
         pageInfo { hasNextPage endCursor }
       }
@@ -206,11 +207,14 @@ query StackHistory($owner: String!, $name: String!, $number: Int!, $cursor: Stri
             (n) =>
                 '''
 pr$n: pullRequest(number: $n) {
-  timelineItems(first: 100, itemTypes: [HEAD_REF_FORCE_PUSHED_EVENT, BASE_REF_CHANGED_EVENT]) {
+  timelineItems(first: 100, itemTypes: [
+    HEAD_REF_FORCE_PUSHED_EVENT, BASE_REF_CHANGED_EVENT, AUTOMATIC_BASE_CHANGE_SUCCEEDED_EVENT
+  ]) {
     nodes {
       __typename
       ... on HeadRefForcePushedEvent { createdAt beforeCommit { oid } afterCommit { oid } }
       ... on BaseRefChangedEvent { createdAt previousRefName currentRefName }
+      ... on AutomaticBaseChangeSucceededEvent { createdAt oldBase newBase }
     }
     pageInfo { hasNextPage endCursor }
   }
