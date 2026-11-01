@@ -1,0 +1,109 @@
+---
+- name: Require explicit maintenance mode for a worker process change
+  ansible.builtin.assert:
+    that: orchard_worker_allow_restart | bool
+    fail_msg: >-
+      Worker configuration or running state would change. Pause scheduling and drain
+      this worker, then rerun with -e orchard_worker_allow_restart=true.
+
+- name: Find existing Orchard service definitions
+  ansible.builtin.find:
+    paths: /Library/LaunchDaemons
+    patterns: "*orchard*.plist"
+  register: orchard_worker_existing_services
+
+- name: Refuse a second service identity on the same Mac
+  ansible.builtin.assert:
+    that:
+      - orchard_worker_existing_services.files | rejectattr('path', 'equalto', orchard_worker_plist_path) | list | length == 0
+    fail_msg: Migrate the existing service explicitly before changing its launchd label.
+
+- name: Read the existing worker identity
+  ansible.builtin.command:
+    argv:
+      [
+        /usr/bin/plutil,
+        -extract,
+        ProgramArguments,
+        json,
+        -o,
+        "-",
+        "{{ orchard_worker_plist_path }}",
+      ]
+  changed_when: false
+  no_log: true
+  register: orchard_worker_previous_arguments
+  when: orchard_worker_existing_services.matched > 0
+
+- name: Refuse to bypass draining by changing the worker name
+  ansible.builtin.assert:
+    that:
+      - orchard_worker_name == orchard_worker_previous_argv[orchard_worker_previous_argv.index('--name') + 1]
+    fail_msg: Drain and migrate the existing worker identity explicitly before renaming it.
+  vars:
+    orchard_worker_previous_argv: "{{ orchard_worker_previous_arguments.stdout | from_json }}"
+  when: orchard_worker_existing_services.matched > 0
+
+- name: Require HTTPS for Controller access
+  ansible.builtin.assert:
+    that: orchard_worker_api_url is match('^https://')
+
+- name: Require a read credential for the Controller maintenance checks
+  ansible.builtin.assert:
+    that: orchard_worker_controller_token | length > 0
+    fail_msg: Set ORCHARD_SERVICE_ACCOUNT_TOKEN in the operator environment.
+  no_log: true
+
+- name: Read the worker scheduling state from the Controller
+  ansible.builtin.uri:
+    url: "{{ orchard_worker_api_url }}/v1/workers/{{ orchard_worker_name }}"
+    url_username: "{{ orchard_worker_controller_account }}"
+    url_password: "{{ orchard_worker_controller_token }}"
+    force_basic_auth: true
+    ca_path: "{{ orchard_worker_controller_ca }}"
+    validate_certs: true
+    follow_redirects: none
+    use_proxy: false
+    status_code: [200, 404]
+  delegate_to: localhost
+  become: false
+  check_mode: false
+  no_log: true
+  register: orchard_worker_controller_state
+
+- name: Read the Controller VM assignments
+  ansible.builtin.uri:
+    url: "{{ orchard_worker_api_url }}/v1/vms"
+    url_username: "{{ orchard_worker_controller_account }}"
+    url_password: "{{ orchard_worker_controller_token }}"
+    force_basic_auth: true
+    ca_path: "{{ orchard_worker_controller_ca }}"
+    validate_certs: true
+    follow_redirects: none
+    use_proxy: false
+  delegate_to: localhost
+  become: false
+  check_mode: false
+  no_log: true
+  register: orchard_worker_controller_vms
+
+- name: Require paused scheduling and no assigned VMs
+  ansible.builtin.assert:
+    that:
+      - orchard_worker_controller_state.status == 404 or (orchard_worker_controller_state.json.scheduling_paused | default(false) | bool)
+      - orchard_worker_controller_vms.json | selectattr('worker', 'defined') | selectattr('worker', 'equalto', orchard_worker_name) | list | length == 0
+    fail_msg: The worker must be paused and drained in Orchard before applying changes.
+
+- name: Read local Tart VMs as the worker user
+  ansible.builtin.command:
+    argv: ["{{ orchard_worker_tart_binary }}", list, --format, json]
+  become: false
+  environment:
+    HOME: /Users/admin
+  changed_when: false
+  register: orchard_worker_local_vms
+
+- name: Require no locally running VMs
+  ansible.builtin.assert:
+    that: orchard_worker_local_vms.stdout | from_json | selectattr('State', 'equalto', 'running') | list | length == 0
+    fail_msg: Tart still has a running VM on this host.

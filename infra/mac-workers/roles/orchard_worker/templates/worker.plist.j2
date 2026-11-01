@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>EnvironmentVariables</key>
+	<dict>
+{% if orchard_worker_set_home %}
+		<key>HOME</key>
+		<string>/Users/admin</string>
+{% endif %}
+		<key>PATH</key>
+		<string>{{ orchard_worker_path | e }}</string>
+{% if orchard_worker_no_auto_prune %}
+		<key>TART_NO_AUTO_PRUNE</key>
+		<string>1</string>
+{% endif %}
+	</dict>
+{% if orchard_worker_exit_timeout is defined %}
+	<key>ExitTimeOut</key>
+	<integer>{{ orchard_worker_exit_timeout }}</integer>
+{% endif %}
+	<key>KeepAlive</key>
+	<true/>
+	<key>Label</key>
+	<string>{{ orchard_worker_service_label | e }}</string>
+	<key>ProgramArguments</key>
+	<array>
+{% for argument in orchard_worker_arguments %}
+		<string>{{ argument | e }}</string>
+{% endfor %}
+	</array>
+	<key>RunAtLoad</key>
+	<true/>
+	<key>StandardErrorPath</key>
+	<string>{{ orchard_worker_log_path | e }}</string>
+	<key>StandardInPath</key>
+	<string>{{ orchard_worker_bootstrap_path | e }}</string>
+	<key>StandardOutPath</key>
+	<string>{{ orchard_worker_log_path | e }}</string>
+	<key>ThrottleInterval</key>
+	<integer>10</integer>
+	<key>WorkingDirectory</key>
+	<string>/Users/admin</string>
+</dict>
+</plist>

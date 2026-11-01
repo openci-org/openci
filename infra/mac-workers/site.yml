@@ -1,0 +1,23 @@
+---
+- name: Manage physical Orchard worker Macs
+  hosts: mac_workers
+  become: true
+  gather_facts: false
+  serial: 1
+  any_errors_fatal: true
+  pre_tasks:
+    - name: Read platform and connection facts as the SSH user
+      ansible.builtin.setup:
+        gather_subset: [min, env]
+      become: false
+
+    - name: Require an Apple Silicon Mac and the existing admin account
+      ansible.builtin.assert:
+        that:
+          - ansible_facts.system == 'Darwin'
+          - ansible_facts.architecture == 'arm64'
+          - ansible_user == 'admin'
+        fail_msg: This inventory manages the physical Mac hosts, not build VMs.
+  roles:
+    - mac_admin
+    - orchard_worker

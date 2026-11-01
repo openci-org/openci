@@ -1,0 +1,5 @@
+---
+- name: Restart the drained Orchard worker
+  community.general.launchd:
+    name: "{{ orchard_worker_service_label }}"
+    state: restarted
