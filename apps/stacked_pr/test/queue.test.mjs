@@ -146,7 +146,7 @@ test("worker diagnostics identify safe failures without logging transport secret
   );
   assert.doesNotMatch(JSON.stringify(logs), /secret|private-repository|authorization/);
 });
-test("Firebase discovers a public webhook and a private serial Task Queue worker", async () => {
+test("Firebase discovers a public webhook and four private independently locked workers", async () => {
   process.env.STACKED_PR_TASK_SERVICE_ACCOUNT =
     "stacked-pr-tasks@demo-stacked-pr.iam.gserviceaccount.com";
   const { stackedPrWebhook, stackedPrWorker } = await import("../lib/index.js");
@@ -155,9 +155,9 @@ test("Firebase discovers a public webhook and a private serial Task Queue worker
     process.env.STACKED_PR_TASK_SERVICE_ACCOUNT,
   ]);
   assert.equal(stackedPrWorker.__endpoint.concurrency, 1);
-  assert.equal(stackedPrWorker.__endpoint.maxInstances, 1);
+  assert.equal(stackedPrWorker.__endpoint.maxInstances, 4);
   assert.equal(stackedPrWorker.__endpoint.timeoutSeconds, 540);
-  assert.equal(stackedPrWorker.__endpoint.taskQueueTrigger.rateLimits.maxConcurrentDispatches, 1);
+  assert.equal(stackedPrWorker.__endpoint.taskQueueTrigger.rateLimits.maxConcurrentDispatches, 4);
   assert.equal(stackedPrWorker.__endpoint.taskQueueTrigger.retryConfig.maxAttempts, 8);
   assert.deepEqual(stackedPrWorker.__endpoint.region, ["asia-northeast1"]);
 });

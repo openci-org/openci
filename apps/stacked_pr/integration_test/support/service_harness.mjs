@@ -5,6 +5,7 @@ import { PullRequest, Repository } from "../../lib/models.js";
 import { Service } from "../../lib/service.js";
 import { config, modify, raw, fakeApi } from "../../test/support/fixtures.mjs";
 import { GitFixture } from "./git_fixture.mjs";
+import { MemoryStackLocks } from "../../test/support/memory_locks.mjs";
 
 export const repo = new Repository(20, "org/repo", "main");
 export class Harness {
@@ -17,6 +18,7 @@ export class Harness {
     this.failPatch = false;
     this.generation = 0;
     this.enqueued = [];
+    this.locks = new MemoryStackLocks();
   }
   static async create(t, autoRestack = true) {
     const h = new Harness(await GitFixture.create(t));
@@ -65,6 +67,7 @@ export class Harness {
       config: config({ dataDir: this.f.root, autoRestack }),
       api: this.api,
       reporter: this.reporter,
+      locks: this.locks,
       gitFactory: () => this.f.worker,
       enqueue: async (job) => {
         this.enqueued.push(job);

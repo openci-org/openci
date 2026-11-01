@@ -2,6 +2,7 @@ import { onRequest } from "firebase-functions/v2/https";
 import { onTaskDispatched } from "firebase-functions/v2/tasks";
 import { defineSecret, defineString } from "firebase-functions/params";
 import { required } from "./config.js";
+import { workerParallelism, workerTimeoutSeconds } from "./limits.js";
 import { TaskQueue, region } from "./queue.js";
 import { processTask, runJob } from "./runtime.js";
 import { createWebhookHandler } from "./webhook.js";
@@ -44,10 +45,10 @@ export const stackedPrWorker = onTaskDispatched<unknown>(
     invoker: [taskAccount],
     memory: "2GiB",
     cpu: 1,
-    timeoutSeconds: 540,
+    timeoutSeconds: workerTimeoutSeconds,
     concurrency: 1,
     minInstances: 0,
-    maxInstances: 1,
+    maxInstances: workerParallelism,
     retryConfig: {
       maxAttempts: 8,
       minBackoffSeconds: 30,
@@ -55,7 +56,10 @@ export const stackedPrWorker = onTaskDispatched<unknown>(
       maxDoublings: 4,
       maxRetrySeconds: 3600,
     },
-    rateLimits: { maxConcurrentDispatches: 1, maxDispatchesPerSecond: 1 },
+    rateLimits: {
+      maxConcurrentDispatches: workerParallelism,
+      maxDispatchesPerSecond: workerParallelism,
+    },
   },
   (request) =>
     processTask(request.data, (job) =>

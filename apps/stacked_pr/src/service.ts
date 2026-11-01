@@ -5,6 +5,7 @@ import type { Deadline } from "./deadline.js";
 import { GitRepository } from "./git.js";
 import type { GitHubApi } from "./github.js";
 import { History } from "./history.js";
+import type { StackLocks, StackLease } from "./locks.js";
 import {
   type Job,
   type Json,
@@ -22,9 +23,26 @@ interface ServiceOptions {
   config: AppConfig;
   api: GitHubApi;
   reporter: Reporter;
+  locks: StackLocks;
   enqueue?: (job: Job) => Promise<boolean>;
   deadline?: Deadline;
   gitFactory?: (installation: number, repo: Repository) => GitRepository;
+}
+interface Selection {
+  number?: number;
+  branch?: string;
+  previousBase?: string;
+}
+
+function lockResources(components: PullRequest[][]): string[] {
+  return [
+    ...new Set(
+      components
+        .flat()
+        .filter((p) => p.sameRepo)
+        .flatMap((p) => [`pr:${p.number}`, `head:${p.headRef}`]),
+    ),
+  ].sort();
 }
 export class Service {
   private readonly config: AppConfig;
@@ -173,13 +191,43 @@ export class Service {
   async reconcile(
     installation: number,
     repo: Repository,
-    {
-      force = false,
-      number,
-      branch,
-      previousBase,
-    }: { force?: boolean; number?: number; branch?: string; previousBase?: string } = {},
+    options: Selection & { force?: boolean } = {},
   ): Promise<void> {
+    const initial = await this.discover(installation, repo, options);
+    const resources = lockResources(initial.selected);
+    if (!resources.length) return;
+    // Repository identity is stable across renames and installations. PR IDs
+    // protect shared members; head refs also protect multiple PRs on one branch.
+    const lease = await this.options.locks.acquire(
+      `${this.config.githubUrl}:${repo.id}`,
+      resources,
+    );
+    try {
+      // Another delivery could have finished between discovery and acquisition.
+      // Build a fresh plan under the lease; never execute the earlier snapshot.
+      const fresh = await this.discover(installation, repo, options);
+      lease.assertActive();
+      const held = new Set(resources);
+      if (lockResources(fresh.selected).some((resource) => !held.has(resource)))
+        throw new RetryException("Stack membership changed before processing");
+      await this.updateSelected(
+        installation,
+        fresh.repo,
+        fresh.history,
+        fresh.selected,
+        options.force ?? false,
+        lease,
+      );
+    } finally {
+      await lease.release();
+    }
+  }
+
+  private async discover(
+    installation: number,
+    repo: Repository,
+    { number, branch, previousBase }: Selection,
+  ): Promise<{ repo: Repository; history: History; selected: PullRequest[][] }> {
     const metadata = jsonObject(await this.api.request(installation, "GET", repo.apiPath));
     if (metadata.id !== repo.id || typeof metadata.default_branch !== "string")
       throw new RetryException("Repository identity changed");
@@ -196,13 +244,13 @@ export class Service {
           repo.id,
         ),
       );
+    const history = new History(this.api, installation, repo);
     if (
       !current.length ||
       (branch === repo.defaultBranch && !current.some((p) => p.headRef === branch))
     )
-      return;
-    const history = new History(this.api, installation, repo),
-      pulls = await history.discover(current);
+      return { repo, history, selected: [] };
+    const pulls = await history.discover(current);
     // Scope failures before checking cycles or boundaries, so unrelated stacks can continue.
     const components: PullRequest[][] = [],
       assigned = new Set<number>();
@@ -240,7 +288,19 @@ export class Service {
               (p.headRef === branch || (branch !== repo.defaultBranch && p.baseRef === branch))),
         ),
     );
+    return { repo, history, selected };
+  }
+
+  private async updateSelected(
+    installation: number,
+    repo: Repository,
+    history: History,
+    selected: PullRequest[][],
+    force: boolean,
+    lease: StackLease,
+  ): Promise<void> {
     if (!selected.length) return;
+    lease.assertActive();
     const selectedPulls = selected.flat().filter((p) => p.sameRepo),
       enabled = force || this.config.autoRestack;
     const git = this.gitFactory(installation, repo);
@@ -258,6 +318,7 @@ export class Service {
       });
     }
     for (const component of selected) {
+      lease.assertActive();
       let result = component,
         error: RestackException | undefined;
       try {
@@ -273,6 +334,7 @@ export class Service {
           JSON.stringify({ event: "restack_blocked", repository: repo.id, pull: error.number }),
         );
       }
+      lease.assertActive();
       await this.options.reporter.publish(installation, repo, result, {
         error,
         observeOnly: !this.config.autoRestack,

@@ -2,7 +2,7 @@
   "name": "stacked-pr-app",
   "version": "0.3.0",
   "private": true,
-  "description": "A database-free GitHub App for stacked PRs on Firebase Functions.",
+  "description": "A GitHub App for stacked PRs with Firestore execution locks on Firebase Functions.",
   "type": "module",
   "main": "lib/index.js",
   "scripts": {
@@ -12,7 +12,8 @@
     "fmt": "vp fmt",
     "fmt:check": "vp fmt --check",
     "test": "npm run build && node --test --test-concurrency=1 test/*.test.mjs integration_test/*.test.mjs",
-    "test:runtime": "node scripts/smoke-runtime.mjs"
+    "test:runtime": "node scripts/smoke-runtime.mjs",
+    "test:locks": "npm run build && npx --yes firebase-tools@15.34.2 emulators:exec --only firestore --config firebase.emulator.json --project demo-stacked-pr-locks 'node --test --test-concurrency=1 test/firestore/locks.test.mjs'"
   },
   "dependencies": {
     "@octokit/auth-app": "^8.3.1",
