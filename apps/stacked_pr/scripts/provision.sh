@@ -14,13 +14,14 @@ for name in stacked-pr-runtime stacked-pr-tasks; do
   fi
 done
 
-gcloud projects add-iam-policy-binding "$project" --member="serviceAccount:$runtime" --role=roles/cloudtasks.enqueuer --condition=None
-gcloud iam service-accounts add-iam-policy-binding "$tasks" --project "$project" --member="serviceAccount:$runtime" --role=roles/iam.serviceAccountUser
+gcloud projects add-iam-policy-binding "$project" --member="serviceAccount:$runtime" --role=roles/cloudtasks.enqueuer --condition=None --format=none
+gcloud iam service-accounts add-iam-policy-binding "$tasks" --project "$project" --member="serviceAccount:$runtime" --role=roles/iam.serviceAccountUser --format=none
 project_number="$(gcloud projects describe "$project" --format='value(projectNumber)')"
-gcloud beta services identity create --service=cloudtasks.googleapis.com --project "$project"
-gcloud iam service-accounts add-iam-policy-binding "$tasks" --project "$project" --member="serviceAccount:service-${project_number}@gcp-sa-cloudtasks.iam.gserviceaccount.com" --role=roles/iam.serviceAccountTokenCreator
+# Enabling Cloud Tasks creates its Google-managed service agent. It is not a
+# user-managed service account and cannot be queried with service-accounts describe.
+gcloud iam service-accounts add-iam-policy-binding "$tasks" --project "$project" --member="serviceAccount:service-${project_number}@gcp-sa-cloudtasks.iam.gserviceaccount.com" --role=roles/iam.serviceAccountTokenCreator --format=none
 for secret in STACKED_PR_GITHUB_PRIVATE_KEY STACKED_PR_WEBHOOK_SECRET; do
-  gcloud secrets add-iam-policy-binding "$secret" --project "$project" --member="serviceAccount:$runtime" --role=roles/secretmanager.secretAccessor
+  gcloud secrets add-iam-policy-binding "$secret" --project "$project" --member="serviceAccount:$runtime" --role=roles/secretmanager.secretAccessor --format=none
 done
 
 if gcloud tasks queues describe stacked-pr --location "$region" --project "$project" >/dev/null 2>&1; then
