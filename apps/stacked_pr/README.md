@@ -34,7 +34,8 @@ workerはCloud Tasks用サービスアカウントのIDトークンで呼び出�
 
 - 現在のPRのhead/baseブランチから親子関係を調べます。
 - force push前後の先端はGraphQLの`HeadRefForcePushedEvent`から取得します。
-- 親のmergeに伴うbase変更は`BaseRefChangedEvent`と閉じたPRの情報から復元します。
+- 親のmergeに伴うbase変更は`BaseRefChangedEvent`、
+  `AutomaticBaseChangeSucceededEvent`と閉じたPRの情報から復元します。
   連続する親のmergeや、親ブランチの削除にも対応します。
 - 証拠のある親の履歴と子の履歴から変更境界を求めます。履歴が不足する場合、
   共通祖先だけを推測で採用せず、そのスタックの自動更新を止めます。

@@ -126,12 +126,12 @@ class Harness {
     });
   }
 
-  void baseChange(int number, String before, String after) {
+  void baseChange(int number, String before, String after, {bool automatic = false}) {
     events.putIfAbsent(number, () => []).add({
-      '__typename': 'BaseRefChangedEvent',
+      '__typename': automatic ? 'AutomaticBaseChangeSucceededEvent' : 'BaseRefChangedEvent',
       'createdAt': '2026-11-01T00:00:01Z',
-      'previousRefName': before,
-      'currentRefName': after,
+      automatic ? 'oldBase' : 'previousRefName': before,
+      automatic ? 'newBase' : 'currentRefName': after,
     });
   }
 
@@ -146,11 +146,11 @@ class Harness {
     return head;
   }
 
-  Future<String> merge({bool retarget = false}) async {
+  Future<String> merge({bool retarget = false, bool automatic = false}) async {
     final sha = await f.squash(deleteParent: true);
     records[0] = modify(records[0], {'state': 'closed', 'merged': true, 'mergeCommit': sha});
     if (retarget) {
-      baseChange(2, 'parent', 'main');
+      baseChange(2, 'parent', 'main', automatic: automatic);
       records[1].baseRef = 'main';
     }
     return sha;
@@ -246,6 +246,19 @@ void main() {
       },
     );
   }
+  test('automatic base change after squash and parent deletion preserves child changes', () async {
+    final h = await Harness.create();
+    final main = await h.merge(retarget: true, automatic: true);
+    await h.restart();
+    await h.service.reconcile(10, repo, number: 2);
+    final heads = await h.heads();
+    expect(h.reports.single.error, isNull);
+    expect(await h.f.output(['rev-parse', '${heads['child']}^']), main);
+    expect(await h.f.output(['rev-list', '--count', '$main..${heads['child']}']), '1');
+    expect(await h.f.output(['diff', '--name-only', main, heads['child']!]), 'child.txt');
+    expect(await h.f.output(['rev-parse', '${heads['grandchild']}^']), heads['child']);
+    expect(h.records[1].baseRef, 'main');
+  });
   test('lost response after atomic push recovers with a new invocation and no journal', () async {
     final h = await Harness.create();
     await h.merge();
@@ -273,7 +286,7 @@ void main() {
       'merged': true,
       'mergeCommit': mergedChild,
     });
-    h.baseChange(3, 'child', 'parent');
+    h.baseChange(3, 'child', 'parent', automatic: true);
     await h.f.git(['checkout', 'main']);
     await h.f.git(['merge', '--squash', 'parent']);
     await h.f.git(['commit', '-m', 'squash parent into main']);
@@ -285,7 +298,7 @@ void main() {
       'merged': true,
       'mergeCommit': main,
     });
-    h.baseChange(3, 'parent', 'main');
+    h.baseChange(3, 'parent', 'main', automatic: true);
     h.records[2].baseRef = 'main';
     await h.restart();
     await h.service.reconcile(10, repo, number: 3);

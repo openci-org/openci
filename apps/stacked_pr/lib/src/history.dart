@@ -53,15 +53,20 @@ class History {
           candidates = await closed(branch);
         }
         if (candidates.isEmpty) {
-          final changes = (await timeline(
-            child.number,
-          )).where((e) => e['__typename'] == 'BaseRefChangedEvent').toList();
+          final changes = (await timeline(child.number))
+              .where(
+                (e) =>
+                    e['__typename'] == 'BaseRefChangedEvent' ||
+                    e['__typename'] == 'AutomaticBaseChangeSucceededEvent',
+              )
+              .toList();
           // Follow only a contiguous chain ending at the current base. This
           // recovers B -> A -> main when both ancestors merged between tasks.
           var base = branch;
           for (final change in changes.reversed) {
-            if (change['currentRefName'] != base) break;
-            final previous = change['previousRefName'] as String;
+            final automatic = change['__typename'] == 'AutomaticBaseChangeSucceededEvent';
+            if ((automatic ? change['newBase'] : change['currentRefName']) != base) break;
+            final previous = (automatic ? change['oldBase'] : change['previousRefName']) as String;
             final at = DateTime.parse(change['createdAt'] as String);
             final merged = (await closed(previous))
                 .where(
