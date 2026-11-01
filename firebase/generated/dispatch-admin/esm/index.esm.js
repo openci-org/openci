@@ -6,6 +6,46 @@ export const connectorConfig = {
   location: "asia-northeast1",
 };
 
+export function getQueuedBuildCheck(dcOrVarsOrOptions, varsOrOptions, options) {
+  const {
+    dc: dcInstance,
+    vars: inputVars,
+    options: inputOpts,
+  } = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeQuery("GetQueuedBuildCheck", inputVars, inputOpts);
+}
+
+export function acquireQueuedBuildCheck(dcOrVarsOrOptions, varsOrOptions, options) {
+  const {
+    dc: dcInstance,
+    vars: inputVars,
+    options: inputOpts,
+  } = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeMutation("AcquireQueuedBuildCheck", inputVars, inputOpts);
+}
+
+export function recordQueuedBuildCheck(dcOrVarsOrOptions, varsOrOptions, options) {
+  const {
+    dc: dcInstance,
+    vars: inputVars,
+    options: inputOpts,
+  } = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeMutation("RecordQueuedBuildCheck", inputVars, inputOpts);
+}
+
+export function releaseQueuedBuildCheck(dcOrVarsOrOptions, varsOrOptions, options) {
+  const {
+    dc: dcInstance,
+    vars: inputVars,
+    options: inputOpts,
+  } = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeMutation("ReleaseQueuedBuildCheck", inputVars, inputOpts);
+}
+
 export function getBuildDispatchState(dcOrVarsOrOptions, varsOrOptions, options) {
   const {
     dc: dcInstance,

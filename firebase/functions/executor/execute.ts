@@ -57,7 +57,11 @@ export async function cleanupExecution(
       (!state.job?.workerHost || state.job.workerHost === identity(dispatch).workerHost));
   if (current && state.job?.status === "CANCELLED") dispatch.outcome = "cancelled";
   await billing.close(dispatch);
-  if (state.job && state.run && dispatch.outcome !== "blocked") {
+  if (
+    state.job &&
+    (state.run || dispatch.checkRunId) &&
+    (dispatch.outcome !== "blocked" || state.run?.runNumber)
+  ) {
     validateJob(state.job, dispatch);
     const checkRunId = await github.check(state.job, dispatch, dispatch.outcome as Outcome);
     await store.check(id, checkRunId);

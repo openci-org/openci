@@ -1,12 +1,20 @@
 import assert from "node:assert/strict";
 import { createRequire } from "node:module";
-import { after, test } from "node:test";
+import { after, beforeEach, test } from "node:test";
 import { deleteApp, getApps, initializeApp } from "firebase-admin/app";
 import { getFunctions } from "firebase-admin/functions";
 import { queueBuildJobs, dispatchBuildJob } from "../../lib/functions/build_dispatch_functions.js";
 import { dispatchTaskId, dispatchRetryTaskId } from "../../lib/functions/build_dispatch.js";
 import { DataConnectDispatchStore } from "../../lib/functions/dispatch_store.js";
 import { OrchardCapacityClient } from "../../lib/functions/orchard_capacity.js";
+import { QueuedChecks } from "../../lib/functions/queued_checks.js";
+
+beforeEach((t) => {
+  process.env.GITHUB_APP_ID = "1";
+  process.env.GITHUB_APP_PRIVATE_KEY = "test-key";
+  t.mock.method(QueuedChecks.prototype, "sync", async () => {});
+  t.mock.method(DataConnectDispatchStore.prototype, "cancelUnstarted", async () => {});
+});
 
 const app = initializeApp({ projectId: "demo-openci" });
 after(() => Promise.all(getApps().map(deleteApp)));
@@ -50,6 +58,26 @@ test("empty or failed mutations enqueue nothing and non-admin events are rejecte
   await assert.rejects(
     queueBuildJobs.run({ ...event({ jobs: [{ id: "job" }] }), authType: "unknown" }),
   );
+});
+
+test("check publication must finish before enqueue, and failures retain mutation retry", async (t) => {
+  const calls = [];
+  let unavailable = true;
+  t.mock.method(QueuedChecks.prototype, "sync", async (id) => {
+    calls.push(`check:${id}`);
+    if (unavailable) throw new Error("private check error");
+  });
+  t.mock.method(getFunctions(app), "taskQueue", () => ({
+    enqueue: async ({ jobId }) => {
+      calls.push(`enqueue:${jobId}`);
+    },
+  }));
+  const input = event({ jobs: [{ id: "job" }] });
+  await assert.rejects(queueBuildJobs.run(input), /retry required/);
+  assert.deepEqual(calls, ["check:job"]);
+  unavailable = false;
+  await queueBuildJobs.run(input);
+  assert.deepEqual(calls, ["check:job", "check:job", "enqueue:job"]);
 });
 
 test("malformed task payloads are acknowledged without accessing configured services", async () => {

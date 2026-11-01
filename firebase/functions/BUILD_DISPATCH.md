@@ -1,12 +1,14 @@
 # Build dispatch (G-1604)
 
-`queueBuildJobs` listens to the successful admin `CompleteWebhookTask` mutation
-and enqueues its returned BuildJob IDs. `dispatchBuildJob` is a private Gen2
+`queueBuildJobs` listens to the successful admin `CompleteWebhookTask` mutation,
+publishes a queued GitHub Check for each returned BuildJob, then enqueues its ID.
+`dispatchBuildJob` is a private Gen2
 task queue Function. Both use Tokyo, 1 CPU, 256 MiB, concurrency 1, minimum
-instances 0, and a 60-second timeout.
+instances 0. The mutation consumer has a 540-second timeout for batches; the
+dispatcher has a 60-second timeout.
 
 ```text
-CompleteWebhookTask -> queueBuildJobs -> Cloud Tasks -> dispatchBuildJob
+CompleteWebhookTask -> queueBuildJobs -> queued GitHub Check -> Cloud Tasks -> dispatchBuildJob
   -> read queued BuildJob + active reservations from FSC
   -> read Orchard workers/VMs and reserve an available slot in FSC
   -> schedule recovery task, then call Cloud Run Jobs.run
@@ -18,6 +20,27 @@ a VM, hold a WebSocket, stream logs, or wait for the workflow. The existing Dart
 worker does not implement the new executor contract. The [Cloud Run executor](BUILD_EXECUTOR.md)
 implements G-1605. Keep the existing production webhook path until deployment
 validation is complete.
+
+## GitHub Check lifecycle
+
+Checks are visible while jobs wait for VM capacity. Publication saves the ID and
+next run number on BuildJob. A five-minute per-job lease serializes publication
+and prevents reservation creation while the GitHub request is in flight. GitHub
+calls have a 20-second total budget. Ambiguous failures retain the lease; retries
+reconcile the App ID and `build-job:JOB_ID:run:NUMBER` external ID before creating
+another check. Queuing a retry never resets a running or completed check.
+
+The reservation copies that ID, and the executor updates it to `in_progress`
+and then `completed`. Each numbered run has its own check; replacement capacity
+reservations before execution reuse the queued one. Cancellation while waiting
+completes it as cancelled on the next dispatch task. Rejection before creating a
+BuildRun also completes an existing check. A billing-blocked attempt without a
+numbered run leaves its check queued for a later attempt.
+
+The dispatcher also publishes missing checks for jobs queued before deployment.
+Existing active reservations retain their original execution-owned checks.
+Publishers validate the active team/installation/App connection and repository
+owner before using a repository-scoped checks-write token.
 
 ## Capacity and retries
 
@@ -99,6 +122,8 @@ could allocate its capacity twice. Manual rerun dispatch remains separate work.
 | `ORCHARD_VM_CPU` / `ORCHARD_VM_MEMORY_MIB` | Positive integers, defaults 2 / 4096                          |
 | `BASE_VM_NAME`                             | Orchard image, default `base-macos`                           |
 | `BUILD_EXECUTOR_JOB`                       | `projects/PROJECT/locations/REGION/jobs/JOB`                  |
+| `GITHUB_APP_ID` / `GITHUB_APP_PRIVATE_KEY` | CI App ID and bound private-key secret, on both Functions     |
+| `GITHUB_API_BASE_URL` / `GITHUB_BASE_URL`  | Same GitHub host configuration as the executor                |
 
 `dispatchBuildJob` and `recoverBuildExecutions` use Direct VPC egress from
 `orchard_network.ts`. Set `ORCHARD_VPC_NETWORK` and `ORCHARD_VPC_SUBNETWORK` if
@@ -118,7 +143,10 @@ identities `roles/run.invoker` on the private Gen2 dispatcher. Retain the Cloud
 Tasks service agent role so authenticated task delivery can mint tokens. See
 [task queue IAM](https://firebase.google.com/docs/functions/task-functions#iam_permissions).
 
-The dispatcher needs privileged FSC access to `dispatch`, access to the bound
+Both Functions need privileged FSC access to `dispatch` and the bound GitHub App
+private key. Deploy the additive BuildJob check columns and updated connector
+before these Functions. Update the executor image and recovery Function as well
+so early failures close queued checks. The dispatcher also needs access to the bound
 Orchard secret, network reachability to the controller, and
 `roles/run.jobsExecutorWithOverrides` on the selected Job. The G-1605 executor
 needs its own runtime IAM for FSC/billing/logs/secrets and its own Orchard

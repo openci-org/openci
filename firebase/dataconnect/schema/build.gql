@@ -33,6 +33,10 @@ type BuildJob
   workerHost: String @col(name: "worker_host")
   installationId: String @col(name: "installation_id")
   checkRunId: String @col(name: "check_run_id")
+  # The queued check belongs to the next numbered run, not a capacity reservation.
+  checkRunNumber: Int64 @col(name: "check_run_number")
+  checkOwner: String @col(name: "check_owner")
+  checkLeaseUntil: Timestamp @col(name: "check_lease_until")
   createdAt: Int64! @col(name: "created_at")
   updatedAt: Int64! @col(name: "updated_at")
   completedAt: Int64 @col(name: "completed_at")

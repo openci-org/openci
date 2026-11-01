@@ -50,7 +50,8 @@ Additional access is scoped as follows:
   secrets; `secretmanager.secrets.create`; get/delete/add/access/get-version/
   destroy-version for managed `openci-*` secrets only.
 - Planner: the GitHub App private key only.
-- Dispatcher: Orchard service token, Cloud Tasks enqueue on `dispatchBuildJob`,
+- Dispatcher: GitHub App private key (also used by `queueBuildJobs`), Orchard
+  service token, Cloud Tasks enqueue on `dispatchBuildJob`,
   act-as on itself, and `roles/run.jobsExecutorWithOverrides` on the executor Job.
 - Executor: GitHub App key, Orchard token/CA, and read-only access to managed team
   secrets (`openci-*`, excluding `openci-github-*` OAuth credentials).

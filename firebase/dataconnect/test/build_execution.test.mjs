@@ -52,7 +52,7 @@ async function alterJob(id, data) {
   );
 }
 
-async function fixture(t) {
+async function fixture(t, queuedCheck = false) {
   const teamId = randomUUID(),
     jobId = randomUUID(),
     id = randomUUID();
@@ -117,6 +117,7 @@ async function fixture(t) {
       { teamId, jobId },
     ),
   );
+  if (queuedCheck) await alterJob(jobId, { checkRunId: "123", checkRunNumber: "1" });
   await dispatchSdk.initializeBuildDispatchScheduler(dc);
   assert.equal(
     (await dispatchSdk.acquireBuildDispatchScheduler(dc, { owner: id })).data.acquired,
@@ -285,7 +286,12 @@ test("Cloud Run executor completes checkout, workflow, FSC logs, billing, checks
 });
 
 test("self-hosted executor creates a real run, logs and checks without a billing ledger", async (t) => {
-  const f = await fixture(t);
+  const f = await fixture(t, true);
+  const check = f.dependencies.github.check;
+  f.dependencies.github.check = async (job, dispatch, outcome) => {
+    assert.equal(dispatch.checkRunId, "123", "Keep the queued check throughout execution");
+    return check(job, dispatch, outcome);
+  };
   f.dependencies.configuration.selfHosted = true;
   f.dependencies.configuration.complimentary.clear();
   await f.run();
@@ -460,6 +466,25 @@ test("rejected old attempts cannot fail a queued job after losing their active r
   assert.ok(state.dispatch.finishedAt);
 });
 
+test("source rejection before a run exists completes the queued check", async (t) => {
+  const f = await fixture(t, true);
+  f.dependencies.github.verifyPullRequest = async () => {
+    throw new Error("superseded head");
+  };
+  f.dependencies.github.check = async (_job, dispatch, outcome) => {
+    assert.equal(dispatch.checkRunId, "123");
+    assert.equal(outcome, "failure");
+    f.checks.push(outcome);
+    return "123";
+  };
+  await f.run();
+  const state = await f.state();
+  assert.equal(state.run, null);
+  assert.equal(state.job.status, "FAILURE");
+  assert.deepEqual(f.checks, ["failure"]);
+  assert.ok(state.dispatch.finishedAt);
+});
+
 test("lost acknowledgements do not duplicate admissions, runs, or log entries", async (t) => {
   const f = await fixture(t);
   const lost = new Set([
@@ -578,7 +603,7 @@ test("deadline recovery marks the build timed out; another executor cannot acqui
 });
 
 test("lack of paid entitlement leaves the build queued without allocating a VM", async (t) => {
-  const f = await fixture(t);
+  const f = await fixture(t, true);
   f.dependencies.configuration.complimentary.clear();
   await f.run();
   assert.equal((await f.state()).job.status, "QUEUED");
@@ -586,6 +611,8 @@ test("lack of paid entitlement leaves the build queued without allocating a VM",
   assert.equal((await f.state()).dispatch.activeJobId, null);
   assert.equal(f.calls.includes("create"), false);
   assert.equal(await f.billingState(), null);
+  assert.deepEqual(f.checks, [], "An unnumbered blocked attempt must leave its check queued");
+  assert.equal((await f.state()).dispatch.checkRunId, "123");
 });
 
 test("partial admission expires before cleanup releases the reservation", async (t) => {

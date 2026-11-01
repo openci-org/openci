@@ -81,20 +81,34 @@ mutation ReserveBuildJobDispatch(
   $image: String!
   $cloudRunJob: String!
 ) @auth(level: NO_ACCESS) @transaction {
-  query @redact {
-    job: buildJob(id: $jobId) {
-      teamId
-    }
-  }
   # A stale scheduler cannot reserve after another invocation takes its lease.
   buildDispatchScheduler_updateMany(
     where: { id: { eq: "orchard" }, owner: { eq: $owner }, leaseUntil: { gt_expr: "request.time" } }
     data: { owner: $owner }
   ) @check(expr: "this == 1", message: "Scheduler lease lost")
   buildJob_updateMany(
-    where: { id: { eq: $jobId }, status: { eq: "QUEUED" }, runsOn: { eq: "macos-latest" } }
+    where: {
+      _and: [
+        { id: { eq: $jobId }, status: { eq: "QUEUED" }, runsOn: { eq: "macos-latest" } }
+        {
+          _or: [
+            { checkLeaseUntil: { isNull: true } }
+            { checkLeaseUntil: { le_expr: "request.time" } }
+          ]
+        }
+      ]
+    }
     data: { status: "QUEUED" }
   ) @check(expr: "this == 1", message: "Job is not eligible for dispatch")
+  # Read after locking the job so a concurrent check publisher cannot be missed.
+  query @redact {
+    job: buildJob(id: $jobId) {
+      teamId
+      runCount
+      checkRunId
+      checkRunNumber
+    }
+  }
   buildJobDispatch_insert(
     data: {
       id: $id
@@ -107,6 +121,7 @@ mutation ReserveBuildJobDispatch(
       image: $image
       cloudRunJob: $cloudRunJob
       state: "reserved"
+      checkRunId_expr: "response.query.job.checkRunNumber != null && int(response.query.job.checkRunNumber) == (response.query.job.runCount == null ? 0 : int(response.query.job.runCount)) + 1 ? response.query.job.checkRunId : null"
       startDeadline_expr: "request.time + duration('600s')"
       createdAt_expr: "request.time"
       updatedAt_expr: "request.time"

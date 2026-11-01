@@ -38,6 +38,16 @@ export interface AcquireBuildExecutionCleanupVariables {
   owner: string;
 }
 
+export interface AcquireQueuedBuildCheckData {
+  buildJob_updateMany: number;
+}
+
+export interface AcquireQueuedBuildCheckVariables {
+  jobId: string;
+  owner: string;
+  runNumber: Int64String;
+}
+
 export interface BillingAccount_Key {
   teamId: string;
   __typename?: "BillingAccount_Key";
@@ -377,6 +387,38 @@ export interface GetFinishedBuildExecutionsForVmsVariables {
   vmNames: string[];
 }
 
+export interface GetQueuedBuildCheckData {
+  job?: {
+    id: string;
+    teamId?: string | null;
+    status: string;
+    owner: string;
+    repo: string;
+    workflowName: string;
+    workflowFileName: string;
+    commitSha?: string | null;
+    pullRequestNumber?: Int64String | null;
+    branch?: string | null;
+    installationId?: string | null;
+    githubBaseUrl?: string | null;
+    latestRunId?: string | null;
+    workerHost?: string | null;
+    runCount?: Int64String | null;
+    runsOn?: string | null;
+    checkRunId?: string | null;
+    checkRunNumber?: Int64String | null;
+    checkOwner?: string | null;
+    checkLeaseUntil?: TimestampString | null;
+  } & BuildJob_Key;
+  dispatch?: {
+    id: string;
+  } & BuildJobDispatch_Key;
+}
+
+export interface GetQueuedBuildCheckVariables {
+  jobId: string;
+}
+
 export interface GetRecoverableBuildExecutionsData {
   dispatches: ({
     id: string;
@@ -478,11 +520,31 @@ export interface RecordBuildExecutionResultVariables {
   outcome: string;
 }
 
+export interface RecordQueuedBuildCheckData {
+  buildJob_updateMany: number;
+}
+
+export interface RecordQueuedBuildCheckVariables {
+  jobId: string;
+  owner: string;
+  runNumber: Int64String;
+  checkRunId: string;
+}
+
 export interface ReleaseBuildDispatchSchedulerData {
   buildDispatchScheduler_updateMany: number;
 }
 
 export interface ReleaseBuildDispatchSchedulerVariables {
+  owner: string;
+}
+
+export interface ReleaseQueuedBuildCheckData {
+  buildJob_updateMany: number;
+}
+
+export interface ReleaseQueuedBuildCheckVariables {
+  jobId: string;
   owner: string;
 }
 
@@ -541,6 +603,54 @@ export interface WebhookTask_Key {
   id: string;
   __typename?: "WebhookTask_Key";
 }
+
+/** Generated Node Admin SDK operation action function for the 'GetQueuedBuildCheck' Query. Allow users to execute without passing in DataConnect. */
+export function getQueuedBuildCheck(
+  dc: DataConnect,
+  vars: GetQueuedBuildCheckVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<GetQueuedBuildCheckData>>;
+/** Generated Node Admin SDK operation action function for the 'GetQueuedBuildCheck' Query. Allow users to pass in custom DataConnect instances. */
+export function getQueuedBuildCheck(
+  vars: GetQueuedBuildCheckVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<GetQueuedBuildCheckData>>;
+
+/** Generated Node Admin SDK operation action function for the 'AcquireQueuedBuildCheck' Mutation. Allow users to execute without passing in DataConnect. */
+export function acquireQueuedBuildCheck(
+  dc: DataConnect,
+  vars: AcquireQueuedBuildCheckVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<AcquireQueuedBuildCheckData>>;
+/** Generated Node Admin SDK operation action function for the 'AcquireQueuedBuildCheck' Mutation. Allow users to pass in custom DataConnect instances. */
+export function acquireQueuedBuildCheck(
+  vars: AcquireQueuedBuildCheckVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<AcquireQueuedBuildCheckData>>;
+
+/** Generated Node Admin SDK operation action function for the 'RecordQueuedBuildCheck' Mutation. Allow users to execute without passing in DataConnect. */
+export function recordQueuedBuildCheck(
+  dc: DataConnect,
+  vars: RecordQueuedBuildCheckVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<RecordQueuedBuildCheckData>>;
+/** Generated Node Admin SDK operation action function for the 'RecordQueuedBuildCheck' Mutation. Allow users to pass in custom DataConnect instances. */
+export function recordQueuedBuildCheck(
+  vars: RecordQueuedBuildCheckVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<RecordQueuedBuildCheckData>>;
+
+/** Generated Node Admin SDK operation action function for the 'ReleaseQueuedBuildCheck' Mutation. Allow users to execute without passing in DataConnect. */
+export function releaseQueuedBuildCheck(
+  dc: DataConnect,
+  vars: ReleaseQueuedBuildCheckVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<ReleaseQueuedBuildCheckData>>;
+/** Generated Node Admin SDK operation action function for the 'ReleaseQueuedBuildCheck' Mutation. Allow users to pass in custom DataConnect instances. */
+export function releaseQueuedBuildCheck(
+  vars: ReleaseQueuedBuildCheckVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<ReleaseQueuedBuildCheckData>>;
 
 /** Generated Node Admin SDK operation action function for the 'GetBuildDispatchState' Query. Allow users to execute without passing in DataConnect. */
 export function getBuildDispatchState(
