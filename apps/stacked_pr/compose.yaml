@@ -1,0 +1,33 @@
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    init: true
+    env_file: .env
+    environment:
+      DATA_DIR: /data
+      PORT: "3000"
+      HOST: 0.0.0.0
+      GITHUB_PRIVATE_KEY_FILE: /run/secrets/github_app_private_key
+    ports:
+      - "127.0.0.1:3000:3000"
+    secrets:
+      - github_app_private_key
+    volumes:
+      - app_data:/data
+    read_only: true
+    tmpfs:
+      - /tmp:size=256m,mode=1777
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    stop_grace_period: 3m
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+secrets:
+  github_app_private_key:
+    file: ./secrets/github-app.pem
+volumes:
+  app_data:
