@@ -10,7 +10,7 @@ void main() {
     final f = await GitFixture.create();
     final squash = await f.squash(deleteParent: true);
     f.pulls[1].baseRef = 'main';
-    final linked = connect(f.pulls, f.pulls);
+    final linked = f.pulls;
     expect(linked[1].parent, 1);
     final plan = await planRestack(linked, f.worker);
     expect(plan.pulls[1].baseRef, 'main');

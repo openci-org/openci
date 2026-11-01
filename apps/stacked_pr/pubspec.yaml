@@ -1,6 +1,6 @@
 name: stacked_pr_app
-description: A self-hosted GitHub App for stacked pull requests on GHES.
-version: 0.1.0
+description: A database-free GitHub App for stacked PRs on Firebase Functions.
+version: 0.2.0
 publish_to: none
 
 environment:
@@ -8,22 +8,15 @@ environment:
 
 dependencies:
   crypto: ^3.0.6
-  dart_frog: ^1.2.6
   dart_jsonwebtoken: ^3.4.1
-  dotenv: ^4.2.0
+  firebase_functions: 0.8.0
+  googleapis_auth: ^2.3.1
   http: ^1.5.0
   path: ^1.9.1
-  sqlite3: ^3.6.0
+  shelf: ^1.4.2
 
 dev_dependencies:
   build_runner: ^2.7.0
-  # 4.4.0 omits the project root from package-graph watching, missing routes/ edits.
-  hotreloader: 4.3.0
   lints: ^6.0.0
   mockito: ^5.5.0
   test: ^1.26.3
-
-hooks:
-  user_defines:
-    sqlite3:
-      source: system

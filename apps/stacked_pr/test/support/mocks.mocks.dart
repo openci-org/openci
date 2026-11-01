@@ -14,8 +14,8 @@ import 'package:mockito/src/dummies.dart' as _i6;
 import 'package:stacked_pr_app/src/config.dart' as _i2;
 import 'package:stacked_pr_app/src/git.dart' as _i9;
 import 'package:stacked_pr_app/src/github.dart' as _i4;
-import 'package:stacked_pr_app/src/models.dart' as _i8;
-import 'package:stacked_pr_app/src/report.dart' as _i7;
+import 'package:stacked_pr_app/src/models.dart' as _i7;
+import 'package:stacked_pr_app/src/report.dart' as _i8;
 
 // ignore_for_file: type=lint
 // ignore_for_file: avoid_redundant_argument_values
@@ -147,6 +147,47 @@ class MockGitHubApi extends _i1.Mock implements _i4.GitHubApi {
           as _i5.Future<bool>);
 
   @override
+  _i5.Future<List<Map<String, Object?>>> timeline(
+    int? installation,
+    _i7.Repository? repo,
+    int? number,
+  ) =>
+      (super.noSuchMethod(
+            Invocation.method(#timeline, [installation, repo, number]),
+            returnValue: _i5.Future<List<Map<String, Object?>>>.value(<Map<String, Object?>>[]),
+            returnValueForMissingStub: _i5.Future<List<Map<String, Object?>>>.value(
+              <Map<String, Object?>>[],
+            ),
+          )
+          as _i5.Future<List<Map<String, Object?>>>);
+
+  @override
+  _i5.Future<Map<int, List<Map<String, Object?>>>> timelines(
+    int? installation,
+    _i7.Repository? repo,
+    List<int>? numbers,
+  ) =>
+      (super.noSuchMethod(
+            Invocation.method(#timelines, [installation, repo, numbers]),
+            returnValue: _i5.Future<Map<int, List<Map<String, Object?>>>>.value(
+              <int, List<Map<String, Object?>>>{},
+            ),
+            returnValueForMissingStub: _i5.Future<Map<int, List<Map<String, Object?>>>>.value(
+              <int, List<Map<String, Object?>>>{},
+            ),
+          )
+          as _i5.Future<Map<int, List<Map<String, Object?>>>>);
+
+  @override
+  _i5.Future<bool> installationActive(int? installation) =>
+      (super.noSuchMethod(
+            Invocation.method(#installationActive, [installation]),
+            returnValue: _i5.Future<bool>.value(false),
+            returnValueForMissingStub: _i5.Future<bool>.value(false),
+          )
+          as _i5.Future<bool>);
+
+  @override
   void close() =>
       super.noSuchMethod(Invocation.method(#close, []), returnValueForMissingStub: null);
 }
@@ -154,7 +195,7 @@ class MockGitHubApi extends _i1.Mock implements _i4.GitHubApi {
 /// A class which mocks [Reporter].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockReporter extends _i1.Mock implements _i7.Reporter {
+class MockReporter extends _i1.Mock implements _i8.Reporter {
   @override
   _i4.GitHubApi get api =>
       (super.noSuchMethod(
@@ -167,9 +208,9 @@ class MockReporter extends _i1.Mock implements _i7.Reporter {
   @override
   _i5.Future<void> publish(
     int? installation,
-    _i8.Repository? repo,
-    List<_i8.PullRequest>? pulls, {
-    _i8.RestackException? error,
+    _i7.Repository? repo,
+    List<_i7.PullRequest>? pulls, {
+    _i7.RestackException? error,
     bool? observeOnly = false,
     List<int>? closedToUpdate = const [],
   }) =>
@@ -260,9 +301,9 @@ class MockGitRepository extends _i1.Mock implements _i9.GitRepository {
           as _i5.Future<({int code, String output})>);
 
   @override
-  _i5.Future<void> prepare([List<_i8.PullRequest>? pulls = const []]) =>
+  _i5.Future<void> prepare({List<_i7.PullRequest>? pulls = const [], List<String>? branches}) =>
       (super.noSuchMethod(
-            Invocation.method(#prepare, [pulls]),
+            Invocation.method(#prepare, [], {#pulls: pulls, #branches: branches}),
             returnValue: _i5.Future<void>.value(),
             returnValueForMissingStub: _i5.Future<void>.value(),
           )
@@ -316,6 +357,15 @@ class MockGitRepository extends _i1.Mock implements _i9.GitRepository {
             returnValueForMissingStub: _i5.Future<bool>.value(false),
           )
           as _i5.Future<bool>);
+
+  @override
+  _i5.Future<String?> mergeBase(String? left, String? right) =>
+      (super.noSuchMethod(
+            Invocation.method(#mergeBase, [left, right]),
+            returnValue: _i5.Future<String?>.value(),
+            returnValueForMissingStub: _i5.Future<String?>.value(),
+          )
+          as _i5.Future<String?>);
 
   @override
   _i5.Future<String?> findMergedBoundary({
@@ -383,7 +433,7 @@ class MockGitRepository extends _i1.Mock implements _i9.GitRepository {
           as _i5.Future<Map<String, String>>);
 
   @override
-  _i5.Future<void> push(List<_i8.BranchChange>? changes) =>
+  _i5.Future<void> push(List<_i7.BranchChange>? changes) =>
       (super.noSuchMethod(
             Invocation.method(#push, [changes]),
             returnValue: _i5.Future<void>.value(),

@@ -1,13 +1,10 @@
 import 'dart:convert';
 import 'package:crypto/crypto.dart';
-import 'package:dart_frog/dart_frog.dart';
+import 'package:shelf/shelf_io.dart' as shelf_io;
 import 'package:http/http.dart' as http;
 import 'package:test/test.dart';
 import 'package:stacked_pr_app/src/models.dart';
-import 'package:stacked_pr_app/src/store.dart';
 import 'package:stacked_pr_app/src/webhook.dart';
-import '../../routes/webhooks.dart' as webhooks;
-import '../../routes/healthz.dart' as healthz;
 import '../support/fixtures.dart';
 
 String signature(String body) =>
@@ -32,6 +29,21 @@ void main() {
       isFalse,
     );
     expect(relevant('pull_request', {'action': 'synchronize'}), isTrue);
+  });
+  test('compaction keeps the old base needed to refresh a detached stack', () {
+    final payload = compactPayload({
+      'changes': {
+        'body': {'from': 'private body'},
+        'base': {
+          'ref': {'from': 'parent'},
+          'sha': {'from': 'a' * 40},
+        },
+      },
+      'pull_request': {'number': 3, 'body': 'private body'},
+    });
+    expect(payload['previous_base'], 'parent');
+    expect(payload['pull_request'], {'number': 3});
+    expect(jsonEncode(payload), isNot(contains('private body')));
   });
   test('only a newly created sync command on a PR is relevant', () {
     final payload = <String, Object?>{
@@ -65,26 +77,29 @@ void main() {
       isFalse,
     );
   });
-  test('HTTP persists signed deliveries before ack, deduplicates and bounds input', () async {
-    final store = Store(':memory:');
-    final router = Router()
-      ..all('/webhooks', webhooks.onRequest)
-      ..all('/healthz', healthz.onRequest);
-    final server = await serve(
-      router.call.use(provider<WebhookReceiver>((_) => WebhookReceiver(store, secret, limit: 512))),
-      '127.0.0.1',
-      0,
+  test('signed deliveries await enqueue; duplicate and failure responses are safe', () async {
+    final jobs = <String, Job>{};
+    var fail = false;
+    final receiver = WebhookReceiver(
+      (job) async {
+        if (fail) throw StateError('queue unavailable');
+        final fresh = !jobs.containsKey(job.id);
+        jobs[job.id] = job;
+        return fresh;
+      },
+      secret,
+      limit: 512,
     );
+    final server = await shelf_io.serve(receiver.accept, '127.0.0.1', 0);
     final client = http.Client();
     addTearDown(() async {
       client.close();
       await server.close(force: true);
-      store.close();
     });
-    final origin = 'http://127.0.0.1:${server.port}';
+    final url = Uri.parse('http://127.0.0.1:${server.port}');
     Future<http.Response> send(String body, {bool signed = true, String id = 'delivery'}) =>
         client.post(
-          Uri.parse('$origin/webhooks'),
+          url,
           body: body,
           headers: {
             'x-github-event': 'pull_request',
@@ -95,19 +110,21 @@ void main() {
     final body = jsonEncode({
       'action': 'opened',
       'installation': {'id': 1},
+      'pull_request': {'number': 2, 'body': 'private text'},
     });
     expect((await send(body, signed: false)).statusCode, 401);
-    expect(store.next(), isNull);
+    expect(jobs, isEmpty);
     expect((await send(body)).statusCode, 202);
-    expect(jsonObject(jsonDecode((await send(body)).body))['duplicate'], isTrue);
+    expect(jsonDecode((await send(body)).body)['duplicate'], isTrue);
+    expect(jobs['delivery']!.payload['pull_request'], {'number': 2});
     expect((await send('{')).statusCode, 400);
     expect((await send('[]')).statusCode, 400);
     expect((await send('x' * 513)).statusCode, 413);
     expect((await send(body, id: '!bad')).statusCode, 400);
     expect((await send('{"action":"opened"}')).statusCode, 400);
-    expect((await client.get(Uri.parse('$origin/healthz'))).statusCode, 200);
-    expect((await client.get(Uri.parse('$origin/webhooks'))).statusCode, 405);
-    expect((await client.post(Uri.parse('$origin/healthz'))).statusCode, 405);
-    expect(store.next()!.id, 'delivery');
+    expect((await client.get(url)).statusCode, 405);
+    fail = true;
+    expect((await send(body, id: 'retry')).statusCode, 503);
+    expect(jobs.containsKey('retry'), isFalse);
   });
 }
