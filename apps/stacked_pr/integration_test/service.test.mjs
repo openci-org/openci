@@ -26,6 +26,41 @@ test("normal parent push discovers the earlier fork point from Git", async (t) =
   assert.equal(await h.f.output(["rev-parse", `${heads.get("grandchild")}^`]), heads.get("child"));
   assert.equal(await h.f.output(["diff", "--name-only", parent, heads.get("child")]), "child.txt");
 });
+for (const visibility of ["delayed", "stale", "concurrent"])
+  test(`post-push PR visibility is handled without replaying the push (${visibility})`, async (t) => {
+    const h = await Harness.create(t),
+      oldChild = (await h.heads()).get("child");
+    await h.f.advanceParent();
+    let pushes = 0,
+      reads = 0;
+    const push = h.f.worker.push.bind(h.f.worker),
+      request = h.api.request.bind(h.api);
+    h.f.worker.push = async (changes) => {
+      await push(changes);
+      pushes++;
+    };
+    h.api.request = async (...args) => {
+      const result = await request(...args);
+      if (pushes && args[1] === "GET" && args[2] === `${repo.apiPath}/pulls/2`) {
+        reads++;
+        if (visibility === "concurrent") result.head.sha = "f".repeat(40);
+        else if (visibility === "stale" || reads <= 2) result.head.sha = oldChild;
+      }
+      return result;
+    };
+    if (visibility === "delayed") {
+      await h.service.reconcile(10, repo);
+      assert.equal(reads, 3);
+      assert.equal(h.reports.length, 1);
+      assert.equal(h.reports[0].error, undefined);
+    } else {
+      await assert.rejects(h.service.reconcile(10, repo), /PR changed after push/);
+      assert.equal(reads, visibility === "stale" ? 5 : 1);
+      assert.equal(h.reports.length, 0);
+    }
+    assert.equal(pushes, 1);
+    assert.notEqual((await h.heads()).get("child"), oldChild);
+  });
 test("force-pushed parent is recovered from GitHub history with a fresh clone", async (t) => {
   const h = await Harness.create(t),
     parent = await h.rewriteParent();

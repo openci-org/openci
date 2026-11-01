@@ -1,4 +1,5 @@
 import { join } from "node:path";
+import { setTimeout as delay } from "node:timers/promises";
 import type { AppConfig } from "./config.js";
 import type { Deadline } from "./deadline.js";
 import { GitRepository } from "./git.js";
@@ -340,12 +341,28 @@ export class Service {
     await git.push(mutations);
     // A retry reconstructs current GitHub state; already-pushed children are not replayed.
     for (const change of mutations) {
-      const now = PullRequest.fromApi(
-        jsonObject(
-          await this.api.request(installation, "GET", `${repo.apiPath}/pulls/${change.number}`),
-        ),
-        repo.id,
-      );
+      let now!: PullRequest;
+      // GHES can briefly return the old SHA after a successful atomic push.
+      // Only wait for that known old state; other changes require a fresh plan.
+      for (let attempt = 0; attempt < 5; attempt++) {
+        now = PullRequest.fromApi(
+          jsonObject(
+            await this.api.request(installation, "GET", `${repo.apiPath}/pulls/${change.number}`),
+          ),
+          repo.id,
+        );
+        if (
+          !now.isOpen ||
+          !now.sameRepo ||
+          now.head === change.newHead ||
+          now.head !== change.oldHead ||
+          ![change.oldBase, change.newBase].includes(now.baseRef) ||
+          attempt === 4
+        )
+          break;
+        this.options.deadline?.limit(500);
+        await delay(500);
+      }
       if (
         !now.isOpen ||
         !now.sameRepo ||
