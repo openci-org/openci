@@ -9,7 +9,6 @@ params:
     type: string
   - name: GITHUB_URL
     type: string
-    default: "https://github.ibm.com"
   - name: STACKED_PR_RUNTIME_SERVICE_ACCOUNT
     type: string
   - name: STACKED_PR_TASK_SERVICE_ACCOUNT
