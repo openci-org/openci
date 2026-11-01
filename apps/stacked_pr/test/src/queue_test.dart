@@ -18,7 +18,7 @@ void main() {
       project: 'demo-stacked-pr',
       workerUrl: Uri.parse('https://worker.example.run.app'),
       serviceAccount: 'tasks@example.iam.gserviceaccount.com',
-      namespace: 'github.ibm.com:7',
+      namespace: 'github.example.com:7',
     );
     const job = Job(
       id: 'delivery',

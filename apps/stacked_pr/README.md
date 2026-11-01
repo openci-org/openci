@@ -1,6 +1,6 @@
 # Stacked PR GitHub App
 
-`github.ibm.com/dims/dmis_mobile` の依存するPRを、Firebase Functionsで管理します。
+GitHub / GitHub Enterprise Server の依存するPRを、Firebase Functionsで管理します。
 親の更新・マージ後に子をrebaseし、PRコメントとChecksを更新します。
 親1つに複数の子がある分岐にも対応し、エラーはそのスタック内に限定します。
 
@@ -73,14 +73,16 @@ SDKのmanifest自動生成は`build.yaml`で無効化しています。
 
 ## Firebaseへの配置
 
-本番の配置先はDMIS専用プロジェクト`openci-dmis-18687`、リージョンは`asia-northeast1`です。
-専用codebase `stacked-pr`をこのディレクトリの`firebase.json`から配置します。
-既存GitHub App（App ID `6050`）を引き継ぎ、秘密鍵とWebhook secretは更新します。
-App設定値や秘密鍵をリポジトリにコミットしないでください。
+配置先のFirebaseプロジェクトを用意してください。リージョンは`asia-northeast1`です。
+codebase `stacked-pr`をこのディレクトリの`firebase.json`から配置します。
+GitHub Appを登録し、App ID、秘密鍵、Webhook secretを設定してください。
+実際の配置先、App設定値、秘密鍵をリポジトリにコミットしないでください。
 
-1. `.env.example`を`.env.<project-id>`にコピーし、App IDとサービスアカウントを設定します。
-   対象は`GITHUB_URL=https://github.ibm.com`、
-   `ALLOWED_REPOSITORIES=dims/dmis_mobile`です。
+1. `.env.example`を`.env.<project-id>`にコピーし、例示値を実際のApp ID、GitHubホスト、
+   対象リポジトリ、サービスアカウントに置き換えます。`GITHUB_URL`にはGitHub.comなら
+   `https://github.com`、GHESなら利用するホストのHTTPS URLを設定します。
+   `ALLOWED_REPOSITORIES`には対象を`owner/repo`形式で指定します（複数はカンマ区切り）。
+   GitHubホストと対象リポジトリに既定値はなく、明示的な設定が必要です。
 2. Secret Managerに`STACKED_PR_GITHUB_PRIVATE_KEY`と`STACKED_PR_WEBHOOK_SECRET`を登録します。
 3. [配置準備スクリプト](scripts/provision.sh)でAPI、サービスアカウント、キューを準備します。
    このスクリプトは明示的にクラウド設定を変更します。
@@ -89,7 +91,7 @@ App設定値や秘密鍵をリポジトリにコミットしないでくださ�
    workerの`roles/run.invoker`を付与し、再配置でも維持します。
 
 ```sh
-project=openci-dmis-18687
+project=YOUR_PROJECT_ID
 FIREBASE_CLI_EXPERIMENTS=dartfunctions npx --yes firebase-tools@15.34.2 deploy \
   --project "$project" --only functions:stacked-pr:stacked-pr-worker
 
@@ -123,11 +125,6 @@ SQLiteのデータ移送は不要です。旧Botで作成したマーカー付�
 同じApp IDで再利用します。問題があれば新しいキューを停止し、修正したrevisionを
 再配置します。旧鍵失効後はアクセスできない旧環境にWebhookを戻しても復旧できません。
 両方のworkerを並行稼働させないでください。
-
-## 取り込み元
-
-- <https://github.ibm.com/Masahiro-Aoki3/stacked_pr>
-- Commit: `2268af2c100b78bb09731908f95d90c2e6e27d9c`
 
 ## 仕様の参照先
 
