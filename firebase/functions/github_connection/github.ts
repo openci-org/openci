@@ -103,6 +103,7 @@ export class OctokitConnectionClient implements GitHubConnectionClient {
       const request = await this.request(this.config.apiBaseUrl, token);
       const candidates: Installation[] = [];
       const ids = new Set<number>();
+      let ownedOrganizations: Promise<Set<number>> | undefined;
       let count: number | undefined;
       for (let page = 1; page <= 10; page++) {
         // Pagination stays on the configured host; never follow Link URLs.
@@ -142,16 +143,8 @@ export class OctokitConnectionClient implements GitHubConnectionClient {
             if (accountId === userId) candidates.push(installation);
           } else {
             try {
-              const { data: membership } = await request("GET /user/memberships/orgs/{org}", {
-                org: login,
-              });
-              if (
-                membership.state === "active" &&
-                membership.role === "admin" &&
-                membership.user?.id === userId &&
-                membership.organization.id === accountId
-              )
-                candidates.push(installation);
+              ownedOrganizations ??= this.ownedOrganizations(token, userId);
+              if ((await ownedOrganizations).has(accountId)) candidates.push(installation);
             } catch (error) {
               // An inaccessible organization does not hide other eligible accounts.
               // Rate limits, token expiry and upstream failures must fail the request.
@@ -171,6 +164,39 @@ export class OctokitConnectionClient implements GitHubConnectionClient {
     } catch (error) {
       throw this.failure(error);
     }
+  }
+
+  private async ownedOrganizations(token: string, userId: number): Promise<Set<number>> {
+    const request = await this.request(this.config.apiBaseUrl, token);
+    const owned = new Set<number>();
+    const seen = new Set<number>();
+    for (let page = 1; page <= 10; page++) {
+      // Unlike the per-organization membership endpoint, listing the signed-in
+      // user's own memberships needs no organization Members permission.
+      const { data, headers } = await request("GET /user/memberships/orgs", {
+        state: "active",
+        per_page: 100,
+        page,
+      });
+      if (!Array.isArray(data) || data.length > 100)
+        throw new Error("Invalid organization membership page");
+      for (const item of data) {
+        const membership = object(item);
+        const organizationId = id(object(membership.organization).id);
+        if (seen.has(organizationId)) throw new Error("Duplicate organization membership");
+        seen.add(organizationId);
+        if (
+          membership.state === "active" &&
+          membership.role === "admin" &&
+          id(object(membership.user).id) === userId
+        )
+          owned.add(organizationId);
+      }
+      if (!/rel="next"/.test(headers.link ?? "")) return owned;
+      if (data.length !== 100) throw new Error("Incomplete organization membership page");
+      // Construct pagination on our configured API host, never follow Link URLs.
+    }
+    throw new Error("Organization membership limit exceeded");
   }
 
   private rateLimited(error: unknown): boolean {

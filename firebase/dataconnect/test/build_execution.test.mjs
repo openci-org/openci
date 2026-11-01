@@ -284,6 +284,118 @@ test("Cloud Run executor completes checkout, workflow, FSC logs, billing, checks
   assert.equal(f.calls.filter((call) => call === "create").length, 1);
 });
 
+test("self-hosted executor creates a real run, logs and checks without a billing ledger", async (t) => {
+  const f = await fixture(t);
+  f.dependencies.configuration.selfHosted = true;
+  f.dependencies.configuration.complimentary.clear();
+  await f.run();
+  const state = await f.state();
+  assert.equal(state.job.status, "SUCCESS", JSON.stringify(f.reports));
+  assert.equal(state.job.runCount, "1");
+  assert.equal(state.job.latestRunId, state.run.id);
+  assert.equal(state.run.runNumber, "1");
+  assert.equal(state.run.conclusion, "success");
+  assert.ok(state.dispatch.vmDeletedAt && state.dispatch.finishedAt);
+  assert.deepEqual(f.checks, ["in_progress", "success"]);
+  assert.deepEqual(f.calls, ["create", "ready", "checkout", "revoke", "workflow", "remove"]);
+  assert.equal(await f.billingState(), null);
+  const saved = await graphql(
+    `
+      query Read($teamId: String!, $runId: String!) {
+        billingAdmissions(where: { teamId: { eq: $teamId } }) {
+          id
+        }
+        buildRun(id: $runId) {
+          lastLogSequence
+          logsExpireAt
+        }
+      }
+    `,
+    { teamId: f.teamId, runId: state.run.id },
+  );
+  assert.deepEqual(saved.billingAdmissions, []);
+  assert.equal(saved.buildRun.lastLogSequence, "2");
+  assert.ok(Date.parse(saved.buildRun.logsExpireAt) > Date.now());
+  await f.run();
+  assert.equal(f.calls.filter((call) => call === "create").length, 1);
+});
+
+test("self-hosted run initialization reconciles a lost response without duplicating runs", async (t) => {
+  const f = await fixture(t);
+  f.dependencies.configuration.selfHosted = true;
+  let lost = false;
+  const original = dc.executeMutation;
+  dc.executeMutation = async function (name, ...args) {
+    const response = await original.call(this, name, ...args);
+    if (name === "StartSelfHostedBuildExecution" && !lost) {
+      lost = true;
+      throw new Error("Simulated lost acknowledgement");
+    }
+    return response;
+  };
+  t.after(() => {
+    dc.executeMutation = original;
+  });
+  await f.run();
+  assert.equal(lost, true);
+  const state = await f.state();
+  assert.equal(state.job.status, "SUCCESS", JSON.stringify(f.reports));
+  assert.equal(state.job.runCount, "1");
+  assert.equal(state.run.runNumber, "1");
+  assert.equal(await f.billingState(), null);
+});
+
+test("self-hosted initialization rejects stale executors, cancelled jobs, foreign teams, Stripe accounts and client calls atomically", async (t) => {
+  for (const scenario of [
+    "wrong-executor",
+    "cancelled",
+    "expired",
+    "team-mismatch",
+    "stripe-customer",
+    "client",
+    "anonymous",
+  ]) {
+    const f = await fixture(t);
+    const executorId = await f.claim();
+    if (scenario === "cancelled") await alterJob(f.jobId, { status: "CANCELLED" });
+    if (scenario === "expired") await alterDispatch(f.id, { deadlineAt: "2000-01-01T00:00:00Z" });
+    if (scenario === "stripe-customer") {
+      await graphql(
+        `
+          mutation SeedCustomer($teamId: String!) @transaction {
+            billingAccount_insert(data: { teamId: $teamId })
+            billingCustomerCreation_insert(
+              data: { teamId: $teamId, idempotencyKey: $teamId, livemode: false, createdAt: 1 }
+            )
+          }
+        `,
+        { teamId: f.teamId },
+      );
+    }
+    await assert.rejects(
+      dispatchSdk.startSelfHostedBuildExecution(
+        dc,
+        {
+          id: f.id,
+          jobId: f.jobId,
+          teamId: scenario === "team-mismatch" ? randomUUID() : f.teamId,
+          executorId: scenario === "wrong-executor" ? randomUUID() : executorId,
+        },
+        scenario === "client"
+          ? { impersonate: { authClaims: { sub: "user" } } }
+          : scenario === "anonymous"
+            ? { impersonate: { unauthenticated: true } }
+            : undefined,
+      ),
+    );
+    const state = await f.state();
+    assert.equal(state.run, null);
+    assert.equal(state.job.runCount, "0");
+    assert.equal(state.job.latestRunId, null);
+    assert.equal(state.job.status, scenario === "cancelled" ? "CANCELLED" : "QUEUED");
+  }
+});
+
 test("persisted PR jobs and reruns fail before billing, VM creation, checkout and secrets when source verification fails", async (t) => {
   for (const runCount of [0, 3]) {
     const f = await fixture(t);

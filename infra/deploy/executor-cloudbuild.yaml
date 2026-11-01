@@ -1,0 +1,12 @@
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - -f
+      - firebase/Dockerfile.executor
+      - -t
+      - asia-northeast1-docker.pkg.dev/$PROJECT_ID/openci/build-executor:$_IMAGE_TAG
+      - .
+images:
+  - asia-northeast1-docker.pkg.dev/$PROJECT_ID/openci/build-executor:$_IMAGE_TAG
+timeout: 1200s

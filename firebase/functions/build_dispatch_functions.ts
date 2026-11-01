@@ -17,6 +17,7 @@ import { OrchardCapacityClient } from "./orchard_capacity.js";
 import { launchCloudRunJob } from "./cloud_run_job.js";
 import { orchardNetworkOptions } from "./orchard_network.js";
 import { dispatchServiceAccount } from "./function_identity.js";
+import { dataConnectServiceId } from "./data_connect_config.js";
 
 const orchardUrl = defineString("ORCHARD_API_URL");
 const orchardAccount = defineString("ORCHARD_SERVICE_ACCOUNT_NAME");
@@ -52,7 +53,7 @@ export const queueBuildJobs = onMutationExecuted(
   {
     serviceAccount: dispatchServiceAccount,
     region: "asia-northeast1",
-    service: "openci-b1b91-service",
+    service: dataConnectServiceId(),
     connector: "webhooks",
     operation: "CompleteWebhookTask",
     memory: "256MiB",

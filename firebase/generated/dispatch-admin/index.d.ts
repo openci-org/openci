@@ -514,6 +514,19 @@ export interface SecretVersionCleanup_Key {
   __typename?: "SecretVersionCleanup_Key";
 }
 
+export interface StartSelfHostedBuildExecutionData {
+  buildJobDispatch_updateMany: number;
+  buildJob_updateMany: number;
+  buildRun_insert: BuildRun_Key;
+}
+
+export interface StartSelfHostedBuildExecutionVariables {
+  id: string;
+  jobId: string;
+  teamId: string;
+  executorId: string;
+}
+
 export interface TeamMember_Key {
   id: Int64String;
   __typename?: "TeamMember_Key";
@@ -690,6 +703,18 @@ export function getBuildExecutionSecrets(
   vars: GetBuildExecutionSecretsVariables,
   options?: OperationOptions,
 ): Promise<ExecuteOperationResponse<GetBuildExecutionSecretsData>>;
+
+/** Generated Node Admin SDK operation action function for the 'StartSelfHostedBuildExecution' Mutation. Allow users to execute without passing in DataConnect. */
+export function startSelfHostedBuildExecution(
+  dc: DataConnect,
+  vars: StartSelfHostedBuildExecutionVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<StartSelfHostedBuildExecutionData>>;
+/** Generated Node Admin SDK operation action function for the 'StartSelfHostedBuildExecution' Mutation. Allow users to pass in custom DataConnect instances. */
+export function startSelfHostedBuildExecution(
+  vars: StartSelfHostedBuildExecutionVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<StartSelfHostedBuildExecutionData>>;
 
 /** Generated Node Admin SDK operation action function for the 'ConfigureBuildExecutionRun' Mutation. Allow users to execute without passing in DataConnect. */
 export function configureBuildExecutionRun(

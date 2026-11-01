@@ -149,6 +149,16 @@ export function getBuildExecutionSecrets(dcOrVarsOrOptions, varsOrOptions, optio
   return dcInstance.executeQuery("GetBuildExecutionSecrets", inputVars, inputOpts);
 }
 
+export function startSelfHostedBuildExecution(dcOrVarsOrOptions, varsOrOptions, options) {
+  const {
+    dc: dcInstance,
+    vars: inputVars,
+    options: inputOpts,
+  } = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeMutation("StartSelfHostedBuildExecution", inputVars, inputOpts);
+}
+
 export function configureBuildExecutionRun(dcOrVarsOrOptions, varsOrOptions, options) {
   const {
     dc: dcInstance,

@@ -5,14 +5,15 @@ import {
   type DataConnect,
 } from "firebase-admin/data-connect";
 import * as sdk from "@openci/dispatch-admin";
-import type { Dispatch, Outcome } from "./model.js";
+import { identity, type Dispatch, type Outcome } from "./model.js";
+import { configuredConnector } from "../data_connect_config.js";
 
 export function isolatedConnector(config: ConnectorConfig, app: App = getApp()): DataConnect {
   // firebase-admin 14.5 caches by location/service, without the connector ID.
   const name = `${app.name}:executor:${config.connector}`;
   const isolated =
     getApps().find((candidate) => candidate.name === name) ?? initializeApp(app.options, name);
-  return getDataConnect(config, isolated);
+  return getDataConnect(configuredConnector(config), isolated);
 }
 
 export class ExecutionStore {
@@ -31,7 +32,33 @@ export class ExecutionStore {
       await sdk.getBuildExecutorContext(this.dc, { teamId, installationId, appId, apiBaseUrl })
     ).data;
   }
-  async configure(dispatch: Dispatch, executorId: string): Promise<number> {
+  async configure(dispatch: Dispatch, executorId: string, selfHosted = false): Promise<number> {
+    if (selfHosted) {
+      try {
+        await sdk.startSelfHostedBuildExecution(this.dc, {
+          id: dispatch.id,
+          jobId: dispatch.jobId,
+          teamId: identity(dispatch).teamId,
+          executorId,
+        });
+      } catch {
+        // Resolve a duplicate or lost acknowledgement without replacing a run.
+        const state = await this.read(dispatch.id, dispatch.jobId);
+        if (
+          !state.run ||
+          state.run.id !== dispatch.runId ||
+          state.dispatch?.executorId !== executorId ||
+          state.dispatch.state !== "running" ||
+          state.dispatch.finishedAt ||
+          !state.dispatch.deadlineAt ||
+          Date.parse(state.dispatch.deadlineAt) <= Date.now() ||
+          state.job?.latestRunId !== dispatch.runId ||
+          state.job.status !== "IN_PROGRESS" ||
+          state.job.workerHost !== identity(dispatch).workerHost
+        )
+          throw new Error("Self-hosted run initialization failed");
+      }
+    }
     try {
       await sdk.configureBuildExecutionRun(this.dc, {
         id: dispatch.id,

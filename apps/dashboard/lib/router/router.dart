@@ -1,6 +1,7 @@
 import 'package:dashboard/auth/auth_page.dart';
 import 'package:dashboard/auth/auth_provider.dart';
 import 'package:dashboard/billing/billing_page.dart';
+import 'package:dashboard/deployment_mode.dart';
 import 'package:dashboard/cicd_log/detail/ci_cd_log_detail_page.dart';
 import 'package:dashboard/root/dashboard_root.dart';
 import 'package:dashboard/router/custom_transitions.dart';
@@ -28,7 +29,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/',
         builder: (context, state) => const DashboardRouteGateway(),
       ),
-      if (kIsWeb)
+      if (kIsWeb && !selfHostedDeployment)
         GoRoute(
           path: '/billing',
           builder: (context, state) => BillingPage(

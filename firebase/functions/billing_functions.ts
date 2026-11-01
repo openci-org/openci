@@ -15,9 +15,11 @@ import { receiveStripeWebhook } from "./billing/webhook.js";
 import { ManagedSecretVault } from "./secrets/vault.js";
 import { GitHubCredentialVault } from "./github_connection/vault.js";
 import { apiServiceAccount } from "./function_identity.js";
+import { selfHostedMode } from "./deployment_mode.js";
 
-const stripeKey = defineSecret("STRIPE_SECRET_KEY");
-const webhookSecret = defineSecret("STRIPE_WEBHOOK_SECRET");
+const selfHosted = selfHostedMode();
+const stripeKey = selfHosted ? undefined : defineSecret("STRIPE_SECRET_KEY");
+const webhookSecret = selfHosted ? undefined : defineSecret("STRIPE_WEBHOOK_SECRET");
 let cached: Billing | undefined;
 function runtime(): Billing {
   if (!cached) {
@@ -45,24 +47,31 @@ const options = {
   timeoutSeconds: 300,
 };
 
-export const teamBilling = onCall({ ...options, secrets: [stripeKey] }, async (request) => {
-  if (!request.auth || request.auth.token.firebase?.sign_in_provider === "anonymous")
-    throw new HttpsError("unauthenticated", "Sign in to manage billing");
-  try {
-    return await runtime().execute(request.auth.uid, request.data);
-  } catch (cause) {
-    if (cause instanceof BillingError)
-      throw new HttpsError(cause.code, "Billing operation could not be completed", {
-        reason: cause.reason,
-      });
-    // Stripe/FSC exceptions may contain keys, purchase URLs or personal data.
-    error("Billing operation failed");
-    throw new HttpsError("unavailable", "Billing operation failed; try again");
-  }
-});
+export const teamBilling = onCall(
+  { ...options, secrets: stripeKey ? [stripeKey] : [] },
+  async (request) => {
+    if (!request.auth || request.auth.token.firebase?.sign_in_provider === "anonymous")
+      throw new HttpsError("unauthenticated", "Sign in to manage billing");
+    try {
+      return await runtime().execute(request.auth.uid, request.data);
+    } catch (cause) {
+      if (cause instanceof BillingError)
+        throw new HttpsError(cause.code, "Billing operation could not be completed", {
+          reason: cause.reason,
+        });
+      // Stripe/FSC exceptions may contain keys, purchase URLs or personal data.
+      error("Billing operation failed");
+      throw new HttpsError("unavailable", "Billing operation failed; try again");
+    }
+  },
+);
 
 export const stripeWebhook = onRequest(
-  { ...options, invoker: "public", secrets: [stripeKey, webhookSecret] },
+  {
+    ...options,
+    invoker: "public",
+    secrets: stripeKey && webhookSecret ? [stripeKey, webhookSecret] : [],
+  },
   async (request, response) => {
     response.set("Cache-Control", "no-store");
     try {
@@ -73,7 +82,7 @@ export const stripeWebhook = onRequest(
           signature: request.get("stripe-signature"),
         },
         runtime(),
-        webhookSecret.value(),
+        webhookSecret?.value() ?? "",
       );
       if (status === 405) response.set("Allow", "POST");
       response

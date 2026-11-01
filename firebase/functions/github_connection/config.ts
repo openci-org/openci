@@ -45,9 +45,11 @@ export function connectionConfig(env: NodeJS.ProcessEnv): ConnectionConfig {
   const installationUrl = env.GITHUB_APP_INSTALLATION_URL?.trim();
   if (installationUrl) {
     const install = endpoint(installationUrl);
+    const prefix = new URL(baseUrl).pathname.replace(/\/$/, "");
+    const appPaths = apiBaseUrl === "https://api.github.com" ? ["apps"] : ["apps", "github-apps"];
     if (
       install.origin !== new URL(baseUrl).origin ||
-      !install.pathname.startsWith(`${new URL(baseUrl).pathname.replace(/\/$/, "")}/apps/`)
+      !appPaths.some((segment) => install.pathname.startsWith(`${prefix}/${segment}/`))
     )
       throw new Error("Installation link must belong to the configured GitHub host");
   }

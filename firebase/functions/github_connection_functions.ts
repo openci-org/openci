@@ -4,6 +4,7 @@ import { defineSecret } from "firebase-functions/params";
 import { HttpsError, onCall, onRequest } from "firebase-functions/v2/https";
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import { connectorConfig } from "@openci/github-admin";
+import { configuredConnector } from "./data_connect_config.js";
 import { connectionConfig } from "./github_connection/config.js";
 import { ConnectionError, OctokitConnectionClient } from "./github_connection/github.js";
 import { GitHubConnections } from "./github_connection/service.js";
@@ -18,7 +19,7 @@ function runtime(): GitHubConnections {
     const config = connectionConfig(process.env);
     service = new GitHubConnections(
       config,
-      new GitHubConnectionStore(getDataConnect(connectorConfig), config),
+      new GitHubConnectionStore(getDataConnect(configuredConnector(connectorConfig)), config),
       new GitHubCredentialVault(
         process.env.SECRET_MANAGER_PROJECT ?? process.env.GCLOUD_PROJECT ?? "",
       ),

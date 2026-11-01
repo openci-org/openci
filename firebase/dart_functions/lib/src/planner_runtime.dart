@@ -11,6 +11,11 @@ Uri dataConnectServiceUri(Map<String, String> environment) {
   if (project == null || !RegExp(r'^[a-z][a-z0-9-]+$').hasMatch(project)) {
     throw StateError('Missing Firebase project');
   }
+  final serviceId =
+      environment['OPENCI_DATA_CONNECT_SERVICE_ID'] ?? 'openci-b1b91-service';
+  if (!RegExp(r'^[a-z][a-z0-9-]{0,62}$').hasMatch(serviceId)) {
+    throw StateError('Invalid OPENCI_DATA_CONNECT_SERVICE_ID');
+  }
   final host = environment['DATA_CONNECT_EMULATOR_HOST'];
   var origin = 'https://firebasedataconnect.googleapis.com';
   if (host != null) {
@@ -22,7 +27,7 @@ Uri dataConnectServiceUri(Map<String, String> environment) {
     origin = 'http://$host';
   }
   return Uri.parse(
-    '$origin/v1/projects/$project/locations/asia-northeast1/services/openci-b1b91-service',
+    '$origin/v1/projects/$project/locations/asia-northeast1/services/$serviceId',
   );
 }
 

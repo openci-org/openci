@@ -19,6 +19,24 @@ const env = {
   GITHUB_APP_INSTALLATION_URL: "https://github.com/apps/openci/installations/new",
 };
 const config = connectionConfig(env);
+
+test("GHES installation links support github-apps while preserving the configured host", () => {
+  const enterprise = {
+    ...env,
+    GITHUB_API_BASE_URL: "https://github.example/api/v3",
+    GITHUB_APP_INSTALLATION_URL: "https://github.example/github-apps/openci/installations/new",
+  };
+  assert.equal(
+    connectionConfig(enterprise).installationUrl,
+    enterprise.GITHUB_APP_INSTALLATION_URL,
+  );
+  for (const url of [
+    "https://evil.example/github-apps/openci",
+    "https://github.example/settings/apps/openci",
+  ]) {
+    assert.throws(() => connectionConfig({ ...enterprise, GITHUB_APP_INSTALLATION_URL: url }));
+  }
+});
 const chosen = {
   installationId: 12,
   accountId: 34,
@@ -329,12 +347,15 @@ test("Octokit enforces user/app/owner/admin/suspension and stays on operator-con
           installation(6, 42, 36, "Organization", "2026-01-01"),
         ],
       });
-    return json({
-      state: "active",
-      role: path.endsWith("34") ? "admin" : "member",
-      user: { id: 56 },
-      organization: { id: path.endsWith("34") ? 34 : 35 },
-    });
+    assert.equal(path, "/user/memberships/orgs");
+    return json(
+      [34, 35].map((organizationId) => ({
+        state: "active",
+        role: organizationId === 34 ? "admin" : "member",
+        user: { id: 56 },
+        organization: { id: organizationId },
+      })),
+    );
   });
   assert.equal(await client.exchange("code", "verifier"), "private-token");
   assert.deepEqual(
@@ -343,6 +364,68 @@ test("Octokit enforces user/app/owner/admin/suspension and stays on operator-con
   );
   await assert.rejects(client.candidates("private-token", "57"), { code: "permission-denied" });
   assert.ok(calls.length > 4);
+  assert.equal(
+    calls.filter(({ url }) => new URL(url).pathname === "/user/memberships/orgs").length,
+    1,
+  );
+});
+
+test("own memberships paginate without Members scope and reject pending, non-owner, or foreign identities", async () => {
+  const pages = [];
+  const membership = (organizationId, role = "admin", state = "active", userId = 56) => ({
+    organization: { id: organizationId },
+    user: { id: userId },
+    role,
+    state,
+  });
+  const client = new OctokitConnectionClient(config, async (url) => {
+    const u = new URL(url);
+    assert.equal(u.origin, "https://api.github.com");
+    if (u.pathname === "/user") return json({ id: 56 });
+    if (u.pathname === "/user/installations")
+      return json({
+        total_count: 4,
+        installations: [101, 102, 103, 104].map((n) => installation(n, 42, n)),
+      });
+    assert.equal(u.pathname, "/user/memberships/orgs");
+    assert.equal(u.searchParams.get("state"), "active");
+    pages.push(u.searchParams.get("page"));
+    if (pages.length === 1)
+      return json(
+        Array.from({ length: 100 }, (_, i) => membership(i + 1, "member")),
+        200,
+        { link: '<https://attacker.test/credentials>; rel="next"' },
+      );
+    return json([
+      membership(101),
+      membership(102, "member"),
+      membership(103, "admin", "pending"),
+      membership(104, "admin", "active", 99),
+    ]);
+  });
+  assert.deepEqual(
+    (await client.candidates("token", "56")).map((x) => x.installationId),
+    [101],
+  );
+  assert.deepEqual(pages, ["1", "2"]);
+});
+
+test("malformed or incomplete own-membership pages cannot authorize an organization", async () => {
+  const member = { organization: { id: 34 }, user: { id: 56 }, role: "admin", state: "active" };
+  for (const [body, headers] of [
+    [{ memberships: [member] }, {}],
+    [[member, member], {}],
+    [[member], { link: '<https://api.github.com/user/memberships/orgs?page=2>; rel="next"' }],
+  ]) {
+    const client = new OctokitConnectionClient(config, async (url) => {
+      const path = new URL(url).pathname;
+      if (path === "/user") return json({ id: 56 });
+      if (path === "/user/installations")
+        return json({ total_count: 1, installations: [installation(1, 42, 34)] });
+      return json(body, 200, headers);
+    });
+    await assert.rejects(client.candidates("token", "56"), { code: "unavailable" });
+  }
 });
 
 test("GitHub transient/rate-limit errors fail closed; pagination never follows an untrusted URL", async () => {

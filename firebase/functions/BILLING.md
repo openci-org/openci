@@ -1,5 +1,17 @@
 # Billing on Functions and FSC
 
+Dedicated self-hosted environments set `OPENCI_SELF_HOSTED=true` and
+`BILLING_ENABLED=false` on Node Functions and the executor Job, and compile the
+Dashboard with `--dart-define=OPENCI_SELF_HOSTED=true`. This hides billing UI,
+rejects purchases, removes Stripe secret bindings and bypasses subscription/time
+allowances. It preserves team authorization, GitHub verification and execution
+leases, deadlines and cleanup. `StartSelfHostedBuildExecution` atomically binds
+the queued job to its claimed dispatch and creates the run without a billing
+admission; normal run numbering, logs and GitHub Checks still follow. Team deletion
+still uses `teamBilling`; the cleanup scheduler must also remain deployed. Teams with existing Stripe records
+are rejected rather than silently converted. `BILLING_ENABLED=false` alone only
+pauses billing purchases and does not bypass the executor's quota checks.
+
 Dashboard billing and team deletion use `teamBilling`, a Gen2 callable in
 `asia-northeast1`. Stripe events enter `stripeWebhook`. Billing data and the
 executor's usage ledger share the FSC `billing` connector. All billing operations

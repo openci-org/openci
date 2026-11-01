@@ -1,5 +1,8 @@
+import { selfHostedMode } from "../deployment_mode.js";
+
 export interface BillingConfig {
   enabled: boolean;
+  selfHosted: boolean;
   livemode: boolean;
   origin: string;
   portalId: string;
@@ -12,6 +15,7 @@ export function billingConfig(env: NodeJS.ProcessEnv): BillingConfig {
   if (enabled !== "true" && enabled !== "false") throw new Error("Invalid BILLING_ENABLED");
   const result: BillingConfig = {
     enabled: enabled === "true",
+    selfHosted: selfHostedMode(env),
     livemode: env.STRIPE_LIVEMODE === "true",
     origin: env.BILLING_DASHBOARD_ORIGIN?.trim() ?? "",
     portalId: env.STRIPE_PORTAL_CONFIGURATION_ID?.trim() ?? "",

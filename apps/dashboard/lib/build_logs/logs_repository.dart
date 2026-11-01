@@ -4,6 +4,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../connections/active_connection_firebase_auth.dart';
 import '../connections/local_development_connection.dart';
+import '../firebase/data_connect_config.dart';
 import '../generated/logs/logs.dart';
 import 'log_reader.dart';
 
@@ -15,7 +16,10 @@ Future<LogsConnector> logsConnector(Ref ref) async {
   final local = ref.watch(localDevelopmentConnectionProvider);
   final dc = FirebaseDataConnect.instanceFor(
     app: auth.app,
-    connectorConfig: LogsConnector.connectorConfig,
+    connectorConfig: projectConnectorConfig(
+      LogsConnector.connectorConfig,
+      auth.app.options.projectId,
+    ),
     sdkType: CallerSDKType.generated,
   );
   if (local != null) dc.useDataConnectEmulator(local.emulatorHost, 9399);

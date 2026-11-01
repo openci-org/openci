@@ -82,6 +82,12 @@ export class Billing {
       canManageBilling: false,
       cancelAtPeriodEnd: false,
     };
+    if (this.config.selfHosted) {
+      if (context.customer || context.stripe || context.checkout) {
+        throw new BillingError("failed-precondition", "billing_unavailable");
+      }
+      return { ...result, canStartCi: true, blockReason: "" };
+    }
     if (!this.config.enabled) return result;
     this.compatible(context);
     if (this.config.complimentary.has(teamId)) {
