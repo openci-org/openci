@@ -7,7 +7,8 @@ It does not run Flutter or parse Dart workflows locally.
 
 ```text
 dispatchBuildJob -> Cloud Run Job
-  claim reservation -> verify PR source -> billing admission -> create numbered run
+  claim reservation with queued check ID -> verify PR source -> billing admission -> create numbered run
+  update the queued GitHub Check to in_progress
   prepare_vm -> checkout exact commit -> run_workflow
   persist result -> delete VM -> close billing -> complete GitHub Check
   -> complete job/run and release reservation
@@ -76,7 +77,11 @@ capacity on a heartbeat timeout alone. Orchard DELETE must be followed by GET
 Lost billing observations expire at the last observed time and set
 `measurementIncomplete`, instead of charging through the outage. An unstarted
 admission must expire before it can be closed. Interrupted steps become terminal.
-GitHub Check creation is reconciled by app ID and the stable run `external_id`.
+Queued GitHub Checks are created by the mutation consumer and their IDs copied
+into reservations. Execution and recovery update that same check, including
+failures before BuildRun creation. An unnumbered billing-blocked attempt leaves
+it queued. Legacy reservations without a check retain the fallback creation
+path, reconciled by App ID and the stable run `external_id`.
 The sweep also compares actual Orchard VM names with closed attempts, deleting
 VMs whose creation was committed after the original request disconnected and
 cleanup had already observed 404. Active attempts and unrelated VMs are excluded.

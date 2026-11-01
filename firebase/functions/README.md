@@ -88,7 +88,7 @@ env -u DEBUG npx --yes firebase-tools@15.34.2 dataconnect:compile \
   --config firebase/dataconnect/firebase.json --project openci-b1b91
 env -u DEBUG npx --yes firebase-tools@15.34.2 emulators:exec \
   --config firebase/dataconnect/firebase.json --only dataconnect --project demo-openci \
-  'node --test --test-concurrency=1 firebase/dataconnect/test/webhooks.test.mjs firebase/dataconnect/test/build_job_planning.test.mjs firebase/dataconnect/test/build_dispatch.test.mjs firebase/dataconnect/test/build_execution.test.mjs firebase/dataconnect/test/billing.test.mjs firebase/dataconnect/test/logs.test.mjs'
+  'node --test --test-concurrency=1 firebase/dataconnect/test/webhooks.test.mjs firebase/dataconnect/test/build_job_planning.test.mjs firebase/dataconnect/test/build_checks.test.mjs firebase/dataconnect/test/build_dispatch.test.mjs firebase/dataconnect/test/build_execution.test.mjs firebase/dataconnect/test/billing.test.mjs firebase/dataconnect/test/logs.test.mjs'
 ```
 
 `dataconnect:compile` reads the deployed schema, so this read-only check uses

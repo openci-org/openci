@@ -7,6 +7,50 @@ const connectorConfig = {
 };
 exports.connectorConfig = connectorConfig;
 
+function getQueuedBuildCheck(dcOrVarsOrOptions, varsOrOptions, options) {
+  const {
+    dc: dcInstance,
+    vars: inputVars,
+    options: inputOpts,
+  } = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeQuery("GetQueuedBuildCheck", inputVars, inputOpts);
+}
+exports.getQueuedBuildCheck = getQueuedBuildCheck;
+
+function acquireQueuedBuildCheck(dcOrVarsOrOptions, varsOrOptions, options) {
+  const {
+    dc: dcInstance,
+    vars: inputVars,
+    options: inputOpts,
+  } = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeMutation("AcquireQueuedBuildCheck", inputVars, inputOpts);
+}
+exports.acquireQueuedBuildCheck = acquireQueuedBuildCheck;
+
+function recordQueuedBuildCheck(dcOrVarsOrOptions, varsOrOptions, options) {
+  const {
+    dc: dcInstance,
+    vars: inputVars,
+    options: inputOpts,
+  } = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeMutation("RecordQueuedBuildCheck", inputVars, inputOpts);
+}
+exports.recordQueuedBuildCheck = recordQueuedBuildCheck;
+
+function releaseQueuedBuildCheck(dcOrVarsOrOptions, varsOrOptions, options) {
+  const {
+    dc: dcInstance,
+    vars: inputVars,
+    options: inputOpts,
+  } = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeMutation("ReleaseQueuedBuildCheck", inputVars, inputOpts);
+}
+exports.releaseQueuedBuildCheck = releaseQueuedBuildCheck;
+
 function getBuildDispatchState(dcOrVarsOrOptions, varsOrOptions, options) {
   const {
     dc: dcInstance,

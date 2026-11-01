@@ -1,0 +1,78 @@
+query GetQueuedBuildCheck($jobId: String!) @auth(level: NO_ACCESS) {
+  job: buildJob(id: $jobId) {
+    ...ExecutionJobFields
+    runsOn
+    checkRunId
+    checkRunNumber
+    checkOwner
+    checkLeaseUntil
+  }
+  dispatch: buildJobDispatch(first: { where: { activeJobId: { eq: $jobId } } }) {
+    id
+  }
+}
+
+# Serialize GitHub POST/reconciliation and fence reservation creation. The lease
+# outlasts the bounded GitHub request budget even when an acknowledgement is lost.
+mutation AcquireQueuedBuildCheck($jobId: String!, $owner: String!, $runNumber: Int64!)
+@auth(level: NO_ACCESS)
+@transaction {
+  buildJob_updateMany(
+    where: {
+      _and: [
+        {
+          id: { eq: $jobId }
+          status: { in: ["QUEUED", "CANCELLED"] }
+          runsOn: { eq: "macos-latest" }
+        }
+        {
+          _or: [
+            { checkLeaseUntil: { isNull: true } }
+            { checkLeaseUntil: { le_expr: "request.time" } }
+          ]
+        }
+      ]
+    }
+    data: { checkOwner: $owner, checkLeaseUntil_expr: "request.time + duration('300s')" }
+  ) @check(expr: "this == 1", message: "Check publication is busy or job is no longer queued")
+  query @redact {
+    job: buildJob(id: $jobId)
+      @check(
+        expr: "int(vars.runNumber) == (this.runCount == null ? 0 : int(this.runCount)) + 1"
+        message: "Check run changed"
+      ) {
+      runCount
+    }
+    dispatch: buildJobDispatch(first: { where: { activeJobId: { eq: $jobId } } })
+      @check(expr: "this == null", message: "Execution already reserved") {
+      id
+    }
+  }
+}
+
+mutation RecordQueuedBuildCheck(
+  $jobId: String!
+  $owner: String!
+  $runNumber: Int64!
+  $checkRunId: String!
+) @auth(level: NO_ACCESS) @transaction {
+  buildJob_updateMany(
+    where: {
+      id: { eq: $jobId }
+      checkOwner: { eq: $owner }
+      checkLeaseUntil: { gt_expr: "request.time" }
+    }
+    data: { checkRunId: $checkRunId, checkRunNumber: $runNumber }
+  )
+    @check(
+      expr: "this == 1 && vars.checkRunId.matches('^[1-9][0-9]*$')"
+      message: "Check publication lease lost"
+    )
+}
+
+mutation ReleaseQueuedBuildCheck($jobId: String!, $owner: String!) @auth(level: NO_ACCESS) {
+  buildJob_updateMany(
+    where: { id: { eq: $jobId }, checkOwner: { eq: $owner } }
+    data: { checkOwner: null, checkLeaseUntil: null }
+  )
+}

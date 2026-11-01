@@ -18,10 +18,12 @@ import { launchCloudRunJob } from "./cloud_run_job.js";
 import { orchardNetworkOptions } from "./orchard_network.js";
 import { dispatchServiceAccount } from "./function_identity.js";
 import { dataConnectServiceId } from "./data_connect_config.js";
+import { queuedChecks } from "./queued_checks.js";
 
 const orchardUrl = defineString("ORCHARD_API_URL");
 const orchardAccount = defineString("ORCHARD_SERVICE_ACCOUNT_NAME");
 const orchardToken = defineSecret("ORCHARD_SERVICE_ACCOUNT_TOKEN");
+const githubPrivateKey = defineSecret("GITHUB_APP_PRIVATE_KEY");
 const orchardCa = defineString("ORCHARD_CA_CERT", { default: "" });
 const vmCpu = defineInt("ORCHARD_VM_CPU", { default: 2 });
 const vmMemory = defineInt("ORCHARD_VM_MEMORY_MIB", { default: 4096 });
@@ -60,13 +62,17 @@ export const queueBuildJobs = onMutationExecuted(
     cpu: 1,
     concurrency: 1,
     minInstances: 0,
-    timeoutSeconds: 60,
+    timeoutSeconds: 540,
+    secrets: [githubPrivateKey],
     retry: true,
   },
   async (event) => {
     try {
       if (event.authType !== "admin") throw new Error("Unexpected mutation principal");
-      for (const id of createdBuildJobIds(event.data.payload)) await enqueue(id);
+      for (const id of createdBuildJobIds(event.data.payload)) {
+        await queuedChecks(getDispatchDataConnect()).sync(id);
+        await enqueue(id);
+      }
     } catch {
       error("Build dispatch enqueue failed", { eventId: event.id });
       throw new Error("Build dispatch enqueue failed; retry required");
@@ -86,7 +92,7 @@ export const dispatchBuildJob = onTaskDispatched<unknown>(
     concurrency: 1,
     minInstances: 0,
     timeoutSeconds: 60,
-    secrets: [orchardToken],
+    secrets: [orchardToken, githubPrivateKey],
     retryConfig: {
       maxAttempts: -1,
       maxRetrySeconds: 0,
@@ -110,6 +116,12 @@ export const dispatchBuildJob = onTaskDispatched<unknown>(
     }
     const jobId = input.jobId;
     try {
+      const store = new DataConnectDispatchStore(getDispatchDataConnect());
+      await store.expireUnstarted();
+      if ((await store.read(jobId)).job?.status === "CANCELLED") await store.cancelUnstarted(jobId);
+      // Also covers jobs queued before deployment and cancellation while waiting
+      // for capacity. Never launch a new reservation before its check is durable.
+      await queuedChecks(getDispatchDataConnect()).sync(jobId);
       const orchard = new OrchardCapacityClient({
         url: orchardUrl.value(),
         account: orchardAccount.value(),
@@ -120,7 +132,7 @@ export const dispatchBuildJob = onTaskDispatched<unknown>(
           (process.env.GCLOUD_PROJECT ?? "").startsWith("demo-"),
       });
       await executeDispatch(jobId, {
-        store: new DataConnectDispatchStore(getDispatchDataConnect()),
+        store,
         snapshot: () => orchard.snapshot(),
         configuration: {
           cpu: vmCpu.value(),

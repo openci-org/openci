@@ -33,6 +33,7 @@ export class ExecutionGitHub {
   private async client(
     job: Job,
     purpose: "checkout" | "checks" | "pull_request",
+    signal?: AbortSignal,
   ): Promise<{ request: (typeof import("@octokit/request"))["request"]; token: string }> {
     if (
       (job.githubBaseUrl ?? "https://github.com") !== this.options.baseUrl ||
@@ -50,9 +51,11 @@ export class ExecutionGitHub {
           fetch(url, {
             ...init,
             redirect: "error",
-            signal: init?.signal
-              ? AbortSignal.any([init.signal, AbortSignal.timeout(10000)])
-              : AbortSignal.timeout(10000),
+            signal: AbortSignal.any([
+              AbortSignal.timeout(10000),
+              ...(init?.signal ? [init.signal] : []),
+              ...(signal ? [signal] : []),
+            ]),
           }),
       },
     });
@@ -139,9 +142,62 @@ export class ExecutionGitHub {
 
   async check(job: Job, dispatch: Dispatch, outcome?: Outcome): Promise<string> {
     const { request } = await this.client(job, "checks");
-    let checkRunId: number | bigint | undefined = dispatch.checkRunId
-      ? BigInt(dispatch.checkRunId)
-      : undefined;
+    return this.writeCheck(
+      request,
+      job,
+      dispatch.runId!,
+      dispatch.checkRunId,
+      outcome
+        ? {
+            status: "completed",
+            conclusion: outcome === "blocked" ? "neutral" : outcome,
+            completed_at: new Date(dispatch.resultAt ?? dispatch.updatedAt).toISOString(),
+          }
+        : { status: "in_progress" },
+    );
+  }
+
+  /** Called under the persisted job lease, before any executor can claim it. */
+  async queuedCheck(
+    job: Job,
+    externalId: string,
+    savedId: string | null,
+    accountId: string,
+    signal: AbortSignal,
+  ): Promise<string> {
+    const { request } = await this.client(job, "checks", signal);
+    const { data: repo } = await request("GET /repos/{owner}/{repo}", {
+      owner: job.owner,
+      repo: job.repo,
+    });
+    if (
+      String(repo.owner.id) !== accountId ||
+      repo.full_name.toLowerCase() !== `${job.owner}/${job.repo}`.toLowerCase()
+    )
+      throw new Error("Repository does not belong to the connected installation");
+    return this.writeCheck(
+      request,
+      job,
+      externalId,
+      savedId,
+      job.status === "CANCELLED"
+        ? { status: "completed", conclusion: "cancelled", completed_at: new Date().toISOString() }
+        : { status: "queued" },
+    );
+  }
+
+  private async writeCheck(
+    request: (typeof import("@octokit/request"))["request"],
+    job: Job,
+    externalId: string,
+    savedId: string | null | undefined,
+    state: {
+      status: "queued" | "in_progress" | "completed";
+      conclusion?: "success" | "failure" | "cancelled" | "timed_out" | "neutral";
+      completed_at?: string;
+    },
+  ): Promise<string> {
+    let checkRunId: number | bigint | undefined = savedId ? BigInt(savedId) : undefined;
     if (!checkRunId) {
       // GitHub create-check-run has no idempotency key. Reconcile external_id
       // after a lost response before attempting another create.
@@ -157,7 +213,7 @@ export class ExecutionGitHub {
         });
         const existing = data.check_runs.find(
           (check) =>
-            check.external_id === dispatch.runId && String(check.app?.id) === this.options.appId,
+            check.external_id === externalId && String(check.app?.id) === this.options.appId,
         );
         if (existing) {
           checkRunId = existing.id;
@@ -167,19 +223,12 @@ export class ExecutionGitHub {
         if (page >= 20) throw new Error("Check reconciliation limit exceeded");
       }
     }
-    const completion = outcome
-      ? {
-          status: "completed" as const,
-          conclusion: outcome === "blocked" ? ("neutral" as const) : outcome,
-          completed_at: new Date(dispatch.resultAt ?? dispatch.updatedAt).toISOString(),
-        }
-      : { status: "in_progress" as const };
     if (checkRunId) {
       await request("PATCH /repos/{owner}/{repo}/check-runs/{check_run_id}", {
         owner: job.owner,
         repo: job.repo,
         check_run_id: checkRunId,
-        ...completion,
+        ...state,
       });
       return String(checkRunId);
     }
@@ -188,8 +237,8 @@ export class ExecutionGitHub {
       repo: job.repo,
       name: job.workflowName,
       head_sha: job.commitSha!,
-      external_id: dispatch.runId!,
-      ...completion,
+      external_id: externalId,
+      ...state,
     });
     return String(created.data.id);
   }

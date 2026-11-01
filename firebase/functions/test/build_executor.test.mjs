@@ -453,6 +453,70 @@ test("Octokit scopes checkout/check tokens and reconciles a lost check creation 
   await assert.rejects(github.checkout(job, "other-account"), /connected installation/);
 });
 
+test("queued checks reconcile lost creation and use the same ID through start and completion", async (t) => {
+  const { privateKey } = generateKeyPairSync("rsa", {
+    modulusLength: 2048,
+    privateKeyEncoding: { type: "pkcs8", format: "pem" },
+    publicKeyEncoding: { type: "spki", format: "pem" },
+  });
+  const externalId = "build-job:job-1:run:1";
+  const states = [];
+  let posts = 0;
+  t.mock.method(globalThis, "fetch", async (url, init) => {
+    const path = new URL(url).pathname;
+    const body = init?.body ? JSON.parse(init.body) : undefined;
+    if (path.endsWith("/access_tokens")) {
+      assert.deepEqual(body.permissions, { checks: "write" });
+      return Response.json({
+        token: "checks-token",
+        expires_at: new Date(Date.now() + 3600000).toISOString(),
+      });
+    }
+    if (path === "/repos/org/app")
+      return Response.json({ full_name: "org/app", owner: { id: 10 } });
+    if (path.includes("/commits/"))
+      return Response.json({
+        total_count: posts,
+        check_runs: posts ? [{ id: 42, external_id: externalId, app: { id: 1 } }] : [],
+      });
+    if (path === "/repos/org/app/check-runs") {
+      posts++;
+      assert.equal(body.status, "queued");
+      assert.equal(body.external_id, externalId);
+      throw new Error("lost response");
+    }
+    assert.equal(path, "/repos/org/app/check-runs/42");
+    assert.equal(init.method, "PATCH");
+    states.push(body);
+    return Response.json({ id: 42 });
+  });
+  const github = new ExecutionGitHub({
+    appId: "1",
+    privateKey,
+    apiBaseUrl: "https://api.github.com",
+    baseUrl: "https://github.com",
+  });
+  const signal = AbortSignal.timeout(10000);
+  await assert.rejects(github.queuedCheck(job, externalId, null, "10", signal));
+  const id = await github.queuedCheck(job, externalId, null, "10", signal);
+  assert.equal(id, "42");
+  const reserved = { ...dispatch, checkRunId: id, resultAt: new Date().toISOString() };
+  await github.check(job, reserved);
+  await github.check(job, reserved, "success");
+  assert.equal(posts, 1);
+  assert.deepEqual(
+    states.map((state) => state.status),
+    ["queued", "in_progress", "completed"],
+  );
+  assert.equal(states.at(-1).conclusion, "success");
+  await github.queuedCheck({ ...job, status: "CANCELLED" }, externalId, id, "10", signal);
+  assert.equal(states.at(-1).conclusion, "cancelled");
+  await assert.rejects(
+    github.queuedCheck(job, externalId, id, "99", signal),
+    /connected installation/,
+  );
+});
+
 test("PR execution revalidates repository IDs and pinned SHA with a separate revoked read token", async (t) => {
   const { privateKey } = generateKeyPairSync("rsa", {
     modulusLength: 2048,
