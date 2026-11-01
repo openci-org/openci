@@ -5,6 +5,7 @@ GitHub / GitHub Enterprise Server の依存するPRを、Firebase Functions（Ty
 親1つに複数の子がある分岐にも対応し、エラーはそのスタック内に限定します。
 
 PRの状態はDBに保存せず、PR一覧と履歴を毎回GitHubから読み直します。
+Firestoreには同時更新を防ぐための、期限付きの実行ロックだけを保存します。
 通知に関係するスタックのブランチだけを取得・更新し、履歴APIは複数PRをまとめて問い合わせ、
 続きのページも取得します。PRのbase変更では移動前と移動後のスタックを両方更新します。
 
@@ -26,9 +27,30 @@ middlewareの早期202応答はFunctionsの実行上限より後に設定し、�
 受信失敗はGitHub Appの配信画面から再送してください。
 
 キューの作成・更新、再試行、実行数の制限は `src/index.ts` のTask Queue Functions設定で管理します。
-キュー全体の同時実行数は1、workerも `concurrency: 1` / `maxInstances: 1` です。
+キュー全体の同時実行数は4、workerは `concurrency: 1` / `maxInstances: 4` です。
+独立したスタックを最大4件並列に処理し、同じスタックの更新は直列にします。
 再試行は `maxAttempts: 8` / `maxRetrySeconds: 3600`、間隔は30〜300秒です。
 順序保証や厳密な1回限りの配信には依存しません。
+
+### スタック単位の排他
+
+更新対象の全PRとheadブランチのロックを、Firestoreのトランザクションで
+一括取得します。1つでも他のworkerが使用中ならGitの処理や表示更新を開始せず、
+Cloud Tasksの再試行に戻します。workerやrevisionをまたいでも同じロックを使います。
+PRのbase変更では、移動前と移動後のスタックをまとめて取得します。
+
+ロック取得後はGitHubを読み直し、取得前の古い計画を使いません。
+新しい親子関係によって更新対象が増えていたら、ロックを解放して再試行します。
+rebase、push、base変更、コメント・Checksの更新が終わるまで保持し、最後に解放します。
+直列化は同時更新を防ぐもので、通知の到着順を保証するものではありません。
+
+`StackedPrLocks/{sha256}` のドキュメントは `owner` と `expiresAt` の2項目だけです。
+キーにはGitHubホスト、リポジトリID、PR番号またはブランチ名のハッシュを使います。
+有効期限は15分で、workerの実行期限・HTTP期限・タスク期限より長くしています。
+停止したworkerのロックは期限後に取得し直せます。古いworkerの解放処理は、
+新しい所有者のロックを削除しません。Firestoreが使えないときは更新せず再試行します。
+取得時に有効期限を確認するため、TTLによる削除を待つ必要はありません。
+停止後に残ったロックはTTLで後から掃除します。
 
 workerはCloud Tasks用サービスアカウントのIDトークンで呼び出します。
 IAMのinvokerもそのアカウントに限定し、HTTPヘッダーだけでは認証しません。
@@ -66,13 +88,18 @@ npm run fmt:check
 npm run check
 npm test
 npm run test:runtime
+npm run test:locks
 ```
 
 `npm test` は単体テストと実Gitを使う統合テストです。
 `test:runtime` はFunctions Frameworkで実際のHTTP受付、Task QueueのJSON形式、
 Git rebase/pushを検証します。IAMと実サービスへの接続は配置後の検証対象です。
+`test:locks` はJava 21以上が必要で、ローカルFirestoreエミュレータ上で
+別クライアント間の同時取得、競合時の一括取り消し、期限切れ後の復旧を検証します。
+`firebase.emulator.json` とdeny-allルールはテスト専用です。
 OpenCIの `openci/stacked_pr_ci.dart` は `scripts/ci.sh` を実行し、
-ルートの `.node-version` に固定されたNodeを用意して同じチェックを行います。
+ルートの `.node-version` に固定されたNodeを用意して、`test:locks` 以外のチェックを行います。
+Firestoreを変更するPRでは、Java 21を用意して `test:locks` も実行してください。
 
 ソースは `src/`、ビルド結果は `lib/` です。生成結果はGitにコミットしません。
 FirebaseのpredeployでTypeScriptをビルドし、Node.jsの標準ランタイムへ配置します。
@@ -90,10 +117,18 @@ Gitの `rebase.updateRefs=false` を明示し、他のブランチの自動更�
    `ALLOWED_REPOSITORIES` は `owner/repo` 形式で指定します（複数はカンマ区切り）。
 2. Secret Managerに `STACKED_PR_GITHUB_PRIVATE_KEY` と `STACKED_PR_WEBHOOK_SECRET` を登録します。
    Webhook secretは32文字以上にします。設定値・秘密鍵はコミットしません。
-3. `scripts/provision.sh PROJECT_ID` でAPI、サービスアカウント、必要なIAMを準備します。
+3. 既存のFirestore Nativeデータベースを使います。既定は `(default)` で、
+   別のDBを使う場合は `STACKED_PR_LOCK_DATABASE` にそのIDを設定します。
+   `StackedPrLocks` へのWeb/Mobileクライアントからの読み書きはルールで禁止してください。
+   他の広い `allow` によってこのコレクションが許可されないことも確認が必要です。
+   このパッケージから既存DBのルール全体を置き換えることはしません。
+4. `scripts/provision.sh PROJECT_ID [LOCK_DATABASE]` でAPI、サービスアカウント、必要なIAMを準備します。
    これは明示的にクラウド設定を変更するスクリプトです。
+   runtimeには指定したDBに限定した `roles/datastore.user` を付与します。
+   `StackedPrLocks.expiresAt` のTTLも設定します（期限の判定はアプリ側で行います）。
+   DBは既存のものを確認し、暗黙には作成しません。
    キューの作成・更新はFirebase CLIがTask Queue Functions設定から行います。
-4. 依存関係をインストールし、workerとWebhookを配置します。
+5. 依存関係をインストールし、workerとWebhookを配置します。
 
 ```sh
 npm ci --workspaces=false
@@ -104,9 +139,14 @@ npx --yes firebase-tools@15.34.2 deploy --project YOUR_PROJECT_ID \
 GitHub AppのWebhook URLを配置された `stackedPrWebhook` のURLに設定します。
 タスクの宛先URLはAdmin SDKが解決するため、worker URLの手動設定は不要です。
 配置後はworkerの非公開IAM、署名検証とタスク登録、通常push、親のmerge、
-競合時の停止と `/stack sync` をテスト用スタックで確認してください。
+競合時の停止と `/stack sync`、同じスタックの排他と別スタックの並列処理を
+テスト用スタックで確認してください。
 
-一時領域はメモリを使うためworkerは2GiB、minInstances=0です。
+直列版から初めて切り替えるときは、キューを一時停止し、実行中の旧workerが
+終了してから配置・再開してください。ロックを持たない旧版との同時実行は防げません。
+ロック導入後も、同じAppのworkerは同じプロジェクト・DBを参照する必要があります。
+
+一時領域はメモリを使うためworkerは1インスタンスあたり2GiB、minInstances=0です。
 処理開始から420秒を超えたら新しいGit/API操作を始めず、Git子プロセスにも期限を設定します。
 Functionsの上限540秒より長い600秒をタスク期限とし、旧処理と再試行の重なりを抑えます。
 単一スタックがこの時間・容量を超える場合は構成を見直す必要があります。
@@ -130,5 +170,8 @@ Functionsの上限540秒より長い600秒をタスク期限とし、旧処理�
 
 - [Firebase Task Queue Functions](https://firebase.google.com/docs/functions/task-functions)
 - [Cloud Tasks HTTP認証](https://cloud.google.com/tasks/docs/creating-http-target-tasks)
+- [Firestoreのトランザクション](https://firebase.google.com/docs/firestore/manage-data/transactions)
+- [FirestoreのDB単位のIAM権限](https://firebase.google.com/docs/firestore/manage-databases)
+- [FirestoreのTTL](https://firebase.google.com/docs/firestore/ttl)
 - [GitHub PR履歴](https://docs.github.com/en/enterprise-server@3.19/graphql/reference/objects#headrefforcepushedevent)
 - [Googleの実行環境に含まれるパッケージ](https://cloud.google.com/docs/buildpacks/stacks)

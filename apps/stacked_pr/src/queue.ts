@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { getApps, initializeApp } from "firebase-admin/app";
 import { getFunctions, type TaskOptions } from "firebase-admin/functions";
 import { type Environment, required } from "./config.js";
+import { taskDeadlineSeconds } from "./limits.js";
 import { type Job, object, RetryException } from "./models.js";
 
 export const region = "asia-northeast1";
@@ -42,7 +43,7 @@ export class TaskQueue {
       await Promise.race([
         this.backend.enqueue(job, {
           id,
-          dispatchDeadlineSeconds: 600,
+          dispatchDeadlineSeconds: taskDeadlineSeconds,
           ...(this.notBefore && this.notBefore.getTime() > Date.now()
             ? { scheduleTime: this.notBefore }
             : {}),

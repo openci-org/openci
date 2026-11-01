@@ -5,6 +5,8 @@ import { HttpsError } from "firebase-functions/v2/https";
 import { configFromEnvironment, type Environment } from "./config.js";
 import { Deadline } from "./deadline.js";
 import { GitException } from "./git.js";
+import { executionBudgetMs } from "./limits.js";
+import { FirestoreStackLocks } from "./locks.js";
 import { ApiException, GitHubApi } from "./github.js";
 import { type Job, object, RetryException } from "./models.js";
 import { TaskQueue } from "./queue.js";
@@ -51,7 +53,7 @@ export async function runJob(job: Job, env: Environment): Promise<void> {
   let api: GitHubApi | undefined;
   let queue: TaskQueue | undefined;
   try {
-    const deadline = new Deadline(420_000),
+    const deadline = new Deadline(executionBudgetMs),
       config = configFromEnvironment(env, directory);
     if (!config.allowedRepos.size)
       throw new Error("ALLOWED_REPOSITORIES must name the target repositories");
@@ -60,6 +62,7 @@ export async function runJob(job: Job, env: Environment): Promise<void> {
       config,
       api,
       reporter: new Reporter(api),
+      locks: FirestoreStackLocks.fromEnvironment(env),
       deadline,
       enqueue: (job) => {
         const timeout = deadline.limit(8000);
