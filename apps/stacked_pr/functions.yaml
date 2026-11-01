@@ -17,6 +17,9 @@ params:
   - name: STACKED_PR_WORKER_URL
     type: string
     default: ""
+  - name: STACKED_PR_RESUME_AT
+    type: string
+    default: ""
   - name: ALLOWED_REPOSITORIES
     type: string
     default: "dims/dmis_mobile"

@@ -110,10 +110,12 @@ GitHub APIや権限の障害が続いて再試行を使い切った場合は、�
 1. Firebase側の配置、Secret、workerの非公開IAM、GitHubへの接続を確認します。
 2. Cloud Tasksキューを一時停止し、新しい鍵とWebhook secretを登録します。
    旧サーバーを停止できない場合、GitHub App設定で旧秘密鍵を削除します。
-   既に発行されたinstallation tokenは最大1時間有効なため、旧鍵削除後は
-   余裕を含め65分待ってから新workerの処理を開始します。
+   既に発行されたinstallation tokenは最大1時間有効なため、旧鍵削除時刻の
+   65分後を`STACKED_PR_RESUME_AT`にUTC形式で設定して両方のFunctionsを配置します。
 3. GitHub AppのWebhook URLを`stacked-pr-webhook`のURLに変更し、新しいsecretを設定します。
    署名検証とキュー登録を確認してからキューを再開します。
+   指定時刻までは通知を受け付けてCloud Tasksに予約し、PRは更新しません。
+   指定時刻を過ぎると通常どおり処理します。通常の配置ではこの設定は空欄で構いません。
 4. 対象のテスト用スタックで通常push、親のmerge、競合時の停止を確認します。
    その後`/stack sync`で既存スタックの状態を再取得できます。
 

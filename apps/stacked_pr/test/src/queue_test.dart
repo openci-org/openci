@@ -56,6 +56,26 @@ void main() {
       throwsA(isA<RetryException>()),
     );
   });
+  test('cutover accepts tasks now but schedules them after old tokens expire', () async {
+    for (final delay in [const Duration(minutes: 65), const Duration(minutes: -1)]) {
+      final notBefore = DateTime.now().toUtc().add(delay);
+      Json? task;
+      final queue = TaskQueue(
+        client: MockClient((request) async {
+          task = jsonObject(jsonObject(jsonDecode(request.body))['task']);
+          return http.Response('{}', 200);
+        }),
+        project: 'demo-stacked-pr',
+        workerUrl: Uri.parse('https://worker.example.run.app'),
+        serviceAccount: 'tasks@example.iam.gserviceaccount.com',
+        namespace: 'app',
+        notBefore: notBefore,
+      );
+      expect(await queue.enqueue(const Job(id: 'delivery', event: 'push', payload: {})), isTrue);
+      expect(task!['scheduleTime'], delay.isNegative ? isNull : notBefore.toIso8601String());
+      queue.close();
+    }
+  });
   test('worker awaits completion, returns retry on failure and rejects malformed jobs', () async {
     Request request(String body) => Request('POST', Uri.parse('http://localhost/'), body: body);
     final body = jsonEncode({

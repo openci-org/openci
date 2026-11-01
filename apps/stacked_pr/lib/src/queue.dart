@@ -14,10 +14,12 @@ class TaskQueue {
     required this.namespace,
     this.location = 'asia-northeast1',
     this.queue = 'stacked-pr',
+    this.notBefore,
   });
   final http.Client client;
   final String project, location, queue, serviceAccount, namespace;
   final Uri workerUrl;
+  final DateTime? notBefore;
 
   static Future<TaskQueue> fromEnvironment(Map<String, String> env) async {
     String required(String name) {
@@ -27,6 +29,7 @@ class TaskQueue {
     }
 
     final url = Uri.parse(required('STACKED_PR_WORKER_URL'));
+    final resumeAt = env['STACKED_PR_RESUME_AT']?.trim() ?? '';
     if (url.scheme != 'https' ||
         url.host.isEmpty ||
         url.userInfo.isNotEmpty ||
@@ -42,6 +45,7 @@ class TaskQueue {
       workerUrl: url,
       serviceAccount: required('STACKED_PR_TASK_SERVICE_ACCOUNT'),
       namespace: '${required('GITHUB_URL')}:${required('GITHUB_APP_ID')}',
+      notBefore: resumeAt.isEmpty ? null : DateTime.parse(resumeAt).toUtc(),
     );
   }
 
@@ -60,6 +64,8 @@ class TaskQueue {
             'task': {
               'name': '$parent/tasks/$id',
               'dispatchDeadline': '600s',
+              if (notBefore != null && notBefore!.isAfter(DateTime.now()))
+                'scheduleTime': notBefore!.toUtc().toIso8601String(),
               'httpRequest': {
                 'httpMethod': 'POST',
                 'url': workerUrl.toString(),
