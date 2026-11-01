@@ -46,12 +46,24 @@ export class History {
             parent.headRef === child.baseRef,
         ),
     );
-    for (const [number, events] of await this.api.timelines(
-      this.installation,
-      this.repo,
-      roots.map((p) => p.number),
-    ))
-      this.timelines.set(number, events);
+    const branches = [...new Set(roots.map((p) => p.baseRef))].filter(
+      (branch) => branch !== this.repo.defaultBranch,
+    );
+    // Independent root lookups dominate large repositories. Bound read concurrency
+    // while retaining invocation-local caches and the same discovery order below.
+    const preloadClosedRoots = async () => {
+      for (let start = 0; start < branches.length; start += 4)
+        await Promise.all(branches.slice(start, start + 4).map((branch) => this.closed(branch)));
+    };
+    const [timelines] = await Promise.all([
+      this.api.timelines(
+        this.installation,
+        this.repo,
+        roots.map((p) => p.number),
+      ),
+      preloadClosedRoots(),
+    ]);
+    for (const [number, events] of timelines) this.timelines.set(number, events);
     const pulls = new Map(
       current.map((p) => [
         p.number,
