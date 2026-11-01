@@ -26,7 +26,9 @@ export const githubWebhookFsc = onRequest(
     invoker: "public",
     memory: "256MiB",
     cpu: 1,
-    concurrency: 1,
+    // Restacking emits a burst of independent deliveries. Persist them without
+    // requiring a new cold instance for every request; build capacity is separate.
+    concurrency: 20,
     minInstances: 0,
     timeoutSeconds: 60,
     secrets: [githubWebhookSecret],
