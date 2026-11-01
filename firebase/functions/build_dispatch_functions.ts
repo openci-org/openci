@@ -7,6 +7,7 @@ import {
   createdBuildJobIds,
   dispatchBuildJob as executeDispatch,
   dispatchTaskId,
+  dispatchRetryTaskId,
   dispatchFailureReason,
   DispatchRetry,
   validJobId,
@@ -26,14 +27,15 @@ const vmMemory = defineInt("ORCHARD_VM_MEMORY_MIB", { default: 4096 });
 const vmImage = defineString("BASE_VM_NAME", { default: "base-macos" });
 const cloudRunJob = defineString("BUILD_EXECUTOR_JOB");
 
-async function enqueue(jobId: string, dispatchId?: string, scheduleTime?: Date): Promise<void> {
+async function enqueue(
+  jobId: string,
+  taskId = dispatchTaskId(jobId),
+  scheduleTime?: Date,
+): Promise<void> {
   try {
     await getFunctions()
       .taskQueue("locations/asia-northeast1/functions/dispatchBuildJob")
-      .enqueue(
-        { jobId },
-        { id: dispatchTaskId(jobId, dispatchId), scheduleTime, dispatchDeadlineSeconds: 120 },
-      );
+      .enqueue({ jobId }, { id: taskId, scheduleTime, dispatchDeadlineSeconds: 120 });
   } catch (failure) {
     if (
       failure &&
@@ -126,15 +128,33 @@ export const dispatchBuildJob = onTaskDispatched<unknown>(
           cloudRunJob: cloudRunJob.value(),
         },
         enqueueRecovery: (dispatch) =>
-          enqueue(jobId, dispatch.id, new Date(Date.parse(dispatch.startDeadline) + 1000)),
+          enqueue(
+            jobId,
+            dispatchTaskId(jobId, dispatch.id),
+            new Date(Date.parse(dispatch.startDeadline) + 1000),
+          ),
         launch: (dispatch) => launchCloudRunJob(dispatch),
       });
     } catch (failure) {
       // Never include SDK/HTTP exception objects: they can contain credentials.
-      if (failure instanceof DispatchRetry)
+      if (failure instanceof DispatchRetry) {
+        try {
+          // Acknowledge only after the successor exists. A lost enqueue response
+          // retries this task with the same successor ID, without multiplying work.
+          await enqueue(
+            jobId,
+            dispatchRetryTaskId(jobId, request.id),
+            new Date(Date.now() + 60_000),
+          );
+        } catch {
+          error("Build dispatch failed", { jobId, reason: "retry_enqueue_failed" });
+          throw new Error("Build dispatch retry could not be queued; retry required");
+        }
         info("Build dispatch deferred", { jobId, reason: failure.reason });
-      else error("Build dispatch failed", { jobId, reason: dispatchFailureReason(failure) });
-      throw new Error("Build dispatch deferred; retry required");
+        return;
+      }
+      error("Build dispatch failed", { jobId, reason: dispatchFailureReason(failure) });
+      throw new Error("Build dispatch failed; retry required");
     }
   },
 );

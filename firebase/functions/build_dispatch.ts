@@ -96,6 +96,16 @@ export function dispatchTaskId(jobId: string, dispatchId?: string): string {
     .digest("hex");
 }
 
+export function dispatchRetryTaskId(jobId: string, sourceTaskId: string): string {
+  if (typeof sourceTaskId !== "string" || !/^[A-Za-z0-9_-]{1,500}$/.test(sourceTaskId))
+    throw new Error("Invalid build dispatch task ID");
+  // The source task is stable across redelivery, unlike its retry count or ETA.
+  // A separate namespace also keeps successors distinct from recovery tasks.
+  return createHash("sha256")
+    .update(JSON.stringify(["retry", jobId, sourceTaskId]))
+    .digest("hex");
+}
+
 export async function dispatchBuildJob(
   jobId: string,
   dependencies: {

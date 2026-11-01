@@ -33,11 +33,21 @@ The reservation transaction verifies the current owner and lease, and requires
 a `QUEUED` `macos-latest` job. `BuildJobDispatch.activeJobId` is unique while a
 reservation is open. Closed attempts retain history and clear this key.
 
-If no capacity exists, the job stays `QUEUED` and the Function fails the task
-for retry after 30–60 seconds. Retries are unlimited within Cloud Tasks' maximum
-retention period. Dispatch rate is capped at 5/second and 5 concurrent calls;
-this is API throttling, not the VM capacity limit. Cloud Tasks does not guarantee
-FIFO scheduling. See [queue retry configuration](https://docs.cloud.google.com/tasks/docs/configuring-queues#set_retry_parameters).
+If no capacity exists, or the scheduler/launch lease is busy, the job stays
+`QUEUED`. The Function enqueues a successor scheduled 60 seconds later before
+acknowledging the current task with HTTP 204. These expected waits log at INFO,
+so they do not trigger ERROR-log alerts. Each successor's ID is derived from the
+source Cloud Tasks task ID and job ID, in a namespace distinct from initial and
+recovery tasks. Redelivery or a lost enqueue response therefore reuses the same
+successor; subsequent waits create distinct successors and continue checking
+until the job is dispatched or no longer eligible.
+
+Actual dispatch or enqueue failures still log sanitized ERRORs and fail the
+current task for retry after 30–60 seconds. These retries are unlimited within
+Cloud Tasks' maximum retention period. Dispatch rate is capped at 5/second and
+5 concurrent calls; this is API throttling, not the VM capacity limit. Cloud
+Tasks does not guarantee FIFO scheduling. See
+[queue retry configuration](https://docs.cloud.google.com/tasks/docs/configuring-queues#set_retry_parameters).
 
 Named initial tasks deduplicate mutation redelivery. Each reservation also has
 a named recovery task at its ten-minute startup deadline, persisted before
