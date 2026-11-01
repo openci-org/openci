@@ -1,0 +1,9 @@
+.env
+secrets/
+data/
+.dart_tool/
+.dart_frog/
+build/
+coverage/
+*.pem
+.DS_Store
