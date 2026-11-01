@@ -2,12 +2,15 @@ import 'package:dashboard/auth/auth_provider.dart';
 import 'package:dashboard/connections/active_connection_profile_provider.dart';
 import 'package:dashboard/connections/connection_profile.dart';
 import 'package:dashboard/connections/connection_store_provider.dart';
+import 'package:dashboard/deployment_mode.dart';
 import 'package:flutter/foundation.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 typedef BillingIdentity = ({ConnectionProfile connection, String userId});
 
-final billingWebSupportedProvider = Provider<bool>((ref) => kIsWeb);
+final billingWebSupportedProvider = Provider<bool>(
+  (ref) => kIsWeb && !selfHostedDeployment,
+);
 
 final billingIdentityProvider = Provider.autoDispose<BillingIdentity?>((ref) {
   if (!ref.watch(billingWebSupportedProvider)) return null;

@@ -17,6 +17,10 @@ create_workers.js
 .env
 firebase/.env.*
 firebase/dart_functions/.env.*
+firebase/.deploy/
+firebase/firebase.*.local.json
+# Deployment-specific configuration is managed locally or in a private repository.
+/infra/environments/
 !firebase/.env.example
 !firebase/dart_functions/.env.example
 firebase-service-account.json

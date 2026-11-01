@@ -4,6 +4,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../connections/active_connection_firebase_auth.dart';
 import '../connections/local_development_connection.dart';
+import '../firebase/data_connect_config.dart';
 import '../generated/secrets/secrets.dart';
 
 part 'secrets_backend.g.dart';
@@ -14,7 +15,10 @@ Future<SecretsConnector> secretsConnector(Ref ref) async {
   final local = ref.watch(localDevelopmentConnectionProvider);
   final dc = FirebaseDataConnect.instanceFor(
     app: auth.app,
-    connectorConfig: SecretsConnector.connectorConfig,
+    connectorConfig: projectConnectorConfig(
+      SecretsConnector.connectorConfig,
+      auth.app.options.projectId,
+    ),
     sdkType: CallerSDKType.generated,
   );
   if (local != null) dc.useDataConnectEmulator(local.emulatorHost, 9399);

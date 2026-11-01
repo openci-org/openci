@@ -2,6 +2,7 @@ import { getApp, getApps, initializeApp, type App } from "firebase-admin/app";
 import { getDataConnect, type DataConnect } from "firebase-admin/data-connect";
 import * as sdk from "@openci/dispatch-admin";
 import type { BuildDispatch, DispatchState, DispatchStore } from "./build_dispatch.js";
+import { configuredConnector } from "./data_connect_config.js";
 
 export function getDispatchDataConnect(app: App = getApp()): DataConnect {
   // Admin SDK 14.5 caches by service/location, ignoring the connector ID.
@@ -9,7 +10,7 @@ export function getDispatchDataConnect(app: App = getApp()): DataConnect {
   const name = `${app.name}:build-dispatch`;
   const isolated =
     getApps().find((candidate) => candidate.name === name) ?? initializeApp(app.options, name);
-  return getDataConnect(sdk.connectorConfig, isolated);
+  return getDataConnect(configuredConnector(sdk.connectorConfig), isolated);
 }
 
 export class DataConnectDispatchStore implements DispatchStore {

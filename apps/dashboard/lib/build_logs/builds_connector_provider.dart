@@ -3,6 +3,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../connections/active_connection_firebase_auth.dart';
 import '../connections/local_development_connection.dart';
+import '../firebase/data_connect_config.dart';
 import '../generated/builds/builds.dart';
 
 part 'builds_connector_provider.g.dart';
@@ -13,7 +14,10 @@ Future<BuildsConnector> buildsConnector(Ref ref) async {
   final auth = await ref.watch(activeConnectionFirebaseAuthProvider.future);
   final dataConnect = FirebaseDataConnect.instanceFor(
     app: auth.app,
-    connectorConfig: BuildsConnector.connectorConfig,
+    connectorConfig: projectConnectorConfig(
+      BuildsConnector.connectorConfig,
+      auth.app.options.projectId,
+    ),
     sdkType: CallerSDKType.generated,
   );
   if (local != null) {

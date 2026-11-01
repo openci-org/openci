@@ -3,6 +3,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../connections/active_connection_firebase_auth.dart';
 import '../connections/local_development_connection.dart';
+import '../firebase/data_connect_config.dart';
 import '../generated/teams/teams.dart';
 
 part 'teams_connector_provider.g.dart';
@@ -13,7 +14,10 @@ Future<TeamsConnector> teamsConnector(Ref ref) async {
   final auth = await ref.watch(activeConnectionFirebaseAuthProvider.future);
   final dataConnect = FirebaseDataConnect.instanceFor(
     app: auth.app,
-    connectorConfig: TeamsConnector.connectorConfig,
+    connectorConfig: projectConnectorConfig(
+      TeamsConnector.connectorConfig,
+      auth.app.options.projectId,
+    ),
     sdkType: CallerSDKType.generated,
   );
   if (local != null) {

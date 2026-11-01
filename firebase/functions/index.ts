@@ -9,6 +9,7 @@ import { receiveGitHubWebhook } from "./github_webhook.js";
 import { enqueueWebhook } from "./webhook_queue.js";
 import { invokeProcessWebhookTask, requestedWebhookTaskId } from "./build_job_planning.js";
 import { apiServiceAccount } from "./function_identity.js";
+import { configuredConnector, dataConnectServiceId } from "./data_connect_config.js";
 
 initializeApp();
 const githubWebhookSecret = defineSecret("GITHUB_WEBHOOK_SECRET");
@@ -33,7 +34,8 @@ export const githubWebhookFsc = onRequest(
   async (request, response) => {
     const status = await receiveGitHubWebhook(request, {
       secret: githubWebhookSecret.value(),
-      enqueue: (delivery) => enqueueWebhook(getDataConnect(connectorConfig), delivery),
+      enqueue: (delivery) =>
+        enqueueWebhook(getDataConnect(configuredConnector(connectorConfig)), delivery),
       reportError: (context) => error("GitHub webhook could not be persisted", context),
     });
     response.sendStatus(status);
@@ -44,7 +46,7 @@ export const createBuildJobs = onMutationExecuted(
   {
     serviceAccount: apiServiceAccount,
     region: "asia-northeast1",
-    service: "openci-b1b91-service",
+    service: dataConnectServiceId(),
     connector: "webhooks",
     operation: "RequestWebhookTaskPlanning",
     memory: "256MiB",

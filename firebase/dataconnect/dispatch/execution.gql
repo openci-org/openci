@@ -86,6 +86,68 @@ query GetBuildExecutionSecrets($teamId: String!) @auth(level: NO_ACCESS) {
   }
 }
 
+# Only the operator-configured self-hosted executor calls this after GitHub
+# validation. Billing admission normally performs these job/run writes.
+mutation StartSelfHostedBuildExecution(
+  $id: String!
+  $jobId: String!
+  $teamId: String!
+  $executorId: String!
+) @auth(level: NO_ACCESS) @transaction {
+  team_update(key: { id: $teamId }, data: { updatedAt_expr: "int(request.time)" })
+    @redact
+    @check(expr: "this != null", message: "Team not found")
+  query @redact {
+    customer: billingCustomerCreation(key: { teamId: $teamId })
+      @check(expr: "this == null", message: "Stripe customer is configured") {
+      teamId
+    }
+    stripe: billingStripeState(key: { teamId: $teamId })
+      @check(expr: "this == null", message: "Stripe state is configured") {
+      teamId
+    }
+  }
+  # Acquire the dispatch row as well as checking it, fencing concurrent recovery.
+  buildJobDispatch_updateMany(
+    where: {
+      id: { eq: $id }
+      jobId: { eq: $jobId }
+      activeJobId: { eq: $jobId }
+      teamId: { eq: $teamId }
+      executorId: { eq: $executorId }
+      runId: { eq_expr: "'run-' + vars.id" }
+      state: { eq: "running" }
+      finishedAt: { isNull: true }
+      deadlineAt: { gt_expr: "request.time" }
+    }
+    data: { updatedAt_expr: "request.time" }
+  ) @check(expr: "this == 1", message: "Execution is not active")
+  dispatchState: query @redact {
+    dispatch: buildJobDispatch(id: $id) {
+      vmName
+    }
+  }
+  buildJob_updateMany(
+    where: { id: { eq: $jobId }, teamId: { eq: $teamId }, status: { eq: "QUEUED" } }
+    data: {
+      status: "IN_PROGRESS"
+      workerHost_expr: "'cloud-run-' + vars.id"
+      vmName_expr: "response.dispatchState.dispatch.vmName"
+      latestRunId_expr: "'run-' + vars.id"
+      updatedAt_expr: "int(request.time)"
+    }
+  ) @check(expr: "this == 1", message: "Job is no longer queued for this team")
+  buildRun_insert(
+    data: {
+      id_expr: "'run-' + vars.id"
+      buildJobId: $jobId
+      status: "in_progress"
+      createdAt_expr: "int(request.time)"
+      updatedAt_expr: "int(request.time)"
+    }
+  )
+}
+
 mutation ConfigureBuildExecutionRun($id: String!, $jobId: String!, $executorId: String!)
 @auth(level: NO_ACCESS)
 @transaction {

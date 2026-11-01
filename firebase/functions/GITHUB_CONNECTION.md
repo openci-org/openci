@@ -20,8 +20,11 @@ are removed in this release.
 3. `session` / `candidates`: bind the reference to the initiating Firebase user
    and team. Re-read the GitHub user and installations, and show only installations
    of the configured App that are not suspended. A personal account must belong
-   to the user; an organization requires active admin membership. Recheck the
-   FSC session after fetching candidates.
+   to the user; an organization requires active admin membership. Read the
+   authenticated user's own memberships through `GET /user/memberships/orgs`,
+   which requires no organization Members permission, and match organization
+   IDs and the authenticated user ID. Recheck the FSC session after fetching
+   candidates.
 4. `confirm`: repeat live GitHub verification. FSC then rechecks membership,
    session ownership and expiry, consumes the session, and saves the connection
    atomically. Another team cannot take an existing host/App/installation key.
@@ -36,9 +39,10 @@ and `connection_failed` error codes. Configuration errors return a generic 503.
 
 GitHub requests use the existing `@octokit/request` dependency with per-request
 ten-second timeouts and redirects disabled. Page URLs are constructed from the
-operator's API URL, never from GitHub Link headers. Up to 1,000 installations are
-enumerated; rate limits and incomplete/changing pages fail without returning a
-partial list. `@octokit/oauth-methods` does not currently forward `code_verifier`,
+operator's API URL, never from GitHub Link headers. Up to 1,000 installations and
+1,000 own organization memberships are enumerated; rate limits and
+incomplete/changing pages fail without returning a partial list.
+`@octokit/oauth-methods` does not currently forward `code_verifier`,
 so the token exchange uses Octokit's request API directly.
 
 ## Temporary credentials

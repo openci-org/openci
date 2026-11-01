@@ -136,4 +136,21 @@ void main() {
       );
     }
   });
+  test('planner selects the deployment service within its own project', () {
+    final environment = {
+      'GCLOUD_PROJECT': 'openci-self-hosted-example',
+      'OPENCI_DATA_CONNECT_SERVICE_ID': 'openci-self-hosted-example-service',
+    };
+    expect(
+      dataConnectServiceUri(environment).path,
+      '/v1/projects/openci-self-hosted-example/locations/asia-northeast1/services/openci-self-hosted-example-service',
+    );
+    expect(
+      () => dataConnectServiceUri({
+        ...environment,
+        'OPENCI_DATA_CONNECT_SERVICE_ID': '../other',
+      }),
+      throwsStateError,
+    );
+  });
 }

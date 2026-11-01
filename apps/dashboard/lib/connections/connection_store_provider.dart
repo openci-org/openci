@@ -1,6 +1,7 @@
 import 'package:dashboard/firebase/firebase_config_provider.dart';
 import 'package:dashboard/firebase_options.dart';
 import 'package:dashboard/utilities/shared_preferences_provider.dart';
+import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import 'connection_profile.dart';
@@ -18,9 +19,11 @@ ConnectionStore connectionStore(Ref ref) => ConnectionStore(
     firebase: {
       for (final entry in {
         'web': DefaultFirebaseOptions.web,
-        'ios': DefaultFirebaseOptions.ios,
-        'android': DefaultFirebaseOptions.android,
-        'macos': DefaultFirebaseOptions.macos,
+        if (!kIsWeb) ...{
+          'ios': DefaultFirebaseOptions.ios,
+          'android': DefaultFirebaseOptions.android,
+          'macos': DefaultFirebaseOptions.macos,
+        },
       }.entries)
         entry.key: SelfHostedConfig.fromJson(entry.value.asMap),
     },

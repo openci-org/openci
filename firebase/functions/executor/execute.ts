@@ -28,6 +28,7 @@ export interface ExecutorDependencies {
     timeoutSeconds: number;
     livemode: boolean;
     complimentary: Set<string>;
+    selfHosted?: boolean;
   };
   report: (reason: string, dispatchId: string) => void;
 }
@@ -142,17 +143,25 @@ export async function executeBuild(
     // check is terminal (not the billing "blocked" outcome, which requeues).
     await github.verifyPullRequest(job, context.connection.accountId);
     signal.throwIfAborted();
-    const period = await billing.period(
-      context,
-      job.teamId!,
-      configuration.livemode,
-      configuration.complimentary,
-    );
-    signal.throwIfAborted();
-    await billing.admit(dispatch, period);
-    const runNumber = await store.configure(dispatch, executorId);
-    await billing.start(dispatch);
-    billingStarted = true;
+    if (configuration.selfHosted) {
+      if (context.customer || context.stripe) {
+        throw new Error("Self-hosted execution requires a deployment without Stripe accounts");
+      }
+    } else {
+      const period = await billing.period(
+        context,
+        job.teamId!,
+        configuration.livemode,
+        configuration.complimentary,
+      );
+      signal.throwIfAborted();
+      await billing.admit(dispatch, period);
+    }
+    const runNumber = await store.configure(dispatch, executorId, configuration.selfHosted);
+    if (!configuration.selfHosted) {
+      await billing.start(dispatch);
+      billingStarted = true;
+    }
     await store.check(dispatch.id, await github.check(job, dispatch));
     const logs = dependencies.logs(dispatch);
     const step = async (id: string, order: number, work: () => Promise<void>) => {

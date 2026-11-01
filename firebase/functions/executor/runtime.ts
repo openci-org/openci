@@ -10,6 +10,7 @@ import { OrchardExecutor } from "./orchard.js";
 import { loadSecrets, stopCloudRunExecution } from "./google.js";
 import type { ExecutorDependencies } from "./execute.js";
 import { identity } from "./model.js";
+import { selfHostedMode } from "../deployment_mode.js";
 
 export function runtime(
   environment: NodeJS.ProcessEnv,
@@ -21,13 +22,14 @@ export function runtime(
     return value;
   };
   const project = environment.GCLOUD_PROJECT ?? required("GOOGLE_CLOUD_PROJECT");
+  const selfHosted = selfHostedMode(environment);
   const cloudRunJob = required("BUILD_EXECUTOR_JOB");
   if (!/^projects\/[a-z0-9-]+\/locations\/[a-z0-9-]+\/jobs\/[a-z][a-z0-9-]*$/.test(cloudRunJob))
     throw new Error("Invalid Cloud Run job name");
   const timeoutSeconds = Number(environment.BUILD_EXECUTOR_TIMEOUT_SECONDS ?? 3600);
   if (!Number.isSafeInteger(timeoutSeconds) || timeoutSeconds < 60 || timeoutSeconds > 86400)
     throw new Error("Invalid build timeout");
-  if (!["true", "false"].includes(required("BILLING_STRIPE_LIVEMODE")))
+  if (!selfHosted && !["true", "false"].includes(required("BILLING_STRIPE_LIVEMODE")))
     throw new Error("Billing mode must be explicit");
   if (
     environment.DATA_CONNECT_EMULATOR_HOST &&
@@ -60,6 +62,7 @@ export function runtime(
     orchard,
     report,
     configuration: {
+      selfHosted,
       cloudRunJob,
       timeoutSeconds,
       livemode: environment.BILLING_STRIPE_LIVEMODE === "true",
