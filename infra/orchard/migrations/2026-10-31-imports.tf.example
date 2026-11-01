@@ -1,0 +1,84 @@
+# Historical record of the initial production adoption; not an active module.
+# These are the original addresses. See ../moved.tf for later address changes.
+import {
+  to = google_compute_network.orchard
+  id = "projects/${local.project_id}/global/networks/orchard"
+}
+
+import {
+  to = google_compute_subnetwork.orchard
+  id = "projects/${local.project_id}/regions/${local.region}/subnetworks/orchard-tokyo"
+}
+
+import {
+  to = google_compute_address.controller
+  id = "projects/${local.project_id}/regions/${local.region}/addresses/orchard-controller-ip"
+}
+
+import {
+  to = google_compute_disk.boot
+  id = "projects/${local.project_id}/zones/${local.zone}/disks/orchard-controller"
+}
+
+import {
+  to = google_compute_disk.data
+  id = "projects/${local.project_id}/zones/${local.zone}/disks/orchard-controller-data"
+}
+
+import {
+  to = google_compute_instance.controller
+  id = "projects/${local.project_id}/zones/${local.zone}/instances/orchard-controller"
+}
+
+import {
+  to = google_compute_firewall.public_https
+  id = "projects/${local.project_id}/global/firewalls/orchard-allow-https"
+}
+
+import {
+  to = google_compute_firewall.iap_ssh
+  id = "projects/${local.project_id}/global/firewalls/orchard-allow-iap-ssh"
+}
+
+import {
+  to = google_compute_firewall.private_https
+  id = "projects/${local.project_id}/global/firewalls/orchard-allow-private-https"
+}
+
+import {
+  to = google_service_account.controller
+  id = "projects/${local.project_id}/serviceAccounts/orchard-controller@${local.project_id}.iam.gserviceaccount.com"
+}
+
+import {
+  for_each = local.orchard_secrets
+  to       = google_secret_manager_secret.orchard[each.key]
+  id       = "projects/${local.project_id}/secrets/${each.key}"
+}
+
+import {
+  for_each = local.secret_readers
+  to       = google_secret_manager_secret_iam_member.reader[each.key]
+  id       = "projects/${local.project_id}/secrets/${each.value.secret} roles/secretmanager.secretAccessor serviceAccount:${each.value.account}@${local.project_id}.iam.gserviceaccount.com"
+}
+
+import {
+  to = google_project_iam_member.controller_logging
+  id = "${local.project_id} roles/logging.logWriter serviceAccount:orchard-controller@${local.project_id}.iam.gserviceaccount.com"
+}
+
+import {
+  for_each = local.runtime_callers
+  to       = google_cloud_run_v2_service_iam_member.runtime_caller[each.key]
+  id       = "projects/${local.project_id}/locations/${local.region}/services/${each.key} roles/run.invoker serviceAccount:${each.value}@${local.project_id}.iam.gserviceaccount.com"
+}
+
+import {
+  to = google_cloud_tasks_queue_iam_member.dispatcher
+  id = "projects/${local.project_id}/locations/${local.region}/queues/dispatchBuildJob roles/cloudtasks.enqueuer serviceAccount:${local.dispatcher_email}"
+}
+
+import {
+  to = google_service_account_iam_member.dispatcher_self
+  id = "projects/${local.project_id}/serviceAccounts/${local.dispatcher_email} roles/iam.serviceAccountUser serviceAccount:${local.dispatcher_email}"
+}

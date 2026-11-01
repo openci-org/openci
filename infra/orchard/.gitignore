@@ -1,0 +1,14 @@
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+*.tfplan.json
+crash.log
+crash.*.log
+*.tfvars
+*.tfvars.json
+override.tf
+*_override.tf
+
+# Commit the provider dependency lock file.
+!.terraform.lock.hcl
