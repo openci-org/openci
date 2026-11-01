@@ -1,59 +1,90 @@
+import 'dart:convert';
 import 'dart:io';
-import 'package:path/path.dart' as p;
+import 'package:shelf/shelf.dart';
 import 'config.dart';
-import 'environment.dart';
-import 'git.dart';
+import 'deadline.dart';
 import 'github.dart';
+import 'models.dart';
+import 'queue.dart';
 import 'report.dart';
 import 'service.dart';
-import 'store.dart';
 import 'webhook.dart';
-import 'worker.dart';
 
-class AppRuntime {
-  AppRuntime._(this.store, this.api, this.worker, this.webhooks);
-  final Store store;
-  final GitHubApi api;
-  final Worker worker;
-  final WebhookReceiver webhooks;
-  var _stopping = false;
-
-  static Future<AppRuntime> create() async {
-    final env = loadEnvironment();
-    final config = AppConfig.fromEnvironment(env);
-    await Directory(config.dataDir).create(recursive: true);
-    final store = Store(p.join(config.dataDir, 'stacked-pr.sqlite'));
-    try {
-      final api = GitHubApi(config, client: createHttpClient(env));
-      final service = Service(
-        config: config,
-        store: store,
-        api: api,
-        reporter: Reporter(api),
-        gitFactory: (installation, repo) => GitRepository(
-          directory: p.join(config.dataDir, 'git', '$installation-${repo.id}.git'),
-          remote: '${config.githubUrl}/${repo.fullName}.git',
-          token: () => api.token(installation),
-          environment: env,
-        ),
-      );
-      return AppRuntime._(
-        store,
-        api,
-        Worker(store, service),
-        WebhookReceiver(store, config.secret),
-      );
-    } catch (_) {
-      store.close();
-      rethrow;
-    }
+Future<Response> receiveWebhook(Request request, Map<String, String> env) async {
+  final secret = env['GITHUB_WEBHOOK_SECRET'];
+  if (secret == null || secret.length < 32) return Response.internalServerError();
+  TaskQueue? queue;
+  try {
+    return await WebhookReceiver((job) async {
+      queue ??= await TaskQueue.fromEnvironment(env);
+      return queue!.enqueue(job);
+    }, secret).accept(request);
+  } finally {
+    queue?.close();
   }
+}
 
-  Future<void> close() async {
-    if (_stopping) return;
-    _stopping = true;
-    await worker.stop();
-    store.close();
-    api.close();
+/// Authentication is enforced by Cloud Run IAM (private invoker in functions.yaml).
+/// The request headers alone are never treated as proof of Cloud Tasks identity.
+Future<Response> processTask(Request request, Future<void> Function(Job) process) async {
+  if (request.method != 'POST') return Response(405, headers: {'allow': 'POST'});
+  final Job job;
+  try {
+    final bytes = <int>[];
+    await for (final chunk in request.read().timeout(const Duration(seconds: 10))) {
+      if (bytes.length + chunk.length > 128 * 1024) return Response(413);
+      bytes.addAll(chunk);
+    }
+    final value = jsonDecode(utf8.decode(bytes));
+    if (value is! Map<String, Object?> ||
+        value['id'] is! String ||
+        value['event'] is! String ||
+        value['payload'] is! Map<String, Object?> ||
+        !RegExp(r'^[\w-]{1,160}$').hasMatch(value['id'] as String)) {
+      return Response(400);
+    }
+    job = Job(
+      id: value['id'] as String,
+      event: value['event'] as String,
+      payload: jsonObject(value['payload']),
+    );
+  } on FormatException {
+    return Response(400);
+  }
+  try {
+    await process(job);
+    return Response.ok('completed');
+  } catch (_) {
+    stderr.writeln(jsonEncode({'event': 'stack_task_failed', 'delivery': job.id}));
+    return Response(503, body: 'retry');
+  }
+}
+
+Future<void> runJob(Job job, Map<String, String> env) async {
+  final directory = await Directory.systemTemp.createTemp('stacked-pr-');
+  GitHubApi? api;
+  TaskQueue? queue;
+  try {
+    final deadline = Deadline(const Duration(seconds: 420));
+    final config = AppConfig.fromEnvironment({...env, 'DATA_DIR': directory.path});
+    if (config.allowedRepos.isEmpty) {
+      throw const FormatException('ALLOWED_REPOSITORIES must name the target repositories');
+    }
+    api = GitHubApi(config, deadline: deadline);
+    await Service(
+      config: config,
+      api: api,
+      reporter: Reporter(api),
+      deadline: deadline,
+      enqueue: (job) async {
+        deadline.limit(const Duration(seconds: 8));
+        queue ??= await TaskQueue.fromEnvironment(env);
+        return queue!.enqueue(job);
+      },
+    ).handle(job);
+  } finally {
+    api?.close();
+    queue?.close();
+    await directory.delete(recursive: true);
   }
 }

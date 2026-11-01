@@ -7,3 +7,9 @@ build/
 coverage/
 *.pem
 .DS_Store
+.env.*
+!.env.example
+.secret.local
+.firebase/
+*-debug.log
+bin/server

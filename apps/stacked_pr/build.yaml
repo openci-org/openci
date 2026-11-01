@@ -1,0 +1,6 @@
+targets:
+  $default:
+    builders:
+      firebase_functions:spec_builder:
+        # Keep the explicit Git-capable worker image in functions.yaml.
+        enabled: false

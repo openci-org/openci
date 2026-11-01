@@ -33,11 +33,14 @@ class PullRequest {
     this.mergeCommit,
     this.parent,
     this.boundary,
+    this.createdAt,
+    this.mergedAt,
   });
   final int number;
   final String title, url, state, headRef;
   final bool merged, draft, sameRepo;
   final String? mergeCommit;
+  final DateTime? createdAt, mergedAt;
   String head, base, baseRef;
   int? parent;
   String? boundary;
@@ -53,6 +56,8 @@ class PullRequest {
       merged: raw['merged'] == true || raw['merged_at'] != null,
       mergeCommit: raw['merge_commit_sha'] as String?,
       draft: raw['draft'] == true,
+      createdAt: DateTime.tryParse(raw['created_at'] as String? ?? ''),
+      mergedAt: DateTime.tryParse(raw['merged_at'] as String? ?? ''),
       head: head['sha'] as String,
       headRef: head['ref'] as String,
       base: base['sha'] as String,
@@ -65,7 +70,6 @@ class PullRequest {
     );
   }
 
-  // Keep JSON keys compatible with the earlier SQLite records.
   factory PullRequest.fromJson(Json json) => PullRequest(
     number: json['number'] as int,
     title: json['title'] as String,
@@ -81,6 +85,8 @@ class PullRequest {
     baseRef: json['baseRef'] as String,
     parent: json['parent'] as int?,
     boundary: json['boundary'] as String?,
+    createdAt: DateTime.tryParse(json['createdAt'] as String? ?? ''),
+    mergedAt: DateTime.tryParse(json['mergedAt'] as String? ?? ''),
   );
   PullRequest copy() => PullRequest.fromJson(toJson());
   Json toJson() => {
@@ -98,15 +104,9 @@ class PullRequest {
     'baseRef': baseRef,
     'parent': parent,
     'boundary': boundary,
+    'createdAt': createdAt?.toIso8601String(),
+    'mergedAt': mergedAt?.toIso8601String(),
   };
-}
-
-class RepositoryState {
-  RepositoryState([List<PullRequest>? pulls]) : pulls = pulls ?? [];
-  final List<PullRequest> pulls;
-  factory RepositoryState.fromJson(Json json) =>
-      RepositoryState(jsonObjects(json['pulls']).map(PullRequest.fromJson).toList());
-  Json toJson() => {'pulls': pulls.map((p) => p.toJson()).toList()};
 }
 
 class BranchChange {
@@ -138,29 +138,6 @@ class BranchChange {
     'oldBase': oldBase,
     'newBase': newBase,
   };
-}
-
-class Operation {
-  Operation({required this.changes, required this.nextState, this.phase = 'prepared'});
-  final List<BranchChange> changes;
-  final RepositoryState nextState;
-  String phase;
-  factory Operation.fromJson(Json j) => Operation(
-    changes: jsonObjects(j['changes']).map(BranchChange.fromJson).toList(),
-    nextState: RepositoryState.fromJson(jsonObject(j['nextState'])),
-    phase: j['phase'] as String,
-  );
-  Json toJson() => {
-    'changes': changes.map((c) => c.toJson()).toList(),
-    'nextState': nextState.toJson(),
-    'phase': phase,
-  };
-}
-
-class SavedRepository {
-  SavedRepository(this.state, this.operation);
-  RepositoryState state;
-  final Operation? operation;
 }
 
 class Job {

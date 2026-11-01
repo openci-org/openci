@@ -4,6 +4,7 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:path/path.dart' as p;
 import 'models.dart';
+import 'deadline.dart';
 
 class GitException implements Exception {
   const GitException(this.command, this.reason);
@@ -25,6 +26,7 @@ class GitRepository {
     required this.remote,
     this.token,
     this.allowLocal = false,
+    this.deadline,
     Map<String, String>? environment,
   }) : environment = environment ?? Platform.environment {
     if (!allowLocal && !remote.startsWith('https://')) {
@@ -34,6 +36,7 @@ class GitRepository {
   final String directory, remote;
   final Future<String> Function()? token;
   final bool allowLocal;
+  final Deadline? deadline;
   final Map<String, String> environment;
 
   Future<({int code, String output})> run(
@@ -42,6 +45,7 @@ class GitRepository {
     bool network = false,
     Set<int> accepted = const {0},
   }) async {
+    final timeout = deadline?.limit(const Duration(seconds: 120)) ?? const Duration(seconds: 120);
     final environment = <String, String>{
       for (final name in [
         'PATH',
@@ -117,11 +121,7 @@ class GitRepository {
     final stderrDone = process.stderr.drain<void>();
     try {
       final exit = process.exitCode;
-      await Future.wait<void>([
-        stdoutDone,
-        stderrDone,
-        exit.then((_) {}),
-      ]).timeout(const Duration(seconds: 120));
+      await Future.wait<void>([stdoutDone, stderrDone, exit.then((_) {})]).timeout(timeout);
       final code = await exit;
       if (!accepted.contains(code)) throw GitException(args.first, '$code');
       return (
@@ -135,18 +135,24 @@ class GitRepository {
     }
   }
 
-  Future<void> prepare([List<PullRequest> pulls = const []]) async {
+  Future<void> prepare({List<PullRequest> pulls = const [], List<String>? branches}) async {
     await Directory(directory).create(recursive: true);
     await run(['init', '--bare', '.']);
     final scratch = Directory(p.join(directory, 'scratch'));
     if (await scratch.exists()) await scratch.delete(recursive: true);
     await run(['worktree', 'prune']);
+    for (final branch in branches ?? <String>[]) {
+      await run(['check-ref-format', 'refs/heads/$branch']);
+    }
     await run([
       'fetch',
       '--prune',
       '--no-tags',
       remote,
-      '+refs/heads/*:refs/remotes/origin/*',
+      if (branches == null)
+        '+refs/heads/*:refs/remotes/origin/*'
+      else
+        ...branches.map((b) => '+refs/heads/$b:refs/remotes/origin/$b'),
     ], network: true);
     if (!allowLocal) {
       for (var start = 0; start < pulls.length; start += 50) {
@@ -185,6 +191,15 @@ class GitRepository {
       )).code ==
       0;
 
+  Future<String?> mergeBase(String left, String right) async {
+    final result = await run(
+      ['merge-base', '--all', assertSha(left), assertSha(right)],
+      accepted: {0, 1},
+    );
+    final bases = result.output.split('\n').where((s) => s.isNotEmpty).toList();
+    return bases.length == 1 ? assertSha(bases.single) : null;
+  }
+
   Future<String?> findMergedBoundary({
     required String head,
     required String target,
@@ -217,7 +232,7 @@ class GitRepository {
     if (await ancestor(target, head)) return head;
     if (!await ancestor(boundary, head)) {
       throw RestackException(
-        '保存した変更境界が現在のブランチにありません。手元でrestackしてから /stack sync を実行してください。',
+        '確認した変更境界が現在のブランチにありません。手元でrestackしてから /stack sync を実行してください。',
         number: number,
       );
     }

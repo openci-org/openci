@@ -1,0 +1,29 @@
+{
+  "functions": [
+    {
+      "source": ".",
+      "codebase": "stacked-pr",
+      "runtime": "dart3",
+      "ignore": [
+        ".dart_tool",
+        "build",
+        "test",
+        "integration_test",
+        "docs",
+        "scripts",
+        "*.log",
+        ".env*",
+        ".secret.local",
+        "secrets",
+        "data",
+        ".git"
+      ]
+    }
+  ],
+  "emulators": {
+    "functions": {
+      "host": "127.0.0.1",
+      "port": 5002
+    }
+  }
+}

@@ -39,7 +39,7 @@ StackView render(
   final active = stack.where((p) => p.isOpen).toList();
   final position = active.indexWhere((p) => p.number == pr.number) + 1;
   final title = pr.isOpen ? 'Stack · $position / ${active.length}' : 'Stack · closed';
-  final lines = [marker, '## $title', '', '| PR | 内容 | 状態 |', '| --- | --- | --- |'];
+  final lines = [marker, '## $title', '', '| PR | 依存先 | 内容 | 状態 |', '| --- | --- | --- | --- |'];
   for (final item in stack) {
     final current = item.number == pr.number;
     final status = item.merged
@@ -50,7 +50,7 @@ StackView render(
         ? 'Draft'
         : 'Open';
     lines.add(
-      '| ${current ? '**→ ' : ''}#${item.number}${current ? '**' : ''} | ${escapeText(item.title)} | $status |',
+      '| ${current ? '**→ ' : ''}#${item.number}${current ? '**' : ''} | ${item.parent == null ? '—' : '#${item.parent}'} | ${escapeText(item.title)} | $status |',
     );
   }
   final parent = pulls.where((p) => p.number == pr.parent && p.isOpen).firstOrNull;

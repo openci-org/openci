@@ -24,6 +24,9 @@ class AppConfig {
   Uri get apiUrl => githubUrl.host == 'github.com'
       ? Uri.parse('https://api.github.com')
       : githubUrl.resolve('/api/v3');
+  Uri get graphqlUrl => githubUrl.host == 'github.com'
+      ? Uri.parse('https://api.github.com/graphql')
+      : githubUrl.resolve('/api/graphql');
 
   factory AppConfig.fromEnvironment(Map<String, String> env) {
     String required(String name) {
@@ -45,10 +48,12 @@ class AppConfig {
     if (!RegExp(r'^\d+$').hasMatch(id)) {
       throw const FormatException('GITHUB_APP_ID must be numeric');
     }
-    final key = RSAPrivateKey(File(required('GITHUB_PRIVATE_KEY_FILE')).readAsStringSync());
+    final key = RSAPrivateKey(
+      env['GITHUB_APP_PRIVATE_KEY'] ?? File(required('GITHUB_PRIVATE_KEY_FILE')).readAsStringSync(),
+    );
     JWT({'test': true}).sign(key, algorithm: JWTAlgorithm.RS256);
-    final secret = required('GITHUB_WEBHOOK_SECRET');
-    if (secret.length < 32) {
+    final secret = env['GITHUB_WEBHOOK_SECRET'] ?? '';
+    if (secret.isNotEmpty && secret.length < 32) {
       throw const FormatException('Use a webhook secret of at least 32 characters');
     }
     final port = int.parse(env['PORT'] ?? '3000');
