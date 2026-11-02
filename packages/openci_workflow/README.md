@@ -86,6 +86,44 @@ Future<void> main() async {
 
 OpenCI discovers Dart files in `openci/` and matches their declared triggers to GitHub events. Keep workflow names and trigger branches as string literals so the planner can read them without executing the workflow.
 
+### Run only for matching changed paths
+
+With SDK 0.2.0 or later, add `paths` to a push or pull-request trigger:
+
+```dart
+CITrigger.pullRequest(
+  branch: 'main',
+  paths: [
+    'apps/mobile/**',
+    'packages/shared/**',
+    'openci/static_analysis.dart',
+    '**/pubspec.yaml',
+    'pubspec.lock',
+  ],
+)
+```
+
+Paths are relative to the repository root and case-sensitive. `*` matches within
+a path segment and `**` matches recursively. The trigger runs when its event and
+branch match and at least one changed file matches any pattern. Include shared
+dependencies and workflow configuration files that can affect the build. Omit
+`paths` to run on every matching event and branch.
+
+Use a nonempty literal list of patterns. Computed lists, negative patterns,
+absolute paths, and `..` segments are not supported. Pull requests use the full
+PR diff; pushes use the before/after diff. Deleted paths and both names of renamed
+files count as changes. OpenCI skips only when it has a complete changed-file
+list. Incomplete data or temporary retrieval failures run the applicable CI.
+
+Excluded workflows finish their GitHub Checks as `skipped`, without creating a
+build job or starting a worker VM. Filtering is performed by the OpenCI planner;
+running a workflow locally still executes its commands.
+
+When upgrading from 0.1.x, replace `whenChanged:` with `paths:` and
+`.whenChanged` with `.paths`.
+
+### Run commands
+
 For Flutter analysis, use `await openCI.flutter.staticAnalysis()` or pass your preferred `flutter analyze` flags to `openCI.run()`.
 
 Format Go files, run static analysis, and run tests with the toolchain available on the build machine:
@@ -325,5 +363,3 @@ await openCI.run('flutter analyze', workingDirectory: 'apps/mobile');
 ## Build logs
 
 Command output is printed to stdout and stderr. The Cloud Run executor captures these streams through Orchard and stores build logs in Firebase SQL Connect. Local execution prints to the terminal.
-
-Log forwarding failures produce a warning and do not change the command's exit status.

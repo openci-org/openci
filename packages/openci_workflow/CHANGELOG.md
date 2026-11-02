@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.2.0
+
+- **Breaking:** Rename `CITrigger.whenChanged` to `CITrigger.paths` for push and
+  pull-request triggers. Replace `whenChanged:` arguments and `.whenChanged`
+  property access with `paths:` and `.paths`.
+- Document changed-path filtering, skipped GitHub Checks, and migration to
+  `paths`. Triggers without a path condition continue to run on matching events
+  and branches.
+- Remove direct Loki log forwarding through `LOKI_URL`. Commands continue to
+  stream stdout and stderr; the OpenCI executor captures and persists these logs
+  in Firebase SQL Connect.
+
 ## 0.1.6
 
 - Add `OpenCI.runNumber` to read the server-assigned team sequence from

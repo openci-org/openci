@@ -235,17 +235,21 @@ void main() {
     }
   });
 
-  test('does not emit terminal controls embedded in filenames', () async {
-    const fileName = 'unsafe\x1b]52;payload.json';
-    await File(p.join(root.path, fileName)).writeAsString('private');
-    expect(
-      await pick([
-        ..._type('unsafe'),
-        Key.control(ControlCharacter.tab),
-        Key.control(ControlCharacter.enter),
-      ]),
-      p.join(root.path, fileName),
-    );
-    expect(console.output.toString(), isNot(contains('\x1b]52;')));
-  }, skip: Platform.isWindows);
+  test(
+    'does not emit terminal controls embedded in filenames',
+    () async {
+      const fileName = 'unsafe\x1b]52;payload.json';
+      await File(p.join(root.path, fileName)).writeAsString('private');
+      expect(
+        await pick([
+          ..._type('unsafe'),
+          Key.control(ControlCharacter.tab),
+          Key.control(ControlCharacter.enter),
+        ]),
+        p.join(root.path, fileName),
+      );
+      expect(console.output.toString(), isNot(contains('\x1b]52;')));
+    },
+    skip: Platform.isWindows,
+  );
 }
