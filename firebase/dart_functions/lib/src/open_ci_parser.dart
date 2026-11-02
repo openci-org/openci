@@ -35,7 +35,7 @@ abstract class ParsedCITrigger with _$ParsedCITrigger {
   const factory ParsedCITrigger({
     required String type, // 'push' or 'pullRequest'
     required String branch,
-    List<String>? whenChanged,
+    List<String>? paths,
   }) = _ParsedCITrigger;
 
   bool matches({
@@ -55,11 +55,11 @@ abstract class ParsedCITrigger with _$ParsedCITrigger {
     return _matchesBranch(this.branch, branch);
   }
 
-  /// Whether any repository-relative changed path matches [whenChanged].
+  /// Whether any repository-relative changed path matches [paths].
   ///
   /// An omitted condition accepts all changes, including an empty diff.
   bool matchesChangedFiles(List<String> changedPaths) {
-    final patterns = whenChanged;
+    final patterns = paths;
     if (patterns == null) return true;
 
     return patterns.any((pattern) {
@@ -190,26 +190,22 @@ class _OpenCIInitVisitor extends RecursiveAstVisitor<void> {
     }
 
     String? branch;
-    List<String>? whenChanged;
+    List<String>? paths;
     for (final argument in argumentList.arguments) {
       if (argument is! NamedExpression) continue;
       if (argument.name.label.name == 'branch') {
         branch = _extractStringValue(argument.expression);
-      } else if (argument.name.label.name == 'whenChanged') {
-        whenChanged = _extractWhenChanged(argument.expression, triggerType!);
+      } else if (argument.name.label.name == 'paths') {
+        paths = _extractPaths(argument.expression, triggerType!);
       }
     }
     if (branch == null) return null;
-    return ParsedCITrigger(
-      type: triggerType!,
-      branch: branch,
-      whenChanged: whenChanged,
-    );
+    return ParsedCITrigger(type: triggerType!, branch: branch, paths: paths);
   }
 
-  List<String>? _extractWhenChanged(Expression expression, String triggerType) {
+  List<String>? _extractPaths(Expression expression, String triggerType) {
     Never invalid(String reason) => throw WorkflowConfigurationException(
-      '$fileName: CITrigger.$triggerType.whenChanged $reason',
+      '$fileName: CITrigger.$triggerType.paths $reason',
     );
 
     if (expression is NullLiteral) return null;

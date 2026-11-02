@@ -4,8 +4,32 @@ Future<void> main() async {
   final openCI = await OpenCI.init(
     workflowName: 'GenuineCI CLI CI',
     ciTriggers: [
-      CITrigger.pullRequest(branch: '*'),
-      CITrigger.push(branch: 'develop'),
+      CITrigger.pullRequest(
+        branch: '*',
+        paths: [
+          'apps/genuineci_cli/**',
+          'openci/genuineci_cli_ci.dart',
+          'packages/openci_workflow/**',
+          'packages/pubspec_version_hook/**',
+          'openci/generated/**',
+          '**/pubspec.yaml',
+          'pubspec.lock',
+          '.fvmrc',
+        ],
+      ),
+      CITrigger.push(
+        branch: 'develop',
+        paths: [
+          'apps/genuineci_cli/**',
+          'openci/genuineci_cli_ci.dart',
+          'packages/openci_workflow/**',
+          'packages/pubspec_version_hook/**',
+          'openci/generated/**',
+          '**/pubspec.yaml',
+          'pubspec.lock',
+          '.fvmrc',
+        ],
+      ),
     ],
     currentWorkingDirectory: 'apps/genuineci_cli',
   );

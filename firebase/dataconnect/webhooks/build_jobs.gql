@@ -5,6 +5,10 @@ mutation CompleteWebhookTask(
   $id: String!
   $jobsJson: String!
   $jobCount: Int!
+  $skippedJson: String! = "[]"
+  $skippedCount: Int! = 0
+  $pathFilterReason: String = null
+  $comparisonBaseSha: String = null
   $connectionId: String = null
   $owner: String = null
   $repo: String = null
@@ -16,14 +20,26 @@ mutation CompleteWebhookTask(
 ) @auth(level: NO_ACCESS) @transaction {
   webhookTask_updateMany(
     where: { id: { eq: $id }, status: { eq: "pending" } }
-    data: { status: "completed", errorMessage: null, updatedAt_expr: "int(request.time)" }
+    data: {
+      status: "completed"
+      errorMessage: null
+      pathFilterReason: $pathFilterReason
+      updatedAt_expr: "int(request.time)"
+    }
   )
     @check(expr: "this == 1", message: "Webhook task is not pending")
-    @check(expr: "vars.jobCount >= 0 && vars.jobCount <= 100", message: "Invalid job count")
+    @check(
+      expr: "vars.jobCount >= 0 && vars.skippedCount >= 0 && vars.jobCount + vars.skippedCount <= 100"
+      message: "Invalid workflow count"
+    )
+    @check(
+      expr: "vars.skippedCount == 0 || (vars.comparisonBaseSha != null && vars.pathFilterReason == null)"
+      message: "Skipped workflows require a complete comparison"
+    )
   query @redact {
     connection: gitHubConnection(first: { where: { id: { eq: $connectionId } } })
       @check(
-        expr: "vars.jobCount == 0 || (this != null && this.status == 'active')"
+        expr: "vars.jobCount + vars.skippedCount == 0 || (this != null && this.status == 'active')"
         message: "GitHub connection is no longer active"
       ) {
       teamId
@@ -62,6 +78,40 @@ mutation CompleteWebhookTask(
       { _expr: "int(request.time)" }
     ]
   ) @check(expr: "size(this) == vars.jobCount", message: "Invalid build job batch")
+  # Bulk _Data inputs are not supported by the Admin SDK generator; use the
+  # same parameterized jsonb_to_recordset strategy as the jobs above.
+  skipped: _executeReturning(
+    sql: """
+    INSERT INTO skipped_workflow_checks (
+      id, webhook_task_id, connection_id, owner, repo, workflow_name,
+      workflow_file_name, commit_sha, comparison_base_sha, github_base_url,
+      status, next_attempt_at, created_at, updated_at
+    )
+    SELECT w.id, $2, $3, $4, $5, w.name, w.file, $6, $7, $8,
+      'pending', to_timestamp($9::bigint), $9::bigint, $9::bigint
+    FROM jsonb_to_recordset($1::jsonb) AS w(id text, name text, file text)
+    WHERE length(trim(w.id)) > 0 AND length(trim(w.name)) > 0
+      AND length(w.file) > 0 AND length($4::text) > 0 AND length($5::text) > 0
+      AND length($6::text) > 0 AND length($7::text) > 0 AND length($8::text) > 0
+      AND NOT EXISTS (
+        SELECT 1 FROM jsonb_to_recordset($10::jsonb) AS j(file text)
+        WHERE j.file = w.file
+      )
+    RETURNING id
+    """
+    params: [
+      $skippedJson
+      $id
+      $connectionId
+      $owner
+      $repo
+      $commitSha
+      $comparisonBaseSha
+      $githubBaseUrl
+      { _expr: "int(request.time)" }
+      $jobsJson
+    ]
+  ) @check(expr: "size(this) == vars.skippedCount", message: "Invalid skipped workflow batch")
 }
 
 # Only permanent input/configuration errors terminate a task. Infrastructure

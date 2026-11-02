@@ -6,6 +6,7 @@ import { createServer } from "node:net";
 import { createServer as createHttpServer } from "node:http";
 import { setTimeout as delay } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
+import { readFile } from "node:fs/promises";
 import { after, before, test } from "node:test";
 import { deleteApp, getApps, initializeApp } from "firebase-admin/app";
 import { getDataConnect } from "firebase-admin/data-connect";
@@ -13,6 +14,8 @@ import * as sdk from "@openci/webhooks-admin";
 import { invokeProcessWebhookTask } from "../../lib/functions/build_job_planning.js";
 import { enqueueWebhook } from "../../lib/functions/webhook_queue.js";
 import { createdBuildJobIds, dispatchBuildJob } from "../../lib/functions/build_dispatch.js";
+import { reportSkippedCheck, recoverSkippedChecks } from "../../lib/functions/skipped_checks.js";
+import { DataConnectSkippedCheckStore } from "../../lib/functions/skipped_check_store.js";
 import {
   DataConnectDispatchStore,
   getDispatchDataConnect,
@@ -24,6 +27,7 @@ const service = `http://${host}/v1/projects/demo-openci/locations/asia-northeast
 const app = initializeApp({ projectId: "demo-openci" });
 const dc = getDataConnect(sdk.connectorConfig, app);
 const sha = "a".repeat(40);
+const beforeSha = "b".repeat(40);
 const installations = new Map();
 let dartFunction, dartFunctionUrl, githubServer, githubUrl;
 
@@ -47,6 +51,27 @@ before(async () => {
       return respond(201, { token: `test-${installationId}` });
     }
     if (path === "/repos/org/app") return respond(200, { id: 10, owner: { id: 20 } });
+    if (path === "/repos/org/app/pulls/7") {
+      return respond(200, {
+        ...github.pullRequest,
+        number: 7,
+        changed_files: github.changedFiles.length,
+      });
+    }
+    if (path === "/repos/org/app/pulls/7/files") {
+      github.changedFilesCalls++;
+      const start = (Number(url.searchParams.get("page")) - 1) * 100;
+      return respond(200, github.changedFiles.slice(start, start + 100));
+    }
+    if (path.startsWith("/repos/org/app/compare/")) {
+      github.changedFilesCalls++;
+      return respond(github.comparisonStatus, {
+        status: "ahead",
+        base_commit: { sha: beforeSha },
+        merge_base_commit: { sha: beforeSha },
+        files: github.changedFiles,
+      });
+    }
     if (path === `/repos/org/app/git/commits/${sha}`) return respond(github.commitStatus, { sha });
     if (url.searchParams.get("ref") !== sha) return respond(400, {});
     if (path === "/repos/org/app/contents/openci") {
@@ -165,6 +190,7 @@ async function fixture(t, payloadChange = {}, eventType = "push") {
     repository: { id: 10, name: "app", owner: { id: 20, login: "org" } },
     ref: "refs/heads/develop",
     after: sha,
+    before: beforeSha,
     head_commit: { id: sha, message: "Commit\nBody" },
     ...payloadChange,
   };
@@ -206,6 +232,10 @@ async function fixture(t, payloadChange = {}, eventType = "push") {
     commitStatus: 200,
     tokenRequests: [],
     onContents: null,
+    comparisonStatus: 200,
+    changedFilesCalls: 0,
+    changedFiles: [{ filename: "apps/stacked_pr/src/index.ts", status: "modified" }],
+    pullRequest: payload.pull_request,
   };
   installations.set(String(installationId), github);
   await enqueueWebhook(dc, { deliveryId, eventType, payload: JSON.stringify(payload) });
@@ -423,7 +453,7 @@ test("temporary failures remain retryable; invalid source is terminal", async (t
     {
       name: "bad.dart",
       content:
-        "void main() { OpenCI.init(workflowName: 'Bad', ciTriggers: [CITrigger.push(branch: '*', whenChanged: [])]); }",
+        "void main() { OpenCI.init(workflowName: 'Bad', ciTriggers: [CITrigger.push(branch: '*', paths: [])]); }",
     },
   ];
   assert.equal(await invoke(f.taskId), "failed");
@@ -531,5 +561,226 @@ test("end users cannot read tasks, publish builds, or fail tasks", async (t) => 
     await assert.rejects(
       sdk.rejectWebhookTask(dc, { id: f.taskId, reason: "invalid_payload" }, { impersonate }),
     );
+  }
+});
+
+async function configurePathWorkflows(f) {
+  const names = [
+    "stacked_pr_ci",
+    "website_ci",
+    "genuineci_cli_ci",
+    "openci_workflow_ci",
+    "openci_shared_ci",
+    "dart_functions_ci",
+  ];
+  f.github.files = await Promise.all(
+    names.map(async (name) => ({
+      name: name + ".dart",
+      content: await readFile(
+        new URL("../../../openci/" + name + ".dart", import.meta.url),
+        "utf8",
+      ),
+    })),
+  );
+}
+
+async function skippedState(f) {
+  return graphql(
+    "query Skips($id: String!) { webhookTask(id: $id) { status pathFilterReason } skippedWorkflowChecks(where: { webhookTaskId: { eq: $id } }, orderBy: { workflowFileName: ASC }) { id status workflowName workflowFileName commitSha comparisonBaseSha leaseOwner checkRunId } }",
+    { id: f.taskId },
+  );
+}
+
+async function makeDue(id) {
+  await graphql(
+    'mutation Due($id: String!) { skippedWorkflowCheck_update(id: $id, data: { nextAttemptAt: "2000-01-01T00:00:00Z", leaseExpiresAt: "2000-01-01T00:00:00Z" }) }',
+    { id },
+  );
+}
+
+test("real planner atomically selects one of six workflows, persists five skips and handles concurrent redelivery", async (t) => {
+  const f = await fixture(t);
+  await configurePathWorkflows(f);
+  const results = await Promise.all([invoke(f.taskId), invoke(f.taskId)]);
+  assert.ok(results.includes("created"));
+  const state = await f.state();
+  assert.deepEqual(
+    state.buildJobs.map((j) => j.workflowName),
+    ["Stacked PR CI"],
+  );
+  const skips = await skippedState(f);
+  assert.equal(skips.skippedWorkflowChecks.length, 5);
+  assert.equal(skips.webhookTask.pathFilterReason, null);
+  for (const check of skips.skippedWorkflowChecks) {
+    assert.equal(check.status, "pending");
+    assert.equal(check.commitSha, sha);
+    assert.equal(check.comparisonBaseSha, beforeSha);
+  }
+  assert.equal(await invoke(f.taskId), "duplicate");
+  assert.deepEqual(await skippedState(f), skips);
+  assert.ok(
+    f.github.changedFilesCalls >= 1 && f.github.changedFilesCalls <= 2,
+    "one comparison per attempted planner, never per workflow",
+  );
+});
+
+test("all-skipped planning creates no jobs and transient comparisons instead run every applicable workflow", async (t) => {
+  for (const unavailable of [false, true]) {
+    const f = await fixture(t);
+    await configurePathWorkflows(f);
+    f.github.changedFiles = [{ filename: "README.md", status: "modified" }];
+    f.github.comparisonStatus = unavailable ? 503 : 200;
+    await invoke(f.taskId);
+    const state = await f.state();
+    const skips = await skippedState(f);
+    assert.equal(state.buildJobs.length, unavailable ? 6 : 0);
+    assert.equal(skips.skippedWorkflowChecks.length, unavailable ? 0 : 6);
+    assert.equal(skips.webhookTask.pathFilterReason, unavailable ? "github_unavailable" : null);
+    if (!unavailable) assert.deepEqual(createdBuildJobIds({ data: { jobs: [] } }), []);
+    assert.equal(f.github.changedFilesCalls, 1);
+  }
+});
+
+test("invalid skipped batches roll back jobs and task completion together", async (t) => {
+  const f = await fixture(t);
+  await assert.rejects(
+    sdk.completeWebhookTask(dc, {
+      id: f.taskId,
+      connectionId: f.connectionId,
+      owner: "org",
+      repo: "app",
+      commitSha: sha,
+      branch: "develop",
+      githubBaseUrl: "https://github.com",
+      comparisonBaseSha: beforeSha,
+      jobsJson: JSON.stringify([{ id: "job-" + f.taskId, name: "CI", file: "ci.dart" }]),
+      jobCount: 1,
+      skippedJson: JSON.stringify([{ id: "skip-" + f.taskId, name: "CI", file: "ci.dart" }]),
+      skippedCount: 1,
+    }),
+  );
+  assert.equal((await f.state()).webhookTask.status, "pending");
+  assert.deepEqual((await f.state()).buildJobs, []);
+  assert.deepEqual((await skippedState(f)).skippedWorkflowChecks, []);
+});
+
+test("skipped Check leases fence concurrent senders, expire, and reject unauthenticated access", async (t) => {
+  const f = await fixture(t);
+  await configurePathWorkflows(f);
+  await invoke(f.taskId);
+  const [row] = (await skippedState(f)).skippedWorkflowChecks;
+  const claims = await Promise.all(
+    ["one", "two"].map((leaseOwner) =>
+      sdk.claimSkippedWorkflowCheck(dc, { id: row.id, leaseOwner }),
+    ),
+  );
+  assert.equal(claims.filter((r) => r.data.claimed === 1).length, 1);
+  await assert.rejects(
+    sdk.completeSkippedWorkflowCheck(dc, { id: row.id, leaseOwner: "wrong", checkRunId: "42" }),
+  );
+  await makeDue(row.id);
+  assert.equal(
+    (await sdk.claimSkippedWorkflowCheck(dc, { id: row.id, leaseOwner: "recovery" })).data.claimed,
+    1,
+  );
+  await sdk.completeSkippedWorkflowCheck(dc, {
+    id: row.id,
+    leaseOwner: "recovery",
+    checkRunId: "42",
+  });
+  const reported = (await sdk.getSkippedWorkflowCheck(dc, { id: row.id })).data.check;
+  assert.equal(reported.status, "reported");
+  assert.equal(reported.checkRunId, "42");
+  assert.equal(
+    (await sdk.claimSkippedWorkflowCheck(dc, { id: row.id, leaseOwner: "later" })).data.claimed,
+    0,
+  );
+  for (const impersonate of [
+    { unauthenticated: true },
+    { authClaims: { sub: "user", firebase: { sign_in_provider: "password" } } },
+  ]) {
+    await assert.rejects(sdk.getSkippedWorkflowCheck(dc, { id: row.id }, { impersonate }));
+    await assert.rejects(sdk.getPendingSkippedWorkflowChecks(dc, { impersonate }));
+    await assert.rejects(
+      sdk.claimSkippedWorkflowCheck(dc, { id: row.id, leaseOwner: "user" }, { impersonate }),
+    );
+    await assert.rejects(
+      sdk.completeSkippedWorkflowCheck(
+        dc,
+        { id: row.id, leaseOwner: "user", checkRunId: "9" },
+        { impersonate },
+      ),
+    );
+    await assert.rejects(
+      sdk.retrySkippedWorkflowCheck(dc, { id: row.id, leaseOwner: "user" }, { impersonate }),
+    );
+  }
+});
+
+test("failed skipped reporting is recovered from SQL without replanning or creating jobs", async (t) => {
+  const f = await fixture(t);
+  await configurePathWorkflows(f);
+  f.github.changedFiles = [{ filename: "README.md" }];
+  await invoke(f.taskId);
+  const [row] = (await skippedState(f)).skippedWorkflowChecks;
+  const deps = {
+    store: new DataConnectSkippedCheckStore(dc),
+    report: async () => {
+      throw new Error("GitHub unavailable");
+    },
+  };
+  await assert.rejects(reportSkippedCheck(row.id, deps));
+  assert.equal(
+    (await sdk.getSkippedWorkflowCheck(dc, { id: row.id })).data.check.status,
+    "pending",
+  );
+  assert.equal(
+    (await sdk.getPendingSkippedWorkflowChecks(dc)).data.checks.some((c) => c.id === row.id),
+    false,
+  );
+  await makeDue(row.id);
+  deps.report = async () => "42";
+  const errors = [];
+  await recoverSkippedChecks(deps, (id) => errors.push(id));
+  assert.deepEqual(errors, []);
+  assert.equal(
+    (await sdk.getSkippedWorkflowCheck(dc, { id: row.id })).data.check.status,
+    "reported",
+  );
+  assert.deepEqual((await f.state()).buildJobs, []);
+  assert.equal(f.github.changedFilesCalls, 1);
+});
+
+test("PR filtering and base retargets use the full PR diff with scoped PR-read permissions", async (t) => {
+  for (const action of ["synchronize", "edited"]) {
+    const f = await fixture(
+      t,
+      {
+        action,
+        number: 7,
+        changes: { base: { ref: { from: "old-parent" } } },
+        pull_request: {
+          title: "Stacked PR",
+          head: { sha, ref: "stack-child", repo: { id: 10 } },
+          base: { sha: beforeSha, ref: "stack-parent", repo: { id: 10 } },
+        },
+      },
+      "pull_request",
+    );
+    await configurePathWorkflows(f);
+    await invoke(f.taskId);
+    const jobs = (await f.state()).buildJobs;
+    assert.deepEqual(
+      jobs.map((j) => j.workflowName),
+      ["Stacked PR CI"],
+    );
+    assert.equal(jobs[0].branch, "stack-child");
+    assert.equal(jobs[0].pullRequestNumber, "7");
+    assert.equal((await skippedState(f)).skippedWorkflowChecks.length, 5);
+    assert.equal(f.github.changedFilesCalls, 1);
+    assert.deepEqual(f.github.tokenRequests.at(-1), {
+      repository_ids: [10],
+      permissions: { contents: "read", pull_requests: "read" },
+    });
   }
 });

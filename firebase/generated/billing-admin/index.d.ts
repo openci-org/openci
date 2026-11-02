@@ -624,6 +624,11 @@ export interface SecretVersionCleanup_Key {
   __typename?: "SecretVersionCleanup_Key";
 }
 
+export interface SkippedWorkflowCheck_Key {
+  id: string;
+  __typename?: "SkippedWorkflowCheck_Key";
+}
+
 export interface StartBillingExecutionData {
   billingAccount_updateMany: number;
   buildJob_updateMany: number;

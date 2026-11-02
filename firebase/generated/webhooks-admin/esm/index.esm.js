@@ -65,3 +65,54 @@ export function getWebhookTask(dcOrVarsOrOptions, varsOrOptions, options) {
   dcInstance.useGen(true);
   return dcInstance.executeQuery("GetWebhookTask", inputVars, inputOpts);
 }
+
+export function getSkippedWorkflowCheck(dcOrVarsOrOptions, varsOrOptions, options) {
+  const {
+    dc: dcInstance,
+    vars: inputVars,
+    options: inputOpts,
+  } = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeQuery("GetSkippedWorkflowCheck", inputVars, inputOpts);
+}
+
+export function getPendingSkippedWorkflowChecks(dcOrOptions, options) {
+  const { dc: dcInstance, options: inputOpts } = validateAdminArgs(
+    connectorConfig,
+    dcOrOptions,
+    options,
+    undefined,
+  );
+  dcInstance.useGen(true);
+  return dcInstance.executeQuery("GetPendingSkippedWorkflowChecks", undefined, inputOpts);
+}
+
+export function claimSkippedWorkflowCheck(dcOrVarsOrOptions, varsOrOptions, options) {
+  const {
+    dc: dcInstance,
+    vars: inputVars,
+    options: inputOpts,
+  } = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeMutation("ClaimSkippedWorkflowCheck", inputVars, inputOpts);
+}
+
+export function completeSkippedWorkflowCheck(dcOrVarsOrOptions, varsOrOptions, options) {
+  const {
+    dc: dcInstance,
+    vars: inputVars,
+    options: inputOpts,
+  } = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeMutation("CompleteSkippedWorkflowCheck", inputVars, inputOpts);
+}
+
+export function retrySkippedWorkflowCheck(dcOrVarsOrOptions, varsOrOptions, options) {
+  const {
+    dc: dcInstance,
+    vars: inputVars,
+    options: inputOpts,
+  } = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeMutation("RetrySkippedWorkflowCheck", inputVars, inputOpts);
+}

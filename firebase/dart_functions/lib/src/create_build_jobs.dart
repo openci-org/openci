@@ -6,11 +6,18 @@ import 'plan_jobs.dart';
 import 'planning_event.dart';
 
 typedef FetchWorkflows = Future<List<OpenCIFile>> Function(PlanningEvent event);
+typedef FetchChangedFiles =
+    Future<ChangedFilesResult> Function(PlanningEvent event);
 
 class BuildJobPlanner {
-  const BuildJobPlanner({required this.store, required this.fetchWorkflows});
+  const BuildJobPlanner({
+    required this.store,
+    required this.fetchWorkflows,
+    this.fetchChangedFiles,
+  });
   final PlanningStore store;
   final FetchWorkflows fetchWorkflows;
+  final FetchChangedFiles? fetchChangedFiles;
 
   Future<String> process(String taskId) async {
     final task = await store.getTask(taskId);
@@ -23,7 +30,7 @@ class BuildJobPlanner {
     }
     PlanningEvent? event;
     PlanningConnection? connection;
-    var jobs = <BuildJobPlan>[];
+    var plan = const WorkflowPlan();
     try {
       event = PlanningEvent.parse(task.eventType, task.payload);
       if (event != null) {
@@ -33,17 +40,25 @@ class BuildJobPlanner {
             throw const InvalidPlanningInput('invalid_payload');
           }
           final files = await fetchWorkflows(event);
-          jobs = planJobs(
-            event: event.webhook,
-            teamId: connection.teamId,
-            files: files,
-          );
-          if (jobs.length > 100 ||
-              jobs.map((job) => job.workflowFileName).toSet().length !=
-                  jobs.length ||
-              jobs.any((job) => job.workflowName.trim().isEmpty)) {
+          final workflows = files
+              .map((file) => parseOpenCIWorkflow(file.content, file.name))
+              .whereType<ParsedWorkflow>()
+              .toList();
+          if (workflows.length > 100 ||
+              workflows.map((w) => w.workflowFileName).toSet().length !=
+                  workflows.length ||
+              workflows.any((w) => w.workflowName.trim().isEmpty)) {
             throw const InvalidPlanningInput('invalid_workflow');
           }
+          final changedFiles = needsChangedFiles(workflows, event.webhook)
+              ? await fetchChangedFiles?.call(event)
+              : null;
+          plan = planJobs(
+            event: event.webhook,
+            teamId: connection.teamId,
+            workflows: workflows,
+            changedFiles: changedFiles,
+          );
         }
       }
     } on InvalidPlanningInput catch (error) {
@@ -54,7 +69,7 @@ class BuildJobPlanner {
       return 'failed';
     }
     try {
-      await store.complete(task.id, event, connection, jobs);
+      await store.complete(task.id, event, connection, plan);
       return 'created';
     } catch (_) {
       // Another consumer may have committed, or only the response was lost.

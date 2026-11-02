@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:openci_shared/openci_shared.dart';
 
 import 'planning_event.dart';
+import 'github_changed_files.dart';
 
 class GitHubWorkflows {
   GitHubWorkflows({
@@ -68,6 +69,33 @@ class GitHubWorkflows {
       throw StateError('GitHub request failed');
     }
     return jsonDecode(response.body);
+  }
+
+  Future<ChangedFilesResult> fetchChangedFiles(PlanningEvent event) async {
+    final webhook = event.webhook;
+    final auth = _json(
+      await _request(
+        'POST',
+        'app/installations/${webhook.installationId}/access_tokens',
+        appJwt(),
+        body: {
+          'repository_ids': [event.repositoryId],
+          'permissions': {
+            'contents': 'read',
+            if (webhook.pullRequestNumber != null) 'pull_requests': 'read',
+          },
+        },
+      ),
+    );
+    if (auth is! Map<String, dynamic> ||
+        auth['token'] is! String ||
+        (auth['token'] as String).isEmpty) {
+      throw StateError('GitHub token is unavailable');
+    }
+    final token = auth['token'] as String;
+    return GitHubChangedFiles(
+      (path, query) => _request('GET', path, token, query: query),
+    ).fetch(event);
   }
 
   Future<List<OpenCIFile>> fetch(PlanningEvent event) async {

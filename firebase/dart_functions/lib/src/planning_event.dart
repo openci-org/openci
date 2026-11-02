@@ -9,11 +9,21 @@ class InvalidPlanningInput implements Exception {
 }
 
 class PlanningEvent {
-  const PlanningEvent(this.webhook, this.repositoryId, this.ownerId);
+  const PlanningEvent(
+    this.webhook,
+    this.repositoryId,
+    this.ownerId, {
+    this.baseSha,
+    this.beforeSha,
+    this.isForced = false,
+  });
 
   final GitHubWebhookPayload webhook;
   final int repositoryId;
   final int ownerId;
+  final String? baseSha;
+  final String? beforeSha;
+  final bool isForced;
 
   static PlanningEvent? parse(String eventType, String payload) {
     try {
@@ -21,7 +31,10 @@ class PlanningEvent {
       if (eventType == 'push' && raw['deleted'] == true) return null;
       if (eventType != 'push' && eventType != 'pull_request') _invalid();
       if (eventType == 'pull_request' &&
-          !['opened', 'synchronize', 'reopened'].contains(raw['action'])) {
+          !['opened', 'synchronize', 'reopened'].contains(raw['action']) &&
+          !(raw['action'] == 'edited' &&
+              raw['changes'] is Map<String, dynamic> &&
+              (raw['changes'] as Map<String, dynamic>)['base'] is Map)) {
         return null;
       }
       _positiveId(_object(raw['installation'])['id']);
@@ -72,6 +85,11 @@ class PlanningEvent {
         GitHubWebhookPayload.fromRawJson(eventType: eventType, rawJson: raw),
         repositoryId,
         ownerId,
+        baseSha: eventType == 'pull_request'
+            ? _optionalSha(_object(_object(raw['pull_request'])['base'])['sha'])
+            : null,
+        beforeSha: eventType == 'push' ? _optionalSha(raw['before']) : null,
+        isForced: raw['forced'] == true,
       );
     } on FormatException {
       _invalid();
@@ -79,6 +97,15 @@ class PlanningEvent {
       _invalid();
     }
   }
+}
+
+String? _optionalSha(Object? value) {
+  if (value == null) return null;
+  if (value is! String ||
+      !RegExp(r'^(?:[0-9a-f]{40}|[0-9a-f]{64})$').hasMatch(value)) {
+    _invalid();
+  }
+  return value;
 }
 
 Never _invalid() => throw const InvalidPlanningInput('invalid_payload');

@@ -1,12 +1,13 @@
 import 'package:openci_dart_functions/src/github_webhook_payload.dart';
 import 'package:openci_dart_functions/src/plan_jobs.dart';
 import 'package:openci_shared/openci_shared.dart';
+import 'package:openci_dart_functions/src/open_ci_parser.dart';
 import 'package:test/test.dart';
 
 void main() {
   group('planJobs', () {
     test('creates complete job metadata only for matching workflows', () {
-      final jobs = planJobs(
+      final jobs = _jobs(
         event: _pushEvent(),
         teamId: 'team-1',
         files: [
@@ -31,7 +32,7 @@ void main() {
     });
 
     test('matches the push trigger targeting develop', () {
-      final jobs = planJobs(
+      final jobs = _jobs(
         event: _pushEvent(branch: 'develop'),
         teamId: 'team-1',
         files: [_workflow(_multipleTriggers)],
@@ -44,7 +45,7 @@ void main() {
 
     test('ignores a push to an unmatched branch', () {
       expect(
-        planJobs(
+        _jobs(
           event: _pushEvent(),
           teamId: 'team-1',
           files: [_workflow(_multipleTriggers)],
@@ -54,7 +55,7 @@ void main() {
     });
 
     test('matches PRs by base branch and checks out the head', () {
-      final jobs = planJobs(
+      final jobs = _jobs(
         event: _pullRequestEvent(
           baseBranch: 'develop',
           headBranch: 'feature/ci',
@@ -72,7 +73,7 @@ void main() {
 
     test('ignores a PR whose head matches but base does not', () {
       expect(
-        planJobs(
+        _jobs(
           event: _pullRequestEvent(baseBranch: 'main', headBranch: 'develop'),
           teamId: 'team-1',
           files: [_workflow(_multipleTriggers)],
@@ -82,7 +83,7 @@ void main() {
     });
 
     test('creates one job when multiple triggers match', () {
-      final jobs = planJobs(
+      final jobs = _jobs(
         event: _pushEvent(branch: 'develop'),
         teamId: 'team-1',
         files: [
@@ -97,13 +98,13 @@ void main() {
       expect(jobs, hasLength(1));
     });
 
-    test('preserves whenChanged workflows for later path evaluation', () {
-      final jobs = planJobs(
+    test('runs when changed-file data is unavailable', () {
+      final jobs = _jobs(
         event: _pushEvent(),
         teamId: 'team-1',
         files: [
           _workflow(
-            "CITrigger.push(branch: 'main', whenChanged: ['apps/dashboard/**'])",
+            "CITrigger.push(branch: 'main', paths: ['apps/dashboard/**'])",
           ),
         ],
       );
@@ -112,10 +113,7 @@ void main() {
     });
 
     test('returns no jobs when there are no workflow files', () {
-      expect(
-        planJobs(event: _pushEvent(), teamId: 'team-1', files: []),
-        isEmpty,
-      );
+      expect(_jobs(event: _pushEvent(), teamId: 'team-1', files: []), isEmpty);
     });
   });
 }
@@ -171,3 +169,15 @@ const _multipleTriggers = '''
   CITrigger.pullRequest(branch: 'develop'),
   CITrigger.push(branch: 'develop'),
 ''';
+
+List<BuildJobPlan> _jobs({
+  required GitHubWebhookPayload event,
+  required String teamId,
+  required Iterable<OpenCIFile> files,
+}) => planJobs(
+  event: event,
+  teamId: teamId,
+  workflows: files
+      .map((file) => parseOpenCIWorkflow(file.content, file.name))
+      .whereType<ParsedWorkflow>(),
+).jobs;

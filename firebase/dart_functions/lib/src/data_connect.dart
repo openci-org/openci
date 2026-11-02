@@ -2,8 +2,8 @@ import 'dart:convert';
 
 import 'package:crypto/crypto.dart';
 import 'package:http/http.dart' as http;
-import 'package:openci_shared/openci_shared.dart';
 
+import 'plan_jobs.dart';
 import 'planning_event.dart';
 
 class PlanningTask {
@@ -28,7 +28,7 @@ abstract interface class PlanningStore {
     String id,
     PlanningEvent? event,
     PlanningConnection? connection,
-    List<BuildJobPlan> jobs,
+    WorkflowPlan plan,
   );
   Future<void> reject(String id, String reason);
 }
@@ -117,14 +117,14 @@ class DataConnectPlanningStore implements PlanningStore {
     String id,
     PlanningEvent? event,
     PlanningConnection? connection,
-    List<BuildJobPlan> jobs,
+    WorkflowPlan plan,
   ) async {
     final webhook = event?.webhook;
     await _execute('webhooks', 'CompleteWebhookTask', {
       'id': id,
-      'jobCount': jobs.length,
+      'jobCount': plan.jobs.length,
       'jobsJson': jsonEncode([
-        for (final job in jobs)
+        for (final job in plan.jobs)
           {
             'id': sha256
                 .convert(utf8.encode(jsonEncode([id, job.workflowFileName])))
@@ -133,6 +133,23 @@ class DataConnectPlanningStore implements PlanningStore {
             'file': job.workflowFileName,
           },
       ]),
+      'skippedCount': plan.skipped.length,
+      'skippedJson': jsonEncode([
+        for (final workflow in plan.skipped)
+          {
+            'id': sha256
+                .convert(
+                  utf8.encode(
+                    jsonEncode([id, workflow.workflowFileName, 'skipped']),
+                  ),
+                )
+                .toString(),
+            'name': workflow.workflowName,
+            'file': workflow.workflowFileName,
+          },
+      ]),
+      'pathFilterReason': plan.pathFilterReason,
+      'comparisonBaseSha': plan.comparisonBaseSha,
       'connectionId': connection?.id,
       'owner': webhook?.owner,
       'repo': webhook?.repo,

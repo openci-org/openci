@@ -17,6 +17,10 @@ const processWebhookTaskUrl = defineString("PROCESS_WEBHOOK_TASK_URL");
 
 export { queueBuildJobs, dispatchBuildJob } from "./build_dispatch_functions.js";
 export { recoverBuildExecutions } from "./build_recovery_functions.js";
+export {
+  reportSkippedWorkflowChecks,
+  recoverSkippedWorkflowChecks,
+} from "./skipped_check_functions.js";
 export { expireBuildLogs } from "./log_retention_functions.js";
 
 export const githubWebhookFsc = onRequest(

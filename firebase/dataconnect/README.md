@@ -1,7 +1,8 @@
 # Firebase SQL Connect
 
 SQL Connect is the production store for team, build, billing, log and credential
-metadata. The service has 23 tables and eight connectors. See [the schema
+metadata. The local schema defines 24 tables and eight connectors; the added skipped-Check
+outbox requires schema deployment before enabling changed-path selection. See [the schema
 inventory](SCHEMA.md) for relationships, timestamp units and retention rules.
 The legacy servers and their one-time data import tools have been retired.
 
@@ -136,7 +137,7 @@ The production service is `openci-b1b91-service` in `asia-northeast1`, backed by
 schema deployment. `COMPATIBLE` leaves obsolete physical columns/tables in place;
 retiring them requires an explicit reviewed SQL migration after connector cleanup.
 
-Unused trial and skipped-workflow storage, legacy reference CRUD, migration-only
+Unused trial and legacy skipped-workflow storage, legacy reference CRUD, migration-only
 operations, and unused build artifact/summary metadata are removed. Existing
 billing periods, purchases, consumed usage and build history remain supported.
 See [the storage cleanup record](migrations/README.md),

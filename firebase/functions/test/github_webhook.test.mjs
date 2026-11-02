@@ -244,3 +244,22 @@ test("persistence failures return 503 without exposing payloads, secrets, or SDK
   ]);
   assert.doesNotMatch(JSON.stringify(d.errors), /private-payload|local-webhook-test-secret/);
 });
+
+test("base retargets replan paths while title and body edits do not", async () => {
+  const d = dependencies();
+  for (const changes of [
+    { title: { from: "old" } },
+    { body: { from: "old" } },
+    { base: { ref: { from: "parent" } } },
+  ]) {
+    const body = JSON.stringify({ action: "edited", number: 42, changes });
+    assert.equal(
+      await receiveGitHubWebhook(request(body, { eventType: "pull_request" }), d.options),
+      200,
+    );
+  }
+  assert.equal(d.deliveries.length, 1);
+  assert.deepEqual(JSON.parse(d.deliveries[0].payload).changes, {
+    base: { ref: { from: "parent" } },
+  });
+});

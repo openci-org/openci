@@ -92,6 +92,33 @@ void main() {
       );
     }
   });
+  test('base retargets are replanned but unrelated PR edits are ignored', () {
+    final payload = {
+      'installation': {'id': 30},
+      'repository': repository,
+      'action': 'edited',
+      'number': 7,
+      'pull_request': {
+        'head': {'sha': sha, 'ref': 'feature', 'repo': repository},
+        'base': {'sha': 'b' * 40, 'repo': repository, 'ref': 'new-parent'},
+        'title': 'PR',
+      },
+    };
+    expect(PlanningEvent.parse('pull_request', jsonEncode(payload)), isNull);
+    final event = PlanningEvent.parse(
+      'pull_request',
+      jsonEncode({
+        ...payload,
+        'changes': {
+          'base': {
+            'ref': {'from': 'old-parent'},
+          },
+        },
+      }),
+    )!;
+    expect(event.baseSha, 'b' * 40);
+    expect(event.webhook.triggerBranch, 'new-parent');
+  });
   test('deletions and ignored PR actions produce no plan', () {
     expect(PlanningEvent.parse('push', '{"deleted":true}'), isNull);
     expect(PlanningEvent.parse('pull_request', '{"action":"closed"}'), isNull);

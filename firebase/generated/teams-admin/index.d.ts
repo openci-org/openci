@@ -180,6 +180,11 @@ export interface SecretVersionCleanup_Key {
   __typename?: "SecretVersionCleanup_Key";
 }
 
+export interface SkippedWorkflowCheck_Key {
+  id: string;
+  __typename?: "SkippedWorkflowCheck_Key";
+}
+
 export interface TeamMember_Key {
   id: Int64String;
   __typename?: "TeamMember_Key";

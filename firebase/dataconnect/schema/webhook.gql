@@ -6,6 +6,34 @@ type WebhookTask @table(name: "webhook_tasks", key: "id") @index(fields: ["statu
   status: String! @default(value: "pending")
   retryCount: Int64! @col(name: "retry_count") @default(value: 0)
   errorMessage: String @col(name: "error_message")
+  pathFilterReason: String @col(name: "path_filter_reason")
+  createdAt: Int64! @col(name: "created_at")
+  updatedAt: Int64! @col(name: "updated_at")
+}
+
+# Outbox for skipped GitHub Checks. It has no BuildJob/BuildRun/billing relation.
+type SkippedWorkflowCheck
+  @table(name: "skipped_workflow_checks", key: "id")
+  @unique(fields: ["webhookTaskId", "workflowFileName"])
+  @index(fields: ["status", "nextAttemptAt"]) {
+  id: String!
+  webhookTaskId: String! @col(name: "webhook_task_id")
+  webhookTask: WebhookTask! @ref(fields: "webhookTaskId", references: "id")
+  connectionId: String! @col(name: "connection_id")
+  connection: GitHubConnection! @ref(fields: "connectionId", references: "id")
+  owner: String!
+  repo: String!
+  workflowName: String! @col(name: "workflow_name")
+  workflowFileName: String! @col(name: "workflow_file_name")
+  commitSha: String! @col(name: "commit_sha")
+  comparisonBaseSha: String! @col(name: "comparison_base_sha")
+  githubBaseUrl: String! @col(name: "github_base_url")
+  status: String! @default(value: "pending")
+  checkRunId: String @col(name: "check_run_id")
+  leaseOwner: String @col(name: "lease_owner")
+  leaseExpiresAt: Timestamp @col(name: "lease_expires_at")
+  nextAttemptAt: Timestamp! @col(name: "next_attempt_at")
+  lastError: String @col(name: "last_error")
   createdAt: Int64! @col(name: "created_at")
   updatedAt: Int64! @col(name: "updated_at")
 }
