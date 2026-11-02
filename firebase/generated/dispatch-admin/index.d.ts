@@ -218,6 +218,12 @@ export interface GetActiveBuildDispatchesData {
   } & BuildJobDispatch_Key)[];
 }
 
+export interface GetBuildDispatchExclusionsData {
+  dispatches: {
+    jobId: string;
+  }[];
+}
+
 export interface GetBuildDispatchStateData {
   job?: {
     id: string;
@@ -385,6 +391,17 @@ export interface GetFinishedBuildExecutionsForVmsData {
 
 export interface GetFinishedBuildExecutionsForVmsVariables {
   vmNames: string[];
+}
+
+export interface GetOldestQueuedBuildJobData {
+  job?: {
+    id: string;
+    createdAt: Int64String;
+  } & BuildJob_Key;
+}
+
+export interface GetOldestQueuedBuildJobVariables {
+  excludedJobIds: string[];
 }
 
 export interface GetQueuedBuildCheckData {
@@ -673,6 +690,28 @@ export function getActiveBuildDispatches(
 export function getActiveBuildDispatches(
   options?: OperationOptions,
 ): Promise<ExecuteOperationResponse<GetActiveBuildDispatchesData>>;
+
+/** Generated Node Admin SDK operation action function for the 'GetBuildDispatchExclusions' Query. Allow users to execute without passing in DataConnect. */
+export function getBuildDispatchExclusions(
+  dc: DataConnect,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<GetBuildDispatchExclusionsData>>;
+/** Generated Node Admin SDK operation action function for the 'GetBuildDispatchExclusions' Query. Allow users to pass in custom DataConnect instances. */
+export function getBuildDispatchExclusions(
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<GetBuildDispatchExclusionsData>>;
+
+/** Generated Node Admin SDK operation action function for the 'GetOldestQueuedBuildJob' Query. Allow users to execute without passing in DataConnect. */
+export function getOldestQueuedBuildJob(
+  dc: DataConnect,
+  vars: GetOldestQueuedBuildJobVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<GetOldestQueuedBuildJobData>>;
+/** Generated Node Admin SDK operation action function for the 'GetOldestQueuedBuildJob' Query. Allow users to pass in custom DataConnect instances. */
+export function getOldestQueuedBuildJob(
+  vars: GetOldestQueuedBuildJobVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<GetOldestQueuedBuildJobData>>;
 
 /** Generated Node Admin SDK operation action function for the 'InitializeBuildDispatchScheduler' Mutation. Allow users to execute without passing in DataConnect. */
 export function initializeBuildDispatchScheduler(
