@@ -52,18 +52,26 @@ export const reportSkippedWorkflowChecks = onMutationExecuted(
     retry: true,
   },
   async (event) => {
+    let stage = "principal";
     try {
       if (event.authType !== "admin") throw new Error("Unexpected mutation principal");
+      stage = "payload";
       const ids = createdSkippedCheckIds(event.data.payload);
       if (!ids.length) return;
+      stage = "dependencies";
       const deps = dependencies();
       const deadline = Date.now() + 240000;
+      stage = "report";
       for (const id of ids) {
         if (Date.now() >= deadline) throw new Error("Skipped Check reporting budget exhausted");
         await reportSkippedCheck(id, deps);
       }
     } catch {
-      error("Skipped Check reporting failed", { eventId: event.id });
+      error("Skipped Check reporting failed", {
+        eventId: event.id,
+        stage,
+        adminPrincipal: event.authType === "admin",
+      });
       throw new Error("Skipped Check reporting failed; retry required");
     }
   },
