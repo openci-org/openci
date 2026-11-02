@@ -116,7 +116,12 @@ function mockDispatcher(t, reason = "capacity_unavailable") {
   const store = DataConnectDispatchStore.prototype;
   t.mock.method(store, "expireUnstarted", async () => {});
   t.mock.method(store, "read", async () => state);
-  t.mock.method(store, "active", async () => []);
+  t.mock.method(store, "active", async () => (state.dispatch ? [state.dispatch] : []));
+  t.mock.method(store, "oldestQueued", async () =>
+    reason !== "queue_pending" && state.job.status === "QUEUED" && !state.dispatch
+      ? { id: state.job.id }
+      : null,
+  );
   t.mock.method(store, "acquireScheduler", async () => reason !== "scheduler_busy");
   t.mock.method(store, "releaseScheduler", async () => {});
   t.mock.method(store, "acquireLaunch", async () => false);
@@ -156,7 +161,7 @@ async function deliverTask(id, data = { jobId: "job" }) {
   return response;
 }
 
-for (const reason of ["capacity_unavailable", "scheduler_busy", "launch_busy"]) {
+for (const reason of ["capacity_unavailable", "scheduler_busy", "launch_busy", "queue_pending"]) {
   test(`${reason} queues a delayed successor and returns HTTP 204 without ERROR logs`, async (t) => {
     const { errors, info } = mockDispatcher(t, reason);
     const tasks = new Map();
@@ -183,6 +188,49 @@ for (const reason of ["capacity_unavailable", "scheduler_busy", "launch_busy"]) 
     ]);
   });
 }
+
+test("recovery targets the selected job while the successor retains the notification's job", async (t) => {
+  mockDispatcher(t);
+  const selected = { job: { id: "oldest", status: "QUEUED", runsOn: "macos-latest" } };
+  const source = { job: { id: "newer", status: "QUEUED", runsOn: "macos-latest" } };
+  const checked = [];
+  const tasks = new Map();
+  t.mock.method(QueuedChecks.prototype, "sync", async (jobId) => checked.push(jobId));
+  const store = DataConnectDispatchStore.prototype;
+  t.mock.method(store, "read", async (jobId) => (jobId === "oldest" ? selected : source));
+  t.mock.method(store, "oldestQueued", async () => ({ id: "oldest" }));
+  t.mock.method(store, "reserve", async (_owner, dispatch) => {
+    assert.deepEqual(checked, ["newer", "oldest"]);
+    selected.dispatch = {
+      ...dispatch,
+      startDeadline: new Date(Date.now() + 600_000).toISOString(),
+    };
+  });
+  t.mock.method(OrchardCapacityClient.prototype, "snapshot", async () => ({
+    workers: [
+      {
+        name: "mac-1",
+        last_seen: new Date().toISOString(),
+        resources: {
+          "org.cirruslabs.logical-cores": 2,
+          "org.cirruslabs.memory-mib": 4096,
+          "org.cirruslabs.tart-vms": 1,
+        },
+      },
+    ],
+    vms: [],
+  }));
+  mockQueue(t, async (data, options) => tasks.set(options.id, { data, options }));
+  assert.equal((await deliverTask("source", { jobId: "newer" })).statusCode, 204);
+  const recovery = tasks.get(dispatchTaskId("oldest", selected.dispatch.id));
+  assert.deepEqual(recovery.data, { jobId: "oldest" });
+  assert.equal(
+    recovery.options.scheduleTime.getTime(),
+    Date.parse(selected.dispatch.startDeadline) + 1000,
+  );
+  assert.deepEqual(tasks.get(dispatchRetryTaskId("newer", "source")).data, { jobId: "newer" });
+  assert.equal(tasks.size, 2);
+});
 
 test("the source is not acknowledged before the successor enqueue completes", async (t) => {
   mockDispatcher(t);

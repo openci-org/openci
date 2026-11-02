@@ -42,11 +42,11 @@ beforeEach(async () => {
 });
 after(() => deleteApp(app));
 
-async function fixture(t, { status = "QUEUED", runsOn = "macos-latest" } = {}) {
+async function fixture(t, { status = "QUEUED", runsOn = "macos-latest", createdAt = "1" } = {}) {
   const jobId = randomUUID();
   await graphql(
     `
-      mutation Seed($id: String!, $status: String!, $runsOn: String!) {
+      mutation Seed($id: String!, $status: String!, $runsOn: String!, $createdAt: Int64!) {
         buildJob_insert(
           data: {
             id: $id
@@ -56,13 +56,13 @@ async function fixture(t, { status = "QUEUED", runsOn = "macos-latest" } = {}) {
             repo: "app"
             workflowName: "Test"
             workflowFileName: "test.dart"
-            createdAt: 1
+            createdAt: $createdAt
             updatedAt: 1
           }
         )
       }
     `,
-    { id: jobId, status, runsOn },
+    { id: jobId, status, runsOn, createdAt },
   );
   t.after(() =>
     graphql(
@@ -81,6 +81,7 @@ async function fixture(t, { status = "QUEUED", runsOn = "macos-latest" } = {}) {
   const dependencies = {
     store,
     configuration,
+    syncQueuedCheck: async () => {},
     snapshot: async () => ({
       workers: [
         {
@@ -173,17 +174,126 @@ test("full capacity keeps the job queued without a reservation or launch", async
   assert.equal(f.recoveries.length, 0);
 });
 
+test("a newer job notification reserves the oldest job and retains retry for its own job", async (t) => {
+  const oldest = await fixture(t, { createdAt: "1" });
+  const newer = await fixture(t, { createdAt: "2" });
+  await assert.rejects(newer.run(), (error) => error.reason === "queue_pending");
+  assert.equal(newer.launched[0].jobId, oldest.jobId);
+  assert.equal(newer.recoveries[0].jobId, oldest.jobId);
+  const firstDispatch = (await oldest.state()).dispatch;
+  assert.ok(firstDispatch);
+  assert.equal((await newer.state()).dispatch, null);
+  await updateJob(oldest.jobId, "SUCCESS");
+  await updateDispatch(firstDispatch.id, {
+    activeJobId: null,
+    state: "finished",
+    finishedAt: new Date().toISOString(),
+  });
+  await newer.run();
+  assert.deepEqual(
+    newer.launched.map((dispatch) => dispatch.jobId),
+    [oldest.jobId, newer.jobId],
+  );
+});
+
+test("a completed job notification can start the oldest waiting job", async (t) => {
+  const waiting = await fixture(t);
+  const completed = await fixture(t, { status: "SUCCESS" });
+  await completed.run();
+  assert.equal(completed.launched[0]?.jobId, waiting.jobId);
+  assert.ok((await waiting.state()).dispatch);
+});
+
+test("a completed notification does not keep retrying when the fleet is full", async (t) => {
+  const waiting = await fixture(t);
+  const completed = await fixture(t, { status: "SUCCESS" });
+  completed.dependencies.snapshot = async () => ({ workers: [], vms: [] });
+  await completed.run();
+  assert.equal(completed.launched.length, 0);
+  assert.equal((await waiting.state()).dispatch, null);
+});
+
+test("capacity retries preserve the oldest job even when the newer notification arrives again", async (t) => {
+  const oldest = await fixture(t, { createdAt: "1" });
+  const newer = await fixture(t, { createdAt: "2" });
+  const available = newer.dependencies.snapshot;
+  newer.dependencies.snapshot = async () => ({ workers: [], vms: [] });
+  await assert.rejects(newer.run(), (error) => error.reason === "capacity_unavailable");
+  assert.equal((await oldest.state()).dispatch, null);
+  newer.dependencies.snapshot = available;
+  await assert.rejects(newer.run(), (error) => error.reason === "queue_pending");
+  assert.equal(newer.launched[0].jobId, oldest.jobId);
+});
+
+test("a deferred last job retains its retry until check publication releases it", async (t) => {
+  const f = await fixture(t);
+  await graphql(
+    `
+      mutation Publishing($id: String!) {
+        buildJob_update(id: $id, data: { checkLeaseUntil: "2099-01-01T00:00:00Z" })
+      }
+    `,
+    { id: f.jobId },
+  );
+  await assert.rejects(f.run(), (error) => error.reason === "queue_pending");
+  assert.equal(f.launched.length, 0);
+  await graphql(
+    `
+      mutation Published($id: String!) {
+        buildJob_update(id: $id, data: { checkLeaseUntil: null })
+      }
+    `,
+    { id: f.jobId },
+  );
+  await f.run();
+  assert.equal(f.launched[0].jobId, f.jobId);
+});
+
+test("cancellation while preparing the selected job never reserves it and retains the newer job", async (t) => {
+  const oldest = await fixture(t, { createdAt: "1" });
+  const newer = await fixture(t, { createdAt: "2" });
+  newer.dependencies.syncQueuedCheck = async (jobId) => {
+    assert.equal(jobId, oldest.jobId);
+    await updateJob(jobId, "CANCELLED");
+  };
+  await assert.rejects(newer.run(), (error) => error.reason === "queue_pending");
+  assert.equal((await oldest.state()).dispatch, null);
+  assert.equal((await newer.state()).dispatch, null);
+  assert.equal(newer.launched.length, 0);
+  newer.dependencies.syncQueuedCheck = async () => {};
+  await newer.run();
+  assert.equal(newer.launched[0].jobId, newer.jobId);
+});
+
+test("another notification recovers a reservation whose recovery task could not be enqueued", async (t) => {
+  const oldest = await fixture(t, { createdAt: "1" });
+  const newer = await fixture(t, { createdAt: "2" });
+  const enqueue = newer.dependencies.enqueueRecovery;
+  newer.dependencies.enqueueRecovery = async () => {
+    throw new Error("queue unavailable");
+  };
+  await assert.rejects(newer.run(), /queue unavailable/);
+  const reservation = (await oldest.state()).dispatch;
+  assert.ok(reservation);
+  newer.dependencies.enqueueRecovery = enqueue;
+  await assert.rejects(newer.run(), (error) => error.reason === "queue_pending");
+  assert.equal(newer.launched[0].id, reservation.id);
+  assert.equal((await store.active()).length, 1);
+  assert.equal((await newer.state()).dispatch, null);
+});
+
 test("concurrent jobs cannot reserve the same final slot", async (t) => {
-  const first = await fixture(t),
-    second = await fixture(t);
+  const first = await fixture(t, { createdAt: "1" }),
+    second = await fixture(t, { createdAt: "2" });
   const results = await Promise.allSettled([first.run(), second.run()]);
-  assert.equal(results.filter((result) => result.status === "fulfilled").length, 1);
-  const rejected = results.find((result) => result.status === "rejected");
-  assert.ok(rejected.reason instanceof DispatchRetry);
+  for (const result of results) {
+    if (result.status === "rejected") assert.ok(result.reason instanceof DispatchRetry);
+  }
   assert.equal(first.launched.length + second.launched.length, 1);
   assert.equal((await store.active()).length, 1);
-  const waiting = first.launched.length ? second : first;
-  await assert.rejects(waiting.run(), (error) => error.reason === "capacity_unavailable");
+  assert.ok((await first.state()).dispatch);
+  assert.equal((await second.state()).dispatch, null);
+  await assert.rejects(second.run(), (error) => error.reason === "capacity_unavailable");
 });
 
 test("initialization preserves a live lease and a replaced owner cannot reserve or release", async (t) => {

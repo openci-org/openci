@@ -20,6 +20,7 @@ export interface DispatchStore {
   cancelUnstarted(jobId: string): Promise<void>;
   read(jobId: string): Promise<DispatchState>;
   active(): Promise<BuildDispatch[]>;
+  oldestQueued(): Promise<{ id: string } | null>;
   acquireScheduler(owner: string): Promise<boolean>;
   releaseScheduler(owner: string): Promise<void>;
   reserve(owner: string, dispatch: Omit<BuildDispatch, "startDeadline">): Promise<void>;
@@ -28,7 +29,9 @@ export interface DispatchStore {
 }
 
 export class DispatchRetry extends Error {
-  constructor(readonly reason: "capacity_unavailable" | "scheduler_busy" | "launch_busy") {
+  constructor(
+    readonly reason: "capacity_unavailable" | "scheduler_busy" | "launch_busy" | "queue_pending",
+  ) {
     super(reason);
   }
 }
@@ -106,36 +109,46 @@ export function dispatchRetryTaskId(jobId: string, sourceTaskId: string): string
     .digest("hex");
 }
 
+interface DispatchDependencies {
+  store: DispatchStore;
+  snapshot: () => Promise<OrchardSnapshot>;
+  configuration: VmSize & { image: string; cloudRunJob: string };
+  syncQueuedCheck: (jobId: string) => Promise<void>;
+  enqueueRecovery: (dispatch: BuildDispatch) => Promise<void>;
+  launch: (dispatch: BuildDispatch) => Promise<string>;
+}
+
 export async function dispatchBuildJob(
   jobId: string,
-  dependencies: {
-    store: DispatchStore;
-    snapshot: () => Promise<OrchardSnapshot>;
-    configuration: VmSize & { image: string; cloudRunJob: string };
-    enqueueRecovery: (dispatch: BuildDispatch) => Promise<void>;
-    launch: (dispatch: BuildDispatch) => Promise<string>;
-  },
+  dependencies: DispatchDependencies,
 ): Promise<void> {
-  const { store, configuration } = dependencies;
+  const { store } = dependencies;
   if (!validJobId(jobId)) throw new Error("Invalid build job ID");
-  await store.expireUnstarted();
-  let state = await store.read(jobId);
-  if (!eligible(state)) {
-    if (state.dispatch && !state.dispatch.executorId) await store.cancelUnstarted(jobId);
+  try {
+    await dispatchOldestJob(dependencies);
+  } catch (failure) {
+    if (!(failure instanceof DispatchRetry)) throw failure;
+    const state = await store.read(jobId);
+    if (eligible(state) && !state.dispatch?.executorId) throw failure;
     return;
   }
-  if (state.dispatch?.executorId) return;
-  if (!state.dispatch) {
-    const owner = randomUUID();
-    if (!(await store.acquireScheduler(owner))) throw new DispatchRetry("scheduler_busy");
-    try {
-      // Another dispatcher may have completed while this caller was waiting.
-      state = await store.read(jobId);
-      if (!eligible(state)) {
-        if (state.dispatch && !state.dispatch.executorId) await store.cancelUnstarted(jobId);
-        return;
-      }
-      if (!state.dispatch) {
+  // A notification may start a different job. Keep its own retry chain until
+  // that job is reserved or is no longer queued.
+  const state = await store.read(jobId);
+  if (eligible(state) && !state.dispatch) throw new DispatchRetry("queue_pending");
+}
+
+async function dispatchOldestJob(dependencies: DispatchDependencies): Promise<void> {
+  const { store, configuration } = dependencies;
+  const owner = randomUUID();
+  if (!(await store.acquireScheduler(owner))) throw new DispatchRetry("scheduler_busy");
+  let dispatch: BuildDispatch | null;
+  try {
+    await store.expireUnstarted();
+    dispatch = await findUnstartedDispatch(store);
+    if (!dispatch) {
+      const job = await store.oldestQueued();
+      if (job) {
         const [snapshot, reservations] = await Promise.all([
           dependencies.snapshot(),
           store.active(),
@@ -143,32 +156,63 @@ export async function dispatchBuildJob(
         if (!hasOrchardCapacity(snapshot, reservations, configuration)) {
           throw new DispatchRetry("capacity_unavailable");
         }
+        await dependencies.syncQueuedCheck(job.id);
+        if (!eligible(await store.read(job.id))) throw new DispatchRetry("queue_pending");
         const id = randomUUID();
         try {
-          await store.reserve(owner, { id, jobId, vmName: `openci-${id}`, ...configuration });
+          await store.reserve(owner, {
+            id,
+            jobId: job.id,
+            vmName: `openci-${id}`,
+            ...configuration,
+          });
         } catch {
           // Reconcile a commit whose response was lost, without taking a second slot.
-          if (!(await store.read(jobId)).dispatch) throw new Error("Build reservation unavailable");
+          if (!(await store.read(job.id)).dispatch)
+            throw new Error("Build reservation unavailable");
         }
-        state = await store.read(jobId);
+        dispatch = (await store.read(job.id)).dispatch ?? null;
+        if (!dispatch) throw new Error("Missing build reservation");
       }
-    } finally {
-      await store.releaseScheduler(owner);
     }
+  } finally {
+    await store.releaseScheduler(owner);
   }
-  const dispatch = state.dispatch;
-  if (!dispatch) throw new Error("Missing build reservation");
-  if (dispatch.executorId) return;
+  if (!dispatch || dispatch.executorId) return;
   // Persist the delayed recovery before jobs.run. A cold-start failure or lost
   // launch response cannot strand a reservation after this invocation ends.
   await dependencies.enqueueRecovery(dispatch);
   if (dispatch.operationName) return;
-  const owner = randomUUID();
-  if (!(await store.acquireLaunch(dispatch.id, owner))) throw new DispatchRetry("launch_busy");
+  const launchOwner = randomUUID();
+  if (!(await store.acquireLaunch(dispatch.id, launchOwner)))
+    throw new DispatchRetry("launch_busy");
   // jobs.run has no idempotency key. Keep the lease on errors, then retry the
   // same dispatch ID; ClaimBuildJobExecution fences any duplicate containers.
   const operation = await dependencies.launch(dispatch);
-  await store.recordLaunch(dispatch.id, owner, operation);
+  await store.recordLaunch(dispatch.id, launchOwner, operation);
+}
+
+async function findUnstartedDispatch(store: DispatchStore): Promise<BuildDispatch | null> {
+  const reservations = (await store.active())
+    .filter((dispatch) => !dispatch.executorId)
+    .sort(
+      (left, right) =>
+        Date.parse(left.startDeadline) - Date.parse(right.startDeadline) ||
+        left.id.localeCompare(right.id),
+    );
+  for (const reservation of reservations) {
+    const state = await store.read(reservation.jobId);
+    if (!eligible(state)) {
+      await store.cancelUnstarted(reservation.jobId);
+      continue;
+    }
+    const dispatch = state.dispatch;
+    // Recover a saved reservation even when its original task arrives late.
+    // Accepted launches already have their startup-deadline recovery task.
+    if (dispatch?.id === reservation.id && !dispatch.executorId && !dispatch.operationName)
+      return dispatch;
+  }
+  return null;
 }
 
 function eligible(state: DispatchState): boolean {

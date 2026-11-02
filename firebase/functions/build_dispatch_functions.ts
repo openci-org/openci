@@ -117,7 +117,6 @@ export const dispatchBuildJob = onTaskDispatched<unknown>(
     const jobId = input.jobId;
     try {
       const store = new DataConnectDispatchStore(getDispatchDataConnect());
-      await store.expireUnstarted();
       if ((await store.read(jobId)).job?.status === "CANCELLED") await store.cancelUnstarted(jobId);
       // Also covers jobs queued before deployment and cancellation while waiting
       // for capacity. Never launch a new reservation before its check is durable.
@@ -140,10 +139,12 @@ export const dispatchBuildJob = onTaskDispatched<unknown>(
           image: vmImage.value(),
           cloudRunJob: cloudRunJob.value(),
         },
+        syncQueuedCheck: (selectedJobId) =>
+          queuedChecks(getDispatchDataConnect()).sync(selectedJobId),
         enqueueRecovery: (dispatch) =>
           enqueue(
-            jobId,
-            dispatchTaskId(jobId, dispatch.id),
+            dispatch.jobId,
+            dispatchTaskId(dispatch.jobId, dispatch.id),
             new Date(Date.parse(dispatch.startDeadline) + 1000),
           ),
         launch: (dispatch) => launchCloudRunJob(dispatch),
