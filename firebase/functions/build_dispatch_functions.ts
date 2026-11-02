@@ -7,6 +7,7 @@ import {
   createdBuildJobIds,
   dispatchBuildJob as executeDispatch,
   dispatchTaskId,
+  dispatchCompletionTaskId,
   dispatchRetryTaskId,
   dispatchFailureReason,
   DispatchRetry,
@@ -76,6 +77,48 @@ export const queueBuildJobs = onMutationExecuted(
     } catch {
       error("Build dispatch enqueue failed", { eventId: event.id });
       throw new Error("Build dispatch enqueue failed; retry required");
+    }
+  },
+);
+
+export const queueBuildDispatchOnCompletion = onMutationExecuted(
+  {
+    serviceAccount: dispatchServiceAccount,
+    region: "asia-northeast1",
+    service: dataConnectServiceId(),
+    connector: "dispatch",
+    operation: "CompleteBuildExecution",
+    memory: "256MiB",
+    cpu: 1,
+    concurrency: 1,
+    minInstances: 0,
+    timeoutSeconds: 60,
+    retry: true,
+  },
+  async (event) => {
+    try {
+      if (event.authType !== "admin") throw new Error("Unexpected mutation principal");
+      const { data, variables, errors } = event.data.payload;
+      if (errors?.length) return;
+      if (
+        !data ||
+        typeof data !== "object" ||
+        !("buildJobDispatch_updateMany" in data) ||
+        data.buildJobDispatch_updateMany !== 1 ||
+        !variables ||
+        typeof variables !== "object" ||
+        !("jobId" in variables) ||
+        !validJobId(variables.jobId) ||
+        !("id" in variables) ||
+        !validJobId(variables.id)
+      )
+        throw new Error("Invalid completed build execution");
+      // The original recovery task may still be scheduled at the startup
+      // deadline. Completion needs its own task ID to wake the queue now.
+      await enqueue(variables.jobId, dispatchCompletionTaskId(variables.jobId, variables.id));
+    } catch {
+      error("Build completion dispatch enqueue failed", { eventId: event.id });
+      throw new Error("Build completion dispatch enqueue failed; retry required");
     }
   },
 );

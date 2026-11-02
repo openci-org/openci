@@ -3,9 +3,11 @@ import { randomUUID } from "node:crypto";
 import { after, beforeEach, test } from "node:test";
 import { deleteApp, initializeApp } from "firebase-admin/app";
 import { getDataConnect } from "firebase-admin/data-connect";
+import { getFunctions } from "firebase-admin/functions";
 import * as sdk from "@openci/dispatch-admin";
 import { dispatchBuildJob, DispatchRetry } from "../../lib/functions/build_dispatch.js";
 import { DataConnectDispatchStore } from "../../lib/functions/dispatch_store.js";
+import { queueBuildDispatchOnCompletion } from "../../lib/functions/build_dispatch_functions.js";
 
 const host = process.env.DATA_CONNECT_EMULATOR_HOST;
 assert.match(host ?? "", /^(127\.0\.0\.1|localhost):\d+$/, "Start the SQL Connect emulator first");
@@ -212,6 +214,73 @@ test("a completed notification does not keep retrying when the fleet is full", a
   assert.equal(completed.launched.length, 0);
   assert.equal((await waiting.state()).dispatch, null);
 });
+
+for (const outcome of ["success", "failure", "cancelled", "timed_out", "blocked"]) {
+  test(`${outcome} completion notifies dispatch and starts the oldest eligible waiting job`, async (t) => {
+    const finishing = await fixture(t, { createdAt: "0" });
+    await finishing.run();
+    const { dispatch } = await finishing.state();
+    const executorId = randomUUID();
+    assert.equal((await claim(dispatch.id, executorId)).data.acquired, 1);
+    const oldest = await fixture(t, { createdAt: "1" });
+    const newer = await fixture(t, { createdAt: "2" });
+    if (outcome === "timed_out") {
+      await updateDispatch(dispatch.id, { deadlineAt: past });
+    } else {
+      if (outcome === "cancelled") await updateJob(finishing.jobId, "CANCELLED");
+      await sdk.recordBuildExecutionResult(dc, { id: dispatch.id, executorId, outcome });
+    }
+    const owner = randomUUID();
+    assert.equal(
+      (await sdk.acquireBuildExecutionCleanup(dc, { id: dispatch.id, owner })).data.acquired,
+      1,
+    );
+    const variables = { id: dispatch.id, jobId: finishing.jobId, owner };
+    await assert.rejects(sdk.completeBuildExecution(dc, variables));
+    await assert.rejects(newer.run(), (failure) => failure.reason === "capacity_unavailable");
+    await sdk.confirmBuildVmDeleted(dc, { id: dispatch.id, owner });
+    const { data } = await sdk.completeBuildExecution(dc, variables);
+
+    const notifications = new Map();
+    t.mock.method(getFunctions(app), "taskQueue", (queue) => {
+      assert.equal(queue, "locations/asia-northeast1/functions/dispatchBuildJob");
+      return {
+        enqueue: async (payload, options) => {
+          assert.equal(options.scheduleTime, undefined);
+          if (notifications.has(options.id)) throw { code: "functions/task-already-exists" };
+          notifications.set(options.id, payload);
+        },
+      };
+    });
+    // The SQL emulator returns the real mutation result; Eventarc delivery is
+    // supplied here because it is not part of the local emulator boundary.
+    const event = {
+      id: randomUUID(),
+      authType: "admin",
+      data: { payload: { data, variables } },
+    };
+    await queueBuildDispatchOnCompletion.run(event);
+    await queueBuildDispatchOnCompletion.run(event);
+    assert.deepEqual([...notifications.values()], [{ jobId: finishing.jobId }]);
+    const notification = [...notifications.values()][0];
+    const delivery = dispatchBuildJob(notification.jobId, newer.dependencies);
+    if (outcome === "blocked") {
+      await assert.rejects(delivery, (failure) => failure.reason === "queue_pending");
+      assert.equal((await finishing.state()).job.status, "QUEUED");
+    } else {
+      await delivery;
+      assert.equal((await finishing.state()).job.status, outcome.toUpperCase());
+    }
+    assert.equal((await finishing.state()).dispatch, null);
+    assert.ok((await oldest.state()).dispatch);
+    assert.equal((await newer.state()).dispatch, null);
+    assert.deepEqual(
+      newer.launched.map((reservation) => reservation.jobId),
+      [oldest.jobId],
+    );
+    assert.equal((await store.active()).length, 1);
+  });
+}
 
 test("capacity retries preserve the oldest job even when the newer notification arrives again", async (t) => {
   const oldest = await fixture(t, { createdAt: "1" });

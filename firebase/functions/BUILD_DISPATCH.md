@@ -2,10 +2,12 @@
 
 `queueBuildJobs` listens to the successful admin `CompleteWebhookTask` mutation,
 publishes a queued GitHub Check for each returned BuildJob, then enqueues its ID.
+`queueBuildDispatchOnCompletion` wakes the same queue after a successful admin
+`CompleteBuildExecution` mutation releases a reservation.
 `dispatchBuildJob` is a private Gen2
-task queue Function. Both use Tokyo, 1 CPU, 256 MiB, concurrency 1, minimum
-instances 0. The mutation consumer has a 540-second timeout for batches; the
-dispatcher has a 60-second timeout.
+task queue Function. All three use Tokyo, 1 CPU, 256 MiB, concurrency 1, minimum
+instances 0. The webhook mutation consumer has a 540-second timeout for batches;
+the other two Functions have a 60-second timeout.
 
 ```text
 CompleteWebhookTask -> queueBuildJobs -> queued GitHub Check -> Cloud Tasks -> dispatchBuildJob
@@ -66,6 +68,25 @@ Before creating a new reservation, any notification can resume an unstarted
 reservation whose launch has not been recorded. Recovery tasks use the selected
 reservation's job ID, while ordinary successors retain the notification's job
 ID. The startup deadline and execution claim still fence ambiguous launches.
+
+## Dispatch after capacity is released
+
+`queueBuildDispatchOnCompletion` subscribes only to `CompleteBuildExecution` in
+the `dispatch` connector using [SQL Connect mutation events](https://firebase.google.com/docs/functions/data-connect-events).
+That transaction releases the reservation only after VM deletion and billing
+closure. Normal completion, failure, cancellation and timeout recovery share
+this boundary, so none needs a separate notification inside the executor.
+
+An admin event without errors must report one completed reservation and valid
+job/dispatch IDs. The handler enqueues the completed job ID without a scheduling
+delay; the dispatcher uses it as a wake-up notification and selects the oldest
+eligible waiting job. A blocked job retains its existing 60-second cooldown.
+
+Each completion has a deterministic task ID derived from its job/dispatch IDs,
+separate from initial, startup-recovery and delayed-retry tasks. Delivery is
+acknowledged only after enqueue succeeds or the task already exists. A failed
+or lost enqueue acknowledgement retries the event with the same task ID.
+Existing delayed retries remain available if no completion notification arrives.
 
 ## Capacity and retries
 
@@ -159,18 +180,19 @@ See [Orchard networking](../../infra/orchard/README.md).
 
 Deploy the new schema tables and `dispatch` connector, then provision the G-1605
 Cloud Run Job. Enable Cloud Tasks and Cloud Run APIs. Deploy `dispatchBuildJob`
-before enabling `queueBuildJobs` so the task queue exists before events arrive.
+before enabling `queueBuildJobs` or `queueBuildDispatchOnCompletion` so the task
+queue exists before events arrive.
 
-The two Functions' runtime identities need `cloudtasks.tasks.create` on that
+The three Functions' runtime identities need `cloudtasks.tasks.create` on that
 queue and `iam.serviceAccounts.actAs` on the identity used in their tasks (the
 Firebase Admin SDK uses the runtime service account). Grant those task
 identities `roles/run.invoker` on the private Gen2 dispatcher. Retain the Cloud
 Tasks service agent role so authenticated task delivery can mint tokens. See
 [task queue IAM](https://firebase.google.com/docs/functions/task-functions#iam_permissions).
 
-Both Functions need privileged FSC access to `dispatch` and the bound GitHub App
-private key. Deploy the additive BuildJob check columns and updated connector
-before these Functions. Update the executor image and recovery Function as well
+`queueBuildJobs` and `dispatchBuildJob` need privileged FSC access to `dispatch`
+and the bound GitHub App private key. Deploy the additive BuildJob check columns
+and updated connector before these Functions. Update the executor image and recovery Function as well
 so early failures close queued checks. The dispatcher also needs access to the bound
 Orchard secret, network reachability to the controller, and
 `roles/run.jobsExecutorWithOverrides` on the selected Job. The G-1605 executor
