@@ -68,8 +68,8 @@ are retried by the mutation trigger. A received failure never logs private
 source, raw payloads, tokens or SDK operation variables.
 
 This preserves the existing planner's event/branch matching (PR base branch,
-head SHA/branch for checkout). `whenChanged` evaluation and queued GitHub Checks
-remain separate work. The [Cloud Run executor](BUILD_EXECUTOR.md) now handles
+head SHA/branch for checkout). `paths` selection and durable skipped GitHub Checks are described in
+[changed-path selection](PATH_FILTERING.md). Queued GitHub Checks remain separate work. The [Cloud Run executor](BUILD_EXECUTOR.md) now handles
 claimed FSC jobs through Orchard, including logs, billing, checks and crash
 recovery. Validate deployment before switching the production webhook URL.
 The local Compose stack no longer includes a build planner or executor; it does

@@ -22,5 +22,6 @@ query GetWebhookTask($id: String!) @auth(level: NO_ACCESS) {
     payload
     status
     errorMessage
+    pathFilterReason
   }
 }

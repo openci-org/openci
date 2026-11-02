@@ -89,15 +89,39 @@ export interface BuildStep_Key {
   __typename?: "BuildStep_Key";
 }
 
+export interface ClaimSkippedWorkflowCheckData {
+  claimed: number;
+}
+
+export interface ClaimSkippedWorkflowCheckVariables {
+  id: string;
+  leaseOwner: string;
+}
+
+export interface CompleteSkippedWorkflowCheckData {
+  skippedWorkflowCheck_updateMany: number;
+}
+
+export interface CompleteSkippedWorkflowCheckVariables {
+  id: string;
+  leaseOwner: string;
+  checkRunId: string;
+}
+
 export interface CompleteWebhookTaskData {
   webhookTask_updateMany: number;
   jobs?: unknown[] | null;
+  skipped?: unknown[] | null;
 }
 
 export interface CompleteWebhookTaskVariables {
   id: string;
   jobsJson: string;
   jobCount: number;
+  skippedJson?: string;
+  skippedCount?: number;
+  pathFilterReason?: string | null;
+  comparisonBaseSha?: string | null;
   connectionId?: string | null;
   owner?: string | null;
   repo?: string | null;
@@ -118,6 +142,42 @@ export interface CreateWebhookTaskVariables {
   eventType: string;
   payload: string;
   receivedAt: Int64String;
+}
+
+export interface GetPendingSkippedWorkflowChecksData {
+  checks: ({
+    id: string;
+  } & SkippedWorkflowCheck_Key)[];
+}
+
+export interface GetSkippedWorkflowCheckData {
+  check?: {
+    id: string;
+    owner: string;
+    repo: string;
+    workflowName: string;
+    workflowFileName: string;
+    commitSha: string;
+    comparisonBaseSha: string;
+    githubBaseUrl: string;
+    status: string;
+    checkRunId?: string | null;
+    leaseOwner?: string | null;
+    leaseExpiresAt?: TimestampString | null;
+    createdAt: Int64String;
+    connection: {
+      id: string;
+      status: string;
+      githubAppId: Int64String;
+      githubApiBaseUrl: string;
+      installationId: Int64String;
+      accountId: Int64String;
+    } & GitHubConnection_Key;
+  } & SkippedWorkflowCheck_Key;
+}
+
+export interface GetSkippedWorkflowCheckVariables {
+  id: string;
 }
 
 export interface GetWebhookTaskByDeliveryIdData {
@@ -145,6 +205,7 @@ export interface GetWebhookTaskData {
     payload: string;
     status: string;
     errorMessage?: string | null;
+    pathFilterReason?: string | null;
   } & WebhookTask_Key;
 }
 
@@ -184,6 +245,15 @@ export interface RequestWebhookTaskPlanningVariables {
   id: string;
 }
 
+export interface RetrySkippedWorkflowCheckData {
+  skippedWorkflowCheck_updateMany: number;
+}
+
+export interface RetrySkippedWorkflowCheckVariables {
+  id: string;
+  leaseOwner: string;
+}
+
 export interface SecretReference_Key {
   teamId: string;
   name: string;
@@ -193,6 +263,11 @@ export interface SecretReference_Key {
 export interface SecretVersionCleanup_Key {
   path: string;
   __typename?: "SecretVersionCleanup_Key";
+}
+
+export interface SkippedWorkflowCheck_Key {
+  id: string;
+  __typename?: "SkippedWorkflowCheck_Key";
 }
 
 export interface TeamMember_Key {
@@ -281,3 +356,61 @@ export function getWebhookTask(
   vars: GetWebhookTaskVariables,
   options?: OperationOptions,
 ): Promise<ExecuteOperationResponse<GetWebhookTaskData>>;
+
+/** Generated Node Admin SDK operation action function for the 'GetSkippedWorkflowCheck' Query. Allow users to execute without passing in DataConnect. */
+export function getSkippedWorkflowCheck(
+  dc: DataConnect,
+  vars: GetSkippedWorkflowCheckVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<GetSkippedWorkflowCheckData>>;
+/** Generated Node Admin SDK operation action function for the 'GetSkippedWorkflowCheck' Query. Allow users to pass in custom DataConnect instances. */
+export function getSkippedWorkflowCheck(
+  vars: GetSkippedWorkflowCheckVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<GetSkippedWorkflowCheckData>>;
+
+/** Generated Node Admin SDK operation action function for the 'GetPendingSkippedWorkflowChecks' Query. Allow users to execute without passing in DataConnect. */
+export function getPendingSkippedWorkflowChecks(
+  dc: DataConnect,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<GetPendingSkippedWorkflowChecksData>>;
+/** Generated Node Admin SDK operation action function for the 'GetPendingSkippedWorkflowChecks' Query. Allow users to pass in custom DataConnect instances. */
+export function getPendingSkippedWorkflowChecks(
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<GetPendingSkippedWorkflowChecksData>>;
+
+/** Generated Node Admin SDK operation action function for the 'ClaimSkippedWorkflowCheck' Mutation. Allow users to execute without passing in DataConnect. */
+export function claimSkippedWorkflowCheck(
+  dc: DataConnect,
+  vars: ClaimSkippedWorkflowCheckVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<ClaimSkippedWorkflowCheckData>>;
+/** Generated Node Admin SDK operation action function for the 'ClaimSkippedWorkflowCheck' Mutation. Allow users to pass in custom DataConnect instances. */
+export function claimSkippedWorkflowCheck(
+  vars: ClaimSkippedWorkflowCheckVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<ClaimSkippedWorkflowCheckData>>;
+
+/** Generated Node Admin SDK operation action function for the 'CompleteSkippedWorkflowCheck' Mutation. Allow users to execute without passing in DataConnect. */
+export function completeSkippedWorkflowCheck(
+  dc: DataConnect,
+  vars: CompleteSkippedWorkflowCheckVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<CompleteSkippedWorkflowCheckData>>;
+/** Generated Node Admin SDK operation action function for the 'CompleteSkippedWorkflowCheck' Mutation. Allow users to pass in custom DataConnect instances. */
+export function completeSkippedWorkflowCheck(
+  vars: CompleteSkippedWorkflowCheckVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<CompleteSkippedWorkflowCheckData>>;
+
+/** Generated Node Admin SDK operation action function for the 'RetrySkippedWorkflowCheck' Mutation. Allow users to execute without passing in DataConnect. */
+export function retrySkippedWorkflowCheck(
+  dc: DataConnect,
+  vars: RetrySkippedWorkflowCheckVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<RetrySkippedWorkflowCheckData>>;
+/** Generated Node Admin SDK operation action function for the 'RetrySkippedWorkflowCheck' Mutation. Allow users to pass in custom DataConnect instances. */
+export function retrySkippedWorkflowCheck(
+  vars: RetrySkippedWorkflowCheckVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<RetrySkippedWorkflowCheckData>>;

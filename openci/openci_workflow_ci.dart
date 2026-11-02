@@ -6,8 +6,32 @@ Future<void> main() async {
   final openCI = await OpenCI.init(
     workflowName: 'OpenCI Workflow CI',
     ciTriggers: [
-      CITrigger.pullRequest(branch: '*'),
-      CITrigger.push(branch: 'develop'),
+      CITrigger.pullRequest(
+        branch: '*',
+        paths: [
+          'packages/openci_workflow/**',
+          'analysis_options.yaml',
+          'openci/openci_workflow_ci.dart',
+          'packages/pubspec_version_hook/**',
+          'openci/generated/**',
+          '**/pubspec.yaml',
+          'pubspec.lock',
+          '.fvmrc',
+        ],
+      ),
+      CITrigger.push(
+        branch: 'develop',
+        paths: [
+          'packages/openci_workflow/**',
+          'analysis_options.yaml',
+          'openci/openci_workflow_ci.dart',
+          'packages/pubspec_version_hook/**',
+          'openci/generated/**',
+          '**/pubspec.yaml',
+          'pubspec.lock',
+          '.fvmrc',
+        ],
+      ),
     ],
     currentWorkingDirectory: WorkspacePaths.root.packages.openciWorkflow,
   );

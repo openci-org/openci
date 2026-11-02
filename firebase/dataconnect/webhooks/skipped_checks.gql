@@ -1,0 +1,100 @@
+query GetSkippedWorkflowCheck($id: String!) @auth(level: NO_ACCESS) {
+  check: skippedWorkflowCheck(id: $id) {
+    id
+    owner
+    repo
+    workflowName
+    workflowFileName
+    commitSha
+    comparisonBaseSha
+    githubBaseUrl
+    status
+    checkRunId
+    leaseOwner
+    leaseExpiresAt
+    createdAt
+    connection {
+      id
+      status
+      githubAppId
+      githubApiBaseUrl
+      installationId
+      accountId
+    }
+  }
+}
+
+query GetPendingSkippedWorkflowChecks @auth(level: NO_ACCESS) {
+  checks: skippedWorkflowChecks(
+    where: {
+      _and: [
+        { status: { eq: "pending" }, nextAttemptAt: { le_expr: "request.time" } }
+        {
+          _or: [
+            { leaseExpiresAt: { isNull: true } }
+            { leaseExpiresAt: { le_expr: "request.time" } }
+          ]
+        }
+      ]
+    }
+    orderBy: [{ nextAttemptAt: ASC }, { id: ASC }]
+    limit: 50
+  ) {
+    id
+  }
+}
+
+mutation ClaimSkippedWorkflowCheck($id: String!, $leaseOwner: String!) @auth(level: NO_ACCESS) {
+  claimed: skippedWorkflowCheck_updateMany(
+    where: {
+      _and: [
+        { id: { eq: $id }, status: { eq: "pending" }, nextAttemptAt: { le_expr: "request.time" } }
+        {
+          _or: [
+            { leaseExpiresAt: { isNull: true } }
+            { leaseExpiresAt: { le_expr: "request.time" } }
+          ]
+        }
+      ]
+    }
+    data: {
+      leaseOwner: $leaseOwner
+      leaseExpiresAt_expr: "request.time + duration('300s')"
+      updatedAt_expr: "int(request.time)"
+    }
+  )
+}
+
+mutation CompleteSkippedWorkflowCheck($id: String!, $leaseOwner: String!, $checkRunId: String!)
+@auth(level: NO_ACCESS)
+@transaction {
+  skippedWorkflowCheck_updateMany(
+    where: {
+      id: { eq: $id }
+      status: { eq: "pending" }
+      leaseOwner: { eq: $leaseOwner }
+      leaseExpiresAt: { gt_expr: "request.time" }
+    }
+    data: {
+      status: "reported"
+      checkRunId: $checkRunId
+      leaseOwner: null
+      leaseExpiresAt: null
+      lastError: null
+      updatedAt_expr: "int(request.time)"
+    }
+  ) @check(expr: "this == 1", message: "Skipped Check reporting lease is no longer active")
+}
+
+mutation RetrySkippedWorkflowCheck($id: String!, $leaseOwner: String!) @auth(level: NO_ACCESS) {
+  skippedWorkflowCheck_updateMany(
+    where: { id: { eq: $id }, status: { eq: "pending" }, leaseOwner: { eq: $leaseOwner } }
+    data: {
+      leaseOwner: null
+      leaseExpiresAt: null
+      nextAttemptAt_expr: "request.time + duration('60s')"
+      lastError: "github_check_reporting_failed"
+      updatedAt_expr: "int(request.time)"
+    }
+  )
+}

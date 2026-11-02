@@ -1,9 +1,10 @@
 locals {
   runtime_callers = {
-    createbuildjobs      = "openci-functions"
-    queuebuildjobs       = "openci-dispatch"
-    process-webhook-task = "openci-functions"
-    dispatchbuildjob     = "openci-dispatch"
+    createbuildjobs             = "openci-functions"
+    queuebuildjobs              = "openci-dispatch"
+    reportskippedworkflowchecks = "openci-functions"
+    process-webhook-task        = "openci-functions"
+    dispatchbuildjob            = "openci-dispatch"
   }
   dispatcher_email = "openci-dispatch@${local.project_id}.iam.gserviceaccount.com"
 }

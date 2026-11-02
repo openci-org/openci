@@ -62,6 +62,7 @@ Future<String> runPlanner(
         githubBaseUrl: githubBaseUrl,
       ),
       fetchWorkflows: workflows.fetch,
+      fetchChangedFiles: workflows.fetchChangedFiles,
     );
     return await planner.process(taskId);
   } finally {

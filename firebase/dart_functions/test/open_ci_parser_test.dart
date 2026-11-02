@@ -208,16 +208,16 @@ void main() {
     });
   });
 
-  group('whenChanged', () {
+  group('paths', () {
     for (final type in ['push', 'pullRequest']) {
-      for (final argument in ['', ', whenChanged: null']) {
+      for (final argument in ['', ', paths: null']) {
         test('$type keeps existing behavior with "$argument"', () {
           final workflow = _parseTrigger(
             "CITrigger.$type(branch: 'main'$argument)",
           );
 
           expect(workflow, isNotNull);
-          expect(workflow!.ciTriggers.single.whenChanged, isNull);
+          expect(workflow!.ciTriggers.single.paths, isNull);
           expect(
             workflow.matches(
               eventType: type == 'push' ? 'push' : 'pull_request',
@@ -236,7 +236,7 @@ void main() {
       ]) {
         test('$type reads $constructor with $listPrefix lists', () {
           final condition =
-              "whenChanged: $listPrefix['apps/**', 'packages/*/pubspec.yaml', 'pubspec.lock']";
+              "paths: $listPrefix['apps/**', 'packages/*/pubspec.yaml', 'pubspec.lock']";
           final args = pathsFirst
               ? "$condition, branch: 'main'"
               : "branch: 'main', $condition";
@@ -246,7 +246,7 @@ void main() {
           final trigger = workflow!.ciTriggers.single;
           expect(trigger.type, type);
           expect(trigger.branch, 'main');
-          expect(trigger.whenChanged, [
+          expect(trigger.paths, [
             'apps/**',
             'packages/*/pubspec.yaml',
             'pubspec.lock',
@@ -256,10 +256,10 @@ void main() {
 
       test('$type preserves escaped glob characters', () {
         final workflow = _parseTrigger(
-          "CITrigger.$type(branch: 'main', whenChanged: [r'\\*.dart'])",
+          "CITrigger.$type(branch: 'main', paths: [r'\\*.dart'])",
         );
 
-        expect(workflow!.ciTriggers.single.whenChanged, [r'\*.dart']);
+        expect(workflow!.ciTriggers.single.paths, [r'\*.dart']);
       });
 
       for (final value in [
@@ -287,17 +287,13 @@ void main() {
       ]) {
         test('$type rejects $value with workflow and trigger context', () {
           expect(
-            () => _parseTrigger(
-              "CITrigger.$type(branch: 'main', whenChanged: $value)",
-            ),
+            () =>
+                _parseTrigger("CITrigger.$type(branch: 'main', paths: $value)"),
             throwsA(
               isA<WorkflowConfigurationException>().having(
                 (error) => error.message,
                 'message',
-                allOf(
-                  contains('ci.dart'),
-                  contains('CITrigger.$type.whenChanged'),
-                ),
+                allOf(contains('ci.dart'), contains('CITrigger.$type.paths')),
               ),
             ),
           );
@@ -307,7 +303,7 @@ void main() {
   });
 
   group('ParsedCITrigger.matchesChangedFiles', () {
-    test('accepts all changes when whenChanged is omitted', () {
+    test('accepts all changes when paths is omitted', () {
       const trigger = ParsedCITrigger(type: 'push', branch: 'main');
 
       expect(trigger.matchesChangedFiles(['README.md']), isTrue);
@@ -318,7 +314,7 @@ void main() {
       const trigger = ParsedCITrigger(
         type: 'push',
         branch: 'main',
-        whenChanged: ['pubspec.lock'],
+        paths: ['pubspec.lock'],
       );
 
       expect(trigger.matchesChangedFiles(['pubspec.lock']), isTrue);
@@ -330,7 +326,7 @@ void main() {
       const trigger = ParsedCITrigger(
         type: 'push',
         branch: 'main',
-        whenChanged: ['packages/*/pubspec.yaml'],
+        paths: ['packages/*/pubspec.yaml'],
       );
 
       expect(
@@ -350,7 +346,7 @@ void main() {
       const trigger = ParsedCITrigger(
         type: 'push',
         branch: 'main',
-        whenChanged: ['apps/dashboard/**'],
+        paths: ['apps/dashboard/**'],
       );
 
       expect(
@@ -371,7 +367,7 @@ void main() {
       const trigger = ParsedCITrigger(
         type: 'push',
         branch: 'main',
-        whenChanged: ['apps/**/pubspec.yaml'],
+        paths: ['apps/**/pubspec.yaml'],
       );
 
       expect(trigger.matchesChangedFiles(['apps/pubspec.yaml']), isTrue);
@@ -390,7 +386,7 @@ void main() {
       const trigger = ParsedCITrigger(
         type: 'push',
         branch: 'main',
-        whenChanged: ['**/*.dart'],
+        paths: ['**/*.dart'],
       );
 
       expect(trigger.matchesChangedFiles(['main.dart']), isTrue);
@@ -406,7 +402,7 @@ void main() {
       const trigger = ParsedCITrigger(
         type: 'push',
         branch: 'main',
-        whenChanged: ['apps/**/README.md'],
+        paths: ['apps/**/README.md'],
       );
 
       expect(trigger.matchesChangedFiles(['apps/dashboard/README.md']), isTrue);
@@ -424,7 +420,7 @@ void main() {
       const trigger = ParsedCITrigger(
         type: 'push',
         branch: 'main',
-        whenChanged: ['apps/dashboard/**', 'pubspec.lock'],
+        paths: ['apps/dashboard/**', 'pubspec.lock'],
       );
 
       expect(
@@ -438,11 +434,11 @@ void main() {
       );
     });
 
-    test('rejects an empty diff when whenChanged is configured', () {
+    test('rejects an empty diff when paths is configured', () {
       const trigger = ParsedCITrigger(
         type: 'push',
         branch: 'main',
-        whenChanged: ['**'],
+        paths: ['**'],
       );
 
       expect(trigger.matchesChangedFiles([]), isFalse);
@@ -450,7 +446,7 @@ void main() {
 
     test('matches escaped glob characters from a parsed trigger literally', () {
       final workflow = _parseTrigger(
-        r"CITrigger.push(branch: 'main', whenChanged: [r'\*.dart'])",
+        r"CITrigger.push(branch: 'main', paths: [r'\*.dart'])",
       )!;
       final trigger = workflow.ciTriggers.single;
 

@@ -39,8 +39,20 @@ export async function receiveGitHubWebhook(
   const { Webhooks } = await import("@octokit/webhooks");
   const webhooks = new Webhooks({ secret: dependencies.secret });
   webhooks.on(
-    ["push", "pull_request.opened", "pull_request.synchronize", "pull_request.reopened"],
-    async ({ id, name }) => {
+    [
+      "push",
+      "pull_request.opened",
+      "pull_request.synchronize",
+      "pull_request.reopened",
+      "pull_request.edited",
+    ],
+    async ({ id, name, payload: verifiedPayload }) => {
+      if (
+        name === "pull_request" &&
+        verifiedPayload.action === "edited" &&
+        !verifiedPayload.changes?.base
+      )
+        return;
       try {
         await dependencies.enqueue({ deliveryId: id, eventType: name, payload });
       } catch (error) {
