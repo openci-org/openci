@@ -3,8 +3,16 @@ import { createRequire } from "node:module";
 import { after, beforeEach, test } from "node:test";
 import { deleteApp, getApps, initializeApp } from "firebase-admin/app";
 import { getFunctions } from "firebase-admin/functions";
-import { queueBuildJobs, dispatchBuildJob } from "../../lib/functions/build_dispatch_functions.js";
-import { dispatchTaskId, dispatchRetryTaskId } from "../../lib/functions/build_dispatch.js";
+import {
+  queueBuildJobs,
+  queueBuildDispatchOnCompletion,
+  dispatchBuildJob,
+} from "../../lib/functions/build_dispatch_functions.js";
+import {
+  dispatchTaskId,
+  dispatchCompletionTaskId,
+  dispatchRetryTaskId,
+} from "../../lib/functions/build_dispatch.js";
 import { DataConnectDispatchStore } from "../../lib/functions/dispatch_store.js";
 import { OrchardCapacityClient } from "../../lib/functions/orchard_capacity.js";
 import { QueuedChecks } from "../../lib/functions/queued_checks.js";
@@ -19,11 +27,17 @@ beforeEach((t) => {
 const app = initializeApp({ projectId: "demo-openci" });
 after(() => Promise.all(getApps().map(deleteApp)));
 const logger = createRequire(import.meta.url)("firebase-functions/logger");
-const event = (data, errors) => ({
+const event = (data, errors, variables = { jobsJson: "private metadata" }) => ({
   id: "event",
   authType: "admin",
-  data: { payload: { data, errors, variables: { jobsJson: "private metadata" } } },
+  data: { payload: { data, errors, variables } },
 });
+const completionEvent = (id = "dispatch-1") =>
+  event({ buildJobDispatch_updateMany: 1 }, undefined, {
+    id,
+    jobId: "job",
+    owner: "private cleanup owner",
+  });
 
 test("mutation retries complete a partially enqueued batch without duplicating tasks", async (t) => {
   const saved = new Map();
@@ -78,6 +92,113 @@ test("check publication must finish before enqueue, and failures retain mutation
   unavailable = false;
   await queueBuildJobs.run(input);
   assert.deepEqual(calls, ["check:job", "check:job", "enqueue:job"]);
+});
+
+test("completion wakes dispatch immediately without colliding with initial or recovery tasks", async (t) => {
+  const tasks = new Map([
+    [dispatchTaskId("job"), {}],
+    [dispatchTaskId("job", "dispatch-1"), {}],
+  ]);
+  mockQueue(t, async (data, options) => {
+    if (tasks.has(options.id)) throw { code: "functions/task-already-exists" };
+    tasks.set(options.id, { data, options });
+  });
+  await queueBuildDispatchOnCompletion.run(completionEvent());
+  await queueBuildDispatchOnCompletion.run({ ...completionEvent(), id: "redelivery" });
+  assert.equal(tasks.size, 3);
+  const notification = tasks.get(dispatchCompletionTaskId("job", "dispatch-1"));
+  assert.deepEqual(notification.data, { jobId: "job" });
+  assert.equal(notification.options.scheduleTime, undefined);
+  assert.equal(notification.options.dispatchDeadlineSeconds, 120);
+  await queueBuildDispatchOnCompletion.run(completionEvent("dispatch-2"));
+  assert.equal(tasks.size, 4);
+  assert.ok(tasks.has(dispatchCompletionTaskId("job", "dispatch-2")));
+});
+
+test("failed completions enqueue nothing and completion events require an admin principal", async (t) => {
+  const enqueue = mockQueue(t, () => assert.fail("must not enqueue"));
+  t.mock.method(logger, "error", () => {});
+  await queueBuildDispatchOnCompletion.run(event(null, [{ message: "cleanup failed" }]));
+  const partial = completionEvent();
+  partial.data.payload.errors = [{ message: "transaction rolled back" }];
+  await queueBuildDispatchOnCompletion.run(partial);
+  for (const authType of [undefined, "unknown", "app_user"])
+    await assert.rejects(
+      queueBuildDispatchOnCompletion.run({ ...completionEvent(), authType }),
+      /retry required/,
+    );
+  assert.equal(enqueue.mock.callCount(), 0);
+});
+
+test("malformed completion results or identities never enqueue a notification", async (t) => {
+  const enqueue = mockQueue(t, () => assert.fail("must not enqueue"));
+  t.mock.method(logger, "error", () => {});
+  const valid = completionEvent().data.payload;
+  for (const data of [
+    null,
+    {},
+    { buildJobDispatch_updateMany: 0 },
+    { buildJobDispatch_updateMany: "1" },
+  ])
+    await assert.rejects(
+      queueBuildDispatchOnCompletion.run(event(data, undefined, valid.variables)),
+      /retry required/,
+    );
+  for (const variables of [
+    null,
+    {},
+    { id: "dispatch-1" },
+    { id: "", jobId: "job" },
+    { id: "dispatch-1", jobId: "job\n" },
+  ])
+    await assert.rejects(
+      queueBuildDispatchOnCompletion.run(event(valid.data, undefined, variables)),
+      /retry required/,
+    );
+  assert.equal(enqueue.mock.callCount(), 0);
+});
+
+for (const savedBeforeFailure of [false, true]) {
+  test(`completion enqueue failure ${savedBeforeFailure ? "after" : "before"} saving retries without duplicating the notification`, async (t) => {
+    const tasks = new Map();
+    let unavailable = true;
+    const errors = t.mock.method(logger, "error", () => {});
+    mockQueue(t, async (data, options) => {
+      if (tasks.has(options.id)) throw { code: "functions/task-already-exists" };
+      if (savedBeforeFailure || !unavailable) tasks.set(options.id, data);
+      if (unavailable) throw new Error("private SDK credentials");
+    });
+    await assert.rejects(queueBuildDispatchOnCompletion.run(completionEvent()), {
+      message: "Build completion dispatch enqueue failed; retry required",
+    });
+    assert.equal(tasks.size, savedBeforeFailure ? 1 : 0);
+    assert.deepEqual(errors.mock.calls[0].arguments, [
+      "Build completion dispatch enqueue failed",
+      { eventId: "event" },
+    ]);
+    unavailable = false;
+    await queueBuildDispatchOnCompletion.run(completionEvent());
+    await queueBuildDispatchOnCompletion.run(completionEvent());
+    assert.deepEqual([...tasks.values()], [{ jobId: "job" }]);
+  });
+}
+
+test("completion delivery waits until its notification has been enqueued", async (t) => {
+  const entered = Promise.withResolvers();
+  const saved = Promise.withResolvers();
+  mockQueue(t, async () => {
+    entered.resolve();
+    await saved.promise;
+  });
+  let acknowledged = false;
+  const delivery = queueBuildDispatchOnCompletion.run(completionEvent()).then(() => {
+    acknowledged = true;
+  });
+  await entered.promise;
+  assert.equal(acknowledged, false);
+  saved.resolve();
+  await delivery;
+  assert.equal(acknowledged, true);
 });
 
 test("malformed task payloads are acknowledged without accessing configured services", async () => {
