@@ -365,6 +365,7 @@ test("CompleteWebhookTask result hands created IDs to the capacity dispatcher", 
         vms: [],
       }),
       enqueueRecovery: async () => {},
+      syncQueuedCheck: async () => {},
       launch: async (dispatch) => {
         launched = dispatch;
         return "test-operation";

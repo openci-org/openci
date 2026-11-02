@@ -27,6 +27,15 @@ export class DataConnectDispatchStore implements DispatchStore {
   async active(): Promise<BuildDispatch[]> {
     return (await sdk.getActiveBuildDispatches(this.dc)).data.dispatches;
   }
+  async oldestQueued(): Promise<{ id: string } | null> {
+    const { dispatches } = (await sdk.getBuildDispatchExclusions(this.dc)).data;
+    const { job } = (
+      await sdk.getOldestQueuedBuildJob(this.dc, {
+        excludedJobIds: dispatches.map((dispatch) => dispatch.jobId),
+      })
+    ).data;
+    return job ?? null;
+  }
   async acquireScheduler(owner: string): Promise<boolean> {
     await sdk.initializeBuildDispatchScheduler(this.dc);
     return (await sdk.acquireBuildDispatchScheduler(this.dc, { owner })).data.acquired === 1;

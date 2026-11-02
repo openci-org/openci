@@ -9,8 +9,9 @@ dispatcher has a 60-second timeout.
 
 ```text
 CompleteWebhookTask -> queueBuildJobs -> queued GitHub Check -> Cloud Tasks -> dispatchBuildJob
-  -> read queued BuildJob + active reservations from FSC
-  -> read Orchard workers/VMs and reserve an available slot in FSC
+  -> acquire scheduler lease and recover unstarted reservations
+  -> select the oldest eligible BuildJob from FSC and check Orchard capacity
+  -> ensure the selected job's queued Check is durable, then reserve its slot
   -> schedule recovery task, then call Cloud Run Jobs.run
   -> Cloud Run executor (G-1605) claims the reservation and runs the build
 ```
@@ -41,6 +42,30 @@ The dispatcher also publishes missing checks for jobs queued before deployment.
 Existing active reservations retain their original execution-owned checks.
 Publishers validate the active team/installation/App connection and repository
 owner before using a repository-scoped checks-write token.
+
+## Queue order
+
+Cloud Tasks deliveries wake the dispatcher. New reservations select eligible
+`QUEUED` `macos-latest` jobs by `createdAt`, then `id`, regardless of the job ID
+in the notification. The scheduler lease covers expiration, selection, capacity
+checks and reservation. This orders capacity allocation; concurrent VMs can
+start or finish their workflows in a different order.
+
+Selection excludes open reservations, live queued-Check publication leases and
+jobs whose last blocked attempt finished within 60 seconds. Their original
+creation times are preserved, so they regain their position when eligible.
+Cancelled and terminal jobs are never selected for a new reservation.
+
+If a notification starts another job, its own queued job keeps a delayed retry
+until it has a reservation or is no longer queued. This also preserves the last
+notification when all remaining jobs are temporarily ineligible. Expected waits
+do not keep completed or claimed jobs polling. Existing task payloads continue
+to work without recreating the waiting queue.
+
+Before creating a new reservation, any notification can resume an unstarted
+reservation whose launch has not been recorded. Recovery tasks use the selected
+reservation's job ID, while ordinary successors retain the notification's job
+ID. The startup deadline and execution claim still fence ambiguous launches.
 
 ## Capacity and retries
 
