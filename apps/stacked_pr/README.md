@@ -175,3 +175,5 @@ Functionsの上限540秒より長い600秒をタスク期限とし、旧処理�
 - [FirestoreのTTL](https://firebase.google.com/docs/firestore/ttl)
 - [GitHub PR履歴](https://docs.github.com/en/enterprise-server@3.19/graphql/reference/objects#headrefforcepushedevent)
 - [Googleの実行環境に含まれるパッケージ](https://cloud.google.com/docs/buildpacks/stacks)
+
+<!-- OpenCI paths production verification: Stacked PR-only change, 2026-11-02. -->
