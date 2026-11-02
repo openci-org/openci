@@ -67,6 +67,27 @@ export function getActiveBuildDispatches(dcOrOptions, options) {
   return dcInstance.executeQuery("GetActiveBuildDispatches", undefined, inputOpts);
 }
 
+export function getBuildDispatchExclusions(dcOrOptions, options) {
+  const { dc: dcInstance, options: inputOpts } = validateAdminArgs(
+    connectorConfig,
+    dcOrOptions,
+    options,
+    undefined,
+  );
+  dcInstance.useGen(true);
+  return dcInstance.executeQuery("GetBuildDispatchExclusions", undefined, inputOpts);
+}
+
+export function getOldestQueuedBuildJob(dcOrVarsOrOptions, varsOrOptions, options) {
+  const {
+    dc: dcInstance,
+    vars: inputVars,
+    options: inputOpts,
+  } = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeQuery("GetOldestQueuedBuildJob", inputVars, inputOpts);
+}
+
 export function initializeBuildDispatchScheduler(dcOrOptions, options) {
   const { dc: dcInstance, options: inputOpts } = validateAdminArgs(
     connectorConfig,

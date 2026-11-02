@@ -48,6 +48,47 @@ query GetActiveBuildDispatches @auth(level: NO_ACCESS) {
   }
 }
 
+# Read exclusions under the scheduler lease before GetOldestQueuedBuildJob.
+# Blocked executions requeue without changing createdAt; allow the existing
+# 60-second retry interval before they can compete for capacity again.
+query GetBuildDispatchExclusions @auth(level: NO_ACCESS) {
+  dispatches: buildJobDispatches(
+    where: {
+      _or: [
+        { finishedAt: { isNull: true } }
+        { outcome: { eq: "blocked" }, finishedAt: { gt_expr: "request.time - duration('60s')" } }
+      ]
+    }
+    limit: null
+  ) {
+    jobId
+  }
+}
+
+# Pass every jobId from GetBuildDispatchExclusions. Selection does not reserve
+# capacity: ReserveBuildJobDispatch must still validate the job and lease.
+query GetOldestQueuedBuildJob($excludedJobIds: [String!]!) @auth(level: NO_ACCESS) {
+  job: buildJob(
+    first: {
+      where: {
+        _and: [
+          { id: { nin: $excludedJobIds }, status: { eq: "QUEUED" }, runsOn: { eq: "macos-latest" } }
+          {
+            _or: [
+              { checkLeaseUntil: { isNull: true } }
+              { checkLeaseUntil: { le_expr: "request.time" } }
+            ]
+          }
+        ]
+      }
+      orderBy: [{ createdAt: ASC }, { id: ASC }]
+    }
+  ) {
+    id
+    createdAt
+  }
+}
+
 mutation InitializeBuildDispatchScheduler @auth(level: NO_ACCESS) {
   buildDispatchScheduler_upsert(data: { id: "orchard" })
 }
