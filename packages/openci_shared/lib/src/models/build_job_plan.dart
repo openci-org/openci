@@ -20,6 +20,7 @@ abstract class BuildJobPlan with _$BuildJobPlan {
     required String branch,
     required String runsOn,
     required String installationId,
+    String? flutterVersion,
     String? workflowId,
     String? commitMessage,
     int? pullRequestNumber,

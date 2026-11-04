@@ -6,6 +6,27 @@ import 'package:test/test.dart';
 
 void main() {
   group('planJobs', () {
+    test('carries the workflow SDK release into the persisted job plan', () {
+      final jobs = _jobs(
+        event: _pushEvent(),
+        teamId: 'team-1',
+        files: [
+          OpenCIFile(
+            name: 'ci.dart',
+            path: 'openci/ci.dart',
+            content: '''
+void main() {
+  OpenCI.init(workflowName: 'CI', ciTriggers: [CITrigger.push(branch: 'main')], flutterVersion: '3.47.8');
+}
+''',
+          ),
+        ],
+      );
+      final json = jobs.single.toJson();
+      expect(json['flutterVersion'], '3.47.8');
+      expect(BuildJobPlan.fromJson(json).flutterVersion, '3.47.8');
+    });
+
     test('creates complete job metadata only for matching workflows', () {
       final jobs = _jobs(
         event: _pushEvent(),

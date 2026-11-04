@@ -325,6 +325,7 @@ export interface GetBuildExecutionData {
     repo: string;
     workflowName: string;
     workflowFileName: string;
+    flutterVersion?: string | null;
     commitSha?: string | null;
     pullRequestNumber?: Int64String | null;
     branch?: string | null;
@@ -439,6 +440,7 @@ export interface GetQueuedBuildCheckData {
     repo: string;
     workflowName: string;
     workflowFileName: string;
+    flutterVersion?: string | null;
     commitSha?: string | null;
     pullRequestNumber?: Int64String | null;
     branch?: string | null;

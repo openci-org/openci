@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.1
+
+- Add optional `OpenCI.init(flutterVersion: '3.47.8')` metadata. CI selects the
+  declared release through FVM before resolving dependencies. Omitted or null
+  values use the image's default Flutter SDK; local runs keep their current SDK.
+
 ## 0.2.0
 
 - **Breaking:** Rename `CITrigger.whenChanged` to `CITrigger.paths` for push and

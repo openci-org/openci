@@ -20,6 +20,7 @@ abstract class ParsedWorkflow with _$ParsedWorkflow {
     required String workflowFileName,
     required String workflowName,
     required List<ParsedCITrigger> ciTriggers,
+    String? flutterVersion,
   }) = _ParsedWorkflow;
 
   bool matches({required String eventType, required String branch}) =>
@@ -120,6 +121,7 @@ class _OpenCIInitVisitor extends RecursiveAstVisitor<void> {
   void _extractFromInitArgs(ArgumentList argumentList) {
     String? workflowName;
     List<ParsedCITrigger>? ciTriggers;
+    String? flutterVersion;
 
     for (final argument in argumentList.arguments) {
       if (argument is NamedExpression) {
@@ -130,6 +132,18 @@ class _OpenCIInitVisitor extends RecursiveAstVisitor<void> {
           workflowName = _extractStringValue(expression);
         } else if (paramName == 'ciTriggers') {
           ciTriggers = _extractTriggers(expression);
+        } else if (paramName == 'flutterVersion' &&
+            expression is! NullLiteral) {
+          flutterVersion = _extractStringValue(expression);
+          if (flutterVersion == null ||
+              !RegExp(
+                r'^\d+\.\d+\.\d+(?:-[0-9A-Za-z]+(?:[.-][0-9A-Za-z]+)*)?$',
+              ).hasMatch(flutterVersion)) {
+            throw WorkflowConfigurationException(
+              '$fileName: flutterVersion must be a literal Flutter release '
+              'such as 3.47.8',
+            );
+          }
         }
       }
     }
@@ -139,6 +153,7 @@ class _OpenCIInitVisitor extends RecursiveAstVisitor<void> {
         workflowFileName: fileName,
         workflowName: workflowName,
         ciTriggers: ciTriggers,
+        flutterVersion: flutterVersion,
       );
     }
   }

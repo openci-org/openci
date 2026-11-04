@@ -164,6 +164,63 @@ test("workflows expose VM toolchains when Orchard supplies a minimal PATH", () =
   }
 });
 
+function runSdkSelection(flutterVersion, failure = "") {
+  return spawnSync("/bin/bash", ["-s"], {
+    input:
+      `
+selected=3.47.8
+cd() { cwd="$1"; }
+fvm() {
+  printf 'fvm:%s:%s:%s\\n' "$cwd" "$FVM_CACHE_PATH" "$*"
+  if [[ "$1" == '${failure}' ]]; then return 42; fi
+  if [[ "$1" == global ]]; then selected="$2"; fi
+}
+flutter() { printf 'flutter:%s:%s\\n' "$selected" "$*"; }
+` + workflowScript({ ...job, flutterVersion }, dispatch, 1, {}),
+    env: { PATH: "/usr/bin:/bin" },
+    encoding: "utf8",
+  });
+}
+
+test("omitted Flutter versions retain the image SDK without invoking FVM", () => {
+  for (const flutterVersion of [undefined, null]) {
+    const result = runSdkSelection(flutterVersion);
+    assert.equal(result.status, 0, result.stderr);
+    assert.deepEqual(result.stdout.trim().split("\n"), [
+      "flutter:3.47.8:pub get",
+      "flutter:3.47.8:pub run openci/ci/test.dart",
+    ]);
+  }
+});
+
+test("workflow SDK selection runs outside the checkout before resolving dependencies", () => {
+  const result = runSdkSelection("3.47.1");
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(result.stdout.trim().split("\n"), [
+    "fvm:/Users/admin:/Users/admin/fvm:install 3.47.1 --skip-pub-get",
+    "fvm:/Users/admin:/Users/admin/fvm:global 3.47.1",
+    "flutter:3.47.1:pub get",
+    "flutter:3.47.1:pub run openci/ci/test.dart",
+  ]);
+});
+
+test("failed SDK installation or selection stops before dependency resolution", () => {
+  for (const failure of ["install", "global"]) {
+    const result = runSdkSelection("3.47.1", failure);
+    assert.equal(result.status, 42, result.stderr);
+    assert.doesNotMatch(result.stdout, /flutter:/);
+  }
+});
+
+test("persisted Flutter versions must be literal releases", () => {
+  for (const flutterVersion of ["", "stable", "3.47.8\n", "3.47.8; id", "$(id)", "--force"]) {
+    const invalid = { ...job, flutterVersion };
+    assert.throws(() => validateJob(invalid, dispatch), /Invalid Flutter release/);
+    assert.throws(() => workflowScript(invalid, dispatch, 1, {}), /Invalid Flutter release/);
+  }
+  validateJob({ ...job, flutterVersion: "3.48.0-0.1.pre" }, dispatch);
+});
+
 test("redaction covers split tokens, multiline secrets and overlapping values", () => {
   const redactor = new StreamingRedactor(["token-secret", "line1\nline2", "token"]);
   const actual =

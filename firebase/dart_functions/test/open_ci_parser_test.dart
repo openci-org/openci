@@ -2,6 +2,54 @@ import 'package:openci_dart_functions/src/open_ci_parser.dart';
 import 'package:test/test.dart';
 
 void main() {
+  group('flutterVersion', () {
+    for (final version in ['3.47.8', '3.48.0-0.1.pre']) {
+      test('parses a literal release: $version', () {
+        final workflow = parseOpenCIWorkflow('''
+void main() {
+  OpenCI.init(workflowName: 'CI', ciTriggers: [CITrigger.push(branch: 'main')], flutterVersion: '$version');
+}
+''', 'ci.dart');
+        expect(workflow!.flutterVersion, version);
+      });
+    }
+    for (final argument in ['', ', flutterVersion: null']) {
+      test('uses the image default with "$argument"', () {
+        final workflow = parseOpenCIWorkflow('''
+void main() {
+  OpenCI.init(workflowName: 'CI', ciTriggers: [CITrigger.push(branch: 'main')]$argument);
+}
+''', 'ci.dart');
+        expect(workflow!.flutterVersion, isNull);
+      });
+    }
+    for (final value in [
+      "''",
+      "'stable'",
+      'version',
+      r"'3.47.$patch'",
+      "'3.47.8; id'",
+      r"'3.47.8\n'",
+    ]) {
+      test('rejects invalid or dynamic releases: $value', () {
+        expect(
+          () => parseOpenCIWorkflow('''
+void main() {
+  OpenCI.init(workflowName: 'CI', ciTriggers: [CITrigger.push(branch: 'main')], flutterVersion: $value);
+}
+''', 'ci.dart'),
+          throwsA(
+            isA<WorkflowConfigurationException>().having(
+              (error) => error.message,
+              'message',
+              contains('ci.dart: flutterVersion'),
+            ),
+          ),
+        );
+      });
+    }
+  });
+
   group('parseOpenCIWorkflow', () {
     for (final args in [
       "workflowName: 'CI'",
