@@ -140,6 +140,16 @@ export function expireUnstartedBuildDispatches(dcOrOptions, options) {
   return dcInstance.executeMutation("ExpireUnstartedBuildDispatches", undefined, inputOpts);
 }
 
+export function getSupersededBuildJobs(dcOrVarsOrOptions, varsOrOptions, options) {
+  const {
+    dc: dcInstance,
+    vars: inputVars,
+    options: inputOpts,
+  } = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeQuery("GetSupersededBuildJobs", inputVars, inputOpts);
+}
+
 export function cancelUnstartedBuildDispatch(dcOrVarsOrOptions, varsOrOptions, options) {
   const {
     dc: dcInstance,

@@ -16,11 +16,22 @@ class WorkflowPlan {
     this.skipped = const [],
     this.pathFilterReason,
     this.comparisonBaseSha,
+    this.autoCancelWorkflowFiles = const {},
   });
   final List<BuildJobPlan> jobs;
   final List<SkippedWorkflow> skipped;
   final String? pathFilterReason;
   final String? comparisonBaseSha;
+  final Set<String> autoCancelWorkflowFiles;
+
+  WorkflowPlan withoutSupersededJobs() => WorkflowPlan(
+    jobs: jobs
+        .where((job) => !autoCancelWorkflowFiles.contains(job.workflowFileName))
+        .toList(),
+    skipped: skipped,
+    pathFilterReason: pathFilterReason,
+    comparisonBaseSha: comparisonBaseSha,
+  );
 }
 
 Iterable<ParsedCITrigger> matchingTriggers(
@@ -51,6 +62,7 @@ WorkflowPlan planJobs({
 }) {
   final jobs = <BuildJobPlan>[];
   final skipped = <SkippedWorkflow>[];
+  final autoCancelWorkflowFiles = <String>{};
   String? fallback;
   // A complete result for another revision is never safe to use.
   final complete =
@@ -72,6 +84,9 @@ WorkflowPlan planJobs({
       }
     } else if (filtered) {
       fallback = changedFiles?.reason ?? 'changed_files_unavailable';
+    }
+    if (event.pullRequestNumber != null && workflow.cancelPreviousRuns) {
+      autoCancelWorkflowFiles.add(workflow.workflowFileName);
     }
     jobs.add(
       BuildJobPlan(
@@ -95,5 +110,6 @@ WorkflowPlan planJobs({
     skipped: skipped,
     pathFilterReason: fallback,
     comparisonBaseSha: changedFiles?.baseSha,
+    autoCancelWorkflowFiles: autoCancelWorkflowFiles,
   );
 }

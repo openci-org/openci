@@ -18,6 +18,7 @@ class OpenCI {
     required List<CITrigger> ciTriggers,
     this.machine = MachineType.macOsLatest,
     this.flutterVersion,
+    this.cancelPreviousRuns = false,
     this.currentWorkingDirectory,
     required this.workspacePath,
     @visibleForTesting
@@ -32,6 +33,12 @@ class OpenCI {
   /// Events that can start this workflow. Any matching trigger schedules a run.
   final List<CITrigger> ciTriggers;
   final MachineType machine;
+
+  /// Cancel older opted-in runs of this workflow on the same pull request.
+  ///
+  /// Use a literal boolean in [init]. Push runs and runs of the same commit
+  /// are unaffected. The server applies this option; local runs are unchanged.
+  final bool cancelPreviousRuns;
 
   /// Flutter release selected by CI before resolving the workflow dependencies.
   ///
@@ -76,6 +83,7 @@ class OpenCI {
     required List<CITrigger> ciTriggers,
     MachineType machine = MachineType.macOsLatest,
     String? flutterVersion,
+    bool cancelPreviousRuns = false,
     String? currentWorkingDirectory,
     String? workspacePath,
   }) async {
@@ -86,6 +94,7 @@ class OpenCI {
       ciTriggers: ciTriggers,
       machine: machine,
       flutterVersion: flutterVersion,
+      cancelPreviousRuns: cancelPreviousRuns,
       currentWorkingDirectory: currentWorkingDirectory,
       workspacePath: workspace,
     );

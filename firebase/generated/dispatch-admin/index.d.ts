@@ -499,6 +499,17 @@ export interface GetRecoverableBuildExecutionsData {
   } & BuildJobDispatch_Key)[];
 }
 
+export interface GetSupersededBuildJobsData {
+  jobs: ({
+    id: string;
+  } & BuildJob_Key)[];
+}
+
+export interface GetSupersededBuildJobsVariables {
+  taskId: string;
+  afterId?: string;
+}
+
 export interface GitHubConnectionRequest_Key {
   id: string;
   __typename?: "GitHubConnectionRequest_Key";
@@ -534,6 +545,11 @@ export interface MarkBuildVmRequestedData {
 export interface MarkBuildVmRequestedVariables {
   id: string;
   executorId: string;
+}
+
+export interface PullRequestPlanning_Key {
+  id: string;
+  __typename?: "PullRequestPlanning_Key";
 }
 
 export interface RecordBuildDispatchLaunchData {
@@ -818,6 +834,18 @@ export function expireUnstartedBuildDispatches(
 export function expireUnstartedBuildDispatches(
   options?: OperationOptions,
 ): Promise<ExecuteOperationResponse<ExpireUnstartedBuildDispatchesData>>;
+
+/** Generated Node Admin SDK operation action function for the 'GetSupersededBuildJobs' Query. Allow users to execute without passing in DataConnect. */
+export function getSupersededBuildJobs(
+  dc: DataConnect,
+  vars: GetSupersededBuildJobsVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<GetSupersededBuildJobsData>>;
+/** Generated Node Admin SDK operation action function for the 'GetSupersededBuildJobs' Query. Allow users to pass in custom DataConnect instances. */
+export function getSupersededBuildJobs(
+  vars: GetSupersededBuildJobsVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<GetSupersededBuildJobsData>>;
 
 /** Generated Node Admin SDK operation action function for the 'CancelUnstartedBuildDispatch' Mutation. Allow users to execute without passing in DataConnect. */
 export function cancelUnstartedBuildDispatch(

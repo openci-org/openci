@@ -75,6 +75,32 @@ export const queueBuildJobs = onMutationExecuted(
         await queuedChecks(getDispatchDataConnect()).sync(id);
         await enqueue({ jobId: id }, dispatchTaskId(id));
       }
+      const { data, variables, errors } = event.data.payload;
+      // Older deployed connectors have no cancellation result. Redelivery of a
+      // successful cancellation pages the durable source again with stable IDs.
+      if (!errors?.length && data && typeof data === "object" && "cancelled" in data) {
+        if (!Number.isSafeInteger(data.cancelled) || Number(data.cancelled) < 0)
+          throw new Error("Invalid cancellation count");
+        if (Number(data.cancelled) > 0) {
+          if (
+            !variables ||
+            typeof variables !== "object" ||
+            !("id" in variables) ||
+            !validJobId(variables.id)
+          )
+            throw new Error("Invalid cancellation source");
+          const taskId = variables.id;
+          const store = new DataConnectDispatchStore(getDispatchDataConnect());
+          let afterId = "";
+          for (;;) {
+            const jobs = await store.superseded(taskId, afterId);
+            for (const job of jobs)
+              await enqueue({ jobId: job.id }, dispatchTaskId(job.id, `superseded-${taskId}`));
+            if (jobs.length < 100) break;
+            afterId = jobs.at(-1)!.id;
+          }
+        }
+      }
     } catch {
       error("Build dispatch enqueue failed", { eventId: event.id });
       throw new Error("Build dispatch enqueue failed; retry required");

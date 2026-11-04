@@ -1,0 +1,36 @@
+mutation BeginPullRequestPlanning(
+  $id: String!
+  $taskId: String!
+  $connectionId: String!
+  $repositoryId: Int64!
+  $pullRequestNumber: Int64!
+  $token: String!
+) @auth(level: NO_ACCESS) @transaction {
+  # Take locks in the same order as CompleteWebhookTask.
+  webhookTask_updateMany(
+    where: { id: { eq: $taskId }, status: { eq: "pending" }, eventType: { eq: "pull_request" } }
+    data: { updatedAt_expr: "int(request.time)" }
+  ) @check(expr: "this == 1", message: "PR task is not pending")
+  connectionState: query @redact {
+    connection: gitHubConnection(id: $connectionId)
+      @check(
+        expr: "this != null && this.status == 'active'"
+        message: "GitHub connection is inactive"
+      ) {
+      status
+    }
+  }
+  pullRequestPlanning_upsert(
+    data: {
+      id: $id
+      connectionId: $connectionId
+      repositoryId: $repositoryId
+      pullRequestNumber: $pullRequestNumber
+      token: $token
+    }
+  )
+    @check(
+      expr: "vars.repositoryId > 0 && vars.pullRequestNumber > 0"
+      message: "Invalid PR identity"
+    )
+}

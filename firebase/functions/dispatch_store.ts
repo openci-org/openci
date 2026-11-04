@@ -21,6 +21,9 @@ export class DataConnectDispatchStore implements DispatchStore {
   async cancelUnstarted(jobId: string): Promise<void> {
     await sdk.cancelUnstartedBuildDispatch(this.dc, { jobId });
   }
+  async superseded(taskId: string, afterId: string): Promise<{ id: string }[]> {
+    return (await sdk.getSupersededBuildJobs(this.dc, { taskId, afterId })).data.jobs;
+  }
   async read(jobId: string): Promise<DispatchState> {
     return (await sdk.getBuildDispatchState(this.dc, { jobId })).data;
   }

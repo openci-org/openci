@@ -14,10 +14,12 @@ class BuildJobPlanner {
     required this.store,
     required this.fetchWorkflows,
     this.fetchChangedFiles,
+    this.isCurrentPullRequest,
   });
   final PlanningStore store;
   final FetchWorkflows fetchWorkflows;
   final FetchChangedFiles? fetchChangedFiles;
+  final Future<bool> Function(PlanningEvent event)? isCurrentPullRequest;
 
   Future<String> process(String taskId) async {
     final task = await store.getTask(taskId);
@@ -30,6 +32,7 @@ class BuildJobPlanner {
     }
     PlanningEvent? event;
     PlanningConnection? connection;
+    PlanningFence? fence;
     var plan = const WorkflowPlan();
     try {
       event = PlanningEvent.parse(task.eventType, task.payload);
@@ -38,6 +41,15 @@ class BuildJobPlanner {
         if (connection != null) {
           if (connection.accountId != event.ownerId.toString()) {
             throw const InvalidPlanningInput('invalid_payload');
+          }
+          // Fence before observing GitHub. A newer concurrent planner invalidates
+          // this attempt even when it disables cancellation or selects no jobs.
+          if (event.webhook.pullRequestNumber != null) {
+            fence = await store.beginPullRequestPlanning(
+              task.id,
+              event,
+              connection,
+            );
           }
           final files = await fetchWorkflows(event);
           final workflows = files
@@ -59,6 +71,13 @@ class BuildJobPlanner {
             workflows: workflows,
             changedFiles: changedFiles,
           );
+          if (plan.autoCancelWorkflowFiles.isNotEmpty) {
+            final verify = isCurrentPullRequest;
+            if (verify == null) {
+              throw StateError('PR head verification is unavailable');
+            }
+            if (!await verify(event)) plan = plan.withoutSupersededJobs();
+          }
         }
       }
     } on InvalidPlanningInput catch (error) {
@@ -69,7 +88,7 @@ class BuildJobPlanner {
       return 'failed';
     }
     try {
-      await store.complete(task.id, event, connection, plan);
+      await store.complete(task.id, event, connection, plan, fence: fence);
       return 'created';
     } catch (_) {
       // Another consumer may have committed, or only the response was lost.

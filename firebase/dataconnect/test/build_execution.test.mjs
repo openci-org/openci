@@ -5,6 +5,7 @@ import { deleteApp, getApps, initializeApp } from "firebase-admin/app";
 import * as dispatchSdk from "@openci/dispatch-admin";
 import * as billingSdk from "@openci/billing-admin";
 import * as logsSdk from "@openci/logs-admin";
+import * as webhookSdk from "@openci/webhooks-admin";
 import { ExecutionStore, isolatedConnector } from "../../lib/functions/executor/store.js";
 import { ExecutionBilling } from "../../lib/functions/executor/billing.js";
 import { ExecutionLogs } from "../../lib/functions/executor/logs.js";
@@ -22,6 +23,7 @@ const app = initializeApp({ projectId: "demo-openci" });
 const dc = isolatedConnector(dispatchSdk.connectorConfig, app);
 const billingDc = isolatedConnector(billingSdk.connectorConfig, app);
 const logsDc = isolatedConnector(logsSdk.connectorConfig, app);
+const webhookDc = isolatedConnector(webhookSdk.connectorConfig, app);
 const store = new ExecutionStore(dc);
 const billing = new ExecutionBilling(billingDc);
 after(async () => {
@@ -238,6 +240,68 @@ async function started(f) {
   await store.configure(dispatch, executorId);
   await billing.start(dispatch);
   return { dispatch, executorId };
+}
+
+async function prepareSupersedingRevision(t, f) {
+  const taskId = randomUUID(),
+    planningId = randomUUID(),
+    token = randomUUID(),
+    newJobId = randomUUID();
+  await alterJob(f.jobId, { cancelPreviousRuns: true, pullRequestNumber: "7" });
+  await graphql(
+    `
+      mutation SeedTask($id: String!) {
+        webhookTask_insert(
+          data: {
+            id: $id
+            deliveryId: $id
+            eventType: "pull_request"
+            payload: "{}"
+            status: "pending"
+            createdAt: 1
+            updatedAt: 1
+          }
+        )
+      }
+    `,
+    { id: taskId },
+  );
+  t.after(() =>
+    graphql(
+      `
+        mutation CleanupNew($jobId: String!, $taskId: String!) {
+          buildJob_delete(id: $jobId)
+          webhookTask_delete(id: $taskId)
+        }
+      `,
+      { jobId: newJobId, taskId },
+    ),
+  );
+  await webhookSdk.beginPullRequestPlanning(webhookDc, {
+    id: planningId,
+    taskId,
+    connectionId: f.teamId,
+    repositoryId: "10",
+    pullRequestNumber: "7",
+    token,
+  });
+  return () =>
+    webhookSdk.completeWebhookTask(webhookDc, {
+      id: taskId,
+      planningId,
+      planningToken: token,
+      connectionId: f.teamId,
+      owner: "org",
+      repo: "app",
+      branch: "feature",
+      pullRequestNumber: "7",
+      githubBaseUrl: "https://github.com",
+      commitSha: "b".repeat(40),
+      jobCount: 1,
+      jobsJson: JSON.stringify([
+        { id: newJobId, name: "CI", file: "ci.dart", cancelPreviousRuns: true },
+      ]),
+    });
 }
 
 test("Cloud Run executor completes checkout, workflow, FSC logs, billing, checks and VM cleanup", async (t) => {
@@ -694,12 +758,13 @@ test("cleanup cannot finish while billing or the VM remains, and client identiti
 });
 
 test(
-  "FSC cancellation is observed by the heartbeat and interrupts an open command",
+  "PR auto cancellation interrupts an open command and closes VM, billing and GitHub Check",
   { timeout: 25000 },
   async (t) => {
     const f = await fixture(t);
+    const supersede = await prepareSupersedingRevision(t, f);
     f.dependencies.orchard.exec = async (_vm, _script, _output, signal) => {
-      await alterJob(f.jobId, { status: "CANCELLED" });
+      assert.equal((await supersede()).data.cancelled, 1);
       return new Promise((_resolve, reject) => {
         signal.addEventListener("abort", () => reject(new Error("Interrupted")), { once: true });
       });
@@ -708,8 +773,30 @@ test(
     assert.equal((await f.state()).job.status, "CANCELLED");
     assert.equal((await f.billingState()).outcome, "cancelled");
     assert.equal(f.calls.at(-1), "remove");
+    assert.equal(f.checks.at(-1), "cancelled");
+    assert.equal((await f.state()).run.conclusion, "cancelled");
+    assert.equal((await f.state()).dispatch.activeJobId, null);
   },
 );
+
+test("execution startup cannot revive a PR job cancelled concurrently with admission", async (t) => {
+  const f = await fixture(t);
+  const supersede = await prepareSupersedingRevision(t, f);
+  const executorId = await f.claim();
+  const start = () =>
+    dispatchSdk.startSelfHostedBuildExecution(dc, {
+      id: f.id,
+      jobId: f.jobId,
+      teamId: f.teamId,
+      executorId,
+    });
+  const [cancellation] = await Promise.allSettled([supersede(), start()]);
+  assert.equal(cancellation.status, "fulfilled");
+  assert.equal(cancellation.value.data.cancelled, 1);
+  assert.equal((await f.state()).job.status, "CANCELLED");
+  await assert.rejects(start());
+  assert.equal((await f.state()).job.status, "CANCELLED");
+});
 
 test("a lost claim acknowledgement never starts a VM or resumes the claimed attempt", async (t) => {
   const f = await fixture(t);
@@ -776,4 +863,35 @@ test("the sweep removes a VM that appears after its attempt already finished", a
   await recoverExecutions(f.dependencies);
   assert.deepEqual(removed, [`openci-${f.id}`]);
   assert.equal((await active.state()).dispatch.activeJobId, active.jobId);
+});
+
+test("a terminal execution already publishing its Check retains a consistent result", async (t) => {
+  const f = await fixture(t);
+  const supersede = await prepareSupersedingRevision(t, f);
+  const check = f.dependencies.github.check;
+  f.dependencies.github.check = async (job, dispatch, outcome) => {
+    if (outcome === "success") assert.equal((await supersede()).data.cancelled, 0);
+    return check(job, dispatch, outcome);
+  };
+  await f.run();
+  assert.equal((await f.state()).job.status, "SUCCESS");
+  assert.equal((await f.state()).run.conclusion, "success");
+  assert.equal((await f.billingState()).outcome, "success");
+  assert.equal(f.checks.at(-1), "success");
+});
+
+test("concurrent result recording and auto cancellation agree on billing and the final Check", async (t) => {
+  const f = await fixture(t);
+  const supersede = await prepareSupersedingRevision(t, f);
+  const { executorId } = await started(f);
+  const [cancellation] = await Promise.all([
+    supersede(),
+    store.result(f.id, executorId, "success"),
+  ]);
+  await cleanupExecution(f.id, f.jobId, f.dependencies, false);
+  const expected = cancellation.data.cancelled === 1 ? "cancelled" : "success";
+  assert.equal((await f.state()).job.status, expected.toUpperCase());
+  assert.equal((await f.state()).run.conclusion, expected);
+  assert.equal((await f.billingState()).outcome, expected);
+  assert.equal(f.checks.at(-1), expected);
 });

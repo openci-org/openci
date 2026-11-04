@@ -75,3 +75,25 @@ dart run openci/flutter_ci.dart
 ```
 
 必要なSDKとビルドツールは、実行環境側に用意してください。詳しくは[クイックスタート](/ja/docs/quickstart/)を参照してください。
+
+## 古いPRのCIを自動キャンセルする
+
+`openci_workflow` 0.2.3と自動キャンセルに対応したサーバーで、`OpenCI.init`に
+`cancelPreviousRuns: true`を指定します。
+
+```dart
+final ci = await OpenCI.init(
+  workflowName: 'PR checks',
+  ciTriggers: [CITrigger.pullRequest(branch: 'main')],
+  cancelPreviousRuns: true,
+);
+```
+
+新しいコミットの実行が登録されると、同じリポジトリ・PR・ワークフローファイルの、
+自動キャンセルを有効にしていた古い待機中・実行中ジョブをキャンセルします。
+別PR、pushによる実行、完了済みジョブ、同じコミットの再実行は対象外です。
+`paths`条件で新しい実行がスキップされた場合も、古い実行は継続します。
+
+初期値は`false`です。最後まで実行したいデプロイ用ワークフローでは無効のままにします。
+値にはリテラルの`true`か`false`を指定してください。実行中ジョブは通常約15秒で
+キャンセルを検知し、その後VMの削除とGitHub Checkの更新を行います。

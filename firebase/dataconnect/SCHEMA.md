@@ -1,6 +1,6 @@
 # Schema migration inventory
 
-These definitions cover 24 tables used by Functions, the Dart
+These definitions cover 25 tables used by Functions, the Dart
 planner, the Cloud Run executor and Dashboard. The legacy data cutover is complete;
 `schema/` is the source of truth for application storage. The new skipped-Check
 outbox is additive and must be deployed before changed-path filtering is enabled.
@@ -21,6 +21,7 @@ outbox is additive and must be deployed before changed-path filtering is enabled
 | `build_dispatch_schedulers`  | `BuildDispatchScheduler`  | `build_dispatch.gql`    |
 | `build_job_dispatches`       | `BuildJobDispatch`        | `build_dispatch.gql`    |
 | `webhook_tasks`              | `WebhookTask`             | `webhook.gql`           |
+| `pull_request_planning`      | `PullRequestPlanning`     | `webhook.gql`           |
 | `skipped_workflow_checks`    | `SkippedWorkflowCheck`    | `webhook.gql`           |
 | `billing_accounts`           | `BillingAccount`          | `billing.gql`           |
 | `billing_periods`            | `BillingPeriod`           | `billing.gql`           |
