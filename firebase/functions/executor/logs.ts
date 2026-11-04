@@ -1,8 +1,12 @@
 import { randomUUID } from "node:crypto";
+import { Writable } from "node:stream";
+import { finished } from "node:stream/promises";
 import { StringDecoder } from "node:string_decoder";
 import type { DataConnect } from "firebase-admin/data-connect";
 import * as sdk from "@openci/logs-admin";
 import type { Stream } from "./model.js";
+
+const maxLogChunkBytes = 8 * 1024;
 
 /** Holds only a possible secret prefix, preserving live output between frames. */
 export class StreamingRedactor {
@@ -153,35 +157,59 @@ export class ExecutionLogs {
     ) as Record<Stream, { decoder: StringDecoder; redactor: StreamingRedactor; text: string }>;
     const flushText = async (stream: Stream, final: boolean) => {
       const state = streams[stream];
-      // Keep individual records well below FSC's 16 KiB UTF-8 limit.
       while (state.text) {
         const newline = state.text.indexOf("\n");
-        if (newline < 0 && Buffer.byteLength(state.text) < 8192 && !final) return;
+        if (newline < 0 && Buffer.byteLength(state.text) < maxLogChunkBytes && !final) return;
         let message = "";
         let length = 0;
         for (const character of state.text) {
           const bytes = Buffer.byteLength(character);
-          if (length + bytes > 8192) break;
+          if (length + bytes > maxLogChunkBytes) break;
           message += character;
           length += bytes;
-          if (character === "\n") break;
         }
+        // Prefer line boundaries so batching does not split otherwise complete lines.
+        const lastNewline = message.lastIndexOf("\n");
+        if (lastNewline >= 0) message = message.slice(0, lastNewline + 1);
         state.text = state.text.slice(message.length);
         await this.append(stepId, stream, message);
       }
     };
-    return {
-      write: async (stream: Stream, bytes: Buffer) => {
+    const writeFrame = async (stream: Stream, bytes: Buffer) => {
+      const state = streams[stream];
+      state.text += state.redactor.push(state.decoder.write(bytes));
+      await flushText(stream, false);
+    };
+    const flushStreams = async () => {
+      for (const stream of ["stdout", "stderr"] as const) {
         const state = streams[stream];
-        state.text += state.redactor.push(state.decoder.write(bytes));
-        await flushText(stream, false);
+        state.text += state.redactor.push(state.decoder.end(), true);
+        await flushText(stream, true);
+      }
+    };
+    const writer = new Writable({
+      objectMode: true,
+      write({ stream, bytes }: { stream: Stream; bytes: Buffer }, _encoding, callback) {
+        void writeFrame(stream, bytes).then(() => callback(), callback);
       },
-      flush: async () => {
-        for (const stream of ["stdout", "stderr"] as const) {
-          const state = streams[stream];
-          state.text += state.redactor.push(state.decoder.end(), true);
-          await flushText(stream, true);
-        }
+      final(callback) {
+        void flushStreams().then(() => callback(), callback);
+      },
+    });
+    const completion = finished(writer);
+    // Writes may fail before flush() is called; flush() still receives the rejection.
+    void completion.catch(() => {});
+    return {
+      write: (stream: Stream, bytes: Buffer) =>
+        new Promise<void>((resolve, reject) => {
+          writer.write({ stream, bytes }, (error) => {
+            if (error) reject(error);
+            else resolve();
+          });
+        }),
+      flush: () => {
+        writer.end();
+        return completion;
       },
     };
   }

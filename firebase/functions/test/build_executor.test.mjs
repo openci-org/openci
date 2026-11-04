@@ -173,6 +173,149 @@ test("redaction covers split tokens, multiline secrets and overlapping values", 
   assert.equal(actual, "first [REDACTED] and [REDACTED] last");
 });
 
+function captureLogOutput(secrets = []) {
+  const logger = new ExecutionLogs({}, "team", "run");
+  const writes = [];
+  logger.append = async (_step, stream, message) => {
+    writes.push({ stream, message });
+  };
+  return { writes, output: logger.output("run_workflow", secrets) };
+}
+
+test("live logs persist 100 short lines from one frame in a single write", async () => {
+  const { writes, output } = captureLogOutput();
+  const message = Array.from({ length: 100 }, (_, index) => `line ${index}\n`).join("");
+
+  await output.write("stdout", Buffer.from(message));
+  assert.equal(writes.length, 1);
+  assert.deepEqual(writes, [{ stream: "stdout", message }]);
+  await output.flush();
+  assert.equal(writes.length, 1);
+});
+
+test("live log batches preserve complete lines at the 8 KiB UTF-8 boundary", async (t) => {
+  for (const { line, batchLineCounts } of [
+    { line: "あ".repeat(1365) + "\n", batchLineCounts: [2, 1] },
+    { line: "あ".repeat(2730) + "\n", batchLineCounts: [1, 1, 1] },
+  ]) {
+    await t.test(`${Buffer.byteLength(line)} byte lines`, async () => {
+      const { writes, output } = captureLogOutput();
+
+      await output.write("stdout", Buffer.from(line.repeat(3)));
+      assert.equal(writes.length, batchLineCounts.length);
+      assert.deepEqual(
+        writes.map((write) => write.message),
+        batchLineCounts.map((count) => line.repeat(count)),
+      );
+      assert.ok(writes.every((write) => Buffer.byteLength(write.message) <= 8192));
+      await output.flush();
+    });
+  }
+});
+
+test("live log batches keep stream order, redact split secrets and flush the final partial line", async () => {
+  const { writes, output } = captureLogOutput(["token-secret", "line1\nline2"]);
+
+  await output.write("stdout", Buffer.from("ready\nbegin tok"));
+  await output.write("stderr", Buffer.from("warning 1\nwarning 2\n"));
+  await output.write("stdout", Buffer.from("en-secret\nline1\n"));
+  await output.write("stdout", Buffer.from("line2\nlast"));
+  assert.deepEqual(writes, [
+    { stream: "stdout", message: "ready\n" },
+    { stream: "stderr", message: "warning 1\nwarning 2\n" },
+    { stream: "stdout", message: "begin [REDACTED]\n" },
+    { stream: "stdout", message: "[REDACTED]\n" },
+  ]);
+
+  await output.flush();
+  assert.deepEqual(writes.at(-1), { stream: "stdout", message: "last" });
+  assert.equal(writes.length, 5);
+  await output.flush();
+  assert.equal(writes.length, 5);
+});
+
+test("live log writes serialize stdout and stderr before flushing the final partial line", async (t) => {
+  const firstWrite = Promise.withResolvers();
+  const finalWrite = Promise.withResolvers();
+  const finalWriteStarted = Promise.withResolvers();
+  t.after(() => {
+    firstWrite.resolve();
+    finalWrite.resolve();
+  });
+  const logger = new ExecutionLogs({}, "team", "run");
+  const writes = [];
+  logger.append = async (_step, stream, message) => {
+    writes.push({ stream, message });
+    if (message === "first\n") await firstWrite.promise;
+    if (message === "tail") {
+      finalWriteStarted.resolve();
+      await finalWrite.promise;
+    }
+  };
+  const output = logger.output("run_workflow", []);
+
+  const pendingWrites = [
+    output.write("stdout", Buffer.from("first\n")),
+    output.write("stderr", Buffer.from("warning\ntail")),
+  ];
+  let flushed = false;
+  const flushing = output.flush().then(() => {
+    flushed = true;
+  });
+  const repeatedFlush = output.flush();
+  assert.deepEqual(writes, [{ stream: "stdout", message: "first\n" }]);
+
+  firstWrite.resolve();
+  await finalWriteStarted.promise;
+  await Promise.all(pendingWrites);
+  assert.deepEqual(writes, [
+    { stream: "stdout", message: "first\n" },
+    { stream: "stderr", message: "warning\n" },
+    { stream: "stderr", message: "tail" },
+  ]);
+  assert.equal(flushed, false, "flush must wait for the final append to finish");
+
+  finalWrite.resolve();
+  await Promise.all([flushing, repeatedFlush]);
+  assert.equal(flushed, true);
+  assert.equal(writes.length, 3);
+});
+
+test("live log persistence failure rejects queued writes and flushing", async () => {
+  const failure = new Error("Log persistence failed");
+  const logger = new ExecutionLogs({}, "team", "run");
+  const messages = [];
+  logger.append = async (_step, _stream, message) => {
+    messages.push(message);
+    throw failure;
+  };
+  const output = logger.output("run_workflow", []);
+
+  await Promise.all([
+    assert.rejects(output.write("stdout", Buffer.from("first\n")), failure),
+    assert.rejects(output.write("stderr", Buffer.from("second\n")), failure),
+  ]);
+  await assert.rejects(output.flush(), failure);
+  await assert.rejects(output.flush(), failure);
+  assert.deepEqual(messages, ["first\n"]);
+});
+
+test("live log flushing reports a failed final partial line without retrying it", async () => {
+  const failure = new Error("Log persistence failed");
+  const logger = new ExecutionLogs({}, "team", "run");
+  const messages = [];
+  logger.append = async (_step, _stream, message) => {
+    messages.push(message);
+    if (message === "tail") throw failure;
+  };
+  const output = logger.output("run_workflow", []);
+
+  await output.write("stdout", Buffer.from("saved\ntail"));
+  await assert.rejects(output.flush(), failure);
+  await assert.rejects(output.flush(), failure);
+  assert.deepEqual(messages, ["saved\n", "tail"]);
+});
+
 test("live log chunks preserve UTF-8 and do not wait for the longest secret", async () => {
   const redactor = new StreamingRedactor(["a".repeat(65000)]);
   assert.equal(redactor.push("ready\n"), "ready\n");
