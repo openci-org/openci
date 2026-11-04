@@ -7,7 +7,7 @@
   "iphoneos_sdk_version": "27.2",
   "ios_runtime_version": "27.2",
   "fvm_version": "4.1.4",
-  "flutter_version": "3.47.1",
+  "flutter_version": "3.47.8",
   "go_version": "1.27.3",
   "go_pkg_url": "https://go.dev/dl/go1.27.3.darwin-arm64.pkg",
   "go_pkg_sha256": "fbf88e3b97b66168c34ed859c4a52b795da07dfd806504bdb0b95dd58f8976da",
