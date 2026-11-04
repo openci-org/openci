@@ -3,6 +3,8 @@ type BuildDispatchScheduler @table(name: "build_dispatch_schedulers", key: "id")
   id: String!
   owner: String
   leaseUntil: Timestamp
+  retryTaskId: String
+  retryScheduleTime: Timestamp
 }
 
 # One open reservation per job. Old attempts remain fenced after replacement.

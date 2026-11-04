@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { getFunctions } from "firebase-admin/functions";
 import { onMutationExecuted } from "firebase-functions/dataconnect";
 import { error, info } from "firebase-functions/logger";
@@ -8,7 +9,7 @@ import {
   dispatchBuildJob as executeDispatch,
   dispatchTaskId,
   dispatchCompletionTaskId,
-  dispatchRetryTaskId,
+  dispatchContinuationTaskId,
   dispatchFailureReason,
   DispatchRetry,
   validJobId,
@@ -32,14 +33,14 @@ const vmImage = defineString("BASE_VM_NAME", { default: "base-macos" });
 const cloudRunJob = defineString("BUILD_EXECUTOR_JOB");
 
 async function enqueue(
-  jobId: string,
-  taskId = dispatchTaskId(jobId),
+  notification: { jobId: string } | { dispatch: true },
+  taskId: string,
   scheduleTime?: Date,
 ): Promise<void> {
   try {
     await getFunctions()
       .taskQueue("locations/asia-northeast1/functions/dispatchBuildJob")
-      .enqueue({ jobId }, { id: taskId, scheduleTime, dispatchDeadlineSeconds: 120 });
+      .enqueue(notification, { id: taskId, scheduleTime, dispatchDeadlineSeconds: 120 });
   } catch (failure) {
     if (
       failure &&
@@ -72,7 +73,7 @@ export const queueBuildJobs = onMutationExecuted(
       if (event.authType !== "admin") throw new Error("Unexpected mutation principal");
       for (const id of createdBuildJobIds(event.data.payload)) {
         await queuedChecks(getDispatchDataConnect()).sync(id);
-        await enqueue(id);
+        await enqueue({ jobId: id }, dispatchTaskId(id));
       }
     } catch {
       error("Build dispatch enqueue failed", { eventId: event.id });
@@ -115,7 +116,10 @@ export const queueBuildDispatchOnCompletion = onMutationExecuted(
         throw new Error("Invalid completed build execution");
       // The original recovery task may still be scheduled at the startup
       // deadline. Completion needs its own task ID to wake the queue now.
-      await enqueue(variables.jobId, dispatchCompletionTaskId(variables.jobId, variables.id));
+      await enqueue(
+        { jobId: variables.jobId },
+        dispatchCompletionTaskId(variables.jobId, variables.id),
+      );
     } catch {
       error("Build completion dispatch enqueue failed", { eventId: event.id });
       throw new Error("Build completion dispatch enqueue failed; retry required");
@@ -147,23 +151,31 @@ export const dispatchBuildJob = onTaskDispatched<unknown>(
   },
   async (request) => {
     const input = request.data;
-    if (
-      !input ||
-      typeof input !== "object" ||
-      Object.keys(input).length !== 1 ||
-      !("jobId" in input) ||
-      !validJobId(input.jobId)
-    ) {
+    if (!input || typeof input !== "object" || Object.keys(input).length !== 1) {
       error("Invalid build dispatch task");
       return;
     }
-    const jobId = input.jobId;
+    const jobId = "jobId" in input && validJobId(input.jobId) ? input.jobId : undefined;
+    const sharedNotification = "dispatch" in input && input.dispatch === true;
+    if (!jobId && !sharedNotification) {
+      error("Invalid build dispatch task");
+      return;
+    }
     try {
+      const continuationId = dispatchContinuationTaskId(request.id);
       const store = new DataConnectDispatchStore(getDispatchDataConnect());
-      if ((await store.read(jobId)).job?.status === "CANCELLED") await store.cancelUnstarted(jobId);
-      // Also covers jobs queued before deployment and cancellation while waiting
-      // for capacity. Never launch a new reservation before its check is durable.
-      await queuedChecks(getDispatchDataConnect()).sync(jobId);
+      let awaitingJobId: string | undefined;
+      if (jobId) {
+        const { job } = await store.read(jobId);
+        if (job?.status === "CANCELLED") await store.cancelUnstarted(jobId);
+        if (job?.status === "QUEUED") awaitingJobId = jobId;
+        // Also handles legacy per-job retries already queued before deployment.
+        await queuedChecks(getDispatchDataConnect()).sync(jobId);
+      } else {
+        // Continue even if already consumed: this delivery may be recovering a
+        // crash after clearing the reservation but before creating its successor.
+        await store.consumeRetry(request.id);
+      }
       const orchard = new OrchardCapacityClient({
         url: orchardUrl.value(),
         account: orchardAccount.value(),
@@ -173,43 +185,60 @@ export const dispatchBuildJob = onTaskDispatched<unknown>(
           process.env.FUNCTIONS_EMULATOR === "true" &&
           (process.env.GCLOUD_PROJECT ?? "").startsWith("demo-"),
       });
-      await executeDispatch(jobId, {
-        store,
-        snapshot: () => orchard.snapshot(),
-        configuration: {
-          cpu: vmCpu.value(),
-          memoryMiB: vmMemory.value(),
-          image: vmImage.value(),
-          cloudRunJob: cloudRunJob.value(),
-        },
-        syncQueuedCheck: (selectedJobId) =>
-          queuedChecks(getDispatchDataConnect()).sync(selectedJobId),
-        enqueueRecovery: (dispatch) =>
-          enqueue(
-            dispatch.jobId,
-            dispatchTaskId(dispatch.jobId, dispatch.id),
-            new Date(Date.parse(dispatch.startDeadline) + 1000),
-          ),
-        launch: (dispatch) => launchCloudRunJob(dispatch),
-      });
+      let launched = false;
+      let deferred: DispatchRetry | undefined;
+      try {
+        launched = await executeDispatch({
+          store,
+          snapshot: () => orchard.snapshot(),
+          configuration: {
+            cpu: vmCpu.value(),
+            memoryMiB: vmMemory.value(),
+            image: vmImage.value(),
+            cloudRunJob: cloudRunJob.value(),
+          },
+          syncQueuedCheck: (selectedJobId) =>
+            queuedChecks(getDispatchDataConnect()).sync(selectedJobId),
+          enqueueRecovery: (dispatch) =>
+            enqueue(
+              { jobId: dispatch.jobId },
+              dispatchTaskId(dispatch.jobId, dispatch.id),
+              new Date(Date.parse(dispatch.startDeadline) + 1000),
+            ),
+          launch: (dispatch) => launchCloudRunJob(dispatch),
+        });
+      } catch (failure) {
+        if (!(failure instanceof DispatchRetry)) throw failure;
+        deferred = failure;
+      }
+
+      const { queuedJob, changedJob } = await store.pendingWork();
+      if (changedJob) {
+        if (changedJob.status === "CANCELLED") {
+          await enqueue(
+            { jobId: changedJob.id },
+            dispatchContinuationTaskId(request.id, changedJob.id),
+          );
+        }
+        await store.completeRetryJob(changedJob.id);
+      }
+      if (launched || changedJob) {
+        // Fill other free slots and drain status changes without waiting a minute.
+        await enqueue({ dispatch: true }, continuationId);
+      }
+      if (deferred || queuedJob || awaitingJobId) {
+        try {
+          // Register a queued source even if it just left the queue. Cancellation
+          // can race its check sync; the shared retry must inherit that notification.
+          const retry = await store.reserveRetry(`capacity-${randomUUID()}`, awaitingJobId);
+          await enqueue({ dispatch: true }, retry.taskId, retry.scheduleTime);
+        } catch {
+          throw new Error("Build dispatch retry could not be queued");
+        }
+      }
+      if (deferred) info("Build dispatch deferred", { jobId, reason: deferred.reason });
     } catch (failure) {
       // Never include SDK/HTTP exception objects: they can contain credentials.
-      if (failure instanceof DispatchRetry) {
-        try {
-          // Acknowledge only after the successor exists. A lost enqueue response
-          // retries this task with the same successor ID, without multiplying work.
-          await enqueue(
-            jobId,
-            dispatchRetryTaskId(jobId, request.id),
-            new Date(Date.now() + 60_000),
-          );
-        } catch {
-          error("Build dispatch failed", { jobId, reason: "retry_enqueue_failed" });
-          throw new Error("Build dispatch retry could not be queued; retry required");
-        }
-        info("Build dispatch deferred", { jobId, reason: failure.reason });
-        return;
-      }
       error("Build dispatch failed", { jobId, reason: dispatchFailureReason(failure) });
       throw new Error("Build dispatch failed; retry required");
     }
