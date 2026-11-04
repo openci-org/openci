@@ -2,7 +2,8 @@
 type BuildJob
   @table(name: "build_jobs", key: "id")
   @index(fields: ["teamId", "createdAt"], order: [ASC, DESC])
-  @index(fields: ["status", "createdAt"]) {
+  @index(fields: ["status", "createdAt"])
+  @index(fields: ["dispatchRetryPending", "status"]) {
   id: String!
   status: String!
   owner: String!
@@ -37,6 +38,8 @@ type BuildJob
   checkRunNumber: Int64 @col(name: "check_run_number")
   checkOwner: String @col(name: "check_owner")
   checkLeaseUntil: Timestamp @col(name: "check_lease_until")
+  # The shared retry owns cancellation notification until a reservation takes over.
+  dispatchRetryPending: Boolean! @col(name: "dispatch_retry_pending") @default(value: false)
   createdAt: Int64! @col(name: "created_at")
   updatedAt: Int64! @col(name: "updated_at")
   completedAt: Int64 @col(name: "completed_at")

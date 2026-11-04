@@ -58,16 +58,17 @@ jobs whose last blocked attempt finished within 60 seconds. Their original
 creation times are preserved, so they regain their position when eligible.
 Cancelled and terminal jobs are never selected for a new reservation.
 
-If a notification starts another job, its own queued job keeps a delayed retry
-until it has a reservation or is no longer queued. This also preserves the last
-notification when all remaining jobs are temporarily ineligible. Expected waits
-do not keep completed or claimed jobs polling. Existing task payloads continue
-to work without recreating the waiting queue.
+After a launch, an immediate continuation tries the next eligible job. A single
+wake-up can therefore fill several free slots, one reservation per invocation.
+Waiting jobs share one future capacity check, including when all remaining jobs
+are temporarily ineligible. Existing `{jobId}` tasks continue to work and join
+the shared retry without recreating or cancelling the waiting queue.
 
 Before creating a new reservation, any notification can resume an unstarted
 reservation whose launch has not been recorded. Recovery tasks use the selected
-reservation's job ID, while ordinary successors retain the notification's job
-ID. The startup deadline and execution claim still fence ambiguous launches.
+reservation's job ID; shared retries and immediate continuations carry only
+`{dispatch: true}`. The startup deadline and execution claim still fence
+ambiguous launches.
 
 ## Dispatch after capacity is released
 
@@ -103,13 +104,31 @@ a `QUEUED` `macos-latest` job. `BuildJobDispatch.activeJobId` is unique while a
 reservation is open. Closed attempts retain history and clear this key.
 
 If no capacity exists, or the scheduler/launch lease is busy, the job stays
-`QUEUED`. The Function enqueues a successor scheduled 60 seconds later before
-acknowledging the current task with HTTP 204. These expected waits log at INFO,
-so they do not trigger ERROR-log alerts. Each successor's ID is derived from the
-source Cloud Tasks task ID and job ID, in a namespace distinct from initial and
-recovery tasks. Redelivery or a lost enqueue response therefore reuses the same
-successor; subsequent waits create distinct successors and continue checking
-until the job is dispatched or no longer eligible.
+`QUEUED`. `ReserveBuildDispatchRetry` atomically reserves one task ID and a
+60-second schedule on the `orchard` scheduler row. Concurrent notifications
+receive the same reservation and each ensures that Cloud Task exists before
+acknowledging with HTTP 204. Expected lease/capacity waits log at INFO. In steady
+capacity exhaustion, 100 waiting jobs therefore cause one recheck per interval,
+instead of 100 independent recheck chains. Initial notifications and startup
+recovery tasks remain per job/reservation.
+
+A shared delivery consumes only its matching retry reservation. It still runs
+if that reservation was already consumed: a previous invocation may have died
+before making progress. Late redelivery cannot clear a newer reservation.
+Missing or lost enqueue acknowledgements fail the current task; redelivery
+ensures the same saved task ID exists. Fresh IDs for later cycles avoid Cloud
+Tasks' completed-task deduplication window. The chain stops once there is no
+queued work or pending status notification. Completion wake-ups remain immediate
+even when the shared fallback is scheduled in the future.
+
+`BuildJob.dispatchRetryPending` transfers a waiting source notification's
+cancellation responsibility to the shared retry. The shared handler hands a
+cancelled job to its own durable `{jobId}` task before clearing that marker, so
+GitHub errors for one cancelled job do not hold up the capacity queue. An
+immediate continuation drains further status changes. A capacity reservation
+clears the marker and owns startup recovery; already running jobs keep their
+execution-owned checks. A source observed as queued is registered even if it
+becomes cancelled during check synchronization.
 
 Actual dispatch or enqueue failures still log sanitized ERRORs and fail the
 current task for retry after 30–60 seconds. These retries are unlimited within
@@ -183,6 +202,14 @@ Cloud Run Job. Enable Cloud Tasks and Cloud Run APIs. Deploy `dispatchBuildJob`
 before enabling `queueBuildJobs` or `queueBuildDispatchOnCompletion` so the task
 queue exists before events arrive.
 
+For shared retries, migrate the additive `BuildDispatchScheduler.retryTaskId`,
+`retryScheduleTime` and `BuildJob.dispatchRetryPending` columns/index, then deploy
+the `dispatch` connector before `dispatchBuildJob`. Existing queues need no purge
+or re-enqueue. This dispatcher-only change needs no executor image update. An old
+dispatcher does not understand `{dispatch: true}` tasks: roll back by keeping the
+new handler until those tasks are drained or replacing them with per-job
+notifications for all queued work and pending cancellations.
+
 The three Functions' runtime identities need `cloudtasks.tasks.create` on that
 queue and `iam.serviceAccounts.actAs` on the identity used in their tasks (the
 Firebase Admin SDK uses the runtime service account). Grant those task
@@ -208,6 +235,8 @@ cleanup, and memory headroom with the configured 256 MiB.
 ## Local verification
 
 Run the Node checks and SQL emulator tests from [README.md](README.md#local-checks).
+Include `firebase/dataconnect/test/build_dispatch_retry.test.mjs` for shared
+retry reservations, cancellation tracking and concurrent notifications.
 Use `--test-concurrency=1` for the SQL suites: dispatch tests share the scheduler
 row. Tests use the real SQL emulator with mock Orchard/Cloud Run boundaries and
 exercise contention, ambiguous responses, retries, expiry and authorization.

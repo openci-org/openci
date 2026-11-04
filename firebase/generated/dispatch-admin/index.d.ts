@@ -145,6 +145,14 @@ export interface ClaimBuildJobExecutionVariables {
   timeoutSeconds?: number;
 }
 
+export interface CompleteBuildDispatchRetryJobData {
+  buildJob_updateMany: number;
+}
+
+export interface CompleteBuildDispatchRetryJobVariables {
+  jobId: string;
+}
+
 export interface CompleteBuildExecutionData {
   buildJob_updateMany: number;
   completed: number;
@@ -177,6 +185,14 @@ export interface ConfirmBuildVmDeletedData {
 export interface ConfirmBuildVmDeletedVariables {
   id: string;
   owner: string;
+}
+
+export interface ConsumeBuildDispatchRetryData {
+  buildDispatchScheduler_updateMany: number;
+}
+
+export interface ConsumeBuildDispatchRetryVariables {
+  taskId: string;
 }
 
 export interface ExpireUnstartedBuildDispatchesData {
@@ -404,6 +420,16 @@ export interface GetOldestQueuedBuildJobVariables {
   excludedJobIds: string[];
 }
 
+export interface GetPendingBuildDispatchWorkData {
+  queuedJob?: {
+    id: string;
+  } & BuildJob_Key;
+  changedJob?: {
+    id: string;
+    status: string;
+  } & BuildJob_Key;
+}
+
 export interface GetQueuedBuildCheckData {
   job?: {
     id: string;
@@ -563,6 +589,23 @@ export interface ReleaseQueuedBuildCheckData {
 export interface ReleaseQueuedBuildCheckVariables {
   jobId: string;
   owner: string;
+}
+
+export interface ReserveBuildDispatchRetryData {
+  initialized: BuildDispatchScheduler_Key;
+  buildJob_updateMany: number;
+  reserved?: BuildDispatchScheduler_Key | null;
+  query?: {
+    scheduler?: {
+      retryTaskId?: string | null;
+      retryScheduleTime?: TimestampString | null;
+    };
+  };
+}
+
+export interface ReserveBuildDispatchRetryVariables {
+  taskId: string;
+  jobId?: string;
 }
 
 export interface ReserveBuildJobDispatchData {
@@ -987,3 +1030,49 @@ export function completeBuildExecution(
   vars: CompleteBuildExecutionVariables,
   options?: OperationOptions,
 ): Promise<ExecuteOperationResponse<CompleteBuildExecutionData>>;
+
+/** Generated Node Admin SDK operation action function for the 'ReserveBuildDispatchRetry' Mutation. Allow users to execute without passing in DataConnect. */
+export function reserveBuildDispatchRetry(
+  dc: DataConnect,
+  vars: ReserveBuildDispatchRetryVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<ReserveBuildDispatchRetryData>>;
+/** Generated Node Admin SDK operation action function for the 'ReserveBuildDispatchRetry' Mutation. Allow users to pass in custom DataConnect instances. */
+export function reserveBuildDispatchRetry(
+  vars: ReserveBuildDispatchRetryVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<ReserveBuildDispatchRetryData>>;
+
+/** Generated Node Admin SDK operation action function for the 'ConsumeBuildDispatchRetry' Mutation. Allow users to execute without passing in DataConnect. */
+export function consumeBuildDispatchRetry(
+  dc: DataConnect,
+  vars: ConsumeBuildDispatchRetryVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<ConsumeBuildDispatchRetryData>>;
+/** Generated Node Admin SDK operation action function for the 'ConsumeBuildDispatchRetry' Mutation. Allow users to pass in custom DataConnect instances. */
+export function consumeBuildDispatchRetry(
+  vars: ConsumeBuildDispatchRetryVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<ConsumeBuildDispatchRetryData>>;
+
+/** Generated Node Admin SDK operation action function for the 'GetPendingBuildDispatchWork' Query. Allow users to execute without passing in DataConnect. */
+export function getPendingBuildDispatchWork(
+  dc: DataConnect,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<GetPendingBuildDispatchWorkData>>;
+/** Generated Node Admin SDK operation action function for the 'GetPendingBuildDispatchWork' Query. Allow users to pass in custom DataConnect instances. */
+export function getPendingBuildDispatchWork(
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<GetPendingBuildDispatchWorkData>>;
+
+/** Generated Node Admin SDK operation action function for the 'CompleteBuildDispatchRetryJob' Mutation. Allow users to execute without passing in DataConnect. */
+export function completeBuildDispatchRetryJob(
+  dc: DataConnect,
+  vars: CompleteBuildDispatchRetryJobVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<CompleteBuildDispatchRetryJobData>>;
+/** Generated Node Admin SDK operation action function for the 'CompleteBuildDispatchRetryJob' Mutation. Allow users to pass in custom DataConnect instances. */
+export function completeBuildDispatchRetryJob(
+  vars: CompleteBuildDispatchRetryJobVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<CompleteBuildDispatchRetryJobData>>;

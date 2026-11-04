@@ -342,7 +342,7 @@ test("CompleteWebhookTask result hands created IDs to the capacity dispatcher", 
   const dispatchStore = new DataConnectDispatchStore(getDispatchDataConnect(app));
   try {
     let launched;
-    await dispatchBuildJob(jobId, {
+    await dispatchBuildJob({
       store: dispatchStore,
       configuration: {
         cpu: 2,

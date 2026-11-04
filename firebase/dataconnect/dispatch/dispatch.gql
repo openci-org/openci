@@ -139,7 +139,7 @@ mutation ReserveBuildJobDispatch(
         }
       ]
     }
-    data: { status: "QUEUED" }
+    data: { status: "QUEUED", dispatchRetryPending: false }
   ) @check(expr: "this == 1", message: "Job is not eligible for dispatch")
   # Read after locking the job so a concurrent check publisher cannot be missed.
   query @redact {

@@ -62,6 +62,7 @@ export function dispatchFailureReason(failure: unknown): string {
     "Build reservation unavailable": "reservation_unavailable",
     "Missing build reservation": "reservation_missing",
     "Build dispatch could not be queued": "recovery_enqueue_failed",
+    "Build dispatch retry could not be queued": "retry_enqueue_failed",
     "Invalid Cloud Run operation response": "invalid_launch_response",
   };
   return failure instanceof Error && Object.hasOwn(messages, failure.message)
@@ -105,13 +106,13 @@ export function dispatchCompletionTaskId(jobId: string, dispatchId: string): str
     .digest("hex");
 }
 
-export function dispatchRetryTaskId(jobId: string, sourceTaskId: string): string {
+export function dispatchContinuationTaskId(sourceTaskId: string, jobId?: string): string {
   if (typeof sourceTaskId !== "string" || !/^[A-Za-z0-9_-]{1,500}$/.test(sourceTaskId))
     throw new Error("Invalid build dispatch task ID");
   // The source task is stable across redelivery, unlike its retry count or ETA.
-  // A separate namespace also keeps successors distinct from recovery tasks.
+  // Job status notifications and FIFO continuations cannot share a task ID.
   return createHash("sha256")
-    .update(JSON.stringify(["retry", jobId, sourceTaskId]))
+    .update(JSON.stringify(["continuation", sourceTaskId, jobId ?? null]))
     .digest("hex");
 }
 
@@ -124,27 +125,7 @@ interface DispatchDependencies {
   launch: (dispatch: BuildDispatch) => Promise<string>;
 }
 
-export async function dispatchBuildJob(
-  jobId: string,
-  dependencies: DispatchDependencies,
-): Promise<void> {
-  const { store } = dependencies;
-  if (!validJobId(jobId)) throw new Error("Invalid build job ID");
-  try {
-    await dispatchOldestJob(dependencies);
-  } catch (failure) {
-    if (!(failure instanceof DispatchRetry)) throw failure;
-    const state = await store.read(jobId);
-    if (eligible(state) && !state.dispatch?.executorId) throw failure;
-    return;
-  }
-  // A notification may start a different job. Keep its own retry chain until
-  // that job is reserved or is no longer queued.
-  const state = await store.read(jobId);
-  if (eligible(state) && !state.dispatch) throw new DispatchRetry("queue_pending");
-}
-
-async function dispatchOldestJob(dependencies: DispatchDependencies): Promise<void> {
+export async function dispatchBuildJob(dependencies: DispatchDependencies): Promise<boolean> {
   const { store, configuration } = dependencies;
   const owner = randomUUID();
   if (!(await store.acquireScheduler(owner))) throw new DispatchRetry("scheduler_busy");
@@ -184,11 +165,11 @@ async function dispatchOldestJob(dependencies: DispatchDependencies): Promise<vo
   } finally {
     await store.releaseScheduler(owner);
   }
-  if (!dispatch || dispatch.executorId) return;
+  if (!dispatch || dispatch.executorId) return false;
   // Persist the delayed recovery before jobs.run. A cold-start failure or lost
   // launch response cannot strand a reservation after this invocation ends.
   await dependencies.enqueueRecovery(dispatch);
-  if (dispatch.operationName) return;
+  if (dispatch.operationName) return false;
   const launchOwner = randomUUID();
   if (!(await store.acquireLaunch(dispatch.id, launchOwner)))
     throw new DispatchRetry("launch_busy");
@@ -196,6 +177,7 @@ async function dispatchOldestJob(dependencies: DispatchDependencies): Promise<vo
   // same dispatch ID; ClaimBuildJobExecution fences any duplicate containers.
   const operation = await dependencies.launch(dispatch);
   await store.recordLaunch(dispatch.id, launchOwner, operation);
+  return true;
 }
 
 async function findUnstartedDispatch(store: DispatchStore): Promise<BuildDispatch | null> {

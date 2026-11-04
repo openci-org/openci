@@ -114,7 +114,7 @@ async function fixture(t, { status = "QUEUED", runsOn = "macos-latest", createdA
     launched,
     recoveries,
     order,
-    run: () => dispatchBuildJob(jobId, dependencies),
+    run: () => dispatchBuildJob(dependencies),
     state: () => store.read(jobId),
   };
 }
@@ -176,10 +176,10 @@ test("full capacity keeps the job queued without a reservation or launch", async
   assert.equal(f.recoveries.length, 0);
 });
 
-test("a newer job notification reserves the oldest job and retains retry for its own job", async (t) => {
+test("any notification reserves the oldest job and reports a launch for immediate continuation", async (t) => {
   const oldest = await fixture(t, { createdAt: "1" });
   const newer = await fixture(t, { createdAt: "2" });
-  await assert.rejects(newer.run(), (error) => error.reason === "queue_pending");
+  assert.equal(await newer.run(), true);
   assert.equal(newer.launched[0].jobId, oldest.jobId);
   assert.equal(newer.recoveries[0].jobId, oldest.jobId);
   const firstDispatch = (await oldest.state()).dispatch;
@@ -206,11 +206,11 @@ test("a completed job notification can start the oldest waiting job", async (t) 
   assert.ok((await waiting.state()).dispatch);
 });
 
-test("a completed notification does not keep retrying when the fleet is full", async (t) => {
+test("a completed notification reports a capacity wait when other jobs remain queued", async (t) => {
   const waiting = await fixture(t);
   const completed = await fixture(t, { status: "SUCCESS" });
   completed.dependencies.snapshot = async () => ({ workers: [], vms: [] });
-  await completed.run();
+  await assert.rejects(completed.run(), (failure) => failure.reason === "capacity_unavailable");
   assert.equal(completed.launched.length, 0);
   assert.equal((await waiting.state()).dispatch, null);
 });
@@ -262,13 +262,10 @@ for (const outcome of ["success", "failure", "cancelled", "timed_out", "blocked"
     await queueBuildDispatchOnCompletion.run(event);
     await queueBuildDispatchOnCompletion.run(event);
     assert.deepEqual([...notifications.values()], [{ jobId: finishing.jobId }]);
-    const notification = [...notifications.values()][0];
-    const delivery = dispatchBuildJob(notification.jobId, newer.dependencies);
+    assert.equal(await dispatchBuildJob(newer.dependencies), true);
     if (outcome === "blocked") {
-      await assert.rejects(delivery, (failure) => failure.reason === "queue_pending");
       assert.equal((await finishing.state()).job.status, "QUEUED");
     } else {
-      await delivery;
       assert.equal((await finishing.state()).job.status, outcome.toUpperCase());
     }
     assert.equal((await finishing.state()).dispatch, null);
@@ -290,11 +287,11 @@ test("capacity retries preserve the oldest job even when the newer notification 
   await assert.rejects(newer.run(), (error) => error.reason === "capacity_unavailable");
   assert.equal((await oldest.state()).dispatch, null);
   newer.dependencies.snapshot = available;
-  await assert.rejects(newer.run(), (error) => error.reason === "queue_pending");
+  assert.equal(await newer.run(), true);
   assert.equal(newer.launched[0].jobId, oldest.jobId);
 });
 
-test("a deferred last job retains its retry until check publication releases it", async (t) => {
+test("pending work includes a job that FIFO temporarily excludes during check publication", async (t) => {
   const f = await fixture(t);
   await graphql(
     `
@@ -304,7 +301,8 @@ test("a deferred last job retains its retry until check publication releases it"
     `,
     { id: f.jobId },
   );
-  await assert.rejects(f.run(), (error) => error.reason === "queue_pending");
+  assert.equal(await f.run(), false);
+  assert.equal((await store.pendingWork()).queuedJob.id, f.jobId);
   assert.equal(f.launched.length, 0);
   await graphql(
     `
@@ -345,7 +343,7 @@ test("another notification recovers a reservation whose recovery task could not 
   const reservation = (await oldest.state()).dispatch;
   assert.ok(reservation);
   newer.dependencies.enqueueRecovery = enqueue;
-  await assert.rejects(newer.run(), (error) => error.reason === "queue_pending");
+  assert.equal(await newer.run(), true);
   assert.equal(newer.launched[0].id, reservation.id);
   assert.equal((await store.active()).length, 1);
   assert.equal((await newer.state()).dispatch, null);
@@ -503,7 +501,7 @@ test("cancellation releases unstarted reservations and prevents a late executor"
     await skipped.run();
     assert.equal(skipped.launched.length, 0);
   }
-  await dispatchBuildJob(randomUUID(), f.dependencies);
+  assert.equal(await dispatchBuildJob(f.dependencies), false);
 });
 
 test("end users cannot inspect capacity reservations, acquire execution, or release work", async (t) => {

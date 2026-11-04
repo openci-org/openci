@@ -1,0 +1,69 @@
+# All notifications share one future capacity check for this Orchard controller.
+# Return the reservation even when it already exists: callers must ensure the
+# Cloud Task exists before acknowledging their source notification.
+mutation ReserveBuildDispatchRetry($taskId: String!, $jobId: String! = "")
+@auth(level: NO_ACCESS)
+@transaction {
+  initialized: buildDispatchScheduler_upsert(data: { id: "orchard" })
+    @check(expr: "vars.taskId.matches('^[A-Za-z0-9_-]{1,500}$')", message: "Invalid retry task ID")
+  buildJob_updateMany(
+    where: {
+      # An omitted nullable filter is ignored; the default empty ID matches no job.
+      id: { eq: $jobId }
+      status: { in: ["QUEUED", "CANCELLED"] }
+      runsOn: { eq: "macos-latest" }
+    }
+    data: { dispatchRetryPending: true }
+  )
+  # Explicit response dependencies keep SQL Connect from combining two writes
+  # to the scheduler row into one SQL statement.
+  reserved: buildDispatchScheduler_update(
+    first: { where: { id: { eq_expr: "response.initialized.id" }, retryTaskId: { isNull: true } } }
+    data: { retryTaskId: $taskId, retryScheduleTime_expr: "request.time + duration('60s')" }
+  )
+  query {
+    scheduler: buildDispatchScheduler(
+      id_expr: "response.reserved != null ? response.reserved.id : response.initialized.id"
+    ) {
+      retryTaskId
+      retryScheduleTime
+    }
+  }
+}
+
+# A late redelivery must not clear a newer retry. It must still run dispatch:
+# its previous invocation may have crashed immediately after this mutation.
+mutation ConsumeBuildDispatchRetry($taskId: String!) @auth(level: NO_ACCESS) {
+  buildDispatchScheduler_updateMany(
+    where: { id: { eq: "orchard" }, retryTaskId: { eq: $taskId } }
+    data: { retryTaskId: null, retryScheduleTime: null }
+  )
+}
+
+query GetPendingBuildDispatchWork @auth(level: NO_ACCESS) {
+  # Include temporarily excluded jobs (check leases, blocked cooldown, startup).
+  # They still need a future notification even when FIFO cannot select them yet.
+  queuedJob: buildJob(
+    first: { where: { status: { eq: "QUEUED" }, runsOn: { eq: "macos-latest" } } }
+  ) {
+    id
+  }
+  changedJob: buildJob(
+    first: {
+      where: { dispatchRetryPending: { eq: true }, status: { ne: "QUEUED" } }
+      orderBy: [{ createdAt: ASC }, { id: ASC }]
+    }
+  ) {
+    id
+    status
+  }
+}
+
+# Cancellation is handed to its own durable task before this marker is cleared,
+# so a GitHub outage for one job cannot stop the shared capacity check.
+mutation CompleteBuildDispatchRetryJob($jobId: String!) @auth(level: NO_ACCESS) {
+  buildJob_updateMany(
+    where: { id: { eq: $jobId }, status: { ne: "QUEUED" }, dispatchRetryPending: { eq: true } }
+    data: { dispatchRetryPending: false }
+  )
+}

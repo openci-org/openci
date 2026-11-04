@@ -352,3 +352,48 @@ function completeBuildExecution(dcOrVarsOrOptions, varsOrOptions, options) {
   return dcInstance.executeMutation("CompleteBuildExecution", inputVars, inputOpts);
 }
 exports.completeBuildExecution = completeBuildExecution;
+
+function reserveBuildDispatchRetry(dcOrVarsOrOptions, varsOrOptions, options) {
+  const {
+    dc: dcInstance,
+    vars: inputVars,
+    options: inputOpts,
+  } = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeMutation("ReserveBuildDispatchRetry", inputVars, inputOpts);
+}
+exports.reserveBuildDispatchRetry = reserveBuildDispatchRetry;
+
+function consumeBuildDispatchRetry(dcOrVarsOrOptions, varsOrOptions, options) {
+  const {
+    dc: dcInstance,
+    vars: inputVars,
+    options: inputOpts,
+  } = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeMutation("ConsumeBuildDispatchRetry", inputVars, inputOpts);
+}
+exports.consumeBuildDispatchRetry = consumeBuildDispatchRetry;
+
+function getPendingBuildDispatchWork(dcOrOptions, options) {
+  const { dc: dcInstance, options: inputOpts } = validateAdminArgs(
+    connectorConfig,
+    dcOrOptions,
+    options,
+    undefined,
+  );
+  dcInstance.useGen(true);
+  return dcInstance.executeQuery("GetPendingBuildDispatchWork", undefined, inputOpts);
+}
+exports.getPendingBuildDispatchWork = getPendingBuildDispatchWork;
+
+function completeBuildDispatchRetryJob(dcOrVarsOrOptions, varsOrOptions, options) {
+  const {
+    dc: dcInstance,
+    vars: inputVars,
+    options: inputOpts,
+  } = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeMutation("CompleteBuildDispatchRetryJob", inputVars, inputOpts);
+}
+exports.completeBuildDispatchRetryJob = completeBuildDispatchRetryJob;

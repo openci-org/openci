@@ -61,4 +61,23 @@ export class DataConnectDispatchStore implements DispatchStore {
   async recordLaunch(id: string, owner: string, operationName: string): Promise<void> {
     await sdk.recordBuildDispatchLaunch(this.dc, { id, owner, operationName });
   }
+  async reserveRetry(
+    taskId: string,
+    jobId?: string,
+  ): Promise<{ taskId: string; scheduleTime: Date }> {
+    const scheduler = (await sdk.reserveBuildDispatchRetry(this.dc, { taskId, jobId })).data.query
+      ?.scheduler;
+    if (!scheduler?.retryTaskId || !scheduler.retryScheduleTime)
+      throw new Error("Missing build dispatch retry");
+    return { taskId: scheduler.retryTaskId, scheduleTime: new Date(scheduler.retryScheduleTime) };
+  }
+  async consumeRetry(taskId: string): Promise<void> {
+    await sdk.consumeBuildDispatchRetry(this.dc, { taskId });
+  }
+  async pendingWork(): Promise<sdk.GetPendingBuildDispatchWorkData> {
+    return (await sdk.getPendingBuildDispatchWork(this.dc)).data;
+  }
+  async completeRetryJob(jobId: string): Promise<void> {
+    await sdk.completeBuildDispatchRetryJob(this.dc, { jobId });
+  }
 }

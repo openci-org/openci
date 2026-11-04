@@ -5,7 +5,7 @@ import { test } from "node:test";
 import {
   createdBuildJobIds,
   dispatchTaskId,
-  dispatchRetryTaskId,
+  dispatchContinuationTaskId,
   dispatchFailureReason,
 } from "../../lib/functions/build_dispatch.js";
 import { launchCloudRunJob } from "../../lib/functions/cloud_run_job.js";
@@ -80,23 +80,23 @@ test("task IDs deduplicate redelivery and keep each recovery attempt distinct", 
   assert.notEqual(dispatchTaskId("job", "dispatch-1"), dispatchTaskId("job", "dispatch-2"));
 });
 
-test("deferred tasks have stable successor IDs distinct from initial and recovery tasks", () => {
+test("continuations deduplicate redelivery without colliding with job status or recovery tasks", () => {
   const initial = dispatchTaskId("job");
-  const successor = dispatchRetryTaskId("job", initial);
+  const successor = dispatchContinuationTaskId(initial);
   assert.match(successor, /^[0-9a-f]{64}$/);
-  assert.equal(successor, dispatchRetryTaskId("job", initial));
+  assert.equal(successor, dispatchContinuationTaskId(initial));
   assert.equal(
     new Set([
       initial,
       successor,
       dispatchTaskId("job", initial),
-      dispatchRetryTaskId("other", initial),
-      dispatchRetryTaskId("job", successor),
+      dispatchContinuationTaskId(initial, "job"),
+      dispatchContinuationTaskId(successor),
     ]).size,
     5,
   );
   for (const id of [undefined, null, "", "bad/id", "bad\n", "a".repeat(501)])
-    assert.throws(() => dispatchRetryTaskId("job", id));
+    assert.throws(() => dispatchContinuationTaskId(id));
 });
 
 test("capacity includes other VMs and pending reservations without counting a VM twice", () => {
