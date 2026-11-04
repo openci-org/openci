@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.2
+
+- Add `OpenCI.dart.checkFormat()` to check tracked and non-ignored new Dart
+  files without rewriting them, with an optional working directory.
+
 ## 0.2.1
 
 - Add optional `OpenCI.init(flutterVersion: '3.47.8')` metadata. CI selects the

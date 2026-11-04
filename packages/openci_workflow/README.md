@@ -147,6 +147,24 @@ When upgrading from 0.1.x, replace `whenChanged:` with `paths:` and
 
 ### Run commands
 
+Check Dart formatting without rewriting files:
+
+```dart
+await openCI.dart.checkFormat();
+await openCI.dart.checkFormat(dir: 'apps/mobile');
+```
+
+The check uses `dart format --output=none --set-exit-if-changed` on tracked
+and non-ignored new Dart files in the selected directory and its descendants.
+This includes tracked generated code and excludes ignored build outputs and
+downloaded packages. Formatting differences, Git errors, and formatter errors
+fail the workflow. A directory with no matching files succeeds.
+
+Like the other helpers, it uses the workflow's working directory and accepts
+`dir` to override it for one call. The directory must be inside a Git checkout.
+Dart, Git, Bash, and `xargs` must already be on `PATH`; the helper does not
+install them.
+
 For Flutter analysis, use `await openCI.flutter.staticAnalysis()` or pass your preferred `flutter analyze` flags to `openCI.run()`.
 
 Format Go files, run static analysis, and run tests with the toolchain available on the build machine:

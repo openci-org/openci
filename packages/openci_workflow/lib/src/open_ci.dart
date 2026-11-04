@@ -5,6 +5,7 @@ import 'package:meta/meta.dart';
 
 import 'ci_trigger.dart';
 import 'command_runner.dart';
+import 'dart/dart_ci.dart';
 import 'flutter/flutter_ci.dart';
 import 'go/go_ci.dart';
 import 'machine_type.dart';
@@ -61,6 +62,8 @@ class OpenCI {
     required String workingDirectory,
   })
   _runCommand;
+
+  late final DartCI dart = DartCI(run);
 
   late final FlutterCI flutter = FlutterCI(run);
 
