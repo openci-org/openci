@@ -185,7 +185,9 @@ async function fixture(t, queuedCheck = false) {
         calls.push(commands === 1 ? "checkout" : "workflow");
         await output(
           "stdout",
-          Buffer.from(commands === 1 ? "checkout-token\n" : "workflow-secret\n"),
+          Buffer.from(
+            commands === 1 ? "checkout-token\nchecked out\n" : "workflow-secret\nfinished\n",
+          ),
         );
         return 0;
       },
@@ -274,7 +276,7 @@ test("Cloud Run executor completes checkout, workflow, FSC logs, billing, checks
   assert.equal(logs.buildRun.lastLogSequence, "2");
   assert.deepEqual(
     logs.buildRun.logs.map((log) => log.message),
-    ["[REDACTED]\n", "[REDACTED]\n"],
+    ["[REDACTED]\nchecked out\n", "[REDACTED]\nfinished\n"],
   );
   assert.deepEqual(
     logs.buildRun.steps.map((step) => step.status),
@@ -519,11 +521,12 @@ test("lost acknowledgements do not duplicate admissions, runs, or log entries", 
   assert.equal((await f.billingState()).outcome, "success");
 });
 
-test("nonzero exit and cancellation finish the exact run and release its VM", async (t) => {
+test("nonzero exit and cancellation flush the final log, finish the exact run and release its VM", async (t) => {
   for (const cancelled of [false, true]) {
     const f = await fixture(t);
     const shutdown = new AbortController();
-    f.dependencies.orchard.exec = async () => {
+    f.dependencies.orchard.exec = async (_vm, _script, output) => {
+      await output("stderr", Buffer.from("checkout-token final output"));
       if (cancelled) {
         await alterJob(f.jobId, { status: "CANCELLED" });
         shutdown.abort();
@@ -531,10 +534,27 @@ test("nonzero exit and cancellation finish the exact run and release its VM", as
       return 42;
     };
     await f.run(shutdown.signal);
-    assert.equal((await f.state()).job.status, cancelled ? "CANCELLED" : "FAILURE");
+    const state = await f.state();
+    assert.equal(state.job.status, cancelled ? "CANCELLED" : "FAILURE");
     assert.equal((await f.billingState()).outcome, cancelled ? "cancelled" : "failure");
-    assert.ok((await f.state()).dispatch.finishedAt);
+    assert.ok(state.dispatch.finishedAt);
     assert.equal(f.calls.at(-1), "remove");
+    const saved = await graphql(
+      `
+        query Read($id: String!) {
+          buildRun(id: $id) {
+            logs: buildLogs_on_run(orderBy: { sequence: ASC }) {
+              stream
+              message
+            }
+          }
+        }
+      `,
+      { id: state.run.id },
+    );
+    assert.deepEqual(saved.buildRun.logs, [
+      { stream: "stderr", message: "[REDACTED] final output" },
+    ]);
   }
 });
 
