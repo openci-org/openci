@@ -51,6 +51,17 @@ function requestWebhookTaskPlanning(dcOrVarsOrOptions, varsOrOptions, options) {
 }
 exports.requestWebhookTaskPlanning = requestWebhookTaskPlanning;
 
+function beginPullRequestPlanning(dcOrVarsOrOptions, varsOrOptions, options) {
+  const {
+    dc: dcInstance,
+    vars: inputVars,
+    options: inputOpts,
+  } = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeMutation("BeginPullRequestPlanning", inputVars, inputOpts);
+}
+exports.beginPullRequestPlanning = beginPullRequestPlanning;
+
 function getWebhookTaskByDeliveryId(dcOrVarsOrOptions, varsOrOptions, options) {
   const {
     dc: dcInstance,

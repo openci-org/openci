@@ -14,7 +14,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$ParsedWorkflow {
 
- String get workflowFileName; String get workflowName; List<ParsedCITrigger> get ciTriggers; String? get flutterVersion;
+ String get workflowFileName; String get workflowName; List<ParsedCITrigger> get ciTriggers; bool get cancelPreviousRuns; String? get flutterVersion;
 /// Create a copy of ParsedWorkflow
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -25,16 +25,16 @@ $ParsedWorkflowCopyWith<ParsedWorkflow> get copyWith => _$ParsedWorkflowCopyWith
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ParsedWorkflow&&(identical(other.workflowFileName, workflowFileName) || other.workflowFileName == workflowFileName)&&(identical(other.workflowName, workflowName) || other.workflowName == workflowName)&&const DeepCollectionEquality().equals(other.ciTriggers, ciTriggers)&&(identical(other.flutterVersion, flutterVersion) || other.flutterVersion == flutterVersion));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ParsedWorkflow&&(identical(other.workflowFileName, workflowFileName) || other.workflowFileName == workflowFileName)&&(identical(other.workflowName, workflowName) || other.workflowName == workflowName)&&const DeepCollectionEquality().equals(other.ciTriggers, ciTriggers)&&(identical(other.cancelPreviousRuns, cancelPreviousRuns) || other.cancelPreviousRuns == cancelPreviousRuns)&&(identical(other.flutterVersion, flutterVersion) || other.flutterVersion == flutterVersion));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,workflowFileName,workflowName,const DeepCollectionEquality().hash(ciTriggers),flutterVersion);
+int get hashCode => Object.hash(runtimeType,workflowFileName,workflowName,const DeepCollectionEquality().hash(ciTriggers),cancelPreviousRuns,flutterVersion);
 
 @override
 String toString() {
-  return 'ParsedWorkflow(workflowFileName: $workflowFileName, workflowName: $workflowName, ciTriggers: $ciTriggers, flutterVersion: $flutterVersion)';
+  return 'ParsedWorkflow(workflowFileName: $workflowFileName, workflowName: $workflowName, ciTriggers: $ciTriggers, cancelPreviousRuns: $cancelPreviousRuns, flutterVersion: $flutterVersion)';
 }
 
 
@@ -45,7 +45,7 @@ abstract mixin class $ParsedWorkflowCopyWith<$Res>  {
   factory $ParsedWorkflowCopyWith(ParsedWorkflow value, $Res Function(ParsedWorkflow) _then) = _$ParsedWorkflowCopyWithImpl;
 @useResult
 $Res call({
- String workflowFileName, String workflowName, List<ParsedCITrigger> ciTriggers, String? flutterVersion
+ String workflowFileName, String workflowName, List<ParsedCITrigger> ciTriggers, bool cancelPreviousRuns, String? flutterVersion
 });
 
 
@@ -62,12 +62,13 @@ class _$ParsedWorkflowCopyWithImpl<$Res>
 
 /// Create a copy of ParsedWorkflow
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? workflowFileName = null,Object? workflowName = null,Object? ciTriggers = null,Object? flutterVersion = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? workflowFileName = null,Object? workflowName = null,Object? ciTriggers = null,Object? cancelPreviousRuns = null,Object? flutterVersion = freezed,}) {
   return _then(_self.copyWith(
 workflowFileName: null == workflowFileName ? _self.workflowFileName : workflowFileName // ignore: cast_nullable_to_non_nullable
 as String,workflowName: null == workflowName ? _self.workflowName : workflowName // ignore: cast_nullable_to_non_nullable
 as String,ciTriggers: null == ciTriggers ? _self.ciTriggers : ciTriggers // ignore: cast_nullable_to_non_nullable
-as List<ParsedCITrigger>,flutterVersion: freezed == flutterVersion ? _self.flutterVersion : flutterVersion // ignore: cast_nullable_to_non_nullable
+as List<ParsedCITrigger>,cancelPreviousRuns: null == cancelPreviousRuns ? _self.cancelPreviousRuns : cancelPreviousRuns // ignore: cast_nullable_to_non_nullable
+as bool,flutterVersion: freezed == flutterVersion ? _self.flutterVersion : flutterVersion // ignore: cast_nullable_to_non_nullable
 as String?,
   ));
 }
@@ -153,10 +154,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String workflowFileName,  String workflowName,  List<ParsedCITrigger> ciTriggers,  String? flutterVersion)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String workflowFileName,  String workflowName,  List<ParsedCITrigger> ciTriggers,  bool cancelPreviousRuns,  String? flutterVersion)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ParsedWorkflow() when $default != null:
-return $default(_that.workflowFileName,_that.workflowName,_that.ciTriggers,_that.flutterVersion);case _:
+return $default(_that.workflowFileName,_that.workflowName,_that.ciTriggers,_that.cancelPreviousRuns,_that.flutterVersion);case _:
   return orElse();
 
 }
@@ -174,10 +175,10 @@ return $default(_that.workflowFileName,_that.workflowName,_that.ciTriggers,_that
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String workflowFileName,  String workflowName,  List<ParsedCITrigger> ciTriggers,  String? flutterVersion)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String workflowFileName,  String workflowName,  List<ParsedCITrigger> ciTriggers,  bool cancelPreviousRuns,  String? flutterVersion)  $default,) {final _that = this;
 switch (_that) {
 case _ParsedWorkflow():
-return $default(_that.workflowFileName,_that.workflowName,_that.ciTriggers,_that.flutterVersion);case _:
+return $default(_that.workflowFileName,_that.workflowName,_that.ciTriggers,_that.cancelPreviousRuns,_that.flutterVersion);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -194,10 +195,10 @@ return $default(_that.workflowFileName,_that.workflowName,_that.ciTriggers,_that
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String workflowFileName,  String workflowName,  List<ParsedCITrigger> ciTriggers,  String? flutterVersion)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String workflowFileName,  String workflowName,  List<ParsedCITrigger> ciTriggers,  bool cancelPreviousRuns,  String? flutterVersion)?  $default,) {final _that = this;
 switch (_that) {
 case _ParsedWorkflow() when $default != null:
-return $default(_that.workflowFileName,_that.workflowName,_that.ciTriggers,_that.flutterVersion);case _:
+return $default(_that.workflowFileName,_that.workflowName,_that.ciTriggers,_that.cancelPreviousRuns,_that.flutterVersion);case _:
   return null;
 
 }
@@ -209,7 +210,7 @@ return $default(_that.workflowFileName,_that.workflowName,_that.ciTriggers,_that
 
 
 class _ParsedWorkflow extends ParsedWorkflow {
-  const _ParsedWorkflow({required this.workflowFileName, required this.workflowName, required final  List<ParsedCITrigger> ciTriggers, this.flutterVersion}): _ciTriggers = ciTriggers,super._();
+  const _ParsedWorkflow({required this.workflowFileName, required this.workflowName, required final  List<ParsedCITrigger> ciTriggers, this.cancelPreviousRuns = false, this.flutterVersion}): _ciTriggers = ciTriggers,super._();
 
 
 @override final  String workflowFileName;
@@ -221,6 +222,7 @@ class _ParsedWorkflow extends ParsedWorkflow {
   return EqualUnmodifiableListView(_ciTriggers);
 }
 
+@override@JsonKey() final  bool cancelPreviousRuns;
 @override final  String? flutterVersion;
 
 /// Create a copy of ParsedWorkflow
@@ -233,16 +235,16 @@ _$ParsedWorkflowCopyWith<_ParsedWorkflow> get copyWith => __$ParsedWorkflowCopyW
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ParsedWorkflow&&(identical(other.workflowFileName, workflowFileName) || other.workflowFileName == workflowFileName)&&(identical(other.workflowName, workflowName) || other.workflowName == workflowName)&&const DeepCollectionEquality().equals(other._ciTriggers, _ciTriggers)&&(identical(other.flutterVersion, flutterVersion) || other.flutterVersion == flutterVersion));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ParsedWorkflow&&(identical(other.workflowFileName, workflowFileName) || other.workflowFileName == workflowFileName)&&(identical(other.workflowName, workflowName) || other.workflowName == workflowName)&&const DeepCollectionEquality().equals(other._ciTriggers, _ciTriggers)&&(identical(other.cancelPreviousRuns, cancelPreviousRuns) || other.cancelPreviousRuns == cancelPreviousRuns)&&(identical(other.flutterVersion, flutterVersion) || other.flutterVersion == flutterVersion));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,workflowFileName,workflowName,const DeepCollectionEquality().hash(_ciTriggers),flutterVersion);
+int get hashCode => Object.hash(runtimeType,workflowFileName,workflowName,const DeepCollectionEquality().hash(_ciTriggers),cancelPreviousRuns,flutterVersion);
 
 @override
 String toString() {
-  return 'ParsedWorkflow(workflowFileName: $workflowFileName, workflowName: $workflowName, ciTriggers: $ciTriggers, flutterVersion: $flutterVersion)';
+  return 'ParsedWorkflow(workflowFileName: $workflowFileName, workflowName: $workflowName, ciTriggers: $ciTriggers, cancelPreviousRuns: $cancelPreviousRuns, flutterVersion: $flutterVersion)';
 }
 
 
@@ -253,7 +255,7 @@ abstract mixin class _$ParsedWorkflowCopyWith<$Res> implements $ParsedWorkflowCo
   factory _$ParsedWorkflowCopyWith(_ParsedWorkflow value, $Res Function(_ParsedWorkflow) _then) = __$ParsedWorkflowCopyWithImpl;
 @override @useResult
 $Res call({
- String workflowFileName, String workflowName, List<ParsedCITrigger> ciTriggers, String? flutterVersion
+ String workflowFileName, String workflowName, List<ParsedCITrigger> ciTriggers, bool cancelPreviousRuns, String? flutterVersion
 });
 
 
@@ -270,12 +272,13 @@ class __$ParsedWorkflowCopyWithImpl<$Res>
 
 /// Create a copy of ParsedWorkflow
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? workflowFileName = null,Object? workflowName = null,Object? ciTriggers = null,Object? flutterVersion = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? workflowFileName = null,Object? workflowName = null,Object? ciTriggers = null,Object? cancelPreviousRuns = null,Object? flutterVersion = freezed,}) {
   return _then(_ParsedWorkflow(
 workflowFileName: null == workflowFileName ? _self.workflowFileName : workflowFileName // ignore: cast_nullable_to_non_nullable
 as String,workflowName: null == workflowName ? _self.workflowName : workflowName // ignore: cast_nullable_to_non_nullable
 as String,ciTriggers: null == ciTriggers ? _self._ciTriggers : ciTriggers // ignore: cast_nullable_to_non_nullable
-as List<ParsedCITrigger>,flutterVersion: freezed == flutterVersion ? _self.flutterVersion : flutterVersion // ignore: cast_nullable_to_non_nullable
+as List<ParsedCITrigger>,cancelPreviousRuns: null == cancelPreviousRuns ? _self.cancelPreviousRuns : cancelPreviousRuns // ignore: cast_nullable_to_non_nullable
+as bool,flutterVersion: freezed == flutterVersion ? _self.flutterVersion : flutterVersion // ignore: cast_nullable_to_non_nullable
 as String?,
   ));
 }

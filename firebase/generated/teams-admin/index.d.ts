@@ -150,6 +150,11 @@ export interface GitHubConnection_Key {
   __typename?: "GitHubConnection_Key";
 }
 
+export interface PullRequestPlanning_Key {
+  id: string;
+  __typename?: "PullRequestPlanning_Key";
+}
+
 export interface RemoveTeamMemberData {
   team_update?: Team_Key | null;
   teamMember_delete?: TeamMember_Key | null;

@@ -183,6 +183,11 @@ export interface GitHubConnection_Key {
   __typename?: "GitHubConnection_Key";
 }
 
+export interface PullRequestPlanning_Key {
+  id: string;
+  __typename?: "PullRequestPlanning_Key";
+}
+
 export interface QueueSecretVersionCleanupData {
   secretVersionCleanup_upsert: SecretVersionCleanup_Key;
 }

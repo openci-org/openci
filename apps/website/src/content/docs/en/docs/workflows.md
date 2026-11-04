@@ -75,3 +75,24 @@ dart run openci/flutter_ci.dart
 ```
 
 Install the required SDKs and build tools in the execution environment. See the [Quickstart](/en/docs/quickstart/) for details.
+
+## Cancel older PR runs
+
+With `openci_workflow` 0.2.3 and a server supporting PR auto cancellation, add
+`cancelPreviousRuns: true` to `OpenCI.init`:
+
+```dart
+final ci = await OpenCI.init(
+  workflowName: 'PR checks',
+  ciTriggers: [CITrigger.pullRequest(branch: 'main')],
+  cancelPreviousRuns: true,
+);
+```
+
+A scheduled run for a new commit cancels older opted-in queued or running jobs
+for the same repository, PR and workflow file. Other PRs, push runs, completed
+jobs and same-commit reruns are unaffected. A run skipped by `paths` does not
+cancel an older run. The default is `false`; leave it disabled for deployment
+workflows that must finish. Use a literal `true` or `false`. Running jobs normally
+observe cancellation within about 15 seconds, then clean up their VM and update
+the GitHub Check.

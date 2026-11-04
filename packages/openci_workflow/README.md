@@ -109,6 +109,30 @@ OpenCI does not infer this value from `.fvmrc`. The selected SDK is available to
 ordinary `flutter` and `dart` commands; explicit `fvm` or Shorebird commands can
 select their own SDK. Running a workflow locally keeps the current SDK.
 
+### Cancel older pull-request runs
+
+With SDK 0.2.3 and a server supporting PR auto cancellation, enable it per workflow:
+
+```dart
+final ci = await OpenCI.init(
+  workflowName: 'PR checks',
+  ciTriggers: [CITrigger.pullRequest(branch: 'main')],
+  cancelPreviousRuns: true,
+);
+```
+
+The option defaults to `false` and must be a literal boolean. When a new commit
+gets a scheduled run, older opted-in queued and running jobs for the same
+repository, PR and workflow file are cancelled. Running commands observe the
+cancellation on the next heartbeat (normally about 15 seconds), followed by VM
+cleanup and a cancelled GitHub Check.
+
+Other PRs (including other PRs in a stack), push jobs, completed jobs and
+same-commit reruns remain independent. A workflow skipped by `paths` does not
+cancel a previous run. Runs created while the option was disabled are preserved.
+Leave it disabled for deployment workflows that must finish. Local execution is
+unaffected.
+
 ### Run only for matching changed paths
 
 With SDK 0.2.0 or later, add `paths` to a push or pull-request trigger:

@@ -193,6 +193,16 @@ mutation ExpireUnstartedBuildDispatches @auth(level: NO_ACCESS) {
   )
 }
 
+query GetSupersededBuildJobs($taskId: String!, $afterId: String! = "") @auth(level: NO_ACCESS) {
+  jobs: buildJobs(
+    where: { supersededByTaskId: { eq: $taskId }, id: { gt: $afterId } }
+    orderBy: { id: ASC }
+    limit: 100
+  ) {
+    id
+  }
+}
+
 mutation CancelUnstartedBuildDispatch($jobId: String!) @auth(level: NO_ACCESS) @transaction {
   query @redact {
     job: buildJob(id: $jobId)

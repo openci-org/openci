@@ -63,6 +63,7 @@ Future<String> runPlanner(
       ),
       fetchWorkflows: workflows.fetch,
       fetchChangedFiles: workflows.fetchChangedFiles,
+      isCurrentPullRequest: workflows.isCurrentPullRequest,
     );
     return await planner.process(taskId);
   } finally {

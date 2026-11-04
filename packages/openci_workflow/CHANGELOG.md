@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.3
+
+- Add opt-in `OpenCI.init(cancelPreviousRuns: true)` for PR workflows. A new
+  commit's scheduled run cancels older opted-in queued/running jobs for the same
+  repository, PR and workflow file. Push runs and same-commit reruns are retained.
+
 ## 0.2.2
 
 - Add `OpenCI.dart.checkFormat()` to check tracked and non-ignored new Dart

@@ -17,6 +17,8 @@ mutation CompleteWebhookTask(
   $commitMessage: String = null
   $pullRequestNumber: Int64 = null
   $githubBaseUrl: String = null
+  $planningId: String = null
+  $planningToken: String = null
 ) @auth(level: NO_ACCESS) @transaction {
   webhookTask_updateMany(
     where: { id: { eq: $id }, status: { eq: "pending" } }
@@ -36,6 +38,22 @@ mutation CompleteWebhookTask(
       expr: "vars.skippedCount == 0 || (vars.comparisonBaseSha != null && vars.pathFilterReason == null)"
       message: "Skipped workflows require a complete comparison"
     )
+  # A conditional write locks the fence until jobs and cancellations commit.
+  # A read-only check would allow a new planner to overtake this transaction.
+  pullRequestPlanning_updateMany(
+    where: {
+      id: { eq: $planningId }
+      token: { eq: $planningToken }
+      connectionId: { eq: $connectionId }
+      pullRequestNumber: { eq: $pullRequestNumber }
+    }
+    data: { token: $planningToken }
+  )
+    @redact
+    @check(
+      expr: "(vars.planningId == null && vars.planningToken == null) || this == 1"
+      message: "PR planning observation was superseded"
+    )
   query @redact {
     connection: gitHubConnection(first: { where: { id: { eq: $connectionId } } })
       @check(
@@ -52,15 +70,20 @@ mutation CompleteWebhookTask(
     INSERT INTO build_jobs (
       id, status, owner, repo, workflow_name, workflow_file_name, team_id,
       commit_sha, branch, commit_message, pull_request_number, github_base_url,
-      installation_id, runs_on, run_count, created_at, updated_at, flutter_version
+      installation_id, runs_on, run_count, created_at, updated_at, flutter_version,
+      cancel_previous_runs
     )
     SELECT w.id, 'QUEUED', $2, $3, w.name, w.file, $4,
       $5, $6, $7, $8::bigint, $9, $10, 'macos-latest', 0, $11::bigint, $11::bigint,
-      w."flutterVersion"
-    FROM jsonb_to_recordset($1::jsonb) AS w(id text, name text, file text, "flutterVersion" text)
+      w."flutterVersion", COALESCE(w."cancelPreviousRuns", false)
+    FROM jsonb_to_recordset($1::jsonb) AS w(
+      id text, name text, file text, "flutterVersion" text, "cancelPreviousRuns" boolean
+    )
     WHERE length(trim(w.id)) > 0 AND length(trim(w.name)) > 0
       AND length(w.file) > 0 AND length($2::text) > 0 AND length($3::text) > 0
       AND length($5::text) > 0 AND length($6::text) > 0
+      AND (NOT COALESCE(w."cancelPreviousRuns", false) OR
+        ($8::bigint IS NOT NULL AND $12::text IS NOT NULL AND $13::text IS NOT NULL))
     RETURNING id
     """
     params: [
@@ -77,8 +100,63 @@ mutation CompleteWebhookTask(
         _expr: "response.query.connection == null ? '' : string(response.query.connection.installationId)"
       }
       { _expr: "int(request.time)" }
+      $planningId
+      $planningToken
     ]
   ) @check(expr: "size(this) == vars.jobCount", message: "Invalid build job batch")
+  # The old run must also opt in. Disabled workflows, push runs, identical SHAs,
+  # terminal jobs, other PRs and other GitHub installations remain independent.
+  # Persist the notification source instead of returning an unbounded ID list
+  # through Eventarc. UPDATE rechecks status after concurrent executor writes.
+  # Lock dispatches before jobs, matching executor admission/result lock order.
+  # A terminal result that won the race keeps its billing and Check conclusion.
+  cancellationLocks: _execute(
+    sql: """
+    UPDATE build_job_dispatches AS dispatch SET updated_at = dispatch.updated_at
+    FROM build_jobs AS old, build_jobs AS newest
+    WHERE newest.id IN (SELECT w.id FROM jsonb_to_recordset($1::jsonb) AS w(id text))
+      AND newest.cancel_previous_runs AND old.cancel_previous_runs
+      AND newest.pull_request_number IS NOT NULL
+      AND old.team_id = newest.team_id
+      AND old.installation_id = newest.installation_id
+      AND old.github_base_url = newest.github_base_url
+      AND lower(old.owner) = lower(newest.owner) AND lower(old.repo) = lower(newest.repo)
+      AND old.pull_request_number = newest.pull_request_number
+      AND old.workflow_file_name = newest.workflow_file_name
+      AND old.commit_sha <> newest.commit_sha
+      AND old.status IN ('QUEUED', 'IN_PROGRESS')
+      AND dispatch.active_job_id = old.id AND dispatch.finished_at IS NULL
+      AND (dispatch.state <> 'finishing' OR dispatch.outcome = 'blocked')
+    """
+    params: [$jobsJson]
+  ) @redact
+  cancelled: _execute(
+    sql: """
+    UPDATE build_jobs AS old SET
+      status = 'CANCELLED', superseded_by_task_id = $2,
+      updated_at = $3::bigint,
+      completed_at = CASE WHEN old.status = 'QUEUED' AND old.latest_run_id IS NULL
+        THEN $3::bigint ELSE old.completed_at END
+    FROM build_jobs AS newest
+    WHERE newest.id IN (SELECT w.id FROM jsonb_to_recordset($1::jsonb) AS w(id text))
+      AND newest.cancel_previous_runs AND old.cancel_previous_runs
+      AND newest.pull_request_number IS NOT NULL
+      AND old.team_id = newest.team_id
+      AND old.installation_id = newest.installation_id
+      AND old.github_base_url = newest.github_base_url
+      AND lower(old.owner) = lower(newest.owner) AND lower(old.repo) = lower(newest.repo)
+      AND old.pull_request_number = newest.pull_request_number
+      AND old.workflow_file_name = newest.workflow_file_name
+      AND old.commit_sha <> newest.commit_sha
+      AND old.status IN ('QUEUED', 'IN_PROGRESS')
+      AND NOT EXISTS (
+        SELECT 1 FROM build_job_dispatches AS dispatch
+        WHERE dispatch.active_job_id = old.id AND dispatch.finished_at IS NULL
+          AND dispatch.state = 'finishing' AND dispatch.outcome <> 'blocked'
+      )
+    """
+    params: [$jobsJson, $id, { _expr: "int(request.time)" }]
+  )
   # Bulk _Data inputs are not supported by the Admin SDK generator; use the
   # same parameterized jsonb_to_recordset strategy as the jobs above.
   skipped: _executeReturning(

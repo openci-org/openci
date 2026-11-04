@@ -20,6 +20,7 @@ abstract class ParsedWorkflow with _$ParsedWorkflow {
     required String workflowFileName,
     required String workflowName,
     required List<ParsedCITrigger> ciTriggers,
+    @Default(false) bool cancelPreviousRuns,
     String? flutterVersion,
   }) = _ParsedWorkflow;
 
@@ -121,6 +122,7 @@ class _OpenCIInitVisitor extends RecursiveAstVisitor<void> {
   void _extractFromInitArgs(ArgumentList argumentList) {
     String? workflowName;
     List<ParsedCITrigger>? ciTriggers;
+    var cancelPreviousRuns = false;
     String? flutterVersion;
 
     for (final argument in argumentList.arguments) {
@@ -132,6 +134,13 @@ class _OpenCIInitVisitor extends RecursiveAstVisitor<void> {
           workflowName = _extractStringValue(expression);
         } else if (paramName == 'ciTriggers') {
           ciTriggers = _extractTriggers(expression);
+        } else if (paramName == 'cancelPreviousRuns') {
+          if (expression is! BooleanLiteral) {
+            throw WorkflowConfigurationException(
+              '$fileName: cancelPreviousRuns must be a literal boolean',
+            );
+          }
+          cancelPreviousRuns = expression.value;
         } else if (paramName == 'flutterVersion' &&
             expression is! NullLiteral) {
           flutterVersion = _extractStringValue(expression);
@@ -153,6 +162,7 @@ class _OpenCIInitVisitor extends RecursiveAstVisitor<void> {
         workflowFileName: fileName,
         workflowName: workflowName,
         ciTriggers: ciTriggers,
+        cancelPreviousRuns: cancelPreviousRuns,
         flutterVersion: flutterVersion,
       );
     }

@@ -170,3 +170,6 @@ failed or timed-out requests. See the official
 and [webhook documentation](https://docs.github.com/en/webhooks/using-webhooks).
 
 Logs and Secrets now use FSC and Secret Manager. See [runtime and deployment details](LOGS_AND_SECRETS.md). The legacy APIs and import tools have been retired.
+
+For opt-in PR cancellation, concurrency guarantees and rollout order, see
+[PR auto cancellation](PR_AUTO_CANCEL.md).

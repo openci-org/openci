@@ -34,12 +34,19 @@ class _Store implements PlanningStore {
   Future<PlanningConnection?> findConnection(int id) async =>
       const PlanningConnection('connection', '20', 'team');
   @override
+  Future<PlanningFence> beginPullRequestPlanning(
+    String taskId,
+    PlanningEvent event,
+    PlanningConnection connection,
+  ) async => const PlanningFence('planning', 'token');
+  @override
   Future<void> complete(
     String id,
     PlanningEvent? event,
     PlanningConnection? connection,
-    WorkflowPlan plan,
-  ) async {
+    WorkflowPlan plan, {
+    PlanningFence? fence,
+  }) async {
     if (failCommit) throw StateError('Database unavailable');
     published.addAll(plan.jobs);
     skipped.addAll(plan.skipped);
