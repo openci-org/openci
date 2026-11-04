@@ -7,6 +7,14 @@ export type Context = GetBuildExecutorContextData;
 export type Outcome = "success" | "failure" | "cancelled" | "timed_out" | "blocked";
 export type Stream = "stdout" | "stderr";
 
+const flutterRelease = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z]+(?:[.-][0-9A-Za-z]+)*)?$/;
+
+function validateFlutterVersion(version: string | null | undefined): void {
+  if (version != null && (!flutterRelease.test(version) || version.trim() !== version)) {
+    throw new Error("Invalid Flutter release");
+  }
+}
+
 export class ExecutionStopped extends Error {
   constructor(readonly outcome: Outcome) {
     super("Build execution stopped");
@@ -27,6 +35,7 @@ export function identity(dispatch: Dispatch) {
 }
 
 export function validateJob(job: Job, dispatch: Dispatch): void {
+  validateFlutterVersion(job.flutterVersion);
   if (
     job.id !== dispatch.jobId ||
     !job.teamId ||
@@ -70,6 +79,7 @@ export function workflowScript(
   runNumber: number,
   secrets: Record<string, string>,
 ): string {
+  validateFlutterVersion(job.flutterVersion);
   const variables = {
     ...secrets,
     OPENCI_BUILD_JOB_ID: job.id,
@@ -85,9 +95,19 @@ export function workflowScript(
     [
       "set -euo pipefail",
       "export HOME=/Users/admin",
+      'export FVM_CACHE_PATH="$HOME/fvm"',
       'export FLUTTER_ROOT="$HOME/fvm/default"',
       'export PATH="$FLUTTER_ROOT/bin:$HOME/.pub-cache/bin:/opt/homebrew/bin:/usr/local/bin:$PATH"',
       "unset LOKI_URL LOKI_USERNAME LOKI_PASSWORD",
+      // Select the SDK outside the checkout so project FVM configuration cannot
+      // override the workflow pin or resolve dependencies before selection.
+      ...(job.flutterVersion
+        ? [
+            'cd "$HOME"',
+            `fvm install ${shellQuote(job.flutterVersion)} --skip-pub-get`,
+            `fvm global ${shellQuote(job.flutterVersion)}`,
+          ]
+        : []),
       "cd /Users/admin/openci-build",
       ...Object.entries(variables).map(([key, value]) => `export ${key}=${shellQuote(value)}`),
       "flutter pub get",

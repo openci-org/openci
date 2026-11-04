@@ -86,6 +86,29 @@ Future<void> main() async {
 
 OpenCI discovers Dart files in `openci/` and matches their declared triggers to GitHub events. Keep workflow names and trigger branches as string literals so the planner can read them without executing the workflow.
 
+### Select a Flutter version
+
+With SDK 0.2.1 or later, add an exact release to the workflow:
+
+```dart
+final openCI = await OpenCI.init(
+  workflowName: 'Flutter CI',
+  ciTriggers: [CITrigger.pullRequest(branch: 'main')],
+  flutterVersion: '3.47.8',
+);
+```
+
+CI selects this SDK through FVM before the first `flutter pub get` and before
+running the workflow. Releases cached in the image are reused; other releases
+are installed in the job's disposable VM. Installation failures stop the job.
+Use a string literal release, including a prerelease such as `3.48.0-0.1.pre`;
+channel names and computed values are not supported.
+
+Omit `flutterVersion` or set it to `null` to use the image's default SDK.
+OpenCI does not infer this value from `.fvmrc`. The selected SDK is available to
+ordinary `flutter` and `dart` commands; explicit `fvm` or Shorebird commands can
+select their own SDK. Running a workflow locally keeps the current SDK.
+
 ### Run only for matching changed paths
 
 With SDK 0.2.0 or later, add `paths` to a push or pull-request trigger:

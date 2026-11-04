@@ -13,6 +13,7 @@ type BuildJob
   teamId: String @col(name: "team_id")
   workflowId: String @col(name: "workflow_id")
   workflowFileName: String! @col(name: "workflow_file_name")
+  flutterVersion: String @col(name: "flutter_version")
   commitSha: String @col(name: "commit_sha")
   commitMessage: String @col(name: "commit_message")
   pullRequestNumber: Int64 @col(name: "pull_request_number")

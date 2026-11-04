@@ -11,6 +11,7 @@ import { after, before, test } from "node:test";
 import { deleteApp, getApps, initializeApp } from "firebase-admin/app";
 import { getDataConnect } from "firebase-admin/data-connect";
 import * as sdk from "@openci/webhooks-admin";
+import { getBuildExecution } from "@openci/dispatch-admin";
 import { invokeProcessWebhookTask } from "../../lib/functions/build_job_planning.js";
 import { enqueueWebhook } from "../../lib/functions/webhook_queue.js";
 import { createdBuildJobIds, dispatchBuildJob } from "../../lib/functions/build_dispatch.js";
@@ -270,6 +271,7 @@ async function fixture(t, payloadChange = {}, eventType = "push") {
             teamId
             workflowName
             workflowFileName
+            flutterVersion
             commitSha
             branch
             commitMessage
@@ -323,6 +325,27 @@ test("concurrent Dart invocations publish one batch", async (t) => {
   assert.equal(results.filter((r) => r === "created").length, 1);
   assert.equal(results.filter((r) => r === "duplicate").length, 5);
   assert.equal((await f.state()).buildJobs.length, 2);
+});
+
+test("workflow Flutter pins survive planning, SQL persistence and executor reads", async (t) => {
+  const f = await fixture(t);
+  f.github.files[0].content = `void main() {
+    OpenCI.init(workflowName: 'First', ciTriggers: [CITrigger.push(branch: 'develop')], flutterVersion: '3.47.8');
+  }`;
+  await invoke(f.taskId);
+  const { buildJobs } = await f.state();
+  assert.deepEqual(
+    buildJobs.map((job) => job.flutterVersion),
+    ["3.47.8", null],
+  );
+  for (const job of buildJobs) {
+    const execution = await getBuildExecution(getDispatchDataConnect(), {
+      id: "unused-dispatch",
+      jobId: job.id,
+      runId: "unused-run",
+    });
+    assert.equal(execution.data.job.flutterVersion, job.flutterVersion);
+  }
 });
 
 test("CompleteWebhookTask result hands created IDs to the capacity dispatcher", async (t) => {
