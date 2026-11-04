@@ -1,4 +1,4 @@
-// Verify the refreshed macOS image after the November 4 rollout.
+// Verify the refreshed macOS worker connection on November 5.
 import 'dart:convert';
 import 'dart:io';
 import 'package:openci_workflow/openci_workflow.dart';
