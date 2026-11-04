@@ -63,6 +63,19 @@ never sent to the VM; the GitHub App must have that read permission.
 Only the team's pinned Secret Manager versions are injected into the workflow.
 Google credentials, Orchard credentials and the GitHub App key never enter the VM.
 
+The planner persists optional `OpenCI.init(flutterVersion: '3.47.8')` metadata
+on each job. Before dependency resolution, the executor validates the release,
+runs `fvm install VERSION --skip-pub-get` and `fvm global VERSION` from the VM's
+home directory, then starts `flutter pub get` and the workflow in the checkout.
+This reuses the image cache without consulting checkout `.fvmrc` files. SDK
+installation/selection failures stop execution. Existing jobs and workflows with
+no version continue to use the image default. Selection changes only the job VM.
+
+Deploy the nullable `build_jobs.flutter_version` column and the `webhooks` and
+`dispatch` connectors before the executor and Dart planner. Then release workflow
+SDK 0.2.1 before adding the argument to consumers. Older planners ignore this
+argument, so publishing the SDK alone does not enable selection.
+
 ## Recovery
 
 `recoverBuildExecutions` is a Gen2 scheduled Function (1 CPU, 256 MiB, one instance,

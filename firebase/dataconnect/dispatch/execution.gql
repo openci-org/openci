@@ -6,6 +6,7 @@ fragment ExecutionJobFields on BuildJob {
   repo
   workflowName
   workflowFileName
+  flutterVersion
   commitSha
   pullRequestNumber
   branch

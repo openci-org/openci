@@ -131,6 +131,8 @@ class DataConnectPlanningStore implements PlanningStore {
                 .toString(),
             'name': job.workflowName,
             'file': job.workflowFileName,
+            if (job.flutterVersion != null)
+              'flutterVersion': job.flutterVersion,
           },
       ]),
       'skippedCount': plan.skipped.length,

@@ -16,6 +16,7 @@ class OpenCI {
     required this.workflowName,
     required List<CITrigger> ciTriggers,
     this.machine = MachineType.macOsLatest,
+    this.flutterVersion,
     this.currentWorkingDirectory,
     required this.workspacePath,
     @visibleForTesting
@@ -30,6 +31,12 @@ class OpenCI {
   /// Events that can start this workflow. Any matching trigger schedules a run.
   final List<CITrigger> ciTriggers;
   final MachineType machine;
+
+  /// Flutter release selected by CI before resolving the workflow dependencies.
+  ///
+  /// Use a literal release such as `3.47.8` in [init]. When omitted, CI uses the
+  /// image's default SDK. This metadata does not switch the SDK in local runs.
+  final String? flutterVersion;
   final String? currentWorkingDirectory;
   final String workspacePath;
 
@@ -65,6 +72,7 @@ class OpenCI {
     required String workflowName,
     required List<CITrigger> ciTriggers,
     MachineType machine = MachineType.macOsLatest,
+    String? flutterVersion,
     String? currentWorkingDirectory,
     String? workspacePath,
   }) async {
@@ -74,6 +82,7 @@ class OpenCI {
       workflowName: workflowName,
       ciTriggers: ciTriggers,
       machine: machine,
+      flutterVersion: flutterVersion,
       currentWorkingDirectory: currentWorkingDirectory,
       workspacePath: workspace,
     );

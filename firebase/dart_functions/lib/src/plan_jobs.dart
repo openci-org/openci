@@ -79,6 +79,7 @@ WorkflowPlan planJobs({
         repo: event.repo,
         workflowName: workflow.workflowName,
         workflowFileName: workflow.workflowFileName,
+        flutterVersion: workflow.flutterVersion,
         teamId: teamId,
         commitSha: event.commitSha,
         commitMessage: event.commitMessage,
