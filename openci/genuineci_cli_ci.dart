@@ -3,6 +3,7 @@ import 'package:openci_workflow/openci_workflow.dart';
 Future<void> main() async {
   final openCI = await OpenCI.init(
     workflowName: 'GenuineCI CLI CI',
+    cancelPreviousRuns: true,
     ciTriggers: [
       CITrigger.pullRequest(
         branch: '*',
