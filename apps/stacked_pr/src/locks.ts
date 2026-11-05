@@ -14,19 +14,19 @@ export interface StackLocks {
 }
 export const lockCollection = "StackedPrLocks";
 
+export function stackDatabase(env: Environment): Firestore {
+  const projectId = env.GCLOUD_PROJECT || required(env, "GOOGLE_CLOUD_PROJECT");
+  const name = "stacked-pr-locks";
+  const app = getApps().find((a) => a.name === name) ?? initializeApp({ projectId }, name);
+  return getFirestore(app, env.STACKED_PR_LOCK_DATABASE || "(default)");
+}
+
 /** Shared across processes/revisions; documents contain only owner and expiry. */
 export class FirestoreStackLocks implements StackLocks {
   constructor(
     private readonly db: Firestore,
     private readonly now: () => number = Date.now,
   ) {}
-
-  static fromEnvironment(env: Environment): FirestoreStackLocks {
-    const projectId = env.GCLOUD_PROJECT || required(env, "GOOGLE_CLOUD_PROJECT");
-    const name = "stacked-pr-locks";
-    const app = getApps().find((a) => a.name === name) ?? initializeApp({ projectId }, name);
-    return new FirestoreStackLocks(getFirestore(app, env.STACKED_PR_LOCK_DATABASE || "(default)"));
-  }
 
   async acquire(scope: string, resources: string[]): Promise<StackLease> {
     if (!resources.length) throw new Error("Cannot lock an empty stack");

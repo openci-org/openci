@@ -7,6 +7,8 @@ import { GitRepository } from "./git.js";
 import type { GitHubApi } from "./github.js";
 import { History } from "./history.js";
 import type { StackLocks, StackLease } from "./locks.js";
+import { StackMerge } from "./merge.js";
+import type { MergeStops } from "./merge-stops.js";
 import {
   type Job,
   type Json,
@@ -26,6 +28,7 @@ interface ServiceOptions {
   api: GitHubApi;
   reporter: Reporter;
   locks: StackLocks;
+  mergeStops?: MergeStops;
   enqueue?: (job: Job, scheduleTime?: Date) => Promise<boolean>;
   now?: () => number;
   deadline?: Deadline;
@@ -73,6 +76,28 @@ export class Service {
       (!this.config.allowedRepos.size || this.config.allowedRepos.has(repo.full_name.toLowerCase()))
     );
   }
+  private merger(): StackMerge {
+    if (!this.options.enqueue || !this.options.mergeStops)
+      throw new Error("Merge controls unavailable");
+    return new StackMerge({
+      api: this.api,
+      locks: this.options.locks,
+      stops: this.options.mergeStops,
+      host: this.config.githubUrl,
+      now: this.options.now,
+      enqueue: this.options.enqueue,
+      discover: async (i, repo, target) => {
+        const snapshot = await this.discover(i, repo, { number: target });
+        return {
+          repo: snapshot.repo,
+          pulls: snapshot.selected.flat(),
+          errors: snapshot.history.errors,
+        };
+      },
+      sync: (i, repo, target) =>
+        this.reconcile(i, repo, { number: target, force: true, requireLock: true }),
+    });
+  }
   async handle(job: Job): Promise<void> {
     const payload = job.payload,
       installation = object(payload.installation).id;
@@ -105,6 +130,10 @@ export class Service {
       if (isSelfUpdate(job.event, payload, `${app.slug}[bot]`)) return;
     }
     const repo = Repository.fromJson(rawRepo);
+    if (job.event === "merge_stack") {
+      await this.merger().tick(installationId, repo, payload.tick);
+      return;
+    }
     // Only the private worker creates reconcile tasks with this flag, after authorization.
     let force = job.event === "reconcile" && payload.force === true;
     if (job.event === "issue_comment") {
@@ -119,32 +148,44 @@ export class Service {
         return;
       force = true;
     }
-    if (job.event === "check_run") {
-      if (
-        payload.action !== "requested_action" ||
-        object(payload.requested_action).identifier !== "restack" ||
-        String(object(object(payload.check_run).app).id) !== this.config.appId ||
-        !(await this.api.canWrite(
-          installationId,
-          repo.apiPath,
-          object(payload.sender).login as string | undefined,
-        ))
-      )
-        return;
-      force = true;
-    }
     const externalId = object(payload.check_run).external_id;
     const tail = typeof externalId === "string" ? externalId.split(":").at(-1) : undefined;
     const number = (object(payload.pull_request).number ??
       object(payload.issue).number ??
       (tail && /^\d+$/.test(tail) ? Number(tail) : undefined)) as number | undefined;
-    if (
-      job.event === "check_run" &&
-      (!Number.isSafeInteger(number) ||
+    if (job.event === "check_run") {
+      if (
+        payload.action !== "requested_action" ||
+        String(object(object(payload.check_run).app).id) !== this.config.appId ||
+        !Number.isSafeInteger(number) ||
         number! <= 0 ||
-        externalId !== `stacked-pr:${repo.id}:${number}`)
-    )
-      return;
+        externalId !== `stacked-pr:${repo.id}:${number}`
+      )
+        return;
+      const action = object(payload.requested_action).identifier,
+        sender = object(payload.sender);
+      if (typeof sender.login !== "string") return;
+      if (action === "merge-stack" || action === "cancel-merge") {
+        if (sender.type !== "User") return;
+        if (action === "merge-stack")
+          await this.merger().start(
+            installationId,
+            repo,
+            number!,
+            job.id,
+            sender.login,
+            String(object(payload.check_run).head_sha),
+          );
+        else await this.merger().cancel(installationId, repo, number!, sender.login);
+        return;
+      }
+      if (
+        action !== "restack" ||
+        !(await this.api.canWrite(installationId, repo.apiPath, sender.login))
+      )
+        return;
+      force = true;
+    }
     if (job.event === "reconcile" && number === undefined && this.options.enqueue) {
       const current = (await this.api.list(installationId, `${repo.apiPath}/pulls?state=open`))
         .map((p) => PullRequest.fromApi(p, repo.id))
@@ -200,7 +241,7 @@ export class Service {
   async reconcile(
     installation: number,
     repo: Repository,
-    options: Selection & { force?: boolean } = {},
+    options: Selection & { force?: boolean; requireLock?: boolean } = {},
   ): Promise<void> {
     const initial = await this.discover(installation, repo, options);
     const resources = lockResources(initial.selected);
@@ -211,7 +252,8 @@ export class Service {
     try {
       lease = await this.options.locks.acquire(`${this.config.githubUrl}:${repo.id}`, resources);
     } catch (error) {
-      if (!(error instanceof StackBusyException) || !this.options.enqueue) throw error;
+      if (!(error instanceof StackBusyException) || !this.options.enqueue || options.requireLock)
+        throw error;
       // All producers in this window share one future task per affected component.
       // Schedule after the window closes: a completed task's ID tombstone must never
       // suppress a later notification. Enqueue before acknowledging the original.

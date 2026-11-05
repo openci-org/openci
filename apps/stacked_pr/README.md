@@ -5,7 +5,7 @@ GitHub / GitHub Enterprise Server の依存するPRを、Firebase Functions（Ty
 親1つに複数の子がある分岐にも対応し、エラーはそのスタック内に限定します。
 
 PRの状態はDBに保存せず、PR一覧と履歴を毎回GitHubから読み直します。
-Firestoreには同時更新を防ぐための、期限付きの実行ロックだけを保存します。
+Firestoreには期限付きの実行ロックと、一括マージが終了したことを示す記録を保存します。
 通知に関係するスタックのブランチだけを取得・更新します。自動base変更を見つけるための
 root PRの履歴はまとめて取得し、閉じた親PRの詳細は関係するスタックに絞って調べます。
 履歴の続きのページも取得します。PRのbase変更では移動前と移動後のスタックを両方更新します。
@@ -70,6 +70,18 @@ IAMのinvokerもそのアカウントに限定し、HTTPヘッダーだけでは
 `/stack sync` とCheckのSyncは、GitHub上でwrite権限を再確認します。
 削除・停止されたinstallationの古いタスクは処理しません。
 
+## 選んだPRまで一括マージする
+
+`main ← A ← B ← C` の場合、Cの **Checks → Stacked PR → Merge stack** を選ぶと、A、B、Cの順に、それぞれをmainへマージします。Bを選んだ場合はAとBまでです。兄弟PRや、選んだPRより先の子はマージしません。通常のGitHubのMergeボタンは従来どおり表示中のPRをそのbaseにマージします。
+
+進捗は選んだPRの **Merge stack** コメントに表示されます。親のマージ後は既存のrestack処理で次のPRを同期し、最新のheadでのStacked PRチェック・CI・レビュー・GitHubのマージ条件がそろうまで待ちます。待機中は30秒〜3分ごとに再確認し、必要な再承認やCIが完了すると自動で再開します。リポジトリで許可されている方式のうち squash、merge、rebase の順で選択します。
+
+**Cancel merge** で残りを取り消せます。各PRを個別にマージするため、すでに入ったPRはそのままです。人による新しいpush、想定外のbase変更、競合、権限の喪失、24時間の待機期限で停止します。問題を直した後は最新のCheckから選び直してください。1回の対象は最大200件です。
+
+実行計画は署名済みのCheckボタンから、押した時点のPR番号・ブランチ・headを固定して非公開のCloud Tasksに登録します。各段階で実行者のwrite権限を再確認します。headが変わった場合は、このApp自身のforce push履歴が選択時のheadから連続するときだけ続行します。GitHubの通常のPRマージAPIに最新のSHAを指定し、デフォルトブランチへ直接pushはしません。Appにブランチ保護のバイパス権限を付与しないでください。
+
+`StackedPrMergeStops/{sha256}` は終了理由とTTL用の `expiresAt` だけを記録します。実行ロックと同様、クライアントからの書き込みを許可しないでください。終了状態は上書きできず、コメントの編集やタスクの再配信でキャンセル済みのマージが再開することはありません。TTLの削除は48時間後を目安に設定します。
+
 ## GitHubの履歴からの復元
 
 - 現在のPRのhead/baseブランチから親子関係を調べます。
@@ -132,13 +144,13 @@ Gitの `rebase.updateRefs=false` を明示し、他のブランチの自動更�
    Webhook secretは32文字以上にします。設定値・秘密鍵はコミットしません。
 3. 既存のFirestore Nativeデータベースを使います。既定は `(default)` で、
    別のDBを使う場合は `STACKED_PR_LOCK_DATABASE` にそのIDを設定します。
-   `StackedPrLocks` へのWeb/Mobileクライアントからの読み書きはルールで禁止してください。
-   他の広い `allow` によってこのコレクションが許可されないことも確認が必要です。
+   `StackedPrLocks` と `StackedPrMergeStops` へのWeb/Mobileクライアントからの読み書きはルールで禁止してください。
+   他の広い `allow` によってこれらのコレクションが許可されないことも確認が必要です。
    このパッケージから既存DBのルール全体を置き換えることはしません。
 4. `scripts/provision.sh PROJECT_ID [LOCK_DATABASE]` でAPI、サービスアカウント、必要なIAMを準備します。
    これは明示的にクラウド設定を変更するスクリプトです。
    runtimeには指定したDBに限定した `roles/datastore.user` を付与します。
-   `StackedPrLocks.expiresAt` のTTLも設定します（期限の判定はアプリ側で行います）。
+   両コレクションの `expiresAt` にTTLも設定します（期限の判定はアプリ側で行います）。
    DBは既存のものを確認し、暗黙には作成しません。
    キューの作成・更新はFirebase CLIがTask Queue Functions設定から行います。
 5. 依存関係をインストールし、workerとWebhookを配置します。

@@ -119,6 +119,39 @@ test("compaction keeps the old base and strips PR bodies and commit lists", () =
   assert.deepEqual(compact.pull_request, { number: 3 });
   assert.doesNotMatch(JSON.stringify(compact), /private/);
 });
+test("signed merge and cancel buttons retain the selected Check head and actor", async () => {
+  const jobs = [];
+  const handler = createWebhookHandler(async (job) => {
+    jobs.push(job);
+    return true;
+  }, secret);
+  for (const identifier of ["merge-stack", "cancel-merge"]) {
+    const body = JSON.stringify({
+      action: "requested_action",
+      installation: { id: 10 },
+      repository: { id: 20, full_name: "org/repo" },
+      sender: { login: "maintainer", type: "User" },
+      requested_action: { identifier },
+      check_run: {
+        app: { id: 7 },
+        external_id: "stacked-pr:20:3",
+        head_sha: "c".repeat(40),
+        output: { summary: "private data" },
+      },
+    });
+    assert.equal((await invoke(handler, body, { event: "check_run", signed: false })).status, 400);
+    assert.equal((await invoke(handler, body, { event: "check_run" })).status, 200);
+    const { payload } = jobs.at(-1);
+    assert.deepEqual(payload.check_run, {
+      app: { id: 7 },
+      external_id: "stacked-pr:20:3",
+      head_sha: "c".repeat(40),
+    });
+    assert.equal(payload.requested_action.identifier, identifier);
+    assert.equal(payload.sender.login, "maintainer");
+  }
+  assert.equal(jobs.length, 2);
+});
 
 test("signed self-generated writes are ignored without dropping other actors or lifecycle events", async () => {
   const jobs = [];

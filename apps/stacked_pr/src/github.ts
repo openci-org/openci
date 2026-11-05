@@ -84,7 +84,7 @@ export class GitHubApi {
     if (!path.startsWith("/") || path.startsWith("//")) throw new Error("Invalid API path");
     try {
       const response = await this.transport({
-        method: method as "GET" | "POST" | "PATCH",
+        method: method as "GET" | "POST" | "PATCH" | "PUT",
         url: path === "/graphql" ? this.config.graphqlUrl : `${this.config.apiUrl}${path}`,
         headers: { authorization: `Bearer ${token}`, accept: "application/vnd.github+json" },
         ...(body === undefined ? {} : { data: body }),
@@ -181,7 +181,12 @@ export class GitHubApi {
       throw error;
     }
   }
-  async timeline(installation: number, repo: Repository, number: number): Promise<Json[]> {
+  async timeline(
+    installation: number,
+    repo: Repository,
+    number: number,
+    includeActor = false,
+  ): Promise<Json[]> {
     const [owner, name] = repo.fullName.split("/");
     const result: Json[] = [];
     let cursor: string | null = null;
@@ -191,7 +196,7 @@ export class GitHubApi {
           query: `query StackHistory($owner: String!, $name: String!, $number: Int!, $cursor: String) {
           repository(owner: $owner, name: $name) { pullRequest(number: $number) {
             timelineItems(first: 100, after: $cursor, itemTypes: [HEAD_REF_FORCE_PUSHED_EVENT, BASE_REF_CHANGED_EVENT, AUTOMATIC_BASE_CHANGE_SUCCEEDED_EVENT]) {
-              ${historyFields}
+              ${historyFields(includeActor)}
             }
           } }
         }`,
@@ -229,7 +234,7 @@ export class GitHubApi {
       const fields = batch
         .map(
           (n) => `pr${n}: pullRequest(number: ${n}) {
-        timelineItems(first: 100, itemTypes: [HEAD_REF_FORCE_PUSHED_EVENT, BASE_REF_CHANGED_EVENT, AUTOMATIC_BASE_CHANGE_SUCCEEDED_EVENT]) { ${historyFields} }
+        timelineItems(first: 100, itemTypes: [HEAD_REF_FORCE_PUSHED_EVENT, BASE_REF_CHANGED_EVENT, AUTOMATIC_BASE_CHANGE_SUCCEEDED_EVENT]) { ${historyFields()} }
       }`,
         )
         .join("\n");
@@ -287,9 +292,9 @@ function lastPageHint(link: string | undefined, apiUrl: string): number {
     return 1;
   }
 }
-const historyFields = `nodes {
+const historyFields = (includeActor = false) => `nodes {
   __typename
-  ... on HeadRefForcePushedEvent { createdAt beforeCommit { oid } afterCommit { oid } }
+  ... on HeadRefForcePushedEvent { createdAt ${includeActor ? "actor { __typename login }" : ""} beforeCommit { oid } afterCommit { oid } }
   ... on BaseRefChangedEvent { createdAt previousRefName currentRefName }
   ... on AutomaticBaseChangeSucceededEvent { createdAt oldBase newBase }
 } pageInfo { hasNextPage endCursor }`;
