@@ -276,6 +276,46 @@ test("removed installations do no repository work", async (t) => {
     payload: { installation: { id: 10 }, repository: repo.toJson() },
   });
 });
+
+test("old self-generated tasks drain without repository discovery, while other bots still refresh", async (t) => {
+  const h = await Harness.create(t, false);
+  const originalList = h.api.list;
+  h.api.list = async () => assert.fail("self-generated update must not discover repository");
+  const job = {
+    id: "old-self-update",
+    event: "pull_request",
+    payload: {
+      action: "synchronize",
+      installation: { id: 10 },
+      repository: repo.toJson(),
+      pull_request: { number: 2 },
+      sender: { login: "stacked-pr[bot]", type: "Bot" },
+    },
+  };
+  await h.service.handle(job);
+  await h.service.handle({ ...job, event: "push" });
+  await h.service.handle({ ...job, payload: { ...job.payload, action: "edited" } });
+  assert.equal(h.reports.length, 0);
+  h.api.list = originalList;
+  await h.service.handle({
+    ...job,
+    payload: { ...job.payload, sender: { login: "dependency[bot]", type: "Bot" } },
+  });
+  assert.equal(h.reports.length, 1);
+});
+
+test("a merged-parent notification finds children after GitHub's automatic base change", async (t) => {
+  const h = await Harness.create(t);
+  const target = await h.merge(true, true);
+  await h.service.reconcile(10, repo, { number: 1 });
+  const heads = await h.heads();
+  assert.equal(
+    await h.f.git(["--git-dir", h.f.remote, "rev-parse", `${heads.get("child")}^`]),
+    target,
+  );
+  assert.equal(h.reports[0].error, undefined);
+  assert.ok(h.reports[0].pulls.some((pr) => pr.number === 3));
+});
 test("repository reconciliation fans out to one bounded task per connected stack", async (t) => {
   const h = await Harness.create(t);
   await h.addStack(4, "other");

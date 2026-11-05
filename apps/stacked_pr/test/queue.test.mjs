@@ -59,7 +59,7 @@ test("cutover accepts tasks now but schedules them after old tokens expire", asy
     const queue = new TaskQueue(
       {
         enqueue: async (_data, options) =>
-          assert.equal(options.scheduleTime, delay > 0 ? notBefore : undefined),
+          assert.deepEqual(options.scheduleTime, delay > 0 ? notBefore : undefined),
       },
       "app",
       notBefore,
@@ -81,6 +81,24 @@ test("Admin SDK uses the configured task identity for OIDC without changing the 
   assert.equal(app.options.projectId, env.GCLOUD_PROJECT);
   assert.equal(app.options.serviceAccountId, env.STACKED_PR_TASK_SERVICE_ACCOUNT);
   assert.equal(queue.namespace, "https://github.com:7");
+});
+
+test("deferred work honors both the future coalescing window and cutover time", async () => {
+  const scheduled = new Date(Date.now() + 60_000);
+  for (const cutover of [undefined, new Date(Date.now() + 120_000)]) {
+    let received;
+    const queue = new TaskQueue(
+      {
+        enqueue: async (_data, options) => {
+          received = options;
+        },
+      },
+      "app",
+      cutover,
+    );
+    await queue.enqueue(job, 8000, scheduled);
+    assert.deepEqual(received.scheduleTime, cutover ?? scheduled);
+  }
 });
 test("worker awaits completion, requests retry on failures, and rejects malformed jobs", async () => {
   let calls = 0;
