@@ -1,5 +1,6 @@
 import { mapConcurrent } from "./concurrent.js";
 import type { GitHubApi } from "./github.js";
+import { activeMerge } from "./merge.js";
 import { type Json, object, PullRequest, Repository, RestackException } from "./models.js";
 import { stackFor } from "./stack.js";
 
@@ -18,11 +19,12 @@ interface ReportOptions {
   error?: RestackException;
   observeOnly?: boolean;
   closedToUpdate?: number[];
+  merging?: boolean;
 }
 export function render(
   pulls: PullRequest[],
   pr: PullRequest,
-  { error, observeOnly = false }: ReportOptions = {},
+  { error, observeOnly = false, merging = false }: ReportOptions = {},
 ): { body: string; title: string; conclusion: string; connected: boolean } {
   let stack: PullRequest[];
   try {
@@ -81,10 +83,37 @@ export function render(
   lines.push(
     "",
     "`/stack sync`：状態を再確認し、必要なrebaseを実行",
+    ...(pr.isOpen
+      ? [
+          merging
+            ? "一括マージ中：進捗はこのPRの **Merge stack** コメントに表示します。Checkの **Cancel merge** で残りを取り消せます。"
+            : "Checkの **Merge stack**：このPRまでの親PRを順番にデフォルトブランチへマージします。",
+        ]
+      : []),
     "",
     "自動更新後は `git fetch origin` で最新の履歴を取得してください。ローカル変更がある場合の同期方法は、このAppのREADMEを参照してください。",
   );
   return { body: lines.join("\n"), title, conclusion, connected: stack.length > 1 };
+}
+export function stackActions(merging = false) {
+  return [
+    {
+      label: "Sync",
+      description: "Synchronize dependent pull requests",
+      identifier: "restack",
+    },
+    merging
+      ? {
+          label: "Cancel merge",
+          description: "Stop the remaining stack merges",
+          identifier: "cancel-merge",
+        }
+      : {
+          label: "Merge stack",
+          description: "Merge ancestors through this PR",
+          identifier: "merge-stack",
+        },
+  ];
 }
 export class Reporter {
   constructor(readonly api: GitHubApi) {}
@@ -98,8 +127,9 @@ export class Reporter {
       path = repo.apiPath;
     await mapConcurrent(pulls, async (pr) => {
       if (!pr.sameRepo || (!pr.isOpen && !options.closedToUpdate?.includes(pr.number))) return;
-      const view = render(pulls, pr, options);
       const comments = await this.api.list(installation, `${path}/issues/${pr.number}/comments`);
+      const merging = comments.some((c) => activeMerge(c, app));
+      const view = render(pulls, pr, { ...options, merging });
       const existing = comments.find(
         (c) =>
           typeof c.body === "string" &&
@@ -128,13 +158,7 @@ export class Reporter {
         status: "completed",
         conclusion: view.conclusion,
         output: { title: view.title, summary: view.body },
-        actions: [
-          {
-            label: "Sync",
-            description: "Synchronize dependent pull requests",
-            identifier: "restack",
-          },
-        ],
+        actions: stackActions(merging),
       };
       if (!check)
         await this.api.request(installation, "POST", `${path}/check-runs`, {

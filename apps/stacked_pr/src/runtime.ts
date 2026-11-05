@@ -6,7 +6,8 @@ import { configFromEnvironment, type Environment } from "./config.js";
 import { Deadline } from "./deadline.js";
 import { GitException } from "./git.js";
 import { executionBudgetMs } from "./limits.js";
-import { FirestoreStackLocks } from "./locks.js";
+import { FirestoreStackLocks, stackDatabase } from "./locks.js";
+import { FirestoreMergeStops } from "./merge-stops.js";
 import { ApiException, GitHubApi } from "./github.js";
 import { type Job, object, RetryException } from "./models.js";
 import { TaskQueue } from "./queue.js";
@@ -66,11 +67,13 @@ export async function runJob(job: Job, env: Environment): Promise<void> {
     if (!config.allowedRepos.size)
       throw new Error("ALLOWED_REPOSITORIES must name the target repositories");
     api = new GitHubApi(config, { deadline, environment: env });
+    const db = stackDatabase(env);
     await new Service({
       config,
       api,
       reporter: new Reporter(api),
-      locks: FirestoreStackLocks.fromEnvironment(env),
+      locks: new FirestoreStackLocks(db),
+      mergeStops: new FirestoreMergeStops(db),
       deadline,
       enqueue: (job, scheduleTime) => {
         const timeout = deadline.limit(8000);

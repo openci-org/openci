@@ -31,6 +31,7 @@ export function compactPayload(raw: Json): Json {
           check_run: {
             app: { id: object(object(raw.check_run).app).id },
             external_id: object(raw.check_run).external_id,
+            head_sha: object(raw.check_run).head_sha,
           },
         }),
     ...(raw.requested_action == null
@@ -74,7 +75,13 @@ export function createWebhookHandler(
         (!payload.issue?.pull_request || payload.comment?.body?.trim() !== "/stack sync")
       )
         return;
-      if (name === "check_run" && payload.requested_action?.identifier !== "restack") return;
+      if (
+        name === "check_run" &&
+        !["restack", "merge-stack", "cancel-merge"].includes(
+          payload.requested_action?.identifier ?? "",
+        )
+      )
+        return;
       const installation = payload.installation?.id;
       if (!/^[\w-]{1,128}$/.test(id) || !Number.isSafeInteger(installation) || installation! <= 0)
         throw Object.assign(new Error("Invalid delivery or installation"), { status: 400 });

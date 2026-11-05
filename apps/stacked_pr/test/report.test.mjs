@@ -217,6 +217,11 @@ test("reporter reuses its own comment and check, preserving Sync while ignoring 
   assert.equal(paths.length, 2);
   assert.deepEqual(checks[0].actions, [
     { label: "Sync", description: "Synchronize dependent pull requests", identifier: "restack" },
+    {
+      label: "Merge stack",
+      description: "Merge ancestors through this PR",
+      identifier: "merge-stack",
+    },
   ]);
   await reporter.publish(1, repo, pulls);
   assert.equal(paths.length, 2);

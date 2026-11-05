@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { Firestore, Timestamp } from "firebase-admin/firestore";
 import { FirestoreStackLocks, lockCollection } from "../../lib/locks.js";
+import { FirestoreMergeStops, mergeStopCollection } from "../../lib/merge-stops.js";
 import { RetryException } from "../../lib/models.js";
 import {
   executionBudgetMs,
@@ -106,4 +107,22 @@ test("crash recovery expires only after execution, function and task deadlines",
   assert.ok(executionBudgetMs < workerTimeoutSeconds * 1000);
   assert.ok(workerTimeoutSeconds < taskDeadlineSeconds);
   assert.ok(taskDeadlineSeconds * 1000 < stackLeaseMs);
+});
+test("a terminal merge decision survives concurrent writers and fresh workers", async (t) => {
+  const { db, scope } = await clients(t);
+  const stores = db.map((client) => new FirestoreMergeStops(client));
+  assert.equal(await stores[0].get(scope), undefined);
+  const decisions = await Promise.all([
+    stores[0].close(scope, "cancelled"),
+    stores[1].close(scope, "complete"),
+  ]);
+  assert.equal(decisions[0], decisions[1]);
+  assert.equal(await new FirestoreMergeStops(db[1]).get(scope), decisions[0]);
+  assert.equal(await stores[0].close(scope, "stopped"), decisions[0]);
+  const records = await db[0].collection(mergeStopCollection).get();
+  for (const doc of records.docs) {
+    assert.deepEqual(Object.keys(doc.data()).sort(), ["expiresAt", "state"]);
+    assert.ok(doc.data().expiresAt.toMillis() > Date.now() + 24 * 3600000);
+    await doc.ref.delete();
+  }
 });
