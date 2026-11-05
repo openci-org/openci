@@ -3,6 +3,7 @@ import { request } from "@octokit/request";
 import { readFileSync } from "node:fs";
 import { rootCertificates } from "node:tls";
 import { EnvHttpProxyAgent, fetch as proxyFetch } from "undici";
+import { mapConcurrent } from "./concurrent.js";
 import type { AppConfig, Environment } from "./config.js";
 import type { Deadline } from "./deadline.js";
 import {
@@ -73,7 +74,13 @@ export class GitHubApi {
       request: this.transport,
     });
   }
-  async raw(token: string, method: string, path: string, body?: Json): Promise<unknown> {
+  async raw(
+    token: string,
+    method: string,
+    path: string,
+    body?: Json,
+    onLink?: (link: string | undefined) => void,
+  ): Promise<unknown> {
     if (!path.startsWith("/") || path.startsWith("//")) throw new Error("Invalid API path");
     try {
       const response = await this.transport({
@@ -82,6 +89,7 @@ export class GitHubApi {
         headers: { authorization: `Bearer ${token}`, accept: "application/vnd.github+json" },
         ...(body === undefined ? {} : { data: body }),
       });
+      onLink?.(response.headers.link);
       return response.status === 204 ? null : response.data;
     } catch (error) {
       // Octokit errors retain request/response bodies and credentials. Do not propagate them.
@@ -111,26 +119,47 @@ export class GitHubApi {
       );
     }
   }
-  async request(installation: number, method: string, path: string, body?: Json): Promise<unknown> {
+  async request(
+    installation: number,
+    method: string,
+    path: string,
+    body?: Json,
+    onLink?: (link: string | undefined) => void,
+  ): Promise<unknown> {
     try {
-      return await this.raw(await this.token(installation), method, path, body);
+      return await this.raw(await this.token(installation), method, path, body, onLink);
     } catch (error) {
       if (!(error instanceof ApiException) || error.status !== 401) throw error;
-      return this.raw(await this.token(installation, true), method, path, body);
+      return this.raw(await this.token(installation, true), method, path, body, onLink);
     }
   }
   async list(installation: number, path: string, field?: string): Promise<Json[]> {
     const result: Json[] = [];
-    // Construct pages on the configured origin instead of trusting arbitrary Link URLs.
-    for (let page = 1; ; page++) {
-      const data = await this.request(
-        installation,
-        "GET",
-        `${path}${path.includes("?") ? "&" : "?"}per_page=100&page=${page}`,
+    let nextPage = 1,
+      lastPage = 1;
+    for (;;) {
+      // Link is only a page-count hint. Always construct requests on the configured origin.
+      const pages = Array.from(
+        { length: Math.min(4, Math.max(1, lastPage - nextPage + 1)) },
+        (_, index) => nextPage + index,
       );
-      const items = jsonObjects(field === undefined ? data : jsonObject(data)[field]);
-      result.push(...items);
-      if (items.length < 100) return result;
+      const batches = await mapConcurrent(pages, async (page) => {
+        const data = await this.request(
+          installation,
+          "GET",
+          `${path}${path.includes("?") ? "&" : "?"}per_page=100&page=${page}`,
+          undefined,
+          (link) => {
+            lastPage = Math.max(lastPage, lastPageHint(link, this.config.apiUrl));
+          },
+        );
+        return jsonObjects(field === undefined ? data : jsonObject(data)[field]);
+      });
+      for (const items of batches) {
+        result.push(...items);
+        if (items.length < 100) return result;
+      }
+      nextPage += pages.length;
     }
   }
   async canWrite(installation: number, repoPath: string, login?: string): Promise<boolean> {
@@ -188,12 +217,15 @@ export class GitHubApi {
     repo: Repository,
     numbers: number[],
   ): Promise<Map<number, Json[]>> {
-    const result = new Map<number, Json[]>();
     const [owner, name] = repo.fullName.split("/");
+    if (numbers.some((n) => !Number.isSafeInteger(n) || n <= 0))
+      throw new Error("Invalid PR number");
+    const batches: number[][] = [];
     for (let start = 0; start < numbers.length; start += 20) {
-      const batch = numbers.slice(start, start + 20);
-      if (batch.some((n) => !Number.isSafeInteger(n) || n <= 0))
-        throw new Error("Invalid PR number");
+      batches.push(numbers.slice(start, start + 20));
+    }
+    const entries = await mapConcurrent(batches, async (batch) => {
+      const result = new Map<number, Json[]>();
       const fields = batch
         .map(
           (n) => `pr${n}: pullRequest(number: ${n}) {
@@ -219,8 +251,9 @@ export class GitHubApi {
             : jsonObjects(items.nodes),
         );
       }
-    }
-    return result;
+      return [...result];
+    });
+    return new Map(entries.flat());
   }
   async installationActive(installation: number): Promise<boolean> {
     try {
@@ -239,6 +272,19 @@ export class GitHubApi {
   }
   async close(): Promise<void> {
     await this.dispatcher?.close();
+  }
+}
+function lastPageHint(link: string | undefined, apiUrl: string): number {
+  const match = link?.match(/<([^>]+)>;\s*rel="last"/);
+  if (!match) return 1;
+  try {
+    const url = new URL(match[1]),
+      page = Number(url.searchParams.get("page"));
+    return url.origin === new URL(apiUrl).origin && Number.isSafeInteger(page) && page > 0
+      ? page
+      : 1;
+  } catch {
+    return 1;
   }
 }
 const historyFields = `nodes {

@@ -2,13 +2,17 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { verify } from "node:crypto";
 import { readFileSync } from "node:fs";
+import { setImmediate } from "node:timers/promises";
 import { GitHubApi, ApiException } from "../lib/github.js";
 import { Repository, RetryException } from "../lib/models.js";
 import { configFromEnvironment } from "../lib/config.js";
 import { config, testKey } from "./support/fixtures.mjs";
 
-const response = (body, status = 200) =>
-  new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
+const response = (body, status = 200, headers = {}) =>
+  new Response(JSON.stringify(body), {
+    status,
+    headers: { "content-type": "application/json", ...headers },
+  });
 const token = (value) => ({
   token: value,
   expires_at: new Date(Date.now() + 3600_000).toISOString(),
@@ -59,6 +63,64 @@ test("GHES pagination stays on configured origin with redirects disabled and tok
   assert.ok(urls.every((u) => u.toString().startsWith("https://git.example.com/api/v3/")));
   assert.equal(urls.filter((u) => u.pathname.endsWith("/access_tokens")).length, 1);
 });
+for (const field of [undefined, "check_runs"])
+  test(`paginated ${field ?? "array"} reads overlap and preserve page order`, async () => {
+    let active = 0,
+      peak = 0;
+    const api = new GitHubApi(config(), {
+      fetch: async (input) => {
+        const url = new URL(input);
+        if (url.pathname.endsWith("/access_tokens")) return response(token("test"));
+        assert.equal(url.origin, "https://git.example.com");
+        assert.equal(url.pathname, "/api/v3/repos/org/repo/pulls");
+        assert.equal(url.searchParams.get("state"), "open");
+        const page = Number(url.searchParams.get("page"));
+        peak = Math.max(peak, ++active);
+        await setImmediate();
+        active--;
+        const items = Array.from({ length: Math.min(100, 701 - (page - 1) * 100) }, (_, i) => ({
+          id: (page - 1) * 100 + i,
+        }));
+        return response(field ? { [field]: items } : items, 200, {
+          // GHES canonicalizes repository paths in Link headers; do not follow those URLs.
+          link: '<https://git.example.com/api/v3/repositories/20/pulls?state=open&per_page=100&page=8>; rel="last"',
+        });
+      },
+    });
+    const items = await api.list(1, "/repos/org/repo/pulls?state=open", field);
+    assert.deepEqual(
+      items.map((i) => i.id),
+      Array.from({ length: 701 }, (_, i) => i),
+    );
+    assert.ok(peak > 1 && peak <= 4);
+    assert.equal(active, 0);
+  });
+for (const link of [
+  '<https://untrusted.example/steal?page=100>; rel="last"',
+  '<broken-url>; rel="last"',
+  '<https://git.example.com/pulls?page=-1>; rel="last"',
+  '<https://git.example.com/pulls?page=2>; rel="last"',
+])
+  test(`unusable or stale page hints still read until the final partial page: ${link}`, async () => {
+    const pages = [];
+    const api = new GitHubApi(config(), {
+      fetch: async (input) => {
+        const url = new URL(input);
+        assert.equal(url.origin, "https://git.example.com");
+        if (url.pathname.endsWith("/access_tokens")) return response(token("test"));
+        const page = Number(url.searchParams.get("page"));
+        pages.push(page);
+        return response(
+          Array.from({ length: page < 3 ? 100 : 1 }, () => ({ page })),
+          200,
+          { link },
+        );
+      },
+    });
+    const items = await api.list(1, "/repos/org/repo/pulls");
+    assert.equal(items.length, 201);
+    assert.deepEqual(pages, [1, 2, 3]);
+  });
 test("401 refreshes installation token once; errors never retain credential-bearing SDK responses", async () => {
   let tokens = 0,
     requests = 0,
@@ -195,4 +257,37 @@ test("configuration validates GitHub origins, keys and options", () => {
   ])
     assert.throws(() => configFromEnvironment({ ...env, GITHUB_URL: invalid }, "."));
   assert.throws(() => configFromEnvironment({ ...env, AUTO_RESTACK: "yes" }, "."));
+});
+test("history batches overlap within the API limit and retain every PR in input order", async () => {
+  let active = 0,
+    peak = 0;
+  const api = new GitHubApi(config(), {
+    fetch: async (url, options) => {
+      if (String(url).endsWith("/access_tokens")) return response(token("test"));
+      const { query } = JSON.parse(options.body);
+      const numbers = [...query.matchAll(/pr(\d+): pullRequest/g)].map((m) => Number(m[1]));
+      peak = Math.max(peak, ++active);
+      await setImmediate();
+      active--;
+      return response({
+        data: {
+          repository: Object.fromEntries(
+            numbers.map((n) => [
+              `pr${n}`,
+              { timelineItems: { nodes: [{ number: n }], pageInfo: { hasNextPage: false } } },
+            ]),
+          ),
+        },
+      });
+    },
+  });
+  const numbers = Array.from({ length: 161 }, (_, i) => i + 1);
+  const histories = await api.timelines(1, new Repository(20, "org/repo"), numbers);
+  assert.deepEqual([...histories.keys()], numbers);
+  assert.deepEqual(
+    [...histories.values()].flat().map((n) => n.number),
+    numbers,
+  );
+  assert.ok(peak > 1 && peak <= 4);
+  assert.equal(active, 0);
 });

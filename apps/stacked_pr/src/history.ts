@@ -1,3 +1,4 @@
+import { mapConcurrent } from "./concurrent.js";
 import { assertSha, type GitRepository } from "./git.js";
 import { ApiException, type GitHubApi } from "./github.js";
 import { type Json, jsonObject, PullRequest, Repository, RestackException } from "./models.js";
@@ -107,8 +108,7 @@ export class History {
     const branches = [
       ...new Set(roots.filter((pr) => selected.has(pr.number)).map((pr) => pr.baseRef)),
     ].filter((branch) => branch !== this.repo.defaultBranch);
-    for (let start = 0; start < branches.length; start += 4)
-      await Promise.all(branches.slice(start, start + 4).map((branch) => this.closed(branch)));
+    await mapConcurrent(branches, (branch) => this.closed(branch));
     for (let i = 0; i < pending.length; i++) {
       const child = pending[i];
       if (!child.sameRepo) continue;

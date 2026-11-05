@@ -2,10 +2,12 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { join } from "node:path";
+import { setImmediate } from "node:timers/promises";
 import { GitRepository } from "../lib/git.js";
 import { Service } from "../lib/service.js";
 import { RetryException } from "../lib/models.js";
-import { config } from "../test/support/fixtures.mjs";
+import { Reporter } from "../lib/report.js";
+import { config, fakeApi } from "../test/support/fixtures.mjs";
 import { Harness, repo } from "./support/service_harness.mjs";
 
 function worker(h, overrides = {}) {
@@ -141,6 +143,43 @@ test("failed publishing releases the stack so a new delivery can recover", async
   assert.equal(h.locks.held.size, 0);
   await worker(h).reconcile(10, repo, { number: 2 });
   assert.equal(h.reports.length, 1);
+  assert.equal(h.locks.held.size, 0);
+});
+test("a failed report keeps the stack locked until other in-flight reports finish", async (t) => {
+  const h = await Harness.create(t);
+  const entered = Promise.withResolvers(),
+    finish = Promise.withResolvers();
+  let settled = false;
+  const reporter = new Reporter(
+    fakeApi({
+      request: async (_installation, _method, path) => {
+        assert.ok(h.locks.held.size > 0, "report writes must finish before releasing the lease");
+        if (path.includes("/issues/1/")) throw new Error("temporary report failure");
+        if (path.includes("/issues/2/")) {
+          entered.resolve();
+          await finish.promise;
+        }
+      },
+    }),
+  );
+  const pending = worker(h, {
+    config: config({ dataDir: h.f.root, autoRestack: false }),
+    reporter,
+  })
+    .reconcile(10, repo, { number: 2 })
+    .finally(() => {
+      settled = true;
+    });
+  const rejected = assert.rejects(pending, /temporary report failure/);
+  try {
+    await Promise.race([entered.promise, pending]);
+    await setImmediate();
+    assert.equal(settled, false);
+    assert.ok(h.locks.held.size > 0);
+  } finally {
+    finish.resolve();
+    await rejected;
+  }
   assert.equal(h.locks.held.size, 0);
 });
 
