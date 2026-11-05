@@ -76,12 +76,27 @@ async function fixture(t) {
       await state.beforeBaseCheck?.();
       return { object: { sha: await f.git(["--git-dir", f.remote, "rev-parse", "main"]) } };
     }
+    if (path.includes("/compare/")) {
+      const [base, head] = path.split("/compare/")[1].split("...");
+      const mergeBase = await f
+        .git(["--git-dir", f.remote, "merge-base", base, head])
+        .catch(() => "");
+      if (!mergeBase) throw new ApiException(method, path, 404);
+      return {
+        status: base === head ? "identical" : mergeBase === base ? "ahead" : "diverged",
+        base_commit: { sha: base },
+        merge_base_commit: { sha: mergeBase },
+      };
+    }
     if (path.includes("/git/commits/")) {
       const sha = path.split("/").at(-1);
       const [tree, parents] = (
         await f.git(["--git-dir", f.remote, "show", "-s", "--format=%T%n%P", sha])
       ).split("\n");
-      return { tree: { sha: tree }, parents: parents.split(" ").map((sha) => ({ sha })) };
+      return {
+        tree: { sha: state.landedTree ?? tree },
+        parents: parents.split(" ").map((sha) => ({ sha })),
+      };
     }
     if (path === "/graphql") {
       if (body.query.includes("StackSquashStatuses"))
@@ -107,7 +122,7 @@ async function fixture(t) {
               isDraft: pr.draft,
               headRefOid: live.head.sha,
               baseRefName: pr.baseRef,
-              mergeStateStatus: "CLEAN",
+              mergeStateStatus: state.mergeStateStatus ?? "CLEAN",
               mergeable: "MERGEABLE",
               reviewDecision: state.reviewDecision ?? null,
               commits: {
@@ -340,17 +355,38 @@ test("cancel during final CI restores the selected branch and base without mergi
   assert.deepEqual(s.merges, []);
 });
 
-test("main advancing during final CI stops and restores the stack", async (t) => {
+test("main advancing during final CI keeps the tested head and merges with the newer main", async (t) => {
   const s = await fixture(t);
   await s.prepare();
-  s.pass(await s.head());
+  const prepared = await s.head();
   await s.f.git(["checkout", "main"]);
   await s.f.commit("later.txt", "later\n", "concurrent main change");
   await s.f.git(["push", "origin", "main"]);
-  await s.drain();
+  await s.step();
   assert.deepEqual(s.merges, []);
-  assert.equal(await s.head(), s.f.grandchild);
-  assert.ok(s.comments.get(3).some((c) => c.body.includes(":stopped")));
+  assert.equal(await s.head(), prepared);
+  s.pass(prepared);
+  await s.drain();
+  assert.deepEqual(s.merges, [3]);
+  assert.equal(s.pushes.length, 1, "advancing main must not trigger another force push or CI");
+  assert.equal(await s.f.git(["--git-dir", s.f.remote, "show", "main:later.txt"]), "later");
+  assert.ok(s.h.records.every((p) => !p.isOpen));
+});
+
+test("GitHub requiring an up-to-date branch waits without rewriting the tested head", async (t) => {
+  const s = await fixture(t);
+  await s.prepare();
+  const prepared = await s.head();
+  s.pass(prepared);
+  await s.f.git(["checkout", "main"]);
+  await s.f.commit("later.txt", "later\n", "new main with strict checks");
+  await s.f.git(["push", "origin", "main"]);
+  s.mergeStateStatus = "BEHIND";
+  await s.step();
+  assert.deepEqual(s.merges, []);
+  assert.equal(await s.head(), prepared);
+  assert.equal(s.pushes.length, 1);
+  assert.ok(s.comments.get(3).some((c) => c.body.includes("承認・CI・ブランチ保護の条件待ち")));
 });
 
 test("a human push to the prepared branch is retained and stops the batch", async (t) => {
@@ -376,6 +412,24 @@ test("a lost successful merge response resumes cleanup without a second merge", 
   await s.worker().handle(structuredClone(job));
   await s.drain();
   assert.deepEqual(s.merges, [3]);
+  assert.ok(s.h.records.every((p) => !p.isOpen));
+});
+
+test("a lost merge response with newer main validates the actual landing on retry", async (t) => {
+  const s = await fixture(t);
+  await s.prepare();
+  s.pass(await s.head());
+  await s.f.git(["checkout", "main"]);
+  await s.f.commit("later.txt", "later\n", "new main before lost response");
+  await s.f.git(["push", "origin", "main"]);
+  const job = s.jobs.shift();
+  s.lostMerge = true;
+  await assert.rejects(s.worker().handle(structuredClone(job)), /lost merge response/);
+  await s.worker().handle(structuredClone(job));
+  await s.drain();
+  assert.deepEqual(s.merges, [3]);
+  assert.equal(s.pushes.length, 1);
+  assert.equal(await s.f.git(["--git-dir", s.f.remote, "show", "main:later.txt"]), "later");
   assert.ok(s.h.records.every((p) => !p.isOpen));
 });
 
@@ -418,10 +472,11 @@ test("a lost preparation push response recovers the persisted candidate without 
   assert.deepEqual(s.merges, [3]);
 });
 
-test("main changing between final readiness and the last base check stops the merge", async (t) => {
+test("main advancing between readiness and the last base check preserves both sets of changes", async (t) => {
   const s = await fixture(t);
   await s.prepare();
-  s.pass(await s.head());
+  const prepared = await s.head();
+  s.pass(prepared);
   let concurrent;
   s.beforeBaseCheck = async () => {
     s.beforeBaseCheck = undefined;
@@ -430,9 +485,82 @@ test("main changing between final readiness and the last base check stops the me
     await s.f.git(["push", "origin", "main"]);
   };
   await s.drain();
+  assert.deepEqual(s.merges, [3]);
+  assert.equal(await s.head(), prepared);
+  assert.equal(s.pushes.length, 1);
+  assert.equal(await s.f.git(["--git-dir", s.f.remote, "rev-parse", "main^1"]), concurrent);
+  assert.equal(await s.f.git(["--git-dir", s.f.remote, "show", "main:raced.txt"]), "main");
+  assert.equal(
+    await s.f.git(["--git-dir", s.f.remote, "show", "main:grandchild.txt"]),
+    "grandchild",
+  );
+  assert.ok(s.h.records.every((p) => !p.isOpen));
+});
+
+test("main advancing after the last base check is verified against the actual merge parent", async (t) => {
+  const s = await fixture(t);
+  await s.prepare();
+  const prepared = await s.head();
+  s.pass(prepared);
+  s.beforeMerge = async () => {
+    s.beforeMerge = undefined;
+    await s.f.git(["checkout", "main"]);
+    await s.f.commit("raced.txt", "main\n", "main update during merge request");
+    await s.f.git(["push", "origin", "main"]);
+  };
+  await s.drain();
+  assert.deepEqual(s.merges, [3]);
+  assert.equal(await s.head(), prepared);
+  assert.equal(s.pushes.length, 1);
+  assert.equal(await s.f.git(["--git-dir", s.f.remote, "show", "main:raced.txt"]), "main");
+  assert.ok(s.h.records.every((p) => !p.isOpen));
+});
+
+test("a rewritten main stops without merging or losing the external change", async (t) => {
+  const s = await fixture(t);
+  await s.prepare();
+  s.pass(await s.head());
+  await s.f.git(["checkout", "--orphan", "rewritten"]);
+  const rewritten = await s.f.commit("rewritten.txt", "rewrite\n", "unrelated main history");
+  await s.f.git(["push", "--force", "origin", "HEAD:main"]);
+  await s.drain();
   assert.deepEqual(s.merges, []);
-  assert.equal(await s.f.git(["--git-dir", s.f.remote, "rev-parse", "main"]), concurrent);
+  assert.equal(await s.f.git(["--git-dir", s.f.remote, "rev-parse", "main"]), rewritten);
   assert.equal(await s.head(), s.f.grandchild);
+  assert.ok(s.h.records.every((p) => p.isOpen));
+  assert.ok(s.comments.get(3).some((c) => c.body.includes("履歴を確認できません")));
+});
+
+test("an unexpected tree after main advances leaves included parents open", async (t) => {
+  const s = await fixture(t);
+  await s.prepare();
+  s.pass(await s.head());
+  await s.f.git(["checkout", "main"]);
+  await s.f.commit("later.txt", "later\n", "new main");
+  await s.f.git(["push", "origin", "main"]);
+  s.landedTree = "0".repeat(40);
+  await s.drain();
+  assert.deepEqual(s.merges, [3]);
+  assert.ok(s.h.records.slice(0, -1).every((p) => p.isOpen));
+  assert.ok(s.comments.get(3).some((c) => c.body.includes("統合状態と一致しません")));
+});
+
+test("main advancing between preparation tasks retains the same candidate", async (t) => {
+  const s = await fixture(t);
+  await s.worker().handle(s.button());
+  const preparation = await s.step();
+  const candidate = s.jobs[0].payload.tick.squash.head;
+  await s.f.git(["checkout", "main"]);
+  await s.f.commit("later.txt", "later\n", "main update before preparation push");
+  await s.f.git(["push", "origin", "main"]);
+  await s.step();
+  assert.equal(await s.head(), candidate);
+  await s.worker().handle(preparation);
+  s.pass(candidate);
+  await s.drain();
+  assert.deepEqual(s.merges, [3]);
+  assert.equal(s.pushes.length, 1);
+  assert.ok(s.h.records.every((p) => !p.isOpen));
 });
 
 test("the merge API rejects a new selected head after readiness without overwriting it", async (t) => {

@@ -692,10 +692,32 @@ export class StackMerge {
       );
       const parents = commit.parents;
       need(
-        object(commit.tree).sha === tick.squash.tree &&
-          Array.isArray(parents) &&
+        Array.isArray(parents) &&
           parents.length === 1 &&
-          object(parents[0]).sha === tick.squash.base,
+          typeof object(parents[0]).sha === "string" &&
+          shaPattern.test(String(object(parents[0]).sha)),
+        "取り込み先の親コミットを確認できません。親PRを閉じる前に確認してください。",
+      );
+      const landedBase = String(object(parents[0]).sha);
+      let expectedTree = tick.squash.tree;
+      if (landedBase !== tick.squash.base) {
+        const git = this.options.git(i, repo);
+        await git.prepare({ pulls: [target], branches: [plan.trunk] });
+        for (const sha of [tick.squash.base, landedBase]) await git.ensure(sha);
+        need(
+          await git.ancestor(tick.squash.base, landedBase),
+          "デフォルトブランチの履歴が書き換えられています。親PRを閉じる前に確認してください。",
+        );
+        const expected = await git.squash(
+          tick.squash.head,
+          landedBase,
+          "Verify squash landing",
+          Math.floor(plan.expires - lifetime),
+        );
+        expectedTree = (await git.run(["rev-parse", `${expected}^{tree}`])).output;
+      }
+      need(
+        object(commit.tree).sha === expectedTree,
         "取り込み結果が検証した統合状態と一致しません。親PRを閉じる前に確認してください。",
       );
       for (const pr of pulls.slice(0, -1)) {
@@ -748,11 +770,8 @@ export class StackMerge {
           await git.ancestor(plan.members[index - 1].head, plan.members[index].head),
           "子PRが最新の親PRを含んでいません。先にSyncを完了してください。",
         );
-      const base = await git.branch(plan.trunk);
-      need(
-        !tick.squash || base === tick.squash.base,
-        "準備中にデフォルトブランチが更新されました。最新のCheckからやり直してください。",
-      );
+      // Reproduce the persisted candidate even if main advanced between preparation tasks.
+      const base = tick.squash?.base ?? (await git.branch(plan.trunk));
       const head = await git.squash(
         source.head,
         base,
@@ -827,10 +846,32 @@ export class StackMerge {
             `${repo.apiPath}/git/ref/heads/${encodeURIComponent(plan.trunk)}`,
           ),
         );
-        need(
-          object(ref.object).sha === tick.squash!.base,
-          "最終CIの待機中にデフォルトブランチが更新されました。最新のCheckからやり直してください。",
-        );
+        const currentBase = String(object(ref.object).sha);
+        need(shaPattern.test(currentBase), "デフォルトブランチの先端を確認できません。");
+        if (currentBase !== tick.squash!.base) {
+          let comparison: Json;
+          try {
+            comparison = jsonObject(
+              await api.request(
+                i,
+                "GET",
+                `${repo.apiPath}/compare/${tick.squash!.base}...${currentBase}`,
+              ),
+            );
+          } catch (error) {
+            if (error instanceof ApiException && error.status === 404)
+              throw new Stop(
+                "デフォルトブランチの履歴を確認できません。最新のCheckからやり直してください。",
+              );
+            throw error;
+          }
+          need(
+            comparison.status === "ahead" &&
+              object(comparison.base_commit).sha === tick.squash!.base &&
+              object(comparison.merge_base_commit).sha === tick.squash!.base,
+            "デフォルトブランチの履歴が書き換えられています。最新のCheckからやり直してください。",
+          );
+        }
         assertActive();
         const result = jsonObject(
           await api.request(i, "PUT", `${repo.apiPath}/pulls/${target.number}/merge`, {
