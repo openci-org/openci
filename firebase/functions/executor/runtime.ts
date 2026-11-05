@@ -23,6 +23,8 @@ export function runtime(
   };
   const project = environment.GCLOUD_PROJECT ?? required("GOOGLE_CLOUD_PROJECT");
   const selfHosted = selfHostedMode(environment);
+  const useWorkerMemory = environment.ORCHARD_USE_WORKER_MEMORY ?? "false";
+  if (!["true", "false"].includes(useWorkerMemory)) throw new Error("Invalid worker memory mode");
   const cloudRunJob = required("BUILD_EXECUTOR_JOB");
   if (!/^projects\/[a-z0-9-]+\/locations\/[a-z0-9-]+\/jobs\/[a-z][a-z0-9-]*$/.test(cloudRunJob))
     throw new Error("Invalid Cloud Run job name");
@@ -54,6 +56,7 @@ export function runtime(
     account: required("ORCHARD_SERVICE_ACCOUNT_NAME"),
     token: required("ORCHARD_SERVICE_ACCOUNT_TOKEN"),
     ca: environment.ORCHARD_CA_CERT,
+    useWorkerMemory: useWorkerMemory === "true",
   });
   return {
     store,
