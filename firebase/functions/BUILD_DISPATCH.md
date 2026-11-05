@@ -184,11 +184,18 @@ could allocate its capacity twice. Manual rerun dispatch remains separate work.
 | `ORCHARD_SERVICE_ACCOUNT_NAME`             | Orchard account with workers/VMs read access                  |
 | `ORCHARD_SERVICE_ACCOUNT_TOKEN`            | Bound Secret Manager secret                                   |
 | `ORCHARD_CA_CERT`                          | Optional trusted PEM CA; TLS verification stays enabled       |
-| `ORCHARD_VM_CPU` / `ORCHARD_VM_MEMORY_MIB` | Positive integers, defaults 2 / 4096                          |
+| `ORCHARD_VM_CPU` / `ORCHARD_VM_MEMORY_MIB` | Positive integers, defaults 4 / 4096                          |
 | `BASE_VM_NAME`                             | Orchard image, default `base-macos`                           |
 | `BUILD_EXECUTOR_JOB`                       | `projects/PROJECT/locations/REGION/jobs/JOB`                  |
 | `GITHUB_APP_ID` / `GITHUB_APP_PRIVATE_KEY` | CI App ID and bound private-key secret, on both Functions     |
 | `GITHUB_API_BASE_URL` / `GITHUB_BASE_URL`  | Same GitHub host configuration as the executor                |
+
+The dispatcher reserves the configured CPU count and the executor explicitly
+passes it to Orchard, overriding the worker's default CPU count. Existing
+deployments with `ORCHARD_VM_CPU=2` must update that environment variable and
+their local `.env.PROJECT` file to use four CPUs; changing the deployment default
+does not override an explicit value. New reservations use the updated CPU
+count while existing reservations and running VMs retain their pinned count.
 
 `dispatchBuildJob` and `recoverBuildExecutions` use Direct VPC egress from
 `orchard_network.ts`. Set `ORCHARD_VPC_NETWORK` and `ORCHARD_VPC_SUBNETWORK` if
