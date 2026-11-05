@@ -473,7 +473,7 @@ test("recovery waits for confirmed Cloud Run termination and rejects a foreign e
   );
 });
 
-async function controller(t, onSocket, handler) {
+async function controller(t, onSocket, handler, options = {}) {
   const requests = [];
   const server = createServer(
     handler ??
@@ -498,6 +498,7 @@ async function controller(t, onSocket, handler) {
       account: "account",
       token: "credential",
       allowLocalHttp: true,
+      ...options,
     }),
     requests,
   };
@@ -589,6 +590,91 @@ test("Orchard reconciles a lost VM create response without issuing a second POST
   );
   await f.client.create(dispatch, new AbortController().signal);
   assert.equal(posts, 1);
+});
+
+test("worker memory mode uses the host partition while keeping the admission floor", async (t) => {
+  for (const enabled of [false, true]) {
+    const posted = [];
+    const reads = [];
+    const workers = [
+      {
+        name: "m1",
+        defaultMemory: 4096,
+        resources: { "org.cirruslabs.tart-vms": 2, "org.cirruslabs.memory-mib": 8192 },
+      },
+      {
+        name: "m2",
+        defaultMemory: 12288,
+        resources: { "org.cirruslabs.tart-vms": 2, "org.cirruslabs.memory-mib": 24576 },
+      },
+    ].map((worker) => ({ ...worker, last_seen: new Date().toISOString() }));
+    const f = await controller(
+      t,
+      () => {},
+      (request, response) => {
+        if (request.method === "POST") {
+          let body = "";
+          request.on("data", (chunk) => (body += chunk));
+          request.on("end", () => {
+            posted.push(JSON.parse(body));
+            response.writeHead(200).end("{}");
+          });
+        } else {
+          reads.push(request.url);
+          response.writeHead(200, { "content-type": "application/json" });
+          response.end(
+            JSON.stringify(
+              request.url === "/v1/workers"
+                ? workers
+                : request.url === "/v1/vms"
+                  ? []
+                  : { name: dispatch.vmName, image: dispatch.image },
+            ),
+          );
+        }
+      },
+      { useWorkerMemory: enabled },
+    );
+    await f.client.create(dispatch, new AbortController().signal);
+    assert.equal(posted.length, 1);
+    assert.equal(posted[0].memory, enabled ? 0 : 4096);
+    assert.equal(posted[0].resources["org.cirruslabs.memory-mib"], 4096);
+    assert.equal(posted[0].resources["org.cirruslabs.tart-vms"], 1);
+    assert.equal(reads.includes("/v1/workers"), enabled);
+  }
+});
+
+test("worker memory mode rejects unsafe partitions and mixed larger VMs before creation", async (t) => {
+  const base = {
+    name: "m1",
+    last_seen: new Date().toISOString(),
+    defaultMemory: 4096,
+    resources: { "org.cirruslabs.tart-vms": 2, "org.cirruslabs.memory-mib": 8192 },
+  };
+  const cases = [
+    { workers: [{ ...base, defaultMemory: 8192 }], vms: [] },
+    { workers: [{ ...base, defaultMemory: 2048 }], vms: [] },
+    { workers: [{ ...base, defaultMemory: undefined }], vms: [] },
+    { workers: [], vms: [] },
+    { workers: [base], vms: [{ worker: "m1", assignedMemory: 6144 }] },
+    { workers: [base], vms: [{ memory: 6144 }] },
+    { workers: [base], vms: [{ worker: "m1", memory: "invalid" }] },
+  ];
+  for (const data of cases) {
+    let posts = 0;
+    const f = await controller(
+      t,
+      () => {},
+      (request, response) => {
+        if (request.method === "POST") posts++;
+        response.writeHead(200, { "content-type": "application/json" });
+        response.end(JSON.stringify(request.url === "/v1/workers" ? data.workers : data.vms));
+      },
+      { useWorkerMemory: true },
+    );
+    await assert.rejects(f.client.create(dispatch, new AbortController().signal));
+    assert.equal(posts, 0);
+  }
 });
 
 test("Octokit scopes checkout/check tokens and reconciles a lost check creation response", async (t) => {

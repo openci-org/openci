@@ -137,11 +137,27 @@ consistent with the dispatcher/planner:
 | `ORCHARD_API_URL`, `ORCHARD_SERVICE_ACCOUNT_NAME` | Controller and service account                                                             |
 | `ORCHARD_SERVICE_ACCOUNT_TOKEN`                   | Secret binding                                                                             |
 | `ORCHARD_CA_CERT`                                 | Optional PEM CA                                                                            |
+| `ORCHARD_USE_WORKER_MEMORY`                       | Optional `true` to use each worker's default VM memory; defaults to `false`                |
 | `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY`         | App ID and secret binding                                                                  |
 | `GITHUB_API_BASE_URL`, `GITHUB_BASE_URL`          | Defaults `https://api.github.com`, `https://github.com`; no trailing slash                 |
 | `BILLING_STRIPE_LIVEMODE`                         | Required `true` or `false`, matching the billing backend                                   |
 | `BILLING_COMPLIMENTARY_PRO_TEAM_IDS`              | Optional comma-separated approved team IDs                                                 |
 | `SECRET_MANAGER_PROJECT`                          | Project ID or number exactly matching stored secret version paths; defaults to FSC project |
+
+With `ORCHARD_USE_WORKER_MEMORY=true`, the executor lets Orchard choose the VM's
+memory from the selected worker's `--default-memory`. For example, two slots on
+an 8 GiB Mac can use 4096 MiB each, and two slots on a 24 GiB Mac can use 12288
+MiB each. The dispatch memory remains the minimum admission reservation; existing
+VM capacity accounting includes Orchard's actual `assignedMemory`.
+
+Before enabling this mode, drain existing VMs and configure every eligible worker
+so its default memory is at least the dispatch reservation and its slot count
+times default memory does not exceed its physical memory. The executor checks
+these conditions and rejects larger existing/manual VMs that would invalidate
+the partition. Keep this fleet dedicated to these partitions. Assigning all
+physical memory to guests leaves host memory pressure and swapping to be checked
+under representative concurrent workloads. With the flag unset, explicit dispatch
+memory continues to be used.
 
 The Job runtime identity needs privileged FSC access to `dispatch`, `billing`
 and `logs`, plus access to its bound credentials and team secrets. The recovery

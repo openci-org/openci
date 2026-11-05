@@ -10,6 +10,7 @@ export interface OrchardOptions {
   token: string;
   ca?: string;
   allowLocalHttp?: boolean;
+  useWorkerMemory?: boolean;
 }
 type Output = (stream: Stream, data: Buffer) => Promise<void>;
 
@@ -98,6 +99,7 @@ export class OrchardExecutor {
   }
 
   async create(dispatch: Dispatch, signal: AbortSignal): Promise<void> {
+    if (this.options.useWorkerMemory) await this.checkWorkerMemory(dispatch.memoryMiB, signal);
     let status: number | undefined;
     try {
       status = (
@@ -110,7 +112,7 @@ export class OrchardExecutor {
             headless: true,
             os: "darwin",
             cpu: dispatch.cpu,
-            memory: dispatch.memoryMiB,
+            memory: this.options.useWorkerMemory ? 0 : dispatch.memoryMiB,
             resources: {
               "org.cirruslabs.logical-cores": dispatch.cpu,
               "org.cirruslabs.memory-mib": dispatch.memoryMiB,
@@ -137,6 +139,61 @@ export class OrchardExecutor {
       record(vm.value).image !== dispatch.image
     )
       throw new Error("VM creation could not be confirmed");
+  }
+
+  private async checkWorkerMemory(minimumMiB: number, signal: AbortSignal): Promise<void> {
+    const [workers, vms] = await Promise.all([
+      this.request("GET", "workers", undefined, signal),
+      this.request("GET", "vms", undefined, signal),
+    ]);
+    if (
+      workers.status !== 200 ||
+      vms.status !== 200 ||
+      !Array.isArray(workers.value) ||
+      !Array.isArray(vms.value)
+    )
+      throw new Error("Worker memory configuration unavailable");
+    const defaults = new Map<string, number>();
+    for (const value of workers.value) {
+      const worker = record(value);
+      if (
+        worker.scheduling_paused === true ||
+        (worker.runtime ?? "tart") !== "tart" ||
+        (worker.arch ?? "arm64") !== "arm64"
+      )
+        continue;
+      const seen = Date.parse(String(worker.last_seen ?? ""));
+      if (!Number.isFinite(seen) || seen < Date.now() - 180000 || seen > Date.now() + 60000)
+        continue;
+      const resources = record(worker.resources);
+      const memory = worker.defaultMemory;
+      const slots = resources["org.cirruslabs.tart-vms"];
+      const total = resources["org.cirruslabs.memory-mib"];
+      if (
+        typeof memory !== "number" ||
+        !Number.isSafeInteger(memory) ||
+        memory < minimumMiB ||
+        typeof slots !== "number" ||
+        !Number.isSafeInteger(slots) ||
+        slots < 1 ||
+        typeof total !== "number" ||
+        !Number.isSafeInteger(total) ||
+        memory * slots > total ||
+        typeof worker.name !== "string"
+      )
+        throw new Error("Unsafe worker memory configuration");
+      defaults.set(worker.name, memory);
+    }
+    if (!defaults.size) throw new Error("Worker memory configuration unavailable");
+    for (const value of vms.value) {
+      const vm = record(value);
+      const memory = Math.max(Number(vm.memory ?? 0), Number(vm.assignedMemory ?? 0));
+      const limit = vm.worker ? defaults.get(String(vm.worker)) : Math.min(...defaults.values());
+      // Slot partitioning is safe only while all VMs fit their worker's partition.
+      // Reject mixed, larger manual VMs before requesting another default-sized VM.
+      if (limit !== undefined && (!Number.isSafeInteger(memory) || memory < 0 || memory > limit))
+        throw new Error("VM exceeds worker memory partition");
+    }
   }
 
   async ready(vmName: string, signal: AbortSignal): Promise<void> {
