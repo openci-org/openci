@@ -19,9 +19,11 @@ done
 gcloud projects add-iam-policy-binding "$project" --member="serviceAccount:$runtime" --role=roles/cloudtasks.enqueuer --condition=None --format=none
 gcloud projects add-iam-policy-binding "$project" --member="serviceAccount:$runtime" --role=roles/datastore.user \
   --condition="expression=resource.name == 'projects/$project/databases/$lock_database',title=stacked-pr-lock-database" --format=none
-# TTL is cleanup only; acquisition checks expiry without waiting for deletion.
-gcloud firestore fields ttls update expiresAt --collection-group=StackedPrLocks \
-  --enable-ttl --database="$lock_database" --project "$project" --async --quiet
+# TTL is cleanup only; the worker enforces lease and merge request deadlines itself.
+for collection in StackedPrLocks StackedPrMergeStops; do
+  gcloud firestore fields ttls update expiresAt --collection-group="$collection" \
+    --enable-ttl --database="$lock_database" --project "$project" --async --quiet
+done
 gcloud iam service-accounts add-iam-policy-binding "$tasks" --project "$project" --member="serviceAccount:$runtime" --role=roles/iam.serviceAccountUser --format=none
 project_number="$(gcloud projects describe "$project" --format='value(projectNumber)')"
 # Enabling Cloud Tasks creates its Google-managed service agent. It is not a

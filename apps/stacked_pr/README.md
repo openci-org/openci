@@ -144,13 +144,13 @@ Gitの `rebase.updateRefs=false` を明示し、他のブランチの自動更�
    Webhook secretは32文字以上にします。設定値・秘密鍵はコミットしません。
 3. 既存のFirestore Nativeデータベースを使います。既定は `(default)` で、
    別のDBを使う場合は `STACKED_PR_LOCK_DATABASE` にそのIDを設定します。
-   `StackedPrLocks` へのWeb/Mobileクライアントからの読み書きはルールで禁止してください。
-   他の広い `allow` によってこのコレクションが許可されないことも確認が必要です。
+   `StackedPrLocks` と `StackedPrMergeStops` へのWeb/Mobileクライアントからの読み書きはルールで禁止してください。
+   他の広い `allow` によってこれらのコレクションが許可されないことも確認が必要です。
    このパッケージから既存DBのルール全体を置き換えることはしません。
 4. `scripts/provision.sh PROJECT_ID [LOCK_DATABASE]` でAPI、サービスアカウント、必要なIAMを準備します。
    これは明示的にクラウド設定を変更するスクリプトです。
    runtimeには指定したDBに限定した `roles/datastore.user` を付与します。
-   `StackedPrLocks.expiresAt` のTTLも設定します（期限の判定はアプリ側で行います）。
+   両コレクションの `expiresAt` にTTLも設定します（期限の判定はアプリ側で行います）。
    DBは既存のものを確認し、暗黙には作成しません。
    キューの作成・更新はFirebase CLIがTask Queue Functions設定から行います。
 5. 依存関係をインストールし、workerとWebhookを配置します。
