@@ -28,6 +28,7 @@ beforeEach((t) => {
 const app = initializeApp({ projectId: "demo-openci" });
 after(() => Promise.all(getApps().map(deleteApp)));
 const logger = createRequire(import.meta.url)("firebase-functions/logger");
+const { declaredParams } = createRequire(import.meta.url)("firebase-functions/params");
 const event = (data, errors, variables = { jobsJson: "private metadata" }) => ({
   id: "event",
   authType: "admin",
@@ -617,8 +618,11 @@ test("cancellation racing the source check sync is inherited by the shared retry
   assert.deepEqual(tasks.get(dispatchContinuationTaskId(taskId, "job")).data, { jobId: "job" });
 });
 
-test("a single wakeup fills two free slots in FIFO order through immediate continuations", async (t) => {
+test("a single wakeup fills two slots with the default CPU allocation in FIFO order", async (t) => {
   const { retry, errors } = mockDispatcher(t);
+  // Firebase supplies deployment-resolved parameter defaults as environment variables.
+  const cpuParam = declaredParams.find((param) => param.name === "ORCHARD_VM_CPU");
+  process.env.ORCHARD_VM_CPU = String(cpuParam.toSpec().default);
   const jobs = ["oldest", "second", "newest"].map((id) => ({
     id,
     status: "QUEUED",
@@ -654,7 +658,7 @@ test("a single wakeup fills two free slots in FIFO order through immediate conti
         name: "mac-1",
         last_seen: new Date().toISOString(),
         resources: {
-          "org.cirruslabs.logical-cores": 4,
+          "org.cirruslabs.logical-cores": 8,
           "org.cirruslabs.memory-mib": 8192,
           "org.cirruslabs.tart-vms": 2,
         },
@@ -687,6 +691,10 @@ test("a single wakeup fills two free slots in FIFO order through immediate conti
   }
   assert.deepEqual(launched, ["oldest", "second"]);
   assert.equal(reservations.size, 2);
+  assert.deepEqual(
+    [...reservations.values()].map((dispatch) => dispatch.cpu),
+    [4, 4],
+  );
   assert.equal(retry().taskId, delayedId);
   assert.equal(tasks.has(dispatchContinuationTaskId(sourceId)), false);
   assert.equal(errors.mock.callCount(), 0);
