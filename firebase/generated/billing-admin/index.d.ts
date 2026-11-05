@@ -564,6 +564,11 @@ export interface InitializeBillingStripeStateVariables {
   livemode: boolean;
 }
 
+export interface PullRequestPlanning_Key {
+  id: string;
+  __typename?: "PullRequestPlanning_Key";
+}
+
 export interface RecordBillingCheckoutSessionData {
   billingCheckoutCreation_updateMany: number;
 }

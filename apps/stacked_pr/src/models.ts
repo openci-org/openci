@@ -153,3 +153,5 @@ export class RestackException extends Error {
   }
 }
 export class RetryException extends Error {}
+
+export class StackBusyException extends RetryException {}

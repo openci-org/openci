@@ -1,4 +1,4 @@
-import { RetryException } from "../../lib/models.js";
+import { RetryException, StackBusyException } from "../../lib/models.js";
 
 // Service tests use a shared coordinator without accessing a real project.
 // Firestore's cross-client atomicity is exercised separately against its emulator.
@@ -7,7 +7,7 @@ export class MemoryStackLocks {
   async acquire(scope, resources) {
     const keys = [...new Set(resources.map((key) => JSON.stringify([scope, key])))];
     if (keys.some((key) => this.held.has(key)))
-      throw new RetryException("Stack is already being processed");
+      throw new StackBusyException("Stack is already being processed");
     keys.forEach((key) => this.held.add(key));
     let released = false;
     return {

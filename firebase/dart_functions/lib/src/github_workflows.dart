@@ -71,6 +71,66 @@ class GitHubWorkflows {
     return jsonDecode(response.body);
   }
 
+  /// Verify the live PR after acquiring the planning fence. Do not use delivery
+  /// times or commit ancestry: delayed deliveries and force pushes reorder both.
+  Future<bool> isCurrentPullRequest(PlanningEvent event) async {
+    final webhook = event.webhook;
+    if (webhook.pullRequestNumber == null) throw StateError('Expected a PR');
+    final auth = _json(
+      await _request(
+        'POST',
+        'app/installations/${webhook.installationId}/access_tokens',
+        appJwt(),
+        body: {
+          'repository_ids': [event.repositoryId],
+          'permissions': {'pull_requests': 'read'},
+        },
+      ),
+    );
+    if (auth is! Map<String, dynamic> ||
+        auth['token'] is! String ||
+        (auth['token'] as String).isEmpty) {
+      throw StateError('GitHub token is unavailable');
+    }
+    final token = auth['token'] as String;
+    try {
+      final pr = _json(
+        await _request(
+          'GET',
+          'repos/${Uri.encodeComponent(webhook.owner)}/${Uri.encodeComponent(webhook.repo)}/pulls/${webhook.pullRequestNumber}',
+          token,
+        ),
+      );
+      if (pr is! Map<String, dynamic> ||
+          pr['number'] != webhook.pullRequestNumber ||
+          pr['head'] is! Map<String, dynamic> ||
+          pr['base'] is! Map<String, dynamic>) {
+        throw StateError('Invalid GitHub pull request');
+      }
+      final head = pr['head'] as Map<String, dynamic>;
+      final base = pr['base'] as Map<String, dynamic>;
+      if (head['repo'] is! Map<String, dynamic> ||
+          base['repo'] is! Map<String, dynamic> ||
+          (head['repo'] as Map<String, dynamic>)['id'] != event.repositoryId ||
+          (base['repo'] as Map<String, dynamic>)['id'] != event.repositoryId) {
+        throw const InvalidPlanningInput('untrusted_pull_request');
+      }
+      if (pr['state'] != 'open' && pr['state'] != 'closed' ||
+          head['sha'] is! String ||
+          base['ref'] is! String) {
+        throw StateError('Invalid GitHub pull request revision');
+      }
+      return pr['state'] == 'open' &&
+          head['sha'] == webhook.commitSha &&
+          base['ref'] == webhook.triggerBranch;
+    } finally {
+      final revoked = await _request('DELETE', 'installation/token', token);
+      if (revoked.statusCode != 204) {
+        throw StateError('GitHub token revocation failed');
+      }
+    }
+  }
+
   Future<ChangedFilesResult> fetchChangedFiles(PlanningEvent event) async {
     final webhook = event.webhook;
     final auth = _json(

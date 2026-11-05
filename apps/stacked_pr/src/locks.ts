@@ -3,7 +3,7 @@ import { getApps, initializeApp } from "firebase-admin/app";
 import { getFirestore, type Firestore, Timestamp } from "firebase-admin/firestore";
 import { required, type Environment } from "./config.js";
 import { stackLeaseMs } from "./limits.js";
-import { RetryException } from "./models.js";
+import { RetryException, StackBusyException } from "./models.js";
 
 export interface StackLease {
   assertActive(): void;
@@ -48,7 +48,7 @@ export class FirestoreStackLocks implements StackLocks {
         if (typeof data.owner !== "string" || !(data.expiresAt instanceof Timestamp))
           throw new RetryException("Invalid stack lock");
         if (data.expiresAt.toMillis() > now)
-          throw new RetryException("Stack is already being processed");
+          throw new StackBusyException("Stack is already being processed");
       }
       const expiresAt = Timestamp.fromMillis(now + stackLeaseMs);
       for (const ref of refs) transaction.set(ref, { owner, expiresAt });

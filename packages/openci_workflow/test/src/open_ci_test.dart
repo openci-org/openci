@@ -173,6 +173,22 @@ void main() {
   });
 
   group('OpenCI.init', () {
+    test(
+      'PR auto cancellation is opt in and retained by initialization',
+      () async {
+        final defaultCI = await OpenCI.init(
+          workflowName: 'CI',
+          ciTriggers: const [],
+        );
+        final enabledCI = await OpenCI.init(
+          workflowName: 'CI',
+          ciTriggers: const [],
+          cancelPreviousRuns: true,
+        );
+        expect(defaultCI.cancelPreviousRuns, isFalse);
+        expect(enabledCI.cancelPreviousRuns, isTrue);
+      },
+    );
     test('retains all configured triggers as an immutable snapshot', () async {
       final triggers = [
         const CITrigger.pullRequest(branch: 'develop'),

@@ -12,6 +12,20 @@ export type UUIDString = string;
 export type Int64String = string;
 export type DateString = string;
 
+export interface BeginPullRequestPlanningData {
+  webhookTask_updateMany: number;
+  pullRequestPlanning_upsert: PullRequestPlanning_Key;
+}
+
+export interface BeginPullRequestPlanningVariables {
+  id: string;
+  taskId: string;
+  connectionId: string;
+  repositoryId: Int64String;
+  pullRequestNumber: Int64String;
+  token: string;
+}
+
 export interface BillingAccount_Key {
   teamId: string;
   __typename?: "BillingAccount_Key";
@@ -111,6 +125,7 @@ export interface CompleteSkippedWorkflowCheckVariables {
 export interface CompleteWebhookTaskData {
   webhookTask_updateMany: number;
   jobs?: unknown[] | null;
+  cancelled?: number | null;
   skipped?: unknown[] | null;
 }
 
@@ -130,6 +145,8 @@ export interface CompleteWebhookTaskVariables {
   commitMessage?: string | null;
   pullRequestNumber?: Int64String | null;
   githubBaseUrl?: string | null;
+  planningId?: string | null;
+  planningToken?: string | null;
 }
 
 export interface CreateWebhookTaskData {
@@ -226,6 +243,11 @@ export interface GitHubConnectionSession_Key {
 export interface GitHubConnection_Key {
   id: string;
   __typename?: "GitHubConnection_Key";
+}
+
+export interface PullRequestPlanning_Key {
+  id: string;
+  __typename?: "PullRequestPlanning_Key";
 }
 
 export interface RejectWebhookTaskData {
@@ -332,6 +354,18 @@ export function requestWebhookTaskPlanning(
   vars: RequestWebhookTaskPlanningVariables,
   options?: OperationOptions,
 ): Promise<ExecuteOperationResponse<RequestWebhookTaskPlanningData>>;
+
+/** Generated Node Admin SDK operation action function for the 'BeginPullRequestPlanning' Mutation. Allow users to execute without passing in DataConnect. */
+export function beginPullRequestPlanning(
+  dc: DataConnect,
+  vars: BeginPullRequestPlanningVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<BeginPullRequestPlanningData>>;
+/** Generated Node Admin SDK operation action function for the 'BeginPullRequestPlanning' Mutation. Allow users to pass in custom DataConnect instances. */
+export function beginPullRequestPlanning(
+  vars: BeginPullRequestPlanningVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<BeginPullRequestPlanningData>>;
 
 /** Generated Node Admin SDK operation action function for the 'GetWebhookTaskByDeliveryId' Query. Allow users to execute without passing in DataConnect. */
 export function getWebhookTaskByDeliveryId(

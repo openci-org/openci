@@ -35,18 +35,17 @@ export class TaskQueue {
       resumeAt ? new Date(resumeAt) : undefined,
     );
   }
-  async enqueue(job: Job, timeoutMs = 8000): Promise<boolean> {
+  async enqueue(job: Job, timeoutMs = 8000, scheduleTime?: Date): Promise<boolean> {
     if (Buffer.byteLength(JSON.stringify(job)) > 128 * 1024) throw new Error("Task too large");
     const id = createHash("sha256").update(`${this.namespace}:${job.id}`).digest("hex");
+    const scheduledAt = Math.max(scheduleTime?.getTime() ?? 0, this.notBefore?.getTime() ?? 0);
     let timer: ReturnType<typeof setTimeout> | undefined;
     try {
       await Promise.race([
         this.backend.enqueue(job, {
           id,
           dispatchDeadlineSeconds: taskDeadlineSeconds,
-          ...(this.notBefore && this.notBefore.getTime() > Date.now()
-            ? { scheduleTime: this.notBefore }
-            : {}),
+          ...(scheduledAt > Date.now() ? { scheduleTime: new Date(scheduledAt) } : {}),
         }),
         // A lost enqueue response is safe to retry because the task ID is stable.
         new Promise<never>((_, reject) => {

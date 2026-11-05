@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { generateKeyPairSync, randomUUID } from "node:crypto";
+import { createHash, generateKeyPairSync, randomUUID } from "node:crypto";
 import { spawn } from "node:child_process";
 import { once } from "node:events";
 import { createServer } from "node:net";
@@ -11,7 +11,7 @@ import { after, before, test } from "node:test";
 import { deleteApp, getApps, initializeApp } from "firebase-admin/app";
 import { getDataConnect } from "firebase-admin/data-connect";
 import * as sdk from "@openci/webhooks-admin";
-import { getBuildExecution } from "@openci/dispatch-admin";
+import { getBuildExecution, getSupersededBuildJobs } from "@openci/dispatch-admin";
 import { invokeProcessWebhookTask } from "../../lib/functions/build_job_planning.js";
 import { enqueueWebhook } from "../../lib/functions/webhook_queue.js";
 import { createdBuildJobIds, dispatchBuildJob } from "../../lib/functions/build_dispatch.js";
@@ -45,6 +45,10 @@ before(async () => {
       res.end(JSON.stringify(body));
     };
     if (!github) return respond(404, {});
+    if (req.method === "DELETE" && path === "/installation/token") {
+      res.writeHead(204);
+      return res.end();
+    }
     if (tokenMatch) {
       let body = "";
       for await (const chunk of req) body += chunk;
@@ -53,8 +57,12 @@ before(async () => {
     }
     if (path === "/repos/org/app") return respond(200, { id: 10, owner: { id: 20 } });
     if (path === "/repos/org/app/pulls/7") {
+      const pullRequest = structuredClone(github.pullRequest);
+      const hook = github.onPullRequest;
+      github.onPullRequest = null;
+      if (hook) await hook();
       return respond(200, {
-        ...github.pullRequest,
+        ...pullRequest,
         number: 7,
         changed_files: github.changedFiles.length,
       });
@@ -73,8 +81,12 @@ before(async () => {
         files: github.changedFiles,
       });
     }
-    if (path === `/repos/org/app/git/commits/${sha}`) return respond(github.commitStatus, { sha });
-    if (url.searchParams.get("ref") !== sha) return respond(400, {});
+    if (
+      path.startsWith("/repos/org/app/git/commits/") &&
+      github.revisions.has(path.split("/").at(-1))
+    )
+      return respond(github.commitStatus, { sha: path.split("/").at(-1) });
+    if (!github.revisions.has(url.searchParams.get("ref"))) return respond(400, {});
     if (path === "/repos/org/app/contents/openci") {
       return respond(
         200,
@@ -231,6 +243,7 @@ async function fixture(t, payloadChange = {}, eventType = "push") {
       { name: "release.dart", content: source("Release", "release/*") },
     ],
     commitStatus: 200,
+    revisions: new Set([sha]),
     tokenRequests: [],
     onContents: null,
     comparisonStatus: 200,
@@ -241,18 +254,19 @@ async function fixture(t, payloadChange = {}, eventType = "push") {
   installations.set(String(installationId), github);
   await enqueueWebhook(dc, { deliveryId, eventType, payload: JSON.stringify(payload) });
   const task = (await sdk.getWebhookTaskByDeliveryId(dc, { deliveryId })).data.webhookTask;
+  const taskIds = [task.id];
   t.after(async () => {
     installations.delete(String(installationId));
     await graphql(
       `
-        mutation Cleanup($teamId: String!, $connectionId: String!, $taskId: String!) {
+        mutation Cleanup($teamId: String!, $connectionId: String!, $taskIds: [String!]!) {
           buildJob_deleteMany(where: { teamId: { eq: $teamId } })
-          webhookTask_delete(id: $taskId)
+          webhookTask_deleteMany(where: { id: { in: $taskIds } })
           gitHubConnection_delete(id: $connectionId)
           team_delete(id: $teamId)
         }
       `,
-      { teamId, connectionId, taskId: task.id },
+      { teamId, connectionId, taskIds },
     );
   });
   const state = () =>
@@ -271,6 +285,9 @@ async function fixture(t, payloadChange = {}, eventType = "push") {
             teamId
             workflowName
             workflowFileName
+            cancelPreviousRuns
+            supersededByTaskId
+            completedAt
             flutterVersion
             commitSha
             branch
@@ -288,7 +305,7 @@ async function fixture(t, payloadChange = {}, eventType = "push") {
       `,
       { taskId: task.id, teamId },
     );
-  return { taskId: task.id, teamId, connectionId, installationId, github, state };
+  return { taskId: task.id, taskIds, payload, teamId, connectionId, installationId, github, state };
 }
 
 test("ID dispatcher -> Dart Function -> GitHub -> atomic FSC jobs", async (t) => {
@@ -807,4 +824,271 @@ test("PR filtering and base retargets use the full PR diff with scoped PR-read p
       permissions: { contents: "read", pull_requests: "read" },
     });
   }
+});
+
+async function autoCancelFixture(t) {
+  const f = await fixture(
+    t,
+    {
+      action: "synchronize",
+      number: 7,
+      pull_request: {
+        title: "PR",
+        state: "open",
+        head: { sha, ref: "feature", repo: { id: 10 } },
+        base: { sha: beforeSha, ref: "main", repo: { id: 10 } },
+      },
+    },
+    "pull_request",
+  );
+  f.github.files = [
+    {
+      name: "ci.dart",
+      content:
+        "void main() { OpenCI.init(workflowName: 'CI', ciTriggers: [CITrigger.pullRequest(branch: '*')], cancelPreviousRuns: true); }",
+    },
+    { name: "deploy.dart", content: source("Deploy", "*", "pullRequest") },
+  ];
+  return f;
+}
+
+async function nextRevision(f, headSha, makeCurrent = true) {
+  const payload = structuredClone(f.payload);
+  payload.pull_request.head.sha = headSha;
+  f.github.revisions.add(headSha);
+  if (makeCurrent) f.github.pullRequest = payload.pull_request;
+  const deliveryId = randomUUID();
+  await enqueueWebhook(dc, {
+    deliveryId,
+    eventType: "pull_request",
+    payload: JSON.stringify(payload),
+  });
+  const taskId = (await sdk.getWebhookTaskByDeliveryId(dc, { deliveryId })).data.webhookTask.id;
+  f.taskIds.push(taskId);
+  return taskId;
+}
+
+async function beginPlanning(f, taskId) {
+  const id = createHash("sha256")
+    .update(JSON.stringify([f.connectionId, 10, 7]))
+    .digest("hex");
+  const token = randomUUID();
+  await sdk.beginPullRequestPlanning(dc, {
+    id,
+    token,
+    taskId,
+    connectionId: f.connectionId,
+    repositoryId: "10",
+    pullRequestNumber: "7",
+  });
+  return { planningId: id, planningToken: token };
+}
+
+function completion(f, taskId, fence, headSha = "c".repeat(40)) {
+  return {
+    id: taskId,
+    ...fence,
+    jobCount: 1,
+    connectionId: f.connectionId,
+    owner: "org",
+    repo: "app",
+    commitSha: headSha,
+    branch: "feature",
+    pullRequestNumber: "7",
+    githubBaseUrl: "https://github.com",
+    jobsJson: JSON.stringify([
+      { id: randomUUID(), name: "CI", file: "ci.dart", cancelPreviousRuns: true },
+    ]),
+  };
+}
+
+test("new PR revisions cancel only older opted-in jobs in the exact scope", async (t) => {
+  const f = await autoCancelFixture(t);
+  await invoke(f.taskId);
+  const old = (await f.state()).buildJobs.find((j) => j.workflowFileName === "ci.dart");
+  const headSha = "c".repeat(40);
+  const protectedRows = [
+    { workflowFileName: "other.dart" },
+    { pullRequestNumber: "8" },
+    { pullRequestNumber: null },
+    { commitSha: headSha },
+    { status: "SUCCESS" },
+    { status: "FAILURE" },
+    { status: "CANCELLED" },
+    { cancelPreviousRuns: false },
+    { owner: "other" },
+    { repo: "other" },
+    { githubBaseUrl: "https://enterprise.test" },
+    { installationId: "999999" },
+  ].map((patch) => ({ ...old, id: randomUUID(), ...patch }));
+  const running = { ...old, id: randomUUID(), status: "IN_PROGRESS" };
+  await graphql("mutation Seed($jobs: [BuildJob_Data!]!) { buildJob_insertMany(data: $jobs) }", {
+    jobs: [...protectedRows, running],
+  });
+  const taskId = await nextRevision(f, headSha);
+  await invoke(taskId);
+  const rows = (await f.state()).buildJobs;
+  for (const id of [old.id, running.id]) {
+    const cancelled = rows.find((j) => j.id === id);
+    assert.equal(cancelled.status, "CANCELLED");
+    assert.equal(cancelled.supersededByTaskId, taskId);
+  }
+  assert.ok(rows.find((j) => j.id === old.id).completedAt);
+  for (const expected of protectedRows)
+    assert.deepEqual(
+      rows.find((j) => j.id === expected.id),
+      expected,
+    );
+  assert.equal(
+    rows.filter((j) => j.workflowFileName === "deploy.dart").every((j) => j.status === "QUEUED"),
+    true,
+  );
+  const notifications = await new DataConnectDispatchStore(getDispatchDataConnect()).superseded(
+    taskId,
+    "",
+  );
+  assert.deepEqual(new Set(notifications.map((j) => j.id)), new Set([old.id, running.id]));
+  assert.equal(await invoke(taskId), "duplicate");
+  assert.deepEqual((await f.state()).buildJobs, rows);
+});
+
+test("delayed old PR deliveries cannot cancel or enqueue an opted-in obsolete revision", async (t) => {
+  const f = await autoCancelFixture(t);
+  const latestTask = await nextRevision(f, "c".repeat(40));
+  await invoke(latestTask);
+  await invoke(f.taskId);
+  const rows = (await f.state()).buildJobs;
+  const ci = rows.filter((j) => j.workflowFileName === "ci.dart");
+  assert.equal(ci.length, 1);
+  assert.equal(ci[0].commitSha, "c".repeat(40));
+  assert.equal(ci[0].status, "QUEUED");
+  assert.equal(rows.filter((j) => j.workflowFileName === "deploy.dart").length, 2);
+});
+
+test("a stale in-flight GitHub response cannot overwrite a newer completed PR plan", async (t) => {
+  const f = await autoCancelFixture(t);
+  const observed = Promise.withResolvers();
+  const release = Promise.withResolvers();
+  f.github.onPullRequest = async () => {
+    observed.resolve();
+    await release.promise;
+  };
+  const oldRequest = fetch(dartFunctionUrl, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ taskId: f.taskId }),
+  });
+  try {
+    await Promise.race([
+      observed.promise,
+      oldRequest.then(() => assert.fail("old request completed before observation")),
+    ]);
+    await invoke(await nextRevision(f, "c".repeat(40)));
+  } finally {
+    release.resolve();
+  }
+  assert.equal((await oldRequest).status, 503, "lost fence must leave the old task retryable");
+  assert.equal((await f.state()).webhookTask.status, "pending");
+  await invoke(f.taskId);
+  const ci = (await f.state()).buildJobs.filter((j) => j.workflowFileName === "ci.dart");
+  assert.deepEqual(
+    ci.map((j) => [j.commitSha, j.status]),
+    [["c".repeat(40), "QUEUED"]],
+  );
+});
+
+test("cancellation rolls back with an invalid plan, and unfenced PR writes cannot opt in", async (t) => {
+  const f = await autoCancelFixture(t);
+  await invoke(f.taskId);
+  const before = (await f.state()).buildJobs;
+  const taskId = await nextRevision(f, "c".repeat(40));
+  const fence = await beginPlanning(f, taskId);
+  const vars = completion(f, taskId, fence);
+  await assert.rejects(
+    sdk.completeWebhookTask(dc, {
+      ...vars,
+      skippedCount: 1,
+      comparisonBaseSha: beforeSha,
+      skippedJson: JSON.stringify([{ id: randomUUID(), name: "CI", file: "ci.dart" }]),
+    }),
+  );
+  assert.deepEqual((await f.state()).buildJobs, before);
+  await assert.rejects(
+    sdk.completeWebhookTask(dc, { ...vars, planningId: null, planningToken: null }),
+  );
+  assert.deepEqual((await f.state()).buildJobs, before);
+  const result = await sdk.completeWebhookTask(dc, vars);
+  assert.equal(result.data.cancelled, 1);
+});
+
+test("same-SHA reruns remain independent and force-push revisions need no ancestry ordering", async (t) => {
+  const f = await autoCancelFixture(t);
+  await invoke(f.taskId);
+  await invoke(await nextRevision(f, sha));
+  assert.equal(
+    (await f.state()).buildJobs.filter(
+      (j) => j.workflowFileName === "ci.dart" && j.status === "QUEUED",
+    ).length,
+    2,
+  );
+  const taskId = await nextRevision(f, "c".repeat(40));
+  await invoke(taskId);
+  assert.equal((await f.state()).buildJobs.filter((j) => j.status === "CANCELLED").length, 2);
+  await invoke(await nextRevision(f, sha));
+  const ci = (await f.state()).buildJobs.filter(
+    (j) => j.workflowFileName === "ci.dart" && j.status === "QUEUED",
+  );
+  assert.equal(ci.length, 1);
+  assert.equal(ci[0].commitSha, sha);
+});
+
+test("planning fences and cancellation notifications deny direct client access", async (t) => {
+  const f = await autoCancelFixture(t);
+  for (const impersonate of [{ unauthenticated: true }, { authClaims: { sub: "user" } }]) {
+    await assert.rejects(
+      sdk.beginPullRequestPlanning(
+        dc,
+        {
+          id: randomUUID(),
+          token: randomUUID(),
+          taskId: f.taskId,
+          connectionId: f.connectionId,
+          repositoryId: "10",
+          pullRequestNumber: "7",
+        },
+        { impersonate },
+      ),
+    );
+    await assert.rejects(
+      getSupersededBuildJobs(getDispatchDataConnect(), { taskId: f.taskId }, { impersonate }),
+    );
+  }
+});
+
+test("path-skipped revisions and disabled new workflows preserve existing PR runs", async (t) => {
+  for (const disabled of [false, true]) {
+    const f = await autoCancelFixture(t);
+    await invoke(f.taskId);
+    const old = (await f.state()).buildJobs.find((j) => j.workflowFileName === "ci.dart");
+    f.github.files = [
+      {
+        name: "ci.dart",
+        content: disabled
+          ? source("CI", "*", "pullRequest")
+          : "void main() { OpenCI.init(workflowName: 'CI', ciTriggers: [CITrigger.pullRequest(branch: '*', paths: ['mobile/**'])], cancelPreviousRuns: true); }",
+      },
+    ];
+    await invoke(await nextRevision(f, "c".repeat(40)));
+    assert.equal((await f.state()).buildJobs.find((j) => j.id === old.id).status, "QUEUED");
+  }
+});
+
+test("one team's opted-in PR cannot cancel an identical job in another team", async (t) => {
+  const one = await autoCancelFixture(t),
+    two = await autoCancelFixture(t);
+  await invoke(one.taskId);
+  await invoke(two.taskId);
+  const before = (await two.state()).buildJobs;
+  await invoke(await nextRevision(one, "c".repeat(40)));
+  assert.deepEqual((await two.state()).buildJobs, before);
 });

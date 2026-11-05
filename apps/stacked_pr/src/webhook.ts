@@ -1,5 +1,6 @@
 import { createNodeMiddleware, Webhooks } from "@octokit/webhooks";
 import type { Request, Response } from "firebase-functions/v2/https";
+import { isSelfUpdate } from "./events.js";
 import { type Job, type Json, object } from "./models.js";
 
 // Retain routing and authorization inputs, never PR bodies, patches or commit lists.
@@ -41,6 +42,7 @@ export function createWebhookHandler(
   enqueue: (job: Job) => Promise<boolean>,
   secret: string,
   limit = 2 * 1024 * 1024,
+  botLogin?: string,
 ) {
   if (secret.length < 32) throw new Error("Use a webhook secret of at least 32 characters");
   const webhooks = new Webhooks({ secret });
@@ -64,6 +66,8 @@ export function createWebhookHandler(
       "installation_repositories.removed",
     ],
     async ({ id, name, payload }) => {
+      // This runs only after Octokit has verified the delivery signature.
+      if (isSelfUpdate(name, payload, botLogin)) return;
       if (name === "push" && !payload.ref?.startsWith("refs/heads/")) return;
       if (
         name === "issue_comment" &&

@@ -1,7 +1,7 @@
 # Firebase SQL Connect
 
 SQL Connect is the production store for team, build, billing, log and credential
-metadata. The local schema defines 24 tables and eight connectors; the added skipped-Check
+metadata. The local schema defines 25 tables and eight connectors; the added skipped-Check
 outbox requires schema deployment before enabling changed-path selection. See [the schema
 inventory](SCHEMA.md) for relationships, timestamp units and retention rules.
 The legacy servers and their one-time data import tools have been retired.

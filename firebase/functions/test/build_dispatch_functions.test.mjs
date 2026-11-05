@@ -75,6 +75,44 @@ test("empty or failed mutations enqueue nothing and non-admin events are rejecte
   );
 });
 
+test("superseded jobs are paged and reliably notified even after a partial enqueue failure", async (t) => {
+  const jobs = Array.from({ length: 103 }, (_, i) => ({ id: `old-${String(i).padStart(3, "0")}` }));
+  const pages = [];
+  t.mock.method(DataConnectDispatchStore.prototype, "superseded", async (taskId, afterId) => {
+    assert.equal(taskId, "webhook-new");
+    pages.push(afterId);
+    return jobs.filter((job) => job.id > afterId).slice(0, 100);
+  });
+  const tasks = new Map();
+  let unavailable = true;
+  mockQueue(t, async (data, options) => {
+    assert.equal(options.id, dispatchTaskId(data.jobId, "superseded-webhook-new"));
+    assert.notEqual(options.id, dispatchTaskId(data.jobId));
+    assert.equal(options.scheduleTime, undefined);
+    if (tasks.has(options.id)) throw { code: "functions/task-already-exists" };
+    if (data.jobId === "old-101" && unavailable) throw new Error("queue outage");
+    tasks.set(options.id, data);
+  });
+  const input = event({ jobs: [], cancelled: jobs.length }, undefined, { id: "webhook-new" });
+  await assert.rejects(queueBuildJobs.run(input), /retry required/);
+  assert.equal(tasks.size, 101);
+  unavailable = false;
+  await queueBuildJobs.run(input);
+  await queueBuildJobs.run(input);
+  assert.equal(tasks.size, jobs.length);
+  assert.deepEqual(pages, ["", "old-099", "", "old-099", "", "old-099"]);
+});
+
+test("failed or zero-cancellation mutations do not read the cancellation source", async (t) => {
+  t.mock.method(DataConnectDispatchStore.prototype, "superseded", () =>
+    assert.fail("must not read"),
+  );
+  mockQueue(t, () => assert.fail("must not enqueue"));
+  await queueBuildJobs.run(event({ jobs: [], cancelled: 0 }));
+  await queueBuildJobs.run(event({ jobs: [], cancelled: 1 }, [{ message: "rolled back" }]));
+  await assert.rejects(queueBuildJobs.run(event({ jobs: [], cancelled: 1 })), /retry required/);
+});
+
 test("check publication must finish before enqueue, and failures retain mutation retry", async (t) => {
   const calls = [];
   let unavailable = true;

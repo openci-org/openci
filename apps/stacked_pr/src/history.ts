@@ -1,3 +1,4 @@
+import { mapConcurrent } from "./concurrent.js";
 import { assertSha, type GitRepository } from "./git.js";
 import { ApiException, type GitHubApi } from "./github.js";
 import { type Json, jsonObject, PullRequest, Repository, RestackException } from "./models.js";
@@ -34,7 +35,10 @@ export class History {
     }
     return this.closedPulls.get(branch)!;
   }
-  async discover(current: PullRequest[]): Promise<PullRequest[]> {
+  async discover(
+    current: PullRequest[],
+    selection: { number?: number; branch?: string; previousBase?: string } = {},
+  ): Promise<PullRequest[]> {
     const roots = current.filter(
       (child) =>
         child.sameRepo &&
@@ -46,31 +50,65 @@ export class History {
             parent.headRef === child.baseRef,
         ),
     );
-    const branches = [...new Set(roots.map((p) => p.baseRef))].filter(
-      (branch) => branch !== this.repo.defaultBranch,
+    // Root histories are batched to find children that GitHub already retargeted
+    // after a merge. Detailed closed-parent lookups are limited to connected PRs.
+    const timelines = await this.api.timelines(
+      this.installation,
+      this.repo,
+      roots.map((p) => p.number),
     );
-    // Independent root lookups dominate large repositories. Bound read concurrency
-    // while retaining invocation-local caches and the same discovery order below.
-    const preloadClosedRoots = async () => {
-      for (let start = 0; start < branches.length; start += 4)
-        await Promise.all(branches.slice(start, start + 4).map((branch) => this.closed(branch)));
-    };
-    const [timelines] = await Promise.all([
-      this.api.timelines(
-        this.installation,
-        this.repo,
-        roots.map((p) => p.number),
-      ),
-      preloadClosedRoots(),
-    ]);
     for (const [number, events] of timelines) this.timelines.set(number, events);
-    const pulls = new Map(
-      current.map((p) => [
-        p.number,
-        new PullRequest({ ...p, parent: undefined, boundary: undefined }),
-      ]),
-    );
-    const pending = [...pulls.values()];
+    const references = (pr: PullRequest): string[] => {
+      const refs = new Set([pr.headRef, pr.baseRef]);
+      let base = pr.baseRef;
+      const changes = (this.timelines.get(pr.number) ?? []).filter(
+        (event) =>
+          event.__typename === "BaseRefChangedEvent" ||
+          event.__typename === "AutomaticBaseChangeSucceededEvent",
+      );
+      for (const change of changes.reverse()) {
+        const automatic = change.__typename === "AutomaticBaseChangeSucceededEvent";
+        if ((automatic ? change.newBase : change.currentRefName) !== base) break;
+        base = (automatic ? change.oldBase : change.previousRefName) as string;
+        refs.add(base);
+      }
+      refs.delete(this.repo.defaultBranch!);
+      return [...refs];
+    };
+    const byRef = new Map<string, PullRequest[]>();
+    for (const pr of current.filter((pr) => pr.sameRepo))
+      for (const ref of references(pr)) byRef.set(ref, [...(byRef.get(ref) ?? []), pr]);
+    const pulls = new Map<number, PullRequest>();
+    const pending: PullRequest[] = [];
+    const include = (pr: PullRequest) => {
+      if (pulls.has(pr.number)) return;
+      const copy = new PullRequest({ ...pr, parent: undefined, boundary: undefined });
+      pulls.set(pr.number, copy);
+      pending.push(copy);
+    };
+    let expanded = 0;
+    const includeConnected = () => {
+      while (expanded < pending.length) {
+        const pr = pending[expanded++];
+        if (!pr.sameRepo) continue;
+        for (const ref of references(pr))
+          for (const related of byRef.get(ref) ?? []) include(related);
+      }
+    };
+    const scoped =
+      selection.number !== undefined ||
+      selection.branch !== undefined ||
+      selection.previousBase !== undefined;
+    for (const pr of current) if (!scoped || pr.number === selection.number) include(pr);
+    for (const ref of [selection.branch, selection.previousBase])
+      if (ref !== undefined && ref !== this.repo.defaultBranch)
+        for (const pr of byRef.get(ref) ?? []) include(pr);
+    includeConnected();
+    const selected = new Set(pending.map((pr) => pr.number));
+    const branches = [
+      ...new Set(roots.filter((pr) => selected.has(pr.number)).map((pr) => pr.baseRef)),
+    ].filter((branch) => branch !== this.repo.defaultBranch);
+    await mapConcurrent(branches, (branch) => this.closed(branch));
     for (let i = 0; i < pending.length; i++) {
       const child = pending[i];
       if (!child.sameRepo) continue;
@@ -119,8 +157,8 @@ export class History {
         const parent = candidates[0];
         child.parent = parent.number;
         if (!pulls.has(parent.number)) {
-          pulls.set(parent.number, parent);
-          pending.push(parent);
+          include(parent);
+          includeConnected();
         }
       } catch (error) {
         if (!(error instanceof RestackException)) throw error;

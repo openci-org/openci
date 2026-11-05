@@ -119,6 +119,45 @@ test("compaction keeps the old base and strips PR bodies and commit lists", () =
   assert.deepEqual(compact.pull_request, { number: 3 });
   assert.doesNotMatch(JSON.stringify(compact), /private/);
 });
+
+test("signed self-generated writes are ignored without dropping other actors or lifecycle events", async () => {
+  const jobs = [];
+  const handler = createWebhookHandler(
+    async (job) => {
+      jobs.push(job);
+      return true;
+    },
+    secret,
+    undefined,
+    "stacked-pr[bot]",
+  );
+  const body = {
+    installation: { id: 1 },
+    repository: { id: 20, full_name: "org/repo" },
+    pull_request: { number: 2 },
+    ref: "refs/heads/child",
+    sender: { login: "stacked-pr[bot]", type: "Bot" },
+  };
+  for (const [event, action] of [
+    ["push", undefined],
+    ["pull_request", "synchronize"],
+    ["pull_request", "edited"],
+  ]) {
+    const payload = JSON.stringify({ ...body, action });
+    assert.equal((await invoke(handler, payload, { event })).status, 200);
+    assert.equal((await invoke(handler, payload, { event, signed: false })).status, 400);
+  }
+  assert.equal(jobs.length, 0);
+  for (const sender of [
+    { login: "another[bot]", type: "Bot" },
+    { login: "stacked-pr[bot]", type: "User" },
+    { login: "developer", type: "User" },
+  ])
+    await invoke(handler, JSON.stringify({ ...body, action: "synchronize", sender }));
+  for (const action of ["opened", "closed", "reopened"])
+    await invoke(handler, JSON.stringify({ ...body, action }));
+  assert.equal(jobs.length, 6);
+});
 test("only newly created sync commands on PRs enqueue work", async () => {
   const jobs = [];
   const handler = createWebhookHandler(async (job) => {

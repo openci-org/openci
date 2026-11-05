@@ -1,3 +1,16 @@
+# One fence per connection / repository / PR. Completion must still own the
+# fence acquired before observing GitHub outside the database transaction.
+type PullRequestPlanning
+  @table(name: "pull_request_planning", key: "id")
+  @unique(fields: ["connectionId", "repositoryId", "pullRequestNumber"]) {
+  id: String!
+  connectionId: String! @col(name: "connection_id")
+  connection: GitHubConnection! @ref(fields: "connectionId", references: "id")
+  repositoryId: Int64! @col(name: "repository_id")
+  pullRequestNumber: Int64! @col(name: "pull_request_number")
+  token: String!
+}
+
 type WebhookTask @table(name: "webhook_tasks", key: "id") @index(fields: ["status", "createdAt"]) {
   id: String!
   deliveryId: String! @col(name: "delivery_id") @unique

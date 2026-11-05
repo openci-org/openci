@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math';
 
 import 'package:crypto/crypto.dart';
 import 'package:http/http.dart' as http;
@@ -21,15 +22,27 @@ class PlanningConnection {
   final String teamId;
 }
 
+class PlanningFence {
+  const PlanningFence(this.id, this.token);
+  final String id;
+  final String token;
+}
+
 abstract interface class PlanningStore {
   Future<PlanningTask?> getTask(String id);
   Future<PlanningConnection?> findConnection(int installationId);
+  Future<PlanningFence> beginPullRequestPlanning(
+    String taskId,
+    PlanningEvent event,
+    PlanningConnection connection,
+  );
   Future<void> complete(
     String id,
     PlanningEvent? event,
     PlanningConnection? connection,
-    WorkflowPlan plan,
-  );
+    WorkflowPlan plan, {
+    PlanningFence? fence,
+  });
   Future<void> reject(String id, String reason);
 }
 
@@ -113,12 +126,45 @@ class DataConnectPlanningStore implements PlanningStore {
   }
 
   @override
+  Future<PlanningFence> beginPullRequestPlanning(
+    String taskId,
+    PlanningEvent event,
+    PlanningConnection connection,
+  ) async {
+    final id = sha256
+        .convert(
+          utf8.encode(
+            jsonEncode([
+              connection.id,
+              event.repositoryId,
+              event.webhook.pullRequestNumber,
+            ]),
+          ),
+        )
+        .toString();
+    final random = Random.secure();
+    final token = base64UrlEncode(
+      List<int>.generate(32, (_) => random.nextInt(256)),
+    );
+    await _execute('webhooks', 'BeginPullRequestPlanning', {
+      'id': id,
+      'taskId': taskId,
+      'connectionId': connection.id,
+      'repositoryId': event.repositoryId.toString(),
+      'pullRequestNumber': event.webhook.pullRequestNumber.toString(),
+      'token': token,
+    }, mutation: true);
+    return PlanningFence(id, token);
+  }
+
+  @override
   Future<void> complete(
     String id,
     PlanningEvent? event,
     PlanningConnection? connection,
-    WorkflowPlan plan,
-  ) async {
+    WorkflowPlan plan, {
+    PlanningFence? fence,
+  }) async {
     final webhook = event?.webhook;
     await _execute('webhooks', 'CompleteWebhookTask', {
       'id': id,
@@ -131,6 +177,9 @@ class DataConnectPlanningStore implements PlanningStore {
                 .toString(),
             'name': job.workflowName,
             'file': job.workflowFileName,
+            'cancelPreviousRuns': plan.autoCancelWorkflowFiles.contains(
+              job.workflowFileName,
+            ),
             if (job.flutterVersion != null)
               'flutterVersion': job.flutterVersion,
           },
@@ -160,6 +209,8 @@ class DataConnectPlanningStore implements PlanningStore {
       'commitMessage': webhook?.commitMessage,
       'pullRequestNumber': webhook?.pullRequestNumber?.toString(),
       'githubBaseUrl': githubBaseUrl,
+      'planningId': fence?.id,
+      'planningToken': fence?.token,
     }, mutation: true);
   }
 

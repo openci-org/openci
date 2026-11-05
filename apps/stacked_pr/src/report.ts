@@ -1,3 +1,4 @@
+import { mapConcurrent } from "./concurrent.js";
 import type { GitHubApi } from "./github.js";
 import { type Json, object, PullRequest, Repository, RestackException } from "./models.js";
 import { stackFor } from "./stack.js";
@@ -95,8 +96,8 @@ export class Reporter {
   ): Promise<void> {
     const app = await this.api.identity(),
       path = repo.apiPath;
-    for (const pr of pulls) {
-      if (!pr.sameRepo || (!pr.isOpen && !options.closedToUpdate?.includes(pr.number))) continue;
+    await mapConcurrent(pulls, async (pr) => {
+      if (!pr.sameRepo || (!pr.isOpen && !options.closedToUpdate?.includes(pr.number))) return;
       const view = render(pulls, pr, options);
       const comments = await this.api.list(installation, `${path}/issues/${pr.number}/comments`);
       const existing = comments.find(
@@ -106,7 +107,7 @@ export class Reporter {
           (object(c.performed_via_github_app).id === app.id ||
             (object(c.user).type === "Bot" && object(c.user).login === `${app.slug}[bot]`)),
       );
-      if (!view.connected && !existing && view.conclusion !== "failure") continue;
+      if (!view.connected && !existing && view.conclusion !== "failure") return;
       if (!existing)
         await this.api.request(installation, "POST", `${path}/issues/${pr.number}/comments`, {
           body: view.body,
@@ -115,7 +116,7 @@ export class Reporter {
         await this.api.request(installation, "PATCH", `${path}/issues/comments/${existing.id}`, {
           body: view.body,
         });
-      if (!pr.isOpen) continue;
+      if (!pr.isOpen) return;
       const externalId = `stacked-pr:${repo.id}:${pr.number}`;
       const checks = await this.api.list(
         installation,
@@ -144,6 +145,6 @@ export class Reporter {
         });
       else if (check.conclusion !== view.conclusion || object(check.output).summary !== view.body)
         await this.api.request(installation, "PATCH", `${path}/check-runs/${check.id}`, body);
-    }
+    });
   }
 }

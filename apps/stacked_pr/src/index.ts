@@ -32,6 +32,8 @@ export const stackedPrWebhook = onRequest(
     webhookHandler ??= createWebhookHandler(
       (job) => TaskQueue.fromEnvironment(process.env).enqueue(job),
       webhookSecret.value(),
+      undefined,
+      process.env.STACKED_PR_BOT_LOGIN,
     );
     await webhookHandler(request, response);
   },
