@@ -176,11 +176,7 @@ export class Reporter {
           head_sha: pr.head,
           external_id: externalId,
         });
-      else if (
-        check.conclusion !== view.conclusion ||
-        object(check.output).summary !== view.body ||
-        JSON.stringify(check.actions) !== JSON.stringify(body.actions)
-      )
+      else if (check.conclusion !== view.conclusion || object(check.output).summary !== view.body)
         await this.api.request(installation, "PATCH", `${path}/check-runs/${check.id}`, body);
     });
   }

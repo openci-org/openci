@@ -228,6 +228,8 @@ test("reporter reuses its own comment and check, preserving Sync while ignoring 
       identifier: "squash-stack",
     },
   ]);
+  // GitHub's check-run response omits actions, even after a successful update.
+  delete checks[0].actions;
   await reporter.publish(1, repo, pulls);
   assert.equal(paths.length, 2);
   pulls[1].title = "Changed title";
