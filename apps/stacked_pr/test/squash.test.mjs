@@ -14,7 +14,6 @@ function fixture() {
       { app: { id: 42 }, status: "completed", conclusion: "success" },
     ],
     statuses: [],
-    reviews: [{ user: { login: "reviewer" }, state: "APPROVED", commit_id: pr.head }],
   };
   const api = fakeApi({
     request: async (_i, _method, _path, body) => ({
@@ -35,17 +34,15 @@ function fixture() {
         },
       },
     }),
-    list: async (_i, path) =>
-      path.includes("check-runs")
-        ? state.checks
-        : path.endsWith("reviews")
-          ? state.reviews
-          : state.statuses,
+    list: async (_i, path) => {
+      assert.match(path, /check-runs/, "preparation must not fetch or require reviews");
+      return state.checks;
+    },
   });
   state.ready = () => squashReadiness(api, 10, repo, pr, app);
   return state;
 }
-test("dependency waiting does not mask successful CI and approval on a child", async () => {
+test("a child with successful CI can prepare without fetching or requiring approval", async () => {
   assert.equal(await fixture().ready(), undefined);
 });
 
@@ -80,15 +77,16 @@ test("the dependency Check itself must not have failed", async () => {
   f.checks[0].conclusion = "failure";
   await assert.rejects(f.ready(), /Stacked PR/);
 });
-test("missing or queued CI and approval on an older commit do not authorize preparation", async () => {
+test("missing or queued CI prevents preparation even without a review requirement", async () => {
   const f = fixture();
   f.checks.length = 1;
   assert.match(await f.ready(), /CI待ち/);
   f.statuses = [{ context: "legacy", state: "success" }];
-  f.reviews[0].commit_id = "f".repeat(40);
-  assert.match(await f.ready(), /承認待ち/);
+  assert.equal(await f.ready(), undefined);
+  f.checks.push({ app: { id: 42 }, status: "queued", conclusion: null });
+  assert.match(await f.ready(), /CI待ち/);
 });
-test("the latest status and review per context or person override older decisions", async () => {
+test("the latest status per context overrides older decisions", async () => {
   const f = fixture();
   f.statuses = [
     { context: "legacy", state: "failure" },
@@ -96,8 +94,5 @@ test("the latest status and review per context or person override older decision
   ];
   assert.match(await f.ready(), /CI待ち/);
   f.statuses.reverse();
-  f.reviews.push({ ...f.reviews[0], state: "CHANGES_REQUESTED" });
-  assert.match(await f.ready(), /承認待ち/);
-  f.reviews.push({ ...f.reviews[0] });
   assert.equal(await f.ready(), undefined);
 });

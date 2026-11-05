@@ -79,7 +79,7 @@ export function assertCompleteStack(open: PullRequest[], members: StackMember[])
     );
 }
 
-/** The dependency Check is intentionally action_required on children; CI and reviews still gate every layer. */
+/** CI gates every original head; GitHub's merge conditions gate the prepared head. */
 export async function squashReadiness(
   api: GitHubApi,
   installation: number,
@@ -87,14 +87,13 @@ export async function squashReadiness(
   pr: PullRequest,
   app: Json,
 ): Promise<string | undefined> {
-  const [checks, statuses, reviews] = await Promise.all([
+  const [checks, statuses] = await Promise.all([
     api.list(
       installation,
       `${repo.apiPath}/commits/${pr.head}/check-runs?filter=latest`,
       "check_runs",
     ),
     legacyStatuses(api, installation, repo, pr.head),
-    api.list(installation, `${repo.apiPath}/pulls/${pr.number}/reviews`),
   ]);
   const ci = checks.filter((check) => {
     const dependency =
@@ -117,18 +116,4 @@ export async function squashReadiness(
     [...contexts.values()].some((c) => c.state !== "success")
   )
     return `#${pr.number} の最新headのCI待ち`;
-  const decisions = new Map<string, Json>();
-  for (const review of reviews) {
-    const login = object(review.user).login;
-    if (
-      typeof login === "string" &&
-      ["APPROVED", "CHANGES_REQUESTED", "DISMISSED"].includes(String(review.state))
-    )
-      decisions.set(login.toLowerCase(), review);
-  }
-  if (
-    [...decisions.values()].some((r) => r.state === "CHANGES_REQUESTED") ||
-    ![...decisions.values()].some((r) => r.state === "APPROVED" && r.commit_id === pr.head)
-  )
-    return `#${pr.number} の最新headへの承認待ち`;
 }

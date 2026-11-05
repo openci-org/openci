@@ -17,8 +17,7 @@ async function fixture(t) {
     checks = [],
     jobs = [],
     seen = new Set();
-  const approved = new Set(h.records.map((p) => p.head)),
-    merges = [],
+  const merges = [],
     pushes = [];
   const owner = {
     user: { login: "stacked-pr[bot]", type: "Bot" },
@@ -31,7 +30,6 @@ async function fixture(t) {
     comments,
     checks,
     jobs,
-    approved,
     merges,
     pushes,
     lostMerge: false,
@@ -41,7 +39,6 @@ async function fixture(t) {
     request = h.api.request;
   const ci = (head) => checks.filter((c) => c.head_sha === head && c.name === "tests");
   state.pass = (head) => {
-    approved.add(head);
     checks.push({
       id: ++serial,
       head_sha: head,
@@ -63,11 +60,7 @@ async function fixture(t) {
     }
     if (path.endsWith("/statuses")) return [];
     if (path.endsWith("/reviews")) {
-      const pr = h.records.find((p) => p.number === Number(path.split("/").at(-2)));
-      const live = await h.raw(pr);
-      return approved.has(live.head.sha)
-        ? [{ user: { login: "reviewer" }, state: "APPROVED", commit_id: live.head.sha }]
-        : [];
+      assert.fail("Squash stack must leave review requirements to GitHub merge conditions");
     }
     return list(i, path, ...rest);
   };
@@ -116,7 +109,7 @@ async function fixture(t) {
               baseRefName: pr.baseRef,
               mergeStateStatus: "CLEAN",
               mergeable: "MERGEABLE",
-              reviewDecision: approved.has(live.head.sha) ? "APPROVED" : "REVIEW_REQUIRED",
+              reviewDecision: state.reviewDecision ?? null,
               commits: {
                 nodes: [
                   {
@@ -165,9 +158,10 @@ async function fixture(t) {
       assert.equal(number, 3, "only the selected PR is merged");
       assert.equal(pr.baseRef, "main");
       assert.equal(body.merge_method, "squash");
+      assert.ok(ci(body.sha).length, "final integration head must be tested");
       assert.ok(
-        ci(body.sha).length && approved.has(body.sha),
-        "final integration head must be tested and approved",
+        state.reviewDecision == null || state.reviewDecision === "APPROVED",
+        "GitHub review requirements must be satisfied before merging",
       );
       assert.ok(h.locks.held.size);
       await f.git(["fetch", "origin"]);
@@ -263,7 +257,7 @@ async function fixture(t) {
   return state;
 }
 
-test("Squash stack integrates current main once, waits for the new SHA, and closes included parents across fresh workers", async (t) => {
+test("Squash stack without approvals integrates current main once, waits for final CI, and closes included parents across fresh workers", async (t) => {
   const s = await fixture(t),
     { f, h } = s;
   await f.git(["checkout", "main"]);
@@ -301,6 +295,20 @@ test("Squash stack integrates current main once, waits for the new SHA, and clos
   assert.ok(s.comments.get(3).some((c) => c.body.includes(":complete")));
   assert.equal(h.locks.held.size, 0);
 });
+
+for (const decision of ["REVIEW_REQUIRED", "CHANGES_REQUESTED"])
+  test(`GitHub ${decision} waits after final CI until GitHub approves the merge`, async (t) => {
+    const s = await fixture(t);
+    s.reviewDecision = decision;
+    await s.prepare();
+    s.pass(await s.head());
+    await s.step();
+    assert.deepEqual(s.merges, []);
+    assert.ok(s.comments.get(3).some((c) => c.body.includes("承認・CI・ブランチ保護の条件待ち")));
+    s.reviewDecision = "APPROVED";
+    await s.drain();
+    assert.deepEqual(s.merges, [3]);
+  });
 
 test("a delayed preparation task cannot stop or rewrite the newer final-CI stage", async (t) => {
   const s = await fixture(t);
