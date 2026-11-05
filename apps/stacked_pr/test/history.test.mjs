@@ -49,3 +49,29 @@ test("independent root lookups overlap without duplicating shared parents or unb
   assert.equal(discovered.find((pr) => pr.number === 10).parent, 100);
   assert.ok(discovered.filter((pr) => pr.number > 1 && pr.number < 10).every((pr) => !pr.parent));
 });
+
+test("a targeted stack does not look up unrelated closed branches", async () => {
+  const current = [
+    ...chain(),
+    modify(chain()[0], { number: 99, headRef: "unrelated", baseRef: "old-unrelated-parent" }),
+  ];
+  const api = fakeApi({ list: async () => assert.fail("unrelated closed-parent lookup") });
+  const pulls = await new History(api, 1, new Repository(20, "org/repo", "main")).discover(
+    current,
+    { number: 2 },
+  );
+  assert.deepEqual(pulls.map((pr) => pr.number).sort(), [1, 2, 3]);
+});
+
+test("a discovered closed parent expands to its open ancestor and sibling stack", async () => {
+  const [root, parent, child] = chain();
+  const closed = modify(parent, { state: "closed", merged: true });
+  const sibling = modify(child, { number: 4, headRef: "sibling", baseRef: root.headRef });
+  const api = fakeApi({ list: async () => [raw(closed)] });
+  const pulls = await new History(api, 1, new Repository(20, "org/repo", "main")).discover(
+    [root, child, sibling],
+    { number: 3 },
+  );
+  assert.deepEqual(pulls.map((pr) => pr.number).sort(), [1, 2, 3, 4]);
+  assert.equal(pulls.find((pr) => pr.number === 2).parent, 1);
+});

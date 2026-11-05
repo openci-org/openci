@@ -31,7 +31,15 @@ export async function processTask(
   if (Buffer.byteLength(JSON.stringify(value)) > 128 * 1024)
     throw new HttpsError("invalid-argument", "Task too large");
   try {
+    const started = performance.now();
     await process({ id: value.id, event: value.event, payload: object(value.payload) });
+    console.info(
+      JSON.stringify({
+        event: "stack_task_completed",
+        delivery: value.id,
+        durationMs: Math.round(performance.now() - started),
+      }),
+    );
   } catch (error) {
     // Only our sanitized error types may contribute diagnostics. SDK errors can
     // retain tokens, request bodies, and repository contents.
@@ -64,10 +72,10 @@ export async function runJob(job: Job, env: Environment): Promise<void> {
       reporter: new Reporter(api),
       locks: FirestoreStackLocks.fromEnvironment(env),
       deadline,
-      enqueue: (job) => {
+      enqueue: (job, scheduleTime) => {
         const timeout = deadline.limit(8000);
         queue ??= TaskQueue.fromEnvironment(env);
-        return queue.enqueue(job, timeout);
+        return queue.enqueue(job, timeout, scheduleTime);
       },
     }).handle(job);
   } finally {

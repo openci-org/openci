@@ -2,6 +2,7 @@ import { join } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import type { AppConfig } from "./config.js";
 import type { Deadline } from "./deadline.js";
+import { isSelfUpdate } from "./events.js";
 import { GitRepository } from "./git.js";
 import type { GitHubApi } from "./github.js";
 import { History } from "./history.js";
@@ -15,6 +16,7 @@ import {
   Repository,
   RestackException,
   RetryException,
+  StackBusyException,
 } from "./models.js";
 import type { Reporter } from "./report.js";
 import { ordered, planRestack } from "./stack.js";
@@ -24,7 +26,8 @@ interface ServiceOptions {
   api: GitHubApi;
   reporter: Reporter;
   locks: StackLocks;
-  enqueue?: (job: Job) => Promise<boolean>;
+  enqueue?: (job: Job, scheduleTime?: Date) => Promise<boolean>;
+  now?: () => number;
   deadline?: Deadline;
   gitFactory?: (installation: number, repo: Repository) => GitRepository;
 }
@@ -96,8 +99,14 @@ export class Service {
     }
     const rawRepo = object(payload.repository);
     if (!this.allowed(rawRepo)) return;
+    // Also drain self-generated deliveries queued before the webhook filter was deployed.
+    if (object(payload.sender).type === "Bot") {
+      const app = await this.api.identity();
+      if (isSelfUpdate(job.event, payload, `${app.slug}[bot]`)) return;
+    }
     const repo = Repository.fromJson(rawRepo);
-    let force = false;
+    // Only the private worker creates reconcile tasks with this flag, after authorization.
+    let force = job.event === "reconcile" && payload.force === true;
     if (job.event === "issue_comment") {
       const sender = object(payload.sender);
       if (
@@ -198,10 +207,41 @@ export class Service {
     if (!resources.length) return;
     // Repository identity is stable across renames and installations. PR IDs
     // protect shared members; head refs also protect multiple PRs on one branch.
-    const lease = await this.options.locks.acquire(
-      `${this.config.githubUrl}:${repo.id}`,
-      resources,
-    );
+    let lease: StackLease;
+    try {
+      lease = await this.options.locks.acquire(`${this.config.githubUrl}:${repo.id}`, resources);
+    } catch (error) {
+      if (!(error instanceof StackBusyException) || !this.options.enqueue) throw error;
+      // All producers in this window share one future task per affected component.
+      // Schedule after the window closes: a completed task's ID tombstone must never
+      // suppress a later notification. Enqueue before acknowledging the original.
+      const windowMs = 30_000;
+      const window = Math.floor((this.options.now?.() ?? Date.now()) / windowMs);
+      for (const component of initial.selected) {
+        const number = Math.min(...component.map((pr) => pr.number));
+        await this.options.enqueue(
+          {
+            id: `deferred-${repo.id}-${installation}-${number}-${options.force ? "force" : "auto"}-${window}`,
+            event: "reconcile",
+            payload: {
+              installation: { id: installation },
+              repository: repo.toJson(),
+              pull_request: { number },
+              ...(options.force ? { force: true } : {}),
+            },
+          },
+          new Date((window + 2) * windowMs),
+        );
+      }
+      console.info(
+        JSON.stringify({
+          event: "stack_task_deferred",
+          repository: repo.id,
+          stacks: initial.selected.length,
+        }),
+      );
+      return;
+    }
     try {
       // Another delivery could have finished between discovery and acquisition.
       // Build a fresh plan under the lease; never execute the earlier snapshot.
@@ -250,7 +290,7 @@ export class Service {
       (branch === repo.defaultBranch && !current.some((p) => p.headRef === branch))
     )
       return { repo, history, selected: [] };
-    const pulls = await history.discover(current);
+    const pulls = await history.discover(current, { number, branch, previousBase });
     // Scope failures before checking cycles or boundaries, so unrelated stacks can continue.
     const components: PullRequest[][] = [],
       assigned = new Set<number>();
