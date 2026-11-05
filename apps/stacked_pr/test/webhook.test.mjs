@@ -125,7 +125,7 @@ test("signed merge and cancel buttons retain the selected Check head and actor",
     jobs.push(job);
     return true;
   }, secret);
-  for (const identifier of ["merge-stack", "cancel-merge"]) {
+  for (const identifier of ["merge-stack", "squash-stack", "cancel-merge"]) {
     const body = JSON.stringify({
       action: "requested_action",
       installation: { id: 10 },
@@ -150,7 +150,7 @@ test("signed merge and cancel buttons retain the selected Check head and actor",
     assert.equal(payload.requested_action.identifier, identifier);
     assert.equal(payload.sender.login, "maintainer");
   }
-  assert.equal(jobs.length, 2);
+  assert.equal(jobs.length, 3);
 });
 
 test("signed self-generated writes are ignored without dropping other actors or lifecycle events", async () => {

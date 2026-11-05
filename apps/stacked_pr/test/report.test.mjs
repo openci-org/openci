@@ -222,6 +222,11 @@ test("reporter reuses its own comment and check, preserving Sync while ignoring 
       description: "Merge ancestors through this PR",
       identifier: "merge-stack",
     },
+    {
+      label: "Squash stack",
+      description: "Land the full stack as one squash commit",
+      identifier: "squash-stack",
+    },
   ]);
   await reporter.publish(1, repo, pulls);
   assert.equal(paths.length, 2);

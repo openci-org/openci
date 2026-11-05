@@ -86,8 +86,8 @@ export function render(
     ...(pr.isOpen
       ? [
           merging
-            ? "一括マージ中：進捗はこのPRの **Merge stack** コメントに表示します。Checkの **Cancel merge** で残りを取り消せます。"
-            : "Checkの **Merge stack**：このPRまでの親PRを順番にデフォルトブランチへマージします。",
+            ? "一括マージ中：進捗はこのPRの **Merge stack / Squash stack** コメントに表示します。Checkの **Cancel merge** で残りを取り消せます。"
+            : "Checkの **Merge stack**：このPRまでの親PRを順番にマージします。**Squash stack**：スタック末尾で選び、全体を1コミットにまとめて最終CI後にマージします。取り込み元の親PRは閉じます。",
         ]
       : []),
     "",
@@ -102,17 +102,26 @@ export function stackActions(merging = false) {
       description: "Synchronize dependent pull requests",
       identifier: "restack",
     },
-    merging
-      ? {
-          label: "Cancel merge",
-          description: "Stop the remaining stack merges",
-          identifier: "cancel-merge",
-        }
-      : {
-          label: "Merge stack",
-          description: "Merge ancestors through this PR",
-          identifier: "merge-stack",
-        },
+    ...(merging
+      ? [
+          {
+            label: "Cancel merge",
+            description: "Stop the remaining stack merges",
+            identifier: "cancel-merge",
+          },
+        ]
+      : [
+          {
+            label: "Merge stack",
+            description: "Merge ancestors through this PR",
+            identifier: "merge-stack",
+          },
+          {
+            label: "Squash stack",
+            description: "Land the full stack as one squash commit",
+            identifier: "squash-stack",
+          },
+        ]),
   ];
 }
 export class Reporter {
@@ -137,7 +146,7 @@ export class Reporter {
           (object(c.performed_via_github_app).id === app.id ||
             (object(c.user).type === "Bot" && object(c.user).login === `${app.slug}[bot]`)),
       );
-      if (!view.connected && !existing && view.conclusion !== "failure") return;
+      if (!view.connected && !existing && !merging && view.conclusion !== "failure") return;
       if (!existing)
         await this.api.request(installation, "POST", `${path}/issues/${pr.number}/comments`, {
           body: view.body,
@@ -167,7 +176,11 @@ export class Reporter {
           head_sha: pr.head,
           external_id: externalId,
         });
-      else if (check.conclusion !== view.conclusion || object(check.output).summary !== view.body)
+      else if (
+        check.conclusion !== view.conclusion ||
+        object(check.output).summary !== view.body ||
+        JSON.stringify(check.actions) !== JSON.stringify(body.actions)
+      )
         await this.api.request(installation, "PATCH", `${path}/check-runs/${check.id}`, body);
     });
   }

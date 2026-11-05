@@ -38,7 +38,7 @@ export class GitRepository {
   }
   async run(
     args: string[],
-    options: { cwd?: string; network?: boolean; accepted?: number[] } = {},
+    options: { cwd?: string; network?: boolean; accepted?: number[]; commitTime?: number } = {},
   ): Promise<{ code: number; output: string }> {
     const env: Environment = {
       LANG: "C.UTF-8",
@@ -51,6 +51,12 @@ export class GitRepository {
       GIT_COMMITTER_NAME: "Stacked PR",
       GIT_COMMITTER_EMAIL: "stacked-pr@localhost",
     };
+    if (options.commitTime !== undefined) {
+      if (!Number.isSafeInteger(options.commitTime) || options.commitTime < 0)
+        throw new Error("Invalid commit time");
+      env.GIT_AUTHOR_DATE =
+        env.GIT_COMMITTER_DATE = `${Math.floor(options.commitTime / 1000)} +0000`;
+    }
     for (const name of [
       "PATH",
       "TMPDIR",
@@ -292,6 +298,30 @@ export class GitRepository {
         throw new RestackException("子PRの変更が空になります。手動で確認してください。", number);
       await this.pin(sha);
       return sha;
+    } finally {
+      await this.run(["worktree", "remove", "--force", worktree]);
+    }
+  }
+  /** Build one integration commit locally; retries reproduce the same object ID. */
+  async squash(head: string, base: string, message: string, commitTime: number): Promise<string> {
+    for (const sha of [head, base]) await this.ensure(sha);
+    const scratch = join(this.directory, "scratch");
+    await mkdir(scratch, { recursive: true });
+    const worktree = await mkdtemp(join(scratch, "squash-"));
+    await this.run(["worktree", "add", "--detach", worktree, assertSha(head)]);
+    try {
+      const result = await this.run(["merge", "--no-commit", "--no-ff", assertSha(base)], {
+        cwd: worktree,
+        accepted: [0, 1],
+      });
+      if (result.code !== 0)
+        throw new RestackException(
+          "最新のデフォルトブランチとの統合で競合しました。手元で解消してください。",
+        );
+      const tree = assertSha((await this.run(["write-tree"], { cwd: worktree })).output);
+      return assertSha(
+        (await this.run(["commit-tree", tree, "-p", base, "-m", message], { commitTime })).output,
+      );
     } finally {
       await this.run(["worktree", "remove", "--force", worktree]);
     }

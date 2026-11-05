@@ -373,16 +373,17 @@ test("another app, bot, repository, read-only actor or malformed head cannot sta
     check_run: { app: { id: 7 }, external_id: "stacked-pr:20:3", head_sha: "c".repeat(40) },
     requested_action: { identifier: "merge-stack" },
   };
-  for (const changes of [
-    { check_run: { ...payload.check_run, app: { id: 8 } } },
-    { check_run: { ...payload.check_run, external_id: "stacked-pr:21:3" } },
-    { sender: { login: "maintainer", type: "Bot" } },
-    { sender: { login: "reader", type: "User" } },
-    { check_run: { ...payload.check_run, head_sha: "invalid" } },
-  ])
-    await service.handle({
-      id: "delivery",
-      event: "check_run",
-      payload: { ...payload, ...changes },
-    });
+  for (const identifier of ["merge-stack", "squash-stack"])
+    for (const changes of [
+      { check_run: { ...payload.check_run, app: { id: 8 } } },
+      { check_run: { ...payload.check_run, external_id: "stacked-pr:21:3" } },
+      { sender: { login: "maintainer", type: "Bot" } },
+      { sender: { login: "reader", type: "User" } },
+      { check_run: { ...payload.check_run, head_sha: "invalid" } },
+    ])
+      await service.handle({
+        id: "delivery",
+        event: "check_run",
+        payload: { ...payload, requested_action: { identifier }, ...changes },
+      });
 });

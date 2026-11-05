@@ -126,3 +126,48 @@ test("a terminal merge decision survives concurrent writers and fresh workers", 
     await doc.ref.delete();
   }
 });
+
+test("squash progress fences delayed stages and a terminal decision cannot be reopened", async (t) => {
+  const { db, scope } = await clients(t);
+  const stores = db.map((client) => new FirestoreMergeStops(client));
+  assert.equal(await stores[0].advance(scope, 0), true);
+  assert.equal(await stores[1].advance(scope, 2), true);
+  assert.equal(await stores[0].advance(scope, 1), false);
+  assert.equal(
+    await stores[0].advance(scope, 2),
+    true,
+    "retry the same stage after a lost response",
+  );
+  assert.equal(await stores[1].get(scope), undefined);
+  assert.equal(await stores[1].close(scope, "cancelled"), "cancelled");
+  assert.equal(await stores[0].advance(scope, 3), false);
+  assert.equal(await stores[0].close(scope, "complete"), "cancelled");
+  const records = await db[0].collection(mergeStopCollection).get();
+  for (const doc of records.docs) await doc.ref.delete();
+});
+
+test("private squash rollback survives progress and cancellation across fresh workers", async (t) => {
+  const { db, scope } = await clients(t);
+  const stores = db.map((client) => new FirestoreMergeStops(client));
+  const rollback = {
+    number: 3,
+    ref: "child",
+    head: "a".repeat(40),
+    base: "parent",
+    trunk: "main",
+    prepared: "b".repeat(40),
+  };
+  assert.equal(await stores[0].advance(scope, 1), true);
+  assert.equal(await stores[0].saveRollback(scope, rollback), true);
+  await stores[1].advance(scope, 2);
+  assert.deepEqual(await stores[1].rollback(scope), rollback);
+  await assert.rejects(
+    stores[1].saveRollback(scope, { ...rollback, head: "c".repeat(40) }),
+    /rollback changed/,
+  );
+  await stores[1].close(scope, "cancelled");
+  assert.deepEqual(await stores[0].rollback(scope), rollback);
+  assert.equal(await stores[0].saveRollback(scope, rollback), false);
+  const records = await db[0].collection(mergeStopCollection).get();
+  for (const doc of records.docs) await doc.ref.delete();
+});

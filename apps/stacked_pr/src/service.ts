@@ -86,6 +86,8 @@ export class Service {
       host: this.config.githubUrl,
       now: this.options.now,
       enqueue: this.options.enqueue,
+      git: this.gitFactory,
+      publish: (i, repo, pulls) => this.options.reporter.publish(i, repo, pulls),
       discover: async (i, repo, target) => {
         const snapshot = await this.discover(i, repo, { number: target });
         return {
@@ -165,9 +167,9 @@ export class Service {
       const action = object(payload.requested_action).identifier,
         sender = object(payload.sender);
       if (typeof sender.login !== "string") return;
-      if (action === "merge-stack" || action === "cancel-merge") {
+      if (action === "merge-stack" || action === "squash-stack" || action === "cancel-merge") {
         if (sender.type !== "User") return;
-        if (action === "merge-stack")
+        if (action === "merge-stack" || action === "squash-stack")
           await this.merger().start(
             installationId,
             repo,
@@ -175,6 +177,7 @@ export class Service {
             job.id,
             sender.login,
             String(object(payload.check_run).head_sha),
+            action === "squash-stack" ? "squash" : undefined,
           );
         else await this.merger().cancel(installationId, repo, number!, sender.login);
         return;
