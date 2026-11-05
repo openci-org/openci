@@ -1,5 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { setImmediate } from "node:timers/promises";
 import { Repository, RestackException } from "../lib/models.js";
 import { Reporter, render, marker } from "../lib/report.js";
 import { chain, modify, fakeApi } from "./support/fixtures.mjs";
@@ -62,6 +63,59 @@ test("reporter creates no comment or check for an unrelated standalone PR", asyn
     ["stacked-pr:1:1", "stacked-pr:1:2", "stacked-pr:1:3"],
   );
   assert.ok(checks.every((c) => c.conclusion === "failure"));
+});
+test("independent PR reports overlap within the API limit and remain idempotent", async () => {
+  const root = chain()[0];
+  const pulls = [
+    root,
+    ...Array.from({ length: 9 }, (_, i) =>
+      modify(chain()[1], {
+        number: i + 2,
+        headRef: `child-${i}`,
+        head: (i + 2).toString(16).padStart(40, "0"),
+      }),
+    ),
+  ];
+  const comments = new Map(),
+    checks = new Map();
+  let active = 0,
+    peak = 0,
+    writes = 0;
+  const api = fakeApi({
+    list: async (_installation, path) => {
+      peak = Math.max(peak, ++active);
+      await setImmediate();
+      active--;
+      const number = path.includes("check-runs")
+        ? pulls.find((p) => path.includes(p.head)).number
+        : Number(path.split("/").at(-2));
+      const value = (path.includes("check-runs") ? checks : comments).get(number);
+      return value ? [value] : [];
+    },
+    request: async (_installation, method, path, body) => {
+      writes++;
+      assert.equal(method, "POST");
+      peak = Math.max(peak, ++active);
+      await setImmediate();
+      active--;
+      if (path.endsWith("/comments")) {
+        const number = Number(path.split("/").at(-2));
+        assert.equal(comments.has(number), false);
+        comments.set(number, { id: number, ...body, performed_via_github_app: { id: 7 } });
+      } else {
+        const number = Number(body.external_id.split(":").at(-1));
+        assert.equal(checks.has(number), false);
+        checks.set(number, { id: number, ...body, app: { id: 7 } });
+      }
+    },
+  });
+  const reporter = new Reporter(api);
+  await reporter.publish(1, repo, pulls);
+  assert.ok(peak > 1 && peak <= 4);
+  assert.equal(active, 0);
+  assert.equal(writes, pulls.length * 2);
+  await reporter.publish(1, repo, pulls);
+  assert.equal(writes, pulls.length * 2);
 });
 test("reporter clears stale standalone failures and the next sync performs no writes", async () => {
   const { unrelated } = sample(),

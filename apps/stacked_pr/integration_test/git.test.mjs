@@ -1,10 +1,44 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { GitException } from "../lib/git.js";
+import { join } from "node:path";
+import { GitException, GitRepository } from "../lib/git.js";
 import { PullRequest, RestackException } from "../lib/models.js";
 import { planRestack } from "../lib/stack.js";
 import { modify, raw } from "../test/support/fixtures.mjs";
 import { GitFixture } from "./support/git_fixture.mjs";
+
+test("combined fetch retains deleted-parent PR refs and fetches every large-stack batch", async (t) => {
+  const f = await GitFixture.create(t);
+  const pulls = Array.from({ length: 52 }, (_, i) => modify(f.pulls[0], { number: i + 1 }));
+  for (const pr of pulls)
+    await f.git(["--git-dir", f.remote, "update-ref", `refs/pull/${pr.number}/head`, pr.head]);
+  await f.squash(true);
+  const worker = new GitRepository({
+    directory: join(f.root, "combined-fetch.git"),
+    remote: "https://git.example.com/org/repo.git",
+  });
+  // Exercise production ref selection against a local Git server fixture.
+  const run = worker.run.bind(worker);
+  let fetches = 0;
+  worker.run = (args, options) => {
+    if (args[0] === "fetch") fetches++;
+    return run(
+      [
+        "-c",
+        "protocol.file.allow=always",
+        ...args.map((arg) => (arg === worker.remote ? f.remote : arg)),
+      ],
+      options,
+    );
+  };
+  await worker.prepare({ pulls, branches: ["main", "child", "grandchild"] });
+  assert.equal(fetches, 2);
+  assert.equal(await worker.branch("child"), f.child);
+  for (const number of [1, 50, 51, 52])
+    assert.equal((await worker.run(["rev-parse", `refs/pull/${number}/head`])).output, f.parent);
+  assert.equal(await worker.has(f.parent), true);
+  await assert.rejects(worker.branch("parent"), GitException);
+});
 
 test("squash merge preserves only child changes and cascades to grandchild", async (t) => {
   const f = await GitFixture.create(t),

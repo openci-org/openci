@@ -153,6 +153,13 @@ export class GitRepository {
     await this.run(["worktree", "prune"]);
     for (const branch of branches ?? [])
       await this.run(["check-ref-format", `refs/heads/${branch}`]);
+    const pullRefs = this.options.allowLocal
+      ? []
+      : pulls.map((pr) => {
+          if (!Number.isSafeInteger(pr.number) || pr.number <= 0)
+            throw new Error("Invalid PR number");
+          return `+refs/pull/${pr.number}/head:refs/pull/${pr.number}/head`;
+        });
     await this.run(
       [
         "fetch",
@@ -162,18 +169,14 @@ export class GitRepository {
         ...(branches === undefined
           ? ["+refs/heads/*:refs/remotes/origin/*"]
           : branches.map((b) => `+refs/heads/${b}:refs/remotes/origin/${b}`)),
+        ...pullRefs.slice(0, 50),
       ],
       { network: true },
     );
-    if (!this.options.allowLocal)
-      for (let start = 0; start < pulls.length; start += 50) {
-        const refs = pulls.slice(start, start + 50).map((pr) => {
-          if (!Number.isSafeInteger(pr.number) || pr.number <= 0)
-            throw new Error("Invalid PR number");
-          return `+refs/pull/${pr.number}/head:refs/pull/${pr.number}/head`;
-        });
-        await this.run(["fetch", "--no-tags", this.remote, ...refs], { network: true });
-      }
+    for (let start = 50; start < pullRefs.length; start += 50)
+      await this.run(["fetch", "--no-tags", this.remote, ...pullRefs.slice(start, start + 50)], {
+        network: true,
+      });
   }
   async branch(ref: string): Promise<string> {
     await this.run(["check-ref-format", `refs/heads/${ref}`]);
