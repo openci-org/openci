@@ -166,6 +166,32 @@ class DataConnectPlanningStore implements PlanningStore {
     PlanningFence? fence,
   }) async {
     final webhook = event?.webhook;
+    // Delivery IDs identify transport attempts, not logical PR validation.
+    // Missing base metadata cannot establish equivalence; retain task identity.
+    final prIdentity =
+        webhook?.pullRequestNumber != null &&
+            event?.baseSha != null &&
+            connection != null
+        ? [
+            'pr-webhook-v1',
+            githubAppId,
+            githubApiBaseUrl,
+            githubBaseUrl,
+            connection.id,
+            connection.teamId,
+            webhook!.installationId,
+            event!.repositoryId,
+            webhook.owner.toLowerCase(),
+            webhook.repo.toLowerCase(),
+            webhook.pullRequestNumber,
+            webhook.commitSha,
+            webhook.branch,
+            webhook.triggerBranch,
+            event.baseSha,
+          ]
+        : null;
+    String digest(List<Object?> identity) =>
+        sha256.convert(utf8.encode(jsonEncode(identity))).toString();
     await _execute('webhooks', 'CompleteWebhookTask', {
       'id': id,
       'jobCount': plan.jobs.length,
@@ -180,6 +206,16 @@ class DataConnectPlanningStore implements PlanningStore {
             'cancelPreviousRuns': plan.autoCancelWorkflowFiles.contains(
               job.workflowFileName,
             ),
+            if (prIdentity != null)
+              'webhookExecutionKey': digest([
+                ...prIdentity,
+                'job',
+                job.workflowFileName,
+                job.workflowName,
+                job.flutterVersion,
+                job.runsOn,
+                plan.autoCancelWorkflowFiles.contains(job.workflowFileName),
+              ]),
             if (job.flutterVersion != null)
               'flutterVersion': job.flutterVersion,
           },
@@ -188,13 +224,17 @@ class DataConnectPlanningStore implements PlanningStore {
       'skippedJson': jsonEncode([
         for (final workflow in plan.skipped)
           {
-            'id': sha256
-                .convert(
-                  utf8.encode(
-                    jsonEncode([id, workflow.workflowFileName, 'skipped']),
-                  ),
-                )
-                .toString(),
+            'id': digest(
+              prIdentity == null
+                  ? [id, workflow.workflowFileName, 'skipped']
+                  : [
+                      ...prIdentity,
+                      'skipped',
+                      workflow.workflowFileName,
+                      workflow.workflowName,
+                      plan.comparisonBaseSha,
+                    ],
+            ),
             'name': workflow.workflowName,
             'file': workflow.workflowFileName,
           },

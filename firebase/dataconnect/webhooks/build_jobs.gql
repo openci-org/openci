@@ -70,25 +70,46 @@ mutation CompleteWebhookTask(
       status
     }
   }
+  # Returning to a superseded revision (including reopen after PR closure) needs
+  # fresh validation. Keep historical rows and release only automatic cancels;
+  # a user cancellation is not an implicit request to run again.
+  releasedExecutionKeys: _execute(
+    sql: """
+    UPDATE build_jobs SET webhook_execution_key = NULL
+    WHERE webhook_execution_key IN (
+      SELECT w."webhookExecutionKey"
+      FROM jsonb_to_recordset($1::jsonb) AS w("webhookExecutionKey" text)
+    ) AND status = 'CANCELLED' AND superseded_by_task_id IS NOT NULL
+    """
+    params: [$jobsJson]
+  ) @redact
   jobs: _executeReturning(
     sql: """
     INSERT INTO build_jobs (
       id, status, owner, repo, workflow_name, workflow_file_name, team_id,
       commit_sha, branch, commit_message, pull_request_number, github_base_url,
       installation_id, runs_on, run_count, created_at, updated_at, flutter_version,
-      cancel_previous_runs
+      cancel_previous_runs, webhook_execution_key
     )
     SELECT w.id, 'QUEUED', $2, $3, w.name, w.file, $4,
       $5, $6, $7, $8::bigint, $9, $10, 'macos-latest', 0, $11::bigint, $11::bigint,
-      w."flutterVersion", COALESCE(w."cancelPreviousRuns", false)
+      w."flutterVersion", COALESCE(w."cancelPreviousRuns", false), w."webhookExecutionKey"
     FROM jsonb_to_recordset($1::jsonb) AS w(
-      id text, name text, file text, "flutterVersion" text, "cancelPreviousRuns" boolean
+      id text, name text, file text, "flutterVersion" text, "cancelPreviousRuns" boolean,
+      "webhookExecutionKey" text
     )
     WHERE length(trim(w.id)) > 0 AND length(trim(w.name)) > 0
       AND length(w.file) > 0 AND length($2::text) > 0 AND length($3::text) > 0
       AND length($5::text) > 0 AND length($6::text) > 0
       AND (NOT COALESCE(w."cancelPreviousRuns", false) OR
         ($8::bigint IS NOT NULL AND $12::text IS NOT NULL AND $13::text IS NOT NULL))
+      AND (w."webhookExecutionKey" IS NULL OR
+        (w."webhookExecutionKey" ~ '^[0-9a-f]{64}$' AND $8::bigint IS NOT NULL
+          AND $12::text IS NOT NULL AND $13::text IS NOT NULL))
+    -- Preserve the existing job, including its terminal result, run and Check.
+    -- Return its ID so notification retries synchronize the same execution.
+    ON CONFLICT (webhook_execution_key) DO UPDATE
+      SET webhook_execution_key = EXCLUDED.webhook_execution_key
     RETURNING id
     """
     params: [
@@ -216,6 +237,7 @@ mutation CompleteWebhookTask(
         SELECT 1 FROM jsonb_to_recordset($10::jsonb) AS j(file text)
         WHERE j.file = w.file
       )
+    ON CONFLICT (id) DO UPDATE SET id = EXCLUDED.id
     RETURNING id
     """
     params: [

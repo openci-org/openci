@@ -1025,7 +1025,7 @@ test("cancellation rolls back with an invalid plan, and unfenced PR writes canno
   assert.equal(result.data.cancelled, 1);
 });
 
-test("same-SHA reruns remain independent and force-push revisions need no ancestry ordering", async (t) => {
+test("same-SHA deliveries coalesce and returning to an automatically cancelled revision validates again", async (t) => {
   const f = await autoCancelFixture(t);
   await invoke(f.taskId);
   await invoke(await nextRevision(f, sha));
@@ -1033,11 +1033,11 @@ test("same-SHA reruns remain independent and force-push revisions need no ancest
     (await f.state()).buildJobs.filter(
       (j) => j.workflowFileName === "ci.dart" && j.status === "QUEUED",
     ).length,
-    2,
+    1,
   );
   const taskId = await nextRevision(f, "c".repeat(40));
   await invoke(taskId);
-  assert.equal((await f.state()).buildJobs.filter((j) => j.status === "CANCELLED").length, 2);
+  assert.equal((await f.state()).buildJobs.filter((j) => j.status === "CANCELLED").length, 1);
   await invoke(await nextRevision(f, sha));
   const ci = (await f.state()).buildJobs.filter(
     (j) => j.workflowFileName === "ci.dart" && j.status === "QUEUED",
@@ -1095,6 +1095,166 @@ test("one team's opted-in PR cannot cancel an identical job in another team", as
   const before = (await two.state()).buildJobs;
   await invoke(await nextRevision(one, "c".repeat(40)));
   assert.deepEqual((await two.state()).buildJobs, before);
+});
+
+for (const status of ["QUEUED", "IN_PROGRESS", "SUCCESS", "FAILURE", "CANCELLED"]) {
+  test(`equivalent delivery reuses ${status} jobs without resetting results or Checks`, async (t) => {
+    const f = await autoCancelFixture(t);
+    await invoke(f.taskId);
+    await graphql(
+      'mutation Advance($teamId: String!, $status: String!) { buildJob_updateMany(where: { teamId: { eq: $teamId } }, data: { status: $status, runCount: 2, latestRunId: "existing-run", checkRunId: "existing-check", completedAt: 42 }) }',
+      { teamId: f.teamId, status },
+    );
+    const before = (await f.state()).buildJobs;
+    const taskId = await nextRevision(f, sha);
+    await invoke(taskId);
+    assert.deepEqual((await f.state()).buildJobs, before);
+    assert.equal(await invoke(taskId), "duplicate");
+  });
+}
+
+test("concurrent different delivery IDs converge on one execution per workflow", async (t) => {
+  const f = await autoCancelFixture(t);
+  const tasks = [f.taskId, await nextRevision(f, sha), await nextRevision(f, sha)];
+  const results = await Promise.all(
+    tasks.map((taskId) =>
+      fetch(dartFunctionUrl, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ taskId }),
+      }),
+    ),
+  );
+  assert.ok(results.some((response) => response.status === 200));
+  for (const [index, response] of results.entries()) {
+    assert.ok([200, 503].includes(response.status));
+    if (response.status === 503) await invoke(tasks[index]);
+  }
+  const rows = (await f.state()).buildJobs;
+  assert.equal(rows.length, 2);
+  assert.ok(rows.every((job) => job.status === "QUEUED" && job.runCount === "0"));
+  assert.deepEqual(
+    new Set(rows.map((job) => job.workflowFileName)),
+    new Set(["ci.dart", "deploy.dart"]),
+  );
+});
+
+test("deduplicated completion returns the original job ID for Check and dispatch synchronization", async (t) => {
+  const f = await autoCancelFixture(t);
+  await invoke(f.taskId);
+  const old = (await f.state()).buildJobs.find((job) => job.workflowFileName === "ci.dart");
+  const { buildJob } = await graphql(
+    "query Key($id: String!) { buildJob(id: $id) { webhookExecutionKey } }",
+    { id: old.id },
+  );
+  const taskId = await nextRevision(f, sha);
+  const fence = await beginPlanning(f, taskId);
+  const vars = completion(f, taskId, fence, sha);
+  const jobs = JSON.parse(vars.jobsJson);
+  jobs[0].webhookExecutionKey = buildJob.webhookExecutionKey;
+  const result = await sdk.completeWebhookTask(dc, { ...vars, jobsJson: JSON.stringify(jobs) });
+  assert.deepEqual(createdBuildJobIds({ data: result.data }), [old.id]);
+  assert.equal(result.data.cancelled, 0);
+  assert.equal((await f.state()).buildJobs.length, 2);
+});
+
+test("explicit same-SHA jobs without a webhook key remain independent of duplicate notifications", async (t) => {
+  const f = await autoCancelFixture(t);
+  await invoke(f.taskId);
+  const taskId = await nextRevision(f, sha);
+  const fence = await beginPlanning(f, taskId);
+  const result = await sdk.completeWebhookTask(dc, completion(f, taskId, fence, sha));
+  assert.equal(result.data.jobs.length, 1);
+  const before = (await f.state()).buildJobs;
+  assert.equal(before.filter((job) => job.workflowFileName === "ci.dart").length, 2);
+  await invoke(await nextRevision(f, sha));
+  assert.deepEqual((await f.state()).buildJobs, before);
+});
+
+async function changedContext(f, change) {
+  const payload = structuredClone(f.payload);
+  change(payload);
+  f.github.pullRequest = payload.pull_request;
+  const deliveryId = randomUUID();
+  await enqueueWebhook(dc, {
+    deliveryId,
+    eventType: "pull_request",
+    payload: JSON.stringify(payload),
+  });
+  const taskId = (await sdk.getWebhookTaskByDeliveryId(dc, { deliveryId })).data.webhookTask.id;
+  f.taskIds.push(taskId);
+  return taskId;
+}
+
+test("same-head base SHA, target and SDK changes require new validation", async (t) => {
+  const f = await autoCancelFixture(t);
+  await invoke(f.taskId);
+  await invoke(
+    await changedContext(f, (payload) => {
+      payload.pull_request.base.sha = "d".repeat(40);
+    }),
+  );
+  await invoke(
+    await changedContext(f, (payload) => {
+      payload.pull_request.base.ref = "release";
+    }),
+  );
+  f.github.files[0].content = f.github.files[0].content.replace(
+    "OpenCI.init(",
+    "OpenCI.init(flutterVersion: '3.47.8', ",
+  );
+  await invoke(await nextRevision(f, sha));
+  const rows = (await f.state()).buildJobs;
+  assert.equal(rows.filter((job) => job.workflowFileName === "ci.dart").length, 4);
+  assert.equal(rows.filter((job) => job.workflowFileName === "deploy.dart").length, 3);
+});
+
+test("equivalent skipped plans retain one outbox row and its reported Check", async (t) => {
+  const f = await autoCancelFixture(t);
+  f.github.files = [
+    {
+      name: "ci.dart",
+      content:
+        "void main() { OpenCI.init(workflowName: 'CI', ciTriggers: [CITrigger.pullRequest(branch: '*', paths: ['mobile/**'])]); }",
+    },
+  ];
+  await invoke(f.taskId);
+  const [row] = (await skippedState(f)).skippedWorkflowChecks;
+  await sdk.claimSkippedWorkflowCheck(dc, { id: row.id, leaseOwner: "reporter" });
+  await sdk.completeSkippedWorkflowCheck(dc, {
+    id: row.id,
+    leaseOwner: "reporter",
+    checkRunId: "42",
+  });
+  const before = (await skippedState(f)).skippedWorkflowChecks;
+  await invoke(await nextRevision(f, sha));
+  const state = await graphql(
+    "query Skips($connectionId: String!) { skippedWorkflowChecks(where: { connectionId: { eq: $connectionId } }) { id status workflowName workflowFileName commitSha comparisonBaseSha leaseOwner checkRunId } }",
+    { connectionId: f.connectionId },
+  );
+  assert.deepEqual(state.skippedWorkflowChecks, before);
+  assert.deepEqual((await f.state()).buildJobs, []);
+});
+
+test("execution keys require fenced PR plans and reject malformed batches atomically", async (t) => {
+  const f = await autoCancelFixture(t);
+  const fence = await beginPlanning(f, f.taskId);
+  const vars = completion(f, f.taskId, fence, sha);
+  const baseJob = JSON.parse(vars.jobsJson)[0];
+  for (const patch of [
+    { planningId: null, planningToken: null },
+    { pullRequestNumber: null },
+    { jobsJson: JSON.stringify([{ ...baseJob, webhookExecutionKey: "bad-key" }]) },
+  ])
+    await assert.rejects(
+      sdk.completeWebhookTask(dc, {
+        ...vars,
+        jobsJson: JSON.stringify([{ ...baseJob, webhookExecutionKey: "f".repeat(64) }]),
+        ...patch,
+      }),
+    );
+  assert.equal((await f.state()).webhookTask.status, "pending");
+  assert.deepEqual((await f.state()).buildJobs, []);
 });
 
 async function prAction(f, action, { merged = false, makeCurrent = true } = {}) {
@@ -1262,4 +1422,18 @@ test("closure cancellation requires an active connection and a valid fence with 
   );
   await assert.rejects(sdk.completeWebhookTask(dc, vars));
   assert.deepEqual((await f.state()).buildJobs, before);
+});
+
+test("reopening a cancelled PR creates one fresh validation and deduplicates its redeliveries", async (t) => {
+  const f = await autoCancelFixture(t);
+  await invoke(f.taskId);
+  const original = (await f.state()).buildJobs;
+  await invoke(await prAction(f, "closed"));
+  await invoke(await prAction(f, "reopened"));
+  const rows = (await f.state()).buildJobs;
+  assert.equal(rows.length, 4);
+  for (const job of original) assert.equal(rows.find((j) => j.id === job.id).status, "CANCELLED");
+  assert.equal(rows.filter((job) => job.status === "QUEUED").length, 2);
+  await invoke(await nextRevision(f, sha));
+  assert.deepEqual((await f.state()).buildJobs, rows);
 });
