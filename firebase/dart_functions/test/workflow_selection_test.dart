@@ -120,17 +120,17 @@ void main() {
       .toList();
 
   test(
-    'Stacked PR source runs only Stacked PR CI among the six configured workflows',
+    'Stacked PR source runs only Stacked PR CI among the seven configured workflows',
     () {
-      expect(definitions, hasLength(6));
+      expect(definitions, hasLength(7));
       final result = plan(definitions, diff(['apps/stacked_pr/src/index.ts']));
       expect(result.jobs.map((job) => job.workflowName), ['Stacked PR CI']);
-      expect(result.skipped, hasLength(5));
+      expect(result.skipped, hasLength(6));
     },
   );
   test('docs-only changes allocate no build jobs', () {
     expect(plan(definitions, diff(['README.md'])).jobs, isEmpty);
-    expect(plan(definitions, diff(['README.md'])).skipped, hasLength(6));
+    expect(plan(definitions, diff(['README.md'])).skipped, hasLength(7));
   });
   test('shared model changes also run their Dart Functions consumer', () {
     final result = plan(
@@ -140,6 +140,7 @@ void main() {
     expect(result.jobs.map((j) => j.workflowName).toSet(), {
       'OpenCI Shared CI',
       'Dart Functions CI',
+      'Dart Format Check',
     });
   });
   test('runtime SDK and workspace resolution changes run all workflows', () {
@@ -148,7 +149,7 @@ void main() {
       'pubspec.lock',
       'apps/dashboard/pubspec.yaml',
     ]) {
-      expect(plan(definitions, diff([path])).jobs, hasLength(6), reason: path);
+      expect(plan(definitions, diff([path])).jobs, hasLength(7), reason: path);
     }
   });
   test('Node runtime changes run both Node workflows', () {

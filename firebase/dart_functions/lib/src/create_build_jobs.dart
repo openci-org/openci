@@ -1,6 +1,7 @@
 import 'package:openci_shared/openci_shared.dart';
 
 import 'data_connect.dart';
+import 'github_workflows.dart';
 import 'open_ci_parser.dart';
 import 'plan_jobs.dart';
 import 'planning_event.dart';
@@ -14,12 +15,13 @@ class BuildJobPlanner {
     required this.store,
     required this.fetchWorkflows,
     this.fetchChangedFiles,
-    this.isCurrentPullRequest,
+    this.observePullRequest,
   });
   final PlanningStore store;
   final FetchWorkflows fetchWorkflows;
   final FetchChangedFiles? fetchChangedFiles;
-  final Future<bool> Function(PlanningEvent event)? isCurrentPullRequest;
+  final Future<PullRequestObservation> Function(PlanningEvent event)?
+  observePullRequest;
 
   Future<String> process(String taskId) async {
     final task = await store.getTask(taskId);
@@ -51,7 +53,10 @@ class BuildJobPlanner {
               connection,
             );
           }
-          final files = await fetchWorkflows(event);
+          // Close notifications need neither workflow source nor commit access.
+          final files = event.isPullRequestClosed
+              ? <OpenCIFile>[]
+              : await fetchWorkflows(event);
           final workflows = files
               .map((file) => parseOpenCIWorkflow(file.content, file.name))
               .whereType<ParsedWorkflow>()
@@ -71,12 +76,17 @@ class BuildJobPlanner {
             workflows: workflows,
             changedFiles: changedFiles,
           );
-          if (plan.autoCancelWorkflowFiles.isNotEmpty) {
-            final verify = isCurrentPullRequest;
+          if (event.webhook.pullRequestNumber != null) {
+            final verify = observePullRequest;
             if (verify == null) {
               throw StateError('PR head verification is unavailable');
             }
-            if (!await verify(event)) plan = plan.withoutSupersededJobs();
+            final observation = await verify(event);
+            if (observation == PullRequestObservation.closed) {
+              plan = const WorkflowPlan(cancelClosedPullRequest: true);
+            } else if (observation == PullRequestObservation.stale) {
+              plan = const WorkflowPlan();
+            }
           }
         }
       }

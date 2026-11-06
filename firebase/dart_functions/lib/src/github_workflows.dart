@@ -7,6 +7,8 @@ import 'package:openci_shared/openci_shared.dart';
 import 'planning_event.dart';
 import 'github_changed_files.dart';
 
+enum PullRequestObservation { current, stale, closed }
+
 class GitHubWorkflows {
   GitHubWorkflows({
     required this.client,
@@ -73,7 +75,7 @@ class GitHubWorkflows {
 
   /// Verify the live PR after acquiring the planning fence. Do not use delivery
   /// times or commit ancestry: delayed deliveries and force pushes reorder both.
-  Future<bool> isCurrentPullRequest(PlanningEvent event) async {
+  Future<PullRequestObservation> observePullRequest(PlanningEvent event) async {
     final webhook = event.webhook;
     if (webhook.pullRequestNumber == null) throw StateError('Expected a PR');
     final auth = _json(
@@ -109,9 +111,7 @@ class GitHubWorkflows {
       }
       final head = pr['head'] as Map<String, dynamic>;
       final base = pr['base'] as Map<String, dynamic>;
-      if (head['repo'] is! Map<String, dynamic> ||
-          base['repo'] is! Map<String, dynamic> ||
-          (head['repo'] as Map<String, dynamic>)['id'] != event.repositoryId ||
+      if (base['repo'] is! Map<String, dynamic> ||
           (base['repo'] as Map<String, dynamic>)['id'] != event.repositoryId) {
         throw const InvalidPlanningInput('untrusted_pull_request');
       }
@@ -120,9 +120,18 @@ class GitHubWorkflows {
           base['ref'] is! String) {
         throw StateError('Invalid GitHub pull request revision');
       }
-      return pr['state'] == 'open' &&
-          head['sha'] == webhook.commitSha &&
-          base['ref'] == webhook.triggerBranch;
+      // Closed PRs can have a deleted source repository. Cancellation never
+      // executes repository code and only needs the verified target identity.
+      if (pr['state'] == 'closed') return PullRequestObservation.closed;
+      if (event.isPullRequestClosed) return PullRequestObservation.stale;
+      if (head['repo'] is! Map<String, dynamic> ||
+          (head['repo'] as Map<String, dynamic>)['id'] != event.repositoryId) {
+        throw const InvalidPlanningInput('untrusted_pull_request');
+      }
+      return head['sha'] == webhook.commitSha &&
+              base['ref'] == webhook.triggerBranch
+          ? PullRequestObservation.current
+          : PullRequestObservation.stale;
     } finally {
       final revoked = await _request('DELETE', 'installation/token', token);
       if (revoked.statusCode != 204) {
