@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { GitException } from "../lib/git.js";
 import { PullRequest } from "../lib/models.js";
+import { render } from "../lib/report.js";
 import { modify } from "../test/support/fixtures.mjs";
 import { Harness, repo } from "./support/service_harness.mjs";
 
@@ -112,6 +113,40 @@ test("automatic base change after squash and parent deletion preserves child cha
   assert.equal(await h.f.output(["diff", "--name-only", main, heads.get("child")]), "child.txt");
   assert.equal(await h.f.output(["rev-parse", `${heads.get("grandchild")}^`]), heads.get("child"));
   assert.equal(h.records[1].baseRef, "main");
+});
+test("merging into a comparison branch preserves changes and reports the missing path to main", async (t) => {
+  const h = await Harness.create(t);
+  await h.f.git(["checkout", "-b", "integration-base", h.f.main]);
+  await h.f.git(["merge", "--squash", "parent"]);
+  await h.f.git(["commit", "-m", "merge parent into comparison branch"]);
+  const merged = await h.f.git(["rev-parse", "HEAD"]);
+  await h.f.git(["push", "origin", "integration-base", ":parent"]);
+  h.records[0] = modify(h.records[0], {
+    baseRef: "integration-base",
+    state: "closed",
+    merged: true,
+    mergeCommit: merged,
+  });
+  h.baseChange(2, "parent", "integration-base", true);
+  h.records[1].baseRef = "integration-base";
+  await h.restart();
+  await h.service.reconcile(10, repo, { number: 2 });
+  assert.equal(h.reports[0].error, undefined);
+  assert.equal((await h.heads()).get("main"), h.f.main);
+  assert.equal(h.records[1].baseRef, "integration-base");
+  assert.equal(
+    await h.f.output(["diff", "--name-only", merged, (await h.heads()).get("child")]),
+    "child.txt",
+  );
+  const pulls = h.reports[0].pulls;
+  const view = render(
+    pulls,
+    pulls.find((p) => p.number === 2),
+    { defaultBranch: "main" },
+  );
+  assert.equal(view.conclusion, "action_required");
+  assert.match(view.body, /integration-base/);
+  assert.equal(view.canMerge, false);
 });
 test("lost response after atomic push recovers with a new invocation and no journal", async (t) => {
   const h = await Harness.create(t);

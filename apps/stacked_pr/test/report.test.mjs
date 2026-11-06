@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { setImmediate } from "node:timers/promises";
 import { Repository, RestackException } from "../lib/models.js";
-import { Reporter, render, marker } from "../lib/report.js";
+import { Reporter, render, marker, stackActions } from "../lib/report.js";
 import { chain, modify, fakeApi } from "./support/fixtures.mjs";
 
 const repo = new Repository(1, "org/repo"),
@@ -11,6 +11,73 @@ function sample() {
   const unrelated = modify(chain()[0], { number: 200, headRef: "unrelated", head: "d".repeat(40) });
   return { unrelated, pulls: [...chain(), unrelated] };
 }
+for (const merged of [false, true])
+  test(`a stack rooted outside the default branch requires attention (merged parent=${merged})`, () => {
+    const pulls = chain();
+    pulls[0] = modify(pulls[0], {
+      baseRef: "integration-base",
+      state: merged ? "closed" : "open",
+      merged,
+    });
+    for (const pr of pulls.filter((p) => p.isOpen)) {
+      const view = render(pulls, pr, { defaultBranch: "main" });
+      assert.equal(view.conclusion, "action_required");
+      assert.match(view.body, /integration-base/);
+      assert.match(view.body, /main.*つながっていません/);
+      assert.doesNotMatch(view.body, /依存する未mergeの親PRはありません/);
+      assert.doesNotMatch(view.body, /Checkの \*\*Merge stack\*\*/);
+    }
+  });
+test("reporter warns after a parent merge leaves a stack on a comparison branch", async () => {
+  const root = modify(chain()[1], { parent: undefined, baseRef: "integration-base" }),
+    child = chain()[2],
+    writes = [];
+  const api = fakeApi({
+    request: async (_installation, _method, path, body) => writes.push({ path, body }),
+  });
+  await new Reporter(api).publish(1, new Repository(1, "org/repo", "main"), [root, child]);
+  const checks = writes.filter((w) => w.path.endsWith("/check-runs"));
+  assert.equal(checks.length, 2);
+  for (const { body } of checks) {
+    assert.equal(body.conclusion, "action_required");
+    assert.match(body.output.summary, /integration-base/);
+    assert.deepEqual(
+      body.actions.map((a) => a.identifier),
+      ["restack"],
+    );
+  }
+});
+test("an intentional standalone release PR stays outside stack reporting", async () => {
+  const pr = modify(chain()[0], { baseRef: "release/1.x" }),
+    writes = [];
+  const api = fakeApi({ request: async (...args) => writes.push(args) });
+  await new Reporter(api).publish(1, new Repository(1, "org/repo", "main"), [pr]);
+  assert.equal(writes.length, 0);
+});
+test("a repaired root on a non-main default branch clears the warning", () => {
+  const pulls = chain();
+  pulls[0].baseRef = "develop";
+  const view = render(pulls, pulls[0], { defaultBranch: "develop" });
+  assert.equal(view.conclusion, "success");
+  assert.doesNotMatch(view.body, /つながっていません/);
+});
+test("an active merge can still be cancelled after its root becomes unresolved", () => {
+  const pulls = chain();
+  pulls[0].baseRef = "integration-base";
+  const view = render(pulls, pulls[0], { defaultBranch: "main", merging: true });
+  assert.match(view.body, /Cancel merge/);
+  assert.deepEqual(
+    stackActions(true, view.canMerge).map((a) => a.identifier),
+    ["restack", "cancel-merge"],
+  );
+});
+test("restack conflicts take precedence over an unresolved base warning", () => {
+  const pulls = chain();
+  pulls[0].baseRef = "integration-base";
+  const view = render(pulls, pulls[1], { defaultBranch: "main", error: conflict });
+  assert.equal(view.conclusion, "failure");
+  assert.match(view.body, /lib\/conflict.dart/);
+});
 test("conflict fails only the affected stack, including its parent and descendants", () => {
   const { unrelated, pulls } = sample();
   for (const pr of pulls.slice(0, 3)) {
