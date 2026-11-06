@@ -61,9 +61,11 @@ Running jobs use the executor cancellation lifecycle described above. Repeated
 close deliveries leave terminal results untouched. Concurrent reopen/close plans
 invalidate older observations; a lost fence leaves the task retryable.
 
-Deploy the regenerated `webhooks` connector before the Dart planner. No schema
-change or new Function trigger is needed for closure cancellation. Historical
-backlog cleanup and production verification are separate from this rollout.
+Deploy the regenerated `webhooks` connector before the Dart planner, then deploy
+`githubWebhookFsc` so signed `pull_request.closed` deliveries enter the planning
+queue. Both merged and unmerged closures use that event. No schema change or new
+Function trigger is needed for closure cancellation. Historical backlog cleanup
+and production verification are separate from this rollout.
 
 ## Rollout
 

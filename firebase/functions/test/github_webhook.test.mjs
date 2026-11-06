@@ -148,7 +148,7 @@ test("rejects malformed JSON objects and invalid UTF-8 for supported events", as
   assert.deepEqual(d.deliveries, []);
 });
 
-test("accepts only the existing pull request trigger actions", async () => {
+test("accepts pull request planning and closure actions", async () => {
   const d = dependencies();
   for (const action of ["opened", "synchronize", "reopened", "closed", "edited", null, undefined]) {
     assert.equal(
@@ -161,7 +161,7 @@ test("accepts only the existing pull request trigger actions", async () => {
   }
   assert.deepEqual(
     d.deliveries.map((delivery) => JSON.parse(delivery.payload).action),
-    ["opened", "synchronize", "reopened"],
+    ["opened", "synchronize", "reopened", "closed"],
   );
   for (const action of [42, {}, [], ["opened"]]) {
     assert.equal(
@@ -172,6 +172,24 @@ test("accepts only the existing pull request trigger actions", async () => {
       400,
     );
   }
+});
+
+test("queues both merged and unmerged PR closures for cancellation", async () => {
+  const d = dependencies();
+  const payloads = [false, true].map((merged) =>
+    JSON.stringify({ action: "closed", number: 42, pull_request: { state: "closed", merged } }),
+  );
+  for (const payload of payloads) {
+    assert.equal(
+      await receiveGitHubWebhook(request(payload, { eventType: "pull_request" }), d.options),
+      200,
+    );
+  }
+  assert.deepEqual(
+    d.deliveries.map((delivery) => delivery.payload),
+    payloads,
+  );
+  assert.ok(d.deliveries.every((delivery) => delivery.eventType === "pull_request"));
 });
 
 test("waits for durable persistence before acknowledging a delivery", async () => {

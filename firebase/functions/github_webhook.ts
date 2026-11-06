@@ -44,6 +44,7 @@ export async function receiveGitHubWebhook(
       "pull_request.opened",
       "pull_request.synchronize",
       "pull_request.reopened",
+      "pull_request.closed",
       "pull_request.edited",
     ],
     async ({ id, name, payload: verifiedPayload }) => {
