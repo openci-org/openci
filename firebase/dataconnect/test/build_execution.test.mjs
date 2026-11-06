@@ -14,6 +14,8 @@ import {
   recoverExecutions,
   cleanupExecution,
 } from "../../lib/functions/executor/execute.js";
+import { DataConnectDispatchStore } from "../../lib/functions/dispatch_store.js";
+import { QueuedChecks, QueuedCheckStore } from "../../lib/functions/queued_checks.js";
 import { identity } from "../../lib/functions/executor/model.js";
 
 const host = process.env.DATA_CONNECT_EMULATOR_HOST;
@@ -242,12 +244,12 @@ async function started(f) {
   return { dispatch, executorId };
 }
 
-async function prepareSupersedingRevision(t, f) {
+async function prepareSupersedingRevision(t, f, closed = false) {
   const taskId = randomUUID(),
     planningId = randomUUID(),
     token = randomUUID(),
     newJobId = randomUUID();
-  await alterJob(f.jobId, { cancelPreviousRuns: true, pullRequestNumber: "7" });
+  await alterJob(f.jobId, { cancelPreviousRuns: !closed, pullRequestNumber: "7" });
   await graphql(
     `
       mutation SeedTask($id: String!) {
@@ -297,10 +299,11 @@ async function prepareSupersedingRevision(t, f) {
       pullRequestNumber: "7",
       githubBaseUrl: "https://github.com",
       commitSha: "b".repeat(40),
-      jobCount: 1,
-      jobsJson: JSON.stringify([
-        { id: newJobId, name: "CI", file: "ci.dart", cancelPreviousRuns: true },
-      ]),
+      cancelClosedPullRequest: closed,
+      jobCount: closed ? 0 : 1,
+      jobsJson: JSON.stringify(
+        closed ? [] : [{ id: newJobId, name: "CI", file: "ci.dart", cancelPreviousRuns: true }],
+      ),
     });
 }
 
@@ -757,46 +760,48 @@ test("cleanup cannot finish while billing or the VM remains, and client identiti
   }
 });
 
-test(
-  "PR auto cancellation interrupts an open command and closes VM, billing and GitHub Check",
-  { timeout: 25000 },
-  async (t) => {
-    const f = await fixture(t);
-    const supersede = await prepareSupersedingRevision(t, f);
-    f.dependencies.orchard.exec = async (_vm, _script, _output, signal) => {
-      assert.equal((await supersede()).data.cancelled, 1);
-      return new Promise((_resolve, reject) => {
-        signal.addEventListener("abort", () => reject(new Error("Interrupted")), { once: true });
-      });
-    };
-    await f.run();
-    assert.equal((await f.state()).job.status, "CANCELLED");
-    assert.equal((await f.billingState()).outcome, "cancelled");
-    assert.equal(f.calls.at(-1), "remove");
-    assert.equal(f.checks.at(-1), "cancelled");
-    assert.equal((await f.state()).run.conclusion, "cancelled");
-    assert.equal((await f.state()).dispatch.activeJobId, null);
-  },
-);
+for (const closed of [false, true]) {
+  test(
+    "PR auto cancellation interrupts an open command and closes VM, billing and GitHub Check",
+    { timeout: 25000 },
+    async (t) => {
+      const f = await fixture(t);
+      const supersede = await prepareSupersedingRevision(t, f, closed);
+      f.dependencies.orchard.exec = async (_vm, _script, _output, signal) => {
+        assert.equal((await supersede()).data.cancelled, 1);
+        return new Promise((_resolve, reject) => {
+          signal.addEventListener("abort", () => reject(new Error("Interrupted")), { once: true });
+        });
+      };
+      await f.run();
+      assert.equal((await f.state()).job.status, "CANCELLED");
+      assert.equal((await f.billingState()).outcome, "cancelled");
+      assert.equal(f.calls.at(-1), "remove");
+      assert.equal(f.checks.at(-1), "cancelled");
+      assert.equal((await f.state()).run.conclusion, "cancelled");
+      assert.equal((await f.state()).dispatch.activeJobId, null);
+    },
+  );
 
-test("execution startup cannot revive a PR job cancelled concurrently with admission", async (t) => {
-  const f = await fixture(t);
-  const supersede = await prepareSupersedingRevision(t, f);
-  const executorId = await f.claim();
-  const start = () =>
-    dispatchSdk.startSelfHostedBuildExecution(dc, {
-      id: f.id,
-      jobId: f.jobId,
-      teamId: f.teamId,
-      executorId,
-    });
-  const [cancellation] = await Promise.allSettled([supersede(), start()]);
-  assert.equal(cancellation.status, "fulfilled");
-  assert.equal(cancellation.value.data.cancelled, 1);
-  assert.equal((await f.state()).job.status, "CANCELLED");
-  await assert.rejects(start());
-  assert.equal((await f.state()).job.status, "CANCELLED");
-});
+  test("execution startup cannot revive a PR job cancelled concurrently with admission", async (t) => {
+    const f = await fixture(t);
+    const supersede = await prepareSupersedingRevision(t, f, closed);
+    const executorId = await f.claim();
+    const start = () =>
+      dispatchSdk.startSelfHostedBuildExecution(dc, {
+        id: f.id,
+        jobId: f.jobId,
+        teamId: f.teamId,
+        executorId,
+      });
+    const [cancellation] = await Promise.allSettled([supersede(), start()]);
+    assert.equal(cancellation.status, "fulfilled");
+    assert.equal(cancellation.value.data.cancelled, 1);
+    assert.equal((await f.state()).job.status, "CANCELLED");
+    await assert.rejects(start());
+    assert.equal((await f.state()).job.status, "CANCELLED");
+  });
+}
 
 test("a lost claim acknowledgement never starts a VM or resumes the claimed attempt", async (t) => {
   const f = await fixture(t);
@@ -865,33 +870,60 @@ test("the sweep removes a VM that appears after its attempt already finished", a
   assert.equal((await active.state()).dispatch.activeJobId, active.jobId);
 });
 
-test("a terminal execution already publishing its Check retains a consistent result", async (t) => {
-  const f = await fixture(t);
-  const supersede = await prepareSupersedingRevision(t, f);
-  const check = f.dependencies.github.check;
-  f.dependencies.github.check = async (job, dispatch, outcome) => {
-    if (outcome === "success") assert.equal((await supersede()).data.cancelled, 0);
-    return check(job, dispatch, outcome);
-  };
-  await f.run();
-  assert.equal((await f.state()).job.status, "SUCCESS");
-  assert.equal((await f.state()).run.conclusion, "success");
-  assert.equal((await f.billingState()).outcome, "success");
-  assert.equal(f.checks.at(-1), "success");
-});
+for (const closed of [false, true]) {
+  test("a terminal execution already publishing its Check retains a consistent result", async (t) => {
+    const f = await fixture(t);
+    const supersede = await prepareSupersedingRevision(t, f, closed);
+    const check = f.dependencies.github.check;
+    f.dependencies.github.check = async (job, dispatch, outcome) => {
+      if (outcome === "success") assert.equal((await supersede()).data.cancelled, 0);
+      return check(job, dispatch, outcome);
+    };
+    await f.run();
+    assert.equal((await f.state()).job.status, "SUCCESS");
+    assert.equal((await f.state()).run.conclusion, "success");
+    assert.equal((await f.billingState()).outcome, "success");
+    assert.equal(f.checks.at(-1), "success");
+  });
 
-test("concurrent result recording and auto cancellation agree on billing and the final Check", async (t) => {
-  const f = await fixture(t);
-  const supersede = await prepareSupersedingRevision(t, f);
-  const { executorId } = await started(f);
-  const [cancellation] = await Promise.all([
-    supersede(),
-    store.result(f.id, executorId, "success"),
+  test("concurrent result recording and auto cancellation agree on billing and the final Check", async (t) => {
+    const f = await fixture(t);
+    const supersede = await prepareSupersedingRevision(t, f, closed);
+    const { executorId } = await started(f);
+    const [cancellation] = await Promise.all([
+      supersede(),
+      store.result(f.id, executorId, "success"),
+    ]);
+    await cleanupExecution(f.id, f.jobId, f.dependencies, false);
+    const expected = cancellation.data.cancelled === 1 ? "cancelled" : "success";
+    assert.equal((await f.state()).job.status, expected.toUpperCase());
+    assert.equal((await f.state()).run.conclusion, expected);
+    assert.equal((await f.billingState()).outcome, expected);
+    assert.equal(f.checks.at(-1), expected);
+  });
+}
+
+test("PR closure releases an unclaimed reservation and finalizes its queued Check", async (t) => {
+  const f = await fixture(t, true);
+  const close = await prepareSupersedingRevision(t, f, true);
+  assert.equal((await close()).data.cancelled, 1);
+  await new DataConnectDispatchStore(dc).cancelUnstarted(f.jobId);
+  const reports = [];
+  const checks = new QueuedChecks(new QueuedCheckStore(dc), {
+    options: { appId: "1", apiBaseUrl: "https://api.github.com" },
+    queuedCheck: async (job, externalId, checkRunId) => {
+      reports.push({ status: job.status, externalId, checkRunId });
+      return "123";
+    },
+  });
+  await checks.sync(f.jobId);
+  assert.deepEqual(reports, [
+    { status: "CANCELLED", externalId: `build-job:${f.jobId}:run:1`, checkRunId: "123" },
   ]);
-  await cleanupExecution(f.id, f.jobId, f.dependencies, false);
-  const expected = cancellation.data.cancelled === 1 ? "cancelled" : "success";
-  assert.equal((await f.state()).job.status, expected.toUpperCase());
-  assert.equal((await f.state()).run.conclusion, expected);
-  assert.equal((await f.billingState()).outcome, expected);
-  assert.equal(f.checks.at(-1), expected);
+  const state = await f.state();
+  assert.equal(state.dispatch.activeJobId, null);
+  assert.ok(state.dispatch.finishedAt);
+  assert.equal(state.job.status, "CANCELLED");
+  assert.deepEqual(f.calls, []);
+  assert.equal(await f.billingState(), null);
 });

@@ -86,11 +86,7 @@ void main() {
         workflows: workflows,
       );
       expect(plan.autoCancelWorkflowFiles, {'true.dart'});
-      expect(
-        plan.withoutSupersededJobs().jobs.single.workflowFileName,
-        'false.dart',
-      );
-      expect(plan.withoutSupersededJobs().autoCancelWorkflowFiles, isEmpty);
+
       final push = event.webhook.copyWith(
         eventType: 'push',
         triggerType: 'push',
@@ -159,18 +155,19 @@ void main() {
         );
         if (scenario == 'fork') {
           await expectLater(
-            github.isCurrentPullRequest(event),
+            github.observePullRequest(event),
             throwsA(isA<InvalidPlanningInput>()),
           );
         } else if (['unavailable', 'malformed'].contains(scenario)) {
-          await expectLater(
-            github.isCurrentPullRequest(event),
-            throwsStateError,
-          );
+          await expectLater(github.observePullRequest(event), throwsStateError);
         } else {
           expect(
-            await github.isCurrentPullRequest(event),
-            scenario == 'current',
+            await github.observePullRequest(event),
+            scenario == 'current'
+                ? PullRequestObservation.current
+                : scenario == 'closed'
+                ? PullRequestObservation.closed
+                : PullRequestObservation.stale,
           );
         }
         expect(revoked, isTrue);

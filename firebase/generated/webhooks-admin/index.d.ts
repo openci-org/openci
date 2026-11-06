@@ -147,6 +147,7 @@ export interface CompleteWebhookTaskVariables {
   githubBaseUrl?: string | null;
   planningId?: string | null;
   planningToken?: string | null;
+  cancelClosedPullRequest?: boolean;
 }
 
 export interface CreateWebhookTaskData {

@@ -16,6 +16,7 @@ class PlanningEvent {
     this.baseSha,
     this.beforeSha,
     this.isForced = false,
+    this.isPullRequestClosed = false,
   });
 
   final GitHubWebhookPayload webhook;
@@ -24,6 +25,7 @@ class PlanningEvent {
   final String? baseSha;
   final String? beforeSha;
   final bool isForced;
+  final bool isPullRequestClosed;
 
   static PlanningEvent? parse(String eventType, String payload) {
     try {
@@ -31,7 +33,12 @@ class PlanningEvent {
       if (eventType == 'push' && raw['deleted'] == true) return null;
       if (eventType != 'push' && eventType != 'pull_request') _invalid();
       if (eventType == 'pull_request' &&
-          !['opened', 'synchronize', 'reopened'].contains(raw['action']) &&
+          ![
+            'opened',
+            'synchronize',
+            'reopened',
+            'closed',
+          ].contains(raw['action']) &&
           !(raw['action'] == 'edited' &&
               raw['changes'] is Map<String, dynamic> &&
               (raw['changes'] as Map<String, dynamic>)['base'] is Map)) {
@@ -57,7 +64,8 @@ class PlanningEvent {
         }
         // The workflow runs with team secrets. Only a head in the same
         // repository is trusted; missing/deleted repositories fail closed too.
-        if (_positiveId(_object(head['repo'])['id']) != repositoryId) {
+        if (raw['action'] != 'closed' &&
+            _positiveId(_object(head['repo'])['id']) != repositoryId) {
           throw const InvalidPlanningInput('untrusted_pull_request');
         }
         sha = _nonempty(head['sha']);
@@ -90,6 +98,8 @@ class PlanningEvent {
             : null,
         beforeSha: eventType == 'push' ? _optionalSha(raw['before']) : null,
         isForced: raw['forced'] == true,
+        isPullRequestClosed:
+            eventType == 'pull_request' && raw['action'] == 'closed',
       );
     } on FormatException {
       _invalid();
