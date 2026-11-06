@@ -77,7 +77,7 @@ export function createWebhookHandler(
         return;
       if (
         name === "check_run" &&
-        !["restack", "merge-stack", "cancel-merge"].includes(
+        !["restack", "merge-stack", "squash-stack", "cancel-merge"].includes(
           payload.requested_action?.identifier ?? "",
         )
       )
