@@ -17,6 +17,7 @@ export function escapeText(value: string): string {
 }
 interface ReportOptions {
   error?: RestackException;
+  defaultBranch?: string;
   observeOnly?: boolean;
   closedToUpdate?: number[];
   merging?: boolean;
@@ -24,8 +25,8 @@ interface ReportOptions {
 export function render(
   pulls: PullRequest[],
   pr: PullRequest,
-  { error, observeOnly = false, merging = false }: ReportOptions = {},
-): { body: string; title: string; conclusion: string; connected: boolean } {
+  { error, defaultBranch, observeOnly = false, merging = false }: ReportOptions = {},
+): { body: string; title: string; conclusion: string; connected: boolean; canMerge: boolean } {
   let stack: PullRequest[];
   try {
     stack = stackFor(pulls, pr.number);
@@ -35,10 +36,16 @@ export function render(
   }
   const active = stack.filter((p) => p.isOpen),
     position = active.findIndex((p) => p.number === pr.number) + 1;
+  const unresolvedRoot =
+    defaultBranch === undefined
+      ? undefined
+      : stack.find((p) => p.sameRepo && p.parent === undefined && p.baseRef !== defaultBranch);
   const title = pr.isOpen ? `Stack · ${position} / ${active.length}` : "Stack · closed";
   const lines = [
     marker,
     `## ${title}`,
+    "",
+    `マージ先：${escapeText(pr.baseRef)}`,
     "",
     "| PR | 依存先 | 内容 | 状態 |",
     "| --- | --- | --- | --- |",
@@ -69,11 +76,22 @@ export function render(
       );
     lines.push("", "履歴または設定を修正してから `/stack sync` を実行してください。");
   } else {
+    if (pr.isOpen && unresolvedRoot) {
+      conclusion = "action_required";
+      lines.push(
+        "",
+        `**このスタックはデフォルトブランチ ${escapeText(defaultBranch!)} につながっていません。**`,
+        `#${unresolvedRoot.number} のマージ先 ${escapeText(unresolvedRoot.baseRef)} に対応する親PRが見つかりません。依存変更の取り込み先を確認し、正しい親PRまたはデフォルトブランチへ積み直してください。`,
+      );
+    } else {
+      lines.push(
+        "",
+        parent
+          ? `依存先：#${parent.number}。親PRを先にmergeしてください。`
+          : "依存する未mergeの親PRはありません。",
+      );
+    }
     lines.push(
-      "",
-      parent
-        ? `依存先：#${parent.number}。親PRを先にmergeしてください。`
-        : "依存する未mergeの親PRはありません。",
       "",
       observeOnly
         ? "観察モード：自動rebaseは無効です。`/stack sync` で実行できます。"
@@ -83,7 +101,7 @@ export function render(
   lines.push(
     "",
     "`/stack sync`：状態を再確認し、必要なrebaseを実行",
-    ...(pr.isOpen
+    ...(pr.isOpen && (merging || !unresolvedRoot)
       ? [
           merging
             ? "一括マージ中：進捗はこのPRの **Merge stack / Squash stack** コメントに表示します。Checkの **Cancel merge** で残りを取り消せます。"
@@ -93,9 +111,15 @@ export function render(
     "",
     "自動更新後は `git fetch origin` で最新の履歴を取得してください。ローカル変更がある場合の同期方法は、このAppのREADMEを参照してください。",
   );
-  return { body: lines.join("\n"), title, conclusion, connected: stack.length > 1 };
+  return {
+    body: lines.join("\n"),
+    title,
+    conclusion,
+    connected: stack.length > 1,
+    canMerge: unresolvedRoot === undefined,
+  };
 }
-export function stackActions(merging = false) {
+export function stackActions(merging = false, canMerge = true) {
   return [
     {
       label: "Sync",
@@ -110,18 +134,20 @@ export function stackActions(merging = false) {
             identifier: "cancel-merge",
           },
         ]
-      : [
-          {
-            label: "Merge stack",
-            description: "Merge ancestors through this PR",
-            identifier: "merge-stack",
-          },
-          {
-            label: "Squash stack",
-            description: "Land the full stack as one squash commit",
-            identifier: "squash-stack",
-          },
-        ]),
+      : canMerge
+        ? [
+            {
+              label: "Merge stack",
+              description: "Merge ancestors through this PR",
+              identifier: "merge-stack",
+            },
+            {
+              label: "Squash stack",
+              description: "Land the full stack as one squash commit",
+              identifier: "squash-stack",
+            },
+          ]
+        : []),
   ];
 }
 export class Reporter {
@@ -138,7 +164,7 @@ export class Reporter {
       if (!pr.sameRepo || (!pr.isOpen && !options.closedToUpdate?.includes(pr.number))) return;
       const comments = await this.api.list(installation, `${path}/issues/${pr.number}/comments`);
       const merging = comments.some((c) => activeMerge(c, app));
-      const view = render(pulls, pr, { ...options, merging });
+      const view = render(pulls, pr, { ...options, defaultBranch: repo.defaultBranch, merging });
       const existing = comments.find(
         (c) =>
           typeof c.body === "string" &&
@@ -167,7 +193,7 @@ export class Reporter {
         status: "completed",
         conclusion: view.conclusion,
         output: { title: view.title, summary: view.body },
-        actions: stackActions(merging),
+        actions: stackActions(merging, view.canMerge),
       };
       if (!check)
         await this.api.request(installation, "POST", `${path}/check-runs`, {
