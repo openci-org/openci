@@ -14,6 +14,8 @@ type BuildJob
   teamId: String @col(name: "team_id")
   workflowId: String @col(name: "workflow_id")
   workflowFileName: String! @col(name: "workflow_file_name")
+  # Only webhook-planned PR executions participate. Explicit reruns remain independent.
+  webhookExecutionKey: String @col(name: "webhook_execution_key") @unique
   cancelPreviousRuns: Boolean! @col(name: "cancel_previous_runs") @default(value: false)
   # Durable notification source; webhook redelivery can re-enqueue cancellation.
   supersededByTaskId: String @col(name: "superseded_by_task_id") @index
