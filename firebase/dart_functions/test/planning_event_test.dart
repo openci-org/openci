@@ -121,7 +121,38 @@ void main() {
   });
   test('deletions and ignored PR actions produce no plan', () {
     expect(PlanningEvent.parse('push', '{"deleted":true}'), isNull);
-    expect(PlanningEvent.parse('pull_request', '{"action":"closed"}'), isNull);
+    expect(PlanningEvent.parse('pull_request', '{"action":"labeled"}'), isNull);
+  });
+  test('merge and close events accept a deleted head but verify the base', () {
+    for (final merged in [false, true]) {
+      final payload = {
+        'installation': {'id': 30},
+        'repository': repository,
+        'action': 'closed',
+        'number': 7,
+        'pull_request': {
+          'merged': merged,
+          'head': {'sha': sha, 'ref': 'feature', 'repo': null},
+          'base': {'repo': repository, 'ref': 'develop'},
+          'title': 'PR',
+        },
+      };
+      expect(
+        PlanningEvent.parse(
+          'pull_request',
+          jsonEncode(payload),
+        )!.isPullRequestClosed,
+        isTrue,
+      );
+      (payload['pull_request']! as Map)['base'] = {
+        'repo': {'id': 99},
+        'ref': 'develop',
+      };
+      expect(
+        () => PlanningEvent.parse('pull_request', jsonEncode(payload)),
+        throwsA(isA<InvalidPlanningInput>()),
+      );
+    }
   });
   test('malformed metadata never reaches GitHub', () {
     for (final value in <Object?>[

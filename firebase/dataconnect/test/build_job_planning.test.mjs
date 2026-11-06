@@ -249,7 +249,7 @@ async function fixture(t, payloadChange = {}, eventType = "push") {
     comparisonStatus: 200,
     changedFilesCalls: 0,
     changedFiles: [{ filename: "apps/stacked_pr/src/index.ts", status: "modified" }],
-    pullRequest: payload.pull_request,
+    pullRequest: payload.pull_request ? { state: "open", ...payload.pull_request } : null,
   };
   installations.set(String(installationId), github);
   await enqueueWebhook(dc, { deliveryId, eventType, payload: JSON.stringify(payload) });
@@ -819,10 +819,14 @@ test("PR filtering and base retargets use the full PR diff with scoped PR-read p
     assert.equal(jobs[0].pullRequestNumber, "7");
     assert.equal((await skippedState(f)).skippedWorkflowChecks.length, 5);
     assert.equal(f.github.changedFilesCalls, 1);
-    assert.deepEqual(f.github.tokenRequests.at(-1), {
-      repository_ids: [10],
-      permissions: { contents: "read", pull_requests: "read" },
-    });
+    assert.ok(
+      f.github.tokenRequests.some(
+        (request) =>
+          request.repository_ids[0] === 10 &&
+          request.permissions.contents === "read" &&
+          request.permissions.pull_requests === "read",
+      ),
+    );
   }
 });
 
@@ -962,7 +966,7 @@ test("delayed old PR deliveries cannot cancel or enqueue an opted-in obsolete re
   assert.equal(ci.length, 1);
   assert.equal(ci[0].commitSha, "c".repeat(40));
   assert.equal(ci[0].status, "QUEUED");
-  assert.equal(rows.filter((j) => j.workflowFileName === "deploy.dart").length, 2);
+  assert.equal(rows.filter((j) => j.workflowFileName === "deploy.dart").length, 1);
 });
 
 test("a stale in-flight GitHub response cannot overwrite a newer completed PR plan", async (t) => {
@@ -1091,4 +1095,171 @@ test("one team's opted-in PR cannot cancel an identical job in another team", as
   const before = (await two.state()).buildJobs;
   await invoke(await nextRevision(one, "c".repeat(40)));
   assert.deepEqual((await two.state()).buildJobs, before);
+});
+
+async function prAction(f, action, { merged = false, makeCurrent = true } = {}) {
+  const payload = structuredClone(f.payload);
+  payload.action = action;
+  payload.pull_request.state = action === "closed" ? "closed" : "open";
+  payload.pull_request.merged = merged;
+  if (makeCurrent) f.github.pullRequest = structuredClone(payload.pull_request);
+  const deliveryId = randomUUID();
+  await enqueueWebhook(dc, {
+    deliveryId,
+    eventType: "pull_request",
+    payload: JSON.stringify(payload),
+  });
+  const taskId = (await sdk.getWebhookTaskByDeliveryId(dc, { deliveryId })).data.webhookTask.id;
+  f.taskIds.push(taskId);
+  return taskId;
+}
+
+for (const merged of [false, true]) {
+  test(`PR close (merged=${merged}) cancels all active workflows once within its scope`, async (t) => {
+    const f = await autoCancelFixture(t);
+    const other = await autoCancelFixture(t);
+    await invoke(f.taskId);
+    await invoke(other.taskId);
+    const otherRows = (await other.state()).buildJobs;
+    const old = (await f.state()).buildJobs[0];
+    const protectedRows = [
+      { pullRequestNumber: "8" },
+      { pullRequestNumber: null },
+      { status: "SUCCESS" },
+      { status: "FAILURE" },
+      { status: "CANCELLED" },
+      { owner: "other" },
+      { repo: "other" },
+      { githubBaseUrl: "https://enterprise.test" },
+      { installationId: "999999" },
+    ].map((patch) => ({ ...old, id: randomUUID(), ...patch }));
+    const running = { ...old, id: randomUUID(), status: "IN_PROGRESS", cancelPreviousRuns: false };
+    await graphql("mutation Seed($jobs: [BuildJob_Data!]!) { buildJob_insertMany(data: $jobs) }", {
+      jobs: [...protectedRows, running],
+    });
+    // A close must work even if the original commit/workflow is inaccessible.
+    f.github.commitStatus = 404;
+    const taskId = await prAction(f, "closed", { merged });
+    const beforeRequests = f.github.tokenRequests.length;
+    await invoke(taskId);
+    assert.deepEqual(f.github.tokenRequests.slice(beforeRequests), [
+      { repository_ids: [10], permissions: { pull_requests: "read" } },
+    ]);
+    const rows = (await f.state()).buildJobs;
+    const changed = rows.filter((job) => job.supersededByTaskId === taskId);
+    assert.equal(changed.length, 3, "all workflows, SHAs and cancellation settings are covered");
+    assert.ok(changed.every((job) => job.status === "CANCELLED"));
+    assert.equal(changed.find((job) => job.id === running.id).completedAt, null);
+    for (const expected of protectedRows)
+      assert.deepEqual(
+        rows.find((j) => j.id === expected.id),
+        expected,
+      );
+    assert.deepEqual((await other.state()).buildJobs, otherRows);
+    const notifications = await new DataConnectDispatchStore(getDispatchDataConnect()).superseded(
+      taskId,
+      "",
+    );
+    assert.deepEqual(new Set(notifications.map((j) => j.id)), new Set(changed.map((j) => j.id)));
+    assert.equal(await invoke(taskId), "duplicate");
+    await invoke(await prAction(f, "closed", { merged }));
+    assert.deepEqual((await f.state()).buildJobs, rows);
+  });
+}
+
+test("delayed close after reopen preserves valid jobs, while delayed planning after close publishes nothing", async (t) => {
+  const f = await autoCancelFixture(t);
+  const closeTask = await prAction(f, "closed");
+  await invoke(await prAction(f, "reopened"));
+  const before = (await f.state()).buildJobs;
+  await invoke(closeTask);
+  assert.deepEqual((await f.state()).buildJobs, before);
+  await invoke(await prAction(f, "closed"));
+  await invoke(f.taskId);
+  const rows = (await f.state()).buildJobs;
+  assert.equal(rows.length, before.length);
+  assert.ok(rows.every((j) => j.status === "CANCELLED"));
+});
+
+test("a close observation overtaken by a reopen cannot cancel its new jobs", async (t) => {
+  const f = await autoCancelFixture(t);
+  await invoke(f.taskId);
+  const closeTask = await prAction(f, "closed");
+  const observed = Promise.withResolvers(),
+    release = Promise.withResolvers();
+  f.github.onPullRequest = async () => {
+    observed.resolve();
+    await release.promise;
+  };
+  const request = fetch(dartFunctionUrl, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ taskId: closeTask }),
+  });
+  try {
+    await Promise.race([
+      observed.promise,
+      request.then(() => assert.fail("observation not reached")),
+    ]);
+    await invoke(await prAction(f, "reopened"));
+  } finally {
+    release.resolve();
+  }
+  assert.equal((await request).status, 503);
+  const before = (await f.state()).buildJobs;
+  await invoke(closeTask);
+  assert.deepEqual((await f.state()).buildJobs, before);
+});
+
+test("a close event fences an older planner that has already observed an open PR", async (t) => {
+  const f = await autoCancelFixture(t);
+  const observed = Promise.withResolvers(),
+    release = Promise.withResolvers();
+  f.github.onPullRequest = async () => {
+    observed.resolve();
+    await release.promise;
+  };
+  const request = fetch(dartFunctionUrl, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ taskId: f.taskId }),
+  });
+  try {
+    await Promise.race([
+      observed.promise,
+      request.then(() => assert.fail("observation not reached")),
+    ]);
+    await invoke(await prAction(f, "closed"));
+  } finally {
+    release.resolve();
+  }
+  assert.equal((await request).status, 503);
+  await invoke(f.taskId);
+  assert.deepEqual((await f.state()).buildJobs, []);
+});
+
+test("closure cancellation requires an active connection and a valid fence with no planned work", async (t) => {
+  const f = await autoCancelFixture(t);
+  await invoke(f.taskId);
+  const before = (await f.state()).buildJobs;
+  const taskId = await prAction(f, "closed");
+  const fence = await beginPlanning(f, taskId);
+  const vars = {
+    ...completion(f, taskId, fence),
+    cancelClosedPullRequest: true,
+    jobCount: 0,
+    jobsJson: "[]",
+  };
+  for (const patch of [
+    { planningId: null, planningToken: null },
+    { pullRequestNumber: null },
+    { ...completion(f, taskId, fence) },
+  ])
+    await assert.rejects(sdk.completeWebhookTask(dc, { ...vars, ...patch }));
+  await graphql(
+    'mutation Suspend($id: String!) { gitHubConnection_update(id: $id, data: { status: "suspended" }) }',
+    { id: f.connectionId },
+  );
+  await assert.rejects(sdk.completeWebhookTask(dc, vars));
+  assert.deepEqual((await f.state()).buildJobs, before);
 });

@@ -16,10 +16,10 @@ that connection/repository/PR; there is no dependency on delivery time, commit
 timestamps, ancestry or the ordering of force pushes. The token is supplied by
 the caller so a post-write query cannot read an earlier database snapshot.
 
-For selected opted-in workflows the planner verifies the live PR using a
+For every connected PR event the planner verifies the live PR using a
 repository-scoped, PR-read-only installation token, then revokes it. The head
 SHA and target branch must match the event and the PR must be open. Stale events
-complete without creating their opted-in jobs. API failures leave the task
+complete without creating jobs or skipped Checks. API failures leave the task
 pending and retryable; repository provenance failures remain terminal.
 
 `CompleteWebhookTask` locks the same fence with a conditional write, then
@@ -43,6 +43,27 @@ If a terminal execution result has already been recorded, that execution keeps
 its original result while cleanup finishes. This prevents the database,
 billing ledger and GitHub Check from disagreeing during completion. A blocked
 attempt that would requeue its job can still be cancelled.
+
+## PR closure
+
+Merge and close-without-merge events use the same planning fence and completion
+transaction. The planner observes the current PR state without fetching workflow
+source for a close notification. A closed PR cancels every remaining queued or
+running job in the team, GitHub host, installation, owner/repository and PR scope,
+regardless of workflow, SHA or `cancelPreviousRuns`. A delayed close after a
+reopen completes without cancellation. Delayed update events also check the live
+state, preventing new jobs or skipped Checks for a closed PR.
+
+`cancelClosedPullRequest` requires an active connection, a valid PR fence and an
+empty plan. The existing `cancelled` result and `supersededByTaskId` outbox notify
+the dispatcher, which finalizes queued Checks and releases unstarted reservations.
+Running jobs use the executor cancellation lifecycle described above. Repeated
+close deliveries leave terminal results untouched. Concurrent reopen/close plans
+invalidate older observations; a lost fence leaves the task retryable.
+
+Deploy the regenerated `webhooks` connector before the Dart planner. No schema
+change or new Function trigger is needed for closure cancellation. Historical
+backlog cleanup and production verification are separate from this rollout.
 
 ## Rollout
 

@@ -19,6 +19,7 @@ mutation CompleteWebhookTask(
   $githubBaseUrl: String = null
   $planningId: String = null
   $planningToken: String = null
+  $cancelClosedPullRequest: Boolean! = false
 ) @auth(level: NO_ACCESS) @transaction {
   webhookTask_updateMany(
     where: { id: { eq: $id }, status: { eq: "pending" } }
@@ -37,6 +38,10 @@ mutation CompleteWebhookTask(
     @check(
       expr: "vars.skippedCount == 0 || (vars.comparisonBaseSha != null && vars.pathFilterReason == null)"
       message: "Skipped workflows require a complete comparison"
+    )
+    @check(
+      expr: "!vars.cancelClosedPullRequest || (vars.jobCount == 0 && vars.skippedCount == 0 && vars.pullRequestNumber != null && vars.planningId != null && vars.planningToken != null)"
+      message: "PR closure requires a fenced empty plan"
     )
   # A conditional write locks the fence until jobs and cancellations commit.
   # A read-only check would allow a new planner to overtake this transaction.
@@ -57,7 +62,7 @@ mutation CompleteWebhookTask(
   query @redact {
     connection: gitHubConnection(first: { where: { id: { eq: $connectionId } } })
       @check(
-        expr: "vars.jobCount + vars.skippedCount == 0 || (this != null && this.status == 'active')"
+        expr: "(vars.jobCount + vars.skippedCount == 0 && !vars.cancelClosedPullRequest) || (this != null && this.status == 'active')"
         message: "GitHub connection is no longer active"
       ) {
       teamId
@@ -104,58 +109,93 @@ mutation CompleteWebhookTask(
       $planningToken
     ]
   ) @check(expr: "size(this) == vars.jobCount", message: "Invalid build job batch")
-  # The old run must also opt in. Disabled workflows, push runs, identical SHAs,
-  # terminal jobs, other PRs and other GitHub installations remain independent.
-  # Persist the notification source instead of returning an unbounded ID list
-  # through Eventarc. UPDATE rechecks status after concurrent executor writes.
+  # Closure cancels every active workflow in the verified PR scope. Superseding
+  # commits still require both jobs to opt in and have different SHAs.
   # Lock dispatches before jobs, matching executor admission/result lock order.
   # A terminal result that won the race keeps its billing and Check conclusion.
   cancellationLocks: _execute(
     sql: """
     UPDATE build_job_dispatches AS dispatch SET updated_at = dispatch.updated_at
-    FROM build_jobs AS old, build_jobs AS newest
-    WHERE newest.id IN (SELECT w.id FROM jsonb_to_recordset($1::jsonb) AS w(id text))
-      AND newest.cancel_previous_runs AND old.cancel_previous_runs
-      AND newest.pull_request_number IS NOT NULL
-      AND old.team_id = newest.team_id
-      AND old.installation_id = newest.installation_id
-      AND old.github_base_url = newest.github_base_url
-      AND lower(old.owner) = lower(newest.owner) AND lower(old.repo) = lower(newest.repo)
-      AND old.pull_request_number = newest.pull_request_number
-      AND old.workflow_file_name = newest.workflow_file_name
-      AND old.commit_sha <> newest.commit_sha
-      AND old.status IN ('QUEUED', 'IN_PROGRESS')
+    FROM build_jobs AS old
+    WHERE old.status IN ('QUEUED', 'IN_PROGRESS')
+      AND (
+        ($2::boolean AND old.team_id = $3 AND old.installation_id = $4
+          AND old.github_base_url = $5
+          AND lower(old.owner) = lower($6::text) AND lower(old.repo) = lower($7::text)
+          AND old.pull_request_number = $8::bigint)
+        OR EXISTS (
+          SELECT 1 FROM build_jobs AS newest
+          WHERE newest.id IN (SELECT w.id FROM jsonb_to_recordset($1::jsonb) AS w(id text))
+            AND newest.cancel_previous_runs AND old.cancel_previous_runs
+            AND newest.pull_request_number IS NOT NULL
+            AND old.team_id = newest.team_id
+            AND old.installation_id = newest.installation_id
+            AND old.github_base_url = newest.github_base_url
+            AND lower(old.owner) = lower(newest.owner) AND lower(old.repo) = lower(newest.repo)
+            AND old.pull_request_number = newest.pull_request_number
+            AND old.workflow_file_name = newest.workflow_file_name
+            AND old.commit_sha <> newest.commit_sha
+        )
+      )
       AND dispatch.active_job_id = old.id AND dispatch.finished_at IS NULL
       AND (dispatch.state <> 'finishing' OR dispatch.outcome = 'blocked')
     """
-    params: [$jobsJson]
+    params: [
+      $jobsJson
+      $cancelClosedPullRequest
+      { _expr: "response.query.connection == null ? '' : response.query.connection.teamId" }
+      { _expr: "response.query.connection == null ? '' : string(response.query.connection.installationId)" }
+      $githubBaseUrl
+      $owner
+      $repo
+      $pullRequestNumber
+    ]
   ) @redact
   cancelled: _execute(
     sql: """
     UPDATE build_jobs AS old SET
-      status = 'CANCELLED', superseded_by_task_id = $2,
-      updated_at = $3::bigint,
+      status = 'CANCELLED', superseded_by_task_id = $9,
+      updated_at = $10::bigint,
       completed_at = CASE WHEN old.status = 'QUEUED' AND old.latest_run_id IS NULL
-        THEN $3::bigint ELSE old.completed_at END
-    FROM build_jobs AS newest
-    WHERE newest.id IN (SELECT w.id FROM jsonb_to_recordset($1::jsonb) AS w(id text))
-      AND newest.cancel_previous_runs AND old.cancel_previous_runs
-      AND newest.pull_request_number IS NOT NULL
-      AND old.team_id = newest.team_id
-      AND old.installation_id = newest.installation_id
-      AND old.github_base_url = newest.github_base_url
-      AND lower(old.owner) = lower(newest.owner) AND lower(old.repo) = lower(newest.repo)
-      AND old.pull_request_number = newest.pull_request_number
-      AND old.workflow_file_name = newest.workflow_file_name
-      AND old.commit_sha <> newest.commit_sha
-      AND old.status IN ('QUEUED', 'IN_PROGRESS')
+        THEN $10::bigint ELSE old.completed_at END
+    WHERE old.status IN ('QUEUED', 'IN_PROGRESS')
+      AND (
+        ($2::boolean AND old.team_id = $3 AND old.installation_id = $4
+          AND old.github_base_url = $5
+          AND lower(old.owner) = lower($6::text) AND lower(old.repo) = lower($7::text)
+          AND old.pull_request_number = $8::bigint)
+        OR EXISTS (
+          SELECT 1 FROM build_jobs AS newest
+          WHERE newest.id IN (SELECT w.id FROM jsonb_to_recordset($1::jsonb) AS w(id text))
+            AND newest.cancel_previous_runs AND old.cancel_previous_runs
+            AND newest.pull_request_number IS NOT NULL
+            AND old.team_id = newest.team_id
+            AND old.installation_id = newest.installation_id
+            AND old.github_base_url = newest.github_base_url
+            AND lower(old.owner) = lower(newest.owner) AND lower(old.repo) = lower(newest.repo)
+            AND old.pull_request_number = newest.pull_request_number
+            AND old.workflow_file_name = newest.workflow_file_name
+            AND old.commit_sha <> newest.commit_sha
+        )
+      )
       AND NOT EXISTS (
         SELECT 1 FROM build_job_dispatches AS dispatch
         WHERE dispatch.active_job_id = old.id AND dispatch.finished_at IS NULL
           AND dispatch.state = 'finishing' AND dispatch.outcome <> 'blocked'
       )
     """
-    params: [$jobsJson, $id, { _expr: "int(request.time)" }]
+    params: [
+      $jobsJson
+      $cancelClosedPullRequest
+      { _expr: "response.query.connection == null ? '' : response.query.connection.teamId" }
+      { _expr: "response.query.connection == null ? '' : string(response.query.connection.installationId)" }
+      $githubBaseUrl
+      $owner
+      $repo
+      $pullRequestNumber
+      $id
+      { _expr: "int(request.time)" }
+    ]
   )
   # Bulk _Data inputs are not supported by the Admin SDK generator; use the
   # same parameterized jsonb_to_recordset strategy as the jobs above.

@@ -17,21 +17,14 @@ class WorkflowPlan {
     this.pathFilterReason,
     this.comparisonBaseSha,
     this.autoCancelWorkflowFiles = const {},
+    this.cancelClosedPullRequest = false,
   });
   final List<BuildJobPlan> jobs;
   final List<SkippedWorkflow> skipped;
   final String? pathFilterReason;
   final String? comparisonBaseSha;
   final Set<String> autoCancelWorkflowFiles;
-
-  WorkflowPlan withoutSupersededJobs() => WorkflowPlan(
-    jobs: jobs
-        .where((job) => !autoCancelWorkflowFiles.contains(job.workflowFileName))
-        .toList(),
-    skipped: skipped,
-    pathFilterReason: pathFilterReason,
-    comparisonBaseSha: comparisonBaseSha,
-  );
+  final bool cancelClosedPullRequest;
 }
 
 Iterable<ParsedCITrigger> matchingTriggers(

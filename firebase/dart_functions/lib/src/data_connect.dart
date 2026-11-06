@@ -211,6 +211,7 @@ class DataConnectPlanningStore implements PlanningStore {
       'githubBaseUrl': githubBaseUrl,
       'planningId': fence?.id,
       'planningToken': fence?.token,
+      'cancelClosedPullRequest': plan.cancelClosedPullRequest,
     }, mutation: true);
   }
 
