@@ -83,7 +83,12 @@ export const createBuildJobs = onMutationExecuted(
 
 export { teamSecrets, cleanSecretVersions } from "./secret_functions.js";
 export { teamManagement } from "./team_functions.js";
-export { teamBilling, stripeWebhook, cleanDeletedTeamCredentials } from "./billing_functions.js";
+export {
+  teamBilling,
+  ciCardEligibility,
+  stripeWebhook,
+  cleanDeletedTeamCredentials,
+} from "./billing_functions.js";
 export {
   githubConnection,
   githubConnectionCallback,

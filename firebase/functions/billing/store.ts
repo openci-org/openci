@@ -20,6 +20,18 @@ export class BillingStore {
       throw new Error("Billing context unavailable");
     }
   }
+  async cardSetup(teamId: string) {
+    return (await sdk.getBillingCardSetup(this.dc, { teamId })).data.setup;
+  }
+  async recordCardConsent(input: sdk.RecordBillingCardConsentVariables) {
+    await sdk.recordBillingCardConsent(this.dc, input);
+  }
+  async resolveCardSetup(input: sdk.ResolveBillingCardSetupVariables) {
+    return (await sdk.resolveBillingCardSetup(this.dc, input)).data.updated;
+  }
+  async confirmCardReady(teamId: string, sessionId: string, livemode: boolean) {
+    await sdk.confirmBillingCardReady(this.dc, { teamId, sessionId, livemode });
+  }
   async createCustomer(teamId: string, userId: string, livemode: boolean, now: number) {
     await sdk.createBillingCustomerCreation(this.dc, {
       teamId,
@@ -35,34 +47,6 @@ export class BillingStore {
       idempotencyKey: intent.idempotencyKey,
       livemode: intent.livemode,
       stripeCustomerId,
-    });
-  }
-  async createCheckout(input: sdk.CreateBillingCheckoutCreationVariables) {
-    await sdk.createBillingCheckoutCreation(this.dc, input);
-  }
-  async recordCheckout(intent: CheckoutIntent, stripeCheckoutSessionId: string) {
-    const {
-      idempotencyKey,
-      teamId,
-      planId,
-      stripeCustomerId,
-      stripePriceId,
-      successUrl,
-      cancelUrl,
-      livemode,
-      createdAt,
-    } = intent;
-    await sdk.recordBillingCheckoutSession(this.dc, {
-      idempotencyKey,
-      teamId,
-      planId,
-      stripeCustomerId,
-      stripePriceId,
-      successUrl,
-      cancelUrl,
-      livemode,
-      createdAt,
-      stripeCheckoutSessionId,
     });
   }
   async closeCheckout(intent: CheckoutIntent, stripeCheckoutSessionId: string, now: number) {
@@ -109,9 +93,11 @@ export class BillingStore {
     }
     if (
       !stored ||
-      Object.entries(period).some(([key, value]) => stored![key as keyof Period] !== value)
+      Object.entries(period).some(
+        ([key, value]) => (stored![key as keyof Period] ?? null) !== value,
+      )
     )
-      throw new Error("Billing period does not match verified purchase");
+      throw new Error("Billing period does not match its definition");
   }
   async available(teamId: string, periodId: string, atMs: number): Promise<bigint> {
     const usage = (

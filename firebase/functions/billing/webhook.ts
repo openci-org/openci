@@ -1,6 +1,7 @@
 import type Stripe from "stripe";
 import type { Billing } from "./service.js";
 import { id } from "./model.js";
+import { reconcileCardSession } from "./card_setup.js";
 
 const supported = new Set([
   "checkout.session.completed",
@@ -16,6 +17,7 @@ const supported = new Set([
   "invoice.marked_uncollectible",
   "invoice.voided",
   "customer.deleted",
+  "customer.updated",
 ]);
 
 export async function receiveStripeWebhook(
@@ -47,11 +49,28 @@ export async function receiveStripeWebhook(
   )
     return 400;
   if (!supported.has(event.type)) return 204;
-  const object = event.data.object as { id?: string; customer?: string | { id: string } | null };
-  const customerId = event.type === "customer.deleted" ? object.id : id(object.customer);
+  const object = event.data.object as {
+    id?: string;
+    customer?: string | { id: string } | null;
+    mode?: string;
+  };
+  const customerId = ["customer.deleted", "customer.updated"].includes(event.type)
+    ? object.id
+    : id(object.customer);
   if (!customerId) return 400;
   const customer = await billing.store.customer(customerId, billing.config.livemode);
   if (!customer) return 204;
+  if (event.type === "customer.updated") {
+    const session = await billing.cardSessionForCi(customer.teamId, event.livemode);
+    if (session) await billing.store.confirmCardReady(customer.teamId, session, event.livemode);
+    return 204;
+  }
+  if (event.type.startsWith("checkout.session.") && object.mode === "setup") {
+    const setup = await billing.store.cardSetup(customer.teamId);
+    if (setup && setup.stripeCustomerId === customerId && setup.sessionId === object.id)
+      await reconcileCardSession(billing.store, billing.stripe, setup);
+    return 204;
+  }
   await billing.reconcile(customer.teamId, customerId, event.id, event.type, event.created);
   return 204;
 }

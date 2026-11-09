@@ -1,3 +1,4 @@
+import { GoogleAuth } from "google-auth-library";
 import { getApp, getApps, initializeApp } from "firebase-admin/app";
 import { connectorConfig as dispatchConfig } from "@openci/dispatch-admin";
 import { connectorConfig as billingConfig } from "@openci/billing-admin";
@@ -9,7 +10,7 @@ import { ExecutionLogs } from "./logs.js";
 import { OrchardExecutor } from "./orchard.js";
 import { loadSecrets, stopCloudRunExecution } from "./google.js";
 import type { ExecutorDependencies } from "./execute.js";
-import { identity } from "./model.js";
+import { ExecutionStopped, identity } from "./model.js";
 import { selfHostedMode } from "../deployment_mode.js";
 
 export function runtime(
@@ -44,11 +45,14 @@ export function runtime(
     : initializeApp({ projectId: project });
   const store = new ExecutionStore(isolatedConnector(dispatchConfig, app));
   const billing = new ExecutionBilling(isolatedConnector(billingConfig, app));
+  const auth = new GoogleAuth();
+  const eligibilityUrl = `https://asia-northeast1-${project}.cloudfunctions.net/ciCardEligibility`;
   const logs = isolatedConnector(logsConfig, app);
   const github = new ExecutionGitHub({
     appId: required("GITHUB_APP_ID"),
     privateKey: required("GITHUB_APP_PRIVATE_KEY"),
     apiBaseUrl: environment.GITHUB_API_BASE_URL ?? "https://api.github.com",
+    billingOrigin: environment.BILLING_DASHBOARD_ORIGIN,
     baseUrl: environment.GITHUB_BASE_URL ?? "https://github.com",
   });
   const orchard = new OrchardExecutor({
@@ -61,6 +65,26 @@ export function runtime(
   return {
     store,
     billing,
+    async verifyCard(teamId, livemode) {
+      try {
+        const client = await auth.getIdTokenClient(eligibilityUrl);
+        const { data } = await client.request<{ sessionId: unknown }>({
+          url: eligibilityUrl,
+          method: "POST",
+          data: { teamId, livemode },
+          timeout: 30000,
+          retry: false,
+          maxRedirects: 0,
+        });
+        if (data.sessionId === null) return null;
+        if (typeof data.sessionId !== "string" || !data.sessionId)
+          throw new Error("Invalid billing response");
+        return data.sessionId;
+      } catch {
+        // A temporary verification failure keeps the job queued for the normal retry.
+        throw new ExecutionStopped("blocked");
+      }
+    },
     github,
     orchard,
     report,

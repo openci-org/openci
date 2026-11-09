@@ -1,3 +1,5 @@
+enum CardSetupStatus { unregistered, pending, registered, needsCard }
+
 class BillingStatus {
   const BillingStatus({
     required this.billingEnabled,
@@ -10,6 +12,7 @@ class BillingStatus {
     required this.canCheckout,
     required this.canManageBilling,
     required this.cancelAtPeriodEnd,
+    this.cardSetupStatus,
   });
 
   factory BillingStatus.fromJson(Map<String, dynamic> json) {
@@ -31,6 +34,13 @@ class BillingStatus {
       canCheckout: json['canCheckout'] as bool,
       canManageBilling: json['canManageBilling'] as bool,
       cancelAtPeriodEnd: json['cancelAtPeriodEnd'] as bool,
+      cardSetupStatus: switch (json['cardSetupStatus']) {
+        'unregistered' => CardSetupStatus.unregistered,
+        'pending' => CardSetupStatus.pending,
+        'registered' => CardSetupStatus.registered,
+        'needs_card' => CardSetupStatus.needsCard,
+        _ => null,
+      },
     );
   }
 
@@ -45,6 +55,10 @@ class BillingStatus {
   final bool canCheckout;
   final bool canManageBilling;
   final bool cancelAtPeriodEnd;
+  final CardSetupStatus? cardSetupStatus;
+  bool get canSetupCard =>
+      cardSetupStatus == CardSetupStatus.unregistered ||
+      cardSetupStatus == CardSetupStatus.pending;
 }
 
 class BillingMonthlyUsage {

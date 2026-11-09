@@ -24,7 +24,7 @@ void main() {
   late BillingIdentity? identity;
   late List<http.Request> requests;
   late Future<http.Response> Function() respond;
-  var canCheckout = true;
+  var canSetup = true;
   var canManage = true;
 
   http.Response redirect(String url) => http.Response(
@@ -36,7 +36,7 @@ void main() {
   setUp(() {
     identity = (connection: cloud, userId: 'user-1');
     requests = [];
-    canCheckout = true;
+    canSetup = true;
     canManage = true;
     respond = () async =>
         redirect('https://checkout.stripe.com/c/pay/cs_test#fid-example');
@@ -60,8 +60,11 @@ void main() {
             canStartCi: false,
             blockReason: 'payment_required',
             paidUntil: null,
-            canCheckout: canCheckout,
+            canCheckout: false,
             canManageBilling: canManage,
+            cardSetupStatus: canSetup
+                ? CardSetupStatus.unregistered
+                : CardSetupStatus.registered,
             cancelAtPeriodEnd: false,
           ),
         ),
@@ -78,15 +81,43 @@ void main() {
   }
 
   test(
+    'card setup sends team consent and accepts only a Stripe Checkout URL',
+    () async {
+      final action = await actions();
+      final result = await action.setupCard();
+      expect(result?.host, 'checkout.stripe.com');
+      expect(billingCallData(requests.single), {
+        'action': 'setupCard',
+        'teamId': 'team-1',
+        'termsVersion': 'ci-jpy1-tax-included-monthly-v1',
+      });
+      respond = () async =>
+          redirect('https://checkout.stripe.com.evil.test/c/pay/bad');
+      await expectLater(
+        action.setupCard(),
+        throwsA(
+          isA<BillingException>().having(
+            (e) => e.code,
+            'code',
+            'invalid_redirect',
+          ),
+        ),
+      );
+      respond = () async => http.Response('{"registered":true}', 200);
+      expect(await action.setupCard(), isNull);
+    },
+  );
+
+  test(
     'Checkout returns only the Stripe destination without granting access',
     () async {
-      final result = await (await actions()).checkout('light');
-      expect(result.host, 'checkout.stripe.com');
-      expect(result.fragment, 'fid-example');
+      final result = await (await actions()).setupCard();
+      expect(result?.host, 'checkout.stripe.com');
+      expect(result?.fragment, 'fid-example');
       expect(billingCallData(requests.single), {
-        'action': 'checkout',
+        'action': 'setupCard',
         'teamId': 'team-1',
-        'planId': 'light',
+        'termsVersion': 'ci-jpy1-tax-included-monthly-v1',
       });
       expect(
         container
@@ -152,11 +183,11 @@ void main() {
   test(
     'server capabilities prevent ineligible actions before network access',
     () async {
-      canCheckout = false;
+      canSetup = false;
       canManage = false;
       final action = await actions();
       await expectLater(
-        action.checkout('pro'),
+        action.setupCard(),
         throwsA(isA<BillingException>()),
       );
       await expectLater(action.portal(), throwsA(isA<BillingException>()));
@@ -170,10 +201,10 @@ void main() {
       final response = Completer<http.Response>();
       respond = () => response.future;
       final action = await actions();
-      final first = action.checkout('light');
+      final first = action.setupCard();
       final firstResult = expectLater(first, throwsA(isA<BillingException>()));
       await expectLater(
-        action.checkout('light'),
+        action.setupCard(),
         throwsA(
           isA<BillingException>().having(
             (e) => e.code,
@@ -188,7 +219,7 @@ void main() {
       await firstResult;
       respond = () async =>
           redirect('https://checkout.stripe.com/c/pay/cs_test');
-      await action.checkout('light');
+      await action.setupCard();
       expect(requests, hasLength(2));
     },
   );
@@ -200,7 +231,7 @@ void main() {
       respond = () => response.future;
       final action = await actions();
       final result = expectLater(
-        action.checkout('light'),
+        action.setupCard(),
         throwsA(
           isA<BillingException>().having(
             (e) => e.code,
@@ -236,7 +267,7 @@ void main() {
       ]) {
         respond = () async => redirect(url);
         await expectLater(
-          action.checkout('light'),
+          action.setupCard(),
           throwsA(
             isA<BillingException>().having(
               (e) => e.code,

@@ -8,6 +8,7 @@ export interface GitHubOptions {
   privateKey: string;
   apiBaseUrl: string;
   baseUrl: string;
+  billingOrigin?: string;
 }
 
 export function githubOptions(options: GitHubOptions): GitHubOptions {
@@ -278,6 +279,18 @@ export class ExecutionGitHub {
 
   async check(job: Job, dispatch: Dispatch, outcome?: Outcome): Promise<string> {
     const { request } = await this.client(job, "checks");
+    if (outcome === "card_required") {
+      const url = new URL("/billing", this.options.billingOrigin ?? "https://dashboard.openci.org");
+      url.searchParams.set("teamId", dispatch.teamId!);
+      const externalId = `build-job:${job.id}:run:${BigInt(job.runCount ?? "0") + 1n}`;
+      return this.writeCheck(request, job, externalId, dispatch.checkRunId, {
+        status: "queued",
+        output: {
+          title: "Waiting for a billing card",
+          summary: `[Register a billing card for this team](${url.href}). This job will resume automatically once the card is confirmed.`,
+        },
+      });
+    }
     const output =
       outcome === "failure" && dispatch.failureSummary
         ? { title: "Pull request checkout failed", summary: dispatch.failureSummary }

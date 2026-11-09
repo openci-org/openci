@@ -66,6 +66,33 @@ export const teamBilling = onCall(
   },
 );
 
+export const ciCardEligibility = onRequest(
+  { ...options, invoker: "openci-executor@", secrets: stripeKey ? [stripeKey] : [] },
+  async (request, response) => {
+    response.set("Cache-Control", "no-store");
+    if (request.method !== "POST") {
+      response.set("Allow", "POST").sendStatus(405);
+      return;
+    }
+    const { teamId, livemode } = request.body ?? {};
+    if (
+      typeof teamId !== "string" ||
+      !teamId.trim() ||
+      teamId.length > 255 ||
+      typeof livemode !== "boolean"
+    ) {
+      response.sendStatus(400);
+      return;
+    }
+    try {
+      response.json({ sessionId: await runtime().cardSessionForCi(teamId, livemode) });
+    } catch {
+      error("CI card verification unavailable");
+      response.sendStatus(503);
+    }
+  },
+);
+
 export const stripeWebhook = onRequest(
   {
     ...options,

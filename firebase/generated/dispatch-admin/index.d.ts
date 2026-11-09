@@ -58,6 +58,11 @@ export interface BillingAdmission_Key {
   __typename?: "BillingAdmission_Key";
 }
 
+export interface BillingCardSetup_Key {
+  teamId: string;
+  __typename?: "BillingCardSetup_Key";
+}
+
 export interface BillingCheckoutCreation_Key {
   idempotencyKey: string;
   __typename?: "BillingCheckoutCreation_Key";
@@ -71,6 +76,19 @@ export interface BillingCustomerCreation_Key {
 export interface BillingExecution_Key {
   runId: string;
   __typename?: "BillingExecution_Key";
+}
+
+export interface BillingMonthlyStatementRun_Key {
+  teamId: string;
+  month: DateString;
+  runId: string;
+  __typename?: "BillingMonthlyStatementRun_Key";
+}
+
+export interface BillingMonthlyStatement_Key {
+  teamId: string;
+  month: DateString;
+  __typename?: "BillingMonthlyStatement_Key";
 }
 
 export interface BillingPeriod_Key {
@@ -236,6 +254,7 @@ export interface GetActiveBuildDispatchesData {
 }
 
 export interface GetBuildDispatchExclusionsData {
+  waitingForCard?: unknown[] | null;
   dispatches: {
     jobId: string;
   }[];
