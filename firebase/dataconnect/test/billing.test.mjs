@@ -175,6 +175,134 @@ async function seedJob(f, overrides = {}) {
   return job;
 }
 
+const novemberStart = Date.parse("2026-11-01T00:00:00+09:00");
+
+async function seedMonthlyRuns(f, intervals, periodOverrides = {}) {
+  const p = await period(f, {
+    startsAt: String(novemberStart / 1000 - 86400),
+    endsAt: String(novemberStart / 1000 + 86400),
+    ...periodOverrides,
+  });
+  const job = await seedJob(f);
+  const runs = [];
+  const steps = [];
+  const executions = [];
+  for (const [i, interval] of intervals.entries()) {
+    const { start, prepEnd, prepStatus = "SUCCESS", observed, outcome = "success" } = interval;
+    const id = `${job.id}-${i.toString().padStart(3, "0")}`;
+    const startedAtMs = novemberStart + start;
+    const observedAtMs = novemberStart + observed;
+    runs.push({
+      id,
+      buildJobId: job.id,
+      status: outcome ? "completed" : "in_progress",
+      createdAt: String(Math.floor(startedAtMs / 1000)),
+      updatedAt: String(Math.floor(observedAtMs / 1000)),
+    });
+    if (prepEnd !== undefined) {
+      steps.push({
+        runId: id,
+        stepId: "prepare_vm",
+        name: "prepare_vm",
+        status: prepStatus,
+        stepOrder: 0,
+        createdAt: new Date(startedAtMs).toISOString(),
+        updatedAt: new Date(novemberStart + prepEnd).toISOString(),
+      });
+    }
+    executions.push({
+      runId: id,
+      jobId: job.id,
+      teamId: f.teamId,
+      periodId: p.id,
+      workerHost: "worker",
+      startedAtMs: String(startedAtMs),
+      observedAtMs: String(observedAtMs),
+      leaseUntilMs: String(observedAtMs + 60000),
+      finishedAtMs: outcome ? String(observedAtMs) : null,
+      outcome,
+      measurementIncomplete: outcome === "abandoned",
+    });
+  }
+  await graphql(
+    `
+      mutation SeedMeasuredRuns(
+        $runs: [BuildRun_Data!]!
+        $steps: [BuildStep_Data!]!
+        $executions: [BillingExecution_Data!]!
+      ) @transaction {
+        buildRun_insertMany(data: $runs)
+        buildStep_insertMany(data: $steps)
+        billingExecution_insertMany(data: $executions)
+      }
+    `,
+    { runs, steps, executions },
+  );
+}
+
+test("JST monthly statement sums observed post-preparation time across attempts before rounding", async (t) => {
+  const f = await fixture(t);
+  const intervals = [
+    { start: -65000, prepEnd: -20000, observed: 20000 },
+    { start: -30000, prepEnd: 5000, observed: 25000, outcome: "failure" },
+    { start: 1000, prepEnd: 10000, observed: 30000, outcome: null },
+    { start: 0, observed: 10000, outcome: "abandoned" },
+    { start: 0, prepEnd: 5000, prepStatus: "FAILURE", observed: 15000, outcome: "failure" },
+  ];
+  await seedMonthlyRuns(f, intervals);
+  await seedMonthlyRuns({ teamId: f.otherTeamId }, [intervals[0]]);
+  await seedMonthlyRuns(f, [intervals[0]], { id: `complimentary-pro:${f.teamId}:2026-11` });
+  await seedMonthlyRuns(f, [intervals[0]], { periodType: "trial" });
+
+  const statement = async (month) =>
+    (await sdk.getTeamMonthlyUsage(dc, { teamId: f.teamId, month })).data.statement;
+  const current = await statement("2026-11-01");
+  assert.equal(current.teamId, f.teamId);
+  assert.equal(current.month, "2026-11");
+  assert.equal(current.runCount, "5");
+  assert.deepEqual(
+    current.runs.map((r) => r.measuredMillis),
+    ["20000", "20000", "20000", "0", "0"],
+  );
+  assert.equal(current.runs[3].measurementIncomplete, true);
+  assert.equal(current.runs[3].vmReadyAt, null);
+  assert.equal(current.measuredMillis, "60000");
+  assert.equal(current.billableMinutes, "1");
+  assert.equal(current.amountJpyTaxIncluded, "1");
+  assert.equal(current.amountUsdCentsTaxIncluded, null);
+  assert.deepEqual(await statement("2026-11-30"), current);
+  assert.equal((await statement("2026-10-01")).measuredMillis, "20000");
+  const empty = await statement("2026-12-01");
+  assert.deepEqual(empty.runs, []);
+  assert.equal(empty.amountJpyTaxIncluded, "0");
+});
+
+test("monthly totals cover every page and convert the tax-inclusive yen total once", async (t) => {
+  const f = await fixture(t);
+  const interval = { start: 0, prepEnd: 500, observed: 2500 };
+  await seedMonthlyRuns(f, Array(100).fill(interval));
+  await seedMonthlyRuns(f, [interval]);
+  const variables = { teamId: f.teamId, month: "2026-11-01", jpyPerUsd: "160.00" };
+  const first = (await sdk.getTeamMonthlyUsage(dc, variables)).data.statement;
+  const second = (
+    await sdk.getTeamMonthlyUsage(dc, { ...variables, afterRunId: first.runs.at(-1).runId })
+  ).data.statement;
+  for (const page of [first, second]) {
+    assert.equal(page.runCount, "101");
+    assert.equal(page.measuredMillis, "202000");
+    assert.equal(page.billableMinutes, "4");
+    assert.equal(page.amountJpyTaxIncluded, "4");
+    assert.equal(page.jpyPerUsd, "160.00");
+    assert.equal(page.amountUsdCentsTaxIncluded, "3");
+  }
+  assert.equal(first.runs.length, 100);
+  assert.equal(second.runs.length, 1);
+  assert.equal(new Set([...first.runs, ...second.runs].map((r) => r.runId)).size, 101);
+  for (const rate of ["0", "-1", "NaN", "1e3"]) {
+    await assert.rejects(sdk.getTeamMonthlyUsage(dc, { ...variables, jpyPerUsd: rate }));
+  }
+});
+
 test("billing context checks membership and preserves missing billing data", async (t) => {
   const f = await fixture(t);
   assert.deepEqual(await context(f), {
@@ -574,6 +702,7 @@ test("all billing SDK operations reject Firebase clients, including team members
       },
     ],
     [sdk.getBillingPeriodUsage, { ...team, periodId: "period", atMs: "1000" }],
+    [sdk.getTeamMonthlyUsage, { ...team, month: "2026-11-01" }],
     [sdk.getBillingAdmission, { ...team, id: "admission" }],
     [
       sdk.createBillingAdmission,
@@ -612,7 +741,7 @@ test("all billing SDK operations reject Firebase clients, including team members
       );
     }
   }
-  assert.equal(cases.length, 32);
+  assert.equal(cases.length, 33);
   assert.equal((await context(f)).account, null);
 });
 

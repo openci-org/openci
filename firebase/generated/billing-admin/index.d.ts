@@ -524,6 +524,17 @@ export interface GetDueBillingTeamDeletionsData {
   } & BillingTeamDeletion_Key)[];
 }
 
+export interface GetTeamMonthlyUsageData {
+  statement?: unknown | null;
+}
+
+export interface GetTeamMonthlyUsageVariables {
+  teamId: string;
+  month: DateString;
+  jpyPerUsd?: string | null;
+  afterRunId?: string | null;
+}
+
 export interface GitHubConnectionRequest_Key {
   id: string;
   __typename?: "GitHubConnectionRequest_Key";
@@ -974,6 +985,18 @@ export function getBillingJob(
   vars: GetBillingJobVariables,
   options?: OperationOptions,
 ): Promise<ExecuteOperationResponse<GetBillingJobData>>;
+
+/** Generated Node Admin SDK operation action function for the 'GetTeamMonthlyUsage' Query. Allow users to execute without passing in DataConnect. */
+export function getTeamMonthlyUsage(
+  dc: DataConnect,
+  vars: GetTeamMonthlyUsageVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<GetTeamMonthlyUsageData>>;
+/** Generated Node Admin SDK operation action function for the 'GetTeamMonthlyUsage' Query. Allow users to pass in custom DataConnect instances. */
+export function getTeamMonthlyUsage(
+  vars: GetTeamMonthlyUsageVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<GetTeamMonthlyUsageData>>;
 
 /** Generated Node Admin SDK operation action function for the 'CreateBillingPeriod' Mutation. Allow users to execute without passing in DataConnect. */
 export function createBillingPeriod(

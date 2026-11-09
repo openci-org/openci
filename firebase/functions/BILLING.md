@@ -69,6 +69,37 @@ only at period end without proration. Return origins and prices come exclusively
 from server configuration. Raw Stripe/FSC errors, tokens and payment URLs are not
 logged or returned as error messages.
 
+## Monthly usage statement (preview)
+
+`GetTeamMonthlyUsage` is a read-only billing connector operation for one team.
+It takes any date in the target Japan calendar month. Each run contributes the
+overlap of that month with the interval from successful `prepare_vm` completion
+to its last measured billing observation. Only a persisted success starts that
+interval; failed preparation and older runs without that evidence contribute
+zero. Step metadata survives log retention. Concurrent runs and retries count
+individually. Self-hosted runs have no billing execution; complimentary and
+trial executions are excluded.
+
+The statement sums milliseconds across the team and rounds up to minutes
+once for the month. Each minute is **JPY 1 including tax**. For an optional USD
+equivalent, pass the exchange rate in JPY per USD as a decimal string. The
+query divides the monthly yen total by that rate and rounds once to the nearest
+cent (half up). Both the rate and USD amount are null when no rate is supplied.
+The current month's total includes only time already observed by the executor.
+
+With the demo SQL Connect emulator running, from the repository root:
+
+```sh
+FIREBASE_DATA_CONNECT_EMULATOR_HOST=127.0.0.1:9399 firebase dataconnect:execute \
+  firebase/dataconnect/billing/monthly_usage.gql GetTeamMonthlyUsage \
+  --config firebase/dataconnect/firebase.json --project demo-openci \
+  --vars '{"teamId":"example-team","month":"2026-11-01","jpyPerUsd":"150"}'
+```
+
+The rate in this example is illustrative. `runs` contains up to 100 rows in
+run ID order. On a full page, pass its last `runId` as `afterRunId` to read
+the next page. Totals always cover the entire team and month.
+
 ## Team deletion and credential cleanup
 
 Deletion verifies the current customer and the absence of any live subscription.
