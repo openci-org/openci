@@ -151,8 +151,17 @@ export class Billing {
       )
         result.blockReason = "payment_pending";
     }
+    let monthlyUsage: Awaited<ReturnType<BillingStore["currentMonthlyUsage"]>> | null | undefined;
+    if (!this.config.complimentary.has(teamId)) {
+      try {
+        monthlyUsage = await this.store.currentMonthlyUsage(teamId, this.now());
+      } catch {
+        // An estimate outage must not remove card registration or Portal access.
+        monthlyUsage = null;
+      }
+    }
     await this.store.context(teamId, userId);
-    return result;
+    return monthlyUsage === undefined ? result : { ...result, monthlyUsage };
   }
 
   private async ensureCustomer(teamId: string, userId: string, context: BillingContext) {

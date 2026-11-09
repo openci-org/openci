@@ -109,9 +109,21 @@ class BillingView extends StatelessWidget {
             OutlinedButton.icon(
               onPressed: pending ? null : onPortal,
               icon: const Icon(Icons.open_in_new),
-              label: const Text('契約を管理'),
+              label: const Text('支払い方法・請求履歴を開く'),
             ),
           ],
+        ],
+        if (status.billingEnabled && status.showsMonthlyUsage) ...[
+          const SizedBox(height: 24),
+          if (status.monthlyUsage case final usage?) ...[
+            Text('今月の利用状況（${usage.month}）', style: theme.textTheme.titleMedium),
+            const SizedBox(height: 8),
+            Text('利用時間 ${usage.billableMinutes}分'),
+            Text('税込見込額 ${usage.amountJpyTaxIncluded}円'),
+            Text('次回請求予定日 ${usage.nextInvoiceDate.replaceAll('-', '/')}（日本時間）'),
+            const Text('USDでの請求額は、月締め時に円建ての利用料を換算して確定します。'),
+          ] else
+            const Text('今月の利用額を取得できませんでした。「再読み込み」で再度確認できます。'),
         ],
         if (pending) ...[
           const SizedBox(height: 16),
@@ -142,7 +154,7 @@ class BillingView extends StatelessWidget {
 
 String _blockMessage(BillingStatus status) => switch (status.blockReason) {
   'payment_required' when !status.canCheckout && status.canManageBilling =>
-    'CIを利用するには、「契約を管理」からお支払いを確認してください。',
+    'CIを利用するには、「支払い方法・請求履歴を開く」からお支払いを確認してください。',
   'payment_required' => 'CIの利用にはプランの購入が必要です。',
   'allowance_exhausted' => '新しいCIを開始できる利用枠がありません。',
   'subscription_ended' => '契約が終了しています。',

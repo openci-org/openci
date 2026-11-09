@@ -479,6 +479,45 @@ test("a crossing run observed beyond month end can close and zero USD cents cann
   await assert.rejects(sdk.closeTeamMonthlyStatement(dc, { ...vars, month: currentMonth }));
 });
 
+test("team billing shows the postpaid estimate for the current Japan month and rechecks membership", async (t) => {
+  const f = await fixture(t);
+  const april = Date.parse("2020-04-01T00:00:00+09:00");
+  await seedMonthlyRuns(f, [{ start: 0, prepEnd: 30000, observed: 150001 }], {}, april);
+  const store = new BillingStore(dc);
+  let now = april + 200000;
+  const service = new Billing(store, null, config, () => now);
+  const status = () => service.execute(f.userId, { action: "status", teamId: f.teamId });
+  assert.deepEqual((await status()).monthlyUsage, {
+    month: "2020-04",
+    billableMinutes: "3",
+    amountJpyTaxIncluded: "3",
+    nextInvoiceDate: "2020-05-01",
+  });
+  now = april - 1;
+  assert.deepEqual((await status()).monthlyUsage, {
+    month: "2020-03",
+    billableMinutes: "0",
+    amountJpyTaxIncluded: "0",
+    nextInvoiceDate: "2020-04-01",
+  });
+  store.currentMonthlyUsage = async () => {
+    throw Error("unavailable");
+  };
+  assert.equal((await status()).monthlyUsage, null);
+  store.currentMonthlyUsage = async () => {
+    await graphql("mutation Remove($id:String!) {teamMember_deleteMany(where:{teamId:{eq:$id}})}", {
+      id: f.teamId,
+    });
+    return {
+      month: "2020-04",
+      billableMinutes: "3",
+      amountJpyTaxIncluded: "3",
+      nextInvoiceDate: "2020-05-01",
+    };
+  };
+  await assert.rejects(status(), /forbidden/);
+});
+
 test("billing context checks membership and preserves missing billing data", async (t) => {
   const f = await fixture(t);
   assert.deepEqual(await context(f), {

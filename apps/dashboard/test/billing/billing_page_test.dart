@@ -110,6 +110,58 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  void returnMonthlyUsage(Object? usage) {
+    final baseResponse = respond;
+    respond = (request) async {
+      final response = await baseResponse(request);
+      if (billingCallData(request)['action'] != 'status') return response;
+      return jsonResponse({
+        ...jsonDecode(response.body) as Map<String, dynamic>,
+        'monthlyUsage': usage,
+      });
+    };
+  }
+
+  testWidgets(
+    'shows this team’s estimate and opens its Stripe invoice history',
+    (tester) async {
+      returnMonthlyUsage({
+        'month': '2026-12',
+        'billableMinutes': '123',
+        'amountJpyTaxIncluded': '123',
+        'nextInvoiceDate': '2027-01-01',
+      });
+      await show(tester);
+      await tester.scrollUntilVisible(find.text('税込見込額 123円'), 200);
+      expect(find.text('利用時間 123分'), findsOneWidget);
+      expect(find.text('次回請求予定日 2027/01/01（日本時間）'), findsOneWidget);
+      await tester.scrollUntilVisible(find.text('支払い方法・請求履歴を開く'), -200);
+      await tester.tap(find.text('支払い方法・請求履歴を開く'));
+      await tester.pumpAndSettle();
+      expect(billingCallData(requests.last), {
+        'action': 'portal',
+        'teamId': 'team-1',
+      });
+      expect(launcher.url, 'https://billing.stripe.com/p/session/test');
+    },
+  );
+
+  testWidgets(
+    'an unavailable estimate leaves Portal access visible and does not display zero usage',
+    (tester) async {
+      returnMonthlyUsage({'billableMinutes': 'bad'});
+      await show(tester);
+      final unavailable = find.textContaining('今月の利用額を取得できませんでした');
+      await tester.scrollUntilVisible(unavailable, 200);
+      expect(unavailable, findsOneWidget);
+      expect(find.text('税込見込額 0円'), findsNothing);
+      await tester.scrollUntilVisible(find.text('支払い方法・請求履歴を開く'), -200);
+      await tester.tap(find.text('支払い方法・請求履歴を開く'));
+      await tester.pumpAndSettle();
+      expect(launcher.url, 'https://billing.stripe.com/p/session/test');
+    },
+  );
+
   testWidgets('an explicit Stripe return team wins over the selected team', (
     tester,
   ) async {
@@ -200,9 +252,9 @@ void main() {
   ) async {
     launcher.success = false;
     await show(tester);
-    await tester.scrollUntilVisible(find.text('契約を管理'), 200);
+    await tester.scrollUntilVisible(find.text('支払い方法・請求履歴を開く'), 200);
     await tester.pump();
-    await tester.tap(find.text('契約を管理'));
+    await tester.tap(find.text('支払い方法・請求履歴を開く'));
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(
       find.textContaining('Stripeを開けませんでした'),
@@ -210,9 +262,9 @@ void main() {
     );
     expect(find.textContaining('Stripeを開けませんでした'), findsOneWidget);
     launcher.success = true;
-    await tester.scrollUntilVisible(find.text('契約を管理'), -200);
+    await tester.scrollUntilVisible(find.text('支払い方法・請求履歴を開く'), -200);
     await tester.pump();
-    await tester.tap(find.text('契約を管理'));
+    await tester.tap(find.text('支払い方法・請求履歴を開く'));
     await tester.pumpAndSettle();
     expect(launcher.url, 'https://billing.stripe.com/p/session/test');
     expect(billingCallData(requests.last), {

@@ -126,6 +126,36 @@ export class BillingStore {
       throw new Error("Billing usage unavailable");
     return BigInt(String(usage.availableMillis));
   }
+  async currentMonthlyUsage(teamId: string, now: number) {
+    const japanDate = new Date(now + 9 * 60 * 60 * 1000);
+    const month = japanDate.toISOString().slice(0, 7);
+    const usage = (await sdk.getTeamMonthlyUsage(this.dc, { teamId, month: month + "-01" })).data
+      .statement;
+    if (
+      !usage ||
+      typeof usage !== "object" ||
+      !("teamId" in usage) ||
+      usage.teamId !== teamId ||
+      !("month" in usage) ||
+      usage.month !== month ||
+      !("billableMinutes" in usage) ||
+      typeof usage.billableMinutes !== "string" ||
+      !/^\d+$/.test(usage.billableMinutes) ||
+      !("amountJpyTaxIncluded" in usage) ||
+      typeof usage.amountJpyTaxIncluded !== "string" ||
+      !/^\d+$/.test(usage.amountJpyTaxIncluded)
+    )
+      throw new Error("Invalid monthly usage response");
+    const nextMonth = new Date(
+      Date.UTC(japanDate.getUTCFullYear(), japanDate.getUTCMonth() + 1, 1),
+    );
+    return {
+      month,
+      billableMinutes: usage.billableMinutes,
+      amountJpyTaxIncluded: usage.amountJpyTaxIncluded,
+      nextInvoiceDate: nextMonth.toISOString().slice(0, 10),
+    };
+  }
   async deleted(teamId: string, userId: string) {
     return !!(await sdk.getBillingTeamDeletion(this.dc, { teamId, userId })).data.receipt;
   }
