@@ -78,6 +78,20 @@ upgrading the stack or switching execution paths.
 
 ## Local checks
 
+`openci/firebase_functions_ci.dart` runs the Functions formatting, lint,
+TypeScript, Node and Vitest checks on matching pull requests and pushes to
+`develop`. Changes to Functions, generated Admin SDKs, or their dependency and
+runtime configuration trigger it. The workflow bootstraps the pinned Node.js
+and npm versions and installs dependencies from the root lockfile.
+
+Run the same CI entry point locally from the repository root:
+
+```sh
+bash firebase/scripts/ci.sh
+```
+
+SQL Connect emulator tests remain a separate integration check below.
+
 From the repository root, using Node.js 22:
 
 ```sh

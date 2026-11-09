@@ -120,17 +120,17 @@ void main() {
       .toList();
 
   test(
-    'Stacked PR source runs only Stacked PR CI among the seven configured workflows',
+    'Stacked PR source runs only Stacked PR CI among the eight configured workflows',
     () {
-      expect(definitions, hasLength(7));
+      expect(definitions, hasLength(8));
       final result = plan(definitions, diff(['apps/stacked_pr/src/index.ts']));
       expect(result.jobs.map((job) => job.workflowName), ['Stacked PR CI']);
-      expect(result.skipped, hasLength(6));
+      expect(result.skipped, hasLength(7));
     },
   );
   test('docs-only changes allocate no build jobs', () {
     expect(plan(definitions, diff(['README.md'])).jobs, isEmpty);
-    expect(plan(definitions, diff(['README.md'])).skipped, hasLength(7));
+    expect(plan(definitions, diff(['README.md'])).skipped, hasLength(8));
   });
   test('shared model changes also run their Dart Functions consumer', () {
     final result = plan(
@@ -149,14 +149,63 @@ void main() {
       'pubspec.lock',
       'apps/dashboard/pubspec.yaml',
     ]) {
-      expect(plan(definitions, diff([path])).jobs, hasLength(7), reason: path);
+      expect(plan(definitions, diff([path])).jobs, hasLength(8), reason: path);
     }
   });
-  test('Node runtime changes run both Node workflows', () {
+  test('Node runtime changes run all Node workflows', () {
     final result = plan(definitions, diff(['.node-version']));
     expect(result.jobs.map((j) => j.workflowName).toSet(), {
       'Stacked PR CI',
       'Website CI',
+      'Firebase Functions CI',
     });
+  });
+  test('Functions source and inputs select Firebase Functions CI', () {
+    for (final path in [
+      'firebase/functions/executor/github.ts',
+      'firebase/functions/test/vitest/pull_request_checkout.test.ts',
+      'firebase/generated/dispatch-admin/index.d.ts',
+      'firebase/scripts/ci.sh',
+      'firebase/healthcheck.ts',
+      'firebase/package.json',
+      'firebase/tsconfig.functions.json',
+    ]) {
+      expect(
+        plan(definitions, diff([path])).jobs.map((job) => job.workflowName),
+        ['Firebase Functions CI'],
+        reason: path,
+      );
+    }
+  });
+  test('root npm inputs run Website and Firebase Functions CI', () {
+    for (final path in [
+      'package.json',
+      'package-lock.json',
+      'vite.config.mts',
+    ]) {
+      expect(
+        plan(
+          definitions,
+          diff([path]),
+        ).jobs.map((job) => job.workflowName).toSet(),
+        {'Website CI', 'Firebase Functions CI'},
+        reason: path,
+      );
+    }
+  });
+  test('Firebase Functions CI also checks pushes to develop', () {
+    final functions = definitions.singleWhere(
+      (workflow) => workflow.workflowName == 'Firebase Functions CI',
+    );
+    final push = functions.ciTriggers.singleWhere(
+      (trigger) => trigger.type == 'push',
+    );
+    expect(functions.cancelPreviousRuns, isTrue);
+    expect(push.matches(eventType: 'push', branch: 'develop'), isTrue);
+    expect(push.matches(eventType: 'push', branch: 'feature'), isFalse);
+    expect(
+      push.matchesChangedFiles(['firebase/functions/executor/github.ts']),
+      isTrue,
+    );
   });
 }
