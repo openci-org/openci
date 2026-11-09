@@ -129,7 +129,7 @@ test("billing contention retries remain bounded and never ignore an expired exec
 test("scripts quote secrets, pin the commit, and reject unsafe workflow paths", () => {
   validateJob(job, dispatch);
   const token = "token'$(id)";
-  const checkout = checkoutScript(job, "https://github.com/org/app.git", token);
+  const checkout = checkoutScript(job.commitSha, "https://github.com/org/app.git", token);
   assert.match(checkout, /git checkout --detach 'a{40}'/);
   assert.doesNotMatch(checkout, /https:\/\/.*token/);
   const workflow = workflowScript(job, dispatch, 7, { TEST: "it's $(id)\nnext" });
@@ -139,6 +139,7 @@ test("scripts quote secrets, pin the commit, and reject unsafe workflow paths", 
   assert.throws(() => validateJob({ ...job, workflowFileName: "../test.dart" }, dispatch));
   assert.throws(() => workflowScript(job, dispatch, 7, { BASH_ENV: "attack" }));
   assert.throws(() => validateJob({ ...job, commitSha: "main; echo token" }, dispatch));
+  assert.throws(() => checkoutScript("main", "https://github.com/org/app.git", token));
 });
 
 test("workflows expose VM toolchains when Orchard supplies a minimal PATH", () => {
@@ -812,8 +813,12 @@ test("PR execution revalidates repository IDs and pinned SHA with a separate rev
   const repository = { id: 101, full_name: "org/app", owner: { id: 10 }, fork: true };
   const trusted = {
     number: 7,
+    state: "open",
+    merged: false,
+    mergeable: true,
+    merge_commit_sha: "c".repeat(40),
     head: { repo: repository, sha: job.commitSha },
-    base: { repo: repository },
+    base: { repo: repository, sha: "b".repeat(40) },
   };
   const prJob = { ...job, pullRequestNumber: "7" };
   let pullRequest = trusted;
@@ -832,7 +837,7 @@ test("PR execution revalidates repository IDs and pinned SHA with a separate rev
     if (path.endsWith("/access_tokens")) {
       const body = JSON.parse(init.body);
       assert.deepEqual(body.repositories, ["app"]);
-      assert.deepEqual(body.permissions, { pull_requests: "read" });
+      assert.deepEqual(body.permissions, { pull_requests: "read", contents: "read" });
       return Response.json({
         token: "pr-read-token",
         expires_at: new Date(Date.now() + 3600000).toISOString(),
@@ -844,6 +849,11 @@ test("PR execution revalidates repository IDs and pinned SHA with a separate rev
     assert.equal(init.headers.authorization, "token pr-read-token");
     if (path === "/repos/org/app") return Response.json(repo);
     if (path === "/repos/org/app/pulls/7") return Response.json(pullRequest, { status: apiStatus });
+    if (path === `/repos/org/app/git/commits/${trusted.merge_commit_sha}`)
+      return Response.json({
+        sha: trusted.merge_commit_sha,
+        parents: [{ sha: trusted.base.sha }, { sha: trusted.head.sha }],
+      });
     if (path === "/installation/token") return new Response(null, { status: 204 });
     assert.fail(`Unexpected request: ${path}`);
   };
@@ -853,13 +863,13 @@ test("PR execution revalidates repository IDs and pinned SHA with a separate rev
     apiBaseUrl: "https://api.github.com",
     baseUrl: "https://github.com",
   });
-  await github.verifyPullRequest(job, "10");
+  assert.equal(await github.resolveCheckoutCommit(job, "10"), job.commitSha);
   assert.equal(calls.length, 0, "Push jobs do not need a PR token");
   for (const pullRequestNumber of [undefined, "", "0", "-1", "1.5", "9007199254740992"]) {
-    await assert.rejects(github.verifyPullRequest({ ...job, pullRequestNumber }, "10"));
+    await assert.rejects(github.resolveCheckoutCommit({ ...job, pullRequestNumber }, "10"));
   }
   assert.equal(calls.length, 0, "Invalid/missing PR metadata must not mint tokens");
-  await github.verifyPullRequest(prJob, "10");
+  assert.equal(await github.resolveCheckoutCommit(prJob, "10"), trusted.merge_commit_sha);
   assert.equal(calls.at(-1), "/installation/token");
   for (const badPr of [
     { ...trusted, head: { ...trusted.head, repo: { ...repository, id: 999, fork: false } } },
@@ -872,7 +882,7 @@ test("PR execution revalidates repository IDs and pinned SHA with a separate rev
     { ...trusted, number: 8 },
   ]) {
     pullRequest = badPr;
-    await assert.rejects(github.verifyPullRequest(prJob, "10"), /Untrusted pull request/);
+    await assert.rejects(github.resolveCheckoutCommit(prJob, "10"), /Untrusted pull request/);
     assert.equal(calls.at(-1), "/installation/token", "Rejecting a PR must also revoke its token");
   }
   pullRequest = trusted;
@@ -882,13 +892,13 @@ test("PR execution revalidates repository IDs and pinned SHA with a separate rev
     { ...repository, id: "101" },
   ]) {
     repo = badRepo;
-    await assert.rejects(github.verifyPullRequest(prJob, "10"), /Untrusted pull request/);
+    await assert.rejects(github.resolveCheckoutCommit(prJob, "10"), /Untrusted pull request/);
     assert.equal(calls.at(-1), "/installation/token");
   }
   repo = repository;
   for (const status of [403, 404, 500]) {
     apiStatus = status;
-    await assert.rejects(github.verifyPullRequest(prJob, "10"));
+    await assert.rejects(github.resolveCheckoutCommit(prJob, "10"));
     assert.equal(calls.at(-1), "/installation/token");
   }
 });

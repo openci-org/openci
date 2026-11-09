@@ -160,7 +160,7 @@ async function fixture(t, queuedCheck = false) {
     configuration,
     github: {
       options: { appId: "1", apiBaseUrl: "https://api.github.com", baseUrl: "https://github.com" },
-      verifyPullRequest: async () => {},
+      resolveCheckoutCommit: async (job) => job.commitSha,
       checkout: async () => ({
         token: "checkout-token",
         cloneUrl: "https://github.com/org/app.git",
@@ -481,7 +481,7 @@ test("persisted PR jobs and reruns fail before billing, VM creation, checkout an
       workerHost: runCount ? "previous-worker" : null,
     });
     let verified = 0;
-    f.dependencies.github.verifyPullRequest = async (job, accountId) => {
+    f.dependencies.github.resolveCheckoutCommit = async (job, accountId) => {
       assert.equal(job.pullRequestNumber, "7", "FSC must expose the saved PR number to the guard");
       assert.equal(accountId, "10");
       verified++;
@@ -537,7 +537,7 @@ test("rejected old attempts cannot fail a queued job after losing their active r
 
 test("source rejection before a run exists completes the queued check", async (t) => {
   const f = await fixture(t, true);
-  f.dependencies.github.verifyPullRequest = async () => {
+  f.dependencies.github.resolveCheckoutCommit = async () => {
     throw new Error("superseded head");
   };
   f.dependencies.github.check = async (_job, dispatch, outcome) => {

@@ -1,3 +1,4 @@
+import { setTimeout as delay } from "node:timers/promises";
 import type { Dispatch, Job, Outcome } from "./model.js";
 import type { SkippedCheck } from "../skipped_checks.js";
 
@@ -73,7 +74,7 @@ export class ExecutionGitHub {
         purpose === "checks"
           ? { checks: "write" }
           : purpose === "pull_request"
-            ? { pull_requests: "read" }
+            ? { pull_requests: "read", contents: "read" }
             : { contents: "read" },
     });
     return {
@@ -169,37 +170,80 @@ export class ExecutionGitHub {
     return String(data.id);
   }
 
-  /** Recheck persisted PR jobs, including jobs planned before the fork policy. */
-  async verifyPullRequest(job: Job, accountId: string): Promise<void> {
-    if (job.pullRequestNumber === null) return;
+  /** Resolve a verified merge commit for PRs and the saved commit for pushes. */
+  async resolveCheckoutCommit(job: Job, accountId: string, signal?: AbortSignal): Promise<string> {
+    signal?.throwIfAborted();
+    if (!/^[a-fA-F0-9]{40}(?:[a-fA-F0-9]{24})?$/.test(job.commitSha ?? ""))
+      throw new Error("Invalid commit SHA");
+    if (job.pullRequestNumber === null) return job.commitSha!;
     // Missing projections/invalid PR numbers must not silently become push jobs.
     const number = Number(job.pullRequestNumber);
     if (!/^[1-9][0-9]*$/.test(job.pullRequestNumber ?? "") || !Number.isSafeInteger(number))
       throw new Error("Invalid pull request metadata");
     const client = await this.client(job, "pull_request");
     try {
+      signal?.throwIfAborted();
       const { data: repo } = await client.request("GET /repos/{owner}/{repo}", {
         owner: job.owner,
         repo: job.repo,
-      });
-      const { data: pr } = await client.request("GET /repos/{owner}/{repo}/pulls/{pull_number}", {
-        owner: job.owner,
-        repo: job.repo,
-        pull_number: number,
+        request: { signal },
       });
       if (
         !Number.isSafeInteger(repo.id) ||
         repo.id <= 0 ||
         String(repo.owner?.id) !== accountId ||
-        repo.full_name?.toLowerCase() !== `${job.owner}/${job.repo}`.toLowerCase() ||
-        pr.number !== number ||
-        pr.base?.repo?.id !== repo.id ||
-        pr.head?.repo?.id !== repo.id ||
-        pr.head?.sha !== job.commitSha?.toLowerCase()
+        repo.full_name?.toLowerCase() !== `${job.owner}/${job.repo}`.toLowerCase()
       )
         throw new Error("Untrusted pull request source");
+
+      // GET /pulls starts GitHub's asynchronous merge calculation. Reobserve
+      // the PR on each retry because its head or base may advance meanwhile.
+      for (let attempt = 0; attempt < 5; attempt++) {
+        if (attempt > 0) await delay(1000, undefined, { signal });
+        signal?.throwIfAborted();
+        const { data: pr } = await client.request("GET /repos/{owner}/{repo}/pulls/{pull_number}", {
+          owner: job.owner,
+          repo: job.repo,
+          pull_number: number,
+          request: { signal },
+        });
+        if (
+          pr.number !== number ||
+          pr.base?.repo?.id !== repo.id ||
+          pr.head?.repo?.id !== repo.id ||
+          pr.head?.sha !== job.commitSha!.toLowerCase() ||
+          !/^[a-f0-9]{40}(?:[a-f0-9]{24})?$/.test(pr.base?.sha ?? "")
+        )
+          throw new Error("Untrusted pull request source");
+        if (pr.state !== "open" || pr.merged) throw new Error("Pull request is no longer open");
+        if (pr.mergeable === false) throw new Error("Pull request has merge conflicts");
+        const mergeSha = pr.merge_commit_sha;
+        if (pr.mergeable === true && mergeSha && /^[a-f0-9]{40}(?:[a-f0-9]{24})?$/.test(mergeSha)) {
+          const { data: commit } = await client.request(
+            "GET /repos/{owner}/{repo}/git/commits/{commit_sha}",
+            {
+              owner: job.owner,
+              repo: job.repo,
+              commit_sha: mergeSha,
+              request: { signal },
+            },
+          );
+          // A stale merge ref can survive a base/head update. Only use the
+          // candidate whose parents match the PR revision we just observed.
+          if (
+            commit.sha === mergeSha &&
+            commit.parents?.length === 2 &&
+            commit.parents[0].sha === pr.base.sha &&
+            commit.parents[1].sha === pr.head.sha
+          ) {
+            signal?.throwIfAborted();
+            return mergeSha;
+          }
+        }
+      }
+      throw new Error("Pull request test merge commit is not ready");
     } finally {
-      // This PR-read token stays in Cloud Run, including on rejection/API errors.
+      // Revoke independently of the execution signal, including cancellation.
       await client.request("DELETE /installation/token");
     }
   }
