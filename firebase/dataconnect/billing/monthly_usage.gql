@@ -1,4 +1,4 @@
-# Read-only preview. The month is a date in the requested Japan calendar month.
+# Reads postpaid Cloud usage for a Japan calendar month. Closed months use their frozen runs and rate.
 # Pass yen per US dollar only when a USD equivalent is needed.
 query GetTeamMonthlyUsage(
   $teamId: String!
@@ -6,6 +6,12 @@ query GetTeamMonthlyUsage(
   $jpyPerUsd: String = null
   $afterRunId: String = null
 ) @auth(level: NO_ACCESS) {
+  ...PostpaidMonthlyUsage
+}
+
+# The dashboard estimate and the closing transaction use the same interval, rounding
+# and conversion rules. Pagination affects only the breakdown, never the totals.
+fragment PostpaidMonthlyUsage on Query {
   statement: _selectFirst(
     sql: """
     WITH calendar AS (
@@ -14,30 +20,47 @@ query GetTeamMonthlyUsage(
       SELECT (extract(epoch FROM local_start AT TIME ZONE 'Asia/Tokyo') * 1000)::bigint AS start_ms,
              (extract(epoch FROM (local_start + interval '1 month') AT TIME ZONE 'Asia/Tokyo') * 1000)::bigint AS end_ms
       FROM calendar
-    ), runs AS (
-      SELECT e.run_id, e.job_id, prep.updated_at AS vm_ready_at, e.observed_at_ms,
-             e.outcome, e.measurement_incomplete,
-             CASE WHEN prep.run_id IS NULL THEN 0 ELSE greatest(0,
-               least(e.observed_at_ms, b.end_ms) -
-               greatest(b.start_ms, e.started_at_ms, ceil(extract(epoch FROM prep.updated_at) * 1000)::bigint)
-             ) END AS measured_ms
+    ), closed AS (
+      SELECT s.* FROM billing_monthly_statements s
+      WHERE s.team_id = $1 AND s.month = date_trunc('month', $2::date)::date
+    ), source AS (
+      SELECT e.run_id, e.job_id, e.started_at_ms, e.observed_at_ms, prep.updated_at AS vm_ready_at,
+             e.outcome, e.measurement_incomplete
       FROM billing_executions e
-      JOIN billing_periods p ON p.id = e.period_id AND p.team_id = e.team_id
+      JOIN billing_periods p ON p.id = e.period_id AND p.team_id = e.team_id AND p.period_type = 'postpaid'
       LEFT JOIN build_steps prep ON prep.run_id = e.run_id
         AND prep.step_id = 'prepare_vm' AND prep.status = 'SUCCESS'
       CROSS JOIN bounds b
-      WHERE e.team_id = $1 AND e.started_at_ms < b.end_ms AND e.observed_at_ms > b.start_ms
-        AND p.period_type <> 'trial' AND NOT starts_with(e.period_id, 'complimentary-pro:')
+      WHERE NOT EXISTS (SELECT 1 FROM closed) AND e.team_id = $1
+        AND e.started_at_ms < b.end_ms AND e.observed_at_ms > b.start_ms
+      UNION ALL
+      SELECT r.run_id, r.job_id, r.started_at_ms, r.observed_at_ms, r.vm_ready_at,
+             r.outcome, r.measurement_incomplete
+      FROM billing_monthly_statement_runs r
+      JOIN closed c ON r.month = c.month WHERE r.team_id = $1
+    ), runs AS (
+      SELECT s.*,
+        CASE WHEN s.vm_ready_at IS NULL THEN 0 ELSE greatest(0,
+          least(s.observed_at_ms, b.end_ms) -
+          greatest(b.start_ms, s.started_at_ms, ceil(extract(epoch FROM s.vm_ready_at) * 1000)::bigint)
+        ) END AS measured_ms
+      FROM source s CROSS JOIN bounds b
     ), totals AS (
       SELECT count(*) AS run_count, coalesce(sum(measured_ms), 0) AS measured_ms FROM runs
+      WHERE NOT EXISTS (SELECT 1 FROM closed)
     ), priced AS (
-      SELECT *, ceil(measured_ms / 60000) AS minutes FROM totals
+      SELECT *, ceil(measured_ms / 60000) AS minutes,
+             CASE WHEN EXISTS (SELECT 1 FROM closed) THEN (SELECT jpy_per_usd FROM closed)
+                  ELSE $3::text END AS rate FROM totals
     )
     SELECT $1::text AS "teamId", to_char($2::date, 'YYYY-MM') AS month,
-           run_count::text AS "runCount", measured_ms::text AS "measuredMillis",
-           minutes::text AS "billableMinutes", minutes::text AS "amountJpyTaxIncluded",
-           $3::text AS "jpyPerUsd",
-           round(minutes * 100 / nullif($3::numeric, 0))::text AS "amountUsdCentsTaxIncluded",
+           coalesce(c.run_count, priced.run_count)::text AS "runCount",
+           coalesce(c.measured_millis, measured_ms)::text AS "measuredMillis",
+           coalesce(c.billable_minutes, minutes)::text AS "billableMinutes",
+           coalesce(c.amount_jpy_tax_included, minutes)::text AS "amountJpyTaxIncluded",
+           rate AS "jpyPerUsd",
+           CASE WHEN c.month IS NULL THEN round(minutes * 100 / nullif(rate::numeric, 0))::text
+                ELSE c.amount_usd_cents_tax_included END AS "amountUsdCentsTaxIncluded",
            coalesce((
              SELECT jsonb_agg(jsonb_build_object(
                'runId', run_id, 'jobId', job_id, 'vmReadyAt', vm_ready_at,
@@ -47,7 +70,7 @@ query GetTeamMonthlyUsage(
              FROM (SELECT * FROM runs WHERE $4::text IS NULL OR run_id > $4::text
                    ORDER BY run_id LIMIT 100) page
            ), '[]'::jsonb) AS runs
-    FROM priced
+    FROM priced LEFT JOIN closed c ON true
     """
     params: [$teamId, $month, $jpyPerUsd, $afterRunId]
   )

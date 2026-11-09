@@ -69,7 +69,7 @@ only at period end without proration. Return origins and prices come exclusively
 from server configuration. Raw Stripe/FSC errors, tokens and payment URLs are not
 logged or returned as error messages.
 
-## Monthly usage statement (preview)
+## Monthly postpaid statements
 
 `GetTeamMonthlyUsage` is a read-only billing connector operation for one team.
 It takes any date in the target Japan calendar month. Each run contributes the
@@ -77,15 +77,16 @@ overlap of that month with the interval from successful `prepare_vm` completion
 to its last measured billing observation. Only a persisted success starts that
 interval; failed preparation and older runs without that evidence contribute
 zero. Step metadata survives log retention. Concurrent runs and retries count
-individually. Self-hosted runs have no billing execution; complimentary and
-trial executions are excluded.
+individually. A run qualifies only when it belongs to a postpaid billing period.
+The old monthly plans, courtesy teams and self-hosted runs contribute zero.
 
 The statement sums milliseconds across the team and rounds up to minutes
 once for the month. Each minute is **JPY 1 including tax**. For an optional USD
 equivalent, pass the exchange rate in JPY per USD as a decimal string. The
 query divides the monthly yen total by that rate and rounds once to the nearest
 cent (half up). Both the rate and USD amount are null when no rate is supplied.
-The current month's total includes only time already observed by the executor.
+The current month includes usage already observed by the executor. After closing,
+reads use the saved runs and the recorded exchange rate.
 
 With the demo SQL Connect emulator running, from the repository root:
 
@@ -99,6 +100,40 @@ FIREBASE_DATA_CONNECT_EMULATOR_HOST=127.0.0.1:9399 firebase dataconnect:execute 
 The rate in this example is illustrative. `runs` contains up to 100 rows in
 run ID order. On a full page, pass its last `runId` as `afterRunId` to read
 the next page. Totals always cover the entire team and month.
+
+### Close the month for manual Stripe collection
+
+Use a privileged operator identity. Pass the first day of a completed Japan
+calendar month. The closing transaction freezes every run and the tax-inclusive
+amount under the unique team/month key. An open execution that could still
+change the month makes closure retryable after its next observation or cleanup.
+Repeating the close with the same currency and rate returns the same statement.
+A change of rate, rate date or currency is rejected.
+
+From the repository root, the following command closes an example team in the
+demo emulator. Supply real team identifiers in an operational environment.
+
+```sh
+FIREBASE_DATA_CONNECT_EMULATOR_HOST=127.0.0.1:9399 firebase dataconnect:execute \
+  firebase/dataconnect/billing CloseTeamMonthlyStatement \
+  --config firebase/dataconnect/firebase.json --project demo-openci \
+  --vars '{"teamId":"example-team","month":"2026-10-01","currency":"JPY"}'
+```
+
+For USD, pass `"currency":"USD"`, a positive `jpyPerUsd` decimal string and
+`rateDate` (YYYY-MM-DD). The operator supplies the adopted rate and its date.
+The receipt records the yen total, rate and final amount in USD cents. A JPY
+statement has no FX rate. A zero amount requires no card collection.
+
+1. Read `GetClosedMonthlyStatement` with `teamId` and `month`. Use its saved
+   `stripeInvoiceId` if present. Otherwise create a Stripe draft on the team's
+   matching customer and currency and compare its tax-inclusive amount.
+2. Run `LinkMonthlyStatementInvoice` with `teamId`, `month` and the draft's
+   `invoiceId` before issuing it. Retries reuse that ID. An invoice already
+   linked to another month or team cannot be attached here.
+3. Issue the linked draft from Stripe with automatic card collection. Reconcile
+   payment success, any small-amount balance carried forward, or payment
+   failure in Stripe. The SQL operations never create or charge an invoice.
 
 ## Team deletion and credential cleanup
 

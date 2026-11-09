@@ -48,6 +48,19 @@ export interface BillingExecution_Key {
   __typename?: "BillingExecution_Key";
 }
 
+export interface BillingMonthlyStatementRun_Key {
+  teamId: string;
+  month: DateString;
+  runId: string;
+  __typename?: "BillingMonthlyStatementRun_Key";
+}
+
+export interface BillingMonthlyStatement_Key {
+  teamId: string;
+  month: DateString;
+  __typename?: "BillingMonthlyStatement_Key";
+}
+
 export interface BillingPeriod_Key {
   id: string;
   __typename?: "BillingPeriod_Key";
@@ -128,6 +141,37 @@ export interface CloseBillingCheckoutCreationVariables {
   livemode: boolean;
   stripeCheckoutSessionId: string;
   closedAt: Int64String;
+}
+
+export interface CloseTeamMonthlyStatementData {
+  usage?: {
+    statement?: unknown | null;
+  };
+  receipt?: {
+    statement?: {
+      teamId: string;
+      month: DateString;
+      closedAt: TimestampString;
+      currency: string;
+      jpyPerUsd?: string | null;
+      rateDate?: DateString | null;
+      runCount: Int64String;
+      measuredMillis: Int64String;
+      billableMinutes: Int64String;
+      amountJpyTaxIncluded: Int64String;
+      amountUsdCentsTaxIncluded?: string | null;
+      stripeInvoiceId?: string | null;
+    } & BillingMonthlyStatement_Key;
+  };
+}
+
+export interface CloseTeamMonthlyStatementVariables {
+  teamId: string;
+  month: DateString;
+  currency: string;
+  jpyPerUsd?: string | null;
+  rateDate?: DateString | null;
+  afterRunId?: string | null;
 }
 
 export interface CompleteBillingTeamCleanupData {
@@ -516,6 +560,28 @@ export interface GetBillingTeamDeletionVariables {
   userId: string;
 }
 
+export interface GetClosedMonthlyStatementData {
+  statement?: {
+    teamId: string;
+    month: DateString;
+    closedAt: TimestampString;
+    currency: string;
+    jpyPerUsd?: string | null;
+    rateDate?: DateString | null;
+    runCount: Int64String;
+    measuredMillis: Int64String;
+    billableMinutes: Int64String;
+    amountJpyTaxIncluded: Int64String;
+    amountUsdCentsTaxIncluded?: string | null;
+    stripeInvoiceId?: string | null;
+  } & BillingMonthlyStatement_Key;
+}
+
+export interface GetClosedMonthlyStatementVariables {
+  teamId: string;
+  month: DateString;
+}
+
 export interface GetDueBillingTeamDeletionsData {
   deletions: ({
     teamId: string;
@@ -573,6 +639,16 @@ export interface InitializeBillingStripeStateVariables {
   teamId: string;
   stripeCustomerId: string;
   livemode: boolean;
+}
+
+export interface LinkMonthlyStatementInvoiceData {
+  linked: number;
+}
+
+export interface LinkMonthlyStatementInvoiceVariables {
+  teamId: string;
+  month: DateString;
+  invoiceId: string;
 }
 
 export interface PullRequestPlanning_Key {
@@ -985,6 +1061,42 @@ export function getBillingJob(
   vars: GetBillingJobVariables,
   options?: OperationOptions,
 ): Promise<ExecuteOperationResponse<GetBillingJobData>>;
+
+/** Generated Node Admin SDK operation action function for the 'GetClosedMonthlyStatement' Query. Allow users to execute without passing in DataConnect. */
+export function getClosedMonthlyStatement(
+  dc: DataConnect,
+  vars: GetClosedMonthlyStatementVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<GetClosedMonthlyStatementData>>;
+/** Generated Node Admin SDK operation action function for the 'GetClosedMonthlyStatement' Query. Allow users to pass in custom DataConnect instances. */
+export function getClosedMonthlyStatement(
+  vars: GetClosedMonthlyStatementVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<GetClosedMonthlyStatementData>>;
+
+/** Generated Node Admin SDK operation action function for the 'CloseTeamMonthlyStatement' Mutation. Allow users to execute without passing in DataConnect. */
+export function closeTeamMonthlyStatement(
+  dc: DataConnect,
+  vars: CloseTeamMonthlyStatementVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<CloseTeamMonthlyStatementData>>;
+/** Generated Node Admin SDK operation action function for the 'CloseTeamMonthlyStatement' Mutation. Allow users to pass in custom DataConnect instances. */
+export function closeTeamMonthlyStatement(
+  vars: CloseTeamMonthlyStatementVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<CloseTeamMonthlyStatementData>>;
+
+/** Generated Node Admin SDK operation action function for the 'LinkMonthlyStatementInvoice' Mutation. Allow users to execute without passing in DataConnect. */
+export function linkMonthlyStatementInvoice(
+  dc: DataConnect,
+  vars: LinkMonthlyStatementInvoiceVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<LinkMonthlyStatementInvoiceData>>;
+/** Generated Node Admin SDK operation action function for the 'LinkMonthlyStatementInvoice' Mutation. Allow users to pass in custom DataConnect instances. */
+export function linkMonthlyStatementInvoice(
+  vars: LinkMonthlyStatementInvoiceVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<LinkMonthlyStatementInvoiceData>>;
 
 /** Generated Node Admin SDK operation action function for the 'GetTeamMonthlyUsage' Query. Allow users to execute without passing in DataConnect. */
 export function getTeamMonthlyUsage(

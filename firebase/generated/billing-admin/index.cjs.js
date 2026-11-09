@@ -294,6 +294,39 @@ function getBillingJob(dcOrVarsOrOptions, varsOrOptions, options) {
 }
 exports.getBillingJob = getBillingJob;
 
+function getClosedMonthlyStatement(dcOrVarsOrOptions, varsOrOptions, options) {
+  const {
+    dc: dcInstance,
+    vars: inputVars,
+    options: inputOpts,
+  } = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeQuery("GetClosedMonthlyStatement", inputVars, inputOpts);
+}
+exports.getClosedMonthlyStatement = getClosedMonthlyStatement;
+
+function closeTeamMonthlyStatement(dcOrVarsOrOptions, varsOrOptions, options) {
+  const {
+    dc: dcInstance,
+    vars: inputVars,
+    options: inputOpts,
+  } = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeMutation("CloseTeamMonthlyStatement", inputVars, inputOpts);
+}
+exports.closeTeamMonthlyStatement = closeTeamMonthlyStatement;
+
+function linkMonthlyStatementInvoice(dcOrVarsOrOptions, varsOrOptions, options) {
+  const {
+    dc: dcInstance,
+    vars: inputVars,
+    options: inputOpts,
+  } = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeMutation("LinkMonthlyStatementInvoice", inputVars, inputOpts);
+}
+exports.linkMonthlyStatementInvoice = linkMonthlyStatementInvoice;
+
 function getTeamMonthlyUsage(dcOrVarsOrOptions, varsOrOptions, options) {
   const {
     dc: dcInstance,

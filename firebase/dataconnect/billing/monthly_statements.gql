@@ -1,0 +1,129 @@
+fragment ClosedStatementFields on BillingMonthlyStatement {
+  teamId
+  month
+  closedAt
+  currency
+  jpyPerUsd
+  rateDate
+  runCount
+  measuredMillis
+  billableMinutes
+  amountJpyTaxIncluded
+  amountUsdCentsTaxIncluded
+  stripeInvoiceId
+}
+
+query GetClosedMonthlyStatement($teamId: String!, $month: Date!) @auth(level: NO_ACCESS) {
+  statement: billingMonthlyStatement(key: { teamId: $teamId, month: $month }) {
+    ...ClosedStatementFields
+  }
+}
+
+# The first day identifies the month. The operator supplies the applied rate and
+# its date only for USD. afterRunId selects a page of the returned frozen breakdown.
+mutation CloseTeamMonthlyStatement(
+  $teamId: String!
+  $month: Date!
+  $currency: String!
+  $jpyPerUsd: String = null
+  $rateDate: Date = null
+  $afterRunId: String = null
+) @auth(level: NO_ACCESS) @transaction {
+  # Serialize concurrent closings and execution observations for this team.
+  account: billingAccount_update(key: { teamId: $teamId }, data: { usageRevision_update: { inc: 0 } })
+    @redact @check(expr: "this != null", message: "Billing account not found")
+  validate: query @redact {
+    calendar: _selectFirst(
+      sql: """
+      SELECT $1::date = date_trunc('month', $1::date)::date
+             AND ($1::date + interval '1 month') AT TIME ZONE 'Asia/Tokyo' <= now() AS ended,
+             $2::date <= (now() AT TIME ZONE 'Asia/Tokyo')::date AS rate_date_valid
+      """
+      params: [$month, $rateDate]
+    )
+      @check(expr: "this.ended == true", message: "Choose the first day of a completed Japan calendar month")
+      @check(
+        expr: "(vars.currency == 'JPY' && vars.jpyPerUsd == null && vars.rateDate == null) || (vars.currency == 'USD' && vars.jpyPerUsd != null && vars.jpyPerUsd.matches('^[0-9]{1,12}([.][0-9]{1,12})?$') && double(vars.jpyPerUsd) > 0 && this.rate_date_valid == true)"
+        message: "USD requires a positive JPY-per-USD rate and its date; JPY uses no exchange rate"
+      )
+  }
+  usage: query {
+    ...PostpaidMonthlyUsage
+  }
+  created: _execute(
+    sql: """
+    INSERT INTO billing_monthly_statements
+      (team_id, month, closed_at, currency, jpy_per_usd, rate_date, run_count,
+       measured_millis, billable_minutes, amount_jpy_tax_included, amount_usd_cents_tax_included)
+    VALUES ($1, $2::date, now(), $3, $4, $5::date, $6::bigint, $7::bigint, $8::bigint, $9::bigint, $10)
+    ON CONFLICT (team_id, month) DO NOTHING
+    """
+    params: [
+      $teamId, $month, $currency, $jpyPerUsd, $rateDate, { _expr: "response.usage.statement.runCount" },
+      { _expr: "response.usage.statement.measuredMillis" }, { _expr: "response.usage.statement.billableMinutes" },
+      { _expr: "response.usage.statement.amountJpyTaxIncluded" }, { _expr: "response.usage.statement.amountUsdCentsTaxIncluded" }
+    ]
+  ) @redact
+  guards: query @redact {
+    receipt: _selectFirst(
+      sql: """
+      SELECT currency = $3 AND jpy_per_usd::numeric IS NOT DISTINCT FROM $4::numeric
+             AND rate_date IS NOT DISTINCT FROM $5::date AS matches
+      FROM billing_monthly_statements WHERE team_id = $1 AND month = $2::date
+      """
+      params: [$teamId, $month, $currency, $jpyPerUsd, $rateDate]
+    ) @check(expr: "this.matches == true", message: "Statement already closed with different currency or exchange rate")
+    pending: _selectFirst(
+      sql: """
+      WITH bounds AS (
+        SELECT extract(epoch FROM $2::date::timestamp AT TIME ZONE 'Asia/Tokyo') * 1000 AS start_ms,
+          extract(epoch FROM ($2::date + interval '1 month') AT TIME ZONE 'Asia/Tokyo') * 1000 AS end_ms
+      )
+      SELECT EXISTS (
+        SELECT 1 FROM billing_executions e JOIN billing_periods p
+          ON p.id = e.period_id AND p.team_id = e.team_id CROSS JOIN bounds b
+        WHERE $3::int = 1 AND e.team_id = $1 AND p.period_type = 'postpaid'
+          AND e.finished_at_ms IS NULL AND e.started_at_ms < b.end_ms
+          AND e.lease_until_ms > b.start_ms AND e.observed_at_ms < b.end_ms
+      ) AS unsettled
+      """
+      params: [$teamId, $month, { _expr: "response.created" }]
+    ) @check(expr: "this.unsettled == false", message: "Execution observations are still pending for this month")
+  }
+  copied: _execute(
+    sql: """
+    INSERT INTO billing_monthly_statement_runs
+      (team_id, month, run_id, job_id, started_at_ms, observed_at_ms, vm_ready_at, outcome, measurement_incomplete)
+    SELECT e.team_id, $2::date, e.run_id, e.job_id, e.started_at_ms, e.observed_at_ms,
+           prep.updated_at, e.outcome, e.measurement_incomplete
+    FROM billing_executions e JOIN billing_periods p ON p.id = e.period_id AND p.team_id = e.team_id
+    LEFT JOIN build_steps prep ON prep.run_id = e.run_id AND prep.step_id = 'prepare_vm' AND prep.status = 'SUCCESS'
+    WHERE $3::int = 1 AND e.team_id = $1 AND p.period_type = 'postpaid'
+      AND e.started_at_ms < extract(epoch FROM ($2::date + interval '1 month') AT TIME ZONE 'Asia/Tokyo') * 1000
+      AND e.observed_at_ms > extract(epoch FROM $2::date::timestamp AT TIME ZONE 'Asia/Tokyo') * 1000
+    """
+    params: [$teamId, $month, { _expr: "response.created" }]
+  ) @redact
+  receipt: query {
+    statement: billingMonthlyStatement(key: { teamId: $teamId, month: $month }) {
+      ...ClosedStatementFields
+    }
+  }
+}
+
+# Associate the manually reviewed Stripe draft before issuing it.
+mutation LinkMonthlyStatementInvoice($teamId: String!, $month: Date!, $invoiceId: String!)
+@auth(level: NO_ACCESS) @transaction {
+  linked: billingMonthlyStatement_updateMany(
+    where: {
+      _and: [
+        { teamId: { eq: $teamId }, month: { eq: $month }, billableMinutes: { gt: 0 } },
+        { _or: [{ currency: { eq: "JPY" } }, { amountUsdCentsTaxIncluded: { ne: "0" } }] },
+        { _or: [{ stripeInvoiceId: { isNull: true } }, { stripeInvoiceId: { eq: $invoiceId } }] }
+      ]
+    }
+    data: { stripeInvoiceId: $invoiceId }
+  )
+    @check(expr: "vars.invoiceId.matches('^in_[A-Za-z0-9]+$') && size(vars.invoiceId) <= 255", message: "Invalid Stripe invoice ID")
+    @check(expr: "this == 1", message: "Expected a nonzero statement without a different invoice")
+}
