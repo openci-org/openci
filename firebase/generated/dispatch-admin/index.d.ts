@@ -241,6 +241,7 @@ export interface GetActiveBuildDispatchesData {
 }
 
 export interface GetBuildDispatchExclusionsData {
+  waitingForCard?: unknown[] | null;
   dispatches: {
     jobId: string;
   }[];

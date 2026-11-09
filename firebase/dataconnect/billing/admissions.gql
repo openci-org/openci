@@ -21,7 +21,7 @@ fragment BillingAdmissionFields on BillingAdmission {
   openJobId
 }
 
-# Functions authorize the worker and paid/complimentary entitlement, select a
+# Functions verify the default card or complimentary quota and select a
 # queued job, and enforce worker capacity. Never accept the period/time from a client.
 mutation CreateBillingAdmission(
   $id: String!
@@ -31,31 +31,53 @@ mutation CreateBillingAdmission(
   $periodId: String!
   $atMs: Int64!
   $vmName: String = null
+  $cardSessionId: String = null
+  $livemode: Boolean = null
 ) @auth(level: NO_ACCESS) @transaction {
   team_update(key: { id: $teamId }, data: { updatedAt_expr: "int(request.time)" })
     @redact
     @check(expr: "this != null", message: "Team not found")
   query @redact {
     ...BillingUsageSnapshot
+    account: billingAccount(key: { teamId: $teamId }) {
+      usageRevision
+    }
+    period: billingPeriod(first: { where: { id: { eq: $periodId }, teamId: { eq: $teamId } } })
+      @check(expr: "this != null && int(this.startsAt) <= int(vars.atMs) / 1000 && int(vars.atMs) / 1000 < int(this.endsAt)", message: "Billing period is not current")
+      @check(expr: "vars.cardSessionId == null ? (this.periodType == 'paid' && vars.periodId.startsWith('complimentary-pro:' + vars.teamId + ':')) : this.periodType == 'postpaid'", message: "Billing period does not match admission") {
+      periodType
+      startsAt
+      endsAt
+    }
+    customer: billingCustomerCreation(key: { teamId: $teamId }) {
+      stripeCustomerId
+      livemode
+    }
+    card: billingCardSetup(key: { teamId: $teamId })
+      @check(expr: "vars.cardSessionId == null || (this != null && this.sessionId == vars.cardSessionId && this.status == 'registered' && this.livemode == vars.livemode && this.paymentMethodId != null)", message: "Verified card consent changed") {
+      status
+      sessionId
+      stripeCustomerId
+      livemode
+      paymentMethodId
+    }
   }
   # The quota and revision above come from ONE SQL snapshot. Any concurrent
   # admission or execution change invalidates this CAS, including another job.
   billingAccount_updateMany(
     where: {
       teamId: { eq_expr: "response.team_update.id" }
-      usageRevision: {
-        eq_expr: "response.query.usage == null ? -1 : int(response.query.usage.revision)"
-      }
+      usageRevision: { eq_expr: "vars.cardSessionId != null ? int(response.query.account.usageRevision) : (response.query.usage == null ? -1 : int(response.query.usage.revision))" }
     }
     data: { usageRevision_update: { inc: 1 } }
   )
     @check(
-      expr: "response.query.usage != null && int(response.query.usage.availableMillis) > 0"
-      message: "No paid CI allowance remains"
+      expr: "vars.cardSessionId == null || (response.query.customer != null && response.query.customer.livemode == vars.livemode && response.query.customer.stripeCustomerId == response.query.card.stripeCustomerId)"
+      message: "Billing customer does not own this card consent"
     )
     @check(
-      expr: "int(response.query.usage.startsAt) <= int(vars.atMs) / 1000 && int(vars.atMs) / 1000 < int(response.query.usage.endsAt)"
-      message: "Billing period is not current"
+      expr: "vars.cardSessionId != null || (response.query.usage != null && int(response.query.usage.availableMillis) > 0)"
+      message: "No paid CI allowance remains"
     )
     @check(expr: "this == 1", message: "Billing usage changed; read and retry")
   buildJob_updateMany(
@@ -77,7 +99,7 @@ mutation CreateBillingAdmission(
       periodId: $periodId
       claimedAtMs: $atMs
       startByMs_expr: "int(vars.atMs) + 120000"
-      reservedMillis_expr: "int(response.query.usage.availableMillis) < 60000 ? int(response.query.usage.availableMillis) : 60000"
+      reservedMillis_expr: "vars.cardSessionId != null ? 0 : (int(response.query.usage.availableMillis) < 60000 ? int(response.query.usage.availableMillis) : 60000)"
       openJobId: $jobId
     }
   )

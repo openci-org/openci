@@ -6,7 +6,6 @@ export interface BillingConfig {
   livemode: boolean;
   origin: string;
   portalId: string;
-  prices: { light: string; pro: string };
   complimentary: Set<string>;
 }
 
@@ -19,10 +18,6 @@ export function billingConfig(env: NodeJS.ProcessEnv): BillingConfig {
     livemode: env.STRIPE_LIVEMODE === "true",
     origin: env.BILLING_DASHBOARD_ORIGIN?.trim() ?? "",
     portalId: env.STRIPE_PORTAL_CONFIGURATION_ID?.trim() ?? "",
-    prices: {
-      light: env.STRIPE_LIGHT_PRICE_ID?.trim() ?? "",
-      pro: env.STRIPE_PRO_PRICE_ID?.trim() ?? "",
-    },
     complimentary: new Set(
       (env.BILLING_COMPLIMENTARY_PRO_TEAM_IDS ?? "")
         .split(",")
@@ -45,13 +40,7 @@ export function billingConfig(env: NodeJS.ProcessEnv): BillingConfig {
   )
     throw new Error("Invalid billing origin");
   result.origin = url.origin;
-  if (
-    !result.portalId ||
-    !result.prices.light ||
-    !result.prices.pro ||
-    result.prices.light === result.prices.pro
-  )
-    throw new Error("Missing billing configuration");
+  if (!result.portalId) throw new Error("Missing billing portal configuration");
   const key = env.STRIPE_SECRET_KEY ?? "";
   if (!new RegExp(`^(sk|rk)_${result.livemode ? "live" : "test"}_.+`).test(key))
     throw new Error("Stripe key mode mismatch");

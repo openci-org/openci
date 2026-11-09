@@ -143,6 +143,16 @@ export interface CompleteBillingTeamCleanupVariables {
   teamId: string;
 }
 
+export interface ConfirmBillingCardReadyData {
+  updated?: number | null;
+}
+
+export interface ConfirmBillingCardReadyVariables {
+  teamId: string;
+  sessionId: string;
+  livemode: boolean;
+}
+
 export interface CreateBillingAdmissionData {
   billingAccount_updateMany: number;
   buildJob_updateMany: number;
@@ -157,6 +167,8 @@ export interface CreateBillingAdmissionVariables {
   periodId: string;
   atMs: Int64String;
   vmName?: string | null;
+  cardSessionId?: string | null;
+  livemode?: boolean | null;
 }
 
 export interface CreateBillingCheckoutCreationData {
@@ -810,6 +822,18 @@ export function resolveBillingCardSetup(
   vars: ResolveBillingCardSetupVariables,
   options?: OperationOptions,
 ): Promise<ExecuteOperationResponse<ResolveBillingCardSetupData>>;
+
+/** Generated Node Admin SDK operation action function for the 'ConfirmBillingCardReady' Mutation. Allow users to execute without passing in DataConnect. */
+export function confirmBillingCardReady(
+  dc: DataConnect,
+  vars: ConfirmBillingCardReadyVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<ConfirmBillingCardReadyData>>;
+/** Generated Node Admin SDK operation action function for the 'ConfirmBillingCardReady' Mutation. Allow users to pass in custom DataConnect instances. */
+export function confirmBillingCardReady(
+  vars: ConfirmBillingCardReadyVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<ConfirmBillingCardReadyData>>;
 
 /** Generated Node Admin SDK operation action function for the 'CreateBillingCheckoutCreation' Mutation. Allow users to execute without passing in DataConnect. */
 export function createBillingCheckoutCreation(

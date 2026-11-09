@@ -4,7 +4,13 @@ import type { GetBuildExecutionData, GetBuildExecutorContextData } from "@openci
 export type Dispatch = NonNullable<GetBuildExecutionData["dispatch"]>;
 export type Job = NonNullable<GetBuildExecutionData["job"]>;
 export type Context = GetBuildExecutorContextData;
-export type Outcome = "success" | "failure" | "cancelled" | "timed_out" | "blocked";
+export type Outcome =
+  | "success"
+  | "failure"
+  | "cancelled"
+  | "timed_out"
+  | "blocked"
+  | "card_required";
 export type Stream = "stdout" | "stderr";
 
 const flutterRelease = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z]+(?:[.-][0-9A-Za-z]+)*)?$/;

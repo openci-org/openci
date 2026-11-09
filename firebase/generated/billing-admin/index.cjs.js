@@ -84,6 +84,17 @@ function resolveBillingCardSetup(dcOrVarsOrOptions, varsOrOptions, options) {
 }
 exports.resolveBillingCardSetup = resolveBillingCardSetup;
 
+function confirmBillingCardReady(dcOrVarsOrOptions, varsOrOptions, options) {
+  const {
+    dc: dcInstance,
+    vars: inputVars,
+    options: inputOpts,
+  } = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeMutation("ConfirmBillingCardReady", inputVars, inputOpts);
+}
+exports.confirmBillingCardReady = confirmBillingCardReady;
+
 function createBillingCheckoutCreation(dcOrVarsOrOptions, varsOrOptions, options) {
   const {
     dc: dcInstance,

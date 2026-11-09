@@ -168,14 +168,21 @@ export async function cardSetupStatus(
   initial: BillingContext["cardSetup"],
 ) {
   let setup = initial;
+  if (setup)
+    verify(setup.termsVersion === cardTermsVersion && setup.livemode === stripe.config.livemode);
   if (setup?.status === "pending") {
     if (await reconcileCardSession(store, stripe, setup)) return "pending";
     setup = await store.cardSetup(setup.teamId);
   }
   if (!setup || setup.status === "expired") return "unregistered";
   if (setup.status === "pending") return "pending";
-  verify(setup.status === "registered" && setup.livemode === stripe.config.livemode);
-  const customer = await stripe.ownedCustomer(setup.teamId, setup.stripeCustomerId);
+  verify(
+    setup.status === "registered" &&
+      setup.termsVersion === cardTermsVersion &&
+      setup.livemode === stripe.config.livemode,
+  );
+  const customer = await stripe.customerIfPresent(setup.teamId, setup.stripeCustomerId);
+  if (!customer) return "needs_card";
   const methodId = id(customer.invoice_settings.default_payment_method);
   if (!methodId) return "needs_card";
   if (methodId === setup.paymentMethodId) return "registered";

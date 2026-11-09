@@ -61,6 +61,7 @@ mutation RecordBillingCardConsent(
       consentedAt_expr: "request.time"
       status: "pending"
       paymentMethodId: null
+      readyAt: null
       resolvedAt: null
     }
   )
@@ -89,4 +90,17 @@ mutation ResolveBillingCardSetup(
       resolvedAt_expr: "request.time"
     }
   )
+}
+
+# Wakes waiting jobs after the default card is restored in the Customer Portal.
+# Resolution time and the original card consent remain immutable.
+mutation ConfirmBillingCardReady($teamId: String!, $sessionId: String!, $livemode: Boolean!)
+@auth(level: NO_ACCESS) @transaction {
+  updated: _execute(
+    sql: """
+    UPDATE billing_card_setups SET ready_at = GREATEST(ready_at, resolved_at, now())
+    WHERE team_id = $1 AND session_id = $2 AND livemode = $3 AND status = 'registered'
+    """
+    params: [$teamId, $sessionId, $livemode]
+  ) @check(expr: "this == 1", message: "Card consent changed")
 }

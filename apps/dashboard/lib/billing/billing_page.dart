@@ -156,7 +156,6 @@ class _TeamBillingPageState extends ConsumerState<_TeamBillingPage> {
         'card_success',
         'card_cancel',
       }.contains(widget.result),
-      onCheckout: (planId) => unawaited(_openStripe((a) => a.checkout(planId))),
       onPortal: () => unawaited(_openStripe((a) => a.portal())),
       onSetupCard: () => unawaited(_openStripe((a) => a.setupCard())),
       onReload: _reload,

@@ -19,6 +19,7 @@ import type { OrchardExecutor } from "./orchard.js";
 export interface ExecutorDependencies {
   store: Pick<ExecutionStore, keyof ExecutionStore>;
   billing: Pick<ExecutionBilling, "period" | "admit" | "start" | "heartbeat" | "close">;
+  verifyCard: (teamId: string, livemode: boolean) => Promise<string | null>;
   github: Pick<ExecutionGitHub, "options" | "resolveCheckoutCommit" | "checkout" | "check">;
   orchard: Pick<OrchardExecutor, "create" | "ready" | "remove" | "exec" | "vmNames">;
   logs: (dispatch: Dispatch) => Pick<ExecutionLogs, "start" | "finish" | "output">;
@@ -49,8 +50,9 @@ export async function cleanupExecution(
     throw new Error("Cleanup ownership lost");
   identity(dispatch);
   if (recovery) await dependencies.stopExecution(dispatch);
-  // A DELETE acknowledgement alone is insufficient; remove also confirms GET 404.
-  await orchard.remove(dispatch.vmName);
+  // Card rejection precedes even the VM request. Other paths must confirm GET 404.
+  if (dispatch.outcome !== "card_required" || dispatch.vmRequestedAt)
+    await orchard.remove(dispatch.vmName);
   await store.vmDeleted(id, owner);
   const current =
     state.job?.latestRunId === dispatch.runId ||
@@ -60,7 +62,7 @@ export async function cleanupExecution(
   await billing.close(dispatch);
   if (
     state.job &&
-    (state.run || dispatch.checkRunId) &&
+    (state.run || dispatch.checkRunId || dispatch.outcome === "card_required") &&
     (dispatch.outcome !== "blocked" || state.run?.runNumber)
   ) {
     validateJob(state.job, dispatch);
@@ -163,6 +165,7 @@ export async function executeBuild(
         job.teamId!,
         configuration.livemode,
         configuration.complimentary,
+        dependencies.verifyCard,
       );
       signal.throwIfAborted();
       await billing.admit(dispatch, period);

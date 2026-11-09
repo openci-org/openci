@@ -22,24 +22,16 @@ class BillingActions {
   final String teamId;
   bool _pending = false;
 
-  Future<Uri> checkout(String planId) {
-    if (!{'light', 'pro'}.contains(planId)) {
-      throw const BillingException('invalid_plan');
-    }
-    return _create('checkout', planId: planId).then((url) => url!);
-  }
-
   Future<Uri> portal() async => (await _create('portal'))!;
 
   Future<Uri?> setupCard() => _create('setupCard');
 
-  Future<Uri?> _create(String action, {String? planId}) async {
+  Future<Uri?> _create(String action) async {
     _requireCurrentIdentity();
     if (_pending) throw const BillingException('request_in_progress');
     final status = _ref.read(billingStatusProvider(teamId));
     final data = status.asData?.value;
     final allowed = switch (action) {
-      'checkout' => data?.canCheckout,
       'portal' => data?.canManageBilling,
       'setupCard' => data?.canSetupCard,
       _ => false,
@@ -57,7 +49,6 @@ class BillingActions {
       final body = await api.call(
         action,
         teamId,
-        planId: planId,
         termsVersion: action == 'setupCard'
             ? 'ci-jpy1-tax-included-monthly-v1'
             : null,

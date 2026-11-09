@@ -31,10 +31,17 @@ export class DataConnectDispatchStore implements DispatchStore {
     return (await sdk.getActiveBuildDispatches(this.dc)).data.dispatches;
   }
   async oldestQueued(): Promise<{ id: string } | null> {
-    const { dispatches } = (await sdk.getBuildDispatchExclusions(this.dc)).data;
+    const { dispatches, waitingForCard } = (await sdk.getBuildDispatchExclusions(this.dc)).data;
+    const excludedJobIds = dispatches.map((dispatch) => dispatch.jobId);
+    if (!Array.isArray(waitingForCard)) throw new Error("Card waiting jobs unavailable");
+    for (const row of waitingForCard) {
+      if (!row || typeof row !== "object" || !("id" in row) || typeof row.id !== "string")
+        throw new Error("Invalid card waiting job");
+      excludedJobIds.push(row.id);
+    }
     const { job } = (
       await sdk.getOldestQueuedBuildJob(this.dc, {
-        excludedJobIds: dispatches.map((dispatch) => dispatch.jobId),
+        excludedJobIds,
       })
     ).data;
     return job ?? null;

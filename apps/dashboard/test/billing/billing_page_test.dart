@@ -56,7 +56,7 @@ void main() {
       return jsonResponse({
         'billingEnabled': true,
         'planId': paid ? 'light' : null,
-        'canStartCi': paid,
+        'canStartCi': paid || cardStatus == 'registered',
         'blockReason': paid ? '' : 'payment_required',
         'paidUntil': paid ? '2026-11-21T12:00:00Z' : null,
         'canCheckout': !paid,
@@ -123,7 +123,7 @@ void main() {
     });
     expect(find.text('team-1'), findsOneWidget);
     expect(find.text('CIを利用できます'), findsNothing);
-    expect(find.text('CIの利用にはプランの購入が必要です。'), findsOneWidget);
+    expect(find.text('CIを開始するには、このチームの請求用カードを登録してください。'), findsOneWidget);
     await tester.pump(const Duration(minutes: 10));
     expect(requests, hasLength(1));
     paid = true;
@@ -219,37 +219,18 @@ void main() {
       });
       expect(find.text('後払い用のカードは登録済みです。'), findsOneWidget);
       expect(find.text('支払い方法を登録'), findsNothing);
-      expect(find.text('CIを利用できます'), findsNothing);
+      expect(find.text('CIを利用できます'), findsOneWidget);
     },
   );
-
-  testWidgets('Checkout opens the validated destination in the same window', (
-    tester,
-  ) async {
-    await show(tester);
-    await tester.tap(find.text('Lightを選ぶ'));
-    await tester.pumpAndSettle();
-    expect(billingCallData(requests.last), {
-      'action': 'checkout',
-      'teamId': 'team-1',
-      'planId': 'light',
-    });
-    expect(launcher.url, 'https://checkout.stripe.com/c/pay/test');
-    expect(launcher.options?.webOnlyWindowName, '_self');
-    expect(
-      requests.where((r) => billingCallData(r)['action'] == 'status'),
-      hasLength(1),
-    );
-  });
 
   testWidgets('Portal and launch failures preserve the team and allow retry', (
     tester,
   ) async {
     launcher.success = false;
     await show(tester);
-    await tester.scrollUntilVisible(find.text('契約を管理'), 200);
+    await tester.scrollUntilVisible(find.text('支払い方法を管理'), 200);
     await tester.pump();
-    await tester.tap(find.text('契約を管理'));
+    await tester.tap(find.text('支払い方法を管理'));
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(
       find.textContaining('Stripeを開けませんでした'),
@@ -257,9 +238,9 @@ void main() {
     );
     expect(find.textContaining('Stripeを開けませんでした'), findsOneWidget);
     launcher.success = true;
-    await tester.scrollUntilVisible(find.text('契約を管理'), -200);
+    await tester.scrollUntilVisible(find.text('支払い方法を管理'), -200);
     await tester.pump();
-    await tester.tap(find.text('契約を管理'));
+    await tester.tap(find.text('支払い方法を管理'));
     await tester.pumpAndSettle();
     expect(launcher.url, 'https://billing.stripe.com/p/session/test');
     expect(billingCallData(requests.last), {
@@ -268,26 +249,29 @@ void main() {
     });
   });
 
-  testWidgets('membership loss during a purchase hides stale billing data', (
-    tester,
-  ) async {
-    await show(tester);
-    respond = (_) async => jsonResponse({'error': 'forbidden'}, status: 403);
-    await tester.tap(find.text('Lightを選ぶ'));
-    await tester.pumpAndSettle();
-    expect(find.text('このチームの課金情報にアクセスできません。'), findsOneWidget);
-    expect(find.text('Lightを選ぶ'), findsNothing);
-    expect(find.text('team-1'), findsNothing);
-    expect(launcher.url, isNull);
-  });
+  testWidgets(
+    'membership loss while opening the Portal hides stale billing data',
+    (
+      tester,
+    ) async {
+      await show(tester);
+      respond = (_) async => jsonResponse({'error': 'forbidden'}, status: 403);
+      await tester.tap(find.text('支払い方法を管理'));
+      await tester.pumpAndSettle();
+      expect(find.text('このチームの課金情報にアクセスできません。'), findsOneWidget);
+      expect(find.text('Lightを選ぶ'), findsNothing);
+      expect(find.text('team-1'), findsNothing);
+      expect(launcher.url, isNull);
+    },
+  );
 
-  testWidgets('sign-out suppresses a delayed Checkout redirect', (
+  testWidgets('sign-out suppresses a delayed Portal redirect', (
     tester,
   ) async {
     await show(tester);
     final response = Completer<http.Response>();
     respond = (_) => response.future;
-    await tester.tap(find.text('Lightを選ぶ'));
+    await tester.tap(find.text('支払い方法を管理'));
     await tester.pump(Duration.zero);
     identity = null;
     container.invalidate(billingIdentityProvider);

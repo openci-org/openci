@@ -41,7 +41,6 @@ class BillingApi {
   Future<Map<String, dynamic>> call(
     String action,
     String teamId, {
-    String? planId,
     String? termsVersion,
   }) async {
     _requireCurrent();
@@ -49,7 +48,6 @@ class BillingApi {
       final result = await callable.call<Map<String, dynamic>>({
         'action': action,
         'teamId': teamId,
-        'planId': ?planId,
         'termsVersion': ?termsVersion,
       });
       _requireCurrent();

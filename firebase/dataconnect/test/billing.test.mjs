@@ -8,11 +8,10 @@ import * as sdk from "@openci/billing-admin";
 import { BillingStore } from "../../lib/functions/billing/store.js";
 import { Billing } from "../../lib/functions/billing/service.js";
 import { cardTermsVersion } from "../../lib/functions/billing/card_setup.js";
-import { receiveStripeWebhook } from "../../lib/functions/billing/webhook.js";
+import { cardFixture } from "./helpers/card_setup.mjs";
 import {
   config,
   now,
-  price,
   session,
   intent,
   subscription,
@@ -433,9 +432,50 @@ test("concurrent Checkout creation and deletion cannot both commit", async (t) =
   assert.equal(results.filter((r) => r.status === "fulfilled").length, 1);
 });
 
+test("new admissions reject old paid periods and postpaid claims without matching card consent", async (t) => {
+  const f = await fixture(t);
+  const legacy = await period(f);
+  const postpaid = await period(f, {
+    planId: "postpaid",
+    periodType: "postpaid",
+    allowanceSeconds: null,
+  });
+  const job = await seedJob(f);
+  const claim = {
+    id: randomUUID(),
+    teamId: f.teamId,
+    jobId: job.id,
+    workerHost: "executor",
+    atMs: String(Date.now()),
+  };
+  await assert.rejects(sdk.createBillingAdmission(dc, { ...claim, periodId: legacy.id }));
+  await assert.rejects(sdk.createBillingAdmission(dc, { ...claim, periodId: postpaid.id }));
+  const card = cardFixture(dc, f);
+  await card.start();
+  const [session] = card.sessions.values();
+  await assert.rejects(
+    sdk.createBillingAdmission(dc, {
+      ...claim,
+      periodId: postpaid.id,
+      cardSessionId: session.id,
+      livemode: false,
+    }),
+  );
+  card.complete(session);
+  await card.webhook(session);
+  for (const [cardSessionId, livemode] of [
+    ["another-session", false],
+    [session.id, true],
+  ])
+    await assert.rejects(
+      sdk.createBillingAdmission(dc, { ...claim, periodId: postpaid.id, cardSessionId, livemode }),
+    );
+  assert.equal((await sdk.getBillingJob(dc, { id: job.id })).data.job.status, "QUEUED");
+});
+
 test("generated SDK executes reservation, run binding, measurement and completion", async (t) => {
   const f = await fixture(t);
-  const p = await period(f);
+  const p = await period(f, { id: `complimentary-pro:${f.teamId}:current` });
   const job = await seedJob(f);
   const atMs = String(Date.now());
   const id = randomUUID();
@@ -486,7 +526,11 @@ test("CommonJS default SDK and admission expiry preserve queued jobs", async (t)
     (await cjs.getBillingContext({ teamId: f.teamId, userId: f.userId })).data.customer,
     null,
   );
-  const p = await period(f, { startsAt: "1", endsAt: "3600" });
+  const p = await period(f, {
+    id: `complimentary-pro:${f.teamId}:1970-01`,
+    startsAt: "1",
+    endsAt: "3600",
+  });
   const job = await seedJob(f);
   const id = randomUUID();
   await sdk.createBillingAdmission(dc, {
@@ -727,82 +771,25 @@ test("deletion durably captures cleanup and a private receipt before cascading c
   );
 });
 
-test("parallel callable checkouts share one durable Stripe purchase and recover lost database replies", async (t) => {
+test("old clients cannot purchase monthly plans for any team or create Stripe resources", async (t) => {
   const f = await fixture(t);
-  let customer;
-  const sessions = new Map();
-  const stripe = stripeFixture((r) => {
-    const path = r.url.pathname;
-    if (path === "/v1/prices/price_light") return price;
-    if (path === "/v1/customers" && r.method === "POST") {
-      customer ??= { id: `cus_${f.teamId}`, livemode: false, metadata: { team_id: f.teamId } };
-      return customer;
-    }
-    if (path === `/v1/customers/${customer?.id}`) return customer;
-    if (path === "/v1/subscriptions") return { data: [], has_more: false };
-    if (path === "/v1/checkout/sessions" && r.method === "POST") {
-      const key = r.headers.get("idempotency-key");
-      const i = {
-        ...intent(f.teamId),
-        idempotencyKey: key,
-        stripeCustomerId: customer.id,
-        successUrl: r.body.get("success_url"),
-        cancelUrl: r.body.get("cancel_url"),
-      };
-      if (!sessions.has(key)) sessions.set(key, { ...session(i), id: `cs_${key}` });
-      return sessions.get(key);
-    }
-    return [...sessions.values()].find((s) => path === `/v1/checkout/sessions/${s.id}`);
-  });
-  const store = new BillingStore(dc);
-  const record = store.recordCheckout.bind(store);
-  store.recordCheckout = async (...args) => {
-    await record(...args);
-    throw Error("lost reply after commit");
-  };
-  const service = new Billing(store, stripe.stripe, config);
-  const results = await Promise.all(
-    [1, 2].map(() =>
-      service.execute(f.userId, { action: "checkout", teamId: f.teamId, planId: "light" }),
-    ),
-  );
-  assert.equal(results[0].url, results[1].url);
-  assert.equal(sessions.size, 1);
-  assert.equal(
-    new Set(
-      stripe.requests
-        .filter((r) => r.url.pathname === "/v1/customers")
-        .map((r) => r.headers.get("idempotency-key")),
-    ).size,
-    1,
-  );
-  const saved = await context(f);
-  assert.equal(saved.checkout.stripeCheckoutSessionId, [...sessions.values()][0].id);
-});
-
-test("membership revoked during Stripe price lookup prevents any purchase creation", async (t) => {
-  const f = await fixture(t);
-  const stripe = stripeFixture(async (r) => {
-    assert.equal(r.url.pathname, "/v1/prices/price_light");
-    await graphql(
-      `
-        mutation Revoke($teamId: String!) {
-          teamMember_deleteMany(where: { teamId: { eq: $teamId } })
-        }
-      `,
-      { teamId: f.teamId },
+  const service = new Billing(new BillingStore(dc), null, config);
+  for (const planId of ["light", "pro"]) {
+    await assert.rejects(
+      service.execute(f.userId, { action: "checkout", teamId: f.teamId, planId }),
+      /monthly_plans_closed/,
     );
-    return price;
-  });
-  const service = new Billing(new BillingStore(dc), stripe.stripe, config);
-  await assert.rejects(
-    service.execute(f.userId, { action: "checkout", teamId: f.teamId, planId: "light" }),
-    /forbidden/,
-  );
-  assert.equal(stripe.requests.length, 1);
+    await assert.rejects(
+      service.execute("outsider", { action: "checkout", teamId: f.teamId, planId }),
+      /forbidden/,
+    );
+  }
+  const stored = await context(f);
+  assert.equal(stored.customer, null);
+  assert.equal(stored.checkout, null);
 });
 
-test("paid renewal, failed renewal and cancellation update callable status through the real FSC ledger", async (t) => {
+test("legacy renewals still reconcile history and never authorize new CI", async (t) => {
   const f = await fixture(t);
   const c = await customer(f);
   const i = {
@@ -839,131 +826,41 @@ test("paid renewal, failed renewal and cancellation update callable status throu
     if (r.url.pathname === `/v1/invoices/${paid.id}`) return paid;
   });
   const service = new Billing(new BillingStore(dc), stripe.stripe, config, () => at);
-  const status = () => service.execute(f.userId, { action: "status", teamId: f.teamId });
-  assert.equal((await status()).canStartCi, true);
+  let seq = 0;
+  const checkPeriod = async () => {
+    await service.reconcile(
+      f.teamId,
+      c.stripeCustomerId,
+      `renewal-${f.teamId}-${++seq}`,
+      "invoice.paid",
+      Math.floor(at / 1000),
+    );
+    const status = await service.execute(f.userId, { action: "status", teamId: f.teamId });
+    assert.equal(status.canStartCi, false);
+    assert.equal(status.canCheckout, false);
+    return (await context(f)).stripe;
+  };
+  assert.ok((await checkPeriod()).paidPeriodId);
   paid = { ...paid, id: `in_renew_${f.teamId}`, status: "open" };
   sub.latest_invoice = paid.id;
   sub.status = "past_due";
   sub.items.data[0].current_period_start = now + 60;
   sub.items.data[0].current_period_end = now + 120;
-  assert.equal((await status()).canStartCi, true); // Prior paid window is retained.
+  assert.ok((await checkPeriod()).paidPeriodId); // Prior paid window is retained.
   at = (now + 61) * 1000;
-  assert.equal((await status()).canStartCi, false);
+  assert.ok((await checkPeriod()).paidPeriodId);
   paid.status = "paid";
   paid.lines.data[0].invoice = paid.id;
   paid.lines.data[0].period = { start: now + 60, end: now + 120 };
   sub.status = "active";
-  assert.equal((await status()).canStartCi, true);
+  assert.ok((await checkPeriod()).paidPeriodId);
   sub.status = "canceled";
-  const ended = await status();
-  assert.equal(ended.canStartCi, false);
-  assert.equal(ended.blockReason, "subscription_ended");
+  assert.equal((await checkPeriod()).subscriptionStatus, "canceled");
 });
-
-function cardFixture(f) {
-  const customerId = `cus_${f.teamId}`;
-  const sessions = new Map();
-  const keys = new Map();
-  const state = { defaultMethod: null, appliedSession: null, writes: 0 };
-  const customer = () => ({
-    id: customerId,
-    livemode: false,
-    metadata: { team_id: f.teamId, postpaid_card_session: state.appliedSession },
-    invoice_settings: { default_payment_method: state.defaultMethod },
-  });
-  const api = stripeFixture(({ url, method, body, headers }) => {
-    if (url.pathname === "/v1/customers" && method === "POST") return customer();
-    if (url.pathname === `/v1/customers/${customerId}`) {
-      if (method === "POST") {
-        state.writes++;
-        state.defaultMethod = body.get("invoice_settings[default_payment_method]");
-        state.appliedSession = body.get("metadata[postpaid_card_session]");
-      }
-      return customer();
-    }
-    if (url.pathname === "/v1/subscriptions") return { data: [], has_more: false };
-    if (url.pathname === "/v1/checkout/sessions" && method === "POST") {
-      assert.equal(body.get("mode"), "setup");
-      assert.equal(body.get("currency"), "jpy");
-      assert.equal(body.get("allowed_payment_method_types[0]"), "card");
-      assert.equal(body.get("customer"), customerId);
-      assert.equal(body.get("client_reference_id"), f.teamId);
-      assert.equal(body.get("metadata[card_terms]"), cardTermsVersion);
-      assert.equal(body.get("metadata[team_id]"), f.teamId);
-      assert.equal(body.has("line_items[0][price]"), false);
-      const key = headers.get("idempotency-key");
-      assert.ok(key);
-      if (!keys.has(key)) {
-        const id = `cs_test_${randomUUID()}`;
-        keys.set(key, id);
-        sessions.set(id, {
-          id,
-          status: "open",
-          mode: "setup",
-          customer: customerId,
-          livemode: false,
-          metadata: { team_id: f.teamId, card_terms: cardTermsVersion },
-          client_reference_id: f.teamId,
-          url: `https://checkout.stripe.com/c/pay/${id}`,
-        });
-      }
-      return sessions.get(keys.get(key));
-    }
-    if (url.pathname.endsWith("/expire") && method === "POST") {
-      const session = sessions.get(url.pathname.split("/").at(-2));
-      session.status = "expired";
-      return session;
-    }
-    if (url.pathname.startsWith("/v1/checkout/sessions/"))
-      return sessions.get(url.pathname.split("/").at(-1));
-    if (url.pathname.startsWith("/v1/payment_methods/"))
-      return {
-        id: state.defaultMethod,
-        livemode: false,
-        customer: customerId,
-        type: "card",
-      };
-  });
-  const service = new Billing(new BillingStore(dc), api.stripe, config);
-  const input = { action: "setupCard", teamId: f.teamId, termsVersion: cardTermsVersion };
-  const start = () => service.execute(f.userId, input);
-  const status = () => service.execute(f.userId, { action: "status", teamId: f.teamId });
-  function complete(s) {
-    s.status = "complete";
-    s.setup_intent = {
-      id: "seti_test",
-      status: "succeeded",
-      usage: "off_session",
-      customer: customerId,
-      livemode: false,
-      payment_method: { id: "pm_card_visa", type: "card", customer: customerId, livemode: false },
-    };
-  }
-  function webhook(s, type = "checkout.session.completed", eventId = "evt_card") {
-    const secret = "whsec_test";
-    const payload = JSON.stringify({
-      id: eventId,
-      type,
-      created: now,
-      livemode: false,
-      data: { object: { id: s.id, mode: "setup", customer: customerId } },
-    });
-    return receiveStripeWebhook(
-      {
-        method: "POST",
-        rawBody: Buffer.from(payload),
-        signature: api.client.webhooks.generateTestHeaderString({ payload, secret }),
-      },
-      service,
-      secret,
-    );
-  }
-  return { api, service, input, customerId, start, status, sessions, state, complete, webhook };
-}
 
 test("card setup records explicit team consent once and verifies the card on signed completion", async (t) => {
   const f = await fixture(t);
-  const c = cardFixture(f);
+  const c = cardFixture(dc, f);
   await assert.rejects(c.service.execute("outsider", c.input));
   await assert.rejects(
     c.service.execute(f.userId, { ...c.input, termsVersion: "old" }),
@@ -1009,15 +906,19 @@ test("card setup records explicit team consent once and verifies the card on sig
   assert.deepEqual(await c.start(), { registered: true });
   const status = await c.status();
   assert.equal(status.cardSetupStatus, "registered");
-  assert.equal(status.canStartCi, false);
+  assert.equal(status.canStartCi, true);
+  assert.equal(await c.service.cardSessionForCi(f.teamId, false), s.id);
   assert.equal((await context({ teamId: f.otherTeamId, userId: f.userId })).cardSetup, null);
   c.state.defaultMethod = null;
   assert.equal((await c.status()).cardSetupStatus, "needs_card");
+  assert.equal((await c.status()).canStartCi, false);
+  assert.equal(await c.service.cardSessionForCi(f.teamId, false), null);
+  await assert.rejects(c.service.cardSessionForCi(f.teamId, true));
 });
 
 test("expired card setup can be retried and refresh recovers a missed completion", async (t) => {
   const f = await fixture(t);
-  const c = cardFixture(f);
+  const c = cardFixture(dc, f);
   await c.start();
   const first = [...c.sessions.values()][0];
   first.status = "expired";
@@ -1039,7 +940,7 @@ test("expired card setup can be retried and refresh recovers a missed completion
 
 test("team deletion closes an unfinished setup before a late webhook can register a card", async (t) => {
   const f = await fixture(t);
-  const c = cardFixture(f);
+  const c = cardFixture(dc, f);
   await c.start();
   const open = [...c.sessions.values()][0];
   assert.deepEqual(await c.service.execute(f.userId, { action: "deleteTeam", teamId: f.teamId }), {
@@ -1064,6 +965,10 @@ test("card setup operations reject direct clients and consent checks durable tea
     [sdk.getBillingCardSetup, { teamId: f.teamId }],
     [sdk.recordBillingCardConsent, { ...vars, userId: f.userId, termsVersion: cardTermsVersion }],
     [sdk.resolveBillingCardSetup, { ...vars, paymentMethodId: "pm_test" }],
+    [
+      sdk.confirmBillingCardReady,
+      { teamId: f.teamId, sessionId: vars.sessionId, livemode: vars.livemode },
+    ],
   ]) {
     await assert.rejects(
       operation(dc, input, {

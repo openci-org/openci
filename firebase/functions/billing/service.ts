@@ -1,21 +1,18 @@
 import { randomUUID } from "node:crypto";
 import type { BillingConfig } from "./config.js";
-import { returnUrl } from "./config.js";
 import {
   BillingError,
   emptyObservation,
   pending,
-  plan,
   terminal,
   UnverifiedPurchase,
   type BillingContext,
-  type CheckoutIntent,
   type Observation,
   type StripeState,
 } from "./model.js";
 import { observePurchase } from "./purchase.js";
 import { BillingStore } from "./store.js";
-import { StripeBilling, stripeRedirect } from "./stripe.js";
+import { StripeBilling } from "./stripe.js";
 import {
   cardSetupStatus,
   cardTermsVersion,
@@ -37,7 +34,7 @@ export class Billing {
   async execute(userId: string, input: unknown) {
     if (!input || typeof input !== "object" || Array.isArray(input))
       throw new BillingError("invalid-argument", "invalid_request");
-    const { action, teamId, planId, termsVersion } = input as Record<string, unknown>;
+    const { action, teamId, termsVersion } = input as Record<string, unknown>;
     if (
       typeof action !== "string" ||
       !["status", "checkout", "setupCard", "portal", "deleteTeam"].includes(action) ||
@@ -62,7 +59,7 @@ export class Billing {
       return startCardSetup(this.store, this.stripe, teamId, userId, customerId);
     }
     if (action === "checkout")
-      return { url: await this.checkout(teamId, userId, plan(planId), context) };
+      throw new BillingError("failed-precondition", "monthly_plans_closed");
     const customerId = context.customer?.stripeCustomerId;
     if (!customerId) throw new BillingError("failed-precondition", "customer_missing");
     await this.stripe.ownedCustomer(teamId, customerId);
@@ -125,50 +122,21 @@ export class Billing {
       result.canStartCi = (await this.store.available(teamId, period.id, this.now())) > 0n;
       result.blockReason = result.canStartCi ? "" : "allowance_exhausted";
     } else {
-      if (context.customer?.stripeCustomerId) {
-        // Explicit page reload also repairs a delayed or missed webhook.
-        await this.reconcile(
-          teamId,
-          context.customer.stripeCustomerId,
-          `refresh:${randomUUID()}`,
-          "billing.refresh",
-          this.seconds(),
-        );
-        context = await this.store.context(teamId, userId);
-        this.compatible(context);
-      }
-      const state = context.stripe;
       result.cardSetupStatus = await cardSetupStatus(this.store, this.stripe, context.cardSetup);
-      const status = state?.subscriptionStatus ?? "none";
-      const period = state?.paidPeriod;
-      result.planId = state?.planId ?? null;
-      result.cancelAtPeriodEnd = state?.cancelAtPeriodEnd ?? false;
       result.canManageBilling = !!context.customer?.stripeCustomerId;
-      result.canCheckout = status === "none" || terminal(status);
-      // Retrying Checkout must remain possible after a lost customer-creation
-      // response: ensureCustomer reuses/reconciles the existing intent.
-      if (period) result.paidUntil = new Date(Number(period.endsAt) * 1000).toISOString();
-      result.canStartCi = !!(
-        period &&
-        period.id === state?.paidPeriodId &&
-        period.teamId === teamId &&
-        period.planId === state?.planId &&
-        period.periodType === "paid" &&
-        ["active", "past_due"].includes(status) &&
-        Number(period.startsAt) <= this.seconds() &&
-        Number(period.endsAt) > this.seconds()
-      );
-      if (result.canStartCi) {
-        result.canStartCi = (await this.store.available(teamId, period!.id, this.now())) > 0n;
-        result.blockReason = result.canStartCi ? "" : "allowance_exhausted";
-      } else if (status === "unverified") result.blockReason = "billing_unavailable";
-      else if (terminal(status)) result.blockReason = "subscription_ended";
-      else if (
-        status === "incomplete" ||
-        (status === "none" &&
-          (context.checkout || (context.customer && !context.customer.stripeCustomerId)))
-      )
-        result.blockReason = "payment_pending";
+      result.canStartCi = result.cardSetupStatus === "registered";
+      result.blockReason = result.canStartCi
+        ? ""
+        : result.cardSetupStatus === "pending"
+          ? "payment_pending"
+          : "payment_required";
+      if (result.canStartCi && context.cardSetup) {
+        await this.store.confirmCardReady(
+          teamId,
+          context.cardSetup.sessionId,
+          this.config.livemode,
+        );
+      }
     }
     await this.store.context(teamId, userId);
     return result;
@@ -205,83 +173,17 @@ export class Billing {
     return customer.id;
   }
 
-  private async ensureSession(teamId: string, userId: string, intent: CheckoutIntent) {
-    await this.store.context(teamId, userId);
-    const session = await this.stripe.session(intent, this.seconds());
-    try {
-      await this.store.recordCheckout(intent, session.id);
-    } catch {
-      /* Confirm saved identity below. */
-    }
-    const current = (await this.store.context(teamId, userId)).checkout;
-    if (
-      !current ||
-      current.idempotencyKey !== intent.idempotencyKey ||
-      current.stripeCheckoutSessionId !== session.id
-    )
-      throw pending();
-    return session;
-  }
-
-  private async checkout(
-    teamId: string,
-    userId: string,
-    planId: "light" | "pro",
-    context: BillingContext,
-  ) {
-    if (this.config.complimentary.has(teamId))
-      throw new BillingError("failed-precondition", "subscription_exists");
-    const stripePriceId = await this.stripe.price(planId);
-    const stripeCustomerId = await this.ensureCustomer(teamId, userId, context);
-    await this.stripe.ownedCustomer(teamId, stripeCustomerId);
-    await this.stripe.noSubscription(stripeCustomerId);
-    context = await this.store.context(teamId, userId);
-    this.compatible(context);
-    const previous = context.checkout;
-    if (previous) {
-      const session = await this.ensureSession(teamId, userId, previous);
-      if (
-        previous.planId === planId &&
-        session.status === "open" &&
-        !session.subscription &&
-        session.expires_at > this.seconds()
-      )
-        return stripeRedirect(session.url);
-      await this.stripe.ended(previous, session, true);
-      await this.store.context(teamId, userId);
-      await this.store.closeCheckout(previous, session.id, this.seconds());
-    }
-    await this.store.context(teamId, userId);
-    await this.stripe.noSubscription(stripeCustomerId);
-    const desired = {
-      teamId,
-      planId,
-      stripeCustomerId,
-      stripePriceId,
-      successUrl: returnUrl(this.config, teamId, "success"),
-      cancelUrl: returnUrl(this.config, teamId, "cancel"),
-      livemode: this.config.livemode,
-    };
-    try {
-      await this.store.createCheckout({
-        ...desired,
-        userId,
-        idempotencyKey: randomUUID(),
-        createdAt: String(this.seconds()),
-      });
-    } catch {
-      /* Concurrent requests must share the persisted intent. */
-    }
-    const intent = (await this.store.context(teamId, userId)).checkout;
-    if (
-      !intent ||
-      Object.entries(desired).some(([key, value]) => intent[key as keyof CheckoutIntent] !== value)
-    )
-      throw new BillingError("failed-precondition", "checkout_conflict");
-    const session = await this.ensureSession(teamId, userId, intent);
-    if (session.status !== "open" || session.subscription || session.expires_at <= this.seconds())
-      throw pending();
-    return stripeRedirect(session.url);
+  // This endpoint is called by the trusted executor. A stored consent alone
+  // cannot authorize a run after the customer removes their default card.
+  async cardSessionForCi(teamId: string, livemode: boolean) {
+    if (!this.config.enabled || this.config.selfHosted || livemode !== this.config.livemode)
+      throw new BillingError("unavailable", "billing_unavailable");
+    const setup = await this.store.cardSetup(teamId);
+    if (!setup) return null;
+    const owner = await this.store.customer(setup.stripeCustomerId, livemode);
+    if (owner?.teamId !== teamId) throw new BillingError("unavailable", "billing_unavailable");
+    const status = await cardSetupStatus(this.store, this.stripe, setup);
+    return status === "registered" ? setup.sessionId : null;
   }
 
   async reconcile(
@@ -361,9 +263,9 @@ export class Billing {
       const intent = context.checkout;
       if (intent) {
         if (!intent.stripeCheckoutSessionId) throw pending();
-        const session = await this.stripe.session(intent, this.seconds());
+        const session = await this.stripe.existingSession(intent);
         // A deletion request does not expire an active purchase on the user's behalf.
-        await this.stripe.ended(intent, session, false);
+        await this.stripe.ended(intent, session);
         await this.store.context(teamId, userId);
         await this.store.closeCheckout(intent, session.id, this.seconds());
         context = await this.store.context(teamId, userId);

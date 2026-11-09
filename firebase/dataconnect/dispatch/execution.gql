@@ -264,7 +264,7 @@ mutation RecordBuildExecutionResult(
     }
   )
     @check(
-      expr: "vars.outcome in ['success', 'failure', 'cancelled', 'timed_out', 'blocked'] && (vars.failureSummary == null || size(vars.failureSummary) <= 1000)"
+      expr: "vars.outcome in ['success', 'failure', 'cancelled', 'timed_out', 'blocked', 'card_required'] && (vars.failureSummary == null || size(vars.failureSummary) <= 1000)"
       message: "Invalid outcome"
     )
 }
@@ -398,6 +398,8 @@ mutation CompleteBuildExecution($id: String!, $jobId: String!, $owner: String!)
     }
     job: buildJob(id: $jobId) {
       status
+      runCount
+      checkRunNumber
       latestRunId
     }
     admissions: billingAdmissions(
@@ -445,8 +447,9 @@ mutation CompleteBuildExecution($id: String!, $jobId: String!, $owner: String!)
       ]
     }
     data: {
-      status_expr: "response.query.job != null && response.query.job.status == 'CANCELLED' ? 'CANCELLED' : (response.query.dispatch.outcome == 'blocked' ? 'QUEUED' : (response.query.dispatch.outcome == 'success' ? 'SUCCESS' : (response.query.dispatch.outcome == 'cancelled' ? 'CANCELLED' : (response.query.dispatch.outcome == 'timed_out' ? 'TIMED_OUT' : 'FAILURE'))))"
+      status_expr: "response.query.job != null && response.query.job.status == 'CANCELLED' ? 'CANCELLED' : (response.query.dispatch.outcome in ['blocked', 'card_required'] ? 'QUEUED' : (response.query.dispatch.outcome == 'success' ? 'SUCCESS' : (response.query.dispatch.outcome == 'cancelled' ? 'CANCELLED' : (response.query.dispatch.outcome == 'timed_out' ? 'TIMED_OUT' : 'FAILURE'))))"
       checkRunId_expr: "response.query.dispatch.checkRunId"
+      checkRunNumber_expr: "response.query.dispatch.outcome == 'card_required' && response.query.dispatch.checkRunId != null ? (response.query.job.runCount == null ? 1 : int(response.query.job.runCount) + 1) : response.query.job.checkRunNumber"
       failureSummary_expr: "response.query.job != null && response.query.job.status != 'CANCELLED' && response.query.dispatch.outcome == 'failure' ? response.query.dispatch.failureSummary : null"
       failureSummaryStatus: null
       completedAt: null

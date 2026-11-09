@@ -20,8 +20,7 @@ mutation CreateBillingPeriod(
       allowanceSeconds: $allowanceSeconds
     }
   )
-    @check(expr: "vars.planId in ['light', 'pro']", message: "Invalid billing plan")
-    @check(expr: "vars.periodType in ['trial', 'paid']", message: "Invalid billing period type")
+    @check(expr: "(vars.planId in ['light', 'pro'] && vars.periodType in ['trial', 'paid']) || (vars.planId == 'postpaid' && vars.periodType == 'postpaid' && vars.allowanceSeconds == null)", message: "Invalid billing plan")
     @check(
       expr: "int(vars.endsAt) > int(vars.startsAt)"
       message: "Billing period must end after it starts"
@@ -31,7 +30,7 @@ mutation CreateBillingPeriod(
       message: "Billing allowance must not be negative"
     )
     @check(
-      expr: "vars.periodType == 'trial' || vars.allowanceSeconds != null"
+      expr: "vars.periodType != 'paid' || vars.allowanceSeconds != null"
       message: "Paid billing periods require an allowance"
     )
 }
