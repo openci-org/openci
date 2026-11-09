@@ -222,6 +222,14 @@ summary:focus-visible,
   letter-spacing: 0.01em;
   max-width: 400px;
 }
+.hero-pricing {
+  margin-top: 14px;
+  font-weight: 600;
+}
+.hero-pricing a {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
 .hero-actions {
   display: flex;
   align-items: center;
@@ -755,17 +763,14 @@ summary:focus-visible,
 .pricing {
   border-bottom: 1px solid var(--line);
 }
-.pricing-grid {
+.pricing-card {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 24px;
-}
-.pricing-card {
+  align-items: center;
+  gap: 36px;
   border: 1px solid var(--ink);
   border-radius: 9px;
   padding: 36px;
-}
-.pricing-pro {
   background: var(--yellow);
 }
 .pricing-card h3 {
@@ -782,7 +787,7 @@ summary:focus-visible,
   display: flex;
   align-items: baseline;
   gap: 6px;
-  margin-block: 30px 25px;
+  margin-block: 30px 16px;
 }
 .pricing-currency {
   font-size: 23px;
@@ -799,22 +804,60 @@ summary:focus-visible,
   font-size: 13px;
   white-space: nowrap;
 }
-.pricing-allowance {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 9px;
-  padding-block: 20px;
-  border-block: 1px solid #14141426;
+.pricing-example {
   font-size: 13px;
+  line-height: 1.9;
 }
-.pricing-allowance strong {
+.pricing-savings {
   font-size: 24px;
   font-weight: 600;
+  line-height: 1.5;
   letter-spacing: -0.03em;
+  text-wrap: balance;
+}
+.pricing-savings-amount {
+  white-space: nowrap;
+}
+.pricing-comparison {
+  width: 100%;
+  margin-block: 20px 24px;
+  border-collapse: collapse;
+  font-size: 13px;
+  line-height: 1.7;
+}
+.pricing-comparison caption {
+  padding-bottom: 8px;
+  text-align: left;
+  font-size: 11px;
+}
+.pricing-comparison th,
+.pricing-comparison td {
+  padding-block: 10px;
+  border-top: 1px solid #14141426;
+}
+.pricing-comparison th {
+  text-align: left;
+  font-weight: 500;
+}
+.pricing-comparison td {
+  padding-left: 16px;
+  text-align: right;
+  white-space: nowrap;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.pricing-comparison-note {
+  margin-top: 14px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.9;
+}
+.pricing-comparison-note a {
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 .pricing-features {
-  margin-block: 25px 30px;
+  margin-bottom: 30px;
 }
 .pricing-features li {
   line-height: 1.7;
@@ -823,7 +866,7 @@ summary:focus-visible,
 .pricing-features .icon {
   margin-top: 3px;
 }
-.pricing-card > .button {
+.pricing-card .button {
   width: 100%;
   justify-content: space-between;
 }
@@ -841,38 +884,6 @@ summary:focus-visible,
 }
 .pricing-notes li + li {
   margin-top: 5px;
-}
-.pricing-guarantee {
-  display: grid;
-  grid-template-columns: 1fr 1.5fr;
-  gap: 30px;
-  padding: 28px;
-  border-radius: 6px;
-  background: var(--soft);
-  font-size: 13px;
-  line-height: 1.9;
-}
-.pricing-guarantee h3 {
-  margin-bottom: 6px;
-  font-size: 20px;
-  font-weight: 550;
-  letter-spacing: -0.03em;
-}
-.pricing-guarantee summary {
-  width: fit-content;
-  margin-top: 12px;
-  cursor: pointer;
-  text-decoration: underline;
-  text-underline-offset: 4px;
-}
-.pricing-guarantee details p {
-  margin-top: 12px;
-}
-.pricing-guarantee details a {
-  display: inline-block;
-  margin-top: 8px;
-  text-decoration: underline;
-  text-underline-offset: 4px;
 }
 .pricing-self-hosted {
   display: flex;
@@ -904,13 +915,8 @@ summary:focus-visible,
   }
 }
 @media (max-width: 640px) {
-  .pricing-grid,
-  .pricing-guarantee {
+  .pricing-card {
     grid-template-columns: 1fr;
-  }
-  .pricing-guarantee {
-    padding: 24px;
-    gap: 18px;
   }
 }
 .getting-started {

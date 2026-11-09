@@ -386,11 +386,87 @@ for (const locale of ["en", "ja"] as const) {
       .map((e) => $(e).attr("datetime"));
     assert.deepEqual(dates, [...dates].sort().reverse());
   });
-  test(`${locale}: pricing terms and language links are preserved`, () => {
+  test(`${locale}: per-minute pricing and language links are correct`, () => {
     const $ = pages.get(`/${locale}/`)!;
-    const pricing = $("#pricing").text();
-    for (const value of ["US$10", "US$100", "600", "6,000", "168"])
-      assert.ok(pricing.includes(value), value);
+    const pricing = $("#pricing");
+    assert.equal(pricing.find(".pricing-card").length, 1);
+    assert.equal(pricing.find(".pricing-currency").text(), "¥");
+    assert.equal(pricing.find(".pricing-price strong").text(), "1");
+    assert.equal(
+      pricing.find(".pricing-period").text(),
+      locale === "ja" ? "/ 分" : "/ min",
+    );
+    assert.ok(
+      pricing
+        .text()
+        .includes(
+          locale === "ja" ? "1分1円（税込）" : "¥1 per minute, tax included",
+        ),
+    );
+    assert.ok(
+      pricing
+        .find(".pricing-example")
+        .text()
+        .includes(locale === "ja" ? "100分なら100円" : "100 minutes cost ¥100"),
+    );
+    const rates = pricing
+      .find(".pricing-comparison td")
+      .toArray()
+      .map((cell) => Number($(cell).text().replace("US$", "")));
+    assert.deepEqual(rates, [0.0067, 0.062]);
+    assert.match(pricing.find(".pricing-comparison caption").text(), /150/);
+    assert.ok(
+      pricing
+        .text()
+        .includes(
+          locale === "ja"
+            ? "月締め時に記録した為替レート"
+            : "exchange rate recorded when the billing month closes",
+        ),
+    );
+    assert.doesNotMatch(
+      pricing.text() + $(".hero-pricing").text(),
+      /1¢|1 cent per minute|US\$0\.01(?:[^0-9]|$)/,
+    );
+    const savings = Math.round((1 - rates[0] / rates[1]) * 100);
+    assert.ok(pricing.find(".pricing-savings").text().includes(`${savings}%`));
+    assert.ok(pricing.find(".pricing-savings").text().includes("macOS"));
+    assert.equal(
+      pricing.find(".pricing-comparison-note a").first().attr("href"),
+      "https://docs.github.com/en/billing/reference/actions-runner-pricing",
+    );
+    assert.ok(
+      pricing
+        .find(".pricing-comparison-note")
+        .text()
+        .includes(
+          locale === "ja"
+            ? "無料利用・割引を除く"
+            : "Free usage and discounts excluded",
+        ),
+    );
+    assert.equal($(".hero-pricing a").attr("href"), "#pricing");
+    assert.ok(
+      $(".hero-pricing")
+        .text()
+        .includes(
+          locale === "ja"
+            ? "世界最安のmacOS CI"
+            : "The world's lowest-priced macOS CI",
+        ),
+    );
+    assert.equal(
+      pricing.find(".button").attr("href"),
+      "https://dashboard.openci.org/",
+    );
+    assert.equal(
+      pricing.find(".pricing-self-hosted a").attr("href"),
+      `/${locale}/docs/self-hosting/`,
+    );
+    assert.doesNotMatch(
+      pricing.text(),
+      /\b(?:Light|Pro)\b|600|6,000|168|月・チーム|month per team|no overage charges|追加の従量料金は発生しません/,
+    );
     assert.equal($(".language-switcher a").length, 2);
     assert.equal(
       $(".language-switcher [aria-current=page]").attr("lang"),
