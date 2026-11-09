@@ -120,3 +120,40 @@ change `BASE_VM_NAME`, or replace worker images.
 References: [Tart Packer plugin](https://github.com/cirruslabs/packer-plugin-tart),
 [Cirrus image templates](https://github.com/cirruslabs/macos-image-templates),
 [Xcode 27.2 images](https://github.com/cirruslabs/macos-image-templates/releases/tag/27.2).
+
+## Reproduce the released OpenCI image
+
+The `released/` profile targets the CI environment shipped in OpenCI `v0.1.7`.
+Its default input is the digest of that release. This preserves macOS 26.5
+(25F71), Xcode 26.6 (17F113) and Apple's system-managed time zone database
+2026f.1.0. Packer applies the pinned Android and iOS SDKs, Android Studio, JDK,
+Go, Codemagic, xcodeproj, standard Flutter 3.47.8 and the Shorebird fork of
+3.47.8. It exercises both Flutter distributions on iOS and Android. The separate
+`base-macos.pkr.hcl` above targets the newer Cirrus Xcode 27.2 foundation.
+
+From `infra/macos-image`, use the pinned Packer version and the disposable
+guest password described above. Choose a fresh candidate name on each run.
+
+```sh
+make init
+export PKR_VAR_candidate_name=base-macos-packer-v017-first
+# Export PKR_VAR_ssh_password for the disposable guest as in the Build section.
+make build-released
+```
+
+The template mounts only the prepared installer directory, read-only. The
+installer cache is under `infra/macos-image/artifacts/release-0.1.7-inputs`.
+The preparation step checks the SHA-256 of each installer. If the host already
+has Apple's iOS 26.5 (23F73) simulator installer, copy its DMG into that cache
+as `iOS-26.5-23F73.dmg` before preparation. Otherwise Xcode obtains the runtime
+in the guest. The simulator download and the SDK installation need network
+access. Developer accounts, signing certificates and CI credentials are
+provided by the workflow at job time.
+
+To rebuild the toolchain starting from the original `v0.1.0` macOS/Xcode
+foundation, set `PKR_VAR_foundation=initial`. This builds the same CI tools and
+retains the initial image's Apple-managed OS data. On a host with the original
+stopped Tart release named `base-macos-release-v0.1.0`, use
+`PKR_VAR_foundation=local-initial` to verify and reuse its disk. The build
+manifest records the foundation and target release digests. Boot a disposable
+clone without the installer share to verify the finished candidate.
