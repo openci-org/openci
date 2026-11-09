@@ -161,7 +161,7 @@ consistent with the dispatcher/planner:
 | `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY`         | App ID and secret binding                                                                  |
 | `GITHUB_API_BASE_URL`, `GITHUB_BASE_URL`          | Defaults `https://api.github.com`, `https://github.com`; no trailing slash                 |
 | `BILLING_STRIPE_LIVEMODE`                         | Required `true` or `false`, matching the billing backend                                   |
-| `BILLING_DASHBOARD_ORIGIN`                         | Optional Cloud billing link origin, defaults to `https://dashboard.openci.org`             |
+| `BILLING_DASHBOARD_ORIGIN`                        | Optional Cloud billing link origin, defaults to `https://dashboard.openci.org`             |
 | `BILLING_COMPLIMENTARY_PRO_TEAM_IDS`              | Optional comma-separated approved team IDs                                                 |
 | `SECRET_MANAGER_PROJECT`                          | Project ID or number exactly matching stored secret version paths; defaults to FSC project |
 

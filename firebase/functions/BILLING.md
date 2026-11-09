@@ -17,13 +17,13 @@ Dashboard billing and team deletion use `teamBilling`, a Gen2 callable in
 executor's usage ledger share the FSC `billing` connector. All billing operations
 remain `NO_ACCESS`; only trusted backend identities execute them.
 
-| Action       | Input beyond `action`            | Result                                                                         |
-| ------------ | -------------------------------- | ------------------------------------------------------------------------------ |
-| `status`     | `teamId`                         | Card registration, CI eligibility and available actions                        |
-| `checkout`   | `teamId`, `planId: light \| pro` | Old clients receive `monthly_plans_closed`                                      |
-| `setupCard`  | `teamId`, `termsVersion`         | Card-only Stripe Checkout URL or `registered: true` after completion           |
-| `portal`     | `teamId`                         | Verified Stripe Customer Portal URL                                            |
-| `deleteTeam` | `teamId`                         | `success: true` after deletion commits                                         |
+| Action       | Input beyond `action`            | Result                                                               |
+| ------------ | -------------------------------- | -------------------------------------------------------------------- |
+| `status`     | `teamId`                         | Card registration, CI eligibility and available actions              |
+| `checkout`   | `teamId`, `planId: light \| pro` | Old clients receive `monthly_plans_closed`                           |
+| `setupCard`  | `teamId`, `termsVersion`         | Card-only Stripe Checkout URL or `registered: true` after completion |
+| `portal`     | `teamId`                         | Verified Stripe Customer Portal URL                                  |
+| `deleteTeam` | `teamId`                         | `success: true` after deletion commits                               |
 
 Firebase verifies the ID token. Anonymous users are rejected. Functions use the
 verified UID to check FSC membership before Stripe access and again before
@@ -124,16 +124,16 @@ remains after cleanup for retry identity; secret references are cleared.
 The billing HTTP Functions use 256 MiB, one CPU, concurrency one, min instances zero,
 and a 300-second timeout. Cleanup uses the same limits and max instances one.
 
-| Setting                                        | Value                                                            |
-| ---------------------------------------------- | ---------------------------------------------------------------- |
-| `BILLING_ENABLED`                              | `false` by default; explicit `true` after migration/verification |
-| `STRIPE_SECRET_KEY`                            | Firebase secret; `sk_`/`rk_` mode must match `STRIPE_LIVEMODE`   |
-| `STRIPE_WEBHOOK_SECRET`                        | Firebase secret for this endpoint, `whsec_...`                   |
-| `STRIPE_LIVEMODE`                              | Explicit `true` or `false` when enabled                          |
-| `STRIPE_PORTAL_CONFIGURATION_ID`               | Validated Customer Portal configuration                          |
-| `BILLING_DASHBOARD_ORIGIN`                     | HTTPS origin; loopback HTTP allowed for local development        |
-| `BILLING_COMPLIMENTARY_PRO_TEAM_IDS`           | Optional comma-separated exact team IDs                          |
-| `SECRET_MANAGER_PROJECT`                       | Cleanup project; defaults to `GCLOUD_PROJECT`                    |
+| Setting                              | Value                                                            |
+| ------------------------------------ | ---------------------------------------------------------------- |
+| `BILLING_ENABLED`                    | `false` by default; explicit `true` after migration/verification |
+| `STRIPE_SECRET_KEY`                  | Firebase secret; `sk_`/`rk_` mode must match `STRIPE_LIVEMODE`   |
+| `STRIPE_WEBHOOK_SECRET`              | Firebase secret for this endpoint, `whsec_...`                   |
+| `STRIPE_LIVEMODE`                    | Explicit `true` or `false` when enabled                          |
+| `STRIPE_PORTAL_CONFIGURATION_ID`     | Validated Customer Portal configuration                          |
+| `BILLING_DASHBOARD_ORIGIN`           | HTTPS origin; loopback HTTP allowed for local development        |
+| `BILLING_COMPLIMENTARY_PRO_TEAM_IDS` | Optional comma-separated exact team IDs                          |
+| `SECRET_MANAGER_PROJECT`             | Cleanup project; defaults to `GCLOUD_PROJECT`                    |
 
 The billing HTTP runtime identity needs privileged FSC access and access to
 its declared Stripe secrets. Cleanup additionally needs FSC `secrets` reads and
