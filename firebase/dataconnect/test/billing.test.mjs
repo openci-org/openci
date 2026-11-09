@@ -175,6 +175,310 @@ async function seedJob(f, overrides = {}) {
   return job;
 }
 
+const novemberStart = Date.parse("2026-11-01T00:00:00+09:00");
+
+async function seedMonthlyRuns(f, intervals, overrides = {}, anchor = novemberStart) {
+  const p = {
+    id: randomUUID(),
+    teamId: f.teamId,
+    startsAt: String(anchor / 1000 - 86400),
+    endsAt: String(anchor / 1000 + 86400),
+    planId: "postpaid",
+    periodType: "postpaid",
+    allowanceSeconds: null,
+    ...overrides,
+  };
+  await graphql(
+    `
+      mutation Period($teamId: String!, $p: BillingPeriod_Data!) @transaction {
+        billingAccount_upsert(data: { teamId: $teamId })
+        billingPeriod_insert(data: $p)
+      }
+    `,
+    { teamId: f.teamId, p },
+  );
+  const job = await seedJob(f);
+  const runs = [];
+  const steps = [];
+  const executions = [];
+  for (const [i, interval] of intervals.entries()) {
+    const { start, prepEnd, prepStatus = "SUCCESS", observed, outcome = "success" } = interval;
+    const id = `${job.id}-${i.toString().padStart(3, "0")}`;
+    const startedAtMs = anchor + start;
+    const observedAtMs = anchor + observed;
+    runs.push({
+      id,
+      buildJobId: job.id,
+      status: outcome ? "completed" : "in_progress",
+      createdAt: String(Math.floor(startedAtMs / 1000)),
+      updatedAt: String(Math.floor(observedAtMs / 1000)),
+    });
+    if (prepEnd !== undefined) {
+      steps.push({
+        runId: id,
+        stepId: "prepare_vm",
+        name: "prepare_vm",
+        status: prepStatus,
+        stepOrder: 0,
+        createdAt: new Date(startedAtMs).toISOString(),
+        updatedAt: new Date(anchor + prepEnd).toISOString(),
+      });
+    }
+    executions.push({
+      runId: id,
+      jobId: job.id,
+      teamId: f.teamId,
+      periodId: p.id,
+      workerHost: "worker",
+      startedAtMs: String(startedAtMs),
+      observedAtMs: String(observedAtMs),
+      leaseUntilMs: String(observedAtMs + 60000),
+      finishedAtMs: outcome ? String(observedAtMs) : null,
+      outcome,
+      measurementIncomplete: outcome === "abandoned",
+    });
+  }
+  await graphql(
+    `
+      mutation SeedMeasuredRuns(
+        $runs: [BuildRun_Data!]!
+        $steps: [BuildStep_Data!]!
+        $executions: [BillingExecution_Data!]!
+      ) @transaction {
+        buildRun_insertMany(data: $runs)
+        buildStep_insertMany(data: $steps)
+        billingExecution_insertMany(data: $executions)
+      }
+    `,
+    { runs, steps, executions },
+  );
+}
+
+test("JST monthly statement sums observed post-preparation time across attempts before rounding", async (t) => {
+  const f = await fixture(t);
+  const intervals = [
+    { start: -65000, prepEnd: -20000, observed: 20000 },
+    { start: -30000, prepEnd: 5000, observed: 25000, outcome: "failure" },
+    { start: 1000, prepEnd: 10000, observed: 30000, outcome: null },
+    { start: 0, observed: 10000, outcome: "abandoned" },
+    { start: 0, prepEnd: 5000, prepStatus: "FAILURE", observed: 15000, outcome: "failure" },
+  ];
+  await seedMonthlyRuns(f, intervals);
+  await seedMonthlyRuns({ teamId: f.otherTeamId }, [intervals[0]]);
+  await seedMonthlyRuns(f, [intervals[0]], {
+    id: `complimentary-pro:${f.teamId}:2026-11`,
+    periodType: "paid",
+    planId: "pro",
+    allowanceSeconds: "360000",
+  });
+  await seedMonthlyRuns(f, [intervals[0]], { periodType: "trial", planId: "light" });
+  await seedMonthlyRuns(f, [intervals[0]], {
+    periodType: "paid",
+    planId: "light",
+    allowanceSeconds: "36000",
+  });
+
+  const statement = async (month) =>
+    (await sdk.getTeamMonthlyUsage(dc, { teamId: f.teamId, month })).data.statement;
+  const current = await statement("2026-11-01");
+  assert.equal(current.teamId, f.teamId);
+  assert.equal(current.month, "2026-11");
+  assert.equal(current.runCount, "5");
+  assert.deepEqual(
+    current.runs.map((r) => r.measuredMillis),
+    ["20000", "20000", "20000", "0", "0"],
+  );
+  assert.equal(current.runs[3].measurementIncomplete, true);
+  assert.equal(current.runs[3].vmReadyAt, null);
+  assert.equal(current.measuredMillis, "60000");
+  assert.equal(current.billableMinutes, "1");
+  assert.equal(current.amountJpyTaxIncluded, "1");
+  assert.equal(current.amountUsdCentsTaxIncluded, null);
+  assert.deepEqual(await statement("2026-11-30"), current);
+  assert.equal((await statement("2026-10-01")).measuredMillis, "20000");
+  const empty = await statement("2026-12-01");
+  assert.deepEqual(empty.runs, []);
+  assert.equal(empty.amountJpyTaxIncluded, "0");
+});
+
+test("monthly totals cover every page and convert the tax-inclusive yen total once", async (t) => {
+  const f = await fixture(t);
+  const interval = { start: 0, prepEnd: 500, observed: 2500 };
+  await seedMonthlyRuns(f, Array(100).fill(interval));
+  await seedMonthlyRuns(f, [interval]);
+  const variables = { teamId: f.teamId, month: "2026-11-01", jpyPerUsd: "160.00" };
+  const first = (await sdk.getTeamMonthlyUsage(dc, variables)).data.statement;
+  const second = (
+    await sdk.getTeamMonthlyUsage(dc, { ...variables, afterRunId: first.runs.at(-1).runId })
+  ).data.statement;
+  for (const page of [first, second]) {
+    assert.equal(page.runCount, "101");
+    assert.equal(page.measuredMillis, "202000");
+    assert.equal(page.billableMinutes, "4");
+    assert.equal(page.amountJpyTaxIncluded, "4");
+    assert.equal(page.jpyPerUsd, "160.00");
+    assert.equal(page.amountUsdCentsTaxIncluded, "3");
+  }
+  assert.equal(first.runs.length, 100);
+  assert.equal(second.runs.length, 1);
+  assert.equal(new Set([...first.runs, ...second.runs].map((r) => r.runId)).size, 101);
+  for (const rate of ["0", "-1", "NaN", "1e3"]) {
+    await assert.rejects(sdk.getTeamMonthlyUsage(dc, { ...variables, jpyPerUsd: rate }));
+  }
+});
+
+test("monthly close freezes all run pages and currency across concurrent closes and later writes", async (t) => {
+  const f = await fixture(t);
+  const anchor = Date.parse("2020-04-01T00:00:00+09:00");
+  const interval = { start: 0, prepEnd: 500, observed: 2500 };
+  await seedMonthlyRuns(f, Array(100).fill(interval), {}, anchor);
+  await seedMonthlyRuns(f, [interval], {}, anchor);
+  await seedMonthlyRuns(
+    f,
+    [interval],
+    { periodType: "paid", planId: "pro", allowanceSeconds: "360000" },
+    anchor,
+  );
+  const vars = {
+    teamId: f.teamId,
+    month: "2020-04-01",
+    currency: "USD",
+    jpyPerUsd: "160.00",
+    rateDate: "2020-04-30",
+  };
+  const close = async (input = vars) => (await sdk.closeTeamMonthlyStatement(dc, input)).data;
+  const [a, b] = await Promise.all([close(), close()]);
+  const receipt = a.receipt.statement;
+  assert.deepEqual(b.receipt.statement, receipt);
+  assert.deepEqual(
+    [
+      receipt.runCount,
+      receipt.measuredMillis,
+      receipt.billableMinutes,
+      receipt.amountJpyTaxIncluded,
+      receipt.amountUsdCentsTaxIncluded,
+    ],
+    ["101", "202000", "4", "4", "3"],
+  );
+  assert.equal(receipt.jpyPerUsd, "160.00");
+  assert.equal(receipt.rateDate, "2020-04-30");
+  const firstPage = a.usage.statement;
+  assert.equal(firstPage.runs.length, 100);
+  const last = firstPage.runs.at(-1).runId;
+  const second = await close({ ...vars, afterRunId: last, jpyPerUsd: "160" });
+  assert.equal(second.usage.statement.runs.length, 1);
+  assert.deepEqual(second.receipt.statement, receipt);
+  await seedMonthlyRuns(f, [{ start: 0, prepEnd: 0, observed: 600000 }], {}, anchor);
+  const run = firstPage.runs[0];
+  await graphql(
+    `
+      mutation Change($id: String!, $at: Int64!) {
+        billingExecution_update(key: { runId: $id }, data: { observedAtMs: $at })
+      }
+    `,
+    { id: run.runId, at: String(anchor + 90000) },
+  );
+  const read = (
+    await sdk.getTeamMonthlyUsage(dc, { teamId: f.teamId, month: "2020-04-12", jpyPerUsd: "100" })
+  ).data.statement;
+  assert.deepEqual(read, firstPage);
+  assert.deepEqual((await close()).receipt.statement, receipt);
+  await assert.rejects(close({ ...vars, jpyPerUsd: "155" }));
+  await assert.rejects(close({ ...vars, rateDate: "2020-05-01" }));
+  await assert.rejects(close({ ...vars, currency: "JPY", jpyPerUsd: null, rateDate: null }));
+  const link = { teamId: f.teamId, month: vars.month, invoiceId: "in_testApril" };
+  await sdk.linkMonthlyStatementInvoice(dc, link);
+  await sdk.linkMonthlyStatementInvoice(dc, link);
+  await assert.rejects(sdk.linkMonthlyStatementInvoice(dc, { ...link, invoiceId: "in_anyOther" }));
+  const saved = (await sdk.getClosedMonthlyStatement(dc, { teamId: f.teamId, month: vars.month }))
+    .data.statement;
+  assert.deepEqual(saved, { ...receipt, stripeInvoiceId: link.invoiceId });
+  assert.equal(
+    (await sdk.getClosedMonthlyStatement(dc, { teamId: f.otherTeamId, month: vars.month })).data
+      .statement,
+    null,
+  );
+});
+
+test("monthly close rejects active months, unsettled observations and invalid FX without partial statements", async (t) => {
+  const f = await fixture(t);
+  const anchor = Date.parse("2020-04-01T00:00:00+09:00");
+  await seedMonthlyRuns(f, [{ start: 0, prepEnd: 500, observed: 2500, outcome: null }], {}, anchor);
+  const vars = { teamId: f.teamId, month: "2020-04-01", currency: "JPY" };
+  for (const input of [
+    vars,
+    { ...vars, month: "2020-04-02" },
+    { ...vars, month: "2999-01-01" },
+    { ...vars, currency: "USD" },
+    { ...vars, currency: "EUR" },
+    { ...vars, jpyPerUsd: "150" },
+    { ...vars, currency: "USD", jpyPerUsd: "0", rateDate: "2020-04-30" },
+  ])
+    await assert.rejects(sdk.closeTeamMonthlyStatement(dc, input));
+  assert.equal(
+    (await sdk.getClosedMonthlyStatement(dc, { teamId: f.teamId, month: vars.month })).data
+      .statement,
+    null,
+  );
+  const empty = { ...vars, month: "2020-03-01" };
+  const zero = (await sdk.closeTeamMonthlyStatement(dc, empty)).data.receipt.statement;
+  assert.equal(zero.amountJpyTaxIncluded, "0");
+  assert.equal(zero.amountUsdCentsTaxIncluded, null);
+  await assert.rejects(
+    sdk.linkMonthlyStatementInvoice(dc, {
+      teamId: f.teamId,
+      month: empty.month,
+      invoiceId: "in_zero",
+    }),
+  );
+  const current = (await sdk.getTeamMonthlyUsage(dc, { teamId: f.teamId, month: vars.month })).data
+    .statement;
+  await graphql(
+    `
+      mutation Finish($run: String!, $at: Int64!) {
+        billingExecution_update(
+          key: { runId: $run }
+          data: { finishedAtMs: $at, outcome: "success" }
+        )
+      }
+    `,
+    { run: current.runs[0].runId, at: current.runs[0].observedAtMs },
+  );
+  const closed = (await sdk.closeTeamMonthlyStatement(dc, vars)).data.receipt.statement;
+  assert.equal(closed.amountJpyTaxIncluded, "1");
+  assert.equal(closed.amountUsdCentsTaxIncluded, null);
+});
+
+test("a crossing run observed beyond month end can close and zero USD cents cannot be invoiced", async (t) => {
+  const f = await fixture(t);
+  await seedMonthlyRuns(
+    f,
+    [{ start: -61000, prepEnd: -51000, observed: 2000, outcome: null }],
+    {},
+    Date.parse("2020-05-01T00:00:00+09:00"),
+  );
+  const vars = {
+    teamId: f.teamId,
+    month: "2020-04-01",
+    currency: "USD",
+    jpyPerUsd: "1000",
+    rateDate: "2020-04-30",
+  };
+  const closed = (await sdk.closeTeamMonthlyStatement(dc, vars)).data.receipt.statement;
+  assert.equal(closed.measuredMillis, "51000");
+  assert.equal(closed.billableMinutes, "1");
+  assert.equal(closed.amountUsdCentsTaxIncluded, "0");
+  await assert.rejects(
+    sdk.linkMonthlyStatementInvoice(dc, {
+      teamId: f.teamId,
+      month: vars.month,
+      invoiceId: "in_zeroUsd",
+    }),
+  );
+  const currentMonth = new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 7) + "-01";
+  await assert.rejects(sdk.closeTeamMonthlyStatement(dc, { ...vars, month: currentMonth }));
+});
+
 test("billing context checks membership and preserves missing billing data", async (t) => {
   const f = await fixture(t);
   assert.deepEqual(await context(f), {
@@ -574,6 +878,10 @@ test("all billing SDK operations reject Firebase clients, including team members
       },
     ],
     [sdk.getBillingPeriodUsage, { ...team, periodId: "period", atMs: "1000" }],
+    [sdk.getTeamMonthlyUsage, { ...team, month: "2026-11-01" }],
+    [sdk.getClosedMonthlyStatement, { ...team, month: "2020-04-01" }],
+    [sdk.closeTeamMonthlyStatement, { ...team, month: "2020-04-01", currency: "JPY" }],
+    [sdk.linkMonthlyStatementInvoice, { ...team, month: "2020-04-01", invoiceId: "in_test" }],
     [sdk.getBillingAdmission, { ...team, id: "admission" }],
     [
       sdk.createBillingAdmission,
@@ -612,7 +920,7 @@ test("all billing SDK operations reject Firebase clients, including team members
       );
     }
   }
-  assert.equal(cases.length, 32);
+  assert.equal(cases.length, 36);
   assert.equal((await context(f)).account, null);
 });
 
