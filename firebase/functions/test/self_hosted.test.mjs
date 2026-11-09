@@ -6,6 +6,7 @@ import { Billing } from "../../lib/functions/billing/service.js";
 import { BillingError } from "../../lib/functions/billing/model.js";
 import { executeBuild } from "../../lib/functions/executor/execute.js";
 import { ExecutionStopped } from "../../lib/functions/executor/model.js";
+import { PullRequestCheckoutError } from "../../lib/functions/executor/checkout_error.js";
 import { execFileSync } from "node:child_process";
 
 test("self-hosted Functions bind no Stripe secrets but retain team deletion", () => {
@@ -129,8 +130,9 @@ function executionFixture(selfHosted, contextChange = {}) {
       },
       async check() {},
       async vmRequested() {},
-      async result(_id, _executorId, outcome) {
+      async result(_id, _executorId, outcome, failureSummary) {
         dispatch.outcome = outcome;
+        dispatch.failureSummary = failureSummary;
         return true;
       },
       async acquireCleanup(_id, owner) {
@@ -265,15 +267,28 @@ test("merge resolution failure completes the check before any build commands run
   const f = executionFixture(true);
   f.job.pullRequestNumber = "7";
   f.dependencies.github.resolveCheckoutCommit = async () => {
-    throw new Error("Pull request has merge conflicts");
+    throw new PullRequestCheckoutError("conflicts");
   };
 
   await f.run();
 
   assert.equal(f.dispatch.outcome, "failure");
+  assert.match(f.dispatch.failureSummary, /Resolve the conflicts and push/);
   assert.deepEqual(f.scripts, []);
   assert.ok(!f.calls.includes("create"));
   assert.deepEqual(f.checkShas, [f.job.commitSha]);
+});
+
+test("unexpected API errors are not published as a failure summary", async () => {
+  const f = executionFixture(true);
+  f.dependencies.github.resolveCheckoutCommit = async () => {
+    throw new Error("Authorization: token private-token; request body contains private data");
+  };
+
+  await f.run();
+
+  assert.equal(f.dispatch.outcome, "failure");
+  assert.equal(f.dispatch.failureSummary, null);
 });
 
 test("cloud builds cannot bypass billing with a job field", async () => {

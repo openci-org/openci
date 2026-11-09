@@ -41,6 +41,9 @@ class CicdLogDetailRoutePage extends ConsumerWidget {
         return CicdLogDetailPage(
           buildJobId: buildJobId,
           runId: buildJob.latestRunId ?? '',
+          failureSummary: buildJob.status == BuildJobStatus.FAILURE
+              ? buildJob.failureSummary
+              : null,
         );
       },
     );
@@ -52,13 +55,17 @@ class CicdLogDetailPage extends ConsumerWidget {
     super.key,
     required this.buildJobId,
     required this.runId,
+    this.failureSummary,
   });
 
   final String buildJobId;
   final String runId;
+  final String? failureSummary;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final summary = failureSummary?.trim();
+    final hasSummary = summary != null && summary.isNotEmpty;
     final stepsAsync = ref.watch(
       buildStepSummariesProvider(
         buildJobId: buildJobId,
@@ -86,7 +93,11 @@ class CicdLogDetailPage extends ConsumerWidget {
                     runId: runId,
                   ).future,
                 );
-                if (allLogs.isEmpty) {
+                final text = [
+                  if (hasSummary) summary,
+                  if (allLogs.isNotEmpty) allLogs,
+                ].join('\n\n');
+                if (text.isEmpty) {
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
@@ -97,7 +108,7 @@ class CicdLogDetailPage extends ConsumerWidget {
                   }
                   return;
                 }
-                await Clipboard.setData(ClipboardData(text: allLogs));
+                await Clipboard.setData(ClipboardData(text: text));
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
@@ -121,29 +132,84 @@ class CicdLogDetailPage extends ConsumerWidget {
           const SizedBox(width: 8),
         ],
       ),
-      body: stepsAsync.when(
-        data: (steps) {
-          if (steps.isEmpty) {
-            return const Center(child: Text('ログステップがありません'));
-          }
-          return Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: desktopMaxWidth),
-              child: ListView.builder(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                itemCount: steps.length,
-                itemBuilder: (context, index) {
-                  return _StepAccordion(
-                    step: steps[index],
-                    buildJobId: buildJobId,
-                  );
-                },
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: desktopMaxWidth),
+          child: SafeArea(
+            top: false,
+            child: CustomScrollView(
+              slivers: [
+                if (hasSummary)
+                  SliverToBoxAdapter(child: _FailureSummary(summary: summary)),
+                stepsAsync.when(
+                  data: (steps) {
+                    if (steps.isEmpty) {
+                      return SliverFillRemaining(
+                        hasScrollBody: false,
+                        child: hasSummary
+                            ? const SizedBox.shrink()
+                            : const Center(child: Text('ログステップがありません')),
+                      );
+                    }
+                    return SliverPadding(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      sliver: SliverList.builder(
+                        itemCount: steps.length,
+                        itemBuilder: (context, index) => _StepAccordion(
+                          step: steps[index],
+                          buildJobId: buildJobId,
+                        ),
+                      ),
+                    );
+                  },
+                  loading: () => SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: CircularProgressIndicator.adaptive().withCenter(),
+                  ),
+                  error: (error, stack) => SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: asyncErrorWidget(error, stack),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _FailureSummary extends StatelessWidget {
+  const _FailureSummary({required this.summary});
+
+  final String summary;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Card(
+      margin: const EdgeInsets.all(16),
+      color: colors.errorContainer,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'ビルドの失敗理由',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: colors.onErrorContainer,
               ),
             ),
-          );
-        },
-        loading: () => CircularProgressIndicator.adaptive().withCenter(),
-        error: asyncErrorWidget,
+            const SizedBox(height: 8),
+            SelectableText(
+              summary,
+              style: TextStyle(color: colors.onErrorContainer),
+            ),
+          ],
+        ),
       ),
     );
   }

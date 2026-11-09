@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { setTimeout as delay } from "node:timers/promises";
+import { PullRequestCheckoutError } from "./checkout_error.js";
 import {
   checkoutScript,
   ExecutionStopped,
@@ -133,6 +134,7 @@ export async function executeBuild(
     }
   })();
   let outcome: Outcome = "failure";
+  let failureSummary: string | null = null;
   try {
     signal.throwIfAborted();
     validateJob(job, dispatch);
@@ -238,6 +240,7 @@ export async function executeBuild(
   } catch (error) {
     const stopped = signal.aborted ? signal.reason : error;
     outcome = stopped instanceof ExecutionStopped ? stopped.outcome : "failure";
+    if (stopped instanceof PullRequestCheckoutError) failureSummary = stopped.message;
     dependencies.report(`execution_${outcome}`, dispatch.id);
   } finally {
     stopHeartbeat.abort();
@@ -246,7 +249,14 @@ export async function executeBuild(
     shutdown?.removeEventListener("abort", shutdownListener);
   }
   if (signal.aborted && signal.reason instanceof ExecutionStopped) outcome = signal.reason.outcome;
-  if (await store.result(dispatch.id, executorId, outcome))
+  if (
+    await store.result(
+      dispatch.id,
+      executorId,
+      outcome,
+      outcome === "failure" ? failureSummary : null,
+    )
+  )
     await cleanupExecution(dispatch.id, dispatch.jobId, dependencies, false);
 }
 

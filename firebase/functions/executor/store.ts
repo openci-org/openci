@@ -88,10 +88,15 @@ export class ExecutionStore {
   async check(id: string, checkRunId: string) {
     await sdk.recordBuildExecutionCheck(this.dc, { id, checkRunId });
   }
-  async result(id: string, executorId: string, outcome: Outcome) {
+  async result(
+    id: string,
+    executorId: string,
+    outcome: Outcome,
+    failureSummary: string | null = null,
+  ) {
     return (
-      (await sdk.recordBuildExecutionResult(this.dc, { id, executorId, outcome })).data.updated ===
-      1
+      (await sdk.recordBuildExecutionResult(this.dc, { id, executorId, outcome, failureSummary }))
+        .data.updated === 1
     );
   }
   async recoverable() {

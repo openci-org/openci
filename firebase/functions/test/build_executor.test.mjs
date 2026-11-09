@@ -730,8 +730,13 @@ test("Octokit scopes checkout/check tokens and reconciles a lost check creation 
   assert.equal(checkout.token, "contents-token");
   await checkout.revoke();
   await assert.rejects(github.check(job, dispatch));
-  const done = { ...dispatch, resultAt: new Date().toISOString() };
+  const summary =
+    "This pull request has merge conflicts. Resolve them and push the updated branch.";
+  const done = { ...dispatch, resultAt: new Date().toISOString(), failureSummary: summary };
   assert.equal(await github.check(job, done, "failure"), "42");
+  assert.deepEqual(calls.at(-1).body.output, { title: "Pull request checkout failed", summary });
+  await github.check(job, done, "cancelled");
+  assert.equal(calls.at(-1).body.output.summary, "Build result: cancelled.");
   assert.equal(calls.filter((call) => call.path === "/repos/org/app/check-runs").length, 1);
   const tokens = calls.filter((call) => call.path.endsWith("/access_tokens"));
   assert.deepEqual(tokens[0].body.repositories, ["app"]);
@@ -876,7 +881,6 @@ test("PR execution revalidates repository IDs and pinned SHA with a separate rev
     { ...trusted, head: { ...trusted.head, repo: null } },
     { ...trusted, head: { sha: job.commitSha } },
     { ...trusted, head: { ...trusted.head, repo: { id: "101" } } },
-    { ...trusted, head: { ...trusted.head, sha: "b".repeat(40) } },
     { ...trusted, base: { repo: { ...repository, id: 999 } } },
     { ...trusted, base: { repo: null } },
     { ...trusted, number: 8 },

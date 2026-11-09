@@ -59,10 +59,10 @@ void main() {
     expect(connector.dataConnect.app, same(auth.app));
     expect(connector.dataConnect.auth, same(auth));
     expect(connector.dataConnect.options.projectId, 'selected-project');
-    expect(
-      connector.dataConnect.connectorConfig,
-      BuildsConnector.connectorConfig,
-    );
+    final config = connector.dataConnect.connectorConfig;
+    expect(config.location, BuildsConnector.connectorConfig.location);
+    expect(config.connector, BuildsConnector.connectorConfig.connector);
+    expect(config.serviceId, 'selected-project-service');
     expect(connector.dataConnect.transportOptions, isNull);
   });
 
