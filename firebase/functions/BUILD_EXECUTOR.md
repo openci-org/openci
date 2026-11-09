@@ -69,6 +69,15 @@ candidates fail the attempt. The execution pins the resolved merge SHA for check
 and writes the full checked-out SHA to its checkout log. GitHub Checks use the
 job's saved head SHA. Push builds check out their saved commit SHA.
 
+Merge conflicts, closed or updated PRs, and unavailable test merge commits produce
+fixed messages explaining how to retry. The executor persists the message on the
+dispatch before cleanup so recovery can publish it to GitHub Checks and the job's
+`failureSummary`. The dashboard shows and copies this summary even when checkout
+failed before a run or log step existed. Raw API exceptions are never published.
+Cancellation and later attempts clear the job summary, and an obsolete dispatch
+cannot overwrite a newer attempt's summary. Deploy the additive schema and
+updated `dispatch` connector before deploying the executor that writes the message.
+
 Only the team's pinned Secret Manager versions are injected into the workflow.
 Google credentials, Orchard credentials and the GitHub App key never enter the VM.
 

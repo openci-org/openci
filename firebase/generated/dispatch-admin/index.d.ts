@@ -222,6 +222,7 @@ export interface GetActiveBuildDispatchesData {
     heartbeatAt?: TimestampString | null;
     deadlineAt?: TimestampString | null;
     outcome?: string | null;
+    failureSummary?: string | null;
     resultAt?: TimestampString | null;
     vmRequestedAt?: TimestampString | null;
     vmDeletedAt?: TimestampString | null;
@@ -268,6 +269,7 @@ export interface GetBuildDispatchStateData {
     heartbeatAt?: TimestampString | null;
     deadlineAt?: TimestampString | null;
     outcome?: string | null;
+    failureSummary?: string | null;
     resultAt?: TimestampString | null;
     vmRequestedAt?: TimestampString | null;
     vmDeletedAt?: TimestampString | null;
@@ -307,6 +309,7 @@ export interface GetBuildExecutionData {
     heartbeatAt?: TimestampString | null;
     deadlineAt?: TimestampString | null;
     outcome?: string | null;
+    failureSummary?: string | null;
     resultAt?: TimestampString | null;
     vmRequestedAt?: TimestampString | null;
     vmDeletedAt?: TimestampString | null;
@@ -487,6 +490,7 @@ export interface GetRecoverableBuildExecutionsData {
     heartbeatAt?: TimestampString | null;
     deadlineAt?: TimestampString | null;
     outcome?: string | null;
+    failureSummary?: string | null;
     resultAt?: TimestampString | null;
     vmRequestedAt?: TimestampString | null;
     vmDeletedAt?: TimestampString | null;
@@ -579,6 +583,7 @@ export interface RecordBuildExecutionResultVariables {
   id: string;
   executorId: string;
   outcome: string;
+  failureSummary?: string | null;
 }
 
 export interface RecordQueuedBuildCheckData {

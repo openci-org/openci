@@ -2,6 +2,7 @@ import { generateKeyPairSync } from "node:crypto";
 import { setTimeout as delay } from "node:timers/promises";
 import { afterEach, expect, test, vi } from "vite-plus/test";
 import { ExecutionGitHub } from "../../executor/github.js";
+import { PullRequestCheckoutError } from "../../executor/checkout_error.js";
 import type { Job } from "../../executor/model.js";
 
 vi.mock("node:timers/promises", () => ({
@@ -127,7 +128,7 @@ test("生成待ちの間に PR の head が更新されたらジョブを拒否�
   f.pr.head = { ...f.pr.head, sha: "d".repeat(40) };
 
   await expect(f.github.resolveCheckoutCommit(f.job, "10")).rejects.toThrow(
-    "Untrusted pull request",
+    "Run CI for the latest pull request commit",
   );
   expect(f.calls.at(-1)).toBe("/installation/token");
 });
@@ -139,7 +140,7 @@ test.each([{ mergeable: false }, { state: "closed" }, { merged: true }])(
     Object.assign(f.pr, change);
 
     await expect(f.github.resolveCheckoutCommit(f.job, "10")).rejects.toThrow(
-      /merge conflicts|no longer open/,
+      /Resolve the conflicts|Reopen it/,
     );
     expect(f.calls.some((path) => path.includes("/git/commits/"))).toBe(false);
     expect(f.calls.at(-1)).toBe("/installation/token");
@@ -153,7 +154,7 @@ test.each([{ mergeable: null }, { merge_commit_sha: null }, { merge_commit_sha: 
     Object.assign(f.pr, change);
 
     await expect(f.github.resolveCheckoutCommit(f.job, "10")).rejects.toThrow(
-      "test merge commit is not ready",
+      "Wait a moment and rerun this job",
     );
     expect(f.calls.filter((path) => path.endsWith("/pulls/7"))).toHaveLength(5);
     expect(delay).toHaveBeenCalledTimes(4);
@@ -170,7 +171,7 @@ test.each([
   f.commits.set(mergeSha, { sha: mergeSha, parents });
 
   await expect(f.github.resolveCheckoutCommit(f.job, "10")).rejects.toThrow(
-    "test merge commit is not ready",
+    "Wait a moment and rerun this job",
   );
   expect(f.calls.at(-1)).toBe("/installation/token");
 });
@@ -179,7 +180,9 @@ test("マージコミットの取得に失敗した場合もトークンを失�
   const f = fixture();
   f.commits.clear();
 
-  await expect(f.github.resolveCheckoutCommit(f.job, "10")).rejects.toThrow();
+  await expect(f.github.resolveCheckoutCommit(f.job, "10")).rejects.toThrow(
+    new PullRequestCheckoutError("unavailable"),
+  );
   expect(f.calls.at(-1)).toBe("/installation/token");
 });
 

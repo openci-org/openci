@@ -17,6 +17,7 @@ import {
 import { DataConnectDispatchStore } from "../../lib/functions/dispatch_store.js";
 import { QueuedChecks, QueuedCheckStore } from "../../lib/functions/queued_checks.js";
 import { identity } from "../../lib/functions/executor/model.js";
+import { PullRequestCheckoutError } from "../../lib/functions/executor/checkout_error.js";
 
 const host = process.env.DATA_CONNECT_EMULATOR_HOST;
 assert.match(host ?? "", /^(127\.0\.0\.1|localhost):\d+$/, "Start the SQL Connect emulator first");
@@ -520,19 +521,92 @@ test("persisted PR jobs and reruns fail before billing, VM creation, checkout an
 test("rejected old attempts cannot fail a queued job after losing their active reservation", async (t) => {
   const f = await fixture(t);
   const executorId = await f.claim();
-  await store.result(f.id, executorId, "failure");
+  await store.result(
+    f.id,
+    executorId,
+    "failure",
+    new PullRequestCheckoutError("conflicts").message,
+  );
   await alterDispatch(f.id, { activeJobId: null });
   await alterJob(f.jobId, {
     status: "QUEUED",
     latestRunId: "newer-run",
     workerHost: "newer-worker",
+    failureSummary: "Newer attempt's summary",
   });
   await cleanupExecution(f.id, f.jobId, f.dependencies, false);
   const state = await f.state();
   assert.equal(state.job.status, "QUEUED");
   assert.equal(state.job.latestRunId, "newer-run");
   assert.equal(state.job.workerHost, "newer-worker");
+  assert.equal((await jobFailure(f.jobId)).failureSummary, "Newer attempt's summary");
   assert.ok(state.dispatch.finishedAt);
+});
+
+async function jobFailure(jobId) {
+  return (
+    await graphql(
+      "query Failure($id: String!) { buildJob(id: $id) { failureSummary failureSummaryStatus } }",
+      { id: jobId },
+    )
+  ).buildJob;
+}
+
+test("merge failure survives cleanup recovery and is published before any run exists", async (t) => {
+  const f = await fixture(t, true);
+  const error = new PullRequestCheckoutError("conflicts");
+  f.dependencies.github.resolveCheckoutCommit = async () => {
+    throw error;
+  };
+  f.dependencies.github.check = async (_job, dispatch, outcome) => {
+    assert.equal(dispatch.failureSummary, error.message);
+    assert.equal(outcome, "failure");
+    f.checks.push(outcome);
+    return "123";
+  };
+  const remove = f.dependencies.orchard.remove;
+  f.dependencies.orchard.remove = async () => {
+    throw new Error("Temporary controller failure");
+  };
+
+  await assert.rejects(f.run(), /Temporary controller failure/);
+  assert.equal((await f.state()).dispatch.failureSummary, error.message);
+  f.dependencies.orchard.remove = remove;
+  await alterDispatch(f.id, { cleanupLeaseUntil: "2000-01-01T00:00:00Z" });
+  await recoverExecutions(f.dependencies);
+
+  const state = await f.state();
+  assert.equal(state.run, null);
+  assert.equal(state.job.status, "FAILURE");
+  assert.equal((await jobFailure(f.jobId)).failureSummary, error.message);
+  assert.deepEqual(f.checks, ["failure"]);
+  assert.deepEqual(f.calls, ["stop-cloud-run", "remove"]);
+  assert.equal(await f.billingState(), null);
+});
+
+test("cancellation clears a recorded merge failure from the current job", async (t) => {
+  const f = await fixture(t, true);
+  const executorId = await f.claim();
+  const summary = new PullRequestCheckoutError("not_ready").message;
+  await store.result(f.id, executorId, "failure", summary);
+  await alterJob(f.jobId, { status: "CANCELLED", failureSummary: summary });
+
+  await cleanupExecution(f.id, f.jobId, f.dependencies, false);
+
+  assert.equal((await f.state()).job.status, "CANCELLED");
+  assert.equal((await jobFailure(f.jobId)).failureSummary, null);
+  assert.deepEqual(f.checks, ["cancelled"]);
+});
+
+test("a new successful attempt clears the previous job failure summary", async (t) => {
+  const f = await fixture(t, true);
+  await alterJob(f.jobId, { failureSummary: new PullRequestCheckoutError("not_ready").message });
+
+  await f.run();
+
+  assert.equal((await f.state()).job.status, "SUCCESS");
+  assert.equal((await jobFailure(f.jobId)).failureSummary, null);
+  assert.equal((await f.state()).dispatch.failureSummary, null);
 });
 
 test("source rejection before a run exists completes the queued check", async (t) => {

@@ -242,9 +242,12 @@ mutation RecordBuildExecutionCheck($id: String!, $checkRunId: String!)
     )
 }
 
-mutation RecordBuildExecutionResult($id: String!, $executorId: String!, $outcome: String!)
-@auth(level: NO_ACCESS)
-@transaction {
+mutation RecordBuildExecutionResult(
+  $id: String!
+  $executorId: String!
+  $outcome: String!
+  $failureSummary: String = null
+) @auth(level: NO_ACCESS) @transaction {
   updated: buildJobDispatch_updateMany(
     where: {
       id: { eq: $id }
@@ -255,12 +258,13 @@ mutation RecordBuildExecutionResult($id: String!, $executorId: String!, $outcome
     data: {
       state: "finishing"
       outcome: $outcome
+      failureSummary_expr: "vars.outcome == 'failure' ? vars.failureSummary : null"
       resultAt_expr: "request.time"
       updatedAt_expr: "request.time"
     }
   )
     @check(
-      expr: "vars.outcome in ['success', 'failure', 'cancelled', 'timed_out', 'blocked']"
+      expr: "vars.outcome in ['success', 'failure', 'cancelled', 'timed_out', 'blocked'] && (vars.failureSummary == null || size(vars.failureSummary) <= 1000)"
       message: "Invalid outcome"
     )
 }
@@ -385,6 +389,7 @@ mutation CompleteBuildExecution($id: String!, $jobId: String!, $owner: String!)
       executorId
       vmRequestedAt
       outcome
+      failureSummary
       checkRunId
       cleanupOwner
       cleanupLeaseUntil
@@ -442,6 +447,8 @@ mutation CompleteBuildExecution($id: String!, $jobId: String!, $owner: String!)
     data: {
       status_expr: "response.query.job != null && response.query.job.status == 'CANCELLED' ? 'CANCELLED' : (response.query.dispatch.outcome == 'blocked' ? 'QUEUED' : (response.query.dispatch.outcome == 'success' ? 'SUCCESS' : (response.query.dispatch.outcome == 'cancelled' ? 'CANCELLED' : (response.query.dispatch.outcome == 'timed_out' ? 'TIMED_OUT' : 'FAILURE'))))"
       checkRunId_expr: "response.query.dispatch.checkRunId"
+      failureSummary_expr: "response.query.job != null && response.query.job.status != 'CANCELLED' && response.query.dispatch.outcome == 'failure' ? response.query.dispatch.failureSummary : null"
+      failureSummaryStatus: null
       completedAt: null
       updatedAt_expr: "int(request.time)"
     }

@@ -1,4 +1,5 @@
 import { setTimeout as delay } from "node:timers/promises";
+import { PullRequestCheckoutError } from "./checkout_error.js";
 import type { Dispatch, Job, Outcome } from "./model.js";
 import type { SkippedCheck } from "../skipped_checks.js";
 
@@ -211,23 +212,26 @@ export class ExecutionGitHub {
           pr.number !== number ||
           pr.base?.repo?.id !== repo.id ||
           pr.head?.repo?.id !== repo.id ||
-          pr.head?.sha !== job.commitSha!.toLowerCase() ||
           !/^[a-f0-9]{40}(?:[a-f0-9]{24})?$/.test(pr.base?.sha ?? "")
         )
           throw new Error("Untrusted pull request source");
-        if (pr.state !== "open" || pr.merged) throw new Error("Pull request is no longer open");
-        if (pr.mergeable === false) throw new Error("Pull request has merge conflicts");
+        if (pr.head?.sha !== job.commitSha!.toLowerCase())
+          throw new PullRequestCheckoutError("head_changed");
+        if (pr.state !== "open" || pr.merged) throw new PullRequestCheckoutError("closed");
+        if (pr.mergeable === false) throw new PullRequestCheckoutError("conflicts");
         const mergeSha = pr.merge_commit_sha;
         if (pr.mergeable === true && mergeSha && /^[a-f0-9]{40}(?:[a-f0-9]{24})?$/.test(mergeSha)) {
-          const { data: commit } = await client.request(
-            "GET /repos/{owner}/{repo}/git/commits/{commit_sha}",
-            {
+          const { data: commit } = await client
+            .request("GET /repos/{owner}/{repo}/git/commits/{commit_sha}", {
               owner: job.owner,
               repo: job.repo,
               commit_sha: mergeSha,
               request: { signal },
-            },
-          );
+            })
+            .catch(() => {
+              signal?.throwIfAborted();
+              throw new PullRequestCheckoutError("unavailable");
+            });
           // A stale merge ref can survive a base/head update. Only use the
           // candidate whose parents match the PR revision we just observed.
           if (
@@ -241,7 +245,7 @@ export class ExecutionGitHub {
           }
         }
       }
-      throw new Error("Pull request test merge commit is not ready");
+      throw new PullRequestCheckoutError("not_ready");
     } finally {
       // Revoke independently of the execution signal, including cancellation.
       await client.request("DELETE /installation/token");
@@ -274,6 +278,15 @@ export class ExecutionGitHub {
 
   async check(job: Job, dispatch: Dispatch, outcome?: Outcome): Promise<string> {
     const { request } = await this.client(job, "checks");
+    const output =
+      outcome === "failure" && dispatch.failureSummary
+        ? { title: "Pull request checkout failed", summary: dispatch.failureSummary }
+        : {
+            title: job.workflowName!,
+            summary: outcome
+              ? `Build result: ${outcome.replaceAll("_", " ")}.`
+              : "The build is running.",
+          };
     return this.writeCheck(
       request,
       job,
@@ -284,8 +297,9 @@ export class ExecutionGitHub {
             status: "completed",
             conclusion: outcome === "blocked" ? "neutral" : outcome,
             completed_at: new Date(dispatch.resultAt ?? dispatch.updatedAt).toISOString(),
+            output,
           }
-        : { status: "in_progress" },
+        : { status: "in_progress", output },
     );
   }
 
@@ -313,8 +327,16 @@ export class ExecutionGitHub {
       externalId,
       savedId,
       job.status === "CANCELLED"
-        ? { status: "completed", conclusion: "cancelled", completed_at: new Date().toISOString() }
-        : { status: "queued" },
+        ? {
+            status: "completed",
+            conclusion: "cancelled",
+            completed_at: new Date().toISOString(),
+            output: { title: job.workflowName!, summary: "The build was cancelled." },
+          }
+        : {
+            status: "queued",
+            output: { title: job.workflowName!, summary: "Waiting for the build to start." },
+          },
     );
   }
 
@@ -327,6 +349,7 @@ export class ExecutionGitHub {
       status: "queued" | "in_progress" | "completed";
       conclusion?: "success" | "failure" | "cancelled" | "timed_out" | "neutral";
       completed_at?: string;
+      output?: { title: string; summary: string };
     },
   ): Promise<string> {
     let checkRunId: number | bigint | undefined = savedId ? BigInt(savedId) : undefined;
