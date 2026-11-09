@@ -228,9 +228,9 @@ void main() {
   ) async {
     launcher.success = false;
     await show(tester);
-    await tester.scrollUntilVisible(find.text('支払い方法を管理'), 200);
+    await tester.scrollUntilVisible(find.text('支払い方法・請求履歴を開く'), 200);
     await tester.pump();
-    await tester.tap(find.text('支払い方法を管理'));
+    await tester.tap(find.text('支払い方法・請求履歴を開く'));
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(
       find.textContaining('Stripeを開けませんでした'),
@@ -238,9 +238,9 @@ void main() {
     );
     expect(find.textContaining('Stripeを開けませんでした'), findsOneWidget);
     launcher.success = true;
-    await tester.scrollUntilVisible(find.text('支払い方法を管理'), -200);
+    await tester.scrollUntilVisible(find.text('支払い方法・請求履歴を開く'), -200);
     await tester.pump();
-    await tester.tap(find.text('支払い方法を管理'));
+    await tester.tap(find.text('支払い方法・請求履歴を開く'));
     await tester.pumpAndSettle();
     expect(launcher.url, 'https://billing.stripe.com/p/session/test');
     expect(billingCallData(requests.last), {
@@ -256,7 +256,7 @@ void main() {
     ) async {
       await show(tester);
       respond = (_) async => jsonResponse({'error': 'forbidden'}, status: 403);
-      await tester.tap(find.text('支払い方法を管理'));
+      await tester.tap(find.text('支払い方法・請求履歴を開く'));
       await tester.pumpAndSettle();
       expect(find.text('このチームの課金情報にアクセスできません。'), findsOneWidget);
       expect(find.text('Lightを選ぶ'), findsNothing);
@@ -271,7 +271,7 @@ void main() {
     await show(tester);
     final response = Completer<http.Response>();
     respond = (_) => response.future;
-    await tester.tap(find.text('支払い方法を管理'));
+    await tester.tap(find.text('支払い方法・請求履歴を開く'));
     await tester.pump(Duration.zero);
     identity = null;
     container.invalidate(billingIdentityProvider);

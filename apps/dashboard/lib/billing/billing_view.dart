@@ -62,7 +62,7 @@ class BillingView extends StatelessWidget {
               Text(
                 status.cardSetupStatus == CardSetupStatus.registered
                     ? '後払い用のカードは登録済みです。'
-                    : '「支払い方法を管理」から請求用のカードを設定してください。',
+                    : '「支払い方法・請求履歴を開く」から請求用のカードを設定してください。',
               ),
             const SizedBox(height: 24),
           ],
@@ -71,7 +71,7 @@ class BillingView extends StatelessWidget {
             OutlinedButton.icon(
               onPressed: pending ? null : onPortal,
               icon: const Icon(Icons.open_in_new),
-              label: const Text('支払い方法を管理'),
+              label: const Text('支払い方法・請求履歴を開く'),
             ),
           ],
         ],

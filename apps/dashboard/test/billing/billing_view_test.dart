@@ -73,8 +73,8 @@ void main() {
     expect(find.text('CIを利用できます'), findsOneWidget);
     expect(find.text('Lightを選ぶ'), findsNothing);
     expect(find.text('Proを選ぶ'), findsNothing);
-    await tester.scrollUntilVisible(find.text('支払い方法を管理'), 200);
-    await tester.tap(find.text('支払い方法を管理'));
+    await tester.scrollUntilVisible(find.text('支払い方法・請求履歴を開く'), 200);
+    await tester.tap(find.text('支払い方法・請求履歴を開く'));
     expect(managed, 1);
   });
 
@@ -88,7 +88,7 @@ void main() {
       portal: () => calls++,
       reload: () => calls++,
     );
-    for (final label in ['支払い方法を登録', '支払い方法を管理', '再読み込み']) {
+    for (final label in ['支払い方法を登録', '支払い方法・請求履歴を開く', '再読み込み']) {
       await tester.scrollUntilVisible(find.text(label), 200);
       await tester.tap(find.text(label));
     }
@@ -113,8 +113,8 @@ void main() {
     expect(find.text('CIの利用にはプランの購入が必要です。'), findsNothing);
     expect(find.text('Lightを選ぶ'), findsNothing);
     expect(find.text('Proを選ぶ'), findsNothing);
-    await tester.scrollUntilVisible(find.text('支払い方法を管理'), 200);
-    await tester.tap(find.text('支払い方法を管理'));
+    await tester.scrollUntilVisible(find.text('支払い方法・請求履歴を開く'), 200);
+    await tester.tap(find.text('支払い方法・請求履歴を開く'));
     expect(managed, 1);
   });
 
@@ -134,8 +134,8 @@ void main() {
     expect(find.text('新しいCIを開始できる利用枠がありません。'), findsOneWidget);
     expect(find.text('Lightを選ぶ'), findsNothing);
     expect(find.text('Proを選ぶ'), findsNothing);
-    await tester.scrollUntilVisible(find.text('支払い方法を管理'), 200);
-    await tester.tap(find.text('支払い方法を管理'));
+    await tester.scrollUntilVisible(find.text('支払い方法・請求履歴を開く'), 200);
+    await tester.tap(find.text('支払い方法・請求履歴を開く'));
     await tester.scrollUntilVisible(find.text('再読み込み'), 200);
     await tester.tap(find.text('再読み込み'));
     expect(managed, 1);
@@ -159,7 +159,7 @@ void main() {
     await show(tester, enabled: false);
     expect(find.textContaining('課金機能を利用できません'), findsOneWidget);
     expect(find.text('Lightを選ぶ'), findsNothing);
-    expect(find.text('支払い方法を管理'), findsNothing);
+    expect(find.text('支払い方法・請求履歴を開く'), findsNothing);
     expect(find.text('m.aoki@openci.org'), findsNothing);
   });
 
