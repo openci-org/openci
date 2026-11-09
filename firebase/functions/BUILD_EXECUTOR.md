@@ -26,12 +26,14 @@ must win `ClaimBuildJobExecution`; duplicate containers exit without allocating
 a VM. A lost claim acknowledgement also exits and leaves recovery to the sweep.
 Older unclaimed reservations without `teamId` expire at their startup deadline.
 
-The run and admission IDs derive from the dispatch ID. Billing admission follows
-the existing paid Stripe policy, or the explicit complimentary-Pro allowlist.
-The complimentary period uses UTC calendar months and 360,000 seconds. A team
-without entitlement/budget stays `QUEUED`, without a VM; the dispatcher's existing
-delayed task can retry. Admissions, run binding, usage revisions and log IDs are
-re-read after ambiguous responses. The run count increments once.
+The run and admission IDs derive from the dispatch ID. In Cloud, the executor
+calls the private `ciCardEligibility` Function before VM creation. A confirmed
+billing card admits the team to its Japan calendar month postpaid period. A
+missing card leaves the GitHub check queued with a link to the team's billing
+page. The dispatcher resumes the same job once the card is confirmed. The
+complimentary allowlist retains its 360,000-second UTC monthly allowance.
+Admissions, run binding, usage revisions and log IDs are re-read after ambiguous
+responses. The run count increments once.
 
 Every 15 seconds the executor checks cancellation/ownership and renews the
 billing observation. Any failure interrupts the command. A workflow deadline,
@@ -159,6 +161,7 @@ consistent with the dispatcher/planner:
 | `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY`         | App ID and secret binding                                                                  |
 | `GITHUB_API_BASE_URL`, `GITHUB_BASE_URL`          | Defaults `https://api.github.com`, `https://github.com`; no trailing slash                 |
 | `BILLING_STRIPE_LIVEMODE`                         | Required `true` or `false`, matching the billing backend                                   |
+| `BILLING_DASHBOARD_ORIGIN`                        | Optional Cloud billing link origin, defaults to `https://dashboard.openci.org`             |
 | `BILLING_COMPLIMENTARY_PRO_TEAM_IDS`              | Optional comma-separated approved team IDs                                                 |
 | `SECRET_MANAGER_PROJECT`                          | Project ID or number exactly matching stored secret version paths; defaults to FSC project |
 

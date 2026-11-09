@@ -7,7 +7,7 @@ import { WebSocketServer } from "ws";
 import { ExecutionLogs, StreamingRedactor } from "../../lib/functions/executor/logs.js";
 import { checkoutScript, workflowScript, validateJob } from "../../lib/functions/executor/model.js";
 import { OrchardExecutor } from "../../lib/functions/executor/orchard.js";
-import { ExecutionBilling, paidPeriod } from "../../lib/functions/executor/billing.js";
+import { ExecutionBilling } from "../../lib/functions/executor/billing.js";
 import {
   loadSecrets,
   secretUrl,
@@ -392,41 +392,25 @@ test("live log chunks preserve UTF-8 and do not wait for the longest secret", as
   assert.ok(messages.every((message) => Buffer.byteLength(message) <= 8192));
 });
 
-test("billing entitlement requires matching Stripe mode, customer, plan and current paid period", () => {
-  const now = Date.now();
-  const context = {
+test("monthly subscriptions cannot authorize a build without a confirmed card", async () => {
+  const billing = new ExecutionBilling({});
+  const team = {
     team: { id: "team" },
-    customer: { stripeCustomerId: "cus_1", livemode: true },
-    stripe: {
-      stripeCustomerId: "cus_1",
-      livemode: true,
-      stripeSubscriptionId: "sub_1",
-      subscriptionStatus: "active",
-      planId: "pro",
-      paidPeriodId: "period",
-      paidPeriod: {
-        id: "period",
-        teamId: "team",
-        planId: "pro",
-        periodType: "paid",
-        startsAt: String(Math.floor(now / 1000) - 10),
-        endsAt: String(Math.floor(now / 1000) + 100),
-      },
-    },
+    customer: { stripeCustomerId: "cus_1", livemode: false },
+    stripe: { subscriptionStatus: "active" },
   };
-  assert.equal(paidPeriod(context, "team", true, now), "period");
-  assert.equal(paidPeriod(context, "team", false, now), undefined);
-  assert.equal(
-    paidPeriod(
-      { ...context, customer: { ...context.customer, stripeCustomerId: "other" } },
-      "team",
-      true,
-      now,
-    ),
-    undefined,
+  await assert.rejects(
+    billing.period(team, "team", false, new Set(), async () => null),
+    (error) => error.outcome === "card_required",
   );
-  assert.equal(paidPeriod(context, "other-team", true, now), undefined);
-  assert.equal(paidPeriod(context, "team", true, now + 200000), undefined);
+  await assert.rejects(
+    billing.period(team, "team", true, new Set(), async () => "cs_wrong"),
+    /mode mismatch/,
+  );
+  await assert.rejects(
+    billing.period(team, "other-team", false, new Set(), async () => "cs_wrong"),
+    /team mismatch/,
+  );
 });
 
 test("Secret Manager only reads pinned versions in the configured project", async () => {
@@ -793,12 +777,17 @@ test("queued checks reconcile lost creation and use the same ID through start an
   const id = await github.queuedCheck(job, externalId, null, "10", signal);
   assert.equal(id, "42");
   const reserved = { ...dispatch, checkRunId: id, resultAt: new Date().toISOString() };
+  await github.check(job, reserved, "card_required");
+  assert.match(
+    states.at(-1).output.summary,
+    /https:\/\/dashboard\.openci\.org\/billing\?teamId=team/,
+  );
   await github.check(job, reserved);
   await github.check(job, reserved, "success");
   assert.equal(posts, 1);
   assert.deepEqual(
     states.map((state) => state.status),
-    ["queued", "in_progress", "completed"],
+    ["queued", "queued", "in_progress", "completed"],
   );
   assert.equal(states.at(-1).conclusion, "success");
   await github.queuedCheck({ ...job, status: "CANCELLED" }, externalId, id, "10", signal);

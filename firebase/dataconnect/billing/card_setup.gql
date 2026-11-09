@@ -1,0 +1,106 @@
+fragment BillingCardSetupFields on BillingCardSetup {
+  teamId
+  stripeCustomerId
+  livemode
+  sessionId
+  consentedBy
+  consentedAt
+  termsVersion
+  status
+  paymentMethodId
+  resolvedAt
+}
+
+query GetBillingCardSetup($teamId: String!) @auth(level: NO_ACCESS) {
+  setup: billingCardSetup(key: { teamId: $teamId }) {
+    ...BillingCardSetupFields
+  }
+}
+
+# Only publish a Checkout URL after its consent record commits. Concurrent
+# requests reuse the winner. An expired attempt can be replaced by fresh consent.
+mutation RecordBillingCardConsent(
+  $teamId: String!
+  $userId: String!
+  $stripeCustomerId: String!
+  $livemode: Boolean!
+  $previousSessionId: String = null
+  $sessionId: String!
+  $termsVersion: String!
+) @auth(level: NO_ACCESS) @transaction {
+  team_update(key: { id: $teamId }, data: { updatedAt_expr: "int(request.time)" })
+    @redact
+    @check(expr: "this != null", message: "Team not found")
+  query @redact {
+    ...BillingMemberCheck
+    billingCustomerCreation(key: { teamId_expr: "response.team_update.id" })
+      @check(
+        expr: "this != null && this.stripeCustomerId == vars.stripeCustomerId && this.livemode == vars.livemode"
+        message: "Customer does not match the team"
+      ) {
+      stripeCustomerId
+      livemode
+    }
+    billingCardSetup(key: { teamId_expr: "response.team_update.id" })
+      @check(
+        expr: "this == null ? vars.previousSessionId == null : (this.status == 'expired' && this.sessionId == vars.previousSessionId)"
+        message: "Card setup already exists or changed"
+      ) {
+      sessionId
+      status
+    }
+  }
+  billingCardSetup_upsert(
+    data: {
+      teamId_expr: "response.team_update.id"
+      stripeCustomerId: $stripeCustomerId
+      livemode: $livemode
+      sessionId: $sessionId
+      termsVersion: $termsVersion
+      consentedBy: $userId
+      consentedAt_expr: "request.time"
+      status: "pending"
+      paymentMethodId: null
+      readyAt: null
+      resolvedAt: null
+    }
+  )
+}
+
+# Only the exact pending session can be completed or expired, even if a
+# webhook and a dashboard refresh race or an older event arrives again.
+mutation ResolveBillingCardSetup(
+  $teamId: String!
+  $stripeCustomerId: String!
+  $livemode: Boolean!
+  $sessionId: String!
+  $paymentMethodId: String = null
+) @auth(level: NO_ACCESS) {
+  updated: billingCardSetup_updateMany(
+    where: {
+      teamId: { eq: $teamId }
+      stripeCustomerId: { eq: $stripeCustomerId }
+      livemode: { eq: $livemode }
+      sessionId: { eq: $sessionId }
+      status: { eq: "pending" }
+    }
+    data: {
+      status_expr: "vars.paymentMethodId == null ? 'expired' : 'registered'"
+      paymentMethodId: $paymentMethodId
+      resolvedAt_expr: "request.time"
+    }
+  )
+}
+
+# Wakes waiting jobs after the default card is restored in the Customer Portal.
+# Resolution time and the original card consent remain immutable.
+mutation ConfirmBillingCardReady($teamId: String!, $sessionId: String!, $livemode: Boolean!)
+@auth(level: NO_ACCESS) @transaction {
+  updated: _execute(
+    sql: """
+    UPDATE billing_card_setups SET ready_at = GREATEST(ready_at, resolved_at, now())
+    WHERE team_id = $1 AND session_id = $2 AND livemode = $3 AND status = 'registered'
+    """
+    params: [$teamId, $sessionId, $livemode]
+  ) @check(expr: "this == 1", message: "Card consent changed")
+}

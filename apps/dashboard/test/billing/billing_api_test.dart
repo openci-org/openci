@@ -36,10 +36,18 @@ void main() {
       isA<BillingException>().having((e) => e.code, 'code', value);
 
   test('sends only callable inputs and requires confirmed deletion', () async {
-    await api.call('checkout', 'team', planId: 'light');
+    await api.call(
+      'setupCard',
+      'team',
+      termsVersion: 'ci-jpy1-tax-included-monthly-v1',
+    );
     await api.deleteTeam('team');
     expect(callable.calls, [
-      {'action': 'checkout', 'teamId': 'team', 'planId': 'light'},
+      {
+        'action': 'setupCard',
+        'teamId': 'team',
+        'termsVersion': 'ci-jpy1-tax-included-monthly-v1',
+      },
       {'action': 'deleteTeam', 'teamId': 'team'},
     ]);
     callable.respond = () async => {};

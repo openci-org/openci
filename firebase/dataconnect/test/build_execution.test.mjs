@@ -16,6 +16,7 @@ import {
 } from "../../lib/functions/executor/execute.js";
 import { DataConnectDispatchStore } from "../../lib/functions/dispatch_store.js";
 import { QueuedChecks, QueuedCheckStore } from "../../lib/functions/queued_checks.js";
+import { cardFixture } from "./helpers/card_setup.mjs";
 import { identity } from "../../lib/functions/executor/model.js";
 import { PullRequestCheckoutError } from "../../lib/functions/executor/checkout_error.js";
 
@@ -763,17 +764,100 @@ test("deadline recovery marks the build timed out; another executor cannot acqui
   assert.equal((await f.state()).dispatch.activeJobId, null);
 });
 
-test("lack of paid entitlement leaves the build queued without allocating a VM", async (t) => {
-  const f = await fixture(t, true);
+test("a missing billing card parks this job and publishes a missing queued check without allocating a VM", async (t) => {
+  const f = await fixture(t);
   f.dependencies.configuration.complimentary.clear();
   await f.run();
   assert.equal((await f.state()).job.status, "QUEUED");
-  assert.equal((await f.state()).dispatch.outcome, "blocked");
+  assert.equal((await f.state()).dispatch.outcome, "card_required");
   assert.equal((await f.state()).dispatch.activeJobId, null);
   assert.equal(f.calls.includes("create"), false);
   assert.equal(await f.billingState(), null);
-  assert.deepEqual(f.checks, [], "An unnumbered blocked attempt must leave its check queued");
+  assert.deepEqual(f.checks, ["card_required"]);
+  assert.deepEqual(f.calls, []);
+  assert.equal(await new DataConnectDispatchStore(dc).oldestQueued(), null);
   assert.equal((await f.state()).dispatch.checkRunId, "123");
+  const saved = await graphql("query Check($id:String!) { buildJob(id:$id){ checkRunNumber } }", {
+    id: f.jobId,
+  });
+  assert.equal(saved.buildJob.checkRunNumber, "1");
+});
+
+test("a parked Cloud job resumes once after card confirmation and writes one postpaid run", async (t) => {
+  const f = await fixture(t, true);
+  const userId = randomUUID();
+  await graphql(
+    "mutation Add($teamId: String!, $userId: String!) { teamMember_insert(data: {teamId:$teamId, userId:$userId}) }",
+    { teamId: f.teamId, userId },
+  );
+  const card = cardFixture(billingDc, { teamId: f.teamId, userId });
+  const queue = new DataConnectDispatchStore(dc);
+  f.dependencies.configuration.complimentary.clear();
+  f.dependencies.verifyCard = (teamId, mode) => card.service.cardSessionForCi(teamId, mode);
+  await card.start();
+  await f.run();
+  assert.equal((await f.state()).dispatch.outcome, "card_required");
+  assert.equal(await queue.oldestQueued(), null);
+  assert.ok(!f.calls.includes("create"));
+  const [session] = card.sessions.values();
+  card.complete(session);
+  assert.equal(await card.webhook(session), 204);
+  assert.equal((await queue.oldestQueued()).id, f.jobId);
+
+  async function retry() {
+    const id = randomUUID();
+    await queue.acquireScheduler(id);
+    await queue.reserve(id, {
+      id,
+      jobId: f.jobId,
+      vmName: `openci-${id}`,
+      cpu: 2,
+      memoryMiB: 4096,
+      image: "base-macos",
+      cloudRunJob: f.dependencies.configuration.cloudRunJob,
+    });
+    await queue.releaseScheduler(id);
+    await executeBuild({ ...f.input, dispatchId: id }, f.dependencies);
+    return store.read(id, f.jobId);
+  }
+
+  // Removal before dispatch wins even when the checkout ledger says registered.
+  card.state.defaultMethod = null;
+  assert.equal((await retry()).dispatch.outcome, "card_required");
+  assert.equal(await queue.oldestQueued(), null);
+  assert.ok(!f.calls.includes("create"));
+  card.state.defaultMethod = "pm_replacement";
+  await card.webhook(session, "customer.updated");
+  assert.equal((await queue.oldestQueued()).id, f.jobId);
+  const state = await retry();
+  assert.equal(state.job.status, "SUCCESS");
+  assert.equal(state.job.runCount, "1");
+  assert.equal(state.dispatch.checkRunId, "123");
+  assert.deepEqual(f.checks, ["card_required", "card_required", "in_progress", "success"]);
+  assert.equal(f.calls.filter((call) => call === "create").length, 1);
+  const admission = (
+    await billingSdk.getBillingAdmission(billingDc, {
+      teamId: f.teamId,
+      id: identity(state.dispatch).admissionId,
+    })
+  ).data.billingAdmission;
+  assert.equal(admission.reservedMillis, "0");
+  const run = (
+    await billingSdk.getBillingExecution(billingDc, { teamId: f.teamId, runId: state.run.id })
+  ).data.billingExecution;
+  assert.equal(run.outcome, "success");
+  assert.match(run.periodId, /^postpaid:/);
+  const period = (
+    await billingSdk.getBillingPeriod(billingDc, { teamId: f.teamId, id: run.periodId })
+  ).data.period;
+  assert.equal(period.periodType, "postpaid");
+  assert.equal(period.allowanceSeconds ?? null, null);
+  assert.equal(new Date(Number(period.startsAt) * 1000).getUTCHours(), 15);
+  const steps = await graphql(
+    "query Steps($id:String!) {buildRun(id:$id){steps:buildSteps_on_run(orderBy:{stepOrder:ASC}){stepId status}}}",
+    { id: state.run.id },
+  );
+  assert.deepEqual(steps.buildRun.steps[0], { stepId: "prepare_vm", status: "SUCCESS" });
 });
 
 test("partial admission expires before cleanup releases the reservation", async (t) => {

@@ -2,42 +2,25 @@ import type { DataConnect } from "firebase-admin/data-connect";
 import { randomInt } from "node:crypto";
 import { setTimeout as delay } from "node:timers/promises";
 import * as sdk from "@openci/billing-admin";
+import { BillingStore } from "../billing/store.js";
 import { ExecutionStopped, identity, type Context, type Dispatch } from "./model.js";
 
-/** Paid/complimentary admission policy. No trial bypass. */
-export function paidPeriod(
-  context: Context,
-  teamId: string,
-  livemode: boolean,
-  now: number,
-): string | undefined {
-  const { customer, stripe } = context;
-  const period = stripe?.paidPeriod;
-  if (
-    context.team?.id === teamId &&
-    customer?.livemode === livemode &&
-    customer.stripeCustomerId === stripe?.stripeCustomerId &&
-    stripe?.livemode === livemode &&
-    stripe.stripeSubscriptionId &&
-    ["active", "past_due"].includes(stripe.subscriptionStatus) &&
-    period?.id === stripe.paidPeriodId &&
-    period?.teamId === teamId &&
-    period?.planId === stripe.planId &&
-    period.periodType === "paid" &&
-    Number(period.startsAt) <= now / 1000 &&
-    Number(period.endsAt) > now / 1000
-  ) {
-    return period.id;
-  }
-  return undefined;
+interface AdmissionPeriod {
+  periodId: string;
+  endsAt: number;
+  cardSessionId?: string;
+  livemode?: boolean;
 }
 
 export class ExecutionBilling {
+  private readonly store: BillingStore;
   constructor(
     private readonly dc: DataConnect,
     private readonly now = Date.now,
     private readonly wait: (milliseconds: number) => Promise<void> = delay,
-  ) {}
+  ) {
+    this.store = new BillingStore(dc);
+  }
 
   private async waitBeforeRetry(attempt: number): Promise<void> {
     // All runs on a team share one usage revision. Spread concurrent starts and
@@ -50,40 +33,40 @@ export class ExecutionBilling {
     teamId: string,
     livemode: boolean,
     complimentary: Set<string>,
-  ): Promise<string> {
-    const paid = paidPeriod(context, teamId, livemode, this.now());
-    if (paid && !complimentary.has(teamId)) return paid;
-    if (!context.team || !complimentary.has(teamId)) throw new ExecutionStopped("blocked");
-    const date = new Date(this.now());
+    verifyCard: (teamId: string, livemode: boolean) => Promise<string | null>,
+  ): Promise<AdmissionPeriod> {
+    if (context.team?.id !== teamId) throw new Error("Billing team mismatch");
+    const free = complimentary.has(teamId);
+    let session: string | null = null;
+    if (!free) {
+      if (context.customer?.stripeCustomerId) {
+        if (context.customer.livemode !== livemode)
+          throw new Error("Billing customer mode mismatch");
+        session = await verifyCard(teamId, livemode);
+      }
+      if (!session) throw new ExecutionStopped("card_required");
+    }
+    // Complimentary periods retain UTC. Postpaid usage follows the Japanese calendar.
+    const offset = free ? 0 : 9 * 3600_000;
+    const date = new Date(this.now() + offset);
     const start = Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1);
     const end = Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 1);
-    const expected = {
-      id: `complimentary-pro:${teamId}:${new Date(start).toISOString().slice(0, 7)}`,
+    const periodId = `${free ? "complimentary-pro" : "postpaid"}:${teamId}:${new Date(start).toISOString().slice(0, 7)}`;
+    await this.store.ensurePeriod({
+      id: periodId,
       teamId,
-      planId: "pro",
-      periodType: "paid",
-      startsAt: String(start / 1000),
-      endsAt: String(end / 1000),
-      allowanceSeconds: "360000",
-    };
-    let actual = (await sdk.getBillingPeriod(this.dc, { id: expected.id, teamId })).data.period;
-    if (!actual) {
-      try {
-        await sdk.createBillingPeriod(this.dc, expected);
-      } catch {
-        /* Resolve duplicate/lost response below. */
-      }
-      actual = (await sdk.getBillingPeriod(this.dc, { id: expected.id, teamId })).data.period;
-    }
-    if (
-      !actual ||
-      Object.entries(expected).some(([key, value]) => actual![key as keyof typeof actual] !== value)
-    )
-      throw new Error("Invalid complimentary billing period");
-    return expected.id;
+      planId: free ? "pro" : "postpaid",
+      periodType: free ? "paid" : "postpaid",
+      startsAt: String((start - offset) / 1000),
+      endsAt: String((end - offset) / 1000),
+      allowanceSeconds: free ? "360000" : null,
+    });
+    const period = { periodId, endsAt: end - offset };
+    return session ? { ...period, cardSessionId: session, livemode } : period;
   }
 
-  async admit(dispatch: Dispatch, periodId: string): Promise<void> {
+  async admit(dispatch: Dispatch, period: AdmissionPeriod): Promise<void> {
+    const { periodId, cardSessionId, livemode } = period;
     const { admissionId: id, ...attempt } = identity(dispatch);
     for (let retry = 0; retry < 12; retry++) {
       await this.waitBeforeRetry(retry);
@@ -112,21 +95,12 @@ export class ExecutionBilling {
           continue;
         }
       }
-      const usage = (
-        await sdk.getBillingPeriodUsage(this.dc, {
-          teamId: attempt.teamId,
-          periodId,
-          atMs: String(this.now()),
-        })
-      ).data.usage;
+      if (this.now() >= period.endsAt) throw new ExecutionStopped("blocked");
       if (
-        !usage ||
-        typeof usage !== "object" ||
-        !("availableMillis" in usage) ||
-        !/^-?\d+$/.test(String(usage.availableMillis))
+        !cardSessionId &&
+        (await this.store.available(attempt.teamId, periodId, this.now())) <= 0n
       )
-        throw new Error("Billing usage unavailable");
-      if (BigInt(String(usage.availableMillis)) <= 0n) throw new ExecutionStopped("blocked");
+        throw new ExecutionStopped("blocked");
       try {
         await sdk.createBillingAdmission(this.dc, {
           id,
@@ -134,6 +108,8 @@ export class ExecutionBilling {
           jobId: attempt.jobId,
           workerHost: attempt.workerHost,
           periodId,
+          cardSessionId,
+          livemode,
           atMs: String(this.now()),
           vmName: dispatch.vmName,
         });
