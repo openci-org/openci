@@ -684,6 +684,7 @@ test("Octokit scopes checkout/check tokens and reconciles a lost check creation 
     publicKeyEncoding: { type: "spki", format: "pem" },
   });
   const calls = [];
+  const prJob = { ...job, pullRequestNumber: "7" };
   let created = false;
   const original = globalThis.fetch;
   t.after(() => {
@@ -705,17 +706,22 @@ test("Octokit scopes checkout/check tokens and reconciles a lost check creation 
     if (path === "/repos/org/app")
       return Response.json({ id: 101, full_name: "org/app", owner: { id: 10 } });
     if (path === "/installation/token") return new Response(null, { status: 204 });
-    if (path.includes("/commits/"))
+    if (path.includes("/commits/")) {
+      assert.equal(path, `/repos/org/app/commits/${prJob.commitSha}/check-runs`);
       return Response.json({
         total_count: created ? 1 : 0,
         check_runs: created ? [{ id: 42, external_id: dispatch.runId, app: { id: 1 } }] : [],
       });
+    }
     if (path === "/repos/org/app/check-runs" && init.method === "POST") {
+      assert.equal(body.head_sha, prJob.commitSha);
       created = true;
       throw new Error("Lost creation response");
     }
-    if (path === "/repos/org/app/check-runs/42" && init.method === "PATCH")
+    if (path === "/repos/org/app/check-runs/42" && init.method === "PATCH") {
+      assert.equal(body.conclusion, "failure");
       return Response.json({ id: 42 });
+    }
     assert.fail(`Unexpected GitHub request: ${path}`);
   };
   const github = new ExecutionGitHub({
@@ -728,9 +734,9 @@ test("Octokit scopes checkout/check tokens and reconciles a lost check creation 
   assert.equal(checkout.cloneUrl, "https://github.com/org/app.git");
   assert.equal(checkout.token, "contents-token");
   await checkout.revoke();
-  await assert.rejects(github.check(job, dispatch));
+  await assert.rejects(github.check(prJob, dispatch));
   const done = { ...dispatch, resultAt: new Date().toISOString() };
-  assert.equal(await github.check(job, done, "failure"), "42");
+  assert.equal(await github.check(prJob, done, "failure"), "42");
   assert.equal(calls.filter((call) => call.path === "/repos/org/app/check-runs").length, 1);
   const tokens = calls.filter((call) => call.path.endsWith("/access_tokens"));
   assert.deepEqual(tokens[0].body.repositories, ["app"]);
