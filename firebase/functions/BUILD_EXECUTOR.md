@@ -7,7 +7,7 @@ It does not run Flutter or parse Dart workflows locally.
 
 ```text
 dispatchBuildJob -> Cloud Run Job
-  claim reservation with queued check ID -> verify PR source -> billing admission -> create numbered run
+  claim reservation with queued check ID -> resolve checkout commit -> billing admission -> create numbered run
   update the queued GitHub Check to in_progress
   prepare_vm -> checkout exact commit -> run_workflow
   persist result -> delete VM -> close billing -> complete GitHub Check
@@ -58,8 +58,17 @@ head SHA must match the saved job. This protects queued jobs and reruns created
 before the planner's fork restriction. Unknown/deleted heads, API failures, and
 superseded PR commits fail the attempt without fetching team secrets or handing
 a checkout token to the VM. Rerun the latest PR commit after a new push. A separate
-repository-scoped `pull_requests: read` token is revoked after verification and
-never sent to the VM; the GitHub App must have that read permission.
+repository-scoped token with `pull_requests: read` and `contents: read` stays in
+Cloud Run and is revoked after resolving the checkout commit, including cancellation.
+The GitHub App must have both read permissions.
+
+For an open PR, the executor polls the PR API up to five times with one-second
+waits for GitHub's test merge commit. Its parents must match the observed base SHA
+and the job's saved head SHA. Conflicts, closed PRs, and unavailable or stale merge
+candidates fail the attempt. The execution pins the resolved merge SHA for checkout
+and writes the full checked-out SHA to its checkout log. GitHub Checks use the
+job's saved head SHA. Push builds check out their saved commit SHA.
+
 Only the team's pinned Secret Manager versions are injected into the workflow.
 Google credentials, Orchard credentials and the GitHub App key never enter the VM.
 

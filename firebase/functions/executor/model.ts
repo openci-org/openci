@@ -56,7 +56,9 @@ export function shellQuote(value: string): string {
   return `'${value.replaceAll("'", "'\\''")}'`;
 }
 
-export function checkoutScript(job: Job, cloneUrl: string, token: string): string {
+export function checkoutScript(commitSha: string, cloneUrl: string, token: string): string {
+  if (!/^[a-fA-F0-9]{40}(?:[a-fA-F0-9]{24})?$/.test(commitSha))
+    throw new Error("Invalid checkout commit SHA");
   const auth = Buffer.from(`x-access-token:${token}`).toString("base64");
   return (
     [
@@ -67,8 +69,9 @@ export function checkoutScript(job: Job, cloneUrl: string, token: string): strin
       "git init -q",
       `git remote add origin ${shellQuote(cloneUrl)}`,
       // The token goes over stdin, never in an Orchard URL or a git remote/config.
-      `git -c ${shellQuote(`http.extraHeader=Authorization: Basic ${auth}`)} fetch --no-tags --depth=1 origin ${shellQuote(job.commitSha!)}`,
-      `git checkout --detach ${shellQuote(job.commitSha!)}`,
+      `git -c ${shellQuote(`http.extraHeader=Authorization: Basic ${auth}`)} fetch --no-tags --depth=1 origin ${shellQuote(commitSha)}`,
+      `git checkout --detach ${shellQuote(commitSha)}`,
+      "git rev-parse HEAD",
     ].join("\n") + "\n"
   );
 }

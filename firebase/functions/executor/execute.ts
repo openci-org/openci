@@ -18,7 +18,7 @@ import type { OrchardExecutor } from "./orchard.js";
 export interface ExecutorDependencies {
   store: Pick<ExecutionStore, keyof ExecutionStore>;
   billing: Pick<ExecutionBilling, "period" | "admit" | "start" | "heartbeat" | "close">;
-  github: Pick<ExecutionGitHub, "options" | "verifyPullRequest" | "checkout" | "check">;
+  github: Pick<ExecutionGitHub, "options" | "resolveCheckoutCommit" | "checkout" | "check">;
   orchard: Pick<OrchardExecutor, "create" | "ready" | "remove" | "exec" | "vmNames">;
   logs: (dispatch: Dispatch) => Pick<ExecutionLogs, "start" | "finish" | "output">;
   secrets: (teamId: string, signal: AbortSignal) => Promise<Record<string, string>>;
@@ -145,7 +145,11 @@ export async function executeBuild(
     if (!context.team || !context.connection) throw new Error("GitHub connection is not active");
     // Guard existing/queued/rerun jobs as well as newly planned ones. A failed
     // check is terminal (not the billing "blocked" outcome, which requeues).
-    await github.verifyPullRequest(job, context.connection.accountId);
+    const checkoutSha = await github.resolveCheckoutCommit(
+      job,
+      context.connection.accountId,
+      signal,
+    );
     signal.throwIfAborted();
     if (configuration.selfHosted) {
       if (context.customer || context.stripe) {
@@ -201,7 +205,7 @@ export async function executeBuild(
         signal.throwIfAborted();
         const code = await orchard.exec(
           dispatch.vmName,
-          checkoutScript(job, checkout.cloneUrl, checkout.token),
+          checkoutScript(checkoutSha, checkout.cloneUrl, checkout.token),
           output.write,
           signal,
         );
