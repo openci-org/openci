@@ -57,7 +57,8 @@ if [[ ! -d "$ANDROID_HOME" ]]; then
 fi
 sdkmanager="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
 while IFS= read -r package; do
-  if [[ ! -f "$ANDROID_HOME/${package//;/\/}/package.xml" ]]; then
+  package_path=$(tr ';' '/' <<< "$package")
+  if [[ ! -f "$ANDROID_HOME/$package_path/package.xml" ]]; then
     "$sdkmanager" "$package" </dev/null
   fi
 done < <("$python" -c 'import json,sys; print("\n".join(json.load(open(sys.argv[1]))["android_packages"]))' "$config")
