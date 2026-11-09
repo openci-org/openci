@@ -81,10 +81,12 @@ upgrading the stack or switching execution paths.
 `openci/firebase_functions_ci.dart` runs the Functions formatting, lint,
 TypeScript, Node and Vitest checks on matching pull requests and pushes to
 `develop`. Changes to Functions, generated Admin SDKs, or their dependency and
-runtime configuration trigger it. The workflow bootstraps the pinned Node.js
-and npm versions and installs dependencies from the root lockfile.
+runtime configuration trigger it. The macOS CI image provides the Node.js version
+in `.node-version` through mise. The workflow uses the npm version in the root
+`package.json` and installs dependencies from the root lockfile.
 
-Run the same CI entry point locally from the repository root:
+To run the same checks locally, use the pinned Node.js version on your `PATH`
+or install it with mise. Run this command from the repository root.
 
 ```sh
 bash firebase/scripts/ci.sh
