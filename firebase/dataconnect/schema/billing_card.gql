@@ -1,0 +1,13 @@
+type BillingCardSetup @table(name: "billing_card_setups", key: "teamId") {
+  teamId: String!
+  billingAccount: BillingAccount! @ref(fields: "teamId", references: "teamId")
+  stripeCustomerId: String!
+  livemode: Boolean!
+  sessionId: String! @unique
+  consentedBy: String!
+  consentedAt: Timestamp!
+  termsVersion: String!
+  status: String!
+  paymentMethodId: String
+  resolvedAt: Timestamp
+}

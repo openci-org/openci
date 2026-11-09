@@ -16,6 +16,12 @@ import {
 import { observePurchase } from "./purchase.js";
 import { BillingStore } from "./store.js";
 import { StripeBilling, stripeRedirect } from "./stripe.js";
+import {
+  cardSetupStatus,
+  cardTermsVersion,
+  reconcileCardSession,
+  startCardSetup,
+} from "./card_setup.js";
 
 export class Billing {
   constructor(
@@ -31,10 +37,10 @@ export class Billing {
   async execute(userId: string, input: unknown) {
     if (!input || typeof input !== "object" || Array.isArray(input))
       throw new BillingError("invalid-argument", "invalid_request");
-    const { action, teamId, planId } = input as Record<string, unknown>;
+    const { action, teamId, planId, termsVersion } = input as Record<string, unknown>;
     if (
       typeof action !== "string" ||
-      !["status", "checkout", "portal", "deleteTeam"].includes(action) ||
+      !["status", "checkout", "setupCard", "portal", "deleteTeam"].includes(action) ||
       typeof teamId !== "string" ||
       !teamId.trim() ||
       teamId.length > 255
@@ -47,6 +53,14 @@ export class Billing {
     if (action === "status") return this.status(teamId, userId, context);
     if (!this.config.enabled) throw new BillingError("failed-precondition", "billing_disabled");
     this.compatible(context);
+    if (action === "setupCard") {
+      if (termsVersion !== cardTermsVersion)
+        throw new BillingError("invalid-argument", "card_consent_required");
+      if (this.config.selfHosted || this.config.complimentary.has(teamId))
+        throw new BillingError("failed-precondition", "billing_disabled");
+      const customerId = await this.ensureCustomer(teamId, userId, context);
+      return startCardSetup(this.store, this.stripe, teamId, userId, customerId);
+    }
     if (action === "checkout")
       return { url: await this.checkout(teamId, userId, plan(planId), context) };
     const customerId = context.customer?.stripeCustomerId;
@@ -64,6 +78,9 @@ export class Billing {
       (context.stripe &&
         (context.stripe.livemode !== this.config.livemode ||
           context.stripe.stripeCustomerId !== context.customer?.stripeCustomerId)) ||
+      (context.cardSetup &&
+        (context.cardSetup.livemode !== this.config.livemode ||
+          context.cardSetup.stripeCustomerId !== context.customer?.stripeCustomerId)) ||
       (context.checkout &&
         (context.checkout.livemode !== this.config.livemode ||
           context.checkout.stripeCustomerId !== context.customer?.stripeCustomerId))
@@ -81,9 +98,10 @@ export class Billing {
       canCheckout: false,
       canManageBilling: false,
       cancelAtPeriodEnd: false,
+      cardSetupStatus: null as Awaited<ReturnType<typeof cardSetupStatus>> | null,
     };
     if (this.config.selfHosted) {
-      if (context.customer || context.stripe || context.checkout) {
+      if (context.customer || context.stripe || context.checkout || context.cardSetup) {
         throw new BillingError("failed-precondition", "billing_unavailable");
       }
       return { ...result, canStartCi: true, blockReason: "" };
@@ -120,6 +138,7 @@ export class Billing {
         this.compatible(context);
       }
       const state = context.stripe;
+      result.cardSetupStatus = await cardSetupStatus(this.store, this.stripe, context.cardSetup);
       const status = state?.subscriptionStatus ?? "none";
       const period = state?.paidPeriod;
       result.planId = state?.planId ?? null;
@@ -352,6 +371,23 @@ export class Billing {
       this.compatible(context);
       await this.stripe.ownedCustomer(teamId, customerId);
       await this.stripe.noSubscription(customerId);
+      const setup = context.cardSetup;
+      if (setup?.status === "pending") {
+        const open = await reconcileCardSession(this.store, this.stripe, setup);
+        if (open) {
+          await this.store.context(teamId, userId);
+          try {
+            await this.stripe.client.checkout.sessions.expire(
+              open.id,
+              {},
+              { idempotencyKey: `expire-card:${open.id}` },
+            );
+          } catch {
+            // Resolve a concurrent completion or lost expiry response from Stripe.
+          }
+          if (await reconcileCardSession(this.store, this.stripe, setup)) throw pending();
+        }
+      }
     }
     try {
       await this.store.deleteTeam(teamId, userId, this.config.livemode, context);

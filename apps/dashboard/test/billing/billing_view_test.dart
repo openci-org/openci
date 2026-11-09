@@ -50,6 +50,7 @@ void main() {
               returnedFromStripe: returned,
               onCheckout: checkout ?? (_) {},
               onPortal: portal ?? () {},
+              onSetupCard: () {},
               onReload: reload ?? () {},
             ),
           ),

@@ -1,6 +1,7 @@
 import type Stripe from "stripe";
 import type { Billing } from "./service.js";
 import { id } from "./model.js";
+import { reconcileCardSession } from "./card_setup.js";
 
 const supported = new Set([
   "checkout.session.completed",
@@ -47,11 +48,21 @@ export async function receiveStripeWebhook(
   )
     return 400;
   if (!supported.has(event.type)) return 204;
-  const object = event.data.object as { id?: string; customer?: string | { id: string } | null };
+  const object = event.data.object as {
+    id?: string;
+    customer?: string | { id: string } | null;
+    mode?: string;
+  };
   const customerId = event.type === "customer.deleted" ? object.id : id(object.customer);
   if (!customerId) return 400;
   const customer = await billing.store.customer(customerId, billing.config.livemode);
   if (!customer) return 204;
+  if (event.type.startsWith("checkout.session.") && object.mode === "setup") {
+    const setup = await billing.store.cardSetup(customer.teamId);
+    if (setup && setup.stripeCustomerId === customerId && setup.sessionId === object.id)
+      await reconcileCardSession(billing.store, billing.stripe, setup);
+    return 204;
+  }
   await billing.reconcile(customer.teamId, customerId, event.id, event.type, event.created);
   return 204;
 }

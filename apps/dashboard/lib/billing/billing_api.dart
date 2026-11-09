@@ -42,6 +42,7 @@ class BillingApi {
     String action,
     String teamId, {
     String? planId,
+    String? termsVersion,
   }) async {
     _requireCurrent();
     try {
@@ -49,6 +50,7 @@ class BillingApi {
         'action': action,
         'teamId': teamId,
         'planId': ?planId,
+        'termsVersion': ?termsVersion,
       });
       _requireCurrent();
       return result.data;
@@ -69,6 +71,7 @@ class BillingApi {
         'checkout_conflict',
         'payment_pending',
         'billing_disabled',
+        'card_consent_required',
       }.contains(reason)) {
         throw BillingException(reason as String);
       }

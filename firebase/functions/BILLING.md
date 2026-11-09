@@ -21,6 +21,7 @@ remain `NO_ACCESS`; only trusted backend identities execute them.
 | ------------ | -------------------------------- | ------------------------------------------------------------------------------ |
 | `status`     | `teamId`                         | Billing enabled, plan, paid-through date, CI eligibility and available actions |
 | `checkout`   | `teamId`, `planId: light \| pro` | Verified Stripe Checkout URL                                                   |
+| `setupCard`  | `teamId`, `termsVersion`         | Card-only Stripe Checkout URL or `registered: true` after completion           |
 | `portal`     | `teamId`                         | Verified Stripe Customer Portal URL                                            |
 | `deleteTeam` | `teamId`                         | `success: true` after deletion commits                                         |
 
@@ -33,6 +34,33 @@ callable to its active Firebase app and discards results after connection or
 account changes. Existing cloud/web visibility rules are unchanged.
 
 ## Stripe and entitlement behavior
+
+### Postpaid card registration
+
+Cloud team members confirm **JPY 1 per CI minute including tax**, with monthly
+automatic collection in arrears. The web dashboard sends `ci-jpy1-tax-included-monthly-v1`
+only after consent. The server reuses the team's Stripe Customer and records the
+member, server time, terms version and exact Checkout Session before returning
+its URL. Concurrent requests share the session; after expiry a new request records
+fresh consent. Checkout uses `mode=setup` and collects the card at zero initial charge.
+
+The signed `checkout.session.completed` / `.expired` notifications and billing
+status refresh reconcile the stored session. Completion verifies the Stripe mode,
+customer, succeeded off-session SetupIntent and attached card before setting the
+Customer's default invoice payment method. The pending session is resolved once.
+A delayed delivery cannot restore a card replaced through the Portal. The status
+response supplies `cardSetupStatus` for eligible Cloud teams; `needs_card` directs
+members to the Portal when the default card is missing. CI admission still uses
+the paid/complimentary periods described below.
+
+Team deletion expires an open zero-charge card setup after existing purchase
+and subscription checks pass. Its terminal receipt fences late setup notifications.
+
+Deploy the additive `billing_card_setups` schema and billing connector before
+the callable/webhook and dashboard. The subscription webhook event configuration
+already includes the two Checkout events used by setup.
+
+### Monthly subscription purchases
 
 The official [`stripe` Node SDK](https://github.com/stripe/stripe-node) verifies the
 unaltered request body and signature. Only the configured Stripe mode and regular

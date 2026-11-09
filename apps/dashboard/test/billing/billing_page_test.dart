@@ -28,6 +28,7 @@ void main() {
   late _Launcher launcher;
   late Future<http.Response> Function(http.Request) respond;
   var paid = false;
+  String? cardStatus;
 
   http.Response jsonResponse(Object body, {int status = 200}) => http.Response(
     jsonEncode(body),
@@ -39,6 +40,7 @@ void main() {
     identity = (connection: cloud, userId: 'user-1');
     requests = [];
     paid = false;
+    cardStatus = null;
     final original = UrlLauncherPlatform.instance;
     launcher = _Launcher();
     UrlLauncherPlatform.instance = launcher;
@@ -60,6 +62,7 @@ void main() {
         'canCheckout': !paid,
         'canManageBilling': true,
         'cancelAtPeriodEnd': false,
+        'cardSetupStatus': ?cardStatus,
       });
     };
   });
@@ -175,6 +178,50 @@ void main() {
       expect(find.text('Lightを選ぶ'), findsNothing);
     });
   }
+
+  testWidgets(
+    'card setup requires consent and refreshes the selected team on return',
+    (tester) async {
+      cardStatus = 'unregistered';
+      await show(tester, result: 'card_cancel');
+      await tester.tap(find.text('支払い方法を登録'));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('1分1円（税込）'), findsOneWidget);
+      expect(find.textContaining('カード登録時の利用料は0円'), findsOneWidget);
+      await tester.tap(find.text('キャンセル'));
+      await tester.pumpAndSettle();
+      expect(requests, hasLength(1));
+      expect(launcher.url, isNull);
+      await tester.tap(find.text('支払い方法を登録'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('同意してStripeへ'));
+      await tester.pumpAndSettle();
+      expect(billingCallData(requests.last), {
+        'action': 'setupCard',
+        'teamId': 'team-1',
+        'termsVersion': 'ci-jpy1-tax-included-monthly-v1',
+      });
+      expect(launcher.url, 'https://checkout.stripe.com/c/pay/test');
+      expect(launcher.options?.webOnlyWindowName, '_self');
+      cardStatus = 'registered';
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: const MaterialApp(
+            home: BillingPage(teamId: 'team-1', result: 'card_success'),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(billingCallData(requests.last), {
+        'action': 'status',
+        'teamId': 'team-1',
+      });
+      expect(find.text('後払い用のカードは登録済みです。'), findsOneWidget);
+      expect(find.text('支払い方法を登録'), findsNothing);
+      expect(find.text('CIを利用できます'), findsNothing);
+    },
+  );
 
   testWidgets('Checkout opens the validated destination in the same window', (
     tester,

@@ -51,6 +51,39 @@ function expireBillingAdmission(dcOrVarsOrOptions, varsOrOptions, options) {
 }
 exports.expireBillingAdmission = expireBillingAdmission;
 
+function getBillingCardSetup(dcOrVarsOrOptions, varsOrOptions, options) {
+  const {
+    dc: dcInstance,
+    vars: inputVars,
+    options: inputOpts,
+  } = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeQuery("GetBillingCardSetup", inputVars, inputOpts);
+}
+exports.getBillingCardSetup = getBillingCardSetup;
+
+function recordBillingCardConsent(dcOrVarsOrOptions, varsOrOptions, options) {
+  const {
+    dc: dcInstance,
+    vars: inputVars,
+    options: inputOpts,
+  } = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeMutation("RecordBillingCardConsent", inputVars, inputOpts);
+}
+exports.recordBillingCardConsent = recordBillingCardConsent;
+
+function resolveBillingCardSetup(dcOrVarsOrOptions, varsOrOptions, options) {
+  const {
+    dc: dcInstance,
+    vars: inputVars,
+    options: inputOpts,
+  } = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeMutation("ResolveBillingCardSetup", inputVars, inputOpts);
+}
+exports.resolveBillingCardSetup = resolveBillingCardSetup;
+
 function createBillingCheckoutCreation(dcOrVarsOrOptions, varsOrOptions, options) {
   const {
     dc: dcInstance,

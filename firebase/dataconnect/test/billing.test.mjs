@@ -7,6 +7,8 @@ import { getDataConnect } from "firebase-admin/data-connect";
 import * as sdk from "@openci/billing-admin";
 import { BillingStore } from "../../lib/functions/billing/store.js";
 import { Billing } from "../../lib/functions/billing/service.js";
+import { cardTermsVersion } from "../../lib/functions/billing/card_setup.js";
+import { receiveStripeWebhook } from "../../lib/functions/billing/webhook.js";
 import {
   config,
   now,
@@ -180,6 +182,7 @@ test("billing context checks membership and preserves missing billing data", asy
   assert.deepEqual(await context(f), {
     account: null,
     customer: null,
+    cardSetup: null,
     stripe: null,
     checkout: null,
   });
@@ -855,4 +858,226 @@ test("paid renewal, failed renewal and cancellation update callable status throu
   const ended = await status();
   assert.equal(ended.canStartCi, false);
   assert.equal(ended.blockReason, "subscription_ended");
+});
+
+function cardFixture(f) {
+  const customerId = `cus_${f.teamId}`;
+  const sessions = new Map();
+  const keys = new Map();
+  const state = { defaultMethod: null, appliedSession: null, writes: 0 };
+  const customer = () => ({
+    id: customerId,
+    livemode: false,
+    metadata: { team_id: f.teamId, postpaid_card_session: state.appliedSession },
+    invoice_settings: { default_payment_method: state.defaultMethod },
+  });
+  const api = stripeFixture(({ url, method, body, headers }) => {
+    if (url.pathname === "/v1/customers" && method === "POST") return customer();
+    if (url.pathname === `/v1/customers/${customerId}`) {
+      if (method === "POST") {
+        state.writes++;
+        state.defaultMethod = body.get("invoice_settings[default_payment_method]");
+        state.appliedSession = body.get("metadata[postpaid_card_session]");
+      }
+      return customer();
+    }
+    if (url.pathname === "/v1/subscriptions") return { data: [], has_more: false };
+    if (url.pathname === "/v1/checkout/sessions" && method === "POST") {
+      assert.equal(body.get("mode"), "setup");
+      assert.equal(body.get("currency"), "jpy");
+      assert.equal(body.get("allowed_payment_method_types[0]"), "card");
+      assert.equal(body.get("customer"), customerId);
+      assert.equal(body.get("client_reference_id"), f.teamId);
+      assert.equal(body.get("metadata[card_terms]"), cardTermsVersion);
+      assert.equal(body.get("metadata[team_id]"), f.teamId);
+      assert.equal(body.has("line_items[0][price]"), false);
+      const key = headers.get("idempotency-key");
+      assert.ok(key);
+      if (!keys.has(key)) {
+        const id = `cs_test_${randomUUID()}`;
+        keys.set(key, id);
+        sessions.set(id, {
+          id,
+          status: "open",
+          mode: "setup",
+          customer: customerId,
+          livemode: false,
+          metadata: { team_id: f.teamId, card_terms: cardTermsVersion },
+          client_reference_id: f.teamId,
+          url: `https://checkout.stripe.com/c/pay/${id}`,
+        });
+      }
+      return sessions.get(keys.get(key));
+    }
+    if (url.pathname.endsWith("/expire") && method === "POST") {
+      const session = sessions.get(url.pathname.split("/").at(-2));
+      session.status = "expired";
+      return session;
+    }
+    if (url.pathname.startsWith("/v1/checkout/sessions/"))
+      return sessions.get(url.pathname.split("/").at(-1));
+    if (url.pathname.startsWith("/v1/payment_methods/"))
+      return {
+        id: state.defaultMethod,
+        livemode: false,
+        customer: customerId,
+        type: "card",
+      };
+  });
+  const service = new Billing(new BillingStore(dc), api.stripe, config);
+  const input = { action: "setupCard", teamId: f.teamId, termsVersion: cardTermsVersion };
+  const start = () => service.execute(f.userId, input);
+  const status = () => service.execute(f.userId, { action: "status", teamId: f.teamId });
+  function complete(s) {
+    s.status = "complete";
+    s.setup_intent = {
+      id: "seti_test",
+      status: "succeeded",
+      usage: "off_session",
+      customer: customerId,
+      livemode: false,
+      payment_method: { id: "pm_card_visa", type: "card", customer: customerId, livemode: false },
+    };
+  }
+  function webhook(s, type = "checkout.session.completed", eventId = "evt_card") {
+    const secret = "whsec_test";
+    const payload = JSON.stringify({
+      id: eventId,
+      type,
+      created: now,
+      livemode: false,
+      data: { object: { id: s.id, mode: "setup", customer: customerId } },
+    });
+    return receiveStripeWebhook(
+      {
+        method: "POST",
+        rawBody: Buffer.from(payload),
+        signature: api.client.webhooks.generateTestHeaderString({ payload, secret }),
+      },
+      service,
+      secret,
+    );
+  }
+  return { api, service, input, customerId, start, status, sessions, state, complete, webhook };
+}
+
+test("card setup records explicit team consent once and verifies the card on signed completion", async (t) => {
+  const f = await fixture(t);
+  const c = cardFixture(f);
+  await assert.rejects(c.service.execute("outsider", c.input));
+  await assert.rejects(
+    c.service.execute(f.userId, { ...c.input, termsVersion: "old" }),
+    /card_consent_required/,
+  );
+  assert.equal(c.api.requests.length, 0);
+  const [a, b] = await Promise.all([c.start(), c.start()]);
+  assert.deepEqual(a, b);
+  assert.equal(c.sessions.size, 1);
+  const s = [...c.sessions.values()][0];
+  const before = (await context(f)).cardSetup;
+  assert.equal(before.sessionId, s.id);
+  assert.equal(before.consentedBy, f.userId);
+  assert.equal(before.termsVersion, cardTermsVersion);
+  assert.ok(Date.parse(before.consentedAt));
+  assert.equal((await c.status()).cardSetupStatus, "pending");
+  assert.equal(c.state.writes, 0);
+  c.complete(s);
+  s.setup_intent.payment_method.customer = "cus_other";
+  await assert.rejects(c.webhook(s));
+  assert.equal(c.state.writes, 0);
+  assert.equal((await context(f)).cardSetup.status, "pending");
+  c.complete(s);
+  const resolve = c.service.store.resolveCardSetup.bind(c.service.store);
+  c.service.store.resolveCardSetup = async () => {
+    throw new Error("ledger offline");
+  };
+  await assert.rejects(c.webhook(s), /ledger offline/);
+  assert.equal(c.state.defaultMethod, "pm_card_visa");
+  c.service.store.resolveCardSetup = resolve;
+  c.state.defaultMethod = "pm_portal_replacement";
+  s.setup_intent.payment_method.customer = null;
+  assert.equal(await c.webhook(s), 204);
+  const registered = (await context(f)).cardSetup;
+  assert.equal(registered.status, "registered");
+  assert.equal(registered.paymentMethodId, "pm_card_visa");
+  assert.equal(registered.consentedAt, before.consentedAt);
+  assert.ok(Date.parse(registered.resolvedAt));
+  assert.equal(c.state.defaultMethod, "pm_portal_replacement");
+  assert.equal(await c.webhook(s), 204);
+  assert.equal(c.state.writes, 1);
+  assert.deepEqual((await context(f)).cardSetup, registered);
+  assert.deepEqual(await c.start(), { registered: true });
+  const status = await c.status();
+  assert.equal(status.cardSetupStatus, "registered");
+  assert.equal(status.canStartCi, false);
+  assert.equal((await context({ teamId: f.otherTeamId, userId: f.userId })).cardSetup, null);
+  c.state.defaultMethod = null;
+  assert.equal((await c.status()).cardSetupStatus, "needs_card");
+});
+
+test("expired card setup can be retried and refresh recovers a missed completion", async (t) => {
+  const f = await fixture(t);
+  const c = cardFixture(f);
+  await c.start();
+  const first = [...c.sessions.values()][0];
+  first.status = "expired";
+  assert.equal(await c.webhook(first, "checkout.session.expired"), 204);
+  assert.equal((await c.status()).cardSetupStatus, "unregistered");
+  await c.start();
+  const second = [...c.sessions.values()][1];
+  assert.notEqual(first.id, second.id);
+  assert.equal(await c.webhook(first), 204);
+  c.complete(second);
+  second.setup_intent.status = "requires_action";
+  await assert.rejects(c.webhook(second));
+  assert.equal(c.state.writes, 0);
+  c.complete(second);
+  assert.equal((await c.status()).cardSetupStatus, "registered");
+  assert.equal((await context(f)).cardSetup.sessionId, second.id);
+  assert.equal(c.state.writes, 1);
+});
+
+test("team deletion closes an unfinished setup before a late webhook can register a card", async (t) => {
+  const f = await fixture(t);
+  const c = cardFixture(f);
+  await c.start();
+  const open = [...c.sessions.values()][0];
+  assert.deepEqual(await c.service.execute(f.userId, { action: "deleteTeam", teamId: f.teamId }), {
+    success: true,
+  });
+  assert.equal(open.status, "expired");
+  assert.equal((await c.service.store.cardSetup(f.teamId)).status, "expired");
+  assert.equal(await c.webhook(open), 204);
+  assert.equal(c.state.writes, 0);
+});
+
+test("card setup operations reject direct clients and consent checks durable team membership", async (t) => {
+  const f = await fixture(t);
+  const c = await customer(f);
+  const vars = {
+    teamId: f.teamId,
+    stripeCustomerId: c.stripeCustomerId,
+    livemode: false,
+    sessionId: "cs_setup",
+  };
+  for (const [operation, input] of [
+    [sdk.getBillingCardSetup, { teamId: f.teamId }],
+    [sdk.recordBillingCardConsent, { ...vars, userId: f.userId, termsVersion: cardTermsVersion }],
+    [sdk.resolveBillingCardSetup, { ...vars, paymentMethodId: "pm_test" }],
+  ]) {
+    await assert.rejects(
+      operation(dc, input, {
+        impersonate: { authClaims: { sub: f.userId, firebase: { sign_in_provider: "password" } } },
+      }),
+      /permission|auth|access denied/i,
+    );
+  }
+  await assert.rejects(
+    sdk.recordBillingCardConsent(dc, {
+      ...vars,
+      userId: "outsider",
+      termsVersion: cardTermsVersion,
+    }),
+  );
+  assert.equal((await context(f)).cardSetup, null);
 });

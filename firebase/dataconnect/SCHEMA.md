@@ -1,6 +1,6 @@
 # Schema migration inventory
 
-These definitions cover 25 tables used by Functions, the Dart
+These definitions cover 26 tables used by Functions, the Dart
 planner, the Cloud Run executor and Dashboard. The legacy data cutover is complete;
 `schema/` is the source of truth for application storage. The new skipped-Check
 outbox is additive and must be deployed before changed-path filtering is enabled.
@@ -27,6 +27,7 @@ outbox is additive and must be deployed before changed-path filtering is enabled
 | `billing_periods`            | `BillingPeriod`           | `billing.gql`           |
 | `billing_customer_creations` | `BillingCustomerCreation` | `billing_stripe.gql`    |
 | `billing_checkout_creations` | `BillingCheckoutCreation` | `billing_stripe.gql`    |
+| `billing_card_setups`        | `BillingCardSetup`        | `billing_card.gql`      |
 | `billing_stripe_state`       | `BillingStripeState`      | `billing_stripe.gql`    |
 | `billing_stripe_events`      | `BillingStripeEvent`      | `billing_stripe.gql`    |
 | `billing_admissions`         | `BillingAdmission`        | `billing_execution.gql` |

@@ -9,6 +9,7 @@ class BillingView extends StatelessWidget {
     required this.status,
     required this.onCheckout,
     required this.onPortal,
+    required this.onSetupCard,
     required this.onReload,
     this.pending = false,
     this.returnedFromStripe = false,
@@ -20,6 +21,7 @@ class BillingView extends StatelessWidget {
   final BillingStatus status;
   final ValueChanged<String> onCheckout;
   final VoidCallback onPortal;
+  final VoidCallback onSetupCard;
   final VoidCallback onReload;
   final bool pending;
   final bool returnedFromStripe;
@@ -53,6 +55,28 @@ class BillingView extends StatelessWidget {
             ),
           ],
           const SizedBox(height: 24),
+          if (status.cardSetupStatus != null) ...[
+            Text('CIの月次後払い', style: theme.textTheme.titleMedium),
+            const SizedBox(height: 4),
+            const Text('CI実行1分につき税込1円。利用料は月ごとに集計し、翌月に登録カードで自動決済します。'),
+            if (status.canSetupCard)
+              OutlinedButton(
+                onPressed: pending ? null : () => _confirmCardSetup(context),
+                child: Text(
+                  status.cardSetupStatus == CardSetupStatus.pending
+                      ? 'カード登録を続ける'
+                      : '支払い方法を登録',
+                ),
+              )
+            else
+              Text(
+                status.cardSetupStatus == CardSetupStatus.registered
+                    ? '後払い用のカードは登録済みです。'
+                    : '「契約を管理」から請求用のカードを設定してください。',
+              ),
+            const SizedBox(height: 24),
+            Text('月額プラン', style: theme.textTheme.titleMedium),
+          ],
           for (final plan in [
             (id: 'light', name: 'Light', price: 'US\$10 / 月', minutes: '600'),
             (id: 'pro', name: 'Pro', price: 'US\$100 / 月', minutes: '6,000'),
@@ -137,6 +161,29 @@ class BillingView extends StatelessWidget {
         ),
       ],
     );
+  }
+
+  Future<void> _confirmCardSetup(BuildContext context) async {
+    final agreed = await showDialog<bool>(
+      context: context,
+      builder: (dialog) => AlertDialog(
+        title: const Text('月次後払いに同意しますか？'),
+        content: Text(
+          'チーム「$teamName」のCI利用料は1分1円（税込）です。月の利用時間を合計し、翌月に登録カードから自動決済します。カード登録時の利用料は0円です。',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialog, false),
+            child: const Text('キャンセル'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialog, true),
+            child: const Text('同意してStripeへ'),
+          ),
+        ],
+      ),
+    );
+    if (agreed == true && context.mounted) onSetupCard();
   }
 }
 

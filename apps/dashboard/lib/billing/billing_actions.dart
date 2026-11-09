@@ -26,20 +26,28 @@ class BillingActions {
     if (!{'light', 'pro'}.contains(planId)) {
       throw const BillingException('invalid_plan');
     }
-    return _create(planId: planId);
+    return _create('checkout', planId: planId).then((url) => url!);
   }
 
-  Future<Uri> portal() => _create();
+  Future<Uri> portal() async => (await _create('portal'))!;
 
-  Future<Uri> _create({String? planId}) async {
+  Future<Uri?> setupCard() => _create('setupCard');
+
+  Future<Uri?> _create(String action, {String? planId}) async {
     _requireCurrentIdentity();
     if (_pending) throw const BillingException('request_in_progress');
     final status = _ref.read(billingStatusProvider(teamId));
     final data = status.asData?.value;
+    final allowed = switch (action) {
+      'checkout' => data?.canCheckout,
+      'portal' => data?.canManageBilling,
+      'setupCard' => data?.canSetupCard,
+      _ => false,
+    };
     if (status.isLoading ||
         status.hasError ||
         data?.billingEnabled != true ||
-        (planId == null ? !data!.canManageBilling : !data!.canCheckout)) {
+        allowed != true) {
       throw const BillingException('forbidden');
     }
     _pending = true;
@@ -47,19 +55,22 @@ class BillingActions {
       final api = await _ref.read(billingApiProvider.future);
       _requireCurrentIdentity();
       final body = await api.call(
-        planId == null ? 'portal' : 'checkout',
+        action,
         teamId,
         planId: planId,
+        termsVersion: action == 'setupCard'
+            ? 'ci-jpy1-tax-included-monthly-v1'
+            : null,
       );
       _requireCurrentIdentity();
+      if (action == 'setupCard' && body['registered'] == true) return null;
       final url = body['url'];
       final uri = url is String ? Uri.tryParse(url) : null;
-      final host = planId == null
-          ? 'billing.stripe.com'
-          : 'checkout.stripe.com';
-      final path = planId == null ? '/p/session/' : '/c/pay/';
+      final portal = action == 'portal';
+      final host = portal ? 'billing.stripe.com' : 'checkout.stripe.com';
+      final path = portal ? '/p/session/' : '/c/pay/';
       final hasPortalQuerySession =
-          planId == null &&
+          portal &&
           uri?.path == '/p/session' &&
           (uri?.queryParameters['secret']?.trim().isNotEmpty ?? false);
       if (uri == null ||

@@ -20,6 +20,15 @@ export class BillingStore {
       throw new Error("Billing context unavailable");
     }
   }
+  async cardSetup(teamId: string) {
+    return (await sdk.getBillingCardSetup(this.dc, { teamId })).data.setup;
+  }
+  async recordCardConsent(input: sdk.RecordBillingCardConsentVariables) {
+    await sdk.recordBillingCardConsent(this.dc, input);
+  }
+  async resolveCardSetup(input: sdk.ResolveBillingCardSetupVariables) {
+    return (await sdk.resolveBillingCardSetup(this.dc, input)).data.updated;
+  }
   async createCustomer(teamId: string, userId: string, livemode: boolean, now: number) {
     await sdk.createBillingCustomerCreation(this.dc, {
       teamId,

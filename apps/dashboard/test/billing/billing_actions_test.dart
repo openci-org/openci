@@ -62,6 +62,7 @@ void main() {
             paidUntil: null,
             canCheckout: canCheckout,
             canManageBilling: canManage,
+            cardSetupStatus: CardSetupStatus.unregistered,
             cancelAtPeriodEnd: false,
           ),
         ),
@@ -76,6 +77,34 @@ void main() {
         .listen(billingActionsProvider('team-1'), (_, _) {})
         .read()!;
   }
+
+  test(
+    'card setup sends team consent and accepts only a Stripe Checkout URL',
+    () async {
+      final action = await actions();
+      final result = await action.setupCard();
+      expect(result?.host, 'checkout.stripe.com');
+      expect(billingCallData(requests.single), {
+        'action': 'setupCard',
+        'teamId': 'team-1',
+        'termsVersion': 'ci-jpy1-tax-included-monthly-v1',
+      });
+      respond = () async =>
+          redirect('https://checkout.stripe.com.evil.test/c/pay/bad');
+      await expectLater(
+        action.setupCard(),
+        throwsA(
+          isA<BillingException>().having(
+            (e) => e.code,
+            'code',
+            'invalid_redirect',
+          ),
+        ),
+      );
+      respond = () async => http.Response('{"registered":true}', 200);
+      expect(await action.setupCard(), isNull);
+    },
+  );
 
   test(
     'Checkout returns only the Stripe destination without granting access',
