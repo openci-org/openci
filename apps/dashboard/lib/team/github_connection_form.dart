@@ -32,11 +32,11 @@ class GitHubConnectionForm extends HookWidget {
       child: ListView(
         shrinkWrap: true,
         children: [
-          Text(t.team.gitHubConnectionTeam(name: teamName)),
+          Text(context.t.team.gitHubConnectionTeam(name: teamName)),
           const SizedBox(height: 8),
-          Text(t.team.gitHubConnectionVerified),
+          Text(context.t.team.gitHubConnectionVerified),
           const SizedBox(height: 16),
-          Text(t.team.gitHubConnectionCandidates),
+          Text(context.t.team.gitHubConnectionCandidates),
           for (final candidate in candidates)
             RadioListTile<int>(
               value: candidate.installationId,
@@ -53,8 +53,8 @@ class GitHubConnectionForm extends HookWidget {
               padding: const EdgeInsets.symmetric(vertical: 16),
               child: Text(
                 restartRequired
-                    ? t.team.gitHubConnectionRestartRequired
-                    : t.team.gitHubConnectionConfirmFailed,
+                    ? context.t.team.gitHubConnectionRestartRequired
+                    : context.t.team.gitHubConnectionConfirmFailed,
               ),
             ),
           const SizedBox(height: 16),
@@ -64,8 +64,8 @@ class GitHubConnectionForm extends HookWidget {
                 : null,
             child: Text(
               isSubmitting
-                  ? t.team.gitHubConnectionConfirming
-                  : t.team.gitHubConnectionConfirm,
+                  ? context.t.team.gitHubConnectionConfirming
+                  : context.t.team.gitHubConnectionConfirm,
             ),
           ),
         ],

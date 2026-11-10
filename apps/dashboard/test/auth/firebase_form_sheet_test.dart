@@ -56,7 +56,10 @@ void main() {
   Finder field(String label) => find.byWidgetPredicate(
     (widget) => widget is TextField && widget.decoration?.labelText == label,
   );
-  final saveButton = find.widgetWithText(FilledButton, formT.pickConfig);
+  final saveButton = find.widgetWithText(
+    FilledButton,
+    formT.pickConfig,
+  );
 
   Future<void> pumpForm(WidgetTester tester) async {
     tester.view
@@ -64,21 +67,23 @@ void main() {
       ..physicalSize = const Size(900, 1000);
     addTearDown(tester.view.reset);
     await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          sharedPreferencesProvider.overrideWithValue(prefs),
-          connectionStoreProvider.overrideWithValue(store),
-        ],
-        child: MaterialApp(
-          home: Scaffold(
-            body: Builder(
-              builder: (context) => TextButton(
-                onPressed: () => showModalBottomSheet<void>(
-                  context: context,
-                  isScrollControlled: true,
-                  builder: (_) => const FirebaseFormSheet(),
+      TranslationProvider(
+        child: ProviderScope(
+          overrides: [
+            sharedPreferencesProvider.overrideWithValue(prefs),
+            connectionStoreProvider.overrideWithValue(store),
+          ],
+          child: MaterialApp(
+            home: Scaffold(
+              body: Builder(
+                builder: (context) => TextButton(
+                  onPressed: () => showModalBottomSheet<void>(
+                    context: context,
+                    isScrollControlled: true,
+                    builder: (_) => const FirebaseFormSheet(),
+                  ),
+                  child: const Text('Open form'),
                 ),
-                child: const Text('Open form'),
               ),
             ),
           ),

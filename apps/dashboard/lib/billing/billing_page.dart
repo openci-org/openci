@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:dashboard/app_strings.dart';
 import 'package:dashboard/billing/billing_actions.dart';
 import 'package:dashboard/billing/billing_error_message.dart';
 import 'package:dashboard/billing/billing_identity.dart';
@@ -25,16 +26,16 @@ class BillingPage extends ConsumerWidget {
     final identity = ref.watch(billingIdentityProvider);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('課金'),
+        title: Text(context.t.billing.title),
         leading: CloseButton(onPressed: () => context.go('/')),
       ),
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 720),
           child: identity == null
-              ? const Padding(
+              ? Padding(
                   padding: EdgeInsets.all(24),
-                  child: Text('Cloudにサインインすると、このページを利用できます。'),
+                  child: Text(context.t.billing.signInRequired),
                 )
               : _BillingTeam(
                   key: ValueKey((identity, teamId)),
@@ -61,7 +62,7 @@ class _BillingTeam extends ConsumerWidget {
     }
     if (teams.hasError) {
       return _BillingError(
-        message: 'チームを読み込めませんでした。',
+        message: context.t.billing.teamLoadFailed,
         onReload: () => ref.invalidate(teamListProvider),
       );
     }
@@ -76,7 +77,7 @@ class _BillingTeam extends ConsumerWidget {
     final team = teams.requireValue.where((team) => team.id == id).firstOrNull;
     if (team == null) {
       return _BillingError(
-        message: 'このチームにアクセスできません。ダッシュボードでチームを確認してください。',
+        message: context.t.billing.teamAccessDenied,
         onReload: () => ref.invalidate(teamListProvider),
       );
     }
@@ -97,7 +98,7 @@ class _TeamBillingPage extends ConsumerStatefulWidget {
 class _TeamBillingPageState extends ConsumerState<_TeamBillingPage> {
   bool _pending = false;
   bool _accessLost = false;
-  String? _error;
+  Object? _error;
   int _actionGeneration = 0;
   late final void Function() _stopListening;
 
@@ -132,13 +133,18 @@ class _TeamBillingPageState extends ConsumerState<_TeamBillingPage> {
   Widget build(BuildContext context) {
     final status = ref.watch(billingStatusProvider(widget.team.id));
     ref.watch(billingActionsProvider(widget.team.id));
-    if (_accessLost) return _BillingError(message: _error!, onReload: _reload);
+    if (_accessLost) {
+      return _BillingError(
+        message: billingErrorMessage(_error!, strings: context.t),
+        onReload: _reload,
+      );
+    }
     if (status.isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
     if (status.hasError) {
       return _BillingError(
-        message: billingErrorMessage(status.error!),
+        message: billingErrorMessage(status.error!, strings: context.t),
         onReload: _reload,
       );
     }
@@ -148,7 +154,9 @@ class _TeamBillingPageState extends ConsumerState<_TeamBillingPage> {
       teamName: widget.team.name,
       status: data,
       pending: _pending,
-      error: _error,
+      error: _error == null
+          ? null
+          : billingErrorMessage(_error!, strings: context.t),
       returnedFromStripe: {
         'success',
         'cancel',
@@ -199,7 +207,7 @@ class _TeamBillingPageState extends ConsumerState<_TeamBillingPage> {
     } catch (error) {
       if (!mounted || generation != _actionGeneration) return;
       setState(() {
-        _error = billingErrorMessage(error);
+        _error = error;
         _accessLost =
             error is BillingException &&
             {
@@ -230,7 +238,7 @@ class _BillingError extends StatelessWidget {
       children: [
         Text(message),
         const SizedBox(height: 16),
-        TextButton(onPressed: onReload, child: const Text('再読み込み')),
+        TextButton(onPressed: onReload, child: Text(context.t.common.reload)),
       ],
     ),
   );

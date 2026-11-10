@@ -23,7 +23,10 @@ void main() {
   Finder field(String label) => find.byWidgetPredicate(
     (widget) => widget is TextField && widget.decoration?.labelText == label,
   );
-  final reviewButton = find.widgetWithText(FilledButton, formT.reviewSetup);
+  final reviewButton = find.widgetWithText(
+    FilledButton,
+    formT.reviewSetup,
+  );
 
   Future<void> pumpForm(
     WidgetTester tester, {
@@ -39,25 +42,27 @@ void main() {
       tester.view.resetPhysicalSize();
     });
     await tester.pumpWidget(
-      MaterialApp(
-        builder: (context, child) => MediaQuery(
-          data: MediaQuery.of(context).copyWith(
-            textScaler: TextScaler.linear(textScale),
+      TranslationProvider(
+        child: MaterialApp(
+          builder: (context, child) => MediaQuery(
+            data: MediaQuery.of(context).copyWith(
+              textScaler: TextScaler.linear(textScale),
+            ),
+            child: child!,
           ),
-          child: child!,
-        ),
-        home: Scaffold(
-          body: Builder(
-            builder: (context) => TextButton(
-              onPressed: () async {
-                final action = await showSelfHostedSetup(context);
-                if (context.mounted && action != null) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(action.name)),
-                  );
-                }
-              },
-              child: const Text('Open setup'),
+          home: Scaffold(
+            body: Builder(
+              builder: (context) => TextButton(
+                onPressed: () async {
+                  final action = await showSelfHostedSetup(context);
+                  if (context.mounted && action != null) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(action.name)),
+                    );
+                  }
+                },
+                child: const Text('Open setup'),
+              ),
             ),
           ),
         ),
@@ -100,8 +105,14 @@ void main() {
           .text,
       'example-project',
     );
-    await tester.enterText(field(formT.apiUrl), ' https://api.example.com ');
-    await tester.enterText(field(formT.optionalProfileName), ' Company ');
+    await tester.enterText(
+      field(formT.apiUrl),
+      ' https://api.example.com ',
+    );
+    await tester.enterText(
+      field(formT.optionalProfileName),
+      ' Company ',
+    );
     await tester.tap(reviewButton);
     await tester.pumpAndSettle();
 
@@ -113,7 +124,10 @@ void main() {
     expect(
       tester
           .widget<FilledButton>(
-            find.widgetWithText(FilledButton, formT.startSetup),
+            find.widgetWithText(
+              FilledButton,
+              formT.startSetup,
+            ),
           )
           .onPressed,
       isNull,
@@ -136,7 +150,10 @@ void main() {
     await tester.tap(find.text('Open setup'));
     await tester.pumpAndSettle();
     expect(find.text('service-account.json'), findsNothing);
-    expect(tester.widget<TextField>(field(formT.apiUrl)).controller!.text, '');
+    expect(
+      tester.widget<TextField>(field(formT.apiUrl)).controller!.text,
+      '',
+    );
     expect(prefs.getKeys(), isEmpty);
   });
 
@@ -147,7 +164,10 @@ void main() {
     await tester.tap(reviewButton);
     await tester.pumpAndSettle();
     expect(find.text(formT.invalidApiUrl), findsOneWidget);
-    expect(find.text(formT.serviceAccountRequired), findsOneWidget);
+    expect(
+      find.text(formT.serviceAccountRequired),
+      findsOneWidget,
+    );
     mockFile(tester, jsonEncode(account()));
     await selectFile(tester);
     for (final url in [
@@ -162,8 +182,14 @@ void main() {
       expect(find.text(formT.invalidApiUrl), findsOneWidget);
       expect(find.text(formT.reviewTitle), findsNothing);
     }
-    await tester.enterText(field(formT.apiUrl), 'http://localhost:8080');
-    await tester.enterText(field(formT.optionalProfileName), '');
+    await tester.enterText(
+      field(formT.apiUrl),
+      'http://localhost:8080',
+    );
+    await tester.enterText(
+      field(formT.optionalProfileName),
+      '',
+    );
     await tester.tap(reviewButton);
     await tester.pumpAndSettle();
     expect(find.text(formT.reviewTitle), findsOneWidget);
@@ -185,7 +211,10 @@ void main() {
       ]) {
         mockFile(tester, contents);
         await selectFile(tester);
-        expect(find.text(formT.invalidServiceAccount), findsOneWidget);
+        expect(
+          find.text(formT.invalidServiceAccount),
+          findsOneWidget,
+        );
         expect(find.text('service-account.json'), findsNothing);
         expect(find.textContaining(privateKey), findsNothing);
         expect(tester.takeException(), isNull);
@@ -205,17 +234,24 @@ void main() {
       await selectFile(tester);
       expect(
         tester
-            .widget<TextField>(field(formT.optionalProfileName))
+            .widget<TextField>(
+              field(formT.optionalProfileName),
+            )
             .controller!
             .text,
         'second-project',
       );
-      await tester.enterText(field(formT.optionalProfileName), 'Company');
+      await tester.enterText(
+        field(formT.optionalProfileName),
+        'Company',
+      );
       mockFile(tester, jsonEncode(account('third-project')));
       await selectFile(tester);
       expect(
         tester
-            .widget<TextField>(field(formT.optionalProfileName))
+            .widget<TextField>(
+              field(formT.optionalProfileName),
+            )
             .controller!
             .text,
         'Company',
@@ -225,14 +261,18 @@ void main() {
       expect(find.text('service-account.json'), findsNothing);
       expect(
         tester
-            .widget<TextField>(field(formT.optionalProfileName))
+            .widget<TextField>(
+              field(formT.optionalProfileName),
+            )
             .controller!
             .text,
         'Company',
       );
       mockFile(tester, jsonEncode(account()));
       await selectFile(tester);
-      await tester.tap(find.byTooltip(formT.removeServiceAccount));
+      await tester.tap(
+        find.byTooltip(formT.removeServiceAccount),
+      );
       await tester.pumpAndSettle();
       expect(find.text('service-account.json'), findsNothing);
     },
@@ -250,7 +290,10 @@ void main() {
     );
     await selectFile(tester);
     expect(find.text('service-account.json'), findsOneWidget);
-    expect(find.text(formT.invalidServiceAccount), findsNothing);
+    expect(
+      find.text(formT.invalidServiceAccount),
+      findsNothing,
+    );
   });
 
   testWidgets(
@@ -289,10 +332,18 @@ void main() {
     (tester) async {
       await pumpForm(tester, size: const Size(390, 600));
       mockFile(tester, jsonEncode(account()));
-      await tester.enterText(field(formT.apiUrl), 'https://api.example.com');
+      await tester.enterText(
+        field(formT.apiUrl),
+        'https://api.example.com',
+      );
       await selectFile(tester);
-      await tester.ensureVisible(field(formT.optionalProfileName));
-      await tester.enterText(field(formT.optionalProfileName), 'Company');
+      await tester.ensureVisible(
+        field(formT.optionalProfileName),
+      );
+      await tester.enterText(
+        field(formT.optionalProfileName),
+        'Company',
+      );
       await tester.tap(reviewButton);
       await tester.pumpAndSettle();
 
@@ -316,11 +367,19 @@ void main() {
       expect(find.byType(BottomSheet), findsOneWidget);
       tester.view.viewInsets = const FakeViewPadding(bottom: 250);
       addTearDown(tester.view.resetViewInsets);
-      await tester.enterText(field(formT.apiUrl), 'https://api.example.com');
+      await tester.enterText(
+        field(formT.apiUrl),
+        'https://api.example.com',
+      );
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
-      await tester.ensureVisible(field(formT.optionalProfileName));
-      await tester.enterText(field(formT.optionalProfileName), 'Company');
+      await tester.ensureVisible(
+        field(formT.optionalProfileName),
+      );
+      await tester.enterText(
+        field(formT.optionalProfileName),
+        'Company',
+      );
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
       await tester.tap(find.text(formT.manualSetup));

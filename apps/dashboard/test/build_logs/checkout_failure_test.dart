@@ -1,3 +1,4 @@
+import 'package:dashboard/app_strings.dart';
 import 'package:dashboard/build_logs/build_jobs_provider.dart';
 import 'package:dashboard/cicd_log/detail/build_step_providers.dart';
 import 'package:dashboard/cicd_log/detail/ci_cd_log_detail_page.dart';
@@ -28,25 +29,27 @@ Future<void> pumpJob(
     updatedAt: DateTime.utc(2026),
   );
   await tester.pumpWidget(
-    ProviderScope(
-      overrides: [
-        buildJobByIdProvider('job').overrideWith((ref) => Stream.value(job)),
-        if (previousLogsUnavailable)
-          buildStepSummariesProvider(
-            buildJobId: 'job',
-            runId: 'previous-run',
-          ).overrideWith(
-            (ref) => throw StateError('Previous logs unavailable'),
+    TranslationProvider(
+      child: ProviderScope(
+        overrides: [
+          buildJobByIdProvider('job').overrideWith((ref) => Stream.value(job)),
+          if (previousLogsUnavailable)
+            buildStepSummariesProvider(
+              buildJobId: 'job',
+              runId: 'previous-run',
+            ).overrideWith(
+              (ref) => throw StateError('Previous logs unavailable'),
+            ),
+        ],
+        child: MaterialApp(
+          builder: (context, child) => MediaQuery(
+            data: MediaQuery.of(context).copyWith(
+              textScaler: TextScaler.linear(2),
+            ),
+            child: child!,
           ),
-      ],
-      child: MaterialApp(
-        builder: (context, child) => MediaQuery(
-          data: MediaQuery.of(context).copyWith(
-            textScaler: TextScaler.linear(2),
-          ),
-          child: child!,
+          home: const CicdLogDetailRoutePage(buildJobId: 'job'),
         ),
-        home: const CicdLogDetailRoutePage(buildJobId: 'job'),
       ),
     ),
   );

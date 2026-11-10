@@ -1,4 +1,6 @@
+import 'package:dashboard/app_strings.dart';
 import 'package:dashboard/auth/auth_provider.dart';
+import 'package:dashboard/utilities/error_message.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -21,8 +23,8 @@ Widget asyncErrorWidget(Object error, StackTrace stackTrace) {
                     size: 48,
                   ),
                   const SizedBox(height: 16),
-                  const Text(
-                    'エラーが発生しました',
+                  Text(
+                    context.t.common.errorOccurred,
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -30,7 +32,7 @@ Widget asyncErrorWidget(Object error, StackTrace stackTrace) {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    error.toString(),
+                    context.errorText(error),
                     style: TextStyle(
                       color: Colors.red[700],
                       fontSize: 14,
@@ -49,7 +51,7 @@ Widget asyncErrorWidget(Object error, StackTrace stackTrace) {
                           await auth.signOut();
                         },
                         icon: const Icon(Icons.logout_rounded),
-                        label: const Text('ログアウトして再ログイン'),
+                        label: Text(context.t.auth.signOutAndRetry),
                       ),
                     ],
                   ),

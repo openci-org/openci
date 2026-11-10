@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:dashboard/app_strings.dart';
 import 'package:dashboard/secret_manager/secret_manager_provider.dart';
 import 'package:dashboard/utilities/adaptive_modal.dart';
+import 'package:dashboard/utilities/error_message.dart';
 import 'package:dashboard/utilities/snack_bar_extension.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -13,8 +14,10 @@ import 'package:intl/intl.dart';
 
 const _secretManagerContentMaxWidth = 540.0;
 
-String _formatSecretUpdatedAt(DateTime value) {
-  return DateFormat('yyyy/MM/dd HH:mm').format(value.toLocal());
+String _formatSecretUpdatedAt(BuildContext context, DateTime value) {
+  return DateFormat.yMd(
+    context.t.$meta.locale.languageTag,
+  ).add_Hm().format(value.toLocal());
 }
 
 class SecretManagerPage extends HookConsumerWidget {
@@ -25,7 +28,6 @@ class SecretManagerPage extends HookConsumerWidget {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
     final state = ref.watch(secretManagerProvider);
-    final secretsT = t.secrets;
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -33,7 +35,7 @@ class SecretManagerPage extends HookConsumerWidget {
         backgroundColor: colors.primary,
         foregroundColor: Colors.white,
         elevation: 0,
-        tooltip: secretsT.addSecret,
+        tooltip: context.t.secrets.addSecret,
         onPressed: () => _showAddSecretSheet(context),
         child: const Icon(Icons.add),
       ),
@@ -85,7 +87,7 @@ class SecretManagerPage extends HookConsumerWidget {
                             ),
                             const SizedBox(height: 16),
                             Text(
-                              secretsT.noSecrets,
+                              context.t.secrets.noSecrets,
                               style: TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w500,
@@ -133,7 +135,7 @@ class SecretManagerPage extends HookConsumerWidget {
         loading: () => const _SecretManagerLoadingState(),
         error: (error, stack) => Center(
           child: Text(
-            t.common.error(error: error.toString()),
+            context.errorText(error),
             style: TextStyle(color: colors.error),
           ),
         ),
@@ -156,9 +158,9 @@ class _SecretManagerLoadingState extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListView(
       padding: const EdgeInsets.only(top: 24, bottom: 80),
-      children: const [
+      children: [
         _SecretLoadingContent(
-          message: 'シークレットを読み込み中',
+          message: context.t.secrets.loading,
           topPadding: 0,
         ),
       ],
@@ -370,7 +372,6 @@ class _SecretListTile extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
-    final secretsT = t.secrets;
 
     return Center(
       child: ConstrainedBox(
@@ -431,7 +432,7 @@ class _SecretListTile extends ConsumerWidget {
                             _SecretMetaChip(
                               icon: Icons.update_rounded,
                               label:
-                                  '${secretsT.lastUpdated} ${_formatSecretUpdatedAt(secret.updatedAt)}',
+                                  '${context.t.secrets.lastUpdated} ${_formatSecretUpdatedAt(context, secret.updatedAt)}',
                             ),
                           ],
                         ),
@@ -444,14 +445,14 @@ class _SecretListTile extends ConsumerWidget {
                       _ActionIconButton(
                         icon: Icons.visibility_outlined,
                         color: colors.outline,
-                        tooltip: secretsT.viewSecretValue,
+                        tooltip: context.t.secrets.viewSecretValue,
                         onPressed: () => _showSecretValueDialog(context, ref),
                       ),
                       const SizedBox(width: 4),
                       _ActionIconButton(
                         icon: Icons.edit_outlined,
                         color: colors.outline,
-                        tooltip: secretsT.editSecret,
+                        tooltip: context.t.secrets.editSecret,
                         onPressed: () {
                           showAdaptiveFormModal(
                             context: context,
@@ -464,8 +465,8 @@ class _SecretListTile extends ConsumerWidget {
                       _ActionIconButton(
                         icon: Icons.delete_outline,
                         color: colors.error,
-                        tooltip: t.common.delete,
-                        onPressed: () => _confirmDelete(context, ref, secretsT),
+                        tooltip: context.t.common.delete,
+                        onPressed: () => _confirmDelete(context, ref),
                       ),
                     ],
                   ),
@@ -496,7 +497,6 @@ class _SecretListTile extends ConsumerWidget {
   Future<void> _confirmDelete(
     BuildContext context,
     WidgetRef ref,
-    dynamic secretsT,
   ) async {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
@@ -508,18 +508,18 @@ class _SecretListTile extends ConsumerWidget {
           borderRadius: BorderRadius.circular(16),
         ),
         title: Text(
-          t.common.delete,
+          context.t.common.delete,
           style: TextStyle(color: colors.onSurface),
         ),
         content: Text(
-          secretsT.deleteConfirm,
+          ctx.t.secrets.deleteConfirm,
           style: TextStyle(color: colors.onSurfaceVariant),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
             child: Text(
-              t.common.cancel,
+              context.t.common.cancel,
               style: TextStyle(color: colors.outline),
             ),
           ),
@@ -528,7 +528,7 @@ class _SecretListTile extends ConsumerWidget {
               backgroundColor: colors.error,
             ),
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: Text(t.common.delete),
+            child: Text(context.t.common.delete),
           ),
         ],
       ),
@@ -539,10 +539,10 @@ class _SecretListTile extends ConsumerWidget {
           .read(secretManagerProvider.notifier)
           .deleteSecret(documentId: secret.id);
       if (!context.mounted) return;
-      context.showSnackBarMessage(secretsT.deletedSuccess);
+      context.showSnackBarMessage(context.t.secrets.deletedSuccess);
     } catch (e) {
       if (!context.mounted) return;
-      context.showSnackBarMessage('$e');
+      context.showSnackBarMessage(context.errorText(e));
     }
   }
 }
@@ -601,7 +601,6 @@ class _SecretValueDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
-    final secretsT = t.secrets;
 
     return Dialog(
       backgroundColor: Colors.transparent,
@@ -638,7 +637,7 @@ class _SecretValueDialog extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            secretsT.secretValueTitle,
+                            context.t.secrets.secretValueTitle,
                             style: TextStyle(
                               color: colors.onSurface,
                               fontSize: 15,
@@ -663,7 +662,7 @@ class _SecretValueDialog extends StatelessWidget {
                       ),
                     ),
                     IconButton(
-                      tooltip: t.common.close,
+                      tooltip: context.t.common.close,
                       onPressed: () => Navigator.of(context).pop(),
                       icon: Icon(
                         Icons.close_rounded,
@@ -694,7 +693,7 @@ class _SecretValueDialog extends StatelessWidget {
                             ),
                             const SizedBox(width: 10),
                             Text(
-                              secretsT.secretValueLoading,
+                              context.t.secrets.secretValueLoading,
                               style: TextStyle(
                                 color: colors.onSurfaceVariant,
                                 fontSize: 13,
@@ -711,7 +710,7 @@ class _SecretValueDialog extends StatelessWidget {
                       return Padding(
                         padding: const EdgeInsets.all(20),
                         child: Text(
-                          t.common.error(error: snapshot.error.toString()),
+                          context.errorText(snapshot.error!),
                           style: TextStyle(
                             color: colors.error,
                             fontSize: 13,
@@ -778,7 +777,7 @@ class _SecretValueDialog extends StatelessWidget {
                                     borderRadius: BorderRadius.circular(10),
                                   ),
                                 ),
-                                child: Text(t.common.close),
+                                child: Text(context.t.common.close),
                               ),
                               const Spacer(),
                               FilledButton.icon(
@@ -788,11 +787,11 @@ class _SecretValueDialog extends StatelessWidget {
                                   );
                                   if (!context.mounted) return;
                                   context.showSnackBarMessage(
-                                    secretsT.copiedSecretValue,
+                                    context.t.secrets.copiedSecretValue,
                                   );
                                 },
                                 icon: const Icon(Icons.copy_rounded, size: 16),
-                                label: Text(secretsT.copySecretValue),
+                                label: Text(context.t.secrets.copySecretValue),
                                 style: FilledButton.styleFrom(
                                   backgroundColor: colors.primary,
                                   foregroundColor: colors.onPrimary,
@@ -928,7 +927,7 @@ class _SecretFormFrame extends StatelessWidget {
                         ),
                       ),
                       IconButton(
-                        tooltip: t.common.cancel,
+                        tooltip: context.t.common.cancel,
                         onPressed: () => Navigator.of(context).pop(),
                         icon: Icon(
                           Icons.close_rounded,
@@ -965,16 +964,16 @@ class _AddSecretBottomSheet extends HookConsumerWidget {
     final secretNameController = useTextEditingController();
     final secretValueController = useTextEditingController();
     final formKey = useMemoized(() => GlobalKey<FormState>());
-    final secretsT = t.secrets;
     final inputMode = useState(_InputMode.text);
     final selectedFileName = useState<String?>(null);
     final fileContent = useState<String?>(null);
     final isSubmitting = useState(false);
 
     return _SecretFormFrame(
-      title: secretsT.addSecret,
+      title: context.t.secrets.addSecret,
       child: Form(
         key: formKey,
+        autovalidateMode: AutovalidateMode.onUserInteraction,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -996,7 +995,7 @@ class _AddSecretBottomSheet extends HookConsumerWidget {
                   fontFamily: 'monospace',
                 ),
                 decoration: InputDecoration(
-                  hintText: secretsT.secretName,
+                  hintText: context.t.secrets.secretName,
                   hintStyle: TextStyle(
                     color: colors.outline,
                     fontSize: 14,
@@ -1022,7 +1021,7 @@ class _AddSecretBottomSheet extends HookConsumerWidget {
                 ),
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
-                    return secretsT.enterSecretName;
+                    return context.t.secrets.enterSecretName;
                   }
                   return null;
                 },
@@ -1044,7 +1043,7 @@ class _AddSecretBottomSheet extends HookConsumerWidget {
                 children: [
                   Expanded(
                     child: _ModeTab(
-                      label: secretsT.inputModeText,
+                      label: context.t.secrets.inputModeText,
                       icon: Icons.text_fields,
                       isSelected: inputMode.value == _InputMode.text,
                       onTap: () {
@@ -1057,7 +1056,7 @@ class _AddSecretBottomSheet extends HookConsumerWidget {
                   const SizedBox(width: 4),
                   Expanded(
                     child: _ModeTab(
-                      label: secretsT.inputModeFile,
+                      label: context.t.secrets.inputModeFile,
                       icon: Icons.upload_file,
                       isSelected: inputMode.value == _InputMode.file,
                       onTap: () {
@@ -1089,7 +1088,7 @@ class _AddSecretBottomSheet extends HookConsumerWidget {
                   ),
                   obscureText: true,
                   decoration: InputDecoration(
-                    hintText: secretsT.secretValue,
+                    hintText: context.t.secrets.secretValue,
                     hintStyle: TextStyle(
                       color: colors.outline,
                       fontSize: 14,
@@ -1115,7 +1114,7 @@ class _AddSecretBottomSheet extends HookConsumerWidget {
                   validator: (value) {
                     if (inputMode.value == _InputMode.text &&
                         (value == null || value.isEmpty)) {
-                      return secretsT.enterSecretValue;
+                      return context.t.secrets.enterSecretValue;
                     }
                     return null;
                   },
@@ -1200,7 +1199,7 @@ class _AddSecretBottomSheet extends HookConsumerWidget {
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
-                            'file loaded',
+                            context.t.secrets.fileLoaded,
                             style: TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.w500,
@@ -1211,7 +1210,7 @@ class _AddSecretBottomSheet extends HookConsumerWidget {
                         ),
                       ] else ...[
                         Text(
-                          secretsT.uploadFile,
+                          context.t.secrets.uploadFile,
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w500,
@@ -1220,7 +1219,7 @@ class _AddSecretBottomSheet extends HookConsumerWidget {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          secretsT.orUploadFile,
+                          context.t.secrets.orUploadFile,
                           style: TextStyle(
                             fontSize: 11,
                             color: colors.outline,
@@ -1236,8 +1235,8 @@ class _AddSecretBottomSheet extends HookConsumerWidget {
             const SizedBox(height: 18),
             _SecretFormActionBar(
               isSubmitting: isSubmitting.value,
-              submitLabel: secretsT.addSecret,
-              submittingLabel: secretsT.adding,
+              submitLabel: context.t.secrets.addSecret,
+              submittingLabel: context.t.secrets.adding,
               submitIcon: Icons.add_rounded,
               onCancel: () => Navigator.of(context).pop(),
               onSubmit: isSubmitting.value
@@ -1246,7 +1245,7 @@ class _AddSecretBottomSheet extends HookConsumerWidget {
                       if (inputMode.value == _InputMode.file &&
                           fileContent.value == null) {
                         context.showSnackBarMessage(
-                          secretsT.enterValueOrUpload,
+                          context.t.secrets.enterValueOrUpload,
                         );
                         return;
                       }
@@ -1266,7 +1265,7 @@ class _AddSecretBottomSheet extends HookConsumerWidget {
                         if (!context.mounted) return;
                         showResponsiveSnackBar(
                           context,
-                          content: Text(secretsT.addedSuccess),
+                          content: Text(context.t.secrets.addedSuccess),
                         );
                         Navigator.of(context).pop();
                       } catch (e) {
@@ -1274,7 +1273,7 @@ class _AddSecretBottomSheet extends HookConsumerWidget {
                         isSubmitting.value = false;
                         showResponsiveSnackBar(
                           context,
-                          content: Text('$e'),
+                          content: Text(context.errorText(e)),
                         );
                       }
                     },
@@ -1336,7 +1335,7 @@ class _SecretFormActionBar extends StatelessWidget {
                   borderRadius: BorderRadius.circular(10),
                 ),
               ),
-              child: Text(t.common.cancel),
+              child: Text(context.t.common.cancel),
             ),
             const SizedBox(width: 10),
             Expanded(
@@ -1476,15 +1475,15 @@ class _EditSecretBottomSheet extends HookConsumerWidget {
     final valueController = useTextEditingController();
     final formKey = useMemoized(() => GlobalKey<FormState>());
     final isLoading = useState(false);
-    final secretsT = t.secrets;
     final inputMode = useState(_InputMode.text);
     final selectedFileName = useState<String?>(null);
     final fileContent = useState<String?>(null);
 
     return _SecretFormFrame(
-      title: secretsT.editSecret,
+      title: context.t.secrets.editSecret,
       child: Form(
         key: formKey,
+        autovalidateMode: AutovalidateMode.onUserInteraction,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1504,7 +1503,7 @@ class _EditSecretBottomSheet extends HookConsumerWidget {
                   fontFamily: 'monospace',
                 ),
                 decoration: InputDecoration(
-                  hintText: secretsT.secretName,
+                  hintText: context.t.secrets.secretName,
                   hintStyle: TextStyle(
                     color: colors.outline,
                     fontSize: 14,
@@ -1530,7 +1529,7 @@ class _EditSecretBottomSheet extends HookConsumerWidget {
                 ),
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
-                    return secretsT.enterSecretName;
+                    return context.t.secrets.enterSecretName;
                   }
                   return null;
                 },
@@ -1550,7 +1549,7 @@ class _EditSecretBottomSheet extends HookConsumerWidget {
                 children: [
                   Expanded(
                     child: _ModeTab(
-                      label: secretsT.inputModeText,
+                      label: context.t.secrets.inputModeText,
                       icon: Icons.text_fields,
                       isSelected: inputMode.value == _InputMode.text,
                       onTap: () {
@@ -1563,7 +1562,7 @@ class _EditSecretBottomSheet extends HookConsumerWidget {
                   const SizedBox(width: 4),
                   Expanded(
                     child: _ModeTab(
-                      label: secretsT.inputModeFile,
+                      label: context.t.secrets.inputModeFile,
                       icon: Icons.upload_file,
                       isSelected: inputMode.value == _InputMode.file,
                       onTap: () {
@@ -1596,7 +1595,7 @@ class _EditSecretBottomSheet extends HookConsumerWidget {
                       ),
                       obscureText: true,
                       decoration: InputDecoration(
-                        hintText: secretsT.newSecretValue,
+                        hintText: context.t.secrets.newSecretValue,
                         hintStyle: TextStyle(
                           color: colors.outline,
                           fontSize: 14,
@@ -1628,7 +1627,7 @@ class _EditSecretBottomSheet extends HookConsumerWidget {
                   Padding(
                     padding: const EdgeInsets.only(left: 4, top: 6),
                     child: Text(
-                      'Leave value empty to keep current secret',
+                      context.t.secrets.keepCurrentValue,
                       style: TextStyle(
                         fontSize: 11,
                         color: colors.outline,
@@ -1716,7 +1715,7 @@ class _EditSecretBottomSheet extends HookConsumerWidget {
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
-                            'file loaded',
+                            context.t.secrets.fileLoaded,
                             style: TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.w500,
@@ -1727,7 +1726,7 @@ class _EditSecretBottomSheet extends HookConsumerWidget {
                         ),
                       ] else ...[
                         Text(
-                          secretsT.uploadFile,
+                          context.t.secrets.uploadFile,
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w500,
@@ -1736,7 +1735,7 @@ class _EditSecretBottomSheet extends HookConsumerWidget {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          secretsT.orUploadFile,
+                          context.t.secrets.orUploadFile,
                           style: TextStyle(
                             fontSize: 11,
                             color: colors.outline,
@@ -1787,13 +1786,13 @@ class _EditSecretBottomSheet extends HookConsumerWidget {
                               );
                           if (!context.mounted) return;
                           context.showSnackBarMessage(
-                            secretsT.updatedSuccess,
+                            context.t.secrets.updatedSuccess,
                           );
                           Navigator.of(context).pop();
                         } catch (e) {
                           isLoading.value = false;
                           if (!context.mounted) return;
-                          context.showSnackBarMessage('$e');
+                          context.showSnackBarMessage(context.errorText(e));
                         }
                       },
                 child: isLoading.value
@@ -1806,7 +1805,7 @@ class _EditSecretBottomSheet extends HookConsumerWidget {
                         ),
                       )
                     : Text(
-                        t.common.save,
+                        context.t.common.save,
                         style: const TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
@@ -1858,7 +1857,7 @@ class _GenerateCertificateKeyButton extends HookConsumerWidget {
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    'iOS Code Signing',
+                    context.t.secrets.codeSigningTitle,
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
@@ -1870,7 +1869,7 @@ class _GenerateCertificateKeyButton extends HookConsumerWidget {
             ),
             const SizedBox(height: 10),
             Text(
-              'Generate a certificate private key for iOS builds. This is required for automatic code signing.',
+              context.t.secrets.certificateExplanation,
               style: TextStyle(
                 fontSize: 12,
                 color: colors.onSurfaceVariant,
@@ -1899,11 +1898,11 @@ class _GenerateCertificateKeyButton extends HookConsumerWidget {
                               .generateCertificateKey();
                           if (!context.mounted) return;
                           context.showSnackBarMessage(
-                            'Certificate key generated successfully',
+                            context.t.secrets.certificateGenerated,
                           );
                         } catch (e) {
                           if (!context.mounted) return;
-                          context.showSnackBarMessage('$e');
+                          context.showSnackBarMessage(context.errorText(e));
                         } finally {
                           if (context.mounted) isLoading.value = false;
                         }
@@ -1924,7 +1923,7 @@ class _GenerateCertificateKeyButton extends HookConsumerWidget {
                       const Icon(Icons.vpn_key, size: 16),
                       const SizedBox(width: 8),
                       Text(
-                        'Generate Certificate Key',
+                        context.t.secrets.generateCertificate,
                         style: const TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w600,

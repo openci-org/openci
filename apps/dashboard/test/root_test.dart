@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:dashboard/app_strings.dart';
 import 'package:dashboard/auth/auth_provider.dart';
 import 'package:dashboard/deep_link/deep_link_listener.dart';
 import 'package:dashboard/root.dart';
@@ -48,7 +49,12 @@ void main() {
       ],
     );
     await tester.pumpWidget(
-      UncontrolledProviderScope(container: container, child: const Root()),
+      TranslationProvider(
+        child: UncontrolledProviderScope(
+          container: container,
+          child: const Root(),
+        ),
+      ),
     );
   }
 

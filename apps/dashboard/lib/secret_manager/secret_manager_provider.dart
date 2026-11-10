@@ -1,5 +1,6 @@
 import 'package:dashboard/auth/auth_provider.dart';
 import 'package:dashboard/team/team_provider.dart';
+import 'package:dashboard/utilities/error_message.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:openci_shared/openci_shared.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -59,7 +60,7 @@ class SecretManager extends _$SecretManager {
         user.isLoading ||
         team.hasError ||
         user.hasError) {
-      throw StateError('Sign in to manage secrets');
+      throw DashboardException('secrets_authentication_required');
     }
     final pending = ref.read(teamSecretsCallableProvider.future);
     bool sameContext() =>
@@ -72,13 +73,13 @@ class SecretManager extends _$SecretManager {
         ref.read(authStateChangesProvider).value?.uid == uid &&
         identical(ref.read(teamSecretsCallableProvider.future), pending);
     final callable = await pending;
-    if (!sameContext()) throw StateError('Account or team changed');
+    if (!sameContext()) throw DashboardException('secrets_context_changed');
     final result = await callable.call<Map<String, dynamic>>({
       'action': action,
       'teamId': teamId,
       ...data,
     });
-    if (!sameContext()) throw StateError('Account or team changed');
+    if (!sameContext()) throw DashboardException('secrets_context_changed');
     if (action != 'read') ref.invalidateSelf();
     return result.data;
   }

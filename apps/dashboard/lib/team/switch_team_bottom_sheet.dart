@@ -33,7 +33,6 @@ class SwitchTeamBottomSheet extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final teamListStream = ref.watch(teamListProvider);
     final currentTeam = ref.watch(selectedTeamProvider).value;
-    final teamT = t.team;
     final isMembersLoading = useState(false);
     final colorScheme = Theme.of(context).colorScheme;
 
@@ -80,7 +79,7 @@ class SwitchTeamBottomSheet extends HookConsumerWidget {
                                           .saveSelectedTeamId(teams[i].id);
                                       if (!context.mounted) return;
                                       context.showSnackBarMessage(
-                                        teamT.selectedSuccess,
+                                        context.t.team.selectedSuccess,
                                       );
                                       Navigator.of(
                                         context,
@@ -144,7 +143,6 @@ class SwitchTeamBottomSheet extends HookConsumerWidget {
 
 Future<void> showTeamFlowModal(BuildContext context) {
   final pageIndexNotifier = ValueNotifier<int>(0);
-  final teamT = t.team;
 
   return WoltModalSheet.show<void>(
     context: context,
@@ -158,7 +156,7 @@ Future<void> showTeamFlowModal(BuildContext context) {
           pageTitle: Padding(
             padding: const EdgeInsets.only(left: 16, right: 16, top: 12),
             child: Text(
-              teamT.selectTeam,
+              context.t.team.selectTeam,
               style: const TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
@@ -181,7 +179,7 @@ Future<void> showTeamFlowModal(BuildContext context) {
           pageTitle: Padding(
             padding: const EdgeInsets.only(left: 16, right: 16, top: 12),
             child: Text(
-              teamT.members,
+              context.t.team.members,
               style: const TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
@@ -199,7 +197,7 @@ Future<void> showTeamFlowModal(BuildContext context) {
           pageTitle: Padding(
             padding: const EdgeInsets.only(left: 16, right: 16, top: 12),
             child: Text(
-              teamT.inviteTitle,
+              context.t.team.inviteTitle,
               style: const TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
@@ -217,7 +215,7 @@ Future<void> showTeamFlowModal(BuildContext context) {
           pageTitle: Padding(
             padding: const EdgeInsets.only(left: 16, right: 16, top: 12),
             child: Text(
-              teamT.editTeam,
+              context.t.team.editTeam,
               style: const TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
@@ -235,7 +233,7 @@ Future<void> showTeamFlowModal(BuildContext context) {
           pageTitle: Padding(
             padding: const EdgeInsets.only(left: 16, right: 16, top: 12),
             child: Text(
-              teamT.deleteTeam,
+              context.t.team.deleteTeam,
               style: const TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
@@ -272,7 +270,6 @@ class _TeamActions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final teamT = t.team;
     final colorScheme = Theme.of(context).colorScheme;
 
     return Container(
@@ -292,7 +289,7 @@ class _TeamActions extends StatelessWidget {
               Expanded(
                 child: _TeamActionItem(
                   icon: Icons.group_outlined,
-                  label: teamT.members,
+                  label: context.t.team.members,
                   onTap: isMembersLoading ? null : onMembers,
                   isLoading: isMembersLoading,
                 ),
@@ -301,7 +298,7 @@ class _TeamActions extends StatelessWidget {
               Expanded(
                 child: _TeamActionItem(
                   icon: Icons.person_add_alt_1_outlined,
-                  label: t.common.invite,
+                  label: context.t.common.invite,
                   onTap: isMembersLoading ? null : onInvite,
                 ),
               ),
@@ -317,7 +314,7 @@ class _TeamActions extends StatelessWidget {
               Expanded(
                 child: _TeamActionItem(
                   icon: Icons.edit_outlined,
-                  label: teamT.editTeam,
+                  label: context.t.team.editTeam,
                   onTap: isMembersLoading ? null : onEdit,
                 ),
               ),
@@ -325,7 +322,7 @@ class _TeamActions extends StatelessWidget {
               Expanded(
                 child: _TeamActionItem(
                   icon: Icons.delete_outline_rounded,
-                  label: teamT.deleteTeam,
+                  label: context.t.team.deleteTeam,
                   isDestructive: true,
                   onTap: isMembersLoading ? null : onDelete,
                 ),

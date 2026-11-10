@@ -1,3 +1,4 @@
+import 'package:dashboard/utilities/error_message.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -42,7 +43,7 @@ Future<FirebaseAuth> connectionFirebaseAuth(
   final app =
       existing ?? await Firebase.initializeApp(name: name, options: options);
   if (app.options != options) {
-    throw StateError('同じ接続先IDで異なるFirebase設定は使用できません。新しい接続先として登録してください。');
+    throw DashboardException('connection_config_mismatch');
   }
   final auth = FirebaseAuth.instanceFor(app: app);
   if (local != null) {

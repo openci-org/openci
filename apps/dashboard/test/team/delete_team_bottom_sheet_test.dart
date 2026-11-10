@@ -63,20 +63,22 @@ void main() {
         );
         addTearDown(container.dispose);
         await tester.pumpWidget(
-          UncontrolledProviderScope(
-            container: container,
-            child: MaterialApp(
-              home: Scaffold(
-                body: Builder(
-                  builder: (context) => TextButton(
-                    onPressed: () => showModalBottomSheet<void>(
-                      context: context,
-                      isScrollControlled: true,
-                      builder: (_) => const SingleChildScrollView(
-                        child: DeleteTeamBottomSheet(),
+          TranslationProvider(
+            child: UncontrolledProviderScope(
+              container: container,
+              child: MaterialApp(
+                home: Scaffold(
+                  body: Builder(
+                    builder: (context) => TextButton(
+                      onPressed: () => showModalBottomSheet<void>(
+                        context: context,
+                        isScrollControlled: true,
+                        builder: (_) => const SingleChildScrollView(
+                          child: DeleteTeamBottomSheet(),
+                        ),
                       ),
+                      child: const Text('Open'),
                     ),
-                    child: const Text('Open'),
                   ),
                 ),
               ),

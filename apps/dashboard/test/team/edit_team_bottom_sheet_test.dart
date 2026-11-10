@@ -90,20 +90,22 @@ Future<({ProviderContainer container, _Connector connector})> _pumpEditor(
   );
   container.listen(teamListProvider, (_, _) {});
   await tester.pumpWidget(
-    UncontrolledProviderScope(
-      container: container,
-      child: MaterialApp(
-        home: Builder(
-          builder: (context) => Scaffold(
-            body: TextButton(
-              onPressed: () async {
-                await showModalBottomSheet<void>(
-                  context: context,
-                  isScrollControlled: true,
-                  builder: (context) => const EditTeamBottomSheet(),
-                );
-              },
-              child: const Text('Open team editor'),
+    TranslationProvider(
+      child: UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp(
+          home: Builder(
+            builder: (context) => Scaffold(
+              body: TextButton(
+                onPressed: () async {
+                  await showModalBottomSheet<void>(
+                    context: context,
+                    isScrollControlled: true,
+                    builder: (context) => const EditTeamBottomSheet(),
+                  );
+                },
+                child: const Text('Open team editor'),
+              ),
             ),
           ),
         ),

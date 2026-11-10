@@ -22,71 +22,93 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
-  for (final localMode in [false, true]) {
-    testWidgets('shows the active connection indicator: local=$localMode', (
-      tester,
-    ) async {
-      tester.view.devicePixelRatio = 1;
-      tester.view.physicalSize = const Size(320, 700);
-      addTearDown(tester.view.resetDevicePixelRatio);
-      addTearDown(tester.view.resetPhysicalSize);
-      final saved = jsonEncode({
-        'apiKey': 'saved-key',
-        'appId': '1:123:web:saved',
-        'projectId': 'saved-production-project',
-      });
-      SharedPreferences.setMockInitialValues({'sh_firebase_config': saved});
-      final prefs = await SharedPreferences.getInstance();
-      const cloud = ConnectionProfile(
-        id: 'cloud',
-        name: 'Cloud',
-        apiUrl: 'https://cloud.example.com',
-        firebase: {},
-      );
-      const company = ConnectionProfile(
-        id: 'company',
-        name: 'Company',
-        apiUrl: 'https://company.example.com',
-        firebase: {},
-      );
-      final store = ConnectionStore(prefs, cloud);
-      await store.save(
-        const ConnectionSnapshot(
-          profiles: [cloud, company],
-          activeId: 'company',
-        ),
-      );
-      final local = LocalDevelopmentConnection.parse(
-        mode: 'true',
-        apiUrl: 'http://127.0.0.1:8080',
-        emulatorHost: '127.0.0.1',
-        emulatorPort: '9099',
-      );
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            sharedPreferencesProvider.overrideWithValue(prefs),
-            connectionStoreProvider.overrideWithValue(store),
-            localDevelopmentConnectionProvider.overrideWithValue(
-              localMode ? local : null,
+  for (final (localMode, locale) in [
+    for (final local in [false, true])
+      for (final language in AppLocale.values) (local, language),
+  ]) {
+    testWidgets(
+      'shows the active connection indicator: local=$localMode, locale=$locale',
+      (
+        tester,
+      ) async {
+        LocaleSettings.setLocaleSync(locale);
+        tester.view.devicePixelRatio = 1;
+        tester.view.physicalSize = const Size(320, 700);
+        addTearDown(tester.view.resetDevicePixelRatio);
+        addTearDown(tester.view.resetPhysicalSize);
+        final saved = jsonEncode({
+          'apiKey': 'saved-key',
+          'appId': '1:123:web:saved',
+          'projectId': 'saved-production-project',
+        });
+        SharedPreferences.setMockInitialValues({'sh_firebase_config': saved});
+        final prefs = await SharedPreferences.getInstance();
+        const cloud = ConnectionProfile(
+          id: 'cloud',
+          name: 'Cloud',
+          apiUrl: 'https://cloud.example.com',
+          firebase: {},
+        );
+        const company = ConnectionProfile(
+          id: 'company',
+          name: 'Company',
+          apiUrl: 'https://company.example.com',
+          firebase: {},
+        );
+        final store = ConnectionStore(prefs, cloud);
+        await store.save(
+          const ConnectionSnapshot(
+            profiles: [cloud, company],
+            activeId: 'company',
+          ),
+        );
+        final local = LocalDevelopmentConnection.parse(
+          mode: 'true',
+          apiUrl: 'http://127.0.0.1:8080',
+          emulatorHost: '127.0.0.1',
+          emulatorPort: '9099',
+        );
+        await tester.pumpWidget(
+          TranslationProvider(
+            child: ProviderScope(
+              overrides: [
+                sharedPreferencesProvider.overrideWithValue(prefs),
+                connectionStoreProvider.overrideWithValue(store),
+                localDevelopmentConnectionProvider.overrideWithValue(
+                  localMode ? local : null,
+                ),
+              ],
+              child: const MaterialApp(home: AuthPage()),
             ),
-          ],
-          child: const MaterialApp(home: AuthPage()),
-        ),
-      );
-      await tester.pumpAndSettle();
+          ),
+        );
+        await tester.pumpAndSettle();
 
-      expect(
-        find.text('Local Auth Emulator · demo-openci'),
-        localMode ? findsOneWidget : findsNothing,
-      );
-      expect(
-        find.text('Company'),
-        localMode ? findsNothing : findsOneWidget,
-      );
-      expect(prefs.getString('sh_firebase_config'), saved);
-      expect(tester.takeException(), isNull);
-    });
+        expect(
+          find.text('Local Auth Emulator · demo-openci'),
+          localMode ? findsOneWidget : findsNothing,
+        );
+        expect(
+          find.text('Company'),
+          localMode ? findsNothing : findsOneWidget,
+        );
+        expect(find.text(t.auth.signInSubtitle), findsOneWidget);
+        await tester.tap(find.widgetWithText(FilledButton, t.auth.login));
+        await tester.pumpAndSettle();
+        expect(find.text(t.auth.enterEmail), findsOneWidget);
+        expect(find.text(t.auth.enterPassword), findsOneWidget);
+        await tester.tap(find.byType(DropdownButton<String>));
+        await tester.pumpAndSettle();
+        await tester.tap(
+          find.text(locale == AppLocale.en ? '日本語' : 'English').last,
+        );
+        await tester.pumpAndSettle();
+        expect(find.text(t.auth.enterEmail), findsOneWidget);
+        expect(find.text(t.auth.enterPassword), findsOneWidget);
+        expect(prefs.getString('sh_firebase_config'), saved);
+        expect(tester.takeException(), isNull);
+      },
+    );
   }
 
   testWidgets('creates and selects the signup team through the SDK', (
@@ -189,9 +211,11 @@ _pumpSignup(
   container.listen(selectedTeamIdProvider, (_, _) {});
   await container.read(selectedTeamIdProvider.future);
   await tester.pumpWidget(
-    UncontrolledProviderScope(
-      container: container,
-      child: const MaterialApp(home: AuthPage()),
+    TranslationProvider(
+      child: UncontrolledProviderScope(
+        container: container,
+        child: const MaterialApp(home: AuthPage()),
+      ),
     ),
   );
   await tester.pumpAndSettle();

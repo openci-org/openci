@@ -134,7 +134,12 @@ void main() {
       ],
     );
     await tester.pumpWidget(
-      UncontrolledProviderScope(container: container, child: const Root()),
+      TranslationProvider(
+        child: UncontrolledProviderScope(
+          container: container,
+          child: const Root(),
+        ),
+      ),
     );
     await tester.pumpAndSettle();
   }
@@ -617,6 +622,9 @@ class _Auth extends Fake implements FirebaseAuth {
   Stream<User?> idTokenChanges() => authStateChanges();
 
   @override
+  Stream<User?> userChanges() => authStateChanges();
+
+  @override
   Future<void> signOut() async => currentUser = null;
 }
 
@@ -625,6 +633,9 @@ class _User extends Fake implements User {
 
   @override
   final String uid;
+
+  @override
+  String? get email => null;
 
   @override
   Future<String?> getIdToken([bool forceRefresh = false]) async => '$uid-token';

@@ -4,7 +4,6 @@ library;
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:dashboard/team/github_connection_api.dart';
 import 'package:dashboard/app_strings.dart';
 import 'package:dashboard/auth/auth_provider.dart';
 import 'package:dashboard/connections/active_connection_profile_provider.dart';
@@ -12,17 +11,19 @@ import 'package:dashboard/connections/connection_profile.dart';
 import 'package:dashboard/connections/connection_store.dart';
 import 'package:dashboard/connections/connection_store_provider.dart';
 import 'package:dashboard/team/connect_github_button.dart';
+import 'package:dashboard/team/github_connection_api.dart';
 import 'package:dashboard/team/github_connection_context.dart';
 import 'package:dashboard/team/team_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
-import '../helpers/github_connection_callable.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher_platform_interface/link.dart';
 import 'package:url_launcher_platform_interface/url_launcher_platform_interface.dart';
 import 'package:web/web.dart' as web;
+
+import '../helpers/github_connection_callable.dart';
 
 const _storageKey = 'github_connection_context_v1';
 
@@ -106,10 +107,12 @@ void main() {
     );
     await container.read(activeConnectionProfileProvider(store).future);
     await tester.pumpWidget(
-      UncontrolledProviderScope(
-        container: container,
-        child: const MaterialApp(
-          home: Scaffold(body: ConnectGitHubButton()),
+      TranslationProvider(
+        child: UncontrolledProviderScope(
+          container: container,
+          child: const MaterialApp(
+            home: Scaffold(body: ConnectGitHubButton()),
+          ),
         ),
       ),
     );

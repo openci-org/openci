@@ -12,7 +12,9 @@ import 'package:dashboard/connections/local_development_connection.dart';
 import 'package:dashboard/connections/select_connection_profile.dart';
 import 'package:dashboard/firebase/firebase_config_provider.dart';
 import 'package:dashboard/firebase/plist_parser.dart';
+import 'package:dashboard/settings/language_selector.dart';
 import 'package:dashboard/team/team_provider.dart';
+import 'package:dashboard/utilities/error_message.dart';
 import 'package:dashboard/utilities/snack_bar_extension.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
@@ -37,7 +39,6 @@ class AuthPage extends HookConsumerWidget {
     final isLoading = useState(false);
     final obscurePassword = useState(true);
 
-    final authT = t.auth;
     final colorScheme = Theme.of(context).colorScheme;
 
     final store = ref.watch(connectionStoreProvider);
@@ -56,6 +57,7 @@ class AuthPage extends HookConsumerWidget {
                     constraints: const BoxConstraints(maxWidth: 380),
                     child: Form(
                       key: formKey,
+                      autovalidateMode: AutovalidateMode.onUserInteraction,
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
@@ -69,7 +71,7 @@ class AuthPage extends HookConsumerWidget {
                           ),
                           const SizedBox(height: 6),
                           Text(
-                            authT.signInSubtitle,
+                            context.t.auth.signInSubtitle,
                             style: Theme.of(context).textTheme.bodyMedium
                                 ?.copyWith(
                                   color: colorScheme.onSurfaceVariant,
@@ -125,7 +127,9 @@ class AuthPage extends HookConsumerWidget {
                             ),
                           ],
 
-                          const SizedBox(height: 32),
+                          const SizedBox(height: 24),
+                          const LanguageSelector(),
+                          const SizedBox(height: 24),
 
                           // ── Form card ──
                           Container(
@@ -146,7 +150,7 @@ class AuthPage extends HookConsumerWidget {
                                     controller: emailController,
                                     autofillHints: const [AutofillHints.email],
                                     decoration: InputDecoration(
-                                      labelText: authT.email,
+                                      labelText: context.t.auth.email,
                                       prefixIcon: Icon(
                                         Icons.email_outlined,
                                         size: 18,
@@ -156,7 +160,7 @@ class AuthPage extends HookConsumerWidget {
                                     keyboardType: TextInputType.emailAddress,
                                     validator: (value) {
                                       if (value == null || value.isEmpty) {
-                                        return authT.enterEmail;
+                                        return context.t.auth.enterEmail;
                                       }
                                       return null;
                                     },
@@ -169,7 +173,7 @@ class AuthPage extends HookConsumerWidget {
                                       AutofillHints.password,
                                     ],
                                     decoration: InputDecoration(
-                                      labelText: authT.password,
+                                      labelText: context.t.auth.password,
                                       prefixIcon: Icon(
                                         Icons.lock_outline,
                                         size: 18,
@@ -193,7 +197,7 @@ class AuthPage extends HookConsumerWidget {
                                     obscureText: obscurePassword.value,
                                     validator: (value) {
                                       if (value == null || value.isEmpty) {
-                                        return authT.enterPassword;
+                                        return context.t.auth.enterPassword;
                                       }
                                       return null;
                                     },
@@ -216,7 +220,7 @@ class AuthPage extends HookConsumerWidget {
                                       Flexible(
                                         child: Text.rich(
                                           TextSpan(
-                                            text: authT.agreePrefix,
+                                            text: context.t.auth.agreePrefix,
                                             style: Theme.of(context)
                                                 .textTheme
                                                 .bodySmall
@@ -226,7 +230,10 @@ class AuthPage extends HookConsumerWidget {
                                                 ),
                                             children: [
                                               TextSpan(
-                                                text: authT.termsOfService,
+                                                text: context
+                                                    .t
+                                                    .auth
+                                                    .termsOfService,
                                                 style: TextStyle(
                                                   color: colorScheme.primary,
                                                   decoration:
@@ -279,9 +286,7 @@ class AuthPage extends HookConsumerWidget {
                                                 }
                                                 debugPrint(e.toString());
                                                 context.showSnackBarMessage(
-                                                  t.common.error(
-                                                    error: e.toString(),
-                                                  ),
+                                                  context.errorText(e),
                                                 );
                                               } finally {
                                                 isLoading.value = false;
@@ -289,7 +294,7 @@ class AuthPage extends HookConsumerWidget {
                                             }
                                           }
                                         : null,
-                                    child: Text(authT.login),
+                                    child: Text(context.t.auth.login),
                                   ),
                                   const SizedBox(height: 10),
 
@@ -327,9 +332,7 @@ class AuthPage extends HookConsumerWidget {
                                                 }
                                                 debugPrint(e.toString());
                                                 context.showSnackBarMessage(
-                                                  t.common.error(
-                                                    error: e.toString(),
-                                                  ),
+                                                  context.errorText(e),
                                                 );
                                               } finally {
                                                 if (context.mounted) {
@@ -339,7 +342,7 @@ class AuthPage extends HookConsumerWidget {
                                             }
                                           }
                                         : null,
-                                    child: Text(authT.createAccount),
+                                    child: Text(context.t.auth.createAccount),
                                   ),
                                 ],
                               ),
@@ -373,7 +376,7 @@ class AuthPage extends HookConsumerWidget {
                                     ),
                                     const SizedBox(width: 8),
                                     Text(
-                                      'Advanced Options',
+                                      context.t.auth.advancedOptions,
                                       style: Theme.of(context)
                                           .textTheme
                                           .labelSmall
@@ -407,7 +410,7 @@ class AuthPage extends HookConsumerWidget {
                                     size: 18,
                                   ),
                                   label: Text(
-                                    authT.useYourFirebase,
+                                    context.t.auth.useYourFirebase,
                                     style: const TextStyle(fontSize: 13),
                                   ),
                                   onPressed: () async {
@@ -451,7 +454,7 @@ class AuthPage extends HookConsumerWidget {
                                       size: 18,
                                     ),
                                     label: Text(
-                                      t.settings.returnToCloud,
+                                      context.t.settings.returnToCloud,
                                       style: const TextStyle(fontSize: 13),
                                     ),
                                     onPressed:
@@ -517,7 +520,6 @@ class FirebaseFormSheet extends HookConsumerWidget {
     final isSaving = useState(false);
     final switchingProfileId = useState<String?>(null);
     final isBusy = isSaving.value || switchingProfileId.value != null;
-    final formT = t.auth.firebaseForm;
     final colorScheme = Theme.of(context).colorScheme;
     final platform = kIsWeb ? 'web' : defaultTargetPlatform.name.toLowerCase();
     final appIdPlatform = platform == 'macos' ? 'ios' : platform;
@@ -574,7 +576,7 @@ class FirebaseFormSheet extends HookConsumerWidget {
 
       if (bytes == null) {
         if (context.mounted) {
-          context.showSnackBarMessage(formT.invalidFile);
+          context.showSnackBarMessage(context.t.auth.firebaseForm.invalidFile);
         }
         return;
       }
@@ -584,8 +586,8 @@ class FirebaseFormSheet extends HookConsumerWidget {
       try {
         String content;
         if (isBinaryPlist(bytes)) {
-          throw const FormatException(
-            'バイナリ形式の plist はサポートしていません。XML形式に変換した GoogleService-Info.plist を選択してください。',
+          throw FormatException(
+            context.t.auth.binaryPlistUnsupported,
           );
         } else if (isUtf16Le(bytes)) {
           content = decodeUtf16(bytes, isLittleEndian: true);
@@ -601,19 +603,21 @@ class FirebaseFormSheet extends HookConsumerWidget {
         } else if (fileName.endsWith('.json')) {
           config = parseJsonConfig(content);
         } else {
-          throw const FormatException(
-            '未対応のファイル形式です。JSON (google-services.json) または plist (GoogleService-Info.plist) を選択してください。',
+          throw FormatException(
+            context.t.auth.unsupportedConfigFile,
           );
         }
 
         applyConfig(config);
         if (context.mounted) {
-          context.showSnackBarMessage(formT.fileLoaded);
+          context.showSnackBarMessage(context.t.auth.firebaseForm.fileLoaded);
         }
       } catch (e) {
         if (context.mounted) {
           context.showSnackBarMessage(
-            'ファイルの読み込みに失敗しました: ${e.toString().replaceAll('FormatException: ', '')}',
+            context.t.auth.configFileReadFailed(
+              error: e.toString().replaceAll('FormatException: ', ''),
+            ),
           );
         }
       }
@@ -629,7 +633,7 @@ class FirebaseFormSheet extends HookConsumerWidget {
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: Text(
-                formT.title,
+                context.t.auth.firebaseForm.title,
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
@@ -642,7 +646,7 @@ class FirebaseFormSheet extends HookConsumerWidget {
                 children: [
                   if (profiles.isNotEmpty) ...[
                     Text(
-                      formT.savedProjects,
+                      context.t.auth.firebaseForm.savedProjects,
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
@@ -690,7 +694,7 @@ class FirebaseFormSheet extends HookConsumerWidget {
                                       borderRadius: BorderRadius.circular(999),
                                     ),
                                     child: Text(
-                                      formT.active,
+                                      context.t.auth.firebaseForm.active,
                                       style: TextStyle(
                                         fontSize: 11,
                                         color: colorScheme.primary,
@@ -725,7 +729,9 @@ class FirebaseFormSheet extends HookConsumerWidget {
                                         strokeWidth: 2,
                                       ),
                                     )
-                                  : Text(formT.useProject),
+                                  : Text(
+                                      context.t.auth.firebaseForm.useProject,
+                                    ),
                             ),
                           ],
                         ),
@@ -773,7 +779,7 @@ class FirebaseFormSheet extends HookConsumerWidget {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  formT.importFile,
+                                  context.t.auth.firebaseForm.importFile,
                                   style: TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w600,
@@ -782,7 +788,7 @@ class FirebaseFormSheet extends HookConsumerWidget {
                                 ),
                                 const SizedBox(height: 2),
                                 Text(
-                                  formT.importFileHint,
+                                  context.t.auth.firebaseForm.importFileHint,
                                   style: TextStyle(
                                     fontSize: 11,
                                     color: colorScheme.onSurfaceVariant,
@@ -804,35 +810,39 @@ class FirebaseFormSheet extends HookConsumerWidget {
                   TextField(
                     controller: nameController,
                     decoration: InputDecoration(
-                      labelText: formT.profileName,
-                      hintText: formT.profileNameHint,
+                      labelText: context.t.auth.firebaseForm.profileName,
+                      hintText: context.t.auth.firebaseForm.profileNameHint,
                     ),
                   ),
                   const SizedBox(height: 12),
                   TextField(
                     controller: customServerUrlController,
                     decoration: InputDecoration(
-                      labelText: formT.apiUrl,
-                      hintText: formT.apiUrlHint,
+                      labelText: context.t.auth.firebaseForm.apiUrl,
+                      hintText: context.t.auth.firebaseForm.apiUrlHint,
                     ),
                   ),
                   const SizedBox(height: 12),
                   TextField(
                     controller: apiKeyController,
-                    decoration: InputDecoration(labelText: formT.apiKey),
+                    decoration: InputDecoration(
+                      labelText: context.t.auth.firebaseForm.apiKey,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   TextField(
                     controller: appIdController,
                     decoration: InputDecoration(
-                      labelText: formT.appId,
+                      labelText: context.t.auth.firebaseForm.appId,
                       hintText: '1:123456789:$appIdPlatform:abcdef',
                     ),
                   ),
                   const SizedBox(height: 8),
                   TextField(
                     controller: projectIdController,
-                    decoration: InputDecoration(labelText: formT.projectId),
+                    decoration: InputDecoration(
+                      labelText: context.t.auth.firebaseForm.projectId,
+                    ),
                   ),
                 ],
               ),
@@ -859,7 +869,7 @@ class FirebaseFormSheet extends HookConsumerWidget {
                             appId.isEmpty ||
                             projectId.isEmpty) {
                           context.showSnackBarMessage(
-                            formT.requiredProfileFields,
+                            context.t.auth.firebaseForm.requiredProfileFields,
                           );
                           return;
                         }
@@ -874,14 +884,18 @@ class FirebaseFormSheet extends HookConsumerWidget {
                             uri.hasFragment ||
                             uri.port < 1 ||
                             uri.port > 65535) {
-                          context.showSnackBarMessage(formT.invalidApiUrl);
+                          context.showSnackBarMessage(
+                            context.t.auth.firebaseForm.invalidApiUrl,
+                          );
                           return;
                         }
 
                         if (!RegExp(
                           '^1:[0-9]+:$appIdPlatform:[a-zA-Z0-9]+\$',
                         ).hasMatch(appId)) {
-                          context.showSnackBarMessage(formT.invalidAppId);
+                          context.showSnackBarMessage(
+                            context.t.auth.firebaseForm.invalidAppId,
+                          );
                           return;
                         }
 
@@ -919,17 +933,19 @@ class FirebaseFormSheet extends HookConsumerWidget {
                           );
                           if (!context.mounted) return;
                           Navigator.pop(context);
-                          context.showSnackBarMessage(formT.profileSaved);
+                          context.showSnackBarMessage(
+                            context.t.auth.firebaseForm.profileSaved,
+                          );
                         } catch (e) {
                           if (!context.mounted) return;
                           context.showSnackBarMessage(
-                            t.common.error(error: e.toString()),
+                            context.errorText(e),
                           );
                         } finally {
                           if (context.mounted) isSaving.value = false;
                         }
                       },
-                child: Text(formT.pickConfig),
+                child: Text(context.t.auth.firebaseForm.pickConfig),
               ),
             ),
             const SizedBox(height: 16),

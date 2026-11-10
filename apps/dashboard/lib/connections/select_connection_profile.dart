@@ -1,4 +1,4 @@
-import 'package:dashboard/app_strings.dart';
+import 'package:dashboard/utilities/error_message.dart';
 import 'package:dashboard/utilities/snack_bar_extension.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -43,7 +43,7 @@ Future<void> selectConnectionProfile(
         ..showSnackBar(
           responsiveSnackBar(
             messenger.context,
-            content: Text(t.common.error(error: error.toString())),
+            content: Text(messenger.context.errorText(error)),
           ),
         );
     }

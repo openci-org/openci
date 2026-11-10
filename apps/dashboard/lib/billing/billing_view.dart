@@ -1,3 +1,4 @@
+import 'package:dashboard/app_strings.dart';
 import 'package:dashboard/billing/billing_status.dart';
 import 'package:flutter/material.dart';
 
@@ -32,37 +33,42 @@ class BillingView extends StatelessWidget {
         Text(teamName, style: theme.textTheme.headlineSmall),
         const SizedBox(height: 16),
         if (!status.billingEnabled)
-          const Text('現在、この接続先では課金機能を利用できません。')
+          Text(context.t.billing.disabled)
         else ...[
           if (returnedFromStripe) ...[
-            const Text(
-              'Stripeから戻りました。変更の反映には時間がかかることがあります。反映されない場合は「再読み込み」を押してください。',
+            Text(
+              context.t.billing.returnedFromStripe,
             ),
             const SizedBox(height: 16),
           ],
           Text(
-            status.canStartCi ? 'CIを利用できます' : _blockMessage(status),
+            status.canStartCi
+                ? context.t.billing.ciAvailable
+                : _blockMessage(context, status),
             style: theme.textTheme.titleMedium,
           ),
           const SizedBox(height: 24),
           if (status.cardSetupStatus != null) ...[
-            Text('CIの月次後払い', style: theme.textTheme.titleMedium),
+            Text(
+              context.t.billing.monthlyPostpaid,
+              style: theme.textTheme.titleMedium,
+            ),
             const SizedBox(height: 4),
-            const Text('CI実行1分につき税込1円。利用料は月ごとに集計し、翌月に登録カードで自動決済します。'),
+            Text(context.t.billing.monthlyExplanation),
             if (status.canSetupCard)
               OutlinedButton(
                 onPressed: pending ? null : () => _confirmCardSetup(context),
                 child: Text(
                   status.cardSetupStatus == CardSetupStatus.pending
-                      ? 'カード登録を続ける'
-                      : '支払い方法を登録',
+                      ? context.t.billing.continueCardSetup
+                      : context.t.billing.setupCard,
                 ),
               )
             else
               Text(
                 status.cardSetupStatus == CardSetupStatus.registered
-                    ? '後払い用のカードは登録済みです。'
-                    : '「支払い方法・請求履歴を開く」から請求用のカードを設定してください。',
+                    ? context.t.billing.cardRegistered
+                    : context.t.billing.setCardInPortal,
               ),
             const SizedBox(height: 24),
           ],
@@ -71,27 +77,38 @@ class BillingView extends StatelessWidget {
             OutlinedButton.icon(
               onPressed: pending ? null : onPortal,
               icon: const Icon(Icons.open_in_new),
-              label: const Text('支払い方法・請求履歴を開く'),
+              label: Text(context.t.billing.openPortal),
             ),
           ],
         ],
         if (status.billingEnabled && status.showsMonthlyUsage) ...[
           const SizedBox(height: 24),
           if (status.monthlyUsage case final usage?) ...[
-            Text('今月の利用状況（${usage.month}）', style: theme.textTheme.titleMedium),
+            Text(
+              context.t.billing.monthlyUsage(month: usage.month),
+              style: theme.textTheme.titleMedium,
+            ),
             const SizedBox(height: 8),
-            Text('利用時間 ${usage.billableMinutes}分'),
-            Text('税込見込額 ${usage.amountJpyTaxIncluded}円'),
-            Text('次回請求予定日 ${usage.nextInvoiceDate.replaceAll('-', '/')}（日本時間）'),
-            const Text('USDでの請求額は、月締め時に円建ての利用料を換算して確定します。'),
+            Text(context.t.billing.minutes(minutes: usage.billableMinutes)),
+            Text(
+              context.t.billing.estimatedAmount(
+                amount: usage.amountJpyTaxIncluded,
+              ),
+            ),
+            Text(
+              context.t.billing.nextInvoiceDate(
+                date: usage.nextInvoiceDate.replaceAll('-', '/'),
+              ),
+            ),
+            Text(context.t.billing.usdExplanation),
           ] else
-            const Text('今月の利用額を取得できませんでした。「再読み込み」で再度確認できます。'),
+            Text(context.t.billing.usageUnavailable),
         ],
         if (pending) ...[
           const SizedBox(height: 16),
           const LinearProgressIndicator(),
           const SizedBox(height: 8),
-          const Text('Stripeを開く準備をしています…'),
+          Text(context.t.billing.openingStripe),
         ],
         if (error != null) ...[
           const SizedBox(height: 16),
@@ -107,7 +124,7 @@ class BillingView extends StatelessWidget {
         TextButton.icon(
           onPressed: pending ? null : onReload,
           icon: const Icon(Icons.refresh),
-          label: const Text('再読み込み'),
+          label: Text(context.t.common.reload),
         ),
       ],
     );
@@ -117,18 +134,18 @@ class BillingView extends StatelessWidget {
     final agreed = await showDialog<bool>(
       context: context,
       builder: (dialog) => AlertDialog(
-        title: const Text('月次後払いに同意しますか？'),
+        title: Text(context.t.billing.consentTitle),
         content: Text(
-          'チーム「$teamName」のCI利用料は1分1円（税込）です。月の利用時間を合計し、翌月に登録カードから自動決済します。カード登録時の利用料は0円です。',
+          context.t.billing.consentMessage(teamName: teamName),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialog, false),
-            child: const Text('キャンセル'),
+            child: Text(context.t.common.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(dialog, true),
-            child: const Text('同意してStripeへ'),
+            child: Text(context.t.billing.agreeAndContinue),
           ),
         ],
       ),
@@ -137,10 +154,11 @@ class BillingView extends StatelessWidget {
   }
 }
 
-String _blockMessage(BillingStatus status) => switch (status.blockReason) {
-  'payment_required' => 'CIを開始するには、このチームの請求用カードを登録してください。',
-  'allowance_exhausted' => '新しいCIを開始できる利用枠がありません。',
-  'subscription_ended' => '契約が終了しています。',
-  'payment_pending' => 'カード登録の完了を待っています。',
-  _ => '現在、CIを開始できません。時間をおいて再読み込みしてください。',
-};
+String _blockMessage(BuildContext context, BillingStatus status) =>
+    switch (status.blockReason) {
+      'payment_required' => context.t.billing.paymentRequired,
+      'allowance_exhausted' => context.t.billing.allowanceExhausted,
+      'subscription_ended' => context.t.billing.subscriptionEnded,
+      'payment_pending' => context.t.billing.paymentPending,
+      _ => context.t.billing.ciUnavailable,
+    };
