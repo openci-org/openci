@@ -5,7 +5,7 @@ import { billingConfig } from "../../lib/functions/billing/config.js";
 import { Billing } from "../../lib/functions/billing/service.js";
 import { BillingError } from "../../lib/functions/billing/model.js";
 import { executeBuild } from "../../lib/functions/executor/execute.js";
-import { ExecutionStopped, fadPrOutputReady } from "../../lib/functions/executor/model.js";
+import { ExecutionStopped, prQrOutputReady } from "../../lib/functions/executor/model.js";
 import { PullRequestCheckoutError } from "../../lib/functions/executor/checkout_error.js";
 import { execFileSync } from "node:child_process";
 
@@ -264,7 +264,7 @@ test("PR builds check out the resolved merge SHA and report checks on the saved 
 });
 
 test("opted-in PRs publish only after a successful workflow and report publication failures", async () => {
-  const url = "https://appdistribution.firebase.google.com/testerapps/1:123:ios:abc/releases/r";
+  const url = "https://preview.example.org/build?r=1#install";
   for (const scenario of ["success", "workflow failure", "publication failure"]) {
     const f = executionFixture(true);
     f.job.pullRequestNumber = "7";
@@ -272,21 +272,27 @@ test("opted-in PRs publish only after a successful workflow and report publicati
     f.dependencies.orchard.exec = async (_vm, script, output) => {
       if (script.includes("flutter pub run")) {
         phases.push("workflow");
-        return scenario === "workflow failure" ? 1 : fadPrOutputReady;
+        return scenario === "workflow failure" ? 1 : prQrOutputReady;
       }
       if (script.includes("/usr/bin/head")) {
         phases.push("read");
-        await output("stdout", Buffer.from(url + "\n"));
+        await output("stdout", Buffer.from("ja\t" + url + "\n"));
       }
       return 0;
     };
-    f.dependencies.github.postFadQrCodes = async (job, account, dispatch, runNumber, links) => {
+    f.dependencies.github.postPullRequestQrCodes = async (
+      job,
+      account,
+      dispatch,
+      runNumber,
+      links,
+    ) => {
       phases.push("publish");
       assert.equal(job, f.job);
       assert.equal(account, "1");
       assert.equal(dispatch.runId, f.dispatch.runId);
       assert.equal(runNumber, 1);
-      assert.deepEqual(links, [url]);
+      assert.deepEqual(links, [{ url, lang: "ja" }]);
       if (scenario === "publication failure") throw new Error("private transport failure");
     };
     await f.run();
@@ -296,7 +302,7 @@ test("opted-in PRs publish only after a successful workflow and report publicati
     );
     assert.equal(f.dispatch.outcome, scenario === "success" ? "success" : "failure");
     if (scenario === "publication failure") {
-      assert.match(f.dispatch.failureSummary, /Firebase accepted the IPA/);
+      assert.match(f.dispatch.failureSummary, /could not publish the QR code/);
       assert.doesNotMatch(f.dispatch.failureSummary, /private transport/);
     }
   }

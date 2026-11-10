@@ -1,15 +1,18 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { spawnSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
-  fadPrOutputPath,
-  fadPrOutputReady,
+  prQrOutputDirectory,
+  prQrOutputReady,
   workflowScript,
 } from "../../lib/functions/executor/model.js";
-import { publishFadPullRequest, readFadTesterLinks } from "../../lib/functions/executor/fad_pr.js";
+import {
+  publishPullRequestQrCodes,
+  readPullRequestQrCodes,
+} from "../../lib/functions/executor/pull_request_qr.js";
 
 const job = {
   id: "job",
@@ -25,35 +28,62 @@ const dispatch = {
   teamId: "team",
   createdAt: "2026-01-01T00:00:00Z",
 };
-const link = "https://appdistribution.firebase.google.com/testerapps/1:123:ios:abc/releases/demo";
+const link = "https://preview.example.org/build(17)?platform=ios&lang=ja#install";
 const signal = new AbortController().signal;
 
 test("only a successful PR workflow with output requests publication", async (t) => {
-  const dir = await mkdtemp(join(tmpdir(), "openci-fad-script-"));
+  const dir = await mkdtemp(join(tmpdir(), "openci-pr-qr-script-"));
   t.after(() => rm(dir, { recursive: true, force: true }));
   const script = workflowScript(job, dispatch, 1, {}).replaceAll(
-    fadPrOutputPath,
+    prQrOutputDirectory,
     join(dir, "output"),
   );
   for (const [write, status, expected] of [
     [false, 0, 0],
-    [true, 0, fadPrOutputReady],
-    [true, fadPrOutputReady, 1],
+    [true, 0, prQrOutputReady],
+    [true, prQrOutputReady, 1],
     [true, 3, 1],
   ]) {
-    const stub = `cd() { :; }\nflutter() { if [ "$2" = run ]; then ${write ? 'echo test > "$OPENCI_FAD_PR_OUTPUT";' : ""} return ${status}; fi; }\n`;
+    const stub = `cd() { :; }\nflutter() { if [ "$2" = run ]; then ${write ? 'mkdir -p "$OPENCI_PR_QR_OUTPUT/qr-test"; echo test > "$OPENCI_PR_QR_OUTPUT/qr-test/url";' : ""} return ${status}; fi; }\n`;
     const result = spawnSync("/bin/bash", ["-s"], { input: stub + script, encoding: "utf8" });
     assert.equal(result.status, expected, result.stderr);
   }
   assert.match(
     workflowScript({ ...job, pullRequestNumber: null }, dispatch, 1, {}),
-    /OPENCI_FAD_PR_OUTPUT=''/,
+    /OPENCI_PR_QR_OUTPUT=''/,
   );
 });
 
-test("VM output only accepts a bounded list of release-specific iOS tester links", async () => {
+test("collects completed request files and the preview SDK output from the runner", async (t) => {
+  const dir = await mkdtemp(join(tmpdir(), "openci-qr-output-"));
+  t.after(() => rm(dir, { recursive: true, force: true }));
+  await mkdir(join(dir, "qr-1"));
+  await mkdir(join(dir, "qr-2"));
+  await writeFile(join(dir, "qr-1", "url"), "ja\t" + link + "\n");
+  await writeFile(join(dir, "qr-2", "pending"), "unfinished");
+  await writeFile(join(dir, "legacy"), "https://example.org/previous\n");
+  const codes = await readPullRequestQrCodes(
+    {
+      async exec(_vm, script, output) {
+        const result = spawnSync("/bin/bash", ["-s"], {
+          input: script.replaceAll(prQrOutputDirectory, dir),
+        });
+        await output("stdout", result.stdout);
+        return result.status;
+      },
+    },
+    "vm",
+    signal,
+  );
+  assert.deepEqual(codes, [
+    { url: link, lang: "ja" },
+    { url: "https://example.org/previous", lang: "en" },
+  ]);
+});
+
+test("reads per-link language and complete web URLs across frames and handles preview SDK output", async () => {
   const read = (data, code = 0) =>
-    readFadTesterLinks(
+    readPullRequestQrCodes(
       {
         async exec(_vm, _script, output) {
           await output("stderr", Buffer.from("diagnostic"));
@@ -64,13 +94,34 @@ test("VM output only accepts a bounded list of release-specific iOS tester links
       "vm",
       signal,
     );
-  assert.deepEqual(await read([link.slice(0, 4), link.slice(4) + "\n", link + "\n"]), [link]);
+  const other = "http://docs.example.com/a%20b";
+  assert.deepEqual(
+    await read([
+      "ja\t" + link.slice(0, 4),
+      link.slice(4) + "\n",
+      "ja\t" + link + "\n",
+      other + "\n",
+      "en\t" + other + "\n",
+    ]),
+    [
+      { lang: "ja", url: link },
+      { lang: "en", url: other },
+    ],
+  );
+  const full = "https://example.com/".padEnd(2331, "x");
+  assert.deepEqual(await read([("en\t" + full + "\n").repeat(8)]), [{ lang: "en", url: full }]);
   for (const data of [
     link,
-    link + "?token=private\n",
-    link.replace(".com/", ".com.evil/") + "\n",
-    "a".repeat(4097),
-    (link + "\n").repeat(9),
+    "fr\t" + link + "\n",
+    "ja\tjavascript:alert(1)\n",
+    "ja\thttps://u:secret@example.org/\n",
+    "en\thttps://example.org/bad>markup\n",
+    "en\thttp:example.org/no-authority\n",
+    "en\thttps://example.org\\@other.example/\n",
+    "en\thttps://example.org/\ttab\n",
+    "en\t" + full + "x\n",
+    "x".repeat(20000),
+    ("ja\t" + link + "\n").repeat(9),
   ]) {
     await assert.rejects(read([data]));
   }
@@ -100,7 +151,7 @@ function githubFixture() {
     else if (route.includes("/pulls/")) data = pr;
     else if (route.startsWith("GET") && route.endsWith("/comments")) data = comments;
     else if (route.includes("git/ref/")) {
-      assert.equal(args.ref, "heads/genuineci/fad-qr");
+      assert.equal(args.ref, "heads/genuineci/pr-qr");
       if (!tip) throw otherError(404);
       data = { object: { sha: tip } };
     } else if (route.startsWith("GET") && route.includes("git/commits/"))
@@ -134,8 +185,8 @@ function githubFixture() {
   return {
     ...state,
     state,
-    publish: (account = "4", links = [link]) =>
-      publishFadPullRequest(request, "7", job, account, dispatch, 17, links),
+    publish: (account = "4", codes = [{ url: link, lang: "en" }]) =>
+      publishPullRequestQrCodes(request, "7", job, account, dispatch, 17, codes),
   };
 }
 
@@ -143,7 +194,7 @@ test("publishes a pinned, repository-local QR and reconciles a raced branch or l
   const f = githubFixture();
   f.state.conflict = true;
   f.state.lostResponse = true;
-  f.comments.push({ performed_via_github_app: { id: 9 }, body: "<!-- openci-fad-pr:run-test -->" });
+  f.comments.push({ performed_via_github_app: { id: 9 }, body: "<!-- openci-pr-qr:run-test -->" });
   await f.publish();
   assert.equal(f.treeInputs.length, 2);
   assert.equal(f.treeInputs[1].base_tree, "concurrent-tree");
@@ -151,7 +202,7 @@ test("publishes a pinned, repository-local QR and reconciles a raced branch or l
   assert.match(file.content, /^<svg /);
   assert.match(file.content, /fill="white"/);
   assert.equal(f.comments.length, 2);
-  assert.ok(f.comments[1].body.includes(link));
+  assert.ok(f.comments[1].body.includes(`<${link.replaceAll("&", "&amp;")}>`));
   assert.ok(f.comments[1].body.includes(`../blob/${"2".padStart(40, "0")}/${file.path}?raw=true`));
   assert.match(f.comments[1].body, /Run #17/);
   await f.publish();
@@ -159,10 +210,31 @@ test("publishes a pinned, repository-local QR and reconciles a raced branch or l
   assert.equal(f.treeInputs.length, 2);
 });
 
-test("rejects another owner or a signed URL and skips changed, closed, or fork PRs", async () => {
+test("localizes each language in a single comment and reuses the image for the same URL", async () => {
+  const f = githubFixture();
+  const other = "https://download.example.org/a)?stage=dev&copy;=plain#test";
+  await f.publish("4", [
+    { url: link, lang: "ja" },
+    { url: other, lang: "ja" },
+    { url: link, lang: "en" },
+  ]);
+  assert.equal(f.comments.length, 1);
+  assert.equal(f.treeInputs[0].tree.length, 2);
+  const { body } = f.comments[0];
+  assert.match(body, /QRコード · 実行 #17/);
+  assert.match(body, /QR code · Run #17/);
+  assert.ok(
+    body.includes(
+      "<https://download.example.org/a)?stage=dev&amp;copy;=plain#test>\n\n![このリンクのQRコード]",
+    ),
+  );
+  assert.ok(body.includes(`<${link.replaceAll("&", "&amp;")}>\n\n![QR code for this link]`));
+});
+
+test("rejects another owner or a non-web URL and skips changed, closed, or fork PRs", async () => {
   const f = githubFixture();
   await assert.rejects(f.publish("999"));
-  await assert.rejects(f.publish("4", ["https://example.com/signed"]));
+  await assert.rejects(f.publish("4", [{ url: "file:///private/path", lang: "en" }]));
   f.pr.head.sha = "new";
   await f.publish();
   f.pr.head.sha = job.commitSha;

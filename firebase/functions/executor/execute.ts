@@ -1,10 +1,14 @@
 import { randomUUID } from "node:crypto";
 import { setTimeout as delay } from "node:timers/promises";
 import { PullRequestCheckoutError } from "./checkout_error.js";
-import { fadPrPublicationFailure, readFadTesterLinks } from "./fad_pr.js";
+import {
+  qrPublicationFailure,
+  readPullRequestQrCodes,
+  type PullRequestQrCode,
+} from "./pull_request_qr.js";
 import {
   checkoutScript,
-  fadPrOutputReady,
+  prQrOutputReady,
   ExecutionStopped,
   identity,
   validateJob,
@@ -24,7 +28,7 @@ export interface ExecutorDependencies {
   verifyCard: (teamId: string, livemode: boolean) => Promise<string | null>;
   github: Pick<
     ExecutionGitHub,
-    "options" | "resolveCheckoutCommit" | "checkout" | "check" | "postFadQrCodes"
+    "options" | "resolveCheckoutCommit" | "checkout" | "check" | "postPullRequestQrCodes"
   >;
   orchard: Pick<OrchardExecutor, "create" | "ready" | "remove" | "exec" | "vmNames">;
   logs: (dispatch: Dispatch) => Pick<ExecutionLogs, "start" | "finish" | "output">;
@@ -228,7 +232,7 @@ export async function executeBuild(
         }
       }
     });
-    let testerLinks: string[] = [];
+    let qrCodes: PullRequestQrCode[] = [];
     await step("run_workflow", 2, async () => {
       const secrets = await dependencies.secrets(job.teamId!, signal);
       signal.throwIfAborted();
@@ -240,9 +244,9 @@ export async function executeBuild(
           output.write,
           signal,
         );
-        if (job.pullRequestNumber && code === fadPrOutputReady) {
-          testerLinks = await readFadTesterLinks(orchard, dispatch.vmName, signal);
-          if (!testerLinks.length) throw new Error("FAD output is missing");
+        if (job.pullRequestNumber && code === prQrOutputReady) {
+          qrCodes = await readPullRequestQrCodes(orchard, dispatch.vmName, signal);
+          if (!qrCodes.length) throw new Error("Pull request QR output is missing");
         } else if (code !== 0) {
           throw new ExecutionStopped("failure");
         }
@@ -250,19 +254,19 @@ export async function executeBuild(
         await output.flush();
       }
     });
-    if (testerLinks.length) {
-      await step("publish_fad_pr_qr", 3, async () => {
+    if (qrCodes.length) {
+      await step("publish_pr_qr", 3, async () => {
         try {
-          await github.postFadQrCodes(
+          await github.postPullRequestQrCodes(
             job,
             context.connection!.accountId,
             dispatch,
             runNumber,
-            testerLinks,
+            qrCodes,
             signal,
           );
         } catch (error) {
-          failureSummary = fadPrPublicationFailure;
+          failureSummary = qrPublicationFailure;
           throw error;
         }
       });

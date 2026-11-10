@@ -252,16 +252,14 @@ class FlutterCI {
   /// account needs the Firebase App Distribution Admin role on the project.
   /// Relative paths are resolved in the workflow directory or [dir]. When
   /// [groups] and [testers] are empty, only uploads the release.
-  /// On a successful PR run, [postQrCodeToPullRequest] asks GenuineCI to
-  /// comment with the release's tester link and QR code.
-  Future<void> deployIpaToFirebaseAppDistribution({
+  /// Returns the Firebase tester URL for the uploaded release.
+  Future<Uri> deployIpaToFirebaseAppDistribution({
     required String ipaPath,
     required String serviceAccountJsonBase64,
     String? appId,
     List<String> groups = const [],
     List<String> testers = const [],
     String? releaseNotes,
-    bool postQrCodeToPullRequest = false,
     String? dir,
   }) => firebase.deployIpaToFirebaseAppDistribution(
     run: _run,
@@ -271,7 +269,6 @@ class FlutterCI {
     groups: groups,
     testers: testers,
     releaseNotes: releaseNotes,
-    postQrCodeToPullRequest: postQrCodeToPullRequest,
     dir: dir,
   );
 }

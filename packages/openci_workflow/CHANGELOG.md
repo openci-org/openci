@@ -2,7 +2,8 @@
 
 ## 0.2.4
 
-- Add `postQrCodeToPullRequest` to iOS Firebase App Distribution uploads. Successful PR workflows can post the tester link and QR code through the GenuineCI executor.
+- Add `openCI.pullRequest.postQrCode(url: ..., lang: ...)` for posting a web URL and a QR code on the originating PR after a successful workflow. Comments support English and Japanese.
+- Return the tester URL from `deployIpaToFirebaseAppDistribution`.
 
 ## 0.2.3
 

@@ -83,13 +83,13 @@ updated `dispatch` connector before deploying the executor that writes the messa
 Only the team's pinned Secret Manager versions are injected into the workflow.
 Google credentials, Orchard credentials and the GitHub App key never enter the VM.
 
-An iOS FAD upload can opt into a PR comment through `openci_workflow`.
-After a successful PR workflow with tester-link output, Cloud Run validates
-the release URLs and checks the current PR head. It uses a repository-scoped
-Contents and Pull requests write token to save QR images on `genuineci/fad-qr`
-and post the pinned images with their tester links. The token stays in Cloud
-Run and is revoked after publication. Deploy the updated executor before
-enabling `postQrCodeToPullRequest` in a workflow.
+`openCI.pullRequest.postQrCode` requests a QR code for a workflow-supplied URL.
+After the workflow succeeds, Cloud Run validates the URLs and language values
+and checks the current PR head. It renders the URLs locally, stores the images
+on `genuineci/pr-qr` in the source repository, and posts one comment with the
+links and pinned images. Its repository-scoped Contents and Pull requests
+write token stays in Cloud Run and is revoked after publication. Deploy this
+executor before using the SDK method.
 
 Both hosted and self-hosted runs get `OPENCI_RUN_NUMBER` from the team's next
 run number. The executor saves the assigned number on the run in the same

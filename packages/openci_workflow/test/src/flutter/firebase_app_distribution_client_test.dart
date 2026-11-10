@@ -10,13 +10,22 @@ import 'package:test/test.dart';
 const _app = 'projects/123456789/apps/1:123456789:ios:abcdef';
 const _release = '$_app/releases/release-1';
 const _operation = '$_release/operations/upload-1';
+const _testerUrl =
+    'https://appdistribution.firebase.google.com/testerapps/'
+    '1:123456789:ios:abcdef/releases/release-1';
 
-Map<String, Object> _done() => {
+Map<String, Object> _done({
+  Map<String, Object> release = const {
+    'name': _release,
+    'testingUri': _testerUrl,
+  },
+  String result = 'RELEASE_CREATED',
+}) => {
   'name': _operation,
   'done': true,
   'response': {
-    'release': {'name': _release},
-    'result': 'RELEASE_CREATED',
+    'release': release,
+    'result': result,
   },
 };
 
@@ -49,11 +58,10 @@ void main() {
     await root.delete(recursive: true);
   });
 
-  Future<String> upload({
+  Future<({String name, Uri testingUri})> upload({
     List<String> groups = const [],
     List<String> testers = const [],
     String? notes,
-    File? testerLinkOutput,
     Duration timeout = const Duration(minutes: 5),
   }) =>
       FirebaseAppDistributionClient(
@@ -66,75 +74,57 @@ void main() {
         groups: groups,
         testers: testers,
         releaseNotes: notes,
-        testerLinkOutput: testerLinkOutput,
       );
 
-  const link =
-      'https://appdistribution.firebase.google.com/testerapps/'
-      '1:123456789:ios:abcdef/releases/release-1';
-
-  test('exports only the tester link for the uploaded release', () async {
-    final output = File.fromUri(root.uri.resolve('output'));
-    handler = (_) async => _json({
-      ..._done(),
-      'response': {
-        'release': {
+  test('returns the tester URL for the processed release', () async {
+    const link = '$_testerUrl?utm_source=firebase-tools';
+    handler = (_) async => _json(
+      _done(
+        release: {
           'name': _release,
-          'testingUri': '$link?utm_source=firebase-tools',
+          'testingUri': link,
           'binaryDownloadUri': 'https://example.com/private-signed-download',
         },
-      },
-    });
-    await upload(testerLinkOutput: output);
+      ),
+    );
+    expect(await upload(), (name: _release, testingUri: Uri.parse(link)));
     expect(requests, hasLength(1));
-    expect(await output.readAsString(), '$link\n');
-  });
-
-  test('fetches a missing tester link after successful distribution', () async {
-    final output = File.fromUri(root.uri.resolve('output'));
-    handler = (request) async =>
-        request.method == 'GET' ? _json({'testingUri': link}) : _json(_done());
-    await upload(groups: ['qa'], testerLinkOutput: output);
-    expect(requests.map((r) => r.method), ['POST', 'POST', 'GET']);
-    expect(requests.last.url.path, '/v1/$_release');
-    expect(requests.last.url.queryParameters, {'fields': 'testingUri'});
-    expect(await output.readAsLines(), [link]);
   });
 
   test(
-    'rejects links to another host, app or release and signed downloads',
+    'name-only responses identify the tester page without an extra read',
     () async {
-      final output = File.fromUri(root.uri.resolve('output'));
+      handler = (_) async => _json(_done(release: {'name': _release}));
+      expect((await upload(groups: ['qa'])).testingUri, Uri.parse(_testerUrl));
+      expect(requests.map((r) => r.method), ['POST', 'POST']);
+      expect(requests.last.url.path, '/v1/$_release:distribute');
+    },
+  );
+
+  test(
+    'validates the tester URL against the uploaded app and release',
+    () async {
       for (final invalid in [
-        link.replaceFirst('firebase.google.com', 'firebase.google.com.example'),
-        link.replaceFirst('1:123456789', '1:777'),
-        link.replaceFirst('release-1', 'release-2'),
-        'https://user@appdistribution.firebase.google.com/testerapps/1:123456789:ios:abcdef/releases/release-1',
+        _testerUrl.replaceFirst(
+          'firebase.google.com',
+          'firebase.google.com.example',
+        ),
+        _testerUrl.replaceFirst('1:123456789', '1:777'),
+        _testerUrl.replaceFirst('release-1', 'release-2'),
+        _testerUrl.replaceFirst('https://', 'https://user@'),
         '/relative-or-signed',
       ]) {
-        handler = (_) async => _json({
-          ..._done(),
-          'response': {
-            'release': {'name': _release, 'testingUri': invalid},
-          },
-        });
-        await expectLater(upload(testerLinkOutput: output), throwsStateError);
+        handler = (_) async =>
+            _json(_done(release: {'name': _release, 'testingUri': invalid}));
+        await expectLater(upload(), throwsStateError);
       }
-      expect(await output.exists(), isFalse);
-      handler = (r) async =>
-          r.url.path.endsWith(':distribute') ? _json({}, 403) : _json(_done());
-      await expectLater(
-        upload(groups: ['qa'], testerLinkOutput: output),
-        throwsA(isA<HttpException>()),
-      );
-      expect(await output.exists(), isFalse);
     },
   );
 
   test(
     'uploads exact binary bytes without distributing or adding notes',
     () async {
-      expect(await upload(), _release);
+      expect((await upload()).name, _release);
 
       final request = requests.single;
       expect(request.method, 'POST');
@@ -176,7 +166,7 @@ void main() {
           testers: ['tester@example.com'],
           notes: notes,
         ),
-        _release,
+        (name: _release, testingUri: Uri.parse(_testerUrl)),
       );
 
       expect(requests.map((request) => request.method), [
@@ -203,14 +193,8 @@ void main() {
   );
 
   test('handles an unchanged release as a completed upload', () async {
-    handler = (_) async => _json({
-      ..._done(),
-      'response': {
-        'release': {'name': _release},
-        'result': 'RELEASE_UNMODIFIED',
-      },
-    });
-    expect(await upload(), _release);
+    handler = (_) async => _json(_done(result: 'RELEASE_UNMODIFIED'));
+    expect((await upload()).name, _release);
   });
 
   test(

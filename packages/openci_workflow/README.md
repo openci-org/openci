@@ -169,6 +169,21 @@ running a workflow locally still executes its commands.
 When upgrading from 0.1.x, replace `whenChanged:` with `paths:` and
 `.whenChanged` with `.paths`.
 
+### Post a QR code on a pull request
+
+Pass an HTTP or HTTPS URL to `openCI.pullRequest.postQrCode`. Use `lang: PostQrCodeLang.ja` for a Japanese comment, or `PostQrCodeLang.en` for English (the default).
+
+```dart
+await openCI.pullRequest.postQrCode(
+  url: Uri.parse('https://preview.example.com/build/42?platform=ios'),
+  lang: PostQrCodeLang.ja,
+);
+```
+
+After the workflow succeeds, GenuineCI posts the URL and a QR code on the originating PR. Its query and fragment are included in both. A run accepts up to eight requests, each with a URL of up to 2,331 bytes and no embedded credentials. Push and local runs skip publication.
+
+GenuineCI stores images in the same repository on the `genuineci/pr-qr` branch. The GitHub App needs write access to Contents and Pull requests. If the PR closes or its head changes during the build, GenuineCI skips the comment.
+
 ### Run commands
 
 Check Dart formatting without rewriting files:
@@ -396,11 +411,11 @@ Processing is limited to 30 minutes by default; override `processingTimeout` for
 Upload the IPA to Firebase App Distribution:
 
 ```dart
-await openCI.flutter.deployIpaToFirebaseAppDistribution(
+final testerUrl = await openCI.flutter.deployIpaToFirebaseAppDistribution(
   ipaPath: ipaPath,
   serviceAccountJsonBase64: Secrets.firebaseServiceAccountJsonBase64.value,
-  postQrCodeToPullRequest: true,
 );
+await openCI.pullRequest.postQrCode(url: testerUrl, lang: PostQrCodeLang.ja);
 ```
 
 Register `FIREBASE_SERVICE_ACCOUNT_JSON_BASE64` in your team's OpenCI secrets with the Base64-encoded contents of a service account JSON key, then run `genuineci sync --secrets` to generate its getter. The service account needs the [Firebase App Distribution Admin role](https://firebase.google.com/docs/app-distribution/authenticate-service-account?platform=ios) on the destination project. Dart uses the key in memory to obtain an OAuth token with `googleapis_auth`; credentials are never written to files or included in commands or logs.
@@ -411,9 +426,7 @@ The helper uses macOS `unzip` and `plutil` to read `GOOGLE_APP_ID` from the expo
 
 By default, this only uploads a release. Set `groups` (group aliases) or `testers` (email addresses) to distribute it to testers, and optionally provide `releaseNotes`. The Dashboard workflow only uploads. Actual upload validation requires Firebase credentials and a signed IPA.
 
-Set `postQrCodeToPullRequest: true` to comment on the originating PR with the tester link and a scannable QR code after the workflow succeeds. The option defaults to `false`. Push and local runs skip the comment. Testers still need access to the release in Firebase.
-
-GenuineCI stores the QR images in the same repository on the `genuineci/fad-qr` branch. The GitHub App needs write access to Contents and Pull requests. Each comment identifies its run and commit. If the PR closes or its head changes during the build, GenuineCI skips the comment.
+The upload returns the release's Firebase tester URL as a `Uri`. The optional `postQrCode` call shares it with the PR. Testers still need access to the release in Firebase.
 
 ## Run locally
 

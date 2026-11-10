@@ -14,8 +14,8 @@ export type Outcome =
 export type Stream = "stdout" | "stderr";
 
 // Each attempt runs in its own disposable VM.
-export const fadPrOutputPath = "/tmp/openci-fad-pr-tester-links";
-export const fadPrOutputReady = 78;
+export const prQrOutputDirectory = "/tmp/openci-pr-qr";
+export const prQrOutputReady = 78;
 
 const flutterRelease = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z]+(?:[.-][0-9A-Za-z]+)*)?$/;
 
@@ -98,7 +98,9 @@ export function workflowScript(
     OPENCI_BUILD_JOB_ID: job.id,
     OPENCI_RUN_ID: identity(dispatch).runId,
     OPENCI_RUN_NUMBER: String(runNumber),
-    OPENCI_FAD_PR_OUTPUT: job.pullRequestNumber ? fadPrOutputPath : "",
+    OPENCI_PR_QR_OUTPUT: job.pullRequestNumber ? prQrOutputDirectory : "",
+    // The first preview SDK appends tester URLs to a single file.
+    OPENCI_FAD_PR_OUTPUT: job.pullRequestNumber ? `${prQrOutputDirectory}/legacy` : "",
   };
   for (const name of Object.keys(secrets)) {
     if (!validSecretName(name)) {
@@ -126,11 +128,15 @@ export function workflowScript(
         : []),
       "cd /Users/admin/openci-build",
       ...Object.entries(variables).map(([key, value]) => `export ${key}=${shellQuote(value)}`),
-      ...(job.pullRequestNumber ? [': > "$OPENCI_FAD_PR_OUTPUT"'] : []),
+      ...(job.pullRequestNumber ? ['mkdir -p "$OPENCI_PR_QR_OUTPUT"'] : []),
       "flutter pub get",
       `flutter pub run ${shellQuote(`openci/${job.workflowFileName}`)}`,
       ...(job.pullRequestNumber
-        ? [`if [ -s "$OPENCI_FAD_PR_OUTPUT" ]; then exit ${fadPrOutputReady}; fi`]
+        ? [
+            'for file in "$OPENCI_PR_QR_OUTPUT"/qr-*/url "$OPENCI_FAD_PR_OUTPUT"; do',
+            `  if [ -s "$file" ]; then exit ${prQrOutputReady}; fi`,
+            "done",
+          ]
         : []),
     ].join("\n") + "\n"
   );

@@ -1,6 +1,10 @@
 import { setTimeout as delay } from "node:timers/promises";
 import { PullRequestCheckoutError } from "./checkout_error.js";
-import { fadPrPublicationFailure, publishFadPullRequest } from "./fad_pr.js";
+import {
+  qrPublicationFailure,
+  publishPullRequestQrCodes,
+  type PullRequestQrCode,
+} from "./pull_request_qr.js";
 import type { Dispatch, Job, Outcome } from "./model.js";
 import type { SkippedCheck } from "../skipped_checks.js";
 
@@ -8,7 +12,7 @@ const installationPermissions = {
   checkout: { contents: "read" },
   checks: { checks: "write" },
   pull_request: { pull_requests: "read", contents: "read" },
-  fad_pr: { contents: "write", pull_requests: "write" },
+  pr_qr: { contents: "write", pull_requests: "write" },
 } as const;
 
 export interface GitHubOptions {
@@ -88,24 +92,24 @@ export class ExecutionGitHub {
     };
   }
 
-  async postFadQrCodes(
+  async postPullRequestQrCodes(
     job: Job,
     accountId: string,
     dispatch: Dispatch,
     runNumber: number,
-    links: string[],
+    codes: PullRequestQrCode[],
     signal: AbortSignal,
   ): Promise<void> {
-    const client = await this.client(job, "fad_pr");
+    const client = await this.client(job, "pr_qr");
     try {
-      await publishFadPullRequest(
+      await publishPullRequestQrCodes(
         client.request.defaults({ request: { signal } }),
         this.options.appId,
         job,
         accountId,
         dispatch,
         runNumber,
-        links,
+        codes,
       );
     } finally {
       await client.request("DELETE /installation/token");
@@ -322,8 +326,8 @@ export class ExecutionGitHub {
       outcome === "failure" && dispatch.failureSummary
         ? {
             title:
-              dispatch.failureSummary === fadPrPublicationFailure
-                ? "FAD QR code publication failed"
+              dispatch.failureSummary === qrPublicationFailure
+                ? "Pull request QR code publication failed"
                 : "Pull request checkout failed",
             summary: dispatch.failureSummary,
           }

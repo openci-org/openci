@@ -28,13 +28,12 @@ class FirebaseAppDistributionClient {
   final Duration pollInterval;
   final Duration operationTimeout;
 
-  Future<String> upload({
+  Future<({String name, Uri testingUri})> upload({
     required File ipa,
     required String appName,
     List<String> groups = const [],
     List<String> testers = const [],
     String? releaseNotes,
-    File? testerLinkOutput,
   }) async {
     final upload = _IpaUploadRequest(
       _uri('/upload/v1/$appName/releases:upload'),
@@ -122,33 +121,21 @@ class FirebaseAppDistributionClient {
         'distribute release',
       );
     }
-    if (testerLinkOutput != null) {
-      // Some completed uploads only return the release name.
-      final testingUri =
-          release['testingUri'] ??
-          (await _request(
-            http.Request(
-              'GET',
-              _uri('/v1/$releaseName', {'fields': 'testingUri'}),
-            ),
-            'get tester link',
-          ))['testingUri'];
-      final uri = testingUri is String ? Uri.tryParse(testingUri) : null;
-      final appId = appName.split('/').last;
-      final releaseId = releaseName.split('/').last;
-      if (uri == null ||
-          uri.scheme != 'https' ||
-          uri.authority != 'appdistribution.firebase.google.com' ||
-          uri.path != '/testerapps/$appId/releases/$releaseId') {
-        throw StateError('Firebase returned an invalid release tester link.');
-      }
-      // The path identifies the release. Drop optional marketing parameters.
-      await testerLinkOutput.writeAsString(
-        'https://appdistribution.firebase.google.com${uri.path}\n',
-        mode: FileMode.append,
-      );
+    final appId = appName.split('/').last;
+    final releaseId = releaseName.split('/').last;
+    final path = '/testerapps/$appId/releases/$releaseId';
+    // A name-only upload response also identifies the tester page.
+    final value =
+        release['testingUri'] ??
+        Uri.https('appdistribution.firebase.google.com', path).toString();
+    final uri = value is String ? Uri.tryParse(value) : null;
+    if (uri == null ||
+        uri.scheme != 'https' ||
+        uri.authority != 'appdistribution.firebase.google.com' ||
+        uri.path != path) {
+      throw StateError('Firebase returned an invalid release tester link.');
     }
-    return releaseName;
+    return (name: releaseName, testingUri: uri);
   }
 
   Future<Map<String, dynamic>> _request(

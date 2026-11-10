@@ -8,7 +8,7 @@ import 'package:http/http.dart' as http;
 import '../../quote_shell_argument.dart';
 import 'firebase_app_distribution_client.dart';
 
-Future<void> deployIpaToFirebaseAppDistribution({
+Future<Uri> deployIpaToFirebaseAppDistribution({
   required Future<void> Function(String command, {String? workingDirectory})
   run,
   required String ipaPath,
@@ -17,21 +17,12 @@ Future<void> deployIpaToFirebaseAppDistribution({
   List<String> groups = const [],
   List<String> testers = const [],
   String? releaseNotes,
-  bool postQrCodeToPullRequest = false,
   String? dir,
 }) async {
   if (ipaPath.trim().isEmpty || !ipaPath.endsWith('.ipa')) {
     throw ArgumentError.value(ipaPath, 'ipaPath', 'Must be an IPA file path.');
   }
   final credentials = _decodeServiceAccount(serviceAccountJsonBase64);
-  final output = Platform.environment['OPENCI_FAD_PR_OUTPUT'];
-  if (postQrCodeToPullRequest &&
-      output == null &&
-      Platform.environment.containsKey('OPENCI_RUN_ID')) {
-    throw StateError(
-      'This executor does not support FAD pull request QR codes.',
-    );
-  }
   if (appId != null) firebaseAppName(appId);
   final ipa = await _resolveIpa(run, ipaPath, dir);
   if (await ipa.length() == 0) {
@@ -58,12 +49,11 @@ Future<void> deployIpaToFirebaseAppDistribution({
       groups: groups,
       testers: testers,
       releaseNotes: releaseNotes,
-      testerLinkOutput:
-          postQrCodeToPullRequest && output != null && output.isNotEmpty
-          ? File(output)
-          : null,
     );
-    stdout.writeln('Firebase App Distribution upload complete: $release');
+    stdout.writeln(
+      'Firebase App Distribution upload complete: ${release.name}',
+    );
+    return release.testingUri;
   } finally {
     client?.close();
     baseClient.close();
