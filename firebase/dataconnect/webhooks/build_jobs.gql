@@ -132,6 +132,7 @@ mutation CompleteWebhookTask(
   ) @check(expr: "size(this) == vars.jobCount", message: "Invalid build job batch")
   # Closure cancels every active workflow in the verified PR scope. Superseding
   # commits still require both jobs to opt in and have different SHAs.
+  # Use the returned job IDs for both steps: a duplicate plan reuses an existing ID.
   # Lock dispatches before jobs, matching executor admission/result lock order.
   # A terminal result that won the race keeps its billing and Check conclusion.
   cancellationLocks: _execute(
@@ -162,7 +163,7 @@ mutation CompleteWebhookTask(
       AND (dispatch.state <> 'finishing' OR dispatch.outcome = 'blocked')
     """
     params: [
-      $jobsJson
+      { _expr: "response.jobs" }
       $cancelClosedPullRequest
       { _expr: "response.query.connection == null ? '' : response.query.connection.teamId" }
       { _expr: "response.query.connection == null ? '' : string(response.query.connection.installationId)" }
@@ -206,7 +207,7 @@ mutation CompleteWebhookTask(
       )
     """
     params: [
-      $jobsJson
+      { _expr: "response.jobs" }
       $cancelClosedPullRequest
       { _expr: "response.query.connection == null ? '' : response.query.connection.teamId" }
       { _expr: "response.query.connection == null ? '' : string(response.query.connection.installationId)" }

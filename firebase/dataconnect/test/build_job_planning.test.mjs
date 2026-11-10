@@ -1037,6 +1037,28 @@ test("same-SHA deliveries coalesce and returning to an automatically cancelled r
   assert.equal(ci[0].commitSha, sha);
 });
 
+test("returning to a successful PR revision reuses it and cancels the intervening job", async (t) => {
+  const f = await autoCancelFixture(t);
+  await invoke(f.taskId);
+  const first = (await f.state()).buildJobs.find((job) => job.workflowFileName === "ci.dart");
+  await graphql(
+    'mutation Succeed($id: String!) { buildJob_update(id: $id, data: { status: "SUCCESS", completedAt: 42 }) }',
+    { id: first.id },
+  );
+
+  const interveningSha = "c".repeat(40);
+  await invoke(await nextRevision(f, interveningSha));
+  const returnTask = await nextRevision(f, sha);
+  await invoke(returnTask);
+
+  const jobs = (await f.state()).buildJobs.filter((job) => job.workflowFileName === "ci.dart");
+  assert.equal(jobs.length, 2);
+  assert.equal(jobs.find((job) => job.id === first.id).status, "SUCCESS");
+  const intervening = jobs.find((job) => job.commitSha === interveningSha);
+  assert.equal(intervening.status, "CANCELLED");
+  assert.equal(intervening.supersededByTaskId, returnTask);
+});
+
 test("planning fences and cancellation notifications deny direct client access", async (t) => {
   const f = await autoCancelFixture(t);
   for (const impersonate of [{ unauthenticated: true }, { authClaims: { sub: "user" } }]) {
