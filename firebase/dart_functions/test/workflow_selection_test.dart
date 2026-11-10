@@ -119,18 +119,21 @@ void main() {
       .whereType<ParsedWorkflow>()
       .toList();
 
-  test(
-    'Stacked PR source runs only Stacked PR CI among the eight configured workflows',
-    () {
-      expect(definitions, hasLength(8));
-      final result = plan(definitions, diff(['apps/stacked_pr/src/index.ts']));
-      expect(result.jobs.map((job) => job.workflowName), ['Stacked PR CI']);
-      expect(result.skipped, hasLength(7));
-    },
-  );
+  test('website source runs only Website CI', () {
+    expect(definitions, hasLength(7));
+    final result = plan(
+      definitions,
+      diff(['apps/website/src/components/Pricing.astro']),
+    );
+    expect(result.jobs.map((job) => job.workflowName), ['Website CI']);
+    expect(result.skipped, hasLength(definitions.length - 1));
+  });
   test('docs-only changes allocate no build jobs', () {
     expect(plan(definitions, diff(['README.md'])).jobs, isEmpty);
-    expect(plan(definitions, diff(['README.md'])).skipped, hasLength(8));
+    expect(
+      plan(definitions, diff(['README.md'])).skipped,
+      hasLength(definitions.length),
+    );
   });
   test('shared model changes also run their Dart Functions consumer', () {
     final result = plan(
@@ -149,13 +152,16 @@ void main() {
       'pubspec.lock',
       'apps/dashboard/pubspec.yaml',
     ]) {
-      expect(plan(definitions, diff([path])).jobs, hasLength(8), reason: path);
+      expect(
+        plan(definitions, diff([path])).jobs,
+        hasLength(definitions.length),
+        reason: path,
+      );
     }
   });
   test('Node runtime changes run all Node workflows', () {
     final result = plan(definitions, diff(['.node-version']));
     expect(result.jobs.map((j) => j.workflowName).toSet(), {
-      'Stacked PR CI',
       'Website CI',
       'Firebase Functions CI',
     });
