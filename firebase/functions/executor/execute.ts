@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { setTimeout as delay } from "node:timers/promises";
+import { PullRequestCheckoutError } from "./checkout_error.js";
 import {
   checkoutScript,
   ExecutionStopped,
@@ -18,7 +19,8 @@ import type { OrchardExecutor } from "./orchard.js";
 export interface ExecutorDependencies {
   store: Pick<ExecutionStore, keyof ExecutionStore>;
   billing: Pick<ExecutionBilling, "period" | "admit" | "start" | "heartbeat" | "close">;
-  github: Pick<ExecutionGitHub, "options" | "verifyPullRequest" | "checkout" | "check">;
+  verifyCard: (teamId: string, livemode: boolean) => Promise<string | null>;
+  github: Pick<ExecutionGitHub, "options" | "resolveCheckoutCommit" | "checkout" | "check">;
   orchard: Pick<OrchardExecutor, "create" | "ready" | "remove" | "exec" | "vmNames">;
   logs: (dispatch: Dispatch) => Pick<ExecutionLogs, "start" | "finish" | "output">;
   secrets: (teamId: string, signal: AbortSignal) => Promise<Record<string, string>>;
@@ -48,8 +50,9 @@ export async function cleanupExecution(
     throw new Error("Cleanup ownership lost");
   identity(dispatch);
   if (recovery) await dependencies.stopExecution(dispatch);
-  // A DELETE acknowledgement alone is insufficient; remove also confirms GET 404.
-  await orchard.remove(dispatch.vmName);
+  // Card rejection precedes even the VM request. Other paths must confirm GET 404.
+  if (dispatch.outcome !== "card_required" || dispatch.vmRequestedAt)
+    await orchard.remove(dispatch.vmName);
   await store.vmDeleted(id, owner);
   const current =
     state.job?.latestRunId === dispatch.runId ||
@@ -59,7 +62,7 @@ export async function cleanupExecution(
   await billing.close(dispatch);
   if (
     state.job &&
-    (state.run || dispatch.checkRunId) &&
+    (state.run || dispatch.checkRunId || dispatch.outcome === "card_required") &&
     (dispatch.outcome !== "blocked" || state.run?.runNumber)
   ) {
     validateJob(state.job, dispatch);
@@ -133,6 +136,7 @@ export async function executeBuild(
     }
   })();
   let outcome: Outcome = "failure";
+  let failureSummary: string | null = null;
   try {
     signal.throwIfAborted();
     validateJob(job, dispatch);
@@ -145,7 +149,11 @@ export async function executeBuild(
     if (!context.team || !context.connection) throw new Error("GitHub connection is not active");
     // Guard existing/queued/rerun jobs as well as newly planned ones. A failed
     // check is terminal (not the billing "blocked" outcome, which requeues).
-    await github.verifyPullRequest(job, context.connection.accountId);
+    const checkoutSha = await github.resolveCheckoutCommit(
+      job,
+      context.connection.accountId,
+      signal,
+    );
     signal.throwIfAborted();
     if (configuration.selfHosted) {
       if (context.customer || context.stripe) {
@@ -157,6 +165,7 @@ export async function executeBuild(
         job.teamId!,
         configuration.livemode,
         configuration.complimentary,
+        dependencies.verifyCard,
       );
       signal.throwIfAborted();
       await billing.admit(dispatch, period);
@@ -201,7 +210,7 @@ export async function executeBuild(
         signal.throwIfAborted();
         const code = await orchard.exec(
           dispatch.vmName,
-          checkoutScript(job, checkout.cloneUrl, checkout.token),
+          checkoutScript(checkoutSha, checkout.cloneUrl, checkout.token),
           output.write,
           signal,
         );
@@ -234,6 +243,7 @@ export async function executeBuild(
   } catch (error) {
     const stopped = signal.aborted ? signal.reason : error;
     outcome = stopped instanceof ExecutionStopped ? stopped.outcome : "failure";
+    if (stopped instanceof PullRequestCheckoutError) failureSummary = stopped.message;
     dependencies.report(`execution_${outcome}`, dispatch.id);
   } finally {
     stopHeartbeat.abort();
@@ -242,7 +252,14 @@ export async function executeBuild(
     shutdown?.removeEventListener("abort", shutdownListener);
   }
   if (signal.aborted && signal.reason instanceof ExecutionStopped) outcome = signal.reason.outcome;
-  if (await store.result(dispatch.id, executorId, outcome))
+  if (
+    await store.result(
+      dispatch.id,
+      executorId,
+      outcome,
+      outcome === "failure" ? failureSummary : null,
+    )
+  )
     await cleanupExecution(dispatch.id, dispatch.jobId, dependencies, false);
 }
 

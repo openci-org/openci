@@ -2,7 +2,10 @@
 type Team @table(name: "teams", key: "id") {
   id: String!
   name: String!
+  # Next workflow run number to issue across all jobs in this team.
   runNumber: Int64! @col(name: "run_number") @default(value: 1)
+  # The first team-wide allocation also accounts for runs numbered per job.
+  runNumberReconciled: Boolean! @col(name: "run_number_reconciled") @default(value: false)
   # Drift stores DateTime as Unix seconds, not PostgreSQL timestamptz.
   createdAt: Int64! @col(name: "created_at")
   updatedAt: Int64! @col(name: "updated_at")

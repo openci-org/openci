@@ -4,8 +4,9 @@
   "main": "lib/functions/index.js",
   "scripts": {
     "build": "tsc -p tsconfig.functions.json",
-    "check": "vp lint --deny-warnings healthcheck.ts functions && tsc --noEmit",
-    "test": "npm run build && node --test functions/test/*.test.mjs",
+    "check": "vp lint --deny-warnings healthcheck.ts functions && tsc --noEmit && tsc -p functions/test/vitest",
+    "test": "npm run build && node --test functions/test/*.test.mjs && npm run test:vitest",
+    "test:vitest": "tsc -p functions/test/vitest && vp test run --dir functions/test/vitest",
     "fmt": "vp fmt",
     "fmt:check": "vp fmt --check"
   },

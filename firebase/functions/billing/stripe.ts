@@ -95,23 +95,18 @@ export class StripeBilling {
     readonly config: BillingConfig,
   ) {}
 
-  async ownedCustomer(teamId: string, customerId: string) {
+  async customerIfPresent(teamId: string, customerId: string) {
     const customer = await this.client.customers.retrieve(customerId);
-    verify(
-      !customer.deleted &&
-        customer.id === customerId &&
-        customer.livemode === this.config.livemode &&
-        customer.metadata.team_id === teamId,
-    );
+    verify(customer.id === customerId);
+    if (customer.deleted) return null;
+    verify(customer.livemode === this.config.livemode && customer.metadata.team_id === teamId);
     return customer;
   }
 
-  async price(planId: "light" | "pro") {
-    const priceId = this.config.prices[planId];
-    const price = await this.client.prices.retrieve(priceId);
-    verify(price.id === priceId);
-    validatePrice(price, planId, this.config.livemode);
-    return priceId;
+  async ownedCustomer(teamId: string, customerId: string) {
+    const customer = await this.customerIfPresent(teamId, customerId);
+    verify(customer);
+    return customer;
   }
 
   async createCustomer(intent: CustomerIntent, now: number) {
@@ -140,52 +135,11 @@ export class StripeBilling {
     return customer;
   }
 
-  async session(intent: CheckoutIntent, now: number) {
-    let session: Stripe.Checkout.Session;
-    if (intent.livemode !== this.config.livemode || now < Number(intent.createdAt)) throw pending();
-    if (intent.stripeCheckoutSessionId) {
-      session = await this.client.checkout.sessions.retrieve(intent.stripeCheckoutSessionId, {
-        expand: ["line_items"],
-      });
-    } else if (now + 10 < Number(intent.createdAt) + retryWindow) {
-      session = await this.client.checkout.sessions.create(
-        {
-          mode: "subscription",
-          ui_mode: "hosted_page",
-          customer: intent.stripeCustomerId,
-          client_reference_id: intent.teamId,
-          success_url: intent.successUrl,
-          cancel_url: intent.cancelUrl,
-          allowed_payment_method_types: ["card"],
-          adaptive_pricing: { enabled: false },
-          line_items: [{ price: intent.stripePriceId, quantity: 1 }],
-          metadata: { team_id: intent.teamId, checkout_creation_key: intent.idempotencyKey },
-          subscription_data: { metadata: { team_id: intent.teamId } },
-        },
-        { idempotencyKey: intent.idempotencyKey },
-      );
-      // Keep creation parameters identical to the legacy server for imported
-      // in-flight intents; expand the item on a separate read.
-      session = await this.client.checkout.sessions.retrieve(session.id, {
-        expand: ["line_items"],
-      });
-    } else {
-      let match: Stripe.Checkout.Session | undefined;
-      let count = 0;
-      for await (const candidate of this.client.checkout.sessions.list({
-        customer: intent.stripeCustomerId,
-        created: { gte: Number(intent.createdAt) - 300 },
-        limit: 100,
-        expand: ["data.line_items"],
-      })) {
-        if (++count > 1000) throw pending();
-        if (candidate.metadata?.checkout_creation_key !== intent.idempotencyKey) continue;
-        if (match) throw pending();
-        match = candidate;
-      }
-      if (!match) throw pending();
-      session = match;
-    }
+  async existingSession(intent: CheckoutIntent) {
+    if (!intent.stripeCheckoutSessionId) throw pending();
+    const session = await this.client.checkout.sessions.retrieve(intent.stripeCheckoutSessionId, {
+      expand: ["line_items"],
+    });
     validateSession(intent, session);
     validateItems(intent, session);
     verify(session.status && ["open", "complete", "expired"].includes(session.status));
@@ -215,21 +169,8 @@ export class StripeBilling {
       throw new BillingError("failed-precondition", "subscription_exists");
   }
 
-  async ended(intent: CheckoutIntent, session: Stripe.Checkout.Session, expire: boolean) {
+  async ended(intent: CheckoutIntent, session: Stripe.Checkout.Session) {
     validateSession(intent, session);
-    if (session.status === "open" && expire && !session.subscription) {
-      try {
-        await this.client.checkout.sessions.expire(
-          session.id,
-          {},
-          { idempotencyKey: intent.idempotencyKey + ":expire" },
-        );
-      } catch {
-        /* Confirm remote state after an ambiguous response. */
-      }
-      session = await this.client.checkout.sessions.retrieve(session.id);
-      validateSession(intent, session);
-    }
     if (
       session.status === "expired" &&
       session.payment_status === "unpaid" &&

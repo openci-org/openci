@@ -36,6 +36,11 @@ export interface BillingAdmission_Key {
   __typename?: "BillingAdmission_Key";
 }
 
+export interface BillingCardSetup_Key {
+  teamId: string;
+  __typename?: "BillingCardSetup_Key";
+}
+
 export interface BillingCheckoutCreation_Key {
   idempotencyKey: string;
   __typename?: "BillingCheckoutCreation_Key";

@@ -1,3 +1,5 @@
+import { setTimeout as delay } from "node:timers/promises";
+import { PullRequestCheckoutError } from "./checkout_error.js";
 import type { Dispatch, Job, Outcome } from "./model.js";
 import type { SkippedCheck } from "../skipped_checks.js";
 
@@ -6,6 +8,7 @@ export interface GitHubOptions {
   privateKey: string;
   apiBaseUrl: string;
   baseUrl: string;
+  billingOrigin?: string;
 }
 
 export function githubOptions(options: GitHubOptions): GitHubOptions {
@@ -73,7 +76,7 @@ export class ExecutionGitHub {
         purpose === "checks"
           ? { checks: "write" }
           : purpose === "pull_request"
-            ? { pull_requests: "read" }
+            ? { pull_requests: "read", contents: "read" }
             : { contents: "read" },
     });
     return {
@@ -169,37 +172,83 @@ export class ExecutionGitHub {
     return String(data.id);
   }
 
-  /** Recheck persisted PR jobs, including jobs planned before the fork policy. */
-  async verifyPullRequest(job: Job, accountId: string): Promise<void> {
-    if (job.pullRequestNumber === null) return;
+  /** Resolve a verified merge commit for PRs and the saved commit for pushes. */
+  async resolveCheckoutCommit(job: Job, accountId: string, signal?: AbortSignal): Promise<string> {
+    signal?.throwIfAborted();
+    if (!/^[a-fA-F0-9]{40}(?:[a-fA-F0-9]{24})?$/.test(job.commitSha ?? ""))
+      throw new Error("Invalid commit SHA");
+    if (job.pullRequestNumber === null) return job.commitSha!;
     // Missing projections/invalid PR numbers must not silently become push jobs.
     const number = Number(job.pullRequestNumber);
     if (!/^[1-9][0-9]*$/.test(job.pullRequestNumber ?? "") || !Number.isSafeInteger(number))
       throw new Error("Invalid pull request metadata");
     const client = await this.client(job, "pull_request");
     try {
+      signal?.throwIfAborted();
       const { data: repo } = await client.request("GET /repos/{owner}/{repo}", {
         owner: job.owner,
         repo: job.repo,
-      });
-      const { data: pr } = await client.request("GET /repos/{owner}/{repo}/pulls/{pull_number}", {
-        owner: job.owner,
-        repo: job.repo,
-        pull_number: number,
+        request: { signal },
       });
       if (
         !Number.isSafeInteger(repo.id) ||
         repo.id <= 0 ||
         String(repo.owner?.id) !== accountId ||
-        repo.full_name?.toLowerCase() !== `${job.owner}/${job.repo}`.toLowerCase() ||
-        pr.number !== number ||
-        pr.base?.repo?.id !== repo.id ||
-        pr.head?.repo?.id !== repo.id ||
-        pr.head?.sha !== job.commitSha?.toLowerCase()
+        repo.full_name?.toLowerCase() !== `${job.owner}/${job.repo}`.toLowerCase()
       )
         throw new Error("Untrusted pull request source");
+
+      // GET /pulls starts GitHub's asynchronous merge calculation. Reobserve
+      // the PR on each retry because its head or base may advance meanwhile.
+      for (let attempt = 0; attempt < 5; attempt++) {
+        if (attempt > 0) await delay(1000, undefined, { signal });
+        signal?.throwIfAborted();
+        const { data: pr } = await client.request("GET /repos/{owner}/{repo}/pulls/{pull_number}", {
+          owner: job.owner,
+          repo: job.repo,
+          pull_number: number,
+          request: { signal },
+        });
+        if (
+          pr.number !== number ||
+          pr.base?.repo?.id !== repo.id ||
+          pr.head?.repo?.id !== repo.id ||
+          !/^[a-f0-9]{40}(?:[a-f0-9]{24})?$/.test(pr.base?.sha ?? "")
+        )
+          throw new Error("Untrusted pull request source");
+        if (pr.head?.sha !== job.commitSha!.toLowerCase())
+          throw new PullRequestCheckoutError("head_changed");
+        if (pr.state !== "open" || pr.merged) throw new PullRequestCheckoutError("closed");
+        if (pr.mergeable === false) throw new PullRequestCheckoutError("conflicts");
+        const mergeSha = pr.merge_commit_sha;
+        if (pr.mergeable === true && mergeSha && /^[a-f0-9]{40}(?:[a-f0-9]{24})?$/.test(mergeSha)) {
+          const { data: commit } = await client
+            .request("GET /repos/{owner}/{repo}/git/commits/{commit_sha}", {
+              owner: job.owner,
+              repo: job.repo,
+              commit_sha: mergeSha,
+              request: { signal },
+            })
+            .catch(() => {
+              signal?.throwIfAborted();
+              throw new PullRequestCheckoutError("unavailable");
+            });
+          // A stale merge ref can survive a base/head update. Only use the
+          // candidate whose parents match the PR revision we just observed.
+          if (
+            commit.sha === mergeSha &&
+            commit.parents?.length === 2 &&
+            commit.parents[0].sha === pr.base.sha &&
+            commit.parents[1].sha === pr.head.sha
+          ) {
+            signal?.throwIfAborted();
+            return mergeSha;
+          }
+        }
+      }
+      throw new PullRequestCheckoutError("not_ready");
     } finally {
-      // This PR-read token stays in Cloud Run, including on rejection/API errors.
+      // Revoke independently of the execution signal, including cancellation.
       await client.request("DELETE /installation/token");
     }
   }
@@ -230,6 +279,27 @@ export class ExecutionGitHub {
 
   async check(job: Job, dispatch: Dispatch, outcome?: Outcome): Promise<string> {
     const { request } = await this.client(job, "checks");
+    if (outcome === "card_required") {
+      const url = new URL("/billing", this.options.billingOrigin ?? "https://dashboard.openci.org");
+      url.searchParams.set("teamId", dispatch.teamId!);
+      const externalId = `build-job:${job.id}:run:${BigInt(job.runCount ?? "0") + 1n}`;
+      return this.writeCheck(request, job, externalId, dispatch.checkRunId, {
+        status: "queued",
+        output: {
+          title: "Waiting for a billing card",
+          summary: `[Register a billing card for this team](${url.href}). This job will resume automatically once the card is confirmed.`,
+        },
+      });
+    }
+    const output =
+      outcome === "failure" && dispatch.failureSummary
+        ? { title: "Pull request checkout failed", summary: dispatch.failureSummary }
+        : {
+            title: job.workflowName!,
+            summary: outcome
+              ? `Build result: ${outcome.replaceAll("_", " ")}.`
+              : "The build is running.",
+          };
     return this.writeCheck(
       request,
       job,
@@ -240,8 +310,9 @@ export class ExecutionGitHub {
             status: "completed",
             conclusion: outcome === "blocked" ? "neutral" : outcome,
             completed_at: new Date(dispatch.resultAt ?? dispatch.updatedAt).toISOString(),
+            output,
           }
-        : { status: "in_progress" },
+        : { status: "in_progress", output },
     );
   }
 
@@ -269,8 +340,16 @@ export class ExecutionGitHub {
       externalId,
       savedId,
       job.status === "CANCELLED"
-        ? { status: "completed", conclusion: "cancelled", completed_at: new Date().toISOString() }
-        : { status: "queued" },
+        ? {
+            status: "completed",
+            conclusion: "cancelled",
+            completed_at: new Date().toISOString(),
+            output: { title: job.workflowName!, summary: "The build was cancelled." },
+          }
+        : {
+            status: "queued",
+            output: { title: job.workflowName!, summary: "Waiting for the build to start." },
+          },
     );
   }
 
@@ -283,6 +362,7 @@ export class ExecutionGitHub {
       status: "queued" | "in_progress" | "completed";
       conclusion?: "success" | "failure" | "cancelled" | "timed_out" | "neutral";
       completed_at?: string;
+      output?: { title: string; summary: string };
     },
   ): Promise<string> {
     let checkRunId: number | bigint | undefined = savedId ? BigInt(savedId) : undefined;

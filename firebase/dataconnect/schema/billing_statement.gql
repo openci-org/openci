@@ -1,0 +1,29 @@
+# Retain closed statements with the billing account even after team deletion.
+type BillingMonthlyStatement @table(name: "billing_monthly_statements", key: ["teamId", "month"]) {
+  teamId: String!
+  billingAccount: BillingAccount! @ref(fields: "teamId", references: "teamId")
+  month: Date!
+  closedAt: Timestamp!
+  currency: String!
+  jpyPerUsd: String @col(name: "jpy_per_usd")
+  rateDate: Date
+  runCount: Int64!
+  measuredMillis: Int64!
+  billableMinutes: Int64!
+  amountJpyTaxIncluded: Int64!
+  amountUsdCentsTaxIncluded: String @col(name: "amount_usd_cents_tax_included")
+  stripeInvoiceId: String @unique
+}
+
+type BillingMonthlyStatementRun @table(name: "billing_monthly_statement_runs", key: ["teamId", "month", "runId"]) {
+  teamId: String!
+  month: Date!
+  statement: BillingMonthlyStatement! @ref(fields: ["teamId", "month"], references: ["teamId", "month"])
+  runId: String!
+  jobId: String!
+  startedAtMs: Int64!
+  observedAtMs: Int64!
+  vmReadyAt: Timestamp
+  outcome: String
+  measurementIncomplete: Boolean!
+}

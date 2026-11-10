@@ -70,7 +70,7 @@ are retried by the mutation trigger. A received failure never logs private
 source, raw payloads, tokens or SDK operation variables.
 
 This preserves the existing planner's event/branch matching (PR base branch,
-head SHA/branch for checkout). `paths` selection and durable skipped GitHub Checks are described in
+head SHA/branch for job identity). `paths` selection and durable skipped GitHub Checks are described in
 [changed-path selection](PATH_FILTERING.md). Queued GitHub Checks remain separate work. The [Cloud Run executor](BUILD_EXECUTOR.md) now handles
 claimed FSC jobs through Orchard, including logs, billing, checks and crash
 recovery. Validate deployment before switching the production webhook URL.
@@ -79,6 +79,22 @@ not consume FSC jobs. Drain previously deployed polling containers before
 upgrading the stack or switching execution paths.
 
 ## Local checks
+
+`openci/firebase_functions_ci.dart` runs the Functions formatting, lint,
+TypeScript, Node and Vitest checks on matching pull requests and pushes to
+`develop`. Changes to Functions, generated Admin SDKs, or their dependency and
+runtime configuration trigger it. The macOS CI image provides the Node.js version
+in `.node-version` through mise. The workflow uses the npm version in the root
+`package.json` and installs dependencies from the root lockfile.
+
+To run the same checks locally, use the pinned Node.js version on your `PATH`
+or install it with mise. Run this command from the repository root.
+
+```sh
+bash firebase/scripts/ci.sh
+```
+
+SQL Connect emulator tests remain a separate integration check below.
 
 From the repository root, using Node.js 22:
 

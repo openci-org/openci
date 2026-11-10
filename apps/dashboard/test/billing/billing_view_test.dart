@@ -2,19 +2,8 @@ import 'package:dashboard/billing/billing_status.dart';
 import 'package:dashboard/billing/billing_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:url_launcher_platform_interface/link.dart';
-import 'package:url_launcher_platform_interface/url_launcher_platform_interface.dart';
 
 void main() {
-  late _Launcher launcher;
-
-  setUp(() {
-    final original = UrlLauncherPlatform.instance;
-    launcher = _Launcher();
-    UrlLauncherPlatform.instance = launcher;
-    addTearDown(() => UrlLauncherPlatform.instance = original);
-  });
-
   Future<void> show(
     WidgetTester tester, {
     bool pending = false,
@@ -25,7 +14,7 @@ void main() {
     String blockReason = 'payment_required',
     String? planId,
     bool returned = false,
-    ValueChanged<String>? checkout,
+    CardSetupStatus card = CardSetupStatus.unregistered,
     VoidCallback? portal,
     VoidCallback? reload,
   }) => tester.pumpWidget(
@@ -45,11 +34,12 @@ void main() {
                 canCheckout: canCheckout,
                 canManageBilling: canManage,
                 cancelAtPeriodEnd: false,
+                cardSetupStatus: card,
               ),
               pending: pending,
               returnedFromStripe: returned,
-              onCheckout: checkout ?? (_) {},
               onPortal: portal ?? () {},
+              onSetupCard: () {},
               onReload: reload ?? () {},
             ),
           ),
@@ -58,22 +48,16 @@ void main() {
     ),
   );
 
-  testWidgets('shows approved offers and sends the selected plan key', (
+  testWidgets('offers card registration and hides legacy plan purchases', (
     tester,
   ) async {
-    final selected = <String>[];
-    await show(tester, checkout: selected.add);
-    expect(find.text('US\$10 / 月'), findsOneWidget);
-    expect(find.text('US\$100 / 月'), findsOneWidget);
-    expect(find.text('チーム共有 600分 / 月'), findsOneWidget);
-    expect(find.text('チーム共有 6,000分 / 月'), findsOneWidget);
-    await tester.tap(find.text('Lightを選ぶ'));
-    await tester.scrollUntilVisible(find.text('Proを選ぶ'), 200);
-    await tester.tap(find.text('Proを選ぶ'));
-    expect(selected, ['light', 'pro']);
+    await show(tester);
+    expect(find.text('支払い方法を登録'), findsOneWidget);
+    expect(find.text('Lightを選ぶ'), findsNothing);
+    expect(find.text('Proを選ぶ'), findsNothing);
   });
 
-  testWidgets('current subscriptions expose one generic management action', (
+  testWidgets('registered cards expose one management action', (
     tester,
   ) async {
     var managed = 0;
@@ -82,14 +66,15 @@ void main() {
       canCheckout: false,
       planId: 'pro',
       canStart: true,
+      card: CardSetupStatus.registered,
       portal: () => managed++,
     );
-    expect(find.text('現在のプラン'), findsOneWidget);
+    expect(find.text('後払い用のカードは登録済みです。'), findsOneWidget);
     expect(find.text('CIを利用できます'), findsOneWidget);
     expect(find.text('Lightを選ぶ'), findsNothing);
     expect(find.text('Proを選ぶ'), findsNothing);
-    await tester.scrollUntilVisible(find.text('契約を管理'), 200);
-    await tester.tap(find.text('契約を管理'));
+    await tester.scrollUntilVisible(find.text('支払い方法・請求履歴を開く'), 200);
+    await tester.tap(find.text('支払い方法・請求履歴を開く'));
     expect(managed, 1);
   });
 
@@ -100,11 +85,10 @@ void main() {
     await show(
       tester,
       pending: true,
-      checkout: (_) => calls++,
       portal: () => calls++,
       reload: () => calls++,
     );
-    for (final label in ['Lightを選ぶ', 'Proを選ぶ', '契約を管理', '再読み込み']) {
+    for (final label in ['支払い方法を登録', '支払い方法・請求履歴を開く', '再読み込み']) {
       await tester.scrollUntilVisible(find.text(label), 200);
       await tester.tap(find.text(label));
     }
@@ -123,14 +107,14 @@ void main() {
       portal: () => managed++,
     );
     expect(
-      find.text('CIを利用するには、「契約を管理」からお支払いを確認してください。'),
+      find.text('CIを開始するには、このチームの請求用カードを登録してください。'),
       findsOneWidget,
     );
     expect(find.text('CIの利用にはプランの購入が必要です。'), findsNothing);
     expect(find.text('Lightを選ぶ'), findsNothing);
     expect(find.text('Proを選ぶ'), findsNothing);
-    await tester.scrollUntilVisible(find.text('契約を管理'), 200);
-    await tester.tap(find.text('契約を管理'));
+    await tester.scrollUntilVisible(find.text('支払い方法・請求履歴を開く'), 200);
+    await tester.tap(find.text('支払い方法・請求履歴を開く'));
     expect(managed, 1);
   });
 
@@ -150,8 +134,8 @@ void main() {
     expect(find.text('新しいCIを開始できる利用枠がありません。'), findsOneWidget);
     expect(find.text('Lightを選ぶ'), findsNothing);
     expect(find.text('Proを選ぶ'), findsNothing);
-    await tester.scrollUntilVisible(find.text('契約を管理'), 200);
-    await tester.tap(find.text('契約を管理'));
+    await tester.scrollUntilVisible(find.text('支払い方法・請求履歴を開く'), 200);
+    await tester.tap(find.text('支払い方法・請求履歴を開く'));
     await tester.scrollUntilVisible(find.text('再読み込み'), 200);
     await tester.tap(find.text('再読み込み'));
     expect(managed, 1);
@@ -165,7 +149,7 @@ void main() {
     await show(tester, returned: true, reload: () => reloads++);
     expect(find.textContaining('Stripeから戻りました'), findsOneWidget);
     expect(find.text('CIを利用できます'), findsNothing);
-    expect(find.text('CIの利用にはプランの購入が必要です。'), findsOneWidget);
+    expect(find.text('CIを開始するには、このチームの請求用カードを登録してください。'), findsOneWidget);
     await tester.scrollUntilVisible(find.text('再読み込み'), 200);
     await tester.tap(find.text('再読み込み'));
     expect(reloads, 1);
@@ -175,31 +159,8 @@ void main() {
     await show(tester, enabled: false);
     expect(find.textContaining('課金機能を利用できません'), findsOneWidget);
     expect(find.text('Lightを選ぶ'), findsNothing);
-    expect(find.text('契約を管理'), findsNothing);
+    expect(find.text('支払い方法・請求履歴を開く'), findsNothing);
     expect(find.text('m.aoki@openci.org'), findsNothing);
-  });
-
-  testWidgets('shows the approved refund terms without an unpaid trial', (
-    tester,
-  ) async {
-    await show(tester);
-    final terms = find.textContaining('初回決済の成功から168時間以内');
-    await tester.scrollUntilVisible(terms, 200);
-    expect(terms, findsOneWidget);
-    expect(find.textContaining('更新・再契約は対象外'), findsOneWidget);
-    expect(find.textContaining('実行中のCIは完了まで継続'), findsOneWidget);
-    expect(find.text('7日間返金保証。初回から決済が発生します。'), findsOneWidget);
-    expect(find.textContaining('無料トライアル'), findsNothing);
-  });
-
-  testWidgets('opens an email to the approved refund contact', (tester) async {
-    await show(tester);
-    final contact = find.text('m.aoki@openci.org');
-    await tester.scrollUntilVisible(contact, 200);
-    expect(find.text('返金申請は、チーム名を添えてメールでご連絡ください。'), findsOneWidget);
-    await tester.tap(contact);
-    await tester.pump();
-    expect(launcher.url, 'mailto:m.aoki@openci.org');
   });
 
   testWidgets('fits a narrow viewport with enlarged text', (tester) async {
@@ -213,17 +174,4 @@ void main() {
     await tester.scrollUntilVisible(find.text('再読み込み'), 200);
     expect(tester.takeException(), isNull);
   });
-}
-
-class _Launcher extends UrlLauncherPlatform {
-  String? url;
-
-  @override
-  LinkDelegate? get linkDelegate => null;
-
-  @override
-  Future<bool> launchUrl(String url, LaunchOptions options) async {
-    this.url = url;
-    return true;
-  }
 }

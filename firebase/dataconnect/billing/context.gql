@@ -8,6 +8,9 @@ query GetBillingContext($teamId: String!, $userId: String!) @auth(level: NO_ACCE
   customer: billingCustomerCreation(key: { teamId: $teamId }) {
     ...BillingCustomerFields
   }
+  cardSetup: billingCardSetup(key: { teamId: $teamId }) {
+    ...BillingCardSetupFields
+  }
   stripe: billingStripeState(key: { teamId: $teamId }) {
     teamId
     stripeCustomerId

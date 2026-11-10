@@ -7,7 +7,7 @@ It does not run Flutter or parse Dart workflows locally.
 
 ```text
 dispatchBuildJob -> Cloud Run Job
-  claim reservation with queued check ID -> verify PR source -> billing admission -> create numbered run
+  claim reservation with queued check ID -> resolve checkout commit -> billing admission -> create numbered run
   update the queued GitHub Check to in_progress
   prepare_vm -> checkout exact commit -> run_workflow
   persist result -> delete VM -> close billing -> complete GitHub Check
@@ -26,12 +26,14 @@ must win `ClaimBuildJobExecution`; duplicate containers exit without allocating
 a VM. A lost claim acknowledgement also exits and leaves recovery to the sweep.
 Older unclaimed reservations without `teamId` expire at their startup deadline.
 
-The run and admission IDs derive from the dispatch ID. Billing admission follows
-the existing paid Stripe policy, or the explicit complimentary-Pro allowlist.
-The complimentary period uses UTC calendar months and 360,000 seconds. A team
-without entitlement/budget stays `QUEUED`, without a VM; the dispatcher's existing
-delayed task can retry. Admissions, run binding, usage revisions and log IDs are
-re-read after ambiguous responses. The run count increments once.
+The run and admission IDs derive from the dispatch ID. In Cloud, the executor
+calls the private `ciCardEligibility` Function before VM creation. A confirmed
+billing card admits the team to its Japan calendar month postpaid period. A
+missing card leaves the GitHub check queued with a link to the team's billing
+page. The dispatcher resumes the same job once the card is confirmed. The
+complimentary allowlist retains its 360,000-second UTC monthly allowance.
+Admissions, run binding, usage revisions and log IDs are re-read after ambiguous
+responses. The run count increments once.
 
 Every 15 seconds the executor checks cancellation/ownership and renews the
 billing observation. Any failure interrupts the command. A workflow deadline,
@@ -58,10 +60,37 @@ head SHA must match the saved job. This protects queued jobs and reruns created
 before the planner's fork restriction. Unknown/deleted heads, API failures, and
 superseded PR commits fail the attempt without fetching team secrets or handing
 a checkout token to the VM. Rerun the latest PR commit after a new push. A separate
-repository-scoped `pull_requests: read` token is revoked after verification and
-never sent to the VM; the GitHub App must have that read permission.
+repository-scoped token with `pull_requests: read` and `contents: read` stays in
+Cloud Run and is revoked after resolving the checkout commit, including cancellation.
+The GitHub App must have both read permissions.
+
+For an open PR, the executor polls the PR API up to five times with one-second
+waits for GitHub's test merge commit. Its parents must match the observed base SHA
+and the job's saved head SHA. Conflicts, closed PRs, and unavailable or stale merge
+candidates fail the attempt. The execution pins the resolved merge SHA for checkout
+and writes the full checked-out SHA to its checkout log. GitHub Checks use the
+job's saved head SHA. Push builds check out their saved commit SHA.
+
+Merge conflicts, closed or updated PRs, and unavailable test merge commits produce
+fixed messages explaining how to retry. The executor persists the message on the
+dispatch before cleanup so recovery can publish it to GitHub Checks and the job's
+`failureSummary`. The dashboard shows and copies this summary even when checkout
+failed before a run or log step existed. Raw API exceptions are never published.
+Cancellation and later attempts clear the job summary, and an obsolete dispatch
+cannot overwrite a newer attempt's summary. Deploy the additive schema and
+updated `dispatch` connector before deploying the executor that writes the message.
+
 Only the team's pinned Secret Manager versions are injected into the workflow.
 Google credentials, Orchard credentials and the GitHub App key never enter the VM.
+
+Both hosted and self-hosted runs get `OPENCI_RUN_NUMBER` from the team's next
+run number. The executor saves the assigned number on the run in the same
+transaction that advances the team counter. Repeated requests for that run
+return its stored number. GitHub Checks continue to use the per-job attempt count.
+
+Deploy the additive `teams.run_number_reconciled` column before the `dispatch`
+connector. On the first allocation for each team, the connector uses the greater
+of its saved next number and one above its highest previously assigned run number.
 
 The planner persists optional `OpenCI.init(flutterVersion: '3.47.8')` metadata
 on each job. Before dependency resolution, the executor validates the release,
@@ -141,6 +170,7 @@ consistent with the dispatcher/planner:
 | `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY`         | App ID and secret binding                                                                  |
 | `GITHUB_API_BASE_URL`, `GITHUB_BASE_URL`          | Defaults `https://api.github.com`, `https://github.com`; no trailing slash                 |
 | `BILLING_STRIPE_LIVEMODE`                         | Required `true` or `false`, matching the billing backend                                   |
+| `BILLING_DASHBOARD_ORIGIN`                        | Optional Cloud billing link origin, defaults to `https://dashboard.openci.org`             |
 | `BILLING_COMPLIMENTARY_PRO_TEAM_IDS`              | Optional comma-separated approved team IDs                                                 |
 | `SECRET_MANAGER_PROJECT`                          | Project ID or number exactly matching stored secret version paths; defaults to FSC project |
 

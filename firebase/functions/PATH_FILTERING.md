@@ -57,25 +57,25 @@ risk; an ambiguous response is never treated as successful delivery.
 
 ## This repository's dependency matrix
 
-| Workflow           | Main paths                                                | Additional inputs                                                            |
-| ------------------ | --------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| Stacked PR CI      | `apps/stacked_pr/**`                                      | `.node-version`                                                              |
-| Website CI         | `apps/website/**`                                         | root `package.json`, `package-lock.json`, `vite.config.mts`, `.node-version` |
-| GenuineCI CLI CI   | `apps/genuineci_cli/**`                                   | Go inputs live under this directory                                          |
-| OpenCI Workflow CI | `packages/openci_workflow/**`                             | root `analysis_options.yaml`                                                 |
-| OpenCI Shared CI   | `packages/openci_shared/**`                               | root `analysis_options.yaml`                                                 |
-| Dart Functions CI  | `firebase/dart_functions/**`, `packages/openci_shared/**` | root `analysis_options.yaml`                                                 |
+| Workflow              | Main paths                                                              | Additional inputs                                                                     |
+| --------------------- | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| Website CI            | `apps/website/**`                                                       | root `package.json`, `package-lock.json`, `vite.config.mts`, `.node-version`          |
+| Firebase Functions CI | `firebase/functions/**`, `firebase/generated/**`, `firebase/scripts/**` | Firebase healthcheck, package and TypeScript config, root npm inputs and Node version |
+| GenuineCI CLI CI      | `apps/genuineci_cli/**`                                                 | Go inputs live under this directory                                                   |
+| OpenCI Workflow CI    | `packages/openci_workflow/**`                                           | root `analysis_options.yaml`                                                          |
+| OpenCI Shared CI      | `packages/openci_shared/**`                                             | root `analysis_options.yaml`                                                          |
+| Dart Functions CI     | `firebase/dart_functions/**`, `packages/openci_shared/**`               | root `analysis_options.yaml`                                                          |
+| Dart Format Check     | `**/*.dart`                                                             | analysis options, package manifests, lockfile, Git ignore files and FVM configuration |
 
-Every workflow also includes its own `openci/*.dart` definition, the workflow
-runtime SDK, version hook, generated workflow imports, all `pubspec.yaml` files,
-root `pubspec.lock`, and `.fvmrc`. Every job bootstraps the Dart workspace, including
-Node/Go jobs, so dependency-resolution changes can affect all six. Lists remain
-inline because the static parser deliberately accepts literal lists only.
+The six package workflows also include their own `openci/*.dart` definition,
+the workflow runtime SDK, version hook and generated workflow imports. All seven
+workflows include `**/pubspec.yaml`, the root `pubspec.lock` and `.fvmrc`.
+The static parser reads these patterns from inline literal lists.
 
-Acceptance: changing only `apps/stacked_pr/src/index.ts` creates one job and five
-skipped records. Root README changes create zero jobs and six skipped records.
-Changes to shared models run Shared and Dart Functions; workflow SDK/lockfile
-changes run all six. A single-workflow pilot leaves unconfigured workflows running.
+Changing only `apps/website/src/components/Pricing.astro` creates one Website CI
+job and six skipped records. Root README changes create zero jobs and seven skipped
+records. A Dart change in the shared models runs Shared CI, Dart Functions CI and
+Dart Format Check. Changing the root lockfile runs all seven workflows.
 
 ## Validation and rollout
 
@@ -83,7 +83,7 @@ Run Dart format/analyze/tests in `firebase/dart_functions`, analyze the `openci`
 workflow package, and run the Firebase Node format/check/test scripts. Generate
 connector SDKs, format generated sources, and run the SQL Connect emulator tests
 for planning, webhooks and dispatch. Planning integration tests use the actual
-Dart HTTP Function, local GitHub fixture and SQL database, including the real six
+Dart HTTP Function, local GitHub fixture and SQL database, including the real
 workflow files, transactional rollback, leases, authorization and reporting retry.
 
 Deploy in this order:
@@ -97,9 +97,9 @@ Deploy in this order:
 3. Deploy the Dart planner. Its GitHub installation needs `contents:read` and
    `pull_requests:read`; reporting needs `checks:write`. Confirm existing App
    installations have accepted these permissions.
-4. Enable the six workflow definitions in the repository. Verify a real PR,
-   push and restack: one runnable Check plus five completed/skipped Checks, no
-   skipped build allocations/charges, and required-check merge behavior.
+4. Verify a PR and push that change only the website component above. Expect one
+   runnable Check and six completed/skipped Checks. Verify skipped builds allocate
+   no resources and that required checks permit the merge.
 
 Rollback by removing `paths` conditions (or restoring the old planner).
 Keep the connector and reporters until pending skipped notifications are drained;

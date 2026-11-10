@@ -17,6 +17,8 @@ create_workers.js
 .env
 firebase/.env.*
 firebase/dart_functions/.env.*
+# Older checkouts may still have local Stacked PR credentials and deployment logs.
+/apps/stacked_pr/
 firebase/.deploy/
 firebase/firebase.*.local.json
 # Deployment-specific configuration is managed locally or in a private repository.

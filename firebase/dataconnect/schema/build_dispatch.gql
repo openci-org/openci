@@ -34,6 +34,8 @@ type BuildJobDispatch
   heartbeatAt: Timestamp
   deadlineAt: Timestamp
   outcome: String
+  # Fixed, user-facing checkout diagnostics; never a raw API exception.
+  failureSummary: String
   resultAt: Timestamp
   vmRequestedAt: Timestamp
   vmDeletedAt: Timestamp

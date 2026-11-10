@@ -16,7 +16,9 @@ import {
 } from "../../lib/functions/executor/execute.js";
 import { DataConnectDispatchStore } from "../../lib/functions/dispatch_store.js";
 import { QueuedChecks, QueuedCheckStore } from "../../lib/functions/queued_checks.js";
+import { cardFixture } from "./helpers/card_setup.mjs";
 import { identity } from "../../lib/functions/executor/model.js";
+import { PullRequestCheckoutError } from "../../lib/functions/executor/checkout_error.js";
 
 const host = process.env.DATA_CONNECT_EMULATOR_HOST;
 assert.match(host ?? "", /^(127\.0\.0\.1|localhost):\d+$/, "Start the SQL Connect emulator first");
@@ -56,19 +58,12 @@ async function alterJob(id, data) {
   );
 }
 
-async function fixture(t, queuedCheck = false) {
-  const teamId = randomUUID(),
-    jobId = randomUUID(),
-    id = randomUUID();
+async function seedTeam(t) {
+  const teamId = randomUUID();
   const installationId = String(Math.floor(Math.random() * 1000000000) + 1);
   await graphql(
     `
-      mutation Seed(
-        $teamId: String!
-        $jobId: String!
-        $installationId: Int64!
-        $installationText: String!
-      ) @transaction {
+      mutation SeedTeam($teamId: String!, $installationId: Int64!) @transaction {
         team_insert(data: { id: $teamId, name: "Executor test", createdAt: 1, updatedAt: 1 })
         gitHubConnection_insert(
           data: {
@@ -86,6 +81,31 @@ async function fixture(t, queuedCheck = false) {
             status: "active"
           }
         )
+      }
+    `,
+    { teamId, installationId },
+  );
+  t.after(() =>
+    graphql(
+      `
+        mutation CleanupTeam($teamId: String!) @transaction {
+          billingAccount_deleteMany(where: { teamId: { eq: $teamId } })
+          team_delete(id: $teamId)
+        }
+      `,
+      { teamId },
+    ),
+  );
+  return { teamId, installationId };
+}
+
+async function fixture(t, queuedCheck = false, team) {
+  const { teamId, installationId } = team ?? (await seedTeam(t));
+  const jobId = randomUUID(),
+    id = randomUUID();
+  await graphql(
+    `
+      mutation SeedJob($teamId: String!, $jobId: String!, $installationText: String!) {
         buildJob_insert(
           data: {
             id: $jobId
@@ -106,19 +126,17 @@ async function fixture(t, queuedCheck = false) {
         )
       }
     `,
-    { teamId, jobId, installationId, installationText: installationId },
+    { teamId, jobId, installationText: installationId },
   );
   t.after(() =>
     graphql(
       `
-        mutation Cleanup($teamId: String!, $jobId: String!) @transaction {
+        mutation CleanupJob($jobId: String!) @transaction {
           buildJobDispatch_deleteMany(where: { jobId: { eq: $jobId } })
           buildJob_delete(id: $jobId)
-          billingAccount_deleteMany(where: { teamId: { eq: $teamId } })
-          team_delete(id: $teamId)
         }
       `,
-      { teamId, jobId },
+      { jobId },
     ),
   );
   if (queuedCheck) await alterJob(jobId, { checkRunId: "123", checkRunNumber: "1" });
@@ -153,14 +171,14 @@ async function fixture(t, queuedCheck = false) {
     jobId,
     executionName: `${cloudRunJob}/executions/build-executor-test`,
   };
-  let commands = 0;
+  const scripts = [];
   const dependencies = {
     store,
     billing,
     configuration,
     github: {
       options: { appId: "1", apiBaseUrl: "https://api.github.com", baseUrl: "https://github.com" },
-      verifyPullRequest: async () => {},
+      resolveCheckoutCommit: async (job) => job.commitSha,
       checkout: async () => ({
         token: "checkout-token",
         cloneUrl: "https://github.com/org/app.git",
@@ -184,13 +202,13 @@ async function fixture(t, queuedCheck = false) {
       remove: async () => {
         calls.push("remove");
       },
-      exec: async (_vm, _script, output) => {
-        commands++;
-        calls.push(commands === 1 ? "checkout" : "workflow");
+      exec: async (_vm, script, output) => {
+        scripts.push(script);
+        calls.push(scripts.length === 1 ? "checkout" : "workflow");
         await output(
           "stdout",
           Buffer.from(
-            commands === 1 ? "checkout-token\nchecked out\n" : "workflow-secret\nfinished\n",
+            scripts.length === 1 ? "checkout-token\nchecked out\n" : "workflow-secret\nfinished\n",
           ),
         );
         return 0;
@@ -212,6 +230,7 @@ async function fixture(t, queuedCheck = false) {
     input,
     dependencies,
     calls,
+    scripts,
     checks,
     reports,
     run: (signal) => executeBuild(input, dependencies, signal),
@@ -309,12 +328,17 @@ async function prepareSupersedingRevision(t, f, closed = false) {
 
 test("Cloud Run executor completes checkout, workflow, FSC logs, billing, checks and VM cleanup", async (t) => {
   const f = await fixture(t);
+  await graphql(
+    "mutation SeedCounter($id: String!) { team_update(id: $id, data: { runNumber: 41 }) }",
+    { id: f.teamId },
+  );
   await f.run();
   const state = await f.state();
   assert.equal(state.job.status, "SUCCESS", JSON.stringify(f.reports));
   assert.equal(state.job.pullRequestNumber, null, "Push jobs return explicit null provenance");
   assert.equal(state.job.runCount, "1");
-  assert.equal(state.run.runNumber, "1");
+  assert.equal(state.run.runNumber, "41");
+  assert.match(f.scripts[1], /^export OPENCI_RUN_NUMBER='41'$/m);
   assert.equal(state.run.conclusion, "success");
   assert.equal(state.dispatch.activeJobId, null);
   assert.ok(state.dispatch.vmDeletedAt && state.dispatch.finishedAt);
@@ -352,6 +376,72 @@ test("Cloud Run executor completes checkout, workflow, FSC logs, billing, checks
   assert.ok(Date.parse(logs.buildRun.logsExpireAt) > Date.now());
   await f.run();
   assert.equal(f.calls.filter((call) => call === "create").length, 1);
+});
+
+test("concurrent jobs share the team's run sequence and retrying an allocation reuses its number", async (t) => {
+  const team = await seedTeam(t);
+  const retry = await fixture(t, false, team);
+  const fresh = await fixture(t, false, team);
+  const otherTeam = await fixture(t);
+  const previousRunId = randomUUID();
+  await graphql(
+    `
+      mutation SeedHistory($runId: String!, $jobId: String!) @transaction {
+        buildRun_insert(
+          data: {
+            id: $runId
+            buildJobId: $jobId
+            runNumber: 7
+            status: "completed"
+            createdAt: 1
+            updatedAt: 1
+          }
+        )
+        buildJob_update(id: $jobId, data: { latestRunId: $runId, runCount: 1 })
+      }
+    `,
+    { runId: previousRunId, jobId: retry.jobId },
+  );
+
+  const [retryRun, freshRun, independentRun] = await Promise.all(
+    [retry, fresh, otherTeam].map(async (job) => {
+      const executorId = await job.claim();
+      const { dispatch } = await job.state();
+      const number = await store.configure(dispatch, executorId, true);
+      return { dispatch, executorId, number };
+    }),
+  );
+  assert.deepEqual(
+    [retryRun.number, freshRun.number].sort((left, right) => left - right),
+    [8, 9],
+  );
+  assert.equal(independentRun.number, 1);
+  assert.equal(
+    await store.configure(retryRun.dispatch, retryRun.executorId, true),
+    retryRun.number,
+  );
+  assert.equal((await retry.state()).job.runCount, "2");
+  assert.equal((await fresh.state()).job.runCount, "1");
+
+  const saved = await graphql(
+    `
+      query ReadCounters($team: String!, $other: String!, $previousRun: String!) {
+        team(id: $team) {
+          runNumber
+        }
+        other: team(id: $other) {
+          runNumber
+        }
+        previous: buildRun(id: $previousRun) {
+          runNumber
+        }
+      }
+    `,
+    { team: team.teamId, other: otherTeam.teamId, previousRun: previousRunId },
+  );
+  assert.equal(saved.team.runNumber, "10");
+  assert.equal(saved.other.runNumber, "2");
+  assert.equal(saved.previous.runNumber, "7");
 });
 
 test("self-hosted executor creates a real run, logs and checks without a billing ledger", async (t) => {
@@ -481,7 +571,7 @@ test("persisted PR jobs and reruns fail before billing, VM creation, checkout an
       workerHost: runCount ? "previous-worker" : null,
     });
     let verified = 0;
-    f.dependencies.github.verifyPullRequest = async (job, accountId) => {
+    f.dependencies.github.resolveCheckoutCommit = async (job, accountId) => {
       assert.equal(job.pullRequestNumber, "7", "FSC must expose the saved PR number to the guard");
       assert.equal(accountId, "10");
       verified++;
@@ -520,24 +610,97 @@ test("persisted PR jobs and reruns fail before billing, VM creation, checkout an
 test("rejected old attempts cannot fail a queued job after losing their active reservation", async (t) => {
   const f = await fixture(t);
   const executorId = await f.claim();
-  await store.result(f.id, executorId, "failure");
+  await store.result(
+    f.id,
+    executorId,
+    "failure",
+    new PullRequestCheckoutError("conflicts").message,
+  );
   await alterDispatch(f.id, { activeJobId: null });
   await alterJob(f.jobId, {
     status: "QUEUED",
     latestRunId: "newer-run",
     workerHost: "newer-worker",
+    failureSummary: "Newer attempt's summary",
   });
   await cleanupExecution(f.id, f.jobId, f.dependencies, false);
   const state = await f.state();
   assert.equal(state.job.status, "QUEUED");
   assert.equal(state.job.latestRunId, "newer-run");
   assert.equal(state.job.workerHost, "newer-worker");
+  assert.equal((await jobFailure(f.jobId)).failureSummary, "Newer attempt's summary");
   assert.ok(state.dispatch.finishedAt);
+});
+
+async function jobFailure(jobId) {
+  return (
+    await graphql(
+      "query Failure($id: String!) { buildJob(id: $id) { failureSummary failureSummaryStatus } }",
+      { id: jobId },
+    )
+  ).buildJob;
+}
+
+test("merge failure survives cleanup recovery and is published before any run exists", async (t) => {
+  const f = await fixture(t, true);
+  const error = new PullRequestCheckoutError("conflicts");
+  f.dependencies.github.resolveCheckoutCommit = async () => {
+    throw error;
+  };
+  f.dependencies.github.check = async (_job, dispatch, outcome) => {
+    assert.equal(dispatch.failureSummary, error.message);
+    assert.equal(outcome, "failure");
+    f.checks.push(outcome);
+    return "123";
+  };
+  const remove = f.dependencies.orchard.remove;
+  f.dependencies.orchard.remove = async () => {
+    throw new Error("Temporary controller failure");
+  };
+
+  await assert.rejects(f.run(), /Temporary controller failure/);
+  assert.equal((await f.state()).dispatch.failureSummary, error.message);
+  f.dependencies.orchard.remove = remove;
+  await alterDispatch(f.id, { cleanupLeaseUntil: "2000-01-01T00:00:00Z" });
+  await recoverExecutions(f.dependencies);
+
+  const state = await f.state();
+  assert.equal(state.run, null);
+  assert.equal(state.job.status, "FAILURE");
+  assert.equal((await jobFailure(f.jobId)).failureSummary, error.message);
+  assert.deepEqual(f.checks, ["failure"]);
+  assert.deepEqual(f.calls, ["stop-cloud-run", "remove"]);
+  assert.equal(await f.billingState(), null);
+});
+
+test("cancellation clears a recorded merge failure from the current job", async (t) => {
+  const f = await fixture(t, true);
+  const executorId = await f.claim();
+  const summary = new PullRequestCheckoutError("not_ready").message;
+  await store.result(f.id, executorId, "failure", summary);
+  await alterJob(f.jobId, { status: "CANCELLED", failureSummary: summary });
+
+  await cleanupExecution(f.id, f.jobId, f.dependencies, false);
+
+  assert.equal((await f.state()).job.status, "CANCELLED");
+  assert.equal((await jobFailure(f.jobId)).failureSummary, null);
+  assert.deepEqual(f.checks, ["cancelled"]);
+});
+
+test("a new successful attempt clears the previous job failure summary", async (t) => {
+  const f = await fixture(t, true);
+  await alterJob(f.jobId, { failureSummary: new PullRequestCheckoutError("not_ready").message });
+
+  await f.run();
+
+  assert.equal((await f.state()).job.status, "SUCCESS");
+  assert.equal((await jobFailure(f.jobId)).failureSummary, null);
+  assert.equal((await f.state()).dispatch.failureSummary, null);
 });
 
 test("source rejection before a run exists completes the queued check", async (t) => {
   const f = await fixture(t, true);
-  f.dependencies.github.verifyPullRequest = async () => {
+  f.dependencies.github.resolveCheckoutCommit = async () => {
     throw new Error("superseded head");
   };
   f.dependencies.github.check = async (_job, dispatch, outcome) => {
@@ -689,17 +852,100 @@ test("deadline recovery marks the build timed out; another executor cannot acqui
   assert.equal((await f.state()).dispatch.activeJobId, null);
 });
 
-test("lack of paid entitlement leaves the build queued without allocating a VM", async (t) => {
-  const f = await fixture(t, true);
+test("a missing billing card parks this job and publishes a missing queued check without allocating a VM", async (t) => {
+  const f = await fixture(t);
   f.dependencies.configuration.complimentary.clear();
   await f.run();
   assert.equal((await f.state()).job.status, "QUEUED");
-  assert.equal((await f.state()).dispatch.outcome, "blocked");
+  assert.equal((await f.state()).dispatch.outcome, "card_required");
   assert.equal((await f.state()).dispatch.activeJobId, null);
   assert.equal(f.calls.includes("create"), false);
   assert.equal(await f.billingState(), null);
-  assert.deepEqual(f.checks, [], "An unnumbered blocked attempt must leave its check queued");
+  assert.deepEqual(f.checks, ["card_required"]);
+  assert.deepEqual(f.calls, []);
+  assert.equal(await new DataConnectDispatchStore(dc).oldestQueued(), null);
   assert.equal((await f.state()).dispatch.checkRunId, "123");
+  const saved = await graphql("query Check($id:String!) { buildJob(id:$id){ checkRunNumber } }", {
+    id: f.jobId,
+  });
+  assert.equal(saved.buildJob.checkRunNumber, "1");
+});
+
+test("a parked Cloud job resumes once after card confirmation and writes one postpaid run", async (t) => {
+  const f = await fixture(t, true);
+  const userId = randomUUID();
+  await graphql(
+    "mutation Add($teamId: String!, $userId: String!) { teamMember_insert(data: {teamId:$teamId, userId:$userId}) }",
+    { teamId: f.teamId, userId },
+  );
+  const card = cardFixture(billingDc, { teamId: f.teamId, userId });
+  const queue = new DataConnectDispatchStore(dc);
+  f.dependencies.configuration.complimentary.clear();
+  f.dependencies.verifyCard = (teamId, mode) => card.service.cardSessionForCi(teamId, mode);
+  await card.start();
+  await f.run();
+  assert.equal((await f.state()).dispatch.outcome, "card_required");
+  assert.equal(await queue.oldestQueued(), null);
+  assert.ok(!f.calls.includes("create"));
+  const [session] = card.sessions.values();
+  card.complete(session);
+  assert.equal(await card.webhook(session), 204);
+  assert.equal((await queue.oldestQueued()).id, f.jobId);
+
+  async function retry() {
+    const id = randomUUID();
+    await queue.acquireScheduler(id);
+    await queue.reserve(id, {
+      id,
+      jobId: f.jobId,
+      vmName: `openci-${id}`,
+      cpu: 2,
+      memoryMiB: 4096,
+      image: "base-macos",
+      cloudRunJob: f.dependencies.configuration.cloudRunJob,
+    });
+    await queue.releaseScheduler(id);
+    await executeBuild({ ...f.input, dispatchId: id }, f.dependencies);
+    return store.read(id, f.jobId);
+  }
+
+  // Removal before dispatch wins even when the checkout ledger says registered.
+  card.state.defaultMethod = null;
+  assert.equal((await retry()).dispatch.outcome, "card_required");
+  assert.equal(await queue.oldestQueued(), null);
+  assert.ok(!f.calls.includes("create"));
+  card.state.defaultMethod = "pm_replacement";
+  await card.webhook(session, "customer.updated");
+  assert.equal((await queue.oldestQueued()).id, f.jobId);
+  const state = await retry();
+  assert.equal(state.job.status, "SUCCESS");
+  assert.equal(state.job.runCount, "1");
+  assert.equal(state.dispatch.checkRunId, "123");
+  assert.deepEqual(f.checks, ["card_required", "card_required", "in_progress", "success"]);
+  assert.equal(f.calls.filter((call) => call === "create").length, 1);
+  const admission = (
+    await billingSdk.getBillingAdmission(billingDc, {
+      teamId: f.teamId,
+      id: identity(state.dispatch).admissionId,
+    })
+  ).data.billingAdmission;
+  assert.equal(admission.reservedMillis, "0");
+  const run = (
+    await billingSdk.getBillingExecution(billingDc, { teamId: f.teamId, runId: state.run.id })
+  ).data.billingExecution;
+  assert.equal(run.outcome, "success");
+  assert.match(run.periodId, /^postpaid:/);
+  const period = (
+    await billingSdk.getBillingPeriod(billingDc, { teamId: f.teamId, id: run.periodId })
+  ).data.period;
+  assert.equal(period.periodType, "postpaid");
+  assert.equal(period.allowanceSeconds ?? null, null);
+  assert.equal(new Date(Number(period.startsAt) * 1000).getUTCHours(), 15);
+  const steps = await graphql(
+    "query Steps($id:String!) {buildRun(id:$id){steps:buildSteps_on_run(orderBy:{stepOrder:ASC}){stepId status}}}",
+    { id: state.run.id },
+  );
+  assert.deepEqual(steps.buildRun.steps[0], { stepId: "prepare_vm", status: "SUCCESS" });
 });
 
 test("partial admission expires before cleanup releases the reservation", async (t) => {

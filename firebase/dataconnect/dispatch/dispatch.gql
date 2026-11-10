@@ -20,6 +20,7 @@ fragment BuildDispatchFields on BuildJobDispatch {
   heartbeatAt
   deadlineAt
   outcome
+  failureSummary
   resultAt
   vmRequestedAt
   vmDeletedAt
@@ -52,6 +53,18 @@ query GetActiveBuildDispatches @auth(level: NO_ACCESS) {
 # Blocked executions requeue without changing createdAt; allow the existing
 # 60-second retry interval before they can compete for capacity again.
 query GetBuildDispatchExclusions @auth(level: NO_ACCESS) {
+  # Leave unpaid jobs queued without launching more executors. A registration
+  # concurrent with the first attempt must wake it even if cleanup finishes later.
+  waitingForCard: _select(
+    sql: """
+    SELECT DISTINCT j.id FROM build_jobs j
+    JOIN build_job_dispatches d ON d.job_id = j.id AND d.outcome = 'card_required'
+    LEFT JOIN billing_card_setups c ON c.team_id = j.team_id
+    WHERE j.status = 'QUEUED' AND d.finished_at IS NOT NULL
+      AND (c.status IS DISTINCT FROM 'registered'
+        OR GREATEST(c.ready_at, c.resolved_at, '-infinity'::timestamptz) <= d.started_at)
+    """
+  )
   dispatches: buildJobDispatches(
     where: {
       _or: [

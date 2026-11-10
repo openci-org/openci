@@ -56,6 +56,13 @@ mutation DeleteBillingTeam(
       livemode
       subscriptionStatus
     }
+    billingCardSetup(key: { teamId_expr: "response.billingAccount_upsert.teamId" })
+      @check(
+        expr: "this == null || this.status != 'pending'"
+        message: "Resolve the pending card setup before deleting the team"
+      ) {
+      status
+    }
     checkouts: billingCheckoutCreations(
       where: {
         teamId: { eq_expr: "response.billingAccount_upsert.teamId" }

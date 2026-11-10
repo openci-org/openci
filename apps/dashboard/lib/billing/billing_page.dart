@@ -153,9 +153,11 @@ class _TeamBillingPageState extends ConsumerState<_TeamBillingPage> {
         'success',
         'cancel',
         'portal',
+        'card_success',
+        'card_cancel',
       }.contains(widget.result),
-      onCheckout: (planId) => unawaited(_openStripe(planId: planId)),
-      onPortal: () => unawaited(_openStripe()),
+      onPortal: () => unawaited(_openStripe((a) => a.portal())),
+      onSetupCard: () => unawaited(_openStripe((a) => a.setupCard())),
       onReload: _reload,
     );
   }
@@ -170,7 +172,7 @@ class _TeamBillingPageState extends ConsumerState<_TeamBillingPage> {
     ref.invalidate(billingStatusProvider(widget.team.id));
   }
 
-  Future<void> _openStripe({String? planId}) async {
+  Future<void> _openStripe(Future<Uri?> Function(BillingActions) open) async {
     if (_pending) return;
     final identity = ref.read(billingIdentityProvider);
     final actions = ref.read(billingActionsProvider(widget.team.id));
@@ -181,12 +183,14 @@ class _TeamBillingPageState extends ConsumerState<_TeamBillingPage> {
       _error = null;
     });
     try {
-      final uri = planId == null
-          ? await actions.portal()
-          : await actions.checkout(planId);
+      final uri = await open(actions);
       if (!mounted ||
           generation != _actionGeneration ||
           ref.read(billingIdentityProvider) != identity) {
+        return;
+      }
+      if (uri == null) {
+        ref.invalidate(billingStatusProvider(widget.team.id));
         return;
       }
       if (!await launchUrl(uri, webOnlyWindowName: '_self')) {

@@ -33,6 +33,11 @@ export interface BillingAdmission_Key {
   __typename?: "BillingAdmission_Key";
 }
 
+export interface BillingCardSetup_Key {
+  teamId: string;
+  __typename?: "BillingCardSetup_Key";
+}
+
 export interface BillingCheckoutCreation_Key {
   idempotencyKey: string;
   __typename?: "BillingCheckoutCreation_Key";
@@ -46,6 +51,19 @@ export interface BillingCustomerCreation_Key {
 export interface BillingExecution_Key {
   runId: string;
   __typename?: "BillingExecution_Key";
+}
+
+export interface BillingMonthlyStatementRun_Key {
+  teamId: string;
+  month: DateString;
+  runId: string;
+  __typename?: "BillingMonthlyStatementRun_Key";
+}
+
+export interface BillingMonthlyStatement_Key {
+  teamId: string;
+  month: DateString;
+  __typename?: "BillingMonthlyStatement_Key";
 }
 
 export interface BillingPeriod_Key {
@@ -130,12 +148,53 @@ export interface CloseBillingCheckoutCreationVariables {
   closedAt: Int64String;
 }
 
+export interface CloseTeamMonthlyStatementData {
+  usage?: {
+    statement?: unknown | null;
+  };
+  receipt?: {
+    statement?: {
+      teamId: string;
+      month: DateString;
+      closedAt: TimestampString;
+      currency: string;
+      jpyPerUsd?: string | null;
+      rateDate?: DateString | null;
+      runCount: Int64String;
+      measuredMillis: Int64String;
+      billableMinutes: Int64String;
+      amountJpyTaxIncluded: Int64String;
+      amountUsdCentsTaxIncluded?: string | null;
+      stripeInvoiceId?: string | null;
+    } & BillingMonthlyStatement_Key;
+  };
+}
+
+export interface CloseTeamMonthlyStatementVariables {
+  teamId: string;
+  month: DateString;
+  currency: string;
+  jpyPerUsd?: string | null;
+  rateDate?: DateString | null;
+  afterRunId?: string | null;
+}
+
 export interface CompleteBillingTeamCleanupData {
   billingTeamDeletion_update?: BillingTeamDeletion_Key | null;
 }
 
 export interface CompleteBillingTeamCleanupVariables {
   teamId: string;
+}
+
+export interface ConfirmBillingCardReadyData {
+  updated?: number | null;
+}
+
+export interface ConfirmBillingCardReadyVariables {
+  teamId: string;
+  sessionId: string;
+  livemode: boolean;
 }
 
 export interface CreateBillingAdmissionData {
@@ -152,6 +211,8 @@ export interface CreateBillingAdmissionVariables {
   periodId: string;
   atMs: Int64String;
   vmName?: string | null;
+  cardSessionId?: string | null;
+  livemode?: boolean | null;
 }
 
 export interface CreateBillingCheckoutCreationData {
@@ -302,6 +363,25 @@ export interface GetBillingAdmissionVariables {
   id: string;
 }
 
+export interface GetBillingCardSetupData {
+  setup?: {
+    teamId: string;
+    stripeCustomerId: string;
+    livemode: boolean;
+    sessionId: string;
+    consentedBy: string;
+    consentedAt: TimestampString;
+    termsVersion: string;
+    status: string;
+    paymentMethodId?: string | null;
+    resolvedAt?: TimestampString | null;
+  } & BillingCardSetup_Key;
+}
+
+export interface GetBillingCardSetupVariables {
+  teamId: string;
+}
+
 export interface GetBillingCheckoutCreationData {
   checkout?: {
     idempotencyKey: string;
@@ -336,6 +416,18 @@ export interface GetBillingContextData {
     createdAt: Int64String;
     stripeCustomerId?: string | null;
   } & BillingCustomerCreation_Key;
+  cardSetup?: {
+    teamId: string;
+    stripeCustomerId: string;
+    livemode: boolean;
+    sessionId: string;
+    consentedBy: string;
+    consentedAt: TimestampString;
+    termsVersion: string;
+    status: string;
+    paymentMethodId?: string | null;
+    resolvedAt?: TimestampString | null;
+  } & BillingCardSetup_Key;
   stripe?: {
     teamId: string;
     stripeCustomerId: string;
@@ -516,12 +608,45 @@ export interface GetBillingTeamDeletionVariables {
   userId: string;
 }
 
+export interface GetClosedMonthlyStatementData {
+  statement?: {
+    teamId: string;
+    month: DateString;
+    closedAt: TimestampString;
+    currency: string;
+    jpyPerUsd?: string | null;
+    rateDate?: DateString | null;
+    runCount: Int64String;
+    measuredMillis: Int64String;
+    billableMinutes: Int64String;
+    amountJpyTaxIncluded: Int64String;
+    amountUsdCentsTaxIncluded?: string | null;
+    stripeInvoiceId?: string | null;
+  } & BillingMonthlyStatement_Key;
+}
+
+export interface GetClosedMonthlyStatementVariables {
+  teamId: string;
+  month: DateString;
+}
+
 export interface GetDueBillingTeamDeletionsData {
   deletions: ({
     teamId: string;
     secretPaths: unknown;
     githubPaths: unknown;
   } & BillingTeamDeletion_Key)[];
+}
+
+export interface GetTeamMonthlyUsageData {
+  statement?: unknown | null;
+}
+
+export interface GetTeamMonthlyUsageVariables {
+  teamId: string;
+  month: DateString;
+  jpyPerUsd?: string | null;
+  afterRunId?: string | null;
 }
 
 export interface GitHubConnectionRequest_Key {
@@ -564,9 +689,33 @@ export interface InitializeBillingStripeStateVariables {
   livemode: boolean;
 }
 
+export interface LinkMonthlyStatementInvoiceData {
+  linked: number;
+}
+
+export interface LinkMonthlyStatementInvoiceVariables {
+  teamId: string;
+  month: DateString;
+  invoiceId: string;
+}
+
 export interface PullRequestPlanning_Key {
   id: string;
   __typename?: "PullRequestPlanning_Key";
+}
+
+export interface RecordBillingCardConsentData {
+  billingCardSetup_upsert: BillingCardSetup_Key;
+}
+
+export interface RecordBillingCardConsentVariables {
+  teamId: string;
+  userId: string;
+  stripeCustomerId: string;
+  livemode: boolean;
+  previousSessionId?: string | null;
+  sessionId: string;
+  termsVersion: string;
 }
 
 export interface RecordBillingCheckoutSessionData {
@@ -616,6 +765,18 @@ export interface RecordBillingStripeEventVariables {
   eventType: string;
   eventCreated: Int64String;
   processedAt: Int64String;
+}
+
+export interface ResolveBillingCardSetupData {
+  updated: number;
+}
+
+export interface ResolveBillingCardSetupVariables {
+  teamId: string;
+  stripeCustomerId: string;
+  livemode: boolean;
+  sessionId: string;
+  paymentMethodId?: string | null;
 }
 
 export interface SecretReference_Key {
@@ -712,6 +873,54 @@ export function expireBillingAdmission(
   vars: ExpireBillingAdmissionVariables,
   options?: OperationOptions,
 ): Promise<ExecuteOperationResponse<ExpireBillingAdmissionData>>;
+
+/** Generated Node Admin SDK operation action function for the 'GetBillingCardSetup' Query. Allow users to execute without passing in DataConnect. */
+export function getBillingCardSetup(
+  dc: DataConnect,
+  vars: GetBillingCardSetupVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<GetBillingCardSetupData>>;
+/** Generated Node Admin SDK operation action function for the 'GetBillingCardSetup' Query. Allow users to pass in custom DataConnect instances. */
+export function getBillingCardSetup(
+  vars: GetBillingCardSetupVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<GetBillingCardSetupData>>;
+
+/** Generated Node Admin SDK operation action function for the 'RecordBillingCardConsent' Mutation. Allow users to execute without passing in DataConnect. */
+export function recordBillingCardConsent(
+  dc: DataConnect,
+  vars: RecordBillingCardConsentVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<RecordBillingCardConsentData>>;
+/** Generated Node Admin SDK operation action function for the 'RecordBillingCardConsent' Mutation. Allow users to pass in custom DataConnect instances. */
+export function recordBillingCardConsent(
+  vars: RecordBillingCardConsentVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<RecordBillingCardConsentData>>;
+
+/** Generated Node Admin SDK operation action function for the 'ResolveBillingCardSetup' Mutation. Allow users to execute without passing in DataConnect. */
+export function resolveBillingCardSetup(
+  dc: DataConnect,
+  vars: ResolveBillingCardSetupVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<ResolveBillingCardSetupData>>;
+/** Generated Node Admin SDK operation action function for the 'ResolveBillingCardSetup' Mutation. Allow users to pass in custom DataConnect instances. */
+export function resolveBillingCardSetup(
+  vars: ResolveBillingCardSetupVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<ResolveBillingCardSetupData>>;
+
+/** Generated Node Admin SDK operation action function for the 'ConfirmBillingCardReady' Mutation. Allow users to execute without passing in DataConnect. */
+export function confirmBillingCardReady(
+  dc: DataConnect,
+  vars: ConfirmBillingCardReadyVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<ConfirmBillingCardReadyData>>;
+/** Generated Node Admin SDK operation action function for the 'ConfirmBillingCardReady' Mutation. Allow users to pass in custom DataConnect instances. */
+export function confirmBillingCardReady(
+  vars: ConfirmBillingCardReadyVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<ConfirmBillingCardReadyData>>;
 
 /** Generated Node Admin SDK operation action function for the 'CreateBillingCheckoutCreation' Mutation. Allow users to execute without passing in DataConnect. */
 export function createBillingCheckoutCreation(
@@ -974,6 +1183,54 @@ export function getBillingJob(
   vars: GetBillingJobVariables,
   options?: OperationOptions,
 ): Promise<ExecuteOperationResponse<GetBillingJobData>>;
+
+/** Generated Node Admin SDK operation action function for the 'GetClosedMonthlyStatement' Query. Allow users to execute without passing in DataConnect. */
+export function getClosedMonthlyStatement(
+  dc: DataConnect,
+  vars: GetClosedMonthlyStatementVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<GetClosedMonthlyStatementData>>;
+/** Generated Node Admin SDK operation action function for the 'GetClosedMonthlyStatement' Query. Allow users to pass in custom DataConnect instances. */
+export function getClosedMonthlyStatement(
+  vars: GetClosedMonthlyStatementVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<GetClosedMonthlyStatementData>>;
+
+/** Generated Node Admin SDK operation action function for the 'CloseTeamMonthlyStatement' Mutation. Allow users to execute without passing in DataConnect. */
+export function closeTeamMonthlyStatement(
+  dc: DataConnect,
+  vars: CloseTeamMonthlyStatementVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<CloseTeamMonthlyStatementData>>;
+/** Generated Node Admin SDK operation action function for the 'CloseTeamMonthlyStatement' Mutation. Allow users to pass in custom DataConnect instances. */
+export function closeTeamMonthlyStatement(
+  vars: CloseTeamMonthlyStatementVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<CloseTeamMonthlyStatementData>>;
+
+/** Generated Node Admin SDK operation action function for the 'LinkMonthlyStatementInvoice' Mutation. Allow users to execute without passing in DataConnect. */
+export function linkMonthlyStatementInvoice(
+  dc: DataConnect,
+  vars: LinkMonthlyStatementInvoiceVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<LinkMonthlyStatementInvoiceData>>;
+/** Generated Node Admin SDK operation action function for the 'LinkMonthlyStatementInvoice' Mutation. Allow users to pass in custom DataConnect instances. */
+export function linkMonthlyStatementInvoice(
+  vars: LinkMonthlyStatementInvoiceVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<LinkMonthlyStatementInvoiceData>>;
+
+/** Generated Node Admin SDK operation action function for the 'GetTeamMonthlyUsage' Query. Allow users to execute without passing in DataConnect. */
+export function getTeamMonthlyUsage(
+  dc: DataConnect,
+  vars: GetTeamMonthlyUsageVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<GetTeamMonthlyUsageData>>;
+/** Generated Node Admin SDK operation action function for the 'GetTeamMonthlyUsage' Query. Allow users to pass in custom DataConnect instances. */
+export function getTeamMonthlyUsage(
+  vars: GetTeamMonthlyUsageVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<GetTeamMonthlyUsageData>>;
 
 /** Generated Node Admin SDK operation action function for the 'CreateBillingPeriod' Mutation. Allow users to execute without passing in DataConnect. */
 export function createBillingPeriod(

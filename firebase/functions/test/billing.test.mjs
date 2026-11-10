@@ -28,6 +28,11 @@ const state = () => ({
   revision: "0",
 });
 
+test("only the Cloud executor is a declared invoker of the card eligibility endpoint", async () => {
+  const { ciCardEligibility } = await import("../../lib/functions/billing_functions.js");
+  assert.deepEqual(ciCardEligibility.__endpoint.httpsTrigger.invoker, ["openci-executor@"]);
+});
+
 test("billing configuration is disabled by default and rejects mismatched modes and redirects", () => {
   assert.equal(billingConfig({}).enabled, false);
   const env = {
@@ -36,14 +41,12 @@ test("billing configuration is disabled by default and rejects mismatched modes 
     STRIPE_SECRET_KEY: "sk_test_fake",
     BILLING_DASHBOARD_ORIGIN: config.origin,
     STRIPE_PORTAL_CONFIGURATION_ID: config.portalId,
-    STRIPE_LIGHT_PRICE_ID: "light",
-    STRIPE_PRO_PRICE_ID: "pro",
   };
   assert.equal(billingConfig(env).enabled, true);
   for (const change of [
     { STRIPE_SECRET_KEY: "sk_live_fake" },
     { STRIPE_LIVEMODE: "yes" },
-    { STRIPE_PRO_PRICE_ID: "light" },
+    { STRIPE_PORTAL_CONFIGURATION_ID: "" },
     { BILLING_DASHBOARD_ORIGIN: "https://dashboard.test/path" },
     { BILLING_DASHBOARD_ORIGIN: "http://evil.test" },
   ])
@@ -96,36 +99,29 @@ test("Customer retries preserve their durable key; old intents search without an
   assert.equal(missing.requests.length, 1);
 });
 
-test("Checkout creates with server-owned identity and recovers old responses without duplicate POSTs", async () => {
+test("historical subscription checkout lookup requires its saved session id and is read-only", async () => {
   const i = intent();
-  const f = stripeFixture((r) =>
-    r.url.pathname === "/v1/checkout/sessions" && r.method === "GET"
-      ? { data: [session(i)], has_more: false }
-      : session(i),
+  const f = stripeFixture(() => session(i));
+  await assert.rejects(f.stripe.existingSession(i), /payment_pending/);
+  assert.equal(f.requests.length, 0);
+  const saved = session(i);
+  await f.stripe.existingSession({ ...i, stripeCheckoutSessionId: saved.id });
+  assert.deepEqual(
+    f.requests.map((r) => [r.method, r.url.pathname]),
+    [["GET", `/v1/checkout/sessions/${saved.id}`]],
   );
-  await f.stripe.session(i, now);
-  assert.equal(f.requests[0].headers.get("idempotency-key"), i.idempotencyKey);
-  assert.equal(f.requests[0].body.get("line_items[0][price]"), i.stripePriceId);
-  assert.equal(f.requests[0].body.get("subscription_data[metadata][team_id]"), i.teamId);
-  await f.stripe.session({ ...i, createdAt: "0" }, now);
-  assert.equal(f.requests.at(-1).method, "GET");
-  const duplicate = stripeFixture(() => ({
-    data: [session(i), { ...session(i), id: "cs_other" }],
-    has_more: false,
-  }));
-  await assert.rejects(duplicate.stripe.session({ ...i, createdAt: "0" }, now), /payment_pending/);
 });
 
 test("an active or racing completed Checkout prevents team deletion", async () => {
   const i = intent();
   const f = stripeFixture(() => ({ ...subscription(), status: "active" }));
-  await assert.rejects(f.stripe.ended(i, session(i), false), /payment_pending/);
+  await assert.rejects(f.stripe.ended(i, session(i)), /payment_pending/);
   assert.equal(f.requests.length, 0);
   await assert.rejects(
-    f.stripe.ended(i, { ...session(i), status: "complete", subscription: "sub_test" }, false),
+    f.stripe.ended(i, { ...session(i), status: "complete", subscription: "sub_test" }),
     /subscription_exists/,
   );
-  await f.stripe.ended(i, { ...session(i), status: "expired" }, false);
+  await f.stripe.ended(i, { ...session(i), status: "expired" });
 });
 
 test("paid entitlement requires matching invoice, price, subscription, full payment and period", () => {
@@ -313,7 +309,7 @@ test("complimentary monthly entitlement consumes the same FSC usage as executor"
   assert.match(period.id, /^complimentary-pro:team:\d{4}-\d{2}$/);
 });
 
-test("a pending customer intent still permits Checkout retry using its durable key", async () => {
+test("a pending customer can register a card and cannot start a monthly plan", async () => {
   const store = {
     context: async () => ({
       customer: {
@@ -326,9 +322,10 @@ test("a pending customer intent still permits Checkout retry using its durable k
   };
   const service = new Billing(store, null, config);
   const status = await service.execute("actor", { action: "status", teamId: "team" });
-  assert.equal(status.canCheckout, true);
+  assert.equal(status.canCheckout, false);
   assert.equal(status.canStartCi, false);
-  assert.equal(status.blockReason, "payment_pending");
+  assert.equal(status.cardSetupStatus, "unregistered");
+  assert.equal(status.blockReason, "payment_required");
 });
 
 test("team deletion recovers an ambiguous transaction from its actor-scoped receipt", async () => {

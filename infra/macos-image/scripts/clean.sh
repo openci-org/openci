@@ -10,6 +10,10 @@ test -f /usr/local/share/openci-image/toolchain.json
 # The image retains SDK caches, but no build checkout, login history or SSH identity.
 rm -rf "$HOME/openci-build" "$HOME/.bash_history" "$HOME/.zsh_history" "$HOME/.zsh_sessions" "$HOME/.bash_sessions"
 rm -rf "$HOME/.ssh"
+# Flutter's Android smoke build can create a debug signing key. Each job
+# should generate its own debug and device-pairing keys on its disposable VM.
+rm -f "$HOME/.android/debug.keystore" "$HOME/.android/debug.keystore.lock" \
+  "$HOME/.android/adbkey" "$HOME/.android/adbkey.pub"
 sudo -n rm -f /etc/ssh/ssh_host_*_key /etc/ssh/ssh_host_*_key.pub
 sudo -n chown -R root:wheel /usr/local/share/openci-image
 sudo -n chmod -R go-w /usr/local/share/openci-image

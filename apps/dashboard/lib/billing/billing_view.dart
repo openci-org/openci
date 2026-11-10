@@ -1,14 +1,12 @@
 import 'package:dashboard/billing/billing_status.dart';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
-import 'package:url_launcher/link.dart';
 
 class BillingView extends StatelessWidget {
   const BillingView({
     required this.teamName,
     required this.status,
-    required this.onCheckout,
     required this.onPortal,
+    required this.onSetupCard,
     required this.onReload,
     this.pending = false,
     this.returnedFromStripe = false,
@@ -18,8 +16,8 @@ class BillingView extends StatelessWidget {
 
   final String teamName;
   final BillingStatus status;
-  final ValueChanged<String> onCheckout;
   final VoidCallback onPortal;
+  final VoidCallback onSetupCard;
   final VoidCallback onReload;
   final bool pending;
   final bool returnedFromStripe;
@@ -46,72 +44,48 @@ class BillingView extends StatelessWidget {
             status.canStartCi ? 'CIを利用できます' : _blockMessage(status),
             style: theme.textTheme.titleMedium,
           ),
-          if (status.paidUntil != null) ...[
-            const SizedBox(height: 8),
-            Text(
-              '${status.cancelAtPeriodEnd ? '利用期限' : '支払い済み期間の終了'}（UTC）: ${DateFormat('yyyy/MM/dd HH:mm').format(status.paidUntil!.toUtc())}',
-            ),
-          ],
           const SizedBox(height: 24),
-          for (final plan in [
-            (id: 'light', name: 'Light', price: 'US\$10 / 月', minutes: '600'),
-            (id: 'pro', name: 'Pro', price: 'US\$100 / 月', minutes: '6,000'),
-          ])
-            Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: Card.outlined(
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(plan.name, style: theme.textTheme.titleLarge),
-                      const SizedBox(height: 8),
-                      Text(plan.price, style: theme.textTheme.titleMedium),
-                      const SizedBox(height: 4),
-                      Text('チーム共有 ${plan.minutes}分 / 月'),
-                      const SizedBox(height: 16),
-                      if (status.planId == plan.id)
-                        const Padding(
-                          padding: EdgeInsets.only(bottom: 8),
-                          child: Text('現在のプラン'),
-                        ),
-                      if (status.canCheckout)
-                        FilledButton(
-                          onPressed: pending ? null : () => onCheckout(plan.id),
-                          child: Text('${plan.name}を選ぶ'),
-                        ),
-                    ],
-                  ),
+          if (status.cardSetupStatus != null) ...[
+            Text('CIの月次後払い', style: theme.textTheme.titleMedium),
+            const SizedBox(height: 4),
+            const Text('CI実行1分につき税込1円。利用料は月ごとに集計し、翌月に登録カードで自動決済します。'),
+            if (status.canSetupCard)
+              OutlinedButton(
+                onPressed: pending ? null : () => _confirmCardSetup(context),
+                child: Text(
+                  status.cardSetupStatus == CardSetupStatus.pending
+                      ? 'カード登録を続ける'
+                      : '支払い方法を登録',
                 ),
+              )
+            else
+              Text(
+                status.cardSetupStatus == CardSetupStatus.registered
+                    ? '後払い用のカードは登録済みです。'
+                    : '「支払い方法・請求履歴を開く」から請求用のカードを設定してください。',
               ),
-            ),
-          const Text('プラン・チーム単位の同時実行数制限はありません。実行開始はワーカーの空き状況に依存します。'),
-          const SizedBox(height: 8),
-          const Text('7日間返金保証。初回から決済が発生します。'),
-          const SizedBox(height: 8),
-          const Text(
-            '初回決済の成功から168時間以内の申請で全額返金します。更新・再契約は対象外です。'
-            '返金時に即時解約となり、新しいCIは開始できません。実行中のCIは完了まで継続します。',
-          ),
-          const SizedBox(height: 8),
-          const Text('返金申請は、チーム名を添えてメールでご連絡ください。'),
-          Link(
-            uri: Uri(scheme: 'mailto', path: 'm.aoki@openci.org'),
-            builder: (context, followLink) => TextButton.icon(
-              onPressed: followLink,
-              icon: const Icon(Icons.mail_outline),
-              label: const Text('m.aoki@openci.org'),
-            ),
-          ),
+            const SizedBox(height: 24),
+          ],
           if (status.canManageBilling) ...[
             const SizedBox(height: 20),
             OutlinedButton.icon(
               onPressed: pending ? null : onPortal,
               icon: const Icon(Icons.open_in_new),
-              label: const Text('契約を管理'),
+              label: const Text('支払い方法・請求履歴を開く'),
             ),
           ],
+        ],
+        if (status.billingEnabled && status.showsMonthlyUsage) ...[
+          const SizedBox(height: 24),
+          if (status.monthlyUsage case final usage?) ...[
+            Text('今月の利用状況（${usage.month}）', style: theme.textTheme.titleMedium),
+            const SizedBox(height: 8),
+            Text('利用時間 ${usage.billableMinutes}分'),
+            Text('税込見込額 ${usage.amountJpyTaxIncluded}円'),
+            Text('次回請求予定日 ${usage.nextInvoiceDate.replaceAll('-', '/')}（日本時間）'),
+            const Text('USDでの請求額は、月締め時に円建ての利用料を換算して確定します。'),
+          ] else
+            const Text('今月の利用額を取得できませんでした。「再読み込み」で再度確認できます。'),
         ],
         if (pending) ...[
           const SizedBox(height: 16),
@@ -138,14 +112,35 @@ class BillingView extends StatelessWidget {
       ],
     );
   }
+
+  Future<void> _confirmCardSetup(BuildContext context) async {
+    final agreed = await showDialog<bool>(
+      context: context,
+      builder: (dialog) => AlertDialog(
+        title: const Text('月次後払いに同意しますか？'),
+        content: Text(
+          'チーム「$teamName」のCI利用料は1分1円（税込）です。月の利用時間を合計し、翌月に登録カードから自動決済します。カード登録時の利用料は0円です。',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialog, false),
+            child: const Text('キャンセル'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialog, true),
+            child: const Text('同意してStripeへ'),
+          ),
+        ],
+      ),
+    );
+    if (agreed == true && context.mounted) onSetupCard();
+  }
 }
 
 String _blockMessage(BillingStatus status) => switch (status.blockReason) {
-  'payment_required' when !status.canCheckout && status.canManageBilling =>
-    'CIを利用するには、「契約を管理」からお支払いを確認してください。',
-  'payment_required' => 'CIの利用にはプランの購入が必要です。',
+  'payment_required' => 'CIを開始するには、このチームの請求用カードを登録してください。',
   'allowance_exhausted' => '新しいCIを開始できる利用枠がありません。',
   'subscription_ended' => '契約が終了しています。',
-  'payment_pending' => '決済を確認しています。時間をおいて再読み込みしてください。',
+  'payment_pending' => 'カード登録の完了を待っています。',
   _ => '現在、CIを開始できません。時間をおいて再読み込みしてください。',
 };

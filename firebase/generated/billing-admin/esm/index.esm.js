@@ -46,6 +46,46 @@ export function expireBillingAdmission(dcOrVarsOrOptions, varsOrOptions, options
   return dcInstance.executeMutation("ExpireBillingAdmission", inputVars, inputOpts);
 }
 
+export function getBillingCardSetup(dcOrVarsOrOptions, varsOrOptions, options) {
+  const {
+    dc: dcInstance,
+    vars: inputVars,
+    options: inputOpts,
+  } = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeQuery("GetBillingCardSetup", inputVars, inputOpts);
+}
+
+export function recordBillingCardConsent(dcOrVarsOrOptions, varsOrOptions, options) {
+  const {
+    dc: dcInstance,
+    vars: inputVars,
+    options: inputOpts,
+  } = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeMutation("RecordBillingCardConsent", inputVars, inputOpts);
+}
+
+export function resolveBillingCardSetup(dcOrVarsOrOptions, varsOrOptions, options) {
+  const {
+    dc: dcInstance,
+    vars: inputVars,
+    options: inputOpts,
+  } = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeMutation("ResolveBillingCardSetup", inputVars, inputOpts);
+}
+
+export function confirmBillingCardReady(dcOrVarsOrOptions, varsOrOptions, options) {
+  const {
+    dc: dcInstance,
+    vars: inputVars,
+    options: inputOpts,
+  } = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeMutation("ConfirmBillingCardReady", inputVars, inputOpts);
+}
+
 export function createBillingCheckoutCreation(dcOrVarsOrOptions, varsOrOptions, options) {
   const {
     dc: dcInstance,
@@ -265,6 +305,46 @@ export function getBillingJob(dcOrVarsOrOptions, varsOrOptions, options) {
   } = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
   dcInstance.useGen(true);
   return dcInstance.executeQuery("GetBillingJob", inputVars, inputOpts);
+}
+
+export function getClosedMonthlyStatement(dcOrVarsOrOptions, varsOrOptions, options) {
+  const {
+    dc: dcInstance,
+    vars: inputVars,
+    options: inputOpts,
+  } = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeQuery("GetClosedMonthlyStatement", inputVars, inputOpts);
+}
+
+export function closeTeamMonthlyStatement(dcOrVarsOrOptions, varsOrOptions, options) {
+  const {
+    dc: dcInstance,
+    vars: inputVars,
+    options: inputOpts,
+  } = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeMutation("CloseTeamMonthlyStatement", inputVars, inputOpts);
+}
+
+export function linkMonthlyStatementInvoice(dcOrVarsOrOptions, varsOrOptions, options) {
+  const {
+    dc: dcInstance,
+    vars: inputVars,
+    options: inputOpts,
+  } = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeMutation("LinkMonthlyStatementInvoice", inputVars, inputOpts);
+}
+
+export function getTeamMonthlyUsage(dcOrVarsOrOptions, varsOrOptions, options) {
+  const {
+    dc: dcInstance,
+    vars: inputVars,
+    options: inputOpts,
+  } = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeQuery("GetTeamMonthlyUsage", inputVars, inputOpts);
 }
 
 export function createBillingPeriod(dcOrVarsOrOptions, varsOrOptions, options) {

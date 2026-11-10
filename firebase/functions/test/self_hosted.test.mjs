@@ -6,6 +6,7 @@ import { Billing } from "../../lib/functions/billing/service.js";
 import { BillingError } from "../../lib/functions/billing/model.js";
 import { executeBuild } from "../../lib/functions/executor/execute.js";
 import { ExecutionStopped } from "../../lib/functions/executor/model.js";
+import { PullRequestCheckoutError } from "../../lib/functions/executor/checkout_error.js";
 import { execFileSync } from "node:child_process";
 
 test("self-hosted Functions bind no Stripe secrets but retain team deletion", () => {
@@ -80,6 +81,8 @@ test("self-hosted status allows CI but still authorizes teams and rejects purcha
 
 function executionFixture(selfHosted, contextChange = {}) {
   const calls = [];
+  const scripts = [];
+  const checkShas = [];
   const dispatch = {
     id: "dispatch",
     jobId: "job",
@@ -100,6 +103,7 @@ function executionFixture(selfHosted, contextChange = {}) {
     workflowName: "CI",
     workflowFileName: "ci.dart",
     commitSha: "a".repeat(40),
+    pullRequestNumber: null,
     latestRunId: dispatch.runId,
     // Untrusted job fields must never select deployment mode.
     selfHosted: true,
@@ -126,8 +130,9 @@ function executionFixture(selfHosted, contextChange = {}) {
       },
       async check() {},
       async vmRequested() {},
-      async result(_id, _executorId, outcome) {
+      async result(_id, _executorId, outcome, failureSummary) {
         dispatch.outcome = outcome;
+        dispatch.failureSummary = failureSummary;
         return true;
       },
       async acquireCleanup(_id, owner) {
@@ -159,10 +164,12 @@ function executionFixture(selfHosted, contextChange = {}) {
     },
     github: {
       options: { appId: "1", apiBaseUrl: "https://github.example/api/v3" },
-      async verifyPullRequest() {
+      async resolveCheckoutCommit(job) {
         calls.push("verify");
+        return job.commitSha;
       },
-      async check() {
+      async check(job) {
+        checkShas.push(job.commitSha);
         return "1";
       },
       async checkout() {
@@ -177,8 +184,9 @@ function executionFixture(selfHosted, contextChange = {}) {
       async remove() {
         calls.push("remove");
       },
-      async exec() {
+      async exec(_vm, script) {
         calls.push("exec");
+        scripts.push(script);
         return 0;
       },
     },
@@ -202,6 +210,10 @@ function executionFixture(selfHosted, contextChange = {}) {
   };
   return {
     calls,
+    scripts,
+    checkShas,
+    job,
+    dependencies,
     dispatch,
     run: () =>
       executeBuild(
@@ -229,6 +241,54 @@ test("self-hosted builds run without subscription or usage admission and still r
     "close",
     "complete",
   ]);
+});
+
+test("PR builds check out the resolved merge SHA and report checks on the saved head SHA", async () => {
+  const f = executionFixture(true);
+  f.job.pullRequestNumber = "7";
+  const mergeSha = "c".repeat(40);
+  f.dependencies.github.resolveCheckoutCommit = async (job, accountId, signal) => {
+    assert.equal(job.pullRequestNumber, "7");
+    assert.equal(accountId, "1");
+    assert.equal(signal.aborted, false);
+    return mergeSha;
+  };
+
+  await f.run();
+
+  assert.equal(f.dispatch.outcome, "success");
+  assert.equal(f.scripts.length, 2);
+  assert.ok(f.scripts[0].includes(`git checkout --detach '${mergeSha}'`));
+  assert.ok(f.scripts[1].includes("flutter pub run 'openci/ci.dart'"));
+  assert.deepEqual(f.checkShas, [f.job.commitSha, f.job.commitSha]);
+});
+
+test("merge resolution failure completes the check before any build commands run", async () => {
+  const f = executionFixture(true);
+  f.job.pullRequestNumber = "7";
+  f.dependencies.github.resolveCheckoutCommit = async () => {
+    throw new PullRequestCheckoutError("conflicts");
+  };
+
+  await f.run();
+
+  assert.equal(f.dispatch.outcome, "failure");
+  assert.match(f.dispatch.failureSummary, /Resolve the conflicts and push/);
+  assert.deepEqual(f.scripts, []);
+  assert.ok(!f.calls.includes("create"));
+  assert.deepEqual(f.checkShas, [f.job.commitSha]);
+});
+
+test("unexpected API errors are not published as a failure summary", async () => {
+  const f = executionFixture(true);
+  f.dependencies.github.resolveCheckoutCommit = async () => {
+    throw new Error("Authorization: token private-token; request body contains private data");
+  };
+
+  await f.run();
+
+  assert.equal(f.dispatch.outcome, "failure");
+  assert.equal(f.dispatch.failureSummary, null);
 });
 
 test("cloud builds cannot bypass billing with a job field", async () => {

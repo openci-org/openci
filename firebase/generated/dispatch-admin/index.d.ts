@@ -58,6 +58,11 @@ export interface BillingAdmission_Key {
   __typename?: "BillingAdmission_Key";
 }
 
+export interface BillingCardSetup_Key {
+  teamId: string;
+  __typename?: "BillingCardSetup_Key";
+}
+
 export interface BillingCheckoutCreation_Key {
   idempotencyKey: string;
   __typename?: "BillingCheckoutCreation_Key";
@@ -71,6 +76,19 @@ export interface BillingCustomerCreation_Key {
 export interface BillingExecution_Key {
   runId: string;
   __typename?: "BillingExecution_Key";
+}
+
+export interface BillingMonthlyStatementRun_Key {
+  teamId: string;
+  month: DateString;
+  runId: string;
+  __typename?: "BillingMonthlyStatementRun_Key";
+}
+
+export interface BillingMonthlyStatement_Key {
+  teamId: string;
+  month: DateString;
+  __typename?: "BillingMonthlyStatement_Key";
 }
 
 export interface BillingPeriod_Key {
@@ -222,6 +240,7 @@ export interface GetActiveBuildDispatchesData {
     heartbeatAt?: TimestampString | null;
     deadlineAt?: TimestampString | null;
     outcome?: string | null;
+    failureSummary?: string | null;
     resultAt?: TimestampString | null;
     vmRequestedAt?: TimestampString | null;
     vmDeletedAt?: TimestampString | null;
@@ -235,6 +254,7 @@ export interface GetActiveBuildDispatchesData {
 }
 
 export interface GetBuildDispatchExclusionsData {
+  waitingForCard?: unknown[] | null;
   dispatches: {
     jobId: string;
   }[];
@@ -268,6 +288,7 @@ export interface GetBuildDispatchStateData {
     heartbeatAt?: TimestampString | null;
     deadlineAt?: TimestampString | null;
     outcome?: string | null;
+    failureSummary?: string | null;
     resultAt?: TimestampString | null;
     vmRequestedAt?: TimestampString | null;
     vmDeletedAt?: TimestampString | null;
@@ -307,6 +328,7 @@ export interface GetBuildExecutionData {
     heartbeatAt?: TimestampString | null;
     deadlineAt?: TimestampString | null;
     outcome?: string | null;
+    failureSummary?: string | null;
     resultAt?: TimestampString | null;
     vmRequestedAt?: TimestampString | null;
     vmDeletedAt?: TimestampString | null;
@@ -487,6 +509,7 @@ export interface GetRecoverableBuildExecutionsData {
     heartbeatAt?: TimestampString | null;
     deadlineAt?: TimestampString | null;
     outcome?: string | null;
+    failureSummary?: string | null;
     resultAt?: TimestampString | null;
     vmRequestedAt?: TimestampString | null;
     vmDeletedAt?: TimestampString | null;
@@ -579,6 +602,7 @@ export interface RecordBuildExecutionResultVariables {
   id: string;
   executorId: string;
   outcome: string;
+  failureSummary?: string | null;
 }
 
 export interface RecordQueuedBuildCheckData {

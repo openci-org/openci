@@ -30,7 +30,8 @@ sdk="$HOME/Library/Android/sdk"
 grep -Fx "Pkg.Revision=$(value android_commandline_tools_version)" "$sdk/cmdline-tools/latest/source.properties"
 grep -Fx "Pkg.Revision=$(value android_platform_tools_version)" "$sdk/platform-tools/source.properties"
 while IFS= read -r package; do
-  test -f "$sdk/${package//;/\/}/package.xml"
+  package_path=$(tr ';' '/' <<< "$package")
+  test -f "$sdk/$package_path/package.xml"
 done < <("$python" -c 'import json,sys; print("\n".join(json.load(open(sys.argv[1]))["android_packages"]))' "$config")
 
 # Only test for credentials; never print their contents into build logs.

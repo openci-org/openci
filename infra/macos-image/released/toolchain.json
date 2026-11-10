@@ -1,0 +1,69 @@
+{
+  "foundation_image": "ghcr.io/openci-org/base-macos@sha256:cbfec9c42ad577daa243b2a9e93e2dd6c6278ec61331af3a46777d900c2277a3",
+  "foundation_disk_sha256": "6972f42659d06635c2be125dc9715faa15dd24b92b54f3b4bae03d74b3537f98",
+  "reference_image": "ghcr.io/openci-org/base-macos@sha256:e284d269eaf095b8bdd396091f8accc604577ec00f254673b74365054a1f84d3",
+  "macos_version": "26.5",
+  "macos_build": "25F71",
+  "xcode_version": "26.6",
+  "xcode_build": "17F113",
+  "iphoneos_sdk": "26.5",
+  "ios_runtime_build": "23F73",
+  "flutter_version": "3.47.8",
+  "flutter_revision": "737ba8f885dc774b53b442759999a312c9461e4e",
+  "flutter_engine_revision": "cf636b1dfb818dd6a3ff16e390e93b1a036969c8",
+  "dart_version": "3.13.7",
+  "release_timezone_data": "2026f.1.0",
+  "shorebird_cli_version": "1.6.128",
+  "shorebird_cli_revision": "2498aaba65f69134fec12c2986e9e1f20b986867",
+  "shorebird_flutter_revision": "6e5e949520159b5ceb029598be37520cd433b046",
+  "shorebird_engine_revision": "3f9fd7b230491dab27d914895c601ef1305ae0b4",
+  "android_packages": {
+    "platforms;android-36": "2",
+    "build-tools;36.0.0": "36.0.0",
+    "ndk;28.2.13676358": "28.2.13676358",
+    "cmake;3.22.1": "3.22.1"
+  },
+  "downloads": {
+    "android-studio-2026.1.4.8.dmg": [
+      "https://edgedl.me.gvt1.com/android/studio/install/2026.1.4.8/android-studio-quail4-patch1-mac_arm.dmg",
+      "1a3393306007f90cbf2ee73e45beb809ab09aa406c2f61ee9fe81b4ef511c066"
+    ],
+    "android-studio.rb": [
+      "https://raw.githubusercontent.com/Homebrew/homebrew-cask/996b627be37dacf35887fec12507f1e8ea59759d/Casks/a/android-studio.rb",
+      "96ff4d590758a2ec0bc2150b1d230d86692903d7dfe0515bcc7fe11482c45790"
+    ],
+    "temurin@17.rb": [
+      "https://raw.githubusercontent.com/Homebrew/homebrew-cask/949ac4b9cdbe83415d6b347b05163ef558eca610/Casks/t/temurin@17.rb",
+      "4575b0014da56e5a13f15ed832d0285e136253fb4e06a7f83e5507910072a87e"
+    ],
+    "OpenJDK17U-jdk_aarch64_mac_hotspot_17.0.20_8.pkg": [
+      "https://github.com/adoptium/temurin17-binaries/releases/download/jdk-17.0.20%2B8/OpenJDK17U-jdk_aarch64_mac_hotspot_17.0.20_8.pkg",
+      "33b9c3e8fa3c74742fe01454f3e54279978fac1b736a3fbf7c2710574339fbad"
+    ],
+    "go1.27.3.darwin-arm64.pkg": [
+      "https://go.dev/dl/go1.27.3.darwin-arm64.pkg",
+      "fbf88e3b97b66168c34ed859c4a52b795da07dfd806504bdb0b95dd58f8976da"
+    ],
+    "commandlinetools-mac_arm64-15859902_latest.zip": [
+      "https://dl.google.com/android/repository/commandlinetools-mac_arm64-15859902_latest.zip",
+      "835b62a26162b229b441d1f6d4680383815a270809eb33522c0d480fa5002c4e"
+    ],
+    "platform-tools_r37.0.1-darwin.zip": [
+      "https://dl.google.com/android/repository/platform-tools_r37.0.1-darwin.zip",
+      "ee39ad5967e95c2a07f04dbcbde96b1a0c916ba376096db5d2f498b7727a5d1d"
+    ],
+    "mpdecimal--4.0.1.arm64_tahoe.bottle.1.tar.gz": [
+      "oci:homebrew/core/mpdecimal",
+      "9fa6ced040c13747f9b010f406453c14041659dfb496a791b949c163b8a413f5"
+    ],
+    "xz--5.8.4.arm64_tahoe.bottle.tar.gz": [
+      "oci:homebrew/core/xz",
+      "d291ad2277682238329b0e4d249e5e2c948c4b10cd64dba1963d897330ad88dd"
+    ],
+    "python@3.13--3.13.15.arm64_tahoe.bottle.tar.gz": [
+      "oci:homebrew/core/python/3.13",
+      "02e3c9b06f15a5aef1509838ca3572f111588ffb395c638148b54b0cf041848e"
+    ]
+  },
+  "runtime_dmg_sha256": "e279961e9796246191c7cbd6d9a2c458520de3a8eb32204006199f737ab22fc2"
+}
