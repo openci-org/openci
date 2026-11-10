@@ -45,6 +45,57 @@ async function graphql(query, variables) {
   assert.ok(response.ok && !result.errors?.length, JSON.stringify(result));
   return result.data;
 }
+test("QR comment publishers hold an exclusive, recoverable lease per workflow", async (t) => {
+  const id = randomUUID();
+  const a = { id, owner: randomUUID() },
+    b = { id, owner: randomUUID() };
+  t.after(() =>
+    graphql(
+      "mutation Cleanup($id: String!) { pullRequestQrCommentLease_deleteMany(where: {id: {eq: $id}}) }",
+      { id },
+    ),
+  );
+  const claimed = await Promise.all(
+    [a, b].map((who) => dispatchSdk.claimPullRequestQrComment(dc, who)),
+  );
+  assert.deepEqual(claimed.map((r) => r.data.acquired).sort(), [0, 1]);
+  const [holder, waiter] = claimed[0].data.acquired === 1 ? [a, b] : [b, a];
+  assert.equal((await dispatchSdk.renewPullRequestQrComment(dc, holder)).data.renewed, 1);
+  assert.equal((await dispatchSdk.releasePullRequestQrComment(dc, waiter)).data.released, 0);
+  assert.equal((await dispatchSdk.claimPullRequestQrComment(dc, waiter)).data.acquired, 0);
+  await graphql(
+    'mutation Expire($id: String!) { pullRequestQrCommentLease_update(id: $id, data: {leaseUntil: "2000-01-01T00:00:00Z"}) }',
+    { id },
+  );
+  assert.equal((await dispatchSdk.renewPullRequestQrComment(dc, holder)).data.renewed, 0);
+  assert.equal((await dispatchSdk.claimPullRequestQrComment(dc, waiter)).data.acquired, 1);
+  assert.equal((await dispatchSdk.releasePullRequestQrComment(dc, holder)).data.released, 0);
+  assert.equal((await dispatchSdk.releasePullRequestQrComment(dc, waiter)).data.released, 1);
+});
+test("overlapping Cloud Run writers wait for each other and release the QR slot", async () => {
+  const id = randomUUID();
+  let writers = 0,
+    completed = 0;
+  const write = async (renew) => {
+    assert.equal(++writers, 1);
+    await renew();
+    await new Promise((resolve) => setTimeout(resolve, 30));
+    writers--;
+    completed++;
+  };
+  const signal = AbortSignal.timeout(10000);
+  await Promise.all([
+    store.withQrCommentLease(id, signal, write),
+    store.withQrCommentLease(id, signal, write),
+  ]);
+  assert.equal(completed, 2);
+  const data = await graphql(
+    "query Lease($id: String!) { pullRequestQrCommentLease(id: $id) { id } }",
+    { id },
+  );
+  assert.equal(data.pullRequestQrCommentLease ?? null, null);
+});
+
 async function alterDispatch(id, data) {
   await graphql(
     "mutation Alter($id: String!, $data: BuildJobDispatch_Data!) { buildJobDispatch_update(id: $id, data: $data) }",

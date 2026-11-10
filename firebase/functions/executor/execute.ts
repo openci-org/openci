@@ -260,10 +260,10 @@ export async function executeBuild(
           await github.postPullRequestQrCodes(
             job,
             context.connection!.accountId,
-            dispatch,
             runNumber,
             qrCodes,
             signal,
+            (key, work) => store.withQrCommentLease(key, signal, work),
           );
         } catch (error) {
           failureSummary = qrPublicationFailure;

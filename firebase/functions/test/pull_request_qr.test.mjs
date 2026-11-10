@@ -16,6 +16,7 @@ import {
 
 const job = {
   id: "job",
+  teamId: "team",
   owner: "org",
   repo: "app",
   pullRequestNumber: "3",
@@ -141,7 +142,25 @@ function githubFixture() {
   const trees = new Map();
   let counter = 0;
   const otherError = (status) => Object.assign(new Error("GitHub error"), { status });
-  const state = { conflict: false, lostResponse: false, pr, comments, treeInputs };
+  const state = {
+    conflict: false,
+    lostResponse: false,
+    deleteBeforeEdit: false,
+    pr,
+    comments,
+    treeInputs,
+    writes: [],
+  };
+  const leases = new Map();
+  const withLease = (key, write) => {
+    state.onClaim?.(key);
+    const done = (leases.get(key) ?? Promise.resolve()).then(() => write(async () => {}));
+    leases.set(
+      key,
+      done.catch(() => {}),
+    );
+    return done;
+  };
   const request = async (route, args) => {
     assert.equal(args.owner, job.owner);
     assert.equal(args.repo, job.repo);
@@ -149,8 +168,10 @@ function githubFixture() {
     if (route === "GET /repos/{owner}/{repo}")
       data = { id: 10, full_name: "org/app", owner: { id: 4 } };
     else if (route.includes("/pulls/")) data = pr;
-    else if (route.startsWith("GET") && route.endsWith("/comments")) data = comments;
-    else if (route.includes("git/ref/")) {
+    else if (route.startsWith("GET") && route.endsWith("/comments")) {
+      assert.equal(args.since, undefined);
+      data = comments.slice((args.page - 1) * args.per_page, args.page * args.per_page);
+    } else if (route.includes("git/ref/")) {
       assert.equal(args.ref, "heads/genuineci/pr-qr");
       if (!tip) throw otherError(404);
       data = { object: { sha: tip } };
@@ -176,7 +197,26 @@ function githubFixture() {
       data = {};
     } else if (route.startsWith("POST") && route.endsWith("/comments")) {
       assert.equal(args.issue_number, 3);
-      comments.push({ performed_via_github_app: { id: 7 }, body: args.body });
+      await state.beforePost?.();
+      state.writes.push("create");
+      comments.push({
+        id: ++counter,
+        user: { type: "Bot" },
+        performed_via_github_app: { id: 7 },
+        body: args.body,
+      });
+      if (state.lostResponse) throw otherError(500);
+      data = {};
+    } else if (route.startsWith("PATCH") && route.includes("/issues/comments/")) {
+      const index = comments.findIndex((comment) => comment.id === args.comment_id);
+      assert.notEqual(index, -1);
+      if (state.deleteBeforeEdit) {
+        state.deleteBeforeEdit = false;
+        comments.splice(index, 1);
+        throw otherError(404);
+      }
+      state.writes.push("edit");
+      comments[index].body = args.body;
       if (state.lostResponse) throw otherError(500);
       data = {};
     } else assert.fail(route);
@@ -185,8 +225,8 @@ function githubFixture() {
   return {
     ...state,
     state,
-    publish: (account = "4", codes = [{ url: link, lang: "en" }]) =>
-      publishPullRequestQrCodes(request, "7", job, account, dispatch, 17, codes),
+    publish: (account = "4", codes = [{ url: link, lang: "en" }], run = 17, source = job) =>
+      publishPullRequestQrCodes(request, "7", source, account, run, codes, withLease),
   };
 }
 
@@ -207,7 +247,84 @@ test("publishes a pinned, repository-local QR and reconciles a raced branch or l
   assert.match(f.comments[1].body, /Run #17/);
   await f.publish();
   assert.equal(f.comments.length, 2);
-  assert.equal(f.treeInputs.length, 2);
+  assert.deepEqual(f.state.writes, ["create"]);
+});
+
+test("later commits edit the same bot comment across pages and replace its URL, image and language", async () => {
+  const f = githubFixture();
+  await f.publish();
+  const original = f.comments[0];
+  const oldBody = original.body;
+  // A copied marker in a human comment or a different app's comment never grants ownership.
+  const human = { ...original, id: 90, user: { type: "User" } };
+  const otherBot = { ...original, id: 91, performed_via_github_app: { id: 99 } };
+  f.comments.unshift(
+    human,
+    otherBot,
+    ...Array.from({ length: 100 }, () => ({ body: "discussion" })),
+  );
+  f.pr.head.sha = "b".repeat(40);
+  const newUrl = "https://example.org/?build=18";
+  const source = { ...job, commitSha: f.pr.head.sha };
+  f.state.lostResponse = true;
+  await f.publish("4", [{ url: newUrl, lang: "ja" }], 18, source);
+  assert.equal(f.comments.length, 103);
+  assert.equal(f.comments.at(-1).id, original.id);
+  assert.equal(human.body, oldBody);
+  assert.equal(otherBot.body, oldBody);
+  assert.match(original.body, /QRコード · 実行 #18/);
+  assert.match(original.body, /bbbbbbb/);
+  assert.ok(original.body.includes(newUrl));
+  assert.ok(!original.body.includes("build(17)"));
+  assert.ok(!original.body.includes("QR code for this link"));
+  await f.publish("4", [{ url: newUrl, lang: "ja" }], 18, source);
+  await f.publish("4", [{ url: link, lang: "en" }], 17, source);
+  f.pr.head.sha = job.commitSha;
+  await f.publish("4", [{ url: link, lang: "en" }], 17, job);
+  assert.deepEqual(f.state.writes, ["create", "edit"]);
+});
+
+test("simultaneous first publications converge on one comment, independently per workflow", async () => {
+  const f = githubFixture();
+  let unblock, started;
+  const firstPost = new Promise((resolve) => {
+    started = resolve;
+  });
+  const gate = new Promise((resolve) => {
+    unblock = resolve;
+  });
+  f.state.beforePost = async () => {
+    started();
+    await gate;
+  };
+  const first = f.publish();
+  await firstPost;
+  const queued = new Promise((resolve) => {
+    f.state.onClaim = resolve;
+  });
+  const second = f.publish("4", [{ url: "https://example.org/latest", lang: "ja" }], 18);
+  await queued;
+  assert.deepEqual(f.state.writes, []);
+  unblock();
+  await Promise.all([first, second]);
+  assert.deepEqual(f.state.writes, ["create", "edit"]);
+  assert.equal(f.comments.length, 1);
+  assert.match(f.comments[0].body, /QRコード · 実行 #18/);
+  await f.publish("4", [{ url: link, lang: "en" }], 19, { ...job, workflowFileName: "other.dart" });
+  assert.equal(f.comments.length, 2);
+  assert.match(f.comments[0].body, /QRコード · 実行 #18/);
+  assert.match(f.comments[1].body, /Run #19/);
+});
+
+test("recreates the comment if it was deleted during the edit", async () => {
+  const f = githubFixture();
+  await f.publish();
+  const deleted = f.comments[0].id;
+  f.state.deleteBeforeEdit = true;
+  await f.publish("4", [{ url: link, lang: "ja" }], 18);
+  assert.equal(f.comments.length, 1);
+  assert.notEqual(f.comments[0].id, deleted);
+  assert.match(f.comments[0].body, /実行 #18/);
 });
 
 test("localizes each language in a single comment and reuses the image for the same URL", async () => {

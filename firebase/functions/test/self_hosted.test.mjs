@@ -280,19 +280,26 @@ test("opted-in PRs publish only after a successful workflow and report publicati
       }
       return 0;
     };
+    f.dependencies.store.withQrCommentLease = async (key, signal, work) => {
+      assert.equal(key, "test");
+      signal.throwIfAborted();
+      return work(async () => {});
+    };
     f.dependencies.github.postPullRequestQrCodes = async (
       job,
       account,
-      dispatch,
       runNumber,
       links,
+      signal,
+      withLease,
     ) => {
       phases.push("publish");
       assert.equal(job, f.job);
       assert.equal(account, "1");
-      assert.equal(dispatch.runId, f.dispatch.runId);
       assert.equal(runNumber, 1);
       assert.deepEqual(links, [{ url, lang: "ja" }]);
+      signal.throwIfAborted();
+      await withLease("test", async (renew) => renew());
       if (scenario === "publication failure") throw new Error("private transport failure");
     };
     await f.run();

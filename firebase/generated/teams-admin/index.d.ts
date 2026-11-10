@@ -160,6 +160,11 @@ export interface PullRequestPlanning_Key {
   __typename?: "PullRequestPlanning_Key";
 }
 
+export interface PullRequestQrCommentLease_Key {
+  id: string;
+  __typename?: "PullRequestQrCommentLease_Key";
+}
+
 export interface RemoveTeamMemberData {
   team_update?: Team_Key | null;
   teamMember_delete?: TeamMember_Key | null;

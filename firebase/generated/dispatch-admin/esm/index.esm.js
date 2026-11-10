@@ -331,6 +331,36 @@ export function completeBuildExecution(dcOrVarsOrOptions, varsOrOptions, options
   return dcInstance.executeMutation("CompleteBuildExecution", inputVars, inputOpts);
 }
 
+export function claimPullRequestQrComment(dcOrVarsOrOptions, varsOrOptions, options) {
+  const {
+    dc: dcInstance,
+    vars: inputVars,
+    options: inputOpts,
+  } = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeMutation("ClaimPullRequestQrComment", inputVars, inputOpts);
+}
+
+export function renewPullRequestQrComment(dcOrVarsOrOptions, varsOrOptions, options) {
+  const {
+    dc: dcInstance,
+    vars: inputVars,
+    options: inputOpts,
+  } = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeMutation("RenewPullRequestQrComment", inputVars, inputOpts);
+}
+
+export function releasePullRequestQrComment(dcOrVarsOrOptions, varsOrOptions, options) {
+  const {
+    dc: dcInstance,
+    vars: inputVars,
+    options: inputOpts,
+  } = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeMutation("ReleasePullRequestQrComment", inputVars, inputOpts);
+}
+
 export function reserveBuildDispatchRetry(dcOrVarsOrOptions, varsOrOptions, options) {
   const {
     dc: dcInstance,

@@ -4,6 +4,7 @@ import {
   qrPublicationFailure,
   publishPullRequestQrCodes,
   type PullRequestQrCode,
+  type WithQrCommentLease,
 } from "./pull_request_qr.js";
 import type { Dispatch, Job, Outcome } from "./model.js";
 import type { SkippedCheck } from "../skipped_checks.js";
@@ -95,10 +96,10 @@ export class ExecutionGitHub {
   async postPullRequestQrCodes(
     job: Job,
     accountId: string,
-    dispatch: Dispatch,
     runNumber: number,
     codes: PullRequestQrCode[],
     signal: AbortSignal,
+    withLease: WithQrCommentLease,
   ): Promise<void> {
     const client = await this.client(job, "pr_qr");
     try {
@@ -107,9 +108,9 @@ export class ExecutionGitHub {
         this.options.appId,
         job,
         accountId,
-        dispatch,
         runNumber,
         codes,
+        withLease,
       );
     } finally {
       await client.request("DELETE /installation/token");

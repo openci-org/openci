@@ -180,7 +180,7 @@ await openCI.pullRequest.postQrCode(
 );
 ```
 
-After the workflow succeeds, GenuineCI posts the URL and a QR code on the originating PR. Its query and fragment are included in both. A run accepts up to eight requests, each with a URL of up to 2,331 bytes and no embedded credentials. Push and local runs skip publication.
+After the workflow succeeds, GenuineCI posts the URL and QR code in one comment per workflow file on the originating PR. Later successful runs with QR output update that same comment, including the run number, commit, URLs, images and language. A failed run keeps the previous successful comment. A URL's query and fragment are included in both the link and the QR code. A run accepts up to eight requests, each with a URL of up to 2,331 bytes and no embedded credentials. Push and local runs skip publication.
 
 GenuineCI stores images in the same repository on the `genuineci/pr-qr` branch. The GitHub App needs write access to Contents and Pull requests. If the PR closes or its head changes during the build, GenuineCI skips the comment.
 

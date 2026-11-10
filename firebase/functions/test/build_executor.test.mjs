@@ -733,10 +733,10 @@ test("Octokit scopes checkout/check tokens and reconciles a lost check creation 
     github.postPullRequestQrCodes(
       { ...job, pullRequestNumber: "7" },
       "other-account",
-      dispatch,
       1,
       [{ url: "https://preview.example.com/build", lang: "en" }],
       new AbortController().signal,
+      () => assert.fail("Must verify repository ownership before claiming a comment"),
     ),
     /owner changed/,
   );

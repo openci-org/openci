@@ -1,0 +1,25 @@
+# A single conditional insert/update elects exactly one first publisher.
+mutation ClaimPullRequestQrComment($id: String!, $owner: String!) @auth(level: NO_ACCESS) {
+  acquired: _execute(
+    sql: """
+    INSERT INTO pull_request_qr_comment_leases (id, owner, lease_until)
+    VALUES ($1, $2, clock_timestamp() + interval '60 seconds')
+    ON CONFLICT (id) DO UPDATE
+    SET owner = EXCLUDED.owner, lease_until = clock_timestamp() + interval '60 seconds'
+    WHERE pull_request_qr_comment_leases.lease_until <= clock_timestamp()
+       OR pull_request_qr_comment_leases.owner = EXCLUDED.owner
+    """
+    params: [$id, $owner]
+  )
+}
+
+mutation RenewPullRequestQrComment($id: String!, $owner: String!) @auth(level: NO_ACCESS) {
+  renewed: pullRequestQrCommentLease_updateMany(
+    where: { id: { eq: $id }, owner: { eq: $owner }, leaseUntil: { gt_expr: "request.time" } }
+    data: { leaseUntil_expr: "request.time + duration('60s')" }
+  )
+}
+
+mutation ReleasePullRequestQrComment($id: String!, $owner: String!) @auth(level: NO_ACCESS) {
+  released: pullRequestQrCommentLease_deleteMany(where: { id: { eq: $id }, owner: { eq: $owner } })
+}

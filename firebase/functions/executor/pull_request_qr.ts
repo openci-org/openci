@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { renderSVG } from "uqr";
-import { prQrOutputDirectory, type Dispatch, type Job } from "./model.js";
+import { prQrOutputDirectory, type Job } from "./model.js";
 import type { OrchardExecutor } from "./orchard.js";
 
 type GitHubRequest = (typeof import("@octokit/request"))["request"];
@@ -14,6 +14,10 @@ const commentText = {
   ja: { heading: "QRコード · 実行", alt: "このリンクのQRコード" },
 } as const;
 export type PullRequestQrCode = { url: string; lang: keyof typeof commentText };
+export type WithQrCommentLease = (
+  key: string,
+  work: (renew: () => Promise<void>) => Promise<void>,
+) => Promise<void>;
 
 function validatedQrCode(url: string, lang: string): PullRequestQrCode {
   if (lang !== "en" && lang !== "ja") throw new Error("Invalid pull request QR language");
@@ -152,9 +156,9 @@ export async function publishPullRequestQrCodes(
   appId: string,
   job: Job,
   accountId: string,
-  dispatch: Dispatch,
   runNumber: number,
   codes: PullRequestQrCode[],
+  withLease: WithQrCommentLease,
 ): Promise<void> {
   if (!job.pullRequestNumber || !codes.length) return;
   if (codes.length > maxUrls) throw new Error("Too many pull request QR codes");
@@ -182,28 +186,40 @@ export async function publishPullRequestQrCodes(
     );
   };
   if (!(await current())) return;
-  const marker = `<!-- openci-pr-qr:${dispatch.runId} -->`;
+  const scope = createHash("sha256")
+    .update(
+      JSON.stringify([
+        job.githubBaseUrl ?? "https://github.com",
+        appId,
+        target.id,
+        number,
+        job.workflowFileName,
+      ]),
+    )
+    .digest("hex");
+  // Run numbers are monotonic within a team. A repository moved to a new
+  // team can reuse the comment even if that team's sequence starts lower.
+  const team = createHash("sha256").update(job.teamId!).digest("hex");
+  const footer = new RegExp(`\\n<!-- openci-pr-qr:${scope}:([a-f0-9]{64}):([1-9][0-9]*) -->$`);
+  const marker = `<!-- openci-pr-qr:${scope}:${team}:${runNumber} -->`;
   const issue = { ...repo, issue_number: number };
-  const alreadyPosted = async () => {
+  const findComment = async (renew: () => Promise<void>) => {
     for (let page = 1; ; page++) {
+      if (page > 1) await renew();
       const { data } = await request("GET /repos/{owner}/{repo}/issues/{issue_number}/comments", {
         ...issue,
-        since: dispatch.createdAt,
         page,
         per_page: 100,
       });
-      if (
-        data.some(
-          (comment) =>
-            String(comment.performed_via_github_app?.id) === appId &&
-            comment.body?.endsWith(marker),
-        )
-      )
-        return true;
-      if (data.length < 100) return false;
+      for (const comment of data) {
+        if (comment.user?.type !== "Bot" || String(comment.performed_via_github_app?.id) !== appId)
+          continue;
+        const match = footer.exec(comment.body ?? "");
+        if (match) return { id: comment.id, team: match[1], run: BigInt(match[2]) };
+      }
+      if (data.length < 100) return null;
     }
   };
-  if (await alreadyPosted()) return;
   const urls = [...new Set(codes.map((code) => code.url))];
   const commit = await saveImages(request, repo, urls);
   const sections: string[] = [];
@@ -217,11 +233,38 @@ export async function publishPullRequestQrCodes(
     }
   }
   const body = [...sections, marker].join("\n\n");
-  if (!(await current())) return;
-  try {
-    await request("POST /repos/{owner}/{repo}/issues/{issue_number}/comments", { ...issue, body });
-  } catch (error) {
-    // The comment may exist even when its response was lost.
-    if (!(await alreadyPosted())) throw error;
-  }
+  await withLease(scope, async (renew) => {
+    const existing = await findComment(renew);
+    const coversRun = (comment: typeof existing) =>
+      comment !== null && comment.team === team && comment.run >= BigInt(runNumber);
+    if (coversRun(existing) || !(await current())) return;
+    // Only the holder may make the bounded GitHub write; a late old run must
+    // re-read the comment if another executor has taken its lease.
+    await renew();
+    if (existing) {
+      try {
+        await request("PATCH /repos/{owner}/{repo}/issues/comments/{comment_id}", {
+          ...repo,
+          comment_id: existing.id,
+          body,
+        });
+        return;
+      } catch (error) {
+        const observed = await findComment(renew);
+        if (coversRun(observed)) return;
+        if (!hasStatus(error, 404) || observed) throw error;
+        // Someone deleted the comment between the lookup and the edit.
+        if (!(await current())) return;
+        await renew();
+      }
+    }
+    try {
+      await request("POST /repos/{owner}/{repo}/issues/{issue_number}/comments", {
+        ...issue,
+        body,
+      });
+    } catch (error) {
+      if (!coversRun(await findComment(renew))) throw error;
+    }
+  });
 }
