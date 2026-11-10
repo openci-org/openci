@@ -61,21 +61,20 @@ risk; an ambiguous response is never treated as successful delivery.
 | --------------------- | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
 | Website CI            | `apps/website/**`                                                       | root `package.json`, `package-lock.json`, `vite.config.mts`, `.node-version`          |
 | Firebase Functions CI | `firebase/functions/**`, `firebase/generated/**`, `firebase/scripts/**` | Firebase healthcheck, package and TypeScript config, root npm inputs and Node version |
-| GenuineCI CLI CI      | `apps/genuineci_cli/**`                                                 | Go inputs live under this directory                                                   |
 | OpenCI Workflow CI    | `packages/openci_workflow/**`                                           | root `analysis_options.yaml`                                                          |
 | OpenCI Shared CI      | `packages/openci_shared/**`                                             | root `analysis_options.yaml`                                                          |
 | Dart Functions CI     | `firebase/dart_functions/**`, `packages/openci_shared/**`               | root `analysis_options.yaml`                                                          |
 | Dart Format Check     | `**/*.dart`                                                             | analysis options, package manifests, lockfile, Git ignore files and FVM configuration |
 
-The six package workflows also include their own `openci/*.dart` definition,
-the workflow runtime SDK, version hook and generated workflow imports. All seven
+The five package workflows also include their own `openci/*.dart` definition,
+the workflow runtime SDK, version hook and generated workflow imports. All six
 workflows include `**/pubspec.yaml`, the root `pubspec.lock` and `.fvmrc`.
 The static parser reads these patterns from inline literal lists.
 
 Changing only `apps/website/src/components/Pricing.astro` creates one Website CI
-job and six skipped records. Root README changes create zero jobs and seven skipped
+job and five skipped records. Root README changes create zero jobs and six skipped
 records. A Dart change in the shared models runs Shared CI, Dart Functions CI and
-Dart Format Check. Changing the root lockfile runs all seven workflows.
+Dart Format Check. Changing the root lockfile runs all six workflows.
 
 ## Validation and rollout
 
@@ -98,7 +97,7 @@ Deploy in this order:
    `pull_requests:read`; reporting needs `checks:write`. Confirm existing App
    installations have accepted these permissions.
 4. Verify a PR and push that change only the website component above. Expect one
-   runnable Check and six completed/skipped Checks. Verify skipped builds allocate
+   runnable Check and five completed/skipped Checks. Verify skipped builds allocate
    no resources and that required checks permit the merge.
 
 Rollback by removing `paths` conditions (or restoring the old planner).

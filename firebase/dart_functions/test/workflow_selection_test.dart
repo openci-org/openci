@@ -120,7 +120,7 @@ void main() {
       .toList();
 
   test('website source runs only Website CI', () {
-    expect(definitions, hasLength(7));
+    expect(definitions, hasLength(6));
     final result = plan(
       definitions,
       diff(['apps/website/src/components/Pricing.astro']),
