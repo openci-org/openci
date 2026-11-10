@@ -6,7 +6,7 @@ import { createServer } from "node:net";
 import { createServer as createHttpServer } from "node:http";
 import { setTimeout as delay } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
-import { readFile } from "node:fs/promises";
+import { readdir, readFile } from "node:fs/promises";
 import { after, before, test } from "node:test";
 import { deleteApp, getApps, initializeApp } from "firebase-admin/app";
 import { getDataConnect } from "firebase-admin/data-connect";
@@ -248,7 +248,7 @@ async function fixture(t, payloadChange = {}, eventType = "push") {
     onContents: null,
     comparisonStatus: 200,
     changedFilesCalls: 0,
-    changedFiles: [{ filename: "apps/stacked_pr/src/index.ts", status: "modified" }],
+    changedFiles: [{ filename: "apps/website/src/components/Pricing.astro", status: "modified" }],
     pullRequest: payload.pull_request ? { state: "open", ...payload.pull_request } : null,
   };
   installations.set(String(installationId), github);
@@ -606,21 +606,12 @@ test("end users cannot read tasks, publish builds, or fail tasks", async (t) => 
 });
 
 async function configurePathWorkflows(f) {
-  const names = [
-    "stacked_pr_ci",
-    "website_ci",
-    "genuineci_cli_ci",
-    "openci_workflow_ci",
-    "openci_shared_ci",
-    "dart_functions_ci",
-  ];
+  const directory = new URL("../../../openci/", import.meta.url);
+  const names = (await readdir(directory)).filter((name) => name.endsWith(".dart"));
   f.github.files = await Promise.all(
     names.map(async (name) => ({
-      name: name + ".dart",
-      content: await readFile(
-        new URL("../../../openci/" + name + ".dart", import.meta.url),
-        "utf8",
-      ),
+      name,
+      content: await readFile(new URL(name, directory), "utf8"),
     })),
   );
 }
@@ -639,7 +630,7 @@ async function makeDue(id) {
   );
 }
 
-test("real planner atomically selects one of six workflows, persists five skips and handles concurrent redelivery", async (t) => {
+test("real planner atomically selects Website CI, persists all six skips and handles concurrent redelivery", async (t) => {
   const f = await fixture(t);
   await configurePathWorkflows(f);
   const results = await Promise.all([invoke(f.taskId), invoke(f.taskId)]);
@@ -647,10 +638,10 @@ test("real planner atomically selects one of six workflows, persists five skips 
   const state = await f.state();
   assert.deepEqual(
     state.buildJobs.map((j) => j.workflowName),
-    ["Stacked PR CI"],
+    ["Website CI"],
   );
   const skips = await skippedState(f);
-  assert.equal(skips.skippedWorkflowChecks.length, 5);
+  assert.equal(skips.skippedWorkflowChecks.length, 6);
   assert.equal(skips.webhookTask.pathFilterReason, null);
   for (const check of skips.skippedWorkflowChecks) {
     assert.equal(check.status, "pending");
@@ -674,8 +665,8 @@ test("all-skipped planning creates no jobs and transient comparisons instead run
     await invoke(f.taskId);
     const state = await f.state();
     const skips = await skippedState(f);
-    assert.equal(state.buildJobs.length, unavailable ? 6 : 0);
-    assert.equal(skips.skippedWorkflowChecks.length, unavailable ? 0 : 6);
+    assert.equal(state.buildJobs.length, unavailable ? 7 : 0);
+    assert.equal(skips.skippedWorkflowChecks.length, unavailable ? 0 : 7);
     assert.equal(skips.webhookTask.pathFilterReason, unavailable ? "github_unavailable" : null);
     if (!unavailable) assert.deepEqual(createdBuildJobIds({ data: { jobs: [] } }), []);
     assert.equal(f.github.changedFilesCalls, 1);
@@ -801,7 +792,7 @@ test("PR filtering and base retargets use the full PR diff with scoped PR-read p
         number: 7,
         changes: { base: { ref: { from: "old-parent" } } },
         pull_request: {
-          title: "Stacked PR",
+          title: "Update website pricing",
           head: { sha, ref: "stack-child", repo: { id: 10 } },
           base: { sha: beforeSha, ref: "stack-parent", repo: { id: 10 } },
         },
@@ -813,11 +804,11 @@ test("PR filtering and base retargets use the full PR diff with scoped PR-read p
     const jobs = (await f.state()).buildJobs;
     assert.deepEqual(
       jobs.map((j) => j.workflowName),
-      ["Stacked PR CI"],
+      ["Website CI"],
     );
     assert.equal(jobs[0].branch, "stack-child");
     assert.equal(jobs[0].pullRequestNumber, "7");
-    assert.equal((await skippedState(f)).skippedWorkflowChecks.length, 5);
+    assert.equal((await skippedState(f)).skippedWorkflowChecks.length, 6);
     assert.equal(f.github.changedFilesCalls, 1);
     assert.ok(
       f.github.tokenRequests.some(
