@@ -630,7 +630,7 @@ async function makeDue(id) {
   );
 }
 
-test("real planner atomically selects Website CI, persists all six skips and handles concurrent redelivery", async (t) => {
+test("real planner atomically selects Website CI, persists all five skips and handles concurrent redelivery", async (t) => {
   const f = await fixture(t);
   await configurePathWorkflows(f);
   const results = await Promise.all([invoke(f.taskId), invoke(f.taskId)]);
@@ -641,7 +641,7 @@ test("real planner atomically selects Website CI, persists all six skips and han
     ["Website CI"],
   );
   const skips = await skippedState(f);
-  assert.equal(skips.skippedWorkflowChecks.length, 6);
+  assert.equal(skips.skippedWorkflowChecks.length, 5);
   assert.equal(skips.webhookTask.pathFilterReason, null);
   for (const check of skips.skippedWorkflowChecks) {
     assert.equal(check.status, "pending");
@@ -665,8 +665,8 @@ test("all-skipped planning creates no jobs and transient comparisons instead run
     await invoke(f.taskId);
     const state = await f.state();
     const skips = await skippedState(f);
-    assert.equal(state.buildJobs.length, unavailable ? 7 : 0);
-    assert.equal(skips.skippedWorkflowChecks.length, unavailable ? 0 : 7);
+    assert.equal(state.buildJobs.length, unavailable ? 6 : 0);
+    assert.equal(skips.skippedWorkflowChecks.length, unavailable ? 0 : 6);
     assert.equal(skips.webhookTask.pathFilterReason, unavailable ? "github_unavailable" : null);
     if (!unavailable) assert.deepEqual(createdBuildJobIds({ data: { jobs: [] } }), []);
     assert.equal(f.github.changedFilesCalls, 1);
@@ -808,7 +808,7 @@ test("PR filtering and base retargets use the full PR diff with scoped PR-read p
     );
     assert.equal(jobs[0].branch, "stack-child");
     assert.equal(jobs[0].pullRequestNumber, "7");
-    assert.equal((await skippedState(f)).skippedWorkflowChecks.length, 6);
+    assert.equal((await skippedState(f)).skippedWorkflowChecks.length, 5);
     assert.equal(f.github.changedFilesCalls, 1);
     assert.ok(
       f.github.tokenRequests.some(
