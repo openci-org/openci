@@ -11,6 +11,9 @@ const _appId = '1:123456789:android:abcdef';
 const _appName = 'projects/123456789/apps/$_appId';
 const _release = '$_appName/releases/release-1';
 const _operation = '$_release/operations/upload-1';
+const _testerUrl =
+    'https://appdistribution.firebase.google.com/testerapps/'
+    '$_appId/releases/release-1';
 
 http.Response _json(Object body, [int status = 200]) => http.Response(
   jsonEncode(body),
@@ -18,12 +21,18 @@ http.Response _json(Object body, [int status = 200]) => http.Response(
   headers: {'content-type': 'application/json'},
 );
 
-Map<String, Object> _done() => {
+Map<String, Object> _done({
+  Map<String, Object> release = const {
+    'name': _release,
+    'testingUri': _testerUrl,
+  },
+  String result = 'RELEASE_CREATED',
+}) => {
   'name': _operation,
   'done': true,
   'response': {
-    'release': {'name': _release},
-    'result': 'RELEASE_CREATED',
+    'release': release,
+    'result': result,
   },
 };
 
@@ -116,7 +125,7 @@ void main() {
       return apk.writeAsBytes(List.generate(65536, (index) => index % 256));
     }
 
-    Future<void> deploy({
+    Future<Uri> deploy({
       String apkPath = 'app.apk',
       String appId = _appId,
       String? serviceAccountJsonBase64,
@@ -177,11 +186,73 @@ void main() {
       },
     );
 
+    test('returns the tester URL for the processed release', () async {
+      final apk = await createApk();
+      const link = '$_testerUrl?utm_source=firebase-tools';
+      handler = (_) async => _json(
+        _done(
+          release: {
+            'name': _release,
+            'testingUri': link,
+            'binaryDownloadUri': 'https://example.com/private-signed-download',
+          },
+        ),
+      );
+      expect(await deploy(apkPath: apk.path), Uri.parse(link));
+      expect(requests, hasLength(2));
+    });
+
+    test(
+      'name-only responses identify the tester page without an extra read',
+      () async {
+        final apk = await createApk();
+        handler = (_) async => _json(_done(release: {'name': _release}));
+        expect(await deploy(apkPath: apk.path), Uri.parse(_testerUrl));
+        expect(requests, hasLength(2));
+      },
+    );
+
+    test(
+      'validates the tester URL against the uploaded app and release',
+      () async {
+        final apk = await createApk();
+        for (final Object invalid in [
+          _testerUrl.replaceFirst(
+            'firebase.google.com',
+            'firebase.google.com.example',
+          ),
+          _testerUrl.replaceFirst('1:123456789', '1:777'),
+          _testerUrl.replaceFirst('release-1', 'release-2'),
+          _testerUrl.replaceFirst('https://', 'https://user@'),
+          _testerUrl.replaceFirst('https://', 'http://'),
+          '/relative-or-signed',
+          123,
+        ]) {
+          handler = (_) async =>
+              _json(_done(release: {'name': _release, 'testingUri': invalid}));
+          await expectLater(
+            deploy(apkPath: apk.path),
+            throwsA(
+              isA<StateError>().having(
+                (error) => error.toString(),
+                'message',
+                isNot(contains('$invalid')),
+              ),
+            ),
+          );
+        }
+      },
+    );
+
     test(
       'uploads the exact APK bytes without subprocesses or distribution',
       () async {
         final apk = await createApk(filename: '日本語 app.apk');
-        await deploy(apkPath: apk.path, dir: 'missing-directory');
+        final testerUrl = await deploy(
+          apkPath: apk.path,
+          dir: 'missing-directory',
+        );
+        expect(testerUrl, Uri.parse(_testerUrl));
 
         expect(commands, isEmpty);
         expect(requests, hasLength(2));

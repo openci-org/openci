@@ -91,7 +91,8 @@ class FlutterCI {
   /// JSON in [serviceAccountJsonBase64]. The service account needs the Firebase
   /// App Distribution Admin role on the project. Credentials stay in memory.
   /// Relative [apkPath] values use the workflow directory or [dir].
-  Future<void> deployApkToFirebaseAppDistribution({
+  /// Returns the Firebase tester URL for the uploaded release.
+  Future<Uri> deployApkToFirebaseAppDistribution({
     required String apkPath,
     required String appId,
     required String serviceAccountJsonBase64,
