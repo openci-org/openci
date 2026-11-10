@@ -1,3 +1,4 @@
+import 'package:dashboard/app_strings.dart';
 import 'package:dashboard/build_logs/chips/job_chip.dart';
 import 'package:dashboard/cicd_log/widgets/build_job_status_to_chip_status.dart';
 import 'package:flutter/material.dart';
@@ -9,13 +10,16 @@ class WorkflowOverview extends StatelessWidget {
 
   const WorkflowOverview({super.key, required this.workflow});
 
-  String _formatDuration(Duration d) {
+  String _formatDuration(BuildContext context, Duration d) {
     final minutes = d.inMinutes;
     final seconds = d.inSeconds % 60;
     if (minutes > 0) {
-      return '$minutes分$seconds秒';
+      return context.t.logs.durationMinutesSeconds(
+        minutes: minutes,
+        seconds: seconds,
+      );
     }
-    return '$seconds秒';
+    return context.t.logs.durationSeconds(seconds: seconds);
   }
 
   @override
@@ -85,7 +89,7 @@ class WorkflowOverview extends StatelessWidget {
               ),
               const Spacer(),
               Text(
-                _formatDuration(workflow.duration),
+                _formatDuration(context, workflow.duration),
                 style: TextStyle(
                   fontSize: 12,
                   color: theme.colorScheme.outline,

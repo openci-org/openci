@@ -1,3 +1,4 @@
+import 'package:dashboard/app_strings.dart';
 import 'package:dashboard/build_logs/build_jobs_provider.dart';
 import 'package:dashboard/cicd_log/detail/build_step_providers.dart';
 import 'package:dashboard/cicd_log/detail/job_status_icon.dart';
@@ -22,7 +23,9 @@ class CicdLogDetailRoutePage extends ConsumerWidget {
     final buildJobAsync = ref.watch(buildJobByIdProvider(buildJobId));
     return buildJobAsync.when(
       loading: () => CircularProgressIndicator.adaptive().withScaffoldCenter(),
-      error: (err, _) => Scaffold(body: Center(child: Text('エラー: $err'))),
+      error: (err, _) => Scaffold(
+        body: Center(child: Text(context.t.common.error(error: err))),
+      ),
       data: (buildJob) {
         if (buildJob == null) {
           return Scaffold(
@@ -33,7 +36,7 @@ class CicdLogDetailRoutePage extends ConsumerWidget {
               ),
             ),
             body: Center(
-              child: Text('ビルドジョブが見つかりません'),
+              child: Text(context.t.logs.jobNotFound),
             ),
           );
         }
@@ -76,7 +79,7 @@ class CicdLogDetailPage extends ConsumerWidget {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('CI/CD詳細ログ'),
+        title: Text(context.t.logs.detailTitle),
         leading: IconButton(
           icon: const Icon(Icons.close_rounded),
           onPressed: () => Navigator.pop(context),
@@ -84,7 +87,7 @@ class CicdLogDetailPage extends ConsumerWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.copy_all_rounded),
-            tooltip: '全体のログをコピー',
+            tooltip: context.t.logs.copyAll,
             onPressed: () async {
               try {
                 final allLogs = await ref.read(
@@ -100,8 +103,8 @@ class CicdLogDetailPage extends ConsumerWidget {
                 if (text.isEmpty) {
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('コピーするログがありません'),
+                      SnackBar(
+                        content: Text(context.t.logs.nothingToCopy),
                         duration: Duration(seconds: 2),
                       ),
                     );
@@ -111,8 +114,8 @@ class CicdLogDetailPage extends ConsumerWidget {
                 await Clipboard.setData(ClipboardData(text: text));
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('全体のログをクリップボードにコピーしました'),
+                    SnackBar(
+                      content: Text(context.t.logs.copiedAll),
                       duration: Duration(seconds: 2),
                     ),
                   );
@@ -121,7 +124,7 @@ class CicdLogDetailPage extends ConsumerWidget {
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('ログのコピーに失敗しました: $e'),
+                      content: Text(context.t.logs.copyFailed(error: e)),
                       duration: const Duration(seconds: 2),
                     ),
                   );
@@ -148,7 +151,7 @@ class CicdLogDetailPage extends ConsumerWidget {
                         hasScrollBody: false,
                         child: hasSummary
                             ? const SizedBox.shrink()
-                            : const Center(child: Text('ログステップがありません')),
+                            : Center(child: Text(context.t.logs.noSteps)),
                       );
                     }
                     return SliverPadding(
@@ -197,7 +200,7 @@ class _FailureSummary extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'ビルドの失敗理由',
+              context.t.logs.failureReason,
               style: TextStyle(
                 fontWeight: FontWeight.bold,
                 color: colors.onErrorContainer,
@@ -323,10 +326,10 @@ class _StepLogsContent extends ConsumerWidget {
     }
 
     if (logs.isEmpty) {
-      return const Padding(
+      return Padding(
         padding: EdgeInsets.symmetric(vertical: 12.0, horizontal: 16.0),
         child: Text(
-          'ログがありません。保存期間を過ぎたログと移行前のログは表示されません。',
+          context.t.logs.unavailable,
           style: TextStyle(color: Colors.grey, fontSize: 13),
         ),
       );
@@ -370,13 +373,13 @@ class _StepLogsContent extends ConsumerWidget {
               color: Colors.white60,
               size: 18,
             ),
-            tooltip: 'ログをコピー',
+            tooltip: context.t.logs.copy,
             onPressed: () async {
               await Clipboard.setData(ClipboardData(text: logs.join()));
               if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('ログをクリップボードにコピーしました'),
+                  SnackBar(
+                    content: Text(context.t.logs.copied),
                     duration: Duration(seconds: 2),
                   ),
                 );

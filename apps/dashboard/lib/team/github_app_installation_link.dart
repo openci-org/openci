@@ -13,14 +13,14 @@ class GitHubAppInstallationLink extends StatelessWidget {
     final uri = _parseInstallationUri();
     if (uri == null) {
       return Text(
-        t.team.gitHubAppInstallationUrlUnavailable,
+        context.t.team.gitHubAppInstallationUrlUnavailable,
         textAlign: TextAlign.center,
       );
     }
     return TextButton.icon(
       onPressed: () => _openInstallationUri(context, uri),
       icon: const Icon(Icons.open_in_new),
-      label: Text(t.team.gitHubAppInstallation),
+      label: Text(context.t.team.gitHubAppInstallation),
     );
   }
 
@@ -48,7 +48,9 @@ class GitHubAppInstallationLink extends StatelessWidget {
       if (!launched) throw StateError('Could not open GitHub App installation');
     } catch (_) {
       if (context.mounted) {
-        context.showSnackBarMessage(t.team.gitHubAppInstallationOpenFailed);
+        context.showSnackBarMessage(
+          context.t.team.gitHubAppInstallationOpenFailed,
+        );
       }
     }
   }

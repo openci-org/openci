@@ -53,10 +53,12 @@ Future<ProviderContainer> _pumpSettings(
   _Auth Function() auth,
 ) async {
   await tester.pumpWidget(
-    ProviderScope(
-      overrides: [firebaseAuthProvider.overrideWith((ref) async => auth())],
-      child: const MaterialApp(
-        home: Scaffold(body: EmailVerificationSettings()),
+    TranslationProvider(
+      child: ProviderScope(
+        overrides: [firebaseAuthProvider.overrideWith((ref) async => auth())],
+        child: const MaterialApp(
+          home: Scaffold(body: EmailVerificationSettings()),
+        ),
       ),
     ),
   );

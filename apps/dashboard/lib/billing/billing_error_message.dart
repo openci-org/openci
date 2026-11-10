@@ -1,17 +1,19 @@
+import 'package:dashboard/app_strings.dart';
 import 'package:dashboard/billing/billing_response.dart';
 
-String billingErrorMessage(Object error) {
+String billingErrorMessage(Object error, {Translations? strings}) {
+  strings ??= t;
   final code = error is BillingException ? error.code : '';
   return switch (code) {
-    'authentication_required' => 'もう一度サインインしてください。',
-    'forbidden' => 'このチームの課金情報にアクセスできません。',
-    'billing_disabled' => '現在、この接続先では課金機能を利用できません。',
-    'card_consent_required' => '最新の料金条件を読み込み直して、もう一度同意してください。',
-    'context_changed' => '接続先またはアカウントが変わりました。画面を開き直してください。',
-    'subscription_exists' => '契約がすでにあります。再読み込みして契約を確認してください。',
-    'payment_pending' || 'checkout_conflict' => '決済を確認しています。時間をおいて再読み込みしてください。',
-    'customer_missing' => '管理できる契約がありません。再読み込みしてください。',
-    'launch_failed' => 'Stripeを開けませんでした。もう一度お試しください。',
-    _ => '課金処理を完了できませんでした。時間をおいてもう一度お試しください。',
+    'authentication_required' => strings.billing.authenticationRequired,
+    'forbidden' => strings.billing.forbidden,
+    'billing_disabled' => strings.billing.disabled,
+    'card_consent_required' => strings.billing.cardConsentRequired,
+    'context_changed' => strings.billing.contextChanged,
+    'subscription_exists' => strings.billing.subscriptionExists,
+    'payment_pending' || 'checkout_conflict' => strings.billing.checkoutPending,
+    'customer_missing' => strings.billing.customerMissing,
+    'launch_failed' => strings.billing.launchFailed,
+    _ => strings.billing.operationFailed,
   };
 }

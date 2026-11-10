@@ -2,6 +2,7 @@ import 'package:dashboard/app_strings.dart';
 import 'package:dashboard/team/selected_team_provider.dart';
 import 'package:dashboard/team/team_members_bottom_sheet.dart';
 import 'package:dashboard/team/team_provider.dart';
+import 'package:dashboard/utilities/error_message.dart';
 import 'package:dashboard/utilities/snack_bar_extension.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
@@ -25,13 +26,13 @@ class InviteTeamMemberBottomSheet extends HookConsumerWidget {
     );
     final formKey = useMemoized(() => GlobalKey<FormState>());
     final isLoading = useState(false);
-    final teamT = t.team;
     final colorScheme = Theme.of(context).colorScheme;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
       child: Form(
         key: formKey,
+        autovalidateMode: AutovalidateMode.onUserInteraction,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -56,7 +57,7 @@ class InviteTeamMemberBottomSheet extends HookConsumerWidget {
                       Padding(
                         padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
                         child: Text(
-                          teamT.selectTeamLabel.toUpperCase(),
+                          context.t.team.selectTeamLabel.toUpperCase(),
                           style: TextStyle(
                             fontSize: 10,
                             fontWeight: FontWeight.w600,
@@ -152,7 +153,7 @@ class InviteTeamMemberBottomSheet extends HookConsumerWidget {
               error: (e, _) => Padding(
                 padding: const EdgeInsets.all(16),
                 child: Text(
-                  t.common.error(error: e.toString()),
+                  context.errorText(e),
                   style: TextStyle(
                     color: Colors.red.withValues(alpha: 0.8),
                     fontSize: 13,
@@ -183,7 +184,7 @@ class InviteTeamMemberBottomSheet extends HookConsumerWidget {
                   fontSize: 14,
                 ),
                 decoration: InputDecoration(
-                  hintText: teamT.inviteEmail,
+                  hintText: context.t.team.inviteEmail,
                   hintStyle: TextStyle(
                     color: colorScheme.outline,
                     fontSize: 14,
@@ -208,7 +209,7 @@ class InviteTeamMemberBottomSheet extends HookConsumerWidget {
                 ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return teamT.enterEmail;
+                    return context.t.team.enterEmail;
                   }
                   return null;
                 },
@@ -251,7 +252,7 @@ class InviteTeamMemberBottomSheet extends HookConsumerWidget {
                           if (!context.mounted) return;
                           ref.invalidate(teamMembersProvider);
                           context.showSnackBarMessage(
-                            teamT.addedSuccess,
+                            context.t.team.addedSuccess,
                           );
                           Navigator.of(context).pop();
                         } catch (e, s) {
@@ -259,7 +260,7 @@ class InviteTeamMemberBottomSheet extends HookConsumerWidget {
                           debugPrint(s.toString());
                           isLoading.value = false;
                           if (!context.mounted) return;
-                          context.showSnackBarMessage(e.toString());
+                          context.showSnackBarMessage(context.errorText(e));
                         }
                       },
                 child: isLoading.value
@@ -272,7 +273,7 @@ class InviteTeamMemberBottomSheet extends HookConsumerWidget {
                         ),
                       )
                     : Text(
-                        t.common.invite,
+                        context.t.common.invite,
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,

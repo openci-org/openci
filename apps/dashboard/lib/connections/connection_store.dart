@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:dashboard/utilities/error_message.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'connection_profile.dart';
@@ -37,7 +38,7 @@ class ConnectionStore {
           .toList(),
     });
     if (!await prefs.setString(storageKey, json)) {
-      throw StateError('接続設定を保存できませんでした。');
+      throw DashboardException('connection_save_failed');
     }
   }
 }

@@ -1,6 +1,7 @@
 @TestOn('browser')
 library;
 
+import 'package:dashboard/app_strings.dart';
 import 'package:dashboard/billing/billing_identity.dart';
 import 'package:dashboard/billing/billing_page.dart';
 import 'package:dashboard/billing/billing_provider.dart';
@@ -59,9 +60,11 @@ void main() {
         ],
       );
       await tester.pumpWidget(
-        UncontrolledProviderScope(
-          container: container,
-          child: const MaterialApp(home: BillingPage(teamId: 'team-1')),
+        TranslationProvider(
+          child: UncontrolledProviderScope(
+            container: container,
+            child: const MaterialApp(home: BillingPage(teamId: 'team-1')),
+          ),
         ),
       );
       await tester.pumpAndSettle();

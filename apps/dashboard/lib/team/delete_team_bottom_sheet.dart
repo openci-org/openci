@@ -16,8 +16,6 @@ class DeleteTeamBottomSheet extends HookConsumerWidget {
     final teamListStream = ref.watch(teamListProvider);
     final selectedTeamId = useState<String?>(null);
     final isDeleting = useState(false);
-    final teamT = t.team;
-    final commonT = t.common;
     final colorScheme = Theme.of(context).colorScheme;
 
     return Padding(
@@ -150,7 +148,7 @@ class DeleteTeamBottomSheet extends HookConsumerWidget {
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text(
-                          teamT.deleteTeamConfirm(
+                          context.t.team.deleteTeamConfirm(
                             teamName: teams
                                 .firstWhere(
                                   (t) => t.id == selectedTeamId.value,
@@ -183,7 +181,7 @@ class DeleteTeamBottomSheet extends HookConsumerWidget {
                         : () async {
                             if (teams.length <= 1) {
                               context.showSnackBarMessage(
-                                teamT.cannotDeleteLastTeam,
+                                context.t.team.cannotDeleteLastTeam,
                               );
                               return;
                             }
@@ -205,14 +203,14 @@ class DeleteTeamBottomSheet extends HookConsumerWidget {
                                   .saveSelectedTeamId(otherTeam.id);
                               if (!context.mounted) return;
                               context.showSnackBarMessage(
-                                teamT.deletedSuccess,
+                                context.t.team.deletedSuccess,
                               );
                               Navigator.of(context).pop();
                             } catch (e) {
                               if (!context.mounted) return;
                               isDeleting.value = false;
                               context.showSnackBarMessage(
-                                billingErrorMessage(e),
+                                billingErrorMessage(e, strings: context.t),
                               );
                             }
                           },
@@ -226,7 +224,7 @@ class DeleteTeamBottomSheet extends HookConsumerWidget {
                             ),
                           )
                         : Text(
-                            commonT.delete,
+                            context.t.common.delete,
                             style: const TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
