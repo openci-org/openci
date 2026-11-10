@@ -276,7 +276,7 @@ test("opted-in PRs publish only after a successful workflow and report publicati
       }
       if (script.includes("/usr/bin/head")) {
         phases.push("read");
-        await output("stdout", Buffer.from("ja\t" + url + "\n"));
+        await output("stdout", Buffer.from("ja\t120x120\t" + url + "\n"));
       }
       return 0;
     };
@@ -297,7 +297,7 @@ test("opted-in PRs publish only after a successful workflow and report publicati
       assert.equal(job, f.job);
       assert.equal(account, "1");
       assert.equal(runNumber, 1);
-      assert.deepEqual(links, [{ url, lang: "ja" }]);
+      assert.deepEqual(links, [{ url, lang: "ja", width: 120, height: 120 }]);
       signal.throwIfAborted();
       await withLease("test", async (renew) => renew());
       if (scenario === "publication failure") throw new Error("private transport failure");

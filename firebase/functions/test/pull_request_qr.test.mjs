@@ -60,7 +60,7 @@ test("collects completed request files and the preview SDK output from the runne
   t.after(() => rm(dir, { recursive: true, force: true }));
   await mkdir(join(dir, "qr-1"));
   await mkdir(join(dir, "qr-2"));
-  await writeFile(join(dir, "qr-1", "url"), "ja\t" + link + "\n");
+  await writeFile(join(dir, "qr-1", "url"), "ja\t120x120\t" + link + "\n");
   await writeFile(join(dir, "qr-2", "pending"), "unfinished");
   await writeFile(join(dir, "legacy"), "https://example.org/previous\n");
   const codes = await readPullRequestQrCodes(
@@ -77,12 +77,12 @@ test("collects completed request files and the preview SDK output from the runne
     signal,
   );
   assert.deepEqual(codes, [
-    { url: link, lang: "ja" },
-    { url: "https://example.org/previous", lang: "en" },
+    { url: link, lang: "ja", width: 120, height: 120 },
+    { url: "https://example.org/previous", lang: "en", width: 180, height: 180 },
   ]);
 });
 
-test("reads per-link language and complete web URLs across frames and handles preview SDK output", async () => {
+test("reads per-link language, dimensions and complete web URLs across frames and handles earlier SDK outputs", async () => {
   const read = (data, code = 0) =>
     readPullRequestQrCodes(
       {
@@ -98,31 +98,47 @@ test("reads per-link language and complete web URLs across frames and handles pr
   const other = "http://docs.example.com/a%20b";
   assert.deepEqual(
     await read([
-      "ja\t" + link.slice(0, 4),
+      "ja\t120x120\t" + link.slice(0, 4),
       link.slice(4) + "\n",
+      "ja\t120x120\t" + link + "\n",
       "ja\t" + link + "\n",
       other + "\n",
       "en\t" + other + "\n",
+      "en\t200x150\t" + other + "\n",
     ]),
     [
-      { lang: "ja", url: link },
-      { lang: "en", url: other },
+      { lang: "ja", width: 120, height: 120, url: link },
+      { lang: "ja", width: 180, height: 180, url: link },
+      { lang: "en", width: 180, height: 180, url: other },
+      { lang: "en", width: 200, height: 150, url: other },
     ],
   );
   const full = "https://example.com/".padEnd(2331, "x");
-  assert.deepEqual(await read([("en\t" + full + "\n").repeat(8)]), [{ lang: "en", url: full }]);
+  assert.deepEqual(await read([("en\t1000x1000\t" + full + "\n").repeat(8)]), [
+    { lang: "en", width: 1000, height: 1000, url: full },
+  ]);
   for (const data of [
     link,
     "fr\t" + link + "\n",
+    "ja\ts\t" + link + "\n",
+    "ja\t0x180\t" + link + "\n",
+    "ja\t180x0\t" + link + "\n",
+    "ja\t0180x180\t" + link + "\n",
+    "ja\t1001x180\t" + link + "\n",
+    "ja\t180x1001\t" + link + "\n",
+    "ja\t-10x180\t" + link + "\n",
+    "ja\t\t" + link + "\n",
     "ja\tjavascript:alert(1)\n",
+    "ja\t120x120\tjavascript:alert(1)\n",
     "ja\thttps://u:secret@example.org/\n",
     "en\thttps://example.org/bad>markup\n",
     "en\thttp:example.org/no-authority\n",
     "en\thttps://example.org\\@other.example/\n",
     "en\thttps://example.org/\ttab\n",
-    "en\t" + full + "x\n",
-    "x".repeat(20000),
-    ("ja\t" + link + "\n").repeat(9),
+    "en\t180x180\thttps://example.org/\ttab\n",
+    "en\t180x180\t" + full + "x\n",
+    "x".repeat(25000),
+    ("ja\t120x120\t" + link + "\n").repeat(9),
   ]) {
     await assert.rejects(read([data]));
   }
@@ -225,8 +241,12 @@ function githubFixture() {
   return {
     ...state,
     state,
-    publish: (account = "4", codes = [{ url: link, lang: "en" }], run = 17, source = job) =>
-      publishPullRequestQrCodes(request, "7", source, account, run, codes, withLease),
+    publish: (
+      account = "4",
+      codes = [{ url: link, lang: "en", width: 180, height: 180 }],
+      run = 17,
+      source = job,
+    ) => publishPullRequestQrCodes(request, "7", source, account, run, codes, withLease),
   };
 }
 
@@ -243,14 +263,18 @@ test("publishes a pinned, repository-local QR and reconciles a raced branch or l
   assert.match(file.content, /fill="white"/);
   assert.equal(f.comments.length, 2);
   assert.ok(f.comments[1].body.includes(`<${link.replaceAll("&", "&amp;")}>`));
-  assert.ok(f.comments[1].body.includes(`../blob/${"2".padStart(40, "0")}/${file.path}?raw=true`));
+  assert.ok(
+    f.comments[1].body.includes(
+      `<img src="../blob/${"2".padStart(40, "0")}/${file.path}?raw=true" alt="QR code for this link" width="180" height="180">`,
+    ),
+  );
   assert.match(f.comments[1].body, /Run #17/);
   await f.publish();
   assert.equal(f.comments.length, 2);
   assert.deepEqual(f.state.writes, ["create"]);
 });
 
-test("later commits edit the same bot comment across pages and replace its URL, image and language", async () => {
+test("later commits edit the same bot comment across pages and replace its URL, image, size and language", async () => {
   const f = githubFixture();
   await f.publish();
   const original = f.comments[0];
@@ -267,7 +291,7 @@ test("later commits edit the same bot comment across pages and replace its URL, 
   const newUrl = "https://example.org/?build=18";
   const source = { ...job, commitSha: f.pr.head.sha };
   f.state.lostResponse = true;
-  await f.publish("4", [{ url: newUrl, lang: "ja" }], 18, source);
+  await f.publish("4", [{ url: newUrl, lang: "ja", width: 120, height: 120 }], 18, source);
   assert.equal(f.comments.length, 103);
   assert.equal(f.comments.at(-1).id, original.id);
   assert.equal(human.body, oldBody);
@@ -275,12 +299,14 @@ test("later commits edit the same bot comment across pages and replace its URL, 
   assert.match(original.body, /QRコード · 実行 #18/);
   assert.match(original.body, /bbbbbbb/);
   assert.ok(original.body.includes(newUrl));
+  assert.match(original.body, /width="120" height="120"/);
+  assert.ok(!original.body.includes('width="180"'));
   assert.ok(!original.body.includes("build(17)"));
   assert.ok(!original.body.includes("QR code for this link"));
-  await f.publish("4", [{ url: newUrl, lang: "ja" }], 18, source);
-  await f.publish("4", [{ url: link, lang: "en" }], 17, source);
+  await f.publish("4", [{ url: newUrl, lang: "ja", width: 120, height: 120 }], 18, source);
+  await f.publish("4", [{ url: link, lang: "en", width: 180, height: 180 }], 17, source);
   f.pr.head.sha = job.commitSha;
-  await f.publish("4", [{ url: link, lang: "en" }], 17, job);
+  await f.publish("4", [{ url: link, lang: "en", width: 180, height: 180 }], 17, job);
   assert.deepEqual(f.state.writes, ["create", "edit"]);
 });
 
@@ -302,7 +328,11 @@ test("simultaneous first publications converge on one comment, independently per
   const queued = new Promise((resolve) => {
     f.state.onClaim = resolve;
   });
-  const second = f.publish("4", [{ url: "https://example.org/latest", lang: "ja" }], 18);
+  const second = f.publish(
+    "4",
+    [{ url: "https://example.org/latest", lang: "ja", width: 180, height: 180 }],
+    18,
+  );
   await queued;
   assert.deepEqual(f.state.writes, []);
   unblock();
@@ -310,7 +340,10 @@ test("simultaneous first publications converge on one comment, independently per
   assert.deepEqual(f.state.writes, ["create", "edit"]);
   assert.equal(f.comments.length, 1);
   assert.match(f.comments[0].body, /QRコード · 実行 #18/);
-  await f.publish("4", [{ url: link, lang: "en" }], 19, { ...job, workflowFileName: "other.dart" });
+  await f.publish("4", [{ url: link, lang: "en", width: 180, height: 180 }], 19, {
+    ...job,
+    workflowFileName: "other.dart",
+  });
   assert.equal(f.comments.length, 2);
   assert.match(f.comments[0].body, /QRコード · 実行 #18/);
   assert.match(f.comments[1].body, /Run #19/);
@@ -321,19 +354,19 @@ test("recreates the comment if it was deleted during the edit", async () => {
   await f.publish();
   const deleted = f.comments[0].id;
   f.state.deleteBeforeEdit = true;
-  await f.publish("4", [{ url: link, lang: "ja" }], 18);
+  await f.publish("4", [{ url: link, lang: "ja", width: 180, height: 180 }], 18);
   assert.equal(f.comments.length, 1);
   assert.notEqual(f.comments[0].id, deleted);
   assert.match(f.comments[0].body, /実行 #18/);
 });
 
-test("localizes each language in a single comment and reuses the image for the same URL", async () => {
+test("localizes each language and custom dimensions in a single comment and reuses the image for the same URL", async () => {
   const f = githubFixture();
   const other = "https://download.example.org/a)?stage=dev&copy;=plain#test";
   await f.publish("4", [
-    { url: link, lang: "ja" },
-    { url: other, lang: "ja" },
-    { url: link, lang: "en" },
+    { url: link, lang: "ja", width: 120, height: 120 },
+    { url: other, lang: "ja", width: 200, height: 150 },
+    { url: link, lang: "en", width: 240, height: 240 },
   ]);
   assert.equal(f.comments.length, 1);
   assert.equal(f.treeInputs[0].tree.length, 2);
@@ -342,16 +375,28 @@ test("localizes each language in a single comment and reuses the image for the s
   assert.match(body, /QR code · Run #17/);
   assert.ok(
     body.includes(
-      "<https://download.example.org/a)?stage=dev&amp;copy;=plain#test>\n\n![このリンクのQRコード]",
+      '<https://download.example.org/a)?stage=dev&amp;copy;=plain#test>\n\n<img src="../blob/',
     ),
   );
-  assert.ok(body.includes(`<${link.replaceAll("&", "&amp;")}>\n\n![QR code for this link]`));
+  assert.match(body, /alt="このリンクのQRコード" width="120" height="120">/);
+  assert.match(body, /alt="このリンクのQRコード" width="200" height="150">/);
+  assert.ok(
+    body.includes(
+      `<${link.replaceAll("&", "&amp;")}>\n\n<img src="../blob/${"1".padStart(40, "0")}/`,
+    ),
+  );
+  assert.match(body, /alt="QR code for this link" width="240" height="240">/);
 });
 
-test("rejects another owner or a non-web URL and skips changed, closed, or fork PRs", async () => {
+test("rejects another owner, invalid dimensions, or a non-web URL and skips changed, closed, or fork PRs", async () => {
   const f = githubFixture();
   await assert.rejects(f.publish("999"));
-  await assert.rejects(f.publish("4", [{ url: "file:///private/path", lang: "en" }]));
+  await assert.rejects(f.publish("4", [{ url: link, lang: "en", width: 0, height: 180 }]));
+  await assert.rejects(f.publish("4", [{ url: link, lang: "en", width: 180, height: 1001 }]));
+  await assert.rejects(f.publish("4", [{ url: link, lang: "en", width: 180.5, height: 180 }]));
+  await assert.rejects(
+    f.publish("4", [{ url: "file:///private/path", lang: "en", width: 180, height: 180 }]),
+  );
   f.pr.head.sha = "new";
   await f.publish();
   f.pr.head.sha = job.commitSha;
