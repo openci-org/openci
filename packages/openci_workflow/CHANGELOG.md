@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.4
+
+- Add `openCI.pullRequest.postQrCode(url: ..., lang: ...)` for posting a web URL and a QR code on the originating PR. Each workflow updates its comment on subsequent successful runs. Comments support English and Japanese.
+- Return the tester URL from `deployIpaToFirebaseAppDistribution`.
+
 ## 0.2.3
 
 - Add opt-in `OpenCI.init(cancelPreviousRuns: true)` for PR workflows. A new

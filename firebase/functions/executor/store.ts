@@ -1,3 +1,5 @@
+import { randomUUID } from "node:crypto";
+import { setTimeout as delay } from "node:timers/promises";
 import { getApp, getApps, initializeApp, type App } from "firebase-admin/app";
 import {
   getDataConnect,
@@ -18,6 +20,32 @@ export function isolatedConnector(config: ConnectorConfig, app: App = getApp()):
 
 export class ExecutionStore {
   constructor(readonly dc: DataConnect) {}
+  async withQrCommentLease(
+    id: string,
+    signal: AbortSignal,
+    work: (renew: () => Promise<void>) => Promise<void>,
+  ): Promise<void> {
+    const lease = { id, owner: randomUUID() };
+    for (let wait = 250; ; wait = Math.min(wait * 2, 2000)) {
+      signal.throwIfAborted();
+      if ((await sdk.claimPullRequestQrComment(this.dc, lease)).data.acquired === 1) break;
+      await delay(wait, undefined, { signal });
+    }
+    const renew = async () => {
+      signal.throwIfAborted();
+      const started = Date.now();
+      const { data } = await sdk.renewPullRequestQrComment(this.dc, lease);
+      // Keep at least 15 seconds of the 60-second server lease for a GitHub
+      // write, which has a 10-second transport timeout.
+      if (data.renewed !== 1 || Date.now() - started >= 45000)
+        throw new Error("Pull request QR comment lease expired");
+      signal.throwIfAborted();
+    };
+    // A failed or interrupted write can still reach GitHub. Leave that writer's
+    // lease to expire before another attempt reconciles the comment.
+    await work(renew);
+    await sdk.releasePullRequestQrComment(this.dc, lease);
+  }
   async read(id: string, jobId: string) {
     return (await sdk.getBuildExecution(this.dc, { id, jobId, runId: `run-${id}` })).data;
   }

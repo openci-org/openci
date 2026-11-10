@@ -9,6 +9,7 @@ import 'dart/dart_ci.dart';
 import 'flutter/flutter_ci.dart';
 import 'go/go_ci.dart';
 import 'machine_type.dart';
+import 'pull_request_ci.dart';
 import 'shorebird/shorebird_ci.dart';
 import 'workspace_directory.dart';
 
@@ -75,6 +76,8 @@ class OpenCI {
   late final FlutterCI flutter = FlutterCI(run);
 
   late final GoCI go = GoCI(run);
+
+  final PullRequestCI pullRequest = const PullRequestCI();
 
   late final ShorebirdCI shorebird = ShorebirdCI(run);
 

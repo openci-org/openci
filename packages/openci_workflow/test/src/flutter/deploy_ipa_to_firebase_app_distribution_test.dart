@@ -70,7 +70,13 @@ void main() {
                   _plist('1:987654321:ios:123abc'),
             },
           );
-          await environment.deploy();
+          final testerUrl = await environment.deploy();
+          expect(
+            testerUrl,
+            Uri.parse(
+              'https://appdistribution.firebase.google.com/testerapps/$_appId/releases/release-1',
+            ),
+          );
 
           final request = environment.uploadRequest;
           expect(request.url.path, '/upload/v1/$_appName/releases:upload');
@@ -352,7 +358,7 @@ class _UploadEnvironment {
     return ipa;
   }
 
-  Future<void> deploy({
+  Future<Uri> deploy({
     String ipaPath = 'app.ipa',
     String? serviceAccountJsonBase64,
     String? appId,
@@ -380,7 +386,7 @@ class _UploadEnvironment {
         }
       },
     );
-    await http.runWithClient(
+    return http.runWithClient(
       () => IOOverrides.runZoned(
         () => ci.flutter.deployIpaToFirebaseAppDistribution(
           ipaPath: ipaPath,

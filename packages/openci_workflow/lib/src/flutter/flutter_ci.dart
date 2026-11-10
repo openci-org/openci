@@ -252,7 +252,8 @@ class FlutterCI {
   /// account needs the Firebase App Distribution Admin role on the project.
   /// Relative paths are resolved in the workflow directory or [dir]. When
   /// [groups] and [testers] are empty, only uploads the release.
-  Future<void> deployIpaToFirebaseAppDistribution({
+  /// Returns the Firebase tester URL for the uploaded release.
+  Future<Uri> deployIpaToFirebaseAppDistribution({
     required String ipaPath,
     required String serviceAccountJsonBase64,
     String? appId,

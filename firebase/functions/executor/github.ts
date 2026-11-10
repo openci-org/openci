@@ -1,7 +1,20 @@
 import { setTimeout as delay } from "node:timers/promises";
 import { PullRequestCheckoutError } from "./checkout_error.js";
+import {
+  qrPublicationFailure,
+  publishPullRequestQrCodes,
+  type PullRequestQrCode,
+  type WithQrCommentLease,
+} from "./pull_request_qr.js";
 import type { Dispatch, Job, Outcome } from "./model.js";
 import type { SkippedCheck } from "../skipped_checks.js";
+
+const installationPermissions = {
+  checkout: { contents: "read" },
+  checks: { checks: "write" },
+  pull_request: { pull_requests: "read", contents: "read" },
+  pr_qr: { contents: "write", pull_requests: "write" },
+} as const;
 
 export interface GitHubOptions {
   appId: string;
@@ -36,7 +49,7 @@ export class ExecutionGitHub {
 
   private async client(
     job: Pick<Job, "githubBaseUrl" | "installationId" | "repo">,
-    purpose: "checkout" | "checks" | "pull_request",
+    purpose: keyof typeof installationPermissions,
     signal?: AbortSignal,
   ): Promise<{ request: (typeof import("@octokit/request"))["request"]; token: string }> {
     if (
@@ -72,17 +85,36 @@ export class ExecutionGitHub {
       type: "installation",
       installationId: Number(job.installationId),
       repositoryNames: [job.repo],
-      permissions:
-        purpose === "checks"
-          ? { checks: "write" }
-          : purpose === "pull_request"
-            ? { pull_requests: "read", contents: "read" }
-            : { contents: "read" },
+      permissions: installationPermissions[purpose],
     });
     return {
       request: transport.defaults({ headers: { authorization: `token ${installation.token}` } }),
       token: installation.token,
     };
+  }
+
+  async postPullRequestQrCodes(
+    job: Job,
+    accountId: string,
+    runNumber: number,
+    codes: PullRequestQrCode[],
+    signal: AbortSignal,
+    withLease: WithQrCommentLease,
+  ): Promise<void> {
+    const client = await this.client(job, "pr_qr");
+    try {
+      await publishPullRequestQrCodes(
+        client.request.defaults({ request: { signal } }),
+        this.options.appId,
+        job,
+        accountId,
+        runNumber,
+        codes,
+        withLease,
+      );
+    } finally {
+      await client.request("DELETE /installation/token");
+    }
   }
 
   /** Report a persisted path exclusion without manufacturing a job or run. */
@@ -293,7 +325,13 @@ export class ExecutionGitHub {
     }
     const output =
       outcome === "failure" && dispatch.failureSummary
-        ? { title: "Pull request checkout failed", summary: dispatch.failureSummary }
+        ? {
+            title:
+              dispatch.failureSummary === qrPublicationFailure
+                ? "Pull request QR code publication failed"
+                : "Pull request checkout failed",
+            summary: dispatch.failureSummary,
+          }
         : {
             title: job.workflowName!,
             summary: outcome

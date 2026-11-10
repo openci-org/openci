@@ -28,7 +28,7 @@ class FirebaseAppDistributionClient {
   final Duration pollInterval;
   final Duration operationTimeout;
 
-  Future<String> upload({
+  Future<({String name, Uri testingUri})> upload({
     required File ipa,
     required String appName,
     List<String> groups = const [],
@@ -121,7 +121,21 @@ class FirebaseAppDistributionClient {
         'distribute release',
       );
     }
-    return releaseName;
+    final appId = appName.split('/').last;
+    final releaseId = releaseName.split('/').last;
+    final path = '/testerapps/$appId/releases/$releaseId';
+    // A name-only upload response also identifies the tester page.
+    final value =
+        release['testingUri'] ??
+        Uri.https('appdistribution.firebase.google.com', path).toString();
+    final uri = value is String ? Uri.tryParse(value) : null;
+    if (uri == null ||
+        uri.scheme != 'https' ||
+        uri.authority != 'appdistribution.firebase.google.com' ||
+        uri.path != path) {
+      throw StateError('Firebase returned an invalid release tester link.');
+    }
+    return (name: releaseName, testingUri: uri);
   }
 
   Future<Map<String, dynamic>> _request(

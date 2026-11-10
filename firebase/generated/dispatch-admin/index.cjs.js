@@ -364,6 +364,39 @@ function completeBuildExecution(dcOrVarsOrOptions, varsOrOptions, options) {
 }
 exports.completeBuildExecution = completeBuildExecution;
 
+function claimPullRequestQrComment(dcOrVarsOrOptions, varsOrOptions, options) {
+  const {
+    dc: dcInstance,
+    vars: inputVars,
+    options: inputOpts,
+  } = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeMutation("ClaimPullRequestQrComment", inputVars, inputOpts);
+}
+exports.claimPullRequestQrComment = claimPullRequestQrComment;
+
+function renewPullRequestQrComment(dcOrVarsOrOptions, varsOrOptions, options) {
+  const {
+    dc: dcInstance,
+    vars: inputVars,
+    options: inputOpts,
+  } = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeMutation("RenewPullRequestQrComment", inputVars, inputOpts);
+}
+exports.renewPullRequestQrComment = renewPullRequestQrComment;
+
+function releasePullRequestQrComment(dcOrVarsOrOptions, varsOrOptions, options) {
+  const {
+    dc: dcInstance,
+    vars: inputVars,
+    options: inputOpts,
+  } = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeMutation("ReleasePullRequestQrComment", inputVars, inputOpts);
+}
+exports.releasePullRequestQrComment = releasePullRequestQrComment;
+
 function reserveBuildDispatchRetry(dcOrVarsOrOptions, varsOrOptions, options) {
   const {
     dc: dcInstance,

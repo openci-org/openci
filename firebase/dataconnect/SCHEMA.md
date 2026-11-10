@@ -1,6 +1,6 @@
 # Schema migration inventory
 
-These definitions cover 26 tables used by Functions, the Dart
+These definitions cover 29 tables used by Functions, the Dart
 planner, the Cloud Run executor and Dashboard. The legacy data cutover is complete;
 `schema/` is the source of truth for application storage. The new skipped-Check
 outbox is additive and must be deployed before changed-path filtering is enabled.
@@ -33,6 +33,10 @@ outbox is additive and must be deployed before changed-path filtering is enabled
 | `billing_admissions`         | `BillingAdmission`        | `billing_execution.gql` |
 | `billing_executions`         | `BillingExecution`        | `billing_execution.gql` |
 | `billing_team_deletions`     | `BillingTeamDeletion`     | `billing_deletion.gql`  |
+
+The executor also uses `pull_request_qr_comment_leases` (`PullRequestQrCommentLease` in
+`build_dispatch.gql`) while creating or editing a workflow's PR comment. The
+lease expires if the writer stops and is removed after successful publication.
 
 The definitions in `schema/` are authoritative. The legacy Dart `AppDatabase`
 and Go billing schema were retired after the production FSC cutover (G-1607).

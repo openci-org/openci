@@ -14,6 +14,7 @@ import {
   stopCloudRunExecution,
 } from "../../lib/functions/executor/google.js";
 import { ExecutionGitHub } from "../../lib/functions/executor/github.js";
+import { qrPublicationFailure } from "../../lib/functions/executor/pull_request_qr.js";
 
 const dispatch = {
   id: "dispatch",
@@ -719,6 +720,8 @@ test("Octokit scopes checkout/check tokens and reconciles a lost check creation 
   const done = { ...dispatch, resultAt: new Date().toISOString(), failureSummary: summary };
   assert.equal(await github.check(job, done, "failure"), "42");
   assert.deepEqual(calls.at(-1).body.output, { title: "Pull request checkout failed", summary });
+  await github.check(job, { ...done, failureSummary: qrPublicationFailure }, "failure");
+  assert.equal(calls.at(-1).body.output.title, "Pull request QR code publication failed");
   await github.check(job, done, "cancelled");
   assert.equal(calls.at(-1).body.output.summary, "Build result: cancelled.");
   assert.equal(calls.filter((call) => call.path === "/repos/org/app/check-runs").length, 1);
@@ -726,6 +729,21 @@ test("Octokit scopes checkout/check tokens and reconciles a lost check creation 
   assert.deepEqual(tokens[0].body.repositories, ["app"]);
   assert.deepEqual(tokens[0].body.permissions, { contents: "read" });
   assert.deepEqual(tokens[1].body.permissions, { checks: "write" });
+  await assert.rejects(
+    github.postPullRequestQrCodes(
+      { ...job, pullRequestNumber: "7" },
+      "other-account",
+      1,
+      [{ url: "https://preview.example.com/build", lang: "en" }],
+      new AbortController().signal,
+      () => assert.fail("Must verify repository ownership before claiming a comment"),
+    ),
+    /owner changed/,
+  );
+  const publishingToken = calls.filter((call) => call.path.endsWith("/access_tokens")).at(-1);
+  assert.deepEqual(publishingToken.body.repositories, ["app"]);
+  assert.deepEqual(publishingToken.body.permissions, { contents: "write", pull_requests: "write" });
+  assert.equal(calls.at(-1).path, "/installation/token");
   await assert.rejects(github.checkout(job, "other-account"), /connected installation/);
 });
 

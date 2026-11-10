@@ -163,6 +163,15 @@ export interface ClaimBuildJobExecutionVariables {
   timeoutSeconds?: number;
 }
 
+export interface ClaimPullRequestQrCommentData {
+  acquired?: number | null;
+}
+
+export interface ClaimPullRequestQrCommentVariables {
+  id: string;
+  owner: string;
+}
+
 export interface CompleteBuildDispatchRetryJobData {
   buildJob_updateMany: number;
 }
@@ -575,6 +584,11 @@ export interface PullRequestPlanning_Key {
   __typename?: "PullRequestPlanning_Key";
 }
 
+export interface PullRequestQrCommentLease_Key {
+  id: string;
+  __typename?: "PullRequestQrCommentLease_Key";
+}
+
 export interface RecordBuildDispatchLaunchData {
   buildJobDispatch_updateMany: number;
 }
@@ -624,12 +638,30 @@ export interface ReleaseBuildDispatchSchedulerVariables {
   owner: string;
 }
 
+export interface ReleasePullRequestQrCommentData {
+  released: number;
+}
+
+export interface ReleasePullRequestQrCommentVariables {
+  id: string;
+  owner: string;
+}
+
 export interface ReleaseQueuedBuildCheckData {
   buildJob_updateMany: number;
 }
 
 export interface ReleaseQueuedBuildCheckVariables {
   jobId: string;
+  owner: string;
+}
+
+export interface RenewPullRequestQrCommentData {
+  renewed: number;
+}
+
+export interface RenewPullRequestQrCommentVariables {
+  id: string;
   owner: string;
 }
 
@@ -1084,6 +1116,42 @@ export function completeBuildExecution(
   vars: CompleteBuildExecutionVariables,
   options?: OperationOptions,
 ): Promise<ExecuteOperationResponse<CompleteBuildExecutionData>>;
+
+/** Generated Node Admin SDK operation action function for the 'ClaimPullRequestQrComment' Mutation. Allow users to execute without passing in DataConnect. */
+export function claimPullRequestQrComment(
+  dc: DataConnect,
+  vars: ClaimPullRequestQrCommentVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<ClaimPullRequestQrCommentData>>;
+/** Generated Node Admin SDK operation action function for the 'ClaimPullRequestQrComment' Mutation. Allow users to pass in custom DataConnect instances. */
+export function claimPullRequestQrComment(
+  vars: ClaimPullRequestQrCommentVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<ClaimPullRequestQrCommentData>>;
+
+/** Generated Node Admin SDK operation action function for the 'RenewPullRequestQrComment' Mutation. Allow users to execute without passing in DataConnect. */
+export function renewPullRequestQrComment(
+  dc: DataConnect,
+  vars: RenewPullRequestQrCommentVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<RenewPullRequestQrCommentData>>;
+/** Generated Node Admin SDK operation action function for the 'RenewPullRequestQrComment' Mutation. Allow users to pass in custom DataConnect instances. */
+export function renewPullRequestQrComment(
+  vars: RenewPullRequestQrCommentVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<RenewPullRequestQrCommentData>>;
+
+/** Generated Node Admin SDK operation action function for the 'ReleasePullRequestQrComment' Mutation. Allow users to execute without passing in DataConnect. */
+export function releasePullRequestQrComment(
+  dc: DataConnect,
+  vars: ReleasePullRequestQrCommentVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<ReleasePullRequestQrCommentData>>;
+/** Generated Node Admin SDK operation action function for the 'ReleasePullRequestQrComment' Mutation. Allow users to pass in custom DataConnect instances. */
+export function releasePullRequestQrComment(
+  vars: ReleasePullRequestQrCommentVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<ReleasePullRequestQrCommentData>>;
 
 /** Generated Node Admin SDK operation action function for the 'ReserveBuildDispatchRetry' Mutation. Allow users to execute without passing in DataConnect. */
 export function reserveBuildDispatchRetry(

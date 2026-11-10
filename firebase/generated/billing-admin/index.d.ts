@@ -704,6 +704,11 @@ export interface PullRequestPlanning_Key {
   __typename?: "PullRequestPlanning_Key";
 }
 
+export interface PullRequestQrCommentLease_Key {
+  id: string;
+  __typename?: "PullRequestQrCommentLease_Key";
+}
+
 export interface RecordBillingCardConsentData {
   billingCardSetup_upsert: BillingCardSetup_Key;
 }

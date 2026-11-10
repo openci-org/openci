@@ -2,7 +2,13 @@ import { randomUUID } from "node:crypto";
 import { setTimeout as delay } from "node:timers/promises";
 import { PullRequestCheckoutError } from "./checkout_error.js";
 import {
+  qrPublicationFailure,
+  readPullRequestQrCodes,
+  type PullRequestQrCode,
+} from "./pull_request_qr.js";
+import {
   checkoutScript,
+  prQrOutputReady,
   ExecutionStopped,
   identity,
   validateJob,
@@ -20,7 +26,10 @@ export interface ExecutorDependencies {
   store: Pick<ExecutionStore, keyof ExecutionStore>;
   billing: Pick<ExecutionBilling, "period" | "admit" | "start" | "heartbeat" | "close">;
   verifyCard: (teamId: string, livemode: boolean) => Promise<string | null>;
-  github: Pick<ExecutionGitHub, "options" | "resolveCheckoutCommit" | "checkout" | "check">;
+  github: Pick<
+    ExecutionGitHub,
+    "options" | "resolveCheckoutCommit" | "checkout" | "check" | "postPullRequestQrCodes"
+  >;
   orchard: Pick<OrchardExecutor, "create" | "ready" | "remove" | "exec" | "vmNames">;
   logs: (dispatch: Dispatch) => Pick<ExecutionLogs, "start" | "finish" | "output">;
   secrets: (teamId: string, signal: AbortSignal) => Promise<Record<string, string>>;
@@ -223,6 +232,7 @@ export async function executeBuild(
         }
       }
     });
+    let qrCodes: PullRequestQrCode[] = [];
     await step("run_workflow", 2, async () => {
       const secrets = await dependencies.secrets(job.teamId!, signal);
       signal.throwIfAborted();
@@ -234,11 +244,33 @@ export async function executeBuild(
           output.write,
           signal,
         );
-        if (code !== 0) throw new ExecutionStopped("failure");
+        if (job.pullRequestNumber && code === prQrOutputReady) {
+          qrCodes = await readPullRequestQrCodes(orchard, dispatch.vmName, signal);
+          if (!qrCodes.length) throw new Error("Pull request QR output is missing");
+        } else if (code !== 0) {
+          throw new ExecutionStopped("failure");
+        }
       } finally {
         await output.flush();
       }
     });
+    if (qrCodes.length) {
+      await step("publish_pr_qr", 3, async () => {
+        try {
+          await github.postPullRequestQrCodes(
+            job,
+            context.connection!.accountId,
+            runNumber,
+            qrCodes,
+            signal,
+            (key, work) => store.withQrCommentLease(key, signal, work),
+          );
+        } catch (error) {
+          failureSummary = qrPublicationFailure;
+          throw error;
+        }
+      });
+    }
     outcome = "success";
   } catch (error) {
     const stopped = signal.aborted ? signal.reason : error;

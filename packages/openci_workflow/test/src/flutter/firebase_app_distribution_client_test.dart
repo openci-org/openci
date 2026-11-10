@@ -10,13 +10,22 @@ import 'package:test/test.dart';
 const _app = 'projects/123456789/apps/1:123456789:ios:abcdef';
 const _release = '$_app/releases/release-1';
 const _operation = '$_release/operations/upload-1';
+const _testerUrl =
+    'https://appdistribution.firebase.google.com/testerapps/'
+    '1:123456789:ios:abcdef/releases/release-1';
 
-Map<String, Object> _done() => {
+Map<String, Object> _done({
+  Map<String, Object> release = const {
+    'name': _release,
+    'testingUri': _testerUrl,
+  },
+  String result = 'RELEASE_CREATED',
+}) => {
   'name': _operation,
   'done': true,
   'response': {
-    'release': {'name': _release},
-    'result': 'RELEASE_CREATED',
+    'release': release,
+    'result': result,
   },
 };
 
@@ -49,7 +58,7 @@ void main() {
     await root.delete(recursive: true);
   });
 
-  Future<String> upload({
+  Future<({String name, Uri testingUri})> upload({
     List<String> groups = const [],
     List<String> testers = const [],
     String? notes,
@@ -67,10 +76,55 @@ void main() {
         releaseNotes: notes,
       );
 
+  test('returns the tester URL for the processed release', () async {
+    const link = '$_testerUrl?utm_source=firebase-tools';
+    handler = (_) async => _json(
+      _done(
+        release: {
+          'name': _release,
+          'testingUri': link,
+          'binaryDownloadUri': 'https://example.com/private-signed-download',
+        },
+      ),
+    );
+    expect(await upload(), (name: _release, testingUri: Uri.parse(link)));
+    expect(requests, hasLength(1));
+  });
+
+  test(
+    'name-only responses identify the tester page without an extra read',
+    () async {
+      handler = (_) async => _json(_done(release: {'name': _release}));
+      expect((await upload(groups: ['qa'])).testingUri, Uri.parse(_testerUrl));
+      expect(requests.map((r) => r.method), ['POST', 'POST']);
+      expect(requests.last.url.path, '/v1/$_release:distribute');
+    },
+  );
+
+  test(
+    'validates the tester URL against the uploaded app and release',
+    () async {
+      for (final invalid in [
+        _testerUrl.replaceFirst(
+          'firebase.google.com',
+          'firebase.google.com.example',
+        ),
+        _testerUrl.replaceFirst('1:123456789', '1:777'),
+        _testerUrl.replaceFirst('release-1', 'release-2'),
+        _testerUrl.replaceFirst('https://', 'https://user@'),
+        '/relative-or-signed',
+      ]) {
+        handler = (_) async =>
+            _json(_done(release: {'name': _release, 'testingUri': invalid}));
+        await expectLater(upload(), throwsStateError);
+      }
+    },
+  );
+
   test(
     'uploads exact binary bytes without distributing or adding notes',
     () async {
-      expect(await upload(), _release);
+      expect((await upload()).name, _release);
 
       final request = requests.single;
       expect(request.method, 'POST');
@@ -112,7 +166,7 @@ void main() {
           testers: ['tester@example.com'],
           notes: notes,
         ),
-        _release,
+        (name: _release, testingUri: Uri.parse(_testerUrl)),
       );
 
       expect(requests.map((request) => request.method), [
@@ -139,14 +193,8 @@ void main() {
   );
 
   test('handles an unchanged release as a completed upload', () async {
-    handler = (_) async => _json({
-      ..._done(),
-      'response': {
-        'release': {'name': _release},
-        'result': 'RELEASE_UNMODIFIED',
-      },
-    });
-    expect(await upload(), _release);
+    handler = (_) async => _json(_done(result: 'RELEASE_UNMODIFIED'));
+    expect((await upload()).name, _release);
   });
 
   test(

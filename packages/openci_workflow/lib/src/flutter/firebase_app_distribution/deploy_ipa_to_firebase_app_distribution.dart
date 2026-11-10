@@ -8,7 +8,7 @@ import 'package:http/http.dart' as http;
 import '../../quote_shell_argument.dart';
 import 'firebase_app_distribution_client.dart';
 
-Future<void> deployIpaToFirebaseAppDistribution({
+Future<Uri> deployIpaToFirebaseAppDistribution({
   required Future<void> Function(String command, {String? workingDirectory})
   run,
   required String ipaPath,
@@ -50,7 +50,10 @@ Future<void> deployIpaToFirebaseAppDistribution({
       testers: testers,
       releaseNotes: releaseNotes,
     );
-    stdout.writeln('Firebase App Distribution upload complete: $release');
+    stdout.writeln(
+      'Firebase App Distribution upload complete: ${release.name}',
+    );
+    return release.testingUri;
   } finally {
     client?.close();
     baseClient.close();
