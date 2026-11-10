@@ -399,6 +399,7 @@ Upload the IPA to Firebase App Distribution:
 await openCI.flutter.deployIpaToFirebaseAppDistribution(
   ipaPath: ipaPath,
   serviceAccountJsonBase64: Secrets.firebaseServiceAccountJsonBase64.value,
+  postQrCodeToPullRequest: true,
 );
 ```
 
@@ -409,6 +410,10 @@ The helper streams the IPA directly to the [Firebase App Distribution REST API](
 The helper uses macOS `unzip` and `plutil` to read `GOOGLE_APP_ID` from the exported app's `GoogleService-Info.plist`. Pass `appId` explicitly if the IPA does not bundle that file. The project number comes from this Firebase App ID. Relative `ipaPath` values use the workflow directory, or `dir` when specified; the absolute path returned by `buildIpa()` works across working directories.
 
 By default, this only uploads a release. Set `groups` (group aliases) or `testers` (email addresses) to distribute it to testers, and optionally provide `releaseNotes`. The Dashboard workflow only uploads. Actual upload validation requires Firebase credentials and a signed IPA.
+
+Set `postQrCodeToPullRequest: true` to comment on the originating PR with the tester link and a scannable QR code after the workflow succeeds. The option defaults to `false`. Push and local runs skip the comment. Testers still need access to the release in Firebase.
+
+GenuineCI stores the QR images in the same repository on the `genuineci/fad-qr` branch. The GitHub App needs write access to Contents and Pull requests. Each comment identifies its run and commit. If the PR closes or its head changes during the build, GenuineCI skips the comment.
 
 ## Run locally
 

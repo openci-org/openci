@@ -1,7 +1,15 @@
 import { setTimeout as delay } from "node:timers/promises";
 import { PullRequestCheckoutError } from "./checkout_error.js";
+import { fadPrPublicationFailure, publishFadPullRequest } from "./fad_pr.js";
 import type { Dispatch, Job, Outcome } from "./model.js";
 import type { SkippedCheck } from "../skipped_checks.js";
+
+const installationPermissions = {
+  checkout: { contents: "read" },
+  checks: { checks: "write" },
+  pull_request: { pull_requests: "read", contents: "read" },
+  fad_pr: { contents: "write", pull_requests: "write" },
+} as const;
 
 export interface GitHubOptions {
   appId: string;
@@ -36,7 +44,7 @@ export class ExecutionGitHub {
 
   private async client(
     job: Pick<Job, "githubBaseUrl" | "installationId" | "repo">,
-    purpose: "checkout" | "checks" | "pull_request",
+    purpose: keyof typeof installationPermissions,
     signal?: AbortSignal,
   ): Promise<{ request: (typeof import("@octokit/request"))["request"]; token: string }> {
     if (
@@ -72,17 +80,36 @@ export class ExecutionGitHub {
       type: "installation",
       installationId: Number(job.installationId),
       repositoryNames: [job.repo],
-      permissions:
-        purpose === "checks"
-          ? { checks: "write" }
-          : purpose === "pull_request"
-            ? { pull_requests: "read", contents: "read" }
-            : { contents: "read" },
+      permissions: installationPermissions[purpose],
     });
     return {
       request: transport.defaults({ headers: { authorization: `token ${installation.token}` } }),
       token: installation.token,
     };
+  }
+
+  async postFadQrCodes(
+    job: Job,
+    accountId: string,
+    dispatch: Dispatch,
+    runNumber: number,
+    links: string[],
+    signal: AbortSignal,
+  ): Promise<void> {
+    const client = await this.client(job, "fad_pr");
+    try {
+      await publishFadPullRequest(
+        client.request.defaults({ request: { signal } }),
+        this.options.appId,
+        job,
+        accountId,
+        dispatch,
+        runNumber,
+        links,
+      );
+    } finally {
+      await client.request("DELETE /installation/token");
+    }
   }
 
   /** Report a persisted path exclusion without manufacturing a job or run. */
@@ -293,7 +320,13 @@ export class ExecutionGitHub {
     }
     const output =
       outcome === "failure" && dispatch.failureSummary
-        ? { title: "Pull request checkout failed", summary: dispatch.failureSummary }
+        ? {
+            title:
+              dispatch.failureSummary === fadPrPublicationFailure
+                ? "FAD QR code publication failed"
+                : "Pull request checkout failed",
+            summary: dispatch.failureSummary,
+          }
         : {
             title: job.workflowName!,
             summary: outcome

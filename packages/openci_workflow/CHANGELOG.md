@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.4
+
+- Add `postQrCodeToPullRequest` to iOS Firebase App Distribution uploads. Successful PR workflows can post the tester link and QR code through the GenuineCI executor.
+
 ## 0.2.3
 
 - Add opt-in `OpenCI.init(cancelPreviousRuns: true)` for PR workflows. A new

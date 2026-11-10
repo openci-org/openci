@@ -1,8 +1,10 @@
 import { randomUUID } from "node:crypto";
 import { setTimeout as delay } from "node:timers/promises";
 import { PullRequestCheckoutError } from "./checkout_error.js";
+import { fadPrPublicationFailure, readFadTesterLinks } from "./fad_pr.js";
 import {
   checkoutScript,
+  fadPrOutputReady,
   ExecutionStopped,
   identity,
   validateJob,
@@ -20,7 +22,10 @@ export interface ExecutorDependencies {
   store: Pick<ExecutionStore, keyof ExecutionStore>;
   billing: Pick<ExecutionBilling, "period" | "admit" | "start" | "heartbeat" | "close">;
   verifyCard: (teamId: string, livemode: boolean) => Promise<string | null>;
-  github: Pick<ExecutionGitHub, "options" | "resolveCheckoutCommit" | "checkout" | "check">;
+  github: Pick<
+    ExecutionGitHub,
+    "options" | "resolveCheckoutCommit" | "checkout" | "check" | "postFadQrCodes"
+  >;
   orchard: Pick<OrchardExecutor, "create" | "ready" | "remove" | "exec" | "vmNames">;
   logs: (dispatch: Dispatch) => Pick<ExecutionLogs, "start" | "finish" | "output">;
   secrets: (teamId: string, signal: AbortSignal) => Promise<Record<string, string>>;
@@ -223,6 +228,7 @@ export async function executeBuild(
         }
       }
     });
+    let testerLinks: string[] = [];
     await step("run_workflow", 2, async () => {
       const secrets = await dependencies.secrets(job.teamId!, signal);
       signal.throwIfAborted();
@@ -234,11 +240,33 @@ export async function executeBuild(
           output.write,
           signal,
         );
-        if (code !== 0) throw new ExecutionStopped("failure");
+        if (job.pullRequestNumber && code === fadPrOutputReady) {
+          testerLinks = await readFadTesterLinks(orchard, dispatch.vmName, signal);
+          if (!testerLinks.length) throw new Error("FAD output is missing");
+        } else if (code !== 0) {
+          throw new ExecutionStopped("failure");
+        }
       } finally {
         await output.flush();
       }
     });
+    if (testerLinks.length) {
+      await step("publish_fad_pr_qr", 3, async () => {
+        try {
+          await github.postFadQrCodes(
+            job,
+            context.connection!.accountId,
+            dispatch,
+            runNumber,
+            testerLinks,
+            signal,
+          );
+        } catch (error) {
+          failureSummary = fadPrPublicationFailure;
+          throw error;
+        }
+      });
+    }
     outcome = "success";
   } catch (error) {
     const stopped = signal.aborted ? signal.reason : error;

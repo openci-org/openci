@@ -53,6 +53,7 @@ void main() {
     List<String> groups = const [],
     List<String> testers = const [],
     String? notes,
+    File? testerLinkOutput,
     Duration timeout = const Duration(minutes: 5),
   }) =>
       FirebaseAppDistributionClient(
@@ -65,7 +66,70 @@ void main() {
         groups: groups,
         testers: testers,
         releaseNotes: notes,
+        testerLinkOutput: testerLinkOutput,
       );
+
+  const link =
+      'https://appdistribution.firebase.google.com/testerapps/'
+      '1:123456789:ios:abcdef/releases/release-1';
+
+  test('exports only the tester link for the uploaded release', () async {
+    final output = File.fromUri(root.uri.resolve('output'));
+    handler = (_) async => _json({
+      ..._done(),
+      'response': {
+        'release': {
+          'name': _release,
+          'testingUri': '$link?utm_source=firebase-tools',
+          'binaryDownloadUri': 'https://example.com/private-signed-download',
+        },
+      },
+    });
+    await upload(testerLinkOutput: output);
+    expect(requests, hasLength(1));
+    expect(await output.readAsString(), '$link\n');
+  });
+
+  test('fetches a missing tester link after successful distribution', () async {
+    final output = File.fromUri(root.uri.resolve('output'));
+    handler = (request) async =>
+        request.method == 'GET' ? _json({'testingUri': link}) : _json(_done());
+    await upload(groups: ['qa'], testerLinkOutput: output);
+    expect(requests.map((r) => r.method), ['POST', 'POST', 'GET']);
+    expect(requests.last.url.path, '/v1/$_release');
+    expect(requests.last.url.queryParameters, {'fields': 'testingUri'});
+    expect(await output.readAsLines(), [link]);
+  });
+
+  test(
+    'rejects links to another host, app or release and signed downloads',
+    () async {
+      final output = File.fromUri(root.uri.resolve('output'));
+      for (final invalid in [
+        link.replaceFirst('firebase.google.com', 'firebase.google.com.example'),
+        link.replaceFirst('1:123456789', '1:777'),
+        link.replaceFirst('release-1', 'release-2'),
+        'https://user@appdistribution.firebase.google.com/testerapps/1:123456789:ios:abcdef/releases/release-1',
+        '/relative-or-signed',
+      ]) {
+        handler = (_) async => _json({
+          ..._done(),
+          'response': {
+            'release': {'name': _release, 'testingUri': invalid},
+          },
+        });
+        await expectLater(upload(testerLinkOutput: output), throwsStateError);
+      }
+      expect(await output.exists(), isFalse);
+      handler = (r) async =>
+          r.url.path.endsWith(':distribute') ? _json({}, 403) : _json(_done());
+      await expectLater(
+        upload(groups: ['qa'], testerLinkOutput: output),
+        throwsA(isA<HttpException>()),
+      );
+      expect(await output.exists(), isFalse);
+    },
+  );
 
   test(
     'uploads exact binary bytes without distributing or adding notes',

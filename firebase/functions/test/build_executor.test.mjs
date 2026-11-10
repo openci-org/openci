@@ -14,6 +14,7 @@ import {
   stopCloudRunExecution,
 } from "../../lib/functions/executor/google.js";
 import { ExecutionGitHub } from "../../lib/functions/executor/github.js";
+import { fadPrPublicationFailure } from "../../lib/functions/executor/fad_pr.js";
 
 const dispatch = {
   id: "dispatch",
@@ -719,6 +720,8 @@ test("Octokit scopes checkout/check tokens and reconciles a lost check creation 
   const done = { ...dispatch, resultAt: new Date().toISOString(), failureSummary: summary };
   assert.equal(await github.check(job, done, "failure"), "42");
   assert.deepEqual(calls.at(-1).body.output, { title: "Pull request checkout failed", summary });
+  await github.check(job, { ...done, failureSummary: fadPrPublicationFailure }, "failure");
+  assert.equal(calls.at(-1).body.output.title, "FAD QR code publication failed");
   await github.check(job, done, "cancelled");
   assert.equal(calls.at(-1).body.output.summary, "Build result: cancelled.");
   assert.equal(calls.filter((call) => call.path === "/repos/org/app/check-runs").length, 1);
@@ -726,6 +729,21 @@ test("Octokit scopes checkout/check tokens and reconciles a lost check creation 
   assert.deepEqual(tokens[0].body.repositories, ["app"]);
   assert.deepEqual(tokens[0].body.permissions, { contents: "read" });
   assert.deepEqual(tokens[1].body.permissions, { checks: "write" });
+  await assert.rejects(
+    github.postFadQrCodes(
+      { ...job, pullRequestNumber: "7" },
+      "other-account",
+      dispatch,
+      1,
+      ["https://appdistribution.firebase.google.com/testerapps/1:123:ios:abc/releases/demo"],
+      new AbortController().signal,
+    ),
+    /owner changed/,
+  );
+  const publishingToken = calls.filter((call) => call.path.endsWith("/access_tokens")).at(-1);
+  assert.deepEqual(publishingToken.body.repositories, ["app"]);
+  assert.deepEqual(publishingToken.body.permissions, { contents: "write", pull_requests: "write" });
+  assert.equal(calls.at(-1).path, "/installation/token");
   await assert.rejects(github.checkout(job, "other-account"), /connected installation/);
 });
 

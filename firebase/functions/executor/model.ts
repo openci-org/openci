@@ -13,6 +13,10 @@ export type Outcome =
   | "card_required";
 export type Stream = "stdout" | "stderr";
 
+// Each attempt runs in its own disposable VM.
+export const fadPrOutputPath = "/tmp/openci-fad-pr-tester-links";
+export const fadPrOutputReady = 78;
+
 const flutterRelease = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z]+(?:[.-][0-9A-Za-z]+)*)?$/;
 
 function validateFlutterVersion(version: string | null | undefined): void {
@@ -94,6 +98,7 @@ export function workflowScript(
     OPENCI_BUILD_JOB_ID: job.id,
     OPENCI_RUN_ID: identity(dispatch).runId,
     OPENCI_RUN_NUMBER: String(runNumber),
+    OPENCI_FAD_PR_OUTPUT: job.pullRequestNumber ? fadPrOutputPath : "",
   };
   for (const name of Object.keys(secrets)) {
     if (!validSecretName(name)) {
@@ -104,6 +109,8 @@ export function workflowScript(
     [
       "set -euo pipefail",
       "export HOME=/Users/admin",
+      // Reserve one exit status for successful workflows that produced PR output.
+      ...(job.pullRequestNumber ? ["trap 'exit 1' ERR"] : []),
       'export FVM_CACHE_PATH="$HOME/fvm"',
       'export FLUTTER_ROOT="$HOME/fvm/default"',
       'export PATH="$FLUTTER_ROOT/bin:$HOME/.pub-cache/bin:/opt/homebrew/bin:/usr/local/bin:$PATH"',
@@ -119,8 +126,12 @@ export function workflowScript(
         : []),
       "cd /Users/admin/openci-build",
       ...Object.entries(variables).map(([key, value]) => `export ${key}=${shellQuote(value)}`),
+      ...(job.pullRequestNumber ? [': > "$OPENCI_FAD_PR_OUTPUT"'] : []),
       "flutter pub get",
       `flutter pub run ${shellQuote(`openci/${job.workflowFileName}`)}`,
+      ...(job.pullRequestNumber
+        ? [`if [ -s "$OPENCI_FAD_PR_OUTPUT" ]; then exit ${fadPrOutputReady}; fi`]
+        : []),
     ].join("\n") + "\n"
   );
 }
