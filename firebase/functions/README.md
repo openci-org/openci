@@ -55,7 +55,9 @@ and commit access are verified before source is fetched; source is never run.
 completes the pending task. It supplies the team/installation from the stored
 connection, server timestamps, `runCount: 0`, and `runsOn: macos-latest`.
 Stable task/file IDs, a conditional task transition and one transaction prevent
-duplicate batches, partial inserts and retries resetting existing jobs. This
+duplicate batches, partial inserts and retries resetting existing jobs. Equivalent
+PR deliveries also use a scoped execution key and SQL unique constraint, as
+explained in [PR webhook deduplication](PR_WEBHOOK_DEDUPLICATION.md). This
 mutation's returned `jobs` IDs trigger `queueBuildJobs`, which enqueues Cloud
 Tasks for the [capacity dispatcher](BUILD_DISPATCH.md). The generated SDK does
 not support bulk `_Data` inputs, so the bulk insert uses a parameterized

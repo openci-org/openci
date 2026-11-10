@@ -5,7 +5,7 @@ commits on the same pull request. Both the newly scheduled job and the old job
 must opt in. The default is false, including pre-existing jobs. The scope is
 team, GitHub host, installation, owner/repository, PR number and workflow file.
 Only `QUEUED` and `IN_PROGRESS` jobs at a different SHA are cancelled. Push runs,
-same-SHA reruns, terminal jobs, unmatched workflows and path-skipped plans are
+explicit same-SHA reruns, terminal jobs, unmatched workflows and path-skipped plans are
 unchanged.
 
 ## Planning and concurrency
@@ -86,8 +86,12 @@ keep cancellation notification handling until queued notifications are drained.
 
 The Dart tests cover literal configuration, PR-only selection, scoped live-head
 verification and API failures. SQL emulator tests exercise delayed delivery,
-an in-flight old response overtaken by a new plan, force pushes, same-SHA reruns,
+an in-flight old response overtaken by a new plan, force pushes, duplicate same-SHA notifications, explicit reruns,
 scope isolation, transaction rollback, denied client access, startup races and
 running command interruption with billing/VM/Check cleanup. Function tests cover
 paginated notifications and partial enqueue failures. These use mocked GitHub
 and Orchard; deployment and live Mac verification are separate rollout checks.
+
+Repeated PR webhook deliveries are independently coalesced by
+[PR webhook deduplication](PR_WEBHOOK_DEDUPLICATION.md), even with cancellation
+disabled. A new delivery ID is not an explicit user rerun.
