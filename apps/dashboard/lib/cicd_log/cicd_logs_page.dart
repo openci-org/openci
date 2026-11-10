@@ -1,5 +1,6 @@
-import 'package:dashboard/cicd_log/widgets/cicd_log_summary_card.dart';
+import 'package:dashboard/app_strings.dart';
 import 'package:dashboard/cicd_log/cicd_log_providers.dart';
+import 'package:dashboard/cicd_log/widgets/cicd_log_summary_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -13,16 +14,16 @@ class CicdLogsPage extends ConsumerWidget {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text(
-          'CI/CDログ',
+        title: Text(
+          context.t.logs.title,
         ),
       ),
       body: commitGroupsAsync.when(
         data: (groups) {
           if (groups.isEmpty) {
-            return const Center(
+            return Center(
               child: Text(
-                'アクティブなCI/CDログはありません',
+                context.t.logs.empty,
                 style: TextStyle(color: Colors.black54),
               ),
             );
@@ -44,7 +45,7 @@ class CicdLogsPage extends ConsumerWidget {
         ),
         error: (err, stack) => Center(
           child: Text(
-            'ログの取得中にエラーが発生しました: $err',
+            context.t.logs.loadFailed(error: err),
             style: const TextStyle(color: Colors.red),
           ),
         ),

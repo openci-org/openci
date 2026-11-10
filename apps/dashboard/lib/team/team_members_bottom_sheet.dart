@@ -2,6 +2,7 @@ import 'package:dashboard/app_strings.dart';
 import 'package:dashboard/auth/auth_provider.dart';
 import 'package:dashboard/team/team_members_api.dart';
 import 'package:dashboard/team/team_provider.dart';
+import 'package:dashboard/utilities/error_message.dart';
 import 'package:dashboard/utilities/snack_bar_extension.dart';
 import 'package:flutter/material.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
@@ -46,7 +47,6 @@ class TeamMembersBottomSheet extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final membersAsync = ref.watch(teamMembersProvider);
     final currentUid = ref.watch(currentUserIdProvider);
-    final teamT = t.team;
     final colorScheme = Theme.of(context).colorScheme;
 
     return membersAsync.when(
@@ -77,7 +77,7 @@ class TeamMembersBottomSheet extends ConsumerWidget {
                           color: colorScheme.outlineVariant,
                         ),
                       ),
-                      child: const Text('3 members'),
+                      child: Text(context.t.team.membersCount(count: 3)),
                     ),
                   ],
                 ),
@@ -141,7 +141,7 @@ class TeamMembersBottomSheet extends ConsumerWidget {
         padding: const EdgeInsets.all(24),
         child: Center(
           child: Text(
-            e.toString(),
+            context.errorText(e),
             style: TextStyle(
               color: Colors.red.withValues(alpha: 0.8),
               fontSize: 13,
@@ -184,7 +184,7 @@ class TeamMembersBottomSheet extends ConsumerWidget {
                         ),
                       ),
                       child: Text(
-                        teamT.membersCount(count: members.length),
+                        context.t.team.membersCount(count: members.length),
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
@@ -284,7 +284,7 @@ class TeamMembersBottomSheet extends ConsumerWidget {
                                     ),
                                   ),
                                   child: Text(
-                                    teamT.you,
+                                    context.t.team.you,
                                     style: TextStyle(
                                       fontSize: 10,
                                       fontWeight: FontWeight.w600,
@@ -314,7 +314,7 @@ class TeamMembersBottomSheet extends ConsumerWidget {
                     ),
                     if (!isCurrentUser)
                       IconButton(
-                        tooltip: teamT.removeMember,
+                        tooltip: context.t.team.removeMember,
                         icon: const Icon(Icons.person_remove_outlined),
                         onPressed: () => _removeMember(context, ref, member),
                       ),
@@ -342,9 +342,9 @@ class TeamMembersBottomSheet extends ConsumerWidget {
       final confirmed = await showDialog<bool>(
         context: context,
         builder: (context) => AlertDialog(
-          title: Text(t.team.removeMember),
+          title: Text(context.t.team.removeMember),
           content: Text(
-            t.team.removeMemberConfirm(
+            context.t.team.removeMemberConfirm(
               name: member.email ?? member.displayName ?? member.uid,
               teamName: team.name,
             ),
@@ -352,11 +352,11 @@ class TeamMembersBottomSheet extends ConsumerWidget {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: Text(t.common.cancel),
+              child: Text(context.t.common.cancel),
             ),
             TextButton(
               onPressed: () => Navigator.pop(context, true),
-              child: Text(t.common.delete),
+              child: Text(context.t.common.delete),
             ),
           ],
         ),
@@ -366,9 +366,11 @@ class TeamMembersBottomSheet extends ConsumerWidget {
       if (!context.mounted) return;
       ref.invalidate(teamMembersProvider);
       ref.invalidate(teamListProvider);
-      context.showSnackBarMessage(t.team.removedSuccess);
+      context.showSnackBarMessage(context.t.team.removedSuccess);
     } catch (_) {
-      if (context.mounted) context.showSnackBarMessage(t.team.operationFailed);
+      if (context.mounted) {
+        context.showSnackBarMessage(context.t.team.operationFailed);
+      }
     }
   }
 

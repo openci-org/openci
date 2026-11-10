@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:dashboard/app_strings.dart';
 import 'package:dashboard/billing/billing_api.dart';
-import '../helpers/billing_callable.dart';
 import 'package:dashboard/billing/billing_identity.dart';
 import 'package:dashboard/billing/billing_page.dart';
 import 'package:dashboard/connections/connection_profile.dart';
@@ -12,8 +12,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
-import 'package:url_launcher_platform_interface/url_launcher_platform_interface.dart';
 import 'package:url_launcher_platform_interface/link.dart';
+import 'package:url_launcher_platform_interface/url_launcher_platform_interface.dart';
+
+import '../helpers/billing_callable.dart';
 
 void main() {
   const cloud = ConnectionProfile(
@@ -103,10 +105,12 @@ void main() {
       ],
     );
     await tester.pumpWidget(
-      UncontrolledProviderScope(
-        container: container,
-        child: MaterialApp(
-          home: BillingPage(teamId: teamId, result: result),
+      TranslationProvider(
+        child: UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(
+            home: BillingPage(teamId: teamId, result: result),
+          ),
         ),
       ),
     );
@@ -205,10 +209,12 @@ void main() {
     await show(tester);
     paid = true;
     await tester.pumpWidget(
-      UncontrolledProviderScope(
-        container: container,
-        child: const MaterialApp(
-          home: BillingPage(teamId: 'team-1', result: 'portal'),
+      TranslationProvider(
+        child: UncontrolledProviderScope(
+          container: container,
+          child: const MaterialApp(
+            home: BillingPage(teamId: 'team-1', result: 'portal'),
+          ),
         ),
       ),
     );
@@ -257,10 +263,12 @@ void main() {
       expect(launcher.options?.webOnlyWindowName, '_self');
       cardStatus = 'registered';
       await tester.pumpWidget(
-        UncontrolledProviderScope(
-          container: container,
-          child: const MaterialApp(
-            home: BillingPage(teamId: 'team-1', result: 'card_success'),
+        TranslationProvider(
+          child: UncontrolledProviderScope(
+            container: container,
+            child: const MaterialApp(
+              home: BillingPage(teamId: 'team-1', result: 'card_success'),
+            ),
           ),
         ),
       );

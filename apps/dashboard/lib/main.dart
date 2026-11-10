@@ -1,3 +1,5 @@
+import 'package:dashboard/app_locale_provider.dart';
+import 'package:dashboard/app_strings.dart';
 import 'package:dashboard/connections/local_development_connection.dart';
 import 'package:dashboard/root.dart';
 import 'package:dashboard/team/capture_github_connection_return.dart';
@@ -26,6 +28,7 @@ Future<void> main() async {
     await initializeMacosUpdater();
 
     final sharedPreferences = await SharedPreferences.getInstance();
+    initializeLocale(sharedPreferences);
 
     final app = ProviderScope(
       observers: [
@@ -38,7 +41,7 @@ Future<void> main() async {
           pendingGitHubReturn,
         ),
       ],
-      child: Root(),
+      child: TranslationProvider(child: const Root()),
     );
 
     if (kDebugMode) {

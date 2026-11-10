@@ -1,7 +1,7 @@
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:dashboard/utilities/error_message.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
-import '../app_strings.dart';
 import '../auth/auth_provider.dart';
 import '../connections/active_connection_firebase_auth.dart';
 import '../connections/local_development_connection.dart';
@@ -10,12 +10,12 @@ import 'teams_connector_provider.dart';
 
 final teamMembersApiProvider = FutureProvider<TeamMembersApi>((ref) async {
   final user = await ref.watch(authStateChangesProvider.future);
-  if (user == null) throw StateError(t.team.accessDenied);
+  if (user == null) throw DashboardException('team_access_denied');
   final auth = await ref.watch(activeConnectionFirebaseAuthProvider.future);
   final connector = await ref.watch(teamsConnectorProvider.future);
   final local = ref.watch(localDevelopmentConnectionProvider);
   bool isCurrent() => ref.mounted && auth.currentUser?.uid == user.uid;
-  if (!isCurrent()) throw StateError(t.team.accessDenied);
+  if (!isCurrent()) throw DashboardException('team_access_denied');
   final functions = FirebaseFunctions.instanceFor(
     app: auth.app,
     region: 'asia-northeast1',
@@ -41,7 +41,7 @@ class TeamMembersApi {
   final bool Function() isCurrent;
 
   void _requireCurrent() {
-    if (!isCurrent()) throw StateError(t.team.accessDenied);
+    if (!isCurrent()) throw DashboardException('team_access_denied');
   }
 
   Future<Map<String, dynamic>> _call(Map<String, dynamic> data) async {
@@ -52,21 +52,21 @@ class TeamMembersApi {
       if (response.data['success'] != true) throw const FormatException();
       return response.data;
     } on FirebaseFunctionsException catch (error) {
-      throw StateError(switch (error.code) {
-        'unauthenticated' || 'permission-denied' => t.team.accessDenied,
-        'already-exists' => t.team.memberAlreadyAdded,
-        'not-found' => t.team.memberNotRegistered,
-        'invalid-argument' => t.team.enterValidEmail,
+      throw DashboardException(switch (error.code) {
+        'unauthenticated' || 'permission-denied' => 'team_access_denied',
+        'already-exists' => 'member_already_added',
+        'not-found' => 'member_not_registered',
+        'invalid-argument' => 'invalid_email',
         'failed-precondition'
             when error.details is Map &&
                 error.details['reason'] == 'email-not-verified' =>
-          t.team.memberEmailNotVerified,
-        'failed-precondition' => t.team.memberUnavailable,
-        _ => t.team.operationFailed,
+          'member_email_not_verified',
+        'failed-precondition' => 'member_unavailable',
+        _ => 'team_operation_failed',
       });
     } catch (_) {
       _requireCurrent();
-      throw StateError(t.team.operationFailed);
+      throw DashboardException('team_operation_failed');
     }
   }
 
@@ -77,7 +77,7 @@ class TeamMembersApi {
           .map((member) => Map<String, dynamic>.from(member as Map))
           .toList();
     } catch (_) {
-      throw StateError(t.team.operationFailed);
+      throw DashboardException('team_operation_failed');
     }
   }
 
@@ -92,7 +92,7 @@ class TeamMembersApi {
           .removeTeamMember(teamId: teamId, userId: userId)
           .execute();
     } catch (_) {
-      throw StateError(t.team.operationFailed);
+      throw DashboardException('team_operation_failed');
     }
     _requireCurrent();
   }

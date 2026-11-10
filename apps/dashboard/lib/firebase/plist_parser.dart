@@ -1,4 +1,6 @@
 import 'dart:convert';
+
+import 'package:dashboard/app_strings.dart';
 import 'package:xml/xml.dart';
 
 import 'firebase_config_provider.dart';
@@ -43,7 +45,7 @@ SelfHostedConfig parseJsonConfig(String content) {
   try {
     map = jsonDecode(content) as Map<String, dynamic>;
   } catch (e) {
-    throw FormatException('JSONのパースに失敗しました: $e');
+    throw FormatException(t.config.jsonParseFailed(error: e));
   }
 
   // Web-style firebase config JSON (has apiKey at top-level)
@@ -58,7 +60,9 @@ SelfHostedConfig parseJsonConfig(String content) {
     if (projectId == null || projectId.isEmpty) missingKeys.add('projectId');
 
     if (missingKeys.isNotEmpty) {
-      throw FormatException('必須キーが不足しています: ${missingKeys.join(', ')}');
+      throw FormatException(
+        t.config.missingKeys(file: 'JSON', keys: missingKeys.join(', ')),
+      );
     }
 
     return SelfHostedConfig.fromJson(map);
@@ -86,7 +90,10 @@ SelfHostedConfig parseJsonConfig(String content) {
 
     if (missingKeys.isNotEmpty) {
       throw FormatException(
-        'google-services.jsonの必須キーが不足しています: ${missingKeys.join(', ')}',
+        t.config.missingKeys(
+          file: 'google-services.json',
+          keys: missingKeys.join(', '),
+        ),
       );
     }
 
@@ -99,8 +106,8 @@ SelfHostedConfig parseJsonConfig(String content) {
     );
   }
 
-  throw const FormatException(
-    '未対応の形式です。Web用のFirebase設定(JSON)、Android用のgoogle-services.json、あるいはiOS用のGoogleService-Info.plistを選択してください。',
+  throw FormatException(
+    t.config.unsupportedFormat,
   );
 }
 
@@ -118,12 +125,12 @@ SelfHostedConfig parsePlist(String plistContent) {
   try {
     document = XmlDocument.parse(sanitized);
   } catch (e) {
-    throw FormatException('XMLのパースに失敗しました: $e');
+    throw FormatException(t.config.xmlParseFailed(error: e));
   }
 
   final dicts = document.findAllElements('dict');
   if (dicts.isEmpty) {
-    throw const FormatException('plist内に <dict> 要素が見つかりません。');
+    throw FormatException(t.config.plistDictMissing);
   }
   final dict = dicts.first;
 
@@ -140,7 +147,10 @@ SelfHostedConfig parsePlist(String plistContent) {
 
   if (missingKeys.isNotEmpty) {
     throw FormatException(
-      'GoogleService-Info.plistの必須キーが不足しています: ${missingKeys.join(', ')}',
+      t.config.missingKeys(
+        file: 'GoogleService-Info.plist',
+        keys: missingKeys.join(', '),
+      ),
     );
   }
 

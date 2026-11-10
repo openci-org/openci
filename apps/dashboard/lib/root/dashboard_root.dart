@@ -1,3 +1,4 @@
+import 'package:dashboard/app_strings.dart';
 import 'package:dashboard/auth/auth_page.dart';
 import 'package:dashboard/auth/auth_provider.dart';
 import 'package:dashboard/cicd_log/cicd_logs_page.dart';
@@ -72,21 +73,21 @@ class DashboardRoot extends HookWidget {
         onDestinationSelected: (index) {
           selectedIndex.value = index;
         },
-        destinations: const [
+        destinations: [
           NavigationDestination(
             icon: Icon(Icons.history_outlined),
             selectedIcon: Icon(Icons.history_rounded),
-            label: 'CI/CDログ',
+            label: context.t.logs.title,
           ),
           NavigationDestination(
             icon: Icon(Icons.key_outlined),
             selectedIcon: Icon(Icons.key_rounded),
-            label: 'シークレット',
+            label: context.t.secrets.title,
           ),
           NavigationDestination(
             icon: Icon(Icons.settings_outlined),
             selectedIcon: Icon(Icons.settings_rounded),
-            label: '設定',
+            label: context.t.settings.title,
           ),
         ],
       ),

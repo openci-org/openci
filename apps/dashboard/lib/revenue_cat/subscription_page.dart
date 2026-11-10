@@ -21,10 +21,9 @@ class SubscriptionPage extends HookConsumerWidget {
     final offerings = ref.watch(offeringsProvider);
     final customerInfo = ref.watch(customerInfoProvider);
     final isPurchasing = useState(false);
-    final subT = t.subscription;
 
     return Scaffold(
-      appBar: AppBar(title: Text(subT.title)),
+      appBar: AppBar(title: Text(context.t.subscription.title)),
       body: Stack(
         children: [
           offerings.when(
@@ -32,14 +31,14 @@ class SubscriptionPage extends HookConsumerWidget {
               final current = data.current;
               if (current == null) {
                 return Center(
-                  child: Text(subT.noOfferings),
+                  child: Text(context.t.subscription.noOfferings),
                 );
               }
 
               final packages = current.availablePackages;
               if (packages.isEmpty) {
                 return Center(
-                  child: Text(subT.noPackages),
+                  child: Text(context.t.subscription.noPackages),
                 );
               }
 
@@ -56,7 +55,7 @@ class SubscriptionPage extends HookConsumerWidget {
                         const SizedBox(height: 24),
                       ],
                       Text(
-                        subT.plans,
+                        context.t.subscription.plans,
                         style: Theme.of(context).textTheme.headlineSmall,
                       ),
                       const SizedBox(height: 12),
@@ -80,7 +79,9 @@ class SubscriptionPage extends HookConsumerWidget {
                         Center(
                           child: TextButton(
                             onPressed: () => _restorePurchases(context, ref),
-                            child: Text(subT.restorePurchases),
+                            child: Text(
+                              context.t.subscription.restorePurchases,
+                            ),
                           ),
                         ),
                       ],
@@ -93,7 +94,7 @@ class SubscriptionPage extends HookConsumerWidget {
                   child: CircularProgressIndicator.adaptive(),
                 ),
                 error: (error, _) => Center(
-                  child: Text(t.common.error(error: error.toString())),
+                  child: Text(context.t.common.error(error: error.toString())),
                 ),
               );
             },
@@ -127,24 +128,23 @@ class SubscriptionPage extends HookConsumerWidget {
     ValueNotifier<bool> isPurchasing,
   ) async {
     isPurchasing.value = true;
-    final subT = t.subscription;
     try {
       await Purchases.purchase(PurchaseParams.package(package));
       ref.invalidate(customerInfoProvider);
       if (!context.mounted) return;
-      context.showSnackBarMessage(subT.purchaseSuccess);
+      context.showSnackBarMessage(context.t.subscription.purchaseSuccess);
     } on PlatformException catch (e) {
       if (!context.mounted) return;
       final errorCode = PurchasesErrorHelper.getErrorCode(e);
       if (errorCode != PurchasesErrorCode.purchaseCancelledError) {
         context.showSnackBarMessage(
-          subT.purchaseFailed(error: e.message ?? ''),
+          context.t.subscription.purchaseFailed(error: e.message ?? ''),
         );
       }
     } catch (e) {
       if (!context.mounted) return;
       context.showSnackBarMessage(
-        subT.purchaseFailed(error: e.toString()),
+        context.t.subscription.purchaseFailed(error: e.toString()),
       );
     } finally {
       isPurchasing.value = false;
@@ -153,21 +153,20 @@ class SubscriptionPage extends HookConsumerWidget {
 
   Future<void> _restorePurchases(BuildContext context, WidgetRef ref) async {
     if (kIsWeb) return;
-    final subT = t.subscription;
     try {
       await Purchases.restorePurchases();
       ref.invalidate(customerInfoProvider);
       if (!context.mounted) return;
-      context.showSnackBarMessage(subT.restoreSuccess);
+      context.showSnackBarMessage(context.t.subscription.restoreSuccess);
     } on PlatformException catch (e) {
       if (!context.mounted) return;
       context.showSnackBarMessage(
-        subT.restoreFailed(error: e.message ?? ''),
+        context.t.subscription.restoreFailed(error: e.message ?? ''),
       );
     } catch (e) {
       if (!context.mounted) return;
       context.showSnackBarMessage(
-        subT.restoreFailed(error: e.toString()),
+        context.t.subscription.restoreFailed(error: e.toString()),
       );
     }
   }
@@ -178,13 +177,14 @@ class _SubscriptionTermsFooter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final subT = t.subscription;
     return Column(
       children: [
         const Divider(),
         const SizedBox(height: 8),
         Text(
-          kIsWeb ? subT.subscriptionTermsWeb : subT.subscriptionTerms,
+          kIsWeb
+              ? context.t.subscription.subscriptionTermsWeb
+              : context.t.subscription.subscriptionTerms,
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
             color: Colors.grey.shade600,
           ),
@@ -197,7 +197,7 @@ class _SubscriptionTermsFooter extends StatelessWidget {
             GestureDetector(
               onTap: () => _launchUrl(SubscriptionPage._termsOfServiceUrl),
               child: Text(
-                subT.termsOfUse,
+                context.t.subscription.termsOfUse,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: Theme.of(context).colorScheme.primary,
                   decoration: TextDecoration.underline,
@@ -216,7 +216,7 @@ class _SubscriptionTermsFooter extends StatelessWidget {
             GestureDetector(
               onTap: () => _launchUrl(SubscriptionPage._privacyPolicyUrl),
               child: Text(
-                subT.privacyPolicy,
+                context.t.subscription.privacyPolicy,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: Theme.of(context).colorScheme.primary,
                   decoration: TextDecoration.underline,
@@ -245,7 +245,6 @@ class _ActiveSubscriptionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final subT = t.subscription;
     return Card(
       color: Colors.green.shade50,
       child: Padding(
@@ -259,7 +258,7 @@ class _ActiveSubscriptionCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    subT.activeSubscription,
+                    context.t.subscription.activeSubscription,
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       color: Colors.green.shade700,
@@ -295,8 +294,10 @@ class _PackageCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final product = package.storeProduct;
-    final periodLabel = _subscriptionPeriodLabel(product.subscriptionPeriod);
-    final subT = t.subscription;
+    final periodLabel = _subscriptionPeriodLabel(
+      context,
+      product.subscriptionPeriod,
+    );
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       shape: RoundedRectangleBorder(
@@ -343,7 +344,7 @@ class _PackageCard extends StatelessWidget {
               const SizedBox(width: 12),
               if (isActive)
                 Chip(
-                  label: Text(subT.active),
+                  label: Text(context.t.subscription.active),
                   backgroundColor: Colors.green.shade50,
                   labelStyle: TextStyle(color: Colors.green.shade700),
                 )
@@ -375,15 +376,14 @@ class _PackageCard extends StatelessWidget {
     );
   }
 
-  String? _subscriptionPeriodLabel(String? period) {
+  String? _subscriptionPeriodLabel(BuildContext context, String? period) {
     if (period == null) return null;
-    final subT = t.subscription;
     return switch (period) {
-      'P1W' => subT.perWeek,
-      'P1M' => subT.perMonth,
-      'P3M' => subT.per3Months,
-      'P6M' => subT.per6Months,
-      'P1Y' => subT.perYear,
+      'P1W' => context.t.subscription.perWeek,
+      'P1M' => context.t.subscription.perMonth,
+      'P3M' => context.t.subscription.per3Months,
+      'P6M' => context.t.subscription.per6Months,
+      'P1Y' => context.t.subscription.perYear,
       _ => null,
     };
   }

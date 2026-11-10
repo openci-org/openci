@@ -16,7 +16,6 @@ class EditTeamBottomSheet extends HookConsumerWidget {
     final formKey = useMemoized(() => GlobalKey<FormState>());
     final selectedTeamId = useState<String?>(null);
     final isLoading = useState(false);
-    final teamT = t.team;
     final colorScheme = Theme.of(context).colorScheme;
 
     return Padding(
@@ -132,6 +131,7 @@ class EditTeamBottomSheet extends HookConsumerWidget {
                 const SizedBox(height: 16),
                 Form(
                   key: formKey,
+                  autovalidateMode: AutovalidateMode.onUserInteraction,
                   child: Container(
                     decoration: BoxDecoration(
                       color: colorScheme.surface,
@@ -146,7 +146,7 @@ class EditTeamBottomSheet extends HookConsumerWidget {
                         fontSize: 14,
                       ),
                       decoration: InputDecoration(
-                        hintText: teamT.newTeamName,
+                        hintText: context.t.team.newTeamName,
                         hintStyle: TextStyle(
                           color: colorScheme.outline,
                           fontSize: 14,
@@ -174,7 +174,7 @@ class EditTeamBottomSheet extends HookConsumerWidget {
                       ),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
-                          return teamT.enterTeamName;
+                          return context.t.team.enterTeamName;
                         }
                         return null;
                       },
@@ -207,7 +207,7 @@ class EditTeamBottomSheet extends HookConsumerWidget {
                                   );
                               if (!context.mounted) return;
                               context.showSnackBarMessage(
-                                teamT.updatedSuccess,
+                                context.t.team.updatedSuccess,
                               );
                               Navigator.of(context).pop();
                             } catch (e) {
@@ -226,7 +226,7 @@ class EditTeamBottomSheet extends HookConsumerWidget {
                             ),
                           )
                         : Text(
-                            teamT.editTeam,
+                            context.t.team.editTeam,
                             style: const TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w600,

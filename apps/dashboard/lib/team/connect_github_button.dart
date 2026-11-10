@@ -31,7 +31,7 @@ class ConnectGitHubButton extends HookConsumerWidget {
         ),
       ),
       icon: const FaIcon(FontAwesomeIcons.github, size: 20),
-      label: Text(t.team.connectGitHub),
+      label: Text(context.t.team.connectGitHub),
     );
   }
 
@@ -59,7 +59,7 @@ class ConnectGitHubButton extends HookConsumerWidget {
     } catch (_) {
       if (context.mounted) {
         _clearConnectionContextAfterFailure();
-        context.showSnackBarMessage(t.team.gitHubConnectionFailed);
+        context.showSnackBarMessage(context.t.team.gitHubConnectionFailed);
       }
     } finally {
       if (context.mounted) isConnecting.value = false;

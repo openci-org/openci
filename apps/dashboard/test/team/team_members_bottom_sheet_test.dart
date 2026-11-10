@@ -51,24 +51,26 @@ void main() {
   });
   Future<void> pump(WidgetTester tester, Widget child) async {
     await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          currentUserIdProvider.overrideWith((ref) => 'self'),
-          selectedTeamIdProvider.overrideWith(_SelectedTeamId.new),
-          selectedTeamProvider.overrideWith((ref) async => team),
-          teamListProvider.overrideWith((ref) async => [team]),
-          teamMembersApiProvider.overrideWith((ref) async => api),
-        ],
-        child: MaterialApp(
-          home: Scaffold(
-            body: Builder(
-              builder: (context) => TextButton(
-                onPressed: () => showModalBottomSheet<void>(
-                  context: context,
-                  isScrollControlled: true,
-                  builder: (_) => SingleChildScrollView(child: child),
+      TranslationProvider(
+        child: ProviderScope(
+          overrides: [
+            currentUserIdProvider.overrideWith((ref) => 'self'),
+            selectedTeamIdProvider.overrideWith(_SelectedTeamId.new),
+            selectedTeamProvider.overrideWith((ref) async => team),
+            teamListProvider.overrideWith((ref) async => [team]),
+            teamMembersApiProvider.overrideWith((ref) async => api),
+          ],
+          child: MaterialApp(
+            home: Scaffold(
+              body: Builder(
+                builder: (context) => TextButton(
+                  onPressed: () => showModalBottomSheet<void>(
+                    context: context,
+                    isScrollControlled: true,
+                    builder: (_) => SingleChildScrollView(child: child),
+                  ),
+                  child: const Text('Open'),
                 ),
-                child: const Text('Open'),
               ),
             ),
           ),

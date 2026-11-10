@@ -3,14 +3,7 @@
 
 (() => {
   const loader = document.getElementById("app-loader");
-  const loaderMessage = document.getElementById("app-loader-message");
   let loaderHidden = false;
-
-  function updateLoaderMessage(message) {
-    if (loaderMessage) {
-      loaderMessage.textContent = message;
-    }
-  }
 
   function hideLoader() {
     if (!loader || loaderHidden) {
@@ -31,10 +24,8 @@
       serviceWorkerVersion: null,
     },
     onEntrypointLoaded: async function (engineInitializer) {
-      updateLoaderMessage("アプリを初期化中...");
       const appRunner = await engineInitializer.initializeEngine();
 
-      updateLoaderMessage("アプリを起動中...");
       await appRunner.runApp();
       window.setTimeout(hideLoader, 1500);
     },

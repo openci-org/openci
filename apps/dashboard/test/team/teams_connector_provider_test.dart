@@ -60,8 +60,16 @@ void main() {
     expect(connector.dataConnect.auth, same(auth));
     expect(connector.dataConnect.options.projectId, 'selected-project');
     expect(
-      connector.dataConnect.connectorConfig,
-      TeamsConnector.connectorConfig,
+      connector.dataConnect.connectorConfig.location,
+      TeamsConnector.connectorConfig.location,
+    );
+    expect(
+      connector.dataConnect.connectorConfig.connector,
+      TeamsConnector.connectorConfig.connector,
+    );
+    expect(
+      connector.dataConnect.connectorConfig.serviceId,
+      'selected-project-service',
     );
     expect(connector.dataConnect.transportOptions, isNull);
   });

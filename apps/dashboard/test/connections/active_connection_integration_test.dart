@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:dashboard/app_strings.dart';
 import 'package:dashboard/auth/auth_provider.dart';
 import 'package:dashboard/connections/active_connection_profile_provider.dart';
 import 'package:dashboard/connections/connection_firebase_auth.dart';
@@ -194,7 +195,12 @@ void main() {
         final pending = Completer<FirebaseAuth>();
         authResults[selfHosted.id] = pending.future;
         await tester.pumpWidget(
-          UncontrolledProviderScope(container: container, child: const Root()),
+          TranslationProvider(
+            child: UncontrolledProviderScope(
+              container: container,
+              child: const Root(),
+            ),
+          ),
         );
         expect(find.byType(CircularProgressIndicator), findsOneWidget);
         expect(find.text('Dashboard'), findsNothing);

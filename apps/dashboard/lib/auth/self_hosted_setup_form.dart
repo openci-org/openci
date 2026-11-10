@@ -30,7 +30,6 @@ class SelfHostedSetupForm extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
-    final formT = t.auth.firebaseForm;
     final colors = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
     final formKey = useMemoized(() => GlobalKey<FormState>());
@@ -84,7 +83,7 @@ class SelfHostedSetupForm extends HookWidget {
         if (!context.mounted) return;
         clearAccount();
         // Parser/platform errors can contain file contents. Do not display them.
-        fileError.value = formT.invalidServiceAccount;
+        fileError.value = context.t.auth.firebaseForm.invalidServiceAccount;
       } finally {
         if (context.mounted) isPicking.value = false;
       }
@@ -109,12 +108,14 @@ class SelfHostedSetupForm extends HookWidget {
                 children: [
                   Expanded(
                     child: Text(
-                      isReviewing.value ? formT.reviewTitle : formT.title,
+                      isReviewing.value
+                          ? context.t.auth.firebaseForm.reviewTitle
+                          : context.t.auth.firebaseForm.title,
                       style: textTheme.titleLarge,
                     ),
                   ),
                   IconButton(
-                    tooltip: t.common.close,
+                    tooltip: context.t.common.close,
                     onPressed: () => Navigator.pop(context),
                     icon: const Icon(Icons.close),
                   ),
@@ -127,10 +128,14 @@ class SelfHostedSetupForm extends HookWidget {
                 padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
                 child: Form(
                   key: formKey,
+                  autovalidateMode: AutovalidateMode.onUserInteraction,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Text(formT.setupSubtitle, style: textTheme.bodyMedium),
+                      Text(
+                        context.t.auth.firebaseForm.setupSubtitle,
+                        style: textTheme.bodyMedium,
+                      ),
                       const SizedBox(height: 16),
                       Container(
                         padding: const EdgeInsets.all(12),
@@ -139,30 +144,33 @@ class SelfHostedSetupForm extends HookWidget {
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(
-                          formT.setupPreview,
+                          context.t.auth.firebaseForm.setupPreview,
                           style: textTheme.bodySmall,
                         ),
                       ),
                       const SizedBox(height: 24),
                       if (isReviewing.value && selected != null) ...[
                         _SetupDetail(
-                          label: formT.profileName,
+                          label: context.t.auth.firebaseForm.profileName,
                           value: profileName,
                         ),
                         _SetupDetail(
-                          label: formT.apiUrl,
+                          label: context.t.auth.firebaseForm.apiUrl,
                           value: apiUrl.text.trim(),
                         ),
                         _SetupDetail(
-                          label: formT.projectId,
+                          label: context.t.auth.firebaseForm.projectId,
                           value: selected.projectId,
                         ),
                         _SetupDetail(
-                          label: formT.serviceAccount,
+                          label: context.t.auth.firebaseForm.serviceAccount,
                           value: selected.email,
                         ),
                         const Divider(height: 32),
-                        Text(formT.setupPlatforms, style: textTheme.titleSmall),
+                        Text(
+                          context.t.auth.firebaseForm.setupPlatforms,
+                          style: textTheme.titleSmall,
+                        ),
                         const SizedBox(height: 12),
                         const Wrap(
                           spacing: 8,
@@ -176,7 +184,7 @@ class SelfHostedSetupForm extends HookWidget {
                         ),
                         const SizedBox(height: 12),
                         Text(
-                          formT.setupExplanation,
+                          context.t.auth.firebaseForm.setupExplanation,
                           style: textTheme.bodyMedium,
                         ),
                       ] else ...[
@@ -186,9 +194,9 @@ class SelfHostedSetupForm extends HookWidget {
                           textInputAction: TextInputAction.next,
                           autocorrect: false,
                           decoration: InputDecoration(
-                            labelText: formT.apiUrl,
+                            labelText: context.t.auth.firebaseForm.apiUrl,
                             hintText: 'https://api.example.com',
-                            helperText: formT.apiUrlHint,
+                            helperText: context.t.auth.firebaseForm.apiUrlHint,
                             helperMaxLines: 2,
                             errorMaxLines: 2,
                             border: const OutlineInputBorder(),
@@ -200,13 +208,16 @@ class SelfHostedSetupForm extends HookWidget {
                                 !['http', 'https'].contains(uri.scheme) ||
                                 uri.host.isEmpty ||
                                 RegExp(r'\s').hasMatch(text)) {
-                              return formT.invalidApiUrl;
+                              return context.t.auth.firebaseForm.invalidApiUrl;
                             }
                             return null;
                           },
                         ),
                         const SizedBox(height: 24),
-                        Text(formT.serviceAccount, style: textTheme.titleSmall),
+                        Text(
+                          context.t.auth.firebaseForm.serviceAccount,
+                          style: textTheme.titleSmall,
+                        ),
                         const SizedBox(height: 8),
                         OutlinedButton.icon(
                           onPressed: isPicking.value ? null : pickAccount,
@@ -223,8 +234,16 @@ class SelfHostedSetupForm extends HookWidget {
                               : const Icon(Icons.upload_file_outlined),
                           label: Text(
                             selected == null
-                                ? formT.selectServiceAccount
-                                : formT.replaceServiceAccount,
+                                ? context
+                                      .t
+                                      .auth
+                                      .firebaseForm
+                                      .selectServiceAccount
+                                : context
+                                      .t
+                                      .auth
+                                      .firebaseForm
+                                      .replaceServiceAccount,
                           ),
                         ),
                         if (selected != null)
@@ -236,7 +255,11 @@ class SelfHostedSetupForm extends HookWidget {
                             ),
                             subtitle: Text(selected.projectId),
                             trailing: IconButton(
-                              tooltip: formT.removeServiceAccount,
+                              tooltip: context
+                                  .t
+                                  .auth
+                                  .firebaseForm
+                                  .removeServiceAccount,
                               onPressed: isPicking.value ? null : clearAccount,
                               icon: const Icon(Icons.close),
                             ),
@@ -253,16 +276,22 @@ class SelfHostedSetupForm extends HookWidget {
                           ),
                         const SizedBox(height: 8),
                         Text(
-                          formT.serviceAccountHint,
+                          context.t.auth.firebaseForm.serviceAccountHint,
                           style: textTheme.bodySmall,
                         ),
                         const SizedBox(height: 24),
                         TextFormField(
                           controller: name,
                           decoration: InputDecoration(
-                            labelText: formT.optionalProfileName,
-                            hintText: formT.profileNameHint,
-                            helperText: formT.automaticProfileName,
+                            labelText:
+                                context.t.auth.firebaseForm.optionalProfileName,
+                            hintText:
+                                context.t.auth.firebaseForm.profileNameHint,
+                            helperText: context
+                                .t
+                                .auth
+                                .firebaseForm
+                                .automaticProfileName,
                             helperMaxLines: 2,
                             border: const OutlineInputBorder(),
                           ),
@@ -270,7 +299,7 @@ class SelfHostedSetupForm extends HookWidget {
                       ],
                       const SizedBox(height: 20),
                       Text(
-                        formT.credentialsNotSaved,
+                        context.t.auth.firebaseForm.credentialsNotSaved,
                         style: textTheme.bodySmall?.copyWith(
                           color: colors.onSurfaceVariant,
                         ),
@@ -289,11 +318,11 @@ class SelfHostedSetupForm extends HookWidget {
                   if (isReviewing.value) ...[
                     FilledButton(
                       onPressed: null,
-                      child: Text(formT.startSetup),
+                      child: Text(context.t.auth.firebaseForm.startSetup),
                     ),
                     TextButton(
                       onPressed: () => isReviewing.value = false,
-                      child: Text(formT.editSetup),
+                      child: Text(context.t.auth.firebaseForm.editSetup),
                     ),
                   ] else
                     FilledButton(
@@ -302,18 +331,22 @@ class SelfHostedSetupForm extends HookWidget {
                           : () {
                               final valid = formKey.currentState!.validate();
                               if (account.value == null) {
-                                fileError.value = formT.serviceAccountRequired;
+                                fileError.value = context
+                                    .t
+                                    .auth
+                                    .firebaseForm
+                                    .serviceAccountRequired;
                               }
                               if (!valid || account.value == null) return;
                               FocusScope.of(context).unfocus();
                               isReviewing.value = true;
                             },
-                      child: Text(formT.reviewSetup),
+                      child: Text(context.t.auth.firebaseForm.reviewSetup),
                     ),
                   TextButton(
                     onPressed: () =>
                         Navigator.pop(context, SelfHostedSetupAction.manual),
-                    child: Text(formT.manualSetup),
+                    child: Text(context.t.auth.firebaseForm.manualSetup),
                   ),
                 ],
               ),

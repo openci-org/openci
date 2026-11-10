@@ -42,20 +42,23 @@ class GitHubConnectionPage extends HookConsumerWidget {
     if (candidates.connectionState != ConnectionState.done) {
       content = const CircularProgressIndicator.adaptive();
     } else if (error != null) {
-      content = Text(_errorMessage(error), textAlign: TextAlign.center);
+      content = Text(
+        _errorMessage(context, error),
+        textAlign: TextAlign.center,
+      );
     } else if (candidates.requireData.candidates.isEmpty) {
       content = ListView(
         shrinkWrap: true,
         children: [
           Text(
-            t.team.gitHubConnectionTeam(
+            context.t.team.gitHubConnectionTeam(
               name: ref.watch(selectedTeamProvider).requireValue.name,
             ),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 16),
           Text(
-            t.team.gitHubConnectionNoCandidates,
+            context.t.team.gitHubConnectionNoCandidates,
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 16),
@@ -81,7 +84,7 @@ class GitHubConnectionPage extends HookConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(t.team.connectGitHub),
+        title: Text(context.t.team.connectGitHub),
         leading: CloseButton(onPressed: () => context.go('/')),
       ),
       body: Center(
@@ -115,7 +118,7 @@ class GitHubConnectionPage extends HookConsumerWidget {
     _requireMatchingContext(ref, initiatingContext);
     if (!context.mounted) return;
     ref.invalidate(teamListProvider);
-    context.showSnackBarMessage(t.team.gitHubConnectionCompleted);
+    context.showSnackBarMessage(context.t.team.gitHubConnectionCompleted);
     context.go('/');
   }
 
@@ -189,11 +192,11 @@ class GitHubConnectionPage extends HookConsumerWidget {
     }
   }
 
-  String _errorMessage(Object? error) => switch (error) {
+  String _errorMessage(BuildContext context, Object? error) => switch (error) {
     GitHubConnectionReturnError.accessDenied =>
-      t.team.gitHubConnectionCancelled,
+      context.t.team.gitHubConnectionCancelled,
     GitHubConnectionReturnError.connectionFailed =>
-      t.team.gitHubConnectionCheckFailed,
-    _ => t.team.gitHubConnectionRestartRequired,
+      context.t.team.gitHubConnectionCheckFailed,
+    _ => context.t.team.gitHubConnectionRestartRequired,
   };
 }

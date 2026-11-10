@@ -83,29 +83,31 @@ void main() {
     );
 
     await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          connectionStoreProvider.overrideWithValue(store),
-          activeConnectionProfileProvider(store).overrideWithBuild(
-            (ref, notifier) => profile,
-          ),
-          currentUserIdProvider.overrideWithValue('user-123'),
-          teamListProvider.overrideWith(
-            (ref) async => [
-              team.copyWith(id: 'other-team', name: 'Other team'),
-              team,
-            ],
-          ),
-          selectedTeamProvider.overrideWith((ref) async => team),
-          githubConnectionApiProvider.overrideWith((ref) async => api),
-        ],
-        child: MaterialApp(
-          home: Scaffold(
-            body: SwitchTeamBottomSheet(
-              onMembers: () {},
-              onInvite: () {},
-              onEdit: () {},
-              onDelete: () {},
+      TranslationProvider(
+        child: ProviderScope(
+          overrides: [
+            connectionStoreProvider.overrideWithValue(store),
+            activeConnectionProfileProvider(store).overrideWithBuild(
+              (ref, notifier) => profile,
+            ),
+            currentUserIdProvider.overrideWithValue('user-123'),
+            teamListProvider.overrideWith(
+              (ref) async => [
+                team.copyWith(id: 'other-team', name: 'Other team'),
+                team,
+              ],
+            ),
+            selectedTeamProvider.overrideWith((ref) async => team),
+            githubConnectionApiProvider.overrideWith((ref) async => api),
+          ],
+          child: MaterialApp(
+            home: Scaffold(
+              body: SwitchTeamBottomSheet(
+                onMembers: () {},
+                onInvite: () {},
+                onEdit: () {},
+                onDelete: () {},
+              ),
             ),
           ),
         ),

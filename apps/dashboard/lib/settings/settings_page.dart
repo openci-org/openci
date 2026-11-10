@@ -8,14 +8,15 @@ import 'package:dashboard/connections/connection_store_provider.dart';
 import 'package:dashboard/connections/local_development_connection.dart';
 import 'package:dashboard/connections/select_connection_profile.dart';
 import 'package:dashboard/settings/email_verification_settings.dart';
+import 'package:dashboard/settings/language_selector.dart';
 import 'package:dashboard/team/team_provider.dart';
 import 'package:dashboard/utilities/macos_updater_initializer.dart';
 import 'package:dashboard/utilities/snack_bar_extension.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
-import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:macos_updater/macos_updater.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -29,13 +30,12 @@ class SettingsPage extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isDeleting = useState(false);
-    final settingsT = t.settings;
 
     return Scaffold(
       backgroundColor: Colors.transparent,
       appBar: AppBar(
         title: Text(
-          settingsT.title,
+          context.t.settings.title,
         ),
       ),
       body: Stack(
@@ -47,13 +47,13 @@ class SettingsPage extends HookConsumerWidget {
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
                 children: [
                   if (ref.watch(billingIdentityProvider) != null) ...[
-                    const _SectionHeader(label: '課金'),
+                    _SectionHeader(label: context.t.billing.title),
                     _SettingsGroup(
                       children: [
                         _SettingsItem(
                           icon: Symbols.credit_card_rounded,
-                          title: '課金を管理',
-                          subtitle: 'チームのプラン・請求・支払い方法',
+                          title: context.t.settings.manageBilling,
+                          subtitle: context.t.settings.billingDescription,
                           onTap: () {
                             final selected = ref.read(selectedTeamProvider);
                             final teamId =
@@ -72,34 +72,39 @@ class SettingsPage extends HookConsumerWidget {
                     ),
                     const SizedBox(height: 20),
                   ],
-                  _SectionHeader(label: settingsT.preferences),
+                  _SectionHeader(label: context.t.settings.preferences),
                   _SettingsGroup(
                     children: [
                       const _AppVersionTile(),
                       const _GroupDivider(),
+                      const Padding(
+                        padding: EdgeInsets.all(16),
+                        child: LanguageSelector(),
+                      ),
                       if (isMacosUpdaterSupportedPlatform) ...[
                         const _GroupDivider(),
                         _SettingsItem(
                           icon: Icons.system_update_alt_rounded,
-                          title: settingsT.checkForUpdates,
-                          subtitle: settingsT.checkForUpdatesDescription,
+                          title: context.t.settings.checkForUpdates,
+                          subtitle:
+                              context.t.settings.checkForUpdatesDescription,
                           trailingIcon: null,
                           onTap: () async {
                             try {
                               context.showSnackBarMessage(
-                                'アップデートを確認しています...',
+                                context.t.settings.checkingUpdates,
                               );
                               final result = await checkForMacosUpdates();
                               if (!context.mounted) return;
                               context.showSnackBarMessage(
-                                _formatUpdateCheckResult(result),
+                                _formatUpdateCheckResult(context, result),
                               );
                             } catch (e, s) {
                               debugPrint(e.toString());
                               debugPrint(s.toString());
                               if (!context.mounted) return;
                               context.showSnackBarMessage(
-                                settingsT.checkForUpdatesFailed(
+                                context.t.settings.checkForUpdatesFailed(
                                   error: e.toString(),
                                 ),
                               );
@@ -110,22 +115,22 @@ class SettingsPage extends HookConsumerWidget {
                     ],
                   ),
                   const SizedBox(height: 20),
-                  const _SectionHeader(label: 'カンバン'),
+                  _SectionHeader(label: context.t.settings.teamSection),
                   _SettingsGroup(
                     children: [
                       _TeamSettingsTile(onSwitchTeam: onSwitchTeam),
                     ],
                   ),
                   const SizedBox(height: 20),
-                  const _SectionHeader(label: 'アカウント'),
+                  _SectionHeader(label: context.t.settings.account),
                   _SettingsGroup(
                     children: [
                       const EmailVerificationSettings(),
                       const _GroupDivider(),
                       _SettingsItem(
                         icon: Icons.logout_rounded,
-                        title: settingsT.logout,
-                        subtitle: '現在のアカウントからサインアウト',
+                        title: context.t.settings.logout,
+                        subtitle: context.t.settings.logoutDescription,
                         trailingIcon: null,
                         onTap: () => unawaited(_signOut(context, ref)),
                       ),
@@ -149,34 +154,38 @@ class SettingsPage extends HookConsumerWidget {
   }
 }
 
-String _formatUpdateCheckResult(MacosUpdaterCheckResult result) {
+String _formatUpdateCheckResult(
+  BuildContext context,
+  MacosUpdaterCheckResult result,
+) {
   return switch (result.type) {
     MacosUpdaterCheckResultType.updateAvailable =>
       result.displayVersion == null || result.displayVersion!.isEmpty
-          ? '新しいアップデートがあります'
-          : '新しいアップデートがあります: v${result.displayVersion}',
-    MacosUpdaterCheckResultType.noUpdateFound => '利用可能なアップデートはありません',
+          ? context.t.settings.updateAvailable
+          : context.t.settings.updateVersionAvailable(
+              version: result.displayVersion!,
+            ),
+    MacosUpdaterCheckResultType.noUpdateFound => context.t.settings.noUpdate,
     MacosUpdaterCheckResultType.failed =>
       result.message.isEmpty
-          ? 'アップデート確認に失敗しました'
-          : 'アップデート確認に失敗しました: ${result.message}',
+          ? context.t.settings.updateCheckFailed
+          : context.t.settings.checkForUpdatesFailed(error: result.message),
   };
 }
 
 Future<void> _signOut(BuildContext context, WidgetRef ref) async {
-  final settingsT = t.settings;
   try {
     final auth = await ref.read(firebaseAuthProvider.future);
     await auth.signOut();
 
     if (!context.mounted) return;
-    context.showSnackBarMessage(settingsT.logoutSuccess);
+    context.showSnackBarMessage(context.t.settings.logoutSuccess);
   } catch (e, s) {
     debugPrint(e.toString());
     debugPrint(s.toString());
     if (!context.mounted) return;
     context.showSnackBarMessage(
-      settingsT.logoutFailed(error: e.toString()),
+      context.t.settings.logoutFailed(error: e.toString()),
     );
   }
 }
@@ -392,23 +401,23 @@ class _TeamSettingsTile extends ConsumerWidget {
         if (switchTeam == null) {
           return _SettingsInfoItem(
             icon: Icons.groups_2_outlined,
-            title: 'チーム',
+            title: context.t.team.selectTeamLabel,
             subtitle: team.name,
           );
         }
 
         return _SettingsItem(
           icon: Icons.groups_2_outlined,
-          title: 'チーム',
+          title: context.t.team.selectTeamLabel,
           subtitle: team.name,
           trailingIcon: Icons.expand_more_rounded,
           onTap: switchTeam,
         );
       },
-      loading: () => const _SettingsInfoItem(
+      loading: () => _SettingsInfoItem(
         icon: Icons.groups_2_outlined,
-        title: 'チーム',
-        subtitle: '読み込み中...',
+        title: context.t.team.selectTeamLabel,
+        subtitle: context.t.common.loading,
       ),
       error: (error, stackTrace) {
         debugPrint('error: $error, stackTrace: $stackTrace');
@@ -417,8 +426,8 @@ class _TeamSettingsTile extends ConsumerWidget {
         );
         return _SettingsInfoItem(
           icon: Icons.groups_2_outlined,
-          title: 'チーム',
-          subtitle: 'チーム情報を読み込めませんでした',
+          title: context.t.team.selectTeamLabel,
+          subtitle: context.t.settings.teamLoadFailed,
         );
       },
     );
@@ -468,7 +477,7 @@ class _AppVersionTile extends HookWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    t.settings.appVersion,
+                    context.t.settings.appVersion,
                     style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
@@ -497,7 +506,6 @@ class _ConnectionIndicator extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final settingsT = t.settings;
     final isSwitching = useState(false);
     final store = ref.watch(connectionStoreProvider);
     final activeProfile = ref.watch(activeConnectionProfileProvider(store));
@@ -599,7 +607,7 @@ class _ConnectionIndicator extends HookConsumerWidget {
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
                     : Text(
-                        settingsT.returnToCloud,
+                        context.t.settings.returnToCloud,
                         style: const TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
@@ -621,7 +629,6 @@ class _DeleteAccountButton extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final settingsT = t.settings;
     return SizedBox(
       width: double.infinity,
       child: TextButton(
@@ -636,7 +643,7 @@ class _DeleteAccountButton extends ConsumerWidget {
             ? null
             : () => _showDeleteConfirmationDialog(context, ref),
         child: Text(
-          settingsT.deleteAccount,
+          context.t.settings.deleteAccount,
           style: const TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w500,
@@ -650,21 +657,20 @@ class _DeleteAccountButton extends ConsumerWidget {
     BuildContext context,
     WidgetRef ref,
   ) async {
-    final settingsT = t.settings;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(settingsT.deleteConfirmTitle),
-        content: Text(settingsT.deleteConfirmMessage),
+        title: Text(context.t.settings.deleteConfirmTitle),
+        content: Text(context.t.settings.deleteConfirmMessage),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: Text(t.common.cancel),
+            child: Text(context.t.common.cancel),
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
             child: Text(
-              t.common.delete,
+              context.t.common.delete,
               style: TextStyle(
                 color: Theme.of(context).colorScheme.error,
               ),
@@ -680,30 +686,30 @@ class _DeleteAccountButton extends ConsumerWidget {
   }
 
   Future<void> _deleteAccount(BuildContext context, WidgetRef ref) async {
-    final settingsT = t.settings;
     isDeleting.value = true;
     try {
       final auth = await ref.read(firebaseAuthProvider.future);
+      if (!context.mounted) return;
       final user = auth.currentUser;
       if (user == null) {
-        throw Exception(settingsT.noUserSignedIn);
+        throw Exception(context.t.settings.noUserSignedIn);
       }
       await user.delete();
       if (!context.mounted) return;
-      context.showSnackBarMessage(settingsT.deleteSuccess);
+      context.showSnackBarMessage(context.t.settings.deleteSuccess);
     } on FirebaseAuthException catch (e) {
       if (!context.mounted) return;
       if (e.code == 'requires-recent-login') {
-        context.showSnackBarMessage(settingsT.requiresRecentLogin);
+        context.showSnackBarMessage(context.t.settings.requiresRecentLogin);
       } else {
         context.showSnackBarMessage(
-          settingsT.deleteFailed(error: e.message ?? e.code),
+          context.t.settings.deleteFailed(error: e.message ?? e.code),
         );
       }
     } catch (e) {
       if (!context.mounted) return;
       context.showSnackBarMessage(
-        settingsT.deleteFailed(error: e.toString()),
+        context.t.settings.deleteFailed(error: e.toString()),
       );
     } finally {
       isDeleting.value = false;

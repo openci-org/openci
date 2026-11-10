@@ -1,0 +1,9 @@
+base_locale: en
+fallback_strategy: base_locale
+input_directory: lib/i18n
+output_directory: lib/i18n
+flutter_integration: true
+lazy: false
+timestamp: false
+format:
+  enabled: true

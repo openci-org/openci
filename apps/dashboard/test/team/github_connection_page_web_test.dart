@@ -4,13 +4,13 @@ library;
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:dashboard/team/github_connection_api.dart';
 import 'package:dashboard/app_strings.dart';
 import 'package:dashboard/auth/auth_provider.dart';
 import 'package:dashboard/connections/active_connection_profile_provider.dart';
 import 'package:dashboard/connections/connection_profile.dart';
 import 'package:dashboard/connections/connection_store.dart';
 import 'package:dashboard/connections/connection_store_provider.dart';
+import 'package:dashboard/team/github_connection_api.dart';
 import 'package:dashboard/team/github_connection_context.dart';
 import 'package:dashboard/team/github_connection_page.dart';
 import 'package:dashboard/team/github_connection_storage.dart';
@@ -22,10 +22,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
-import '../helpers/github_connection_callable.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher_platform_interface/link.dart';
 import 'package:url_launcher_platform_interface/url_launcher_platform_interface.dart';
+
+import '../helpers/github_connection_callable.dart';
 
 void main() {
   const profile = ConnectionProfile(
@@ -178,9 +179,11 @@ void main() {
     );
     addTearDown(router.dispose);
     await tester.pumpWidget(
-      UncontrolledProviderScope(
-        container: container,
-        child: MaterialApp.router(routerConfig: router),
+      TranslationProvider(
+        child: UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp.router(routerConfig: router),
+        ),
       ),
     );
     await tester.pump();

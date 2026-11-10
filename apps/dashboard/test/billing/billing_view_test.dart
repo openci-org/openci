@@ -1,3 +1,4 @@
+import 'package:dashboard/app_strings.dart';
 import 'package:dashboard/billing/billing_status.dart';
 import 'package:dashboard/billing/billing_view.dart';
 import 'package:flutter/material.dart';
@@ -18,29 +19,31 @@ void main() {
     VoidCallback? portal,
     VoidCallback? reload,
   }) => tester.pumpWidget(
-    MaterialApp(
-      home: Scaffold(
-        body: Center(
-          child: SizedBox(
-            width: 640,
-            child: BillingView(
-              teamName: 'チームA',
-              status: BillingStatus(
-                billingEnabled: enabled,
-                planId: planId,
-                canStartCi: canStart,
-                blockReason: blockReason,
-                paidUntil: null,
-                canCheckout: canCheckout,
-                canManageBilling: canManage,
-                cancelAtPeriodEnd: false,
-                cardSetupStatus: card,
+    TranslationProvider(
+      child: MaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: SizedBox(
+              width: 640,
+              child: BillingView(
+                teamName: 'チームA',
+                status: BillingStatus(
+                  billingEnabled: enabled,
+                  planId: planId,
+                  canStartCi: canStart,
+                  blockReason: blockReason,
+                  paidUntil: null,
+                  canCheckout: canCheckout,
+                  canManageBilling: canManage,
+                  cancelAtPeriodEnd: false,
+                  cardSetupStatus: card,
+                ),
+                pending: pending,
+                returnedFromStripe: returned,
+                onPortal: portal ?? () {},
+                onSetupCard: () {},
+                onReload: reload ?? () {},
               ),
-              pending: pending,
-              returnedFromStripe: returned,
-              onPortal: portal ?? () {},
-              onSetupCard: () {},
-              onReload: reload ?? () {},
             ),
           ),
         ),

@@ -1,3 +1,4 @@
+import 'package:dashboard/app_strings.dart';
 import 'package:dashboard/auth/auth_provider.dart';
 import 'package:dashboard/connections/active_connection_profile_provider.dart';
 import 'package:dashboard/connections/connection_firebase_auth.dart';
@@ -18,8 +19,8 @@ class Root extends ConsumerWidget {
 
     return MaterialApp.router(
       debugShowCheckedModeBanner: false,
-      locale: const Locale('ja', 'JP'),
-      supportedLocales: const [Locale('ja', 'JP')],
+      locale: TranslationProvider.of(context).flutterLocale,
+      supportedLocales: AppLocaleUtils.supportedLocales,
       localizationsDelegates: GlobalMaterialLocalizations.delegates,
       routerConfig: ref.watch(routerProvider),
       builder: (context, child) {
@@ -37,8 +38,8 @@ class Root extends ConsumerWidget {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Text(
-                        '認証状態を確認できませんでした。',
+                      Text(
+                        context.t.auth.stateError,
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 16),
@@ -48,7 +49,7 @@ class Root extends ConsumerWidget {
                           ref.invalidate(activeConnectionProfileProvider);
                           ref.invalidate(authStateChangesProvider);
                         },
-                        child: const Text('再試行'),
+                        child: Text(context.t.common.retry),
                       ),
                     ],
                   ),
