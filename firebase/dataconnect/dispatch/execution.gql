@@ -160,6 +160,7 @@ mutation ConfigureBuildExecutionRun($id: String!, $jobId: String!, $executorId: 
       ) {
       jobId
       runId
+      teamId
       executorId
       state
       finishedAt
@@ -170,9 +171,33 @@ mutation ConfigureBuildExecutionRun($id: String!, $jobId: String!, $executorId: 
       runCount
     }
   }
+  # Lock the team before the job, as in admission. Check historical numbers once per team.
+  allocation: _executeReturningFirst(
+    sql: """
+    UPDATE teams AS t
+    SET run_number = 1 + CASE
+          WHEN t.run_number_reconciled THEN t.run_number
+          ELSE GREATEST(t.run_number, (
+            SELECT COALESCE(MAX(r.run_number), 0) + 1
+            FROM build_runs r JOIN build_jobs j ON j.id = r.build_job_id
+            WHERE j.team_id = t.id
+          ))
+        END,
+        run_number_reconciled = TRUE
+    WHERE t.id = $1::text AND t.run_number > 0
+    RETURNING (run_number - 1)::text AS number
+    """
+    params: [{ _expr: "response.query.dispatch.teamId" }]
+  )
+    @redact
+    @check(
+      expr: "this != null && int(this.number) <= 9007199254740991"
+      message: "Invalid team run number"
+    )
   buildJob_updateMany(
     where: {
       id: { eq: $jobId }
+      teamId: { eq_expr: "response.query.dispatch.teamId" }
       latestRunId: { eq_expr: "response.query.dispatch.runId" }
       status: { eq: "IN_PROGRESS" }
       runCount: { eq_expr: "response.query.job.runCount" }
@@ -190,7 +215,7 @@ mutation ConfigureBuildExecutionRun($id: String!, $jobId: String!, $executorId: 
       runNumber: { isNull: true }
     }
     data: {
-      runNumber_expr: "int(response.query.job.runCount) + 1"
+      runNumber_expr: "int(response.allocation.number)"
       logsExpireAt_expr: "request.time + duration('1209600s')"
     }
   ) @check(expr: "this == 1", message: "Run is already configured or missing")
