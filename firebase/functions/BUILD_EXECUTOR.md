@@ -83,6 +83,15 @@ updated `dispatch` connector before deploying the executor that writes the messa
 Only the team's pinned Secret Manager versions are injected into the workflow.
 Google credentials, Orchard credentials and the GitHub App key never enter the VM.
 
+Both hosted and self-hosted runs get `OPENCI_RUN_NUMBER` from the team's next
+run number. The executor saves the assigned number on the run in the same
+transaction that advances the team counter. Repeated requests for that run
+return its stored number. GitHub Checks continue to use the per-job attempt count.
+
+Deploy the additive `teams.run_number_reconciled` column before the `dispatch`
+connector. On the first allocation for each team, the connector uses the greater
+of its saved next number and one above its highest previously assigned run number.
+
 The planner persists optional `OpenCI.init(flutterVersion: '3.47.8')` metadata
 on each job. Before dependency resolution, the executor validates the release,
 runs `fvm install VERSION --skip-pub-get` and `fvm global VERSION` from the VM's

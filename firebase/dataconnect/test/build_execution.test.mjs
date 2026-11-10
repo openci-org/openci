@@ -58,19 +58,12 @@ async function alterJob(id, data) {
   );
 }
 
-async function fixture(t, queuedCheck = false) {
-  const teamId = randomUUID(),
-    jobId = randomUUID(),
-    id = randomUUID();
+async function seedTeam(t) {
+  const teamId = randomUUID();
   const installationId = String(Math.floor(Math.random() * 1000000000) + 1);
   await graphql(
     `
-      mutation Seed(
-        $teamId: String!
-        $jobId: String!
-        $installationId: Int64!
-        $installationText: String!
-      ) @transaction {
+      mutation SeedTeam($teamId: String!, $installationId: Int64!) @transaction {
         team_insert(data: { id: $teamId, name: "Executor test", createdAt: 1, updatedAt: 1 })
         gitHubConnection_insert(
           data: {
@@ -88,6 +81,31 @@ async function fixture(t, queuedCheck = false) {
             status: "active"
           }
         )
+      }
+    `,
+    { teamId, installationId },
+  );
+  t.after(() =>
+    graphql(
+      `
+        mutation CleanupTeam($teamId: String!) @transaction {
+          billingAccount_deleteMany(where: { teamId: { eq: $teamId } })
+          team_delete(id: $teamId)
+        }
+      `,
+      { teamId },
+    ),
+  );
+  return { teamId, installationId };
+}
+
+async function fixture(t, queuedCheck = false, team) {
+  const { teamId, installationId } = team ?? (await seedTeam(t));
+  const jobId = randomUUID(),
+    id = randomUUID();
+  await graphql(
+    `
+      mutation SeedJob($teamId: String!, $jobId: String!, $installationText: String!) {
         buildJob_insert(
           data: {
             id: $jobId
@@ -108,19 +126,17 @@ async function fixture(t, queuedCheck = false) {
         )
       }
     `,
-    { teamId, jobId, installationId, installationText: installationId },
+    { teamId, jobId, installationText: installationId },
   );
   t.after(() =>
     graphql(
       `
-        mutation Cleanup($teamId: String!, $jobId: String!) @transaction {
+        mutation CleanupJob($jobId: String!) @transaction {
           buildJobDispatch_deleteMany(where: { jobId: { eq: $jobId } })
           buildJob_delete(id: $jobId)
-          billingAccount_deleteMany(where: { teamId: { eq: $teamId } })
-          team_delete(id: $teamId)
         }
       `,
-      { teamId, jobId },
+      { jobId },
     ),
   );
   if (queuedCheck) await alterJob(jobId, { checkRunId: "123", checkRunNumber: "1" });
@@ -155,7 +171,7 @@ async function fixture(t, queuedCheck = false) {
     jobId,
     executionName: `${cloudRunJob}/executions/build-executor-test`,
   };
-  let commands = 0;
+  const scripts = [];
   const dependencies = {
     store,
     billing,
@@ -186,13 +202,13 @@ async function fixture(t, queuedCheck = false) {
       remove: async () => {
         calls.push("remove");
       },
-      exec: async (_vm, _script, output) => {
-        commands++;
-        calls.push(commands === 1 ? "checkout" : "workflow");
+      exec: async (_vm, script, output) => {
+        scripts.push(script);
+        calls.push(scripts.length === 1 ? "checkout" : "workflow");
         await output(
           "stdout",
           Buffer.from(
-            commands === 1 ? "checkout-token\nchecked out\n" : "workflow-secret\nfinished\n",
+            scripts.length === 1 ? "checkout-token\nchecked out\n" : "workflow-secret\nfinished\n",
           ),
         );
         return 0;
@@ -214,6 +230,7 @@ async function fixture(t, queuedCheck = false) {
     input,
     dependencies,
     calls,
+    scripts,
     checks,
     reports,
     run: (signal) => executeBuild(input, dependencies, signal),
@@ -311,12 +328,17 @@ async function prepareSupersedingRevision(t, f, closed = false) {
 
 test("Cloud Run executor completes checkout, workflow, FSC logs, billing, checks and VM cleanup", async (t) => {
   const f = await fixture(t);
+  await graphql(
+    "mutation SeedCounter($id: String!) { team_update(id: $id, data: { runNumber: 41 }) }",
+    { id: f.teamId },
+  );
   await f.run();
   const state = await f.state();
   assert.equal(state.job.status, "SUCCESS", JSON.stringify(f.reports));
   assert.equal(state.job.pullRequestNumber, null, "Push jobs return explicit null provenance");
   assert.equal(state.job.runCount, "1");
-  assert.equal(state.run.runNumber, "1");
+  assert.equal(state.run.runNumber, "41");
+  assert.match(f.scripts[1], /^export OPENCI_RUN_NUMBER='41'$/m);
   assert.equal(state.run.conclusion, "success");
   assert.equal(state.dispatch.activeJobId, null);
   assert.ok(state.dispatch.vmDeletedAt && state.dispatch.finishedAt);
@@ -354,6 +376,72 @@ test("Cloud Run executor completes checkout, workflow, FSC logs, billing, checks
   assert.ok(Date.parse(logs.buildRun.logsExpireAt) > Date.now());
   await f.run();
   assert.equal(f.calls.filter((call) => call === "create").length, 1);
+});
+
+test("concurrent jobs share the team's run sequence and retrying an allocation reuses its number", async (t) => {
+  const team = await seedTeam(t);
+  const retry = await fixture(t, false, team);
+  const fresh = await fixture(t, false, team);
+  const otherTeam = await fixture(t);
+  const previousRunId = randomUUID();
+  await graphql(
+    `
+      mutation SeedHistory($runId: String!, $jobId: String!) @transaction {
+        buildRun_insert(
+          data: {
+            id: $runId
+            buildJobId: $jobId
+            runNumber: 7
+            status: "completed"
+            createdAt: 1
+            updatedAt: 1
+          }
+        )
+        buildJob_update(id: $jobId, data: { latestRunId: $runId, runCount: 1 })
+      }
+    `,
+    { runId: previousRunId, jobId: retry.jobId },
+  );
+
+  const [retryRun, freshRun, independentRun] = await Promise.all(
+    [retry, fresh, otherTeam].map(async (job) => {
+      const executorId = await job.claim();
+      const { dispatch } = await job.state();
+      const number = await store.configure(dispatch, executorId, true);
+      return { dispatch, executorId, number };
+    }),
+  );
+  assert.deepEqual(
+    [retryRun.number, freshRun.number].sort((left, right) => left - right),
+    [8, 9],
+  );
+  assert.equal(independentRun.number, 1);
+  assert.equal(
+    await store.configure(retryRun.dispatch, retryRun.executorId, true),
+    retryRun.number,
+  );
+  assert.equal((await retry.state()).job.runCount, "2");
+  assert.equal((await fresh.state()).job.runCount, "1");
+
+  const saved = await graphql(
+    `
+      query ReadCounters($team: String!, $other: String!, $previousRun: String!) {
+        team(id: $team) {
+          runNumber
+        }
+        other: team(id: $other) {
+          runNumber
+        }
+        previous: buildRun(id: $previousRun) {
+          runNumber
+        }
+      }
+    `,
+    { team: team.teamId, other: otherTeam.teamId, previousRun: previousRunId },
+  );
+  assert.equal(saved.team.runNumber, "10");
+  assert.equal(saved.other.runNumber, "2");
+  assert.equal(saved.previous.runNumber, "7");
 });
 
 test("self-hosted executor creates a real run, logs and checks without a billing ledger", async (t) => {
