@@ -8,7 +8,7 @@ import 'package:http/http.dart' as http;
 
 import '../../quote_shell_argument.dart';
 
-Future<void> deployApkToFirebaseAppDistribution({
+Future<Uri> deployApkToFirebaseAppDistribution({
   required Future<void> Function(String command, {String? workingDirectory})
   run,
   required String apkPath,
@@ -47,7 +47,10 @@ Future<void> deployApkToFirebaseAppDistribution({
     }
     stdout.writeln('Uploading APK to Firebase App Distribution...');
     final release = await _uploadApk(client, apk, appName);
-    stdout.writeln('Firebase App Distribution upload complete: $release');
+    stdout.writeln(
+      'Firebase App Distribution upload complete: ${release.name}',
+    );
+    return release.testingUri;
   } finally {
     client?.close();
     baseClient.close();
@@ -94,7 +97,11 @@ Future<File> _resolveApk(
   }
 }
 
-Future<String> _uploadApk(http.Client client, File apk, String appName) async {
+Future<({String name, Uri testingUri})> _uploadApk(
+  http.Client client,
+  File apk,
+  String appName,
+) async {
   var operation = await _request(
     client,
     _ApkUploadRequest(
@@ -160,7 +167,21 @@ Future<String> _uploadApk(http.Client client, File apk, String appName) async {
       ).hasMatch(releaseName)) {
     throw StateError('Firebase returned an invalid uploaded release.');
   }
-  return releaseName;
+  final appId = appName.split('/').last;
+  final releaseId = releaseName.split('/').last;
+  final path = '/testerapps/$appId/releases/$releaseId';
+  // A name-only upload response also identifies the tester page.
+  final value =
+      release['testingUri'] ??
+      Uri.https('appdistribution.firebase.google.com', path).toString();
+  final uri = value is String ? Uri.tryParse(value) : null;
+  if (uri == null ||
+      uri.scheme != 'https' ||
+      uri.authority != 'appdistribution.firebase.google.com' ||
+      uri.path != path) {
+    throw StateError('Firebase returned an invalid release tester link.');
+  }
+  return (name: releaseName, testingUri: uri);
 }
 
 Future<Map<String, dynamic>> _request(

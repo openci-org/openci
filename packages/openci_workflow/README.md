@@ -291,16 +291,19 @@ The returned absolute path is `build/app/outputs/flutter-apk/app-release.apk`, o
 Upload a built APK to Firebase App Distribution:
 
 ```dart
-await openCI.flutter.deployApkToFirebaseAppDistribution(
+final testerUrl = await openCI.flutter.deployApkToFirebaseAppDistribution(
   apkPath: 'build/app/outputs/flutter-apk/app-release.apk',
   appId: '1:123456789:android:abcdef',
   serviceAccountJsonBase64: Secrets.firebaseServiceAccountJsonBase64.value,
 );
+await openCI.pullRequest.postQrCode(url: testerUrl, lang: PostQrCodeLang.ja);
 ```
 
 Pass the Android Firebase App ID from your Firebase project settings or the matching client's `client_info.mobilesdk_app_id` in `google-services.json`. Pass the Base64-encoded service account JSON key from your CI secrets; the account needs the [Firebase App Distribution Admin role](https://firebase.google.com/docs/app-distribution/authenticate-service-account?platform=android). Credentials stay in memory. Relative `apkPath` values use the workflow directory, or `dir` when specified.
 
 The helper streams the APK to the [Firebase App Distribution REST API](https://firebase.google.com/docs/reference/app-distribution/rest/v1/upload.v1.projects.apps.releases/upload) and waits for processing to finish. Authentication is limited to 60 seconds, upload to 10 minutes, and processing to 5 minutes. Missing or empty APKs, invalid App IDs, authentication failures, and upload or processing errors fail the workflow. This API uploads the release without distributing it to testers.
+
+The upload returns the release's Firebase tester URL as a `Uri`. The optional `postQrCode` call shares it with the PR. Testers still need access to the release in Firebase.
 
 Upload a built Android App Bundle to Firebase App Distribution:
 
