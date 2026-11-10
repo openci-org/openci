@@ -8,19 +8,14 @@ Future<void> main() async {
       CITrigger.pullRequest(
         branch: '*',
         paths: [
-          'firebase/functions/**',
-          'firebase/generated/**',
-          'firebase/scripts/**',
-          'firebase/healthcheck.ts',
-          'firebase/package.json',
-          'firebase/tsconfig*.json',
+          'firebase/{functions,generated,scripts}/**',
+          'firebase/{healthcheck.ts,package.json,tsconfig*.json}',
           'package.json',
           'package-lock.json',
           'vite.config.mts',
           '.node-version',
           'openci/firebase_functions_ci.dart',
-          'packages/openci_workflow/**',
-          'packages/pubspec_version_hook/**',
+          'packages/{openci_workflow,pubspec_version_hook}/**',
           'openci/generated/**',
           '**/pubspec.yaml',
           'pubspec.lock',
@@ -30,19 +25,14 @@ Future<void> main() async {
       CITrigger.push(
         branch: 'develop',
         paths: [
-          'firebase/functions/**',
-          'firebase/generated/**',
-          'firebase/scripts/**',
-          'firebase/healthcheck.ts',
-          'firebase/package.json',
-          'firebase/tsconfig*.json',
+          'firebase/{functions,generated,scripts}/**',
+          'firebase/{healthcheck.ts,package.json,tsconfig*.json}',
           'package.json',
           'package-lock.json',
           'vite.config.mts',
           '.node-version',
           'openci/firebase_functions_ci.dart',
-          'packages/openci_workflow/**',
-          'packages/pubspec_version_hook/**',
+          'packages/{openci_workflow,pubspec_version_hook}/**',
           'openci/generated/**',
           '**/pubspec.yaml',
           'pubspec.lock',
@@ -50,9 +40,7 @@ Future<void> main() async {
         ],
       ),
     ],
-    currentWorkingDirectory: 'firebase',
   );
 
-  // Bootstrap the pinned runtime; CI VMs may not have Node.js/npm installed.
-  await openCI.run('bash scripts/ci.sh');
+  await openCI.run('bash firebase/scripts/ci.sh');
 }
