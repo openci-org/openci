@@ -5,6 +5,8 @@ import 'dart:math';
 
 import 'package:http/http.dart' as http;
 
+import '../../pull_request_release_metadata.dart';
+
 String firebaseAppName(String appId) {
   final match = RegExp(r'^\d+:(\d+):ios:[a-zA-Z0-9]+$').firstMatch(appId);
   if (match == null) {
@@ -135,6 +137,11 @@ class FirebaseAppDistributionClient {
         uri.path != path) {
       throw StateError('Firebase returned an invalid release tester link.');
     }
+    await rememberPullRequestRelease(
+      uri,
+      version: release['displayVersion'] as String?,
+      buildNumber: release['buildVersion'] as String?,
+    );
     return (name: releaseName, testingUri: uri);
   }
 

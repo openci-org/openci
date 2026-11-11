@@ -84,8 +84,16 @@ Only the team's pinned Secret Manager versions are injected into the workflow.
 Google credentials, Orchard credentials and the GitHub App key never enter the VM.
 
 `openCI.pullRequest.postQrCode` requests a QR code for a workflow-supplied URL.
-After the workflow succeeds, Cloud Run validates the URLs, language, and size
-values and checks the current PR head. It renders the URLs locally, stores the images
+After the workflow succeeds, Cloud Run validates the URLs, language, size, and
+optional app version/build values and checks the current PR head. SDK 0.2.7 retains
+Firebase App Distribution's `displayVersion` and `buildVersion` for each exact tester
+URL and writes optional `metadata.json` alongside each completed QR request.
+The bounded runner output frames URL records and metadata separately. Legacy URL
+files remain supported, and older executors simply ignore the metadata file.
+Comments display the registered workflow name and any known app version/build
+number; the CI sequence stays in the ownership marker for update ordering only.
+Missing app fields are omitted rather than replaced with the CI run number.
+It renders the URLs locally, stores the images
 on `genuineci/pr-qr` in the source repository, and updates its existing comment
 for that PR and workflow file. A SQL Connect lease serializes comment creation
 and edits. A newer run in the same team takes precedence over an earlier run.

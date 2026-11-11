@@ -9,9 +9,20 @@ export const qrPublicationFailure =
   "GenuineCI could not publish the QR code to this pull request. Check the GitHub App's Contents and Pull requests write permissions and the genuineci/pr-qr branch rules.";
 const maxUrls = 8;
 const maxUrlBytes = 2331; // QR version 40, byte mode, medium error correction.
+const maxReleaseMetadataBytes = 2048;
 const commentText = {
-  en: { heading: "QR code · Run", alt: "QR code for this link" },
-  ja: { heading: "QRコード · 実行", alt: "このリンクのQRコード" },
+  en: {
+    workflow: "Workflow name",
+    version: "Version",
+    buildNumber: "Build number",
+    alt: "QR code for this link",
+  },
+  ja: {
+    workflow: "ワークフロー名",
+    version: "バージョン",
+    buildNumber: "ビルド番号",
+    alt: "このリンクのQRコード",
+  },
 } as const;
 const defaultQrDimension = 180;
 const maxQrDimension = 1000;
@@ -20,6 +31,8 @@ export type PullRequestQrCode = {
   lang: keyof typeof commentText;
   width: number;
   height: number;
+  version?: string;
+  buildNumber?: string;
 };
 export type WithQrCommentLease = (
   key: string,
@@ -31,6 +44,7 @@ function validatedQrCode(
   lang: string,
   width = defaultQrDimension,
   height = defaultQrDimension,
+  metadata: unknown = {},
 ): PullRequestQrCode {
   if (lang !== "en" && lang !== "ja") throw new Error("Invalid pull request QR language");
   if (
@@ -53,7 +67,37 @@ function validatedQrCode(
   ) {
     throw new Error("Invalid pull request QR URL");
   }
-  return { url, lang, width, height };
+  return { url, lang, width, height, ...validatedReleaseMetadata(metadata) };
+}
+
+function validatedReleaseMetadata(
+  metadata: unknown,
+): Pick<PullRequestQrCode, "version" | "buildNumber"> {
+  if (typeof metadata !== "object" || metadata === null || Array.isArray(metadata))
+    throw new Error("Invalid app release metadata");
+  const result: Pick<PullRequestQrCode, "version" | "buildNumber"> = {};
+  for (const field of ["version", "buildNumber"] as const) {
+    const value = (metadata as Record<string, unknown>)[field];
+    if (value === undefined) continue;
+    if (
+      typeof value !== "string" ||
+      !value.length ||
+      Buffer.byteLength(value, "utf8") > 256 ||
+      [...value].some((character) => character < " " || character === "\u007f") ||
+      value.trim() !== value
+    ) {
+      throw new Error("Invalid app release metadata");
+    }
+    result[field] = value;
+  }
+  return result;
+}
+
+function decodedOutput(value: string, limit: number): Buffer {
+  const bytes = Buffer.from(value, "base64");
+  if (bytes.length > limit || bytes.toString("base64") !== value)
+    throw new Error("Invalid pull request QR output");
+  return bytes;
 }
 
 function parseDimensions(raw: string): [number, number] {
@@ -67,13 +111,14 @@ export async function readPullRequestQrCodes(
   vmName: string,
   signal: AbortSignal,
 ): Promise<PullRequestQrCode[]> {
-  // Language (2), tab, "1000x1000" (9), tab, URL, newline.
-  const limit = maxUrls * (13 + maxUrlBytes + 1);
+  // Bound both the legacy URL records and optional metadata before decoding.
+  const urlLimit = maxUrls * (13 + maxUrlBytes + 1);
+  const limit = Math.ceil(((urlLimit + maxUrls * maxReleaseMetadataBytes) * 4) / 3) + maxUrls * 32;
   let content = "";
   const code = await orchard.exec(
     vmName,
     [
-      "set -e",
+      "set -euo pipefail",
       `dir=${prQrOutputDirectory}`,
       "shopt -s nullglob",
       'files=("$dir"/qr-*/url)',
@@ -81,7 +126,15 @@ export async function readPullRequestQrCodes(
       `[ "\${#files[@]}" -le ${maxUrls} ] || exit 1`,
       'for file in "${files[@]}"; do',
       '  [ -f "$file" ] && [ ! -L "$file" ] || exit 1',
-      `  /usr/bin/head -c ${limit + 1} "$file"`,
+      "  printf 'openci-qr\\t'",
+      `  /usr/bin/head -c ${urlLimit + 1} "$file" | /usr/bin/base64 | /usr/bin/tr -d '\\r\\n'`,
+      "  printf '\\t'",
+      '  metadata="${file%/url}/metadata.json"',
+      '  if [ -e "$metadata" ] || [ -L "$metadata" ]; then',
+      '    [ -f "$metadata" ] && [ ! -L "$metadata" ] || exit 1',
+      `    /usr/bin/head -c ${maxReleaseMetadataBytes + 1} "$metadata" | /usr/bin/base64 | /usr/bin/tr -d '\\r\\n'`,
+      "  fi",
+      "  printf '\\n'",
       "done\n",
     ].join("\n"),
     async (stream, bytes) => {
@@ -97,18 +150,40 @@ export async function readPullRequestQrCodes(
   const lines = content.split("\n");
   if (lines.pop() !== "" || lines.length > maxUrls)
     throw new Error("Invalid pull request QR output");
-  const unique = new Map<string, PullRequestQrCode>();
+  const records: { line: string; metadata: unknown }[] = [];
   for (const line of lines) {
+    if (!line.startsWith("openci-qr\t")) {
+      records.push({ line, metadata: {} });
+      continue;
+    }
+    const fields = line.split("\t");
+    if (fields.length !== 3) throw new Error("Invalid pull request QR output");
+    const urls = decodedOutput(fields[1], urlLimit).toString("latin1").split("\n");
+    if (urls.pop() !== "" || !urls.length) throw new Error("Invalid pull request QR output");
+    let metadata: unknown = {};
+    if (fields[2]) {
+      if (urls.length !== 1) throw new Error("Ambiguous app release metadata");
+      metadata = JSON.parse(
+        new TextDecoder("utf-8", { fatal: true }).decode(
+          decodedOutput(fields[2], maxReleaseMetadataBytes),
+        ),
+      );
+    }
+    for (const url of urls) records.push({ line: url, metadata });
+  }
+  if (records.length > maxUrls) throw new Error("Invalid pull request QR output");
+  const unique = new Map<string, PullRequestQrCode>();
+  for (const { line, metadata } of records) {
     // Earlier SDKs emitted a bare URL or language + URL without dimensions.
     const fields = line.split("\t");
     if (fields.length > 3) throw new Error("Invalid pull request QR output");
     const code =
       fields.length === 1
-        ? validatedQrCode(fields[0], "en")
+        ? validatedQrCode(fields[0], "en", undefined, undefined, metadata)
         : fields.length === 2
-          ? validatedQrCode(fields[1], fields[0])
-          : validatedQrCode(fields[2], fields[0], ...parseDimensions(fields[1]));
-    unique.set(`${code.lang}\t${code.width}x${code.height}\t${code.url}`, code);
+          ? validatedQrCode(fields[1], fields[0], undefined, undefined, metadata)
+          : validatedQrCode(fields[2], fields[0], ...parseDimensions(fields[1]), metadata);
+    unique.set(JSON.stringify(code), code);
   }
   return [...unique.values()];
 }
@@ -119,6 +194,14 @@ function hasStatus(error: unknown, ...codes: number[]): boolean {
 
 function imagePath(url: string): string {
   return `qr/${createHash("sha256").update(url).digest("hex")}.svg`;
+}
+
+function inlineCode(value: string): string {
+  const text = value.replace(/[\r\n]/gu, " ").trim();
+  const ticks = Math.max(0, ...(text.match(/`+/gu) ?? []).map((run) => run.length)) + 1;
+  const fence = "`".repeat(ticks);
+  const padding = text.startsWith("`") || text.endsWith("`") ? " " : "";
+  return `${fence}${padding}${text}${padding}${fence}`;
 }
 
 // Keep the media in the source repository so its access rules also protect the QR.
@@ -197,7 +280,11 @@ export async function publishPullRequestQrCodes(
 ): Promise<void> {
   if (!job.pullRequestNumber || !codes.length) return;
   if (codes.length > maxUrls) throw new Error("Too many pull request QR codes");
-  for (const code of codes) validatedQrCode(code.url, code.lang, code.width, code.height);
+  for (const code of codes)
+    validatedQrCode(code.url, code.lang, code.width, code.height, {
+      version: code.version,
+      buildNumber: code.buildNumber,
+    });
   const repo = { owner: job.owner, repo: job.repo };
   const number = Number(job.pullRequestNumber);
   const target = (await request("GET /repos/{owner}/{repo}", repo)).data;
@@ -259,13 +346,20 @@ export async function publishPullRequestQrCodes(
   const commit = await saveImages(request, repo, urls);
   const sections: string[] = [];
   for (const lang of new Set(codes.map((code) => code.lang))) {
-    const { heading, alt } = commentText[lang];
-    sections.push(`**${heading} #${runNumber}** (\`${job.commitSha!.slice(0, 7)}\`)`);
-    for (const { url, width, height } of codes.filter((code) => code.lang === lang)) {
+    const labels = commentText[lang];
+    for (const { url, width, height, version, buildNumber } of codes.filter(
+      (code) => code.lang === lang,
+    )) {
+      const details = [
+        `${labels.workflow}: ${inlineCode(job.workflowName ?? job.workflowFileName!)}`,
+      ];
+      if (version) details.push(`${labels.version}: ${inlineCode(version)}`);
+      if (buildNumber) details.push(`${labels.buildNumber}: ${inlineCode(buildNumber)}`);
+      sections.push(details.join("  \n"));
       // GitHub expands HTML entities inside autolinks, e.g. &copy; in a query.
       const markdownUrl = url.replaceAll("&", "&amp;");
       sections.push(
-        `<${markdownUrl}>\n\n<img src="../blob/${commit}/${imagePath(url)}?raw=true" alt="${alt}" width="${width}" height="${height}">`,
+        `<${markdownUrl}>\n\n<img src="../blob/${commit}/${imagePath(url)}?raw=true" alt="${labels.alt}" width="${width}" height="${height}">`,
       );
     }
   }

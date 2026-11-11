@@ -181,7 +181,19 @@ await openCI.pullRequest.postQrCode(
 );
 ```
 
-After the workflow succeeds, GenuineCI posts the URL and QR code in one comment per workflow file on the originating PR. Later successful runs with QR output update that same comment, including the run number, commit, URLs, images, size and language. A failed run keeps the previous successful comment. A URL's query and fragment are included in both the link and the QR code. A run accepts up to eight requests, each with a URL of up to 2,331 bytes and no embedded credentials. Push and local runs skip publication.
+After the workflow succeeds, GenuineCI posts the workflow's registered name, URL and QR code in one comment per workflow file on the originating PR. Firebase App Distribution uploads also provide the uploaded app's version and build number automatically when their returned tester URL is passed to `postQrCode`, including across workflow isolates or processes in the same run. The Japanese comment displays:
+
+```text
+ワークフロー名: IOS CD
+バージョン: 1.16.2
+ビルド番号: 3
+```
+
+English comments use `Workflow name`, `Version`, and `Build number`. Other URLs can supply `version: '1.16.2'` and `buildNumber: '3'` explicitly. Each value accepts up to 256 UTF-8 bytes, without leading/trailing whitespace or control characters. Unknown version or build values are omitted; CI run numbers are used internally to order updates and are never substituted for app build numbers.
+
+Later successful runs with QR output update the same comment's workflow name, app details, URLs, images, size and language. A failed run keeps the previous successful comment. A URL's query and fragment are included in both the link and the QR code. A run accepts up to eight requests, each with a URL of up to 2,331 bytes and no embedded credentials. Push and local runs skip publication.
+
+App version details require both the updated executor and SDK 0.2.7 or later. Older SDKs still post URL-only output with the workflow name; older executors safely ignore the optional metadata and keep their existing comment format.
 
 GenuineCI stores images in the same repository on the `genuineci/pr-qr` branch. The GitHub App needs write access to Contents and Pull requests. If the PR closes or its head changes during the build, GenuineCI skips the comment.
 

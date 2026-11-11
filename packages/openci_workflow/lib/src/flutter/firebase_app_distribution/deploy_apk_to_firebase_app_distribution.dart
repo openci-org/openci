@@ -7,6 +7,7 @@ import 'package:googleapis_auth/auth_io.dart';
 import 'package:http/http.dart' as http;
 
 import '../../quote_shell_argument.dart';
+import '../../pull_request_release_metadata.dart';
 
 Future<Uri> deployApkToFirebaseAppDistribution({
   required Future<void> Function(String command, {String? workingDirectory})
@@ -181,6 +182,11 @@ Future<({String name, Uri testingUri})> _uploadApk(
       uri.path != path) {
     throw StateError('Firebase returned an invalid release tester link.');
   }
+  await rememberPullRequestRelease(
+    uri,
+    version: release['displayVersion'] as String?,
+    buildNumber: release['buildVersion'] as String?,
+  );
   return (name: releaseName, testingUri: uri);
 }
 
