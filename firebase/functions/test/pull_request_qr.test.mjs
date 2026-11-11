@@ -22,6 +22,7 @@ const job = {
   pullRequestNumber: "3",
   commitSha: "a".repeat(40),
   workflowFileName: "cd.dart",
+  workflowName: "IOS CD",
 };
 const dispatch = {
   id: "test",
@@ -61,6 +62,10 @@ test("collects completed request files and the preview SDK output from the runne
   await mkdir(join(dir, "qr-1"));
   await mkdir(join(dir, "qr-2"));
   await writeFile(join(dir, "qr-1", "url"), "ja\t120x120\t" + link + "\n");
+  await writeFile(
+    join(dir, "qr-1", "metadata.json"),
+    JSON.stringify({ version: "1.16.2", buildNumber: "3" }),
+  );
   await writeFile(join(dir, "qr-2", "pending"), "unfinished");
   await writeFile(join(dir, "legacy"), "https://example.org/previous\n");
   const codes = await readPullRequestQrCodes(
@@ -77,7 +82,7 @@ test("collects completed request files and the preview SDK output from the runne
     signal,
   );
   assert.deepEqual(codes, [
-    { url: link, lang: "ja", width: 120, height: 120 },
+    { url: link, lang: "ja", width: 120, height: 120, version: "1.16.2", buildNumber: "3" },
     { url: "https://example.org/previous", lang: "en", width: 180, height: 180 },
   ]);
 });
@@ -143,6 +148,56 @@ test("reads per-link language, dimensions and complete web URLs across frames an
     await assert.rejects(read([data]));
   }
   await assert.rejects(read([link + "\n"], 1));
+});
+
+test("bounds and validates release metadata while keeping it paired with its URL", async () => {
+  const frame = (urls, metadata) =>
+    `openci-qr\t${Buffer.from(urls).toString("base64")}\t${metadata === undefined ? "" : Buffer.from(JSON.stringify(metadata)).toString("base64")}\n`;
+  const read = (output) =>
+    readPullRequestQrCodes(
+      {
+        async exec(_vm, _script, receive) {
+          for (let i = 0; i < output.length; i += 7)
+            await receive("stdout", Buffer.from(output.slice(i, i + 7)));
+          return 0;
+        },
+      },
+      "vm",
+      signal,
+    );
+  const url = `ja\t180x180\t${link}\n`;
+  assert.deepEqual(await read(frame(url, { version: "1.16.2-日本語", buildNumber: "3.1" })), [
+    {
+      url: link,
+      lang: "ja",
+      width: 180,
+      height: 180,
+      version: "1.16.2-日本語",
+      buildNumber: "3.1",
+    },
+  ]);
+  assert.deepEqual(await read(frame(url, { buildNumber: "3" })), [
+    { url: link, lang: "ja", width: 180, height: 180, buildNumber: "3" },
+  ]);
+  for (const metadata of [
+    null,
+    [],
+    "version",
+    { version: 123 },
+    { buildNumber: null },
+    { version: "" },
+    { version: " 1.16.2" },
+    { buildNumber: "3\n#71" },
+    { version: "x".repeat(257) },
+    { version: "あ".repeat(86) },
+    { ignored: "x".repeat(2048) },
+  ])
+    await assert.rejects(read(frame(url, metadata)));
+  await assert.rejects(read(frame(url + url, { version: "1.16.2" })));
+  await assert.rejects(read(frame(url.repeat(9))));
+  await assert.rejects(read(frame(url.slice(0, -1), {})));
+  await assert.rejects(read("openci-qr\t!!!\t\n"));
+  await assert.rejects(read(`openci-qr\t${Buffer.from(url).toString("base64")}\t/w==\n`));
 });
 
 function githubFixture() {
@@ -268,7 +323,9 @@ test("publishes a pinned, repository-local QR and reconciles a raced branch or l
       `<img src="../blob/${"2".padStart(40, "0")}/${file.path}?raw=true" alt="QR code for this link" width="180" height="180">`,
     ),
   );
-  assert.match(f.comments[1].body, /Run #17/);
+  assert.match(f.comments[1].body, /Workflow name: `IOS CD`/);
+  assert.doesNotMatch(f.comments[1].body, /Run #|Version:|Build number:/);
+  assert.match(f.comments[1].body, /:17 -->$/);
   await f.publish();
   assert.equal(f.comments.length, 2);
   assert.deepEqual(f.state.writes, ["create"]);
@@ -296,8 +353,8 @@ test("later commits edit the same bot comment across pages and replace its URL, 
   assert.equal(f.comments.at(-1).id, original.id);
   assert.equal(human.body, oldBody);
   assert.equal(otherBot.body, oldBody);
-  assert.match(original.body, /QRコード · 実行 #18/);
-  assert.match(original.body, /bbbbbbb/);
+  assert.match(original.body, /ワークフロー名: `IOS CD`/);
+  assert.match(original.body, /:18 -->$/);
   assert.ok(original.body.includes(newUrl));
   assert.match(original.body, /width="120" height="120"/);
   assert.ok(!original.body.includes('width="180"'));
@@ -339,14 +396,14 @@ test("simultaneous first publications converge on one comment, independently per
   await Promise.all([first, second]);
   assert.deepEqual(f.state.writes, ["create", "edit"]);
   assert.equal(f.comments.length, 1);
-  assert.match(f.comments[0].body, /QRコード · 実行 #18/);
+  assert.match(f.comments[0].body, /:18 -->$/);
   await f.publish("4", [{ url: link, lang: "en", width: 180, height: 180 }], 19, {
     ...job,
     workflowFileName: "other.dart",
   });
   assert.equal(f.comments.length, 2);
-  assert.match(f.comments[0].body, /QRコード · 実行 #18/);
-  assert.match(f.comments[1].body, /Run #19/);
+  assert.match(f.comments[0].body, /:18 -->$/);
+  assert.match(f.comments[1].body, /:19 -->$/);
 });
 
 test("recreates the comment if it was deleted during the edit", async () => {
@@ -357,22 +414,25 @@ test("recreates the comment if it was deleted during the edit", async () => {
   await f.publish("4", [{ url: link, lang: "ja", width: 180, height: 180 }], 18);
   assert.equal(f.comments.length, 1);
   assert.notEqual(f.comments[0].id, deleted);
-  assert.match(f.comments[0].body, /実行 #18/);
+  assert.match(f.comments[0].body, /ワークフロー名: `IOS CD`/);
+  assert.match(f.comments[0].body, /:18 -->$/);
 });
 
 test("localizes each language and custom dimensions in a single comment and reuses the image for the same URL", async () => {
   const f = githubFixture();
   const other = "https://download.example.org/a)?stage=dev&copy;=plain#test";
   await f.publish("4", [
-    { url: link, lang: "ja", width: 120, height: 120 },
-    { url: other, lang: "ja", width: 200, height: 150 },
-    { url: link, lang: "en", width: 240, height: 240 },
+    { url: link, lang: "ja", width: 120, height: 120, version: "1.16.2", buildNumber: "3" },
+    { url: other, lang: "ja", width: 200, height: 150, version: "1.17.0", buildNumber: "4" },
+    { url: link, lang: "en", width: 240, height: 240, version: "1.16.2", buildNumber: "3" },
   ]);
   assert.equal(f.comments.length, 1);
   assert.equal(f.treeInputs[0].tree.length, 2);
   const { body } = f.comments[0];
-  assert.match(body, /QRコード · 実行 #17/);
-  assert.match(body, /QR code · Run #17/);
+  assert.ok(body.includes("ワークフロー名: `IOS CD`  \nバージョン: `1.16.2`  \nビルド番号: `3`"));
+  assert.ok(body.includes("ワークフロー名: `IOS CD`  \nバージョン: `1.17.0`  \nビルド番号: `4`"));
+  assert.ok(body.includes("Workflow name: `IOS CD`  \nVersion: `1.16.2`  \nBuild number: `3`"));
+  assert.doesNotMatch(body, /実行 #|Run #|aaaaaaa/);
   assert.ok(
     body.includes(
       '<https://download.example.org/a)?stage=dev&amp;copy;=plain#test>\n\n<img src="../blob/',
@@ -407,4 +467,44 @@ test("rejects another owner, invalid dimensions, or a non-web URL and skips chan
   await f.publish();
   assert.equal(f.treeInputs.length, 0);
   assert.equal(f.comments.length, 0);
+});
+
+test("refreshes app details on the same comment without displaying the CI sequence", async () => {
+  const f = githubFixture();
+  const code = {
+    url: link,
+    lang: "ja",
+    width: 180,
+    height: 180,
+    version: "1.16.2",
+    buildNumber: "3",
+  };
+  await f.publish("4", [code], 71);
+  const id = f.comments[0].id;
+  assert.match(f.comments[0].body, /ビルド番号: `3`/);
+  assert.doesNotMatch(f.comments[0].body.split("<!--")[0], /71|aaaaaaa/);
+  await f.publish("4", [{ ...code, version: "1.17.0", buildNumber: "4" }], 72);
+  assert.equal(f.comments.length, 1);
+  assert.equal(f.comments[0].id, id);
+  assert.match(f.comments[0].body, /バージョン: `1\.17\.0`/);
+  assert.match(f.comments[0].body, /ビルド番号: `4`/);
+  await f.publish("4", [code], 71);
+  assert.match(f.comments[0].body, /ビルド番号: `4`/);
+  assert.deepEqual(f.state.writes, ["create", "edit"]);
+});
+
+test("renders metadata as inline code, with no markup, mentions or PR references", async () => {
+  const f = githubFixture();
+  const source = { ...job, workflowName: "IOS CD #71 @someone `debug`\nnext" };
+  await f.publish(
+    "4",
+    [{ url: link, lang: "en", width: 180, height: 180, version: "`#72`", buildNumber: "3" }],
+    17,
+    source,
+  );
+  assert.ok(f.comments[0].body.includes("Workflow name: ``IOS CD #71 @someone `debug` next``"));
+  assert.ok(f.comments[0].body.includes("Version: `` `#72` ``"));
+  await assert.rejects(
+    f.publish("4", [{ url: link, lang: "en", width: 180, height: 180, buildNumber: "3\n#71" }], 18),
+  );
 });

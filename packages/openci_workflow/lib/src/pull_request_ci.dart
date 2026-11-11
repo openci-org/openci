@@ -3,6 +3,8 @@ import 'dart:io';
 
 import 'package:meta/meta.dart';
 
+import 'pull_request_release_metadata.dart';
+
 /// Language of the QR code's pull request comment.
 enum PostQrCodeLang { en, ja }
 
@@ -56,11 +58,21 @@ class PullRequestCI {
   /// Accepts absolute HTTP(S) URLs without user info, up to 2,331 UTF-8 bytes,
   /// and pixel dimensions between 1 and 1,000. Push and local runs skip
   /// publication.
+  ///
+  /// Firebase App Distribution uploads automatically provide the uploaded
+  /// app's version and build number for their returned tester URL. Other
+  /// URLs can supply [version] and [buildNumber] explicitly.
   Future<void> postQrCode({
     required Uri url,
     PostQrCodeLang lang = PostQrCodeLang.en,
     PostQrCodeSize size = PostQrCodeSize.medium,
+    String? version,
+    String? buildNumber,
   }) async {
+    final suppliedMetadata = validatedReleaseMetadata(
+      version: version,
+      buildNumber: buildNumber,
+    );
     final link = url.toString();
     if ((url.scheme != 'https' && url.scheme != 'http') ||
         url.host.isEmpty ||
@@ -84,12 +96,21 @@ class PullRequestCI {
       throw StateError('This executor does not support pull request QR codes.');
     }
     if (output == null || output.isEmpty) return;
+    final metadata = {
+      ...await readPullRequestRelease(url),
+      ...suppliedMetadata,
+    };
     // Each call owns a file. A rename makes the complete record visible even
     // when multiple isolates or processes request QR codes at the same time.
     final request = await Directory(output).createTemp(
       'qr-${DateTime.now().microsecondsSinceEpoch}-',
     );
     final pending = File.fromUri(request.uri.resolve('pending'));
+    if (metadata.isNotEmpty) {
+      await File.fromUri(request.uri.resolve('metadata.json')).writeAsString(
+        jsonEncode(metadata),
+      );
+    }
     await pending.writeAsString(
       '${lang.name}\t${size.width}x${size.height}\t$link\n',
     );

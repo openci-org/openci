@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.7
+
+- Show the workflow name in PR QR comments, with the app version and build number when available. Keep CI run numbers internal so GitHub does not link them to unrelated PRs.
+- Automatically retain Firebase App Distribution's uploaded app version and build number for iOS and Android tester URLs. Existing upload and `postQrCode` calls continue to work; other URLs can pass the optional `version` and `buildNumber` arguments.
+
 ## 0.2.6
 
 - Add `PostQrCodeSize` (`small`, `medium`, `large`, and `PostQrCodeSize.custom(width: ..., height: ...)`) and the optional `size` argument to `openCI.pullRequest.postQrCode(...)`, defaulting to `PostQrCodeSize.medium`.
