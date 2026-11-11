@@ -13,14 +13,36 @@ const commentText = {
   en: { heading: "QR code · Run", alt: "QR code for this link" },
   ja: { heading: "QRコード · 実行", alt: "このリンクのQRコード" },
 } as const;
-export type PullRequestQrCode = { url: string; lang: keyof typeof commentText };
+const defaultQrDimension = 180;
+const maxQrDimension = 1000;
+export type PullRequestQrCode = {
+  url: string;
+  lang: keyof typeof commentText;
+  width: number;
+  height: number;
+};
 export type WithQrCommentLease = (
   key: string,
   work: (renew: () => Promise<void>) => Promise<void>,
 ) => Promise<void>;
 
-function validatedQrCode(url: string, lang: string): PullRequestQrCode {
+function validatedQrCode(
+  url: string,
+  lang: string,
+  width = defaultQrDimension,
+  height = defaultQrDimension,
+): PullRequestQrCode {
   if (lang !== "en" && lang !== "ja") throw new Error("Invalid pull request QR language");
+  if (
+    !Number.isInteger(width) ||
+    width < 1 ||
+    width > maxQrDimension ||
+    !Number.isInteger(height) ||
+    height < 1 ||
+    height > maxQrDimension
+  ) {
+    throw new Error("Invalid pull request QR size");
+  }
   // The SDK serializes URIs as ASCII. Require a credential-free authority and
   // exclude characters that could terminate a Markdown autolink.
   if (
@@ -31,7 +53,13 @@ function validatedQrCode(url: string, lang: string): PullRequestQrCode {
   ) {
     throw new Error("Invalid pull request QR URL");
   }
-  return { url, lang };
+  return { url, lang, width, height };
+}
+
+function parseDimensions(raw: string): [number, number] {
+  const match = /^([1-9][0-9]{0,3})x([1-9][0-9]{0,3})$/.exec(raw);
+  if (!match) throw new Error("Invalid pull request QR size");
+  return [Number(match[1]), Number(match[2])];
 }
 
 export async function readPullRequestQrCodes(
@@ -39,7 +67,8 @@ export async function readPullRequestQrCodes(
   vmName: string,
   signal: AbortSignal,
 ): Promise<PullRequestQrCode[]> {
-  const limit = maxUrls * (3 + maxUrlBytes + 1); // Two-letter language, tab, URL, newline.
+  // Language (2), tab, "1000x1000" (9), tab, URL, newline.
+  const limit = maxUrls * (13 + maxUrlBytes + 1);
   let content = "";
   const code = await orchard.exec(
     vmName,
@@ -70,10 +99,16 @@ export async function readPullRequestQrCodes(
     throw new Error("Invalid pull request QR output");
   const unique = new Map<string, PullRequestQrCode>();
   for (const line of lines) {
-    // The first SDK preview emitted a bare URL. Its comments were in English.
-    const tab = line.indexOf("\t");
-    const code = validatedQrCode(line.slice(tab + 1), tab < 0 ? "en" : line.slice(0, tab));
-    unique.set(`${code.lang}\t${code.url}`, code);
+    // Earlier SDKs emitted a bare URL or language + URL without dimensions.
+    const fields = line.split("\t");
+    if (fields.length > 3) throw new Error("Invalid pull request QR output");
+    const code =
+      fields.length === 1
+        ? validatedQrCode(fields[0], "en")
+        : fields.length === 2
+          ? validatedQrCode(fields[1], fields[0])
+          : validatedQrCode(fields[2], fields[0], ...parseDimensions(fields[1]));
+    unique.set(`${code.lang}\t${code.width}x${code.height}\t${code.url}`, code);
   }
   return [...unique.values()];
 }
@@ -162,7 +197,7 @@ export async function publishPullRequestQrCodes(
 ): Promise<void> {
   if (!job.pullRequestNumber || !codes.length) return;
   if (codes.length > maxUrls) throw new Error("Too many pull request QR codes");
-  for (const code of codes) validatedQrCode(code.url, code.lang);
+  for (const code of codes) validatedQrCode(code.url, code.lang, code.width, code.height);
   const repo = { owner: job.owner, repo: job.repo };
   const number = Number(job.pullRequestNumber);
   const target = (await request("GET /repos/{owner}/{repo}", repo)).data;
@@ -226,10 +261,12 @@ export async function publishPullRequestQrCodes(
   for (const lang of new Set(codes.map((code) => code.lang))) {
     const { heading, alt } = commentText[lang];
     sections.push(`**${heading} #${runNumber}** (\`${job.commitSha!.slice(0, 7)}\`)`);
-    for (const { url } of codes.filter((code) => code.lang === lang)) {
+    for (const { url, width, height } of codes.filter((code) => code.lang === lang)) {
       // GitHub expands HTML entities inside autolinks, e.g. &copy; in a query.
       const markdownUrl = url.replaceAll("&", "&amp;");
-      sections.push(`<${markdownUrl}>\n\n![${alt}](../blob/${commit}/${imagePath(url)}?raw=true)`);
+      sections.push(
+        `<${markdownUrl}>\n\n<img src="../blob/${commit}/${imagePath(url)}?raw=true" alt="${alt}" width="${width}" height="${height}">`,
+      );
     }
   }
   const body = [...sections, marker].join("\n\n");

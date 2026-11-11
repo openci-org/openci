@@ -28,8 +28,17 @@ Future<void> main(List<String> args) async {
     await Future.wait(args.skip(1).map((link) => pr.postQrCode(url: Uri.parse(link))));
     return;
   }
-  await pr.postQrCode(url: Uri.parse(args.first), lang: PostQrCodeLang.ja);
-  await pr.postQrCode(url: Uri.parse(args.last));
+  await pr.postQrCode(url: Uri.parse(args[0]), lang: .ja, size: .small);
+  await pr.postQrCode(url: Uri.parse(args[1]));
+  if (args.length > 2) {
+    await pr.postQrCode(url: Uri.parse(args[2]), size: .large);
+  }
+  if (args.length > 3) {
+    await pr.postQrCode(
+      url: Uri.parse(args[3]),
+      size: .custom(width: 200, height: 150),
+    );
+  }
 }
 ''');
   });
@@ -54,13 +63,20 @@ Future<void> main(List<String> args) async {
   );
 
   test(
-    'appends web URLs from different sources, including query and fragment',
+    'appends web URLs with language and preset or custom sizes, including query and fragment',
     () async {
-      final result = await run({'OPENCI_PR_QR_OUTPUT': output.path});
+      const largeUrl = 'https://releases.example.com/app';
+      const customUrl = 'https://releases.example.com/custom';
+      final result = await run(
+        {'OPENCI_PR_QR_OUTPUT': output.path},
+        args: [preview, documentation, largeUrl, customUrl],
+      );
       expect(result.exitCode, 0, reason: result.stderr.toString());
       expect(await readRecords(output), [
-        'ja\t$preview',
-        'en\t$documentation',
+        'ja\t120x120\t$preview',
+        'en\t180x180\t$documentation',
+        'en\t240x240\t$largeUrl',
+        'en\t200x150\t$customUrl',
       ]);
     },
   );
@@ -80,7 +96,7 @@ Future<void> main(List<String> args) async {
     expect(result.exitCode, 0, reason: result.stderr.toString());
     expect(
       await readRecords(parallelOutput),
-      unorderedEquals(urls.map((u) => 'en\t$u')),
+      unorderedEquals(urls.map((u) => 'en\t180x180\t$u')),
     );
   });
 
@@ -119,6 +135,40 @@ Future<void> main(List<String> args) async {
               isNot(contains('private')),
             ),
           ),
+        );
+      }
+    },
+  );
+
+  test(
+    'compares sizes by value and rejects out-of-range custom dimensions',
+    () async {
+      expect(
+        PostQrCodeSize.small,
+        const PostQrCodeSize.custom(width: 120, height: 120),
+      );
+      expect(
+        PostQrCodeSize.medium.hashCode,
+        const PostQrCodeSize.custom(width: 180, height: 180).hashCode,
+      );
+      expect(PostQrCodeSize.small, isNot(PostQrCodeSize.large));
+      expect(
+        PostQrCodeSize.large.toString(),
+        'PostQrCodeSize(width: 240, height: 240)',
+      );
+      for (final invalid in const <PostQrCodeSize>[
+        .custom(width: 0, height: 180),
+        .custom(width: 180, height: 0),
+        .custom(width: -1, height: 180),
+        .custom(width: 1001, height: 180),
+        .custom(width: 180, height: 1001),
+      ]) {
+        await expectLater(
+          const PullRequestCI().postQrCode(
+            url: Uri.parse(documentation),
+            size: invalid,
+          ),
+          throwsArgumentError,
         );
       }
     },

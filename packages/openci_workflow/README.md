@@ -171,16 +171,17 @@ When upgrading from 0.1.x, replace `whenChanged:` with `paths:` and
 
 ### Post a QR code on a pull request
 
-Pass an HTTP or HTTPS URL to `openCI.pullRequest.postQrCode`. Use `lang: PostQrCodeLang.ja` for a Japanese comment, or `PostQrCodeLang.en` for English (the default).
+Pass an HTTP or HTTPS URL to `openCI.pullRequest.postQrCode`. Use `lang: PostQrCodeLang.ja` for a Japanese comment, or `PostQrCodeLang.en` for English (the default). Set `size` to `PostQrCodeSize.small` (120x120 px), `PostQrCodeSize.medium` (180x180 px, the default), `PostQrCodeSize.large` (240x240 px), or `PostQrCodeSize.custom(width: ..., height: ...)` (1–1,000 px per side).
 
 ```dart
 await openCI.pullRequest.postQrCode(
   url: Uri.parse('https://preview.example.com/build/42?platform=ios'),
   lang: PostQrCodeLang.ja,
+  size: PostQrCodeSize.small,
 );
 ```
 
-After the workflow succeeds, GenuineCI posts the URL and QR code in one comment per workflow file on the originating PR. Later successful runs with QR output update that same comment, including the run number, commit, URLs, images and language. A failed run keeps the previous successful comment. A URL's query and fragment are included in both the link and the QR code. A run accepts up to eight requests, each with a URL of up to 2,331 bytes and no embedded credentials. Push and local runs skip publication.
+After the workflow succeeds, GenuineCI posts the URL and QR code in one comment per workflow file on the originating PR. Later successful runs with QR output update that same comment, including the run number, commit, URLs, images, size and language. A failed run keeps the previous successful comment. A URL's query and fragment are included in both the link and the QR code. A run accepts up to eight requests, each with a URL of up to 2,331 bytes and no embedded credentials. Push and local runs skip publication.
 
 GenuineCI stores images in the same repository on the `genuineci/pr-qr` branch. The GitHub App needs write access to Contents and Pull requests. If the PR closes or its head changes during the build, GenuineCI skips the comment.
 

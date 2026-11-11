@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.6
+
+- Add `PostQrCodeSize` (`small`, `medium`, `large`, and `PostQrCodeSize.custom(width: ..., height: ...)`) and the optional `size` argument to `openCI.pullRequest.postQrCode(...)`, defaulting to `PostQrCodeSize.medium`.
+
 ## 0.2.5
 
 - Return the tester URL from `deployApkToFirebaseAppDistribution`.

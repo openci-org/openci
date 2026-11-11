@@ -734,7 +734,7 @@ test("Octokit scopes checkout/check tokens and reconciles a lost check creation 
       { ...job, pullRequestNumber: "7" },
       "other-account",
       1,
-      [{ url: "https://preview.example.com/build", lang: "en" }],
+      [{ url: "https://preview.example.com/build", lang: "en", width: 180, height: 180 }],
       new AbortController().signal,
       () => assert.fail("Must verify repository ownership before claiming a comment"),
     ),
