@@ -25,7 +25,7 @@ Future<SecretsConnector> secretsConnector(Ref ref) async {
   return SecretsConnector(dataConnect: dc);
 }
 
-@riverpod
+@Riverpod(keepAlive: true)
 Future<HttpsCallable> teamSecretsCallable(Ref ref) async {
   final auth = await ref.watch(activeConnectionFirebaseAuthProvider.future);
   final local = ref.watch(localDevelopmentConnectionProvider);

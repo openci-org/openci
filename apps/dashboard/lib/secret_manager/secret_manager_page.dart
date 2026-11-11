@@ -954,6 +954,26 @@ class _SecretFormFrame extends StatelessWidget {
   }
 }
 
+class _SecretFormError extends StatelessWidget {
+  const _SecretFormError(this.message);
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Semantics(
+        liveRegion: true,
+        child: Text(
+          message,
+          style: TextStyle(color: Theme.of(context).colorScheme.error),
+        ),
+      ),
+    );
+  }
+}
+
 class _AddSecretBottomSheet extends HookConsumerWidget {
   const _AddSecretBottomSheet();
 
@@ -968,11 +988,13 @@ class _AddSecretBottomSheet extends HookConsumerWidget {
     final selectedFileName = useState<String?>(null);
     final fileContent = useState<String?>(null);
     final isSubmitting = useState(false);
+    final errorMessage = useState<String?>(null);
 
     return _SecretFormFrame(
       title: context.t.secrets.addSecret,
       child: Form(
         key: formKey,
+        onChanged: () => errorMessage.value = null,
         autovalidateMode: AutovalidateMode.onUserInteraction,
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -1050,6 +1072,7 @@ class _AddSecretBottomSheet extends HookConsumerWidget {
                         inputMode.value = _InputMode.text;
                         selectedFileName.value = null;
                         fileContent.value = null;
+                        errorMessage.value = null;
                       },
                     ),
                   ),
@@ -1062,6 +1085,7 @@ class _AddSecretBottomSheet extends HookConsumerWidget {
                       onTap: () {
                         inputMode.value = _InputMode.file;
                         secretValueController.clear();
+                        errorMessage.value = null;
                       },
                     ),
                   ),
@@ -1128,11 +1152,13 @@ class _AddSecretBottomSheet extends HookConsumerWidget {
                   final result = await FilePicker.pickFiles(
                     withData: true,
                   );
+                  if (!context.mounted) return;
                   if (result != null && result.files.isNotEmpty) {
                     final file = result.files.first;
                     if (file.bytes != null) {
                       fileContent.value = utf8.decode(file.bytes!);
                       selectedFileName.value = file.name;
+                      errorMessage.value = null;
                     }
                   }
                 },
@@ -1232,6 +1258,8 @@ class _AddSecretBottomSheet extends HookConsumerWidget {
                 ),
               ),
 
+            if (errorMessage.value case final message?)
+              _SecretFormError(message),
             const SizedBox(height: 18),
             _SecretFormActionBar(
               isSubmitting: isSubmitting.value,
@@ -1242,11 +1270,11 @@ class _AddSecretBottomSheet extends HookConsumerWidget {
               onSubmit: isSubmitting.value
                   ? null
                   : () async {
+                      errorMessage.value = null;
                       if (inputMode.value == _InputMode.file &&
                           fileContent.value == null) {
-                        context.showSnackBarMessage(
-                          context.t.secrets.enterValueOrUpload,
-                        );
+                        errorMessage.value =
+                            context.t.secrets.enterValueOrUpload;
                         return;
                       }
                       if (!formKey.currentState!.validate()) return;
@@ -1271,10 +1299,7 @@ class _AddSecretBottomSheet extends HookConsumerWidget {
                       } catch (e) {
                         if (!context.mounted) return;
                         isSubmitting.value = false;
-                        showResponsiveSnackBar(
-                          context,
-                          content: Text(context.errorText(e)),
-                        );
+                        errorMessage.value = context.errorText(e);
                       }
                     },
             ),
@@ -1478,11 +1503,13 @@ class _EditSecretBottomSheet extends HookConsumerWidget {
     final inputMode = useState(_InputMode.text);
     final selectedFileName = useState<String?>(null);
     final fileContent = useState<String?>(null);
+    final errorMessage = useState<String?>(null);
 
     return _SecretFormFrame(
       title: context.t.secrets.editSecret,
       child: Form(
         key: formKey,
+        onChanged: () => errorMessage.value = null,
         autovalidateMode: AutovalidateMode.onUserInteraction,
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -1556,6 +1583,7 @@ class _EditSecretBottomSheet extends HookConsumerWidget {
                         inputMode.value = _InputMode.text;
                         selectedFileName.value = null;
                         fileContent.value = null;
+                        errorMessage.value = null;
                       },
                     ),
                   ),
@@ -1568,6 +1596,7 @@ class _EditSecretBottomSheet extends HookConsumerWidget {
                       onTap: () {
                         inputMode.value = _InputMode.file;
                         valueController.clear();
+                        errorMessage.value = null;
                       },
                     ),
                   ),
@@ -1644,11 +1673,13 @@ class _EditSecretBottomSheet extends HookConsumerWidget {
                   final result = await FilePicker.pickFiles(
                     withData: true,
                   );
+                  if (!context.mounted) return;
                   if (result != null && result.files.isNotEmpty) {
                     final file = result.files.first;
                     if (file.bytes != null) {
                       fileContent.value = utf8.decode(file.bytes!);
                       selectedFileName.value = file.name;
+                      errorMessage.value = null;
                     }
                   }
                 },
@@ -1748,6 +1779,8 @@ class _EditSecretBottomSheet extends HookConsumerWidget {
                 ),
               ),
 
+            if (errorMessage.value case final message?)
+              _SecretFormError(message),
             const SizedBox(height: 20),
 
             // ── Submit Button ──
@@ -1765,6 +1798,7 @@ class _EditSecretBottomSheet extends HookConsumerWidget {
                 onPressed: isLoading.value
                     ? null
                     : () async {
+                        errorMessage.value = null;
                         if (!formKey.currentState!.validate()) return;
                         final name = nameController.text.trim();
 
@@ -1790,9 +1824,9 @@ class _EditSecretBottomSheet extends HookConsumerWidget {
                           );
                           Navigator.of(context).pop();
                         } catch (e) {
-                          isLoading.value = false;
                           if (!context.mounted) return;
-                          context.showSnackBarMessage(context.errorText(e));
+                          isLoading.value = false;
+                          errorMessage.value = context.errorText(e);
                         }
                       },
                 child: isLoading.value

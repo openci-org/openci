@@ -46,7 +46,7 @@ final class SecretsConnectorProvider
   }
 }
 
-String _$secretsConnectorHash() => r'436f655b825a28ba8a7c58ef8a5c766c89e973e6';
+String _$secretsConnectorHash() => r'926ed750357cae028f1040f932a5ea8329056ed7';
 
 @ProviderFor(teamSecretsCallable)
 final teamSecretsCallableProvider = TeamSecretsCallableProvider._();
@@ -65,7 +65,7 @@ final class TeamSecretsCallableProvider
         argument: null,
         retry: null,
         name: r'teamSecretsCallableProvider',
-        isAutoDispose: true,
+        isAutoDispose: false,
         dependencies: null,
         $allTransitiveDependencies: null,
       );
@@ -86,4 +86,4 @@ final class TeamSecretsCallableProvider
 }
 
 String _$teamSecretsCallableHash() =>
-    r'5686b6e72688d025879045bf7507aa603ffb6acb';
+    r'c248b0e4aecde935677841d50db4d4b22006c16a';
