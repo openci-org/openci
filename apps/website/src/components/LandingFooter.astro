@@ -6,25 +6,74 @@ interface Props {
 }
 const { locale } = Astro.props;
 const t = translator(locale);
+const home = getRelativeLocaleUrl(locale);
+const docs = getRelativeLocaleUrl(locale, "docs/");
+const pricing = getRelativeLocaleUrl(locale, "pricing/");
+const groups = [
+  [
+    "OpenCI",
+    [
+      [t("Flutter向けAPI", "Flutter API"), home + "#apis"],
+      [t("料金", "Pricing"), pricing],
+      [t("ダッシュボード", "Dashboard"), "https://dashboard.openci.org/"],
+    ],
+  ],
+  [
+    t("開発者向け", "Developers"),
+    [
+      [t("始め方", "Quickstart"), home + "#quickstart"],
+      [t("ドキュメント", "Documentation"), docs],
+      ["Dart SDK", "https://pub.dev/packages/openci_workflow"],
+    ],
+  ],
+  [
+    t("リソース", "Resources"),
+    [
+      [t("ブログ", "Blog"), getRelativeLocaleUrl(locale, "blog/")],
+      [t("よくある質問", "FAQ"), pricing + "#faq"],
+      ["GitHub", "https://github.com/openci-org/openci"],
+    ],
+  ],
+] as const;
 ---
 
-<footer class="site-footer">
-  <div class="wrap footer-inner">
-    <span>© 2026 GenuineCI</span>
-    <span class="footer-tagline">
-      Open source. Built for Flutter &amp; Dart.
-    </span>
-    <a href={getRelativeLocaleUrl(locale, "docs/")}>
-      <span>Docs</span>
-    </a>
-    <a href="#pricing">
-      <span>{t("料金", "Pricing")}</span>
-    </a>
-    <a href={getRelativeLocaleUrl(locale, "blog/")}>
-      <span>{t("ブログ", "Blog")}</span>
-    </a>
-    <a href="#">
-      <span>{t("ページの先頭へ ↑", "Back to top ↑")}</span>
-    </a>
+<footer class="container product-footer">
+  <div class="footer-grid">
+    <div>
+      <a class="wordmark" href={home}>
+        <img src="/favicon.png" alt="" width="26" height="26" />
+        OpenCI
+      </a>
+      <p>{t("Flutter専用のmacOSランナー。", "macOS runners for Flutter.")}</p>
+    </div>
+    {groups.map(([name, links]) => (
+      <div>
+        <h2>{name}</h2>
+        {links.map(([label, href]) => (
+          <a href={href}>{label}</a>
+        ))}
+      </div>
+    ))}
+  </div>
+  <div class="footer-meta">
+    <span>© 2026 OpenCI, Inc.</span>
+    <details>
+      <summary>{t("写真クレジット", "Photo credits")}</summary>
+      <ul>
+        <li>
+          <a href="https://unsplash.com/photos/4qKVQYOluDk">Yoshi Takekawa</a>
+        </li>
+        <li>
+          <a href="https://unsplash.com/photos/uxxGF7g754U">Dhony Koswara</a>
+        </li>
+        <li>
+          <a href="https://unsplash.com/photos/sFw3vSW9kdk">Keith Camilleri</a>
+        </li>
+        <li>
+          <a href="https://unsplash.com/photos/KL63kujm9sU">Jonas Denil</a>
+        </li>
+      </ul>
+    </details>
+    <a href="#main">{t("先頭へ戻る ↑", "Back to top ↑")}</a>
   </div>
 </footer>

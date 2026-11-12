@@ -1,9 +1,10 @@
-# GenuineCI website
+# OpenCI product website
 
-Astro + TypeScriptで実装したGenuineCIのLP・Pricing・ブログ・Docsです。
+Astro + TypeScriptで実装したOpenCIの製品LP・料金ページと、既存のブログ・Docsです。
 Docsには [Starlight](https://starlight.astro.build/ja/) を使用しています。
 ReactなどのUIフレームワークは使わず、静的HTML・CSSと必要なJavaScriptを生成します。
-ブランドカラーは **#FFFB00** と黒。公開URLは `https://genuineci.com` です。
+製品LPと料金ページはレインボーのロゴと青を使います。公開URLは `https://genuineci.com` です。
+LPの写真の撮影者と配布元はフッター、同梱フォント（Geist・Geist Mono、Lora、Noto Serif JP）のライセンスは `public/licenses/*-OFL.txt` に記載しています。
 
 ## 開発
 
@@ -21,7 +22,8 @@ npm run dev --workspace genuineci-website
 
 ## URLと言語
 
-- `/<en|ja>/`: LP・Pricing
+- `/<en|ja>/`: 製品LP
+- `/<en|ja>/pricing/`: Cloudの料金試算、比較条件、セルフホスト、FAQ
 - `/<en|ja>/blog/`: ブログ一覧（カテゴリ絞り込み）
 - `/<en|ja>/blog/<slug>/`: リリース記事
 - `/<en|ja>/docs/`: Docsホーム

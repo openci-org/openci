@@ -44,7 +44,7 @@ const fences = (source: string) =>
 test("all content and localized landing pages are built", () => {
   assert.deepEqual(
     new Set(pages.keys()),
-    new Set(["/en/", "/ja/", ...contentRoutes]),
+    new Set(["/en/", "/ja/", "/en/pricing/", "/ja/pricing/", ...contentRoutes]),
   );
 });
 test("Starlight retains all sixteen documentation URLs and indexes both languages", () => {
@@ -123,7 +123,22 @@ for (const [route, $] of pages) {
     assert.equal($("html").attr("lang"), locale);
     assert.equal($("main").length, 1);
     assert.equal($("h1").length, 1);
-    assert.ok($("title").text().includes("GenuineCI"));
+    const isProduct = /^\/(en|ja)\/(pricing\/)?$/.test(route);
+    assert.ok(
+      $("title")
+        .text()
+        .includes(isProduct ? "OpenCI" : "GenuineCI"),
+    );
+    if (isProduct) {
+      assert.equal(
+        $('meta[property="og:site_name"]').attr("content"),
+        "OpenCI",
+      );
+      assert.equal(
+        new URL($('meta[property="og:image"]').attr("content")!).pathname,
+        "/ogp/openci.jpg",
+      );
+    }
     assert.equal($("meta[name=robots]").attr("content"), "noindex, nofollow");
     assert.equal(
       $("link[rel=canonical]").attr("href"),
@@ -353,17 +368,29 @@ for (const [route, $] of pages) {
 for (const locale of ["en", "ja"] as const) {
   test(`${locale}: landing and Docs samples use highlighted, copyable code`, () => {
     const landing = pages.get(`/${locale}/`)!;
-    for (const name of ["flutter", "dart"]) {
+    for (const name of ["flutter", "android", "testflight"]) {
       const sample = landing(
         `#workflow-${name} pre.astro-code[data-language=dart]`,
       );
       assert.equal(sample.length, 1);
       assert.ok(sample.find("code .line").length > 1);
     }
-    assert.ok(
-      landing("#workflow-dart code")
-        .text()
-        .includes("\n  await ci.run(command);\n}"),
+    assert.match(
+      landing("#workflow-flutter code").text(),
+      /ci\.flutter\.unitTests\(/,
+    );
+    assert.match(
+      landing("#workflow-android code").text(),
+      /ci\.flutter\.buildAab\(/,
+    );
+    assert.match(
+      landing("#workflow-testflight code").text(),
+      /ci\.flutter\.deployIpaToTestFlight\(/,
+    );
+    assert.equal(landing(".example [data-blog-copy]").length, 3);
+    assert.equal(
+      landing('[role="tab"][aria-selected=true]').attr("aria-controls"),
+      "workflow-flutter",
     );
     const docs = pages.get(`/${locale}/docs/`)!;
     const home = docs(".expressive-code pre[data-language=dart]");
@@ -406,27 +433,43 @@ for (const locale of ["en", "ja"] as const) {
   });
   test(`${locale}: per-minute pricing and language links are correct`, () => {
     const $ = pages.get(`/${locale}/`)!;
-    const pricing = $("#pricing");
-    assert.equal(pricing.find(".pricing-card").length, 1);
-    assert.equal(pricing.find(".pricing-currency").text(), "¥");
-    assert.equal(pricing.find(".pricing-price strong").text(), "1");
-    assert.equal(
-      pricing.find(".pricing-period").text(),
-      locale === "ja" ? "/ 分" : "/ min",
+    const details = pages.get(`/${locale}/pricing/`)!;
+    const pricing = details("#pricing");
+    assert.equal(pricing.find(".cloud-plan h2 strong").text(), "¥1");
+    assert.match(
+      details("h1").text(),
+      locale === "ja" ? /1分1円/ : /¥1 per minute/,
+    );
+    assert.equal($(".claim").attr("href"), `/${locale}/pricing/#comparison`);
+    assert.match(
+      $(".claim").text(),
+      locale === "ja" ? /世界最安/ : /lowest-priced/,
     );
     assert.ok(
-      pricing
-        .text()
-        .includes(
-          locale === "ja" ? "1分1円（税込）" : "¥1 per minute, tax included",
-        ),
+      $("#pricing a")
+        .toArray()
+        .some((a) => $(a).attr("href") === `/${locale}/pricing/`),
     );
-    assert.ok(
-      pricing
-        .find(".pricing-example")
-        .text()
-        .includes(locale === "ja" ? "100分なら100円" : "100 minutes cost ¥100"),
+    assert.deepEqual(
+      $("#estimate option")
+        .toArray()
+        .map((e) => $(e).attr("value")),
+      ["10", "100", "1000"],
     );
+    assert.equal($("#estimate output").text(), "¥100");
+    assert.equal(pricing.find("#minutes").attr("value"), "200");
+    assert.equal(pricing.find("output").text(), "¥200");
+    for (const id of [
+      "pricing",
+      "features",
+      "workflow",
+      "get-started",
+      "apis",
+      "quickstart",
+      "guides",
+    ]) {
+      assert.equal($("#" + id).length, 1);
+    }
     const rates = pricing
       .find(".pricing-comparison td")
       .toArray()
@@ -443,7 +486,7 @@ for (const locale of ["en", "ja"] as const) {
         ),
     );
     assert.doesNotMatch(
-      pricing.text() + $(".hero-pricing").text(),
+      pricing.text() + $(".claim").text(),
       /1¢|1 cent per minute|US\$0\.01(?:[^0-9]|$)/,
     );
     const savings = Math.round((1 - rates[0] / rates[1]) * 100);
@@ -463,22 +506,21 @@ for (const locale of ["en", "ja"] as const) {
             : "Free usage and discounts excluded",
         ),
     );
-    assert.equal($(".hero-pricing a").attr("href"), "#pricing");
-    assert.ok(
-      $(".hero-pricing")
-        .text()
-        .includes(
-          locale === "ja"
-            ? "世界最安のmacOS CI"
-            : "The world's lowest-priced macOS CI",
-        ),
+    assert.deepEqual(
+      pricing
+        .find("#comparison .pricing-comparison-note")
+        .last()
+        .find("a")
+        .toArray()
+        .map((a) => details(a).text().trim()),
+      ["GitHub Actions", "Codemagic", "Namespace"],
     );
     assert.equal(
-      pricing.find(".button").attr("href"),
+      pricing.find(".cloud-plan .action").attr("href"),
       "https://dashboard.openci.org/",
     );
     assert.equal(
-      pricing.find(".pricing-self-hosted a").attr("href"),
+      pricing.find(".plans article").last().find("a").attr("href"),
       `/${locale}/docs/self-hosting/`,
     );
     assert.doesNotMatch(
@@ -509,11 +551,13 @@ test("Japanese Markdown headings use Astro's generated IDs", () => {
   );
 });
 test("all Shiki colors have matching CSS variables", () => {
-  const styles = (readdirSync("dist/_astro") as string[])
-    .filter((file) => file.endsWith(".css"))
-    .map((file) => read("dist/_astro/" + file))
-    .join("\n");
   for (const [route, $] of pages) {
+    const styles = [
+      $("style").text(),
+      ...$("link[rel=stylesheet]")
+        .toArray()
+        .map((link) => read("dist" + $(link).attr("href"))),
+    ].join("\n");
     for (const element of $(
       ".astro-code[style],.astro-code [style]",
     ).toArray()) {
@@ -527,6 +571,8 @@ test("all Shiki colors have matching CSS variables", () => {
 });
 for (const [route, hash, shared] of [
   ["/ja/", "#pricing", true],
+  ["/ja/", "#quickstart", true],
+  ["/en/pricing/", "#comparison", true],
   ["/en/blog/v2-3-0/", "#article-heading", false],
 ] as const) {
   test(`${route}: language switching preserves queries and appropriate anchors`, () => {

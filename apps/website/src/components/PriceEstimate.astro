@@ -1,0 +1,73 @@
+---
+import { getRelativeLocaleUrl } from "astro:i18n";
+import Icon from "./Icon.astro";
+import { translator, type Locale } from "../lib/i18n";
+interface Props {
+  locale: Locale;
+  editable?: boolean;
+}
+const { locale, editable = false } = Astro.props;
+const t = translator(locale);
+const initial = editable ? 200 : 100;
+---
+
+<div class="estimate-card" data-estimate>
+  <div class="estimate-body">
+    <div>
+      <span class="card-label">
+        <img src="/favicon.png" width="13" height="13" alt="" />
+        OpenCI Cloud
+      </span>
+      <h2>{t("月の実行料金を試算", "Estimate your monthly cost")}</h2>
+    </div>
+    <div class="total">
+      <output for="minutes" aria-live="polite">
+        ¥{initial}
+      </output>
+      <small>{t("税込 / 月", "tax incl. / mo")}</small>
+    </div>
+  </div>
+  <div class="estimate-controls">
+    <div>
+      <label for="minutes">{t("月の実行時間", "Monthly runtime")}</label>
+      {editable ? (
+        <>
+          <input
+            type="number"
+            id="minutes"
+            value={initial}
+            min="0"
+            step="any"
+            inputmode="decimal"
+          />
+          <span>{t("分", "min")}</span>
+        </>
+      ) : (
+        <select id="minutes">
+          {[10, 100, 1000].map((value) => (
+            <option value={value} selected={value === initial}>
+              {value.toLocaleString(locale)}
+              {t("分", " min")}
+            </option>
+          ))}
+        </select>
+      )}
+    </div>
+    {editable ? (
+      <small>{t("1分 × 1円", "¥1 per minute")}</small>
+    ) : (
+      <a href={getRelativeLocaleUrl(locale, "pricing/")}>
+        {t("料金のしくみ", "Pricing details")}{" "}
+        <Icon name="external" marketing />
+      </a>
+    )}
+  </div>
+  {editable && (
+    <p class="calculator-help">
+      {t(
+        "チームの月間合計を1分単位で切り上げます。",
+        "We round up your team’s monthly total once, to the next minute.",
+      )}
+    </p>
+  )}
+</div>
