@@ -35,6 +35,8 @@ Future<void> main() async {
     Secrets.openciGeneratedAscIssuerId,
     Secrets.openciGeneratedAscKeyId,
     Secrets.openciGeneratedP8Base64,
+    // The Account Holder issues this key's Developer ID certificate once.
+    // Subsequent releases fetch and reuse that certificate.
     Secrets.macosCertificatePrivateKey,
     Secrets.sparklePrivateEdKey,
     Secrets.macosReleaseServiceAccountJsonBase64,

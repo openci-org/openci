@@ -54,6 +54,25 @@ staples and validates the ticket, then runs Gatekeeper validation. The final ZIP
 is created **after** stapling and signed by Sparkle's resolved `generate_appcast`.
 Key files and the signing keychain are removed afterward; the build VM is deleted.
 
+### First Developer ID certificate
+
+The ASC key created by `openci setup asc-keys` has the `APP_MANAGER` role.
+It can fetch the existing Developer ID certificate, but Apple rejects a new
+Developer ID certificate request with HTTP 403 because issuance requires the
+Account Holder. Codemagic CLI supports macOS signing; changing CLI tools does
+not change the Apple account's certificate permissions.
+
+Before the first release, create a public CSR from the existing
+`MACOS_CERTIFICATE_PRIVATE_KEY` without writing that private key to logs or
+temporary credential exports. As Account Holder, use Apple's Certificates,
+Identifiers & Profiles portal to issue a **Developer ID Application** certificate
+from that CSR. Verify its public key matches the CSR. CD can then fetch and reuse
+the certificate and create the matching `MAC_APP_DIRECT` provisioning profile.
+`--create` remains enabled for missing signing resources; a missing certificate
+still stops the release if the API key cannot issue it.
+
+See [Apple's Developer ID certificate instructions](https://developer.apple.com/help/account/certificates/create-developer-id-certificates/).
+
 ## Sparkle
 
 `AppInfo.xcconfig` contains the feed URL and public EdDSA key. The private key
