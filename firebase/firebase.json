@@ -53,12 +53,6 @@
   },
   "hosting": [
     {
-      "site": "openci-b1b91",
-      "public": "public_landing",
-      "cleanUrls": true,
-      "ignore": ["firebase.json", "**/node_modules/**"]
-    },
-    {
       "site": "dashboard-openci",
       "public": "public",
       "cleanUrls": true,

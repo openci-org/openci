@@ -5,7 +5,7 @@
   "targets": {
     "openci-b1b91": {
       "hosting": {
-        "website": ["genuineci-website"]
+        "website": ["openci-b1b91"]
       }
     }
   }

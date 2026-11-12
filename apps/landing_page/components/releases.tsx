@@ -193,20 +193,20 @@ function ReleaseShell({ children }: { children: ReactNode }) {
     <div className="flex min-h-dvh flex-col bg-white text-neutral-950">
       <header className="sticky top-0 z-50 border-b border-neutral-950/6 bg-white/92 py-4 backdrop-blur-md">
         <div className={`${containerClass} flex items-center justify-between gap-5`}>
-          <Link
+          <a
             href="/ja/"
             className="text-[1.0625rem] font-semibold text-neutral-950 transition-opacity hover:opacity-70"
             aria-label="ホームページ"
           >
             OpenCI
-          </Link>
+          </a>
           <nav className="hidden items-center gap-7 sm:flex" aria-label="Release navigation">
-            <Link
-              href="/ja/#pricing"
+            <a
+              href="/ja/pricing/"
               className="text-sm font-normal text-neutral-600 transition-colors hover:text-neutral-950"
             >
               料金
-            </Link>
+            </a>
             <Link
               href="/ja/releases/"
               className="text-sm font-normal text-neutral-600 transition-colors hover:text-neutral-950"
@@ -236,9 +236,9 @@ function ReleaseShell({ children }: { children: ReactNode }) {
       <footer className="border-t border-neutral-950/6 py-8">
         <div className={containerClass}>
           <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
-            <Link href="/ja/" className="text-[1.0625rem] font-semibold text-neutral-950">
+            <a href="/ja/" className="text-[1.0625rem] font-semibold text-neutral-950">
               OpenCI
-            </Link>
+            </a>
             <nav className="flex flex-wrap justify-center gap-6" aria-label="Footer navigation">
               <Link
                 href="/ja/releases/"
