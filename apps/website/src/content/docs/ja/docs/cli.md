@@ -1,6 +1,6 @@
 ---
 title: CLIリファレンス
-description: ターミナルからGenuineCIへ。インストール、ログイン、チームの切り替えに必要なコマンド。
+description: ターミナルからOpenCIへ。インストール、ログイン、チームの切り替えに必要なコマンド。
 ---
 
 ## インストール
@@ -8,8 +8,8 @@ description: ターミナルからGenuineCIへ。インストール、ログイ�
 Dart 3.11.5以降で、CLIをインストールします。
 
 ```sh
-dart install genuineci_cli
-genuineci --help
+dart install openci_cli_plus
+openci --help
 ```
 
 コマンドが見つからない場合は、[DartのPATH設定](https://dart.dev/tools/dart-install)を確認してください。
@@ -19,13 +19,13 @@ genuineci --help
 ダッシュボードと同じメールアドレス・パスワードでログインします。パスワードは対話プロンプトで入力します。
 
 ```sh
-genuineci login
+openci login
 ```
 
 別のサーバーを使う場合は、HTTPSのURLを指定します。
 
 ```sh
-genuineci login --server https://ci.example.com
+openci login --server https://ci.example.com
 ```
 
 セルフホストのFirebaseプロジェクトを使う場合は、`--firebase-api-key` でそのプロジェクトのWeb APIキーも指定します。
@@ -35,7 +35,7 @@ genuineci login --server https://ci.example.com
 現在のプロファイル、サーバー、チームを確認します。
 
 ```sh
-genuineci status
+openci status
 ```
 
 ## チームを切り替える
@@ -43,25 +43,25 @@ genuineci status
 対話形式でチームを選びます。矢印キーで移動し、Enterで決定します。Escでキャンセルできます。
 
 ```sh
-genuineci switch team
+openci switch team
 ```
 
 シークレット関連のコマンドは、切り替え後のチームに対して実行されます。
 
 ## コマンド一覧
 
-| コマンド                        | 用途                                         |
-| ------------------------------- | -------------------------------------------- |
-| `genuineci login`               | リモート環境にログイン                       |
-| `genuineci status`              | 現在のプロファイルとチームを確認             |
-| `genuineci switch team`         | 操作対象のチームを切り替え                   |
-| `genuineci list secrets`        | シークレット名を一覧表示                     |
-| `genuineci register secret`     | シークレットを登録・更新                     |
-| `genuineci register secretFile` | ファイルをBase64で登録                       |
-| `genuineci sync`                | シークレット定義とワークスペースパスを生成   |
-| `genuineci sync --secrets`      | シークレット定義のみを生成                   |
-| `genuineci sync --paths`        | ワークスペースパスのみを生成（ログイン不要） |
-| `genuineci update`              | CLIを更新                                    |
+| コマンド                     | 用途                                         |
+| ---------------------------- | -------------------------------------------- |
+| `openci login`               | リモート環境にログイン                       |
+| `openci status`              | 現在のプロファイルとチームを確認             |
+| `openci switch team`         | 操作対象のチームを切り替え                   |
+| `openci list secrets`        | シークレット名を一覧表示                     |
+| `openci register secret`     | シークレットを登録・更新                     |
+| `openci register secretFile` | ファイルをBase64で登録                       |
+| `openci sync`                | シークレット定義とワークスペースパスを生成   |
+| `openci sync --secrets`      | シークレット定義のみを生成                   |
+| `openci sync --paths`        | ワークスペースパスのみを生成（ログイン不要） |
+| `openci update`              | CLIを更新                                    |
 
 `sync` の生成ファイルは `openci/generated/` に保存されます。ワークフローでは `generated/secrets.g.dart` と `generated/paths.g.dart` を import してください。
 
@@ -70,12 +70,12 @@ genuineci switch team
 CLIのメッセージを日本語または英語に切り替えられます。
 
 ```sh
-genuineci use japanese
-genuineci use english
+openci use japanese
+openci use english
 ```
 
 最新の安定版に更新するには、次のコマンドを使います。
 
 ```sh
-genuineci update
+openci update
 ```

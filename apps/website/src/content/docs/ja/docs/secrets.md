@@ -8,8 +8,8 @@ description: APIトークンや設定ファイルをチームで管理し、ワ�
 シークレット操作は、CLIで選択しているチームに対して行われます。
 
 ```sh
-genuineci status
-genuineci switch team
+openci status
+openci switch team
 ```
 
 ## シークレットを登録する
@@ -17,7 +17,7 @@ genuineci switch team
 対話形式で名前と値を入力します。値の入力は非表示になります。
 
 ```sh
-genuineci register secret
+openci register secret
 ```
 
 同じ名前のシークレットを登録すると、既存の値が更新されます。
@@ -27,7 +27,7 @@ genuineci register secret
 値を表示せずに、登録されている名前だけを確認します。
 
 ```sh
-genuineci list secrets
+openci list secrets
 ```
 
 ## ファイルを登録する
@@ -35,7 +35,7 @@ genuineci list secrets
 ファイルをBase64のシークレットとして登録できます。
 
 ```sh
-genuineci register secretFile
+openci register secretFile
 ```
 
 対話形式でファイルを選択すると、ファイル名からシークレット名が生成されます。たとえば `google-services.json` は `GOOGLE_SERVICES_JSON_BASE64` になります。
@@ -47,9 +47,9 @@ genuineci register secretFile
 ワークフローのプロジェクト内で、シークレットの定義を更新します。
 
 ```sh
-genuineci sync --secrets
+openci sync --secrets
 ```
 
-定義は `openci/generated/secrets.g.dart` に保存されます。シークレットの値はこのファイルに保存されず、ワークフロー実行時の環境変数から読み込まれます。`genuineci sync` を実行すると、ワークスペースパスも一緒に生成されます。
+定義は `openci/generated/secrets.g.dart` に保存されます。シークレットの値はこのファイルに保存されず、ワークフロー実行時の環境変数から読み込まれます。`openci sync` を実行すると、ワークスペースパスも一緒に生成されます。
 
 チームを切り替えた場合も、必要に応じて再度同期します。CLIのインストールとログインは[CLIリファレンス](/ja/docs/cli/)を参照してください。
