@@ -1,7 +1,8 @@
 # Orchard Controller on GCP (G-1580)
 
 The controller runs on a single Compute Engine VM. macOS builds run on the
-separate Orchard workers. The controller's Badger database needs a persistent
+separate Orchard workers. The [Mac worker runbook](../mac-workers/README.md)
+covers the current `openci-worker-*` registrations and serial migration of existing Macs. The controller's Badger database needs a persistent
 filesystem; this deployment does not use Cloud Run for the controller.
 
 GCP resources and the related runtime invocation grants are managed by the

@@ -2,8 +2,8 @@
 
 Ansible manages the six physical Mac minis connected to the GCP Orchard
 Controller. Run it from an operator machine on the same Tailnet. The existing
-SSH keys, worker names, launchd labels, runtime versions, VM slots and Tart data
-directories are preserved.
+SSH keys, runtime versions, VM slots and Tart data directories are preserved.
+The managed registrations use `openci-worker-<inventory name>`.
 
 | Managed here                | Mechanism                                                        |
 | --------------------------- | ---------------------------------------------------------------- |
@@ -101,6 +101,36 @@ host. If a changed worker fails to connect, keep it paused, restore its previous
 plist from that backup, and reload that launchd job. No restart is needed to
 activate SSH settings for new connections. Recheck `sshd -t` and a new key login
 when restoring SSH configuration.
+
+## Migrate an existing worker name
+
+Use a certificate-pinned operator context for the OpenCI Controller. In the
+following example, first record whether Dokyo was already paused. Migrate one
+physical Mac per run and keep previously paused workers paused.
+
+```sh
+orchard get worker genuineci-worker-dokyo
+orchard pause worker genuineci-worker-dokyo --wait 600
+ansible-playbook migrate-name.yml --limit dokyo --check --ask-become-pass
+ansible-playbook migrate-name.yml --limit dokyo --ask-become-pass
+orchard get worker openci-worker-dokyo
+orchard list vms
+```
+
+The play validates the old identity and both VM inventories, then reserves the new
+name paused. It checks the installed plist against the new definition before the
+switch and waits for a new heartbeat from the same machine with the same slots.
+The play verifies the Controller CA fingerprint before changing its path and
+copies the existing bootstrap credential locally on the Mac. Original logs, the previous
+credential and a root-only recovery plist under `/Library/Application Support/OpenCI`
+remain available for rollback. A failed switch restores the previous launch daemon.
+
+After confirming registration and the absence of VMs on the stopped old identity,
+remove its paused Controller entry with `orchard delete worker genuineci-worker-dokyo`.
+If the worker previously accepted builds, run `orchard resume worker openci-worker-dokyo`
+and check the next assignment. For recovery, pause and drain the active identity
+before restoring its predecessor. The ordinary maintenance play still refuses a second
+launch daemon or a rename.
 
 ## Inventory and future hosts
 

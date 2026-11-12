@@ -1,0 +1,20 @@
+---
+- name: Migrate one drained OpenCI worker at a time
+  hosts: mac_workers
+  become: true
+  gather_facts: false
+  serial: 1
+  any_errors_fatal: true
+  module_defaults:
+    ansible.builtin.uri:
+      url_username: "{{ orchard_worker_controller_account }}"
+      url_password: "{{ orchard_worker_controller_token }}"
+      force_basic_auth: true
+      ca_path: "{{ orchard_worker_controller_ca }}"
+      follow_redirects: none
+      use_proxy: false
+  tasks:
+    - name: Migrate the Orchard registration and launchd definition
+      ansible.builtin.import_role:
+        name: orchard_worker
+        tasks_from: migrate_name.yml

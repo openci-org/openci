@@ -19,8 +19,6 @@ firebase/.env.*
 firebase/dart_functions/.env.*
 # Older checkouts may still have local Stacked PR credentials and deployment logs.
 /apps/stacked_pr/
-# Older checkouts may still have local Go CLI build artifacts.
-/apps/genuineci_cli/
 firebase/.deploy/
 firebase/firebase.*.local.json
 # Deployment-specific configuration is managed locally or in a private repository.

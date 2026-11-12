@@ -8,6 +8,8 @@
 		<key>HOME</key>
 		<string>/Users/admin</string>
 {% endif %}
+		<key>SSL_CERT_FILE</key>
+		<string>{{ orchard_worker_ca_path | e }}</string>
 		<key>PATH</key>
 		<string>{{ orchard_worker_path | e }}</string>
 {% if orchard_worker_no_auto_prune %}
