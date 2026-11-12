@@ -128,6 +128,61 @@ void main() {
   });
 
   test(
+    'first release can advance the unversioned empty bootstrap feed',
+    () async {
+      const empty =
+          '<rss version="2.0"><channel><title>OpenCI for macOS</title></channel></rss>';
+      var wroteFeed = false;
+      final client = MockClient((request) async {
+        if (isFeed(request) && request.method == 'GET') {
+          if (request.url.queryParameters['alt'] == 'media') {
+            expect(request.url.queryParameters['generation'], '7');
+            return http.Response(empty, 200);
+          }
+          return http.Response('{"generation":"7"}', 200);
+        }
+        if (isFeed(request)) {
+          expect(request.url.queryParameters['ifGenerationMatch'], '7');
+          wroteFeed = true;
+        } else if (request.method == 'POST') {
+          return http.Response('', 412);
+        } else {
+          return archiveMetadata();
+        }
+        return http.Response('{}', 200);
+      });
+      final public = MockClient(
+        (_) async => http.Response('', 200, headers: {'content-length': '4'}),
+      );
+      expect(await publish(client, public), isTrue);
+      expect(wroteFeed, isTrue);
+    },
+  );
+
+  test('a missing build number never resets a populated feed', () async {
+    final requests = <String>[];
+    final client = MockClient((request) async {
+      requests.add(
+        '${request.method} ${request.url.queryParameters['alt'] ?? 'metadata'}',
+      );
+      expect(request.method, 'GET');
+      expect(isFeed(request), isTrue);
+      if (request.url.queryParameters['alt'] == 'media') {
+        return http.Response(
+          appcast(build: 43).replaceFirst(
+            '<channel>',
+            '<channel><title>OpenCI for macOS</title>',
+          ),
+          200,
+        );
+      }
+      return http.Response('{"generation":"7"}', 200);
+    });
+    await expectLater(publish(client, client), throwsStateError);
+    expect(requests, ['GET metadata', 'GET media']);
+  });
+
+  test(
     'losing a concurrent feed update cannot roll back a newer release',
     () async {
       var reads = 0;
