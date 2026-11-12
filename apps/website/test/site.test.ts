@@ -125,7 +125,11 @@ for (const [route, $] of pages) {
     assert.equal($("main").length, 1);
     assert.equal($("h1").length, 1);
     const isProduct = !route.includes("/docs/");
-    assert.ok($("title").text().includes("OpenCI"));
+    assert.ok(
+      $("title")
+        .text()
+        .includes(isProduct ? "OpenCI" : "OpenCI Docs"),
+    );
     if (isProduct) {
       assert.equal(
         $('meta[property="og:site_name"]').attr("content"),
@@ -133,16 +137,6 @@ for (const [route, $] of pages) {
       );
       assert.equal($(".product-nav .wordmark").text().trim(), "OpenCI");
       assert.equal($(".product-footer").length, 1);
-    }
-    if ($('meta[property="og:type"]').attr("content") !== "article") {
-      assert.equal(
-        new URL($('meta[property="og:image"]').attr("content")!).pathname,
-        "/ogp/openci.jpg",
-      );
-    }
-    if (route.endsWith("/docs/cli/")) {
-      assert.ok($("main code").text().includes("dart install openci_cli_plus"));
-      assert.ok($("main code").text().includes("openci --help"));
     }
     assert.equal($("meta[name=robots]").attr("content"), "noindex, nofollow");
     assert.equal(
@@ -155,6 +149,9 @@ for (const [route, $] of pages) {
     );
     const image = $('meta[property="og:image"]').attr("content")!;
     assert.equal(new URL(image).origin, "https://openci.org");
+    if ($('meta[property="og:type"]').attr("content") !== "article") {
+      assert.equal(new URL(image).pathname, "/ogp/openci.jpg");
+    }
     assert.ok(existsSync("dist" + new URL(image).pathname));
     assert.equal($('meta[name="twitter:image"]').attr("content"), image);
     assert.equal(
@@ -346,6 +343,7 @@ for (const [route, $] of pages) {
         route,
       );
       assert.equal($(".site-title").attr("href"), docsPrefix);
+      assert.equal($(".site-title").text().trim(), "OpenCI Docs");
       if (route !== docsPrefix) {
         assert.equal(
           $(".lead").text(),
@@ -408,6 +406,16 @@ for (const locale of ["en", "ja"] as const) {
       home.closest(".expressive-code").find("button[title]").length,
       1,
     );
+    const cli = pages.get(`/${locale}/docs/cli/`)!;
+    const installLines = cli(".sl-markdown-content pre code")
+      .first()
+      .find(".ec-line .code")
+      .map((_, line) => cli(line).text().trim())
+      .get();
+    assert.deepEqual(installLines, [
+      "dart install openci_cli_plus",
+      "openci --help",
+    ]);
   });
   test(`${locale}: blog listing, dates and next article`, () => {
     const $ = pages.get(`/${locale}/blog/`)!;

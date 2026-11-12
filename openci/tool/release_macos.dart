@@ -191,7 +191,14 @@ Future<void> release(int build) async {
       '--export-options-plist',
       exportOptions,
       '--custom-export-options',
-      '{"method":"developer-id","signingStyle":"manual"}',
+      '{"signingStyle":"manual"}',
+    ]);
+    // Codemagic 0.69.1 validates method against an iOS-only enum. Apply the
+    // macOS export method after it has generated the profile assignments.
+    await run('Set Developer ID export method', '/usr/libexec/PlistBuddy', [
+      '-c',
+      'Set :method developer-id',
+      exportOptions,
     ]);
     await run('Archive macOS app', 'xcodebuild', [
       '-workspace',

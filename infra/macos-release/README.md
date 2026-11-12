@@ -53,6 +53,9 @@ and exports with Xcode's Developer ID distribution, waits for notarization,
 staples and validates the ticket, then runs Gatekeeper validation. The final ZIP
 is created **after** stapling and signed by Sparkle's resolved `generate_appcast`.
 Key files and the signing keychain are removed afterward; the build VM is deleted.
+Codemagic 0.69.1 accepts only iOS archive methods in its custom export options.
+The release script uses Codemagic to apply the profiles, then sets `developer-id`
+in the generated export plist with Apple's PlistBuddy before Xcode exports it.
 
 ### First Developer ID certificate
 

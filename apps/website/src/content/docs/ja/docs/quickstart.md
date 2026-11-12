@@ -15,13 +15,11 @@ description: いつものプロジェクトに、最初のワークフローを�
 
 ## 01 SDKを追加する
 
-Flutterプロジェクトに、ワークフロー用のSDKを追加します。
+FlutterプロジェクトにOpenCIのワークフローSDKを追加します。
 
 ```sh
 flutter pub add --dev openci_workflow
 ```
-
-サービス名はOpenCI、ワークフローのパッケージ名は `openci_workflow` です。
 
 ## 02 ワークフローを書く
 

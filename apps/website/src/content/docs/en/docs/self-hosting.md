@@ -24,7 +24,7 @@ You do not need to deploy these components to run Dart workflows locally. Start 
 
 ## Development and deployment
 
-The former API servers, PostgreSQL Compose stack and `openci dev start` command have been retired. The repository still provides a standalone Firebase Auth Emulator. Functions, Data Connect and build execution require their own setup.
+The former API servers, PostgreSQL Compose stack and the old CLI's `dev start` command have been retired. The repository still provides a standalone Firebase Auth Emulator. Functions, Data Connect and build execution require their own setup.
 
 - [Firebase development and emulator setup](https://github.com/openci-org/openci/blob/develop/firebase/README.md)
 - [Functions and Cloud Run deployment](https://github.com/openci-org/openci/blob/develop/firebase/functions/DEPLOYMENT.md)

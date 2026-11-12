@@ -24,7 +24,7 @@ OpenCIはオープンソースのCIです。FirebaseとGCPでジョブを管理�
 
 ## 開発とデプロイ
 
-旧APIサーバー、PostgreSQLのCompose構成、`openci dev start`コマンドは廃止しました。単独で起動できるFirebase Auth Emulatorは引き続き利用できます。Functions、Data Connect、ビルド実行環境はそれぞれ設定します。
+旧APIサーバー、PostgreSQLのCompose構成、旧CLIの `dev start` コマンドは廃止しました。単独で起動できるFirebase Auth Emulatorは引き続き利用できます。Functions、Data Connect、ビルド実行環境はそれぞれ設定します。
 
 - [Firebaseの開発・エミュレーター設定](https://github.com/openci-org/openci/blob/develop/firebase/README.md)
 - [FunctionsとCloud Runのデプロイ](https://github.com/openci-org/openci/blob/develop/firebase/functions/DEPLOYMENT.md)
