@@ -14,7 +14,7 @@ resource "google_storage_bucket" "releases" {
     retention_duration_seconds = 604800
   }
   cors {
-    origin          = ["https://genuineci.com", "https://dashboard.openci.org"]
+    origin          = ["https://openci.org", "https://dashboard.openci.org"]
     method          = ["GET", "HEAD"]
     response_header = ["Content-Type", "Content-Length", "ETag"]
     max_age_seconds = 3600
