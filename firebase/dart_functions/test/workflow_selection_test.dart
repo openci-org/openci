@@ -118,21 +118,26 @@ void main() {
       )
       .whereType<ParsedWorkflow>()
       .toList();
+  final pullRequestDefinitions = definitions
+      .where(
+        (definition) =>
+            definition.matches(eventType: 'pull_request', branch: 'develop'),
+      )
+      .toList();
 
   test('website source runs only Website CI', () {
-    expect(definitions, hasLength(6));
     final result = plan(
       definitions,
       diff(['apps/website/src/components/Pricing.astro']),
     );
     expect(result.jobs.map((job) => job.workflowName), ['Website CI']);
-    expect(result.skipped, hasLength(definitions.length - 1));
+    expect(result.skipped, hasLength(pullRequestDefinitions.length - 1));
   });
   test('docs-only changes allocate no build jobs', () {
     expect(plan(definitions, diff(['README.md'])).jobs, isEmpty);
     expect(
       plan(definitions, diff(['README.md'])).skipped,
-      hasLength(definitions.length),
+      hasLength(pullRequestDefinitions.length),
     );
   });
   test('shared model changes also run their Dart Functions consumer', () {
@@ -144,9 +149,10 @@ void main() {
       'OpenCI Shared CI',
       'Dart Functions CI',
       'Dart Format Check',
+      'macOS release checks',
     });
   });
-  test('runtime SDK and workspace resolution changes run all workflows', () {
+  test('runtime SDK and workspace resolution changes run all PR workflows', () {
     for (final path in [
       'packages/openci_workflow/lib/openci_workflow.dart',
       'pubspec.lock',
@@ -154,10 +160,34 @@ void main() {
     ]) {
       expect(
         plan(definitions, diff([path])).jobs,
-        hasLength(definitions.length),
+        hasLength(pullRequestDefinitions.length),
         reason: path,
       );
     }
+  });
+  test('macOS publication runs only on develop pushes', () {
+    final cd = definitions.singleWhere(
+      (definition) => definition.workflowName == 'Dashboard macOS CD',
+    );
+    expect(cd.cancelPreviousRuns, isFalse);
+    expect(cd.matches(eventType: 'pull_request', branch: 'develop'), isFalse);
+    expect(cd.matches(eventType: 'push', branch: 'feature'), isFalse);
+    expect(cd.matches(eventType: 'push', branch: 'develop'), isTrue);
+    expect(cd.ciTriggers.single.matchesChangedFiles(['README.md']), isFalse);
+    expect(
+      cd.ciTriggers.single.matchesChangedFiles([
+        'apps/dashboard/lib/main.dart',
+      ]),
+      isTrue,
+    );
+  });
+  test('macOS release checks never run on deployment pushes', () {
+    final ci = definitions.singleWhere(
+      (definition) => definition.workflowName == 'macOS release checks',
+    );
+    expect(ci.cancelPreviousRuns, isTrue);
+    expect(ci.matches(eventType: 'pull_request', branch: 'develop'), isTrue);
+    expect(ci.matches(eventType: 'push', branch: 'develop'), isFalse);
   });
   test('Node runtime changes run all Node workflows', () {
     final result = plan(definitions, diff(['.node-version']));

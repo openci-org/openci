@@ -45,27 +45,38 @@ Future<void> validateUnsignedBuild(int build) async {
   final appDirectory = '${Directory.current.path}/apps/dashboard';
   final derivedData =
       '${Directory.current.path}/build/macos-release-validation';
-  await run('Prepare unsigned validation build', 'flutter', [
-    'build',
-    'macos',
-    '--release',
-    '--config-only',
-    '--build-number=$build',
-  ], cwd: appDirectory);
-  await run('Build macOS app without signing or publishing', 'xcodebuild', [
-    '-workspace',
-    '$appDirectory/macos/Runner.xcworkspace',
-    '-scheme',
-    'Runner',
-    '-configuration',
-    'Release',
-    '-destination',
-    'generic/platform=macOS',
-    '-derivedDataPath',
-    derivedData,
-    'build',
-    'CODE_SIGNING_ALLOWED=NO',
-  ], timeout: const Duration(minutes: 40));
+  await run(
+    'Prepare unsigned validation build',
+    'flutter',
+    [
+      'build',
+      'macos',
+      '--release',
+      '--config-only',
+      '--build-number=$build',
+    ],
+    cwd: appDirectory,
+    timeout: const Duration(minutes: 15),
+  );
+  await run(
+    'Build macOS app without signing or publishing',
+    'xcodebuild',
+    [
+      '-workspace',
+      '$appDirectory/macos/Runner.xcworkspace',
+      '-scheme',
+      'Runner',
+      '-configuration',
+      'Release',
+      '-destination',
+      'generic/platform=macOS',
+      '-derivedDataPath',
+      derivedData,
+      'build',
+      'CODE_SIGNING_ALLOWED=NO',
+    ],
+    timeout: const Duration(minutes: 40),
+  );
   stdout.writeln(
     'Unsigned validation app: $derivedData/Build/Products/Release/OpenCI.app',
   );
@@ -121,13 +132,19 @@ Future<void> release(int build) async {
     final updates = Directory('${temporary.path}/updates');
     await updates.create();
 
-    await run('Prepare Flutter release configuration', 'flutter', [
-      'build',
-      'macos',
-      '--release',
-      '--config-only',
-      '--build-number=$build',
-    ], cwd: appDirectory);
+    await run(
+      'Prepare Flutter release configuration',
+      'flutter',
+      [
+        'build',
+        'macos',
+        '--release',
+        '--config-only',
+        '--build-number=$build',
+      ],
+      cwd: appDirectory,
+      timeout: const Duration(minutes: 15),
+    );
     await run('Prepare signing keychain', 'keychain', [
       'initialize',
       '--path',
