@@ -262,33 +262,46 @@ Future<void> release(int build) async {
       app,
       notarizationZip,
     ]);
-    final notary = await run(
-      'Wait for Apple notarization',
+    final notaryOptions = [
+      '--key',
+      ascKey.path,
+      '--key-id',
+      keyId,
+      '--issuer',
+      issuer,
+      '--output-format',
+      'json',
+    ];
+    final submitted = await run(
+      'Submit app for Apple notarization',
+      'xcrun',
+      ['notarytool', 'submit', notarizationZip, ...notaryOptions],
+      capture: true,
+      timeout: const Duration(minutes: 10),
+    );
+    final submissionId = (jsonDecode(submitted) as Map)['id'];
+    if (submissionId is! String ||
+        !RegExp(
+          r'^[0-9a-fA-F]{8}(?:-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}$',
+        ).hasMatch(submissionId)) {
+      throw StateError('Apple did not return a notarization submission ID.');
+    }
+    final result = await run(
+      'Wait for Apple notarization $submissionId',
       'xcrun',
       [
         'notarytool',
-        'submit',
-        notarizationZip,
-        '--key',
-        ascKey.path,
-        '--key-id',
-        keyId,
-        '--issuer',
-        issuer,
-        '--wait',
+        'wait',
+        submissionId,
         '--timeout',
         '30m',
-        '--output-format',
-        'json',
+        ...notaryOptions,
       ],
       capture: true,
       timeout: const Duration(minutes: 35),
     );
-    final notaryResult = jsonDecode(notary) as Map;
-    if (notaryResult['status'] != 'Accepted') {
-      throw StateError(
-        'Apple did not accept the notarization. Check the submission in Apple Developer.',
-      );
+    if ((jsonDecode(result) as Map)['status'] != 'Accepted') {
+      throw StateError('Apple did not accept notarization $submissionId.');
     }
     await run('Attach notarization ticket', 'xcrun', [
       'stapler',
