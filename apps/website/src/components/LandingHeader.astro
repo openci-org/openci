@@ -15,6 +15,7 @@ const links = [
   [home + "#quickstart", t("始め方", "Quickstart")],
   [getRelativeLocaleUrl(locale, "pricing/"), t("料金", "Pricing")],
   [home + "#guides", t("ガイド", "Guides")],
+  [getRelativeLocaleUrl(locale, "blog/"), t("ブログ", "Blog")],
 ];
 ---
 
@@ -29,7 +30,12 @@ const links = [
       aria-label={t("メインナビゲーション", "Main navigation")}
     >
       {links.map(([href, label]) => (
-        <a href={href}>{label}</a>
+        <a
+          href={href}
+          aria-current={Astro.url.pathname === href ? "page" : undefined}
+        >
+          {label}
+        </a>
       ))}
     </nav>
     <div class="nav-actions">
@@ -46,7 +52,12 @@ const links = [
         </summary>
         <nav aria-label={t("モバイルナビゲーション", "Mobile navigation")}>
           {links.map(([href, label]) => (
-            <a href={href}>{label}</a>
+            <a
+              href={href}
+              aria-current={Astro.url.pathname === href ? "page" : undefined}
+            >
+              {label}
+            </a>
           ))}
           <a href="https://dashboard.openci.org/">
             {t("ダッシュボード", "Dashboard")} ↗

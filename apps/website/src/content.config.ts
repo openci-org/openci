@@ -24,6 +24,7 @@ const pages = defineCollection({
       author: z.string().optional(),
       coverLabel: z.string().optional(),
       coverTitle: z.string().optional(),
+      coverImage: z.string().startsWith("/images/").optional(),
     })
     .superRefine((data, ctx) => {
       if (data.layout === "blog-article" && (!data.date || !data.category))
