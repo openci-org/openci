@@ -1,3 +1,10 @@
+## 0.8.0
+
+- Install `openci_cli_plus` with `dart install openci_cli_plus` and run `openci`
+  to use your existing OpenCI profiles and settings.
+- `openci update` checks `openci_cli_plus` for updates. Newly created App Store
+  Connect keys are named `OpenCI`.
+
 ## 0.7.0
 
 - **Breaking:** Generate `Secret` references instead of String getters in

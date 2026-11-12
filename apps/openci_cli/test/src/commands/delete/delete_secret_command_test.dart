@@ -5,7 +5,7 @@ import 'dart:io';
 
 import 'package:args/command_runner.dart';
 import 'package:cli_util/cli_logging.dart';
-import 'package:genuineci_cli/genuineci_cli.dart';
+import 'package:openci_cli_plus/openci_cli_plus.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:path/path.dart' as p;
@@ -101,7 +101,7 @@ void main() {
   });
 
   Future<int?> run([List<String> arguments = const ['API_TOKEN']]) {
-    final runner = CommandRunner<int>('genuineci', 'test')
+    final runner = CommandRunner<int>('openci', 'test')
       ..addCommand(DeleteCommand(logger: logger, credentialStore: store));
     return http.runWithClient(
       () => runner.run(['delete', 'secret', ...arguments]),
@@ -211,7 +211,7 @@ void main() {
             isA<UsageException>().having(
               (error) => error.usage,
               'usage',
-              contains('genuineci delete secret SECRET_NAME'),
+              contains('openci delete secret SECRET_NAME'),
             ),
           ),
         );

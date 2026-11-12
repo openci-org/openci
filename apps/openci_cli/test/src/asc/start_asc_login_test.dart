@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'package:genuineci_cli/src/asc/start_asc_login.dart';
+import 'package:openci_cli_plus/src/asc/start_asc_login.dart';
 import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 
@@ -57,9 +57,7 @@ void main() {
   test(
     'runs a real executable with literal arguments and a usable exit code',
     () async {
-      final root = await Directory.systemTemp.createTemp(
-        'genuineci asc login ',
-      );
+      final root = await Directory.systemTemp.createTemp('openci asc login ');
       addTearDown(() => root.delete(recursive: true));
       final executable = File(p.join(root.path, 'asc'));
       await executable.writeAsString('''#!/bin/sh

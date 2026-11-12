@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:genuineci_cli/src/commands/sync/read_workspace_packages.dart';
+import 'package:openci_cli_plus/src/commands/sync/read_workspace_packages.dart';
 import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 

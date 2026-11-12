@@ -3,17 +3,17 @@ import 'dart:io';
 
 import 'package:args/command_runner.dart';
 import 'package:cli_util/cli_logging.dart';
-import 'package:genuineci_cli/genuineci_cli.dart';
-import 'package:genuineci_cli/src/asc/asc_api_key.dart';
-import 'package:genuineci_cli/src/asc/asc_authentication_status.dart';
-import 'package:genuineci_cli/src/asc/asc_release.dart';
-import 'package:genuineci_cli/src/asc/check_asc_authentication.dart';
-import 'package:genuineci_cli/src/asc/create_asc_api_key.dart';
-import 'package:genuineci_cli/src/asc/install_asc.dart';
-import 'package:genuineci_cli/src/asc/verify_asc_executable.dart';
-import 'package:genuineci_cli/src/commands/setup/confirm_asc_key_creation.dart';
-import 'package:genuineci_cli/src/commands/setup/asc_key_registration.dart';
-import 'package:genuineci_cli/src/commands/setup/read_apple_id.dart';
+import 'package:openci_cli_plus/openci_cli_plus.dart';
+import 'package:openci_cli_plus/src/asc/asc_api_key.dart';
+import 'package:openci_cli_plus/src/asc/asc_authentication_status.dart';
+import 'package:openci_cli_plus/src/asc/asc_release.dart';
+import 'package:openci_cli_plus/src/asc/check_asc_authentication.dart';
+import 'package:openci_cli_plus/src/asc/create_asc_api_key.dart';
+import 'package:openci_cli_plus/src/asc/install_asc.dart';
+import 'package:openci_cli_plus/src/asc/verify_asc_executable.dart';
+import 'package:openci_cli_plus/src/commands/setup/confirm_asc_key_creation.dart';
+import 'package:openci_cli_plus/src/commands/setup/asc_key_registration.dart';
+import 'package:openci_cli_plus/src/commands/setup/read_apple_id.dart';
 import 'package:test/test.dart';
 
 class _RecordingLogger implements Logger {
@@ -142,7 +142,7 @@ void main() {
   });
 
   Future<int?> run([List<String> arguments = const []]) {
-    final runner = CommandRunner<int>('genuineci setup', 'test')
+    final runner = CommandRunner<int>('openci setup', 'test')
       ..addCommand(
         SetupAscKeysCommand(
           logger: logger,
@@ -697,7 +697,7 @@ void main() {
       expect(logger.output, isNot(contains(t.setup.ascKeys.setupComplete)));
       expect(logger.errors, [
         t.setup.ascKeys.retrySave(
-          command: "genuineci setup asc-keys --key-directory '/key-output'",
+          command: "openci setup asc-keys --key-directory '/key-output'",
         ),
       ]);
     });

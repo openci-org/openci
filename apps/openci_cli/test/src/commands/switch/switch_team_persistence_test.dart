@@ -7,8 +7,8 @@ import 'package:args/command_runner.dart';
 import 'package:cli_util/cli_logging.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
-import 'package:genuineci_cli/genuineci_cli.dart';
-import 'package:genuineci_cli/src/commands/switch/select_team.dart';
+import 'package:openci_cli_plus/openci_cli_plus.dart';
+import 'package:openci_cli_plus/src/commands/switch/select_team.dart';
 import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 
@@ -123,7 +123,7 @@ void main() {
   });
 
   Future<int?> run() {
-    final runner = CommandRunner<int>('genuineci', 'test')
+    final runner = CommandRunner<int>('openci', 'test')
       ..addCommand(
         SwitchCommand(
           logger: logger,
@@ -439,7 +439,7 @@ void main() {
           requests.clear();
           final workflows = Directory(p.join(root.path, 'project', 'openci'));
           await workflows.create(recursive: true);
-          final runner = CommandRunner<int>('genuineci $command', 'test')
+          final runner = CommandRunner<int>('openci $command', 'test')
             ..addCommand(
               command == 'list'
                   ? ListSecretsCommand(logger: logger, credentialStore: store)

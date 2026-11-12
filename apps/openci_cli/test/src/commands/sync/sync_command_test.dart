@@ -5,7 +5,7 @@ import 'dart:io';
 
 import 'package:args/command_runner.dart';
 import 'package:cli_util/cli_logging.dart';
-import 'package:genuineci_cli/genuineci_cli.dart';
+import 'package:openci_cli_plus/openci_cli_plus.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:path/path.dart' as p;
@@ -37,7 +37,7 @@ void main() {
   late int status;
 
   setUp(() async {
-    root = await Directory.systemTemp.createTemp('genuineci-sync-');
+    root = await Directory.systemTemp.createTemp('openci-sync-');
     workflows = await Directory(p.join(root.path, 'openci')).create();
     await Directory(p.join(root.path, 'lib')).create();
     pubspec = File(p.join(root.path, 'pubspec.yaml'));
@@ -63,7 +63,7 @@ void main() {
   tearDown(() => root.delete(recursive: true));
 
   Future<int?> runSync([List<String> arguments = const []]) {
-    final runner = CommandRunner<int>('genuineci', 'test')
+    final runner = CommandRunner<int>('openci', 'test')
       ..addCommand(
         SyncCommand(
           logger: logger,

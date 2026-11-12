@@ -2,9 +2,9 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:genuineci_cli/src/asc/asc_api_key.dart';
-import 'package:genuineci_cli/src/asc/asc_authentication_status.dart';
-import 'package:genuineci_cli/src/asc/create_asc_api_key.dart';
+import 'package:openci_cli_plus/src/asc/asc_api_key.dart';
+import 'package:openci_cli_plus/src/asc/asc_authentication_status.dart';
+import 'package:openci_cli_plus/src/asc/create_asc_api_key.dart';
 import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 
@@ -136,7 +136,7 @@ void main() {
               publicProviderId,
             ],
             '--name',
-            'GenuineCI',
+            'OpenCI',
             '--role',
             'APP_MANAGER',
             '--output-dir',

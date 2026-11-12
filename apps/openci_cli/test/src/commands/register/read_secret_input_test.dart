@@ -1,7 +1,7 @@
 import 'dart:io';
 
-import 'package:genuineci_cli/src/commands/register/read_secret_input.dart';
-import 'package:genuineci_cli/src/i18n/i18n.dart';
+import 'package:openci_cli_plus/src/commands/register/read_secret_input.dart';
+import 'package:openci_cli_plus/src/i18n/i18n.dart';
 import 'package:mason_logger/mason_logger.dart';
 import 'package:test/test.dart';
 

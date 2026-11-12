@@ -3,10 +3,10 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
-import 'package:genuineci_cli/src/commands/switch/fetch_teams.dart';
+import 'package:openci_cli_plus/src/commands/switch/fetch_teams.dart';
 import 'package:openci_shared/openci_shared.dart';
-import 'package:genuineci_cli/src/credential_store/credential_config.dart';
-import 'package:genuineci_cli/src/teams/teams_api.dart';
+import 'package:openci_cli_plus/src/credential_store/credential_config.dart';
+import 'package:openci_cli_plus/src/teams/teams_api.dart';
 import 'package:test/test.dart';
 
 void main() {

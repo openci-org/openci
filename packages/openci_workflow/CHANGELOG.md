@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- **Breaking:** Remove `GoCI` and `OpenCI.go`, including the Go format, vet,
+  and test helpers.
+
 ## 0.2.8
 
 - Update CLI installation and secret-sync examples to use `openci_cli_plus` and

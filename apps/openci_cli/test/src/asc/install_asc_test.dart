@@ -4,9 +4,9 @@ import 'dart:ffi';
 import 'dart:io';
 
 import 'package:crypto/crypto.dart';
-import 'package:genuineci_cli/src/asc/asc_license.dart';
-import 'package:genuineci_cli/src/asc/find_cached_asc_executable.dart';
-import 'package:genuineci_cli/src/asc/install_asc.dart';
+import 'package:openci_cli_plus/src/asc/asc_license.dart';
+import 'package:openci_cli_plus/src/asc/find_cached_asc_executable.dart';
+import 'package:openci_cli_plus/src/asc/install_asc.dart';
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
@@ -40,7 +40,7 @@ void main() {
   late int chmodCalls;
 
   setUp(() async {
-    root = await Directory.systemTemp.createTemp('genuineci-asc-install-');
+    root = await Directory.systemTemp.createTemp('openci-asc-install-');
     cache = Directory(p.join(root.path, 'cache with spaces'));
     executable = File(
       p.join(cache.path, 'tools', 'asc', '5.11.0', 'macOS_arm64', 'asc'),

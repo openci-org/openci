@@ -1,8 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:genuineci_cli/src/i18n/i18n.dart';
-import 'package:genuineci_cli/src/update/prompt_for_update.dart';
+import 'package:openci_cli_plus/src/i18n/i18n.dart';
+import 'package:openci_cli_plus/src/update/prompt_for_update.dart';
 import 'package:test/test.dart';
 
 class _Input implements Stdin {

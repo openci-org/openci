@@ -1,1 +1,1 @@
-const String genuineCIVersion = '0.7.0';
+const String openCIVersion = '0.8.0';

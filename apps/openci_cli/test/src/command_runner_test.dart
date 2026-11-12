@@ -3,8 +3,8 @@ import 'dart:async';
 import 'package:args/command_runner.dart';
 import 'package:cli_completion/parser.dart';
 import 'package:cli_util/cli_logging.dart';
-import 'package:genuineci_cli/genuineci_cli.dart';
-import 'package:genuineci_cli/src/update/cli_updater.dart';
+import 'package:openci_cli_plus/openci_cli_plus.dart';
+import 'package:openci_cli_plus/src/update/cli_updater.dart';
 import 'package:test/test.dart';
 
 class _RecordingLogger implements Logger {
@@ -66,7 +66,7 @@ class _ExampleCommand extends Command<int> {
   }
 }
 
-class _CompletionRunner extends GenuineCICommandRunner {
+class _CompletionRunner extends OpenCICommandRunner {
   _CompletionRunner({
     required super.logger,
     required super.updater,
@@ -84,11 +84,11 @@ class _CompletionRunner extends GenuineCICommandRunner {
 
 void main() {
   late _RecordingLogger logger;
-  late GenuineCICommandRunner runner;
+  late OpenCICommandRunner runner;
 
   setUp(() {
     logger = _RecordingLogger();
-    runner = GenuineCICommandRunner(logger: logger, hasTerminal: false);
+    runner = OpenCICommandRunner(logger: logger, hasTerminal: false);
   });
 
   group('version', () {
@@ -99,7 +99,7 @@ void main() {
         expect(result, equals(0));
         expect(
           logger.stdoutMessages,
-          equals([t.cli.version(version: genuineCIVersion)]),
+          equals([t.cli.version(version: openCIVersion)]),
         );
         expect(logger.stderrMessages, isEmpty);
       });
@@ -111,7 +111,7 @@ void main() {
       expect(result, equals(0));
       expect(
         logger.stdoutMessages,
-        equals([t.cli.version(version: genuineCIVersion)]),
+        equals([t.cli.version(version: openCIVersion)]),
       );
       expect(logger.stderrMessages, isEmpty);
     });
@@ -169,7 +169,7 @@ void main() {
     final secret = delete.subcommands['secret'];
     expect(secret, isA<DeleteSecretCommand>());
     expect(secret!.description, t.delete.secret.description);
-    expect(secret.invocation, 'genuineci delete secret SECRET_NAME');
+    expect(secret.invocation, 'openci delete secret SECRET_NAME');
   });
 
   test('registers list teams with a localized description', () {
@@ -217,20 +217,20 @@ void main() {
     expect(logger.stdoutMessages, isEmpty);
     expect(
       logger.stderrMessages,
-      equals(['Usage: genuineci use <japanese|english>']),
+      equals(['Usage: openci use <japanese|english>']),
     );
   });
 
   group('shell completion', () {
     for (final shell in ['bash', 'zsh']) {
       for (final (line, expected) in [
-        ('genuineci ', ['login', 'register', 'delete', 'switch', '--version']),
-        ('genuineci reg', ['register']),
-        ('genuineci register ', ['secret', 'secretFile']),
-        ('genuineci delete ', ['secret']),
-        ('genuineci switch ', ['team']),
-        ('genuineci login --ser', ['--server']),
-        ('genuineci --no-check', ['--no-check-updates']),
+        ('openci ', ['login', 'register', 'delete', 'switch', '--version']),
+        ('openci reg', ['register']),
+        ('openci register ', ['secret', 'secretFile']),
+        ('openci delete ', ['secret']),
+        ('openci switch ', ['team']),
+        ('openci login --ser', ['--server']),
+        ('openci --no-check', ['--no-check-updates']),
       ]) {
         test('$shell completes "$line" without checking for updates', () async {
           final updater = _Updater();
@@ -280,7 +280,7 @@ void main() {
       bool hasTerminal = true,
       Map<String, String> environment = const {},
     }) {
-      runner = GenuineCICommandRunner(
+      runner = OpenCICommandRunner(
         logger: logger,
         updater: updater,
         hasTerminal: hasTerminal,
