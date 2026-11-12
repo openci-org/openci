@@ -103,9 +103,8 @@ npm run preview --workspace openci-website
 
 `openci/website_ci.dart` はPRとdevelopへのpushで、依存取得・フォーマット・
 Astroの静的解析・ビルド・テストを `bash scripts/ci.sh` で実行します。
-このスクリプトは `.node-version` のNode.js公式バイナリを一時ディレクトリへ取得し、
-SHA-256を検証した後、npm 11.14.1で依存取得と `npm run build:hosting` を実行します。
-ワーカーやFirebase CLIが引き継ぐNode.jsのバージョンに依存せず、実行後に一時ディレクトリを削除します。
+このスクリプトは `.node-version` と一致するNode.jsを使います。手元にない場合は
+公式バイナリを一時ディレクトリへ取得してSHA-256を検証します。npm 11.14.1で依存取得と `npm run build:hosting` を実行します。
 macOS / Linuxのarm64・x64、bash・curl・tar・SHA-256コマンドと外部ネットワーク接続が必要です。
 ローカルでは同じ処理を `npm run ci --workspace openci-website` で実行できます。
 
@@ -118,15 +117,16 @@ macOS / Linuxのarm64・x64、bash・curl・tar・SHA-256コマンドと外部�
 旧 `/blog/…` と `/docs/…` は同じslugの `/ja/blog/…` と `/ja/docs/…` へ301転送します。
 Astroの開発・プレビューサーバーではHosting固有の旧URL転送は適用されません。
 
-以下は `apps/website` から実行します。
+OpenCI は PR ごとに1時間のプレビューを作り、URL を PR に投稿します。`develop` への push で本番を更新します。
+以下の手動コマンドは `apps/website` から実行します。
 
 ```sh
 # Hostingの転送を含めたローカル確認
 npm run build:hosting
 firebase emulators:start --only hosting --project openci-b1b91
 
-# 7日間のプレビュー
-firebase hosting:channel:deploy astro-preview --only website --expires 7d --project openci-b1b91
+# 1時間のプレビュー
+firebase hosting:channel:deploy astro-preview --only website --expires 1h --project openci-b1b91
 
 # 本番公開
 firebase deploy --only hosting:website --project openci-b1b91
