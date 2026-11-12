@@ -280,7 +280,7 @@ class SetupAscKeysCommand extends Command<int> {
       final path = "'${directory.absolute.path.replaceAll("'", "'\\''")}'";
       _logger.stderr(
         t.setup.ascKeys.retrySave(
-          command: 'genuineci setup asc-keys --key-directory $path',
+          command: 'openci setup asc-keys --key-directory $path',
         ),
       );
     }

@@ -4,7 +4,7 @@ import 'dart:io';
 
 import 'package:args/command_runner.dart';
 import 'package:cli_util/cli_logging.dart';
-import 'package:genuineci_cli/genuineci_cli.dart';
+import 'package:openci_cli_plus/openci_cli_plus.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:path/path.dart' as p;
@@ -107,7 +107,7 @@ void main() {
   });
 
   Future<int?> run([List<String> arguments = const []]) {
-    final runner = CommandRunner<int>('genuineci register', 'test')
+    final runner = CommandRunner<int>('openci register', 'test')
       ..addCommand(
         RegisterSecretFileCommand(
           logger: logger,

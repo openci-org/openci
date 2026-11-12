@@ -3,8 +3,8 @@ import 'dart:io';
 
 import 'package:args/command_runner.dart';
 import 'package:cli_util/cli_logging.dart';
-import 'package:genuineci_cli/genuineci_cli.dart';
-import 'package:genuineci_cli/src/update/cli_updater.dart';
+import 'package:openci_cli_plus/openci_cli_plus.dart';
+import 'package:openci_cli_plus/src/update/cli_updater.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:test/test.dart';
@@ -54,7 +54,7 @@ void main() {
     installs = 0;
     installExitCode = 0;
     logger = _Logger();
-    runner = CommandRunner<int>('genuineci', 'test')
+    runner = CommandRunner<int>('openci', 'test')
       ..addCommand(
         UpdateCommand(
           logger: logger,
@@ -64,7 +64,7 @@ void main() {
               checks++;
               return http.Response(
                 jsonEncode({
-                  'name': 'genuineci_cli',
+                  'name': 'openci_cli_plus',
                   'latest': {'version': latest},
                 }),
                 status,
@@ -78,7 +78,7 @@ void main() {
                   required mode,
                 }) async {
                   installs++;
-                  expect(arguments, ['install', 'genuineci_cli', latest]);
+                  expect(arguments, ['install', 'openci_cli_plus', latest]);
                   return _Process(installExitCode);
                 },
           ),

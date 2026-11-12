@@ -1,8 +1,8 @@
 import 'package:args/command_runner.dart';
 import 'package:cli_completion/parser.dart';
 import 'package:cli_util/cli_logging.dart';
-import 'package:genuineci_cli/genuineci_cli.dart';
-import 'package:genuineci_cli/src/update/cli_updater.dart';
+import 'package:openci_cli_plus/openci_cli_plus.dart';
+import 'package:openci_cli_plus/src/update/cli_updater.dart';
 import 'package:test/test.dart';
 
 const _defaultServer = 'https://openci-worker-01.tail4beb18.ts.net';
@@ -66,7 +66,7 @@ class _Logger implements Logger {
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
-class _Runner extends GenuineCICommandRunner {
+class _Runner extends OpenCICommandRunner {
   _Runner(_Store store)
     : super(
         logger: _Logger(),
@@ -125,33 +125,25 @@ void main() {
   test('Bash replaces only the word after a colon or equals sign', () async {
     expect(
       await runner.complete(
-        'genuineci login --server https://ci',
+        'openci login --server https://ci',
         'bash',
-        shellWords: ['genuineci', 'login', '--server', 'https', ':', '//ci'],
+        shellWords: ['openci', 'login', '--server', 'https', ':', '//ci'],
       ),
       {'//ci.example.com'},
     );
     expect(
       await runner.complete(
-        'genuineci login --server=https://ci',
+        'openci login --server=https://ci',
         'bash',
-        shellWords: [
-          'genuineci',
-          'login',
-          '--server',
-          '=',
-          'https',
-          ':',
-          '//ci',
-        ],
+        shellWords: ['openci', 'login', '--server', '=', 'https', ':', '//ci'],
       ),
       {'//ci.example.com'},
     );
     expect(
       await runner.complete(
-        'genuineci login --server https:',
+        'openci login --server https:',
         'bash',
-        shellWords: ['genuineci', 'login', '--server', 'https', ':'],
+        shellWords: ['openci', 'login', '--server', 'https', ':'],
       ),
       {'//openci-worker-01.tail4beb18.ts.net', '//ci.example.com'},
     );
@@ -163,7 +155,7 @@ void main() {
         'completes every command, subcommand and registered option',
         () async {
           expect(
-            await runner.complete('genuineci ', shell),
+            await runner.complete('openci ', shell),
             containsAll([
               'login',
               'status',
@@ -179,14 +171,11 @@ void main() {
           );
           for (final (path, command) in _commands(runner.commands)) {
             expect(
-              await runner.complete('genuineci $path', shell),
+              await runner.complete('openci $path', shell),
               contains(command.name),
               reason: path,
             );
-            final suggestions = await runner.complete(
-              'genuineci $path ',
-              shell,
-            );
+            final suggestions = await runner.complete('openci $path ', shell);
             expect(
               suggestions,
               containsAll([
@@ -204,16 +193,13 @@ void main() {
             for (final option in command.argParser.options.values) {
               if (option.hide) continue;
               expect(
-                await runner.complete(
-                  'genuineci $path --${option.name}',
-                  shell,
-                ),
+                await runner.complete('openci $path --${option.name}', shell),
                 contains('--${option.name}'),
                 reason: path,
               );
               if (option.abbr != null) {
                 expect(
-                  await runner.complete('genuineci $path -', shell),
+                  await runner.complete('openci $path -', shell),
                   contains('-${option.abbr}'),
                   reason: path,
                 );
@@ -227,14 +213,14 @@ void main() {
       test(
         'completes sync selection flags without running generation',
         () async {
-          final suggestions = await runner.complete('genuineci sync ', shell);
+          final suggestions = await runner.complete('openci sync ', shell);
           expect(suggestions, containsAll(['--secrets', '--paths']));
           expect(suggestions, isNot(contains('secrets')));
           expect(suggestions, isNot(contains('paths')));
-          expect(await runner.complete('genuineci sync --s', shell), {
+          expect(await runner.complete('openci sync --s', shell), {
             '--secrets',
           });
-          expect(await runner.complete('genuineci sync --secrets --p', shell), {
+          expect(await runner.complete('openci sync --secrets --p', shell), {
             '--paths',
           });
           expect(store.reads, 0);
@@ -244,20 +230,17 @@ void main() {
       test('completes help targets at every command depth', () async {
         for (final (path, command) in _commands(runner.commands)) {
           expect(
-            await runner.complete('genuineci help $path', shell),
+            await runner.complete('openci help $path', shell),
             contains(command.name),
             reason: path,
           );
         }
-        expect(await runner.complete('genuineci help register se', shell), {
+        expect(await runner.complete('openci help register se', shell), {
           'secret',
           'secretFile',
         });
-        expect(
-          await runner.complete('genuineci help unknown ', shell),
-          isEmpty,
-        );
-        expect(await runner.complete('genuineci help login t', shell), isEmpty);
+        expect(await runner.complete('openci help unknown ', shell), isEmpty);
+        expect(await runner.complete('openci help login t', shell), isEmpty);
         expect(store.reads, 0);
       });
 
@@ -265,26 +248,21 @@ void main() {
         'completes language arguments and respects completed positions',
         () async {
           expect(
-            await runner.complete('genuineci use ', shell),
+            await runner.complete('openci use ', shell),
             containsAll(['japanese', 'english']),
           );
-          expect(await runner.complete('genuineci use ja', shell), {
-            'japanese',
-          });
-          expect(await runner.complete('genuineci use EN', shell), {'english'});
+          expect(await runner.complete('openci use ja', shell), {'japanese'});
+          expect(await runner.complete('openci use EN', shell), {'english'});
           expect(
             await runner.complete(
-              'genuineci --verbose use --no-check-updates ja',
+              'openci --verbose use --no-check-updates ja',
               shell,
             ),
             {'japanese'},
           );
+          expect(await runner.complete('openci use english j', shell), isEmpty);
           expect(
-            await runner.complete('genuineci use english j', shell),
-            isEmpty,
-          );
-          expect(
-            await runner.complete('genuineci use english ', shell),
+            await runner.complete('openci use english ', shell),
             isNot(contains('japanese')),
           );
           expect(store.reads, 0);
@@ -292,21 +270,21 @@ void main() {
       );
 
       test('completes defaults and saved remote server URLs', () async {
-        expect(await runner.complete('genuineci login --server ', shell), {
+        expect(await runner.complete('openci login --server ', shell), {
           _defaultServer,
           _otherServer,
         });
         expect(
-          await runner.complete('genuineci login --server https://ci', shell),
+          await runner.complete('openci login --server https://ci', shell),
           {shell == 'bash' ? '//ci.example.com' : _otherServer},
         );
         expect(
-          await runner.complete('genuineci login --server=https://ci', shell),
+          await runner.complete('openci login --server=https://ci', shell),
           {shell == 'bash' ? '//ci.example.com' : '--server=$_otherServer'},
         );
         expect(
           await runner.complete(
-            'genuineci login --server https://new.example ',
+            'openci login --server https://new.example ',
             shell,
           ),
           contains('--team-id'),
@@ -324,37 +302,36 @@ void main() {
       test(
         'completes saved team IDs and Web API keys for the selected server',
         () async {
-          expect(await runner.complete('genuineci login --team-id ', shell), {
+          expect(await runner.complete('openci login --team-id ', shell), {
+            'remote-team',
+          });
+          expect(await runner.complete('openci login --team-id rem', shell), {
             'remote-team',
           });
           expect(
-            await runner.complete('genuineci login --team-id rem', shell),
-            {'remote-team'},
-          );
-          expect(
             await runner.complete(
-              'genuineci login --server $_otherServer/ --team-id ',
+              'openci login --server $_otherServer/ --team-id ',
               shell,
             ),
             {'other-team'},
           );
           expect(
             await runner.complete(
-              'genuineci login --firebase-api-key remote',
+              'openci login --firebase-api-key remote',
               shell,
             ),
             {'remote-web-api-key'},
           );
           expect(
             await runner.complete(
-              'genuineci login --server $_otherServer --firebase-api-key other',
+              'openci login --server $_otherServer --firebase-api-key other',
               shell,
             ),
             {'other-web-api-key'},
           );
           expect(
             await runner.complete(
-              'genuineci login --server https://new.example --team-id ',
+              'openci login --server https://new.example --team-id ',
               shell,
             ),
             isEmpty,
@@ -370,11 +347,11 @@ void main() {
             StateError('invalid data'),
           ]) {
             store.error = error;
-            expect(await runner.complete('genuineci login --server ', shell), {
+            expect(await runner.complete('openci login --server ', shell), {
               _defaultServer,
             });
             expect(
-              await runner.complete('genuineci login --team-id ', shell),
+              await runner.complete('openci login --team-id ', shell),
               isEmpty,
             );
           }
@@ -382,11 +359,11 @@ void main() {
       );
 
       test('does not suggest hidden setup commands', () async {
-        final suggestions = await runner.complete('genuineci ', shell);
+        final suggestions = await runner.complete('openci ', shell);
         expect(suggestions, isNot(contains('completion')));
         expect(suggestions, isNot(contains('install-completion-files')));
         expect(suggestions, isNot(contains('uninstall-completion-files')));
-        expect(await runner.complete('genuineci completion ', shell), isEmpty);
+        expect(await runner.complete('openci completion ', shell), isEmpty);
       });
     });
   }

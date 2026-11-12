@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'package:genuineci_cli/genuineci_cli.dart';
+import 'package:openci_cli_plus/openci_cli_plus.dart';
 import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 

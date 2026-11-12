@@ -6,8 +6,8 @@ import 'package:cli_completion/parser.dart';
 import '../commands/use_command.dart';
 import '../credential_store/credential_config.dart';
 
-class GenuineCICompletionCommand extends HandleCompletionRequestCommand<int> {
-  GenuineCICompletionCommand({required this.readCredentials});
+class OpenCICompletionCommand extends HandleCompletionRequestCommand<int> {
+  OpenCICompletionCommand({required this.readCredentials});
 
   final Future<CredentialConfig> Function() readCredentials;
 

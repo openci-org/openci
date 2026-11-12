@@ -5,7 +5,7 @@ import 'dart:io';
 
 import 'package:args/command_runner.dart';
 import 'package:cli_util/cli_logging.dart';
-import 'package:genuineci_cli/genuineci_cli.dart';
+import 'package:openci_cli_plus/openci_cli_plus.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:path/path.dart' as p;
@@ -76,7 +76,7 @@ void main() {
   setUp(() async {
     originalLocale = LocaleSettings.currentLocale;
     LocaleSettings.setLocaleSync(AppLocale.en);
-    root = await Directory.systemTemp.createTemp('genuineci-list-teams-');
+    root = await Directory.systemTemp.createTemp('openci-list-teams-');
     store = CredentialStore(
       customFilePath: p.join(root.path, 'credentials.json'),
     );
@@ -120,7 +120,7 @@ void main() {
   });
 
   Future<int?> run([List<String> arguments = const []]) {
-    final runner = CommandRunner<int>('genuineci', 'test')
+    final runner = CommandRunner<int>('openci', 'test')
       ..addCommand(ListCommand(logger: logger, credentialStore: store));
     return http.runWithClient(
       () => runner.run(['list', 'teams', ...arguments]),
@@ -221,7 +221,7 @@ void main() {
           ),
           isNull,
         );
-        expect(help.join('\n'), contains('Usage: genuineci list teams'));
+        expect(help.join('\n'), contains('Usage: openci list teams'));
         expect(help.join('\n'), contains(t.list.teams.description));
         expect(clients, isEmpty);
         expect(logger.errors, isEmpty);

@@ -5,7 +5,7 @@ import 'dart:io';
 
 import 'package:args/command_runner.dart';
 import 'package:cli_util/cli_logging.dart';
-import 'package:genuineci_cli/genuineci_cli.dart';
+import 'package:openci_cli_plus/openci_cli_plus.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:path/path.dart' as p;
@@ -85,7 +85,7 @@ void main() {
   setUp(() async {
     originalLocale = LocaleSettings.currentLocale;
     LocaleSettings.setLocaleSync(AppLocale.en);
-    root = await Directory.systemTemp.createTemp('genuineci-status-');
+    root = await Directory.systemTemp.createTemp('openci-status-');
     store = CredentialStore(
       customFilePath: p.join(root.path, 'credentials.json'),
     );
@@ -146,7 +146,7 @@ void main() {
     bool refreshExpected = false,
   }) async {
     final before = await credentialsBytes();
-    final runner = CommandRunner<int>('genuineci', 'test')
+    final runner = CommandRunner<int>('openci', 'test')
       ..addCommand(StatusCommand(logger: logger, credentialStore: store));
     try {
       return await http.runWithClient(
@@ -482,7 +482,7 @@ void main() {
             isA<UsageException>().having(
               (error) => error.usage,
               'usage',
-              contains('Usage: genuineci status'),
+              contains('Usage: openci status'),
             ),
           ),
         );

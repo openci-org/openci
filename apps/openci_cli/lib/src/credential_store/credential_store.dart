@@ -1,4 +1,4 @@
-import 'package:genuineci_cli/src/credential_store/credential_config.dart';
+import 'package:openci_cli_plus/src/credential_store/credential_config.dart';
 
 import '../json_file_store/json_file_store.dart';
 

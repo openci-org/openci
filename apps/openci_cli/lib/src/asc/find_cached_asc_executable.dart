@@ -21,7 +21,7 @@ File ascCacheFile({Directory? cacheDirectory, Abi? abi}) {
     throw UnsupportedError('asc cache checks currently require macOS arm64.');
   }
   final cache =
-      cacheDirectory ?? Directory(BaseDirectories('genuineci').cacheHome);
+      cacheDirectory ?? Directory(BaseDirectories('openci').cacheHome);
   return File(
     p.join(cache.path, 'tools', 'asc', ascVersion, 'macOS_arm64', 'asc'),
   ).absolute;

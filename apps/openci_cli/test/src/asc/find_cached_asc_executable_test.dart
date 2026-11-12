@@ -1,8 +1,8 @@
 import 'dart:ffi';
 import 'dart:io';
 
-import 'package:genuineci_cli/src/asc/asc_release.dart';
-import 'package:genuineci_cli/src/asc/find_cached_asc_executable.dart';
+import 'package:openci_cli_plus/src/asc/asc_release.dart';
+import 'package:openci_cli_plus/src/asc/find_cached_asc_executable.dart';
 import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 
@@ -11,7 +11,7 @@ void main() {
   late Directory cache;
 
   setUp(() async {
-    root = await Directory.systemTemp.createTemp('genuineci-asc-cache-');
+    root = await Directory.systemTemp.createTemp('openci-asc-cache-');
     cache = Directory(p.join(root.path, 'cache'));
   });
 

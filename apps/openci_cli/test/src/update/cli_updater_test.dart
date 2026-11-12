@@ -3,8 +3,8 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:cli_util/cli_logging.dart';
-import 'package:genuineci_cli/src/i18n/i18n.dart';
-import 'package:genuineci_cli/src/update/cli_updater.dart';
+import 'package:openci_cli_plus/src/i18n/i18n.dart';
+import 'package:openci_cli_plus/src/update/cli_updater.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:test/test.dart';
@@ -49,7 +49,7 @@ class _Logger implements Logger {
 
 http.Response _package(String version) => http.Response(
   jsonEncode({
-    'name': 'genuineci_cli',
+    'name': 'openci_cli_plus',
     'latest': {'version': version},
   }),
   200,
@@ -71,7 +71,7 @@ void main() {
           expect(request.method, 'GET');
           expect(
             request.url.toString(),
-            'https://pub.dev/api/packages/genuineci_cli',
+            'https://pub.dev/api/packages/openci_cli_plus',
           );
           expect(request.headers.containsKey('authorization'), isFalse);
           return _package(latest);
@@ -90,7 +90,7 @@ void main() {
       ('HTTP failure', http.Response('unavailable', 503)),
       ('invalid JSON', http.Response('not JSON', 200)),
       ('missing package', http.Response('{}', 200)),
-      ('missing version', http.Response('{"name":"genuineci_cli"}', 200)),
+      ('missing version', http.Response('{"name":"openci_cli_plus"}', 200)),
       ('invalid version', _package('not-a-version')),
     ]) {
       test('closes the connection after $name', () async {
@@ -142,7 +142,7 @@ void main() {
                 required mode,
               }) async {
                 expect(executable, 'dart');
-                expect(arguments, ['install', 'genuineci_cli', '0.2.0']);
+                expect(arguments, ['install', 'openci_cli_plus', '0.2.0']);
                 expect(runInShell, Platform.isWindows);
                 expect(mode, ProcessStartMode.inheritStdio);
                 return _Process(childCode);

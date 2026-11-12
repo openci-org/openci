@@ -56,11 +56,11 @@ class Translations$cli$en {
 
 	// Translations
 
-	/// en: 'GenuineCI command-line tool for managing CI/CD and secrets.'
-	String get description => 'GenuineCI command-line tool for managing CI/CD and secrets.';
+	/// en: 'OpenCI command-line tool for managing CI/CD and secrets.'
+	String get description => 'OpenCI command-line tool for managing CI/CD and secrets.';
 
-	/// en: 'genuineci version: ${version}'
-	String version({required Object version}) => 'genuineci version: ${version}';
+	/// en: 'openci version: ${version}'
+	String version({required Object version}) => 'openci version: ${version}';
 
 	late final Translations$cli$flags$en flags = Translations$cli$flags$en.internal(_root);
 }
@@ -73,8 +73,8 @@ class Translations$update$en {
 
 	// Translations
 
-	/// en: 'Update GenuineCI CLI to the latest stable version on pub.dev.'
-	String get description => 'Update GenuineCI CLI to the latest stable version on pub.dev.';
+	/// en: 'Update OpenCI CLI to the latest stable version on pub.dev.'
+	String get description => 'Update OpenCI CLI to the latest stable version on pub.dev.';
 
 	/// en: 'update does not accept positional arguments.'
 	String get noArguments => 'update does not accept positional arguments.';
@@ -85,20 +85,20 @@ class Translations$update$en {
 	/// en: 'Update now?'
 	String get confirm => 'Update now?';
 
-	/// en: 'Updating GenuineCI CLI to ${version}...'
-	String updating({required Object version}) => 'Updating GenuineCI CLI to ${version}...';
+	/// en: 'Updating OpenCI CLI to ${version}...'
+	String updating({required Object version}) => 'Updating OpenCI CLI to ${version}...';
 
-	/// en: 'Updated GenuineCI CLI to ${version}.'
-	String updated({required Object version}) => 'Updated GenuineCI CLI to ${version}.';
+	/// en: 'Updated OpenCI CLI to ${version}.'
+	String updated({required Object version}) => 'Updated OpenCI CLI to ${version}.';
 
-	/// en: 'GenuineCI CLI ${version} is already up to date.'
-	String upToDate({required Object version}) => 'GenuineCI CLI ${version} is already up to date.';
+	/// en: 'OpenCI CLI ${version} is already up to date.'
+	String upToDate({required Object version}) => 'OpenCI CLI ${version} is already up to date.';
 
 	/// en: 'Could not check for updates. Check your connection to pub.dev and try again.'
 	String get checkFailed => 'Could not check for updates. Check your connection to pub.dev and try again.';
 
-	/// en: 'Could not update GenuineCI CLI. Check the Dart installation output above and try again.'
-	String get installFailed => 'Could not update GenuineCI CLI. Check the Dart installation output above and try again.';
+	/// en: 'Could not update OpenCI CLI. Check the Dart installation output above and try again.'
+	String get installFailed => 'Could not update OpenCI CLI. Check the Dart installation output above and try again.';
 
 	/// en: 'Could not start Dart. Make sure the Dart SDK is installed and dart is on PATH.'
 	String get dartUnavailable => 'Could not start Dart. Make sure the Dart SDK is installed and dart is on PATH.';
@@ -210,11 +210,11 @@ class Translations$status$en {
 	/// en: 'Not set'
 	String get notSet => 'Not set';
 
-	/// en: 'No profile is configured. Run genuineci login (or genuineci login --local).'
-	String get noActiveProfile => 'No profile is configured. Run genuineci login (or genuineci login --local).';
+	/// en: 'No profile is configured. Run openci login (or openci login --local).'
+	String get noActiveProfile => 'No profile is configured. Run openci login (or openci login --local).';
 
-	/// en: 'Active profile "${profile}" is missing. Run genuineci login (or genuineci login --local).'
-	String profileMissing({required Object profile}) => 'Active profile "${profile}" is missing. Run genuineci login (or genuineci login --local).';
+	/// en: 'Active profile "${profile}" is missing. Run openci login (or openci login --local).'
+	String profileMissing({required Object profile}) => 'Active profile "${profile}" is missing. Run openci login (or openci login --local).';
 
 	/// en: 'Invalid server URL'
 	String get invalidServer => 'Invalid server URL';
@@ -222,20 +222,20 @@ class Translations$status$en {
 	/// en: 'Could not read the saved profile. Check the credentials file format and permissions.'
 	String get readFailed => 'Could not read the saved profile. Check the credentials file format and permissions.';
 
-	/// en: 'The active profile or selected team changed while checking status. Run genuineci status again.'
-	String get profileChanged => 'The active profile or selected team changed while checking status. Run genuineci status again.';
+	/// en: 'The active profile or selected team changed while checking status. Run openci status again.'
+	String get profileChanged => 'The active profile or selected team changed while checking status. Run openci status again.';
 
-	/// en: 'Run genuineci login (or genuineci login --local) to check your current team.'
-	String get loginRequired => 'Run genuineci login (or genuineci login --local) to check your current team.';
+	/// en: 'Run openci login (or openci login --local) to check your current team.'
+	String get loginRequired => 'Run openci login (or openci login --local) to check your current team.';
 
-	/// en: 'No team is selected. Run genuineci switch team to select a team.'
-	String get noTeamSelected => 'No team is selected. Run genuineci switch team to select a team.';
+	/// en: 'No team is selected. Run openci switch team to select a team.'
+	String get noTeamSelected => 'No team is selected. Run openci switch team to select a team.';
 
 	/// en: 'No teams found. Create or join a team in the dashboard first.'
 	String get noTeams => 'No teams found. Create or join a team in the dashboard first.';
 
-	/// en: 'The selected team is no longer available. Run genuineci switch team to select an available team.'
-	String get teamNotFound => 'The selected team is no longer available. Run genuineci switch team to select an available team.';
+	/// en: 'The selected team is no longer available. Run openci switch team to select an available team.'
+	String get teamNotFound => 'The selected team is no longer available. Run openci switch team to select an available team.';
 
 	/// en: 'Could not fetch teams (HTTP ${status}).'
 	String requestFailed({required Object status}) => 'Could not fetch teams (HTTP ${status}).';
@@ -424,8 +424,8 @@ class Translations$list$teams$en {
 	/// en: 'list teams does not accept positional arguments.'
 	String get noArguments => 'list teams does not accept positional arguments.';
 
-	/// en: 'Run genuineci login (or genuineci login --local) before listing teams.'
-	String get loginRequired => 'Run genuineci login (or genuineci login --local) before listing teams.';
+	/// en: 'Run openci login (or openci login --local) before listing teams.'
+	String get loginRequired => 'Run openci login (or openci login --local) before listing teams.';
 
 	/// en: 'Could not fetch teams (HTTP ${status}).'
 	String requestFailed({required Object status}) => 'Could not fetch teams (HTTP ${status}).';
@@ -454,8 +454,8 @@ class Translations$list$secrets$en {
 	/// en: 'list secrets does not accept positional arguments.'
 	String get noArguments => 'list secrets does not accept positional arguments.';
 
-	/// en: 'Run genuineci login (or genuineci login --local) before listing secrets.'
-	String get loginRequired => 'Run genuineci login (or genuineci login --local) before listing secrets.';
+	/// en: 'Run openci login (or openci login --local) before listing secrets.'
+	String get loginRequired => 'Run openci login (or openci login --local) before listing secrets.';
 
 	/// en: 'Could not fetch secret names (HTTP ${status}).'
 	String requestFailed({required Object status}) => 'Could not fetch secret names (HTTP ${status}).';
@@ -478,14 +478,14 @@ class Translations$delete$secret$en {
 	/// en: 'Delete a secret by name from the active team.'
 	String get description => 'Delete a secret by name from the active team.';
 
-	/// en: 'Specify exactly one non-empty secret name: genuineci delete secret SECRET_NAME.'
-	String get nameRequired => 'Specify exactly one non-empty secret name: genuineci delete secret SECRET_NAME.';
+	/// en: 'Specify exactly one non-empty secret name: openci delete secret SECRET_NAME.'
+	String get nameRequired => 'Specify exactly one non-empty secret name: openci delete secret SECRET_NAME.';
 
 	/// en: 'The secret name cannot be . or .. because these names are URL path segments.'
 	String get invalidName => 'The secret name cannot be . or .. because these names are URL path segments.';
 
-	/// en: 'Run genuineci login (or genuineci login --local) before deleting secrets.'
-	String get loginRequired => 'Run genuineci login (or genuineci login --local) before deleting secrets.';
+	/// en: 'Run openci login (or openci login --local) before deleting secrets.'
+	String get loginRequired => 'Run openci login (or openci login --local) before deleting secrets.';
 
 	/// en: 'Secret ${name} was not found in team ${teamId}.'
 	String notFound({required Object name, required Object teamId}) => 'Secret ${name} was not found in team ${teamId}.';
@@ -517,8 +517,8 @@ class Translations$register$secret$en {
 	/// en: 'Secret names must use letters, digits and underscores, and must not start with a digit.'
 	String get invalidName => 'Secret names must use letters, digits and underscores, and must not start with a digit.';
 
-	/// en: 'Run genuineci login (or genuineci login --local) before registering secrets.'
-	String get loginRequired => 'Run genuineci login (or genuineci login --local) before registering secrets.';
+	/// en: 'Run openci login (or openci login --local) before registering secrets.'
+	String get loginRequired => 'Run openci login (or openci login --local) before registering secrets.';
 
 	/// en: 'Secret name:'
 	String get namePrompt => 'Secret name:';
@@ -673,8 +673,8 @@ class Translations$setup$ascKeys$en {
 	/// en: 'No Apple ID was entered. Setup was stopped.'
 	String get appleIdRequired => 'No Apple ID was entered. Setup was stopped.';
 
-	/// en: 'Entering an Apple ID requires an interactive terminal. Run genuineci setup asc-keys in a terminal.'
-	String get terminalRequired => 'Entering an Apple ID requires an interactive terminal. Run genuineci setup asc-keys in a terminal.';
+	/// en: 'Entering an Apple ID requires an interactive terminal. Run openci setup asc-keys in a terminal.'
+	String get terminalRequired => 'Entering an Apple ID requires an interactive terminal. Run openci setup asc-keys in a terminal.';
 
 	/// en: 'Could not read the Apple ID. Retry in an interactive terminal.'
 	String get appleIdInputFailed => 'Could not read the Apple ID. Retry in an interactive terminal.';
@@ -700,8 +700,8 @@ class Translations$setup$ascKeys$en {
 	/// en: 'Could not determine the selected App Store Connect provider.'
 	String get providerUnavailable => 'Could not determine the selected App Store Connect provider.';
 
-	/// en: 'Create a new GenuineCI API key with APP_MANAGER access to all apps for this provider, save it to the OpenCI destination shown above, and prepare the iOS certificate private key if missing? [y/N] '
-	String get confirmKeyCreation => 'Create a new GenuineCI API key with APP_MANAGER access to all apps for this provider, save it to the OpenCI destination shown above, and prepare the iOS certificate private key if missing? [y/N] ';
+	/// en: 'Create a new OpenCI API key with APP_MANAGER access to all apps for this provider, save it to the OpenCI destination shown above, and prepare the iOS certificate private key if missing? [y/N] '
+	String get confirmKeyCreation => 'Create a new OpenCI API key with APP_MANAGER access to all apps for this provider, save it to the OpenCI destination shown above, and prepare the iOS certificate private key if missing? [y/N] ';
 
 	/// en: 'Save this ASC key to the OpenCI destination shown above and prepare the iOS certificate private key if missing? [y/N] '
 	String get confirmKeySave => 'Save this ASC key to the OpenCI destination shown above and prepare the iOS certificate private key if missing? [y/N] ';
@@ -712,8 +712,8 @@ class Translations$setup$ascKeys$en {
 	/// en: 'Key creation cancelled. No new key was requested.'
 	String get keyCreationCancelled => 'Key creation cancelled. No new key was requested.';
 
-	/// en: 'Could not read confirmation. Run genuineci setup asc-keys in an interactive terminal.'
-	String get keyConfirmationFailed => 'Could not read confirmation. Run genuineci setup asc-keys in an interactive terminal.';
+	/// en: 'Could not read confirmation. Run openci setup asc-keys in an interactive terminal.'
+	String get keyConfirmationFailed => 'Could not read confirmation. Run openci setup asc-keys in an interactive terminal.';
 
 	/// en: 'Could not prepare the key directory. Check permissions and available disk space. No new key was requested.'
 	String get keyDirectoryFailed => 'Could not prepare the key directory. Check permissions and available disk space. No new key was requested.';
@@ -721,8 +721,8 @@ class Translations$setup$ascKeys$en {
 	/// en: 'Key output directory: ${path}'
 	String keyOutputDirectory({required Object path}) => 'Key output directory: ${path}';
 
-	/// en: 'Created a GenuineCI API key with APP_MANAGER access.'
-	String get keyCreated => 'Created a GenuineCI API key with APP_MANAGER access.';
+	/// en: 'Created a OpenCI API key with APP_MANAGER access.'
+	String get keyCreated => 'Created a OpenCI API key with APP_MANAGER access.';
 
 	/// en: ' Key ID: ${id}'
 	String keyId({required Object id}) => '  Key ID: ${id}';
@@ -754,8 +754,8 @@ class Translations$setup$ascKeys$en {
 	/// en: 'A key may already have been created. Check App Store Connect before running setup again. Any downloaded files are retained in: ${path}'
 	String keyRecovery({required Object path}) => 'A key may already have been created. Check App Store Connect before running setup again. Any downloaded files are retained in: ${path}';
 
-	/// en: 'Apple login could not be confirmed. Run genuineci setup asc-keys to sign in again.'
-	String get notAuthenticated => 'Apple login could not be confirmed. Run genuineci setup asc-keys to sign in again.';
+	/// en: 'Apple login could not be confirmed. Run openci setup asc-keys to sign in again.'
+	String get notAuthenticated => 'Apple login could not be confirmed. Run openci setup asc-keys to sign in again.';
 
 	/// en: 'Could not check Apple authentication with asc. Retry setup.'
 	String get authStatusFailed => 'Could not check Apple authentication with asc. Retry setup.';
@@ -808,11 +808,11 @@ class Translations$switchCommand$team$en {
 	/// en: 'switch team does not accept positional arguments.'
 	String get noArguments => 'switch team does not accept positional arguments.';
 
-	/// en: 'Run genuineci login (or genuineci login --local) before switching teams.'
-	String get loginRequired => 'Run genuineci login (or genuineci login --local) before switching teams.';
+	/// en: 'Run openci login (or openci login --local) before switching teams.'
+	String get loginRequired => 'Run openci login (or openci login --local) before switching teams.';
 
-	/// en: 'Authentication failed (HTTP ${status}). Log in again with genuineci login (or genuineci login --local) for the active server.'
-	String authenticationFailed({required Object status}) => 'Authentication failed (HTTP ${status}). Log in again with genuineci login (or genuineci login --local) for the active server.';
+	/// en: 'Authentication failed (HTTP ${status}). Log in again with openci login (or openci login --local) for the active server.'
+	String authenticationFailed({required Object status}) => 'Authentication failed (HTTP ${status}). Log in again with openci login (or openci login --local) for the active server.';
 
 	/// en: 'Could not fetch teams (HTTP ${status}).'
 	String requestFailed({required Object status}) => 'Could not fetch teams (HTTP ${status}).';
@@ -838,8 +838,8 @@ class Translations$switchCommand$team$en {
 	/// en: 'Team switching cancelled. No team was saved.'
 	String get cancelled => 'Team switching cancelled. No team was saved.';
 
-	/// en: 'Team switching requires an interactive terminal with ANSI support. Run genuineci switch team without piping input or redirecting output.'
-	String get nonInteractive => 'Team switching requires an interactive terminal with ANSI support. Run genuineci switch team without piping input or redirecting output.';
+	/// en: 'Team switching requires an interactive terminal with ANSI support. Run openci switch team without piping input or redirecting output.'
+	String get nonInteractive => 'Team switching requires an interactive terminal with ANSI support. Run openci switch team without piping input or redirecting output.';
 
 	/// en: 'Could not select a team. Retry in an interactive terminal.'
 	String get inputFailed => 'Could not select a team. Retry in an interactive terminal.';
@@ -850,8 +850,8 @@ class Translations$switchCommand$team$en {
 	/// en: 'Already using ${team}.'
 	String alreadyCurrent({required Object team}) => 'Already using ${team}.';
 
-	/// en: 'The active profile or its credentials changed during selection. The selected team was not saved. Run genuineci switch team again.'
-	String get profileChanged => 'The active profile or its credentials changed during selection. The selected team was not saved. Run genuineci switch team again.';
+	/// en: 'The active profile or its credentials changed during selection. The selected team was not saved. Run openci switch team again.'
+	String get profileChanged => 'The active profile or its credentials changed during selection. The selected team was not saved. Run openci switch team again.';
 
 	/// en: 'Could not save the selected team. Check the credentials file, its permissions, and available disk space, then retry.'
 	String get saveFailed => 'Could not save the selected team. Check the credentials file, its permissions, and available disk space, then retry.';
@@ -889,8 +889,8 @@ class Translations$sync$secrets$en {
 	/// en: 'Generate only openci/generated/secrets.g.dart from the active team's secret names.'
 	String get description => 'Generate only openci/generated/secrets.g.dart from the active team\'s secret names.';
 
-	/// en: 'Run genuineci login (or genuineci login --local) before syncing secrets.'
-	String get loginRequired => 'Run genuineci login (or genuineci login --local) before syncing secrets.';
+	/// en: 'Run openci login (or openci login --local) before syncing secrets.'
+	String get loginRequired => 'Run openci login (or openci login --local) before syncing secrets.';
 
 	/// en: 'No openci directory found. Run this command from your workflow project.'
 	String get workflowDirectoryNotFound => 'No openci directory found. Run this command from your workflow project.';
@@ -916,20 +916,20 @@ class Translations$sync$secrets$en {
 extension on Translations {
 	dynamic _flatMapFunction(String path) {
 		return switch (path) {
-			'cli.description' => 'GenuineCI command-line tool for managing CI/CD and secrets.',
-			'cli.version' => ({required Object version}) => 'genuineci version: ${version}',
+			'cli.description' => 'OpenCI command-line tool for managing CI/CD and secrets.',
+			'cli.version' => ({required Object version}) => 'openci version: ${version}',
 			'cli.flags.version' => 'Print the current tool version.',
 			'cli.flags.verbose' => 'Enable verbose logging output.',
 			'cli.flags.checkUpdates' => 'Check for updates and offer to install them in interactive terminals.',
-			'update.description' => 'Update GenuineCI CLI to the latest stable version on pub.dev.',
+			'update.description' => 'Update OpenCI CLI to the latest stable version on pub.dev.',
 			'update.noArguments' => 'update does not accept positional arguments.',
 			'update.available' => ({required Object current, required Object latest}) => 'An update is available! ${current} → ${latest}',
 			'update.confirm' => 'Update now?',
-			'update.updating' => ({required Object version}) => 'Updating GenuineCI CLI to ${version}...',
-			'update.updated' => ({required Object version}) => 'Updated GenuineCI CLI to ${version}.',
-			'update.upToDate' => ({required Object version}) => 'GenuineCI CLI ${version} is already up to date.',
+			'update.updating' => ({required Object version}) => 'Updating OpenCI CLI to ${version}...',
+			'update.updated' => ({required Object version}) => 'Updated OpenCI CLI to ${version}.',
+			'update.upToDate' => ({required Object version}) => 'OpenCI CLI ${version} is already up to date.',
 			'update.checkFailed' => 'Could not check for updates. Check your connection to pub.dev and try again.',
-			'update.installFailed' => 'Could not update GenuineCI CLI. Check the Dart installation output above and try again.',
+			'update.installFailed' => 'Could not update OpenCI CLI. Check the Dart installation output above and try again.',
 			'update.dartUnavailable' => 'Could not start Dart. Make sure the Dart SDK is installed and dart is on PATH.',
 			'update.rerunCommand' => 'Run your command again to use the updated CLI.',
 			'login.description' => 'Log in to a local or remote OpenCI server.',
@@ -964,15 +964,15 @@ extension on Translations {
 			'status.server' => ({required Object value}) => 'Server: ${value}',
 			'status.team' => ({required Object value}) => 'Selected team ID: ${value}',
 			'status.notSet' => 'Not set',
-			'status.noActiveProfile' => 'No profile is configured. Run genuineci login (or genuineci login --local).',
-			'status.profileMissing' => ({required Object profile}) => 'Active profile "${profile}" is missing. Run genuineci login (or genuineci login --local).',
+			'status.noActiveProfile' => 'No profile is configured. Run openci login (or openci login --local).',
+			'status.profileMissing' => ({required Object profile}) => 'Active profile "${profile}" is missing. Run openci login (or openci login --local).',
 			'status.invalidServer' => 'Invalid server URL',
 			'status.readFailed' => 'Could not read the saved profile. Check the credentials file format and permissions.',
-			'status.profileChanged' => 'The active profile or selected team changed while checking status. Run genuineci status again.',
-			'status.loginRequired' => 'Run genuineci login (or genuineci login --local) to check your current team.',
-			'status.noTeamSelected' => 'No team is selected. Run genuineci switch team to select a team.',
+			'status.profileChanged' => 'The active profile or selected team changed while checking status. Run openci status again.',
+			'status.loginRequired' => 'Run openci login (or openci login --local) to check your current team.',
+			'status.noTeamSelected' => 'No team is selected. Run openci switch team to select a team.',
 			'status.noTeams' => 'No teams found. Create or join a team in the dashboard first.',
-			'status.teamNotFound' => 'The selected team is no longer available. Run genuineci switch team to select an available team.',
+			'status.teamNotFound' => 'The selected team is no longer available. Run openci switch team to select an available team.',
 			'status.requestFailed' => ({required Object status}) => 'Could not fetch teams (HTTP ${status}).',
 			'status.fetchFailed' => 'Could not fetch teams. Check the active profile\'s server URL and network connection.',
 			'status.invalidResponse' => 'The server returned an invalid team list. Check that the active profile points to a compatible OpenCI server.',
@@ -980,22 +980,22 @@ extension on Translations {
 			'list.description' => 'List resources in OpenCI.',
 			'list.teams.description' => 'List your teams by name and ID. * marks the current team.',
 			'list.teams.noArguments' => 'list teams does not accept positional arguments.',
-			'list.teams.loginRequired' => 'Run genuineci login (or genuineci login --local) before listing teams.',
+			'list.teams.loginRequired' => 'Run openci login (or openci login --local) before listing teams.',
 			'list.teams.requestFailed' => ({required Object status}) => 'Could not fetch teams (HTTP ${status}).',
 			'list.teams.fetchFailed' => 'Could not fetch teams. Check the active profile\'s server URL and network connection.',
 			'list.teams.invalidResponse' => 'The server returned an invalid team list.',
 			'list.teams.empty' => 'No teams found. Create or join a team in the dashboard.',
 			'list.secrets.description' => 'List the active team\'s secret names, sorted by name.',
 			'list.secrets.noArguments' => 'list secrets does not accept positional arguments.',
-			'list.secrets.loginRequired' => 'Run genuineci login (or genuineci login --local) before listing secrets.',
+			'list.secrets.loginRequired' => 'Run openci login (or openci login --local) before listing secrets.',
 			'list.secrets.requestFailed' => ({required Object status}) => 'Could not fetch secret names (HTTP ${status}).',
 			'list.secrets.fetchFailed' => 'Could not fetch secret names. Check the server connection and response.',
 			'list.secrets.empty' => 'No secrets registered for the active team.',
 			'delete.description' => 'Delete resources from OpenCI.',
 			'delete.secret.description' => 'Delete a secret by name from the active team.',
-			'delete.secret.nameRequired' => 'Specify exactly one non-empty secret name: genuineci delete secret SECRET_NAME.',
+			'delete.secret.nameRequired' => 'Specify exactly one non-empty secret name: openci delete secret SECRET_NAME.',
 			'delete.secret.invalidName' => 'The secret name cannot be . or .. because these names are URL path segments.',
-			'delete.secret.loginRequired' => 'Run genuineci login (or genuineci login --local) before deleting secrets.',
+			'delete.secret.loginRequired' => 'Run openci login (or openci login --local) before deleting secrets.',
 			'delete.secret.notFound' => ({required Object name, required Object teamId}) => 'Secret ${name} was not found in team ${teamId}.',
 			'delete.secret.requestFailed' => ({required Object status}) => 'Could not delete the secret (HTTP ${status}).',
 			'delete.secret.deleteFailed' => 'Could not delete the secret. Check the server connection.',
@@ -1004,7 +1004,7 @@ extension on Translations {
 			'register.secret.description' => 'Create or update a secret for the active team. Enter its name, then its value. The value is hidden while typing and shown as ****** after Enter.',
 			'register.secret.noArguments' => 'register secret does not accept positional arguments. Enter the name and value at the prompts.',
 			'register.secret.invalidName' => 'Secret names must use letters, digits and underscores, and must not start with a digit.',
-			'register.secret.loginRequired' => 'Run genuineci login (or genuineci login --local) before registering secrets.',
+			'register.secret.loginRequired' => 'Run openci login (or openci login --local) before registering secrets.',
 			'register.secret.namePrompt' => 'Secret name:',
 			'register.secret.valuePrompt' => 'Secret value:',
 			'register.secret.inputRequired' => 'No secret was registered. Enter a name and a non-empty value in an interactive terminal.',
@@ -1048,7 +1048,7 @@ extension on Translations {
 			'setup.ascKeys.appleIdPrompt' => 'Apple ID (email address): ',
 			'setup.ascKeys.appleIdReceived' => 'Apple ID received.',
 			'setup.ascKeys.appleIdRequired' => 'No Apple ID was entered. Setup was stopped.',
-			'setup.ascKeys.terminalRequired' => 'Entering an Apple ID requires an interactive terminal. Run genuineci setup asc-keys in a terminal.',
+			'setup.ascKeys.terminalRequired' => 'Entering an Apple ID requires an interactive terminal. Run openci setup asc-keys in a terminal.',
 			'setup.ascKeys.appleIdInputFailed' => 'Could not read the Apple ID. Retry in an interactive terminal.',
 			'setup.ascKeys.loginStartFailed' => 'Could not start asc login. Check that the cached asc file is executable and retry.',
 			'setup.ascKeys.authenticationVerified' => 'Apple authentication verified.',
@@ -1057,14 +1057,14 @@ extension on Translations {
 			'setup.ascKeys.providerId' => ({required Object id}) => '  Provider ID: ${id}',
 			'setup.ascKeys.publicProviderId' => ({required Object id}) => '  Public Provider ID: ${id}',
 			'setup.ascKeys.providerUnavailable' => 'Could not determine the selected App Store Connect provider.',
-			'setup.ascKeys.confirmKeyCreation' => 'Create a new GenuineCI API key with APP_MANAGER access to all apps for this provider, save it to the OpenCI destination shown above, and prepare the iOS certificate private key if missing? [y/N] ',
+			'setup.ascKeys.confirmKeyCreation' => 'Create a new OpenCI API key with APP_MANAGER access to all apps for this provider, save it to the OpenCI destination shown above, and prepare the iOS certificate private key if missing? [y/N] ',
 			'setup.ascKeys.confirmKeySave' => 'Save this ASC key to the OpenCI destination shown above and prepare the iOS certificate private key if missing? [y/N] ',
 			'setup.ascKeys.keySaveCancelled' => 'Key saving cancelled. The OpenCI secrets were not changed.',
 			'setup.ascKeys.keyCreationCancelled' => 'Key creation cancelled. No new key was requested.',
-			'setup.ascKeys.keyConfirmationFailed' => 'Could not read confirmation. Run genuineci setup asc-keys in an interactive terminal.',
+			'setup.ascKeys.keyConfirmationFailed' => 'Could not read confirmation. Run openci setup asc-keys in an interactive terminal.',
 			'setup.ascKeys.keyDirectoryFailed' => 'Could not prepare the key directory. Check permissions and available disk space. No new key was requested.',
 			'setup.ascKeys.keyOutputDirectory' => ({required Object path}) => 'Key output directory: ${path}',
-			'setup.ascKeys.keyCreated' => 'Created a GenuineCI API key with APP_MANAGER access.',
+			'setup.ascKeys.keyCreated' => 'Created a OpenCI API key with APP_MANAGER access.',
 			'setup.ascKeys.keyId' => ({required Object id}) => '  Key ID: ${id}',
 			'setup.ascKeys.issuerId' => ({required Object id}) => '  Issuer ID: ${id}',
 			'setup.ascKeys.privateKeySaved' => ({required Object path}) => '  Private key: ${path}',
@@ -1075,7 +1075,7 @@ extension on Translations {
 			'setup.ascKeys.keyCreationInvalid' => 'Could not verify the key creation result or the saved private key.',
 			'setup.ascKeys.keyStorageFailed' => 'Could not save or read the API key files.',
 			'setup.ascKeys.keyRecovery' => ({required Object path}) => 'A key may already have been created. Check App Store Connect before running setup again. Any downloaded files are retained in: ${path}',
-			'setup.ascKeys.notAuthenticated' => 'Apple login could not be confirmed. Run genuineci setup asc-keys to sign in again.',
+			'setup.ascKeys.notAuthenticated' => 'Apple login could not be confirmed. Run openci setup asc-keys to sign in again.',
 			'setup.ascKeys.authStatusFailed' => 'Could not check Apple authentication with asc. Retry setup.',
 			'setup.ascKeys.authStatusTimedOut' => 'Checking Apple authentication timed out. Retry setup.',
 			'setup.ascKeys.authStatusInvalid' => 'asc returned an unexpected authentication status. Retry setup.',
@@ -1091,8 +1091,8 @@ extension on Translations {
 			'switchCommand.description' => 'Switch the active team in OpenCI.',
 			'switchCommand.team.description' => 'Interactively switch the team used by the active profile.',
 			'switchCommand.team.noArguments' => 'switch team does not accept positional arguments.',
-			'switchCommand.team.loginRequired' => 'Run genuineci login (or genuineci login --local) before switching teams.',
-			'switchCommand.team.authenticationFailed' => ({required Object status}) => 'Authentication failed (HTTP ${status}). Log in again with genuineci login (or genuineci login --local) for the active server.',
+			'switchCommand.team.loginRequired' => 'Run openci login (or openci login --local) before switching teams.',
+			'switchCommand.team.authenticationFailed' => ({required Object status}) => 'Authentication failed (HTTP ${status}). Log in again with openci login (or openci login --local) for the active server.',
 			'switchCommand.team.requestFailed' => ({required Object status}) => 'Could not fetch teams (HTTP ${status}).',
 			'switchCommand.team.fetchFailed' => 'Could not fetch teams. Check the active profile\'s server URL and network connection.',
 			'switchCommand.team.invalidResponse' => 'The server returned an invalid team list. Check that the active profile points to a compatible OpenCI server.',
@@ -1101,11 +1101,11 @@ extension on Translations {
 			'switchCommand.team.current' => 'current',
 			'switchCommand.team.controls' => 'Up/Down: move / Enter: select / Esc, Ctrl+C: cancel',
 			'switchCommand.team.cancelled' => 'Team switching cancelled. No team was saved.',
-			'switchCommand.team.nonInteractive' => 'Team switching requires an interactive terminal with ANSI support. Run genuineci switch team without piping input or redirecting output.',
+			'switchCommand.team.nonInteractive' => 'Team switching requires an interactive terminal with ANSI support. Run openci switch team without piping input or redirecting output.',
 			'switchCommand.team.inputFailed' => 'Could not select a team. Retry in an interactive terminal.',
 			'switchCommand.team.success' => ({required Object team}) => 'Switched to ${team}.',
 			'switchCommand.team.alreadyCurrent' => ({required Object team}) => 'Already using ${team}.',
-			'switchCommand.team.profileChanged' => 'The active profile or its credentials changed during selection. The selected team was not saved. Run genuineci switch team again.',
+			'switchCommand.team.profileChanged' => 'The active profile or its credentials changed during selection. The selected team was not saved. Run openci switch team again.',
 			'switchCommand.team.saveFailed' => 'Could not save the selected team. Check the credentials file, its permissions, and available disk space, then retry.',
 			'use.description' => 'Set the default display language (japanese, english).',
 			'use.success' => ({required Object language}) => 'Language set to ${language}.',
@@ -1116,7 +1116,7 @@ extension on Translations {
 			'sync.paths.fileAccessFailed' => ({required Object path}) => 'Could not read or write ${path}. Check that the file exists and you have permission to access it.',
 			'sync.paths.saved' => ({required Object path}) => 'Generated workspace paths: ${path}',
 			'sync.secrets.description' => 'Generate only openci/generated/secrets.g.dart from the active team\'s secret names.',
-			'sync.secrets.loginRequired' => 'Run genuineci login (or genuineci login --local) before syncing secrets.',
+			'sync.secrets.loginRequired' => 'Run openci login (or openci login --local) before syncing secrets.',
 			'sync.secrets.workflowDirectoryNotFound' => 'No openci directory found. Run this command from your workflow project.',
 			'sync.secrets.requestFailed' => ({required Object status}) => 'Could not fetch secret names (HTTP ${status}).',
 			'sync.secrets.fetchFailed' => 'Could not fetch secret names. Check the server connection and response.',
