@@ -118,6 +118,13 @@ test("each blog article has its own localized 1200 x 630 PNG social image", () =
   ).filter((file) => file.endsWith(".png"));
   assert.deepEqual(new Set(generated), new Set(articleImages));
 });
+test("the original release image URLs still serve JPEGs", () => {
+  for (const slug of ["v2-1-0", "v2-2-0", "v2-3-0"]) {
+    const image = readFileSync(`dist/ogp/${slug}.jpg`);
+    assert.equal(image.subarray(0, 3).toString("hex"), "ffd8ff");
+    assert.equal(image.subarray(-2).toString("hex"), "ffd9");
+  }
+});
 for (const [route, $] of pages) {
   test(`${route}: language, metadata, accessible structure, and assets`, () => {
     const locale = route.split("/")[1];
