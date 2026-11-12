@@ -5,13 +5,22 @@ import { pageLocale } from "../../lib/content";
 const articles = (await getCollection("pages")).filter(
   (page) => page.data.layout === "blog-article",
 );
+const images = new Map(articles.map((page) => [`${page.id}.png`, page]));
+// These releases were originally shared at unlocalized JPEG URLs.
+for (const slug of ["v2-1-0", "v2-2-0", "v2-3-0"]) {
+  const page = images.get(`en/blog/${slug}.png`);
+  if (page) images.set(`${slug}.jpg`, page);
+}
 
 export const { getStaticPaths, GET } = await OGImageRoute({
-  pages: Object.fromEntries(articles.map((page) => [page.id, page])),
-  getSlug: (id) => `${id}.png`,
-  getImageOptions: (_path, page) => ({
+  pages: Object.fromEntries(images),
+  getSlug: (path) => path,
+  getImageOptions: (path, page) => ({
+    format: path.endsWith(".jpg") ? "JPEG" : "PNG",
     title: page.data.title,
-    description: `${page.data.description}\n\n${page.data.category} / ${page.data.date?.replaceAll("-", ".")} · OpenCI Blog`,
+    description: path.endsWith(".jpg")
+      ? `${page.data.category} / ${page.data.date?.replaceAll("-", ".")} · openci.org`
+      : `${page.data.description}\n\n${page.data.category} / ${page.data.date?.replaceAll("-", ".")} · OpenCI Blog`,
     bgGradient: [[247, 248, 252]],
     logo: { path: "./public/favicon.png", size: [42, 42] },
     border: { side: "inline-start", width: 12, color: [49, 91, 255] },
