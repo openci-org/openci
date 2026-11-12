@@ -7,7 +7,7 @@ description: Dart 3.14の公式発表の全文日本語訳です。dart migrate�
 category: Dart
 date: "2026-11-12"
 readTime: 12 min read
-author: Connie Ooi（原著）／GenuineCI（日本語訳）
+author: Connie Ooi（原著）／OpenCI（日本語訳）
 coverLabel: UNOFFICIAL JAPANESE TRANSLATION
 coverImage: /images/landing/guide-start.webp
 coverTitle: Dart 3.14
@@ -17,7 +17,7 @@ Connie Ooi 著「[Announcing Dart 3.14](https://dart.dev/blog/announcing-dart-3-
 
 ## まずは要点だけ
 
-_この節はGenuineCIが作成した要約です。次の「日本語訳」から原文の翻訳が始まります。_
+_この節はOpenCIが作成した要約です。次の「日本語訳」から原文の翻訳が始まります。_
 
 - **SDK更新に伴うパッケージの移行を自動化。** `dart migrate` がコードの事前修正とSDK制約の更新を段階的に進めます。新しい機能や推奨スタイルに合わせる追加修正も、任意で適用できます。
 - **DartPadを刷新し、ベータ版を公開。** ブラウザー内で解析・コンパイルを実行します。LSP、`pub.dev` のパッケージ、複数ファイルにも対応します。
@@ -260,10 +260,10 @@ Dart 3.14では、DartPadで `pub.dev` のパッケージを試す作業、高�
 
 ## 出典とライセンス
 
-本文・図の説明・代替テキストを日本語に翻訳し、読みやすさを考慮して語順や言い回し、見出し、改行を調整しています。製品名、API名、コード例、バージョン番号は原文の表記を保持しています。冒頭の要約と関連記事への案内はGenuineCIが追加しました。
+本文・図の説明・代替テキストを日本語に翻訳し、読みやすさを考慮して語順や言い回し、見出し、改行を調整しています。製品名、API名、コード例、バージョン番号は原文の表記を保持しています。冒頭の要約と関連記事への案内はOpenCIが追加しました。
 
 - **原文：** [Announcing Dart 3.14](https://dart.dev/blog/announcing-dart-3-14) — [Connie Ooi](https://github.com/conooi)、The Dart Blog、2026年11月11日公開。
-- **日本語訳・要約：** GenuineCI。2026年11月12日時点の原文をもとに翻訳しました。原文の一人称はDartチームを指します。
+- **日本語訳・要約：** OpenCI。2026年11月12日時点の原文をもとに翻訳しました。原文の一人称はDartチームを指します。
 - **本文と図版：** 原文の [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/deed.ja) に基づき掲載しています。日本語訳と追加した要約も、同じCC BY 4.0で公開します。図中の英語は原文のままです。再利用時は原著者・原文・ライセンス・翻訳や変更の表示を保持してください。
 - **コード例：** 原文の指定に従い、[BSD 3-Clause](https://opensource.org/licenses/BSD-3-Clause) を適用します。[Dartの著作権表示とライセンス全文](/licenses/dart-BSD-3-Clause.txt) も併せて掲載しています。
 - **商標：** DartやFlutterなどの名称・商標は各権利者に帰属します。本記事はGoogle／Dartによる公式翻訳・推奨・承認を示すものではありません。

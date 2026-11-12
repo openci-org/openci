@@ -7,7 +7,7 @@ description: Flutter 3.50の公式発表の全文日本語訳です。ネイテ�
 category: Flutter
 date: "2026-11-12"
 readTime: 20 min read
-author: Emma Twersky（原著）／GenuineCI（日本語訳）
+author: Emma Twersky（原著）／OpenCI（日本語訳）
 coverLabel: UNOFFICIAL JAPANESE TRANSLATION
 coverImage: /images/landing/guide-signing.webp
 coverTitle: Flutter 3.50
@@ -17,7 +17,7 @@ Emma Twersky 著「[What's new in Flutter 3.50](https://flutter.dev/blog/whats-n
 
 ## まずは要点だけ
 
-_この節はGenuineCIが作成した要約です。次の「日本語訳」から原文の翻訳が始まります。_
+_この節はOpenCIが作成した要約です。次の「日本語訳」から原文の翻訳が始まります。_
 
 - **ネイティブAPIとの直接連携が安定版に。** FFIgenとJNIgenを使い、DartからObjective-C・Java・KotlinのAPIを直接呼び出せます。Pigeonの新しい連携モードはプレビューです。
 - **Webの実行速度とキャッシュ管理を改善。** Safari／FirefoxでのWebAssembly実行が高速化し、`--web-content-hash` でファイル名にコンテンツハッシュを付けられます。
@@ -373,10 +373,10 @@ flutter upgrade
 
 ## 出典とライセンス
 
-本文・図の説明・代替テキストを日本語に翻訳し、読みやすさを考慮して語順や言い回し、見出し、改行を調整しています。製品名、API名、コード例、バージョン番号は原文の表記を保持しています。冒頭の要約はGenuineCIが追加しました。
+本文・図の説明・代替テキストを日本語に翻訳し、読みやすさを考慮して語順や言い回し、見出し、改行を調整しています。製品名、API名、コード例、バージョン番号は原文の表記を保持しています。冒頭の要約はOpenCIが追加しました。
 
 - **原文：** [What's new in Flutter 3.50](https://flutter.dev/blog/whats-new-in-flutter-3-50) — [Emma Twersky](https://github.com/twerske)、The Flutter Blog、2026年11月11日公開。
-- **日本語訳・要約：** GenuineCI。2026年11月12日時点の原文をもとに翻訳しました。原文の一人称はFlutterチームを指します。
+- **日本語訳・要約：** OpenCI。2026年11月12日時点の原文をもとに翻訳しました。原文の一人称はFlutterチームを指します。
 - **本文と図版：** 原文の [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/deed.ja) に基づき掲載しています。日本語訳と追加した要約も、同じCC BY 4.0で公開します。図中の英語は原文のままです。再利用時は原著者・原文・ライセンス・翻訳や変更の表示を保持してください。
 - **コード例：** 原文の指定に従い、[BSD 3-Clause](https://opensource.org/licenses/BSD-3-Clause) を適用します。[Flutterの著作権表示とライセンス全文](/licenses/flutter-BSD-3-Clause.txt) も併せて掲載しています。
 - **商標：** Flutterなどの名称・商標は各権利者に帰属します。本記事はGoogle／Flutterによる公式翻訳・推奨・承認を示すものではありません。
