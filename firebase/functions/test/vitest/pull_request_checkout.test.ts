@@ -34,12 +34,13 @@ function fixture(apiBaseUrl = "https://api.github.com", baseUrl = "https://githu
     mergeable: true as boolean | null,
     merge_commit_sha: mergeSha as string | null,
     head: { repo: repository, sha: headSha },
-    base: { repo: repository, sha: baseSha },
+    base: { repo: repository, sha: baseSha, ref: "develop" },
   };
   const pullRequests: (typeof pr)[] = [];
   const commits = new Map([
     [mergeSha, { sha: mergeSha, parents: [{ sha: baseSha }, { sha: headSha }] }],
   ]);
+  const baseRef = { ref: "refs/heads/develop", object: { type: "commit", sha: baseSha } };
   const calls: string[] = [];
   const job: Job = {
     id: "job",
@@ -70,6 +71,9 @@ function fixture(apiBaseUrl = "https://api.github.com", baseUrl = "https://githu
       }
       if (path === "/repos/org/app") return Response.json(repository);
       if (path === "/repos/org/app/pulls/7") return Response.json(pullRequests.shift() ?? pr);
+      if (decodeURIComponent(path) === `/repos/org/app/git/ref/heads/${pr.base.ref}`) {
+        return Response.json(baseRef);
+      }
       if (path.startsWith("/repos/org/app/git/commits/")) {
         const commit = commits.get(path.split("/").at(-1)!);
         return commit ? Response.json(commit) : Response.json({}, { status: 404 });
@@ -83,7 +87,7 @@ function fixture(apiBaseUrl = "https://api.github.com", baseUrl = "https://githu
     }),
   );
   const github = new ExecutionGitHub({ appId: "1", privateKey, apiBaseUrl, baseUrl });
-  return { github, job, pr, pullRequests, commits, calls };
+  return { github, job, pr, pullRequests, commits, calls, baseRef };
 }
 
 test.each([
@@ -106,11 +110,22 @@ test("GitHub がマージ可能性を計算中なら PR API を再取得する",
   expect(f.calls.filter((path) => path.endsWith("/pulls/7"))).toHaveLength(2);
 });
 
-test("base が進んだときは古いマージ候補を除外して更新後の SHA を取得する", async () => {
+test("PR の古い base SHA ではなく実際の base ref と照合する", async () => {
+  const f = fixture();
+  f.pr.base.sha = "d".repeat(40);
+
+  expect(await f.github.resolveCheckoutCommit(f.job, "10")).toBe(mergeSha);
+  expect(f.calls.some((path) => decodeURIComponent(path).endsWith("/git/ref/heads/develop"))).toBe(
+    true,
+  );
+  expect(delay).not.toHaveBeenCalled();
+});
+
+test("base が進んだときは古い PR 情報とマージ候補を除外して更新後の SHA を取得する", async () => {
   const f = fixture();
   const newerBaseSha = "d".repeat(40);
   const newerMergeSha = "e".repeat(40);
-  f.pr.base.sha = newerBaseSha;
+  f.baseRef.object.sha = newerBaseSha;
   f.pr.merge_commit_sha = newerMergeSha;
   f.pullRequests.push({ ...f.pr, merge_commit_sha: mergeSha });
   f.commits.set(newerMergeSha, {
@@ -120,6 +135,76 @@ test("base が進んだときは古いマージ候補を除外して更新後の
 
   expect(await f.github.resolveCheckoutCommit(f.job, "10")).toBe(newerMergeSha);
   expect(delay).toHaveBeenCalledTimes(1);
+  expect(f.calls.filter((path) => path.includes("/git/ref/"))).toHaveLength(2);
+});
+
+test("古い PR base SHA と一致するだけの候補は実行しない", async () => {
+  const f = fixture();
+  f.baseRef.object.sha = "d".repeat(40);
+
+  await expect(f.github.resolveCheckoutCommit(f.job, "10")).rejects.toThrow(
+    "Wait a moment and rerun this job",
+  );
+  expect(f.calls.filter((path) => path.includes("/git/ref/"))).toHaveLength(5);
+  expect(f.calls.at(-1)).toBe("/installation/token");
+});
+
+test("スラッシュを含む base ブランチ名も検証する", async () => {
+  const f = fixture();
+  f.pr.base.ref = "release/2026-11";
+  f.baseRef.ref = "refs/heads/release/2026-11";
+
+  expect(await f.github.resolveCheckoutCommit(f.job, "10")).toBe(mergeSha);
+});
+
+test.each([
+  { ref: "refs/heads/other", object: { type: "commit", sha: baseSha } },
+  { ref: "refs/heads/develop", object: { type: "tag", sha: baseSha } },
+  { ref: "refs/heads/develop", object: { type: "commit", sha: "private-invalid-sha" } },
+])("不正な base ref を拒否してトークンを失効する %j", async (base) => {
+  const f = fixture();
+  Object.assign(f.baseRef, base);
+
+  await expect(f.github.resolveCheckoutCommit(f.job, "10")).rejects.toThrow(
+    "Untrusted pull request base ref",
+  );
+  expect(f.calls.some((path) => path.includes("/git/commits/"))).toBe(false);
+  expect(f.calls.at(-1)).toBe("/installation/token");
+});
+
+test("base ref の取得失敗時に古い PR SHA へフォールバックしない", async () => {
+  const f = fixture();
+  const fetch = vi.mocked(globalThis.fetch);
+  const original = fetch.getMockImplementation()!;
+  fetch.mockImplementation(async (url, init) =>
+    String(url).includes("/git/ref/") ? Response.json({}, { status: 404 }) : original(url, init),
+  );
+
+  await expect(f.github.resolveCheckoutCommit(f.job, "10")).rejects.toThrow(
+    new PullRequestCheckoutError("unavailable"),
+  );
+  expect(f.calls.some((path) => path.includes("/git/commits/"))).toBe(false);
+  expect(f.calls.at(-1)).toBe("/installation/token");
+});
+
+test("base ref の読み取り中にキャンセルしてもトークンを失効する", async () => {
+  const f = fixture();
+  const controller = new AbortController();
+  const fetch = vi.mocked(globalThis.fetch);
+  const original = fetch.getMockImplementation()!;
+  fetch.mockImplementation(async (url, init) => {
+    if (String(url).includes("/git/ref/")) {
+      controller.abort(new Error("Build cancelled"));
+      throw new Error("Private transport failure");
+    }
+    return original(url, init);
+  });
+
+  await expect(f.github.resolveCheckoutCommit(f.job, "10", controller.signal)).rejects.toThrow(
+    "Build cancelled",
+  );
+  expect(f.calls.some((path) => path.includes("/git/commits/"))).toBe(false);
+  expect(f.calls.at(-1)).toBe("/installation/token");
 });
 
 test("生成待ちの間に PR の head が更新されたらジョブを拒否する", async () => {
