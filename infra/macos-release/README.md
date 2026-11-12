@@ -56,6 +56,9 @@ Key files and the signing keychain are removed afterward; the build VM is delete
 Codemagic 0.69.1 accepts only iOS archive methods in its custom export options.
 The release script uses Codemagic to apply the profiles, then sets `developer-id`
 in the generated export plist with Apple's PlistBuddy before Xcode exports it.
+Fetched profiles are installed in Xcode's standard user profile directory on the
+disposable VM. The archive receives the profile's Apple team ID globally so Swift
+package resource bundles can use the same signing identity as the app.
 
 ### First Developer ID certificate
 

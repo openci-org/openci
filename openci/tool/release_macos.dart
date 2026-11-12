@@ -123,7 +123,14 @@ Future<void> release(int build) async {
     final issuer = secret('OPENCI_GENERATED_ASC_ISSUER_ID');
     final keyId = secret('OPENCI_GENERATED_ASC_KEY_ID');
     final certificates = '${temporary.path}/certificates';
-    final profiles = '${temporary.path}/profiles';
+    final userHome = Platform.environment['HOME'];
+    if (userHome == null || userHome.isEmpty) {
+      throw StateError('The macOS build user has no home directory.');
+    }
+    // Xcode discovers installed profiles here; a private staging directory is
+    // sufficient for Codemagic's project edits but not for the archive itself.
+    final profiles =
+        '$userHome/Library/Developer/Xcode/UserData/Provisioning Profiles';
     final exportOptions = '${temporary.path}/ExportOptions.plist';
     final archive = '${temporary.path}/OpenCI.xcarchive';
     final sourcePackages = '${temporary.path}/SourcePackages';
@@ -200,6 +207,15 @@ Future<void> release(int build) async {
       'Set :method developer-id',
       exportOptions,
     ]);
+    final signingTeam = (await run(
+      'Read signing team',
+      '/usr/libexec/PlistBuddy',
+      ['-c', 'Print :teamID', exportOptions],
+      capture: true,
+    )).trim();
+    if (!RegExp(r'^[A-Z0-9]{10}$').hasMatch(signingTeam)) {
+      throw StateError('The signing profile has no valid Apple team.');
+    }
     await run('Archive macOS app', 'xcodebuild', [
       '-workspace',
       '$appDirectory/macos/Runner.xcworkspace',
@@ -218,6 +234,7 @@ Future<void> release(int build) async {
       '-clonedSourcePackagesDirPath',
       sourcePackages,
       'CODE_SIGN_IDENTITY=Developer ID Application',
+      'DEVELOPMENT_TEAM=$signingTeam',
     ], timeout: const Duration(minutes: 40));
     await run('Export Developer ID app', 'xcodebuild', [
       '-exportArchive',
