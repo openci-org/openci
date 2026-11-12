@@ -9,6 +9,7 @@
   "scripts": {
     "dev": "astro dev",
     "build": "astro build",
+    "build:hosting": "npm run verify && npm run build --workspace landing-page && node scripts/assemble-hosting.mjs",
     "preview": "astro preview",
     "check": "astro check",
     "test": "node --experimental-strip-types --test test/*.test.ts",

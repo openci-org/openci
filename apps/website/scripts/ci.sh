@@ -38,4 +38,4 @@ node --version
 
 cd "$website_dir"
 npm exec --yes --package=npm@11.14.1 --call \
-  'npm ci --workspace genuineci-website --include-workspace-root && npm run verify'
+  'npm ci --workspace genuineci-website --workspace landing-page --include-workspace-root && npm run build:hosting'

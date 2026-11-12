@@ -9,6 +9,7 @@ Future<void> main() async {
         branch: '*',
         paths: [
           'apps/website/**',
+          'apps/landing_page/**',
           'package.json',
           'package-lock.json',
           'vite.config.mts',
@@ -26,6 +27,7 @@ Future<void> main() async {
         branch: 'develop',
         paths: [
           'apps/website/**',
+          'apps/landing_page/**',
           'package.json',
           'package-lock.json',
           'vite.config.mts',
