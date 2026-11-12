@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFileSync, readdirSync, existsSync } from "node:fs";
+import { readFileSync, readdirSync, existsSync, statSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { test } from "node:test";
 import { runInNewContext } from "node:vm";
@@ -207,6 +207,14 @@ for (const [route, $] of pages) {
       const destination = pages.get(
         target.pathname.endsWith("/") ? target.pathname : target.pathname + "/",
       );
+      if (!destination && !target.hash) {
+        const asset = "dist" + decodeURIComponent(target.pathname);
+        assert.ok(
+          existsSync(asset) && statSync(asset).isFile(),
+          `${route} -> ${href}`,
+        );
+        continue;
+      }
       assert.ok(destination, `${route} -> ${href}`);
       if (target.hash)
         assert.ok(
