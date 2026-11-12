@@ -1,16 +1,15 @@
+import { formatRuntimeEstimate } from "../lib/pricing";
+
 for (const card of document.querySelectorAll<HTMLElement>("[data-estimate]")) {
   const input = card.querySelector<HTMLInputElement | HTMLSelectElement>(
     "input, select",
   )!;
   const output = card.querySelector<HTMLOutputElement>("output")!;
-  const numbers = new Intl.NumberFormat(document.documentElement.lang);
+  const locale = document.documentElement.lang === "ja" ? "ja" : "en";
   function calculate() {
-    const minutes = Number(input.value);
-    const billed = Math.ceil(minutes);
-    output.value =
-      input.value.trim() && minutes >= 0 && Number.isSafeInteger(billed)
-        ? "¥" + numbers.format(billed)
-        : "—";
+    output.value = input.value.trim()
+      ? formatRuntimeEstimate(Number(input.value), locale)
+      : "—";
   }
   input.addEventListener("input", calculate);
   input.addEventListener("change", calculate);

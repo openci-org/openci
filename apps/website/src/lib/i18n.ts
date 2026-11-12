@@ -7,12 +7,12 @@ export const translator = (locale: Locale) => (ja: string, en: string) =>
 export const siteTitle = (locale: Locale) =>
   translator(locale)(
     "OpenCI — Flutter専用のCIを、1分1円で。",
-    "OpenCI — CI for Flutter at ¥1 per minute.",
+    "OpenCI — CI for Flutter at 1 cent per minute.",
   );
 export const siteDescription = (locale: Locale) =>
   translator(locale)(
     "Apple SiliconのMacでFlutterアプリのテスト、ビルド、配布を自動化。OpenCI Cloudは1分1円（税込）。",
-    "Test, build and distribute Flutter apps on Apple Silicon Macs. OpenCI Cloud costs ¥1 per minute, tax included.",
+    "Test, build and distribute Flutter apps on Apple Silicon Macs for 1 US cent per minute, tax included.",
   );
 export const releaseImage = "/ogp/v2-1-0.jpg?v=2";
 export const releaseImageAlt = (locale: Locale) =>

@@ -2,6 +2,7 @@
 import { getRelativeLocaleUrl } from "astro:i18n";
 import Icon from "./Icon.astro";
 import { translator, type Locale } from "../lib/i18n";
+import { formatRuntimeEstimate } from "../lib/pricing";
 interface Props {
   locale: Locale;
   editable?: boolean;
@@ -22,9 +23,9 @@ const initial = editable ? 200 : 100;
     </div>
     <div class="total">
       <output for="minutes" aria-live="polite">
-        ¥{initial}
+        {formatRuntimeEstimate(initial, locale)}
       </output>
-      <small>{t("税込 / 月", "tax incl. / mo")}</small>
+      <small>{t("税込 / 月", "USD / mo, tax incl.")}</small>
     </div>
   </div>
   <div class="estimate-controls">
@@ -54,7 +55,7 @@ const initial = editable ? 200 : 100;
       )}
     </div>
     {editable ? (
-      <small>{t("1分 × 1円", "¥1 per minute")}</small>
+      <small>{t("1分 × 1円", "1¢ per minute")}</small>
     ) : (
       <a href={getRelativeLocaleUrl(locale, "pricing/")}>
         {t("料金のしくみ", "Pricing details")}{" "}

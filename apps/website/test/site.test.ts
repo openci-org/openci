@@ -4,6 +4,7 @@ import { createHash } from "node:crypto";
 import { test } from "node:test";
 import { runInNewContext } from "node:vm";
 import { load } from "cheerio";
+import { formatRuntimeEstimate } from "../src/lib/pricing.ts";
 const read = (file: string) => readFileSync(file, "utf8");
 const files = (readdirSync("dist", { recursive: true }) as string[]).filter(
   (f) => /^(en|ja)\/.*index\.html$/.test(f),
@@ -460,10 +461,17 @@ for (const locale of ["en", "ja"] as const) {
     const $ = pages.get(`/${locale}/`)!;
     const details = pages.get(`/${locale}/pricing/`)!;
     const pricing = details("#pricing");
-    assert.equal(pricing.find(".cloud-plan h2 strong").text(), "¥1");
-    assert.match(
-      details("h1").text(),
-      locale === "ja" ? /1分1円/ : /¥1 per minute/,
+    assert.equal(
+      pricing.find(".cloud-plan h2 strong").text(),
+      locale === "ja" ? "¥1" : "1¢",
+    );
+    assert.equal(
+      details("h1 strong").text(),
+      locale === "ja" ? "1分1円。" : "1 cent per minute.",
+    );
+    assert.equal(
+      $("h1 strong").text(),
+      locale === "ja" ? "1分1円で。" : "1 cent per minute.",
     );
     assert.equal($(".claim").attr("href"), `/${locale}/pricing/#comparison`);
     assert.match(
@@ -481,9 +489,15 @@ for (const locale of ["en", "ja"] as const) {
         .map((e) => $(e).attr("value")),
       ["10", "100", "1000"],
     );
-    assert.equal($("#estimate output").text(), "¥100");
+    assert.equal(
+      $("#estimate output").text(),
+      locale === "ja" ? "¥100" : "$1.00",
+    );
     assert.equal(pricing.find("#minutes").attr("value"), "200");
-    assert.equal(pricing.find("output").text(), "¥200");
+    assert.equal(
+      pricing.find("output").text(),
+      locale === "ja" ? "¥200" : "$2.00",
+    );
     for (const id of [
       "pricing",
       "features",
@@ -498,9 +512,15 @@ for (const locale of ["en", "ja"] as const) {
     const rates = pricing
       .find(".pricing-comparison td")
       .toArray()
-      .map((cell) => Number($(cell).text().replace("US$", "")));
-    assert.deepEqual(rates, [0.0067, 0.062]);
-    assert.match(pricing.find(".pricing-comparison caption").text(), /150/);
+      .map((cell) => $(cell).text());
+    assert.deepEqual(
+      rates,
+      locale === "ja" ? ["US$0.0067", "US$0.062"] : ["1¢", "6.2¢"],
+    );
+    assert.match(
+      pricing.find(".pricing-comparison caption").text(),
+      locale === "ja" ? /150/ : /US cents/,
+    );
     assert.ok(
       pricing
         .text()
@@ -510,11 +530,21 @@ for (const locale of ["en", "ja"] as const) {
             : "exchange rate recorded when the billing month closes",
         ),
     );
-    assert.doesNotMatch(
-      pricing.text() + $(".claim").text(),
-      /1¢|1 cent per minute|US\$0\.01(?:[^0-9]|$)/,
+    if (locale === "en") {
+      assert.match(
+        pricing.find("#faq").text(),
+        /actual charges at ¥1 per minute/,
+      );
+      assert.match($("title").text(), /1 cent per minute/);
+      assert.match(
+        details("meta[name=description]").attr("content")!,
+        /1 US cent per minute/,
+      );
+    }
+    const [openci, github] = rates.map((rate) =>
+      parseFloat(rate.replace("US$", "")),
     );
-    const savings = Math.round((1 - rates[0] / rates[1]) * 100);
+    const savings = Math.round((1 - openci / github) * 100);
     assert.ok(pricing.find(".pricing-savings").text().includes(`${savings}%`));
     assert.ok(pricing.find(".pricing-savings").text().includes("macOS"));
     assert.equal(
@@ -559,6 +589,16 @@ for (const locale of ["en", "ja"] as const) {
     );
   });
 }
+test("runtime estimates round monthly minutes once before formatting local prices", () => {
+  assert.equal(formatRuntimeEstimate(0, "en"), "$0.00");
+  assert.equal(formatRuntimeEstimate(0.5, "en"), "$0.01");
+  assert.equal(formatRuntimeEstimate(100.1, "en"), "$1.01");
+  assert.equal(formatRuntimeEstimate(100.1, "ja"), "¥101");
+  assert.equal(formatRuntimeEstimate(123456, "en"), "$1,234.56");
+  for (const minutes of [-1, NaN, Infinity, Number.MAX_SAFE_INTEGER + 1]) {
+    assert.equal(formatRuntimeEstimate(minutes, "en"), "—");
+  }
+});
 test("Japanese Markdown headings use Astro's generated IDs", () => {
   const $ = pages.get("/ja/docs/quickstart/")!;
   assert.deepEqual(
