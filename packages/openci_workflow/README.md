@@ -12,9 +12,15 @@ dart pub add --dev openci_workflow
 
 For a Flutter repository, use `flutter pub add --dev openci_workflow`.
 
+Install the OpenCI CLI to run `openci sync` from your repository root.
+
+```sh
+dart install openci_cli_plus
+```
+
 ## Secrets
 
-Run `genuineci sync --secrets` to generate `openci/generated/secrets.g.dart`.
+Run `openci sync --secrets` to generate `openci/generated/secrets.g.dart`.
 Each generated member is a `Secret` reference:
 
 ```dart
@@ -34,7 +40,7 @@ server parser supports both generated formats.
 ## Run numbers
 
 Read the number assigned to the current run synchronously. This getter is built
-into the SDK and is available without running `genuineci sync`:
+into the SDK and is available without running `openci sync`:
 
 ```dart
 final runNumber = openCI.runNumber;
@@ -181,7 +187,7 @@ await openCI.pullRequest.postQrCode(
 );
 ```
 
-After the workflow succeeds, GenuineCI posts the workflow's registered name, URL and QR code in one comment per workflow file on the originating PR. Firebase App Distribution uploads also provide the uploaded app's version and build number automatically when their returned tester URL is passed to `postQrCode`, including across workflow isolates or processes in the same run. The Japanese comment displays:
+After the workflow succeeds, OpenCI posts the workflow's registered name, URL and QR code in one comment per workflow file on the originating PR. Firebase App Distribution uploads also provide the uploaded app's version and build number automatically when their returned tester URL is passed to `postQrCode`, including across workflow isolates or processes in the same run. The Japanese comment displays:
 
 ```text
 ワークフロー名: IOS CD
@@ -195,7 +201,11 @@ Later successful runs with QR output update the same comment's workflow name, ap
 
 App version details require both the updated executor and SDK 0.2.7 or later. Older SDKs still post URL-only output with the workflow name; older executors safely ignore the optional metadata and keep their existing comment format.
 
-GenuineCI stores images in the same repository on the `genuineci/pr-qr` branch. The GitHub App needs write access to Contents and Pull requests. If the PR closes or its head changes during the build, GenuineCI skips the comment.
+OpenCI stores QR images in the same repository. The executor currently writes to
+`genuineci/pr-qr`. When it switches to `openci/pr-qr`, keep the original branch
+so images in existing PR comments still load. The GitHub App needs write access
+to Contents and Pull requests. If the PR closes or its head changes during the
+build, OpenCI skips the comment.
 
 ### Run commands
 
@@ -264,7 +274,7 @@ final aabPath = await openCI.shorebird.releaseAab(
 );
 ```
 
-Install the [Shorebird CLI](https://docs.shorebird.dev/code-push/ci/github/), Java, and the Android SDK on the build machine. Initialize the app with `shorebird init` and commit `shorebird.yaml`. Register `SHOREBIRD_TOKEN` in OpenCI Secrets, run `genuineci sync --secrets`, and reference `Secrets.shorebirdToken` in the workflow so the worker injects it. Configure Android release signing in Gradle and restore its keystore and properties from your secrets before calling the helper, as with `buildAab()`. The project's Gradle configuration determines the signing identity.
+Install the [Shorebird CLI](https://docs.shorebird.dev/code-push/ci/github/), Java, and the Android SDK on the build machine. Initialize the app with `shorebird init` and commit `shorebird.yaml`. Register `SHOREBIRD_TOKEN` in OpenCI Secrets, run `openci sync --secrets`, and reference `Secrets.shorebirdToken` in the workflow so the worker injects it. Configure Android release signing in Gradle and restore its keystore and properties from your secrets before calling the helper, as with `buildAab()`. The project's Gradle configuration determines the signing identity.
 
 `releaseAab()` runs `shorebird release android --artifact aab` with the required `flutterVersion`. Pass `flavor` explicitly for flavored Shorebird apps. `dir` overrides the workflow directory. `dartDefines` and each literal argument in `additionalArguments` are forwarded to Flutter after `--`; artifact type, flavor, and release build mode are managed by the helper.
 
@@ -332,7 +342,7 @@ await openCI.flutter.deployAabToPlayConsole(
 );
 ```
 
-Use the Android `applicationId` as `packageName`. Register `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON_BASE64` in your team's CI secrets, generate its getter with `genuineci sync --secrets`, and import `generated/secrets.g.dart` in your workflow. [Enable the Google Play Developer API and grant the service account access in Play Console](https://developers.google.com/android-publisher/getting_started). The account needs permission to view the app and release to the selected track; Firebase permissions alone are insufficient. Set up the app and upload its first build through Play Console before using this API. Sign the AAB with the app's accepted upload key and use a new version code.
+Use the Android `applicationId` as `packageName`. Register `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON_BASE64` in your team's CI secrets, generate its getter with `openci sync --secrets`, and import `generated/secrets.g.dart` in your workflow. [Enable the Google Play Developer API and grant the service account access in Play Console](https://developers.google.com/android-publisher/getting_started). The account needs permission to view the app and release to the selected track; Firebase permissions alone are insufficient. Set up the app and upload its first build through Play Console before using this API. Sign the AAB with the app's accepted upload key and use a new version code.
 
 The helper defaults to `track: 'internal'` and a completed release. Pass another existing track ID to target a different track, or `draft: true` to save a draft, including for apps that are still in draft state. The selected track is updated with a single new AAB, replacing its previous release; staged rollouts are not supported. Relative paths use the workflow directory, or `dir` when specified. Credentials stay in memory and file uploads are streamed.
 
@@ -387,7 +397,7 @@ final ipaPath = await openCI.shorebird.releaseIos(
 
 Install the [Shorebird CLI](https://docs.shorebird.dev/code-push/ci/github/) on the disposable macOS VM and make it available on the workflow's noninteractive shell PATH. The same Xcode, Codemagic CLI tools, Ruby `xcodeproj`, CocoaPods, and single-app signing requirements as `buildIpa()` apply. Initialize the app with `shorebird init` beforehand and commit `shorebird.yaml`. When using flavors, configure the matching Shorebird apps and pass `flavor` explicitly. Set `bundleId` to the selected flavor's iOS app identifier so the helper can fetch its signing files before building.
 
-Register a Shorebird API key as `SHOREBIRD_TOKEN` in OpenCI Secrets and run `genuineci sync --secrets` to generate its accessor. Reference `Secrets.shorebirdToken` in the workflow, as above: OpenCI only injects secrets referenced by the workflow, so registering the key alone is not enough. The worker supplies this environment variable to the CLI; the helper does not put its value in the command or require a token argument. Authentication is also required for dry runs.
+Register a Shorebird API key as `SHOREBIRD_TOKEN` in OpenCI Secrets and run `openci sync --secrets` to generate its accessor. Reference `Secrets.shorebirdToken` in the workflow, as above: OpenCI only injects secrets referenced by the workflow, so registering the key alone is not enough. The worker supplies this environment variable to the CLI; the helper does not put its value in the command or require a token argument. Authentication is also required for dry runs.
 
 `flutterVersion` is required: use a version or revision supported by Shorebird for your project. The helper runs `shorebird release ios`, which builds using its selected Flutter SDK; no separate system Flutter command runs beforehand. `dir` overrides the workflow directory. `dartDefines` and `additionalArguments` are passed to the release build. Each additional argument is one literal shell argument, forwarded to Flutter after `--`. The helper manages signing, export options, flavor, and release build mode, and rejects overrides of those options.
 
@@ -424,7 +434,7 @@ final testerUrl = await openCI.flutter.deployIpaToFirebaseAppDistribution(
 await openCI.pullRequest.postQrCode(url: testerUrl, lang: PostQrCodeLang.ja);
 ```
 
-Register `FIREBASE_SERVICE_ACCOUNT_JSON_BASE64` in your team's OpenCI secrets with the Base64-encoded contents of a service account JSON key, then run `genuineci sync --secrets` to generate its getter. The service account needs the [Firebase App Distribution Admin role](https://firebase.google.com/docs/app-distribution/authenticate-service-account?platform=ios) on the destination project. Dart uses the key in memory to obtain an OAuth token with `googleapis_auth`; credentials are never written to files or included in commands or logs.
+Register `FIREBASE_SERVICE_ACCOUNT_JSON_BASE64` in your team's OpenCI secrets with the Base64-encoded contents of a service account JSON key, then run `openci sync --secrets` to generate its getter. The service account needs the [Firebase App Distribution Admin role](https://firebase.google.com/docs/app-distribution/authenticate-service-account?platform=ios) on the destination project. Dart uses the key in memory to obtain an OAuth token with `googleapis_auth`; credentials are never written to files or included in commands or logs.
 
 The helper streams the IPA directly to the [Firebase App Distribution REST API](https://firebase.google.com/docs/reference/app-distribution/rest/v1/upload.v1.projects.apps.releases/upload), then polls the returned operation until Firebase finishes processing it. It does not require Node.js or the Firebase CLI. Upload requests time out after 10 minutes, and processing is limited to 5 minutes. Authentication, HTTP, and processing failures fail the workflow without logging raw responses or tokens.
 

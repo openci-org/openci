@@ -5,6 +5,11 @@
 - **Breaking:** Remove `GoCI` and `OpenCI.go`, including the Go format, vet,
   and test helpers.
 
+## 0.2.8
+
+- Update CLI installation and secret-sync examples to use `openci_cli_plus` and
+  the `openci` command. Document the QR image branch transition for existing PRs.
+
 ## 0.2.7
 
 - Show the workflow name in PR QR comments, with the app version and build number when available. Keep CI run numbers internal so GitHub does not link them to unrelated PRs.
