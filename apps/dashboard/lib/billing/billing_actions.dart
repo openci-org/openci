@@ -59,18 +59,20 @@ class BillingActions {
       final uri = url is String ? Uri.tryParse(url) : null;
       final portal = action == 'portal';
       final host = portal ? 'billing.stripe.com' : 'checkout.stripe.com';
-      final path = portal ? '/p/session/' : '/c/pay/';
+      final path = uri?.path ?? '';
+      final hasSessionPath = portal
+          ? path.startsWith('/p/session/') && path.length > '/p/session/'.length
+          : RegExp(r'^/[cg]/pay/[^/]').hasMatch(path);
       final hasPortalQuerySession =
           portal &&
-          uri?.path == '/p/session' &&
+          path == '/p/session' &&
           (uri?.queryParameters['secret']?.trim().isNotEmpty ?? false);
       if (uri == null ||
           uri.scheme != 'https' ||
           uri.host != host ||
           uri.userInfo.isNotEmpty ||
           uri.port != 443 ||
-          (!hasPortalQuerySession &&
-              (!uri.path.startsWith(path) || uri.path.length == path.length))) {
+          (!hasSessionPath && !hasPortalQuerySession)) {
         throw const BillingException('invalid_redirect');
       }
       return uri;

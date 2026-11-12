@@ -400,6 +400,13 @@ test("webhook verifies raw signatures, mode, connected account and processing be
   await assert.rejects(receiveStripeWebhook(make(), billing, secret), /retry required/);
 });
 
+test("Stripe Checkout preserves hosted session URLs for both payment paths", () => {
+  for (const path of ["/c/pay/", "/g/pay/"]) {
+    const url = `https://checkout.stripe.com${path}cs_test?locale=ja#fid-example`;
+    assert.equal(stripeRedirect(url), url);
+  }
+});
+
 test("Stripe destinations exclude lookalike hosts, credentials and other paths", () => {
   assert.equal(
     stripeRedirect("https://billing.stripe.com/p/session?secret=test", true),
@@ -410,10 +417,17 @@ test("Stripe destinations exclude lookalike hosts, credentials and other paths",
     "https://user@checkout.stripe.com/c/pay/x",
     "https://checkout.stripe.com.evil.test/c/pay/x",
     "https://checkout.stripe.com/other",
+    "https://checkout.stripe.com/c/pay/",
+    "https://checkout.stripe.com/g/pay/?locale=ja#fid-example",
+    "https://checkout.stripe.com/g/pay//",
+    "https://checkout.stripe.com/g/payment/x",
+    "https://checkout.stripe.com/x/pay/x",
+    "https://checkout.stripe.com.evil.test/g/pay/x",
     "https://checkout.stripe.com:8443/c/pay/x",
   ])
     assert.throws(() => stripeRedirect(url));
   assert.throws(() => stripeRedirect("https://billing.stripe.com/p/session?secret=%20", true));
+  assert.throws(() => stripeRedirect("https://billing.stripe.com/g/pay/x", true));
 });
 
 test("Customer Portal must retain end-of-period cancellation without plan changes or public login", async () => {

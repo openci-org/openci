@@ -72,18 +72,18 @@ function validateItems(intent: CheckoutIntent, session: Stripe.Checkout.Session)
 export function stripeRedirect(value: string | null, portal = false): string {
   if (!value) throw pending();
   const url = new URL(value);
+  const hasSessionPath = portal
+    ? url.pathname.startsWith("/p/session/") && url.pathname.length > "/p/session/".length
+    : /^\/[cg]\/pay\/[^/]/.test(url.pathname);
+  const hasPortalQuerySession =
+    portal && url.pathname === "/p/session" && url.searchParams.get("secret")?.trim();
   if (
     url.protocol !== "https:" ||
     url.username ||
     url.password ||
     url.port ||
     url.hostname !== (portal ? "billing.stripe.com" : "checkout.stripe.com") ||
-    (portal
-      ? !(
-          (url.pathname.startsWith("/p/session/") && url.pathname.length > 11) ||
-          (url.pathname === "/p/session" && url.searchParams.get("secret")?.trim())
-        )
-      : !(url.pathname.startsWith("/c/pay/") && url.pathname.length > 7))
+    (!hasSessionPath && !hasPortalQuerySession)
   )
     throw pending();
   return value;
