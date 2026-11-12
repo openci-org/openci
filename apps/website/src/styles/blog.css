@@ -406,6 +406,9 @@
 .article-sidebar {
   position: sticky;
   top: 35px;
+  max-height: calc(100dvh - 70px);
+  overflow-y: auto;
+  scrollbar-width: thin;
 }
 .toc-heading {
   font: 10px var(--mono);
@@ -634,10 +637,15 @@
   }
   .article-sidebar {
     position: static;
+    max-height: none;
+    overflow: visible;
   }
   .article-sidebar nav {
     padding: 22px;
     border: 1px solid var(--line);
+    max-height: 20rem;
+    overflow-y: auto;
+    scrollbar-width: thin;
   }
   .article-sidebar ul {
     display: flex;

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFileSync, readdirSync, existsSync } from "node:fs";
+import { readFileSync, readdirSync, existsSync, statSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { test } from "node:test";
 import { runInNewContext } from "node:vm";
@@ -28,6 +28,11 @@ const contentFiles = new Map(
   ),
 );
 const contentRoutes = [...contentFiles.keys()];
+const legacyRedirectPrefixes = (
+  JSON.parse(read("firebase.json")).hosting.redirects as { source: string }[]
+)
+  .filter(({ source }) => source.endsWith("/:path*"))
+  .map(({ source }) => source.slice(0, -":path*".length));
 const digest = (text: string) =>
   createHash("sha256").update(text).digest("hex");
 const fences = (source: string) =>
@@ -196,8 +201,13 @@ for (const [route, $] of pages) {
     assert.equal($("link[rel~=icon]").attr("href"), "/favicon.png");
     for (const e of $("link[rel=stylesheet],script[src],img[src]").toArray()) {
       const src = $(e).attr("href") ?? $(e).attr("src")!;
-      if (src.startsWith("/"))
+      if (src.startsWith("/")) {
+        assert.ok(
+          !legacyRedirectPrefixes.some((prefix) => src.startsWith(prefix)),
+          `${route} -> ${src}: asset is intercepted by a Hosting redirect`,
+        );
         assert.ok(existsSync("dist" + src.split("?")[0]), src);
+      }
     }
     assert.equal($('script[src*="dart"],astro-island').length, 0);
     for (const a of $("a[href]").toArray()) {
@@ -207,6 +217,14 @@ for (const [route, $] of pages) {
       const destination = pages.get(
         target.pathname.endsWith("/") ? target.pathname : target.pathname + "/",
       );
+      if (!destination && !target.hash) {
+        const asset = "dist" + decodeURIComponent(target.pathname);
+        assert.ok(
+          existsSync(asset) && statSync(asset).isFile(),
+          `${route} -> ${href}`,
+        );
+        continue;
+      }
       assert.ok(destination, `${route} -> ${href}`);
       if (target.hash)
         assert.ok(
