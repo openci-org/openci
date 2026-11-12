@@ -243,7 +243,7 @@ function githubFixture() {
       assert.equal(args.since, undefined);
       data = comments.slice((args.page - 1) * args.per_page, args.page * args.per_page);
     } else if (route.includes("git/ref/")) {
-      assert.equal(args.ref, "heads/genuineci/pr-qr");
+      assert.equal(args.ref, "heads/openci/pr-qr");
       if (!tip) throw otherError(404);
       data = { object: { sha: tip } };
     } else if (route.startsWith("GET") && route.includes("git/commits/"))
@@ -257,6 +257,10 @@ function githubFixture() {
       trees.set(sha, args.tree);
       data = { sha };
     } else if (route.includes("/git/refs")) {
+      assert.equal(
+        args.ref,
+        route.startsWith("POST") ? "refs/heads/openci/pr-qr" : "heads/openci/pr-qr",
+      );
       if (state.conflict) {
         state.conflict = false;
         tip = "b".repeat(40);

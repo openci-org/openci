@@ -201,11 +201,10 @@ Later successful runs with QR output update the same comment's workflow name, ap
 
 App version details require both the updated executor and SDK 0.2.7 or later. Older SDKs still post URL-only output with the workflow name; older executors safely ignore the optional metadata and keep their existing comment format.
 
-OpenCI stores QR images in the same repository. The executor currently writes to
-`genuineci/pr-qr`. When it switches to `openci/pr-qr`, keep the original branch
-so images in existing PR comments still load. The GitHub App needs write access
-to Contents and Pull requests. If the PR closes or its head changes during the
-build, OpenCI skips the comment.
+OpenCI stores new QR images on `openci/pr-qr` in the same repository. Keep any
+existing `genuineci/pr-qr` branch so older PR comments can still load their
+images. The GitHub App needs write access to Contents and Pull requests. If the
+PR closes or its head changes during the build, OpenCI skips the comment.
 
 ### Run commands
 
