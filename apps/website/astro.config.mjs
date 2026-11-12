@@ -4,7 +4,7 @@ import { websiteMarkdown } from "./src/lib/markdown.ts";
 import {
   defaultLocale,
   locales,
-  releaseImage,
+  siteImage,
   siteOrigin,
 } from "./src/lib/i18n.ts";
 export default defineConfig({
@@ -13,7 +13,7 @@ export default defineConfig({
   trailingSlash: "always",
   integrations: [
     starlight({
-      title: "GenuineCI Docs",
+      title: "OpenCI Docs",
       defaultLocale,
       locales: Object.fromEntries(
         locales.map((locale) => [
@@ -74,7 +74,7 @@ export default defineConfig({
           tag: "meta",
           attrs: {
             [name.startsWith("og:") ? "property" : "name"]: name,
-            content: new URL(releaseImage, siteOrigin).href,
+            content: new URL(siteImage, siteOrigin).href,
           },
         })),
         {

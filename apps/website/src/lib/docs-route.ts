@@ -2,7 +2,7 @@ import { getCollection } from "astro:content";
 import { getRelativeLocaleUrl } from "astro:i18n";
 import { defineRouteMiddleware } from "@astrojs/starlight/route-data";
 import { availableTranslations } from "./content";
-import { releaseImageAlt, type Locale } from "./i18n";
+import { siteImageAlt, type Locale } from "./i18n";
 
 export const onRequest = defineRouteMiddleware(async ({ locals }) => {
   const route = locals.starlightRoute;
@@ -26,11 +26,11 @@ export const onRequest = defineRouteMiddleware(async ({ locals }) => {
   route.head.push(
     {
       tag: "meta",
-      attrs: { property: "og:image:alt", content: releaseImageAlt(locale) },
+      attrs: { property: "og:image:alt", content: siteImageAlt(locale) },
     },
     {
       tag: "meta",
-      attrs: { name: "twitter:image:alt", content: releaseImageAlt(locale) },
+      attrs: { name: "twitter:image:alt", content: siteImageAlt(locale) },
     },
   );
 });

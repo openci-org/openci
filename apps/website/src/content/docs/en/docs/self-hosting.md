@@ -1,11 +1,11 @@
 ---
 title: Self-hosting
-description: Own your build environment. Learn how GenuineCI uses Firebase, GCP and Apple Silicon Macs.
+description: Own your build environment. Learn how OpenCI uses Firebase, GCP and Apple Silicon Macs.
 ---
 
 ## Run in your own environment
 
-GenuineCI is open-source CI. Its control plane uses Firebase and GCP; Apple Silicon Macs provide build capacity through Orchard.
+OpenCI is open-source CI. Its control plane uses Firebase and GCP; Apple Silicon Macs provide build capacity through Orchard.
 
 The source code and configuration files are available in the [GitHub repository](https://github.com/openci-org/openci).
 
@@ -24,7 +24,7 @@ You do not need to deploy these components to run Dart workflows locally. Start 
 
 ## Development and deployment
 
-The former API servers, PostgreSQL Compose stack and `genuineci dev start` command have been retired. The repository still provides a standalone Firebase Auth Emulator. Functions, Data Connect and build execution require their own setup.
+The former API servers, PostgreSQL Compose stack and `openci dev start` command have been retired. The repository still provides a standalone Firebase Auth Emulator. Functions, Data Connect and build execution require their own setup.
 
 - [Firebase development and emulator setup](https://github.com/openci-org/openci/blob/develop/firebase/README.md)
 - [Functions and Cloud Run deployment](https://github.com/openci-org/openci/blob/develop/firebase/functions/DEPLOYMENT.md)

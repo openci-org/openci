@@ -14,9 +14,9 @@ export const siteDescription = (locale: Locale) =>
     "Apple SiliconのMacでFlutterアプリのテスト、ビルド、配布を自動化。OpenCI Cloudは1分1円（税込）。",
     "Test, build and distribute Flutter apps on Apple Silicon Macs for 1 US cent per minute, tax included.",
   );
-export const releaseImage = "/ogp/v2-1-0.jpg?v=2";
-export const releaseImageAlt = (locale: Locale) =>
+export const siteImage = "/ogp/openci.jpg";
+export const siteImageAlt = (locale: Locale) =>
   translator(locale)(
-    "GenuineCI v2.1.0 is here. — 黄色い背景に黒い文字のリリースバナー",
-    "GenuineCI v2.1.0 is here. — Black lettering on a yellow release banner",
+    "6色の横縞に白いOpenCIのロゴ",
+    "OpenCI in white on six rainbow stripes",
   );

@@ -1,6 +1,6 @@
 ---
 import "../styles/code.css";
-import { translator, type Locale } from "../lib/i18n";
+import { siteImage, siteImageAlt, type Locale } from "../lib/i18n";
 interface Props {
   locale: Locale;
   title: string;
@@ -17,11 +17,8 @@ const {
   title,
   description,
   translations,
-  image = "/ogp/openci.jpg",
-  imageAlt = translator(locale)(
-    "6色の横縞に白いOpenCIのロゴ",
-    "OpenCI in white on six rainbow stripes",
-  ),
+  image = siteImage,
+  imageAlt = siteImageAlt(locale),
   imageType = "image/jpeg",
   type = "website",
   section,

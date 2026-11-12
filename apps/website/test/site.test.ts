@@ -125,11 +125,7 @@ for (const [route, $] of pages) {
     assert.equal($("main").length, 1);
     assert.equal($("h1").length, 1);
     const isProduct = !route.includes("/docs/");
-    assert.ok(
-      $("title")
-        .text()
-        .includes(isProduct ? "OpenCI" : "GenuineCI"),
-    );
+    assert.ok($("title").text().includes("OpenCI"));
     if (isProduct) {
       assert.equal(
         $('meta[property="og:site_name"]').attr("content"),
@@ -137,12 +133,16 @@ for (const [route, $] of pages) {
       );
       assert.equal($(".product-nav .wordmark").text().trim(), "OpenCI");
       assert.equal($(".product-footer").length, 1);
-      if ($('meta[property="og:type"]').attr("content") !== "article") {
-        assert.equal(
-          new URL($('meta[property="og:image"]').attr("content")!).pathname,
-          "/ogp/openci.jpg",
-        );
-      }
+    }
+    if ($('meta[property="og:type"]').attr("content") !== "article") {
+      assert.equal(
+        new URL($('meta[property="og:image"]').attr("content")!).pathname,
+        "/ogp/openci.jpg",
+      );
+    }
+    if (route.endsWith("/docs/cli/")) {
+      assert.ok($("main code").text().includes("dart install openci_cli_plus"));
+      assert.ok($("main code").text().includes("openci --help"));
     }
     assert.equal($("meta[name=robots]").attr("content"), "noindex, nofollow");
     assert.equal(

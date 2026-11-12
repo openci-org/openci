@@ -21,7 +21,7 @@ Flutterプロジェクトに、ワークフロー用のSDKを追加します。
 flutter pub add --dev openci_workflow
 ```
 
-サービス名はGenuineCI、ワークフローのパッケージ名は `openci_workflow` です。
+サービス名はOpenCI、ワークフローのパッケージ名は `openci_workflow` です。
 
 ## 02 ワークフローを書く
 

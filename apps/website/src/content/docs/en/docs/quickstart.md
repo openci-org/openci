@@ -21,7 +21,7 @@ Add the workflow SDK to your Flutter project.
 flutter pub add --dev openci_workflow
 ```
 
-The service is called GenuineCI. The workflow package is named `openci_workflow`.
+The service is called OpenCI. The workflow package is named `openci_workflow`.
 
 ## 02 Write a workflow
 
