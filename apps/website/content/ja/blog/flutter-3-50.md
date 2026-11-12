@@ -29,7 +29,7 @@ _この節はGenuineCIによる要約です。次の「日本語訳」以降が�
 
 _Flutterの次の10年に向けた投資_
 
-Flutter 3.50が焼き上がり、[Dart 3.14](https://dart.dev/blog/announcing-dart-3-14) とともにお届けできるようになりました。今回のリリースには、Flutterがこれから向かう方向を示す数々の更新が含まれています。ネイティブAPIとの直接連携が安定版となり、DartとネイティブプラットフォームのAPIを相互に呼び出せるようになりました。SafariとFirefoxで高速化されたWebAssemblyに加え、ブラウザー標準のテキストレイアウトにより、FlutterのWebアプリの速度が大きく向上します。
+Flutter 3.50が、[Dart 3.14](https://dart.dev/blog/announcing-dart-3-14) とともにリリースされました。今回のリリースには、Flutterがこれから向かう方向を示す数々の更新が含まれています。ネイティブAPIとの直接連携が安定版となり、DartとネイティブプラットフォームのAPIを相互に呼び出せるようになりました。SafariとFirefoxで高速化されたWebAssemblyに加え、ブラウザー標準のテキストレイアウトにより、FlutterのWebアプリの速度が大きく向上します。
 
 独自ハードウェアに対応するためのプラットフォーム埋め込みAPIも拡充しました。また、新規プロジェクトでは、独立した `material_ui` と `cupertino_ui` パッケージが標準となります。
 
@@ -344,9 +344,9 @@ Flutter 3.50では、SDKに組み込まれた `package:flutter/material.dart` �
 
 詳しくは、[Flutterの破壊的変更](https://docs.flutter.dev/release/breaking-changes) をご覧ください。
 
-## 焼きたてのFlutterをアップグレード
+## Flutter 3.50にアップグレード
 
-issueの報告、設計のレビュー、プルリクエストの取り込みを通じ、Flutterの次の10年を形作ってくれたコミュニティのすべてのコントリビューターに感謝します。Flutter 3.50は、[Dart 3.14](https://dart.dev/blog/announcing-dart-3-14) とともに、焼きたてで登場します。SDKをアップグレードし、今回のリリースのすべてを試してみてください。
+issueの報告、設計のレビュー、プルリクエストの取り込みを通じ、Flutterの次の10年を形作ってくれたコミュニティのすべてのコントリビューターに感謝します。Flutter 3.50は、[Dart 3.14](https://dart.dev/blog/announcing-dart-3-14) とともに利用できます。SDKをアップグレードして、今回のリリースで追加された機能を試してみてください。
 
 ```bash
 flutter upgrade
