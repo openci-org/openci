@@ -39,25 +39,44 @@ Future<void> main(List<String> arguments) async {
   }
 }
 
+// Flutter 3.47.8 resolves the workspace's Swift packages into this directory
+// during --config-only. Reuse its verified checkouts and binary artifacts.
+String swiftPackages(String appDirectory) =>
+    '$appDirectory/build/macos/SourcePackages';
+
+Future<void> configureFlutterRelease(String appDirectory, int build) async {
+  for (var attempt = 1; attempt <= 2; attempt++) {
+    try {
+      await run(
+        'Prepare Flutter release configuration (attempt $attempt)',
+        'flutter',
+        [
+          'build',
+          'macos',
+          '--release',
+          '--config-only',
+          '--build-number=$build',
+        ],
+        cwd: appDirectory,
+        timeout: const Duration(minutes: 15),
+      );
+      return;
+    } on StateError {
+      if (attempt == 2) rethrow;
+      stdout.writeln(
+        'Retrying Flutter configuration using the Swift package cache.',
+      );
+    }
+  }
+}
+
 /// Produces a reviewable local app without reading signing credentials,
 /// creating certificates, notarizing, or publishing anything.
 Future<void> validateUnsignedBuild(int build) async {
   final appDirectory = '${Directory.current.path}/apps/dashboard';
   final derivedData =
       '${Directory.current.path}/build/macos-release-validation';
-  await run(
-    'Prepare unsigned validation build',
-    'flutter',
-    [
-      'build',
-      'macos',
-      '--release',
-      '--config-only',
-      '--build-number=$build',
-    ],
-    cwd: appDirectory,
-    timeout: const Duration(minutes: 15),
-  );
+  await configureFlutterRelease(appDirectory, build);
   await run(
     'Build macOS app without signing or publishing',
     'xcodebuild',
@@ -72,6 +91,8 @@ Future<void> validateUnsignedBuild(int build) async {
       'generic/platform=macOS',
       '-derivedDataPath',
       derivedData,
+      '-clonedSourcePackagesDirPath',
+      swiftPackages(appDirectory),
       'build',
       'CODE_SIGNING_ALLOWED=NO',
     ],
@@ -133,25 +154,13 @@ Future<void> release(int build) async {
         '$userHome/Library/Developer/Xcode/UserData/Provisioning Profiles';
     final exportOptions = '${temporary.path}/ExportOptions.plist';
     final archive = '${temporary.path}/OpenCI.xcarchive';
-    final sourcePackages = '${temporary.path}/SourcePackages';
+    final sourcePackages = swiftPackages(appDirectory);
     final derivedData = '${temporary.path}/DerivedData';
     final exported = '${temporary.path}/exported';
     final updates = Directory('${temporary.path}/updates');
     await updates.create();
 
-    await run(
-      'Prepare Flutter release configuration',
-      'flutter',
-      [
-        'build',
-        'macos',
-        '--release',
-        '--config-only',
-        '--build-number=$build',
-      ],
-      cwd: appDirectory,
-      timeout: const Duration(minutes: 15),
-    );
+    await configureFlutterRelease(appDirectory, build);
     await run('Prepare signing keychain', 'keychain', [
       'initialize',
       '--path',
