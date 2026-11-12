@@ -1,11 +1,11 @@
 ---
 title: セルフホスト
-description: Firebase、GCP、Apple SiliconのMacを使ったGenuineCIの構成を知る。
+description: Firebase、GCP、Apple SiliconのMacを使ったOpenCIの構成を知る。
 ---
 
 ## 自分の環境で動かす
 
-GenuineCIはオープンソースのCIです。FirebaseとGCPでジョブを管理し、Orchard経由でApple SiliconのMac上にビルド用VMを起動します。
+OpenCIはオープンソースのCIです。FirebaseとGCPでジョブを管理し、Orchard経由でApple SiliconのMac上にビルド用VMを起動します。
 
 ソースコードと構成ファイルは、[GitHubリポジトリ](https://github.com/openci-org/openci)で公開しています。
 
@@ -24,7 +24,7 @@ GenuineCIはオープンソースのCIです。FirebaseとGCPでジョブを管�
 
 ## 開発とデプロイ
 
-旧APIサーバー、PostgreSQLのCompose構成、`genuineci dev start`コマンドは廃止しました。単独で起動できるFirebase Auth Emulatorは引き続き利用できます。Functions、Data Connect、ビルド実行環境はそれぞれ設定します。
+旧APIサーバー、PostgreSQLのCompose構成、旧CLIの `dev start` コマンドは廃止しました。単独で起動できるFirebase Auth Emulatorは引き続き利用できます。Functions、Data Connect、ビルド実行環境はそれぞれ設定します。
 
 - [Firebaseの開発・エミュレーター設定](https://github.com/openci-org/openci/blob/develop/firebase/README.md)
 - [FunctionsとCloud Runのデプロイ](https://github.com/openci-org/openci/blob/develop/firebase/functions/DEPLOYMENT.md)

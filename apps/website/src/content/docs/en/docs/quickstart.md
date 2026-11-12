@@ -15,13 +15,11 @@ This guide adds a Dart workflow to a Flutter project and runs it locally.
 
 ## 01 Add the SDK
 
-Add the workflow SDK to your Flutter project.
+Add the OpenCI workflow SDK to your Flutter project.
 
 ```sh
 flutter pub add --dev openci_workflow
 ```
-
-The service is called GenuineCI. The workflow package is named `openci_workflow`.
 
 ## 02 Write a workflow
 
