@@ -1,6 +1,6 @@
-name: genuineci_cli
+name: openci_cli_plus
 description: Command-line tools for OpenCI authentication, teams, secrets, App Store Connect setup, and workflow paths.
-version: 0.7.0
+version: 0.8.0
 repository: https://github.com/openci-org/openci/tree/develop/apps/openci_cli
 issue_tracker: https://github.com/openci-org/openci/issues
 
@@ -38,7 +38,7 @@ dev_dependencies:
   test: ^1.25.6
 
 executables:
-  genuineci: genuineci_cli
+  openci: openci_cli_plus
 
 # Firebase client configuration is public and is not an authentication token.
 false_secrets:

@@ -1,11 +1,11 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:genuineci_cli/src/secrets/fetch_secret_names.dart';
+import 'package:openci_cli_plus/src/secrets/fetch_secret_names.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
-import 'package:genuineci_cli/src/secrets/secrets_api.dart';
-import 'package:genuineci_cli/src/credential_store/credential_config.dart';
+import 'package:openci_cli_plus/src/secrets/secrets_api.dart';
+import 'package:openci_cli_plus/src/credential_store/credential_config.dart';
 import '../../helpers/secret_functions.dart';
 import 'package:test/test.dart';
 

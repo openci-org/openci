@@ -5,8 +5,8 @@ import 'dart:io';
 
 import 'package:args/command_runner.dart';
 import 'package:cli_util/cli_logging.dart';
-import 'package:genuineci_cli/genuineci_cli.dart';
-import 'package:genuineci_cli/src/commands/register/read_secret_input.dart';
+import 'package:openci_cli_plus/openci_cli_plus.dart';
+import 'package:openci_cli_plus/src/commands/register/read_secret_input.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:test/test.dart';
@@ -132,7 +132,7 @@ void main() {
   });
 
   Future<int?> runRegister([List<String> arguments = const []]) {
-    final runner = CommandRunner<int>('genuineci register', 'test')
+    final runner = CommandRunner<int>('openci register', 'test')
       ..addCommand(
         RegisterSecretCommand(
           logger: logger,
@@ -293,7 +293,7 @@ void main() {
       ),
     );
 
-    expect(output.join('\n'), contains('genuineci register secret'));
+    expect(output.join('\n'), contains('openci register secret'));
     expect(output.join('\n'), isNot(contains('<name>')));
     expect(reads, 0);
     expect(requests, isEmpty);

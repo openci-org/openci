@@ -59,8 +59,8 @@ class _Translations$cli$ja extends Translations$cli$en {
 	final TranslationsJa _root; // ignore: unused_field
 
 	// Translations
-	@override String get description => 'GenuineCI - CI/CD およびシークレット管理コマンドラインツール';
-	@override String version({required Object version}) => 'genuineci バージョン: ${version}';
+	@override String get description => 'OpenCI - CI/CD およびシークレット管理コマンドラインツール';
+	@override String version({required Object version}) => 'openci バージョン: ${version}';
 	@override late final _Translations$cli$flags$ja flags = _Translations$cli$flags$ja._(_root);
 }
 
@@ -71,15 +71,15 @@ class _Translations$update$ja extends Translations$update$en {
 	final TranslationsJa _root; // ignore: unused_field
 
 	// Translations
-	@override String get description => 'GenuineCI CLIをpub.devの最新安定版に更新します。';
+	@override String get description => 'OpenCI CLIをpub.devの最新安定版に更新します。';
 	@override String get noArguments => 'updateに位置引数は指定できません。';
 	@override String available({required Object current, required Object latest}) => 'アップデートがあります！ ${current} → ${latest}';
 	@override String get confirm => '今すぐ更新しますか？';
-	@override String updating({required Object version}) => 'GenuineCI CLIを${version}に更新中...';
-	@override String updated({required Object version}) => 'GenuineCI CLIを${version}に更新しました。';
-	@override String upToDate({required Object version}) => 'GenuineCI CLI ${version}は最新です。';
+	@override String updating({required Object version}) => 'OpenCI CLIを${version}に更新中...';
+	@override String updated({required Object version}) => 'OpenCI CLIを${version}に更新しました。';
+	@override String upToDate({required Object version}) => 'OpenCI CLI ${version}は最新です。';
 	@override String get checkFailed => '更新を確認できませんでした。pub.devへの接続を確認して再実行してください。';
-	@override String get installFailed => 'GenuineCI CLIを更新できませんでした。上記のDartの出力を確認して再実行してください。';
+	@override String get installFailed => 'OpenCI CLIを更新できませんでした。上記のDartの出力を確認して再実行してください。';
 	@override String get dartUnavailable => 'Dartを起動できませんでした。Dart SDKがインストールされ、dartがPATHに含まれていることを確認してください。';
 	@override String get rerunCommand => '更新したCLIを使うには、元のコマンドを再実行してください。';
 }
@@ -129,15 +129,15 @@ class _Translations$status$ja extends Translations$status$en {
 	@override String server({required Object value}) => 'サーバー: ${value}';
 	@override String team({required Object value}) => '選択中のチームID: ${value}';
 	@override String get notSet => '未設定';
-	@override String get noActiveProfile => 'プロファイルが未設定です。genuineci login（ローカルなら genuineci login --local）を実行してください。';
-	@override String profileMissing({required Object profile}) => '現在のプロファイル「${profile}」が見つかりません。genuineci login（ローカルなら genuineci login --local）を実行してください。';
+	@override String get noActiveProfile => 'プロファイルが未設定です。openci login（ローカルなら openci login --local）を実行してください。';
+	@override String profileMissing({required Object profile}) => '現在のプロファイル「${profile}」が見つかりません。openci login（ローカルなら openci login --local）を実行してください。';
 	@override String get invalidServer => '不正なサーバーURL';
 	@override String get readFailed => '保存済みのプロファイルを読み取れませんでした。認証情報ファイルの形式と権限を確認してください。';
-	@override String get profileChanged => '確認中に現在のプロファイルまたは選択中のチームが変更されました。genuineci statusを再実行してください。';
-	@override String get loginRequired => '現在のチームを確認するには、genuineci login（またはgenuineci login --local）を実行してください。';
-	@override String get noTeamSelected => 'チームが選択されていません。genuineci switch teamでチームを選択してください。';
+	@override String get profileChanged => '確認中に現在のプロファイルまたは選択中のチームが変更されました。openci statusを再実行してください。';
+	@override String get loginRequired => '現在のチームを確認するには、openci login（またはopenci login --local）を実行してください。';
+	@override String get noTeamSelected => 'チームが選択されていません。openci switch teamでチームを選択してください。';
 	@override String get noTeams => '所属するチームがありません。ダッシュボードでチームを作成するか、チームに参加してください。';
-	@override String get teamNotFound => '選択中のチームは利用できなくなりました。genuineci switch teamで利用可能なチームを選択してください。';
+	@override String get teamNotFound => '選択中のチームは利用できなくなりました。openci switch teamで利用可能なチームを選択してください。';
 	@override String requestFailed({required Object status}) => 'チーム一覧を取得できませんでした（HTTP ${status}）。';
 	@override String get fetchFailed => 'チーム一覧を取得できませんでした。現在のプロファイルのサーバーURLとネットワーク接続を確認してください。';
 	@override String get invalidResponse => 'サーバーから不正なチーム一覧が返されました。現在のプロファイルが対応するOpenCIサーバーを指しているか確認してください。';
@@ -271,7 +271,7 @@ class _Translations$list$teams$ja extends Translations$list$teams$en {
 	// Translations
 	@override String get description => '所属チームの名前とIDを一覧表示します。*は現在のチームです。';
 	@override String get noArguments => 'list teamsに位置引数は指定できません。';
-	@override String get loginRequired => 'genuineci login（ローカルならgenuineci login --local）を実行してからチームを一覧表示してください。';
+	@override String get loginRequired => 'openci login（ローカルならopenci login --local）を実行してからチームを一覧表示してください。';
 	@override String requestFailed({required Object status}) => 'チーム一覧を取得できませんでした（HTTP ${status}）。';
 	@override String get fetchFailed => 'チーム一覧を取得できませんでした。現在のプロファイルのサーバーURLとネットワーク接続を確認してください。';
 	@override String get invalidResponse => 'サーバーから返されたチーム一覧が不正です。';
@@ -287,7 +287,7 @@ class _Translations$list$secrets$ja extends Translations$list$secrets$en {
 	// Translations
 	@override String get description => '現在のチームのシークレット名を名前順に一覧表示します。';
 	@override String get noArguments => 'list secretsに位置引数は指定できません。';
-	@override String get loginRequired => 'genuineci login（ローカルならgenuineci login --local）を実行してからシークレットを一覧表示してください。';
+	@override String get loginRequired => 'openci login（ローカルならopenci login --local）を実行してからシークレットを一覧表示してください。';
 	@override String requestFailed({required Object status}) => 'シークレット名を取得できませんでした（HTTP ${status}）。';
 	@override String get fetchFailed => 'シークレット名を取得できませんでした。サーバーの接続状態とレスポンスを確認してください。';
 	@override String get empty => '現在のチームにはシークレットが登録されていません。';
@@ -301,9 +301,9 @@ class _Translations$delete$secret$ja extends Translations$delete$secret$en {
 
 	// Translations
 	@override String get description => '現在のチームのシークレットを名前で指定して削除します。';
-	@override String get nameRequired => '空でないシークレット名を1つ指定してください: genuineci delete secret SECRET_NAME。';
+	@override String get nameRequired => '空でないシークレット名を1つ指定してください: openci delete secret SECRET_NAME。';
 	@override String get invalidName => 'URLのパスとして解釈されるため、シークレット名に . と .. は指定できません。';
-	@override String get loginRequired => 'genuineci login（ローカルならgenuineci login --local）を実行してからシークレットを削除してください。';
+	@override String get loginRequired => 'openci login（ローカルならopenci login --local）を実行してからシークレットを削除してください。';
 	@override String notFound({required Object teamId, required Object name}) => 'チーム${teamId}にシークレット${name}が見つかりませんでした。';
 	@override String requestFailed({required Object status}) => 'シークレットを削除できませんでした（HTTP ${status}）。';
 	@override String get deleteFailed => 'シークレットを削除できませんでした。サーバーの接続状態を確認してください。';
@@ -320,7 +320,7 @@ class _Translations$register$secret$ja extends Translations$register$secret$en {
 	@override String get description => '現在のチームのシークレットを登録・更新します。名前と値を順に入力します。値は入力中は非表示で、Enterで確定すると******と表示します。';
 	@override String get noArguments => 'register secretに位置引数は指定できません。名前と値は対話入力で指定してください。';
 	@override String get invalidName => 'シークレット名には英数字とアンダースコアを使い、数字で始めないでください。';
-	@override String get loginRequired => 'genuineci login（ローカルならgenuineci login --local）を実行してからシークレットを登録してください。';
+	@override String get loginRequired => 'openci login（ローカルならopenci login --local）を実行してからシークレットを登録してください。';
 	@override String get namePrompt => 'シークレット名:';
 	@override String get valuePrompt => 'シークレット値:';
 	@override String get inputRequired => 'シークレットは登録されませんでした。対話可能な端末で名前と空でない値を入力してください。';
@@ -390,7 +390,7 @@ class _Translations$setup$ascKeys$ja extends Translations$setup$ascKeys$en {
 	@override String get appleIdPrompt => 'Apple ID（メールアドレス）: ';
 	@override String get appleIdReceived => 'Apple ID を受け付けました。';
 	@override String get appleIdRequired => 'Apple ID が入力されなかったため、セットアップを中止しました。';
-	@override String get terminalRequired => 'Apple ID の入力には対話可能な端末が必要です。端末で genuineci setup asc-keys を実行してください。';
+	@override String get terminalRequired => 'Apple ID の入力には対話可能な端末が必要です。端末で openci setup asc-keys を実行してください。';
 	@override String get appleIdInputFailed => 'Apple ID を読み取れませんでした。対話可能な端末で再試行してください。';
 	@override String get loginStartFailed => 'asc のログイン処理を起動できませんでした。キャッシュ内の asc ファイルに実行権限があることを確認して再試行してください。';
 	@override String get authenticationVerified => 'Apple の認証状態を確認しました。';
@@ -399,14 +399,14 @@ class _Translations$setup$ascKeys$ja extends Translations$setup$ascKeys$en {
 	@override String providerId({required Object id}) => '  Provider ID: ${id}';
 	@override String publicProviderId({required Object id}) => '  Public Provider ID: ${id}';
 	@override String get providerUnavailable => '選択中の App Store Connect Provider を取得できませんでした。';
-	@override String get confirmKeyCreation => 'この Provider の全アプリにアクセスできる APP_MANAGER 権限の GenuineCI API キーを新規発行して上記の OpenCI に保存し、未登録なら iOS 証明書用秘密鍵も準備しますか？ [y/N] ';
+	@override String get confirmKeyCreation => 'この Provider の全アプリにアクセスできる APP_MANAGER 権限の OpenCI API キーを新規発行して上記の OpenCI に保存し、未登録なら iOS 証明書用秘密鍵も準備しますか？ [y/N] ';
 	@override String get confirmKeySave => 'この ASC キーを上記の OpenCI に保存し、未登録なら iOS 証明書用秘密鍵も準備しますか？ [y/N] ';
 	@override String get keySaveCancelled => 'キーの保存を中止しました。OpenCI のシークレットは変更していません。';
 	@override String get keyCreationCancelled => 'キーの発行を中止しました。新しいキーの発行はリクエストしていません。';
-	@override String get keyConfirmationFailed => '確認の入力を読み取れませんでした。対話可能な端末で genuineci setup asc-keys を実行してください。';
+	@override String get keyConfirmationFailed => '確認の入力を読み取れませんでした。対話可能な端末で openci setup asc-keys を実行してください。';
 	@override String get keyDirectoryFailed => 'キーの保存先を準備できませんでした。権限とディスクの空き容量を確認してください。新しいキーの発行はリクエストしていません。';
 	@override String keyOutputDirectory({required Object path}) => 'キーの保存先: ${path}';
-	@override String get keyCreated => 'APP_MANAGER 権限の GenuineCI API キーを発行しました。';
+	@override String get keyCreated => 'APP_MANAGER 権限の OpenCI API キーを発行しました。';
 	@override String keyId({required Object id}) => '  Key ID: ${id}';
 	@override String issuerId({required Object id}) => '  Issuer ID: ${id}';
 	@override String privateKeySaved({required Object path}) => '  秘密鍵: ${path}';
@@ -417,7 +417,7 @@ class _Translations$setup$ascKeys$ja extends Translations$setup$ascKeys$en {
 	@override String get keyCreationInvalid => 'キーの発行結果または保存された秘密鍵を確認できませんでした。';
 	@override String get keyStorageFailed => 'API キーのファイルを保存または読み取りできませんでした。';
 	@override String keyRecovery({required Object path}) => 'キーがすでに発行されている可能性があります。再実行する前に App Store Connect を確認してください。ダウンロード済みのファイルは次の場所に残しています: ${path}';
-	@override String get notAuthenticated => 'Apple の認証を確認できませんでした。genuineci setup asc-keys を再実行してログインしてください。';
+	@override String get notAuthenticated => 'Apple の認証を確認できませんでした。openci setup asc-keys を再実行してログインしてください。';
 	@override String get authStatusFailed => 'asc で Apple の認証状態を確認できませんでした。セットアップを再試行してください。';
 	@override String get authStatusTimedOut => 'Apple の認証状態の確認がタイムアウトしました。セットアップを再試行してください。';
 	@override String get authStatusInvalid => 'asc の認証状態の応答が想定と異なります。セットアップを再試行してください。';
@@ -441,8 +441,8 @@ class _Translations$switchCommand$team$ja extends Translations$switchCommand$tea
 	// Translations
 	@override String get description => '現在のプロファイルで使用するチームを対話式で切り替えます。';
 	@override String get noArguments => 'switch teamに位置引数は指定できません。';
-	@override String get loginRequired => 'チームを切り替える前に、genuineci login（またはgenuineci login --local）を実行してください。';
-	@override String authenticationFailed({required Object status}) => '認証に失敗しました（HTTP ${status}）。使用中のサーバーにgenuineci login（またはgenuineci login --local）で再度ログインしてください。';
+	@override String get loginRequired => 'チームを切り替える前に、openci login（またはopenci login --local）を実行してください。';
+	@override String authenticationFailed({required Object status}) => '認証に失敗しました（HTTP ${status}）。使用中のサーバーにopenci login（またはopenci login --local）で再度ログインしてください。';
 	@override String requestFailed({required Object status}) => 'チーム一覧を取得できませんでした（HTTP ${status}）。';
 	@override String get fetchFailed => 'チーム一覧を取得できませんでした。現在のプロファイルのサーバーURLとネットワーク接続を確認してください。';
 	@override String get invalidResponse => 'サーバーから不正なチーム一覧が返されました。現在のプロファイルが対応するOpenCIサーバーを指しているか確認してください。';
@@ -451,11 +451,11 @@ class _Translations$switchCommand$team$ja extends Translations$switchCommand$tea
 	@override String get current => '現在のチーム';
 	@override String get controls => '上下キー: 移動 / Enter: 選択 / Esc・Ctrl+C: キャンセル';
 	@override String get cancelled => 'チームの切り替えをキャンセルしました。チームは保存していません。';
-	@override String get nonInteractive => 'チーム切り替えにはANSI対応の対話可能な端末が必要です。入力のパイプや出力のリダイレクトを外してgenuineci switch teamを実行してください。';
+	@override String get nonInteractive => 'チーム切り替えにはANSI対応の対話可能な端末が必要です。入力のパイプや出力のリダイレクトを外してopenci switch teamを実行してください。';
 	@override String get inputFailed => 'チームを選択できませんでした。対話可能な端末で再試行してください。';
 	@override String success({required Object team}) => '${team}に切り替えました。';
 	@override String alreadyCurrent({required Object team}) => '${team}は現在のチームです。';
-	@override String get profileChanged => '選択中に現在のプロファイルまたは認証情報が変更されました。選択したチームは保存していません。genuineci switch teamを再実行してください。';
+	@override String get profileChanged => '選択中に現在のプロファイルまたは認証情報が変更されました。選択したチームは保存していません。openci switch teamを再実行してください。';
 	@override String get saveFailed => '選択したチームを保存できませんでした。認証情報ファイル、権限、ディスクの空き容量を確認して再試行してください。';
 }
 
@@ -480,7 +480,7 @@ class _Translations$sync$secrets$ja extends Translations$sync$secrets$en {
 
 	// Translations
 	@override String get description => '現在のチームのシークレット名からopenci/generated/secrets.g.dartだけを生成します。';
-	@override String get loginRequired => 'genuineci login（ローカルならgenuineci login --local）を実行してからシークレットを同期してください。';
+	@override String get loginRequired => 'openci login（ローカルならopenci login --local）を実行してからシークレットを同期してください。';
 	@override String get workflowDirectoryNotFound => 'openciディレクトリが見つかりません。ワークフローのあるプロジェクト内で実行してください。';
 	@override String requestFailed({required Object status}) => 'シークレット名を取得できませんでした（HTTP ${status}）。';
 	@override String get fetchFailed => 'シークレット名を取得できませんでした。サーバーの接続状態とレスポンスを確認してください。';
@@ -496,20 +496,20 @@ class _Translations$sync$secrets$ja extends Translations$sync$secrets$en {
 extension on TranslationsJa {
 	dynamic _flatMapFunction(String path) {
 		return switch (path) {
-			'cli.description' => 'GenuineCI - CI/CD およびシークレット管理コマンドラインツール',
-			'cli.version' => ({required Object version}) => 'genuineci バージョン: ${version}',
+			'cli.description' => 'OpenCI - CI/CD およびシークレット管理コマンドラインツール',
+			'cli.version' => ({required Object version}) => 'openci バージョン: ${version}',
 			'cli.flags.version' => 'ツールのバージョンを表示します。',
 			'cli.flags.verbose' => '詳細なログ出力を有効にします。',
 			'cli.flags.checkUpdates' => '対話可能な端末で更新を確認し、インストールするか選択します。',
-			'update.description' => 'GenuineCI CLIをpub.devの最新安定版に更新します。',
+			'update.description' => 'OpenCI CLIをpub.devの最新安定版に更新します。',
 			'update.noArguments' => 'updateに位置引数は指定できません。',
 			'update.available' => ({required Object current, required Object latest}) => 'アップデートがあります！ ${current} → ${latest}',
 			'update.confirm' => '今すぐ更新しますか？',
-			'update.updating' => ({required Object version}) => 'GenuineCI CLIを${version}に更新中...',
-			'update.updated' => ({required Object version}) => 'GenuineCI CLIを${version}に更新しました。',
-			'update.upToDate' => ({required Object version}) => 'GenuineCI CLI ${version}は最新です。',
+			'update.updating' => ({required Object version}) => 'OpenCI CLIを${version}に更新中...',
+			'update.updated' => ({required Object version}) => 'OpenCI CLIを${version}に更新しました。',
+			'update.upToDate' => ({required Object version}) => 'OpenCI CLI ${version}は最新です。',
 			'update.checkFailed' => '更新を確認できませんでした。pub.devへの接続を確認して再実行してください。',
-			'update.installFailed' => 'GenuineCI CLIを更新できませんでした。上記のDartの出力を確認して再実行してください。',
+			'update.installFailed' => 'OpenCI CLIを更新できませんでした。上記のDartの出力を確認して再実行してください。',
 			'update.dartUnavailable' => 'Dartを起動できませんでした。Dart SDKがインストールされ、dartがPATHに含まれていることを確認してください。',
 			'update.rerunCommand' => '更新したCLIを使うには、元のコマンドを再実行してください。',
 			'login.description' => 'ローカルまたはリモートのOpenCIサーバーにログインします。',
@@ -544,15 +544,15 @@ extension on TranslationsJa {
 			'status.server' => ({required Object value}) => 'サーバー: ${value}',
 			'status.team' => ({required Object value}) => '選択中のチームID: ${value}',
 			'status.notSet' => '未設定',
-			'status.noActiveProfile' => 'プロファイルが未設定です。genuineci login（ローカルなら genuineci login --local）を実行してください。',
-			'status.profileMissing' => ({required Object profile}) => '現在のプロファイル「${profile}」が見つかりません。genuineci login（ローカルなら genuineci login --local）を実行してください。',
+			'status.noActiveProfile' => 'プロファイルが未設定です。openci login（ローカルなら openci login --local）を実行してください。',
+			'status.profileMissing' => ({required Object profile}) => '現在のプロファイル「${profile}」が見つかりません。openci login（ローカルなら openci login --local）を実行してください。',
 			'status.invalidServer' => '不正なサーバーURL',
 			'status.readFailed' => '保存済みのプロファイルを読み取れませんでした。認証情報ファイルの形式と権限を確認してください。',
-			'status.profileChanged' => '確認中に現在のプロファイルまたは選択中のチームが変更されました。genuineci statusを再実行してください。',
-			'status.loginRequired' => '現在のチームを確認するには、genuineci login（またはgenuineci login --local）を実行してください。',
-			'status.noTeamSelected' => 'チームが選択されていません。genuineci switch teamでチームを選択してください。',
+			'status.profileChanged' => '確認中に現在のプロファイルまたは選択中のチームが変更されました。openci statusを再実行してください。',
+			'status.loginRequired' => '現在のチームを確認するには、openci login（またはopenci login --local）を実行してください。',
+			'status.noTeamSelected' => 'チームが選択されていません。openci switch teamでチームを選択してください。',
 			'status.noTeams' => '所属するチームがありません。ダッシュボードでチームを作成するか、チームに参加してください。',
-			'status.teamNotFound' => '選択中のチームは利用できなくなりました。genuineci switch teamで利用可能なチームを選択してください。',
+			'status.teamNotFound' => '選択中のチームは利用できなくなりました。openci switch teamで利用可能なチームを選択してください。',
 			'status.requestFailed' => ({required Object status}) => 'チーム一覧を取得できませんでした（HTTP ${status}）。',
 			'status.fetchFailed' => 'チーム一覧を取得できませんでした。現在のプロファイルのサーバーURLとネットワーク接続を確認してください。',
 			'status.invalidResponse' => 'サーバーから不正なチーム一覧が返されました。現在のプロファイルが対応するOpenCIサーバーを指しているか確認してください。',
@@ -560,22 +560,22 @@ extension on TranslationsJa {
 			'list.description' => 'OpenCIのリソースを一覧表示します。',
 			'list.teams.description' => '所属チームの名前とIDを一覧表示します。*は現在のチームです。',
 			'list.teams.noArguments' => 'list teamsに位置引数は指定できません。',
-			'list.teams.loginRequired' => 'genuineci login（ローカルならgenuineci login --local）を実行してからチームを一覧表示してください。',
+			'list.teams.loginRequired' => 'openci login（ローカルならopenci login --local）を実行してからチームを一覧表示してください。',
 			'list.teams.requestFailed' => ({required Object status}) => 'チーム一覧を取得できませんでした（HTTP ${status}）。',
 			'list.teams.fetchFailed' => 'チーム一覧を取得できませんでした。現在のプロファイルのサーバーURLとネットワーク接続を確認してください。',
 			'list.teams.invalidResponse' => 'サーバーから返されたチーム一覧が不正です。',
 			'list.teams.empty' => '所属チームがありません。ダッシュボードでチームを作成するか参加してください。',
 			'list.secrets.description' => '現在のチームのシークレット名を名前順に一覧表示します。',
 			'list.secrets.noArguments' => 'list secretsに位置引数は指定できません。',
-			'list.secrets.loginRequired' => 'genuineci login（ローカルならgenuineci login --local）を実行してからシークレットを一覧表示してください。',
+			'list.secrets.loginRequired' => 'openci login（ローカルならopenci login --local）を実行してからシークレットを一覧表示してください。',
 			'list.secrets.requestFailed' => ({required Object status}) => 'シークレット名を取得できませんでした（HTTP ${status}）。',
 			'list.secrets.fetchFailed' => 'シークレット名を取得できませんでした。サーバーの接続状態とレスポンスを確認してください。',
 			'list.secrets.empty' => '現在のチームにはシークレットが登録されていません。',
 			'delete.description' => 'OpenCIのリソースを削除します。',
 			'delete.secret.description' => '現在のチームのシークレットを名前で指定して削除します。',
-			'delete.secret.nameRequired' => '空でないシークレット名を1つ指定してください: genuineci delete secret SECRET_NAME。',
+			'delete.secret.nameRequired' => '空でないシークレット名を1つ指定してください: openci delete secret SECRET_NAME。',
 			'delete.secret.invalidName' => 'URLのパスとして解釈されるため、シークレット名に . と .. は指定できません。',
-			'delete.secret.loginRequired' => 'genuineci login（ローカルならgenuineci login --local）を実行してからシークレットを削除してください。',
+			'delete.secret.loginRequired' => 'openci login（ローカルならopenci login --local）を実行してからシークレットを削除してください。',
 			'delete.secret.notFound' => ({required Object teamId, required Object name}) => 'チーム${teamId}にシークレット${name}が見つかりませんでした。',
 			'delete.secret.requestFailed' => ({required Object status}) => 'シークレットを削除できませんでした（HTTP ${status}）。',
 			'delete.secret.deleteFailed' => 'シークレットを削除できませんでした。サーバーの接続状態を確認してください。',
@@ -584,7 +584,7 @@ extension on TranslationsJa {
 			'register.secret.description' => '現在のチームのシークレットを登録・更新します。名前と値を順に入力します。値は入力中は非表示で、Enterで確定すると******と表示します。',
 			'register.secret.noArguments' => 'register secretに位置引数は指定できません。名前と値は対話入力で指定してください。',
 			'register.secret.invalidName' => 'シークレット名には英数字とアンダースコアを使い、数字で始めないでください。',
-			'register.secret.loginRequired' => 'genuineci login（ローカルならgenuineci login --local）を実行してからシークレットを登録してください。',
+			'register.secret.loginRequired' => 'openci login（ローカルならopenci login --local）を実行してからシークレットを登録してください。',
 			'register.secret.namePrompt' => 'シークレット名:',
 			'register.secret.valuePrompt' => 'シークレット値:',
 			'register.secret.inputRequired' => 'シークレットは登録されませんでした。対話可能な端末で名前と空でない値を入力してください。',
@@ -628,7 +628,7 @@ extension on TranslationsJa {
 			'setup.ascKeys.appleIdPrompt' => 'Apple ID（メールアドレス）: ',
 			'setup.ascKeys.appleIdReceived' => 'Apple ID を受け付けました。',
 			'setup.ascKeys.appleIdRequired' => 'Apple ID が入力されなかったため、セットアップを中止しました。',
-			'setup.ascKeys.terminalRequired' => 'Apple ID の入力には対話可能な端末が必要です。端末で genuineci setup asc-keys を実行してください。',
+			'setup.ascKeys.terminalRequired' => 'Apple ID の入力には対話可能な端末が必要です。端末で openci setup asc-keys を実行してください。',
 			'setup.ascKeys.appleIdInputFailed' => 'Apple ID を読み取れませんでした。対話可能な端末で再試行してください。',
 			'setup.ascKeys.loginStartFailed' => 'asc のログイン処理を起動できませんでした。キャッシュ内の asc ファイルに実行権限があることを確認して再試行してください。',
 			'setup.ascKeys.authenticationVerified' => 'Apple の認証状態を確認しました。',
@@ -637,14 +637,14 @@ extension on TranslationsJa {
 			'setup.ascKeys.providerId' => ({required Object id}) => '  Provider ID: ${id}',
 			'setup.ascKeys.publicProviderId' => ({required Object id}) => '  Public Provider ID: ${id}',
 			'setup.ascKeys.providerUnavailable' => '選択中の App Store Connect Provider を取得できませんでした。',
-			'setup.ascKeys.confirmKeyCreation' => 'この Provider の全アプリにアクセスできる APP_MANAGER 権限の GenuineCI API キーを新規発行して上記の OpenCI に保存し、未登録なら iOS 証明書用秘密鍵も準備しますか？ [y/N] ',
+			'setup.ascKeys.confirmKeyCreation' => 'この Provider の全アプリにアクセスできる APP_MANAGER 権限の OpenCI API キーを新規発行して上記の OpenCI に保存し、未登録なら iOS 証明書用秘密鍵も準備しますか？ [y/N] ',
 			'setup.ascKeys.confirmKeySave' => 'この ASC キーを上記の OpenCI に保存し、未登録なら iOS 証明書用秘密鍵も準備しますか？ [y/N] ',
 			'setup.ascKeys.keySaveCancelled' => 'キーの保存を中止しました。OpenCI のシークレットは変更していません。',
 			'setup.ascKeys.keyCreationCancelled' => 'キーの発行を中止しました。新しいキーの発行はリクエストしていません。',
-			'setup.ascKeys.keyConfirmationFailed' => '確認の入力を読み取れませんでした。対話可能な端末で genuineci setup asc-keys を実行してください。',
+			'setup.ascKeys.keyConfirmationFailed' => '確認の入力を読み取れませんでした。対話可能な端末で openci setup asc-keys を実行してください。',
 			'setup.ascKeys.keyDirectoryFailed' => 'キーの保存先を準備できませんでした。権限とディスクの空き容量を確認してください。新しいキーの発行はリクエストしていません。',
 			'setup.ascKeys.keyOutputDirectory' => ({required Object path}) => 'キーの保存先: ${path}',
-			'setup.ascKeys.keyCreated' => 'APP_MANAGER 権限の GenuineCI API キーを発行しました。',
+			'setup.ascKeys.keyCreated' => 'APP_MANAGER 権限の OpenCI API キーを発行しました。',
 			'setup.ascKeys.keyId' => ({required Object id}) => '  Key ID: ${id}',
 			'setup.ascKeys.issuerId' => ({required Object id}) => '  Issuer ID: ${id}',
 			'setup.ascKeys.privateKeySaved' => ({required Object path}) => '  秘密鍵: ${path}',
@@ -655,7 +655,7 @@ extension on TranslationsJa {
 			'setup.ascKeys.keyCreationInvalid' => 'キーの発行結果または保存された秘密鍵を確認できませんでした。',
 			'setup.ascKeys.keyStorageFailed' => 'API キーのファイルを保存または読み取りできませんでした。',
 			'setup.ascKeys.keyRecovery' => ({required Object path}) => 'キーがすでに発行されている可能性があります。再実行する前に App Store Connect を確認してください。ダウンロード済みのファイルは次の場所に残しています: ${path}',
-			'setup.ascKeys.notAuthenticated' => 'Apple の認証を確認できませんでした。genuineci setup asc-keys を再実行してログインしてください。',
+			'setup.ascKeys.notAuthenticated' => 'Apple の認証を確認できませんでした。openci setup asc-keys を再実行してログインしてください。',
 			'setup.ascKeys.authStatusFailed' => 'asc で Apple の認証状態を確認できませんでした。セットアップを再試行してください。',
 			'setup.ascKeys.authStatusTimedOut' => 'Apple の認証状態の確認がタイムアウトしました。セットアップを再試行してください。',
 			'setup.ascKeys.authStatusInvalid' => 'asc の認証状態の応答が想定と異なります。セットアップを再試行してください。',
@@ -671,8 +671,8 @@ extension on TranslationsJa {
 			'switchCommand.description' => 'OpenCIで使用するチームを切り替えます。',
 			'switchCommand.team.description' => '現在のプロファイルで使用するチームを対話式で切り替えます。',
 			'switchCommand.team.noArguments' => 'switch teamに位置引数は指定できません。',
-			'switchCommand.team.loginRequired' => 'チームを切り替える前に、genuineci login（またはgenuineci login --local）を実行してください。',
-			'switchCommand.team.authenticationFailed' => ({required Object status}) => '認証に失敗しました（HTTP ${status}）。使用中のサーバーにgenuineci login（またはgenuineci login --local）で再度ログインしてください。',
+			'switchCommand.team.loginRequired' => 'チームを切り替える前に、openci login（またはopenci login --local）を実行してください。',
+			'switchCommand.team.authenticationFailed' => ({required Object status}) => '認証に失敗しました（HTTP ${status}）。使用中のサーバーにopenci login（またはopenci login --local）で再度ログインしてください。',
 			'switchCommand.team.requestFailed' => ({required Object status}) => 'チーム一覧を取得できませんでした（HTTP ${status}）。',
 			'switchCommand.team.fetchFailed' => 'チーム一覧を取得できませんでした。現在のプロファイルのサーバーURLとネットワーク接続を確認してください。',
 			'switchCommand.team.invalidResponse' => 'サーバーから不正なチーム一覧が返されました。現在のプロファイルが対応するOpenCIサーバーを指しているか確認してください。',
@@ -681,11 +681,11 @@ extension on TranslationsJa {
 			'switchCommand.team.current' => '現在のチーム',
 			'switchCommand.team.controls' => '上下キー: 移動 / Enter: 選択 / Esc・Ctrl+C: キャンセル',
 			'switchCommand.team.cancelled' => 'チームの切り替えをキャンセルしました。チームは保存していません。',
-			'switchCommand.team.nonInteractive' => 'チーム切り替えにはANSI対応の対話可能な端末が必要です。入力のパイプや出力のリダイレクトを外してgenuineci switch teamを実行してください。',
+			'switchCommand.team.nonInteractive' => 'チーム切り替えにはANSI対応の対話可能な端末が必要です。入力のパイプや出力のリダイレクトを外してopenci switch teamを実行してください。',
 			'switchCommand.team.inputFailed' => 'チームを選択できませんでした。対話可能な端末で再試行してください。',
 			'switchCommand.team.success' => ({required Object team}) => '${team}に切り替えました。',
 			'switchCommand.team.alreadyCurrent' => ({required Object team}) => '${team}は現在のチームです。',
-			'switchCommand.team.profileChanged' => '選択中に現在のプロファイルまたは認証情報が変更されました。選択したチームは保存していません。genuineci switch teamを再実行してください。',
+			'switchCommand.team.profileChanged' => '選択中に現在のプロファイルまたは認証情報が変更されました。選択したチームは保存していません。openci switch teamを再実行してください。',
 			'switchCommand.team.saveFailed' => '選択したチームを保存できませんでした。認証情報ファイル、権限、ディスクの空き容量を確認して再試行してください。',
 			'use.description' => '表示言語を設定します（japanese, english）。',
 			'use.success' => ({required Object language}) => '言語を${language}に設定しました。',
@@ -696,7 +696,7 @@ extension on TranslationsJa {
 			'sync.paths.fileAccessFailed' => ({required Object path}) => '${path}を読み書きできませんでした。ファイルの有無とアクセス権限を確認してください。',
 			'sync.paths.saved' => ({required Object path}) => 'ワークスペースのパスを生成しました: ${path}',
 			'sync.secrets.description' => '現在のチームのシークレット名からopenci/generated/secrets.g.dartだけを生成します。',
-			'sync.secrets.loginRequired' => 'genuineci login（ローカルならgenuineci login --local）を実行してからシークレットを同期してください。',
+			'sync.secrets.loginRequired' => 'openci login（ローカルならopenci login --local）を実行してからシークレットを同期してください。',
 			'sync.secrets.workflowDirectoryNotFound' => 'openciディレクトリが見つかりません。ワークフローのあるプロジェクト内で実行してください。',
 			'sync.secrets.requestFailed' => ({required Object status}) => 'シークレット名を取得できませんでした（HTTP ${status}）。',
 			'sync.secrets.fetchFailed' => 'シークレット名を取得できませんでした。サーバーの接続状態とレスポンスを確認してください。',

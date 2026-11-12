@@ -52,7 +52,7 @@ Future<AscApiKey> createAscApiKey(
         publicProviderId,
       ],
       '--name',
-      'GenuineCI',
+      'OpenCI',
       '--role',
       'APP_MANAGER',
       '--output-dir',

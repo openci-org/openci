@@ -1,4 +1,4 @@
-# GenuineCI CLI
+# OpenCI CLI
 
 Command-line tools for OpenCI authentication, team switching, secrets, workflow
 paths, and local development.
@@ -8,12 +8,16 @@ paths, and local development.
 Install with Dart 3.11.5 or later:
 
 ```sh
-dart install genuineci_cli
-genuineci --help
+dart install openci_cli_plus
+openci --help
 ```
 
-If `genuineci` is not found, follow the [`dart install` PATH setup](https://dart.dev/tools/dart-install).
-Run `genuineci update` to update to the latest stable version on pub.dev.
+If `openci` is not found, follow the [`dart install` PATH setup](https://dart.dev/tools/dart-install).
+Run `openci update` to update to the latest stable version on pub.dev.
+
+If you previously installed `genuineci_cli`, run `dart install openci_cli_plus`
+once to switch packages. The new `openci` command uses your existing login
+profiles and language settings.
 
 In an interactive terminal, commands check for a newer stable version and ask
 `Update now? [y/N]`. Enter `y` or `yes` to install it, then rerun your original
@@ -23,8 +27,8 @@ updating. Updates use `dart install`, so the Dart SDK must be on `PATH`.
 Automatic checks time out after two seconds and silently skip network errors.
 They are skipped for help, version, and update commands, when `CI` is set, or
 when stdin, stdout, or stderr is redirected. Use
-`genuineci --no-check-updates <command>` to skip the check explicitly.
-`genuineci update` also works in scripts
+`openci --no-check-updates <command>` to skip the check explicitly.
+`openci update` also works in scripts
 without confirmation and returns a nonzero exit code if checking or installing
 fails.
 
@@ -35,12 +39,12 @@ described below.
 ## Shell completion
 
 Bash and Zsh completion is provided by `cli_completion`. Completion scripts are
-installed automatically when running `genuineci --help` or another command in an
+installed automatically when running `openci --help` or another command in an
 interactive terminal outside CI. Restart your shell afterwards, or install them
 explicitly and follow the printed instructions:
 
 ```sh
-genuineci install-completion-files
+openci install-completion-files
 ```
 
 For Zsh, ensure `autoload -Uz compinit` and `compinit` run in `~/.zshrc` before
@@ -50,14 +54,14 @@ Press Tab to complete every command and subcommand, their options (including
 global flags), and known argument values:
 
 ```text
-genuineci reg<Tab>                      # register
-genuineci register <Tab>                # secret, secretFile, options
-genuineci sync <Tab>                    # paths, secrets, options
-genuineci use <Tab>                     # japanese, english, options
-genuineci help register <Tab>           # secret, secretFile, options
-genuineci login --ser<Tab>              # --server
-genuineci login --server <Tab>          # default and saved HTTPS servers
-genuineci login --team-id <Tab>         # saved team IDs for the selected server
+openci reg<Tab>                      # register
+openci register <Tab>                # secret, secretFile, options
+openci sync <Tab>                    # paths, secrets, options
+openci use <Tab>                     # japanese, english, options
+openci help register <Tab>           # secret, secretFile, options
+openci login --ser<Tab>              # --server
+openci login --server <Tab>          # default and saved HTTPS servers
+openci login --team-id <Tab>         # saved team IDs for the selected server
 ```
 
 Login value completion reads local credential profiles only. `--firebase-api-key`
@@ -66,14 +70,14 @@ New server URLs, team IDs, and Web API keys can still be entered directly.
 Completion does not fetch team lists or refresh tokens. Completion requests and
 completion setup commands skip automatic update checks.
 
-Use `genuineci uninstall-completion-files` to remove the scripts.
+Use `openci uninstall-completion-files` to remove the scripts.
 
 ## Usage
 
 Log in to a remote server with the same email and password as the dashboard:
 
 ```sh
-genuineci login
+openci login
 ```
 
 The default server is `https://openci-worker-01.tail4beb18.ts.net`.
@@ -93,13 +97,13 @@ The remote server URL must use HTTPS.
 Secret commands use this profile and automatically refresh expiring Firebase ID
 tokens. Credentials, including the refresh token, are stored in the `openci`
 application config directory with owner-only permissions on macOS/Linux. If an
-older development build stored your credentials in a `genuineci` configuration
+older development build stored your credentials in a `openci` configuration
 directory, log in again; those credentials are not migrated.
 
 Check the active profile, server, and current team:
 
 ```sh
-genuineci status
+openci status
 ```
 
 ```text
@@ -114,13 +118,13 @@ profile's team ID. It works from any directory and supports redirected output.
 It preserves the selected team and other profiles; expiring Firebase tokens are
 refreshed automatically. The saved profile, server, and team ID are displayed
 even if the team name cannot be fetched. If the selected team is no longer
-available, run `genuineci switch team`. Errors go to stderr and return a nonzero
+available, run `openci switch team`. Errors go to stderr and return a nonzero
 exit code. A fresh installation shows a login hint and exits successfully.
 
 List all teams available to the active profile:
 
 ```sh
-genuineci list teams
+openci list teams
 ```
 
 ```text
@@ -138,7 +142,7 @@ to stderr and return a nonzero exit code.
 Switch the active profile's team without logging in again:
 
 ```sh
-genuineci switch team
+openci switch team
 ```
 
 Login, status, team listing and switching fetch memberships from the
@@ -163,13 +167,13 @@ other profiles are preserved. Choosing the current team succeeds without a
 write. Cancellation or a failed save preserves the previous selected team.
 Expiring authentication tokens may still be refreshed before the picker opens.
 If the active profile or its credentials change during selection, the CLI
-refuses to overwrite them and asks you to run `genuineci switch team` again.
+refuses to overwrite them and asks you to run `openci switch team` again.
 
-Subsequent `genuineci list secrets`, `genuineci register secret`,
-`genuineci register secretFile`, `genuineci delete secret SECRET_NAME`, and
-`genuineci sync --secrets` commands use the newly
+Subsequent `openci list secrets`, `openci register secret`,
+`openci register secretFile`, `openci delete secret SECRET_NAME`, and
+`openci sync --secrets` commands use the newly
 selected team. Existing `openci/generated/secrets.g.dart` files are updated by running
-`genuineci sync --secrets` in the workflow project.
+`openci sync --secrets` in the workflow project.
 
 Team switching requires interactive stdin and stdout with ANSI support. Run it
 directly in a terminal, without piped input or redirected output. Success and
@@ -180,21 +184,21 @@ Troubleshooting team selection:
 
 | Condition                        | What to check                                                                                                                     |
 | -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| Login required or HTTP 401/403   | Log in again for the intended server with `genuineci login` or `genuineci login --local`.                                         |
+| Login required or HTTP 401/403   | Log in again for the intended server with `openci login` or `openci login --local`.                                         |
 | No team memberships              | Create or join a team in the dashboard for that server.                                                                           |
 | Interactive terminal required    | Use an ANSI-capable terminal with interactive stdin and stdout; remove pipes and output redirection.                              |
 | HTTP error or connection failure | Check the active profile's server URL and network connection. For local development, check that the Auth and Functions emulators are running. |
 | Invalid team list                | Check that the saved server URL points to a compatible OpenCI API.                                                                |
-| Changed profile or credentials   | Run `genuineci switch team` again using the current authentication.                                                               |
+| Changed profile or credentials   | Run `openci switch team` again using the current authentication.                                                               |
 | Save failure                     | Check the credentials file, its permissions, and available disk space.                                                            |
 
-Choose English or Japanese messages with `genuineci use english` or
-`genuineci use japanese`. The language setting is saved for future invocations.
+Choose English or Japanese messages with `openci use english` or
+`openci use japanese`. The language setting is saved for future invocations.
 
 List secret names for the active profile's team:
 
 ```sh
-genuineci list secrets
+openci list secrets
 ```
 
 Names are printed one per line, sorted by name, without secret values. If the
@@ -205,19 +209,19 @@ workflow files. Control characters in names are displayed as escaped text.
 Delete a secret by name from the active profile's team:
 
 ```sh
-genuineci delete secret SECRET_NAME
+openci delete secret SECRET_NAME
 ```
 
 The command deletes the named secret immediately, without a confirmation prompt,
 and works in scripts. It returns exit code 0 on success, 1 if the secret is not
 found or the request fails, and 64 for invalid arguments. Secret values are never
-fetched or displayed. After deletion, run `genuineci sync --secrets` from your
+fetched or displayed. After deletion, run `openci sync --secrets` from your
 workflow project to update its generated secret definitions.
 
 Register a secret for the active profile's team:
 
 ```sh
-genuineci register secret
+openci register secret
 ```
 
 Enter the secret name (for example, `API_TOKEN`), then its value in an interactive
@@ -227,16 +231,16 @@ shows `******`, regardless of the value's length.
 Registering an existing name updates its value. The CLI uses the dashboard's
 existing API, which trims leading and trailing whitespace from values. Values
 are not printed or saved locally. Firebase tokens are refreshed when needed.
-After saving, the command automatically runs `genuineci sync` to update both
+After saving, the command automatically runs `openci sync` to update both
 `openci/generated/paths.g.dart` and `openci/generated/secrets.g.dart`. Run it from
 your workflow project or a subdirectory. If sync fails, the secret remains saved
 and the command returns exit code 1; fix the reported problem and retry
-`genuineci sync`. Cancelling input or a failed save does not run sync.
+`openci sync`. Cancelling input or a failed save does not run sync.
 
 Register a file as a Base64 secret:
 
 ```sh
-genuineci register secretFile
+openci register secretFile
 ```
 
 Type a file path to filter the displayed candidates. Press Tab or the up/down
@@ -253,12 +257,12 @@ are prefixed with `_`. For example, `google-services.json` becomes
 Empty files are rejected. Neither the file contents nor the encoded value is
 printed or saved locally. After saving, the command automatically runs the same
 sync as `register secret`, updating both generated files. A sync failure leaves
-the uploaded secret saved and returns exit code 1; retry `genuineci sync` after
+the uploaded secret saved and returns exit code 1; retry `openci sync` after
 fixing the reported problem.
 
 ## Local development
 
-The legacy `genuineci dev start` command and its PostgreSQL/API/Orchard Compose
+The legacy `openci dev start` command and its PostgreSQL/API/Orchard Compose
 stack have been retired. The CLI's team and Secrets commands use Firebase
 Functions. See [Firebase development](../../firebase/README.md) for the Auth
 Emulator and [FSC deployment](../../firebase/functions/DEPLOYMENT.md) for the
@@ -268,7 +272,7 @@ To log in locally, start the Auth, Functions and FSC emulators, create an Auth
 user and its FSC team membership, then run:
 
 ```sh
-genuineci login --local
+openci login --local
 ```
 
 Enter the credentials of a user you created in the Auth Emulator UI. The CLI
@@ -280,16 +284,16 @@ Successful login saves and activates the `local` Firebase profile, including
 the refresh credentials and `firebase_auth_emulator_host`. Later token refreshes
 use the same emulator. Failed or cancelled login preserves saved profiles and
 never falls back to real Firebase. To replace an older `local` profile containing
-an internal API key, run `genuineci login --local` again after preparing the user
+an internal API key, run `openci login --local` again after preparing the user
 and team; successful login replaces only that profile. The password is never
 saved. The remote `--server`, `--team-id`, and `--firebase-api-key` options cannot
 be combined with `--local`.
 
-Run `genuineci sync` from your workflow project to generate both typed secret
+Run `openci sync` from your workflow project to generate both typed secret
 definitions and workspace paths:
 
 ```sh
-genuineci sync
+openci sync
 ```
 
 The files are written to `openci/generated/secrets.g.dart` and
@@ -301,7 +305,7 @@ command exits unsuccessfully if either selected generator fails.
 With an authenticated credential profile, generate only secret definitions:
 
 ```sh
-genuineci sync --secrets
+openci sync --secrets
 ```
 
 The command uses the active credential profile and finds the nearest ancestor
@@ -334,7 +338,7 @@ the parser continues to support previously generated String getters.
 Generate typed workspace paths without logging in or starting local services:
 
 ```sh
-genuineci sync --paths
+openci sync --paths
 ```
 
 Run this from your workflow project or one of its subdirectories. The command
@@ -393,15 +397,15 @@ later calls without `dir` continue to use the configured working directory.
 `WorkspacePaths.root` represents `.` and `WorkspacePaths.root.apps` represents
 `apps`. Both can also be passed directly to methods accepting a `String` path.
 
-`genuineci setup asc-keys` creates a key on Apple Silicon Macs (macOS arm64)
+`openci setup asc-keys` creates a key on Apple Silicon Macs (macOS arm64)
 and saves its credentials as three secrets for the active OpenCI team. It also
 prepares a certificate private key for iOS signing, keeping any existing key.
-First run `genuineci login` (or `genuineci login --local`) and select the intended team.
+First run `openci login` (or `openci login --local`) and select the intended team.
 Setup checks access to that team's secrets before contacting Apple, displays
 the server, team ID, and secret names, and indicates which existing secrets
 will be replaced.
 
-It reuses a regular asc 5.11.0 file in GenuineCI's cache at
+It reuses a regular asc 5.11.0 file in OpenCI's cache at
 `<cache>/tools/asc/5.11.0/macOS_arm64/asc`. If absent, it downloads the pinned
 [official release](https://github.com/rorkai/App-Store-Connect-CLI/releases/tag/5.11.0),
 verifies its SHA-256, sets owner-only executable permissions, and moves it into
@@ -418,12 +422,12 @@ The prompt leaves stdin open and does not change terminal modes. It then starts
 the verified asc binary with `web auth login --apple-id <email> --output table`,
 inheriting the terminal's stdin, stdout, and stderr. Password and two-factor
 prompts are handled directly by asc, which manages its own saved credentials
-and web sessions. GenuineCI does not read those inputs.
+and web sessions. OpenCI does not read those inputs.
 The command waits for asc to exit and propagates a nonzero exit code (negative
 signal codes are mapped to `128 + signal`). A failure to start asc produces a
 localized error. Cancellation inside asc follows asc's exit status; asc 5.11.0
 returns 1 when its password prompt is interrupted.
-After login exits with code 0, GenuineCI checks the same Apple ID with
+After login exits with code 0, OpenCI checks the same Apple ID with
 `web auth status --apple-id <email> --output json`. The check requires exit code
 0 and a JSON object with `authenticated: true`; asc can also exit with code 0
 for an unauthenticated session. A false value stops setup with a sign-in message.
@@ -431,26 +435,29 @@ Execution failures, malformed responses, and a 30-second timeout produce
 localized errors. Raw status output is limited to 16 KiB and is not printed; a
 timed-out process is terminated. The authentication result retains the optional
 `providerName`, `providerId`, and `publicProviderId` fields. Once authentication is
-confirmed, GenuineCI displays the returned name (when available) and IDs of the
+confirmed, OpenCI displays the returned name (when available) and IDs of the
 currently selected App Store Connect provider. If neither ID is available, setup
 stops. Other team IDs are not used as substitutes. This response describes the
 current provider, not a list of teams. The pinned asc 5.11.0 does not emit
 `providerName`, so its output continues to display IDs only.
 
-After displaying the provider, GenuineCI asks whether to create a **new** key
-named `GenuineCI` with `APP_MANAGER` access to all apps and save it to the
+After displaying the provider, OpenCI asks whether to create a **new** key
+named `OpenCI` with `APP_MANAGER` access to all apps and save it to the
 displayed OpenCI destination. Only `y` or `yes` proceeds;
 other input or EOF cancels without requesting a key. The Apple account must be
 an Account Holder or Admin to create a team key. The verified binary runs
 `web api-keys create --apple-id <email> --provider-id <id>` (and/or
-`--public-provider-id <id>`) with `--name GenuineCI --role APP_MANAGER`, an
+`--public-provider-id <id>`) with `--name OpenCI --role APP_MANAGER`, an
 explicit output directory, and `--output json`. Users do not enter provider IDs.
 Both returned IDs are passed when available so asc can verify they match.
 
+For a key created by the previous CLI, pass its original directory to
+`openci setup asc-keys --key-directory <directory>` to resume registration.
+
 Each issuance uses a new owner-only directory under
-`~/Library/Application Support/genuineci/asc-api-keys/`. Its path is printed
+`~/Library/Application Support/openci/asc-api-keys/`. Its path is printed
 before creation. asc saves the one-time `AuthKey_<KEY_ID>.p8` with mode `0600`;
-GenuineCI validates the result and saves `key.json` containing the Key ID,
+OpenCI validates the result and saves `key.json` containing the Key ID,
 Issuer ID, provider IDs, role, and private-key path with mode `0600`. Private key
 contents and raw asc output are never printed. asc handles any reauthentication
 through `/dev/tty` and applies its own network timeouts.
@@ -478,7 +485,7 @@ Success means the ASC saves succeeded and the certificate key is present;
 local ASC files are retained. Saves are sequential, so a failure or interruption
 can leave a partial update. Retry with the same local ASC key. This step prepares
 the private key; signing certificates and provisioning profiles are obtained
-during the build. Run `genuineci sync --secrets` afterward to generate the references
+during the build. Run `openci sync --secrets` afterward to generate the references
 used by workflows.
 
 Creation is never automatically retried. On failure or interruption, downloaded
@@ -486,7 +493,7 @@ files are retained; check the displayed directory and App Store Connect before
 issuing another key. If a key was saved locally, retry only the OpenCI save:
 
 ```sh
-genuineci setup asc-keys --key-directory '/path/to/asc-api-keys/key-xxxxxx'
+openci setup asc-keys --key-directory '/path/to/asc-api-keys/key-xxxxxx'
 ```
 
 This reads `key.json` and its matching `.p8`, displays the destination and key
@@ -496,12 +503,12 @@ key preparation failures exit with code 1 and print this retry command. Each
 retry saves all three ASC values, including any that were already saved, then
 prepares the certificate key if missing. Existing certificate keys are kept.
 Provider switching remains a future step.
-Use `genuineci setup asc-keys --help` to view its help.
+Use `openci setup asc-keys --help` to view its help.
 
 To prepare only the certificate private key for the active OpenCI team, run:
 
 ```sh
-genuineci setup ios-certificate-key
+openci setup ios-certificate-key
 ```
 
 This command requires OpenCI login and a selected team. It generates and saves
@@ -509,7 +516,7 @@ This command requires OpenCI login and a selected team. It generates and saves
 the existing key. It verifies that the secret is present before reporting success.
 It does not require Apple login, ASC keys, or local signing tools, and does not
 issue or replace ASC credentials. The private key is not downloaded or printed.
-You can rerun the same command after a failure. Run `genuineci sync --secrets`
+You can rerun the same command after a failure. Run `openci sync --secrets`
 afterward to update the workflow secret references.
 
 ## Code generation

@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:genuineci_cli/src/auth/firebase_auth_client.dart';
+import 'package:openci_cli_plus/src/auth/firebase_auth_client.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:test/test.dart';

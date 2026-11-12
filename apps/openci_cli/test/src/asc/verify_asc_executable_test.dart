@@ -3,8 +3,8 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:crypto/crypto.dart';
-import 'package:genuineci_cli/src/asc/asc_release.dart';
-import 'package:genuineci_cli/src/asc/verify_asc_executable.dart';
+import 'package:openci_cli_plus/src/asc/asc_release.dart';
+import 'package:openci_cli_plus/src/asc/verify_asc_executable.dart';
 import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 
@@ -64,7 +64,7 @@ void main() {
   late List<String> executedPaths;
 
   setUp(() async {
-    root = await Directory.systemTemp.createTemp('genuineci asc verification ');
+    root = await Directory.systemTemp.createTemp('openci asc verification ');
     executable = await File(p.join(root.path, 'asc')).writeAsString(fixture);
     process = _VersionProcess();
     executedPaths = [];

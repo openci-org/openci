@@ -18,14 +18,14 @@ typedef UpdateProcessStarter =
     });
 
 class CliUpdater {
-  static const packageName = 'genuineci_cli';
+  static const packageName = 'openci_cli_plus';
 
   final String currentVersion;
   final http.Client Function() _clientFactory;
   final UpdateProcessStarter _processStarter;
 
   CliUpdater({
-    this.currentVersion = genuineCIVersion,
+    this.currentVersion = openCIVersion,
     @visibleForTesting http.Client Function()? clientFactory,
     @visibleForTesting UpdateProcessStarter processStarter = Process.start,
   }) : _clientFactory = clientFactory ?? http.Client.new,
@@ -53,7 +53,7 @@ class CliUpdater {
     try {
       // Keep the dart install location used by our installation instructions.
       // PubUpdater.update uses the separate pub global activation location.
-      // Look up Dart on PATH: resolvedExecutable is genuineci in an AOT build.
+      // Look up Dart on PATH: resolvedExecutable is openci in an AOT build.
       final process = await _processStarter(
         'dart',
         ['install', packageName, version],

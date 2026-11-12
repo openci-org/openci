@@ -3,10 +3,10 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:cli_util/cli_logging.dart';
-import 'package:genuineci_cli/genuineci_cli.dart';
-import 'package:genuineci_cli/src/asc/asc_api_key.dart';
-import 'package:genuineci_cli/src/asc/asc_api_key_secret.dart';
-import 'package:genuineci_cli/src/commands/setup/asc_key_registration.dart';
+import 'package:openci_cli_plus/openci_cli_plus.dart';
+import 'package:openci_cli_plus/src/asc/asc_api_key.dart';
+import 'package:openci_cli_plus/src/asc/asc_api_key_secret.dart';
+import 'package:openci_cli_plus/src/commands/setup/asc_key_registration.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:path/path.dart' as p;

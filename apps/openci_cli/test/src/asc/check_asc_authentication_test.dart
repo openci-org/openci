@@ -2,8 +2,8 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:genuineci_cli/src/asc/asc_authentication_status.dart';
-import 'package:genuineci_cli/src/asc/check_asc_authentication.dart';
+import 'package:openci_cli_plus/src/asc/asc_authentication_status.dart';
+import 'package:openci_cli_plus/src/asc/check_asc_authentication.dart';
 import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 
@@ -311,7 +311,7 @@ void main() {
     late File script;
 
     setUp(() async {
-      root = await Directory.systemTemp.createTemp('genuineci asc status ');
+      root = await Directory.systemTemp.createTemp('openci asc status ');
       script = File(p.join(root.path, 'asc'));
     });
 

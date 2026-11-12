@@ -16,16 +16,16 @@ import 'commands/switch/switch_command.dart';
 import 'commands/sync/sync_command.dart';
 import 'commands/update_command.dart';
 import 'commands/use_command.dart';
-import 'completion/genuineci_completion_command.dart';
+import 'completion/openci_completion_command.dart';
 import 'credential_store/credential_store.dart';
 import 'i18n/i18n.dart';
 import 'update/cli_updater.dart';
 import 'update/prompt_for_update.dart';
 import 'version.dart';
 
-export 'version.dart' show genuineCIVersion;
+export 'version.dart' show openCIVersion;
 
-class GenuineCICommandRunner extends CompletionCommandRunner<int> {
+class OpenCICommandRunner extends CompletionCommandRunner<int> {
   static const _completionCommands = {
     HandleCompletionRequestCommand.commandName,
     InstallCompletionFilesCommand.commandName,
@@ -39,7 +39,7 @@ class GenuineCICommandRunner extends CompletionCommandRunner<int> {
   final bool _hasTerminal;
   final Map<String, String> _environment;
 
-  GenuineCICommandRunner({
+  OpenCICommandRunner({
     Logger? logger,
     CliUpdater? updater,
     @visibleForTesting CredentialStore? completionCredentialStore,
@@ -55,7 +55,7 @@ class GenuineCICommandRunner extends CompletionCommandRunner<int> {
            hasTerminal ??
            (stdin.hasTerminal && stdout.hasTerminal && stderr.hasTerminal),
        _environment = environment ?? Platform.environment,
-       super('genuineci', t.cli.description) {
+       super('openci', t.cli.description) {
     environmentOverride = _environment;
     argParser
       ..addFlag(
@@ -87,7 +87,7 @@ class GenuineCICommandRunner extends CompletionCommandRunner<int> {
   void addCommand(Command<int> command) {
     super.addCommand(
       command is HandleCompletionRequestCommand<int>
-          ? GenuineCICompletionCommand(
+          ? OpenCICompletionCommand(
               readCredentials: () => _completionCredentialStore.get(),
             )
           : command,
@@ -101,7 +101,7 @@ class GenuineCICommandRunner extends CompletionCommandRunner<int> {
   @override
   Future<int?> runCommand(ArgResults topLevelResults) async {
     if (topLevelResults['version'] == true) {
-      _logger.stdout(t.cli.version(version: genuineCIVersion));
+      _logger.stdout(t.cli.version(version: openCIVersion));
       return 0;
     }
     if (_shouldCheckForUpdate(topLevelResults)) {
