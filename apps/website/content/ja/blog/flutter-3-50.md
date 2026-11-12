@@ -43,7 +43,7 @@ Flutter 3.50が、[Dart 3.14](https://dart.dev/blog/announcing-dart-3-14) とと
 
 これにより、プラットフォームチャネルでメッセージをやり取りせずに、Dartとネイティブコードの間で関数を直接呼び出せます。同期呼び出しや、バックグラウンドのisolateからの呼び出しにも対応します。FFIgenはCやObjective-CのAPI、JNIgenはAndroidのシステムAPIや独自のJava／Kotlinライブラリに対応するバインディングを生成し、FlutterやDartのアプリから利用できるようにします。複数のプラットフォームに対応するプラグインを開発する場合は、Pigeonのネイティブ連携モードにより、iOS・macOS・Androidでのデータ変換とネイティブオブジェクトの生存期間の管理を自動化できます。
 
-![従来のMethodChannelによるシリアライズと、生成されたJNI／FFIバインディングによるホストAPIの直接呼び出しの比較。](/blog/flutter-3-50/native-interop.webp)
+![従来のMethodChannelによるシリアライズと、生成されたJNI／FFIバインディングによるホストAPIの直接呼び出しの比較。](/images/blog/flutter-3-50/native-interop.webp)
 
 _ネイティブAPIとの直接連携では、プラットフォームチャネルのシリアライズを省き、FFIとJNIを通じてネイティブAPIを直接呼び出します。_
 
@@ -113,7 +113,7 @@ FlutterのWebアプリやプラグインでは、JS連携ライブラリを通�
 
 Flutter 3.47では、SDKから独立した `material_ui` と `cupertino_ui` の1.0を公開しました。これに続き、Flutter 3.50では、SDK同梱の `package:flutter/material.dart` と `package:flutter/cupertino.dart`、および `package:flutter_localizations` に含まれる対応するローカライズデリゲートを正式に非推奨としました。`flutter create` で作成する新規プロジェクトでは、標準で `package:material_ui` をインポートします。
 
-![SDK同梱のmaterial.dart／cupertino.dartから、pub.dev上の独立したmaterial_ui／cupertino_uiパッケージへ、dart fixで移行する流れ。](/blog/flutter-3-50/design-packages.webp)
+![SDK同梱のmaterial.dart／cupertino.dartから、pub.dev上の独立したmaterial_ui／cupertino_uiパッケージへ、dart fixで移行する流れ。](/images/blog/flutter-3-50/design-packages.webp)
 
 _`dart fix` を使い、SDK同梱のデザインライブラリから、独立した `material_ui` と `cupertino_ui` へ移行します。_
 
@@ -134,7 +134,7 @@ Mairramerは `ScrollPhysics.shouldUpdate` も追加しました。設定の変�
 `SliverFillRemaining` は、スクロールビューの末尾で、オーバースクロールによる伸縮のオフセットを正しく計算するようになりました。`TreeSliver` では、ツリーの枝を展開・折りたたみする際の描画範囲を適切にクリップし、アニメーション中の子の行が隣の項目に重ならないようにしました。
 
 <figure>
-  <img src="/blog/flutter-3-50/sliver-clip-rrect.webp" alt="SliverClipRRectがスクロールするsliverコンテンツを角丸の領域にクリップするアニメーション。" width="320" loading="lazy" />
+  <img src="/images/blog/flutter-3-50/sliver-clip-rrect.webp" alt="SliverClipRRectがスクロールするsliverコンテンツを角丸の領域にクリップするアニメーション。" width="320" loading="lazy" />
   <figcaption>SliverClipRRectでは、固定ヘッダーが欠けないようにしながら、スクロール領域を角丸にクリップできます。</figcaption>
 </figure>
 
@@ -153,7 +153,7 @@ Mairramerは `ScrollPhysics.shouldUpdate` も追加しました。設定の変�
 `HSVColor.lerp` と `HSLColor.lerp` による色のアニメーションでは、色相環上の短い方の経路で色を変化させるようになりました。これにより、意図しない色の変化を防ぎます。
 
 <figure>
-  <img src="/blog/flutter-3-50/image-placeholder.webp" alt="DecorationImageがぼかしたプレースホルダーのカードを表示した後、鮮明な画像を読み込むアニメーション。" width="320" loading="lazy" />
+  <img src="/images/blog/flutter-3-50/image-placeholder.webp" alt="DecorationImageがぼかしたプレースホルダーのカードを表示した後、鮮明な画像を読み込むアニメーション。" width="320" loading="lazy" />
   <figcaption>DecorationImage.placeholderでは、背景画像の読み込み中にプレースホルダーの画像を表示できます。</figcaption>
 </figure>
 
@@ -171,7 +171,7 @@ Canonicalや、メンテナーの [Robert Ancell](https://github.com/robert-ance
 
 macOSでは、表示前にウィンドウやダイアログのサイズを内容に合わせられるようになりました。これにより、表示直後にサイズが変わってちらつくのを防げます。3つのデスクトッププラットフォーム共通の変更として、コードを簡潔にするために `RegularWindow` の名前を `Window` に変更しました。`sizedToContent` プロパティも、FlutterのほかのレイアウトAPIと名前をそろえ、`shrinkWrap` に変更しています。また、`WindowManager` がウィジェットツリー上で `WidgetsApp` より上に置かれるようになり、追加のウィンドウごとに、独立したUIとナビゲーションの状態を持てるようになりました。
 
-![macOSで動作するFlutter Multi-Window Reference Application。メインウィンドウと別ウィンドウのダイアログを表示している。](/blog/flutter-3-50/desktop-multi-window.webp)
+![macOSで動作するFlutter Multi-Window Reference Application。メインウィンドウと別ウィンドウのダイアログを表示している。](/images/blog/flutter-3-50/desktop-multi-window.webp)
 
 _macOSで動作する、マルチウィンドウの実装例を示すアプリ。_
 
@@ -185,7 +185,7 @@ macOS・Linux・Windows向けのImpellerのSigned Distance Field（SDF、符号�
 
 独自の3Dシーンや2Dゲームの開発に向けて、Flutter GPUが2Dテクスチャ配列に対応しました。スプライトシート、タイルマップ、地形のレイヤーをまとめて描画し、タイル間に継ぎ目を出さずにドローコールを減らせます。また、シェーダーパイプラインの設定に問題がある場合は、より分かりやすいDartのエラーメッセージが表示され、描画の不具合を見つけて修正しやすくなりました。
 
-![ImpellerのSDFとMSAAの拡大比較。SDFでは斜めの輪郭が滑らかになり、MSAAでは階段状に見える。](/blog/flutter-3-50/impeller-sdf.webp)
+![ImpellerのSDFとMSAAの拡大比較。SDFでは斜めの輪郭が滑らかになり、MSAAでは階段状に見える。](/images/blog/flutter-3-50/impeller-sdf.webp)
 
 _ImpellerのSDFレンダラーは、GPUで直接、鮮明でアンチエイリアスの効いた輪郭を描画します。_
 
@@ -209,7 +209,7 @@ Flutter 3.50は、Xcode 27とiOS 27の公開後、初めての安定版リリー
 
 この変更により、入力遅延を1フレーム分短縮しました。60 HzのiOS端末では16 ms、120 HzのProMotionディスプレーでは8 msの短縮です。2015年のiPhone 6sを含む幅広い実機でベンチマークを行い、改善を確認しています。今後のリリースに向けて、さらなる入力遅延の削減にも取り組んでいます。
 
-![Flutter 3.50でiOSのタッチ応答が高速化した様子の比較。](/blog/flutter-3-50/ios-touch-response.webp)
+![Flutter 3.50でiOSのタッチ応答が高速化した様子の比較。](/images/blog/flutter-3-50/ios-touch-response.webp)
 
 _Flutter 3.50では、iOSのタッチ処理のタイミングを見直し、入力遅延を1フレーム短縮しました。_
 
@@ -297,7 +297,7 @@ AI分野では、Genkit Dartが安定版1.0になり、MediaPipeのFlutter向け
 
 Genkit Dartの安定版1.0がリリースされました。DartとFlutterで、複数のモデルを利用するフルスタックのAIエージェントアプリを構築できます。エンドツーエンドの型安全性に加え、フローのストリーミング、ツール呼び出し、OpenTelemetryを使ったトレースに対応しています。
 
-![Genkit DartとA2UIを使ったCymbal BistroのFlutterアプリ。対話型の予約カードをストリーミングで表示し、予約ツールを呼び出すデモ。](/blog/flutter-3-50/genkit-dart.webp)
+![Genkit DartとA2UIを使ったCymbal BistroのFlutterアプリ。対話型の予約カードをストリーミングで表示し、予約ツールを呼び出すデモ。](/images/blog/flutter-3-50/genkit-dart.webp)
 
 _Genkit Dart 1.0で、A2UIによる対話型の予約画面をストリーミングで表示し、ツールを呼び出す様子。_
 
