@@ -242,6 +242,7 @@ Future<void> release(int build) async {
       derivedData,
       '-clonedSourcePackagesDirPath',
       sourcePackages,
+      'CODE_SIGN_STYLE=Manual',
       'CODE_SIGN_IDENTITY=Developer ID Application',
       'DEVELOPMENT_TEAM=$signingTeam',
     ], timeout: const Duration(minutes: 40));
