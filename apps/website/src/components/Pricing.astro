@@ -3,16 +3,18 @@ import { getRelativeLocaleUrl } from "astro:i18n";
 import PriceEstimate from "./PriceEstimate.astro";
 import Icon from "./Icon.astro";
 import { translator, type Locale } from "../lib/i18n";
+import { formatRuntimeEstimate, usdCentsPerMinute } from "../lib/pricing";
 interface Props {
   locale: Locale;
 }
 const { locale } = Astro.props;
 const t = translator(locale);
 const comparisonJpyPerUsd = 150;
-const exampleUsdPerMinute = 1 / comparisonJpyPerUsd;
+const comparisonUsdPerMinute =
+  locale === "ja" ? 1 / comparisonJpyPerUsd : usdCentsPerMinute / 100;
 const githubMacosUsdPerMinute = 0.062;
 const savingsPercent = Math.round(
-  (1 - exampleUsdPerMinute / githubMacosUsdPerMinute) * 100,
+  (1 - comparisonUsdPerMinute / githubMacosUsdPerMinute) * 100,
 );
 ---
 
@@ -21,7 +23,7 @@ const savingsPercent = Math.round(
   <h1>
     {t("Macの実行時間、", "Mac runtime,")}
     <br />
-    <strong>{t("1分1円。", "¥1 per minute.")}</strong>
+    <strong>{t("1分1円。", "1 cent per minute.")}</strong>
   </h1>
   <p>
     {t(
@@ -42,7 +44,7 @@ const savingsPercent = Math.round(
         <Icon name="cpu" marketing /> OpenCI Cloud
       </span>
       <h2>
-        <strong>¥1</strong>
+        <strong>{t("¥1", `${usdCentsPerMinute}¢`)}</strong>
         <small>{t(" / 分（税込）", " / min, tax included")}</small>
       </h2>
       <p>
@@ -111,7 +113,7 @@ const savingsPercent = Math.round(
       <p class="prose">
         {t(
           "月20回で合計200分、実行料金は200円です。ジョブごとの端数は、月の合計で一度だけ切り上げます。",
-          "Twenty builds add up to 200 minutes, or ¥200. Partial minutes are rounded up once on the monthly total.",
+          `Twenty builds add up to 200 minutes. Budget ${formatRuntimeEstimate(200, "en")} for the month. Partial minutes are rounded up once on the monthly total.`,
         )}
       </p>
     </div>
@@ -122,7 +124,7 @@ const savingsPercent = Math.round(
     <p class="pricing-savings">
       {t(
         `1ドル＝${comparisonJpyPerUsd}円の換算例では、GitHub ActionsのmacOSより、`,
-        `At an illustrative ¥${comparisonJpyPerUsd} per US dollar, about `,
+        "At 1 cent per minute, that’s about ",
       )}
       <span class="pricing-savings-amount">
         {t(`分単価が約${savingsPercent}%安い。`, `${savingsPercent}% less`)}
@@ -133,17 +135,27 @@ const savingsPercent = Math.round(
       <caption>
         {t(
           `macOSの有料実行・1分あたり（1ドル＝${comparisonJpyPerUsd}円の換算例）`,
-          `Paid macOS runtime per minute (USD example at ¥${comparisonJpyPerUsd} per dollar)`,
+          "Paid macOS runtime per minute (US cents)",
         )}
       </caption>
       <tbody>
         <tr>
           <th scope="row">OpenCI Cloud</th>
-          <td>US${exampleUsdPerMinute.toFixed(4)}</td>
+          <td>
+            {t(
+              `US$${comparisonUsdPerMinute.toFixed(4)}`,
+              `${usdCentsPerMinute}¢`,
+            )}
+          </td>
         </tr>
         <tr>
           <th scope="row">GitHub Actions macOS</th>
-          <td>US${githubMacosUsdPerMinute.toFixed(3)}</td>
+          <td>
+            {t(
+              `US$${githubMacosUsdPerMinute.toFixed(3)}`,
+              `${(githubMacosUsdPerMinute * 100).toFixed(1)}¢`,
+            )}
+          </td>
         </tr>
       </tbody>
     </table>
@@ -159,7 +171,7 @@ const savingsPercent = Math.round(
     <p class="pricing-comparison-note">
       {t(
         "※「世界最安」は、当社が公開料金を確認した下記3サービスとのmacOS分単価比較によるものです（2026-11-08時点、1ドル＝150円の換算例）。無料利用・割引・定額契約を除きます。",
-        '*"World\'s lowest-priced" refers to macOS per-minute rates among the three providers whose public pricing we compared, as of 2026-11-08, using the illustrative rate of ¥150 per US dollar. Free usage, discounts and fixed-price plans are excluded.',
+        '*"World\'s lowest-priced" compares OpenCI with the published macOS rates of the three providers below as of 2026-11-08. Free usage, discounts and fixed-price plans are excluded.',
       )}{" "}
       <a href="https://docs.github.com/en/billing/reference/actions-runner-pricing">
         GitHub Actions
@@ -181,7 +193,7 @@ const savingsPercent = Math.round(
           t("どの時間が料金の対象ですか？", "How is runtime measured?"),
           t(
             "VM準備完了後の実行時間をチームごとに月単位で合計し、最後に1分単位に切り上げます。100分20秒なら101円（税込）です。",
-            "We add up team runtime after VM preparation and round up once at month-end. A total of 100 minutes and 20 seconds costs ¥101, tax included.",
+            "We add up team runtime after VM preparation and round up once at month-end. A total of 100 minutes and 20 seconds counts as 101 billable minutes.",
           ),
         ],
         [
@@ -201,7 +213,7 @@ const savingsPercent = Math.round(
           ),
           t(
             "月の円建て合計を月締め時に記録した為替レートで換算します。チームのダッシュボードの「設定 → 課金を管理」から支払い設定を確認できます。",
-            "We convert the monthly yen total at the exchange rate recorded when the billing month closes. Choose your team in the dashboard and open Settings → Manage billing.",
+            "We calculate actual charges at ¥1 per minute, tax included. For USD invoices, we convert the monthly total at the exchange rate recorded when the billing month closes. Choose your team in the dashboard and open Settings → Manage billing.",
           ),
         ],
         [
