@@ -1,7 +1,7 @@
 export const locales = ["en", "ja"] as const;
 export type Locale = (typeof locales)[number];
 export const defaultLocale: Locale = "en";
-export const siteOrigin = "https://genuineci.com";
+export const siteOrigin = "https://openci.org";
 export const translator = (locale: Locale) => (ja: string, en: string) =>
   locale === "ja" ? ja : en;
 export const siteTitle = (locale: Locale) =>

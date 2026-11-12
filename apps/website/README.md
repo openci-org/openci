@@ -1,10 +1,10 @@
 # OpenCI product website
 
-Astro + TypeScriptで実装したOpenCIの製品LP・料金ページと、既存のブログ・Docsです。
+Astro + TypeScriptで実装したOpenCIの製品LP・料金ページ・ブログ・Docsです。
 Docsには [Starlight](https://starlight.astro.build/ja/) を使用しています。
 ReactなどのUIフレームワークは使わず、静的HTML・CSSと必要なJavaScriptを生成します。
-製品LPと料金ページはレインボーのロゴと青を使います。公開URLは `https://genuineci.com` です。
-LPの写真の撮影者と配布元はフッター、同梱フォント（Geist・Geist Mono、Lora、Noto Serif JP）のライセンスは `public/licenses/*-OFL.txt` に記載しています。
+製品LP、料金ページ、ブログはレインボーのロゴと青を使います。公開URLは `https://openci.org` です。
+写真の撮影者と配布元はフッター、同梱フォント（Geist・Geist Mono、Lora、Noto Serif JP）のライセンスは `public/licenses/*-OFL.txt` に記載しています。
 
 ## 開発
 
@@ -13,7 +13,7 @@ Vite+やNodeバージョンマネージャーでバージョンを選択して�
 このアプリはrootのnpm workspaceに含まれ、`package-lock.json` を共有します。
 
 ```sh
-npm ci --workspace genuineci-website --include-workspace-root
+npm ci --workspace genuineci-website --workspace landing-page --include-workspace-root
 npm run dev --workspace genuineci-website
 ```
 
@@ -45,14 +45,14 @@ canonical・hreflang・OGP・X Cardを各ページに生成します。
 
 ブログは `content/<en|ja>/blog/`、Docsは `src/content/docs/<en|ja>/docs/` のMarkdown・MDXを編集します。
 Astro Content Collectionsが読み込み、`src/content.config.ts` がfrontmatterを検証します。
-新しい記事は同じslugで両言語に追加します。一覧は言語ごとに日付の新しい順で表示します。
+対訳を公開するときは同じslugで追加します。一覧は言語ごとに日付の新しい順で表示します。
 
 ブログには `layout: blog-article`、`title`、`description`、`category`、
 `date`（`"YYYY-MM-DD"`）が必要です。`author`、`readTime`、`coverLabel`、
-`coverTitle` も指定できます。
+`coverTitle`、`coverImage`（`/images/` 配下のカバー写真）も指定できます。
 
 記事のOGP画像は `astro-og-canvas` がビルド時に自動生成します。
-`title`、`description`、`category`、`date` を使い、黄色（#FFFB00）の背景に黒い文字で描画します。
+`title`、`description`、`category`、`date` を使い、レインボーロゴ、淡色の背景、青い縁のカードを描画します。
 画像の追加やfrontmatterの `image` 指定は不要です。
 英語・日本語はそれぞれのMarkdownから別の1200×630 PNGを生成します。
 たとえば `/en/blog/v2-3-0/` は `/ogp/en/blog/v2-3-0.png`、
@@ -104,15 +104,17 @@ npm run preview --workspace genuineci-website
 `openci/website_ci.dart` はPRとdevelopへのpushで、依存取得・フォーマット・
 Astroの静的解析・ビルド・テストを `bash scripts/ci.sh` で実行します。
 このスクリプトは `.node-version` のNode.js公式バイナリを一時ディレクトリへ取得し、
-SHA-256を検証した後、npm 11.14.1で依存取得と `npm run verify` を実行します。
+SHA-256を検証した後、npm 11.14.1で依存取得と `npm run build:hosting` を実行します。
 ワーカーやFirebase CLIが引き継ぐNode.jsのバージョンに依存せず、実行後に一時ディレクトリを削除します。
 macOS / Linuxのarm64・x64、bash・curl・tar・SHA-256コマンドと外部ネットワーク接続が必要です。
 ローカルでは同じ処理を `npm run ci --workspace genuineci-website` で実行できます。
 
 ## Firebase Hosting
 
-Firebaseプロジェクト `openci-b1b91`、Hostingサイト `genuineci-website`、ターゲット `website` を使用します。
-`firebase.json` は `dist/` を公開し、デプロイ前に依存取得と検証を実行します。
+`openci.org` はFirebaseプロジェクト・Hostingサイト `openci-b1b91` のターゲット `website` で公開します。
+デプロイ前に `npm run build:hosting` で製品サイトを検証し、`apps/landing_page` のStudioと過去のリリースを加えた `build/hosting/` を生成します。
+`/studio/`、`/studio/about/`、`/ja/releases/…` は元のURLで公開します。
+旧ドメイン `genuineci.com` はFirebase Hostingのカスタムドメイン設定で `openci.org` へ301転送します。
 旧 `/blog/…` と `/docs/…` は同じslugの `/ja/blog/…` と `/ja/docs/…` へ301転送します。
 Astroの開発・プレビューサーバーではHosting固有の旧URL転送は適用されません。
 
@@ -120,6 +122,7 @@ Astroの開発・プレビューサーバーではHosting固有の旧URL転送�
 
 ```sh
 # Hostingの転送を含めたローカル確認
+npm run build:hosting
 firebase emulators:start --only hosting --project openci-b1b91
 
 # 7日間のプレビュー

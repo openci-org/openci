@@ -87,7 +87,7 @@ test("each blog article has its own localized 1200 x 630 PNG social image", () =
   for (const [route, $] of pages) {
     if ($('meta[property="og:type"]').attr("content") !== "article") continue;
     const imagePath = `/ogp${route.replace(/\/$/, "")}.png`;
-    const imageUrl = "https://genuineci.com" + imagePath;
+    const imageUrl = "https://openci.org" + imagePath;
     assert.equal($('meta[property="og:image"]').attr("content"), imageUrl);
     assert.equal($('meta[name="twitter:image"]').attr("content"), imageUrl);
     assert.equal(
@@ -123,7 +123,7 @@ for (const [route, $] of pages) {
     assert.equal($("html").attr("lang"), locale);
     assert.equal($("main").length, 1);
     assert.equal($("h1").length, 1);
-    const isProduct = /^\/(en|ja)\/(pricing\/)?$/.test(route);
+    const isProduct = !route.includes("/docs/");
     assert.ok(
       $("title")
         .text()
@@ -134,22 +134,26 @@ for (const [route, $] of pages) {
         $('meta[property="og:site_name"]').attr("content"),
         "OpenCI",
       );
-      assert.equal(
-        new URL($('meta[property="og:image"]').attr("content")!).pathname,
-        "/ogp/openci.jpg",
-      );
+      assert.equal($(".product-nav .wordmark").text().trim(), "OpenCI");
+      assert.equal($(".product-footer").length, 1);
+      if ($('meta[property="og:type"]').attr("content") !== "article") {
+        assert.equal(
+          new URL($('meta[property="og:image"]').attr("content")!).pathname,
+          "/ogp/openci.jpg",
+        );
+      }
     }
     assert.equal($("meta[name=robots]").attr("content"), "noindex, nofollow");
     assert.equal(
       $("link[rel=canonical]").attr("href"),
-      "https://genuineci.com" + route,
+      "https://openci.org" + route,
     );
     assert.equal(
       $('meta[property="og:url"]').attr("content"),
-      "https://genuineci.com" + route,
+      "https://openci.org" + route,
     );
     const image = $('meta[property="og:image"]').attr("content")!;
-    assert.equal(new URL(image).origin, "https://genuineci.com");
+    assert.equal(new URL(image).origin, "https://openci.org");
     assert.ok(existsSync("dist" + new URL(image).pathname));
     assert.equal($('meta[name="twitter:image"]').attr("content"), image);
     assert.equal(
@@ -165,7 +169,7 @@ for (const [route, $] of pages) {
       assert.equal(
         href,
         pages.has(translatedPath)
-          ? "https://genuineci.com" + translatedPath
+          ? "https://openci.org" + translatedPath
           : undefined,
       );
       if (language !== "x-default" && !route.includes("/docs/")) {
@@ -227,12 +231,15 @@ for (const [route, $] of pages) {
     assert.equal($('script[src*="dart"],astro-island').length, 0);
     for (const a of $("a[href]").toArray()) {
       const href = $(a).attr("href")!;
-      const target = new URL(href, "https://genuineci.com" + route);
-      if (target.origin !== "https://genuineci.com") continue;
+      const target = new URL(href, "https://openci.org" + route);
+      if (target.origin !== "https://openci.org") continue;
       const destination = pages.get(
         target.pathname.endsWith("/") ? target.pathname : target.pathname + "/",
       );
       if (!destination && !target.hash) {
+        // Studio and the release archive are built by the companion Next.js workspace.
+        if (existsSync(`../landing_page/app/(ja)${target.pathname}page.tsx`))
+          continue;
         const asset = "dist" + decodeURIComponent(target.pathname);
         assert.ok(
           existsSync(asset) && statSync(asset).isFile(),
@@ -416,6 +423,24 @@ for (const locale of ["en", "ja"] as const) {
       ),
     );
     assert.equal($(".featured-post").attr("href"), links[0]);
+    assert.equal(
+      $(".desktop-links [aria-current=page]").attr("href"),
+      `/${locale}/blog/`,
+    );
+    const categories = $(".post-card")
+      .toArray()
+      .map((card) => $(card).attr("data-article-category"));
+    assert.deepEqual(
+      new Set(
+        $("[data-category-filter]")
+          .toArray()
+          .map((button) => $(button).attr("data-category-filter")),
+      ),
+      new Set(["all", ...categories]),
+    );
+    for (const img of $(".post-cover img").toArray()) {
+      assert.ok(existsSync("dist" + $(img).attr("src")));
+    }
     for (const link of links) {
       assert.ok(link!.startsWith(`/${locale}/blog/`));
       const article = pages.get(link!)!;
@@ -577,7 +602,7 @@ for (const [route, hash, shared] of [
 ] as const) {
   test(`${route}: language switching preserves queries and appropriate anchors`, () => {
     const location = new URL(
-      "https://genuineci.com" + route + "?source=mail" + hash,
+      "https://openci.org" + route + "?source=mail" + hash,
     );
     const $ = pages.get(route)!;
     const links = $("[data-language-link]")
@@ -633,7 +658,9 @@ test("translated articles and docs keep identical executable examples", () => {
 test("root redirect and legacy hosting routes retain their destinations", () => {
   assert.ok(read("dist/index.html").includes("url=/en/"));
   const hosting = JSON.parse(read("firebase.json")).hosting;
-  assert.equal(hosting.public, "dist");
+  assert.equal(hosting.public, "build/hosting");
+  const project = JSON.parse(read(".firebaserc")).targets["openci-b1b91"];
+  assert.deepEqual(project.hosting[hosting.target], ["openci-b1b91"]);
   assert.deepEqual(
     hosting.redirects.map(
       (r: { source: string; destination: string; type: number }) => [
