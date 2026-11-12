@@ -15,7 +15,7 @@ case "$(uname -m)" in
 esac
 
 # CI VMs have Dart/Flutter but may not have Node.js or npm installed.
-node_tmp="$(mktemp -d "${TMPDIR:-/tmp}/genuineci-website-node.XXXXXX")"
+node_tmp="$(mktemp -d "${TMPDIR:-/tmp}/openci-website-node.XXXXXX")"
 trap 'rm -rf "$node_tmp"' EXIT
 node_archive="node-v$node_version-$node_platform-$node_arch"
 node_origin="https://nodejs.org/dist/v$node_version"
@@ -38,4 +38,4 @@ node --version
 
 cd "$website_dir"
 npm exec --yes --package=npm@11.14.1 --call \
-  'npm ci --workspace genuineci-website --workspace landing-page --include-workspace-root && npm run build:hosting'
+  'npm ci --workspace openci-website --workspace landing-page --include-workspace-root && npm run build:hosting'

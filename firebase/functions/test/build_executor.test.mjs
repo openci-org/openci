@@ -467,7 +467,7 @@ async function controller(t, onSocket, handler, options = {}) {
         response.writeHead(404).end();
       }),
   );
-  const sockets = new WebSocketServer({ server });
+  const sockets = new WebSocketServer({ server, maxPayload: 32 * 1024 });
   sockets.on("connection", (socket, request) => {
     requests.push(request);
     onSocket(socket, request);
@@ -490,13 +490,14 @@ async function controller(t, onSocket, handler, options = {}) {
   };
 }
 
-test("Orchard sends script over stdin, streams both channels and requires an exit frame", async (t) => {
-  let stdin = "";
+test("Orchard streams large scripts over stdin and preserves both output channels and exit status", async (t) => {
+  const script = "secret-script🍎\n".repeat(3000);
+  const chunks = [];
   const f = await controller(t, (socket) =>
     socket.on("message", (raw) => {
       const frame = JSON.parse(raw);
       assert.equal(frame.type, "stdin");
-      if (frame.data) stdin += Buffer.from(frame.data, "base64").toString();
+      if (frame.data) chunks.push(Buffer.from(frame.data, "base64"));
       else {
         socket.send(
           JSON.stringify({ type: "stdout", data: Buffer.from("hello").toString("base64") }),
@@ -512,7 +513,7 @@ test("Orchard sends script over stdin, streams both channels and requires an exi
   assert.equal(
     await f.client.exec(
       "vm",
-      "secret-script\n",
+      script,
       async (stream, data) => {
         output.push([stream, data.toString()]);
       },
@@ -520,7 +521,7 @@ test("Orchard sends script over stdin, streams both channels and requires an exi
     ),
     17,
   );
-  assert.equal(stdin, "secret-script\n");
+  assert.equal(Buffer.concat(chunks).toString(), script);
   assert.deepEqual(output, [
     ["stdout", "hello"],
     ["stderr", "error"],

@@ -4,9 +4,8 @@ import { prQrOutputDirectory, type Job } from "./model.js";
 import type { OrchardExecutor } from "./orchard.js";
 
 type GitHubRequest = (typeof import("@octokit/request"))["request"];
-const mediaBranch = "genuineci/pr-qr";
-export const qrPublicationFailure =
-  "GenuineCI could not publish the QR code to this pull request. Check the GitHub App's Contents and Pull requests write permissions and the genuineci/pr-qr branch rules.";
+const mediaBranch = "openci/pr-qr";
+export const qrPublicationFailure = `OpenCI could not publish the QR code to this pull request. Check the GitHub App's Contents and Pull requests write permissions and the ${mediaBranch} branch rules.`;
 const maxUrls = 8;
 const maxUrlBytes = 2331; // QR version 40, byte mode, medium error correction.
 const maxReleaseMetadataBytes = 2048;

@@ -13,6 +13,8 @@ export interface OrchardOptions {
   useWorkerMemory?: boolean;
 }
 type Output = (stream: Stream, data: Buffer) => Promise<void>;
+// Orchard's 32 KiB message limit includes the JSON envelope and base64 encoding.
+const stdinChunkBytes = 16 * 1024;
 
 function record(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== "object" || Array.isArray(value))
@@ -277,7 +279,11 @@ export class OrchardExecutor {
         return;
       }
       ws.on("open", () => {
-        ws.send(JSON.stringify({ type: "stdin", data: Buffer.from(script).toString("base64") }));
+        const bytes = Buffer.from(script);
+        for (let offset = 0; offset < bytes.length; offset += stdinChunkBytes) {
+          const chunk = bytes.subarray(offset, offset + stdinChunkBytes);
+          ws.send(JSON.stringify({ type: "stdin", data: chunk.toString("base64") }));
+        }
         ws.send(JSON.stringify({ type: "stdin", data: "" }));
       });
       ws.on("error", () => finish(new Error("Command connection failed")));

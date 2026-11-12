@@ -13,8 +13,8 @@ Vite+やNodeバージョンマネージャーでバージョンを選択して�
 このアプリはrootのnpm workspaceに含まれ、`package-lock.json` を共有します。
 
 ```sh
-npm ci --workspace genuineci-website --workspace landing-page --include-workspace-root
-npm run dev --workspace genuineci-website
+npm ci --workspace openci-website --workspace landing-page --include-workspace-root
+npm run dev --workspace openci-website
 ```
 
 `http://localhost:4321/en/` または `/ja/` を開きます。
@@ -89,17 +89,17 @@ LP・ブログの言語切り替えのクエリ・共通アンカー維持は `s
 rootから実行します。
 
 ```sh
-npm run fmt:check --workspace genuineci-website
-npm run check --workspace genuineci-website
-npm run build --workspace genuineci-website
-npm test --workspace genuineci-website
-npm run preview --workspace genuineci-website
+npm run fmt:check --workspace openci-website
+npm run check --workspace openci-website
+npm run build --workspace openci-website
+npm test --workspace openci-website
+npm run preview --workspace openci-website
 ```
 
 `dist/` にHTML・公開アセットを生成します。テストはビルド後に実行し、
 日英ルート・リンク・見出しID・メタデータ・コード例・検索データ・料金表示を検証します。
 記事ごとのOGP画像の生成、PNG形式・寸法、言語ごとの画像とX Cardの参照も確認します。
-フォーマットの適用は `npm run fmt --workspace genuineci-website` です。
+フォーマットの適用は `npm run fmt --workspace openci-website` です。
 
 `openci/website_ci.dart` はPRとdevelopへのpushで、依存取得・フォーマット・
 Astroの静的解析・ビルド・テストを `bash scripts/ci.sh` で実行します。
@@ -107,7 +107,7 @@ Astroの静的解析・ビルド・テストを `bash scripts/ci.sh` で実行�
 SHA-256を検証した後、npm 11.14.1で依存取得と `npm run build:hosting` を実行します。
 ワーカーやFirebase CLIが引き継ぐNode.jsのバージョンに依存せず、実行後に一時ディレクトリを削除します。
 macOS / Linuxのarm64・x64、bash・curl・tar・SHA-256コマンドと外部ネットワーク接続が必要です。
-ローカルでは同じ処理を `npm run ci --workspace genuineci-website` で実行できます。
+ローカルでは同じ処理を `npm run ci --workspace openci-website` で実行できます。
 
 ## Firebase Hosting
 

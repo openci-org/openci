@@ -376,7 +376,7 @@ Future<void> release(int build) async {
       '--download-url-prefix',
       releaseUrl('$releasePrefix/releases/$build/').toString(),
       '--link',
-      'https://genuineci.com',
+      'https://openci.org',
       updates.path,
     ]);
     final appcast = await File('${updates.path}/appcast.xml').readAsString();
