@@ -189,6 +189,47 @@ void main() {
     expect(ci.matches(eventType: 'pull_request', branch: 'develop'), isTrue);
     expect(ci.matches(eventType: 'push', branch: 'develop'), isFalse);
   });
+  for (final (name, platform) in [
+    ('Dashboard TestFlight IPA', 'ios'),
+    ('Dashboard Google Play AAB', 'android'),
+  ]) {
+    test('$name runs only on matching develop pushes', () {
+      final workflow = definitions.singleWhere((w) => w.workflowName == name);
+      final trigger = workflow.ciTriggers.single;
+      expect(trigger.matches(eventType: 'push', branch: 'develop'), isTrue);
+      expect(trigger.matches(eventType: 'push', branch: 'feature'), isFalse);
+      expect(
+        trigger.matches(eventType: 'pull_request', branch: 'develop'),
+        isFalse,
+      );
+      for (final path in [
+        'apps/dashboard/lib/main.dart',
+        'apps/dashboard/pubspec.yaml',
+        'packages/openci_shared/pubspec.yaml',
+        'openci/${workflow.workflowFileName}',
+        'openci/lib/dashboard_store_build_number.dart',
+        'pubspec.yaml',
+        'pubspec.lock',
+      ]) {
+        expect(trigger.matchesChangedFiles([path]), isTrue, reason: path);
+      }
+      for (final directory in ['ios', 'android', 'macos', 'web']) {
+        final path = 'apps/dashboard/$directory/file';
+        expect(
+          trigger.matchesChangedFiles([path]),
+          directory == platform,
+          reason: path,
+        );
+      }
+      expect(
+        trigger.matchesChangedFiles([
+          'README.md',
+          'apps/openci_cli/pubspec.yaml',
+        ]),
+        isFalse,
+      );
+    });
+  }
   test('Node runtime changes run all Node workflows', () {
     final result = plan(definitions, diff(['.node-version']));
     expect(result.jobs.map((j) => j.workflowName).toSet(), {

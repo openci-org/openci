@@ -12,6 +12,9 @@ abstract final class Secrets {
   /// The secret with the environment key `FIREBASE_SERVICE_ACCOUNT_JSON_BASE64`.
   static const firebaseServiceAccountJsonBase64 = Secret('FIREBASE_SERVICE_ACCOUNT_JSON_BASE64');
 
+  /// The secret with the environment key `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON_BASE64`.
+  static const googlePlayServiceAccountJsonBase64 = Secret('GOOGLE_PLAY_SERVICE_ACCOUNT_JSON_BASE64');
+
   /// The secret with the environment key `GOOGLE_SERVICES_JSON_BASE64`.
   static const googleServicesJsonBase64 = Secret('GOOGLE_SERVICES_JSON_BASE64');
 
