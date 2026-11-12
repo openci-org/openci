@@ -200,13 +200,15 @@ Future<void> main(List<String> args) async {
     if ((await Process.run('chmod', ['600', key.path])).exitCode != 0) {
       throw StateError('Could not protect the credential file.');
     }
+    late final String account;
     try {
       final bytes = base64Decode(Platform.environment[args[1]]!);
       if (jsonDecode(utf8.decode(bytes)) case {
         'type': 'service_account',
-        'client_email': String _,
+        'client_email': final String email,
         'private_key': String _,
       }) {
+        account = email;
         await key.writeAsBytes(bytes);
       } else {
         throw const FormatException();
@@ -240,7 +242,7 @@ Future<void> main(List<String> args) async {
       }
       if (result.exitCode != 0 || response['status'] != 'success') {
         throw HostingCommandError(
-          'Firebase ${arguments.first} on ${site.id}: ${response['error'] ?? 'failed'}',
+          'Firebase ${arguments.first} on ${site.id} as $account: ${response['error'] ?? 'failed'}',
         );
       }
       return response['result'];

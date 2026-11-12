@@ -30,5 +30,6 @@ its channel for one hour. Each site budgets 20 preview channels and reclaims the
 workflow-owned previews when it needs space. Pushes to `develop` publish to the live sites.
 
 Both workflows use the Base64 service-account JSON in the OpenCI team secret
-`FIREBASE_SERVICE_ACCOUNT_JSON_BASE64`. The account needs Firebase Hosting deployment
-permissions on `openci-b1b91`. The dashboard build also uses `FIREBASE_OPTIONS_DART_BASE64`.
+`FIREBASE_SERVICE_ACCOUNT_JSON_BASE64`. The account needs Hosting deployment permissions
+and `serviceusage.services.get` on `openci-b1b91` so the Firebase CLI can check the Hosting
+API. The dashboard build also uses `FIREBASE_OPTIONS_DART_BASE64`.
