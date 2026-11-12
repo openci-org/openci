@@ -1,0 +1,239 @@
+---
+- name: Locate the worker definitions for this Mac
+  ansible.builtin.set_fact:
+    orchard_worker_old_name: "{{ orchard_worker_name | replace('openci-worker-', 'genuineci-worker-') }}"
+    orchard_worker_old_label: "{{ orchard_worker_service_label | replace('.openci.', '.genuineci.') }}"
+    orchard_worker_old_plist: "{{ orchard_worker_plist_path | replace('.openci.', '.genuineci.') }}"
+    orchard_worker_backup: "{{ orchard_worker_bootstrap_path | dirname }}/previous-worker.plist"
+
+- name: Require the reviewed OpenCI naming convention
+  ansible.builtin.assert:
+    that:
+      - orchard_worker_name is match('^openci-worker-')
+      - orchard_worker_old_label != orchard_worker_service_label
+
+- name: Check whether the previous launch daemon is still installed
+  ansible.builtin.stat:
+    path: "{{ orchard_worker_old_plist }}"
+  register: orchard_worker_old_definition
+
+- name: Check whether the new launch daemon is installed
+  ansible.builtin.stat:
+    path: "{{ orchard_worker_plist_path }}"
+  register: orchard_worker_new_definition
+
+- name: Require exactly one installed identity
+  ansible.builtin.assert:
+    that: orchard_worker_old_definition.stat.exists != orchard_worker_new_definition.stat.exists
+    fail_msg: Inspect the launch daemons before continuing. The migration expects one installed identity.
+
+- name: Switch the existing worker to OpenCI
+  when: orchard_worker_old_definition.stat.exists
+  block:
+    - name: Check the existing launch daemon, paused registration and local VM list
+      ansible.builtin.include_tasks: maintenance.yml
+      vars:
+        orchard_worker_name: "{{ orchard_worker_old_name }}"
+        orchard_worker_plist_path: "{{ orchard_worker_old_plist }}"
+        orchard_worker_allow_restart: true
+
+    - name: Require an existing paused worker with a physical machine identity
+      ansible.builtin.assert:
+        that:
+          - orchard_worker_controller_state.status == 200
+          - orchard_worker_controller_state.json.machine_id | default('') | length > 0
+
+    - name: Look up the destination registration
+      ansible.builtin.uri:
+        url: "{{ orchard_worker_api_url }}/v1/workers/{{ orchard_worker_name }}"
+        status_code: [200, 404]
+      delegate_to: localhost
+      become: false
+      check_mode: false
+      no_log: true
+      register: orchard_worker_destination
+
+    - name: Require the destination to be unused or a paused retry for the same Mac
+      ansible.builtin.assert:
+        that:
+          - >-
+            orchard_worker_destination.status == 404 or
+            (orchard_worker_destination.json.machine_id == orchard_worker_controller_state.json.machine_id
+             and orchard_worker_destination.json.scheduling_paused | default(false))
+          - >-
+            orchard_worker_controller_vms.json | selectattr('worker', 'defined')
+            | selectattr('worker', 'equalto', orchard_worker_name) | list | length == 0
+
+    - name: Stage and activate the migration
+      when: not ansible_check_mode
+      block:
+        - name: Protect the new credential and recovery directory
+          ansible.builtin.file:
+            path: "{{ orchard_worker_bootstrap_path | dirname }}"
+            owner: root
+            group: wheel
+            mode: "0700"
+            state: directory
+
+        - name: Copy the existing pinned worker credential on the same Mac
+          ansible.builtin.copy:
+            remote_src: true
+            src: "{{ orchard_worker_bootstrap_path | replace('/OpenCI/', '/GenuineCI/') }}"
+            dest: "{{ orchard_worker_bootstrap_path }}"
+            owner: root
+            group: wheel
+            mode: "0600"
+          no_log: true
+          diff: false
+
+        - name: Stage the pinned Controller CA at its new path
+          ansible.builtin.copy:
+            src: "{{ orchard_worker_controller_ca }}"
+            dest: "{{ orchard_worker_ca_path }}"
+            owner: root
+            group: wheel
+            mode: "0644"
+
+        - name: Prepare the new log directory
+          ansible.builtin.file:
+            path: "{{ orchard_worker_log_path | dirname }}"
+            owner: admin
+            group: staff
+            mode: "0700"
+            state: directory
+
+        - name: Stage the new launchd definition outside LaunchDaemons
+          ansible.builtin.template:
+            src: worker.plist.j2
+            dest: "{{ orchard_worker_bootstrap_path | dirname }}/next-worker.plist"
+            owner: root
+            group: wheel
+            mode: "0644"
+            validate: /usr/bin/plutil -lint %s
+
+        - name: Verify the staged definition changes only the worker identity and paths
+          ansible.builtin.command:
+            argv:
+              - /usr/bin/python3
+              - -c
+              - |
+                import pathlib, plistlib, ssl, sys
+                with open(sys.argv[1], "rb") as source, open(sys.argv[2], "rb") as target:
+                    old, new = plistlib.load(source), plistlib.load(target)
+                old_ca = old["EnvironmentVariables"]["SSL_CERT_FILE"]
+                new_ca = new["EnvironmentVariables"]["SSL_CERT_FILE"]
+                def certificate(path):
+                    return ssl.PEM_cert_to_DER_cert(pathlib.Path(path).read_text().strip())
+                if certificate(old_ca) != certificate(new_ca):
+                    sys.exit("The installed and staged Controller certificates differ.")
+                old["EnvironmentVariables"]["SSL_CERT_FILE"] = new_ca
+                def renamed(value):
+                    if isinstance(value, str):
+                        return (value.replace("GenuineCI/", "OpenCI/")
+                                .replace("genuineci-orchard-worker.log", "OpenCI/orchard-worker.log")
+                                .replace("genuineci-worker-", "openci-worker-").replace(".genuineci.", ".openci."))
+                    if isinstance(value, list):
+                        return [renamed(item) for item in value]
+                    if isinstance(value, dict):
+                        return {key: renamed(item) for key, item in value.items()}
+                    return value
+                if renamed(old) != new:
+                    sys.exit("The installed plist differs from inventory beyond the approved rename.")
+              - "{{ orchard_worker_old_plist }}"
+              - "{{ orchard_worker_bootstrap_path | dirname }}/next-worker.plist"
+          changed_when: false
+
+        - name: Reserve the new name paused before the worker can register
+          ansible.builtin.uri:
+            url: "{{ orchard_worker_api_url }}/v1/workers"
+            method: POST
+            body_format: json
+            body: >-
+              {{ orchard_worker_controller_state.json | combine({
+                'name': orchard_worker_name, 'scheduling_paused': true, 'last_seen': '2000-01-01T00:00:00Z'}) }}
+            status_code: 200
+          delegate_to: localhost
+          become: false
+          no_log: true
+          when: orchard_worker_destination.status == 404
+
+        - name: Back up the original definition outside LaunchDaemons
+          ansible.builtin.copy:
+            remote_src: true
+            src: "{{ orchard_worker_old_plist }}"
+            dest: "{{ orchard_worker_backup }}"
+            owner: root
+            group: wheel
+            mode: "0600"
+
+        - name: Replace the drained launch daemon
+          block:
+            - name: Unload the previous launch daemon
+              ansible.builtin.command: "/bin/launchctl bootout system/{{ orchard_worker_old_label }}"
+              changed_when: true
+
+            - name: Remove the backed-up previous startup definition
+              ansible.builtin.file:
+                path: "{{ orchard_worker_old_plist }}"
+                state: absent
+
+            - name: Install the reviewed new startup definition
+              ansible.builtin.copy:
+                remote_src: true
+                src: "{{ orchard_worker_bootstrap_path | dirname }}/next-worker.plist"
+                dest: "{{ orchard_worker_plist_path }}"
+                owner: root
+                group: wheel
+                mode: "0644"
+
+            - name: Start the new launch daemon
+              ansible.builtin.command:
+                argv: [/bin/launchctl, bootstrap, system, "{{ orchard_worker_plist_path }}"]
+              changed_when: true
+
+            - name: Wait for a real heartbeat with the original machine ID and slots
+              ansible.builtin.uri:
+                url: "{{ orchard_worker_api_url }}/v1/workers/{{ orchard_worker_name }}"
+                status_code: [200, 404]
+              delegate_to: localhost
+              become: false
+              no_log: true
+              register: orchard_worker_heartbeat
+              retries: 12
+              delay: 5
+              until:
+                - orchard_worker_heartbeat.status == 200
+                - orchard_worker_heartbeat.json.scheduling_paused | default(false)
+                - orchard_worker_heartbeat.json.machine_id == orchard_worker_controller_state.json.machine_id
+                - orchard_worker_heartbeat.json.resources == orchard_worker_controller_state.json.resources
+                - orchard_worker_heartbeat.json.last_seen > orchard_worker_controller_state.json.last_seen
+
+          rescue:
+            - name: Stop the new daemon if it was loaded
+              ansible.builtin.command: "/bin/launchctl bootout system/{{ orchard_worker_service_label }}"
+              register: orchard_worker_stop_result
+              failed_when: orchard_worker_stop_result.rc not in [0, 3, 113]
+              changed_when: orchard_worker_stop_result.rc == 0
+
+            - name: Remove the failed startup definition
+              ansible.builtin.file:
+                path: "{{ orchard_worker_plist_path }}"
+                state: absent
+
+            - name: Restore the original startup definition
+              ansible.builtin.copy:
+                remote_src: true
+                src: "{{ orchard_worker_backup }}"
+                dest: "{{ orchard_worker_old_plist }}"
+                owner: root
+                group: wheel
+                mode: "0644"
+
+            - name: Restore the original worker service
+              community.general.launchd:
+                name: "{{ orchard_worker_old_label }}"
+                state: started
+
+            - name: Report the failed migration
+              ansible.builtin.fail:
+                msg: Original launch daemon restored. Verify the old heartbeat before resuming its scheduling.

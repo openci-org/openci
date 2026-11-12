@@ -5,6 +5,8 @@
 - `openci update` checks `openci_cli_plus` for updates. Newly created App Store
   Connect keys are named `OpenCI`.
 
+Versions before 0.8.0 shipped as [`genuineci_cli`](https://pub.dev/packages/genuineci_cli). The entries below use subcommand names.
+
 ## 0.7.0
 
 - **Breaking:** Generate `Secret` references instead of String getters in
@@ -15,7 +17,7 @@
 ## 0.6.0
 
 - Automatically sync workspace paths and secret definitions after successfully
-  saving a secret with `genuineci register secret` or `genuineci register
+  saving a secret with `register secret` or `register
   secretFile`. Report sync failures without undoing the saved secret.
 - Use `openci_shared` 2.0.0 for the current server API and team models.
 - Add Freezed value equality and `copyWith()` to App Store Connect credentials,
@@ -23,20 +25,20 @@
 
 ## 0.5.4
 
-- Add `genuineci setup ios-certificate-key` to prepare only the iOS certificate
+- Add `setup ios-certificate-key` to prepare only the iOS certificate
   private key for the active team, preserving existing keys without Apple login
   or ASC credential setup.
 
 ## 0.5.3
 
-- Prepare the iOS certificate private key during `genuineci setup asc-keys`,
+- Prepare the iOS certificate private key during `setup asc-keys`,
   including retries with `--key-directory`. Keep existing certificate keys and
   report success only after both ASC credential saves and key preparation succeed.
 - Store the certificate key as `OPENCI_GENERATED_IOS_CERTIFICATE_PRIVATE_KEY`.
 
 ## 0.5.2
 
-- Add `genuineci delete secret SECRET_NAME` to delete a secret from the active
+- Add `delete secret SECRET_NAME` to delete a secret from the active
   team, with English and Japanese messages and a nonzero exit code on failure.
 
 ## 0.5.1
@@ -46,7 +48,7 @@
 
 ## 0.5.0
 
-- Add `genuineci setup asc-keys` for Apple Silicon Macs, including a verified,
+- Add `setup asc-keys` for Apple Silicon Macs, including a verified,
   pinned asc installation, interactive Apple login and two-factor authentication,
   provider verification, and App Manager API key creation.
 - Save generated credentials as three encrypted OpenCI team secrets:
@@ -58,7 +60,7 @@
 
 ## 0.4.0
 
-- **Breaking:** `genuineci sync` now generates both secrets and workspace paths.
+- **Breaking:** `sync` now generates both secrets and workspace paths.
   Use `--secrets` or `--paths` instead of the previous subcommands to generate
   only one file. Generated files now live in `openci/generated/`; update workflow
   imports to use `generated/secrets.g.dart` and `generated/paths.g.dart`.
@@ -68,9 +70,9 @@
 
 ## 0.3.2
 
-- Fix `genuineci sync paths` failing on directory names such as `switch` by
+- Fix `sync paths` failing on directory names such as `switch` by
   appending an underscore to reserved getter names while preserving their paths.
-- Support `genuineci sync paths` in single-package projects without a `workspace`
+- Support `sync paths` in single-package projects without a `workspace`
   declaration, generating paths relative to the root package.
 
 ## 0.3.1
@@ -80,27 +82,27 @@
 
 ## 0.3.0
 
-- Add `genuineci list teams` to show team names and IDs, mark the selected team,
+- Add `list teams` to show team names and IDs, mark the selected team,
   and support redirected output with English and Japanese messages.
 
 ## 0.2.0
 
 - Check for newer stable releases with `pub_updater` and offer to update with a
   yes/no prompt in interactive terminals.
-- Add `genuineci update` and `--no-check-updates`, with English and Japanese
+- Add `update` and `--no-check-updates`, with English and Japanese
   messages. Skip automatic update prompts in CI, with redirected streams, and
   when update checks fail.
 
 ## 0.1.0
 
-- Extend `genuineci status` to fetch and show the active team's current name,
+- Extend `status` to fetch and show the active team's current name,
   while retaining the saved profile, server, and team ID display.
 - Support English and Japanese status messages, automatic token refresh, and
   guidance for missing teams, authentication failures, and connection errors.
 
 ## 0.0.3
 
-- Add `genuineci status` to show the saved active profile, server, and selected
+- Add `status` to show the saved active profile, server, and selected
   team ID without connecting to the server.
 
 ## 0.0.2

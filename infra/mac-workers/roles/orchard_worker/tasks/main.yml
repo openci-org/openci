@@ -54,10 +54,19 @@
   check_mode: false
   register: orchard_worker_service
 
+- name: Inspect the pinned Controller CA on the worker
+  ansible.builtin.stat:
+    path: "{{ orchard_worker_ca_path }}"
+    checksum_algorithm: sha256
+    get_mime: false
+  register: orchard_worker_ca
+
 - name: Determine whether the worker process needs a change
   ansible.builtin.set_fact:
     orchard_worker_service_change: >-
       {{ orchard_worker_definition.changed or not orchard_worker_bootstrap.stat.exists
+         or orchard_worker_ca.stat.checksum | default('') !=
+            (lookup('ansible.builtin.file', orchard_worker_controller_ca, rstrip=false) | hash('sha256'))
          or orchard_worker_service.rc != 0
          or not (orchard_worker_service.stdout is search('"PID" = [0-9]+;')) }}
 
@@ -74,6 +83,15 @@
     owner: root
     group: wheel
     mode: "0700"
+
+- name: Install the pinned Controller CA for the worker
+  ansible.builtin.copy:
+    src: "{{ orchard_worker_controller_ca }}"
+    dest: "{{ orchard_worker_ca_path }}"
+    owner: root
+    group: wheel
+    mode: "0644"
+  notify: Restart the drained Orchard worker
 
 - name: Seed a missing worker credential from the operator-local file
   ansible.builtin.copy:

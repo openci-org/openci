@@ -31,6 +31,7 @@
         "{{ orchard_worker_plist_path }}",
       ]
   changed_when: false
+  check_mode: false
   no_log: true
   register: orchard_worker_previous_arguments
   when: orchard_worker_existing_services.matched > 0
@@ -101,6 +102,7 @@
   environment:
     HOME: /Users/admin
   changed_when: false
+  check_mode: false
   register: orchard_worker_local_vms
 
 - name: Require no locally running VMs
