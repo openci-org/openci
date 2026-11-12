@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- **Breaking:** Remove `GoCI` and `OpenCI.go`, including the Go format, vet,
+  and test helpers.
+
 ## 0.2.7
 
 - Show the workflow name in PR QR comments, with the app version and build number when available. Keep CI run numbers internal so GitHub does not link them to unrelated PRs.

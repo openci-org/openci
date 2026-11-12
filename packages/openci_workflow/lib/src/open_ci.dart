@@ -7,7 +7,6 @@ import 'ci_trigger.dart';
 import 'command_runner.dart';
 import 'dart/dart_ci.dart';
 import 'flutter/flutter_ci.dart';
-import 'go/go_ci.dart';
 import 'machine_type.dart';
 import 'pull_request_ci.dart';
 import 'shorebird/shorebird_ci.dart';
@@ -74,8 +73,6 @@ class OpenCI {
   late final DartCI dart = DartCI(run);
 
   late final FlutterCI flutter = FlutterCI(run);
-
-  late final GoCI go = GoCI(run);
 
   final PullRequestCI pullRequest = const PullRequestCI();
 
