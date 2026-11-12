@@ -24,6 +24,8 @@ void main() {
     apiUrl: 'https://api.example.com',
     firebase: {},
   );
+  const cardSetupUrl =
+      'https://checkout.stripe.com/g/pay/cs_test?locale=ja#fid-example';
   late BillingIdentity? identity;
   late ProviderContainer container;
   late List<http.Request> requests;
@@ -52,7 +54,7 @@ void main() {
         return jsonResponse({
           'url': billingCallData(request)['action'] == 'portal'
               ? 'https://billing.stripe.com/p/session/test'
-              : 'https://checkout.stripe.com/c/pay/test',
+              : cardSetupUrl,
         });
       }
       return jsonResponse({
@@ -259,7 +261,7 @@ void main() {
         'teamId': 'team-1',
         'termsVersion': 'ci-jpy1-tax-included-monthly-v1',
       });
-      expect(launcher.url, 'https://checkout.stripe.com/c/pay/test');
+      expect(launcher.url, cardSetupUrl);
       expect(launcher.options?.webOnlyWindowName, '_self');
       cardStatus = 'registered';
       await tester.pumpWidget(

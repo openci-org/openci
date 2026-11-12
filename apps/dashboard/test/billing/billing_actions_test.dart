@@ -160,6 +160,7 @@ void main() {
       'https://billing.stripe.com/p/session?secret=',
       'https://billing.stripe.com/p/session?secret=%20',
       'https://billing.stripe.com/other?secret=test_session',
+      'https://billing.stripe.com/g/pay/cs_test',
       'https://billing.stripe.com.attacker.example/p/session?secret=test_session',
       'http://billing.stripe.com/p/session?secret=test_session',
       'https://billing.stripe.com:8443/p/session?secret=test_session',
@@ -263,6 +264,12 @@ void main() {
         'https://user@checkout.stripe.com/c/pay/cs_test',
         'https://checkout.stripe.com:8443/c/pay/cs_test',
         'https://checkout.stripe.com/other',
+        'https://checkout.stripe.com/c/pay/',
+        'https://checkout.stripe.com/g/pay/?locale=ja#fid-example',
+        'https://checkout.stripe.com/g/pay//',
+        'https://checkout.stripe.com/g/payment/cs_test',
+        'https://checkout.stripe.com/x/pay/cs_test',
+        'https://checkout.stripe.com.attacker.example/g/pay/cs_test',
         'https://billing.stripe.com/p/session/test',
       ]) {
         respond = () async => redirect(url);
