@@ -111,10 +111,35 @@ class MacosReleasePublisher {
     final metadata = body['metadata'];
     final value = metadata is Map ? metadata['buildNumber'] : null;
     final build = value is String ? int.tryParse(value) : null;
-    if (generation is! String || build == null || build < 0) {
-      throw StateError('Existing appcast has no valid release metadata.');
+    if (generation is String && RegExp(r'^[1-9][0-9]*$').hasMatch(generation)) {
+      if (build != null && build >= 0) {
+        return (generation: generation, build: build);
+      }
+      if (value == null && await _isEmptyBootstrapFeed(generation)) {
+        return (generation: generation, build: 0);
+      }
     }
-    return (generation: generation, build: build);
+    throw StateError('Existing appcast has no valid release metadata.');
+  }
+
+  Future<bool> _isEmptyBootstrapFeed(String generation) async {
+    final url = _metadataUri(releaseFeedObject).replace(
+      queryParameters: {'alt': 'media', 'generation': generation},
+    );
+    final response = await _send(
+      client,
+      http.Request('GET', url),
+      'read initial appcast',
+    );
+    _requireSuccess(response, 'read initial appcast');
+    final rss = XmlDocument.parse(utf8.decode(response.bodyBytes)).rootElement;
+    final channel = rss.findElements('channel').singleOrNull;
+    return rss.name.qualified == 'rss' &&
+        rss.getAttribute('version') == '2.0' &&
+        channel?.getElement('title')?.innerText == 'OpenCI for macOS' &&
+        !rss.descendants.whereType<XmlElement>().any(
+          (element) => element.name.local == 'item',
+        );
   }
 
   Future<void> _uploadArchive(

@@ -26,6 +26,10 @@ and checks the unauthenticated download URL before replacing the feed.
 Generation preconditions and recorded build numbers prevent old/concurrent runs
 from overwriting a newer feed. A failed build/upload preserves the last release.
 Old published archives remain available for already-running downloads.
+For the first release, CD also accepts the empty OpenCI RSS template without a
+stored build number. It reads that specific object generation and checks that
+it contains no release items before publishing. A populated feed needs its
+recorded build number.
 
 Only signed public release artifacts belong in this bucket. Do not store
 source trees, logs, signing files, service-account keys, or private metadata.
