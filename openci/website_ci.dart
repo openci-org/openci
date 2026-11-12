@@ -57,6 +57,6 @@ Future<void> main() async {
   await hosting.publish(
     openCI,
     hosting.Site.website,
-    Secrets.firebaseServiceAccountJsonBase64,
+    Secrets.firebaseHostingServiceAccountJsonBase64,
   );
 }

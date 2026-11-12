@@ -29,7 +29,8 @@ Pull requests receive a preview link for each affected site. Updating the same P
 its channel for one hour. Each site budgets 20 preview channels and reclaims the oldest
 workflow-owned previews when it needs space. Pushes to `develop` publish to the live sites.
 
-Both workflows use the Base64 service-account JSON in the OpenCI team secret
-`FIREBASE_SERVICE_ACCOUNT_JSON_BASE64`. The account needs Hosting deployment permissions
-and `serviceusage.services.get` on `openci-b1b91` so the Firebase CLI can check the Hosting
-API. The dashboard build also uses `FIREBASE_OPTIONS_DART_BASE64`.
+Both workflows use a dedicated Hosting service account. Its Base64 JSON key is stored in
+the OpenCI team secret `FIREBASE_HOSTING_SERVICE_ACCOUNT_JSON_BASE64`, in the same format
+as the FAD key. The account's `OpenCIHostingDeployer` role on `openci-b1b91` allows it to
+inspect the Hosting API and publish to existing sites. The dashboard build also uses
+`FIREBASE_OPTIONS_DART_BASE64`.

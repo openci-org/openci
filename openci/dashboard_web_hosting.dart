@@ -67,6 +67,6 @@ Future<void> main() async {
   await hosting.publish(
     ci,
     hosting.Site.dashboard,
-    Secrets.firebaseServiceAccountJsonBase64,
+    Secrets.firebaseHostingServiceAccountJsonBase64,
   );
 }
