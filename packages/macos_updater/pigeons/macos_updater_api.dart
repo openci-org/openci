@@ -12,6 +12,8 @@ import 'package:pigeon/pigeon.dart';
 )
 @HostApi()
 abstract class MacosUpdaterHostApi {
+  void start();
+
   void setFeedUrl(String url);
 
   void checkForUpdates();

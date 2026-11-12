@@ -6,14 +6,10 @@ public class MacosUpdaterPlugin: NSObject, FlutterPlugin, MacosUpdaterHostApi, S
   private var feedUrlString: String?
   private var eventSink: FlutterEventSink?
   private var isWaitingForManualCheckResult = false
-
-  override public init() {
-    super.init()
-    _ = updaterController
-  }
+  private var isStarted = false
 
   private lazy var updaterController = SPUStandardUpdaterController(
-      startingUpdater: true,
+      startingUpdater: false,
       updaterDelegate: self,
       userDriverDelegate: nil
     )
@@ -28,18 +24,33 @@ public class MacosUpdaterPlugin: NSObject, FlutterPlugin, MacosUpdaterHostApi, S
     eventChannel.setStreamHandler(instance)
   }
 
+  func start() throws {
+    guard !isStarted else { return }
+    try updaterController.updater.start()
+    isStarted = true
+  }
+
   func setFeedUrl(url: String) throws {
-    guard let feedUrl = URL(string: url) else {
+    guard let feedUrl = URL(string: url),
+          feedUrl.scheme == "https",
+          feedUrl.host != nil,
+          feedUrl.user == nil,
+          feedUrl.password == nil,
+          feedUrl.fragment == nil else {
       throw PigeonError(
         code: "invalid-feed-url",
-        message: "The update feed URL is invalid.",
-        details: url
+        message: "The update feed must be an HTTPS URL without credentials or a fragment.",
+        details: nil
       )
     }
     feedUrlString = feedUrl.absoluteString
   }
 
   func checkForUpdates() throws {
+    try start()
+    guard updaterController.updater.canCheckForUpdates else {
+      throw PigeonError(code: "check-unavailable", message: "An update check is already in progress.", details: nil)
+    }
     isWaitingForManualCheckResult = true
     updaterController.checkForUpdates(nil)
   }
@@ -49,7 +60,7 @@ public class MacosUpdaterPlugin: NSObject, FlutterPlugin, MacosUpdaterHostApi, S
   }
 
   public func feedURLString(for updater: SPUUpdater) -> String? {
-    return feedUrlString
+    return feedUrlString ?? Bundle.main.object(forInfoDictionaryKey: "SUFeedURL") as? String
   }
 
   public func updater(_ updater: SPUUpdater, didFindValidUpdate item: SUAppcastItem) {

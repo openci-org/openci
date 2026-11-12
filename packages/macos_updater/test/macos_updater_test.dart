@@ -6,6 +6,12 @@ class _FakeMacosUpdaterHostApi extends MacosUpdaterHostApi {
   String? feedUrl;
   bool checkedForUpdates = false;
   int? scheduledCheckIntervalSeconds;
+  bool started = false;
+
+  @override
+  Future<void> start() async {
+    started = true;
+  }
 
   @override
   Future<void> checkForUpdates() async {
@@ -30,10 +36,12 @@ void main() {
 
     await updater.setFeedUrl('https://example.com/appcast.xml');
     await updater.setScheduledCheckInterval(const Duration(hours: 12));
+    await updater.start();
     await updater.checkForUpdates();
 
     expect(api.feedUrl, 'https://example.com/appcast.xml');
     expect(api.scheduledCheckIntervalSeconds, 43200);
+    expect(api.started, isTrue);
     expect(api.checkedForUpdates, isTrue);
   });
 }

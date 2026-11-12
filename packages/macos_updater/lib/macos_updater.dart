@@ -44,6 +44,12 @@ class MacosUpdater {
 
   final MacosUpdaterHostApi _api;
 
+  /// Starts scheduled update checks after configuring the updater.
+  ///
+  /// Uses the host app's `SUFeedURL` unless [setFeedUrl] supplies an override.
+  /// The user's automatic update preferences remain under Sparkle's control.
+  Future<void> start() => _api.start();
+
   Stream<MacosUpdaterCheckResult> get checkResults {
     return _checkResults ??= _eventChannel.receiveBroadcastStream().map(
       (event) => MacosUpdaterCheckResult.fromMap(
