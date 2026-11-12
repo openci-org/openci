@@ -1,4 +1,5 @@
 import 'package:openci_workflow/openci_workflow.dart';
+import 'package:openci_workflows/dashboard_store_build_number.dart';
 
 import 'generated/paths.g.dart';
 import 'generated/secrets.g.dart';
@@ -23,6 +24,7 @@ Future<void> main() async {
           'packages/pubspec_version_hook/lib/**',
           'packages/*/pubspec.yaml',
           'openci/dashboard_play_aab.dart',
+          'openci/lib/dashboard_store_build_number.dart',
           'openci/generated/**',
           'openci/pubspec.yaml',
           'pubspec.yaml',
@@ -54,9 +56,8 @@ Future<void> main() async {
     base64Content: Secrets.uploadKeystoreJksBase64.value,
   );
 
-  await ci.run(
-    'flutter build appbundle --release --build-number=${ci.runNumber}',
-  );
+  final buildNumber = dashboardStoreBuildNumber(ci.runNumber);
+  await ci.run('flutter build appbundle --release --build-number=$buildNumber');
   await ci.flutter.deployAabToPlayConsole(
     aabPath: 'build/app/outputs/bundle/release/app-release.aab',
     packageName: 'org.openci.dashboard.prod',

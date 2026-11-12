@@ -207,6 +207,7 @@ void main() {
         'apps/dashboard/pubspec.yaml',
         'packages/openci_shared/pubspec.yaml',
         'openci/${workflow.workflowFileName}',
+        'openci/lib/dashboard_store_build_number.dart',
         'pubspec.yaml',
         'pubspec.lock',
       ]) {

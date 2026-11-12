@@ -1,4 +1,5 @@
 import 'package:openci_workflow/openci_workflow.dart';
+import 'package:openci_workflows/dashboard_store_build_number.dart';
 
 import 'generated/paths.g.dart';
 import 'generated/secrets.g.dart';
@@ -23,6 +24,7 @@ Future<void> main() async {
           'packages/pubspec_version_hook/lib/**',
           'packages/*/pubspec.yaml',
           'openci/dashboard_testflight_ipa.dart',
+          'openci/lib/dashboard_store_build_number.dart',
           'openci/generated/**',
           'openci/pubspec.yaml',
           'pubspec.yaml',
@@ -49,12 +51,13 @@ Future<void> main() async {
     keyId: Secrets.openciGeneratedAscKeyId.value,
     privateKeyBase64: Secrets.openciGeneratedP8Base64.value,
   );
+  final buildNumber = dashboardStoreBuildNumber(ci.runNumber);
   final ipaPath = await ci.flutter.buildIpa(
     distributionMethod: IosDistributionMethod.appStore,
     ascKeys: ascKeys,
     certificatePrivateKey:
         Secrets.openciGeneratedIosCertificatePrivateKey.value,
-    additionalArguments: ['--build-number=${ci.runNumber}'],
+    additionalArguments: ['--build-number=$buildNumber'],
   );
   await ci.flutter.deployIpaToTestFlight(ipaPath: ipaPath, ascKeys: ascKeys);
 }
