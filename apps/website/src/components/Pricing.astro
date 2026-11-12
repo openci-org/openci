@@ -1,5 +1,6 @@
 ---
 import { getRelativeLocaleUrl } from "astro:i18n";
+import PriceEstimate from "./PriceEstimate.astro";
 import Icon from "./Icon.astro";
 import { translator, type Locale } from "../lib/i18n";
 interface Props {
@@ -15,166 +16,220 @@ const savingsPercent = Math.round(
 );
 ---
 
-<section
-  id="pricing"
-  class="section wrap pricing"
-  aria-labelledby="pricing-title"
->
-  <div class="section-label">
-    <span class="section-number">03</span>
-    <span>PRICING</span>
-  </div>
-  <div class="section-heading">
-    <h2 id="pricing-title">
-      {t("使った分だけ、", "Simple pricing.")}
-      <br />
-      {t("シンプルな料金。", "By the minute.")}
-    </h2>
-    <p>
-      {t(
-        "Apple Siliconで動くGenuineCI Cloud。CIの実行時間に応じて、1分1円（税込）で利用できます。",
-        "GenuineCI Cloud runs on Apple Silicon. CI runtime costs ¥1 per minute, tax included.",
-      )}
-    </p>
-  </div>
-  <article class="pricing-card" aria-labelledby="plan-cloud">
-    <div>
-      <h3 id="plan-cloud">GenuineCI Cloud</h3>
-      <p class="pricing-description">
+<header class="container pricing-intro">
+  <span class="eyeline">OpenCI Cloud / {t("料金", "Pricing")}</span>
+  <h1>
+    {t("Macの実行時間、", "Mac runtime,")}
+    <br />
+    <strong>{t("1分1円。", "¥1 per minute.")}</strong>
+  </h1>
+  <p>
+    {t(
+      "Flutterアプリのビルド、テスト、配布に使った時間を",
+      "Add up your team's Flutter builds, tests and releases.",
+    )}
+    <br />
+    {t(
+      "チームで合計して、月ごとに計算します。",
+      "Pay for the time you used each month.",
+    )}
+  </p>
+</header>
+<div class="container" id="pricing">
+  <section class="plans" aria-label={t("ランナーを選ぶ", "Runner options")}>
+    <article class="cloud-plan">
+      <span class="card-label">
+        <Icon name="cpu" marketing /> OpenCI Cloud
+      </span>
+      <h2>
+        <strong>¥1</strong>
+        <small>{t(" / 分（税込）", " / min, tax included")}</small>
+      </h2>
+      <p>
         {t(
-          "個人開発からチーム開発まで、必要な分だけ。",
-          "For solo developers and teams. Use the build time you need.",
+          "OpenCIが管理するApple SiliconのMacで実行。CI用のMacを用意する手間を省けます。",
+          "Use Apple Silicon Macs managed by OpenCI. Your team can start without buying CI hardware.",
         )}
       </p>
-      <p class="pricing-price">
-        <span class="pricing-currency">¥</span>
-        <strong>1</strong>
-        <span class="pricing-period">{t("/ 分", "/ min")}</span>
-      </p>
-      <p class="pricing-example">
-        {t(
-          "10分なら10円、100分なら100円。",
-          "10 minutes cost ¥10 and 100 minutes cost ¥100.",
-        )}
-      </p>
-    </div>
-    <div>
-      <p class="pricing-savings">
-        {t(
-          `1ドル＝${comparisonJpyPerUsd}円の換算例では、GitHub ActionsのmacOSより、`,
-          `At an illustrative ¥${comparisonJpyPerUsd} per US dollar, about `,
-        )}
-        <span class="pricing-savings-amount">
-          {t(`分単価が約${savingsPercent}%安い。`, `${savingsPercent}% less`)}
-        </span>
-        {t("", " per macOS minute than GitHub Actions.")}
-      </p>
-      <table class="pricing-comparison">
-        <caption>
+      <ul class="benefits">
+        <li>
+          <Icon name="check" marketing />
           {t(
-            `macOSの有料実行・1分あたり（1ドル＝${comparisonJpyPerUsd}円の換算例）`,
-            `Paid macOS runtime per minute (USD example at ¥${comparisonJpyPerUsd} per dollar)`,
+            "環境の準備が終わってから課金",
+            "Billing starts after machine setup",
           )}
-        </caption>
-        <tbody>
-          <tr>
-            <th scope="row">GenuineCI Cloud</th>
-            <td>US${exampleUsdPerMinute.toFixed(4)}</td>
-          </tr>
-          <tr>
-            <th scope="row">GitHub Actions macOS</th>
-            <td>US${githubMacosUsdPerMinute.toFixed(3)}</td>
-          </tr>
-        </tbody>
-      </table>
-      <ul class="check-list pricing-features">
-        <li>
-          <Icon name="check" marketing />
-          {t("Apple SiliconのMacで実行", "Run on Apple Silicon Macs")}
-        </li>
-        <li>
-          <Icon name="check" marketing />
-          {t("チーム全員で利用可能", "Available to your whole team")}
         </li>
         <li>
           <Icon name="check" marketing />
           {t("チーム単位の同時実行数制限なし", "No per-team concurrency limit")}
         </li>
       </ul>
-      <a
-        class="button button-dark"
-        href="https://dashboard.openci.org/"
-        aria-label={t(
-          "GenuineCI Cloudのダッシュボードを開く",
-          "Open the GenuineCI Cloud dashboard",
-        )}
-      >
-        <span>{t("ダッシュボードを開く", "Open dashboard")}</span>
-        <Icon name="external" marketing />
+      <a class="action primary" href="https://dashboard.openci.org/">
+        {t("ダッシュボードを開く", "Open dashboard")} ↗
       </a>
+    </article>
+    <article>
+      <span class="card-label">
+        <Icon name="server" /> Self-hosted
+      </span>
+      <h2>{t("自分のMacで実行", "Bring your own Mac")}</h2>
+      <p>
+        {t(
+          "社内のApple SiliconのMacをランナーに。マシンとインフラはチームで用意・運用します。",
+          "Use an Apple Silicon Mac as your runner. Your team provides and operates the machine and infrastructure.",
+        )}
+      </p>
+      <ul class="benefits">
+        <li>
+          <Icon name="check" marketing />
+          {t("Cloudの実行料金は発生しません", "No OpenCI Cloud runtime fees")}
+        </li>
+        <li>
+          <Icon name="check" marketing />
+          {t(
+            "機材やFirebaseなどの費用はチーム負担",
+            "Bring your own hardware and Firebase project",
+          )}
+        </li>
+      </ul>
+      <a
+        class="action"
+        href={getRelativeLocaleUrl(locale, "docs/self-hosting/")}
+      >
+        {t("セルフホストの手順", "Self-hosting guide")} ↗
+      </a>
+    </article>
+  </section>
+  <section id="estimate" class="usage">
+    <div>
+      <span class="eyeline">{t("利用例", "Usage example")}</span>
+      <h2 class="section-title">
+        {t("10分のビルドを", "One ten-minute build,")}
+        <br />
+        {t("平日に1回なら。", "every weekday.")}
+      </h2>
+      <p class="prose">
+        {t(
+          "月20回で合計200分、実行料金は200円です。ジョブごとの端数は、月の合計で一度だけ切り上げます。",
+          "Twenty builds add up to 200 minutes, or ¥200. Partial minutes are rounded up once on the monthly total.",
+        )}
+      </p>
     </div>
-  </article>
-  <p class="pricing-comparison-note">
-    {t(
-      "GitHub-hosted標準macOSランナーの有料分単価と比較。無料利用・割引を除く。2026-11-08確認。",
-      "Compared with paid per-minute rates for standard GitHub-hosted macOS runners. Free usage and discounts excluded. Checked 2026-11-08.",
-    )}{" "}
-    <a href="https://docs.github.com/en/billing/reference/actions-runner-pricing">
-      {t("GitHub公式料金", "GitHub pricing")}
-    </a>
-  </p>
-  <p class="pricing-comparison-note">
-    {t(
-      "※「世界最安」は、当社が公開料金を確認した下記3サービスとのmacOS分単価比較によるものです（2026-11-08時点、1ドル＝150円の換算例）。無料利用・割引・定額契約を除きます。",
-      '*"World\'s lowest-priced" refers to macOS per-minute rates among the three providers whose public pricing we compared, as of 2026-11-08, using the illustrative rate of ¥150 per US dollar. Free usage, discounts and fixed-price plans are excluded.',
-    )}{" "}
-    <a href="https://docs.github.com/en/billing/reference/actions-runner-pricing">
-      GitHub Actions
-    </a>
-    {" / "}
-    <a href="https://codemagic.io/pricing/">Codemagic</a>
-    {" / "}
-    <a href="https://namespace.so/pricing">Namespace</a>
-  </p>
-  <p class="pricing-signup">
-    {t(
-      "料金・お支払いの設定は、Webダッシュボードでチームを選び、「設定 → 課金を管理」から確認できます。",
-      "To review your billing settings, select your team in the web dashboard, then open Settings → Manage billing.",
-    )}
-  </p>
-  <ul class="pricing-notes">
-    <li>
+    <PriceEstimate locale={locale} editable />
+  </section>
+  <section class="comparison" id="comparison">
+    <h2>{t("「世界最安」の比較条件", "How we compare macOS prices")}</h2>
+    <p class="pricing-savings">
       {t(
-        "USDでのお支払いは、月の円建て合計を月締め時に記録した為替レートで換算します。",
-        "For USD invoices, we convert the monthly yen total at the exchange rate recorded when the billing month closes.",
+        `1ドル＝${comparisonJpyPerUsd}円の換算例では、GitHub ActionsのmacOSより、`,
+        `At an illustrative ¥${comparisonJpyPerUsd} per US dollar, about `,
       )}
-    </li>
-    <li>
-      {t(
-        "VM準備完了後の実行時間をチームごとに月単位で合計し、最後に1分単位に切り上げます。",
-        "Each month we total your team’s runtime after VM preparation and round up once to the next whole minute.",
-      )}
-    </li>
-    <li>
-      {t(
-        "チーム単位の同時実行数制限はありません。実際の開始時刻は、ワーカーの空き状況によります。",
-        "There is no concurrency cap per team. When jobs start depends on worker availability.",
-      )}
-    </li>
-  </ul>
-  <div class="pricing-self-hosted">
-    <p>
-      {t(
-        "自分のマシンで動かすなら、セルフホストも。Cloudの料金は適用されません。",
-        "Prefer your own machines? You can self-host. Cloud pricing does not apply.",
-      )}
+      <span class="pricing-savings-amount">
+        {t(`分単価が約${savingsPercent}%安い。`, `${savingsPercent}% less`)}
+      </span>
+      {t("", " per macOS minute than GitHub Actions.")}
     </p>
-    <a
-      class="text-link"
-      href={getRelativeLocaleUrl(locale, "docs/self-hosting/")}
-    >
-      <span>{t("セルフホストのガイド", "Self-hosting guide")}</span>
-      <Icon name="arrow" marketing />
-    </a>
-  </div>
-</section>
+    <table class="pricing-comparison">
+      <caption>
+        {t(
+          `macOSの有料実行・1分あたり（1ドル＝${comparisonJpyPerUsd}円の換算例）`,
+          `Paid macOS runtime per minute (USD example at ¥${comparisonJpyPerUsd} per dollar)`,
+        )}
+      </caption>
+      <tbody>
+        <tr>
+          <th scope="row">OpenCI Cloud</th>
+          <td>US${exampleUsdPerMinute.toFixed(4)}</td>
+        </tr>
+        <tr>
+          <th scope="row">GitHub Actions macOS</th>
+          <td>US${githubMacosUsdPerMinute.toFixed(3)}</td>
+        </tr>
+      </tbody>
+    </table>
+    <p class="pricing-comparison-note">
+      {t(
+        "GitHub-hosted標準macOSランナーの有料分単価と比較。無料利用・割引を除く。2026-11-08確認。",
+        "Compared with paid per-minute rates for standard GitHub-hosted macOS runners. Free usage and discounts excluded. Checked 2026-11-08.",
+      )}{" "}
+      <a href="https://docs.github.com/en/billing/reference/actions-runner-pricing">
+        {t("GitHub公式料金", "GitHub pricing")}
+      </a>
+    </p>
+    <p class="pricing-comparison-note">
+      {t(
+        "※「世界最安」は、当社が公開料金を確認した下記3サービスとのmacOS分単価比較によるものです（2026-11-08時点、1ドル＝150円の換算例）。無料利用・割引・定額契約を除きます。",
+        '*"World\'s lowest-priced" refers to macOS per-minute rates among the three providers whose public pricing we compared, as of 2026-11-08, using the illustrative rate of ¥150 per US dollar. Free usage, discounts and fixed-price plans are excluded.',
+      )}{" "}
+      <a href="https://docs.github.com/en/billing/reference/actions-runner-pricing">
+        GitHub Actions
+      </a>
+      {" / "}
+      <a href="https://codemagic.io/pricing/">Codemagic</a>
+      {" / "}
+      <a href="https://namespace.so/pricing">Namespace</a>
+    </p>
+  </section>
+  <section class="faq section-pad" id="faq">
+    <div>
+      <span class="eyeline">FAQ</span>
+      <h2 class="section-title">{t("よくある質問", "Common questions")}</h2>
+    </div>
+    <div>
+      {[
+        [
+          t("どの時間が料金の対象ですか？", "How is runtime measured?"),
+          t(
+            "VM準備完了後の実行時間をチームごとに月単位で合計し、最後に1分単位に切り上げます。100分20秒なら101円（税込）です。",
+            "We add up team runtime after VM preparation and round up once at month-end. A total of 100 minutes and 20 seconds costs ¥101, tax included.",
+          ),
+        ],
+        [
+          t(
+            "複数人や並列のジョブでも使えますか？",
+            "How do team and parallel jobs work?",
+          ),
+          t(
+            "チーム全員の実行時間を合算します。同時実行数のチーム上限はありません。ジョブの開始時刻はワーカーの空き状況によります。",
+            "Runtime is summed across your team, including parallel jobs. There is no per-team concurrency limit. Start times depend on runner availability.",
+          ),
+        ],
+        [
+          t(
+            "米ドルでの支払いや請求設定は？",
+            "How do USD invoices and billing settings work?",
+          ),
+          t(
+            "月の円建て合計を月締め時に記録した為替レートで換算します。チームのダッシュボードの「設定 → 課金を管理」から支払い設定を確認できます。",
+            "We convert the monthly yen total at the exchange rate recorded when the billing month closes. Choose your team in the dashboard and open Settings → Manage billing.",
+          ),
+        ],
+        [
+          t(
+            "iOSの署名や配布には何が必要ですか？",
+            "What do I need for iOS distribution?",
+          ),
+          t(
+            "署名済みのIPAとApp Store ConnectのキーでTestFlightにアップロードできます。キーはチームのシークレットで管理できます。",
+            "Provide a signed IPA and an App Store Connect API key to upload to TestFlight. Store the key in your team’s secrets.",
+          ),
+        ],
+        [
+          t("自分のMacでも実行できますか？", "Can I use my own Mac?"),
+          t(
+            "手元でDartのワークフローを試せます。継続してCIを実行する場合はセルフホストを選べます。Macやクラウドのインフラ費用は利用者負担です。",
+            "You can run the Dart workflow locally or self-host a persistent CI runner. Your team covers its Mac and infrastructure costs.",
+          ),
+        ],
+      ].map(([q, a], i) => (
+        <details name="billing-faq" open={i === 0}>
+          <summary>
+            {q}
+            <span aria-hidden="true">+</span>
+          </summary>
+          <p>{a}</p>
+        </details>
+      ))}
+    </div>
+  </section>
+</div>

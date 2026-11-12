@@ -1,0 +1,21 @@
+---
+import ProductLayout from "../../layouts/ProductLayout.astro";
+import Pricing from "../../components/Pricing.astro";
+import { locales, translator, type Locale } from "../../lib/i18n";
+export const getStaticPaths = () =>
+  locales.map((locale) => ({ params: { locale } }));
+const locale = Astro.currentLocale as Locale;
+const t = translator(locale);
+---
+
+<ProductLayout
+  locale={locale}
+  path="pricing/"
+  title={t("料金 | OpenCI", "Pricing | OpenCI")}
+  description={t(
+    "OpenCI Cloudは1分1円（税込）。月間の実行料金を試算し、セルフホストとの違いを確認できます。",
+    "Estimate your monthly macOS runtime at ¥1 per minute, tax included, and compare cloud and self-hosted runners.",
+  )}
+>
+  <Pricing locale={locale} />
+</ProductLayout>

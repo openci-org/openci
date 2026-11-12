@@ -1,0 +1,67 @@
+---
+import { getRelativeLocaleUrl } from "astro:i18n";
+import BaseLayout from "./BaseLayout.astro";
+import LandingHeader from "../components/LandingHeader.astro";
+import LandingFooter from "../components/LandingFooter.astro";
+import { locales, translator, type Locale } from "../lib/i18n";
+import "../styles/landing.css";
+interface Props {
+  locale: Locale;
+  title: string;
+  description: string;
+  path?: string;
+}
+const { locale, title, description, path = "" } = Astro.props;
+const t = translator(locale);
+const translations = Object.fromEntries(
+  locales.map((lang) => [lang, getRelativeLocaleUrl(lang, path)]),
+);
+---
+
+<BaseLayout
+  product
+  locale={locale}
+  title={title}
+  description={description}
+  translations={translations}
+  image="/ogp/openci.jpg"
+  imageAlt={t(
+    "6色の横縞に白いOpenCIのロゴ",
+    "OpenCI in white on six rainbow stripes",
+  )}
+>
+  <a class="skip-link" href="#main">
+    {t("本文へスキップ", "Skip to content")}
+  </a>
+  <LandingHeader locale={locale} translations={translations} />
+  <main id="main">
+    <slot />
+  </main>
+  <LandingFooter locale={locale} />
+  <div
+    class="display-controls"
+    role="group"
+    aria-label={t("表示設定", "Display preferences")}
+    hidden
+  >
+    <button
+      type="button"
+      data-motion
+      aria-label={t("アニメーションを一時停止", "Pause animation")}
+      aria-pressed="false"
+    >
+      <span aria-hidden="true">Ⅱ</span>
+    </button>
+    <button
+      type="button"
+      data-theme
+      aria-label={t("ダークモード", "Dark mode")}
+      aria-pressed="false"
+    >
+      <span aria-hidden="true">☾</span>
+    </button>
+  </div>
+  <script>
+    import "../scripts/landing";
+  </script>
+</BaseLayout>

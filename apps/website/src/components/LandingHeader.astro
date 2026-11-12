@@ -1,43 +1,58 @@
 ---
 import { getRelativeLocaleUrl } from "astro:i18n";
 import Icon from "./Icon.astro";
+import LanguageSwitcher from "./LanguageSwitcher.astro";
 import { translator, type Locale } from "../lib/i18n";
 interface Props {
   locale: Locale;
+  translations: Partial<Record<Locale, string>>;
 }
-const { locale } = Astro.props;
+const { locale, translations } = Astro.props;
 const t = translator(locale);
+const home = getRelativeLocaleUrl(locale);
+const links = [
+  [home + "#apis", "Flutter API"],
+  [home + "#quickstart", t("始め方", "Quickstart")],
+  [getRelativeLocaleUrl(locale, "pricing/"), t("料金", "Pricing")],
+  [home + "#guides", t("ガイド", "Guides")],
+];
 ---
 
-<header class="site-header wrap">
-  <a class="brand" href="#">
-    <span>GenuineCI</span>
-  </a>
-  <nav
-    class="desktop-nav"
-    aria-label={t("メインナビゲーション", "Main navigation")}
-  >
-    <a href="#features">
-      <span>{t("特長", "Features")}</span>
+<header class="product-nav">
+  <div class="container nav-bar">
+    <a class="wordmark" href={home}>
+      <img src="/favicon.png" alt="" width="26" height="26" />
+      OpenCI
     </a>
-    <a href="#workflow">
-      <span>{t("ワークフロー", "Workflows")}</span>
-    </a>
-    <a href="#pricing">
-      <span>{t("料金", "Pricing")}</span>
-    </a>
-    <a href={getRelativeLocaleUrl(locale, "docs/")}>
-      <span>Docs</span>
-    </a>
-    <a href={getRelativeLocaleUrl(locale, "blog/")}>
-      <span>{t("ブログ", "Blog")}</span>
-    </a>
-  </nav>
-  <a class="mobile-blog-link" href="#pricing">
-    <span>{t("料金", "Pricing")}</span>
-  </a>
-  <a class="button button-small button-dark" href="#get-started">
-    <span>{t("はじめる", "Get started")}</span>
-    <Icon name="arrow" marketing />
-  </a>
+    <nav
+      class="desktop-links"
+      aria-label={t("メインナビゲーション", "Main navigation")}
+    >
+      {links.map(([href, label]) => (
+        <a href={href}>{label}</a>
+      ))}
+    </nav>
+    <div class="nav-actions">
+      <LanguageSwitcher translations={translations} />
+      <a
+        class="action primary dashboard-link"
+        href="https://dashboard.openci.org/"
+      >
+        {t("ダッシュボード", "Dashboard")} <Icon name="external" marketing />
+      </a>
+      <details class="mobile-nav">
+        <summary aria-label={t("メニュー", "Menu")}>
+          <Icon name="menu" />
+        </summary>
+        <nav aria-label={t("モバイルナビゲーション", "Mobile navigation")}>
+          {links.map(([href, label]) => (
+            <a href={href}>{label}</a>
+          ))}
+          <a href="https://dashboard.openci.org/">
+            {t("ダッシュボード", "Dashboard")} ↗
+          </a>
+        </nav>
+      </details>
+    </div>
+  </div>
 </header>

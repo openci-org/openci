@@ -6,13 +6,13 @@ export const translator = (locale: Locale) => (ja: string, en: string) =>
   locale === "ja" ? ja : en;
 export const siteTitle = (locale: Locale) =>
   translator(locale)(
-    "GenuineCI — Flutter & Dartに、本物のCIを。",
-    "GenuineCI — Real CI for Flutter & Dart.",
+    "OpenCI — Flutter専用のCIを、1分1円で。",
+    "OpenCI — CI for Flutter at ¥1 per minute.",
   );
 export const siteDescription = (locale: Locale) =>
   translator(locale)(
-    "Dartで書かれたFlutter & Dart専用のオープンソースCI。ワークフローもDartで定義。Apple Silicon M1〜M4に対応し、セルフホストも可能です。",
-    "Open-source CI for Flutter & Dart, built in Dart. Write workflows in Dart, run on Apple Silicon M1–M4, and self-host on your own machines.",
+    "Apple SiliconのMacでFlutterアプリのテスト、ビルド、配布を自動化。OpenCI Cloudは1分1円（税込）。",
+    "Test, build and distribute Flutter apps on Apple Silicon Macs. OpenCI Cloud costs ¥1 per minute, tax included.",
   );
 export const releaseImage = "/ogp/v2-1-0.jpg?v=2";
 export const releaseImageAlt = (locale: Locale) =>

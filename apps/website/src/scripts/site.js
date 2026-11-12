@@ -31,6 +31,11 @@
 (() => {
   const sharedAnchors = new Set([
     "main",
+    "estimate",
+    "apis",
+    "quickstart",
+    "comparison",
+    "faq",
     "features",
     "workflow",
     "pricing",

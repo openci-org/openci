@@ -1,11 +1,9 @@
 ---
-import "../styles/site.css";
-import "../styles/blog.css";
-import "../styles/content.css";
 import "../styles/code.css";
 import { releaseImage, releaseImageAlt, type Locale } from "../lib/i18n";
 interface Props {
   locale: Locale;
+  product?: boolean;
   title: string;
   description: string;
   translations: Partial<Record<Locale, string>>;
@@ -17,6 +15,7 @@ interface Props {
 }
 const {
   locale,
+  product = false,
   title,
   description,
   translations,
@@ -33,6 +32,7 @@ const imageUrl = new URL(image, Astro.site).href;
 <!doctype html>
 <html
   lang={locale}
+  class:list={[product && "product"]}
   prefix="og: https://ogp.me/ns# article: https://ogp.me/ns/article#"
 >
   <head>
@@ -41,7 +41,7 @@ const imageUrl = new URL(image, Astro.site).href;
     <meta name="generator" content={Astro.generator} />
     <title>{title}</title>
     <meta name="description" content={description} />
-    <meta name="theme-color" content="#fffb00" />
+    <meta name="theme-color" content={product ? "#fafafa" : "#fffb00"} />
     <meta name="robots" content="noindex, nofollow" />
     <link rel="icon" type="image/png" href="/favicon.png" />
     <link rel="canonical" href={url} />
@@ -65,7 +65,7 @@ const imageUrl = new URL(image, Astro.site).href;
       "og:type": type,
       "og:url": url,
       "og:description": description,
-      "og:site_name": "GenuineCI",
+      "og:site_name": product ? "OpenCI" : "GenuineCI",
       "og:locale": locale === "ja" ? "ja_JP" : "en_US",
       "og:image": imageUrl,
       "og:image:type": imageType,
