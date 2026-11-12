@@ -21,6 +21,12 @@ abstract final class Secrets {
   /// The secret with the environment key `KEY_PROPERTIES_BASE64`.
   static const keyPropertiesBase64 = Secret('KEY_PROPERTIES_BASE64');
 
+  /// The secret with the environment key `MACOS_CERTIFICATE_PRIVATE_KEY`.
+  static const macosCertificatePrivateKey = Secret('MACOS_CERTIFICATE_PRIVATE_KEY');
+
+  /// The secret with the environment key `MACOS_RELEASE_SERVICE_ACCOUNT_JSON_BASE64`.
+  static const macosReleaseServiceAccountJsonBase64 = Secret('MACOS_RELEASE_SERVICE_ACCOUNT_JSON_BASE64');
+
   /// The secret with the environment key `OPENCI_GENERATED_ASC_ISSUER_ID`.
   static const openciGeneratedAscIssuerId = Secret('OPENCI_GENERATED_ASC_ISSUER_ID');
 
@@ -32,6 +38,9 @@ abstract final class Secrets {
 
   /// The secret with the environment key `OPENCI_GENERATED_P8_BASE64`.
   static const openciGeneratedP8Base64 = Secret('OPENCI_GENERATED_P8_BASE64');
+
+  /// The secret with the environment key `SPARKLE_PRIVATE_ED_KEY`.
+  static const sparklePrivateEdKey = Secret('SPARKLE_PRIVATE_ED_KEY');
 
   /// The secret with the environment key `UPLOAD_KEYSTORE_JKS_BASE64`.
   static const uploadKeystoreJksBase64 = Secret('UPLOAD_KEYSTORE_JKS_BASE64');
