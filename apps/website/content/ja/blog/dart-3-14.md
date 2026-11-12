@@ -9,6 +9,7 @@ date: "2026-11-12"
 readTime: 12 min read
 author: Connie Ooi（原著）／GenuineCI（日本語訳）
 coverLabel: UNOFFICIAL JAPANESE TRANSLATION
+coverImage: /images/landing/guide-start.webp
 coverTitle: Dart 3.14
 ---
 

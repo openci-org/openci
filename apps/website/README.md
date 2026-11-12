@@ -1,10 +1,10 @@
 # OpenCI product website
 
-Astro + TypeScriptで実装したOpenCIの製品LP・料金ページと、既存のブログ・Docsです。
+Astro + TypeScriptで実装したOpenCIの製品LP・料金ページ・ブログ・Docsです。
 Docsには [Starlight](https://starlight.astro.build/ja/) を使用しています。
 ReactなどのUIフレームワークは使わず、静的HTML・CSSと必要なJavaScriptを生成します。
-製品LPと料金ページはレインボーのロゴと青を使います。公開URLは `https://genuineci.com` です。
-LPの写真の撮影者と配布元はフッター、同梱フォント（Geist・Geist Mono、Lora、Noto Serif JP）のライセンスは `public/licenses/*-OFL.txt` に記載しています。
+製品LP、料金ページ、ブログはレインボーのロゴと青を使います。公開URLは `https://genuineci.com` です。
+写真の撮影者と配布元はフッター、同梱フォント（Geist・Geist Mono、Lora、Noto Serif JP）のライセンスは `public/licenses/*-OFL.txt` に記載しています。
 
 ## 開発
 
@@ -45,14 +45,14 @@ canonical・hreflang・OGP・X Cardを各ページに生成します。
 
 ブログは `content/<en|ja>/blog/`、Docsは `src/content/docs/<en|ja>/docs/` のMarkdown・MDXを編集します。
 Astro Content Collectionsが読み込み、`src/content.config.ts` がfrontmatterを検証します。
-新しい記事は同じslugで両言語に追加します。一覧は言語ごとに日付の新しい順で表示します。
+対訳を公開するときは同じslugで追加します。一覧は言語ごとに日付の新しい順で表示します。
 
 ブログには `layout: blog-article`、`title`、`description`、`category`、
 `date`（`"YYYY-MM-DD"`）が必要です。`author`、`readTime`、`coverLabel`、
-`coverTitle` も指定できます。
+`coverTitle`、`coverImage`（`/images/` 配下のカバー写真）も指定できます。
 
 記事のOGP画像は `astro-og-canvas` がビルド時に自動生成します。
-`title`、`description`、`category`、`date` を使い、黄色（#FFFB00）の背景に黒い文字で描画します。
+`title`、`description`、`category`、`date` を使い、レインボーロゴ、淡色の背景、青い縁のカードを描画します。
 画像の追加やfrontmatterの `image` 指定は不要です。
 英語・日本語はそれぞれのMarkdownから別の1200×630 PNGを生成します。
 たとえば `/en/blog/v2-3-0/` は `/ogp/en/blog/v2-3-0.png`、

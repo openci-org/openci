@@ -9,6 +9,7 @@ date: "2026-11-12"
 readTime: 20 min read
 author: Emma Twersky（原著）／GenuineCI（日本語訳）
 coverLabel: UNOFFICIAL JAPANESE TRANSLATION
+coverImage: /images/landing/guide-signing.webp
 coverTitle: Flutter 3.50
 ---
 

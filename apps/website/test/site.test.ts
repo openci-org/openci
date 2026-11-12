@@ -123,7 +123,7 @@ for (const [route, $] of pages) {
     assert.equal($("html").attr("lang"), locale);
     assert.equal($("main").length, 1);
     assert.equal($("h1").length, 1);
-    const isProduct = /^\/(en|ja)\/(pricing\/)?$/.test(route);
+    const isProduct = !route.includes("/docs/");
     assert.ok(
       $("title")
         .text()
@@ -134,10 +134,14 @@ for (const [route, $] of pages) {
         $('meta[property="og:site_name"]').attr("content"),
         "OpenCI",
       );
-      assert.equal(
-        new URL($('meta[property="og:image"]').attr("content")!).pathname,
-        "/ogp/openci.jpg",
-      );
+      assert.equal($(".product-nav .wordmark").text().trim(), "OpenCI");
+      assert.equal($(".product-footer").length, 1);
+      if ($('meta[property="og:type"]').attr("content") !== "article") {
+        assert.equal(
+          new URL($('meta[property="og:image"]').attr("content")!).pathname,
+          "/ogp/openci.jpg",
+        );
+      }
     }
     assert.equal($("meta[name=robots]").attr("content"), "noindex, nofollow");
     assert.equal(
@@ -416,6 +420,24 @@ for (const locale of ["en", "ja"] as const) {
       ),
     );
     assert.equal($(".featured-post").attr("href"), links[0]);
+    assert.equal(
+      $(".desktop-links [aria-current=page]").attr("href"),
+      `/${locale}/blog/`,
+    );
+    const categories = $(".post-card")
+      .toArray()
+      .map((card) => $(card).attr("data-article-category"));
+    assert.deepEqual(
+      new Set(
+        $("[data-category-filter]")
+          .toArray()
+          .map((button) => $(button).attr("data-category-filter")),
+      ),
+      new Set(["all", ...categories]),
+    );
+    for (const img of $(".post-cover img").toArray()) {
+      assert.ok(existsSync("dist" + $(img).attr("src")));
+    }
     for (const link of links) {
       assert.ok(link!.startsWith(`/${locale}/blog/`));
       const article = pages.get(link!)!;

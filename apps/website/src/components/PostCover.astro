@@ -1,7 +1,5 @@
 ---
 import type { Page } from "../lib/content";
-import { plainTitle } from "../lib/content";
-import Icon from "./Icon.astro";
 interface Props {
   post: Page;
   featured?: boolean;
@@ -9,20 +7,13 @@ interface Props {
 const { post, featured = false } = Astro.props;
 ---
 
-<div
-  class:list={["post-cover", "cover-release", { "cover-featured": featured }]}
-  aria-hidden="true"
->
-  <div class="cover-topline">
-    <span>GenuineCI</span>
-    <span>{post.data.date?.replaceAll("-", ".")}</span>
-  </div>
-  <div class="cover-message">
-    <span>{post.data.coverTitle ?? plainTitle(post.data.title)}</span>
-    <span>is here.</span>
-  </div>
-  <div class="cover-bottomline">
-    <span>{post.data.coverLabel ?? post.data.category}</span>
-    <Icon name="arrow" marketing />
-  </div>
+<div class="post-cover" aria-hidden="true">
+  <img
+    src={post.data.coverImage ?? "/images/landing/blanca-lake.webp"}
+    alt=""
+    loading={featured ? "eager" : "lazy"}
+    decoding="async"
+  />
+  {post.data.coverLabel && <small>{post.data.coverLabel}</small>}
+  {post.data.coverTitle && <span>{post.data.coverTitle}</span>}
 </div>
