@@ -831,7 +831,7 @@ test("PR execution revalidates repository IDs and pinned SHA with a separate rev
     mergeable: true,
     merge_commit_sha: "c".repeat(40),
     head: { repo: repository, sha: job.commitSha },
-    base: { repo: repository, sha: "b".repeat(40) },
+    base: { repo: repository, sha: "b".repeat(40), ref: "develop" },
   };
   const prJob = { ...job, pullRequestNumber: "7" };
   let pullRequest = trusted;
@@ -862,6 +862,11 @@ test("PR execution revalidates repository IDs and pinned SHA with a separate rev
     assert.equal(init.headers.authorization, "token pr-read-token");
     if (path === "/repos/org/app") return Response.json(repo);
     if (path === "/repos/org/app/pulls/7") return Response.json(pullRequest, { status: apiStatus });
+    if (decodeURIComponent(path) === "/repos/org/app/git/ref/heads/develop")
+      return Response.json({
+        ref: "refs/heads/develop",
+        object: { type: "commit", sha: trusted.base.sha },
+      });
     if (path === `/repos/org/app/git/commits/${trusted.merge_commit_sha}`)
       return Response.json({
         sha: trusted.merge_commit_sha,

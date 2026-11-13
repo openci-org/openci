@@ -65,7 +65,9 @@ Cloud Run and is revoked after resolving the checkout commit, including cancella
 The GitHub App must have both read permissions.
 
 For an open PR, the executor polls the PR API up to five times with one-second
-waits for GitHub's test merge commit. Its parents must match the observed base SHA
+waits for GitHub's test merge commit. Each candidate is checked against the current
+`refs/heads/<base branch>` fetched from the verified repository, rather than
+`pr.base.sha`, which can retain an older PR snapshot. Its parents must match that base SHA
 and the job's saved head SHA. Conflicts, closed PRs, and unavailable or stale merge
 candidates fail the attempt. The execution pins the resolved merge SHA for checkout
 and writes the full checked-out SHA to its checkout log. GitHub Checks use the

@@ -245,6 +245,8 @@ export class ExecutionGitHub {
           pr.number !== number ||
           pr.base?.repo?.id !== repo.id ||
           pr.head?.repo?.id !== repo.id ||
+          typeof pr.base?.ref !== "string" ||
+          !pr.base.ref ||
           !/^[a-f0-9]{40}(?:[a-f0-9]{24})?$/.test(pr.base?.sha ?? "")
         )
           throw new Error("Untrusted pull request source");
@@ -254,6 +256,26 @@ export class ExecutionGitHub {
         if (pr.mergeable === false) throw new PullRequestCheckoutError("conflicts");
         const mergeSha = pr.merge_commit_sha;
         if (pr.mergeable === true && mergeSha && /^[a-f0-9]{40}(?:[a-f0-9]{24})?$/.test(mergeSha)) {
+          // PR metadata can retain an older base SHA even after GitHub has
+          // regenerated the test merge commit. Read the actual branch ref
+          // from the verified repository on every attempt instead.
+          const { data: base } = await client
+            .request("GET /repos/{owner}/{repo}/git/ref/{ref}", {
+              owner: job.owner,
+              repo: job.repo,
+              ref: `heads/${pr.base.ref}`,
+              request: { signal },
+            })
+            .catch(() => {
+              signal?.throwIfAborted();
+              throw new PullRequestCheckoutError("unavailable");
+            });
+          if (
+            base.ref !== `refs/heads/${pr.base.ref}` ||
+            base.object?.type !== "commit" ||
+            !/^[a-f0-9]{40}(?:[a-f0-9]{24})?$/.test(base.object?.sha ?? "")
+          )
+            throw new Error("Untrusted pull request base ref");
           const { data: commit } = await client
             .request("GET /repos/{owner}/{repo}/git/commits/{commit_sha}", {
               owner: job.owner,
@@ -270,7 +292,7 @@ export class ExecutionGitHub {
           if (
             commit.sha === mergeSha &&
             commit.parents?.length === 2 &&
-            commit.parents[0].sha === pr.base.sha &&
+            commit.parents[0].sha === base.object.sha &&
             commit.parents[1].sha === pr.head.sha
           ) {
             signal?.throwIfAborted();
