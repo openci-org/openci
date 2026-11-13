@@ -4,6 +4,8 @@
 
 - **Breaking:** Remove `GoCI` and `OpenCI.go`, including the Go format, vet,
   and test helpers.
+- Add `openCI.firebaseHosting.deploy()` and `deployPreview()` with in-memory service account authentication and direct Hosting REST uploads. Both return a serving URL for use with PR QR comments.
+- Reuse preview channel IDs with a one-hour default expiry and one retained previous release. Bound previews to 20 per site by default, cleaning expired and then least recently updated OpenCI-managed previews without deleting live or unrelated channels.
 
 ## 0.2.9
 

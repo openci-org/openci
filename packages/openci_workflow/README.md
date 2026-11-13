@@ -443,6 +443,58 @@ By default, this only uploads a release. Set `groups` (group aliases) or `tester
 
 The upload returns the release's Firebase tester URL as a `Uri`. The optional `postQrCode` call shares it with the PR. Testers still need access to the release in Firebase.
 
+## Firebase Hosting
+
+Deploy a built static site without installing Node.js or the Firebase CLI:
+
+```dart
+final url = await openCI.firebaseHosting.deploy(
+  siteId: 'my-hosting-site',
+  publicDirectory: 'build/web',
+  serviceAccountJsonBase64: Secrets.firebaseHostingServiceAccountJsonBase64.value,
+  config: {
+    'rewrites': [
+      {'glob': '**', 'path': '/index.html'},
+    ],
+  },
+);
+```
+
+Create a dedicated service account with [Firebase Hosting Admin](https://docs.cloud.google.com/iam/docs/roles-permissions/firebasehosting) (`roles/firebasehosting.admin`) on the destination project. Enable the [Firebase Hosting API](https://firebase.google.com/docs/hosting/api-deploy) and set up the project's default Hosting site before using this helper; `siteId` can then identify any existing site in that project. Register its Base64-encoded JSON key as `FIREBASE_HOSTING_SERVICE_ACCOUNT_JSON_BASE64` in your team's secrets, run `openci sync --secrets`, and import the generated `Secrets` class. This is the same credential format as the FAD helpers. The key and OAuth token stay in memory.
+
+`publicDirectory` is relative to the workflow's `currentWorkingDirectory`, or to `dir` when supplied. `dir` is relative to the workspace; `dir: ''` selects the workspace root. Absolute content paths are accepted. Build the site before deploying: for example, Flutter web uses `build/web`, and Astro commonly uses `dist`. The helper uploads a snapshot of that directory, excluding hidden files/directories (except `.well-known`), `node_modules`, and `firebase.json`. Symlinks and empty output are rejected before any remote changes. This helper does not read `firebase.json`; `config` uses the REST API's [`ServingConfig`](https://firebase.google.com/docs/reference/hosting/rest/v1beta1/sites.versions#ServingConfig) format. In particular, rewrites use `glob` and `path` rather than `source` and `destination`.
+
+### Short-lived PR previews
+
+Use the same channel ID for every deployment of a PR. Include the repository and app name in that ID if multiple repositories or apps share a Hosting site. For example, this function accepts the current PR number from its caller:
+
+```dart
+Future<void> deployPrPreview(OpenCI openCI, int pullRequestNumber) async {
+  final url = await openCI.firebaseHosting.deployPreview(
+    siteId: 'my-hosting-site',
+    channelId: 'web-pr-$pullRequestNumber',
+    publicDirectory: 'build/web',
+    serviceAccountJsonBase64: Secrets.firebaseHostingServiceAccountJsonBase64.value,
+    expiresIn: const Duration(hours: 1), // Default; refreshed on each deploy.
+    maxPreviewChannels: 20, // Default site-wide preview budget.
+    config: {
+      'rewrites': [
+        {'glob': '**', 'path': '/index.html'},
+      ],
+    },
+  );
+  await openCI.pullRequest.postQrCode(url: url, lang: PostQrCodeLang.ja);
+}
+```
+
+The actual channel ID is prefixed with `openci-` (for example, `openci-web-pr-123`). The same channel keeps its URL while it exists. Redeploying refreshes the expiry, including just before publishing, instead of accepting Firebase's seven-day default. `expiresIn` accepts one minute through 30 days. Preview channels retain one previous release, the minimum supported by Firebase.
+
+Before deploying a preview, the helper lists all channels, removes expired previews it owns, and evicts its least recently updated previews until the deployment fits `maxPreviewChannels` (1–100, default 20). The budget includes other tools' previews; the `live` channel is excluded. Ownership requires both the `openci-` prefix and the helper's `openci-workflow: preview` label. Eviction immediately deactivates old preview URLs. If unrelated channels fill the budget, the helper fails before deleting any previews. A colliding unowned channel is never adopted.
+
+Serialize preview deployments to the same site: the budget check and cleanup are not a distributed lock, so concurrent runs or other deployment tools can still exhaust Firebase quotas. Firebase may take up to 24 hours to reclaim deleted channels' versions and storage. Expiry, bounded channels and release retention reduce accumulation; bandwidth, total storage and API request quotas remain project constraints. Preview URLs are publicly accessible to anyone who knows the URL. The helper does not add preview domains to Firebase Authentication; configure authorized domains separately if your app needs sign-in.
+
+Uploads use gzipped content hashes and only send files Firebase requests, in batches of at most 1,000 file paths and at most four concurrent file uploads. Authentication and metadata requests time out after 60 seconds; each file upload after 10 minutes. Failures before releasing attempt to delete the unpublished version. If the release response is lost or times out, check Hosting before retrying: the release may already be live. Automated tests mock Google APIs; a real deployment additionally requires a configured site and a service account with access.
+
 ## Run locally
 
 ```sh

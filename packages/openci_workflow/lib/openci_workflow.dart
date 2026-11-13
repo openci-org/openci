@@ -2,6 +2,7 @@ export 'src/app_store_connect_keys.dart';
 export 'src/ci_trigger.dart';
 export 'src/command_runner.dart';
 export 'src/dart/dart_ci.dart';
+export 'src/firebase_hosting/firebase_hosting_ci.dart';
 export 'src/flutter/flutter_ci.dart';
 export 'src/flutter/ios_distribution_method.dart';
 export 'src/machine_type.dart';
