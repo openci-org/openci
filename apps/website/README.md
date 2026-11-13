@@ -51,17 +51,17 @@ Astro Content Collectionsが読み込み、`src/content.config.ts` がfrontmatte
 `date`（`"YYYY-MM-DD"`）が必要です。`author`、`readTime`、`coverLabel`、
 `coverTitle`、`coverImage`（`/images/` 配下のカバー写真）も指定できます。
 
-記事のOGP画像は `astro-og-canvas` がビルド時に自動生成します。
-`title`、`description`、`category`、`date` を使い、レインボーロゴ、淡色の背景、青い縁のカードを描画します。
-画像の追加やfrontmatterの `image` 指定は不要です。
+記事のOGP画像はビルド時に自動生成します。ブログに表示しているカバー写真を左側に、
+OpenCIロゴ、記事タイトル、説明、カテゴリ、公開日を右側に配置します。
+`coverImage` を指定すると記事とOGPの写真が一緒に変わります。省略時はどちらもBlanca Lakeの写真を使います。
 英語・日本語はそれぞれのMarkdownから別の1200×630 PNGを生成します。
 たとえば `/en/blog/v2-3-0/` は `/ogp/en/blog/v2-3-0.png`、
 `/ja/blog/v2-3-0/` は `/ogp/ja/blog/v2-3-0.png` をOGP・X Cardで参照します。
 
-生成ルートとデザインは `src/pages/ogp/[...route].ts` にあります。
-日本語・英語を含むNoto Sans JPを `src/assets/fonts/` にライセンスとともに同梱し、
-画像生成時のフォント取得にはネットワークを使いません。フォントは配信アセットには含まれません。
-記事以外のページと既存の共有リンク用に、従来の `public/ogp/` のJPEGは保持しています。
+生成ルートは `src/pages/ogp/[...route].ts`、写真と文字の配置は `src/lib/blog-card.ts` にあります。
+CanvasKitは同梱の写真とフォント（Lora、Geist、Noto Sans JP）で画像を描画します。
+旧リリースの共有URL `/ogp/v2-1-0.jpg`、`/ogp/v2-2-0.jpg`、`/ogp/v2-3-0.jpg` にも
+英語記事のカードをJPEGで生成します。ブログ一覧を含む記事以外のページでは `/ogp/openci.jpg` を使用します。
 
 Docsには `title`、`description` を指定します。`layout` の指定は不要です。
 Starlightの `docsLoader()` と `docsSchema()` がコンテンツを読み込み、検証します。
