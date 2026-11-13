@@ -133,6 +133,32 @@ void main() {
     expect(result.jobs.map((job) => job.workflowName), ['Website CI']);
     expect(result.skipped, hasLength(pullRequestDefinitions.length - 1));
   });
+  test(
+    'dashboard web assets and Hosting configuration select its own workflow',
+    () {
+      final dashboard = definitions.singleWhere(
+        (w) => w.workflowName == 'Dashboard Web Hosting',
+      );
+      expect(dashboard.cancelPreviousRuns, isTrue);
+      for (final trigger in dashboard.ciTriggers) {
+        expect(
+          trigger.matchesChangedFiles(['apps/dashboard/web/index.html']),
+          isTrue,
+        );
+        expect(trigger.matchesChangedFiles(['firebase/firebase.json']), isTrue);
+        expect(
+          trigger.matchesChangedFiles(['apps/website/src/pages/index.astro']),
+          isFalse,
+        );
+      }
+      expect(
+        dashboard.matches(eventType: 'pull_request', branch: 'release'),
+        isTrue,
+      );
+      expect(dashboard.matches(eventType: 'push', branch: 'feature'), isFalse);
+      expect(dashboard.matches(eventType: 'push', branch: 'develop'), isTrue);
+    },
+  );
   test('docs-only changes allocate no build jobs', () {
     expect(plan(definitions, diff(['README.md'])).jobs, isEmpty);
     expect(
@@ -150,6 +176,7 @@ void main() {
       'Dart Functions CI',
       'Dart Format Check',
       'macOS release checks',
+      'Dashboard Web Hosting',
     });
   });
   test('runtime SDK and workspace resolution changes run all PR workflows', () {
@@ -235,6 +262,7 @@ void main() {
     expect(result.jobs.map((j) => j.workflowName).toSet(), {
       'Website CI',
       'Firebase Functions CI',
+      'Dashboard Web Hosting',
     });
   });
   test('Functions source and inputs select Firebase Functions CI', () {

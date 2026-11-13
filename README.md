@@ -21,3 +21,16 @@ dart run openci/dart_format_check.dart
 ```
 
 Use `dart format <file paths>` to fix any reported formatting differences.
+
+## Firebase Hosting
+
+OpenCI builds the product website and Flutter dashboard when their workflow inputs change.
+Pull requests receive a preview link for each affected site. Updating the same PR refreshes
+its channel for one hour. Each site budgets 20 preview channels and reclaims the oldest
+workflow-owned previews when it needs space. Pushes to `develop` publish to the live sites.
+
+Both workflows use a dedicated Hosting service account. Its Base64 JSON key is stored in
+the OpenCI team secret `FIREBASE_HOSTING_SERVICE_ACCOUNT_JSON_BASE64`, in the same format
+as the FAD key. The account's `OpenCIHostingDeployer` role on `openci-b1b91` allows it to
+inspect the Hosting API and publish to existing sites. The dashboard build also uses
+`FIREBASE_OPTIONS_DART_BASE64`.
