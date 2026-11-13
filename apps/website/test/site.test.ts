@@ -4,6 +4,7 @@ import { createHash } from "node:crypto";
 import { test } from "node:test";
 import { runInNewContext } from "node:vm";
 import { load } from "cheerio";
+import CanvasKitInit from "canvaskit-wasm/full";
 import { formatRuntimeEstimate } from "../src/lib/pricing.ts";
 const read = (file: string) => readFileSync(file, "utf8");
 const files = (readdirSync("dist", { recursive: true }) as string[]).filter(
@@ -123,6 +124,75 @@ test("the original release image URLs still serve JPEGs", () => {
     const image = readFileSync(`dist/ogp/${slug}.jpg`);
     assert.equal(image.subarray(0, 3).toString("hex"), "ffd8ff");
     assert.equal(image.subarray(-2).toString("hex"), "ffd9");
+  }
+});
+test("social cards show the article cover and keep the footer inside the image", async () => {
+  const skia = await CanvasKitInit();
+  const pixelFormat = {
+    colorSpace: skia.ColorSpace.SRGB,
+    colorType: skia.ColorType.RGBA_8888,
+    alphaType: skia.AlphaType.Unpremul,
+  };
+  for (const [route, $] of pages) {
+    if ($('meta[property="og:type"]').attr("content") !== "article") continue;
+    const cover = skia.MakeImageFromEncoded(
+      readFileSync("dist" + $(".post-cover img").attr("src")),
+    );
+    const card = skia.MakeImageFromEncoded(
+      readFileSync(
+        "dist" +
+          new URL($('meta[property="og:image"]').attr("content")!).pathname,
+      ),
+    );
+    assert.ok(cover && card, route);
+    try {
+      const panelWidth = 548;
+      const scale = Math.max(panelWidth / cover.width(), 630 / cover.height());
+      for (const [u, v] of [
+        [0.25, 0.25],
+        [0.5, 0.5],
+        [0.75, 0.75],
+      ]) {
+        const x = Math.floor(u * panelWidth),
+          y = Math.floor(v * 630);
+        const sourceX = Math.round(
+          cover.width() / 2 + (x + 0.5 - panelWidth / 2) / scale - 0.5,
+        );
+        const sourceY = Math.round(
+          cover.height() / 2 + (y + 0.5 - 315) / scale - 0.5,
+        );
+        const pixel = { ...pixelFormat, width: 1, height: 1 };
+        const actual = card.readPixels(x, y, pixel);
+        const expected = cover.readPixels(sourceX, sourceY, pixel);
+        assert.ok(actual && expected, route);
+        // Cubic resampling can change the nearest source pixel's color.
+        assert.ok(
+          actual.every((value, i) => Math.abs(value - expected[i]) < 36),
+          route,
+        );
+      }
+      const footer = card.readPixels(600, 550, {
+        ...pixelFormat,
+        width: 548,
+        height: 36,
+      });
+      const bottom = card.readPixels(600, 590, {
+        ...pixelFormat,
+        width: 548,
+        height: 40,
+      });
+      assert.ok(
+        footer?.some((channel, i) => i % 4 === 0 && channel < 100),
+        route,
+      );
+      assert.ok(
+        bottom?.every((channel, i) => i % 4 !== 0 || channel === 250),
+        route,
+      );
+    } finally {
+      cover.delete();
+      card.delete();
+    }
   }
 });
 for (const [route, $] of pages) {

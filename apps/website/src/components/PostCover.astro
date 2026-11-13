@@ -1,5 +1,5 @@
 ---
-import type { Page } from "../lib/content";
+import { blogCoverPath, type Page } from "../lib/content";
 interface Props {
   post: Page;
   featured?: boolean;
@@ -9,7 +9,7 @@ const { post, featured = false } = Astro.props;
 
 <div class="post-cover" aria-hidden="true">
   <img
-    src={post.data.coverImage ?? "/images/landing/blanca-lake.webp"}
+    src={blogCoverPath(post)}
     alt=""
     loading={featured ? "eager" : "lazy"}
     decoding="async"

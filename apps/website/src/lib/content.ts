@@ -10,6 +10,8 @@ export const pageLocale = (page: LocalizedPage) =>
 export const pagePath = (page: LocalizedPage) =>
   getRelativeLocaleUrl(pageLocale(page), pageSlug(page));
 export const blogImagePath = (page: Page) => `/ogp/${page.id}.png`;
+export const blogCoverPath = (page: Page) =>
+  page.data.coverImage ?? "/images/blog/blanca-lake.jpg";
 export function availableTranslations(
   page: LocalizedPage,
   pages: LocalizedPage[],
