@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:dashboard/billing/billing_api.dart';
 import 'package:dashboard/auth/auth_provider.dart';
+import 'package:dashboard/connections/active_connection_profile_provider.dart';
+import 'package:dashboard/connections/connection_store_provider.dart';
 import 'package:dashboard/team/selected_team_provider.dart';
 import 'package:dashboard/team/team_members_api.dart';
 import 'package:dashboard/team/teams_connector_provider.dart';
@@ -59,15 +61,36 @@ class TeamService {
   final Ref _ref;
   TeamService(this._ref);
 
-  Future<void> createInitialTeam(String userId) async {
-    final connector = await _ref.read(teamsConnectorProvider.future);
-    await connector.createTeam(id: userId, name: userId).execute();
+  Future<void> createInitialTeam(String userId) =>
+      createTeam(id: userId, name: userId);
 
-    if (_ref.mounted) {
+  Future<void> createTeam({
+    required String id,
+    required String name,
+    bool retry = false,
+  }) async {
+    final profileProvider = activeConnectionProfileProvider(
+      _ref.read(connectionStoreProvider),
+    );
+    final profile = _ref.read(profileProvider.future);
+    final connector = await _ref.read(teamsConnectorProvider.future);
+    final profileId = (await profile).id;
+    // A failed response can arrive after the team was committed.
+    final existing = retry
+        ? (await connector.getMyTeams().execute()).data.teams
+              .where((team) => team.id == id)
+              .firstOrNull
+        : null;
+    if (existing == null) {
+      await connector.createTeam(id: id, name: name).execute();
+    } else if (existing.name != name) {
+      await connector.renameTeam(teamId: id, name: name).execute();
+    }
+
+    if (_ref.mounted &&
+        _ref.read(profileProvider).asData?.value.id == profileId) {
       _ref.invalidate(teamListProvider);
-      await _ref
-          .read(selectedTeamIdProvider.notifier)
-          .saveSelectedTeamId(userId);
+      await _ref.read(selectedTeamIdProvider.notifier).saveSelectedTeamId(id);
     }
   }
 

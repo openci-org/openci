@@ -103,6 +103,7 @@ void main() {
           child: MaterialApp(
             home: Scaffold(
               body: SwitchTeamBottomSheet(
+                onCreate: () {},
                 onMembers: () {},
                 onInvite: () {},
                 onEdit: () {},
@@ -125,7 +126,7 @@ void main() {
     );
     expect(find.text('Selected team'), findsOneWidget);
     expect(find.text(t.team.members), findsOneWidget);
-    expect(find.text(t.team.createTeam), findsNothing);
+    expect(find.text(t.team.createTeam), findsOneWidget);
     expect(requests, isEmpty);
   });
 
