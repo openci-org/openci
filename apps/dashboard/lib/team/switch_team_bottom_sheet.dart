@@ -1,5 +1,6 @@
 import 'package:dashboard/app_strings.dart';
 import 'package:dashboard/team/connect_github_button.dart';
+import 'package:dashboard/team/create_team_bottom_sheet.dart';
 import 'package:dashboard/team/delete_team_bottom_sheet.dart';
 import 'package:dashboard/team/edit_team_bottom_sheet.dart';
 import 'package:dashboard/team/invite_team_member_bottom_sheet.dart';
@@ -18,12 +19,14 @@ import 'package:wolt_modal_sheet/wolt_modal_sheet.dart';
 class SwitchTeamBottomSheet extends HookConsumerWidget {
   const SwitchTeamBottomSheet({
     super.key,
+    required this.onCreate,
     required this.onMembers,
     required this.onInvite,
     required this.onEdit,
     required this.onDelete,
   });
 
+  final VoidCallback onCreate;
   final VoidCallback onMembers;
   final VoidCallback onInvite;
   final VoidCallback onEdit;
@@ -92,6 +95,15 @@ class SwitchTeamBottomSheet extends HookConsumerWidget {
                                   },
                           ),
                         ],
+                        if (teams.isNotEmpty) const Divider(height: 1),
+                        SizedBox(
+                          width: double.infinity,
+                          child: TextButton.icon(
+                            onPressed: isMembersLoading.value ? null : onCreate,
+                            icon: const Icon(Icons.add),
+                            label: Text(context.t.team.createTeam),
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -164,6 +176,7 @@ Future<void> showTeamFlowModal(BuildContext context) {
             ),
           ),
           child: SwitchTeamBottomSheet(
+            onCreate: () => pageIndexNotifier.value = 5,
             onMembers: () => pageIndexNotifier.value = 1,
             onInvite: () => pageIndexNotifier.value = 2,
             onEdit: () => pageIndexNotifier.value = 3,
@@ -241,6 +254,21 @@ Future<void> showTeamFlowModal(BuildContext context) {
             ),
           ),
           child: const DeleteTeamBottomSheet(),
+        ),
+        // Page 5: チーム作成
+        WoltModalSheetPage(
+          backgroundColor: scaffoldBg,
+          leadingNavBarWidget: BackButton(
+            onPressed: () => pageIndexNotifier.value = 0,
+          ),
+          pageTitle: Padding(
+            padding: const EdgeInsets.only(left: 16, right: 16, top: 12),
+            child: Text(
+              context.t.team.createTeam,
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+            ),
+          ),
+          child: const CreateTeamBottomSheet(),
         ),
       ];
     },
