@@ -6,7 +6,7 @@ import {
   type PullRequestQrCode,
   type WithQrCommentLease,
 } from "./pull_request_qr.js";
-import type { Dispatch, Job, Outcome } from "./model.js";
+import type { Dispatch, Job, Outcome, ResolvedCheckout } from "./model.js";
 import type { SkippedCheck } from "../skipped_checks.js";
 
 const installationPermissions = {
@@ -204,12 +204,25 @@ export class ExecutionGitHub {
     return String(data.id);
   }
 
-  /** Resolve a verified merge commit for PRs and the saved commit for pushes. */
-  async resolveCheckoutCommit(job: Job, accountId: string, signal?: AbortSignal): Promise<string> {
+  /** Resolve the exact checkout and its event metadata as one snapshot. */
+  async resolveCheckout(
+    job: Job,
+    accountId: string,
+    signal?: AbortSignal,
+  ): Promise<ResolvedCheckout> {
     signal?.throwIfAborted();
     if (!/^[a-fA-F0-9]{40}(?:[a-fA-F0-9]{24})?$/.test(job.commitSha ?? ""))
       throw new Error("Invalid commit SHA");
-    if (job.pullRequestNumber === null) return job.commitSha!;
+    if (job.pullRequestNumber === null) {
+      if (typeof job.branch !== "string" || !job.branch.trim())
+        throw new Error("Missing push branch");
+      return {
+        event: "push",
+        branch: job.branch,
+        commitSha: job.commitSha!.toLowerCase(),
+        checkoutSha: job.commitSha!.toLowerCase(),
+      };
+    }
     // Missing projections/invalid PR numbers must not silently become push jobs.
     const number = Number(job.pullRequestNumber);
     if (!/^[1-9][0-9]*$/.test(job.pullRequestNumber ?? "") || !Number.isSafeInteger(number))
@@ -245,6 +258,8 @@ export class ExecutionGitHub {
           pr.number !== number ||
           pr.base?.repo?.id !== repo.id ||
           pr.head?.repo?.id !== repo.id ||
+          typeof pr.head?.ref !== "string" ||
+          !pr.head.ref ||
           typeof pr.base?.ref !== "string" ||
           !pr.base.ref ||
           !/^[a-f0-9]{40}(?:[a-f0-9]{24})?$/.test(pr.base?.sha ?? "")
@@ -296,7 +311,15 @@ export class ExecutionGitHub {
             commit.parents[1].sha === pr.head.sha
           ) {
             signal?.throwIfAborted();
-            return mergeSha;
+            return {
+              event: "pull_request",
+              number,
+              headBranch: pr.head.ref,
+              baseBranch: pr.base.ref,
+              headSha: pr.head.sha,
+              baseSha: base.object.sha,
+              checkoutSha: mergeSha,
+            };
           }
         }
       }

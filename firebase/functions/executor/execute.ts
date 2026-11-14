@@ -28,7 +28,7 @@ export interface ExecutorDependencies {
   verifyCard: (teamId: string, livemode: boolean) => Promise<string | null>;
   github: Pick<
     ExecutionGitHub,
-    "options" | "resolveCheckoutCommit" | "checkout" | "check" | "postPullRequestQrCodes"
+    "options" | "resolveCheckout" | "checkout" | "check" | "postPullRequestQrCodes"
   >;
   orchard: Pick<OrchardExecutor, "create" | "ready" | "remove" | "exec" | "vmNames">;
   logs: (dispatch: Dispatch) => Pick<ExecutionLogs, "start" | "finish" | "output">;
@@ -158,7 +158,7 @@ export async function executeBuild(
     if (!context.team || !context.connection) throw new Error("GitHub connection is not active");
     // Guard existing/queued/rerun jobs as well as newly planned ones. A failed
     // check is terminal (not the billing "blocked" outcome, which requeues).
-    const checkoutSha = await github.resolveCheckoutCommit(
+    const resolvedCheckout = await github.resolveCheckout(
       job,
       context.connection.accountId,
       signal,
@@ -219,7 +219,7 @@ export async function executeBuild(
         signal.throwIfAborted();
         const code = await orchard.exec(
           dispatch.vmName,
-          checkoutScript(checkoutSha, checkout.cloneUrl, checkout.token),
+          checkoutScript(resolvedCheckout.checkoutSha, checkout.cloneUrl, checkout.token),
           output.write,
           signal,
         );
@@ -240,7 +240,7 @@ export async function executeBuild(
       try {
         const code = await orchard.exec(
           dispatch.vmName,
-          workflowScript(job, dispatch, runNumber, secrets),
+          workflowScript(job, dispatch, runNumber, secrets, resolvedCheckout),
           output.write,
           signal,
         );

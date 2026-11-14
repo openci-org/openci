@@ -12,6 +12,7 @@ import 'machine_type.dart';
 import 'pull_request_ci.dart';
 import 'shorebird/shorebird_ci.dart';
 import 'workspace_directory.dart';
+import 'workflow_context.dart';
 
 class OpenCI {
   OpenCI({
@@ -22,11 +23,13 @@ class OpenCI {
     this.cancelPreviousRuns = false,
     this.currentWorkingDirectory,
     required this.workspacePath,
+    @visibleForTesting WorkflowContext? context,
     @visibleForTesting
     Future<void> Function(String command, {required String workingDirectory})
         commandRunner =
         runCommand,
   }) : ciTriggers = List.unmodifiable(ciTriggers),
+       _contextOverride = context,
        _runCommand = commandRunner;
 
   final String workflowName;
@@ -48,6 +51,15 @@ class OpenCI {
   final String? flutterVersion;
   final String? currentWorkingDirectory;
   final String workspacePath;
+
+  final WorkflowContext? _contextOverride;
+
+  /// The event and checkout for this execution, read once on first access.
+  ///
+  /// Local execution returns [LocalContext]. A CI executor that does not supply
+  /// context throws on access, without affecting workflows that never read it.
+  late final WorkflowContext context =
+      _contextOverride ?? WorkflowContext.fromEnvironment(Platform.environment);
 
   /// The team-scoped number assigned to this run by the server.
   ///

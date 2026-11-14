@@ -12,3 +12,4 @@ export 'src/secret.dart';
 export 'src/shorebird/shorebird_ci.dart';
 export 'src/time_zone.dart';
 export 'src/workspace_directory.dart';
+export 'src/workflow_context.dart';

@@ -39,6 +39,14 @@ const job = {
   workflowFileName: "ci/test.dart",
   commitSha: "a".repeat(40),
   pullRequestNumber: null,
+  branch: "develop",
+};
+
+const pushCheckout = {
+  event: "push",
+  branch: job.branch,
+  commitSha: job.commitSha,
+  checkoutSha: job.commitSha,
 };
 
 test("billing start survives a burst of revision conflicts and reconciles a lost success response", async () => {
@@ -133,14 +141,23 @@ test("scripts quote secrets, pin the commit, and reject unsafe workflow paths", 
   const checkout = checkoutScript(job.commitSha, "https://github.com/org/app.git", token);
   assert.match(checkout, /git checkout --detach 'a{40}'/);
   assert.doesNotMatch(checkout, /https:\/\/.*token/);
-  const workflow = workflowScript(job, dispatch, 7, { TEST: "it's $(id)\nnext" });
+  const workflow = workflowScript(job, dispatch, 7, { TEST: "it's $(id)\nnext" }, pushCheckout);
   assert.ok(workflow.includes("export TEST='it'\\''s $(id)\nnext'"));
   assert.match(workflow, /OPENCI_RUN_NUMBER='7'/);
   assert.match(workflow, /flutter pub run 'openci\/ci\/test.dart'/);
   assert.throws(() => validateJob({ ...job, workflowFileName: "../test.dart" }, dispatch));
-  assert.throws(() => workflowScript(job, dispatch, 7, { BASH_ENV: "attack" }));
+  assert.throws(() => workflowScript(job, dispatch, 7, { BASH_ENV: "attack" }, pushCheckout));
   assert.throws(() => validateJob({ ...job, commitSha: "main; echo token" }, dispatch));
   assert.throws(() => checkoutScript("main", "https://github.com/org/app.git", token));
+});
+
+test("workflow context rejects invalid run numbers", () => {
+  for (const runNumber of [0, -1, 1.5, Number.MAX_SAFE_INTEGER + 1]) {
+    assert.throws(
+      () => workflowScript(job, dispatch, runNumber, {}, pushCheckout),
+      /Invalid run number/,
+    );
+  }
 });
 
 test("workflows expose VM toolchains when Orchard supplies a minimal PATH", () => {
@@ -148,7 +165,7 @@ test("workflows expose VM toolchains when Orchard supplies a minimal PATH", () =
     // Stub only the VM workspace and Flutter; execute the generated environment setup.
     input:
       'cd() { :; }\nflutter() { if [[ "$2" == run ]]; then printf "%s" "$PATH"; fi; }\n' +
-      workflowScript(job, dispatch, 1, {}),
+      workflowScript(job, dispatch, 1, {}, pushCheckout),
     env: { PATH: "/usr/bin:/bin" },
     encoding: "utf8",
   });
@@ -178,7 +195,7 @@ fvm() {
   if [[ "$1" == global ]]; then selected="$2"; fi
 }
 flutter() { printf 'flutter:%s:%s\\n' "$selected" "$*"; }
-` + workflowScript({ ...job, flutterVersion }, dispatch, 1, {}),
+` + workflowScript({ ...job, flutterVersion }, dispatch, 1, {}, pushCheckout),
     env: { PATH: "/usr/bin:/bin" },
     encoding: "utf8",
   });
@@ -218,7 +235,10 @@ test("persisted Flutter versions must be literal releases", () => {
   for (const flutterVersion of ["", "stable", "3.47.8\n", "3.47.8; id", "$(id)", "--force"]) {
     const invalid = { ...job, flutterVersion };
     assert.throws(() => validateJob(invalid, dispatch), /Invalid Flutter release/);
-    assert.throws(() => workflowScript(invalid, dispatch, 1, {}), /Invalid Flutter release/);
+    assert.throws(
+      () => workflowScript(invalid, dispatch, 1, {}, pushCheckout),
+      /Invalid Flutter release/,
+    );
   }
   validateJob({ ...job, flutterVersion: "3.48.0-0.1.pre" }, dispatch);
 });
@@ -830,7 +850,7 @@ test("PR execution revalidates repository IDs and pinned SHA with a separate rev
     merged: false,
     mergeable: true,
     merge_commit_sha: "c".repeat(40),
-    head: { repo: repository, sha: job.commitSha },
+    head: { repo: repository, sha: job.commitSha, ref: "feature/context" },
     base: { repo: repository, sha: "b".repeat(40), ref: "develop" },
   };
   const prJob = { ...job, pullRequestNumber: "7" };
@@ -881,16 +901,21 @@ test("PR execution revalidates repository IDs and pinned SHA with a separate rev
     apiBaseUrl: "https://api.github.com",
     baseUrl: "https://github.com",
   });
-  assert.equal(await github.resolveCheckoutCommit(job, "10"), job.commitSha);
+  assert.deepEqual(await github.resolveCheckout(job, "10"), pushCheckout);
   assert.equal(calls.length, 0, "Push jobs do not need a PR token");
+  for (const branch of [undefined, null, "", " "]) {
+    await assert.rejects(github.resolveCheckout({ ...job, branch }, "10"), /Missing push branch/);
+  }
   for (const pullRequestNumber of [undefined, "", "0", "-1", "1.5", "9007199254740992"]) {
-    await assert.rejects(github.resolveCheckoutCommit({ ...job, pullRequestNumber }, "10"));
+    await assert.rejects(github.resolveCheckout({ ...job, pullRequestNumber }, "10"));
   }
   assert.equal(calls.length, 0, "Invalid/missing PR metadata must not mint tokens");
-  assert.equal(await github.resolveCheckoutCommit(prJob, "10"), trusted.merge_commit_sha);
+  assert.equal((await github.resolveCheckout(prJob, "10")).checkoutSha, trusted.merge_commit_sha);
   assert.equal(calls.at(-1), "/installation/token");
   for (const badPr of [
     { ...trusted, head: { ...trusted.head, repo: { ...repository, id: 999, fork: false } } },
+    { ...trusted, head: { ...trusted.head, ref: undefined } },
+    { ...trusted, head: { ...trusted.head, ref: "" } },
     { ...trusted, head: { ...trusted.head, repo: null } },
     { ...trusted, head: { sha: job.commitSha } },
     { ...trusted, head: { ...trusted.head, repo: { id: "101" } } },
@@ -899,7 +924,7 @@ test("PR execution revalidates repository IDs and pinned SHA with a separate rev
     { ...trusted, number: 8 },
   ]) {
     pullRequest = badPr;
-    await assert.rejects(github.resolveCheckoutCommit(prJob, "10"), /Untrusted pull request/);
+    await assert.rejects(github.resolveCheckout(prJob, "10"), /Untrusted pull request/);
     assert.equal(calls.at(-1), "/installation/token", "Rejecting a PR must also revoke its token");
   }
   pullRequest = trusted;
@@ -909,13 +934,13 @@ test("PR execution revalidates repository IDs and pinned SHA with a separate rev
     { ...repository, id: "101" },
   ]) {
     repo = badRepo;
-    await assert.rejects(github.resolveCheckoutCommit(prJob, "10"), /Untrusted pull request/);
+    await assert.rejects(github.resolveCheckout(prJob, "10"), /Untrusted pull request/);
     assert.equal(calls.at(-1), "/installation/token");
   }
   repo = repository;
   for (const status of [403, 404, 500]) {
     apiStatus = status;
-    await assert.rejects(github.resolveCheckoutCommit(prJob, "10"));
+    await assert.rejects(github.resolveCheckout(prJob, "10"));
     assert.equal(calls.at(-1), "/installation/token");
   }
 });

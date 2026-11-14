@@ -31,12 +31,27 @@ const dispatch = {
   createdAt: "2026-01-01T00:00:00Z",
 };
 const link = "https://preview.example.org/build(17)?platform=ios&lang=ja#install";
+const prCheckout = {
+  event: "pull_request",
+  number: 3,
+  headBranch: "feature/context",
+  baseBranch: "develop",
+  headSha: job.commitSha,
+  baseSha: "b".repeat(40),
+  checkoutSha: "c".repeat(40),
+};
+const pushCheckout = {
+  event: "push",
+  branch: "develop",
+  commitSha: job.commitSha,
+  checkoutSha: job.commitSha,
+};
 const signal = new AbortController().signal;
 
 test("only a successful PR workflow with output requests publication", async (t) => {
   const dir = await mkdtemp(join(tmpdir(), "openci-pr-qr-script-"));
   t.after(() => rm(dir, { recursive: true, force: true }));
-  const script = workflowScript(job, dispatch, 1, {}).replaceAll(
+  const script = workflowScript(job, dispatch, 1, {}, prCheckout).replaceAll(
     prQrOutputDirectory,
     join(dir, "output"),
   );
@@ -51,7 +66,7 @@ test("only a successful PR workflow with output requests publication", async (t)
     assert.equal(result.status, expected, result.stderr);
   }
   assert.match(
-    workflowScript({ ...job, pullRequestNumber: null }, dispatch, 1, {}),
+    workflowScript({ ...job, pullRequestNumber: null }, dispatch, 1, {}, pushCheckout),
     /OPENCI_PR_QR_OUTPUT=''/,
   );
 });

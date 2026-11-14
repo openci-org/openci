@@ -104,6 +104,7 @@ function executionFixture(selfHosted, contextChange = {}) {
     workflowFileName: "ci.dart",
     commitSha: "a".repeat(40),
     pullRequestNumber: null,
+    branch: "develop",
     latestRunId: dispatch.runId,
     // Untrusted job fields must never select deployment mode.
     selfHosted: true,
@@ -164,9 +165,24 @@ function executionFixture(selfHosted, contextChange = {}) {
     },
     github: {
       options: { appId: "1", apiBaseUrl: "https://github.example/api/v3" },
-      async resolveCheckoutCommit(job) {
+      async resolveCheckout(job) {
         calls.push("verify");
-        return job.commitSha;
+        return job.pullRequestNumber
+          ? {
+              event: "pull_request",
+              number: Number(job.pullRequestNumber),
+              headBranch: "feature/context",
+              baseBranch: "develop",
+              headSha: job.commitSha,
+              baseSha: "b".repeat(40),
+              checkoutSha: "c".repeat(40),
+            }
+          : {
+              event: "push",
+              branch: job.branch,
+              commitSha: job.commitSha,
+              checkoutSha: job.commitSha,
+            };
       },
       async check(job) {
         checkShas.push(job.commitSha);
@@ -247,11 +263,19 @@ test("PR builds check out the resolved merge SHA and report checks on the saved 
   const f = executionFixture(true);
   f.job.pullRequestNumber = "7";
   const mergeSha = "c".repeat(40);
-  f.dependencies.github.resolveCheckoutCommit = async (job, accountId, signal) => {
+  f.dependencies.github.resolveCheckout = async (job, accountId, signal) => {
     assert.equal(job.pullRequestNumber, "7");
     assert.equal(accountId, "1");
     assert.equal(signal.aborted, false);
-    return mergeSha;
+    return {
+      event: "pull_request",
+      number: 7,
+      headBranch: "feature/context",
+      baseBranch: "develop",
+      headSha: job.commitSha,
+      baseSha: "b".repeat(40),
+      checkoutSha: mergeSha,
+    };
   };
 
   await f.run();
@@ -260,6 +284,10 @@ test("PR builds check out the resolved merge SHA and report checks on the saved 
   assert.equal(f.scripts.length, 2);
   assert.ok(f.scripts[0].includes(`git checkout --detach '${mergeSha}'`));
   assert.ok(f.scripts[1].includes("flutter pub run 'openci/ci.dart'"));
+  const context = JSON.parse(f.scripts[1].match(/export OPENCI_CONTEXT='([^']+)'/)[1]);
+  assert.equal(context.event, "pull_request");
+  assert.equal(context.headSha, f.job.commitSha);
+  assert.equal(context.checkoutSha, mergeSha);
   assert.deepEqual(f.checkShas, [f.job.commitSha, f.job.commitSha]);
 });
 
@@ -318,7 +346,7 @@ test("opted-in PRs publish only after a successful workflow and report publicati
 test("merge resolution failure completes the check before any build commands run", async () => {
   const f = executionFixture(true);
   f.job.pullRequestNumber = "7";
-  f.dependencies.github.resolveCheckoutCommit = async () => {
+  f.dependencies.github.resolveCheckout = async () => {
     throw new PullRequestCheckoutError("conflicts");
   };
 
@@ -333,7 +361,7 @@ test("merge resolution failure completes the check before any build commands run
 
 test("unexpected API errors are not published as a failure summary", async () => {
   const f = executionFixture(true);
-  f.dependencies.github.resolveCheckoutCommit = async () => {
+  f.dependencies.github.resolveCheckout = async () => {
     throw new Error("Authorization: token private-token; request body contains private data");
   };
 
