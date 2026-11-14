@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.3.0
 
 - Add `openCI.context` with typed push, pull request and local execution metadata. CI context includes repository/run identity and the exact checkout SHA; PR head and verified base SHAs remain distinct.
 - **Breaking:** Remove `GoCI` and `OpenCI.go`, including the Go format, vet,
