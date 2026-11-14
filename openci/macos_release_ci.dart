@@ -16,7 +16,6 @@ Future<void> main() async {
           'apps/dashboard/lib/utilities/macos_updater_initializer.dart',
           'packages/macos_updater/**',
           'packages/openci_shared/**',
-          'packages/openci_workflow/**',
           'packages/pubspec_version_hook/**',
           'analysis_options.yaml',
           'openci/dashboard_macos_cd.dart',
