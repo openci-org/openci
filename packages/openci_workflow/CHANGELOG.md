@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Add `openCI.context` with typed push, pull request and local execution metadata. CI context includes repository/run identity and the exact checkout SHA; PR head and verified base SHAs remain distinct.
 - **Breaking:** Remove `GoCI` and `OpenCI.go`, including the Go format, vet,
   and test helpers.
 - Add `openCI.firebaseHosting.deploy()` and `deployPreview()` with in-memory service account authentication and direct Hosting REST uploads. Both return a serving URL for use with PR QR comments.

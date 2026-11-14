@@ -14,4 +14,5 @@ exec npm exec --yes --package="$npm_package" --call \
   'npm ci --workspace firebase --include-workspace-root &&
    npm run fmt:check --workspace firebase -- healthcheck.ts functions &&
    npm run check --workspace firebase &&
-   npm test --workspace firebase'
+   npm test --workspace firebase &&
+   npm run test:workflow-context --workspace firebase'

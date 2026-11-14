@@ -73,6 +73,18 @@ candidates fail the attempt. The execution pins the resolved merge SHA for check
 and writes the full checked-out SHA to its checkout log. GitHub Checks use the
 job's saved head SHA. Push builds check out their saved commit SHA.
 
+The workflow receives `OPENCI_CONTEXT`, schema version 1 JSON containing the
+resolved checkout/event metadata plus repository, job, and run identity. PR base
+and head metadata come from the same validation that selected the merge commit.
+The Dart SDK reads this lazily as `OpenCI.context`; deploy the executor before
+adopting that API. Context is a snapshot, not a check that a deployment is still
+current. The protocol contains no credentials or raw webhook payload.
+
+`npm run test:workflow-context --workspace firebase` executes the generated shell
+exports and decodes them in the Dart SDK. Run `flutter pub get` at the repository
+root first; the test requires Dart on PATH. The Functions CI runs this check after
+the Node test suites.
+
 Merge conflicts, closed or updated PRs, and unavailable test merge commits produce
 fixed messages explaining how to retry. The executor persists the message on the
 dispatch before cleanup so recovery can publish it to GitHub Checks and the job's

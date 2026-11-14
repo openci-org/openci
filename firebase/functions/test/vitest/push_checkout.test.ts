@@ -19,8 +19,14 @@ test("実行待ちにブランチが進んでも、pushされたコミットを�
     apiBaseUrl: "https://api.github.com",
     baseUrl: "https://github.com",
   });
-  const checkoutSha = await github.resolveCheckoutCommit(pushJob(queuedSha), "10");
-  const result = repo.exec(checkoutScript(checkoutSha, repo.source, "test-token"));
+  const context = await github.resolveCheckout(pushJob(queuedSha), "10");
+  expect(context).toEqual({
+    event: "push",
+    branch: "main",
+    commitSha: queuedSha,
+    checkoutSha: queuedSha,
+  });
+  const result = repo.exec(checkoutScript(context.checkoutSha, repo.source, "test-token"));
   expect(result.status, result.stderr).toBe(0);
   expect(repo.checkedOutSha()).toBe(queuedSha);
 });
@@ -64,6 +70,7 @@ function pushJob(commitSha: string): Job {
     workflowFileName: "ci.dart",
     commitSha,
     pullRequestNumber: null,
+    branch: "main",
   };
 }
 

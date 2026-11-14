@@ -92,6 +92,39 @@ Future<void> main() async {
 
 OpenCI discovers Dart files in `openci/` and matches their declared triggers to GitHub events. Keep workflow names and trigger branches as string literals so the planner can read them without executing the workflow.
 
+### Read the current execution context
+
+Use `openCI.context` to branch on the event that actually started this run:
+
+```dart
+final context = openCI.context;
+if (context is PullRequestContext) {
+  final channelId = 'dashboard-pr-${context.number}';
+  // Deploy a preview using channelId.
+} else if (context is PushContext && context.branch == 'develop') {
+  // Deploy to the live site.
+}
+```
+
+`PullRequestContext` exposes `number`, `headBranch`, `baseBranch`, `headSha`,
+`baseSha`, and `checkoutSha`. The checkout SHA identifies the verified test merge
+commit; its base parent can be newer than the original webhook. `PushContext`
+exposes the saved `branch`, `commitSha`, and `checkoutSha`, even if the branch has
+advanced while queued. Tag pushes retain `refs/tags/<name>` as their push target.
+Both extend `CIContext`, with `repository.owner`, `repository.name`,
+`repository.githubBaseUrl` (including GitHub Enterprise), `jobId`, `runId`, and
+`runNumber`.
+
+Local runs return `LocalContext` and enter neither deployment branch. Context is
+decoded once on first access, without Git or network requests. CI on an older
+executor throws an upgrade error when context is accessed; existing workflows
+that do not read it continue to work. Deploy the updated executor before adopting
+the SDK API. Malformed, unsupported, or inconsistent metadata is rejected rather
+than interpreted as a push. Tests can inject a context into the `OpenCI`
+constructor or decode a complete environment with `WorkflowContext.fromEnvironment`.
+This is an execution snapshot; publication still needs its existing checks for
+newer commits. `ciTriggers` continues to declare scheduling conditions independently.
+
 ### Select a Flutter version
 
 With SDK 0.2.1 or later, add an exact release to the workflow:

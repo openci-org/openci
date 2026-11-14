@@ -13,6 +13,19 @@ export type Outcome =
   | "card_required";
 export type Stream = "stdout" | "stderr";
 
+/** Metadata pinned by checkout validation, before the VM starts. */
+export type ResolvedCheckout =
+  | { event: "push"; branch: string; commitSha: string; checkoutSha: string }
+  | {
+      event: "pull_request";
+      number: number;
+      headBranch: string;
+      baseBranch: string;
+      headSha: string;
+      baseSha: string;
+      checkoutSha: string;
+    };
+
 // Each attempt runs in its own disposable VM.
 export const prQrOutputDirectory = "/tmp/openci-pr-qr";
 export const prQrOutputReady = 78;
@@ -91,13 +104,28 @@ export function workflowScript(
   dispatch: Dispatch,
   runNumber: number,
   secrets: Record<string, string>,
+  checkout: ResolvedCheckout,
 ): string {
   validateFlutterVersion(job.flutterVersion);
+  if (!Number.isSafeInteger(runNumber) || runNumber <= 0) throw new Error("Invalid run number");
+  const runId = identity(dispatch).runId;
   const variables = {
     ...secrets,
     OPENCI_BUILD_JOB_ID: job.id,
-    OPENCI_RUN_ID: identity(dispatch).runId,
+    OPENCI_RUN_ID: runId,
     OPENCI_RUN_NUMBER: String(runNumber),
+    OPENCI_CONTEXT: JSON.stringify({
+      schemaVersion: 1,
+      repository: {
+        owner: job.owner,
+        name: job.repo,
+        githubBaseUrl: job.githubBaseUrl ?? "https://github.com",
+      },
+      jobId: job.id,
+      runId,
+      runNumber,
+      ...checkout,
+    }),
     OPENCI_PR_QR_OUTPUT: job.pullRequestNumber ? prQrOutputDirectory : "",
     // The first preview SDK appends tester URLs to a single file.
     OPENCI_FAD_PR_OUTPUT: job.pullRequestNumber ? `${prQrOutputDirectory}/legacy` : "",
