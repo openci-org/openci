@@ -26,7 +26,7 @@ Use `dart format <file paths>` to fix any reported formatting differences.
 
 OpenCI builds the product website and Flutter dashboard when their workflow inputs change.
 Pull requests receive a preview link for each affected site. Updating the same PR refreshes
-its channel for one hour. Each site budgets 20 preview channels and reclaims the oldest
+its channel for seven days. Each site budgets 20 preview channels and reclaims the oldest
 workflow-owned previews when it needs space. Pushes to `develop` publish to the live sites.
 
 Both workflows use a dedicated Hosting service account. Its Base64 JSON key is stored in

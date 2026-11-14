@@ -280,7 +280,7 @@ Future<void> main(List<String> args) async {
         '--only',
         site.target,
         '--expires',
-        '1h',
+        '7d',
         '--no-authorized-domains',
       ]);
     }
