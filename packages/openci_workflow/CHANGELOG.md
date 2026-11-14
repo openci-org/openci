@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Read static Hosting settings from `firebaseConfigPath` in `deploy()` and `deployPreview()`, including public paths, ignore patterns, routing and response headers. Select multi-site configurations by site ID or deploy target, with optional public-directory overrides.
+
 ## 0.3.0
 
 - Add `openCI.context` with typed push, pull request and local execution metadata. CI context includes repository/run identity and the exact checkout SHA; PR head and verified base SHAs remain distinct.

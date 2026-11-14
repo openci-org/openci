@@ -6,6 +6,7 @@ import 'package:googleapis_auth/auth_io.dart';
 import 'package:http/http.dart' as http;
 
 import 'firebase_hosting_client.dart';
+import 'firebase_hosting_config.dart';
 import 'hosting_files.dart';
 
 /// Firebase Hosting deployments using in-memory service account credentials.
@@ -18,19 +19,33 @@ class FirebaseHostingCI {
   ///
   /// [serviceAccountJsonBase64] is a Base64-encoded service account JSON key.
   /// The account needs `roles/firebasehosting.admin` on the destination project.
-  /// [config] uses the Hosting REST API's `ServingConfig` format, not
-  /// `firebase.json` (for example, rewrites use `glob` and `path`).
-  /// Relative content paths use the workflow directory, or [dir] when supplied.
+  /// Set [firebaseConfigPath] to read static Hosting settings from firebase.json.
+  /// Its path is relative to the workflow directory, or [dir] when supplied.
+  /// Hosting arrays are selected by [siteId], or [target] for deploy targets;
+  /// a single configuration without a `site` is also accepted. The destination
+  /// is always [siteId]; `.firebaserc` and CLI hooks are not used.
+  ///
+  /// Omit [publicDirectory] to use `hosting.public` relative to the JSON file.
+  /// An explicit [publicDirectory] overrides it and is relative to the workflow
+  /// directory or [dir]. Absolute file and content paths are accepted.
+  ///
+  /// Without [firebaseConfigPath], [publicDirectory] is required and [config]
+  /// uses the REST API's `ServingConfig` format (rewrites use `glob` and `path`).
+  /// A non-empty [config] cannot be combined with [firebaseConfigPath].
   /// Returns the site's `https://SITE_ID.web.app` URL after release succeeds.
   Future<Uri> deploy({
     required String siteId,
-    required String publicDirectory,
     required String serviceAccountJsonBase64,
+    String? publicDirectory,
+    String? firebaseConfigPath,
+    String? target,
     Map<String, Object?> config = const {},
     String? dir,
   }) => _deploy(
     siteId: siteId,
     publicDirectory: publicDirectory,
+    firebaseConfigPath: firebaseConfigPath,
+    target: target,
     serviceAccountJsonBase64: serviceAccountJsonBase64,
     config: config,
     dir: dir,
@@ -51,13 +66,16 @@ class FirebaseHostingCI {
   /// concurrent runs. Use a different site or increase the budget when unowned
   /// channels occupy all slots. This does not bound bandwidth or total storage.
   ///
-  /// Authentication, content paths and [config] work as in [deploy]. The helper
-  /// does not change Firebase Authentication's authorized domains.
+  /// Authentication, [firebaseConfigPath], [target], content paths and [config]
+  /// work as in [deploy]. The helper does not change Firebase Authentication's
+  /// authorized domains.
   Future<Uri> deployPreview({
     required String siteId,
     required String channelId,
-    required String publicDirectory,
     required String serviceAccountJsonBase64,
+    String? publicDirectory,
+    String? firebaseConfigPath,
+    String? target,
     Duration expiresIn = const Duration(hours: 1),
     int maxPreviewChannels = 20,
     Map<String, Object?> config = const {},
@@ -65,6 +83,8 @@ class FirebaseHostingCI {
   }) => _deploy(
     siteId: siteId,
     publicDirectory: publicDirectory,
+    firebaseConfigPath: firebaseConfigPath,
+    target: target,
     serviceAccountJsonBase64: serviceAccountJsonBase64,
     channelId: channelId,
     expiresIn: expiresIn,
@@ -75,32 +95,75 @@ class FirebaseHostingCI {
 
   Future<Uri> _deploy({
     required String siteId,
-    required String publicDirectory,
     required String serviceAccountJsonBase64,
     required Map<String, Object?> config,
+    String? publicDirectory,
+    String? firebaseConfigPath,
+    String? target,
     String? channelId,
     Duration expiresIn = const Duration(hours: 1),
     int maxPreviewChannels = 20,
     String? dir,
   }) async {
     validateHostingArguments(siteId, channelId, expiresIn, maxPreviewChannels);
-    if (publicDirectory.trim().isEmpty) {
-      throw ArgumentError('publicDirectory must not be empty.');
+    if (target != null &&
+        (target.trim().isEmpty || firebaseConfigPath == null)) {
+      throw ArgumentError(
+        'target must be non-empty and requires firebaseConfigPath.',
+      );
     }
-    final credentials = _credentials(serviceAccountJsonBase64);
+    final workingDirectory = _resolveDirectory(dir);
+    File? configFile;
+    FirebaseHostingConfig? firebaseConfig;
+    if (firebaseConfigPath != null) {
+      if (firebaseConfigPath.trim().isEmpty) {
+        throw ArgumentError('firebaseConfigPath must not be empty.');
+      }
+      if (config.isNotEmpty) {
+        throw ArgumentError(
+          'Use either firebaseConfigPath or config, not both.',
+        );
+      }
+      final file = File(firebaseConfigPath);
+      configFile = file.isAbsolute
+          ? file
+          : File('$workingDirectory/$firebaseConfigPath');
+      firebaseConfig = await FirebaseHostingConfig.load(
+        configFile,
+        siteId: siteId,
+        target: target,
+      );
+    }
+    final contentPath = publicDirectory ?? firebaseConfig?.publicDirectory;
+    if (contentPath == null || contentPath.trim().isEmpty) {
+      throw ArgumentError(
+        'Provide publicDirectory or hosting.public in firebase.json.',
+      );
+    }
     // Reject non-JSON configuration before creating channels or versions, and
     // keep potentially private configuration out of diagnostics.
     final Map<String, dynamic> servingConfig;
     try {
-      servingConfig = jsonDecode(jsonEncode(config)) as Map<String, dynamic>;
+      servingConfig =
+          jsonDecode(
+                jsonEncode(firebaseConfig?.servingConfig ?? config),
+              )
+              as Map<String, dynamic>;
     } catch (_) {
       throw ArgumentError('config must contain JSON-compatible ServingConfig.');
     }
-    final directory = Directory(publicDirectory);
+    final directory = Directory(contentPath);
+    final contentBase = publicDirectory == null
+        ? configFile!.parent.path
+        : workingDirectory;
     final content = directory.isAbsolute
         ? directory
-        : Directory('${_resolveDirectory(dir)}/$publicDirectory');
-    final files = await HostingFiles.prepare(content);
+        : Directory('$contentBase/$contentPath');
+    final credentials = _credentials(serviceAccountJsonBase64);
+    final files = await HostingFiles.prepare(
+      content,
+      ignore: firebaseConfig?.ignore ?? const [],
+    );
     final baseClient = _NoRedirectClient(http.Client());
     AutoRefreshingAuthClient? client;
     try {
