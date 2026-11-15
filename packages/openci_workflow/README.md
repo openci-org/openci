@@ -483,19 +483,24 @@ Deploy a built static site without installing Node.js or the Firebase CLI:
 ```dart
 final url = await openCI.firebaseHosting.deploy(
   siteId: 'my-hosting-site',
-  publicDirectory: 'build/web',
+  firebaseConfigPath: 'firebase.json',
   serviceAccountJsonBase64: Secrets.firebaseHostingServiceAccountJsonBase64.value,
-  config: {
-    'rewrites': [
-      {'glob': '**', 'path': '/index.html'},
-    ],
-  },
 );
 ```
 
+The helper reads the `hosting` section of `firebase.json`, including `public`, `ignore`, headers, redirects, static destination rewrites, `cleanUrls`, `trailingSlash`, `i18n` and `appAssociation`. It converts the [Firebase configuration format](https://firebase.google.com/docs/hosting/full-config) to the REST API's [`ServingConfig`](https://firebase.google.com/docs/reference/hosting/rest/v1beta1/sites.versions#ServingConfig), so there is no need to duplicate routing or cache settings in Dart.
+
 Create a dedicated service account with [Firebase Hosting Admin](https://docs.cloud.google.com/iam/docs/roles-permissions/firebasehosting) (`roles/firebasehosting.admin`) on the destination project. Enable the [Firebase Hosting API](https://firebase.google.com/docs/hosting/api-deploy) and set up the project's default Hosting site before using this helper; `siteId` can then identify any existing site in that project. Register its Base64-encoded JSON key as `FIREBASE_HOSTING_SERVICE_ACCOUNT_JSON_BASE64` in your team's secrets, run `openci sync --secrets`, and import the generated `Secrets` class. This is the same credential format as the FAD helpers. The key and OAuth token stay in memory.
 
-`publicDirectory` is relative to the workflow's `currentWorkingDirectory`, or to `dir` when supplied. `dir` is relative to the workspace; `dir: ''` selects the workspace root. Absolute content paths are accepted. Build the site before deploying: for example, Flutter web uses `build/web`, and Astro commonly uses `dist`. The helper uploads a snapshot of that directory, excluding hidden files/directories (except `.well-known`), `node_modules`, and `firebase.json`. Symlinks and empty output are rejected before any remote changes. This helper does not read `firebase.json`; `config` uses the REST API's [`ServingConfig`](https://firebase.google.com/docs/reference/hosting/rest/v1beta1/sites.versions#ServingConfig) format. In particular, rewrites use `glob` and `path` rather than `source` and `destination`.
+`firebaseConfigPath` is relative to the workflow's `currentWorkingDirectory`, or to `dir` when supplied. `hosting.public` is relative to the JSON file's directory. You can override it with `publicDirectory`, which is relative to the workflow directory or `dir`. `dir` is relative to the workspace; `dir: ''` selects the workspace root. Absolute file and content paths are accepted.
+
+For a Hosting array, the helper selects the entry whose `site` matches `siteId`. If entries use deploy targets, pass `target: 'website'` to select one. A single configuration without a `site` is accepted without `target`. The destination is always the explicit `siteId`; the helper does not resolve `.firebaserc` mappings. Missing, ambiguous and mismatched selections fail before authentication or publication.
+
+Build the site before deploying: for example, Flutter web uses `build/web`, and Astro commonly uses `dist`. Firebase CLI `predeploy` and `postdeploy` hooks are not executed. Framework builds and backend rewrites (`function`, `run`, `dynamicLinks`) are not supported by the JSON reader and fail before remote changes.
+
+The helper uploads a snapshot of the output, excluding hidden files/directories (except `.well-known`), `node_modules`, and `firebase.json`. `hosting.ignore` adds exclusions relative to that output; it supports `*`, `**`, `?`, character classes and brace alternatives, including directory exclusions. Negation and extglobs are rejected. For example, `**/.*` also excludes `.well-known`. Symlinks and output with no deployable files are rejected before any remote changes.
+
+Existing calls with `publicDirectory` and an optional `config` still work without loading any JSON file. `config` uses REST `ServingConfig` names (for example, rewrites use `glob` and `path`). Do not combine a non-empty `config` with `firebaseConfigPath`.
 
 ### Short-lived PR previews
 
@@ -506,15 +511,10 @@ Future<void> deployPrPreview(OpenCI openCI, int pullRequestNumber) async {
   final url = await openCI.firebaseHosting.deployPreview(
     siteId: 'my-hosting-site',
     channelId: 'web-pr-$pullRequestNumber',
-    publicDirectory: 'build/web',
+    firebaseConfigPath: 'firebase.json',
     serviceAccountJsonBase64: Secrets.firebaseHostingServiceAccountJsonBase64.value,
     expiresIn: const Duration(hours: 1), // Default; refreshed on each deploy.
     maxPreviewChannels: 20, // Default site-wide preview budget.
-    config: {
-      'rewrites': [
-        {'glob': '**', 'path': '/index.html'},
-      ],
-    },
   );
   await openCI.pullRequest.postQrCode(url: url, lang: PostQrCodeLang.ja);
 }

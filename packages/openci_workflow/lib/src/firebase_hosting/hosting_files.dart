@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:crypto/crypto.dart';
+import 'package:glob/glob.dart';
 
 /// A snapshot of the exact compressed bytes referenced by a Hosting manifest.
 class HostingFile {
@@ -18,7 +19,23 @@ class HostingFiles {
   final Directory _temporary;
   final List<HostingFile> files;
 
-  static Future<HostingFiles> prepare(Directory content) async {
+  static Future<HostingFiles> prepare(
+    Directory content, {
+    List<String> ignore = const [],
+  }) async {
+    final List<Glob> excluded;
+    try {
+      excluded = ignore.map((pattern) {
+        // Do not silently interpret an unsupported negated ignore as a literal.
+        if (pattern.startsWith('!')) throw const FormatException();
+        return Glob(pattern, caseSensitive: true);
+      }).toList();
+    } on FormatException {
+      throw const FormatException(
+        'hosting.ignore must contain supported glob patterns '
+        '(*, **, ?, character classes or braces; no negation or extglobs).',
+      );
+    }
     if (!await content.exists()) {
       throw ArgumentError('publicDirectory must be an existing directory.');
     }
@@ -29,9 +46,13 @@ class HostingFiles {
       Future<void> visit(Directory directory) async {
         await for (final entity in directory.list(followLinks: false)) {
           final name = entity.uri.pathSegments.where((p) => p.isNotEmpty).last;
+          final relative = entity.path
+              .substring(root.path.length + 1)
+              .replaceAll(Platform.pathSeparator, '/');
           if ((name.startsWith('.') && name != '.well-known') ||
               name == 'node_modules' ||
-              name == 'firebase.json') {
+              name == 'firebase.json' ||
+              excluded.any((glob) => glob.matches(relative))) {
             continue;
           }
           if (entity is Link) {
@@ -49,9 +70,6 @@ class HostingFiles {
                 );
             final hash = (await sha256.bind(compressed.openRead()).first)
                 .toString();
-            final relative = entity.path
-                .substring(root.path.length + 1)
-                .replaceAll(Platform.pathSeparator, '/');
             files.add(HostingFile('/$relative', hash, compressed));
           }
         }

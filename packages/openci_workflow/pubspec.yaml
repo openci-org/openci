@@ -12,6 +12,7 @@ dependencies:
   crypto: ^3.0.7
   dart_jsonwebtoken: ^3.4.1
   freezed_annotation: ^3.1.0
+  glob: ^2.2.0
   googleapis_auth: ^2.3.1
   http: ^1.6.0
   meta: ^1.17.0

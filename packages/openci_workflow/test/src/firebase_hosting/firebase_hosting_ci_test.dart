@@ -189,6 +189,401 @@ void main() {
     expect(env.requests, isEmpty);
   });
 
+  for (final preview in [false, true]) {
+    test(
+      'reads firebase.json and converts static rules (preview: $preview)',
+      () async {
+        await env.writeConfig({
+          'public': 'dist',
+          'cleanUrls': false,
+          'trailingSlash': true,
+          'appAssociation': 'NONE',
+          'i18n': {'root': '/localized'},
+          'predeploy': ['do not execute this hook'],
+          'postdeploy': 'do not execute this hook either',
+          'headers': [
+            {
+              'source': '**/*.js',
+              'headers': [
+                {'key': 'Cache-Control', 'value': 'public, max-age=300'},
+                {'key': 'X-Empty', 'value': ''},
+              ],
+            },
+          ],
+          'redirects': [
+            {'source': '/old/:path*', 'destination': '/new/:path', 'type': 301},
+            {'regex': '/news/.*', 'destination': '/blog', 'type': 302},
+          ],
+          'rewrites': [
+            {'source': '**', 'destination': '/index.html'},
+          ],
+        });
+        await env.deploy(
+          preview: preview,
+          publicDirectory: null,
+          firebaseConfigPath: 'firebase.json',
+        );
+        expect(env.versionConfig, {
+          'cleanUrls': false,
+          'trailingSlashBehavior': 'ADD',
+          'appAssociation': 'NONE',
+          'i18n': {'root': '/localized'},
+          'headers': [
+            {
+              'glob': '**/*.js',
+              'headers': {
+                'Cache-Control': 'public, max-age=300',
+                'X-Empty': '',
+              },
+            },
+          ],
+          'redirects': [
+            {
+              'glob': '/old/:path*',
+              'location': '/new/:path',
+              'statusCode': 301,
+            },
+            {'regex': '/news/.*', 'location': '/blog', 'statusCode': 302},
+          ],
+          'rewrites': [
+            {'glob': '**', 'path': '/index.html'},
+          ],
+        });
+        expect(
+          utf8.decode(gzip.decode(env.uploads.single.bodyBytes)),
+          'workflow content',
+        );
+      },
+    );
+  }
+
+  test(
+    'resolves hosting.public from the JSON parent and overrides from dir',
+    () async {
+      await env.writeConfig({
+        'public': '../dist',
+      }, path: 'web app/config/firebase.json');
+      await env.deploy(
+        publicDirectory: null,
+        firebaseConfigPath: 'config/firebase.json',
+      );
+      expect(
+        utf8.decode(gzip.decode(env.uploads.single.bodyBytes)),
+        'workflow content',
+      );
+      env.requests.clear();
+      final other = await Directory(
+        '${env.root.path}/other/dist',
+      ).create(recursive: true);
+      await File('${other.path}/index.html').writeAsString('override content');
+      await env.deploy(
+        dir: 'other',
+        firebaseConfigPath: '${env.root.path}/web app/config/firebase.json',
+      );
+      expect(
+        utf8.decode(gzip.decode(env.uploads.single.bodyBytes)),
+        'override content',
+      );
+    },
+  );
+
+  test(
+    'resolves relative JSON paths from dir, including the workspace root',
+    () async {
+      await env.writeConfig({'public': 'web app/dist'}, path: 'firebase.json');
+      await env.deploy(
+        dir: '',
+        publicDirectory: null,
+        firebaseConfigPath: 'firebase.json',
+      );
+      expect(
+        utf8.decode(gzip.decode(env.uploads.single.bodyBytes)),
+        'workflow content',
+      );
+      env.requests.clear();
+      await env.deploy(
+        dir: 'web app',
+        publicDirectory: null,
+        firebaseConfigPath: '../firebase.json',
+      );
+      expect(
+        utf8.decode(gzip.decode(env.uploads.single.bodyBytes)),
+        'workflow content',
+      );
+    },
+  );
+
+  test(
+    'accepts an absolute hosting.public and an override without hosting.public',
+    () async {
+      await env.writeConfig({'public': env.content.path});
+      await env.deploy(
+        publicDirectory: null,
+        firebaseConfigPath: 'firebase.json',
+      );
+      expect(env.uploads, hasLength(1));
+      env.requests.clear();
+      await env.writeConfig({'trailingSlash': false});
+      await env.deploy(firebaseConfigPath: 'firebase.json');
+      expect(env.versionConfig, {'trailingSlashBehavior': 'REMOVE'});
+    },
+  );
+
+  test('selects the matching site from a Hosting array', () async {
+    await env.writeConfig([
+      {'site': 'another-site', 'public': 'missing', 'cleanUrls': false},
+      {'site': 'demo-site', 'public': 'dist', 'cleanUrls': true},
+    ]);
+    await env.deploy(
+      publicDirectory: null,
+      firebaseConfigPath: 'firebase.json',
+    );
+    expect(env.versionConfig, {'cleanUrls': true});
+  });
+
+  test(
+    'selects deploy targets explicitly without reading .firebaserc',
+    () async {
+      await env.writeConfig([
+        {'target': 'other', 'public': 'missing', 'cleanUrls': false},
+        {'target': 'web', 'public': 'dist', 'cleanUrls': true},
+      ]);
+      await env.deploy(
+        preview: true,
+        publicDirectory: null,
+        firebaseConfigPath: 'firebase.json',
+        target: 'web',
+      );
+      expect(env.versionConfig, {'cleanUrls': true});
+    },
+  );
+
+  test('accepts a single target with an explicit destination site', () async {
+    await env.writeConfig({'target': 'web', 'public': 'dist'});
+    await env.deploy(
+      publicDirectory: null,
+      firebaseConfigPath: 'firebase.json',
+    );
+    expect(env.uploads, hasLength(1));
+  });
+
+  test(
+    'applies ignore patterns to files and directories before upload',
+    () async {
+      for (final path in [
+        'app.js',
+        'app.js.map',
+        'assets/app.js.map',
+        'private/note.txt',
+        '.well-known/assetlinks.json',
+        '.env',
+        'cache/nested/file.txt',
+        'data/a.txt',
+      ]) {
+        final file = File('${env.content.path}/$path');
+        await file.parent.create(recursive: true);
+        await file.writeAsString(path);
+      }
+      await env.writeConfig({
+        'public': 'dist',
+        'ignore': [
+          '**/*.map',
+          'private',
+          'cache/**',
+          '**/.*',
+          'data/{a,b}.txt',
+        ],
+      });
+      await env.deploy(
+        publicDirectory: null,
+        firebaseConfigPath: 'firebase.json',
+      );
+      expect(env.manifest.keys, ['/app.js', '/index.html']);
+    },
+  );
+
+  test(
+    'keeps default exclusions and .well-known when ignore is omitted',
+    () async {
+      await env.writeConfig({'public': 'dist'});
+      await File('${env.content.path}/.env').writeAsString('private-secret');
+      final association = File(
+        '${env.content.path}/.well-known/assetlinks.json',
+      );
+      await association.parent.create();
+      await association.writeAsString('[]');
+      await env.deploy(
+        publicDirectory: null,
+        firebaseConfigPath: 'firebase.json',
+      );
+      expect(env.manifest.keys, [
+        '/.well-known/assetlinks.json',
+        '/index.html',
+      ]);
+    },
+  );
+
+  test(
+    'does not implicitly load a nearby firebase.json for direct deployments',
+    () async {
+      await File(
+        '${env.root.path}/web app/firebase.json',
+      ).writeAsString('invalid');
+      await env.deploy(config: {'cleanUrls': true});
+      expect(env.versionConfig, {'cleanUrls': true});
+    },
+  );
+
+  for (final preview in [false, true]) {
+    final invalidHosting = <Object?>[
+      null,
+      [],
+      {'site': 'another-site', 'public': 'dist'},
+      [
+        {'site': 'demo-site', 'public': 'dist'},
+        {'site': 'demo-site', 'public': 'dist'},
+      ],
+      [
+        {'target': 'first', 'public': 'dist'},
+        {'target': 'second', 'public': 'dist'},
+      ],
+      {'site': 'demo-site', 'target': 'web', 'public': 'dist'},
+      {'public': ''},
+      {'public': 42},
+      {'cleanUrls': 'true'},
+      {'trailingSlash': null},
+      {'ignore': '*.map'},
+      {
+        'ignore': [42],
+      },
+      {
+        'ignore': ['[unclosed-private-value'],
+      },
+      {
+        'ignore': ['!private-value'],
+      },
+      {
+        'ignore': ['**/*.@(js|map)'],
+      },
+      {
+        'ignore': ['**'],
+      },
+      {'source': 'framework-source'},
+      {
+        'headers': [
+          {'source': '**', 'headers': 'private-value'},
+        ],
+      },
+      {
+        'redirects': [
+          {'source': '/old', 'destination': '/new', 'type': 200},
+        ],
+      },
+      {
+        'rewrites': [
+          {'source': '**', 'regex': '.*', 'destination': '/index.html'},
+        ],
+      },
+      {
+        'rewrites': [
+          {'source': '**', 'function': 'backend'},
+        ],
+      },
+      {
+        'rewrites': [
+          {
+            'source': '**',
+            'run': {'serviceId': 'backend'},
+          },
+        ],
+      },
+      {
+        'rewrites': [
+          {'source': '**', 'dynamicLinks': true},
+        ],
+      },
+      {
+        'rewrites': [
+          {'destination': '/index.html'},
+        ],
+      },
+      {
+        'rewrites': [
+          {'source': '**'},
+        ],
+      },
+      {
+        'i18n': {'root': 42},
+      },
+      {'appAssociation': 'invalid'},
+    ];
+    for (var i = 0; i < invalidHosting.length; i++) {
+      test(
+        'rejects invalid/unsupported Hosting before requests: $i (preview: $preview)',
+        () async {
+          await env.writeConfig(invalidHosting[i]);
+          await expectLater(
+            env.deploy(preview: preview, firebaseConfigPath: 'firebase.json'),
+            throwsA(anyOf(isA<ArgumentError>(), isA<FormatException>())),
+          );
+          expect(env.requests, isEmpty);
+        },
+      );
+    }
+  }
+
+  test(
+    'rejects missing public directory, conflicting config and unknown target',
+    () async {
+      await env.writeConfig({'target': 'web'});
+      for (final deployment in [
+        () => env.deploy(publicDirectory: null),
+        () => env.deploy(
+          publicDirectory: null,
+          firebaseConfigPath: 'firebase.json',
+        ),
+        () => env.deploy(
+          firebaseConfigPath: 'firebase.json',
+          config: {'cleanUrls': true},
+        ),
+        () =>
+            env.deploy(firebaseConfigPath: 'firebase.json', target: 'missing'),
+        () => env.deploy(target: 'web'),
+        () => env.deploy(firebaseConfigPath: 'firebase.json', target: ''),
+      ]) {
+        await expectLater(deployment(), throwsArgumentError);
+        expect(env.requests, isEmpty);
+      }
+    },
+  );
+
+  for (final path in ['', 'missing/firebase.json']) {
+    test('rejects missing or blank firebaseConfigPath: $path', () async {
+      await expectLater(
+        env.deploy(firebaseConfigPath: path),
+        throwsArgumentError,
+      );
+      expect(env.requests, isEmpty);
+    });
+  }
+
+  test('does not expose malformed JSON contents in errors', () async {
+    await File(
+      '${env.root.path}/web app/firebase.json',
+    ).writeAsString('{private-value');
+    await expectLater(
+      env.deploy(firebaseConfigPath: 'firebase.json'),
+      throwsA(
+        isA<FormatException>().having(
+          (e) => e.toString(),
+          'message',
+          isNot(contains('private-value')),
+        ),
+      ),
+    );
+    expect(env.requests, isEmpty);
+  });
+
   for (final path in ['', 'missing-directory', 'empty-directory']) {
     test(
       'rejects missing, empty or blank output before making requests: $path',
@@ -328,11 +723,46 @@ class _Environment {
       .where((r) => r.url.host == 'upload-firebasehosting.googleapis.com')
       .toList();
 
+  Map<String, dynamic> get versionConfig =>
+      jsonDecode(
+            requests
+                .singleWhere(
+                  (r) => r.method == 'POST' && r.url.path.endsWith('/versions'),
+                )
+                .body,
+          )['config']
+          as Map<String, dynamic>;
+
+  Map<String, dynamic> get manifest =>
+      jsonDecode(
+            requests
+                .singleWhere((r) => r.url.path.endsWith(':populateFiles'))
+                .body,
+          )['files']
+          as Map<String, dynamic>;
+
+  Future<void> writeConfig(
+    Object? hosting, {
+    String path = 'web app/firebase.json',
+  }) async {
+    final file = File('${root.path}/$path');
+    await file.parent.create(recursive: true);
+    await file.writeAsString(
+      jsonEncode({
+        'hosting': hosting,
+        // Other Firebase products must not be sent to the Hosting API.
+        'functions': {'source': 'functions'},
+      }),
+    );
+  }
+
   Future<Uri> deploy({
     bool preview = false,
     String siteId = 'demo-site',
     String channelId = 'pr-17',
-    String publicDirectory = 'dist',
+    String? publicDirectory = 'dist',
+    String? firebaseConfigPath,
+    String? target,
     String? credentials,
     String? dir,
     Duration expiresIn = const Duration(hours: 1),
@@ -355,6 +785,8 @@ class _Environment {
                 siteId: siteId,
                 channelId: channelId,
                 publicDirectory: publicDirectory,
+                firebaseConfigPath: firebaseConfigPath,
+                target: target,
                 serviceAccountJsonBase64: credentials ?? _credentials,
                 dir: dir,
                 config: config,
@@ -364,6 +796,8 @@ class _Environment {
             : ci.firebaseHosting.deploy(
                 siteId: siteId,
                 publicDirectory: publicDirectory,
+                firebaseConfigPath: firebaseConfigPath,
+                target: target,
                 serviceAccountJsonBase64: credentials ?? _credentials,
                 dir: dir,
                 config: config,
