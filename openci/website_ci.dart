@@ -51,7 +51,7 @@ Future<void> main() async {
   await openCI.run('bash scripts/ci.sh');
   switch (openCI.context) {
     case PullRequestContext(:final number):
-      final url = await openCI.firebaseHosting.deployPreview(
+      final preview = await openCI.firebaseHosting.deployPreview(
         siteId: 'openci-b1b91',
         channelId: 'pr-$number',
         expiresIn: const Duration(days: 7),
@@ -59,7 +59,11 @@ Future<void> main() async {
         serviceAccountJsonBase64:
             Secrets.firebaseHostingServiceAccountJsonBase64.value,
       );
-      await openCI.pullRequest.postQrCode(url: url, lang: PostQrCodeLang.ja);
+      await openCI.pullRequest.postQrCode(
+        url: preview.url,
+        expiresAt: preview.expiresAt,
+        lang: PostQrCodeLang.ja,
+      );
     case PushContext(branch: 'develop'):
       await openCI.firebaseHosting.deploy(
         siteId: 'openci-b1b91',

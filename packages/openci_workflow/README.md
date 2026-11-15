@@ -230,6 +230,8 @@ After the workflow succeeds, OpenCI posts the workflow's registered name, URL an
 
 English comments use `Workflow name`, `Version`, and `Build number`. Other URLs can supply `version: '1.16.2'` and `buildNumber: '3'` explicitly. Each value accepts up to 256 UTF-8 bytes, without leading/trailing whitespace or control characters. Unknown version or build values are omitted; CI run numbers are used internally to order updates and are never substituted for app build numbers.
 
+Pass an optional `DateTime expiresAt` to display `Expires at` / `有効期限`, for example `2026-11-22 06:05:30 UTC`. The timestamp is converted to UTC (years 1–9999); omitting it leaves out the expiry line. Expiry is always explicit, including for Hosting URLs, and is not remembered for later calls using the same URL. The comment remains visible after expiration. Display requires the updated executor; older executors ignore this optional field.
+
 Later successful runs with QR output update the same comment's workflow name, app details, URLs, images, size and language. A failed run keeps the previous successful comment. A URL's query and fragment are included in both the link and the QR code. A run accepts up to eight requests, each with a URL of up to 2,331 bytes and no embedded credentials. Push and local runs skip publication.
 
 App version details require both the updated executor and SDK 0.2.7 or later. Older SDKs still post URL-only output with the workflow name; older executors safely ignore the optional metadata and keep their existing comment format.
@@ -508,7 +510,7 @@ Use the same channel ID for every deployment of a PR. Include the repository and
 
 ```dart
 Future<void> deployPrPreview(OpenCI openCI, int pullRequestNumber) async {
-  final url = await openCI.firebaseHosting.deployPreview(
+  final preview = await openCI.firebaseHosting.deployPreview(
     siteId: 'my-hosting-site',
     channelId: 'web-pr-$pullRequestNumber',
     firebaseConfigPath: 'firebase.json',
@@ -516,9 +518,15 @@ Future<void> deployPrPreview(OpenCI openCI, int pullRequestNumber) async {
     expiresIn: const Duration(hours: 1), // Default; refreshed on each deploy.
     maxPreviewChannels: 20, // Default site-wide preview budget.
   );
-  await openCI.pullRequest.postQrCode(url: url, lang: PostQrCodeLang.ja);
+  await openCI.pullRequest.postQrCode(
+    url: preview.url,
+    expiresAt: preview.expiresAt,
+    lang: PostQrCodeLang.ja,
+  );
 }
 ```
+
+`deployPreview()` returns `FirebaseHostingPreview` with `Uri url` and `DateTime expiresAt` in UTC. The expiry is Firebase's actual [`expireTime`](https://firebase.google.com/docs/reference/hosting/rest/v1beta1/sites.channels#Channel) from the final channel refresh before release, rather than a local estimate from `expiresIn`. If Firebase omits a valid expiration time, deployment fails before releasing the version. When migrating from the earlier `Uri` return type, use `preview.url` wherever the URL was used. Live `deploy()` still returns `Uri`.
 
 The actual channel ID is prefixed with `openci-` (for example, `openci-web-pr-123`). The same channel keeps its URL while it exists. Redeploying refreshes the expiry, including just before publishing, instead of accepting Firebase's seven-day default. `expiresIn` accepts one minute through 30 days. Preview channels retain one previous release, the minimum supported by Firebase.
 

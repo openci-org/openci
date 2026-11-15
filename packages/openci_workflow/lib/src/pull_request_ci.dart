@@ -62,13 +62,22 @@ class PullRequestCI {
   /// Firebase App Distribution uploads automatically provide the uploaded
   /// app's version and build number for their returned tester URL. Other
   /// URLs can supply [version] and [buildNumber] explicitly.
+  ///
+  /// Supply [expiresAt] explicitly to display a URL's expiration time in UTC.
+  /// Omitting it leaves out the expiry line. This does not hide the comment
+  /// after expiration. The UTC year must be between 1 and 9999.
   Future<void> postQrCode({
     required Uri url,
     PostQrCodeLang lang = PostQrCodeLang.en,
     PostQrCodeSize size = PostQrCodeSize.medium,
     String? version,
     String? buildNumber,
+    DateTime? expiresAt,
   }) async {
+    final expiry = expiresAt?.toUtc();
+    if (expiry != null && (expiry.year < 1 || expiry.year > 9999)) {
+      throw ArgumentError('expiresAt must have a UTC year between 1 and 9999.');
+    }
     final suppliedMetadata = validatedReleaseMetadata(
       version: version,
       buildNumber: buildNumber,
@@ -99,6 +108,7 @@ class PullRequestCI {
     final metadata = {
       ...await readPullRequestRelease(url),
       ...suppliedMetadata,
+      'expiresAt': ?expiry?.toIso8601String(),
     };
     // Each call owns a file. A rename makes the complete record visible even
     // when multiple isolates or processes request QR codes at the same time.

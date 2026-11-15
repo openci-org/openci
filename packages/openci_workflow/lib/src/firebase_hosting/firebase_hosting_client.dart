@@ -46,7 +46,7 @@ class FirebaseHostingClient {
   final Duration uploadTimeout;
   final DateTime Function() _now;
 
-  Future<Uri> deploy({
+  Future<({Uri url, DateTime? expiresAt})> deploy({
     required String siteId,
     required List<HostingFile> files,
     Map<String, Object?> config = const {},
@@ -129,6 +129,12 @@ class FirebaseHostingClient {
       final url = channel == null
           ? Uri.https('$siteId.web.app', '')
           : _previewUrl(channel['url'], siteId);
+      final expiresAt = channel == null ? null : _time(channel['expireTime']);
+      if (channel != null && (expiresAt == null || !expiresAt.isUtc)) {
+        throw StateError(
+          'Firebase returned an invalid preview expiration time.',
+        );
+      }
       releaseAttempted = true;
       final released = await _json(
         'POST',
@@ -144,7 +150,7 @@ class FirebaseHostingClient {
           ![null, 'DEPLOY', 'TYPE_UNSPECIFIED'].contains(released['type'])) {
         throw StateError('Firebase returned an invalid Hosting release.');
       }
-      return url;
+      return (url: url, expiresAt: expiresAt);
     } catch (_) {
       // A lost release response may already have published this version.
       if (!releaseAttempted) {

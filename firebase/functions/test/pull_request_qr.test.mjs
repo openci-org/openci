@@ -79,7 +79,11 @@ test("collects completed request files and the preview SDK output from the runne
   await writeFile(join(dir, "qr-1", "url"), "ja\t120x120\t" + link + "\n");
   await writeFile(
     join(dir, "qr-1", "metadata.json"),
-    JSON.stringify({ version: "1.16.2", buildNumber: "3" }),
+    JSON.stringify({
+      version: "1.16.2",
+      buildNumber: "3",
+      expiresAt: "2026-11-22T06:05:30.123456Z",
+    }),
   );
   await writeFile(join(dir, "qr-2", "pending"), "unfinished");
   await writeFile(join(dir, "legacy"), "https://example.org/previous\n");
@@ -97,7 +101,15 @@ test("collects completed request files and the preview SDK output from the runne
     signal,
   );
   assert.deepEqual(codes, [
-    { url: link, lang: "ja", width: 120, height: 120, version: "1.16.2", buildNumber: "3" },
+    {
+      url: link,
+      lang: "ja",
+      width: 120,
+      height: 120,
+      version: "1.16.2",
+      buildNumber: "3",
+      expiresAt: "2026-11-22T06:05:30.123456Z",
+    },
     { url: "https://example.org/previous", lang: "en", width: 180, height: 180 },
   ]);
 });
@@ -194,6 +206,11 @@ test("bounds and validates release metadata while keeping it paired with its URL
   assert.deepEqual(await read(frame(url, { buildNumber: "3" })), [
     { url: link, lang: "ja", width: 180, height: 180, buildNumber: "3" },
   ]);
+  const expiresAt = "2026-11-22T06:05:30.000Z";
+  assert.deepEqual(await read(frame(url, { expiresAt }) + frame(url)), [
+    { url: link, lang: "ja", width: 180, height: 180, expiresAt },
+    { url: link, lang: "ja", width: 180, height: 180 },
+  ]);
   for (const metadata of [
     null,
     [],
@@ -206,6 +223,15 @@ test("bounds and validates release metadata while keeping it paired with its URL
     { version: "x".repeat(257) },
     { version: "あ".repeat(86) },
     { ignored: "x".repeat(2048) },
+    { expiresAt: null },
+    { expiresAt: 1795327530 },
+    { expiresAt: "" },
+    { expiresAt: "tomorrow" },
+    { expiresAt: "2026-11-22T06:05:30.000" },
+    { expiresAt: "2026-11-22T15:05:30.000+09:00" },
+    { expiresAt: "2026-02-30T06:05:30.000Z" },
+    { expiresAt: "2026-11-22T24:00:00.000Z" },
+    { expiresAt: "2026-11-22T06:05:30.000Z\n@someone" },
   ])
     await assert.rejects(read(frame(url, metadata)));
   await assert.rejects(read(frame(url + url, { version: "1.16.2" })));
@@ -343,7 +369,7 @@ test("publishes a pinned, repository-local QR and reconciles a raced branch or l
     ),
   );
   assert.match(f.comments[1].body, /Workflow name: `IOS CD`/);
-  assert.doesNotMatch(f.comments[1].body, /Run #|Version:|Build number:/);
+  assert.doesNotMatch(f.comments[1].body, /Run #|Version:|Build number:|Expires at:|有効期限:/);
   assert.match(f.comments[1].body, /:17 -->$/);
   await f.publish();
   assert.equal(f.comments.length, 2);
@@ -526,4 +552,35 @@ test("renders metadata as inline code, with no markup, mentions or PR references
   await assert.rejects(
     f.publish("4", [{ url: link, lang: "en", width: 180, height: 180, buildNumber: "3\n#71" }], 18),
   );
+});
+
+test("localizes explicit expiry, refreshes it on the same comment, and omits it when absent", async () => {
+  const f = githubFixture();
+  const code = { url: link, lang: "ja", width: 180, height: 180 };
+  await f.publish("4", [
+    { ...code, expiresAt: "2026-11-22T06:05:30.000Z" },
+    { ...code, lang: "en", expiresAt: "2026-11-22T06:05:30.123456Z" },
+  ]);
+  const original = f.comments[0];
+  assert.match(original.body, /有効期限: `2026-11-22 06:05:30 UTC`/);
+  assert.match(original.body, /Expires at: `2026-11-22 06:05:30\.123456 UTC`/);
+  assert.equal(f.treeInputs[0].tree.length, 1);
+  await f.publish("4", [{ ...code, expiresAt: "2026-11-29T06:00:00.000Z" }], 18);
+  assert.equal(f.comments[0].id, original.id);
+  assert.match(original.body, /有効期限: `2026-11-29 06:00:00 UTC`/);
+  assert.doesNotMatch(original.body, /2026-11-22/);
+  await f.publish("4", [code], 19);
+  assert.equal(f.comments.length, 1);
+  assert.doesNotMatch(original.body, /Expires at:|有効期限:/);
+  assert.deepEqual(f.state.writes, ["create", "edit", "edit"]);
+});
+
+test("rejects malformed expiry before writing images or comments", async () => {
+  const f = githubFixture();
+  await assert.rejects(
+    f.publish("4", [{ url: link, lang: "en", width: 180, height: 180, expiresAt: "invalid" }]),
+    /Invalid pull request QR expiration time/,
+  );
+  assert.equal(f.treeInputs.length, 0);
+  assert.equal(f.comments.length, 0);
 });

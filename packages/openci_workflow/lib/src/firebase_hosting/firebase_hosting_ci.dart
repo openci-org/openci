@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 
 import 'firebase_hosting_client.dart';
 import 'firebase_hosting_config.dart';
+import 'firebase_hosting_preview.dart';
 import 'hosting_files.dart';
 
 /// Firebase Hosting deployments using in-memory service account credentials.
@@ -41,7 +42,7 @@ class FirebaseHostingCI {
     String? target,
     Map<String, Object?> config = const {},
     String? dir,
-  }) => _deploy(
+  }) async => (await _deploy(
     siteId: siteId,
     publicDirectory: publicDirectory,
     firebaseConfigPath: firebaseConfigPath,
@@ -49,9 +50,13 @@ class FirebaseHostingCI {
     serviceAccountJsonBase64: serviceAccountJsonBase64,
     config: config,
     dir: dir,
-  );
+  )).url;
 
-  /// Deploys a reusable preview and returns its URL.
+  /// Deploys a reusable preview and returns its URL and actual expiry in UTC.
+  ///
+  /// Pass the result's `url` and `expiresAt` explicitly to `postQrCode` to
+  /// display the expiration time in the PR comment. The expiry comes from
+  /// Firebase's final channel refresh, rather than the local clock.
   ///
   /// Use a stable [channelId], such as `pr-123`, for each PR. The actual channel
   /// ID is prefixed with `openci-`. Re-deployment refreshes [expiresIn], which
@@ -69,7 +74,7 @@ class FirebaseHostingCI {
   /// Authentication, [firebaseConfigPath], [target], content paths and [config]
   /// work as in [deploy]. The helper does not change Firebase Authentication's
   /// authorized domains.
-  Future<Uri> deployPreview({
+  Future<FirebaseHostingPreview> deployPreview({
     required String siteId,
     required String channelId,
     required String serviceAccountJsonBase64,
@@ -80,20 +85,26 @@ class FirebaseHostingCI {
     int maxPreviewChannels = 20,
     Map<String, Object?> config = const {},
     String? dir,
-  }) => _deploy(
-    siteId: siteId,
-    publicDirectory: publicDirectory,
-    firebaseConfigPath: firebaseConfigPath,
-    target: target,
-    serviceAccountJsonBase64: serviceAccountJsonBase64,
-    channelId: channelId,
-    expiresIn: expiresIn,
-    maxPreviewChannels: maxPreviewChannels,
-    config: config,
-    dir: dir,
-  );
+  }) async {
+    final result = await _deploy(
+      siteId: siteId,
+      publicDirectory: publicDirectory,
+      firebaseConfigPath: firebaseConfigPath,
+      target: target,
+      serviceAccountJsonBase64: serviceAccountJsonBase64,
+      channelId: channelId,
+      expiresIn: expiresIn,
+      maxPreviewChannels: maxPreviewChannels,
+      config: config,
+      dir: dir,
+    );
+    return FirebaseHostingPreview(
+      url: result.url,
+      expiresAt: result.expiresAt!,
+    );
+  }
 
-  Future<Uri> _deploy({
+  Future<({Uri url, DateTime? expiresAt})> _deploy({
     required String siteId,
     required String serviceAccountJsonBase64,
     required Map<String, Object?> config,
@@ -178,7 +189,7 @@ class FirebaseHostingCI {
           'Could not authenticate the Firebase service account.',
         );
       }
-      final url = await FirebaseHostingClient(client).deploy(
+      final result = await FirebaseHostingClient(client).deploy(
         siteId: siteId,
         files: files.files,
         config: servingConfig,
@@ -186,8 +197,8 @@ class FirebaseHostingCI {
         expiresIn: expiresIn,
         maxPreviewChannels: maxPreviewChannels,
       );
-      stdout.writeln('Firebase Hosting deployment complete: $url');
-      return url;
+      stdout.writeln('Firebase Hosting deployment complete: ${result.url}');
+      return result;
     } finally {
       client?.close();
       baseClient.close();
