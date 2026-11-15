@@ -14,12 +14,14 @@ const commentText = {
     workflow: "Workflow name",
     version: "Version",
     buildNumber: "Build number",
+    expiresAt: "Expires at",
     alt: "QR code for this link",
   },
   ja: {
     workflow: "ワークフロー名",
     version: "バージョン",
     buildNumber: "ビルド番号",
+    expiresAt: "有効期限",
     alt: "このリンクのQRコード",
   },
 } as const;
@@ -32,6 +34,7 @@ export type PullRequestQrCode = {
   height: number;
   version?: string;
   buildNumber?: string;
+  expiresAt?: string;
 };
 export type WithQrCommentLease = (
   key: string,
@@ -66,15 +69,15 @@ function validatedQrCode(
   ) {
     throw new Error("Invalid pull request QR URL");
   }
-  return { url, lang, width, height, ...validatedReleaseMetadata(metadata) };
+  return { url, lang, width, height, ...validatedQrMetadata(metadata) };
 }
 
-function validatedReleaseMetadata(
+function validatedQrMetadata(
   metadata: unknown,
-): Pick<PullRequestQrCode, "version" | "buildNumber"> {
+): Pick<PullRequestQrCode, "version" | "buildNumber" | "expiresAt"> {
   if (typeof metadata !== "object" || metadata === null || Array.isArray(metadata))
     throw new Error("Invalid app release metadata");
-  const result: Pick<PullRequestQrCode, "version" | "buildNumber"> = {};
+  const result: Pick<PullRequestQrCode, "version" | "buildNumber" | "expiresAt"> = {};
   for (const field of ["version", "buildNumber"] as const) {
     const value = (metadata as Record<string, unknown>)[field];
     if (value === undefined) continue;
@@ -88,6 +91,21 @@ function validatedReleaseMetadata(
       throw new Error("Invalid app release metadata");
     }
     result[field] = value;
+  }
+  const expiresAt = (metadata as Record<string, unknown>).expiresAt;
+  if (expiresAt !== undefined) {
+    // The SDK sends UTC ISO timestamps with millisecond or microsecond precision.
+    if (
+      typeof expiresAt !== "string" ||
+      !/^(?!0000)[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]{3}(?:[0-9]{3})?Z$/.test(
+        expiresAt,
+      ) ||
+      !Number.isFinite(Date.parse(expiresAt)) ||
+      new Date(expiresAt).toISOString() !== expiresAt.replace(/(\.[0-9]{3})[0-9]{3}Z$/, "$1Z")
+    ) {
+      throw new Error("Invalid pull request QR expiration time");
+    }
+    result.expiresAt = expiresAt;
   }
   return result;
 }
@@ -283,6 +301,7 @@ export async function publishPullRequestQrCodes(
     validatedQrCode(code.url, code.lang, code.width, code.height, {
       version: code.version,
       buildNumber: code.buildNumber,
+      expiresAt: code.expiresAt,
     });
   const repo = { owner: job.owner, repo: job.repo };
   const number = Number(job.pullRequestNumber);
@@ -346,7 +365,7 @@ export async function publishPullRequestQrCodes(
   const sections: string[] = [];
   for (const lang of new Set(codes.map((code) => code.lang))) {
     const labels = commentText[lang];
-    for (const { url, width, height, version, buildNumber } of codes.filter(
+    for (const { url, width, height, version, buildNumber, expiresAt } of codes.filter(
       (code) => code.lang === lang,
     )) {
       const details = [
@@ -354,6 +373,10 @@ export async function publishPullRequestQrCodes(
       ];
       if (version) details.push(`${labels.version}: ${inlineCode(version)}`);
       if (buildNumber) details.push(`${labels.buildNumber}: ${inlineCode(buildNumber)}`);
+      if (expiresAt)
+        details.push(
+          `${labels.expiresAt}: ${inlineCode(expiresAt.replace("T", " ").replace(/(?:\.0+)?Z$/, " UTC"))}`,
+        );
       sections.push(details.join("  \n"));
       // GitHub expands HTML entities inside autolinks, e.g. &copy; in a query.
       const markdownUrl = url.replaceAll("&", "&amp;");

@@ -95,6 +95,12 @@ void main() {
     () async {
       final url = await env.deploy(preview: true);
       expect(url.host, 'demo-site--openci-pr-17-abc123.web.app');
+      expect(env.previewResult!.url, url);
+      expect(
+        env.previewResult!.expiresAt,
+        DateTime.utc(2026, 11, 22, 6, 5, 30),
+      );
+      expect(env.previewResult!.expiresAt.isUtc, isTrue);
       final create = env.requests.singleWhere(
         (r) => r.method == 'POST' && r.url.path.endsWith('/channels'),
       );
@@ -706,6 +712,7 @@ class _Environment {
   final requests = <http.Request>[];
   final clients = <_TrackingClient>[];
   int authStatus = 200;
+  FirebaseHostingPreview? previewResult;
 
   static Future<_Environment> create() async {
     final root = await Directory.systemTemp.createTemp(
@@ -781,18 +788,23 @@ class _Environment {
     return http.runWithClient(
       () => IOOverrides.runZoned(
         () => preview
-            ? ci.firebaseHosting.deployPreview(
-                siteId: siteId,
-                channelId: channelId,
-                publicDirectory: publicDirectory,
-                firebaseConfigPath: firebaseConfigPath,
-                target: target,
-                serviceAccountJsonBase64: credentials ?? _credentials,
-                dir: dir,
-                config: config,
-                expiresIn: expiresIn,
-                maxPreviewChannels: budget,
-              )
+            ? ci.firebaseHosting
+                  .deployPreview(
+                    siteId: siteId,
+                    channelId: channelId,
+                    publicDirectory: publicDirectory,
+                    firebaseConfigPath: firebaseConfigPath,
+                    target: target,
+                    serviceAccountJsonBase64: credentials ?? _credentials,
+                    dir: dir,
+                    config: config,
+                    expiresIn: expiresIn,
+                    maxPreviewChannels: budget,
+                  )
+                  .then((result) {
+                    previewResult = result;
+                    return result.url;
+                  })
             : ci.firebaseHosting.deploy(
                 siteId: siteId,
                 publicDirectory: publicDirectory,
@@ -842,6 +854,9 @@ class _Environment {
             return _json({
               'name': 'sites/demo-site/channels/openci-pr-17',
               'url': 'https://demo-site--openci-pr-17-abc123.web.app',
+              'expireTime': r.method == 'PATCH'
+                  ? '2026-11-22T06:05:30Z'
+                  : '2026-11-22T06:00:00Z',
               'labels': {'openci-workflow': 'preview'},
             });
           }

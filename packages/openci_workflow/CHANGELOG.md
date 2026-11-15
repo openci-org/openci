@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- **Breaking:** `firebaseHosting.deployPreview()` now returns `FirebaseHostingPreview` with `url` and the actual Firebase `expiresAt` in UTC. Replace uses of the previous `Uri` result with `preview.url`; live `deploy()` still returns `Uri`.
+- Add optional `DateTime expiresAt` to `pullRequest.postQrCode()` to display an explicit expiration time in English or Japanese PR comments. Pass `preview.expiresAt` to reuse the Hosting expiry. Omitting it leaves out the expiry line; display requires the updated executor.
+
 ## 0.3.1
 
 - Read static Hosting settings from `firebaseConfigPath` in `deploy()` and `deployPreview()`, including public paths, ignore patterns, routing and response headers. Select multi-site configurations by site ID or deploy target, with optional public-directory overrides.

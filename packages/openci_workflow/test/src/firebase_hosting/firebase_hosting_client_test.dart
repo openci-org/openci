@@ -50,7 +50,7 @@ void main() {
       };
       expect(
         await env.deploy(config: config),
-        Uri.parse('https://$_site.web.app'),
+        (url: Uri.parse('https://$_site.web.app'), expiresAt: null),
       );
       final manifest =
           jsonDecode(
@@ -148,9 +148,9 @@ void main() {
             ? response
             : _json(canonical(jsonDecode(response.body))!);
       };
-      expect((await env.deploy()).host, '$_site.web.app');
+      expect((await env.deploy()).url.host, '$_site.web.app');
       expect(
-        (await env.deploy(channelId: _channel)).host,
+        (await env.deploy(channelId: _channel)).url.host,
         '$_site--$_channel-abc123.web.app',
       );
     },
@@ -212,9 +212,13 @@ void main() {
   test(
     'creates a one-hour preview, then reuses its URL and refreshes expiry',
     () async {
-      final url = await env.deploy(channelId: _channel);
-      expect(await env.deploy(channelId: _channel), url);
-      expect(url.toString(), 'https://$_site--$_channel-abc123.web.app');
+      final preview = await env.deploy(channelId: _channel);
+      expect(await env.deploy(channelId: _channel), preview);
+      expect(
+        preview.url.toString(),
+        'https://$_site--$_channel-abc123.web.app',
+      );
+      expect(preview.expiresAt, _now.add(const Duration(hours: 1)));
       final creates = env.requests.where(
         (r) => r.method == 'POST' && r.url.path.endsWith('/channels'),
       );
@@ -252,23 +256,44 @@ void main() {
   );
 
   test(
-    'uses the refreshed preview URL if an expired channel is recreated',
+    'returns the final server expiry and URL when a preview is refreshed',
     () async {
       env.intercept = (r) async {
         if (r.method == 'PATCH' && r.url.path.contains('/channels/')) {
           return _json({
             ..._channelData(_channel),
             'url': 'https://$_site--$_channel-new123.web.app',
+            'expireTime': '2026-11-12T07:05:30.123456789Z',
           });
         }
         return null;
       };
-      expect(
-        (await env.deploy(channelId: _channel)).host,
-        '$_site--$_channel-new123.web.app',
-      );
+      final preview = await env.deploy(channelId: _channel);
+      expect(preview.url.host, '$_site--$_channel-new123.web.app');
+      expect(preview.expiresAt, DateTime.utc(2026, 11, 12, 7, 5, 30, 123, 456));
+      expect(preview.expiresAt!.isUtc, isTrue);
+      expect(preview.expiresAt, isNot(_now.add(const Duration(hours: 1))));
     },
   );
+
+  for (final expiry in [null, 123, 'invalid', '2026-11-12T07:00:00']) {
+    test(
+      'rejects an invalid final preview expiry before release: $expiry',
+      () async {
+        env.intercept = (r) async =>
+            r.method == 'PATCH' && r.url.path.contains('/channels/')
+            ? _json({..._channelData(_channel), 'expireTime': expiry})
+            : null;
+        await expectLater(env.deploy(channelId: _channel), throwsStateError);
+        expect(
+          env.requests.where((r) => r.url.path.endsWith('/releases')),
+          isEmpty,
+        );
+        expect(env.requests.last.method, 'DELETE');
+        expect(env.requests.last.url.path, '/v1beta1/$_version');
+      },
+    );
+  }
 
   test(
     'deletes expired previews first, then oldest owned channels to fit the budget',
@@ -614,7 +639,7 @@ class _Environment {
       .map((r) => r.url.pathSegments.last)
       .toList();
 
-  Future<Uri> deploy({
+  Future<({Uri url, DateTime? expiresAt})> deploy({
     String? channelId,
     int budget = 20,
     List<HostingFile>? files,

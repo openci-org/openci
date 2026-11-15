@@ -59,7 +59,7 @@ Future<void> main() async {
   await ci.run('flutter build web --release --no-pub');
   switch (ci.context) {
     case PullRequestContext(:final number):
-      final url = await ci.firebaseHosting.deployPreview(
+      final preview = await ci.firebaseHosting.deployPreview(
         siteId: 'dashboard-openci',
         channelId: 'pr-$number',
         expiresIn: const Duration(days: 7),
@@ -68,7 +68,11 @@ Future<void> main() async {
         serviceAccountJsonBase64:
             Secrets.firebaseHostingServiceAccountJsonBase64.value,
       );
-      await ci.pullRequest.postQrCode(url: url, lang: PostQrCodeLang.ja);
+      await ci.pullRequest.postQrCode(
+        url: preview.url,
+        expiresAt: preview.expiresAt,
+        lang: PostQrCodeLang.ja,
+      );
     case PushContext(branch: 'develop'):
       await ci.firebaseHosting.deploy(
         siteId: 'dashboard-openci',

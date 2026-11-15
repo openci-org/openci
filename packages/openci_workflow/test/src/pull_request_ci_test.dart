@@ -95,6 +95,16 @@ Future<void> main(List<String> args) async {
     await pr.postQrCode(url: Uri.parse(args[1]), version: args[2], buildNumber: args[3]);
     return;
   }
+  if (args.first == 'expiry') {
+    final expiresAt = DateTime.parse(args[2]).toLocal();
+    await pr.postQrCode(
+      url: Uri.parse(args[1]), expiresAt: expiresAt,
+      version: '1.16.2', buildNumber: '3',
+    );
+    // Reusing the URL must not implicitly reuse its previous expiration time.
+    await pr.postQrCode(url: Uri.parse(args[1]));
+    return;
+  }
   if (args.first == 'parallel') {
     await Future.wait(args.skip(1).map((link) => pr.postQrCode(url: Uri.parse(link))));
     return;
@@ -193,6 +203,41 @@ Future<void> main(List<String> args) async {
     }
     return result;
   }
+
+  test(
+    'writes explicit expiry in UTC alongside app metadata without caching it',
+    () async {
+      final expiryOutput = await Directory('${root.path}/expiry').create();
+      final result = await run(
+        {'OPENCI_PR_QR_OUTPUT': expiryOutput.path, 'TZ': 'Asia/Tokyo'},
+        args: ['expiry', preview, '2026-11-22T15:05:30.123456+09:00'],
+      );
+      expect(result.exitCode, 0, reason: result.stderr.toString());
+      expect(await readRecords(expiryOutput), [
+        'en\t180x180\t$preview',
+        'en\t180x180\t$preview',
+      ]);
+      expect(await readMetadata(expiryOutput), [
+        {
+          'version': '1.16.2',
+          'buildNumber': '3',
+          'expiresAt': '2026-11-22T06:05:30.123456Z',
+        },
+      ]);
+    },
+  );
+
+  test('rejects expiry years outside the supported timestamp range', () async {
+    for (final year in [0, 10000]) {
+      await expectLater(
+        const PullRequestCI().postQrCode(
+          url: Uri.parse(preview),
+          expiresAt: DateTime.utc(year),
+        ),
+        throwsArgumentError,
+      );
+    }
+  });
 
   for (final platform in ['ios', 'android']) {
     test(
