@@ -179,11 +179,24 @@ void main() {
       'Dashboard Web Hosting',
     });
   });
-  test('runtime SDK and workspace resolution changes run all PR workflows', () {
+  test('runtime SDK changes skip app workflows', () {
+    final result = plan(
+      definitions,
+      diff(['packages/openci_workflow/lib/openci_workflow.dart']),
+    );
+    expect(result.jobs.map((job) => job.workflowName).toSet(), {
+      'Firebase Functions CI',
+      'Dart Functions CI',
+      'OpenCI Shared CI',
+      'OpenCI Workflow CI',
+      'Dart Format Check',
+    });
+  });
+  test('workspace resolution changes run all PR workflows', () {
     for (final path in [
-      'packages/openci_workflow/lib/openci_workflow.dart',
       'pubspec.lock',
       'apps/dashboard/pubspec.yaml',
+      'packages/openci_workflow/pubspec.yaml',
     ]) {
       expect(
         plan(definitions, diff([path])).jobs,
