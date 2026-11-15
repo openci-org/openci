@@ -1,7 +1,6 @@
 import 'package:openci_workflow/openci_workflow.dart';
 
 import 'generated/secrets.g.dart';
-import 'tool/deploy_hosting.dart' as hosting;
 
 Future<void> main() async {
   final openCI = await OpenCI.init(
@@ -18,7 +17,6 @@ Future<void> main() async {
           'vite.config.mts',
           '.node-version',
           'openci/website_ci.dart',
-          'openci/tool/deploy_hosting.dart',
           'openci/tool/with_node.sh',
           'packages/pubspec_version_hook/**',
           'openci/generated/**',
@@ -37,7 +35,6 @@ Future<void> main() async {
           'vite.config.mts',
           '.node-version',
           'openci/website_ci.dart',
-          'openci/tool/deploy_hosting.dart',
           'openci/tool/with_node.sh',
           'packages/pubspec_version_hook/**',
           'openci/generated/**',
@@ -52,9 +49,25 @@ Future<void> main() async {
 
   // Bootstrap the pinned runtime; CI VMs may not have Node.js/npm installed.
   await openCI.run('bash scripts/ci.sh');
-  await hosting.publish(
-    openCI,
-    hosting.Site.website,
-    Secrets.firebaseHostingServiceAccountJsonBase64,
-  );
+  switch (openCI.context) {
+    case PullRequestContext(:final number):
+      final url = await openCI.firebaseHosting.deployPreview(
+        siteId: 'openci-b1b91',
+        channelId: 'pr-$number',
+        expiresIn: const Duration(days: 7),
+        firebaseConfigPath: 'firebase.json',
+        serviceAccountJsonBase64:
+            Secrets.firebaseHostingServiceAccountJsonBase64.value,
+      );
+      await openCI.pullRequest.postQrCode(url: url, lang: PostQrCodeLang.ja);
+    case PushContext(branch: 'develop'):
+      await openCI.firebaseHosting.deploy(
+        siteId: 'openci-b1b91',
+        firebaseConfigPath: 'firebase.json',
+        serviceAccountJsonBase64:
+            Secrets.firebaseHostingServiceAccountJsonBase64.value,
+      );
+    case PushContext() || LocalContext():
+      break;
+  }
 }

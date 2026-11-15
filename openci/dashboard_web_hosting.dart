@@ -2,7 +2,6 @@ import 'package:openci_workflow/openci_workflow.dart';
 
 import 'generated/paths.g.dart';
 import 'generated/secrets.g.dart';
-import 'tool/deploy_hosting.dart' as hosting;
 
 Future<void> main() async {
   final ci = await OpenCI.init(
@@ -23,8 +22,6 @@ Future<void> main() async {
           'packages/openci_shared/**',
           'packages/pubspec_version_hook/**',
           'openci/dashboard_web_hosting.dart',
-          'openci/tool/deploy_hosting.dart',
-          'openci/tool/with_node.sh',
           'openci/generated/**',
           '**/pubspec.yaml',
           'pubspec.lock',
@@ -44,8 +41,6 @@ Future<void> main() async {
           'packages/openci_shared/**',
           'packages/pubspec_version_hook/**',
           'openci/dashboard_web_hosting.dart',
-          'openci/tool/deploy_hosting.dart',
-          'openci/tool/with_node.sh',
           'openci/generated/**',
           '**/pubspec.yaml',
           'pubspec.lock',
@@ -62,9 +57,27 @@ Future<void> main() async {
     base64Content: Secrets.firebaseOptionsDartBase64.value,
   );
   await ci.run('flutter build web --release --no-pub');
-  await hosting.publish(
-    ci,
-    hosting.Site.dashboard,
-    Secrets.firebaseHostingServiceAccountJsonBase64,
-  );
+  switch (ci.context) {
+    case PullRequestContext(:final number):
+      final url = await ci.firebaseHosting.deployPreview(
+        siteId: 'dashboard-openci',
+        channelId: 'pr-$number',
+        expiresIn: const Duration(days: 7),
+        firebaseConfigPath: '../../firebase/firebase.json',
+        publicDirectory: 'build/web',
+        serviceAccountJsonBase64:
+            Secrets.firebaseHostingServiceAccountJsonBase64.value,
+      );
+      await ci.pullRequest.postQrCode(url: url, lang: PostQrCodeLang.ja);
+    case PushContext(branch: 'develop'):
+      await ci.firebaseHosting.deploy(
+        siteId: 'dashboard-openci',
+        firebaseConfigPath: '../../firebase/firebase.json',
+        publicDirectory: 'build/web',
+        serviceAccountJsonBase64:
+            Secrets.firebaseHostingServiceAccountJsonBase64.value,
+      );
+    case PushContext() || LocalContext():
+      break;
+  }
 }
