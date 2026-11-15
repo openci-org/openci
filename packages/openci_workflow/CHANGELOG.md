@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.3.1
 
 - Read static Hosting settings from `firebaseConfigPath` in `deploy()` and `deployPreview()`, including public paths, ignore patterns, routing and response headers. Select multi-site configurations by site ID or deploy target, with optional public-directory overrides.
 
