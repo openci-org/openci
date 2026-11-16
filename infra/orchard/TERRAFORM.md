@@ -15,7 +15,7 @@ Terraform owns:
 - The four `ORCHARD_*` Secret Manager containers and five existing secret-reader
   grants, plus the controller's Logging writer grant. Secret values and secret
   versions are managed separately and are never read into this module's state.
-- Four service invocation grants, the dispatch queue's enqueuer grant and the
+- Service invocation grants, the dispatch queue's enqueuer grant and the
   dispatcher's self act-as grant, previously set by `grant-runtime-callers.sh`.
 - The private, versioned GCS bucket that stores this module's state.
 

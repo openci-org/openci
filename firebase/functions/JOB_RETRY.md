@@ -54,9 +54,11 @@ capacity, recovery and execution machinery.
 
 1. Apply the additive `build_jobs.retry_count` integer column with non-null default
    `0` through the schema migration. Existing jobs start at zero.
-2. Deploy the updated `dispatch` connector and executor/dispatcher code so all
-   Check writers understand retry identities. Deploy `queueRetriedBuildJob` with
-   the existing dispatch service account and Cloud Tasks permissions.
+2. Deploy the updated `dispatch` connector, executor image, `queueBuildJobs`,
+   `dispatchBuildJob` and `recoverBuildExecutions` so all Check writers understand
+   retry identities. Deploy `queueRetriedBuildJob` with the existing dispatch
+   service account and Cloud Tasks permissions, then reconcile its invocation
+   grant from `infra/orchard/runtime_iam.tf` before exposing the mutation.
 3. Deploy the `builds` connector, then consumers of its regenerated SDK. Deploying
    the retry trigger before exposing the mutation avoids accepted but unnotified
    work. The Dashboard SDK is included; a retry button is separate UI work.

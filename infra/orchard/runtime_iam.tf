@@ -2,6 +2,7 @@ locals {
   runtime_callers = {
     createbuildjobs                = "openci-functions"
     queuebuildjobs                 = "openci-dispatch"
+    queueretriedbuildjob           = "openci-dispatch"
     queuebuilddispatchoncompletion = "openci-dispatch"
     reportskippedworkflowchecks    = "openci-functions"
     process-webhook-task           = "openci-functions"
