@@ -16,6 +16,9 @@ const installationPermissions = {
   pr_qr: { contents: "write", pull_requests: "write" },
 } as const;
 
+const mergeReadinessTimeoutMs = 120_000;
+const mergeReadinessMaxDelayMs = 10_000;
+
 export interface GitHubOptions {
   appId: string;
   privateKey: string;
@@ -242,12 +245,15 @@ export class ExecutionGitHub {
     if (!/^[1-9][0-9]*$/.test(job.pullRequestNumber ?? "") || !Number.isSafeInteger(number))
       throw new Error("Invalid pull request metadata");
     const client = await this.client(job, "pull_request");
+    const deadline = Date.now() + mergeReadinessTimeoutMs;
+    const readinessTimeout = AbortSignal.timeout(mergeReadinessTimeoutMs);
+    const readinessSignal = AbortSignal.any([readinessTimeout, ...(signal ? [signal] : [])]);
     try {
-      signal?.throwIfAborted();
+      readinessSignal.throwIfAborted();
       const { data: repo } = await client.request("GET /repos/{owner}/{repo}", {
         owner: job.owner,
         repo: job.repo,
-        request: { signal },
+        request: { signal: readinessSignal },
       });
       if (
         !Number.isSafeInteger(repo.id) ||
@@ -260,14 +266,23 @@ export class ExecutionGitHub {
 
       // GET /pulls starts GitHub's asynchronous merge calculation. Reobserve
       // the PR on each retry because its head or base may advance meanwhile.
-      for (let attempt = 0; attempt < 5; attempt++) {
-        if (attempt > 0) await delay(1000, undefined, { signal });
-        signal?.throwIfAborted();
+      // The deadline includes API time, and its signal also bounds in-flight
+      // requests. Back off to avoid polling every second for all parallel jobs.
+      for (let attempt = 0; Date.now() < deadline; attempt++) {
+        if (attempt > 0) {
+          await delay(
+            Math.min(1000 * 2 ** (attempt - 1), mergeReadinessMaxDelayMs, deadline - Date.now()),
+            undefined,
+            { signal: readinessSignal },
+          );
+        }
+        readinessSignal.throwIfAborted();
+        if (Date.now() >= deadline) break;
         const { data: pr } = await client.request("GET /repos/{owner}/{repo}/pulls/{pull_number}", {
           owner: job.owner,
           repo: job.repo,
           pull_number: number,
-          request: { signal },
+          request: { signal: readinessSignal },
         });
         if (
           pr.number !== number ||
@@ -294,10 +309,10 @@ export class ExecutionGitHub {
               owner: job.owner,
               repo: job.repo,
               ref: `heads/${pr.base.ref}`,
-              request: { signal },
+              request: { signal: readinessSignal },
             })
             .catch(() => {
-              signal?.throwIfAborted();
+              readinessSignal.throwIfAborted();
               throw new PullRequestCheckoutError("unavailable");
             });
           if (
@@ -311,21 +326,25 @@ export class ExecutionGitHub {
               owner: job.owner,
               repo: job.repo,
               commit_sha: mergeSha,
-              request: { signal },
+              request: { signal: readinessSignal },
             })
-            .catch(() => {
-              signal?.throwIfAborted();
+            .catch((error: unknown) => {
+              readinessSignal.throwIfAborted();
+              // GitHub can advertise the merge SHA before the Git object is
+              // readable. Reobserve the PR instead of using the stale candidate.
+              if ((error as { status?: number })?.status === 404) return { data: null };
               throw new PullRequestCheckoutError("unavailable");
             });
           // A stale merge ref can survive a base/head update. Only use the
           // candidate whose parents match the PR revision we just observed.
           if (
-            commit.sha === mergeSha &&
+            commit?.sha === mergeSha &&
             commit.parents?.length === 2 &&
             commit.parents[0].sha === base.object.sha &&
             commit.parents[1].sha === pr.head.sha
           ) {
-            signal?.throwIfAborted();
+            readinessSignal.throwIfAborted();
+            if (Date.now() >= deadline) throw new PullRequestCheckoutError("not_ready");
             return {
               event: "pull_request",
               number,
@@ -339,6 +358,11 @@ export class ExecutionGitHub {
         }
       }
       throw new PullRequestCheckoutError("not_ready");
+    } catch (error) {
+      // Preserve execution cancellation/deadline errors ahead of readiness.
+      signal?.throwIfAborted();
+      if (readinessTimeout.aborted) throw new PullRequestCheckoutError("not_ready");
+      throw error;
     } finally {
       // Revoke independently of the execution signal, including cancellation.
       await client.request("DELETE /installation/token");

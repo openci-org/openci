@@ -1,18 +1,27 @@
 import { generateKeyPairSync } from "node:crypto";
 import { setTimeout as delay } from "node:timers/promises";
-import { afterEach, expect, test, vi } from "vite-plus/test";
+import { afterEach, beforeEach, expect, test, vi } from "vite-plus/test";
 import { ExecutionGitHub } from "../../executor/github.js";
 import { PullRequestCheckoutError } from "../../executor/checkout_error.js";
 import type { Job } from "../../executor/model.js";
 
+const clock = vi.hoisted(() => ({ now: 0 }));
+
 vi.mock("node:timers/promises", () => ({
-  setTimeout: vi.fn(async (_ms: number, _value: undefined, options?: { signal?: AbortSignal }) => {
+  setTimeout: vi.fn(async (ms: number, _value: undefined, options?: { signal?: AbortSignal }) => {
     options?.signal?.throwIfAborted();
+    clock.now += ms;
   }),
 }));
 
+beforeEach(() => {
+  clock.now = Date.now();
+  vi.spyOn(Date, "now").mockImplementation(() => clock.now);
+});
+
 afterEach(() => {
   vi.unstubAllGlobals();
+  vi.restoreAllMocks();
   vi.clearAllMocks();
 });
 
@@ -118,6 +127,24 @@ test("GitHub がマージ可能性を計算中なら PR API を再取得する",
   expect(f.calls.filter((path) => path.endsWith("/pulls/7"))).toHaveLength(2);
 });
 
+test("従来の5回を超えて準備を待ち、間隔を最大10秒まで広げる", async () => {
+  const f = fixture();
+  f.pullRequests.push(
+    ...Array.from({ length: 8 }, () => ({
+      ...f.pr,
+      mergeable: null,
+      merge_commit_sha: null,
+    })),
+  );
+
+  expect((await f.github.resolveCheckout(f.job, "10")).checkoutSha).toBe(mergeSha);
+  expect(vi.mocked(delay).mock.calls.map(([ms]) => ms)).toEqual([
+    1000, 2000, 4000, 8000, 10000, 10000, 10000, 10000,
+  ]);
+  expect(f.calls.filter((path) => path.endsWith("/pulls/7"))).toHaveLength(9);
+  expect(f.calls.at(-1)).toBe("/installation/token");
+});
+
 test("PR の古い base SHA ではなく実際の base ref と照合する", async () => {
   const f = fixture();
   f.pr.base.sha = "d".repeat(40);
@@ -159,7 +186,7 @@ test("古い PR base SHA と一致するだけの候補は実行しない", asyn
   await expect(f.github.resolveCheckout(f.job, "10")).rejects.toThrow(
     "Wait a moment and rerun this job",
   );
-  expect(f.calls.filter((path) => path.includes("/git/ref/"))).toHaveLength(5);
+  expect(f.calls.filter((path) => path.includes("/git/ref/"))).toHaveLength(15);
   expect(f.calls.at(-1)).toBe("/installation/token");
 });
 
@@ -247,16 +274,19 @@ test.each([{ mergeable: false }, { state: "closed" }, { merged: true }])(
 );
 
 test.each([{ mergeable: null }, { merge_commit_sha: null }, { merge_commit_sha: "invalid-sha" }])(
-  "merge SHA が準備できなければ 5 回で打ち切る %j",
+  "merge SHA が準備できなければ2分で打ち切る %j",
   async (change) => {
     const f = fixture();
     Object.assign(f.pr, change);
+    const started = clock.now;
 
     await expect(f.github.resolveCheckout(f.job, "10")).rejects.toThrow(
       "Wait a moment and rerun this job",
     );
-    expect(f.calls.filter((path) => path.endsWith("/pulls/7"))).toHaveLength(5);
-    expect(delay).toHaveBeenCalledTimes(4);
+    expect(clock.now - started).toBe(120000);
+    expect(f.calls.filter((path) => path.endsWith("/pulls/7"))).toHaveLength(15);
+    expect(delay).toHaveBeenCalledTimes(15);
+    expect(vi.mocked(delay).mock.calls.at(-1)?.[0]).toBe(5000);
     expect(f.calls.at(-1)).toBe("/installation/token");
   },
 );
@@ -275,13 +305,90 @@ test.each([
   expect(f.calls.at(-1)).toBe("/installation/token");
 });
 
-test("マージコミットの取得に失敗した場合もトークンを失効する", async () => {
+test("マージコミットの404は期限まで再確認してトークンを失効する", async () => {
   const f = fixture();
   f.commits.clear();
 
   await expect(f.github.resolveCheckout(f.job, "10")).rejects.toThrow(
+    new PullRequestCheckoutError("not_ready"),
+  );
+  expect(f.calls.filter((path) => path.endsWith("/pulls/7"))).toHaveLength(15);
+  expect(f.calls.at(-1)).toBe("/installation/token");
+});
+
+test("マージコミットが一時的に404でも準備後に親を検証して続行する", async () => {
+  const f = fixture();
+  const fetch = vi.mocked(globalThis.fetch);
+  const original = fetch.getMockImplementation()!;
+  let missing = true;
+  fetch.mockImplementation(async (url, init) => {
+    if (String(url).includes("/git/commits/") && missing) {
+      missing = false;
+      return Response.json({}, { status: 404 });
+    }
+    return original(url, init);
+  });
+
+  expect((await f.github.resolveCheckout(f.job, "10")).checkoutSha).toBe(mergeSha);
+  expect(delay).toHaveBeenCalledTimes(1);
+  expect(f.calls.filter((path) => path.endsWith("/pulls/7"))).toHaveLength(2);
+  expect(f.calls.at(-1)).toBe("/installation/token");
+});
+
+test.each([401, 403, 500])("マージコミットのHTTP %iは準備待ちに隠さない", async (status) => {
+  const f = fixture();
+  const fetch = vi.mocked(globalThis.fetch);
+  const original = fetch.getMockImplementation()!;
+  fetch.mockImplementation(async (url, init) =>
+    String(url).includes("/git/commits/") ? Response.json({}, { status }) : original(url, init),
+  );
+
+  await expect(f.github.resolveCheckout(f.job, "10")).rejects.toThrow(
     new PullRequestCheckoutError("unavailable"),
   );
+  expect(delay).not.toHaveBeenCalled();
+  expect(f.calls.at(-1)).toBe("/installation/token");
+});
+
+test("API応答の時間も待機期限に含める", async () => {
+  const f = fixture();
+  f.pr.mergeable = null;
+  const fetch = vi.mocked(globalThis.fetch);
+  const original = fetch.getMockImplementation()!;
+  fetch.mockImplementation(async (url, init) => {
+    if (String(url).endsWith("/pulls/7")) clock.now += 30000;
+    return original(url, init);
+  });
+
+  await expect(f.github.resolveCheckout(f.job, "10")).rejects.toThrow(
+    new PullRequestCheckoutError("not_ready"),
+  );
+  expect(f.calls.filter((path) => path.endsWith("/pulls/7"))).toHaveLength(4);
+  expect(delay).toHaveBeenCalledTimes(3);
+  expect(f.calls.at(-1)).toBe("/installation/token");
+});
+
+test("準備待ちの期限は実行中のAPIを中断しトークンを失効する", async () => {
+  const f = fixture();
+  const timeout = new AbortController();
+  const originalTimeout = AbortSignal.timeout.bind(AbortSignal);
+  vi.spyOn(AbortSignal, "timeout").mockImplementation((ms) =>
+    ms === 120000 ? timeout.signal : originalTimeout(ms),
+  );
+  const fetch = vi.mocked(globalThis.fetch);
+  const original = fetch.getMockImplementation()!;
+  fetch.mockImplementation(async (url, init) => {
+    if (String(url).endsWith("/pulls/7")) {
+      timeout.abort(new DOMException("Readiness deadline", "TimeoutError"));
+      init?.signal?.throwIfAborted();
+    }
+    return original(url, init);
+  });
+
+  await expect(f.github.resolveCheckout(f.job, "10")).rejects.toThrow(
+    new PullRequestCheckoutError("not_ready"),
+  );
+  expect(delay).not.toHaveBeenCalled();
   expect(f.calls.at(-1)).toBe("/installation/token");
 });
 
