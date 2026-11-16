@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Add `dart.publishToPubDev()` with Google service account authentication, temporary pub credentials, and an optional skip for versions already published. Return the package name, version, URL, and publication status. Use pub's normal validation with `--force`, without an extra dry run.
+
 ## 0.4.0
 
 - **Breaking:** `firebaseHosting.deployPreview()` now returns `FirebaseHostingPreview` with `url` and the actual Firebase `expiresAt` in UTC. Replace uses of the previous `Uri` result with `preview.url`; live `deploy()` still returns `Uri`.

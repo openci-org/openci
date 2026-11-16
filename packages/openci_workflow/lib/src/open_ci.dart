@@ -83,7 +83,11 @@ class OpenCI {
   })
   _runCommand;
 
-  late final DartCI dart = DartCI(run);
+  late final DartCI dart = DartCI(
+    run,
+    resolveDirectory: (dir) =>
+        resolveWorkingDirectory(dir ?? currentWorkingDirectory),
+  );
 
   late final FlutterCI flutter = FlutterCI(run);
 
