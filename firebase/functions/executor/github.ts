@@ -6,7 +6,13 @@ import {
   type PullRequestQrCode,
   type WithQrCommentLease,
 } from "./pull_request_qr.js";
-import type { Dispatch, Job, Outcome, ResolvedCheckout } from "./model.js";
+import {
+  queuedCheckExternalId,
+  type Dispatch,
+  type Job,
+  type Outcome,
+  type ResolvedCheckout,
+} from "./model.js";
 import type { SkippedCheck } from "../skipped_checks.js";
 
 const installationPermissions = {
@@ -399,7 +405,7 @@ export class ExecutionGitHub {
     if (outcome === "card_required") {
       const url = new URL("/billing", this.options.billingOrigin ?? "https://dashboard.openci.org");
       url.searchParams.set("teamId", dispatch.teamId!);
-      const externalId = `build-job:${job.id}:run:${BigInt(job.runCount ?? "0") + 1n}`;
+      const externalId = queuedCheckExternalId(job);
       return this.writeCheck(request, job, externalId, dispatch.checkRunId, {
         status: "queued",
         output: {

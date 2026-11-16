@@ -11,7 +11,7 @@ The legacy servers and their one-time data import tools have been retired.
 | Connector  | Current callers                     | Client access                                                                               |
 | ---------- | ----------------------------------- | ------------------------------------------------------------------------------------------- |
 | `teams`    | Dashboard and team-member Functions | `GetMyTeams`, `GetTeamMembers`, `CreateTeam`, `RenameTeam`; member writes use Functions     |
-| `builds`   | Dashboard                           | `GetBuildJobs` and `GetBuildJob`, scoped to the authenticated member                        |
+| `builds`   | Dashboard                           | `GetBuildJobs`, `GetBuildJob` and `RetryBuildJob`, scoped to the authenticated member       |
 | `logs`     | Dashboard and Cloud Run executor    | `GetBuildLogState` and `GetBuildLogs`; writes, retention and recovery reads are server-only |
 | `secrets`  | Dashboard and Secrets Functions     | `GetSecrets` exposes names and timestamps only; values and writes use Functions             |
 | `github`   | GitHub Functions and Dart planner   | All operations are server-only                                                              |
@@ -76,6 +76,9 @@ another team's period. A stale heartbeat must expire rather than extend an
 unobserved interval.
 
 Job mutations trigger dispatch Functions. Cloud Tasks retry unavailable capacity;
+team members can explicitly requeue terminal jobs through
+[`RetryBuildJob`](../functions/JOB_RETRY.md), preserving run history and rejecting
+duplicate retry requests through an observed retry counter.
 Orchard and active dispatch reservations determine capacity. The executor reads
 `GetBuildExecution`, reserves paid or configured complimentary usage, runs the VM,
 and persists logs and final status. Recovery enumerates

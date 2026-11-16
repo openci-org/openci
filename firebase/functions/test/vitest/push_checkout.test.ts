@@ -62,6 +62,7 @@ test("PR の merge ref が進んでも、解決済みのマージコミットを
 
 function pushJob(commitSha: string): Job {
   return {
+    retryCount: 0,
     id: "job",
     owner: "org",
     repo: "app",

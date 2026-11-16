@@ -16,6 +16,7 @@ fragment ExecutionJobFields on BuildJob {
   latestRunId
   workerHost
   runCount
+  retryCount
 }
 
 query GetBuildExecution($id: String!, $jobId: String!, $runId: String!) @auth(level: NO_ACCESS) {

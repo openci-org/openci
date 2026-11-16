@@ -366,6 +366,7 @@ export interface GetBuildExecutionData {
     latestRunId?: string | null;
     workerHost?: string | null;
     runCount?: Int64String | null;
+    retryCount: number;
   } & BuildJob_Key;
   run?: {
     id: string;
@@ -492,6 +493,7 @@ export interface GetQueuedBuildCheckData {
     latestRunId?: string | null;
     workerHost?: string | null;
     runCount?: Int64String | null;
+    retryCount: number;
     runsOn?: string | null;
     checkRunId?: string | null;
     checkRunNumber?: Int64String | null;

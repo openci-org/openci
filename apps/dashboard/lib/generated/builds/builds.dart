@@ -4,6 +4,8 @@ import 'package:firebase_data_connect/firebase_data_connect.dart';
 import 'package:flutter/foundation.dart';
 import 'dart:convert';
 
+part 'retry_build_job.dart';
+
 part 'get_build_jobs.dart';
 
 part 'get_build_job.dart';
@@ -17,6 +19,17 @@ BigInt bigIntFromJson(dynamic value) {
 }
 
 class BuildsConnector {
+  RetryBuildJobVariablesBuilder retryBuildJob({
+    required String id,
+    required int expectedRetryCount,
+  }) {
+    return RetryBuildJobVariablesBuilder(
+      dataConnect,
+      id: id,
+      expectedRetryCount: expectedRetryCount,
+    );
+  }
+
   GetBuildJobsVariablesBuilder getBuildJobs({
     required String teamId,
   }) {

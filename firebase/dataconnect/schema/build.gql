@@ -24,6 +24,8 @@ type BuildJob
   commitMessage: String @col(name: "commit_message")
   pullRequestNumber: Int64 @col(name: "pull_request_number")
   runCount: Int64 @col(name: "run_count")
+  # Advances on an explicit retry, even when the previous attempt never started.
+  retryCount: Int! @col(name: "retry_count") @default(value: 0)
   latestRunId: String @col(name: "latest_run_id")
   tagName: String @col(name: "tag_name")
   branch: String

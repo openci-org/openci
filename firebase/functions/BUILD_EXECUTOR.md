@@ -166,8 +166,8 @@ cleanup had already observed 404. Active attempts and unrelated VMs are excluded
 
 Controller, billing or GitHub outages leave the reservation in `finishing` for
 another sweep. Inspect sanitized `execution_cleanup_pending` logs and old open
-dispatches when diagnosing cleanup delays. Manual rerun and dependency/matrix
-scheduling remain outside this change.
+dispatches when diagnosing cleanup delays. Explicit retries use the
+[`RetryBuildJob` API](JOB_RETRY.md); dependency/matrix scheduling remains separate.
 
 ## Configuration and deployment
 

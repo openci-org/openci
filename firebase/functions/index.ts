@@ -18,6 +18,7 @@ const processWebhookTaskUrl = defineString("PROCESS_WEBHOOK_TASK_URL");
 export {
   queueBuildJobs,
   queueBuildDispatchOnCompletion,
+  queueRetriedBuildJob,
   dispatchBuildJob,
 } from "./build_dispatch_functions.js";
 export { recoverBuildExecutions } from "./build_recovery_functions.js";

@@ -6,6 +6,16 @@ export const connectorConfig = {
   location: "asia-northeast1",
 };
 
+export function retryBuildJob(dcOrVarsOrOptions, varsOrOptions, options) {
+  const {
+    dc: dcInstance,
+    vars: inputVars,
+    options: inputOpts,
+  } = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeMutation("RetryBuildJob", inputVars, inputOpts);
+}
+
 export function getBuildJobs(dcOrVarsOrOptions, varsOrOptions, options) {
   const {
     dc: dcInstance,
