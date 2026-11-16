@@ -29,10 +29,26 @@ See [Firebase's trigger documentation](https://firebase.google.com/docs/function
    firebase deploy --only functions:openci:notifyAuthUserCreated --project openci-b1b91
    ```
 
+Production builds use
+`openci-build@openci-b1b91.iam.gserviceaccount.com`. This is configured as
+`buildServiceAccount` on the deployed first-generation function; Firebase's
+runtime options do not expose this setting. The build identity has conditional
+Storage Object Viewer access limited to this function's source prefix in
+`gcf-sources-372767414789-asia-northeast1`. If the function is recreated, configure
+the build identity and its new source prefix before retrying the build. Routine
+Firebase CLI updates preserve the deployed build identity.
+
 Use a separate webhook secret in other projects to keep their notifications
 separate. For a local Auth/Functions emulator smoke test, set the secret in the
 ignored `firebase/.secret.local` file and use a test Slack channel. Only create a
 test account and send a test notification when that live test is intended.
+
+For a production delivery smoke test without creating an Auth account, invoke
+the deployed function through the Cloud Functions v1 `functions.call` testing
+API with synthetic user data clearly labeled as a test. Confirm the single test
+message in the intended Slack channel and the `Signup notification delivered`
+log entry. This checks delivery through the deployed handler and secret, but
+does not exercise a real Auth creation event.
 
 ## Delivery behavior
 
