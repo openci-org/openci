@@ -92,7 +92,14 @@ export function checkoutScript(commitSha: string, cloneUrl: string, token: strin
       "git init -q",
       `git remote add origin ${shellQuote(cloneUrl)}`,
       // The token goes over stdin, never in an Orchard URL or a git remote/config.
-      `git -c ${shellQuote(`http.extraHeader=Authorization: Basic ${auth}`)} fetch --no-tags --depth=1 origin ${shellQuote(commitSha)}`,
+      "for fetch_attempt in 1 2 3; do",
+      `  if git -c ${shellQuote(`http.extraHeader=Authorization: Basic ${auth}`)} fetch --no-tags --depth=1 origin ${shellQuote(commitSha)}; then`,
+      "    break",
+      "  fi",
+      '  if [[ "$fetch_attempt" == 3 ]]; then exit 1; fi',
+      '  printf "Git fetch failed; retrying (%s/3)\\n" "$((fetch_attempt + 1))" >&2',
+      '  sleep "$((fetch_attempt * 2))"',
+      "done",
       `git checkout --detach ${shellQuote(commitSha)}`,
       "git rev-parse HEAD",
     ].join("\n") + "\n"
