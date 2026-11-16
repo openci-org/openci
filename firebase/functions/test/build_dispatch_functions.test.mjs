@@ -44,6 +44,7 @@ const completionEvent = (id = "dispatch-1") =>
 test("mutation retries complete a partially enqueued batch without duplicating tasks", async (t) => {
   const saved = new Map();
   let outage = true;
+  const errors = t.mock.method(logger, "error", () => {});
   t.mock.method(getFunctions(app), "taskQueue", (queue) => {
     assert.equal(queue, "locations/asia-northeast1/functions/dispatchBuildJob");
     return {
@@ -51,7 +52,11 @@ test("mutation retries complete a partially enqueued batch without duplicating t
         assert.deepEqual(Object.keys(data), ["jobId"]);
         assert.equal(options.id, dispatchTaskId(data.jobId));
         if (saved.has(options.id)) throw { code: "functions/task-already-exists" };
-        if (data.jobId === "second" && outage) throw new Error("private SDK error");
+        if (data.jobId === "second" && outage)
+          throw Object.assign(new Error("private SDK error"), {
+            code: "functions/permission-denied",
+            request: { authorization: "private token" },
+          });
         saved.set(options.id, data.jobId);
       },
     };
@@ -61,10 +66,20 @@ test("mutation retries complete a partially enqueued batch without duplicating t
     message: "Build dispatch enqueue failed; retry required",
   });
   assert.deepEqual([...saved.values()], ["first"]);
+  assert.deepEqual(errors.mock.calls[0].arguments, [
+    "Build dispatch enqueue failed",
+    {
+      eventId: "event",
+      jobId: "second",
+      stage: "dispatch_enqueue",
+      reason: "functions/permission-denied",
+    },
+  ]);
   outage = false;
   await queueBuildJobs.run(input);
   await queueBuildJobs.run(input);
   assert.deepEqual([...saved.values()], ["first", "second", "third"]);
+  assert.equal(errors.mock.callCount(), 1);
 });
 
 test("empty or failed mutations enqueue nothing and non-admin events are rejected", async (t) => {
@@ -86,6 +101,7 @@ test("superseded jobs are paged and reliably notified even after a partial enque
   });
   const tasks = new Map();
   let unavailable = true;
+  const errors = t.mock.method(logger, "error", () => {});
   mockQueue(t, async (data, options) => {
     assert.equal(options.id, dispatchTaskId(data.jobId, "superseded-webhook-new"));
     assert.notEqual(options.id, dispatchTaskId(data.jobId));
@@ -97,6 +113,10 @@ test("superseded jobs are paged and reliably notified even after a partial enque
   const input = event({ jobs: [], cancelled: jobs.length }, undefined, { id: "webhook-new" });
   await assert.rejects(queueBuildJobs.run(input), /retry required/);
   assert.equal(tasks.size, 101);
+  assert.deepEqual(errors.mock.calls[0].arguments, [
+    "Build dispatch enqueue failed",
+    { eventId: "event", jobId: "old-101", stage: "cancellation_enqueue", reason: "unknown" },
+  ]);
   unavailable = false;
   await queueBuildJobs.run(input);
   await queueBuildJobs.run(input);
@@ -117,9 +137,11 @@ test("failed or zero-cancellation mutations do not read the cancellation source"
 test("check publication must finish before enqueue, and failures retain mutation retry", async (t) => {
   const calls = [];
   let unavailable = true;
+  const errors = t.mock.method(logger, "error", () => {});
   t.mock.method(QueuedChecks.prototype, "sync", async (id) => {
     calls.push(`check:${id}`);
-    if (unavailable) throw new Error("private check error");
+    if (unavailable)
+      throw Object.assign(new Error("private check error"), { code: "data-connect/query-error" });
   });
   t.mock.method(getFunctions(app), "taskQueue", () => ({
     enqueue: async ({ jobId }) => {
@@ -129,9 +151,93 @@ test("check publication must finish before enqueue, and failures retain mutation
   const input = event({ jobs: [{ id: "job" }] });
   await assert.rejects(queueBuildJobs.run(input), /retry required/);
   assert.deepEqual(calls, ["check:job"]);
+  assert.deepEqual(errors.mock.calls[0].arguments, [
+    "Build dispatch enqueue failed",
+    {
+      eventId: "event",
+      jobId: "job",
+      stage: "queued_check_sync",
+      reason: "data-connect/query-error",
+    },
+  ]);
   unavailable = false;
   await queueBuildJobs.run(input);
   assert.deepEqual(calls, ["check:job", "check:job", "enqueue:job"]);
+});
+
+test("mutation validation failures log only their stage and fixed reason", async (t) => {
+  mockQueue(t, () => assert.fail("must not enqueue"));
+  const errors = t.mock.method(logger, "error", () => {});
+  for (const [input, stage, reason] of [
+    [{ ...event({ jobs: [] }), authType: "unknown" }, "principal", "unexpected_principal"],
+    [event({ private: "payload" }), "payload", "invalid_mutation_result"],
+    [event({ jobs: [{ id: "private\npayload" }] }), "payload", "invalid_job_id"],
+    [
+      event({ jobs: [], cancelled: "private" }),
+      "cancellation_payload",
+      "invalid_cancellation_count",
+    ],
+    [event({ jobs: [], cancelled: 1 }), "cancellation_payload", "invalid_cancellation_source"],
+  ]) {
+    await assert.rejects(queueBuildJobs.run(input), /retry required/);
+    assert.deepEqual(errors.mock.calls.at(-1).arguments, [
+      "Build dispatch enqueue failed",
+      { eventId: "event", jobId: undefined, stage, reason },
+    ]);
+  }
+});
+
+test("cancellation lookup failure does not attribute the last enqueued job and retains retry", async (t) => {
+  const errors = t.mock.method(logger, "error", () => {});
+  const tasks = new Set();
+  mockQueue(t, async (_, options) => {
+    if (tasks.has(options.id)) throw { code: "functions/task-already-exists" };
+    tasks.add(options.id);
+  });
+  let unavailable = true;
+  const firstPage = Array.from({ length: 100 }, (_, i) => ({ id: `old-${i}` }));
+  t.mock.method(DataConnectDispatchStore.prototype, "superseded", async (_, afterId) => {
+    if (!afterId) return firstPage;
+    if (unavailable)
+      throw Object.assign(new Error("private SQL variables"), { code: "data-connect/unavailable" });
+    return [{ id: "last" }];
+  });
+  const input = event({ jobs: [{ id: "new" }], cancelled: 101 }, undefined, { id: "webhook-new" });
+  await assert.rejects(queueBuildJobs.run(input), /retry required/);
+  assert.equal(tasks.size, 101);
+  assert.deepEqual(errors.mock.calls[0].arguments, [
+    "Build dispatch enqueue failed",
+    {
+      eventId: "event",
+      jobId: undefined,
+      stage: "cancellation_lookup",
+      reason: "data-connect/unavailable",
+    },
+  ]);
+  unavailable = false;
+  await queueBuildJobs.run(input);
+  assert.equal(tasks.size, 102);
+  assert.equal(errors.mock.callCount(), 1);
+});
+
+test("a lost initial enqueue acknowledgement retries with the same task ID", async (t) => {
+  const tasks = new Set();
+  const errors = t.mock.method(logger, "error", () => {});
+  mockQueue(t, async (_, options) => {
+    if (tasks.has(options.id)) throw { code: "functions/task-already-exists" };
+    tasks.add(options.id);
+    throw Object.assign(new Error("private HTTP body"), { code: "app/network-timeout" });
+  });
+  const input = event({ jobs: [{ id: "job" }] });
+  await assert.rejects(queueBuildJobs.run(input), /retry required/);
+  assert.deepEqual(errors.mock.calls[0].arguments, [
+    "Build dispatch enqueue failed",
+    { eventId: "event", jobId: "job", stage: "dispatch_enqueue", reason: "app/network-timeout" },
+  ]);
+  await queueBuildJobs.run(input);
+  await queueBuildJobs.run(input);
+  assert.deepEqual([...tasks], [dispatchTaskId("job")]);
+  assert.equal(errors.mock.callCount(), 1);
 });
 
 test("completion wakes dispatch immediately without colliding with initial or recovery tasks", async (t) => {
