@@ -27,6 +27,7 @@ export {
   recoverSkippedWorkflowChecks,
 } from "./skipped_check_functions.js";
 export { expireBuildLogs } from "./log_retention_functions.js";
+export { notifyAuthUserCreated } from "./auth_signup_functions.js";
 
 export const githubWebhookFsc = onRequest(
   {

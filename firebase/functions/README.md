@@ -7,6 +7,9 @@ Team and member management use the [FSC teams connector and `teamManagement`
 callable](TEAMS.md). [Billing and team deletion](BILLING.md) use `teamBilling`,
 `stripeWebhook` and the shared FSC billing ledger.
 
+Firebase Auth account creation sends [Slack signup notifications](AUTH_SIGNUP_NOTIFICATIONS.md)
+through `notifyAuthUserCreated`.
+
 `githubWebhookFsc` is a second-generation HTTPS Function in `asia-northeast1`.
 The distinct name allows validation before switching an existing GitHub webhook.
 The Firebase npm workspace is its deployment source; TypeScript in this
