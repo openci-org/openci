@@ -117,6 +117,7 @@ export interface GetBuildJobData {
     needs?: string | null;
     runsOn?: string | null;
     runCount?: Int64String | null;
+    retryCount: number;
     latestRunId?: string | null;
     createdAt: Int64String;
     updatedAt: Int64String;
@@ -154,6 +155,7 @@ export interface GetBuildJobsData {
     needs?: string | null;
     runsOn?: string | null;
     runCount?: Int64String | null;
+    retryCount: number;
     latestRunId?: string | null;
     createdAt: Int64String;
     updatedAt: Int64String;
@@ -195,6 +197,24 @@ export interface PullRequestQrCommentLease_Key {
   __typename?: "PullRequestQrCommentLease_Key";
 }
 
+export interface RetryBuildJobData {
+  retried: number;
+  result?: {
+    job?: {
+      id: string;
+      status: string;
+      retryCount: number;
+      runCount?: Int64String | null;
+      latestRunId?: string | null;
+    } & BuildJob_Key;
+  };
+}
+
+export interface RetryBuildJobVariables {
+  id: string;
+  expectedRetryCount: number;
+}
+
 export interface SecretReference_Key {
   teamId: string;
   name: string;
@@ -225,6 +245,18 @@ export interface WebhookTask_Key {
   id: string;
   __typename?: "WebhookTask_Key";
 }
+
+/** Generated Node Admin SDK operation action function for the 'RetryBuildJob' Mutation. Allow users to execute without passing in DataConnect. */
+export function retryBuildJob(
+  dc: DataConnect,
+  vars: RetryBuildJobVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<RetryBuildJobData>>;
+/** Generated Node Admin SDK operation action function for the 'RetryBuildJob' Mutation. Allow users to pass in custom DataConnect instances. */
+export function retryBuildJob(
+  vars: RetryBuildJobVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<RetryBuildJobData>>;
 
 /** Generated Node Admin SDK operation action function for the 'GetBuildJobs' Query. Allow users to execute without passing in DataConnect. */
 export function getBuildJobs(

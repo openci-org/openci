@@ -211,7 +211,8 @@ zero and choose the workflow timeout on the pre-created Job.
 
 `recoverBuildExecutions` reconciles crashed executors and deletes their VMs before
 releasing claimed reservations. Automatically expiring a running build here
-could allocate its capacity twice. Manual rerun dispatch remains separate work.
+could allocate its capacity twice. Explicit terminal-job retries use
+[`RetryBuildJob`](JOB_RETRY.md) and the same dispatcher.
 `WAITING` and unknown job statuses are not terminal.
 
 ## Configuration and rollout

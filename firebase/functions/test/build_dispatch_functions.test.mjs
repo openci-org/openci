@@ -7,12 +7,14 @@ import { GoogleAuth } from "google-auth-library";
 import {
   queueBuildJobs,
   queueBuildDispatchOnCompletion,
+  queueRetriedBuildJob,
   dispatchBuildJob,
 } from "../../lib/functions/build_dispatch_functions.js";
 import {
   dispatchTaskId,
   DispatchRetry,
   dispatchCompletionTaskId,
+  dispatchRetryTaskId,
   dispatchContinuationTaskId,
 } from "../../lib/functions/build_dispatch.js";
 import { DataConnectDispatchStore } from "../../lib/functions/dispatch_store.js";
@@ -41,6 +43,75 @@ const completionEvent = (id = "dispatch-1") =>
     jobId: "job",
     owner: "private cleanup owner",
   });
+const retryEvent = (retryCount = 1) => ({
+  ...event({ retried: 1, result: { job: { id: "job", status: "QUEUED", retryCount } } }),
+  authType: "app_user",
+  authId: "member",
+});
+
+test("accepted user retries get distinct tasks while duplicate events reuse the same task", async (t) => {
+  const tasks = new Map();
+  mockQueue(t, async (data, options) => {
+    if (tasks.has(options.id)) throw { code: "functions/task-already-exists" };
+    tasks.set(options.id, data);
+  });
+  await queueRetriedBuildJob.run(retryEvent());
+  await queueRetriedBuildJob.run(retryEvent());
+  await queueRetriedBuildJob.run(retryEvent(2));
+  assert.deepEqual(
+    [...tasks.keys()],
+    [dispatchRetryTaskId("job", 1), dispatchRetryTaskId("job", 2)],
+  );
+  assert.deepEqual([...tasks.values()], [{ jobId: "job" }, { jobId: "job" }]);
+  assert.notEqual(dispatchRetryTaskId("job", 1), dispatchTaskId("job"));
+  assert.notEqual(dispatchRetryTaskId("job", 1), dispatchCompletionTaskId("job", "1"));
+  const endpoint = queueRetriedBuildJob.__endpoint;
+  assert.equal(endpoint.eventTrigger.retry, true);
+  assert.equal(endpoint.eventTrigger.eventFilters.connector, "builds");
+  assert.equal(endpoint.eventTrigger.eventFilters.operation, "RetryBuildJob");
+});
+
+for (const savedBeforeFailure of [false, true]) {
+  test(`retry enqueue failure ${savedBeforeFailure ? "after" : "before"} saving retains durable event retry`, async (t) => {
+    const tasks = new Map();
+    let unavailable = true;
+    const errors = t.mock.method(logger, "error", () => {});
+    mockQueue(t, async (data, options) => {
+      if (tasks.has(options.id)) throw { code: "functions/task-already-exists" };
+      if (savedBeforeFailure || !unavailable) tasks.set(options.id, data);
+      if (unavailable) throw new Error("private request credentials");
+    });
+    await assert.rejects(queueRetriedBuildJob.run(retryEvent()), /retry required/);
+    assert.deepEqual(errors.mock.calls[0].arguments, [
+      "Build retry enqueue failed",
+      { eventId: "event", reason: "unknown" },
+    ]);
+    unavailable = false;
+    await queueRetriedBuildJob.run(retryEvent());
+    assert.equal(tasks.size, 1);
+  });
+}
+
+test("failed, unauthorized and malformed retry events never enqueue", async (t) => {
+  mockQueue(t, () => assert.fail("must not enqueue"));
+  t.mock.method(logger, "error", () => {});
+  await queueRetriedBuildJob.run(event(null, [{ message: "rolled back" }]));
+  await assert.rejects(queueRetriedBuildJob.run({ ...retryEvent(), authType: "unknown" }));
+  for (const data of [null, {}, { retried: 0 }, { retried: 1, result: {} }])
+    await assert.rejects(queueRetriedBuildJob.run(event(data)), /retry required/);
+  for (const job of [
+    { id: "", status: "QUEUED", retryCount: 1 },
+    { id: "job\n", status: "QUEUED", retryCount: 1 },
+    { id: "job", status: "FAILURE", retryCount: 1 },
+    { id: "job", status: "QUEUED", retryCount: 0 },
+    { id: "job", status: "QUEUED", retryCount: 1.5 },
+    { id: "job", status: "QUEUED", retryCount: "1" },
+  ])
+    await assert.rejects(
+      queueRetriedBuildJob.run(event({ retried: 1, result: { job } })),
+      /retry required/,
+    );
+});
 
 test("mutation retries complete a partially enqueued batch without duplicating tasks", async (t) => {
   const saved = new Map();

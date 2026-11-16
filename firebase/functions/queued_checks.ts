@@ -4,6 +4,7 @@ import * as sdk from "@openci/dispatch-admin";
 import { ExecutionGitHub } from "./executor/github.js";
 import { DispatchRetry } from "./build_dispatch.js";
 import { resolveExecutionContext } from "./executor/store.js";
+import { queuedCheckExternalId } from "./executor/model.js";
 
 export class QueuedCheckStore {
   constructor(readonly dc: DataConnect) {}
@@ -130,7 +131,7 @@ export class QueuedChecks {
     if (!context.team || !context.connection) throw new Error("GitHub connection is inactive");
     if (Date.parse(current.checkLeaseUntil) - Date.now() < 60_000)
       throw new Error("Check publication lease is expiring");
-    const externalId = `build-job:${jobId}:run:${runNumber}`;
+    const externalId = queuedCheckExternalId(current);
     const signal = AbortSignal.timeout(20_000);
     const checkRunId = await this.github.queuedCheck(
       current,

@@ -1,6 +1,7 @@
 # Basic Usage
 
 ```dart
+BuildsConnector.instance.retryBuildJob(id: jobId, expectedRetryCount: retryCount).execute();
 BuildsConnector.instance.GetBuildJobs(getBuildJobsVariables).execute();
 BuildsConnector.instance.GetBuildJob(getBuildJobVariables).execute();
 

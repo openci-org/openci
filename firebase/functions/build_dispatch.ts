@@ -111,6 +111,12 @@ export function dispatchCompletionTaskId(jobId: string, dispatchId: string): str
     .digest("hex");
 }
 
+export function dispatchRetryTaskId(jobId: string, retryCount: number): string {
+  return createHash("sha256")
+    .update(JSON.stringify(["retry", jobId, retryCount]))
+    .digest("hex");
+}
+
 export function dispatchContinuationTaskId(sourceTaskId: string, jobId?: string): string {
   if (typeof sourceTaskId !== "string" || !/^[A-Za-z0-9_-]{1,500}$/.test(sourceTaskId))
     throw new Error("Invalid build dispatch task ID");

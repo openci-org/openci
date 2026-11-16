@@ -7,6 +7,17 @@ const connectorConfig = {
 };
 exports.connectorConfig = connectorConfig;
 
+function retryBuildJob(dcOrVarsOrOptions, varsOrOptions, options) {
+  const {
+    dc: dcInstance,
+    vars: inputVars,
+    options: inputOpts,
+  } = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeMutation("RetryBuildJob", inputVars, inputOpts);
+}
+exports.retryBuildJob = retryBuildJob;
+
 function getBuildJobs(dcOrVarsOrOptions, varsOrOptions, options) {
   const {
     dc: dcInstance,

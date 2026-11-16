@@ -68,6 +68,7 @@ class GetBuildJobsBuildJobs {
   final String? needs;
   final String? runsOn;
   final BigInt? runCount;
+  final int retryCount;
   final String? latestRunId;
   final BigInt createdAt;
   final BigInt updatedAt;
@@ -127,6 +128,7 @@ class GetBuildJobsBuildJobs {
       runCount = json['runCount'] == null
           ? null
           : bigIntFromJson(json['runCount']),
+      retryCount = nativeFromJson<int>(json['retryCount']),
       latestRunId = json['latestRunId'] == null
           ? null
           : nativeFromJson<String>(json['latestRunId']),
@@ -175,6 +177,7 @@ class GetBuildJobsBuildJobs {
         needs == otherTyped.needs &&
         runsOn == otherTyped.runsOn &&
         runCount == otherTyped.runCount &&
+        retryCount == otherTyped.retryCount &&
         latestRunId == otherTyped.latestRunId &&
         createdAt == otherTyped.createdAt &&
         updatedAt == otherTyped.updatedAt &&
@@ -207,6 +210,7 @@ class GetBuildJobsBuildJobs {
     needs.hashCode,
     runsOn.hashCode,
     runCount.hashCode,
+    retryCount.hashCode,
     latestRunId.hashCode,
     createdAt.hashCode,
     updatedAt.hashCode,
@@ -269,6 +273,7 @@ class GetBuildJobsBuildJobs {
     if (runCount != null) {
       json['runCount'] = bigIntToJson(runCount);
     }
+    json['retryCount'] = nativeToJson<int>(retryCount);
     if (latestRunId != null) {
       json['latestRunId'] = nativeToJson<String?>(latestRunId);
     }
@@ -313,6 +318,7 @@ class GetBuildJobsBuildJobs {
     this.needs,
     this.runsOn,
     this.runCount,
+    required this.retryCount,
     this.latestRunId,
     required this.createdAt,
     required this.updatedAt,

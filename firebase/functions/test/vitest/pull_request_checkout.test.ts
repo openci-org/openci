@@ -53,6 +53,7 @@ function fixture(apiBaseUrl = "https://api.github.com", baseUrl = "https://githu
   const calls: string[] = [];
   const job: Job = {
     id: "job",
+    retryCount: 0,
     status: "QUEUED",
     owner: "org",
     repo: "app",

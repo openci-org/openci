@@ -27,7 +27,8 @@ and their cleanup remain intact. Manual cancellations (no `supersededByTaskId`)
 and completed success/failure results stay deduplicated; duplicate webhook
 notifications are not user rerun requests. Explicit new jobs must omit the key;
 rerunning an existing job keeps its existing identity and run counter lifecycle.
-The manual-rerun dispatch API remains separate work, as in BUILD_EXECUTOR.md.
+The [`RetryBuildJob` API](JOB_RETRY.md) requeues terminal jobs while preserving
+this identity and fencing duplicate retry requests with a separate counter.
 
 Skipped PR workflows use the same scoped identity with a skipped discriminator
 and comparison SHA. Conflict handling preserves the original outbox row, lease

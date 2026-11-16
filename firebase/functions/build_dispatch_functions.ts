@@ -9,6 +9,7 @@ import {
   dispatchBuildJob as executeDispatch,
   dispatchTaskId,
   dispatchCompletionTaskId,
+  dispatchRetryTaskId,
   dispatchContinuationTaskId,
   dispatchFailureReason,
   DispatchRetry,
@@ -182,6 +183,64 @@ export const queueBuildDispatchOnCompletion = onMutationExecuted(
     } catch {
       error("Build completion dispatch enqueue failed", { eventId: event.id });
       throw new Error("Build completion dispatch enqueue failed; retry required");
+    }
+  },
+);
+
+export const queueRetriedBuildJob = onMutationExecuted(
+  {
+    serviceAccount: dispatchServiceAccount,
+    region: "asia-northeast1",
+    service: dataConnectServiceId(),
+    connector: "builds",
+    operation: "RetryBuildJob",
+    memory: "256MiB",
+    cpu: 1,
+    concurrency: 1,
+    minInstances: 0,
+    timeoutSeconds: 60,
+    retry: true,
+  },
+  async (event) => {
+    try {
+      if (event.authType !== "app_user" && event.authType !== "admin")
+        throw new Error("Unexpected retry principal");
+      const { data, errors } = event.data.payload;
+      if (errors?.length) return;
+      if (
+        !data ||
+        typeof data !== "object" ||
+        !("retried" in data) ||
+        data.retried !== 1 ||
+        !("result" in data) ||
+        !data.result ||
+        typeof data.result !== "object" ||
+        !("job" in data.result) ||
+        !data.result.job ||
+        typeof data.result.job !== "object"
+      )
+        throw new Error("Invalid retried build job");
+      const job = data.result.job;
+      if (
+        !("id" in job) ||
+        !validJobId(job.id) ||
+        !("status" in job) ||
+        job.status !== "QUEUED" ||
+        !("retryCount" in job) ||
+        typeof job.retryCount !== "number" ||
+        !Number.isSafeInteger(job.retryCount) ||
+        job.retryCount < 1
+      )
+        throw new Error("Invalid retry identity");
+      // Each accepted retry has its own task; redelivery reuses that identity.
+      // The dispatcher publishes its queued Check before reserving execution.
+      await enqueue({ jobId: job.id }, dispatchRetryTaskId(job.id, job.retryCount));
+    } catch (failure) {
+      error("Build retry enqueue failed", {
+        eventId: event.id,
+        reason: buildQueueFailureReason(failure),
+      });
+      throw new Error("Build retry enqueue failed; retry required");
     }
   },
 );

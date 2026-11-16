@@ -1,0 +1,119 @@
+# A retry is a new attempt of the same job. Compare the observed retry counter
+# so concurrent calls and delayed replays cannot schedule another attempt.
+mutation RetryBuildJob($id: String!, $expectedRetryCount: Int!)
+@auth(level: USER)
+@transaction {
+  context: query @redact {
+    job: buildJob(id: $id)
+      @check(expr: "this != null && this.teamId != null", message: "Team access denied") {
+      teamId
+      installationId
+      repositoryId
+      githubBaseUrl
+    }
+  }
+  # Membership changes and team deletion also lock this row. Recheck membership
+  # after acquiring it so a removed user cannot retry a job from a stale read.
+  team_update(
+    key: { id_expr: "response.context.job.teamId" }
+    data: { updatedAt_expr: "int(request.time)" }
+  ) @redact @check(expr: "this != null", message: "Team access denied")
+  access: query @redact {
+    member: teamMember(
+      first: {
+        where: {
+          teamId: { eq_expr: "response.context.job.teamId" }
+          userId: { eq_expr: "auth.uid" }
+        }
+      }
+    ) @check(expr: "this != null", message: "Team access denied") {
+      id
+    }
+    connections: gitHubConnections(
+      where: {
+        _and: [
+          {
+            teamId: { eq_expr: "response.context.job.teamId" }
+            installationId: { eq_expr: "int(response.context.job.installationId)" }
+            githubApiBaseUrl: {
+              eq_expr: "response.context.job.githubBaseUrl == null || response.context.job.githubBaseUrl == 'https://github.com' ? 'https://api.github.com' : response.context.job.githubBaseUrl + '/api/v3'"
+            }
+          }
+          {
+            _or: [
+              { repositoryId: { isNull: true } }
+              { repositoryId: { eq_expr: "response.context.job.repositoryId" } }
+            ]
+          }
+        ]
+      }
+      limit: null
+    )
+      @check(
+        expr: "this.exists(c, c.status == 'active') && !this.exists(c, c.repositoryId != null && c.status != 'active')"
+        message: "GitHub connection is inactive"
+      ) {
+      status
+      repositoryId
+    }
+  }
+  retried: buildJob_updateMany(
+    where: {
+      _and: [
+        {
+          id: { eq: $id }
+          teamId: { eq_expr: "response.context.job.teamId" }
+          status: { in: ["SUCCESS", "FAILURE", "CANCELLED", "TIMED_OUT"] }
+          runsOn: { eq: "macos-latest" }
+          retryCount: { eq: $expectedRetryCount }
+        }
+        {
+          _or: [
+            { checkLeaseUntil: { isNull: true } }
+            { checkLeaseUntil: { le_expr: "request.time" } }
+          ]
+        }
+      ]
+    }
+    data: {
+      status: "QUEUED"
+      retryCount_update: { inc: 1 }
+      completedAt: null
+      failureSummary: null
+      failureSummaryStatus: null
+      vmName: null
+      workerHost: null
+      supersededByTaskId: null
+      checkRunId: null
+      checkRunNumber: null
+      checkOwner: null
+      checkLeaseUntil: null
+      dispatchRetryPending: false
+      updatedAt_expr: "int(request.time)"
+    }
+  )
+    @check(
+      expr: "vars.expectedRetryCount >= 0 && vars.expectedRetryCount < 2147483647"
+      message: "Invalid retry count"
+    )
+    @check(expr: "this == 1", message: "Job changed or is not ready to retry; refresh the job")
+  # The job lock fences new reservations. Do not reuse a cancelled job while
+  # its previous executor is still finalizing its VM, billing or GitHub Check.
+  cleanup: query @redact {
+    dispatches: buildJobDispatches(
+      where: { jobId: { eq: $id }, finishedAt: { isNull: true } }
+      limit: 1
+    ) @check(expr: "size(this) == 0", message: "Previous execution is still finishing") {
+      id
+    }
+  }
+  result: query {
+    job: buildJob(id: $id) {
+      id
+      status
+      retryCount
+      runCount
+      latestRunId
+    }
+  }
+}

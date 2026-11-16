@@ -13,6 +13,12 @@ export type Outcome =
   | "card_required";
 export type Stream = "stdout" | "stderr";
 
+/** Explicit retries also need a fresh Check when no BuildRun was started. */
+export function queuedCheckExternalId(job: Pick<Job, "id" | "runCount" | "retryCount">): string {
+  const base = `build-job:${job.id}:run:${BigInt(job.runCount ?? "0") + 1n}`;
+  return job.retryCount ? `${base}:retry:${job.retryCount}` : base;
+}
+
 /** Metadata pinned by checkout validation, before the VM starts. */
 export type ResolvedCheckout =
   | { event: "push"; branch: string; commitSha: string; checkoutSha: string }
