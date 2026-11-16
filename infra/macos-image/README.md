@@ -7,6 +7,9 @@ image to produce a **v0.1.9** candidate. The source is pinned by digest, preserv
 the existing macOS 26.5, Xcode 26.6, Flutter 3.47.8, and Node 22/24 environment.
 The historical `released/` profile below continues to reproduce v0.1.7.
 
+Published image: `ghcr.io/openci-org/base-macos:v0.1.9`, with immutable digest
+`sha256:aba93a829d611353fff9826605330b281fe39b585b8c2e16698a7ef406939ea7`.
+
 ```sh
 make init
 export PKR_VAR_candidate_name=base-macos-packer-v019-patrol
