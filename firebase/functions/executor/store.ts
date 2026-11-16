@@ -10,6 +10,11 @@ import * as sdk from "@openci/dispatch-admin";
 import { identity, type Dispatch, type Outcome } from "./model.js";
 import { configuredConnector } from "../data_connect_config.js";
 
+export function resolveExecutionContext(data: sdk.GetBuildExecutorContextData) {
+  const connection = data.repositoryConnection ?? data.connection;
+  return { ...data, connection: connection?.status === "active" ? connection : undefined };
+}
+
 export function isolatedConnector(config: ConnectorConfig, app: App = getApp()): DataConnect {
   // firebase-admin 14.5 caches by location/service, without the connector ID.
   const name = `${app.name}:executor:${config.connector}`;
@@ -55,10 +60,24 @@ export class ExecutionStore {
         .data.acquired === 1
     );
   }
-  async context(teamId: string, installationId: string, appId: string, apiBaseUrl: string) {
-    return (
-      await sdk.getBuildExecutorContext(this.dc, { teamId, installationId, appId, apiBaseUrl })
-    ).data;
+  async context(
+    teamId: string,
+    installationId: string,
+    appId: string,
+    apiBaseUrl: string,
+    repositoryId?: string | null,
+  ) {
+    return resolveExecutionContext(
+      (
+        await sdk.getBuildExecutorContext(this.dc, {
+          teamId,
+          installationId,
+          appId,
+          apiBaseUrl,
+          repositoryId,
+        })
+      ).data,
+    );
   }
   async configure(dispatch: Dispatch, executorId: string, selfHosted = false): Promise<number> {
     if (selfHosted) {

@@ -390,10 +390,16 @@ class _Translations$team$ja extends Translations$team$en {
   @override
   String get gitHubConnectionVerified => 'GitHub認証を確認しました。チームへの連携はまだ確定していません。';
   @override
-  String get gitHubConnectionCandidates => '連携できるGitHubアカウント';
+  String get gitHubConnectionCandidates => '連携するGitHubリポジトリ';
+  @override
+  String get gitHubConnectionAccountScope =>
+      'OpenCIをインストール済みで、あなたがWrite以上の権限を持つリポジトリです。選択したリポジトリだけをこのチームに連携します。';
   @override
   String get gitHubConnectionNoCandidates =>
-      '連携できるGitHubアカウントが見つかりませんでした。GitHub Appのインストールと権限を確認した後、もう一度連携してください。';
+      'このチームに連携できるGitHubリポジトリが見つかりませんでした。';
+  @override
+  String get gitHubConnectionMissingAccount =>
+      '対象が表示されない場合は、OpenCIが対象リポジトリにアクセスできる状態でインストールされていることと、あなたのGitHubアカウントにWrite以上の権限があることを確認し、再度「GitHubと連携」を押してください。他のOpenCIチームに連携済みのリポジトリは表示されません。';
   @override
   String get gitHubAppInstallation => 'GitHub Appのインストール・設定を開く';
   @override
@@ -1008,9 +1014,13 @@ extension on TranslationsJa {
       'team.connectGitHub' => 'GitHubと連携',
       'team.gitHubConnectionFailed' => 'GitHub連携を開始できませんでした。もう一度お試しください。',
       'team.gitHubConnectionVerified' => 'GitHub認証を確認しました。チームへの連携はまだ確定していません。',
-      'team.gitHubConnectionCandidates' => '連携できるGitHubアカウント',
+      'team.gitHubConnectionCandidates' => '連携するGitHubリポジトリ',
+      'team.gitHubConnectionAccountScope' =>
+        'OpenCIをインストール済みで、あなたがWrite以上の権限を持つリポジトリです。選択したリポジトリだけをこのチームに連携します。',
       'team.gitHubConnectionNoCandidates' =>
-        '連携できるGitHubアカウントが見つかりませんでした。GitHub Appのインストールと権限を確認した後、もう一度連携してください。',
+        'このチームに連携できるGitHubリポジトリが見つかりませんでした。',
+      'team.gitHubConnectionMissingAccount' =>
+        '対象が表示されない場合は、OpenCIが対象リポジトリにアクセスできる状態でインストールされていることと、あなたのGitHubアカウントにWrite以上の権限があることを確認し、再度「GitHubと連携」を押してください。他のOpenCIチームに連携済みのリポジトリは表示されません。',
       'team.gitHubAppInstallation' => 'GitHub Appのインストール・設定を開く',
       'team.gitHubAppInstallationUrlUnavailable' =>
         'GitHub Appの案内リンクを利用できません。OpenCIサーバーの管理者に設定を確認してください。',

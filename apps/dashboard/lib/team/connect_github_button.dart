@@ -12,9 +12,14 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class ConnectGitHubButton extends HookConsumerWidget {
-  const ConnectGitHubButton({super.key, this.enabled = true});
+  const ConnectGitHubButton({
+    super.key,
+    this.enabled = true,
+    this.onConnectingChanged,
+  });
 
   final bool enabled;
+  final ValueChanged<bool>? onConnectingChanged;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -43,6 +48,7 @@ class ConnectGitHubButton extends HookConsumerWidget {
     if (isConnecting.value) return;
 
     isConnecting.value = true;
+    onConnectingChanged?.call(true);
     try {
       clearGitHubConnectionContext();
       final connectionContext = _readConnectionContext(ref);
@@ -62,7 +68,10 @@ class ConnectGitHubButton extends HookConsumerWidget {
         context.showSnackBarMessage(context.t.team.gitHubConnectionFailed);
       }
     } finally {
-      if (context.mounted) isConnecting.value = false;
+      if (context.mounted) {
+        isConnecting.value = false;
+        onConnectingChanged?.call(false);
+      }
     }
   }
 

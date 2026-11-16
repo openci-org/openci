@@ -501,12 +501,20 @@ class Translations$team$en {
   String get gitHubConnectionVerified =>
       'GitHub authorization verified. Confirm below to connect it to your team.';
 
-  /// en: 'Available GitHub accounts'
-  String get gitHubConnectionCandidates => 'Available GitHub accounts';
+  /// en: 'GitHub repository to connect'
+  String get gitHubConnectionCandidates => 'GitHub repository to connect';
 
-  /// en: 'No available GitHub accounts found. Check the GitHub App installation and permissions, then try connecting again.'
+  /// en: 'These repositories have OpenCI installed and you have Write access or higher. Only the repository you select will be connected to this team.'
+  String get gitHubConnectionAccountScope =>
+      'These repositories have OpenCI installed and you have Write access or higher. Only the repository you select will be connected to this team.';
+
+  /// en: 'No GitHub repositories are available to connect to this team.'
   String get gitHubConnectionNoCandidates =>
-      'No available GitHub accounts found. Check the GitHub App installation and permissions, then try connecting again.';
+      'No GitHub repositories are available to connect to this team.';
+
+  /// en: 'If your repository is missing, check that OpenCI is installed with access to it and that your GitHub account has Write access or higher, then connect GitHub again. Repositories already connected to another OpenCI team are excluded.'
+  String get gitHubConnectionMissingAccount =>
+      'If your repository is missing, check that OpenCI is installed with access to it and that your GitHub account has Write access or higher, then connect GitHub again. Repositories already connected to another OpenCI team are excluded.';
 
   /// en: 'Open GitHub App installation settings'
   String get gitHubAppInstallation => 'Open GitHub App installation settings';
@@ -1323,9 +1331,13 @@ extension on Translations {
         'Could not start the GitHub connection. Please try again.',
       'team.gitHubConnectionVerified' =>
         'GitHub authorization verified. Confirm below to connect it to your team.',
-      'team.gitHubConnectionCandidates' => 'Available GitHub accounts',
+      'team.gitHubConnectionCandidates' => 'GitHub repository to connect',
+      'team.gitHubConnectionAccountScope' =>
+        'These repositories have OpenCI installed and you have Write access or higher. Only the repository you select will be connected to this team.',
       'team.gitHubConnectionNoCandidates' =>
-        'No available GitHub accounts found. Check the GitHub App installation and permissions, then try connecting again.',
+        'No GitHub repositories are available to connect to this team.',
+      'team.gitHubConnectionMissingAccount' =>
+        'If your repository is missing, check that OpenCI is installed with access to it and that your GitHub account has Write access or higher, then connect GitHub again. Repositories already connected to another OpenCI team are excluded.',
       'team.gitHubAppInstallation' => 'Open GitHub App installation settings',
       'team.gitHubAppInstallationUrlUnavailable' =>
         'The GitHub App installation link is unavailable. Ask your OpenCI server administrator to check the configuration.',

@@ -47,6 +47,16 @@ export function confirmGitHubConnection(dcOrVarsOrOptions, varsOrOptions, option
   return dcInstance.executeMutation("ConfirmGitHubConnection", inputVars, inputOpts);
 }
 
+export function getUnavailableGitHubRepositories(dcOrVarsOrOptions, varsOrOptions, options) {
+  const {
+    dc: dcInstance,
+    vars: inputVars,
+    options: inputOpts,
+  } = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeQuery("GetUnavailableGitHubRepositories", inputVars, inputOpts);
+}
+
 export function getActiveGitHubConnection(dcOrVarsOrOptions, varsOrOptions, options) {
   const {
     dc: dcInstance,
@@ -55,6 +65,16 @@ export function getActiveGitHubConnection(dcOrVarsOrOptions, varsOrOptions, opti
   } = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
   dcInstance.useGen(true);
   return dcInstance.executeQuery("GetActiveGitHubConnection", inputVars, inputOpts);
+}
+
+export function getGitHubRepositoryConnection(dcOrVarsOrOptions, varsOrOptions, options) {
+  const {
+    dc: dcInstance,
+    vars: inputVars,
+    options: inputOpts,
+  } = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeQuery("GetGitHubRepositoryConnection", inputVars, inputOpts);
 }
 
 export function getGitHubConnectionContext(dcOrVarsOrOptions, varsOrOptions, options) {

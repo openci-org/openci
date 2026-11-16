@@ -39,7 +39,10 @@ class BuildJobPlanner {
     try {
       event = PlanningEvent.parse(task.eventType, task.payload);
       if (event != null) {
-        connection = await store.findConnection(event.webhook.installationId);
+        connection = await store.findConnection(
+          event.webhook.installationId,
+          event.repositoryId,
+        );
         if (connection != null) {
           if (connection.accountId != event.ownerId.toString()) {
             throw const InvalidPlanningInput('invalid_payload');

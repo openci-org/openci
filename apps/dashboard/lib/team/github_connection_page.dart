@@ -1,13 +1,12 @@
 import 'package:dashboard/app_strings.dart';
 import 'package:dashboard/connections/active_connection_profile_provider.dart';
 import 'package:dashboard/connections/connection_store_provider.dart';
-import 'package:dashboard/team/connect_github_button.dart';
 import 'package:dashboard/team/current_github_connection_context_provider.dart';
 import 'package:dashboard/team/fetch_github_connection_session.dart';
-import 'package:dashboard/team/github_app_installation_link.dart';
 import 'package:dashboard/team/github_connection_api.dart';
 import 'package:dashboard/team/github_connection_context.dart';
 import 'package:dashboard/team/github_connection_form.dart';
+import 'package:dashboard/team/github_connection_help.dart';
 import 'package:dashboard/team/github_connection_storage.dart';
 import 'package:dashboard/team/parse_github_connection_return.dart';
 import 'package:dashboard/team/pending_github_connection_return_provider.dart';
@@ -62,22 +61,21 @@ class GitHubConnectionPage extends HookConsumerWidget {
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 16),
-          GitHubAppInstallationLink(
+          GitHubConnectionHelp(
             installationUrl: candidates.requireData.installationUrl,
           ),
-          const SizedBox(height: 16),
-          const ConnectGitHubButton(),
         ],
       );
     } else {
       content = GitHubConnectionForm(
         teamName: ref.watch(selectedTeamProvider).requireValue.name,
         candidates: candidates.requireData.candidates,
-        onConfirm: (installationId) => _confirm(
+        installationUrl: candidates.requireData.installationUrl,
+        onConfirm: (candidate) => _confirm(
           ref,
           initiatingContext!,
           result!.reference!,
-          installationId,
+          candidate,
         ),
       );
     }
@@ -103,7 +101,7 @@ class GitHubConnectionPage extends HookConsumerWidget {
     WidgetRef ref,
     GitHubConnectionContext initiatingContext,
     String reference,
-    int installationId,
+    GitHubConnectionCandidate candidate,
   ) async {
     final context = ref.context;
     final api = await _prepareClient(ref, initiatingContext);
@@ -113,7 +111,8 @@ class GitHubConnectionPage extends HookConsumerWidget {
     }
     await api.confirm(
       reference,
-      installationId,
+      candidate.installationId,
+      candidate.repositoryId,
     );
     _requireMatchingContext(ref, initiatingContext);
     if (!context.mounted) return;

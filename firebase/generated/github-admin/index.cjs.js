@@ -52,6 +52,17 @@ function confirmGitHubConnection(dcOrVarsOrOptions, varsOrOptions, options) {
 }
 exports.confirmGitHubConnection = confirmGitHubConnection;
 
+function getUnavailableGitHubRepositories(dcOrVarsOrOptions, varsOrOptions, options) {
+  const {
+    dc: dcInstance,
+    vars: inputVars,
+    options: inputOpts,
+  } = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeQuery("GetUnavailableGitHubRepositories", inputVars, inputOpts);
+}
+exports.getUnavailableGitHubRepositories = getUnavailableGitHubRepositories;
+
 function getActiveGitHubConnection(dcOrVarsOrOptions, varsOrOptions, options) {
   const {
     dc: dcInstance,
@@ -62,6 +73,17 @@ function getActiveGitHubConnection(dcOrVarsOrOptions, varsOrOptions, options) {
   return dcInstance.executeQuery("GetActiveGitHubConnection", inputVars, inputOpts);
 }
 exports.getActiveGitHubConnection = getActiveGitHubConnection;
+
+function getGitHubRepositoryConnection(dcOrVarsOrOptions, varsOrOptions, options) {
+  const {
+    dc: dcInstance,
+    vars: inputVars,
+    options: inputOpts,
+  } = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeQuery("GetGitHubRepositoryConnection", inputVars, inputOpts);
+}
+exports.getGitHubRepositoryConnection = getGitHubRepositoryConnection;
 
 function getGitHubConnectionContext(dcOrVarsOrOptions, varsOrOptions, options) {
   const {

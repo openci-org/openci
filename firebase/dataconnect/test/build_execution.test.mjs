@@ -309,6 +309,26 @@ async function fixture(t, queuedCheck = false, team) {
   };
 }
 
+test("executor context never authorizes a different repository through its installation", async (t) => {
+  const f = await fixture(t);
+  const installationId = (await f.state()).job.installationId;
+  const repositoryId = installationId;
+  await graphql(
+    'mutation Scope($id:String!,$repositoryId:Int64!) { gitHubConnection_update(id:$id,data:{repositoryId:$repositoryId,repositoryName:"app"}) }',
+    { id: f.teamId, repositoryId },
+  );
+  const context = (repo) =>
+    store.context(f.teamId, installationId, "1", "https://api.github.com", repo);
+  assert.equal((await context(repositoryId)).connection.id, f.teamId);
+  assert.equal((await context(String(BigInt(repositoryId) + 1n))).connection, undefined);
+  assert.equal((await context(null)).connection, undefined);
+  await graphql(
+    'mutation Suspend($id:String!) { gitHubConnection_update(id:$id,data:{status:"suspended"}) }',
+    { id: f.teamId },
+  );
+  assert.equal((await context(repositoryId)).connection, undefined);
+});
+
 async function started(f) {
   const executorId = await f.claim();
   const dispatch = (await f.state()).dispatch;

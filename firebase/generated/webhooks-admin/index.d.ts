@@ -143,6 +143,7 @@ export interface CompleteWebhookTaskVariables {
   pathFilterReason?: string | null;
   comparisonBaseSha?: string | null;
   connectionId?: string | null;
+  repositoryId?: Int64String | null;
   owner?: string | null;
   repo?: string | null;
   commitSha?: string | null;
@@ -194,6 +195,7 @@ export interface GetSkippedWorkflowCheckData {
       githubAppId: Int64String;
       githubApiBaseUrl: string;
       installationId: Int64String;
+      repositoryId?: Int64String | null;
       accountId: Int64String;
     } & GitHubConnection_Key;
   } & SkippedWorkflowCheck_Key;

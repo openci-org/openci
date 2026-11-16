@@ -49,6 +49,8 @@ abstract class GitHubConnectionCandidatesResult
 abstract class GitHubConnectionCandidate with _$GitHubConnectionCandidate {
   const factory GitHubConnectionCandidate({
     required int installationId,
+    required int repositoryId,
+    required String repositoryName,
     required String accountLogin,
     required String accountType,
   }) = _GitHubConnectionCandidate;

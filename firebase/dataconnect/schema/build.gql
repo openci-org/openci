@@ -40,6 +40,8 @@ type BuildJob
   vmName: String @col(name: "vm_name")
   workerHost: String @col(name: "worker_host")
   installationId: String @col(name: "installation_id")
+  # Pin repository identity independently of names and installation scope.
+  repositoryId: Int64 @col(name: "repository_id")
   checkRunId: String @col(name: "check_run_id")
   # The queued check belongs to the next numbered run, not a capacity reservation.
   checkRunNumber: Int64 @col(name: "check_run_number")

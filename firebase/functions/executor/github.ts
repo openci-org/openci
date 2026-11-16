@@ -48,7 +48,7 @@ export class ExecutionGitHub {
   }
 
   private async client(
-    job: Pick<Job, "githubBaseUrl" | "installationId" | "repo">,
+    job: Pick<Job, "githubBaseUrl" | "installationId" | "repo" | "repositoryId">,
     purpose: keyof typeof installationPermissions,
     signal?: AbortSignal,
   ): Promise<{ request: (typeof import("@octokit/request"))["request"]; token: string }> {
@@ -57,6 +57,11 @@ export class ExecutionGitHub {
       !/^[1-9][0-9]*$/.test(job.installationId ?? "")
     )
       throw new Error("GitHub installation mismatch");
+    if (
+      job.repositoryId != null &&
+      (!/^[1-9][0-9]*$/.test(job.repositoryId) || !Number.isSafeInteger(Number(job.repositoryId)))
+    )
+      throw new Error("Invalid GitHub repository ID");
     const [{ createAppAuth }, { request }] = await Promise.all([
       import("@octokit/auth-app"),
       import("@octokit/request"),
@@ -84,7 +89,9 @@ export class ExecutionGitHub {
     const installation = await auth({
       type: "installation",
       installationId: Number(job.installationId),
-      repositoryNames: [job.repo],
+      ...(job.repositoryId != null
+        ? { repositoryIds: [Number(job.repositoryId)] }
+        : { repositoryNames: [job.repo] }),
       permissions: installationPermissions[purpose],
     });
     return {
@@ -134,14 +141,21 @@ export class ExecutionGitHub {
     )
       throw new Error("Invalid skipped Check context");
     const { request } = await this.client(
-      { ...check, installationId: connection.installationId },
+      {
+        ...check,
+        installationId: connection.installationId,
+        repositoryId: connection.repositoryId,
+      },
       "checks",
     );
     const { data: repo } = await request("GET /repos/{owner}/{repo}", {
       owner: check.owner,
       repo: check.repo,
     });
-    if (String(repo.owner.id) !== String(connection.accountId))
+    if (
+      String(repo.owner.id) !== String(connection.accountId) ||
+      (connection.repositoryId != null && String(repo.id) !== connection.repositoryId)
+    )
       throw new Error("Skipped Check repository owner changed");
     const externalId = `skipped-${check.id}`;
     let checkRunId: number | bigint | undefined = check.checkRunId
@@ -239,6 +253,7 @@ export class ExecutionGitHub {
         !Number.isSafeInteger(repo.id) ||
         repo.id <= 0 ||
         String(repo.owner?.id) !== accountId ||
+        (job.repositoryId != null && String(repo.id) !== job.repositoryId) ||
         repo.full_name?.toLowerCase() !== `${job.owner}/${job.repo}`.toLowerCase()
       )
         throw new Error("Untrusted pull request source");
@@ -341,6 +356,7 @@ export class ExecutionGitHub {
     });
     if (
       String(repo.owner.id) !== accountId ||
+      (job.repositoryId != null && String(repo.id) !== job.repositoryId) ||
       repo.full_name.toLowerCase() !== `${job.owner}/${job.repo}`.toLowerCase()
     )
       throw new Error("Repository does not belong to the connected installation");
@@ -414,6 +430,7 @@ export class ExecutionGitHub {
     });
     if (
       String(repo.owner.id) !== accountId ||
+      (job.repositoryId != null && String(repo.id) !== job.repositoryId) ||
       repo.full_name.toLowerCase() !== `${job.owner}/${job.repo}`.toLowerCase()
     )
       throw new Error("Repository does not belong to the connected installation");

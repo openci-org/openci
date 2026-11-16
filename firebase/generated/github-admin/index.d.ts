@@ -113,6 +113,8 @@ export interface ConfirmGitHubConnectionVariables {
   githubApiBaseUrl: string;
   githubAppId: Int64String;
   installationId: Int64String;
+  repositoryId: Int64String;
+  repositoryName: string;
   accountId: Int64String;
   accountType: string;
   accountLogin: string;
@@ -182,6 +184,8 @@ export interface GetActiveGitHubConnectionData {
     githubApiBaseUrl: string;
     githubAppId: Int64String;
     installationId: Int64String;
+    repositoryId?: Int64String | null;
+    repositoryName?: string | null;
     accountId: Int64String;
     accountType: string;
     accountLogin: string;
@@ -233,6 +237,62 @@ export interface GetGitHubConnectionSessionVariables {
   teamId: string;
   userId: string;
   referenceHash: string;
+}
+
+export interface GetGitHubRepositoryConnectionData {
+  connection?: {
+    id: string;
+    teamId: string;
+    githubApiBaseUrl: string;
+    githubAppId: Int64String;
+    installationId: Int64String;
+    repositoryId?: Int64String | null;
+    repositoryName?: string | null;
+    accountId: Int64String;
+    accountType: string;
+    accountLogin: string;
+    status: string;
+    verifiedAt: Int64String;
+  } & GitHubConnection_Key;
+  legacyConnection?: {
+    id: string;
+    teamId: string;
+    githubApiBaseUrl: string;
+    githubAppId: Int64String;
+    installationId: Int64String;
+    repositoryId?: Int64String | null;
+    repositoryName?: string | null;
+    accountId: Int64String;
+    accountType: string;
+    accountLogin: string;
+    status: string;
+    verifiedAt: Int64String;
+  } & GitHubConnection_Key;
+}
+
+export interface GetGitHubRepositoryConnectionVariables {
+  githubApiBaseUrl: string;
+  githubAppId: Int64String;
+  installationId: Int64String;
+  repositoryId: Int64String;
+}
+
+export interface GetUnavailableGitHubRepositoriesData {
+  legacyConnections: {
+    installationId: Int64String;
+  }[];
+  repositories: {
+    repositoryId?: Int64String | null;
+  }[];
+}
+
+export interface GetUnavailableGitHubRepositoriesVariables {
+  teamId: string;
+  userId: string;
+  githubApiBaseUrl: string;
+  githubAppId: Int64String;
+  installationIds: Int64String[];
+  repositoryIds: Int64String[];
 }
 
 export interface GitHubConnectionRequest_Key {
@@ -337,6 +397,18 @@ export function confirmGitHubConnection(
   options?: OperationOptions,
 ): Promise<ExecuteOperationResponse<ConfirmGitHubConnectionData>>;
 
+/** Generated Node Admin SDK operation action function for the 'GetUnavailableGitHubRepositories' Query. Allow users to execute without passing in DataConnect. */
+export function getUnavailableGitHubRepositories(
+  dc: DataConnect,
+  vars: GetUnavailableGitHubRepositoriesVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<GetUnavailableGitHubRepositoriesData>>;
+/** Generated Node Admin SDK operation action function for the 'GetUnavailableGitHubRepositories' Query. Allow users to pass in custom DataConnect instances. */
+export function getUnavailableGitHubRepositories(
+  vars: GetUnavailableGitHubRepositoriesVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<GetUnavailableGitHubRepositoriesData>>;
+
 /** Generated Node Admin SDK operation action function for the 'GetActiveGitHubConnection' Query. Allow users to execute without passing in DataConnect. */
 export function getActiveGitHubConnection(
   dc: DataConnect,
@@ -348,6 +420,18 @@ export function getActiveGitHubConnection(
   vars: GetActiveGitHubConnectionVariables,
   options?: OperationOptions,
 ): Promise<ExecuteOperationResponse<GetActiveGitHubConnectionData>>;
+
+/** Generated Node Admin SDK operation action function for the 'GetGitHubRepositoryConnection' Query. Allow users to execute without passing in DataConnect. */
+export function getGitHubRepositoryConnection(
+  dc: DataConnect,
+  vars: GetGitHubRepositoryConnectionVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<GetGitHubRepositoryConnectionData>>;
+/** Generated Node Admin SDK operation action function for the 'GetGitHubRepositoryConnection' Query. Allow users to pass in custom DataConnect instances. */
+export function getGitHubRepositoryConnection(
+  vars: GetGitHubRepositoryConnectionVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<GetGitHubRepositoryConnectionData>>;
 
 /** Generated Node Admin SDK operation action function for the 'GetGitHubConnectionContext' Query. Allow users to execute without passing in DataConnect. */
 export function getGitHubConnectionContext(

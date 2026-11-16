@@ -31,7 +31,7 @@ class _Store implements PlanningStore {
     status,
   );
   @override
-  Future<PlanningConnection?> findConnection(int id) async =>
+  Future<PlanningConnection?> findConnection(int id, int repositoryId) async =>
       const PlanningConnection('connection', '20', 'team');
   @override
   Future<PlanningFence> beginPullRequestPlanning(

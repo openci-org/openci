@@ -4,9 +4,14 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class GitHubAppInstallationLink extends StatelessWidget {
-  const GitHubAppInstallationLink({super.key, required this.installationUrl});
+  const GitHubAppInstallationLink({
+    super.key,
+    required this.installationUrl,
+    this.enabled = true,
+  });
 
   final String? installationUrl;
+  final bool enabled;
 
   @override
   Widget build(BuildContext context) {
@@ -18,7 +23,7 @@ class GitHubAppInstallationLink extends StatelessWidget {
       );
     }
     return TextButton.icon(
-      onPressed: () => _openInstallationUri(context, uri),
+      onPressed: enabled ? () => _openInstallationUri(context, uri) : null,
       icon: const Icon(Icons.open_in_new),
       label: Text(context.t.team.gitHubAppInstallation),
     );

@@ -1,6 +1,6 @@
 import * as sdk from "@openci/github-admin";
 import type { DataConnect } from "firebase-admin/data-connect";
-import { ConnectionError, type Installation } from "./github.js";
+import { ConnectionError, type RepositoryCandidate } from "./github.js";
 import type { ConnectionConfig } from "./config.js";
 import type { ConnectionStore } from "./service.js";
 
@@ -11,7 +11,8 @@ async function operation<T>(work: () => Promise<T>): Promise<T> {
     const message = error instanceof Error ? error.message : "";
     if (
       message.includes("Team access denied") ||
-      message.includes("GitHub installation is already connected")
+      message.includes("GitHub installation is already connected") ||
+      message.includes("GitHub repository is already connected")
     )
       throw new ConnectionError("permission-denied", "GitHub connection access denied");
     if (/Invalid or expired GitHub|GitHub (request|session) already consumed/.test(message))
@@ -51,7 +52,38 @@ export class GitHubConnectionStore implements ConnectionStore {
       ).data.session ?? null
     );
   }
-  async confirm(teamId: string, userId: string, referenceHash: string, installation: Installation) {
+  async unavailableRepositories(teamId: string, userId: string, candidates: RepositoryCandidate[]) {
+    if (candidates.length === 0) return new Set<number>();
+    const result = await operation(() =>
+      sdk.getUnavailableGitHubRepositories(this.dc, {
+        teamId,
+        userId,
+        githubApiBaseUrl: this.config.apiBaseUrl,
+        githubAppId: this.config.appId,
+        installationIds: [...new Set(candidates.map((item) => String(item.installationId)))],
+        repositoryIds: candidates.map((item) => String(item.repositoryId)),
+      }),
+    );
+    const installations = new Set(
+      result.data.legacyConnections.map(({ installationId }) => Number(installationId)),
+    );
+    const repositories = new Set(
+      result.data.repositories.map(({ repositoryId }) => Number(repositoryId)),
+    );
+    return new Set(
+      candidates
+        .filter(
+          (item) => installations.has(item.installationId) || repositories.has(item.repositoryId),
+        )
+        .map((item) => item.repositoryId),
+    );
+  }
+  async confirm(
+    teamId: string,
+    userId: string,
+    referenceHash: string,
+    installation: RepositoryCandidate,
+  ) {
     await operation(() =>
       sdk.confirmGitHubConnection(this.dc, {
         teamId,
@@ -63,6 +95,8 @@ export class GitHubConnectionStore implements ConnectionStore {
         accountId: String(installation.accountId),
         accountType: installation.accountType,
         accountLogin: installation.accountLogin,
+        repositoryId: String(installation.repositoryId),
+        repositoryName: installation.repositoryName,
       }),
     );
   }

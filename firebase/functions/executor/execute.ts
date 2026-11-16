@@ -154,6 +154,7 @@ export async function executeBuild(
       job.installationId!,
       github.options.appId,
       github.options.apiBaseUrl,
+      job.repositoryId,
     );
     if (!context.team || !context.connection) throw new Error("GitHub connection is not active");
     // Guard existing/queued/rerun jobs as well as newly planned ones. A failed

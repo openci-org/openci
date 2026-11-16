@@ -10,6 +10,7 @@ mutation CompleteWebhookTask(
   $pathFilterReason: String = null
   $comparisonBaseSha: String = null
   $connectionId: String = null
+  $repositoryId: Int64 = null
   $owner: String = null
   $repo: String = null
   $commitSha: String = null
@@ -62,11 +63,12 @@ mutation CompleteWebhookTask(
   query @redact {
     connection: gitHubConnection(first: { where: { id: { eq: $connectionId } } })
       @check(
-        expr: "(vars.jobCount + vars.skippedCount == 0 && !vars.cancelClosedPullRequest) || (this != null && this.status == 'active')"
+        expr: "(vars.jobCount + vars.skippedCount == 0 && !vars.cancelClosedPullRequest) || (this != null && this.status == 'active' && (this.repositoryId == null || this.repositoryId == vars.repositoryId))"
         message: "GitHub connection is no longer active"
       ) {
       teamId
       installationId
+      repositoryId
       status
     }
   }
@@ -89,11 +91,11 @@ mutation CompleteWebhookTask(
       id, status, owner, repo, workflow_name, workflow_file_name, team_id,
       commit_sha, branch, commit_message, pull_request_number, github_base_url,
       installation_id, runs_on, run_count, created_at, updated_at, flutter_version,
-      cancel_previous_runs, webhook_execution_key
+      cancel_previous_runs, webhook_execution_key, repository_id
     )
     SELECT w.id, 'QUEUED', $2, $3, w.name, w.file, $4,
       $5, $6, $7, $8::bigint, $9, $10, 'macos-latest', 0, $11::bigint, $11::bigint,
-      w."flutterVersion", COALESCE(w."cancelPreviousRuns", false), w."webhookExecutionKey"
+      w."flutterVersion", COALESCE(w."cancelPreviousRuns", false), w."webhookExecutionKey", $14::bigint
     FROM jsonb_to_recordset($1::jsonb) AS w(
       id text, name text, file text, "flutterVersion" text, "cancelPreviousRuns" boolean,
       "webhookExecutionKey" text
@@ -128,6 +130,7 @@ mutation CompleteWebhookTask(
       { _expr: "int(request.time)" }
       $planningId
       $planningToken
+      $repositoryId
     ]
   ) @check(expr: "size(this) == vars.jobCount", message: "Invalid build job batch")
   # Closure cancels every active workflow in the verified PR scope. Superseding
@@ -166,7 +169,9 @@ mutation CompleteWebhookTask(
       { _expr: "response.jobs" }
       $cancelClosedPullRequest
       { _expr: "response.query.connection == null ? '' : response.query.connection.teamId" }
-      { _expr: "response.query.connection == null ? '' : string(response.query.connection.installationId)" }
+      {
+        _expr: "response.query.connection == null ? '' : string(response.query.connection.installationId)"
+      }
       $githubBaseUrl
       $owner
       $repo
@@ -210,7 +215,9 @@ mutation CompleteWebhookTask(
       { _expr: "response.jobs" }
       $cancelClosedPullRequest
       { _expr: "response.query.connection == null ? '' : response.query.connection.teamId" }
-      { _expr: "response.query.connection == null ? '' : string(response.query.connection.installationId)" }
+      {
+        _expr: "response.query.connection == null ? '' : string(response.query.connection.installationId)"
+      }
       $githubBaseUrl
       $owner
       $repo
