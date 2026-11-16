@@ -22,8 +22,8 @@ const installationPermissions = {
   pr_qr: { contents: "write", pull_requests: "write" },
 } as const;
 
-const mergeReadinessTimeoutMs = 120_000;
-const mergeReadinessMaxDelayMs = 10_000;
+const mergeReadinessTimeoutMs = 600_000;
+const mergeReadinessMaxDelayMs = 30_000;
 
 export interface GitHubOptions {
   appId: string;

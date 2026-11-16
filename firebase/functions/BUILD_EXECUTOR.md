@@ -64,9 +64,10 @@ repository-scoped token with `pull_requests: read` and `contents: read` stays in
 Cloud Run and is revoked after resolving the checkout commit, including cancellation.
 The GitHub App must have both read permissions.
 
-For an open PR, the executor waits up to two minutes for GitHub's test merge
-commit, with polling delays of 1, 2, 4, 8, then at most 10 seconds. The deadline
-includes API time and interrupts in-flight reads. A temporarily missing merge
+For an open PR, the executor waits up to ten minutes for GitHub's test merge
+commit, subject to the overall execution deadline, with polling delays of 1, 2,
+4, 8, 16, then at most 30 seconds. The deadline includes API time and interrupts
+in-flight reads. A temporarily missing merge
 commit (HTTP 404) is retried within the same deadline; other API failures are
 reported immediately. Each candidate is checked against the current
 `refs/heads/<base branch>` fetched from the verified repository, rather than
