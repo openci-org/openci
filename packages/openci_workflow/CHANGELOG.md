@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.4.0
 
 - **Breaking:** `firebaseHosting.deployPreview()` now returns `FirebaseHostingPreview` with `url` and the actual Firebase `expiresAt` in UTC. Replace uses of the previous `Uri` result with `preview.url`; live `deploy()` still returns `Uri`.
 - Add optional `DateTime expiresAt` to `pullRequest.postQrCode()` to display an explicit expiration time in English or Japanese PR comments. Pass `preview.expiresAt` to reuse the Hosting expiry. Omitting it leaves out the expiry line; display requires the updated executor.
