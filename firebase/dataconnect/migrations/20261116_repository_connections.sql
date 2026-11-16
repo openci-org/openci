@@ -1,5 +1,5 @@
--- Run after deploying the new schema and repository-aware connectors, before
--- enabling repository confirmations. COMPATIBLE retains the old unique key.
+-- Run after adding the repository columns and unique key, before deploying the
+-- repository-aware schema/connectors and enabling repository confirmations.
 -- No rows or legacy permissions are changed. Run as the existing schema owner.
 BEGIN;
 SET LOCAL lock_timeout = '5s';
@@ -26,10 +26,10 @@ BEGIN
     RAISE EXCEPTION 'Deploy the unique host/App/repository key before this migration';
   END IF;
 
-  -- Preserve the one-team invariant for retained installation-wide rows.
-  CREATE UNIQUE INDEX IF NOT EXISTS github_connections_legacy_installation_key
-    ON public.github_connections (github_api_base_url, github_app_id, installation_id)
-    WHERE repository_id IS NULL;
+  -- SQL Connect rejects unique indexes absent from its schema, including this
+  -- partial index from the first migration version. Existing legacy rows remain;
+  -- ConfirmGitHubConnection requires a positive repository ID for every new row.
+  DROP INDEX IF EXISTS public.github_connections_legacy_installation_key;
 
   -- Match exact key columns rather than relying on generated/truncated names.
   -- Both constraint-backed and standalone unique indexes are supported.
