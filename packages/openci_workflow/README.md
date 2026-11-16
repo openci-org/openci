@@ -263,6 +263,61 @@ install them.
 
 For Flutter analysis, use `await openCI.flutter.staticAnalysis()` or pass your preferred `flutter analyze` flags to `openCI.run()`.
 
+### Publish a Dart package to pub.dev
+
+Call `publishToPubDev()` after your analysis and tests in a publishing workflow:
+
+```dart
+final result = await openCI.dart.publishToPubDev(
+  serviceAccountJsonBase64:
+      Secrets.pubDevServiceAccountJsonBase64.value,
+  skipIfPublished: true,
+);
+
+print('${result.name} ${result.version}: ${result.status.name}');
+print(result.url);
+```
+
+The helper reads `name` and `version` from the workflow directory's `pubspec.yaml`.
+Use `dir` to override the directory for this call. It accepts the default
+publication destination or an explicit `https://pub.dev`; private packages and
+other registries are rejected. Dart must already be on `PATH`.
+
+Enable [automated publishing with a Google service account](https://dart.dev/tools/pub/automated-publishing#publish-from-anywhere-using-a-service-account)
+in the package's pub.dev Admin tab. Pass its Base64-encoded JSON key using the
+generated `Secrets` accessor. This is a Google ID token flow, not an OAuth
+access token or GitHub Actions token. No gcloud installation is needed. Pub.dev
+requires a package's first version to be published manually before configuring
+automated publishing.
+
+The helper runs `dart pub publish --force` once, without a separate dry run or
+`--skip-validation`. Pub's normal validation still rejects errors; warnings are
+accepted without a prompt. Temporary authentication settings are isolated from
+your normal pub configuration and removed when the call finishes. The JSON key
+is kept in memory, and the short-lived token is passed through a child-process
+environment variable and redacted from command output.
+
+`PubPublishResult` contains `name`, `version`, `url`, and `status`:
+
+- `PubPublishStatus.published`: pub successfully submitted the version. Indexing
+  and dependency resolution can take a few minutes to catch up.
+- `PubPublishStatus.alreadyPublished`: the version existed before any upload was
+  attempted. This requires `skipIfPublished: true`; the default is to throw.
+  Skipping compares the name and version, not the archive contents.
+
+HTTP requests time out after one minute; each pub command after ten minutes.
+Authentication, validation, and upload failures propagate, including a concurrent
+publish that wins after the initial version lookup. The helper does not retry
+uploads or turn failed uploads into skips. A timeout or lost response can occur
+after pub.dev has accepted a version: check its page before rerunning.
+
+Limit publishing credentials to trusted runs in your CI configuration. This SDK
+method does not change executor secret permissions. The current OpenCI executor
+injects team secrets into jobs; a workflow trigger or Dart context guard alone
+does not isolate a publishing key from other jobs in the team.
+
+### Flutter builds and tests
+
 Run Flutter tests with an optional time zone and tag exclusion:
 
 ```dart
