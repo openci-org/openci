@@ -24,9 +24,9 @@ node_archive="node-v$node_version-$node_platform-$node_arch"
 node_origin="https://nodejs.org/dist/v$node_version"
 (
   cd "$node_tmp"
-  curl --fail --silent --show-error --location --retry 3 \
+  curl --fail --silent --show-error --location --retry 3 --retry-all-errors \
     --output "$node_archive.tar.gz" "$node_origin/$node_archive.tar.gz"
-  curl --fail --silent --show-error --location --retry 3 \
+  curl --fail --silent --show-error --location --retry 3 --retry-all-errors \
     --output SHASUMS256.txt "$node_origin/SHASUMS256.txt"
   awk -v archive="$node_archive.tar.gz" '$2 == archive { print }' \
     SHASUMS256.txt > node-checksum.txt

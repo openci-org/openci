@@ -214,41 +214,67 @@ void main() {
     expect(ci.context, same(ci.context));
   });
 
-  test(
-    'init is backward compatible; context is read lazily and cached',
-    () async {
-      final config = (await Isolate.packageConfig)!.toFilePath();
+  group('init and lazy context', () {
+    late String config;
+    late String probe;
+
+    setUpAll(() async {
+      config = (await Isolate.packageConfig)!.toFilePath();
       final library = (await Isolate.resolvePackageUri(
         Uri.parse('package:openci_workflow/openci_workflow.dart'),
       ))!;
-      final probe = library
+      probe = library
           .resolve('../test/fixtures/read_workflow_context.dart')
           .toFilePath();
-      Future<ProcessResult> run(
-        Map<String, String> environment, [
-        List<String> args = const [],
-      ]) => Process.run(
-        Platform.resolvedExecutable,
-        ['--packages=$config', probe, ...args],
-        environment: environment,
-        includeParentEnvironment: false,
+    });
+
+    Future<ProcessResult> run(
+      Map<String, String> environment, [
+      List<String> args = const [],
+    ]) => Process.run(
+      Platform.resolvedExecutable,
+      ['--packages=$config', probe, ...args],
+      environment: environment,
+      includeParentEnvironment: false,
+    );
+
+    test('initializes with an old executor without reading context', () async {
+      final result = await run(
+        {'OPENCI_RUN_ID': 'run-dispatch'},
+        ['init-only'],
       );
-      final oldExecutor = {'OPENCI_RUN_ID': 'run-dispatch'};
-      expect((await run(oldExecutor, ['init-only'])).exitCode, 0);
-      expect((await run(oldExecutor)).exitCode, 2);
-      expect(
-        (await run({'OPENCI_CONTEXT': 'invalid'}, ['init-only'])).exitCode,
-        0,
+      expect(result.exitCode, 0, reason: result.stderr.toString());
+    });
+
+    test(
+      'rejects missing context when accessed with an old executor',
+      () async {
+        final result = await run({'OPENCI_RUN_ID': 'run-dispatch'});
+        expect(result.exitCode, 2, reason: result.stderr.toString());
+      },
+    );
+
+    test('does not parse invalid context during initialization', () async {
+      final result = await run(
+        {'OPENCI_CONTEXT': 'invalid'},
+        ['init-only'],
       );
+      expect(result.exitCode, 0, reason: result.stderr.toString());
+    });
+
+    test('reads and caches local context', () async {
       final local = await run({});
       expect(local.exitCode, 0, reason: local.stderr.toString());
       expect(jsonDecode(local.stdout as String), {'event': 'local'});
+    });
+
+    test('reads and caches pull request context', () async {
       final current = await run({'OPENCI_CONTEXT': jsonEncode(_pr())});
       expect(current.exitCode, 0, reason: current.stderr.toString());
       expect(
         jsonDecode(current.stdout as String),
         _pr()..remove('schemaVersion'),
       );
-    },
-  );
+    });
+  });
 }

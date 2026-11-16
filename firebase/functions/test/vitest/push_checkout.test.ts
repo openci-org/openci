@@ -1,5 +1,5 @@
 import { execFileSync, spawnSync } from "node:child_process";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { expect, test } from "vite-plus/test";
@@ -72,6 +72,41 @@ function pushJob(commitSha: string): Job {
     pullRequestNumber: null,
     branch: "main",
   };
+}
+
+for (const { failures, attempts, status } of [
+  { failures: 1, attempts: 2, status: 0 },
+  { failures: 3, attempts: 3, status: 1 },
+]) {
+  test(`checkout handles ${failures} interrupted fetches`, ({ onTestFinished }) => {
+    const root = mkdtempSync(join(tmpdir(), "openci-fetch-retry-"));
+    onTestFinished(() => rmSync(root, { recursive: true, force: true }));
+    const repo = checkoutFixture(root);
+    const queuedSha = repo.commitVersion("queued");
+    const result = repo.exec(`
+fetch_attempts=0
+git() {
+  if [[ " $* " == *" fetch "* ]]; then
+    fetch_attempts=$((fetch_attempts + 1))
+    printf 'fetch attempt %s\\n' "$fetch_attempts" >&2
+    if (( fetch_attempts <= ${failures} )); then
+      printf 'fatal: Recv failure: Connection reset by peer\\n' >&2
+      return 128
+    fi
+  fi
+  command git "$@"
+}
+sleep() { :; }
+${checkoutScript(queuedSha, repo.source, "test-token")}`);
+
+    expect(result.status, result.stderr).toBe(status);
+    expect(result.stderr.match(/fetch attempt /g)).toHaveLength(attempts);
+    if (status === 0) {
+      expect(repo.checkedOutSha()).toBe(queuedSha);
+    } else {
+      expect(existsSync(join(root, "vm", "openci-build", "version.txt"))).toBe(false);
+    }
+  });
 }
 
 function checkoutFixture(root: string) {
