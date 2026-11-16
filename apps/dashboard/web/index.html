@@ -24,10 +24,15 @@
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black" />
     <meta name="apple-mobile-web-app-title" content="OpenCI" />
-    <link rel="apple-touch-icon" href="icons/Icon-192.png" />
+    <link
+      rel="apple-touch-icon"
+      sizes="180x180"
+      href="icons/apple-touch-icon.png"
+    />
 
     <!-- Favicon -->
-    <link rel="icon" type="image/png" href="favicon.png" />
+    <link rel="icon" type="image/png" sizes="48x48" href="favicon.png" />
+    <link rel="icon" type="image/svg+xml" sizes="any" href="favicon.svg" />
 
     <title>OpenCI</title>
     <link rel="manifest" href="manifest.json" />
@@ -36,7 +41,12 @@
     <link rel="preload" href="flutter_bootstrap.js" as="script" />
     <link rel="preload" href="main.dart.js" as="script" />
     <link rel="preload" href="canvaskit/canvaskit.js" as="script" />
-    <link rel="preload" href="canvaskit/canvaskit.wasm" as="fetch" crossorigin="anonymous" />
+    <link
+      rel="preload"
+      href="canvaskit/canvaskit.wasm"
+      as="fetch"
+      crossorigin="anonymous"
+    />
 
     <style>
       :root {
@@ -132,7 +142,7 @@
       <div class="app-loader__content">
         <img
           class="app-loader__logo"
-          src="icons/Icon-192.png"
+          src="icons/Icon.svg"
           width="72"
           height="72"
           alt="OpenCI"
