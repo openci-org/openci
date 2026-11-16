@@ -2,6 +2,8 @@
 
 `queueBuildJobs` listens to the successful admin `CompleteWebhookTask` mutation,
 publishes a queued GitHub Check for each returned BuildJob, then enqueues its ID.
+If another publisher owns the Check lease, it enqueues the ID so dispatch can
+finish synchronization through a durable retry.
 `queueBuildDispatchOnCompletion` wakes the same queue after a successful admin
 `CompleteBuildExecution` mutation releases a reservation.
 `dispatchBuildJob` is a private Gen2
@@ -34,7 +36,7 @@ The `reason` is an allowlisted SDK/network code, HTTP status, or application
 reason; unrecognized failures remain `unknown`. Task enqueue wrapping preserves
 this safe reason without retaining the original exception or its cause.
 
-Failures still reject the event for retry. Only an already-existing task is
+Actual failures still reject the event for retry. Only an already-existing task is
 treated as successfully queued. Use the stage and reason to investigate the
 actual failing dependency; a subsequent successful retry does not establish its
 root cause. Raw errors, request bodies, credentials and workflow source must not
@@ -49,6 +51,25 @@ and prevents reservation creation while the GitHub request is in flight. GitHub
 calls have a 20-second total budget. Ambiguous failures retain the lease; retries
 reconcile the App ID and `build-job:JOB_ID:run:NUMBER` external ID before creating
 another check. Queuing a retry never resets a running or completed check.
+
+Both notifications and the FIFO dispatcher may publish the same queued Check.
+A live lease or a zero-row acquisition is an expected `check_publication_busy`
+deferral. Acquisition still fences the run and reservation after locking the
+job; those checks roll back an ineligible claim. If acquisition
+returns a query error, reread the job: an existing Check, reservation, or terminal
+state can satisfy the request; a competing lease or changed run defers it. A
+query error without that durable evidence, or any other acquisition failure,
+still fails the delivery. Errors after acquiring the lease also retain retry.
+
+A mutation notification acknowledges contention only after its stable dispatch
+task exists, then continues the remaining batch and cancellation notifications.
+A job-specific dispatch task persists a stable, 60-second delayed successor
+before acknowledging a busy Check, including when the job is cancelled and no
+queued work remains. A busy FIFO selection releases the scheduler and uses the
+shared delayed retry. Deferrals log INFO only after the successor is durable;
+failed or lost enqueue acknowledgements still return an error. After an
+ambiguous GitHub response, an expired publication owner also causes cancellation
+to reconcile by external ID even when the Check ID was not saved.
 
 The reservation copies that ID, and the executor updates it to `in_progress`
 and then `completed`. Each numbered run has its own check; replacement capacity
@@ -220,6 +241,11 @@ using a different network (defaults `orchard` / `orchard-tokyo`). Both carry the
 `orchard-client` network tag and route only private ranges through VPC. Allow
 that tag to reach the controller's TCP 443; retain certificate verification.
 See [Orchard networking](../../infra/orchard/README.md).
+
+For Check contention handling, deploy the `dispatch` connector first, then
+`dispatchBuildJob` and `queueBuildJobs`. No schema or executor changes are needed.
+Older Functions still reject an unowned lease after a zero-row acquisition, so
+the connector update is safe before the Functions rollout or rollback.
 
 Deploy the new schema tables and `dispatch` connector, then provision the G-1605
 Cloud Run Job. Enable Cloud Tasks and Cloud Run APIs. Deploy `dispatchBuildJob`

@@ -78,9 +78,22 @@ export const queueBuildJobs = onMutationExecuted(
       for (const id of createdBuildJobIds(event.data.payload)) {
         jobId = id;
         stage = "queued_check_sync";
-        await queuedChecks(getDispatchDataConnect()).sync(id);
+        let checkDeferred = false;
+        try {
+          await queuedChecks(getDispatchDataConnect()).sync(id);
+        } catch (failure) {
+          if (!(failure instanceof DispatchRetry) || failure.reason !== "check_publication_busy")
+            throw failure;
+          checkDeferred = true;
+        }
         stage = "dispatch_enqueue";
         await enqueue({ jobId: id }, dispatchTaskId(id));
+        if (checkDeferred)
+          info("Queued Check publication deferred", {
+            eventId: event.id,
+            jobId: id,
+            reason: "check_publication_busy",
+          });
       }
       jobId = undefined;
       stage = "cancellation_payload";
@@ -216,7 +229,21 @@ export const dispatchBuildJob = onTaskDispatched<unknown>(
         if (job?.status === "CANCELLED") await store.cancelUnstarted(jobId);
         if (job?.status === "QUEUED") awaitingJobId = jobId;
         // Also handles legacy per-job retries already queued before deployment.
-        await queuedChecks(getDispatchDataConnect()).sync(jobId);
+        try {
+          await queuedChecks(getDispatchDataConnect()).sync(jobId);
+        } catch (failure) {
+          if (!(failure instanceof DispatchRetry) || failure.reason !== "check_publication_busy")
+            throw failure;
+          // Keep a job-specific successor: cancellation can need Check cleanup
+          // even when there are no queued jobs for the shared capacity retry.
+          await enqueue(
+            { jobId },
+            dispatchContinuationTaskId(request.id, jobId),
+            new Date(Date.now() + 60_000),
+          );
+          info("Build dispatch deferred", { jobId, reason: failure.reason });
+          return;
+        }
       } else {
         // Continue even if already consumed: this delivery may be recovering a
         // crash after clearing the reservation but before creating its successor.

@@ -11,6 +11,7 @@ import {
 } from "../../lib/functions/build_dispatch_functions.js";
 import {
   dispatchTaskId,
+  DispatchRetry,
   dispatchCompletionTaskId,
   dispatchContinuationTaskId,
 } from "../../lib/functions/build_dispatch.js";
@@ -804,4 +805,144 @@ test("a single wakeup fills two slots with the default CPU allocation in FIFO or
   assert.equal(retry().taskId, delayedId);
   assert.equal(tasks.has(dispatchContinuationTaskId(sourceId)), false);
   assert.equal(errors.mock.callCount(), 0);
+});
+
+for (const savedBeforeFailure of [false, true]) {
+  test(`busy publication retains the batch when enqueue fails ${savedBeforeFailure ? "after" : "before"} saving`, async (t) => {
+    const errors = t.mock.method(logger, "error", () => {});
+    const info = t.mock.method(logger, "info", () => {});
+    t.mock.method(QueuedChecks.prototype, "sync", async (id) => {
+      if (id === "second") throw new DispatchRetry("check_publication_busy");
+    });
+    t.mock.method(DataConnectDispatchStore.prototype, "superseded", async () => [
+      { id: "cancelled" },
+    ]);
+    const tasks = new Map();
+    let outage = true;
+    mockQueue(t, async (data, options) => {
+      if (tasks.has(options.id)) throw { code: "functions/task-already-exists" };
+      if (data.jobId === "second" && outage) {
+        if (savedBeforeFailure) tasks.set(options.id, data.jobId);
+        throw new Error("queue unavailable");
+      }
+      tasks.set(options.id, data.jobId);
+    });
+    const input = event(
+      { jobs: [{ id: "first" }, { id: "second" }, { id: "third" }], cancelled: 1 },
+      undefined,
+      { id: "webhook" },
+    );
+    await assert.rejects(queueBuildJobs.run(input), /retry required/);
+    assert.equal(info.mock.callCount(), 0);
+    assert.equal(errors.mock.calls[0].arguments[1].stage, "dispatch_enqueue");
+    outage = false;
+    await queueBuildJobs.run(input);
+    await queueBuildJobs.run(input);
+    assert.deepEqual([...tasks.values()], ["first", "second", "third", "cancelled"]);
+    assert.equal(errors.mock.callCount(), 1);
+    assert.deepEqual(info.mock.calls[0].arguments, [
+      "Queued Check publication deferred",
+      { eventId: "event", jobId: "second", reason: "check_publication_busy" },
+    ]);
+  });
+}
+
+for (const status of ["QUEUED", "CANCELLED"]) {
+  test(`busy ${status} Check gets a durable job successor before HTTP 204`, async (t) => {
+    const { state, retry, errors, info } = mockDispatcher(t);
+    state.job.status = status;
+    t.mock.method(QueuedChecks.prototype, "sync", async () => {
+      throw new DispatchRetry("check_publication_busy");
+    });
+    const entered = Promise.withResolvers();
+    const saved = Promise.withResolvers();
+    let task;
+    mockQueue(t, async (data, options) => {
+      task = { data, options };
+      entered.resolve();
+      await saved.promise;
+    });
+    let completed = false;
+    const start = Date.now();
+    const response = deliverTask("source").then((r) => {
+      completed = true;
+      return r;
+    });
+    await entered.promise;
+    assert.equal(completed, false);
+    assert.equal(info.mock.callCount(), 0);
+    saved.resolve();
+    assert.equal((await response).statusCode, 204);
+    assert.deepEqual(task.data, { jobId: "job" });
+    assert.equal(task.options.id, dispatchContinuationTaskId("source", "job"));
+    assert.ok(task.options.scheduleTime.getTime() >= start + 60_000);
+    assert.equal(retry(), undefined);
+    assert.equal(errors.mock.callCount(), 0);
+    assert.deepEqual(info.mock.calls[0].arguments, [
+      "Build dispatch deferred",
+      { jobId: "job", reason: "check_publication_busy" },
+    ]);
+    assert.equal(DataConnectDispatchStore.prototype.acquireScheduler.mock.callCount(), 0);
+  });
+}
+
+for (const savedBeforeFailure of [false, true]) {
+  test(`busy cancellation enqueue failure ${savedBeforeFailure ? "after" : "before"} saving retains retry with a stable ID`, async (t) => {
+    const { state, errors } = mockDispatcher(t);
+    state.job.status = "CANCELLED";
+    t.mock.method(QueuedChecks.prototype, "sync", async () => {
+      throw new DispatchRetry("check_publication_busy");
+    });
+    const tasks = new Map();
+    let outage = true;
+    mockQueue(t, async (data, options) => {
+      if (tasks.has(options.id)) throw { code: "functions/task-already-exists" };
+      if (savedBeforeFailure || !outage) tasks.set(options.id, data);
+      if (outage) throw new Error("queue outage");
+    });
+    assert.equal((await deliverTask("source")).statusCode, 500);
+    outage = false;
+    assert.equal((await deliverTask("source")).statusCode, 204);
+    assert.equal((await deliverTask("source")).statusCode, 204);
+    assert.deepEqual([...tasks.keys()], [dispatchContinuationTaskId("source", "job")]);
+    assert.equal(errors.mock.calls[0].arguments[1].reason, "recovery_enqueue_failed");
+    t.mock.method(QueuedChecks.prototype, "sync", async () => {});
+    assert.equal((await deliverTask([...tasks.keys()][0])).statusCode, 204);
+    assert.equal(tasks.size, 1, "the cancellation chain ends once publication finishes");
+  });
+}
+
+test("contention on the FIFO-selected Check releases the scheduler and shares a delayed retry", async (t) => {
+  const { errors, info, retry } = mockDispatcher(t);
+  t.mock.method(OrchardCapacityClient.prototype, "snapshot", async () => ({
+    workers: [
+      {
+        name: "mac",
+        last_seen: new Date().toISOString(),
+        resources: {
+          "org.cirruslabs.logical-cores": 2,
+          "org.cirruslabs.memory-mib": 4096,
+          "org.cirruslabs.tart-vms": 1,
+        },
+      },
+    ],
+    vms: [],
+  }));
+  t.mock.method(QueuedChecks.prototype, "sync", async () => {
+    throw new DispatchRetry("check_publication_busy");
+  });
+  t.mock.method(DataConnectDispatchStore.prototype, "reserve", async () =>
+    assert.fail("must not reserve while publication is busy"),
+  );
+  const tasks = new Map();
+  mockQueue(t, async (data, options) => tasks.set(options.id, { data, options }));
+  assert.equal((await deliverTask("shared", { dispatch: true })).statusCode, 204);
+  assert.equal(DataConnectDispatchStore.prototype.releaseScheduler.mock.callCount(), 1);
+  assert.deepEqual(tasks.get(retry().taskId).data, { dispatch: true });
+  assert.equal(tasks.size, 1);
+  assert.equal(errors.mock.callCount(), 0);
+  assert.deepEqual(info.mock.calls[0].arguments, [
+    "Build dispatch deferred",
+    { jobId: undefined, reason: "check_publication_busy" },
+  ]);
 });

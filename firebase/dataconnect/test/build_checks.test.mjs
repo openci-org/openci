@@ -4,6 +4,7 @@ import { after, test } from "node:test";
 import { deleteApp, getApps, initializeApp } from "firebase-admin/app";
 import * as sdk from "@openci/dispatch-admin";
 import { isolatedConnector } from "../../lib/functions/executor/store.js";
+import { DispatchRetry } from "../../lib/functions/build_dispatch.js";
 import { QueuedChecks, QueuedCheckStore } from "../../lib/functions/queued_checks.js";
 
 const host = process.env.DATA_CONNECT_EMULATOR_HOST;
@@ -214,4 +215,130 @@ test("expired owners cannot record or release another publisher's check", async 
   await store.release(f.jobId, "new");
   await f.checks.sync(f.jobId);
   assert.equal((await f.reserve()).checkRunId, "100");
+});
+
+for (const winner of ["publishing", "reserved"]) {
+  test(`a dispatcher ${winner} between notification read and acquire is reconciled`, async (t) => {
+    const f = await fixture(t);
+    const observed = Promise.withResolvers();
+    const resumeNotification = Promise.withResolvers();
+    const published = Promise.withResolvers();
+    const resumeDispatcher = Promise.withResolvers();
+    let firstRead = true;
+    const notification = new QueuedChecks(
+      {
+        read: async (id) => {
+          const state = await store.read(id);
+          if (firstRead) {
+            firstRead = false;
+            observed.resolve();
+            await resumeNotification.promise;
+          }
+          return state;
+        },
+        acquire: (...args) => store.acquire(...args),
+        record: (...args) => store.record(...args),
+        release: (...args) => store.release(...args),
+        context: (...args) => store.context(...args),
+      },
+      f.checks.github,
+    );
+    f.afterWrite(async () => {
+      published.resolve();
+      await resumeDispatcher.promise;
+    });
+    const delivery = notification.sync(f.jobId);
+    await observed.promise;
+    const dispatcher = f.checks.sync(f.jobId);
+    await published.promise;
+    if (winner === "reserved") {
+      resumeDispatcher.resolve();
+      await dispatcher;
+      await f.reserve();
+    }
+    resumeNotification.resolve();
+    if (winner === "publishing") {
+      await assert.rejects(
+        delivery,
+        (e) => e instanceof DispatchRetry && e.reason === "check_publication_busy",
+      );
+      resumeDispatcher.resolve();
+      await dispatcher;
+      await f.reserve();
+    } else {
+      await delivery;
+    }
+    await notification.sync(f.jobId);
+    assert.equal(f.remote.size, 1);
+    assert.equal(f.calls.length, 1);
+    assert.equal((await store.read(f.jobId)).job.checkOwner, null);
+  });
+}
+
+test("cancellation during a lost Check response waits and reconciles after lease expiry", async (t) => {
+  const f = await fixture(t);
+  f.afterWrite(async () => {
+    await f.alter({ status: "CANCELLED" });
+    throw new Error("lost GitHub acknowledgement");
+  });
+  await assert.rejects(f.checks.sync(f.jobId), /lost GitHub acknowledgement/);
+  const job = (await store.read(f.jobId)).job;
+  assert.equal(job.checkRunId, null);
+  assert.ok(job.checkOwner);
+  await assert.rejects(
+    f.checks.sync(f.jobId),
+    (e) => e instanceof DispatchRetry && e.reason === "check_publication_busy",
+  );
+  assert.equal(f.calls.length, 1);
+  await f.alter({ checkLeaseUntil: new Date(0).toISOString() });
+  f.afterWrite(async () => {});
+  await f.checks.sync(f.jobId);
+  assert.equal(f.remote.size, 1);
+  assert.deepEqual(
+    f.calls.map(({ status, id }) => [status, id]),
+    [
+      ["QUEUED", "100"],
+      ["CANCELLED", "100"],
+    ],
+  );
+  const saved = (await store.read(f.jobId)).job;
+  assert.equal(saved.checkRunId, "100");
+  assert.equal(saved.checkOwner, null);
+  await assert.rejects(f.reserve());
+});
+
+test("a busy acquisition returns zero without disturbing its current publisher", async (t) => {
+  const f = await fixture(t);
+  await store.acquire(f.jobId, "publisher", "1");
+  const result = await sdk.acquireQueuedBuildCheck(dc, {
+    jobId: f.jobId,
+    owner: "other",
+    runNumber: "1",
+  });
+  assert.equal(result.data.buildJob_updateMany, 0);
+  assert.equal((await store.read(f.jobId)).job.checkOwner, "publisher");
+  await assert.rejects(
+    store.acquire(f.jobId, "other", "1"),
+    (e) => e instanceof DispatchRetry && e.reason === "check_publication_busy",
+  );
+  await assert.rejects(f.reserve());
+});
+
+test("acquisition with no eligible job is benign but a stale run rolls back its lease", async (t) => {
+  const f = await fixture(t);
+  await assert.rejects(
+    sdk.acquireQueuedBuildCheck(dc, { jobId: f.jobId, owner: "stale", runNumber: "2" }),
+  );
+  assert.equal((await store.read(f.jobId)).job.checkOwner, null);
+  await f.alter({ status: "SUCCESS" });
+  assert.equal(
+    (await sdk.acquireQueuedBuildCheck(dc, { jobId: f.jobId, owner: "late", runNumber: "1" })).data
+      .buildJob_updateMany,
+    0,
+  );
+  assert.equal(
+    (await sdk.acquireQueuedBuildCheck(dc, { jobId: "missing", owner: "late", runNumber: "1" }))
+      .data.buildJob_updateMany,
+    0,
+  );
 });
