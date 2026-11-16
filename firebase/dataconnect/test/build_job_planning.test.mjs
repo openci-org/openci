@@ -297,6 +297,7 @@ async function fixture(t, payloadChange = {}, eventType = "push") {
             runCount
             latestRunId
             installationId
+            repositoryId
             githubBaseUrl
             createdAt
             updatedAt
@@ -334,6 +335,53 @@ test("ID dispatcher -> Dart Function -> GitHub -> atomic FSC jobs", async (t) =>
     assert.ok(Number(job.createdAt) > 0);
     assert.equal(job.createdAt, job.updatedAt);
   }
+});
+
+test("repository-scoped connections plan only their selected repository", async (t) => {
+  const f = await fixture(t);
+  await graphql(
+    'mutation Scope($id:String!) { gitHubConnection_update(id:$id,data:{repositoryId:10,repositoryName:"app"}) }',
+    { id: f.connectionId },
+  );
+  await invoke(f.taskId);
+  const { buildJobs } = await f.state();
+  assert.equal(buildJobs.length, 2);
+  assert.ok(buildJobs.every((job) => job.teamId === f.teamId && job.repositoryId === "10"));
+  const job = (
+    await getBuildExecution(getDispatchDataConnect(), {
+      id: "missing",
+      jobId: buildJobs[0].id,
+      runId: "missing",
+    })
+  ).data.job;
+  assert.equal(job.repositoryId, "10");
+});
+
+test("an installed but unconnected repository never obtains a planning token or creates jobs", async (t) => {
+  const f = await fixture(t);
+  await graphql(
+    'mutation Scope($id:String!) { gitHubConnection_update(id:$id,data:{repositoryId:11,repositoryName:"another"}) }',
+    { id: f.connectionId },
+  );
+  await assert.rejects(
+    sdk.completeWebhookTask(dc, {
+      id: f.taskId,
+      jobCount: 1,
+      connectionId: f.connectionId,
+      repositoryId: "10",
+      jobsJson: JSON.stringify([{ id: randomUUID(), name: "Unconnected", file: "ci.dart" }]),
+      owner: "org",
+      repo: "app",
+      commitSha: sha,
+      branch: "develop",
+    }),
+    /no longer active/,
+  );
+  assert.equal((await f.state()).webhookTask.status, "pending");
+  await invoke(f.taskId);
+  assert.deepEqual((await f.state()).buildJobs, []);
+  assert.deepEqual(f.github.tokenRequests, []);
+  assert.equal((await f.state()).webhookTask.status, "completed");
 });
 
 test("concurrent Dart invocations publish one batch", async (t) => {
@@ -605,6 +653,31 @@ test("end users cannot read tasks, publish builds, or fail tasks", async (t) => 
   }
 });
 
+// Keep the expected workflow identities explicit: this integration uses the
+// repository's real workflows, including the added mobile release workflows.
+const pushWorkflowFiles = [
+  "dart_format_check.dart",
+  "dart_functions_ci.dart",
+  "dashboard_macos_cd.dart",
+  "dashboard_play_aab.dart",
+  "dashboard_testflight_ipa.dart",
+  "dashboard_web_hosting.dart",
+  "firebase_functions_ci.dart",
+  "openci_shared_ci.dart",
+  "openci_workflow_ci.dart",
+  "website_ci.dart",
+];
+const prWorkflowFiles = [
+  "dart_format_check.dart",
+  "dart_functions_ci.dart",
+  "dashboard_web_hosting.dart",
+  "firebase_functions_ci.dart",
+  "macos_release_ci.dart",
+  "openci_shared_ci.dart",
+  "openci_workflow_ci.dart",
+  "website_ci.dart",
+];
+
 async function configurePathWorkflows(f) {
   const directory = new URL("../../../openci/", import.meta.url);
   const names = (await readdir(directory)).filter((name) => name.endsWith(".dart"));
@@ -630,7 +703,7 @@ async function makeDue(id) {
   );
 }
 
-test("real planner atomically selects Website CI, persists all five skips and handles concurrent redelivery", async (t) => {
+test("real planner atomically selects Website CI, persists every excluded workflow and handles concurrent redelivery", async (t) => {
   const f = await fixture(t);
   await configurePathWorkflows(f);
   const results = await Promise.all([invoke(f.taskId), invoke(f.taskId)]);
@@ -641,7 +714,10 @@ test("real planner atomically selects Website CI, persists all five skips and ha
     ["Website CI"],
   );
   const skips = await skippedState(f);
-  assert.equal(skips.skippedWorkflowChecks.length, 5);
+  assert.deepEqual(
+    skips.skippedWorkflowChecks.map((check) => check.workflowFileName),
+    pushWorkflowFiles.filter((file) => file !== "website_ci.dart"),
+  );
   assert.equal(skips.webhookTask.pathFilterReason, null);
   for (const check of skips.skippedWorkflowChecks) {
     assert.equal(check.status, "pending");
@@ -665,8 +741,14 @@ test("all-skipped planning creates no jobs and transient comparisons instead run
     await invoke(f.taskId);
     const state = await f.state();
     const skips = await skippedState(f);
-    assert.equal(state.buildJobs.length, unavailable ? 6 : 0);
-    assert.equal(skips.skippedWorkflowChecks.length, unavailable ? 0 : 6);
+    assert.deepEqual(
+      state.buildJobs.map((job) => job.workflowFileName),
+      unavailable ? pushWorkflowFiles : [],
+    );
+    assert.deepEqual(
+      skips.skippedWorkflowChecks.map((check) => check.workflowFileName),
+      unavailable ? [] : pushWorkflowFiles,
+    );
     assert.equal(skips.webhookTask.pathFilterReason, unavailable ? "github_unavailable" : null);
     if (!unavailable) assert.deepEqual(createdBuildJobIds({ data: { jobs: [] } }), []);
     assert.equal(f.github.changedFilesCalls, 1);
@@ -808,7 +890,10 @@ test("PR filtering and base retargets use the full PR diff with scoped PR-read p
     );
     assert.equal(jobs[0].branch, "stack-child");
     assert.equal(jobs[0].pullRequestNumber, "7");
-    assert.equal((await skippedState(f)).skippedWorkflowChecks.length, 5);
+    assert.deepEqual(
+      (await skippedState(f)).skippedWorkflowChecks.map((check) => check.workflowFileName),
+      prWorkflowFiles.filter((file) => file !== "website_ci.dart"),
+    );
     assert.equal(f.github.changedFilesCalls, 1);
     assert.ok(
       f.github.tokenRequests.some(

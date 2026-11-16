@@ -15,10 +15,14 @@ export interface Installation {
   accountType: "User" | "Organization";
   accountLogin: string;
 }
+export interface RepositoryCandidate extends Installation {
+  repositoryId: number;
+  repositoryName: string;
+}
 export interface GitHubConnectionClient {
   exchange(code: string, verifier: string): Promise<string>;
   user(token: string): Promise<number>;
-  candidates(token: string, expectedUserId: string): Promise<Installation[]>;
+  candidates(token: string, expectedUserId: string): Promise<RepositoryCandidate[]>;
 }
 
 function object(value: unknown): Record<string, unknown> {
@@ -95,15 +99,15 @@ export class OctokitConnectionClient implements GitHubConnectionClient {
     }
   }
 
-  async candidates(token: string, expectedUserId: string): Promise<Installation[]> {
+  async candidates(token: string, expectedUserId: string): Promise<RepositoryCandidate[]> {
     try {
       const userId = await this.user(token);
       if (String(userId) !== expectedUserId)
         throw new ConnectionError("permission-denied", "GitHub user changed");
       const request = await this.request(this.config.apiBaseUrl, token);
-      const candidates: Installation[] = [];
+      const candidates: RepositoryCandidate[] = [];
       const ids = new Set<number>();
-      let ownedOrganizations: Promise<Set<number>> | undefined;
+      const repositoryIds = new Set<number>();
       let count: number | undefined;
       for (let page = 1; page <= 10; page++) {
         // Pagination stays on the configured host; never follow Link URLs.
@@ -139,20 +143,21 @@ export class OctokitConnectionClient implements GitHubConnectionClient {
             accountLogin: login,
             accountType: account.type,
           };
-          if (account.type === "User") {
-            if (accountId === userId) candidates.push(installation);
-          } else {
-            try {
-              ownedOrganizations ??= this.ownedOrganizations(token, userId);
-              if ((await ownedOrganizations).has(accountId)) candidates.push(installation);
-            } catch (error) {
-              // An inaccessible organization does not hide other eligible accounts.
-              // Rate limits, token expiry and upstream failures must fail the request.
-              const status = (error as { status?: number }).status;
-              if (status === 404) continue;
-              if (status === 403 && !this.rateLimited(error)) continue;
-              throw error;
+          try {
+            for (const repository of await this.repositories(token, installation)) {
+              if (repositoryIds.has(repository.repositoryId))
+                throw new Error("Duplicate repository across installations");
+              repositoryIds.add(repository.repositoryId);
+              candidates.push(repository);
+              if (candidates.length > 1000) throw new Error("Repository limit exceeded");
             }
+          } catch (error) {
+            // A revoked installation does not hide other eligible repositories.
+            // Rate limits, token expiry and upstream failures fail the request.
+            const status = (error as { status?: number }).status;
+            if (status === 404) continue;
+            if (status === 403 && !this.rateLimited(error)) continue;
+            throw error;
           }
         }
         const hasNext = /rel="next"/.test(headers.link ?? "");
@@ -166,37 +171,63 @@ export class OctokitConnectionClient implements GitHubConnectionClient {
     }
   }
 
-  private async ownedOrganizations(token: string, userId: number): Promise<Set<number>> {
+  private async repositories(
+    token: string,
+    installation: Installation,
+  ): Promise<RepositoryCandidate[]> {
     const request = await this.request(this.config.apiBaseUrl, token);
-    const owned = new Set<number>();
+    const candidates: RepositoryCandidate[] = [];
     const seen = new Set<number>();
+    let count: number | undefined;
     for (let page = 1; page <= 10; page++) {
-      // Unlike the per-organization membership endpoint, listing the signed-in
-      // user's own memberships needs no organization Members permission.
-      const { data, headers } = await request("GET /user/memberships/orgs", {
-        state: "active",
-        per_page: 100,
-        page,
-      });
-      if (!Array.isArray(data) || data.length > 100)
-        throw new Error("Invalid organization membership page");
-      for (const item of data) {
-        const membership = object(item);
-        const organizationId = id(object(membership.organization).id);
-        if (seen.has(organizationId)) throw new Error("Duplicate organization membership");
-        seen.add(organizationId);
+      // This endpoint intersects the user's access with the App installation's
+      // repositories. Its permissions are the user's repository permissions.
+      const { data, headers } = await request(
+        "GET /user/installations/{installation_id}/repositories",
+        {
+          installation_id: installation.installationId,
+          per_page: 100,
+          page,
+        },
+      );
+      if (
+        !Number.isSafeInteger(data.total_count) ||
+        data.total_count < 0 ||
+        data.total_count > 1000 ||
+        !Array.isArray(data.repositories) ||
+        data.repositories.length > 100 ||
+        (count !== undefined && count !== data.total_count)
+      )
+        throw new Error("Invalid repository page");
+      count = data.total_count;
+      for (const item of data.repositories) {
+        const repository = object(item);
+        const repositoryId = id(repository.id);
+        if (seen.has(repositoryId)) throw new Error("Duplicate repository");
+        seen.add(repositoryId);
+        const owner = object(repository.owner);
+        const name = repository.name;
         if (
-          membership.state === "active" &&
-          membership.role === "admin" &&
-          id(object(membership.user).id) === userId
+          id(owner.id) !== installation.accountId ||
+          typeof name !== "string" ||
+          !/^[A-Za-z0-9_.-]+$/.test(name) ||
+          name.length > 255 ||
+          typeof repository.full_name !== "string" ||
+          repository.full_name.toLowerCase() !==
+            `${installation.accountLogin}/${name}`.toLowerCase()
         )
-          owned.add(organizationId);
+          throw new Error("Invalid repository identity");
+        // Read and triage do not authorize linking CI. Write, maintain and admin
+        // all include push; missing permission metadata must not grant access.
+        if (repository.permissions && object(repository.permissions).push === true)
+          candidates.push({ ...installation, repositoryId, repositoryName: name });
       }
-      if (!/rel="next"/.test(headers.link ?? "")) return owned;
-      if (data.length !== 100) throw new Error("Incomplete organization membership page");
-      // Construct pagination on our configured API host, never follow Link URLs.
+      const hasNext = /rel="next"/.test(headers.link ?? "");
+      if (seen.size === count && !hasNext) return candidates;
+      if (seen.size >= count || data.repositories.length !== 100)
+        throw new Error("Incomplete repository page");
     }
-    throw new Error("Organization membership limit exceeded");
+    throw new Error("Repository limit exceeded");
   }
 
   private rateLimited(error: unknown): boolean {

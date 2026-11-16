@@ -11,6 +11,7 @@ fragment ExecutionJobFields on BuildJob {
   pullRequestNumber
   branch
   installationId
+  repositoryId
   githubBaseUrl
   latestRunId
   workerHost
@@ -38,6 +39,7 @@ query GetBuildExecutorContext(
   $installationId: Int64!
   $appId: Int64!
   $apiBaseUrl: String!
+  $repositoryId: Int64 = null
 ) @auth(level: NO_ACCESS) {
   team: team(id: $teamId) {
     id
@@ -49,6 +51,7 @@ query GetBuildExecutorContext(
         installationId: { eq: $installationId }
         githubAppId: { eq: $appId }
         githubApiBaseUrl: { eq: $apiBaseUrl }
+        repositoryId: { isNull: true }
         status: { eq: "active" }
       }
     }
@@ -56,6 +59,25 @@ query GetBuildExecutorContext(
     id
     accountId
     accountLogin
+    status
+    repositoryId
+  }
+  repositoryConnection: gitHubConnection(
+    first: {
+      where: {
+        teamId: { eq: $teamId }
+        installationId: { eq: $installationId }
+        githubAppId: { eq: $appId }
+        githubApiBaseUrl: { eq: $apiBaseUrl }
+        repositoryId: { eq_expr: "vars.repositoryId == null ? 0 : vars.repositoryId" }
+      }
+    }
+  ) {
+    id
+    accountId
+    accountLogin
+    status
+    repositoryId
   }
   customer: billingCustomerCreation(key: { teamId: $teamId }) {
     stripeCustomerId

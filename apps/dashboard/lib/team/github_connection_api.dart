@@ -89,10 +89,15 @@ class GitHubConnectionApi {
       GitHubConnectionCandidatesResult.fromJson(
         await _call('candidates', {'reference': reference}),
       );
-  Future<void> confirm(String reference, int installationId) async {
+  Future<void> confirm(
+    String reference,
+    int installationId,
+    int repositoryId,
+  ) async {
     await _call('confirm', {
       'reference': reference,
       'installationId': installationId,
+      'repositoryId': repositoryId,
     });
   }
 }

@@ -18,18 +18,40 @@ are removed in this release.
    Manager. Redirect to the fixed Dashboard return URL with only an opaque
    reference in the fragment; the Dashboard scrubs it before routing/analytics.
 3. `session` / `candidates`: bind the reference to the initiating Firebase user
-   and team. Re-read the GitHub user and installations, and show only installations
-   of the configured App that are not suspended. A personal account must belong
-   to the user; an organization requires active admin membership. Read the
-   authenticated user's own memberships through `GET /user/memberships/orgs`,
-   which requires no organization Members permission, and match organization
-   IDs and the authenticated user ID. Recheck the FSC session after fetching
-   candidates.
-4. `confirm`: repeat live GitHub verification. FSC then rechecks membership,
-   session ownership and expiry, consumes the session, and saves the connection
-   atomically. Another team cannot take an existing host/App/installation key.
-   A same-team reconnection preserves its connection ID. UI selection supplies
-   only an installation ID; the host, App and account facts come from the server.
+   and team. Re-read the GitHub user and active installations of the configured App.
+   Enumerate `GET /user/installations/{installation_id}/repositories` with the user
+   token and retain repositories with `permissions.push === true` (Write, Maintain,
+   or Admin). Read/Triage and missing permission metadata are excluded. Organization
+   ownership is not required; outside collaborators and collaborators on personal
+   repositories are supported. This endpoint intersects user and App access.
+   `GetUnavailableGitHubRepositories` hides other teams' repository claims and
+   legacy installation-wide claims, including suspended/removed claims. Recheck
+   the FSC session after fetching and filtering candidates.
+4. `confirm`: repeat live GitHub verification and match both installation and
+   repository IDs. FSC rechecks membership, session ownership/expiry, and legacy
+   installation claims, then consumes the session and saves the repository claim
+   atomically. The unique host/App/repository key prevents competing teams from
+   claiming the same repository, including after transfers. Distinct repositories
+   in one installation can belong to different teams. Client-supplied names,
+   account information, host, and App identifiers are never trusted.
+
+The Dashboard lists `owner/repository` and connects only the selected repository.
+New confirmations always require a positive repository ID. A cached old client
+cannot create an installation-wide connection by omitting it.
+
+Existing owner-verified connections retain a null `repositoryId` and their original
+installation-wide scope. A Write user's confirmation creates/refreshes a separate
+repository row without reactivating or modifying that legacy grant. A legacy
+installation claimed by another team still blocks its repositories; migrating
+existing organization-wide connections to individual repositories is separate work.
+
+The planner resolves the repository claim before fetching workflow files and only
+falls back to a legacy connection if no repository claim exists. Inactive or
+transferred claims cannot fall back to broader access. FSC verifies the repository
+again when creating jobs/PR planning fences. Jobs pin the repository ID; executor
+and queued-check lookups match it and installation tokens are restricted to it.
+Live metadata checks reject a different repository reusing an old name. Legacy
+jobs without an ID can only use legacy installation-wide connections.
 
 The Dashboard binds calls to the initiating profile, account and team, and
 rejects stale calls/results after a context change. Callable errors contain no
@@ -40,7 +62,7 @@ and `connection_failed` error codes. Configuration errors return a generic 503.
 GitHub requests use the existing `@octokit/request` dependency with per-request
 ten-second timeouts and redirects disabled. Page URLs are constructed from the
 operator's API URL, never from GitHub Link headers. Up to 1,000 installations and
-1,000 own organization memberships are enumerated; rate limits and
+1,000 repositories per installation (at most 1,000 eligible repositories overall) are enumerated; rate limits and
 incomplete/changing pages fail without returning a partial list.
 `@octokit/oauth-methods` does not currently forward `code_verifier`,
 so the token exchange uses Octokit's request API directly.
@@ -85,36 +107,37 @@ authentication. Local Dashboard mode uses the Functions emulator on port 5001.
 
 Deploy in this order:
 
-1. Deploy the FSC GitHub connector (including `GetGitHubConnectionContext`) and
-   confirm the destination has the correct teams/members.
-2. Configure the App client secret and variables. Give the runtime identity FSC
-   admin access and Secret Manager create, add-version, access, get and delete
-   permissions. The vault uses Secret Manager resource expiration, not delayed
-   version destruction. Secret Manager does not have a local emulator here.
-3. Deploy `githubConnection`, `githubConnectionCallback` and
-   `cleanGitHubConnectionCredentials`. Register the new callback URL in the App.
-   Keep the old callback registered while the old client/server release is used.
-4. Release the Dashboard and verify sign-in → authorization → account selection
-   → confirmation against a test team. Verify the saved FSC row creates a build
-   through the new webhook/planner/executor path. Test cancellation, replay,
-   removal of membership, a suspended installation and a cross-team conflict.
-5. Retire the old server OAuth routes and remove its callback URL after in-flight
-   authorizations expire. Existing SQL-only connections require reconnection
-   through the new flow unless their verified metadata was already migrated to
-   FSC. Do not import arbitrary legacy installation IDs as verified connections.
+1. Apply the FSC schema and deploy the `github`, `webhooks`, and `dispatch`
+   connectors. This adds nullable repository metadata to connections/jobs and
+   replaces installation uniqueness with host/App/repository uniqueness. Verify
+   the migration plan: existing null-ID rows and job history must be retained.
+   With COMPATIBLE validation, the old physical unique key is retained: apply
+   [the scoped SQL migration](../dataconnect/migrations/20261116_repository_connections.sql)
+   after the new key and connector guards exist. It preserves a partial unique
+   index for legacy installation-wide rows and removes only the superseded
+   whole-installation key; no connection rows are modified. Validate it against
+   a backup/test database before applying it to production.
+2. Deploy the Dart planner and the Node consumers/Cloud Run executor using the
+   new connector operations, before enabling new repository confirmations.
+3. Deploy the GitHub connection Functions and then the Dashboard. Existing
+   configuration, App permissions, and callback URLs do not need to change.
+4. Verify a non-owner with Write access can select and connect the intended
+   repository and run its CI. Verify Read/Triage denial, revoked permissions
+   between listing/confirmation, other-team conflicts, and a sibling repository
+   remaining unconnected. Production IAM/OAuth and deployment need live checks.
 
-The legacy schema/helper code remains for old data and tests, and the remaining
-server repository/branch/workflow APIs still use its database. This change does
-not move billing, team management or those legacy browsing APIs. No live
-deployment, GitHub App configuration change or data import is performed by the
-source change. For rollback, restore the matching client/server release and
-callback configuration; connections saved only in FSC are not copied back.
+Old installation-only planner/executor lookups explicitly exclude repository
+rows, so mixed versions fail closed for new connections. Old confirmation
+clients fail because repository identity is now required. Do not roll back the
+connector scope guards while repository rows exist, or restore the former
+installation-unique constraint without a reviewed data migration. This source
+change performs no live deployment or GitHub App configuration changes.
 
 ## Validation
 
-Run Firebase formatting/lint/type checking and Functions tests, the FSC GitHub
-emulator suite, Dashboard analysis/tests and the two GitHub browser tests, plus
-the shared/server suites after removing the old endpoints. Local tests mock
+Run Firebase formatting/lint/type checking and Functions tests, FSC GitHub,
+planning, execution and check emulator suites, Dart planner analysis/tests,
+Dashboard analysis/tests and both GitHub browser tests, and shared-model checks. Local tests mock
 GitHub and Secret Manager; production IAM/OAuth and native browser-return
 behavior need separate live verification.
 

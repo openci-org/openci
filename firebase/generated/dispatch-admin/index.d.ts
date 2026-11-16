@@ -361,6 +361,7 @@ export interface GetBuildExecutionData {
     pullRequestNumber?: Int64String | null;
     branch?: string | null;
     installationId?: string | null;
+    repositoryId?: Int64String | null;
     githubBaseUrl?: string | null;
     latestRunId?: string | null;
     workerHost?: string | null;
@@ -399,6 +400,15 @@ export interface GetBuildExecutorContextData {
     id: string;
     accountId: Int64String;
     accountLogin: string;
+    status: string;
+    repositoryId?: Int64String | null;
+  } & GitHubConnection_Key;
+  repositoryConnection?: {
+    id: string;
+    accountId: Int64String;
+    accountLogin: string;
+    status: string;
+    repositoryId?: Int64String | null;
   } & GitHubConnection_Key;
   customer?: {
     stripeCustomerId?: string | null;
@@ -428,6 +438,7 @@ export interface GetBuildExecutorContextVariables {
   installationId: Int64String;
   appId: Int64String;
   apiBaseUrl: string;
+  repositoryId?: Int64String | null;
 }
 
 export interface GetFinishedBuildExecutionsForVmsData {
@@ -476,6 +487,7 @@ export interface GetQueuedBuildCheckData {
     pullRequestNumber?: Int64String | null;
     branch?: string | null;
     installationId?: string | null;
+    repositoryId?: Int64String | null;
     githubBaseUrl?: string | null;
     latestRunId?: string | null;
     workerHost?: string | null;

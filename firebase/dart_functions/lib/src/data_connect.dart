@@ -30,7 +30,10 @@ class PlanningFence {
 
 abstract interface class PlanningStore {
   Future<PlanningTask?> getTask(String id);
-  Future<PlanningConnection?> findConnection(int installationId);
+  Future<PlanningConnection?> findConnection(
+    int installationId,
+    int repositoryId,
+  );
   Future<PlanningFence> beginPullRequestPlanning(
     String taskId,
     PlanningEvent event,
@@ -110,14 +113,24 @@ class DataConnectPlanningStore implements PlanningStore {
   }
 
   @override
-  Future<PlanningConnection?> findConnection(int installationId) async {
-    final data = await _execute('github', 'GetActiveGitHubConnection', {
+  Future<PlanningConnection?> findConnection(
+    int installationId,
+    int repositoryId,
+  ) async {
+    final data = await _execute('github', 'GetGitHubRepositoryConnection', {
       'githubAppId': githubAppId,
       'githubApiBaseUrl': githubApiBaseUrl,
       'installationId': installationId.toString(),
+      'repositoryId': repositoryId.toString(),
     });
-    final connection = data['connection'] as Map<String, dynamic>?;
-    if (connection == null) return null;
+    final connection =
+        (data['connection'] ?? data['legacyConnection'])
+            as Map<String, dynamic>?;
+    if (connection == null ||
+        connection['status'] != 'active' ||
+        connection['installationId'] != installationId.toString()) {
+      return null;
+    }
     return PlanningConnection(
       connection['id'] as String,
       connection['accountId'] as String,
@@ -242,6 +255,7 @@ class DataConnectPlanningStore implements PlanningStore {
       'pathFilterReason': plan.pathFilterReason,
       'comparisonBaseSha': plan.comparisonBaseSha,
       'connectionId': connection?.id,
+      'repositoryId': event?.repositoryId.toString(),
       'owner': webhook?.owner,
       'repo': webhook?.repo,
       'commitSha': webhook?.commitSha,

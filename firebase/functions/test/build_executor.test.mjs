@@ -766,6 +766,31 @@ test("Octokit scopes checkout/check tokens and reconciles a lost check creation 
   assert.deepEqual(publishingToken.body.permissions, { contents: "write", pull_requests: "write" });
   assert.equal(calls.at(-1).path, "/installation/token");
   await assert.rejects(github.checkout(job, "other-account"), /connected installation/);
+  const scoped = { ...job, repositoryId: "101" };
+  await (await github.checkout(scoped, "10")).revoke();
+  assert.deepEqual(
+    calls.filter((call) => call.path.endsWith("/access_tokens")).at(-1).body.repository_ids,
+    [101],
+  );
+  assert.equal(
+    calls.filter((call) => call.path.endsWith("/access_tokens")).at(-1).body.repositories,
+    undefined,
+  );
+  await assert.rejects(
+    github.checkout({ ...scoped, repositoryId: "102" }, "10"),
+    /connected installation/,
+  );
+  await assert.rejects(
+    github.queuedCheck(
+      { ...scoped, repositoryId: "102" },
+      "scoped",
+      null,
+      "10",
+      new AbortController().signal,
+    ),
+    /connected installation/,
+  );
+  await assert.rejects(github.checkout({ ...scoped, repositoryId: "0" }, "10"), /repository ID/);
 });
 
 test("queued checks reconcile lost creation and use the same ID through start and completion", async (t) => {

@@ -1,4 +1,4 @@
-# Functions must freshly verify this installation using the session's token and
+# Functions must freshly verify Write access to this repository using the session's token and
 # GitHub user. Host/app and verified account details are never trusted client input.
 mutation ConfirmGitHubConnection(
   $teamId: String!
@@ -7,6 +7,8 @@ mutation ConfirmGitHubConnection(
   $githubApiBaseUrl: String!
   $githubAppId: Int64!
   $installationId: Int64!
+  $repositoryId: Int64!
+  $repositoryName: String!
   $accountId: Int64!
   $accountType: String!
   $accountLogin: String!
@@ -15,8 +17,12 @@ mutation ConfirmGitHubConnection(
   team_update(key: { id: $teamId }, data: { updatedAt_expr: "int(request.time)" })
     @check(expr: "this != null", message: "Team access denied")
     @check(
-      expr: "int(vars.githubAppId) > 0 && int(vars.installationId) > 0 && int(vars.accountId) > 0"
+      expr: "int(vars.githubAppId) > 0 && int(vars.installationId) > 0 && int(vars.accountId) > 0 && int(vars.repositoryId) > 0"
       message: "GitHub IDs must be positive"
+    )
+    @check(
+      expr: "vars.repositoryName.matches('^[A-Za-z0-9_.-]{1,255}$')"
+      message: "Invalid GitHub repository name"
     )
     @check(
       expr: "vars.accountType in ['User', 'Organization']"
@@ -52,12 +58,13 @@ mutation ConfirmGitHubConnection(
       # Returned to Functions for Secret Manager cleanup after commit.
       accessTokenSecretVersionPath
     }
-    existing: gitHubConnection(
+    legacy: gitHubConnection(
       first: {
         where: {
           githubApiBaseUrl: { eq: $githubApiBaseUrl }
           githubAppId: { eq: $githubAppId }
           installationId: { eq: $installationId }
+          repositoryId: { isNull: true }
         }
       }
     )
@@ -65,6 +72,23 @@ mutation ConfirmGitHubConnection(
       @check(
         expr: "this == null || this.teamId == vars.teamId"
         message: "GitHub installation is already connected"
+      ) {
+      id
+      teamId
+    }
+    existing: gitHubConnection(
+      first: {
+        where: {
+          githubApiBaseUrl: { eq: $githubApiBaseUrl }
+          githubAppId: { eq: $githubAppId }
+          repositoryId: { eq: $repositoryId }
+        }
+      }
+    )
+      @redact
+      @check(
+        expr: "this == null || this.teamId == vars.teamId"
+        message: "GitHub repository is already connected"
       ) {
       id
       teamId
@@ -81,7 +105,7 @@ mutation ConfirmGitHubConnection(
     }
     data: { consumedAt_expr: "int(request.time)", accessTokenSecretVersionPath: null }
   ) @check(expr: "this == 1", message: "GitHub session already consumed")
-  # Preserve an existing connection's ID. The unique host/app/installation key
+  # Preserve an existing repository connection's ID. The unique host/app/repository key
   # also rejects simultaneous first claims by different teams, rolling back all writes.
   connection: gitHubConnection_upsert(
     data: {
@@ -90,6 +114,8 @@ mutation ConfirmGitHubConnection(
       githubApiBaseUrl: $githubApiBaseUrl
       githubAppId: $githubAppId
       installationId: $installationId
+      repositoryId: $repositoryId
+      repositoryName: $repositoryName
       accountId: $accountId
       accountType: $accountType
       accountLogin: $accountLogin

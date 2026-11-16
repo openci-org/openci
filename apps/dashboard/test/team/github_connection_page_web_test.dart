@@ -90,11 +90,15 @@ void main() {
       {
         'installationId': 456,
         'accountLogin': 'example-org',
+        'repositoryId': 4560,
+        'repositoryName': 'app',
         'accountType': 'Organization',
       },
       {
         'installationId': 789,
         'accountLogin': 'example-user',
+        'repositoryId': 7890,
+        'repositoryName': 'app',
         'accountType': 'User',
       },
     ],
@@ -192,15 +196,15 @@ void main() {
   void expectRestart() {
     expect(find.text(t.team.gitHubConnectionRestartRequired), findsOneWidget);
     expect(find.text(t.team.gitHubConnectionVerified), findsNothing);
-    expect(find.text('example-org'), findsNothing);
-    expect(find.text('example-user'), findsNothing);
+    expect(find.text('example-org/app'), findsNothing);
+    expect(find.text('example-user/app'), findsNothing);
     expect(find.textContaining(reference), findsNothing);
   }
 
   Future<void> selectOrganization(WidgetTester tester) async {
     await pumpPage(tester);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('example-org'));
+    await tester.tap(find.text('example-org/app'));
     await tester.pump();
   }
 
@@ -246,15 +250,15 @@ void main() {
     await tester.pump();
     expect(requests, hasLength(2));
     expect(find.byType(CircularProgressIndicator), findsOneWidget);
-    expect(find.text('example-org'), findsNothing);
+    expect(find.text('example-org/app'), findsNothing);
 
     candidates.complete(candidatesResponse());
     await tester.pumpAndSettle();
 
     expect(find.text(t.team.gitHubConnectionVerified), findsOneWidget);
-    expect(find.text('example-org'), findsOneWidget);
-    expect(find.text('example-user'), findsOneWidget);
-    expect(find.text(t.team.gitHubAppInstallation), findsNothing);
+    expect(find.text('example-org/app'), findsOneWidget);
+    expect(find.text('example-user/app'), findsOneWidget);
+    expect(find.text(t.team.gitHubAppInstallation), findsOneWidget);
     expect(find.text(t.team.gitHubAppInstallationUrlUnavailable), findsNothing);
     expect(find.byIcon(Icons.business), findsOneWidget);
     expect(find.byIcon(Icons.person_outline), findsOneWidget);
@@ -279,6 +283,44 @@ void main() {
     await tester.pumpAndSettle();
     expectRestart();
     expect(requests, hasLength(2));
+  });
+
+  testWidgets('selects distinct repositories from the same installation', (
+    tester,
+  ) async {
+    respond = (request) async {
+      if (callableData(request)['action'] != 'candidates') {
+        return successfulResponse(request);
+      }
+      return jsonResponse({
+        'success': true,
+        'installationUrl': installationUrl,
+        'candidates': [
+          for (final id in [4560, 4561])
+            {
+              'installationId': 456,
+              'repositoryId': id,
+              'repositoryName': 'repo-$id',
+              'accountLogin': 'example-org',
+              'accountType': 'Organization',
+            },
+        ],
+      });
+    };
+    await pumpPage(tester);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('example-org/repo-4561'));
+    await tester.pump();
+    await tester.tap(find.text(t.team.gitHubConnectionConfirm));
+    await tester.pumpAndSettle();
+    expect(callableData(confirmationRequests().single), {
+      'action': 'confirm',
+      'teamId': 'team-1',
+      'reference': reference,
+      'installationId': 456,
+      'repositoryId': 4561,
+    });
+    expect(find.text('Dashboard'), findsOneWidget);
   });
 
   testWidgets('shows cancellation without sending the reference', (
@@ -433,6 +475,122 @@ void main() {
     expect(find.byType(FilledButton), findsNothing);
     expect(requests, hasLength(2));
   });
+
+  testWidgets(
+    'can install and retry when the listed accounts are not the target',
+    (
+      tester,
+    ) async {
+      await tester.binding.setSurfaceSize(const Size(320, 480));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await pumpPage(tester);
+      await tester.pumpAndSettle();
+
+      expect(find.text(t.team.gitHubConnectionAccountScope), findsOneWidget);
+      expect(find.text('example-org/app'), findsOneWidget);
+      await tester.scrollUntilVisible(
+        find.text(t.team.gitHubConnectionMissingAccount),
+        150,
+      );
+      await tester.pumpAndSettle();
+      expect(find.text(t.team.gitHubConnectionMissingAccount), findsOneWidget);
+      await tester.scrollUntilVisible(
+        find.text(t.team.gitHubAppInstallation),
+        150,
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(t.team.gitHubAppInstallation));
+      await tester.pumpAndSettle();
+      expect(launcher.url, installationUrl);
+      expect(launcher.options!.webOnlyWindowName, '_blank');
+      expect(confirmationRequests(), isEmpty);
+
+      respond = (_) async => jsonResponse({
+        'success': true,
+        'authorizationUrl': authorizationUrl,
+      });
+      await tester.scrollUntilVisible(find.byType(OutlinedButton), 150);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byType(OutlinedButton));
+      await tester.pumpAndSettle();
+
+      expect(callableData(requests.last), {
+        'action': 'start',
+        'teamId': 'team-1',
+      });
+      expect(launcher.url, authorizationUrl);
+      expect(launcher.options!.webOnlyWindowName, '_self');
+      expect(takeGitHubConnectionContext(), initiatingContext);
+      expect(confirmationRequests(), isEmpty);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets('cannot start another connection while confirmation is pending', (
+    tester,
+  ) async {
+    await selectOrganization(tester);
+    final confirmation = Completer<http.Response>();
+    respond = (_) => confirmation.future;
+    await tester.ensureVisible(find.byType(FilledButton));
+    await tester.tap(find.byType(FilledButton));
+    await tester.pump();
+
+    expect(
+      tester.widget<OutlinedButton>(find.byType(OutlinedButton)).onPressed,
+      isNull,
+    );
+    expect(
+      tester
+          .widget<TextButton>(
+            find.byWidgetPredicate((widget) => widget is TextButton),
+          )
+          .onPressed,
+      isNull,
+    );
+    confirmation.complete(jsonResponse({'success': true}));
+    await tester.pumpAndSettle();
+    expect(find.text('Dashboard'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets(
+    'cannot confirm the old selection while restarting GitHub authorization',
+    (
+      tester,
+    ) async {
+      await selectOrganization(tester);
+      final authorization = Completer<http.Response>();
+      respond = (_) => authorization.future;
+      await tester.ensureVisible(find.byType(OutlinedButton));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byType(OutlinedButton));
+      await tester.pump();
+
+      expect(
+        tester.widget<FilledButton>(find.byType(FilledButton)).onPressed,
+        isNull,
+      );
+      expect(
+        tester
+            .widget<TextButton>(
+              find.byWidgetPredicate((widget) => widget is TextButton),
+            )
+            .onPressed,
+        isNull,
+      );
+      expect(confirmationRequests(), isEmpty);
+      authorization.complete(
+        jsonResponse({'error': 'unavailable'}, status: 503),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        tester.widget<FilledButton>(find.byType(FilledButton)).onPressed,
+        isNotNull,
+      );
+      expect(tester.takeException(), isNull);
+    },
+  );
 
   testWidgets(
     'opens the configured App URL and keeps connection retry available',
@@ -740,9 +898,9 @@ void main() {
       );
       expect(confirmationRequests(), isEmpty);
 
-      await tester.tap(find.text('example-user'));
+      await tester.tap(find.text('example-user/app'));
       await tester.pump();
-      await tester.tap(find.text('example-org'));
+      await tester.tap(find.text('example-org/app'));
       await tester.pump();
       final confirm = tester
           .widget<FilledButton>(find.byType(FilledButton))
@@ -759,6 +917,7 @@ void main() {
         'teamId': 'team-1',
         'reference': reference,
         'installationId': 456,
+        'repositoryId': 4560,
       });
       expect(find.text(t.team.gitHubConnectionConfirming), findsOneWidget);
       expect(
@@ -768,7 +927,7 @@ void main() {
       expect(
         tester
             .widget<RadioListTile<int>>(
-              find.widgetWithText(RadioListTile<int>, 'example-user'),
+              find.widgetWithText(RadioListTile<int>, 'example-user/app'),
             )
             .enabled,
         isFalse,
@@ -836,6 +995,18 @@ void main() {
       );
       expect(find.text(t.team.gitHubConnectionCompleted), findsNothing);
       expect(find.textContaining(reference), findsNothing);
+
+      // A rejected confirmation must still allow a fresh authorization.
+      respond = (_) async => jsonResponse({
+        'success': true,
+        'authorizationUrl': authorizationUrl,
+      });
+      await tester.ensureVisible(find.byType(OutlinedButton));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byType(OutlinedButton));
+      await tester.pumpAndSettle();
+      expect(callableData(requests.last)['action'], 'start');
+      expect(launcher.url, authorizationUrl);
     },
   );
 

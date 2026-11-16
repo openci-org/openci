@@ -308,6 +308,7 @@ export async function publishPullRequestQrCodes(
   const target = (await request("GET /repos/{owner}/{repo}", repo)).data;
   if (
     String(target.owner.id) !== accountId ||
+    (job.repositoryId != null && String(target.id) !== job.repositoryId) ||
     target.full_name.toLowerCase() !== `${repo.owner}/${repo.repo}`.toLowerCase()
   ) {
     throw new Error("Pull request repository owner changed");

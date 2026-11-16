@@ -3,6 +3,7 @@ import type { DataConnect } from "firebase-admin/data-connect";
 import * as sdk from "@openci/dispatch-admin";
 import { ExecutionGitHub } from "./executor/github.js";
 import { DispatchRetry } from "./build_dispatch.js";
+import { resolveExecutionContext } from "./executor/store.js";
 
 export class QueuedCheckStore {
   constructor(readonly dc: DataConnect) {}
@@ -19,10 +20,24 @@ export class QueuedCheckStore {
   async release(jobId: string, owner: string) {
     await sdk.releaseQueuedBuildCheck(this.dc, { jobId, owner });
   }
-  async context(teamId: string, installationId: string, appId: string, apiBaseUrl: string) {
-    return (
-      await sdk.getBuildExecutorContext(this.dc, { teamId, installationId, appId, apiBaseUrl })
-    ).data;
+  async context(
+    teamId: string,
+    installationId: string,
+    appId: string,
+    apiBaseUrl: string,
+    repositoryId?: string | null,
+  ) {
+    return resolveExecutionContext(
+      (
+        await sdk.getBuildExecutorContext(this.dc, {
+          teamId,
+          installationId,
+          appId,
+          apiBaseUrl,
+          repositoryId,
+        })
+      ).data,
+    );
   }
 }
 
@@ -110,6 +125,7 @@ export class QueuedChecks {
       current.installationId!,
       this.github.options.appId,
       this.github.options.apiBaseUrl,
+      current.repositoryId,
     );
     if (!context.team || !context.connection) throw new Error("GitHub connection is inactive");
     if (Date.parse(current.checkLeaseUntil) - Date.now() < 60_000)

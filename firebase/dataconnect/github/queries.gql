@@ -4,11 +4,57 @@ fragment GitHubConnectionMetadata on GitHubConnection {
   githubApiBaseUrl
   githubAppId
   installationId
+  repositoryId
+  repositoryName
   accountId
   accountType
   accountLogin
   status
   verifiedAt
+}
+
+# Only check repositories already verified through the user's GitHub token.
+# Include every status: confirmation retains claims on suspended/removed rows.
+query GetUnavailableGitHubRepositories(
+  $teamId: String!
+  $userId: String!
+  $githubApiBaseUrl: String!
+  $githubAppId: Int64!
+  $installationIds: [Int64!]!
+  $repositoryIds: [Int64!]!
+) @auth(level: NO_ACCESS) {
+  actor: teamMember(first: { where: { teamId: { eq: $teamId }, userId: { eq: $userId } } })
+    @redact
+    @check(expr: "this != null", message: "Team access denied")
+    @check(
+      expr: "vars.installationIds.size() <= 1000 && vars.repositoryIds.size() <= 1000"
+      message: "Too many GitHub repositories"
+    ) {
+    id
+  }
+  legacyConnections: gitHubConnections(
+    where: {
+      githubApiBaseUrl: { eq: $githubApiBaseUrl }
+      githubAppId: { eq: $githubAppId }
+      installationId: { in: $installationIds }
+      repositoryId: { isNull: true }
+      teamId: { ne: $teamId }
+    }
+    limit: 1000
+  ) {
+    installationId
+  }
+  repositories: gitHubConnections(
+    where: {
+      githubApiBaseUrl: { eq: $githubApiBaseUrl }
+      githubAppId: { eq: $githubAppId }
+      repositoryId: { in: $repositoryIds }
+      teamId: { ne: $teamId }
+    }
+    limit: 1000
+  ) {
+    repositoryId
+  }
 }
 
 # Functions supplies the operator-configured host/app, then verifies live GitHub
@@ -24,7 +70,41 @@ query GetActiveGitHubConnection(
         githubApiBaseUrl: { eq: $githubApiBaseUrl }
         githubAppId: { eq: $githubAppId }
         installationId: { eq: $installationId }
+        repositoryId: { isNull: true }
         status: { eq: "active" }
+      }
+    }
+  ) {
+    ...GitHubConnectionMetadata
+  }
+}
+
+# Prefer an exact repository claim, including its inactive state. Only fall back
+# to a legacy owner-verified installation when no repository claim exists.
+query GetGitHubRepositoryConnection(
+  $githubApiBaseUrl: String!
+  $githubAppId: Int64!
+  $installationId: Int64!
+  $repositoryId: Int64!
+) @auth(level: NO_ACCESS) {
+  connection: gitHubConnection(
+    first: {
+      where: {
+        githubApiBaseUrl: { eq: $githubApiBaseUrl }
+        githubAppId: { eq: $githubAppId }
+        repositoryId: { eq: $repositoryId }
+      }
+    }
+  ) {
+    ...GitHubConnectionMetadata
+  }
+  legacyConnection: gitHubConnection(
+    first: {
+      where: {
+        githubApiBaseUrl: { eq: $githubApiBaseUrl }
+        githubAppId: { eq: $githubAppId }
+        installationId: { eq: $installationId }
+        repositoryId: { isNull: true }
       }
     }
   ) {

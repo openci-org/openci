@@ -39,9 +39,11 @@ test("GHES installation links support github-apps while preserving the configure
 });
 const chosen = {
   installationId: 12,
+  repositoryId: 120,
   accountId: 34,
   accountType: "Organization",
   accountLogin: "openci",
+  repositoryName: "app",
 };
 
 function fixture() {
@@ -55,6 +57,7 @@ function fixture() {
     calls: [],
     confirms: [],
     candidates: [chosen],
+    unavailable: new Set(),
     expire: false,
   };
   const authorize = async (team, user) => {
@@ -81,6 +84,13 @@ function fixture() {
     async session(team, user, key) {
       await authorize(team, user);
       return f.expire ? null : f.sessions.get(key);
+    },
+    async unavailableRepositories(team, user, candidates) {
+      await authorize(team, user);
+      assert.deepEqual(candidates, f.candidates);
+      if (f.lookupFailure) throw new ConnectionError("unavailable", "Storage unavailable");
+      if (f.revokeDuringLookup) f.member = false;
+      return f.unavailable;
     },
     async confirm(team, user, key, installation) {
       await authorize(team, user);
@@ -169,19 +179,32 @@ test("OAuth uses one-time PKCE, hashes and credential references; responses cont
     reference,
   });
   assert.deepEqual(candidates.candidates, [
-    { installationId: 12, accountType: "Organization", accountLogin: "openci" },
+    {
+      installationId: 12,
+      repositoryId: 120,
+      accountType: "Organization",
+      accountLogin: "openci",
+      repositoryName: "app",
+    },
   ]);
   await f.service.execute("user", {
     action: "confirm",
     teamId: "team",
     reference,
     installationId: 12,
+    repositoryId: 120,
     githubApiBaseUrl: "https://attacker.test",
   });
   assert.equal(f.confirms.length, 1);
   assert.equal(f.secrets.size, 0);
   await assert.rejects(
-    f.service.execute("user", { action: "confirm", teamId: "team", reference, installationId: 12 }),
+    f.service.execute("user", {
+      action: "confirm",
+      teamId: "team",
+      reference,
+      installationId: 12,
+      repositoryId: 120,
+    }),
     /Restart/,
   );
 });
@@ -228,7 +251,13 @@ test("authorization precedes credential access and is rechecked after GitHub ver
   );
   f.revokeDuringVerification = true;
   await assert.rejects(
-    f.service.execute("user", { action: "confirm", teamId: "team", reference, installationId: 12 }),
+    f.service.execute("user", {
+      action: "confirm",
+      teamId: "team",
+      reference,
+      installationId: 12,
+      repositoryId: 120,
+    }),
     /Team access denied/,
   );
   assert.equal(f.confirms.length, 0);
@@ -263,10 +292,61 @@ test("callback rejects duplicate parameters, expired state, replay and denial wi
   );
 });
 
+test("candidates exclude repositories owned by another team without consuming the session", async () => {
+  const f = fixture();
+  const reference = await connect(f);
+  const available = {
+    ...chosen,
+    installationId: 13,
+    repositoryId: 130,
+    repositoryName: "app",
+    accountLogin: "available-org",
+  };
+  f.candidates = [chosen, available];
+  f.unavailable.add(chosen.repositoryId);
+  const input = { action: "candidates", teamId: "team", reference };
+  assert.deepEqual((await f.service.execute("user", input)).candidates, [
+    {
+      installationId: 13,
+      repositoryId: 130,
+      repositoryName: "app",
+      accountLogin: "available-org",
+      accountType: "Organization",
+    },
+  ]);
+  f.unavailable.add(available.repositoryId);
+  const result = await f.service.execute("user", input);
+  assert.deepEqual(result.candidates, []);
+  assert.equal(result.installationUrl, env.GITHUB_APP_INSTALLATION_URL);
+  assert.equal(f.sessions.size, 1);
+  assert.equal(f.confirms.length, 0);
+});
+
+test("candidate ownership lookup fails closed and rechecks membership after the lookup", async () => {
+  for (const mode of ["lookupFailure", "revokeDuringLookup"]) {
+    const f = fixture();
+    const reference = await connect(f);
+    f[mode] = true;
+    await assert.rejects(
+      f.service.execute("user", { action: "candidates", teamId: "team", reference }),
+      { code: mode === "lookupFailure" ? "unavailable" : "permission-denied" },
+    );
+    assert.equal(f.sessions.size, 1);
+    assert.equal(f.confirms.length, 0);
+  }
+});
+
 test("confirmation uses fresh candidates, refuses conflicts, and does not consume a failed choice", async () => {
   const f = fixture();
   const reference = await connect(f);
-  const input = { action: "confirm", teamId: "team", reference, installationId: 12 };
+  const input = {
+    action: "confirm",
+    teamId: "team",
+    reference,
+    installationId: 12,
+    repositoryId: 120,
+  };
+  await f.service.execute("user", { action: "candidates", teamId: "team", reference });
   f.candidates = [];
   await assert.rejects(f.service.execute("user", input), { code: "permission-denied" });
   f.candidates = [chosen];
@@ -281,6 +361,30 @@ test("confirmation uses fresh candidates, refuses conflicts, and does not consum
   assert.equal(outcomes.filter((o) => o.status === "fulfilled").length, 1);
 });
 
+test("confirmation rejects forged repository/installation pairs and missing or invalid repository IDs", async () => {
+  const f = fixture();
+  const reference = await connect(f);
+  const input = {
+    action: "confirm",
+    teamId: "team",
+    reference,
+    installationId: 12,
+    repositoryId: 120,
+  };
+  for (const repositoryId of [undefined, null, 0, -1, "120", 1.5, Number.MAX_SAFE_INTEGER + 1]) {
+    await assert.rejects(f.service.execute("user", { ...input, repositoryId }), {
+      code: "invalid-argument",
+    });
+  }
+  for (const override of [{ repositoryId: 999 }, { installationId: 999 }]) {
+    await assert.rejects(f.service.execute("user", { ...input, ...override }), {
+      code: "permission-denied",
+    });
+  }
+  assert.equal(f.confirms.length, 0);
+  assert.equal(f.sessions.size, 1);
+});
+
 test("cleanup failure cannot undo a confirmed connection or expose upstream error content", async () => {
   const f = fixture();
   const reference = await connect(f);
@@ -291,6 +395,7 @@ test("cleanup failure cannot undo a confirmed connection or expose upstream erro
       teamId: "team",
       reference,
       installationId: 12,
+      repositoryId: 120,
     }),
     { success: true },
   );
@@ -319,130 +424,125 @@ function installation(id, appId, accountId, type = "Organization", suspended = n
     suspended_at: suspended,
   };
 }
-test("Octokit enforces user/app/owner/admin/suspension and stays on operator-configured hosts", async () => {
+function repository(id, accountId, permissions = { push: true }) {
+  return {
+    id,
+    name: "repo-" + id,
+    full_name: "account-" + accountId + "/repo-" + id,
+    owner: { id: accountId },
+    permissions,
+  };
+}
+
+test("repository candidates require user Write access, the configured App, and an active installation", async () => {
   const calls = [];
   const client = new OctokitConnectionClient(config, async (url, init) => {
-    calls.push({ url: String(url), init });
+    calls.push(String(url));
     assert.equal(init.redirect, "error");
     assert.ok(init.signal instanceof AbortSignal);
-    const path = new URL(url).pathname;
-    if (path === "/login/oauth/access_token") {
+    const u = new URL(url);
+    if (u.pathname === "/login/oauth/access_token") {
       const body = JSON.parse(init.body);
       assert.equal(body.code_verifier, "verifier");
       assert.equal(body.client_secret, env.GITHUB_APP_CLIENT_SECRET);
-      assert.equal(new URL(url).origin, "https://github.com");
+      assert.equal(u.origin, "https://github.com");
       return json({ access_token: "private-token", token_type: "bearer" });
     }
-    assert.equal(new URL(url).origin, "https://api.github.com");
-    if (path === "/user") return json({ id: 56 });
-    if (path === "/user/installations")
-      return json({
-        total_count: 6,
-        installations: [
-          installation(1, 42, 56, "User"),
-          installation(2, 42, 9, "User"),
-          installation(3, 1, 56, "User"),
-          installation(4, 42, 34),
-          installation(5, 42, 35),
-          installation(6, 42, 36, "Organization", "2026-01-01"),
-        ],
-      });
-    assert.equal(path, "/user/memberships/orgs");
-    return json(
-      [34, 35].map((organizationId) => ({
-        state: "active",
-        role: organizationId === 34 ? "admin" : "member",
-        user: { id: 56 },
-        organization: { id: organizationId },
-      })),
-    );
-  });
-  assert.equal(await client.exchange("code", "verifier"), "private-token");
-  assert.deepEqual(
-    (await client.candidates("private-token", "56")).map((i) => i.installationId),
-    [1, 4],
-  );
-  await assert.rejects(client.candidates("private-token", "57"), { code: "permission-denied" });
-  assert.ok(calls.length > 4);
-  assert.equal(
-    calls.filter(({ url }) => new URL(url).pathname === "/user/memberships/orgs").length,
-    1,
-  );
-});
-
-test("own memberships paginate without Members scope and reject pending, non-owner, or foreign identities", async () => {
-  const pages = [];
-  const membership = (organizationId, role = "admin", state = "active", userId = 56) => ({
-    organization: { id: organizationId },
-    user: { id: userId },
-    role,
-    state,
-  });
-  const client = new OctokitConnectionClient(config, async (url) => {
-    const u = new URL(url);
     assert.equal(u.origin, "https://api.github.com");
     if (u.pathname === "/user") return json({ id: 56 });
     if (u.pathname === "/user/installations")
       return json({
         total_count: 4,
-        installations: [101, 102, 103, 104].map((n) => installation(n, 42, n)),
+        installations: [
+          installation(1, 42, 34),
+          installation(2, 42, 9, "User"),
+          installation(3, 1, 34),
+          installation(4, 42, 34, "Organization", "2026-01-01"),
+        ],
       });
-    assert.equal(u.pathname, "/user/memberships/orgs");
-    assert.equal(u.searchParams.get("state"), "active");
+    if (u.pathname === "/user/installations/1/repositories")
+      return json({
+        total_count: 6,
+        repositories: [
+          repository(101, 34, { push: true, admin: false }),
+          repository(102, 34, { push: true, maintain: true }),
+          repository(103, 34, { push: true, admin: true }),
+          repository(104, 34, { pull: true, push: false }),
+          repository(105, 34, { pull: true, triage: true }),
+          repository(106, 34, {}),
+        ],
+      });
+    assert.equal(u.pathname, "/user/installations/2/repositories");
+    return json({ total_count: 1, repositories: [repository(201, 9)] });
+  });
+  assert.equal(await client.exchange("code", "verifier"), "private-token");
+  assert.deepEqual(
+    (await client.candidates("private-token", "56")).map((x) => x.repositoryId),
+    [101, 102, 103, 201],
+  );
+  assert.ok(!calls.some((url) => url.includes("memberships")));
+  await assert.rejects(client.candidates("private-token", "57"), { code: "permission-denied" });
+});
+
+test("repository pagination includes later Write repositories and never follows Link hosts", async () => {
+  const pages = [];
+  const client = new OctokitConnectionClient(config, async (url) => {
+    const u = new URL(url);
+    assert.equal(u.origin, "https://api.github.com");
+    if (u.pathname === "/user") return json({ id: 56 });
+    if (u.pathname === "/user/installations")
+      return json({ total_count: 1, installations: [installation(1, 42, 34)] });
+    assert.equal(u.pathname, "/user/installations/1/repositories");
     pages.push(u.searchParams.get("page"));
     if (pages.length === 1)
       return json(
-        Array.from({ length: 100 }, (_, i) => membership(i + 1, "member")),
+        {
+          total_count: 101,
+          repositories: Array.from({ length: 100 }, (_, i) =>
+            repository(i + 1, 34, { pull: true }),
+          ),
+        },
         200,
-        { link: '<https://attacker.test/credentials>; rel="next"' },
+        { link: '<https://attacker.test/token>; rel="next"' },
       );
-    return json([
-      membership(101),
-      membership(102, "member"),
-      membership(103, "admin", "pending"),
-      membership(104, "admin", "active", 99),
-    ]);
+    return json({ total_count: 101, repositories: [repository(101, 34)] });
   });
   assert.deepEqual(
-    (await client.candidates("token", "56")).map((x) => x.installationId),
+    (await client.candidates("token", "56")).map((x) => x.repositoryId),
     [101],
   );
   assert.deepEqual(pages, ["1", "2"]);
 });
 
-test("malformed or incomplete own-membership pages cannot authorize an organization", async () => {
-  const member = { organization: { id: 34 }, user: { id: 56 }, role: "admin", state: "active" };
-  for (const [body, headers] of [
-    [{ memberships: [member] }, {}],
-    [[member, member], {}],
-    [[member], { link: '<https://api.github.com/user/memberships/orgs?page=2>; rel="next"' }],
+test("malformed, inconsistent, duplicate, and foreign repository pages fail closed", async () => {
+  for (const body of [
+    { total_count: 1 },
+    { total_count: 2, repositories: [repository(1, 34)] },
+    { total_count: 2, repositories: [repository(1, 34), repository(1, 34)] },
+    { total_count: 1, repositories: [repository(1, 99)] },
+    { total_count: 1, repositories: [{ ...repository(1, 34), full_name: "foreign/repo-1" }] },
+    { total_count: 1001, repositories: [] },
   ]) {
     const client = new OctokitConnectionClient(config, async (url) => {
       const path = new URL(url).pathname;
       if (path === "/user") return json({ id: 56 });
       if (path === "/user/installations")
         return json({ total_count: 1, installations: [installation(1, 42, 34)] });
-      return json(body, 200, headers);
+      return json(body);
     });
     await assert.rejects(client.candidates("token", "56"), { code: "unavailable" });
   }
 });
 
-test("GitHub transient/rate-limit errors fail closed; pagination never follows an untrusted URL", async () => {
-  for (const status of [401, 429, 500]) {
-    const client = new OctokitConnectionClient(config, async () =>
-      json({ message: "private upstream content" }, status),
-    );
-    await assert.rejects(
-      client.candidates("token", "56"),
-      (error) => !error.message.includes("private upstream"),
-    );
-  }
+test("installation pagination remains bounded to the configured host", async () => {
   const pages = [];
   const client = new OctokitConnectionClient(config, async (url) => {
     const u = new URL(url);
     assert.equal(u.origin, "https://api.github.com");
     if (u.pathname === "/user") return json({ id: 56 });
+    if (u.pathname.endsWith("/repositories"))
+      return json({ total_count: 1, repositories: [repository(1, 56)] });
+    assert.equal(u.pathname, "/user/installations");
     pages.push(u.searchParams.get("page"));
     return pages.length === 1
       ? json(
@@ -459,6 +559,56 @@ test("GitHub transient/rate-limit errors fail closed; pagination never follows a
   });
   assert.equal((await client.candidates("token", "56"))[0].installationId, 101);
   assert.deepEqual(pages, ["1", "2"]);
+});
+
+test("GitHub transient failures, expired tokens, and rate limits never return partial candidates", async () => {
+  for (const [status, headers, message] of [
+    [401, {}, "private upstream content"],
+    [429, {}, "private upstream content"],
+    [500, {}, "private upstream content"],
+    [403, { "x-ratelimit-remaining": "0" }, "rate limit"],
+    [403, { "retry-after": "30" }, "try later"],
+    [403, {}, "secondary rate limit"],
+  ]) {
+    const client = new OctokitConnectionClient(config, async (url) => {
+      const path = new URL(url).pathname;
+      if (path === "/user") return json({ id: 56 });
+      if (path === "/user/installations")
+        return json({
+          total_count: 2,
+          installations: [installation(1, 42, 34), installation(2, 42, 35)],
+        });
+      if (path === "/user/installations/1/repositories")
+        return json({ total_count: 1, repositories: [repository(1, 34)] });
+      return json({ message }, status, headers);
+    });
+    await assert.rejects(
+      client.candidates("token", "56"),
+      (error) =>
+        error.code === (status === 401 ? "failed-precondition" : "unavailable") &&
+        !error.message.includes("private upstream"),
+    );
+  }
+});
+
+test("revoked installation access omits only its repositories", async () => {
+  for (const status of [403, 404]) {
+    const client = new OctokitConnectionClient(config, async (url) => {
+      const path = new URL(url).pathname;
+      if (path === "/user") return json({ id: 56 });
+      if (path === "/user/installations")
+        return json({
+          total_count: 2,
+          installations: [installation(1, 42, 34), installation(2, 42, 35)],
+        });
+      if (path === "/user/installations/1/repositories") return json({ message: "denied" }, status);
+      return json({ total_count: 1, repositories: [repository(2, 35)] });
+    });
+    assert.deepEqual(
+      (await client.candidates("token", "56")).map((x) => x.repositoryId),
+      [2],
+    );
+  }
 });
 
 test("operator endpoints support GHES paths and reject credential-bearing or foreign install URLs", () => {
@@ -502,34 +652,26 @@ test("GHES token and API requests preserve the operator's path prefix", async ()
   ]);
 });
 
-test("enterprise account names are preserved and secondary rate limits do not return partial candidates", async () => {
-  let limited = false;
+test("enterprise account names are preserved for repository candidates", async () => {
   const client = new OctokitConnectionClient(config, async (url) => {
     const path = new URL(url).pathname;
     if (path === "/user") return json({ id: 56 });
     if (path === "/user/installations")
       return json({
-        total_count: 2,
+        total_count: 1,
         installations: [
           {
             ...installation(1, 42, 56, "User"),
             account: { id: 56, login: "managed_user", type: "User" },
           },
-          installation(2, 42, 34),
         ],
       });
-    return json(
-      {
-        message: limited
-          ? "You have exceeded a secondary rate limit"
-          : "Resource not accessible by integration",
-      },
-      403,
-    );
+    return json({
+      total_count: 1,
+      repositories: [{ ...repository(1, 56), full_name: "managed_user/repo-1" }],
+    });
   });
   assert.equal((await client.candidates("token", "56"))[0].accountLogin, "managed_user");
-  limited = true;
-  await assert.rejects(client.candidates("token", "56"), { code: "unavailable" });
 });
 
 test("OAuth credentials auto-expire and cleanup is restricted to owned resources", async () => {

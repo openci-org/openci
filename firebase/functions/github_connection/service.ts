@@ -1,6 +1,10 @@
 import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { authorizationUrl, type ConnectionConfig } from "./config.js";
-import { ConnectionError, type GitHubConnectionClient, type Installation } from "./github.js";
+import {
+  ConnectionError,
+  type GitHubConnectionClient,
+  type RepositoryCandidate,
+} from "./github.js";
 import type { CredentialVault } from "./vault.js";
 
 interface ConnectionRequest {
@@ -27,11 +31,16 @@ export interface ConnectionStore {
     },
   ): Promise<void>;
   session(teamId: string, userId: string, referenceHash: string): Promise<ConnectionSession | null>;
+  unavailableRepositories(
+    teamId: string,
+    userId: string,
+    candidates: RepositoryCandidate[],
+  ): Promise<Set<number>>;
   confirm(
     teamId: string,
     userId: string,
     referenceHash: string,
-    installation: Installation,
+    repository: RepositoryCandidate,
   ): Promise<void>;
   expired(): Promise<{
     requests: { id: string; codeVerifierSecretVersionPath: string }[];
@@ -57,7 +66,10 @@ export class GitHubConnections {
   async execute(userId: string, value: unknown): Promise<Record<string, unknown>> {
     if (!value || typeof value !== "object" || Array.isArray(value))
       throw new ConnectionError("invalid-argument", "Invalid request");
-    const { action, teamId, reference, installationId } = value as Record<string, unknown>;
+    const { action, teamId, reference, installationId, repositoryId } = value as Record<
+      string,
+      unknown
+    >;
     if (
       typeof teamId !== "string" ||
       !teamId ||
@@ -77,9 +89,12 @@ export class GitHubConnections {
       action === "confirm" &&
       (typeof installationId !== "number" ||
         !Number.isSafeInteger(installationId) ||
-        installationId <= 0)
+        installationId <= 0 ||
+        typeof repositoryId !== "number" ||
+        !Number.isSafeInteger(repositoryId) ||
+        repositoryId <= 0)
     )
-      throw new ConnectionError("invalid-argument", "Invalid installation ID");
+      throw new ConnectionError("invalid-argument", "Installation and repository IDs are required");
     const session = await this.store.session(teamId, userId, hash(reference));
     if (!session || !session.accessTokenSecretVersionPath)
       throw new ConnectionError("failed-precondition", "Restart GitHub authorization");
@@ -95,25 +110,33 @@ export class GitHubConnections {
     const token = await this.vault.read(session.accessTokenSecretVersionPath);
     const candidates = await this.github.candidates(token, session.githubUserId);
     if (action === "candidates") {
+      const unavailable = await this.store.unavailableRepositories(teamId, userId, candidates);
       // Membership may have changed while GitHub requests were in flight.
       const current = await this.store.session(teamId, userId, hash(reference));
       if (!current || current.accessTokenSecretVersionPath !== session.accessTokenSecretVersionPath)
         throw new ConnectionError("failed-precondition", "Restart GitHub authorization");
       return {
         success: true,
-        candidates: candidates.map(({ installationId, accountLogin, accountType }) => ({
-          installationId,
-          accountLogin,
-          accountType,
-        })),
+        candidates: candidates
+          .filter(({ repositoryId }) => !unavailable.has(repositoryId))
+          .map(({ installationId, accountLogin, accountType, repositoryId, repositoryName }) => ({
+            installationId,
+            accountLogin,
+            accountType,
+            repositoryId,
+            repositoryName,
+          })),
         ...(this.config.installationUrl ? { installationUrl: this.config.installationUrl } : {}),
       };
     }
-    const selected = candidates.find((candidate) => candidate.installationId === installationId);
+    const selected = candidates.find(
+      (candidate) =>
+        candidate.installationId === installationId && candidate.repositoryId === repositoryId,
+    );
     if (!selected)
-      throw new ConnectionError("permission-denied", "Installation is not available to connect");
+      throw new ConnectionError("permission-denied", "Repository is not available to connect");
     // Rechecks team membership, session ownership/expiry and the unique
-    // host/app/installation owner in the same FSC transaction.
+    // repository owner and legacy installation claims in the same FSC transaction.
     await this.store.confirm(teamId, userId, hash(reference), selected);
     await this.release(session.accessTokenSecretVersionPath);
     return { success: true };

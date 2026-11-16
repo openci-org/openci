@@ -89,6 +89,8 @@ test("Functions connection flow writes FSC through the generated SDK without ret
       return [
         {
           installationId: 100,
+          repositoryId: 1000,
+          repositoryName: "app",
           accountId: 200,
           accountLogin: "verified-org",
           accountType: "Organization",
@@ -124,10 +126,16 @@ test("Functions connection flow writes FSC through the generated SDK without ret
     "verified-org",
   );
   assert.deepEqual(
-    await service.execute(f.userId, { ...input, action: "confirm", installationId: 100 }),
+    await service.execute(f.userId, {
+      ...input,
+      action: "confirm",
+      installationId: 100,
+      repositoryId: 1000,
+    }),
     { success: true },
   );
-  const connection = (await sdk.getActiveGitHubConnection(dc, installationKey(f))).data.connection;
+  const connection = (await sdk.getGitHubRepositoryConnection(dc, repositoryKey(f))).data
+    .connection;
   assert.equal(connection.githubAppId, f.githubAppId);
   assert.equal(connection.accountId, "200");
   assert.doesNotMatch(
@@ -227,6 +235,8 @@ function confirmation(f, s, installationId = "100") {
     githubApiBaseUrl: f.githubApiBaseUrl,
     githubAppId: f.githubAppId,
     installationId,
+    repositoryId: (BigInt(installationId) * 10n).toString(),
+    repositoryName: "app",
     accountId: "200",
     accountType: "Organization",
     accountLogin: "test-org",
@@ -239,6 +249,13 @@ function sessionKey(s) {
 
 function installationKey(f, installationId = "100") {
   return { githubApiBaseUrl: f.githubApiBaseUrl, githubAppId: f.githubAppId, installationId };
+}
+
+function repositoryKey(f, installationId = "100") {
+  return {
+    ...installationKey(f, installationId),
+    repositoryId: (BigInt(installationId) * 10n).toString(),
+  };
 }
 
 async function storedSession(s) {
@@ -322,7 +339,61 @@ test("active lookups match host and app beyond the default 100 rows", async (t) 
   }
 });
 
-test("all nine administrative operations reject client calls without modifying credentials", async (t) => {
+test("candidate filtering includes all other-team statuses and preserves same-team reconnections", async (t) => {
+  const f = await fixture(t);
+  const rows = Array.from({ length: 101 }, (_, i) => ({
+    id: randomUUID(),
+    teamId: f.otherTeamId,
+    ...installationKey(f, String(i + 1)),
+    accountId: "200",
+    accountType: "Organization",
+    accountLogin: "another-org",
+    verifiedByUserId: f.otherUserId,
+    verifiedByGitHubUserId: "1",
+    verifiedAt: "1",
+    status: ["active", "suspended", "removed"][i % 3],
+  }));
+  rows.push(
+    { ...rows[0], id: randomUUID(), installationId: "102", teamId: f.teamId },
+    { ...rows[0], id: randomUUID(), installationId: "103", githubAppId: "0" },
+    {
+      ...rows[0],
+      id: randomUUID(),
+      installationId: "104",
+      githubApiBaseUrl: "https://other.example/api/v3",
+    },
+  );
+  for (let offset = 0; offset < rows.length; offset += 100) {
+    await graphql(
+      `
+        mutation Seed($rows: [GitHubConnection_Data!]!) {
+          gitHubConnection_insertMany(data: $rows)
+        }
+      `,
+      { rows: rows.slice(offset, offset + 100) },
+    );
+  }
+  const store = new GitHubConnectionStore(dc, {
+    apiBaseUrl: f.githubApiBaseUrl,
+    appId: f.githubAppId,
+  });
+  const ids = Array.from({ length: 105 }, (_, i) => i + 1);
+  const candidates = (ids) => ids.map((id) => ({ installationId: id, repositoryId: id }));
+  assert.deepEqual(
+    await store.unavailableRepositories(f.teamId, f.userId, candidates(ids)),
+    new Set(ids.slice(0, 101)),
+  );
+  assert.deepEqual(
+    await store.unavailableRepositories(f.teamId, f.userId, candidates([101, 102, 103, 104, 105])),
+    new Set([101]),
+  );
+  assert.deepEqual(await store.unavailableRepositories(f.teamId, f.userId, []), new Set());
+  await assert.rejects(store.unavailableRepositories(f.teamId, "outsider", candidates(ids)), {
+    code: "permission-denied",
+  });
+});
+
+test("administrative operations reject client calls without modifying credentials", async (t) => {
   const f = await fixture(t);
   const r = requestInput(f);
   const s = await session(f);
@@ -337,7 +408,21 @@ test("all nine administrative operations reject client calls without modifying c
     await assert.rejects(sdk.createGitHubConnectionSession(dc, sessionInput(f), actor));
     await assert.rejects(sdk.getGitHubConnectionSession(dc, sessionKey(s), actor));
     await assert.rejects(sdk.confirmGitHubConnection(dc, confirmation(f, s), actor));
-    await assert.rejects(sdk.getActiveGitHubConnection(dc, installationKey(f), actor));
+    await assert.rejects(sdk.getGitHubRepositoryConnection(dc, repositoryKey(f), actor));
+    await assert.rejects(
+      sdk.getUnavailableGitHubRepositories(
+        dc,
+        {
+          teamId: f.teamId,
+          userId: f.userId,
+          githubApiBaseUrl: f.githubApiBaseUrl,
+          githubAppId: f.githubAppId,
+          installationIds: ["100"],
+          repositoryIds: ["1000"],
+        },
+        actor,
+      ),
+    );
     await assert.rejects(sdk.getExpiredGitHubConnectionCredentials(dc, actor));
     await assert.rejects(sdk.deleteExpiredGitHubConnectionRequest(dc, { id: r.id }, actor));
     await assert.rejects(sdk.deleteExpiredGitHubConnectionSession(dc, { id: s.id }, actor));
@@ -482,7 +567,8 @@ test("confirmation atomically saves the connection and consumes and clears its s
   assert.ok(Number(stored.consumedAt) > 0);
   assert.equal(stored.accessTokenSecretVersionPath, null);
   assert.equal((await sdk.getGitHubConnectionSession(dc, sessionKey(s))).data.session, null);
-  const connection = (await sdk.getActiveGitHubConnection(dc, installationKey(f))).data.connection;
+  const connection = (await sdk.getGitHubRepositoryConnection(dc, repositoryKey(f))).data
+    .connection;
   assert.equal(connection.id, result.data.connection.id);
   assert.equal(connection.teamId, f.teamId);
   const audit = (
@@ -512,7 +598,8 @@ test("fresh confirmation refreshes the same team's metadata and preserves the co
     accountId: "201",
   });
   assert.equal(next.data.connection.id, first.data.connection.id);
-  const connection = (await sdk.getActiveGitHubConnection(dc, installationKey(f))).data.connection;
+  const connection = (await sdk.getGitHubRepositoryConnection(dc, repositoryKey(f))).data
+    .connection;
   assert.equal(connection.accountLogin, "renamed-org");
   assert.equal(connection.accountId, "201");
 });
@@ -542,8 +629,103 @@ test("another team cannot take a connection and its session remains usable after
     s.accessTokenSecretVersionPath,
   );
   assert.equal(
-    (await sdk.getActiveGitHubConnection(dc, installationKey(f))).data.connection.teamId,
+    (await sdk.getGitHubRepositoryConnection(dc, repositoryKey(f))).data.connection.teamId,
     f.teamId,
+  );
+});
+
+test("different teams can connect distinct repositories in the same installation", async (t) => {
+  const f = await fixture(t);
+  const other = { ...f, teamId: f.otherTeamId, userId: f.otherUserId };
+  const a = confirmation(f, await session(f));
+  const b = {
+    ...confirmation(other, await session(other)),
+    repositoryId: "1001",
+    repositoryName: "second",
+  };
+  await Promise.all([sdk.confirmGitHubConnection(dc, a), sdk.confirmGitHubConnection(dc, b)]);
+  const first = (await sdk.getGitHubRepositoryConnection(dc, repositoryKey(f))).data;
+  const second = (
+    await sdk.getGitHubRepositoryConnection(dc, { ...repositoryKey(f), repositoryId: "1001" })
+  ).data;
+  assert.equal(first.connection.teamId, f.teamId);
+  assert.equal(second.connection.teamId, other.teamId);
+  assert.notEqual(first.connection.id, second.connection.id);
+  assert.equal(first.legacyConnection, null);
+  // An old installation-only caller cannot accidentally select either team's repo.
+  assert.equal((await sdk.getActiveGitHubConnection(dc, installationKey(f))).data.connection, null);
+  const store = new GitHubConnectionStore(dc, {
+    apiBaseUrl: f.githubApiBaseUrl,
+    appId: f.githubAppId,
+  });
+  assert.deepEqual(
+    await store.unavailableRepositories(f.teamId, f.userId, [
+      { installationId: 100, repositoryId: 1000 },
+      { installationId: 100, repositoryId: 1001 },
+      { installationId: 100, repositoryId: 1002 },
+    ]),
+    new Set([1001]),
+  );
+  const unconnected = (
+    await sdk.getGitHubRepositoryConnection(dc, { ...repositoryKey(f), repositoryId: "1002" })
+  ).data;
+  assert.equal(unconnected.connection, null);
+  assert.equal(unconnected.legacyConnection, null);
+});
+
+test("legacy installation claims cannot be taken or widened by repository confirmation", async (t) => {
+  const f = await fixture(t);
+  const id = randomUUID();
+  await graphql(
+    "mutation Legacy($data: GitHubConnection_Data!) { gitHubConnection_insert(data:$data) }",
+    {
+      data: {
+        id,
+        teamId: f.teamId,
+        ...installationKey(f),
+        accountId: "200",
+        accountType: "Organization",
+        accountLogin: "test-org",
+        verifiedByUserId: f.userId,
+        verifiedByGitHubUserId: "1",
+        verifiedAt: "1",
+        status: "suspended",
+      },
+    },
+  );
+  const other = { ...f, teamId: f.otherTeamId, userId: f.otherUserId };
+  const denied = await session(other);
+  await assert.rejects(
+    sdk.confirmGitHubConnection(dc, confirmation(other, denied)),
+    /already connected/,
+  );
+  assert.equal((await storedSession(denied)).consumedAt, null);
+  await sdk.confirmGitHubConnection(dc, confirmation(f, await session(f)));
+  const result = (await sdk.getGitHubRepositoryConnection(dc, repositoryKey(f))).data;
+  assert.equal(result.connection.repositoryId, "1000");
+  assert.equal(result.connection.status, "active");
+  assert.equal(result.legacyConnection.id, id);
+  assert.equal(result.legacyConnection.status, "suspended");
+  // A Write user only re-enables the selected repo, never the legacy whole organization.
+  assert.equal((await sdk.getActiveGitHubConnection(dc, installationKey(f))).data.connection, null);
+});
+
+test("repository claims survive transfers and legacy callers cannot create whole-installation grants", async (t) => {
+  const f = await fixture(t);
+  const s = await session(f);
+  const input = confirmation(f, s);
+  const { repositoryId, repositoryName, ...legacy } = input;
+  await assert.rejects(sdk.confirmGitHubConnection(dc, legacy));
+  assert.equal((await storedSession(s)).consumedAt, null);
+  await sdk.confirmGitHubConnection(dc, input);
+  const other = { ...f, teamId: f.otherTeamId, userId: f.otherUserId };
+  await assert.rejects(
+    sdk.confirmGitHubConnection(dc, {
+      ...confirmation(other, await session(other), "101"),
+      repositoryId,
+      repositoryName,
+    }),
+    /already connected/,
   );
 });
 
@@ -561,7 +743,7 @@ test("simultaneous first claims by different teams have exactly one winner", asy
   const winner = results[0].status === "fulfilled" ? f : other;
   assert.equal((await storedSession(loser)).consumedAt, null);
   assert.equal(
-    (await sdk.getActiveGitHubConnection(dc, installationKey(f))).data.connection.teamId,
+    (await sdk.getGitHubRepositoryConnection(dc, repositoryKey(f))).data.connection.teamId,
     winner.teamId,
   );
 });
@@ -576,7 +758,7 @@ test("simultaneous confirmations cannot reuse a session for multiple installatio
   assert.equal(results.filter((r) => r.status === "fulfilled").length, 1);
   const connections = await Promise.all(
     ["100", "101"].map((installationId) =>
-      sdk.getActiveGitHubConnection(dc, installationKey(f, installationId)),
+      sdk.getGitHubRepositoryConnection(dc, repositoryKey(f, installationId)),
     ),
   );
   assert.equal(connections.filter((result) => result.data.connection !== null).length, 1);
@@ -590,6 +772,9 @@ test("invalid verified metadata rolls back confirmation without consuming the se
     { githubAppId: "0" },
     { installationId: "-1" },
     { accountId: "0" },
+    { repositoryId: "0" },
+    { repositoryId: null },
+    { repositoryName: "bad/repo" },
     { accountType: "Bot" },
     { accountLogin: "  " },
     { githubApiBaseUrl: "https://user:pass@github.example" },
@@ -599,7 +784,10 @@ test("invalid verified metadata rolls back confirmation without consuming the se
     await assert.rejects(sdk.confirmGitHubConnection(dc, { ...input, ...override }));
   }
   assert.equal((await storedSession(s)).consumedAt, null);
-  assert.equal((await sdk.getActiveGitHubConnection(dc, installationKey(f))).data.connection, null);
+  assert.equal(
+    (await sdk.getGitHubRepositoryConnection(dc, repositoryKey(f))).data.connection,
+    null,
+  );
   await sdk.confirmGitHubConnection(dc, {
     ...input,
     githubApiBaseUrl: "https://github.example/api/v3",

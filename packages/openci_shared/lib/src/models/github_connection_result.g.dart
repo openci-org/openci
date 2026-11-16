@@ -60,6 +60,8 @@ _GitHubConnectionCandidate _$GitHubConnectionCandidateFromJson(
   Map<String, dynamic> json,
 ) => _GitHubConnectionCandidate(
   installationId: (json['installationId'] as num).toInt(),
+  repositoryId: (json['repositoryId'] as num).toInt(),
+  repositoryName: json['repositoryName'] as String,
   accountLogin: json['accountLogin'] as String,
   accountType: json['accountType'] as String,
 );
@@ -68,6 +70,8 @@ Map<String, dynamic> _$GitHubConnectionCandidateToJson(
   _GitHubConnectionCandidate instance,
 ) => <String, dynamic>{
   'installationId': instance.installationId,
+  'repositoryId': instance.repositoryId,
+  'repositoryName': instance.repositoryName,
   'accountLogin': instance.accountLogin,
   'accountType': instance.accountType,
 };

@@ -843,7 +843,7 @@ as String?,
 /// @nodoc
 mixin _$GitHubConnectionCandidate {
 
- int get installationId; String get accountLogin; String get accountType;
+ int get installationId; int get repositoryId; String get repositoryName; String get accountLogin; String get accountType;
 /// Create a copy of GitHubConnectionCandidate
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -856,16 +856,16 @@ $GitHubConnectionCandidateCopyWith<GitHubConnectionCandidate> get copyWith => _$
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is GitHubConnectionCandidate&&(identical(other.installationId, installationId) || other.installationId == installationId)&&(identical(other.accountLogin, accountLogin) || other.accountLogin == accountLogin)&&(identical(other.accountType, accountType) || other.accountType == accountType));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is GitHubConnectionCandidate&&(identical(other.installationId, installationId) || other.installationId == installationId)&&(identical(other.repositoryId, repositoryId) || other.repositoryId == repositoryId)&&(identical(other.repositoryName, repositoryName) || other.repositoryName == repositoryName)&&(identical(other.accountLogin, accountLogin) || other.accountLogin == accountLogin)&&(identical(other.accountType, accountType) || other.accountType == accountType));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,installationId,accountLogin,accountType);
+int get hashCode => Object.hash(runtimeType,installationId,repositoryId,repositoryName,accountLogin,accountType);
 
 @override
 String toString() {
-  return 'GitHubConnectionCandidate(installationId: $installationId, accountLogin: $accountLogin, accountType: $accountType)';
+  return 'GitHubConnectionCandidate(installationId: $installationId, repositoryId: $repositoryId, repositoryName: $repositoryName, accountLogin: $accountLogin, accountType: $accountType)';
 }
 
 
@@ -876,7 +876,7 @@ abstract mixin class $GitHubConnectionCandidateCopyWith<$Res>  {
   factory $GitHubConnectionCandidateCopyWith(GitHubConnectionCandidate value, $Res Function(GitHubConnectionCandidate) _then) = _$GitHubConnectionCandidateCopyWithImpl;
 @useResult
 $Res call({
- int installationId, String accountLogin, String accountType
+ int installationId, int repositoryId, String repositoryName, String accountLogin, String accountType
 });
 
 
@@ -893,10 +893,12 @@ class _$GitHubConnectionCandidateCopyWithImpl<$Res>
 
 /// Create a copy of GitHubConnectionCandidate
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? installationId = null,Object? accountLogin = null,Object? accountType = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? installationId = null,Object? repositoryId = null,Object? repositoryName = null,Object? accountLogin = null,Object? accountType = null,}) {
   return _then(_self.copyWith(
 installationId: null == installationId ? _self.installationId : installationId // ignore: cast_nullable_to_non_nullable
-as int,accountLogin: null == accountLogin ? _self.accountLogin : accountLogin // ignore: cast_nullable_to_non_nullable
+as int,repositoryId: null == repositoryId ? _self.repositoryId : repositoryId // ignore: cast_nullable_to_non_nullable
+as int,repositoryName: null == repositoryName ? _self.repositoryName : repositoryName // ignore: cast_nullable_to_non_nullable
+as String,accountLogin: null == accountLogin ? _self.accountLogin : accountLogin // ignore: cast_nullable_to_non_nullable
 as String,accountType: null == accountType ? _self.accountType : accountType // ignore: cast_nullable_to_non_nullable
 as String,
   ));
@@ -983,10 +985,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int installationId,  String accountLogin,  String accountType)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int installationId,  int repositoryId,  String repositoryName,  String accountLogin,  String accountType)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _GitHubConnectionCandidate() when $default != null:
-return $default(_that.installationId,_that.accountLogin,_that.accountType);case _:
+return $default(_that.installationId,_that.repositoryId,_that.repositoryName,_that.accountLogin,_that.accountType);case _:
   return orElse();
 
 }
@@ -1004,10 +1006,10 @@ return $default(_that.installationId,_that.accountLogin,_that.accountType);case 
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int installationId,  String accountLogin,  String accountType)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int installationId,  int repositoryId,  String repositoryName,  String accountLogin,  String accountType)  $default,) {final _that = this;
 switch (_that) {
 case _GitHubConnectionCandidate():
-return $default(_that.installationId,_that.accountLogin,_that.accountType);case _:
+return $default(_that.installationId,_that.repositoryId,_that.repositoryName,_that.accountLogin,_that.accountType);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -1024,10 +1026,10 @@ return $default(_that.installationId,_that.accountLogin,_that.accountType);case 
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int installationId,  String accountLogin,  String accountType)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int installationId,  int repositoryId,  String repositoryName,  String accountLogin,  String accountType)?  $default,) {final _that = this;
 switch (_that) {
 case _GitHubConnectionCandidate() when $default != null:
-return $default(_that.installationId,_that.accountLogin,_that.accountType);case _:
+return $default(_that.installationId,_that.repositoryId,_that.repositoryName,_that.accountLogin,_that.accountType);case _:
   return null;
 
 }
@@ -1039,10 +1041,12 @@ return $default(_that.installationId,_that.accountLogin,_that.accountType);case 
 @JsonSerializable()
 
 class _GitHubConnectionCandidate implements GitHubConnectionCandidate {
-  const _GitHubConnectionCandidate({required this.installationId, required this.accountLogin, required this.accountType});
+  const _GitHubConnectionCandidate({required this.installationId, required this.repositoryId, required this.repositoryName, required this.accountLogin, required this.accountType});
   factory _GitHubConnectionCandidate.fromJson(Map<String, dynamic> json) => _$GitHubConnectionCandidateFromJson(json);
 
 @override final  int installationId;
+@override final  int repositoryId;
+@override final  String repositoryName;
 @override final  String accountLogin;
 @override final  String accountType;
 
@@ -1059,16 +1063,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _GitHubConnectionCandidate&&(identical(other.installationId, installationId) || other.installationId == installationId)&&(identical(other.accountLogin, accountLogin) || other.accountLogin == accountLogin)&&(identical(other.accountType, accountType) || other.accountType == accountType));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _GitHubConnectionCandidate&&(identical(other.installationId, installationId) || other.installationId == installationId)&&(identical(other.repositoryId, repositoryId) || other.repositoryId == repositoryId)&&(identical(other.repositoryName, repositoryName) || other.repositoryName == repositoryName)&&(identical(other.accountLogin, accountLogin) || other.accountLogin == accountLogin)&&(identical(other.accountType, accountType) || other.accountType == accountType));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,installationId,accountLogin,accountType);
+int get hashCode => Object.hash(runtimeType,installationId,repositoryId,repositoryName,accountLogin,accountType);
 
 @override
 String toString() {
-  return 'GitHubConnectionCandidate(installationId: $installationId, accountLogin: $accountLogin, accountType: $accountType)';
+  return 'GitHubConnectionCandidate(installationId: $installationId, repositoryId: $repositoryId, repositoryName: $repositoryName, accountLogin: $accountLogin, accountType: $accountType)';
 }
 
 
@@ -1079,7 +1083,7 @@ abstract mixin class _$GitHubConnectionCandidateCopyWith<$Res> implements $GitHu
   factory _$GitHubConnectionCandidateCopyWith(_GitHubConnectionCandidate value, $Res Function(_GitHubConnectionCandidate) _then) = __$GitHubConnectionCandidateCopyWithImpl;
 @override @useResult
 $Res call({
- int installationId, String accountLogin, String accountType
+ int installationId, int repositoryId, String repositoryName, String accountLogin, String accountType
 });
 
 
@@ -1096,10 +1100,12 @@ class __$GitHubConnectionCandidateCopyWithImpl<$Res>
 
 /// Create a copy of GitHubConnectionCandidate
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? installationId = null,Object? accountLogin = null,Object? accountType = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? installationId = null,Object? repositoryId = null,Object? repositoryName = null,Object? accountLogin = null,Object? accountType = null,}) {
   return _then(_GitHubConnectionCandidate(
 installationId: null == installationId ? _self.installationId : installationId // ignore: cast_nullable_to_non_nullable
-as int,accountLogin: null == accountLogin ? _self.accountLogin : accountLogin // ignore: cast_nullable_to_non_nullable
+as int,repositoryId: null == repositoryId ? _self.repositoryId : repositoryId // ignore: cast_nullable_to_non_nullable
+as int,repositoryName: null == repositoryName ? _self.repositoryName : repositoryName // ignore: cast_nullable_to_non_nullable
+as String,accountLogin: null == accountLogin ? _self.accountLogin : accountLogin // ignore: cast_nullable_to_non_nullable
 as String,accountType: null == accountType ? _self.accountType : accountType // ignore: cast_nullable_to_non_nullable
 as String,
   ));

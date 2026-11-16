@@ -36,12 +36,13 @@ void main() {
       );
       expect(calls, isEmpty);
       current = true;
-      final pending = api.confirm('private-reference', 123);
+      final pending = api.confirm('private-reference', 123, 456);
       expect(callableData(calls.single), {
         'action': 'confirm',
         'teamId': 'team',
         'reference': 'private-reference',
         'installationId': 123,
+        'repositoryId': 456,
       });
       current = false;
       response.complete(http.Response('{"success":true}', 200));

@@ -14,10 +14,11 @@ mutation BeginPullRequestPlanning(
   connectionState: query @redact {
     connection: gitHubConnection(id: $connectionId)
       @check(
-        expr: "this != null && this.status == 'active'"
+        expr: "this != null && this.status == 'active' && (this.repositoryId == null || this.repositoryId == vars.repositoryId)"
         message: "GitHub connection is inactive"
       ) {
       status
+      repositoryId
     }
   }
   pullRequestPlanning_upsert(
