@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import type { DataConnect } from "firebase-admin/data-connect";
 import * as sdk from "@openci/dispatch-admin";
 import { ExecutionGitHub } from "./executor/github.js";
+import { DispatchRetry } from "./build_dispatch.js";
 
 export class QueuedCheckStore {
   constructor(readonly dc: DataConnect) {}
@@ -9,7 +10,8 @@ export class QueuedCheckStore {
     return (await sdk.getQueuedBuildCheck(this.dc, { jobId })).data;
   }
   async acquire(jobId: string, owner: string, runNumber: string) {
-    await sdk.acquireQueuedBuildCheck(this.dc, { jobId, owner, runNumber });
+    const result = await sdk.acquireQueuedBuildCheck(this.dc, { jobId, owner, runNumber });
+    if (result.data.buildJob_updateMany === 0) throw new DispatchRetry("check_publication_busy");
   }
   async record(jobId: string, owner: string, runNumber: string, checkRunId: string) {
     await sdk.recordQueuedBuildCheck(this.dc, { jobId, owner, runNumber, checkRunId });
@@ -24,6 +26,34 @@ export class QueuedCheckStore {
   }
 }
 
+type CheckState = Awaited<ReturnType<QueuedCheckStore["read"]>>;
+
+function publicationInFlight(job: CheckState["job"]): boolean {
+  return !!job?.checkOwner && Date.parse(job.checkLeaseUntil ?? "") > Date.now();
+}
+
+function publicationRun({ job, dispatch }: CheckState): string | undefined {
+  // Active reservations own their Checks. Never regress running/completed work.
+  if (
+    !job ||
+    dispatch ||
+    job.runsOn !== "macos-latest" ||
+    !["QUEUED", "CANCELLED"].includes(job.status)
+  )
+    return;
+  const count = BigInt(job.runCount ?? "0");
+  if (count < 0n) throw new Error("Invalid run count");
+  const runNumber = String(count + 1n);
+  const savedId = job.checkRunNumber === runNumber ? job.checkRunId : null;
+  if (!publicationInFlight(job)) {
+    // An expired owner may have created a Check before losing the response.
+    // Reconcile it even if cancellation arrived before its ID was saved.
+    if (job.status === "CANCELLED" && !savedId && !job.checkOwner) return;
+    if (job.status === "QUEUED" && savedId) return;
+  }
+  return runNumber;
+}
+
 export class QueuedChecks {
   constructor(
     readonly store: Pick<QueuedCheckStore, "read" | "acquire" | "record" | "release" | "context">,
@@ -32,27 +62,33 @@ export class QueuedChecks {
 
   async sync(jobId: string): Promise<void> {
     const initial = await this.store.read(jobId);
-    const job = initial.job;
-    // An active reservation owns its check. Late mutation deliveries must never
-    // regress running/completed checks, including executors deployed before this change.
-    if (
-      !job ||
-      initial.dispatch ||
-      job.runsOn !== "macos-latest" ||
-      !["QUEUED", "CANCELLED"].includes(job.status)
-    )
-      return;
-    const count = BigInt(job.runCount ?? "0");
-    if (count < 0n) throw new Error("Invalid run count");
-    const runNumber = String(count + 1n);
-    const savedId = job.checkRunNumber === runNumber ? job.checkRunId : null;
-    if (job.status === "CANCELLED" && !savedId) return;
-    // This includes a lost release acknowledgement: let the dispatcher retry
-    // until the persisted lease expires rather than issuing another GitHub call.
-    if (job.status === "QUEUED" && savedId) return;
+    const runNumber = publicationRun(initial);
+    if (!runNumber) return;
+    if (publicationInFlight(initial.job)) throw new DispatchRetry("check_publication_busy");
 
     const owner = randomUUID();
-    await this.store.acquire(jobId, owner, runNumber);
+    try {
+      await this.store.acquire(jobId, owner, runNumber);
+    } catch (failure) {
+      // The initial read does not lock the job. Another publisher or dispatcher
+      // can win before the transaction checks its lease, run and reservation.
+      const busy = failure instanceof DispatchRetry && failure.reason === "check_publication_busy";
+      if (
+        !busy &&
+        (!failure ||
+          typeof failure !== "object" ||
+          !("code" in failure) ||
+          failure.code !== "data-connect/query-error")
+      )
+        throw failure;
+      const latest = await this.store.read(jobId);
+      const latestRun = publicationRun(latest);
+      if (!latestRun) return;
+      if (busy || publicationInFlight(latest.job) || latestRun !== runNumber)
+        throw new DispatchRetry("check_publication_busy");
+      // No durable evidence of contention: retain the original failure/retry.
+      throw failure;
+    }
     const state = await this.store.read(jobId);
     const current = state.job;
     if (

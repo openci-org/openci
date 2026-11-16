@@ -229,7 +229,18 @@ async function fixture(t, queuedCheck = false, team) {
     configuration,
     github: {
       options: { appId: "1", apiBaseUrl: "https://api.github.com", baseUrl: "https://github.com" },
-      resolveCheckoutCommit: async (job) => job.commitSha,
+      resolveCheckout: async (job) =>
+        job.pullRequestNumber
+          ? {
+              event: "pull_request",
+              number: Number(job.pullRequestNumber),
+              headBranch: "feature",
+              baseBranch: "main",
+              headSha: job.commitSha,
+              baseSha: "b".repeat(40),
+              checkoutSha: job.commitSha,
+            }
+          : { event: "push", branch: "main", commitSha: job.commitSha, checkoutSha: job.commitSha },
       checkout: async () => ({
         token: "checkout-token",
         cloneUrl: "https://github.com/org/app.git",
@@ -622,7 +633,7 @@ test("persisted PR jobs and reruns fail before billing, VM creation, checkout an
       workerHost: runCount ? "previous-worker" : null,
     });
     let verified = 0;
-    f.dependencies.github.resolveCheckoutCommit = async (job, accountId) => {
+    f.dependencies.github.resolveCheckout = async (job, accountId) => {
       assert.equal(job.pullRequestNumber, "7", "FSC must expose the saved PR number to the guard");
       assert.equal(accountId, "10");
       verified++;
@@ -695,7 +706,7 @@ async function jobFailure(jobId) {
 test("merge failure survives cleanup recovery and is published before any run exists", async (t) => {
   const f = await fixture(t, true);
   const error = new PullRequestCheckoutError("conflicts");
-  f.dependencies.github.resolveCheckoutCommit = async () => {
+  f.dependencies.github.resolveCheckout = async () => {
     throw error;
   };
   f.dependencies.github.check = async (_job, dispatch, outcome) => {
@@ -751,7 +762,7 @@ test("a new successful attempt clears the previous job failure summary", async (
 
 test("source rejection before a run exists completes the queued check", async (t) => {
   const f = await fixture(t, true);
-  f.dependencies.github.resolveCheckoutCommit = async () => {
+  f.dependencies.github.resolveCheckout = async () => {
     throw new Error("superseded head");
   };
   f.dependencies.github.check = async (_job, dispatch, outcome) => {

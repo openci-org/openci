@@ -30,7 +30,12 @@ export interface DispatchStore {
 
 export class DispatchRetry extends Error {
   constructor(
-    readonly reason: "capacity_unavailable" | "scheduler_busy" | "launch_busy" | "queue_pending",
+    readonly reason:
+      | "capacity_unavailable"
+      | "scheduler_busy"
+      | "launch_busy"
+      | "queue_pending"
+      | "check_publication_busy",
   ) {
     super(reason);
   }
