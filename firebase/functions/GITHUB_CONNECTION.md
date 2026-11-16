@@ -107,16 +107,17 @@ authentication. Local Dashboard mode uses the Functions emulator on port 5001.
 
 Deploy in this order:
 
-1. Apply the FSC schema and deploy the `github`, `webhooks`, and `dispatch`
-   connectors. This adds nullable repository metadata to connections/jobs and
-   replaces installation uniqueness with host/App/repository uniqueness. Verify
-   the migration plan: existing null-ID rows and job history must be retained.
-   With COMPATIBLE validation, the old physical unique key is retained: apply
+1. Take a database backup and review the SQL diff. Add the nullable repository
+   columns and host/App/repository unique key, then apply
    [the scoped SQL migration](../dataconnect/migrations/20261116_repository_connections.sql)
-   after the new key and connector guards exist. It preserves a partial unique
-   index for legacy installation-wide rows and removes only the superseded
-   whole-installation key; no connection rows are modified. Validate it against
-   a backup/test database before applying it to production.
+   to remove the superseded installation key. SQL Connect rejects additional
+   unique indexes even in COMPATIBLE mode, so do not add a partial unique index
+   for legacy rows. The migration also removes that index if an earlier attempt
+   created it. Existing null-ID connections and job history are retained; no
+   connection rows are modified. Validate the transaction with ROLLBACK before
+   committing, then deploy the FSC schema and `github`, `webhooks`, and `dispatch`
+   connectors. Confirmation requires a positive repository ID, so new callers
+   cannot create installation-wide rows.
 2. Deploy the Dart planner and the Node consumers/Cloud Run executor using the
    new connector operations, before enabling new repository confirmations.
 3. Deploy the GitHub connection Functions and then the Dashboard. Existing
