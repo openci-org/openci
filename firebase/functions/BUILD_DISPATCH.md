@@ -24,6 +24,23 @@ worker does not implement the new executor contract. The [Cloud Run executor](BU
 implements G-1605. Keep the existing production webhook path until deployment
 validation is complete.
 
+## Queue failure diagnostics
+
+`queueBuildJobs` errors include the event ID, the current job ID when available,
+and a fixed `stage`: `principal`, `payload`, `queued_check_sync`,
+`dispatch_enqueue`, `cancellation_payload`, `cancellation_lookup`, or
+`cancellation_enqueue`. Lookup/validation errors do not inherit a previous job ID.
+The `reason` is an allowlisted SDK/network code, HTTP status, or application
+reason; unrecognized failures remain `unknown`. Task enqueue wrapping preserves
+this safe reason without retaining the original exception or its cause.
+
+Failures still reject the event for retry. Only an already-existing task is
+treated as successfully queued. Use the stage and reason to investigate the
+actual failing dependency; a subsequent successful retry does not establish its
+root cause. Raw errors, request bodies, credentials and workflow source must not
+be added to logs. After deploying the diagnostics, verify error classifications
+and retry recovery in production before considering the investigation complete.
+
 ## GitHub Check lifecycle
 
 Checks are visible while jobs wait for VM capacity. Publication saves the ID and

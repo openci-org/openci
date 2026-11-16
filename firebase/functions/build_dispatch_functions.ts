@@ -21,6 +21,7 @@ import { orchardNetworkOptions } from "./orchard_network.js";
 import { dispatchServiceAccount } from "./function_identity.js";
 import { dataConnectServiceId } from "./data_connect_config.js";
 import { queuedChecks } from "./queued_checks.js";
+import { BuildQueueEnqueueError, buildQueueFailureReason } from "./build_queue_error.js";
 
 const orchardUrl = defineString("ORCHARD_API_URL");
 const orchardAccount = defineString("ORCHARD_SERVICE_ACCOUNT_NAME");
@@ -49,7 +50,7 @@ async function enqueue(
       failure.code === "functions/task-already-exists"
     )
       return;
-    throw new Error("Build dispatch could not be queued");
+    throw new BuildQueueEnqueueError(failure);
   }
 }
 
@@ -69,12 +70,20 @@ export const queueBuildJobs = onMutationExecuted(
     retry: true,
   },
   async (event) => {
+    let stage = "principal";
+    let jobId: string | undefined;
     try {
       if (event.authType !== "admin") throw new Error("Unexpected mutation principal");
+      stage = "payload";
       for (const id of createdBuildJobIds(event.data.payload)) {
+        jobId = id;
+        stage = "queued_check_sync";
         await queuedChecks(getDispatchDataConnect()).sync(id);
+        stage = "dispatch_enqueue";
         await enqueue({ jobId: id }, dispatchTaskId(id));
       }
+      jobId = undefined;
+      stage = "cancellation_payload";
       const { data, variables, errors } = event.data.payload;
       // Older deployed connectors have no cancellation result. Redelivery of a
       // successful cancellation pages the durable source again with stable IDs.
@@ -90,19 +99,30 @@ export const queueBuildJobs = onMutationExecuted(
           )
             throw new Error("Invalid cancellation source");
           const taskId = variables.id;
+          stage = "cancellation_lookup";
           const store = new DataConnectDispatchStore(getDispatchDataConnect());
           let afterId = "";
           for (;;) {
+            jobId = undefined;
+            stage = "cancellation_lookup";
             const jobs = await store.superseded(taskId, afterId);
-            for (const job of jobs)
+            for (const job of jobs) {
+              jobId = job.id;
+              stage = "cancellation_enqueue";
               await enqueue({ jobId: job.id }, dispatchTaskId(job.id, `superseded-${taskId}`));
+            }
             if (jobs.length < 100) break;
             afterId = jobs.at(-1)!.id;
           }
         }
       }
-    } catch {
-      error("Build dispatch enqueue failed", { eventId: event.id });
+    } catch (failure) {
+      error("Build dispatch enqueue failed", {
+        eventId: event.id,
+        jobId,
+        stage,
+        reason: buildQueueFailureReason(failure),
+      });
       throw new Error("Build dispatch enqueue failed; retry required");
     }
   },
