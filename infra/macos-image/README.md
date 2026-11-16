@@ -1,5 +1,39 @@
 # Build the OpenCI macOS image
 
+## Current image: Patrol CLI
+
+The `current/` profile adds **Patrol CLI 4.9.0** to the published **v0.1.8**
+image to produce a **v0.1.9** candidate. The source is pinned by digest, preserving
+the existing macOS 26.5, Xcode 26.6, Flutter 3.47.8, and Node 22/24 environment.
+The historical `released/` profile below continues to reproduce v0.1.7.
+
+```sh
+make init
+export PKR_VAR_candidate_name=base-macos-packer-v019-patrol
+# Set PKR_VAR_ssh_password as described in the Build section below.
+make build-current
+```
+
+This profile activates the pinned `patrol_cli` package, retains its resolved
+dependencies in `/usr/local/share/openci-image/patrol-cli-pubspec.lock`, and
+exposes `patrol` on `/usr/local/bin` for non-login shells. Both `patrol` and
+`dart pub global run patrol_cli:main` are verified without a reachable Pub server,
+along with the inherited native toolchain and both installed Node versions.
+No app tests or signing credentials are included in the image.
+
+Workflows can run `patrol test` or `dart pub global run patrol_cli:main test`
+without activating the CLI when using the v0.1.9 image and its default Dart SDK.
+With the upcoming `openci_workflow` Patrol API, this also allows calling
+`openCI.patrol.test()` without `install()`. Activate a different CLI version when
+required by the app's `patrol` dependency. Native app setup and starting a
+simulator or emulator are still workflow responsibilities.
+
+Follow **Publish and promote** below: build a fresh candidate, verify a disposable
+clone after cleanup, publish a new immutable release tag, and switch workers one
+at a time while their scheduling is paused and no VMs are assigned.
+
+## Build from the newer Cirrus foundation
+
 Packer and the Cirrus Labs Tart plugin create a stopped, tested candidate VM for
 OpenCI. The source is Cirrus's **macOS Tahoe / Xcode 27.2** image, pinned by OCI
 digest in `toolchain.json`. A build does not update the image used by workers.

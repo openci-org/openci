@@ -1,0 +1,7 @@
+{
+  "source_image": "ghcr.io/openci-org/base-macos@sha256:1f361388caca4b7affee6cd263b73fb43ee224b8464ee97005c8be7cadb77f12",
+  "source_release": "v0.1.8",
+  "target_release": "v0.1.9",
+  "patrol_cli_version": "4.9.0",
+  "node_versions": ["22.23.4", "24.22.2"]
+}
