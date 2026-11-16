@@ -79,6 +79,7 @@ void main() {
         'teamId': 'team-1',
         'commitSha': 'abc123',
         'runCount': 2,
+        'retryCount': 3,
         'latestRunId': 'run-2',
         'runsOn': 'macos',
         'matrix': {'os': 'macOS', 'version': 3, 'release': true},
@@ -94,6 +95,7 @@ void main() {
       expect(job.teamId, 'team-1');
       expect(job.commitSha, 'abc123');
       expect(job.runCount, 2);
+      expect(job.retryCount, 3);
       expect(job.latestRunId, 'run-2');
       expect(job.runsOn, 'macos');
       expect(job.matrix, {'os': 'macOS', 'version': 3, 'release': true});
@@ -119,6 +121,7 @@ void main() {
 
       expect(job.id, 'job-1');
       expect(job.workflowFileName, 'ci.dart');
+      expect(job.retryCount, 0);
       expect(job.completedAt, isNull);
       expect(job.matrix, isNull);
       expect(job.needs, isNull);

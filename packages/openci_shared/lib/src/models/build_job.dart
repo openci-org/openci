@@ -41,6 +41,7 @@ abstract class BuildJob with _$BuildJob {
     String? commitMessage,
     int? pullRequestNumber,
     int? runCount,
+    @Default(0) int retryCount,
     String? latestRunId,
     String? tagName,
     String? branch,

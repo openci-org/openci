@@ -11,6 +11,7 @@ part 'build_repository.g.dart';
 abstract interface class BuildRepository {
   Stream<BuildJob?> watchJob(String id);
   Stream<List<BuildJob>> watchJobs(String teamId);
+  Future<void> retryJob({required String id, required int expectedRetryCount});
 }
 
 @riverpod
@@ -20,6 +21,16 @@ Future<BuildRepository> buildRepository(Ref ref) async =>
 class FscBuildRepository implements BuildRepository {
   FscBuildRepository(this.connector);
   final BuildsConnector connector;
+
+  @override
+  Future<void> retryJob({
+    required String id,
+    required int expectedRetryCount,
+  }) async {
+    await connector
+        .retryBuildJob(id: id, expectedRetryCount: expectedRetryCount)
+        .execute();
+  }
 
   @override
   Stream<BuildJob?> watchJob(String id) =>

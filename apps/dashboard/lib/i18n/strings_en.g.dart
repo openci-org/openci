@@ -779,6 +779,30 @@ class Translations$logs$en {
 
   /// en: '${seconds}s'
   String durationSeconds({required Object seconds}) => '${seconds}s';
+
+  /// en: 'Retry job'
+  String get retryJob => 'Retry job';
+
+  /// en: 'Requesting retry…'
+  String get retrySubmitting => 'Requesting retry…';
+
+  /// en: 'Retry queued'
+  String get retryRequested => 'Retry queued';
+
+  /// en: 'The job has been queued for another run.'
+  String get retryQueued => 'The job has been queued for another run.';
+
+  /// en: 'Could not confirm the retry. Check the latest job status before trying again.'
+  String get retryFailed =>
+      'Could not confirm the retry. Check the latest job status before trying again.';
+
+  /// en: 'Waiting for the retry to start. Logs will appear automatically.'
+  String get retryWaiting =>
+      'Waiting for the retry to start. Logs will appear automatically.';
+
+  /// en: 'Waiting for the retry to start. These are the previous run’s logs; the new logs will appear automatically.'
+  String get retryWaitingPreviousLogs =>
+      'Waiting for the retry to start. These are the previous run’s logs; the new logs will appear automatically.';
 }
 
 // Path: billing
@@ -1441,6 +1465,16 @@ extension on Translations {
         ({required Object minutes, required Object seconds}) =>
             '${minutes}m ${seconds}s',
       'logs.durationSeconds' => ({required Object seconds}) => '${seconds}s',
+      'logs.retryJob' => 'Retry job',
+      'logs.retrySubmitting' => 'Requesting retry…',
+      'logs.retryRequested' => 'Retry queued',
+      'logs.retryQueued' => 'The job has been queued for another run.',
+      'logs.retryFailed' =>
+        'Could not confirm the retry. Check the latest job status before trying again.',
+      'logs.retryWaiting' =>
+        'Waiting for the retry to start. Logs will appear automatically.',
+      'logs.retryWaitingPreviousLogs' =>
+        'Waiting for the retry to start. These are the previous run’s logs; the new logs will appear automatically.',
       'billing.title' => 'Billing',
       'billing.signInRequired' => 'Sign in to Cloud to use this page.',
       'billing.teamLoadFailed' => 'Could not load teams.',

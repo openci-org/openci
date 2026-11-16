@@ -2,6 +2,7 @@ import 'package:dashboard/app_strings.dart';
 import 'package:dashboard/build_logs/build_jobs_provider.dart';
 import 'package:dashboard/cicd_log/detail/build_step_providers.dart';
 import 'package:dashboard/cicd_log/detail/job_status_icon.dart';
+import 'package:dashboard/cicd_log/detail/retry_job_button.dart';
 import 'package:dashboard/extensions/circular_progress_indicator_extensions.dart';
 import 'package:dashboard/responsive/desktop_max_width.dart';
 import 'package:dashboard/utilities/async_error_widget.dart';
@@ -41,13 +42,7 @@ class CicdLogDetailRoutePage extends ConsumerWidget {
           );
         }
 
-        return CicdLogDetailPage(
-          buildJobId: buildJobId,
-          runId: buildJob.latestRunId ?? '',
-          failureSummary: buildJob.status == BuildJobStatus.FAILURE
-              ? buildJob.failureSummary
-              : null,
-        );
+        return CicdLogDetailPage(buildJob: buildJob);
       },
     );
   }
@@ -56,18 +51,19 @@ class CicdLogDetailRoutePage extends ConsumerWidget {
 class CicdLogDetailPage extends ConsumerWidget {
   const CicdLogDetailPage({
     super.key,
-    required this.buildJobId,
-    required this.runId,
-    this.failureSummary,
+    required this.buildJob,
   });
 
-  final String buildJobId;
-  final String runId;
-  final String? failureSummary;
+  final BuildJob buildJob;
+
+  String get buildJobId => buildJob.id;
+  String get runId => buildJob.latestRunId ?? '';
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final summary = failureSummary?.trim();
+    final summary = buildJob.status == BuildJobStatus.FAILURE
+        ? buildJob.failureSummary?.trim()
+        : null;
     final hasSummary = summary != null && summary.isNotEmpty;
     final stepsAsync = ref.watch(
       buildStepSummariesProvider(
@@ -85,6 +81,7 @@ class CicdLogDetailPage extends ConsumerWidget {
           onPressed: () => Navigator.pop(context),
         ),
         actions: [
+          RetryJobButton(job: buildJob),
           IconButton(
             icon: const Icon(Icons.copy_all_rounded),
             tooltip: context.t.logs.copyAll,
@@ -142,6 +139,18 @@ class CicdLogDetailPage extends ConsumerWidget {
             top: false,
             child: CustomScrollView(
               slivers: [
+                if (buildJob.retryCount > 0 &&
+                    buildJob.status == BuildJobStatus.QUEUED)
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Text(
+                        runId.isEmpty
+                            ? context.t.logs.retryWaiting
+                            : context.t.logs.retryWaitingPreviousLogs,
+                      ),
+                    ),
+                  ),
                 if (hasSummary)
                   SliverToBoxAdapter(child: _FailureSummary(summary: summary)),
                 stepsAsync.when(

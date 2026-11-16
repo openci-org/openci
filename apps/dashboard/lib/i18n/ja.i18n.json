@@ -248,7 +248,14 @@
     "copy": "ログをコピー",
     "copied": "ログをクリップボードにコピーしました",
     "durationMinutesSeconds": "${minutes}分${seconds}秒",
-    "durationSeconds": "${seconds}秒"
+    "durationSeconds": "${seconds}秒",
+    "retryJob": "再実行",
+    "retrySubmitting": "送信中…",
+    "retryRequested": "受付済み",
+    "retryQueued": "再実行を受け付けました。",
+    "retryFailed": "再実行の受付を確認できませんでした。最新の状態を確認してから、もう一度お試しください。",
+    "retryWaiting": "再実行の開始を待っています。開始するとログが自動で表示されます。",
+    "retryWaitingPreviousLogs": "再実行の開始を待っています。前回のログを表示中です。新しい実行が始まると自動で切り替わります。"
   },
   "billing": {
     "title": "課金",

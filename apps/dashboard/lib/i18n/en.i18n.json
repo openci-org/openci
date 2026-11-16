@@ -249,7 +249,14 @@
     "copy": "Copy logs",
     "copied": "Logs copied to the clipboard",
     "durationMinutesSeconds": "${minutes}m ${seconds}s",
-    "durationSeconds": "${seconds}s"
+    "durationSeconds": "${seconds}s",
+    "retryJob": "Retry job",
+    "retrySubmitting": "Requesting retry…",
+    "retryRequested": "Retry queued",
+    "retryQueued": "The job has been queued for another run.",
+    "retryFailed": "Could not confirm the retry. Check the latest job status before trying again.",
+    "retryWaiting": "Waiting for the retry to start. Logs will appear automatically.",
+    "retryWaitingPreviousLogs": "Waiting for the retry to start. These are the previous run’s logs; the new logs will appear automatically."
   },
   "billing": {
     "title": "Billing",
