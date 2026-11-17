@@ -4,7 +4,7 @@ const messages = {
   not_ready:
     "GitHub's test merge commit is not ready. Wait a moment and rerun this job. If it is still unavailable, check the pull request's merge status on GitHub.",
   stale_merge:
-    "GitHub's test merge commit still does not match the current base branch after repeated requests. The workflow was not started. Rerun this job after GitHub refreshes the pull request's merge information.",
+    "The pull request's current base and head commits could not be verified. The workflow was not started. Rerun this job.",
   closed:
     "This pull request is closed or already merged. Reopen it or run CI on an open pull request.",
   head_changed:

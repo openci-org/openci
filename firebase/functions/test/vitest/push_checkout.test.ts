@@ -112,6 +112,22 @@ test("最新 base と PR が競合したらワークツリーへ展開せず専�
   expect(existsSync(join(root, "vm", "openci-build", "version.txt"))).toBe(false);
 });
 
+test("固定した base と head に共通の履歴がなければワークフローを展開しない", ({
+  onTestFinished,
+}) => {
+  const root = mkdtempSync(join(tmpdir(), "openci-local-unrelated-"));
+  onTestFinished(() => rmSync(root, { recursive: true, force: true }));
+  const repo = checkoutFixture(root);
+  const baseSha = repo.commitVersion("base history");
+  repo.git("checkout", "--orphan", "unrelated-pr");
+  const headSha = repo.commitVersion("unrelated PR history");
+
+  const result = repo.exec(checkoutScript(headSha, repo.source, "test-token", baseSha));
+
+  expect(result.status).not.toBe(0);
+  expect(existsSync(join(root, "vm", "openci-build", "version.txt"))).toBe(false);
+});
+
 for (const scenario of ["fast-forward", "already-contained"]) {
   test(`${scenario} でも両方の親を持つテストマージを作る`, ({ onTestFinished }) => {
     const root = mkdtempSync(join(tmpdir(), "openci-local-ancestor-"));
