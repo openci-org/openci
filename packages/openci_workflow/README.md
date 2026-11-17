@@ -311,28 +311,45 @@ Boot errors and timeouts trigger cleanup of the newly created device. After a
 successful launch, call `dispose()` in `finally` to shut down and delete it.
 Repeated disposal is safe, and failed deletion can be retried.
 
-For commands that can fail, use `Process.start` from `dart:io` and set `exitCode`
-after awaiting the child. This lets `finally` run before the workflow exits;
-`openCI.run()` terminates the process immediately on command failure.
+Use `patrol.test()` inside `try/finally` so the simulator is also disposed when a
+test fails:
 
 ```dart
 final simulator = await openCI.launchIosSimulator();
 try {
-  final process = await Process.start(
-    'dart',
-    [
-      'run', 'patrol_cli:main', 'test',
-      '--target', 'patrol_test/app_startup_test.dart',
-      '--device', simulator.id,
-    ],
-    workingDirectory: '${openCI.workspacePath}/apps/dashboard',
-    mode: ProcessStartMode.inheritStdio,
+  await openCI.patrol.test(
+    dir: 'apps/dashboard',
+    device: simulator.id,
+    targets: ['patrol_test/app_startup_test.dart'],
   );
-  exitCode = await process.exitCode;
 } finally {
   await simulator.dispose();
 }
 ```
+
+### Run Patrol tests
+
+`openCI.patrol.test()` runs `dart run patrol_cli:main test` using the project's
+resolved `patrol_cli` package. Configure Patrol in the app, resolve dependencies,
+and make the test device available first. No global CLI installation is needed.
+
+```dart
+await openCI.patrol.test(
+  dir: 'apps/mobile',
+  device: 'emulator-5554',
+  targets: ['patrol_test/login_test.dart'],
+  verbose: true,
+  additionalArguments: ['--flavor', 'staging', '--tags', 'smoke && !slow'],
+);
+```
+
+`device` is required. Omit `targets` to use Patrol's configured test directory.
+`dir` overrides the workflow's working directory for this call. Additional CLI
+arguments are passed individually without shell expansion; Patrol's own parsing
+rules still apply. Command output streams to the workflow log. Nonzero exits
+throw `ProcessException`, allowing callers to use `finally` for cleanup before
+the workflow fails. The helper does not create devices or configure native test
+targets.
 
 ### Publish a Dart package to pub.dev
 

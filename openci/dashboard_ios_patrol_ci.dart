@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:openci_workflow/openci_workflow.dart';
 
 import 'generated/paths.g.dart';
@@ -44,22 +42,11 @@ Future<void> main() async {
     name: 'OpenCI Dashboard Patrol',
   );
   try {
-    // Preserve finally cleanup when Patrol fails; ci.run exits on failure.
-    final process = await Process.start(
-      'dart',
-      [
-        'run',
-        'patrol_cli:main',
-        'test',
-        '--target',
-        'patrol_test/app_startup_test.dart',
-        '--device',
-        simulator.id,
-      ],
-      workingDirectory: '${ci.workspacePath}/$dashboard',
-      mode: ProcessStartMode.inheritStdio,
+    await ci.patrol.test(
+      dir: dashboard,
+      device: simulator.id,
+      targets: ['patrol_test/app_startup_test.dart'],
     );
-    exitCode = await process.exitCode;
   } finally {
     await simulator.dispose();
   }

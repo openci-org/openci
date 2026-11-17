@@ -10,6 +10,7 @@ import 'firebase_hosting/firebase_hosting_ci.dart';
 import 'flutter/flutter_ci.dart';
 import 'ios_simulator.dart' as ios;
 import 'machine_type.dart';
+import 'patrol/patrol_ci.dart';
 import 'pull_request_ci.dart';
 import 'shorebird/shorebird_ci.dart';
 import 'workspace_directory.dart';
@@ -91,6 +92,11 @@ class OpenCI {
   );
 
   late final FlutterCI flutter = FlutterCI(run);
+
+  /// Runs the project's Patrol tests on a prepared device or simulator.
+  late final PatrolCI patrol = PatrolCI(
+    (dir) => resolveWorkingDirectory(dir ?? currentWorkingDirectory),
+  );
 
   /// Deploys static sites to Firebase Hosting, including expiring PR previews.
   late final FirebaseHostingCI firebaseHosting = FirebaseHostingCI(

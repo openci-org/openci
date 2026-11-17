@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.4
+
+- Add `patrol.test()` using the project's resolved Patrol CLI, with explicit device selection, test targets, directory override and additional CLI arguments. Stream command output and throw on failure so callers can dispose simulators in `finally`.
+
 ## 0.4.3
 
 - Add `launchIosSimulator()` to create a fresh simulator and wait for startup, with configurable device, runtime, and boot timeout. Return its UDID and a `dispose()` method to shut down and delete it; clean up after boot failures.
