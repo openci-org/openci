@@ -8,6 +8,7 @@ import 'command_runner.dart';
 import 'dart/dart_ci.dart';
 import 'firebase_hosting/firebase_hosting_ci.dart';
 import 'flutter/flutter_ci.dart';
+import 'ios_simulator.dart' as ios;
 import 'machine_type.dart';
 import 'pull_request_ci.dart';
 import 'shorebird/shorebird_ci.dart';
@@ -131,6 +132,27 @@ class OpenCI {
     );
     await _runCommand(command, workingDirectory: cwd);
   }
+
+  /// Creates a fresh iOS Simulator and waits until it has finished booting.
+  ///
+  /// Requires macOS, Xcode, and an installed compatible simulator runtime.
+  /// [device] accepts a device type name or identifier. When [runtime] is
+  /// omitted, Xcode chooses the newest installed runtime compatible with it.
+  /// The default iPhone 17 Pro requires iOS 26 or later.
+  ///
+  /// Returns its UDID in [ios.IosSimulator.id]. Call [ios.IosSimulator.dispose]
+  /// after use to shut down and delete it. Boot failures also trigger cleanup.
+  Future<ios.IosSimulator> launchIosSimulator({
+    String device = 'iPhone 17 Pro',
+    String name = 'OpenCI Simulator',
+    String? runtime,
+    Duration bootTimeout = const Duration(minutes: 10),
+  }) => ios.launchIosSimulator(
+    device: device,
+    name: name,
+    runtime: runtime,
+    bootTimeout: bootTimeout,
+  );
 
   Future<void> placeFileFromBase64({
     required WorkspaceDirectory dir,
