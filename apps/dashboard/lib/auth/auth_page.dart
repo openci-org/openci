@@ -45,8 +45,6 @@ class AuthPage extends HookConsumerWidget {
     final store = ref.watch(connectionStoreProvider);
     final activeProfile = ref.watch(activeConnectionProfileProvider(store));
     final localDevelopment = ref.watch(localDevelopmentConnectionProvider);
-    final isCloud =
-        localDevelopment == null && activeProfile.asData?.value.isCloud == true;
 
     return Scaffold(
       body: Stack(
@@ -203,71 +201,72 @@ class AuthPage extends HookConsumerWidget {
                                   ),
                                   const SizedBox(height: 24),
 
-                                  if (isCloud) ...[
-                                    FilledButton(
-                                      onPressed:
-                                          isAgreed.value && !isLoading.value
-                                          ? () async {
-                                              isLoading.value = true;
-                                              final googleSignIn = ref.read(
-                                                googleSignInProvider,
+                                  FilledButton(
+                                    onPressed:
+                                        isAgreed.value &&
+                                            !isLoading.value &&
+                                            activeProfile.hasValue &&
+                                            !activeProfile.isLoading
+                                        ? () async {
+                                            isLoading.value = true;
+                                            final googleSignIn = ref.read(
+                                              googleSignInProvider,
+                                            );
+                                            final teamService = ref.read(
+                                              teamServiceProvider,
+                                            );
+                                            try {
+                                              final auth = await ref.read(
+                                                firebaseAuthProvider.future,
                                               );
-                                              final teamService = ref.read(
-                                                teamServiceProvider,
-                                              );
-                                              try {
-                                                final auth = await ref.read(
-                                                  firebaseAuthProvider.future,
-                                                );
-                                                final credential =
-                                                    await googleSignIn.signIn(
-                                                      auth,
-                                                    );
-                                                if (credential
-                                                        ?.additionalUserInfo
-                                                        ?.isNewUser ==
-                                                    true) {
-                                                  await teamService
-                                                      .createInitialTeam(
-                                                        credential!.user!.uid,
-                                                      );
-                                                }
-                                              } catch (error) {
-                                                if (context.mounted) {
-                                                  context.showSnackBarMessage(
-                                                    context.errorText(error),
+                                              final credential =
+                                                  await googleSignIn.signIn(
+                                                    auth,
                                                   );
-                                                }
-                                              } finally {
-                                                if (context.mounted) {
-                                                  isLoading.value = false;
-                                                }
+                                              if (credential
+                                                      ?.additionalUserInfo
+                                                      ?.isNewUser ==
+                                                  true) {
+                                                await teamService
+                                                    .createInitialTeam(
+                                                      credential!.user!.uid,
+                                                    );
+                                              }
+                                            } catch (error) {
+                                              if (context.mounted) {
+                                                context.showSnackBarMessage(
+                                                  context.errorText(error),
+                                                );
+                                              }
+                                            } finally {
+                                              if (context.mounted) {
+                                                isLoading.value = false;
                                               }
                                             }
-                                          : null,
-                                      child: Text(
-                                        context.t.auth.continueWithGoogle,
-                                      ),
+                                          }
+                                        : null,
+                                    child: Text(
+                                      context.t.auth.continueWithGoogle,
                                     ),
-                                    const SizedBox(height: 12),
-                                    Text(
-                                      context.t.auth.googleSignupOnly,
-                                      textAlign: TextAlign.center,
-                                      style: Theme.of(
-                                        context,
-                                      ).textTheme.bodySmall,
-                                    ),
-                                    const SizedBox(height: 24),
-                                    const Divider(),
-                                    const SizedBox(height: 12),
-                                    Text(
-                                      context.t.auth.existingEmailAccount,
-                                      style: Theme.of(
-                                        context,
-                                      ).textTheme.labelLarge,
-                                    ),
-                                    const SizedBox(height: 16),
-                                  ],
+                                  ),
+                                  const SizedBox(height: 12),
+                                  Text(
+                                    context.t.auth.googleSignupOnly,
+                                    textAlign: TextAlign.center,
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.bodySmall,
+                                  ),
+                                  const SizedBox(height: 24),
+                                  const Divider(),
+                                  const SizedBox(height: 12),
+                                  Text(
+                                    context.t.auth.existingEmailAccount,
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.labelLarge,
+                                  ),
+                                  const SizedBox(height: 16),
                                   // ── Email field ──
                                   TextFormField(
                                     controller: emailController,
@@ -330,7 +329,10 @@ class AuthPage extends HookConsumerWidget {
                                   // ── Existing email/password login ──
                                   OutlinedButton(
                                     onPressed:
-                                        (isAgreed.value && !isLoading.value)
+                                        (isAgreed.value &&
+                                            !isLoading.value &&
+                                            activeProfile.hasValue &&
+                                            !activeProfile.isLoading)
                                         ? () async {
                                             if (formKey.currentState!
                                                 .validate()) {
@@ -367,54 +369,6 @@ class AuthPage extends HookConsumerWidget {
                                     child: Text(context.t.auth.login),
                                   ),
                                   const SizedBox(height: 10),
-
-                                  // Self-hosted projects manage their own signup policy.
-                                  if (!isCloud && activeProfile.hasValue)
-                                    OutlinedButton(
-                                      onPressed:
-                                          (isAgreed.value && !isLoading.value)
-                                          ? () async {
-                                              if (formKey.currentState!
-                                                  .validate()) {
-                                                isLoading.value = true;
-                                                try {
-                                                  final teamService = ref.read(
-                                                    teamServiceProvider,
-                                                  );
-                                                  final auth = await ref.read(
-                                                    firebaseAuthProvider.future,
-                                                  );
-                                                  final credential = await auth
-                                                      .createUserWithEmailAndPassword(
-                                                        email: emailController
-                                                            .text,
-                                                        password:
-                                                            passwordController
-                                                                .text,
-                                                      );
-                                                  TextInput.finishAutofillContext();
-                                                  await teamService
-                                                      .createInitialTeam(
-                                                        credential.user!.uid,
-                                                      );
-                                                } catch (e) {
-                                                  if (!context.mounted) {
-                                                    return;
-                                                  }
-                                                  debugPrint(e.toString());
-                                                  context.showSnackBarMessage(
-                                                    context.errorText(e),
-                                                  );
-                                                } finally {
-                                                  if (context.mounted) {
-                                                    isLoading.value = false;
-                                                  }
-                                                }
-                                              }
-                                            }
-                                          : null,
-                                      child: Text(context.t.auth.createAccount),
-                                    ),
                                 ],
                               ),
                             ),

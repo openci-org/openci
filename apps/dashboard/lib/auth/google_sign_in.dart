@@ -1,3 +1,4 @@
+import 'package:dashboard/firebase_options.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,7 +9,7 @@ final googleSignInProvider = Provider<GoogleSignInService>(
 );
 
 class GoogleSignInService {
-  Future<void>? _initialization;
+  static Future<void>? _initialization;
 
   Future<UserCredential?> signIn(FirebaseAuth auth) async {
     try {
@@ -19,8 +20,10 @@ class GoogleSignInService {
       }
 
       final google = GoogleSignIn.instance;
+      // The native OAuth client belongs to this app build and its URL schemes.
+      // Exchange the credential with the selected Firebase connection below.
       await (_initialization ??= google.initialize(
-        clientId: auth.app.options.iosClientId,
+        clientId: DefaultFirebaseOptions.currentPlatform.iosClientId,
       ));
       final account = await google.authenticate();
       return await auth.signInWithCredential(

@@ -94,8 +94,8 @@ void main() {
           localMode ? findsNothing : findsOneWidget,
         );
         expect(find.text(t.auth.signInSubtitle), findsOneWidget);
-        expect(find.text(t.auth.createAccount), findsOneWidget);
-        expect(find.text(t.auth.continueWithGoogle), findsNothing);
+        expect(find.text(t.auth.createAccount), findsNothing);
+        expect(find.text(t.auth.continueWithGoogle), findsOneWidget);
         await tester.ensureVisible(
           find.widgetWithText(OutlinedButton, t.auth.login),
         );
@@ -103,6 +103,7 @@ void main() {
         await tester.pumpAndSettle();
         expect(find.text(t.auth.enterEmail), findsOneWidget);
         expect(find.text(t.auth.enterPassword), findsOneWidget);
+        await tester.ensureVisible(find.byType(DropdownButton<String>));
         await tester.tap(find.byType(DropdownButton<String>));
         await tester.pumpAndSettle();
         await tester.tap(
@@ -140,20 +141,25 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('Cloud registration needs no email or password fields', (
-    tester,
-  ) async {
-    final setup = await _pumpSignup(tester);
-    expect(find.text(t.auth.createAccount), findsNothing);
-    expect(find.text(t.auth.existingEmailAccount), findsOneWidget);
-    await tester.tap(
-      find.widgetWithText(FilledButton, t.auth.continueWithGoogle),
-    );
-    await tester.pumpAndSettle();
-    expect(setup.google.calls, 1);
-    expect(find.text(t.auth.enterEmail), findsNothing);
-    expect(find.text(t.auth.enterPassword), findsNothing);
-  });
+  for (final profileId in ['cloud', 'company', localDevelopmentProfileId]) {
+    testWidgets('$profileId registers with Google in the selected connection', (
+      tester,
+    ) async {
+      final setup = await _pumpSignup(tester, profileId: profileId);
+      expect(find.text(t.auth.createAccount), findsNothing);
+      expect(find.text(t.auth.existingEmailAccount), findsOneWidget);
+      await tester.tap(
+        find.widgetWithText(FilledButton, t.auth.continueWithGoogle),
+      );
+      await tester.pumpAndSettle();
+      expect(setup.google.calls, 1);
+      expect(setup.google.auth, same(setup.auth));
+      expect(setup.connector.requests, hasLength(1));
+      expect(setup.prefs.getString('selected_team_id:$profileId'), 'new-user');
+      expect(find.text(t.auth.enterEmail), findsNothing);
+      expect(find.text(t.auth.enterPassword), findsNothing);
+    });
+  }
 
   testWidgets(
     'existing Google users keep their team and do not create another',
@@ -290,11 +296,39 @@ _pumpSignup(
   Future<UserCredential>? credential,
   bool isNewUser = true,
   bool cancel = false,
+  String profileId = 'cloud',
 }) async {
   SharedPreferences.setMockInitialValues({
-    'selected_team_id:cloud': 'previous-team',
+    'selected_team_id:$profileId': 'previous-team',
   });
   final prefs = await SharedPreferences.getInstance();
+  const cloud = ConnectionProfile(
+    id: 'cloud',
+    name: 'Cloud',
+    apiUrl: 'https://cloud.example.com',
+    firebase: {},
+  );
+  const company = ConnectionProfile(
+    id: 'company',
+    name: 'Company',
+    apiUrl: 'https://company.example.com',
+    firebase: {},
+  );
+  final store = ConnectionStore(prefs, cloud);
+  await store.save(
+    ConnectionSnapshot(
+      profiles: [cloud, company],
+      activeId: profileId == 'company' ? 'company' : 'cloud',
+    ),
+  );
+  final local = profileId == localDevelopmentProfileId
+      ? LocalDevelopmentConnection.parse(
+          mode: 'true',
+          apiUrl: 'http://127.0.0.1:8080',
+          emulatorHost: '127.0.0.1',
+          emulatorPort: '9099',
+        )
+      : null;
   final connector = _Connector(error);
   final auth = _Auth();
   final google = _GoogleSignIn(
@@ -305,6 +339,8 @@ _pumpSignup(
   final container = ProviderContainer.test(
     overrides: [
       sharedPreferencesProvider.overrideWithValue(prefs),
+      connectionStoreProvider.overrideWithValue(store),
+      localDevelopmentConnectionProvider.overrideWithValue(local),
       firebaseAuthProvider.overrideWith((ref) async => auth),
       googleSignInProvider.overrideWithValue(google),
       teamsConnectorProvider.overrideWith((ref) async => connector),
@@ -401,9 +437,11 @@ class _GoogleSignIn extends Fake implements GoogleSignInService {
   final bool isNewUser;
   final bool cancel;
   int calls = 0;
+  FirebaseAuth? auth;
 
   @override
   Future<UserCredential?> signIn(FirebaseAuth auth) async {
+    this.auth = auth;
     calls++;
     if (cancel) return null;
     return credential ?? _Credential(isNewUser: isNewUser);
