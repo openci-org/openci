@@ -189,15 +189,12 @@ void main() {
       'Dart Functions CI',
       'OpenCI Shared CI',
       'OpenCI Workflow CI',
+      'Workflow Scripts CI',
       'Dart Format Check',
     });
   });
   test('workspace resolution changes run all PR workflows', () {
-    for (final path in [
-      'pubspec.lock',
-      'apps/dashboard/pubspec.yaml',
-      'packages/openci_workflow/pubspec.yaml',
-    ]) {
+    for (final path in ['pubspec.lock', 'apps/dashboard/pubspec.yaml']) {
       expect(
         plan(definitions, diff([path])).jobs,
         hasLength(pullRequestDefinitions.length),
@@ -228,6 +225,74 @@ void main() {
     expect(ci.cancelPreviousRuns, isTrue);
     expect(ci.matches(eventType: 'pull_request', branch: 'develop'), isTrue);
     expect(ci.matches(eventType: 'push', branch: 'develop'), isFalse);
+  });
+  test('macOS release checks cover dashboard and release build inputs', () {
+    for (final path in [
+      'apps/dashboard/lib/main.dart',
+      'apps/dashboard/macos/Runner/Info.plist',
+      'apps/dashboard/shorebird.yaml',
+      'apps/dashboard/pubspec.yaml',
+      'packages/macos_updater/macos/Classes/MacosUpdaterPlugin.swift',
+      'packages/openci_shared/lib/openci_shared.dart',
+      'openci/dashboard_macos_cd.dart',
+      'openci/macos_release_ci.dart',
+      'openci/lib/macos_release_publisher.dart',
+      'openci/tool/release_macos.dart',
+      'openci/pubspec.yaml',
+      'pubspec.yaml',
+      'pubspec.lock',
+      '.fvmrc',
+    ]) {
+      expect(
+        plan(definitions, diff([path])).jobs.map((job) => job.workflowName),
+        contains('macOS release checks'),
+        reason: path,
+      );
+    }
+  });
+  test('workflow changes are checked without building the macOS app', () {
+    for (final path in [
+      'openci/generated/paths.g.dart',
+      'openci/generated/secrets.g.dart',
+      'openci/openci_workflow_cd.dart',
+      'openci/workflow_scripts_ci.dart',
+      'openci/lib/dashboard_store_build_number.dart',
+      'openci/test/macos_release_publisher_test.dart',
+      'openci/tool/with_node.sh',
+      'packages/openci_workflow/lib/openci_workflow.dart',
+      'packages/openci_workflow/pubspec.yaml',
+      'apps/openci_cli/pubspec.yaml',
+      'analysis_options.yaml',
+    ]) {
+      final names = plan(
+        definitions,
+        diff([path]),
+      ).jobs.map((job) => job.workflowName);
+      expect(names, contains('Workflow Scripts CI'), reason: path);
+      expect(names, isNot(contains('macOS release checks')), reason: path);
+    }
+  });
+  test('workflow checks run on PRs and develop pushes', () {
+    final ci = definitions.singleWhere(
+      (definition) => definition.workflowName == 'Workflow Scripts CI',
+    );
+    expect(ci.cancelPreviousRuns, isTrue);
+    expect(ci.matches(eventType: 'pull_request', branch: 'release'), isTrue);
+    expect(ci.matches(eventType: 'push', branch: 'feature'), isFalse);
+    expect(ci.matches(eventType: 'push', branch: 'develop'), isTrue);
+    for (final trigger in ci.ciTriggers) {
+      for (final path in [
+        'openci/generated/paths.g.dart',
+        'openci/generated/secrets.g.dart',
+        'packages/openci_workflow/lib/openci_workflow.dart',
+        'pubspec.lock',
+      ]) {
+        expect(trigger.matchesChangedFiles([path]), isTrue, reason: path);
+      }
+      for (final path in ['README.md', 'apps/dashboard/lib/main.dart']) {
+        expect(trigger.matchesChangedFiles([path]), isFalse, reason: path);
+      }
+    }
   });
   for (final (name, platform) in [
     ('Dashboard TestFlight IPA', 'ios'),
