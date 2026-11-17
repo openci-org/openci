@@ -49,6 +49,12 @@ export const cleanSecretVersions = onSchedule(
     serviceAccount: apiServiceAccount,
     region: "asia-northeast1",
     schedule: "every 60 minutes",
+    // Cold-start failures happen before the handler can recover; retry before the next hour.
+    retryCount: 3,
+    maxRetrySeconds: 0,
+    minBackoffSeconds: 30,
+    maxBackoffSeconds: 120,
+    maxDoublings: 2,
     memory: "256MiB",
     cpu: 1,
     minInstances: 0,
