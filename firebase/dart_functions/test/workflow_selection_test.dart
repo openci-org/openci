@@ -166,6 +166,36 @@ void main() {
       hasLength(pullRequestDefinitions.length),
     );
   });
+  test('Dashboard iOS Patrol checks PRs and matching develop pushes', () {
+    final patrol = definitions.singleWhere(
+      (workflow) => workflow.workflowName == 'Dashboard iOS Patrol',
+    );
+    final pullRequest = patrol.ciTriggers.singleWhere(
+      (trigger) => trigger.type == 'pullRequest',
+    );
+    final push = patrol.ciTriggers.singleWhere(
+      (trigger) => trigger.type == 'push',
+    );
+    expect(patrol.cancelPreviousRuns, isTrue);
+    expect(
+      patrol.matches(eventType: 'pull_request', branch: 'release'),
+      isTrue,
+    );
+    expect(push.matches(eventType: 'push', branch: 'develop'), isTrue);
+    expect(push.matches(eventType: 'push', branch: 'feature'), isFalse);
+    expect(push.paths, pullRequest.paths);
+    for (final path in [
+      'apps/dashboard/lib/main.dart',
+      'packages/openci_workflow/lib/openci_workflow.dart',
+      'openci/dashboard_ios_patrol_ci.dart',
+      'pubspec.lock',
+    ]) {
+      expect(push.matchesChangedFiles([path]), isTrue, reason: path);
+    }
+    for (final path in ['README.md', 'apps/website/src/pages/index.astro']) {
+      expect(push.matchesChangedFiles([path]), isFalse, reason: path);
+    }
+  });
   test('shared model changes also run their Dart Functions consumer', () {
     final result = plan(
       definitions,
@@ -177,9 +207,10 @@ void main() {
       'Dart Format Check',
       'macOS release checks',
       'Dashboard Web Hosting',
+      'Dashboard iOS Patrol',
     });
   });
-  test('runtime SDK changes skip app workflows', () {
+  test('runtime SDK changes also run the simulator integration', () {
     final result = plan(
       definitions,
       diff(['packages/openci_workflow/lib/openci_workflow.dart']),
@@ -191,6 +222,7 @@ void main() {
       'OpenCI Workflow CI',
       'Workflow Scripts CI',
       'Dart Format Check',
+      'Dashboard iOS Patrol',
     });
   });
   test('workspace resolution changes run all PR workflows', () {
