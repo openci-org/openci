@@ -117,6 +117,62 @@ void main() {
     });
   });
 
+  group('test', () {
+    Future<void> writeTestPackage(String dir, {bool succeeds = true}) async {
+      await writeFile(
+        '$dir/pubspec.yaml',
+        'name: test_fixture\nenvironment:\n  sdk: ^3.11.5\n'
+            'dev_dependencies:\n  test: ^1.24.0\n',
+      );
+      await writeFile('$dir/test/fixture_test.dart', '''
+import 'package:test/test.dart';
+
+void main() {
+  test('fixture', () {
+    expect(1, ${succeeds ? 1 : 2}, reason: 'fixture assertion');
+  });
+}
+''');
+      final result = await Process.run(
+        Platform.resolvedExecutable,
+        ['pub', 'get', '--offline'],
+        workingDirectory: '${workspace.path}/$dir',
+      );
+      expect(result.exitCode, 0, reason: '${result.stdout}${result.stderr}');
+    }
+
+    final failingTest = isA<ProcessException>().having(
+      (error) => error.message,
+      'output',
+      contains('fixture assertion'),
+    );
+
+    test('passes tests in the workspace directory', () async {
+      await writeTestPackage('.');
+
+      await ci.dart.test();
+    });
+
+    test('propagates test failures', () async {
+      await writeTestPackage('.', succeeds: false);
+
+      await expectLater(ci.dart.test(), throwsA(failingTest));
+    });
+
+    test('inherits the directory and overrides it for only one call', () async {
+      await writeTestPackage('packages/default');
+      await writeTestPackage('packages/other app', succeeds: false);
+      ci = createCI(currentWorkingDirectory: 'packages/default');
+
+      await ci.dart.test();
+      await expectLater(
+        ci.dart.test(dir: const WorkspaceDirectory('packages/other app')),
+        throwsA(failingTest),
+      );
+      await ci.dart.test();
+    });
+  });
+
   test('passes formatted tracked files and preserves ignored files', () async {
     final tracked = await writeFile('main.dart', 'void main() {}\n');
     await git(['add', 'main.dart']);

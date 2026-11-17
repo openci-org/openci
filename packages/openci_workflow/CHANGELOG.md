@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.2
+
+- Add `dart.test()` with an optional working directory.
+
 ## 0.4.1
 
 - Add `dart.analyze()` with an optional working directory and configurable fatal info and warning diagnostics.
