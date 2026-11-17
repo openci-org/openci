@@ -1,11 +1,11 @@
 PACKER ?= packer
 
-.PHONY: init check build check-released build-released
+.PHONY: init check build check-released build-released check-current build-current
 
 init:
 	$(PACKER) init .
 
-check: check-released
+check: check-released check-current
 	$(PACKER) fmt -check .
 	shellcheck scripts/*.sh
 	@for script in scripts/*.sh; do bash -n "$$script" || exit; done
@@ -27,3 +27,14 @@ check-released:
 build-released: check-released
 	python3 released/prepare.py $(if $(filter local-initial,$(PKR_VAR_foundation)),--local-foundation)
 	TART_NO_AUTO_PRUNE=1 $(PACKER) build "$(CURDIR)/released"
+
+check-current:
+	$(PACKER) fmt -check current
+	shellcheck current/*.sh
+	@for script in current/*.sh; do bash -n "$$script" || exit; done
+	python3 -m json.tool current/toolchain.json >/dev/null
+	PKR_VAR_candidate_name=base-macos-packer-validation PKR_VAR_ssh_password=validation-only $(PACKER) validate "$(CURDIR)/current"
+
+build-current: check-current
+	mkdir -p artifacts
+	TART_NO_AUTO_PRUNE=1 $(PACKER) build "$(CURDIR)/current"
