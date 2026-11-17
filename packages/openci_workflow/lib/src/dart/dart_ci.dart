@@ -24,6 +24,8 @@ class DartCI {
     workingDirectory: dir,
   );
 
+  Future<void> test({String? dir}) => _run('dart test', workingDirectory: dir);
+
   /// Publishes the package in the workflow directory (or [dir]) to pub.dev.
   ///
   /// Register the Google service account in the package's pub.dev Admin tab.

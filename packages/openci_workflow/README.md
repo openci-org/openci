@@ -254,6 +254,14 @@ Warnings fail by default. Set `fatalInfos: true` to also fail on info-level
 diagnostics, or `fatalWarnings: false` to allow warnings. `dir` overrides the
 workflow's working directory for this call.
 
+Run Dart package tests in the workflow's working directory, or override it
+for one call with `dir`. Failed tests fail the workflow.
+
+```dart
+await openCI.dart.test();
+await openCI.dart.test(dir: 'openci');
+```
+
 Check Dart formatting without rewriting files:
 
 ```dart
