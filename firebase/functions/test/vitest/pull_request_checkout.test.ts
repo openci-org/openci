@@ -80,7 +80,13 @@ function fixture(apiBaseUrl = "https://api.github.com", baseUrl = "https://githu
         });
       }
       if (path === "/repos/org/app") return Response.json(repository);
-      if (path === "/repos/org/app/pulls/7") return Response.json(pullRequests.shift() ?? pr);
+      if (path === "/repos/org/app/pulls/7") {
+        // This field is absent in API version 2026-03-10.
+        const data = { ...(pullRequests.shift() ?? pr) };
+        if (new Headers(init.headers).get("x-github-api-version") !== "2022-11-28")
+          delete (data as Partial<typeof pr>).merge_commit_sha;
+        return Response.json(data, { headers: { "x-github-request-id": "ABCD:1234:5678" } });
+      }
       if (decodeURIComponent(path) === `/repos/org/app/git/ref/heads/${pr.base.ref}`) {
         return Response.json(baseRef);
       }
@@ -160,30 +166,13 @@ test("PR の古い base SHA ではなく実際の base ref と照合する", asy
   expect(delay).not.toHaveBeenCalled();
 });
 
-test("GitHub の merge が古いままなら最新 base と保存済み head のローカルマージへ進む", async () => {
-  const f = fixture();
-  const currentBaseSha = "d".repeat(40);
-  f.baseRef.object.sha = currentBaseSha;
-
-  expect(await f.github.resolveCheckout(f.job, "10")).toEqual({
-    event: "pull_request",
-    number: 7,
-    headBranch: f.pr.head.ref,
-    baseBranch: f.pr.base.ref,
-    headSha,
-    baseSha: currentBaseSha,
-    checkoutSha: null,
-  });
-  expect(delay).not.toHaveBeenCalled();
-  expect(f.calls.at(-1)).toBe("/installation/token");
-});
-
-test("base が進んでも新しいマージ候補があればその SHA を取得する", async () => {
+test("base が進んだときは古い PR 情報とマージ候補を除外して更新後の SHA を取得する", async () => {
   const f = fixture();
   const newerBaseSha = "d".repeat(40);
   const newerMergeSha = "e".repeat(40);
   f.baseRef.object.sha = newerBaseSha;
   f.pr.merge_commit_sha = newerMergeSha;
+  f.pullRequests.push({ ...f.pr, merge_commit_sha: mergeSha });
   f.commits.set(newerMergeSha, {
     sha: newerMergeSha,
     parents: [{ sha: newerBaseSha }, { sha: headSha }],
@@ -193,22 +182,82 @@ test("base が進んでも新しいマージ候補があればその SHA を取�
     baseSha: newerBaseSha,
     checkoutSha: newerMergeSha,
   });
-  expect(delay).not.toHaveBeenCalled();
+  expect(delay).toHaveBeenCalledTimes(1);
+  expect(f.calls.filter((path) => path.includes("/git/ref/"))).toHaveLength(2);
+});
+
+test("古い候補が続く場合も再取得し、期限後に診断情報付きで停止する", async () => {
+  const f = fixture();
+  f.baseRef.object.sha = "d".repeat(40);
+
+  await expect(f.github.resolveCheckout(f.job, "10")).rejects.toMatchObject({
+    reason: "stale_merge",
+    diagnostics: {
+      attempts: 24,
+      elapsedMs: 600000,
+      requestId: "ABCD:1234:5678",
+      headSha,
+      baseSha: f.baseRef.object.sha,
+      mergeSha,
+      mergeBaseSha: baseSha,
+    },
+  });
+  expect(f.calls.filter((path) => path.includes("/git/ref/"))).toHaveLength(24);
+  expect(f.calls.at(-1)).toBe("/installation/token");
+});
+
+test("古い候補の後に計算中へ戻った場合は最新の観測結果を報告する", async () => {
+  const f = fixture();
+  f.pullRequests.push({ ...f.pr });
+  f.baseRef.object.sha = "d".repeat(40);
+  f.pr.mergeable = null;
+  f.pr.merge_commit_sha = null;
+
+  await expect(f.github.resolveCheckout(f.job, "10")).rejects.toMatchObject({
+    reason: "not_ready",
+    diagnostics: {
+      attempts: 24,
+      elapsedMs: 600000,
+      requestId: "ABCD:1234:5678",
+      headSha,
+    },
+  });
   expect(f.calls.filter((path) => path.includes("/git/ref/"))).toHaveLength(1);
 });
 
-test("生成待ち中に base が進んでも新しい base を固定してローカルマージへ進む", async () => {
+test("古い候補の再取得中に head が変わった場合はそのジョブを停止する", async () => {
   const f = fixture();
-  f.pullRequests.push({ ...f.pr, mergeable: null, merge_commit_sha: null });
+  f.pullRequests.push({ ...f.pr, head: { ...f.pr.head } });
   f.baseRef.object.sha = "d".repeat(40);
+  f.pr.head.sha = "e".repeat(40);
 
-  expect(await f.github.resolveCheckout(f.job, "10")).toMatchObject({
-    baseSha: f.baseRef.object.sha,
-    headSha,
-    checkoutSha: null,
-  });
+  await expect(f.github.resolveCheckout(f.job, "10")).rejects.toThrow(
+    new PullRequestCheckoutError("head_changed"),
+  );
   expect(delay).toHaveBeenCalledTimes(1);
   expect(f.calls.at(-1)).toBe("/installation/token");
+});
+
+test("診断情報に未検証の API 値や応答本文を含めない", async () => {
+  const f = fixture();
+  f.pr.merge_commit_sha = "private-invalid-sha";
+  const fetch = vi.mocked(globalThis.fetch);
+  const original = fetch.getMockImplementation()!;
+  fetch.mockImplementation(async (url, init) => {
+    if (String(url).endsWith("/pulls/7"))
+      return Response.json(
+        { ...f.pr, message: "private response body" },
+        { headers: { "x-github-request-id": "private token=value" } },
+      );
+    return original(url, init);
+  });
+
+  const error = await f.github.resolveCheckout(f.job, "10").catch((error: unknown) => error);
+  expect(error).toMatchObject({
+    reason: "not_ready",
+    diagnostics: { attempts: 24, elapsedMs: 600000, headSha },
+  });
+  expect(JSON.stringify(error)).not.toContain("private");
 });
 
 test("スラッシュを含む base ブランチ名も検証する", async () => {
@@ -313,7 +362,6 @@ test.each([{ mergeable: null }, { merge_commit_sha: null }, { merge_commit_sha: 
 );
 
 test.each([
-  { parents: [{ sha: "invalid-base" }, { sha: headSha }] },
   { parents: [{ sha: baseSha }, { sha: "d".repeat(40) }] },
   { parents: [{ sha: headSha }, { sha: baseSha }] },
   { parents: [{ sha: baseSha }] },
@@ -331,9 +379,10 @@ test("マージコミットの404は期限まで再確認してトークンを�
   const f = fixture();
   f.commits.clear();
 
-  await expect(f.github.resolveCheckout(f.job, "10")).rejects.toThrow(
-    new PullRequestCheckoutError("not_ready"),
-  );
+  await expect(f.github.resolveCheckout(f.job, "10")).rejects.toMatchObject({
+    reason: "not_ready",
+    diagnostics: { attempts: 24, elapsedMs: 600000 },
+  });
   expect(f.calls.filter((path) => path.endsWith("/pulls/7"))).toHaveLength(24);
   expect(f.calls.at(-1)).toBe("/installation/token");
 });
@@ -382,9 +431,10 @@ test("API応答の時間も待機期限に含める", async () => {
     return original(url, init);
   });
 
-  await expect(f.github.resolveCheckout(f.job, "10")).rejects.toThrow(
-    new PullRequestCheckoutError("not_ready"),
-  );
+  await expect(f.github.resolveCheckout(f.job, "10")).rejects.toMatchObject({
+    reason: "not_ready",
+    diagnostics: { attempts: 12, elapsedMs: 600000 },
+  });
   expect(f.calls.filter((path) => path.endsWith("/pulls/7"))).toHaveLength(12);
   expect(delay).toHaveBeenCalledTimes(12);
   expect(f.calls.at(-1)).toBe("/installation/token");
@@ -407,9 +457,10 @@ test("準備待ちの期限は実行中のAPIを中断しトークンを失効�
     return original(url, init);
   });
 
-  await expect(f.github.resolveCheckout(f.job, "10")).rejects.toThrow(
-    new PullRequestCheckoutError("not_ready"),
-  );
+  await expect(f.github.resolveCheckout(f.job, "10")).rejects.toMatchObject({
+    reason: "not_ready",
+    diagnostics: { attempts: 1 },
+  });
   expect(delay).not.toHaveBeenCalled();
   expect(f.calls.at(-1)).toBe("/installation/token");
 });

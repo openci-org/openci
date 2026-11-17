@@ -1,5 +1,5 @@
 import { setTimeout as delay } from "node:timers/promises";
-import { PullRequestCheckoutError } from "./checkout_error.js";
+import { PullRequestCheckoutError, type MergeReadinessDiagnostics } from "./checkout_error.js";
 import {
   qrPublicationFailure,
   publishPullRequestQrCodes,
@@ -11,7 +11,7 @@ import {
   type Dispatch,
   type Job,
   type Outcome,
-  type CheckoutPlan,
+  type ResolvedCheckout,
 } from "./model.js";
 import type { SkippedCheck } from "../skipped_checks.js";
 
@@ -77,6 +77,8 @@ export class ExecutionGitHub {
     ]);
     const transport = request.defaults({
       baseUrl: this.options.apiBaseUrl,
+      // 2026-03-10 removes merge_commit_sha from PR responses.
+      headers: { "x-github-api-version": "2022-11-28" },
       request: {
         fetch: (url: string | URL | Request, init?: RequestInit) =>
           fetch(url, {
@@ -227,8 +229,12 @@ export class ExecutionGitHub {
     return String(data.id);
   }
 
-  /** Pin checkout metadata and select a verified merge or a local merge plan. */
-  async resolveCheckout(job: Job, accountId: string, signal?: AbortSignal): Promise<CheckoutPlan> {
+  /** Resolve the exact checkout and its event metadata as one snapshot. */
+  async resolveCheckout(
+    job: Job,
+    accountId: string,
+    signal?: AbortSignal,
+  ): Promise<ResolvedCheckout> {
     signal?.throwIfAborted();
     if (!/^[a-fA-F0-9]{40}(?:[a-fA-F0-9]{24})?$/.test(job.commitSha ?? ""))
       throw new Error("Invalid commit SHA");
@@ -247,9 +253,19 @@ export class ExecutionGitHub {
     if (!/^[1-9][0-9]*$/.test(job.pullRequestNumber ?? "") || !Number.isSafeInteger(number))
       throw new Error("Invalid pull request metadata");
     const client = await this.client(job, "pull_request");
-    const deadline = Date.now() + mergeReadinessTimeoutMs;
+    const startedAt = Date.now();
+    const deadline = startedAt + mergeReadinessTimeoutMs;
     const readinessTimeout = AbortSignal.timeout(mergeReadinessTimeoutMs);
     const readinessSignal = AbortSignal.any([readinessTimeout, ...(signal ? [signal] : [])]);
+    let attempts = 0;
+    let readinessReason: "not_ready" | "stale_merge" = "not_ready";
+    let observation: Omit<MergeReadinessDiagnostics, "attempts" | "elapsedMs"> = {};
+    const readinessError = () =>
+      new PullRequestCheckoutError(readinessReason, {
+        ...observation,
+        attempts,
+        elapsedMs: Date.now() - startedAt,
+      });
     try {
       readinessSignal.throwIfAborted();
       const { data: repo } = await client.request("GET /repos/{owner}/{repo}", {
@@ -280,12 +296,16 @@ export class ExecutionGitHub {
         }
         readinessSignal.throwIfAborted();
         if (Date.now() >= deadline) break;
-        const { data: pr } = await client.request("GET /repos/{owner}/{repo}/pulls/{pull_number}", {
-          owner: job.owner,
-          repo: job.repo,
-          pull_number: number,
-          request: { signal: readinessSignal },
-        });
+        attempts++;
+        const { data: pr, headers } = await client.request(
+          "GET /repos/{owner}/{repo}/pulls/{pull_number}",
+          {
+            owner: job.owner,
+            repo: job.repo,
+            pull_number: number,
+            request: { signal: readinessSignal },
+          },
+        );
         if (
           pr.number !== number ||
           pr.base?.repo?.id !== repo.id ||
@@ -301,8 +321,14 @@ export class ExecutionGitHub {
           throw new PullRequestCheckoutError("head_changed");
         if (pr.state !== "open" || pr.merged) throw new PullRequestCheckoutError("closed");
         if (pr.mergeable === false) throw new PullRequestCheckoutError("conflicts");
+        readinessReason = "not_ready";
+        observation = { headSha: pr.head.sha };
+        const requestId = headers["x-github-request-id"];
+        if (requestId && /^[A-Za-z0-9:-]{1,128}$/.test(requestId))
+          observation.requestId = requestId;
         const mergeSha = pr.merge_commit_sha;
         if (pr.mergeable === true && mergeSha && /^[a-f0-9]{40}(?:[a-f0-9]{24})?$/.test(mergeSha)) {
+          observation.mergeSha = mergeSha;
           // PR metadata can retain an older base SHA even after GitHub has
           // regenerated the test merge commit. Read the actual branch ref
           // from the verified repository on every attempt instead.
@@ -323,6 +349,7 @@ export class ExecutionGitHub {
             !/^[a-f0-9]{40}(?:[a-f0-9]{24})?$/.test(base.object?.sha ?? "")
           )
             throw new Error("Untrusted pull request base ref");
+          observation.baseSha = base.object.sha;
           const { data: commit } = await client
             .request("GET /repos/{owner}/{repo}/git/commits/{commit_sha}", {
               owner: job.owner,
@@ -337,17 +364,21 @@ export class ExecutionGitHub {
               if ((error as { status?: number })?.status === 404) return { data: null };
               throw new PullRequestCheckoutError("unavailable");
             });
-          // GitHub can retain a merge against an old base indefinitely. Once
-          // the saved head is verified, merge the pinned current base locally
-          // instead of waiting for that candidate to change or testing it.
+          // A stale merge ref can survive a base/head update. Only use the
+          // candidate whose parents match the PR revision we just observed.
           if (
             commit?.sha === mergeSha &&
             commit.parents?.length === 2 &&
             /^[a-f0-9]{40}(?:[a-f0-9]{24})?$/.test(commit.parents[0].sha) &&
             commit.parents[1].sha === pr.head.sha
           ) {
+            observation.mergeBaseSha = commit.parents[0].sha;
+            if (commit.parents[0].sha !== base.object.sha) {
+              readinessReason = "stale_merge";
+              continue;
+            }
             readinessSignal.throwIfAborted();
-            if (Date.now() >= deadline) throw new PullRequestCheckoutError("not_ready");
+            if (Date.now() >= deadline) throw readinessError();
             return {
               event: "pull_request",
               number,
@@ -355,16 +386,16 @@ export class ExecutionGitHub {
               baseBranch: pr.base.ref,
               headSha: pr.head.sha,
               baseSha: base.object.sha,
-              checkoutSha: commit.parents[0].sha === base.object.sha ? mergeSha : null,
+              checkoutSha: mergeSha,
             };
           }
         }
       }
-      throw new PullRequestCheckoutError("not_ready");
+      throw readinessError();
     } catch (error) {
       // Preserve execution cancellation/deadline errors ahead of readiness.
       signal?.throwIfAborted();
-      if (readinessTimeout.aborted) throw new PullRequestCheckoutError("not_ready");
+      if (readinessTimeout.aborted) throw readinessError();
       throw error;
     } finally {
       // Revoke independently of the execution signal, including cancellation.

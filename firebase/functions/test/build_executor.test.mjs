@@ -149,9 +149,6 @@ test("scripts quote secrets, pin the commit, and reject unsafe workflow paths", 
   assert.throws(() => workflowScript(job, dispatch, 7, { BASH_ENV: "attack" }, pushCheckout));
   assert.throws(() => validateJob({ ...job, commitSha: "main; echo token" }, dispatch));
   assert.throws(() => checkoutScript("main", "https://github.com/org/app.git", token));
-  assert.throws(() =>
-    checkoutScript(job.commitSha, "https://github.com/org/app.git", token, "main; echo token"),
-  );
 });
 
 test("workflow context rejects invalid run numbers", () => {

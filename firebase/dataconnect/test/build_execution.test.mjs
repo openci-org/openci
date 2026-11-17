@@ -17,7 +17,7 @@ import {
 import { DataConnectDispatchStore } from "../../lib/functions/dispatch_store.js";
 import { QueuedChecks, QueuedCheckStore } from "../../lib/functions/queued_checks.js";
 import { cardFixture } from "./helpers/card_setup.mjs";
-import { identity, localMergeConflictExitCode } from "../../lib/functions/executor/model.js";
+import { identity } from "../../lib/functions/executor/model.js";
 import { PullRequestCheckoutError } from "../../lib/functions/executor/checkout_error.js";
 
 const host = process.env.DATA_CONNECT_EMULATOR_HOST;
@@ -642,75 +642,6 @@ test("self-hosted initialization rejects stale executors, cancelled jobs, foreig
     assert.equal(state.job.status, scenario === "cancelled" ? "CANCELLED" : "QUEUED");
   }
 });
-
-test("a stale GitHub merge runs with the generated checkout SHA and pinned PR context", async (t) => {
-  const f = await fixture(t, true);
-  await alterJob(f.jobId, { pullRequestNumber: "7" });
-  const resolve = f.dependencies.github.resolveCheckout;
-  f.dependencies.github.resolveCheckout = async (job) => ({
-    ...(await resolve(job)),
-    checkoutSha: null,
-  });
-  const exec = f.dependencies.orchard.exec;
-  const generatedSha = "c".repeat(40);
-  f.dependencies.orchard.exec = async (vm, script, output) => {
-    const code = await exec(vm, script, output);
-    if (script.includes("git merge-tree")) {
-      await output("stdout", Buffer.from("fetch output\n".repeat(100) + generatedSha.slice(0, 17)));
-      await output("stdout", Buffer.from(generatedSha.slice(17) + "\n"));
-    }
-    return code;
-  };
-
-  await f.run();
-
-  assert.equal((await f.state()).job.status, "SUCCESS");
-  assert.ok(f.scripts[0].includes(`'${"b".repeat(40)}' '${"a".repeat(40)}'`));
-  const context = JSON.parse(f.scripts[1].match(/export OPENCI_CONTEXT='([^']+)'/)[1]);
-  assert.equal(context.checkoutSha, generatedSha);
-  assert.equal(context.baseSha, "b".repeat(40));
-  assert.equal(context.headSha, "a".repeat(40));
-  assert.ok(f.calls.indexOf("revoke") < f.calls.indexOf("workflow"));
-  assert.ok(f.calls.includes("remove"));
-  assert.deepEqual(f.checks, ["in_progress", "success"]);
-});
-
-for (const exitCode of [localMergeConflictExitCode, 128, 0]) {
-  test(`local merge failure (${exitCode}) stops before secrets and workflows and cleans up`, async (t) => {
-    const f = await fixture(t, true);
-    await alterJob(f.jobId, { pullRequestNumber: "7" });
-    const resolve = f.dependencies.github.resolveCheckout;
-    f.dependencies.github.resolveCheckout = async (job) => ({
-      ...(await resolve(job)),
-      checkoutSha: null,
-    });
-    const exec = f.dependencies.orchard.exec;
-    f.dependencies.orchard.exec = async (...args) => {
-      await exec(...args);
-      return exitCode; // Exit 0 without a returned SHA must also fail closed.
-    };
-    let secretsRead = false;
-    f.dependencies.secrets = async () => {
-      secretsRead = true;
-      return {};
-    };
-
-    await f.run();
-
-    assert.equal((await f.state()).job.status, "FAILURE");
-    assert.equal(secretsRead, false);
-    assert.equal(f.scripts.length, 1);
-    assert.ok(f.calls.includes("revoke"));
-    assert.ok(f.calls.includes("remove"));
-    assert.equal(
-      (await jobFailure(f.jobId)).failureSummary,
-      exitCode === localMergeConflictExitCode
-        ? new PullRequestCheckoutError("conflicts").message
-        : null,
-    );
-    assert.deepEqual(f.checks, ["in_progress", "failure"]);
-  });
-}
 
 test("persisted PR jobs and reruns fail before billing, VM creation, checkout and secrets when source verification fails", async (t) => {
   for (const runCount of [0, 3]) {

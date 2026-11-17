@@ -3,7 +3,7 @@ import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "no
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { expect, test } from "vite-plus/test";
-import { checkoutScript, localMergeConflictExitCode, type Job } from "../../executor/model.js";
+import { checkoutScript, type Job } from "../../executor/model.js";
 import { ExecutionGitHub } from "../../executor/github.js";
 
 test("実行待ちにブランチが進んでも、pushされたコミットを使う", async ({ onTestFinished }) => {
@@ -20,7 +20,6 @@ test("実行待ちにブランチが進んでも、pushされたコミットを�
     baseUrl: "https://github.com",
   });
   const context = await github.resolveCheckout(pushJob(queuedSha), "10");
-  if (context.event !== "push") throw new Error("Expected a push checkout");
   expect(context).toEqual({
     event: "push",
     branch: "main",
@@ -60,74 +59,6 @@ test("PR の merge ref が進んでも、解決済みのマージコミットを
   expect(readFileSync(join(checkout, "base.txt"), "utf8")).toBe("base change");
   expect(readFileSync(join(checkout, "version.txt"), "utf8")).toBe("PR change");
 });
-
-test("古い merge ref を使わず固定した base と head からテストマージを作る", ({
-  onTestFinished,
-}) => {
-  const root = mkdtempSync(join(tmpdir(), "openci-local-merge-"));
-  onTestFinished(() => rmSync(root, { recursive: true, force: true }));
-  const repo = checkoutFixture(root);
-  repo.commitVersion("initial");
-  repo.git("checkout", "-q", "-b", "pr");
-  const headSha = repo.commitVersion("PR change");
-  repo.git("checkout", "-q", "main");
-  repo.git("merge", "--quiet", "--no-ff", "pr", "-m", "stale test merge");
-  repo.git("update-ref", "refs/pull/7/merge", "HEAD");
-  repo.git("reset", "--hard", "HEAD^1");
-  writeFileSync(join(repo.source, "base.txt"), "latest base change");
-  repo.git("add", "base.txt");
-  repo.git("commit", "-q", "-m", "base change");
-  const baseSha = repo.git("rev-parse", "HEAD");
-  // Neither moving branch may change the already selected checkout snapshot.
-  repo.commitVersion("later base change");
-  repo.git("checkout", "-q", "pr");
-  repo.commitVersion("later PR change");
-
-  const result = repo.exec(checkoutScript(headSha, repo.source, "test-token", baseSha));
-
-  expect(result.status, result.stderr).toBe(0);
-  expect(repo.checkoutGit("show", "-s", "--format=%P", "HEAD")).toBe(`${baseSha} ${headSha}`);
-  expect(result.stdout.trim().split("\n").at(-1)).toBe(repo.checkedOutSha());
-  const checkout = join(root, "vm", "openci-build");
-  expect(readFileSync(join(checkout, "base.txt"), "utf8")).toBe("latest base change");
-  expect(readFileSync(join(checkout, "version.txt"), "utf8")).toBe("PR change");
-  expect(readFileSync(join(checkout, ".git/config"), "utf8")).not.toContain("test-token");
-});
-
-test("最新 base と PR が競合したらワークツリーへ展開せず専用の終了コードを返す", ({
-  onTestFinished,
-}) => {
-  const root = mkdtempSync(join(tmpdir(), "openci-local-conflict-"));
-  onTestFinished(() => rmSync(root, { recursive: true, force: true }));
-  const repo = checkoutFixture(root);
-  repo.commitVersion("initial");
-  repo.git("checkout", "-q", "-b", "pr");
-  const headSha = repo.commitVersion("PR change");
-  repo.git("checkout", "-q", "main");
-  const baseSha = repo.commitVersion("conflicting base change");
-
-  const result = repo.exec(checkoutScript(headSha, repo.source, "test-token", baseSha));
-
-  expect(result.status, result.stderr).toBe(localMergeConflictExitCode);
-  expect(existsSync(join(root, "vm", "openci-build", "version.txt"))).toBe(false);
-});
-
-for (const scenario of ["fast-forward", "already-contained"]) {
-  test(`${scenario} でも両方の親を持つテストマージを作る`, ({ onTestFinished }) => {
-    const root = mkdtempSync(join(tmpdir(), "openci-local-ancestor-"));
-    onTestFinished(() => rmSync(root, { recursive: true, force: true }));
-    const repo = checkoutFixture(root);
-    const older = repo.commitVersion("older");
-    const newer = repo.commitVersion("newer");
-    const [baseSha, headSha] = scenario === "fast-forward" ? [older, newer] : [newer, older];
-
-    const result = repo.exec(checkoutScript(headSha, repo.source, "test-token", baseSha));
-
-    expect(result.status, result.stderr).toBe(0);
-    expect(repo.checkoutGit("show", "-s", "--format=%P", "HEAD")).toBe(`${baseSha} ${headSha}`);
-    expect(repo.checkoutGit("show", "HEAD:version.txt")).toBe("newer");
-  });
-}
 
 function pushJob(commitSha: string): Job {
   return {
@@ -210,6 +141,5 @@ function checkoutFixture(root: string) {
       });
     },
     checkedOutSha: () => git(join(vmHome, "openci-build"), "rev-parse", "HEAD"),
-    checkoutGit: (...args: string[]) => git(join(vmHome, "openci-build"), ...args),
   };
 }
