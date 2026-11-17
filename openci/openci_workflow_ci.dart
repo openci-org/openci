@@ -37,8 +37,6 @@ Future<void> main() async {
     currentWorkingDirectory: WorkspacePaths.root.packages.openciWorkflow,
   );
 
-  await openCI.flutter.staticAnalysis();
-
-  // Subprocess tests require Isolate.packageConfig from the Dart test runner.
-  await openCI.run('dart test');
+  await openCI.dart.analyze(fatalInfos: true);
+  await openCI.dart.test();
 }

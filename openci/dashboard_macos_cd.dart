@@ -53,7 +53,7 @@ Future<void> main() async {
   );
   await ci.flutter.unitTests(dir: 'apps/dashboard');
   await ci.flutter.unitTests(dir: 'packages/macos_updater');
-  await ci.run('dart test', workingDirectory: 'openci');
+  await ci.dart.test(dir: 'openci');
   await ci.run(
     'dart run openci/tool/release_macos.dart --build-number=${ci.runNumber}',
   );
