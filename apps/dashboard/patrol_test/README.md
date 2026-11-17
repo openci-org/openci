@@ -78,7 +78,7 @@ dart run openci/dashboard_ios_patrol_ci.dart
 
 `app_startup_test.dart` calls the real Dashboard `main()` entrypoint, including
 preferences, localization, Firebase Auth initialization, and routing. It checks
-that the signed-out app renders the login form with an enabled sign-in button,
+that the signed-out app renders the login form with an enabled Google sign-in button,
 then goes to the iOS home screen and returns to the same login screen. No app
 widgets, providers, or platform plugins are mocked.
 

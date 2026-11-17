@@ -15,7 +15,9 @@ void main() {
     expect($('OpenCI'), findsOneWidget);
     expect($(TextFormField), findsNWidgets(2));
 
-    final signInButton = $(find.widgetWithText(FilledButton, t.auth.login));
+    final signInButton = $(
+      find.widgetWithText(FilledButton, t.auth.continueWithGoogle),
+    );
     await signInButton.waitUntilVisible();
     expect($.tester.widget<FilledButton>(signInButton).onPressed, isNotNull);
     expect($.tester.takeException(), isNull);
