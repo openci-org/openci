@@ -49,11 +49,12 @@ dart run patrol_cli:main doctor
 dart run patrol_cli:main test --target patrol_test/app_startup_test.dart --device IOS_SIMULATOR_ID
 ```
 
-## Pull request CI
+## Pull request and develop push CI
 
 The `Dashboard iOS Patrol` workflow in `openci/dashboard_ios_patrol_ci.dart`
-runs on pull requests targeting any branch when Dashboard or its dependencies
-change. It supplies the existing Firebase client configuration from OpenCI
+runs on pull requests targeting any branch and on pushes to `develop`, using
+the same path filters for changes to Dashboard or its dependencies.
+It supplies the existing Firebase client configuration from OpenCI
 secrets and uses `ci.launchIosSimulator()` and `ci.patrol.test()` from
 `openci_workflow` on a macOS worker.
 

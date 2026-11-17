@@ -23,6 +23,20 @@ Future<void> main() async {
           'pubspec.lock',
         ],
       ),
+      CITrigger.push(
+        branch: 'develop',
+        paths: [
+          'apps/dashboard/**',
+          'packages/macos_updater/**',
+          'packages/openci_shared/**',
+          'packages/openci_workflow/**',
+          'packages/pubspec_version_hook/**',
+          'openci/dashboard_ios_patrol_ci.dart',
+          'openci/generated/**',
+          '**/pubspec.yaml',
+          'pubspec.lock',
+        ],
+      ),
     ],
   );
 
