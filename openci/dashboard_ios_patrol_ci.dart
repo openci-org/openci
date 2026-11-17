@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:openci_workflow/openci_workflow.dart';
 
 import 'generated/paths.g.dart';
@@ -15,9 +17,9 @@ Future<void> main() async {
           'apps/dashboard/**',
           'packages/macos_updater/**',
           'packages/openci_shared/**',
+          'packages/openci_workflow/**',
           'packages/pubspec_version_hook/**',
           'openci/dashboard_ios_patrol_ci.dart',
-          'openci/tool/run_dashboard_ios_patrol.sh',
           'openci/generated/**',
           '**/pubspec.yaml',
           'pubspec.lock',
@@ -38,5 +40,27 @@ Future<void> main() async {
     base64Content: Secrets.googleServiceInfoPlistBase64.value,
   );
 
-  await ci.run('bash openci/tool/run_dashboard_ios_patrol.sh');
+  final simulator = await ci.launchIosSimulator(
+    name: 'OpenCI Dashboard Patrol',
+  );
+  try {
+    // Preserve finally cleanup when Patrol fails; ci.run exits on failure.
+    final process = await Process.start(
+      'dart',
+      [
+        'run',
+        'patrol_cli:main',
+        'test',
+        '--target',
+        'patrol_test/app_startup_test.dart',
+        '--device',
+        simulator.id,
+      ],
+      workingDirectory: '${ci.workspacePath}/$dashboard',
+      mode: ProcessStartMode.inheritStdio,
+    );
+    exitCode = await process.exitCode;
+  } finally {
+    await simulator.dispose();
+  }
 }
