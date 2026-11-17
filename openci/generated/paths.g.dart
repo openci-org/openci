@@ -12,7 +12,7 @@ abstract final class WorkspacePaths {
 extension type const WorkspaceRoot._(String _path) implements WorkspaceDirectory {
   WorkspaceRoot$Apps get apps => const WorkspaceRoot$Apps._("apps");
   WorkspaceRoot$Firebase get firebase => const WorkspaceRoot$Firebase._("firebase");
-  WorkspaceDirectory get openci => const WorkspaceDirectory("openci");
+  WorkspaceRoot$Openci get openci => const WorkspaceRoot$Openci._("openci");
   WorkspaceRoot$Packages get packages => const WorkspaceRoot$Packages._("packages");
 }
 
@@ -27,6 +27,7 @@ extension type const WorkspaceRoot$Apps$Dashboard._(String _path) implements Wor
   WorkspaceRoot$Apps$Dashboard$Ios get ios => const WorkspaceRoot$Apps$Dashboard$Ios._("apps/dashboard/ios");
   WorkspaceRoot$Apps$Dashboard$Lib get lib => const WorkspaceRoot$Apps$Dashboard$Lib._("apps/dashboard/lib");
   WorkspaceRoot$Apps$Dashboard$Macos get macos => const WorkspaceRoot$Apps$Dashboard$Macos._("apps/dashboard/macos");
+  WorkspaceDirectory get patrolTest => const WorkspaceDirectory("apps/dashboard/patrol_test");
   WorkspaceDirectory get scripts => const WorkspaceDirectory("apps/dashboard/scripts");
   WorkspaceRoot$Apps$Dashboard$Test get test => const WorkspaceRoot$Apps$Dashboard$Test._("apps/dashboard/test");
   WorkspaceRoot$Apps$Dashboard$Web get web => const WorkspaceRoot$Apps$Dashboard$Web._("apps/dashboard/web");
@@ -42,9 +43,30 @@ extension type const WorkspaceRoot$Apps$Dashboard$Android$App._(String _path) im
 }
 
 extension type const WorkspaceRoot$Apps$Dashboard$Android$App$Src._(String _path) implements WorkspaceDirectory {
+  WorkspaceRoot$Apps$Dashboard$Android$App$Src$AndroidTest get androidTest => const WorkspaceRoot$Apps$Dashboard$Android$App$Src$AndroidTest._("apps/dashboard/android/app/src/androidTest");
   WorkspaceDirectory get debug => const WorkspaceDirectory("apps/dashboard/android/app/src/debug");
   WorkspaceRoot$Apps$Dashboard$Android$App$Src$Main get main => const WorkspaceRoot$Apps$Dashboard$Android$App$Src$Main._("apps/dashboard/android/app/src/main");
   WorkspaceDirectory get profile => const WorkspaceDirectory("apps/dashboard/android/app/src/profile");
+}
+
+extension type const WorkspaceRoot$Apps$Dashboard$Android$App$Src$AndroidTest._(String _path) implements WorkspaceDirectory {
+  WorkspaceRoot$Apps$Dashboard$Android$App$Src$AndroidTest$Java get java => const WorkspaceRoot$Apps$Dashboard$Android$App$Src$AndroidTest$Java._("apps/dashboard/android/app/src/androidTest/java");
+}
+
+extension type const WorkspaceRoot$Apps$Dashboard$Android$App$Src$AndroidTest$Java._(String _path) implements WorkspaceDirectory {
+  WorkspaceRoot$Apps$Dashboard$Android$App$Src$AndroidTest$Java$Org get org => const WorkspaceRoot$Apps$Dashboard$Android$App$Src$AndroidTest$Java$Org._("apps/dashboard/android/app/src/androidTest/java/org");
+}
+
+extension type const WorkspaceRoot$Apps$Dashboard$Android$App$Src$AndroidTest$Java$Org._(String _path) implements WorkspaceDirectory {
+  WorkspaceRoot$Apps$Dashboard$Android$App$Src$AndroidTest$Java$Org$Openci get openci => const WorkspaceRoot$Apps$Dashboard$Android$App$Src$AndroidTest$Java$Org$Openci._("apps/dashboard/android/app/src/androidTest/java/org/openci");
+}
+
+extension type const WorkspaceRoot$Apps$Dashboard$Android$App$Src$AndroidTest$Java$Org$Openci._(String _path) implements WorkspaceDirectory {
+  WorkspaceRoot$Apps$Dashboard$Android$App$Src$AndroidTest$Java$Org$Openci$Dashboard get dashboard => const WorkspaceRoot$Apps$Dashboard$Android$App$Src$AndroidTest$Java$Org$Openci$Dashboard._("apps/dashboard/android/app/src/androidTest/java/org/openci/dashboard");
+}
+
+extension type const WorkspaceRoot$Apps$Dashboard$Android$App$Src$AndroidTest$Java$Org$Openci$Dashboard._(String _path) implements WorkspaceDirectory {
+  WorkspaceDirectory get prod => const WorkspaceDirectory("apps/dashboard/android/app/src/androidTest/java/org/openci/dashboard/prod");
 }
 
 extension type const WorkspaceRoot$Apps$Dashboard$Android$App$Src$Main._(String _path) implements WorkspaceDirectory {
@@ -80,6 +102,8 @@ extension type const WorkspaceRoot$Apps$Dashboard$Android$App$Src$Main$Kotlin$Co
 extension type const WorkspaceRoot$Apps$Dashboard$Android$App$Src$Main$Res._(String _path) implements WorkspaceDirectory {
   WorkspaceDirectory get drawable => const WorkspaceDirectory("apps/dashboard/android/app/src/main/res/drawable");
   WorkspaceDirectory get drawableV21 => const WorkspaceDirectory("apps/dashboard/android/app/src/main/res/drawable-v21");
+  WorkspaceDirectory get mipmapAnydpiV26 => const WorkspaceDirectory("apps/dashboard/android/app/src/main/res/mipmap-anydpi-v26");
+  WorkspaceDirectory get mipmapAnydpiV33 => const WorkspaceDirectory("apps/dashboard/android/app/src/main/res/mipmap-anydpi-v33");
   WorkspaceDirectory get mipmapHdpi => const WorkspaceDirectory("apps/dashboard/android/app/src/main/res/mipmap-hdpi");
   WorkspaceDirectory get mipmapMdpi => const WorkspaceDirectory("apps/dashboard/android/app/src/main/res/mipmap-mdpi");
   WorkspaceDirectory get mipmapXhdpi => const WorkspaceDirectory("apps/dashboard/android/app/src/main/res/mipmap-xhdpi");
@@ -121,7 +145,11 @@ extension type const WorkspaceRoot$Apps$Dashboard$Ios$RunnerXcodeproj$ProjectXcw
 }
 
 extension type const WorkspaceRoot$Apps$Dashboard$Ios$RunnerXcodeproj$ProjectXcworkspace$Xcshareddata._(String _path) implements WorkspaceDirectory {
-  WorkspaceDirectory get swiftpm => const WorkspaceDirectory("apps/dashboard/ios/Runner.xcodeproj/project.xcworkspace/xcshareddata/swiftpm");
+  WorkspaceRoot$Apps$Dashboard$Ios$RunnerXcodeproj$ProjectXcworkspace$Xcshareddata$Swiftpm get swiftpm => const WorkspaceRoot$Apps$Dashboard$Ios$RunnerXcodeproj$ProjectXcworkspace$Xcshareddata$Swiftpm._("apps/dashboard/ios/Runner.xcodeproj/project.xcworkspace/xcshareddata/swiftpm");
+}
+
+extension type const WorkspaceRoot$Apps$Dashboard$Ios$RunnerXcodeproj$ProjectXcworkspace$Xcshareddata$Swiftpm._(String _path) implements WorkspaceDirectory {
+  WorkspaceDirectory get configuration => const WorkspaceDirectory("apps/dashboard/ios/Runner.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/configuration");
 }
 
 extension type const WorkspaceRoot$Apps$Dashboard$Ios$RunnerXcodeproj$Xcshareddata._(String _path) implements WorkspaceDirectory {
@@ -133,7 +161,11 @@ extension type const WorkspaceRoot$Apps$Dashboard$Ios$RunnerXcworkspace._(String
 }
 
 extension type const WorkspaceRoot$Apps$Dashboard$Ios$RunnerXcworkspace$Xcshareddata._(String _path) implements WorkspaceDirectory {
-  WorkspaceDirectory get swiftpm => const WorkspaceDirectory("apps/dashboard/ios/Runner.xcworkspace/xcshareddata/swiftpm");
+  WorkspaceRoot$Apps$Dashboard$Ios$RunnerXcworkspace$Xcshareddata$Swiftpm get swiftpm => const WorkspaceRoot$Apps$Dashboard$Ios$RunnerXcworkspace$Xcshareddata$Swiftpm._("apps/dashboard/ios/Runner.xcworkspace/xcshareddata/swiftpm");
+}
+
+extension type const WorkspaceRoot$Apps$Dashboard$Ios$RunnerXcworkspace$Xcshareddata$Swiftpm._(String _path) implements WorkspaceDirectory {
+  WorkspaceDirectory get configuration => const WorkspaceDirectory("apps/dashboard/ios/Runner.xcworkspace/xcshareddata/swiftpm/configuration");
 }
 
 extension type const WorkspaceRoot$Apps$Dashboard$Lib._(String _path) implements WorkspaceDirectory {
@@ -147,6 +179,7 @@ extension type const WorkspaceRoot$Apps$Dashboard$Lib._(String _path) implements
   WorkspaceDirectory get firebase => const WorkspaceDirectory("apps/dashboard/lib/firebase");
   WorkspaceRoot$Apps$Dashboard$Lib$Generated get generated => const WorkspaceRoot$Apps$Dashboard$Lib$Generated._("apps/dashboard/lib/generated");
   WorkspaceDirectory get i18n => const WorkspaceDirectory("apps/dashboard/lib/i18n");
+  WorkspaceDirectory get l10n => const WorkspaceDirectory("apps/dashboard/lib/l10n");
   WorkspaceDirectory get responsive => const WorkspaceDirectory("apps/dashboard/lib/responsive");
   WorkspaceDirectory get revenueCat => const WorkspaceDirectory("apps/dashboard/lib/revenue_cat");
   WorkspaceDirectory get root => const WorkspaceDirectory("apps/dashboard/lib/root");
@@ -201,7 +234,11 @@ extension type const WorkspaceRoot$Apps$Dashboard$Macos$RunnerXcodeproj$ProjectX
 }
 
 extension type const WorkspaceRoot$Apps$Dashboard$Macos$RunnerXcodeproj$ProjectXcworkspace$Xcshareddata._(String _path) implements WorkspaceDirectory {
-  WorkspaceDirectory get swiftpm => const WorkspaceDirectory("apps/dashboard/macos/Runner.xcodeproj/project.xcworkspace/xcshareddata/swiftpm");
+  WorkspaceRoot$Apps$Dashboard$Macos$RunnerXcodeproj$ProjectXcworkspace$Xcshareddata$Swiftpm get swiftpm => const WorkspaceRoot$Apps$Dashboard$Macos$RunnerXcodeproj$ProjectXcworkspace$Xcshareddata$Swiftpm._("apps/dashboard/macos/Runner.xcodeproj/project.xcworkspace/xcshareddata/swiftpm");
+}
+
+extension type const WorkspaceRoot$Apps$Dashboard$Macos$RunnerXcodeproj$ProjectXcworkspace$Xcshareddata$Swiftpm._(String _path) implements WorkspaceDirectory {
+  WorkspaceDirectory get configuration => const WorkspaceDirectory("apps/dashboard/macos/Runner.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/configuration");
 }
 
 extension type const WorkspaceRoot$Apps$Dashboard$Macos$RunnerXcodeproj$Xcshareddata._(String _path) implements WorkspaceDirectory {
@@ -213,7 +250,11 @@ extension type const WorkspaceRoot$Apps$Dashboard$Macos$RunnerXcworkspace._(Stri
 }
 
 extension type const WorkspaceRoot$Apps$Dashboard$Macos$RunnerXcworkspace$Xcshareddata._(String _path) implements WorkspaceDirectory {
-  WorkspaceDirectory get swiftpm => const WorkspaceDirectory("apps/dashboard/macos/Runner.xcworkspace/xcshareddata/swiftpm");
+  WorkspaceRoot$Apps$Dashboard$Macos$RunnerXcworkspace$Xcshareddata$Swiftpm get swiftpm => const WorkspaceRoot$Apps$Dashboard$Macos$RunnerXcworkspace$Xcshareddata$Swiftpm._("apps/dashboard/macos/Runner.xcworkspace/xcshareddata/swiftpm");
+}
+
+extension type const WorkspaceRoot$Apps$Dashboard$Macos$RunnerXcworkspace$Xcshareddata$Swiftpm._(String _path) implements WorkspaceDirectory {
+  WorkspaceDirectory get configuration => const WorkspaceDirectory("apps/dashboard/macos/Runner.xcworkspace/xcshareddata/swiftpm/configuration");
 }
 
 extension type const WorkspaceRoot$Apps$Dashboard$Test._(String _path) implements WorkspaceDirectory {
@@ -316,6 +357,12 @@ extension type const WorkspaceRoot$Firebase$DartFunctions._(String _path) implem
 
 extension type const WorkspaceRoot$Firebase$DartFunctions$Lib._(String _path) implements WorkspaceDirectory {
   WorkspaceDirectory get src => const WorkspaceDirectory("firebase/dart_functions/lib/src");
+}
+
+extension type const WorkspaceRoot$Openci._(String _path) implements WorkspaceDirectory {
+  WorkspaceDirectory get lib => const WorkspaceDirectory("openci/lib");
+  WorkspaceDirectory get test => const WorkspaceDirectory("openci/test");
+  WorkspaceDirectory get tool => const WorkspaceDirectory("openci/tool");
 }
 
 extension type const WorkspaceRoot$Packages._(String _path) implements WorkspaceDirectory {
@@ -421,6 +468,7 @@ extension type const WorkspaceRoot$Packages$OpenciWorkflow$Lib._(String _path) i
 
 extension type const WorkspaceRoot$Packages$OpenciWorkflow$Lib$Src._(String _path) implements WorkspaceDirectory {
   WorkspaceDirectory get dart => const WorkspaceDirectory("packages/openci_workflow/lib/src/dart");
+  WorkspaceDirectory get firebaseHosting => const WorkspaceDirectory("packages/openci_workflow/lib/src/firebase_hosting");
   WorkspaceRoot$Packages$OpenciWorkflow$Lib$Src$Flutter get flutter => const WorkspaceRoot$Packages$OpenciWorkflow$Lib$Src$Flutter._("packages/openci_workflow/lib/src/flutter");
   WorkspaceDirectory get iosSigning => const WorkspaceDirectory("packages/openci_workflow/lib/src/ios_signing");
   WorkspaceDirectory get shorebird => const WorkspaceDirectory("packages/openci_workflow/lib/src/shorebird");
@@ -439,6 +487,7 @@ extension type const WorkspaceRoot$Packages$OpenciWorkflow$Test._(String _path) 
 
 extension type const WorkspaceRoot$Packages$OpenciWorkflow$Test$Src._(String _path) implements WorkspaceDirectory {
   WorkspaceDirectory get dart => const WorkspaceDirectory("packages/openci_workflow/test/src/dart");
+  WorkspaceDirectory get firebaseHosting => const WorkspaceDirectory("packages/openci_workflow/test/src/firebase_hosting");
   WorkspaceRoot$Packages$OpenciWorkflow$Test$Src$Flutter get flutter => const WorkspaceRoot$Packages$OpenciWorkflow$Test$Src$Flutter._("packages/openci_workflow/test/src/flutter");
   WorkspaceDirectory get iosSigning => const WorkspaceDirectory("packages/openci_workflow/test/src/ios_signing");
   WorkspaceDirectory get shorebird => const WorkspaceDirectory("packages/openci_workflow/test/src/shorebird");
