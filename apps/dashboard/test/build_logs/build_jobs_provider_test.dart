@@ -15,6 +15,11 @@ class FakeRepository implements BuildRepository {
   Stream<BuildJob?> watchJob(String id) => jobs.stream;
   @override
   Stream<List<BuildJob>> watchJobs(String teamId) => throw UnimplementedError();
+  @override
+  Future<void> retryJob({
+    required String id,
+    required int expectedRetryCount,
+  }) => throw UnimplementedError();
 }
 
 class _SelectedTeam extends SelectedTeamId {
@@ -120,6 +125,7 @@ void main() {
       'createdAt': '1735689600',
       'updatedAt': '1735689601',
       'runCount': '2',
+      'retryCount': 3,
       'pullRequestNumber': '42',
       'matrix': '{"os":"macos"}',
       'needs': '["prepare"]',
@@ -127,6 +133,7 @@ void main() {
     });
     expect(job.createdAt, DateTime.utc(2025));
     expect(job.runCount, 2);
+    expect(job.retryCount, 3);
     expect(job.matrix, {'os': 'macos'});
     expect(job.needs, ['prepare']);
     expect(job.githubBaseUrl, 'https://github.test');

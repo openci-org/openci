@@ -587,6 +587,21 @@ class _Translations$logs$ja extends Translations$logs$en {
   }) => '${minutes}分${seconds}秒';
   @override
   String durationSeconds({required Object seconds}) => '${seconds}秒';
+  @override
+  String get retryJob => '再実行';
+  @override
+  String get retrySubmitting => '送信中…';
+  @override
+  String get retryRequested => '受付済み';
+  @override
+  String get retryQueued => '再実行を受け付けました。';
+  @override
+  String get retryFailed => '再実行の受付を確認できませんでした。最新の状態を確認してから、もう一度お試しください。';
+  @override
+  String get retryWaiting => '再実行の開始を待っています。開始するとログが自動で表示されます。';
+  @override
+  String get retryWaitingPreviousLogs =>
+      '再実行の開始を待っています。前回のログを表示中です。新しい実行が始まると自動で切り替わります。';
 }
 
 // Path: billing
@@ -1118,6 +1133,14 @@ extension on TranslationsJa {
         ({required Object minutes, required Object seconds}) =>
             '${minutes}分${seconds}秒',
       'logs.durationSeconds' => ({required Object seconds}) => '${seconds}秒',
+      'logs.retryJob' => '再実行',
+      'logs.retrySubmitting' => '送信中…',
+      'logs.retryRequested' => '受付済み',
+      'logs.retryQueued' => '再実行を受け付けました。',
+      'logs.retryFailed' => '再実行の受付を確認できませんでした。最新の状態を確認してから、もう一度お試しください。',
+      'logs.retryWaiting' => '再実行の開始を待っています。開始するとログが自動で表示されます。',
+      'logs.retryWaitingPreviousLogs' =>
+        '再実行の開始を待っています。前回のログを表示中です。新しい実行が始まると自動で切り替わります。',
       'billing.title' => '課金',
       'billing.signInRequired' => 'Cloudにサインインすると、このページを利用できます。',
       'billing.teamLoadFailed' => 'チームを読み込めませんでした。',
