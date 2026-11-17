@@ -51,6 +51,7 @@ Future<void> main() async {
     keyId: Secrets.openciGeneratedAscKeyId.value,
     privateKeyBase64: Secrets.openciGeneratedP8Base64.value,
   );
+  await ci.run('dart run tool/configure_google_sign_in.dart ios');
   final buildNumber = dashboardStoreBuildNumber(ci.runNumber);
   final ipaPath = await ci.flutter.buildIpa(
     distributionMethod: IosDistributionMethod.appStore,

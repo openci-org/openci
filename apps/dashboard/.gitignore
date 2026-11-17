@@ -49,6 +49,8 @@ app.*.map.json
 
 # Firebase related
 /lib/firebase_options.dart
+/ios/Flutter/GoogleSignIn.xcconfig
+/macos/Flutter/GoogleSignIn.xcconfig
 /ios/Runner/GoogleService-Info.plist
 /macos/Runner/GoogleService-Info.plist
 .firebase/

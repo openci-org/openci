@@ -75,7 +75,12 @@
     "weakPassword": "より強固なパスワードを入力してください。",
     "accountDisabled": "このアカウントは無効になっています。",
     "operationFailed": "認証を完了できませんでした。もう一度お試しください。",
-    "advancedOptions": "詳細設定"
+    "advancedOptions": "詳細設定",
+    "continueWithGoogle": "Google で続行",
+    "googleSignupOnly": "新規登録には Google アカウントを使用します。",
+    "existingEmailAccount": "メールアドレスとパスワードで登録済みの方",
+    "googleAccountConflict": "このメールアドレスは登録済みです。これまでのメールアドレスとパスワードでログインしてください。",
+    "googlePopupBlocked": "このサイトのポップアップを許可して、Google ログインをやり直してください。"
   },
   "secrets": {
     "noSecrets": "シークレットが見つかりません",

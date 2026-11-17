@@ -203,6 +203,24 @@ class Translations$auth$en {
 
   /// en: 'Advanced options'
   String get advancedOptions => 'Advanced options';
+
+  /// en: 'Continue with Google'
+  String get continueWithGoogle => 'Continue with Google';
+
+  /// en: 'New accounts sign up with Google.'
+  String get googleSignupOnly => 'New accounts sign up with Google.';
+
+  /// en: 'Already have an email and password account?'
+  String get existingEmailAccount =>
+      'Already have an email and password account?';
+
+  /// en: 'This email is already registered. Sign in with your existing email address and password.'
+  String get googleAccountConflict =>
+      'This email is already registered. Sign in with your existing email address and password.';
+
+  /// en: 'Allow pop-ups for this site, then try Google sign-in again.'
+  String get googlePopupBlocked =>
+      'Allow pop-ups for this site, then try Google sign-in again.';
 }
 
 // Path: secrets
@@ -1252,6 +1270,14 @@ extension on Translations {
       'auth.operationFailed' =>
         'Could not complete authentication. Please try again.',
       'auth.advancedOptions' => 'Advanced options',
+      'auth.continueWithGoogle' => 'Continue with Google',
+      'auth.googleSignupOnly' => 'New accounts sign up with Google.',
+      'auth.existingEmailAccount' =>
+        'Already have an email and password account?',
+      'auth.googleAccountConflict' =>
+        'This email is already registered. Sign in with your existing email address and password.',
+      'auth.googlePopupBlocked' =>
+        'Allow pop-ups for this site, then try Google sign-in again.',
       'secrets.noSecrets' => 'No secrets found',
       'secrets.addSecret' => 'Add secret',
       'secrets.editSecret' => 'Edit secret',
