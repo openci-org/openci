@@ -10,13 +10,8 @@ import 'package:dashboard/connections/connection_snapshot.dart';
 import 'package:dashboard/connections/connection_store.dart';
 import 'package:dashboard/connections/connection_store_provider.dart';
 import 'package:dashboard/connections/local_development_connection.dart';
-import 'package:dashboard/generated/teams/teams.dart';
-import 'package:dashboard/team/selected_team_provider.dart';
-import 'package:dashboard/team/team_provider.dart';
-import 'package:dashboard/team/teams_connector_provider.dart';
 import 'package:dashboard/utilities/shared_preferences_provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_data_connect/firebase_data_connect.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -118,29 +113,6 @@ void main() {
     );
   }
 
-  testWidgets('creates and selects the signup team through the SDK', (
-    tester,
-  ) async {
-    final setup = await _pumpSignup(tester);
-    final button = find.widgetWithText(FilledButton, t.auth.continueWithGoogle);
-
-    await tester.tap(button);
-    await tester.pumpAndSettle();
-
-    expect(setup.connector.requests, [
-      CreateTeamVariables(id: 'new-user', name: 'new-user'),
-    ]);
-    expect(setup.prefs.getString('selected_team_id:cloud'), 'new-user');
-    expect(setup.container.read(selectedTeamIdProvider).value, 'new-user');
-    expect(
-      (await setup.container.read(teamListProvider.future)).single.id,
-      'new-user',
-    );
-    expect(find.byType(SnackBar), findsNothing);
-    expect(tester.widget<FilledButton>(button).onPressed, isNotNull);
-    expect(tester.takeException(), isNull);
-  });
-
   for (final profileId in ['cloud', 'company', localDevelopmentProfileId]) {
     testWidgets('$profileId registers with Google in the selected connection', (
       tester,
@@ -154,23 +126,20 @@ void main() {
       await tester.pumpAndSettle();
       expect(setup.google.calls, 1);
       expect(setup.google.auth, same(setup.auth));
-      expect(setup.connector.requests, hasLength(1));
-      expect(setup.prefs.getString('selected_team_id:$profileId'), 'new-user');
       expect(find.text(t.auth.enterEmail), findsNothing);
       expect(find.text(t.auth.enterPassword), findsNothing);
     });
   }
 
   testWidgets(
-    'existing Google users keep their team and do not create another',
+    'existing Google users authenticate too',
     (tester) async {
       final setup = await _pumpSignup(tester, isNewUser: false);
       await tester.tap(
         find.widgetWithText(FilledButton, t.auth.continueWithGoogle),
       );
       await tester.pumpAndSettle();
-      expect(setup.connector.requests, isEmpty);
-      expect(setup.prefs.getString('selected_team_id:cloud'), 'previous-team');
+      expect(setup.google.calls, 1);
     },
   );
 
@@ -181,7 +150,7 @@ void main() {
     final button = find.widgetWithText(FilledButton, t.auth.continueWithGoogle);
     await tester.tap(button);
     await tester.pumpAndSettle();
-    expect(setup.connector.requests, isEmpty);
+    expect(setup.google.calls, 1);
     expect(find.byType(SnackBar), findsNothing);
     expect(tester.widget<FilledButton>(button).onPressed, isNotNull);
   });
@@ -213,7 +182,6 @@ void main() {
     await tester.pumpAndSettle();
     expect(setup.auth.logins, [('existing@example.com', 'existing-password')]);
     expect(setup.google.calls, 0);
-    expect(setup.connector.requests, isEmpty);
   });
 
   testWidgets('provider conflicts direct the user to their existing login', (
@@ -238,30 +206,11 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.text(t.auth.googleAccountConflict), findsOneWidget);
-    expect(setup.connector.requests, isEmpty);
+    expect(setup.google.calls, 1);
     expect(tester.widget<FilledButton>(button).onPressed, isNotNull);
   });
 
-  testWidgets('keeps the selected team when the SDK rejects creation', (
-    tester,
-  ) async {
-    final setup = await _pumpSignup(
-      tester,
-      error: StateError('Team creation failed'),
-    );
-    final button = find.widgetWithText(FilledButton, t.auth.continueWithGoogle);
-
-    await tester.tap(button);
-    await tester.pumpAndSettle();
-
-    expect(setup.connector.requests, hasLength(1));
-    expect(setup.prefs.getString('selected_team_id:cloud'), 'previous-team');
-    expect(find.textContaining('Team creation failed'), findsOneWidget);
-    expect(tester.widget<FilledButton>(button).onPressed, isNotNull);
-    expect(tester.takeException(), isNull);
-  });
-
-  testWidgets('finishes team creation after the auth page is disposed', (
+  testWidgets('finishes authentication after the auth page is disposed', (
     tester,
   ) async {
     final credential = Completer<UserCredential>();
@@ -275,8 +224,7 @@ void main() {
     credential.complete(_Credential());
     await tester.pumpAndSettle();
 
-    expect(setup.connector.requests, hasLength(1));
-    expect(setup.prefs.getString('selected_team_id:cloud'), 'new-user');
+    expect(setup.google.calls, 1);
     expect(tester.takeException(), isNull);
   });
 }
@@ -285,14 +233,12 @@ Future<
   ({
     ProviderContainer container,
     SharedPreferences prefs,
-    _Connector connector,
     _Auth auth,
     _GoogleSignIn google,
   })
 >
 _pumpSignup(
   WidgetTester tester, {
-  Object? error,
   Future<UserCredential>? credential,
   bool isNewUser = true,
   bool cancel = false,
@@ -329,7 +275,6 @@ _pumpSignup(
           emulatorPort: '9099',
         )
       : null;
-  final connector = _Connector(error);
   final auth = _Auth();
   final google = _GoogleSignIn(
     credential,
@@ -343,24 +288,8 @@ _pumpSignup(
       localDevelopmentConnectionProvider.overrideWithValue(local),
       firebaseAuthProvider.overrideWith((ref) async => auth),
       googleSignInProvider.overrideWithValue(google),
-      teamsConnectorProvider.overrideWith((ref) async => connector),
-      teamListProvider.overrideWith((ref) async {
-        if (connector.requests.isEmpty || error != null) return [];
-        final request = connector.requests.single;
-        return [
-          Team(
-            id: request.id,
-            name: request.name,
-            members: const ['new-user'],
-            createdAt: DateTime.utc(2026),
-            updatedAt: DateTime.utc(2026),
-          ),
-        ];
-      }),
     ],
   );
-  container.listen(selectedTeamIdProvider, (_, _) {});
-  await container.read(selectedTeamIdProvider.future);
   await tester.pumpWidget(
     TranslationProvider(
       child: UncontrolledProviderScope(
@@ -376,42 +305,10 @@ _pumpSignup(
   return (
     container: container,
     prefs: prefs,
-    connector: connector,
     auth: auth,
     google: google,
   );
 }
-
-class _Connector extends Fake implements TeamsConnector {
-  _Connector(this.error);
-
-  final Object? error;
-  final requests = <CreateTeamVariables>[];
-
-  @override
-  CreateTeamVariablesBuilder createTeam({
-    required String id,
-    required String name,
-  }) => _CreateTeam(() async {
-    requests.add(CreateTeamVariables(id: id, name: name));
-    if (error != null) throw error!;
-  });
-}
-
-class _CreateTeam extends Fake implements CreateTeamVariablesBuilder {
-  _CreateTeam(this.create);
-
-  final Future<void> Function() create;
-
-  @override
-  Future<OperationResult<CreateTeamData, CreateTeamVariables>> execute() async {
-    await create();
-    return _CreateTeamResult();
-  }
-}
-
-class _CreateTeamResult extends Fake
-    implements OperationResult<CreateTeamData, CreateTeamVariables> {}
 
 class _Auth extends Fake implements FirebaseAuth {
   final logins = <(String, String)>[];

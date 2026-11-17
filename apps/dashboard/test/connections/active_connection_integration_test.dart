@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:dashboard/app_strings.dart';
+import 'package:dashboard/auth/account_setup_provider.dart';
 import 'package:dashboard/auth/auth_provider.dart';
 import 'package:dashboard/connections/active_connection_profile_provider.dart';
 import 'package:dashboard/connections/connection_firebase_auth.dart';
@@ -78,6 +79,7 @@ void main() {
     container = ProviderContainer.test(
       retry: (_, _) => null,
       overrides: [
+        accountSetupProvider.overrideWith((_) async {}),
         connectionStoreProvider.overrideWithValue(store),
         localDevelopmentConnectionProvider.overrideWith((ref) => localSettings),
         for (final profile in [cloud, selfHosted, local.profile])

@@ -61,8 +61,24 @@ class TeamService {
   final Ref _ref;
   TeamService(this._ref);
 
-  Future<void> createInitialTeam(String userId) =>
-      createTeam(id: userId, name: userId);
+  Future<void> ensureInitialTeam(String userId) async {
+    final profileProvider = activeConnectionProfileProvider(
+      _ref.read(connectionStoreProvider),
+    );
+    final profile = _ref.read(profileProvider.future);
+    final connector = await _ref.read(teamsConnectorProvider.future);
+    final profileId = (await profile).id;
+    // Firebase's isNewUser is already false when an interrupted signup resumes.
+    // Query again on retry in case creation committed but its response was lost.
+    final teams = (await connector.getMyTeams().execute()).data.teams;
+    if (teams.isEmpty) {
+      await connector.createTeam(id: userId, name: userId).execute();
+    }
+    if (_ref.mounted &&
+        _ref.read(profileProvider).asData?.value.id == profileId) {
+      _ref.invalidate(teamListProvider);
+    }
+  }
 
   Future<void> createTeam({
     required String id,

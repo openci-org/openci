@@ -60,6 +60,10 @@ SDK provisioning is an administrative path, not public registration.
 ## Verification
 
 - A first Google sign-in creates and selects one initial team.
+- An authenticated account without a team resumes setup, even if Firebase no
+  longer considers it a new user. Protected screens wait until setup completes.
+  A failed setup offers retry without another Google prompt; retry rechecks
+  memberships so a lost response does not create another team.
 - Cloud, self-hosted, and local connections all show Google registration and no
   password registration action; account and team creation use the selected connection.
 - A returning Google user keeps the same UID and existing teams.

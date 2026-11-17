@@ -14,7 +14,6 @@ import 'package:dashboard/connections/select_connection_profile.dart';
 import 'package:dashboard/firebase/firebase_config_provider.dart';
 import 'package:dashboard/firebase/plist_parser.dart';
 import 'package:dashboard/settings/language_selector.dart';
-import 'package:dashboard/team/team_provider.dart';
 import 'package:dashboard/utilities/error_message.dart';
 import 'package:dashboard/utilities/snack_bar_extension.dart';
 import 'package:file_picker/file_picker.dart';
@@ -212,26 +211,11 @@ class AuthPage extends HookConsumerWidget {
                                             final googleSignIn = ref.read(
                                               googleSignInProvider,
                                             );
-                                            final teamService = ref.read(
-                                              teamServiceProvider,
-                                            );
                                             try {
                                               final auth = await ref.read(
                                                 firebaseAuthProvider.future,
                                               );
-                                              final credential =
-                                                  await googleSignIn.signIn(
-                                                    auth,
-                                                  );
-                                              if (credential
-                                                      ?.additionalUserInfo
-                                                      ?.isNewUser ==
-                                                  true) {
-                                                await teamService
-                                                    .createInitialTeam(
-                                                      credential!.user!.uid,
-                                                    );
-                                              }
+                                              await googleSignIn.signIn(auth);
                                             } catch (error) {
                                               if (context.mounted) {
                                                 context.showSnackBarMessage(
