@@ -136,6 +136,8 @@ mutation CompleteWebhookTask(
   # Closure cancels every active workflow in the verified PR scope. Superseding
   # commits still require both jobs to opt in and have different SHAs.
   # Use the returned job IDs for both steps: a duplicate plan reuses an existing ID.
+  # SQL Connect can bind an empty response.jobs list as JSON null. Normalize
+  # both consumers to an empty array before expanding the returned job IDs.
   # Lock dispatches before jobs, matching executor admission/result lock order.
   # A terminal result that won the race keeps its billing and Check conclusion.
   cancellationLocks: _execute(
@@ -150,7 +152,11 @@ mutation CompleteWebhookTask(
           AND old.pull_request_number = $8::bigint)
         OR EXISTS (
           SELECT 1 FROM build_jobs AS newest
-          WHERE newest.id IN (SELECT w.id FROM jsonb_to_recordset($1::jsonb) AS w(id text))
+          WHERE newest.id IN (
+            SELECT w.id FROM jsonb_to_recordset(
+              COALESCE(NULLIF($1::jsonb, 'null'::jsonb), '[]'::jsonb)
+            ) AS w(id text)
+          )
             AND newest.cancel_previous_runs AND old.cancel_previous_runs
             AND newest.pull_request_number IS NOT NULL
             AND old.team_id = newest.team_id
@@ -193,7 +199,11 @@ mutation CompleteWebhookTask(
           AND old.pull_request_number = $8::bigint)
         OR EXISTS (
           SELECT 1 FROM build_jobs AS newest
-          WHERE newest.id IN (SELECT w.id FROM jsonb_to_recordset($1::jsonb) AS w(id text))
+          WHERE newest.id IN (
+            SELECT w.id FROM jsonb_to_recordset(
+              COALESCE(NULLIF($1::jsonb, 'null'::jsonb), '[]'::jsonb)
+            ) AS w(id text)
+          )
             AND newest.cancel_previous_runs AND old.cancel_previous_runs
             AND newest.pull_request_number IS NOT NULL
             AND old.team_id = newest.team_id
