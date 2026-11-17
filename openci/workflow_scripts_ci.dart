@@ -1,5 +1,7 @@
 import 'package:openci_workflow/openci_workflow.dart';
 
+import 'generated/paths.g.dart';
+
 Future<void> main() async {
   final ci = await OpenCI.init(
     workflowName: 'Workflow Scripts CI',
@@ -29,8 +31,9 @@ Future<void> main() async {
         ],
       ),
     ],
+    currentWorkingDirectory: WorkspacePaths.root.openci,
   );
 
-  await ci.run('dart analyze --fatal-infos openci');
-  await ci.run('dart test', workingDirectory: 'openci');
+  await ci.dart.analyze(fatalInfos: true);
+  await ci.dart.test();
 }

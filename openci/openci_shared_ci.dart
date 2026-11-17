@@ -39,7 +39,7 @@ Future<void> main() async {
     currentWorkingDirectory: WorkspacePaths.root.packages.openciShared,
   );
 
-  await openCI.flutter.staticAnalysis();
+  await openCI.dart.analyze(fatalInfos: true);
 
-  await openCI.flutter.unitTests();
+  await openCI.dart.test();
 }
