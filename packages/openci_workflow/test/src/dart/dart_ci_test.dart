@@ -62,6 +62,61 @@ void main() {
 
   tearDown(() => workspace.delete(recursive: true));
 
+  group('analyze', () {
+    test('passes valid code in the workspace directory', () async {
+      await writeFile('main.dart', 'void main() {}\n');
+
+      await ci.dart.analyze();
+    });
+
+    test('fails errors even when warnings are allowed', () async {
+      await writeFile('main.dart', 'int value = "invalid";\n');
+
+      await expectLater(
+        ci.dart.analyze(fatalWarnings: false),
+        throwsA(isA<ProcessException>()),
+      );
+    });
+
+    test('fails warnings by default and supports opting out', () async {
+      await writeFile('main.dart', 'void main() { final unused = 1; }\n');
+
+      await expectLater(ci.dart.analyze(), throwsA(isA<ProcessException>()));
+      await ci.dart.analyze(fatalWarnings: false);
+    });
+
+    test('allows infos by default and supports making them fatal', () async {
+      await writeFile(
+        'analysis_options.yaml',
+        'analyzer:\n  errors:\n    unused_local_variable: info\n',
+      );
+      await writeFile('main.dart', 'void main() { final unused = 1; }\n');
+
+      await ci.dart.analyze();
+      await expectLater(
+        ci.dart.analyze(fatalInfos: true, fatalWarnings: false),
+        throwsA(isA<ProcessException>()),
+      );
+    });
+
+    test('inherits the directory and overrides it for only one call', () async {
+      await writeFile('outside.dart', 'int value = "invalid";\n');
+      await writeFile('packages/default/main.dart', 'void main() {}\n');
+      await writeFile(
+        'packages/other app/main.dart',
+        'int value = "invalid";\n',
+      );
+      ci = createCI(currentWorkingDirectory: 'packages/default');
+
+      await ci.dart.analyze();
+      await expectLater(
+        ci.dart.analyze(dir: const WorkspaceDirectory('packages/other app')),
+        throwsA(isA<ProcessException>()),
+      );
+      await ci.dart.analyze();
+    });
+  });
+
   test('passes formatted tracked files and preserves ignored files', () async {
     final tracked = await writeFile('main.dart', 'void main() {}\n');
     await git(['add', 'main.dart']);
