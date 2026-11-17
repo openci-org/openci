@@ -45,6 +45,9 @@ abstract final class Secrets {
   /// The secret with the environment key `OPENCI_GENERATED_P8_BASE64`.
   static const openciGeneratedP8Base64 = Secret('OPENCI_GENERATED_P8_BASE64');
 
+  /// The secret with the environment key `PUB_DEV_SERVICE_ACCOUNT_JSON_BASE64`.
+  static const pubDevServiceAccountJsonBase64 = Secret('PUB_DEV_SERVICE_ACCOUNT_JSON_BASE64');
+
   /// The secret with the environment key `SPARKLE_PRIVATE_ED_KEY`.
   static const sparklePrivateEdKey = Secret('SPARKLE_PRIVATE_ED_KEY');
 
