@@ -243,6 +243,17 @@ PR closes or its head changes during the build, OpenCI skips the comment.
 
 ### Run commands
 
+Analyze Dart code with the installed SDK:
+
+```dart
+await openCI.dart.analyze();
+await openCI.dart.analyze(dir: 'openci', fatalInfos: true);
+```
+
+Warnings fail by default. Set `fatalInfos: true` to also fail on info-level
+diagnostics, or `fatalWarnings: false` to allow warnings. `dir` overrides the
+workflow's working directory for this call.
+
 Check Dart formatting without rewriting files:
 
 ```dart

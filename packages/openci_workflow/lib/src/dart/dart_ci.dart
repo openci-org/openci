@@ -4,13 +4,25 @@ import '../quote_shell_argument.dart';
 import 'pub_dev_publisher.dart';
 import 'pub_publish_result.dart';
 
-/// Dart checks and publishing using the toolchain on the build machine.
 class DartCI {
   const DartCI(this._run, {String Function(String? dir)? resolveDirectory})
     : _resolveDirectory = resolveDirectory;
 
   final Future<void> Function(String command, {String? workingDirectory}) _run;
   final String Function(String? dir)? _resolveDirectory;
+
+  Future<void> analyze({
+    String? dir,
+    bool fatalInfos = false,
+    bool fatalWarnings = true,
+  }) => _run(
+    [
+      'dart analyze',
+      if (fatalInfos) '--fatal-infos',
+      if (!fatalWarnings) '--no-fatal-warnings',
+    ].join(' '),
+    workingDirectory: dir,
+  );
 
   /// Publishes the package in the workflow directory (or [dir]) to pub.dev.
   ///

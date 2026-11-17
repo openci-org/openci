@@ -1,7 +1,8 @@
 # Changelog
 
-## Unreleased
+## 0.4.1
 
+- Add `dart.analyze()` with an optional working directory and configurable fatal info and warning diagnostics.
 - Add `dart.publishToPubDev()` with Google service account authentication, temporary pub credentials, and an optional skip for versions already published. Return the package name, version, URL, and publication status. Use pub's normal validation with `--force`, without an extra dry run.
 
 ## 0.4.0
