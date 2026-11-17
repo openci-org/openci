@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.3
+
+- Add `launchIosSimulator()` to create a fresh simulator and wait for startup, with configurable device, runtime, and boot timeout. Return its UDID and a `dispose()` method to shut down and delete it; clean up after boot failures.
+
 ## 0.4.2
 
 - Add `dart.test()` with an optional working directory.

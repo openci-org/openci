@@ -282,6 +282,58 @@ install them.
 
 For Flutter analysis, use `await openCI.flutter.staticAnalysis()` or pass your preferred `flutter analyze` flags to `openCI.run()`.
 
+### Launch an iOS Simulator
+
+Create a fresh simulator and wait for it to finish booting:
+
+```dart
+final simulator = await openCI.launchIosSimulator();
+// Pass simulator.id to Flutter or Patrol's --device option.
+await simulator.dispose();
+```
+
+This requires macOS with Xcode and an installed compatible runtime. By default,
+it creates an iPhone 17 Pro and lets Xcode choose the newest compatible installed
+iOS runtime (iOS 26 or later). It does not download runtimes or reuse existing
+devices. Customize the device type, simulator name, runtime, or boot timeout:
+
+```dart
+final simulator = await openCI.launchIosSimulator(
+  device: 'iPhone 17 Pro',
+  name: 'Dashboard Patrol',
+  runtime: 'com.apple.CoreSimulator.SimRuntime.iOS-26-5',
+  bootTimeout: const Duration(minutes: 10),
+);
+```
+
+`device` and `runtime` accept the names or identifiers supported by `simctl`.
+Boot errors and timeouts trigger cleanup of the newly created device. After a
+successful launch, call `dispose()` in `finally` to shut down and delete it.
+Repeated disposal is safe, and failed deletion can be retried.
+
+For commands that can fail, use `Process.start` from `dart:io` and set `exitCode`
+after awaiting the child. This lets `finally` run before the workflow exits;
+`openCI.run()` terminates the process immediately on command failure.
+
+```dart
+final simulator = await openCI.launchIosSimulator();
+try {
+  final process = await Process.start(
+    'dart',
+    [
+      'run', 'patrol_cli:main', 'test',
+      '--target', 'patrol_test/app_startup_test.dart',
+      '--device', simulator.id,
+    ],
+    workingDirectory: '${openCI.workspacePath}/apps/dashboard',
+    mode: ProcessStartMode.inheritStdio,
+  );
+  exitCode = await process.exitCode;
+} finally {
+  await simulator.dispose();
+}
+```
+
 ### Publish a Dart package to pub.dev
 
 Call `publishToPubDev()` after your analysis and tests in a publishing workflow:
