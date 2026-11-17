@@ -72,14 +72,23 @@ commit (HTTP 404) is retried within the same deadline; other API failures are
 reported immediately. Each candidate is checked against the current
 `refs/heads/<base branch>` fetched from the verified repository, rather than
 `pr.base.sha`, which can retain an older PR snapshot. Its parents must match that base SHA
-and the job's saved head SHA. Conflicts, closed PRs, and unavailable or stale merge
-candidates fail the attempt. The execution pins the resolved merge SHA for checkout
+and the job's saved head SHA. If the candidate still has the saved head but an
+older base, the executor pins the current base and head SHAs and creates a local
+test merge in the disposable build VM. It fetches both histories, uses
+`git merge-tree --write-tree` (Git 2.38 or later) to detect conflicts, and creates
+a commit with those exact parents. This does not update GitHub refs or the PR.
+The full-history fetch and local merge use ordinary build time; conflicts found
+there finish the checkout step without loading team secrets or running workflows.
+Invalid candidates, unavailable commits, closed PRs, and changed heads still fail
+as described above. The execution pins the resolved merge SHA for checkout
 and writes the full checked-out SHA to its checkout log. GitHub Checks use the
 job's saved head SHA. Push builds check out their saved commit SHA.
 
 The workflow receives `OPENCI_CONTEXT`, schema version 1 JSON containing the
 resolved checkout/event metadata plus repository, job, and run identity. PR base
 and head metadata come from the same validation that selected the merge commit.
+For a local test merge, `checkoutSha` is the generated commit actually checked out
+in the VM, captured before starting the workflow.
 The Dart SDK reads this lazily as `OpenCI.context`; deploy the executor before
 adopting that API. Context is a snapshot, not a check that a deployment is still
 current. The protocol contains no credentials or raw webhook payload.

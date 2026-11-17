@@ -11,7 +11,7 @@ import {
   type Dispatch,
   type Job,
   type Outcome,
-  type ResolvedCheckout,
+  type CheckoutPlan,
 } from "./model.js";
 import type { SkippedCheck } from "../skipped_checks.js";
 
@@ -227,12 +227,8 @@ export class ExecutionGitHub {
     return String(data.id);
   }
 
-  /** Resolve the exact checkout and its event metadata as one snapshot. */
-  async resolveCheckout(
-    job: Job,
-    accountId: string,
-    signal?: AbortSignal,
-  ): Promise<ResolvedCheckout> {
+  /** Pin checkout metadata and select a verified merge or a local merge plan. */
+  async resolveCheckout(job: Job, accountId: string, signal?: AbortSignal): Promise<CheckoutPlan> {
     signal?.throwIfAborted();
     if (!/^[a-fA-F0-9]{40}(?:[a-fA-F0-9]{24})?$/.test(job.commitSha ?? ""))
       throw new Error("Invalid commit SHA");
@@ -341,12 +337,13 @@ export class ExecutionGitHub {
               if ((error as { status?: number })?.status === 404) return { data: null };
               throw new PullRequestCheckoutError("unavailable");
             });
-          // A stale merge ref can survive a base/head update. Only use the
-          // candidate whose parents match the PR revision we just observed.
+          // GitHub can retain a merge against an old base indefinitely. Once
+          // the saved head is verified, merge the pinned current base locally
+          // instead of waiting for that candidate to change or testing it.
           if (
             commit?.sha === mergeSha &&
             commit.parents?.length === 2 &&
-            commit.parents[0].sha === base.object.sha &&
+            /^[a-f0-9]{40}(?:[a-f0-9]{24})?$/.test(commit.parents[0].sha) &&
             commit.parents[1].sha === pr.head.sha
           ) {
             readinessSignal.throwIfAborted();
@@ -358,7 +355,7 @@ export class ExecutionGitHub {
               baseBranch: pr.base.ref,
               headSha: pr.head.sha,
               baseSha: base.object.sha,
-              checkoutSha: mergeSha,
+              checkoutSha: commit.parents[0].sha === base.object.sha ? mergeSha : null,
             };
           }
         }

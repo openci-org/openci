@@ -160,13 +160,30 @@ test("PR の古い base SHA ではなく実際の base ref と照合する", asy
   expect(delay).not.toHaveBeenCalled();
 });
 
-test("base が進んだときは古い PR 情報とマージ候補を除外して更新後の SHA を取得する", async () => {
+test("GitHub の merge が古いままなら最新 base と保存済み head のローカルマージへ進む", async () => {
+  const f = fixture();
+  const currentBaseSha = "d".repeat(40);
+  f.baseRef.object.sha = currentBaseSha;
+
+  expect(await f.github.resolveCheckout(f.job, "10")).toEqual({
+    event: "pull_request",
+    number: 7,
+    headBranch: f.pr.head.ref,
+    baseBranch: f.pr.base.ref,
+    headSha,
+    baseSha: currentBaseSha,
+    checkoutSha: null,
+  });
+  expect(delay).not.toHaveBeenCalled();
+  expect(f.calls.at(-1)).toBe("/installation/token");
+});
+
+test("base が進んでも新しいマージ候補があればその SHA を取得する", async () => {
   const f = fixture();
   const newerBaseSha = "d".repeat(40);
   const newerMergeSha = "e".repeat(40);
   f.baseRef.object.sha = newerBaseSha;
   f.pr.merge_commit_sha = newerMergeSha;
-  f.pullRequests.push({ ...f.pr, merge_commit_sha: mergeSha });
   f.commits.set(newerMergeSha, {
     sha: newerMergeSha,
     parents: [{ sha: newerBaseSha }, { sha: headSha }],
@@ -176,18 +193,21 @@ test("base が進んだときは古い PR 情報とマージ候補を除外し�
     baseSha: newerBaseSha,
     checkoutSha: newerMergeSha,
   });
-  expect(delay).toHaveBeenCalledTimes(1);
-  expect(f.calls.filter((path) => path.includes("/git/ref/"))).toHaveLength(2);
+  expect(delay).not.toHaveBeenCalled();
+  expect(f.calls.filter((path) => path.includes("/git/ref/"))).toHaveLength(1);
 });
 
-test("古い PR base SHA と一致するだけの候補は実行しない", async () => {
+test("生成待ち中に base が進んでも新しい base を固定してローカルマージへ進む", async () => {
   const f = fixture();
+  f.pullRequests.push({ ...f.pr, mergeable: null, merge_commit_sha: null });
   f.baseRef.object.sha = "d".repeat(40);
 
-  await expect(f.github.resolveCheckout(f.job, "10")).rejects.toThrow(
-    "Wait a moment and rerun this job",
-  );
-  expect(f.calls.filter((path) => path.includes("/git/ref/"))).toHaveLength(24);
+  expect(await f.github.resolveCheckout(f.job, "10")).toMatchObject({
+    baseSha: f.baseRef.object.sha,
+    headSha,
+    checkoutSha: null,
+  });
+  expect(delay).toHaveBeenCalledTimes(1);
   expect(f.calls.at(-1)).toBe("/installation/token");
 });
 
@@ -293,6 +313,7 @@ test.each([{ mergeable: null }, { merge_commit_sha: null }, { merge_commit_sha: 
 );
 
 test.each([
+  { parents: [{ sha: "invalid-base" }, { sha: headSha }] },
   { parents: [{ sha: baseSha }, { sha: "d".repeat(40) }] },
   { parents: [{ sha: headSha }, { sha: baseSha }] },
   { parents: [{ sha: baseSha }] },
