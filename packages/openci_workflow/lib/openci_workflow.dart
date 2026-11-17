@@ -10,6 +10,7 @@ export 'src/flutter/ios_distribution_method.dart';
 export 'src/ios_simulator.dart' show IosSimulator;
 export 'src/machine_type.dart';
 export 'src/open_ci.dart';
+export 'src/patrol/patrol_ci.dart' show PatrolCI;
 export 'src/pull_request_ci.dart';
 export 'src/secret.dart';
 export 'src/shorebird/shorebird_ci.dart';
