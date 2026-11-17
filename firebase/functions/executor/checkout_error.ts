@@ -22,6 +22,7 @@ export interface MergeReadinessDiagnostics {
   baseSha?: string;
   mergeSha?: string;
   mergeBaseSha?: string;
+  checkoutSha?: string;
 }
 
 /** Only these fixed messages may be published; API errors can contain secrets. */
