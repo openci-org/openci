@@ -66,32 +66,26 @@ The GitHub App must have both read permissions.
 The executor pins REST API version `2022-11-28`: version `2026-03-10`
 [removes `merge_commit_sha` from PR responses](https://docs.github.com/en/rest/about-the-rest-api/breaking-changes#version-2026-03-10).
 
-For an open PR, the executor waits up to ten minutes for GitHub's test merge
-commit, subject to the overall execution deadline, with polling delays of 1, 2,
-4, 8, 16, then at most 30 seconds. The deadline includes API time and interrupts
-in-flight reads. A temporarily missing merge
-commit (HTTP 404) is retried within the same deadline; other API failures are
-reported immediately. Each candidate is checked against the current
+For an open PR, the executor checks GitHub's test merge commit against the current
 `refs/heads/<base branch>` fetched from the verified repository, rather than
 `pr.base.sha`, which can retain an older PR snapshot. Its parents must match that base SHA
-and the job's saved head SHA. Conflicts, closed PRs, and unavailable merge
-candidates fail the attempt. The execution pins the resolved merge SHA for checkout
+and the job's saved head SHA. A current candidate is used immediately. The
+execution pins the resolved merge SHA for checkout
 and writes the full checked-out SHA to its checkout log. GitHub Checks use the
 job's saved head SHA. Push builds check out their saved commit SHA.
 
-A mismatched base is retried through the same deadline. If the last observed
-candidate still has the saved head but a different base parent, the executor
-allows up to 30 more seconds to reread the PR, current base ref and merge commit.
-All source, state and saved-head checks apply again. A now-current GitHub merge
-is used normally. Otherwise, the compare API must prove that the candidate's
-base parent is an ancestor of the current base, and the actual head branch ref
-must still equal the saved head. Only then is a local merge selected. Diverged
-histories and unrelated synthetic parents cannot use this fallback. Unknown
-merge state, unavailable objects, API failures or cancellation never authorize
-it. The overall execution deadline still applies to the final verification.
-GitHub documents the
-[GET-and-poll procedure](https://docs.github.com/en/rest/guides/using-the-rest-api-to-interact-with-your-git-database#checking-mergeability-of-pull-requests),
-but a fresh candidate may remain unavailable within the deadline.
+If the candidate is stale or unavailable (including HTTP 404), or GitHub has not
+finished calculating mergeability, the executor immediately rereads the PR,
+current base ref and any available candidate without polling or sleeping. All
+source, state and saved-head checks apply again. A now-current GitHub merge is
+used normally. Otherwise, the actual head branch ref must still equal the saved
+head before a local merge is selected using the freshly verified base and head.
+The obsolete candidate's ancestry is not required: the local merge validates
+the pinned source commits directly. Known conflicts, closed PRs, changed heads,
+invalid source refs, other API failures and cancellation stop checkout. The
+entire verification has a 30-second limit, including API time, and interrupts
+in-flight reads; the overall execution deadline also applies. This limit bounds
+network calls, rather than waiting for GitHub to generate a merge commit.
 
 The fallback fetches the full ancestry of the pinned base and head into the
 disposable VM and uses `git merge-tree --write-tree` and `git commit-tree` to
@@ -100,7 +94,7 @@ checkout before workflow execution or team-secret reads. The generated commit
 exists only in that VM: nothing is pushed and no PR or branch is modified. GitHub
 Checks still attach to the saved head. Full-history fetch and merge happen during
 the ordinary billed checkout step, including an attempt that finds conflicts;
-the readiness polling and final verification happen before billing admission.
+the source verification happens before billing admission.
 
 Operator logs record `pull_request_checkout_stale_merge` or
 `pull_request_checkout_not_ready`, with attempt count, elapsed time, the latest

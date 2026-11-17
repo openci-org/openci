@@ -643,14 +643,14 @@ test("self-hosted initialization rejects stale executors, cancelled jobs, foreig
   }
 });
 
-test("a stale GitHub merge runs with the generated checkout SHA and pinned PR context", async (t) => {
+test("an ungenerated GitHub merge runs with the generated checkout SHA and pinned PR context", async (t) => {
   const f = await fixture(t, true);
   await alterJob(f.jobId, { pullRequestNumber: "7" });
   const resolve = f.dependencies.github.resolveCheckout;
   f.dependencies.github.resolveCheckout = async (job) => ({
     ...(await resolve(job)),
     checkoutSha: null,
-    fallback: { attempts: 25, elapsedMs: 600000, mergeBaseSha: "d".repeat(40) },
+    fallback: { attempts: 2, elapsedMs: 0 },
   });
   const reports = [];
   f.dependencies.report = (reason, dispatchId, checkout) =>
@@ -683,15 +683,14 @@ test("a stale GitHub merge runs with the generated checkout SHA and pinned PR co
     {
       reason: "pull_request_checkout_local_merge_selected",
       dispatchId: f.id,
-      checkout: { attempts: 25, elapsedMs: 600000, mergeBaseSha: "d".repeat(40) },
+      checkout: { attempts: 2, elapsedMs: 0 },
     },
     {
       reason: "pull_request_checkout_local_merge_completed",
       dispatchId: f.id,
       checkout: {
-        attempts: 25,
-        elapsedMs: 600000,
-        mergeBaseSha: "d".repeat(40),
+        attempts: 2,
+        elapsedMs: 0,
         checkoutSha: generatedSha,
       },
     },

@@ -33,12 +33,12 @@ export type ResolvedCheckout =
       checkoutSha: string;
     };
 
-/** Selected only after polling and a fresh source/ancestry verification. */
+/** A local test merge uses freshly verified base/head refs when GitHub is delayed. */
 export type CheckoutPlan =
   | ResolvedCheckout
   | (Omit<Extract<ResolvedCheckout, { event: "pull_request" }>, "checkoutSha"> & {
       checkoutSha: null;
-      fallback: MergeReadinessDiagnostics & { mergeBaseSha: string };
+      fallback: MergeReadinessDiagnostics;
     });
 
 export const localMergeConflictExitCode = 79;
@@ -131,7 +131,7 @@ export function checkoutScript(
       "done",
       ...(baseSha
         ? [
-            "printf 'GitHub test merge remained stale after retries; creating a local test merge.\\n'",
+            "printf 'GitHub test merge is not current; creating a local test merge.\\n'",
             `printf 'Base: %s\\nHead: %s\\n' ${shellQuote(baseSha)} ${shellQuote(commitSha)}`,
             "set +e",
             `merge_tree=$(git merge-tree --write-tree --no-messages ${shellQuote(baseSha)} ${shellQuote(commitSha)})`,
