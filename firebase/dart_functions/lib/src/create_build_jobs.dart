@@ -24,6 +24,18 @@ class BuildJobPlanner {
   observePullRequest;
 
   Future<String> process(String taskId) async {
+    for (var attempt = 0; ; attempt++) {
+      try {
+        return await _processOnce(taskId);
+      } on PlanningObservationSuperseded {
+        // Reacquire the fence and observe GitHub again; never reuse a stale plan.
+        // Sustained contention still falls back to durable event redelivery.
+        if (attempt >= 2) rethrow;
+      }
+    }
+  }
+
+  Future<String> _processOnce(String taskId) async {
     final task = await store.getTask(taskId);
     if (task == null) throw StateError('Webhook task not found');
     if (task.status == 'completed' || task.status == 'failed') {
