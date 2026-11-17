@@ -28,6 +28,11 @@ class PlanningFence {
   final String token;
 }
 
+/// Another planner invalidated the GitHub observation before it could commit.
+class PlanningObservationSuperseded implements Exception {
+  const PlanningObservationSuperseded();
+}
+
 abstract interface class PlanningStore {
   Future<PlanningTask?> getTask(String id);
   Future<PlanningConnection?> findConnection(
@@ -91,6 +96,25 @@ class DataConnectPlanningStore implements PlanningStore {
         .timeout(const Duration(seconds: 30));
     if (response.statusCode != 200) throw StateError('SQL Connect unavailable');
     final Object? result = jsonDecode(response.body);
+    if (mutation &&
+        connector == 'webhooks' &&
+        operation == 'CompleteWebhookTask' &&
+        result is Map<String, dynamic> &&
+        result['errors'] is List &&
+        (result['errors'] as List).any((error) {
+          if (error is! Map<String, dynamic>) return false;
+          final path = error['path'];
+          final extensions = error['extensions'];
+          // This field has one @check: the planning fence must still match.
+          // Use its structured identity, never SDK messages or private details.
+          return path is List &&
+              path.length == 1 &&
+              path.single == 'pullRequestPlanning_updateMany' &&
+              extensions is Map<String, dynamic> &&
+              extensions['code'] == 'PERMISSION_DENIED';
+        })) {
+      throw const PlanningObservationSuperseded();
+    }
     if (result is! Map<String, dynamic> ||
         (result['errors'] is List && (result['errors'] as List).isNotEmpty) ||
         result['data'] is! Map<String, dynamic>) {

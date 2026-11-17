@@ -1107,6 +1107,37 @@ test("delayed old PR deliveries cannot cancel or enqueue an opted-in obsolete re
   assert.equal(rows.filter((j) => j.workflowFileName === "deploy.dart").length, 1);
 });
 
+test("concurrent deliveries of the same PR revision complete without a 503 or duplicate jobs", async (t) => {
+  const f = await autoCancelFixture(t);
+  const observed = Promise.withResolvers();
+  const release = Promise.withResolvers();
+  f.github.onPullRequest = async () => {
+    observed.resolve();
+    await release.promise;
+  };
+  const firstRequest = fetch(dartFunctionUrl, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ taskId: f.taskId }),
+  });
+  let expected;
+  try {
+    await Promise.race([
+      observed.promise,
+      firstRequest.then(() => assert.fail("first request completed before observation")),
+    ]);
+    await invoke(await nextRevision(f, sha));
+    expected = (await f.state()).buildJobs;
+    assert.equal(expected.length, 2);
+  } finally {
+    release.resolve();
+  }
+  const response = await firstRequest;
+  assert.equal(response.status, 200, await response.text());
+  assert.equal((await f.state()).webhookTask.status, "completed");
+  assert.deepEqual((await f.state()).buildJobs, expected);
+});
+
 test("a stale in-flight GitHub response cannot overwrite a newer completed PR plan", async (t) => {
   const f = await autoCancelFixture(t);
   const observed = Promise.withResolvers();
@@ -1129,9 +1160,13 @@ test("a stale in-flight GitHub response cannot overwrite a newer completed PR pl
   } finally {
     release.resolve();
   }
-  assert.equal((await oldRequest).status, 503, "lost fence must leave the old task retryable");
-  assert.equal((await f.state()).webhookTask.status, "pending");
-  await invoke(f.taskId);
+  assert.equal(
+    (await oldRequest).status,
+    200,
+    "lost observation must be refreshed in this request",
+  );
+  assert.equal((await f.state()).webhookTask.status, "completed");
+  assert.equal(await invoke(f.taskId), "duplicate");
   const ci = (await f.state()).buildJobs.filter((j) => j.workflowFileName === "ci.dart");
   assert.deepEqual(
     ci.map((j) => [j.commitSha, j.status]),
@@ -1516,18 +1551,20 @@ test("a close observation overtaken by a reopen cannot cancel its new jobs", asy
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ taskId: closeTask }),
   });
+  let before;
   try {
     await Promise.race([
       observed.promise,
       request.then(() => assert.fail("observation not reached")),
     ]);
     await invoke(await prAction(f, "reopened"));
+    before = (await f.state()).buildJobs;
   } finally {
     release.resolve();
   }
-  assert.equal((await request).status, 503);
-  const before = (await f.state()).buildJobs;
-  await invoke(closeTask);
+  assert.equal((await request).status, 200);
+  assert.deepEqual((await f.state()).buildJobs, before);
+  assert.equal(await invoke(closeTask), "duplicate");
   assert.deepEqual((await f.state()).buildJobs, before);
 });
 
@@ -1553,8 +1590,8 @@ test("a close event fences an older planner that has already observed an open PR
   } finally {
     release.resolve();
   }
-  assert.equal((await request).status, 503);
-  await invoke(f.taskId);
+  assert.equal((await request).status, 200);
+  assert.equal(await invoke(f.taskId), "duplicate");
   assert.deepEqual((await f.state()).buildJobs, []);
 });
 
