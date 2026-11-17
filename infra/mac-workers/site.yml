@@ -6,9 +6,9 @@
   serial: 1
   any_errors_fatal: true
   pre_tasks:
-    - name: Read platform and connection facts as the SSH user
+    - name: Read platform, memory and connection facts as the SSH user
       ansible.builtin.setup:
-        gather_subset: [min, env]
+        gather_subset: [min, env, hardware]
       become: false
 
     - name: Require an Apple Silicon Mac and the existing admin account

@@ -20,7 +20,7 @@ orchard_worker_arguments:
   - --default-cpu
   - "2"
   - --default-memory
-  - "4096"
+  - "{{ orchard_worker_memory_mib }}"
   - --resources
   - "org.cirruslabs.tart-vms={{ orchard_worker_slots }}"
   - --log-file

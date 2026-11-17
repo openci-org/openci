@@ -212,8 +212,8 @@ consistent with the dispatcher/planner:
 | `SECRET_MANAGER_PROJECT`                          | Project ID or number exactly matching stored secret version paths; defaults to FSC project |
 
 With `ORCHARD_USE_WORKER_MEMORY=true`, the executor lets Orchard choose the VM's
-memory from the selected worker's `--default-memory`. For example, two slots on
-an 8 GiB Mac can use 4096 MiB each, and two slots on a 24 GiB Mac can use 12288
+memory from the selected worker's `--default-memory`. For example, one slot on
+an 8 GiB Mac can use 8192 MiB, and two slots on a 24 GiB Mac can use 12288
 MiB each. The dispatch memory remains the minimum admission reservation; existing
 VM capacity accounting includes Orchard's actual `assignedMemory`.
 

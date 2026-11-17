@@ -8,6 +8,7 @@ orchard_worker_path: /opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin
 orchard_worker_set_home: true
 orchard_worker_no_auto_prune: false
 orchard_worker_slots: 2
+orchard_worker_memory_mib: "{{ (ansible_facts.memtotal_mb | int) // (orchard_worker_slots | int) }}"
 orchard_worker_bootstrap_path: /Library/Application Support/OpenCI/orchard-bootstrap-token
 orchard_worker_ca_path: "{{ orchard_worker_bootstrap_path | dirname }}/controller-ca.crt"
 orchard_worker_log_path: /Users/admin/Library/Logs/OpenCI/orchard-worker.log
@@ -32,7 +33,7 @@ orchard_worker_arguments:
   - --default-cpu
   - "2"
   - --default-memory
-  - "4096"
+  - "{{ orchard_worker_memory_mib }}"
   - --labels
   - "host={{ inventory_hostname }}"
   - --resources

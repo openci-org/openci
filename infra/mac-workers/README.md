@@ -2,7 +2,7 @@
 
 Ansible manages the six physical Mac minis connected to the GCP Orchard
 Controller. Run it from an operator machine on the same Tailnet. The existing
-SSH keys, runtime versions, VM slots and Tart data directories are preserved.
+SSH keys, runtime versions and Tart data directories are preserved.
 The managed registrations use `openci-worker-<inventory name>`.
 
 | Managed here                | Mechanism                                                        |
@@ -18,6 +18,13 @@ The Controller's GCP resources belong to [infra/orchard](../orchard/README.md).
 Packer builds guest VM images. This playbook configures running Mac hosts; it
 does not create or reset macOS installations, upgrade Homebrew packages, install
 guest SDKs, change Softnet/Tailscale policies, or change account passwords.
+
+VM memory is divided equally across each Mac's configured slots. Growth and
+Origin each have one slot using 8192 MiB; the other Macs use two slots, each with
+half of the host's physical memory. The executor must enable
+`ORCHARD_USE_WORKER_MEMORY=true` to use these worker defaults instead of the
+dispatcher's explicit minimum memory. See the
+[executor rollout requirements](../../firebase/functions/BUILD_EXECUTOR.md).
 
 ## Setup
 

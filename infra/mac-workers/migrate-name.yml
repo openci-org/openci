@@ -13,6 +13,11 @@
       ca_path: "{{ orchard_worker_controller_ca }}"
       follow_redirects: none
       use_proxy: false
+  pre_tasks:
+    - name: Read physical memory as the SSH user
+      ansible.builtin.setup:
+        gather_subset: ["!all", hardware]
+      become: false
   tasks:
     - name: Migrate the Orchard registration and launchd definition
       ansible.builtin.import_role:
