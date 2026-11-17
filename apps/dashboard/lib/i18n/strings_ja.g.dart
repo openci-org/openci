@@ -184,6 +184,17 @@ class _Translations$auth$ja extends Translations$auth$en {
   String get operationFailed => '認証を完了できませんでした。もう一度お試しください。';
   @override
   String get advancedOptions => '詳細設定';
+  @override
+  String get continueWithGoogle => 'Google で続行';
+  @override
+  String get googleSignupOnly => '新規登録には Google アカウントを使用します。';
+  @override
+  String get existingEmailAccount => 'メールアドレスとパスワードで登録済みの方';
+  @override
+  String get googleAccountConflict =>
+      'このメールアドレスは登録済みです。これまでのメールアドレスとパスワードでログインしてください。';
+  @override
+  String get googlePopupBlocked => 'このサイトのポップアップを許可して、Google ログインをやり直してください。';
 }
 
 // Path: secrets
@@ -939,6 +950,12 @@ extension on TranslationsJa {
       'auth.accountDisabled' => 'このアカウントは無効になっています。',
       'auth.operationFailed' => '認証を完了できませんでした。もう一度お試しください。',
       'auth.advancedOptions' => '詳細設定',
+      'auth.continueWithGoogle' => 'Google で続行',
+      'auth.googleSignupOnly' => '新規登録には Google アカウントを使用します。',
+      'auth.existingEmailAccount' => 'メールアドレスとパスワードで登録済みの方',
+      'auth.googleAccountConflict' =>
+        'このメールアドレスは登録済みです。これまでのメールアドレスとパスワードでログインしてください。',
+      'auth.googlePopupBlocked' => 'このサイトのポップアップを許可して、Google ログインをやり直してください。',
       'secrets.noSecrets' => 'シークレットが見つかりません',
       'secrets.addSecret' => 'シークレット追加',
       'secrets.editSecret' => 'シークレット編集',

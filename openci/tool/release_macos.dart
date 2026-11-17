@@ -140,6 +140,11 @@ Future<void> release(int build) async {
     await firebaseOptions.writeAsBytes(
       base64Decode(secret('FIREBASE_OPTIONS_DART_BASE64')),
     );
+    await run('Configure Google sign-in', 'dart', [
+      'run',
+      'tool/configure_google_sign_in.dart',
+      'macos',
+    ], cwd: appDirectory);
 
     final issuer = secret('OPENCI_GENERATED_ASC_ISSUER_ID');
     final keyId = secret('OPENCI_GENERATED_ASC_KEY_ID');

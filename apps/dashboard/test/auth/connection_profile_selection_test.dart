@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:dashboard/app_strings.dart';
+import 'package:dashboard/auth/account_setup_provider.dart';
 import 'package:dashboard/auth/auth_page.dart';
 import 'package:dashboard/auth/auth_provider.dart';
 import 'package:dashboard/billing/billing_provider.dart';
@@ -111,6 +112,7 @@ void main() {
     container = ProviderContainer.test(
       retry: (_, _) => null,
       overrides: [
+        accountSetupProvider.overrideWith((_) async {}),
         sharedPreferencesProvider.overrideWithValue(prefs),
         connectionStoreProvider.overrideWithValue(store),
         localDevelopmentConnectionProvider.overrideWith((ref) => null),

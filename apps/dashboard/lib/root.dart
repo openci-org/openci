@@ -1,9 +1,11 @@
 import 'package:dashboard/app_strings.dart';
+import 'package:dashboard/auth/account_setup_provider.dart';
 import 'package:dashboard/auth/auth_provider.dart';
 import 'package:dashboard/connections/active_connection_profile_provider.dart';
 import 'package:dashboard/connections/connection_firebase_auth.dart';
 import 'package:dashboard/deep_link/deep_link_listener.dart';
 import 'package:dashboard/router/router.dart';
+import 'package:dashboard/utilities/async_error_widget.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -56,7 +58,9 @@ class Root extends ConsumerWidget {
                 ),
               ),
             ),
-            data: (_) => child ?? const SizedBox.shrink(),
+            data: (user) => user == null
+                ? child ?? const SizedBox.shrink()
+                : _AccountSetupGate(child: child ?? const SizedBox.shrink()),
           ),
         );
         if (!kDebugMode) return app;
@@ -67,5 +71,29 @@ class Root extends ConsumerWidget {
         );
       },
     );
+  }
+}
+
+class _AccountSetupGate extends ConsumerWidget {
+  const _AccountSetupGate({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return ref
+        .watch(accountSetupProvider)
+        .when(
+          skipLoadingOnRefresh: false,
+          loading: () => const Scaffold(
+            body: Center(child: CircularProgressIndicator.adaptive()),
+          ),
+          error: (error, stackTrace) => asyncErrorWidget(
+            error,
+            stackTrace,
+            onRetry: () => ref.invalidate(accountSetupProvider),
+          ),
+          data: (_) => child,
+        );
   }
 }

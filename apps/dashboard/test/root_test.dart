@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:dashboard/app_strings.dart';
+import 'package:dashboard/auth/account_setup_provider.dart';
 import 'package:dashboard/auth/auth_provider.dart';
 import 'package:dashboard/deep_link/deep_link_listener.dart';
 import 'package:dashboard/root.dart';
@@ -40,6 +41,7 @@ void main() {
       retry: (_, _) => null,
       observers: [SentryProviderObserver()],
       overrides: [
+        accountSetupProvider.overrideWith((_) async {}),
         authStateChangesProvider.overrideWith((ref) {
           subscriptions++;
           return changes.stream;

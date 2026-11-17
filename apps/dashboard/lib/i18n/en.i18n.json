@@ -75,7 +75,12 @@
     "weakPassword": "Choose a stronger password.",
     "accountDisabled": "This account is disabled.",
     "operationFailed": "Could not complete authentication. Please try again.",
-    "advancedOptions": "Advanced options"
+    "advancedOptions": "Advanced options",
+    "continueWithGoogle": "Continue with Google",
+    "googleSignupOnly": "New accounts sign up with Google.",
+    "existingEmailAccount": "Already have an email and password account?",
+    "googleAccountConflict": "This email is already registered. Sign in with your existing email address and password.",
+    "googlePopupBlocked": "Allow pop-ups for this site, then try Google sign-in again."
   },
   "secrets": {
     "noSecrets": "No secrets found",

@@ -3,9 +3,8 @@ set -euo pipefail
 
 cd "$(dirname "$0")/../.."
 node_version=$(<.node-version)
-if [[ $(node --version 2>/dev/null) != "v$node_version" ]]; then
-  node_dir=$(mise where "node@$node_version")
-  export PATH="$node_dir/bin:$PATH"
+if [[ $(node --version 2>/dev/null || true) != "v$node_version" ]]; then
+  exec bash openci/tool/with_node.sh bash firebase/scripts/ci.sh
 fi
 
 node --version

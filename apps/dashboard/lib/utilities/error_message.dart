@@ -47,6 +47,9 @@ String dashboardErrorMessage(Object error, Translations strings) {
       'wrong-password' ||
       'user-not-found' => strings.auth.invalidCredentials,
       'email-already-in-use' => strings.auth.emailInUse,
+      'account-exists-with-different-credential' =>
+        strings.auth.googleAccountConflict,
+      'popup-blocked' => strings.auth.googlePopupBlocked,
       'weak-password' => strings.auth.weakPassword,
       'too-many-requests' => strings.settings.emailVerificationRateLimited,
       'network-request-failed' => strings.common.networkFailed,

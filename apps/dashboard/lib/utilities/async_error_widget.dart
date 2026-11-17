@@ -4,7 +4,11 @@ import 'package:dashboard/utilities/error_message.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-Widget asyncErrorWidget(Object error, StackTrace stackTrace) {
+Widget asyncErrorWidget(
+  Object error,
+  StackTrace stackTrace, {
+  VoidCallback? onRetry,
+}) {
   debugPrint('Error: $error');
   debugPrint('Stack Trace: $stackTrace');
   return Consumer(
@@ -40,6 +44,13 @@ Widget asyncErrorWidget(Object error, StackTrace stackTrace) {
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 24),
+                  if (onRetry != null) ...[
+                    FilledButton(
+                      onPressed: onRetry,
+                      child: Text(context.t.common.retry),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
