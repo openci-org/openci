@@ -17,11 +17,12 @@ patrol build android --help >/dev/null
 patrol build ios --help >/dev/null
 dart pub global list | grep -Fx "patrol_cli $version"
 
+node_versions=$(/usr/bin/python3 -c 'import json,sys; print("\n".join(json.load(open(sys.argv[1]))["node_versions"]))' "$config")
 while IFS= read -r node_version; do
   [[ -n $node_version ]] || continue
   [[ -n $mise_bin ]]
   node_dir=$("$mise_bin" where "node@$node_version")
   [[ $("$node_dir/bin/node" --version) == "v$node_version" ]]
-done < <(/usr/bin/python3 -c 'import json,sys; print("\n".join(json.load(open(sys.argv[1]))["node_versions"]))' "$config")
+done <<< "$node_versions"
 
 echo OPENCI_IMAGE_PATROL_VERIFIED
