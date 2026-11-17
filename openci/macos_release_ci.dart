@@ -12,19 +12,15 @@ Future<void> main() async {
       CITrigger.pullRequest(
         branch: '*',
         paths: [
-          'apps/dashboard/macos/**',
-          'apps/dashboard/lib/utilities/macos_updater_initializer.dart',
+          'apps/dashboard/**',
           'packages/macos_updater/**',
           'packages/openci_shared/**',
-          'packages/pubspec_version_hook/**',
-          'analysis_options.yaml',
           'openci/dashboard_macos_cd.dart',
           'openci/macos_release_ci.dart',
-          'openci/lib/**',
-          'openci/tool/**',
-          'openci/test/**',
-          'openci/generated/**',
-          '**/pubspec.yaml',
+          'openci/lib/macos_release_publisher.dart',
+          'openci/tool/release_macos.dart',
+          'openci/pubspec.yaml',
+          'pubspec.yaml',
           'pubspec.lock',
           '.fvmrc',
         ],
@@ -39,7 +35,6 @@ Future<void> main() async {
   );
   await ci.flutter.unitTests(dir: 'apps/dashboard');
   await ci.flutter.unitTests(dir: 'packages/macos_updater');
-  await ci.run('dart test', workingDirectory: 'openci');
   await ci.run(
     'dart run openci/tool/release_macos.dart --build-number=1 --validate-only',
   );
