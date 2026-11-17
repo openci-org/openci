@@ -4,6 +4,7 @@ set -euo pipefail
 [[ $(id -un) == admin && $HOME == /Users/admin && $(sysctl -n hw.model) == VirtualMac* ]]
 config=/usr/local/share/openci-image/current.json
 version=$(/usr/bin/python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["patrol_cli_version"])' "$config")
+mise_bin=$(command -v mise || true)
 
 # Deliberately omit .pub-cache/bin, as some callers use a minimal CI PATH.
 export PATH="$HOME/fvm/default/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
@@ -17,7 +18,9 @@ patrol build ios --help >/dev/null
 dart pub global list | grep -Fx "patrol_cli $version"
 
 while IFS= read -r node_version; do
-  node_dir=$(mise where "node@$node_version")
+  [[ -n $node_version ]] || continue
+  [[ -n $mise_bin ]]
+  node_dir=$("$mise_bin" where "node@$node_version")
   [[ $("$node_dir/bin/node" --version) == "v$node_version" ]]
 done < <(/usr/bin/python3 -c 'import json,sys; print("\n".join(json.load(open(sys.argv[1]))["node_versions"]))' "$config")
 
