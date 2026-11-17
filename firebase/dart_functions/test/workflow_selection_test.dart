@@ -177,9 +177,10 @@ void main() {
       'Dart Format Check',
       'macOS release checks',
       'Dashboard Web Hosting',
+      'Dashboard iOS Patrol',
     });
   });
-  test('runtime SDK changes skip app workflows', () {
+  test('runtime SDK changes also run the simulator integration', () {
     final result = plan(
       definitions,
       diff(['packages/openci_workflow/lib/openci_workflow.dart']),
@@ -191,6 +192,7 @@ void main() {
       'OpenCI Workflow CI',
       'Workflow Scripts CI',
       'Dart Format Check',
+      'Dashboard iOS Patrol',
     });
   });
   test('workspace resolution changes run all PR workflows', () {
