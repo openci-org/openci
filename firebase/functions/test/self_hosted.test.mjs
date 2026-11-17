@@ -371,6 +371,45 @@ test("unexpected API errors are not published as a failure summary", async () =>
   assert.equal(f.dispatch.failureSummary, null);
 });
 
+for (const selfHosted of [true, false]) {
+  test(`stale merge diagnostics stay in operator logs before billing or workflow (selfHosted=${selfHosted})`, async () => {
+    const f = executionFixture(selfHosted);
+    const diagnostics = {
+      attempts: 24,
+      elapsedMs: 600000,
+      requestId: "ABCD:1234",
+      headSha: f.job.commitSha,
+      baseSha: "b".repeat(40),
+      mergeSha: "c".repeat(40),
+      mergeBaseSha: "d".repeat(40),
+    };
+    const error = new PullRequestCheckoutError("stale_merge", diagnostics);
+    f.job.pullRequestNumber = "7";
+    f.dependencies.github.resolveCheckout = async () => {
+      throw error;
+    };
+    f.dependencies.secrets = async () => {
+      throw new Error("Secrets must not be loaded");
+    };
+    const reports = [];
+    f.dependencies.report = (...args) => reports.push(args);
+
+    await f.run();
+
+    assert.equal(f.dispatch.outcome, "failure");
+    assert.equal(f.dispatch.failureSummary, error.message);
+    assert.ok(!f.dispatch.failureSummary.includes(diagnostics.requestId));
+    assert.deepEqual(reports, [
+      ["pull_request_checkout_stale_merge", f.dispatch.id, diagnostics],
+      ["execution_failure", f.dispatch.id],
+    ]);
+    assert.deepEqual(f.scripts, []);
+    assert.ok(!f.calls.includes("create"));
+    assert.ok(!f.calls.includes("period"));
+    assert.deepEqual(f.checkShas, [f.job.commitSha]);
+  });
+}
+
 test("cloud builds cannot bypass billing with a job field", async () => {
   const f = executionFixture(undefined);
   await f.run();

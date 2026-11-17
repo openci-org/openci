@@ -17,6 +17,10 @@ vi.mock("node:timers/promises", () => ({
 beforeEach(() => {
   clock.now = Date.now();
   vi.spyOn(Date, "now").mockImplementation(() => clock.now);
+  vi.mocked(delay).mockImplementation(async (ms, _value, options) => {
+    options?.signal?.throwIfAborted();
+    clock.now += Number(ms);
+  });
 });
 
 afterEach(() => {
@@ -50,6 +54,12 @@ function fixture(apiBaseUrl = "https://api.github.com", baseUrl = "https://githu
     [mergeSha, { sha: mergeSha, parents: [{ sha: baseSha }, { sha: headSha }] }],
   ]);
   const baseRef = { ref: "refs/heads/develop", object: { type: "commit", sha: baseSha } };
+  const headRef = { ref: "refs/heads/feature/context", object: { type: "commit", sha: headSha } };
+  const comparison = {
+    status: "ahead",
+    base_commit: { sha: baseSha },
+    merge_base_commit: { sha: baseSha },
+  };
   const calls: string[] = [];
   const job: Job = {
     id: "job",
@@ -80,10 +90,20 @@ function fixture(apiBaseUrl = "https://api.github.com", baseUrl = "https://githu
         });
       }
       if (path === "/repos/org/app") return Response.json(repository);
-      if (path === "/repos/org/app/pulls/7") return Response.json(pullRequests.shift() ?? pr);
+      if (path === "/repos/org/app/pulls/7") {
+        // This field is absent in API version 2026-03-10.
+        const data = { ...(pullRequests.shift() ?? pr) };
+        if (new Headers(init.headers).get("x-github-api-version") !== "2022-11-28")
+          delete (data as Partial<typeof pr>).merge_commit_sha;
+        return Response.json(data, { headers: { "x-github-request-id": "ABCD:1234:5678" } });
+      }
       if (decodeURIComponent(path) === `/repos/org/app/git/ref/heads/${pr.base.ref}`) {
         return Response.json(baseRef);
       }
+      if (decodeURIComponent(path) === `/repos/org/app/git/ref/heads/${pr.head.ref}`) {
+        return Response.json(headRef);
+      }
+      if (path.startsWith("/repos/org/app/compare/")) return Response.json(comparison);
       if (path.startsWith("/repos/org/app/git/commits/")) {
         const commit = commits.get(path.split("/").at(-1)!);
         return commit ? Response.json(commit) : Response.json({}, { status: 404 });
@@ -97,7 +117,13 @@ function fixture(apiBaseUrl = "https://api.github.com", baseUrl = "https://githu
     }),
   );
   const github = new ExecutionGitHub({ appId: "1", privateKey, apiBaseUrl, baseUrl });
-  return { github, job, pr, pullRequests, commits, calls, baseRef };
+  return { github, job, pr, pullRequests, commits, calls, baseRef, headRef, comparison };
+}
+
+function staleFixture() {
+  const f = fixture();
+  f.baseRef.object.sha = "d".repeat(40);
+  return f;
 }
 
 test.each([
@@ -180,15 +206,251 @@ test("base が進んだときは古い PR 情報とマージ候補を除外し�
   expect(f.calls.filter((path) => path.includes("/git/ref/"))).toHaveLength(2);
 });
 
-test("古い PR base SHA と一致するだけの候補は実行しない", async () => {
+test("古い候補が10分続いたら再検証し、現在の base と保存済み head のローカルマージを選ぶ", async () => {
+  const f = staleFixture();
+  const started = clock.now;
+
+  expect(await f.github.resolveCheckout(f.job, "10")).toEqual({
+    event: "pull_request",
+    number: 7,
+    headBranch: "feature/context",
+    baseBranch: "develop",
+    headSha,
+    baseSha: f.baseRef.object.sha,
+    checkoutSha: null,
+    fallback: {
+      attempts: 25,
+      elapsedMs: 600000,
+      requestId: "ABCD:1234:5678",
+      headSha,
+      baseSha: f.baseRef.object.sha,
+      mergeSha,
+      mergeBaseSha: baseSha,
+    },
+  });
+  expect(clock.now - started).toBe(600000);
+  expect(delay).toHaveBeenCalledTimes(24);
+  expect(f.calls.filter((path) => path.endsWith("/pulls/7"))).toHaveLength(25);
+  expect(f.calls.slice(-3).map(decodeURIComponent)).toEqual([
+    `/repos/org/app/compare/${baseSha}...${f.baseRef.object.sha}?per_page=1`,
+    "/repos/org/app/git/ref/heads/feature/context",
+    "/installation/token",
+  ]);
+});
+
+test.each([
+  { status: "diverged" },
+  { status: "behind" },
+  { status: "identical" },
+  { base_commit: { sha: "e".repeat(40) } },
+  { merge_base_commit: { sha: "e".repeat(40) } },
+])("古い base が現在の base の祖先でなければ診断情報付きで停止する %j", async (change) => {
+  const f = staleFixture();
+  Object.assign(f.comparison, change);
+
+  await expect(f.github.resolveCheckout(f.job, "10")).rejects.toMatchObject({
+    reason: "stale_merge",
+    diagnostics: {
+      attempts: 25,
+      elapsedMs: 600000,
+      requestId: "ABCD:1234:5678",
+      headSha,
+      baseSha: f.baseRef.object.sha,
+      mergeSha,
+      mergeBaseSha: baseSha,
+    },
+  });
+  expect(f.calls.filter((path) => path.includes("/git/ref/"))).toHaveLength(25);
+  expect(f.calls.at(-1)).toBe("/installation/token");
+});
+
+test("切替直前に GitHub の候補が更新されていればその SHA を優先する", async () => {
+  const f = staleFixture();
+  f.pullRequests.push(...Array.from({ length: 24 }, () => structuredClone(f.pr)));
+  const updatedMergeSha = "e".repeat(40);
+  f.pr.merge_commit_sha = updatedMergeSha;
+  f.commits.set(updatedMergeSha, {
+    sha: updatedMergeSha,
+    parents: [{ sha: f.baseRef.object.sha }, { sha: headSha }],
+  });
+
+  expect(await f.github.resolveCheckout(f.job, "10")).toMatchObject({
+    checkoutSha: updatedMergeSha,
+    baseSha: f.baseRef.object.sha,
+  });
+  expect(f.calls.some((path) => path.includes("/compare/"))).toBe(false);
+});
+
+test.each([
+  [{ mergeable: false }, "conflicts"],
+  [{ state: "closed" }, "closed"],
+  [{ merged: true }, "closed"],
+  [{ mergeable: null, merge_commit_sha: null }, "not_ready"],
+] as const)("切替直前の PR の状態を再検証する %j", async (change, reason) => {
+  const f = staleFixture();
+  f.pullRequests.push(...Array.from({ length: 24 }, () => structuredClone(f.pr)));
+  Object.assign(f.pr, change);
+
+  await expect(f.github.resolveCheckout(f.job, "10")).rejects.toMatchObject({ reason });
+  expect(f.calls.some((path) => path.includes("/compare/"))).toBe(false);
+  expect(f.calls.at(-1)).toBe("/installation/token");
+});
+
+test("切替直前に head が変われば PR 情報と実際のブランチのどちらでも拒否する", async () => {
+  for (const source of ["pr", "ref"] as const) {
+    const f = staleFixture();
+    f.pullRequests.push(...Array.from({ length: 24 }, () => structuredClone(f.pr)));
+    if (source === "pr") f.pr.head.sha = "e".repeat(40);
+    else f.headRef.object.sha = "e".repeat(40);
+
+    await expect(f.github.resolveCheckout(f.job, "10")).rejects.toMatchObject({
+      reason: "head_changed",
+    });
+    expect(f.calls.at(-1)).toBe("/installation/token");
+  }
+});
+
+test("切替直前に進んだ base を再取得して固定する", async () => {
+  const f = staleFixture();
+  const started = clock.now;
+  const fetch = vi.mocked(globalThis.fetch);
+  const original = fetch.getMockImplementation()!;
+  fetch.mockImplementation(async (url, init) => {
+    if (clock.now - started >= 600000) f.baseRef.object.sha = "e".repeat(40);
+    return original(url, init);
+  });
+
+  expect(await f.github.resolveCheckout(f.job, "10")).toMatchObject({
+    checkoutSha: null,
+    baseSha: "e".repeat(40),
+  });
+  expect(f.calls.some((path) => path.includes(`/compare/${baseSha}...${"e".repeat(40)}`))).toBe(
+    true,
+  );
+});
+
+test.each(["/compare/", "/git/ref/heads/feature/context"])(
+  "切替直前の API 失敗を無視してローカルマージしない %s",
+  async (path) => {
+    const f = staleFixture();
+    const fetch = vi.mocked(globalThis.fetch);
+    const original = fetch.getMockImplementation()!;
+    fetch.mockImplementation(async (url, init) =>
+      decodeURIComponent(String(url)).includes(path)
+        ? Response.json({ message: "Not Found" }, { status: 404 })
+        : original(url, init),
+    );
+
+    await expect(f.github.resolveCheckout(f.job, "10")).rejects.toMatchObject({ status: 404 });
+    expect(f.calls.at(-1)).toBe("/installation/token");
+  },
+);
+
+test("ポーリング期限の中断後も新しい期限で再検証する", async () => {
+  const f = staleFixture();
+  const started = clock.now;
+  const timeout = new AbortController();
+  const originalTimeout = AbortSignal.timeout.bind(AbortSignal);
+  vi.spyOn(AbortSignal, "timeout").mockImplementation((ms) =>
+    ms === 600000 ? timeout.signal : originalTimeout(ms),
+  );
+  vi.mocked(delay).mockImplementation(async (ms, _value, options) => {
+    clock.now += Number(ms);
+    if (clock.now - started >= 600000)
+      timeout.abort(new DOMException("Readiness deadline", "TimeoutError"));
+    options?.signal?.throwIfAborted();
+  });
+
+  expect((await f.github.resolveCheckout(f.job, "10")).checkoutSha).toBeNull();
+  expect(timeout.signal.aborted).toBe(true);
+  expect(f.calls.at(-1)).toBe("/installation/token");
+});
+
+test.each(["timeout", "cancelled", "slow_response"])(
+  "切替直前の再検証も実行のキャンセルと30秒の期限に従う %s",
+  async (scenario) => {
+    const f = staleFixture();
+    const verificationTimeout = new AbortController();
+    const execution = new AbortController();
+    const originalTimeout = AbortSignal.timeout.bind(AbortSignal);
+    vi.spyOn(AbortSignal, "timeout").mockImplementation((ms) =>
+      ms === 30000 ? verificationTimeout.signal : originalTimeout(ms),
+    );
+    const fetch = vi.mocked(globalThis.fetch);
+    const original = fetch.getMockImplementation()!;
+    fetch.mockImplementation(async (url, init) => {
+      if (String(url).includes("/compare/")) {
+        if (scenario === "slow_response") clock.now += 30000;
+        else {
+          if (scenario === "cancelled") execution.abort(new Error("Build cancelled"));
+          else verificationTimeout.abort(new DOMException("Verification deadline", "TimeoutError"));
+          init?.signal?.throwIfAborted();
+        }
+      }
+      return original(url, init);
+    });
+
+    await expect(f.github.resolveCheckout(f.job, "10", execution.signal)).rejects.toMatchObject(
+      scenario === "cancelled"
+        ? { message: "Build cancelled" }
+        : { reason: "stale_merge", diagnostics: { attempts: 25 } },
+    );
+    expect(f.calls.at(-1)).toBe("/installation/token");
+  },
+);
+
+test("古い候補の後に計算中へ戻った場合は最新の観測結果を報告する", async () => {
   const f = fixture();
+  f.pullRequests.push({ ...f.pr });
   f.baseRef.object.sha = "d".repeat(40);
+  f.pr.mergeable = null;
+  f.pr.merge_commit_sha = null;
+
+  await expect(f.github.resolveCheckout(f.job, "10")).rejects.toMatchObject({
+    reason: "not_ready",
+    diagnostics: {
+      attempts: 24,
+      elapsedMs: 600000,
+      requestId: "ABCD:1234:5678",
+      headSha,
+    },
+  });
+  expect(f.calls.filter((path) => path.includes("/git/ref/"))).toHaveLength(1);
+});
+
+test("古い候補の再取得中に head が変わった場合はそのジョブを停止する", async () => {
+  const f = fixture();
+  f.pullRequests.push({ ...f.pr, head: { ...f.pr.head } });
+  f.baseRef.object.sha = "d".repeat(40);
+  f.pr.head.sha = "e".repeat(40);
 
   await expect(f.github.resolveCheckout(f.job, "10")).rejects.toThrow(
-    "Wait a moment and rerun this job",
+    new PullRequestCheckoutError("head_changed"),
   );
-  expect(f.calls.filter((path) => path.includes("/git/ref/"))).toHaveLength(24);
+  expect(delay).toHaveBeenCalledTimes(1);
   expect(f.calls.at(-1)).toBe("/installation/token");
+});
+
+test("診断情報に未検証の API 値や応答本文を含めない", async () => {
+  const f = fixture();
+  f.pr.merge_commit_sha = "private-invalid-sha";
+  const fetch = vi.mocked(globalThis.fetch);
+  const original = fetch.getMockImplementation()!;
+  fetch.mockImplementation(async (url, init) => {
+    if (String(url).endsWith("/pulls/7"))
+      return Response.json(
+        { ...f.pr, message: "private response body" },
+        { headers: { "x-github-request-id": "private token=value" } },
+      );
+    return original(url, init);
+  });
+
+  const error = await f.github.resolveCheckout(f.job, "10").catch((error: unknown) => error);
+  expect(error).toMatchObject({
+    reason: "not_ready",
+    diagnostics: { attempts: 24, elapsedMs: 600000, headSha },
+  });
+  expect(JSON.stringify(error)).not.toContain("private");
 });
 
 test("スラッシュを含む base ブランチ名も検証する", async () => {
@@ -310,9 +572,10 @@ test("マージコミットの404は期限まで再確認してトークンを�
   const f = fixture();
   f.commits.clear();
 
-  await expect(f.github.resolveCheckout(f.job, "10")).rejects.toThrow(
-    new PullRequestCheckoutError("not_ready"),
-  );
+  await expect(f.github.resolveCheckout(f.job, "10")).rejects.toMatchObject({
+    reason: "not_ready",
+    diagnostics: { attempts: 24, elapsedMs: 600000 },
+  });
   expect(f.calls.filter((path) => path.endsWith("/pulls/7"))).toHaveLength(24);
   expect(f.calls.at(-1)).toBe("/installation/token");
 });
@@ -361,9 +624,10 @@ test("API応答の時間も待機期限に含める", async () => {
     return original(url, init);
   });
 
-  await expect(f.github.resolveCheckout(f.job, "10")).rejects.toThrow(
-    new PullRequestCheckoutError("not_ready"),
-  );
+  await expect(f.github.resolveCheckout(f.job, "10")).rejects.toMatchObject({
+    reason: "not_ready",
+    diagnostics: { attempts: 12, elapsedMs: 600000 },
+  });
   expect(f.calls.filter((path) => path.endsWith("/pulls/7"))).toHaveLength(12);
   expect(delay).toHaveBeenCalledTimes(12);
   expect(f.calls.at(-1)).toBe("/installation/token");
@@ -386,9 +650,10 @@ test("準備待ちの期限は実行中のAPIを中断しトークンを失効�
     return original(url, init);
   });
 
-  await expect(f.github.resolveCheckout(f.job, "10")).rejects.toThrow(
-    new PullRequestCheckoutError("not_ready"),
-  );
+  await expect(f.github.resolveCheckout(f.job, "10")).rejects.toMatchObject({
+    reason: "not_ready",
+    diagnostics: { attempts: 1 },
+  });
   expect(delay).not.toHaveBeenCalled();
   expect(f.calls.at(-1)).toBe("/installation/token");
 });

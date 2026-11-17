@@ -14,9 +14,9 @@ async function main(): Promise<void> {
     !/^[a-z][a-z0-9-]*$/.test(execution)
   )
     throw new Error("Invalid executor input");
-  const dependencies = runtime(process.env, (reason, id) =>
+  const dependencies = runtime(process.env, (reason, id, checkout) =>
     process.stdout.write(
-      JSON.stringify({ severity: "WARNING", message: reason, dispatchId: id }) + "\n",
+      JSON.stringify({ severity: "WARNING", message: reason, dispatchId: id, checkout }) + "\n",
     ),
   );
   if (

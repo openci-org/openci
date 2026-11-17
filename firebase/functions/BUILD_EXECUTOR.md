@@ -63,6 +63,8 @@ a checkout token to the VM. Rerun the latest PR commit after a new push. A separ
 repository-scoped token with `pull_requests: read` and `contents: read` stays in
 Cloud Run and is revoked after resolving the checkout commit, including cancellation.
 The GitHub App must have both read permissions.
+The executor pins REST API version `2022-11-28`: version `2026-03-10`
+[removes `merge_commit_sha` from PR responses](https://docs.github.com/en/rest/about-the-rest-api/breaking-changes#version-2026-03-10).
 
 For an open PR, the executor waits up to ten minutes for GitHub's test merge
 commit, subject to the overall execution deadline, with polling delays of 1, 2,
@@ -72,14 +74,49 @@ commit (HTTP 404) is retried within the same deadline; other API failures are
 reported immediately. Each candidate is checked against the current
 `refs/heads/<base branch>` fetched from the verified repository, rather than
 `pr.base.sha`, which can retain an older PR snapshot. Its parents must match that base SHA
-and the job's saved head SHA. Conflicts, closed PRs, and unavailable or stale merge
+and the job's saved head SHA. Conflicts, closed PRs, and unavailable merge
 candidates fail the attempt. The execution pins the resolved merge SHA for checkout
 and writes the full checked-out SHA to its checkout log. GitHub Checks use the
 job's saved head SHA. Push builds check out their saved commit SHA.
 
+A mismatched base is retried through the same deadline. If the last observed
+candidate still has the saved head but a different base parent, the executor
+allows up to 30 more seconds to reread the PR, current base ref and merge commit.
+All source, state and saved-head checks apply again. A now-current GitHub merge
+is used normally. Otherwise, the compare API must prove that the candidate's
+base parent is an ancestor of the current base, and the actual head branch ref
+must still equal the saved head. Only then is a local merge selected. Diverged
+histories and unrelated synthetic parents cannot use this fallback. Unknown
+merge state, unavailable objects, API failures or cancellation never authorize
+it. The overall execution deadline still applies to the final verification.
+GitHub documents the
+[GET-and-poll procedure](https://docs.github.com/en/rest/guides/using-the-rest-api-to-interact-with-your-git-database#checking-mergeability-of-pull-requests),
+but a fresh candidate may remain unavailable within the deadline.
+
+The fallback fetches the full ancestry of the pinned base and head into the
+disposable VM and uses `git merge-tree --write-tree` and `git commit-tree` to
+create a two-parent test merge. VM images need Git 2.38 or later. Conflicts stop
+checkout before workflow execution or team-secret reads. The generated commit
+exists only in that VM: nothing is pushed and no PR or branch is modified. GitHub
+Checks still attach to the saved head. Full-history fetch and merge happen during
+the ordinary billed checkout step, including an attempt that finds conflicts;
+the readiness polling and final verification happen before billing admission.
+
+Operator logs record `pull_request_checkout_stale_merge` or
+`pull_request_checkout_not_ready`, with attempt count, elapsed time, the latest
+validated head/base/candidate SHAs and the last PR response's GitHub request ID
+when available. `pull_request_checkout_local_merge_selected` records the same
+diagnostics when the fallback is chosen; `pull_request_checkout_local_merge_completed`
+also records the generated checkout SHA. The checkout log identifies the fallback,
+pinned base/head and final SHA. Keep these for GitHub Support investigations. Only the fixed
+failure message is published to Checks and the dashboard; response bodies,
+credentials and unvalidated identifiers are excluded.
+
 The workflow receives `OPENCI_CONTEXT`, schema version 1 JSON containing the
 resolved checkout/event metadata plus repository, job, and run identity. PR base
 and head metadata come from the same validation that selected the merge commit.
+For a local merge, `checkoutSha` is the generated commit actually checked out;
+internal fallback diagnostics are excluded from the workflow context.
 The Dart SDK reads this lazily as `OpenCI.context`; deploy the executor before
 adopting that API. Context is a snapshot, not a check that a deployment is still
 current. The protocol contains no credentials or raw webhook payload.

@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { setTimeout as delay } from "node:timers/promises";
-import { PullRequestCheckoutError } from "./checkout_error.js";
+import { PullRequestCheckoutError, type MergeReadinessDiagnostics } from "./checkout_error.js";
 import {
   qrPublicationFailure,
   readPullRequestQrCodes,
@@ -8,6 +8,7 @@ import {
 } from "./pull_request_qr.js";
 import {
   checkoutScript,
+  localMergeConflictExitCode,
   prQrOutputReady,
   ExecutionStopped,
   identity,
@@ -41,7 +42,7 @@ export interface ExecutorDependencies {
     complimentary: Set<string>;
     selfHosted?: boolean;
   };
-  report: (reason: string, dispatchId: string) => void;
+  report: (reason: string, dispatchId: string, checkout?: MergeReadinessDiagnostics) => void;
 }
 
 export async function cleanupExecution(
@@ -159,12 +160,14 @@ export async function executeBuild(
     if (!context.team || !context.connection) throw new Error("GitHub connection is not active");
     // Guard existing/queued/rerun jobs as well as newly planned ones. A failed
     // check is terminal (not the billing "blocked" outcome, which requeues).
-    const resolvedCheckout = await github.resolveCheckout(
-      job,
-      context.connection.accountId,
-      signal,
-    );
+    let resolvedCheckout = await github.resolveCheckout(job, context.connection.accountId, signal);
     signal.throwIfAborted();
+    if (resolvedCheckout.checkoutSha === null)
+      dependencies.report(
+        "pull_request_checkout_local_merge_selected",
+        dispatch.id,
+        resolvedCheckout.fallback,
+      );
     if (configuration.selfHosted) {
       if (context.customer || context.stripe) {
         throw new Error("Self-hosted execution requires a deployment without Stripe accounts");
@@ -216,15 +219,40 @@ export async function executeBuild(
         checkout.token,
         Buffer.from(`x-access-token:${checkout.token}`).toString("base64"),
       ]);
+      let checkoutOutput = "";
       try {
         signal.throwIfAborted();
         const code = await orchard.exec(
           dispatch.vmName,
-          checkoutScript(resolvedCheckout.checkoutSha, checkout.cloneUrl, checkout.token),
-          output.write,
+          resolvedCheckout.checkoutSha === null
+            ? checkoutScript(
+                resolvedCheckout.headSha,
+                checkout.cloneUrl,
+                checkout.token,
+                resolvedCheckout.baseSha,
+              )
+            : checkoutScript(resolvedCheckout.checkoutSha, checkout.cloneUrl, checkout.token),
+          async (stream, data) => {
+            if (stream === "stdout")
+              checkoutOutput = (checkoutOutput + data.toString()).slice(-256);
+            await output.write(stream, data);
+          },
           signal,
         );
+        if (resolvedCheckout.checkoutSha === null && code === localMergeConflictExitCode)
+          throw new PullRequestCheckoutError("conflicts");
         if (code !== 0) throw new ExecutionStopped("failure");
+        if (resolvedCheckout.checkoutSha === null) {
+          const checkoutSha = checkoutOutput.trim().split(/\r?\n/).at(-1) ?? "";
+          if (!/^[a-f0-9]{40}(?:[a-f0-9]{24})?$/.test(checkoutSha))
+            throw new Error("Local merge did not return a checkout SHA");
+          const { fallback, ...context } = resolvedCheckout;
+          resolvedCheckout = { ...context, checkoutSha };
+          dependencies.report("pull_request_checkout_local_merge_completed", dispatch.id, {
+            ...fallback,
+            checkoutSha,
+          });
+        }
       } finally {
         try {
           await output.flush();
@@ -235,6 +263,7 @@ export async function executeBuild(
     });
     let qrCodes: PullRequestQrCode[] = [];
     await step("run_workflow", 2, async () => {
+      if (resolvedCheckout.checkoutSha === null) throw new Error("Unresolved PR merge checkout");
       const secrets = await dependencies.secrets(job.teamId!, signal);
       signal.throwIfAborted();
       const output = logs.output("run_workflow", Object.values(secrets));
@@ -276,7 +305,14 @@ export async function executeBuild(
   } catch (error) {
     const stopped = signal.aborted ? signal.reason : error;
     outcome = stopped instanceof ExecutionStopped ? stopped.outcome : "failure";
-    if (stopped instanceof PullRequestCheckoutError) failureSummary = stopped.message;
+    if (stopped instanceof PullRequestCheckoutError) {
+      failureSummary = stopped.message;
+      dependencies.report(
+        `pull_request_checkout_${stopped.reason}`,
+        dispatch.id,
+        stopped.diagnostics,
+      );
+    }
     dependencies.report(`execution_${outcome}`, dispatch.id);
   } finally {
     stopHeartbeat.abort();

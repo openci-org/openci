@@ -1,5 +1,5 @@
 import { setTimeout as delay } from "node:timers/promises";
-import { PullRequestCheckoutError } from "./checkout_error.js";
+import { PullRequestCheckoutError, type MergeReadinessDiagnostics } from "./checkout_error.js";
 import {
   qrPublicationFailure,
   publishPullRequestQrCodes,
@@ -11,7 +11,7 @@ import {
   type Dispatch,
   type Job,
   type Outcome,
-  type ResolvedCheckout,
+  type CheckoutPlan,
 } from "./model.js";
 import type { SkippedCheck } from "../skipped_checks.js";
 
@@ -24,6 +24,7 @@ const installationPermissions = {
 
 const mergeReadinessTimeoutMs = 600_000;
 const mergeReadinessMaxDelayMs = 30_000;
+const fallbackVerificationTimeoutMs = 30_000;
 
 export interface GitHubOptions {
   appId: string;
@@ -77,6 +78,8 @@ export class ExecutionGitHub {
     ]);
     const transport = request.defaults({
       baseUrl: this.options.apiBaseUrl,
+      // 2026-03-10 removes merge_commit_sha from PR responses.
+      headers: { "x-github-api-version": "2022-11-28" },
       request: {
         fetch: (url: string | URL | Request, init?: RequestInit) =>
           fetch(url, {
@@ -227,12 +230,8 @@ export class ExecutionGitHub {
     return String(data.id);
   }
 
-  /** Resolve the exact checkout and its event metadata as one snapshot. */
-  async resolveCheckout(
-    job: Job,
-    accountId: string,
-    signal?: AbortSignal,
-  ): Promise<ResolvedCheckout> {
+  /** Prefer GitHub's merge; revalidate a stale candidate before a local fallback. */
+  async resolveCheckout(job: Job, accountId: string, signal?: AbortSignal): Promise<CheckoutPlan> {
     signal?.throwIfAborted();
     if (!/^[a-fA-F0-9]{40}(?:[a-fA-F0-9]{24})?$/.test(job.commitSha ?? ""))
       throw new Error("Invalid commit SHA");
@@ -251,16 +250,28 @@ export class ExecutionGitHub {
     if (!/^[1-9][0-9]*$/.test(job.pullRequestNumber ?? "") || !Number.isSafeInteger(number))
       throw new Error("Invalid pull request metadata");
     const client = await this.client(job, "pull_request");
-    const deadline = Date.now() + mergeReadinessTimeoutMs;
+    const startedAt = Date.now();
+    const deadline = startedAt + mergeReadinessTimeoutMs;
     const readinessTimeout = AbortSignal.timeout(mergeReadinessTimeoutMs);
     const readinessSignal = AbortSignal.any([readinessTimeout, ...(signal ? [signal] : [])]);
+    let attempts = 0;
+    const readiness = { reason: "not_ready" as "not_ready" | "stale_merge" };
+    let observation: Omit<MergeReadinessDiagnostics, "attempts" | "elapsedMs"> = {};
+    const diagnostics = () => ({ ...observation, attempts, elapsedMs: Date.now() - startedAt });
+    const readinessError = () => new PullRequestCheckoutError(readiness.reason, diagnostics());
     try {
       readinessSignal.throwIfAborted();
-      const { data: repo } = await client.request("GET /repos/{owner}/{repo}", {
-        owner: job.owner,
-        repo: job.repo,
-        request: { signal: readinessSignal },
-      });
+      const { data: repo } = await client
+        .request("GET /repos/{owner}/{repo}", {
+          owner: job.owner,
+          repo: job.repo,
+          request: { signal: readinessSignal },
+        })
+        .catch((error: unknown) => {
+          signal?.throwIfAborted();
+          if (readinessTimeout.aborted) throw readinessError();
+          throw error;
+        });
       if (
         !Number.isSafeInteger(repo.id) ||
         repo.id <= 0 ||
@@ -270,26 +281,19 @@ export class ExecutionGitHub {
       )
         throw new Error("Untrusted pull request source");
 
-      // GET /pulls starts GitHub's asynchronous merge calculation. Reobserve
-      // the PR on each retry because its head or base may advance meanwhile.
-      // The deadline includes API time, and its signal also bounds in-flight
-      // requests. Back off to avoid polling every second for all parallel jobs.
-      for (let attempt = 0; Date.now() < deadline; attempt++) {
-        if (attempt > 0) {
-          await delay(
-            Math.min(1000 * 2 ** (attempt - 1), mergeReadinessMaxDelayMs, deadline - Date.now()),
-            undefined,
-            { signal: readinessSignal },
-          );
-        }
-        readinessSignal.throwIfAborted();
-        if (Date.now() >= deadline) break;
-        const { data: pr } = await client.request("GET /repos/{owner}/{repo}/pulls/{pull_number}", {
-          owner: job.owner,
-          repo: job.repo,
-          pull_number: number,
-          request: { signal: readinessSignal },
-        });
+      // Reuse every source/head/state check for polling and the final reread.
+      const readCandidate = async (readSignal: AbortSignal): Promise<CheckoutPlan | undefined> => {
+        readSignal.throwIfAborted();
+        attempts++;
+        const { data: pr, headers } = await client.request(
+          "GET /repos/{owner}/{repo}/pulls/{pull_number}",
+          {
+            owner: job.owner,
+            repo: job.repo,
+            pull_number: number,
+            request: { signal: readSignal },
+          },
+        );
         if (
           pr.number !== number ||
           pr.base?.repo?.id !== repo.id ||
@@ -305,8 +309,14 @@ export class ExecutionGitHub {
           throw new PullRequestCheckoutError("head_changed");
         if (pr.state !== "open" || pr.merged) throw new PullRequestCheckoutError("closed");
         if (pr.mergeable === false) throw new PullRequestCheckoutError("conflicts");
+        readiness.reason = "not_ready";
+        observation = { headSha: pr.head.sha };
+        const requestId = headers["x-github-request-id"];
+        if (requestId && /^[A-Za-z0-9:-]{1,128}$/.test(requestId))
+          observation.requestId = requestId;
         const mergeSha = pr.merge_commit_sha;
         if (pr.mergeable === true && mergeSha && /^[a-f0-9]{40}(?:[a-f0-9]{24})?$/.test(mergeSha)) {
+          observation.mergeSha = mergeSha;
           // PR metadata can retain an older base SHA even after GitHub has
           // regenerated the test merge commit. Read the actual branch ref
           // from the verified repository on every attempt instead.
@@ -315,10 +325,10 @@ export class ExecutionGitHub {
               owner: job.owner,
               repo: job.repo,
               ref: `heads/${pr.base.ref}`,
-              request: { signal: readinessSignal },
+              request: { signal: readSignal },
             })
             .catch(() => {
-              readinessSignal.throwIfAborted();
+              readSignal.throwIfAborted();
               throw new PullRequestCheckoutError("unavailable");
             });
           if (
@@ -327,15 +337,16 @@ export class ExecutionGitHub {
             !/^[a-f0-9]{40}(?:[a-f0-9]{24})?$/.test(base.object?.sha ?? "")
           )
             throw new Error("Untrusted pull request base ref");
+          observation.baseSha = base.object.sha;
           const { data: commit } = await client
             .request("GET /repos/{owner}/{repo}/git/commits/{commit_sha}", {
               owner: job.owner,
               repo: job.repo,
               commit_sha: mergeSha,
-              request: { signal: readinessSignal },
+              request: { signal: readSignal },
             })
             .catch((error: unknown) => {
-              readinessSignal.throwIfAborted();
+              readSignal.throwIfAborted();
               // GitHub can advertise the merge SHA before the Git object is
               // readable. Reobserve the PR instead of using the stale candidate.
               if ((error as { status?: number })?.status === 404) return { data: null };
@@ -346,13 +357,12 @@ export class ExecutionGitHub {
           if (
             commit?.sha === mergeSha &&
             commit.parents?.length === 2 &&
-            commit.parents[0].sha === base.object.sha &&
+            /^[a-f0-9]{40}(?:[a-f0-9]{24})?$/.test(commit.parents[0].sha) &&
             commit.parents[1].sha === pr.head.sha
           ) {
-            readinessSignal.throwIfAborted();
-            if (Date.now() >= deadline) throw new PullRequestCheckoutError("not_ready");
-            return {
-              event: "pull_request",
+            observation.mergeBaseSha = commit.parents[0].sha;
+            const candidate = {
+              event: "pull_request" as const,
               number,
               headBranch: pr.head.ref,
               baseBranch: pr.base.ref,
@@ -360,15 +370,94 @@ export class ExecutionGitHub {
               baseSha: base.object.sha,
               checkoutSha: mergeSha,
             };
+            if (commit.parents[0].sha !== base.object.sha) {
+              readiness.reason = "stale_merge";
+              return {
+                ...candidate,
+                checkoutSha: null,
+                fallback: { ...diagnostics(), mergeBaseSha: commit.parents[0].sha },
+              };
+            }
+            return candidate;
           }
         }
+        return undefined;
+      };
+
+      // GET /pulls requests GitHub's asynchronous calculation. The normal
+      // ten-minute budget includes API time and bounds in-flight requests.
+      try {
+        for (let attempt = 0; Date.now() < deadline; attempt++) {
+          if (attempt > 0) {
+            await delay(
+              Math.min(1000 * 2 ** (attempt - 1), mergeReadinessMaxDelayMs, deadline - Date.now()),
+              undefined,
+              { signal: readinessSignal },
+            );
+          }
+          readinessSignal.throwIfAborted();
+          if (Date.now() >= deadline) break;
+          const candidate = await readCandidate(readinessSignal);
+          readinessSignal.throwIfAborted();
+          if (Date.now() >= deadline) break;
+          if (candidate && candidate.checkoutSha !== null) return candidate;
+        }
+      } catch (error) {
+        signal?.throwIfAborted();
+        if (!readinessTimeout.aborted) throw error;
       }
-      throw new PullRequestCheckoutError("not_ready");
-    } catch (error) {
-      // Preserve execution cancellation/deadline errors ahead of readiness.
       signal?.throwIfAborted();
-      if (readinessTimeout.aborted) throw new PullRequestCheckoutError("not_ready");
-      throw error;
+      if (readiness.reason !== "stale_merge") throw readinessError();
+
+      // Never reuse a cached plan at timeout. Allow one bounded reread, then
+      // prove that the candidate's base is an ancestor of the pinned current
+      // base, excluding diverged histories and unrelated synthetic parents.
+      const verificationDeadline = Date.now() + fallbackVerificationTimeoutMs;
+      const verificationTimeout = AbortSignal.timeout(fallbackVerificationTimeoutMs);
+      const verificationSignal = AbortSignal.any([
+        verificationTimeout,
+        ...(signal ? [signal] : []),
+      ]);
+      try {
+        const candidate = await readCandidate(verificationSignal);
+        if (!candidate) throw readinessError();
+        if (candidate.checkoutSha === null) {
+          const { data: comparison } = await client.request(
+            "GET /repos/{owner}/{repo}/compare/{basehead}",
+            {
+              owner: job.owner,
+              repo: job.repo,
+              basehead: `${candidate.fallback.mergeBaseSha}...${candidate.baseSha}`,
+              per_page: 1,
+              request: { signal: verificationSignal },
+            },
+          );
+          if (
+            comparison.status !== "ahead" ||
+            comparison.base_commit.sha !== candidate.fallback.mergeBaseSha ||
+            comparison.merge_base_commit.sha !== candidate.fallback.mergeBaseSha
+          )
+            throw readinessError();
+          const { data: head } = await client.request("GET /repos/{owner}/{repo}/git/ref/{ref}", {
+            owner: job.owner,
+            repo: job.repo,
+            ref: `heads/${candidate.headBranch}`,
+            request: { signal: verificationSignal },
+          });
+          if (head.ref !== `refs/heads/${candidate.headBranch}` || head.object?.type !== "commit")
+            throw new Error("Untrusted pull request head ref");
+          if (head.object.sha !== candidate.headSha)
+            throw new PullRequestCheckoutError("head_changed");
+          candidate.fallback.elapsedMs = Date.now() - startedAt;
+        }
+        verificationSignal.throwIfAborted();
+        if (Date.now() >= verificationDeadline) throw readinessError();
+        return candidate;
+      } catch (error) {
+        signal?.throwIfAborted();
+        if (verificationTimeout.aborted) throw readinessError();
+        throw error;
+      }
     } finally {
       // Revoke independently of the execution signal, including cancellation.
       await client.request("DELETE /installation/token");
