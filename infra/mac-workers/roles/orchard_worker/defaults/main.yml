@@ -30,7 +30,7 @@ orchard_worker_arguments:
   - --no-pki
   - --bootstrap-token-stdin
   - --default-cpu
-  - "2"
+  - "4"
   - --default-memory
   - "4096"
   - --labels

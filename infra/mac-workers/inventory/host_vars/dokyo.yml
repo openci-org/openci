@@ -18,7 +18,7 @@ orchard_worker_arguments:
   - --name
   - "{{ orchard_worker_name }}"
   - --default-cpu
-  - "2"
+  - "4"
   - --default-memory
   - "4096"
   - --resources
