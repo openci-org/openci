@@ -552,24 +552,83 @@ test("temporary failures remain retryable; invalid source is terminal", async (t
   });
 });
 
-test("deleted refs, unconnected installations and unmatched workflows complete with zero jobs", async (t) => {
-  for (const mode of ["deleted", "unconnected", "unmatched"]) {
-    const f = await fixture(t, mode === "deleted" ? { deleted: true } : {});
-    if (mode === "unconnected")
-      await graphql(
-        `
-          mutation Suspend($id: String!) {
-            gitHubConnection_update(id: $id, data: { status: "suspended" })
+test("empty plans complete while unrelated builds and dispatches remain active", async (t) => {
+  const active = await autoCancelFixture(t);
+  await invoke(active.taskId);
+  const [running] = (await active.state()).buildJobs;
+  const dispatchId = randomUUID();
+  // Different revisions force both cancellation queries to evaluate the job IDs.
+  await graphql(
+    `
+      mutation StartUnrelatedBuild($jobId: String!, $dispatchId: String!, $newest: BuildJob_Data!) {
+        buildJob_insert(data: $newest)
+        buildJob_update(id: $jobId, data: { status: "IN_PROGRESS" })
+        buildJobDispatch_insert(
+          data: {
+            id: $dispatchId
+            jobId: $jobId
+            activeJobId: $jobId
+            vmName: $dispatchId
+            cpu: 2
+            memoryMiB: 4096
+            image: "base-macos"
+            cloudRunJob: "test-executor"
+            state: "running"
+            startDeadline: "2099-01-01T00:00:00Z"
+            createdAt: "2026-01-01T00:00:00Z"
+            updatedAt: "2026-01-01T00:00:00Z"
           }
-        `,
-        { id: f.connectionId },
-      );
-    if (mode === "unmatched")
-      f.github.files = [{ name: "main.dart", content: source("Main", "main") }];
-    assert.equal(await invoke(f.taskId), "created");
-    assert.deepEqual(await f.state(), {
-      webhookTask: { status: "completed", errorMessage: null },
-      buildJobs: [],
+        )
+      }
+    `,
+    {
+      jobId: running.id,
+      dispatchId,
+      newest: { ...running, id: randomUUID(), commitSha: "c".repeat(40) },
+    },
+  );
+  const before = await active.state();
+  const dispatchState = () =>
+    graphql(
+      `
+        query Dispatch($id: String!) {
+          buildJobDispatch(id: $id) {
+            activeJobId
+            state
+            updatedAt
+            finishedAt
+          }
+        }
+      `,
+      { id: dispatchId },
+    );
+  const beforeDispatch = await dispatchState();
+  try {
+    for (const mode of ["deleted", "unconnected", "unmatched"]) {
+      const f = await fixture(t, mode === "deleted" ? { deleted: true } : {});
+      if (mode === "unconnected")
+        await graphql(
+          `
+            mutation Suspend($id: String!) {
+              gitHubConnection_update(id: $id, data: { status: "suspended" })
+            }
+          `,
+          { id: f.connectionId },
+        );
+      if (mode === "unmatched")
+        f.github.files = [{ name: "main.dart", content: source("Main", "main") }];
+      assert.equal(await invoke(f.taskId), "created");
+      assert.deepEqual(await f.state(), {
+        webhookTask: { status: "completed", errorMessage: null },
+        buildJobs: [],
+      });
+      assert.equal(await invoke(f.taskId), "duplicate");
+      assert.deepEqual(await active.state(), before);
+      assert.deepEqual(await dispatchState(), beforeDispatch);
+    }
+  } finally {
+    await graphql("mutation CleanupDispatch($id: String!) { buildJobDispatch_delete(id: $id) }", {
+      id: dispatchId,
     });
   }
 });
@@ -664,8 +723,10 @@ const pushWorkflowFiles = [
   "dashboard_web_hosting.dart",
   "firebase_functions_ci.dart",
   "openci_shared_ci.dart",
+  "openci_workflow_cd.dart",
   "openci_workflow_ci.dart",
   "website_ci.dart",
+  "workflow_scripts_ci.dart",
 ];
 const prWorkflowFiles = [
   "dart_format_check.dart",
@@ -676,6 +737,7 @@ const prWorkflowFiles = [
   "openci_shared_ci.dart",
   "openci_workflow_ci.dart",
   "website_ci.dart",
+  "workflow_scripts_ci.dart",
 ];
 
 async function configurePathWorkflows(f) {
