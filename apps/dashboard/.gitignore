@@ -53,3 +53,8 @@ app.*.map.json
 /macos/Runner/GoogleService-Info.plist
 .firebase/
 sentry.properties
+
+# Patrol-generated test bundles and local test secrets
+**/test_bundle.dart
+**/patrol_test_bundle.dart
+.patrol.env

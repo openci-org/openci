@@ -1,0 +1,9 @@
+[mcp_servers.patrol_dashboard]
+command = "sh"
+args = ["-c", 'cd "$(git rev-parse --show-toplevel)/apps/dashboard" && exec dart run patrol_mcp']
+startup_timeout_sec = 60
+tool_timeout_sec = 1800
+
+[mcp_servers.patrol_dashboard.env]
+PROJECT_ROOT = "."
+SHOW_TERMINAL = "false"
