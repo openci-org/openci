@@ -49,6 +49,26 @@ dart run patrol_cli:main doctor
 dart run patrol_cli:main test --target patrol_test/app_startup_test.dart --device IOS_SIMULATOR_ID
 ```
 
+## Pull request CI
+
+The `Dashboard iOS Patrol` workflow in `openci/dashboard_ios_patrol_ci.dart`
+runs on pull requests targeting any branch when Dashboard or its dependencies
+change. It supplies the existing Firebase client configuration from OpenCI
+secrets and runs `openci/tool/run_dashboard_ios_patrol.sh` on a macOS worker.
+
+The script creates a fresh iPhone 17 Pro simulator using the newest available
+iOS 26 or later runtime, waits up to ten minutes for its first boot, and runs
+`app_startup_test.dart` with `patrol test`. Test failures fail the CI job. The
+simulator is shut down and deleted on exit, including after a test failure.
+Patrol CLI comes from the project's resolved dependencies.
+
+To run the same simulator setup, test, and cleanup locally after supplying the
+Firebase client files, run this from the repository root:
+
+```sh
+bash openci/tool/run_dashboard_ios_patrol.sh
+```
+
 ## Test coverage
 
 `app_startup_test.dart` calls the real Dashboard `main()` entrypoint, including
