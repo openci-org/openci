@@ -632,7 +632,7 @@ await openCI.firebase.functions.deploy(
 );
 ```
 
-Requires Node.js 22+ and npm/npx on the runner. The helper runs pinned Firebase CLI 15.34.2 with `deploy --only functions:api --project my-firebase-project --non-interactive`. Omit `codebase` to deploy all Functions codebases in the config. `firebaseConfigPath` defaults to `firebase.json` and is relative to the workflow directory, or `dir` when supplied; absolute config paths are accepted.
+The runner must provide `firebase` on `PATH` and a compatible Node.js runtime. The helper uses the installed CLI to run `firebase deploy --only functions:api --project my-firebase-project --non-interactive`. Omit `codebase` to deploy all Functions codebases in the config. `firebaseConfigPath` defaults to `firebase.json` and is relative to the workflow directory, or `dir` when supplied; absolute config paths are accepted.
 
 Provide a service account JSON key as a Base64-encoded OpenCI secret, with permission to deploy Functions to the destination project. The helper creates a temporary key file, passes its path as `GOOGLE_APPLICATION_CREDENTIALS` ([ADC](https://firebase.google.com/docs/cli#use_the_cli_with_ci_systems)), isolates Firebase's saved login, and deletes the temporary files on success or failure. It does not change the workflow process's environment.
 

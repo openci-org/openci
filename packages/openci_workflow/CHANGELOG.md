@@ -2,7 +2,7 @@
 
 ## 0.4.5
 
-- Add `firebase.functions.deploy()` using the Firebase CLI, with explicit project selection, optional codebase selection, and temporary service account authentication.
+- Add `firebase.functions.deploy()` using the installed Firebase CLI, with explicit project selection, optional codebase selection, and temporary service account authentication.
 
 ## 0.4.4
 

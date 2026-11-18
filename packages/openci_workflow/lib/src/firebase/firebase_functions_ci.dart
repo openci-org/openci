@@ -16,7 +16,7 @@ class FirebaseFunctionsCI {
 
   /// Deploys [codebase], or all Functions codebases when omitted.
   ///
-  /// Requires Node.js 22+ and npm/npx. Runs Firebase CLI 15.34.2 with
+  /// Requires `firebase` on PATH and its compatible Node.js runtime. Runs with
   /// `--non-interactive`, honoring the config's predeploy/postdeploy hooks.
   /// Prepare source dependencies and runtime environment files before calling.
   /// [firebaseConfigPath] is relative to the workflow directory, or [dir].
@@ -81,10 +81,8 @@ class FirebaseFunctionsCI {
         ..['XDG_CONFIG_HOME'] = temporary.path
         ..['CI'] = 'true';
       final result = await _processRunner(
-        'npx',
+        'firebase',
         [
-          '--yes',
-          'firebase-tools@15.34.2',
           'deploy',
           '--project=$projectId',
           '--config=$firebaseConfigPath',
@@ -96,8 +94,8 @@ class FirebaseFunctionsCI {
       );
       if (result != 0) {
         throw ProcessException(
-          'npx',
-          const ['firebase-tools@15.34.2', 'deploy'],
+          'firebase',
+          const ['deploy'],
           'Firebase Functions deployment failed. See the command output above.',
           result,
         );

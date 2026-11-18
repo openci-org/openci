@@ -32,10 +32,8 @@ void main() {
               required workingDirectory,
               required environment,
             }) async {
-              expect(executable, 'npx');
+              expect(executable, 'firebase');
               expect(args, [
-                '--yes',
-                'firebase-tools@15.34.2',
                 'deploy',
                 '--project=target-project',
                 r'--config=config space/$(echo literal).json',
@@ -100,7 +98,12 @@ void main() {
                   environment['GOOGLE_APPLICATION_CREDENTIALS']!,
                 ).parent;
                 if (startupFailure) {
-                  throw const ProcessException('npx', [], 'unavailable', 17);
+                  throw const ProcessException(
+                    'firebase',
+                    [],
+                    'unavailable',
+                    17,
+                  );
                 }
                 return 17;
               },
