@@ -134,6 +134,9 @@ launch daemon or a rename.
 
 ## Inventory and future hosts
 
+Set `orchard_worker_slots: 1` for M1-family Macs, including M1 Max, to limit
+each physical host to one running build VM at a time.
+
 The inventory records the actual installation paths and versions adopted on
 2026-11-01. Tart versions differ between existing hosts; package upgrades should
 be reviewed and tested separately from this configuration adoption. Dokyo's
