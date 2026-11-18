@@ -6,6 +6,12 @@ import 'package:openci_workflow/openci_workflow.dart' show Secret;
 
 /// References to OpenCI secrets, exposing their keys and runtime values.
 abstract final class Secrets {
+  /// The secret with the environment key `DASHBOARD_PATROL_EMAIL`.
+  static const dashboardPatrolEmail = Secret('DASHBOARD_PATROL_EMAIL');
+
+  /// The secret with the environment key `DASHBOARD_PATROL_PASSWORD`.
+  static const dashboardPatrolPassword = Secret('DASHBOARD_PATROL_PASSWORD');
+
   /// The secret with the environment key `FIREBASE_HOSTING_SERVICE_ACCOUNT_JSON_BASE64`.
   static const firebaseHostingServiceAccountJsonBase64 = Secret('FIREBASE_HOSTING_SERVICE_ACCOUNT_JSON_BASE64');
 
