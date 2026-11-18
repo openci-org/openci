@@ -62,6 +62,42 @@ void main() {
 
   tearDown(() => workspace.delete(recursive: true));
 
+  group('runBuildRunner', () {
+    test('builds once in the default or selected package', () async {
+      final calls = <(String, String)>[];
+      final workflow = OpenCI(
+        workflowName: 'Code generation',
+        ciTriggers: const [],
+        workspacePath: workspace.path,
+        currentWorkingDirectory: 'packages/default',
+        commandRunner: (command, {required workingDirectory}) async {
+          calls.add((command, workingDirectory));
+        },
+      );
+
+      await workflow.dart.runBuildRunner();
+      await workflow.dart.runBuildRunner(dir: 'packages/other app');
+
+      expect(calls, [
+        ('dart run build_runner build', '${workspace.path}/packages/default'),
+        ('dart run build_runner build', '${workspace.path}/packages/other app'),
+      ]);
+    });
+
+    test('fails when the package has no build_runner dependency', () async {
+      await expectLater(
+        ci.dart.runBuildRunner(),
+        throwsA(
+          isA<ProcessException>().having(
+            (error) => error.message,
+            'output',
+            contains('build_runner'),
+          ),
+        ),
+      );
+    });
+  });
+
   group('analyze', () {
     test('passes valid code in the workspace directory', () async {
       await writeFile('main.dart', 'void main() {}\n');

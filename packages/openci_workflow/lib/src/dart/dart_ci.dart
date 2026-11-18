@@ -11,6 +11,10 @@ class DartCI {
   final Future<void> Function(String command, {String? workingDirectory}) _run;
   final String Function(String? dir)? _resolveDirectory;
 
+  /// Runs a single code generation build with the target package's build_runner.
+  Future<void> runBuildRunner({String? dir}) =>
+      _run('dart run build_runner build', workingDirectory: dir);
+
   Future<void> analyze({
     String? dir,
     bool fatalInfos = false,
