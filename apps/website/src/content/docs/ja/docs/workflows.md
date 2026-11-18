@@ -5,7 +5,7 @@ description: 手順も、条件分岐も、関数も。アプリ開発で使っ�
 
 ## ワークフローの基本
 
-ワークフローは、リポジトリの `openci/` ディレクトリに置くDartファイルです。`OpenCI.init` でワークフローを初期化し、実行したいコマンドを順番に呼び出します。
+テストのある Dart パッケージで、次の例を `openci/dart_ci.dart` に保存します。`openci_workflow` 0.4.2 以降を使って、フォーマットの確認、静的解析、テストを順番に実行します。
 
 ```dart
 import 'package:openci_workflow/openci_workflow.dart';
@@ -13,24 +13,27 @@ import 'package:openci_workflow/openci_workflow.dart';
 Future<void> main() async {
   final ci = await OpenCI.init(
     workflowName: 'Dart checks',
-    ciTriggers: [CITrigger.push(branch: 'main')],
+    ciTriggers: [
+      CITrigger.pullRequest(branch: 'main'),
+      CITrigger.push(branch: 'main'),
+    ],
   );
 
   await ci.run('dart pub get');
-  await ci.run('dart analyze --fatal-infos');
-  await ci.run('dart test');
+  await ci.dart.checkFormat();
+  await ci.dart.analyze(fatalInfos: true);
+  await ci.dart.test();
 }
 ```
 
-> プランナーが実行前に読み取れるように、ワークフロー名とトリガーのブランチは文字列リテラルで定義してください。
+`checkFormat()` は Git の管理下にある Dart ファイルと、無視対象を除く新規の Dart ファイルの書式を確認します。ファイルへの書き込みは行いません。静的解析は既定で warning を失敗として扱います。`fatalInfos: true` を指定すると info でも失敗します。
 
 ## シェルコマンドを実行する
 
 `ci.run` は `sh` を使ってコマンドを実行します。標準出力・標準エラーがビルドログに表示され、失敗したコマンドの終了コードでワークフローが終了します。
 
 ```dart
-await ci.run('dart format --output=none --set-exit-if-changed .');
-await ci.run('dart analyze --fatal-infos');
+await ci.run('dart doc');
 ```
 
 コマンドに `await` を付けると、ひとつの処理が完了してから次の処理に進みます。
@@ -60,9 +63,10 @@ await ci.run(
 );
 ```
 
-ワークフロー全体の既定のディレクトリには、`OpenCI.init` の `currentWorkingDirectory` を使います。Flutterヘルパーは呼び出しごとの `dir` も指定できます。
+ワークフロー全体の既定のディレクトリは `OpenCI.init` の `currentWorkingDirectory` で設定します。Dart と Flutter のヘルパーでは、リポジトリルートからの相対パスを `dir` に渡すと、その呼び出しだけ実行先を変更できます。
 
 ```dart
+await ci.dart.test(dir: 'packages/shared');
 await ci.flutter.unitTests(dir: 'apps/mobile');
 ```
 
@@ -71,15 +75,28 @@ await ci.flutter.unitTests(dir: 'apps/mobile');
 リポジトリルートからDartファイルを実行します。
 
 ```sh
-dart run openci/flutter_ci.dart
+dart run openci/dart_ci.dart
 ```
 
 必要なSDKとビルドツールは、実行環境側に用意してください。詳しくは[クイックスタート](/ja/docs/quickstart/)を参照してください。
 
+## PR でテストしたコミットを確認する
+
+実行のきっかけになったイベントは `ci.context` で取得できます。PR の `headSha` は、その実行で使った作業ブランチの先端コミットです。`checkoutSha` を見ると、マージ先ブランチと組み合わせて実際にテストしたマージコミットが分かります。
+
+```dart
+final context = ci.context;
+if (context is PullRequestContext) {
+  print('PR #${context.number}: ${context.headBranch} → ${context.baseBranch}');
+  print('Tested merge: ${context.checkoutSha}');
+}
+```
+
+push の場合は `PushContext`、ローカル実行の場合は `LocalContext` になるため、この例は PR のときだけ情報を出力します。
+
 ## 古いPRのCIを自動キャンセルする
 
-`openci_workflow` 0.2.3と自動キャンセルに対応したサーバーで、`OpenCI.init`に
-`cancelPreviousRuns: true`を指定します。
+`openci_workflow` 0.2.3 以降と自動キャンセルに対応したサーバーで、`OpenCI.init` に `cancelPreviousRuns: true` を指定します。
 
 ```dart
 final ci = await OpenCI.init(

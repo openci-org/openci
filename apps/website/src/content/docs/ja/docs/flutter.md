@@ -1,7 +1,19 @@
 ---
 title: Flutterのビルドとテスト
-description: 静的解析からAPKのビルドまで。Flutterのためのヘルパーで、ワークフローを読みやすく。
+description: Flutter SDK のバージョンを指定し、単体テストと Patrol テストを実行して Android・iOS アプリをビルドします。
 ---
+
+## Flutter のバージョンを指定する
+
+`OpenCI.init` の `flutterVersion` に、アプリで使うバージョンを文字列リテラルで指定します。CI は依存関係を解決する前にそのバージョンを選択します。省略時はビルドイメージの既定の SDK が使われます。ローカル実行では、手元でパスの通っている Flutter SDK を使います。
+
+```dart
+final ci = await OpenCI.init(
+  workflowName: 'Flutter CI',
+  ciTriggers: [CITrigger.pullRequest(branch: 'main')],
+  flutterVersion: '3.47.8',
+);
+```
 
 ## 依存関係を取得する
 
@@ -25,6 +37,26 @@ await ci.flutter.unitTests();
 ```dart
 await ci.run('flutter analyze --fatal-infos');
 ```
+
+## iOS シミュレータで Patrol テストを実行する
+
+`openci_workflow` 0.4.4 以降では、シミュレータを起動してその端末 ID を Patrol に渡せます。ワークフローを実行する Mac に Xcode と対応する iOS シミュレータランタイムをインストールしてください。既定の端末は iPhone 17 Pro で、iOS 26 以降が必要です。
+
+アプリに Patrol 用の iOS テストターゲットを設定します。ヘルパーはプロジェクトの `patrol_cli` を実行するので、依存関係に含まれていなければ、アプリのディレクトリで `flutter pub add --dev patrol_cli` を実行してください。例のテストファイルはアプリ内のパスに置き換えます。[Patrol のセットアップ手順](https://patrol.leancode.co/documentation)
+
+```dart
+final simulator = await ci.launchIosSimulator();
+try {
+  await ci.patrol.test(
+    device: simulator.id,
+    targets: ['patrol_test/app_startup_test.dart'],
+  );
+} finally {
+  await simulator.dispose();
+}
+```
+
+`launchIosSimulator()` は新しく作成した端末の起動完了まで待ちます。テストに失敗した場合も `finally` でシミュレータを終了・削除し、ワークフローはテストの失敗を報告します。[OpenCI ダッシュボードで使っているワークフローの全文](https://github.com/openci-org/openci/blob/develop/openci/dashboard_ios_patrol_ci.dart)
 
 ## Androidをビルドする
 

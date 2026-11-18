@@ -7,11 +7,11 @@ description: いつものプロジェクトに、最初のワークフローを�
 
 このガイドでは、FlutterプロジェクトにDartのワークフローを追加し、ローカルで実行します。
 
-- Flutter / Dart SDKがインストールされていること
+- Dart 3.11.5 以降を含む Flutter SDK がインストールされていること
 - `flutter analyze` と `flutter test` を実行できるプロジェクトがあること
 - プロジェクトのルートディレクトリでターミナルを開いていること
 
-> Dartパッケージでも同じように使えます。SDKの追加には `dart pub add`、解析・テストには `dart analyze` と `dart test` を使ってください。
+> Dart パッケージの場合は `dart pub add --dev openci_workflow` で SDK を追加し、[Dart のワークフロー例](/ja/docs/workflows/)を使ってください。
 
 ## 01 SDKを追加する
 
@@ -59,9 +59,12 @@ dart run openci/flutter_ci.dart
 
 ## 04 CIで動かす準備
 
-リポジトリとGitHub Appの連携、チーム、実行マシンの準備ができたら、ワークフローをコミットして対象ブランチへpushします。`openci/` 内のDartファイルのトリガーが、GitHubイベントと照合されます。
+1. [Web ダッシュボード](https://dashboard.openci.org/)にサインインし、チームを選択または作成します。初めて登録する場合は Google アカウントを使います。
+2. チームの切り替え画面で「GitHubと連携」を開き、リポジトリを選んで連携を確定します。OpenCI の GitHub App がそのリポジトリにアクセスでき、操作する GitHub ユーザーが **Write** 以上の権限を持っていることを確認してください。
+3. OpenCI Cloud の場合は「設定 → 課金を管理」でチームの支払い設定を確認し、カード登録の案内があれば登録します。
+4. `openci/flutter_ci.dart` と依存関係の変更をコミットします。連携したリポジトリに作業ブランチを push し、`main` 向けの PR を開きます。PR のチェックに **Flutter CI** が表示されたら、ダッシュボードでジョブを開くと解析とテストのログを読めます。
 
-[ダッシュボードを開く](https://dashboard.openci.org/)と、ビルドの状況を確認できます。実行イベントの指定は[トリガー](/ja/docs/triggers/)を参照してください。
+この例は `main` への push でも実行されます。別のブランチを使う場合は、コミット前に両方のトリガーを変更してください。PR を積み重ねる場合や、特定のファイルが変わったときだけ実行する場合は[トリガー](/ja/docs/triggers/)を参照してください。
 
 ## 次にできること
 

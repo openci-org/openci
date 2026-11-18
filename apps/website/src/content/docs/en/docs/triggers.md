@@ -1,11 +1,11 @@
 ---
 title: Triggers
-description: Choose when CI runs. Connect your workflows to GitHub pushes and pull requests.
+description: Choose which branches, pull requests, tags, and changed files trigger a workflow.
 ---
 
 ## Run on push
 
-Trigger a workflow when a push reaches the specified branch.
+For a push, `branch` matches the branch that received the commits.
 
 ```dart
 ciTriggers: [
@@ -13,9 +13,11 @@ ciTriggers: [
 ],
 ```
 
+GitHub also sends tag pushes. For example, `CITrigger.push(branch: 'refs/tags/v*')` matches a tag named `v1.2.0`.
+
 ## Run on pull requests
 
-Use `CITrigger.pullRequest` to run checks for pull requests.
+OpenCI runs PR checks when the source and destination branches belong to the same connected repository. The `branch` value matches the **base branch** (the merge destination). This trigger runs for a PR from `feature/login` into `main`.
 
 ```dart
 ciTriggers: [
@@ -25,24 +27,45 @@ ciTriggers: [
 
 ## Combine triggers
 
-A list can contain multiple triggers. For example, run the same checks for pull requests targeting main and for pushes to main.
+In a stack of PRs, the second PR targets the first PR's branch. Use `branch: '*'` to check PRs targeting any branch. A separate push trigger can still restrict push builds to `main`. The workflow runs when any trigger matches.
 
 ```dart
 final ci = await OpenCI.init(
   workflowName: 'Flutter CI',
   ciTriggers: [
     CITrigger.push(branch: 'main'),
-    CITrigger.pullRequest(branch: 'main'),
+    CITrigger.pullRequest(branch: '*'),
   ],
 );
 ```
 
-> Change branch names to match your repository. Use string literals for workflow names and branches.
+## Run only when selected files change
+
+Add `paths` to the push or pull request trigger you want to filter. This PR check runs when a change touches the mobile app, its shared package, a package manifest, the lockfile, or the workflow itself.
+
+```dart
+ciTriggers: [
+  CITrigger.pullRequest(
+    branch: '*',
+    paths: [
+      'apps/mobile/**',
+      'packages/shared/**',
+      '**/pubspec.yaml',
+      'pubspec.lock',
+      'openci/flutter_ci.dart',
+    ],
+  ),
+],
+```
+
+Use a nonempty list of string literals relative to the repository root. Matches are case-sensitive. In a path, `*` matches within one segment and `**` can span directories. Omitting `paths` lets that trigger run for any change.
+
+OpenCI considers the full PR diff, or the changes between the previous and new commits for a push. When the complete diff contains no match, the GitHub check shows **Skipped** and no build machine starts. If the changed-file list is incomplete, OpenCI runs the check. Running the Dart file locally always executes the workflow directly.
 
 ## If a workflow does not run
 
-- Check that the workflow is in the repository's `openci/` directory.
-- Check the configured branch and the GitHub event.
+- Check that the workflow is a Dart file directly inside the repository's `openci/` directory.
+- Check the event and target branch. Use literal strings for the workflow name and branches so OpenCI can read them before execution.
 - Check that the GitHub App has access to the repository.
 - Check the dashboard for a created build and available build machines.
 
