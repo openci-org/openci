@@ -15,7 +15,9 @@ import {
   validateJob,
   workflowScript,
   type Dispatch,
+  type Job,
   type Outcome,
+  type ResolvedCheckout,
 } from "./model.js";
 import type { ExecutionStore } from "./store.js";
 import type { ExecutionBilling } from "./billing.js";
@@ -33,7 +35,11 @@ export interface ExecutorDependencies {
   >;
   orchard: Pick<OrchardExecutor, "create" | "ready" | "remove" | "exec" | "vmNames">;
   logs: (dispatch: Dispatch) => Pick<ExecutionLogs, "start" | "finish" | "output">;
-  secrets: (teamId: string, signal: AbortSignal) => Promise<Record<string, string>>;
+  secrets: (
+    job: Job,
+    checkout: ResolvedCheckout,
+    signal: AbortSignal,
+  ) => Promise<Record<string, string>>;
   stopExecution: (dispatch: Dispatch) => Promise<void>;
   configuration: {
     cloudRunJob: string;
@@ -264,7 +270,7 @@ export async function executeBuild(
     let qrCodes: PullRequestQrCode[] = [];
     await step("run_workflow", 2, async () => {
       if (resolvedCheckout.checkoutSha === null) throw new Error("Unresolved PR merge checkout");
-      const secrets = await dependencies.secrets(job.teamId!, signal);
+      const secrets = await dependencies.secrets(job, resolvedCheckout, signal);
       signal.throwIfAborted();
       const output = logs.output("run_workflow", Object.values(secrets));
       try {
