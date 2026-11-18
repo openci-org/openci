@@ -59,8 +59,8 @@ runs on pull requests targeting any branch and on pushes to `develop`, using
 the same path filters for changes to Dashboard or its dependencies.
 It supplies the Firebase client configuration and both login secrets from the
 team that runs this repository's CI. Use `openci register secret` for each
-credential. The workflow passes a temporary JSON file to Patrol with
-`--dart-define-from-file` and deletes it after the run.
+credential. The workflow passes both `Secret` references to
+`ci.patrol.test(env: [...])`. The test reads them with `String.fromEnvironment`.
 
 The workflow uses the API to create a fresh iPhone 17 Pro simulator with the newest
 compatible installed iOS runtime (iOS 26 or later), waits up to ten minutes for its

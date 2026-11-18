@@ -1,6 +1,3 @@
-import 'dart:convert';
-import 'dart:io';
-
 import 'package:openci_workflow/openci_workflow.dart';
 
 import 'generated/paths.g.dart';
@@ -55,38 +52,20 @@ Future<void> main() async {
     base64Content: Secrets.googleServiceInfoPlistBase64.value,
   );
 
-  final credentials = {
-    for (final secret in const [
-      Secrets.dashboardPatrolEmail,
-      Secrets.dashboardPatrolPassword,
-    ])
-      secret.key: secret.value,
-  };
-  if (credentials.values.any((value) => value.isEmpty)) {
-    throw StateError('Dashboard Patrol login secrets must be non-empty.');
-  }
-
-  final temp = await Directory.systemTemp.createTemp(
-    'openci-dashboard-patrol-',
+  final simulator = await ci.launchIosSimulator(
+    name: 'OpenCI Dashboard Patrol',
   );
   try {
-    final defines = File.fromUri(temp.uri.resolve('login.json'));
-    await defines.writeAsString(jsonEncode(credentials));
-
-    final simulator = await ci.launchIosSimulator(
-      name: 'OpenCI Dashboard Patrol',
+    await ci.patrol.test(
+      dir: dashboard,
+      device: simulator.id,
+      targets: ['patrol_test/app_startup_test.dart'],
+      env: [
+        Secrets.dashboardPatrolEmail,
+        Secrets.dashboardPatrolPassword,
+      ],
     );
-    try {
-      await ci.patrol.test(
-        dir: dashboard,
-        device: simulator.id,
-        targets: ['patrol_test/app_startup_test.dart'],
-        additionalArguments: ['--dart-define-from-file=${defines.path}'],
-      );
-    } finally {
-      await simulator.dispose();
-    }
   } finally {
-    await temp.delete(recursive: true);
+    await simulator.dispose();
   }
 }
