@@ -64,6 +64,7 @@ Future<String> runPlanner(
       fetchWorkflows: workflows.fetch,
       fetchChangedFiles: workflows.fetchChangedFiles,
       observePullRequest: workflows.observePullRequest,
+      resolveReleaseCommit: workflows.resolveReleaseCommit,
     );
     return await planner.process(taskId);
   } finally {
