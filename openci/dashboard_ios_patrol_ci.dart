@@ -60,6 +60,10 @@ Future<void> main() async {
       dir: dashboard,
       device: simulator.id,
       targets: ['patrol_test/app_startup_test.dart'],
+      env: [
+        Secrets.dashboardPatrolEmail,
+        Secrets.dashboardPatrolPassword,
+      ],
     );
   } finally {
     await simulator.dispose();
