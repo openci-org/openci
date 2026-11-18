@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.4.6
 
 - Add `dart.runBuildRunner()` to generate code once in the workflow directory or a package selected by `dir`.
 
