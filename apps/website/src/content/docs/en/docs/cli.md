@@ -16,7 +16,7 @@ If the command is not found, check the [Dart PATH configuration](https://dart.de
 
 ## Log in
 
-Use the same email address and password as the dashboard. Enter your password in the interactive prompt.
+`openci login` accepts an existing OpenCI email/password account. Enter your OpenCI email and password at the prompts. If you sign in only with Google, use the [web dashboard](https://dashboard.openci.org/) to manage your team's secrets. You can also run `openci sync --paths` locally without signing in.
 
 ```sh
 openci login

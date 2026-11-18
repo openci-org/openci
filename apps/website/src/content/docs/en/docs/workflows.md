@@ -5,7 +5,7 @@ description: Steps, conditionals, and functions. Bring the Dart you use for app 
 
 ## Workflow basics
 
-A workflow is a Dart file in your repository's `openci/` directory. Initialize it with `OpenCI.init`, then call the commands you want to run in order.
+Save this example as `openci/dart_ci.dart` in a Dart package with tests. It uses `openci_workflow` 0.4.2 or later to check formatting, analyze the package, and run its tests.
 
 ```dart
 import 'package:openci_workflow/openci_workflow.dart';
@@ -13,24 +13,27 @@ import 'package:openci_workflow/openci_workflow.dart';
 Future<void> main() async {
   final ci = await OpenCI.init(
     workflowName: 'Dart checks',
-    ciTriggers: [CITrigger.push(branch: 'main')],
+    ciTriggers: [
+      CITrigger.pullRequest(branch: 'main'),
+      CITrigger.push(branch: 'main'),
+    ],
   );
 
   await ci.run('dart pub get');
-  await ci.run('dart analyze --fatal-infos');
-  await ci.run('dart test');
+  await ci.dart.checkFormat();
+  await ci.dart.analyze(fatalInfos: true);
+  await ci.dart.test();
 }
 ```
 
-> Define workflow names and trigger branches as string literals so the planner can read them before execution.
+`checkFormat()` checks tracked and non-ignored new Dart files in the Git checkout without rewriting them. Analysis fails on warnings by default. Set `fatalInfos: true` to fail on info-level diagnostics too.
 
 ## Run shell commands
 
 `ci.run` executes commands using `sh`. Standard output and standard error appear in the build log. A failed command ends the workflow with that command's exit code.
 
 ```dart
-await ci.run('dart format --output=none --set-exit-if-changed .');
-await ci.run('dart analyze --fatal-infos');
+await ci.run('dart doc');
 ```
 
 Use `await` to wait for each command to finish before starting the next one.
@@ -60,9 +63,10 @@ await ci.run(
 );
 ```
 
-Use `currentWorkingDirectory` in `OpenCI.init` to set the workflow's default directory. Flutter helpers also accept a `dir` for individual calls.
+Use `currentWorkingDirectory` in `OpenCI.init` to set the workflow's default directory. The Dart and Flutter helpers accept a repository-relative `dir` that overrides the default for one call.
 
 ```dart
+await ci.dart.test(dir: 'packages/shared');
 await ci.flutter.unitTests(dir: 'apps/mobile');
 ```
 
@@ -71,15 +75,28 @@ await ci.flutter.unitTests(dir: 'apps/mobile');
 Run the Dart file from the repository root.
 
 ```sh
-dart run openci/flutter_ci.dart
+dart run openci/dart_ci.dart
 ```
 
 Install the required SDKs and build tools in the execution environment. See the [Quickstart](/en/docs/quickstart/) for details.
 
+## Identify the revision tested on a PR
+
+Read `ci.context` when a step needs the event that started the run. For a PR, `headSha` identifies the last commit on the source branch used for this run. `checkoutSha` identifies the merge commit OpenCI actually tested against the base branch.
+
+```dart
+final context = ci.context;
+if (context is PullRequestContext) {
+  print('PR #${context.number}: ${context.headBranch} → ${context.baseBranch}');
+  print('Tested merge: ${context.checkoutSha}');
+}
+```
+
+A push produces a `PushContext` and a local invocation produces a `LocalContext`, so the example prints these details only on a PR.
+
 ## Cancel older PR runs
 
-With `openci_workflow` 0.2.3 and a server supporting PR auto cancellation, add
-`cancelPreviousRuns: true` to `OpenCI.init`:
+With `openci_workflow` 0.2.3 or later and a server that supports PR auto-cancellation, enable `cancelPreviousRuns` in `OpenCI.init`.
 
 ```dart
 final ci = await OpenCI.init(

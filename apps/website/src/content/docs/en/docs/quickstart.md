@@ -7,11 +7,11 @@ description: Add your first workflow to a familiar project. Start by running ana
 
 This guide adds a Dart workflow to a Flutter project and runs it locally.
 
-- Install the Flutter / Dart SDK.
+- Install Flutter with Dart 3.11.5 or later.
 - Have a project where you can run `flutter analyze` and `flutter test`.
 - Open a terminal in the project root.
 
-> The same approach works for Dart packages. Use `dart pub add` to add the SDK, and `dart analyze` and `dart test` for checks.
+> For a Dart package, install the SDK with `dart pub add --dev openci_workflow` and follow the [Dart workflow example](/en/docs/workflows/).
 
 ## 01 Add the SDK
 
@@ -59,9 +59,12 @@ Analysis and test results appear in the terminal. Check that your workflow works
 
 ## 04 Prepare to run in CI
 
-Once your repository, GitHub App connection, team, and build machines are ready, commit the workflow and push it to the target branch. The triggers in Dart files under `openci/` are matched against GitHub events.
+1. Sign in to the [web dashboard](https://dashboard.openci.org/) and select or create a team. Use Google to create a new account.
+2. Open the team switcher and choose **Connect GitHub**. Select your repository and confirm the connection. The OpenCI GitHub App needs access to the repository, and your GitHub account needs **Write** access or higher.
+3. For OpenCI Cloud, check the team's billing status under **Settings → Manage billing**. Register a payment card if prompted.
+4. Commit `openci/flutter_ci.dart` and the dependency changes. Push your branch to the connected repository and open a pull request targeting `main`. Look for **Flutter CI** in the PR checks and open the job in the dashboard to see the analysis and test output.
 
-[Open the dashboard](https://dashboard.openci.org/) to check your builds. See [Triggers](/en/docs/triggers/) for event configuration.
+The example also runs on pushes to `main`. If your repository uses another branch, update both triggers before committing. See [Triggers](/en/docs/triggers/) to run checks on stacked PRs or selected files.
 
 ## Next steps
 
