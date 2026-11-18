@@ -191,7 +191,7 @@ void main() {
   });
 
   test(
-    'a lost observation reacquires the fence and verifies GitHub again',
+    'a stale PR delivery completes without reacquiring the current planning fence',
     () async {
       final store = _Store()
         ..pullRequest = true
@@ -216,13 +216,34 @@ void main() {
             : PullRequestObservation.stale,
       );
       expect(await planner.process('task'), 'created');
-      expect(fetches, 2);
+      expect(fetches, 1);
       expect(observations, 2);
-      expect(store.fences.map((fence) => fence.token).toSet(), hasLength(2));
+      expect(store.fences, hasLength(1));
       expect(store.published, isEmpty);
       expect(store.status, 'completed');
     },
   );
+
+  test('a failed PR recheck leaves the task pending for redelivery', () async {
+    final store = _Store()
+      ..pullRequest = true
+      ..conflictsRemaining = 1;
+    var observations = 0;
+    final planner = BuildJobPlanner(
+      store: store,
+      fetchWorkflows: (_) async => [],
+      observePullRequest: (_) async {
+        if (++observations == 2) throw StateError('GitHub unavailable');
+        return PullRequestObservation.current;
+      },
+    );
+
+    await expectLater(planner.process('task'), throwsStateError);
+    expect(store.status, 'pending');
+    expect(store.fences, hasLength(1));
+    expect(await planner.process('task'), 'created');
+    expect(store.status, 'completed');
+  });
 
   test(
     'sustained contention stays pending for durable event redelivery',

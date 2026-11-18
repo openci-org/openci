@@ -970,7 +970,7 @@ test("PR filtering and base retargets use the full PR diff with scoped PR-read p
   }
 });
 
-async function autoCancelFixture(t) {
+async function autoCancelFixture(t, payloadChange = {}) {
   const f = await fixture(
     t,
     {
@@ -982,6 +982,7 @@ async function autoCancelFixture(t) {
         head: { sha, ref: "feature", repo: { id: 10 } },
         base: { sha: beforeSha, ref: "main", repo: { id: 10 } },
       },
+      ...payloadChange,
     },
     "pull_request",
   );
@@ -998,6 +999,8 @@ async function autoCancelFixture(t) {
 
 async function nextRevision(f, headSha, makeCurrent = true) {
   const payload = structuredClone(f.payload);
+  payload.action = "synchronize";
+  delete payload.changes;
   payload.pull_request.head.sha = headSha;
   f.github.revisions.add(headSha);
   if (makeCurrent) f.github.pullRequest = payload.pull_request;
@@ -1173,6 +1176,35 @@ test("a stale in-flight GitHub response cannot overwrite a newer completed PR pl
   assert.deepEqual(
     ci.map((j) => [j.commitSha, j.status]),
     [["c".repeat(40), "QUEUED"]],
+  );
+});
+
+test("a stale base change completes while the force-pushed revision still owns the fence", async (t) => {
+  const f = await autoCancelFixture(t, {
+    action: "edited",
+    changes: { base: { ref: { from: "stack-parent" } } },
+  });
+  const currentSha = "c".repeat(40);
+  let currentCompletion;
+  // GitHub has captured the old head for this read. Acquire the new revision's
+  // fence before delivering that response to the first planner.
+  f.github.onPullRequest = async () => {
+    const currentTask = await nextRevision(f, currentSha);
+    const fence = await beginPlanning(f, currentTask);
+    currentCompletion = completion(f, currentTask, fence, currentSha);
+  };
+
+  assert.equal(await invoke(f.taskId), "created");
+  const before = await f.state();
+  assert.equal(before.webhookTask.status, "completed");
+  assert.deepEqual(before.buildJobs, []);
+
+  await sdk.completeWebhookTask(dc, currentCompletion);
+  assert.equal(await invoke(f.taskId), "duplicate");
+  const { buildJobs } = await f.state();
+  assert.deepEqual(
+    buildJobs.map((job) => job.commitSha),
+    [currentSha],
   );
 });
 
