@@ -129,8 +129,16 @@ Cancellation and later attempts clear the job summary, and an obsolete dispatch
 cannot overwrite a newer attempt's summary. Deploy the additive schema and
 updated `dispatch` connector before deploying the executor that writes the message.
 
-Only the team's pinned Secret Manager versions are injected into the workflow.
-Google credentials, Orchard credentials and the GitHub App key never enter the VM.
+By default, only the team's pinned Secret Manager versions are injected into the
+workflow. The executor's Google credentials, Orchard credentials and GitHub App
+key never enter the VM.
+
+The opt-in [production TypeScript Functions CD](FUNCTIONS_CD.md) additionally
+receives a dedicated deployment SA and runtime configuration from pinned
+infrastructure secrets. These are gated by verified push context, team,
+repository and workflow identity before secret access. They are filtered out of
+ordinary team-secret injection for every other run. The executor's own Google
+credentials still never enter the VM.
 
 `openCI.pullRequest.postQrCode` requests a QR code for a workflow-supplied URL.
 After the workflow succeeds, Cloud Run validates the URLs, language, size, and
