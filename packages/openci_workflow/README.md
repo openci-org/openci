@@ -328,6 +328,7 @@ try {
     dir: 'apps/dashboard',
     device: simulator.id,
     targets: ['patrol_test/app_startup_test.dart'],
+    env: [Secrets.dashboardPatrolEmail, Secrets.dashboardPatrolPassword],
   );
 } finally {
   await simulator.dispose();
@@ -351,6 +352,10 @@ await openCI.patrol.test(
 ```
 
 `device` is required. Omit `targets` to use Patrol's configured test directory.
+`env` accepts generated `Secret` references with non-empty values. Use
+`String.fromEnvironment` in the test to read a value by its original key.
+The SDK passes a temporary JSON file to Patrol and deletes it when the command
+finishes.
 `dir` overrides the workflow's working directory for this call. Additional CLI
 arguments are passed individually without shell expansion; Patrol's own parsing
 rules still apply. Command output streams to the workflow log. Nonzero exits

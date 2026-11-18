@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.8
+
+- Add an optional `env` list to `patrol.test()` for passing `Secret` values to tests as Dart defines. Tests can read each value by its original key with `String.fromEnvironment`.
+
 ## 0.4.6
 
 - Add `dart.runBuildRunner()` to generate code once in the workflow directory or a package selected by `dir`.

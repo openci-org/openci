@@ -1,8 +1,10 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:meta/meta.dart';
 
-/// Runs the project's resolved Patrol CLI using the workflow's Dart toolchain.
+import '../secret.dart';
+
 class PatrolCI {
   const PatrolCI(
     this._resolveDirectory, {
@@ -12,23 +14,11 @@ class PatrolCI {
   final String Function(String? dir) _resolveDirectory;
   final PatrolProcessRunner _processRunner;
 
-  /// Builds and runs Patrol tests on an available [device] ID or name.
-  ///
-  /// Runs `dart run patrol_cli:main test` in the workflow directory, or [dir].
-  /// The project must resolve `patrol_cli` and have Patrol's native setup.
-  /// This does not install the CLI or provision a device.
-  ///
-  /// Empty [targets] uses Patrol's configured test directory. Each item in
-  /// [additionalArguments] is one CLI argument, passed without a shell; Patrol's
-  /// own argument parsing still applies. Use it for flavors, Dart defines, tags,
-  /// build modes, or other CLI options.
-  ///
-  /// Output streams to the workflow log. A nonzero exit throws [ProcessException]
-  /// instead of terminating the workflow process, so `finally` can clean up.
   Future<void> test({
     required String device,
     String? dir,
     List<String> targets = const [],
+    List<Secret> env = const [],
     bool verbose = false,
     List<String> additionalArguments = const [],
   }) async {
@@ -42,28 +32,49 @@ class PatrolCI {
         'Targets must not be empty.',
       );
     }
-    final result = await _processRunner(
-      'dart',
-      [
-        'run',
-        'patrol_cli:main',
-        if (verbose) '--verbose',
-        'test',
-        '--device',
-        device,
-        for (final target in targets) ...['--target', target],
-        ...additionalArguments,
-      ],
-      workingDirectory: _resolveDirectory(dir),
-    );
-    if (result != 0) {
-      // Additional arguments may contain credentials. Keep them out of errors.
-      throw ProcessException(
+    final values = <String, String>{};
+    for (final secret in env) {
+      final value = secret.value;
+      if (value.isEmpty) {
+        throw StateError("Secret '${secret.key}' is empty.");
+      }
+      values[secret.key] = value;
+    }
+    Directory? temp;
+    try {
+      File? defines;
+      if (values.isNotEmpty) {
+        temp = await Directory.systemTemp.createTemp('openci-patrol-');
+        defines = File.fromUri(temp.uri.resolve('defines.json'));
+        await defines.writeAsString(jsonEncode(values));
+      }
+      final result = await _processRunner(
         'dart',
-        const ['run', 'patrol_cli:main', 'test'],
-        'Patrol tests failed. See the command output above.',
-        result,
+        [
+          'run',
+          'patrol_cli:main',
+          if (verbose) '--verbose',
+          'test',
+          '--device',
+          device,
+          for (final target in targets) ...['--target', target],
+          if (defines != null)
+            '--dart-define-from-file=${defines.absolute.path}',
+          ...additionalArguments,
+        ],
+        workingDirectory: _resolveDirectory(dir),
       );
+      if (result != 0) {
+        // Additional arguments may contain credentials. Keep them out of errors.
+        throw ProcessException(
+          'dart',
+          const ['run', 'patrol_cli:main', 'test'],
+          'Patrol tests failed. See the command output above.',
+          result,
+        );
+      }
+    } finally {
+      await temp?.delete(recursive: true);
     }
   }
 }
