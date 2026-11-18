@@ -717,6 +717,7 @@ test("end users cannot read tasks, publish builds, or fail tasks", async (t) => 
 const pushWorkflowFiles = [
   "dart_format_check.dart",
   "dart_functions_ci.dart",
+  "dashboard_ios_patrol_ci.dart",
   "dashboard_macos_cd.dart",
   "dashboard_play_aab.dart",
   "dashboard_testflight_ipa.dart",
@@ -731,6 +732,7 @@ const pushWorkflowFiles = [
 const prWorkflowFiles = [
   "dart_format_check.dart",
   "dart_functions_ci.dart",
+  "dashboard_ios_patrol_ci.dart",
   "dashboard_web_hosting.dart",
   "firebase_functions_ci.dart",
   "macos_release_ci.dart",
