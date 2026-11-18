@@ -65,8 +65,9 @@ node_modules/
 # dotenv environment variables file
 .env
 
-# Flutter web build output for hosting
+# Generated Hosting content
 public/
+/public_landing/
 
 # Compiled Functions and emulator-only secret values
 lib/
