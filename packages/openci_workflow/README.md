@@ -243,6 +243,13 @@ PR closes or its head changes during the build, OpenCI skips the comment.
 
 ### Run commands
 
+For packages that depend on `build_runner`, generate code before analysis or tests.
+The build runs in the workflow directory, or in the package selected by `dir`.
+
+```dart
+await openCI.dart.runBuildRunner();
+```
+
 Analyze Dart code with the installed SDK:
 
 ```dart

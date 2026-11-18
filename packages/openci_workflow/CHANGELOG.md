@@ -1,8 +1,12 @@
 # Changelog
 
-## 0.4.5
+## 0.4.7
 
 - Add `firebase.functions.deploy()` using the installed Firebase CLI, with explicit project selection, optional codebase selection, and temporary service account authentication.
+
+## 0.4.6
+
+- Add `dart.runBuildRunner()` to generate code once in the workflow directory or a package selected by `dir`.
 
 ## 0.4.4
 
