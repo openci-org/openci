@@ -18,9 +18,10 @@ in `firebase/generated/webhooks-admin`.
 
 The receiver uses [`@octokit/webhooks`](https://github.com/octokit/webhooks.js)
 for signature verification, JSON parsing, and event dispatch.
-`webhooks.on()` selects `push` and `pull_request.opened`,
-`pull_request.synchronize`, and `pull_request.reopened`, matching the existing
-server's trigger selection. Other signed JSON events, including `ping`, are
+`webhooks.on()` selects `push`, `pull_request.opened`,
+`pull_request.synchronize`, `pull_request.reopened`, `pull_request.closed`,
+base-branch edits, and `release.published` for non-draft releases.
+Other signed JSON events, including `ping`, are
 acknowledged without creating a task. Firebase's parsed body is checked for an
 object and a string action; signature verification and storage use the strictly
 decoded original UTF-8 body, without JSON reserialization.
@@ -53,6 +54,20 @@ GitHub metadata, resolves the active connection, obtains a repository-scoped
 read-only installation token, fetches `openci/*.dart` at the webhook SHA, applies
 the migrated AST parser, and saves the matching BuildJobs. Repository identity
 and commit access are verified before source is fetched; source is never run.
+
+Release publication resolves `release.tag_name` through the Git references API,
+peeling annotated tags to a commit. It does not build `target_commitish`, which
+can name a moving branch. The resolved SHA is used for both workflow reads and
+the persisted build job. `CITrigger.release(tag: 'v*')` matches only publication,
+including pre-releases, while push triggers remain independent. The existing
+non-PR executor checks out the saved SHA and exposes `refs/tags/<tag>` in context.
+
+Before enabling release workflows, deploy the updated `webhooks` connector,
+the Dart `process-webhook-task` planner, and the `githubWebhookFsc` receiver.
+Then subscribe the GitHub App to **Release** events (Contents read permission is
+required) and use SDK 0.5.0 or later. Workflow files must exist at the release's
+tagged commit. Local verification does not deploy these components or change
+the GitHub App subscription.
 
 `CompleteWebhookTask` atomically inserts all matching `QUEUED` BuildJobs and
 completes the pending task. It supplies the team/installation from the stored

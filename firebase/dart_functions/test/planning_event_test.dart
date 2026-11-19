@@ -19,6 +19,99 @@ void main() {
     'head_commit': {'id': sha, 'message': 'Commit\nBody'},
   };
 
+  Map<String, Object?> release({
+    String action = 'published',
+    Object? tag = 'v1.2.0',
+    Object? draft = false,
+  }) => {
+    'installation': {'id': 30},
+    'repository': repository,
+    'action': action,
+    'release': {
+      'id': 40,
+      'tag_name': tag,
+      'draft': draft,
+      'target_commitish': 'main',
+    },
+  };
+
+  test('published releases await tag resolution instead of using a branch', () {
+    final event = PlanningEvent.parse('release', jsonEncode(release()))!;
+    expect(event.isRelease, isTrue);
+    expect(event.webhook.commitSha, isEmpty);
+    expect(event.webhook.branch, 'refs/tags/v1.2.0');
+    expect(event.webhook.triggerBranch, 'v1.2.0');
+    expect(event.webhook.triggerType, 'release');
+    expect(event.webhook.pullRequestNumber, isNull);
+    final pinned = event.withReleaseCommit(sha);
+    expect(pinned.webhook.commitSha, sha);
+    expect(pinned.webhook.branch, event.webhook.branch);
+    expect(pinned.repositoryId, 10);
+    expect(pinned.ownerId, 20);
+    for (final badSha in ['main', '0' * 40, 'a' * 39]) {
+      expect(
+        () => event.withReleaseCommit(badSha),
+        throwsA(isA<InvalidPlanningInput>()),
+      );
+    }
+  });
+
+  test('drafts and non-publication release actions do not plan jobs', () {
+    for (final action in [
+      'created',
+      'edited',
+      'deleted',
+      'unpublished',
+      'prereleased',
+      'released',
+    ]) {
+      expect(
+        PlanningEvent.parse('release', jsonEncode(release(action: action))),
+        isNull,
+      );
+    }
+    expect(
+      PlanningEvent.parse('release', jsonEncode(release(draft: true))),
+      isNull,
+    );
+  });
+
+  test('release tags are valid complete Git tag names', () {
+    for (final tag in <Object?>[
+      null,
+      1,
+      '',
+      '/v1',
+      'v1/',
+      'v1//rc',
+      'v1..rc',
+      'v1@{0}',
+      'v1.lock',
+      'v1/.rc',
+      'v1.',
+      'v1\n',
+      'v1?',
+      '../main',
+      r'v1\rc',
+    ]) {
+      expect(
+        () => PlanningEvent.parse('release', jsonEncode(release(tag: tag))),
+        throwsA(isA<InvalidPlanningInput>()),
+        reason: '$tag',
+      );
+    }
+    for (final tag in ['v1.2.0', 'mobile/v1.2.0+41', 'v1.2.0-rc.1']) {
+      expect(
+        PlanningEvent.parse('release', jsonEncode(release(tag: tag))),
+        isNotNull,
+      );
+    }
+    expect(
+      () => PlanningEvent.parse('release', jsonEncode(release(draft: null))),
+      throwsA(isA<InvalidPlanningInput>()),
+    );
+  });
+
   test('validates push identity while reusing the migrated payload parser', () {
     final event = PlanningEvent.parse('push', jsonEncode(push))!;
     expect(event.repositoryId, 10);

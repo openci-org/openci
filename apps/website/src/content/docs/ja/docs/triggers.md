@@ -15,6 +15,18 @@ ciTriggers: [
 
 タグの push も対象にできます。たとえば `CITrigger.push(branch: 'refs/tags/v*')` は `v1.2.0` タグの push に一致します。
 
+## GitHub Releaseの公開で実行する
+
+```dart
+ciTriggers: [
+  CITrigger.release(tag: 'v*'),
+],
+```
+
+SDK 0.5.0 以降の `release` は、プレリリースを含む Release の公開時に実行されます。`tag` を省略するとすべてのタグが対象になります。ドラフト保存、説明の編集、タグだけの push では起動しません。`tag` には `refs/tags/` を付けず、タグ名または `*` を含むパターンを文字列リテラルで指定します。`paths` は使えません。
+
+ワークフローの読み取りとビルドには、Release のタグが指すコミットを使います。そのコミットにワークフローを含めてください。OpenCI 側の Release イベント対応のデプロイと、GitHub App での **Release** イベントの購読および Contents の読み取り権限が必要です。
+
 ## pull requestで実行する
 
 PR のチェックは、作業ブランチとマージ先が同じ連携済みリポジトリにある場合に実行されます。`branch` に指定するのは **マージ先（ベースブランチ）** です。この例では `feature/login` から `main` に向けた PR でチェックが動きます。

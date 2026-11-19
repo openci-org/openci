@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.0
+
+- Add `CITrigger.release(tag: 'v*')` for GitHub Release publication. Omitting `tag` accepts every published release, including pre-releases. Requires the updated webhook planner and a GitHub App subscribed to Release events.
+- **Breaking:** `CITrigger` has a third union case. Update exhaustive pattern matches; `branch` and `paths` are null for release triggers. Use `copyWith` on a specific union case instead of the base `CITrigger` type.
+
 ## 0.4.8
 
 - Add an optional `env` list to `patrol.test()` for passing `Secret` values to tests as Dart defines. Tests can read each value by its original key with `String.fromEnvironment`.
