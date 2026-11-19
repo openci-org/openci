@@ -1,12 +1,12 @@
-# Production TypeScript Functions CD
+# Production Functions CD
 
 `openci/firebase_functions_cd.dart` runs on every push to `develop`. Dependency
 installation, formatting, analysis and tests are listed directly in the Dart
-workflow, without shell-script wrappers. It runs the existing Functions checks
-against the checked-out commit, then uses Firebase CLI
-15.34.2 to deploy only the `openci` codebase to `openci-b1b91`. The temporary
-Firebase configuration contains only that TypeScript codebase. Dart planner,
-Hosting, Data Connect and the Cloud Run executor are separate deployments.
+workflow. It checks the TypeScript Functions and runs Dart analysis and tests
+in `firebase/dart_functions` against the same commit. Firebase CLI 15.37.0
+then deploys the TypeScript `openci` and Dart `openci-planner` codebases to
+`openci-b1b91` under one lock. The CLI uses its `dartfunctions` experiment
+to generate the planner manifest and compile the Linux executable.
 
 Every push gets a job, including changes unrelated to Functions. After obtaining
 the shared lock, the job checks the live `develop` ref and skips if superseded.
@@ -22,6 +22,9 @@ JSON key to a mode-0600 file outside the source tree and sets
 `GOOGLE_APPLICATION_CREDENTIALS` for the Firebase CLI process. This is
 [Application Default Credentials](https://firebase.google.com/docs/cli#use_the_cli_with_ci_systems).
 The CLI uses an isolated configuration directory, with `FIREBASE_TOKEN` removed.
+It sets `FIREBASE_SKIP_INFORMATIONAL_IAM=true` because the CLI otherwise requires
+access to the default App Engine account during its preliminary check. Google
+Cloud authorizes each deployment using the configured runtime and build identities.
 Temporary files are deleted on normal exit or failure; executor VM destruction
 removes them after an abrupt interruption.
 
@@ -30,7 +33,9 @@ Provision these resources before enabling the workflow:
 1. The dedicated deployment service account. Grant the permissions required for
    [Firebase Functions deployment](https://firebase.google.com/docs/projects/iam/permissions),
    including Functions administration and `iam.serviceAccounts.actAs` on the
-   Functions' runtime/build service accounts. Scope access to existing runtime
+   Functions' runtime/build service accounts, including the planner identity.
+   The deployment account needs permission to update the planner Cloud Run
+   service and read and set its invocation policy. Scope access to existing runtime
    Secret Manager metadata and any trigger/build services as required by the
    current deployment. Do not give it Owner or Editor. Verify these permissions
    with a supervised deployment before enabling automatic production changes.
@@ -43,7 +48,11 @@ Provision these resources before enabling the workflow:
    configuration for `firebase/.env.openci-b1b91`. Encode without line wrapping.
    Keep runtime secrets such as GitHub private keys in their existing bindings;
    the dotenv file contains the reviewed runtime configuration and parameter
-   values. Missing required parameters fail the job before deployment.
+   values. The Dart dotenv receives the shared GitHub App ID and any configured
+   GitHub URLs, Data Connect service ID or planner runtime account.
+   `OPENCI_PLANNER_INVOKER` is set to the Node API service account from
+   `OPENCI_API_SERVICE_ACCOUNT` (default `openci-functions` in this project).
+   The planner continues to read its GitHub private key from Secret Manager.
 4. Grant the executor's service account access to those two secret versions and
    configure the following **executor Cloud Run Job** environment variables:
 
@@ -78,25 +87,31 @@ in progress. Unlocking uses the acquired object's exact generation.
 
 The single deployment helper, `firebase/scripts/deploy-functions.mjs`, handles
 ADC files, the shared lock, Firebase CLI execution and the smoke check. The
-workflow reads `.node-version` and `package.json`'s `packageManager`, and uses
-`npx --package` to run every command with those pinned Node/npm versions. The
-worker needs an existing `npx` executable to bootstrap them.
+workflow selects the Node version in `.node-version` using
+`openci/tool/with_node.sh`. On `base-macos` it can use the existing mise
+installation even when the initial workflow PATH has no Node or npm. The
+helper verifies the Node distribution checksum when a download is needed.
+The selected Node installation's npm runs the version in `package.json`'s
+`packageManager`. The workspace scripts use the lockfile's Vite+ for formatting,
+lint and Vitest. At deployment time, npm runs the `firebase` executable from the
+pinned `firebase-tools` package.
 
 The script passes `--non-interactive` and never passes `--force`. Removed or
 renamed Functions that require deletion must be handled in a separate reviewed
 rollout. It refuses to overwrite existing local dotenv or generated config files;
 run it in a clean checkout. Node, npm and Firebase CLI versions are pinned.
 
-After deployment, a GET to `githubWebhookFsc` must return the handler's expected
-405 response. This checks startup/routing without creating a webhook or build;
-it is not an end-to-end test of planning, billing or dispatch. Only then does the
-script write the commit/run identity to `production/openci/last-success.json`
-and release the lock. GitHub Checks reports the workflow outcome as usual.
+After deployment, a GET to `githubWebhookFsc` must return 405. An anonymous
+GET to the configured planner URL must return 403, and the planner service's
+invocation policy must grant the Node API account access. Both probes use GET
+to avoid creating a task or build. Once these checks pass, CD records the
+commit/run identity in `production/openci/last-success.json` and releases the lock.
 
 Data Connect schema/connector changes must be deployed and remain compatible
 with both current and next Functions before the dependent Functions changes
 reach `develop`. This workflow intentionally does not apply database migrations.
-Likewise, coordinate interface changes with the separately deployed Dart planner.
+Keep Node and planner interface changes compatible during the rollout. Firebase
+can update the two codebases at different times within one deployment.
 
 ## Failure and recovery
 
@@ -114,11 +129,14 @@ failure does not mean the previous version is still serving everywhere.
    generation precondition. Rerun the newest `develop` CD job.
 
 If OpenCI itself cannot start builds, use a clean checkout of the known-good
-commit, the same SA/ADC and complete production dotenv configuration, run the
-Functions checks, then run Firebase CLI 15.34.2 manually with
-`--config firebase/firebase.json --project openci-b1b91 --only functions:openci
---non-interactive`. Keep the shared lock held during recovery and confirm the
-cloud operations and smoke check before releasing it. Restoring Functions does
+commit and the same SA/ADC. Prepare both project dotenv files, including the
+Node caller in `firebase/dart_functions/.env.openci-b1b91`. Run the Functions
+checks, then run Firebase CLI 15.37.0 with `FIREBASE_CLI_EXPERIMENTS=dartfunctions`
+and `FIREBASE_SKIP_INFORMATIONAL_IAM=true`,
+`--config firebase/firebase.json --project openci-b1b91
+--only functions:openci,functions:openci-planner --non-interactive`. Keep the
+shared lock held during recovery and confirm the cloud operations and both
+services' checks before releasing it. Restoring Functions does
 not revert database migrations or application data.
 
 ## Local verification
@@ -127,14 +145,10 @@ From the repository root, using Flutter 3.47.8:
 
 ```sh
 flutter pub get
-npx --yes --package=node@22.23.4 --package=npm@11.14.1 npm ci --workspace firebase --include-workspace-root
-npx --yes --package=node@22.23.4 --package=npm@11.14.1 npm run fmt:check --workspace firebase -- healthcheck.ts functions scripts
-npx --yes --package=node@22.23.4 --package=npm@11.14.1 npm run check --workspace firebase
-npx --yes --package=node@22.23.4 --package=npm@11.14.1 npm test --workspace firebase
-npx --yes --package=node@22.23.4 --package=npm@11.14.1 npm run test:workflow-context --workspace firebase
+bash openci/tool/with_node.sh bash firebase/scripts/ci.sh
 ```
 
-From `openci/`, run `dart analyze --fatal-infos` and `dart test`. The Functions
-tests exercise denied credential scopes, TS-only CLI configuration, stale commits,
-lock contention, partial failures and credential-file cleanup with fake cloud
-responses; they do not deploy or require production credentials.
+From both `firebase/dart_functions/` and `openci/`, run `dart analyze --fatal-infos`
+and `dart test`. The deployment tests cover codebase selection, planner access,
+stale commits, lock contention, partial failures and credential-file cleanup
+using fake cloud responses.

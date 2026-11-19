@@ -3,6 +3,8 @@ import 'dart:io';
 
 import 'package:openci_workflow/openci_workflow.dart';
 
+import 'generated/paths.g.dart';
+
 Future<void> main() async {
   final ci = await OpenCI.init(
     workflowName: 'Firebase Functions CD',
@@ -19,16 +21,15 @@ Future<void> main() async {
     throw StateError('Functions CD requires an OpenCI develop push.');
   }
 
-  final nodeVersion = (await File('.node-version').readAsString()).trim();
   final package =
       jsonDecode(await File('package.json').readAsString())
           as Map<String, dynamic>;
   final npmVersion = package['packageManager'] as String;
-  if (!RegExp(r'^\d+\.\d+\.\d+$').hasMatch(nodeVersion) ||
-      !RegExp(r'^npm@\d+\.\d+\.\d+$').hasMatch(npmVersion)) {
-    throw StateError('Functions CD requires pinned Node.js and npm versions.');
+  if (!RegExp(r'^npm@\d+\.\d+\.\d+$').hasMatch(npmVersion)) {
+    throw StateError('Functions CD requires a pinned npm version.');
   }
-  final tools = 'npx --yes --package=node@$nodeVersion --package=$npmVersion';
+  final tools =
+      'bash openci/tool/with_node.sh npm exec --yes --package=$npmVersion --';
 
   await ci.run('$tools npm ci --workspace firebase --include-workspace-root');
   await ci.run(
@@ -37,6 +38,9 @@ Future<void> main() async {
   await ci.run('$tools npm run check --workspace firebase');
   await ci.run('$tools npm test --workspace firebase');
   await ci.run('$tools npm run test:workflow-context --workspace firebase');
+  final planner = WorkspacePaths.root.firebase.dartFunctions;
+  await ci.dart.analyze(dir: planner, fatalInfos: true);
+  await ci.dart.test(dir: planner);
   await ci.run(
     '$tools node firebase/scripts/deploy-functions.mjs',
   );

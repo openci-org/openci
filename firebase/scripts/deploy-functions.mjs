@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { parseEnv } from "node:util";
 import { GoogleAuth } from "google-auth-library";
 
 export const projectId = "openci-b1b91";
@@ -13,7 +14,7 @@ export const lockObject = "production/openci/lock.json";
 export const successObject = "production/openci/last-success.json";
 export const credentialVariable = "FIREBASE_FUNCTIONS_CD_SERVICE_ACCOUNT_JSON_BASE64";
 export const environmentVariable = "FIREBASE_FUNCTIONS_CD_ENV_BASE64";
-export const firebaseToolsVersion = "15.34.2";
+export const firebaseToolsVersion = "15.37.0";
 
 function decoded(value) {
   if (typeof value !== "string" || !/^[A-Za-z0-9+/]+={0,2}$/.test(value)) {
@@ -74,14 +75,71 @@ function command(executable, args, { cwd, env, capture = false }) {
   });
 }
 
-async function smokeCheck() {
-  const response = await fetch(
-    `https://asia-northeast1-${projectId}.cloudfunctions.net/githubWebhookFsc`,
-    { method: "GET", redirect: "error", signal: AbortSignal.timeout(30000) },
+function deploymentCodebase(entries, codebase, source, runtime) {
+  const matches = entries.filter((entry) => entry.codebase === codebase);
+  if (matches.length !== 1 || matches[0].source !== source || matches[0].runtime !== runtime) {
+    throw new Error(`Unexpected configuration for Functions codebase ${codebase}`);
+  }
+  const entry = matches[0];
+  const ignore = new Set([
+    ...(entry.ignore ?? []),
+    ".env*",
+    ".secret.local",
+    ".deploy",
+    "firebase.*.local.json",
+  ]);
+  if (source === ".") ignore.add("dart_functions");
+  return { ...entry, ignore: [...ignore] };
+}
+
+function plannerDotenv(values, invoker) {
+  // The planner shares the GitHub App and Data Connect service with Node.
+  const settings = {
+    GITHUB_APP_ID: values.GITHUB_APP_ID,
+    GITHUB_API_BASE_URL: values.GITHUB_API_BASE_URL,
+    GITHUB_BASE_URL: values.GITHUB_BASE_URL,
+    OPENCI_DATA_CONNECT_SERVICE_ID: values.OPENCI_DATA_CONNECT_SERVICE_ID,
+    OPENCI_PLANNER_SERVICE_ACCOUNT: values.OPENCI_PLANNER_SERVICE_ACCOUNT,
+    OPENCI_PLANNER_INVOKER: invoker,
+  };
+  return (
+    Object.entries(settings)
+      .filter(([, value]) => value !== undefined)
+      .map(([name, value]) => `${name}=${JSON.stringify(value)}`)
+      .join("\n") + "\n"
   );
-  await response.body?.cancel();
-  // GET is rejected by the live handler without creating a webhook or build.
-  if (response.status !== 405) throw new Error("Functions smoke check failed");
+}
+
+async function smokeCheck(plannerUrl, invoker, send, get) {
+  // GET cannot create a webhook or start a planning task.
+  const webhookUrl = `https://asia-northeast1-${projectId}.cloudfunctions.net/githubWebhookFsc`;
+  for (const [url, expected] of [
+    [webhookUrl, 405],
+    [plannerUrl, 403],
+  ]) {
+    const response = await get(url, {
+      method: "GET",
+      redirect: "error",
+      signal: AbortSignal.timeout(30000),
+    });
+    await response.body?.cancel();
+    if (response.status !== expected) throw new Error("Functions smoke check failed");
+  }
+  const service = `projects/${projectId}/locations/asia-northeast1/services/process-webhook-task`;
+  const { data } = await send({
+    url: `https://run.googleapis.com/v2/${service}:getIamPolicy?options.requestedPolicyVersion=3`,
+    method: "GET",
+  });
+  const bindings = data.bindings?.filter((binding) => binding.role === "roles/run.invoker") ?? [];
+  const [binding] = bindings;
+  if (
+    bindings.length !== 1 ||
+    binding.condition ||
+    binding.members?.length !== 1 ||
+    binding.members[0] !== `serviceAccount:${invoker}`
+  ) {
+    throw new Error("Planner is missing its private Node caller binding");
+  }
 }
 
 /** An interrupted/failed deployment deliberately retains its lock for recovery. */
@@ -90,7 +148,7 @@ export async function deployFunctions({
   environment = process.env,
   run = command,
   request,
-  probe = smokeCheck,
+  get = fetch,
   wait = delay,
   lockAttempts = 120,
   log = console.log,
@@ -112,6 +170,7 @@ export async function deployFunctions({
     throw new Error("Functions CD requires its dedicated production service account");
   }
   const runtimeEnvironment = decoded(environment[environmentVariable]);
+  const values = parseEnv(runtimeEnvironment);
   for (const name of [
     "GITHUB_APP_ID",
     "PROCESS_WEBHOOK_TASK_URL",
@@ -119,27 +178,20 @@ export async function deployFunctions({
     "ORCHARD_SERVICE_ACCOUNT_NAME",
     "BUILD_EXECUTOR_JOB",
   ]) {
-    if (!new RegExp(`^${name}=\\S.*$`, "m").test(runtimeEnvironment)) {
+    if (!values[name]?.trim()) {
       throw new Error("Functions CD runtime configuration is incomplete");
     }
   }
-  const base = JSON.parse(await readFile(path.join(root, "firebase/firebase.json"), "utf8"));
-  const codebase = base.functions.filter((entry) => entry.codebase === "openci");
-  if (codebase.length !== 1 || codebase[0].source !== "." || codebase[0].runtime !== "nodejs22") {
-    throw new Error("Unexpected TypeScript Functions configuration");
+  const invoker =
+    values.OPENCI_API_SERVICE_ACCOUNT ?? `openci-functions@${projectId}.iam.gserviceaccount.com`;
+  if (!/^[a-z][a-z0-9-]*@openci-b1b91\.iam\.gserviceaccount\.com$/.test(invoker)) {
+    throw new Error("Functions CD requires a production API service account for the planner");
   }
+  const base = JSON.parse(await readFile(path.join(root, "firebase/firebase.json"), "utf8"));
   const configuration = {
     functions: [
-      {
-        ...codebase[0],
-        ignore: [
-          ...codebase[0].ignore,
-          ".env*",
-          ".secret.local",
-          ".deploy",
-          "firebase.*.local.json",
-        ],
-      },
+      deploymentCodebase(base.functions, "openci", ".", "nodejs22"),
+      deploymentCodebase(base.functions, "openci-planner", "dart_functions", "dart3"),
     ],
   };
   const auth = new GoogleAuth({
@@ -199,6 +251,10 @@ export async function deployFunctions({
     const configurationFile = path.join(root, "firebase/firebase.functions-cd.local.json");
     for (const [file, contents] of [
       [path.join(root, `firebase/.env.${projectId}`), runtimeEnvironment],
+      [
+        path.join(root, `firebase/dart_functions/.env.${projectId}`),
+        plannerDotenv(values, invoker),
+      ],
       [configurationFile, JSON.stringify(configuration)],
     ]) {
       await writeFile(file, contents, { mode: 0o600, flag: "wx" });
@@ -209,32 +265,38 @@ export async function deployFunctions({
       GOOGLE_APPLICATION_CREDENTIALS: credentialFile,
       XDG_CONFIG_HOME: path.join(temporary, "config"),
       CI: "true",
+      FIREBASE_CLI_EXPERIMENTS: "dartfunctions",
+      // The CLI probes the default App Engine account even when every function
+      // specifies a runtime identity. Google Cloud checks each actual deployment.
+      FIREBASE_SKIP_INFORMATIONAL_IAM: "true",
     };
     delete childEnvironment[credentialVariable];
     delete childEnvironment[environmentVariable];
     delete childEnvironment.FIREBASE_TOKEN;
-    delete childEnvironment.FIREBASE_CLI_EXPERIMENTS;
-    log(`Deploying TypeScript Functions from ${context.checkoutSha}.`);
+    log(`Deploying TypeScript and Dart Functions from ${context.checkoutSha}.`);
     // Even a failed CLI can have started asynchronous updates. Never unlock it
     // automatically on an error, timeout, or process interruption after here.
     startedDeployment = true;
     await run(
-      "npx",
+      "npm",
       [
+        "exec",
         "--yes",
-        `firebase-tools@${firebaseToolsVersion}`,
+        `--package=firebase-tools@${firebaseToolsVersion}`,
+        "--",
+        "firebase",
         "deploy",
         "--config",
         configurationFile,
         "--project",
         projectId,
         "--only",
-        "functions:openci",
+        "functions:openci,functions:openci-planner",
         "--non-interactive",
       ],
       { cwd: root, env: childEnvironment },
     );
-    await probe();
+    await smokeCheck(values.PROCESS_WEBHOOK_TASK_URL, invoker, send, get);
     await send({
       url: uploadUrl(successObject),
       method: "POST",
@@ -242,7 +304,7 @@ export async function deployFunctions({
       data: JSON.stringify({ ...record, completedAt: new Date().toISOString() }),
     });
     finishedDeployment = true;
-    log(`TypeScript Functions deployed successfully: ${context.checkoutSha}.`);
+    log(`Functions deployed successfully: ${context.checkoutSha}.`);
     return "deployed";
   } finally {
     try {

@@ -77,9 +77,9 @@ dispatcher. Firebase CLI replaces task queue enqueuers and Run invokers when
 `onTaskDispatched` declares `invoker: "private"`. The dispatcher deliberately
 omits that option so updates preserve these bindings; a newly created task
 Function is private until its bindings are granted. Check policies after deploy.
-The Dart Function's explicitly private declaration also requires reapplying its
-caller binding after deployment. No public caller is granted to the planner or
-dispatcher.
+Production Functions CD declares the Node API service account as the planner's
+invoker so Firebase preserves the Terraform grant during updates. Manual planner
+deployments using the default `private` invoker require reapplying the grant.
 
 Review the complete plan before applying. Terraform owns only the individual
 invocation grants, not the Firebase-managed services or task queue. See
