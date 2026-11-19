@@ -9,6 +9,7 @@ import { ExecutionGitHub } from "./github.js";
 import { ExecutionLogs } from "./logs.js";
 import { OrchardExecutor } from "./orchard.js";
 import { loadSecrets, stopCloudRunExecution } from "./google.js";
+import { functionsCdSecretReferences } from "./functions_cd_secrets.js";
 import type { ExecutorDependencies } from "./execute.js";
 import { ExecutionStopped, identity } from "./model.js";
 import { selfHostedMode } from "../deployment_mode.js";
@@ -104,9 +105,17 @@ export function runtime(
       const attempt = identity(dispatch);
       return new ExecutionLogs(logs, attempt.teamId, attempt.runId);
     },
-    secrets: async (teamId, signal) =>
+    secrets: async (job, checkout, signal) =>
       loadSecrets(
-        await store.secrets(teamId),
+        await functionsCdSecretReferences(
+          await store.secrets(job.teamId!),
+          job,
+          checkout,
+          environment,
+          project,
+          selfHosted,
+          (sha) => github.isCommitOnDevelop(job, sha, signal),
+        ),
         environment.SECRET_MANAGER_PROJECT ?? project,
         undefined,
         signal,

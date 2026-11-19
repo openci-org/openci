@@ -5,11 +5,31 @@ node_modules/
 **/coverage/
 *.tsbuildinfo
 .DS_Store
+__pycache__/
+
+# Dart and Flutter package caches, local overrides and generated API docs
+.pub-cache/
+.pub/
+.flutter-plugins-dependencies
+pubspec_overrides.yaml
+**/doc/api/
+**/.fvm/flutter_sdk
+**/.fvm/versions/
 
 .env*.local
 
 # Build artifacts
 *.tar.gz
+DerivedData/
+*.xcarchive/
+*.xcresult/
+
+# Firebase CLI cache, emulator exports and debug logs
+.firebase/
+firebase-export-[0-9]*/
+*-debug.log
+*-debug.log.[0-9]*
+firebase-debug.*.log
 
 # Worker configuration secrets
 worker_credentials.json
@@ -28,6 +48,12 @@ firebase/firebase.*.local.json
 firebase-service-account.json
 build_machine_ip_list.json
 **/*.pem
+
+# Apple signing keys and provisioning profiles
+*.p8
+*.p12
+*.mobileprovision
+*.provisionprofile
 
 # Dart Frog
 **/.dart_frog/

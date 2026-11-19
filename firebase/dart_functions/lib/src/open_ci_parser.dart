@@ -3,6 +3,7 @@ import 'package:analyzer/dart/ast/ast.dart';
 import 'package:analyzer/dart/ast/visitor.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:glob/glob.dart';
+import 'package:openci_workflow/openci_workflow.dart' show FlutterVersion;
 import 'package:path/path.dart' as p;
 
 part 'open_ci_parser.freezed.dart';
@@ -35,18 +36,19 @@ abstract class ParsedCITrigger with _$ParsedCITrigger {
   const ParsedCITrigger._();
 
   const factory ParsedCITrigger({
-    required String type, // 'push' or 'pullRequest'
-    required String branch,
+    required String type, // 'push', 'pullRequest', or 'release'
+    required String branch, // The tag pattern for release triggers.
     List<String>? paths,
   }) = _ParsedCITrigger;
 
   bool matches({
-    required String eventType, // 'push' or 'pull_request'
+    required String eventType, // 'push', 'pull_request', or 'release'
     required String branch,
   }) {
     final expectedEventType = switch (type) {
       'push' => 'push',
       'pullRequest' => 'pull_request',
+      'release' => 'release',
       _ => null,
     };
 
@@ -143,14 +145,14 @@ class _OpenCIInitVisitor extends RecursiveAstVisitor<void> {
           cancelPreviousRuns = expression.value;
         } else if (paramName == 'flutterVersion' &&
             expression is! NullLiteral) {
-          flutterVersion = _extractStringValue(expression);
+          flutterVersion = _extractFlutterVersion(expression);
           if (flutterVersion == null ||
               !RegExp(
                 r'^\d+\.\d+\.\d+(?:-[0-9A-Za-z]+(?:[.-][0-9A-Za-z]+)*)?$',
               ).hasMatch(flutterVersion)) {
             throw WorkflowConfigurationException(
               '$fileName: flutterVersion must be a literal Flutter release '
-              'such as 3.47.8',
+              'or a preset such as FlutterVersion.v3_47_8.value',
             );
           }
         }
@@ -166,6 +168,20 @@ class _OpenCIInitVisitor extends RecursiveAstVisitor<void> {
         flutterVersion: flutterVersion,
       );
     }
+  }
+
+  String? _extractFlutterVersion(Expression expression) {
+    if (expression case PropertyAccess(
+      isNullAware: false,
+      target: PrefixedIdentifier(
+        prefix: SimpleIdentifier(name: 'FlutterVersion'),
+        identifier: SimpleIdentifier(:final name),
+      ),
+      propertyName: SimpleIdentifier(name: 'value'),
+    )) {
+      return FlutterVersion.values.asNameMap()[name]?.value;
+    }
+    return _extractStringValue(expression);
   }
 
   List<ParsedCITrigger>? _extractTriggers(Expression expression) {
@@ -209,9 +225,28 @@ class _OpenCIInitVisitor extends RecursiveAstVisitor<void> {
     }
 
     if (className != 'CITrigger' ||
-        (triggerType != 'push' && triggerType != 'pullRequest') ||
+        !['push', 'pullRequest', 'release'].contains(triggerType) ||
         argumentList == null) {
       return null;
+    }
+
+    if (triggerType == 'release') {
+      var tag = '*';
+      for (final argument in argumentList.arguments) {
+        if (argument is! NamedExpression || argument.name.label.name != 'tag') {
+          throw WorkflowConfigurationException(
+            '$fileName: CITrigger.release only accepts a tag filter',
+          );
+        }
+        final value = _extractStringValue(argument.expression);
+        if (value == null || value.trim().isEmpty || value.trim() != value) {
+          throw WorkflowConfigurationException(
+            '$fileName: CITrigger.release.tag must be a nonempty literal string',
+          );
+        }
+        tag = value;
+      }
+      return ParsedCITrigger(type: 'release', branch: tag);
     }
 
     String? branch;

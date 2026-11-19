@@ -22,6 +22,7 @@ export {
   dispatchBuildJob,
 } from "./build_dispatch_functions.js";
 export { recoverBuildExecutions } from "./build_recovery_functions.js";
+export { reportPullRequestBuildResult } from "./pull_request_result_function.js";
 export {
   reportSkippedWorkflowChecks,
   recoverSkippedWorkflowChecks,

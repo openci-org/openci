@@ -8,6 +8,10 @@ import 'package:openci_dart_functions/src/planner_runtime.dart';
 // ignore: non_constant_identifier_names
 final GITHUB_APP_PRIVATE_KEY = defineSecret('GITHUB_APP_PRIVATE_KEY');
 final githubAppId = defineString('GITHUB_APP_ID');
+final plannerInvoker = defineString(
+  'OPENCI_PLANNER_INVOKER',
+  ParamOptions(defaultValue: 'private'),
+);
 final plannerServiceAccount = defineString(
   'OPENCI_PLANNER_SERVICE_ACCOUNT',
   ParamOptions(
@@ -32,7 +36,8 @@ Future<void> main() async {
       options: HttpsOptions(
         serviceAccount: ServiceAccount.param(plannerServiceAccount),
         region: Region(SupportedRegion.asiaNortheast1),
-        invoker: Invoker.private(),
+        // SDK 0.6 emits literal invoker lists. Firebase CLI resolves the parameter.
+        invoker: Invoker(['{{ params.OPENCI_PLANNER_INVOKER }}']),
         memory: Memory(MemoryOption.mb128),
         cpu: Cpu(1),
         concurrency: Concurrency(1),

@@ -1,0 +1,5 @@
+.dart_tool/
+.flutter-plugins-dependencies
+build/
+ios/RunnerUITests/PatrolGeneratedTests.inc
+patrol_test/test_bundle.dart

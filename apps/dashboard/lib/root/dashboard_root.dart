@@ -47,6 +47,7 @@ class DashboardRouteGateway extends ConsumerWidget {
 
             return DashboardRoot(
               key: ValueKey(selectedTeamId),
+              teamId: selectedTeamId,
               onSwitchTeam: () => showTeamFlowModal(context),
             );
           },
@@ -58,10 +59,12 @@ class DashboardRouteGateway extends ConsumerWidget {
 
 class DashboardRoot extends HookWidget {
   const DashboardRoot({
+    required this.teamId,
     super.key,
     this.onSwitchTeam,
   });
 
+  final String teamId;
   final VoidCallback? onSwitchTeam;
 
   @override
@@ -95,7 +98,7 @@ class DashboardRoot extends HookWidget {
         child: IndexedStack(
           index: selectedIndex.value,
           children: [
-            const CicdLogsPage(),
+            CicdLogsPage(teamId: teamId),
             const SecretManagerPage(),
             SettingsPage(onSwitchTeam: onSwitchTeam),
           ],

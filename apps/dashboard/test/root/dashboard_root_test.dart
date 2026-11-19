@@ -61,7 +61,7 @@ void main() {
                 ),
               ),
             ],
-            child: const MaterialApp(home: DashboardRoot()),
+            child: const MaterialApp(home: DashboardRoot(teamId: 'team-123')),
           ),
         ),
       );

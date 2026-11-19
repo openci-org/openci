@@ -367,6 +367,7 @@ export interface GetBuildExecutionData {
     workerHost?: string | null;
     runCount?: Int64String | null;
     retryCount: number;
+    tagName?: string | null;
   } & BuildJob_Key;
   run?: {
     id: string;
@@ -472,6 +473,64 @@ export interface GetPendingBuildDispatchWorkData {
     id: string;
     status: string;
   } & BuildJob_Key;
+}
+
+export interface GetPullRequestCommentExecutionData {
+  job?: {
+    id: string;
+    teamId?: string | null;
+    status: string;
+    owner: string;
+    repo: string;
+    workflowName: string;
+    workflowFileName: string;
+    flutterVersion?: string | null;
+    commitSha?: string | null;
+    pullRequestNumber?: Int64String | null;
+    branch?: string | null;
+    installationId?: string | null;
+    repositoryId?: Int64String | null;
+    githubBaseUrl?: string | null;
+    latestRunId?: string | null;
+    workerHost?: string | null;
+    runCount?: Int64String | null;
+    retryCount: number;
+    workflowJobKey?: string | null;
+    matrixLabel?: string | null;
+  } & BuildJob_Key;
+  latest?: {
+    id: string;
+    teamId?: string | null;
+    runId?: string | null;
+    checkRunId?: string | null;
+    outcome?: string | null;
+    failureSummary?: string | null;
+    createdAt: TimestampString;
+    finishedAt?: TimestampString | null;
+  } & BuildJobDispatch_Key;
+  latestForHead?: unknown | null;
+}
+
+export interface GetPullRequestCommentExecutionVariables {
+  jobId: string;
+}
+
+export interface GetPullRequestFailureLogData {
+  run?: {
+    failed: {
+      stepId: string;
+    }[];
+    tail: {
+      stepId?: string | null;
+      stream: string;
+      message: string;
+    }[];
+  };
+}
+
+export interface GetPullRequestFailureLogVariables {
+  jobId: string;
+  runId: string;
 }
 
 export interface GetQueuedBuildCheckData {
@@ -1130,6 +1189,30 @@ export function completeBuildExecution(
   vars: CompleteBuildExecutionVariables,
   options?: OperationOptions,
 ): Promise<ExecuteOperationResponse<CompleteBuildExecutionData>>;
+
+/** Generated Node Admin SDK operation action function for the 'GetPullRequestCommentExecution' Query. Allow users to execute without passing in DataConnect. */
+export function getPullRequestCommentExecution(
+  dc: DataConnect,
+  vars: GetPullRequestCommentExecutionVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<GetPullRequestCommentExecutionData>>;
+/** Generated Node Admin SDK operation action function for the 'GetPullRequestCommentExecution' Query. Allow users to pass in custom DataConnect instances. */
+export function getPullRequestCommentExecution(
+  vars: GetPullRequestCommentExecutionVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<GetPullRequestCommentExecutionData>>;
+
+/** Generated Node Admin SDK operation action function for the 'GetPullRequestFailureLog' Query. Allow users to execute without passing in DataConnect. */
+export function getPullRequestFailureLog(
+  dc: DataConnect,
+  vars: GetPullRequestFailureLogVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<GetPullRequestFailureLogData>>;
+/** Generated Node Admin SDK operation action function for the 'GetPullRequestFailureLog' Query. Allow users to pass in custom DataConnect instances. */
+export function getPullRequestFailureLog(
+  vars: GetPullRequestFailureLogVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<GetPullRequestFailureLogData>>;
 
 /** Generated Node Admin SDK operation action function for the 'ClaimPullRequestQrComment' Mutation. Allow users to execute without passing in DataConnect. */
 export function claimPullRequestQrComment(

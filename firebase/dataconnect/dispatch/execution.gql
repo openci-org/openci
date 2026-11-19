@@ -25,6 +25,7 @@ query GetBuildExecution($id: String!, $jobId: String!, $runId: String!) @auth(le
   }
   job: buildJob(id: $jobId) {
     ...ExecutionJobFields
+    tagName
   }
   run: buildRun(id: $runId) {
     id

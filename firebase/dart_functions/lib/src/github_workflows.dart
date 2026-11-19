@@ -73,6 +73,77 @@ class GitHubWorkflows {
     return jsonDecode(response.body);
   }
 
+  /// Resolve the release tag once; all workflow reads and the checkout use the
+  /// resulting commit SHA, never the release's mutable target_commitish.
+  Future<String> resolveReleaseCommit(PlanningEvent event) async {
+    if (!event.isRelease) throw StateError('Expected a release');
+    final webhook = event.webhook;
+    final auth = _json(
+      await _request(
+        'POST',
+        'app/installations/${webhook.installationId}/access_tokens',
+        appJwt(),
+        body: {
+          'repository_ids': [event.repositoryId],
+          'permissions': {'contents': 'read'},
+        },
+      ),
+    );
+    if (auth is! Map<String, dynamic> ||
+        auth['token'] is! String ||
+        (auth['token'] as String).isEmpty) {
+      throw StateError('GitHub token is unavailable');
+    }
+    final token = auth['token'] as String;
+    final repoPath =
+        'repos/${Uri.encodeComponent(webhook.owner)}/${Uri.encodeComponent(webhook.repo)}';
+    try {
+      final repository = _json(await _request('GET', repoPath, token));
+      if (repository is! Map<String, dynamic> ||
+          repository['id'] != event.repositoryId ||
+          repository['owner'] is! Map<String, dynamic> ||
+          (repository['owner'] as Map<String, dynamic>)['id'] !=
+              event.ownerId) {
+        throw const InvalidPlanningInput('invalid_payload');
+      }
+      final tag = Uri.encodeComponent(webhook.triggerBranch);
+      final ref = _json(
+        await _request('GET', '$repoPath/git/ref/tags/$tag', token),
+      );
+      if (ref is! Map<String, dynamic> || ref['ref'] != webhook.branch) {
+        throw StateError('Invalid GitHub release tag reference');
+      }
+      Object? object = ref['object'];
+      // Annotated tags may refer to other tags. Bound traversal and require a
+      // commit: a tree/blob object must never become executable workflow input.
+      final visited = <String>{};
+      for (var depth = 0; depth < 10; depth++) {
+        if (object is! Map<String, dynamic> || object['sha'] is! String) break;
+        final sha = object['sha'] as String;
+        if (!RegExp(r'^(?:[0-9a-f]{40}|[0-9a-f]{64})$').hasMatch(sha) ||
+            RegExp(r'^0+$').hasMatch(sha) ||
+            !visited.add(sha)) {
+          break;
+        }
+        if (object['type'] == 'commit') return sha;
+        if (object['type'] != 'tag') break;
+        final annotated = _json(
+          await _request('GET', '$repoPath/git/tags/$sha', token),
+        );
+        if (annotated is! Map<String, dynamic> || annotated['sha'] != sha) {
+          break;
+        }
+        object = annotated['object'];
+      }
+      throw const InvalidPlanningInput('invalid_release_tag');
+    } finally {
+      final revoked = await _request('DELETE', 'installation/token', token);
+      if (revoked.statusCode != 204) {
+        throw StateError('GitHub token revocation failed');
+      }
+    }
+  }
+
   /// Verify the live PR after acquiring the planning fence. Do not use delivery
   /// times or commit ancestry: delayed deliveries and force pushes reorder both.
   Future<PullRequestObservation> observePullRequest(PlanningEvent event) async {

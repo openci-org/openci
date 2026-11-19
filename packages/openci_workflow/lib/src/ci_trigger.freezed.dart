@@ -14,62 +14,30 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$CITrigger {
 
- String get branch; List<String>? get paths;
-/// Create a copy of CITrigger
-/// with the given fields replaced by the non-null parameter values.
-@JsonKey(includeFromJson: false, includeToJson: false)
-@pragma('vm:prefer-inline')
-$CITriggerCopyWith<CITrigger> get copyWith => _$CITriggerCopyWithImpl<CITrigger>(this as CITrigger, _$identity);
+
 
 
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is CITrigger&&(identical(other.branch, branch) || other.branch == branch)&&const DeepCollectionEquality().equals(other.paths, paths));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is CITrigger);
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,branch,const DeepCollectionEquality().hash(paths));
+int get hashCode => runtimeType.hashCode;
 
 @override
 String toString() {
-  return 'CITrigger(branch: $branch, paths: $paths)';
+  return 'CITrigger()';
 }
 
 
 }
 
 /// @nodoc
-abstract mixin class $CITriggerCopyWith<$Res>  {
-  factory $CITriggerCopyWith(CITrigger value, $Res Function(CITrigger) _then) = _$CITriggerCopyWithImpl;
-@useResult
-$Res call({
- String branch, List<String>? paths
-});
-
-
-
-
-}
-/// @nodoc
-class _$CITriggerCopyWithImpl<$Res>
-    implements $CITriggerCopyWith<$Res> {
-  _$CITriggerCopyWithImpl(this._self, this._then);
-
-  final CITrigger _self;
-  final $Res Function(CITrigger) _then;
-
-/// Create a copy of CITrigger
-/// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? branch = null,Object? paths = freezed,}) {
-  return _then(_self.copyWith(
-branch: null == branch ? _self.branch : branch // ignore: cast_nullable_to_non_nullable
-as String,paths: freezed == paths ? _self.paths : paths // ignore: cast_nullable_to_non_nullable
-as List<String>?,
-  ));
-}
-
+class $CITriggerCopyWith<$Res>  {
+$CITriggerCopyWith(CITrigger _, $Res Function(CITrigger) __);
 }
 
 
@@ -87,12 +55,13 @@ extension CITriggerPatterns on CITrigger {
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( _PushCITrigger value)?  push,TResult Function( _PullRequestCITrigger value)?  pullRequest,required TResult orElse(),}){
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( _PushCITrigger value)?  push,TResult Function( _PullRequestCITrigger value)?  pullRequest,TResult Function( _ReleaseCITrigger value)?  release,required TResult orElse(),}){
 final _that = this;
 switch (_that) {
 case _PushCITrigger() when push != null:
 return push(_that);case _PullRequestCITrigger() when pullRequest != null:
-return pullRequest(_that);case _:
+return pullRequest(_that);case _ReleaseCITrigger() when release != null:
+return release(_that);case _:
   return orElse();
 
 }
@@ -110,12 +79,13 @@ return pullRequest(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( _PushCITrigger value)  push,required TResult Function( _PullRequestCITrigger value)  pullRequest,}){
+@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( _PushCITrigger value)  push,required TResult Function( _PullRequestCITrigger value)  pullRequest,required TResult Function( _ReleaseCITrigger value)  release,}){
 final _that = this;
 switch (_that) {
 case _PushCITrigger():
 return push(_that);case _PullRequestCITrigger():
-return pullRequest(_that);case _:
+return pullRequest(_that);case _ReleaseCITrigger():
+return release(_that);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -132,12 +102,13 @@ return pullRequest(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( _PushCITrigger value)?  push,TResult? Function( _PullRequestCITrigger value)?  pullRequest,}){
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( _PushCITrigger value)?  push,TResult? Function( _PullRequestCITrigger value)?  pullRequest,TResult? Function( _ReleaseCITrigger value)?  release,}){
 final _that = this;
 switch (_that) {
 case _PushCITrigger() when push != null:
 return push(_that);case _PullRequestCITrigger() when pullRequest != null:
-return pullRequest(_that);case _:
+return pullRequest(_that);case _ReleaseCITrigger() when release != null:
+return release(_that);case _:
   return null;
 
 }
@@ -154,11 +125,12 @@ return pullRequest(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( String branch,  List<String>? paths)?  push,TResult Function( String branch,  List<String>? paths)?  pullRequest,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( String branch,  List<String>? paths)?  push,TResult Function( String branch,  List<String>? paths)?  pullRequest,TResult Function( String tag)?  release,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _PushCITrigger() when push != null:
 return push(_that.branch,_that.paths);case _PullRequestCITrigger() when pullRequest != null:
-return pullRequest(_that.branch,_that.paths);case _:
+return pullRequest(_that.branch,_that.paths);case _ReleaseCITrigger() when release != null:
+return release(_that.tag);case _:
   return orElse();
 
 }
@@ -176,11 +148,12 @@ return pullRequest(_that.branch,_that.paths);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( String branch,  List<String>? paths)  push,required TResult Function( String branch,  List<String>? paths)  pullRequest,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( String branch,  List<String>? paths)  push,required TResult Function( String branch,  List<String>? paths)  pullRequest,required TResult Function( String tag)  release,}) {final _that = this;
 switch (_that) {
 case _PushCITrigger():
 return push(_that.branch,_that.paths);case _PullRequestCITrigger():
-return pullRequest(_that.branch,_that.paths);case _:
+return pullRequest(_that.branch,_that.paths);case _ReleaseCITrigger():
+return release(_that.tag);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -197,11 +170,12 @@ return pullRequest(_that.branch,_that.paths);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( String branch,  List<String>? paths)?  push,TResult? Function( String branch,  List<String>? paths)?  pullRequest,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( String branch,  List<String>? paths)?  push,TResult? Function( String branch,  List<String>? paths)?  pullRequest,TResult? Function( String tag)?  release,}) {final _that = this;
 switch (_that) {
 case _PushCITrigger() when push != null:
 return push(_that.branch,_that.paths);case _PullRequestCITrigger() when pullRequest != null:
-return pullRequest(_that.branch,_that.paths);case _:
+return pullRequest(_that.branch,_that.paths);case _ReleaseCITrigger() when release != null:
+return release(_that.tag);case _:
   return null;
 
 }
@@ -212,13 +186,13 @@ return pullRequest(_that.branch,_that.paths);case _:
 /// @nodoc
 
 
-class _PushCITrigger implements CITrigger {
-  const _PushCITrigger({required this.branch, final  List<String>? paths}): _paths = paths;
+class _PushCITrigger extends CITrigger {
+  const _PushCITrigger({required this.branch, final  List<String>? paths}): _paths = paths,super._();
 
 
-@override final  String branch;
+ final  String branch;
  final  List<String>? _paths;
-@override List<String>? get paths {
+ List<String>? get paths {
   final value = _paths;
   if (value == null) return null;
   if (_paths is EqualUnmodifiableListView) return _paths;
@@ -229,7 +203,7 @@ class _PushCITrigger implements CITrigger {
 
 /// Create a copy of CITrigger
 /// with the given fields replaced by the non-null parameter values.
-@override @JsonKey(includeFromJson: false, includeToJson: false)
+@JsonKey(includeFromJson: false, includeToJson: false)
 @pragma('vm:prefer-inline')
 _$PushCITriggerCopyWith<_PushCITrigger> get copyWith => __$PushCITriggerCopyWithImpl<_PushCITrigger>(this, _$identity);
 
@@ -255,7 +229,7 @@ String toString() {
 /// @nodoc
 abstract mixin class _$PushCITriggerCopyWith<$Res> implements $CITriggerCopyWith<$Res> {
   factory _$PushCITriggerCopyWith(_PushCITrigger value, $Res Function(_PushCITrigger) _then) = __$PushCITriggerCopyWithImpl;
-@override @useResult
+@useResult
 $Res call({
  String branch, List<String>? paths
 });
@@ -274,7 +248,7 @@ class __$PushCITriggerCopyWithImpl<$Res>
 
 /// Create a copy of CITrigger
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? branch = null,Object? paths = freezed,}) {
+@pragma('vm:prefer-inline') $Res call({Object? branch = null,Object? paths = freezed,}) {
   return _then(_PushCITrigger(
 branch: null == branch ? _self.branch : branch // ignore: cast_nullable_to_non_nullable
 as String,paths: freezed == paths ? _self._paths : paths // ignore: cast_nullable_to_non_nullable
@@ -288,13 +262,13 @@ as List<String>?,
 /// @nodoc
 
 
-class _PullRequestCITrigger implements CITrigger {
-  const _PullRequestCITrigger({required this.branch, final  List<String>? paths}): _paths = paths;
+class _PullRequestCITrigger extends CITrigger {
+  const _PullRequestCITrigger({required this.branch, final  List<String>? paths}): _paths = paths,super._();
 
 
-@override final  String branch;
+ final  String branch;
  final  List<String>? _paths;
-@override List<String>? get paths {
+ List<String>? get paths {
   final value = _paths;
   if (value == null) return null;
   if (_paths is EqualUnmodifiableListView) return _paths;
@@ -305,7 +279,7 @@ class _PullRequestCITrigger implements CITrigger {
 
 /// Create a copy of CITrigger
 /// with the given fields replaced by the non-null parameter values.
-@override @JsonKey(includeFromJson: false, includeToJson: false)
+@JsonKey(includeFromJson: false, includeToJson: false)
 @pragma('vm:prefer-inline')
 _$PullRequestCITriggerCopyWith<_PullRequestCITrigger> get copyWith => __$PullRequestCITriggerCopyWithImpl<_PullRequestCITrigger>(this, _$identity);
 
@@ -331,7 +305,7 @@ String toString() {
 /// @nodoc
 abstract mixin class _$PullRequestCITriggerCopyWith<$Res> implements $CITriggerCopyWith<$Res> {
   factory _$PullRequestCITriggerCopyWith(_PullRequestCITrigger value, $Res Function(_PullRequestCITrigger) _then) = __$PullRequestCITriggerCopyWithImpl;
-@override @useResult
+@useResult
 $Res call({
  String branch, List<String>? paths
 });
@@ -350,11 +324,77 @@ class __$PullRequestCITriggerCopyWithImpl<$Res>
 
 /// Create a copy of CITrigger
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? branch = null,Object? paths = freezed,}) {
+@pragma('vm:prefer-inline') $Res call({Object? branch = null,Object? paths = freezed,}) {
   return _then(_PullRequestCITrigger(
 branch: null == branch ? _self.branch : branch // ignore: cast_nullable_to_non_nullable
 as String,paths: freezed == paths ? _self._paths : paths // ignore: cast_nullable_to_non_nullable
 as List<String>?,
+  ));
+}
+
+
+}
+
+/// @nodoc
+
+
+class _ReleaseCITrigger extends CITrigger {
+  const _ReleaseCITrigger({this.tag = '*'}): super._();
+
+
+@JsonKey() final  String tag;
+
+/// Create a copy of CITrigger
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$ReleaseCITriggerCopyWith<_ReleaseCITrigger> get copyWith => __$ReleaseCITriggerCopyWithImpl<_ReleaseCITrigger>(this, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ReleaseCITrigger&&(identical(other.tag, tag) || other.tag == tag));
+}
+
+
+@override
+int get hashCode => Object.hash(runtimeType,tag);
+
+@override
+String toString() {
+  return 'CITrigger.release(tag: $tag)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$ReleaseCITriggerCopyWith<$Res> implements $CITriggerCopyWith<$Res> {
+  factory _$ReleaseCITriggerCopyWith(_ReleaseCITrigger value, $Res Function(_ReleaseCITrigger) _then) = __$ReleaseCITriggerCopyWithImpl;
+@useResult
+$Res call({
+ String tag
+});
+
+
+
+
+}
+/// @nodoc
+class __$ReleaseCITriggerCopyWithImpl<$Res>
+    implements _$ReleaseCITriggerCopyWith<$Res> {
+  __$ReleaseCITriggerCopyWithImpl(this._self, this._then);
+
+  final _ReleaseCITrigger _self;
+  final $Res Function(_ReleaseCITrigger) _then;
+
+/// Create a copy of CITrigger
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') $Res call({Object? tag = null,}) {
+  return _then(_ReleaseCITrigger(
+tag: null == tag ? _self.tag : tag // ignore: cast_nullable_to_non_nullable
+as String,
   ));
 }
 

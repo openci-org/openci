@@ -6,7 +6,7 @@ import 'generated/secrets.g.dart';
 Future<void> main() async {
   final ci = await OpenCI.init(
     workflowName: 'Dashboard Web Hosting',
-    flutterVersion: '3.47.8',
+    flutterVersion: FlutterVersion.v3_47_8.value,
     cancelPreviousRuns: true,
     ciTriggers: [
       CITrigger.pullRequest(

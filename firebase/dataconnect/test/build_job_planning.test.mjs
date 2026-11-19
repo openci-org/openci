@@ -56,6 +56,15 @@ before(async () => {
       return respond(201, { token: `test-${installationId}` });
     }
     if (path === "/repos/org/app") return respond(200, { id: 10, owner: { id: 20 } });
+    if (path === "/repos/org/app/git/ref/tags/v1.2.0") {
+      return respond(200, {
+        ref: "refs/tags/v1.2.0",
+        object: { type: "tag", sha: "c".repeat(40) },
+      });
+    }
+    if (path === `/repos/org/app/git/tags/${"c".repeat(40)}`) {
+      return respond(200, { sha: "c".repeat(40), object: { type: "commit", sha } });
+    }
     if (path === "/repos/org/app/pulls/7") {
       const pullRequest = structuredClone(github.pullRequest);
       const hook = github.onPullRequest;
@@ -291,6 +300,7 @@ async function fixture(t, payloadChange = {}, eventType = "push") {
             flutterVersion
             commitSha
             branch
+            tagName
             commitMessage
             pullRequestNumber
             runsOn
@@ -326,6 +336,7 @@ test("ID dispatcher -> Dart Function -> GitHub -> atomic FSC jobs", async (t) =>
     assert.equal(job.teamId, f.teamId);
     assert.equal(job.commitSha, sha);
     assert.equal(job.branch, "develop");
+    assert.equal(job.tagName, null);
     assert.equal(job.commitMessage, "Commit");
     assert.equal(job.runsOn, "macos-latest");
     assert.equal(job.runCount, "0");
@@ -335,6 +346,49 @@ test("ID dispatcher -> Dart Function -> GitHub -> atomic FSC jobs", async (t) =>
     assert.ok(Number(job.createdAt) > 0);
     assert.equal(job.createdAt, job.updatedAt);
   }
+});
+
+test("published release -> annotated tag commit -> only release CD jobs", async (t) => {
+  const f = await fixture(
+    t,
+    {
+      action: "published",
+      release: { id: 40, tag_name: "v1.2.0", draft: false, target_commitish: "moving-main" },
+    },
+    "release",
+  );
+  await configurePathWorkflows(f);
+  assert.equal(await invoke(f.taskId), "created");
+  assert.equal(await invoke(f.taskId), "duplicate");
+  const { webhookTask, buildJobs } = await f.state();
+  assert.equal(webhookTask.status, "completed");
+  assert.deepEqual(
+    buildJobs.map((job) => job.workflowFileName),
+    ["dashboard_play_aab.dart", "dashboard_testflight_ipa.dart", "firebase_functions_cd.dart"],
+  );
+  for (const job of buildJobs) {
+    assert.equal(job.commitSha, sha);
+    assert.equal(job.branch, "refs/tags/v1.2.0");
+    assert.equal(job.tagName, "v1.2.0");
+    assert.equal(job.pullRequestNumber, null);
+    assert.equal(job.status, "QUEUED");
+  }
+  const cd = buildJobs.find((job) => job.workflowFileName === "firebase_functions_cd.dart");
+  const execution = await getBuildExecution(getDispatchDataConnect(), {
+    id: "missing",
+    jobId: cd.id,
+    runId: "missing",
+  });
+  assert.equal(execution.data.job.tagName, "v1.2.0");
+  assert.equal(f.github.changedFilesCalls, 0);
+  assert.equal(f.github.tokenRequests.length, 2);
+  assert.ok(
+    f.github.tokenRequests.every(
+      (r) =>
+        JSON.stringify(r) ===
+        JSON.stringify({ repository_ids: [10], permissions: { contents: "read" } }),
+    ),
+  );
 });
 
 test("repository-scoped connections plan only their selected repository", async (t) => {
@@ -395,7 +449,7 @@ test("concurrent Dart invocations publish one batch", async (t) => {
 test("workflow Flutter pins survive planning, SQL persistence and executor reads", async (t) => {
   const f = await fixture(t);
   f.github.files[0].content = `void main() {
-    OpenCI.init(workflowName: 'First', ciTriggers: [CITrigger.push(branch: 'develop')], flutterVersion: '3.47.8');
+    OpenCI.init(workflowName: 'First', ciTriggers: [CITrigger.push(branch: 'develop')], flutterVersion: FlutterVersion.v3_47_8.value);
   }`;
   await invoke(f.taskId);
   const { buildJobs } = await f.state();
@@ -712,14 +766,14 @@ test("end users cannot read tasks, publish builds, or fail tasks", async (t) => 
   }
 });
 
-// Keep the expected workflow identities explicit: this integration uses the
-// repository's real workflows, including the added mobile release workflows.
+// Keep the expected job and skip lists independent of the planner output.
 const pushWorkflowFiles = [
   "dart_format_check.dart",
   "dart_functions_ci.dart",
+  "dashboard_android_patch.dart",
+  "dashboard_ios_patch.dart",
+  "dashboard_ios_patrol_ci.dart",
   "dashboard_macos_cd.dart",
-  "dashboard_play_aab.dart",
-  "dashboard_testflight_ipa.dart",
   "dashboard_web_hosting.dart",
   "firebase_functions_ci.dart",
   "openci_shared_ci.dart",
@@ -731,6 +785,7 @@ const pushWorkflowFiles = [
 const prWorkflowFiles = [
   "dart_format_check.dart",
   "dart_functions_ci.dart",
+  "dashboard_ios_patrol_ci.dart",
   "dashboard_web_hosting.dart",
   "firebase_functions_ci.dart",
   "macos_release_ci.dart",
@@ -740,9 +795,10 @@ const prWorkflowFiles = [
   "workflow_scripts_ci.dart",
 ];
 
-async function configurePathWorkflows(f) {
+async function configurePathWorkflows(f, workflowFiles) {
   const directory = new URL("../../../openci/", import.meta.url);
-  const names = (await readdir(directory)).filter((name) => name.endsWith(".dart"));
+  const names =
+    workflowFiles ?? (await readdir(directory)).filter((name) => name.endsWith(".dart"));
   f.github.files = await Promise.all(
     names.map(async (name) => ({
       name,
@@ -765,20 +821,21 @@ async function makeDue(id) {
   );
 }
 
-test("real planner atomically selects Website CI, persists every excluded workflow and handles concurrent redelivery", async (t) => {
+test("a website push queues Website CI once under concurrent redelivery", async (t) => {
   const f = await fixture(t);
   await configurePathWorkflows(f);
   const results = await Promise.all([invoke(f.taskId), invoke(f.taskId)]);
   assert.ok(results.includes("created"));
   const state = await f.state();
+  const expectedJobs = ["website_ci.dart"];
   assert.deepEqual(
-    state.buildJobs.map((j) => j.workflowName),
-    ["Website CI"],
+    state.buildJobs.map((job) => job.workflowFileName),
+    expectedJobs,
   );
   const skips = await skippedState(f);
   assert.deepEqual(
     skips.skippedWorkflowChecks.map((check) => check.workflowFileName),
-    pushWorkflowFiles.filter((file) => file !== "website_ci.dart"),
+    pushWorkflowFiles.filter((file) => !expectedJobs.includes(file)),
   );
   assert.equal(skips.webhookTask.pathFilterReason, null);
   for (const check of skips.skippedWorkflowChecks) {
@@ -794,7 +851,7 @@ test("real planner atomically selects Website CI, persists every excluded workfl
   );
 });
 
-test("all-skipped planning creates no jobs and transient comparisons instead run every applicable workflow", async (t) => {
+test("docs-only pushes skip builds and unavailable comparisons run every push workflow", async (t) => {
   for (const unavailable of [false, true]) {
     const f = await fixture(t);
     await configurePathWorkflows(f);
@@ -812,7 +869,6 @@ test("all-skipped planning creates no jobs and transient comparisons instead run
       unavailable ? [] : pushWorkflowFiles,
     );
     assert.equal(skips.webhookTask.pathFilterReason, unavailable ? "github_unavailable" : null);
-    if (!unavailable) assert.deepEqual(createdBuildJobIds({ data: { jobs: [] } }), []);
     assert.equal(f.github.changedFilesCalls, 1);
   }
 });
@@ -893,12 +949,18 @@ test("skipped Check leases fence concurrent senders, expire, and reject unauthen
   }
 });
 
-test("failed skipped reporting is recovered from SQL without replanning or creating jobs", async (t) => {
+test("skipped patch checks recover from SQL without replanning or creating jobs", async (t) => {
   const f = await fixture(t);
-  await configurePathWorkflows(f);
+  const patchFiles = ["dashboard_android_patch.dart", "dashboard_ios_patch.dart"];
+  await configurePathWorkflows(f, patchFiles);
   f.github.changedFiles = [{ filename: "README.md" }];
   await invoke(f.taskId);
-  const [row] = (await skippedState(f)).skippedWorkflowChecks;
+  const { skippedWorkflowChecks } = await skippedState(f);
+  assert.deepEqual(
+    skippedWorkflowChecks.map((check) => check.workflowFileName),
+    patchFiles,
+  );
+  const [row] = skippedWorkflowChecks;
   const deps = {
     store: new DataConnectSkippedCheckStore(dc),
     report: async () => {
@@ -923,7 +985,9 @@ test("failed skipped reporting is recovered from SQL without replanning or creat
     (await sdk.getSkippedWorkflowCheck(dc, { id: row.id })).data.check.status,
     "reported",
   );
-  assert.deepEqual((await f.state()).buildJobs, []);
+  const { buildJobs } = await f.state();
+  assert.deepEqual(buildJobs, []);
+  assert.deepEqual(createdBuildJobIds({ data: { jobs: buildJobs } }), []);
   assert.equal(f.github.changedFilesCalls, 1);
 });
 
@@ -968,7 +1032,7 @@ test("PR filtering and base retargets use the full PR diff with scoped PR-read p
   }
 });
 
-async function autoCancelFixture(t) {
+async function autoCancelFixture(t, payloadChange = {}) {
   const f = await fixture(
     t,
     {
@@ -980,6 +1044,7 @@ async function autoCancelFixture(t) {
         head: { sha, ref: "feature", repo: { id: 10 } },
         base: { sha: beforeSha, ref: "main", repo: { id: 10 } },
       },
+      ...payloadChange,
     },
     "pull_request",
   );
@@ -996,6 +1061,8 @@ async function autoCancelFixture(t) {
 
 async function nextRevision(f, headSha, makeCurrent = true) {
   const payload = structuredClone(f.payload);
+  payload.action = "synchronize";
+  delete payload.changes;
   payload.pull_request.head.sha = headSha;
   f.github.revisions.add(headSha);
   if (makeCurrent) f.github.pullRequest = payload.pull_request;
@@ -1171,6 +1238,35 @@ test("a stale in-flight GitHub response cannot overwrite a newer completed PR pl
   assert.deepEqual(
     ci.map((j) => [j.commitSha, j.status]),
     [["c".repeat(40), "QUEUED"]],
+  );
+});
+
+test("a stale base change completes while the force-pushed revision still owns the fence", async (t) => {
+  const f = await autoCancelFixture(t, {
+    action: "edited",
+    changes: { base: { ref: { from: "stack-parent" } } },
+  });
+  const currentSha = "c".repeat(40);
+  let currentCompletion;
+  // GitHub has captured the old head for this read. Acquire the new revision's
+  // fence before delivering that response to the first planner.
+  f.github.onPullRequest = async () => {
+    const currentTask = await nextRevision(f, currentSha);
+    const fence = await beginPlanning(f, currentTask);
+    currentCompletion = completion(f, currentTask, fence, currentSha);
+  };
+
+  assert.equal(await invoke(f.taskId), "created");
+  const before = await f.state();
+  assert.equal(before.webhookTask.status, "completed");
+  assert.deepEqual(before.buildJobs, []);
+
+  await sdk.completeWebhookTask(dc, currentCompletion);
+  assert.equal(await invoke(f.taskId), "duplicate");
+  const { buildJobs } = await f.state();
+  assert.deepEqual(
+    buildJobs.map((job) => job.commitSha),
+    [currentSha],
   );
 });
 

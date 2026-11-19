@@ -6,7 +6,7 @@ import 'generated/secrets.g.dart';
 Future<void> main() async {
   final ci = await OpenCI.init(
     workflowName: 'Dashboard iOS Patrol',
-    flutterVersion: '3.47.8',
+    flutterVersion: FlutterVersion.v3_47_8.value,
     cancelPreviousRuns: true,
     ciTriggers: [
       CITrigger.pullRequest(
@@ -60,6 +60,10 @@ Future<void> main() async {
       dir: dashboard,
       device: simulator.id,
       targets: ['patrol_test/app_startup_test.dart'],
+      env: [
+        Secrets.dashboardPatrolEmail,
+        Secrets.dashboardPatrolPassword,
+      ],
     );
   } finally {
     await simulator.dispose();

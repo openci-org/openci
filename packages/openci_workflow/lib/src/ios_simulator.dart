@@ -14,6 +14,21 @@ class IosSimulator {
   final SimulatorProcessRunner _processRunner;
   Future<void>? _disposal;
 
+  /// Installs a built app bundle on this simulator.
+  Future<void> installApp(Directory app) async {
+    await _simctl(_processRunner, ['install', id, app.absolute.path]);
+  }
+
+  /// Resolves the installed app's current data container.
+  Future<Directory> appDataDirectory(String bundleId) async => Directory(
+    (await _simctl(_processRunner, [
+      'get_app_container',
+      id,
+      bundleId,
+      'data',
+    ])).trim(),
+  );
+
   /// Shuts down and deletes only this simulator. Repeated calls are safe.
   ///
   /// A failed deletion can be retried by calling [dispose] again.

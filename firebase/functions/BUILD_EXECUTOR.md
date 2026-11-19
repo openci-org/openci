@@ -129,8 +129,16 @@ Cancellation and later attempts clear the job summary, and an obsolete dispatch
 cannot overwrite a newer attempt's summary. Deploy the additive schema and
 updated `dispatch` connector before deploying the executor that writes the message.
 
-Only the team's pinned Secret Manager versions are injected into the workflow.
-Google credentials, Orchard credentials and the GitHub App key never enter the VM.
+By default, only the team's pinned Secret Manager versions are injected into the
+workflow. The executor's Google credentials, Orchard credentials and GitHub App
+key never enter the VM.
+
+The opt-in [production Functions CD](FUNCTIONS_CD.md) additionally
+receives a dedicated deployment SA and runtime configuration from pinned
+infrastructure secrets. The executor verifies the saved release tag, its commit's
+`develop` ancestry, and the team, repository and workflow identity before secret
+access. It filters these credentials out of ordinary team-secret injection for
+every other run.
 
 `openCI.pullRequest.postQrCode` requests a QR code for a workflow-supplied URL.
 After the workflow succeeds, Cloud Run validates the URLs, language, size, and
@@ -151,6 +159,19 @@ and is revoked after publication. Deploy the additive `pull_request_qr_comment_l
 table and `dispatch` connector before the executor.
 Keep existing `genuineci/pr-qr` branches so that images in older PR comments remain available.
 
+`reportPullRequestBuildResult` listens for committed `CompleteBuildExecution` events.
+On an open PR, a failed or timed-out workflow gets a conversation comment with
+its diagnostics and build log. A successful rerun folds the previous errors into
+the same comment. Each workflow and matrix label has its own comment.
+The reporter reads the failed step's masked log tail and links up to ten source
+locations at the PR head. Ambiguous or generated paths are displayed as text.
+GitHub delivery retries independently of the build result and queue.
+
+Deploy the updated `dispatch` connector before the reporting Function. Its
+installation token requests Pull requests write and Contents read on the source
+repository. Set `OPENCI_DASHBOARD_ORIGIN` for a custom dashboard. Self-hosted
+installations without a configured dashboard link to the GitHub Check.
+
 Both hosted and self-hosted runs get `OPENCI_RUN_NUMBER` from the team's next
 run number. The executor saves the assigned number on the run in the same
 transaction that advances the team counter. Repeated requests for that run
@@ -160,8 +181,10 @@ Deploy the additive `teams.run_number_reconciled` column before the `dispatch`
 connector. On the first allocation for each team, the connector uses the greater
 of its saved next number and one above its highest previously assigned run number.
 
-The planner persists optional `OpenCI.init(flutterVersion: '3.47.8')` metadata
-on each job. Before dependency resolution, the executor validates the release,
+The planner reads the `flutterVersion` argument to `OpenCI.init` and persists
+the release string on each job. Pass a preset such as
+`FlutterVersion.v3_47_8.value` or a literal release such as `'3.47.8'`.
+Before dependency resolution, the executor validates the release,
 runs `fvm install VERSION --skip-pub-get` and `fvm global VERSION` from the VM's
 home directory, then starts `flutter pub get` and the workflow in the checkout.
 This reuses the image cache without consulting checkout `.fvmrc` files. SDK
@@ -169,9 +192,11 @@ installation/selection failures stop execution. Existing jobs and workflows with
 no version continue to use the image default. Selection changes only the job VM.
 
 Deploy the nullable `build_jobs.flutter_version` column and the `webhooks` and
-`dispatch` connectors before the executor and Dart planner. Then release workflow
-SDK 0.2.1 before adding the argument to consumers. Older planners ignore this
-argument, so publishing the SDK alone does not enable selection.
+`dispatch` connectors before the executor and Dart planner.
+
+Deploy the updated Dart planner before adopting `FlutterVersion` presets in
+workflow files. Functions CD can deploy the planner while the workflow files
+still use literal releases.
 
 ## Recovery
 

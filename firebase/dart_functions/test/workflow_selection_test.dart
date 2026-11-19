@@ -125,6 +125,54 @@ void main() {
       )
       .toList();
 
+  for (final (name, platform) in [
+    ('Dashboard iOS Patch', 'ios'),
+    ('Dashboard Android Patch', 'android'),
+  ]) {
+    test('$name runs only on matching develop pushes', () {
+      final workflow = definitions.singleWhere((w) => w.workflowName == name);
+      final trigger = workflow.ciTriggers.single;
+      expect(trigger.matches(eventType: 'push', branch: 'develop'), isTrue);
+      expect(trigger.matches(eventType: 'push', branch: 'feature'), isFalse);
+      expect(
+        trigger.matches(eventType: 'pull_request', branch: 'develop'),
+        isFalse,
+      );
+      for (final path in [
+        'apps/dashboard/lib/main.dart',
+        'apps/dashboard/pubspec.yaml',
+        'packages/openci_shared/pubspec.yaml',
+        'openci/${workflow.workflowFileName}',
+        'apps/dashboard/shorebird.yaml',
+        'pubspec.yaml',
+        'pubspec.lock',
+      ]) {
+        expect(trigger.matchesChangedFiles([path]), isTrue, reason: path);
+      }
+      for (final directory in ['ios', 'android', 'macos', 'web']) {
+        final path = 'apps/dashboard/$directory/file';
+        expect(
+          trigger.matchesChangedFiles([path]),
+          directory == platform,
+          reason: path,
+        );
+      }
+      expect(
+        trigger.matchesChangedFiles([
+          'apps/dashboard/tool/configure_google_sign_in.dart',
+        ]),
+        platform == 'ios',
+      );
+      expect(
+        trigger.matchesChangedFiles([
+          'README.md',
+          'apps/openci_cli/pubspec.yaml',
+        ]),
+        isFalse,
+      );
+    });
+  }
+
   test('website source runs only Website CI', () {
     final result = plan(
       definitions,
@@ -223,7 +271,32 @@ void main() {
       'Workflow Scripts CI',
       'Dart Format Check',
       'Dashboard iOS Patrol',
+      'Virtual BLE iOS E2E',
     });
+  });
+  test('virtual BLE example and simulator checks run on PRs and develop', () {
+    final ci = definitions.singleWhere(
+      (w) => w.workflowName == 'Virtual BLE iOS E2E',
+    );
+    expect(ci.matches(eventType: 'pull_request', branch: 'feature'), isTrue);
+    expect(ci.matches(eventType: 'push', branch: 'develop'), isTrue);
+    expect(ci.matches(eventType: 'push', branch: 'feature'), isFalse);
+    for (final trigger in ci.ciTriggers) {
+      for (final path in [
+        'packages/openci_virtual_ble/example/lib/main.dart',
+        'packages/openci_workflow/lib/src/virtual_ble/bumble_peer.py',
+        'packages/openci_workflow/integration_test/virtual_ble_test.dart',
+        'openci/lib/virtual_ble_checks.dart',
+        'openci/openci_workflow_cd.dart',
+        'pubspec.lock',
+      ]) {
+        expect(trigger.matchesChangedFiles([path]), isTrue, reason: path);
+      }
+      expect(
+        trigger.matchesChangedFiles(['apps/website/src/index.astro']),
+        isFalse,
+      );
+    }
   });
   test('workspace resolution changes run all PR workflows', () {
     for (final path in ['pubspec.lock', 'apps/dashboard/pubspec.yaml']) {
@@ -326,43 +399,26 @@ void main() {
       }
     }
   });
-  for (final (name, platform) in [
-    ('Dashboard TestFlight IPA', 'ios'),
-    ('Dashboard Google Play AAB', 'android'),
+  for (final name in [
+    'Dashboard TestFlight IPA',
+    'Dashboard Google Play AAB',
+    'Firebase Functions CD',
   ]) {
-    test('$name runs only on matching develop pushes', () {
+    test('$name runs only for published releases', () {
       final workflow = definitions.singleWhere((w) => w.workflowName == name);
       final trigger = workflow.ciTriggers.single;
-      expect(trigger.matches(eventType: 'push', branch: 'develop'), isTrue);
-      expect(trigger.matches(eventType: 'push', branch: 'feature'), isFalse);
+      expect(trigger.matches(eventType: 'release', branch: 'v2.6.0'), isTrue);
       expect(
-        trigger.matches(eventType: 'pull_request', branch: 'develop'),
+        trigger.matches(eventType: 'release', branch: 'v2.6.0-rc.1'),
+        isTrue,
+      );
+      expect(trigger.matches(eventType: 'push', branch: 'develop'), isFalse);
+      expect(
+        trigger.matches(eventType: 'push', branch: 'refs/tags/v2.6.0'),
         isFalse,
       );
-      for (final path in [
-        'apps/dashboard/lib/main.dart',
-        'apps/dashboard/pubspec.yaml',
-        'packages/openci_shared/pubspec.yaml',
-        'openci/${workflow.workflowFileName}',
-        'openci/lib/dashboard_store_build_number.dart',
-        'pubspec.yaml',
-        'pubspec.lock',
-      ]) {
-        expect(trigger.matchesChangedFiles([path]), isTrue, reason: path);
-      }
-      for (final directory in ['ios', 'android', 'macos', 'web']) {
-        final path = 'apps/dashboard/$directory/file';
-        expect(
-          trigger.matchesChangedFiles([path]),
-          directory == platform,
-          reason: path,
-        );
-      }
       expect(
-        trigger.matchesChangedFiles([
-          'README.md',
-          'apps/openci_cli/pubspec.yaml',
-        ]),
+        trigger.matches(eventType: 'pull_request', branch: 'develop'),
         isFalse,
       );
     });

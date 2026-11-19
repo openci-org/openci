@@ -1,8 +1,11 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:meta/meta.dart';
 
-/// Runs the project's resolved Patrol CLI using the workflow's Dart toolchain.
+import '../secret.dart';
+import 'virtual_ble_patrol.dart';
+
 class PatrolCI {
   const PatrolCI(
     this._resolveDirectory, {
@@ -12,23 +15,56 @@ class PatrolCI {
   final String Function(String? dir) _resolveDirectory;
   final PatrolProcessRunner _processRunner;
 
-  /// Builds and runs Patrol tests on an available [device] ID or name.
+  /// Builds one Debug iOS app, then runs [target] on two fresh simulators.
   ///
-  /// Runs `dart run patrol_cli:main test` in the workflow directory, or [dir].
-  /// The project must resolve `patrol_cli` and have Patrol's native setup.
-  /// This does not install the CLI or provision a device.
-  ///
-  /// Empty [targets] uses Patrol's configured test directory. Each item in
-  /// [additionalArguments] is one CLI argument, passed without a shell; Patrol's
-  /// own argument parsing still applies. Use it for flavors, Dart defines, tags,
-  /// build modes, or other CLI options.
-  ///
-  /// Output streams to the workflow log. A nonzero exit throws [ProcessException]
-  /// instead of terminating the workflow process, so `finally` can clean up.
+  /// Each app receives its peer URL in tmp/openci-virtual-ble.json. B publishes
+  /// first. Both Patrol runs must succeed and both apps must publish to GATT.
+  /// The returned directory holds per-device logs and XCTest result bundles.
+  /// If supplied, [resultJsonFile] in each app's tmp directory is required and
+  /// copied to A.json or B.json before the simulators are deleted.
+  Future<Directory> testWithVirtualBle({
+    String? dir,
+    required String target,
+    required String bundleId,
+    required String serviceUuid,
+    required String characteristicUuid,
+    String? resultJsonFile,
+    String pythonExecutable = 'python3.13',
+  }) async {
+    if (target.trim().isEmpty || bundleId.trim().isEmpty) {
+      throw ArgumentError('Specify a Patrol target and iOS bundle identifier.');
+    }
+    if (resultJsonFile != null &&
+        (resultJsonFile.contains('/') || !resultJsonFile.endsWith('.json'))) {
+      throw ArgumentError.value(
+        resultJsonFile,
+        'resultJsonFile',
+        'Expected a JSON file name',
+      );
+    }
+    final directory = _resolveDirectory(dir);
+    await _runCli('build', [
+      'ios',
+      '--simulator',
+      '--emit-test-manifest',
+      '--target',
+      target,
+    ], directory: directory);
+    return runVirtualBlePatrol(
+      directory: Directory(directory).absolute,
+      bundleId: bundleId,
+      serviceUuid: serviceUuid,
+      characteristicUuid: characteristicUuid,
+      resultJsonFile: resultJsonFile,
+      pythonExecutable: pythonExecutable,
+    );
+  }
+
   Future<void> test({
     required String device,
     String? dir,
     List<String> targets = const [],
+    List<Secret> env = const [],
     bool verbose = false,
     List<String> additionalArguments = const [],
   }) async {
@@ -42,27 +78,60 @@ class PatrolCI {
         'Targets must not be empty.',
       );
     }
-    final result = await _processRunner(
-      'dart',
-      [
-        'run',
-        'patrol_cli:main',
-        if (verbose) '--verbose',
+    final values = <String, String>{};
+    for (final secret in env) {
+      final value = secret.value;
+      if (value.isEmpty) {
+        throw StateError("Secret '${secret.key}' is empty.");
+      }
+      values[secret.key] = value;
+    }
+    Directory? temp;
+    try {
+      File? defines;
+      if (values.isNotEmpty) {
+        temp = await Directory.systemTemp.createTemp('openci-patrol-');
+        defines = File.fromUri(temp.uri.resolve('defines.json'));
+        await defines.writeAsString(jsonEncode(values));
+      }
+      await _runCli(
         'test',
-        '--device',
-        device,
-        for (final target in targets) ...['--target', target],
-        ...additionalArguments,
-      ],
-      workingDirectory: _resolveDirectory(dir),
+        [
+          '--device',
+          device,
+          for (final target in targets) ...['--target', target],
+          if (defines != null)
+            '--dart-define-from-file=${defines.absolute.path}',
+          ...additionalArguments,
+        ],
+        directory: _resolveDirectory(dir),
+        verbose: verbose,
+      );
+    } finally {
+      await temp?.delete(recursive: true);
+    }
+  }
+
+  Future<void> _runCli(
+    String command,
+    List<String> arguments, {
+    required String directory,
+    bool verbose = false,
+  }) async {
+    final cli = ['run', 'patrol_cli:main'];
+    final code = await _processRunner(
+      'dart',
+      [...cli, if (verbose) '--verbose', command, ...arguments],
+      workingDirectory: directory,
     );
-    if (result != 0) {
+    if (code != 0) {
       // Additional arguments may contain credentials. Keep them out of errors.
+      final operation = command == 'test' ? 'tests' : command;
       throw ProcessException(
         'dart',
-        const ['run', 'patrol_cli:main', 'test'],
-        'Patrol tests failed. See the command output above.',
-        result,
+        [...cli, command],
+        'Patrol $operation failed. See the command output above.',
+        code,
       );
     }
   }

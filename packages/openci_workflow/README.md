@@ -92,6 +92,16 @@ Future<void> main() async {
 
 OpenCI discovers Dart files in `openci/` and matches their declared triggers to GitHub events. Keep workflow names and trigger branches as string literals so the planner can read them without executing the workflow.
 
+Use `CITrigger.release()` to run on GitHub Release publication, or
+`CITrigger.release(tag: 'v*')` to filter tag names. Published pre-releases are
+included; draft saves, edits, and tag pushes do not match. The workflow must be
+present at the tagged commit. OpenCI resolves lightweight and annotated tags to
+a commit before reading workflows and queues that exact commit for checkout.
+Release runs currently expose the pinned tag as `PushContext.branch`
+(`refs/tags/<tag>`). Release triggers do not support `paths`.
+This requires SDK 0.5.0, the updated webhook/planner deployment, and a GitHub App
+subscribed to Release events with Contents read permission.
+
 ### Read the current execution context
 
 Use `openCI.context` to branch on the event that actually started this run:
@@ -328,11 +338,66 @@ try {
     dir: 'apps/dashboard',
     device: simulator.id,
     targets: ['patrol_test/app_startup_test.dart'],
+    env: [Secrets.dashboardPatrolEmail, Secrets.dashboardPatrolPassword],
   );
 } finally {
   await simulator.dispose();
 }
 ```
+
+### Exchange GATT values between two simulators
+
+For a Patrol test, `openCI.patrol.testWithVirtualBle()` builds the app once,
+starts two iOS Simulators and Bumble, and runs the prebuilt test on each device.
+The app reads its `endpoint` from `tmp/openci-virtual-ble.json` in its data container.
+B publishes first. Once B is ready, the SDK starts A. Both devices are removed
+when the test finishes.
+
+```dart
+await openCI.patrol.testWithVirtualBle(
+  dir: 'apps/mobile',
+  target: 'patrol_test/pairing_test.dart',
+  bundleId: 'org.example.mobile',
+  serviceUuid: 'BE110001-5D9F-4810-8692-47717E010001',
+  characteristicUuid: 'BE110002-5D9F-4810-8692-47717E010001',
+);
+```
+
+Use Patrol's [build-time test discovery](https://patrol.leancode.co/documentation/ci/build-time-test-discovery)
+with the static iOS XCTest runner. The example uses Patrol 4.11.0 and `patrol_cli` 4.9.0.
+The returned directory contains per-device logs and XCTest result bundles.
+Pass `resultJsonFile` to collect a JSON file written to each app's `tmp` directory
+as `A.json` and `B.json` for workflow-specific assertions.
+
+`startVirtualBle()` starts one loopback WebSocket server and two Bumble GATT
+devices. It creates a temporary Python environment and installs the pinned
+Bumble release. The default interpreter is `python3.13`. To use another
+Python 3.11+ installation with venv and pip, pass `pythonExecutable`.
+Allow package installation on the host. Both simulator apps use the same Mac.
+
+```dart
+final radio = await openCI.startVirtualBle(
+  serviceUuid: 'BE110001-5D9F-4810-8692-47717E010001',
+  characteristicUuid: 'BE110002-5D9F-4810-8692-47717E010001',
+);
+try {
+  final a = radio.endpoint(VirtualBlePeer.a);
+  final b = radio.endpoint(VirtualBlePeer.b);
+  // Pass the two ws://127.0.0.1 URLs to your simulator apps.
+  await runYourSimulatorTests(a, b);
+} finally {
+  await radio.dispose();
+}
+```
+
+The clients publish a readable characteristic value (`card`, base64) over
+`/A` and `/B`. Once both have published, each receives the value read over
+GATT from its peer (`peer`). A `write` delivers `incoming` to the receiving
+app. Its `reply` releases the ATT Write Response and the sender receives
+`accepted`. Each session owns one connection per role. Use
+`waitForPeer()` to wait for an app to publish before starting its partner.
+
+See the [two-simulator Flutter example](https://github.com/openci-org/openci/tree/develop/packages/openci_virtual_ble/example).
 
 ### Run Patrol tests
 
@@ -351,6 +416,10 @@ await openCI.patrol.test(
 ```
 
 `device` is required. Omit `targets` to use Patrol's configured test directory.
+`env` accepts generated `Secret` references with non-empty values. Use
+`String.fromEnvironment` in the test to read a value by its original key.
+The SDK passes a temporary JSON file to Patrol and deletes it when the command
+finishes.
 `dir` overrides the workflow's working directory for this call. Additional CLI
 arguments are passed individually without shell expansion; Patrol's own parsing
 rules still apply. Command output streams to the workflow log. Nonzero exits

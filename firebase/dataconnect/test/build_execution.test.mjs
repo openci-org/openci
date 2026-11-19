@@ -85,8 +85,8 @@ test("overlapping Cloud Run writers wait for each other and release the QR slot"
   };
   const signal = AbortSignal.timeout(10000);
   await Promise.all([
-    store.withQrCommentLease(id, signal, write),
-    store.withQrCommentLease(id, signal, write),
+    store.withPullRequestCommentLease(id, signal, write),
+    store.withPullRequestCommentLease(id, signal, write),
   ]);
   assert.equal(completed, 2);
   const data = await graphql(
@@ -458,6 +458,39 @@ test("Cloud Run executor completes checkout, workflow, FSC logs, billing, checks
   assert.ok(Date.parse(logs.buildRun.logsExpireAt) > Date.now());
   await f.run();
   assert.equal(f.calls.filter((call) => call === "create").length, 1);
+});
+
+test("completion reporting reads the latest PR attempt and its masked failure output", async (t) => {
+  const f = await fixture(t, true);
+  await alterJob(f.jobId, { pullRequestNumber: "7" });
+  const exec = f.dependencies.orchard.exec;
+  f.dependencies.orchard.exec = async (vm, script, output, signal) => {
+    if (!script.includes("flutter pub run")) return exec(vm, script, output, signal);
+    await output("stderr", Buffer.from("Error: workflow-secret failed\n"));
+    return 1;
+  };
+  await f.run();
+  const { job, latest } = await store.pullRequestCommentExecution(f.jobId);
+  assert.equal(job.pullRequestNumber, "7");
+  assert.equal(latest.id, f.id);
+  assert.equal(latest.outcome, "failure");
+  assert.ok(latest.finishedAt);
+  const run = await store.pullRequestFailureLog(f.jobId, latest.runId);
+  assert.deepEqual(run.failed, [{ stepId: "run_workflow" }]);
+  assert.equal(run.tail[0].message, "Error: [REDACTED] failed\n");
+  assert.equal((await store.pullRequestFailureLog("unrelated-job", latest.runId)) ?? null, null);
+  const user = { impersonate: { authClaims: { sub: "user" } } };
+  await assert.rejects(dispatchSdk.getPullRequestCommentExecution(dc, { jobId: f.jobId }, user));
+  await assert.rejects(
+    dispatchSdk.getPullRequestFailureLog(dc, { jobId: f.jobId, runId: latest.runId }, user),
+  );
+  // A new base revision can produce a second job for the same head/PR.
+  // Its first all-green completion creates no comment or GitHub marker.
+  const next = await fixture(t, false, { teamId: f.teamId, installationId: job.installationId });
+  await alterJob(next.jobId, { pullRequestNumber: "7" });
+  await next.run();
+  assert.equal((await store.pullRequestCommentExecution(next.jobId)).latest.outcome, "success");
+  assert.equal((await store.pullRequestCommentExecution(f.jobId)).latest, null);
 });
 
 test("concurrent jobs share the team's run sequence and retrying an allocation reuses its number", async (t) => {

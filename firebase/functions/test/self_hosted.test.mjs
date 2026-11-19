@@ -308,7 +308,7 @@ test("opted-in PRs publish only after a successful workflow and report publicati
       }
       return 0;
     };
-    f.dependencies.store.withQrCommentLease = async (key, signal, work) => {
+    f.dependencies.store.withPullRequestCommentLease = async (key, signal, work) => {
       assert.equal(key, "test");
       signal.throwIfAborted();
       return work(async () => {});

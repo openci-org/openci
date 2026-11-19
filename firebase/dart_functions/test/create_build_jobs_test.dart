@@ -13,6 +13,8 @@ class _Store implements PlanningStore {
   bool loseResponse = false;
   bool failCommit = false;
   bool pullRequest = false;
+  bool release = false;
+  bool connected = true;
   int conflictsRemaining = 0;
   final List<PlanningFence> fences = [];
   final List<BuildJobPlan> published = [];
@@ -21,7 +23,7 @@ class _Store implements PlanningStore {
   @override
   Future<PlanningTask?> getTask(String id) async => PlanningTask(
     id,
-    pullRequest ? 'pull_request' : 'push',
+    release ? 'release' : (pullRequest ? 'pull_request' : 'push'),
     jsonEncode({
       'installation': {'id': 30},
       'repository': {
@@ -31,6 +33,15 @@ class _Store implements PlanningStore {
       },
       'after': 'a' * 40,
       'ref': 'refs/heads/develop',
+      if (release) ...{
+        'action': 'published',
+        'release': {
+          'id': 40,
+          'tag_name': 'v1.2.0',
+          'draft': false,
+          'target_commitish': 'develop',
+        },
+      },
       if (pullRequest) ...{
         'action': 'synchronize',
         'number': 7,
@@ -53,7 +64,7 @@ class _Store implements PlanningStore {
   );
   @override
   Future<PlanningConnection?> findConnection(int id, int repositoryId) async =>
-      const PlanningConnection('connection', '20', 'team');
+      connected ? const PlanningConnection('connection', '20', 'team') : null;
   @override
   Future<PlanningFence> beginPullRequestPlanning(
     String taskId,
@@ -92,6 +103,86 @@ class _Store implements PlanningStore {
 }
 
 void main() {
+  test(
+    'release publication resolves its tag before reading and planning CD',
+    () async {
+      final store = _Store()..release = true;
+      final sha = 'c' * 40;
+      var resolutions = 0;
+      final planner = BuildJobPlanner(
+        store: store,
+        resolveReleaseCommit: (event) async {
+          resolutions++;
+          expect(event.webhook.commitSha, isEmpty);
+          return sha;
+        },
+        fetchWorkflows: (event) async {
+          expect(event.webhook.commitSha, sha);
+          return [
+            for (final (name, trigger) in [
+              ('cd', "CITrigger.release(tag: 'v*')"),
+              ('patch', "CITrigger.push(branch: 'develop')"),
+              ('tag', "CITrigger.push(branch: 'refs/tags/*')"),
+            ])
+              OpenCIFile(
+                name: '$name.dart',
+                path: 'openci/$name.dart',
+                content:
+                    "void main() { OpenCI.init(workflowName: '$name', ciTriggers: [$trigger]); }",
+              ),
+          ];
+        },
+        fetchChangedFiles: (_) async =>
+            throw StateError('No release path comparison'),
+        observePullRequest: (_) async => throw StateError('Not a PR'),
+      );
+      expect(await planner.process('release-task'), 'created');
+      expect(await planner.process('release-task'), 'duplicate');
+      expect(resolutions, 1);
+      expect(store.published, hasLength(1));
+      expect(store.published.single.workflowFileName, 'cd.dart');
+      expect(store.published.single.commitSha, sha);
+      expect(store.published.single.branch, 'refs/tags/v1.2.0');
+      expect(store.published.single.pullRequestNumber, isNull);
+      expect(store.fences, isEmpty);
+    },
+  );
+
+  test(
+    'release tag outages leave the task pending without fetching code',
+    () async {
+      final store = _Store()..release = true;
+      for (final resolve in <Future<String> Function(PlanningEvent)?>[
+        null,
+        (_) async => throw StateError('GitHub unavailable'),
+      ]) {
+        final planner = BuildJobPlanner(
+          store: store,
+          resolveReleaseCommit: resolve,
+          fetchWorkflows: (_) async => throw StateError('Must not fetch'),
+        );
+        await expectLater(planner.process('release-task'), throwsStateError);
+        expect(store.status, 'pending');
+        expect(store.published, isEmpty);
+      }
+    },
+  );
+
+  test(
+    'unconnected release events never resolve tags or fetch source',
+    () async {
+      final store = _Store()
+        ..release = true
+        ..connected = false;
+      final planner = BuildJobPlanner(
+        store: store,
+        resolveReleaseCommit: (_) async => throw StateError('Must not resolve'),
+        fetchWorkflows: (_) async => throw StateError('Must not fetch'),
+      );
+      expect(await planner.process('release-task'), 'created');
+      expect(store.published, isEmpty);
+    },
+  );
   test(
     'fetches paths once per task and persists skipped results on redelivery',
     () async {
@@ -191,7 +282,7 @@ void main() {
   });
 
   test(
-    'a lost observation reacquires the fence and verifies GitHub again',
+    'a stale PR delivery completes without reacquiring the current planning fence',
     () async {
       final store = _Store()
         ..pullRequest = true
@@ -216,13 +307,34 @@ void main() {
             : PullRequestObservation.stale,
       );
       expect(await planner.process('task'), 'created');
-      expect(fetches, 2);
+      expect(fetches, 1);
       expect(observations, 2);
-      expect(store.fences.map((fence) => fence.token).toSet(), hasLength(2));
+      expect(store.fences, hasLength(1));
       expect(store.published, isEmpty);
       expect(store.status, 'completed');
     },
   );
+
+  test('a failed PR recheck leaves the task pending for redelivery', () async {
+    final store = _Store()
+      ..pullRequest = true
+      ..conflictsRemaining = 1;
+    var observations = 0;
+    final planner = BuildJobPlanner(
+      store: store,
+      fetchWorkflows: (_) async => [],
+      observePullRequest: (_) async {
+        if (++observations == 2) throw StateError('GitHub unavailable');
+        return PullRequestObservation.current;
+      },
+    );
+
+    await expectLater(planner.process('task'), throwsStateError);
+    expect(store.status, 'pending');
+    expect(store.fences, hasLength(1));
+    expect(await planner.process('task'), 'created');
+    expect(store.status, 'completed');
+  });
 
   test(
     'sustained contention stays pending for durable event redelivery',

@@ -2,7 +2,71 @@ import 'package:openci_dart_functions/src/open_ci_parser.dart';
 import 'package:test/test.dart';
 
 void main() {
+  group('release publication', () {
+    for (final expression in [
+      'CITrigger.release()',
+      'const CITrigger.release()',
+      "CITrigger.release(tag: 'v*')",
+    ]) {
+      test('parses $expression independently of push and PR triggers', () {
+        final workflow = parseOpenCIWorkflow(
+          "void main() { OpenCI.init(workflowName: 'CD', ciTriggers: [$expression]); }",
+          'cd.dart',
+        )!;
+        expect(
+          workflow.matches(eventType: 'release', branch: 'v1.2.0'),
+          isTrue,
+        );
+        expect(workflow.matches(eventType: 'push', branch: 'v1.2.0'), isFalse);
+        expect(
+          workflow.matches(eventType: 'push', branch: 'refs/tags/v1.2.0'),
+          isFalse,
+        );
+        expect(
+          workflow.matches(eventType: 'pull_request', branch: 'v1.2.0'),
+          isFalse,
+        );
+        expect(workflow.ciTriggers.single.paths, isNull);
+        if (expression.contains('tag:')) {
+          expect(
+            workflow.matches(eventType: 'release', branch: 'nightly'),
+            isFalse,
+          );
+        }
+      });
+    }
+    for (final args in [
+      "tag: ''",
+      'tag: tagName',
+      'tag: null',
+      "branch: 'main'",
+      "paths: ['lib/**']",
+    ]) {
+      test('rejects unsupported or nonliteral release arguments: $args', () {
+        expect(
+          () => parseOpenCIWorkflow(
+            "void main() { OpenCI.init(workflowName: 'CD', ciTriggers: [CITrigger.release($args)]); }",
+            'cd.dart',
+          ),
+          throwsA(isA<WorkflowConfigurationException>()),
+        );
+      });
+    }
+  });
   group('flutterVersion', () {
+    for (final (preset, version) in [
+      ('FlutterVersion.v3_44_8.value', '3.44.8'),
+      ('FlutterVersion.v3_47_8.value', '3.47.8'),
+    ]) {
+      test('resolves the Flutter version preset $preset', () {
+        final workflow = parseOpenCIWorkflow('''
+void main() {
+  OpenCI.init(workflowName: 'CI', ciTriggers: [CITrigger.push(branch: 'main')], flutterVersion: $preset);
+}
+''', 'ci.dart');
+        expect(workflow!.flutterVersion, version);
+      });
+    }
     for (final version in ['3.47.8', '3.48.0-0.1.pre']) {
       test('parses a literal release: $version', () {
         final workflow = parseOpenCIWorkflow('''
@@ -27,6 +91,10 @@ void main() {
       "''",
       "'stable'",
       'version',
+      'FlutterVersion.v99_0_0.value',
+      'FlutterVersion.v3_47_8',
+      'FlutterVersion.v3_47_8.name',
+      'OtherVersion.v3_47_8.value',
       r"'3.47.$patch'",
       "'3.47.8; id'",
       r"'3.47.8\n'",

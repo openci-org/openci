@@ -3,6 +3,14 @@ import 'package:test/test.dart';
 
 void main() {
   group('CITrigger', () {
+    test('release triggers have a separate tag filter and union identity', () {
+      const all = CITrigger.release();
+      const filtered = CITrigger.release(tag: 'v*');
+      expect(all, const CITrigger.release(tag: '*'));
+      expect(filtered, isNot(const CITrigger.push(branch: 'v*')));
+      expect(filtered.branch, isNull);
+      expect(filtered.paths, isNull);
+    });
     test('CITrigger.push creates push trigger with branch', () {
       const trigger = CITrigger.push(branch: 'develop');
       expect(trigger.branch, 'develop');

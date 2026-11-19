@@ -14,6 +14,7 @@ import 'machine_type.dart';
 import 'patrol/patrol_ci.dart';
 import 'pull_request_ci.dart';
 import 'shorebird/shorebird_ci.dart';
+import 'virtual_ble/virtual_ble.dart' as ble;
 import 'workspace_directory.dart';
 import 'workflow_context.dart';
 
@@ -164,6 +165,20 @@ class OpenCI {
     name: name,
     runtime: runtime,
     bootTimeout: bootTimeout,
+  );
+
+  /// Starts two virtual GATT peers on this Mac, reachable by iOS simulators.
+  ///
+  /// Supply 128-bit service and characteristic UUIDs. Requires Python 3.11+
+  /// with venv and pip. Call [ble.VirtualBleSession.dispose] in a finally block.
+  Future<ble.VirtualBleSession> startVirtualBle({
+    required String serviceUuid,
+    required String characteristicUuid,
+    String pythonExecutable = 'python3.13',
+  }) => ble.startVirtualBle(
+    serviceUuid: serviceUuid,
+    characteristicUuid: characteristicUuid,
+    pythonExecutable: pythonExecutable,
   );
 
   Future<void> placeFileFromBase64({

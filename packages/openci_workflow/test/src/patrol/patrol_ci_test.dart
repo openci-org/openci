@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:isolate';
 
 import 'package:openci_workflow/openci_workflow.dart';
 import 'package:test/test.dart';
@@ -8,8 +9,13 @@ import 'package:test/test.dart';
 void main() {
   late Directory workspace;
   late OpenCI ci;
+  late Uri envWorkflow;
 
   setUpAll(() async {
+    final library = await Isolate.resolvePackageUri(
+      Uri.parse('package:openci_workflow/openci_workflow.dart'),
+    );
+    envWorkflow = library!.resolve('../test/fixtures/run_patrol_with_env.dart');
     workspace = await Directory.systemTemp.createTemp('openci-patrol-test-');
     final cli = Directory('${workspace.path}/fixture_cli');
     await Directory('${cli.path}/bin').create(recursive: true);
@@ -22,9 +28,15 @@ environment:
 import 'dart:convert';
 import 'dart:io';
 void main(List<String> args) {
+  const option = '--dart-define-from-file=';
+  final files = args.where((arg) => arg.startsWith(option));
   File('invocation.json').writeAsStringSync(jsonEncode({
     'args': args,
     'cwd': Directory.current.path,
+    if (files.isNotEmpty)
+      'defines': jsonDecode(
+        File(files.single.substring(option.length)).readAsStringSync(),
+      ),
   }));
   stdout.writeln('Patrol fixture stdout');
   stderr.writeln('Patrol fixture stderr');
@@ -63,6 +75,25 @@ dependencies:
             await File('${workspace.path}/$dir/invocation.json').readAsString(),
           )
           as Map<String, dynamic>;
+
+  Future<ProcessResult> runWithEnv(
+    Map<String, String> env, {
+    List<String> arguments = const [],
+  }) async => Process.run(
+    Platform.resolvedExecutable,
+    [
+      '--packages=${(await Isolate.packageConfig)!.toFilePath()}',
+      envWorkflow.toFilePath(),
+      ...arguments,
+    ],
+    workingDirectory: '${workspace.path}/apps/mobile',
+    environment: {
+      for (final entry in Platform.environment.entries)
+        if (!entry.key.startsWith('PATROL_FIXTURE_')) entry.key: entry.value,
+      ...env,
+    },
+    includeParentEnvironment: false,
+  );
 
   test(
     'uses the project CLI and inherits or overrides the workflow directory',
@@ -144,6 +175,53 @@ dependencies:
     await ci.patrol.test(device: 'emulator-5554');
   });
 
+  test('passes env by file and removes it on success and failure', () async {
+    const values = {
+      'PATROL_FIXTURE_EMAIL': 'tester@example.test',
+      'PATROL_FIXTURE_PASSWORD': 'a "quoted" value, with=equals\n次の行',
+    };
+    const option = '--dart-define-from-file=';
+    for (final extra in [
+      <String>[],
+      ['--fixture-fail'],
+    ]) {
+      final result = await runWithEnv(values, arguments: extra);
+      expect(
+        result.exitCode,
+        extra.isEmpty ? 0 : isNot(0),
+        reason: result.stderr.toString(),
+      );
+      final call = await invocation('apps/mobile');
+      expect(call['defines'], values);
+      final args = (call['args'] as List).cast<String>();
+      expect(args, [
+        'test',
+        '--device',
+        'device',
+        startsWith(option),
+        ...extra,
+      ]);
+      for (final value in values.values) {
+        expect(args.join(' '), isNot(contains(value)));
+        expect('${result.stdout}${result.stderr}', isNot(contains(value)));
+      }
+      final file = File(args[3].substring(option.length));
+      expect(await file.parent.exists(), isFalse);
+    }
+  });
+
+  test('rejects missing and empty env secrets before running Patrol', () async {
+    for (final password in [null, '']) {
+      final result = await runWithEnv({
+        'PATROL_FIXTURE_EMAIL': 'tester@example.test',
+        'PATROL_FIXTURE_PASSWORD': ?password,
+      });
+      expect(result.exitCode, isNot(0));
+      expect(result.stderr, contains("Secret 'PATROL_FIXTURE_PASSWORD'"));
+      expect(result.stdout, isNot(contains('Patrol fixture stdout')));
+    }
+  });
+
   test(
     'process startup failures also throw without echoing extra options',
     () async {
@@ -178,6 +256,52 @@ dependencies:
     await future;
     expect(finished, isTrue);
   });
+
+  test(
+    'virtual BLE builds the target once and propagates a build failure before creating simulators',
+    () async {
+      const target = "patrol_test/peer's round trip_test.dart";
+      final calls = <List<String>>[];
+      final patrol = PatrolCI(
+        (dir) => dir!,
+        processRunner:
+            (executable, arguments, {required workingDirectory}) async {
+              calls.add([executable, workingDirectory, ...arguments]);
+              return 23;
+            },
+      );
+      Future<Directory> run({String? result}) => patrol.testWithVirtualBle(
+        dir: 'apps/mobile',
+        target: target,
+        bundleId: 'org.example.app',
+        serviceUuid: 'BE110001-5D9F-4810-8692-47717E010001',
+        characteristicUuid: 'BE110002-5D9F-4810-8692-47717E010001',
+        resultJsonFile: result,
+      );
+      await expectLater(run(result: '../wrong.json'), throwsArgumentError);
+      expect(calls, isEmpty);
+      await expectLater(
+        run(),
+        throwsA(
+          isA<ProcessException>().having((e) => e.errorCode, 'exit code', 23),
+        ),
+      );
+      expect(calls, [
+        [
+          'dart',
+          'apps/mobile',
+          'run',
+          'patrol_cli:main',
+          'build',
+          'ios',
+          '--simulator',
+          '--emit-test-manifest',
+          '--target',
+          target,
+        ],
+      ]);
+    },
+  );
 
   test('rejects empty device or target without starting a process', () async {
     final patrol = PatrolCI(

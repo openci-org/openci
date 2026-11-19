@@ -1,8 +1,27 @@
 # Changelog
 
-## 0.4.7
+## 0.5.3
 
 - Add `firebase.functions.deploy()` using the installed Firebase CLI, with explicit project selection, optional codebase selection, and temporary service account authentication.
+
+## 0.5.2
+
+- Add `patrol.testWithVirtualBle()` to build a Patrol target once and run it on two iOS Simulators.
+- Support test paths in `dart.test()`, locked dependency resolution with `flutter.pubGet()` and `noPub` in `flutter.staticAnalysis()`.
+- Add `startVirtualBle()` to exchange GATT values between two simulator apps using a loopback WebSocket server and two Bumble devices.
+
+## 0.5.1
+
+- Export `FlutterVersion` with `v3_44_8` and `v3_47_8`. Each member exposes its release string through `.value`.
+
+## 0.5.0
+
+- Add `CITrigger.release(tag: 'v*')` for GitHub Release publication. Omitting `tag` accepts every published release, including pre-releases. Requires the updated webhook planner and a GitHub App subscribed to Release events.
+- **Breaking:** `CITrigger` has a third union case. Update exhaustive pattern matches; `branch` and `paths` are null for release triggers. Use `copyWith` on a specific union case instead of the base `CITrigger` type.
+
+## 0.4.8
+
+- Add an optional `env` list to `patrol.test()` for passing `Secret` values to tests as Dart defines. Tests can read each value by its original key with `String.fromEnvironment`.
 
 ## 0.4.6
 

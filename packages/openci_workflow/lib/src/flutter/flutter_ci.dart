@@ -23,6 +23,11 @@ class FlutterCI {
 
   final Future<void> Function(String command, {String? workingDirectory}) _run;
 
+  Future<void> pubGet({String? dir, bool enforceLockfile = false}) => _run(
+    enforceLockfile ? 'flutter pub get --enforce-lockfile' : 'flutter pub get',
+    workingDirectory: dir,
+  );
+
   Future<void> staticAnalysis({
     String? dir,
     // See https://github.com/dart-lang/tools/issues/249
@@ -30,6 +35,7 @@ class FlutterCI {
     bool fatalInfo = false,
     bool noFatalInfos = false,
     bool noFatalWarnings = false,
+    bool noPub = false,
   }) => _run(
     [
       'flutter analyze',
@@ -37,6 +43,7 @@ class FlutterCI {
       if (fatalInfo) '--fatal-infos',
       if (noFatalInfos) '--no-fatal-infos',
       if (noFatalWarnings) '--no-fatal-warnings',
+      if (noPub) '--no-pub',
     ].join(' '),
     workingDirectory: dir,
   );

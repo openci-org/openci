@@ -364,6 +364,28 @@ function completeBuildExecution(dcOrVarsOrOptions, varsOrOptions, options) {
 }
 exports.completeBuildExecution = completeBuildExecution;
 
+function getPullRequestCommentExecution(dcOrVarsOrOptions, varsOrOptions, options) {
+  const {
+    dc: dcInstance,
+    vars: inputVars,
+    options: inputOpts,
+  } = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeQuery("GetPullRequestCommentExecution", inputVars, inputOpts);
+}
+exports.getPullRequestCommentExecution = getPullRequestCommentExecution;
+
+function getPullRequestFailureLog(dcOrVarsOrOptions, varsOrOptions, options) {
+  const {
+    dc: dcInstance,
+    vars: inputVars,
+    options: inputOpts,
+  } = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeQuery("GetPullRequestFailureLog", inputVars, inputOpts);
+}
+exports.getPullRequestFailureLog = getPullRequestFailureLog;
+
 function claimPullRequestQrComment(dcOrVarsOrOptions, varsOrOptions, options) {
   const {
     dc: dcInstance,

@@ -1,8 +1,9 @@
 # Dependencies
 /node_modules/
 
-# Next.js build output
+# Next.js generated files
 /.next/
+/next-env.d.ts
 /out/
 /build/
 

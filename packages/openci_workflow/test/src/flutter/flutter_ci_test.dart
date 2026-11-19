@@ -7,6 +7,11 @@ import 'package:test/test.dart';
 void main() {
   const workspace = '/tmp/openci-workspace';
   final commands = <String, Future<void> Function(FlutterCI, {String? dir})>{
+    'flutter pub get': (flutter, {dir}) => flutter.pubGet(dir: dir),
+    'flutter pub get --enforce-lockfile': (flutter, {dir}) =>
+        flutter.pubGet(dir: dir, enforceLockfile: true),
+    'flutter analyze --suppress-analytics --no-pub': (flutter, {dir}) =>
+        flutter.staticAnalysis(dir: dir, noPub: true),
     'flutter analyze --suppress-analytics': (flutter, {dir}) =>
         flutter.staticAnalysis(dir: dir),
     'flutter analyze': (flutter, {dir}) =>
