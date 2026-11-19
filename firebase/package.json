@@ -4,7 +4,7 @@
   "main": "lib/functions/index.js",
   "scripts": {
     "build": "tsc -p tsconfig.functions.json",
-    "check": "vp lint --deny-warnings healthcheck.ts functions && tsc --noEmit && tsc -p functions/test/vitest",
+    "check": "vp lint --deny-warnings healthcheck.ts functions scripts && tsc --noEmit && tsc -p functions/test/vitest",
     "test": "npm run build && node --test functions/test/*.test.mjs && npm run test:vitest",
     "test:vitest": "tsc -p functions/test/vitest && vp test run --dir functions/test/vitest",
     "test:workflow-context": "npm run build && node --test functions/integration_test/workflow_context.test.mjs",
