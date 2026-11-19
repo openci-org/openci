@@ -8,7 +8,7 @@ import 'generated/paths.g.dart';
 Future<void> main() async {
   final ci = await OpenCI.init(
     workflowName: 'Firebase Functions CD',
-    flutterVersion: '3.47.8',
+    flutterVersion: FlutterVersion.v3_47_8.value,
     ciTriggers: [CITrigger.push(branch: 'develop')],
   );
 

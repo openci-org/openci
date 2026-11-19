@@ -7,7 +7,7 @@ Future<void> main() async {
   final dashboard = WorkspacePaths.root.apps.dashboard;
   final ci = await OpenCI.init(
     workflowName: 'Dashboard iOS Patch',
-    flutterVersion: '3.47.8',
+    flutterVersion: FlutterVersion.v3_47_8.value,
     ciTriggers: [
       CITrigger.push(
         branch: 'develop',
