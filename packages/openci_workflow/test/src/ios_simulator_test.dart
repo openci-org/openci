@@ -159,6 +159,25 @@ void main() {
       ]);
     });
 
+    test(
+      'installs on the owned device and resolves the current app container',
+      () async {
+        final simulator = await launchIosSimulator(processRunner: simctl.run);
+        final app = Directory('/tmp/Example app.app');
+        simctl.responses['get_app_container'] = () async =>
+            ProcessResult(1, 0, '/tmp/data one\n', '');
+        await simulator.installApp(app);
+        expect(
+          (await simulator.appDataDirectory('org.example.app')).path,
+          '/tmp/data one',
+        );
+        expect(simctl.commands.skip(2), [
+          ['install', deviceId, app.path],
+          ['get_app_container', deviceId, 'org.example.app', 'data'],
+        ]);
+      },
+    );
+
     for (final shutdownFailure in [
       ProcessResult(1, 149, '', 'Device is already shutdown.'),
       TimeoutException('Shutdown timed out.'),

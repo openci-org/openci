@@ -271,7 +271,32 @@ void main() {
       'Workflow Scripts CI',
       'Dart Format Check',
       'Dashboard iOS Patrol',
+      'Virtual BLE iOS E2E',
     });
+  });
+  test('virtual BLE example and simulator checks run on PRs and develop', () {
+    final ci = definitions.singleWhere(
+      (w) => w.workflowName == 'Virtual BLE iOS E2E',
+    );
+    expect(ci.matches(eventType: 'pull_request', branch: 'feature'), isTrue);
+    expect(ci.matches(eventType: 'push', branch: 'develop'), isTrue);
+    expect(ci.matches(eventType: 'push', branch: 'feature'), isFalse);
+    for (final trigger in ci.ciTriggers) {
+      for (final path in [
+        'packages/openci_virtual_ble/example/lib/main.dart',
+        'packages/openci_workflow/lib/src/virtual_ble/bumble_peer.py',
+        'packages/openci_workflow/integration_test/virtual_ble_test.dart',
+        'openci/lib/virtual_ble_checks.dart',
+        'openci/openci_workflow_cd.dart',
+        'pubspec.lock',
+      ]) {
+        expect(trigger.matchesChangedFiles([path]), isTrue, reason: path);
+      }
+      expect(
+        trigger.matchesChangedFiles(['apps/website/src/index.astro']),
+        isFalse,
+      );
+    }
   });
   test('workspace resolution changes run all PR workflows', () {
     for (final path in ['pubspec.lock', 'apps/dashboard/pubspec.yaml']) {

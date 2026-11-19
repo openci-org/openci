@@ -347,6 +347,28 @@ try {
 
 ### Exchange GATT values between two simulators
 
+For a Patrol test, `openCI.patrol.testWithVirtualBle()` builds the app once,
+starts two iOS Simulators and Bumble, and runs the prebuilt test on each device.
+The app reads its `endpoint` from `tmp/openci-virtual-ble.json` in its data container.
+B publishes first. Once B is ready, the SDK starts A. Both devices are removed
+when the test finishes.
+
+```dart
+await openCI.patrol.testWithVirtualBle(
+  dir: 'apps/mobile',
+  target: 'patrol_test/pairing_test.dart',
+  bundleId: 'org.example.mobile',
+  serviceUuid: 'BE110001-5D9F-4810-8692-47717E010001',
+  characteristicUuid: 'BE110002-5D9F-4810-8692-47717E010001',
+);
+```
+
+Use Patrol's [build-time test discovery](https://patrol.leancode.co/documentation/ci/build-time-test-discovery)
+with the static iOS XCTest runner. The example uses Patrol 4.11.0 and `patrol_cli` 4.9.0.
+The returned directory contains per-device logs and XCTest result bundles.
+Pass `resultJsonFile` to collect a JSON file written to each app's `tmp` directory
+as `A.json` and `B.json` for workflow-specific assertions.
+
 `startVirtualBle()` starts one loopback WebSocket server and two Bumble GATT
 devices. It creates a temporary Python environment and installs the pinned
 Bumble release. The default interpreter is `python3.13`. To use another

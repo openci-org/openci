@@ -18,6 +18,8 @@ dart run openci/virtual_ble_ci.dart
 ```
 
 Each run creates its own two simulators and removes them after the test.
-The per-device XCTest logs, result bundles, and UI evidence are kept under
+The workflow uses `ci.patrol.testWithVirtualBle()` to run the prebuilt Patrol
+target on each device and collect its UI evidence. The per-device logs,
+XCTest result bundles, and evidence are kept under
 `example/build/virtual_ble/round-trip-*/`. The example uses this local plugin
 and the workflow uses the SDK from the same checkout.
