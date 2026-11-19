@@ -6,6 +6,7 @@ import 'package:meta/meta.dart';
 import 'ci_trigger.dart';
 import 'command_runner.dart';
 import 'dart/dart_ci.dart';
+import 'firebase/firebase_ci.dart';
 import 'firebase_hosting/firebase_hosting_ci.dart';
 import 'flutter/flutter_ci.dart';
 import 'ios_simulator.dart' as ios;
@@ -101,6 +102,11 @@ class OpenCI {
 
   /// Deploys static sites to Firebase Hosting, including expiring PR previews.
   late final FirebaseHostingCI firebaseHosting = FirebaseHostingCI(
+    (dir) => resolveWorkingDirectory(dir ?? currentWorkingDirectory),
+  );
+
+  /// Deploys Firebase resources, including Cloud Functions.
+  late final FirebaseCI firebase = FirebaseCI(
     (dir) => resolveWorkingDirectory(dir ?? currentWorkingDirectory),
   );
 

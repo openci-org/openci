@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.3
+
+- Add `firebase.functions.deploy()` using the installed Firebase CLI, with explicit project selection, optional codebase selection, and temporary service account authentication.
+
 ## 0.5.2
 
 - Add `patrol.testWithVirtualBle()` to build a Patrol target once and run it on two iOS Simulators.

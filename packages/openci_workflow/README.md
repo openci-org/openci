@@ -697,6 +697,23 @@ By default, this only uploads a release. Set `groups` (group aliases) or `tester
 
 The upload returns the release's Firebase tester URL as a `Uri`. The optional `postQrCode` call shares it with the PR. Testers still need access to the release in Firebase.
 
+## Firebase Functions
+
+```dart
+await openCI.firebase.functions.deploy(
+  projectId: 'my-firebase-project',
+  codebase: 'api',
+  firebaseConfigPath: 'firebase/firebase.json',
+  serviceAccountJsonBase64: Secrets.firebaseServiceAccountJsonBase64.value,
+);
+```
+
+The runner must provide `firebase` on `PATH` and a compatible Node.js runtime. The helper uses the installed CLI to run `firebase deploy --only functions:api --project my-firebase-project --non-interactive`. Omit `codebase` to deploy all Functions codebases in the config. `firebaseConfigPath` defaults to `firebase.json` and is relative to the workflow directory, or `dir` when supplied; absolute config paths are accepted.
+
+Provide a service account JSON key as a Base64-encoded OpenCI secret, with permission to deploy Functions to the destination project. The helper creates a temporary key file, passes its path as `GOOGLE_APPLICATION_CREDENTIALS` ([ADC](https://firebase.google.com/docs/cli#use_the_cli_with_ci_systems)), isolates Firebase's saved login, and deletes the temporary files on success or failure. It does not change the workflow process's environment.
+
+Install source dependencies and prepare the complete runtime environment files before calling. Firebase CLI executes the config's `predeploy` and `postdeploy` hooks. Logs stream to the workflow; a nonzero exit throws. The helper does not force deletions or retry partial deployments. Branch conditions, tests and deployment ordering belong in the workflow.
+
 ## Firebase Hosting
 
 Deploy a built static site without installing Node.js or the Firebase CLI:

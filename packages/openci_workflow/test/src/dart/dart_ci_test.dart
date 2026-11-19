@@ -153,6 +153,8 @@ void main() {
     });
   });
 
+  // Each fixture resolves dependencies and compiles a fresh test runner.
+  // On CI, those subprocesses can exceed the default 30-second test timeout.
   group('test', () {
     Future<void> writeTestPackage(String dir, {bool succeeds = true}) async {
       await writeFile(
@@ -220,7 +222,7 @@ void main() {
       );
       await ci.dart.test();
     });
-  });
+  }, timeout: const Timeout(Duration(minutes: 3)));
 
   test('passes formatted tracked files and preserves ignored files', () async {
     final tracked = await writeFile('main.dart', 'void main() {}\n');

@@ -3,6 +3,8 @@ export 'src/ci_trigger.dart';
 export 'src/command_runner.dart';
 export 'src/dart/dart_ci.dart';
 export 'src/dart/pub_publish_result.dart';
+export 'src/firebase/firebase_ci.dart';
+export 'src/firebase/firebase_functions_ci.dart' show FirebaseFunctionsCI;
 export 'src/firebase_hosting/firebase_hosting_ci.dart';
 export 'src/firebase_hosting/firebase_hosting_preview.dart';
 export 'src/flutter/flutter_ci.dart';
