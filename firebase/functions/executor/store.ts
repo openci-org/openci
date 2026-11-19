@@ -25,7 +25,7 @@ export function isolatedConnector(config: ConnectorConfig, app: App = getApp()):
 
 export class ExecutionStore {
   constructor(readonly dc: DataConnect) {}
-  async withQrCommentLease(
+  async withPullRequestCommentLease(
     id: string,
     signal: AbortSignal,
     work: (renew: () => Promise<void>) => Promise<void>,
@@ -43,7 +43,7 @@ export class ExecutionStore {
       // Keep at least 15 seconds of the 60-second server lease for a GitHub
       // write, which has a 10-second transport timeout.
       if (data.renewed !== 1 || Date.now() - started >= 45000)
-        throw new Error("Pull request QR comment lease expired");
+        throw new Error("Pull request comment lease expired");
       signal.throwIfAborted();
     };
     // A failed or interrupted write can still reach GitHub. Leave that writer's
@@ -53,6 +53,20 @@ export class ExecutionStore {
   }
   async read(id: string, jobId: string) {
     return (await sdk.getBuildExecution(this.dc, { id, jobId, runId: `run-${id}` })).data;
+  }
+  async pullRequestCommentExecution(jobId: string) {
+    const { job, latest, latestForHead } = (
+      await sdk.getPullRequestCommentExecution(this.dc, { jobId })
+    ).data;
+    const current =
+      latestForHead &&
+      typeof latestForHead === "object" &&
+      "id" in latestForHead &&
+      latestForHead.id === latest?.id;
+    return { job, latest: current ? latest : null };
+  }
+  async pullRequestFailureLog(jobId: string, runId: string) {
+    return (await sdk.getPullRequestFailureLog(this.dc, { jobId, runId })).data.run;
   }
   async claim(id: string, executorId: string, executionName: string, timeoutSeconds: number) {
     return (

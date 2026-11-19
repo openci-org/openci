@@ -159,6 +159,19 @@ and is revoked after publication. Deploy the additive `pull_request_qr_comment_l
 table and `dispatch` connector before the executor.
 Keep existing `genuineci/pr-qr` branches so that images in older PR comments remain available.
 
+`reportPullRequestBuildResult` listens for committed `CompleteBuildExecution` events.
+On an open PR, a failed or timed-out workflow gets a conversation comment with
+its diagnostics and build log. A successful rerun folds the previous errors into
+the same comment. Each workflow and matrix label has its own comment.
+The reporter reads the failed step's masked log tail and links up to ten source
+locations at the PR head. Ambiguous or generated paths are displayed as text.
+GitHub delivery retries independently of the build result and queue.
+
+Deploy the updated `dispatch` connector before the reporting Function. Its
+installation token requests Pull requests write and Contents read on the source
+repository. Set `OPENCI_DASHBOARD_ORIGIN` for a custom dashboard. Self-hosted
+installations without a configured dashboard link to the GitHub Check.
+
 Both hosted and self-hosted runs get `OPENCI_RUN_NUMBER` from the team's next
 run number. The executor saves the assigned number on the run in the same
 transaction that advances the team counter. Repeated requests for that run

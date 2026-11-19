@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { DataConnect } from "firebase-admin/data-connect";
 import * as sdk from "@openci/dispatch-admin";
-import { ExecutionGitHub } from "./executor/github.js";
+import { buildGitHub, type ExecutionGitHub } from "./executor/github.js";
 import { DispatchRetry } from "./build_dispatch.js";
 import { resolveExecutionContext } from "./executor/store.js";
 import { queuedCheckExternalId } from "./executor/model.js";
@@ -157,13 +157,5 @@ export class QueuedChecks {
 }
 
 export function queuedChecks(dc: DataConnect): QueuedChecks {
-  return new QueuedChecks(
-    new QueuedCheckStore(dc),
-    new ExecutionGitHub({
-      appId: process.env.GITHUB_APP_ID ?? "",
-      privateKey: process.env.GITHUB_APP_PRIVATE_KEY ?? "",
-      apiBaseUrl: process.env.GITHUB_API_BASE_URL ?? "https://api.github.com",
-      baseUrl: process.env.GITHUB_BASE_URL ?? "https://github.com",
-    }),
-  );
+  return new QueuedChecks(new QueuedCheckStore(dc), buildGitHub());
 }

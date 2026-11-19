@@ -3,8 +3,13 @@ import {
   qrPublicationFailure,
   publishPullRequestQrCodes,
   type PullRequestQrCode,
-  type WithQrCommentLease,
 } from "./pull_request_qr.js";
+import {
+  hasStatus,
+  pullRequestCommentTarget,
+  updatePullRequestComment,
+  type WithCommentLease,
+} from "./pull_request_comment.js";
 import {
   queuedCheckExternalId,
   type Dispatch,
@@ -18,6 +23,7 @@ const installationPermissions = {
   checkout: { contents: "read" },
   checks: { checks: "write" },
   pull_request: { pull_requests: "read", contents: "read" },
+  pr_comment: { contents: "read", pull_requests: "write" },
   pr_qr: { contents: "write", pull_requests: "write" },
 } as const;
 
@@ -47,6 +53,15 @@ export function githubOptions(options: GitHubOptions): GitHubOptions {
   if (!/^[1-9][0-9]*$/.test(options.appId) || !options.privateKey)
     throw new Error("GitHub App credentials missing");
   return options;
+}
+
+export function buildGitHub(environment: NodeJS.ProcessEnv = process.env): ExecutionGitHub {
+  return new ExecutionGitHub({
+    appId: environment.GITHUB_APP_ID ?? "",
+    privateKey: environment.GITHUB_APP_PRIVATE_KEY ?? "",
+    apiBaseUrl: environment.GITHUB_API_BASE_URL ?? "https://api.github.com",
+    baseUrl: environment.GITHUB_BASE_URL ?? "https://github.com",
+  });
 }
 
 export class ExecutionGitHub {
@@ -115,7 +130,7 @@ export class ExecutionGitHub {
     runNumber: number,
     codes: PullRequestQrCode[],
     signal: AbortSignal,
-    withLease: WithQrCommentLease,
+    withLease: WithCommentLease,
   ): Promise<void> {
     const client = await this.client(job, "pr_qr");
     try {
@@ -130,6 +145,65 @@ export class ExecutionGitHub {
       );
     } finally {
       await client.request("DELETE /installation/token");
+    }
+  }
+
+  async postPullRequestResult(
+    job: Job,
+    accountId: string,
+    order: bigint,
+    signal: AbortSignal,
+    withLease: WithCommentLease,
+    render: (
+      previous: string | null,
+      files: (paths: string[]) => Promise<Map<string, string>>,
+    ) => Promise<string | null>,
+    variant: readonly string[],
+  ): Promise<void> {
+    const client = await this.client(job, "pr_comment");
+    try {
+      const request = client.request.defaults({ request: { signal } });
+      const target = await pullRequestCommentTarget(request, job, accountId);
+      if (target) {
+        // Analyzer paths can be relative to a package inside a monorepo. Link
+        // only unambiguous files that exist at the PR head, including on retries.
+        const files = async (paths: string[]) => {
+          const matches = new Map<string, string>();
+          if (!paths.length) return matches;
+          const { data } = await request("GET /repos/{owner}/{repo}/git/trees/{tree_sha}", {
+            ...target.repo,
+            tree_sha: job.commitSha!,
+            recursive: "1",
+          }).catch((failure: unknown) => {
+            if (hasStatus(failure, 404, 409, 422)) return { data: null };
+            throw failure;
+          });
+          if (!data || data.truncated) return matches;
+          for (const path of paths) {
+            const found = data.tree.filter(
+              (entry) =>
+                entry.type === "blob" && (entry.path === path || entry.path?.endsWith("/" + path)),
+            );
+            if (found.length === 1 && found[0].path) matches.set(path, found[0].path);
+          }
+          return matches;
+        };
+        await updatePullRequestComment(
+          request,
+          this.options.appId,
+          job,
+          target,
+          "result",
+          order,
+          withLease,
+          (previous) => render(previous, files),
+          variant,
+        );
+      }
+    } finally {
+      await client.request("DELETE /installation/token").catch((failure: unknown) => {
+        if (!hasStatus(failure, 401, 404)) throw failure;
+      });
     }
   }
 
