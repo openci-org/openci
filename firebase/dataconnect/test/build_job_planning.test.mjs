@@ -756,14 +756,16 @@ test("end users cannot read tasks, publish builds, or fail tasks", async (t) => 
   }
 });
 
-// Keep the expected workflow identities explicit: this integration uses the
-// repository's real workflows, including the added mobile release workflows.
+// Keep the expected job and skip lists independent of the planner output.
 const pushWorkflowFiles = [
   "dart_format_check.dart",
   "dart_functions_ci.dart",
+  "dashboard_android_patch.dart",
+  "dashboard_ios_patch.dart",
   "dashboard_ios_patrol_ci.dart",
   "dashboard_macos_cd.dart",
   "dashboard_web_hosting.dart",
+  "firebase_functions_cd.dart",
   "firebase_functions_ci.dart",
   "openci_shared_ci.dart",
   "openci_workflow_cd.dart",
@@ -784,9 +786,10 @@ const prWorkflowFiles = [
   "workflow_scripts_ci.dart",
 ];
 
-async function configurePathWorkflows(f) {
+async function configurePathWorkflows(f, workflowFiles) {
   const directory = new URL("../../../openci/", import.meta.url);
-  const names = (await readdir(directory)).filter((name) => name.endsWith(".dart"));
+  const names =
+    workflowFiles ?? (await readdir(directory)).filter((name) => name.endsWith(".dart"));
   f.github.files = await Promise.all(
     names.map(async (name) => ({
       name,
@@ -809,20 +812,21 @@ async function makeDue(id) {
   );
 }
 
-test("real planner atomically selects Website CI, persists every excluded workflow and handles concurrent redelivery", async (t) => {
+test("a website push queues Website CI and Firebase Functions CD once under concurrent redelivery", async (t) => {
   const f = await fixture(t);
   await configurePathWorkflows(f);
   const results = await Promise.all([invoke(f.taskId), invoke(f.taskId)]);
   assert.ok(results.includes("created"));
   const state = await f.state();
+  const expectedJobs = ["firebase_functions_cd.dart", "website_ci.dart"];
   assert.deepEqual(
-    state.buildJobs.map((j) => j.workflowName),
-    ["Website CI"],
+    state.buildJobs.map((job) => job.workflowFileName),
+    expectedJobs,
   );
   const skips = await skippedState(f);
   assert.deepEqual(
     skips.skippedWorkflowChecks.map((check) => check.workflowFileName),
-    pushWorkflowFiles.filter((file) => file !== "website_ci.dart"),
+    pushWorkflowFiles.filter((file) => !expectedJobs.includes(file)),
   );
   assert.equal(skips.webhookTask.pathFilterReason, null);
   for (const check of skips.skippedWorkflowChecks) {
@@ -838,7 +842,7 @@ test("real planner atomically selects Website CI, persists every excluded workfl
   );
 });
 
-test("all-skipped planning creates no jobs and transient comparisons instead run every applicable workflow", async (t) => {
+test("docs-only pushes run Firebase Functions CD and unavailable comparisons run every push workflow", async (t) => {
   for (const unavailable of [false, true]) {
     const f = await fixture(t);
     await configurePathWorkflows(f);
@@ -849,14 +853,13 @@ test("all-skipped planning creates no jobs and transient comparisons instead run
     const skips = await skippedState(f);
     assert.deepEqual(
       state.buildJobs.map((job) => job.workflowFileName),
-      unavailable ? pushWorkflowFiles : [],
+      unavailable ? pushWorkflowFiles : ["firebase_functions_cd.dart"],
     );
     assert.deepEqual(
       skips.skippedWorkflowChecks.map((check) => check.workflowFileName),
-      unavailable ? [] : pushWorkflowFiles,
+      unavailable ? [] : pushWorkflowFiles.filter((file) => file !== "firebase_functions_cd.dart"),
     );
     assert.equal(skips.webhookTask.pathFilterReason, unavailable ? "github_unavailable" : null);
-    if (!unavailable) assert.deepEqual(createdBuildJobIds({ data: { jobs: [] } }), []);
     assert.equal(f.github.changedFilesCalls, 1);
   }
 });
@@ -937,12 +940,18 @@ test("skipped Check leases fence concurrent senders, expire, and reject unauthen
   }
 });
 
-test("failed skipped reporting is recovered from SQL without replanning or creating jobs", async (t) => {
+test("skipped patch checks recover from SQL without replanning or creating jobs", async (t) => {
   const f = await fixture(t);
-  await configurePathWorkflows(f);
+  const patchFiles = ["dashboard_android_patch.dart", "dashboard_ios_patch.dart"];
+  await configurePathWorkflows(f, patchFiles);
   f.github.changedFiles = [{ filename: "README.md" }];
   await invoke(f.taskId);
-  const [row] = (await skippedState(f)).skippedWorkflowChecks;
+  const { skippedWorkflowChecks } = await skippedState(f);
+  assert.deepEqual(
+    skippedWorkflowChecks.map((check) => check.workflowFileName),
+    patchFiles,
+  );
+  const [row] = skippedWorkflowChecks;
   const deps = {
     store: new DataConnectSkippedCheckStore(dc),
     report: async () => {
@@ -967,7 +976,9 @@ test("failed skipped reporting is recovered from SQL without replanning or creat
     (await sdk.getSkippedWorkflowCheck(dc, { id: row.id })).data.check.status,
     "reported",
   );
-  assert.deepEqual((await f.state()).buildJobs, []);
+  const { buildJobs } = await f.state();
+  assert.deepEqual(buildJobs, []);
+  assert.deepEqual(createdBuildJobIds({ data: { jobs: buildJobs } }), []);
   assert.equal(f.github.changedFilesCalls, 1);
 });
 

@@ -125,6 +125,54 @@ void main() {
       )
       .toList();
 
+  for (final (name, platform) in [
+    ('Dashboard iOS Patch', 'ios'),
+    ('Dashboard Android Patch', 'android'),
+  ]) {
+    test('$name runs only on matching develop pushes', () {
+      final workflow = definitions.singleWhere((w) => w.workflowName == name);
+      final trigger = workflow.ciTriggers.single;
+      expect(trigger.matches(eventType: 'push', branch: 'develop'), isTrue);
+      expect(trigger.matches(eventType: 'push', branch: 'feature'), isFalse);
+      expect(
+        trigger.matches(eventType: 'pull_request', branch: 'develop'),
+        isFalse,
+      );
+      for (final path in [
+        'apps/dashboard/lib/main.dart',
+        'apps/dashboard/pubspec.yaml',
+        'packages/openci_shared/pubspec.yaml',
+        'openci/${workflow.workflowFileName}',
+        'apps/dashboard/shorebird.yaml',
+        'pubspec.yaml',
+        'pubspec.lock',
+      ]) {
+        expect(trigger.matchesChangedFiles([path]), isTrue, reason: path);
+      }
+      for (final directory in ['ios', 'android', 'macos', 'web']) {
+        final path = 'apps/dashboard/$directory/file';
+        expect(
+          trigger.matchesChangedFiles([path]),
+          directory == platform,
+          reason: path,
+        );
+      }
+      expect(
+        trigger.matchesChangedFiles([
+          'apps/dashboard/tool/configure_google_sign_in.dart',
+        ]),
+        platform == 'ios',
+      );
+      expect(
+        trigger.matchesChangedFiles([
+          'README.md',
+          'apps/openci_cli/pubspec.yaml',
+        ]),
+        isFalse,
+      );
+    });
+  }
+
   test('website source runs only Website CI', () {
     final result = plan(
       definitions,
