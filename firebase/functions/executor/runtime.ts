@@ -107,13 +107,14 @@ export function runtime(
     },
     secrets: async (job, checkout, signal) =>
       loadSecrets(
-        functionsCdSecretReferences(
+        await functionsCdSecretReferences(
           await store.secrets(job.teamId!),
           job,
           checkout,
           environment,
           project,
           selfHosted,
+          (sha) => github.isCommitOnDevelop(job, sha, signal),
         ),
         environment.SECRET_MANAGER_PROJECT ?? project,
         undefined,

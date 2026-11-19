@@ -367,6 +367,7 @@ export interface GetBuildExecutionData {
     workerHost?: string | null;
     runCount?: Int64String | null;
     retryCount: number;
+    tagName?: string | null;
   } & BuildJob_Key;
   run?: {
     id: string;

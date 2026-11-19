@@ -300,6 +300,7 @@ async function fixture(t, payloadChange = {}, eventType = "push") {
             flutterVersion
             commitSha
             branch
+            tagName
             commitMessage
             pullRequestNumber
             runsOn
@@ -335,6 +336,7 @@ test("ID dispatcher -> Dart Function -> GitHub -> atomic FSC jobs", async (t) =>
     assert.equal(job.teamId, f.teamId);
     assert.equal(job.commitSha, sha);
     assert.equal(job.branch, "develop");
+    assert.equal(job.tagName, null);
     assert.equal(job.commitMessage, "Commit");
     assert.equal(job.runsOn, "macos-latest");
     assert.equal(job.runCount, "0");
@@ -362,14 +364,22 @@ test("published release -> annotated tag commit -> only release CD jobs", async 
   assert.equal(webhookTask.status, "completed");
   assert.deepEqual(
     buildJobs.map((job) => job.workflowFileName),
-    ["dashboard_play_aab.dart", "dashboard_testflight_ipa.dart"],
+    ["dashboard_play_aab.dart", "dashboard_testflight_ipa.dart", "firebase_functions_cd.dart"],
   );
   for (const job of buildJobs) {
     assert.equal(job.commitSha, sha);
     assert.equal(job.branch, "refs/tags/v1.2.0");
+    assert.equal(job.tagName, "v1.2.0");
     assert.equal(job.pullRequestNumber, null);
     assert.equal(job.status, "QUEUED");
   }
+  const cd = buildJobs.find((job) => job.workflowFileName === "firebase_functions_cd.dart");
+  const execution = await getBuildExecution(getDispatchDataConnect(), {
+    id: "missing",
+    jobId: cd.id,
+    runId: "missing",
+  });
+  assert.equal(execution.data.job.tagName, "v1.2.0");
   assert.equal(f.github.changedFilesCalls, 0);
   assert.equal(f.github.tokenRequests.length, 2);
   assert.ok(
@@ -765,7 +775,6 @@ const pushWorkflowFiles = [
   "dashboard_ios_patrol_ci.dart",
   "dashboard_macos_cd.dart",
   "dashboard_web_hosting.dart",
-  "firebase_functions_cd.dart",
   "firebase_functions_ci.dart",
   "openci_shared_ci.dart",
   "openci_workflow_cd.dart",
@@ -812,13 +821,13 @@ async function makeDue(id) {
   );
 }
 
-test("a website push queues Website CI and Firebase Functions CD once under concurrent redelivery", async (t) => {
+test("a website push queues Website CI once under concurrent redelivery", async (t) => {
   const f = await fixture(t);
   await configurePathWorkflows(f);
   const results = await Promise.all([invoke(f.taskId), invoke(f.taskId)]);
   assert.ok(results.includes("created"));
   const state = await f.state();
-  const expectedJobs = ["firebase_functions_cd.dart", "website_ci.dart"];
+  const expectedJobs = ["website_ci.dart"];
   assert.deepEqual(
     state.buildJobs.map((job) => job.workflowFileName),
     expectedJobs,
@@ -842,7 +851,7 @@ test("a website push queues Website CI and Firebase Functions CD once under conc
   );
 });
 
-test("docs-only pushes run Firebase Functions CD and unavailable comparisons run every push workflow", async (t) => {
+test("docs-only pushes skip builds and unavailable comparisons run every push workflow", async (t) => {
   for (const unavailable of [false, true]) {
     const f = await fixture(t);
     await configurePathWorkflows(f);
@@ -853,11 +862,11 @@ test("docs-only pushes run Firebase Functions CD and unavailable comparisons run
     const skips = await skippedState(f);
     assert.deepEqual(
       state.buildJobs.map((job) => job.workflowFileName),
-      unavailable ? pushWorkflowFiles : ["firebase_functions_cd.dart"],
+      unavailable ? pushWorkflowFiles : [],
     );
     assert.deepEqual(
       skips.skippedWorkflowChecks.map((check) => check.workflowFileName),
-      unavailable ? [] : pushWorkflowFiles.filter((file) => file !== "firebase_functions_cd.dart"),
+      unavailable ? [] : pushWorkflowFiles,
     );
     assert.equal(skips.webhookTask.pathFilterReason, unavailable ? "github_unavailable" : null);
     assert.equal(f.github.changedFilesCalls, 1);

@@ -18,12 +18,13 @@ import {
 } from "../../scripts/deploy-functions.mjs";
 
 const sha = "a".repeat(40);
+const tag = "v2.6.0";
 const caller = `openci-functions@${projectId}.iam.gserviceaccount.com`;
 const encode = (value) => Buffer.from(value).toString("base64");
 const context = {
   schemaVersion: 1,
   event: "push",
-  branch: "develop",
+  branch: `refs/tags/${tag}`,
   repository: { owner: "openci-org", name: "openci", githubBaseUrl: "https://github.com" },
   commitSha: sha,
   checkoutSha: sha,
@@ -126,7 +127,10 @@ async function fixture(t) {
     environment,
     actions: [],
     requests: [],
-    latest: sha,
+    latest: { tag_name: tag, draft: false, prerelease: false },
+    releaseStatus: 200,
+    tagSha: sha,
+    annotatedTagSha: null,
     head: sha,
     conflicts: 0,
     waits: 0,
@@ -143,8 +147,21 @@ async function fixture(t) {
       f.waits++;
     },
     async run(executable, args, options) {
-      if (executable === "git")
-        return args[0] === "rev-parse" ? f.head : `${f.latest}\trefs/heads/develop`;
+      if (executable === "git") {
+        if (args[0] === "rev-parse") return f.head;
+        const ref = context.branch;
+        assert.deepEqual(args, [
+          "ls-remote",
+          "--exit-code",
+          "https://github.com/openci-org/openci.git",
+          ref,
+          `${ref}^{}`,
+        ]);
+        f.actions.push("tag");
+        return f.annotatedTagSha
+          ? `${f.annotatedTagSha}\t${ref}\n${f.tagSha}\t${ref}^{}`
+          : `${f.tagSha}\t${ref}`;
+      }
       assert.equal(executable, "npm");
       f.actions.push("deploy");
       const configPath = path.join(root, "firebase/firebase.functions-cd.local.json");
@@ -223,12 +240,21 @@ async function fixture(t) {
       assert.equal(url.searchParams.get("name"), successObject);
       if (f.fail === "record") throw new Error("record failed");
       f.actions.push("record");
-      assert.equal(JSON.parse(options.data).sha, sha);
+      const { completedAt, ...record } = JSON.parse(options.data);
+      assert.deepEqual(record, { sha, tag, runId: context.runId, jobId: context.jobId });
+      assert.ok(Number.isFinite(Date.parse(completedAt)));
       return { data: {} };
     },
     async get(url, options) {
       assert.equal(options.method, "GET");
       assert.equal(options.redirect, "error");
+      if (url === "https://api.github.com/repos/openci-org/openci/releases/latest") {
+        assert.equal(options.cache, "no-store");
+        f.actions.push("latest");
+        return f.releaseStatus === 200
+          ? Response.json(f.latest)
+          : new Response(null, { status: f.releaseStatus });
+      }
       assert.equal(options.headers, undefined);
       if (url === "https://planner.example") {
         f.actions.push("planner");
@@ -255,9 +281,12 @@ async function fixture(t) {
 
 test("CD deploys both codebases and verifies the private planner before recording success", async (t) => {
   const f = await fixture(t);
+  f.annotatedTagSha = "c".repeat(40);
   assert.equal(await f.run(), "deployed");
   assert.deepEqual(f.actions, [
     "lock",
+    "latest",
+    "tag",
     "deploy",
     "webhook",
     "planner",
@@ -273,17 +302,19 @@ test("CD deploys both codebases and verifies the private planner before recordin
   await f.cleaned();
 });
 
-test("production credentials are never used for PRs, local runs or a different checkout", async (t) => {
+test("only a release tag context can reach production", async (t) => {
   for (const change of [
     { event: "pull_request" },
     { branch: "feature/cd" },
+    { branch: "develop" },
+    { branch: "refs/tags/" },
     { checkoutSha: "b".repeat(40) },
     { repository: { ...context.repository, name: "other" } },
     { runId: "another-run" },
   ]) {
     const f = await fixture(t);
     f.environment.OPENCI_CONTEXT = JSON.stringify({ ...context, ...change });
-    await assert.rejects(f.run(), /verified OpenCI develop push/);
+    await assert.rejects(f.run(), /requires an OpenCI release tag/);
     assert.equal(f.requests.length, 0);
   }
   const f = await fixture(t);
@@ -291,15 +322,29 @@ test("production credentials are never used for PRs, local runs or a different c
   await assert.rejects(f.run(), /Checkout does not match/);
   assert.equal(f.requests.length, 0);
   delete f.environment.OPENCI_CONTEXT;
-  await assert.rejects(f.run(), /verified OpenCI develop push/);
+  await assert.rejects(f.run(), /requires an OpenCI release tag/);
 });
 
-test("superseded pushes skip deployment after acquiring the lock", async (t) => {
+test("a newer stable release published while waiting supersedes deployment", async (t) => {
   const f = await fixture(t);
-  f.latest = "b".repeat(40);
+  f.conflicts = 1;
+  f.options.wait = async () => {
+    f.latest.tag_name = "v2.6.1";
+  };
   assert.equal(await f.run(), "superseded");
-  assert.deepEqual(f.actions, ["lock", "unlock"]);
+  assert.deepEqual(f.actions, ["lock", "latest", "unlock"]);
   await f.cleaned();
+});
+
+test("a moved tag or failed release lookup stops deployment and releases the lock", async (t) => {
+  const moved = await fixture(t);
+  moved.tagSha = "b".repeat(40);
+  await assert.rejects(moved.run(), /Release tag does not match the tested commit/);
+  assert.deepEqual(moved.actions, ["lock", "latest", "tag", "unlock"]);
+  const unavailable = await fixture(t);
+  unavailable.releaseStatus = 503;
+  await assert.rejects(unavailable.run(), /Could not read the latest OpenCI release/);
+  assert.deepEqual(unavailable.actions, ["lock", "latest", "unlock"]);
 });
 
 test("concurrent deployments wait for the generation lock and fail closed when it remains held", async (t) => {
@@ -354,7 +399,7 @@ test("pre-existing runtime files are preserved and a failure before deploying re
   await writeFile(file, "existing configuration");
   await assert.rejects(f.run(), { code: "EEXIST" });
   assert.equal(await readFile(file, "utf8"), "existing configuration");
-  assert.deepEqual(f.actions, ["lock", "unlock"]);
+  assert.deepEqual(f.actions, ["lock", "latest", "tag", "unlock"]);
 });
 
 test("missing configuration and unrelated service accounts fail before touching production", async (t) => {

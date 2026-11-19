@@ -1,18 +1,17 @@
 # Production Functions CD
 
-`openci/firebase_functions_cd.dart` runs on every push to `develop`. Dependency
-installation, formatting, analysis and tests are listed directly in the Dart
-workflow. It checks the TypeScript Functions and runs Dart analysis and tests
+`openci/firebase_functions_cd.dart` runs when a GitHub Release is published.
+The Dart workflow lists dependency installation, formatting, analysis and tests.
+It checks the TypeScript Functions and runs Dart analysis and tests
 in `firebase/dart_functions` against the same commit. Firebase CLI 15.37.0
 then deploys the TypeScript `openci` and Dart `openci-planner` codebases to
 `openci-b1b91` under one lock. The CLI uses its `dartfunctions` experiment
 to generate the planner manifest and compile the Linux executable.
 
-Every push gets a job, including changes unrelated to Functions. After obtaining
-the shared lock, the job checks the live `develop` ref and skips if superseded.
-This prevents an older queued job from overwriting a newer deployment. It also
-ensures a newer documentation-only push still deploys preceding Functions
-changes. No newer push cancels an in-progress deployment.
+The job builds and tests the tagged commit. After obtaining the shared lock,
+it checks GitHub's latest stable release and verifies that its tag still resolves
+to the tested commit. Jobs for other tags skip deployment. A newer release waits
+for any deployment already in progress.
 
 ## Authentication and one-time activation
 
@@ -66,17 +65,18 @@ Provision these resources before enabling the workflow:
    Use numeric secret versions, not `latest`. Rotate keys/configuration by
    publishing a new version and updating the corresponding executor setting.
 
-5. Deploy the updated executor before merging/enabling the CD workflow. The
-   Functions CD does not update the executor image, so this is a separate
-   bootstrap step. Require CI on PRs and restrict direct pushes to `develop`.
+5. Deploy the `webhooks` and `dispatch` SQL Connect connectors so release jobs
+   carry their verified tag into the executor. Then deploy the updated executor
+   image before publishing a release with this workflow. Require CI on PRs and
+   restrict direct pushes to `develop`.
 
 Do **not** register either CD credential in the team's ordinary OpenCI Secrets.
 The executor filters `FIREBASE_FUNCTIONS_CD_SERVICE_ACCOUNT_JSON_BASE64` and
 `FIREBASE_FUNCTIONS_CD_ENV_BASE64` out of ordinary secrets, even when CD is disabled.
 It loads the infrastructure versions only for the configured team/repository,
-GitHub.com, a verified `develop` push, and `firebase_functions_cd.dart`. PRs,
-other branches/workflows, other repositories/teams and self-hosted instances do
-not receive them. A Dart `if` alone is not the credential access boundary.
+GitHub.com and `firebase_functions_cd.dart`. The executor requires a tag recorded
+from the Release webhook and checks that the tagged commit is in `develop` history
+before loading either secret.
 
 ## Deployment coordination and completion
 
@@ -105,11 +105,11 @@ After deployment, a GET to `githubWebhookFsc` must return 405. An anonymous
 GET to the configured planner URL must return 403, and the planner service's
 invocation policy must grant the Node API account access. Both probes use GET
 to avoid creating a task or build. Once these checks pass, CD records the
-commit/run identity in `production/openci/last-success.json` and releases the lock.
+tag, commit and run identity in `production/openci/last-success.json` and releases
+the lock.
 
-Data Connect schema/connector changes must be deployed and remain compatible
-with both current and next Functions before the dependent Functions changes
-reach `develop`. This workflow intentionally does not apply database migrations.
+Deploy any required SQL Connect schema and connector changes before publishing
+the release. Keep them compatible with both current and next Functions.
 Keep Node and planner interface changes compatible during the rollout. Firebase
 can update the two codebases at different times within one deployment.
 
@@ -123,10 +123,9 @@ failure does not mean the previous version is still serving everywhere.
 1. Inspect the failed run and Google Cloud Functions build/update operations.
    Confirm the old CLI/VM has stopped and all cloud operations have completed.
 2. Inspect `last-success.json` and the deployed revisions. Repair forward or
-   revert the change through a PR; a revert commit is a new `develop` commit and
-   can pass the same checks. Re-running an older job intentionally skips it.
+   revert the change through a PR, then publish a new release with the repair.
 3. Only after reconciling the actual deployment, remove the lock with an object
-   generation precondition. Rerun the newest `develop` CD job.
+   generation precondition. Rerun the job for GitHub's latest stable release if needed.
 
 If OpenCI itself cannot start builds, use a clean checkout of the known-good
 commit and the same SA/ADC. Prepare both project dotenv files, including the
@@ -150,5 +149,5 @@ bash openci/tool/with_node.sh bash firebase/scripts/ci.sh
 
 From both `firebase/dart_functions/` and `openci/`, run `dart analyze --fatal-infos`
 and `dart test`. The deployment tests cover codebase selection, planner access,
-stale commits, lock contention, partial failures and credential-file cleanup
-using fake cloud responses.
+superseded releases, moved tags, lock contention, partial failures and
+credential-file cleanup using fake cloud responses.

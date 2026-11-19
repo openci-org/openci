@@ -227,6 +227,29 @@ export class ExecutionGitHub {
     return String(data.id);
   }
 
+  async isCommitOnDevelop(job: Job, commitSha: string, signal: AbortSignal): Promise<boolean> {
+    const { request } = await this.client(job, "checkout");
+    const repository = { owner: job.owner, repo: job.repo, request: { signal } };
+    try {
+      const { data: branch } = await request("GET /repos/{owner}/{repo}/branches/{branch}", {
+        ...repository,
+        branch: "develop",
+      });
+      const developSha = branch.commit?.sha;
+      if (branch.name !== "develop" || !/^[a-f0-9]{40}(?:[a-f0-9]{24})?$/.test(developSha ?? ""))
+        throw new Error("Could not verify the develop branch");
+      if (developSha === commitSha) return true;
+      const { data } = await request("GET /repos/{owner}/{repo}/compare/{basehead}", {
+        ...repository,
+        basehead: `${commitSha}...${developSha}`,
+        per_page: 1,
+      });
+      return data.status === "ahead" && data.merge_base_commit?.sha === commitSha;
+    } finally {
+      await request("DELETE /installation/token");
+    }
+  }
+
   /** Use a current GitHub merge, or immediately prepare a verified local merge. */
   async resolveCheckout(job: Job, accountId: string, signal?: AbortSignal): Promise<CheckoutPlan> {
     signal?.throwIfAborted();
