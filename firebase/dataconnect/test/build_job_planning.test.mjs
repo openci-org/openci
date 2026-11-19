@@ -355,26 +355,14 @@ test("published release -> annotated tag commit -> only release CD jobs", async 
     },
     "release",
   );
-  f.github.files = [
-    {
-      name: "ios.dart",
-      content:
-        "void main() { OpenCI.init(workflowName: 'iOS CD', ciTriggers: [CITrigger.release(tag: 'v*')]); }",
-    },
-    {
-      name: "android.dart",
-      content:
-        "void main() { OpenCI.init(workflowName: 'Android CD', ciTriggers: [CITrigger.release()]); }",
-    },
-    { name: "patch.dart", content: source("Patch", "*") },
-  ];
+  await configurePathWorkflows(f);
   assert.equal(await invoke(f.taskId), "created");
   assert.equal(await invoke(f.taskId), "duplicate");
   const { webhookTask, buildJobs } = await f.state();
   assert.equal(webhookTask.status, "completed");
   assert.deepEqual(
     buildJobs.map((job) => job.workflowFileName),
-    ["android.dart", "ios.dart"],
+    ["dashboard_play_aab.dart", "dashboard_testflight_ipa.dart"],
   );
   for (const job of buildJobs) {
     assert.equal(job.commitSha, sha);
@@ -775,8 +763,6 @@ const pushWorkflowFiles = [
   "dart_functions_ci.dart",
   "dashboard_ios_patrol_ci.dart",
   "dashboard_macos_cd.dart",
-  "dashboard_play_aab.dart",
-  "dashboard_testflight_ipa.dart",
   "dashboard_web_hosting.dart",
   "firebase_functions_ci.dart",
   "openci_shared_ci.dart",
