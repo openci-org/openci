@@ -28,7 +28,15 @@ class DartCI {
     workingDirectory: dir,
   );
 
-  Future<void> test({String? dir}) => _run('dart test', workingDirectory: dir);
+  /// Runs the default test suite, or the specified files and directories.
+  Future<void> test({String? dir, List<String> paths = const []}) => _run(
+    [
+      'dart test',
+      if (paths.isNotEmpty) '--',
+      ...paths.map(quoteShellArgument),
+    ].join(' '),
+    workingDirectory: dir,
+  );
 
   /// Publishes the package in the workflow directory (or [dir]) to pub.dev.
   ///

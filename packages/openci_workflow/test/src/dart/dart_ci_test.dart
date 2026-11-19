@@ -189,6 +189,19 @@ void main() {
       await ci.dart.test();
     });
 
+    test(
+      'explicit test paths can select a file outside the failing default suite',
+      () async {
+        await writeTestPackage('.', succeeds: false);
+        const path = 'integration_test/peer round trip_test.dart';
+        await writeFile(
+          path,
+          "import 'package:test/test.dart'; void main() { test('selected', () {}); }",
+        );
+        await ci.dart.test(paths: [path]);
+      },
+    );
+
     test('propagates test failures', () async {
       await writeTestPackage('.', succeeds: false);
 
