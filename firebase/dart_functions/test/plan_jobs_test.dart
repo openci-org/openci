@@ -16,7 +16,7 @@ void main() {
             path: 'openci/ci.dart',
             content: '''
 void main() {
-  OpenCI.init(workflowName: 'CI', ciTriggers: [CITrigger.push(branch: 'main')], flutterVersion: '3.47.8');
+  OpenCI.init(workflowName: 'CI', ciTriggers: [CITrigger.push(branch: 'main')], flutterVersion: FlutterVersion.v3_47_8.value);
 }
 ''',
           ),

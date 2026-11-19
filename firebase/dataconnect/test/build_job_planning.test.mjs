@@ -439,7 +439,7 @@ test("concurrent Dart invocations publish one batch", async (t) => {
 test("workflow Flutter pins survive planning, SQL persistence and executor reads", async (t) => {
   const f = await fixture(t);
   f.github.files[0].content = `void main() {
-    OpenCI.init(workflowName: 'First', ciTriggers: [CITrigger.push(branch: 'develop')], flutterVersion: '3.47.8');
+    OpenCI.init(workflowName: 'First', ciTriggers: [CITrigger.push(branch: 'develop')], flutterVersion: FlutterVersion.v3_47_8.value);
   }`;
   await invoke(f.taskId);
   const { buildJobs } = await f.state();
