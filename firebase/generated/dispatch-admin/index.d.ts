@@ -497,6 +497,7 @@ export interface GetPullRequestCommentExecutionData {
     retryCount: number;
     workflowJobKey?: string | null;
     matrixLabel?: string | null;
+    runsOn?: string | null;
   } & BuildJob_Key;
   latest?: {
     id: string;
@@ -531,6 +532,17 @@ export interface GetPullRequestFailureLogData {
 export interface GetPullRequestFailureLogVariables {
   jobId: string;
   runId: string;
+}
+
+export interface GetPullRequestRetryMemberData {
+  member?: unknown | null;
+}
+
+export interface GetPullRequestRetryMemberVariables {
+  teamId: string;
+  apiBaseUrl: string;
+  appId: Int64String;
+  actorId: Int64String;
 }
 
 export interface GetQueuedBuildCheckData {
@@ -1201,6 +1213,18 @@ export function getPullRequestCommentExecution(
   vars: GetPullRequestCommentExecutionVariables,
   options?: OperationOptions,
 ): Promise<ExecuteOperationResponse<GetPullRequestCommentExecutionData>>;
+
+/** Generated Node Admin SDK operation action function for the 'GetPullRequestRetryMember' Query. Allow users to execute without passing in DataConnect. */
+export function getPullRequestRetryMember(
+  dc: DataConnect,
+  vars: GetPullRequestRetryMemberVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<GetPullRequestRetryMemberData>>;
+/** Generated Node Admin SDK operation action function for the 'GetPullRequestRetryMember' Query. Allow users to pass in custom DataConnect instances. */
+export function getPullRequestRetryMember(
+  vars: GetPullRequestRetryMemberVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<GetPullRequestRetryMemberData>>;
 
 /** Generated Node Admin SDK operation action function for the 'GetPullRequestFailureLog' Query. Allow users to execute without passing in DataConnect. */
 export function getPullRequestFailureLog(

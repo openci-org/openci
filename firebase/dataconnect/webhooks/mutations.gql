@@ -20,7 +20,7 @@ mutation CreateWebhookTask(
     }
   )
     @check(
-      expr: "size(vars.id) > 0 && size(vars.deliveryId) > 0 && vars.eventType in ['push', 'pull_request', 'release'] && size(vars.payload) > 0 && int(vars.receivedAt) >= 0"
+      expr: "size(vars.id) > 0 && size(vars.deliveryId) > 0 && vars.eventType in ['push', 'pull_request', 'release', 'issue_comment'] && size(vars.payload) > 0 && int(vars.receivedAt) >= 0"
       message: "Invalid webhook task"
     )
 }
@@ -29,7 +29,21 @@ mutation CreateWebhookTask(
 # which can exceed Eventarc's event-size limit. Repeating this signal is safe.
 mutation RequestWebhookTaskPlanning($id: String!) @auth(level: NO_ACCESS) @transaction {
   task: webhookTask_update(
-    first: { where: { id: { eq: $id }, status: { eq: "pending" } } }
+    first: { where: { id: { eq: $id }, status: { eq: "pending" }, eventType: { ne: "issue_comment" } } }
     data: { status: "pending" }
+  )
+}
+
+mutation RequestPullRequestCommentRetry($id: String!) @auth(level: NO_ACCESS) {
+  task: webhookTask_update(
+    first: { where: { id: { eq: $id }, status: { eq: "pending" }, eventType: { eq: "issue_comment" } } }
+    data: { status: "pending" }
+  )
+}
+
+mutation FinishPullRequestCommentRetry($id: String!) @auth(level: NO_ACCESS) {
+  finished: webhookTask_updateMany(
+    where: { id: { eq: $id }, status: { eq: "pending" }, eventType: { eq: "issue_comment" } }
+    data: { status: "completed", updatedAt_expr: "int(request.time)" }
   )
 }

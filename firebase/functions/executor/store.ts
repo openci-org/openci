@@ -7,6 +7,7 @@ import {
   type DataConnect,
 } from "firebase-admin/data-connect";
 import * as sdk from "@openci/dispatch-admin";
+import * as builds from "@openci/builds-admin";
 import { identity, type Dispatch, type Outcome } from "./model.js";
 import { configuredConnector } from "../data_connect_config.js";
 
@@ -67,6 +68,27 @@ export class ExecutionStore {
   }
   async pullRequestFailureLog(jobId: string, runId: string) {
     return (await sdk.getPullRequestFailureLog(this.dc, { jobId, runId })).data.run;
+  }
+  async retryMember(teamId: string, apiBaseUrl: string, appId: string, actorId: string) {
+    const { member } = (
+      await sdk.getPullRequestRetryMember(this.dc, { teamId, apiBaseUrl, appId, actorId })
+    ).data;
+    return member && typeof member === "object" && "uid" in member && typeof member.uid === "string"
+      ? member.uid
+      : null;
+  }
+
+  async retryAsMember(id: string, expectedRetryCount: number, uid: string) {
+    const result = await builds.retryBuildJob(
+      isolatedConnector(builds.connectorConfig),
+      { id, expectedRetryCount },
+      {
+        impersonate: {
+          authClaims: { sub: uid, firebase: { identities: {}, sign_in_provider: "custom" } },
+        },
+      },
+    );
+    if (result.data.retried !== 1) throw new Error("Job retry was not accepted");
   }
   async claim(id: string, executorId: string, executionName: string, timeoutSeconds: number) {
     return (

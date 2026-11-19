@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { ExecutionGitHub } from "../../lib/functions/executor/github.js";
 import { failedPullRequestComment } from "../../lib/functions/pull_request_failure.js";
+import { retryFromPullRequest } from "../../lib/functions/pull_request_retry.js";
+import { retryCheckboxClick } from "../../lib/functions/pull_request_retry_control.js";
 import {
   reportCompletedPullRequest,
   reportPullRequestBuildResult,
@@ -21,6 +23,8 @@ const job = {
   workflowFileName: "analysis.dart",
   workflowName: "Static Analysis",
   status: "FAILURE",
+  runsOn: "macos-latest",
+  retryCount: 0,
 };
 const attempt = {
   id: "dispatch",
@@ -61,12 +65,23 @@ function fixture(t) {
     loseResponse: false,
     deleteBeforeEdit: false,
     files: ["apps/client/lib/menu.dart"],
+    permission: "write",
+    member: "verified-member",
+    actorId: 27,
+    loseRetryResponse: false,
   };
   let tail = Promise.resolve(),
     logsRead = 0,
     tokens = 0,
     revoked = 0;
   const store = {
+    retryMember: async () => flags.member,
+    retryAsMember: async (id, count, uid) => {
+      assert.deepEqual([id, count, uid], [job.id, current.job.retryCount, "verified-member"]);
+      current.job.retryCount++;
+      current.job.status = "QUEUED";
+      if (flags.loseRetryResponse) throw new Error("Lost successful mutation response");
+    },
     pullRequestCommentExecution: async () => structuredClone(current),
     pullRequestFailureLog: async () => {
       logsRead++;
@@ -96,6 +111,10 @@ function fixture(t) {
     if (route === "GET /repos/{owner}/{repo}")
       return { data: { id: 10, owner: { id: 4 }, full_name: "org/app" } };
     if (route.includes("/pulls/")) return { data: pr };
+    if (route.includes("/collaborators/"))
+      return { data: { permission: flags.permission, user: { id: flags.actorId } } };
+    if (route === "GET /repos/{owner}/{repo}/issues/comments/{comment_id}")
+      return { data: { ...comments.find((c) => c.id === args.comment_id) } };
     if (route.includes("/git/trees/")) {
       assert.equal(args.tree_sha, current.job.commitSha);
       return {
@@ -109,6 +128,7 @@ function fixture(t) {
         id: comments.length + 1,
         user: { type: "Bot" },
         performed_via_github_app: { id: 7 },
+        issue_url: "https://git.example/api/v3/repos/org/app/issues/3",
         body: args.body,
       });
       writes.push("create");
@@ -179,6 +199,7 @@ test("a PR failure posts linked diagnostics, then edits the same app comment on 
   );
   assert.match(original.body, /https:\/\/dash.example\/runs\/job/);
   assert.doesNotMatch(original.body, /From a passing|Failed to update packages|Try correcting/);
+  assert.match(original.body, /- \[ \] このジョブを再実行/);
   const copy = { ...original, id: 10, user: { type: "User" } };
   f.comments.unshift(copy);
   f.next("failure", "b".repeat(40));
@@ -195,6 +216,7 @@ test("a PR failure posts linked diagnostics, then edits the same app comment on 
   assert.match(original.body, /<summary>前回のエラーを見る（3件）<\/summary>/u);
   assert.ok(original.body.includes("b".repeat(40)));
   assert.match(original.body, /runs\/42/);
+  assert.doesNotMatch(original.body, /このジョブを再実行|openci-retry:/);
   assert.equal(f.logsRead(), 2);
   f.next("success");
   await f.report();
@@ -252,6 +274,115 @@ test("ambiguous source locations stay readable and a deleted failure is not recr
 });
 
 const noFiles = async () => new Map();
+function checkBox(f) {
+  const comment = f.comments[0];
+  const from = comment.body;
+  comment.body = from.replace("- [ ] このジョブを再実行", "- [x] このジョブを再実行");
+  const event = {
+    action: "edited",
+    issue: { number: 3, state: "open", pull_request: {} },
+    installation: { id: 40 },
+    repository: { id: 10 },
+    comment: { ...comment },
+    sender: { type: "User", id: 27, login: "maintainer" },
+    changes: { body: { from } },
+  };
+  return { event, click: retryCheckboxClick(event) };
+}
+
+test("a checked App comment retries only this attempt and acknowledges it in place after lost responses", async (t) => {
+  const f = fixture(t);
+  await f.report();
+  const { click } = checkBox(f);
+  assert.ok(click);
+  f.flags.loseRetryResponse = true;
+  f.flags.loseResponse = true;
+  await assert.rejects(retryFromPullRequest(click, f.store, f.github), /response lost/);
+  f.flags.loseResponse = false;
+  await Promise.all([
+    retryFromPullRequest(click, f.store, f.github),
+    retryFromPullRequest(click, f.store, f.github),
+  ]);
+  assert.equal(f.current.job.retryCount, 1);
+  assert.deepEqual(f.writes, ["create", "edit"]);
+  assert.match(f.comments[0].body, /⏳ 再実行を受け付けました/);
+  assert.match(f.comments[0].body, /lib\/menu.dart/);
+  assert.doesNotMatch(f.comments[0].body, /このジョブを再実行/);
+  f.next("failure");
+  await f.report();
+  assert.match(f.comments[0].body, /- \[ \] このジョブを再実行/);
+  await retryFromPullRequest(click, f.store, f.github);
+  assert.equal(f.current.job.retryCount, 1);
+  const second = checkBox(f).click;
+  await retryFromPullRequest(second, f.store, f.github);
+  f.next("success");
+  await f.report();
+  assert.equal(f.current.job.retryCount, 2);
+  assert.doesNotMatch(f.comments[0].body, /openci-retry:|このジョブを再実行|受け付けました/);
+  assert.match(f.comments[0].body, /前回のエラーを見る/);
+});
+
+test("only the exact human checkbox edit on the current App comment can request a retry", async (t) => {
+  const f = fixture(t);
+  await f.report();
+  const { event, click } = checkBox(f);
+  assert.equal(retryCheckboxClick({ ...event, sender: { ...event.sender, type: "Bot" } }), null);
+  assert.equal(
+    retryCheckboxClick({ ...event, comment: { ...event.comment, user: { type: "User" } } }),
+    null,
+  );
+  assert.equal(
+    retryCheckboxClick({ ...event, changes: { body: { from: "copied request" } } }),
+    null,
+  );
+  assert.equal(retryCheckboxClick({ ...event, issue: { number: 3, state: "open" } }), null);
+  assert.equal(
+    retryCheckboxClick({ ...event, changes: { body: { from: event.comment.body } } }),
+    null,
+  );
+  const retry = (changes) => retryFromPullRequest({ ...click, ...changes }, f.store, f.github);
+  for (const mismatch of [
+    { pr: "4" },
+    { installationId: "41" },
+    { repositoryId: "11" },
+    { scope: "0".repeat(64) },
+    { team: "0".repeat(64) },
+    { order: "1" },
+  ])
+    await retry(mismatch);
+  f.pr.head.sha = "f".repeat(40);
+  await retry({});
+  f.pr.head.sha = sha;
+  f.comments[0].performed_via_github_app.id = 8;
+  await retry({});
+  f.comments[0].performed_via_github_app.id = 7;
+  f.comments[0].issue_url += "7";
+  await retry({});
+  f.comments[0].issue_url = f.comments[0].issue_url.slice(0, -1);
+  f.comments[0].body = event.changes.body.from;
+  await retry({});
+  assert.equal(f.current.job.retryCount, 0);
+  assert.deepEqual(f.writes, ["create"]);
+});
+
+test("denied clicks restore the control for a verified team member with repository write access", async (t) => {
+  const f = fixture(t);
+  await f.report();
+  for (const [member, permission, actorId] of [
+    [null, "write", 27],
+    ["verified-member", "read", 27],
+    ["verified-member", "write", 43],
+  ]) {
+    Object.assign(f.flags, { member, permission, actorId });
+    await retryFromPullRequest(checkBox(f).click, f.store, f.github);
+    assert.match(f.comments[0].body, /権限を確認してください。\n- \[ \] このジョブを再実行/);
+    assert.equal(f.current.job.retryCount, 0);
+  }
+  Object.assign(f.flags, { member: "verified-member", permission: "admin", actorId: 27 });
+  await retryFromPullRequest(checkBox(f).click, f.store, f.github);
+  assert.match(f.comments[0].body, /⏳ 再実行を受け付けました/);
+  assert.doesNotMatch(f.comments[0].body, /権限を確認/);
+});
 test("unstructured errors, timeout and pre-run failures retain useful fallbacks without command arguments", async () => {
   const content = await failedPullRequestComment(
     job,

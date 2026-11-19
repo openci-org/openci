@@ -7,6 +7,7 @@ import { selfHostedMode } from "./deployment_mode.js";
 import { getDispatchDataConnect } from "./dispatch_store.js";
 import { buildGitHub, type ExecutionGitHub } from "./executor/github.js";
 import { ExecutionStore } from "./executor/store.js";
+import { executionOrder } from "./executor/pull_request_comment.js";
 import { dispatchServiceAccount } from "./function_identity.js";
 import { failedPullRequestComment, resolvedPullRequestComment } from "./pull_request_failure.js";
 
@@ -48,8 +49,7 @@ export async function reportCompletedPullRequest(
   );
   if (!connection) return;
   // Reservations also have an ordering before a numbered run (e.g. a checkout failure).
-  const micros = (latest.createdAt.match(/\.(\d+)/u)?.[1] ?? "").padEnd(6, "0").slice(3, 6);
-  const order = BigInt(Date.parse(latest.createdAt)) * 1000n + BigInt(micros);
+  const order = executionOrder(latest.createdAt);
   const signal = AbortSignal.timeout(90_000);
   await github.postPullRequestResult(
     job,

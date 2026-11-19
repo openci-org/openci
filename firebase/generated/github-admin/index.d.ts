@@ -159,6 +159,7 @@ export interface CreateGitHubConnectionSessionVariables {
   githubUserId: Int64String;
   referenceHash: string;
   accessTokenSecretVersionPath: string;
+  githubIssuer?: string;
 }
 
 export interface DeleteExpiredGitHubConnectionRequestData {

@@ -4,6 +4,7 @@ import { after, test } from "node:test";
 import { deleteApp, getApps, initializeApp } from "firebase-admin/app";
 import * as builds from "@openci/builds-admin";
 import * as dispatch from "@openci/dispatch-admin";
+import * as github from "@openci/github-admin";
 import { ExecutionStore, isolatedConnector } from "../../lib/functions/executor/store.js";
 import { QueuedChecks, QueuedCheckStore } from "../../lib/functions/queued_checks.js";
 
@@ -13,6 +14,7 @@ const service = `http://${host}/v1/projects/demo-openci/locations/asia-northeast
 const app = initializeApp({ projectId: "demo-openci" });
 const dc = isolatedConnector(builds.connectorConfig, app);
 const dispatchDc = isolatedConnector(dispatch.connectorConfig, app);
+const githubDc = isolatedConnector(github.connectorConfig, app);
 after(() => Promise.all(getApps().map(deleteApp)));
 const asUser = (uid, provider = "password") => ({
   impersonate: { authClaims: { uid, sub: uid, firebase: { sign_in_provider: provider } } },
@@ -29,6 +31,50 @@ async function graphql(query, variables) {
   assert.ok(response.ok && !result.errors?.length, JSON.stringify(result));
   return result.data;
 }
+
+test("a comment retry uses the verified GitHub member and the same atomic retry as the dashboard", async (t) => {
+  const f = await fixture(t);
+  const store = new ExecutionStore(dispatchDc);
+  const host = "https://api.github.com",
+    appId = "1";
+  const member = (actor, api = host) => store.retryMember(f.teamId, api, appId, actor);
+  assert.equal(await member("11"), f.userId); // existing connection verifier
+  assert.equal(await member("12"), null);
+  assert.equal(await member("11", "https://example.test/api/v3"), null);
+  await github.createGitHubConnectionSession(githubDc, {
+    id: randomUUID(),
+    teamId: f.teamId,
+    userId: f.userId,
+    githubUserId: "12",
+    githubIssuer: host + ":1",
+    referenceHash: randomUUID().replaceAll("-", "").repeat(2),
+    accessTokenSecretVersionPath: "projects/demo-openci/secrets/test/versions/1",
+  });
+  assert.equal(await member("11"), null);
+  assert.equal(await member("12"), f.userId);
+  // A callback from the previous deployment has no host/App issuer.
+  await github.createGitHubConnectionSession(githubDc, {
+    id: randomUUID(),
+    teamId: f.teamId,
+    userId: f.userId,
+    githubUserId: "13",
+    referenceHash: randomUUID().replaceAll("-", "").repeat(2),
+    accessTokenSecretVersionPath: "projects/demo-openci/secrets/test/versions/2",
+  });
+  assert.equal(await member("12"), f.userId);
+  assert.equal(await member("13"), null);
+  await assert.rejects(store.retryAsMember(f.id, 0, "not-a-member"));
+  await store.retryAsMember(f.id, 0, f.userId);
+  assert.equal((await f.state()).job.status, "QUEUED");
+  await f.alter({ status: "FAILURE" });
+  const race = await Promise.allSettled([store.retryAsMember(f.id, 1, f.userId), f.retry(1)]);
+  assert.equal(race.filter((r) => r.status === "fulfilled").length, 1);
+  assert.equal((await f.state()).job.retryCount, 2);
+  await graphql("mutation($id: String!) { teamMember_deleteMany(where:{teamId:{eq:$id}}) }", {
+    id: f.teamId,
+  });
+  assert.equal(await member("12"), null);
+});
 
 async function fixture(t, overrides = {}) {
   const id = randomUUID(),

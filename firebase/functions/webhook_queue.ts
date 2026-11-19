@@ -4,11 +4,12 @@ import {
   createWebhookTask,
   getWebhookTaskByDeliveryId,
   requestWebhookTaskPlanning,
+  requestPullRequestCommentRetry,
 } from "@openci/webhooks-admin";
 
 export interface WebhookDelivery {
   deliveryId: string;
-  eventType: "push" | "pull_request" | "release";
+  eventType: "push" | "pull_request" | "release" | "issue_comment";
   payload: string;
 }
 
@@ -51,6 +52,8 @@ export async function enqueueWebhook(
   }
   // Await the small ID-only mutation before acknowledging GitHub. If dispatch
   // fails after storage, redelivery looks up the same task and signals it again.
-  await requestWebhookTaskPlanning(dataConnect, { id });
+  if (delivery.eventType === "issue_comment")
+    await requestPullRequestCommentRetry(dataConnect, { id });
+  else await requestWebhookTaskPlanning(dataConnect, { id });
   return result;
 }

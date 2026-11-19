@@ -167,7 +167,21 @@ The reporter reads the failed step's masked log tail and links up to ten source
 locations at the PR head. Ambiguous or generated paths are displayed as text.
 GitHub delivery retries independently of the build result and queue.
 
-Deploy the updated `dispatch` connector before the reporting Function. Its
+The failure comment offers a task-list checkbox for a retryable job. A human
+with repository write permission can select it to retry the displayed attempt.
+The webhook matches the App's comment to the open PR, repository, workflow and
+commit, then uses the existing team-authenticated `RetryBuildJob` mutation.
+Concurrent clicks share its retry counter. Acceptance replaces the checkbox in
+the same comment; another failure offers a fresh checkbox, and success removes it.
+Members establish their GitHub identity through OpenCI's existing GitHub
+connection flow. Previously verified active connections also identify their
+verifying member. An unrecognized member can use the dashboard's Retry action.
+
+Roll out the nullable `team_members.github_retry_identity` column and the
+`github`, `dispatch` and `webhooks` connectors first. Deploy the GitHub
+connection callback, the webhook receiver, `retryPullRequestCommentJob` and
+the reporter, and apply their Eventarc invocation grants. Subscribe the GitHub
+App to **Issue comment** events for checkbox edits on pull requests. Its
 installation token requests Pull requests write and Contents read on the source
 repository. Set `OPENCI_DASHBOARD_ORIGIN` for a custom dashboard. Self-hosted
 installations without a configured dashboard link to the GitHub Check.
