@@ -365,7 +365,7 @@ await openCI.patrol.testWithVirtualBle(
 
 Use Patrol's [build-time test discovery](https://patrol.leancode.co/documentation/ci/build-time-test-discovery)
 with the static iOS XCTest runner. The example uses Patrol 4.11.0 and `patrol_cli` 4.9.0.
-The returned directory contains per-device logs and links to the XCTest results.
+The returned directory contains per-device logs and XCTest result bundles.
 Pass `resultJsonFile` to collect a JSON file written to each app's `tmp` directory
 as `A.json` and `B.json` for workflow-specific assertions.
 

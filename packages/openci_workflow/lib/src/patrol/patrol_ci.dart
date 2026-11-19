@@ -19,7 +19,7 @@ class PatrolCI {
   ///
   /// Each app receives its peer URL in tmp/openci-virtual-ble.json. B publishes
   /// first. Both Patrol runs must succeed and both apps must publish to GATT.
-  /// The returned directory holds A/B logs and links to the XCTest results.
+  /// The returned directory holds per-device logs and XCTest result bundles.
   /// If supplied, [resultJsonFile] in each app's tmp directory is required and
   /// copied to A.json or B.json before the simulators are deleted.
   Future<Directory> testWithVirtualBle({
@@ -52,7 +52,6 @@ class PatrolCI {
     ], directory: directory);
     return runVirtualBlePatrol(
       directory: Directory(directory).absolute,
-      target: target,
       bundleId: bundleId,
       serviceUuid: serviceUuid,
       characteristicUuid: characteristicUuid,
