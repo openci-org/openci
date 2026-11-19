@@ -174,6 +174,7 @@ async function fixture(t) {
       assert.equal(options.env[environmentVariable], undefined);
       assert.equal(options.env.FIREBASE_TOKEN, undefined);
       assert.equal(options.env.FIREBASE_CLI_EXPERIMENTS, "dartfunctions");
+      assert.equal(options.env.FIREBASE_SKIP_INFORMATIONAL_IAM, "true");
       const config = JSON.parse(await readFile(configPath, "utf8"));
       assert.deepEqual(Object.keys(config), ["functions"]);
       assert.deepEqual(

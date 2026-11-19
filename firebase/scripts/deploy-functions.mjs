@@ -14,7 +14,7 @@ export const lockObject = "production/openci/lock.json";
 export const successObject = "production/openci/last-success.json";
 export const credentialVariable = "FIREBASE_FUNCTIONS_CD_SERVICE_ACCOUNT_JSON_BASE64";
 export const environmentVariable = "FIREBASE_FUNCTIONS_CD_ENV_BASE64";
-export const firebaseToolsVersion = "15.34.2";
+export const firebaseToolsVersion = "15.37.0";
 
 function decoded(value) {
   if (typeof value !== "string" || !/^[A-Za-z0-9+/]+={0,2}$/.test(value)) {
@@ -266,6 +266,9 @@ export async function deployFunctions({
       XDG_CONFIG_HOME: path.join(temporary, "config"),
       CI: "true",
       FIREBASE_CLI_EXPERIMENTS: "dartfunctions",
+      // The CLI probes the default App Engine account even when every function
+      // specifies a runtime identity. Google Cloud checks each actual deployment.
+      FIREBASE_SKIP_INFORMATIONAL_IAM: "true",
     };
     delete childEnvironment[credentialVariable];
     delete childEnvironment[environmentVariable];

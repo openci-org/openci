@@ -3,7 +3,7 @@
 `openci/firebase_functions_cd.dart` runs on every push to `develop`. Dependency
 installation, formatting, analysis and tests are listed directly in the Dart
 workflow. It checks the TypeScript Functions and runs Dart analysis and tests
-in `firebase/dart_functions` against the same commit. Firebase CLI 15.34.2
+in `firebase/dart_functions` against the same commit. Firebase CLI 15.37.0
 then deploys the TypeScript `openci` and Dart `openci-planner` codebases to
 `openci-b1b91` under one lock. The CLI uses its `dartfunctions` experiment
 to generate the planner manifest and compile the Linux executable.
@@ -22,6 +22,9 @@ JSON key to a mode-0600 file outside the source tree and sets
 `GOOGLE_APPLICATION_CREDENTIALS` for the Firebase CLI process. This is
 [Application Default Credentials](https://firebase.google.com/docs/cli#use_the_cli_with_ci_systems).
 The CLI uses an isolated configuration directory, with `FIREBASE_TOKEN` removed.
+It sets `FIREBASE_SKIP_INFORMATIONAL_IAM=true` because the CLI otherwise requires
+access to the default App Engine account during its preliminary check. Google
+Cloud authorizes each deployment using the configured runtime and build identities.
 Temporary files are deleted on normal exit or failure; executor VM destruction
 removes them after an abrupt interruption.
 
@@ -128,7 +131,8 @@ failure does not mean the previous version is still serving everywhere.
 If OpenCI itself cannot start builds, use a clean checkout of the known-good
 commit and the same SA/ADC. Prepare both project dotenv files, including the
 Node caller in `firebase/dart_functions/.env.openci-b1b91`. Run the Functions
-checks, then run Firebase CLI 15.34.2 with `FIREBASE_CLI_EXPERIMENTS=dartfunctions`,
+checks, then run Firebase CLI 15.37.0 with `FIREBASE_CLI_EXPERIMENTS=dartfunctions`
+and `FIREBASE_SKIP_INFORMATIONAL_IAM=true`,
 `--config firebase/firebase.json --project openci-b1b91
 --only functions:openci,functions:openci-planner --non-interactive`. Keep the
 shared lock held during recovery and confirm the cloud operations and both
