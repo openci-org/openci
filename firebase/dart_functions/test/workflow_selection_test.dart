@@ -327,8 +327,8 @@ void main() {
     }
   });
   for (final (name, platform) in [
-    ('Dashboard TestFlight IPA', 'ios'),
-    ('Dashboard Google Play AAB', 'android'),
+    ('Dashboard iOS Patch', 'ios'),
+    ('Dashboard Android Patch', 'android'),
   ]) {
     test('$name runs only on matching develop pushes', () {
       final workflow = definitions.singleWhere((w) => w.workflowName == name);
@@ -344,7 +344,7 @@ void main() {
         'apps/dashboard/pubspec.yaml',
         'packages/openci_shared/pubspec.yaml',
         'openci/${workflow.workflowFileName}',
-        'openci/lib/dashboard_store_build_number.dart',
+        'apps/dashboard/shorebird.yaml',
         'pubspec.yaml',
         'pubspec.lock',
       ]) {
@@ -360,6 +360,12 @@ void main() {
       }
       expect(
         trigger.matchesChangedFiles([
+          'apps/dashboard/tool/configure_google_sign_in.dart',
+        ]),
+        platform == 'ios',
+      );
+      expect(
+        trigger.matchesChangedFiles([
           'README.md',
           'apps/openci_cli/pubspec.yaml',
         ]),
@@ -367,6 +373,15 @@ void main() {
       );
     });
   }
+  test('develop pushes do not upload Dashboard store builds', () {
+    for (final name in [
+      'Dashboard TestFlight IPA',
+      'Dashboard Google Play AAB',
+    ]) {
+      final workflow = definitions.singleWhere((w) => w.workflowName == name);
+      expect(workflow.matches(eventType: 'push', branch: 'develop'), isFalse);
+    }
+  });
   test('Node runtime changes run all Node workflows', () {
     final result = plan(definitions, diff(['.node-version']));
     expect(result.jobs.map((j) => j.workflowName).toSet(), {

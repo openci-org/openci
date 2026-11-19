@@ -713,14 +713,14 @@ test("end users cannot read tasks, publish builds, or fail tasks", async (t) => 
 });
 
 // Keep the expected workflow identities explicit: this integration uses the
-// repository's real workflows, including the added mobile release workflows.
+// repository's real workflows, including the mobile patch workflows.
 const pushWorkflowFiles = [
   "dart_format_check.dart",
   "dart_functions_ci.dart",
+  "dashboard_android_patch.dart",
+  "dashboard_ios_patch.dart",
   "dashboard_ios_patrol_ci.dart",
   "dashboard_macos_cd.dart",
-  "dashboard_play_aab.dart",
-  "dashboard_testflight_ipa.dart",
   "dashboard_web_hosting.dart",
   "firebase_functions_ci.dart",
   "openci_shared_ci.dart",

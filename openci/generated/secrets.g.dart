@@ -54,6 +54,9 @@ abstract final class Secrets {
   /// The secret with the environment key `PUB_DEV_SERVICE_ACCOUNT_JSON_BASE64`.
   static const pubDevServiceAccountJsonBase64 = Secret('PUB_DEV_SERVICE_ACCOUNT_JSON_BASE64');
 
+  /// The secret with the environment key `SHOREBIRD_TOKEN`.
+  static const shorebirdToken = Secret('SHOREBIRD_TOKEN');
+
   /// The secret with the environment key `SPARKLE_PRIVATE_ED_KEY`.
   static const sparklePrivateEdKey = Secret('SPARKLE_PRIVATE_ED_KEY');
 

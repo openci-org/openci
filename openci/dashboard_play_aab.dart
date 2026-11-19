@@ -9,29 +9,8 @@ Future<void> main() async {
   final ci = await OpenCI.init(
     workflowName: 'Dashboard Google Play AAB',
     flutterVersion: '3.47.8',
-    ciTriggers: [
-      CITrigger.push(
-        branch: 'develop',
-        paths: [
-          'apps/dashboard/android/**',
-          'apps/dashboard/lib/**',
-          'apps/dashboard/assets/**',
-          'apps/dashboard/pubspec.yaml',
-          'apps/dashboard/shorebird.yaml',
-          'packages/macos_updater/lib/**',
-          'packages/openci_shared/lib/**',
-          'packages/openci_workflow/lib/**',
-          'packages/pubspec_version_hook/lib/**',
-          'packages/*/pubspec.yaml',
-          'openci/dashboard_play_aab.dart',
-          'openci/lib/dashboard_store_build_number.dart',
-          'openci/generated/**',
-          'openci/pubspec.yaml',
-          'pubspec.yaml',
-          'pubspec.lock',
-        ],
-      ),
-    ],
+    // Store uploads will resume on GitHub Release publication.
+    ciTriggers: [],
     currentWorkingDirectory: dashboard,
   );
 
