@@ -92,6 +92,16 @@ Future<void> main() async {
 
 OpenCI discovers Dart files in `openci/` and matches their declared triggers to GitHub events. Keep workflow names and trigger branches as string literals so the planner can read them without executing the workflow.
 
+Use `CITrigger.release()` to run on GitHub Release publication, or
+`CITrigger.release(tag: 'v*')` to filter tag names. Published pre-releases are
+included; draft saves, edits, and tag pushes do not match. The workflow must be
+present at the tagged commit. OpenCI resolves lightweight and annotated tags to
+a commit before reading workflows and queues that exact commit for checkout.
+Release runs currently expose the pinned tag as `PushContext.branch`
+(`refs/tags/<tag>`). Release triggers do not support `paths`.
+This requires SDK 0.5.0, the updated webhook/planner deployment, and a GitHub App
+subscribed to Release events with Contents read permission.
+
 ### Read the current execution context
 
 Use `openCI.context` to branch on the event that actually started this run:

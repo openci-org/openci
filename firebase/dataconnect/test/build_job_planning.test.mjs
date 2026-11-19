@@ -56,6 +56,15 @@ before(async () => {
       return respond(201, { token: `test-${installationId}` });
     }
     if (path === "/repos/org/app") return respond(200, { id: 10, owner: { id: 20 } });
+    if (path === "/repos/org/app/git/ref/tags/v1.2.0") {
+      return respond(200, {
+        ref: "refs/tags/v1.2.0",
+        object: { type: "tag", sha: "c".repeat(40) },
+      });
+    }
+    if (path === `/repos/org/app/git/tags/${"c".repeat(40)}`) {
+      return respond(200, { sha: "c".repeat(40), object: { type: "commit", sha } });
+    }
     if (path === "/repos/org/app/pulls/7") {
       const pullRequest = structuredClone(github.pullRequest);
       const hook = github.onPullRequest;
@@ -335,6 +344,41 @@ test("ID dispatcher -> Dart Function -> GitHub -> atomic FSC jobs", async (t) =>
     assert.ok(Number(job.createdAt) > 0);
     assert.equal(job.createdAt, job.updatedAt);
   }
+});
+
+test("published release -> annotated tag commit -> only release CD jobs", async (t) => {
+  const f = await fixture(
+    t,
+    {
+      action: "published",
+      release: { id: 40, tag_name: "v1.2.0", draft: false, target_commitish: "moving-main" },
+    },
+    "release",
+  );
+  await configurePathWorkflows(f);
+  assert.equal(await invoke(f.taskId), "created");
+  assert.equal(await invoke(f.taskId), "duplicate");
+  const { webhookTask, buildJobs } = await f.state();
+  assert.equal(webhookTask.status, "completed");
+  assert.deepEqual(
+    buildJobs.map((job) => job.workflowFileName),
+    ["dashboard_play_aab.dart", "dashboard_testflight_ipa.dart"],
+  );
+  for (const job of buildJobs) {
+    assert.equal(job.commitSha, sha);
+    assert.equal(job.branch, "refs/tags/v1.2.0");
+    assert.equal(job.pullRequestNumber, null);
+    assert.equal(job.status, "QUEUED");
+  }
+  assert.equal(f.github.changedFilesCalls, 0);
+  assert.equal(f.github.tokenRequests.length, 2);
+  assert.ok(
+    f.github.tokenRequests.every(
+      (r) =>
+        JSON.stringify(r) ===
+        JSON.stringify({ repository_ids: [10], permissions: { contents: "read" } }),
+    ),
+  );
 });
 
 test("repository-scoped connections plan only their selected repository", async (t) => {
@@ -721,8 +765,6 @@ const pushWorkflowFiles = [
   "dashboard_ios_patch.dart",
   "dashboard_ios_patrol_ci.dart",
   "dashboard_macos_cd.dart",
-  "dashboard_play_aab.dart",
-  "dashboard_testflight_ipa.dart",
   "dashboard_web_hosting.dart",
   "firebase_functions_ci.dart",
   "openci_shared_ci.dart",

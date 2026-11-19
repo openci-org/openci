@@ -8,7 +8,7 @@ import {
 
 export interface WebhookDelivery {
   deliveryId: string;
-  eventType: "push" | "pull_request";
+  eventType: "push" | "pull_request" | "release";
   payload: string;
 }
 

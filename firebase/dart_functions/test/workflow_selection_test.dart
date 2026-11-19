@@ -374,43 +374,25 @@ void main() {
       }
     }
   });
-  for (final (name, platform) in [
-    ('Dashboard TestFlight IPA', 'ios'),
-    ('Dashboard Google Play AAB', 'android'),
+  for (final name in [
+    'Dashboard TestFlight IPA',
+    'Dashboard Google Play AAB',
   ]) {
-    test('$name runs only on matching develop pushes', () {
+    test('$name runs only for published releases', () {
       final workflow = definitions.singleWhere((w) => w.workflowName == name);
       final trigger = workflow.ciTriggers.single;
-      expect(trigger.matches(eventType: 'push', branch: 'develop'), isTrue);
-      expect(trigger.matches(eventType: 'push', branch: 'feature'), isFalse);
+      expect(trigger.matches(eventType: 'release', branch: 'v2.6.0'), isTrue);
       expect(
-        trigger.matches(eventType: 'pull_request', branch: 'develop'),
+        trigger.matches(eventType: 'release', branch: 'v2.6.0-rc.1'),
+        isTrue,
+      );
+      expect(trigger.matches(eventType: 'push', branch: 'develop'), isFalse);
+      expect(
+        trigger.matches(eventType: 'push', branch: 'refs/tags/v2.6.0'),
         isFalse,
       );
-      for (final path in [
-        'apps/dashboard/lib/main.dart',
-        'apps/dashboard/pubspec.yaml',
-        'packages/openci_shared/pubspec.yaml',
-        'openci/${workflow.workflowFileName}',
-        'openci/lib/dashboard_store_build_number.dart',
-        'pubspec.yaml',
-        'pubspec.lock',
-      ]) {
-        expect(trigger.matchesChangedFiles([path]), isTrue, reason: path);
-      }
-      for (final directory in ['ios', 'android', 'macos', 'web']) {
-        final path = 'apps/dashboard/$directory/file';
-        expect(
-          trigger.matchesChangedFiles([path]),
-          directory == platform,
-          reason: path,
-        );
-      }
       expect(
-        trigger.matchesChangedFiles([
-          'README.md',
-          'apps/openci_cli/pubspec.yaml',
-        ]),
+        trigger.matches(eventType: 'pull_request', branch: 'develop'),
         isFalse,
       );
     });

@@ -15,6 +15,18 @@ ciTriggers: [
 
 GitHub also sends tag pushes. For example, `CITrigger.push(branch: 'refs/tags/v*')` matches a tag named `v1.2.0`.
 
+## Run when a GitHub Release is published
+
+```dart
+ciTriggers: [
+  CITrigger.release(tag: 'v*'),
+],
+```
+
+With SDK 0.5.0 or later, `release` runs on publication, including pre-releases. Omit `tag` to accept every tag. Draft saves, edits, and tag pushes do not start this trigger. `tag` is a literal tag name or `*` pattern without the `refs/tags/` prefix; `paths` is not supported.
+
+OpenCI reads the workflow and builds from the commit identified by the release tag, so the workflow must already exist at that commit. Your OpenCI deployment must support release events, and its GitHub App must subscribe to **Release** events with Contents read permission.
+
 ## Run on pull requests
 
 OpenCI runs PR checks when the source and destination branches belong to the same connected repository. The `branch` value matches the **base branch** (the merge destination). This trigger runs for a PR from `feature/login` into `main`.

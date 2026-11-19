@@ -20,7 +20,7 @@ mutation CreateWebhookTask(
     }
   )
     @check(
-      expr: "size(vars.id) > 0 && size(vars.deliveryId) > 0 && vars.eventType in ['push', 'pull_request'] && size(vars.payload) > 0 && int(vars.receivedAt) >= 0"
+      expr: "size(vars.id) > 0 && size(vars.deliveryId) > 0 && vars.eventType in ['push', 'pull_request', 'release'] && size(vars.payload) > 0 && int(vars.receivedAt) >= 0"
       message: "Invalid webhook task"
     )
 }

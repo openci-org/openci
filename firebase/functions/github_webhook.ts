@@ -24,7 +24,11 @@ export async function receiveGitHubWebhook(
 
   const body = request.body;
   if (!body || typeof body !== "object" || Array.isArray(body)) return 400;
-  if (eventType === "pull_request" && body.action != null && typeof body.action !== "string") {
+  if (
+    (eventType === "pull_request" || eventType === "release") &&
+    body.action != null &&
+    typeof body.action !== "string"
+  ) {
     return 400;
   }
 
@@ -46,8 +50,10 @@ export async function receiveGitHubWebhook(
       "pull_request.reopened",
       "pull_request.closed",
       "pull_request.edited",
+      "release.published",
     ],
     async ({ id, name, payload: verifiedPayload }) => {
+      if (name === "release" && verifiedPayload.release?.draft) return;
       if (
         name === "pull_request" &&
         verifiedPayload.action === "edited" &&

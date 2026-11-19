@@ -16,12 +16,14 @@ class BuildJobPlanner {
     required this.fetchWorkflows,
     this.fetchChangedFiles,
     this.observePullRequest,
+    this.resolveReleaseCommit,
   });
   final PlanningStore store;
   final FetchWorkflows fetchWorkflows;
   final FetchChangedFiles? fetchChangedFiles;
   final Future<PullRequestObservation> Function(PlanningEvent event)?
   observePullRequest;
+  final Future<String> Function(PlanningEvent event)? resolveReleaseCommit;
 
   Future<String> process(String taskId) async {
     for (var attempt = 0; ; attempt++) {
@@ -60,6 +62,13 @@ class BuildJobPlanner {
         if (connection != null) {
           if (connection.accountId != event.ownerId.toString()) {
             throw const InvalidPlanningInput('invalid_payload');
+          }
+          if (event.isRelease) {
+            final resolve = resolveReleaseCommit;
+            if (resolve == null) {
+              throw StateError('Release tag resolution is unavailable');
+            }
+            event = event.withReleaseCommit(await resolve(event));
           }
           if (event.webhook.pullRequestNumber != null) {
             if (retryingConflict &&

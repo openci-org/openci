@@ -133,7 +133,7 @@ test("stores the original signed UTF-8 body, including whitespace", async () => 
 
 test("rejects malformed JSON objects and invalid UTF-8 for supported events", async () => {
   const d = dependencies();
-  for (const eventType of ["push", "pull_request"]) {
+  for (const eventType of ["push", "pull_request", "release"]) {
     for (const body of ["", "{", "[]", "null", "42", '"text"', "\uFEFF{}", Buffer.from([0xff])]) {
       assert.equal(await receiveGitHubWebhook(request(body, { eventType }), d.options), 400);
     }
@@ -146,6 +146,52 @@ test("rejects malformed JSON objects and invalid UTF-8 for supported events", as
     }
   }
   assert.deepEqual(d.deliveries, []);
+});
+
+test("only published releases are queued, including published pre-releases", async () => {
+  const d = dependencies();
+  for (const action of ["created", "edited", "deleted", "unpublished", "released", "prereleased"]) {
+    const payload = JSON.stringify({
+      action,
+      release: { id: 42, draft: false, tag_name: "v1.2.0" },
+    });
+    assert.equal(
+      await receiveGitHubWebhook(request(payload, { eventType: "release" }), d.options),
+      200,
+    );
+  }
+  const draft = JSON.stringify({ action: "published", release: { id: 42, draft: true } });
+  assert.equal(
+    await receiveGitHubWebhook(request(draft, { eventType: "release" }), d.options),
+    200,
+  );
+  assert.deepEqual(d.deliveries, []);
+  for (const prerelease of [false, true]) {
+    const payload = JSON.stringify({
+      action: "published",
+      release: { id: 42, draft: false, prerelease, tag_name: "v1.2.0" },
+    });
+    assert.equal(
+      await receiveGitHubWebhook(request(payload, { eventType: "release" }), d.options),
+      200,
+    );
+    assert.equal(d.deliveries.at(-1).eventType, "release");
+    assert.equal(d.deliveries.at(-1).payload, payload);
+  }
+  assert.equal(d.deliveries.length, 2);
+  const payload = JSON.stringify({ action: "published", release: { draft: false } });
+  assert.equal(
+    await receiveGitHubWebhook(
+      request(payload, { eventType: "release", signature: "sha256=bad" }),
+      d.options,
+    ),
+    400,
+  );
+  assert.equal(
+    await receiveGitHubWebhook(request('{"action":42}', { eventType: "release" }), d.options),
+    400,
+  );
+  assert.equal(d.deliveries.length, 2);
 });
 
 test("accepts pull request planning and closure actions", async () => {

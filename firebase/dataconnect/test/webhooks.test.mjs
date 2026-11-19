@@ -69,6 +69,23 @@ test("the generated SDK enqueues a pending task with Unix-second timestamps", as
   assert.equal(row.updatedAt, row.createdAt);
 });
 
+test("release deliveries are accepted by the connector and deduplicated", async (t) => {
+  const delivery = {
+    ...fixture(t),
+    eventType: "release",
+    payload: JSON.stringify({
+      action: "published",
+      release: { id: 42, tag_name: "v1.2.0", draft: false },
+    }),
+  };
+  assert.equal(await enqueueWebhook(dc, delivery), "created");
+  assert.equal(await enqueueWebhook(dc, delivery), "duplicate");
+  const row = await stored(delivery);
+  assert.equal(row.eventType, "release");
+  assert.equal(row.payload, delivery.payload);
+  assert.equal(row.status, "pending");
+});
+
 test("concurrent redeliveries create exactly one task", async (t) => {
   const delivery = fixture(t);
   const results = await Promise.all(Array.from({ length: 8 }, () => enqueueWebhook(dc, delivery)));

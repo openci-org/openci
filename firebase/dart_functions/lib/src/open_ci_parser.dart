@@ -35,18 +35,19 @@ abstract class ParsedCITrigger with _$ParsedCITrigger {
   const ParsedCITrigger._();
 
   const factory ParsedCITrigger({
-    required String type, // 'push' or 'pullRequest'
-    required String branch,
+    required String type, // 'push', 'pullRequest', or 'release'
+    required String branch, // The tag pattern for release triggers.
     List<String>? paths,
   }) = _ParsedCITrigger;
 
   bool matches({
-    required String eventType, // 'push' or 'pull_request'
+    required String eventType, // 'push', 'pull_request', or 'release'
     required String branch,
   }) {
     final expectedEventType = switch (type) {
       'push' => 'push',
       'pullRequest' => 'pull_request',
+      'release' => 'release',
       _ => null,
     };
 
@@ -209,9 +210,28 @@ class _OpenCIInitVisitor extends RecursiveAstVisitor<void> {
     }
 
     if (className != 'CITrigger' ||
-        (triggerType != 'push' && triggerType != 'pullRequest') ||
+        !['push', 'pullRequest', 'release'].contains(triggerType) ||
         argumentList == null) {
       return null;
+    }
+
+    if (triggerType == 'release') {
+      var tag = '*';
+      for (final argument in argumentList.arguments) {
+        if (argument is! NamedExpression || argument.name.label.name != 'tag') {
+          throw WorkflowConfigurationException(
+            '$fileName: CITrigger.release only accepts a tag filter',
+          );
+        }
+        final value = _extractStringValue(argument.expression);
+        if (value == null || value.trim().isEmpty || value.trim() != value) {
+          throw WorkflowConfigurationException(
+            '$fileName: CITrigger.release.tag must be a nonempty literal string',
+          );
+        }
+        tag = value;
+      }
+      return ParsedCITrigger(type: 'release', branch: tag);
     }
 
     String? branch;
