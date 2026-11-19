@@ -54,6 +54,19 @@ void main() {
     }
   });
   group('flutterVersion', () {
+    for (final (preset, version) in [
+      ('FlutterVersion.v3_44_8.value', '3.44.8'),
+      ('FlutterVersion.v3_47_8.value', '3.47.8'),
+    ]) {
+      test('resolves the Flutter version preset $preset', () {
+        final workflow = parseOpenCIWorkflow('''
+void main() {
+  OpenCI.init(workflowName: 'CI', ciTriggers: [CITrigger.push(branch: 'main')], flutterVersion: $preset);
+}
+''', 'ci.dart');
+        expect(workflow!.flutterVersion, version);
+      });
+    }
     for (final version in ['3.47.8', '3.48.0-0.1.pre']) {
       test('parses a literal release: $version', () {
         final workflow = parseOpenCIWorkflow('''
@@ -78,6 +91,10 @@ void main() {
       "''",
       "'stable'",
       'version',
+      'FlutterVersion.v99_0_0.value',
+      'FlutterVersion.v3_47_8',
+      'FlutterVersion.v3_47_8.name',
+      'OtherVersion.v3_47_8.value',
       r"'3.47.$patch'",
       "'3.47.8; id'",
       r"'3.47.8\n'",

@@ -3,6 +3,7 @@ import 'package:analyzer/dart/ast/ast.dart';
 import 'package:analyzer/dart/ast/visitor.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:glob/glob.dart';
+import 'package:openci_workflow/openci_workflow.dart' show FlutterVersion;
 import 'package:path/path.dart' as p;
 
 part 'open_ci_parser.freezed.dart';
@@ -144,14 +145,14 @@ class _OpenCIInitVisitor extends RecursiveAstVisitor<void> {
           cancelPreviousRuns = expression.value;
         } else if (paramName == 'flutterVersion' &&
             expression is! NullLiteral) {
-          flutterVersion = _extractStringValue(expression);
+          flutterVersion = _extractFlutterVersion(expression);
           if (flutterVersion == null ||
               !RegExp(
                 r'^\d+\.\d+\.\d+(?:-[0-9A-Za-z]+(?:[.-][0-9A-Za-z]+)*)?$',
               ).hasMatch(flutterVersion)) {
             throw WorkflowConfigurationException(
               '$fileName: flutterVersion must be a literal Flutter release '
-              'such as 3.47.8',
+              'or a preset such as FlutterVersion.v3_47_8.value',
             );
           }
         }
@@ -167,6 +168,20 @@ class _OpenCIInitVisitor extends RecursiveAstVisitor<void> {
         flutterVersion: flutterVersion,
       );
     }
+  }
+
+  String? _extractFlutterVersion(Expression expression) {
+    if (expression case PropertyAccess(
+      isNullAware: false,
+      target: PrefixedIdentifier(
+        prefix: SimpleIdentifier(name: 'FlutterVersion'),
+        identifier: SimpleIdentifier(:final name),
+      ),
+      propertyName: SimpleIdentifier(name: 'value'),
+    )) {
+      return FlutterVersion.values.asNameMap()[name]?.value;
+    }
+    return _extractStringValue(expression);
   }
 
   List<ParsedCITrigger>? _extractTriggers(Expression expression) {
