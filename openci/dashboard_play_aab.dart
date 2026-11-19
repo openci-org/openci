@@ -9,31 +9,17 @@ Future<void> main() async {
   final ci = await OpenCI.init(
     workflowName: 'Dashboard Google Play AAB',
     flutterVersion: '3.47.8',
-    ciTriggers: [
-      CITrigger.push(
-        branch: 'develop',
-        paths: [
-          'apps/dashboard/android/**',
-          'apps/dashboard/lib/**',
-          'apps/dashboard/assets/**',
-          'apps/dashboard/pubspec.yaml',
-          'apps/dashboard/shorebird.yaml',
-          'packages/macos_updater/lib/**',
-          'packages/openci_shared/lib/**',
-          'packages/openci_workflow/lib/**',
-          'packages/pubspec_version_hook/lib/**',
-          'packages/*/pubspec.yaml',
-          'openci/dashboard_play_aab.dart',
-          'openci/lib/dashboard_store_build_number.dart',
-          'openci/generated/**',
-          'openci/pubspec.yaml',
-          'pubspec.yaml',
-          'pubspec.lock',
-        ],
-      ),
-    ],
+    ciTriggers: [CITrigger.release()],
     currentWorkingDirectory: dashboard,
   );
+
+  final context = ci.context;
+  if (context is! PushContext || !context.branch.startsWith('refs/tags/')) {
+    return;
+  }
+  if (Secrets.shorebirdToken.value.trim().isEmpty) {
+    throw StateError('SHOREBIRD_TOKEN is empty.');
+  }
 
   await ci.placeFileFromBase64(
     dir: dashboard.lib,
@@ -57,9 +43,12 @@ Future<void> main() async {
   );
 
   final buildNumber = dashboardStoreBuildNumber(ci.runNumber);
-  await ci.run('flutter build appbundle --release --build-number=$buildNumber');
+  final aabPath = await ci.shorebird.releaseAab(
+    flutterVersion: ci.flutterVersion!,
+    additionalArguments: ['--build-number=$buildNumber'],
+  );
   await ci.flutter.deployAabToPlayConsole(
-    aabPath: 'build/app/outputs/bundle/release/app-release.aab',
+    aabPath: aabPath,
     packageName: 'org.openci.dashboard.prod',
     serviceAccountJsonBase64: Secrets.googlePlayServiceAccountJsonBase64.value,
     track: 'internal',
