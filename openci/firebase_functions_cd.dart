@@ -9,16 +9,16 @@ Future<void> main() async {
   final ci = await OpenCI.init(
     workflowName: 'Firebase Functions CD',
     flutterVersion: FlutterVersion.v3_47_8.value,
-    ciTriggers: [CITrigger.push(branch: 'develop')],
+    ciTriggers: [CITrigger.release()],
   );
 
   final context = ci.context;
   if (context is! PushContext ||
-      context.branch != 'develop' ||
+      !context.branch.startsWith('refs/tags/') ||
       context.repository.owner != 'openci-org' ||
       context.repository.name != 'openci' ||
       context.repository.githubBaseUrl.toString() != 'https://github.com') {
-    throw StateError('Functions CD requires an OpenCI develop push.');
+    throw StateError('Functions CD requires an OpenCI release tag.');
   }
 
   final package =

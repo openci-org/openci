@@ -15,6 +15,9 @@ export const successObject = "production/openci/last-success.json";
 export const credentialVariable = "FIREBASE_FUNCTIONS_CD_SERVICE_ACCOUNT_JSON_BASE64";
 export const environmentVariable = "FIREBASE_FUNCTIONS_CD_ENV_BASE64";
 export const firebaseToolsVersion = "15.37.0";
+const repositoryUrl = "https://github.com/openci-org/openci.git";
+const latestReleaseUrl = "https://api.github.com/repos/openci-org/openci/releases/latest";
+const tagPrefix = "refs/tags/";
 
 function decoded(value) {
   if (typeof value !== "string" || !/^[A-Za-z0-9+/]+={0,2}$/.test(value)) {
@@ -30,7 +33,9 @@ export function deploymentContext(environment) {
   if (
     context?.schemaVersion !== 1 ||
     context.event !== "push" ||
-    context.branch !== "develop" ||
+    typeof context.branch !== "string" ||
+    !context.branch.startsWith(tagPrefix) ||
+    context.branch.length === tagPrefix.length ||
     context.repository?.owner !== "openci-org" ||
     context.repository?.name !== "openci" ||
     context.repository?.githubBaseUrl !== "https://github.com" ||
@@ -43,9 +48,34 @@ export function deploymentContext(environment) {
     !context.jobId ||
     context.jobId !== environment.OPENCI_BUILD_JOB_ID
   ) {
-    throw new Error("Functions CD requires a verified OpenCI develop push");
+    throw new Error("Functions CD requires an OpenCI release tag");
   }
   return context;
+}
+
+async function latestReleaseRef(get) {
+  const response = await get(latestReleaseUrl, {
+    method: "GET",
+    headers: { accept: "application/vnd.github+json" },
+    cache: "no-store",
+    redirect: "error",
+    signal: AbortSignal.timeout(30000),
+  });
+  if (!response.ok) {
+    await response.body?.cancel();
+    if (response.status === 404) return null;
+    throw new Error("Could not read the latest OpenCI release");
+  }
+  const release = await response.json();
+  if (
+    release?.draft !== false ||
+    release.prerelease !== false ||
+    typeof release.tag_name !== "string" ||
+    !release.tag_name
+  ) {
+    throw new Error("Invalid latest OpenCI release");
+  }
+  return `${tagPrefix}${release.tag_name}`;
 }
 
 function uploadUrl(object, createOnly = false) {
@@ -205,7 +235,8 @@ export async function deployFunctions({
       retry: false,
       maxRedirects: 0,
     });
-  const record = { sha: context.checkoutSha, runId: context.runId, jobId: context.jobId };
+  const { branch: ref, checkoutSha: sha, runId, jobId } = context;
+  const record = { tag: ref.slice(tagPrefix.length), sha, runId, jobId };
   let generation;
   log("Waiting for the production Functions deployment lock.");
   for (let attempt = 0; attempt < lockAttempts; attempt++) {
@@ -233,16 +264,24 @@ export async function deployFunctions({
   let temporary;
   const createdFiles = [];
   try {
-    const ref = await run(
+    if ((await latestReleaseRef(get)) !== ref) {
+      log("This tag is outside the latest stable release. Skipping deployment.");
+      return "superseded";
+    }
+    const peeledRef = `${ref}^{}`;
+    const output = await run(
       "git",
-      ["ls-remote", "https://github.com/openci-org/openci.git", "refs/heads/develop"],
+      ["ls-remote", "--exit-code", repositoryUrl, ref, peeledRef],
       gitOptions,
     );
-    const match = /^([a-f0-9]{40}(?:[a-f0-9]{24})?)\s+refs\/heads\/develop$/.exec(ref);
-    if (!match) throw new Error("Could not verify the current develop commit");
-    if (match[1] !== context.checkoutSha) {
-      log("A newer develop commit exists; skipping this deployment.");
-      return "superseded";
+    const refs = new Map(
+      output.split("\n").map((line) => {
+        const [objectSha, name] = line.split("\t");
+        return [name, objectSha];
+      }),
+    );
+    if (!refs.has(ref) || (refs.get(peeledRef) ?? refs.get(ref)) !== sha) {
+      throw new Error("Release tag does not match the tested commit");
     }
 
     temporary = await mkdtemp(path.join(tmpdir(), "openci-functions-cd-"));
@@ -273,7 +312,7 @@ export async function deployFunctions({
     delete childEnvironment[credentialVariable];
     delete childEnvironment[environmentVariable];
     delete childEnvironment.FIREBASE_TOKEN;
-    log(`Deploying TypeScript and Dart Functions from ${context.checkoutSha}.`);
+    log(`Deploying TypeScript and Dart Functions from ${record.tag} (${sha}).`);
     // Even a failed CLI can have started asynchronous updates. Never unlock it
     // automatically on an error, timeout, or process interruption after here.
     startedDeployment = true;
@@ -304,7 +343,7 @@ export async function deployFunctions({
       data: JSON.stringify({ ...record, completedAt: new Date().toISOString() }),
     });
     finishedDeployment = true;
-    log(`Functions deployed successfully: ${context.checkoutSha}.`);
+    log(`Functions deployed successfully for ${record.tag} (${sha}).`);
     return "deployed";
   } finally {
     try {

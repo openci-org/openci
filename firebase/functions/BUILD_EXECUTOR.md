@@ -135,10 +135,10 @@ key never enter the VM.
 
 The opt-in [production Functions CD](FUNCTIONS_CD.md) additionally
 receives a dedicated deployment SA and runtime configuration from pinned
-infrastructure secrets. These are gated by verified push context, team,
-repository and workflow identity before secret access. They are filtered out of
-ordinary team-secret injection for every other run. The executor's own Google
-credentials still never enter the VM.
+infrastructure secrets. The executor verifies the saved release tag, its commit's
+`develop` ancestry, and the team, repository and workflow identity before secret
+access. It filters these credentials out of ordinary team-secret injection for
+every other run.
 
 `openCI.pullRequest.postQrCode` requests a QR code for a workflow-supplied URL.
 After the workflow succeeds, Cloud Run validates the URLs, language, size, and

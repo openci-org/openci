@@ -6,14 +6,15 @@ export const functionsCdEnvironment = "FIREBASE_FUNCTIONS_CD_ENV_BASE64";
 type SecretReference = { name: string; secretVersionPath: string };
 
 /** These credentials are infrastructure-owned, never ordinary team secrets. */
-export function functionsCdSecretReferences(
+export async function functionsCdSecretReferences(
   references: SecretReference[],
   job: Job,
   checkout: ResolvedCheckout,
   environment: NodeJS.ProcessEnv,
   project: string,
   selfHosted: boolean,
-): SecretReference[] {
+  isCommitOnDevelop: (commitSha: string) => Promise<boolean>,
+): Promise<SecretReference[]> {
   const ordinary = references.filter(
     ({ name }) => name !== functionsCdCredential && name !== functionsCdEnvironment,
   );
@@ -30,13 +31,17 @@ export function functionsCdSecretReferences(
     job.repositoryId !== environment.OPENCI_FUNCTIONS_CD_REPOSITORY_ID ||
     job.workflowFileName !== "firebase_functions_cd.dart" ||
     job.pullRequestNumber != null ||
-    job.branch !== "develop" ||
+    !job.tagName ||
+    job.branch !== `refs/tags/${job.tagName}` ||
     checkout.event !== "push" ||
-    checkout.branch !== "develop" ||
+    checkout.branch !== job.branch ||
     checkout.commitSha !== job.commitSha ||
     checkout.checkoutSha !== job.commitSha
   ) {
     return ordinary;
+  }
+  if (!(await isCommitOnDevelop(checkout.commitSha))) {
+    throw new Error("Functions CD release commit must be in the develop branch history");
   }
 
   const protectedReferences = [

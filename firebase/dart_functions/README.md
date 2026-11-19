@@ -74,9 +74,10 @@ and 128 MiB memory headroom still require deployed validation.
 ## Deployment
 
 The [production Functions CD workflow](../functions/FUNCTIONS_CD.md) deploys
-the planner with the TypeScript Functions on `develop` pushes once its production
-credentials are configured. It supplies the Node API runtime service account as
-`OPENCI_PLANNER_INVOKER` so each update preserves private invocation.
+the planner with the TypeScript Functions when the latest stable GitHub Release is
+published and production credentials are configured. It supplies the Node API
+runtime service account as `OPENCI_PLANNER_INVOKER` so each update preserves
+private invocation.
 
 For a manual deployment, set `OPENCI_PLANNER_INVOKER` in this codebase's
 project dotenv to the calling service account's email. The default `private`

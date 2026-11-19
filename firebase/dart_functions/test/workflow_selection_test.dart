@@ -377,6 +377,7 @@ void main() {
   for (final name in [
     'Dashboard TestFlight IPA',
     'Dashboard Google Play AAB',
+    'Firebase Functions CD',
   ]) {
     test('$name runs only for published releases', () {
       final workflow = definitions.singleWhere((w) => w.workflowName == name);

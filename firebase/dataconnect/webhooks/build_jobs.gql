@@ -85,22 +85,25 @@ mutation CompleteWebhookTask(
     """
     params: [$jobsJson]
   ) @redact
+  # Derive release provenance from the stored webhook, since a push can also name a tag ref.
   jobs: _executeReturning(
     sql: """
     INSERT INTO build_jobs (
       id, status, owner, repo, workflow_name, workflow_file_name, team_id,
       commit_sha, branch, commit_message, pull_request_number, github_base_url,
       installation_id, runs_on, run_count, created_at, updated_at, flutter_version,
-      cancel_previous_runs, webhook_execution_key, repository_id
+      cancel_previous_runs, webhook_execution_key, repository_id, tag_name
     )
     SELECT w.id, 'QUEUED', $2, $3, w.name, w.file, $4,
       $5, $6, $7, $8::bigint, $9, $10, 'macos-latest', 0, $11::bigint, $11::bigint,
-      w."flutterVersion", COALESCE(w."cancelPreviousRuns", false), w."webhookExecutionKey", $14::bigint
+      w."flutterVersion", COALESCE(w."cancelPreviousRuns", false), w."webhookExecutionKey", $14::bigint,
+      CASE WHEN task.event_type = 'release' THEN task.payload::jsonb #>> '{release,tag_name}' END
     FROM jsonb_to_recordset($1::jsonb) AS w(
       id text, name text, file text, "flutterVersion" text, "cancelPreviousRuns" boolean,
       "webhookExecutionKey" text
     )
-    WHERE length(trim(w.id)) > 0 AND length(trim(w.name)) > 0
+    CROSS JOIN webhook_tasks AS task
+    WHERE task.id = $15 AND length(trim(w.id)) > 0 AND length(trim(w.name)) > 0
       AND length(w.file) > 0 AND length($2::text) > 0 AND length($3::text) > 0
       AND length($5::text) > 0 AND length($6::text) > 0
       AND (NOT COALESCE(w."cancelPreviousRuns", false) OR
@@ -131,6 +134,7 @@ mutation CompleteWebhookTask(
       $planningId
       $planningToken
       $repositoryId
+      $id
     ]
   ) @check(expr: "size(this) == vars.jobCount", message: "Invalid build job batch")
   # Closure cancels every active workflow in the verified PR scope. Superseding
