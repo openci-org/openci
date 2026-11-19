@@ -1,0 +1,56 @@
+# Completion events can arrive after a retry. Only the latest reservation may publish.
+query GetPullRequestCommentExecution($jobId: String!) @auth(level: NO_ACCESS) {
+  job: buildJob(id: $jobId) {
+    ...ExecutionJobFields
+    workflowJobKey
+    matrixLabel
+  }
+  latest: buildJobDispatch(
+    first: { where: { jobId: { eq: $jobId } }, orderBy: [{ createdAt: DESC }, { id: DESC }] }
+  ) {
+    id
+    teamId
+    runId
+    checkRunId
+    outcome
+    failureSummary
+    createdAt
+    finishedAt
+  }
+  # The same PR head can be built against two base revisions. A green run that
+  # never needed a GitHub comment must still fence delayed failures from the old job.
+  latestForHead: _selectFirst(
+    sql: """
+    SELECT d.id FROM build_jobs AS source
+    JOIN build_jobs AS j ON j.team_id = source.team_id AND j.pull_request_number = source.pull_request_number
+      AND lower(j.owner) = lower(source.owner) AND lower(j.repo) = lower(source.repo)
+      AND COALESCE(j.github_base_url, 'https://github.com') = COALESCE(source.github_base_url, 'https://github.com')
+      AND j.installation_id = source.installation_id AND j.commit_sha = source.commit_sha
+      AND j.workflow_file_name = source.workflow_file_name
+      AND j.workflow_job_key IS NOT DISTINCT FROM source.workflow_job_key
+      AND j.matrix_label IS NOT DISTINCT FROM source.matrix_label
+    JOIN build_job_dispatches AS d ON d.job_id = j.id
+    WHERE source.id = $1 AND d.finished_at IS NOT NULL AND d.outcome IN ('failure', 'timed_out', 'success')
+    ORDER BY d.created_at DESC, d.id DESC LIMIT 1
+    """
+    params: [$jobId]
+  )
+}
+
+# The executor masks secrets before persisting these chunks (at most 8 KiB each).
+query GetPullRequestFailureLog($jobId: String!, $runId: String!) @auth(level: NO_ACCESS) {
+  run: buildRun(first: { where: { id: { eq: $runId }, buildJobId: { eq: $jobId } } }) {
+    failed: buildSteps_on_run(
+      where: { status: { in: ["FAILURE", "TIMED_OUT"] } }
+      orderBy: { stepOrder: DESC }
+      limit: 1
+    ) {
+      stepId
+    }
+    tail: buildLogs_on_run(orderBy: { sequence: DESC }, limit: 64) {
+      stepId
+      stream
+      message
+    }
+  }
+}

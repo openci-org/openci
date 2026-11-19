@@ -5,6 +5,7 @@ locals {
     queueretriedbuildjob           = "openci-dispatch"
     queuebuilddispatchoncompletion = "openci-dispatch"
     reportskippedworkflowchecks    = "openci-functions"
+    reportpullrequestbuildresult   = "openci-dispatch"
     process-webhook-task           = "openci-functions"
     dispatchbuildjob               = "openci-dispatch"
   }

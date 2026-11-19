@@ -768,6 +768,22 @@ test("Octokit scopes checkout/check tokens and reconciles a lost check creation 
   assert.deepEqual(publishingToken.body.repositories, ["app"]);
   assert.deepEqual(publishingToken.body.permissions, { contents: "write", pull_requests: "write" });
   assert.equal(calls.at(-1).path, "/installation/token");
+  await assert.rejects(
+    github.postPullRequestResult(
+      { ...job, repositoryId: "101", pullRequestNumber: "7" },
+      "other-account",
+      1n,
+      new AbortController().signal,
+      () => assert.fail("Unexpected lease"),
+      () => assert.fail("Unexpected comment"),
+      [],
+    ),
+    /owner changed/,
+  );
+  const resultToken = calls.filter((call) => call.path.endsWith("/access_tokens")).at(-1);
+  assert.deepEqual(resultToken.body.repository_ids, [101]);
+  assert.deepEqual(resultToken.body.permissions, { contents: "read", pull_requests: "write" });
+  assert.equal(calls.at(-1).path, "/installation/token");
   await assert.rejects(github.checkout(job, "other-account"), /connected installation/);
   const scoped = { ...job, repositoryId: "101" };
   await (await github.checkout(scoped, "10")).revoke();

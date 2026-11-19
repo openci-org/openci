@@ -299,7 +299,7 @@ export async function executeBuild(
             runNumber,
             qrCodes,
             signal,
-            (key, work) => store.withQrCommentLease(key, signal, work),
+            (key, work) => store.withPullRequestCommentLease(key, signal, work),
           );
         } catch (error) {
           failureSummary = qrPublicationFailure;
