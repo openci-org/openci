@@ -16,5 +16,6 @@ export 'src/pull_request_ci.dart';
 export 'src/secret.dart';
 export 'src/shorebird/shorebird_ci.dart';
 export 'src/time_zone.dart';
+export 'src/virtual_ble/virtual_ble.dart' hide startVirtualBle;
 export 'src/workspace_directory.dart';
 export 'src/workflow_context.dart';
