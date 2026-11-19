@@ -21,16 +21,15 @@ Future<void> main() async {
     throw StateError('Functions CD requires an OpenCI develop push.');
   }
 
-  final nodeVersion = (await File('.node-version').readAsString()).trim();
   final package =
       jsonDecode(await File('package.json').readAsString())
           as Map<String, dynamic>;
   final npmVersion = package['packageManager'] as String;
-  if (!RegExp(r'^\d+\.\d+\.\d+$').hasMatch(nodeVersion) ||
-      !RegExp(r'^npm@\d+\.\d+\.\d+$').hasMatch(npmVersion)) {
-    throw StateError('Functions CD requires pinned Node.js and npm versions.');
+  if (!RegExp(r'^npm@\d+\.\d+\.\d+$').hasMatch(npmVersion)) {
+    throw StateError('Functions CD requires a pinned npm version.');
   }
-  final tools = 'npx --yes --package=node@$nodeVersion --package=$npmVersion';
+  final tools =
+      'bash openci/tool/with_node.sh npm exec --yes --package=$npmVersion --';
 
   await ci.run('$tools npm ci --workspace firebase --include-workspace-root');
   await ci.run(

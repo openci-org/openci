@@ -275,10 +275,13 @@ export async function deployFunctions({
     // automatically on an error, timeout, or process interruption after here.
     startedDeployment = true;
     await run(
-      "npx",
+      "npm",
       [
+        "exec",
         "--yes",
-        `firebase-tools@${firebaseToolsVersion}`,
+        `--package=firebase-tools@${firebaseToolsVersion}`,
+        "--",
+        "firebase",
         "deploy",
         "--config",
         configurationFile,

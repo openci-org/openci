@@ -84,9 +84,14 @@ in progress. Unlocking uses the acquired object's exact generation.
 
 The single deployment helper, `firebase/scripts/deploy-functions.mjs`, handles
 ADC files, the shared lock, Firebase CLI execution and the smoke check. The
-workflow reads `.node-version` and `package.json`'s `packageManager`, and uses
-`npx --package` to run every command with those pinned Node/npm versions. The
-worker needs an existing `npx` executable to bootstrap them.
+workflow selects the Node version in `.node-version` using
+`openci/tool/with_node.sh`. On `base-macos` it can use the existing mise
+installation even when the initial workflow PATH has no Node or npm. The
+helper verifies the Node distribution checksum when a download is needed.
+The selected Node installation's npm runs the version in `package.json`'s
+`packageManager`. The workspace scripts use the lockfile's Vite+ for formatting,
+lint and Vitest. At deployment time, npm runs the `firebase` executable from the
+pinned `firebase-tools` package.
 
 The script passes `--non-interactive` and never passes `--force`. Removed or
 renamed Functions that require deletion must be handled in a separate reviewed
@@ -136,11 +141,7 @@ From the repository root, using Flutter 3.47.8:
 
 ```sh
 flutter pub get
-npx --yes --package=node@22.23.4 --package=npm@11.14.1 npm ci --workspace firebase --include-workspace-root
-npx --yes --package=node@22.23.4 --package=npm@11.14.1 npm run fmt:check --workspace firebase -- healthcheck.ts functions scripts
-npx --yes --package=node@22.23.4 --package=npm@11.14.1 npm run check --workspace firebase
-npx --yes --package=node@22.23.4 --package=npm@11.14.1 npm test --workspace firebase
-npx --yes --package=node@22.23.4 --package=npm@11.14.1 npm run test:workflow-context --workspace firebase
+bash openci/tool/with_node.sh bash firebase/scripts/ci.sh
 ```
 
 From both `firebase/dart_functions/` and `openci/`, run `dart analyze --fatal-infos`

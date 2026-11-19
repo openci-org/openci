@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { test } from "node:test";
-import { mkdtemp, mkdir, readFile, rm, stat, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, readFile, rm, stat, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -30,6 +30,44 @@ const context = {
   runId: "run-123",
   jobId: "job-123",
 };
+
+test("CD finds the image's mise Node installation before invoking npm or npx", async (t) => {
+  const home = await mkdtemp(path.join(tmpdir(), "functions-cd-node-"));
+  t.after(() => rm(home, { recursive: true, force: true }));
+  const miseBin = path.join(home, ".local/bin");
+  const nodeBin = path.join(home, "installed node/bin");
+  await mkdir(miseBin, { recursive: true });
+  await mkdir(nodeBin, { recursive: true });
+  const repo = new URL("../../../", import.meta.url);
+  const pin = (await readFile(new URL(".node-version", repo), "utf8")).trim();
+  await writeFile(
+    path.join(miseBin, "mise"),
+    `#!/bin/sh
+[ "$1" = where ] && [ "$2" = "node@${pin}" ] || exit 1
+echo "$HOME/installed node"
+`,
+    { mode: 0o755 },
+  );
+  for (const tool of ["node", "npm", "npx"]) await symlink("/bin/echo", path.join(nodeBin, tool));
+  // Only provide the OS utilities the bootstrap uses. Even the host's npm is unavailable.
+  await symlink("/bin/cat", path.join(home, "cat"));
+  await symlink("/usr/bin/dirname", path.join(home, "dirname"));
+  const result = spawnSync(
+    "/bin/bash",
+    [
+      fileURLToPath(new URL("openci/tool/with_node.sh", repo)),
+      "/bin/sh",
+      "-c",
+      "command -v npm && command -v npx",
+    ],
+    { env: { HOME: home, PATH: home }, encoding: "utf8" },
+  );
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(result.stdout.trim().split("\n"), [
+    path.join(nodeBin, "npm"),
+    path.join(nodeBin, "npx"),
+  ]);
+});
 
 test("the deployment script runs directly and refuses execution outside CI", () => {
   const result = spawnSync(
@@ -107,14 +145,18 @@ async function fixture(t) {
     async run(executable, args, options) {
       if (executable === "git")
         return args[0] === "rev-parse" ? f.head : `${f.latest}\trefs/heads/develop`;
-      assert.equal(executable, "npx");
+      assert.equal(executable, "npm");
       f.actions.push("deploy");
+      const configPath = path.join(root, "firebase/firebase.functions-cd.local.json");
       assert.deepEqual(args, [
+        "exec",
         "--yes",
-        `firebase-tools@${firebaseToolsVersion}`,
+        `--package=firebase-tools@${firebaseToolsVersion}`,
+        "--",
+        "firebase",
         "deploy",
         "--config",
-        path.join(root, "firebase/firebase.functions-cd.local.json"),
+        configPath,
         "--project",
         projectId,
         "--only",
@@ -132,7 +174,7 @@ async function fixture(t) {
       assert.equal(options.env[environmentVariable], undefined);
       assert.equal(options.env.FIREBASE_TOKEN, undefined);
       assert.equal(options.env.FIREBASE_CLI_EXPERIMENTS, "dartfunctions");
-      const config = JSON.parse(await readFile(args[4], "utf8"));
+      const config = JSON.parse(await readFile(configPath, "utf8"));
       assert.deepEqual(Object.keys(config), ["functions"]);
       assert.deepEqual(
         config.functions.map((entry) => entry.codebase),

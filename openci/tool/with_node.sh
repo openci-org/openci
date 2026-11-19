@@ -3,7 +3,19 @@ set -euo pipefail
 
 repo_dir="$(cd "$(dirname "$0")/../.." && pwd)"
 node_version="$(cat "$repo_dir/.node-version")"
-if [[ "$(node --version 2>/dev/null || true)" == "v$node_version" ]]; then
+if [[ ! $node_version =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+  printf '%s\n' 'Expected a pinned Node.js version in .node-version.' >&2
+  exit 1
+fi
+if [[ "$(node --version 2>/dev/null || true)" == "v$node_version" ]] &&
+    command -v npm >/dev/null && command -v npx >/dev/null; then
+  exec "$@"
+fi
+
+# base-macos installs Node with mise, outside the workflow's non-login PATH.
+if node_dir=$(PATH="$PATH${HOME:+:$HOME/.local/bin}" mise where "node@$node_version" 2>/dev/null) &&
+    [[ -n $node_dir && -x "$node_dir/bin/node" && -x "$node_dir/bin/npm" && -x "$node_dir/bin/npx" ]]; then
+  export PATH="$node_dir/bin:$PATH"
   exec "$@"
 fi
 
