@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.2
+
+- Add `startVirtualBle()` to exchange GATT values between two simulator apps using a loopback WebSocket server and two Bumble devices.
+
 ## 0.5.1
 
 - Export `FlutterVersion` with `v3_44_8` and `v3_47_8`. Each member exposes its release string through `.value`.
