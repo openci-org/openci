@@ -1,0 +1,24 @@
+name: openci_virtual_ble_example
+description: Send a fresh value between two iOS simulators through virtual GATT.
+version: 1.0.0+1
+publish_to: none
+environment:
+  sdk: ^3.11.5
+dependencies:
+  flutter:
+    sdk: flutter
+  openci_virtual_ble:
+    path: ..
+dev_dependencies:
+  flutter_lints: ^6.0.0
+  flutter_test:
+    sdk: flutter
+  patrol: 4.11.0
+  patrol_cli: 4.9.0
+flutter:
+  uses-material-design: true
+patrol:
+  emit_test_manifest: true
+  app_name: Virtual BLE
+  ios:
+    bundle_id: org.openci.virtualBleExample
