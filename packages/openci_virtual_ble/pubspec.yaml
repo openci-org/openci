@@ -1,7 +1,8 @@
 name: openci_virtual_ble
-description: Debug iOS Simulator client for the OpenCI virtual GATT bridge.
+description: Connect a Flutter app on an iOS Simulator to a virtual Bluetooth GATT peer for two-device integration tests.
 version: 0.1.0
-publish_to: none
+repository: https://github.com/openci-org/openci/tree/develop/packages/openci_virtual_ble
+issue_tracker: https://github.com/openci-org/openci/issues
 environment:
   sdk: ^3.11.5
   flutter: '>=3.41.0'
