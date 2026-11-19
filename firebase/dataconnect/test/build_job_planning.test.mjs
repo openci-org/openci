@@ -779,18 +779,22 @@ const pushWorkflowFiles = [
   "openci_shared_ci.dart",
   "openci_workflow_cd.dart",
   "openci_workflow_ci.dart",
+  "virtual_ble_ci.dart",
   "website_ci.dart",
   "workflow_scripts_ci.dart",
 ];
 const prWorkflowFiles = [
   "dart_format_check.dart",
   "dart_functions_ci.dart",
+  "dashboard_android_patch.dart",
+  "dashboard_ios_patch.dart",
   "dashboard_ios_patrol_ci.dart",
   "dashboard_web_hosting.dart",
   "firebase_functions_ci.dart",
   "macos_release_ci.dart",
   "openci_shared_ci.dart",
   "openci_workflow_ci.dart",
+  "virtual_ble_ci.dart",
   "website_ci.dart",
   "workflow_scripts_ci.dart",
 ];
