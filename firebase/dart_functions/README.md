@@ -73,7 +73,15 @@ and 128 MiB memory headroom still require deployed validation.
 
 ## Deployment
 
-From the repository root, after deploying the `webhooks` and `github` connectors:
+The [production Functions CD workflow](../functions/FUNCTIONS_CD.md) deploys
+the planner with the TypeScript Functions on `develop` pushes once its production
+credentials are configured. It supplies the Node API runtime service account as
+`OPENCI_PLANNER_INVOKER` so each update preserves private invocation.
+
+For a manual deployment, set `OPENCI_PLANNER_INVOKER` in this codebase's
+project dotenv to the calling service account's email. The default `private`
+invoker requires restoring the caller's IAM grant after deployment. From the
+repository root, after deploying the `webhooks` and `github` connectors:
 
 ```sh
 FIREBASE_CLI_EXPERIMENTS=dartfunctions npx --yes firebase-tools@15.34.2 deploy \

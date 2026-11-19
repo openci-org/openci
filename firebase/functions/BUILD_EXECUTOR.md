@@ -133,7 +133,7 @@ By default, only the team's pinned Secret Manager versions are injected into the
 workflow. The executor's Google credentials, Orchard credentials and GitHub App
 key never enter the VM.
 
-The opt-in [production TypeScript Functions CD](FUNCTIONS_CD.md) additionally
+The opt-in [production Functions CD](FUNCTIONS_CD.md) additionally
 receives a dedicated deployment SA and runtime configuration from pinned
 infrastructure secrets. These are gated by verified push context, team,
 repository and workflow identity before secret access. They are filtered out of

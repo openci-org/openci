@@ -5,6 +5,7 @@ import { mkdtemp, mkdir, readFile, rm, stat, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { parseEnv } from "node:util";
 import {
   credentialVariable,
   deployFunctions,
@@ -17,6 +18,7 @@ import {
 } from "../../scripts/deploy-functions.mjs";
 
 const sha = "a".repeat(40);
+const caller = `openci-functions@${projectId}.iam.gserviceaccount.com`;
 const encode = (value) => Buffer.from(value).toString("base64");
 const context = {
   schemaVersion: 1,
@@ -43,13 +45,14 @@ test("the deployment script runs directly and refuses execution outside CI", () 
 async function fixture(t) {
   const root = await mkdtemp(path.join(tmpdir(), "functions-cd-test-"));
   t.after(() => rm(root, { recursive: true, force: true }));
-  await mkdir(path.join(root, "firebase"));
+  await mkdir(path.join(root, "firebase/dart_functions"), { recursive: true });
   await writeFile(
     path.join(root, "firebase/firebase.json"),
     JSON.stringify({
       functions: [
         { codebase: "openci", source: ".", runtime: "nodejs22", ignore: [".env*"] },
         { codebase: "openci-planner", source: "dart_functions", runtime: "dart3" },
+        { codebase: "unrelated", source: "other", runtime: "nodejs22" },
       ],
       hosting: { site: "dashboard-openci" },
       dataconnect: { source: "dataconnect" },
@@ -60,7 +63,7 @@ async function fixture(t) {
     OPENCI_RUN_ID: context.runId,
     OPENCI_BUILD_JOB_ID: context.jobId,
     FIREBASE_TOKEN: "must-not-be-used",
-    FIREBASE_CLI_EXPERIMENTS: "dartfunctions",
+    FIREBASE_CLI_EXPERIMENTS: "unrelated",
     [credentialVariable]: encode(
       JSON.stringify({
         type: "service_account",
@@ -72,6 +75,7 @@ async function fixture(t) {
     [environmentVariable]: encode(
       [
         "GITHUB_APP_ID=1",
+        "GITHUB_BASE_URL=https://github.com",
         "PROCESS_WEBHOOK_TASK_URL=https://planner.example",
         "ORCHARD_API_URL=https://orchard.example",
         "ORCHARD_SERVICE_ACCOUNT_NAME=ci",
@@ -88,6 +92,7 @@ async function fixture(t) {
     head: sha,
     conflicts: 0,
     waits: 0,
+    bindings: [{ role: "roles/run.invoker", members: [`serviceAccount:${caller}`] }],
     credentialFile: undefined,
     fail: undefined,
   };
@@ -113,7 +118,7 @@ async function fixture(t) {
         "--project",
         projectId,
         "--only",
-        "functions:openci",
+        "functions:openci,functions:openci-planner",
         "--non-interactive",
       ]);
       assert.equal(options.cwd, root);
@@ -126,17 +131,24 @@ async function fixture(t) {
       assert.equal(options.env[credentialVariable], undefined);
       assert.equal(options.env[environmentVariable], undefined);
       assert.equal(options.env.FIREBASE_TOKEN, undefined);
-      assert.equal(options.env.FIREBASE_CLI_EXPERIMENTS, undefined);
+      assert.equal(options.env.FIREBASE_CLI_EXPERIMENTS, "dartfunctions");
       const config = JSON.parse(await readFile(args[4], "utf8"));
       assert.deepEqual(Object.keys(config), ["functions"]);
-      assert.equal(config.functions.length, 1);
-      assert.equal(config.functions[0].codebase, "openci");
+      assert.deepEqual(
+        config.functions.map((entry) => entry.codebase),
+        ["openci", "openci-planner"],
+      );
+      assert.ok(config.functions[0].ignore.includes("dart_functions"));
+      assert.ok(config.functions[1].ignore.includes(".env*"));
       assert.ok(config.functions[0].ignore.includes(".env*"));
       assert.ok(config.functions[0].ignore.includes("firebase.*.local.json"));
       assert.match(
         await readFile(path.join(root, `firebase/.env.${projectId}`), "utf8"),
         /GITHUB_APP_ID=1/,
       );
+      const dotenv = path.join(root, `firebase/dart_functions/.env.${projectId}`);
+      assert.equal((await stat(dotenv)).mode & 0o777, 0o600);
+      f.plannerSettings = parseEnv(await readFile(dotenv, "utf8"));
       if (f.fail === "deploy") throw new Error("deployment failed");
       return "";
     },
@@ -144,6 +156,14 @@ async function fixture(t) {
       f.requests.push(options);
       assert.equal(options.retry, false);
       const url = new URL(options.url);
+      if (options.method === "GET") {
+        assert.equal(
+          url.href,
+          `https://run.googleapis.com/v2/projects/${projectId}/locations/asia-northeast1/services/process-webhook-task:getIamPolicy?options.requestedPolicyVersion=3`,
+        );
+        f.actions.push("policy");
+        return { data: { bindings: f.bindings } };
+      }
       if (options.method === "DELETE") {
         assert.equal(url.searchParams.get("ifGenerationMatch"), "123");
         assert.ok(decodeURIComponent(url.pathname).endsWith(lockObject));
@@ -163,9 +183,17 @@ async function fixture(t) {
       assert.equal(JSON.parse(options.data).sha, sha);
       return { data: {} };
     },
-    async probe() {
-      f.actions.push("probe");
-      if (f.fail === "probe") throw new Error("smoke failed");
+    async get(url, options) {
+      assert.equal(options.method, "GET");
+      assert.equal(options.redirect, "error");
+      assert.equal(options.headers, undefined);
+      if (url === "https://planner.example") {
+        f.actions.push("planner");
+        return new Response(null, { status: f.fail === "planner" ? 405 : 403 });
+      }
+      assert.equal(url, `https://asia-northeast1-${projectId}.cloudfunctions.net/githubWebhookFsc`);
+      f.actions.push("webhook");
+      return new Response(null, { status: f.fail === "webhook" ? 500 : 405 });
     },
   };
   f.run = () => deployFunctions(f.options);
@@ -173,6 +201,7 @@ async function fixture(t) {
     for (const file of [
       f.credentialFile,
       path.join(root, `firebase/.env.${projectId}`),
+      path.join(root, `firebase/dart_functions/.env.${projectId}`),
       path.join(root, "firebase/firebase.functions-cd.local.json"),
     ].filter(Boolean)) {
       await assert.rejects(stat(file), { code: "ENOENT" });
@@ -181,10 +210,23 @@ async function fixture(t) {
   return f;
 }
 
-test("CD deploys only TS with private ADC, probes, records success, then unlocks and removes credentials", async (t) => {
+test("CD deploys both codebases and verifies the private planner before recording success", async (t) => {
   const f = await fixture(t);
   assert.equal(await f.run(), "deployed");
-  assert.deepEqual(f.actions, ["lock", "deploy", "probe", "record", "unlock"]);
+  assert.deepEqual(f.actions, [
+    "lock",
+    "deploy",
+    "webhook",
+    "planner",
+    "policy",
+    "record",
+    "unlock",
+  ]);
+  assert.deepEqual(f.plannerSettings, {
+    GITHUB_APP_ID: "1",
+    GITHUB_BASE_URL: "https://github.com",
+    OPENCI_PLANNER_INVOKER: caller,
+  });
   await f.cleaned();
 });
 
@@ -229,7 +271,7 @@ test("concurrent deployments wait for the generation lock and fail closed when i
 });
 
 test("deployment, smoke and success-record failures retain the lock but remove local secrets", async (t) => {
-  for (const failure of ["deploy", "probe", "record"]) {
+  for (const failure of ["deploy", "webhook", "planner", "record"]) {
     const f = await fixture(t);
     f.fail = failure;
     await assert.rejects(f.run());
@@ -237,6 +279,30 @@ test("deployment, smoke and success-record failures retain the lock but remove l
     assert.ok(!f.actions.includes("record"));
     await f.cleaned();
   }
+});
+
+test("missing or public planner caller policies retain the lock", async (t) => {
+  for (const members of [[], ["allUsers"], [`serviceAccount:${caller}`, "allAuthenticatedUsers"]]) {
+    const f = await fixture(t);
+    f.bindings = [{ role: "roles/run.invoker", members }];
+    await assert.rejects(f.run(), /private Node caller/);
+    assert.ok(!f.actions.includes("unlock"));
+    assert.ok(!f.actions.includes("record"));
+    await f.cleaned();
+  }
+});
+
+test("an unexpected planner source or a public caller fails before taking the lock", async (t) => {
+  const f = await fixture(t);
+  const file = path.join(f.root, "firebase/firebase.json");
+  const config = JSON.parse(await readFile(file, "utf8"));
+  config.functions[1].source = "other";
+  await writeFile(file, JSON.stringify(config));
+  await assert.rejects(f.run(), /configuration for Functions codebase openci-planner/);
+  const dotenv = Buffer.from(f.environment[environmentVariable], "base64").toString("utf8");
+  f.environment[environmentVariable] = encode(`${dotenv}\nOPENCI_API_SERVICE_ACCOUNT=public`);
+  await assert.rejects(f.run(), /production API service account/);
+  assert.equal(f.requests.length, 0);
 });
 
 test("pre-existing runtime files are preserved and a failure before deploying releases the lock", async (t) => {

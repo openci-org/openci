@@ -3,6 +3,8 @@ import 'dart:io';
 
 import 'package:openci_workflow/openci_workflow.dart';
 
+import 'generated/paths.g.dart';
+
 Future<void> main() async {
   final ci = await OpenCI.init(
     workflowName: 'Firebase Functions CD',
@@ -37,6 +39,9 @@ Future<void> main() async {
   await ci.run('$tools npm run check --workspace firebase');
   await ci.run('$tools npm test --workspace firebase');
   await ci.run('$tools npm run test:workflow-context --workspace firebase');
+  final planner = WorkspacePaths.root.firebase.dartFunctions;
+  await ci.dart.analyze(dir: planner, fatalInfos: true);
+  await ci.dart.test(dir: planner);
   await ci.run(
     '$tools node firebase/scripts/deploy-functions.mjs',
   );
