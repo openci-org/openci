@@ -345,6 +345,38 @@ try {
 }
 ```
 
+### Exchange GATT values between two simulators
+
+`startVirtualBle()` starts one loopback WebSocket server and two Bumble GATT
+devices. It creates a temporary Python environment and installs the pinned
+Bumble release. The default interpreter is `python3.13`. To use another
+Python 3.11+ installation with venv and pip, pass `pythonExecutable`.
+Allow package installation on the host. Both simulator apps use the same Mac.
+
+```dart
+final radio = await openCI.startVirtualBle(
+  serviceUuid: 'BE110001-5D9F-4810-8692-47717E010001',
+  characteristicUuid: 'BE110002-5D9F-4810-8692-47717E010001',
+);
+try {
+  final a = radio.endpoint(VirtualBlePeer.a);
+  final b = radio.endpoint(VirtualBlePeer.b);
+  // Pass the two ws://127.0.0.1 URLs to your simulator apps.
+  await runYourSimulatorTests(a, b);
+} finally {
+  await radio.dispose();
+}
+```
+
+The clients publish a readable characteristic value (`card`, base64) over
+`/A` and `/B`. Once both have published, each receives the value read over
+GATT from its peer (`peer`). A `write` delivers `incoming` to the receiving
+app. Its `reply` releases the ATT Write Response and the sender receives
+`accepted`. Each session owns one connection per role. Use
+`waitForPeer()` to wait for an app to publish before starting its partner.
+
+See the [two-simulator Flutter example](https://github.com/openci-org/openci/tree/develop/packages/openci_virtual_ble/example).
+
 ### Run Patrol tests
 
 `openCI.patrol.test()` runs `dart run patrol_cli:main test` using the project's
