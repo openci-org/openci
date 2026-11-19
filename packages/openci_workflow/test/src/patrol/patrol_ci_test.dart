@@ -257,6 +257,52 @@ dependencies:
     expect(finished, isTrue);
   });
 
+  test(
+    'virtual BLE builds the target once and propagates a build failure before creating simulators',
+    () async {
+      const target = "patrol_test/peer's round trip_test.dart";
+      final calls = <List<String>>[];
+      final patrol = PatrolCI(
+        (dir) => dir!,
+        processRunner:
+            (executable, arguments, {required workingDirectory}) async {
+              calls.add([executable, workingDirectory, ...arguments]);
+              return 23;
+            },
+      );
+      Future<Directory> run({String? result}) => patrol.testWithVirtualBle(
+        dir: 'apps/mobile',
+        target: target,
+        bundleId: 'org.example.app',
+        serviceUuid: 'BE110001-5D9F-4810-8692-47717E010001',
+        characteristicUuid: 'BE110002-5D9F-4810-8692-47717E010001',
+        resultJsonFile: result,
+      );
+      await expectLater(run(result: '../wrong.json'), throwsArgumentError);
+      expect(calls, isEmpty);
+      await expectLater(
+        run(),
+        throwsA(
+          isA<ProcessException>().having((e) => e.errorCode, 'exit code', 23),
+        ),
+      );
+      expect(calls, [
+        [
+          'dart',
+          'apps/mobile',
+          'run',
+          'patrol_cli:main',
+          'build',
+          'ios',
+          '--simulator',
+          '--emit-test-manifest',
+          '--target',
+          target,
+        ],
+      ]);
+    },
+  );
+
   test('rejects empty device or target without starting a process', () async {
     final patrol = PatrolCI(
       (_) => workspace.path,

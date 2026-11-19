@@ -1,10 +1,12 @@
 import 'package:openci_workflow/openci_workflow.dart';
 
+import 'generated/paths.g.dart';
 import 'lib/virtual_ble_checks.dart';
 
 Future<void> main() async {
   final ci = await OpenCI.init(
     workflowName: 'Virtual BLE iOS E2E',
+    currentWorkingDirectory: WorkspacePaths.root.packages.openciWorkflow,
     flutterVersion: FlutterVersion.v3_47_8.value,
     cancelPreviousRuns: true,
     ciTriggers: [

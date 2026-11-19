@@ -2,6 +2,8 @@
 
 ## 0.5.2
 
+- Add `patrol.testWithVirtualBle()` to build a Patrol target once and run it on two iOS Simulators.
+- Support test paths in `dart.test()`, locked dependency resolution with `flutter.pubGet()` and `noPub` in `flutter.staticAnalysis()`.
 - Add `startVirtualBle()` to exchange GATT values between two simulator apps using a loopback WebSocket server and two Bumble devices.
 
 ## 0.5.1
