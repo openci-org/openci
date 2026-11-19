@@ -368,6 +368,7 @@ extension type const WorkspaceRoot$Openci._(String _path) implements WorkspaceDi
 extension type const WorkspaceRoot$Packages._(String _path) implements WorkspaceDirectory {
   WorkspaceRoot$Packages$MacosUpdater get macosUpdater => const WorkspaceRoot$Packages$MacosUpdater._("packages/macos_updater");
   WorkspaceRoot$Packages$OpenciShared get openciShared => const WorkspaceRoot$Packages$OpenciShared._("packages/openci_shared");
+  WorkspaceRoot$Packages$OpenciVirtualBle get openciVirtualBle => const WorkspaceRoot$Packages$OpenciVirtualBle._("packages/openci_virtual_ble");
   WorkspaceRoot$Packages$OpenciWorkflow get openciWorkflow => const WorkspaceRoot$Packages$OpenciWorkflow._("packages/openci_workflow");
   WorkspaceRoot$Packages$PubspecVersionHook get pubspecVersionHook => const WorkspaceRoot$Packages$PubspecVersionHook._("packages/pubspec_version_hook");
 }
@@ -454,6 +455,73 @@ extension type const WorkspaceRoot$Packages$OpenciShared$Lib$Src._(String _path)
 extension type const WorkspaceRoot$Packages$OpenciShared$Test._(String _path) implements WorkspaceDirectory {
   WorkspaceDirectory get models => const WorkspaceDirectory("packages/openci_shared/test/models");
   WorkspaceDirectory get utilities => const WorkspaceDirectory("packages/openci_shared/test/utilities");
+}
+
+extension type const WorkspaceRoot$Packages$OpenciVirtualBle._(String _path) implements WorkspaceDirectory {
+  WorkspaceRoot$Packages$OpenciVirtualBle$Example get example => const WorkspaceRoot$Packages$OpenciVirtualBle$Example._("packages/openci_virtual_ble/example");
+  WorkspaceRoot$Packages$OpenciVirtualBle$Ios get ios => const WorkspaceRoot$Packages$OpenciVirtualBle$Ios._("packages/openci_virtual_ble/ios");
+  WorkspaceDirectory get lib => const WorkspaceDirectory("packages/openci_virtual_ble/lib");
+}
+
+extension type const WorkspaceRoot$Packages$OpenciVirtualBle$Example._(String _path) implements WorkspaceDirectory {
+  WorkspaceRoot$Packages$OpenciVirtualBle$Example$Ios get ios => const WorkspaceRoot$Packages$OpenciVirtualBle$Example$Ios._("packages/openci_virtual_ble/example/ios");
+  WorkspaceDirectory get lib => const WorkspaceDirectory("packages/openci_virtual_ble/example/lib");
+  WorkspaceDirectory get patrolTest => const WorkspaceDirectory("packages/openci_virtual_ble/example/patrol_test");
+}
+
+extension type const WorkspaceRoot$Packages$OpenciVirtualBle$Example$Ios._(String _path) implements WorkspaceDirectory {
+  WorkspaceDirectory get flutter => const WorkspaceDirectory("packages/openci_virtual_ble/example/ios/Flutter");
+  WorkspaceRoot$Packages$OpenciVirtualBle$Example$Ios$Runner get runner => const WorkspaceRoot$Packages$OpenciVirtualBle$Example$Ios$Runner._("packages/openci_virtual_ble/example/ios/Runner");
+  WorkspaceRoot$Packages$OpenciVirtualBle$Example$Ios$RunnerXcodeproj get runnerXcodeproj => const WorkspaceRoot$Packages$OpenciVirtualBle$Example$Ios$RunnerXcodeproj._("packages/openci_virtual_ble/example/ios/Runner.xcodeproj");
+  WorkspaceRoot$Packages$OpenciVirtualBle$Example$Ios$RunnerXcworkspace get runnerXcworkspace => const WorkspaceRoot$Packages$OpenciVirtualBle$Example$Ios$RunnerXcworkspace._("packages/openci_virtual_ble/example/ios/Runner.xcworkspace");
+  WorkspaceDirectory get runnerUiTests => const WorkspaceDirectory("packages/openci_virtual_ble/example/ios/RunnerUITests");
+}
+
+extension type const WorkspaceRoot$Packages$OpenciVirtualBle$Example$Ios$Runner._(String _path) implements WorkspaceDirectory {
+  WorkspaceRoot$Packages$OpenciVirtualBle$Example$Ios$Runner$AssetsXcassets get assetsXcassets => const WorkspaceRoot$Packages$OpenciVirtualBle$Example$Ios$Runner$AssetsXcassets._("packages/openci_virtual_ble/example/ios/Runner/Assets.xcassets");
+  WorkspaceDirectory get baseLproj => const WorkspaceDirectory("packages/openci_virtual_ble/example/ios/Runner/Base.lproj");
+}
+
+extension type const WorkspaceRoot$Packages$OpenciVirtualBle$Example$Ios$Runner$AssetsXcassets._(String _path) implements WorkspaceDirectory {
+  WorkspaceDirectory get appIconAppiconset => const WorkspaceDirectory("packages/openci_virtual_ble/example/ios/Runner/Assets.xcassets/AppIcon.appiconset");
+  WorkspaceDirectory get launchImageImageset => const WorkspaceDirectory("packages/openci_virtual_ble/example/ios/Runner/Assets.xcassets/LaunchImage.imageset");
+}
+
+extension type const WorkspaceRoot$Packages$OpenciVirtualBle$Example$Ios$RunnerXcodeproj._(String _path) implements WorkspaceDirectory {
+  WorkspaceRoot$Packages$OpenciVirtualBle$Example$Ios$RunnerXcodeproj$ProjectXcworkspace get projectXcworkspace => const WorkspaceRoot$Packages$OpenciVirtualBle$Example$Ios$RunnerXcodeproj$ProjectXcworkspace._("packages/openci_virtual_ble/example/ios/Runner.xcodeproj/project.xcworkspace");
+  WorkspaceRoot$Packages$OpenciVirtualBle$Example$Ios$RunnerXcodeproj$Xcshareddata get xcshareddata => const WorkspaceRoot$Packages$OpenciVirtualBle$Example$Ios$RunnerXcodeproj$Xcshareddata._("packages/openci_virtual_ble/example/ios/Runner.xcodeproj/xcshareddata");
+}
+
+extension type const WorkspaceRoot$Packages$OpenciVirtualBle$Example$Ios$RunnerXcodeproj$ProjectXcworkspace._(String _path) implements WorkspaceDirectory {
+  WorkspaceRoot$Packages$OpenciVirtualBle$Example$Ios$RunnerXcodeproj$ProjectXcworkspace$Xcshareddata get xcshareddata => const WorkspaceRoot$Packages$OpenciVirtualBle$Example$Ios$RunnerXcodeproj$ProjectXcworkspace$Xcshareddata._("packages/openci_virtual_ble/example/ios/Runner.xcodeproj/project.xcworkspace/xcshareddata");
+}
+
+extension type const WorkspaceRoot$Packages$OpenciVirtualBle$Example$Ios$RunnerXcodeproj$ProjectXcworkspace$Xcshareddata._(String _path) implements WorkspaceDirectory {
+  WorkspaceDirectory get swiftpm => const WorkspaceDirectory("packages/openci_virtual_ble/example/ios/Runner.xcodeproj/project.xcworkspace/xcshareddata/swiftpm");
+}
+
+extension type const WorkspaceRoot$Packages$OpenciVirtualBle$Example$Ios$RunnerXcodeproj$Xcshareddata._(String _path) implements WorkspaceDirectory {
+  WorkspaceDirectory get xcschemes => const WorkspaceDirectory("packages/openci_virtual_ble/example/ios/Runner.xcodeproj/xcshareddata/xcschemes");
+}
+
+extension type const WorkspaceRoot$Packages$OpenciVirtualBle$Example$Ios$RunnerXcworkspace._(String _path) implements WorkspaceDirectory {
+  WorkspaceRoot$Packages$OpenciVirtualBle$Example$Ios$RunnerXcworkspace$Xcshareddata get xcshareddata => const WorkspaceRoot$Packages$OpenciVirtualBle$Example$Ios$RunnerXcworkspace$Xcshareddata._("packages/openci_virtual_ble/example/ios/Runner.xcworkspace/xcshareddata");
+}
+
+extension type const WorkspaceRoot$Packages$OpenciVirtualBle$Example$Ios$RunnerXcworkspace$Xcshareddata._(String _path) implements WorkspaceDirectory {
+  WorkspaceDirectory get swiftpm => const WorkspaceDirectory("packages/openci_virtual_ble/example/ios/Runner.xcworkspace/xcshareddata/swiftpm");
+}
+
+extension type const WorkspaceRoot$Packages$OpenciVirtualBle$Ios._(String _path) implements WorkspaceDirectory {
+  WorkspaceRoot$Packages$OpenciVirtualBle$Ios$OpenciVirtualBle get openciVirtualBle => const WorkspaceRoot$Packages$OpenciVirtualBle$Ios$OpenciVirtualBle._("packages/openci_virtual_ble/ios/openci_virtual_ble");
+}
+
+extension type const WorkspaceRoot$Packages$OpenciVirtualBle$Ios$OpenciVirtualBle._(String _path) implements WorkspaceDirectory {
+  WorkspaceRoot$Packages$OpenciVirtualBle$Ios$OpenciVirtualBle$Sources get sources => const WorkspaceRoot$Packages$OpenciVirtualBle$Ios$OpenciVirtualBle$Sources._("packages/openci_virtual_ble/ios/openci_virtual_ble/Sources");
+}
+
+extension type const WorkspaceRoot$Packages$OpenciVirtualBle$Ios$OpenciVirtualBle$Sources._(String _path) implements WorkspaceDirectory {
+  WorkspaceDirectory get openciVirtualBle => const WorkspaceDirectory("packages/openci_virtual_ble/ios/openci_virtual_ble/Sources/openci_virtual_ble");
 }
 
 extension type const WorkspaceRoot$Packages$OpenciWorkflow._(String _path) implements WorkspaceDirectory {

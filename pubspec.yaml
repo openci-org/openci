@@ -12,4 +12,6 @@ workspace:
   - packages/openci_workflow
   - packages/macos_updater
   - packages/openci_shared
+  - packages/openci_virtual_ble
+  - packages/openci_virtual_ble/example
   - packages/pubspec_version_hook

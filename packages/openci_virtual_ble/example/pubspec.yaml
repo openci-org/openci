@@ -2,6 +2,7 @@ name: openci_virtual_ble_example
 description: Send a fresh value between two iOS simulators through virtual GATT.
 version: 1.0.0+1
 publish_to: none
+resolution: workspace
 environment:
   sdk: ^3.11.5
 dependencies:
