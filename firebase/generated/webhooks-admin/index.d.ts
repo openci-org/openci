@@ -168,14 +168,6 @@ export interface CreateWebhookTaskVariables {
   receivedAt: Int64String;
 }
 
-export interface FinishPullRequestCommentRetryData {
-  finished: number;
-}
-
-export interface FinishPullRequestCommentRetryVariables {
-  id: string;
-}
-
 export interface GetPendingSkippedWorkflowChecksData {
   checks: ({
     id: string;
@@ -280,14 +272,6 @@ export interface RejectWebhookTaskVariables {
   reason: string;
 }
 
-export interface RequestPullRequestCommentRetryData {
-  task?: WebhookTask_Key | null;
-}
-
-export interface RequestPullRequestCommentRetryVariables {
-  id: string;
-}
-
 export interface RequestWebhookTaskPlanningData {
   task?: WebhookTask_Key | null;
 }
@@ -383,30 +367,6 @@ export function requestWebhookTaskPlanning(
   vars: RequestWebhookTaskPlanningVariables,
   options?: OperationOptions,
 ): Promise<ExecuteOperationResponse<RequestWebhookTaskPlanningData>>;
-
-/** Generated Node Admin SDK operation action function for the 'RequestPullRequestCommentRetry' Mutation. Allow users to execute without passing in DataConnect. */
-export function requestPullRequestCommentRetry(
-  dc: DataConnect,
-  vars: RequestPullRequestCommentRetryVariables,
-  options?: OperationOptions,
-): Promise<ExecuteOperationResponse<RequestPullRequestCommentRetryData>>;
-/** Generated Node Admin SDK operation action function for the 'RequestPullRequestCommentRetry' Mutation. Allow users to pass in custom DataConnect instances. */
-export function requestPullRequestCommentRetry(
-  vars: RequestPullRequestCommentRetryVariables,
-  options?: OperationOptions,
-): Promise<ExecuteOperationResponse<RequestPullRequestCommentRetryData>>;
-
-/** Generated Node Admin SDK operation action function for the 'FinishPullRequestCommentRetry' Mutation. Allow users to execute without passing in DataConnect. */
-export function finishPullRequestCommentRetry(
-  dc: DataConnect,
-  vars: FinishPullRequestCommentRetryVariables,
-  options?: OperationOptions,
-): Promise<ExecuteOperationResponse<FinishPullRequestCommentRetryData>>;
-/** Generated Node Admin SDK operation action function for the 'FinishPullRequestCommentRetry' Mutation. Allow users to pass in custom DataConnect instances. */
-export function finishPullRequestCommentRetry(
-  vars: FinishPullRequestCommentRetryVariables,
-  options?: OperationOptions,
-): Promise<ExecuteOperationResponse<FinishPullRequestCommentRetryData>>;
 
 /** Generated Node Admin SDK operation action function for the 'BeginPullRequestPlanning' Mutation. Allow users to execute without passing in DataConnect. */
 export function beginPullRequestPlanning(

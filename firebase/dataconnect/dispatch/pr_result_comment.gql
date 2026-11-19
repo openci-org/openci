@@ -4,7 +4,6 @@ query GetPullRequestCommentExecution($jobId: String!) @auth(level: NO_ACCESS) {
     ...ExecutionJobFields
     workflowJobKey
     matrixLabel
-    runsOn
   }
   latest: buildJobDispatch(
     first: { where: { jobId: { eq: $jobId } }, orderBy: [{ createdAt: DESC }, { id: DESC }] }
@@ -36,21 +35,6 @@ query GetPullRequestCommentExecution($jobId: String!) @auth(level: NO_ACCESS) {
     """
     params: [$jobId]
   )
-}
-
-# A previous repo connection can establish the same verified identity for members
-# who connected before the OAuth callback began recording it on membership.
-query GetPullRequestRetryMember($teamId: String!, $apiBaseUrl: String!, $appId: Int64!, $actorId: Int64!) @auth(level: NO_ACCESS) {
-  member: _selectFirst(sql: """
-    SELECT min(m.user_id) AS uid FROM team_members m
-    WHERE m.team_id = $1 AND (
-      m.github_retry_identity = $2::text || ':' || $3::text || ':' || $4::text
-      OR (m.github_retry_identity IS NULL AND EXISTS (
-        SELECT 1 FROM github_connections c WHERE c.team_id = m.team_id
-        AND c.verified_by_user_id = m.user_id AND c.verified_by_github_user_id = $4::bigint
-        AND c.github_api_base_url = $2 AND c.github_app_id = $3::bigint AND c.status = 'active')))
-    HAVING count(*) = 1
-  """, params: [$teamId, $apiBaseUrl, $appId, $actorId])
 }
 
 # The executor masks secrets before persisting these chunks (at most 8 KiB each).

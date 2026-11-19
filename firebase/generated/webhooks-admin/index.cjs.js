@@ -51,28 +51,6 @@ function requestWebhookTaskPlanning(dcOrVarsOrOptions, varsOrOptions, options) {
 }
 exports.requestWebhookTaskPlanning = requestWebhookTaskPlanning;
 
-function requestPullRequestCommentRetry(dcOrVarsOrOptions, varsOrOptions, options) {
-  const {
-    dc: dcInstance,
-    vars: inputVars,
-    options: inputOpts,
-  } = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
-  dcInstance.useGen(true);
-  return dcInstance.executeMutation("RequestPullRequestCommentRetry", inputVars, inputOpts);
-}
-exports.requestPullRequestCommentRetry = requestPullRequestCommentRetry;
-
-function finishPullRequestCommentRetry(dcOrVarsOrOptions, varsOrOptions, options) {
-  const {
-    dc: dcInstance,
-    vars: inputVars,
-    options: inputOpts,
-  } = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
-  dcInstance.useGen(true);
-  return dcInstance.executeMutation("FinishPullRequestCommentRetry", inputVars, inputOpts);
-}
-exports.finishPullRequestCommentRetry = finishPullRequestCommentRetry;
-
 function beginPullRequestPlanning(dcOrVarsOrOptions, varsOrOptions, options) {
   const {
     dc: dcInstance,

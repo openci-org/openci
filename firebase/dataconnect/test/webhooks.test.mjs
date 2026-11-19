@@ -86,21 +86,6 @@ test("release deliveries are accepted by the connector and deduplicated", async 
   assert.equal(row.status, "pending");
 });
 
-test("comment retry deliveries wake the retry handler only and acknowledge once", async (t) => {
-  const delivery = { ...fixture(t), eventType: "issue_comment", payload: '{"action":"edited"}' };
-  assert.equal(await enqueueWebhook(dc, delivery), "created");
-  const { id } = await stored(delivery);
-  assert.equal((await sdk.requestWebhookTaskPlanning(dc, { id })).data.task, null);
-  assert.equal((await sdk.requestPullRequestCommentRetry(dc, { id })).data.task.id, id);
-  const user = { impersonate: { authClaims: { sub: "visitor" } } };
-  await assert.rejects(sdk.requestPullRequestCommentRetry(dc, { id }, user));
-  await assert.rejects(sdk.finishPullRequestCommentRetry(dc, { id }, user));
-  assert.equal((await sdk.finishPullRequestCommentRetry(dc, { id })).data.finished, 1);
-  assert.equal(await enqueueWebhook(dc, delivery), "duplicate");
-  assert.equal((await sdk.requestPullRequestCommentRetry(dc, { id })).data.task, null);
-  assert.equal((await stored(delivery)).status, "completed");
-});
-
 test("concurrent redeliveries create exactly one task", async (t) => {
   const delivery = fixture(t);
   const results = await Promise.all(Array.from({ length: 8 }, () => enqueueWebhook(dc, delivery)));

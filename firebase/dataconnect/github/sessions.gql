@@ -7,7 +7,6 @@ mutation CreateGitHubConnectionSession(
   $githubUserId: Int64!
   $referenceHash: String!
   $accessTokenSecretVersionPath: String!
-  $githubIssuer: String! = ""
 ) @auth(level: NO_ACCESS) @transaction {
   query @redact {
     teamMember(first: { where: { teamId: { eq: $teamId }, userId: { eq: $userId } } })
@@ -38,14 +37,6 @@ mutation CreateGitHubConnectionSession(
       expr: "vars.accessTokenSecretVersionPath.matches('^projects/[a-zA-Z0-9-]+/(locations/[a-z0-9-]+/)?secrets/[a-zA-Z0-9_-]+/versions/[1-9][0-9]*$')"
       message: "A numeric Secret Manager version path is required"
     )
-  # Older callers omit the issuer and leave existing bindings intact.
-  teamMember_updateMany(
-    where: {
-      teamId: { eq: $teamId }
-      userId: { eq: $userId, ne_expr: "vars.githubIssuer == '' ? vars.userId : ''" }
-    }
-    data: { githubRetryIdentity_expr: "vars.githubIssuer + ':' + string(vars.githubUserId)" }
-  ) @redact
 }
 
 # Used by status/candidate/confirmation Functions after authenticating the user.

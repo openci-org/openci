@@ -1,7 +1,6 @@
 import type { WebhookEventName } from "@octokit/webhooks/types";
 import type { Request } from "firebase-functions/v2/https";
 import { ConflictingWebhookDeliveryError, type WebhookDelivery } from "./webhook_queue.js";
-import { retryCheckboxClick } from "./pull_request_retry_control.js";
 
 interface WebhookDependencies {
   secret: string;
@@ -52,10 +51,8 @@ export async function receiveGitHubWebhook(
       "pull_request.closed",
       "pull_request.edited",
       "release.published",
-      "issue_comment.edited",
     ],
     async ({ id, name, payload: verifiedPayload }) => {
-      if (name === "issue_comment" && !retryCheckboxClick(verifiedPayload)) return;
       if (name === "release" && verifiedPayload.release?.draft) return;
       if (
         name === "pull_request" &&

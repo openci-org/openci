@@ -41,12 +41,7 @@ export class GitHubConnectionStore implements ConnectionStore {
     return request;
   }
   async createSession(input: sdk.CreateGitHubConnectionSessionVariables) {
-    await operation(() =>
-      sdk.createGitHubConnectionSession(this.dc, {
-        ...input,
-        githubIssuer: `${this.config.apiBaseUrl}:${this.config.appId}`,
-      }),
-    );
+    await operation(() => sdk.createGitHubConnectionSession(this.dc, input));
   }
   async session(teamId: string, userId: string, referenceHash: string) {
     return (

@@ -51,36 +51,6 @@ export async function pullRequestCommentTarget(
   return { repo, number, repositoryId: target.id, current };
 }
 
-export function pullRequestCommentScope(
-  appId: string,
-  job: Job,
-  repositoryId: number | bigint,
-  kind: "qr" | "result",
-  variant: readonly string[],
-) {
-  return createHash("sha256")
-    .update(
-      JSON.stringify([
-        job.githubBaseUrl ?? "https://github.com",
-        appId,
-        Number.isSafeInteger(Number(repositoryId)) ? Number(repositoryId) : String(repositoryId),
-        Number(job.pullRequestNumber),
-        job.workflowFileName,
-        ...(kind === "result" ? [kind, ...variant] : []),
-      ]),
-    )
-    .digest("hex");
-}
-
-export function commentTeam(teamId: string) {
-  return createHash("sha256").update(teamId).digest("hex");
-}
-
-export function executionOrder(createdAt: string) {
-  const micros = (createdAt.match(/\.(\d+)/u)?.[1] ?? "").padEnd(6, "0").slice(3, 6);
-  return BigInt(Date.parse(createdAt)) * 1000n + BigInt(micros);
-}
-
 export async function updatePullRequestComment(
   request: GitHubRequest,
   appId: string,
@@ -93,10 +63,21 @@ export async function updatePullRequestComment(
   variant: readonly string[] = [],
 ): Promise<void> {
   const { repo, number } = target;
-  const scope = pullRequestCommentScope(appId, job, target.repositoryId, kind, variant);
+  const scope = createHash("sha256")
+    .update(
+      JSON.stringify([
+        job.githubBaseUrl ?? "https://github.com",
+        appId,
+        target.repositoryId,
+        number,
+        job.workflowFileName,
+        ...(kind === "result" ? [kind, ...variant] : []),
+      ]),
+    )
+    .digest("hex");
   // Run numbers are monotonic within a team. A repository moved to a new
   // team can reuse the comment even if that team's sequence starts lower.
-  const team = commentTeam(job.teamId!);
+  const team = createHash("sha256").update(job.teamId!).digest("hex");
   const footer = new RegExp(`\\n<!-- openci-pr-${kind}:${scope}:([a-f0-9]{64}):([1-9][0-9]*) -->$`);
   const marker = `<!-- openci-pr-${kind}:${scope}:${team}:${runNumber} -->`;
   const issue = { ...repo, issue_number: number };

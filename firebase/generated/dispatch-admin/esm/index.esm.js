@@ -341,16 +341,6 @@ export function getPullRequestCommentExecution(dcOrVarsOrOptions, varsOrOptions,
   return dcInstance.executeQuery("GetPullRequestCommentExecution", inputVars, inputOpts);
 }
 
-export function getPullRequestRetryMember(dcOrVarsOrOptions, varsOrOptions, options) {
-  const {
-    dc: dcInstance,
-    vars: inputVars,
-    options: inputOpts,
-  } = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
-  dcInstance.useGen(true);
-  return dcInstance.executeQuery("GetPullRequestRetryMember", inputVars, inputOpts);
-}
-
 export function getPullRequestFailureLog(dcOrVarsOrOptions, varsOrOptions, options) {
   const {
     dc: dcInstance,

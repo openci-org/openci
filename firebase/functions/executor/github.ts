@@ -6,7 +6,6 @@ import {
 } from "./pull_request_qr.js";
 import {
   hasStatus,
-  type GitHubRequest,
   pullRequestCommentTarget,
   updatePullRequestComment,
   type WithCommentLease,
@@ -161,58 +160,46 @@ export class ExecutionGitHub {
     ) => Promise<string | null>,
     variant: readonly string[],
   ): Promise<void> {
-    await this.withPullRequestComment(job, accountId, signal, async (request, target) => {
-      // Analyzer paths can be relative to a package inside a monorepo. Link
-      // only unambiguous files that exist at the PR head, including on retries.
-      const files = async (paths: string[]) => {
-        const matches = new Map<string, string>();
-        if (!paths.length) return matches;
-        const { data } = await request("GET /repos/{owner}/{repo}/git/trees/{tree_sha}", {
-          ...target.repo,
-          tree_sha: job.commitSha!,
-          recursive: "1",
-        }).catch((failure: unknown) => {
-          if (hasStatus(failure, 404, 409, 422)) return { data: null };
-          throw failure;
-        });
-        if (!data || data.truncated) return matches;
-        for (const path of paths) {
-          const found = data.tree.filter(
-            (entry) =>
-              entry.type === "blob" && (entry.path === path || entry.path?.endsWith("/" + path)),
-          );
-          if (found.length === 1 && found[0].path) matches.set(path, found[0].path);
-        }
-        return matches;
-      };
-      await updatePullRequestComment(
-        request,
-        this.options.appId,
-        job,
-        target,
-        "result",
-        order,
-        withLease,
-        (previous) => render(previous, files),
-        variant,
-      );
-    });
-  }
-
-  async withPullRequestComment(
-    job: Job,
-    accountId: string,
-    signal: AbortSignal,
-    work: (
-      request: GitHubRequest,
-      target: NonNullable<Awaited<ReturnType<typeof pullRequestCommentTarget>>>,
-    ) => Promise<void>,
-  ) {
     const client = await this.client(job, "pr_comment");
     try {
       const request = client.request.defaults({ request: { signal } });
       const target = await pullRequestCommentTarget(request, job, accountId);
-      if (target) await work(request, target);
+      if (target) {
+        // Analyzer paths can be relative to a package inside a monorepo. Link
+        // only unambiguous files that exist at the PR head, including on retries.
+        const files = async (paths: string[]) => {
+          const matches = new Map<string, string>();
+          if (!paths.length) return matches;
+          const { data } = await request("GET /repos/{owner}/{repo}/git/trees/{tree_sha}", {
+            ...target.repo,
+            tree_sha: job.commitSha!,
+            recursive: "1",
+          }).catch((failure: unknown) => {
+            if (hasStatus(failure, 404, 409, 422)) return { data: null };
+            throw failure;
+          });
+          if (!data || data.truncated) return matches;
+          for (const path of paths) {
+            const found = data.tree.filter(
+              (entry) =>
+                entry.type === "blob" && (entry.path === path || entry.path?.endsWith("/" + path)),
+            );
+            if (found.length === 1 && found[0].path) matches.set(path, found[0].path);
+          }
+          return matches;
+        };
+        await updatePullRequestComment(
+          request,
+          this.options.appId,
+          job,
+          target,
+          "result",
+          order,
+          withLease,
+          (previous) => render(previous, files),
+          variant,
+        );
+      }
     } finally {
       await client.request("DELETE /installation/token").catch((failure: unknown) => {
         if (!hasStatus(failure, 401, 404)) throw failure;

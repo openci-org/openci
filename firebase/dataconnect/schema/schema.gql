@@ -16,6 +16,4 @@ type TeamMember @table(name: "team_members", key: "id") @unique(fields: ["teamId
   teamId: String! @col(name: "team_id")
   team: Team! @ref(fields: "teamId", references: "id")
   userId: String! @col(name: "user_id")
-  # Verified during this member's GitHub OAuth callback. Scoped to the App and host.
-  githubRetryIdentity: String @col(name: "github_retry_identity")
 }

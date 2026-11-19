@@ -7,35 +7,6 @@ import { ConflictingWebhookDeliveryError } from "../../lib/functions/webhook_que
 
 const secret = "local-webhook-test-secret";
 
-test("only a signed checkbox transition on a bot PR comment reaches the retry queue", async () => {
-  const d = dependencies();
-  const footer = "<!-- openci-pr-result:" + "a".repeat(64) + ":" + "b".repeat(64) + ":1 -->";
-  const from = "### ❌ CI\n\n<!-- openci-retry:am9i:0 -->\n- [ ] このジョブを再実行\n\n" + footer;
-  const changed = {
-    action: "edited",
-    issue: { state: "open", number: 1, pull_request: {} },
-    installation: { id: 2 },
-    repository: { id: 3 },
-    sender: { id: 4, type: "User", login: "user" },
-    comment: { id: 5, user: { type: "Bot" }, body: from.replace("[ ]", "[x]") },
-    changes: { body: { from } },
-  };
-  const send = (event, headers = {}) =>
-    receiveGitHubWebhook(
-      request(JSON.stringify(event), { eventType: "issue_comment", ...headers }),
-      d.options,
-    );
-  assert.equal(await send(changed, { signature: "sha256=invalid" }), 400);
-  assert.equal(await send({ ...changed, action: "created" }), 200);
-  assert.equal(await send({ ...changed, changes: { body: { from: "ordinary edit" } } }), 200);
-  assert.equal(await send({ ...changed, sender: { ...changed.sender, type: "Bot" } }), 200);
-  assert.equal(await send(changed), 200);
-  assert.deepEqual(
-    d.deliveries.map((v) => v.eventType),
-    ["issue_comment"],
-  );
-});
-
 function request(payload = '{"ref":"refs/heads/main"}', overrides = {}) {
   const rawBody = Buffer.isBuffer(payload) ? payload : Buffer.from(payload);
   const headers = {

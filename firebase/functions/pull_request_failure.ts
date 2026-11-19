@@ -4,7 +4,6 @@ import type {
   GetPullRequestFailureLogData,
 } from "@openci/dispatch-admin";
 import { inlineCode } from "./executor/pull_request_comment.js";
-import { retryControl, withoutRetryControl } from "./pull_request_retry_control.js";
 
 type Job = NonNullable<GetPullRequestCommentExecutionData["job"]>;
 type Attempt = NonNullable<GetPullRequestCommentExecutionData["latest"]>;
@@ -203,8 +202,6 @@ export async function failedPullRequestComment(
       ? `[OpenCI で実行ログを見る](${origin.origin}/runs/${urlSegment(job.id)})`
       : checkLink(job, attempt.checkRunId, "GitHub でチェックを見る");
   if (link) section.push(link);
-  if (job.runsOn === "macos-latest" && job.retryCount >= 0 && job.retryCount < 2147483647)
-    section.push(retryControl(job.id, job.retryCount));
   return section.join("\n\n");
 }
 
@@ -214,9 +211,7 @@ export function resolvedPullRequestComment(
   previous: string | null,
 ) {
   if (!previous?.startsWith("### ❌ ")) return null;
-  const details = /\n<!-- openci-failure-details:(\d+) -->\n\n([\s\S]+)$/u.exec(
-    withoutRetryControl(previous),
-  );
+  const details = /\n<!-- openci-failure-details:(\d+) -->\n\n([\s\S]+)$/u.exec(previous);
   const section = [
     `### ✅ ${workflowName(job)} のエラーが解消しました`,
     `${commitLink(job)} でワークフローが成功しました。`,
