@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.1
+
+- Export `FlutterVersion` with `v3_44_8` and `v3_47_8`. Each member exposes its release string through `.value`.
+
 ## 0.5.0
 
 - Add `CITrigger.release(tag: 'v*')` for GitHub Release publication. Omitting `tag` accepts every published release, including pre-releases. Requires the updated webhook planner and a GitHub App subscribed to Release events.

@@ -6,6 +6,7 @@ export 'src/dart/pub_publish_result.dart';
 export 'src/firebase_hosting/firebase_hosting_ci.dart';
 export 'src/firebase_hosting/firebase_hosting_preview.dart';
 export 'src/flutter/flutter_ci.dart';
+export 'src/flutter/flutter_version.dart';
 export 'src/flutter/ios_distribution_method.dart';
 export 'src/ios_simulator.dart' show IosSimulator;
 export 'src/machine_type.dart';
