@@ -721,6 +721,8 @@ const pushWorkflowFiles = [
   "dashboard_ios_patch.dart",
   "dashboard_ios_patrol_ci.dart",
   "dashboard_macos_cd.dart",
+  "dashboard_play_aab.dart",
+  "dashboard_testflight_ipa.dart",
   "dashboard_web_hosting.dart",
   "firebase_functions_ci.dart",
   "openci_shared_ci.dart",
