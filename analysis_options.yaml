@@ -3,6 +3,9 @@ analyzer:
     file_names: ignore
   exclude:
     - "build/**"
+    - "**/build/**"
+    - "node_modules/**"
+    - "**/node_modules/**"
     - "**/*.g.dart"
     - "**/*.freezed.dart"
 

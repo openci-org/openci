@@ -13,6 +13,8 @@ Future<void> main() async {
   final endpoint = await config.exists()
       ? jsonDecode(await config.readAsString())['endpoint'] as String
       : '';
+  // BleExample manages its state with setState.
+  // ignore: riverpod_lint/missing_provider_scope
   runApp(BleExample(endpoint: endpoint));
 }
 
