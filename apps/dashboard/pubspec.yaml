@@ -1,7 +1,7 @@
 name: dashboard
 description: "OpenCI Dashboard App(iOS/macOS/Web)"
 publish_to: "none"
-version: 2.5.1+1
+version: 2.5.2+1
 environment:
   flutter: ^3.41.6
   sdk: ^3.11.5

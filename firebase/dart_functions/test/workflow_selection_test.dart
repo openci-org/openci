@@ -129,42 +129,51 @@ void main() {
     ('Dashboard iOS Patch', 'ios'),
     ('Dashboard Android Patch', 'android'),
   ]) {
-    test('$name runs only on matching develop pushes', () {
+    test('$name checks matching PRs and develop pushes', () {
       final workflow = definitions.singleWhere((w) => w.workflowName == name);
-      final trigger = workflow.ciTriggers.single;
-      expect(trigger.matches(eventType: 'push', branch: 'develop'), isTrue);
-      expect(trigger.matches(eventType: 'push', branch: 'feature'), isFalse);
-      expect(
-        trigger.matches(eventType: 'pull_request', branch: 'develop'),
-        isFalse,
+      final push = workflow.ciTriggers.singleWhere((t) => t.type == 'push');
+      final pullRequest = workflow.ciTriggers.singleWhere(
+        (t) => t.type == 'pullRequest',
       );
+      expect(workflow.cancelPreviousRuns, isTrue);
+      expect(push.matches(eventType: 'push', branch: 'develop'), isTrue);
+      expect(workflow.matches(eventType: 'push', branch: 'feature'), isFalse);
+      expect(workflow.matches(eventType: 'release', branch: 'v2.5.1'), isFalse);
+      for (final base in ['develop', 'feature']) {
+        expect(
+          pullRequest.matches(eventType: 'pull_request', branch: base),
+          isTrue,
+        );
+      }
+      expect(pullRequest.paths, push.paths);
       for (final path in [
         'apps/dashboard/lib/main.dart',
         'apps/dashboard/pubspec.yaml',
         'packages/openci_shared/pubspec.yaml',
         'openci/${workflow.workflowFileName}',
+        'openci/lib/dashboard_patch_mode.dart',
         'apps/dashboard/shorebird.yaml',
         'pubspec.yaml',
         'pubspec.lock',
       ]) {
-        expect(trigger.matchesChangedFiles([path]), isTrue, reason: path);
+        expect(pullRequest.matchesChangedFiles([path]), isTrue, reason: path);
       }
       for (final directory in ['ios', 'android', 'macos', 'web']) {
         final path = 'apps/dashboard/$directory/file';
         expect(
-          trigger.matchesChangedFiles([path]),
+          pullRequest.matchesChangedFiles([path]),
           directory == platform,
           reason: path,
         );
       }
       expect(
-        trigger.matchesChangedFiles([
+        pullRequest.matchesChangedFiles([
           'apps/dashboard/tool/configure_google_sign_in.dart',
         ]),
         platform == 'ios',
       );
       expect(
-        trigger.matchesChangedFiles([
+        pullRequest.matchesChangedFiles([
           'README.md',
           'apps/openci_cli/pubspec.yaml',
         ]),
@@ -256,6 +265,8 @@ void main() {
       'macOS release checks',
       'Dashboard Web Hosting',
       'Dashboard iOS Patrol',
+      'Dashboard Android Patch',
+      'Dashboard iOS Patch',
     });
   });
   test('runtime SDK changes also run the simulator integration', () {
@@ -271,6 +282,8 @@ void main() {
       'Workflow Scripts CI',
       'Dart Format Check',
       'Dashboard iOS Patrol',
+      'Dashboard Android Patch',
+      'Dashboard iOS Patch',
       'Virtual BLE iOS E2E',
     });
   });
