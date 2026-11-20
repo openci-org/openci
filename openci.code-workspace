@@ -9,7 +9,6 @@
     { "name": "macos_updater", "path": "packages/macos_updater" },
     { "name": "pubspec_version_hook", "path": "packages/pubspec_version_hook" },
     { "name": "workflows", "path": "openci" },
-    { "name": "ci", "path": ".openci" },
     { "name": "firebase", "path": "firebase" },
     { "name": "landing_page", "path": "apps/landing_page" },
     { "name": "website", "path": "apps/website" },

@@ -245,8 +245,9 @@ serverless route without adding a VPC connector or Cloud NAT.
 
 Set the Job task timeout to **3900s** for the default 3600s build deadline,
 leaving time for cleanup; recovery still handles a hard kill. No HTTP port or
-public invoker is needed. The Dockerfile-specific ignore file includes the npm
-manifests/generated SDKs that the repository-wide `.dockerignore` excludes.
+public invoker is needed. The executor build uses
+`firebase/Dockerfile.executor.dockerignore` to include the npm workspace
+manifests, generated SDKs, and Functions source in the build context.
 
 Set these values on the Job **and** recovery Function, keeping the identities
 consistent with the dispatcher/planner:
