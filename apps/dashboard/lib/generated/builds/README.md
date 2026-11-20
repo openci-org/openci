@@ -141,105 +141,22 @@ ref.execute();
 ref.subscribe(...);
 ```
 
-
 ### FindBuildJobs
-#### Required Arguments
+
+Search the selected team's jobs by GitHub pull request number or full commit SHA. Supply both to select a particular revision of a PR. The response includes job IDs, status, and stored run IDs for up to three recent attempts.
+
 ```dart
-String teamId = ...;
-String githubBaseUrl = ...;
-String owner = ...;
-String repo = ...;
-BuildsConnector.instance.findBuildJobs(
+final search = BuildsConnector.instance.findBuildJobs(
   teamId: teamId,
-  githubBaseUrl: githubBaseUrl,
-  owner: owner,
-  repo: repo,
-).execute();
-```
-
-#### Optional Arguments
-We return a builder for each query. For FindBuildJobs, we created `FindBuildJobsBuilder`. For queries and mutations with optional parameters, we return a builder class.
-The builder pattern allows Data Connect to distinguish between fields that haven't been set and fields that have been set to null. A field can be set by calling its respective setter method like below:
-```dart
-class FindBuildJobsVariablesBuilder {
-  ...
-   FindBuildJobsVariablesBuilder pullRequestNumber(BigInt t) {
-   _pullRequestNumber.value = t;
-   return this;
-  }
-  FindBuildJobsVariablesBuilder commitSha(String t) {
-   _commitSha.value = t;
-   return this;
-  }
-  FindBuildJobsVariablesBuilder limit(int t) {
-   _limit.value = t;
-   return this;
-  }
-  FindBuildJobsVariablesBuilder offset(int t) {
-   _offset.value = t;
-   return this;
-  }
-
-  ...
-}
-BuildsConnector.instance.findBuildJobs(
-  teamId: teamId,
-  githubBaseUrl: githubBaseUrl,
-  owner: owner,
-  repo: repo,
-)
-.pullRequestNumber(pullRequestNumber)
-.commitSha(commitSha)
-.limit(limit)
-.offset(offset)
-.execute();
-```
-
-#### Return Type
-`execute()` returns a `QueryResult<FindBuildJobsData, FindBuildJobsVariables>`
-```dart
-/// Result of an Operation Request (query/mutation).
-class OperationResult<Data, Variables> {
-  OperationResult(this.dataConnect, this.data, this.ref);
-  Data data;
-  OperationRef<Data, Variables> ref;
-  FirebaseDataConnect dataConnect;
-}
-
-/// Result of a query request. Created to hold extra variables in the future.
-class QueryResult<Data, Variables> extends OperationResult<Data, Variables> {
-  QueryResult(super.dataConnect, super.data, super.ref);
-}
-
-final result = await BuildsConnector.instance.findBuildJobs(
-  teamId: teamId,
-  githubBaseUrl: githubBaseUrl,
+  githubBaseUrl: 'https://github.com',
   owner: owner,
   repo: repo,
 );
-FindBuildJobsData data = result.data;
-final ref = result.ref;
+final result = await search.pullRequestNumber(BigInt.from(42)).limit(20).execute();
+final jobs = result.data.jobs;
 ```
 
-#### Getting the Ref
-Each builder returns an `execute` function, which is a helper function that creates a `Ref` object, and executes the underlying operation.
-An example of how to use the `Ref` object is shown below:
-```dart
-String teamId = ...;
-String githubBaseUrl = ...;
-String owner = ...;
-String repo = ...;
-
-final ref = BuildsConnector.instance.findBuildJobs(
-  teamId: teamId,
-  githubBaseUrl: githubBaseUrl,
-  owner: owner,
-  repo: repo,
-).ref();
-ref.execute();
-
-ref.subscribe(...);
-```
+Use `commitSha(sha)` for a commit search. Supply `offset(offset)` to request the next page. The query accepts up to 21 jobs per page.
 
 ## Mutations
 
@@ -270,7 +187,7 @@ class OperationResult<Data, Variables> {
 final result = await BuildsConnector.instance.retryBuildJob(
   id: id,
   expectedRetryCount: expectedRetryCount,
-);
+).execute();
 RetryBuildJobData data = result.data;
 final ref = result.ref;
 ```
