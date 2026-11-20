@@ -8,6 +8,7 @@ import '../auth/firebase_auth_client.dart';
 import '../credential_store/credential_config.dart';
 import '../version.dart';
 import 'build_api.dart';
+import 'find_jobs.dart';
 import 'job_logs.dart';
 
 final class OpenCiMcpServer extends MCPServer with ToolsSupport {
@@ -17,9 +18,33 @@ final class OpenCiMcpServer extends MCPServer with ToolsSupport {
       ) {
     registerTool(
       Tool(
+        name: 'find_jobs',
+        description:
+            'Find OpenCI jobs for a GitHub PR URL (all its commits unless commit_sha is supplied), or for a repository and full commit SHA. Follow next_cursor with the same search for older matches, including after an empty page.',
+        annotations: ToolAnnotations(readOnlyHint: true),
+        inputSchema: Schema.object(
+          properties: {
+            'pr_url': Schema.string(maxLength: 2048),
+            'repository': Schema.string(
+              description:
+                  'owner/repo for github.com or an HTTPS repository URL for GitHub Enterprise.',
+              maxLength: 2048,
+            ),
+            'commit_sha': Schema.string(
+              pattern: r'^(?:[a-fA-F0-9]{40}|[a-fA-F0-9]{64})$',
+            ),
+            'cursor': Schema.string(pattern: r'^(jobs|team):[0-9]{1,9}$'),
+          },
+          additionalProperties: false,
+        ),
+      ),
+      (request) => _call(request, findJobs),
+    );
+    registerTool(
+      Tool(
         name: 'get_job_logs',
         description:
-            'Read a bounded excerpt of saved OpenCI build output. Pass run_id to inspect a specific attempt; use the returned run_id and cursor to page.',
+            'Read a bounded excerpt of saved OpenCI build output. Omit run_id for the current attempt. Pass a stored run_id for an earlier attempt or with a log cursor.',
         annotations: ToolAnnotations(readOnlyHint: true),
         inputSchema: Schema.object(
           properties: {

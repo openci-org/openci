@@ -11,6 +11,11 @@ class BuildReadException implements Exception {
   final String message;
 }
 
+class BuildQueryUnavailable extends BuildReadException {
+  BuildQueryUnavailable(String operation)
+    : super('The OpenCI connector does not yet provide $operation.');
+}
+
 class BuildApi {
   BuildApi(this.profile, this.client) : project = firebaseProjectId(profile);
 
@@ -61,6 +66,14 @@ class BuildApi {
       throw const BuildReadException(
         'Access denied for the active OpenCI team.',
       );
+    }
+    if (response.statusCode == 404) {
+      final body = jsonDecode(utf8.decode(response.bodyBytes));
+      if (body case {
+        'error': {'status': 'NOT_FOUND', 'message': final String message},
+      } when message == 'operation "$operation" not found') {
+        throw BuildQueryUnavailable(operation);
+      }
     }
     if (response.statusCode != 200) {
       throw BuildReadException(

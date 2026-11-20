@@ -48,12 +48,25 @@ openci switch team
 
 シークレット関連のコマンドは、切り替え後のチームに対して実行されます。
 
+## Codex で CI の失敗を調べる
+
+CLI 0.9.0 以降で `openci login` 済みなら、次のコマンドでローカル MCP サーバーを登録できます。
+
+```sh
+codex mcp add openci -- openci mcp
+```
+
+Codex の新しいチャットに GitHub の PR URL を貼り、「どのステップで失敗したか、該当ログと一緒に教えて」と依頼します。Codex は `find_jobs` でジョブを探し、`get_job_logs` で失敗したステップとログ抜粋を読みます。特定のコミットを調べるときは完全な SHA を添えてください。
+
+認証には CLI のログインと選択中のチームを使います。`openci switch team` で切り替えられます。`openci sync` はワークフローの作業コピーで実行します。
+
 ## コマンド一覧
 
 | コマンド                     | 用途                                         |
 | ---------------------------- | -------------------------------------------- |
 | `openci login`               | リモート環境にログイン                       |
 | `openci status`              | 現在のプロファイルとチームを確認             |
+| `openci mcp`                 | ジョブとログを読む MCP サーバーを起動        |
 | `openci switch team`         | 操作対象のチームを切り替え                   |
 | `openci list secrets`        | シークレット名を一覧表示                     |
 | `openci register secret`     | シークレットを登録・更新                     |
