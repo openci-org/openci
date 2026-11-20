@@ -64,6 +64,11 @@ Future<void> main() async {
   if (Secrets.shorebirdToken.value.trim().isEmpty) {
     throw StateError('SHOREBIRD_TOKEN is empty.');
   }
+  final release = await findDashboardPatchRelease(
+    directory: dashboard,
+    platform: 'ios',
+  );
+  if (release == null && mode == DashboardPatchMode.publish) return;
   await ci.placeFileFromBase64(
     dir: dashboard.lib,
     fileName: 'firebase_options.dart',
@@ -75,8 +80,13 @@ Future<void> main() async {
     base64Content: Secrets.googleServiceInfoPlistBase64.value,
   );
   await ci.run('dart run tool/configure_google_sign_in.dart ios');
+  if (release == null) {
+    await ci.run('flutter test');
+    await ci.run('flutter build ios --release --no-codesign');
+    return;
+  }
   await ci.run(
-    'CI=true shorebird patch ios --release-version=latest --no-codesign '
+    'CI=true shorebird patch ios --release-version=$release --no-codesign '
     '${mode.shorebirdArgument}',
   );
 }
