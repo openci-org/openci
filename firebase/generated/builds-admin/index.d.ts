@@ -42,19 +42,6 @@ export interface BillingExecution_Key {
   __typename?: "BillingExecution_Key";
 }
 
-export interface BillingMonthlyStatementRun_Key {
-  teamId: string;
-  month: DateString;
-  runId: string;
-  __typename?: "BillingMonthlyStatementRun_Key";
-}
-
-export interface BillingMonthlyStatement_Key {
-  teamId: string;
-  month: DateString;
-  __typename?: "BillingMonthlyStatement_Key";
-}
-
 export interface BillingPeriod_Key {
   id: string;
   __typename?: "BillingPeriod_Key";
