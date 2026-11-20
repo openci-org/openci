@@ -78,7 +78,10 @@ void main() {
           },
           _ => throw StateError('Unexpected request'),
         };
-        return http.Response.bytes(utf8.encode(jsonEncode({'data': data})), 200);
+        return http.Response.bytes(
+          utf8.encode(jsonEncode({'data': data})),
+          200,
+        );
       }),
     );
   });
