@@ -9,6 +9,7 @@ import 'package:meta/meta.dart';
 import 'commands/delete/delete_command.dart';
 import 'commands/list/list_command.dart';
 import 'commands/login_command.dart';
+import 'commands/mcp_command.dart';
 import 'commands/register/register_command.dart';
 import 'commands/setup/setup_command.dart';
 import 'commands/status_command.dart';
@@ -72,6 +73,7 @@ class OpenCICommandRunner extends CompletionCommandRunner<int> {
       );
 
     addCommand(LoginCommand(logger: _logger));
+    addCommand(McpCommand());
     addCommand(StatusCommand(logger: _logger));
     addCommand(ListCommand(logger: _logger));
     addCommand(RegisterCommand(logger: _logger));
@@ -131,6 +133,7 @@ class OpenCICommandRunner extends CompletionCommandRunner<int> {
         results['check-updates'] != true ||
         results.command == null ||
         results.command!.name == 'help' ||
+        results.command!.name == 'mcp' ||
         results.command!.name == 'update' ||
         _completionCommands.contains(results.command!.name)) {
       return false;
