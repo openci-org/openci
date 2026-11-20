@@ -66,7 +66,7 @@ Future<void> main() async {
     directory: dashboard,
     platform: 'android',
   );
-  if (release == null && mode == DashboardPatchMode.publish) return;
+  if (release == null) return;
   await ci.placeFileFromBase64(
     dir: dashboard.lib,
     fileName: 'firebase_options.dart',
@@ -77,11 +77,6 @@ Future<void> main() async {
     fileName: 'google-services.json',
     base64Content: Secrets.googleServicesJsonBase64.value,
   );
-  if (release == null) {
-    await ci.run('flutter test');
-    await ci.flutter.buildAab();
-    return;
-  }
   if (mode == DashboardPatchMode.publish) {
     await ci.placeFileFromBase64(
       dir: dashboard.android,
