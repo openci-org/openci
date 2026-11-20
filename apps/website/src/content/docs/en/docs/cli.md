@@ -48,12 +48,25 @@ openci switch team
 
 Secret commands will then operate on the newly selected team.
 
+## Investigate CI failures from Codex
+
+With CLI 0.9.0 or later, sign in with `openci login` and register the local MCP server.
+
+```sh
+codex mcp add openci -- openci mcp
+```
+
+In a new Codex chat, paste a GitHub PR URL and ask “Which step failed, and what did its log say?” Codex uses `find_jobs` to locate the jobs and `get_job_logs` to read the failed step and a short excerpt. Include the full commit SHA to investigate a specific revision.
+
+The server uses your CLI login and selected team. Use `openci switch team` to switch teams. Run `openci sync` from your workflow checkout to update generated files.
+
 ## Commands
 
 | Command                      | Purpose                                          |
 | ---------------------------- | ------------------------------------------------ |
 | `openci login`               | Log in to a remote environment                   |
 | `openci status`              | Check your current profile and team              |
+| `openci mcp`                 | Start a local MCP server for jobs and logs       |
 | `openci switch team`         | Switch the active team                           |
 | `openci list secrets`        | List secret names                                |
 | `openci register secret`     | Register or update a secret                      |
