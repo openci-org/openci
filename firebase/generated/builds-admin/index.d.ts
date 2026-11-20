@@ -42,6 +42,19 @@ export interface BillingExecution_Key {
   __typename?: "BillingExecution_Key";
 }
 
+export interface BillingMonthlyStatementRun_Key {
+  teamId: string;
+  month: DateString;
+  runId: string;
+  __typename?: "BillingMonthlyStatementRun_Key";
+}
+
+export interface BillingMonthlyStatement_Key {
+  teamId: string;
+  month: DateString;
+  __typename?: "BillingMonthlyStatement_Key";
+}
+
 export interface BillingPeriod_Key {
   id: string;
   __typename?: "BillingPeriod_Key";
@@ -92,6 +105,21 @@ export interface BuildStep_Key {
   runId: string;
   stepId: string;
   __typename?: "BuildStep_Key";
+}
+
+export interface FindBuildJobsData {
+  jobs?: unknown[] | null;
+}
+
+export interface FindBuildJobsVariables {
+  teamId: string;
+  githubBaseUrl: string;
+  owner: string;
+  repo: string;
+  pullRequestNumber?: Int64String;
+  commitSha?: string;
+  limit?: number;
+  offset?: number;
 }
 
 export interface GetBuildJobData {
@@ -281,3 +309,15 @@ export function getBuildJob(
   vars: GetBuildJobVariables,
   options?: OperationOptions,
 ): Promise<ExecuteOperationResponse<GetBuildJobData>>;
+
+/** Generated Node Admin SDK operation action function for the 'FindBuildJobs' Query. Allow users to execute without passing in DataConnect. */
+export function findBuildJobs(
+  dc: DataConnect,
+  vars: FindBuildJobsVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<FindBuildJobsData>>;
+/** Generated Node Admin SDK operation action function for the 'FindBuildJobs' Query. Allow users to pass in custom DataConnect instances. */
+export function findBuildJobs(
+  vars: FindBuildJobsVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<FindBuildJobsData>>;

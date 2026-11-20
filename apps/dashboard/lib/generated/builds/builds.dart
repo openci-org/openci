@@ -10,6 +10,8 @@ part 'get_build_jobs.dart';
 
 part 'get_build_job.dart';
 
+part 'find_build_jobs.dart';
+
 String? bigIntToJson(BigInt? value) {
   return value?.toString();
 }
@@ -45,6 +47,21 @@ class BuildsConnector {
     return GetBuildJobVariablesBuilder(
       dataConnect,
       id: id,
+    );
+  }
+
+  FindBuildJobsVariablesBuilder findBuildJobs({
+    required String teamId,
+    required String githubBaseUrl,
+    required String owner,
+    required String repo,
+  }) {
+    return FindBuildJobsVariablesBuilder(
+      dataConnect,
+      teamId: teamId,
+      githubBaseUrl: githubBaseUrl,
+      owner: owner,
+      repo: repo,
     );
   }
 

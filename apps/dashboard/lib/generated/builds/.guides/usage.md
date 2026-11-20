@@ -1,9 +1,10 @@
 # Basic Usage
 
 ```dart
-BuildsConnector.instance.retryBuildJob(id: jobId, expectedRetryCount: retryCount).execute();
+BuildsConnector.instance.RetryBuildJob(retryBuildJobVariables).execute();
 BuildsConnector.instance.GetBuildJobs(getBuildJobsVariables).execute();
 BuildsConnector.instance.GetBuildJob(getBuildJobVariables).execute();
+BuildsConnector.instance.FindBuildJobs(findBuildJobsVariables).execute();
 
 ```
 
@@ -16,8 +17,8 @@ Optional fields can be discovered based on classes that have `Optional` object t
 This is an example of a mutation with an optional field:
 
 ```dart
-await BuildsConnector.instance.GetBuildJobs({ ... })
-.offset(...)
+await BuildsConnector.instance.FindBuildJobs({ ... })
+.pullRequestNumber(...)
 .execute();
 ```
 

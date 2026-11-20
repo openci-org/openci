@@ -219,6 +219,61 @@ for (const status of ["SUCCESS", "FAILURE", "CANCELLED", "TIMED_OUT"]) {
   });
 }
 
+test("finds PR or commit jobs in the selected team with their actual run IDs", async (t) => {
+  const f = await fixture(t, { githubBaseUrl: null, pullRequestNumber: "7" });
+  const latest = randomUUID();
+  await graphql(
+    `
+      mutation ($id: String!, $job: String!) {
+        buildRun_insert(
+          data: {
+            id: $id
+            buildJobId: $job
+            status: "completed"
+            conclusion: "success"
+            createdAt: 3
+            updatedAt: 3
+          }
+        )
+      }
+    `,
+    { id: latest, job: f.id },
+  );
+  await f.alter({ latestRunId: latest, retryCount: 1 });
+  const params = {
+    teamId: f.teamId,
+    githubBaseUrl: "https://github.com",
+    owner: "Org",
+    repo: "APP",
+  };
+  const find = async (filters, actor = asUser(f.userId)) =>
+    (await builds.findBuildJobs(dc, { ...params, ...filters }, actor)).data.jobs;
+  const [job] = await find({ pullRequestNumber: "7" });
+  assert.equal(job.job_id, f.id);
+  assert.equal(job.latest_run_id, latest);
+  assert.deepEqual(
+    job.recent_runs.map((r) => r.run_id),
+    [latest, f.runId],
+  );
+  assert.deepEqual(
+    (await find({ commitSha: f.original.commitSha })).map((j) => j.job_id),
+    [f.id],
+  );
+  assert.deepEqual(await find({ pullRequestNumber: "7", commitSha: "b".repeat(40) }), []);
+  assert.deepEqual(await find({ pullRequestNumber: "7", offset: 1 }), []);
+  assert.deepEqual(
+    await find({ pullRequestNumber: "7", githubBaseUrl: "https://git.example.com" }),
+    [],
+  );
+  await assert.rejects(
+    find({ pullRequestNumber: "7" }, asUser(randomUUID())),
+    /Team access denied/,
+  );
+  await assert.rejects(find({ pullRequestNumber: "7" }, asUser(f.userId, "anonymous")));
+  await assert.rejects(find({ pullRequestNumber: "7", limit: 22 }));
+  await assert.rejects(find({}));
+});
+
 test("nonmembers, anonymous callers, signed-out callers and deleted teams cannot retry", async (t) => {
   const f = await fixture(t);
   for (const options of [
