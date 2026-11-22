@@ -1,7 +1,7 @@
 {
   "hosting": {
     "target": "website",
-    "public": "build/hosting",
+    "public": "dist",
     "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
     "predeploy": ["cd \"$PROJECT_DIR\" && bash scripts/ci.sh"],
     "cleanUrls": true,

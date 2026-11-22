@@ -1,8 +1,6 @@
 # OpenCI product website
 
-Astro + TypeScriptで実装したOpenCIの製品LP・料金ページ・ブログ・Docsです。
-Docsには [Starlight](https://starlight.astro.build/ja/) を使用しています。
-ReactなどのUIフレームワークは使わず、静的HTML・CSSと必要なJavaScriptを生成します。
+製品LPは `apps/landing_page` のNext.js App RouterとReactで実装しています。料金ページ・ブログはAstro、DocsはStarlightで生成します。両方を静的にビルドして同じドメインで公開します。
 製品LP、料金ページ、ブログはレインボーのロゴと青を使います。公開URLは `https://openci.org` です。
 写真の撮影者と配布元はフッター、同梱フォント（Geist・Geist Mono、Lora、Noto Serif JP）のライセンスは `public/licenses/*-OFL.txt` に記載しています。
 
@@ -10,7 +8,7 @@ ReactなどのUIフレームワークは使わず、静的HTML・CSSと必要な
 
 Node.js **22.23.4以上**とnpmを使用します。rootの `.node-version` に対応する
 Vite+やNodeバージョンマネージャーでバージョンを選択してください。
-このアプリはrootのnpm workspaceに含まれ、`package-lock.json` を共有します。
+このアプリはrootのnpm workspaceに含まれ、`package-lock.json` を共有します。開発サーバーはNext.jsでLPを表示し、料金・ブログ・Docsを同時に起動したAstroへ転送します。
 
 ```sh
 npm ci --workspace openci-website --workspace landing-page --include-workspace-root
@@ -29,7 +27,7 @@ npm run dev --workspace openci-website
 - `/<en|ja>/docs/`: Docsホーム
 - `/<en|ja>/docs/<slug>/`: 各ガイド
 
-言語URLはAstro標準の `getRelativeLocaleUrl()`、表示中の言語は `Astro.currentLocale` を使います。
+LPの言語はNext.jsの `[locale]` ルートで決まります。コンテンツページの言語URLはAstro標準の `getRelativeLocaleUrl()`、表示中の言語は `Astro.currentLocale` を使います。
 対応言語・デフォルト言語は `src/lib/i18n.ts` で定義し、`astro.config.mjs` と共有します。
 記事・Docsの言語はContent IDの先頭を `getLocaleByPath()` で解決します。
 LP・ブログの言語切り替えは同じページの対訳へ移動し、クエリと共通セクションID（`#pricing` など）を維持します。
@@ -75,13 +73,13 @@ Docsホームは各言語の `index.mdx` にあり、StarlightのHero・CardGrid
 Docsの目次・見出しリンク・コードの色付けとコピーはStarlightとExpressive Codeが生成します。
 ライト／ダークの切り替えはページ全体とコードに適用されます。
 ブランドカラーは `src/styles/starlight.css`、メタデータとDocsホームへのリンクは `src/lib/docs-route.ts` で調整します。
-ブログのMarkdownとLPの `<Code />` は既存のShikiと `css-variables` テーマを使用します。
+ブログのMarkdownとLPのDartコード例はShikiでビルド時に色付けします。
 `src/lib/markdown.ts` がブログのレンダラーを分け、StarlightのMarkdown拡張がブログ表示に影響しないようにしています。
-canonical・OGPのURLは `Astro.url.pathname` と `Astro.site` から生成します。
+LPのcanonical・OGPはNext.jsのMetadata APIで生成します。コンテンツページは `Astro.url.pathname` と `Astro.site` を使います。
 Docs検索はStarlight標準のPagefindで現在の言語の本文を検索します。Cmd/Ctrl+Kでも開けます。
 検索インデックスはビルド時に `dist/pagefind/` へ生成されます。検索の確認は `npm run build` 後の `npm run preview` で行います。
 `npm run dev` では検索インデックスを生成しません。
-LP・ブログの言語切り替えのクエリ・共通アンカー維持は `src/scripts/site.js` で処理します。
+
 コードコピー、テーマ切り替え、モバイルメニューはブラウザーのJavaScriptで動作します。
 
 ## 検証
@@ -102,7 +100,7 @@ npm run preview --workspace openci-website
 フォーマットの適用は `npm run fmt --workspace openci-website` です。
 
 `openci/website_ci.dart` はPRとdevelopへのpushで、依存取得・フォーマット・
-Astroの静的解析・ビルド・テストを `bash scripts/ci.sh` で実行します。
+Next.jsとAstroの静的解析・ビルド・テストを `bash scripts/ci.sh` で実行します。
 このスクリプトは `.node-version` と一致するNode.jsを使います。手元にない場合は
 公式バイナリを一時ディレクトリへ取得してSHA-256を検証します。npm 11.14.1で依存取得と `npm run build:hosting` を実行します。
 macOS / Linuxのarm64・x64、bash・curl・tar・SHA-256コマンドと外部ネットワーク接続が必要です。
@@ -111,7 +109,7 @@ macOS / Linuxのarm64・x64、bash・curl・tar・SHA-256コマンドと外部�
 ## Firebase Hosting
 
 `openci.org` はFirebaseプロジェクト・Hostingサイト `openci-b1b91` のターゲット `website` で公開します。
-デプロイ前に `npm run build:hosting` で製品サイトを検証し、`apps/landing_page` のStudioと過去のリリースを加えた `build/hosting/` を生成します。
+デプロイ前に `npm run build:hosting` で日英のLP、料金、ブログ、Docs、Studio、過去のリリースを含む `dist/` を生成し、公開と同じファイルをテストします。
 `/studio/`、`/studio/about/`、`/ja/releases/…` は元のURLで公開します。
 旧ドメイン `genuineci.com` はFirebase Hostingのカスタムドメイン設定で `openci.org` へ301転送します。
 旧 `/blog/…` と `/docs/…` は同じslugの `/ja/blog/…` と `/ja/docs/…` へ301転送します。
@@ -136,7 +134,8 @@ firebase deploy --only hosting:website --project openci-b1b91
 
 - `src/pages/`: URLとページ生成
 - `src/layouts/`: HTMLメタ情報・ブログ・Docsの共通レイアウト
-- `src/components/`: LP、料金、言語切替、ナビゲーション、コードの表示部品
+- `../landing_page/components/landing/`: 製品LP、CI実行デモ、料金試算
+- `src/components/`: 料金、言語切替、ナビゲーション、コードの表示部品
 - `src/assets/fonts/`: OGP画像生成用のフォントとライセンス
 - `src/lib/`: 言語、記事情報、ナビゲーション、Markdown処理
 - `src/styles/`: 既存デザインのCSS。`content.css` のJaspr Content由来のタイポグラフィはMITライセンス表示を保持

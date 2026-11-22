@@ -1,4 +1,5 @@
 ---
+import { footerGroups } from "../lib/product-links";
 import { getRelativeLocaleUrl } from "astro:i18n";
 import { translator, type Locale } from "../lib/i18n";
 interface Props {
@@ -7,36 +8,7 @@ interface Props {
 const { locale } = Astro.props;
 const t = translator(locale);
 const home = getRelativeLocaleUrl(locale);
-const docs = getRelativeLocaleUrl(locale, "docs/");
-const pricing = getRelativeLocaleUrl(locale, "pricing/");
-const groups = [
-  [
-    "OpenCI",
-    [
-      [t("Flutter向けAPI", "Flutter API"), home + "#apis"],
-      [t("料金", "Pricing"), pricing],
-      [t("ダッシュボード", "Dashboard"), "https://dashboard.openci.org/"],
-      ["OpenCI Studio", "/studio/"],
-    ],
-  ],
-  [
-    t("開発者向け", "Developers"),
-    [
-      [t("始め方", "Quickstart"), home + "#quickstart"],
-      [t("ドキュメント", "Documentation"), docs],
-      ["Dart SDK", "https://pub.dev/packages/openci_workflow"],
-    ],
-  ],
-  [
-    t("リソース", "Resources"),
-    [
-      [t("ブログ", "Blog"), getRelativeLocaleUrl(locale, "blog/")],
-      [t("過去のリリース", "Release archive (Japanese)"), "/ja/releases/"],
-      [t("よくある質問", "FAQ"), pricing + "#faq"],
-      ["GitHub", "https://github.com/openci-org/openci"],
-    ],
-  ],
-] as const;
+const groups = footerGroups(locale);
 ---
 
 <footer class="container product-footer">

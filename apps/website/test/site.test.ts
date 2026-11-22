@@ -2,13 +2,13 @@ import assert from "node:assert/strict";
 import { readFileSync, readdirSync, existsSync, statSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { test } from "node:test";
-import { runInNewContext } from "node:vm";
+import { languageHref } from "../src/lib/language-url.ts";
 import { load } from "cheerio";
 import CanvasKitInit from "canvaskit-wasm/full";
 import { formatRuntimeEstimate } from "../src/lib/pricing.ts";
 const read = (file: string) => readFileSync(file, "utf8");
 const files = (readdirSync("dist", { recursive: true }) as string[]).filter(
-  (f) => /^(en|ja)\/.*index\.html$/.test(f),
+  (f) => /^(en|ja)\/.*index\.html$/.test(f) && !f.startsWith("ja/releases/"),
 );
 const pages = new Map(
   files.map((f) => [
@@ -313,8 +313,13 @@ for (const [route, $] of pages) {
       );
       if (!destination && !target.hash) {
         // Studio and the release archive are built by the companion Next.js workspace.
-        if (existsSync(`../landing_page/app/(ja)${target.pathname}page.tsx`))
+        if (
+          target.pathname.startsWith("/studio/") ||
+          target.pathname.startsWith("/ja/releases/")
+        ) {
+          assert.ok(existsSync(`dist${target.pathname}index.html`));
           continue;
+        }
         const asset = "dist" + decodeURIComponent(target.pathname);
         assert.ok(
           existsSync(asset) && statSync(asset).isFile(),
@@ -449,12 +454,26 @@ for (const [route, $] of pages) {
   }
 }
 for (const locale of ["en", "ja"] as const) {
+  test(`${locale}: Next exports the localized homepage and its workflow demo`, () => {
+    const home = pages.get(`/${locale}/`)!;
+    assert.ok(home('script[src^="/_next/"]').length > 0);
+    assert.equal(
+      home('script[src^="/_astro/"], meta[name=generator][content^=Astro]')
+        .length,
+      0,
+    );
+    assert.equal(home("#playground select option").length, 3);
+    assert.equal(home("#playground button").length, 1);
+    assert.equal(home("#playground [role=status]").length, 1);
+    assert.ok(existsSync(`dist/${locale}/index.txt`));
+    for (const path of ["studio/", "studio/about/", "ja/releases/"]) {
+      assert.ok(existsSync(`dist/${path}index.html`));
+    }
+  });
   test(`${locale}: landing and Docs samples use highlighted, copyable code`, () => {
     const landing = pages.get(`/${locale}/`)!;
     for (const name of ["flutter", "android", "testflight"]) {
-      const sample = landing(
-        `#workflow-${name} pre.astro-code[data-language=dart]`,
-      );
+      const sample = landing(`#workflow-${name} pre[data-language=dart]`);
       assert.equal(sample.length, 1);
       assert.ok(sample.find("code .line").length > 1);
     }
@@ -470,7 +489,7 @@ for (const locale of ["en", "ja"] as const) {
       landing("#workflow-testflight code").text(),
       /ci\.flutter\.deployIpaToTestFlight\(/,
     );
-    assert.equal(landing(".example [data-blog-copy]").length, 3);
+    assert.equal(landing(".example [data-copy-code]").length, 3);
     assert.equal(
       landing('[role="tab"][aria-selected=true]').attr("aria-controls"),
       "workflow-flutter",
@@ -730,45 +749,25 @@ for (const [route, hash, shared] of [
       "https://openci.org" + route + "?source=mail" + hash,
     );
     const $ = pages.get(route)!;
-    const links = $("[data-language-link]")
+    const destinations = $("[data-language-link]")
       .toArray()
-      .map((element) => {
-        let href = $(element).attr("href")!;
-        return {
-          get href() {
-            return new URL(href, location).href;
-          },
-          set href(value: string) {
-            href = value;
-          },
-        };
-      });
-    const events = new Map<string, () => void>();
-    assert.ok(links.length > 0);
-    runInNewContext(read("src/scripts/site.js"), {
-      URL,
-      document: {
-        querySelectorAll: (selector: string) =>
-          selector === "[data-language-link]" ? links : [],
-      },
-      window: {
-        location,
-        addEventListener: (event: string, listener: () => void) =>
-          events.set(event, listener),
-      },
-    });
-    for (const link of links) {
-      const url = new URL(link.href);
-      assert.equal(url.search, "?source=mail");
-      assert.equal(url.hash, shared || url.pathname === route ? hash : "");
+      .map((el) => $(el).attr("href")!);
+    assert.equal(destinations.length, 2);
+    for (const destination of destinations) {
+      const translated = new URL(languageHref(destination, location), location);
+      assert.equal(translated.search, "?source=mail");
+      assert.equal(
+        translated.hash,
+        shared || translated.pathname === route ? hash : "",
+      );
     }
     location.hash = "#another-heading";
-    assert.ok(events.has("hashchange"));
-    events.get("hashchange")!();
-    for (const link of links) {
-      const url = new URL(link.href);
-      assert.equal(url.search, "?source=mail");
-      assert.equal(url.hash, url.pathname === route ? "#another-heading" : "");
+    for (const destination of destinations) {
+      const translated = new URL(languageHref(destination, location), location);
+      assert.equal(
+        translated.hash,
+        translated.pathname === route ? location.hash : "",
+      );
     }
   });
 }
@@ -783,7 +782,7 @@ test("translated articles and docs keep identical executable examples", () => {
 test("root redirect and legacy hosting routes retain their destinations", () => {
   assert.ok(read("dist/index.html").includes("url=/en/"));
   const hosting = JSON.parse(read("firebase.json")).hosting;
-  assert.equal(hosting.public, "build/hosting");
+  assert.equal(hosting.public, "dist");
   const project = JSON.parse(read(".firebaserc")).targets["openci-b1b91"];
   assert.deepEqual(project.hosting[hosting.target], ["openci-b1b91"]);
   assert.deepEqual(

@@ -1,4 +1,5 @@
 ---
+import { navigationLinks } from "../lib/product-links";
 import { getRelativeLocaleUrl } from "astro:i18n";
 import Icon from "./Icon.astro";
 import LanguageSwitcher from "./LanguageSwitcher.astro";
@@ -10,13 +11,7 @@ interface Props {
 const { locale, translations } = Astro.props;
 const t = translator(locale);
 const home = getRelativeLocaleUrl(locale);
-const links = [
-  [home + "#apis", "Flutter API"],
-  [home + "#quickstart", t("始め方", "Quickstart")],
-  [getRelativeLocaleUrl(locale, "pricing/"), t("料金", "Pricing")],
-  [home + "#guides", t("ガイド", "Guides")],
-  [getRelativeLocaleUrl(locale, "blog/"), t("ブログ", "Blog")],
-];
+const links = navigationLinks(locale);
 ---
 
 <header class="product-nav">

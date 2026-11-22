@@ -7,7 +7,7 @@
     "apps/website"
   ],
   "scripts": {
-    "build": "vp run -r build",
+    "build": "vp run --filter '*' --filter '!openci' --filter '!landing-page' build",
     "check": "vp run -r check",
     "fmt": "vp run -r fmt",
     "fmt:check": "vp run -r fmt:check"

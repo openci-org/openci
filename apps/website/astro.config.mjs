@@ -1,4 +1,5 @@
 import { defineConfig } from "astro/config";
+import sitemap from "@astrojs/sitemap";
 import starlight from "@astrojs/starlight";
 import { websiteMarkdown } from "./src/lib/markdown.ts";
 import {
@@ -12,6 +13,15 @@ export default defineConfig({
   output: "static",
   trailingSlash: "always",
   integrations: [
+    sitemap({
+      customPages: locales.map(
+        (locale) => new URL(`/${locale}/`, siteOrigin).href,
+      ),
+      i18n: {
+        defaultLocale,
+        locales: Object.fromEntries(locales.map((locale) => [locale, locale])),
+      },
+    }),
     starlight({
       title: "OpenCI Docs",
       defaultLocale,
