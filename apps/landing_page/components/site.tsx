@@ -300,12 +300,12 @@ export function CicdPage({ lang }: { lang: "en" | "ja" }) {
               >
                 GitHub
               </a>
-              <a
+              <Link
                 href="/studio/"
                 className="text-sm font-normal text-neutral-500 transition-colors hover:text-neutral-950"
               >
                 OpenCI Studio
-              </a>
+              </Link>
               <a
                 href="https://x.com/ma_freud"
                 target="_blank"
@@ -523,20 +523,20 @@ function StudioHeader() {
   return (
     <header className="sticky top-0 z-50 border-b border-neutral-950/6 bg-white/92 py-4 backdrop-blur-md">
       <div className={`${containerClass} flex items-center justify-between gap-6`}>
-        <a
+        <Link
           href="/studio/"
           className="text-lg font-semibold tracking-tight text-neutral-950 transition-opacity hover:opacity-70"
           aria-label="Homepage"
         >
           OpenCI Studio
-        </a>
+        </Link>
         <nav className="flex items-center gap-5 sm:gap-8" aria-label="Studio navigation">
-          <a
+          <Link
             href="/studio/about/"
             className="text-sm font-normal text-neutral-600 transition-colors hover:text-neutral-950"
           >
             会社概要
-          </a>
+          </Link>
           <a
             href={formUrl}
             target="_blank"
@@ -870,13 +870,13 @@ function StudioFooter() {
           />
         </div>
         <div className="mt-10 flex flex-wrap items-center justify-between gap-4 border-t border-neutral-950/6 pt-7">
-          <a
+          <Link
             href="/studio/"
             className="text-lg font-semibold tracking-tight text-neutral-950"
             aria-label="Homepage"
           >
             OpenCI Studio
-          </a>
+          </Link>
           <p className="text-[0.8125rem] text-neutral-400">
             © OpenCI株式会社 {new Date().getFullYear()}
           </p>

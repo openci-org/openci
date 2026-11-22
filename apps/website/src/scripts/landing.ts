@@ -50,7 +50,7 @@ function preference(key: string, value?: string) {
   }
 }
 let theme = preference("theme");
-let pause = preference("paused") === "true";
+const pause = preference("paused") === "true";
 function updateTheme() {
   const dark = theme ? theme === "dark" : systemDark.matches;
   root.dataset.theme = dark ? "dark" : "light";
@@ -66,58 +66,5 @@ systemDark.addEventListener("change", updateTheme);
 updateTheme();
 controls.hidden = false;
 
-const lake = document.querySelector<HTMLImageElement>(".lake-image");
-const surface = document.querySelector<HTMLCanvasElement>(".lake-motion");
-const brush = surface?.getContext("2d");
-if (lake && surface && brush) {
-  let visible = false;
-  let frame = 0;
-  let lastPaint = 0;
-  const paint = (now: number) => {
-    frame = requestAnimationFrame(paint);
-    if (now - lastPaint < 85) return;
-    lastPaint = now;
-    const { width, height } = surface;
-    // The canvas uses the source's coordinates. CSS applies the same cover crop to both layers.
-    const shore = Math.floor(height * 0.69);
-    brush.clearRect(0, shore, width, height - shore);
-    for (let y = shore; y < height; y += 2) {
-      const depth = (y - shore) / (height - shore);
-      const offset = Math.round(Math.sin(y * 0.29 + now / 850) * 3 * depth);
-      brush.drawImage(lake, 4 + offset, y, width - 8, 2, 4, y, width - 8, 2);
-    }
-  };
-  const syncMotion = () => {
-    const still = pause || systemStill.matches;
-    motionButton.disabled = systemStill.matches;
-    motionButton.setAttribute("aria-pressed", String(still));
-    motionButton.firstElementChild!.textContent = still ? "▷" : "Ⅱ";
-    cancelAnimationFrame(frame);
-    surface.hidden = still;
-    if (
-      !still &&
-      visible &&
-      !document.hidden &&
-      lake.complete &&
-      lake.naturalWidth > 0
-    )
-      frame = requestAnimationFrame(paint);
-  };
-  surface.width = Number(lake.getAttribute("width"));
-  surface.height = Number(lake.getAttribute("height"));
-  new IntersectionObserver(([entry]) => {
-    visible = entry!.isIntersecting;
-    syncMotion();
-  }).observe(lake);
-  motionButton.addEventListener("click", () => {
-    pause = !pause;
-    preference("paused", String(pause));
-    syncMotion();
-  });
-  lake.addEventListener("load", syncMotion);
-  systemStill.addEventListener("change", syncMotion);
-  document.addEventListener("visibilitychange", syncMotion);
-  syncMotion();
-} else {
-  motionButton.hidden = true;
-}
+motionButton.hidden = true;
+root.dataset.motion = systemStill.matches || pause ? "paused" : "active";
