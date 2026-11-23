@@ -17,7 +17,8 @@ import { Hero } from "../../../components/landing/Hero";
 import { WorkflowExamples } from "../../../components/landing/WorkflowExamples";
 import { RunJourney } from "../../../components/landing/RunJourney";
 import { Usage } from "../../../components/landing/Usage";
-import { Guides } from "../../../components/landing/Guides";
+import { ClosingBanner, Guides } from "../../../components/landing/Guides";
+import { SpecialThanks } from "../../../components/landing/SpecialThanks";
 import { Footer } from "../../../components/landing/Footer";
 import { workflowCode } from "../../../components/landing/workflow-code";
 
@@ -96,6 +97,8 @@ export default async function ProductHome({ params }: Params) {
         <RunJourney locale={locale} />
         <Usage locale={locale} />
         <Guides locale={locale} />
+        <SpecialThanks locale={locale} />
+        <ClosingBanner locale={locale} />
       </main>
       <Footer locale={locale} />
       <DisplayPreferences locale={locale} />

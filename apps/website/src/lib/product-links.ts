@@ -25,6 +25,7 @@ export function footerGroups(locale: Locale) {
         [t("料金", "Pricing"), pricing],
         [t("ダッシュボード", "Dashboard"), "https://dashboard.openci.org/"],
         ["OpenCI Studio", "/studio/"],
+        ["Special Thanks", home + "thanks/"],
       ],
     ],
     [

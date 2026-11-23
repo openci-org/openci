@@ -265,28 +265,34 @@ export function Guides({ locale }: { locale: Locale }) {
           </div>
         </div>
       </section>
-
-      <section className="container closing-banner" data-reveal="">
-        <h2 className="section-title">
-          {t("最初のFlutterテストを", "Run your first Flutter test")}
-          <br />
-          {t("OpenCIで動かす。", "with OpenCI.")}
-        </h2>
-        <p>
-          {t(
-            "Dartで書いて、Apple Siliconで回す。1分1円のシンプルなCI。",
-            "Write in Dart, run on Apple Silicon, pay 1 cent per minute.",
-          )}
-        </p>
-        <div className="actions">
-          <a className="action primary" href="https://dashboard.openci.org/">
-            {t("ダッシュボードを開く", "Open dashboard")} <Icon name="external" marketing />
-          </a>
-          <a className="action light-outline" href={docs + "quickstart/"}>
-            {t("導入ガイド", "Quickstart guide")}
-          </a>
-        </div>
-      </section>
     </>
+  );
+}
+
+export function ClosingBanner({ locale }: { locale: Locale }) {
+  const t = translator(locale);
+  const docs = `/${locale}/docs/`;
+  return (
+    <section className="container closing-banner" data-reveal="">
+      <h2 className="section-title">
+        {t("最初のFlutterテストを", "Run your first Flutter test")}
+        <br />
+        {t("OpenCIで動かす。", "with OpenCI.")}
+      </h2>
+      <p>
+        {t(
+          "Dartで書いて、Apple Siliconで回す。1分1円のシンプルなCI。",
+          "Write in Dart, run on Apple Silicon, pay 1 cent per minute.",
+        )}
+      </p>
+      <div className="actions">
+        <a className="action primary" href="https://dashboard.openci.org/">
+          {t("ダッシュボードを開く", "Open dashboard")} <Icon name="external" marketing />
+        </a>
+        <a className="action light-outline" href={docs + "quickstart/"}>
+          {t("導入ガイド", "Quickstart guide")}
+        </a>
+      </div>
+    </section>
   );
 }

@@ -9,7 +9,7 @@ function subscribeLocation(callback: () => void) {
   window.addEventListener("hashchange", callback);
   return () => window.removeEventListener("hashchange", callback);
 }
-export function Header({ locale }: { locale: Locale }) {
+export function Header({ locale, path = "" }: { locale: Locale; path?: string }) {
   const t = translator(locale),
     home = `/${locale}/`;
   const details = useRef<HTMLDetailsElement>(null);
@@ -60,7 +60,7 @@ export function Header({ locale }: { locale: Locale }) {
         <div className="nav-actions">
           <nav className="language-switcher" aria-label={t("言語を選択", "Choose language")}>
             {locales.map((lang) => {
-              const target = `/${lang}/`;
+              const target = `/${lang}/${path}`;
               return (
                 <a
                   key={lang}

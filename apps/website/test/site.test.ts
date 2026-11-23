@@ -46,7 +46,15 @@ const fences = (source: string) =>
 test("all content and localized landing pages are built", () => {
   assert.deepEqual(
     new Set(pages.keys()),
-    new Set(["/en/", "/ja/", "/en/pricing/", "/ja/pricing/", ...contentRoutes]),
+    new Set([
+      "/en/",
+      "/ja/",
+      "/en/pricing/",
+      "/ja/pricing/",
+      "/en/thanks/",
+      "/ja/thanks/",
+      ...contentRoutes,
+    ]),
   );
 });
 test("Starlight retains all sixteen documentation URLs and indexes both languages", () => {
@@ -610,6 +618,7 @@ for (const locale of ["en", "ja"] as const) {
       "apis",
       "quickstart",
       "guides",
+      "special-thanks",
     ]) {
       assert.equal($("#" + id).length, 1);
     }
@@ -741,6 +750,7 @@ test("all Shiki colors have matching CSS variables", () => {
 for (const [route, hash, shared] of [
   ["/ja/", "#pricing", true],
   ["/ja/", "#quickstart", true],
+  ["/ja/", "#special-thanks", true],
   ["/en/pricing/", "#comparison", true],
   ["/en/blog/v2-3-0/", "#article-heading", false],
 ] as const) {
