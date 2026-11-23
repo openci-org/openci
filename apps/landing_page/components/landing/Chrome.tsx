@@ -9,9 +9,10 @@ function subscribeLocation(callback: () => void) {
   window.addEventListener("hashchange", callback);
   return () => window.removeEventListener("hashchange", callback);
 }
-export function Header({ locale }: { locale: Locale }) {
+export function Header({ locale, path = "" }: { locale: Locale; path?: string }) {
   const t = translator(locale),
-    home = `/${locale}/`;
+    home = `/${locale}/`,
+    current = `/${locale}/${path}`;
   const details = useRef<HTMLDetailsElement>(null);
   const location = useSyncExternalStore(
     subscribeLocation,
@@ -52,7 +53,7 @@ export function Header({ locale }: { locale: Locale }) {
         </a>
         <nav className="desktop-links" aria-label={t("メインナビゲーション", "Main navigation")}>
           {links.map(([href, label]) => (
-            <a key={href} href={href}>
+            <a key={href} href={href} aria-current={href === current ? "page" : undefined}>
               {label}
             </a>
           ))}
@@ -60,7 +61,7 @@ export function Header({ locale }: { locale: Locale }) {
         <div className="nav-actions">
           <nav className="language-switcher" aria-label={t("言語を選択", "Choose language")}>
             {locales.map((lang) => {
-              const target = `/${lang}/`;
+              const target = `/${lang}/${path}`;
               return (
                 <a
                   key={lang}
@@ -90,7 +91,7 @@ export function Header({ locale }: { locale: Locale }) {
             >
               {[...links, ["https://dashboard.openci.org/", t("ダッシュボード", "Dashboard")]].map(
                 ([href, label]) => (
-                  <a key={href} href={href}>
+                  <a key={href} href={href} aria-current={href === current ? "page" : undefined}>
                     {label}
                     <Icon name="external" marketing />
                   </a>

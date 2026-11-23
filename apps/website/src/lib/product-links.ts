@@ -9,6 +9,7 @@ export function navigationLinks(locale: Locale) {
     [home + "pricing/", t("料金", "Pricing")],
     [home + "docs/", t("ドキュメント", "Docs")],
     [home + "blog/", t("ブログ", "Blog")],
+    [home + "thanks/", "Special Thanks"],
   ] as const;
 }
 
@@ -25,6 +26,7 @@ export function footerGroups(locale: Locale) {
         [t("料金", "Pricing"), pricing],
         [t("ダッシュボード", "Dashboard"), "https://dashboard.openci.org/"],
         ["OpenCI Studio", "/studio/"],
+        ["Special Thanks", home + "thanks/"],
       ],
     ],
     [

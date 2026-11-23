@@ -15,6 +15,10 @@ const sharedAnchors = new Set([
   "get-started",
   "start",
   "guides",
+  "special-thanks",
+  "sponsors",
+  "machines",
+  "infrastructure",
   "write-dart",
   "open-source",
 ]);

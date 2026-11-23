@@ -134,11 +134,12 @@
   gap: 15px;
 }
 .desktop-links {
-  gap: 27px;
+  gap: clamp(16px, 2.2vw, 27px);
 }
 .desktop-links a,
 .product-nav .language-switcher {
   font: 12px/1.4 var(--mono);
+  white-space: nowrap;
 }
 .product-nav .language-switcher {
   display: flex;
