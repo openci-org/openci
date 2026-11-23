@@ -11,7 +11,8 @@ function subscribeLocation(callback: () => void) {
 }
 export function Header({ locale, path = "" }: { locale: Locale; path?: string }) {
   const t = translator(locale),
-    home = `/${locale}/`;
+    home = `/${locale}/`,
+    current = `/${locale}/${path}`;
   const details = useRef<HTMLDetailsElement>(null);
   const location = useSyncExternalStore(
     subscribeLocation,
@@ -52,7 +53,7 @@ export function Header({ locale, path = "" }: { locale: Locale; path?: string })
         </a>
         <nav className="desktop-links" aria-label={t("メインナビゲーション", "Main navigation")}>
           {links.map(([href, label]) => (
-            <a key={href} href={href}>
+            <a key={href} href={href} aria-current={href === current ? "page" : undefined}>
               {label}
             </a>
           ))}
@@ -90,7 +91,7 @@ export function Header({ locale, path = "" }: { locale: Locale; path?: string })
             >
               {[...links, ["https://dashboard.openci.org/", t("ダッシュボード", "Dashboard")]].map(
                 ([href, label]) => (
-                  <a key={href} href={href}>
+                  <a key={href} href={href} aria-current={href === current ? "page" : undefined}>
                     {label}
                     <Icon name="external" marketing />
                   </a>

@@ -9,6 +9,7 @@ export function navigationLinks(locale: Locale) {
     [home + "pricing/", t("料金", "Pricing")],
     [home + "docs/", t("ドキュメント", "Docs")],
     [home + "blog/", t("ブログ", "Blog")],
+    [home + "thanks/", "Special Thanks"],
   ] as const;
 }
 
