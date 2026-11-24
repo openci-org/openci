@@ -1,5 +1,6 @@
 {
   "cli": {
+    "mcpDescription": "ビルド調査用のローカルMCPサーバーを起動します。",
     "description": "OpenCI - CI/CD およびシークレット管理コマンドラインツール",
     "version": "openci バージョン: ${version}",
     "flags": {
