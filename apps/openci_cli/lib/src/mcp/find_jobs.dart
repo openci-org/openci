@@ -132,7 +132,7 @@ Map<String, Object?> _jobSummary(Map job) => {
   'commit_sha': job['commit_sha'],
   'matrix_label': ?job['matrix_label'],
   'latest_run_id': ?job['latest_run_id'],
-  if (job['retry_count'] case final int count when count > 0)
+  if (job['retry_count'] case final int count when count >= 0)
     'retry_count': count,
   if (job['recent_runs'] case final List runs when runs.length > 1)
     'recent_runs': runs,
