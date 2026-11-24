@@ -36,6 +36,30 @@ The remote commands work from any directory. Local development commands require
 an [OpenCI checkout](https://github.com/openci-org/openci) and the services
 described below.
 
+## Investigate CI failures from Codex
+
+With CLI 0.9.0 or later, log in to OpenCI and register its local MCP server once.
+
+```sh
+openci login
+codex mcp add openci -- openci mcp
+```
+
+Open a new Codex chat and paste a GitHub PR URL with a request such as “Which
+step failed, and what did its log say?” Codex starts the CLI over stdio. Each
+read uses your current OpenCI team. Change it with `openci switch team`.
+
+- `find_jobs` accepts a PR URL, optionally with its full commit SHA, or a
+  repository and full SHA. For GitHub Enterprise use the HTTPS repository URL.
+  Follow `next_cursor` for more results, including after an empty page.
+- `get_job_logs` accepts the returned `job_id`. It returns the failed step, a
+  short excerpt and, on hosted OpenCI, a dashboard link. To read more, pass
+  the returned `run_id` with a cursor. To inspect a retry, use its stored
+  OpenCI run ID. Search can include up to three recent attempts when the
+  server has the search query installed.
+
+Run `openci sync` in your workflow checkout when you want to update generated files.
+
 ## Shell completion
 
 Bash and Zsh completion is provided by `cli_completion`. Completion scripts are

@@ -1,3 +1,9 @@
+## 0.9.0
+
+- Add `openci mcp`, a local MCP server that uses the active CLI login and team.
+  Find CI jobs by GitHub pull request or commit and read a failed step's logs,
+  including logs from a specific retry.
+
 ## 0.8.0
 
 - Install `openci_cli_plus` with `dart install openci_cli_plus` and run `openci`

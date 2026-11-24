@@ -34,7 +34,14 @@ void main() {
       expect(init.serverInfo.name, 'openci');
       connection.notifyInitialized();
       final tools = await connection.listTools(ListToolsRequest());
-      expect(tools.tools.map((t) => t.name), contains('get_job_logs'));
+      expect(
+        tools.tools.map((t) => t.name),
+        unorderedEquals(['find_jobs', 'get_job_logs']),
+      );
+      final badSearch = await connection.callTool(
+        CallToolRequest(name: 'find_jobs', arguments: {'commit_sha': 'short'}),
+      );
+      expect(badSearch.isError, isTrue);
       final invalid = await connection.callTool(
         CallToolRequest(name: 'get_job_logs', arguments: {}),
       );
