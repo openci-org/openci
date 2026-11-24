@@ -20,12 +20,10 @@ Future<void> main() async {
     currentWorkingDirectory: WorkspacePaths.root.apps.openciCli,
   );
 
-  if (ci.context case PushContext(branch: 'develop')) {
-    await ci.dart.analyze();
-    await ci.dart.test();
-    await ci.dart.publishToPubDev(
-      serviceAccountJsonBase64: Secrets.pubDevServiceAccountJsonBase64.value,
-      skipIfPublished: true,
-    );
-  }
+  await ci.dart.analyze();
+  await ci.dart.test();
+  await ci.dart.publishToPubDev(
+    serviceAccountJsonBase64: Secrets.pubDevServiceAccountJsonBase64.value,
+    skipIfPublished: true,
+  );
 }
