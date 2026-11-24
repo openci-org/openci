@@ -13,7 +13,7 @@ import {
   secretUrl,
   stopCloudRunExecution,
 } from "../../lib/functions/executor/google.js";
-import { ExecutionGitHub } from "../../lib/functions/executor/github.js";
+import { buildGitHub, ExecutionGitHub } from "../../lib/functions/executor/github.js";
 import { qrPublicationFailure } from "../../lib/functions/executor/pull_request_qr.js";
 
 const dispatch = {
@@ -921,6 +921,7 @@ for (const retryCount of [0, 1]) {
         });
       if (path === "/repos/org/app/check-runs") {
         posts++;
+        states.push(body);
         assert.equal(body.status, "queued");
         assert.equal(body.external_id, externalId);
         throw new Error("lost response");
@@ -930,11 +931,9 @@ for (const retryCount of [0, 1]) {
       states.push(body);
       return Response.json({ id: 42 });
     });
-    const github = new ExecutionGitHub({
-      appId: "1",
-      privateKey,
-      apiBaseUrl: "https://api.github.com",
-      baseUrl: "https://github.com",
+    const github = buildGitHub({
+      GITHUB_APP_ID: "1",
+      GITHUB_APP_PRIVATE_KEY: privateKey,
     });
     const signal = AbortSignal.timeout(10000);
     await assert.rejects(github.queuedCheck(queuedJob, externalId, null, "10", signal));
@@ -952,17 +951,50 @@ for (const retryCount of [0, 1]) {
     assert.equal(posts, 1);
     assert.deepEqual(
       states.map((state) => state.status),
-      ["queued", "queued", "in_progress", "completed"],
+      ["queued", "queued", "queued", "in_progress", "completed"],
     );
     assert.equal(states.at(-1).conclusion, "success");
     await github.queuedCheck({ ...queuedJob, status: "CANCELLED" }, externalId, id, "10", signal);
     assert.equal(states.at(-1).conclusion, "cancelled");
+    for (const state of states) {
+      assert.equal(state.details_url, "https://dashboard.openci.org/runs/job");
+    }
     await assert.rejects(
       github.queuedCheck(queuedJob, externalId, id, "99", signal),
       /connected installation/,
     );
   });
 }
+
+test("check details respect the deployment dashboard and encode the job ID as one segment", async (t) => {
+  const jobWithLegacyId = { ...job, id: "job/1?#(matrix)" };
+  const reserved = { ...dispatch, checkRunId: "42" };
+  for (const [environment, expected] of [
+    [
+      {
+        OPENCI_DASHBOARD_ORIGIN: "https://ci.example",
+        BILLING_DASHBOARD_ORIGIN: "https://billing.example",
+      },
+      "https://ci.example/runs/job%2F1%3F%23%28matrix%29",
+    ],
+    [
+      { BILLING_DASHBOARD_ORIGIN: "https://billing.example" },
+      "https://billing.example/runs/job%2F1%3F%23%28matrix%29",
+    ],
+    [{ OPENCI_SELF_HOSTED: "true" }, undefined],
+    [{ OPENCI_DASHBOARD_ORIGIN: "http://ci.example" }, undefined],
+  ]) {
+    const github = buildGitHub({
+      GITHUB_APP_ID: "1",
+      GITHUB_APP_PRIVATE_KEY: "fixture",
+      ...environment,
+    });
+    const request = t.mock.fn(async () => ({}));
+    t.mock.method(github, "client", async () => ({ request }));
+    await github.check(jobWithLegacyId, reserved);
+    assert.equal(request.mock.calls[0].arguments[1].details_url, expected);
+  }
+});
 
 test("PR execution revalidates repository IDs and pinned SHA with a separate revoked read token", async (t) => {
   const { privateKey } = generateKeyPairSync("rsa", {

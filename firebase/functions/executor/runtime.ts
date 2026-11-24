@@ -13,6 +13,7 @@ import { functionsCdSecretReferences } from "./functions_cd_secrets.js";
 import type { ExecutorDependencies } from "./execute.js";
 import { ExecutionStopped, identity } from "./model.js";
 import { selfHostedMode } from "../deployment_mode.js";
+import { dashboardOrigin } from "../links.js";
 
 export function runtime(
   environment: NodeJS.ProcessEnv,
@@ -54,6 +55,7 @@ export function runtime(
     privateKey: required("GITHUB_APP_PRIVATE_KEY"),
     apiBaseUrl: environment.GITHUB_API_BASE_URL ?? "https://api.github.com",
     billingOrigin: environment.BILLING_DASHBOARD_ORIGIN,
+    dashboardOrigin: dashboardOrigin(environment),
     baseUrl: environment.GITHUB_BASE_URL ?? "https://github.com",
   });
   const orchard = new OrchardExecutor({

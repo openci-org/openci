@@ -84,6 +84,7 @@ function fixture(t) {
     privateKey: "fixture",
     apiBaseUrl: "https://git.example/api/v3",
     baseUrl: job.githubBaseUrl,
+    dashboardOrigin: "https://dash.example",
   });
   // Use the production REST routes and publication/ownership checks; only the
   // transport and the isolated repository are in memory.
@@ -131,8 +132,7 @@ function fixture(t) {
     tokens++;
     return { request, token: "fixture" };
   });
-  const report = () =>
-    reportCompletedPullRequest(job.id, current.latest.id, store, github, "https://dash.example");
+  const report = () => reportCompletedPullRequest(job.id, current.latest.id, store, github);
   function next(outcome, commit = current.job.commitSha) {
     current.latest = {
       ...current.latest,

@@ -4,6 +4,7 @@ import type {
   GetPullRequestFailureLogData,
 } from "@openci/dispatch-admin";
 import { inlineCode } from "./executor/pull_request_comment.js";
+import { dashboardRunUrl, urlSegment } from "./links.js";
 
 type Job = NonNullable<GetPullRequestCommentExecutionData["job"]>;
 type Attempt = NonNullable<GetPullRequestCommentExecutionData["latest"]>;
@@ -119,10 +120,6 @@ function failureDetails(run: Log) {
   };
 }
 
-function urlSegment(value: string) {
-  return encodeURIComponent(value).replaceAll("(", "%28").replaceAll(")", "%29");
-}
-
 function repositoryUrl(job: Job) {
   return `${job.githubBaseUrl ?? "https://github.com"}/${encodeURIComponent(job.owner)}/${encodeURIComponent(job.repo)}`;
 }
@@ -196,11 +193,10 @@ export async function failedPullRequestComment(
     if (attempt.failureSummary) section.push(inlineCode(attempt.failureSummary.slice(0, 500)));
     else if (errors.length) section.push(errors.map((s) => inlineCode(s)).join("  \n"));
   }
-  const origin = dashboardOrigin && URL.canParse(dashboardOrigin) ? new URL(dashboardOrigin) : null;
-  const link =
-    origin?.protocol === "https:" && !origin.username && !origin.password
-      ? `[OpenCI で実行ログを見る](${origin.origin}/runs/${urlSegment(job.id)})`
-      : checkLink(job, attempt.checkRunId, "GitHub でチェックを見る");
+  const runUrl = dashboardRunUrl(dashboardOrigin, job.id);
+  const link = runUrl
+    ? `[OpenCI で実行ログを見る](${runUrl})`
+    : checkLink(job, attempt.checkRunId, "GitHub でチェックを見る");
   if (link) section.push(link);
   return section.join("\n\n");
 }

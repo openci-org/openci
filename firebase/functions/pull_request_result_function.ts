@@ -3,7 +3,6 @@ import { error, warn } from "firebase-functions/logger";
 import { defineSecret } from "firebase-functions/params";
 import { validJobId } from "./build_dispatch.js";
 import { dataConnectServiceId } from "./data_connect_config.js";
-import { selfHostedMode } from "./deployment_mode.js";
 import { getDispatchDataConnect } from "./dispatch_store.js";
 import { buildGitHub, type ExecutionGitHub } from "./executor/github.js";
 import { ExecutionStore } from "./executor/store.js";
@@ -23,7 +22,6 @@ export async function reportCompletedPullRequest(
   dispatchId: string,
   store: Store,
   github: Pick<ExecutionGitHub, "options" | "postPullRequestResult">,
-  dashboardOrigin?: string,
 ) {
   const { job, latest } = await store.pullRequestCommentExecution(jobId);
   if (
@@ -66,7 +64,7 @@ export async function reportCompletedPullRequest(
       const logs = latest.runId
         ? await store.pullRequestFailureLog(jobId, latest.runId)
         : undefined;
-      return failedPullRequestComment(job, latest, logs, files, dashboardOrigin);
+      return failedPullRequestComment(job, latest, logs, files, github.options.dashboardOrigin);
     },
     [job.workflowJobKey ?? "", job.matrixLabel ?? ""],
   );
@@ -104,16 +102,11 @@ export const reportPullRequestBuildResult = onMutationExecuted(
         !validJobId(variables.id)
       )
         throw new Error("Invalid completed execution");
-      const dashboard =
-        process.env.OPENCI_DASHBOARD_ORIGIN ||
-        process.env.BILLING_DASHBOARD_ORIGIN ||
-        (selfHostedMode() ? undefined : "https://dashboard.openci.org");
       await reportCompletedPullRequest(
         variables.jobId,
         variables.id,
         new ExecutionStore(getDispatchDataConnect()),
         buildGitHub(),
-        dashboard,
       );
     } catch (cause) {
       // Installation removal and insufficient App permissions are permanent for this
