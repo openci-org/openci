@@ -39,3 +39,14 @@ function getBuildJob(dcOrVarsOrOptions, varsOrOptions, options) {
   return dcInstance.executeQuery("GetBuildJob", inputVars, inputOpts);
 }
 exports.getBuildJob = getBuildJob;
+
+function findBuildJobs(dcOrVarsOrOptions, varsOrOptions, options) {
+  const {
+    dc: dcInstance,
+    vars: inputVars,
+    options: inputOpts,
+  } = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeQuery("FindBuildJobs", inputVars, inputOpts);
+}
+exports.findBuildJobs = findBuildJobs;

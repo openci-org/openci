@@ -65,3 +65,45 @@ fragment BuildJobFields on BuildJob {
   failureSummary
   failureSummaryStatus
 }
+
+# Search within the selected team. GitHub names are case-insensitive and older
+# github.com jobs omit github_base_url. Each retry has its own stored run ID.
+query FindBuildJobs(
+  $teamId: String!
+  $githubBaseUrl: String!
+  $owner: String!
+  $repo: String!
+  $pullRequestNumber: Int64! = 0
+  $commitSha: String! = ""
+  $limit: Int! = 21
+  $offset: Int! = 0
+)
+@auth(
+  expr: "auth != null && auth.token.firebase.sign_in_provider != 'anonymous' && vars.limit >= 1 && vars.limit <= 21 && vars.offset >= 0 && int(vars.pullRequestNumber) >= 0 && (int(vars.pullRequestNumber) > 0 || vars.commitSha != '')"
+) {
+  teamMembers(where: { teamId: { eq: $teamId }, userId: { eq_expr: "auth.uid" } }, limit: 1)
+    @redact
+    @check(expr: "size(this) == 1", message: "Team access denied") {
+    id
+  }
+  jobs: _select(
+    sql: """
+    SELECT j.id AS job_id, j.workflow_name AS workflow, j.matrix_label, j.status, j.commit_sha,
+           j.pull_request_number::text AS pr_number, j.retry_count, j.latest_run_id,
+           ARRAY(
+             SELECT json_build_object('run_id', r.id, 'status', r.status, 'conclusion', r.conclusion)
+             FROM build_runs AS r WHERE r.build_job_id = j.id
+             ORDER BY r.created_at DESC, r.run_number DESC NULLS LAST, r.id DESC LIMIT 3
+           ) AS recent_runs
+    FROM build_jobs AS j
+    WHERE j.team_id = $1
+      AND lower(coalesce(nullif(rtrim(j.github_base_url, '/'), ''), 'https://github.com')) = lower($2::text)
+      AND lower(j.owner) = lower($3::text) AND lower(j.repo) = lower($4::text)
+      AND ($5::bigint = 0 OR j.pull_request_number = $5::bigint)
+      AND ($6::text = '' OR j.commit_sha = $6::text)
+    ORDER BY j.created_at DESC, j.id DESC
+    LIMIT $7::int OFFSET $8::int
+    """
+    params: [$teamId, $githubBaseUrl, $owner, $repo, $pullRequestNumber, $commitSha, $limit, $offset]
+  )
+}
