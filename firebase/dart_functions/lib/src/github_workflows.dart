@@ -14,6 +14,10 @@ final _workflowFile = RegExp(r'^(?:[A-Za-z0-9_-]+/)*[A-Za-z0-9_.-]+\.dart$');
 final _workflowDirectory = RegExp(r'^[A-Za-z0-9_-]+(?:/[A-Za-z0-9_-]+)*$');
 const _supportDirectories = {'generated', 'lib', 'test', 'tool'};
 
+bool isWorkflowSourcePath(String path) =>
+    _workflowFile.hasMatch(path) &&
+    !_supportDirectories.contains(path.split('/').first);
+
 class GitHubWorkflows {
   GitHubWorkflows({
     required this.client,
@@ -347,16 +351,17 @@ class GitHubWorkflows {
         final name = entry['path'];
         if (name is! String) throw StateError('Invalid GitHub tree path');
         final path = '${directory.prefix}$name';
-        if (_supportDirectories.contains(path.split('/').first)) continue;
         if (entry['type'] == 'tree') {
-          if (walkChildren && _workflowDirectory.hasMatch(path)) {
+          if (walkChildren &&
+              _workflowDirectory.hasMatch(path) &&
+              !_supportDirectories.contains(path.split('/').first)) {
             pending.add((prefix: '$path/', sha: entry['sha']));
           }
           continue;
         }
         if (entry['type'] != 'blob' ||
             (entry['mode'] != '100644' && entry['mode'] != '100755') ||
-            !_workflowFile.hasMatch(path)) {
+            !isWorkflowSourcePath(path)) {
           continue;
         }
         final size = entry['size'];
