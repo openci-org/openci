@@ -141,6 +141,23 @@ ref.execute();
 ref.subscribe(...);
 ```
 
+### FindBuildJobs
+
+Search the selected team's jobs by GitHub pull request number or full commit SHA. Supply both to select a particular revision of a PR. The response includes job IDs, status, and stored run IDs for up to three recent attempts.
+
+```dart
+final search = BuildsConnector.instance.findBuildJobs(
+  teamId: teamId,
+  githubBaseUrl: 'https://github.com',
+  owner: owner,
+  repo: repo,
+);
+final result = await search.pullRequestNumber(BigInt.from(42)).limit(20).execute();
+final jobs = result.data.jobs;
+```
+
+Use `commitSha(sha)` for a commit search. Supply `offset(offset)` to request the next page. The query accepts up to 21 jobs per page.
+
 ## Mutations
 
 ### RetryBuildJob

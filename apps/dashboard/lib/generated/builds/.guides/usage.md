@@ -1,24 +1,22 @@
 # Basic Usage
 
 ```dart
-BuildsConnector.instance.retryBuildJob(id: jobId, expectedRetryCount: retryCount).execute();
-BuildsConnector.instance.GetBuildJobs(getBuildJobsVariables).execute();
-BuildsConnector.instance.GetBuildJob(getBuildJobVariables).execute();
-
+final builds = BuildsConnector.instance;
+await builds.getBuildJobs(teamId: teamId).execute();
+await builds.getBuildJob(id: jobId).execute();
+await builds.retryBuildJob(id: jobId, expectedRetryCount: retryCount).execute();
 ```
 
-## Optional Fields
+## Find jobs by pull request or commit
 
-Some operations may have optional fields. In these cases, the Flutter SDK exposes a builder method, and will have to be set separately.
-
-Optional fields can be discovered based on classes that have `Optional` object types.
-
-This is an example of a mutation with an optional field:
+Pass a pull request number, a full commit SHA, or both to `findBuildJobs` before calling `execute()`.
 
 ```dart
-await BuildsConnector.instance.GetBuildJobs({ ... })
-.offset(...)
-.execute();
+final search = BuildsConnector.instance.findBuildJobs(
+  teamId: teamId,
+  githubBaseUrl: 'https://github.com',
+  owner: owner,
+  repo: repo,
+);
+final result = await search.pullRequestNumber(BigInt.from(42)).execute();
 ```
-
-Note: the above example is a mutation, but the same logic applies to query operations as well. Additionally, `createMovie` is an example, and may not be available to the user.

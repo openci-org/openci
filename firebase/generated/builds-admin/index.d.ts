@@ -94,6 +94,21 @@ export interface BuildStep_Key {
   __typename?: "BuildStep_Key";
 }
 
+export interface FindBuildJobsData {
+  jobs?: unknown[] | null;
+}
+
+export interface FindBuildJobsVariables {
+  teamId: string;
+  githubBaseUrl: string;
+  owner: string;
+  repo: string;
+  pullRequestNumber?: Int64String;
+  commitSha?: string;
+  limit?: number;
+  offset?: number;
+}
+
 export interface GetBuildJobData {
   job?: {
     teamId?: string | null;
@@ -281,3 +296,15 @@ export function getBuildJob(
   vars: GetBuildJobVariables,
   options?: OperationOptions,
 ): Promise<ExecuteOperationResponse<GetBuildJobData>>;
+
+/** Generated Node Admin SDK operation action function for the 'FindBuildJobs' Query. Allow users to execute without passing in DataConnect. */
+export function findBuildJobs(
+  dc: DataConnect,
+  vars: FindBuildJobsVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<FindBuildJobsData>>;
+/** Generated Node Admin SDK operation action function for the 'FindBuildJobs' Query. Allow users to pass in custom DataConnect instances. */
+export function findBuildJobs(
+  vars: FindBuildJobsVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<FindBuildJobsData>>;
