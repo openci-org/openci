@@ -240,6 +240,7 @@ class DataConnectPlanningStore implements PlanningStore {
                 .toString(),
             'name': job.workflowName,
             'file': job.workflowFileName,
+            'runsOn': job.runsOn,
             'cancelPreviousRuns': plan.autoCancelWorkflowFiles.contains(
               job.workflowFileName,
             ),

@@ -93,7 +93,7 @@ WorkflowPlan planJobs({
         commitMessage: event.commitMessage,
         pullRequestNumber: event.pullRequestNumber,
         branch: event.branch,
-        runsOn: 'macos-latest',
+        runsOn: workflow.machine.runsOn,
         installationId: event.installationId.toString(),
       ),
     );

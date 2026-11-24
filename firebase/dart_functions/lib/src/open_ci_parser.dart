@@ -3,7 +3,8 @@ import 'package:analyzer/dart/ast/ast.dart';
 import 'package:analyzer/dart/ast/visitor.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:glob/glob.dart';
-import 'package:openci_workflow/openci_workflow.dart' show FlutterVersion;
+import 'package:openci_workflow/openci_workflow.dart'
+    show FlutterVersion, MachineType;
 import 'package:path/path.dart' as p;
 
 part 'open_ci_parser.freezed.dart';
@@ -21,6 +22,7 @@ abstract class ParsedWorkflow with _$ParsedWorkflow {
     required String workflowFileName,
     required String workflowName,
     required List<ParsedCITrigger> ciTriggers,
+    @Default(MachineType.macOsLatest) MachineType machine,
     @Default(false) bool cancelPreviousRuns,
     String? flutterVersion,
   }) = _ParsedWorkflow;
@@ -124,6 +126,7 @@ class _OpenCIInitVisitor extends RecursiveAstVisitor<void> {
   void _extractFromInitArgs(ArgumentList argumentList) {
     String? workflowName;
     List<ParsedCITrigger>? ciTriggers;
+    var machine = MachineType.macOsLatest;
     var cancelPreviousRuns = false;
     String? flutterVersion;
 
@@ -136,6 +139,8 @@ class _OpenCIInitVisitor extends RecursiveAstVisitor<void> {
           workflowName = _extractStringValue(expression);
         } else if (paramName == 'ciTriggers') {
           ciTriggers = _extractTriggers(expression);
+        } else if (paramName == 'machine') {
+          machine = _extractMachine(expression);
         } else if (paramName == 'cancelPreviousRuns') {
           if (expression is! BooleanLiteral) {
             throw WorkflowConfigurationException(
@@ -164,10 +169,36 @@ class _OpenCIInitVisitor extends RecursiveAstVisitor<void> {
         workflowFileName: fileName,
         workflowName: workflowName,
         ciTriggers: ciTriggers,
+        machine: machine,
         cancelPreviousRuns: cancelPreviousRuns,
         flutterVersion: flutterVersion,
       );
     }
+  }
+
+  MachineType _extractMachine(Expression expression) {
+    final name = switch (expression.unParenthesized) {
+      PrefixedIdentifier(
+        prefix: SimpleIdentifier(name: 'MachineType'),
+        :final identifier,
+      ) =>
+        identifier.name,
+      PropertyAccess(
+        target: PrefixedIdentifier(
+          identifier: SimpleIdentifier(name: 'MachineType'),
+        ),
+        :final propertyName,
+      ) =>
+        propertyName.name,
+      DotShorthandPropertyAccess(:final propertyName) => propertyName.name,
+      _ => null,
+    };
+    // Existing workflows can select macOS through a variable the planner cannot resolve.
+    if (name == null) return MachineType.macOsLatest;
+    return MachineType.values.asNameMap()[name] ??
+        (throw WorkflowConfigurationException(
+          '$fileName: unknown MachineType.$name',
+        ));
   }
 
   String? _extractFlutterVersion(Expression expression) {
