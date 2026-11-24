@@ -4,7 +4,7 @@ Future<void> main() async {
   final ci = await OpenCI.init(
     workflowName: 'Android Emulator E2E A',
     machine: MachineType.linuxLatest,
-    ciTriggers: [CITrigger.push(branch: 'pilot/android-emulator-linux')],
+    ciTriggers: [CITrigger.push(branch: 'pilot/scaleway-android-e2e-20261125')],
   );
   await ci.run('bash openci/tool/android_emulator_smoke/run.sh');
 }
