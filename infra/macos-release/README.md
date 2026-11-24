@@ -39,7 +39,7 @@ source trees, logs, signing files, service-account keys, or private metadata.
 Use the **openci** team (`0addadaa-fe73-4595-b0c4-6f978a6d48e6`) in project
 `openci-b1b91`. The selected local CLI team may belong to a customer; verify it
 before registering credentials. Values are injected through secret references in
-`openci/dashboard_macos_cd.dart` and must never be interpolated in shell commands.
+`openci/dashboard/macos/publish.dart` and must never be interpolated in shell commands.
 
 Required names:
 

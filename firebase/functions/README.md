@@ -98,7 +98,7 @@ upgrading the stack or switching execution paths.
 
 ## Local checks
 
-`openci/firebase_functions_ci.dart` runs the Functions formatting, lint,
+`openci/firebase/functions_ci.dart` runs the Functions formatting, lint,
 TypeScript, Node and Vitest checks on matching pull requests and pushes to
 `develop`. Changes to Functions, generated Admin SDKs, or their dependency and
 runtime configuration trigger it. The macOS CI image provides the Node.js version

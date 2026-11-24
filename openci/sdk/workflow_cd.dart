@@ -1,27 +1,24 @@
 import 'package:openci_workflow/openci_workflow.dart';
 
-import 'generated/paths.g.dart';
-import 'generated/secrets.g.dart';
+import '../generated/paths.g.dart';
+import '../generated/secrets.g.dart';
 
 Future<void> main() async {
   final ci = await OpenCI.init(
-    workflowName: 'OpenCI CLI CD',
+    workflowName: 'OpenCI Workflow CD',
     flutterVersion: FlutterVersion.v3_47_8.value,
     ciTriggers: [
       CITrigger.push(
         branch: 'develop',
         paths: [
-          'apps/openci_cli/pubspec.yaml',
-          'apps/openci_cli/CHANGELOG.md',
-          'openci/openci_cli_cd.dart',
+          'packages/openci_workflow/pubspec.yaml',
+          'packages/openci_workflow/CHANGELOG.md',
         ],
       ),
     ],
-    currentWorkingDirectory: WorkspacePaths.root.apps.openciCli,
+    currentWorkingDirectory: WorkspacePaths.root.packages.openciWorkflow,
   );
 
-  await ci.dart.analyze();
-  await ci.dart.test();
   await ci.dart.publishToPubDev(
     serviceAccountJsonBase64: Secrets.pubDevServiceAccountJsonBase64.value,
     skipIfPublished: true,

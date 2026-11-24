@@ -1,7 +1,7 @@
 import 'package:openci_workflow/openci_workflow.dart';
 
-import 'generated/paths.g.dart';
-import 'lib/virtual_ble_checks.dart';
+import '../generated/paths.g.dart';
+import '../lib/virtual_ble_checks.dart';
 
 Future<void> main() async {
   final ci = await OpenCI.init(
@@ -17,8 +17,8 @@ Future<void> main() async {
           'packages/openci_workflow/integration_test/**',
           'packages/openci_virtual_ble/**',
           'openci/lib/virtual_ble_checks.dart',
-          'openci/virtual_ble_ci.dart',
-          'openci/openci_workflow_cd.dart',
+          'openci/sdk/virtual_ble_ci.dart',
+          'openci/sdk/workflow_cd.dart',
           '**/pubspec.yaml',
           'pubspec.yaml',
           'pubspec.lock',
@@ -31,8 +31,8 @@ Future<void> main() async {
           'packages/openci_workflow/integration_test/**',
           'packages/openci_virtual_ble/**',
           'openci/lib/virtual_ble_checks.dart',
-          'openci/virtual_ble_ci.dart',
-          'openci/openci_workflow_cd.dart',
+          'openci/sdk/virtual_ble_ci.dart',
+          'openci/sdk/workflow_cd.dart',
           '**/pubspec.yaml',
           'pubspec.yaml',
           'pubspec.lock',

@@ -56,7 +56,7 @@ try {
 }
 ```
 
-`launchIosSimulator()` waits until the new simulator has booted. If the test fails, the `finally` block still shuts down and deletes the simulator, and the workflow reports the test failure. [Full example from the OpenCI dashboard](https://github.com/openci-org/openci/blob/develop/openci/dashboard_ios_patrol_ci.dart)
+`launchIosSimulator()` waits until the new simulator has booted. If the test fails, the `finally` block still shuts down and deletes the simulator, and the workflow reports the test failure. [Full example from the OpenCI dashboard](https://github.com/openci-org/openci/blob/develop/openci/dashboard/ios/patrol.dart)
 
 ## Build for Android
 

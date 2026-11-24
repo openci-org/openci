@@ -1,6 +1,8 @@
 import 'dart:io';
 
 import 'package:openci_dart_functions/src/github_webhook_payload.dart';
+import 'package:openci_dart_functions/src/github_workflows.dart'
+    show isWorkflowSourcePath;
 import 'package:openci_dart_functions/src/open_ci_parser.dart';
 import 'package:openci_dart_functions/src/plan_jobs.dart';
 import 'package:openci_shared/openci_shared.dart';
@@ -108,13 +110,20 @@ void main() {
     }
   });
 
-  final definitions = Directory('../../openci')
-      .listSync()
+  final workflowDirectory = Directory('../../openci').absolute;
+  final definitions = workflowDirectory
+      .listSync(recursive: true, followLinks: false)
       .whereType<File>()
-      .where((f) => f.path.endsWith('.dart'))
       .map(
-        (f) =>
-            parseOpenCIWorkflow(f.readAsStringSync(), f.uri.pathSegments.last),
+        (file) => (
+          file: file,
+          path: file.uri.path.substring(workflowDirectory.uri.path.length),
+        ),
+      )
+      .where((source) => isWorkflowSourcePath(source.path))
+      .map(
+        (source) =>
+            parseOpenCIWorkflow(source.file.readAsStringSync(), source.path),
       )
       .whereType<ParsedWorkflow>()
       .toList();
@@ -244,7 +253,7 @@ void main() {
     for (final path in [
       'apps/dashboard/lib/main.dart',
       'packages/openci_workflow/lib/openci_workflow.dart',
-      'openci/dashboard_ios_patrol_ci.dart',
+      'openci/dashboard/ios/patrol.dart',
       'pubspec.lock',
     ]) {
       expect(push.matchesChangedFiles([path]), isTrue, reason: path);
@@ -300,7 +309,7 @@ void main() {
         'packages/openci_workflow/lib/src/virtual_ble/bumble_peer.py',
         'packages/openci_workflow/integration_test/virtual_ble_test.dart',
         'openci/lib/virtual_ble_checks.dart',
-        'openci/openci_workflow_cd.dart',
+        'openci/sdk/workflow_cd.dart',
         'pubspec.lock',
       ]) {
         expect(trigger.matchesChangedFiles([path]), isTrue, reason: path);
@@ -352,8 +361,8 @@ void main() {
       'apps/dashboard/pubspec.yaml',
       'packages/macos_updater/macos/Classes/MacosUpdaterPlugin.swift',
       'packages/openci_shared/lib/openci_shared.dart',
-      'openci/dashboard_macos_cd.dart',
-      'openci/macos_release_ci.dart',
+      'openci/dashboard/macos/publish.dart',
+      'openci/dashboard/macos/ci.dart',
       'openci/lib/macos_release_publisher.dart',
       'openci/tool/release_macos.dart',
       'openci/pubspec.yaml',
@@ -372,8 +381,8 @@ void main() {
     for (final path in [
       'openci/generated/paths.g.dart',
       'openci/generated/secrets.g.dart',
-      'openci/openci_workflow_cd.dart',
-      'openci/workflow_scripts_ci.dart',
+      'openci/sdk/workflow_cd.dart',
+      'openci/repo/workflow_scripts_ci.dart',
       'openci/lib/dashboard_store_build_number.dart',
       'openci/test/macos_release_publisher_test.dart',
       'openci/tool/with_node.sh',

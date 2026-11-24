@@ -360,9 +360,22 @@ extension type const WorkspaceRoot$Firebase$DartFunctions$Lib._(String _path) im
 }
 
 extension type const WorkspaceRoot$Openci._(String _path) implements WorkspaceDirectory {
+  WorkspaceDirectory get cli => const WorkspaceDirectory("openci/cli");
+  WorkspaceRoot$Openci$Dashboard get dashboard => const WorkspaceRoot$Openci$Dashboard._("openci/dashboard");
+  WorkspaceDirectory get firebase => const WorkspaceDirectory("openci/firebase");
   WorkspaceDirectory get lib => const WorkspaceDirectory("openci/lib");
+  WorkspaceDirectory get repo => const WorkspaceDirectory("openci/repo");
+  WorkspaceDirectory get sdk => const WorkspaceDirectory("openci/sdk");
   WorkspaceDirectory get test => const WorkspaceDirectory("openci/test");
   WorkspaceDirectory get tool => const WorkspaceDirectory("openci/tool");
+  WorkspaceDirectory get website => const WorkspaceDirectory("openci/website");
+}
+
+extension type const WorkspaceRoot$Openci$Dashboard._(String _path) implements WorkspaceDirectory {
+  WorkspaceDirectory get android => const WorkspaceDirectory("openci/dashboard/android");
+  WorkspaceDirectory get ios => const WorkspaceDirectory("openci/dashboard/ios");
+  WorkspaceDirectory get macos => const WorkspaceDirectory("openci/dashboard/macos");
+  WorkspaceDirectory get web => const WorkspaceDirectory("openci/dashboard/web");
 }
 
 extension type const WorkspaceRoot$Packages._(String _path) implements WorkspaceDirectory {

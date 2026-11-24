@@ -1,7 +1,7 @@
 import 'package:openci_workflow/openci_workflow.dart';
 
-import 'generated/paths.g.dart';
-import 'generated/secrets.g.dart';
+import '../../generated/paths.g.dart';
+import '../../generated/secrets.g.dart';
 
 Future<void> main() async {
   final ci = await OpenCI.init(
@@ -21,7 +21,7 @@ Future<void> main() async {
           'packages/macos_updater/**',
           'packages/openci_shared/**',
           'packages/pubspec_version_hook/**',
-          'openci/dashboard_web_hosting.dart',
+          'openci/dashboard/web/hosting.dart',
           'openci/generated/**',
           '**/pubspec.yaml',
           'pubspec.lock',
@@ -40,7 +40,7 @@ Future<void> main() async {
           'packages/macos_updater/**',
           'packages/openci_shared/**',
           'packages/pubspec_version_hook/**',
-          'openci/dashboard_web_hosting.dart',
+          'openci/dashboard/web/hosting.dart',
           'openci/generated/**',
           '**/pubspec.yaml',
           'pubspec.lock',
