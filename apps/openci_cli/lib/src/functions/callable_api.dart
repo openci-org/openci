@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
+import '../auth/firebase_project_id.dart';
 import '../credential_store/credential_config.dart';
 
 class FunctionResponse {
@@ -55,19 +56,8 @@ class CallableApi {
 }
 
 Uri firebaseFunctionEndpoint(AuthProfile profile, String functionName) {
-  var project = profile.firebaseProjectId;
-  if (project.isEmpty) {
-    final parts = profile.token.split('.');
-    if (parts.length != 3) {
-      throw const FormatException('Firebase login is required');
-    }
-    final claims = jsonDecode(
-      utf8.decode(base64Url.decode(base64Url.normalize(parts[1]))),
-    );
-    project = (claims as Map<String, dynamic>)['aud'] as String;
-  }
-  if (!RegExp(r'^[a-z][a-z0-9-]{4,62}$').hasMatch(project) ||
-      !RegExp(r'^[a-z]+-[a-z]+[0-9]+$').hasMatch(profile.functionsRegion)) {
+  final project = firebaseProjectId(profile);
+  if (!RegExp(r'^[a-z]+-[a-z]+[0-9]+$').hasMatch(profile.functionsRegion)) {
     throw const FormatException('Invalid Firebase Functions configuration');
   }
   final authEmulator = profile.firebaseAuthEmulatorHost;
