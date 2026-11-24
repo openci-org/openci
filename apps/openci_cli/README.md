@@ -519,6 +519,36 @@ issue or replace ASC credentials. The private key is not downloaded or printed.
 You can rerun the same command after a failure. Run `openci sync --secrets`
 afterward to update the workflow secret references.
 
+## MCP Server
+
+Start an MCP (Model Context Protocol) server over stdio so AI agents can inspect
+OpenCI builds and build logs using your logged-in CLI profile:
+
+```sh
+openci mcp
+```
+
+Configure it in an MCP client (such as Antigravity's `mcp_config.json` or a
+plugin bundle):
+
+```json
+{
+  "mcpServers": {
+    "openci": {
+      "command": "openci",
+      "args": ["mcp"]
+    }
+  }
+}
+```
+
+Exposed read-only tools:
+
+- `get_status` — Active profile, selected team ID/name, Firebase project, and emulator mode.
+- `list_builds` — List recent team builds with optional `status`, `branch`, `repo`, `pr_number`, `workflow`, `limit`, and `offset` filters.
+- `get_build` — Fetch build job metadata, `failureSummary`, step statuses, `lastLogSequence`, and log expiration status.
+- `get_build_logs` — Read build logs in tail mode (default last 200 entries via `lastLogSequence`), forward pagination (`after_sequence`), or filtered by `step_id`, `stream` (`stdout`/`stderr`), or substring `query`.
+
 ## Code generation
 
 Run these commands from `apps/openci_cli`:

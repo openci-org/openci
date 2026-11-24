@@ -49,6 +49,7 @@ class TranslationsJa extends Translations with BaseTranslations<AppLocale, Trans
 	@override late final _Translations$switchCommand$ja switchCommand = _Translations$switchCommand$ja._(_root);
 	@override late final _Translations$use$ja use = _Translations$use$ja._(_root);
 	@override late final _Translations$sync$ja sync = _Translations$sync$ja._(_root);
+	@override late final _Translations$mcp$ja mcp = _Translations$mcp$ja._(_root);
 	@override late final _Translations$common$ja common = _Translations$common$ja._(_root);
 }
 
@@ -225,6 +226,17 @@ class _Translations$sync$ja extends Translations$sync$en {
 	@override late final _Translations$sync$paths$ja paths = _Translations$sync$paths$ja._(_root);
 	@override late final _Translations$sync$secrets$ja secrets = _Translations$sync$secrets$ja._(_root);
 	@override String get noArguments => 'syncに位置引数は指定できません。生成対象を選ぶには--secretsまたは--pathsを指定してください。';
+}
+
+// Path: mcp
+class _Translations$mcp$ja extends Translations$mcp$en {
+	_Translations$mcp$ja._(TranslationsJa root) : this._root = root, super.internal(root);
+
+	final TranslationsJa _root; // ignore: unused_field
+
+	// Translations
+	@override String get description => 'AIエージェント向けのOpenCI MCPサーバーをstdioで起動します。';
+	@override String get noArguments => 'mcpに位置引数は指定できません。';
 }
 
 // Path: common
@@ -703,6 +715,8 @@ extension on TranslationsJa {
 			'sync.secrets.saveFailed' => 'secrets.g.dartを保存できませんでした。保存先とファイルの権限を確認してください。',
 			'sync.secrets.saved' => ({required Object path}) => 'シークレット定義を生成しました: ${path}',
 			'sync.noArguments' => 'syncに位置引数は指定できません。生成対象を選ぶには--secretsまたは--pathsを指定してください。',
+			'mcp.description' => 'AIエージェント向けのOpenCI MCPサーバーをstdioで起動します。',
+			'mcp.noArguments' => 'mcpに位置引数は指定できません。',
 			'common.error' => ({required Object error}) => 'エラー: ${error}',
 			_ => null,
 		};

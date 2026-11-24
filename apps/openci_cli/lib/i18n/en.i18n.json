@@ -252,6 +252,10 @@
     },
     "noArguments": "sync does not accept positional arguments. Use --secrets or --paths to select what to generate."
   },
+  "mcp": {
+    "description": "Start the OpenCI MCP server over stdio for AI agents.",
+    "noArguments": "mcp does not accept positional arguments."
+  },
   "common": {
     "error": "Error: ${error}"
   }

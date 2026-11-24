@@ -252,6 +252,10 @@
     },
     "noArguments": "syncに位置引数は指定できません。生成対象を選ぶには--secretsまたは--pathsを指定してください。"
   },
+  "mcp": {
+    "description": "AIエージェント向けのOpenCI MCPサーバーをstdioで起動します。",
+    "noArguments": "mcpに位置引数は指定できません。"
+  },
   "common": {
     "error": "エラー: ${error}"
   }

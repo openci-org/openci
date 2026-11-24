@@ -9,6 +9,7 @@ import 'package:meta/meta.dart';
 import 'commands/delete/delete_command.dart';
 import 'commands/list/list_command.dart';
 import 'commands/login_command.dart';
+import 'commands/mcp_command.dart';
 import 'commands/register/register_command.dart';
 import 'commands/setup/setup_command.dart';
 import 'commands/status_command.dart';
@@ -38,6 +39,7 @@ class OpenCICommandRunner extends CompletionCommandRunner<int> {
   final bool Function() _confirmUpdate;
   final bool _hasTerminal;
   final Map<String, String> _environment;
+  bool _suppressAutoInstall = false;
 
   OpenCICommandRunner({
     Logger? logger,
@@ -81,6 +83,7 @@ class OpenCICommandRunner extends CompletionCommandRunner<int> {
     addCommand(UseCommand(logger: _logger));
     addCommand(SyncCommand(logger: _logger));
     addCommand(UpdateCommand(logger: _logger, updater: _updater));
+    addCommand(McpCommand());
   }
 
   @override
@@ -96,7 +99,10 @@ class OpenCICommandRunner extends CompletionCommandRunner<int> {
 
   @override
   bool get enableAutoInstall =>
-      _hasTerminal && !_environment.containsKey('CI') && systemShell != null;
+      !_suppressAutoInstall &&
+      _hasTerminal &&
+      !_environment.containsKey('CI') &&
+      systemShell != null;
 
   @override
   Future<int?> runCommand(ArgResults topLevelResults) async {
@@ -122,7 +128,13 @@ class OpenCICommandRunner extends CompletionCommandRunner<int> {
         }
       }
     }
-    return await super.runCommand(topLevelResults);
+    final isMcp = topLevelResults.command?.name == 'mcp';
+    _suppressAutoInstall = isMcp;
+    try {
+      return await super.runCommand(topLevelResults);
+    } finally {
+      _suppressAutoInstall = false;
+    }
   }
 
   bool _shouldCheckForUpdate(ArgResults results) {
@@ -132,6 +144,7 @@ class OpenCICommandRunner extends CompletionCommandRunner<int> {
         results.command == null ||
         results.command!.name == 'help' ||
         results.command!.name == 'update' ||
+        results.command!.name == 'mcp' ||
         _completionCommands.contains(results.command!.name)) {
       return false;
     }

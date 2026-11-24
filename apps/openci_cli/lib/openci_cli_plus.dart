@@ -7,6 +7,7 @@ export 'src/commands/list/list_command.dart';
 export 'src/commands/list/list_secrets_command.dart';
 export 'src/commands/list/list_teams_command.dart';
 export 'src/commands/login_command.dart';
+export 'src/commands/mcp_command.dart';
 export 'src/commands/register/register_command.dart';
 export 'src/commands/register/register_secret_command.dart';
 export 'src/commands/register/register_secret_file_command.dart';

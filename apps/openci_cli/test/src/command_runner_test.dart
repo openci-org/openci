@@ -133,6 +133,37 @@ void main() {
     expect(runner.commands['update']!.description, t.update.description);
   });
 
+  test('registers mcp with a localized description', () {
+    expect(runner.commands['mcp'], isA<McpCommand>());
+    expect(runner.commands['mcp']!.description, t.mcp.description);
+  });
+
+  test(
+    'mcp rejects positional arguments without checking for updates',
+    () async {
+      final updater = _Updater();
+      final terminalRunner = OpenCICommandRunner(
+        logger: logger,
+        updater: updater,
+        hasTerminal: true,
+        environment: const {},
+      );
+
+      await expectLater(
+        terminalRunner.run(['mcp', 'unexpected']),
+        throwsA(
+          isA<UsageException>().having(
+            (error) => error.message,
+            'message',
+            t.mcp.noArguments,
+          ),
+        ),
+      );
+      expect(updater.checks, 0);
+      expect(logger.stdoutMessages, isEmpty);
+    },
+  );
+
   test('registers standalone iOS certificate key setup', () {
     final setup = runner.commands['setup'];
     expect(setup, isA<SetupCommand>());

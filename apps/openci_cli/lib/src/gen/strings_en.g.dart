@@ -45,6 +45,7 @@ class Translations with BaseTranslations<AppLocale, Translations> {
 	late final Translations$switchCommand$en switchCommand = Translations$switchCommand$en.internal(_root);
 	late final Translations$use$en use = Translations$use$en.internal(_root);
 	late final Translations$sync$en sync = Translations$sync$en.internal(_root);
+	late final Translations$mcp$en mcp = Translations$mcp$en.internal(_root);
 	late final Translations$common$en common = Translations$common$en.internal(_root);
 }
 
@@ -357,6 +358,21 @@ class Translations$sync$en {
 
 	/// en: 'sync does not accept positional arguments. Use --secrets or --paths to select what to generate.'
 	String get noArguments => 'sync does not accept positional arguments. Use --secrets or --paths to select what to generate.';
+}
+
+// Path: mcp
+class Translations$mcp$en {
+	Translations$mcp$en.internal(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+
+	/// en: 'Start the OpenCI MCP server over stdio for AI agents.'
+	String get description => 'Start the OpenCI MCP server over stdio for AI agents.';
+
+	/// en: 'mcp does not accept positional arguments.'
+	String get noArguments => 'mcp does not accept positional arguments.';
 }
 
 // Path: common
@@ -1123,6 +1139,8 @@ extension on Translations {
 			'sync.secrets.saveFailed' => 'Could not save secrets.g.dart. Check the destination and file permissions.',
 			'sync.secrets.saved' => ({required Object path}) => 'Generated secret definitions: ${path}',
 			'sync.noArguments' => 'sync does not accept positional arguments. Use --secrets or --paths to select what to generate.',
+			'mcp.description' => 'Start the OpenCI MCP server over stdio for AI agents.',
+			'mcp.noArguments' => 'mcp does not accept positional arguments.',
 			'common.error' => ({required Object error}) => 'Error: ${error}',
 			_ => null,
 		};

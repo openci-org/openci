@@ -16,6 +16,7 @@ dependencies:
   cli_util: ^0.5.0
   crypto: ^3.0.7
   dart_console_plus: ^1.0.0
+  dart_mcp: ^0.5.0
   freezed_annotation: ^3.1.0
   http: ^1.6.0
   intl: ^0.20.2
@@ -27,6 +28,7 @@ dependencies:
   pub_semver: ^2.2.0
   pub_updater: ^0.5.0
   slang: ^4.19.0
+  stream_channel: ^2.1.4
   yaml: ^3.1.3
 
 dev_dependencies:
