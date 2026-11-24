@@ -102,6 +102,21 @@ Release runs currently expose the pinned tag as `PushContext.branch`
 This requires SDK 0.5.0, the updated webhook/planner deployment, and a GitHub App
 subscribed to Release events with Contents read permission.
 
+### Choose a worker
+
+Workflows use macOS by default. In a repository enabled for the hosted Linux
+pilot, pass the machine as an enum literal to run on an amd64 Linux VM via
+Orchard and Vetu. Team secrets are unavailable in the Linux pilot.
+
+```dart
+final ci = await OpenCI.init(
+  workflowName: 'Linux Tests',
+  ciTriggers: [CITrigger.push(branch: 'main')],
+  machine: MachineType.linuxLatest,
+);
+await ci.dart.test();
+```
+
 ### Read the current execution context
 
 Use `openCI.context` to branch on the event that actually started this run:

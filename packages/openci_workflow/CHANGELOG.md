@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.6.0
+
+- Select an Orchard Vetu Linux worker in an enabled pilot repository with `machine: MachineType.linuxLatest`. Workflows default to `MachineType.macOsLatest`.
+- `MachineType` gains a second enum value. Add a `linuxLatest` case to exhaustive switches when upgrading.
+
 ## 0.5.3
 
 - Add `firebase.functions.deploy()` using the installed Firebase CLI, with explicit project selection, optional codebase selection, and temporary service account authentication.

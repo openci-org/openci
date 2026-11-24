@@ -4,6 +4,7 @@ import { selfHostedMode } from "../../lib/functions/deployment_mode.js";
 import { billingConfig } from "../../lib/functions/billing/config.js";
 import { Billing } from "../../lib/functions/billing/service.js";
 import { BillingError } from "../../lib/functions/billing/model.js";
+import { ExecutionBilling } from "../../lib/functions/executor/billing.js";
 import { executeBuild } from "../../lib/functions/executor/execute.js";
 import { ExecutionStopped, prQrOutputReady } from "../../lib/functions/executor/model.js";
 import { PullRequestCheckoutError } from "../../lib/functions/executor/checkout_error.js";
@@ -235,7 +236,7 @@ function executionFixture(selfHosted, contextChange = {}) {
       executeBuild(
         {
           dispatchId: "dispatch",
-          jobId: "job",
+          jobId: dispatch.jobId,
           executionName: `${dispatch.cloudRunJob}/executions/test`,
         },
         dependencies,
@@ -274,14 +275,21 @@ test("a Linux reservation checks out and runs the workflow in the same guest wor
   }
 });
 
-test("a hosted Linux job cannot start billing for a team outside the complimentary pilot", async () => {
-  const f = executionFixture(false);
+function postpaidLinuxFixture(contextChange) {
+  const f = executionFixture(false, contextChange);
   f.job.runsOn = f.dispatch.runsOn = "linux-latest";
-  await f.run();
-  assert.equal(f.dispatch.outcome, "failure");
-  assert.ok(!f.calls.includes("period"));
-  assert.ok(!f.calls.includes("create"));
-});
+  f.job.githubBaseUrl = "https://github.com";
+  f.job.repositoryId = "12345";
+  f.dependencies.billing.period = async (_context, teamId, _livemode, complimentary) => {
+    assert.equal(complimentary.has(teamId), false);
+    f.calls.push("period");
+    return { periodId: "postpaid-period" };
+  };
+  f.dependencies.billing.admit = async () => f.calls.push("admit");
+  f.dependencies.billing.start = async () => f.calls.push("start");
+  f.dependencies.secrets = async () => assert.fail("Linux pilot read team secrets");
+  return f;
+}
 
 test("only the approved first Linux run can use its existing postpaid billing", async () => {
   for (const [approvedId, retryCount, runCount, allowed] of [
@@ -290,19 +298,10 @@ test("only the approved first Linux run can use its existing postpaid billing", 
     ["job", 1, "0", false],
     ["job", 0, "1", false],
   ]) {
-    const f = executionFixture(false);
-    f.job.runsOn = f.dispatch.runsOn = "linux-latest";
+    const f = postpaidLinuxFixture();
     f.job.retryCount = retryCount;
     f.job.runCount = runCount;
     f.dependencies.configuration.linuxPostpaidPilotJobId = approvedId;
-    f.dependencies.billing.period = async (_context, teamId, _livemode, complimentary) => {
-      assert.equal(complimentary.has(teamId), false);
-      f.calls.push("period");
-      return { periodId: "postpaid-period" };
-    };
-    f.dependencies.billing.admit = async () => f.calls.push("admit");
-    f.dependencies.billing.start = async () => f.calls.push("start");
-    f.dependencies.secrets = async () => assert.fail("Linux pilot read team secrets");
     await f.run();
     assert.equal(f.dispatch.outcome, allowed ? "success" : "failure");
     assert.equal(f.calls.includes("period"), allowed);
@@ -310,6 +309,75 @@ test("only the approved first Linux run can use its existing postpaid billing", 
     assert.equal(f.calls.includes("start"), allowed);
     assert.equal(f.calls.includes("create"), allowed);
   }
+});
+
+test("an approved team and repository can run successive and retried postpaid Linux jobs", async () => {
+  for (const [jobId, retryCount, runCount] of [
+    ["first", 0, "0"],
+    ["second", 0, "0"],
+    ["second", 1, "1"],
+  ]) {
+    const f = postpaidLinuxFixture();
+    f.dependencies.configuration.linuxPostpaidPilotTeamId = "team";
+    f.dependencies.configuration.linuxPilotRepositoryId = "12345";
+    f.job.id = f.dispatch.jobId = jobId;
+    f.job.retryCount = retryCount;
+    f.job.runCount = runCount;
+    await f.run();
+    assert.equal(f.dispatch.outcome, "success");
+    assert.deepEqual(f.calls, [
+      "verify",
+      "period",
+      "admit",
+      "configure",
+      "start",
+      "create",
+      "exec",
+      "exec",
+      "remove",
+      "close",
+      "complete",
+    ]);
+    assert.deepEqual(f.checkShas, [f.job.commitSha, f.job.commitSha]);
+  }
+});
+
+test("recurring Linux admission requires both IDs and the saved GitHub.com host", async () => {
+  for (const [teamId, repositoryId, jobHost] of [
+    [undefined, undefined, "https://github.com"],
+    [undefined, "12345", "https://github.com"],
+    ["team", "", "https://github.com"],
+    ["other-team", "12345", "https://github.com"],
+    ["team", "67890", "https://github.com"],
+    ["team", "12345", "https://github.example"],
+    ["team", "12345", null],
+  ]) {
+    const f = postpaidLinuxFixture();
+    f.dependencies.configuration.linuxPostpaidPilotTeamId = teamId;
+    f.dependencies.configuration.linuxPilotRepositoryId = repositoryId;
+    f.job.githubBaseUrl = jobHost;
+    await f.run();
+    assert.equal(f.dispatch.outcome, "failure");
+    assert.ok(!f.calls.includes("period"));
+    assert.ok(!f.calls.includes("create"));
+  }
+});
+
+test("recurring Linux admission still requires a confirmed card before requesting a VM", async () => {
+  const f = postpaidLinuxFixture({ customer: { stripeCustomerId: "cus_1", livemode: false } });
+  f.dependencies.configuration.linuxPostpaidPilotTeamId = "team";
+  f.dependencies.configuration.linuxPilotRepositoryId = "12345";
+  const billing = new ExecutionBilling({});
+  f.dependencies.billing.period = billing.period.bind(billing);
+  f.dependencies.verifyCard = async (teamId, livemode) => {
+    assert.equal(teamId, "team");
+    assert.equal(livemode, false);
+    f.calls.push("verifyCard");
+    return null;
+  };
+  await f.run();
+  assert.equal(f.dispatch.outcome, "card_required");
+  assert.deepEqual(f.calls, ["verify", "verifyCard", "close", "complete"]);
 });
 
 test("PR builds check out the resolved merge SHA and report checks on the saved head SHA", async () => {
