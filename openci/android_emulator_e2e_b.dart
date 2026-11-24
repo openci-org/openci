@@ -6,5 +6,5 @@ Future<void> main() async {
     machine: MachineType.linuxLatest,
     ciTriggers: [CITrigger.push(branch: 'pilot/android-emulator-linux')],
   );
-  await ci.run('/usr/local/bin/openci-android-smoke');
+  await ci.run('bash openci/tool/android_emulator_smoke/run.sh');
 }
