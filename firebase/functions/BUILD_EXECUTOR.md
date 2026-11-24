@@ -271,13 +271,19 @@ consistent with the dispatcher/planner:
 The Linux pilot uses `base-linux` on Vetu/amd64 with the reservation's explicit
 2 vCPUs and 8192 MiB. Checkout and workflow execution share
 `/home/admin/openci-build`. The image supplies FVM, Java 17 and the Android SDK.
-Hosted Linux jobs normally require a team in `BILLING_COMPLIMENTARY_PRO_TEAM_IDS`.
-For a single postpaid run, set `OPENCI_LINUX_POSTPAID_PILOT_JOB_ID` on the executor
-Job to the queued build job's ID before resuming the pilot worker. The executor
-accepts that ID only when both the retry count and the run count are zero.
-The run uses the team's normal postpaid admission and metering. Clear the setting
-once the execution has started.
-The executor supplies the workflow context and skips team secret retrieval for the pilot.
+The executor supplies workflow context and skips team secret retrieval for Linux.
+Hosted teams in `BILLING_COMPLIMENTARY_PRO_TEAM_IDS` use their existing allowance.
+Configure postpaid admission on the executor Job before enabling Linux dispatch.
+
+- For recurring runs, set `OPENCI_LINUX_POSTPAID_PILOT_TEAM_ID` to one OpenCI
+  team ID and `OPENCI_LINUX_PILOT_REPOSITORY_ID` to the same numeric GitHub.com
+  repository ID configured on the dispatch Functions. Both values must match
+  the saved job. New jobs and explicit retries use normal card verification,
+  postpaid admission and usage metering. Clearing either value on the Job
+  disables recurring admission for new executions.
+- For a single approved first run, set `OPENCI_LINUX_POSTPAID_PILOT_JOB_ID`
+  to the queued build job's ID. This approval applies only when both its retry
+  count and run count are zero. Clear the setting once the execution starts.
 
 For macOS, `ORCHARD_USE_WORKER_MEMORY=true` lets Orchard choose the VM's
 memory from the selected worker's `--default-memory`. For example, two slots on

@@ -95,6 +95,8 @@ export function runtime(
       timeoutSeconds,
       livemode: environment.BILLING_STRIPE_LIVEMODE === "true",
       linuxPostpaidPilotJobId: environment.OPENCI_LINUX_POSTPAID_PILOT_JOB_ID,
+      linuxPostpaidPilotTeamId: environment.OPENCI_LINUX_POSTPAID_PILOT_TEAM_ID,
+      linuxPilotRepositoryId: environment.OPENCI_LINUX_PILOT_REPOSITORY_ID,
       complimentary: new Set(
         (environment.BILLING_COMPLIMENTARY_PRO_TEAM_IDS ?? "")
           .split(",")

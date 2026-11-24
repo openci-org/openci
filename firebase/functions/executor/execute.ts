@@ -24,6 +24,7 @@ import type { ExecutionBilling } from "./billing.js";
 import type { ExecutionGitHub } from "./github.js";
 import type { ExecutionLogs } from "./logs.js";
 import type { OrchardExecutor } from "./orchard.js";
+import { isDispatchEnabled } from "../worker_machine.js";
 
 export interface ExecutorDependencies {
   store: Pick<ExecutionStore, keyof ExecutionStore>;
@@ -47,6 +48,8 @@ export interface ExecutorDependencies {
     livemode: boolean;
     complimentary: Set<string>;
     linuxPostpaidPilotJobId?: string;
+    linuxPostpaidPilotTeamId?: string;
+    linuxPilotRepositoryId?: string;
     selfHosted?: boolean;
   };
   report: (reason: string, dispatchId: string, checkout?: MergeReadinessDiagnostics) => void;
@@ -163,7 +166,11 @@ export async function executeBuild(
         configuration.linuxPostpaidPilotJobId === job.id &&
         job.retryCount === 0 &&
         job.runCount === "0";
-      if (!approvedFirstRun) throw new Error("Linux pilot job is not authorized");
+      const approvedTeamRepository =
+        job.teamId === configuration.linuxPostpaidPilotTeamId &&
+        isDispatchEnabled(job, configuration.linuxPilotRepositoryId ?? "");
+      if (!approvedFirstRun && !approvedTeamRepository)
+        throw new Error("Linux pilot job is not authorized");
     }
     const context = await store.context(
       job.teamId!,
