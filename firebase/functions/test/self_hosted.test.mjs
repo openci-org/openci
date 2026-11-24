@@ -283,6 +283,35 @@ test("a hosted Linux job cannot start billing for a team outside the complimenta
   assert.ok(!f.calls.includes("create"));
 });
 
+test("only the approved first Linux run can use its existing postpaid billing", async () => {
+  for (const [approvedId, retryCount, runCount, allowed] of [
+    ["job", 0, "0", true],
+    ["another", 0, "0", false],
+    ["job", 1, "0", false],
+    ["job", 0, "1", false],
+  ]) {
+    const f = executionFixture(false);
+    f.job.runsOn = f.dispatch.runsOn = "linux-latest";
+    f.job.retryCount = retryCount;
+    f.job.runCount = runCount;
+    f.dependencies.configuration.linuxPostpaidPilotJobId = approvedId;
+    f.dependencies.billing.period = async (_context, teamId, _livemode, complimentary) => {
+      assert.equal(complimentary.has(teamId), false);
+      f.calls.push("period");
+      return { periodId: "postpaid-period" };
+    };
+    f.dependencies.billing.admit = async () => f.calls.push("admit");
+    f.dependencies.billing.start = async () => f.calls.push("start");
+    f.dependencies.secrets = async () => assert.fail("Linux pilot read team secrets");
+    await f.run();
+    assert.equal(f.dispatch.outcome, allowed ? "success" : "failure");
+    assert.equal(f.calls.includes("period"), allowed);
+    assert.equal(f.calls.includes("admit"), allowed);
+    assert.equal(f.calls.includes("start"), allowed);
+    assert.equal(f.calls.includes("create"), allowed);
+  }
+});
+
 test("PR builds check out the resolved merge SHA and report checks on the saved head SHA", async () => {
   const f = executionFixture(true);
   f.job.pullRequestNumber = "7";
