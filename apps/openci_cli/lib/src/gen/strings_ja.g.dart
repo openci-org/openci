@@ -59,6 +59,7 @@ class _Translations$cli$ja extends Translations$cli$en {
 	final TranslationsJa _root; // ignore: unused_field
 
 	// Translations
+	@override String get mcpDescription => 'ビルド調査用のローカルMCPサーバーを起動します。';
 	@override String get description => 'OpenCI - CI/CD およびシークレット管理コマンドラインツール';
 	@override String version({required Object version}) => 'openci バージョン: ${version}';
 	@override late final _Translations$cli$flags$ja flags = _Translations$cli$flags$ja._(_root);
@@ -496,6 +497,7 @@ class _Translations$sync$secrets$ja extends Translations$sync$secrets$en {
 extension on TranslationsJa {
 	dynamic _flatMapFunction(String path) {
 		return switch (path) {
+			'cli.mcpDescription' => 'ビルド調査用のローカルMCPサーバーを起動します。',
 			'cli.description' => 'OpenCI - CI/CD およびシークレット管理コマンドラインツール',
 			'cli.version' => ({required Object version}) => 'openci バージョン: ${version}',
 			'cli.flags.version' => 'ツールのバージョンを表示します。',

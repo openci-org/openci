@@ -56,6 +56,9 @@ class Translations$cli$en {
 
 	// Translations
 
+	/// en: 'Start a local MCP server for OpenCI build investigations.'
+	String get mcpDescription => 'Start a local MCP server for OpenCI build investigations.';
+
 	/// en: 'OpenCI command-line tool for managing CI/CD and secrets.'
 	String get description => 'OpenCI command-line tool for managing CI/CD and secrets.';
 
@@ -916,6 +919,7 @@ class Translations$sync$secrets$en {
 extension on Translations {
 	dynamic _flatMapFunction(String path) {
 		return switch (path) {
+			'cli.mcpDescription' => 'Start a local MCP server for OpenCI build investigations.',
 			'cli.description' => 'OpenCI command-line tool for managing CI/CD and secrets.',
 			'cli.version' => ({required Object version}) => 'openci version: ${version}',
 			'cli.flags.version' => 'Print the current tool version.',
