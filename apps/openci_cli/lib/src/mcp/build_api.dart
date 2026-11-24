@@ -38,13 +38,28 @@ class BuildApi {
     String connector,
     String operation,
     Map<String, Object?> variables,
+  ) => _execute('executeQuery', connector, operation, variables);
+
+  Future<Map<String, dynamic>> retryBuildJob({
+    required String jobId,
+    required int expectedRetryCount,
+  }) => _execute('executeMutation', 'builds', 'RetryBuildJob', {
+    'id': jobId,
+    'expectedRetryCount': expectedRetryCount,
+  });
+
+  Future<Map<String, dynamic>> _execute(
+    String rpcMethod,
+    String connector,
+    String operation,
+    Map<String, Object?> variables,
   ) async {
     final service = project.startsWith('demo-')
         ? 'openci-b1b91-service'
         : '$project-service';
     final name =
         'projects/$project/locations/asia-northeast1/services/$service/connectors/$connector';
-    final path = '/v1/$name:executeQuery';
+    final path = '/v1/$name:$rpcMethod';
     final uri = profile.firebaseAuthEmulatorHost == null
         ? Uri.https('firebasedataconnect.googleapis.com', path)
         : Uri.http('127.0.0.1:9399', path);
