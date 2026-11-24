@@ -46,6 +46,7 @@ export interface ExecutorDependencies {
     timeoutSeconds: number;
     livemode: boolean;
     complimentary: Set<string>;
+    linuxPostpaidPilotJobId?: string;
     selfHosted?: boolean;
   };
   report: (reason: string, dispatchId: string, checkout?: MergeReadinessDiagnostics) => void;
@@ -157,8 +158,13 @@ export async function executeBuild(
     signal.throwIfAborted();
     validateJob(job, dispatch);
     const linuxPilot = dispatch.runsOn === "linux-latest";
-    if (linuxPilot && !configuration.selfHosted && !configuration.complimentary.has(job.teamId!))
-      throw new Error("Linux pilot requires a complimentary team");
+    if (linuxPilot && !configuration.selfHosted && !configuration.complimentary.has(job.teamId!)) {
+      const approvedFirstRun =
+        configuration.linuxPostpaidPilotJobId === job.id &&
+        job.retryCount === 0 &&
+        job.runCount === "0";
+      if (!approvedFirstRun) throw new Error("Linux pilot job is not authorized");
+    }
     const context = await store.context(
       job.teamId!,
       job.installationId!,

@@ -235,10 +235,12 @@ For the internal Linux pilot, deploy the nullable dispatch machine column and
 the `dispatch` and `builds` connectors, then the executor image and Functions.
 Confirm the Scaleway worker advertises `org.openci.vetu-vms=1` and has a local
 `base-linux` image. Set `OPENCI_LINUX_PILOT_REPOSITORY_ID` in Functions for one
-GitHub.com repository belonging to a complimentary pilot team. Queued Linux
-jobs in that repository become eligible on the next notification. Each VM
-requests 2 vCPUs and 8192 MiB. Clearing the parameter stops new Linux reservations.
+GitHub.com pilot repository. Queued Linux jobs in that repository become eligible
+on the next notification. Each VM requests 2 vCPUs and 8192 MiB.
+Clearing the parameter stops new Linux reservations.
 Existing reservations retain their configuration and finish through normal recovery.
+The executor handles admission for complimentary teams and individually approved
+postpaid jobs. [Linux executor configuration](./BUILD_EXECUTOR.md#configuration-and-deployment)
 
 For macOS the dispatcher reserves the configured CPU count and the executor explicitly
 passes it to Orchard, overriding the worker's default CPU count. Existing

@@ -94,6 +94,7 @@ export function runtime(
       cloudRunJob,
       timeoutSeconds,
       livemode: environment.BILLING_STRIPE_LIVEMODE === "true",
+      linuxPostpaidPilotJobId: environment.OPENCI_LINUX_POSTPAID_PILOT_JOB_ID,
       complimentary: new Set(
         (environment.BILLING_COMPLIMENTARY_PRO_TEAM_IDS ?? "")
           .split(",")
