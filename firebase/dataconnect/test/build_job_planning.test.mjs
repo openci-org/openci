@@ -321,12 +321,18 @@ async function fixture(t, payloadChange = {}, eventType = "push") {
 
 test("ID dispatcher -> Dart Function -> GitHub -> atomic FSC jobs", async (t) => {
   const f = await fixture(t);
+  f.github.files[0].content = `void main() {
+    OpenCI.init(workflowName: 'First', ciTriggers: [CITrigger.push(branch: 'develop')], machine: MachineType.linuxLatest);
+  }`;
   await invokeProcessWebhookTask(dartFunctionUrl, f.taskId);
   const { webhookTask, buildJobs } = await f.state();
   assert.equal(webhookTask.status, "completed");
   assert.deepEqual(
-    buildJobs.map((job) => job.workflowFileName),
-    ["first.dart", "second.dart"],
+    buildJobs.map((job) => [job.workflowFileName, job.runsOn]),
+    [
+      ["first.dart", "linux-latest"],
+      ["second.dart", "macos-latest"],
+    ],
   );
   assert.deepEqual(f.github.tokenRequests, [
     { repository_ids: [10], permissions: { contents: "read" } },
@@ -338,7 +344,6 @@ test("ID dispatcher -> Dart Function -> GitHub -> atomic FSC jobs", async (t) =>
     assert.equal(job.branch, "develop");
     assert.equal(job.tagName, null);
     assert.equal(job.commitMessage, "Commit");
-    assert.equal(job.runsOn, "macos-latest");
     assert.equal(job.runCount, "0");
     assert.equal(job.latestRunId, null);
     assert.equal(job.installationId, String(f.installationId));
@@ -776,6 +781,7 @@ const pushWorkflowFiles = [
   "dashboard_macos_cd.dart",
   "dashboard_web_hosting.dart",
   "firebase_functions_ci.dart",
+  "openci_cli_cd.dart",
   "openci_shared_ci.dart",
   "openci_workflow_cd.dart",
   "openci_workflow_ci.dart",

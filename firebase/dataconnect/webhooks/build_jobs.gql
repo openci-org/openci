@@ -95,15 +95,16 @@ mutation CompleteWebhookTask(
       cancel_previous_runs, webhook_execution_key, repository_id, tag_name
     )
     SELECT w.id, 'QUEUED', $2, $3, w.name, w.file, $4,
-      $5, $6, $7, $8::bigint, $9, $10, 'macos-latest', 0, $11::bigint, $11::bigint,
+      $5, $6, $7, $8::bigint, $9, $10, COALESCE(w."runsOn", 'macos-latest'), 0, $11::bigint, $11::bigint,
       w."flutterVersion", COALESCE(w."cancelPreviousRuns", false), w."webhookExecutionKey", $14::bigint,
       CASE WHEN task.event_type = 'release' THEN task.payload::jsonb #>> '{release,tag_name}' END
     FROM jsonb_to_recordset($1::jsonb) AS w(
-      id text, name text, file text, "flutterVersion" text, "cancelPreviousRuns" boolean,
+      id text, name text, file text, "runsOn" text, "flutterVersion" text, "cancelPreviousRuns" boolean,
       "webhookExecutionKey" text
     )
     CROSS JOIN webhook_tasks AS task
     WHERE task.id = $15 AND length(trim(w.id)) > 0 AND length(trim(w.name)) > 0
+      AND COALESCE(w."runsOn", 'macos-latest') IN ('macos-latest', 'linux-latest')
       AND length(w.file) > 0 AND length($2::text) > 0 AND length($3::text) > 0
       AND length($5::text) > 0 AND length($6::text) > 0
       AND (NOT COALESCE(w."cancelPreviousRuns", false) OR

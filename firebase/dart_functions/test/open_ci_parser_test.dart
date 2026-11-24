@@ -2,6 +2,33 @@ import 'package:openci_dart_functions/src/open_ci_parser.dart';
 import 'package:test/test.dart';
 
 void main() {
+  group('workflow machine', () {
+    for (final entry in {
+      'MachineType.linuxLatest': 'linux-latest',
+      '.linuxLatest': 'linux-latest',
+      '(sdk.MachineType.linuxLatest)': 'linux-latest',
+      'MachineType.macOsLatest': 'macos-latest',
+      'existingMachineVariable': 'macos-latest',
+    }.entries) {
+      test('parses ${entry.key}', () {
+        final workflow = parseOpenCIWorkflow(
+          "void main() { OpenCI.init(workflowName: 'CI', ciTriggers: [], machine: ${entry.key}); }",
+          'ci.dart',
+        )!;
+        expect(workflow.machine.runsOn, entry.value);
+      });
+    }
+    test('reports an unknown MachineType member', () {
+      expect(
+        () => parseOpenCIWorkflow(
+          "void main() { OpenCI.init(workflowName: 'CI', ciTriggers: [], machine: MachineType.unknown); }",
+          'ci.dart',
+        ),
+        throwsA(isA<WorkflowConfigurationException>()),
+      );
+    });
+  });
+
   group('release publication', () {
     for (final expression in [
       'CITrigger.release()',
