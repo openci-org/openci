@@ -25,6 +25,8 @@ type BuildJobDispatch
   teamId: String
   activeJobId: String @unique
   vmName: String! @unique
+  # Older reservations predate the Linux pool and run on macOS.
+  runsOn: String
   cpu: Int!
   memoryMiB: Int! @col(name: "memory_mib")
   image: String!

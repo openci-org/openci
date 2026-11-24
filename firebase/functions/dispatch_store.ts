@@ -3,6 +3,7 @@ import { getDataConnect, type DataConnect } from "firebase-admin/data-connect";
 import * as sdk from "@openci/dispatch-admin";
 import type { BuildDispatch, DispatchState, DispatchStore } from "./build_dispatch.js";
 import { configuredConnector } from "./data_connect_config.js";
+import type { WorkerMachine } from "./worker_machine.js";
 
 export function getDispatchDataConnect(app: App = getApp()): DataConnect {
   // Admin SDK 14.5 caches by service/location, ignoring the connector ID.
@@ -14,7 +15,14 @@ export function getDispatchDataConnect(app: App = getApp()): DataConnect {
 }
 
 export class DataConnectDispatchStore implements DispatchStore {
-  constructor(private readonly dc: DataConnect) {}
+  private readonly linuxRepositoryIds: string[];
+
+  constructor(
+    private readonly dc: DataConnect,
+    linuxRepositoryId = "",
+  ) {
+    this.linuxRepositoryIds = linuxRepositoryId ? [linuxRepositoryId] : [];
+  }
   async expireUnstarted(): Promise<void> {
     await sdk.expireUnstartedBuildDispatches(this.dc);
   }
@@ -30,7 +38,7 @@ export class DataConnectDispatchStore implements DispatchStore {
   async active(): Promise<BuildDispatch[]> {
     return (await sdk.getActiveBuildDispatches(this.dc)).data.dispatches;
   }
-  async oldestQueued(): Promise<{ id: string } | null> {
+  async oldestQueued(machines: WorkerMachine[] = ["macos-latest"]) {
     const { dispatches, waitingForCard } = (await sdk.getBuildDispatchExclusions(this.dc)).data;
     const excludedJobIds = dispatches.map((dispatch) => dispatch.jobId);
     if (!Array.isArray(waitingForCard)) throw new Error("Card waiting jobs unavailable");
@@ -42,6 +50,8 @@ export class DataConnectDispatchStore implements DispatchStore {
     const { job } = (
       await sdk.getOldestQueuedBuildJob(this.dc, {
         excludedJobIds,
+        machines,
+        linuxRepositoryIds: this.linuxRepositoryIds,
       })
     ).data;
     return job ?? null;
@@ -59,6 +69,8 @@ export class DataConnectDispatchStore implements DispatchStore {
       id: dispatch.id,
       jobId: dispatch.jobId,
       vmName: dispatch.vmName,
+      runsOn: dispatch.runsOn ?? "macos-latest",
+      linuxRepositoryIds: this.linuxRepositoryIds,
       cpu: dispatch.cpu,
       memoryMiB: dispatch.memoryMiB,
       image: dispatch.image,
@@ -85,7 +97,11 @@ export class DataConnectDispatchStore implements DispatchStore {
     await sdk.consumeBuildDispatchRetry(this.dc, { taskId });
   }
   async pendingWork(): Promise<sdk.GetPendingBuildDispatchWorkData> {
-    return (await sdk.getPendingBuildDispatchWork(this.dc)).data;
+    return (
+      await sdk.getPendingBuildDispatchWork(this.dc, {
+        linuxRepositoryIds: this.linuxRepositoryIds,
+      })
+    ).data;
   }
   async completeRetryJob(jobId: string): Promise<void> {
     await sdk.completeBuildDispatchRetryJob(this.dc, { jobId });

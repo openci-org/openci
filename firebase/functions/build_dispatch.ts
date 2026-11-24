@@ -1,5 +1,12 @@
 import { createHash, randomUUID } from "node:crypto";
 import { hasOrchardCapacity, type OrchardSnapshot, type VmSize } from "./orchard_capacity.js";
+import { isWorkerMachine, type WorkerMachine } from "./worker_machine.js";
+
+interface QueuedJob {
+  id: string;
+  runsOn?: string | null;
+}
+type DispatchConfiguration = VmSize & { image: string; cloudRunJob: string };
 
 export interface BuildDispatch extends VmSize {
   id: string;
@@ -12,7 +19,13 @@ export interface BuildDispatch extends VmSize {
   operationName?: string | null;
 }
 export interface DispatchState {
-  job?: { id: string; status: string; runsOn?: string | null } | null;
+  job?: {
+    id: string;
+    status: string;
+    runsOn?: string | null;
+    repositoryId?: string | null;
+    githubBaseUrl?: string | null;
+  } | null;
   dispatch?: BuildDispatch | null;
 }
 export interface DispatchStore {
@@ -20,7 +33,7 @@ export interface DispatchStore {
   cancelUnstarted(jobId: string): Promise<void>;
   read(jobId: string): Promise<DispatchState>;
   active(): Promise<BuildDispatch[]>;
-  oldestQueued(): Promise<{ id: string } | null>;
+  oldestQueued(machines: WorkerMachine[]): Promise<QueuedJob | null>;
   acquireScheduler(owner: string): Promise<boolean>;
   releaseScheduler(owner: string): Promise<void>;
   reserve(owner: string, dispatch: Omit<BuildDispatch, "startDeadline">): Promise<void>;
@@ -130,14 +143,15 @@ export function dispatchContinuationTaskId(sourceTaskId: string, jobId?: string)
 interface DispatchDependencies {
   store: DispatchStore;
   snapshot: () => Promise<OrchardSnapshot>;
-  configuration: VmSize & { image: string; cloudRunJob: string };
+  configuration: DispatchConfiguration;
+  linuxConfiguration?: DispatchConfiguration;
   syncQueuedCheck: (jobId: string) => Promise<void>;
   enqueueRecovery: (dispatch: BuildDispatch) => Promise<void>;
   launch: (dispatch: BuildDispatch) => Promise<string>;
 }
 
 export async function dispatchBuildJob(dependencies: DispatchDependencies): Promise<boolean> {
-  const { store, configuration } = dependencies;
+  const { store } = dependencies;
   const owner = randomUUID();
   if (!(await store.acquireScheduler(owner))) throw new DispatchRetry("scheduler_busy");
   let dispatch: BuildDispatch | null;
@@ -145,15 +159,9 @@ export async function dispatchBuildJob(dependencies: DispatchDependencies): Prom
     await store.expireUnstarted();
     dispatch = await findUnstartedDispatch(store);
     if (!dispatch) {
-      const job = await store.oldestQueued();
-      if (job) {
-        const [snapshot, reservations] = await Promise.all([
-          dependencies.snapshot(),
-          store.active(),
-        ]);
-        if (!hasOrchardCapacity(snapshot, reservations, configuration)) {
-          throw new DispatchRetry("capacity_unavailable");
-        }
+      const selected = await selectQueuedJob(dependencies);
+      if (selected) {
+        const { job, configuration } = selected;
         await dependencies.syncQueuedCheck(job.id);
         if (!eligible(await store.read(job.id))) throw new DispatchRetry("queue_pending");
         const id = randomUUID();
@@ -191,6 +199,30 @@ export async function dispatchBuildJob(dependencies: DispatchDependencies): Prom
   return true;
 }
 
+async function selectQueuedJob(dependencies: DispatchDependencies) {
+  const { store, configuration, linuxConfiguration } = dependencies;
+  const machines: WorkerMachine[] = linuxConfiguration
+    ? ["macos-latest", "linux-latest"]
+    : ["macos-latest"];
+  let job = await store.oldestQueued(machines);
+  if (!job) return null;
+  const [snapshot, reservations] = await Promise.all([dependencies.snapshot(), store.active()]);
+  // Preserve FIFO among runnable jobs while allowing the other pool to work
+  // when the oldest job needs a worker that is offline or busy.
+  while (job) {
+    const machine = job.runsOn ?? "macos-latest";
+    const index = machines.findIndex((candidate) => candidate === machine);
+    if (index < 0) throw new Error("Unsupported queued machine");
+    const limits = machine === "linux-latest" ? linuxConfiguration! : configuration;
+    const requested = { ...limits, runsOn: machine };
+    if (hasOrchardCapacity(snapshot, reservations, requested))
+      return { job, configuration: requested };
+    machines.splice(index, 1);
+    job = machines.length ? await store.oldestQueued(machines) : null;
+  }
+  throw new DispatchRetry("capacity_unavailable");
+}
+
 async function findUnstartedDispatch(store: DispatchStore): Promise<BuildDispatch | null> {
   const reservations = (await store.active())
     .filter((dispatch) => !dispatch.executorId)
@@ -215,5 +247,5 @@ async function findUnstartedDispatch(store: DispatchStore): Promise<BuildDispatc
 }
 
 function eligible(state: DispatchState): boolean {
-  return state.job?.status === "QUEUED" && state.job.runsOn === "macos-latest";
+  return state.job?.status === "QUEUED" && isWorkerMachine(state.job.runsOn);
 }

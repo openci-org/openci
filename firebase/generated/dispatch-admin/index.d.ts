@@ -233,6 +233,7 @@ export interface GetActiveBuildDispatchesData {
     teamId?: string | null;
     activeJobId?: string | null;
     vmName: string;
+    runsOn?: string | null;
     cpu: number;
     memoryMiB: number;
     image: string;
@@ -274,6 +275,8 @@ export interface GetBuildDispatchStateData {
     id: string;
     status: string;
     runsOn?: string | null;
+    githubBaseUrl?: string | null;
+    repositoryId?: Int64String | null;
   } & BuildJob_Key;
   dispatch?: {
     id: string;
@@ -281,6 +284,7 @@ export interface GetBuildDispatchStateData {
     teamId?: string | null;
     activeJobId?: string | null;
     vmName: string;
+    runsOn?: string | null;
     cpu: number;
     memoryMiB: number;
     image: string;
@@ -321,6 +325,7 @@ export interface GetBuildExecutionData {
     teamId?: string | null;
     activeJobId?: string | null;
     vmName: string;
+    runsOn?: string | null;
     cpu: number;
     memoryMiB: number;
     image: string;
@@ -356,6 +361,7 @@ export interface GetBuildExecutionData {
     repo: string;
     workflowName: string;
     workflowFileName: string;
+    runsOn?: string | null;
     flutterVersion?: string | null;
     commitSha?: string | null;
     pullRequestNumber?: Int64String | null;
@@ -458,11 +464,14 @@ export interface GetOldestQueuedBuildJobData {
   job?: {
     id: string;
     createdAt: Int64String;
+    runsOn?: string | null;
   } & BuildJob_Key;
 }
 
 export interface GetOldestQueuedBuildJobVariables {
   excludedJobIds: string[];
+  machines?: string[];
+  linuxRepositoryIds?: Int64String[];
 }
 
 export interface GetPendingBuildDispatchWorkData {
@@ -475,6 +484,10 @@ export interface GetPendingBuildDispatchWorkData {
   } & BuildJob_Key;
 }
 
+export interface GetPendingBuildDispatchWorkVariables {
+  linuxRepositoryIds?: Int64String[];
+}
+
 export interface GetPullRequestCommentExecutionData {
   job?: {
     id: string;
@@ -484,6 +497,7 @@ export interface GetPullRequestCommentExecutionData {
     repo: string;
     workflowName: string;
     workflowFileName: string;
+    runsOn?: string | null;
     flutterVersion?: string | null;
     commitSha?: string | null;
     pullRequestNumber?: Int64String | null;
@@ -542,6 +556,7 @@ export interface GetQueuedBuildCheckData {
     repo: string;
     workflowName: string;
     workflowFileName: string;
+    runsOn?: string | null;
     flutterVersion?: string | null;
     commitSha?: string | null;
     pullRequestNumber?: Int64String | null;
@@ -553,7 +568,6 @@ export interface GetQueuedBuildCheckData {
     workerHost?: string | null;
     runCount?: Int64String | null;
     retryCount: number;
-    runsOn?: string | null;
     checkRunId?: string | null;
     checkRunNumber?: Int64String | null;
     checkOwner?: string | null;
@@ -575,6 +589,7 @@ export interface GetRecoverableBuildExecutionsData {
     teamId?: string | null;
     activeJobId?: string | null;
     vmName: string;
+    runsOn?: string | null;
     cpu: number;
     memoryMiB: number;
     image: string;
@@ -766,6 +781,8 @@ export interface ReserveBuildJobDispatchVariables {
   id: string;
   jobId: string;
   vmName: string;
+  runsOn?: string;
+  linuxRepositoryIds?: Int64String[];
   cpu: number;
   memoryMiB: number;
   image: string;
@@ -1277,10 +1294,12 @@ export function consumeBuildDispatchRetry(
 /** Generated Node Admin SDK operation action function for the 'GetPendingBuildDispatchWork' Query. Allow users to execute without passing in DataConnect. */
 export function getPendingBuildDispatchWork(
   dc: DataConnect,
+  vars?: GetPendingBuildDispatchWorkVariables,
   options?: OperationOptions,
 ): Promise<ExecuteOperationResponse<GetPendingBuildDispatchWorkData>>;
 /** Generated Node Admin SDK operation action function for the 'GetPendingBuildDispatchWork' Query. Allow users to pass in custom DataConnect instances. */
 export function getPendingBuildDispatchWork(
+  vars?: GetPendingBuildDispatchWorkVariables,
   options?: OperationOptions,
 ): Promise<ExecuteOperationResponse<GetPendingBuildDispatchWorkData>>;
 

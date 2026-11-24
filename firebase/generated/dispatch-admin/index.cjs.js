@@ -441,15 +441,14 @@ function consumeBuildDispatchRetry(dcOrVarsOrOptions, varsOrOptions, options) {
 }
 exports.consumeBuildDispatchRetry = consumeBuildDispatchRetry;
 
-function getPendingBuildDispatchWork(dcOrOptions, options) {
-  const { dc: dcInstance, options: inputOpts } = validateAdminArgs(
-    connectorConfig,
-    dcOrOptions,
-    options,
-    undefined,
-  );
+function getPendingBuildDispatchWork(dcOrVarsOrOptions, varsOrOptions, options) {
+  const {
+    dc: dcInstance,
+    vars: inputVars,
+    options: inputOpts,
+  } = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, false);
   dcInstance.useGen(true);
-  return dcInstance.executeQuery("GetPendingBuildDispatchWork", undefined, inputOpts);
+  return dcInstance.executeQuery("GetPendingBuildDispatchWork", inputVars, inputOpts);
 }
 exports.getPendingBuildDispatchWork = getPendingBuildDispatchWork;
 

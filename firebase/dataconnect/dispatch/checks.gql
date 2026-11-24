@@ -1,7 +1,6 @@
 query GetQueuedBuildCheck($jobId: String!) @auth(level: NO_ACCESS) {
   job: buildJob(id: $jobId) {
     ...ExecutionJobFields
-    runsOn
     checkRunId
     checkRunNumber
     checkOwner
@@ -25,7 +24,7 @@ mutation AcquireQueuedBuildCheck($jobId: String!, $owner: String!, $runNumber: I
         {
           id: { eq: $jobId }
           status: { in: ["QUEUED", "CANCELLED"] }
-          runsOn: { eq: "macos-latest" }
+          runsOn: { in: ["macos-latest", "linux-latest"] }
         }
         {
           _or: [

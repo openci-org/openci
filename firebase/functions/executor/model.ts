@@ -1,4 +1,5 @@
 import { validSecretName } from "../secrets/validation.js";
+import { isWorkerMachine } from "../worker_machine.js";
 import type { MergeReadinessDiagnostics } from "./checkout_error.js";
 import type { GetBuildExecutionData, GetBuildExecutorContextData } from "@openci/dispatch-admin";
 
@@ -76,7 +77,10 @@ export function identity(dispatch: Dispatch) {
 
 export function validateJob(job: Job, dispatch: Dispatch): void {
   validateFlutterVersion(job.flutterVersion);
+  const machine = dispatch.runsOn ?? "macos-latest";
   if (
+    !isWorkerMachine(machine) ||
+    (job.runsOn ?? "macos-latest") !== machine ||
     job.id !== dispatch.jobId ||
     !job.teamId ||
     job.teamId !== dispatch.teamId ||
@@ -101,6 +105,7 @@ export function checkoutScript(
   cloneUrl: string,
   token: string,
   baseSha?: string,
+  runsOn?: string | null,
 ): string {
   if (
     !/^[a-fA-F0-9]{40}(?:[a-fA-F0-9]{24})?$/.test(commitSha) ||
@@ -115,9 +120,10 @@ export function checkoutScript(
   return (
     [
       "set -euo pipefail",
-      "export HOME=/Users/admin GIT_TERMINAL_PROMPT=0",
-      "mkdir -p /Users/admin/openci-build",
-      "cd /Users/admin/openci-build",
+      "export GIT_TERMINAL_PROMPT=0",
+      runsOn === "linux-latest" ? "export HOME=/home/admin" : "export HOME=/Users/admin",
+      'mkdir -p "${HOME:?}/openci-build"',
+      'cd "$HOME/openci-build"',
       "git init -q",
       `git remote add origin ${shellQuote(cloneUrl)}`,
       // The token goes over stdin, never in an Orchard URL or a git remote/config.
@@ -188,12 +194,20 @@ export function workflowScript(
   return (
     [
       "set -euo pipefail",
-      "export HOME=/Users/admin",
       // Reserve one exit status for successful workflows that produced PR output.
       ...(job.pullRequestNumber ? ["trap 'exit 1' ERR"] : []),
+      ...(dispatch.runsOn === "linux-latest"
+        ? [
+            "export HOME=/home/admin",
+            "export ANDROID_HOME=/opt/android-sdk",
+            "export ANDROID_SDK_ROOT=/opt/android-sdk",
+            "export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64",
+            'export PATH="$ANDROID_HOME/emulator:$ANDROID_HOME/platform-tools:$ANDROID_HOME/cmdline-tools/latest/bin:$JAVA_HOME/bin:/usr/local/bin:$PATH"',
+          ]
+        : ["export HOME=/Users/admin", 'export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"']),
       'export FVM_CACHE_PATH="$HOME/fvm"',
       'export FLUTTER_ROOT="$HOME/fvm/default"',
-      'export PATH="$FLUTTER_ROOT/bin:$HOME/.pub-cache/bin:/opt/homebrew/bin:/usr/local/bin:$PATH"',
+      'export PATH="$FLUTTER_ROOT/bin:$HOME/.pub-cache/bin:$PATH"',
       "unset LOKI_URL LOKI_USERNAME LOKI_PASSWORD",
       // Select the SDK outside the checkout so project FVM configuration cannot
       // override the workflow pin or resolve dependencies before selection.
@@ -204,7 +218,7 @@ export function workflowScript(
             `fvm global ${shellQuote(job.flutterVersion)}`,
           ]
         : []),
-      "cd /Users/admin/openci-build",
+      'cd "${HOME:?}/openci-build"',
       ...Object.entries(variables).map(([key, value]) => `export ${key}=${shellQuote(value)}`),
       ...(job.pullRequestNumber ? ['mkdir -p "$OPENCI_PR_QR_OUTPUT"'] : []),
       "flutter pub get",

@@ -16,7 +16,7 @@ class RetryJobButton extends ConsumerWidget {
     final canRetry =
         job.teamId != null &&
         job.teamId!.isNotEmpty &&
-        job.runsOn == 'macos-latest' &&
+        const {'macos-latest', 'linux-latest'}.contains(job.runsOn) &&
         switch (job.status) {
           BuildJobStatus.SUCCESS ||
           BuildJobStatus.FAILURE ||

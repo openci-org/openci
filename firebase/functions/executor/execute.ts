@@ -156,6 +156,9 @@ export async function executeBuild(
   try {
     signal.throwIfAborted();
     validateJob(job, dispatch);
+    const linuxPilot = dispatch.runsOn === "linux-latest";
+    if (linuxPilot && !configuration.selfHosted && !configuration.complimentary.has(job.teamId!))
+      throw new Error("Linux pilot requires a complimentary team");
     const context = await store.context(
       job.teamId!,
       job.installationId!,
@@ -230,14 +233,15 @@ export async function executeBuild(
         signal.throwIfAborted();
         const code = await orchard.exec(
           dispatch.vmName,
-          resolvedCheckout.checkoutSha === null
-            ? checkoutScript(
-                resolvedCheckout.headSha,
-                checkout.cloneUrl,
-                checkout.token,
-                resolvedCheckout.baseSha,
-              )
-            : checkoutScript(resolvedCheckout.checkoutSha, checkout.cloneUrl, checkout.token),
+          checkoutScript(
+            resolvedCheckout.checkoutSha === null
+              ? resolvedCheckout.headSha
+              : resolvedCheckout.checkoutSha,
+            checkout.cloneUrl,
+            checkout.token,
+            resolvedCheckout.checkoutSha === null ? resolvedCheckout.baseSha : undefined,
+            dispatch.runsOn,
+          ),
           async (stream, data) => {
             if (stream === "stdout")
               checkoutOutput = (checkoutOutput + data.toString()).slice(-256);
@@ -270,7 +274,7 @@ export async function executeBuild(
     let qrCodes: PullRequestQrCode[] = [];
     await step("run_workflow", 2, async () => {
       if (resolvedCheckout.checkoutSha === null) throw new Error("Unresolved PR merge checkout");
-      const secrets = await dependencies.secrets(job, resolvedCheckout, signal);
+      const secrets = linuxPilot ? {} : await dependencies.secrets(job, resolvedCheckout, signal);
       signal.throwIfAborted();
       const output = logs.output("run_workflow", Object.values(secrets));
       try {

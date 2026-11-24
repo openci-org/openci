@@ -34,6 +34,29 @@ const vm = (name, overrides = {}) => ({
 });
 const reserved = (vmName) => ({ vmName, ...size });
 
+test("one Linux slot admits one reservation without consuming Mac capacity", () => {
+  const linux = { cpu: 2, memoryMiB: 8192, runsOn: "linux-latest" };
+  const host = worker({
+    name: "linux",
+    runtime: "vetu",
+    arch: "amd64",
+    resources: {
+      "org.cirruslabs.logical-cores": 8,
+      "org.cirruslabs.memory-mib": 16384,
+      "org.openci.vetu-vms": 1,
+    },
+  });
+  const workers = [worker(), host];
+  const reservations = [{ vmName: "pending", ...linux }];
+  assert.equal(hasOrchardCapacity({ workers, vms: [] }, [], linux, now), true);
+  assert.equal(hasOrchardCapacity({ workers, vms: [] }, reservations, linux, now), false);
+  assert.equal(hasOrchardCapacity({ workers, vms: [] }, reservations, size, now), true);
+  assert.equal(hasOrchardCapacity({ workers: [worker()], vms: [] }, [], linux, now), false);
+  const vms = [{ name: "pending", runtime: "vetu", arch: "amd64", cpu: 2, memory: 8192 }];
+  assert.equal(hasOrchardCapacity({ workers, vms }, [], linux, now), false);
+  assert.equal(hasOrchardCapacity({ workers, vms }, reservations, size, now), true);
+});
+
 test("dispatch diagnostics omit SDK payloads and unrecognized error fields", () => {
   const failure = Object.assign(new Error("private payload and credentials"), {
     code: "data-connect/permission-denied",

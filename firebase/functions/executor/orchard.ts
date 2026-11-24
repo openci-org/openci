@@ -3,6 +3,7 @@ import { request as httpsRequest } from "node:https";
 import { setTimeout as delay } from "node:timers/promises";
 import WebSocket from "ws";
 import type { Dispatch, Stream } from "./model.js";
+import { isWorkerMachine, orchardMachines } from "../worker_machine.js";
 
 export interface OrchardOptions {
   url: string;
@@ -101,7 +102,11 @@ export class OrchardExecutor {
   }
 
   async create(dispatch: Dispatch, signal: AbortSignal): Promise<void> {
-    if (this.options.useWorkerMemory) await this.checkWorkerMemory(dispatch.memoryMiB, signal);
+    const machine = dispatch.runsOn ?? "macos-latest";
+    if (!isWorkerMachine(machine)) throw new Error("Unsupported Orchard machine");
+    const platform = orchardMachines[machine];
+    const useWorkerMemory = this.options.useWorkerMemory && machine === "macos-latest";
+    if (useWorkerMemory) await this.checkWorkerMemory(dispatch.memoryMiB, signal);
     let status: number | undefined;
     try {
       status = (
@@ -112,13 +117,16 @@ export class OrchardExecutor {
             name: dispatch.vmName,
             image: dispatch.image,
             headless: true,
-            os: "darwin",
+            os: platform.os,
+            ...(machine === "linux-latest"
+              ? { runtime: platform.runtime, arch: platform.arch, imagePullPolicy: "IfNotPresent" }
+              : {}),
             cpu: dispatch.cpu,
-            memory: this.options.useWorkerMemory ? 0 : dispatch.memoryMiB,
+            memory: useWorkerMemory ? 0 : dispatch.memoryMiB,
             resources: {
               "org.cirruslabs.logical-cores": dispatch.cpu,
               "org.cirruslabs.memory-mib": dispatch.memoryMiB,
-              "org.cirruslabs.tart-vms": 1,
+              [platform.slots]: 1,
             },
           },
           signal,
@@ -134,11 +142,18 @@ export class OrchardExecutor {
       undefined,
       signal,
     );
+    if ((status !== undefined && ![200, 201, 409].includes(status)) || vm.status !== 200)
+      throw new Error("VM creation could not be confirmed");
+    const observed = record(vm.value);
     if (
-      (status !== undefined && ![200, 201, 409].includes(status)) ||
-      vm.status !== 200 ||
-      record(vm.value).name !== dispatch.vmName ||
-      record(vm.value).image !== dispatch.image
+      observed.name !== dispatch.vmName ||
+      observed.image !== dispatch.image ||
+      (machine === "linux-latest" &&
+        (observed.os !== platform.os ||
+          observed.runtime !== platform.runtime ||
+          observed.arch !== platform.arch ||
+          observed.cpu !== dispatch.cpu ||
+          observed.memory !== dispatch.memoryMiB))
     )
       throw new Error("VM creation could not be confirmed");
   }
@@ -189,6 +204,8 @@ export class OrchardExecutor {
     if (!defaults.size) throw new Error("Worker memory configuration unavailable");
     for (const value of vms.value) {
       const vm = record(value);
+      if (!vm.worker && ((vm.runtime ?? "tart") !== "tart" || (vm.arch ?? "arm64") !== "arm64"))
+        continue;
       const memory = Math.max(Number(vm.memory ?? 0), Number(vm.assignedMemory ?? 0));
       const limit = vm.worker ? defaults.get(String(vm.worker)) : Math.min(...defaults.values());
       // Slot partitioning is safe only while all VMs fit their worker's partition.
@@ -279,7 +296,9 @@ export class OrchardExecutor {
         return;
       }
       ws.on("open", () => {
-        const bytes = Buffer.from(script);
+        // Bash receives its program on stdin. A workflow tool reading stdin must
+        // see EOF instead of consuming the remaining commands in the program.
+        const bytes = Buffer.from(`{ :\n${script}\n} </dev/null\n`);
         for (let offset = 0; offset < bytes.length; offset += stdinChunkBytes) {
           const chunk = bytes.subarray(offset, offset + stdinChunkBytes);
           ws.send(JSON.stringify({ type: "stdin", data: chunk.toString("base64") }));
