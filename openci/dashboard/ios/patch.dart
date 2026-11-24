@@ -1,8 +1,8 @@
 import 'package:openci_workflow/openci_workflow.dart';
+import 'package:openci_workflows/dashboard_patch_mode.dart';
 
 import '../../generated/paths.g.dart';
 import '../../generated/secrets.g.dart';
-import '../../lib/dashboard_patch_mode.dart';
 
 Future<void> main() async {
   final dashboard = WorkspacePaths.root.apps.dashboard;

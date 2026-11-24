@@ -1,7 +1,7 @@
 import 'package:openci_workflow/openci_workflow.dart';
+import 'package:openci_workflows/virtual_ble_checks.dart';
 
 import '../generated/paths.g.dart';
-import '../lib/virtual_ble_checks.dart';
 
 Future<void> main() async {
   final ci = await OpenCI.init(
