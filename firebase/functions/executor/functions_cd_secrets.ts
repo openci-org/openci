@@ -29,7 +29,8 @@ export async function functionsCdSecretReferences(
     job.teamId !== environment.OPENCI_FUNCTIONS_CD_TEAM_ID ||
     !environment.OPENCI_FUNCTIONS_CD_REPOSITORY_ID ||
     job.repositoryId !== environment.OPENCI_FUNCTIONS_CD_REPOSITORY_ID ||
-    job.workflowFileName !== "firebase_functions_cd.dart" ||
+    (job.workflowFileName !== "firebase_functions_cd.dart" &&
+      job.workflowFileName !== "firebase/functions_cd.dart") ||
     job.pullRequestNumber != null ||
     !job.tagName ||
     job.branch !== `refs/tags/${job.tagName}` ||

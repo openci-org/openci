@@ -90,7 +90,17 @@ Future<void> main() async {
 }
 ```
 
-OpenCI discovers Dart files in `openci/` and matches their declared triggers to GitHub events. Keep workflow names and trigger branches as string literals so the planner can read them without executing the workflow.
+OpenCI discovers workflows in `openci/` and its subdirectories. For example,
+`openci/dashboard/ios/build.dart` and `openci/sdk/build.dart` are distinct
+workflows. The worker runs each file by its full path from the checkout root.
+Use letters, digits, underscores or hyphens for workflow directory names.
+The top-level `openci/generated/`, `openci/lib/`, `openci/test/` and
+`openci/tool/` directories hold support code. Relative Dart imports resolve
+from the workflow file, so a workflow in `dashboard/ios/` imports generated
+paths with `../../generated/paths.g.dart`.
+
+Keep workflow names and trigger branches as string literals so the planner can
+match them to GitHub events.
 
 Use `CITrigger.release()` to run on GitHub Release publication, or
 `CITrigger.release(tag: 'v*')` to filter tag names. Published pre-releases are

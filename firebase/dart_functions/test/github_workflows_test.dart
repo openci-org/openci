@@ -7,6 +7,22 @@ import 'package:openci_dart_functions/src/planning_event.dart';
 import 'package:test/test.dart';
 
 final sha = 'a' * 40;
+final rootTree = 'b' * 40;
+final workflowTree = 'c' * 40;
+final dashboardTree = 'd' * 40;
+
+Map<String, Object> blob(String path, [int size = 20]) => {
+  'path': path,
+  'type': 'blob',
+  'mode': '100644',
+  'size': size,
+};
+Map<String, Object> folder(String path, String sha) => {
+  'path': path,
+  'type': 'tree',
+  'mode': '040000',
+  'sha': sha,
+};
 final event = PlanningEvent.parse(
   'push',
   jsonEncode({
@@ -22,7 +38,9 @@ final event = PlanningEvent.parse(
 )!;
 
 ({GitHubWorkflows source, List<http.Request> requests}) fakeGitHub({
-  int directoryStatus = 200,
+  bool hasDirectory = true,
+  bool truncated = false,
+  int extraFiles = 0,
   int commitStatus = 200,
   int repositoryId = 10,
   int size = 20,
@@ -49,16 +67,43 @@ final event = PlanningEvent.parse(
       };
     } else if (path == '/repos/org/app/git/commits/$sha') {
       status = commitStatus;
-      body = {'sha': sha};
-    } else if (path == '/repos/org/app/contents/openci') {
-      expect(request.url.queryParameters, {'ref': sha});
-      status = directoryStatus;
-      body = [
-        {'name': 'ci.dart', 'type': 'file', 'size': size},
-        {'name': 'README.md', 'type': 'file', 'size': 10},
-        {'name': 'nested.dart', 'type': 'dir', 'size': 0},
-      ];
-    } else if (path == '/repos/org/app/contents/openci/ci.dart') {
+      body = {
+        'sha': sha,
+        'tree': {'sha': rootTree},
+      };
+    } else if (path == '/repos/org/app/git/trees/$rootTree') {
+      expect(request.url.queryParameters, isEmpty);
+      body = {
+        'tree': [if (hasDirectory) folder('openci', workflowTree)],
+        'truncated': false,
+      };
+    } else if (path == '/repos/org/app/git/trees/$workflowTree') {
+      final recursive = request.url.queryParameters['recursive'] == '1';
+      body = {
+        'truncated': recursive && truncated,
+        'tree': [
+          blob('ci.dart', size),
+          folder('dashboard', dashboardTree),
+          if (recursive && !truncated) blob('dashboard/ios/ci.dart'),
+          for (var i = 0; i < extraFiles; i++) blob('sdk/check_$i.dart'),
+          blob('generated/paths.g.dart'),
+          blob('lib/helper.dart'),
+          blob('test/example_test.dart'),
+          blob('tool/release.dart'),
+          blob('.dart_tool/build/example.dart'),
+          blob('README.md'),
+          {...blob('link.dart'), 'mode': '120000'},
+          {'path': 'dependency.dart', 'type': 'commit', 'mode': '160000'},
+        ],
+      };
+    } else if (path == '/repos/org/app/git/trees/$dashboardTree') {
+      expect(request.url.queryParameters, {'recursive': '1'});
+      body = {
+        'tree': [blob('ios/ci.dart')],
+        'truncated': false,
+      };
+    } else if (path == '/repos/org/app/contents/openci/ci.dart' ||
+        path == '/repos/org/app/contents/openci/dashboard/ios/ci.dart') {
       expect(request.url.queryParameters, {'ref': sha});
       body = {
         'type': 'file',
@@ -85,20 +130,32 @@ final event = PlanningEvent.parse(
 }
 
 void main() {
+  for (final truncated in [false, true]) {
+    test(
+      'reads root and nested Dart files at the commit SHA (truncated: $truncated)',
+      () async {
+        final github = fakeGitHub(truncated: truncated);
+        final files = await github.source.fetch(event);
+        expect(files.map((file) => file.path), [
+          'openci/ci.dart',
+          'openci/dashboard/ios/ci.dart',
+        ]);
+        expect(files.map((file) => file.name), everyElement('ci.dart'));
+        expect(
+          files.map((file) => file.content),
+          everyElement('void main() {}'),
+        );
+        expect(
+          github.requests.where((r) => r.url.path.contains('/contents/')),
+          hasLength(2),
+        );
+      },
+    );
+  }
   test(
-    'scopes the installation token and reads only top-level Dart files at the commit SHA',
+    'a missing workflow directory gives an empty plan after checking commit access',
     () async {
-      final github = fakeGitHub();
-      final files = await github.source.fetch(event);
-      expect(files.single.name, 'ci.dart');
-      expect(files.single.content, 'void main() {}');
-      expect(github.requests, hasLength(5));
-    },
-  );
-  test(
-    'a missing directory is empty only after checking commit access',
-    () async {
-      final github = fakeGitHub(directoryStatus: 404);
+      final github = fakeGitHub(hasDirectory: false);
       expect(await github.source.fetch(event), isEmpty);
       expect(github.requests, hasLength(4));
     },
@@ -122,12 +179,29 @@ void main() {
       expect(github.requests, hasLength(2));
     },
   );
-  test('oversized source is rejected before downloading it', () async {
-    final github = fakeGitHub(size: 1024 * 1024 + 1);
+  test(
+    'combined source size is bounded across directories before downloading it',
+    () async {
+      final github = fakeGitHub(size: 1024 * 1024);
+      await expectLater(
+        github.source.fetch(event),
+        throwsA(isA<InvalidPlanningInput>()),
+      );
+      expect(
+        github.requests.where((r) => r.url.path.contains('/contents/')),
+        isEmpty,
+      );
+    },
+  );
+  test('file count is bounded across root and nested directories', () async {
+    final github = fakeGitHub(extraFiles: 99);
     await expectLater(
       github.source.fetch(event),
       throwsA(isA<InvalidPlanningInput>()),
     );
-    expect(github.requests, hasLength(4));
+    expect(
+      github.requests.where((r) => r.url.path.contains('/contents/')),
+      isEmpty,
+    );
   });
 }

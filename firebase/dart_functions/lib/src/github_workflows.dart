@@ -9,6 +9,11 @@ import 'github_changed_files.dart';
 
 enum PullRequestObservation { current, stale, closed }
 
+// Directory segments follow the same portable path grammar as the executor.
+final _workflowFile = RegExp(r'^(?:[A-Za-z0-9_-]+/)*[A-Za-z0-9_.-]+\.dart$');
+final _workflowDirectory = RegExp(r'^[A-Za-z0-9_-]+(?:/[A-Za-z0-9_-]+)*$');
+const _supportDirectories = {'generated', 'lib', 'test', 'tool'};
+
 class GitHubWorkflows {
   GitHubWorkflows({
     required this.client,
@@ -266,54 +271,125 @@ class GitHubWorkflows {
         (repository['owner'] as Map<String, dynamic>)['id'] != event.ownerId) {
       throw const InvalidPlanningInput('invalid_payload');
     }
-    // Verify access to the immutable commit before treating a directory 404 as
-    // an empty plan. Permission errors must remain retryable.
-    _json(
+    final commit = _json(
       await _request(
         'GET',
         '$repoPath/git/commits/${webhook.commitSha}',
         token,
       ),
     );
-    final query = {'ref': webhook.commitSha};
-    final directory = await _request(
-      'GET',
-      '$repoPath/contents/openci',
-      token,
-      query: query,
-    );
-    if (directory.statusCode == 404) return [];
-    final entries = _json(directory);
-    if (entries is! List<Object?>) return [];
-    final sources = entries
-        .whereType<Map<String, dynamic>>()
-        .where(
-          (entry) =>
-              entry['type'] == 'file' &&
-              entry['name'] is String &&
-              (entry['name'] as String).endsWith('.dart'),
-        )
-        .toList();
-    if (sources.length > 100 ||
-        sources.any((entry) => entry['size'] is! int) ||
-        sources.fold<int>(0, (sum, entry) => sum + (entry['size'] as int)) >
-            1024 * 1024) {
-      throw const InvalidPlanningInput('invalid_workflow');
+    if (commit case {'tree': {'sha': final String rootSha}}) {
+      final root = await _gitTree(repoPath, token, rootSha);
+      for (final entry in root.entries) {
+        if (entry['path'] == 'openci' && entry['type'] == 'tree') {
+          final sources = await _workflowPaths(repoPath, token, entry['sha']);
+          return _readWorkflows(repoPath, token, webhook.commitSha, sources);
+        }
+      }
+      return [];
     }
+    throw StateError('GitHub commit tree is unavailable');
+  }
+
+  Future<({List<Map<String, dynamic>> entries, bool truncated})> _gitTree(
+    String repoPath,
+    String token,
+    Object? sha, {
+    bool recursive = false,
+  }) async {
+    if (sha is! String ||
+        !RegExp(r'^(?:[a-f0-9]{40}|[a-f0-9]{64})$').hasMatch(sha)) {
+      throw StateError('Invalid GitHub tree SHA');
+    }
+    final data = _json(
+      await _request(
+        'GET',
+        '$repoPath/git/trees/$sha',
+        token,
+        query: recursive ? {'recursive': '1'} : null,
+      ),
+    );
+    if (data case {
+      'tree': final List<Object?> entries,
+      'truncated': final bool truncated,
+    }) {
+      if (truncated && !recursive) {
+        throw StateError('Incomplete GitHub directory listing');
+      }
+      return (
+        entries: entries.cast<Map<String, dynamic>>(),
+        truncated: truncated,
+      );
+    }
+    throw StateError('Invalid GitHub tree');
+  }
+
+  Future<List<String>> _workflowPaths(
+    String repoPath,
+    String token,
+    Object? sha,
+  ) async {
+    final paths = <String>[];
+    var totalSize = 0;
+    final pending = [(prefix: '', sha: sha)];
+    while (pending.isNotEmpty) {
+      final directory = pending.removeLast();
+      var tree = await _gitTree(
+        repoPath,
+        token,
+        directory.sha,
+        recursive: true,
+      );
+      // GitHub can truncate large recursive trees. Walk their child trees individually.
+      final walkChildren = tree.truncated;
+      if (walkChildren) tree = await _gitTree(repoPath, token, directory.sha);
+      for (final entry in tree.entries) {
+        final name = entry['path'];
+        if (name is! String) throw StateError('Invalid GitHub tree path');
+        final path = '${directory.prefix}$name';
+        if (_supportDirectories.contains(path.split('/').first)) continue;
+        if (entry['type'] == 'tree') {
+          if (walkChildren && _workflowDirectory.hasMatch(path)) {
+            pending.add((prefix: '$path/', sha: entry['sha']));
+          }
+          continue;
+        }
+        if (entry['type'] != 'blob' ||
+            (entry['mode'] != '100644' && entry['mode'] != '100755') ||
+            !_workflowFile.hasMatch(path)) {
+          continue;
+        }
+        final size = entry['size'];
+        if (size is! int || size < 0) {
+          throw const InvalidPlanningInput('invalid_workflow');
+        }
+        totalSize += size;
+        paths.add(path);
+        if (paths.length > 100 || totalSize > 1024 * 1024) {
+          throw const InvalidPlanningInput('invalid_workflow');
+        }
+      }
+    }
+    return paths..sort();
+  }
+
+  Future<List<OpenCIFile>> _readWorkflows(
+    String repoPath,
+    String token,
+    String commitSha,
+    List<String> sources,
+  ) async {
+    final query = {'ref': commitSha};
     final files = <OpenCIFile>[];
     var totalBytes = 0;
     for (var offset = 0; offset < sources.length; offset += 4) {
       final batch = await Future.wait(
-        sources.skip(offset).take(4).map((entry) async {
-          final name = entry['name'] as String;
-          if (name.contains('/') || name.contains(r'\')) {
-            throw const InvalidPlanningInput('invalid_workflow');
-          }
-          final path = 'openci/$name';
+        sources.skip(offset).take(4).map((relativePath) async {
+          final path = 'openci/$relativePath';
           final data = _json(
             await _request(
               'GET',
-              '$repoPath/contents/openci/${Uri.encodeComponent(name)}',
+              '$repoPath/contents/$path',
               token,
               query: query,
             ),
@@ -333,7 +409,7 @@ class GitHubWorkflows {
               throw const InvalidPlanningInput('invalid_workflow');
             }
             return OpenCIFile(
-              name: name,
+              name: relativePath.split('/').last,
               path: path,
               content: utf8.decode(bytes),
             );

@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
-import { mkdtempSync, rmSync } from "node:fs";
+import { copyFileSync, mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { prQrOutputDirectory, workflowScript } from "../../lib/functions/executor/model.js";
@@ -34,7 +34,7 @@ for (const checkout of [
       owner: "org",
       repo: "app",
       githubBaseUrl: checkout.event === "push" ? "https://github.com" : "https://github.example",
-      workflowFileName: "ci.dart",
+      workflowFileName: checkout.event === "push" ? "ci.dart" : "dashboard/ios/ci.dart",
       pullRequestNumber: checkout.event === "push" ? null : String(checkout.number),
     };
     const script = workflowScript(
@@ -44,15 +44,20 @@ for (const checkout of [
       { EXAMPLE_SECRET: "never-context" },
       checkout,
     ).replaceAll(prQrOutputDirectory, join(temporary, "qr"));
-    // Execute the real shell exports and Dart decoder. Only VM navigation and
-    // Flutter package/entrypoint commands are replaced with the SDK probe.
+    const entrypoint = join(temporary, "openci", job.workflowFileName);
+    mkdirSync(dirname(entrypoint), { recursive: true });
+    copyFileSync(
+      join(root, "packages/openci_workflow/test/fixtures/read_workflow_context.dart"),
+      entrypoint,
+    );
+    // Run the path selected by the worker shell in a disposable checkout.
     const result = spawnSync("/bin/bash", ["-s"], {
       input:
         `
-cd() { :; }
+cd() { builtin cd "$CONTEXT_TEST_WORKSPACE"; }
 flutter() {
   if [[ "$2" == run ]]; then
-    "$CONTEXT_TEST_DART" --packages="$CONTEXT_TEST_PACKAGES" "$CONTEXT_TEST_PROBE"
+    "$CONTEXT_TEST_DART" --packages="$CONTEXT_TEST_PACKAGES" "$3"
   fi
 }
 ` + script,
@@ -60,10 +65,7 @@ flutter() {
         PATH: "/usr/bin:/bin",
         CONTEXT_TEST_DART: dart,
         CONTEXT_TEST_PACKAGES: join(root, ".dart_tool/package_config.json"),
-        CONTEXT_TEST_PROBE: join(
-          root,
-          "packages/openci_workflow/test/fixtures/read_workflow_context.dart",
-        ),
+        CONTEXT_TEST_WORKSPACE: temporary,
       },
       encoding: "utf8",
       timeout: 30000,

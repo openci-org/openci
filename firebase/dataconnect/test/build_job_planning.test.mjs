@@ -94,18 +94,31 @@ before(async () => {
       path.startsWith("/repos/org/app/git/commits/") &&
       github.revisions.has(path.split("/").at(-1))
     )
-      return respond(github.commitStatus, { sha: path.split("/").at(-1) });
-    if (!github.revisions.has(url.searchParams.get("ref"))) return respond(400, {});
-    if (path === "/repos/org/app/contents/openci") {
-      return respond(
-        200,
-        github.files.map((file) => ({
-          name: file.name,
-          type: "file",
+      return respond(github.commitStatus, {
+        sha: path.split("/").at(-1),
+        tree: { sha: "1".repeat(40) },
+      });
+    if (path === `/repos/org/app/git/trees/${"1".repeat(40)}`) {
+      return respond(200, {
+        truncated: false,
+        tree: [{ path: "openci", type: "tree", sha: "2".repeat(40) }],
+      });
+    }
+    if (
+      path === `/repos/org/app/git/trees/${"2".repeat(40)}` &&
+      url.searchParams.get("recursive") === "1"
+    ) {
+      return respond(200, {
+        truncated: false,
+        tree: github.files.map((file) => ({
+          path: file.name,
+          type: "blob",
+          mode: "100644",
           size: Buffer.byteLength(file.content),
         })),
-      );
+      });
     }
+    if (!github.revisions.has(url.searchParams.get("ref"))) return respond(400, {});
     const file = github.files.find(
       (file) => path === `/repos/org/app/contents/openci/${file.name}`,
     );
@@ -321,6 +334,8 @@ async function fixture(t, payloadChange = {}, eventType = "push") {
 
 test("ID dispatcher -> Dart Function -> GitHub -> atomic FSC jobs", async (t) => {
   const f = await fixture(t);
+  f.github.files[0].name = "dashboard/ios/build.dart";
+  f.github.files[1].name = "sdk/build.dart";
   f.github.files[0].content = `void main() {
     OpenCI.init(workflowName: 'First', ciTriggers: [CITrigger.push(branch: 'develop')], machine: MachineType.linuxLatest);
   }`;
@@ -330,8 +345,8 @@ test("ID dispatcher -> Dart Function -> GitHub -> atomic FSC jobs", async (t) =>
   assert.deepEqual(
     buildJobs.map((job) => [job.workflowFileName, job.runsOn]),
     [
-      ["first.dart", "linux-latest"],
-      ["second.dart", "macos-latest"],
+      ["dashboard/ios/build.dart", "linux-latest"],
+      ["sdk/build.dart", "macos-latest"],
     ],
   );
   assert.deepEqual(f.github.tokenRequests, [
