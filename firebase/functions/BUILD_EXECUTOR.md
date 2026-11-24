@@ -271,7 +271,12 @@ consistent with the dispatcher/planner:
 The Linux pilot uses `base-linux` on Vetu/amd64 with the reservation's explicit
 2 vCPUs and 8192 MiB. Checkout and workflow execution share
 `/home/admin/openci-build`. The image supplies FVM, Java 17 and the Android SDK.
-Hosted Linux pilot runs require a team in `BILLING_COMPLIMENTARY_PRO_TEAM_IDS`.
+Hosted Linux jobs normally require a team in `BILLING_COMPLIMENTARY_PRO_TEAM_IDS`.
+For a single postpaid run, set `OPENCI_LINUX_POSTPAID_PILOT_JOB_ID` on the executor
+Job to the queued build job's ID before resuming the pilot worker. The executor
+accepts that ID only when both the retry count and the run count are zero.
+The run uses the team's normal postpaid admission and metering. Clear the setting
+once the execution has started.
 The executor supplies the workflow context and skips team secret retrieval for the pilot.
 
 For macOS, `ORCHARD_USE_WORKER_MEMORY=true` lets Orchard choose the VM's
