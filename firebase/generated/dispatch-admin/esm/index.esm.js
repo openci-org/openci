@@ -401,15 +401,14 @@ export function consumeBuildDispatchRetry(dcOrVarsOrOptions, varsOrOptions, opti
   return dcInstance.executeMutation("ConsumeBuildDispatchRetry", inputVars, inputOpts);
 }
 
-export function getPendingBuildDispatchWork(dcOrOptions, options) {
-  const { dc: dcInstance, options: inputOpts } = validateAdminArgs(
-    connectorConfig,
-    dcOrOptions,
-    options,
-    undefined,
-  );
+export function getPendingBuildDispatchWork(dcOrVarsOrOptions, varsOrOptions, options) {
+  const {
+    dc: dcInstance,
+    vars: inputVars,
+    options: inputOpts,
+  } = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, false);
   dcInstance.useGen(true);
-  return dcInstance.executeQuery("GetPendingBuildDispatchWork", undefined, inputOpts);
+  return dcInstance.executeQuery("GetPendingBuildDispatchWork", inputVars, inputOpts);
 }
 
 export function completeBuildDispatchRetryJob(dcOrVarsOrOptions, varsOrOptions, options) {

@@ -146,6 +146,92 @@ const claim = (id, executorId = randomUUID()) =>
   sdk.claimBuildJobExecution(dc, { id, executorId, executionName: "test-execution" });
 const past = "2000-01-01T00:00:00Z";
 
+test("a waiting Linux job does not block macOS and resumes on a Vetu host", async (t) => {
+  const linux = await fixture(t, { runsOn: "linux-latest", createdAt: "1" });
+  const mac = await fixture(t, { createdAt: "2" });
+  await graphql(
+    `
+      mutation PilotJob($id: String!) {
+        buildJob_update(id: $id, data: { githubBaseUrl: "https://github.com", repositoryId: 101 })
+      }
+    `,
+    { id: linux.jobId },
+  );
+  linux.dependencies.store = new DataConnectDispatchStore(dc, "101");
+  linux.dependencies.linuxConfiguration = {
+    ...configuration,
+    image: "base-linux",
+    memoryMiB: 8192,
+  };
+  assert.equal(await linux.run(), true);
+  assert.equal((await mac.state()).dispatch.runsOn, "macos-latest");
+  assert.equal((await linux.state()).dispatch, null);
+  linux.dependencies.snapshot = async () => ({
+    workers: [
+      {
+        name: "linux",
+        runtime: "vetu",
+        arch: "amd64",
+        last_seen: new Date().toISOString(),
+        resources: {
+          "org.cirruslabs.logical-cores": 8,
+          "org.cirruslabs.memory-mib": 15360,
+          "org.openci.vetu-vms": 1,
+        },
+      },
+    ],
+    vms: [],
+  });
+  assert.equal(await linux.run(), true);
+  const dispatch = (await linux.state()).dispatch;
+  assert.equal(dispatch.runsOn, "linux-latest");
+  assert.equal(dispatch.image, "base-linux");
+  assert.equal(dispatch.cpu, 2);
+  assert.equal(dispatch.memoryMiB, 8192);
+  assert.equal((await claim(dispatch.id)).data.acquired, 1);
+});
+
+test("a reservation enforces repository admission and the executor claims the reserved OS", async (t) => {
+  const f = await fixture(t, { runsOn: "linux-latest" });
+  assert.equal(await store.acquireScheduler("pilot"), true);
+  const id = randomUUID();
+  const reserve = (linuxRepositoryIds) =>
+    sdk.reserveBuildJobDispatch(dc, {
+      ...configuration,
+      owner: "pilot",
+      id,
+      jobId: f.jobId,
+      vmName: `openci-${id}`,
+      runsOn: "linux-latest",
+      memoryMiB: 8192,
+      image: "base-linux",
+      linuxRepositoryIds,
+    });
+  await graphql(
+    `
+      mutation ($id: String!) {
+        buildJob_update(id: $id, data: { githubBaseUrl: "https://github.com", repositoryId: 101 })
+      }
+    `,
+    { id: f.jobId },
+  );
+  await assert.rejects(reserve([]), /Machine unavailable/);
+  await assert.rejects(reserve(["102"]), /Machine unavailable/);
+  assert.equal((await f.state()).dispatch, null);
+  await reserve(["101"]);
+  await updateDispatch(id, { runsOn: null });
+  await assert.rejects(claim(id), /no longer queued/);
+  await graphql(
+    `
+      mutation ($id: String!) {
+        buildJob_update(id: $id, data: { runsOn: "macos-latest" })
+      }
+    `,
+    { id: f.jobId },
+  );
+  assert.equal((await claim(id)).data.acquired, 1);
+});
+
 test("reserves capacity, schedules recovery before launch, and deduplicates redelivery", async (t) => {
   const f = await fixture(t);
   await f.run();
@@ -169,7 +255,13 @@ test("full capacity keeps the job queued without a reservation or launch", async
     (error) => error instanceof DispatchRetry && error.reason === "capacity_unavailable",
   );
   assert.deepEqual(await f.state(), {
-    job: { id: f.jobId, status: "QUEUED", runsOn: "macos-latest" },
+    job: {
+      id: f.jobId,
+      status: "QUEUED",
+      runsOn: "macos-latest",
+      githubBaseUrl: null,
+      repositoryId: null,
+    },
     dispatch: null,
   });
   assert.equal(f.launched.length, 0);

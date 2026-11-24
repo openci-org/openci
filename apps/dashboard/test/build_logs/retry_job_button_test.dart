@@ -127,6 +127,11 @@ void main() {
       await emit(tester, job.copyWith(status: status));
       expect(retryButton(), findsOneWidget, reason: status.name);
     }
+    await emit(
+      tester,
+      job.copyWith(status: BuildJobStatus.FAILURE, runsOn: 'linux-latest'),
+    );
+    expect(retryButton(), findsOneWidget);
     for (final status in [
       BuildJobStatus.WAITING,
       BuildJobStatus.QUEUED,

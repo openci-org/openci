@@ -123,6 +123,29 @@ Here `--no-pki` verifies the controller against the certificate embedded in the
 bootstrap token. Use launchd for permanent workers, after draining any builds on
 their old controller. Do not run two worker processes managing the same Mac.
 
+## Scaleway Linux pilot
+
+The `openci-linux-ryzen-pilot` Tailnet device connects to the controller on
+TCP 443 as Orchard worker `scaleway-ryzen`. Its assigned IPv4 and IPv6
+addresses are in `tailnet-firewall.nft`. The worker reads its local
+`base-linux` image from the mount at `/var/lib/openci-worker/.vetu`.
+
+Install [openci-linux-worker.service](openci-linux-worker.service) in
+`/etc/systemd/system/` and the controller-pinned bootstrap token for the
+dedicated `scaleway-ryzen-worker` Orchard account in
+`/etc/openci/orchard-worker.token` (root-owned, mode 0600). The service
+passes the token to Orchard on stdin and runs Vetu as `openci-worker`. The
+worker account has the `compute:read` and `compute:write` roles.
+
+For initial registration, set `Environment=VETU_VM_SLOTS=0` in a systemd
+service override before starting the worker. Once its first heartbeat
+appears, run `orchard pause worker scaleway-ryzen`. Verify the pause and an
+empty VM inventory for this worker before removing the override, reloading
+systemd and restarting the service. The paused worker should advertise
+`vetu`, `amd64`, one `org.openci.vetu-vms` slot, at least 2 logical cores
+and 8192 MiB. Confirm the dispatch rollout before resuming the worker.
+[Internal Linux dispatch settings](../../firebase/functions/BUILD_DISPATCH.md#configuration-and-rollout)
+
 ## Tailnet access
 
 The six physical Mac workers' SSH and launchd configuration is managed by
@@ -137,7 +160,7 @@ Tailscale is installed from its signed Debian Bookworm repository (version
 administration remain available. No exit node, subnet route or Funnel is enabled.
 
 `tailnet-firewall.nft` restricts traffic entering `tailscale0` to TCP 443 from
-the listed Mac workers and operator Macs, for both IPv4 and IPv6. Other Tailnet
+the listed build workers and operator Macs, for both IPv4 and IPv6. Other Tailnet
 ingress, including SSH, is dropped. Replies to connections initiated by the
 controller are allowed. GCP VPC and IAP traffic use a separate interface and are
 controlled by the GCP firewall rules. This allowlist is enforced on the

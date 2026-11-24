@@ -1,7 +1,7 @@
 # Build dispatch (G-1604)
 
 `queueBuildJobs` listens to the successful admin `CompleteWebhookTask` mutation,
-publishes a queued GitHub Check for each returned BuildJob, then enqueues its ID.
+publishes queued GitHub Checks for enabled machines, then enqueues each returned BuildJob ID.
 If another publisher owns the Check lease, it enqueues the ID so dispatch can
 finish synchronization through a durable retry.
 `queueBuildDispatchOnCompletion` wakes the same queue after a successful admin
@@ -86,8 +86,9 @@ owner before using a repository-scoped checks-write token.
 ## Queue order
 
 Cloud Tasks deliveries wake the dispatcher. New reservations select eligible
-`QUEUED` `macos-latest` jobs by `createdAt`, then `id`, regardless of the job ID
-in the notification. The scheduler lease covers expiration, selection, capacity
+`QUEUED` jobs by `createdAt`, then `id`, across macOS and any enabled Linux
+repository. When the oldest job's pool is full or offline, the other pool
+can take its oldest eligible job. The scheduler lease covers expiration, selection, capacity
 checks and reservation. This orders capacity allocation; concurrent VMs can
 start or finish their workflows in a different order.
 
@@ -130,15 +131,15 @@ Existing delayed retries remain available if no completion notification arrives.
 ## Capacity and retries
 
 Capacity includes Orchard VMs and FSC reservations whose stable VM names are
-not yet visible in Orchard. Only online, unpaused Tart/arm64 workers count.
-CPU, memory and Tart VM slots must fit on an individual worker; aggregate fleet
-totals alone are insufficient. Unknown VM usage fails the check. Placement is
+not yet visible in Orchard. Capacity is counted separately for Tart/arm64 and
+Vetu/amd64. CPU, memory and a matching VM slot must fit on a single online,
+unpaused worker. Unknown VM usage fails the check. Placement is
 conservative and Orchard still owns final scheduling, including competition
 from other Orchard clients.
 
 `BuildDispatchScheduler` serializes capacity snapshots with a 90-second lease.
 The reservation transaction verifies the current owner and lease, and requires
-a `QUEUED` `macos-latest` job. `BuildJobDispatch.activeJobId` is unique while a
+a `QUEUED` job matching the requested machine and repository admission. `BuildJobDispatch.activeJobId` is unique while a
 reservation is open. Closed attempts retain history and clear this key.
 
 If no capacity exists, or the scheduler/launch lease is busy, the job stays
@@ -217,19 +218,29 @@ could allocate its capacity twice. Explicit terminal-job retries use
 
 ## Configuration and rollout
 
-| Parameter                                  | Value                                                         |
-| ------------------------------------------ | ------------------------------------------------------------- |
-| `ORCHARD_API_URL`                          | Private HTTPS controller URL (`https://10.77.0.2:443` on GCP) |
-| `ORCHARD_SERVICE_ACCOUNT_NAME`             | Orchard account with workers/VMs read access                  |
-| `ORCHARD_SERVICE_ACCOUNT_TOKEN`            | Bound Secret Manager secret                                   |
-| `ORCHARD_CA_CERT`                          | Optional trusted PEM CA; TLS verification stays enabled       |
-| `ORCHARD_VM_CPU` / `ORCHARD_VM_MEMORY_MIB` | Positive integers, defaults 4 / 4096                          |
-| `BASE_VM_NAME`                             | Orchard image, default `base-macos`                           |
-| `BUILD_EXECUTOR_JOB`                       | `projects/PROJECT/locations/REGION/jobs/JOB`                  |
-| `GITHUB_APP_ID` / `GITHUB_APP_PRIVATE_KEY` | CI App ID and bound private-key secret, on both Functions     |
-| `GITHUB_API_BASE_URL` / `GITHUB_BASE_URL`  | Same GitHub host configuration as the executor                |
+| Parameter                                  | Value                                                                |
+| ------------------------------------------ | -------------------------------------------------------------------- |
+| `ORCHARD_API_URL`                          | Private HTTPS controller URL (`https://10.77.0.2:443` on GCP)        |
+| `ORCHARD_SERVICE_ACCOUNT_NAME`             | Orchard account with workers/VMs read access                         |
+| `ORCHARD_SERVICE_ACCOUNT_TOKEN`            | Bound Secret Manager secret                                          |
+| `ORCHARD_CA_CERT`                          | Optional trusted PEM CA; TLS verification stays enabled              |
+| `ORCHARD_VM_CPU` / `ORCHARD_VM_MEMORY_MIB` | Positive integers, defaults 4 / 4096                                 |
+| `BASE_VM_NAME`                             | macOS image, default `base-macos`                                    |
+| `OPENCI_LINUX_PILOT_REPOSITORY_ID`         | One numeric GitHub.com repository ID. Empty disables Linux dispatch. |
+| `BUILD_EXECUTOR_JOB`                       | `projects/PROJECT/locations/REGION/jobs/JOB`                         |
+| `GITHUB_APP_ID` / `GITHUB_APP_PRIVATE_KEY` | CI App ID and bound private-key secret, on both Functions            |
+| `GITHUB_API_BASE_URL` / `GITHUB_BASE_URL`  | Same GitHub host configuration as the executor                       |
 
-The dispatcher reserves the configured CPU count and the executor explicitly
+For the internal Linux pilot, deploy the nullable dispatch machine column and
+the `dispatch` and `builds` connectors, then the executor image and Functions.
+Confirm the Scaleway worker advertises `org.openci.vetu-vms=1` and has a local
+`base-linux` image. Set `OPENCI_LINUX_PILOT_REPOSITORY_ID` in Functions for one
+GitHub.com repository belonging to a complimentary pilot team. Queued Linux
+jobs in that repository become eligible on the next notification. Each VM
+requests 2 vCPUs and 8192 MiB. Clearing the parameter stops new Linux reservations.
+Existing reservations retain their configuration and finish through normal recovery.
+
+For macOS the dispatcher reserves the configured CPU count and the executor explicitly
 passes it to Orchard, overriding the worker's default CPU count. Existing
 deployments with `ORCHARD_VM_CPU=2` must update that environment variable and
 their local `.env.PROJECT` file to use four CPUs; changing the deployment default

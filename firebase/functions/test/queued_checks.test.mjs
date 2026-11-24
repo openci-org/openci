@@ -7,7 +7,7 @@ const queryError = () =>
   Object.assign(new Error("private database details"), { code: "data-connect/query-error" });
 const busy = (error) => error instanceof DispatchRetry && error.reason === "check_publication_busy";
 
-function fixture() {
+function fixture(linuxRepositoryId) {
   const state = {
     job: {
       id: "job",
@@ -47,13 +47,27 @@ function fixture() {
       return "100";
     },
   };
-  const checks = new QueuedChecks(store, github);
+  const checks = new QueuedChecks(store, github, linuxRepositoryId);
   const competingLease = () => {
     state.job.checkOwner = "other";
     state.job.checkLeaseUntil = new Date(Date.now() + 300_000).toISOString();
   };
   return { state, store, github, checks, calls, competingLease };
 }
+
+test("publishes a new Linux Check only for the enabled GitHub.com repository", async () => {
+  for (const [configured, repositoryId, githubBaseUrl, published] of [
+    ["", "101", "https://github.com", false],
+    ["101", "102", "https://github.com", false],
+    ["101", "101", "https://github.example", false],
+    ["101", "101", "https://github.com", true],
+  ]) {
+    const f = fixture(configured);
+    Object.assign(f.state.job, { runsOn: "linux-latest", repositoryId, githubBaseUrl });
+    await f.checks.sync("job");
+    assert.deepEqual(f.calls, published ? ["acquire", "github"] : []);
+  }
+});
 
 for (const status of ["QUEUED", "CANCELLED"]) {
   test(`a live publisher defers ${status} work before acquiring or calling GitHub`, async () => {

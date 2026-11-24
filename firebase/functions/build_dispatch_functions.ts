@@ -22,6 +22,7 @@ import { orchardNetworkOptions } from "./orchard_network.js";
 import { dispatchServiceAccount } from "./function_identity.js";
 import { dataConnectServiceId } from "./data_connect_config.js";
 import { queuedChecks } from "./queued_checks.js";
+import { isDispatchEnabled } from "./worker_machine.js";
 import { BuildQueueEnqueueError, buildQueueFailureReason } from "./build_queue_error.js";
 
 const orchardUrl = defineString("ORCHARD_API_URL");
@@ -32,7 +33,14 @@ const orchardCa = defineString("ORCHARD_CA_CERT", { default: "" });
 const vmCpu = defineInt("ORCHARD_VM_CPU", { default: 4 });
 const vmMemory = defineInt("ORCHARD_VM_MEMORY_MIB", { default: 4096 });
 const vmImage = defineString("BASE_VM_NAME", { default: "base-macos" });
+const linuxRepository = defineString("OPENCI_LINUX_PILOT_REPOSITORY_ID", { default: "" });
 const cloudRunJob = defineString("BUILD_EXECUTOR_JOB");
+
+function linuxPilotRepositoryId(): string {
+  const id = linuxRepository.value();
+  // An invalid pilot setting must not send an invalid Int64 to the shared macOS queue.
+  return /^[1-9][0-9]{0,18}$/.test(id) && BigInt(id) <= 9223372036854775807n ? id : "";
+}
 
 async function enqueue(
   notification: { jobId: string } | { dispatch: true },
@@ -81,7 +89,7 @@ export const queueBuildJobs = onMutationExecuted(
         stage = "queued_check_sync";
         let checkDeferred = false;
         try {
-          await queuedChecks(getDispatchDataConnect()).sync(id);
+          await queuedChecks(getDispatchDataConnect(), linuxPilotRepositoryId()).sync(id);
         } catch (failure) {
           if (!(failure instanceof DispatchRetry) || failure.reason !== "check_publication_busy")
             throw failure;
@@ -281,15 +289,18 @@ export const dispatchBuildJob = onTaskDispatched<unknown>(
     }
     try {
       const continuationId = dispatchContinuationTaskId(request.id);
-      const store = new DataConnectDispatchStore(getDispatchDataConnect());
+      const linuxRepositoryId = linuxPilotRepositoryId();
+      const dc = getDispatchDataConnect();
+      const store = new DataConnectDispatchStore(dc, linuxRepositoryId);
       let awaitingJobId: string | undefined;
       if (jobId) {
         const { job } = await store.read(jobId);
         if (job?.status === "CANCELLED") await store.cancelUnstarted(jobId);
-        if (job?.status === "QUEUED") awaitingJobId = jobId;
+        if (job?.status === "QUEUED" && isDispatchEnabled(job, linuxRepositoryId))
+          awaitingJobId = jobId;
         // Also handles legacy per-job retries already queued before deployment.
         try {
-          await queuedChecks(getDispatchDataConnect()).sync(jobId);
+          await queuedChecks(dc, linuxRepositoryId).sync(jobId);
         } catch (failure) {
           if (!(failure instanceof DispatchRetry) || failure.reason !== "check_publication_busy")
             throw failure;
@@ -329,8 +340,16 @@ export const dispatchBuildJob = onTaskDispatched<unknown>(
             image: vmImage.value(),
             cloudRunJob: cloudRunJob.value(),
           },
+          linuxConfiguration: linuxRepositoryId
+            ? {
+                cpu: 2,
+                memoryMiB: 8192,
+                image: "base-linux",
+                cloudRunJob: cloudRunJob.value(),
+              }
+            : undefined,
           syncQueuedCheck: (selectedJobId) =>
-            queuedChecks(getDispatchDataConnect()).sync(selectedJobId),
+            queuedChecks(dc, linuxRepositoryId).sync(selectedJobId),
           enqueueRecovery: (dispatch) =>
             enqueue(
               { jobId: dispatch.jobId },

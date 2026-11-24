@@ -5,6 +5,7 @@ table inet orchard_tailnet {
   set clients4 {
     type ipv4_addr
     elements = {
+      100.78.246.29,  # fresh
       100.112.30.120, # hobbydevelop
       100.73.109.33,  # growth
       100.83.142.124, # kiai
@@ -14,6 +15,7 @@ table inet orchard_tailnet {
       100.107.196.61, # origin
       100.80.30.41,   # heaven-osk
       100.87.79.84,   # m1-max-64gb-mbp
+      100.89.220.107, # openci-linux-ryzen-pilot
       100.117.171.73, # Masahiro MacBook Pro 2
       100.119.229.48  # Masahiro MacBook Pro
     }
@@ -21,6 +23,7 @@ table inet orchard_tailnet {
   set clients6 {
     type ipv6_addr
     elements = {
+      fd7a:115c:a1e0::5539:f61e, # fresh
       fd7a:115c:a1e0::6139:1e78, # hobbydevelop
       fd7a:115c:a1e0::4d39:6d21, # growth
       fd7a:115c:a1e0::3439:8e7c, # kiai
@@ -30,6 +33,7 @@ table inet orchard_tailnet {
       fd7a:115c:a1e0::9439:c43e, # origin
       fd7a:115c:a1e0::dc39:1e29, # heaven-osk
       fd7a:115c:a1e0::2b39:4f54, # m1-max-64gb-mbp
+      fd7a:115c:a1e0::3e39:dc6c, # openci-linux-ryzen-pilot
       fd7a:115c:a1e0::5639:ab49, # Masahiro MacBook Pro 2
       fd7a:115c:a1e0::be39:e530  # Masahiro MacBook Pro
     }

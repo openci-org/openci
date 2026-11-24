@@ -89,11 +89,13 @@ async function seedDispatches(jobs, overrides = {}) {
   return dispatches;
 }
 
-async function oldestQueuedJob() {
+async function oldestQueuedJob(machines, linuxRepositoryIds) {
   const { dispatches } = (await sdk.getBuildDispatchExclusions(dc)).data;
   return (
     await sdk.getOldestQueuedBuildJob(dc, {
       excludedJobIds: dispatches.map((dispatch) => dispatch.jobId),
+      machines,
+      linuxRepositoryIds,
     })
   ).data.job;
 }
@@ -108,8 +110,60 @@ test("the oldest creation time wins regardless of insertion order or later updat
     { id: "z-oldest", createdAt: "10", updatedAt: "1000" },
     { id: "b-middle", createdAt: "20" },
   ]);
-  assert.deepEqual(await oldestQueuedJob(), { id: oldest.id, createdAt: "10" });
-  assert.deepEqual(await oldestQueuedJob(), { id: oldest.id, createdAt: "10" });
+  assert.deepEqual(await oldestQueuedJob(), {
+    id: oldest.id,
+    createdAt: "10",
+    runsOn: "macos-latest",
+  });
+  assert.deepEqual(await oldestQueuedJob(), {
+    id: oldest.id,
+    createdAt: "10",
+    runsOn: "macos-latest",
+  });
+});
+
+test("selection and wake-ups admit only the configured GitHub.com Linux repository", async (t) => {
+  const pilot = {
+    runsOn: "linux-latest",
+    repositoryId: "101",
+    githubBaseUrl: "https://github.com",
+  };
+  const [, , allowed, mac] = await seedJobs(t, [
+    { ...pilot, id: "other", repositoryId: "102" },
+    { ...pilot, id: "enterprise", githubBaseUrl: "https://github.example" },
+    { ...pilot, id: "pilot", createdAt: "2" },
+    { id: "mac", createdAt: "3" },
+  ]);
+  const machines = ["linux-latest", "macos-latest"];
+  assert.equal((await oldestQueuedJob()).id, mac.id);
+  assert.equal((await oldestQueuedJob(machines)).id, mac.id);
+  assert.equal((await oldestQueuedJob(machines, ["101"])).id, allowed.id);
+  await graphql(
+    `
+      mutation ($id: String!) {
+        buildJob_update(id: $id, data: { status: "SUCCESS" })
+      }
+    `,
+    { id: mac.id },
+  );
+  assert.equal((await sdk.getPendingBuildDispatchWork(dc)).data.queuedJob, null);
+  assert.equal(
+    (await sdk.getPendingBuildDispatchWork(dc, { linuxRepositoryIds: ["101"] })).data.queuedJob.id,
+    allowed.id,
+  );
+  await graphql(
+    `
+      mutation ($id: String!) {
+        buildJob_update(id: $id, data: { status: "SUCCESS" })
+      }
+    `,
+    { id: allowed.id },
+  );
+  assert.equal(await oldestQueuedJob(machines, ["101"]), null);
+  assert.equal(
+    (await sdk.getPendingBuildDispatchWork(dc, { linuxRepositoryIds: ["101"] })).data.queuedJob,
+    null,
+  );
 });
 
 test("equal creation times use job ID order", async (t) => {
@@ -191,7 +245,11 @@ test("recently blocked jobs defer to later jobs and regain priority after the re
     `,
     { id: dispatch.id },
   );
-  assert.deepEqual(await oldestQueuedJob(), { id: blocked.id, createdAt: "1" });
+  assert.deepEqual(await oldestQueuedJob(), {
+    id: blocked.id,
+    createdAt: "1",
+    runsOn: "macos-latest",
+  });
 });
 
 test("finished non-blocked attempts do not exclude a queued job", async (t) => {

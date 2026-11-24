@@ -1,9 +1,11 @@
 import { request as httpRequest } from "node:http";
 import { request as httpsRequest } from "node:https";
+import { isWorkerMachine, orchardMachines } from "./worker_machine.js";
 
 export interface VmSize {
   cpu: number;
   memoryMiB: number;
+  runsOn?: string | null;
 }
 export interface VmReservation extends VmSize {
   vmName: string;
@@ -15,7 +17,6 @@ export interface OrchardSnapshot {
 
 const cpuResource = "org.cirruslabs.logical-cores";
 const memoryResource = "org.cirruslabs.memory-mib";
-const vmResource = "org.cirruslabs.tart-vms";
 
 function object(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
@@ -45,12 +46,15 @@ export function hasOrchardCapacity(
   if (!positive(requested.cpu) || !positive(requested.memoryMiB)) {
     throw new Error("Invalid VM size");
   }
+  const machine = requested.runsOn ?? "macos-latest";
+  if (!isWorkerMachine(machine)) throw new Error("Unsupported Orchard machine");
+  const platform = orchardMachines[machine];
   const workers = new Map<string, Resources>();
   for (const worker of snapshot.workers) {
     if (
       worker.scheduling_paused === true ||
-      (worker.runtime ?? "tart") !== "tart" ||
-      (worker.arch ?? "arm64") !== "arm64"
+      (worker.runtime ?? "tart") !== platform.runtime ||
+      (worker.arch ?? "arm64") !== platform.arch
     )
       continue;
     const seen = Date.parse(String(worker.last_seen ?? ""));
@@ -61,7 +65,7 @@ export function hasOrchardCapacity(
     workers.set(workerName, {
       cpu: positive(resources[cpuResource]),
       memoryMiB: positive(resources[memoryResource]),
-      slots: positive(resources[vmResource]),
+      slots: positive(resources[platform.slots]),
     });
   }
   const pending: Resources[] = [];
@@ -72,7 +76,12 @@ export function hasOrchardCapacity(
     vmNames.add(vmName);
     // Assigned VMs on offline/paused/other-runtime workers cannot consume the
     // eligible workers' capacity. Unassigned VMs still compete for their slots.
-    if (vm.worker && !workers.has(String(vm.worker))) continue;
+    if (
+      vm.worker
+        ? !workers.has(String(vm.worker))
+        : (vm.runtime ?? "tart") !== platform.runtime || (vm.arch ?? "arm64") !== platform.arch
+    )
+      continue;
     const resources = object(vm.resources ?? {});
     const size: Resources = {
       cpu: Math.max(positive(resources[cpuResource]), positive(vm.assignedCPU), positive(vm.cpu)),
@@ -81,7 +90,7 @@ export function hasOrchardCapacity(
         positive(vm.assignedMemory),
         positive(vm.memory),
       ),
-      slots: positive(resources[vmResource]) || 1,
+      slots: positive(resources[platform.slots]) || 1,
     };
     if (!size.cpu || !size.memoryMiB) throw new Error("Unknown Orchard VM resource usage");
     const worker = workers.get(String(vm.worker ?? ""));
@@ -92,6 +101,7 @@ export function hasOrchardCapacity(
     } else pending.push(size);
   }
   for (const reservation of reservations) {
+    if ((reservation.runsOn ?? "macos-latest") !== machine) continue;
     if (!positive(reservation.cpu) || !positive(reservation.memoryMiB)) {
       throw new Error("Invalid reserved VM size");
     }

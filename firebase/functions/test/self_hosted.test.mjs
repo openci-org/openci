@@ -259,6 +259,30 @@ test("self-hosted builds run without subscription or usage admission and still r
   ]);
 });
 
+test("a Linux reservation checks out and runs the workflow in the same guest workspace", async () => {
+  const f = executionFixture(true);
+  f.job.runsOn = f.dispatch.runsOn = "linux-latest";
+  f.dependencies.secrets = async () => assert.fail("The Linux pilot must not read team secrets");
+  await f.run();
+  assert.equal(f.dispatch.outcome, "success");
+  assert.equal(f.scripts.length, 2);
+  for (const script of f.scripts) {
+    assert.match(script, /export HOME=\/home\/admin/);
+    assert.ok(
+      script.includes('cd "${HOME:?}/openci-build"') || script.includes('cd "$HOME/openci-build"'),
+    );
+  }
+});
+
+test("a hosted Linux job cannot start billing for a team outside the complimentary pilot", async () => {
+  const f = executionFixture(false);
+  f.job.runsOn = f.dispatch.runsOn = "linux-latest";
+  await f.run();
+  assert.equal(f.dispatch.outcome, "failure");
+  assert.ok(!f.calls.includes("period"));
+  assert.ok(!f.calls.includes("create"));
+});
+
 test("PR builds check out the resolved merge SHA and report checks on the saved head SHA", async () => {
   const f = executionFixture(true);
   f.job.pullRequestNumber = "7";

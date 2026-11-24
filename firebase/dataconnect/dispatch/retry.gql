@@ -11,7 +11,7 @@ mutation ReserveBuildDispatchRetry($taskId: String!, $jobId: String! = "")
       # An omitted nullable filter is ignored; the default empty ID matches no job.
       id: { eq: $jobId }
       status: { in: ["QUEUED", "CANCELLED"] }
-      runsOn: { eq: "macos-latest" }
+      runsOn: { in: ["macos-latest", "linux-latest"] }
     }
     data: { dispatchRetryPending: true }
   )
@@ -40,11 +40,27 @@ mutation ConsumeBuildDispatchRetry($taskId: String!) @auth(level: NO_ACCESS) {
   )
 }
 
-query GetPendingBuildDispatchWork @auth(level: NO_ACCESS) {
+query GetPendingBuildDispatchWork($linuxRepositoryIds: [Int64!]! = []) @auth(level: NO_ACCESS) {
   # Include temporarily excluded jobs (check leases, blocked cooldown, startup).
   # They still need a future notification even when FIFO cannot select them yet.
   queuedJob: buildJob(
-    first: { where: { status: { eq: "QUEUED" }, runsOn: { eq: "macos-latest" } } }
+    first: {
+      where: {
+        _and: [
+          { status: { eq: "QUEUED" } }
+          {
+            _or: [
+              { runsOn: { eq: "macos-latest" } }
+              {
+                runsOn: { eq: "linux-latest" }
+                githubBaseUrl: { eq: "https://github.com" }
+                repositoryId: { in: $linuxRepositoryIds }
+              }
+            ]
+          }
+        ]
+      }
+    }
   ) {
     id
   }

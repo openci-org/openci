@@ -4,6 +4,7 @@ fragment BuildDispatchFields on BuildJobDispatch {
   teamId
   activeJobId
   vmName
+  runsOn
   cpu
   memoryMiB
   image
@@ -37,6 +38,8 @@ query GetBuildDispatchState($jobId: String!) @auth(level: NO_ACCESS) {
     id
     status
     runsOn
+    githubBaseUrl
+    repositoryId
   }
   dispatch: buildJobDispatch(first: { where: { activeJobId: { eq: $jobId } } }) {
     ...BuildDispatchFields
@@ -80,12 +83,26 @@ query GetBuildDispatchExclusions @auth(level: NO_ACCESS) {
 
 # Pass every jobId from GetBuildDispatchExclusions. Selection does not reserve
 # capacity: ReserveBuildJobDispatch must still validate the job and lease.
-query GetOldestQueuedBuildJob($excludedJobIds: [String!]!) @auth(level: NO_ACCESS) {
+query GetOldestQueuedBuildJob(
+  $excludedJobIds: [String!]!
+  $machines: [String!]! = ["macos-latest"]
+  $linuxRepositoryIds: [Int64!]! = []
+) @auth(level: NO_ACCESS) {
   job: buildJob(
     first: {
       where: {
         _and: [
-          { id: { nin: $excludedJobIds }, status: { eq: "QUEUED" }, runsOn: { eq: "macos-latest" } }
+          { id: { nin: $excludedJobIds }, status: { eq: "QUEUED" }, runsOn: { in: $machines } }
+          {
+            _or: [
+              { runsOn: { eq: "macos-latest" } }
+              {
+                runsOn: { eq: "linux-latest" }
+                githubBaseUrl: { eq: "https://github.com" }
+                repositoryId: { in: $linuxRepositoryIds }
+              }
+            ]
+          }
           {
             _or: [
               { checkLeaseUntil: { isNull: true } }
@@ -99,6 +116,7 @@ query GetOldestQueuedBuildJob($excludedJobIds: [String!]!) @auth(level: NO_ACCES
   ) {
     id
     createdAt
+    runsOn
   }
 }
 
@@ -130,6 +148,8 @@ mutation ReserveBuildJobDispatch(
   $id: String!
   $jobId: String!
   $vmName: String!
+  $runsOn: String! = "macos-latest"
+  $linuxRepositoryIds: [Int64!]! = []
   $cpu: Int!
   $memoryMiB: Int!
   $image: String!
@@ -143,7 +163,7 @@ mutation ReserveBuildJobDispatch(
   buildJob_updateMany(
     where: {
       _and: [
-        { id: { eq: $jobId }, status: { eq: "QUEUED" }, runsOn: { eq: "macos-latest" } }
+        { id: { eq: $jobId }, status: { eq: "QUEUED" }, runsOn: { eq: $runsOn } }
         {
           _or: [
             { checkLeaseUntil: { isNull: true } }
@@ -156,7 +176,13 @@ mutation ReserveBuildJobDispatch(
   ) @check(expr: "this == 1", message: "Job is not eligible for dispatch")
   # Read after locking the job so a concurrent check publisher cannot be missed.
   query @redact {
-    job: buildJob(id: $jobId) {
+    job: buildJob(id: $jobId)
+      @check(
+        expr: "vars.runsOn == 'macos-latest' || (vars.runsOn == 'linux-latest' && this.githubBaseUrl == 'https://github.com' && this.repositoryId in vars.linuxRepositoryIds)"
+        message: "Machine unavailable for this repository"
+      ) {
+      githubBaseUrl
+      repositoryId
       teamId
       runCount
       checkRunId
@@ -170,6 +196,7 @@ mutation ReserveBuildJobDispatch(
       teamId_expr: "response.query.job.teamId"
       activeJobId: $jobId
       vmName: $vmName
+      runsOn: $runsOn
       cpu: $cpu
       memoryMiB: $memoryMiB
       image: $image
@@ -220,7 +247,7 @@ mutation CancelUnstartedBuildDispatch($jobId: String!) @auth(level: NO_ACCESS) @
   query @redact {
     job: buildJob(id: $jobId)
       @check(
-        expr: "this == null || this.status != 'QUEUED' || this.runsOn != 'macos-latest'"
+        expr: "this == null || this.status != 'QUEUED' || !(this.runsOn in ['macos-latest', 'linux-latest'])"
         message: "Job is still eligible"
       ) {
       status
@@ -281,13 +308,14 @@ mutation ClaimBuildJobExecution(
   query @redact {
     dispatch: buildJobDispatch(id: $id) {
       jobId
+      runsOn
     }
   }
   buildJob_updateMany(
     where: {
       id: { eq_expr: "response.query.dispatch.jobId" }
       status: { eq: "QUEUED" }
-      runsOn: { eq: "macos-latest" }
+      runsOn: { eq_expr: "response.query.dispatch.runsOn == null ? 'macos-latest' : response.query.dispatch.runsOn" }
     }
     data: { status: "QUEUED" }
   ) @check(expr: "this == 1", message: "Job is no longer queued")

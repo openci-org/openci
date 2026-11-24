@@ -163,6 +163,40 @@ test("workflow context rejects invalid run numbers", () => {
   }
 });
 
+test("Linux checkout and workflow use the same guest home and Android toolchain", () => {
+  const machine = "linux-latest";
+  validateJob({ ...job, runsOn: machine }, { ...dispatch, runsOn: machine });
+  assert.throws(() => validateJob(job, { ...dispatch, runsOn: machine }), /Invalid persisted/);
+  assert.match(
+    checkoutScript(job.commitSha, "https://github.com/org/app.git", "token", undefined, machine),
+    /export HOME=\/home\/admin/,
+  );
+  const result = spawnSync("/bin/bash", ["-s"], {
+    input:
+      'cd() { :; }\nflutter() { if [[ "$2" == run ]]; then printf "%s" "$PATH"; fi; }\n' +
+      workflowScript(
+        { ...job, runsOn: machine },
+        { ...dispatch, runsOn: machine },
+        1,
+        {},
+        pushCheckout,
+      ),
+    env: { PATH: "/usr/bin:/bin" },
+    encoding: "utf8",
+  });
+  assert.equal(result.status, 0, result.stderr);
+  const paths = result.stdout.split(":");
+  for (const tool of [
+    "/home/admin/fvm/default/bin",
+    "/home/admin/.pub-cache/bin",
+    "/opt/android-sdk/emulator",
+    "/opt/android-sdk/platform-tools",
+    "/opt/android-sdk/cmdline-tools/latest/bin",
+    "/usr/lib/jvm/java-17-openjdk-amd64/bin",
+  ])
+    assert.ok(paths.includes(tool), tool);
+});
+
 test("workflows expose VM toolchains when Orchard supplies a minimal PATH", () => {
   const result = spawnSync("/bin/bash", ["-s"], {
     // Stub only the VM workspace and Flutter; execute the generated environment setup.
@@ -514,7 +548,8 @@ async function controller(t, onSocket, handler, options = {}) {
 }
 
 test("Orchard streams large scripts over stdin and preserves both output channels and exit status", async (t) => {
-  const script = "secret-script🍎\n".repeat(3000);
+  const script =
+    "# secret-script🍎\n".repeat(3000) + "cat >/dev/null\nprintf hello\nprintf error >&2\nexit 17";
   const chunks = [];
   const f = await controller(t, (socket) =>
     socket.on("message", (raw) => {
@@ -522,13 +557,11 @@ test("Orchard streams large scripts over stdin and preserves both output channel
       assert.equal(frame.type, "stdin");
       if (frame.data) chunks.push(Buffer.from(frame.data, "base64"));
       else {
-        socket.send(
-          JSON.stringify({ type: "stdout", data: Buffer.from("hello").toString("base64") }),
-        );
-        socket.send(
-          JSON.stringify({ type: "stderr", data: Buffer.from("error").toString("base64") }),
-        );
-        socket.send(JSON.stringify({ type: "exit", exit: { code: 17 } }));
+        const result = spawnSync("/bin/bash", ["-s"], { input: Buffer.concat(chunks) });
+        for (const type of ["stdout", "stderr"]) {
+          socket.send(JSON.stringify({ type, data: result[type].toString("base64") }));
+        }
+        socket.send(JSON.stringify({ type: "exit", exit: { code: result.status } }));
       }
     }),
   );
@@ -544,7 +577,7 @@ test("Orchard streams large scripts over stdin and preserves both output channel
     ),
     17,
   );
-  assert.equal(Buffer.concat(chunks).toString(), script);
+  assert.ok(Buffer.concat(chunks).toString().includes(script));
   assert.deepEqual(output, [
     ["stdout", "hello"],
     ["stderr", "error"],
@@ -600,6 +633,52 @@ test("Orchard reconciles a lost VM create response without issuing a second POST
   );
   await f.client.create(dispatch, new AbortController().signal);
   assert.equal(posts, 1);
+});
+
+test("creates an explicit 2 CPU, 8 GiB Vetu VM and verifies its returned configuration", async (t) => {
+  const linux = { ...dispatch, runsOn: "linux-latest", image: "base-linux", memoryMiB: 8192 };
+  let observed, override;
+  const calls = [];
+  const f = await controller(
+    t,
+    () => {},
+    async (request, response) => {
+      calls.push([request.method, request.url]);
+      if (request.method === "POST") {
+        let body = "";
+        for await (const chunk of request) body += chunk;
+        observed = JSON.parse(body);
+        response.writeHead(override ? 409 : 201).end();
+        return;
+      }
+      response.writeHead(200).end(JSON.stringify({ ...observed, ...override }));
+    },
+    { useWorkerMemory: true },
+  );
+  const signal = new AbortController().signal;
+  await f.client.create(linux, signal);
+  assert.deepEqual(observed, {
+    name: linux.vmName,
+    image: "base-linux",
+    headless: true,
+    os: "linux",
+    runtime: "vetu",
+    arch: "amd64",
+    imagePullPolicy: "IfNotPresent",
+    cpu: 2,
+    memory: 8192,
+    resources: {
+      "org.cirruslabs.logical-cores": 2,
+      "org.cirruslabs.memory-mib": 8192,
+      "org.openci.vetu-vms": 1,
+    },
+  });
+  assert.deepEqual(calls, [
+    ["POST", "/v1/vms"],
+    ["GET", `/v1/vms/${linux.vmName}`],
+  ]);
+  override = { memory: 4096 };
+  await assert.rejects(f.client.create(linux, signal), /could not be confirmed/);
 });
 
 test("worker memory mode uses the host partition while keeping the admission floor", async (t) => {

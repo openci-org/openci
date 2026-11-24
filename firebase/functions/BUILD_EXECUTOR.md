@@ -2,7 +2,7 @@
 
 The entry point is `executor/main.ts`. One Cloud Run Job task handles one FSC
 reservation, from VM creation through cleanup. Build commands still run on the
-Orchard macOS VM; Cloud Run holds the WebSocket and persists output to FSC.
+selected Orchard VM. Cloud Run holds the WebSocket and persists output to FSC.
 It does not run Flutter or parse Dart workflows locally.
 
 ```text
@@ -268,7 +268,13 @@ consistent with the dispatcher/planner:
 | `BILLING_COMPLIMENTARY_PRO_TEAM_IDS`              | Optional comma-separated approved team IDs                                                 |
 | `SECRET_MANAGER_PROJECT`                          | Project ID or number exactly matching stored secret version paths; defaults to FSC project |
 
-With `ORCHARD_USE_WORKER_MEMORY=true`, the executor lets Orchard choose the VM's
+The Linux pilot uses `base-linux` on Vetu/amd64 with the reservation's explicit
+2 vCPUs and 8192 MiB. Checkout and workflow execution share
+`/home/admin/openci-build`. The image supplies FVM, Java 17 and the Android SDK.
+Hosted Linux pilot runs require a team in `BILLING_COMPLIMENTARY_PRO_TEAM_IDS`.
+The executor supplies the workflow context and skips team secret retrieval for the pilot.
+
+For macOS, `ORCHARD_USE_WORKER_MEMORY=true` lets Orchard choose the VM's
 memory from the selected worker's `--default-memory`. For example, two slots on
 an 8 GiB Mac can use 4096 MiB each, and two slots on a 24 GiB Mac can use 12288
 MiB each. The dispatch memory remains the minimum admission reservation; existing

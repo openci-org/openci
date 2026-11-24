@@ -3,6 +3,7 @@ import type { DataConnect } from "firebase-admin/data-connect";
 import * as sdk from "@openci/dispatch-admin";
 import { buildGitHub, type ExecutionGitHub } from "./executor/github.js";
 import { DispatchRetry } from "./build_dispatch.js";
+import { isDispatchEnabled, isWorkerMachine } from "./worker_machine.js";
 import { resolveExecutionContext } from "./executor/store.js";
 import { queuedCheckExternalId } from "./executor/model.js";
 
@@ -48,12 +49,15 @@ function publicationInFlight(job: CheckState["job"]): boolean {
   return !!job?.checkOwner && Date.parse(job.checkLeaseUntil ?? "") > Date.now();
 }
 
-function publicationRun({ job, dispatch }: CheckState): string | undefined {
+function publicationRun(
+  { job, dispatch }: CheckState,
+  linuxRepositoryId: string,
+): string | undefined {
   // Active reservations own their Checks. Never regress running/completed work.
   if (
     !job ||
     dispatch ||
-    job.runsOn !== "macos-latest" ||
+    !isWorkerMachine(job.runsOn) ||
     !["QUEUED", "CANCELLED"].includes(job.status)
   )
     return;
@@ -61,6 +65,8 @@ function publicationRun({ job, dispatch }: CheckState): string | undefined {
   if (count < 0n) throw new Error("Invalid run count");
   const runNumber = String(count + 1n);
   const savedId = job.checkRunNumber === runNumber ? job.checkRunId : null;
+  // Finish an existing publication or cancellation even after the pilot is disabled.
+  if (!isDispatchEnabled(job, linuxRepositoryId) && !job.checkOwner && !savedId) return;
   if (!publicationInFlight(job)) {
     // An expired owner may have created a Check before losing the response.
     // Reconcile it even if cancellation arrived before its ID was saved.
@@ -74,11 +80,12 @@ export class QueuedChecks {
   constructor(
     readonly store: Pick<QueuedCheckStore, "read" | "acquire" | "record" | "release" | "context">,
     readonly github: Pick<ExecutionGitHub, "options" | "queuedCheck">,
+    readonly linuxRepositoryId = "",
   ) {}
 
   async sync(jobId: string): Promise<void> {
     const initial = await this.store.read(jobId);
-    const runNumber = publicationRun(initial);
+    const runNumber = publicationRun(initial, this.linuxRepositoryId);
     if (!runNumber) return;
     if (publicationInFlight(initial.job)) throw new DispatchRetry("check_publication_busy");
 
@@ -98,7 +105,7 @@ export class QueuedChecks {
       )
         throw failure;
       const latest = await this.store.read(jobId);
-      const latestRun = publicationRun(latest);
+      const latestRun = publicationRun(latest, this.linuxRepositoryId);
       if (!latestRun) return;
       if (busy || publicationInFlight(latest.job) || latestRun !== runNumber)
         throw new DispatchRetry("check_publication_busy");
@@ -156,6 +163,6 @@ export class QueuedChecks {
   }
 }
 
-export function queuedChecks(dc: DataConnect): QueuedChecks {
-  return new QueuedChecks(new QueuedCheckStore(dc), buildGitHub());
+export function queuedChecks(dc: DataConnect, linuxRepositoryId: string): QueuedChecks {
+  return new QueuedChecks(new QueuedCheckStore(dc), buildGitHub(), linuxRepositoryId);
 }

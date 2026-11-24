@@ -145,6 +145,7 @@ async function fixture(t, overrides = {}) {
               commitSha
               branch
               workflowFileName
+              runsOn
               createdAt
               completedAt
               failureSummary
@@ -218,6 +219,12 @@ for (const status of ["SUCCESS", "FAILURE", "CANCELLED", "TIMED_OUT"]) {
     );
   });
 }
+
+test("retrying a Linux job queues another attempt on the same machine", async (t) => {
+  const f = await fixture(t, { runsOn: "linux-latest", status: "FAILURE" });
+  assert.equal((await f.retry()).data.retried, 1);
+  assert.equal((await f.state()).job.runsOn, "linux-latest");
+});
 
 test("finds PR or commit jobs in the selected team with their actual run IDs", async (t) => {
   const f = await fixture(t, { githubBaseUrl: null, pullRequestNumber: "7" });
