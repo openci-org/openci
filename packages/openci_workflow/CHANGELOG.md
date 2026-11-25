@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.6.2
+
+- Show the configured `groups` aliases in the error when Firebase App Distribution rejects a release with `INVALID_ARGUMENT`.
+
 ## 0.6.1
 
 - Add optional `groups` (Firebase group aliases) and `testers` (email addresses) to `flutter.deployApkToFirebaseAppDistribution()` and `flutter.deployAabToFirebaseAppDistribution()`. Omit both to upload only.
