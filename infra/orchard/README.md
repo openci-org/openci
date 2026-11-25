@@ -142,8 +142,9 @@ service override before starting the worker. Once its first heartbeat
 appears, run `orchard pause worker scaleway-ryzen`. Verify the pause and an
 empty VM inventory for this worker before removing the override, reloading
 systemd and restarting the service. The paused worker should advertise
-`vetu`, `amd64`, one `org.openci.vetu-vms` slot, at least 2 logical cores
-and 8192 MiB. Confirm the dispatch rollout before resuming the worker.
+`vetu`, `amd64`, two `org.openci.vetu-vms` slots, and 12 logical cores.
+Each VM gets 6 vCPUs and 7 GiB, leaving 1560 MiB of the host's 15896 MiB
+for Linux and the hypervisor. Confirm the dispatch rollout before resuming the worker.
 [Internal Linux dispatch settings](../../firebase/functions/BUILD_DISPATCH.md#configuration-and-rollout)
 
 ## Tailnet access

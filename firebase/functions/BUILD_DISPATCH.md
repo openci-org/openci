@@ -233,12 +233,12 @@ could allocate its capacity twice. Explicit terminal-job retries use
 
 For the internal Linux pilot, deploy the nullable dispatch machine column and
 the `dispatch` and `builds` connectors, then the executor image and Functions.
-Confirm the Scaleway worker advertises `org.openci.vetu-vms=1` and has a local
+Confirm the Scaleway worker advertises `org.openci.vetu-vms=2` and has a local
 `base-linux` image. For recurring postpaid runs, configure the team and repository
 on the executor Job first. Set `OPENCI_LINUX_PILOT_REPOSITORY_ID` on the queue
 and dispatch Functions to the pilot GitHub.com repository ID, then resume the
 worker. Queued Linux jobs in that repository become eligible on the next
-notification. Each VM requests 2 vCPUs and 8192 MiB.
+notification. Each VM requests 6 vCPUs and 7168 MiB.
 Clearing the parameter stops new Linux reservations.
 Existing reservations retain their configuration and finish through normal recovery.
 The executor checks postpaid eligibility before starting billing or requesting a
