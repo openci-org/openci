@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.6.3
+
+- Add `flutter.buildWeb()` for release builds, with an optional `noPub` flag to skip dependency resolution.
+
 ## 0.6.2
 
 - Show the configured `groups` aliases in the error when Firebase App Distribution rejects a release with `INVALID_ARGUMENT`.

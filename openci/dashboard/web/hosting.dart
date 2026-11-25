@@ -56,7 +56,7 @@ Future<void> main() async {
     fileName: 'firebase_options.dart',
     base64Content: Secrets.firebaseOptionsDartBase64.value,
   );
-  await ci.run('flutter build web --release --no-pub');
+  await ci.flutter.buildWeb(noPub: true);
   switch (ci.context) {
     case PullRequestContext(:final number):
       final preview = await ci.firebaseHosting.deployPreview(

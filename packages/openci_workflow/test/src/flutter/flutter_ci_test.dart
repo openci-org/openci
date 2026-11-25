@@ -34,6 +34,10 @@ void main() {
           tz: TimeZone.asiaTokyo,
           excludeTags: 'golden',
         ),
+    'flutter build web --release': (flutter, {dir}) =>
+        flutter.buildWeb(dir: dir),
+    'flutter build web --release --no-pub': (flutter, {dir}) =>
+        flutter.buildWeb(dir: dir, noPub: true),
     'flutter build apk': (flutter, {dir}) => flutter.buildApk(dir: dir),
     "flutter build apk --flavor 'staging'": (flutter, {dir}) =>
         flutter.buildApk(dir: dir, flavor: 'staging'),
