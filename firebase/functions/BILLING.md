@@ -37,7 +37,7 @@ account changes. Existing cloud/web visibility rules are unchanged.
 
 ### Postpaid card registration
 
-Cloud team members confirm **JPY 1 per CI minute including tax**, with monthly
+Cloud team members confirm the standard **JPY 1 per CI minute including tax**, with monthly
 automatic collection in arrears. The web dashboard sends `ci-jpy1-tax-included-monthly-v1`
 only after consent. The server reuses the team's Stripe Customer and records the
 member, server time, terms version and exact Checkout Session before returning
@@ -110,10 +110,13 @@ zero. Step metadata survives log retention. Concurrent runs and retries count
 individually. A run qualifies only when it belongs to a postpaid billing period.
 The old monthly plans, courtesy teams and self-hosted runs contribute zero.
 
-The statement sums milliseconds across the team and rounds up to minutes
-once for the month. Each minute is **JPY 1 including tax**. For an optional USD
-equivalent, pass the exchange rate in JPY per USD as a decimal string. The
-query divides the monthly yen total by that rate and rounds once to the nearest
+The statement totals the team's monthly milliseconds separately for Linux and macOS,
+then rounds each runner's total up to whole minutes. Linux costs **JPY 0.1 per minute**
+and macOS costs **JPY 1 per minute**, including tax. Jobs recorded before runner
+selection use the macOS rate. After adding the two charges, the statement rounds
+down to whole yen. For example, 199 Linux minutes cost JPY 19 and 200 cost JPY 20.
+For an optional USD equivalent, pass the exchange rate in JPY per USD as a decimal
+string. The query divides the whole-yen total by that rate and rounds to the nearest
 cent (half up). Both the rate and USD amount are null when no rate is supplied.
 The current month includes usage already observed by the executor. After closing,
 reads use the saved runs and the recorded exchange rate.
