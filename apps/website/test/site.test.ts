@@ -731,10 +731,12 @@ test("runtime estimates round monthly minutes once before formatting local price
   assert.equal(formatRuntimeEstimate(123456, "en"), "$1,234.56");
   for (const locale of ["ja", "en"] as const) {
     assert.equal(formatRuntimeEstimate(0, locale, "Linux"), "¥0");
-    assert.equal(formatRuntimeEstimate(0.5, locale, "Linux"), "¥0.1");
+    assert.equal(formatRuntimeEstimate(0.5, locale, "Linux"), "¥0");
     assert.equal(formatRuntimeEstimate(10, locale, "Linux"), "¥1");
-    assert.equal(formatRuntimeEstimate(100.1, locale, "Linux"), "¥10.1");
-    assert.equal(formatRuntimeEstimate(123456, locale, "Linux"), "¥12,345.6");
+    assert.equal(formatRuntimeEstimate(100.1, locale, "Linux"), "¥10");
+    assert.equal(formatRuntimeEstimate(199, locale, "Linux"), "¥19");
+    assert.equal(formatRuntimeEstimate(199.1, locale, "Linux"), "¥20");
+    assert.equal(formatRuntimeEstimate(123456, locale, "Linux"), "¥12,345");
   }
   for (const minutes of [-1, NaN, Infinity, Number.MAX_SAFE_INTEGER + 1]) {
     assert.equal(formatRuntimeEstimate(minutes, "en"), "—");

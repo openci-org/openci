@@ -643,7 +643,7 @@ class _Translations$billing$ja extends Translations$billing$en {
   String get monthlyPostpaid => 'CIの月次後払い';
   @override
   String get monthlyExplanation =>
-      'CI実行1分につき税込1円。利用料は月ごとに集計し、翌月に登録カードで自動決済します。';
+      '1分あたりの税込料金はmacOSが1円、試験提供中のLinuxが0.1円です。月の合計料金の1円未満を切り捨て、翌月に登録カードで自動決済します。';
   @override
   String get continueCardSetup => 'カード登録を続ける';
   @override
@@ -672,7 +672,7 @@ class _Translations$billing$ja extends Translations$billing$en {
   String get consentTitle => '月次後払いに同意しますか？';
   @override
   String consentMessage({required Object teamName}) =>
-      'チーム「${teamName}」のCI利用料は1分1円（税込）です。月の利用時間を合計し、翌月に登録カードから自動決済します。カード登録時の利用料は0円です。';
+      'チーム「${teamName}」のCIの通常料金は1分1円（税込）です。試験提供中のLinuxには1分0.1円（税込）の割引料金を適用します。利用料は翌月に登録カードから自動決済します。カード登録時の利用料は0円です。';
   @override
   String get agreeAndContinue => '同意してStripeへ';
   @override
@@ -1168,7 +1168,7 @@ extension on TranslationsJa {
       'billing.ciAvailable' => 'CIを利用できます',
       'billing.monthlyPostpaid' => 'CIの月次後払い',
       'billing.monthlyExplanation' =>
-        'CI実行1分につき税込1円。利用料は月ごとに集計し、翌月に登録カードで自動決済します。',
+        '1分あたりの税込料金はmacOSが1円、試験提供中のLinuxが0.1円です。月の合計料金の1円未満を切り捨て、翌月に登録カードで自動決済します。',
       'billing.continueCardSetup' => 'カード登録を続ける',
       'billing.setupCard' => '支払い方法を登録',
       'billing.cardRegistered' => '後払い用のカードは登録済みです。',
@@ -1187,7 +1187,7 @@ extension on TranslationsJa {
       'billing.consentTitle' => '月次後払いに同意しますか？',
       'billing.consentMessage' =>
         ({required Object teamName}) =>
-            'チーム「${teamName}」のCI利用料は1分1円（税込）です。月の利用時間を合計し、翌月に登録カードから自動決済します。カード登録時の利用料は0円です。',
+            'チーム「${teamName}」のCIの通常料金は1分1円（税込）です。試験提供中のLinuxには1分0.1円（税込）の割引料金を適用します。利用料は翌月に登録カードから自動決済します。カード登録時の利用料は0円です。',
       'billing.agreeAndContinue' => '同意してStripeへ',
       'billing.paymentRequired' => 'CIを開始するには、このチームの請求用カードを登録してください。',
       'billing.allowanceExhausted' => '新しいCIを開始できる利用枠がありません。',

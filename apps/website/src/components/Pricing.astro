@@ -205,8 +205,8 @@ const savingsPercent = Math.round(
         [
           t("どの時間が料金の対象ですか？", "How is runtime measured?"),
           t(
-            "VM準備完了後の実行時間をチームごとに月単位で合計し、最後に1分単位に切り上げます。100分20秒なら101分です。",
-            "We add up team runtime after VM preparation and round up once at month-end. A total of 100 minutes and 20 seconds counts as 101 billable minutes.",
+            "VM準備完了後の時間をチーム・ランナー種別ごとに月末まで合計し、1分単位で切り上げます。LinuxとmacOSの料金を足してから、1円未満を切り捨てます。Linuxだけを199分使った月は19円です。",
+            "We total your team’s runtime after VM preparation separately for Linux and macOS and round each monthly total up to whole minutes. We add the charges and round down to whole yen. A month with only 199 Linux minutes costs ¥19.",
           ),
         ],
         [
