@@ -16,7 +16,9 @@ import 'firebase_app_distribution/deploy_ipa_to_firebase_app_distribution.dart'
 import 'ios_distribution_method.dart';
 import 'play_console/deploy_aab_to_play_console.dart' as play_console;
 import 'read_ios_build_settings.dart';
+import 'testflight/app_encryption_declaration.dart' as encryption;
 import 'testflight/deploy_ipa_to_testflight.dart' as testflight;
+import 'testflight/testflight_export_compliance.dart';
 
 class FlutterCI {
   const FlutterCI(this._run);
@@ -248,17 +250,33 @@ class FlutterCI {
   /// stay in memory. Relative [ipaPath] values use the workflow directory or
   /// [dir]. Fails if processing fails or exceeds [processingTimeout].
   /// Tester group assignment and external beta review are separate steps.
+  /// When supplied, [exportCompliance] records the developer's encryption and
+  /// French distribution answers and applies Apple's declaration to this build.
   Future<void> deployIpaToTestFlight({
     required String ipaPath,
     required AppStoreConnectKeys ascKeys,
+    TestFlightExportCompliance? exportCompliance,
     String? dir,
     Duration processingTimeout = const Duration(minutes: 30),
   }) => testflight.deployIpaToTestFlight(
     run: _run,
     ipaPath: ipaPath,
     ascKeys: ascKeys,
+    exportCompliance: exportCompliance,
     dir: dir,
     processingTimeout: processingTimeout,
+  );
+
+  /// Applies export compliance to an existing, processed App Store Connect
+  /// build. Use the build resource ID printed by [deployIpaToTestFlight].
+  Future<void> applyTestFlightExportCompliance({
+    required String buildId,
+    required AppStoreConnectKeys ascKeys,
+    required TestFlightExportCompliance exportCompliance,
+  }) => encryption.applyTestFlightExportCompliance(
+    buildId: buildId,
+    ascKeys: ascKeys,
+    exportCompliance: exportCompliance,
   );
 
   /// Uploads an IPA directly to the Firebase App Distribution REST API.

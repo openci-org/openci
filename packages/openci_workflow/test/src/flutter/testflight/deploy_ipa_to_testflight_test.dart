@@ -13,6 +13,8 @@ import 'package:test/test.dart';
 const _bundleId = 'org.example.testflight';
 const _uploadId = 'upload-1';
 const _fileId = 'file-1';
+const _appDeclarations = '/v1/apps/1234567890/appEncryptionDeclarations';
+const _appDescription = 'A sports coaching app.';
 late AppStoreConnectKeys _keys;
 late ECPublicKey _publicKey;
 
@@ -33,6 +35,25 @@ Map<String, Object> _upload(String state, {String id = _uploadId}) => {
           {'code': 'ERROR', 'description': 'private-response'},
         ],
       },
+    },
+  },
+};
+
+Map<String, Object> _build({
+  bool? usesNonExemptEncryption,
+  String? declarationId,
+}) => {
+  'type': 'builds',
+  'id': 'build-42',
+  'attributes': {'usesNonExemptEncryption': usesNonExemptEncryption},
+  'relationships': {
+    'app': {
+      'data': {'type': 'apps', 'id': '1234567890'},
+    },
+    'appEncryptionDeclaration': {
+      'data': declarationId == null
+          ? null
+          : {'type': 'appEncryptionDeclarations', 'id': declarationId},
     },
   },
 };
@@ -81,6 +102,398 @@ void main() {
         isNot(contains(_keys.privateKeyBase64)),
       );
       await environment.workspace.delete(recursive: true);
+    });
+
+    group('standard encryption', () {
+      Map<String, Object> declaration({
+        String id = 'declaration-1',
+        required bool france,
+        bool exempt = false,
+        String state = 'APPROVED',
+        bool proprietary = false,
+      }) => {
+        'type': 'appEncryptionDeclarations',
+        'id': id,
+        'attributes': {
+          'appDescription': _appDescription,
+          'containsProprietaryCryptography': proprietary,
+          'containsThirdPartyCryptography': true,
+          'availableOnFrenchStore': france,
+          'exempt': exempt,
+          'appEncryptionDeclarationState': state,
+        },
+      };
+
+      TestFlightExportCompliance compliance(bool france) =>
+          TestFlightExportCompliance.standardEncryption(
+            appDescription: _appDescription,
+            availableOnFrenchStore: france,
+          );
+
+      Future<void> deploy(bool france) =>
+          environment.deploy(exportCompliance: compliance(france));
+      Future<void> apply(bool france, {String buildId = 'build-42'}) =>
+          environment.withClient(
+            () => environment.flutter.applyTestFlightExportCompliance(
+              buildId: buildId,
+              ascKeys: _keys,
+              exportCompliance: compliance(france),
+            ),
+          );
+
+      for (final (france, exempt) in [
+        (true, false),
+        (true, true),
+        (false, true),
+        (false, false),
+      ]) {
+        test(
+          'submits France=$france and uses Apple’s exemption=$exempt',
+          () async {
+            await environment.createIpa();
+            environment.intercept = (req) async {
+              if (req.url.path == _appDeclarations) return _json({'data': []});
+              if (req.url.path == '/v1/appEncryptionDeclarations') {
+                expect(req.method, 'POST');
+                expect(jsonDecode(req.body)['data'], {
+                  'type': 'appEncryptionDeclarations',
+                  'attributes': {
+                    'appDescription': _appDescription,
+                    'containsProprietaryCryptography': false,
+                    'containsThirdPartyCryptography': true,
+                    'availableOnFrenchStore': france,
+                  },
+                  'relationships': {
+                    'app': {
+                      'data': {'type': 'apps', 'id': '1234567890'},
+                    },
+                  },
+                });
+                return _json({
+                  'data': declaration(
+                    france: france,
+                    exempt: exempt,
+                    state: exempt ? 'CREATED' : 'APPROVED',
+                  ),
+                }, 201);
+              }
+              if (req.method == 'PATCH' &&
+                  req.url.path == '/v1/builds/build-42') {
+                final data = jsonDecode(req.body)['data'];
+                expect(data, {
+                  'type': 'builds',
+                  'id': 'build-42',
+                  'attributes': {'usesNonExemptEncryption': !exempt},
+                  if (!exempt)
+                    'relationships': {
+                      'appEncryptionDeclaration': {
+                        'data': {
+                          'type': 'appEncryptionDeclarations',
+                          'id': 'declaration-1',
+                        },
+                      },
+                    },
+                });
+                return _json({'data': data});
+              }
+              return null;
+            };
+            await deploy(france);
+            expect(environment.requests.last.url.path, '/v1/builds/build-42');
+            expect(
+              environment.requests.where(
+                (r) => r.url.path == '/v1/appEncryptionDeclarations',
+              ),
+              hasLength(1),
+            );
+          },
+        );
+      }
+
+      test('reuses only a matching approved declaration across pages', () async {
+        await environment.createIpa();
+        environment.intercept = (req) async {
+          if (req.url.path == _appDeclarations) {
+            if (req.url.queryParameters['cursor'] == 'next') {
+              return _json({
+                'data': [declaration(france: true, id: 'reusable')],
+              });
+            }
+            return _json({
+              'data': [
+                declaration(france: false),
+                declaration(france: true, proprietary: true),
+                declaration(france: true, state: 'IN_REVIEW'),
+              ],
+              'links': {
+                'next':
+                    'https://api.appstoreconnect.apple.com$_appDeclarations?cursor=next',
+              },
+            });
+          }
+          if (req.method == 'PATCH' && req.url.path == '/v1/builds/build-42') {
+            final data = jsonDecode(req.body)['data'];
+            expect(
+              data['relationships']['appEncryptionDeclaration']['data']['id'],
+              'reusable',
+            );
+            return _json({'data': data});
+          }
+          return null;
+        };
+        await deploy(true);
+        expect(
+          environment.requests.where(
+            (r) => r.url.path == '/v1/appEncryptionDeclarations',
+          ),
+          isEmpty,
+        );
+      });
+
+      for (final state in ['CREATED', 'IN_REVIEW', 'REJECTED', 'INVALID']) {
+        test(
+          'a $state declaration keeps the uploaded build available for a retry',
+          () async {
+            await environment.createIpa();
+            var created = false;
+            final item = declaration(france: true, state: state);
+            environment.intercept = (req) async {
+              if (req.url.path == _appDeclarations) {
+                return _json({
+                  'data': [if (created) item],
+                });
+              }
+              if (req.url.path == '/v1/appEncryptionDeclarations') {
+                created = true;
+                return _json({'data': item}, 201);
+              }
+              return null;
+            };
+            for (final attempt in [deploy, apply]) {
+              await expectLater(
+                attempt(true),
+                throwsA(
+                  isA<StateError>().having(
+                    (e) => e.message,
+                    'message',
+                    allOf(
+                      contains('declaration-1'),
+                      contains(state),
+                      contains('build-42'),
+                    ),
+                  ),
+                ),
+              );
+            }
+            expect(
+              environment.requests.where(
+                (r) => r.url.path == '/v1/appEncryptionDeclarations',
+              ),
+              hasLength(1),
+            );
+            expect(
+              environment.requests.where(
+                (r) => r.url.path == '/v1/buildUploads',
+              ),
+              hasLength(1),
+            );
+            expect(
+              environment.requests.where(
+                (r) =>
+                    r.method == 'PATCH' && r.url.path == '/v1/builds/build-42',
+              ),
+              isEmpty,
+            );
+          },
+        );
+      }
+
+      test(
+        'recovers a concurrently created declaration after a conflict',
+        () async {
+          await environment.createIpa();
+          var conflict = false;
+          environment.intercept = (req) async {
+            if (req.url.path == _appDeclarations) {
+              return _json({
+                'data': [
+                  if (conflict) declaration(france: false, exempt: true),
+                ],
+              });
+            }
+            if (req.url.path == '/v1/appEncryptionDeclarations') {
+              conflict = true;
+              return _json({}, 409);
+            }
+            if (req.method == 'PATCH' &&
+                req.url.path == '/v1/builds/build-42') {
+              return _json(jsonDecode(req.body));
+            }
+            return null;
+          };
+          await deploy(false);
+          expect(environment.requests.last.url.path, '/v1/builds/build-42');
+        },
+      );
+
+      test('requires a description before contacting Apple', () async {
+        await expectLater(
+          environment.deploy(
+            exportCompliance:
+                const TestFlightExportCompliance.standardEncryption(
+                  appDescription: ' ',
+                  availableOnFrenchStore: false,
+                ),
+          ),
+          throwsArgumentError,
+        );
+        expect(environment.requests, isEmpty);
+      });
+
+      test(
+        'retries after approval and skips a second update of the same build',
+        () async {
+          var approved = false;
+          var linked = false;
+          environment.intercept = (req) async {
+            if (req.url.path == _appDeclarations) {
+              return _json({
+                'data': [
+                  declaration(
+                    france: true,
+                    state: approved ? 'APPROVED' : 'IN_REVIEW',
+                  ),
+                ],
+              });
+            }
+            if (req.url.path == '/v1/builds/build-42') {
+              if (req.method == 'PATCH') {
+                linked = true;
+                return _json(jsonDecode(req.body));
+              }
+              if (linked) {
+                return _json({
+                  'data': _build(
+                    usesNonExemptEncryption: true,
+                    declarationId: 'declaration-1',
+                  ),
+                });
+              }
+            }
+            return null;
+          };
+          await expectLater(apply(true), throwsStateError);
+          approved = true;
+          await apply(true);
+          await apply(true);
+          expect(
+            environment.requests
+                .where((r) => r.method != 'GET')
+                .map((r) => r.method),
+            ['PATCH'],
+          );
+          expect(environment.commands, isEmpty);
+        },
+      );
+
+      for (final matches in [true, false]) {
+        test(
+          'confirms a links-only build response against its declaration (matches: $matches)',
+          () async {
+            const relationship =
+                '/v1/builds/build-42/relationships/appEncryptionDeclaration';
+            environment.intercept = (req) async {
+              if (req.url.path == _appDeclarations) {
+                return _json({
+                  'data': [declaration(france: false)],
+                });
+              }
+              if (req.method == 'PATCH' &&
+                  req.url.path == '/v1/builds/build-42') {
+                return _json({
+                  'data': {
+                    'type': 'builds',
+                    'id': 'build-42',
+                    'attributes': {'usesNonExemptEncryption': true},
+                    'relationships': {
+                      'appEncryptionDeclaration': {
+                        'links': {'self': relationship},
+                      },
+                    },
+                  },
+                });
+              }
+              if (req.url.path == relationship) {
+                return _json({
+                  'data': {
+                    'type': 'appEncryptionDeclarations',
+                    'id': matches ? 'declaration-1' : 'different',
+                  },
+                });
+              }
+              return null;
+            };
+            if (matches) {
+              await apply(false);
+            } else {
+              await expectLater(apply(false), throwsStateError);
+            }
+            expect(environment.requests.last.url.path, relationship);
+          },
+        );
+      }
+
+      test(
+        'requires a valid build ID before sending a compliance-only request',
+        () async {
+          await expectLater(
+            apply(false, buildId: '../builds/42'),
+            throwsArgumentError,
+          );
+          expect(environment.requests, isEmpty);
+        },
+      );
+
+      test(
+        'links the selected France answer when the build has a different declaration',
+        () async {
+          environment.intercept = (req) async {
+            if (req.url.path == _appDeclarations) {
+              return _json({
+                'data': [
+                  declaration(france: false, id: 'france-no'),
+                  declaration(france: true, id: 'france-yes'),
+                ],
+              });
+            }
+            if (req.url.path == '/v1/builds/build-42') {
+              if (req.method == 'PATCH') {
+                final data = jsonDecode(req.body)['data'];
+                expect(data.containsKey('attributes'), isFalse);
+                expect(
+                  data['relationships']['appEncryptionDeclaration']['data']['id'],
+                  'france-yes',
+                );
+                return _json({
+                  'data': _build(
+                    usesNonExemptEncryption: true,
+                    declarationId: 'france-yes',
+                  ),
+                });
+              }
+              return _json({
+                'data': _build(
+                  usesNonExemptEncryption: true,
+                  declarationId: 'france-no',
+                ),
+              });
+            }
+            return null;
+          };
+          await apply(true);
+          expect(environment.requests.last.method, 'PATCH');
+        },
+      );
     });
 
     for (final binary in [false, true]) {
@@ -200,6 +613,24 @@ void main() {
         expect(environment.requests, hasLength(3));
       },
     );
+
+    test('waits for the processed build linked to this upload', () async {
+      environment.intercept = (request) async {
+        expect(request.url.path, '/v1/buildUploads/$_uploadId');
+        expect(request.url.queryParameters['include'], 'build');
+        if (environment.requests.length == 1) {
+          return _json({
+            ..._upload('COMPLETE'),
+            'included': [
+              {'type': 'builds', 'id': 'unrelated'},
+            ],
+          });
+        }
+        return null;
+      };
+      expect(await environment.poll(includeBuild: true), 'build-42');
+      expect(environment.requests, hasLength(2));
+    });
 
     test(
       'does not confuse file delivery completion with build processing',
@@ -600,51 +1031,54 @@ class _Environment {
     return ipa;
   }
 
+  FlutterCI get flutter => OpenCI(
+    workflowName: 'test',
+    ciTriggers: const [CITrigger.push(branch: 'test')],
+    workspacePath: workspace.path,
+    currentWorkingDirectory: 'apps/mobile',
+    commandRunner: (command, {required workingDirectory}) async {
+      commands.add(command);
+      workingDirectories.add(workingDirectory);
+      await _run('/bin/sh', ['-c', command], cwd: workingDirectory);
+    },
+  ).flutter;
+
   Future<void> deploy({
     String ipaPath = 'app.ipa',
     AppStoreConnectKeys? keys,
+    TestFlightExportCompliance? exportCompliance,
     String? dir,
     Duration timeout = const Duration(minutes: 30),
-  }) async {
-    final ci = OpenCI(
-      workflowName: 'test',
-      ciTriggers: const [CITrigger.push(branch: 'test')],
-      workspacePath: workspace.path,
-      currentWorkingDirectory: 'apps/mobile',
-      commandRunner: (command, {required workingDirectory}) async {
-        commands.add(command);
-        workingDirectories.add(workingDirectory);
-        await _run('/bin/sh', ['-c', command], cwd: workingDirectory);
-      },
-    );
-    await withClient(
-      () => ci.flutter.deployIpaToTestFlight(
-        ipaPath: ipaPath,
-        ascKeys: keys ?? _keys,
-        dir: dir,
-        processingTimeout: timeout,
-      ),
-    );
-  }
+  }) => withClient(
+    () => flutter.deployIpaToTestFlight(
+      ipaPath: ipaPath,
+      ascKeys: keys ?? _keys,
+      exportCompliance: exportCompliance,
+      dir: dir,
+      processingTimeout: timeout,
+    ),
+  );
 
-  Future<void> poll({
+  Future<String?> poll({
     Duration timeout = const Duration(seconds: 10),
     Duration pollInterval = Duration.zero,
+    bool includeBuild = false,
   }) => withClient(() async {
     final client = AppStoreConnectClient(_keys);
     try {
-      await waitForTestFlightProcessing(
+      return await waitForTestFlightProcessing(
         client,
         _uploadId,
         timeout: timeout,
         pollInterval: pollInterval,
+        includeBuild: includeBuild,
       );
     } finally {
       client.close();
     }
   });
 
-  Future<void> withClient(Future<void> Function() action) => http.runWithClient(
+  Future<T> withClient<T>(Future<T> Function() action) => http.runWithClient(
     () => IOOverrides.runZoned(action, getSystemTempDirectory: () => temporary),
     () {
       final client = _TrackingClient((request) async {
@@ -674,6 +1108,13 @@ class _Environment {
   );
 
   http.Response respond(http.Request request) {
+    if (request.method == 'GET' && request.url.path == '/v1/builds/build-42') {
+      expect(
+        request.url.queryParameters['include'],
+        'app,appEncryptionDeclaration',
+      );
+      return _json({'data': _build()});
+    }
     if (request.url.path == '/v1/apps') {
       return _json({
         'data': [
@@ -689,6 +1130,15 @@ class _Environment {
       return _json(_upload('AWAITING_UPLOAD'), 201);
     }
     if (request.url.path == '/v1/buildUploads/$_uploadId') {
+      if (request.url.queryParameters['include'] == 'build') {
+        final upload = _upload('COMPLETE');
+        (upload['data'] as Map)['relationships'] = {
+          'build': {
+            'data': {'type': 'builds', 'id': 'build-42'},
+          },
+        };
+        return _json(upload);
+      }
       return _json(_upload('COMPLETE'));
     }
     if (request.url.path == '/v1/buildUploadFiles') {

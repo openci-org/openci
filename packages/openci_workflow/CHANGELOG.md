@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.6.3
+
+- Add `TestFlightExportCompliance.standardEncryption` to `flutter.deployIpaToTestFlight()` to declare standard encryption and explicitly answer whether the app will be distributed in France.
+- Add `flutter.applyTestFlightExportCompliance()` to apply the same answers to an existing build after Apple reviews its documentation.
+
 ## 0.6.2
 
 - Show the configured `groups` aliases in the error when Firebase App Distribution rejects a release with `INVALID_ARGUMENT`.

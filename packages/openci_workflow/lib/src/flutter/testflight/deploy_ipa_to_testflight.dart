@@ -2,14 +2,17 @@ import 'dart:async';
 import 'dart:io';
 
 import '../../app_store_connect_keys.dart';
+import 'app_encryption_declaration.dart';
 import 'app_store_connect_client.dart';
 import 'read_testflight_ipa.dart';
+import 'testflight_export_compliance.dart';
 
 Future<void> deployIpaToTestFlight({
   required Future<void> Function(String command, {String? workingDirectory})
   run,
   required String ipaPath,
   required AppStoreConnectKeys ascKeys,
+  TestFlightExportCompliance? exportCompliance,
   String? dir,
   Duration processingTimeout = const Duration(minutes: 30),
 }) async {
@@ -23,6 +26,7 @@ Future<void> deployIpaToTestFlight({
       'Must be positive.',
     );
   }
+  if (exportCompliance != null) validateExportCompliance(exportCompliance);
   final client = AppStoreConnectClient(ascKeys);
   try {
     final ipa = await readTestFlightIpa(run: run, ipaPath: ipaPath, dir: dir);
@@ -111,12 +115,22 @@ Future<void> deployIpaToTestFlight({
       id: fileId,
     );
     stdout.writeln('Waiting for App Store Connect processing: $uploadId');
-    await waitForTestFlightProcessing(
+    final buildId = await waitForTestFlightProcessing(
       client,
       uploadId,
       timeout: processingTimeout,
+      includeBuild: exportCompliance != null,
     );
     stdout.writeln('TestFlight upload processing complete: $uploadId');
+    if (exportCompliance != null) {
+      stdout.writeln(
+        'Applying TestFlight export compliance to build $buildId...',
+      );
+      await applyExportComplianceToBuild(client, buildId!, exportCompliance);
+      stdout.writeln(
+        'TestFlight export compliance confirmed for build $buildId.',
+      );
+    }
   } finally {
     client.close();
   }
@@ -147,11 +161,12 @@ Future<String> _findApp(AppStoreConnectClient client, String bundleId) async {
   );
 }
 
-Future<void> waitForTestFlightProcessing(
+Future<String?> waitForTestFlightProcessing(
   AppStoreConnectClient client,
   String uploadId, {
   required Duration timeout,
   Duration pollInterval = const Duration(seconds: 15),
+  bool includeBuild = false,
 }) async {
   final elapsed = Stopwatch()..start();
   while (true) {
@@ -167,6 +182,13 @@ Future<void> waitForTestFlightProcessing(
         'GET',
         '/v1/buildUploads/$uploadId',
         'read build upload status',
+        query: includeBuild
+            ? {
+                'include': 'build',
+                'fields[buildUploads]': 'state,build',
+                'fields[builds]': 'version',
+              }
+            : null,
         timeout: remaining < const Duration(seconds: 60)
             ? remaining
             : const Duration(seconds: 60),
@@ -178,7 +200,13 @@ Future<void> waitForTestFlightProcessing(
     final state = attributes is Map ? attributes['state'] : null;
     switch (state is Map ? state['state'] : null) {
       case 'COMPLETE':
-        return;
+        if (!includeBuild) return null;
+        final build = upload['relationships']?['build']?['data'];
+        if (build != null) {
+          return appStoreResource(build, 'builds')['id'] as String;
+        }
+        // A completed upload can become visible before its build relationship.
+        break;
       case 'FAILED':
         throw StateError(
           'App Store Connect processing failed for build upload $uploadId. '
@@ -186,16 +214,15 @@ Future<void> waitForTestFlightProcessing(
         );
       case 'AWAITING_UPLOAD':
       case 'PROCESSING':
-        final remaining = timeout - elapsed.elapsed;
-        if (remaining > Duration.zero) {
-          await Future<void>.delayed(
-            pollInterval < remaining ? pollInterval : remaining,
-          );
-        }
+        break;
       default:
         throw StateError(
           'App Store Connect returned an unknown build upload state.',
         );
+    }
+    final delay = timeout - elapsed.elapsed;
+    if (delay > Duration.zero) {
+      await Future<void>.delayed(pollInterval < delay ? pollInterval : delay);
     }
   }
 }
@@ -204,16 +231,7 @@ Map<String, dynamic> _resource(
   Map<String, dynamic> response,
   String type, {
   String? id,
-}) {
-  if (response['data'] case final Map<String, dynamic> data
-      when data['type'] == type &&
-          data['id'] is String &&
-          RegExp(r'^[a-zA-Z0-9-]+$').hasMatch(data['id'] as String) &&
-          (id == null || data['id'] == id)) {
-    return data;
-  }
-  throw StateError('App Store Connect returned an invalid $type resource.');
-}
+}) => appStoreResource(response['data'], type, id: id);
 
 typedef _UploadPart = ({
   Uri uri,
