@@ -65,7 +65,10 @@ device shell -n wm size 720x1280
 device shell -n svc power stayon true
 device shell -n input keyevent KEYCODE_WAKEUP
 device shell -n wm dismiss-keyguard
-device install --no-streaming -r "$work/smoke.apk"
+install_started=$SECONDS
+printf 'Installing Android smoke APK\n'
+timeout 120 "$adb" -s "$serial" install --no-streaming -r "$work/smoke.apk" </dev/null
+printf 'Android smoke APK installed in %ss\n' "$((SECONDS - install_started))"
 timeout 90 "$adb" -s "$serial" shell -n am instrument -w -r \
   org.openci.workersmoke/.SmokeInstrumentation | tr -d '\r' | tee "$work/result.log"
 grep -Fxq 'INSTRUMENTATION_RESULT: openci=BUTTON_TAPPED' "$work/result.log"
