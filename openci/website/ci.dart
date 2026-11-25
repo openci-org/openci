@@ -1,6 +1,6 @@
 import 'package:openci_workflow/openci_workflow.dart';
 
-import 'generated/secrets.g.dart';
+import '../generated/secrets.g.dart';
 
 Future<void> main() async {
   final openCI = await OpenCI.init(
@@ -16,7 +16,7 @@ Future<void> main() async {
           'package-lock.json',
           'vite.config.mts',
           '.node-version',
-          'openci/website_ci.dart',
+          'openci/website/ci.dart',
           'openci/tool/with_node.sh',
           'packages/pubspec_version_hook/**',
           'openci/generated/**',
@@ -34,7 +34,7 @@ Future<void> main() async {
           'package-lock.json',
           'vite.config.mts',
           '.node-version',
-          'openci/website_ci.dart',
+          'openci/website/ci.dart',
           'openci/tool/with_node.sh',
           'packages/pubspec_version_hook/**',
           'openci/generated/**',

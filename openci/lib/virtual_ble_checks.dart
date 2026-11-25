@@ -3,7 +3,7 @@ import 'dart:io';
 
 import 'package:openci_workflow/openci_workflow.dart';
 
-/// Both callers use the SDK package as their workflow's working directory.
+/// Run from the workflow SDK package directory.
 Future<void> runVirtualBleChecks(OpenCI ci) async {
   const example = 'packages/openci_virtual_ble/example';
   await ci.dart.test(paths: ['integration_test/virtual_ble_test.dart']);

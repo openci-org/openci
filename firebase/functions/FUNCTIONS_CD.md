@@ -1,6 +1,6 @@
 # Production Functions CD
 
-`openci/firebase_functions_cd.dart` runs when a GitHub Release is published.
+`openci/firebase/functions_cd.dart` runs when a GitHub Release is published.
 The Dart workflow lists dependency installation, formatting, analysis and tests.
 It checks the TypeScript Functions and runs Dart analysis and tests
 in `firebase/dart_functions` against the same commit. Firebase CLI 15.37.0

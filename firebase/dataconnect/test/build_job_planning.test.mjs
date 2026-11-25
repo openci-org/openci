@@ -1,12 +1,12 @@
 import assert from "node:assert/strict";
 import { createHash, generateKeyPairSync, randomUUID } from "node:crypto";
-import { spawn } from "node:child_process";
+import { execFileSync, spawn } from "node:child_process";
 import { once } from "node:events";
 import { createServer } from "node:net";
 import { createServer as createHttpServer } from "node:http";
 import { setTimeout as delay } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
-import { readdir, readFile } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import { after, before, test } from "node:test";
 import { deleteApp, getApps, initializeApp } from "firebase-admin/app";
 import { getDataConnect } from "firebase-admin/data-connect";
@@ -384,7 +384,11 @@ test("published release -> annotated tag commit -> only release CD jobs", async 
   assert.equal(webhookTask.status, "completed");
   assert.deepEqual(
     buildJobs.map((job) => job.workflowFileName),
-    ["dashboard_play_aab.dart", "dashboard_testflight_ipa.dart", "firebase_functions_cd.dart"],
+    [
+      "dashboard/android/play_aab.dart",
+      "dashboard/ios/testflight.dart",
+      "firebase/functions_cd.dart",
+    ],
   );
   for (const job of buildJobs) {
     assert.equal(job.commitSha, sha);
@@ -393,7 +397,7 @@ test("published release -> annotated tag commit -> only release CD jobs", async 
     assert.equal(job.pullRequestNumber, null);
     assert.equal(job.status, "QUEUED");
   }
-  const cd = buildJobs.find((job) => job.workflowFileName === "firebase_functions_cd.dart");
+  const cd = buildJobs.find((job) => job.workflowFileName === "firebase/functions_cd.dart");
   const execution = await getBuildExecution(getDispatchDataConnect(), {
     id: "missing",
     jobId: cd.id,
@@ -788,42 +792,45 @@ test("end users cannot read tasks, publish builds, or fail tasks", async (t) => 
 
 // Keep the expected job and skip lists independent of the planner output.
 const pushWorkflowFiles = [
-  "dart_format_check.dart",
-  "dart_functions_ci.dart",
-  "dashboard_android_patch.dart",
-  "dashboard_ios_patch.dart",
-  "dashboard_ios_patrol_ci.dart",
-  "dashboard_macos_cd.dart",
-  "dashboard_web_hosting.dart",
-  "firebase_functions_ci.dart",
-  "openci_cli_cd.dart",
-  "openci_shared_ci.dart",
-  "openci_workflow_cd.dart",
-  "openci_workflow_ci.dart",
-  "virtual_ble_ci.dart",
-  "website_ci.dart",
-  "workflow_scripts_ci.dart",
+  "cli/publish.dart",
+  "dashboard/android/patch.dart",
+  "dashboard/ios/patch.dart",
+  "dashboard/ios/patrol.dart",
+  "dashboard/macos/publish.dart",
+  "dashboard/web/hosting.dart",
+  "firebase/dart_functions_ci.dart",
+  "firebase/functions_ci.dart",
+  "repo/dart_format.dart",
+  "repo/workflow_scripts_ci.dart",
+  "sdk/shared_ci.dart",
+  "sdk/virtual_ble_ci.dart",
+  "sdk/workflow_cd.dart",
+  "sdk/workflow_ci.dart",
+  "website/ci.dart",
 ];
 const prWorkflowFiles = [
-  "dart_format_check.dart",
-  "dart_functions_ci.dart",
-  "dashboard_android_patch.dart",
-  "dashboard_ios_patch.dart",
-  "dashboard_ios_patrol_ci.dart",
-  "dashboard_web_hosting.dart",
-  "firebase_functions_ci.dart",
-  "macos_release_ci.dart",
-  "openci_shared_ci.dart",
-  "openci_workflow_ci.dart",
-  "virtual_ble_ci.dart",
-  "website_ci.dart",
-  "workflow_scripts_ci.dart",
+  "dashboard/android/patch.dart",
+  "dashboard/ios/patch.dart",
+  "dashboard/ios/patrol.dart",
+  "dashboard/macos/ci.dart",
+  "dashboard/web/hosting.dart",
+  "firebase/dart_functions_ci.dart",
+  "firebase/functions_ci.dart",
+  "repo/dart_format.dart",
+  "repo/workflow_scripts_ci.dart",
+  "sdk/shared_ci.dart",
+  "sdk/virtual_ble_ci.dart",
+  "sdk/workflow_ci.dart",
+  "website/ci.dart",
 ];
 
 async function configurePathWorkflows(f, workflowFiles) {
   const directory = new URL("../../../openci/", import.meta.url);
   const names =
-    workflowFiles ?? (await readdir(directory)).filter((name) => name.endsWith(".dart"));
+    workflowFiles ??
+    execFileSync("git", ["ls-files", "-z", "--", "*.dart"], { cwd: directory, encoding: "utf8" })
+      .split("\0")
+      .filter(Boolean);
   f.github.files = await Promise.all(
     names.map(async (name) => ({
       name,
@@ -852,7 +859,7 @@ test("a website push queues Website CI once under concurrent redelivery", async 
   const results = await Promise.all([invoke(f.taskId), invoke(f.taskId)]);
   assert.ok(results.includes("created"));
   const state = await f.state();
-  const expectedJobs = ["website_ci.dart"];
+  const expectedJobs = ["website/ci.dart"];
   assert.deepEqual(
     state.buildJobs.map((job) => job.workflowFileName),
     expectedJobs,
@@ -976,7 +983,7 @@ test("skipped Check leases fence concurrent senders, expire, and reject unauthen
 
 test("skipped patch checks recover from SQL without replanning or creating jobs", async (t) => {
   const f = await fixture(t);
-  const patchFiles = ["dashboard_android_patch.dart", "dashboard_ios_patch.dart"];
+  const patchFiles = ["dashboard/android/patch.dart", "dashboard/ios/patch.dart"];
   await configurePathWorkflows(f, patchFiles);
   f.github.changedFiles = [{ filename: "README.md" }];
   await invoke(f.taskId);
@@ -1043,7 +1050,7 @@ test("PR filtering and base retargets use the full PR diff with scoped PR-read p
     assert.equal(jobs[0].pullRequestNumber, "7");
     assert.deepEqual(
       (await skippedState(f)).skippedWorkflowChecks.map((check) => check.workflowFileName),
-      prWorkflowFiles.filter((file) => file !== "website_ci.dart"),
+      prWorkflowFiles.filter((file) => file !== "website/ci.dart"),
     );
     assert.equal(f.github.changedFilesCalls, 1);
     assert.ok(

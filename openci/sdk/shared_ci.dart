@@ -1,19 +1,18 @@
 import 'package:openci_workflow/openci_workflow.dart';
 
-import 'generated/paths.g.dart';
+import '../generated/paths.g.dart';
 
 Future<void> main() async {
   final openCI = await OpenCI.init(
-    workflowName: 'Dart Functions CI',
+    workflowName: 'OpenCI Shared CI',
     cancelPreviousRuns: true,
     ciTriggers: [
       CITrigger.pullRequest(
         branch: '*',
         paths: [
-          'firebase/dart_functions/**',
           'packages/openci_shared/**',
           'analysis_options.yaml',
-          'openci/dart_functions_ci.dart',
+          'openci/sdk/shared_ci.dart',
           'packages/openci_workflow/**',
           'packages/pubspec_version_hook/**',
           'openci/generated/**',
@@ -25,10 +24,9 @@ Future<void> main() async {
       CITrigger.push(
         branch: 'develop',
         paths: [
-          'firebase/dart_functions/**',
           'packages/openci_shared/**',
           'analysis_options.yaml',
-          'openci/dart_functions_ci.dart',
+          'openci/sdk/shared_ci.dart',
           'packages/openci_workflow/**',
           'packages/pubspec_version_hook/**',
           'openci/generated/**',
@@ -38,7 +36,7 @@ Future<void> main() async {
         ],
       ),
     ],
-    currentWorkingDirectory: WorkspacePaths.root.firebase.dartFunctions,
+    currentWorkingDirectory: WorkspacePaths.root.packages.openciShared,
   );
 
   await openCI.dart.analyze(fatalInfos: true);
