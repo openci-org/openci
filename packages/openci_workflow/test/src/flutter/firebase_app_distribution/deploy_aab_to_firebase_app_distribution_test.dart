@@ -126,6 +126,8 @@ void main() {
       String aabPath = 'app.aab',
       String appId = _appId,
       String? serviceAccountJsonBase64,
+      List<String> groups = const [],
+      List<String> testers = const [],
       String? dir,
     }) => http.runWithClient(
       () => IOOverrides.runZoned(
@@ -133,6 +135,8 @@ void main() {
           aabPath: aabPath,
           appId: appId,
           serviceAccountJsonBase64: serviceAccountJsonBase64 ?? credentials,
+          groups: groups,
+          testers: testers,
           dir: dir,
         ),
         getSystemTempDirectory: () => temporary,
@@ -241,6 +245,45 @@ void main() {
         'GET',
       ]);
       expect(requests.last.url.path, '/v1/$_operation');
+    });
+
+    for (final (label, groups, testers) in [
+      ('groups', ['qa-team'], <String>[]),
+      ('testers', <String>[], ['tester@example.com']),
+    ]) {
+      test('distributes the AAB to $label after upload', () async {
+        final aab = await createAab();
+        handler = (request) async => request.url.path.endsWith(':distribute')
+            ? _json({})
+            : _json(_done());
+        await deploy(aabPath: aab.path, groups: groups, testers: testers);
+        expect(requests.skip(1).map((r) => (r.method, r.url.path)), [
+          ('GET', '/v1/$_aabInfo'),
+          ('POST', '/upload/v1/$_appName/releases:upload'),
+          ('POST', '/v1/$_release:distribute'),
+        ]);
+        expect(jsonDecode(requests.last.body), {
+          'groupAliases': groups,
+          'testerEmails': testers,
+        });
+      });
+    }
+
+    test('fails when Firebase rejects the distribution', () async {
+      final aab = await createAab();
+      handler = (request) async => request.url.path.endsWith(':distribute')
+          ? _json({'error': 'private-response'}, 403)
+          : _json(_done());
+      await expectLater(
+        deploy(aabPath: aab.path, groups: ['qa-team']),
+        throwsA(
+          isA<HttpException>().having(
+            (error) => error.message,
+            'message',
+            'Firebase App Distribution distribute release failed (HTTP 403).',
+          ),
+        ),
+      );
     });
 
     test('attempts upload when Google Play status is unavailable', () async {
@@ -518,7 +561,10 @@ void main() {
       test('rejects an invalid operation or release: $body', () async {
         final aab = await createAab();
         handler = (_) async => _json(body);
-        await expectLater(deploy(aabPath: aab.path), throwsStateError);
+        await expectLater(
+          deploy(aabPath: aab.path, groups: ['qa-team']),
+          throwsStateError,
+        );
         expect(requests, hasLength(3));
       });
     }

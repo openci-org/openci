@@ -114,15 +114,7 @@ class FirebaseAppDistributionClient {
         'update release notes',
       );
     }
-    if (groups.isNotEmpty || testers.isNotEmpty) {
-      await _request(
-        _jsonRequest('POST', _uri('/v1/$releaseName:distribute'), {
-          'testerEmails': testers,
-          'groupAliases': groups,
-        }),
-        'distribute release',
-      );
-    }
+    await distribute(releaseName, groups: groups, testers: testers);
     final appId = appName.split('/').last;
     final releaseId = releaseName.split('/').last;
     final path = '/testerapps/$appId/releases/$releaseId';
@@ -145,10 +137,27 @@ class FirebaseAppDistributionClient {
     return (name: releaseName, testingUri: uri);
   }
 
+  Future<void> distribute(
+    String releaseName, {
+    required List<String> groups,
+    required List<String> testers,
+  }) async {
+    if (groups.isEmpty && testers.isEmpty) return;
+    await _request(
+      _jsonRequest('POST', _uri('/v1/$releaseName:distribute'), {
+        'groupAliases': groups,
+        'testerEmails': testers,
+      }),
+      'distribute release',
+      allowEmptyResponse: true,
+    );
+  }
+
   Future<Map<String, dynamic>> _request(
     http.BaseRequest request,
     String action, {
     Duration timeout = const Duration(seconds: 30),
+    bool allowEmptyResponse = false,
   }) async {
     request.followRedirects = false;
     final http.Response response;
@@ -168,6 +177,7 @@ class FirebaseAppDistributionClient {
         'Firebase App Distribution $action failed (HTTP ${response.statusCode}).',
       );
     }
+    if (allowEmptyResponse && response.bodyBytes.isEmpty) return {};
     try {
       final body = jsonDecode(response.body);
       if (body is Map<String, dynamic>) return body;

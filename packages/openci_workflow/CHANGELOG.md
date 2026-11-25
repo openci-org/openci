@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.6.1
+
+- Add optional `groups` (Firebase group aliases) and `testers` (email addresses) to `flutter.deployApkToFirebaseAppDistribution()` and `flutter.deployAabToFirebaseAppDistribution()`. Omit both to upload only.
+
 ## 0.6.0
 
 - Select an Orchard Vetu Linux worker in an enabled pilot repository with `machine: MachineType.linuxLatest`. Workflows default to `MachineType.macOsLatest`.
