@@ -91,14 +91,32 @@ class AppStoreConnectClient {
       throw StateError('App Store Connect $action request failed.');
     }
     if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw HttpException(
-        'App Store Connect $action failed (HTTP ${response.statusCode}).',
-      );
+      throw AppStoreConnectHttpException(action, response.statusCode);
     }
     return response;
   }
 
   void close() => _client.close();
+}
+
+class AppStoreConnectHttpException extends HttpException {
+  AppStoreConnectHttpException(String action, this.statusCode)
+    : super('App Store Connect $action failed (HTTP $statusCode).');
+
+  final int statusCode;
+}
+
+bool isAppStoreResourceId(String id) => RegExp(r'^[a-zA-Z0-9-]+$').hasMatch(id);
+
+Map<String, dynamic> appStoreResource(Object? data, String type, {String? id}) {
+  if (data is Map<String, dynamic> &&
+      data['type'] == type &&
+      data['id'] is String &&
+      isAppStoreResourceId(data['id'] as String) &&
+      (id == null || data['id'] == id)) {
+    return data;
+  }
+  throw StateError('App Store Connect returned an invalid $type resource.');
 }
 
 ECPrivateKey _decodeKey(AppStoreConnectKeys keys) {
