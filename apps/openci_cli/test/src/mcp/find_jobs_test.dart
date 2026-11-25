@@ -165,6 +165,7 @@ void main() {
       expect(second.containsKey('next_cursor'), isFalse);
       final only = (second['jobs'] as List).single as Map;
       expect(only['job_id'], 'job-203');
+      expect(only['retry_count'], 0);
       expect(only['latest_run_id'], 'stored-203');
       expect(only.containsKey('recent_runs'), isFalse);
       expect(calls, ['FindBuildJobs', 'GetBuildJobs', 'GetBuildJobs']);
