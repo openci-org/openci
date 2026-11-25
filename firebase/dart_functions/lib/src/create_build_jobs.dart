@@ -88,7 +88,12 @@ class BuildJobPlanner {
               ? <OpenCIFile>[]
               : await fetchWorkflows(event);
           final workflows = files
-              .map((file) => parseOpenCIWorkflow(file.content, file.name))
+              .map(
+                (file) => parseOpenCIWorkflow(
+                  file.content,
+                  file.path.substring('openci/'.length),
+                ),
+              )
               .whereType<ParsedWorkflow>()
               .toList();
           if (workflows.length > 100 ||

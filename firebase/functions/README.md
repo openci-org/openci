@@ -51,7 +51,7 @@ Function. Node awaits completion and retries transient failures through Eventarc
 service has been removed.
 The Dart Function owns the full planner: it reads the durable task, validates
 GitHub metadata, resolves the active connection, obtains a repository-scoped
-read-only installation token, fetches `openci/*.dart` at the webhook SHA, applies
+read-only installation token, fetches workflow Dart files under `openci/` at the webhook SHA, applies
 the migrated AST parser, and saves the matching BuildJobs. Repository identity
 and commit access are verified before source is fetched; source is never run.
 
