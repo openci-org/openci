@@ -66,7 +66,7 @@ risk; an ambiguous response is never treated as successful delivery.
 | Dart Functions CI     | `firebase/dart_functions/**`, `packages/openci_shared/**`               | root `analysis_options.yaml`                                                          |
 | Dart Format Check     | `**/*.dart`                                                             | analysis options, package manifests, lockfile, Git ignore files and FVM configuration |
 
-The five package workflows also include their own `openci/*.dart` definition,
+The five package workflows also include their own workflow definition under `openci/`,
 the workflow runtime SDK, version hook and generated workflow imports. All six
 workflows include `**/pubspec.yaml`, the root `pubspec.lock` and `.fvmrc`.
 The static parser reads these patterns from inline literal lists.

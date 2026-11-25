@@ -1,7 +1,7 @@
 import 'package:openci_workflow/openci_workflow.dart';
 
-import 'generated/paths.g.dart';
-import 'generated/secrets.g.dart';
+import '../generated/paths.g.dart';
+import '../generated/secrets.g.dart';
 
 Future<void> main() async {
   final ci = await OpenCI.init(
@@ -13,7 +13,7 @@ Future<void> main() async {
         paths: [
           'apps/openci_cli/pubspec.yaml',
           'apps/openci_cli/CHANGELOG.md',
-          'openci/openci_cli_cd.dart',
+          'openci/cli/publish.dart',
         ],
       ),
     ],
