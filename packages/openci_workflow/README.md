@@ -709,6 +709,32 @@ The IPA is streamed in the byte ranges requested by Apple. API requests have a 6
 
 Processing is limited to 30 minutes by default; override `processingTimeout` for a longer wait. Timing out does not cancel Apple's processing, so check the existing upload before retrying. The helper does not assign tester groups or submit external beta review; existing automatic distribution settings in App Store Connect still apply. Export compliance and beta review may require further action before testers can install the build.
 
+Apps that use standard encryption algorithms outside Apple's operating systems can supply their export compliance answers on deployment.
+
+```dart
+const exportCompliance = TestFlightExportCompliance.standardEncryption(
+  appDescription: 'A sports coaching app for training plans and team messages.',
+  availableOnFrenchStore: true,
+);
+await openCI.flutter.deployIpaToTestFlight(
+  ipaPath: ipaPath,
+  ascKeys: ascKeys,
+  exportCompliance: exportCompliance,
+);
+```
+
+Set `availableOnFrenchStore` to `true` for Yes or `false` for No. The answer records distribution intent on the encryption declaration. App Store availability is managed in App Store Connect. Supply your own app description and a team key with permission to manage app encryption declarations.
+
+After Apple processes the upload, OpenCI reuses a declaration with matching answers or creates one for the app. It applies Apple's approval or exemption to the build from that upload. If Apple requires documentation or review, the workflow reports the declaration ID and build ID. Complete the requested steps in App Store Connect, then use the reported build ID to apply the answers to the existing build. [Apple’s documentation requirements](https://developer.apple.com/help/app-store-connect/reference/app-information/export-compliance-documentation-for-encryption/)
+
+```dart
+await openCI.flutter.applyTestFlightExportCompliance(
+  buildId: buildId,
+  ascKeys: ascKeys,
+  exportCompliance: exportCompliance,
+);
+```
+
 Upload the IPA to Firebase App Distribution:
 
 ```dart

@@ -1,8 +1,13 @@
 # Changelog
 
-## 0.6.3
+## 0.6.4
 
 - Add `flutter.buildWeb()` for release builds, with an optional `noPub` flag to skip dependency resolution.
+
+## 0.6.3
+
+- Add `TestFlightExportCompliance.standardEncryption` to `flutter.deployIpaToTestFlight()` to declare standard encryption and explicitly answer whether the app will be distributed in France.
+- Add `flutter.applyTestFlightExportCompliance()` to apply the same answers to an existing build after Apple reviews its documentation.
 
 ## 0.6.2
 

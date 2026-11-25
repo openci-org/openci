@@ -10,6 +10,7 @@ export 'src/firebase_hosting/firebase_hosting_preview.dart';
 export 'src/flutter/flutter_ci.dart';
 export 'src/flutter/flutter_version.dart';
 export 'src/flutter/ios_distribution_method.dart';
+export 'src/flutter/testflight/testflight_export_compliance.dart';
 export 'src/ios_simulator.dart' show IosSimulator;
 export 'src/machine_type.dart';
 export 'src/open_ci.dart';
