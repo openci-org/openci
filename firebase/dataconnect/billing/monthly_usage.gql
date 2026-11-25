@@ -46,20 +46,27 @@ fragment PostpaidMonthlyUsage on Query {
         ) END AS measured_ms
       FROM source s CROSS JOIN bounds b
     ), totals AS (
-      SELECT count(*) AS run_count, coalesce(sum(measured_ms), 0) AS measured_ms FROM runs
+      SELECT count(*) AS run_count, coalesce(sum(r.measured_ms), 0) AS measured_ms,
+             coalesce(sum(r.measured_ms) FILTER (WHERE j.runs_on = 'linux-latest'), 0) AS linux_ms
+      FROM runs r LEFT JOIN build_jobs j ON j.id = r.job_id AND j.team_id = $1
       WHERE NOT EXISTS (SELECT 1 FROM closed)
+    ), runner_minutes AS (
+      SELECT run_count, measured_ms, ceil(linux_ms / 60000) AS linux_minutes,
+             ceil((measured_ms - linux_ms) / 60000) AS macos_minutes
+      FROM totals
     ), priced AS (
-      SELECT *, ceil(measured_ms / 60000) AS minutes,
+      SELECT run_count, measured_ms, macos_minutes + linux_minutes AS minutes,
+             floor(macos_minutes + linux_minutes * 0.1) AS amount_jpy,
              CASE WHEN EXISTS (SELECT 1 FROM closed) THEN (SELECT jpy_per_usd FROM closed)
-                  ELSE $3::text END AS rate FROM totals
+                  ELSE $3::text END AS rate FROM runner_minutes
     )
     SELECT $1::text AS "teamId", to_char($2::date, 'YYYY-MM') AS month,
            coalesce(c.run_count, priced.run_count)::text AS "runCount",
            coalesce(c.measured_millis, measured_ms)::text AS "measuredMillis",
            coalesce(c.billable_minutes, minutes)::text AS "billableMinutes",
-           coalesce(c.amount_jpy_tax_included, minutes)::text AS "amountJpyTaxIncluded",
+           coalesce(c.amount_jpy_tax_included, amount_jpy)::text AS "amountJpyTaxIncluded",
            rate AS "jpyPerUsd",
-           CASE WHEN c.month IS NULL THEN round(minutes * 100 / nullif(rate::numeric, 0))::text
+           CASE WHEN c.month IS NULL THEN round(amount_jpy * 100 / nullif(rate::numeric, 0))::text
                 ELSE c.amount_usd_cents_tax_included END AS "amountUsdCentsTaxIncluded",
            coalesce((
              SELECT jsonb_agg(jsonb_build_object(
