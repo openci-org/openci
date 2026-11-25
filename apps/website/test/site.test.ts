@@ -573,17 +573,26 @@ for (const locale of ["en", "ja"] as const) {
     const $ = pages.get(`/${locale}/`)!;
     const details = pages.get(`/${locale}/pricing/`)!;
     const pricing = details("#pricing");
-    assert.equal(
-      pricing.find(".cloud-plan h2 strong").text(),
-      locale === "ja" ? "¥1" : "1¢",
+    assert.deepEqual(
+      pricing
+        .find(".plan-rates > div")
+        .toArray()
+        .map((row) => [
+          details(row).find("dt").text(),
+          details(row).find("strong").text(),
+        ]),
+      [
+        ["Linux", "¥0.1"],
+        ["macOS", locale === "ja" ? "¥1" : "1¢"],
+      ],
     );
     assert.equal(
       details("h1 strong").text(),
-      locale === "ja" ? "1分1円。" : "1 cent per minute.",
+      locale === "ja" ? "1分0.1円。" : "¥0.1 per minute.",
     );
     assert.equal(
       $("h1 strong").text(),
-      locale === "ja" ? "1分1円で。" : "1 cent per minute.",
+      locale === "ja" ? "1分0.1円から。" : "from ¥0.1 per minute.",
     );
     assert.equal($(".claim").attr("href"), `/${locale}/pricing/#comparison`);
     assert.match(
@@ -602,12 +611,17 @@ for (const locale of ["en", "ja"] as const) {
       ["10", "100", "1000"],
     );
     assert.equal(
-      $("#estimate output").text(),
+      $("#estimate output[aria-labelledby=rate-Linux]").text(),
+      "¥10",
+    );
+    assert.equal(
+      $("#estimate output[aria-labelledby=rate-macOS]").text(),
       locale === "ja" ? "¥100" : "$1.00",
     );
     assert.equal(pricing.find("#minutes").attr("value"), "200");
+    assert.equal(pricing.find("output[data-runner=Linux]").text(), "¥20");
     assert.equal(
-      pricing.find("output").text(),
+      pricing.find("output[data-runner=macOS]").text(),
       locale === "ja" ? "¥200" : "$2.00",
     );
     for (const id of [
@@ -643,15 +657,22 @@ for (const locale of ["en", "ja"] as const) {
             : "exchange rate recorded when the billing month closes",
         ),
     );
+    for (const page of [$, details]) {
+      assert.match(
+        page("meta[name=description]").attr("content")!,
+        locale === "ja"
+          ? /Linuxが1分0\.1円、.*macOSが1分1円/
+          : /(?:Linux costs ¥0\.1|¥0\.1 per minute for Linux).*1 US cent per minute/,
+      );
+    }
+    assert.match(
+      $("title").text(),
+      locale === "ja" ? /1分0\.1円/ : /¥0\.1 per minute/,
+    );
     if (locale === "en") {
       assert.match(
         pricing.find("#faq").text(),
-        /actual charges at ¥1 per minute/,
-      );
-      assert.match($("title").text(), /1 cent per minute/);
-      assert.match(
-        details("meta[name=description]").attr("content")!,
-        /1 US cent per minute/,
+        /macOS charges at ¥1 per minute/,
       );
     }
     const [openci, github] = rates.map((rate) =>
@@ -708,8 +729,16 @@ test("runtime estimates round monthly minutes once before formatting local price
   assert.equal(formatRuntimeEstimate(100.1, "en"), "$1.01");
   assert.equal(formatRuntimeEstimate(100.1, "ja"), "¥101");
   assert.equal(formatRuntimeEstimate(123456, "en"), "$1,234.56");
+  for (const locale of ["ja", "en"] as const) {
+    assert.equal(formatRuntimeEstimate(0, locale, "Linux"), "¥0");
+    assert.equal(formatRuntimeEstimate(0.5, locale, "Linux"), "¥0.1");
+    assert.equal(formatRuntimeEstimate(10, locale, "Linux"), "¥1");
+    assert.equal(formatRuntimeEstimate(100.1, locale, "Linux"), "¥10.1");
+    assert.equal(formatRuntimeEstimate(123456, locale, "Linux"), "¥12,345.6");
+  }
   for (const minutes of [-1, NaN, Infinity, Number.MAX_SAFE_INTEGER + 1]) {
     assert.equal(formatRuntimeEstimate(minutes, "en"), "—");
+    assert.equal(formatRuntimeEstimate(minutes, "en", "Linux"), "—");
   }
 });
 test("Japanese Markdown headings use Astro's generated IDs", () => {

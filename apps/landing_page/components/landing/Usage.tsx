@@ -1,7 +1,11 @@
 "use client";
 import { useState } from "react";
 import { type Locale, translator } from "../../../website/src/lib/i18n";
-import { formatRuntimeEstimate, usdCentsPerMinute } from "../../../website/src/lib/pricing";
+import {
+  cloudRunners,
+  formatMinuteRate,
+  formatRuntimeEstimate,
+} from "../../../website/src/lib/pricing";
 import { Icon } from "./Icon";
 
 export function Usage({ locale }: { locale: Locale }) {
@@ -22,8 +26,8 @@ export function Usage({ locale }: { locale: Locale }) {
       <div className="usage-sheet" id="estimate">
         <div className="usage-sheet-bar">
           <Icon name="clock" marketing />
-          <span>OpenCI Cloud · Apple Silicon</span>
-          <span>{locale === "ja" ? "JPY" : "USD"}</span>
+          <span>OpenCI Cloud</span>
+          <span>{t("月額の目安（税込）", "Monthly estimates, tax included")}</span>
         </div>
         <div className="usage-equation">
           <label>
@@ -41,22 +45,16 @@ export function Usage({ locale }: { locale: Locale }) {
               ))}
             </select>
           </label>
-          <span className="math-sign" aria-hidden="true">
-            ×
-          </span>
-          <div>
-            <span>{t("1分あたり", "Per minute")}</span>
-            <strong>{t("¥1", `${usdCentsPerMinute}¢`)}</strong>
-          </div>
-          <span className="math-sign" aria-hidden="true">
-            =
-          </span>
-          <div className="usage-total">
-            <span>{t("月額（税込）", "Monthly total, tax included")}</span>
-            <output htmlFor="minutes" aria-live="polite">
-              {formatRuntimeEstimate(minutes, locale)}
-            </output>
-          </div>
+          {cloudRunners.map((runner) => (
+            <div className="usage-total" key={runner}>
+              <span id={`rate-${runner}`}>
+                {runner} · {formatMinuteRate(locale, runner)} / {t("分", "min")}
+              </span>
+              <output htmlFor="minutes" aria-labelledby={`rate-${runner}`}>
+                {formatRuntimeEstimate(minutes, locale, runner)}
+              </output>
+            </div>
+          ))}
         </div>
         <div className="usage-sheet-foot">
           <span>{t("VMの準備完了後から課金。", "Billing starts when the VM is ready.")}</span>

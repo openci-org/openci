@@ -1,15 +1,15 @@
-import { formatRuntimeEstimate } from "../lib/pricing";
+import { cloudRunners, formatRuntimeEstimate } from "../lib/pricing";
 
 for (const card of document.querySelectorAll<HTMLElement>("[data-estimate]")) {
-  const input = card.querySelector<HTMLInputElement | HTMLSelectElement>(
-    "input, select",
-  )!;
-  const output = card.querySelector<HTMLOutputElement>("output")!;
+  const input = card.querySelector<HTMLInputElement>("input")!;
   const locale = document.documentElement.lang === "ja" ? "ja" : "en";
   function calculate() {
-    output.value = input.value.trim()
-      ? formatRuntimeEstimate(Number(input.value), locale)
-      : "—";
+    for (const runner of cloudRunners) {
+      const output = card.querySelector<HTMLOutputElement>(
+        `output[data-runner="${runner}"]`,
+      )!;
+      output.value = formatRuntimeEstimate(input.valueAsNumber, locale, runner);
+    }
   }
   input.addEventListener("input", calculate);
   input.addEventListener("change", calculate);

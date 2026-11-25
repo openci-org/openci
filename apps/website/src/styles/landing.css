@@ -250,16 +250,10 @@
   border-radius: 14px;
   padding: 18px 20px 12px;
 }
-.estimate-body,
-.estimate-controls,
-.estimate-controls > div {
+.estimate-controls {
   display: flex;
   align-items: center;
   gap: 10px;
-}
-.estimate-body,
-.estimate-controls {
-  justify-content: space-between;
 }
 .card-label,
 .eyeline {
@@ -272,15 +266,20 @@
 .card-label img {
   border-radius: 2px;
 }
-.estimate-body h2 {
+.estimate-card h2 {
   margin-top: 5px;
   font-size: clamp(17px, 2vw, 21px);
   letter-spacing: -0.035em;
 }
+.estimate-results {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
 .total {
   display: grid;
   min-width: 0;
-  justify-items: end;
   gap: 2px;
   font-family: var(--mono);
 }
@@ -465,10 +464,22 @@
   font-size: clamp(26px, 3vw, 36px);
   letter-spacing: -0.05em;
 }
-.plans h2 strong {
-  font: 500 49px/1.15 var(--serif);
+.plan-rates {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 28px;
+  margin: 0 0 16px;
 }
-.plans h2 small {
+.plan-rates dt {
+  font-weight: 600;
+}
+.plan-rates dd {
+  margin: 0;
+}
+.plan-rates strong {
+  font: 500 36px/1.15 var(--serif);
+}
+.plan-rates small {
   font-size: 13px;
   letter-spacing: normal;
   color: var(--quiet);
@@ -601,8 +612,7 @@
     padding: 14px 13px 10px;
     border-radius: 10px;
   }
-  .estimate-controls,
-  .estimate-controls > div {
+  .estimate-controls {
     gap: 6px;
     flex-wrap: wrap;
   }
