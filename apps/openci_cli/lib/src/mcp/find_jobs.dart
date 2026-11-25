@@ -1,4 +1,5 @@
 import 'build_api.dart';
+import 'job_summary.dart';
 
 const _resultLimit = 20;
 
@@ -113,9 +114,12 @@ Future<Map<String, Object?>> findJobs(
       'offset': offset,
       'limit': _resultLimit + 1,
     });
-    final matches = (data['jobs'] as List).cast<Map>();
+    final matches = (data['jobs'] as List).cast<Map<String, dynamic>>();
     return {
-      'jobs': matches.take(_resultLimit).map(_jobSummary).toList(),
+      'jobs': [
+        for (final job in matches.take(_resultLimit))
+          JobSummary.fromJson(job).toJson(),
+      ],
       if (matches.length > _resultLimit)
         'next_cursor': 'jobs:${offset + _resultLimit}',
     };
@@ -124,19 +128,6 @@ Future<Map<String, Object?>> findJobs(
     return _searchTeamPage(api, search, 0);
   }
 }
-
-Map<String, Object?> _jobSummary(Map job) => {
-  'job_id': job['job_id'],
-  'workflow': job['workflow'],
-  'status': job['status'],
-  'commit_sha': job['commit_sha'],
-  'matrix_label': ?job['matrix_label'],
-  'latest_run_id': ?job['latest_run_id'],
-  if (job['retry_count'] case final int count when count >= 0)
-    'retry_count': count,
-  if (job['recent_runs'] case final List runs when runs.length > 1)
-    'recent_runs': runs,
-};
 
 /// Older deployments only offer the paginated team list. Preserve the first
 /// unread offset even if one team page contains more matches than we return.
@@ -151,23 +142,13 @@ Future<Map<String, Object?>> _searchTeamPage(
     'offset': offset,
     'limit': pageSize,
   });
-  final page = (data['buildJobs'] as List).cast<Map>();
+  final page = (data['buildJobs'] as List).cast<Map<String, dynamic>>();
   final jobs = <Map<String, Object?>>[];
   var consumed = 0;
   for (final job in page) {
     consumed++;
     if (job['teamId'] != api.profile.teamId || !search.matches(job)) continue;
-    jobs.add(
-      _jobSummary({
-        'job_id': job['id'],
-        'workflow': job['workflowName'],
-        'status': job['status'],
-        'commit_sha': job['commitSha'],
-        'matrix_label': job['matrixLabel'],
-        'latest_run_id': job['latestRunId'],
-        'retry_count': job['retryCount'],
-      }),
-    );
+    jobs.add(JobSummary.fromTeamJob(job).toJson());
     if (jobs.length == _resultLimit) break;
   }
   return {

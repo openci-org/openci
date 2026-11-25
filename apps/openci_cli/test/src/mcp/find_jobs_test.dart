@@ -104,6 +104,40 @@ void main() {
   });
 
   test(
+    'keeps a zero retry count and omits unavailable retry details',
+    () async {
+      const job = {
+        'job_id': 'id',
+        'workflow': 'Tests',
+        'status': 'QUEUED',
+        'commit_sha': null,
+      };
+      final api = apiWith(
+        (_, _) => response({
+          'data': {
+            'jobs': [
+              {
+                ...job,
+                'retry_count': 0,
+                'recent_runs': [
+                  {'run_id': 'first'},
+                ],
+              },
+              {...job, 'retry_count': -1, 'recent_runs': []},
+              {...job, 'pr_number': '7', 'matrix_label': null},
+            ],
+          },
+        }),
+      );
+      expect((await findJobs(api, {'pr_url': pr}))['jobs'], [
+        {...job, 'retry_count': 0},
+        job,
+        job,
+      ]);
+    },
+  );
+
+  test(
     'commit-only search accepts owner/repo or an enterprise repository URL',
     () async {
       for (final (repo, base) in [
@@ -141,7 +175,7 @@ void main() {
         {...teamJob(200), 'githubBaseUrl': 'https://ghe.example.com'},
         {...teamJob(201), 'commitSha': 'b' * 40},
         {...teamJob(202), 'teamId': 'other'},
-        teamJob(203),
+        {...teamJob(203), 'matrixLabel': 'iOS'},
       ];
       final calls = <String>[];
       final api = apiWith((op, vars) {
@@ -163,11 +197,15 @@ void main() {
         'cursor': first['next_cursor'],
       });
       expect(second.containsKey('next_cursor'), isFalse);
-      final only = (second['jobs'] as List).single as Map;
-      expect(only['job_id'], 'job-203');
-      expect(only['retry_count'], 0);
-      expect(only['latest_run_id'], 'stored-203');
-      expect(only.containsKey('recent_runs'), isFalse);
+      expect((second['jobs'] as List).single, {
+        'job_id': 'job-203',
+        'workflow': 'Tests',
+        'status': 'FAILURE',
+        'commit_sha': sha,
+        'matrix_label': 'iOS',
+        'latest_run_id': 'stored-203',
+        'retry_count': 0,
+      });
       expect(calls, ['FindBuildJobs', 'GetBuildJobs', 'GetBuildJobs']);
     },
   );
