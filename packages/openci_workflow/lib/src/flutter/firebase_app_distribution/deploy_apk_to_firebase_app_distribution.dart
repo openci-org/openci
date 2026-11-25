@@ -8,6 +8,7 @@ import 'package:http/http.dart' as http;
 
 import '../../quote_shell_argument.dart';
 import '../../pull_request_release_metadata.dart';
+import 'firebase_app_distribution_client.dart';
 
 Future<Uri> deployApkToFirebaseAppDistribution({
   required Future<void> Function(String command, {String? workingDirectory})
@@ -15,6 +16,8 @@ Future<Uri> deployApkToFirebaseAppDistribution({
   required String apkPath,
   required String appId,
   required String serviceAccountJsonBase64,
+  List<String> groups = const [],
+  List<String> testers = const [],
   String? dir,
 }) async {
   if (apkPath.trim().isEmpty || !apkPath.endsWith('.apk')) {
@@ -48,6 +51,11 @@ Future<Uri> deployApkToFirebaseAppDistribution({
     }
     stdout.writeln('Uploading APK to Firebase App Distribution...');
     final release = await _uploadApk(client, apk, appName);
+    await FirebaseAppDistributionClient(client).distribute(
+      release.name,
+      groups: groups,
+      testers: testers,
+    );
     stdout.writeln(
       'Firebase App Distribution upload complete: ${release.name}',
     );
