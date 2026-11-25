@@ -233,6 +233,69 @@ void main() {
     expect(requests, hasLength(1));
   });
 
+  group('distribution errors', () {
+    final invalidArgument = {
+      'error': {'status': 'INVALID_ARGUMENT', 'message': 'private-response'},
+    };
+
+    Future<void> distribute(List<String> groups) =>
+        FirebaseAppDistributionClient(client).distribute(
+          _release,
+          groups: groups,
+          testers: ['tester@example.com'],
+        );
+
+    test('shows the configured aliases when Firebase rejects them', () async {
+      handler = (_) async => _json(invalidArgument, 400);
+
+      await expectLater(
+        distribute(['qa', 'qa-moblie']),
+        throwsA(
+          isA<HttpException>().having(
+            (error) => error.message,
+            'message',
+            allOf(
+              contains('HTTP 400, INVALID_ARGUMENT'),
+              contains('`groups` (["qa","qa-moblie"])'),
+              contains('target Firebase project'),
+              isNot(contains('private-response')),
+              isNot(contains('tester@example.com')),
+            ),
+          ),
+        ),
+      );
+    });
+
+    for (final (reason, groups, response) in [
+      ('tester-only requests', <String>[], _json(invalidArgument, 400)),
+      ('permission errors', ['qa'], _json(invalidArgument, 403)),
+      (
+        'other invalid requests',
+        ['qa'],
+        _json({
+          'error': {'status': 'FAILED_PRECONDITION'},
+        }, 400),
+      ),
+      ('malformed responses', ['qa'], http.Response('private-response', 400)),
+    ]) {
+      test('keeps the HTTP error for $reason', () async {
+        handler = (_) async => response;
+
+        await expectLater(
+          distribute(groups),
+          throwsA(
+            isA<HttpException>().having(
+              (error) => error.message,
+              'message',
+              'Firebase App Distribution distribute release failed '
+                  '(HTTP ${response.statusCode}).',
+            ),
+          ),
+        );
+      });
+    }
+  });
+
   for (final phase in ['upload', 'poll', 'notes', 'distribute']) {
     test(
       'propagates HTTP failure during $phase and stops later requests',

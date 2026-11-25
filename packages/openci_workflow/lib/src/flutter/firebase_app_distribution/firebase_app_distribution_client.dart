@@ -150,6 +150,7 @@ class FirebaseAppDistributionClient {
       }),
       'distribute release',
       allowEmptyResponse: true,
+      errorMessage: (response) => _groupAliasError(response, groups),
     );
   }
 
@@ -158,6 +159,7 @@ class FirebaseAppDistributionClient {
     String action, {
     Duration timeout = const Duration(seconds: 30),
     bool allowEmptyResponse = false,
+    String? Function(http.Response)? errorMessage,
   }) async {
     request.followRedirects = false;
     final http.Response response;
@@ -174,7 +176,8 @@ class FirebaseAppDistributionClient {
     }
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw HttpException(
-        'Firebase App Distribution $action failed (HTTP ${response.statusCode}).',
+        errorMessage?.call(response) ??
+            'Firebase App Distribution $action failed (HTTP ${response.statusCode}).',
       );
     }
     if (allowEmptyResponse && response.bodyBytes.isEmpty) return {};
@@ -186,6 +189,24 @@ class FirebaseAppDistributionClient {
     }
     throw StateError('Firebase returned an invalid $action response.');
   }
+}
+
+String? _groupAliasError(http.Response response, List<String> groups) {
+  if (groups.isEmpty || response.statusCode != HttpStatus.badRequest) {
+    return null;
+  }
+  try {
+    final body = jsonDecode(response.body);
+    if (body case {'error': {'status': 'INVALID_ARGUMENT'}}) {
+      return 'Firebase App Distribution could not distribute the release '
+          '(HTTP ${response.statusCode}, INVALID_ARGUMENT). '
+          'Check that each alias in `groups` (${jsonEncode(groups)}) '
+          'exists in the target Firebase project.';
+    }
+  } on FormatException {
+    // Use the standard HTTP error for malformed responses.
+  }
+  return null;
 }
 
 Uri _uri(String path, [Map<String, String>? query]) =>
