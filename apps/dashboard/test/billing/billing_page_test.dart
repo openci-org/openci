@@ -247,6 +247,7 @@ void main() {
       await tester.tap(find.text('支払い方法を登録'));
       await tester.pumpAndSettle();
       expect(find.textContaining('1分1円（税込）'), findsOneWidget);
+      expect(find.textContaining('1分0.1円（税込）'), findsOneWidget);
       expect(find.textContaining('カード登録時の利用料は0円'), findsOneWidget);
       await tester.tap(find.text('キャンセル'));
       await tester.pumpAndSettle();

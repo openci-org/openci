@@ -66,8 +66,8 @@ export function SpecialThanks({ locale }: { locale: Locale }) {
         <div className="thanks-head-side">
           <p>
             {t(
-              "スポンサー、Mac実機を譲ってくれた方々、インフラを支えてくれる仲間のおかげで、1分1円のランナーを続けられています。",
-              "Sponsors, Mac donors, and infrastructure friends make 1-cent-per-minute runners possible.",
+              "スポンサー、Mac実機を譲ってくれた方々、インフラを支えてくれる仲間のおかげで、1分1円のmacOSランナーを続けられています。",
+              "Sponsors, Mac donors, and infrastructure friends make 1-cent-per-minute macOS runners possible.",
             )}
           </p>
           <a className="text-link" href={thanksUrl}>

@@ -1,5 +1,6 @@
 import { Playground } from "./Playground";
 import { translator, type Locale } from "../../../website/src/lib/i18n";
+import { cloudRunners, formatMinuteRate } from "../../../website/src/lib/pricing";
 import { Icon } from "./Icon";
 
 export function Hero({ locale }: { locale: Locale }) {
@@ -39,14 +40,11 @@ export function Hero({ locale }: { locale: Locale }) {
     },
   ];
   const facts = [
-    {
-      value: t("¥1 / 分", "1¢ / min"),
-      label: t("VM準備完了後から課金（税込）", "Billed after VM setup, tax included"),
-    },
-    {
-      value: "Apple Silicon",
-      label: t("Flutter専用のmacOSランナー", "Dedicated macOS runners for Flutter"),
-    },
+    ...cloudRunners.map((runner) => ({
+      value: `${formatMinuteRate(locale, runner)} / ${t("分", "min")}`,
+      label:
+        runner === "Linux" ? t("Linux（試験提供中）", "Linux (pilot)") : "macOS (Apple Silicon)",
+    })),
     {
       value: "Dart 100%",
       label: t("YAML不要、補完と型チェック付き", "No YAML, full editor autocomplete"),
@@ -78,18 +76,18 @@ export function Hero({ locale }: { locale: Locale }) {
           <br />
           <strong>
             {locale === "ja" ? (
-              "1分1円で。"
+              "1分0.1円から。"
             ) : (
               <>
-                <span>1 cent</span> per minute.
+                from <span>¥0.1</span> per minute.
               </>
             )}
           </strong>
         </h1>
         <p>
           {t(
-            "Apple SiliconのMacで、ビルドとテストを自動化。",
-            "Automate builds and tests on Apple Silicon Macs.",
+            "Linuxは1分0.1円、Apple SiliconのmacOSは1分1円。",
+            "Run on Linux for ¥0.1 per minute or on Apple Silicon Macs for 1 cent per minute.",
           )}
           <br />
           {t(

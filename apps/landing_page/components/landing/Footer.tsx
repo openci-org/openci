@@ -15,7 +15,9 @@ export function Footer({ locale }: { locale: Locale }) {
               <BrandMark />
               OpenCI
             </a>
-            <p>{t("Flutter専用のmacOSランナー。", "macOS runners for Flutter.")}</p>
+            <p>
+              {t("Flutter専用のLinux・macOSランナー。", "Linux and macOS runners for Flutter.")}
+            </p>
           </div>
           {groups.map(([name, links]) => (
             <div key={name}>
