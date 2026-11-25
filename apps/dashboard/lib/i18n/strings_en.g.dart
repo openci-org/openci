@@ -858,9 +858,9 @@ class Translations$billing$en {
   /// en: 'Monthly billing for CI usage'
   String get monthlyPostpaid => 'Monthly billing for CI usage';
 
-  /// en: 'CI costs ¥1 per minute, including tax. Usage is totaled monthly and automatically charged to your registered card the following month.'
+  /// en: 'macOS costs ¥1 per minute and the Linux pilot costs ¥0.1 per minute, including tax. We round the monthly charge down to whole yen and charge your registered card the following month.'
   String get monthlyExplanation =>
-      'CI costs ¥1 per minute, including tax. Usage is totaled monthly and automatically charged to your registered card the following month.';
+      'macOS costs ¥1 per minute and the Linux pilot costs ¥0.1 per minute, including tax. We round the monthly charge down to whole yen and charge your registered card the following month.';
 
   /// en: 'Continue card setup'
   String get continueCardSetup => 'Continue card setup';
@@ -906,9 +906,9 @@ class Translations$billing$en {
   /// en: 'Agree to monthly billing?'
   String get consentTitle => 'Agree to monthly billing?';
 
-  /// en: 'CI usage for team ${teamName} costs ¥1 per minute, including tax. Monthly usage is automatically charged to your registered card the following month. Registering a card costs ¥0.'
+  /// en: 'The standard CI rate for team ${teamName} is ¥1 per minute, including tax. The discounted Linux pilot rate is ¥0.1 per minute. Monthly usage is automatically charged to your registered card the following month. Registering a card costs ¥0.'
   String consentMessage({required Object teamName}) =>
-      'CI usage for team ${teamName} costs ¥1 per minute, including tax. Monthly usage is automatically charged to your registered card the following month. Registering a card costs ¥0.';
+      'The standard CI rate for team ${teamName} is ¥1 per minute, including tax. The discounted Linux pilot rate is ¥0.1 per minute. Monthly usage is automatically charged to your registered card the following month. Registering a card costs ¥0.';
 
   /// en: 'Agree and continue to Stripe'
   String get agreeAndContinue => 'Agree and continue to Stripe';
@@ -1513,7 +1513,7 @@ extension on Translations {
       'billing.ciAvailable' => 'CI is available',
       'billing.monthlyPostpaid' => 'Monthly billing for CI usage',
       'billing.monthlyExplanation' =>
-        'CI costs ¥1 per minute, including tax. Usage is totaled monthly and automatically charged to your registered card the following month.',
+        'macOS costs ¥1 per minute and the Linux pilot costs ¥0.1 per minute, including tax. We round the monthly charge down to whole yen and charge your registered card the following month.',
       'billing.continueCardSetup' => 'Continue card setup',
       'billing.setupCard' => 'Add payment method',
       'billing.cardRegistered' => 'A card is registered for monthly billing.',
@@ -1537,7 +1537,7 @@ extension on Translations {
       'billing.consentTitle' => 'Agree to monthly billing?',
       'billing.consentMessage' =>
         ({required Object teamName}) =>
-            'CI usage for team ${teamName} costs ¥1 per minute, including tax. Monthly usage is automatically charged to your registered card the following month. Registering a card costs ¥0.',
+            'The standard CI rate for team ${teamName} is ¥1 per minute, including tax. The discounted Linux pilot rate is ¥0.1 per minute. Monthly usage is automatically charged to your registered card the following month. Registering a card costs ¥0.',
       'billing.agreeAndContinue' => 'Agree and continue to Stripe',
       'billing.paymentRequired' =>
         'Register a billing card for this team to start CI.',

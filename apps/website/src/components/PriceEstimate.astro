@@ -1,6 +1,10 @@
 ---
 import { translator, type Locale } from "../lib/i18n";
-import { formatRuntimeEstimate } from "../lib/pricing";
+import {
+  cloudRunners,
+  formatMinuteRate,
+  formatRuntimeEstimate,
+} from "../lib/pricing";
 interface Props {
   locale: Locale;
 }
@@ -10,40 +14,45 @@ const initial = 200;
 ---
 
 <div class="estimate-card" data-estimate>
-  <div class="estimate-body">
-    <div>
-      <span class="card-label">
-        <img src="/favicon.png" width="13" height="13" alt="" />
-        OpenCI Cloud
-      </span>
-      <h2>{t("月の実行料金を試算", "Estimate your monthly cost")}</h2>
-    </div>
-    <div class="total">
-      <output for="minutes" aria-live="polite">
-        {formatRuntimeEstimate(initial, locale)}
-      </output>
-      <small>{t("税込 / 月", "USD / mo, tax incl.")}</small>
-    </div>
-  </div>
+  <header>
+    <span class="card-label">
+      <img src="/favicon.png" width="13" height="13" alt="" />
+      OpenCI Cloud
+    </span>
+    <h2>{t("月の実行料金を試算", "Estimate your monthly cost")}</h2>
+  </header>
   <div class="estimate-controls">
-    <div>
-      <label for="minutes">{t("月の実行時間", "Monthly runtime")}</label>
-      <input
-        type="number"
-        id="minutes"
-        value={initial}
-        min="0"
-        step="any"
-        inputmode="decimal"
-      />
-      <span>{t("分", "min")}</span>
-    </div>
-    <small>{t("1分 × 1円", "1¢ per minute")}</small>
+    <label for="minutes">{t("月の実行時間", "Monthly runtime")}</label>
+    <input
+      type="number"
+      id="minutes"
+      value={initial}
+      min="0"
+      step="any"
+      inputmode="decimal"
+    />
+    <span>{t("分", "min")}</span>
+  </div>
+  <div class="estimate-results">
+    {cloudRunners.map((runner) => (
+      <div class="total">
+        <small id={`rate-${runner}`}>
+          {runner} · {formatMinuteRate(locale, runner)} / {t("分", "min")}
+        </small>
+        <output
+          for="minutes"
+          aria-labelledby={`rate-${runner}`}
+          data-runner={runner}
+        >
+          {formatRuntimeEstimate(initial, locale, runner)}
+        </output>
+      </div>
+    ))}
   </div>
   <p class="calculator-help">
     {t(
-      "チームの月間合計を1分単位で切り上げます。",
-      "We round up your team’s monthly total once, to the next minute.",
+      "同じ実行時間での税込の月額目安です。月の実行時間はランナー別に1分単位で切り上げ、合計料金の1円未満を切り捨てます。",
+      "Each estimate includes tax. We round each runner type’s monthly runtime up to whole minutes, then round the combined charge down to whole yen.",
     )}
   </p>
 </div>

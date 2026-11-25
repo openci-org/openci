@@ -76,12 +76,25 @@ PlanningEvent releaseEvent() => PlanningEvent.parse(
         final requestedSha = path.split('/').last;
         body = {'sha': requestedSha, 'object': tags[requestedSha]};
       } else if (path == '/repos/org/app/git/commits/$commitSha') {
-        body = {'sha': commitSha};
-      } else if (path == '/repos/org/app/contents/openci') {
-        expect(request.url.queryParameters, {'ref': commitSha});
-        body = [
-          {'name': 'cd.dart', 'type': 'file', 'size': 80},
-        ];
+        body = {
+          'sha': commitSha,
+          'tree': {'sha': '1' * 40},
+        };
+      } else if (path == '/repos/org/app/git/trees/${'1' * 40}') {
+        body = {
+          'truncated': false,
+          'tree': [
+            {'path': 'openci', 'type': 'tree', 'sha': '2' * 40},
+          ],
+        };
+      } else if (path == '/repos/org/app/git/trees/${'2' * 40}') {
+        expect(request.url.queryParameters, {'recursive': '1'});
+        body = {
+          'truncated': false,
+          'tree': [
+            {'path': 'cd.dart', 'type': 'blob', 'mode': '100644', 'size': 80},
+          ],
+        };
       } else if (path == '/repos/org/app/contents/openci/cd.dart') {
         expect(request.url.queryParameters, {'ref': commitSha});
         body = {

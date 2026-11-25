@@ -18,6 +18,7 @@ import {
   type CheckoutPlan,
 } from "./model.js";
 import type { SkippedCheck } from "../skipped_checks.js";
+import { dashboardOrigin, dashboardRunUrl } from "../links.js";
 
 const installationPermissions = {
   checkout: { contents: "read" },
@@ -35,6 +36,7 @@ export interface GitHubOptions {
   apiBaseUrl: string;
   baseUrl: string;
   billingOrigin?: string;
+  dashboardOrigin?: string;
 }
 
 export function githubOptions(options: GitHubOptions): GitHubOptions {
@@ -61,6 +63,7 @@ export function buildGitHub(environment: NodeJS.ProcessEnv = process.env): Execu
     privateKey: environment.GITHUB_APP_PRIVATE_KEY ?? "",
     apiBaseUrl: environment.GITHUB_API_BASE_URL ?? "https://api.github.com",
     baseUrl: environment.GITHUB_BASE_URL ?? "https://github.com",
+    dashboardOrigin: dashboardOrigin(environment),
   });
 }
 
@@ -659,22 +662,24 @@ export class ExecutionGitHub {
         if (page >= 20) throw new Error("Check reconciliation limit exceeded");
       }
     }
+    const params = {
+      owner: job.owner,
+      repo: job.repo,
+      details_url: dashboardRunUrl(this.options.dashboardOrigin, job.id),
+      ...state,
+    };
     if (checkRunId) {
       await request("PATCH /repos/{owner}/{repo}/check-runs/{check_run_id}", {
-        owner: job.owner,
-        repo: job.repo,
+        ...params,
         check_run_id: checkRunId,
-        ...state,
       });
       return String(checkRunId);
     }
     const created = await request("POST /repos/{owner}/{repo}/check-runs", {
-      owner: job.owner,
-      repo: job.repo,
+      ...params,
       name: job.workflowName,
       head_sha: job.commitSha!,
       external_id: externalId,
-      ...state,
     });
     return String(created.data.id);
   }

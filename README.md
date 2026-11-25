@@ -17,7 +17,7 @@ Run it locally from the repository root with the same Flutter release:
 
 ```sh
 flutter pub get
-dart run openci/dart_format_check.dart
+dart run openci/repo/dart_format.dart
 ```
 
 Use `dart format <file paths>` to fix any reported formatting differences.

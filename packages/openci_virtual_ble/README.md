@@ -31,7 +31,7 @@ an iOS Simulator runtime:
 
 ```sh
 flutter pub get
-dart run openci/virtual_ble_ci.dart
+dart run openci/sdk/virtual_ble_ci.dart
 ```
 
 Each run creates its own two simulators and removes them after the test.

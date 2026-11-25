@@ -1,8 +1,8 @@
 import 'package:openci_workflow/openci_workflow.dart';
+import 'package:openci_workflows/dashboard_patch_mode.dart';
 
-import 'generated/paths.g.dart';
-import 'generated/secrets.g.dart';
-import 'lib/dashboard_patch_mode.dart';
+import '../../generated/paths.g.dart';
+import '../../generated/secrets.g.dart';
 
 Future<void> main() async {
   final dashboard = WorkspacePaths.root.apps.dashboard;
@@ -25,7 +25,7 @@ Future<void> main() async {
           'packages/openci_workflow/lib/**',
           'packages/pubspec_version_hook/lib/**',
           'packages/*/pubspec.yaml',
-          'openci/dashboard_ios_patch.dart',
+          'openci/dashboard/ios/patch.dart',
           'openci/lib/dashboard_patch_mode.dart',
           'openci/generated/**',
           'openci/pubspec.yaml',
@@ -47,7 +47,7 @@ Future<void> main() async {
           'packages/openci_workflow/lib/**',
           'packages/pubspec_version_hook/lib/**',
           'packages/*/pubspec.yaml',
-          'openci/dashboard_ios_patch.dart',
+          'openci/dashboard/ios/patch.dart',
           'openci/lib/dashboard_patch_mode.dart',
           'openci/generated/**',
           'openci/pubspec.yaml',

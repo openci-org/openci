@@ -98,17 +98,23 @@ class FlutterCI {
   /// JSON in [serviceAccountJsonBase64]. The service account needs the Firebase
   /// App Distribution Admin role on the project. Credentials stay in memory.
   /// Relative [apkPath] values use the workflow directory or [dir].
+  /// Pass Firebase group aliases in [groups] or email addresses in [testers]
+  /// to distribute the processed release. Both default to empty for upload only.
   /// Returns the Firebase tester URL for the uploaded release.
   Future<Uri> deployApkToFirebaseAppDistribution({
     required String apkPath,
     required String appId,
     required String serviceAccountJsonBase64,
+    List<String> groups = const [],
+    List<String> testers = const [],
     String? dir,
   }) => firebase_apk.deployApkToFirebaseAppDistribution(
     run: _run,
     apkPath: apkPath,
     appId: appId,
     serviceAccountJsonBase64: serviceAccountJsonBase64,
+    groups: groups,
+    testers: testers,
     dir: dir,
   );
 
@@ -120,16 +126,22 @@ class FlutterCI {
   /// The service account needs the Firebase App Distribution Admin role.
   /// Credentials stay in memory. Relative [aabPath] values use the workflow
   /// directory or [dir].
+  /// Pass Firebase group aliases in [groups] or email addresses in [testers]
+  /// to distribute the processed release. Both default to empty for upload only.
   Future<void> deployAabToFirebaseAppDistribution({
     required String aabPath,
     required String appId,
     required String serviceAccountJsonBase64,
+    List<String> groups = const [],
+    List<String> testers = const [],
     String? dir,
   }) => firebase_aab.deployAabToFirebaseAppDistribution(
     run: _run,
     aabPath: aabPath,
     appId: appId,
     serviceAccountJsonBase64: serviceAccountJsonBase64,
+    groups: groups,
+    testers: testers,
     dir: dir,
   );
 

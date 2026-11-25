@@ -129,6 +129,8 @@ void main() {
       String apkPath = 'app.apk',
       String appId = _appId,
       String? serviceAccountJsonBase64,
+      List<String> groups = const [],
+      List<String> testers = const [],
       String? dir,
     }) => http.runWithClient(
       () => IOOverrides.runZoned(
@@ -136,6 +138,8 @@ void main() {
           apkPath: apkPath,
           appId: appId,
           serviceAccountJsonBase64: serviceAccountJsonBase64 ?? credentials,
+          groups: groups,
+          testers: testers,
           dir: dir,
         ),
         getSystemTempDirectory: () => temporary,
@@ -288,18 +292,28 @@ void main() {
       );
     }
 
-    test('waits for processing to finish', () async {
+    test('distributes the processed APK to groups and testers', () async {
       final apk = await createApk();
-      handler = (request) async => _json(
-        request.method == 'POST' ? {'name': _operation} : _done(),
+      handler = (request) async => switch (request.url.path) {
+        '/v1/$_operation' => _json(_done()),
+        '/v1/$_release:distribute' => http.Response('', 204),
+        _ => _json({'name': _operation}),
+      };
+      final url = await deploy(
+        apkPath: apk.path,
+        groups: ['qa-team', 'android-team'],
+        testers: ['tester@example.com'],
       );
-      await deploy(apkPath: apk.path);
-      expect(requests.map((request) => request.method), [
-        'POST',
-        'POST',
-        'GET',
+      expect(url, Uri.parse(_testerUrl));
+      expect(requests.skip(1).map((r) => (r.method, r.url.path)), [
+        ('POST', '/upload/v1/$_appName/releases:upload'),
+        ('GET', '/v1/$_operation'),
+        ('POST', '/v1/$_release:distribute'),
       ]);
-      expect(requests.last.url.path, '/v1/$_operation');
+      expect(jsonDecode(requests.last.body), {
+        'groupAliases': ['qa-team', 'android-team'],
+        'testerEmails': ['tester@example.com'],
+      });
     });
 
     for (final path in ['', ' ', 'app.aab', 'app.ipa', 'app.apk.txt']) {
@@ -460,7 +474,10 @@ void main() {
       test('rejects an invalid operation or release: $body', () async {
         final apk = await createApk();
         handler = (_) async => _json(body);
-        await expectLater(deploy(apkPath: apk.path), throwsStateError);
+        await expectLater(
+          deploy(apkPath: apk.path, groups: ['qa-team']),
+          throwsStateError,
+        );
         expect(requests, hasLength(2));
       });
     }

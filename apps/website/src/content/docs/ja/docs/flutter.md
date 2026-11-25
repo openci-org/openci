@@ -56,7 +56,7 @@ try {
 }
 ```
 
-`launchIosSimulator()` は新しく作成した端末の起動完了まで待ちます。テストに失敗した場合も `finally` でシミュレータを終了・削除し、ワークフローはテストの失敗を報告します。[OpenCI ダッシュボードで使っているワークフローの全文](https://github.com/openci-org/openci/blob/develop/openci/dashboard_ios_patrol_ci.dart)
+`launchIosSimulator()` は新しく作成した端末の起動完了まで待ちます。テストに失敗した場合も `finally` でシミュレータを終了・削除し、ワークフローはテストの失敗を報告します。[OpenCI ダッシュボードで使っているワークフローの全文](https://github.com/openci-org/openci/blob/develop/openci/dashboard/ios/patrol.dart)
 
 ## Androidをビルドする
 

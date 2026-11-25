@@ -178,7 +178,12 @@ async function seedJob(f, overrides = {}) {
 
 const novemberStart = Date.parse("2026-11-01T00:00:00+09:00");
 
-async function seedMonthlyRuns(f, intervals, overrides = {}, anchor = novemberStart) {
+async function seedMonthlyRuns(
+  f,
+  intervals,
+  { runsOn, ...overrides } = {},
+  anchor = novemberStart,
+) {
   const p = {
     id: randomUUID(),
     teamId: f.teamId,
@@ -198,7 +203,7 @@ async function seedMonthlyRuns(f, intervals, overrides = {}, anchor = novemberSt
     `,
     { teamId: f.teamId, p },
   );
-  const job = await seedJob(f);
+  const job = await seedJob(f, { runsOn });
   const runs = [];
   const steps = [];
   const executions = [];
@@ -326,6 +331,57 @@ test("monthly totals cover every page and convert the tax-inclusive yen total on
   for (const rate of ["0", "-1", "NaN", "1e3"]) {
     await assert.rejects(sdk.getTeamMonthlyUsage(dc, { ...variables, jpyPerUsd: rate }));
   }
+});
+
+test("Linux and macOS minutes are totaled by runner before the monthly charge is rounded down", async (t) => {
+  const f = await fixture(t);
+  const anchor = Date.parse("2020-04-01T00:00:00+09:00");
+  const linux = { runsOn: "linux-latest" };
+  const run = (milliseconds) => ({ start: 0, prepEnd: 0, observed: milliseconds });
+  const vars = { teamId: f.teamId, month: "2020-04-01", jpyPerUsd: "100" };
+  const usage = async () => (await sdk.getTeamMonthlyUsage(dc, vars)).data.statement;
+
+  // Two 99.5-minute runs bill as 199 minutes for the team.
+  await seedMonthlyRuns(f, [run(5970000), run(5970000)], linux, anchor);
+  const first = await usage();
+  assert.equal(first.billableMinutes, "199");
+  assert.equal(first.amountJpyTaxIncluded, "19");
+  assert.equal(first.amountUsdCentsTaxIncluded, "19");
+
+  await seedMonthlyRuns(f, [run(1)], linux, anchor);
+  const next = await usage();
+  assert.equal(next.billableMinutes, "200");
+  assert.equal(next.amountJpyTaxIncluded, "20");
+
+  // Legacy jobs and explicit macOS jobs contribute to the same minute.
+  await seedMonthlyRuns(f, [run(15000)], {}, anchor);
+  await seedMonthlyRuns(f, [run(15000)], { runsOn: "macos-latest" }, anchor);
+  const mixed = await usage();
+  assert.equal(mixed.billableMinutes, "201");
+  assert.equal(mixed.amountJpyTaxIncluded, "21");
+  assert.equal(mixed.amountUsdCentsTaxIncluded, "21");
+  const close = { ...vars, currency: "USD", rateDate: "2020-04-30" };
+  const receipt = (await sdk.closeTeamMonthlyStatement(dc, close)).data.receipt.statement;
+  assert.equal(receipt.amountJpyTaxIncluded, "21");
+  assert.equal(receipt.amountUsdCentsTaxIncluded, "21");
+  await seedMonthlyRuns(f, [run(600000)], linux, anchor);
+  assert.deepEqual(await usage(), mixed);
+});
+
+test("a positive Linux runtime with a sub-yen monthly total cannot be linked to an invoice", async (t) => {
+  const f = await fixture(t);
+  await seedMonthlyRuns(
+    f,
+    [{ start: 0, prepEnd: 0, observed: 540000 }],
+    { runsOn: "linux-latest" },
+    Date.parse("2020-04-01T00:00:00+09:00"),
+  );
+  const vars = { teamId: f.teamId, month: "2020-04-01" };
+  const receipt = (await sdk.closeTeamMonthlyStatement(dc, { ...vars, currency: "JPY" })).data
+    .receipt.statement;
+  assert.equal(receipt.billableMinutes, "9");
+  assert.equal(receipt.amountJpyTaxIncluded, "0");
+  await assert.rejects(sdk.linkMonthlyStatementInvoice(dc, { ...vars, invoiceId: "in_zeroYen" }));
 });
 
 test("monthly close freezes all run pages and currency across concurrent closes and later writes", async (t) => {

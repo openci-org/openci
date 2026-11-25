@@ -99,7 +99,7 @@ npm run preview --workspace openci-website
 記事ごとのOGP画像の生成、PNG形式・寸法、言語ごとの画像とX Cardの参照も確認します。
 フォーマットの適用は `npm run fmt --workspace openci-website` です。
 
-`openci/website_ci.dart` はPRとdevelopへのpushで、依存取得・フォーマット・
+`openci/website/ci.dart` はPRとdevelopへのpushで、依存取得・フォーマット・
 Next.jsとAstroの静的解析・ビルド・テストを `bash scripts/ci.sh` で実行します。
 このスクリプトは `.node-version` と一致するNode.jsを使います。手元にない場合は
 公式バイナリを一時ディレクトリへ取得してSHA-256を検証します。npm 11.14.1で依存取得と `npm run build:hosting` を実行します。

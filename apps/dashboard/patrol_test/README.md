@@ -54,7 +54,7 @@ dart run patrol_cli:main test --target patrol_test/app_startup_test.dart --devic
 
 ## Pull request and develop push CI
 
-The `Dashboard iOS Patrol` workflow in `openci/dashboard_ios_patrol_ci.dart`
+The `Dashboard iOS Patrol` workflow in `openci/dashboard/ios/patrol.dart`
 runs on pull requests targeting any branch and on pushes to `develop`, using
 the same path filters for changes to Dashboard or its dependencies.
 It supplies the Firebase client configuration and both login secrets from the
@@ -76,7 +76,7 @@ To run the complete workflow locally, export `DASHBOARD_PATROL_EMAIL`,
 Flutter 3.47.8's Dart on `PATH`:
 
 ```sh
-dart run openci/dashboard_ios_patrol_ci.dart
+dart run openci/dashboard/ios/patrol.dart
 ```
 
 ## Test coverage

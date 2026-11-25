@@ -281,8 +281,8 @@ export function ClosingBanner({ locale }: { locale: Locale }) {
       </h2>
       <p>
         {t(
-          "Dartで書いて、Apple Siliconで回す。1分1円のシンプルなCI。",
-          "Write in Dart, run on Apple Silicon, pay 1 cent per minute.",
+          "Dartで書いたワークフローをLinuxやmacOSで実行できます。",
+          "Run your Dart workflows on Linux or macOS.",
         )}
       </p>
       <div className="actions">

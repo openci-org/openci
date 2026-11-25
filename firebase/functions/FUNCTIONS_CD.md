@@ -1,6 +1,6 @@
 # Production Functions CD
 
-`openci/firebase_functions_cd.dart` runs when a GitHub Release is published.
+`openci/firebase/functions_cd.dart` runs when a GitHub Release is published.
 The Dart workflow lists dependency installation, formatting, analysis and tests.
 It checks the TypeScript Functions and runs Dart analysis and tests
 in `firebase/dart_functions` against the same commit. Firebase CLI 15.37.0
@@ -74,7 +74,8 @@ Do **not** register either CD credential in the team's ordinary OpenCI Secrets.
 The executor filters `FIREBASE_FUNCTIONS_CD_SERVICE_ACCOUNT_JSON_BASE64` and
 `FIREBASE_FUNCTIONS_CD_ENV_BASE64` out of ordinary secrets, even when CD is disabled.
 It loads the infrastructure versions only for the configured team/repository,
-GitHub.com and `firebase_functions_cd.dart`. The executor requires a tag recorded
+GitHub.com and the exact workflow path `firebase/functions_cd.dart` or its
+original path `firebase_functions_cd.dart`. The executor requires a tag recorded
 from the Release webhook and checks that the tagged commit is in `develop` history
 before loading either secret.
 

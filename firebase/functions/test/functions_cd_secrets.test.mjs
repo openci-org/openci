@@ -39,39 +39,42 @@ const references = [
   { name: functionsCdEnvironment, secretVersionPath: "untrusted-team-reference" },
 ];
 
-test("only the verified production release receives infrastructure-owned pinned secrets", async () => {
-  assert.deepEqual(
-    await functionsCdSecretReferences(
-      references,
-      job,
-      checkout,
-      environment,
-      "openci-b1b91",
-      false,
-      async (sha) => {
-        assert.equal(sha, job.commitSha);
-        return true;
-      },
-    ),
-    [
-      ordinary,
-      {
-        name: functionsCdCredential,
-        secretVersionPath: environment.OPENCI_FUNCTIONS_CD_SA_VERSION,
-      },
-      {
-        name: functionsCdEnvironment,
-        secretVersionPath: environment.OPENCI_FUNCTIONS_CD_ENV_VERSION,
-      },
-    ],
-  );
-});
+for (const workflowFileName of ["firebase_functions_cd.dart", "firebase/functions_cd.dart"]) {
+  test(`only the verified production release receives pinned secrets for ${workflowFileName}`, async () => {
+    assert.deepEqual(
+      await functionsCdSecretReferences(
+        references,
+        { ...job, workflowFileName },
+        checkout,
+        environment,
+        "openci-b1b91",
+        false,
+        async (sha) => {
+          assert.equal(sha, job.commitSha);
+          return true;
+        },
+      ),
+      [
+        ordinary,
+        {
+          name: functionsCdCredential,
+          secretVersionPath: environment.OPENCI_FUNCTIONS_CD_SA_VERSION,
+        },
+        {
+          name: functionsCdEnvironment,
+          secretVersionPath: environment.OPENCI_FUNCTIONS_CD_ENV_VERSION,
+        },
+      ],
+    );
+  });
+}
 
 test("pushes, PRs, other workflows, repositories, hosts and teams cannot read CD secrets", async () => {
   const cases = [
     { job: { pullRequestNumber: 1 } },
     { job: { workflowFileName: "firebase_functions_ci.dart" } },
     { job: { workflowFileName: "ci/firebase_functions_cd.dart" } },
+    { job: { workflowFileName: "elsewhere/functions_cd.dart" } },
     { job: { branch: "feature/cd" } },
     { job: { tagName: null, branch: "develop" }, checkout: { branch: "develop" } },
     { job: { tagName: null } },

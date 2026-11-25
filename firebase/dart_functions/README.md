@@ -3,7 +3,9 @@
 The private Firebase HTTP Function `process-webhook-task` receives only a task
 ID. It reads the saved webhook from FSC, validates GitHub metadata, resolves the
 active GitHub connection, obtains a repository-scoped installation token, fetches
-`openci/*.dart` at the webhook SHA, and applies the migrated Dart AST parser.
+workflow Dart files under `openci/` at the webhook SHA, and applies the Dart AST parser.
+The planner stores paths relative to `openci/`, including nested directories,
+so `dashboard/ios/build.dart` and `sdk/build.dart` identify distinct jobs.
 It atomically inserts the matching `QUEUED` jobs and completes the task through
 the privileged FSC connector operations. Source code is never executed.
 

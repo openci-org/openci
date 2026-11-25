@@ -117,7 +117,7 @@ mutation LinkMonthlyStatementInvoice($teamId: String!, $month: Date!, $invoiceId
   linked: billingMonthlyStatement_updateMany(
     where: {
       _and: [
-        { teamId: { eq: $teamId }, month: { eq: $month }, billableMinutes: { gt: 0 } },
+        { teamId: { eq: $teamId }, month: { eq: $month }, amountJpyTaxIncluded: { gt: 0 } },
         { _or: [{ currency: { eq: "JPY" } }, { amountUsdCentsTaxIncluded: { ne: "0" } }] },
         { _or: [{ stripeInvoiceId: { isNull: true } }, { stripeInvoiceId: { eq: $invoiceId } }] }
       ]

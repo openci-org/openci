@@ -3,7 +3,7 @@ import 'dart:io';
 
 import 'package:openci_workflow/openci_workflow.dart';
 
-import 'generated/paths.g.dart';
+import '../generated/paths.g.dart';
 
 Future<void> main() async {
   final ci = await OpenCI.init(
