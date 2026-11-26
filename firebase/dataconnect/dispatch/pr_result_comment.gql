@@ -12,6 +12,11 @@ query GetPullRequestCommentExecution($jobId: String!) @auth(level: NO_ACCESS) {
     teamId
     runId
     checkRunId
+    pullRequestBaseSha
+    pullRequestBaseBranch
+    pullRequestMergeSha
+    resultAt
+    updatedAt
     outcome
     failureSummary
     createdAt
@@ -34,6 +39,48 @@ query GetPullRequestCommentExecution($jobId: String!) @auth(level: NO_ACCESS) {
     ORDER BY d.created_at DESC, d.id DESC LIMIT 1
     """
     params: [$jobId]
+  )
+}
+
+# A locally merged execution can finish before GitHub makes its test merge available.
+mutation RecordCompletedPullRequestCheck(
+  $id: String!
+  $jobId: String!
+  $runId: String!
+  $checkRunId: String!
+)
+@auth(level: NO_ACCESS)
+@transaction {
+  buildJobDispatch_updateMany(
+    where: {
+      _and: [
+        {
+          id: { eq: $id }
+          jobId: { eq: $jobId }
+          runId: { eq: $runId }
+          finishedAt: { isNull: false }
+          pullRequestBaseSha: { isNull: false }
+        }
+        { _or: [{ checkRunId: { isNull: true } }, { checkRunId: { eq: $checkRunId } }] }
+      ]
+    }
+    data: { checkRunId: $checkRunId }
+  ) @check(
+    expr: "this == 1 && vars.checkRunId.matches('^[1-9][0-9]*$')"
+    message: "Completed check identity changed"
+  )
+  buildJob_updateMany(
+    where: {
+      _and: [
+        {
+          id: { eq: $jobId }
+          latestRunId: { eq: $runId }
+          status: { in: ["SUCCESS", "FAILURE", "TIMED_OUT"] }
+        }
+        { _or: [{ checkRunId: { isNull: true } }, { checkRunId: { eq: $checkRunId } }] }
+      ]
+    }
+    data: { checkRunId: $checkRunId }
   )
 }
 

@@ -7,7 +7,7 @@ import {
   type DataConnect,
 } from "firebase-admin/data-connect";
 import * as sdk from "@openci/dispatch-admin";
-import { identity, type Dispatch, type Outcome } from "./model.js";
+import { identity, type CheckoutPlan, type Dispatch, type Outcome } from "./model.js";
 import { configuredConnector } from "../data_connect_config.js";
 
 export function resolveExecutionContext(data: sdk.GetBuildExecutorContextData) {
@@ -93,7 +93,12 @@ export class ExecutionStore {
       ).data,
     );
   }
-  async configure(dispatch: Dispatch, executorId: string, selfHosted = false): Promise<number> {
+  async configure(
+    dispatch: Dispatch,
+    executorId: string,
+    selfHosted = false,
+    checkout?: CheckoutPlan,
+  ): Promise<number> {
     if (selfHosted) {
       try {
         await sdk.startSelfHostedBuildExecution(this.dc, {
@@ -125,6 +130,11 @@ export class ExecutionStore {
         id: dispatch.id,
         jobId: dispatch.jobId,
         executorId,
+        ...(checkout?.event === "pull_request" && {
+          pullRequestBaseSha: checkout.baseSha,
+          pullRequestBaseBranch: checkout.baseBranch,
+          pullRequestMergeSha: checkout.checkoutSha,
+        }),
       });
     } catch {
       /* Reconcile an ambiguous acknowledgement; never increment twice. */
@@ -133,7 +143,11 @@ export class ExecutionStore {
     if (
       !state.run?.runNumber ||
       state.dispatch?.executorId !== executorId ||
-      state.job?.latestRunId !== dispatch.runId
+      state.job?.latestRunId !== dispatch.runId ||
+      (checkout?.event === "pull_request" &&
+        (state.dispatch.pullRequestBaseSha !== checkout.baseSha ||
+          state.dispatch.pullRequestBaseBranch !== checkout.baseBranch ||
+          (state.dispatch.pullRequestMergeSha ?? null) !== checkout.checkoutSha))
     )
       throw new Error("Run configuration failed");
     const runNumber = Number(state.run.runNumber);
@@ -146,8 +160,11 @@ export class ExecutionStore {
   async vmRequested(id: string, executorId: string) {
     await sdk.markBuildVmRequested(this.dc, { id, executorId });
   }
-  async check(id: string, checkRunId: string) {
-    await sdk.recordBuildExecutionCheck(this.dc, { id, checkRunId });
+  async check(id: string, checkRunId: string | null, previousCheckRunId?: string | null) {
+    await sdk.recordBuildExecutionCheck(this.dc, { id, checkRunId, previousCheckRunId });
+  }
+  async completedCheck(id: string, jobId: string, runId: string, checkRunId: string) {
+    await sdk.recordCompletedPullRequestCheck(this.dc, { id, jobId, runId, checkRunId });
   }
   async result(
     id: string,

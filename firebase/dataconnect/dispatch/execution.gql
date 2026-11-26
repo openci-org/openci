@@ -174,7 +174,14 @@ mutation StartSelfHostedBuildExecution(
   )
 }
 
-mutation ConfigureBuildExecutionRun($id: String!, $jobId: String!, $executorId: String!)
+mutation ConfigureBuildExecutionRun(
+  $id: String!
+  $jobId: String!
+  $executorId: String!
+  $pullRequestBaseSha: String = null
+  $pullRequestBaseBranch: String = null
+  $pullRequestMergeSha: String = null
+)
 @auth(level: NO_ACCESS)
 @transaction {
   query @redact {
@@ -196,6 +203,14 @@ mutation ConfigureBuildExecutionRun($id: String!, $jobId: String!, $executorId: 
       runCount
     }
   }
+  buildJobDispatch_update(
+    id: $id
+    data: {
+      pullRequestBaseSha: $pullRequestBaseSha
+      pullRequestBaseBranch: $pullRequestBaseBranch
+      pullRequestMergeSha: $pullRequestMergeSha
+    }
+  ) @redact
   # Lock the team before the job, as in admission. Check historical numbers once per team.
   allocation: _executeReturningFirst(
     sql: """
@@ -274,20 +289,34 @@ mutation MarkBuildVmRequested($id: String!, $executorId: String!)
   ) @check(expr: "this == 1", message: "Execution is not active")
 }
 
-mutation RecordBuildExecutionCheck($id: String!, $checkRunId: String!)
+mutation RecordBuildExecutionCheck(
+  $id: String!
+  $checkRunId: String
+  $previousCheckRunId: String = null
+)
 @auth(level: NO_ACCESS)
 @transaction {
   buildJobDispatch_updateMany(
     where: {
       _and: [
         { id: { eq: $id }, executorId: { isNull: false }, finishedAt: { isNull: true } }
-        { _or: [{ checkRunId: { isNull: true } }, { checkRunId: { eq: $checkRunId } }] }
+        {
+          _or: [
+            {
+              checkRunId: {
+                eq_expr: "vars.previousCheckRunId == null ? '' : vars.previousCheckRunId"
+              }
+            }
+            { checkRunId: { eq_expr: "vars.checkRunId == null ? '' : vars.checkRunId" } }
+            { checkRunId: { isNull: true } }
+          ]
+        }
       ]
     }
     data: { checkRunId: $checkRunId }
   )
     @check(
-      expr: "this == 1 && vars.checkRunId.matches('^[1-9][0-9]*$')"
+      expr: "this == 1 && (vars.checkRunId == null || vars.checkRunId.matches('^[1-9][0-9]*$'))"
       message: "Check identity changed"
     )
 }

@@ -238,7 +238,7 @@ async function fixture(t, queuedCheck = false, team) {
               baseBranch: "main",
               headSha: job.commitSha,
               baseSha: "b".repeat(40),
-              checkoutSha: job.commitSha,
+              checkoutSha: "c".repeat(40),
             }
           : { event: "push", branch: "main", commitSha: job.commitSha, checkoutSha: job.commitSha },
       checkout: async () => ({
@@ -329,7 +329,7 @@ test("executor context never authorizes a different repository through its insta
   assert.equal((await context(repositoryId)).connection, undefined);
 });
 
-async function started(f) {
+async function started(f, checkout) {
   const executorId = await f.claim();
   const dispatch = (await f.state()).dispatch;
   const context = await store.context(
@@ -340,10 +340,67 @@ async function started(f) {
   );
   const periodId = await billing.period(context, f.teamId, false, new Set([f.teamId]));
   await billing.admit(dispatch, periodId);
-  await store.configure(dispatch, executorId);
+  await store.configure(dispatch, executorId, false, checkout);
   await billing.start(dispatch);
   return { dispatch, executorId };
 }
+
+test("PR checkout identity survives recovery and replacing a legacy check is fenced", async (t) => {
+  const f = await fixture(t, true);
+  await alterJob(f.jobId, { pullRequestNumber: "7" });
+  const checkout = {
+    event: "pull_request",
+    number: 7,
+    headBranch: "feature",
+    baseBranch: "main",
+    headSha: "a".repeat(40),
+    baseSha: "b".repeat(40),
+    checkoutSha: "c".repeat(40),
+  };
+  const { dispatch, executorId } = await started(f, checkout);
+  const saved = (await f.state()).dispatch;
+  assert.deepEqual(
+    [saved.pullRequestBaseSha, saved.pullRequestBaseBranch, saved.pullRequestMergeSha],
+    [checkout.baseSha, checkout.baseBranch, checkout.checkoutSha],
+  );
+  assert.equal(await store.configure(dispatch, executorId, false, checkout), 1);
+  await assert.rejects(
+    store.configure(dispatch, executorId, false, { ...checkout, baseBranch: "other" }),
+  );
+  await store.check(f.id, "456", "123");
+  await store.check(f.id, "456", "123");
+  await assert.rejects(store.check(f.id, "789", "123"));
+  assert.equal((await f.state()).dispatch.checkRunId, "456");
+  await store.check(f.id, null, "456");
+  assert.equal((await f.state()).dispatch.checkRunId, null);
+});
+
+test("late PR checks save their ID only on their own completed run and never replace a newer attempt", async (t) => {
+  const f = await fixture(t);
+  await alterJob(f.jobId, { pullRequestNumber: "7" });
+  const { dispatch, executorId } = await started(f, {
+    event: "pull_request",
+    number: 7,
+    headBranch: "feature",
+    baseBranch: "main",
+    headSha: "a".repeat(40),
+    baseSha: "b".repeat(40),
+    checkoutSha: null,
+  });
+  await store.result(f.id, executorId, "success", null);
+  f.dependencies.github.check = async () => null;
+  await cleanupExecution(f.id, f.jobId, f.dependencies, false);
+  await store.completedCheck(f.id, f.jobId, dispatch.runId, "456");
+  const jobCheck = async () =>
+    (await dispatchSdk.getQueuedBuildCheck(dc, { jobId: f.jobId })).data.job.checkRunId;
+  assert.equal((await f.state()).dispatch.checkRunId, "456");
+  assert.equal(await jobCheck(), "456");
+  await alterJob(f.jobId, { status: "QUEUED", checkRunId: "789" });
+  await store.completedCheck(f.id, f.jobId, dispatch.runId, "456");
+  await assert.rejects(store.completedCheck(f.id, f.jobId, dispatch.runId, "999"));
+  assert.equal((await f.state()).dispatch.checkRunId, "456");
+  assert.equal(await jobCheck(), "789");
+});
 
 async function prepareSupersedingRevision(t, f, closed = false) {
   const taskId = randomUUID(),
@@ -474,6 +531,7 @@ test("completion reporting reads the latest PR attempt and its masked failure ou
   assert.equal(job.pullRequestNumber, "7");
   assert.equal(latest.id, f.id);
   assert.equal(latest.outcome, "failure");
+  assert.equal(latest.pullRequestMergeSha, "c".repeat(40));
   assert.ok(latest.finishedAt);
   const run = await store.pullRequestFailureLog(f.jobId, latest.runId);
   assert.deepEqual(run.failed, [{ stepId: "run_workflow" }]);
@@ -484,6 +542,27 @@ test("completion reporting reads the latest PR attempt and its masked failure ou
   await assert.rejects(
     dispatchSdk.getPullRequestFailureLog(dc, { jobId: f.jobId, runId: latest.runId }, user),
   );
+  const sibling = await fixture(t, false, { teamId: f.teamId, installationId: job.installationId });
+  await alterJob(sibling.jobId, { pullRequestNumber: "8" });
+  const resolve = sibling.dependencies.github.resolveCheckout;
+  sibling.dependencies.github.resolveCheckout = async (source) => ({
+    ...(await resolve(source)),
+    baseBranch: "release",
+    baseSha: "d".repeat(40),
+    checkoutSha: "e".repeat(40),
+  });
+  sibling.dependencies.github.check = async (source, dispatch, _outcome, context) => {
+    assert.equal(source.commitSha, job.commitSha);
+    assert.equal(source.workflowName, job.workflowName);
+    assert.equal(source.pullRequestNumber, "8");
+    assert.equal(context?.checkout?.checkoutSha ?? dispatch.pullRequestMergeSha, "e".repeat(40));
+    return "456";
+  };
+  await sibling.run();
+  const green = (await store.pullRequestCommentExecution(sibling.jobId)).latest;
+  assert.deepEqual([green.outcome, green.checkRunId], ["success", "456"]);
+  const failed = (await store.pullRequestCommentExecution(f.jobId)).latest;
+  assert.deepEqual([failed.outcome, failed.checkRunId], ["failure", "123"]);
   // A new base revision can produce a second job for the same head/PR.
   // Its first all-green completion creates no comment or GitHub marker.
   const next = await fixture(t, false, { teamId: f.teamId, installationId: job.installationId });

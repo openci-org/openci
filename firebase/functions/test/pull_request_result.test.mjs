@@ -106,6 +106,7 @@ function fixture(t) {
     if (route.startsWith("GET") && route.endsWith("/comments"))
       return { data: comments.slice((args.page - 1) * args.per_page, args.page * args.per_page) };
     if (route.startsWith("POST") && route.endsWith("/comments")) {
+      assert.equal(args.issue_number, Number(current.job.pullRequestNumber));
       comments.push({
         id: comments.length + 1,
         user: { type: "Bot" },
@@ -205,6 +206,70 @@ test("a PR failure posts linked diagnostics, then edits the same app comment on 
   assert.match(original.body, /### ❌ /);
   assert.doesNotMatch(original.body, /<details>/);
   assert.notEqual(original.body, failed);
+});
+
+test("a checkout conflict before the run posts its reason and log on the originating PR", async (t) => {
+  const f = fixture(t);
+  Object.assign(f.current.latest, {
+    checkRunId: null,
+    runId: null,
+    failureSummary: "Merge conflict with the target branch.",
+  });
+  await f.report();
+  assert.deepEqual(f.writes, ["create"]);
+  assert.match(f.comments[0].body, /Merge conflict with the target branch/);
+  assert.match(f.comments[0].body, /https:\/\/dash\.example\/runs\/job/);
+  assert.equal(f.logsRead(), 0);
+});
+
+test("a locally merged success is visible on its PR while its check is pending and is reconciled on redelivery", async (t) => {
+  const f = fixture(t);
+  f.next("success");
+  const latest = f.current.latest;
+  Object.assign(latest, {
+    checkRunId: null,
+    pullRequestBaseSha: "b".repeat(40),
+    pullRequestBaseBranch: "main",
+  });
+  let checks = 0;
+  t.mock.method(f.github, "check", async (source, dispatch, outcome, context) => {
+    assert.equal(source.pullRequestNumber, "3");
+    assert.equal(dispatch.pullRequestBaseSha, latest.pullRequestBaseSha);
+    assert.equal(outcome, "success");
+    assert.equal(context.retryPending, true);
+    if (++checks === 1) throw new Error("pending");
+    return "73";
+  });
+  f.store.completedCheck = async (id, jobId, runId, checkRunId) => {
+    assert.deepEqual([id, jobId, runId, checkRunId], [latest.id, job.id, latest.runId, "73"]);
+    latest.checkRunId = checkRunId;
+  };
+  await assert.rejects(f.report(), /pending/);
+  assert.match(f.comments[0].body, /が成功しました/);
+  await Promise.all([f.report(), f.report()]);
+  assert.equal(checks, 2);
+  assert.deepEqual(f.writes, ["create"]);
+});
+
+test("a rejected PR comment cannot prevent the matching late check from being recorded", async (t) => {
+  const f = fixture(t);
+  Object.assign(f.current.latest, {
+    checkRunId: null,
+    pullRequestBaseSha: "b".repeat(40),
+    pullRequestBaseBranch: "main",
+  });
+  t.mock.method(f.github, "postPullRequestResult", async () => {
+    throw new Error("Comment permission denied");
+  });
+  t.mock.method(f.github, "check", async (_job, _attempt, _outcome, context) => {
+    await context.beforeWrite();
+    return "90";
+  });
+  f.store.completedCheck = async (_dispatchId, _jobId, _runId, id) => {
+    f.current.latest.checkRunId = id;
+  };
+  await assert.rejects(f.report(), /Comment permission denied/);
+  assert.equal(f.current.latest.checkRunId, "90");
 });
 
 test("obsolete attempts, push, cancelled, forked, closed and superseded PRs stay quiet", async (t) => {

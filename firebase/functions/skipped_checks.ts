@@ -6,14 +6,14 @@ export type SkippedCheck = NonNullable<GetSkippedWorkflowCheckData["check"]>;
 export interface SkippedCheckStore {
   claim(id: string, leaseOwner: string): Promise<boolean>;
   get(id: string): Promise<SkippedCheck | null>;
-  complete(id: string, leaseOwner: string, checkRunId: string): Promise<void>;
+  complete(id: string, leaseOwner: string, checkRunId: string | null): Promise<void>;
   retry(id: string, leaseOwner: string): Promise<void>;
   pending(): Promise<string[]>;
 }
 
 export interface SkippedCheckDependencies {
   store: SkippedCheckStore;
-  report(check: SkippedCheck): Promise<string>;
+  report(check: SkippedCheck): Promise<string | null>;
 }
 
 export function createdSkippedCheckIds(payload: unknown): string[] {

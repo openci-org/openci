@@ -17,6 +17,9 @@ fragment BuildDispatchFields on BuildJobDispatch {
   executorId
   runId
   checkRunId
+  pullRequestBaseSha
+  pullRequestBaseBranch
+  pullRequestMergeSha
   startedAt
   heartbeatAt
   deadlineAt
