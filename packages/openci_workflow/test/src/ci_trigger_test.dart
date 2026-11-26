@@ -10,6 +10,7 @@ void main() {
       expect(filtered, isNot(const CITrigger.push(branch: 'v*')));
       expect(filtered.branch, isNull);
       expect(filtered.paths, isNull);
+      expect(filtered.pathsIgnore, isNull);
     });
     test('CITrigger.push creates push trigger with branch', () {
       const trigger = CITrigger.push(branch: 'develop');
@@ -34,6 +35,42 @@ void main() {
 
       expect(push.paths, ['apps/**']);
       expect(pullRequest.paths, ['packages/**']);
+    });
+
+    test('const push and pull request triggers accept pathsIgnore', () {
+      const push = CITrigger.push(branch: 'main', pathsIgnore: ['docs/**']);
+      const pullRequest = CITrigger.pullRequest(
+        branch: 'main',
+        pathsIgnore: ['README.md'],
+      );
+
+      expect(push.pathsIgnore, ['docs/**']);
+      expect(pullRequest.pathsIgnore, ['README.md']);
+      expect(push.mapOrNull(push: (trigger) => trigger.pathsIgnore), [
+        'docs/**',
+      ]);
+    });
+
+    test('pattern callbacks keep their existing argument lists', () {
+      const trigger = CITrigger.push(branch: 'main', paths: ['apps/**']);
+
+      expect(
+        CITriggerPatterns(trigger).when(
+          push: (branch, paths) => paths?.single,
+          pullRequest: (branch, paths) => paths?.single,
+          release: (tag) => tag,
+        ),
+        'apps/**',
+      );
+      expect(trigger.whenOrNull(push: (branch, paths) => branch), 'main');
+      expect(
+        trigger.maybeWhen<String?>(
+          push: (branch, paths) => null,
+          orElse: () => 'fallback',
+        ),
+        isNull,
+      );
+      expect(trigger.maybeWhen(orElse: () => 'fallback'), 'fallback');
     });
   });
 }

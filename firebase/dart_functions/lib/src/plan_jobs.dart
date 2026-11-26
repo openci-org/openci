@@ -44,7 +44,7 @@ bool needsChangedFiles(
 ) => workflows.any((workflow) {
   final triggers = matchingTriggers(workflow, event).toList();
   return triggers.isNotEmpty &&
-      triggers.every((trigger) => trigger.paths != null);
+      triggers.every((trigger) => trigger.hasPathFilter);
 });
 
 WorkflowPlan planJobs({
@@ -65,7 +65,7 @@ WorkflowPlan planJobs({
   for (final workflow in workflows) {
     final triggers = matchingTriggers(workflow, event).toList();
     if (triggers.isEmpty) continue;
-    final filtered = triggers.every((trigger) => trigger.paths != null);
+    final filtered = triggers.every((trigger) => trigger.hasPathFilter);
     if (filtered && complete) {
       if (!triggers.any(
         (trigger) => trigger.matchesChangedFiles(changedFiles!.paths),

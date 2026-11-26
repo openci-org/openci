@@ -108,9 +108,9 @@ included; draft saves, edits, and tag pushes do not match. The workflow must be
 present at the tagged commit. OpenCI resolves lightweight and annotated tags to
 a commit before reading workflows and queues that exact commit for checkout.
 Release runs currently expose the pinned tag as `PushContext.branch`
-(`refs/tags/<tag>`). Release triggers do not support `paths`.
-This requires SDK 0.5.0, the updated webhook/planner deployment, and a GitHub App
-subscribed to Release events with Contents read permission.
+(`refs/tags/<tag>`). Path filters apply to push and pull request triggers.
+Release triggers require SDK 0.5.0, the updated webhook and planner, and a
+GitHub App subscribed to Release events with Contents read permission.
 
 ### Choose a worker
 
@@ -202,8 +202,8 @@ cancellation on the next heartbeat (normally about 15 seconds), followed by VM
 cleanup and a cancelled GitHub Check.
 
 Other PRs (including other PRs in a stack), push jobs, completed jobs and
-same-commit reruns remain independent. A workflow skipped by `paths` does not
-cancel a previous run. Runs created while the option was disabled are preserved.
+same-commit reruns remain independent. Path filtering preserves previous runs
+of a skipped workflow. Runs created while the option was disabled are preserved.
 Leave it disabled for deployment workflows that must finish. Local execution is
 unaffected.
 
@@ -224,15 +224,30 @@ CITrigger.pullRequest(
 )
 ```
 
-Paths are relative to the repository root and case-sensitive. `*` matches within
-a path segment and `**` matches recursively. The trigger runs when its event and
-branch match and at least one changed file matches any pattern. Include shared
-dependencies and workflow configuration files that can affect the build. Omit
-`paths` to run on every matching event and branch.
+With `paths`, the trigger runs when its event and branch match and at least one
+changed file matches a pattern. Include shared dependencies and workflow
+configuration files that can affect the build.
 
-Use a nonempty literal list of patterns. Computed lists, negative patterns,
-absolute paths, and `..` segments are not supported. Pull requests use the full
-PR diff; pushes use the before/after diff. Deleted paths and both names of renamed
+### Skip changes that only match ignored paths
+
+With a compatible SDK and OpenCI planner, use `pathsIgnore` on a push or pull
+request trigger. This example skips documentation-only changes.
+
+```dart
+CITrigger.push(
+  branch: 'main',
+  pathsIgnore: ['docs/**', 'README.md'],
+)
+```
+
+At least one changed file outside the ignore patterns is enough to run the
+workflow. Choose one path filter per trigger. Omit both filters to run on every
+matching event and branch. A complete empty diff skips a path-filtered trigger.
+
+Both filters take nonempty literal lists of positive, case-sensitive patterns
+relative to the repository root. `*` matches within a path segment and `**`
+matches recursively. Omit any `..` segments. Pull requests use the full PR diff
+and pushes use the before/after diff. Deleted paths and both names of renamed
 files count as changes. OpenCI skips only when it has a complete changed-file
 list. Incomplete data or temporary retrieval failures run the applicable CI.
 

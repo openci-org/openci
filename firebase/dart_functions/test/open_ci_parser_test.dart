@@ -68,6 +68,7 @@ void main() {
       'tag: null',
       "branch: 'main'",
       "paths: ['lib/**']",
+      "pathsIgnore: ['docs/**']",
     ]) {
       test('rejects unsupported or nonliteral release arguments: $args', () {
         expect(
@@ -442,6 +443,59 @@ void main() {
           );
         });
       }
+    }
+  });
+
+  group('pathsIgnore', () {
+    for (final type in ['push', 'pullRequest']) {
+      test('$type reads a const exclusion filter', () {
+        final trigger = _parseTrigger(
+          "const CITrigger.$type(pathsIgnore: ['docs/**'], branch: 'main', paths: null)",
+        )!.ciTriggers.single;
+
+        expect(trigger.pathsIgnore, ['docs/**']);
+        expect(trigger.hasPathFilter, isTrue);
+      });
+
+      test('$type treats a null exclusion filter as omitted', () {
+        final trigger = _parseTrigger(
+          "CITrigger.$type(branch: 'main', pathsIgnore: null)",
+        )!.ciTriggers.single;
+
+        expect(trigger.hasPathFilter, isFalse);
+      });
+
+      test('$type rejects both filters on one trigger', () {
+        expect(
+          () => _parseTrigger(
+            "CITrigger.$type(branch: 'main', paths: ['lib/**'], pathsIgnore: ['docs/**'])",
+          ),
+          throwsA(
+            isA<WorkflowConfigurationException>().having(
+              (error) => error.message,
+              'message',
+              contains('CITrigger.$type accepts either paths or pathsIgnore'),
+            ),
+          ),
+        );
+      });
+    }
+
+    for (final value in ['[]', 'patterns', "['../docs/**']", "['!docs/**']"]) {
+      test('rejects invalid exclusion patterns: $value', () {
+        expect(
+          () => _parseTrigger(
+            "CITrigger.push(branch: 'main', pathsIgnore: $value)",
+          ),
+          throwsA(
+            isA<WorkflowConfigurationException>().having(
+              (error) => error.message,
+              'message',
+              contains('ci.dart: CITrigger.push.pathsIgnore'),
+            ),
+          ),
+        );
+      });
     }
   });
 

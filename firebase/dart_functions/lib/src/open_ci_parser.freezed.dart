@@ -292,7 +292,7 @@ as String?,
 /// @nodoc
 mixin _$ParsedCITrigger {
 
- String get type; String get branch; List<String>? get paths;
+ String get type; String get branch; List<String>? get paths; List<String>? get pathsIgnore;
 /// Create a copy of ParsedCITrigger
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -303,16 +303,16 @@ $ParsedCITriggerCopyWith<ParsedCITrigger> get copyWith => _$ParsedCITriggerCopyW
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ParsedCITrigger&&(identical(other.type, type) || other.type == type)&&(identical(other.branch, branch) || other.branch == branch)&&const DeepCollectionEquality().equals(other.paths, paths));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ParsedCITrigger&&(identical(other.type, type) || other.type == type)&&(identical(other.branch, branch) || other.branch == branch)&&const DeepCollectionEquality().equals(other.paths, paths)&&const DeepCollectionEquality().equals(other.pathsIgnore, pathsIgnore));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,type,branch,const DeepCollectionEquality().hash(paths));
+int get hashCode => Object.hash(runtimeType,type,branch,const DeepCollectionEquality().hash(paths),const DeepCollectionEquality().hash(pathsIgnore));
 
 @override
 String toString() {
-  return 'ParsedCITrigger(type: $type, branch: $branch, paths: $paths)';
+  return 'ParsedCITrigger(type: $type, branch: $branch, paths: $paths, pathsIgnore: $pathsIgnore)';
 }
 
 
@@ -323,7 +323,7 @@ abstract mixin class $ParsedCITriggerCopyWith<$Res>  {
   factory $ParsedCITriggerCopyWith(ParsedCITrigger value, $Res Function(ParsedCITrigger) _then) = _$ParsedCITriggerCopyWithImpl;
 @useResult
 $Res call({
- String type, String branch, List<String>? paths
+ String type, String branch, List<String>? paths, List<String>? pathsIgnore
 });
 
 
@@ -340,11 +340,12 @@ class _$ParsedCITriggerCopyWithImpl<$Res>
 
 /// Create a copy of ParsedCITrigger
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? type = null,Object? branch = null,Object? paths = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? type = null,Object? branch = null,Object? paths = freezed,Object? pathsIgnore = freezed,}) {
   return _then(_self.copyWith(
 type: null == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
 as String,branch: null == branch ? _self.branch : branch // ignore: cast_nullable_to_non_nullable
 as String,paths: freezed == paths ? _self.paths : paths // ignore: cast_nullable_to_non_nullable
+as List<String>?,pathsIgnore: freezed == pathsIgnore ? _self.pathsIgnore : pathsIgnore // ignore: cast_nullable_to_non_nullable
 as List<String>?,
   ));
 }
@@ -430,10 +431,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String type,  String branch,  List<String>? paths)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String type,  String branch,  List<String>? paths,  List<String>? pathsIgnore)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ParsedCITrigger() when $default != null:
-return $default(_that.type,_that.branch,_that.paths);case _:
+return $default(_that.type,_that.branch,_that.paths,_that.pathsIgnore);case _:
   return orElse();
 
 }
@@ -451,10 +452,10 @@ return $default(_that.type,_that.branch,_that.paths);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String type,  String branch,  List<String>? paths)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String type,  String branch,  List<String>? paths,  List<String>? pathsIgnore)  $default,) {final _that = this;
 switch (_that) {
 case _ParsedCITrigger():
-return $default(_that.type,_that.branch,_that.paths);case _:
+return $default(_that.type,_that.branch,_that.paths,_that.pathsIgnore);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -471,10 +472,10 @@ return $default(_that.type,_that.branch,_that.paths);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String type,  String branch,  List<String>? paths)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String type,  String branch,  List<String>? paths,  List<String>? pathsIgnore)?  $default,) {final _that = this;
 switch (_that) {
 case _ParsedCITrigger() when $default != null:
-return $default(_that.type,_that.branch,_that.paths);case _:
+return $default(_that.type,_that.branch,_that.paths,_that.pathsIgnore);case _:
   return null;
 
 }
@@ -486,7 +487,7 @@ return $default(_that.type,_that.branch,_that.paths);case _:
 
 
 class _ParsedCITrigger extends ParsedCITrigger {
-  const _ParsedCITrigger({required this.type, required this.branch, final  List<String>? paths}): _paths = paths,super._();
+  const _ParsedCITrigger({required this.type, required this.branch, final  List<String>? paths, final  List<String>? pathsIgnore}): _paths = paths,_pathsIgnore = pathsIgnore,super._();
 
 
 @override final  String type;
@@ -496,6 +497,15 @@ class _ParsedCITrigger extends ParsedCITrigger {
   final value = _paths;
   if (value == null) return null;
   if (_paths is EqualUnmodifiableListView) return _paths;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(value);
+}
+
+ final  List<String>? _pathsIgnore;
+@override List<String>? get pathsIgnore {
+  final value = _pathsIgnore;
+  if (value == null) return null;
+  if (_pathsIgnore is EqualUnmodifiableListView) return _pathsIgnore;
   // ignore: implicit_dynamic_type
   return EqualUnmodifiableListView(value);
 }
@@ -511,16 +521,16 @@ _$ParsedCITriggerCopyWith<_ParsedCITrigger> get copyWith => __$ParsedCITriggerCo
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ParsedCITrigger&&(identical(other.type, type) || other.type == type)&&(identical(other.branch, branch) || other.branch == branch)&&const DeepCollectionEquality().equals(other._paths, _paths));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ParsedCITrigger&&(identical(other.type, type) || other.type == type)&&(identical(other.branch, branch) || other.branch == branch)&&const DeepCollectionEquality().equals(other._paths, _paths)&&const DeepCollectionEquality().equals(other._pathsIgnore, _pathsIgnore));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,type,branch,const DeepCollectionEquality().hash(_paths));
+int get hashCode => Object.hash(runtimeType,type,branch,const DeepCollectionEquality().hash(_paths),const DeepCollectionEquality().hash(_pathsIgnore));
 
 @override
 String toString() {
-  return 'ParsedCITrigger(type: $type, branch: $branch, paths: $paths)';
+  return 'ParsedCITrigger(type: $type, branch: $branch, paths: $paths, pathsIgnore: $pathsIgnore)';
 }
 
 
@@ -531,7 +541,7 @@ abstract mixin class _$ParsedCITriggerCopyWith<$Res> implements $ParsedCITrigger
   factory _$ParsedCITriggerCopyWith(_ParsedCITrigger value, $Res Function(_ParsedCITrigger) _then) = __$ParsedCITriggerCopyWithImpl;
 @override @useResult
 $Res call({
- String type, String branch, List<String>? paths
+ String type, String branch, List<String>? paths, List<String>? pathsIgnore
 });
 
 
@@ -548,11 +558,12 @@ class __$ParsedCITriggerCopyWithImpl<$Res>
 
 /// Create a copy of ParsedCITrigger
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? type = null,Object? branch = null,Object? paths = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? type = null,Object? branch = null,Object? paths = freezed,Object? pathsIgnore = freezed,}) {
   return _then(_ParsedCITrigger(
 type: null == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
 as String,branch: null == branch ? _self.branch : branch // ignore: cast_nullable_to_non_nullable
 as String,paths: freezed == paths ? _self._paths : paths // ignore: cast_nullable_to_non_nullable
+as List<String>?,pathsIgnore: freezed == pathsIgnore ? _self._pathsIgnore : pathsIgnore // ignore: cast_nullable_to_non_nullable
 as List<String>?,
   ));
 }
