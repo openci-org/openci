@@ -146,26 +146,29 @@ const claim = (id, executorId = randomUUID()) =>
   sdk.claimBuildJobExecution(dc, { id, executorId, executionName: "test-execution" });
 const past = "2000-01-01T00:00:00Z";
 
-test("a waiting Linux job does not block macOS and resumes on a Vetu host", async (t) => {
-  const linux = await fixture(t, { runsOn: "linux-latest", createdAt: "1" });
+test("dispatch reserves fixed Linux sizes and shares Vetu capacity across presets", async (t) => {
+  const medium = await fixture(t, { runsOn: "linux-medium", createdAt: "1" });
   const mac = await fixture(t, { createdAt: "2" });
+  const small = await fixture(t, { runsOn: "linux-small", createdAt: "3" });
   await graphql(
     `
-      mutation PilotJob($id: String!) {
-        buildJob_update(id: $id, data: { githubBaseUrl: "https://github.com", repositoryId: 101 })
+      mutation PilotJobs($ids: [String!]!) {
+        buildJob_updateMany(
+          where: { id: { in: $ids } }
+          data: { githubBaseUrl: "https://github.com", repositoryId: 101 }
+        )
       }
     `,
-    { id: linux.jobId },
+    { ids: [medium.jobId, small.jobId] },
   );
-  linux.dependencies.store = new DataConnectDispatchStore(dc, "101");
-  linux.dependencies.linuxConfiguration = {
-    cloudRunJob: configuration.cloudRunJob,
-    image: "base-linux",
-  };
-  assert.equal(await linux.run(), true);
+  medium.dependencies.store = new DataConnectDispatchStore(dc, "101");
+  medium.dependencies.linuxEnabled = true;
+  assert.equal(await medium.run(), true);
   assert.equal((await mac.state()).dispatch.runsOn, "macos-latest");
-  assert.equal((await linux.state()).dispatch, null);
-  linux.dependencies.snapshot = async () => ({
+  assert.equal((await medium.state()).dispatch, null);
+  let availableCores = 2;
+  let availableMemoryMiB = 2047;
+  medium.dependencies.snapshot = async () => ({
     workers: [
       {
         name: "linux",
@@ -175,37 +178,59 @@ test("a waiting Linux job does not block macOS and resumes on a Vetu host", asyn
         arch: "amd64",
         last_seen: new Date().toISOString(),
         resources: {
-          "org.cirruslabs.logical-cores": 8,
-          "org.cirruslabs.memory-mib": 15360,
-          "org.openci.vetu-vms": 1,
+          "org.cirruslabs.logical-cores": availableCores,
+          "org.cirruslabs.memory-mib": availableMemoryMiB,
+          "org.openci.vetu-vms": 2,
         },
       },
     ],
     vms: [],
   });
-  assert.equal(await linux.run(), true);
-  const dispatch = (await linux.state()).dispatch;
-  assert.equal(dispatch.runsOn, "linux-latest");
+  await assert.rejects(
+    medium.run(),
+    (error) => error instanceof DispatchRetry && error.reason === "capacity_unavailable",
+  );
+  assert.equal((await small.state()).dispatch, null);
+  availableMemoryMiB = 2048;
+  assert.equal(await medium.run(), true);
+  const smallDispatch = (await small.state()).dispatch;
+  assert.equal(smallDispatch.runsOn, "linux-small");
+  assert.equal(smallDispatch.orchardWorker, "linux");
+  assert.equal(smallDispatch.cpu, 1);
+  assert.equal(smallDispatch.memoryMiB, 2048);
+  assert.equal(medium.launched.at(-1).jobId, small.jobId);
+  assert.equal((await medium.state()).dispatch, null);
+  // The Small reservation still consumes one of the worker's two cores.
+  availableMemoryMiB = 6144;
+  await assert.rejects(
+    medium.run(),
+    (error) => error instanceof DispatchRetry && error.reason === "capacity_unavailable",
+  );
+  availableCores = 3;
+  assert.equal(await medium.run(), true);
+  const dispatch = (await medium.state()).dispatch;
+  assert.equal(dispatch.runsOn, "linux-medium");
   assert.equal(dispatch.image, "base-linux");
   assert.equal(dispatch.orchardWorker, "linux");
-  assert.equal(dispatch.cpu, 7);
-  assert.equal(dispatch.memoryMiB, 6656);
+  assert.equal(dispatch.cpu, 2);
+  assert.equal(dispatch.memoryMiB, 4096);
   assert.equal((await claim(dispatch.id)).data.acquired, 1);
 });
 
 test("a reservation enforces repository admission and the executor claims the reserved OS", async (t) => {
-  const f = await fixture(t, { runsOn: "linux-latest" });
+  const f = await fixture(t, { runsOn: "linux-small" });
   assert.equal(await store.acquireScheduler("pilot"), true);
   const id = randomUUID();
-  const reserve = (linuxRepositoryIds) =>
+  const reserve = (linuxRepositoryIds, cpu = 1, memoryMiB = 2048) =>
     sdk.reserveBuildJobDispatch(dc, {
       ...configuration,
+      cpu,
       owner: "pilot",
       id,
       jobId: f.jobId,
       vmName: `openci-${id}`,
-      runsOn: "linux-latest",
-      memoryMiB: 8192,
+      runsOn: "linux-small",
+      memoryMiB,
       image: "base-linux",
       linuxRepositoryIds,
     });
@@ -219,6 +244,8 @@ test("a reservation enforces repository admission and the executor claims the re
   );
   await assert.rejects(reserve([]), /Machine unavailable/);
   await assert.rejects(reserve(["102"]), /Machine unavailable/);
+  await assert.rejects(reserve(["101"], 2), /Resources do not match/);
+  await assert.rejects(reserve(["101"], 1, 4096), /Resources do not match/);
   assert.equal((await f.state()).dispatch, null);
   await reserve(["101"]);
   await updateDispatch(id, { runsOn: null });

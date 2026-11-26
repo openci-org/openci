@@ -101,7 +101,7 @@ query GetOldestQueuedBuildJob(
             _or: [
               { runsOn: { eq: "macos-latest" } }
               {
-                runsOn: { eq: "linux-latest" }
+                runsOn: { in: ["linux-small", "linux-medium", "linux-latest"] }
                 githubBaseUrl: { eq: "https://github.com" }
                 repositoryId: { in: $linuxRepositoryIds }
               }
@@ -183,8 +183,12 @@ mutation ReserveBuildJobDispatch(
   query @redact {
     job: buildJob(id: $jobId)
       @check(
-        expr: "vars.runsOn == 'macos-latest' || (vars.runsOn == 'linux-latest' && this.githubBaseUrl == 'https://github.com' && this.repositoryId in vars.linuxRepositoryIds)"
+        expr: "vars.runsOn == 'macos-latest' || (vars.runsOn in ['linux-small', 'linux-medium', 'linux-latest'] && this.githubBaseUrl == 'https://github.com' && this.repositoryId in vars.linuxRepositoryIds)"
         message: "Machine unavailable for this repository"
+      )
+      @check(
+        expr: "(vars.runsOn != 'linux-small' || (vars.cpu == 1 && vars.memoryMiB == 2048)) && (vars.runsOn != 'linux-medium' || (vars.cpu == 2 && vars.memoryMiB == 4096))"
+        message: "Resources do not match the Linux machine preset"
       ) {
       githubBaseUrl
       repositoryId
@@ -253,7 +257,7 @@ mutation CancelUnstartedBuildDispatch($jobId: String!) @auth(level: NO_ACCESS) @
   query @redact {
     job: buildJob(id: $jobId)
       @check(
-        expr: "this == null || this.status != 'QUEUED' || !(this.runsOn in ['macos-latest', 'linux-latest'])"
+        expr: "this == null || this.status != 'QUEUED' || !(this.runsOn in ['macos-latest', 'linux-small', 'linux-medium', 'linux-latest'])"
         message: "Job is still eligible"
       ) {
       status

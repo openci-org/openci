@@ -1,5 +1,5 @@
 import { validSecretName } from "../secrets/validation.js";
-import { isWorkerMachine } from "../worker_machine.js";
+import { isLinuxMachine, isWorkerMachine } from "../worker_machine.js";
 import type { MergeReadinessDiagnostics } from "./checkout_error.js";
 import type { GetBuildExecutionData, GetBuildExecutorContextData } from "@openci/dispatch-admin";
 
@@ -121,7 +121,7 @@ export function checkoutScript(
     [
       "set -euo pipefail",
       "export GIT_TERMINAL_PROMPT=0",
-      runsOn === "linux-latest" ? "export HOME=/home/admin" : "export HOME=/Users/admin",
+      isLinuxMachine(runsOn) ? "export HOME=/home/admin" : "export HOME=/Users/admin",
       'mkdir -p "${HOME:?}/openci-build"',
       'cd "$HOME/openci-build"',
       "git init -q",
@@ -196,7 +196,7 @@ export function workflowScript(
       "set -euo pipefail",
       // Reserve one exit status for successful workflows that produced PR output.
       ...(job.pullRequestNumber ? ["trap 'exit 1' ERR"] : []),
-      ...(dispatch.runsOn === "linux-latest"
+      ...(isLinuxMachine(dispatch.runsOn)
         ? [
             "export HOME=/home/admin",
             "export ANDROID_HOME=/opt/android-sdk",

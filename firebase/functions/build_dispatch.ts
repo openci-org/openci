@@ -5,7 +5,7 @@ import {
   type OrchardSnapshot,
   type VmSize,
 } from "./orchard_capacity.js";
-import { isWorkerMachine, type WorkerMachine } from "./worker_machine.js";
+import { isWorkerMachine, orchardMachines, type WorkerMachine } from "./worker_machine.js";
 
 interface QueuedJob {
   id: string;
@@ -150,7 +150,7 @@ interface DispatchDependencies {
   store: DispatchStore;
   snapshot: () => Promise<OrchardSnapshot>;
   configuration: DispatchConfiguration;
-  linuxConfiguration?: Pick<DispatchConfiguration, "image" | "cloudRunJob">;
+  linuxEnabled?: boolean;
   syncQueuedCheck: (jobId: string) => Promise<void>;
   enqueueRecovery: (dispatch: BuildDispatch) => Promise<void>;
   launch: (dispatch: BuildDispatch) => Promise<string>;
@@ -206,27 +206,35 @@ export async function dispatchBuildJob(dependencies: DispatchDependencies): Prom
 }
 
 async function selectQueuedJob(dependencies: DispatchDependencies) {
-  const { store, configuration, linuxConfiguration } = dependencies;
-  const machines: WorkerMachine[] = linuxConfiguration
-    ? ["macos-latest", "linux-latest"]
+  const { store, configuration, linuxEnabled } = dependencies;
+  const machines: WorkerMachine[] = linuxEnabled
+    ? (Object.keys(orchardMachines) as WorkerMachine[])
     : ["macos-latest"];
   let job = await store.oldestQueued(machines);
   if (!job) return null;
   const [snapshot, reservations] = await Promise.all([dependencies.snapshot(), store.active()]);
-  // Preserve FIFO among runnable jobs while allowing the other pool to work
-  // when the oldest job needs a worker that is offline or busy.
+  // A waiting Medium job can yield to a Small job that fits on the same worker.
   while (job) {
-    const machine = job.runsOn ?? "macos-latest";
-    const index = machines.findIndex((candidate) => candidate === machine);
-    if (index < 0) throw new Error("Unsupported queued machine");
-    if (machine === "linux-latest" && linuxConfiguration) {
-      const placement = selectLinuxWorker(snapshot, reservations);
-      if (placement)
-        return { job, configuration: { ...linuxConfiguration, ...placement, runsOn: machine } };
-    } else {
+    const runsOn: string = job.runsOn ?? "macos-latest";
+    const index = machines.findIndex((candidate) => candidate === runsOn);
+    const machine = machines[index];
+    if (!machine) throw new Error("Unsupported queued machine");
+    if (machine === "macos-latest") {
       const requested = { ...configuration, runsOn: machine };
       if (hasOrchardCapacity(snapshot, reservations, requested))
         return { job, configuration: requested };
+    } else {
+      const orchardWorker = selectLinuxWorker(snapshot, reservations, machine);
+      if (orchardWorker)
+        return {
+          job,
+          configuration: {
+            ...orchardMachines[machine].vm,
+            cloudRunJob: configuration.cloudRunJob,
+            runsOn: machine,
+            orchardWorker,
+          },
+        };
     }
     machines.splice(index, 1);
     job = machines.length ? await store.oldestQueued(machines) : null;

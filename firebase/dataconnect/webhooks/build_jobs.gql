@@ -104,7 +104,7 @@ mutation CompleteWebhookTask(
     )
     CROSS JOIN webhook_tasks AS task
     WHERE task.id = $15 AND length(trim(w.id)) > 0 AND length(trim(w.name)) > 0
-      AND COALESCE(w."runsOn", 'macos-latest') IN ('macos-latest', 'linux-latest')
+      AND COALESCE(w."runsOn", 'macos-latest') IN ('macos-latest', 'linux-small', 'linux-medium')
       AND length(w.file) > 0 AND length($2::text) > 0 AND length($3::text) > 0
       AND length($5::text) > 0 AND length($6::text) > 0
       AND (NOT COALESCE(w."cancelPreviousRuns", false) OR

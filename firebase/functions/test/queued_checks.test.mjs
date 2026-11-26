@@ -56,14 +56,16 @@ function fixture(linuxRepositoryId) {
 }
 
 test("publishes a new Linux Check only for the enabled GitHub.com repository", async () => {
-  for (const [configured, repositoryId, githubBaseUrl, published] of [
-    ["", "101", "https://github.com", false],
-    ["101", "102", "https://github.com", false],
-    ["101", "101", "https://github.example", false],
-    ["101", "101", "https://github.com", true],
+  for (const [runsOn, configured, repositoryId, githubBaseUrl, published] of [
+    ["linux-small", "", "101", "https://github.com", false],
+    ["linux-medium", "101", "102", "https://github.com", false],
+    ["linux-small", "101", "101", "https://github.example", false],
+    ["linux-small", "101", "101", "https://github.com", true],
+    ["linux-medium", "101", "101", "https://github.com", true],
+    ["linux-latest", "101", "101", "https://github.com", true],
   ]) {
     const f = fixture(configured);
-    Object.assign(f.state.job, { runsOn: "linux-latest", repositoryId, githubBaseUrl });
+    Object.assign(f.state.job, { runsOn, repositoryId, githubBaseUrl });
     await f.checks.sync("job");
     assert.deepEqual(f.calls, published ? ["acquire", "github"] : []);
   }

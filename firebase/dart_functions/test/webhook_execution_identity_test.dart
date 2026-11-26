@@ -144,6 +144,8 @@ void main() {
         complete(build: job.copyWith(workflowName: 'Other')),
         complete(build: job.copyWith(flutterVersion: '3.47.8')),
         complete(build: job.copyWith(runsOn: 'other-runner')),
+        complete(build: job.copyWith(runsOn: 'linux-small')),
+        complete(build: job.copyWith(runsOn: 'linux-medium')),
         complete(cancelPreviousRuns: true),
       ];
       final keys = (await Future.wait(alternatives)).map(key).toSet();

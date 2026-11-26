@@ -24,7 +24,7 @@ import type { ExecutionBilling } from "./billing.js";
 import type { ExecutionGitHub } from "./github.js";
 import type { ExecutionLogs } from "./logs.js";
 import type { OrchardExecutor } from "./orchard.js";
-import { isDispatchEnabled } from "../worker_machine.js";
+import { isDispatchEnabled, isLinuxMachine } from "../worker_machine.js";
 
 export interface ExecutorDependencies {
   store: Pick<ExecutionStore, keyof ExecutionStore>;
@@ -179,7 +179,7 @@ export async function executeBuild(
   try {
     signal.throwIfAborted();
     validateJob(job, dispatch);
-    const linuxPilot = dispatch.runsOn === "linux-latest";
+    const linuxPilot = isLinuxMachine(dispatch.runsOn);
     if (linuxPilot && !configuration.selfHosted && !configuration.complimentary.has(job.teamId!)) {
       const approvedFirstRun =
         configuration.linuxPostpaidPilotJobId === job.id &&

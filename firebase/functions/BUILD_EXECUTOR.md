@@ -271,8 +271,8 @@ consistent with the dispatcher/planner:
 | `BILLING_COMPLIMENTARY_PRO_TEAM_IDS`              | Optional comma-separated approved team IDs                                                 |
 | `SECRET_MANAGER_PROJECT`                          | Project ID or number exactly matching stored secret version paths; defaults to FSC project |
 
-The Linux pilot uses `base-linux` on Vetu/amd64 with the reservation's explicit
-6 vCPUs and 7168 MiB. Checkout and workflow execution share
+The Linux pilot uses `base-linux` on Vetu/amd64 with the vCPU count and memory
+from the job's reservation. Checkout and workflow execution share
 `/home/admin/openci-build`. The image supplies FVM, Java 17 and the Android SDK.
 The executor supplies workflow context and skips team secret retrieval for Linux.
 Hosted teams in `BILLING_COMPLIMENTARY_PRO_TEAM_IDS` use their existing allowance.

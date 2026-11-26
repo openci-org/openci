@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.8.0
+
+- **Breaking:** Replace `MachineType.linuxLatest` with `MachineType.linuxSmall` (1 vCPU, 2 GiB) or `MachineType.linuxMedium` (2 vCPUs, 4 GiB). Update exhaustive switches to handle both presets.
+
 ## 0.7.0
 
 - **Removed `shorebird.releaseApk()`.** Use `shorebird.releaseAndroid()` to get the absolute `apkPath` and `aabPath` from one Shorebird release. For APK-only distribution, read the returned record's `apkPath` field.

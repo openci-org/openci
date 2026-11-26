@@ -262,7 +262,7 @@ test("self-hosted builds run without subscription or usage admission and still r
 
 test("a Linux reservation checks out and runs the workflow in the same guest workspace", async () => {
   const f = executionFixture(true);
-  f.job.runsOn = f.dispatch.runsOn = "linux-latest";
+  f.job.runsOn = f.dispatch.runsOn = "linux-small";
   f.dependencies.secrets = async () => assert.fail("The Linux pilot must not read team secrets");
   await f.run();
   assert.equal(f.dispatch.outcome, "success");
@@ -277,7 +277,7 @@ test("a Linux reservation checks out and runs the workflow in the same guest wor
 
 function postpaidLinuxFixture(contextChange) {
   const f = executionFixture(false, contextChange);
-  f.job.runsOn = f.dispatch.runsOn = "linux-latest";
+  f.job.runsOn = f.dispatch.runsOn = "linux-medium";
   f.job.githubBaseUrl = "https://github.com";
   f.job.repositoryId = "12345";
   f.dependencies.billing.period = async (_context, teamId, _livemode, complimentary) => {

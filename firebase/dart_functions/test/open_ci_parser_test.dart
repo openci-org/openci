@@ -4,11 +4,13 @@ import 'package:test/test.dart';
 void main() {
   group('workflow machine', () {
     for (final entry in {
-      'MachineType.linuxLatest': 'linux-latest',
-      '.linuxLatest': 'linux-latest',
-      '(sdk.MachineType.linuxLatest)': 'linux-latest',
+      'MachineType.linuxSmall': 'linux-small',
+      '.linuxSmall': 'linux-small',
+      '(sdk.MachineType.linuxMedium)': 'linux-medium',
+      '.linuxMedium': 'linux-medium',
       'MachineType.macOsLatest': 'macos-latest',
       'existingMachineVariable': 'macos-latest',
+      'legacyConfig.machine()': 'macos-latest',
     }.entries) {
       test('parses ${entry.key}', () {
         final workflow = parseOpenCIWorkflow(
@@ -16,6 +18,27 @@ void main() {
           'ci.dart',
         )!;
         expect(workflow.machine.runsOn, entry.value);
+      });
+    }
+    for (final source in [
+      'MachineType.linuxLatest',
+      '(sdk.MachineType.linuxLatest)',
+      '.linuxLatest',
+      'MachineType.linuxLatest(cpu: 1)',
+      '.linuxSmall(cpu: 2)',
+      'MachineType.linuxMedium()',
+      '(MachineType.linuxSmall)(cpu: 4)',
+      'sdk.MachineType.linuxMedium.call(cpu: 2)',
+      'const MachineType.linuxLatest(cpu: 1)',
+    ]) {
+      test('reports invalid machine request $source', () {
+        expect(
+          () => parseOpenCIWorkflow(
+            "void main() { OpenCI.init(workflowName: 'CI', ciTriggers: [], machine: $source); }",
+            'ci.dart',
+          ),
+          throwsA(isA<WorkflowConfigurationException>()),
+        );
       });
     }
     test('reports an unknown MachineType member', () {

@@ -114,15 +114,19 @@ subscribed to Release events with Contents read permission.
 
 ### Choose a worker
 
-Workflows use macOS by default. In a repository enabled for the hosted Linux
-pilot, pass the machine as an enum literal to run on an amd64 Linux VM via
-Orchard and Vetu. Team secrets are unavailable in the Linux pilot.
+Workflows use macOS by default. Repositories enabled for the hosted Linux pilot
+can choose one of two amd64 VMs. Team secrets are unavailable in the Linux pilot.
+
+| Machine                   | vCPUs |   RAM |
+| ------------------------- | ----: | ----: |
+| `MachineType.linuxSmall`  |     1 | 2 GiB |
+| `MachineType.linuxMedium` |     2 | 4 GiB |
 
 ```dart
 final ci = await OpenCI.init(
   workflowName: 'Linux Tests',
   ciTriggers: [CITrigger.push(branch: 'main')],
-  machine: MachineType.linuxLatest,
+  machine: MachineType.linuxSmall,
 );
 await ci.dart.test();
 ```

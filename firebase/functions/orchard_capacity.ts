@@ -44,7 +44,6 @@ interface Resources extends VmSize {
 
 interface WorkerCapacity extends Resources {
   name: string;
-  defaults: VmSize;
 }
 
 function fits(worker: Resources, size: Resources): boolean {
@@ -80,7 +79,6 @@ function availableWorkers(
     if (workers.has(workerName)) throw new Error("Duplicate Orchard worker");
     workers.set(workerName, {
       name: workerName,
-      defaults: { cpu: positive(worker.defaultCPU), memoryMiB: positive(worker.defaultMemory) },
       cpu: positive(resources[cpuResource]),
       memoryMiB: positive(resources[memoryResource]),
       slots: positive(resources[platform.slots]),
@@ -122,7 +120,12 @@ function availableWorkers(
     account(size, typeof target === "string" ? target : null);
   }
   for (const reservation of reservations) {
-    if ((reservation.runsOn ?? "macos-latest") !== machine) continue;
+    const reservedMachine = reservation.runsOn ?? "macos-latest";
+    if (
+      !isWorkerMachine(reservedMachine) ||
+      orchardMachines[reservedMachine].slots !== platform.slots
+    )
+      continue;
     if (!positive(reservation.cpu) || !positive(reservation.memoryMiB)) {
       throw new Error("Invalid reserved VM size");
     }
@@ -159,18 +162,14 @@ export function hasOrchardCapacity(
 export function selectLinuxWorker(
   snapshot: OrchardSnapshot,
   reservations: VmReservation[],
+  machine: Exclude<WorkerMachine, "macos-latest">,
   now = Date.now(),
-) {
-  const eligible = availableWorkers(snapshot, reservations, "linux-latest", now)
-    .filter(
-      (worker) =>
-        worker.defaults.cpu &&
-        worker.defaults.memoryMiB &&
-        fits(worker, { ...worker.defaults, slots: 1 }),
-    )
+): string | null {
+  const size = { ...orchardMachines[machine].vm, slots: 1 };
+  const eligible = availableWorkers(snapshot, reservations, machine, now)
+    .filter((worker) => fits(worker, size))
     .sort((a, b) => a.slots - b.slots || a.name.localeCompare(b.name));
-  const worker = eligible[0];
-  return worker ? { orchardWorker: worker.name, ...worker.defaults } : null;
+  return eligible[0]?.name ?? null;
 }
 
 export class OrchardCapacityClient {
