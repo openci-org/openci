@@ -242,7 +242,10 @@ Confirm the Scaleway worker advertises `org.openci.vetu-vms=2` and has a local
 on the executor Job first. Set `OPENCI_LINUX_PILOT_REPOSITORY_ID` on the queue
 and dispatch Functions to the pilot GitHub.com repository ID, then resume the
 worker. Queued Linux jobs in that repository become eligible on the next
-notification. Each VM requests 6 vCPUs and 7168 MiB.
+notification. The dispatcher reserves the selected Vetu worker's default CPU count
+and memory. It saves the worker name on the reservation and the executor requires
+its Orchard worker-name label when creating the VM. Reservations created before
+this rollout keep their saved sizes and can run on any eligible Linux worker.
 Clearing the parameter stops new Linux reservations.
 Existing reservations retain their configuration and finish through normal recovery.
 The executor checks postpaid eligibility before starting billing or requesting a

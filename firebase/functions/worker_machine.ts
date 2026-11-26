@@ -1,3 +1,5 @@
+export const orchardWorkerNameLabel = "org.cirruslabs.orchard.worker-name";
+
 export const orchardMachines = {
   "macos-latest": {
     os: "darwin",

@@ -9,7 +9,11 @@ import {
   dispatchFailureReason,
 } from "../../lib/functions/build_dispatch.js";
 import { launchCloudRunJob } from "../../lib/functions/cloud_run_job.js";
-import { hasOrchardCapacity, OrchardCapacityClient } from "../../lib/functions/orchard_capacity.js";
+import {
+  hasOrchardCapacity,
+  selectLinuxWorker,
+  OrchardCapacityClient,
+} from "../../lib/functions/orchard_capacity.js";
 
 const now = Date.now();
 const size = { cpu: 2, memoryMiB: 4096 };
@@ -55,6 +59,58 @@ test("one Linux slot admits one reservation without consuming Mac capacity", () 
   const vms = [{ name: "pending", runtime: "vetu", arch: "amd64", cpu: 2, memory: 8192 }];
   assert.equal(hasOrchardCapacity({ workers, vms }, [], linux, now), false);
   assert.equal(hasOrchardCapacity({ workers, vms }, reservations, size, now), true);
+});
+
+test("each Linux host fits two VMs at its own defaults across reservation and VM states", () => {
+  const host = (name, cpu, memoryMiB) =>
+    worker({
+      name,
+      runtime: "vetu",
+      arch: "amd64",
+      defaultCPU: cpu,
+      defaultMemory: memoryMiB,
+      resources: {
+        "org.cirruslabs.logical-cores": cpu * 2,
+        "org.cirruslabs.memory-mib": memoryMiB * 2,
+        "org.openci.vetu-vms": 2,
+      },
+    });
+  const hosts = [host("host-b", 6, 7168), host("host-a", 7, 6656)];
+  const snapshot = {
+    workers: [...hosts, worker(), { ...host("unconfigured", 7, 6656), defaultMemory: 0 }],
+    vms: [],
+  };
+  const reservations = [];
+  const next = () => selectLinuxWorker(snapshot, reservations, now);
+  for (const [name, cpu, memoryMiB] of [
+    ["host-a", 7, 6656],
+    ["host-a", 7, 6656],
+    ["host-b", 6, 7168],
+    ["host-b", 6, 7168],
+  ]) {
+    const result = next();
+    assert.deepEqual(result, { orchardWorker: name, cpu, memoryMiB });
+    reservations.push({ ...result, vmName: "vm-" + reservations.length, runsOn: "linux-latest" });
+  }
+  assert.equal(next(), null);
+  // The first VM appears before Orchard assigns it, then becomes running.
+  snapshot.vms.push({
+    name: "vm-0",
+    runtime: "vetu",
+    arch: "amd64",
+    cpu: 7,
+    memory: 6656,
+    labels: { "org.cirruslabs.orchard.worker-name": "host-a" },
+  });
+  assert.equal(next(), null);
+  snapshot.vms[0].worker = "host-a";
+  assert.equal(next(), null);
+  reservations.pop();
+  assert.deepEqual(next(), { orchardWorker: "host-b", cpu: 6, memoryMiB: 7168 });
+  hosts[0].scheduling_paused = true;
+  assert.equal(next(), null);
+  reservations.splice(1, 1);
+  assert.deepEqual(next(), { orchardWorker: "host-a", cpu: 7, memoryMiB: 6656 });
 });
 
 test("dispatch diagnostics omit SDK payloads and unrecognized error fields", () => {

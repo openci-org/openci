@@ -159,9 +159,8 @@ test("a waiting Linux job does not block macOS and resumes on a Vetu host", asyn
   );
   linux.dependencies.store = new DataConnectDispatchStore(dc, "101");
   linux.dependencies.linuxConfiguration = {
-    ...configuration,
+    cloudRunJob: configuration.cloudRunJob,
     image: "base-linux",
-    memoryMiB: 8192,
   };
   assert.equal(await linux.run(), true);
   assert.equal((await mac.state()).dispatch.runsOn, "macos-latest");
@@ -170,6 +169,8 @@ test("a waiting Linux job does not block macOS and resumes on a Vetu host", asyn
     workers: [
       {
         name: "linux",
+        defaultCPU: 7,
+        defaultMemory: 6656,
         runtime: "vetu",
         arch: "amd64",
         last_seen: new Date().toISOString(),
@@ -186,8 +187,9 @@ test("a waiting Linux job does not block macOS and resumes on a Vetu host", asyn
   const dispatch = (await linux.state()).dispatch;
   assert.equal(dispatch.runsOn, "linux-latest");
   assert.equal(dispatch.image, "base-linux");
-  assert.equal(dispatch.cpu, 2);
-  assert.equal(dispatch.memoryMiB, 8192);
+  assert.equal(dispatch.orchardWorker, "linux");
+  assert.equal(dispatch.cpu, 7);
+  assert.equal(dispatch.memoryMiB, 6656);
   assert.equal((await claim(dispatch.id)).data.acquired, 1);
 });
 

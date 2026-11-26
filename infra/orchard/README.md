@@ -147,6 +147,14 @@ Each VM gets 6 vCPUs and 7 GiB, leaving 1560 MiB of the host's 15896 MiB
 for Linux and the hypervisor. Confirm the dispatch rollout before resuming the worker.
 [Internal Linux dispatch settings](../../firebase/functions/BUILD_DISPATCH.md#configuration-and-rollout)
 
+## Countryroad Linux worker
+
+Install the Linux worker service with the countryroad override at
+`/etc/systemd/system/openci-linux-worker.service.d/20-countryroad.conf`.
+The `countryroad-worker` account connects over the Tailnet. Each local
+`base-linux` VM gets 7 vCPUs and 6,656 MiB, with two slots and 13,312 MiB
+advertised to Orchard. [Countryroad systemd override](openci-linux-worker-countryroad.conf)
+
 ## Tailnet access
 
 The six physical Mac workers' SSH and launchd configuration is managed by

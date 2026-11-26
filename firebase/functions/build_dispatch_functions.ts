@@ -342,8 +342,6 @@ export const dispatchBuildJob = onTaskDispatched<unknown>(
           },
           linuxConfiguration: linuxRepositoryId
             ? {
-                cpu: 6,
-                memoryMiB: 7168,
                 image: "base-linux",
                 cloudRunJob: cloudRunJob.value(),
               }

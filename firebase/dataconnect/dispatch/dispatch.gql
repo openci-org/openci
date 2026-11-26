@@ -5,6 +5,7 @@ fragment BuildDispatchFields on BuildJobDispatch {
   activeJobId
   vmName
   runsOn
+  orchardWorker
   cpu
   memoryMiB
   image
@@ -152,6 +153,7 @@ mutation ReserveBuildJobDispatch(
   $jobId: String!
   $vmName: String!
   $runsOn: String! = "macos-latest"
+  $orchardWorker: String
   $linuxRepositoryIds: [Int64!]! = []
   $cpu: Int!
   $memoryMiB: Int!
@@ -199,6 +201,7 @@ mutation ReserveBuildJobDispatch(
       teamId_expr: "response.query.job.teamId"
       activeJobId: $jobId
       vmName: $vmName
+      orchardWorker: $orchardWorker
       runsOn: $runsOn
       cpu: $cpu
       memoryMiB: $memoryMiB
