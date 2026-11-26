@@ -15,7 +15,9 @@ class ShorebirdCI {
 
   final Future<void> Function(String command, {String? workingDirectory}) _run;
 
-  Future<String> releaseApk({
+  /// Creates one Android release and returns the absolute paths to its
+  /// universal APK and app bundle.
+  Future<({String apkPath, String aabPath})> releaseAndroid({
     required String flutterVersion,
     String? dir,
     String? flavor,
@@ -46,8 +48,8 @@ class ShorebirdCI {
         throw ArgumentError.value(
           option,
           'additionalArguments',
-          'Artifact type, flavor, and build mode are managed by releaseApk; '
-              'split APKs are not supported.',
+          'releaseAndroid manages the artifact type, flavor, and build mode '
+              'and requires a universal APK.',
         );
       }
     }
@@ -56,7 +58,7 @@ class ShorebirdCI {
       '''
 set -e
 if [ -z "\${SHOREBIRD_TOKEN:-}" ]; then
-  printf '%s\\n' 'SHOREBIRD_TOKEN is required for releaseApk.' >&2
+  printf '%s\\n' 'SHOREBIRD_TOKEN is required for releaseAndroid.' >&2
   exit 1
 fi
 if ! command -v shorebird >/dev/null 2>&1; then
@@ -72,9 +74,9 @@ fi
     );
 
     final temporary = await Directory.systemTemp.createTemp(
-      'openci-shorebird-apk-',
+      'openci-shorebird-android-',
     );
-    final artifact = File.fromUri(temporary.uri.resolve('artifact'));
+    final apkArtifact = File.fromUri(temporary.uri.resolve('apk'));
     try {
       await _run(
         [
@@ -97,21 +99,22 @@ fi
 set -e
 apk_path="\$PWD/"${quoteShellArgument('build/app/outputs/flutter-apk/$filename')}
 if [ -f "\$apk_path" ] && [ -s "\$apk_path" ]; then
-  printf '%s' "\$apk_path" > ${quoteShellArgument(artifact.path)}
+  printf '%s' "\$apk_path" > ${quoteShellArgument(apkArtifact.path)}
 else
-  : > ${quoteShellArgument(artifact.path)}
+  : > ${quoteShellArgument(apkArtifact.path)}
 fi
 ''',
         workingDirectory: dir,
       );
-      final path = await artifact.readAsString();
-      if (path.isEmpty) {
+      final apkPath = await apkArtifact.readAsString();
+      if (apkPath.isEmpty) {
         throw StateError(
           'Shorebird did not produce a nonempty APK at '
           'build/app/outputs/flutter-apk/$filename.',
         );
       }
-      return path;
+      final aabPath = await _findAabPath(temporary, flavor: flavor, dir: dir);
+      return (apkPath: apkPath, aabPath: aabPath);
     } finally {
       await temporary.delete(recursive: true);
     }
@@ -173,7 +176,6 @@ fi
     final temporary = await Directory.systemTemp.createTemp(
       'openci-shorebird-aab-',
     );
-    final artifacts = File.fromUri(temporary.uri.resolve('artifacts'));
     try {
       await _run(
         [
@@ -188,9 +190,21 @@ fi
         ].join(' '),
         workingDirectory: dir,
       );
-      final variant = flavor == null ? 'release' : '${flavor}Release';
-      await _run(
-        '''
+      return await _findAabPath(temporary, flavor: flavor, dir: dir);
+    } finally {
+      await temporary.delete(recursive: true);
+    }
+  }
+
+  Future<String> _findAabPath(
+    Directory temporary, {
+    required String? flavor,
+    required String? dir,
+  }) async {
+    final artifacts = File.fromUri(temporary.uri.resolve('aabs'));
+    final variant = flavor == null ? 'release' : '${flavor}Release';
+    await _run(
+      '''
 set -e
 aab_directory="\$PWD/"${quoteShellArgument('build/app/outputs/bundle/$variant')}
 if [ -d "\$aab_directory" ]; then
@@ -199,22 +213,19 @@ else
   : > ${quoteShellArgument(artifacts.path)}
 fi
 ''',
-        workingDirectory: dir,
+      workingDirectory: dir,
+    );
+    final paths = (await artifacts.readAsString())
+        .split('\u0000')
+        .where((path) => path.isNotEmpty)
+        .toList();
+    if (paths.length != 1) {
+      throw StateError(
+        'Shorebird did not produce exactly one nonempty AAB '
+        'for $variant (found ${paths.length}).',
       );
-      final paths = (await artifacts.readAsString())
-          .split('\u0000')
-          .where((path) => path.isNotEmpty)
-          .toList();
-      if (paths.length != 1) {
-        throw StateError(
-          'Shorebird did not produce exactly one nonempty AAB '
-          'for $variant (found ${paths.length}).',
-        );
-      }
-      return paths.single;
-    } finally {
-      await temporary.delete(recursive: true);
     }
+    return paths.single;
   }
 
   Future<String> releaseIos({

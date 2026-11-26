@@ -9,15 +9,24 @@ void main() {
   setUp(() async => environment = await _ReleaseEnvironment.create());
   tearDown(() => environment.workspace.delete(recursive: true));
 
-  group('ShorebirdCI.releaseApk', () {
+  group('ShorebirdCI.releaseAndroid', () {
     test(
-      'builds an APK with Shorebird and returns its absolute path',
+      'returns absolute APK and AAB paths from one Shorebird release',
       () async {
-        final path = await environment.release();
+        final artifacts = await environment.release();
 
-        expect(path, startsWith('/'));
-        expect(path, endsWith('/flutter-apk/app-release.apk'));
-        expect(await File(path).readAsString(), 'built APK');
+        expect(artifacts.apkPath, startsWith('/'));
+        expect(artifacts.apkPath, endsWith('/flutter-apk/app-release.apk'));
+        expect(await File(artifacts.apkPath).readAsString(), 'built APK');
+        expect(artifacts.aabPath, startsWith('/'));
+        expect(artifacts.aabPath, endsWith('/bundle/release/app-release.aab'));
+        expect(await File(artifacts.aabPath).readAsString(), 'built AAB');
+        expect(
+          environment.commands.where(
+            (command) => command.contains('shorebird release android'),
+          ),
+          hasLength(1),
+        );
         expect(environment.arguments, [
           'release',
           'android',
@@ -47,7 +56,7 @@ void main() {
             '--build-number=42',
           ];
 
-          final path = await environment.release(
+          final artifacts = await environment.release(
             dir: dir,
             flavor: 'stagingProd',
             flutterVersion: 'revision-with-quote\'s',
@@ -60,9 +69,15 @@ void main() {
               : '${environment.workspace.path}/${dir ?? 'apps/dashboard'}';
           expect(environment.workingDirectories.toSet(), {appDirectory});
           expect(
-            await File(path).resolveSymbolicLinks(),
+            await File(artifacts.apkPath).resolveSymbolicLinks(),
             await File(
               '$appDirectory/build/app/outputs/flutter-apk/app-stagingprod-release.apk',
+            ).resolveSymbolicLinks(),
+          );
+          expect(
+            await File(artifacts.aabPath).resolveSymbolicLinks(),
+            await File(
+              '$appDirectory/build/app/outputs/bundle/stagingProdRelease/stagingProd bundle.aab',
             ).resolveSymbolicLinks(),
           );
           expect(environment.arguments, [
@@ -83,12 +98,13 @@ void main() {
     }
 
     test('passes dry-run to Shorebird before Flutter arguments', () async {
-      final path = await environment.release(
+      final artifacts = await environment.release(
         dryRun: true,
         additionalArguments: ['--build-name=1.2.3'],
       );
 
-      expect(await File(path).readAsString(), 'built APK');
+      expect(await File(artifacts.apkPath).readAsString(), 'built APK');
+      expect(await File(artifacts.aabPath).readAsString(), 'built AAB');
       expect(
         environment.arguments.indexOf('--dry-run'),
         lessThan(environment.arguments.indexOf('--')),
@@ -151,7 +167,7 @@ void main() {
       });
     }
 
-    for (var failingStep = 0; failingStep < 3; failingStep++) {
+    for (var failingStep = 0; failingStep < 4; failingStep++) {
       test('propagates failure at step $failingStep and cleans up', () async {
         final error = StateError('Step failed');
         environment.beforeRun = (index) async {
@@ -167,7 +183,7 @@ void main() {
 
     for (final artifact in ['new', 'cached']) {
       test('propagates Shorebird failure even with a $artifact APK', () async {
-        environment.artifact = artifact;
+        environment.apkArtifact = artifact;
         environment.shorebirdExitCode = 42;
 
         await expectLater(
@@ -183,7 +199,7 @@ void main() {
 
     for (final artifact in ['missing', 'empty', 'directory']) {
       test('rejects successful CLI execution with $artifact APK', () async {
-        environment.artifact = artifact;
+        environment.apkArtifact = artifact;
 
         await expectLater(environment.release(), throwsStateError);
 
@@ -192,18 +208,36 @@ void main() {
     }
 
     test('accepts the APK when Gradle reuses an unchanged build', () async {
-      environment.artifact = 'cached';
+      environment.apkArtifact = 'cached';
 
-      final path = await environment.release();
+      final artifacts = await environment.release();
 
-      expect(await File(path).readAsString(), 'cached APK');
-      expect((await File(path).lastModified()).year, 2000);
+      expect(await File(artifacts.apkPath).readAsString(), 'cached APK');
+      expect((await File(artifacts.apkPath).lastModified()).year, 2000);
     });
 
+    for (final artifact in ['missing', 'empty', 'multiple']) {
+      test('rejects a valid APK with $artifact AAB for its flavor', () async {
+        environment.aabArtifact = artifact;
+
+        await expectLater(
+          environment.release(flavor: 'stagingProd'),
+          throwsA(
+            isA<StateError>().having(
+              (error) => error.message,
+              'message',
+              contains('AAB for stagingProdRelease'),
+            ),
+          ),
+        );
+        expect(await environment.temporary.list().toList(), isEmpty);
+      });
+    }
+
     test(
-      'does not return another flavor, build mode, split APK or AAB',
+      'rejects other APKs when the selected variant has only an AAB',
       () async {
-        environment.artifact = 'missing';
+        environment.apkArtifact = 'missing';
 
         await expectLater(
           environment.release(flavor: 'stagingProd'),
@@ -224,14 +258,17 @@ class _ReleaseEnvironment {
   final commands = <String>[];
   final workingDirectories = <String>[];
   List<String> arguments = [];
-  String artifact = 'new';
+  String apkArtifact = 'new';
+  String aabArtifact = 'new';
   String token = 'test-token';
   bool hasYaml = true;
   int shorebirdExitCode = 0;
   Future<void> Function(int index)? beforeRun;
 
   static Future<_ReleaseEnvironment> create() async {
-    final workspace = await Directory.systemTemp.createTemp("openci apk ' ");
+    final workspace = await Directory.systemTemp.createTemp(
+      "openci android ' ",
+    );
     final temporary = await Directory.fromUri(
       workspace.uri.resolve('temporary/'),
     ).create();
@@ -242,13 +279,22 @@ set -eu
 test "$CI" = true
 test "$SHOREBIRD_TOKEN" = test-token
 printf '%s\000' "$@" > "$OPENCI_TEST_ARGUMENTS"
-case "$OPENCI_TEST_ARTIFACT" in
+case "$OPENCI_TEST_APK_ARTIFACT" in
   new)
     printf 'built APK' > "$OPENCI_TEST_APK_PATH" ;;
   empty)
     touch "$OPENCI_TEST_APK_PATH" ;;
   directory)
     mkdir "$OPENCI_TEST_APK_PATH" ;;
+esac
+case "$OPENCI_TEST_AAB_ARTIFACT" in
+  new|multiple)
+    printf 'built AAB' > "$OPENCI_TEST_AAB_PATH"
+    if [ "$OPENCI_TEST_AAB_ARTIFACT" = multiple ]; then
+      printf 'another AAB' > "$OPENCI_TEST_AAB_PATH.other.aab"
+    fi ;;
+  empty)
+    touch "$OPENCI_TEST_AAB_PATH" ;;
 esac
 exit "$OPENCI_TEST_SHOREBIRD_EXIT"
 ''');
@@ -257,7 +303,7 @@ exit "$OPENCI_TEST_SHOREBIRD_EXIT"
     return _ReleaseEnvironment(workspace, temporary);
   }
 
-  Future<String> release({
+  Future<({String apkPath, String aabPath})> release({
     String flutterVersion = '3.47.7',
     String? dir,
     String? flavor,
@@ -282,7 +328,7 @@ exit "$OPENCI_TEST_SHOREBIRD_EXIT"
         : 'app-${flavor.toLowerCase()}-release.apk';
     final apk = File('${app.path}/$apkDirectory/$apkName');
     await apk.parent.create(recursive: true);
-    if (artifact == 'cached') {
+    if (apkArtifact == 'cached') {
       await apk.writeAsString('cached APK');
       await apk.setLastModified(DateTime(2000));
     }
@@ -297,11 +343,15 @@ exit "$OPENCI_TEST_SHOREBIRD_EXIT"
         '${app.path}/$apkDirectory/$filename',
       ).writeAsString('another APK');
     }
-    final bundle = File(
-      '${app.path}/build/app/outputs/bundle/release/app-release.aab',
-    );
-    await bundle.create(recursive: true);
-    await bundle.writeAsString('built AAB');
+    final bundles = '${app.path}/build/app/outputs/bundle';
+    final variant = flavor == null ? 'release' : '${flavor}Release';
+    final aabName = flavor == null ? 'app-release.aab' : '$flavor bundle.aab';
+    final bundle = File('$bundles/$variant/$aabName');
+    await bundle.parent.create(recursive: true);
+    final otherVariant = flavor == null ? 'otherRelease' : 'release';
+    final otherBundle = File('$bundles/$otherVariant/other.aab');
+    await otherBundle.create(recursive: true);
+    await otherBundle.writeAsString('another variant');
     final argumentsFile = File.fromUri(workspace.uri.resolve('arguments'));
     final ci = OpenCI(
       workflowName: 'test',
@@ -322,7 +372,9 @@ exit "$OPENCI_TEST_SHOREBIRD_EXIT"
             'SHOREBIRD_TOKEN': token,
             'OPENCI_TEST_ARGUMENTS': argumentsFile.path,
             'OPENCI_TEST_APK_PATH': '$apkDirectory/$apkName',
-            'OPENCI_TEST_ARTIFACT': artifact,
+            'OPENCI_TEST_APK_ARTIFACT': apkArtifact,
+            'OPENCI_TEST_AAB_PATH': bundle.path,
+            'OPENCI_TEST_AAB_ARTIFACT': aabArtifact,
             'OPENCI_TEST_SHOREBIRD_EXIT': '$shorebirdExitCode',
           },
         );
@@ -341,7 +393,7 @@ exit "$OPENCI_TEST_SHOREBIRD_EXIT"
       },
     );
     return IOOverrides.runZoned(
-      () => ci.shorebird.releaseApk(
+      () => ci.shorebird.releaseAndroid(
         flutterVersion: flutterVersion,
         dir: dir,
         flavor: flavor,
