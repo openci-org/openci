@@ -23,6 +23,7 @@ function fixture() {
     leaseExpiresAt: null,
     checkRunId: null,
     createdAt: String(Math.floor(Date.now() / 1000)),
+    webhookTask: { eventType: "push", payload: "{}" },
     connection: {
       status: "active",
       githubAppId: "1",

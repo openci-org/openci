@@ -341,6 +341,16 @@ export function getPullRequestCommentExecution(dcOrVarsOrOptions, varsOrOptions,
   return dcInstance.executeQuery("GetPullRequestCommentExecution", inputVars, inputOpts);
 }
 
+export function recordCompletedPullRequestCheck(dcOrVarsOrOptions, varsOrOptions, options) {
+  const {
+    dc: dcInstance,
+    vars: inputVars,
+    options: inputOpts,
+  } = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeMutation("RecordCompletedPullRequestCheck", inputVars, inputOpts);
+}
+
 export function getPullRequestFailureLog(dcOrVarsOrOptions, varsOrOptions, options) {
   const {
     dc: dcInstance,

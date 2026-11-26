@@ -19,7 +19,7 @@ export class DataConnectSkippedCheckStore implements SkippedCheckStore {
   async get(id: string) {
     return (await getSkippedWorkflowCheck(this.dc, { id })).data.check ?? null;
   }
-  async complete(id: string, leaseOwner: string, checkRunId: string) {
+  async complete(id: string, leaseOwner: string, checkRunId: string | null) {
     await completeSkippedWorkflowCheck(this.dc, { id, leaseOwner, checkRunId });
   }
   async retry(id: string, leaseOwner: string) {

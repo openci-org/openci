@@ -375,6 +375,17 @@ function getPullRequestCommentExecution(dcOrVarsOrOptions, varsOrOptions, option
 }
 exports.getPullRequestCommentExecution = getPullRequestCommentExecution;
 
+function recordCompletedPullRequestCheck(dcOrVarsOrOptions, varsOrOptions, options) {
+  const {
+    dc: dcInstance,
+    vars: inputVars,
+    options: inputOpts,
+  } = validateAdminArgs(connectorConfig, dcOrVarsOrOptions, varsOrOptions, options, true, true);
+  dcInstance.useGen(true);
+  return dcInstance.executeMutation("RecordCompletedPullRequestCheck", inputVars, inputOpts);
+}
+exports.recordCompletedPullRequestCheck = recordCompletedPullRequestCheck;
+
 function getPullRequestFailureLog(dcOrVarsOrOptions, varsOrOptions, options) {
   const {
     dc: dcInstance,

@@ -45,11 +45,14 @@ and retry recovery in production before considering the investigation complete.
 
 ## GitHub Check lifecycle
 
-Checks are visible while jobs wait for VM capacity. Publication saves the ID and
+Checks are visible while jobs wait for VM capacity. PR checks use GitHub's verified
+test merge for the PR. When that merge is unavailable the job can still start.
+Push and release checks use the event commit. Publication saves the ID and
 next run number on BuildJob. A five-minute per-job lease serializes publication
 and prevents reservation creation while the GitHub request is in flight. GitHub
 calls have a 20-second total budget. Ambiguous failures retain the lease; retries
-reconcile the App ID and `build-job:JOB_ID:run:NUMBER` external ID before creating
+reconcile the App ID and `build-job:JOB_ID:run:NUMBER` external ID (prefixed by
+`pr:NUMBER:` for pull requests) before creating
 another check. Queuing a retry never resets a running or completed check.
 
 Both notifications and the FIFO dispatcher may publish the same queued Check.
@@ -74,12 +77,13 @@ to reconcile by external ID even when the Check ID was not saved.
 The reservation copies that ID, and the executor updates it to `in_progress`
 and then `completed`. Each numbered run has its own check; replacement capacity
 reservations before execution reuse the queued one. Cancellation while waiting
-completes it as cancelled on the next dispatch task. Rejection before creating a
-BuildRun also completes an existing check. A billing-blocked attempt without a
-numbered run leaves its check queued for a later attempt.
+completes it as cancelled on the next dispatch task. If a checkout conflict
+prevents BuildRun creation, the completion reporter posts the reason on the
+affected PR. A billing-blocked attempt without a numbered run leaves its check
+queued for a later attempt.
 
 The dispatcher also publishes missing checks for jobs queued before deployment.
-Existing active reservations retain their original execution-owned checks.
+Recovery uses the test merge recorded at checkout for active PR reservations.
 Publishers validate the active team/installation/App connection and repository
 owner before using a repository-scoped checks-write token.
 
