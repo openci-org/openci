@@ -13,10 +13,16 @@ import 'package:test/test.dart';
 const _bundleId = 'org.example.testflight';
 const _uploadId = 'upload-1';
 const _fileId = 'file-1';
-const _appDeclarations = '/v1/apps/1234567890/appEncryptionDeclarations';
+const _appDeclarations = '/v1/appEncryptionDeclarations';
 const _appDescription = 'A sports coaching app.';
 late AppStoreConnectKeys _keys;
 late ECPublicKey _publicKey;
+
+bool _listsDeclarations(http.Request request) =>
+    request.method == 'GET' && request.url.path == _appDeclarations;
+
+bool _createsDeclaration(http.Request request) =>
+    request.method == 'POST' && request.url.path == _appDeclarations;
 
 http.Response _json(Object body, [int status = 200]) => http.Response(
   jsonEncode(body),
@@ -141,6 +147,44 @@ void main() {
             ),
           );
 
+      test('reports Apple errors and stops after a failed lookup', () async {
+        environment.intercept = (req) async {
+          if (!_listsDeclarations(req)) return null;
+          return _json({
+            'errors': [
+              {
+                'status': '404',
+                'code': 'PATH_ERROR',
+                'title': 'The URL path is not valid',
+                'detail':
+                    "The relationship 'appEncryptionDeclarations' does not exist",
+                'meta': {'debug': 'private-metadata'},
+              },
+              {
+                'code': 'PARAMETER_ERROR.INVALID',
+                'detail': 'Check the specified field.',
+              },
+            ],
+          }, 404);
+        };
+        await expectLater(
+          apply(false),
+          throwsA(
+            isA<AppStoreConnectHttpException>()
+                .having((e) => e.statusCode, 'HTTP status', 404)
+                .having(
+                  (e) => e.message,
+                  'message',
+                  'App Store Connect find app encryption declaration failed (HTTP 404). '
+                      '[PATH_ERROR] The URL path is not valid '
+                      "The relationship 'appEncryptionDeclarations' does not exist"
+                      ' | [PARAMETER_ERROR.INVALID] Check the specified field.',
+                ),
+          ),
+        );
+        expect(environment.requests.map((r) => r.method), ['GET', 'GET']);
+      });
+
       for (final (france, exempt) in [
         (true, false),
         (true, true),
@@ -152,9 +196,8 @@ void main() {
           () async {
             await environment.createIpa();
             environment.intercept = (req) async {
-              if (req.url.path == _appDeclarations) return _json({'data': []});
-              if (req.url.path == '/v1/appEncryptionDeclarations') {
-                expect(req.method, 'POST');
+              if (_listsDeclarations(req)) return _json({'data': []});
+              if (_createsDeclaration(req)) {
                 expect(jsonDecode(req.body)['data'], {
                   'type': 'appEncryptionDeclarations',
                   'attributes': {
@@ -201,9 +244,7 @@ void main() {
             await deploy(france);
             expect(environment.requests.last.url.path, '/v1/builds/build-42');
             expect(
-              environment.requests.where(
-                (r) => r.url.path == '/v1/appEncryptionDeclarations',
-              ),
+              environment.requests.where(_createsDeclaration),
               hasLength(1),
             );
           },
@@ -213,7 +254,8 @@ void main() {
       test('reuses only a matching approved declaration across pages', () async {
         await environment.createIpa();
         environment.intercept = (req) async {
-          if (req.url.path == _appDeclarations) {
+          if (_listsDeclarations(req)) {
+            expect(req.url.queryParameters['filter[app]'], '1234567890');
             if (req.url.queryParameters['cursor'] == 'next') {
               return _json({
                 'data': [declaration(france: true, id: 'reusable')],
@@ -227,7 +269,7 @@ void main() {
               ],
               'links': {
                 'next':
-                    'https://api.appstoreconnect.apple.com$_appDeclarations?cursor=next',
+                    'https://api.appstoreconnect.apple.com$_appDeclarations?cursor=next&filter%5Bapp%5D=other-app',
               },
             });
           }
@@ -242,12 +284,7 @@ void main() {
           return null;
         };
         await deploy(true);
-        expect(
-          environment.requests.where(
-            (r) => r.url.path == '/v1/appEncryptionDeclarations',
-          ),
-          isEmpty,
-        );
+        expect(environment.requests.where(_createsDeclaration), isEmpty);
       });
 
       for (final state in ['CREATED', 'IN_REVIEW', 'REJECTED', 'INVALID']) {
@@ -258,12 +295,12 @@ void main() {
             var created = false;
             final item = declaration(france: true, state: state);
             environment.intercept = (req) async {
-              if (req.url.path == _appDeclarations) {
+              if (_listsDeclarations(req)) {
                 return _json({
                   'data': [if (created) item],
                 });
               }
-              if (req.url.path == '/v1/appEncryptionDeclarations') {
+              if (_createsDeclaration(req)) {
                 created = true;
                 return _json({'data': item}, 201);
               }
@@ -286,9 +323,7 @@ void main() {
               );
             }
             expect(
-              environment.requests.where(
-                (r) => r.url.path == '/v1/appEncryptionDeclarations',
-              ),
+              environment.requests.where(_createsDeclaration),
               hasLength(1),
             );
             expect(
@@ -314,14 +349,14 @@ void main() {
           await environment.createIpa();
           var conflict = false;
           environment.intercept = (req) async {
-            if (req.url.path == _appDeclarations) {
+            if (_listsDeclarations(req)) {
               return _json({
                 'data': [
                   if (conflict) declaration(france: false, exempt: true),
                 ],
               });
             }
-            if (req.url.path == '/v1/appEncryptionDeclarations') {
+            if (_createsDeclaration(req)) {
               conflict = true;
               return _json({}, 409);
             }
@@ -356,7 +391,7 @@ void main() {
           var approved = false;
           var linked = false;
           environment.intercept = (req) async {
-            if (req.url.path == _appDeclarations) {
+            if (_listsDeclarations(req)) {
               return _json({
                 'data': [
                   declaration(
@@ -403,7 +438,7 @@ void main() {
             const relationship =
                 '/v1/builds/build-42/relationships/appEncryptionDeclaration';
             environment.intercept = (req) async {
-              if (req.url.path == _appDeclarations) {
+              if (_listsDeclarations(req)) {
                 return _json({
                   'data': [declaration(france: false)],
                 });
@@ -458,7 +493,7 @@ void main() {
         'links the selected France answer when the build has a different declaration',
         () async {
           environment.intercept = (req) async {
-            if (req.url.path == _appDeclarations) {
+            if (_listsDeclarations(req)) {
               return _json({
                 'data': [
                   declaration(france: false, id: 'france-no'),
@@ -845,6 +880,63 @@ void main() {
       );
     }
 
+    test('redacts credentials echoed in structured Apple errors', () async {
+      environment.intercept = (request) async {
+        final jwt = request.headers['authorization']!.substring(
+          'Bearer '.length,
+        );
+        return _json({
+          'errors': [
+            {
+              'code': 'FORBIDDEN_ERROR',
+              'title': 'Token: $jwt\r\nCheck the key.',
+              'detail':
+                  'Bearer private-access-token ${_keys.keyId} '
+                  '${_keys.issuerId} ${_keys.privateKeyBase64} '
+                  'https://uploads.example.com/part?signature=private-signature',
+            },
+          ],
+        }, 403);
+      };
+      await expectLater(
+        environment.poll(),
+        throwsA(
+          isA<AppStoreConnectHttpException>().having(
+            (e) => e.message,
+            'message',
+            allOf(
+              contains('[FORBIDDEN_ERROR] Token: [REDACTED] Check the key.'),
+              isNot(contains('private-access-token')),
+              isNot(contains('private-signature')),
+              isNot(contains(_keys.privateKeyBase64)),
+              isNot(contains(_keys.issuerId)),
+              isNot(contains(_keys.keyId)),
+            ),
+          ),
+        ),
+      );
+    });
+
+    for (final response in [
+      http.Response('<html>private-response</html>', 502),
+      http.Response.bytes([0xff], 502),
+    ]) {
+      test(
+        'keeps the HTTP status for an unreadable ${response.bodyBytes.length}-byte response',
+        () async {
+          environment.intercept = (_) async => response;
+          await expectLater(
+            environment.poll(),
+            throwsA(
+              isA<AppStoreConnectHttpException>()
+                  .having((e) => e.statusCode, 'HTTP status', 502)
+                  .having((e) => e.message, 'message', endsWith('(HTTP 502).')),
+            ),
+          );
+        },
+      );
+    }
+
     for (final (method, path, status) in [
       ('GET', '/v1/apps', 401),
       ('POST', '/v1/buildUploads', 409),
@@ -862,7 +954,10 @@ void main() {
               request.method == method && request.url.path == path
               ? _json({
                   'errors': [
-                    {'detail': 'private-response'},
+                    {
+                      if (method == 'PUT') 'code': 'STORAGE_ERROR',
+                      'detail': 'private-response',
+                    },
                   ],
                 }, status)
               : null;
@@ -875,6 +970,7 @@ void main() {
                 allOf(
                   contains('HTTP $status'),
                   isNot(contains('private-response')),
+                  isNot(contains('STORAGE_ERROR')),
                 ),
               ),
             ),

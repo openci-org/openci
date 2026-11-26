@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.6.4
+
+- Look up TestFlight encryption declarations by filtering the declaration collection by app ID. This fixes an App Store Connect `404 PATH_ERROR` during export compliance.
+- Include Apple's error code, title, and detail in TestFlight API failures so the CI log explains which request failed and why.
+
 ## 0.6.3
 
 - Add `TestFlightExportCompliance.standardEncryption` to `flutter.deployIpaToTestFlight()` to declare standard encryption and explicitly answer whether the app will be distributed in France.
