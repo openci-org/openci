@@ -679,6 +679,14 @@ test("creates an explicit 2 CPU, 8 GiB Vetu VM and verifies its returned configu
   ]);
   override = { memory: 4096 };
   await assert.rejects(f.client.create(linux, signal), /could not be confirmed/);
+  const pinned = { ...linux, orchardWorker: "worker-a" };
+  override = { worker: "worker-a" };
+  await f.client.create(pinned, signal);
+  assert.deepEqual(observed.labels, { "org.cirruslabs.orchard.worker-name": "worker-a" });
+  override = { worker: "worker-b" };
+  await assert.rejects(f.client.create(pinned, signal), /could not be confirmed/);
+  override = { labels: {} };
+  await assert.rejects(f.client.create(pinned, signal), /could not be confirmed/);
 });
 
 test("worker memory mode uses the host partition while keeping the admission floor", async (t) => {

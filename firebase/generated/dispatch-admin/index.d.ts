@@ -234,6 +234,7 @@ export interface GetActiveBuildDispatchesData {
     activeJobId?: string | null;
     vmName: string;
     runsOn?: string | null;
+    orchardWorker?: string | null;
     cpu: number;
     memoryMiB: number;
     image: string;
@@ -285,6 +286,7 @@ export interface GetBuildDispatchStateData {
     activeJobId?: string | null;
     vmName: string;
     runsOn?: string | null;
+    orchardWorker?: string | null;
     cpu: number;
     memoryMiB: number;
     image: string;
@@ -326,6 +328,7 @@ export interface GetBuildExecutionData {
     activeJobId?: string | null;
     vmName: string;
     runsOn?: string | null;
+    orchardWorker?: string | null;
     cpu: number;
     memoryMiB: number;
     image: string;
@@ -590,6 +593,7 @@ export interface GetRecoverableBuildExecutionsData {
     activeJobId?: string | null;
     vmName: string;
     runsOn?: string | null;
+    orchardWorker?: string | null;
     cpu: number;
     memoryMiB: number;
     image: string;
@@ -782,6 +786,7 @@ export interface ReserveBuildJobDispatchVariables {
   jobId: string;
   vmName: string;
   runsOn?: string;
+  orchardWorker?: string | null;
   linuxRepositoryIds?: Int64String[];
   cpu: number;
   memoryMiB: number;

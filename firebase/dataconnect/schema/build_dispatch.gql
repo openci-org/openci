@@ -27,6 +27,7 @@ type BuildJobDispatch
   vmName: String! @unique
   # Older reservations predate the Linux pool and run on macOS.
   runsOn: String
+  orchardWorker: String
   cpu: Int!
   memoryMiB: Int! @col(name: "memory_mib")
   image: String!

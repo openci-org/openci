@@ -1,5 +1,10 @@
 import { createHash, randomUUID } from "node:crypto";
-import { hasOrchardCapacity, type OrchardSnapshot, type VmSize } from "./orchard_capacity.js";
+import {
+  hasOrchardCapacity,
+  selectLinuxWorker,
+  type OrchardSnapshot,
+  type VmSize,
+} from "./orchard_capacity.js";
 import { isWorkerMachine, type WorkerMachine } from "./worker_machine.js";
 
 interface QueuedJob {
@@ -12,6 +17,7 @@ export interface BuildDispatch extends VmSize {
   id: string;
   jobId: string;
   vmName: string;
+  orchardWorker?: string | null;
   image: string;
   cloudRunJob: string;
   startDeadline: string;
@@ -144,7 +150,7 @@ interface DispatchDependencies {
   store: DispatchStore;
   snapshot: () => Promise<OrchardSnapshot>;
   configuration: DispatchConfiguration;
-  linuxConfiguration?: DispatchConfiguration;
+  linuxConfiguration?: Pick<DispatchConfiguration, "image" | "cloudRunJob">;
   syncQueuedCheck: (jobId: string) => Promise<void>;
   enqueueRecovery: (dispatch: BuildDispatch) => Promise<void>;
   launch: (dispatch: BuildDispatch) => Promise<string>;
@@ -213,10 +219,15 @@ async function selectQueuedJob(dependencies: DispatchDependencies) {
     const machine = job.runsOn ?? "macos-latest";
     const index = machines.findIndex((candidate) => candidate === machine);
     if (index < 0) throw new Error("Unsupported queued machine");
-    const limits = machine === "linux-latest" ? linuxConfiguration! : configuration;
-    const requested = { ...limits, runsOn: machine };
-    if (hasOrchardCapacity(snapshot, reservations, requested))
-      return { job, configuration: requested };
+    if (machine === "linux-latest" && linuxConfiguration) {
+      const placement = selectLinuxWorker(snapshot, reservations);
+      if (placement)
+        return { job, configuration: { ...linuxConfiguration, ...placement, runsOn: machine } };
+    } else {
+      const requested = { ...configuration, runsOn: machine };
+      if (hasOrchardCapacity(snapshot, reservations, requested))
+        return { job, configuration: requested };
+    }
     machines.splice(index, 1);
     job = machines.length ? await store.oldestQueued(machines) : null;
   }

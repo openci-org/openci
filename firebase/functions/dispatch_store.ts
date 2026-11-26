@@ -69,6 +69,7 @@ export class DataConnectDispatchStore implements DispatchStore {
       id: dispatch.id,
       jobId: dispatch.jobId,
       vmName: dispatch.vmName,
+      orchardWorker: dispatch.orchardWorker,
       runsOn: dispatch.runsOn ?? "macos-latest",
       linuxRepositoryIds: this.linuxRepositoryIds,
       cpu: dispatch.cpu,
