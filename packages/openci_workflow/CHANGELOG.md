@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.7.0
+
+- **Removed `shorebird.releaseApk()`.** Use `shorebird.releaseAndroid()` to get the absolute `apkPath` and `aabPath` from one Shorebird release. For APK-only distribution, read the returned record's `apkPath` field.
+
 ## 0.6.4
 
 - Look up TestFlight encryption declarations by filtering the declaration collection by app ID. This fixes an App Store Connect `404 PATH_ERROR` during export compliance.
