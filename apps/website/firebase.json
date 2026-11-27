@@ -23,6 +23,16 @@
         "type": 301
       },
       {
+        "source": "/terms-of-service{,/}",
+        "destination": "/en/terms-of-service/",
+        "type": 301
+      },
+      {
+        "source": "/privacy-policy{,/}",
+        "destination": "/en/privacy-policy/",
+        "type": 301
+      },
+      {
         "source": "/blog",
         "destination": "/ja/blog/",
         "type": 301

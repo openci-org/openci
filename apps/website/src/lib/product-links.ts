@@ -44,6 +44,8 @@ export function footerGroups(locale: Locale) {
         [t("過去のリリース", "Release archive (Japanese)"), "/ja/releases/"],
         [t("よくある質問", "FAQ"), pricing + "#faq"],
         ["GitHub", "https://github.com/openci-org/openci"],
+        [t("利用規約", "Terms of Service"), home + "terms-of-service/"],
+        [t("プライバシーポリシー", "Privacy Policy"), home + "privacy-policy/"],
       ],
     ],
   ] as const;

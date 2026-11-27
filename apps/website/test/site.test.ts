@@ -53,9 +53,27 @@ test("all content and localized landing pages are built", () => {
       "/ja/pricing/",
       "/en/thanks/",
       "/ja/thanks/",
+      "/en/privacy-policy/",
+      "/ja/privacy-policy/",
+      "/en/terms-of-service/",
+      "/ja/terms-of-service/",
       ...contentRoutes,
     ]),
   );
+});
+test("both homepage footers link to the published legal documents in their language", () => {
+  for (const locale of ["en", "ja"]) {
+    const home = pages.get(`/${locale}/`)!;
+    for (const slug of ["privacy-policy", "terms-of-service"]) {
+      const route = `/${locale}/${slug}/`;
+      const document = pages.get(route)!;
+      assert.equal(
+        home(`footer a[href="${route}"]`).text(),
+        document("main h1").text(),
+      );
+      assert.ok(document("main h2").length > 0);
+    }
+  }
 });
 test("Starlight retains all sixteen documentation URLs and indexes both languages", () => {
   const guides = [
@@ -836,6 +854,8 @@ test("root redirect and legacy hosting routes retain their destinations", () => 
     ),
     [
       ["/", "/en/", 301],
+      ["/terms-of-service{,/}", "/en/terms-of-service/", 301],
+      ["/privacy-policy{,/}", "/en/privacy-policy/", 301],
       ["/blog", "/ja/blog/", 301],
       ["/blog/:path*", "/ja/blog/:path/", 301],
       ["/docs", "/ja/docs/", 301],
