@@ -28,12 +28,17 @@ Future<void> main() async {
     ],
   );
 
+  final dashboard = WorkspacePaths.root.apps.dashboard;
   await ci.placeFileFromBase64(
-    dir: WorkspacePaths.root.apps.dashboard.lib,
+    dir: dashboard.lib,
     fileName: 'firebase_options.dart',
     base64Content: Secrets.firebaseOptionsDartBase64.value,
   );
-  await ci.flutter.unitTests(dir: 'apps/dashboard');
+  await ci.flutter.unitTests(dir: dashboard, excludeTags: 'golden');
+  await ci.run(
+    'flutter test --no-pub --tags golden',
+    workingDirectory: dashboard,
+  );
   await ci.flutter.unitTests(dir: 'packages/macos_updater');
   await ci.run(
     'dart run openci/tool/release_macos.dart --build-number=1 --validate-only',

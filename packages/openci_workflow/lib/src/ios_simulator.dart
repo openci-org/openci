@@ -14,9 +14,16 @@ class IosSimulator {
   final SimulatorProcessRunner _processRunner;
   Future<void>? _disposal;
 
-  /// Installs a built app bundle on this simulator.
+  /// Installs a built app bundle on this simulator, allowing up to five minutes.
   Future<void> installApp(Directory app) async {
-    await _simctl(_processRunner, ['install', id, app.absolute.path]);
+    stdout.writeln('Installing app on iOS simulator $id.');
+    final elapsed = Stopwatch()..start();
+    await _simctl(
+      _processRunner,
+      ['install', id, app.absolute.path],
+      timeout: const Duration(minutes: 5),
+    );
+    stdout.writeln('Installed app on iOS simulator $id in ${elapsed.elapsed}.');
   }
 
   /// Resolves the installed app's current data container.
