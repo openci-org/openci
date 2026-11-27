@@ -8,7 +8,7 @@ Future<void> main() async {
   final dashboard = WorkspacePaths.root.apps.dashboard;
   final ci = await OpenCI.init(
     workflowName: 'Dashboard Google Play AAB',
-    machine: MachineType.linuxMedium,
+    machine: MachineType.linuxLarge,
     flutterVersion: FlutterVersion.v3_47_8.value,
     ciTriggers: [CITrigger.release()],
     currentWorkingDirectory: dashboard,

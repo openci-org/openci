@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Limit Gradle and Kotlin to the Linux Medium VM's 4 GiB.
+# Limit Gradle and Kotlin to the Linux Large VM's 8 GiB.
 gradle_home=${GRADLE_USER_HOME:-"$HOME/.gradle"}
 mkdir -p "$gradle_home"
 cat >> "$gradle_home/gradle.properties" <<'PROPERTIES'
 
-org.gradle.jvmargs=-Xmx1536m -XX:MaxMetaspaceSize=512m -XX:ReservedCodeCacheSize=128m -Dfile.encoding=UTF-8
-org.gradle.workers.max=1
+org.gradle.jvmargs=-Xmx3g -XX:MaxMetaspaceSize=768m -XX:ReservedCodeCacheSize=256m -Dfile.encoding=UTF-8
+org.gradle.workers.max=2
 kotlin.compiler.execution.strategy=in-process
 PROPERTIES
 
