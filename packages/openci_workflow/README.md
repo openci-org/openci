@@ -664,11 +664,13 @@ final ipaPath = await openCI.flutter.buildIpa(
   ),
   certificatePrivateKey: Secrets.openciGeneratedIosCertificatePrivateKey.value,
   flavor: 'dev',
-  additionalArguments: ['--dart-define=SAMPLE=Hello World'],
+  dartDefines: {'SAMPLE': 'Hello World'},
+  dartDefineFromFiles: ['.env'],
+  buildNumber: openCI.runNumber.toString(),
 );
 ```
 
-Here, `Secrets` refers to your workflow's generated secret definitions. Pass the `.p8` file contents as Base64 and the certificate private key as PEM. Each `additionalArguments` item represents one argument, including any spaces in its value. Use build options shared by `flutter build ios` and `flutter build ipa`, such as `--target`, `--dart-define`, and `--build-number`. Signing and export options are managed by `buildIpa()`; do not pass `--no-codesign`, `--export-method`, or `--export-options-plist`.
+Here, `Secrets` refers to your workflow's generated secret definitions. Pass the `.p8` file contents as Base64 and the certificate private key as PEM. Pass paths to existing `.env` or JSON files in `dartDefineFromFiles`. Relative paths are resolved in the build's working directory. Use `additionalArguments` for other options shared by `flutter build ios` and `flutter build ipa`, such as `--target`. Each list item represents one argument, including any spaces in its value. Signing and export options such as `--no-codesign`, `--export-method`, and `--export-options-plist` are managed by `buildIpa()`.
 
 Use `IosDistributionMethod.appStore` to export an IPA for App Store Connect, including TestFlight. This selects an App Store provisioning profile and generates the corresponding export options. Uploading the IPA to App Store Connect is a separate step.
 

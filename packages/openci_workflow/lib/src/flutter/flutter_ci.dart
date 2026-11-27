@@ -186,6 +186,10 @@ class FlutterCI {
 
   /// Builds a signed IPA and returns its absolute path.
   ///
+  /// Pass compile-time values through [dartDefines] and paths to JSON or dotenv
+  /// files through [dartDefineFromFiles]. [buildNumber] is passed to Flutter's
+  /// `--build-number` option.
+  ///
   /// Throws a [StateError] if Flutter does not export exactly one new,
   /// nonempty IPA. Use [dir] to override the workflow's working directory.
   Future<String> buildIpa({
@@ -194,6 +198,9 @@ class FlutterCI {
     required String certificatePrivateKey,
     String? dir,
     String? flavor,
+    Map<String, String> dartDefines = const {},
+    List<String> dartDefineFromFiles = const [],
+    String? buildNumber,
     List<String> additionalArguments = const [],
   }) async {
     for (final argument in additionalArguments) {
@@ -216,6 +223,15 @@ class FlutterCI {
     );
     final arguments = [
       if (flavor != null) ...['--flavor', flavor],
+      for (final entry in dartDefines.entries) ...[
+        '--dart-define',
+        '${entry.key}=${entry.value}',
+      ],
+      for (final file in dartDefineFromFiles) ...[
+        '--dart-define-from-file',
+        file,
+      ],
+      if (buildNumber != null) ...['--build-number', buildNumber],
       ...additionalArguments,
     ];
     await _run(
