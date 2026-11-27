@@ -526,6 +526,9 @@ does not isolate a publishing key from other jobs in the team.
 
 ### Flutter builds and tests
 
+Call `await openCI.flutter.buildWeb()` to build a release web bundle. Use
+`buildWeb(noPub: true)` when the workflow has already resolved dependencies.
+
 Run Flutter tests with an optional time zone and tag exclusion:
 
 ```dart

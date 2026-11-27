@@ -66,6 +66,14 @@ class FlutterCI {
         workingDirectory: dir,
       );
 
+  /// Builds a release web bundle in the workflow directory or [dir].
+  ///
+  /// Set [noPub] to skip dependency resolution during the build.
+  Future<void> buildWeb({String? dir, bool noPub = false}) => _run(
+    ['flutter build web --release', if (noPub) '--no-pub'].join(' '),
+    workingDirectory: dir,
+  );
+
   Future<void> buildApk({
     String? dir,
     String? flavor,

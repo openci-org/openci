@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.8.1
+
+- Add `flutter.buildWeb()` for release builds, with an optional `noPub` flag to skip dependency resolution.
+
 ## 0.8.0
 
 - **Breaking:** Replace `MachineType.linuxLatest` with `MachineType.linuxSmall` (1 vCPU, 2 GiB) or `MachineType.linuxMedium` (2 vCPUs, 4 GiB). Update exhaustive switches to handle both presets.
