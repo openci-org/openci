@@ -105,7 +105,7 @@ export class OrchardExecutor {
     const machine = dispatch.runsOn ?? "macos-latest";
     if (!isWorkerMachine(machine)) throw new Error("Unsupported Orchard machine");
     const platform = orchardMachines[machine];
-    const target = machine === "linux-latest" ? dispatch.orchardWorker : null;
+    const target = platform.os === "linux" ? dispatch.orchardWorker : null;
     const useWorkerMemory = this.options.useWorkerMemory && machine === "macos-latest";
     if (useWorkerMemory) await this.checkWorkerMemory(dispatch.memoryMiB, signal);
     let status: number | undefined;
@@ -119,7 +119,7 @@ export class OrchardExecutor {
             image: dispatch.image,
             headless: true,
             os: platform.os,
-            ...(machine === "linux-latest"
+            ...(platform.os === "linux"
               ? { runtime: platform.runtime, arch: platform.arch, imagePullPolicy: "IfNotPresent" }
               : {}),
             ...(target ? { labels: { [orchardWorkerNameLabel]: target } } : {}),
@@ -150,7 +150,7 @@ export class OrchardExecutor {
     if (
       observed.name !== dispatch.vmName ||
       observed.image !== dispatch.image ||
-      (machine === "linux-latest" &&
+      (platform.os === "linux" &&
         (observed.os !== platform.os ||
           observed.runtime !== platform.runtime ||
           observed.arch !== platform.arch ||

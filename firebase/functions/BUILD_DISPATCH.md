@@ -235,6 +235,11 @@ could allocate its capacity twice. Explicit terminal-job retries use
 | `GITHUB_APP_ID` / `GITHUB_APP_PRIVATE_KEY` | CI App ID and bound private-key secret, on both Functions            |
 | `GITHUB_API_BASE_URL` / `GITHUB_BASE_URL`  | Same GitHub host configuration as the executor                       |
 
+To roll out the Linux presets, deploy the executor and the `webhooks`, `dispatch`,
+`builds`, and `billing` connectors, then the dispatcher and Dart planner. Update
+workflows to SDK 0.8.0 and select `MachineType.linuxSmall` or
+`MachineType.linuxMedium`. The planner rejects the removed `linuxLatest` preset.
+
 For the internal Linux pilot, deploy the nullable dispatch machine column and
 the `dispatch` and `builds` connectors, then the executor image and Functions.
 Confirm the Scaleway worker advertises `org.openci.vetu-vms=2` and has a local
@@ -242,10 +247,11 @@ Confirm the Scaleway worker advertises `org.openci.vetu-vms=2` and has a local
 on the executor Job first. Set `OPENCI_LINUX_PILOT_REPOSITORY_ID` on the queue
 and dispatch Functions to the pilot GitHub.com repository ID, then resume the
 worker. Queued Linux jobs in that repository become eligible on the next
-notification. The dispatcher reserves the selected Vetu worker's default CPU count
-and memory. It saves the worker name on the reservation and the executor requires
-its Orchard worker-name label when creating the VM. Reservations created before
-this rollout keep their saved sizes and can run on any eligible Linux worker.
+notification. Small reserves 1 vCPU and 2048 MiB of RAM. Medium reserves
+2 vCPUs and 4096 MiB. Both share the Vetu worker pool. A Small job can run
+while an older Medium job waits for resources. The reservation records the worker
+name and the executor requests that worker's Orchard label. A historical
+`linux-latest` job uses Small on its next reservation.
 Clearing the parameter stops new Linux reservations.
 Existing reservations retain their configuration and finish through normal recovery.
 The executor checks postpaid eligibility before starting billing or requesting a

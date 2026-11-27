@@ -24,7 +24,7 @@ mutation AcquireQueuedBuildCheck($jobId: String!, $owner: String!, $runNumber: I
         {
           id: { eq: $jobId }
           status: { in: ["QUEUED", "CANCELLED"] }
-          runsOn: { in: ["macos-latest", "linux-latest"] }
+          runsOn: { in: ["macos-latest", "linux-small", "linux-medium", "linux-latest"] }
         }
         {
           _or: [

@@ -176,8 +176,30 @@ class _OpenCIInitVisitor extends RecursiveAstVisitor<void> {
     }
   }
 
+  bool _isMachineReference(Expression? expression) =>
+      switch (expression?.unParenthesized) {
+        SimpleIdentifier(name: 'MachineType') ||
+        PrefixedIdentifier(prefix: SimpleIdentifier(name: 'MachineType')) ||
+        PrefixedIdentifier(identifier: SimpleIdentifier(name: 'MachineType')) ||
+        DotShorthandPropertyAccess() => true,
+        PropertyAccess(:final target) => _isMachineReference(target),
+        _ => false,
+      };
+
   MachineType _extractMachine(Expression expression) {
-    final name = switch (expression.unParenthesized) {
+    final value = expression.unParenthesized;
+    final callsPreset = switch (value) {
+      DotShorthandInvocation() || InstanceCreationExpression() => true,
+      MethodInvocation(:final target) => _isMachineReference(target),
+      InvocationExpression(:final function) => _isMachineReference(function),
+      _ => false,
+    };
+    if (callsPreset) {
+      throw WorkflowConfigurationException(
+        '$fileName: machine must be a MachineType enum literal',
+      );
+    }
+    final name = switch (value) {
       PrefixedIdentifier(
         prefix: SimpleIdentifier(name: 'MachineType'),
         :final identifier,

@@ -15,6 +15,7 @@ import {
 } from "../../lib/functions/executor/google.js";
 import { buildGitHub, ExecutionGitHub } from "../../lib/functions/executor/github.js";
 import { qrPublicationFailure } from "../../lib/functions/executor/pull_request_qr.js";
+import { orchardMachines } from "../../lib/functions/worker_machine.js";
 
 const dispatch = {
   id: "dispatch",
@@ -164,7 +165,7 @@ test("workflow context rejects invalid run numbers", () => {
 });
 
 test("Linux checkout and workflow use the same guest home and Android toolchain", () => {
-  const machine = "linux-latest";
+  const machine = "linux-medium";
   validateJob({ ...job, runsOn: machine }, { ...dispatch, runsOn: machine });
   assert.throws(() => validateJob(job, { ...dispatch, runsOn: machine }), /Invalid persisted/);
   assert.match(
@@ -635,8 +636,8 @@ test("Orchard reconciles a lost VM create response without issuing a second POST
   assert.equal(posts, 1);
 });
 
-test("creates an explicit 2 CPU, 8 GiB Vetu VM and verifies its returned configuration", async (t) => {
-  const linux = { ...dispatch, runsOn: "linux-latest", image: "base-linux", memoryMiB: 8192 };
+test("creates and verifies Vetu VMs at both fixed Linux sizes", async (t) => {
+  const small = { ...dispatch, ...orchardMachines["linux-small"].vm, runsOn: "linux-small" };
   let observed, override;
   const calls = [];
   const f = await controller(
@@ -656,30 +657,43 @@ test("creates an explicit 2 CPU, 8 GiB Vetu VM and verifies its returned configu
     { useWorkerMemory: true },
   );
   const signal = new AbortController().signal;
-  await f.client.create(linux, signal);
+  await f.client.create(small, signal);
   assert.deepEqual(observed, {
-    name: linux.vmName,
+    name: small.vmName,
     image: "base-linux",
     headless: true,
     os: "linux",
     runtime: "vetu",
     arch: "amd64",
     imagePullPolicy: "IfNotPresent",
-    cpu: 2,
-    memory: 8192,
+    cpu: 1,
+    memory: 2048,
     resources: {
-      "org.cirruslabs.logical-cores": 2,
-      "org.cirruslabs.memory-mib": 8192,
+      "org.cirruslabs.logical-cores": 1,
+      "org.cirruslabs.memory-mib": 2048,
       "org.openci.vetu-vms": 1,
     },
   });
   assert.deepEqual(calls, [
     ["POST", "/v1/vms"],
-    ["GET", `/v1/vms/${linux.vmName}`],
+    ["GET", `/v1/vms/${small.vmName}`],
   ]);
+  const medium = {
+    ...dispatch,
+    ...orchardMachines["linux-medium"].vm,
+    runsOn: "linux-medium",
+    vmName: "medium-linux",
+  };
+  await f.client.create(medium, signal);
+  assert.equal(observed.cpu, 2);
+  assert.equal(observed.resources["org.cirruslabs.logical-cores"], 2);
+  assert.equal(observed.memory, 4096);
+  assert.equal(observed.resources["org.cirruslabs.memory-mib"], 4096);
+  override = { cpu: 1 };
+  await assert.rejects(f.client.create(medium, signal), /could not be confirmed/);
   override = { memory: 4096 };
-  await assert.rejects(f.client.create(linux, signal), /could not be confirmed/);
-  const pinned = { ...linux, orchardWorker: "worker-a" };
+  await assert.rejects(f.client.create(small, signal), /could not be confirmed/);
+  const pinned = { ...medium, orchardWorker: "worker-a" };
   override = { worker: "worker-a" };
   await f.client.create(pinned, signal);
   assert.deepEqual(observed.labels, { "org.cirruslabs.orchard.worker-name": "worker-a" });

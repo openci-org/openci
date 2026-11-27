@@ -47,7 +47,9 @@ fragment PostpaidMonthlyUsage on Query {
       FROM source s CROSS JOIN bounds b
     ), totals AS (
       SELECT count(*) AS run_count, coalesce(sum(r.measured_ms), 0) AS measured_ms,
-             coalesce(sum(r.measured_ms) FILTER (WHERE j.runs_on = 'linux-latest'), 0) AS linux_ms
+             coalesce(sum(r.measured_ms) FILTER (
+               WHERE j.runs_on IN ('linux-small', 'linux-medium', 'linux-latest')
+             ), 0) AS linux_ms
       FROM runs r LEFT JOIN build_jobs j ON j.id = r.job_id AND j.team_id = $1
       WHERE NOT EXISTS (SELECT 1 FROM closed)
     ), runner_minutes AS (

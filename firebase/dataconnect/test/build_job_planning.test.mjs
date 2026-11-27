@@ -337,7 +337,10 @@ test("ID dispatcher -> Dart Function -> GitHub -> atomic FSC jobs", async (t) =>
   f.github.files[0].name = "dashboard/ios/build.dart";
   f.github.files[1].name = "sdk/build.dart";
   f.github.files[0].content = `void main() {
-    OpenCI.init(workflowName: 'First', ciTriggers: [CITrigger.push(branch: 'develop')], machine: MachineType.linuxLatest);
+    OpenCI.init(workflowName: 'First', ciTriggers: [CITrigger.push(branch: 'develop')], machine: MachineType.linuxSmall);
+  }`;
+  f.github.files[1].content = `void main() {
+    OpenCI.init(workflowName: 'Second', ciTriggers: [CITrigger.push(branch: 'develop')], machine: MachineType.linuxMedium);
   }`;
   await invokeProcessWebhookTask(dartFunctionUrl, f.taskId);
   const { webhookTask, buildJobs } = await f.state();
@@ -345,8 +348,8 @@ test("ID dispatcher -> Dart Function -> GitHub -> atomic FSC jobs", async (t) =>
   assert.deepEqual(
     buildJobs.map((job) => [job.workflowFileName, job.runsOn]),
     [
-      ["dashboard/ios/build.dart", "linux-latest"],
-      ["sdk/build.dart", "macos-latest"],
+      ["dashboard/ios/build.dart", "linux-small"],
+      ["sdk/build.dart", "linux-medium"],
     ],
   );
   assert.deepEqual(f.github.tokenRequests, [
@@ -489,6 +492,26 @@ test("workflow Flutter pins survive planning, SQL persistence and executor reads
     });
     assert.equal(execution.data.job.flutterVersion, job.flutterVersion);
   }
+});
+
+test("new plans reject the retired Linux machine", async (t) => {
+  const f = await fixture(t);
+  await assert.rejects(
+    sdk.completeWebhookTask(dc, {
+      id: f.taskId,
+      jobCount: 1,
+      connectionId: f.connectionId,
+      jobsJson: JSON.stringify([
+        { id: randomUUID(), name: "Build", file: "ci.dart", runsOn: "linux-latest" },
+      ]),
+      owner: "org",
+      repo: "app",
+      commitSha: sha,
+      branch: "develop",
+    }),
+    /Invalid build job batch/,
+  );
+  assert.deepEqual((await f.state()).buildJobs, []);
 });
 
 test("CompleteWebhookTask result hands created IDs to the capacity dispatcher", async (t) => {

@@ -5,17 +5,27 @@ import 'package:openci_workflow/openci_workflow.dart';
 import 'package:test/test.dart';
 
 void main() {
-  test('OpenCI.init defaults to macOS and accepts the Linux machine', () async {
-    final mac = await OpenCI.init(workflowName: 'Default', ciTriggers: []);
-    final linux = await OpenCI.init(
-      workflowName: 'Linux',
-      ciTriggers: [],
-      machine: MachineType.linuxLatest,
-    );
+  test(
+    'OpenCI.init defaults to macOS and accepts both Linux presets',
+    () async {
+      final mac = await OpenCI.init(workflowName: 'Default', ciTriggers: []);
+      final small = await OpenCI.init(
+        workflowName: 'Lint',
+        ciTriggers: [],
+        machine: MachineType.linuxSmall,
+      );
+      final medium = await OpenCI.init(
+        workflowName: 'Build',
+        ciTriggers: [],
+        machine: .linuxMedium,
+      );
 
-    expect(mac.machine.runsOn, 'macos-latest');
-    expect(linux.machine.runsOn, 'linux-latest');
-  });
+      expect(mac.machine, MachineType.macOsLatest);
+      expect(small.machine.runsOn, 'linux-small');
+      expect(medium.machine.runsOn, 'linux-medium');
+      expect(MachineType.values, [mac.machine, small.machine, medium.machine]);
+    },
+  );
 
   group('OpenCI.resolveWorkingDirectory', () {
     const workspacePath = '/tmp/openci_workspace';

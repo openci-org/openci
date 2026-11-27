@@ -124,17 +124,17 @@ test("the oldest creation time wins regardless of insertion order or later updat
 
 test("selection and wake-ups admit only the configured GitHub.com Linux repository", async (t) => {
   const pilot = {
-    runsOn: "linux-latest",
+    runsOn: "linux-small",
     repositoryId: "101",
     githubBaseUrl: "https://github.com",
   };
   const [, , allowed, mac] = await seedJobs(t, [
-    { ...pilot, id: "other", repositoryId: "102" },
+    { ...pilot, runsOn: "linux-medium", id: "other", repositoryId: "102" },
     { ...pilot, id: "enterprise", githubBaseUrl: "https://github.example" },
     { ...pilot, id: "pilot", createdAt: "2" },
     { id: "mac", createdAt: "3" },
   ]);
-  const machines = ["linux-latest", "macos-latest"];
+  const machines = ["linux-small", "linux-medium", "linux-latest", "macos-latest"];
   assert.equal((await oldestQueuedJob()).id, mac.id);
   assert.equal((await oldestQueuedJob(machines)).id, mac.id);
   assert.equal((await oldestQueuedJob(machines, ["101"])).id, allowed.id);

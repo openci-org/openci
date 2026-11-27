@@ -220,11 +220,13 @@ for (const status of ["SUCCESS", "FAILURE", "CANCELLED", "TIMED_OUT"]) {
   });
 }
 
-test("retrying a Linux job queues another attempt on the same machine", async (t) => {
-  const f = await fixture(t, { runsOn: "linux-latest", status: "FAILURE" });
-  assert.equal((await f.retry()).data.retried, 1);
-  assert.equal((await f.state()).job.runsOn, "linux-latest");
-});
+for (const runsOn of ["linux-small", "linux-medium", "linux-latest"]) {
+  test(`retrying a ${runsOn} job preserves its machine`, async (t) => {
+    const f = await fixture(t, { runsOn, status: "FAILURE" });
+    assert.equal((await f.retry()).data.retried, 1);
+    assert.equal((await f.state()).job.runsOn, runsOn);
+  });
+}
 
 test("finds PR or commit jobs in the selected team with their actual run IDs", async (t) => {
   const f = await fixture(t, { githubBaseUrl: null, pullRequestNumber: "7" });

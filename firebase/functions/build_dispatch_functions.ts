@@ -340,12 +340,7 @@ export const dispatchBuildJob = onTaskDispatched<unknown>(
             image: vmImage.value(),
             cloudRunJob: cloudRunJob.value(),
           },
-          linuxConfiguration: linuxRepositoryId
-            ? {
-                image: "base-linux",
-                cloudRunJob: cloudRunJob.value(),
-              }
-            : undefined,
+          linuxEnabled: !!linuxRepositoryId,
           syncQueuedCheck: (selectedJobId) =>
             queuedChecks(dc, linuxRepositoryId).sync(selectedJobId),
           enqueueRecovery: (dispatch) =>
