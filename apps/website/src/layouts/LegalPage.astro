@@ -1,0 +1,49 @@
+---
+import ProductLayout from "./ProductLayout.astro";
+import { translator, type Locale } from "../lib/i18n";
+import "../styles/content.css";
+
+interface Props {
+  frontmatter: { title: string; description: string; updated: string };
+}
+
+const { title, description, updated } = Astro.props.frontmatter;
+const locale = Astro.currentLocale as Locale;
+const t = translator(locale);
+const path = Astro.url.pathname.slice(`/${locale}/`.length);
+const date = new Intl.DateTimeFormat(locale, {
+  dateStyle: "long",
+  timeZone: "UTC",
+}).format(new Date(updated));
+---
+
+<ProductLayout
+  locale={locale}
+  path={path}
+  title={`${title} | OpenCI`}
+  description={description}
+>
+  <article class="container section-pad article-body">
+    <header>
+      <h1 class="section-title">{title}</h1>
+      <p>
+        {t("最終更新日", "Last updated")} <time datetime={updated}>{date}</time>
+      </p>
+    </header>
+    <div class="content">
+      <slot />
+    </div>
+  </article>
+</ProductLayout>
+
+<style>
+  article {
+    max-width: 74ch;
+  }
+  header {
+    margin-bottom: 2.5rem;
+  }
+  header p {
+    color: var(--quiet);
+  }
+</style>
