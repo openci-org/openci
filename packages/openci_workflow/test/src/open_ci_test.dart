@@ -6,7 +6,7 @@ import 'package:test/test.dart';
 
 void main() {
   test(
-    'OpenCI.init defaults to macOS and accepts both Linux presets',
+    'OpenCI.init defaults to macOS and accepts the Linux presets',
     () async {
       final mac = await OpenCI.init(workflowName: 'Default', ciTriggers: []);
       final small = await OpenCI.init(
@@ -20,10 +20,22 @@ void main() {
         machine: .linuxMedium,
       );
 
+      final large = await OpenCI.init(
+        workflowName: 'Android',
+        ciTriggers: [],
+        machine: MachineType.linuxLarge,
+      );
+
       expect(mac.machine, MachineType.macOsLatest);
       expect(small.machine.runsOn, 'linux-small');
       expect(medium.machine.runsOn, 'linux-medium');
-      expect(MachineType.values, [mac.machine, small.machine, medium.machine]);
+      expect(large.machine.runsOn, 'linux-large');
+      expect(MachineType.values, [
+        mac.machine,
+        small.machine,
+        medium.machine,
+        large.machine,
+      ]);
     },
   );
 

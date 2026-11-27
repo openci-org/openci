@@ -220,7 +220,7 @@ for (const status of ["SUCCESS", "FAILURE", "CANCELLED", "TIMED_OUT"]) {
   });
 }
 
-for (const runsOn of ["linux-small", "linux-medium", "linux-latest"]) {
+for (const runsOn of ["linux-small", "linux-medium", "linux-large", "linux-latest"]) {
   test(`retrying a ${runsOn} job preserves its machine`, async (t) => {
     const f = await fixture(t, { runsOn, status: "FAILURE" });
     assert.equal((await f.retry()).data.retried, 1);

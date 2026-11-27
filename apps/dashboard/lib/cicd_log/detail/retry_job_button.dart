@@ -20,6 +20,7 @@ class RetryJobButton extends ConsumerWidget {
           'macos-latest',
           'linux-small',
           'linux-medium',
+          'linux-large',
           'linux-latest',
         }.contains(job.runsOn) &&
         switch (job.status) {

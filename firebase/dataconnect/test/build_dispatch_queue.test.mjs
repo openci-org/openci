@@ -131,10 +131,10 @@ test("selection and wake-ups admit only the configured GitHub.com Linux reposito
   const [, , allowed, mac] = await seedJobs(t, [
     { ...pilot, runsOn: "linux-medium", id: "other", repositoryId: "102" },
     { ...pilot, id: "enterprise", githubBaseUrl: "https://github.example" },
-    { ...pilot, id: "pilot", createdAt: "2" },
+    { ...pilot, runsOn: "linux-large", id: "pilot", createdAt: "2" },
     { id: "mac", createdAt: "3" },
   ]);
-  const machines = ["linux-small", "linux-medium", "linux-latest", "macos-latest"];
+  const machines = ["linux-small", "linux-medium", "linux-large", "linux-latest", "macos-latest"];
   assert.equal((await oldestQueuedJob()).id, mac.id);
   assert.equal((await oldestQueuedJob(machines)).id, mac.id);
   assert.equal((await oldestQueuedJob(machines, ["101"])).id, allowed.id);

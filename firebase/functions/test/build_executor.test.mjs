@@ -636,7 +636,7 @@ test("Orchard reconciles a lost VM create response without issuing a second POST
   assert.equal(posts, 1);
 });
 
-test("creates and verifies Vetu VMs at both fixed Linux sizes", async (t) => {
+test("creates and verifies Vetu VMs at the selected Linux size", async (t) => {
   const small = { ...dispatch, ...orchardMachines["linux-small"].vm, runsOn: "linux-small" };
   let observed, override;
   const calls = [];
@@ -684,11 +684,22 @@ test("creates and verifies Vetu VMs at both fixed Linux sizes", async (t) => {
     runsOn: "linux-medium",
     vmName: "medium-linux",
   };
-  await f.client.create(medium, signal);
-  assert.equal(observed.cpu, 2);
-  assert.equal(observed.resources["org.cirruslabs.logical-cores"], 2);
-  assert.equal(observed.memory, 4096);
-  assert.equal(observed.resources["org.cirruslabs.memory-mib"], 4096);
+  const large = {
+    ...dispatch,
+    ...orchardMachines["linux-large"].vm,
+    runsOn: "linux-large",
+    vmName: "large-linux",
+  };
+  for (const [reservation, cpu, memory] of [
+    [medium, 2, 4096],
+    [large, 4, 8192],
+  ]) {
+    await f.client.create(reservation, signal);
+    assert.equal(observed.cpu, cpu);
+    assert.equal(observed.resources["org.cirruslabs.logical-cores"], cpu);
+    assert.equal(observed.memory, memory);
+    assert.equal(observed.resources["org.cirruslabs.memory-mib"], memory);
+  }
   override = { cpu: 1 };
   await assert.rejects(f.client.create(medium, signal), /could not be confirmed/);
   override = { memory: 4096 };

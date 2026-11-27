@@ -127,7 +127,12 @@ void main() {
       await emit(tester, job.copyWith(status: status));
       expect(retryButton(), findsOneWidget, reason: status.name);
     }
-    for (final machine in ['linux-small', 'linux-medium', 'linux-latest']) {
+    for (final machine in [
+      'linux-small',
+      'linux-medium',
+      'linux-large',
+      'linux-latest',
+    ]) {
       await emit(
         tester,
         job.copyWith(status: BuildJobStatus.FAILURE, runsOn: machine),

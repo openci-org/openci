@@ -8,6 +8,8 @@ void main() {
       '.linuxSmall': 'linux-small',
       '(sdk.MachineType.linuxMedium)': 'linux-medium',
       '.linuxMedium': 'linux-medium',
+      'MachineType.linuxLarge': 'linux-large',
+      '.linuxLarge': 'linux-large',
       'MachineType.macOsLatest': 'macos-latest',
       'existingMachineVariable': 'macos-latest',
       'legacyConfig.machine()': 'macos-latest',

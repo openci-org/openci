@@ -11,7 +11,7 @@ mutation ReserveBuildDispatchRetry($taskId: String!, $jobId: String! = "")
       # An omitted nullable filter is ignored; the default empty ID matches no job.
       id: { eq: $jobId }
       status: { in: ["QUEUED", "CANCELLED"] }
-      runsOn: { in: ["macos-latest", "linux-small", "linux-medium", "linux-latest"] }
+      runsOn: { in: ["macos-latest", "linux-small", "linux-medium", "linux-large", "linux-latest"] }
     }
     data: { dispatchRetryPending: true }
   )
@@ -52,7 +52,7 @@ query GetPendingBuildDispatchWork($linuxRepositoryIds: [Int64!]! = []) @auth(lev
             _or: [
               { runsOn: { eq: "macos-latest" } }
               {
-                runsOn: { in: ["linux-small", "linux-medium", "linux-latest"] }
+                runsOn: { in: ["linux-small", "linux-medium", "linux-large", "linux-latest"] }
                 githubBaseUrl: { eq: "https://github.com" }
                 repositoryId: { in: $linuxRepositoryIds }
               }

@@ -61,7 +61,7 @@ test("one Linux slot admits one reservation without consuming Mac capacity", () 
   assert.equal(hasOrchardCapacity({ workers, vms }, reservations, size, now), true);
 });
 
-test("both Linux presets share pinned capacity across reservation and VM states", () => {
+test("Linux presets share pinned capacity across reservation and VM states", () => {
   const host = (name, cpu, memoryMiB) =>
     worker({
       name,
@@ -77,6 +77,7 @@ test("both Linux presets share pinned capacity across reservation and VM states"
   const snapshot = { workers: [...hosts, worker()], vms: [] };
   const reservations = [];
   const next = (machine) => selectLinuxWorker(snapshot, reservations, machine, now);
+  assert.equal(next("linux-large"), "host-a");
   for (const [runsOn, name, cpu, memoryMiB] of [
     ["linux-small", "host-a", 1, 2048],
     ["linux-medium", "host-a", 2, 4096],
@@ -112,6 +113,7 @@ test("both Linux presets share pinned capacity across reservation and VM states"
   assert.equal(next("linux-small"), null);
   reservations.splice(1, 1);
   assert.equal(next("linux-medium"), "host-a");
+  assert.equal(next("linux-large"), "host-a");
 });
 
 test("dispatch diagnostics omit SDK payloads and unrecognized error fields", () => {
