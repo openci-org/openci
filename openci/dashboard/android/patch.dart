@@ -8,6 +8,7 @@ Future<void> main() async {
   final dashboard = WorkspacePaths.root.apps.dashboard;
   final ci = await OpenCI.init(
     workflowName: 'Dashboard Android Patch',
+    machine: MachineType.linuxMedium,
     flutterVersion: FlutterVersion.v3_47_8.value,
     cancelPreviousRuns: true,
     ciTriggers: [
@@ -25,6 +26,8 @@ Future<void> main() async {
           'packages/pubspec_version_hook/lib/**',
           'packages/*/pubspec.yaml',
           'openci/dashboard/android/patch.dart',
+          'openci/tool/prepare_dashboard_android.sh',
+          'infra/macos-image/released/toolchain.json',
           'openci/lib/dashboard_patch_mode.dart',
           'openci/generated/**',
           'openci/pubspec.yaml',
@@ -46,6 +49,8 @@ Future<void> main() async {
           'packages/pubspec_version_hook/lib/**',
           'packages/*/pubspec.yaml',
           'openci/dashboard/android/patch.dart',
+          'openci/tool/prepare_dashboard_android.sh',
+          'infra/macos-image/released/toolchain.json',
           'openci/lib/dashboard_patch_mode.dart',
           'openci/generated/**',
           'openci/pubspec.yaml',
@@ -62,6 +67,7 @@ Future<void> main() async {
   if (Secrets.shorebirdToken.value.trim().isEmpty) {
     throw StateError('SHOREBIRD_TOKEN is empty.');
   }
+  await ci.run('bash ../../openci/tool/prepare_dashboard_android.sh');
   final release = await findDashboardPatchRelease(
     directory: dashboard,
     platform: 'android',

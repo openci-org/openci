@@ -39,6 +39,7 @@ Future<void> main() async {
       ),
     ],
     currentWorkingDirectory: WorkspacePaths.root.firebase.dartFunctions,
+    machine: MachineType.linuxMedium,
   );
 
   await openCI.dart.analyze(fatalInfos: true);

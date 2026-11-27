@@ -5,6 +5,7 @@ import '../generated/paths.g.dart';
 Future<void> main() async {
   final ci = await OpenCI.init(
     workflowName: 'Workflow Scripts CI',
+    machine: MachineType.linuxMedium,
     flutterVersion: FlutterVersion.v3_47_8.value,
     cancelPreviousRuns: true,
     ciTriggers: [

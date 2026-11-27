@@ -3,6 +3,7 @@ import 'package:openci_workflow/openci_workflow.dart';
 Future<void> main() async {
   final openCI = await OpenCI.init(
     workflowName: 'Dart Format Check',
+    machine: MachineType.linuxMedium,
     flutterVersion: FlutterVersion.v3_44_8.value,
     ciTriggers: [
       CITrigger.pullRequest(
