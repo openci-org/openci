@@ -73,17 +73,28 @@ mutation CompleteWebhookTask(
     }
   }
   # Returning to a superseded revision (including reopen after PR closure) needs
-  # fresh validation. Keep historical rows and release only automatic cancels;
-  # a user cancellation is not an implicit request to run again.
+  # fresh validation. An internal replan may also find a job keyed to the
+  # requested base whose actual checkout used a different base. Keep its
+  # history and release its key so the new validation can be admitted.
   releasedExecutionKeys: _execute(
     sql: """
-    UPDATE build_jobs SET webhook_execution_key = NULL
-    WHERE webhook_execution_key IN (
+    UPDATE build_jobs AS j SET webhook_execution_key = NULL
+    WHERE j.webhook_execution_key IN (
       SELECT w."webhookExecutionKey"
       FROM jsonb_to_recordset($1::jsonb) AS w("webhookExecutionKey" text)
-    ) AND status = 'CANCELLED' AND superseded_by_task_id IS NOT NULL
+    ) AND (
+      (j.status = 'CANCELLED' AND j.superseded_by_task_id IS NOT NULL)
+      OR (j.status IN ('SUCCESS', 'FAILURE', 'TIMED_OUT') AND EXISTS (
+        SELECT 1 FROM webhook_tasks t, build_job_dispatches d
+        WHERE t.id = $2 AND t.event_type = 'pull_request'
+          AND t.payload::jsonb ->> 'action' = 'openci_base_changed'
+          AND d.job_id = j.id AND d.run_id = j.latest_run_id AND d.finished_at IS NOT NULL
+          AND d.pull_request_base_sha IS NOT NULL AND $3::text IS NOT NULL
+          AND (d.pull_request_base_sha <> $3 OR d.pull_request_base_branch <> (t.payload::jsonb #>> '{pull_request,base,ref}'))
+      ))
+    )
     """
-    params: [$jobsJson]
+    params: [$jobsJson, $id, $comparisonBaseSha]
   ) @redact
   # Derive release provenance from the stored webhook, since a push can also name a tag ref.
   jobs: _executeReturning(

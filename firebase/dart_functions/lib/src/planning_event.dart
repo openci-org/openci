@@ -8,6 +8,12 @@ class InvalidPlanningInput implements Exception {
   final String reason;
 }
 
+/// Retry the plan after a newer observation wins its fence or advances its base.
+class PlanningObservationSuperseded implements Exception {
+  const PlanningObservationSuperseded([this.baseSha]);
+  final String? baseSha;
+}
+
 class PlanningEvent {
   const PlanningEvent(
     this.webhook,
@@ -17,6 +23,7 @@ class PlanningEvent {
     this.beforeSha,
     this.isForced = false,
     this.isPullRequestClosed = false,
+    this.revalidationTeamId,
   });
 
   final GitHubWebhookPayload webhook;
@@ -26,12 +33,25 @@ class PlanningEvent {
   final String? beforeSha;
   final bool isForced;
   final bool isPullRequestClosed;
+  final String? revalidationTeamId;
+  bool get isBaseRevalidation => revalidationTeamId != null;
+
+  PlanningEvent withRevalidationBase(String sha) {
+    if (!isBaseRevalidation || !isCommitSha(sha)) _invalid();
+    return PlanningEvent(
+      webhook,
+      repositoryId,
+      ownerId,
+      baseSha: sha,
+      revalidationTeamId: revalidationTeamId,
+    );
+  }
 
   bool get isRelease => webhook.eventType == 'release';
 
   /// Release payloads have no commit SHA. Pin the tag before fetching source.
   PlanningEvent withReleaseCommit(String sha) {
-    if (!isRelease || !_isCommitSha(sha)) _invalid();
+    if (!isRelease || !isCommitSha(sha)) _invalid();
     return PlanningEvent(
       webhook.copyWith(commitSha: sha),
       repositoryId,
@@ -51,6 +71,7 @@ class PlanningEvent {
             'synchronize',
             'reopened',
             'closed',
+            'openci_base_changed',
           ].contains(raw['action']) &&
           !(raw['action'] == 'edited' &&
               raw['changes'] is Map<String, dynamic> &&
@@ -123,15 +144,22 @@ class PlanningEvent {
           if (head['id'] != null && head['id'] != sha) _invalid();
         }
       }
-      if (!_isCommitSha(sha)) {
+      if (!isCommitSha(sha)) {
         _invalid();
       }
+      final revalidate =
+          eventType == 'pull_request' && raw['action'] == 'openci_base_changed';
+      final baseSha = eventType == 'pull_request'
+          ? _optionalSha(_object(_object(raw['pull_request'])['base'])['sha'])
+          : null;
+      if (revalidate && !isCommitSha(baseSha)) _invalid();
       return PlanningEvent(
         GitHubWebhookPayload.fromRawJson(eventType: eventType, rawJson: raw),
         repositoryId,
         ownerId,
-        baseSha: eventType == 'pull_request'
-            ? _optionalSha(_object(_object(raw['pull_request'])['base'])['sha'])
+        baseSha: baseSha,
+        revalidationTeamId: revalidate
+            ? _nonempty(raw['openci_team_id'])
             : null,
         beforeSha: eventType == 'push' ? _optionalSha(raw['before']) : null,
         isForced: raw['forced'] == true,
@@ -146,7 +174,8 @@ class PlanningEvent {
   }
 }
 
-bool _isCommitSha(String sha) =>
+bool isCommitSha(Object? sha) =>
+    sha is String &&
     RegExp(r'^(?:[0-9a-f]{40}|[0-9a-f]{64})$').hasMatch(sha) &&
     !RegExp(r'^0+$').hasMatch(sha);
 

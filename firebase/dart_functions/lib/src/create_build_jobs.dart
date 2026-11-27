@@ -26,12 +26,18 @@ class BuildJobPlanner {
   final Future<String> Function(PlanningEvent event)? resolveReleaseCommit;
 
   Future<String> process(String taskId) async {
+    String? revalidationBase;
     for (var attempt = 0; ; attempt++) {
       try {
-        return await _processOnce(taskId, retryingConflict: attempt > 0);
-      } on PlanningObservationSuperseded {
+        return await _processOnce(
+          taskId,
+          retryingConflict: attempt > 0,
+          revalidationBase: revalidationBase,
+        );
+      } on PlanningObservationSuperseded catch (change) {
         // Sustained contention still falls back to durable event redelivery.
         if (attempt >= 2) rethrow;
+        revalidationBase = change.baseSha ?? revalidationBase;
       }
     }
   }
@@ -39,6 +45,7 @@ class BuildJobPlanner {
   Future<String> _processOnce(
     String taskId, {
     required bool retryingConflict,
+    required String? revalidationBase,
   }) async {
     final task = await store.getTask(taskId);
     if (task == null) throw StateError('Webhook task not found');
@@ -55,11 +62,18 @@ class BuildJobPlanner {
     try {
       event = PlanningEvent.parse(task.eventType, task.payload);
       if (event != null) {
+        if (revalidationBase != null) {
+          event = event.withRevalidationBase(revalidationBase);
+        }
         connection = await store.findConnection(
           event.webhook.installationId,
           event.repositoryId,
         );
         if (connection != null) {
+          if (event.isBaseRevalidation &&
+              event.revalidationTeamId != connection.teamId) {
+            return await _completeTask(task.id);
+          }
           if (connection.accountId != event.ownerId.toString()) {
             throw const InvalidPlanningInput('invalid_payload');
           }

@@ -151,6 +151,28 @@ void main() {
   test('detects an update during pagination', () async {
     await (Fixture()..race = true).incomplete('pr_revision_changed');
   });
+  test(
+    'base revalidation uses the pinned three-dot diff when the branches diverge',
+    () async {
+      final fixture = Fixture()..diverged = true;
+      final recovery = event(
+        changes: {'action': 'openci_base_changed', 'openci_team_id': 'team'},
+      );
+      final result = await GitHubChangedFiles(fixture.request).fetch(recovery);
+      expect(result.isComplete, isTrue);
+      expect(
+        result.paths,
+        containsAll(['apps/old/file.dart', 'apps/new/file.dart']),
+      );
+      expect(fixture.metadataCalls, 0);
+      fixture.files = List.generate(300, (i) => {'filename': 'files/$i.txt'});
+      expect(
+        (await GitHubChangedFiles(fixture.request).fetch(recovery)).paths,
+        hasLength(300),
+      );
+      expect(fixture.fileCalls, 3);
+    },
+  );
   test('rejects a PR from a different repository', () async {
     final fixture = Fixture()..foreign = true;
     await expectLater(

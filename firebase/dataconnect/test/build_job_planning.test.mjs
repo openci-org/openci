@@ -14,6 +14,7 @@ import * as sdk from "@openci/webhooks-admin";
 import { getBuildExecution, getSupersededBuildJobs } from "@openci/dispatch-admin";
 import { invokeProcessWebhookTask } from "../../lib/functions/build_job_planning.js";
 import { enqueueWebhook } from "../../lib/functions/webhook_queue.js";
+import { reportCompletedPullRequest } from "../../lib/functions/pull_request_result_function.js";
 import { createdBuildJobIds, dispatchBuildJob } from "../../lib/functions/build_dispatch.js";
 import { reportSkippedCheck, recoverSkippedChecks } from "../../lib/functions/skipped_checks.js";
 import { DataConnectSkippedCheckStore } from "../../lib/functions/skipped_check_store.js";
@@ -81,11 +82,17 @@ before(async () => {
       const start = (Number(url.searchParams.get("page")) - 1) * 100;
       return respond(200, github.changedFiles.slice(start, start + 100));
     }
+    if (path === "/repos/org/app/git/ref/heads/main" && github.baseTip) {
+      return respond(200, {
+        ref: "refs/heads/main",
+        object: { type: "commit", sha: github.baseTip },
+      });
+    }
     if (path.startsWith("/repos/org/app/compare/")) {
       github.changedFilesCalls++;
       return respond(github.comparisonStatus, {
-        status: "ahead",
-        base_commit: { sha: beforeSha },
+        status: github.baseTip ? "diverged" : "ahead",
+        base_commit: { sha: github.baseTip ? path.split("/").at(-1).split("...")[0] : beforeSha },
         merge_base_commit: { sha: beforeSha },
         files: github.changedFiles,
       });
@@ -1538,6 +1545,161 @@ async function changedContext(f, change) {
   f.taskIds.push(taskId);
   return taskId;
 }
+
+test("a stale completion replans the current base once and coalesces with a real PR delivery", async (t) => {
+  const f = await autoCancelFixture(t);
+  f.github.files = ["website", "android"].map((name) => ({
+    name: name + ".dart",
+    content: `void main() { OpenCI.init(workflowName: '${name}', ciTriggers: [CITrigger.pullRequest(branch: '*', paths: ['apps/${name}/**'])]); }`,
+  }));
+  await invoke(f.taskId);
+  const [original] = (await f.state()).buildJobs;
+  assert.equal(original.workflowName, "website");
+  await graphql(
+    'mutation Finish($id: String!) { buildJob_update(id: $id, data: {status: "SUCCESS", runCount: 1, latestRunId: "original"}) }',
+    { id: original.id },
+  );
+  const [finished] = (await f.state()).buildJobs;
+  const latest = {
+    id: "dispatch",
+    teamId: f.teamId,
+    runId: "original",
+    outcome: "success",
+    finishedAt: "2026-01-02T00:01:00Z",
+    pullRequestBaseBranch: "main",
+    pullRequestBaseSha: beforeSha,
+  };
+  const store = {
+    pullRequestCommentExecution: async () => ({ job: finished, latest }),
+    context: async () => ({ connection: { accountId: "20" } }),
+  };
+  const baseAtCompletion = "c".repeat(40);
+  const github = {
+    options: { apiBaseUrl: githubUrl, appId: "1" },
+    currentPullRequestRevision: async () => ({
+      number: 7,
+      repositoryId: 10,
+      head: { ref: "feature", sha },
+      base: { ref: "main", sha: baseAtCompletion },
+    }),
+  };
+  const deliveries = new Set();
+  const persist = async (delivery) => {
+    await enqueueWebhook(dc, delivery);
+    deliveries.add(delivery.deliveryId);
+  };
+  await Promise.all(
+    [1, 2].map(() => reportCompletedPullRequest(original.id, latest.id, store, github, persist)),
+  );
+  assert.equal(deliveries.size, 1);
+  const recovery = (await sdk.getWebhookTaskByDeliveryId(dc, { deliveryId: [...deliveries][0] }))
+    .data.webhookTask;
+  f.taskIds.push(recovery.id);
+
+  // The base advances again while the task waits. PR metadata still shows the
+  // original base; the authoritative branch and the pinned diff select the new validation.
+  f.github.baseTip = "d".repeat(40);
+  await invoke(recovery.id);
+  assert.equal(await invoke(recovery.id), "duplicate");
+  const { buildJobs } = await f.state();
+  assert.deepEqual(
+    buildJobs.find((j) => j.id === original.id),
+    finished,
+  );
+  assert.deepEqual(
+    buildJobs
+      .filter((j) => j.id !== original.id)
+      .map((j) => [j.workflowName, j.status, j.commitSha]),
+    [["website", "QUEUED", sha]],
+  );
+  const skips = (await skippedState({ taskId: recovery.id })).skippedWorkflowChecks;
+  assert.deepEqual(
+    skips.map((check) => [check.workflowName, check.comparisonBaseSha]),
+    [["android", f.github.baseTip]],
+  );
+  await invoke(
+    await changedContext(f, (payload) => {
+      payload.pull_request.base.sha = f.github.baseTip;
+    }),
+  );
+  assert.deepEqual((await f.state()).buildJobs, buildJobs);
+});
+
+test("returning to a planned base replaces only a terminal job that actually tested a different base", async (t) => {
+  const f = await autoCancelFixture(t);
+  await invoke(f.taskId);
+  const jobs = (await f.state()).buildJobs;
+  const at = "2026-01-02T00:01:00Z";
+  for (const job of jobs) {
+    const id = randomUUID();
+    t.after(() =>
+      graphql("mutation Cleanup($id: String!) { buildJobDispatch_delete(id:$id) }", { id }),
+    );
+    await graphql(
+      `
+        mutation Finished($job: String!, $run: String!, $data: BuildJobDispatch_Data!) {
+          buildJob_update(id: $job, data: { status: "SUCCESS", runCount: 1, latestRunId: $run })
+          buildJobDispatch_insert(data: $data)
+        }
+      `,
+      {
+        job: job.id,
+        run: id,
+        data: {
+          id,
+          runId: id,
+          jobId: job.id,
+          teamId: f.teamId,
+          vmName: id,
+          cpu: 2,
+          memoryMiB: 4096,
+          image: "base-macos",
+          cloudRunJob: "test-executor",
+          state: "completed",
+          outcome: "success",
+          startDeadline: at,
+          createdAt: at,
+          updatedAt: at,
+          finishedAt: at,
+          pullRequestBaseBranch: "main",
+          pullRequestBaseSha: job.workflowFileName === "ci.dart" ? "c".repeat(40) : beforeSha,
+        },
+      },
+    );
+  }
+  f.github.baseTip = beforeSha;
+  const recovery = async (teamId = f.teamId) => {
+    const deliveryId = randomUUID();
+    await enqueueWebhook(dc, {
+      deliveryId,
+      eventType: "pull_request",
+      payload: JSON.stringify({
+        ...f.payload,
+        action: "openci_base_changed",
+        openci_team_id: teamId,
+      }),
+    });
+    const task = (await sdk.getWebhookTaskByDeliveryId(dc, { deliveryId })).data.webhookTask;
+    f.taskIds.push(task.id);
+    await invoke(task.id);
+  };
+  await recovery("previous-team");
+  assert.ok((await f.state()).buildJobs.every((j) => j.status === "SUCCESS"));
+  await recovery();
+  await recovery();
+  const rows = (await f.state()).buildJobs;
+  assert.deepEqual(
+    rows.filter((j) => j.status === "QUEUED").map((j) => j.workflowFileName),
+    ["ci.dart"],
+  );
+  assert.deepEqual(
+    rows
+      .filter((j) => j.status === "SUCCESS")
+      .map((j) => j.id)
+      .sort(),
+    jobs.map((j) => j.id).sort(),
+  );
+});
 
 test("same-head base SHA, target and SDK changes require new validation", async (t) => {
   const f = await autoCancelFixture(t);

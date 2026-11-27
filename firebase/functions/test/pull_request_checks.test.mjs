@@ -168,12 +168,36 @@ test("a saved legacy head check is replaced on the test merge; an unready or ret
   p.pr.mergeable = true;
   p.pr.base.sha = "f".repeat(40);
   assert.equal(await f.result(p, "success"), null);
+  await assert.rejects(
+    f.github.check(p.job, p.dispatch, "success", { accountId: "4", retryPending: true }),
+    /base changed during check publication/,
+  );
   p.pr.base.sha = p.dispatch.pullRequestBaseSha;
   p.pr.base.ref = "retargeted";
   assert.equal(await f.result(p, "success"), null);
   p.pr.base.ref = p.dispatch.pullRequestBaseBranch;
   assert.equal(await f.result(p, "success"), "2");
   assert.equal(f.runs[1].head_sha, correct);
+});
+
+test("a replacement validation publishes success on the new test merge and leaves the obsolete check cancelled", async (t) => {
+  const f = fixture(t);
+  const first = f.pull(1, "main", "b", "c");
+  await f.queue(first);
+  const replacement = f.pull(1, "main", "d", "e");
+  assert.equal(await f.result(first, "success"), null);
+  assert.equal(f.runs[0].conclusion, "cancelled");
+  replacement.job.id = "replacement";
+  replacement.dispatch.runId = "replacement-run";
+  await f.queue(replacement);
+  await f.result(replacement, "success");
+  assert.deepEqual(
+    f.runs.map((r) => [r.head_sha, r.conclusion]),
+    [
+      [first.pr.merge_commit_sha, "cancelled"],
+      [replacement.pr.merge_commit_sha, "success"],
+    ],
+  );
 });
 
 test("path exclusions publish a skipped check only for the originating PR and comparison base", async (t) => {

@@ -165,7 +165,10 @@ class GitHubWorkflows {
         appJwt(),
         body: {
           'repository_ids': [event.repositoryId],
-          'permissions': {'pull_requests': 'read'},
+          'permissions': {
+            'pull_requests': 'read',
+            if (event.isBaseRevalidation) 'contents': 'read',
+          },
         },
       ),
     );
@@ -176,10 +179,12 @@ class GitHubWorkflows {
     }
     final token = auth['token'] as String;
     try {
+      final repoPath =
+          'repos/${Uri.encodeComponent(webhook.owner)}/${Uri.encodeComponent(webhook.repo)}';
       final pr = _json(
         await _request(
           'GET',
-          'repos/${Uri.encodeComponent(webhook.owner)}/${Uri.encodeComponent(webhook.repo)}/pulls/${webhook.pullRequestNumber}',
+          '$repoPath/pulls/${webhook.pullRequestNumber}',
           token,
         ),
       );
@@ -208,10 +213,28 @@ class GitHubWorkflows {
           (head['repo'] as Map<String, dynamic>)['id'] != event.repositoryId) {
         throw const InvalidPlanningInput('untrusted_pull_request');
       }
-      return head['sha'] == webhook.commitSha &&
-              base['ref'] == webhook.triggerBranch
-          ? PullRequestObservation.current
-          : PullRequestObservation.stale;
+      if (head['sha'] != webhook.commitSha ||
+          base['ref'] != webhook.triggerBranch) {
+        return PullRequestObservation.stale;
+      }
+      if (event.isBaseRevalidation) {
+        // PR metadata can lag behind the branch. Fence the replacement plan on
+        // the same live ref the executor uses, including after a delayed delivery.
+        final branch = webhook.triggerBranch;
+        final path = branch.split('/').map(Uri.encodeComponent).join('/');
+        final ref = _json(
+          await _request('GET', '$repoPath/git/ref/heads/$path', token),
+        );
+        if (ref case {
+          'ref': final String name,
+          'object': {'type': 'commit', 'sha': final String sha},
+        } when name == 'refs/heads/$branch' && isCommitSha(sha)) {
+          if (sha != event.baseSha) throw PlanningObservationSuperseded(sha);
+        } else {
+          throw StateError('Invalid GitHub pull request base ref');
+        }
+      }
+      return PullRequestObservation.current;
     } finally {
       final revoked = await _request('DELETE', 'installation/token', token);
       if (revoked.statusCode != 204) {
