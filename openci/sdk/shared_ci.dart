@@ -5,6 +5,7 @@ import '../generated/paths.g.dart';
 Future<void> main() async {
   final openCI = await OpenCI.init(
     workflowName: 'OpenCI Shared CI',
+    machine: MachineType.linuxMedium,
     cancelPreviousRuns: true,
     ciTriggers: [
       CITrigger.pullRequest(

@@ -8,6 +8,7 @@ Future<void> main() async {
   final dashboard = WorkspacePaths.root.apps.dashboard;
   final ci = await OpenCI.init(
     workflowName: 'Dashboard Google Play AAB',
+    machine: MachineType.linuxLarge,
     flutterVersion: FlutterVersion.v3_47_8.value,
     ciTriggers: [CITrigger.release()],
     currentWorkingDirectory: dashboard,
@@ -20,6 +21,7 @@ Future<void> main() async {
   if (Secrets.shorebirdToken.value.trim().isEmpty) {
     throw StateError('SHOREBIRD_TOKEN is empty.');
   }
+  await ci.run('bash ../../openci/tool/prepare_dashboard_android.sh');
 
   await ci.placeFileFromBase64(
     dir: dashboard.lib,

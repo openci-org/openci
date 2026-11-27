@@ -5,6 +5,7 @@ import '../generated/secrets.g.dart';
 Future<void> main() async {
   final openCI = await OpenCI.init(
     workflowName: 'Website CI',
+    machine: MachineType.linuxMedium,
     cancelPreviousRuns: true,
     ciTriggers: [
       CITrigger.pullRequest(
