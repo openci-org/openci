@@ -144,8 +144,8 @@ empty VM inventory for this worker before removing the override, reloading
 systemd and restarting the service. The paused worker should advertise
 `vetu`, `amd64`, two `org.openci.vetu-vms` slots, and 12 logical cores.
 Linux Small uses 1 vCPU and 2 GiB of RAM, matching the worker defaults.
-Linux Medium uses 2 vCPUs and 4 GiB. Confirm the dispatch rollout before
-resuming the worker.
+Linux Medium uses 2 vCPUs and 4 GiB. Linux Large uses 4 vCPUs and 8 GiB.
+Confirm the dispatch rollout before resuming the worker.
 [Internal Linux dispatch settings](../../firebase/functions/BUILD_DISPATCH.md#configuration-and-rollout)
 
 ## Countryroad Linux worker

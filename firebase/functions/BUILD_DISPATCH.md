@@ -237,8 +237,8 @@ could allocate its capacity twice. Explicit terminal-job retries use
 
 To roll out the Linux presets, deploy the executor and the `webhooks`, `dispatch`,
 `builds`, and `billing` connectors, then the dispatcher and Dart planner. Update
-workflows to SDK 0.8.0 and select `MachineType.linuxSmall` or
-`MachineType.linuxMedium`. The planner rejects the removed `linuxLatest` preset.
+workflows to SDK 0.9.0 to select `MachineType.linuxLarge` alongside Small and
+Medium. The planner rejects the removed `linuxLatest` preset.
 
 For the internal Linux pilot, deploy the nullable dispatch machine column and
 the `dispatch` and `builds` connectors, then the executor image and Functions.
@@ -248,7 +248,8 @@ on the executor Job first. Set `OPENCI_LINUX_PILOT_REPOSITORY_ID` on the queue
 and dispatch Functions to the pilot GitHub.com repository ID, then resume the
 worker. Queued Linux jobs in that repository become eligible on the next
 notification. Small reserves 1 vCPU and 2048 MiB of RAM. Medium reserves
-2 vCPUs and 4096 MiB. Both share the Vetu worker pool. A Small job can run
+2 vCPUs and 4096 MiB, and Large reserves 4 vCPUs and 8192 MiB. The presets
+share the Vetu worker pool. A Small job can run
 while an older Medium job waits for resources. The reservation records the worker
 name and the executor requests that worker's Orchard label. A historical
 `linux-latest` job uses Small on its next reservation.

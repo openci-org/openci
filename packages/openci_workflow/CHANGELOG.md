@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.9.0
+
+- Add `MachineType.linuxLarge` for 4 vCPUs and 8 GiB of RAM. Include the new preset in exhaustive switches over `MachineType`.
+
 ## 0.8.1
 
 - Add `flutter.buildWeb()` for release builds, with an optional `noPub` flag to skip dependency resolution.

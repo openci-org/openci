@@ -62,6 +62,7 @@ test("publishes a new Linux Check only for the enabled GitHub.com repository", a
     ["linux-small", "101", "101", "https://github.example", false],
     ["linux-small", "101", "101", "https://github.com", true],
     ["linux-medium", "101", "101", "https://github.com", true],
+    ["linux-large", "101", "101", "https://github.com", true],
     ["linux-latest", "101", "101", "https://github.com", true],
   ]) {
     const f = fixture(configured);

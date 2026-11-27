@@ -23,7 +23,7 @@ This is a SQL Connect API, not a new callable Function or REST router.
 
 ## Contract
 
-- Jobs using `macos-latest`, `linux-small` or `linux-medium` can be retried
+- Jobs using `macos-latest`, `linux-small`, `linux-medium` or `linux-large` can be retried
   after `SUCCESS`, `FAILURE`, `CANCELLED` or `TIMED_OUT`. A retry uses the same
   preset. Historical `linux-latest` jobs retry at the Small size. Linux jobs
   follow the [pilot repository setting](BUILD_DISPATCH.md#configuration-and-rollout).

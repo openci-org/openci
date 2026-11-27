@@ -342,12 +342,19 @@ test("ID dispatcher -> Dart Function -> GitHub -> atomic FSC jobs", async (t) =>
   f.github.files[1].content = `void main() {
     OpenCI.init(workflowName: 'Second', ciTriggers: [CITrigger.push(branch: 'develop')], machine: MachineType.linuxMedium);
   }`;
+  f.github.files.push({
+    name: "android/aab.dart",
+    content: `void main() {
+      OpenCI.init(workflowName: 'AAB', ciTriggers: [CITrigger.push(branch: 'develop')], machine: MachineType.linuxLarge);
+    }`,
+  });
   await invokeProcessWebhookTask(dartFunctionUrl, f.taskId);
   const { webhookTask, buildJobs } = await f.state();
   assert.equal(webhookTask.status, "completed");
   assert.deepEqual(
     buildJobs.map((job) => [job.workflowFileName, job.runsOn]),
     [
+      ["android/aab.dart", "linux-large"],
       ["dashboard/ios/build.dart", "linux-small"],
       ["sdk/build.dart", "linux-medium"],
     ],

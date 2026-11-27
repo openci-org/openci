@@ -115,13 +115,14 @@ GitHub App subscribed to Release events with Contents read permission.
 ### Choose a worker
 
 Workflows use macOS by default. Repositories enabled for the hosted Linux pilot
-can choose one of two amd64 VMs. Linux workflows receive team secrets under
+can choose from the following amd64 VMs. Linux workflows receive team secrets under
 the same conditions as macOS workflows.
 
 | Machine                   | vCPUs |   RAM |
 | ------------------------- | ----: | ----: |
 | `MachineType.linuxSmall`  |     1 | 2 GiB |
 | `MachineType.linuxMedium` |     2 | 4 GiB |
+| `MachineType.linuxLarge`  |     4 | 8 GiB |
 
 ```dart
 final ci = await OpenCI.init(

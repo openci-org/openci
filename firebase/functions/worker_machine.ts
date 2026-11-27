@@ -23,6 +23,10 @@ export const orchardMachines = {
     ...linuxPlatform,
     vm: { cpu: 2, memoryMiB: 4096, image: "base-linux" },
   },
+  "linux-large": {
+    ...linuxPlatform,
+    vm: { cpu: 4, memoryMiB: 8192, image: "base-linux" },
+  },
   // Old jobs retain their stored machine when retried.
   "linux-latest": linuxSmall,
 } as const;
