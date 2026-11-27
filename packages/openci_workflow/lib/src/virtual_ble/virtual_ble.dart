@@ -17,7 +17,9 @@ class VirtualBleSession {
   final _closed = Completer<void>();
   final _published = <String>{};
   final _connections = <String, WebSocket>{};
-  final _claimed = <String>{};
+  final _connectionRequests = {
+    for (final role in ['A', 'B']) role: Completer<void>(),
+  };
   final _publication = {
     for (final role in ['A', 'B']) role: Completer<void>(),
   };
@@ -32,16 +34,39 @@ class VirtualBleSession {
       baseUri.resolve('/${peer.name.toUpperCase()}');
 
   /// Waits until the app has published its readable characteristic value.
+  ///
+  /// With [connectionTimeout], the app has a separate deadline to request its
+  /// WebSocket connection. The publication [timeout] then starts at that point.
+  /// By default the publication timeout starts as soon as this method is called.
   Future<void> waitForPeer(
     VirtualBlePeer peer, {
     Duration timeout = const Duration(seconds: 90),
+    Duration? connectionTimeout,
   }) async {
     final role = peer.name.toUpperCase();
+    if (connectionTimeout != null) {
+      await Future.any([
+        _connectionRequests[role]!.future,
+        _closed.future,
+      ]).timeout(
+        connectionTimeout,
+        onTimeout: () => throw TimeoutException(
+          'Virtual BLE peer $role did not connect to the bridge',
+          connectionTimeout,
+        ),
+      );
+    }
     if (!_closed.isCompleted && !_publication[role]!.isCompleted) {
       await Future.any([
         _publication[role]!.future,
         _closed.future,
-      ]).timeout(timeout);
+      ]).timeout(
+        timeout,
+        onTimeout: () => throw TimeoutException(
+          'Virtual BLE peer $role did not publish its GATT value',
+          timeout,
+        ),
+      );
     }
     if (_closed.isCompleted) {
       throw StateError(_failure ?? 'Virtual BLE session closed');
@@ -96,7 +121,10 @@ class VirtualBleSession {
     if (envelope['event'] == 'published') {
       if (_connections.containsKey(role)) {
         _published.add(role);
-        if (!_publication[role]!.isCompleted) _publication[role]!.complete();
+        if (!_publication[role]!.isCompleted) {
+          _publication[role]!.complete();
+          stdout.writeln('Virtual BLE peer $role published its GATT value.');
+        }
       }
     } else {
       _connections[role]?.add(jsonEncode(envelope['frame']));
@@ -111,17 +139,20 @@ class VirtualBleSession {
       return;
     }
     final role = path.substring(1);
+    final connection = _connectionRequests[role]!;
     if (!WebSocketTransformer.isUpgradeRequest(request) ||
-        !_claimed.add(role)) {
+        connection.isCompleted) {
       request.response.statusCode = HttpStatus.badRequest;
       await request.response.close();
       return;
     }
+    connection.complete();
     WebSocket? socket;
     try {
       socket = await WebSocketTransformer.upgrade(request);
       if (_closed.isCompleted) return;
       _connections[role] = socket;
+      stdout.writeln('Virtual BLE peer $role connected.');
       await for (final packet in socket) {
         if (_closed.isCompleted) break;
         final bytes = packet is String
