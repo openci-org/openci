@@ -220,3 +220,12 @@ export function resolvedPullRequestComment(
   if (link) section.push(link);
   return section.join("\n\n");
 }
+
+export function successfulPullRequestComment(job: Job, dashboardOrigin?: string) {
+  const run = dashboardRunUrl(dashboardOrigin, job.id);
+  return [
+    `### ✅ ${workflowName(job)} が成功しました`,
+    `${commitLink(job)} でワークフローが成功しました。`,
+    ...(run ? [`[OpenCI で実行ログを見る](${run})`] : []),
+  ].join("\n\n");
+}

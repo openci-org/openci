@@ -1,3 +1,16 @@
+export const orchardWorkerNameLabel = "org.cirruslabs.orchard.worker-name";
+
+const linuxPlatform = {
+  os: "linux",
+  runtime: "vetu",
+  arch: "amd64",
+  slots: "org.openci.vetu-vms",
+} as const;
+const linuxSmall = {
+  ...linuxPlatform,
+  vm: { cpu: 1, memoryMiB: 2048, image: "base-linux" },
+} as const;
+
 export const orchardMachines = {
   "macos-latest": {
     os: "darwin",
@@ -5,18 +18,23 @@ export const orchardMachines = {
     arch: "arm64",
     slots: "org.cirruslabs.tart-vms",
   },
-  "linux-latest": {
-    os: "linux",
-    runtime: "vetu",
-    arch: "amd64",
-    slots: "org.openci.vetu-vms",
+  "linux-small": linuxSmall,
+  "linux-medium": {
+    ...linuxPlatform,
+    vm: { cpu: 2, memoryMiB: 4096, image: "base-linux" },
   },
+  // Old jobs retain their stored machine when retried.
+  "linux-latest": linuxSmall,
 } as const;
 
 export type WorkerMachine = keyof typeof orchardMachines;
 
 export function isWorkerMachine(value: unknown): value is WorkerMachine {
-  return value === "macos-latest" || value === "linux-latest";
+  return typeof value === "string" && Object.hasOwn(orchardMachines, value);
+}
+
+export function isLinuxMachine(value: unknown): boolean {
+  return isWorkerMachine(value) && orchardMachines[value].os === "linux";
 }
 
 export function isDispatchEnabled(
@@ -25,7 +43,7 @@ export function isDispatchEnabled(
 ): boolean {
   return (
     job.runsOn === "macos-latest" ||
-    (job.runsOn === "linux-latest" &&
+    (isLinuxMachine(job.runsOn) &&
       !!linuxRepositoryId &&
       job.repositoryId === linuxRepositoryId &&
       job.githubBaseUrl === "https://github.com")

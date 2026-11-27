@@ -147,17 +147,19 @@ export class QueuedChecks {
       context.connection.accountId,
       signal,
     );
-    await this.store.record(jobId, owner, runNumber, checkRunId);
-    // Cancellation may race the POST. Save the ID first so a retry can finish it.
-    const latest = (await this.store.read(jobId)).job;
-    if (latest?.status === "CANCELLED" && current.status !== "CANCELLED")
-      await this.github.queuedCheck(
-        latest,
-        externalId,
-        checkRunId,
-        context.connection.accountId,
-        signal,
-      );
+    if (checkRunId) {
+      await this.store.record(jobId, owner, runNumber, checkRunId);
+      // Cancellation may race the POST. Save the ID first so a retry can finish it.
+      const latest = (await this.store.read(jobId)).job;
+      if (latest?.status === "CANCELLED" && current.status !== "CANCELLED")
+        await this.github.queuedCheck(
+          latest,
+          externalId,
+          checkRunId,
+          context.connection.accountId,
+          signal,
+        );
+    }
     // Keep the lease after ambiguous failures; only successful publication releases it.
     await this.store.release(jobId, owner);
   }

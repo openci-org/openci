@@ -70,9 +70,9 @@ For an open PR, the executor checks GitHub's test merge commit against the curre
 `refs/heads/<base branch>` fetched from the verified repository, rather than
 `pr.base.sha`, which can retain an older PR snapshot. Its parents must match that base SHA
 and the job's saved head SHA. A current candidate is used immediately. The
-execution pins the resolved merge SHA for checkout
-and writes the full checked-out SHA to its checkout log. GitHub Checks use the
-job's saved head SHA. Push builds check out their saved commit SHA.
+execution pins the resolved merge SHA for checkout and records it on the dispatch.
+GitHub Checks use that test merge, with the workflow's existing check name.
+Push builds check out and report on their saved commit SHA.
 
 If the candidate is stale or unavailable (including HTTP 404), or GitHub has not
 finished calculating mergeability, the executor immediately rereads the PR,
@@ -91,8 +91,9 @@ The fallback fetches the full ancestry of the pinned base and head into the
 disposable VM and uses `git merge-tree --write-tree` and `git commit-tree` to
 create a two-parent test merge. VM images need Git 2.38 or later. Conflicts stop
 checkout before workflow execution or team-secret reads. The generated commit
-exists only in that VM: nothing is pushed and no PR or branch is modified. GitHub
-Checks still attach to the saved head. Full-history fetch and merge happen during
+exists only in that VM. The result appears in a comment on the originating PR.
+The completion reporter can publish the Check once GitHub provides a test merge
+for the same base branch, base SHA and head SHA. Full-history fetch and merge happen during
 the ordinary billed checkout step, including an attempt that finds conflicts;
 the source verification happens before billing admission.
 
@@ -103,7 +104,7 @@ when available. `pull_request_checkout_local_merge_selected` records the same
 diagnostics when the fallback is chosen; `pull_request_checkout_local_merge_completed`
 also records the generated checkout SHA. The checkout log identifies the fallback,
 pinned base/head and final SHA. Keep these for GitHub Support investigations. Only the fixed
-failure message is published to Checks and the dashboard; response bodies,
+failure message is published on the PR and the dashboard; response bodies,
 credentials and unvalidated identifiers are excluded.
 
 The workflow receives `OPENCI_CONTEXT`, schema version 1 JSON containing the
@@ -122,8 +123,8 @@ the Node test suites.
 
 Merge conflicts, closed or updated PRs, and unavailable test merge commits produce
 fixed messages explaining how to retry. The executor persists the message on the
-dispatch before cleanup so recovery can publish it to GitHub Checks and the job's
-`failureSummary`. The dashboard shows and copies this summary even when checkout
+dispatch before cleanup. The completion reporter posts checkout conflicts directly
+on the affected PR. The dashboard shows and copies the job's `failureSummary` even when checkout
 failed before a run or log step existed. Raw API exceptions are never published.
 Cancellation and later attempts clear the job summary, and an obsolete dispatch
 cannot overwrite a newer attempt's summary. Deploy the additive schema and
@@ -213,10 +214,12 @@ Lost billing observations expire at the last observed time and set
 `measurementIncomplete`, instead of charging through the outage. An unstarted
 admission must expire before it can be closed. Interrupted steps become terminal.
 Queued GitHub Checks are created by the mutation consumer and their IDs copied
-into reservations. Execution and recovery update that same check, including
-failures before BuildRun creation. An unnumbered billing-blocked attempt leaves
-it queued. Legacy reservations without a check retain the fallback creation
-path, reconciled by App ID and the stable run `external_id`.
+into reservations. Execution and recovery reconcile the check on the tested SHA.
+An unnumbered billing-blocked attempt leaves its check queued. When a PR check
+from an earlier deployment belongs to the shared head, the executor creates a
+check on the verified test merge. If two PRs share even the synthetic merge SHA,
+their results go to their respective conversation comments. The shared merge
+gets an `action_required` check until a distinct merge can be checked.
 The sweep also compares actual Orchard VM names with closed attempts, deleting
 VMs whose creation was committed after the original request disconnected and
 cleanup had already observed 404. Active attempts and unrelated VMs are excluded.
@@ -268,8 +271,8 @@ consistent with the dispatcher/planner:
 | `BILLING_COMPLIMENTARY_PRO_TEAM_IDS`              | Optional comma-separated approved team IDs                                                 |
 | `SECRET_MANAGER_PROJECT`                          | Project ID or number exactly matching stored secret version paths; defaults to FSC project |
 
-The Linux pilot uses `base-linux` on Vetu/amd64 with the reservation's explicit
-6 vCPUs and 7168 MiB. Checkout and workflow execution share
+The Linux pilot uses `base-linux` on Vetu/amd64 with the vCPU count and memory
+from the job's reservation. Checkout and workflow execution share
 `/home/admin/openci-build`. The image supplies FVM, Java 17 and the Android SDK.
 The executor supplies workflow context and skips team secret retrieval for Linux.
 Hosted teams in `BILLING_COMPLIMENTARY_PRO_TEAM_IDS` use their existing allowance.

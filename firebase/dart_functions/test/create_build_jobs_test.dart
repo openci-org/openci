@@ -238,6 +238,61 @@ void main() {
       }
     },
   );
+
+  group('pathsIgnore', () {
+    for (final pullRequest in [false, true]) {
+      final trigger = pullRequest ? 'pullRequest' : 'push';
+      for (final (description, paths, isComplete, shouldRun) in [
+        ('skips excluded changes', ['docs/guide.md', 'README.md'], true, false),
+        (
+          'runs for mixed changes',
+          ['docs/guide.md', 'lib/app.dart'],
+          true,
+          true,
+        ),
+        ('skips an empty diff', <String>[], true, false),
+        ('runs for an incomplete diff', <String>[], false, true),
+      ]) {
+        test('$trigger $description', () async {
+          final store = _Store()..pullRequest = pullRequest;
+          var comparisons = 0;
+          final planner = BuildJobPlanner(
+            store: store,
+            fetchWorkflows: (_) async => [
+              OpenCIFile(
+                name: 'ci.dart',
+                path: 'openci/ci.dart',
+                content:
+                    '''
+void main() {
+  OpenCI.init(workflowName: 'CI', ciTriggers: [
+    CITrigger.$trigger(branch: 'develop', pathsIgnore: ['docs/**', 'README.md']),
+  ]);
+}
+''',
+              ),
+            ],
+            fetchChangedFiles: (_) async {
+              comparisons++;
+              return ChangedFilesResult(
+                paths: paths,
+                isComplete: isComplete,
+                headSha: 'a' * 40,
+                baseSha: 'b' * 40,
+              );
+            },
+            observePullRequest: (_) async => PullRequestObservation.current,
+          );
+
+          expect(await planner.process('task'), 'created');
+          expect(comparisons, 1);
+          expect(store.published, hasLength(shouldRun ? 1 : 0));
+          expect(store.skipped, hasLength(shouldRun ? 0 : 1));
+        });
+      }
+    }
+  });
+
   test(
     'reconciles a committed transaction with a lost response and does not replan on redelivery',
     () async {

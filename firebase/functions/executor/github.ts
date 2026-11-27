@@ -1,4 +1,5 @@
 import { PullRequestCheckoutError, type MergeReadinessDiagnostics } from "./checkout_error.js";
+import { retirePullRequestCheck, writeCheckRun, type CheckTarget } from "./check_run.js";
 import {
   qrPublicationFailure,
   publishPullRequestQrCodes,
@@ -23,12 +24,39 @@ import { dashboardOrigin, dashboardRunUrl } from "../links.js";
 const installationPermissions = {
   checkout: { contents: "read" },
   checks: { checks: "write" },
+  pr_checks: { checks: "write", pull_requests: "read" },
   pull_request: { pull_requests: "read", contents: "read" },
   pr_comment: { contents: "read", pull_requests: "write" },
   pr_qr: { contents: "write", pull_requests: "write" },
 } as const;
 
 const checkoutVerificationTimeoutMs = 30_000;
+
+type CheckoutJob = Pick<
+  Job,
+  | "githubBaseUrl"
+  | "installationId"
+  | "repositoryId"
+  | "owner"
+  | "repo"
+  | "pullRequestNumber"
+  | "commitSha"
+  | "branch"
+>;
+type PullRequestBase = { baseSha: string; baseBranch: string };
+type CheckDispatch = Pick<
+  Dispatch,
+  | "checkRunId"
+  | "runId"
+  | "teamId"
+  | "resultAt"
+  | "updatedAt"
+  | "failureSummary"
+  | "pullRequestBaseSha"
+  | "pullRequestBaseBranch"
+  | "pullRequestMergeSha"
+>;
+type ResolvedCheckTarget = CheckTarget | { sha: null; pending: boolean };
 
 export interface GitHubOptions {
   appId: string;
@@ -211,7 +239,7 @@ export class ExecutionGitHub {
   }
 
   /** Report a persisted path exclusion without manufacturing a job or run. */
-  async skippedCheck(check: SkippedCheck): Promise<string> {
+  async skippedCheck(check: SkippedCheck): Promise<string | null> {
     const connection = check.connection;
     const leaseExpiresAt = Date.parse(check.leaseExpiresAt ?? "");
     if (
@@ -232,7 +260,7 @@ export class ExecutionGitHub {
         installationId: connection.installationId,
         repositoryId: connection.repositoryId,
       },
-      "checks",
+      check.webhookTask.eventType === "pull_request" ? "pr_checks" : "checks",
     );
     const { data: repo } = await request("GET /repos/{owner}/{repo}", {
       owner: check.owner,
@@ -243,65 +271,63 @@ export class ExecutionGitHub {
       (connection.repositoryId != null && String(repo.id) !== connection.repositoryId)
     )
       throw new Error("Skipped Check repository owner changed");
-    const externalId = `skipped-${check.id}`;
-    let checkRunId: number | bigint | undefined = check.checkRunId
-      ? BigInt(check.checkRunId)
-      : undefined;
-    if (!checkRunId) {
-      for (let page = 1; ; page++) {
-        const { data } = await request("GET /repos/{owner}/{repo}/commits/{ref}/check-runs", {
-          owner: check.owner,
-          repo: check.repo,
-          ref: check.commitSha,
-          check_name: check.workflowName,
-          filter: "all",
-          per_page: 100,
-          page,
-        });
-        const existing = data.check_runs.find(
-          (candidate) =>
-            candidate.external_id === externalId &&
-            String(candidate.app?.id) === this.options.appId,
-        );
-        if (existing) {
-          checkRunId = existing.id;
-          break;
-        }
-        if (page * 100 >= data.total_count) break;
-        if (page >= 20) throw new Error("Skipped Check reconciliation limit exceeded");
+    const event = check.webhookTask;
+    let target: ResolvedCheckTarget = { sha: check.commitSha };
+    if (event.eventType === "pull_request") {
+      const payload = JSON.parse(event.payload);
+      const number = payload.number;
+      const baseBranch = payload.pull_request?.base?.ref;
+      if (
+        !Number.isSafeInteger(number) ||
+        number < 1 ||
+        typeof baseBranch !== "string" ||
+        !baseBranch
+      )
+        throw new Error("Invalid skipped pull request");
+      target = await this.checkTarget(
+        {
+          ...check,
+          installationId: connection.installationId,
+          repositoryId: connection.repositoryId,
+          pullRequestNumber: String(number),
+        },
+        connection.accountId,
+        { expectedBase: { baseSha: check.comparisonBaseSha, baseBranch } },
+      );
+      if (target.sha === null) {
+        if (target.pending) throw new Error("Pull request test merge is pending");
+        return null;
       }
+    } else if (event.eventType !== "push" && event.eventType !== "release") {
+      throw new Error("Unknown skipped Check event");
     }
-    // Leave room for the bounded ten-second GitHub write and database ack.
-    if (leaseExpiresAt - Date.now() < 15000)
-      throw new Error("Skipped Check reporting lease expired");
-    const result = {
-      status: "completed" as const,
-      conclusion: "skipped" as const,
-      started_at: new Date(Number(check.createdAt) * 1000).toISOString(),
-      completed_at: new Date(Number(check.createdAt) * 1000).toISOString(),
-      output: {
-        title: "No matching changed paths",
-        summary: "The complete changed-file list did not match this workflow's paths conditions.",
+    const at = new Date(Number(check.createdAt) * 1000).toISOString();
+    return writeCheckRun(
+      request,
+      this.options.appId,
+      { owner: check.owner, repo: check.repo },
+      target,
+      check.workflowName,
+      `skipped-${check.id}`,
+      check.checkRunId,
+      {
+        status: "completed",
+        conclusion: "skipped",
+        started_at: at,
+        completed_at: at,
+        output: {
+          title: "No matching changed paths",
+          summary: "The complete changed-file list did not match this workflow's paths conditions.",
+        },
       },
-    };
-    if (checkRunId) {
-      await request("PATCH /repos/{owner}/{repo}/check-runs/{check_run_id}", {
-        owner: check.owner,
-        repo: check.repo,
-        check_run_id: checkRunId,
-        ...result,
-      });
-      return String(checkRunId);
-    }
-    const { data } = await request("POST /repos/{owner}/{repo}/check-runs", {
-      owner: check.owner,
-      repo: check.repo,
-      name: check.workflowName,
-      head_sha: check.commitSha,
-      external_id: externalId,
-      ...result,
-    });
-    return String(data.id);
+      {
+        retryPending: true,
+        beforeWrite: () => {
+          if (leaseExpiresAt - Date.now() < 15000)
+            throw new Error("Skipped Check reporting lease expired");
+        },
+      },
+    );
   }
 
   async isCommitOnDevelop(job: Job, commitSha: string, signal: AbortSignal): Promise<boolean> {
@@ -328,7 +354,11 @@ export class ExecutionGitHub {
   }
 
   /** Use a current GitHub merge, or immediately prepare a verified local merge. */
-  async resolveCheckout(job: Job, accountId: string, signal?: AbortSignal): Promise<CheckoutPlan> {
+  async resolveCheckout(
+    job: CheckoutJob,
+    accountId: string,
+    signal?: AbortSignal,
+  ): Promise<CheckoutPlan> {
     signal?.throwIfAborted();
     if (!/^[a-fA-F0-9]{40}(?:[a-fA-F0-9]{24})?$/.test(job.commitSha ?? ""))
       throw new Error("Invalid commit SHA");
@@ -541,19 +571,141 @@ export class ExecutionGitHub {
     };
   }
 
-  async check(job: Job, dispatch: Dispatch, outcome?: Outcome): Promise<string> {
-    const { request } = await this.client(job, "checks");
+  private async checkTarget(
+    job: CheckoutJob,
+    accountId: string | undefined,
+    options: {
+      checkout?: CheckoutPlan;
+      expectedBase?: PullRequestBase;
+      mergeSha?: string | null;
+      signal?: AbortSignal;
+    } = {},
+  ): Promise<ResolvedCheckTarget> {
+    if (job.pullRequestNumber === null) return { sha: job.commitSha! };
+    const headSha = job.commitSha!.toLowerCase();
+    const number = Number(job.pullRequestNumber);
+    if (!Number.isSafeInteger(number) || number < 1) throw new Error("Invalid pull request number");
+    const pullRequest = {
+      number,
+      headSha,
+      pullsUrl: `${this.options.baseUrl}/${encodeURIComponent(job.owner)}/${encodeURIComponent(job.repo)}/pulls`,
+    };
+    if (options.mergeSha && options.expectedBase) {
+      if (
+        !/^[a-f0-9]{40}(?:[a-f0-9]{24})?$/.test(options.mergeSha) ||
+        options.mergeSha === headSha ||
+        options.mergeSha === options.expectedBase.baseSha
+      )
+        throw new Error("Invalid stored pull request test merge");
+      return {
+        sha: options.mergeSha,
+        pullRequest: { ...pullRequest, baseSha: options.expectedBase.baseSha },
+      };
+    }
+    if (!accountId) return { sha: null, pending: false };
+    let checkout: CheckoutPlan;
+    try {
+      checkout = options.checkout ?? (await this.resolveCheckout(job, accountId, options.signal));
+    } catch (error) {
+      if (!(error instanceof PullRequestCheckoutError)) throw error;
+      return {
+        sha: null,
+        pending: ["not_ready", "stale_merge", "unavailable"].includes(error.reason),
+      };
+    }
+    if (
+      checkout.event !== "pull_request" ||
+      checkout.number !== Number(job.pullRequestNumber) ||
+      checkout.headSha !== job.commitSha?.toLowerCase()
+    )
+      throw new Error("Unverified pull request check");
+    const { expectedBase } = options;
+    if (
+      expectedBase &&
+      (checkout.baseSha !== expectedBase.baseSha || checkout.baseBranch !== expectedBase.baseBranch)
+    )
+      return { sha: null, pending: false };
+    if (checkout.checkoutSha === null) return { sha: null, pending: true };
+    if (checkout.checkoutSha === checkout.headSha || checkout.checkoutSha === checkout.baseSha)
+      throw new Error("Invalid pull request test merge");
+    return {
+      sha: checkout.checkoutSha,
+      pullRequest: { ...pullRequest, baseSha: checkout.baseSha },
+    };
+  }
+
+  async check(
+    job: Job,
+    dispatch: CheckDispatch,
+    outcome?: Outcome,
+    context?: {
+      accountId: string;
+      checkout?: CheckoutPlan;
+      retryPending?: boolean;
+      beforeWrite?: () => Promise<void>;
+      signal?: AbortSignal;
+    },
+  ): Promise<string | null> {
+    const expectedBase =
+      dispatch.pullRequestBaseSha && dispatch.pullRequestBaseBranch
+        ? { baseSha: dispatch.pullRequestBaseSha, baseBranch: dispatch.pullRequestBaseBranch }
+        : undefined;
+    // An unconfigured or historical attempt has no verified base to attest to.
+    // The completion reporter can still deliver its diagnostic directly to the PR.
+    const target =
+      job.pullRequestNumber !== null &&
+      !context?.checkout &&
+      !expectedBase &&
+      outcome !== "card_required"
+        ? ({ sha: null, pending: false } as const)
+        : await this.checkTarget(job, context?.accountId, {
+            ...context,
+            expectedBase,
+            mergeSha: dispatch.pullRequestMergeSha,
+          });
+    const repo = { owner: job.owner, repo: job.repo };
+    if (target.sha === null) {
+      if (dispatch.checkRunId && job.pullRequestNumber) {
+        const { request } = await this.client(job, "checks", context?.signal);
+        await retirePullRequestCheck(
+          request,
+          repo,
+          this.options.appId,
+          Number(job.pullRequestNumber),
+          job.commitSha!,
+          dispatch.checkRunId,
+        );
+      }
+      if (target.pending && context?.retryPending)
+        throw new Error("Pull request test merge is pending");
+      return null;
+    }
+    const { request } = await this.client(
+      job,
+      target.pullRequest ? "pr_checks" : "checks",
+      context?.signal,
+    );
+    const details_url = dashboardRunUrl(this.options.dashboardOrigin, job.id);
     if (outcome === "card_required") {
       const url = new URL("/billing", this.options.billingOrigin ?? "https://dashboard.openci.org");
       url.searchParams.set("teamId", dispatch.teamId!);
-      const externalId = queuedCheckExternalId(job);
-      return this.writeCheck(request, job, externalId, dispatch.checkRunId, {
-        status: "queued",
-        output: {
-          title: "Waiting for a billing card",
-          summary: `[Register a billing card for this team](${url.href}). This job will resume automatically once the card is confirmed.`,
+      return writeCheckRun(
+        request,
+        this.options.appId,
+        repo,
+        target,
+        job.workflowName!,
+        queuedCheckExternalId(job),
+        dispatch.checkRunId,
+        {
+          status: "queued",
+          details_url,
+          output: {
+            title: "Waiting for a billing card",
+            summary: `[Register a billing card for this team](${url.href}). This job will resume automatically once the card is confirmed.`,
+          },
         },
-      });
+      );
     }
     const output =
       outcome === "failure" && dispatch.failureSummary
@@ -570,9 +722,12 @@ export class ExecutionGitHub {
               ? `Build result: ${outcome.replaceAll("_", " ")}.`
               : "The build is running.",
           };
-    return this.writeCheck(
+    return writeCheckRun(
       request,
-      job,
+      this.options.appId,
+      repo,
+      target,
+      job.workflowName!,
       dispatch.runId!,
       dispatch.checkRunId,
       outcome
@@ -580,9 +735,11 @@ export class ExecutionGitHub {
             status: "completed",
             conclusion: outcome === "blocked" ? "neutral" : outcome,
             completed_at: new Date(dispatch.resultAt ?? dispatch.updatedAt).toISOString(),
+            details_url,
             output,
           }
-        : { status: "in_progress", output },
+        : { status: "in_progress", details_url, output },
+      { retryPending: context?.retryPending, beforeWrite: context?.beforeWrite },
     );
   }
 
@@ -593,8 +750,12 @@ export class ExecutionGitHub {
     savedId: string | null,
     accountId: string,
     signal: AbortSignal,
-  ): Promise<string> {
-    const { request } = await this.client(job, "checks", signal);
+  ): Promise<string | null> {
+    const { request } = await this.client(
+      job,
+      job.pullRequestNumber === null ? "checks" : "pr_checks",
+      signal,
+    );
     const { data: repo } = await request("GET /repos/{owner}/{repo}", {
       owner: job.owner,
       repo: job.repo,
@@ -605,9 +766,40 @@ export class ExecutionGitHub {
       repo.full_name.toLowerCase() !== `${job.owner}/${job.repo}`.toLowerCase()
     )
       throw new Error("Repository does not belong to the connected installation");
-    return this.writeCheck(
+    const cancellingPullRequest = job.status === "CANCELLED" && !!job.pullRequestNumber;
+    if (cancellingPullRequest && savedId) {
+      await retirePullRequestCheck(
+        request,
+        { owner: job.owner, repo: job.repo },
+        this.options.appId,
+        Number(job.pullRequestNumber),
+        job.commitSha!,
+        savedId,
+        undefined,
+        "The build was cancelled.",
+      );
+      return null;
+    }
+    const target = await this.checkTarget(job, accountId, { signal });
+    if (target.sha === null) {
+      if (savedId && job.pullRequestNumber)
+        await retirePullRequestCheck(
+          request,
+          { owner: job.owner, repo: job.repo },
+          this.options.appId,
+          Number(job.pullRequestNumber),
+          job.commitSha!,
+          savedId,
+        );
+      return null;
+    }
+    const details_url = dashboardRunUrl(this.options.dashboardOrigin, job.id);
+    return writeCheckRun(
       request,
-      job,
+      this.options.appId,
+      { owner: job.owner, repo: job.repo },
+      target,
+      job.workflowName!,
       externalId,
       savedId,
       job.status === "CANCELLED"
@@ -615,72 +807,15 @@ export class ExecutionGitHub {
             status: "completed",
             conclusion: "cancelled",
             completed_at: new Date().toISOString(),
+            details_url,
             output: { title: job.workflowName!, summary: "The build was cancelled." },
           }
         : {
             status: "queued",
+            details_url,
             output: { title: job.workflowName!, summary: "Waiting for the build to start." },
           },
+      { existingOnly: cancellingPullRequest },
     );
-  }
-
-  private async writeCheck(
-    request: (typeof import("@octokit/request"))["request"],
-    job: Job,
-    externalId: string,
-    savedId: string | null | undefined,
-    state: {
-      status: "queued" | "in_progress" | "completed";
-      conclusion?: "success" | "failure" | "cancelled" | "timed_out" | "neutral";
-      completed_at?: string;
-      output?: { title: string; summary: string };
-    },
-  ): Promise<string> {
-    let checkRunId: number | bigint | undefined = savedId ? BigInt(savedId) : undefined;
-    if (!checkRunId) {
-      // GitHub create-check-run has no idempotency key. Reconcile external_id
-      // after a lost response before attempting another create.
-      for (let page = 1; ; page++) {
-        const { data } = await request("GET /repos/{owner}/{repo}/commits/{ref}/check-runs", {
-          owner: job.owner,
-          repo: job.repo,
-          ref: job.commitSha!,
-          check_name: job.workflowName,
-          filter: "all",
-          per_page: 100,
-          page,
-        });
-        const existing = data.check_runs.find(
-          (check) =>
-            check.external_id === externalId && String(check.app?.id) === this.options.appId,
-        );
-        if (existing) {
-          checkRunId = existing.id;
-          break;
-        }
-        if (page * 100 >= data.total_count) break;
-        if (page >= 20) throw new Error("Check reconciliation limit exceeded");
-      }
-    }
-    const params = {
-      owner: job.owner,
-      repo: job.repo,
-      details_url: dashboardRunUrl(this.options.dashboardOrigin, job.id),
-      ...state,
-    };
-    if (checkRunId) {
-      await request("PATCH /repos/{owner}/{repo}/check-runs/{check_run_id}", {
-        ...params,
-        check_run_id: checkRunId,
-      });
-      return String(checkRunId);
-    }
-    const created = await request("POST /repos/{owner}/{repo}/check-runs", {
-      ...params,
-      name: job.workflowName,
-      head_sha: job.commitSha!,
-      external_id: externalId,
-    });
-    return String(created.data.id);
   }
 }

@@ -342,7 +342,8 @@ test("Linux and macOS minutes are totaled by runner before the monthly charge is
   const usage = async () => (await sdk.getTeamMonthlyUsage(dc, vars)).data.statement;
 
   // Two 99.5-minute runs bill as 199 minutes for the team.
-  await seedMonthlyRuns(f, [run(5970000), run(5970000)], linux, anchor);
+  await seedMonthlyRuns(f, [run(5970000)], { runsOn: "linux-small" }, anchor);
+  await seedMonthlyRuns(f, [run(5970000)], { runsOn: "linux-medium" }, anchor);
   const first = await usage();
   assert.equal(first.billableMinutes, "199");
   assert.equal(first.amountJpyTaxIncluded, "19");

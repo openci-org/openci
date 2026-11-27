@@ -13,7 +13,7 @@ Environment=VETU_HOME=/var/lib/openci-worker/.vetu
 Environment=PATH=/opt/openci/vetu/bin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 Environment=VETU_VM_SLOTS=2
 StandardInput=file:/etc/openci/orchard-worker.token
-ExecStart=/usr/local/bin/orchard worker run https://orchard-controller-gcp.tail4beb18.ts.net:443 --name scaleway-ryzen --resources org.openci.vetu-vms=${VETU_VM_SLOTS} --default-cpu 6 --default-memory 7168 --bootstrap-token-stdin --no-pki
+ExecStart=/usr/local/bin/orchard worker run https://orchard-controller-gcp.tail4beb18.ts.net:443 --name scaleway-ryzen --resources org.openci.vetu-vms=${VETU_VM_SLOTS} --default-cpu 1 --default-memory 2048 --bootstrap-token-stdin --no-pki
 Restart=always
 RestartSec=10
 UMask=0077

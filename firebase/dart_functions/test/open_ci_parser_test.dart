@@ -4,11 +4,13 @@ import 'package:test/test.dart';
 void main() {
   group('workflow machine', () {
     for (final entry in {
-      'MachineType.linuxLatest': 'linux-latest',
-      '.linuxLatest': 'linux-latest',
-      '(sdk.MachineType.linuxLatest)': 'linux-latest',
+      'MachineType.linuxSmall': 'linux-small',
+      '.linuxSmall': 'linux-small',
+      '(sdk.MachineType.linuxMedium)': 'linux-medium',
+      '.linuxMedium': 'linux-medium',
       'MachineType.macOsLatest': 'macos-latest',
       'existingMachineVariable': 'macos-latest',
+      'legacyConfig.machine()': 'macos-latest',
     }.entries) {
       test('parses ${entry.key}', () {
         final workflow = parseOpenCIWorkflow(
@@ -16,6 +18,27 @@ void main() {
           'ci.dart',
         )!;
         expect(workflow.machine.runsOn, entry.value);
+      });
+    }
+    for (final source in [
+      'MachineType.linuxLatest',
+      '(sdk.MachineType.linuxLatest)',
+      '.linuxLatest',
+      'MachineType.linuxLatest(cpu: 1)',
+      '.linuxSmall(cpu: 2)',
+      'MachineType.linuxMedium()',
+      '(MachineType.linuxSmall)(cpu: 4)',
+      'sdk.MachineType.linuxMedium.call(cpu: 2)',
+      'const MachineType.linuxLatest(cpu: 1)',
+    ]) {
+      test('reports invalid machine request $source', () {
+        expect(
+          () => parseOpenCIWorkflow(
+            "void main() { OpenCI.init(workflowName: 'CI', ciTriggers: [], machine: $source); }",
+            'ci.dart',
+          ),
+          throwsA(isA<WorkflowConfigurationException>()),
+        );
       });
     }
     test('reports an unknown MachineType member', () {
@@ -68,6 +91,7 @@ void main() {
       'tag: null',
       "branch: 'main'",
       "paths: ['lib/**']",
+      "pathsIgnore: ['docs/**']",
     ]) {
       test('rejects unsupported or nonliteral release arguments: $args', () {
         expect(
@@ -442,6 +466,59 @@ void main() {
           );
         });
       }
+    }
+  });
+
+  group('pathsIgnore', () {
+    for (final type in ['push', 'pullRequest']) {
+      test('$type reads a const exclusion filter', () {
+        final trigger = _parseTrigger(
+          "const CITrigger.$type(pathsIgnore: ['docs/**'], branch: 'main', paths: null)",
+        )!.ciTriggers.single;
+
+        expect(trigger.pathsIgnore, ['docs/**']);
+        expect(trigger.hasPathFilter, isTrue);
+      });
+
+      test('$type treats a null exclusion filter as omitted', () {
+        final trigger = _parseTrigger(
+          "CITrigger.$type(branch: 'main', pathsIgnore: null)",
+        )!.ciTriggers.single;
+
+        expect(trigger.hasPathFilter, isFalse);
+      });
+
+      test('$type rejects both filters on one trigger', () {
+        expect(
+          () => _parseTrigger(
+            "CITrigger.$type(branch: 'main', paths: ['lib/**'], pathsIgnore: ['docs/**'])",
+          ),
+          throwsA(
+            isA<WorkflowConfigurationException>().having(
+              (error) => error.message,
+              'message',
+              contains('CITrigger.$type accepts either paths or pathsIgnore'),
+            ),
+          ),
+        );
+      });
+    }
+
+    for (final value in ['[]', 'patterns', "['../docs/**']", "['!docs/**']"]) {
+      test('rejects invalid exclusion patterns: $value', () {
+        expect(
+          () => _parseTrigger(
+            "CITrigger.push(branch: 'main', pathsIgnore: $value)",
+          ),
+          throwsA(
+            isA<WorkflowConfigurationException>().having(
+              (error) => error.message,
+              'message',
+              contains('ci.dart: CITrigger.push.pathsIgnore'),
+            ),
+          ),
+        );
+      });
     }
   });
 

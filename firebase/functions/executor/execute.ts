@@ -24,7 +24,7 @@ import type { ExecutionBilling } from "./billing.js";
 import type { ExecutionGitHub } from "./github.js";
 import type { ExecutionLogs } from "./logs.js";
 import type { OrchardExecutor } from "./orchard.js";
-import { isDispatchEnabled } from "../worker_machine.js";
+import { isDispatchEnabled, isLinuxMachine } from "../worker_machine.js";
 
 export interface ExecutorDependencies {
   store: Pick<ExecutionStore, keyof ExecutionStore>;
@@ -86,8 +86,27 @@ export async function cleanupExecution(
     (dispatch.outcome !== "blocked" || state.run?.runNumber)
   ) {
     validateJob(state.job, dispatch);
-    const checkRunId = await github.check(state.job, dispatch, dispatch.outcome as Outcome);
-    await store.check(id, checkRunId);
+    const connection =
+      state.job.pullRequestNumber &&
+      !dispatch.pullRequestMergeSha &&
+      (dispatch.pullRequestBaseSha || dispatch.outcome === "card_required")
+        ? (
+            await store.context(
+              state.job.teamId!,
+              state.job.installationId!,
+              github.options.appId,
+              github.options.apiBaseUrl,
+              state.job.repositoryId,
+            )
+          ).connection
+        : undefined;
+    const checkRunId = await github.check(
+      state.job,
+      dispatch,
+      dispatch.outcome as Outcome,
+      connection ? { accountId: connection.accountId } : undefined,
+    );
+    if (checkRunId || dispatch.checkRunId) await store.check(id, checkRunId, dispatch.checkRunId);
   }
   await store.complete(id, jobId, owner);
 }
@@ -160,7 +179,7 @@ export async function executeBuild(
   try {
     signal.throwIfAborted();
     validateJob(job, dispatch);
-    const linuxPilot = dispatch.runsOn === "linux-latest";
+    const linuxPilot = isLinuxMachine(dispatch.runsOn);
     if (linuxPilot && !configuration.selfHosted && !configuration.complimentary.has(job.teamId!)) {
       const approvedFirstRun =
         configuration.linuxPostpaidPilotJobId === job.id &&
@@ -205,12 +224,23 @@ export async function executeBuild(
       signal.throwIfAborted();
       await billing.admit(dispatch, period);
     }
-    const runNumber = await store.configure(dispatch, executorId, configuration.selfHosted);
+    const runNumber = await store.configure(
+      dispatch,
+      executorId,
+      configuration.selfHosted,
+      resolvedCheckout,
+    );
     if (!configuration.selfHosted) {
       await billing.start(dispatch);
       billingStarted = true;
     }
-    await store.check(dispatch.id, await github.check(job, dispatch));
+    const checkRunId = await github.check(job, dispatch, undefined, {
+      accountId: context.connection.accountId,
+      checkout: resolvedCheckout,
+      signal,
+    });
+    if (checkRunId || dispatch.checkRunId)
+      await store.check(dispatch.id, checkRunId, dispatch.checkRunId);
     const logs = dependencies.logs(dispatch);
     const step = async (id: string, order: number, work: () => Promise<void>) => {
       signal.throwIfAborted();

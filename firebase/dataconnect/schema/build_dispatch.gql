@@ -27,6 +27,7 @@ type BuildJobDispatch
   vmName: String! @unique
   # Older reservations predate the Linux pool and run on macOS.
   runsOn: String
+  orchardWorker: String
   cpu: Int!
   memoryMiB: Int! @col(name: "memory_mib")
   image: String!
@@ -39,6 +40,11 @@ type BuildJobDispatch
   executorId: String
   runId: String
   checkRunId: String
+  # The base actually selected at checkout, including when Git built the merge locally.
+  pullRequestBaseSha: String
+  pullRequestBaseBranch: String
+  # Only a verified GitHub test merge can receive a Check.
+  pullRequestMergeSha: String
   startedAt: Timestamp
   heartbeatAt: Timestamp
   deadlineAt: Timestamp

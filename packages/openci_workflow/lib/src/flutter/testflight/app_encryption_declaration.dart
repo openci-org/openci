@@ -109,16 +109,16 @@ Future<_Declaration?> _findDeclaration(
   String appId,
   Map<String, Object> answers,
 ) async {
-  final path = '/v1/apps/$appId/appEncryptionDeclarations';
   final cursors = <String>{};
   String? cursor;
   _Declaration? pending;
   do {
     final page = await client.request(
       'GET',
-      path,
+      '/v1/appEncryptionDeclarations',
       'find app encryption declaration',
       query: {
+        'filter[app]': appId,
         'fields[appEncryptionDeclarations]':
             '${answers.keys.join(',')},platform,exempt,appEncryptionDeclarationState',
         'limit': '200',
@@ -152,7 +152,7 @@ Future<_Declaration?> _findDeclaration(
     }
     final next = page['links']?['next'];
     if (next == null) return pending;
-    // Forward only the cursor, to the same app-scoped endpoint.
+    // Keep the original app filter when following Apple's pagination cursor.
     cursor = next is String
         ? Uri.tryParse(next)?.queryParameters['cursor']
         : null;

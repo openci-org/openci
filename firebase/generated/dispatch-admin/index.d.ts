@@ -203,6 +203,9 @@ export interface ConfigureBuildExecutionRunVariables {
   id: string;
   jobId: string;
   executorId: string;
+  pullRequestBaseSha?: string | null;
+  pullRequestBaseBranch?: string | null;
+  pullRequestMergeSha?: string | null;
 }
 
 export interface ConfirmBuildVmDeletedData {
@@ -234,6 +237,7 @@ export interface GetActiveBuildDispatchesData {
     activeJobId?: string | null;
     vmName: string;
     runsOn?: string | null;
+    orchardWorker?: string | null;
     cpu: number;
     memoryMiB: number;
     image: string;
@@ -246,6 +250,9 @@ export interface GetActiveBuildDispatchesData {
     executorId?: string | null;
     runId?: string | null;
     checkRunId?: string | null;
+    pullRequestBaseSha?: string | null;
+    pullRequestBaseBranch?: string | null;
+    pullRequestMergeSha?: string | null;
     startedAt?: TimestampString | null;
     heartbeatAt?: TimestampString | null;
     deadlineAt?: TimestampString | null;
@@ -285,6 +292,7 @@ export interface GetBuildDispatchStateData {
     activeJobId?: string | null;
     vmName: string;
     runsOn?: string | null;
+    orchardWorker?: string | null;
     cpu: number;
     memoryMiB: number;
     image: string;
@@ -297,6 +305,9 @@ export interface GetBuildDispatchStateData {
     executorId?: string | null;
     runId?: string | null;
     checkRunId?: string | null;
+    pullRequestBaseSha?: string | null;
+    pullRequestBaseBranch?: string | null;
+    pullRequestMergeSha?: string | null;
     startedAt?: TimestampString | null;
     heartbeatAt?: TimestampString | null;
     deadlineAt?: TimestampString | null;
@@ -326,6 +337,7 @@ export interface GetBuildExecutionData {
     activeJobId?: string | null;
     vmName: string;
     runsOn?: string | null;
+    orchardWorker?: string | null;
     cpu: number;
     memoryMiB: number;
     image: string;
@@ -338,6 +350,9 @@ export interface GetBuildExecutionData {
     executorId?: string | null;
     runId?: string | null;
     checkRunId?: string | null;
+    pullRequestBaseSha?: string | null;
+    pullRequestBaseBranch?: string | null;
+    pullRequestMergeSha?: string | null;
     startedAt?: TimestampString | null;
     heartbeatAt?: TimestampString | null;
     deadlineAt?: TimestampString | null;
@@ -517,6 +532,11 @@ export interface GetPullRequestCommentExecutionData {
     teamId?: string | null;
     runId?: string | null;
     checkRunId?: string | null;
+    pullRequestBaseSha?: string | null;
+    pullRequestBaseBranch?: string | null;
+    pullRequestMergeSha?: string | null;
+    resultAt?: TimestampString | null;
+    updatedAt: TimestampString;
     outcome?: string | null;
     failureSummary?: string | null;
     createdAt: TimestampString;
@@ -590,6 +610,7 @@ export interface GetRecoverableBuildExecutionsData {
     activeJobId?: string | null;
     vmName: string;
     runsOn?: string | null;
+    orchardWorker?: string | null;
     cpu: number;
     memoryMiB: number;
     image: string;
@@ -602,6 +623,9 @@ export interface GetRecoverableBuildExecutionsData {
     executorId?: string | null;
     runId?: string | null;
     checkRunId?: string | null;
+    pullRequestBaseSha?: string | null;
+    pullRequestBaseBranch?: string | null;
+    pullRequestMergeSha?: string | null;
     startedAt?: TimestampString | null;
     heartbeatAt?: TimestampString | null;
     deadlineAt?: TimestampString | null;
@@ -693,7 +717,8 @@ export interface RecordBuildExecutionCheckData {
 
 export interface RecordBuildExecutionCheckVariables {
   id: string;
-  checkRunId: string;
+  checkRunId?: string | null;
+  previousCheckRunId?: string | null;
 }
 
 export interface RecordBuildExecutionResultData {
@@ -705,6 +730,18 @@ export interface RecordBuildExecutionResultVariables {
   executorId: string;
   outcome: string;
   failureSummary?: string | null;
+}
+
+export interface RecordCompletedPullRequestCheckData {
+  buildJobDispatch_updateMany: number;
+  buildJob_updateMany: number;
+}
+
+export interface RecordCompletedPullRequestCheckVariables {
+  id: string;
+  jobId: string;
+  runId: string;
+  checkRunId: string;
 }
 
 export interface RecordQueuedBuildCheckData {
@@ -782,6 +819,7 @@ export interface ReserveBuildJobDispatchVariables {
   jobId: string;
   vmName: string;
   runsOn?: string;
+  orchardWorker?: string | null;
   linuxRepositoryIds?: Int64String[];
   cpu: number;
   memoryMiB: number;
@@ -1218,6 +1256,18 @@ export function getPullRequestCommentExecution(
   vars: GetPullRequestCommentExecutionVariables,
   options?: OperationOptions,
 ): Promise<ExecuteOperationResponse<GetPullRequestCommentExecutionData>>;
+
+/** Generated Node Admin SDK operation action function for the 'RecordCompletedPullRequestCheck' Mutation. Allow users to execute without passing in DataConnect. */
+export function recordCompletedPullRequestCheck(
+  dc: DataConnect,
+  vars: RecordCompletedPullRequestCheckVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<RecordCompletedPullRequestCheckData>>;
+/** Generated Node Admin SDK operation action function for the 'RecordCompletedPullRequestCheck' Mutation. Allow users to pass in custom DataConnect instances. */
+export function recordCompletedPullRequestCheck(
+  vars: RecordCompletedPullRequestCheckVariables,
+  options?: OperationOptions,
+): Promise<ExecuteOperationResponse<RecordCompletedPullRequestCheckData>>;
 
 /** Generated Node Admin SDK operation action function for the 'GetPullRequestFailureLog' Query. Allow users to execute without passing in DataConnect. */
 export function getPullRequestFailureLog(

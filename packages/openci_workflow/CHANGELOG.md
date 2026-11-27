@@ -1,8 +1,21 @@
 # Changelog
 
-## 0.6.4
+## 0.8.1
 
 - Add `flutter.buildWeb()` for release builds, with an optional `noPub` flag to skip dependency resolution.
+
+## 0.8.0
+
+- **Breaking:** Replace `MachineType.linuxLatest` with `MachineType.linuxSmall` (1 vCPU, 2 GiB) or `MachineType.linuxMedium` (2 vCPUs, 4 GiB). Update exhaustive switches to handle both presets.
+
+## 0.7.0
+
+- **Removed `shorebird.releaseApk()`.** Use `shorebird.releaseAndroid()` to get the absolute `apkPath` and `aabPath` from one Shorebird release. For APK-only distribution, read the returned record's `apkPath` field.
+
+## 0.6.4
+
+- Look up TestFlight encryption declarations by filtering the declaration collection by app ID. This fixes an App Store Connect `404 PATH_ERROR` during export compliance.
+- Include Apple's error code, title, and detail in TestFlight API failures so the CI log explains which request failed and why.
 
 ## 0.6.3
 

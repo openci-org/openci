@@ -41,153 +41,12 @@ $CITriggerCopyWith(CITrigger _, $Res Function(CITrigger) __);
 }
 
 
-/// Adds pattern-matching-related methods to [CITrigger].
-extension CITriggerPatterns on CITrigger {
-/// A variant of `map` that fallback to returning `orElse`.
-///
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case final Subclass value:
-///     return ...;
-///   case _:
-///     return orElse();
-/// }
-/// ```
-
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( _PushCITrigger value)?  push,TResult Function( _PullRequestCITrigger value)?  pullRequest,TResult Function( _ReleaseCITrigger value)?  release,required TResult orElse(),}){
-final _that = this;
-switch (_that) {
-case _PushCITrigger() when push != null:
-return push(_that);case _PullRequestCITrigger() when pullRequest != null:
-return pullRequest(_that);case _ReleaseCITrigger() when release != null:
-return release(_that);case _:
-  return orElse();
-
-}
-}
-/// A `switch`-like method, using callbacks.
-///
-/// Callbacks receives the raw object, upcasted.
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case final Subclass value:
-///     return ...;
-///   case final Subclass2 value:
-///     return ...;
-/// }
-/// ```
-
-@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( _PushCITrigger value)  push,required TResult Function( _PullRequestCITrigger value)  pullRequest,required TResult Function( _ReleaseCITrigger value)  release,}){
-final _that = this;
-switch (_that) {
-case _PushCITrigger():
-return push(_that);case _PullRequestCITrigger():
-return pullRequest(_that);case _ReleaseCITrigger():
-return release(_that);case _:
-  throw StateError('Unexpected subclass');
-
-}
-}
-/// A variant of `map` that fallback to returning `null`.
-///
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case final Subclass value:
-///     return ...;
-///   case _:
-///     return null;
-/// }
-/// ```
-
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( _PushCITrigger value)?  push,TResult? Function( _PullRequestCITrigger value)?  pullRequest,TResult? Function( _ReleaseCITrigger value)?  release,}){
-final _that = this;
-switch (_that) {
-case _PushCITrigger() when push != null:
-return push(_that);case _PullRequestCITrigger() when pullRequest != null:
-return pullRequest(_that);case _ReleaseCITrigger() when release != null:
-return release(_that);case _:
-  return null;
-
-}
-}
-/// A variant of `when` that fallback to an `orElse` callback.
-///
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case Subclass(:final field):
-///     return ...;
-///   case _:
-///     return orElse();
-/// }
-/// ```
-
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( String branch,  List<String>? paths)?  push,TResult Function( String branch,  List<String>? paths)?  pullRequest,TResult Function( String tag)?  release,required TResult orElse(),}) {final _that = this;
-switch (_that) {
-case _PushCITrigger() when push != null:
-return push(_that.branch,_that.paths);case _PullRequestCITrigger() when pullRequest != null:
-return pullRequest(_that.branch,_that.paths);case _ReleaseCITrigger() when release != null:
-return release(_that.tag);case _:
-  return orElse();
-
-}
-}
-/// A `switch`-like method, using callbacks.
-///
-/// As opposed to `map`, this offers destructuring.
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case Subclass(:final field):
-///     return ...;
-///   case Subclass2(:final field2):
-///     return ...;
-/// }
-/// ```
-
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( String branch,  List<String>? paths)  push,required TResult Function( String branch,  List<String>? paths)  pullRequest,required TResult Function( String tag)  release,}) {final _that = this;
-switch (_that) {
-case _PushCITrigger():
-return push(_that.branch,_that.paths);case _PullRequestCITrigger():
-return pullRequest(_that.branch,_that.paths);case _ReleaseCITrigger():
-return release(_that.tag);case _:
-  throw StateError('Unexpected subclass');
-
-}
-}
-/// A variant of `when` that fallback to returning `null`
-///
-/// It is equivalent to doing:
-/// ```dart
-/// switch (sealedClass) {
-///   case Subclass(:final field):
-///     return ...;
-///   case _:
-///     return null;
-/// }
-/// ```
-
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( String branch,  List<String>? paths)?  push,TResult? Function( String branch,  List<String>? paths)?  pullRequest,TResult? Function( String tag)?  release,}) {final _that = this;
-switch (_that) {
-case _PushCITrigger() when push != null:
-return push(_that.branch,_that.paths);case _PullRequestCITrigger() when pullRequest != null:
-return pullRequest(_that.branch,_that.paths);case _ReleaseCITrigger() when release != null:
-return release(_that.tag);case _:
-  return null;
-
-}
-}
-
-}
 
 /// @nodoc
 
 
 class _PushCITrigger extends CITrigger {
-  const _PushCITrigger({required this.branch, final  List<String>? paths}): _paths = paths,super._();
+  const _PushCITrigger({required this.branch, final  List<String>? paths, final  List<String>? pathsIgnore}): _paths = paths,_pathsIgnore = pathsIgnore,super._();
 
 
  final  String branch;
@@ -196,6 +55,15 @@ class _PushCITrigger extends CITrigger {
   final value = _paths;
   if (value == null) return null;
   if (_paths is EqualUnmodifiableListView) return _paths;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(value);
+}
+
+ final  List<String>? _pathsIgnore;
+ List<String>? get pathsIgnore {
+  final value = _pathsIgnore;
+  if (value == null) return null;
+  if (_pathsIgnore is EqualUnmodifiableListView) return _pathsIgnore;
   // ignore: implicit_dynamic_type
   return EqualUnmodifiableListView(value);
 }
@@ -211,16 +79,16 @@ _$PushCITriggerCopyWith<_PushCITrigger> get copyWith => __$PushCITriggerCopyWith
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _PushCITrigger&&(identical(other.branch, branch) || other.branch == branch)&&const DeepCollectionEquality().equals(other._paths, _paths));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _PushCITrigger&&(identical(other.branch, branch) || other.branch == branch)&&const DeepCollectionEquality().equals(other._paths, _paths)&&const DeepCollectionEquality().equals(other._pathsIgnore, _pathsIgnore));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,branch,const DeepCollectionEquality().hash(_paths));
+int get hashCode => Object.hash(runtimeType,branch,const DeepCollectionEquality().hash(_paths),const DeepCollectionEquality().hash(_pathsIgnore));
 
 @override
 String toString() {
-  return 'CITrigger.push(branch: $branch, paths: $paths)';
+  return 'CITrigger.push(branch: $branch, paths: $paths, pathsIgnore: $pathsIgnore)';
 }
 
 
@@ -231,7 +99,7 @@ abstract mixin class _$PushCITriggerCopyWith<$Res> implements $CITriggerCopyWith
   factory _$PushCITriggerCopyWith(_PushCITrigger value, $Res Function(_PushCITrigger) _then) = __$PushCITriggerCopyWithImpl;
 @useResult
 $Res call({
- String branch, List<String>? paths
+ String branch, List<String>? paths, List<String>? pathsIgnore
 });
 
 
@@ -248,10 +116,11 @@ class __$PushCITriggerCopyWithImpl<$Res>
 
 /// Create a copy of CITrigger
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') $Res call({Object? branch = null,Object? paths = freezed,}) {
+@pragma('vm:prefer-inline') $Res call({Object? branch = null,Object? paths = freezed,Object? pathsIgnore = freezed,}) {
   return _then(_PushCITrigger(
 branch: null == branch ? _self.branch : branch // ignore: cast_nullable_to_non_nullable
 as String,paths: freezed == paths ? _self._paths : paths // ignore: cast_nullable_to_non_nullable
+as List<String>?,pathsIgnore: freezed == pathsIgnore ? _self._pathsIgnore : pathsIgnore // ignore: cast_nullable_to_non_nullable
 as List<String>?,
   ));
 }
@@ -263,7 +132,7 @@ as List<String>?,
 
 
 class _PullRequestCITrigger extends CITrigger {
-  const _PullRequestCITrigger({required this.branch, final  List<String>? paths}): _paths = paths,super._();
+  const _PullRequestCITrigger({required this.branch, final  List<String>? paths, final  List<String>? pathsIgnore}): _paths = paths,_pathsIgnore = pathsIgnore,super._();
 
 
  final  String branch;
@@ -272,6 +141,15 @@ class _PullRequestCITrigger extends CITrigger {
   final value = _paths;
   if (value == null) return null;
   if (_paths is EqualUnmodifiableListView) return _paths;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(value);
+}
+
+ final  List<String>? _pathsIgnore;
+ List<String>? get pathsIgnore {
+  final value = _pathsIgnore;
+  if (value == null) return null;
+  if (_pathsIgnore is EqualUnmodifiableListView) return _pathsIgnore;
   // ignore: implicit_dynamic_type
   return EqualUnmodifiableListView(value);
 }
@@ -287,16 +165,16 @@ _$PullRequestCITriggerCopyWith<_PullRequestCITrigger> get copyWith => __$PullReq
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _PullRequestCITrigger&&(identical(other.branch, branch) || other.branch == branch)&&const DeepCollectionEquality().equals(other._paths, _paths));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _PullRequestCITrigger&&(identical(other.branch, branch) || other.branch == branch)&&const DeepCollectionEquality().equals(other._paths, _paths)&&const DeepCollectionEquality().equals(other._pathsIgnore, _pathsIgnore));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,branch,const DeepCollectionEquality().hash(_paths));
+int get hashCode => Object.hash(runtimeType,branch,const DeepCollectionEquality().hash(_paths),const DeepCollectionEquality().hash(_pathsIgnore));
 
 @override
 String toString() {
-  return 'CITrigger.pullRequest(branch: $branch, paths: $paths)';
+  return 'CITrigger.pullRequest(branch: $branch, paths: $paths, pathsIgnore: $pathsIgnore)';
 }
 
 
@@ -307,7 +185,7 @@ abstract mixin class _$PullRequestCITriggerCopyWith<$Res> implements $CITriggerC
   factory _$PullRequestCITriggerCopyWith(_PullRequestCITrigger value, $Res Function(_PullRequestCITrigger) _then) = __$PullRequestCITriggerCopyWithImpl;
 @useResult
 $Res call({
- String branch, List<String>? paths
+ String branch, List<String>? paths, List<String>? pathsIgnore
 });
 
 
@@ -324,10 +202,11 @@ class __$PullRequestCITriggerCopyWithImpl<$Res>
 
 /// Create a copy of CITrigger
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') $Res call({Object? branch = null,Object? paths = freezed,}) {
+@pragma('vm:prefer-inline') $Res call({Object? branch = null,Object? paths = freezed,Object? pathsIgnore = freezed,}) {
   return _then(_PullRequestCITrigger(
 branch: null == branch ? _self.branch : branch // ignore: cast_nullable_to_non_nullable
 as String,paths: freezed == paths ? _self._paths : paths // ignore: cast_nullable_to_non_nullable
+as List<String>?,pathsIgnore: freezed == pathsIgnore ? _self._pathsIgnore : pathsIgnore // ignore: cast_nullable_to_non_nullable
 as List<String>?,
   ));
 }

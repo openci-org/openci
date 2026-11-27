@@ -23,9 +23,10 @@ This is a SQL Connect API, not a new callable Function or REST router.
 
 ## Contract
 
-- Jobs using `macos-latest` or `linux-latest` can be retried after `SUCCESS`,
-  `FAILURE`, `CANCELLED` or `TIMED_OUT`. Retried Linux jobs retain their
-  machine and follow the [pilot repository setting](BUILD_DISPATCH.md#configuration-and-rollout).
+- Jobs using `macos-latest`, `linux-small` or `linux-medium` can be retried
+  after `SUCCESS`, `FAILURE`, `CANCELLED` or `TIMED_OUT`. A retry uses the same
+  preset. Historical `linux-latest` jobs retry at the Small size. Linux jobs
+  follow the [pilot repository setting](BUILD_DISPATCH.md#configuration-and-rollout).
 - The transaction changes the job to `QUEUED` and increments `retryCount` once.
   Its response is `{ retried: 1, result: { job: ... } }`. Acceptance means queued;
   capacity, current GitHub checkout validation and normal billing admission still

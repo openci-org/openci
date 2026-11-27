@@ -143,9 +143,18 @@ appears, run `orchard pause worker scaleway-ryzen`. Verify the pause and an
 empty VM inventory for this worker before removing the override, reloading
 systemd and restarting the service. The paused worker should advertise
 `vetu`, `amd64`, two `org.openci.vetu-vms` slots, and 12 logical cores.
-Each VM gets 6 vCPUs and 7 GiB, leaving 1560 MiB of the host's 15896 MiB
-for Linux and the hypervisor. Confirm the dispatch rollout before resuming the worker.
+Linux Small uses 1 vCPU and 2 GiB of RAM, matching the worker defaults.
+Linux Medium uses 2 vCPUs and 4 GiB. Confirm the dispatch rollout before
+resuming the worker.
 [Internal Linux dispatch settings](../../firebase/functions/BUILD_DISPATCH.md#configuration-and-rollout)
+
+## Countryroad Linux worker
+
+Install the Linux worker service with the countryroad override at
+`/etc/systemd/system/openci-linux-worker.service.d/20-countryroad.conf`.
+The `countryroad-worker` account connects over the Tailnet. The host advertises
+two slots, 14 logical cores and 13,312 MiB to Orchard. Workflow VMs use the
+resources of the selected Linux preset. [Countryroad systemd override](openci-linux-worker-countryroad.conf)
 
 ## Tailnet access
 

@@ -46,7 +46,7 @@ class AppStoreConnectClient {
       request.headers['Content-Type'] = 'application/json';
       request.body = jsonEncode(body);
     }
-    final response = await _send(request, action, timeout);
+    final response = await _send(request, action, timeout, apiToken: token);
     try {
       final body = jsonDecode(response.body);
       if (body is Map<String, dynamic>) return body;
@@ -75,8 +75,9 @@ class AppStoreConnectClient {
   Future<http.Response> _send(
     http.BaseRequest request,
     String action,
-    Duration timeout,
-  ) async {
+    Duration timeout, {
+    String? apiToken,
+  }) async {
     request.followRedirects = false;
     final http.Response response;
     try {
@@ -91,17 +92,82 @@ class AppStoreConnectClient {
       throw StateError('App Store Connect $action request failed.');
     }
     if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw AppStoreConnectHttpException(action, response.statusCode);
+      // Only authenticated JSON API requests return App Store Connect errors.
+      // A storage response can echo private upload headers or a signed URL.
+      throw AppStoreConnectHttpException(
+        action,
+        response.statusCode,
+        details: apiToken == null
+            ? ''
+            : _errorSummary(response.bodyBytes, apiToken),
+      );
     }
     return response;
+  }
+
+  String _errorSummary(List<int> bytes, String token) {
+    if (bytes.length > 64 * 1024) return '';
+    final Object? body;
+    try {
+      body = jsonDecode(utf8.decode(bytes));
+    } on FormatException {
+      return '';
+    }
+    if (body is! Map || body['errors'] is! List) return '';
+
+    String safeText(String text) {
+      if (text.contains('PRIVATE KEY-----')) return '[REDACTED]';
+      for (final secret in [
+        token,
+        _keys.privateKeyBase64,
+        _keys.issuerId,
+        _keys.keyId,
+      ]) {
+        text = text.replaceAll(secret, '[REDACTED]');
+      }
+      text = text
+          .replaceAll(_credentialsOrUrl, '[REDACTED]')
+          .replaceAll(RegExp(r'[\x00-\x20\x7f-\x9f\u2028\u2029]+'), ' ')
+          .trim();
+      return text.length > 512 ? '${text.substring(0, 512)}…' : text;
+    }
+
+    final summaries = <String>[];
+    for (final error in (body['errors'] as List).whereType<Map>()) {
+      final code = error['code'];
+      if (code is! String || !_errorCode.hasMatch(code)) continue;
+      summaries.add(
+        [
+          '[${safeText(code)}]',
+          for (final field in ['title', 'detail'])
+            if (error[field] case final String value
+                when value.trim().isNotEmpty)
+              safeText(value),
+        ].join(' '),
+      );
+      if (summaries.length == 5) break;
+    }
+    return summaries.join(' | ');
   }
 
   void close() => _client.close();
 }
 
+final _errorCode = RegExp(r'^[A-Z0-9][A-Z0-9._-]{0,99}$');
+final _credentialsOrUrl = RegExp(
+  r'''https?://[^\s<>"']+|\bBearer\s+[\w.~+/=-]+|\beyJ[\w-]+\.[\w-]+\.[\w-]+''',
+  caseSensitive: false,
+);
+
 class AppStoreConnectHttpException extends HttpException {
-  AppStoreConnectHttpException(String action, this.statusCode)
-    : super('App Store Connect $action failed (HTTP $statusCode).');
+  AppStoreConnectHttpException(
+    String action,
+    this.statusCode, {
+    String details = '',
+  }) : super(
+         'App Store Connect $action failed (HTTP $statusCode). $details'
+             .trimRight(),
+       );
 
   final int statusCode;
 }

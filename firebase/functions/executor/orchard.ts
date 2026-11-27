@@ -3,7 +3,7 @@ import { request as httpsRequest } from "node:https";
 import { setTimeout as delay } from "node:timers/promises";
 import WebSocket from "ws";
 import type { Dispatch, Stream } from "./model.js";
-import { isWorkerMachine, orchardMachines } from "../worker_machine.js";
+import { isWorkerMachine, orchardMachines, orchardWorkerNameLabel } from "../worker_machine.js";
 
 export interface OrchardOptions {
   url: string;
@@ -105,6 +105,7 @@ export class OrchardExecutor {
     const machine = dispatch.runsOn ?? "macos-latest";
     if (!isWorkerMachine(machine)) throw new Error("Unsupported Orchard machine");
     const platform = orchardMachines[machine];
+    const target = platform.os === "linux" ? dispatch.orchardWorker : null;
     const useWorkerMemory = this.options.useWorkerMemory && machine === "macos-latest";
     if (useWorkerMemory) await this.checkWorkerMemory(dispatch.memoryMiB, signal);
     let status: number | undefined;
@@ -118,9 +119,10 @@ export class OrchardExecutor {
             image: dispatch.image,
             headless: true,
             os: platform.os,
-            ...(machine === "linux-latest"
+            ...(platform.os === "linux"
               ? { runtime: platform.runtime, arch: platform.arch, imagePullPolicy: "IfNotPresent" }
               : {}),
+            ...(target ? { labels: { [orchardWorkerNameLabel]: target } } : {}),
             cpu: dispatch.cpu,
             memory: useWorkerMemory ? 0 : dispatch.memoryMiB,
             resources: {
@@ -148,12 +150,15 @@ export class OrchardExecutor {
     if (
       observed.name !== dispatch.vmName ||
       observed.image !== dispatch.image ||
-      (machine === "linux-latest" &&
+      (platform.os === "linux" &&
         (observed.os !== platform.os ||
           observed.runtime !== platform.runtime ||
           observed.arch !== platform.arch ||
           observed.cpu !== dispatch.cpu ||
-          observed.memory !== dispatch.memoryMiB))
+          observed.memory !== dispatch.memoryMiB ||
+          (target &&
+            (record(observed.labels ?? {})[orchardWorkerNameLabel] !== target ||
+              (observed.worker && observed.worker !== target)))))
     )
       throw new Error("VM creation could not be confirmed");
   }

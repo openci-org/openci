@@ -41,6 +41,7 @@ abstract class ParsedCITrigger with _$ParsedCITrigger {
     required String type, // 'push', 'pullRequest', or 'release'
     required String branch, // The tag pattern for release triggers.
     List<String>? paths,
+    List<String>? pathsIgnore,
   }) = _ParsedCITrigger;
 
   bool matches({
@@ -61,17 +62,25 @@ abstract class ParsedCITrigger with _$ParsedCITrigger {
     return _matchesBranch(this.branch, branch);
   }
 
-  /// Whether any repository-relative changed path matches [paths].
+  bool get hasPathFilter => paths != null || pathsIgnore != null;
+
+  /// Whether a repository-relative changed path satisfies the path filter.
   ///
   /// An omitted condition accepts all changes, including an empty diff.
   bool matchesChangedFiles(List<String> changedPaths) {
-    final patterns = paths;
+    final patterns = paths ?? pathsIgnore;
     if (patterns == null) return true;
 
-    return patterns.any((pattern) {
-      final glob = Glob(pattern, context: p.posix, caseSensitive: true);
-      return changedPaths.any(glob.matches);
-    });
+    final globs = patterns.map(
+      (pattern) => Glob(pattern, context: p.posix, caseSensitive: true),
+    );
+    if (paths != null) {
+      return globs.any((glob) => changedPaths.any(glob.matches));
+    }
+    final ignored = globs.toList();
+    return changedPaths.any(
+      (path) => !ignored.any((glob) => glob.matches(path)),
+    );
   }
 
   static bool _matchesBranch(String pattern, String branch) {
@@ -176,8 +185,30 @@ class _OpenCIInitVisitor extends RecursiveAstVisitor<void> {
     }
   }
 
+  bool _isMachineReference(Expression? expression) =>
+      switch (expression?.unParenthesized) {
+        SimpleIdentifier(name: 'MachineType') ||
+        PrefixedIdentifier(prefix: SimpleIdentifier(name: 'MachineType')) ||
+        PrefixedIdentifier(identifier: SimpleIdentifier(name: 'MachineType')) ||
+        DotShorthandPropertyAccess() => true,
+        PropertyAccess(:final target) => _isMachineReference(target),
+        _ => false,
+      };
+
   MachineType _extractMachine(Expression expression) {
-    final name = switch (expression.unParenthesized) {
+    final value = expression.unParenthesized;
+    final callsPreset = switch (value) {
+      DotShorthandInvocation() || InstanceCreationExpression() => true,
+      MethodInvocation(:final target) => _isMachineReference(target),
+      InvocationExpression(:final function) => _isMachineReference(function),
+      _ => false,
+    };
+    if (callsPreset) {
+      throw WorkflowConfigurationException(
+        '$fileName: machine must be a MachineType enum literal',
+      );
+    }
+    final name = switch (value) {
       PrefixedIdentifier(
         prefix: SimpleIdentifier(name: 'MachineType'),
         :final identifier,
@@ -282,21 +313,38 @@ class _OpenCIInitVisitor extends RecursiveAstVisitor<void> {
 
     String? branch;
     List<String>? paths;
+    List<String>? pathsIgnore;
     for (final argument in argumentList.arguments) {
       if (argument is! NamedExpression) continue;
-      if (argument.name.label.name == 'branch') {
-        branch = _extractStringValue(argument.expression);
-      } else if (argument.name.label.name == 'paths') {
-        paths = _extractPaths(argument.expression, triggerType!);
+      switch (argument.name.label.name) {
+        case 'branch':
+          branch = _extractStringValue(argument.expression);
+        case 'paths':
+          paths = _extractPaths(argument.expression, '$triggerType.paths');
+        case 'pathsIgnore':
+          pathsIgnore = _extractPaths(
+            argument.expression,
+            '$triggerType.pathsIgnore',
+          );
       }
     }
+    if (paths != null && pathsIgnore != null) {
+      throw WorkflowConfigurationException(
+        '$fileName: CITrigger.$triggerType accepts either paths or pathsIgnore',
+      );
+    }
     if (branch == null) return null;
-    return ParsedCITrigger(type: triggerType!, branch: branch, paths: paths);
+    return ParsedCITrigger(
+      type: triggerType!,
+      branch: branch,
+      paths: paths,
+      pathsIgnore: pathsIgnore,
+    );
   }
 
-  List<String>? _extractPaths(Expression expression, String triggerType) {
+  List<String>? _extractPaths(Expression expression, String triggerFilter) {
     Never invalid(String reason) => throw WorkflowConfigurationException(
-      '$fileName: CITrigger.$triggerType.paths $reason',
+      '$fileName: CITrigger.$triggerFilter $reason',
     );
 
     if (expression is NullLiteral) return null;

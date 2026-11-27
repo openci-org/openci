@@ -108,21 +108,25 @@ included; draft saves, edits, and tag pushes do not match. The workflow must be
 present at the tagged commit. OpenCI resolves lightweight and annotated tags to
 a commit before reading workflows and queues that exact commit for checkout.
 Release runs currently expose the pinned tag as `PushContext.branch`
-(`refs/tags/<tag>`). Release triggers do not support `paths`.
-This requires SDK 0.5.0, the updated webhook/planner deployment, and a GitHub App
-subscribed to Release events with Contents read permission.
+(`refs/tags/<tag>`). Path filters apply to push and pull request triggers.
+Release triggers require SDK 0.5.0, the updated webhook and planner, and a
+GitHub App subscribed to Release events with Contents read permission.
 
 ### Choose a worker
 
-Workflows use macOS by default. In a repository enabled for the hosted Linux
-pilot, pass the machine as an enum literal to run on an amd64 Linux VM via
-Orchard and Vetu. Team secrets are unavailable in the Linux pilot.
+Workflows use macOS by default. Repositories enabled for the hosted Linux pilot
+can choose one of two amd64 VMs. Team secrets are unavailable in the Linux pilot.
+
+| Machine                   | vCPUs |   RAM |
+| ------------------------- | ----: | ----: |
+| `MachineType.linuxSmall`  |     1 | 2 GiB |
+| `MachineType.linuxMedium` |     2 | 4 GiB |
 
 ```dart
 final ci = await OpenCI.init(
   workflowName: 'Linux Tests',
   ciTriggers: [CITrigger.push(branch: 'main')],
-  machine: MachineType.linuxLatest,
+  machine: MachineType.linuxSmall,
 );
 await ci.dart.test();
 ```
@@ -202,8 +206,8 @@ cancellation on the next heartbeat (normally about 15 seconds), followed by VM
 cleanup and a cancelled GitHub Check.
 
 Other PRs (including other PRs in a stack), push jobs, completed jobs and
-same-commit reruns remain independent. A workflow skipped by `paths` does not
-cancel a previous run. Runs created while the option was disabled are preserved.
+same-commit reruns remain independent. Path filtering preserves previous runs
+of a skipped workflow. Runs created while the option was disabled are preserved.
 Leave it disabled for deployment workflows that must finish. Local execution is
 unaffected.
 
@@ -224,15 +228,30 @@ CITrigger.pullRequest(
 )
 ```
 
-Paths are relative to the repository root and case-sensitive. `*` matches within
-a path segment and `**` matches recursively. The trigger runs when its event and
-branch match and at least one changed file matches any pattern. Include shared
-dependencies and workflow configuration files that can affect the build. Omit
-`paths` to run on every matching event and branch.
+With `paths`, the trigger runs when its event and branch match and at least one
+changed file matches a pattern. Include shared dependencies and workflow
+configuration files that can affect the build.
 
-Use a nonempty literal list of patterns. Computed lists, negative patterns,
-absolute paths, and `..` segments are not supported. Pull requests use the full
-PR diff; pushes use the before/after diff. Deleted paths and both names of renamed
+### Skip changes that only match ignored paths
+
+With a compatible SDK and OpenCI planner, use `pathsIgnore` on a push or pull
+request trigger. This example skips documentation-only changes.
+
+```dart
+CITrigger.push(
+  branch: 'main',
+  pathsIgnore: ['docs/**', 'README.md'],
+)
+```
+
+At least one changed file outside the ignore patterns is enough to run the
+workflow. Choose one path filter per trigger. Omit both filters to run on every
+matching event and branch. A complete empty diff skips a path-filtered trigger.
+
+Both filters take nonempty literal lists of positive, case-sensitive patterns
+relative to the repository root. `*` matches within a path segment and `**`
+matches recursively. Omit any `..` segments. Pull requests use the full PR diff
+and pushes use the before/after diff. Deleted paths and both names of renamed
 files count as changes. OpenCI skips only when it has a complete changed-file
 list. Incomplete data or temporary retrieval failures run the applicable CI.
 
@@ -563,14 +582,14 @@ The returned path is the single nonempty `.aab` in `build/app/outputs/bundle/rel
 
 By default, the command [registers the release with Shorebird](https://docs.shorebird.dev/code-push/release/). Set `dryRun: true` to build and validate without registering it. Authentication and an unused version/build number are required even for dry runs. Pass the returned `aabPath` to `deployAabToPlayConsole()` or `deployAabToFirebaseAppDistribution()` when ready to upload it.
 
-Create a Shorebird Android release and receive its APK path:
+To build a universal APK and an app bundle in a single Shorebird release, use `releaseAndroid()`.
 
 ```dart
 if (Secrets.shorebirdToken.value.isEmpty) {
   throw StateError('SHOREBIRD_TOKEN must not be empty.');
 }
 
-final apkPath = await openCI.shorebird.releaseApk(
+final artifacts = await openCI.shorebird.releaseAndroid(
   flutterVersion: '3.47.7',
   flavor: 'production',
   dartDefines: {'ENV': 'production'},
@@ -578,9 +597,9 @@ final apkPath = await openCI.shorebird.releaseApk(
 );
 ```
 
-Use the same CLI, Android SDK, token, and Gradle release-signing setup as `releaseAab()`. `releaseApk()` runs `shorebird release android --artifact apk`, which builds both an AAB and a universal APK. `flutterVersion`, `dir`, `flavor`, `dartDefines`, `additionalArguments`, and `dryRun` work as in `releaseAab()`. Shorebird does not support `--split-per-abi`, so the helper rejects it.
+Use the same CLI, Android SDK, token, and Gradle release-signing setup as `releaseAab()`. `releaseAndroid()` runs `shorebird release android --artifact apk`. It accepts the same arguments as `releaseAab()` and requires a universal APK.
 
-The returned absolute path is `build/app/outputs/flutter-apk/app-release.apk`, or `app-<lowercased-flavor>-release.apk` in that directory when a flavor is supplied. The helper requires this standard filename and a nonempty APK after a successful command; it does not select APKs from other flavors or build modes. A successful incremental Gradle build may reuse an existing APK. Set `dryRun: true` with an unused version/build number to build without registering a release. Pass the returned `apkPath` to `deployApkToFirebaseAppDistribution()` when ready to upload it.
+The returned record contains absolute paths to both files. `artifacts.apkPath` points to the nonempty APK in `build/app/outputs/flutter-apk`, named `app-release.apk` or `app-<lowercased-flavor>-release.apk`. `artifacts.aabPath` points to the single nonempty app bundle for the selected variant, as in `releaseAab()`. Pass `artifacts.apkPath` to `deployApkToFirebaseAppDistribution()` and `artifacts.aabPath` to `deployAabToPlayConsole()`.
 
 Upload a built APK to Firebase App Distribution:
 

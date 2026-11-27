@@ -15,7 +15,7 @@ dependencies:
   googleapis_auth: ^2.3.1
   http: ^1.6.0
   openci_shared: ^2.0.0
-  openci_workflow: ^0.6.0
+  openci_workflow: ^0.8.0
   path: ^1.9.1
   shelf: ^1.4.2
 dev_dependencies:

@@ -124,7 +124,7 @@ export interface CompleteSkippedWorkflowCheckData {
 export interface CompleteSkippedWorkflowCheckVariables {
   id: string;
   leaseOwner: string;
-  checkRunId: string;
+  checkRunId?: string | null;
 }
 
 export interface CompleteWebhookTaskData {
@@ -189,6 +189,10 @@ export interface GetSkippedWorkflowCheckData {
     leaseOwner?: string | null;
     leaseExpiresAt?: TimestampString | null;
     createdAt: Int64String;
+    webhookTask: {
+      eventType: string;
+      payload: string;
+    };
     connection: {
       id: string;
       status: string;

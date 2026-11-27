@@ -16,6 +16,7 @@ table inet orchard_tailnet {
       100.80.30.41,   # heaven-osk
       100.87.79.84,   # m1-max-64gb-mbp
       100.89.220.107, # openci-linux-ryzen-pilot
+      100.69.233.85,  # countryroad
       100.117.171.73, # Masahiro MacBook Pro 2
       100.119.229.48  # Masahiro MacBook Pro
     }
@@ -34,6 +35,7 @@ table inet orchard_tailnet {
       fd7a:115c:a1e0::dc39:1e29, # heaven-osk
       fd7a:115c:a1e0::2b39:4f54, # m1-max-64gb-mbp
       fd7a:115c:a1e0::3e39:dc6c, # openci-linux-ryzen-pilot
+      fd7a:115c:a1e0::ee39:e956, # countryroad
       fd7a:115c:a1e0::5639:ab49, # Masahiro MacBook Pro 2
       fd7a:115c:a1e0::be39:e530  # Masahiro MacBook Pro
     }

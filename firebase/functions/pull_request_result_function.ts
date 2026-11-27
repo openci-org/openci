@@ -7,12 +7,17 @@ import { getDispatchDataConnect } from "./dispatch_store.js";
 import { buildGitHub, type ExecutionGitHub } from "./executor/github.js";
 import { ExecutionStore } from "./executor/store.js";
 import { dispatchServiceAccount } from "./function_identity.js";
-import { failedPullRequestComment, resolvedPullRequestComment } from "./pull_request_failure.js";
+import {
+  failedPullRequestComment,
+  resolvedPullRequestComment,
+  successfulPullRequestComment,
+} from "./pull_request_failure.js";
 
 type Store = Pick<
   ExecutionStore,
   | "pullRequestCommentExecution"
   | "pullRequestFailureLog"
+  | "completedCheck"
   | "context"
   | "withPullRequestCommentLease"
 >;
@@ -21,7 +26,7 @@ export async function reportCompletedPullRequest(
   jobId: string,
   dispatchId: string,
   store: Store,
-  github: Pick<ExecutionGitHub, "options" | "postPullRequestResult">,
+  github: Pick<ExecutionGitHub, "options" | "postPullRequestResult" | "check">,
 ) {
   const { job, latest } = await store.pullRequestCommentExecution(jobId);
   if (
@@ -49,18 +54,23 @@ export async function reportCompletedPullRequest(
   const micros = (latest.createdAt.match(/\.(\d+)/u)?.[1] ?? "").padEnd(6, "0").slice(3, 6);
   const order = BigInt(Date.parse(latest.createdAt)) * 1000n + BigInt(micros);
   const signal = AbortSignal.timeout(90_000);
-  await github.postPullRequestResult(
+  const comment = github.postPullRequestResult(
     job,
     connection.accountId,
     order,
     signal,
     (key, work) => store.withPullRequestCommentLease(key, signal, work),
     async (previous, files) => {
-      if (latest.outcome === "success" && !previous) return null;
+      if (latest.outcome === "success" && !previous && latest.checkRunId) return null;
       const current = await store.pullRequestCommentExecution(jobId);
       if (current.latest?.id !== dispatchId || current.job?.status !== job.status) return null;
       if (latest.outcome === "success")
-        return resolvedPullRequestComment(job, latest.checkRunId, previous);
+        return (
+          resolvedPullRequestComment(job, latest.checkRunId, previous) ??
+          (latest.checkRunId
+            ? null
+            : successfulPullRequestComment(job, github.options.dashboardOrigin))
+        );
       const logs = latest.runId
         ? await store.pullRequestFailureLog(jobId, latest.runId)
         : undefined;
@@ -68,6 +78,48 @@ export async function reportCompletedPullRequest(
     },
     [job.workflowJobKey ?? "", job.matrixLabel ?? ""],
   );
+  // A local merge can finish before GitHub creates the matching commit. Retry
+  // the check after releasing the worker, pinned to the base the run actually tested.
+  const reconcile = async () => {
+    if (
+      latest.checkRunId ||
+      !latest.runId ||
+      !latest.pullRequestBaseSha ||
+      !latest.pullRequestBaseBranch
+    )
+      return;
+    const runId = latest.runId;
+    await store.withPullRequestCommentLease(`check:${dispatchId}`, signal, async (renew) => {
+      const isCurrent = async () => {
+        const current = await store.pullRequestCommentExecution(jobId);
+        return (
+          current.latest?.id === dispatchId &&
+          !current.latest.checkRunId &&
+          current.job?.status === job.status
+        );
+      };
+      if (!(await isCurrent())) return;
+      const id = await github.check(
+        job,
+        latest,
+        latest.outcome as "success" | "failure" | "timed_out",
+        {
+          accountId: connection.accountId,
+          retryPending: true,
+          signal,
+          beforeWrite: async () => {
+            await renew();
+            if (!(await isCurrent()))
+              throw new Error("Pull request run changed before check publication");
+          },
+        },
+      );
+      if (id) await store.completedCheck(dispatchId, jobId, runId, id);
+    });
+  };
+  const [checkResult, commentResult] = await Promise.allSettled([reconcile(), comment]);
+  if (checkResult.status === "rejected") throw checkResult.reason;
+  if (commentResult.status === "rejected") throw commentResult.reason;
 }
 
 export const reportPullRequestBuildResult = onMutationExecuted(
