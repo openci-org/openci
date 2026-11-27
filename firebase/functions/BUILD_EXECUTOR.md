@@ -97,6 +97,15 @@ for the same base branch, base SHA and head SHA. Full-history fetch and merge ha
 the ordinary billed checkout step, including an attempt that finds conflicts;
 the source verification happens before billing admission.
 
+On completion, the reporter reads the open PR and its target branch ref. If the
+head and target branch still match and the target SHA has moved, it requests a
+fresh plan for that pair and suppresses the obsolete result comment. Redelivery
+of the completion reuses the same durable request. The planner rechecks the live ref,
+reapplies workflow path filters and reuses the same job keys as a GitHub webhook
+for the same revision. The replacement publishes its own check on the matching
+GitHub test merge. Deploy the webhooks connector and Dart planner before the
+updated completion reporter.
+
 Operator logs record `pull_request_checkout_stale_merge` or
 `pull_request_checkout_not_ready`, with attempt count, elapsed time, the latest
 validated head/base/candidate SHAs and the last PR response's GitHub request ID

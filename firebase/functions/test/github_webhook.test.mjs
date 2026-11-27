@@ -119,6 +119,13 @@ test("acknowledges unsupported events without enqueuing", async () => {
   for (const eventType of ["ping", "issues", "installation"]) {
     assert.equal(await receiveGitHubWebhook(request("{}", { eventType }), d.options), 200);
   }
+  assert.equal(
+    await receiveGitHubWebhook(
+      request('{"action":"openci_base_changed"}', { eventType: "pull_request" }),
+      d.options,
+    ),
+    200,
+  );
   assert.deepEqual(d.deliveries, []);
 });
 

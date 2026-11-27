@@ -34,21 +34,28 @@ export async function pullRequestCommentTarget(
   ) {
     throw new Error("Pull request repository owner changed");
   }
-  const current = async () => {
+  const read = async () => {
     const { data: pr } = await request("GET /repos/{owner}/{repo}/pulls/{pull_number}", {
       ...repo,
       pull_number: number,
     });
-    return (
-      pr.number === number &&
+    return pr.number === number &&
       pr.state === "open" &&
       pr.base.repo.id === target.id &&
       pr.head.repo?.id === target.id &&
       pr.head.sha === job.commitSha
-    );
+      ? pr
+      : null;
   };
-  if (!(await current())) return null;
-  return { repo, number, repositoryId: target.id, current };
+  const pullRequest = await read();
+  if (!pullRequest) return null;
+  return {
+    repo,
+    number,
+    repositoryId: target.id,
+    pullRequest,
+    current: async () => !!(await read()),
+  };
 }
 
 export async function updatePullRequestComment(

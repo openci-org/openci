@@ -29,9 +29,10 @@ class GitHubChangedFiles {
         throw const _Indeterminate('new_branch');
       }
       if (event.isForced) throw const _Indeterminate('force_push');
-      final paths = event.webhook.pullRequestNumber != null
+      final paths =
+          event.webhook.pullRequestNumber != null && !event.isBaseRevalidation
           ? await _pullRequest(event)
-          : await _push(event);
+          : await _compare(event, base);
       return ChangedFilesResult(
         paths: paths.toList()..sort(),
         isComplete: true,
@@ -144,8 +145,7 @@ class GitHubChangedFiles {
     return count;
   }
 
-  Future<Set<String>> _push(PlanningEvent event) async {
-    final base = event.beforeSha!;
+  Future<Set<String>> _compare(PlanningEvent event, String base) async {
     final head = event.webhook.commitSha;
     final data = await _get(
       '${_repo(event)}/compare/$base...$head',
@@ -155,14 +155,26 @@ class GitHubChangedFiles {
     if (data is! Map<String, dynamic>) {
       throw const _Indeterminate('invalid_github_response');
     }
-    // GitHub's comparison uses the merge base. A diverged/rewound push is not
-    // the required before/after tree diff and must run without filtering.
+    // The three-dot diff is the PR's changed files even while its metadata
+    // still describes the old base. A push needs a linear before/after diff.
     if (data['base_commit'] is! Map ||
         data['base_commit']['sha'] != base ||
         data['merge_base_commit'] is! Map ||
-        data['merge_base_commit']['sha'] != base ||
-        !['ahead', 'identical'].contains(data['status']) ||
         (data['status'] == 'identical' && base != head)) {
+      throw _Indeterminate(
+        event.isBaseRevalidation
+            ? 'invalid_github_response'
+            : 'non_linear_push',
+      );
+    }
+    if (event.isBaseRevalidation) {
+      final mergeBase = data['merge_base_commit']['sha'];
+      const statuses = {'ahead', 'behind', 'diverged', 'identical'};
+      if (!isCommitSha(mergeBase) || !statuses.contains(data['status'])) {
+        throw const _Indeterminate('invalid_github_response');
+      }
+    } else if (data['merge_base_commit']['sha'] != base ||
+        !['ahead', 'identical'].contains(data['status'])) {
       throw const _Indeterminate('non_linear_push');
     }
     final files = data['files'];
@@ -170,6 +182,7 @@ class GitHubChangedFiles {
       throw const _Indeterminate('incomplete_file_list');
     }
     if (files.length >= 300) {
+      if (event.isBaseRevalidation) return _pullRequest(event);
       throw const _Indeterminate('github_file_limit');
     }
     final paths = <String>{};

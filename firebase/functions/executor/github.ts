@@ -9,6 +9,7 @@ import {
   hasStatus,
   pullRequestCommentTarget,
   updatePullRequestComment,
+  type GitHubRequest,
   type WithCommentLease,
 } from "./pull_request_comment.js";
 import {
@@ -56,7 +57,33 @@ type CheckDispatch = Pick<
   | "pullRequestBaseBranch"
   | "pullRequestMergeSha"
 >;
-type ResolvedCheckTarget = CheckTarget | { sha: null; pending: boolean };
+type ResolvedCheckTarget =
+  | CheckTarget
+  | { sha: null; reason: "obsolete" | "pending" | "base_changed" };
+
+async function readBaseSha(
+  request: GitHubRequest,
+  repo: { owner: string; repo: string },
+  branch: string,
+  signal: AbortSignal,
+) {
+  const ref = `heads/${branch}`;
+  const { data } = await request("GET /repos/{owner}/{repo}/git/ref/{ref}", {
+    ...repo,
+    ref,
+    request: { signal },
+  }).catch(() => {
+    signal.throwIfAborted();
+    throw new PullRequestCheckoutError("unavailable");
+  });
+  if (
+    data.ref !== `refs/${ref}` ||
+    data.object?.type !== "commit" ||
+    !/^[a-f0-9]{40}(?:[a-f0-9]{24})?$/.test(data.object.sha ?? "")
+  )
+    throw new Error("Untrusted pull request base ref");
+  return data.object.sha;
+}
 
 export interface GitHubOptions {
   appId: string;
@@ -179,6 +206,26 @@ export class ExecutionGitHub {
     }
   }
 
+  async currentPullRequestRevision(job: Job, accountId: string, signal: AbortSignal) {
+    const client = await this.client(job, "pull_request");
+    try {
+      const request = client.request.defaults({ request: { signal } });
+      const target = await pullRequestCommentTarget(request, job, accountId);
+      if (!target) return null;
+      const pr = target.pullRequest;
+      if (!pr.base.ref || !pr.head.ref) throw new Error("Missing pull request branch");
+      const baseSha = await readBaseSha(request, target.repo, pr.base.ref, signal);
+      return {
+        number: target.number,
+        repositoryId: target.repositoryId,
+        head: { ref: pr.head.ref, sha: pr.head.sha },
+        base: { ref: pr.base.ref, sha: baseSha },
+      };
+    } finally {
+      await client.request("DELETE /installation/token");
+    }
+  }
+
   async postPullRequestResult(
     job: Job,
     accountId: string,
@@ -295,7 +342,7 @@ export class ExecutionGitHub {
         { expectedBase: { baseSha: check.comparisonBaseSha, baseBranch } },
       );
       if (target.sha === null) {
-        if (target.pending) throw new Error("Pull request test merge is pending");
+        if (target.reason === "pending") throw new Error("Pull request test merge is pending");
         return null;
       }
     } else if (event.eventType !== "push" && event.eventType !== "release") {
@@ -449,31 +496,20 @@ export class ExecutionGitHub {
         checkDeadline();
         // PR metadata can retain an older base SHA. Pin the current branch
         // even when GitHub has not calculated mergeability or a merge SHA yet.
-        const { data: base } = await client
-          .request("GET /repos/{owner}/{repo}/git/ref/{ref}", {
-            owner: job.owner,
-            repo: job.repo,
-            ref: `heads/${pr.base.ref}`,
-            request: { signal: readinessSignal },
-          })
-          .catch(() => {
-            readinessSignal.throwIfAborted();
-            throw new PullRequestCheckoutError("unavailable");
-          });
-        if (
-          base.ref !== `refs/heads/${pr.base.ref}` ||
-          base.object?.type !== "commit" ||
-          !/^[a-f0-9]{40}(?:[a-f0-9]{24})?$/.test(base.object?.sha ?? "")
-        )
-          throw new Error("Untrusted pull request base ref");
-        observation.baseSha = base.object.sha;
+        const baseSha = await readBaseSha(
+          client.request,
+          { owner: job.owner, repo: job.repo },
+          pr.base.ref,
+          readinessSignal,
+        );
+        observation.baseSha = baseSha;
         const candidate = {
           event: "pull_request" as const,
           number,
           headBranch: pr.head.ref,
           baseBranch: pr.base.ref,
           headSha: pr.head.sha,
-          baseSha: base.object.sha,
+          baseSha,
         };
         checkDeadline();
         const mergeSha = pr.merge_commit_sha;
@@ -502,8 +538,7 @@ export class ExecutionGitHub {
             commit.parents[1].sha === pr.head.sha
           ) {
             observation.mergeBaseSha = commit.parents[0].sha;
-            if (commit.parents[0].sha === base.object.sha)
-              return { ...candidate, checkoutSha: mergeSha };
+            if (commit.parents[0].sha === baseSha) return { ...candidate, checkoutSha: mergeSha };
             readiness.reason = "stale_merge";
           }
         }
@@ -602,7 +637,7 @@ export class ExecutionGitHub {
         pullRequest: { ...pullRequest, baseSha: options.expectedBase.baseSha },
       };
     }
-    if (!accountId) return { sha: null, pending: false };
+    if (!accountId) return { sha: null, reason: "obsolete" };
     let checkout: CheckoutPlan;
     try {
       checkout = options.checkout ?? (await this.resolveCheckout(job, accountId, options.signal));
@@ -610,7 +645,9 @@ export class ExecutionGitHub {
       if (!(error instanceof PullRequestCheckoutError)) throw error;
       return {
         sha: null,
-        pending: ["not_ready", "stale_merge", "unavailable"].includes(error.reason),
+        reason: ["not_ready", "stale_merge", "unavailable"].includes(error.reason)
+          ? "pending"
+          : "obsolete",
       };
     }
     if (
@@ -624,8 +661,11 @@ export class ExecutionGitHub {
       expectedBase &&
       (checkout.baseSha !== expectedBase.baseSha || checkout.baseBranch !== expectedBase.baseBranch)
     )
-      return { sha: null, pending: false };
-    if (checkout.checkoutSha === null) return { sha: null, pending: true };
+      return {
+        sha: null,
+        reason: checkout.baseBranch === expectedBase.baseBranch ? "base_changed" : "obsolete",
+      };
+    if (checkout.checkoutSha === null) return { sha: null, reason: "pending" };
     if (checkout.checkoutSha === checkout.headSha || checkout.checkoutSha === checkout.baseSha)
       throw new Error("Invalid pull request test merge");
     return {
@@ -652,12 +692,12 @@ export class ExecutionGitHub {
         : undefined;
     // An unconfigured or historical attempt has no verified base to attest to.
     // The completion reporter can still deliver its diagnostic directly to the PR.
-    const target =
+    const target: ResolvedCheckTarget =
       job.pullRequestNumber !== null &&
       !context?.checkout &&
       !expectedBase &&
       outcome !== "card_required"
-        ? ({ sha: null, pending: false } as const)
+        ? { sha: null, reason: "obsolete" }
         : await this.checkTarget(job, context?.accountId, {
             ...context,
             expectedBase,
@@ -676,7 +716,9 @@ export class ExecutionGitHub {
           dispatch.checkRunId,
         );
       }
-      if (target.pending && context?.retryPending)
+      if (target.reason === "base_changed" && context?.retryPending)
+        throw new Error("Pull request base changed during check publication");
+      if (target.reason === "pending" && context?.retryPending)
         throw new Error("Pull request test merge is pending");
       return null;
     }

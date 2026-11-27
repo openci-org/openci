@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+import { connectorConfig as webhooksConnector } from "@openci/webhooks-admin";
 import { onMutationExecuted } from "firebase-functions/dataconnect";
 import { error, warn } from "firebase-functions/logger";
 import { defineSecret } from "firebase-functions/params";
@@ -5,8 +7,9 @@ import { validJobId } from "./build_dispatch.js";
 import { dataConnectServiceId } from "./data_connect_config.js";
 import { getDispatchDataConnect } from "./dispatch_store.js";
 import { buildGitHub, type ExecutionGitHub } from "./executor/github.js";
-import { ExecutionStore } from "./executor/store.js";
+import { ExecutionStore, isolatedConnector } from "./executor/store.js";
 import { dispatchServiceAccount } from "./function_identity.js";
+import { enqueueWebhook, type WebhookDelivery } from "./webhook_queue.js";
 import {
   failedPullRequestComment,
   resolvedPullRequestComment,
@@ -26,7 +29,11 @@ export async function reportCompletedPullRequest(
   jobId: string,
   dispatchId: string,
   store: Store,
-  github: Pick<ExecutionGitHub, "options" | "postPullRequestResult" | "check">,
+  github: Pick<
+    ExecutionGitHub,
+    "options" | "currentPullRequestRevision" | "postPullRequestResult" | "check"
+  >,
+  enqueue: (delivery: WebhookDelivery) => Promise<unknown>,
 ) {
   const { job, latest } = await store.pullRequestCommentExecution(jobId);
   if (
@@ -50,10 +57,45 @@ export async function reportCompletedPullRequest(
     job.repositoryId,
   );
   if (!connection) return;
+  const signal = AbortSignal.timeout(90_000);
+  if (latest.runId && latest.pullRequestBaseBranch && latest.pullRequestBaseSha) {
+    const revision = await github.currentPullRequestRevision(job, connection.accountId, signal);
+    if (!revision || revision.base.ref !== latest.pullRequestBaseBranch) return;
+    if (revision.base.sha !== latest.pullRequestBaseSha) {
+      const current = await store.pullRequestCommentExecution(jobId);
+      if (current.latest?.id !== dispatchId || current.job?.status !== job.status) return;
+      const repo = { id: revision.repositoryId };
+      const payload = JSON.stringify({
+        action: "openci_base_changed",
+        openci_team_id: job.teamId,
+        number: revision.number,
+        installation: { id: Number(job.installationId) },
+        repository: {
+          ...repo,
+          name: job.repo,
+          owner: { id: Number(connection.accountId), login: job.owner },
+        },
+        pull_request: {
+          title: `Revalidate PR #${revision.number} against ${revision.base.ref}`,
+          head: { ...revision.head, repo },
+          base: { ...revision.base, repo },
+        },
+      });
+      // A replacement uses the ordinary planner and its per-revision job key.
+      // Replay this completion after a lost acknowledgement. A later run may
+      // need the same base again after a force-push.
+      const key = createHash("sha256")
+        .update(
+          JSON.stringify([github.options.apiBaseUrl, github.options.appId, dispatchId, payload]),
+        )
+        .digest("hex");
+      await enqueue({ deliveryId: `pr-base-${key}`, eventType: "pull_request", payload });
+      return;
+    }
+  }
   // Reservations also have an ordering before a numbered run (e.g. a checkout failure).
   const micros = (latest.createdAt.match(/\.(\d+)/u)?.[1] ?? "").padEnd(6, "0").slice(3, 6);
   const order = BigInt(Date.parse(latest.createdAt)) * 1000n + BigInt(micros);
-  const signal = AbortSignal.timeout(90_000);
   const comment = github.postPullRequestResult(
     job,
     connection.accountId,
@@ -159,6 +201,7 @@ export const reportPullRequestBuildResult = onMutationExecuted(
         variables.id,
         new ExecutionStore(getDispatchDataConnect()),
         buildGitHub(),
+        (delivery) => enqueueWebhook(isolatedConnector(webhooksConnector), delivery),
       );
     } catch (cause) {
       // Installation removal and insufficient App permissions are permanent for this

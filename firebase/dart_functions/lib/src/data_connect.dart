@@ -7,6 +7,8 @@ import 'package:http/http.dart' as http;
 import 'plan_jobs.dart';
 import 'planning_event.dart';
 
+export 'planning_event.dart' show PlanningObservationSuperseded;
+
 class PlanningTask {
   const PlanningTask(this.id, this.eventType, this.payload, this.status);
   final String id;
@@ -26,11 +28,6 @@ class PlanningFence {
   const PlanningFence(this.id, this.token);
   final String id;
   final String token;
-}
-
-/// Another planner invalidated the GitHub observation before it could commit.
-class PlanningObservationSuperseded implements Exception {
-  const PlanningObservationSuperseded();
 }
 
 abstract interface class PlanningStore {
@@ -278,7 +275,9 @@ class DataConnectPlanningStore implements PlanningStore {
           },
       ]),
       'pathFilterReason': plan.pathFilterReason,
-      'comparisonBaseSha': plan.comparisonBaseSha,
+      'comparisonBaseSha':
+          plan.comparisonBaseSha ??
+          (event?.isBaseRevalidation == true ? event?.baseSha : null),
       'connectionId': connection?.id,
       'repositoryId': event?.repositoryId.toString(),
       'owner': webhook?.owner,

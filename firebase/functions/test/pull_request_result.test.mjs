@@ -52,12 +52,13 @@ function fixture(t) {
   const pr = {
     number: 3,
     state: "open",
-    base: { repo: { id: 10 } },
-    head: { repo: { id: 10 }, sha },
+    base: { repo: { id: 10 }, ref: "main", sha: "b".repeat(40) },
+    head: { repo: { id: 10 }, ref: "feature", sha },
   };
   const comments = [],
     writes = [];
   const flags = {
+    baseTip: pr.base.sha,
     loseResponse: false,
     deleteBeforeEdit: false,
     files: ["apps/client/lib/menu.dart"],
@@ -97,6 +98,10 @@ function fixture(t) {
     if (route === "GET /repos/{owner}/{repo}")
       return { data: { id: 10, owner: { id: 4 }, full_name: "org/app" } };
     if (route.includes("/pulls/")) return { data: pr };
+    if (route === "GET /repos/{owner}/{repo}/git/ref/{ref}") {
+      assert.equal(args.ref, "heads/" + pr.base.ref);
+      return { data: { ref: "refs/" + args.ref, object: { type: "commit", sha: flags.baseTip } } };
+    }
     if (route.includes("/git/trees/")) {
       assert.equal(args.tree_sha, current.job.commitSha);
       return {
@@ -129,11 +134,13 @@ function fixture(t) {
   };
   request.defaults = () => request;
   t.mock.method(github, "client", async (_job, purpose) => {
-    assert.equal(purpose, "pr_comment");
+    assert.ok(["pr_comment", "pull_request"].includes(purpose));
     tokens++;
     return { request, token: "fixture" };
   });
-  const report = () => reportCompletedPullRequest(job.id, current.latest.id, store, github);
+  const deliveries = [];
+  const report = (enqueue = async (delivery) => deliveries.push(delivery)) =>
+    reportCompletedPullRequest(job.id, current.latest.id, store, github, enqueue);
   function next(outcome, commit = current.job.commitSha) {
     current.latest = {
       ...current.latest,
@@ -153,6 +160,7 @@ function fixture(t) {
     flags,
     store,
     github,
+    deliveries,
     report,
     next,
     logsRead: () => logsRead,
@@ -220,6 +228,68 @@ test("a checkout conflict before the run posts its reason and log on the origina
   assert.match(f.comments[0].body, /Merge conflict with the target branch/);
   assert.match(f.comments[0].body, /https:\/\/dash\.example\/runs\/job/);
   assert.equal(f.logsRead(), 0);
+});
+
+test("a base update requests the live revision idempotently without publishing stale results", async (t) => {
+  const f = fixture(t);
+  f.next("success");
+  Object.assign(f.current.latest, {
+    checkRunId: null,
+    pullRequestBaseBranch: "main",
+    pullRequestBaseSha: f.pr.base.sha,
+  });
+  f.flags.baseTip = "c".repeat(40);
+  await assert.rejects(
+    f.report(async (delivery) => {
+      f.deliveries.push(delivery);
+      throw new Error("acknowledgement lost");
+    }),
+    /acknowledgement lost/,
+  );
+  await Promise.all([f.report(), f.report()]);
+  f.next("failure");
+  f.current.job.workflowFileName = "other.dart";
+  f.current.latest.checkRunId = "42";
+  await f.report();
+  assert.equal(f.deliveries.length, 4);
+  assert.deepEqual(f.deliveries.slice(0, 3), Array(3).fill(f.deliveries[0]));
+  assert.equal(f.deliveries[3].payload, f.deliveries[0].payload);
+  assert.notEqual(f.deliveries[3].deliveryId, f.deliveries[0].deliveryId);
+  const payload = JSON.parse(f.deliveries[0].payload);
+  assert.equal(payload.openci_team_id, job.teamId);
+  assert.deepEqual(payload.pull_request.base, {
+    ref: "main",
+    sha: f.flags.baseTip,
+    repo: { id: 10 },
+  });
+  assert.deepEqual(payload.pull_request.head, { ref: "feature", sha, repo: { id: 10 } });
+  assert.equal(f.writes.length, 0);
+  assert.equal(f.logsRead(), 0);
+  f.flags.baseTip = "d".repeat(40);
+  await f.report();
+  assert.notEqual(f.deliveries.at(-1).deliveryId, f.deliveries[0].deliveryId);
+});
+
+test("closed, retargeted, forked and superseded PRs do not request a base revalidation", async (t) => {
+  const f = fixture(t);
+  Object.assign(f.current.latest, {
+    pullRequestBaseBranch: "main",
+    pullRequestBaseSha: f.pr.base.sha,
+  });
+  f.flags.baseTip = "c".repeat(40);
+  f.pr.state = "closed";
+  await f.report();
+  f.pr.state = "open";
+  f.pr.base.ref = "different";
+  await f.report();
+  f.pr.base.ref = "main";
+  f.pr.head.repo.id = 999;
+  await f.report();
+  f.pr.head.repo.id = 10;
+  f.pr.head.sha = "d".repeat(40);
+  await f.report();
+  assert.deepEqual(f.deliveries, []);
+  assert.deepEqual(f.writes, []);
 });
 
 test("a locally merged success is visible on its PR while its check is pending and is reconciled on redelivery", async (t) => {
