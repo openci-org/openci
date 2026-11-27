@@ -394,8 +394,10 @@ try {
 For a Patrol test, `openCI.patrol.testWithVirtualBle()` builds the app once,
 starts two iOS Simulators and Bumble, and runs the prebuilt test on each device.
 The app reads its `endpoint` from `tmp/openci-virtual-ble.json` in its data container.
-B publishes first. Once B is ready, the SDK starts A. Both devices are removed
-when the test finishes.
+B publishes first. Once B is ready, the SDK starts A. Each app has ten minutes
+to connect to the bridge and another eight minutes to publish its GATT value.
+The configuration for B includes `peerWaitTimeoutSeconds` for UI tests that
+wait for A to appear. Both devices are removed when the test finishes.
 
 ```dart
 await openCI.patrol.testWithVirtualBle(

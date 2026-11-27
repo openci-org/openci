@@ -175,6 +175,10 @@ void main() {
           ['install', deviceId, app.path],
           ['get_app_container', deviceId, 'org.example.app', 'data'],
         ]);
+        expect(simctl.timeouts.skip(2), [
+          const Duration(minutes: 5),
+          const Duration(minutes: 1),
+        ]);
       },
     );
 

@@ -18,10 +18,12 @@ void main() {
       final role = Uri.parse(endpoint).path.substring(1);
       await $.pumpWidget(BleExample(endpoint: endpoint));
       await $('Connect').tap();
-      // B starts waiting before Xcode launches A. The host gives A eight
-      // minutes to publish, then the peer still has to appear on B's screen.
+      // Older hosts give B nine minutes to discover A.
+      final peerWaitSeconds = config['peerWaitTimeoutSeconds'] as int?;
       await $('Peer: ${role == 'A' ? 'B' : 'A'}').waitUntilVisible(
-        timeout: role == 'B' ? const Duration(minutes: 9) : null,
+        timeout: role == 'B'
+            ? Duration(seconds: peerWaitSeconds ?? 9 * 60)
+            : null,
       );
       final received = $(const ValueKey('received'));
       if (role == 'B') await received.waitUntilVisible();

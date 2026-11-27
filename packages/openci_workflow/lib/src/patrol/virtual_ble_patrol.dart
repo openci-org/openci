@@ -8,6 +8,10 @@ import 'package:path/path.dart' as p;
 import '../ios_simulator.dart';
 import '../virtual_ble/virtual_ble.dart';
 
+const _startupTimeout = Duration(minutes: 10);
+const _publicationTimeout = Duration(minutes: 8);
+const _completionTimeout = Duration(minutes: 10);
+
 Future<Directory> runVirtualBlePatrol({
   required Directory directory,
   required String bundleId,
@@ -81,10 +85,28 @@ Future<Directory> runVirtualBlePatrol({
     return done;
   }
 
+  Future<void> waitForPublication(VirtualBlePeer peer, Future<void> finished) {
+    return Future.any([
+      radio.waitForPeer(
+        peer,
+        connectionTimeout: _startupTimeout,
+        timeout: _publicationTimeout,
+      ),
+      finished.then(
+        (_) => throw StateError(
+          'Patrol finished before peer ${peer.name.toUpperCase()} published',
+        ),
+      ),
+    ]);
+  }
+
   try {
     final app = Directory.fromUri(
       products.uri.resolve('Debug-iphonesimulator/Runner.app/'),
     );
+    // B waits in its UI test through A's startup, publication and UI update.
+    final peerWait =
+        _startupTimeout + _publicationTimeout + const Duration(minutes: 1);
     for (final peer in VirtualBlePeer.values) {
       final simulator = await launchIosSimulator(
         name: 'OpenCI Virtual BLE ${peer.name.toUpperCase()}',
@@ -96,22 +118,25 @@ Future<Directory> runVirtualBlePatrol({
         container.uri.resolve('tmp/openci-virtual-ble.json'),
       );
       await config.writeAsString(
-        jsonEncode({'endpoint': radio.endpoint(peer).toString()}),
+        jsonEncode({
+          'endpoint': radio.endpoint(peer).toString(),
+          if (peer == VirtualBlePeer.b)
+            'peerWaitTimeoutSeconds': peerWait.inSeconds,
+        }),
       );
     }
     final b = report(VirtualBlePeer.b, await start(VirtualBlePeer.b));
-    await Future.any([
-      radio.waitForPeer(VirtualBlePeer.b, timeout: const Duration(minutes: 8)),
-      b.then(
-        (_) => throw StateError('B exited before the second peer started'),
-      ),
-    ]);
+    await waitForPublication(VirtualBlePeer.b, b);
     final a = report(VirtualBlePeer.a, await start(VirtualBlePeer.a));
-    await Future.wait([
-      a,
-      b,
-      radio.waitForPeer(VirtualBlePeer.a, timeout: const Duration(minutes: 8)),
-    ], eagerError: true).timeout(const Duration(minutes: 10));
+    final finished = Future.wait([a, b], eagerError: true);
+    await waitForPublication(VirtualBlePeer.a, finished);
+    await finished.timeout(
+      _completionTimeout,
+      onTimeout: () => throw TimeoutException(
+        'Patrol did not finish after both peers published their GATT values',
+        _completionTimeout,
+      ),
+    );
     return output;
   } finally {
     // Stop any remaining XCTest run and shut down both devices on failure.
