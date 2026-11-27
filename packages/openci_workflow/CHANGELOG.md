@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.8.2
+
+- Add optional `dartDefines`, `dartDefineFromFiles`, and `buildNumber` parameters to `flutter.buildIpa()`. Both the iOS configuration step and the signed IPA build receive these options.
+
 ## 0.8.1
 
 - Add `flutter.buildWeb()` for release builds, with an optional `noPub` flag to skip dependency resolution.

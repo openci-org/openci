@@ -46,6 +46,37 @@ void main() {
       );
     });
 
+    test('passes named build options to both Flutter commands', () async {
+      const message = r'''hello' "$SECRET" $(printf expanded)''';
+      const envFile = "config/team's settings.env";
+      await environment.build(
+        dartDefines: const {'MESSAGE': message, 'EMPTY': ''},
+        dartDefineFromFiles: const ['config/shared.json', envFile],
+        buildNumber: '42.1',
+        additionalArguments: const ['--target=lib/main_prod.dart'],
+      );
+
+      const expectedArguments = [
+        '--dart-define',
+        'MESSAGE=$message',
+        '--dart-define',
+        'EMPTY=',
+        '--dart-define-from-file',
+        'config/shared.json',
+        '--dart-define-from-file',
+        envFile,
+        '--build-number',
+        '42.1',
+        '--target=lib/main_prod.dart',
+      ];
+      for (final subcommand in ['ios', 'ipa']) {
+        final build = environment.arguments.singleWhere(
+          (args) => args.take(3).join(' ') == 'flutter build $subcommand',
+        );
+        expect(build.skip(3).take(expectedArguments.length), expectedArguments);
+      }
+    });
+
     for (final dir in <String?>[null, '', 'apps/another app']) {
       test('prepares signing and exports in the workflow directory: $dir', () async {
         const argument =
@@ -443,6 +474,9 @@ esac
     IosDistributionMethod distributionMethod = IosDistributionMethod.adHoc,
     String? dir,
     String? flavor,
+    Map<String, String> dartDefines = const {},
+    List<String> dartDefineFromFiles = const [],
+    String? buildNumber,
     List<String> additionalArguments = const [],
     String? privateKeyBase64,
   }) async {
@@ -538,6 +572,9 @@ esac
         certificatePrivateKey: 'TEST_CERTIFICATE_KEY',
         dir: dir,
         flavor: flavor,
+        dartDefines: dartDefines,
+        dartDefineFromFiles: dartDefineFromFiles,
+        buildNumber: buildNumber,
         additionalArguments: additionalArguments,
       ),
       getSystemTempDirectory: () => temporary,
