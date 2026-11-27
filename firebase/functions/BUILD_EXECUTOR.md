@@ -274,7 +274,8 @@ consistent with the dispatcher/planner:
 The Linux pilot uses `base-linux` on Vetu/amd64 with the vCPU count and memory
 from the job's reservation. Checkout and workflow execution share
 `/home/admin/openci-build`. The image supplies FVM, Java 17 and the Android SDK.
-The executor supplies workflow context and skips team secret retrieval for Linux.
+After checkout, the executor loads team secrets for the workflow and masks their
+values in its logs, as it does on macOS.
 Hosted teams in `BILLING_COMPLIMENTARY_PRO_TEAM_IDS` use their existing allowance.
 Configure postpaid admission on the executor Job before enabling Linux dispatch.
 

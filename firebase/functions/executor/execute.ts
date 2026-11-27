@@ -317,7 +317,7 @@ export async function executeBuild(
     let qrCodes: PullRequestQrCode[] = [];
     await step("run_workflow", 2, async () => {
       if (resolvedCheckout.checkoutSha === null) throw new Error("Unresolved PR merge checkout");
-      const secrets = linuxPilot ? {} : await dependencies.secrets(job, resolvedCheckout, signal);
+      const secrets = await dependencies.secrets(job, resolvedCheckout, signal);
       signal.throwIfAborted();
       const output = logs.output("run_workflow", Object.values(secrets));
       try {

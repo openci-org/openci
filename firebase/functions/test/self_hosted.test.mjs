@@ -84,6 +84,7 @@ function executionFixture(selfHosted, contextChange = {}) {
   const calls = [];
   const scripts = [];
   const checkShas = [];
+  const outputSecrets = new Map();
   const dispatch = {
     id: "dispatch",
     jobId: "job",
@@ -210,7 +211,10 @@ function executionFixture(selfHosted, contextChange = {}) {
     logs: () => ({
       async start() {},
       async finish() {},
-      output: () => ({ write() {}, async flush() {} }),
+      output(stepId, secrets) {
+        outputSecrets.set(stepId, secrets);
+        return { write() {}, async flush() {} };
+      },
     }),
     async secrets() {
       return {};
@@ -229,6 +233,7 @@ function executionFixture(selfHosted, contextChange = {}) {
     calls,
     scripts,
     checkShas,
+    outputSecrets,
     job,
     dependencies,
     dispatch,
@@ -260,13 +265,21 @@ test("self-hosted builds run without subscription or usage admission and still r
   ]);
 });
 
-test("a Linux reservation checks out and runs the workflow in the same guest workspace", async () => {
+test("a Linux reservation uses one workspace and provides team secrets to the workflow", async () => {
   const f = executionFixture(true);
   f.job.runsOn = f.dispatch.runsOn = "linux-small";
-  f.dependencies.secrets = async () => assert.fail("The Linux pilot must not read team secrets");
+  const value = "linux-workflow-test-value";
+  f.dependencies.secrets = async (job, checkout) => {
+    assert.equal(job, f.job);
+    assert.equal(checkout.checkoutSha, job.commitSha);
+    return { CI_TEST_SECRET: value };
+  };
   await f.run();
   assert.equal(f.dispatch.outcome, "success");
   assert.equal(f.scripts.length, 2);
+  assert.ok(!f.scripts[0].includes(value));
+  assert.ok(f.scripts[1].includes(`export CI_TEST_SECRET='${value}'`));
+  assert.deepEqual(f.outputSecrets.get("run_workflow"), [value]);
   for (const script of f.scripts) {
     assert.match(script, /export HOME=\/home\/admin/);
     assert.ok(
@@ -287,7 +300,10 @@ function postpaidLinuxFixture(contextChange) {
   };
   f.dependencies.billing.admit = async () => f.calls.push("admit");
   f.dependencies.billing.start = async () => f.calls.push("start");
-  f.dependencies.secrets = async () => assert.fail("Linux pilot read team secrets");
+  f.dependencies.secrets = async () => {
+    f.calls.push("secrets");
+    return {};
+  };
   return f;
 }
 
@@ -308,6 +324,7 @@ test("only the approved first Linux run can use its existing postpaid billing", 
     assert.equal(f.calls.includes("admit"), allowed);
     assert.equal(f.calls.includes("start"), allowed);
     assert.equal(f.calls.includes("create"), allowed);
+    assert.equal(f.calls.includes("secrets"), allowed);
   }
 });
 
@@ -333,6 +350,7 @@ test("an approved team and repository can run successive and retried postpaid Li
       "start",
       "create",
       "exec",
+      "secrets",
       "exec",
       "remove",
       "close",
@@ -360,6 +378,7 @@ test("recurring Linux admission requires both IDs and the saved GitHub.com host"
     assert.equal(f.dispatch.outcome, "failure");
     assert.ok(!f.calls.includes("period"));
     assert.ok(!f.calls.includes("create"));
+    assert.ok(!f.calls.includes("secrets"));
   }
 });
 

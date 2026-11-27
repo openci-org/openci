@@ -115,7 +115,8 @@ GitHub App subscribed to Release events with Contents read permission.
 ### Choose a worker
 
 Workflows use macOS by default. Repositories enabled for the hosted Linux pilot
-can choose one of two amd64 VMs. Team secrets are unavailable in the Linux pilot.
+can choose one of two amd64 VMs. Linux workflows receive team secrets under
+the same conditions as macOS workflows.
 
 | Machine                   | vCPUs |   RAM |
 | ------------------------- | ----: | ----: |
