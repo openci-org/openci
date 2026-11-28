@@ -13,8 +13,7 @@ __pycache__/
 .flutter-plugins-dependencies
 pubspec_overrides.yaml
 **/doc/api/
-**/.fvm/flutter_sdk
-**/.fvm/versions/
+.fvm/
 
 .env*.local
 

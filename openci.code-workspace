@@ -13,4 +13,7 @@
     { "name": "landing_page", "path": "apps/landing_page" },
     { "name": "website", "path": "apps/website" },
   ],
+  "settings": {
+    "dart.flutterSdkPath": ".fvm/flutter_sdk",
+  },
 }

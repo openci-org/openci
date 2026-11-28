@@ -1,13 +1,11 @@
-import 'package:http/http.dart' as http;
-
 import '../credential_store/credential_config.dart';
 import '../functions/callable_api.dart';
 
 typedef SecretResponse = FunctionResponse;
 
 class SecretsApi extends CallableApi {
-  SecretsApi(AuthProfile profile, {http.Client? client})
-    : super(profile, 'teamSecrets', client: client);
+  SecretsApi(AuthProfile profile, {super.client})
+    : super(profile, 'teamSecrets');
 
   Future<SecretResponse> getSecrets(String teamId) =>
       call({'action': 'list', 'teamId': teamId});

@@ -2,6 +2,9 @@
 
 [![codecov](https://codecov.io/gh/openci-org/openci/graph/badge.svg?token=RAJBUMJU3O)](https://codecov.io/gh/openci-org/openci)
 
+Local development uses the Flutter SDK pinned in `.fvmrc`. Run `fvm use` from
+the repository root, then use `fvm flutter` or `fvm dart` for project commands.
+
 ## Dart formatting CI
 
 The `Dart Format Check` workflow runs on pull requests to any branch and pushes
@@ -13,14 +16,14 @@ new Dart files throughout the repository without rewriting them. Formatting
 differences fail the check; ignored build outputs and downloaded packages are
 excluded.
 
-Run it locally from the repository root with the same Flutter release:
+Run the formatting check from the repository root using the local SDK.
 
 ```sh
-flutter pub get
-dart run openci/repo/dart_format.dart
+fvm flutter pub get --enforce-lockfile
+fvm exec dart run openci/repo/dart_format.dart
 ```
 
-Use `dart format <file paths>` to fix any reported formatting differences.
+Use `fvm dart format <file paths>` to fix any reported formatting differences.
 
 ## Firebase Hosting
 

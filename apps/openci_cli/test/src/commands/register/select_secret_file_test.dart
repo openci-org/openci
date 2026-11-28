@@ -250,6 +250,7 @@ void main() {
       );
       expect(console.output.toString(), isNot(contains('\x1b]52;')));
     },
+    // Windows disallows control characters in filenames.
     skip: Platform.isWindows,
   );
 }
